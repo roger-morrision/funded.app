@@ -1,0 +1,8 @@
+node_modules
+dist
+data
+.git
+.env*
+*.log
+contracts
+mnt-c-data-dev-apps-funded-app-contracts-funded-fee-router

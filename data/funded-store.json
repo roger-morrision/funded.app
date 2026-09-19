@@ -1,0 +1,51 @@
+{
+  "version": 3,
+  "launches": {},
+  "settlements": {},
+  "obligations": {
+    "claim-check:sol-claim": {
+      "id": "claim-check:sol-claim",
+      "claimSignature": "claim-check",
+      "recipient": "@creator",
+      "asset": "SOL",
+      "amountSol": 1.25,
+      "status": "claimable-after-wallet-verification",
+      "createdAt": "2026-09-19T00:43:19.329Z"
+    }
+  },
+  "claims": {},
+  "referralClaims": {},
+  "payouts": {},
+  "collections": {
+    "5kSmNg3UUMjwkrsHwHPCbp9xLi6itTiY3yZo5rhMsHfpNWz893SW21VGQSBjLjxE7cJuKfoTzaZToFnr9acDwt7k": {
+      "id": "5kSmNg3UUMjwkrsHwHPCbp9xLi6itTiY3yZo5rhMsHfpNWz893SW21VGQSBjLjxE7cJuKfoTzaZToFnr9acDwt7k",
+      "mint": "CaRx7LTXRsknr7184fuHxx5GZGoV5hP8VrXoDk1jqq8A",
+      "router": "C9ULKtSDWJQqniEKQSgQ5AJLKrmJo9n1FSmQaMtyR7fR",
+      "signature": "5kSmNg3UUMjwkrsHwHPCbp9xLi6itTiY3yZo5rhMsHfpNWz893SW21VGQSBjLjxE7cJuKfoTzaZToFnr9acDwt7k",
+      "beforeLamports": 1076160,
+      "afterLamports": 1105863,
+      "collectedLamports": 29703,
+      "cluster": "devnet",
+      "status": "collected",
+      "recordedAt": "2026-09-19T02:50:08.504Z"
+    },
+    "TK5LdFH1Qseo27xKXvAoF2oqmLsTNQEzEXQUtC5dKDnAacjRbMGbSxAeupZkgw97TBFNiKB1bAT95AV4WiYHK8K": {
+      "id": "TK5LdFH1Qseo27xKXvAoF2oqmLsTNQEzEXQUtC5dKDnAacjRbMGbSxAeupZkgw97TBFNiKB1bAT95AV4WiYHK8K",
+      "mint": "CaRx7LTXRsknr7184fuHxx5GZGoV5hP8VrXoDk1jqq8A",
+      "router": "C9ULKtSDWJQqniEKQSgQ5AJLKrmJo9n1FSmQaMtyR7fR",
+      "signature": "TK5LdFH1Qseo27xKXvAoF2oqmLsTNQEzEXQUtC5dKDnAacjRbMGbSxAeupZkgw97TBFNiKB1bAT95AV4WiYHK8K",
+      "beforeLamports": 1105863,
+      "afterLamports": 1105863,
+      "collectedLamports": 0,
+      "cluster": "devnet",
+      "status": "collected",
+      "recordedAt": "2026-09-19T02:50:19.789Z"
+    }
+  },
+  "referrals": {
+    "codes": {},
+    "wallets": {},
+    "attributions": {},
+    "challenges": {}
+  }
+}

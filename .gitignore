@@ -1,0 +1,135 @@
+# ==========================================
+# Secrets / Environment
+# ==========================================
+.env
+.env.local
+.env.example
+.env.*
+*.env
+secrets/
+secret/
+credentials/
+credentials.json
+service-account.json
+config/secrets.*
+*.secret
+
+# API Keys / Tokens
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.jks
+*.keystore
+
+# SSH
+.ssh/
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# ==========================================
+# Python
+# ==========================================
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ==========================================
+# Node.js
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+.yarn/
+
+# ==========================================
+# Build / Cache
+# ==========================================
+dist/
+build/
+out/
+.cache/
+.next/
+.nuxt/
+coverage/
+tmp/
+temp/
+
+# ==========================================
+# Database / Local Data
+# ==========================================
+*.db
+*.sqlite
+*.sqlite3
+*.mdb
+*.bak
+
+# ==========================================
+# Logs
+# ==========================================
+*.log
+logs/
+
+# ==========================================
+# IDE
+# ==========================================
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+
+# ==========================================
+# OS
+# ==========================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==========================================
+# PowerShell
+# ==========================================
+*.ps1xml.user
+
+# ==========================================
+# Terraform
+# ==========================================
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# ==========================================
+# Docker local overrides
+# ==========================================
+docker-compose.override.yml
+
+# ==========================================
+# AI / Local models
+# ==========================================
+models/
+*.gguf
+*.safetensors
+*.bin
+
+# ==========================================
+# Backup files
+# ==========================================
+*.backup
+*.old
+*.tmp
+*.temp

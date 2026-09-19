@@ -1,0 +1,54 @@
+import assert from 'node:assert/strict';
+import { APP_REFERRAL_LEVELS, buildFeeDistributionPolicy, calculateCreatorFeeClaim, FEE_DISTRIBUTION, settleCreatorFeeClaim, validateFeeDistribution } from '../distribution-policy.js';
+
+assert.equal(FEE_DISTRIBUTION.pumpRoutedPercent, 100);
+assert.equal(FEE_DISTRIBUTION.pumpRoutedShareBps, 10_000);
+assert.equal(FEE_DISTRIBUTION.fundedPercent, 20);
+assert.equal(FEE_DISTRIBUTION.creatorPercent, 80);
+assert.equal(FEE_DISTRIBUTION.operationsRateOfFundedRevenue, 70);
+assert.equal(FEE_DISTRIBUTION.appReferralRateOfFundedRevenue, 15);
+assert.equal(FEE_DISTRIBUTION.communityRateOfFundedRevenue, 10);
+assert.equal(FEE_DISTRIBUTION.buybackRateOfFundedRevenue, 5);
+assert.equal(FEE_DISTRIBUTION.operationsRateOfFundedRevenue + FEE_DISTRIBUTION.appReferralRateOfFundedRevenue + FEE_DISTRIBUTION.communityRateOfFundedRevenue + FEE_DISTRIBUTION.buybackRateOfFundedRevenue, 100);
+assert.deepEqual(APP_REFERRAL_LEVELS.map(level => level.percentOfFundedRevenue), [10, 3, 2]);
+assert.deepEqual(APP_REFERRAL_LEVELS.map(level => level.effectivePercentOfCreatorFees), [2, 0.6, 0.4]);
+assert.equal(validateFeeDistribution({ creatorWalletPercent: 50, holderAirdropPercent: 30, xPercent: 0 }).valid, true);
+assert.equal(validateFeeDistribution({ creatorWalletPercent: 50, holderAirdropPercent: 20, xPercent: 10, xRecipient: '@creator' }).valid, true);
+assert.equal(validateFeeDistribution({ creatorWalletPercent: 50, holderAirdropPercent: 20, xPercent: 9 }).valid, false);
+assert.equal(validateFeeDistribution({ creatorWalletPercent: 60, holderAirdropPercent: 10, xPercent: 10 }).xRecipientValid, false);
+assert.equal(validateFeeDistribution({ creatorWalletPercent: 90, holderAirdropPercent: 0, xPercent: 0 }).sharesValid, false);
+assert.equal(validateFeeDistribution({ creatorWalletPercent: 50, holderAirdropPercent: 20, xPercent: 10, xRecipient: 'creator' }).valid, false);
+
+const policy = buildFeeDistributionPolicy({ creatorWalletPercent: 50, holderAirdropPercent: 30, xPercent: 0, feeRouterAddress: 'router-address' });
+assert.equal(policy.pumpCreatorFeeRoute.percent, 100);
+assert.equal(policy.pumpCreatorFeeRoute.shareBps, 10_000);
+assert.equal(policy.pumpCreatorFeeRoute.routerAddress, 'router-address');
+assert.equal(policy.fixedFunded.percent, 20);
+assert.equal(policy.fixedFunded.operations.effectivePercentOfCreatorFees, 14);
+assert.equal(policy.fixedFunded.appReferral.effectivePercentOfCreatorFees, 3);
+assert.equal(policy.fixedFunded.appReferral.maxDepth, 3);
+assert.equal(policy.fixedFunded.appReferral.levels.length, 3);
+assert.equal(policy.fixedFunded.appReferral.unattributedDestination, 'community-growth-reserve');
+assert.equal(policy.fixedFunded.communityRewards.effectivePercentOfCreatorFees, 2);
+assert.equal(policy.fixedFunded.fundedBuyback.effectivePercentOfCreatorFees, 1);
+assert.equal(policy.creatorDirected.percent, 80);
+assert.equal(policy.immutable, true);
+
+const claim = calculateCreatorFeeClaim(100, { creatorWalletPercent: 50, holderAirdropPercent: 20, xPercent: 10, xRecipient: '@creator' }, { referralRecipients: ['L1'] });
+assert.equal(claim.pumpRouterIngress, 100);
+assert.deepEqual(claim.creatorDestinations, { creatorWallet: 50, holderAirdrop: 20, solClaim: 10 });
+assert.equal(claim.fundedApp.operations, 14);
+assert.equal(claim.fundedApp.referralPayout, 2);
+assert.equal(claim.fundedApp.referralLevels[0].status, 'claimable');
+assert.equal(claim.fundedApp.referralLevels[0].payoutMode, 'user-initiated-wallet-claim');
+assert.equal(claim.fundedApp.missingReferralToCommunity, 1);
+assert.equal(claim.fundedApp.community, 3);
+assert.equal(claim.fundedApp.buyback, 1);
+assert.equal(claim.totalAllocated, 100);
+
+const claims = new Map();
+const first = settleCreatorFeeClaim({ claimSignature: 'claim-1', grossCreatorFees: 100 }, { creatorWalletPercent: 80, holderAirdropPercent: 0, xPercent: 0 }, { referralRecipients: ['L1', 'L2', 'L3'] }, claims);
+const duplicate = settleCreatorFeeClaim({ claimSignature: 'claim-1', grossCreatorFees: 999 }, { creatorWalletPercent: 80, holderAirdropPercent: 0, xPercent: 0 }, {}, claims);
+assert.equal(first, duplicate);
+assert.equal(claims.size, 1);
+console.log('fee distribution policy checks passed');

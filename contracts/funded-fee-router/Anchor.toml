@@ -1,0 +1,21 @@
+[toolchain]
+package_manager = "npm"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+funded_fee_router = "C92L1A3ZkS9Nnau5JLAMwMUYxPSYVUTdeosHyc6WMA8W"
+
+[programs.devnet]
+funded_fee_router = "C92L1A3ZkS9Nnau5JLAMwMUYxPSYVUTdeosHyc6WMA8W"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "cargo test"
+
+[hooks]

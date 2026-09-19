@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: funded_app
+      POSTGRES_USER: funded
+      POSTGRES_PASSWORD: ${FUNDED_DB_PASSWORD:?Run npm.cmd run deploy:init first}
+    volumes:
+      - funded_vip_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U funded -d funded_app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      args:
+        VITE_API_BASE_URL: /
+        VITE_SOLANA_CLUSTER: devnet
+        VITE_EXPLORE_CLUSTER: devnet
+        VITE_ALLOW_MAINNET: "false"
+        VITE_FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_FEE_ROUTER_PROGRAM_ID:?Missing Devnet router ID}
+        VITE_FUNDED_TRADE_FEE_OWNER: ${FUNDED_TRADE_FEE_OWNER:?Missing Devnet fee owner}
+        VITE_FUNDED_TOKEN_MINT: ${FUNDED_TOKEN_MINT:-}
+    restart: unless-stopped
+    command: ["sh", "-c", "node scripts/migrate-postgres.mjs && node server/index.mjs"]
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 8787
+      VITE_SOLANA_CLUSTER: devnet
+      SOLANA_RPC_URL: https://api.devnet.solana.com
+      FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_FEE_ROUTER_PROGRAM_ID}
+      FUNDED_API_TOKEN: ${FUNDED_API_TOKEN:?Run npm.cmd run deploy:init first}
+      DATABASE_URL: postgresql://funded:${FUNDED_DB_PASSWORD}@db:5432/funded_app
+      DATABASE_SSL: "false"
+      TRUST_PROXY: "true"
+    ports:
+      - "127.0.0.1:8787:8787"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  tunnel:
+    profiles: ["tunnel"]
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    command: tunnel --no-autoupdate run
+    depends_on:
+      - app
+
+volumes:
+  funded_vip_pgdata:
