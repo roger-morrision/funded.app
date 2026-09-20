@@ -1,5 +1,9 @@
 pub const SEED: &[u8] = b"funded-fee-router-v1";
 pub const CLAIM_SEED: &[u8] = b"claim";
+pub const MINT_ROUTER_SEED: &[u8] = b"funded-mint-router-v2";
+pub const MINT_ROUTER_MAGIC: &[u8; 8] = b"FUNDMNT2";
+pub const MINT_ROUTER_VERSION: u8 = 2;
+pub const MINT_ROUTER_DATA_LEN: usize = 106;
 pub const MAGIC: &[u8; 8] = b"FUNDFEE1";
 pub const VERSION: u8 = 1;
 pub const POLICY_HASH: [u8; 32] = [

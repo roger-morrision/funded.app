@@ -17,6 +17,11 @@ if (process.env.VITE_SOLANA_CLUSTER !== 'devnet' || process.env.VITE_ALLOW_MAINN
 }
 const rpcUrl = process.env.SOLANA_RPC_URL || clusterApiUrl('devnet');
 const connection = new Connection(rpcUrl, 'confirmed');
+const [rpcGenesis, devnetGenesis] = await Promise.all([
+  connection.getGenesisHash(),
+  new Connection(clusterApiUrl('devnet'), 'confirmed').getGenesisHash(),
+]);
+assert.equal(rpcGenesis, devnetGenesis, 'The configured RPC endpoint is not Solana Devnet.');
 const walletName = process.argv[3] || 'creator';
 const walletSecrets = {
   creator: process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY,

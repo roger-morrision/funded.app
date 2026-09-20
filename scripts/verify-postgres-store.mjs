@@ -5,16 +5,34 @@ import { spawn } from 'node:child_process';
 import pg from 'pg';
 import { createPostgresStore } from '../server/postgres-store.mjs';
 
+async function loadLocalEnv() {
+  try {
+    const contents = await readFile(resolve(process.cwd(), '.env.local'), 'utf8');
+    for (const line of contents.split(/\r?\n/)) {
+      const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+      if (!match || match[1].startsWith('#')) continue;
+      const value = match[2].replace(/^['"]|['"]$/g, '');
+      if (process.env[match[1]] == null) process.env[match[1]] = value;
+    }
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
+}
+
+await loadLocalEnv();
 const databaseUrl = process.env.DATABASE_URL;
-const url = new URL(databaseUrl || '');
 assert.equal(process.env.BACKEND_DB_TEST, '1', 'This test must be explicitly enabled.');
+assert.ok(databaseUrl, 'DATABASE_URL is required. Use the isolated PostgreSQL test database on 127.0.0.1:15432/funded_test.');
+const url = new URL(databaseUrl);
 assert.equal(url.hostname, '127.0.0.1');
-assert.equal(url.port, '15432');
+assert.equal(url.port, '15435');
 assert.equal(url.pathname, '/funded_test');
 const pool = new pg.Pool({ connectionString: databaseUrl });
-const oldLaunch = { mint: 'legacy-mint', creatorWallet: 'legacy-creator', updatedAt: '2026-01-01T00:00:00.000Z' };
+const oldLaunch = { mint: '11111111111111111111111111111111', creatorWallet: 'legacy-creator', updatedAt: '2026-01-01T00:00:00.000Z' };
 const legacy = { version: 4, launches: { [oldLaunch.mint]: oldLaunch }, settlements: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, launchReviews: {}, alerts: {}, xIntake: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
+await pool.query('DROP SCHEMA public CASCADE');
+await pool.query('CREATE SCHEMA public');
 await pool.query(await readFile(resolve('db/schema.sql'), 'utf8'));
+// This guard restricts destructive fixture reset to the disposable test DB.
+await pool.query('TRUNCATE state_meta, state_entities, market_activity, rpc_rate_limits, launches, collections, settlements, referral_claims, app_state');
 await pool.query('INSERT INTO app_state (id, version, payload) VALUES (1, 4, $1::jsonb)', [JSON.stringify(legacy)]);
 const store = createPostgresStore(databaseUrl);
 const other = createPostgresStore(databaseUrl);
@@ -57,6 +75,9 @@ try {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     assert.equal(ready, true, 'Production API did not start on the keyed store.');
+    const launchPage = await (await fetch(`${base}/api/launches?limit=1&offset=0`)).json();
+    assert.equal(launchPage.length, 1);
+    assert.equal(launchPage[0].mint, oldLaunch.mint);
     const activity = await (await fetch(`${base}/api/tokens/${oldLaunch.mint}/fee-activity`)).json();
     assert.equal(activity.source, 'funded.app-postgresql');
     assert.equal(activity.collections[0].collectedLamports, 1_000_000_000);

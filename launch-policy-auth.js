@@ -9,6 +9,14 @@ export function canonicalLaunchPolicy(input = {}) {
   const xRecipient = input.feeDistribution?.creatorDirected?.recipients?.xAccount || '';
   const distribution = validateFeeDistribution({ ...shares, xRecipient });
   if (!distribution.valid) throw new Error('Creator-directed shares or X recipient are invalid.');
+  const xUserId = String(input.xUserId || '').trim();
+  if (distribution.shares.solClaimPercent > 0 && !/^\d{1,24}$/.test(xUserId)) throw new Error('A verified, stable X user ID is required for X-linked launches.');
+  const burn = input.creatorLaunchBurn;
+  const promotion = burn && burn.tier !== 'standard' ? {
+    tier: String(burn.tier || ''),
+    amountTokens: Number(burn.amountTokens),
+    fundedMint: new PublicKey(String(burn.fundedMint || '')).toBase58(),
+  } : null;
   return {
     mint: new PublicKey(String(input.mint || '')).toBase58(),
     creatorWallet: new PublicKey(String(input.creatorWallet || '')).toBase58(),
@@ -20,6 +28,8 @@ export function canonicalLaunchPolicy(input = {}) {
     holderAirdropPercent: distribution.shares.holderAirdropPercent,
     solClaimPercent: distribution.shares.solClaimPercent,
     xRecipient: distribution.shares.solClaimPercent > 0 ? xRecipient : '',
+    ...(distribution.shares.solClaimPercent > 0 ? { xUserId } : {}),
+    ...(promotion ? { promotion } : {}),
   };
 }
 

@@ -4,6 +4,7 @@ import { Keypair, Transaction } from '@solana/web3.js';
 import { createBurnCheckedInstruction, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { PUMP_SDK } from '@pump-fun/pump-sdk';
 import { buildLaunchBurnPolicy, createLaunchBurnTiers, tokensToBaseUnits, validateLaunchBurnPolicy } from '../launch-burn-policy.js';
+import { buildPumpLaunchPlan } from '../mint-router-launch.js';
 
 const tiers = createLaunchBurnTiers({ boostAmount: 25_000, proAmount: 100_000, premierAmount: 250_000 });
 assert.deepEqual(tiers.map(tier => tier.id), ['standard', 'boost', 'pro', 'premier']);
@@ -31,9 +32,9 @@ assert.equal(premier.amountTokens, 250_000);
 
 const launchFlow = await readFile(new URL('../launch-flow.js', import.meta.url), 'utf8');
 assert.match(launchFlow, /createBurnCheckedInstruction/);
-assert.match(launchFlow, /transaction\.add\(burnPlan\.instruction\)/);
-assert.match(launchFlow, /transaction\.add\(createInstruction\)/);
-assert.ok(launchFlow.indexOf('transaction.add(burnPlan.instruction)') < launchFlow.indexOf('transaction.add(createInstruction)'));
+assert.match(launchFlow, /buildPumpLaunchPlan\(/);
+assert.match(launchFlow, /burnInstruction: burnPlan\?\.instruction/);
+assert.match(launchFlow, /atomicWithPumpLaunch: true/);
 assert.match(launchFlow, /supplyAfter/);
 
 const payer = Keypair.generate();
@@ -58,5 +59,8 @@ transaction.feePayer = payer.publicKey;
 transaction.partialSign(coinMint, payer);
 const transactionBytes = transaction.serialize().length;
 assert.ok(transactionBytes <= 1232, `Atomic launch is too large: ${transactionBytes} bytes`);
+const plan = buildPumpLaunchPlan({ payer: payer.publicKey, mint: coinMint, blockhash: transaction.recentBlockhash, launchInstructions: [createInstruction], burnInstruction });
+assert.equal(plan.steps.length, 1);
+assert.equal(plan.steps[0].bytes, transactionBytes);
 
 console.log(`launch burn policy verification passed (${transactionBytes} byte atomic transaction)`);

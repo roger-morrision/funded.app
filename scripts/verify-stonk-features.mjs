@@ -16,6 +16,7 @@ try {
   await waitForServer();
   const quotes = await request('/api/quote-assets'); assert.equal(quotes.assets.some(item => item.symbol === 'SOL' && item.status === 'verified'), true);
   const launches = await request('/api/launches'); assert.equal(launches[0].mint, 'feature-mint');
+  assert.equal((await request('/api/launches?limit=1&offset=0'))[0].mint, 'feature-mint');
   const review = await request('/api/launch-reviews', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mint: 'feature-mint', creatorWallet: 'creator-wallet', symbol: 'FTR', quoteMint: quotes.assets[0].mint, quoteSymbol: 'SOL' }) }); assert.match(review.reviewHash, /^[a-f0-9]{64}$/);
   const profile = await request('/api/creators/creator-wallet'); assert.equal(profile.graduated, 1);
   const alert = await request('/api/alerts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ wallet: 'viewer', mint: 'feature-mint', type: 'graduation' }) }); assert.equal(alert.status, 'active');

@@ -27,6 +27,16 @@ CREATE TABLE IF NOT EXISTS market_activity (
   observed_at TIMESTAMPTZ NOT NULL,
   PRIMARY KEY (mint, cluster)
 );
+CREATE INDEX IF NOT EXISTS market_activity_observed_at_idx ON market_activity (observed_at);
+
+CREATE TABLE IF NOT EXISTS devnet_metadata (
+  mint TEXT PRIMARY KEY,
+  creator_wallet TEXT NOT NULL,
+  payload JSONB NOT NULL,
+  image BYTEA,
+  image_mime TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 CREATE TABLE IF NOT EXISTS rpc_rate_limits (
   client_key TEXT NOT NULL,
@@ -76,3 +86,4 @@ CREATE INDEX IF NOT EXISTS collections_mint_attributed_idx ON collections (mint,
 CREATE INDEX IF NOT EXISTS collections_router_idx ON collections ((payload->>'router'), recorded_at DESC) WHERE status = 'collected' AND collected_lamports > 0;
 CREATE INDEX IF NOT EXISTS settlements_status_idx ON settlements (status);
 CREATE INDEX IF NOT EXISTS referral_claims_status_idx ON referral_claims (status);
+CREATE INDEX IF NOT EXISTS referral_claims_recipient_idx ON referral_claims ((payload->>'recipientWallet'), updated_at DESC);

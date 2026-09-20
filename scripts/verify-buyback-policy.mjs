@@ -1,5 +1,25 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { BUYBACK_POLICY, buildBuybackAccrual, buildBuybackPolicy, buildBuybackReceipt, evaluateBuybackBatch, summarizeBuybackLedger } from '../buyback-policy.js';
+
+const appSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
+const htmlSource = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const receiptEmptyState = 'No verified on-chain buyback receipts are indexed on Devnet yet.';
+assert.ok(appSource.includes(receiptEmptyState), 'rendered buyback ledger explains missing on-chain receipts');
+assert.ok(htmlSource.includes(receiptEmptyState), 'initial buyback ledger explains missing on-chain receipts');
+const previewRendererSource = appSource.match(/function renderBuybackExample\(\)\{[\s\S]*?\n\}/)?.[0];
+assert.ok(previewRendererSource, 'buyback input has a local-only preview renderer');
+const input = { value: '10', parentElement: { querySelector: () => help } };
+const help = { textContent: '' };
+const renderExample = new Function('document', 'formatBuybackAmount', `${previewRendererSource}; return renderBuybackExample;`)(
+  { querySelector: () => input },
+  value => String(value),
+);
+renderExample();
+assert.match(help.textContent, /10 SOL.*0\.1 SOL \(1%\).*Local calculation only/);
+input.value = '0';
+renderExample();
+assert.match(help.textContent, /above zero/);
 
 const policy = buildBuybackPolicy({ fundedMint: 'FUNDEDMint11111111111111111111111111111111' });
 assert.equal(policy.source.percentOfFundedRevenue, 5);

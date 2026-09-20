@@ -3,16 +3,17 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { pgPoolConfig } from './db-config.mjs';
+import { metadataStatement } from '../devnet-metadata.js';
 
 const { Pool } = pg;
 const schemaPath = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'db', 'schema.sql');
-const buckets = ['launches', 'settlements', 'obligations', 'claims', 'referralClaims', 'payouts', 'collections', 'launchReviews', 'alerts', 'xIntake', 'referralCodes', 'referralWallets', 'referralAttributions', 'referralChallenges'];
+const buckets = ['launches', 'settlements', 'obligations', 'claims', 'referralClaims', 'payouts', 'collections', 'launchReviews', 'alerts', 'xIntake', 'coinChats', 'referralCodes', 'referralWallets', 'referralAttributions', 'referralChallenges'];
 const referralBuckets = { referralCodes: 'codes', referralWallets: 'wallets', referralAttributions: 'attributions', referralChallenges: 'challenges' };
 
 function entriesFor(state, bucket) { return referralBuckets[bucket] ? state.referrals[referralBuckets[bucket]] : state[bucket]; }
 
 function initialState() {
-  return { version: 4, launches: {}, settlements: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, launchReviews: {}, alerts: {}, xIntake: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
+  return { version: 4, launches: {}, settlements: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, launchReviews: {}, alerts: {}, xIntake: {}, coinChats: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
 }
 
 function normalizeState(state) {
@@ -27,6 +28,7 @@ function normalizeState(state) {
   next.launchReviews ||= {};
   next.alerts ||= {};
   next.xIntake ||= {};
+  next.coinChats ||= {};
   next.referrals ||= { codes: {}, wallets: {}, attributions: {}, challenges: {} };
   next.referrals.codes ||= {};
   next.referrals.wallets ||= {};
@@ -37,11 +39,11 @@ function normalizeState(state) {
 }
 
 async function migrate(pool) {
-  await pool.query(await readFile(schemaPath, 'utf8'));
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     await client.query('SELECT pg_advisory_xact_lock(81730421)');
+    await client.query(await readFile(schemaPath, 'utf8'));
     const initialized = await client.query('SELECT id FROM state_meta WHERE id = 1');
     if (!initialized.rowCount) {
       const legacy = await client.query('SELECT payload FROM app_state WHERE id = 1');
@@ -58,10 +60,8 @@ async function migrate(pool) {
 }
 
 async function readState(client) {
-  const [meta, rows] = await Promise.all([
-    client.query('SELECT version, last_indexed_at FROM state_meta WHERE id = 1'),
-    client.query('SELECT bucket, entity_key, payload FROM state_entities'),
-  ]);
+  const meta = await client.query('SELECT version, last_indexed_at FROM state_meta WHERE id = 1');
+  const rows = await client.query('SELECT bucket, entity_key, payload FROM state_entities');
   const state = initialState();
   state.version = meta.rows[0]?.version || 4;
   if (meta.rows[0]?.last_indexed_at) state.lastIndexedAt = new Date(meta.rows[0].last_indexed_at).toISOString();
@@ -95,11 +95,75 @@ export function createPostgresStore(databaseUrl) {
   const pool = new Pool(pgPoolConfig(databaseUrl));
   let ready;
   let rpcCharges = 0;
+  let marketWrites = 0;
   const ensureReady = async () => { ready ||= migrate(pool).catch(error => { ready = undefined; throw error; }); await ready; };
   return {
     async read() {
       await ensureReady();
-      return readState(pool);
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+        const state = await readState(client);
+        await client.query('COMMIT');
+        return state;
+      } catch (error) { await client.query('ROLLBACK'); throw error; }
+      finally { client.release(); }
+    },
+    async readLaunches({ limit = null, offset = 0 } = {}) {
+      await ensureReady();
+      const result = limit == null
+        ? await pool.query('SELECT payload FROM launches ORDER BY updated_at DESC, mint')
+        : await pool.query('SELECT payload FROM launches ORDER BY updated_at DESC, mint LIMIT $1 OFFSET $2', [limit, offset]);
+      return result.rows.map(row => row.payload);
+    },
+    async readLaunch(mint) {
+      await ensureReady();
+      const result = await pool.query('SELECT payload FROM launches WHERE mint = $1', [mint]);
+      return result.rows[0]?.payload || null;
+    },
+    async writeMetadata(record, image, imageType) {
+      await ensureReady();
+      const inserted = await pool.query('INSERT INTO devnet_metadata (mint, creator_wallet, payload, image, image_mime) VALUES ($1, $2, $3::jsonb, $4, $5) ON CONFLICT (mint) DO NOTHING RETURNING mint', [record.mint, record.creatorWallet, JSON.stringify(record), image, imageType]);
+      if (inserted.rowCount) return record;
+      const existing = await pool.query('SELECT payload FROM devnet_metadata WHERE mint = $1', [record.mint]);
+      if (!existing.rows[0]?.payload || metadataStatement(existing.rows[0].payload) !== metadataStatement(record)) throw new Error('Immutable Devnet metadata already exists for this mint.');
+      return existing.rows[0].payload;
+    },
+    async readMetadata(mint) {
+      await ensureReady();
+      const result = await pool.query('SELECT payload FROM devnet_metadata WHERE mint = $1', [mint]);
+      return result.rows[0]?.payload || null;
+    },
+    async readMetadataImage(mint) {
+      await ensureReady();
+      const result = await pool.query('SELECT image, image_mime FROM devnet_metadata WHERE mint = $1', [mint]);
+      return result.rows[0]?.image ? { bytes: result.rows[0].image, mime: result.rows[0].image_mime } : null;
+    },
+    async readPublicBuckets() {
+      await ensureReady();
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+        const meta = await client.query('SELECT version FROM state_meta WHERE id = 1');
+        const launches = await client.query('SELECT mint, payload FROM launches');
+        const settlements = await client.query('SELECT claim_signature, payload FROM settlements');
+        const collections = await client.query('SELECT id, payload FROM collections');
+        const referralClaims = await client.query('SELECT id, payload FROM referral_claims');
+        await client.query('COMMIT');
+        return {
+          version: meta.rows[0]?.version || 4,
+          launches: Object.fromEntries(launches.rows.map(row => [row.mint, row.payload])),
+          settlements: Object.fromEntries(settlements.rows.map(row => [row.claim_signature, row.payload])),
+          collections: Object.fromEntries(collections.rows.map(row => [row.id, row.payload])),
+          referralClaims: Object.fromEntries(referralClaims.rows.map(row => [row.id, row.payload])),
+        };
+      } catch (error) { await client.query('ROLLBACK'); throw error; }
+      finally { client.release(); }
+    },
+    async readReferralClaimsForWallet(wallet) {
+      await ensureReady();
+      const result = await pool.query("SELECT payload FROM referral_claims WHERE payload->>'recipientWallet' = $1 ORDER BY updated_at DESC", [wallet]);
+      return result.rows.map(row => row.payload);
     },
     async readCoinFeeActivity(mint, cluster) {
       await ensureReady();
@@ -122,6 +186,14 @@ export function createPostgresStore(databaseUrl) {
           AND (payload->>'cluster' IS NULL OR payload->>'cluster' = $2)
         ORDER BY recorded_at DESC LIMIT 100`, [router, cluster]);
       return result.rows.map(({ payload: item }) => ({ signature: item.signature, recordedAt: item.recordedAt || null, collectedLamports: item.collectedLamports }));
+    },
+    async readCoinChat(mint, limit = 50) {
+      await ensureReady();
+      const result = await pool.query('SELECT payload FROM state_entities WHERE bucket = $1 AND entity_key = $2', ['coinChats', mint]);
+      return Array.isArray(result.rows[0]?.payload) ? result.rows[0].payload.slice(-limit) : [];
+    },
+    async appendCoinChat(mint, message, limit = 100) {
+      return this.update(state => { state.coinChats ||= {}; state.coinChats[mint] = [...(state.coinChats[mint] || []), message].slice(-limit); return message; });
     },
     async update(mutator) {
       await ensureReady();
@@ -162,6 +234,7 @@ export function createPostgresStore(databaseUrl) {
     async writeMarketActivity(mint, cluster, data) {
       await ensureReady();
       await pool.query('INSERT INTO market_activity (mint, cluster, payload, observed_at) VALUES ($1, $2, $3::jsonb, $4) ON CONFLICT (mint, cluster) DO UPDATE SET payload = EXCLUDED.payload, observed_at = EXCLUDED.observed_at', [mint, cluster, JSON.stringify(data), data.observedAt]);
+      if (++marketWrites % 100 === 0) await pool.query("DELETE FROM market_activity WHERE observed_at < NOW() - INTERVAL '7 days'");
     },
     async chargeRpcRate(clientKey, units, limit, windowStart) {
       await ensureReady();

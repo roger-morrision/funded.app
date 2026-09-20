@@ -8,6 +8,7 @@ export function deriveXFeeObligation(state, { mint, claimSignature }) {
   const launch = state.launches?.[mintAddress];
   if (!launch?.onchainVerified || launch.cluster !== 'devnet') throw new Error('A verified Devnet launch policy is required.');
   const route = launch.pumpFeeRoute;
+  if (!/^\d{1,24}$/.test(String(launch.xUserId || ''))) throw new Error('The launch has no stable X user ID; a handle alone is not sufficient for a fee claim.');
   if (route?.scope !== 'per-mint-v2' || route?.verified !== true || route.router !== launch.creator) {
     throw new Error('This launch has no isolated, verified per-mint fee router. Shared-router fees cannot be attributed to an X claim.');
   }
@@ -27,7 +28,7 @@ export function deriveXFeeObligation(state, { mint, claimSignature }) {
   const id = `${signature}:${mintAddress}:x`;
   return {
     id, mint: mintAddress, claimSignature: signature, router: route.router,
-    recipient, asset: 'SOL', amountLamports: amountLamports.toString(),
+    recipient, xUserId: launch.xUserId, asset: 'SOL', amountLamports: amountLamports.toString(),
     amountSol: Number(amountLamports) / 1_000_000_000,
     shareBps: Number(shareBps), status: 'claimable-after-x-and-wallet-verification',
     source: 'verified-per-mint-router-collection',

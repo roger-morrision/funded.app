@@ -28,8 +28,8 @@ const server = spawn(process.execPath, ['server/index.mjs'], {
   stdio: 'ignore',
 });
 const base = `http://127.0.0.1:${port}`;
-async function post(path, payload) {
-  const response = await fetch(`${base}${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+async function post(path, payload, headers = {}) {
+  const response = await fetch(`${base}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(payload) });
   return { status: response.status, data: await response.json() };
 }
 try {
@@ -39,11 +39,29 @@ try {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   assert.equal(ready, true, 'Backend did not start.');
+  const health = await (await fetch(`${base}/api/health`)).json();
+  assert.equal(Object.hasOwn(health.external, 'pumpApiUrl'), false, 'Public health must not reveal provider URLs.');
   assert.equal((await post('/api/alerts', { wallet: 'a', mint: 'b' })).status, 401, 'Protected writes must fail closed without a token.');
   assert.equal((await post('/api/solana/rpc', { jsonrpc: '2.0', id: 1, method: 'requestAirdrop', params: [] })).status, 400);
   assert.equal((await post('/api/solana/rpc', { jsonrpc: '2.0', id: 2, method: 'getProgramAccounts', params: [] })).status, 400);
   assert.equal((await post('/api/solana/rpc', { jsonrpc: '2.0', id: 3, method: 'sendTransaction', params: ['x'.repeat(3001)] })).status, 400);
+  assert.equal((await post('/api/solana/rpc', { jsonrpc: '2.0', id: 4, method: 'sendTransaction', params: ['x'.repeat(1_000_001)] })).status, 413);
   assert.equal(rpcCalls, 0, 'Rejected RPC requests must not reach the provider.');
+  for (let attempt = 0; attempt < 11; attempt += 1) {
+    const result = await post('/api/solana/rpc', { jsonrpc: '2.0', id: attempt + 10, method: 'sendTransaction', params: ['AAAA'] });
+    assert.equal(result.status, attempt < 10 ? 200 : 429, 'Transaction submission must have a tighter per-client budget.');
+  }
+  assert.equal(rpcCalls, 10);
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    assert.equal((await post('/api/solana/rpc', { jsonrpc: '2.0', id: 30 + attempt, method: 'getAccountInfo', params: [`account-${attempt}`] })).status, 200);
+  }
+  assert.equal((await post('/api/solana/rpc', { jsonrpc: '2.0', id: 40, method: 'getAccountInfo', params: ['ordinary-exhausted'] })).status, 429);
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    assert.equal((await post('/api/solana/rpc?purpose=trade-preview', { jsonrpc: '2.0', id: 50 + attempt, method: 'getAccountInfo', params: ['preview-account'] })).status, 200);
+  }
+  assert.equal((await post('/api/solana/rpc?purpose=trade-preview', { jsonrpc: '2.0', id: 90, method: 'getAccountInfo', params: ['preview-exhausted'] })).status, 429);
+  assert.equal((await post('/api/solana/rpc?purpose=trade-preview', { jsonrpc: '2.0', id: 91, method: 'getSlot', params: [] })).status, 429, 'Preview purpose must not bypass the ordinary budget for unrelated methods.');
+  rpcCalls = 0;
 
   const mint = Keypair.generate().publicKey.toBase58();
   const [one, two] = await Promise.all([fetch(`${base}/api/tokens/${mint}/market-activity`), fetch(`${base}/api/tokens/${mint}/market-activity`)]);
@@ -76,6 +94,14 @@ try {
   });
   assert.notEqual(production.status, 0, 'Production must reject file-store fallback.');
   assert.match(production.stderr, /DATABASE_URL is required in production/);
+  const missingToken = spawnSync(process.execPath, ['server/index.mjs'], {
+    cwd: process.cwd(),
+    env: { ...process.env, NODE_ENV: 'production', FUNDED_STORE_PATH: '', DATABASE_URL: 'postgresql://test:test@127.0.0.1:1/test', FUNDED_API_TOKEN: '' },
+    encoding: 'utf8',
+    timeout: 5_000,
+  });
+  assert.notEqual(missingToken.status, 0, 'Production must reject an unset API token.');
+  assert.match(missingToken.stderr, /FUNDED_API_TOKEN is required in production/);
   console.log('backend hardening checks passed');
 } finally {
   server.kill();

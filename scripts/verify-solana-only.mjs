@@ -20,8 +20,7 @@ for (const pattern of unsupportedUi) {
   assert.doesNotMatch(productSource, pattern, `Unsupported chain UI remains: ${pattern}`);
 }
 
-assert.match(html, /Solana workspace/);
-assert.match(html, /Solana only/);
+assert.doesNotMatch(html, /Solana only/);
 assert.match(html, /aria-label="Solana launch route"/);
 assert.match(app, /chain:\s*'solana'/);
 assert.match(app, /cluster:\s*'devnet'/);

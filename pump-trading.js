@@ -184,15 +184,17 @@ export async function buildTradeTransaction({ connection, side, mint, user, amou
   return { route: 'curve', side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: solAmount, outputAmount: solAmount, tokenDecimals, feeLamports, feePolicy, snapshot };
 }
 
-export async function submitTrade({ connection, provider, side, mint, user, amount, slippagePercent = 1, feeOwner, feeBps = DEFAULT_TRADE_FEE_BPS, preparedTrade = null, onStatus = () => {} }) {
+export async function submitTrade({ connection, provider, side, mint, user, amount, slippagePercent = 1, feeOwner, feeBps = DEFAULT_TRADE_FEE_BPS, preparedTrade = null, onStatus = () => {}, assertWalletCurrent = () => {} }) {
   if (!provider?.signTransaction) throw new Error('Connect a wallet that can sign transactions.');
   onStatus(`Reading ${side} quote and Solana state…`);
   const trade = preparedTrade || await buildTradeTransaction({ connection, side, mint, user, amount, slippagePercent, feeOwner, feeBps });
   if (trade.side !== side || !trade.mint.equals(requireMint(mint)) || !trade.user.equals(requireMint(user)) || trade.inputAmount !== Number(amount) || trade.slippagePercent !== Number(slippagePercent)) throw new Error('The trade quote no longer matches the selected trade.');
   const latest = await connection.getLatestBlockhash('confirmed');
   const transaction = new Transaction({ recentBlockhash: latest.blockhash, feePayer: user }).add(...trade.instructions);
+  assertWalletCurrent();
   onStatus('Waiting for wallet approval…');
   const signed = await provider.signTransaction(transaction);
+  assertWalletCurrent();
   const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
   onStatus('Confirming trade on Solana Devnet…');
   const confirmation = await connection.confirmTransaction({ signature, blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight }, 'confirmed');

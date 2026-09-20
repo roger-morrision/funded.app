@@ -1,12 +1,24 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Keypair } from '@solana/web3.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
+import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import { bondingCurvePda } from '@pump-fun/pump-sdk';
 import { enrichMarketRecord, summarizeMarkets } from '../market-intelligence.js';
+import { buildTradePricePath, selectRecentTrades, summarizeTokenAccounts } from '../coin-detail-model.js';
 import { readPumpMarketActivity, summarizePumpTrades } from '../server/coin-market.mjs';
 import { routerFeeActivity } from '../server/fee-activity.mjs';
+
+const appSource = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const coinFormatterSource = appSource.match(/function formatCoinUsd\(solValue\)\{[^}]+\}/)?.[0];
+assert.ok(coinFormatterSource, 'coin display formatter is present');
+const coinFormatter = new Function('coinSolUsdPrice', 'formatUsd', 'formatCoinSpot', `${coinFormatterSource}; return formatCoinUsd;`);
+assert.equal(coinFormatter(null, value => `$${value}`, value => `${value} SOL`)(0.5), '0.5 SOL');
+assert.equal(coinFormatter(100, value => `$${value}`, value => `${value} SOL`)(0.5), '$50');
+assert.equal(coinFormatter(null, value => `$${value}`, value => `${value} SOL`)(null), '$—');
+assert.match(appSource, /Observed \$\{Number\.isFinite\(coinSolUsdPrice\) \? 'USD' : 'SOL'\} per token/);
 
 const missingMarket = enrichMarketRecord({ address: 'devnet-mint', volume24hUsd: null, liquidityUsd: null, marketCapUsd: null, priceChange24hPercent: null });
 assert.equal(missingMarket.volume24hUsd, null);
@@ -15,23 +27,69 @@ assert.equal(missingMarket.marketCapUsd, null);
 assert.equal(summarizeMarkets([missingMarket]).volume24hUsd, null);
 assert.equal(summarizeMarkets([missingMarket]).liquidityUsd, null);
 const trades = [
-  { blockTime: 1200, order: 0, solLamports: 2_000_000_000n, priceRatio: 1.2 },
-  { blockTime: 1100, order: 1, solLamports: 1_000_000_000n, priceRatio: 1.0 },
+  { blockTime: 1200, order: 0, signature: 'confirmed-buy', trader: 'buyer-wallet', isBuy: true, solLamports: 2_000_000_000n, tokenAmountRaw: 3_000_000n, priceRatio: 1.2 },
+  { blockTime: 1100, order: 1, signature: 'confirmed-sell', trader: 'seller-wallet', isBuy: false, solLamports: 1_000_000_000n, tokenAmountRaw: 2_000_000n, priceRatio: 1.0 },
   { blockTime: 900, order: 2, solLamports: 500_000_000n, priceRatio: 0.9 },
 ];
 const completeMarket = summarizePumpTrades(trades, { cutoffSeconds: 1000, complete: true });
 assert.equal(completeMarket.volume24hSol, 3);
+assert.equal(completeMarket.buyVolume24hSol, 2);
+assert.equal(completeMarket.sellVolume24hSol, 1);
 assert.equal(completeMarket.tradeCount24h, 2);
+assert.equal(completeMarket.buyCount24h, 1);
+assert.equal(completeMarket.sellCount24h, 1);
+assert.equal(completeMarket.activityWindows['24h'].tradeCount, 2);
+assert.equal(completeMarket.activityWindows['24h'].traderCount, 2);
+assert.equal(completeMarket.activityWindows['24h'].volumeSol, 3);
+assert.equal(completeMarket.activityWindows['1h'].tradeCount, 0);
+assert.deepEqual(completeMarket.recentTrades.map(item => [item.side, item.signature, item.solLamports, item.tokenAmountRaw]), [['buy', 'confirmed-buy', '2000000000', '3000000'], ['sell', 'confirmed-sell', '1000000000', '2000000']]);
+assert.deepEqual(completeMarket.recentTrades.map(item => item.priceRatio), [1.2, 1]);
+const pricePath = buildTradePricePath(completeMarket.recentTrades, 6);
+assert.equal(pricePath.count, 2);
+assert.ok(Math.abs(pricePath.low - 0.001) < 1e-12);
+assert.ok(Math.abs(pricePath.latest - 0.0012) < 1e-12);
+assert.equal(pricePath.line, 'M24.0 158.0 L576.0 42.0');
+assert.equal(buildTradePricePath(completeMarket.recentTrades.slice(0, 1), 6).count, 1);
+assert.equal(buildTradePricePath([{ priceRatio: 1, blockTime: 1 }, { priceRatio: 1, blockTime: 2 }], 6).line, 'M24.0 100.0 L576.0 100.0');
+assert.deepEqual(selectRecentTrades(completeMarket.recentTrades, { side: 'sell', minSol: 0.5 }).map(item => item.trader), ['seller-wallet']);
+assert.deepEqual(selectRecentTrades(completeMarket.recentTrades, { wallet: 'SELLER' }).map(item => item.side), ['sell']);
+assert.deepEqual(selectRecentTrades(completeMarket.recentTrades, { wallet: 'BUYER', minSol: 2.1 }), []);
 assert.equal(completeMarket.priceChangeBasis, '24h');
 assert.ok(Math.abs(completeMarket.priceChangePercent - 33.33333333333333) < 0.0001);
 const partialMarket = summarizePumpTrades(trades, { cutoffSeconds: 1000, complete: false });
 assert.equal(partialMarket.coverage, 'partial');
+assert.equal(partialMarket.activityWindows['6h'].coverage, 'partial');
 assert.equal(partialMarket.priceChangePercent, null);
+const pulseTrades = [
+  { blockTime: 87000, isBuy: true, solLamports: 2_000_000_000n, trader: 'wallet-a' },
+  { blockTime: 84000, isBuy: false, solLamports: 1_000_000_000n, trader: 'wallet-a' },
+  { blockTime: 70000, isBuy: true, solLamports: 3_000_000_000n, trader: 'wallet-b' },
+  { blockTime: 50000, isBuy: false, solLamports: 4_000_000_000n, trader: 'wallet-c' },
+];
+const pulse = summarizePumpTrades(pulseTrades, { cutoffSeconds: 1000, complete: true }).activityWindows;
+assert.deepEqual([pulse['1h'].tradeCount, pulse['6h'].tradeCount, pulse['24h'].tradeCount], [2, 3, 4]);
+assert.deepEqual([pulse['1h'].volumeSol, pulse['6h'].volumeSol, pulse['24h'].volumeSol], [3, 6, 10]);
+assert.deepEqual([pulse['1h'].traderCount, pulse['6h'].traderCount, pulse['24h'].traderCount], [1, 2, 3]);
+assert.deepEqual([pulse['1h'].largestTradeSol, pulse['6h'].largestTradeSol, pulse['24h'].largestTradeSol], [2, 3, 4]);
+assert.deepEqual([pulse['1h'].buyCount, pulse['1h'].sellCount], [1, 1]);
 const newCoinMarket = summarizePumpTrades(trades.slice(0, 2), { cutoffSeconds: 1000, complete: true, sinceLaunch: true });
 assert.equal(newCoinMarket.priceChangeBasis, 'since-first-trade');
 const noCurveHistory = await readPumpMarketActivity({ connection: { getSignaturesForAddress: async () => [] }, mint: Keypair.generate().publicKey });
 assert.equal(noCurveHistory.volume24hSol, null);
+assert.equal(noCurveHistory.buyVolume24hSol, null);
+assert.equal(noCurveHistory.activityWindows, null);
 assert.equal(noCurveHistory.coverage, 'unavailable');
+const knownMint = new PublicKey('HJ4D7fKZkRepSnnD8i8SAJrPwWn7bewXbFjuv2mHMQbx');
+const curveVault = getAssociatedTokenAddressSync(knownMint, bondingCurvePda(knownMint), true, TOKEN_2022_PROGRAM_ID).toBase58();
+assert.equal(curveVault, '2YEJPpuMfFfZm51uedtd9KwN4n1ektzXHjMnKqcDH7yL');
+const accountDistribution = summarizeTokenAccounts([
+  { address: curveVault, share: 90 },
+  { address: 'other-one', share: 6 },
+  { address: 'other-two', share: 2 },
+], curveVault);
+assert.deepEqual(accountDistribution, { vaultAddress: curveVault, vaultShare: 90, otherCount: 2, otherShare: 8, largestOtherShare: 6, topTenOtherShare: 8, outsideSampleShare: 2 });
+assert.equal(summarizeTokenAccounts([{ address: 'other-one', share: 6 }], curveVault), null);
+assert.equal(summarizeTokenAccounts([], null), null);
 
 const directory = await mkdtemp(join(tmpdir(), 'funded-coin-detail-'));
 const mint = Keypair.generate().publicKey.toBase58();

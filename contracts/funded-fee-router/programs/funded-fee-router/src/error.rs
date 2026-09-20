@@ -16,4 +16,8 @@ pub enum ErrorCode {
     InsufficientRouterBalance,
     #[msg("Claim amount overflow")]
     AmountOverflow,
+    #[msg("The mint router does not match the expected mint and policy")]
+    InvalidMintRouter,
+    #[msg("Settlement destination is not allowed")]
+    InvalidDestination,
 }

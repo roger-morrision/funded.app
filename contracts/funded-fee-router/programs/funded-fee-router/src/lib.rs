@@ -19,8 +19,16 @@ pub mod funded_fee_router {
         initialize::handler(ctx)
     }
 
+    pub fn initialize_mint(ctx: Context<InitializeMint>) -> Result<()> {
+        initialize::mint_handler(ctx)
+    }
+
     pub fn settle(ctx: Context<Settle>, claim_id: [u8; 32], amounts: Vec<u64>) -> Result<()> {
         settle::handler(ctx, claim_id, amounts)
+    }
+
+    pub fn settle_mint(ctx: Context<SettleMint>, claim_id: [u8; 32], amounts: Vec<u64>) -> Result<()> {
+        settle::mint_handler(ctx, claim_id, amounts)
     }
 
     pub fn repair_header(ctx: Context<RepairHeader>) -> Result<()> {

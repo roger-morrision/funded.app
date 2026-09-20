@@ -1,0 +1,21 @@
+services:
+  funded-postgres-test:
+    image: postgres:17-alpine
+    container_name: funded-postgres-test
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: funded_test
+      POSTGRES_USER: funded
+      POSTGRES_PASSWORD: funded-test
+    ports:
+      - "15432:5432"
+    volumes:
+      - funded_app_pgtest_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U funded -d funded_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  funded_app_pgtest_data:
