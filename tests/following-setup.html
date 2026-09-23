@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Synthetic following QA</title></head>
+<body><h1>Local-only following QA</h1><p>Use only with the isolated following fixture API. Saves 45 synthetic follows on this origin, disables updates, and opens the real Portfolio. No wallet or transaction.</p><button id="seed">Use synthetic following list</button><button id="clear">Remove synthetic preferences</button><p id="status" role="status"></p>
+<script type="module">
+const keys=['funded.creator.following','funded.updates.enabled'];
+document.querySelector('#seed').onclick=()=>{localStorage.setItem(keys[0],JSON.stringify(Array.from({length:45},(_,i)=>String(100+i))));localStorage.setItem(keys[1],'false');location.href='/#my-launches';};
+document.querySelector('#clear').onclick=()=>{for(const key of keys)localStorage.removeItem(key);document.querySelector('#status').textContent='Synthetic preferences removed.';};
+</script></body></html>

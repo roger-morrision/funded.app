@@ -21,7 +21,7 @@ for (const pattern of unsupportedUi) {
 }
 
 assert.doesNotMatch(html, /Solana only/);
-assert.match(html, /aria-label="Solana launch route"/);
+assert.match(html, /<span>Launch route<\/span><strong>Pump · Solana Devnet<\/strong>/);
 assert.match(app, /chain:\s*'solana'/);
 assert.match(app, /cluster:\s*'devnet'/);
 assert.match(app, /launchpad:\s*'pump'/);

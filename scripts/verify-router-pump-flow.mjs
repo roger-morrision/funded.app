@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
 import { Connection, Keypair, PublicKey, Transaction, clusterApiUrl } from '@solana/web3.js';
 import { OnlinePumpSdk, PUMP_SDK } from '@pump-fun/pump-sdk';
+import { NATIVE_MINT, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import bs58 from 'bs58';
 import { buildTradeTransaction } from '../pump-trading.js';
+import { buildMintRouterInitializeInstruction } from '../mint-router-launch.js';
+import { deriveFeeRouter, verifyMintFeeRouterAccount } from '../fee-router.js';
+import { createAutomaticRewardChain } from '../server/automatic-reward-chain.mjs';
 
 const cluster = String(process.env.SOLANA_CLUSTER || process.env.VITE_SOLANA_CLUSTER || 'devnet').trim();
 assert.equal(cluster, 'devnet', 'verify:router-pump-flow is restricted to Devnet.');
@@ -53,16 +57,25 @@ if (!payerReady) {
   // Leave the process naturally so Node can close fetch handles on Windows.
   // The nonzero exit code marks this as an infrastructure blocker, not a pass.
 } else {
-const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || 'C92L1A3ZkS9Nnau5JLAMwMUYxPSYVUTdeosHyc6WMA8W');
-const [router] = PublicKey.findProgramAddressSync([Buffer.from('funded-fee-router-v1')], programId);
-const tradeFeeOwner = new PublicKey(process.env.VITE_FUNDED_TRADE_FEE_OWNER || router.toBase58());
+const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || '2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik');
+const sharedRouter = deriveFeeRouter(programId).address;
+const tradeFeeOwner = new PublicKey(process.env.VITE_FUNDED_TRADE_FEE_OWNER || sharedRouter.toBase58());
 assert(!tradeFeeOwner.equals(payer.publicKey), 'Trade fee owner must differ from the test payer to verify its balance delta.');
-const tradeAmountSol = Number(process.env.TEST_TRADE_SOL || 0.05);
-const tradeRounds = Math.max(1, Math.floor(Number(process.env.TEST_TRADE_ROUNDS || 2)));
+const tradeAmountSol = Number(process.env.TEST_TRADE_SOL || 0.01);
+const tradeRounds = Math.max(1, Math.floor(Number(process.env.TEST_TRADE_ROUNDS || 1)));
 assert(Number.isFinite(tradeAmountSol) && tradeAmountSol > 0 && tradeAmountSol <= 1, 'TEST_TRADE_SOL must be between 0 and 1.');
-const routerBefore = await connection.getBalance(router, 'confirmed');
-const tradeFeeOwnerBefore = tradeFeeOwner.equals(router) ? routerBefore : await connection.getBalance(tradeFeeOwner, 'confirmed');
 const mint = Keypair.generate();
+const mintRouter = buildMintRouterInitializeInstruction({ programId, mint:mint.publicKey, payer:payer.publicKey });
+let latest = await connection.getLatestBlockhash('confirmed');
+const initializeRouter = new Transaction({ recentBlockhash:latest.blockhash, feePayer:payer.publicKey }).add(mintRouter.instruction);
+initializeRouter.sign(payer, mint);
+const mintRouterSignature = await connection.sendRawTransaction(initializeRouter.serialize(), { skipPreflight:false });
+await connection.confirmTransaction({ signature:mintRouterSignature, blockhash:latest.blockhash, lastValidBlockHeight:latest.lastValidBlockHeight }, 'finalized');
+const checkedRouter = await verifyMintFeeRouterAccount({ connection, programId, mint:mint.publicKey, expectedAuthority:payer.publicKey });
+assert(checkedRouter.verified, `Mint router verification failed: ${checkedRouter.reason}`);
+const router = checkedRouter.address;
+const routerBefore = await connection.getBalance(router, 'finalized');
+const tradeFeeOwnerBefore = tradeFeeOwner.equals(router) ? routerBefore : await connection.getBalance(tradeFeeOwner, 'finalized');
 const name = `Funded Routed ${Date.now().toString(36).slice(-7)}`;
 const instruction = await PUMP_SDK.createV2Instruction({
   mint: mint.publicKey,
@@ -75,7 +88,7 @@ const instruction = await PUMP_SDK.createV2Instruction({
   holderReward: false,
 });
 const launch = new Transaction().add(instruction);
-let latest = await connection.getLatestBlockhash('confirmed');
+latest = await connection.getLatestBlockhash('confirmed');
 launch.recentBlockhash = latest.blockhash;
 launch.feePayer = payer.publicKey;
 launch.partialSign(mint, payer);
@@ -83,7 +96,7 @@ const launchSignature = await connection.sendRawTransaction(launch.serialize(), 
 await connection.confirmTransaction({ signature: launchSignature, blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight }, 'confirmed');
 const sdk = new OnlinePumpSdk(connection);
 const curve = await sdk.fetchBondingCurve(mint.publicKey);
-assert.equal(curve.creator.toBase58(), router.toBase58(), 'Pump curve creator is not the funded router PDA');
+assert.equal(curve.creator.toBase58(), router.toBase58(), 'Pump curve creator is not the funded mint router PDA');
 
 const buySignatures = [];
 let expectedFeeLamports = 0;
@@ -94,11 +107,30 @@ for (let round = 0; round < tradeRounds; round += 1) {
   const buy = new Transaction({ recentBlockhash: latest.blockhash, feePayer: payer.publicKey }).add(...trade.instructions);
   buy.sign(payer);
   const buySignature = await connection.sendRawTransaction(buy.serialize(), { skipPreflight: false });
-  await connection.confirmTransaction({ signature: buySignature, blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight }, 'confirmed');
+  await connection.confirmTransaction({ signature: buySignature, blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight }, 'finalized');
   buySignatures.push(buySignature);
 }
-const routerAfter = await connection.getBalance(router, 'confirmed');
-const tradeFeeOwnerAfter = tradeFeeOwner.equals(router) ? routerAfter : await connection.getBalance(tradeFeeOwner, 'confirmed');
+const tradeFeeOwnerAfter = tradeFeeOwner.equals(router) ? await connection.getBalance(router, 'finalized') : await connection.getBalance(tradeFeeOwner, 'finalized');
 assert(tradeFeeOwnerAfter - tradeFeeOwnerBefore >= expectedFeeLamports, 'The configured app trade-fee owner did not receive the test trade fees.');
-console.log(JSON.stringify({ payer: payer.publicKey.toBase58(), payerSource: configuredSecret ? 'configured-devnet-test-wallet' : 'ephemeral-faucet-wallet', programId: programId.toBase58(), router: router.toBase58(), tradeFeeOwner: tradeFeeOwner.toBase58(), mint: mint.publicKey.toBase58(), launchSignature, buySignatures, creator: curve.creator.toBase58(), tradeAmountSol, tradeRounds, totalTradeVolumeSol: tradeAmountSol * tradeRounds, expectedFeeLamports, routerBefore, routerAfter, routerFeeDeltaLamports: routerAfter - routerBefore, tradeFeeOwnerBefore, tradeFeeOwnerAfter, appTradeFeeDeltaLamports: tradeFeeOwnerAfter - tradeFeeOwnerBefore }));
+const collectionInstructions = await sdk.collectCoinCreatorFeeV2Instructions(router, NATIVE_MINT, TOKEN_PROGRAM_ID, payer.publicKey);
+assert(collectionInstructions.length > 0, 'Pump returned no mint-specific creator-fee collection instruction after verified buys.');
+latest = await connection.getLatestBlockhash('confirmed');
+const collection = new Transaction({ recentBlockhash:latest.blockhash, feePayer:payer.publicKey }).add(...collectionInstructions);
+collection.sign(payer);
+const collectionSignature = await connection.sendRawTransaction(collection.serialize(), { skipPreflight:false });
+await connection.confirmTransaction({ signature:collectionSignature, blockhash:latest.blockhash, lastValidBlockHeight:latest.lastValidBlockHeight }, 'finalized');
+const routerAfterCollection = await connection.getBalance(router, 'finalized');
+const collectedLamports = routerAfterCollection - routerBefore;
+assert(collectedLamports > 0, 'Mint-specific Pump creator-fee collection produced no finalized router balance delta.');
+const chain = createAutomaticRewardChain({ connection, programId, authority:payer, expectedProgramDataSha256:process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
+const readiness = await chain.readiness();
+assert(readiness.constrainedPayouts, `Reward chain unavailable: ${readiness.reasons.join(', ')}`);
+const routerRent = await connection.getMinimumBalanceForRentExemption(106, 'finalized');
+const spendableCollectedLamports = routerAfterCollection - routerRent;
+assert(spendableCollectedLamports > 0, 'Mint-specific router has no creator fees above its rent reserve.');
+const rewardFundingAmount = String(Math.min(spendableCollectedLamports, 1_000_000));
+const rewardFunding = await chain.fundSolVaultFromMintRouter({ mint:mint.publicKey.toBase58(), amount:rewardFundingAmount, fundingId:`pump-flow:${launchSignature}` });
+assert(rewardFunding.balanceDeltaVerified, 'Collected creator fees did not produce an exact finalized reward-vault delta.');
+const routerAfterFunding = await connection.getBalance(router, 'finalized');
+console.log(JSON.stringify({ payer:payer.publicKey.toBase58(), payerSource:configuredSecret?'configured-devnet-test-wallet':'ephemeral-faucet-wallet', programId:programId.toBase58(), sharedRouter:sharedRouter.toBase58(), router:router.toBase58(), mintRouterSignature, tradeFeeOwner:tradeFeeOwner.toBase58(), mint:mint.publicKey.toBase58(), launchSignature, buySignatures, collectionSignature, rewardFundingSignature:rewardFunding.signature, rewardFundingClaim:rewardFunding.claim, rewardVault:rewardFunding.vault, rewardFundingAmount, creator:curve.creator.toBase58(), tradeAmountSol, tradeRounds, totalTradeVolumeSol:tradeAmountSol*tradeRounds, expectedFeeLamports, routerBefore, routerAfterCollection, routerAfterFunding, routerRent, collectedLamports, spendableCollectedLamports, appTradeFeeDeltaLamports:tradeFeeOwnerAfter-tradeFeeOwnerBefore, finalizedRewardVaultDelta:rewardFunding.balanceDeltaVerified }));
 }

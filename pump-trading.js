@@ -20,6 +20,10 @@ export function assertTradeConfirmed(confirmation) {
   if (!confirmation?.value || confirmation.value.err) throw new Error(`Trade did not confirm successfully${confirmation?.value?.err ? `: ${JSON.stringify(confirmation.value.err)}` : '.'}`);
 }
 
+export function assertPositiveQuoteAmount(amount, outputSymbol) {
+  if (!amount || amount.lte(new BN(0))) throw new Error(`The quote has no ${outputSymbol} output for this amount. Increase the amount.`);
+}
+
 export function describeTradeQuote(trade, slippagePercent) {
   const outputDecimals = trade.side === 'buy' ? trade.tokenDecimals : 9;
   const expected = Number(trade.outputAmount.toString()) / (10 ** outputDecimals);
@@ -78,7 +82,7 @@ async function buildGraduatedTrade({ connection, side, mintKey, userKey, amount,
     const instructions = await PUMP_AMM_SDK.buyQuoteInput(pool, solAmount, slippage);
     const feeLamports = calculateTradeFee(solAmount, feePolicy);
     instructions.push(SystemProgram.transfer({ fromPubkey: userKey, toPubkey: new PublicKey(feePolicy.feeOwner), lamports: feeLamports }));
-    return { route: 'graduated-pool', side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: solAmount, outputAmount: quoted.base, minimumOutputAmount: quoted.base, tokenDecimals, feeLamports, feePolicy, snapshot, pool: poolKey.toBase58() };
+    return { route: 'graduated-pool', side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: solAmount, outputAmount: quoted.base, minimumOutputAmount: quoted.base, tokenDecimals, feeLamports, feePolicy, snapshot: { ...snapshot, swapQuoteReservesSol:Number(pool.poolQuoteAmount.toString()) / LAMPORTS_PER_SOL }, pool: poolKey.toBase58() };
   }
   const tokenAmount = tradeUnits(amount, tokenDecimals);
   const quoted = sellBaseInput({ ...args, base: tokenAmount, slippage });
@@ -145,6 +149,7 @@ export async function buildTradeTransaction({ connection, side, mint, user, amou
   if (side === 'buy') {
     const solAmount = tradeUnits(amount, 9);
     const tokenAmount = getBuyTokenAmountFromSolAmount({ global, bondingCurve: state.bondingCurve, amount: solAmount });
+    assertPositiveQuoteAmount(tokenAmount, 'token');
     const instructions = await PUMP_SDK.buyV2Instructions({
       global,
       bondingCurveAccountInfo: state.bondingCurveAccountInfo,
@@ -166,6 +171,7 @@ export async function buildTradeTransaction({ connection, side, mint, user, amou
 
   const tokenAmount = tradeUnits(amount, tokenDecimals);
   const solAmount = getSellSolAmountFromTokenAmount({ global, bondingCurve: state.bondingCurve, amount: tokenAmount });
+  assertPositiveQuoteAmount(solAmount, 'SOL');
   const instructions = await PUMP_SDK.sellV2Instructions({
     global,
     bondingCurveAccountInfo: state.bondingCurveAccountInfo,
@@ -189,6 +195,7 @@ export async function submitTrade({ connection, provider, side, mint, user, amou
   onStatus(`Reading ${side} quote and Solana state…`);
   const trade = preparedTrade || await buildTradeTransaction({ connection, side, mint, user, amount, slippagePercent, feeOwner, feeBps });
   if (trade.side !== side || !trade.mint.equals(requireMint(mint)) || !trade.user.equals(requireMint(user)) || trade.inputAmount !== Number(amount) || trade.slippagePercent !== Number(slippagePercent)) throw new Error('The trade quote no longer matches the selected trade.');
+  assertPositiveQuoteAmount(trade.outputAmount, side === 'sell' ? 'SOL' : 'token');
   const latest = await connection.getLatestBlockhash('confirmed');
   const transaction = new Transaction({ recentBlockhash: latest.blockhash, feePayer: user }).add(...trade.instructions);
   assertWalletCurrent();

@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {focusLaunchStep} from '../launch-accessibility.js';
+let focuses=0,scroll;
+const heading={focus(options){assert.equal(options.preventScroll,true);focuses++;}};
+const panel={hidden:false,querySelector(selector){assert.equal(selector,'h3');return heading;}};
+const dialog={open:true,querySelector(selector){assert.equal(selector,'[data-launch-step="2"]');return panel;},scrollTo(options){scroll=options;}};
+focusLaunchStep(dialog,2);assert.equal(focuses,1);assert.equal(heading.tabIndex,-1);assert.equal(scroll.behavior,'smooth');
+focusLaunchStep(dialog,2,{reducedMotion:true});assert.equal(scroll.behavior,'instant');
+dialog.open=false;focusLaunchStep(dialog,2);assert.equal(focuses,2);
+dialog.open=true;panel.hidden=true;focusLaunchStep(dialog,2);assert.equal(focuses,2);
+const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+assert.match(html,/id="wizard-hint" role="status" aria-live="polite" aria-atomic="true"/);
+assert.match(html,/id="launch-next" aria-describedby="wizard-hint"/);
+const app=await readFile(new URL('../app.js',import.meta.url),'utf8');
+assert.match(app,/Fee-router verification is unavailable\. Save your draft/);
+assert.doesNotMatch(app,/status\.textContent = `Launch blocked: \$\{error\.message\}`/);
+console.log('Launch accessibility: visible-panel focus, closed/hidden guards, reduced-motion scrolling and live validation markup passed (local-only).');

@@ -4,7 +4,7 @@ import { Connection, Keypair, PublicKey, Transaction, TransactionInstruction, se
 let input = '';
 for await (const chunk of process.stdin) input += chunk;
 const authority = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(input.trim())));
-const programId = new PublicKey(process.env.FUNDED_ROUTER_PROGRAM_ID || 'C92L1A3ZkS9Nnau5JLAMwMUYxPSYVUTdeosHyc6WMA8W');
+const programId = new PublicKey(process.env.FUNDED_ROUTER_PROGRAM_ID || process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || '2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik');
 const [router, bump] = PublicKey.findProgramAddressSync([Buffer.from('funded-fee-router-v1')], programId);
 const discriminator = crypto.createHash('sha256').update('global:repair_header').digest().subarray(0, 8);
 const instruction = new TransactionInstruction({

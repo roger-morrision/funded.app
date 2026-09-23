@@ -1,12 +1,14 @@
 import { buildLaunchTransaction, normalizeLaunchInput } from './launch-core.js';
 import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, TOKEN_PROGRAM_ID, createBurnCheckedInstruction, getAccount, getAssociatedTokenAddress, getMint } from '@solana/spl-token';
-import { getBuySolAmountFromTokenAmount, OnlinePumpSdk, PUMP_SDK } from '@pump-fun/pump-sdk';
+import { getBuySolAmountFromTokenAmount, getBuyTokenAmountFromSolAmount, OnlinePumpSdk, PUMP_SDK } from '@pump-fun/pump-sdk';
 import BN from 'bn.js';
 import { tokensToBaseUnits } from './launch-burn-policy.js';
 import { devnetMetadataUri } from './devnet-metadata.js';
 import { verifyMintFeeRouterAccount } from './fee-router.js';
 import { buildMintRouterInitializeInstruction, buildPumpLaunchPlan } from './mint-router-launch.js';
+import { executeLaunchPlan } from './launch-executor.js';
+import { initialCurvePremiumBps } from './launch-review.js';
 
 export async function submitLaunch({ connection, provider, payer, input, onStatus = () => {} }) {
   const launchInput = normalizeLaunchInput(input);
@@ -53,8 +55,37 @@ export function normalizeInitialBuy(input = {}) {
 
 export async function getInitialBuyQuote({ connection, input }) {
   const launchInput = normalizeLaunchInput(input);
+  const requestedSol = Number(input?.initialBuySol ?? 0);
+  if (!Number.isFinite(requestedSol) || requestedSol < 0) throw new Error('Developer buy must be a valid SOL amount of zero or more.');
+  if (requestedSol > 0) {
+    const requestedLamports = BigInt(Math.round(requestedSol * 1_000_000_000));
+    if (requestedLamports <= 0n || requestedLamports > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('Developer buy SOL amount is outside the supported range.');
+    const global = await new OnlinePumpSdk(connection).fetchGlobal();
+    const amountBaseUnits = BigInt(getBuyTokenAmountFromSolAmount({
+      global,
+      feeConfig: null,
+      mintSupply: null,
+      bondingCurve: null,
+      amount: new BN(requestedLamports.toString()),
+      quoteMint: NATIVE_MINT,
+    }).toString());
+    const supplyBaseUnits = BigInt(launchInput.supply) * (10n ** BigInt(launchInput.decimals));
+    if (amountBaseUnits <= 0n) throw new Error('Developer buy is too small to receive tokens.');
+    if (amountBaseUnits * 100n > supplyBaseUnits * 20n) throw new Error('Developer buy cannot exceed 20% of the token supply.');
+    const tokenDivisor = 10 ** launchInput.decimals;
+    const amountTokens = Number(amountBaseUnits) / tokenDivisor;
+    const percent = amountTokens / launchInput.supply * 100;
+    return {
+      percent,
+      amountBaseUnits,
+      amountTokens,
+      solAmountLamports: requestedLamports,
+      maxSolAmountLamports: requestedLamports + requestedLamports / 100n,
+      curvePremiumBps: initialCurvePremiumBps(amountBaseUnits, global.initialVirtualTokenReserves.toString()),
+    };
+  }
   const buy = normalizeInitialBuy({ ...launchInput, initialBuyPercent: input?.initialBuyPercent });
-  if (buy.amountBaseUnits === 0n) return { ...buy, solAmountLamports: 0n };
+  if (buy.amountBaseUnits === 0n) return { ...buy, solAmountLamports: 0n, maxSolAmountLamports:0n, curvePremiumBps:0 };
   const global = await new OnlinePumpSdk(connection).fetchGlobal();
   const solAmountLamports = getBuySolAmountFromTokenAmount({
     global,
@@ -64,7 +95,9 @@ export async function getInitialBuyQuote({ connection, input }) {
     amount: new BN(buy.amountBaseUnits.toString()),
     quoteMint: NATIVE_MINT,
   });
-  return { ...buy, solAmountLamports: BigInt(solAmountLamports.toString()) };
+  const quoted=BigInt(solAmountLamports.toString());
+  return { ...buy, solAmountLamports: quoted, maxSolAmountLamports:quoted+quoted/100n,
+    curvePremiumBps:initialCurvePremiumBps(buy.amountBaseUnits,global.initialVirtualTokenReserves.toString()) };
 }
 
 export async function prepareFundedLaunchBurn({ connection, payer, fundedMint, amountTokens }) {
@@ -87,10 +120,12 @@ export async function prepareFundedLaunchBurn({ connection, payer, fundedMint, a
   };
 }
 
-export async function submitPumpDevnetLaunch({ connection, provider, payer, input, metadataUri, prepareMetadata, feeRouterAddress, feeRouterProgramId = null, useMintRouter = false, launchBurn = null, onStatus = () => {}, assertWalletCurrent = () => {} }) {
+export async function submitPumpDevnetLaunch({ connection, provider, payer, input, metadataUri, prepareMetadata, feeRouterAddress, feeRouterProgramId = null, useMintRouter = false, launchBurn = null, onStatus = () => {}, onJournal = () => {}, assertWalletCurrent = () => {} }) {
   const launchInput = normalizeLaunchInput(input);
   const initialBuy = await getInitialBuyQuote({ connection, input });
+  if(input.maxInitialBuyLamports!=null&&initialBuy.maxSolAmountLamports>BigInt(input.maxInitialBuyLamports))throw new Error('The initial-buy cost increased beyond the reviewed maximum. Refresh the quote and review again; no transaction was sent.');
   const mint = Keypair.generate();
+  onJournal({state:'prepared',mint:mint.publicKey.toBase58()});
   const mintRouter = useMintRouter ? buildMintRouterInitializeInstruction({ programId: feeRouterProgramId, mint: mint.publicKey, payer }) : null;
   const feeRouter = mintRouter?.router.address || new PublicKey(String(feeRouterAddress || '').trim());
   if (prepareMetadata) {
@@ -133,18 +168,8 @@ export async function submitPumpDevnetLaunch({ connection, provider, payer, inpu
   onStatus(plan.mintRouterSeparate ? 'Approve mint router initialization, then approve the Pump launch…' : burnPlan
     ? `Approve one transaction to create the Pump coin and burn ${burnPlan.amountTokens.toLocaleString()} $FUNDED…`
     : 'Approve the Pump launch with funded.app set as creator-fee owner…');
-  let signature = null;
-  let mintRouterSignature = null;
-  for (const step of plan.steps) {
-    const signed = await provider.signTransaction(step.transaction);
-    assertWalletCurrent();
-    const transactionSignature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
-    onStatus(step.kind === 'initialize-mint-router' ? 'Confirming the isolated mint router on Devnet…' : 'Confirming Pump launch on Solana Devnet…');
-    const confirmation = await connection.confirmTransaction({ signature: transactionSignature, blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight }, 'confirmed');
-    if (confirmation.value.err) throw new Error(`${step.kind === 'initialize-mint-router' ? 'Mint router initialization' : 'Pump launch'} failed on Devnet: ${JSON.stringify(confirmation.value.err)}. Mint: ${mint.publicKey.toBase58()}`);
-    if (step.kind === 'initialize-mint-router') mintRouterSignature = transactionSignature;
-    else signature = transactionSignature;
-  }
+  const {signature,mintRouterSignature}=await executeLaunchPlan({connection,provider,payer,mint,plan,assertWalletCurrent,onEvent:onJournal});
+  onJournal({state:'verification-pending',signature});
   onStatus('Verifying Pump recorded funded.app—not the user—as creator-fee owner…');
   if (mintRouter) {
     const legacyAccount = await connection.getAccountInfo(new PublicKey(feeRouterAddress), 'confirmed');

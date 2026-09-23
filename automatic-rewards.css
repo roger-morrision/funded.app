@@ -1,0 +1,21 @@
+[data-automatic-rewards] { margin:20px auto; padding:24px; width:100%; max-width:1180px; border:1px solid #343448; border-radius:16px; background:#141422; }
+.auto-rewards-heading { display:flex; justify-content:space-between; align-items:start; gap:16px; margin-bottom:20px; }
+.auto-rewards-heading h2 { margin:6px 0; font-size:clamp(22px,3vw,30px); line-height:1.2; }
+.auto-rewards-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.auto-rewards-grid article { min-width:0; padding:20px; border:1px solid #343448; border-radius:12px; background:#191928; }
+.auto-reward-type { color:#bfa7ff; font-size:12px; }
+.auto-rewards-grid h3 { margin:12px 0; font-size:18px; line-height:1.4; }
+.auto-rewards-grid p { color:#b5b6ca; font-size:14px; line-height:1.7; }
+.auto-rewards-grid small { display:block; margin-top:12px; color:#aaadc1; font-size:12px; line-height:1.6; }
+.auto-countdown { display:block; color:#b8f3dc; font:28px 'DM Mono',monospace; margin:10px 0; }
+.auto-event,.auto-rewards-grid a { display:block; margin-top:20px; color:#b8f3dc; font-size:15px; }
+.auto-reward-status { margin:18px 0 0; color:#c1b5d9; font-size:13px; line-height:1.6; }
+.reward-rule-summary { margin:0 0 20px; padding:18px; border:1px solid #45405e; border-radius:12px; background:#1b192b; }
+.reward-rule-summary > strong { color:#f0ebff; font-size:16px; }
+.reward-rule-summary p,.reward-delivery-guide p,.reward-review-note { color:#bec0d1; font-size:13px; line-height:1.7; margin:10px 0; }
+.reward-rule-summary b,.reward-delivery-guide b { color:#eee8ff; }
+.reward-rule-summary summary,.reward-delivery-guide summary { cursor:pointer; color:#c3b1ff; font-size:13px; line-height:1.6; padding:8px 0; }
+.reward-delivery-guide { margin:14px 0; padding:10px 16px; border:1px solid #3b354e; border-radius:10px; }
+.reward-review-note { padding:14px; border-left:3px solid #a78bed; background:#1b192b; }
+@media(max-width:1000px) { .auto-rewards-grid { grid-template-columns:1fr; } }
+@media(max-width:560px) { [data-automatic-rewards] { padding:16px; } .auto-rewards-heading { flex-direction:column; } }

@@ -1,0 +1,56 @@
+# Explicit opt-in Devnet automatic-reward worker. The shared ledger lets the app
+# publish only real schedules and current worker readiness. Never use Mainnet
+# credentials with this profile.
+services:
+  reward-volume-init:
+    profiles: ["automatic-rewards"]
+    image: ${FUNDED_APP_IMAGE:-fundedapp-app:automatic-rewards-v11-20260923h}
+    user: "0:0"
+    restart: "no"
+    command: ["sh", "-c", "chown -R node:node /app/data/automatic-rewards"]
+    volumes:
+      - funded_reward_ledger:/app/data/automatic-rewards
+
+  app:
+    environment:
+      AUTOMATIC_REWARD_STORE_PATH: /app/data/automatic-rewards/ledger.json
+    volumes:
+      - funded_reward_ledger:/app/data/automatic-rewards
+    depends_on:
+      reward-volume-init:
+        condition: service_completed_successfully
+
+  reward-worker:
+    profiles: ["automatic-rewards"]
+    build:
+      context: .
+    image: ${FUNDED_APP_IMAGE:-fundedapp-app:automatic-rewards-v11-20260923h}
+    restart: unless-stopped
+    command: ["node", "scripts/run-reward-scheduler.mjs"]
+    environment:
+      NODE_ENV: production
+      SOLANA_CLUSTER: devnet
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      SOLANA_DEVNET_RPC_URL: ${SOLANA_DEVNET_RPC_URL:-}
+      SOLANA_HOLDER_INDEX_RPC_URL: ${SOLANA_HOLDER_INDEX_RPC_URL:-}
+      FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_FEE_ROUTER_PROGRAM_ID:?Missing Devnet router program ID}
+      FUNDED_ROUTER_AUTHORITY_SECRET_KEY: ${FUNDED_ROUTER_AUTHORITY_SECRET_KEY:-}
+      SOLANA_DEVNET_CREATOR_SECRET_KEY: ${SOLANA_DEVNET_CREATOR_SECRET_KEY:-}
+      FUNDED_REWARD_PROGRAM_DATA_SHA256: ${FUNDED_REWARD_PROGRAM_DATA_SHA256:?Missing approved reward program-data hash}
+      FUNDED_REWARD_PROGRAMS_JSON: ${FUNDED_REWARD_PROGRAMS_JSON:-[]}
+      AUTOMATIC_REWARD_STORE_PATH: /app/data/automatic-rewards/ledger.json
+      FUNDED_REWARD_TICK_MS: ${FUNDED_REWARD_TICK_MS:-60000}
+    volumes:
+      - funded_reward_ledger:/app/data/automatic-rewards
+    depends_on:
+      reward-volume-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "scripts/reward-scheduler-status.mjs", "--check"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
+
+volumes:
+  funded_reward_ledger:

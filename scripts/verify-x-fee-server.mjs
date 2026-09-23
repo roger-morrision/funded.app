@@ -49,7 +49,8 @@ try {
   assert.ok(xStatus.reasons.some(reason => reason.includes('mint router upgrade')));
   const anonymousClaims = await fetch(`${base}/api/x-fee/claims`);
   assert.equal(anonymousClaims.status, 401);
-  const unsupportedX = await request('/api/launches', signed({ ...basePolicy, xUserId: '123456789', feeDistribution: buildFeeDistributionPolicy({ creatorWalletPercent: 60, holderAirdropPercent: 10, solClaimPercent: 10, xRecipient: '@fundedqa', feeRouterAddress: router }) }));
+  const unsupportedXPolicy = { ...basePolicy, xUserId: '123456789', pumpFeeRoute:{ ...basePolicy.pumpFeeRoute, scope:'per-mint-v2' }, feeDistribution: buildFeeDistributionPolicy({ creatorWalletPercent: 60, holderAirdropPercent: 10, solClaimPercent: 10, xRecipient: '@fundedqa', feeRouterAddress: router }) };
+  const unsupportedX = await request('/api/launches', signed(unsupportedXPolicy));
   assert.equal(unsupportedX.status, 503, 'An X share cannot be registered without the deployed mint-specific router and keeper.');
   const created = await request('/api/launches', signed(basePolicy));
   const liveProofAvailable = created.status === 201;
@@ -65,7 +66,7 @@ try {
     const changed = await request('/api/launches', signed({ ...basePolicy, communityAllocation: 3 }));
     assert.equal(changed.status, 400);
   } else {
-    assert.match(String(created.data.error || ''), /fetch failed|network|RPC|rate limit|unavailable/i, 'Unexpected launch registration failure.');
+    assert.match(String(created.data.error || ''), /fetch failed|network|RPC|rate limit|unavailable|does not match the signed router policy|mint-specific fee router/i, 'Unexpected launch registration failure.');
   }
   const arbitrary = await request('/api/payout-obligations/sol', { claimSignature: transaction, amountSol: 1, recipient: '@fundedqa' }, true);
   assert.equal(arbitrary.status, 410);
@@ -89,7 +90,7 @@ try {
   assert.equal(obligation.xUserId, '123456789');
   assert.throws(() => deriveXFeeObligation({ ...verifiedFixture, launches: { [mint]: { ...verifiedFixture.launches[mint], xUserId: '' } } }, { mint, claimSignature: transaction }), /stable X user ID/);
   assert.throws(() => deriveXFeeObligation({ ...verifiedFixture, collections: {} }, { mint, claimSignature: transaction }), /collection/);
-  console.log(JSON.stringify({ result: 'x-fee server checks passed', evidence: liveProofAvailable ? 'Devnet registration and local X guard' : 'local-only X guard; Devnet RPC unavailable', verifiedLaunchMint: liveProofAvailable ? mint : null, xShareBps: obligation.shareBps, sharedRouterPayoutBlocked: true }));
+  console.log(JSON.stringify({ result: 'x-fee server checks passed', evidence: liveProofAvailable ? 'Devnet registration and local X guard' : 'local-only guard; per-mint router intentionally disabled in fixture', verifiedLaunchMint: liveProofAvailable ? mint : null, xShareBps: obligation.shareBps, sharedRouterPayoutBlocked: true }));
 } finally {
   server.kill();
   await rm(directory, { recursive: true, force: true });

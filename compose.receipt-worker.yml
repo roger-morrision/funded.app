@@ -1,0 +1,25 @@
+# Optional, read-only chain indexer. Not started by the ordinary app deployment.
+# Review RPC budget and monitoring before explicitly selecting the receipts profile.
+services:
+  receipt-worker:
+    profiles: ["receipts"]
+    image: ${FUNDED_APP_IMAGE:-fundedapp-app:automatic-rewards-v11-20260923h}
+    restart: unless-stopped
+    command: ["node", "scripts/backfill-receipts.mjs", "--watch"]
+    environment:
+      NODE_ENV: production
+      VITE_SOLANA_CLUSTER: devnet
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      DATABASE_URL: postgresql://funded:${FUNDED_DB_PASSWORD:?Use the protected deployment environment}@db:5432/funded_app
+      DATABASE_SSL: "false"
+      FUNDED_RECEIPT_BACKFILL_ENABLED: "true"
+      FUNDED_BACKFILL_PAGES: "5"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "scripts/receipt-worker-status.mjs", "--check"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s

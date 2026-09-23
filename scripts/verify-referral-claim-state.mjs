@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {verifyReferralClaim,pendingReferralClaim} from '../server/referral-claim-state.mjs';
+const claim={id:'fixture',nonce:'original',recipientWallet:'synthetic-wallet',amount:0.01,asset:'SOL',expiresAt:new Date(Date.now()+60000).toISOString(),status:'awaiting-wallet-signature'};
+assert.equal(verifyReferralClaim(claim,claim,claim.recipientWallet).status,'wallet-verified');
+for(const status of ['executing','verification-pending','failed'])assert.throws(()=>verifyReferralClaim({...claim,status},claim,claim.recipientWallet),/reconciliation/);
+for(const key of ['nonce','recipientWallet','amount','asset','expiresAt'])assert.throws(()=>verifyReferralClaim({...claim,[key]:'changed'},claim,claim.recipientWallet),/changed/);
+const paid={...claim,status:'paid',payoutSignature:'synthetic-receipt'};
+assert.deepEqual(verifyReferralClaim(paid,claim,claim.recipientWallet),paid,'Concurrent completion must not downgrade paid.');
+assert.deepEqual(pendingReferralClaim(paid,new Error('late error')),paid);
+const pending=pendingReferralClaim({...claim,status:'executing'},new Error('confirmation timed out'));
+assert.equal(pending.status,'verification-pending');assert.throws(()=>verifyReferralClaim(pending,pending,claim.recipientWallet),/reconciliation/);
+assert.throws(()=>verifyReferralClaim(claim,claim,'another-wallet'),/wallet/);
+assert.throws(()=>verifyReferralClaim(claim,claim,claim.recipientWallet,Date.now()+120000),/expired/);
+console.log('Referral claim state: stale signatures, concurrent execution/completion, uncertain sends and replay fail closed. No transfer performed.');

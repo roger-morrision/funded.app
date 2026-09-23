@@ -22,7 +22,7 @@ await writeFile(join(directory, 'store.json'), JSON.stringify({
   referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} },
 }));
 const fixturePath = join(directory, 'store.json').replaceAll('\\', '/');
-const server = spawn(process.execPath, ['server/index.mjs'], { cwd: process.cwd(), env: { ...process.env, NODE_ENV: 'test', PORT: String(port), FUNDED_STORE_PATH: fixturePath, FUNDED_API_TOKEN: 'referral-test-token', SOLANA_KEEPER_CONFIGURED: 'false' }, stdio: 'ignore' });
+const server = spawn(process.execPath, ['server/index.mjs'], { cwd: process.cwd(), env: { ...process.env, NODE_ENV: 'test', PORT: String(port), HOST:'127.0.0.1', FUNDED_STORE_PATH: fixturePath, DATABASE_URL:'', FUNDED_API_TOKEN: 'referral-test-token', SOLANA_KEEPER_CONFIGURED: 'false', SOLANA_KEEPER_SECRET_KEY:'', SOLANA_KEEPER_KEYPAIR_PATH:'', FUNDED_ROUTER_AUTHORITY_SECRET_KEY:'', FUNDED_ROUTER_AUTHORITY_KEYPAIR_PATH:'', SOLANA_ALLOW_KEEPER_TRANSFER:'false', DEVNET_TEST_MODE:'false' }, stdio: 'ignore' });
 const base = `http://127.0.0.1:${port}`;
 async function waitForServer() { for (let attempt = 0; attempt < 30; attempt += 1) { try { if ((await fetch(`${base}/api/health`)).ok) return; } catch {} await new Promise(resolve => setTimeout(resolve, 100)); } throw new Error('Referral API did not start.'); }
 async function post(path, body) { const response = await fetch(`${base}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer referral-test-token' }, body: JSON.stringify(body) }); const data = await response.json(); assert.equal(response.ok, true, `${path}: ${data.error || response.status}`); return data; }
@@ -58,7 +58,14 @@ try {
   const claim = await post('/api/referral-claims/prepare', { settlementSignature: 'server-referral-test', recipientWallet: inviter.publicKey.toBase58(), level: 1 });
   assert.equal(claim.status, 'awaiting-wallet-signature');
   assert.equal(claim.recipientWallet, inviter.publicKey.toBase58());
-  console.log('referral server checks passed');
+  const signedClaim=bs58.encode(nacl.sign.detached(new TextEncoder().encode(claim.statement),inviter.secretKey));
+  const verified=await post(`/api/referral-claims/${claim.id}/verify`,{publicKey:inviter.publicKey.toBase58(),signature:signedClaim});
+  assert.equal(verified.status,'wallet-verified');
+  const disabled=await fetch(`${base}/api/referral-claims/${claim.id}/execute`,{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
+  assert.equal(disabled.status,503);
+  const after=await (await fetch(`${base}/api/referral-claims?wallet=${inviter.publicKey.toBase58()}`)).json();
+  assert.equal(after.claims.find(row=>row.id===claim.id).status,'wallet-verified','Disabled keeper must not strand a verified claim.');
+  console.log('Referral HTTP: scoped signature verification and disabled-execution preservation passed with ephemeral keys, no transfer.');
 } finally {
   server.kill();
   await rm(directory, { recursive: true, force: true });

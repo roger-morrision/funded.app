@@ -14,3 +14,7 @@ pub const POLICY_HASH: [u8; 32] = [
 ];
 pub const ROUTER_HEADER_LEN: usize = 41;
 pub const ROUTER_DATA_LEN: usize = 74;
+pub const REWARD_VAULT_SEED: &[u8] = b"reward-vault-v1";
+pub const REWARD_CYCLE_SEED: &[u8] = b"reward-cycle-v1";
+pub const REWARD_PAYMENT_SEED: &[u8] = b"reward-payment-v1";
+pub const REWARD_LEAF_DOMAIN: &[u8] = b"funded-reward-leaf-v1";

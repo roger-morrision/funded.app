@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Local image preparation regression</title></head>
+<body><h1>Local-only image preparation test</h1><p>Generates pixels in memory. No upload, wallet, network transaction or persistent storage.</p><button id="run">Run image preparation checks</button><pre id="result" role="status">Not run</pre><img id="preview" alt="Prepared synthetic image" style="max-width:500px"></body>
+<script type="module">
+import {prepareLaunchImage,getPreparedImage,assertImageReady} from '../launch-image.js';
+document.querySelector('#run').onclick=async()=>{
+  const result=document.querySelector('#result');result.textContent='Running';
+  try{
+    const canvas=document.createElement('canvas');canvas.width=2000;canvas.height=1000;const ctx=canvas.getContext('2d');ctx.fillStyle='#7140bf';ctx.fillRect(0,0,2000,1000);ctx.fillStyle='#ffffff';ctx.fillRect(100,100,900,600);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));const file=new File([blob],'fixture.png',{type:'image/png'});
+    const full=await prepareLaunchImage(file);if(full.width!==1024||full.height!==512||full.file.size>600000)throw new Error('Resize failed');
+    const square=await prepareLaunchImage(file,{crop:true});if(square.width!==512||square.height!==512)throw new Error('Crop failed');assertImageReady();document.querySelector('#preview').src=square.url;
+    const invalid=new File(['not an image'],'invalid.png',{type:'image/png'});let rejected=false;try{await prepareLaunchImage(invalid);}catch{rejected=true;}if(!rejected||getPreparedImage())throw new Error('Invalid image accepted');
+    await prepareLaunchImage(null);assertImageReady();if(getPreparedImage())throw new Error('Remove failed');
+    const final=await prepareLaunchImage(file,{crop:true});document.querySelector('#preview').src=final.url;
+    result.textContent=`PASS: 2000×1000 resized to 1024×512; square crop 512×512; ${final.file.size} bytes; invalid decode rejected; remove cleared image. No upload.`;
+  }catch(error){result.textContent=`FAIL: ${error.message}`;}
+};
+</script></html>

@@ -5,8 +5,17 @@ import { formatSolMetric, readCurveMetrics } from '../explore-onchain-metrics.js
 import { sortDevnetLaunches } from '../server/explore-registry.mjs';
 
 const exploreMarkup = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const appSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
 assert.match(exploreMarkup, /Minimum curve cap · SOL\s*<input id="explore-min-cap-sol"/);
 assert.match(exploreMarkup, /Minimum 24h traded · SOL<\/span><input id="explore-min-volume-sol"/);
+assert.match(exploreMarkup, /id="explore-promotion-filter"[\s\S]*?Any paid promotion[\s\S]*?Premier/);
+assert.match(exploreMarkup, /id="explore-reward-filter"[\s\S]*?Community token airdrop[\s\S]*?Creator fees → holders[\s\S]*?Creator fees → X account/);
+assert.match(exploreMarkup, /data-explore-sort="airdrop"[\s\S]*?data-explore-sort="holder-fee"[\s\S]*?data-explore-sort="x-fee"/);
+assert.match(exploreMarkup, /id="explore-benefit-leaders"/);
+assert.match(appSource, /document\.querySelector\('#explore-search'\)\?\.addEventListener\('input', event => \{[\s\S]*?document\.querySelector\('#global-search'\)[\s\S]*?field\.value = exploreQuery;[\s\S]*?updateExploreViews\(\);\s*\}\);/, 'Clearing or editing Explore search must keep the persistent global field synchronized.');
+assert.match(appSource, /function withVerifiedExploreBenefits\(record\)[\s\S]*?benefitPolicyVerified: true[\s\S]*?holderFeePercent[\s\S]*?xFeePercent/, 'Explore benefits must derive from a verified launch policy.');
+assert.match(appSource, /#explore-promotion-filter'[\s\S]*?explorePromotion = event\.target\.value/);
+assert.match(appSource, /#explore-reward-filter'[\s\S]*?exploreReward = event\.target\.value/);
 assert.deepEqual(filterMarketRecords([
   { address: 'below', curveCapSol: 0.95 },
   { address: 'above', curveCapSol: 1.05 },
@@ -68,6 +77,21 @@ const activityRecords = [
 assert.deepEqual(filterMarketRecords(activityRecords, { sort: 'trades' }).map(item => item.address), ['busy', 'quiet', 'unscanned']);
 assert.deepEqual(filterMarketRecords(activityRecords, { minTrades: 3 }).map(item => item.address), ['busy']);
 assert.equal(activityRecords[2].tradeCount24h, null, 'Unscanned trades must stay unavailable, not zero.');
+const benefitRecords = [
+  { address: 'premier', promotionTier: 'premier', benefitPolicyVerified: true, communityAirdropPercent: 3, holderFeePercent: 20, xFeePercent: 0, creatorFeePercent: 60 },
+  { address: 'boost', promotionTier: 'boost', benefitPolicyVerified: true, communityAirdropPercent: 8, holderFeePercent: 0, xFeePercent: 25, creatorFeePercent: 55 },
+  { address: 'standard', promotionTier: 'standard', benefitPolicyVerified: true, communityAirdropPercent: 0, holderFeePercent: 0, xFeePercent: 0, creatorFeePercent: 80 },
+  { address: 'unpublished' },
+].map(enrichMarketRecord);
+assert.deepEqual(filterMarketRecords(benefitRecords, { promotion: 'promoted' }).map(item => item.address), ['premier', 'boost']);
+assert.deepEqual(filterMarketRecords(benefitRecords, { promotion: 'standard' }).map(item => item.address), ['standard']);
+assert.deepEqual(filterMarketRecords(benefitRecords, { reward: 'community-airdrop' }).map(item => item.address), ['premier', 'boost']);
+assert.deepEqual(filterMarketRecords(benefitRecords, { reward: 'holder-fees' }).map(item => item.address), ['premier']);
+assert.deepEqual(filterMarketRecords(benefitRecords, { reward: 'x-fees' }).map(item => item.address), ['boost']);
+assert.deepEqual(filterMarketRecords(benefitRecords, { reward: 'creator-wallet' }).map(item => item.address), ['premier', 'boost', 'standard']);
+assert.deepEqual(filterMarketRecords(benefitRecords, { sort: 'airdrop' }).map(item => item.address), ['boost', 'premier', 'standard', 'unpublished']);
+assert.deepEqual(filterMarketRecords(benefitRecords, { sort: 'holder-fee' }).map(item => item.address), ['premier', 'boost', 'standard', 'unpublished']);
+assert.deepEqual(filterMarketRecords(benefitRecords, { sort: 'x-fee' }).map(item => item.address), ['boost', 'premier', 'standard', 'unpublished']);
 const authorityRecords = [
   { address: 'revoked', mintAuthorityRevoked: true, freezeAuthorityRevoked: true },
   { address: 'mintable', mintAuthorityRevoked: false, freezeAuthorityRevoked: true },

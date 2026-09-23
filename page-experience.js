@@ -15,6 +15,11 @@ function simplifyExplore() {
   const advanced = document.querySelector('.explore-advanced-fields');
   const windowFilter = document.querySelector('.filter-row .explore-timeframe');
   const signalFilter = byId('explore-risk-filter')?.closest('label');
+  document.querySelector('#explore .network-lock')?.remove();
+  document.querySelector('#explore .live-label')?.remove();
+  document.querySelector('#explore .explore-hero-stat')?.remove();
+  document.querySelector('#explore .quote-assets-panel')?.remove();
+  byId('explore-market-kpis')?.remove();
   if (advanced && windowFilter && signalFilter) {
     advanced.prepend(signalFilter);
     advanced.prepend(windowFilter);
@@ -32,6 +37,52 @@ function showLaunchPath() {
     <div><b>2</b><span><strong>Review</strong><small>Check the fee owner, policy, and Devnet network.</small></span></div>
     <div><b>3</b><span><strong>Sign & verify</strong><small>Approve in your wallet; only a confirmed signature creates a launch record.</small></span></div>
   </div>`);
+}
+
+function upgradeProjectsPage() {
+  const page = byId('my-launches');
+  if (!page) return;
+  page.classList.add('projects-page');
+  const heading = page.querySelector(':scope > .section-heading');
+  if (heading) heading.innerHTML = `<div><p class="eyebrow">Creator workspace <span class="section-state">local + verified registry</span></p><h1>My projects</h1><p class="projects-lede">Review drafts, launch status, market activity, and token details in one portfolio.</p></div><a class="primary-button projects-launch-button" href="#launch">Launch a project <span aria-hidden="true">↗</span></a>`;
+  const creatorPanel = page.querySelector('.role-panel:not(.referral-growth-card)');
+  if (!creatorPanel) return;
+  creatorPanel.classList.add('projects-panel');
+  const head = creatorPanel.querySelector('.role-panel-head');
+  if (head) head.innerHTML = `<span class="role-icon creator">◫</span><div><strong>Your token portfolio</strong><small>Identity, launch state, community reserve, and available market data.</small></div><span class="data-badge">Mixed sources</span>`;
+  const stats = creatorPanel.querySelectorAll('.role-stats > div');
+  const labels = [['Projects', '0'], ['Pending review', '—'], ['Trading', '—']];
+  stats.forEach((stat, index) => {
+    const [label, value] = labels[index] || labels[0];
+    const span = stat.querySelector('span');
+    const strong = stat.querySelector('b');
+    if (span) span.textContent = label;
+    if (strong && index > 0) strong.textContent = value;
+  });
+  const list = byId('creator-launch-empty');
+  list?.classList.add('projects-list');
+  addOnce(creatorPanel, 'projects-empty-actions', `<div class="projects-empty-actions" id="projects-empty-actions"><a class="primary-button" href="#launch">Launch a project</a><a class="text-button" href="#explore">Explore launches →</a></div>`);
+}
+
+function upgradeAnalyticsDashboard() {
+  const page = byId('analytics-detail');
+  const dashboard = page?.querySelector('.analytics-kpis');
+  if (!page || !dashboard) return;
+  const heading = page.querySelector(':scope > .section-heading h2');
+  const explanation = byId('analytics-range-status');
+  if (heading) heading.textContent = 'Funded at a glance';
+  if (explanation) explanation.textContent = 'Every figure shows its unit and stays blank until the matching Devnet record is confirmed and indexed.';
+  dashboard.classList.add('analytics-kpis-complete');
+  dashboard.setAttribute('aria-label', 'Funded protocol key figures');
+  dashboard.innerHTML = `
+    <article data-analytics-metric="fees"><span>Total fees collected</span><strong>—</strong><small><b>SOL / USD</b>No verified router claims</small></article>
+    <article data-analytics-metric="launches"><span>Total launches</span><strong>—</strong><small><b>COUNT</b>Confirmed mints only</small></article>
+    <article data-analytics-metric="payouts"><span>Recipient payouts</span><strong>—</strong><small><b>SOL / COUNT</b>Confirmed transfers only</small></article>
+    <article data-analytics-metric="volume"><span>Trading volume</span><strong>—</strong><small><b>USD · 24H</b>Verified Pump events</small></article>
+    <article data-analytics-metric="airdrops"><span>Community airdrops</span><strong>—</strong><small><b>USD</b>Claimed distributions only</small></article>
+    <article data-analytics-metric="referrals"><span>Referral rewards</span><strong>—</strong><small><b>USD</b>Confirmed reward receipts</small></article>
+    <article data-analytics-metric="burned"><span>$FUNDED burned</span><strong>—</strong><small><b>USD</b>Confirmed burn receipts</small></article>
+    <article data-analytics-metric="wallets"><span>Trading wallets</span><strong>—</strong><small><b>COUNT · 24H</b>Observed verified activity</small></article>`;
 }
 
 function renderLocalDraft() {
@@ -115,7 +166,7 @@ function addContextPanels() {
   const docs = byId('docs');
   addOnce(docs, 'docs-source-map', `<article class="support-card docs-source-map" id="docs-source-map"><p class="eyebrow">Evidence guide</p><h2>What each screen proves</h2><div class="source-map-grid"><div><strong>Launch & token</strong><small>Confirmed Devnet mint and fee-owner checks when RPC data is available.</small></div><div><strong>Payments & analytics</strong><small>Claim and payout totals require indexed transaction receipts.</small></div><div><strong>Airdrops & buybacks</strong><small>Policy previews are not vault balances, claims, trades, or burns.</small></div></div></article>`, docs?.firstElementChild);
   const privacy = byId('privacy');
-  addOnce(privacy, 'privacy-safety-steps', `<div class="safety-steps" id="privacy-safety-steps"><div><strong>Before signing</strong><small>Verify Solana Devnet, the exact amount, recipient, and program in your wallet.</small></div><div><strong>After signing</strong><small>Open the transaction on Solana Explorer and wait for confirmation. A submitted transaction is not a payout receipt.</small></div><div><strong>If something looks wrong</strong><small>Reject the signature. Never enter a seed phrase or private key into this page.</small></div></div>`);
+  addOnce(privacy, 'privacy-safety-steps', `<div class="safety-steps" id="privacy-safety-steps"><div><strong>Before signing</strong><small>Verify Solana Devnet, the exact amount, recipient, and program in the review. Standard wallets also show their own signing prompt.</small></div><div><strong>After signing</strong><small>Open the transaction on Solana Explorer and wait for confirmation. A submitted transaction is not a payout receipt.</small></div><div><strong>If something looks wrong</strong><small>Do not submit. Reject a standard-wallet signing prompt if one appears. Never enter a seed phrase or private key into this page.</small></div></div>`);
   const paid = byId('paid');
   addOnce(paid, 'paid-status', `<div class="source-note" id="paid-status"><strong>Current status · Devnet preview</strong><span>Fee-route policy can be reviewed before signing. Production settlement, automated recipient payouts, and $FUNDED burns are not live. Any figures below are allocation policy, not paid totals.</span></div>`, paid?.querySelector('.revenue-model'));
   const profile = byId('profile');
@@ -149,6 +200,8 @@ function addCoinSections() {
 
 simplifyExplore();
 showLaunchPath();
+upgradeProjectsPage();
+upgradeAnalyticsDashboard();
 renderLocalDraft();
 clarifyDataStates();
 clarifyReferrals();

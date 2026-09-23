@@ -7,11 +7,14 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { bondingCurvePda } from '@pump-fun/pump-sdk';
 import { enrichMarketRecord, summarizeMarkets } from '../market-intelligence.js';
-import { buildTradePricePath, selectRecentTrades, summarizeTokenAccounts } from '../coin-detail-model.js';
+import { buildTradePricePath, selectRecentTrades, summarizeTokenAccounts, verifiedRegistryLaunch } from '../coin-detail-model.js';
 import { readPumpMarketActivity, summarizePumpTrades } from '../server/coin-market.mjs';
 import { routerFeeActivity } from '../server/fee-activity.mjs';
 
 const appSource = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+assert.match(appSource, /holders: `Token accounts \$\{coinActivity\.accountAvailable/);
+assert.match(appSource, /RPC token-account sample, not a unique holder count/);
+assert.doesNotMatch(appSource, /Top holders \$\{coinActivity\.accountAvailable/);
 const coinFormatterSource = appSource.match(/function formatCoinUsd\(solValue\)\{[^}]+\}/)?.[0];
 assert.ok(coinFormatterSource, 'coin display formatter is present');
 const coinFormatter = new Function('coinSolUsdPrice', 'formatUsd', 'formatCoinSpot', `${coinFormatterSource}; return formatCoinUsd;`);
@@ -19,6 +22,12 @@ assert.equal(coinFormatter(null, value => `$${value}`, value => `${value} SOL`)(
 assert.equal(coinFormatter(100, value => `$${value}`, value => `${value} SOL`)(0.5), '$50');
 assert.equal(coinFormatter(null, value => `$${value}`, value => `${value} SOL`)(null), '$—');
 assert.match(appSource, /Observed \$\{Number\.isFinite\(coinSolUsdPrice\) \? 'USD' : 'SOL'\} per token/);
+
+const legacyVerifiedLaunch = { mint: 'verified-mint', cluster: 'devnet', onchainVerified: true, policySignature: 'signed-policy', name: 'Verified name', symbol: 'VERIFY' };
+assert.equal(verifiedRegistryLaunch([legacyVerifiedLaunch], 'verified-mint', 'devnet'), legacyVerifiedLaunch, 'Verified legacy records do not require a metadata URI to retain their signed registry name.');
+assert.equal(verifiedRegistryLaunch([{ ...legacyVerifiedLaunch, policySignature: '' }], 'verified-mint', 'devnet'), null);
+assert.equal(verifiedRegistryLaunch([{ ...legacyVerifiedLaunch, onchainVerified: false }], 'verified-mint', 'devnet'), null);
+assert.equal(verifiedRegistryLaunch([{ ...legacyVerifiedLaunch, cluster: 'mainnet-beta' }], 'verified-mint', 'devnet'), null);
 
 const missingMarket = enrichMarketRecord({ address: 'devnet-mint', volume24hUsd: null, liquidityUsd: null, marketCapUsd: null, priceChange24hPercent: null });
 assert.equal(missingMarket.volume24hUsd, null);

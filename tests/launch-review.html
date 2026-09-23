@@ -1,0 +1,6 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Local launch-review fixture</title><link rel="stylesheet" href="/creator-support.css"><style>body{margin:16px;background:#121522;color:#eef0fa;font:16px/1.6 system-ui}main{max-width:640px;margin:auto}button{min-height:44px}</style><main><h1>Local review fixture</h1><p>Synthetic amounts only. No wallet, signing, RPC or payment.</p><div id="launch-cost-details" class="adoption-panel"></div><button id="expire">Simulate expired estimate</button><p id="result" role="status"></p></main><script type="module">
+import {launchReview,launchReviewMarkup} from '/launch-review.js';
+const now=Date.now(),review=launchReview({balance:11000000,simulatedSpend:10000000,networkFee:5000,buyQuote:9000000,buyMaximum:9090000,transactionCount:2,curvePremiumBps:2290,now});
+document.querySelector('#launch-cost-details').innerHTML=launchReviewMarkup(review,now);
+document.querySelector('#expire').onclick=()=>{document.querySelector('#launch-cost-details').innerHTML=launchReviewMarkup(review,review.expiresAt);document.querySelector('#result').textContent='Expired: the review is unavailable until refreshed.';};
+</script></html>

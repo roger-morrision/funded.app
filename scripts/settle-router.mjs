@@ -4,7 +4,7 @@ import { Connection, Keypair, PublicKey, SystemProgram, Transaction, Transaction
 let input = '';
 for await (const chunk of process.stdin) input += chunk;
 const authority = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(input.trim())));
-const programId = new PublicKey(process.env.FUNDED_ROUTER_PROGRAM_ID || 'C92L1A3ZkS9Nnau5JLAMwMUYxPSYVUTdeosHyc6WMA8W');
+const programId = new PublicKey(process.env.FUNDED_ROUTER_PROGRAM_ID || process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || '2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik');
 const router = new PublicKey(process.argv[2]);
 const destination = new PublicKey(process.argv[3]);
 const amount = BigInt(process.argv[4] || '1000000');

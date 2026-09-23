@@ -1,0 +1,34 @@
+# Optional overlay for the existing Docker/PostgreSQL Devnet stack.
+# Supply approved values outside source control; never paste secrets into this file.
+services:
+  app:
+    build:
+      args:
+        VITE_DEV_MODE: "false"
+        VITE_DEV_AUTOCONNECT: "false"
+    environment:
+      DEV_MODE: "false"
+      DEVNET_TEST_MODE: "false"
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-https://funded.vip}
+      CORS_ORIGIN: ${PUBLIC_APP_URL:-https://funded.vip}
+      X_CALLBACK_URL: ${X_CALLBACK_URL:-}
+      X_CLIENT_ID: ${X_CLIENT_ID:-}
+      X_CLIENT_SECRET: ${X_CLIENT_SECRET:-}
+      X_BEARER_TOKEN: ${X_BEARER_TOKEN:-}
+      FUNDED_BUILD_ID: ${FUNDED_BUILD_ID:-automatic-rewards-v11-20260923d}
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      SOLANA_DEVNET_RPC_URL: ${SOLANA_DEVNET_RPC_URL:-}
+      SOLANA_KEEPER_CONFIGURED: "true"
+      FUNDED_MINT_FEE_ROUTER_ENABLED: "true"
+      FUNDED_REWARD_PROGRAM_DATA_SHA256: ${FUNDED_REWARD_PROGRAM_DATA_SHA256:?Missing approved reward program-data hash}
+      FUNDED_ROUTER_AUTHORITY_SECRET_KEY: ${FUNDED_ROUTER_AUTHORITY_SECRET_KEY:-}
+      SOLANA_DEVNET_CREATOR_SECRET_KEY: ${SOLANA_DEVNET_CREATOR_SECRET_KEY:-}
+      SOLANA_ALLOW_KEEPER_TRANSFER: "false"
+      FUNDED_RECEIPT_BACKFILL_ENABLED: "false"
+      FUNDED_RECEIPT_RETENTION_ENABLED: "false"
+    healthcheck:
+      test: ["CMD", "node", "--input-type=module", "-e", "const r=await fetch('http://127.0.0.1:8787/api/health',{signal:AbortSignal.timeout(3000)});process.exit(r.ok?0:1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s

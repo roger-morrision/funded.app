@@ -1,0 +1,39 @@
+# One-shot shared-ledger QA runner. This profile is Devnet-only and is never
+# exposed on a host port. Test-wallet keys are injected at runtime from the
+# ignored local environment files and are not written by the QA script.
+services:
+  dashboard-qa:
+    profiles: ["dashboard-qa"]
+    image: ${FUNDED_APP_IMAGE:-fundedapp-app:automatic-rewards-v11-20260923h}
+    command: ["node", "scripts/run-devnet-dashboard-qa.mjs"]
+    environment:
+      NODE_ENV: production
+      SOLANA_CLUSTER: devnet
+      VITE_SOLANA_CLUSTER: devnet
+      VITE_ALLOW_MAINNET: "false"
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      SOLANA_DEVNET_RPC_URL: ${SOLANA_DEVNET_RPC_URL:-}
+      DATABASE_URL: postgresql://funded:${FUNDED_DB_PASSWORD:?Use the protected deployment environment}@db:5432/funded_app
+      DATABASE_SSL: "false"
+      FUNDED_API_TOKEN: ${FUNDED_API_TOKEN:?Use the protected deployment environment}
+      FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_FEE_ROUTER_PROGRAM_ID:?Missing Devnet router program ID}
+      VITE_FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_FEE_ROUTER_PROGRAM_ID:?Missing Devnet router program ID}
+      FUNDED_TOKEN_MINT: ${FUNDED_TOKEN_MINT:?Missing Devnet FUNDED mint}
+      VITE_FUNDED_TOKEN_MINT: ${FUNDED_TOKEN_MINT:?Missing Devnet FUNDED mint}
+      VITE_FUNDED_TRADE_FEE_OWNER: ${FUNDED_TRADE_FEE_OWNER:?Missing Devnet trade fee owner}
+      FUNDED_MINT_FEE_ROUTER_ENABLED: "true"
+      SOLANA_KEEPER_CONFIGURED: "true"
+      SOLANA_ALLOW_KEEPER_TRANSFER: "false"
+      FUNDED_ROUTER_AUTHORITY_SECRET_KEY: ${FUNDED_ROUTER_AUTHORITY_SECRET_KEY:-${SOLANA_DEVNET_CREATOR_SECRET_KEY}}
+      SOLANA_DEVNET_CREATOR_SECRET_KEY: ${SOLANA_DEVNET_CREATOR_SECRET_KEY:?Missing Devnet creator test wallet}
+      SOLANA_DEVNET_CLAIMANT_SECRET_KEY: ${SOLANA_DEVNET_CLAIMANT_SECRET_KEY:?Missing Devnet claimant test wallet}
+      SOLANA_DEVNET_REFERRER_SECRET_KEY: ${SOLANA_DEVNET_REFERRER_SECRET_KEY:?Missing Devnet referrer test wallet}
+      AUTOMATIC_REWARD_STORE_PATH: /app/data/automatic-rewards/ledger.json
+    volumes:
+      - funded_reward_ledger:/app/data/automatic-rewards
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  funded_reward_ledger:

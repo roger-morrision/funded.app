@@ -14,12 +14,17 @@ import { PUMP_PROGRAM_ID, PUMP_SDK, bondingCurvePda } from '@pump-fun/pump-sdk';
 import { PUMP_AMM_PROGRAM_ID, PUMP_AMM_SDK, canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
 import { APP_CLUSTER, APP_EXPLORER_QUERY, APP_RPC_URL, DEV_MODE, DEV_WALLET_AUTOCONNECT, DEV_WALLET_ROLE, EXPLORE_CLUSTER, EXPLORE_RPC_URL, TRADE_FEE_BPS, TRADE_FEE_OWNER } from './app-config.js';
 import { apiRequest, persistLaunchPolicy } from './client.js';
+import { recordLaunchEvent, readLaunchJournal, policyMatchesJournal } from './launch-journal.js';
+import { launchReview, freshLaunchReview, launchReviewMarkup } from './launch-review.js';
+import { confirmedClaimResult } from './reward-discovery.js';
+import {focusLaunchStep} from './launch-accessibility.js';
+import { getPreparedImage, prepareLaunchImage, assertImageReady } from './launch-image.js';
 import { launchPolicyStatement } from './launch-policy-auth.js';
 import { verifiedPromotionBadge } from './promotion-badge.js';
 import { metadataStatement, devnetMetadataUri } from './devnet-metadata.js';
-import { collectRecentTrades, enrichMarketRecord, filterMarketRecords, formatSignal, summarizeMarkets, withMarketWindow } from './market-intelligence.js';
+import { collectRecentTrades, enrichMarketRecord, filterMarketRecords, formatSignal, sortMarketRecords, summarizeMarkets, withMarketWindow } from './market-intelligence.js';
 import { formatSolMetric, readCurveMetrics } from './explore-onchain-metrics.js';
-import { buildTradePricePath, selectRecentTrades, summarizeTokenAccounts } from './coin-detail-model.js';
+import { buildTradePricePath, selectRecentTrades, summarizeTokenAccounts, verifiedRegistryLaunch } from './coin-detail-model.js';
 import { canSignTransactions, connectWalletProvider, selectRememberedWalletProvider, walletAddress, walletLaunches } from './wallet-core.js';
 
 globalThis.Buffer ??= Buffer;
@@ -68,12 +73,15 @@ let launchCostRefreshTimer = null;
 let walletBalanceLamports = null;
 let estimatedLaunchFeeLamports = null;
 let estimatedInitialBuyLamports = 0;
+let estimatedInitialBuyTokens = 0;
+let launchCostReview = null;
 let walletMetricsLoading = false;
 let walletEstimateError = '';
+let walletDetailTab = 'activity';
 let tradePreview = null;
 let launchStep = 1;
 let launchMode = 'quick';
-let launchProfile = 'community';
+let launchProfile = 'fast';
 let launchBurnTier = 'standard';
 let launchBurnReadiness = { ready: true, message: 'No creator-funded burn is required.' };
 const WATCHLIST_KEY = 'funded.app.community.watchlist';
@@ -83,6 +91,9 @@ const REFERRAL_SERVER_KEY_PREFIX = 'funded.app.referral.server.';
 const AIRDROP_PREVIEW_CLAIM_KEY = 'funded.app.airdrop.preview-claims';
 const BUYBACK_PREVIEW_KEY = 'funded.app.buyback.preview-ledger';
 const LAUNCH_DRAFT_KEY = 'funded.app.launch.draft';
+const LAUNCH_TOKEN_SUPPLY = 1_000_000_000;
+const MIN_COMMUNITY_AIRDROP_TOKENS = 30_000_000;
+const MAX_COMMUNITY_AIRDROP_TOKENS = 500_000_000;
 const FEE_ROUTER_PROGRAM_ID = String(import.meta.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || '').trim();
 const PROTOCOL_FUNDED_MINT = String(import.meta.env.VITE_FUNDED_TOKEN_MINT || '').trim();
 const LAUNCH_BURN_TIERS = createLaunchBurnTiers({
@@ -108,14 +119,36 @@ const APP_ECONOMICS = Object.freeze({
 
 function getFundedMintAddress(){ return PROTOCOL_FUNDED_MINT; }
 function getLaunchBurnPolicy(){ return buildLaunchBurnPolicy({ tierId: launchBurnTier, fundedMint: PROTOCOL_FUNDED_MINT || null, tiers: LAUNCH_BURN_TIERS }); }
-function getCreatorBuyPercent(){
-  const value = Number(document.querySelector('#creator-buy-percent')?.value || 0);
+function getCreatorBuySol(){
+  const value = Number(document.querySelector('#creator-buy-sol')?.value || 0);
   return Number.isFinite(value) ? value : 0;
 }
+function creatorBuyExceedsWalletBalance(){
+  const buySol = getCreatorBuySol();
+  return walletBalanceLamports != null && buySol > 0 && Math.ceil(buySol * 1_000_000_000) >= walletBalanceLamports;
+}
 function getCreatorBuySummary(){
-  const percent = getCreatorBuyPercent();
-  const tokens = percent > 0 ? 1_000_000_000 * percent / 100 : 0;
-  return { percent, tokens };
+  const sol = getCreatorBuySol();
+  const tokens = sol > 0 ? estimatedInitialBuyTokens : 0;
+  const percent = tokens > 0 ? tokens / LAUNCH_TOKEN_SUPPLY * 100 : 0;
+  return { sol, percent, tokens };
+}
+function getCommunityAirdropTokens(){
+  const raw = document.querySelector('#community-airdrop-tokens')?.value;
+  if (raw == null || String(raw).trim() === '') return NaN;
+  const value = Number(raw);
+  return Number.isFinite(value) ? Math.round(value) : NaN;
+}
+function getCommunityAllocationPercent(){
+  return getCommunityAirdropTokens() / LAUNCH_TOKEN_SUPPLY * 100;
+}
+function syncCommunityAirdropPresets(){
+  const tokens = getCommunityAirdropTokens();
+  document.querySelectorAll('[data-airdrop-tokens]').forEach(button => {
+    const active = Number(button.dataset.airdropTokens) === tokens;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
 }
 function validateSolanaMint(value){
   const address = String(value || '').trim();
@@ -276,9 +309,9 @@ async function refreshFeeRouterConfig(){
       status.className = `field-help ${verified.verified ? 'funded-mint-valid' : 'funded-mint-invalid'}`;
     }
   } catch (error) {
-    feeRouterState = { status: 'invalid-router-configuration', verified: false, address: null, programId: FEE_ROUTER_PROGRAM_ID, bump: null };
-    if (status) { status.textContent = `Launch blocked: ${error.message}`; status.className = 'field-help funded-mint-invalid'; }
-    if (addressNode) addressNode.textContent = 'Invalid configuration';
+    feeRouterState = { status: 'router-verification-unavailable', verified: false, address: null, programId: FEE_ROUTER_PROGRAM_ID, bump: null };
+    if (status) { status.textContent = 'Fee-router verification is unavailable. Save your draft, check your connection and reload to retry. Signing stays blocked until verification succeeds.'; status.className = 'field-help funded-mint-invalid'; }
+    if (addressNode) addressNode.textContent = 'Not verified';
   }
   updateLaunchPreview();
   updateLaunchButton();
@@ -314,7 +347,16 @@ function formatFlowAmount(value){
 function renderFeeFlowCalculator(){
   const input = document.querySelector('#fee-flow-input');
   if (!input) return;
-  const gross = Math.max(0, Number(input.value) || 0);
+  const note = document.querySelector('#fee-flow-note');
+  const gross = Number(input.value);
+  if (input.value.trim() === '' || !Number.isFinite(gross) || gross < 0) {
+    ['creator', 'operations', 'referrals', 'community', 'buyback'].forEach(key => {
+      const node = document.querySelector(`#fee-output-${key}`);
+      if (node) node.textContent = '—';
+    });
+    if (note) note.textContent = 'Enter a non-negative gross creator-fee amount to preview the policy split.';
+    return;
+  }
   const allocations = {
     creator: gross * APP_ECONOMICS.creatorSharePercent / 100,
     operations: gross * APP_ECONOMICS.operationsEffectivePercent / 100,
@@ -327,7 +369,6 @@ function renderFeeFlowCalculator(){
     if (node) node.textContent = formatFlowAmount(amount);
   });
   const allocated = Object.values(allocations).reduce((sum, amount) => sum + amount, 0);
-  const note = document.querySelector('#fee-flow-note');
   if (note) note.textContent = `A ${formatFlowAmount(gross)} claim allocates exactly ${formatFlowAmount(allocated)} under the published policy.`;
 }
 function getPreviewClaims(){ try { return JSON.parse(localStorage.getItem(AIRDROP_PREVIEW_CLAIM_KEY) || '{}'); } catch { return {}; } }
@@ -348,14 +389,41 @@ async function loadVerifiedLaunchPolicies(){
   const response = await apiRequest('/api/launches').catch(() => ({ available: false }));
   if (!response.available || !Array.isArray(response.data)) return;
   verifiedLaunchPolicies = response.data.filter(launch => launch.onchainVerified && launch.cluster === EXPLORE_CLUSTER);
+  updateExploreSortAvailability();
   renderCreatorLaunches();
   renderExploreAssets();
   renderRegistry();
   renderHomeLaunchBoard();
+  renderHomeKpiDashboard(assets);
+  renderLeaderboard();
   renderCoinPromotionBadge();
+  renderWalletDetail();
+  renderAirdropClaims();
 }
 function promotionForMint(mint){
   return verifiedPromotionBadge(verifiedLaunchPolicies.find(launch => launch.mint === mint));
+}
+function verifiedLaunchPolicyForMint(mint){
+  return verifiedLaunchPolicies.find(launch => launch.mint === mint) || null;
+}
+function verifiedPolicyPercent(value){
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 && number <= 100 ? number : null;
+}
+function withVerifiedExploreBenefits(record){
+  const policy = verifiedLaunchPolicyForMint(record.address || record.mint);
+  if (!policy) return { ...record, benefitPolicyVerified: false, promotionTier: null, communityAirdropPercent: null, holderFeePercent: null, xFeePercent: null, creatorFeePercent: null };
+  const paidPromotion = verifiedPromotionBadge(policy);
+  const shares = policy.feeDistribution?.creatorDirected?.shares || {};
+  return {
+    ...record,
+    benefitPolicyVerified: true,
+    promotionTier: paidPromotion?.tier || 'standard',
+    communityAirdropPercent: verifiedPolicyPercent(policy.communityAirdrop?.allocationPercent),
+    holderFeePercent: verifiedPolicyPercent(shares.holderAirdropPercent),
+    xFeePercent: verifiedPolicyPercent(shares.solClaimPercent),
+    creatorFeePercent: verifiedPolicyPercent(shares.creatorWalletPercent),
+  };
 }
 function promotionElement(mint, withProof = false){
   const badge = promotionForMint(mint);
@@ -391,6 +459,42 @@ function getWalletLaunchPolicies(){
   for (const launch of verifiedLaunchPolicies) combined.set(launch.mint, launch);
   return walletLaunches([...combined.values()], connectedWalletAddress);
 }
+function portfolioHolderCount(asset){
+  const indexed = Number(asset?.holders);
+  if (Number.isFinite(indexed) && indexed >= 0) return indexed.toLocaleString();
+  const accounts = Number(asset?.holderAccounts);
+  if (Number.isFinite(accounts) && accounts >= 0) return `${asset?.holderCoverage === 'lower-bound' ? '≥' : ''}${accounts.toLocaleString()}`;
+  return '—';
+}
+function portfolioTokenCardMarkup({ mint, name, symbol, source, allocationPercent, verified = false, removable = false }){
+  const market = assets.find(item => item.address === mint);
+  const tokenName = market?.name || name || 'Unnamed token';
+  const tokenSymbol = market?.symbol || symbol || 'TOKEN';
+  const stage = market ? exploreStageLabel(market) : verified ? 'Verified launch' : 'Local record';
+  const volume = market ? formatExploreUsd(market.volume24hSol, { partial: market.volumeCoverage === 'partial' }) : '—';
+  const holders = portfolioHolderCount(market);
+  const marketValue = market ? formatCoinUsd(market.curveCapSol) : '—';
+  const reserve = Number.isFinite(Number(allocationPercent)) ? `${Number(allocationPercent).toFixed(2).replace(/\.00$/, '')}%` : '—';
+  const change = market?.change || '—';
+  const changeValue = Number.parseFloat(change);
+  const changeClass = Number.isFinite(changeValue) ? (changeValue >= 0 ? 'is-positive' : 'is-negative') : '';
+  const icon = market?.icon || tokenSymbol.slice(0, 1);
+  const freshness = market?.fetchedAt ? formatFeedAge(market.fetchedAt) : verified ? 'Verified registry' : 'Local launch record';
+  const safeMint = escapeHtml(mint || '');
+  const facts = allocationPercent == null
+    ? [['Curve cap', marketValue], ['24h volume', volume], ['Holders', holders], ['24h change', change, changeClass]]
+    : [['Launch stage', stage], ['Community reserve', reserve], ['24h volume', volume], ['Holders', holders]];
+  return `<article class="token-card-shell portfolio-token-card${removable ? ' watchlist-token-card' : ' project-token-card'}" data-mint="${safeMint}">
+    <div class="portfolio-token-card-top">
+      <span class="portfolio-token-avatar">${escapeHtml(icon)}</span>
+      <span class="portfolio-token-identity"><strong>${escapeHtml(tokenSymbol)}</strong><small>${escapeHtml(tokenName)}</small></span>
+      <span class="portfolio-token-stage">${escapeHtml(stage)}</span>
+    </div>
+    <p class="portfolio-token-source"><span>${escapeHtml(source || 'Solana Devnet')}</span><code>${safeMint ? `${escapeHtml(mint.slice(0, 4))}…${escapeHtml(mint.slice(-4))}` : 'Mint unavailable'}</code></p>
+    <div class="portfolio-token-stats">${facts.map(([label, value, className = '']) => `<span class="${className}"><small>${escapeHtml(label)}</small><strong>${escapeHtml(value)}</strong></span>`).join('')}</div>
+    <div class="portfolio-token-footer"><span>${escapeHtml(freshness)}</span><div><a href="/token/${encodeURIComponent(mint || '')}">View token ↗</a>${market ? `<button type="button" data-trade-mint="${safeMint}">Trade</button>` : ''}${removable ? `<button type="button" class="portfolio-remove" data-remove-watch="${safeMint}" aria-label="Remove ${escapeHtml(tokenSymbol)} from watchlist">Remove</button>` : ''}</div></div>
+  </article>`;
+}
 function renderCreatorLaunches(){
   const list = document.querySelector('#creator-launch-empty');
   if (!list) return;
@@ -399,6 +503,13 @@ function renderCreatorLaunches(){
   const sourceBadge = document.querySelector('#my-launches .data-badge');
   if (sourceBadge) sourceBadge.textContent = 'Mixed sources';
   const launches = getWalletLaunchPolicies();
+  const projectSelect = document.querySelector('#funded-burn-project');
+  if (projectSelect) {
+    const selectedMint = projectSelect.value;
+    projectSelect.replaceChildren(new Option('No project selected', ''));
+    for (const launch of launches) projectSelect.add(new Option(`${launch.name || 'Devnet coin'} (${launch.symbol || 'TOKEN'})`, launch.mint));
+    projectSelect.value = launches.some(launch => launch.mint === selectedMint) ? selectedMint : '';
+  }
   const count = document.querySelector('#my-launches .role-stats b');
   if (count) count.textContent = String(launches.length);
   list.replaceChildren();
@@ -412,20 +523,20 @@ function renderCreatorLaunches(){
     return;
   }
   for (const launch of launches) {
-    const link = document.createElement('a');
-    link.className = 'creator-launch-link';
-    link.href = `/token/${encodeURIComponent(launch.mint)}`;
-    const title = document.createElement('strong');
-    title.textContent = `${launch.name || 'Devnet coin'} (${launch.symbol || 'TOKEN'})`;
-    const address = document.createElement('small');
-    address.textContent = `${launch.mint.slice(0, 4)}…${launch.mint.slice(-4)}`;
-    const source = document.createElement('small');
-    source.className = 'creator-launch-source';
-    source.textContent = launch.onchainVerified && launch.cluster === EXPLORE_CLUSTER ? 'Verified registry · Devnet' : 'Local launch record · verify on Explorer';
-    link.append(title, address, source);
+    const holder = document.createElement('div');
+    const verified = Boolean(launch.onchainVerified && launch.cluster === EXPLORE_CLUSTER);
+    holder.innerHTML = portfolioTokenCardMarkup({
+      mint: launch.mint,
+      name: launch.name || 'Devnet coin',
+      symbol: launch.symbol || 'TOKEN',
+      source: verified ? 'Verified registry · Solana Devnet' : 'Local record · verify on Explorer',
+      allocationPercent: launch.communityAirdrop?.allocationPercent,
+      verified,
+    });
+    const card = holder.firstElementChild;
     const promotion = promotionElement(launch.mint);
-    if (promotion) link.append(promotion);
-    list.append(link);
+    if (promotion) card.querySelector('.portfolio-token-card-top')?.append(promotion);
+    list.append(card);
     const pending = getLocalLaunchPolicies().find(item => item.mint === launch.mint);
     if (!launch.onchainVerified && pending?.policySignature) {
       const retry = document.createElement('button');
@@ -440,7 +551,7 @@ function renderCreatorLaunches(){
           showToast('Launch policy registered and verified');
         } catch (error) { showToast(`Registration remains pending: ${error.message}`); retry.disabled = false; }
       });
-      list.append(retry);
+      card.querySelector('.portfolio-token-footer > div')?.append(retry);
     }
   }
 }
@@ -451,21 +562,25 @@ const demoUnclaimedWallets = Object.freeze([]);
 const demoAirdropNotifications = Object.freeze([]);
 const demoAirdropHistory = Object.freeze([]);
 function getAirdropPrograms(){
-  const localPrograms = getLocalLaunchPolicies().map(launch => ({
-    id: launch.mint,
-    name: launch.name || 'Devnet launch',
-    symbol: launch.symbol || 'TOKEN',
-    allocationPercent: launch.communityAirdrop.allocationPercent,
-    reservedTokens: launch.communityAirdrop.reservedTokens,
-    claimedTokens: 0,
-    eligibleWallets: 0,
-    claimedWallets: 0,
-    status: 'upcoming',
-    deadline: 'After migration · 90 days',
-    snapshot: 'Migration · pending',
-    walletAllocation: null,
-  }));
-  return [];
+  return verifiedLaunchPolicies.flatMap(launch => {
+    const allocationPercent = Number(launch.communityAirdrop?.allocationPercent);
+    const reservedTokens = Number(launch.communityAirdrop?.reservedTokens);
+    if (!launch.mint || !Number.isFinite(allocationPercent) || !Number.isFinite(reservedTokens) || reservedTokens <= 0) return [];
+    return [{
+      id: launch.mint,
+      name: launch.name || 'Devnet launch',
+      symbol: launch.symbol || 'TOKEN',
+      allocationPercent,
+      reservedTokens,
+      claimedTokens: 0,
+      eligibleWallets: 0,
+      claimedWallets: 0,
+      status: 'upcoming',
+      deadline: 'After migration · 90 days',
+      snapshot: 'Migration · pending',
+      walletAllocation: null,
+    }];
+  });
 }
 function airdropClaimRate(program){ return program.reservedTokens ? program.claimedTokens / program.reservedTokens : 0; }
 function renderAirdropSummary(programs){
@@ -490,7 +605,7 @@ function renderAirdropDirectory(programs = getAirdropPrograms()){
   list.innerHTML = filtered.map(program => {
     const rate = airdropClaimRate(program);
     const unclaimed = program.reservedTokens - program.claimedTokens;
-    return `<article class="airdrop-directory-card"><div class="directory-card-top"><span class="claim-token-mark">${escapeHtml(program.symbol.slice(0, 1))}</span><div><strong>${escapeHtml(program.name)}</strong><small>${escapeHtml(program.symbol)} · ${escapeHtml(program.snapshot)}</small></div><span class="airdrop-status ${program.status}">${program.status === 'claimable' ? 'Claimable now' : program.status === 'claimed' ? 'Closed' : 'Upcoming'}</span></div><div class="directory-stats"><span><small>Reserved</small><b>${formatTokenAmount(program.reservedTokens)}</b></span><span><small>Claimed</small><b>${formatTokenAmount(program.claimedTokens)}</b></span><span><small>Unclaimed</small><b>${formatTokenAmount(unclaimed)}</b></span><span><small>Wallets</small><b>${formatTokenAmount(program.eligibleWallets)}</b></span></div><div class="directory-progress"><i style="width:${Math.min(100, rate * 100)}%"></i></div><div class="directory-footer"><span>${(rate * 100).toFixed(1)}% claimed · ${escapeHtml(program.deadline)}</span><button type="button" class="secondary-button directory-claim" data-directory-symbol="${escapeHtml(program.symbol)}">${program.status === 'claimable' ? 'Check my wallet' : 'View details'}</button></div></article>`;
+    return `<article class="token-card-shell airdrop-directory-card"><div class="directory-card-top"><span class="claim-token-mark">${escapeHtml(program.symbol.slice(0, 1))}</span><div><strong>${escapeHtml(program.name)}</strong><small>${escapeHtml(program.symbol)} · ${escapeHtml(program.snapshot)}</small></div><span class="airdrop-status ${program.status}">${program.status === 'claimable' ? 'Claimable now' : program.status === 'claimed' ? 'Closed' : 'Upcoming'}</span></div><div class="directory-stats"><span><small>Reserved</small><b>${formatTokenAmount(program.reservedTokens)}</b></span><span><small>Claimed</small><b>${formatTokenAmount(program.claimedTokens)}</b></span><span><small>Unclaimed</small><b>${formatTokenAmount(unclaimed)}</b></span><span><small>Wallets</small><b>${formatTokenAmount(program.eligibleWallets)}</b></span></div><div class="directory-progress"><i style="width:${Math.min(100, rate * 100)}%"></i></div><div class="directory-footer"><span>${(rate * 100).toFixed(1)}% claimed · ${escapeHtml(program.deadline)}</span><button type="button" class="secondary-button directory-claim" data-directory-symbol="${escapeHtml(program.symbol)}">${program.status === 'claimable' ? 'Check my wallet' : 'View details'}</button></div></article>`;
   }).join('') || '<div class="empty-state">No airdrops match your search.</div>';
 }
 function renderAirdropAnalytics(){
@@ -534,7 +649,7 @@ function renderAirdropClaims(filter = activeAirdropFilter){
     const detail = isPreview
       ? 'Local interaction preview. No wallet signature or token transfer occurs.'
       : `${claim.allocationPercent}% supply reserve · $FUNDED-holder snapshot at migration`;
-    return `<article class="claim-card" data-claim-state="${claim.state}"><div class="claim-token"><span>${escapeHtml(claim.symbol.slice(0, 1))}</span><div><strong>${escapeHtml(claim.name)}</strong><small>${escapeHtml(claim.symbol)} · ${escapeHtml(claim.badge)}</small></div></div><div class="claim-amount"><span>${claim.state === 'claimed' ? 'Preview result' : claim.walletAllocation == null ? 'Community reserve' : 'Example allocation'}</span><strong>${amount}</strong></div><p>${detail}</p>${action}</article>`;
+    return `<article class="token-card-shell claim-card" data-claim-state="${claim.state}"><div class="claim-token"><span>${escapeHtml(claim.symbol.slice(0, 1))}</span><div><strong>${escapeHtml(claim.name)}</strong><small>${escapeHtml(claim.symbol)} · ${escapeHtml(claim.badge)}</small></div></div><div class="claim-amount"><span>${claim.state === 'claimed' ? 'Preview result' : claim.walletAllocation == null ? 'Community reserve' : 'Example allocation'}</span><strong>${amount}</strong></div><p>${detail}</p>${action}</article>`;
   }).join('') || '<div class="empty-state">No claims match this filter.</div>';
   document.querySelectorAll('[data-airdrop-filter]').forEach(button => button.classList.toggle('active', button.dataset.airdropFilter === filter));
   const state = document.querySelector('#claim-wallet-state');
@@ -622,13 +737,15 @@ function runBuybackPreview(){
 }
 
 let assets = [];
+let coinSolUsdPrice = null;
 let exploreQuery = '';
 let exploreSort = 'volume';
 let exploreRisk = 'all';
 let exploreStage = 'all';
 let exploreAuthority = 'all';
+let explorePromotion = 'all';
+let exploreReward = 'all';
 let exploreWindow = '24h';
-let exploreCompareMints = [];
 let exploreTab = 'trending';
 let exploreNewLane = 'launch';
 let exploreView = 'grid';
@@ -656,7 +773,10 @@ function renderWatchlist(){
   const items = document.querySelector('#watchlist-items');
   if (count) count.textContent = `${saved.length} saved`;
   if (empty) empty.hidden = saved.length > 0;
-  if (items) items.innerHTML = saved.map(mint => { const asset = assets.find(item => item.address === mint); return asset ? `<div class="watch-item"><span class="asset-icon">${asset.icon}</span><span><strong>${asset.name}</strong><small>${asset.symbol} · on-chain record</small></span><button type="button" data-remove-watch="${escapeHtml(asset.address)}" aria-label="Remove ${escapeHtml(asset.symbol)} from watchlist">×</button></div>` : ''; }).join('');
+  if (items) items.innerHTML = saved.map(mint => {
+    const asset = assets.find(item => item.address === mint);
+    return asset ? portfolioTokenCardMarkup({ mint: asset.address, name: asset.name, symbol: asset.symbol, source: 'Saved from Explore · RPC verified', verified: true, removable: true }) : '';
+  }).join('');
   document.querySelectorAll('.watch-button').forEach(button => { const active = saved.includes(button.dataset.mint); button.classList.toggle('active', active); button.textContent = active ? '★' : '☆'; button.setAttribute('aria-pressed', String(active)); });
 }
 function formatFeedAge(timestamp){
@@ -666,7 +786,8 @@ function formatFeedAge(timestamp){
 function exploreFilterOptions(query = exploreQuery, sort = exploreSort){
   const laneStage = exploreNewLane === 'almost' ? 'near' : exploreNewLane === 'migrated' ? 'migrated' : 'launch';
   const maxAgeHours = exploreTab === 'new' && exploreNewLane === 'launch' ? Math.min(24, exploreMaxAgeHours ?? 24) : exploreMaxAgeHours;
-  return { query, sort, risk: exploreRisk, stage: exploreTab === 'new' ? laneStage : exploreStage, authority: exploreAuthority, watchlist: getWatchlist(), maxAgeHours,
+  return { query, sort, risk: exploreRisk, stage: exploreTab === 'new' ? laneStage : exploreStage, authority: exploreAuthority,
+    promotion: explorePromotion, reward: exploreReward, watchlist: getWatchlist(), maxAgeHours,
     minVolumeSol: EXPLORE_CLUSTER === 'devnet' ? exploreMinVolumeSol : null,
     minCurveCapSol: EXPLORE_CLUSTER === 'devnet' ? exploreMinCurveCapSol : null,
     minTrades: EXPLORE_CLUSTER === 'devnet' ? exploreMinTrades : null,
@@ -699,6 +820,8 @@ function renderExplorePulse(records){
 }
 function exploreEmptyReason(){
   if (exploreQuery) return ['No verified launch matches this search.', 'Try a symbol, name, or full mint address from the current feed.'];
+  if (explorePromotion !== 'all') return ['No launch matches this promotion filter.', 'Only paid tiers with a verified atomic $FUNDED burn receipt count as promoted.'];
+  if (exploreReward !== 'all') return ['No launch has this verified reward allocation.', 'Choose another route or clear filters. Zero-percent routes are not counted as rewards.'];
   if (exploreMinTraders != null) return ['No launch meets the trading-wallet minimum.', 'Lower the selected-window minimum or clear filters.'];
   if (exploreMinTrades != null || exploreMinVolumeSol != null) return ['No launch meets these trade-activity minimums.', 'Lower the selected-window minimums or clear filters.'];
   if (exploreMinCurveCapSol != null || exploreMaxAgeHours != null) return ['No launch meets these advanced filters.', 'Broaden the curve-cap or age limit, or clear filters.'];
@@ -721,6 +844,18 @@ function renderExploreControls(){
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   });
+  document.querySelectorAll('[data-explore-sort]').forEach(button => {
+    const active = button.dataset.exploreSort === exploreSort;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  const volumeSortButton = document.querySelector('[data-explore-sort="volume"]');
+  if (volumeSortButton) volumeSortButton.textContent = `${exploreWindow} volume`;
+  const hasExploreFilters = exploreRisk !== 'all' || exploreStage !== 'all' || exploreAuthority !== 'all'
+    || explorePromotion !== 'all' || exploreReward !== 'all'
+    || exploreMaxAgeHours != null || exploreMinVolumeSol != null || exploreMinCurveCapSol != null
+    || exploreMinTrades != null || exploreMinTraders != null;
+  document.querySelector('#explore-filter-toggle')?.classList.toggle('has-filters', hasExploreFilters);
   for (const [selector, label] of [
     ['#explore-sort option[value="market-cap"]', `Curve cap (${displayUnit})`],
     ['#explore-sort option[value="volume"]', `${exploreWindow} traded (${displayUnit})`],
@@ -743,19 +878,49 @@ function renderExploreControls(){
   const checked = document.querySelector('#explore-last-updated');
   if (checked) checked.textContent = exploreUpdatedAt ? `Checked ${new Date(exploreUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Waiting for first check';
 }
+function formatVerifiedPercent(value){
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '—';
+  return `${number.toLocaleString(undefined, { maximumFractionDigits: 2 })}%`;
+}
+function renderExploreBenefitLeaders(records){
+  const container = document.querySelector('#explore-benefit-leaders');
+  if (!container) return;
+  const definitions = [
+    { sort: 'volume', label: `Top ${exploreWindow} volume`, field: 'windowVolumeSol', policy: false },
+    { sort: 'airdrop', label: 'Top token airdrop', field: 'communityAirdropPercent', policy: true, suffix: 'of supply' },
+    { sort: 'holder-fee', label: 'Top fee to holders', field: 'holderFeePercent', policy: true, suffix: 'of creator fees' },
+    { sort: 'x-fee', label: 'Top fee to X account', field: 'xFeePercent', policy: true, suffix: 'of creator fees' },
+  ];
+  container.innerHTML = definitions.map(definition => {
+    const candidates = records.filter(record => definition.policy
+      ? record.benefitPolicyVerified && record[definition.field] > 0
+      : record[definition.field] != null && Number.isFinite(Number(record[definition.field])));
+    const leader = candidates.length ? sortMarketRecords(candidates, definition.sort)[0] : null;
+    const hasVerifiedField = records.some(record => definition.policy
+      ? record.benefitPolicyVerified && record[definition.field] != null
+      : record[definition.field] != null);
+    const value = leader
+      ? definition.policy ? formatVerifiedPercent(leader[definition.field]) : formatExploreUsd(leader[definition.field], { partial: leader.windowCoverage === 'partial' })
+      : hasVerifiedField && definition.policy ? '0%' : 'Unavailable';
+    const detail = leader
+      ? `${leader.symbol || shortAddress(leader.address)}${definition.suffix ? ` · ${definition.suffix}` : leader.windowCoverage === 'partial' ? ' · partial history' : ' · scanned'}`
+      : hasVerifiedField && definition.policy ? 'No verified positive share' : definition.policy ? 'No verified launch policy' : 'No scanned value';
+    return `<button type="button" class="${definition.sort === exploreSort ? 'active' : ''}" data-explore-leader-sort="${definition.sort}" data-state="${leader ? 'ready' : hasVerifiedField ? 'empty' : 'unavailable'}" aria-pressed="${definition.sort === exploreSort}" ${leader ? '' : 'disabled'}><span>${escapeHtml(definition.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></button>`;
+  }).join('');
+}
 function renderExploreAssets(){
   const grid = document.querySelector('#asset-grid');
   const count = document.querySelector('#explore-launch-count');
   const status = document.querySelector('#explore-data-status');
   const ticker = document.querySelector('#explore-ticker');
   const clusterLabel = document.querySelector('#explore-cluster-label');
-  const networkLock = document.querySelector('#explore .network-lock');
-  if (networkLock) networkLock.innerHTML = `<b>◎</b> ${EXPLORE_CLUSTER === 'mainnet-beta' ? 'Mainnet' : 'Devnet'}`;
   if (clusterLabel) clusterLabel.textContent = `Solana ${EXPLORE_CLUSTER === 'mainnet-beta' ? 'mainnet' : EXPLORE_CLUSTER} · ${exploreProviderStatus.includes('stale') ? 'last verified snapshot' : exploreProviderStatus.includes('RPC verified') ? 'RPC verified' : exploreProviderStatus.includes('unavailable') ? 'data unavailable' : 'awaiting verification'}`;
-  const records = assets.map(item => EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(item, exploreWindow) : enrichMarketRecord(item));
+  const records = assets.map(item => withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(item, exploreWindow) : enrichMarketRecord(item)));
   const visible = filterMarketRecords(records, exploreFilterOptions());
   renderExploreControls();
   renderExplorePulse(records);
+  renderExploreBenefitLeaders(visible);
   const summary = summarizeMarkets(records);
   if (count) count.textContent = String(visible.length).padStart(2, '0');
   if (status) status.textContent = exploreProviderStatus === 'On-chain only · loading' ? exploreProviderStatus : `${exploreProviderStatus}${assets.length ? ` · ${visible.length} shown` : ''}`;
@@ -763,9 +928,16 @@ function renderExploreAssets(){
   if (kpis) kpis.innerHTML = EXPLORE_CLUSTER === 'devnet'
     ? `<span><small>${exploreWindow} traded · scanned</small><strong>${formatExploreUsd(records.some(item => item.windowVolumeSol != null) ? records.reduce((sum, item) => sum + (item.windowVolumeSol || 0), 0) : null, { partial: exploreScannedCount < records.length || records.some(item => item.windowCoverage === 'partial') })}</strong></span><span><small>Curve reserves</small><strong>${formatExploreUsd(records.some(item => item.curveReserveSol != null) ? records.reduce((sum, item) => sum + (item.curveReserveSol || 0), 0) : null)}</strong></span><span><small>Trade histories scanned</small><strong>${exploreScannedCount} / ${records.length}</strong></span>`
     : `<span><small>24h volume</small><strong>${formatSignal(summary.volume24hUsd, ' USD')}</strong></span><span><small>Liquidity indexed</small><strong>${formatSignal(summary.liquidityUsd, ' USD')}</strong></span><span><small>High-risk signals</small><strong>${summary.highRisk}</strong></span>`;
-  if (ticker) ticker.innerHTML = visible.length ? `<span class="ticker-label"><i></i> On-chain activity · ${EXPLORE_CLUSTER === 'devnet' ? exploreWindow : '24h'}</span>${visible.slice(0, 6).map(asset => `<span>${escapeHtml(asset.symbol)} <b>${escapeHtml(EXPLORE_CLUSTER === 'devnet' ? formatExploreUsd(asset.windowVolumeSol, { partial: asset.windowCoverage === 'partial' }) : asset.change)}</b></span>`).join('')}<span class="ticker-note">Verified from on-chain data · provider fields may be unavailable</span>` : '<span class="ticker-label"><i></i> On-chain activity</span><span id="explore-ticker-status">No verified launches match these filters</span>';
+  if (ticker) {
+    if (visible.length) {
+      const tickerItems = visible.slice(0, 8).map(asset => `<a class="explore-ticker-token" href="/token/${encodeURIComponent(asset.address || '')}"><i>${escapeHtml(String(asset.symbol || 'T').slice(0, 1))}</i><span><strong>${escapeHtml(asset.symbol)}</strong><small>${escapeHtml(exploreStageLabel(asset))}</small></span><b>${escapeHtml(EXPLORE_CLUSTER === 'devnet' ? formatExploreUsd(asset.windowVolumeSol, { partial: asset.windowCoverage === 'partial' }) : asset.change)}</b></a>`).join('');
+      ticker.innerHTML = `<span class="ticker-label"><i></i> Trending</span><div class="explore-ticker-window"><div class="explore-ticker-track"><div class="explore-ticker-set">${tickerItems}</div><div class="explore-ticker-set" aria-hidden="true">${tickerItems}</div></div></div>`;
+    } else {
+      ticker.innerHTML = '<span class="ticker-label"><i></i> Trending</span><span id="explore-ticker-status">No verified launches match these filters</span>';
+    }
+  }
   if (!grid) return;
-  grid.innerHTML = visible.length ? visible.map(a => `<article class="asset-card signal-${escapeHtml(a.riskLevel)}" data-search="${escapeHtml(a.symbol)} ${escapeHtml(a.name)} ${escapeHtml(a.address || '')}" data-mint="${escapeHtml(a.address || '')}"><div class="asset-top"><span class="asset-symbol"><i class="asset-icon">${escapeHtml(a.icon)}</i>${escapeHtml(a.symbol)}</span><button type="button" class="watch-button" data-mint="${escapeHtml(a.address || '')}" aria-label="Save ${escapeHtml(a.symbol)} to watchlist" aria-pressed="false">☆</button></div><div class="asset-status"><span class="asset-meta">${exploreStageLabel(a)} · ${a.createdTimestamp ? escapeHtml(formatOnchainAge(Number(a.createdTimestamp) * 1000)) : 'age unavailable'}</span><span class="asset-status-badge">RPC verified</span></div><p class="asset-name">${escapeHtml(a.name)}</p><div class="asset-signal-row"><span>${EXPLORE_CLUSTER === 'devnet' ? '24h traded' : '24h volume'} <b>${EXPLORE_CLUSTER === 'devnet' ? formatExploreUsd(a.volume24hSol, { partial: a.volumeCoverage === 'partial' }) : formatSignal(a.volume24hUsd, ' USD')}</b></span><span>${EXPLORE_CLUSTER === 'devnet' ? 'Curve reserve' : 'Liquidity'} <b>${EXPLORE_CLUSTER === 'devnet' ? formatCoinUsd(a.curveReserveSol) : formatSignal(a.liquidityUsd, ' USD')}</b></span></div><div class="asset-bottom"><span class="asset-value">${escapeHtml(a.value === 'Price unavailable' ? 'Price unavailable' : a.value)}</span><span class="asset-change">${escapeHtml(a.change)}</span></div><div class="asset-risk"><span>${escapeHtml(a.source || 'Solana RPC')} · ${escapeHtml(formatFeedAge(a.fetchedAt))}</span><button type="button" class="share-asset" data-share-symbol="${escapeHtml(a.symbol)}" data-share-mint="${escapeHtml(a.address || '')}">Share</button></div><div class="asset-actions"><a href="/token/${encodeURIComponent(a.address || '')}">Inspect ↗</a><button type="button" data-trade-mint="${escapeHtml(a.address || '')}">Trade</button></div></article>`).join('') : `<div class="empty-state onchain-empty"><strong>${assets.length ? 'No verified launches match these filters.' : 'No verified on-chain launches yet.'}</strong><span>${assets.length ? 'Broaden the search or wait for a confirmed Solana indexer response.' : 'Explore will populate after a confirmed Solana RPC response.'}</span></div>`;
+  grid.innerHTML = visible.length ? visible.map(a => `<article class="token-card-shell asset-card signal-${escapeHtml(a.riskLevel)}" data-search="${escapeHtml(a.symbol)} ${escapeHtml(a.name)} ${escapeHtml(a.address || '')}" data-mint="${escapeHtml(a.address || '')}"><div class="asset-top"><span class="asset-symbol"><i class="asset-icon">${escapeHtml(a.icon)}</i>${escapeHtml(a.symbol)}</span><button type="button" class="watch-button" data-mint="${escapeHtml(a.address || '')}" aria-label="Save ${escapeHtml(a.symbol)} to watchlist" aria-pressed="false">☆</button></div><div class="asset-status"><span class="asset-meta">${exploreStageLabel(a)} · ${a.createdTimestamp ? escapeHtml(formatOnchainAge(Number(a.createdTimestamp) * 1000)) : 'age unavailable'}</span><span class="asset-status-badge">RPC verified</span></div><p class="asset-name">${escapeHtml(a.name)}</p><div class="asset-signal-row"><span>${EXPLORE_CLUSTER === 'devnet' ? '24h traded' : '24h volume'} <b>${EXPLORE_CLUSTER === 'devnet' ? formatExploreUsd(a.volume24hSol, { partial: a.volumeCoverage === 'partial' }) : formatSignal(a.volume24hUsd, ' USD')}</b></span><span>${EXPLORE_CLUSTER === 'devnet' ? 'Curve reserve' : 'Liquidity'} <b>${EXPLORE_CLUSTER === 'devnet' ? formatCoinUsd(a.curveReserveSol) : formatSignal(a.liquidityUsd, ' USD')}</b></span></div><div class="asset-bottom"><span class="asset-value">${escapeHtml(a.value === 'Price unavailable' ? 'Price unavailable' : a.value)}</span><span class="asset-change">${escapeHtml(a.change)}</span></div><div class="asset-risk"><span>${escapeHtml(a.source || 'Solana RPC')} · ${escapeHtml(formatFeedAge(a.fetchedAt))}</span><button type="button" class="share-asset" data-share-symbol="${escapeHtml(a.symbol)}" data-share-mint="${escapeHtml(a.address || '')}">Share</button></div><div class="asset-actions"><a href="/token/${encodeURIComponent(a.address || '')}">Inspect ↗</a><button type="button" data-trade-mint="${escapeHtml(a.address || '')}">Trade</button></div></article>`).join('') : `<div class="empty-state onchain-empty"><strong>${assets.length ? 'No verified launches match these filters.' : 'No verified on-chain launches yet.'}</strong><span>${assets.length ? 'Broaden the search or wait for a confirmed Solana indexer response.' : 'Explore will populate after a confirmed Solana RPC response.'}</span></div>`;
   if (!visible.length && /RPC (?:rate limited|unavailable)/.test(exploreProviderStatus)) grid.innerHTML = `<div class="empty-state onchain-empty"><strong>On-chain verification is temporarily unavailable.</strong><span>${escapeHtml(exploreProviderStatus)}. Retry with Refresh shortly; no unverified tokens are shown.</span></div>`;
   if (!visible.length && assets.length) {
     const reason = exploreEmptyReason();
@@ -785,13 +957,6 @@ function renderExploreAssets(){
     proof.textContent = 'Mint proof ↗';
     card.querySelector('.asset-actions')?.prepend(proof);
     if (EXPLORE_CLUSTER === 'devnet') {
-      const compare = document.createElement('button');
-      compare.type = 'button';
-      compare.className = 'asset-compare-toggle';
-      compare.dataset.compareMint = asset.address;
-      card.querySelector('.watch-button')?.before(compare);
-    }
-    if (EXPLORE_CLUSTER === 'devnet') {
       const activity = card.querySelector('.asset-signal-row span:first-child');
       if (activity) activity.innerHTML = `${exploreWindow} traded <b>${escapeHtml(formatExploreUsd(asset.windowVolumeSol, { partial: asset.windowCoverage === 'partial' }))}</b>`;
     }
@@ -800,6 +965,14 @@ function renderExploreAssets(){
       authorities.className = 'asset-authorities';
       authorities.innerHTML = `<span class="${asset.mintAuthorityRevoked ? 'revoked' : 'active'}" title="Mint authority ${asset.mintAuthorityRevoked ? 'revoked' : 'active'} on the verified mint account">Mint ${asset.mintAuthorityRevoked ? 'revoked' : 'active'}</span><span class="${asset.freezeAuthorityRevoked ? 'revoked' : 'active'}" title="Freeze authority ${asset.freezeAuthorityRevoked ? 'revoked' : 'active'} on the verified mint account">Freeze ${asset.freezeAuthorityRevoked ? 'revoked' : 'active'}</span>`;
       card.querySelector('.asset-bottom')?.before(authorities);
+    }
+    if (asset.benefitPolicyVerified) {
+      const benefits = document.createElement('div');
+      benefits.className = 'asset-benefit-policy';
+      benefits.setAttribute('aria-label', 'Verified launch benefits and creator-fee policy');
+      const promotionLabel = asset.promotionTier === 'standard' ? 'Standard promo' : `${asset.promotionTier} promo`;
+      benefits.innerHTML = `<span class="promotion">${escapeHtml(promotionLabel)}</span><span class="${asset.communityAirdropPercent > 0 ? 'positive' : 'zero'}">Airdrop ${escapeHtml(formatVerifiedPercent(asset.communityAirdropPercent))}</span><span class="${asset.holderFeePercent > 0 ? 'positive' : 'zero'}">Holders ${escapeHtml(formatVerifiedPercent(asset.holderFeePercent))}</span><span class="${asset.xFeePercent > 0 ? 'positive' : 'zero'}">X ${escapeHtml(formatVerifiedPercent(asset.xFeePercent))}</span><span class="${asset.creatorFeePercent > 0 ? 'positive' : 'zero'}">Creator ${escapeHtml(formatVerifiedPercent(asset.creatorFeePercent))}</span>`;
+      card.querySelector('.asset-bottom')?.before(benefits);
     }
     if (EXPLORE_CLUSTER === 'devnet') {
       const flow = document.createElement('div');
@@ -838,50 +1011,7 @@ function renderExploreAssets(){
   renderWatchlist();
   if (EXPLORE_CLUSTER === 'devnet') renderVerifiedTradeFlow();
   renderExploreTradeTape();
-  renderExploreComparison();
-}
-function renderExploreComparison(){
-  const panel = document.querySelector('#explore-compare');
-  const count = document.querySelector('#explore-compare-count');
-  const clear = document.querySelector('#explore-compare-clear');
-  const content = document.querySelector('#explore-compare-content');
-  if (!panel || !count || !clear || !content) return;
-  panel.hidden = EXPLORE_CLUSTER !== 'devnet';
-  if (panel.hidden) return;
-  exploreCompareMints = exploreCompareMints.filter(mint => assets.some(item => item.address === mint));
-  const selected = exploreCompareMints.map(mint => withMarketWindow(assets.find(item => item.address === mint), exploreWindow));
-  count.textContent = `${selected.length} / 3 selected${exploreProviderStatus.includes('stale') ? ' · last verified snapshot' : ''}`;
-  clear.hidden = !selected.length;
-  document.querySelectorAll('[data-compare-mint]').forEach(button => {
-    const active = exploreCompareMints.includes(button.dataset.compareMint);
-    const asset = assets.find(item => item.address === button.dataset.compareMint);
-    button.classList.toggle('active', active);
-    button.setAttribute('aria-pressed', String(active));
-    button.setAttribute('aria-label', `${active ? 'Remove' : 'Add'} ${asset?.symbol || 'token'} ${active ? 'from' : 'to'} comparison`);
-    button.textContent = button.classList.contains('asset-compare-toggle') ? active ? '✓ Added' : '+ Compare' : active ? '✓ Added' : 'Compare';
-  });
-  if (!selected.length) { content.innerHTML = '<p class="explore-compare-empty">Use Compare on a card or scanner row to inspect tokens side by side.</p>'; return; }
-  const metricRows = [
-    [`${exploreWindow} traded`, item => formatExploreUsd(item.windowVolumeSol, { partial: item.windowCoverage === 'partial' })],
-    [`${exploreWindow} trades`, item => formatExploreTradeCount(item.windowTradeCount, item.windowCoverage)],
-    ['Buys / sells', item => item.windowBuyCount == null || item.windowSellCount == null ? '—' : `${formatExploreTradeCount(item.windowBuyCount, item.windowCoverage)} / ${formatExploreTradeCount(item.windowSellCount, item.windowCoverage)}`],
-    ['Trading wallets', item => formatExploreTradeCount(item.windowTraderCount, item.windowCoverage)],
-    ['Curve cap', item => formatCoinUsd(item.curveCapSol)],
-    ['Curve reserve', item => formatCoinUsd(item.curveReserveSol)],
-    ['Curve progress', item => item.complete === true ? 'Graduated' : item.complete === false && item.curveProgressPercent != null && Number.isFinite(Number(item.curveProgressPercent)) ? `${Number(item.curveProgressPercent).toFixed(0)}%` : '—'],
-    ['Mint authority', item => item.mintAuthorityRevoked === true ? 'Revoked' : item.mintAuthorityRevoked === false ? 'Active' : '—'],
-    ['Freeze authority', item => item.freezeAuthorityRevoked === true ? 'Revoked' : item.freezeAuthorityRevoked === false ? 'Active' : '—'],
-  ];
-  content.innerHTML = `<div class="explore-compare-scroll"><table class="explore-compare-table"><thead><tr><th scope="col">Verified metric</th>${selected.map(item => `<th scope="col"><span class="compare-token"><strong>${escapeHtml(item.symbol)}</strong><small title="${escapeHtml(item.address)}">${escapeHtml(shortAddress(item.address))}</small></span><span class="compare-token-actions"><a href="/token/${encodeURIComponent(item.address)}">Inspect ↗</a><button type="button" data-compare-remove="${escapeHtml(item.address)}" aria-label="Remove ${escapeHtml(item.symbol)} from comparison">×</button></span></th>`).join('')}</tr></thead><tbody>${metricRows.map(([label, value]) => `<tr><th scope="row">${escapeHtml(label)}</th>${selected.map(item => `<td>${escapeHtml(value(item))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>${selected.length === 1 ? '<p class="explore-compare-hint">Add another verified token for a side-by-side view.</p>' : ''}`;
-}
-function toggleExploreComparison(mint){
-  if (EXPLORE_CLUSTER !== 'devnet' || !assets.some(item => item.address === mint)) return;
-  const removing = exploreCompareMints.includes(mint);
-  if (removing) exploreCompareMints = exploreCompareMints.filter(item => item !== mint);
-  else if (exploreCompareMints.length < 3) exploreCompareMints = [...exploreCompareMints, mint];
-  else { showToast('Compare up to three verified tokens. Remove one first.'); return; }
-  renderExploreComparison();
-  showToast(`${assets.find(item => item.address === mint)?.symbol || 'Token'} ${removing ? 'removed from' : 'added to'} comparison`);
+  renderWalletDetail();
 }
 function renderExploreTradeTape(){
   const panel = document.querySelector('.explore-trade-tape');
@@ -949,6 +1079,108 @@ function formatCompactUsd(value){
   if (!Number.isFinite(amount) || amount <= 0) return '—';
   return `$${Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 2 }).format(amount)}`;
 }
+function formatDashboardUsd(value, { partial = false } = {}){
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount < 0) return '$—';
+  if (amount > 0 && amount < 0.01) return `${partial ? '≥' : ''}<$0.01`;
+  const formatted = amount >= 1_000_000
+    ? Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 2 }).format(amount)
+    : amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${partial ? '≥' : ''}$${formatted}`;
+}
+function formatDashboardQuantity(value){
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount < 0) return '—';
+  return amount >= 1_000_000
+    ? Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 2 }).format(amount)
+    : amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+function setHomeDashboardMetric(key, value, note, state = 'available'){
+  const card = document.querySelector(`#home-kpi-${key}-card`);
+  const valueNode = document.querySelector(`#home-kpi-${key}`);
+  const noteNode = document.querySelector(`#home-kpi-${key}-note`);
+  if (card) card.dataset.state = state;
+  if (valueNode) valueNode.textContent = value;
+  if (noteNode) noteNode.textContent = note;
+}
+function verifiedLaunchBurns(){
+  return verifiedLaunchPolicies
+    .map(launch => launch?.creatorLaunchBurn)
+    .filter(burn => burn?.status === 'verified' && burn.receipt && Number(burn.receipt.amountTokens ?? burn.amountTokens) > 0);
+}
+function renderHomeKpiDashboard(verified = assets){
+  const records = Array.isArray(verified) ? verified : [];
+  const solQuoteReady = Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0;
+  const launchCard = document.querySelector('#home-kpi-launches-card');
+  const launchValue = document.querySelector('#home-pulse-launches');
+  const launchNote = document.querySelector('#home-pulse-launches-note');
+  if (launchCard) launchCard.dataset.state = records.length ? 'available' : 'empty';
+  if (launchValue) launchValue.textContent = records.length.toLocaleString();
+  if (launchNote) launchNote.textContent = records.length ? `Confirmed on Solana ${EXPLORE_CLUSTER}` : 'No confirmed launches found';
+
+  const evidenceReady = ['onchain-indexed', 'partial'].includes(receiptEvidence?.status);
+  const collections = evidenceReady && Array.isArray(receiptEvidence?.verifiedCollections) ? receiptEvidence.verifiedCollections : [];
+  const collectionSol = collections.reduce((sum, item) => sum + Number(item.collectedLamports || 0) / 1_000_000_000, 0);
+  const feeAvailable = evidenceReady && solQuoteReady;
+  const recordedCollections = Number(receiptEvidence?.coverage?.recordedCollections || 0);
+  setHomeDashboardMetric('fees', feeAvailable ? formatDashboardUsd(collectionSol * coinSolUsdPrice) : '$—', feeAvailable
+    ? `${collections.length} verified claim receipt${collections.length === 1 ? '' : 's'}`
+    : recordedCollections ? `${recordedCollections} recorded claim${recordedCollections === 1 ? '' : 's'} awaiting receipt verification` : solQuoteReady ? 'No verified fee receipts indexed' : 'USD quote or verified receipts unavailable', feeAvailable ? (receiptEvidence.status === 'partial' ? 'partial' : 'available') : 'unavailable');
+
+  const burns = verifiedLaunchBurns();
+  const burnedTokens = burns.reduce((sum, burn) => sum + Number(burn.receipt.amountTokens ?? burn.amountTokens ?? 0), 0);
+  const fundedAsset = records.find(item => item.address === PROTOCOL_FUNDED_MINT);
+  const fundedUsdPrice = Number(fundedAsset?.priceUsd) > 0
+    ? Number(fundedAsset.priceUsd)
+    : Number(fundedAsset?.curvePriceSol) > 0 && solQuoteReady ? Number(fundedAsset.curvePriceSol) * coinSolUsdPrice : null;
+  const burnUsdAvailable = burnedTokens === 0 || Number.isFinite(fundedUsdPrice);
+  setHomeDashboardMetric('burn', formatDashboardQuantity(burnedTokens), burnedTokens === 0
+    ? '$0.00 USD value · no verified burn receipts yet'
+    : Number.isFinite(fundedUsdPrice) ? `${formatDashboardUsd(burnedTokens * fundedUsdPrice)} USD value · ${burns.length} verified receipt${burns.length === 1 ? '' : 's'}` : `${burns.length} verified receipt${burns.length === 1 ? '' : 's'} · USD value unavailable`, burnedTokens === 0 ? 'empty' : burnUsdAvailable ? 'available' : 'partial');
+
+  const reservePrograms = verifiedLaunchPolicies.filter(launch => launch?.onchainVerified && Number(launch?.communityAirdrop?.reservedTokens) > 0);
+  let pricedPrograms = 0;
+  const airdropUsd = reservePrograms.reduce((sum, launch) => {
+    const asset = records.find(item => item.address === launch.mint);
+    const tokenUsd = Number(asset?.priceUsd) > 0
+      ? Number(asset.priceUsd)
+      : Number(asset?.curvePriceSol) > 0 && solQuoteReady ? Number(asset.curvePriceSol) * coinSolUsdPrice : null;
+    if (!Number.isFinite(tokenUsd)) return sum;
+    pricedPrograms += 1;
+    return sum + Number(launch.communityAirdrop.reservedTokens) * tokenUsd;
+  }, 0);
+  const airdropAvailable = reservePrograms.length > 0 && pricedPrograms > 0;
+  const partialAirdrop = airdropAvailable && pricedPrograms < reservePrograms.length;
+  setHomeDashboardMetric('airdrop', airdropAvailable ? formatDashboardUsd(airdropUsd, { partial: partialAirdrop }) : '$—', airdropAvailable
+    ? `${pricedPrograms}/${reservePrograms.length} published reserve${reservePrograms.length === 1 ? '' : 's'} valued at current spot`
+    : reservePrograms.length ? `${reservePrograms.length} published reserve${reservePrograms.length === 1 ? '' : 's'} · USD pricing unavailable` : 'No published community reserves', partialAirdrop ? 'partial' : airdropAvailable ? 'available' : 'unavailable');
+
+  const payoutEvidenceReady = Boolean(receiptEvidence) && Array.isArray(receiptEvidence?.verifiedPayouts);
+  const referralPayouts = payoutEvidenceReady ? receiptEvidence.verifiedPayouts.filter(item => item.source === 'solana-keeper-referral-claim') : [];
+  const referralSol = referralPayouts.reduce((sum, item) => sum + Number(item.amountLamports || 0) / 1_000_000_000, 0);
+  const recordedPayouts = Number(receiptEvidence?.coverage?.recordedPayouts || 0);
+  const referralAvailable = payoutEvidenceReady && solQuoteReady && (referralPayouts.length > 0 || recordedPayouts === 0);
+  setHomeDashboardMetric('referrals', referralAvailable ? formatDashboardUsd(referralSol * coinSolUsdPrice) : '$—', referralAvailable
+    ? referralPayouts.length ? `${referralPayouts.length} verified referral payout${referralPayouts.length === 1 ? '' : 's'}` : 'No verified referral payouts yet'
+    : recordedPayouts ? 'Recorded payouts are awaiting receipt verification' : 'USD quote or payout evidence unavailable', referralPayouts.length ? 'available' : referralAvailable ? 'empty' : 'unavailable');
+
+  const windowed = records.map(item => withMarketWindow(item, '24h'));
+  const volumeRecords = windowed.filter(item => item.windowVolumeSol != null);
+  const totalVolumeSol = volumeRecords.reduce((sum, item) => sum + Number(item.windowVolumeSol || 0), 0);
+  const partialVolume = volumeRecords.length < records.length || volumeRecords.some(item => item.windowCoverage === 'partial');
+  const volumeAvailable = volumeRecords.length > 0 && solQuoteReady;
+  const volumeCard = document.querySelector('#home-kpi-volume-card');
+  const volumeValue = document.querySelector('#home-pulse-volume');
+  const volumeNote = document.querySelector('#home-pulse-volume-note');
+  if (volumeCard) volumeCard.dataset.state = volumeAvailable ? (partialVolume ? 'partial' : 'available') : 'unavailable';
+  if (volumeValue) volumeValue.textContent = volumeAvailable ? formatDashboardUsd(totalVolumeSol * coinSolUsdPrice, { partial: partialVolume }) : '$—';
+  if (volumeNote) volumeNote.textContent = volumeAvailable ? `${volumeRecords.length}/${records.length} launches scanned${partialVolume ? ' · partial coverage' : ''}` : 'USD quote or trade history unavailable';
+
+  const status = document.querySelector('#home-dashboard-status');
+  const updated = document.querySelector('#home-dashboard-updated');
+  if (status) status.innerHTML = `<i></i> ${records.length ? `Verified data · ${EXPLORE_CLUSTER}` : `Awaiting verified data · ${EXPLORE_CLUSTER}`}`;
+  if (updated) updated.textContent = exploreUpdatedAt ? `Checked ${new Date(exploreUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Waiting for first check';
+}
 function renderHomeOnchainSnapshot(verified){
   const status = document.querySelector('#home-live-status');
   const count = document.querySelector('#home-verified-launches');
@@ -973,37 +1205,40 @@ function renderHomeOnchainSnapshot(verified){
   const totalTrades = tradeRecords.length ? tradeRecords.reduce((sum, item) => sum + Number(item.windowTradeCount || 0), 0) : null;
   const totalVolume = volumeRecords.length ? volumeRecords.reduce((sum, item) => sum + Number(item.windowVolumeSol || 0), 0) : null;
   const partialTrades = tradeRecords.some(item => item.windowCoverage === 'partial') || tradeRecords.length < verified.length;
+  const partialVolume = volumeRecords.some(item => item.windowCoverage === 'partial') || volumeRecords.length < verified.length;
   if (pulseStatus) pulseStatus.textContent = `Solana RPC · ${EXPLORE_CLUSTER} confirmed`;
   if (pulseNetwork) pulseNetwork.textContent = `Solana ${EXPLORE_CLUSTER === 'devnet' ? 'Devnet' : EXPLORE_CLUSTER}`;
   if (pulseLaunches) pulseLaunches.textContent = verified.length ? String(verified.length) : '—';
   if (pulseLaunchesNote) pulseLaunchesNote.textContent = verified.length ? `Confirmed on ${EXPLORE_CLUSTER}` : 'No confirmed launches';
   if (pulseTrades) pulseTrades.textContent = totalTrades == null ? '—' : formatExploreTradeCount(totalTrades, partialTrades ? 'partial' : 'complete');
   if (pulseTradesNote) pulseTradesNote.textContent = totalTrades == null ? 'Not available from current feed' : `${partialTrades ? 'Partial scan · ' : ''}confirmed Pump events`;
-  if (pulseVolume) pulseVolume.textContent = totalVolume == null ? '—' : formatExploreUsd(totalVolume, { partial: partialTrades });
-  if (pulseVolumeNote) pulseVolumeNote.textContent = totalVolume == null ? 'Not available from current feed' : `${partialTrades ? 'Partial scan · ' : ''}SOL volume`;
+  if (pulseVolume) pulseVolume.textContent = totalVolume == null ? '—' : formatExploreUsd(totalVolume, { partial: partialVolume });
+  if (pulseVolumeNote) pulseVolumeNote.textContent = totalVolume == null ? 'Not available from current feed' : `${partialVolume ? 'Partial scan · ' : ''}${Number.isFinite(coinSolUsdPrice) ? 'USD equivalent · ' : ''}SOL volume`;
   const graduated = verified.filter(item => item.migrated === true).length;
   if (pulseGraduated) pulseGraduated.textContent = graduated ? String(graduated) : verified.length ? '0' : '—';
   if (pulseGraduatedNote) pulseGraduatedNote.textContent = verified.length ? 'Verified PumpSwap stage' : 'Waiting for verified mints';
   if (policyUpdated) policyUpdated.textContent = `RPC checked ${new Date().toLocaleTimeString()} · ${EXPLORE_CLUSTER}`;
+  renderHomeKpiDashboard(verified);
 }
 let receiptEvidence = null;
 function renderVerifiedReceiptEvidence(){
-  if (!receiptEvidence || !['onchain-indexed', 'partial'].includes(receiptEvidence.status)) return;
-  const collections = Array.isArray(receiptEvidence.verifiedCollections) ? receiptEvidence.verifiedCollections : [];
-  const payouts = Array.isArray(receiptEvidence.verifiedPayouts) ? receiptEvidence.verifiedPayouts : [];
+  const verifiedStatus = ['onchain-indexed', 'partial'].includes(receiptEvidence?.status);
+  const collections = verifiedStatus && Array.isArray(receiptEvidence.verifiedCollections) ? receiptEvidence.verifiedCollections : [];
+  const payouts = verifiedStatus && Array.isArray(receiptEvidence.verifiedPayouts) ? receiptEvidence.verifiedPayouts : [];
   const cards = document.querySelectorAll('.analytics-kpis article');
-  if (collections.length && cards[0]) {
-    cards[0].querySelector('span').textContent = 'Verified fees claimed';
+  const feeCard = document.querySelector('[data-analytics-metric="fees"]') || cards[0];
+  const payoutCard = document.querySelector('[data-analytics-metric="payouts"]') || cards[2];
+  if (collections.length && feeCard) {
+    feeCard.querySelector('span').textContent = 'Verified fees collected';
     const lamports = collections.reduce((sum, item) => sum + Number(item.collectedLamports || 0), 0);
-    cards[0].querySelector('strong').textContent = `${(lamports / 1_000_000_000).toFixed(6)} SOL`;
-    cards[0].querySelector('small').textContent = `${collections.length} confirmed fee claims · verified subset`;
+    feeCard.querySelector('strong').textContent = `${(lamports / 1_000_000_000).toFixed(6)} SOL`;
+    feeCard.querySelector('small').innerHTML = `<b>SOL</b>${collections.length} confirmed fee claims · verified subset`;
   }
-  if (payouts.length && cards[2]) {
-    cards[2].querySelector('span').textContent = 'Verified payouts';
-    cards[2].querySelector('strong').textContent = `${payouts.length} verified`;
-    cards[2].querySelector('small').textContent = 'Confirmed recipient balance deltas · checked window';
+  if (payouts.length && payoutCard) {
+    payoutCard.querySelector('span').textContent = 'Verified payouts';
+    payoutCard.querySelector('strong').textContent = `${payouts.length} verified`;
+    payoutCard.querySelector('small').innerHTML = '<b>COUNT</b>Confirmed recipient balance deltas · checked window';
   }
-  if (!payouts.length) return;
   const list = document.querySelector('#payment-list');
   const tape = document.querySelector('#payment-dialog-list');
   if (!list || !tape) return;
@@ -1024,15 +1259,38 @@ function renderVerifiedReceiptEvidence(){
     row.append(identity, amount);
     list.append(row);
   }
-  tape.replaceChildren(...[...list.children].map(row => row.cloneNode(true)));
+  if (payouts.length) tape.replaceChildren(...[...list.children].map(row => row.cloneNode(true)));
+  else tape.innerHTML = '<p class="empty-state">No verified payout receipts are available on Devnet yet. The payment tape will populate only after on-chain receipts are indexed.</p>';
   const footnote = document.querySelector('#payments .panel-footnote');
-  if (footnote && payouts.length) footnote.textContent = `${payouts.length} confirmed payout receipt${payouts.length === 1 ? '' : 's'} in the checked window${receiptEvidence.status === 'partial' ? ' · other records remain unverified' : ''}.`;
+  if (footnote) footnote.textContent = payouts.length
+    ? `${payouts.length} confirmed payout receipt${payouts.length === 1 ? '' : 's'} in the checked window${receiptEvidence.status === 'partial' ? ' · other records remain unverified' : ''}.`
+    : receiptEvidence?.status === 'unverified-records' ? 'Recorded payouts have no matching confirmed balance-delta proof.'
+      : receiptEvidence?.status === 'unavailable' || !receiptEvidence ? 'Payout receipt verification is unavailable.'
+        : 'No verified payout receipts are available.';
 }
 function renderOnchainReportState(verified){
   const cards = document.querySelectorAll('.analytics-kpis article');
-  if (cards[0]) { cards[0].querySelector('strong').textContent = '—'; cards[0].querySelector('small').textContent = 'No on-chain router claim events indexed'; }
-  if (cards[1]) { cards[1].querySelector('strong').textContent = verified.length ? String(verified.length) : '—'; cards[1].querySelector('small').textContent = verified.length ? `Confirmed mints · ${EXPLORE_CLUSTER}` : `No confirmed mints · ${EXPLORE_CLUSTER}`; }
-  if (cards[2]) { cards[2].querySelector('strong').textContent = '—'; cards[2].querySelector('small').textContent = 'No on-chain payout receipts indexed'; }
+  const feeCard = document.querySelector('[data-analytics-metric="fees"]') || cards[0];
+  const launchCard = document.querySelector('[data-analytics-metric="launches"]') || cards[1];
+  const payoutCard = document.querySelector('[data-analytics-metric="payouts"]') || cards[2];
+  const volumeCard = document.querySelector('[data-analytics-metric="volume"]');
+  const walletCard = document.querySelector('[data-analytics-metric="wallets"]');
+  if (feeCard) { feeCard.querySelector('span').textContent = 'Total fees collected'; feeCard.querySelector('strong').textContent = '—'; feeCard.querySelector('small').innerHTML = '<b>SOL / USD</b>No verified router claims'; }
+  if (launchCard) { launchCard.querySelector('strong').textContent = verified.length ? String(verified.length) : '—'; launchCard.querySelector('small').innerHTML = `<b>COUNT</b>${verified.length ? `Confirmed mints · ${EXPLORE_CLUSTER}` : `No confirmed mints · ${EXPLORE_CLUSTER}`}`; }
+  if (payoutCard) { payoutCard.querySelector('span').textContent = 'Recipient payouts'; payoutCard.querySelector('strong').textContent = '—'; payoutCard.querySelector('small').innerHTML = '<b>SOL / COUNT</b>No verified payout receipts'; }
+  const volumeSol = verified.reduce((sum, item) => sum + (Number.isFinite(Number(item.volume24hSol)) ? Number(item.volume24hSol) : 0), 0);
+  const hasVolume = verified.some(item => Number.isFinite(Number(item.volume24hSol)));
+  const partialVolume = verified.some(item => item.volumeCoverage === 'partial');
+  if (volumeCard) {
+    volumeCard.querySelector('strong').textContent = hasVolume && Number.isFinite(coinSolUsdPrice) ? formatDashboardUsd(volumeSol * coinSolUsdPrice, { partial: partialVolume }) : '—';
+    volumeCard.querySelector('small').innerHTML = `<b>USD · 24H</b>${hasVolume ? `${partialVolume ? 'Partial ' : ''}verified Pump events` : 'No verified trade volume'}`;
+  }
+  const observedWallets = verified.reduce((sum, item) => sum + (Number.isFinite(Number(item.traderCount24h)) ? Number(item.traderCount24h) : 0), 0);
+  const hasWallets = verified.some(item => Number.isFinite(Number(item.traderCount24h)));
+  if (walletCard) {
+    walletCard.querySelector('strong').textContent = hasWallets ? observedWallets.toLocaleString() : '—';
+    walletCard.querySelector('small').innerHTML = `<b>COUNT · 24H</b>${hasWallets ? 'Observed wallets across verified launches' : 'No verified wallet activity'}`;
+  }
   const strip = document.querySelector('#analytics .strip-stat');
   if (strip) strip.innerHTML = verified.length ? `${verified.length} <small>confirmed mints · ${EXPLORE_CLUSTER}</small>` : '— <small>no confirmed mints</small>';
   const chart = document.querySelector('.analytics-chart .mini-chart');
@@ -1047,7 +1305,82 @@ function renderOnchainReportState(verified){
   if (communityBadge) communityBadge.textContent = 'RPC state';
   renderVerifiedReceiptEvidence();
 }
+function renderLeaderboard(){
+  const title = document.querySelector('#leaderboard-status-title');
+  const note = document.querySelector('#leaderboard-status-note');
+  const badge = document.querySelector('#leaderboard-status-badge');
+  const podium = document.querySelector('#leaderboard-podium');
+  const table = document.querySelector('#leaderboard-table');
+  const podiumBadge = document.querySelector('#leaderboard-podium-badge');
+  if (!podium || !table) return;
+  const launchByMint = new Map((Array.isArray(verifiedLaunchPolicies) ? verifiedLaunchPolicies : []).map(item => [item.mint, item]));
+  const verified = EXPLORE_CLUSTER === 'devnet'
+    ? assets.map(item => ({ ...item, creator: launchByMint.get(item.address)?.creatorWallet || launchByMint.get(item.address)?.feePayer || item.creator })).filter(item => item.address && item.creator)
+    : [];
+  const groups = new Map();
+  for (const item of verified) {
+    const wallet = String(item.creator).trim();
+    if (!wallet) continue;
+    const current = groups.get(wallet) || { wallet, launches: 0, trades: 0, lastActivity: 0 };
+    current.launches += 1;
+    current.trades += Number.isInteger(item.tradeCount24h) ? item.tradeCount24h : 0;
+    current.lastActivity = Math.max(current.lastActivity, Number(item.lastTradeUnixTime || item.createdTimestamp || 0));
+    groups.set(wallet, current);
+  }
+  const ranked = [...groups.values()].sort((a, b) => b.launches - a.launches || b.trades - a.trades || b.lastActivity - a.lastActivity).slice(0, 25);
+  const empty = '<div class="empty-state"><strong>No verified creator activity yet.</strong><span>Rankings appear after a Devnet launch is confirmed by the registry and Solana RPC.</span></div>';
+  if (!ranked.length) {
+    if (title) title.textContent = EXPLORE_CLUSTER === 'devnet' ? 'No verified Devnet activity yet' : 'Leaderboard unavailable on this cluster';
+    if (note) note.textContent = 'No confirmed creator records are available to rank.';
+    if (badge) badge.textContent = 'Unavailable';
+    if (podiumBadge) podiumBadge.textContent = 'Awaiting RPC';
+    podium.innerHTML = empty;
+    table.innerHTML = `<div class="leaderboard-table-head" role="row"><span>Rank</span><span>Builder</span><span>Activity</span><span>Contribution</span><span></span></div>${empty}`;
+    return;
+  }
+  if (title) title.textContent = `${ranked.length} verified creator${ranked.length === 1 ? '' : 's'} on Devnet`;
+  if (note) note.textContent = 'Ranked from confirmed mint and Pump curve records; no estimated or simulated activity is included.';
+  if (badge) badge.textContent = 'RPC verified';
+  if (podiumBadge) podiumBadge.textContent = 'RPC verified';
+  const initials = wallet => wallet.slice(0, 2);
+  const avatarClass = index => ['mint', 'lavender', 'coral', 'blue'][index % 4];
+  const amount = item => `${item.launches} launch${item.launches === 1 ? '' : 'es'}`;
+  podium.innerHTML = ranked.slice(0, 3).map((item, index) => `<div class="podium-user ${index === 0 ? 'first' : index === 1 ? 'second' : 'third'}"><span class="${index === 0 ? 'podium-crown' : 'podium-rank'}">${index === 0 ? '✦' : String(index + 1).padStart(2, '0')}</span><span class="leader-avatar ${avatarClass(index)}">${escapeHtml(initials(item.wallet))}</span><strong>${escapeHtml(shortAddress(item.wallet))}</strong><small>${escapeHtml(amount(item))}</small><b>${item.trades ? `${item.trades} trades` : 'Trade data pending'}</b></div>`).join('');
+  table.innerHTML = `<div class="leaderboard-table-head" role="row"><span>Rank</span><span>Builder</span><span>Activity</span><span>Contribution</span><span></span></div>${ranked.slice(0, 10).map((item, index) => `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span class="rank-number">${String(index + 1).padStart(2, '0')}</span><span class="leader-identity"><span class="leader-avatar ${avatarClass(index)}">${escapeHtml(initials(item.wallet))}</span><span><strong>${escapeHtml(shortAddress(item.wallet))}</strong><small>Creator · ${escapeHtml(item.lastActivity ? formatOnchainAge(item.lastActivity * 1000) : 'confirmed Devnet')}</small></span></span><span><b>${item.launches}</b><small>launches</small></span><span class="leader-value">${item.trades ? `${item.trades} trades` : '—'}</span><span class="trend">RPC</span></div>`).join('')}`;
+}
 let homeLaunchTab = 'trending';
+const homeHolderCountCache = new Map();
+let homeHolderCountLoading = false;
+async function loadHomeHolderCounts(records){
+  if (homeHolderCountLoading || EXPLORE_CLUSTER !== 'devnet' || !Array.isArray(records) || !records.length) return;
+  const candidates = records.slice(0, 6).filter(item => item?.address && !Number.isFinite(Number(item.holders)));
+  if (!candidates.length) return;
+  homeHolderCountLoading = true;
+  try {
+    const { PublicKey } = await getSolana();
+    const rpc = await getExploreConnection();
+    await Promise.all(candidates.map(async item => {
+      const cached = homeHolderCountCache.get(item.address);
+      if (cached && Date.now() - cached.at < 300_000) {
+        item.holderAccounts = cached.count;
+        item.holderCoverage = cached.coverage;
+        return;
+      }
+      try {
+        const result = await rpc.getTokenLargestAccounts(new PublicKey(item.address), 'confirmed');
+        const accounts = Array.isArray(result?.value) ? result.value : [];
+        const count = accounts.filter(account => Number(account.uiAmountString ?? account.uiAmount ?? 0) > 0).length;
+        const coverage = accounts.length >= 20 ? 'lower-bound' : 'complete-account-list';
+        item.holderAccounts = count;
+        item.holderCoverage = coverage;
+        homeHolderCountCache.set(item.address, { count, coverage, at: Date.now() });
+      } catch { /* Keep holder count unavailable when the RPC does not return token accounts. */ }
+    }));
+  } finally {
+    homeHolderCountLoading = false;
+    renderHomeLaunchBoard();
+  }
+}
 function renderHomeLaunchBoard(){
   const grid = document.querySelector('#home-launch-grid');
   if (!grid) return;
@@ -1057,12 +1390,46 @@ function renderHomeLaunchBoard(){
   else visible.sort((a, b) => EXPLORE_CLUSTER === 'devnet'
     ? Number(b.curveCapSol || 0) - Number(a.curveCapSol || 0)
     : Number(b.marketCapUsd || 0) - Number(a.marketCapUsd || 0));
-  visible = visible.slice(0, 3);
+  visible = visible.slice(0, 6);
   if (!visible.length) {
     grid.innerHTML = `<div class="empty-state"><strong>${homeLaunchTab === 'watchlist' ? 'No watched launches yet.' : 'No verified launches yet.'}</strong><span>${homeLaunchTab === 'watchlist' ? 'Save a verified mint from Explore to see it here.' : 'This board populates after Solana RPC confirms a Devnet mint.'}</span></div>`;
     return;
   }
-  grid.innerHTML = visible.map(item => `<article class="home-launch-card"><div class="home-launch-card-top"><span class="asset-symbol"><i class="asset-icon">${escapeHtml(item.icon || 'T')}</i>${escapeHtml(item.symbol || 'TOKEN')}</span><span class="asset-status-badge">RPC verified</span></div><strong>${escapeHtml(item.name || 'Unnamed token')}</strong><small>${escapeHtml(exploreStageLabel(item))} · ${escapeHtml(formatOnchainAge(Number(item.createdTimestamp || 0) * 1000))}</small><div class="home-launch-card-stats"><span>${EXPLORE_CLUSTER === 'devnet' ? 'Curve cap' : 'Market cap'} <b>${escapeHtml(EXPLORE_CLUSTER === 'devnet' ? formatCoinUsd(item.curveCapSol) : item.marketCapUsd != null ? formatCompactUsd(item.marketCapUsd) : 'Unavailable')}</b></span><span>24h <b>${escapeHtml(item.change || '—')}</b></span></div><div class="home-launch-card-actions"><a href="/token/${encodeURIComponent(item.address || '')}">Inspect ↗</a><button type="button" data-trade-mint="${escapeHtml(item.address || '')}">Trade</button></div></article>`).join('');
+  grid.innerHTML = visible.map(item => {
+    const change = item.change || '—';
+    const changeValue = Number.parseFloat(change);
+    const changeClass = Number.isFinite(changeValue) ? (changeValue >= 0 ? 'is-positive' : 'is-negative') : '';
+    const progressValue = item.complete === true ? 100 : Number.isFinite(Number(item.curveProgressPercent)) ? Math.max(0, Math.min(100, Number(item.curveProgressPercent))) : 0;
+    const progressLabel = item.complete === true ? 'Migrated' : progressValue > 0 ? `${Math.round(progressValue)}% filled` : 'On curve';
+    const value = EXPLORE_CLUSTER === 'devnet' ? formatCoinUsd(item.curveCapSol) : item.marketCapUsd != null ? formatCompactUsd(item.marketCapUsd) : '—';
+    const volumeUsd = EXPLORE_CLUSTER === 'devnet'
+      ? item.volume24hSol == null || !Number.isFinite(coinSolUsdPrice) ? '$—' : formatDashboardUsd(Number(item.volume24hSol) * coinSolUsdPrice, { partial: item.volumeCoverage === 'partial' })
+      : item.volume24hUsd == null ? '$—' : formatDashboardUsd(item.volume24hUsd);
+    const providerHolders = Number(item.holders);
+    const accountHolders = Number(item.holderAccounts);
+    const holderCount = Number.isFinite(providerHolders) && providerHolders >= 0
+      ? providerHolders.toLocaleString()
+      : Number.isFinite(accountHolders) && accountHolders >= 0 ? `${item.holderCoverage === 'lower-bound' ? '≥' : ''}${accountHolders.toLocaleString()}` : '—';
+    const holderTitle = Number.isFinite(providerHolders)
+      ? 'Holder count from the indexed market provider'
+      : Number.isFinite(accountHolders) ? `${item.holderCoverage === 'lower-bound' ? 'At least ' : ''}${accountHolders} confirmed non-zero token account${accountHolders === 1 ? '' : 's'}` : 'Holder count unavailable';
+    return `<article class="token-card-shell home-launch-card" data-mint="${escapeHtml(item.address || '')}">
+      <div class="home-launch-card-top">
+        <span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span>
+        <span class="home-token-identity"><strong>${escapeHtml(item.symbol || 'TOKEN')}</strong><small>${escapeHtml(item.name || 'Unnamed token')}</small></span>
+        <span class="home-stage-pill">${escapeHtml(exploreStageLabel(item))}</span>
+      </div>
+      <div class="home-launch-card-stats">
+        <span><small>${EXPLORE_CLUSTER === 'devnet' ? 'Curve cap' : 'Market cap'}</small><strong>${escapeHtml(value)}</strong></span>
+        <span><small>24h volume</small><strong>${escapeHtml(volumeUsd)}</strong></span>
+        <span title="${escapeHtml(holderTitle)}"><small>Holders</small><strong>${escapeHtml(holderCount)}</strong></span>
+        <span class="home-launch-change ${changeClass}"><small>24h change</small><strong>${escapeHtml(change)}</strong></span>
+      </div>
+      <div class="home-launch-progress" aria-label="${escapeHtml(progressLabel)}"><i style="--launch-progress:${progressValue}%"></i></div>
+      <div class="home-launch-meta"><span>${escapeHtml(formatOnchainAge(Number(item.createdTimestamp || 0) * 1000))}</span><span>${escapeHtml(progressLabel)}</span></div>
+      <div class="home-launch-card-actions"><a href="/token/${encodeURIComponent(item.address || '')}">Details ↗</a><button type="button" data-trade-mint="${escapeHtml(item.address || '')}">Trade</button></div>
+    </article>`;
+  }).join('');
   grid.querySelectorAll('.home-launch-card').forEach((card, index) => {
     const promotion = promotionElement(visible[index]?.address, true);
     if (promotion) card.querySelector('.home-launch-card-top')?.append(promotion);
@@ -1208,12 +1575,15 @@ async function loadOnchainExploreData(){
     const feedStatus = document.querySelector('#explore-data-status');
     renderExploreAssets();
     renderHomeLaunchBoard();
+    renderCreatorLaunches();
+    void loadHomeHolderCounts(assets);
     if (feedStatus) {
       feedStatus.textContent = exploreProviderStatus;
     }
     renderRegistry();
     updateExploreSortAvailability();
   renderOnchainReportState(verified);
+  renderLeaderboard();
   renderHomeOnchainSnapshot(verified);
 }
 loadOnchainExploreData().catch(() => {
@@ -1224,33 +1594,33 @@ loadOnchainExploreData().catch(() => {
 });
 setInterval(() => { if (!document.hidden && exploreAutoRefresh && Date.now() >= exploreBackoffUntil) loadOnchainExploreData().catch(() => {}); }, 30000);
 setInterval(() => { if (!document.hidden && exploreAutoRefresh) renderStonkEnhancements(); }, 30000);
-const analyticsLaunchMetric = document.querySelector('.analytics-kpis article:nth-child(2)');
-if (analyticsLaunchMetric) {
-  const metric = analyticsLaunchMetric.querySelector('strong');
-  const note = analyticsLaunchMetric.querySelector('small');
-  if (metric) metric.textContent = '—';
-  if (note) note.textContent = 'Awaiting verified indexer';
-}
+let receiptEvidenceLoading = false;
 async function loadReceiptEvidence(){
-  const result = await apiRequest('/api/evidence/receipts').catch(() => null);
-  const data = result?.data;
-  if (result?.available !== true || data?.cluster !== EXPLORE_CLUSTER) return;
-  receiptEvidence = data;
-  renderOnchainReportState(assets);
+  if (receiptEvidenceLoading) return;
+  receiptEvidenceLoading = true;
+  try {
+    const result = await apiRequest('/api/evidence/receipts').catch(() => null);
+    const data = result?.data;
+    receiptEvidence = result?.available === true && data?.cluster === EXPLORE_CLUSTER ? data : null;
+    renderOnchainReportState(assets);
+    renderHomeKpiDashboard(assets);
+  } finally { receiptEvidenceLoading = false; }
 }
 document.querySelector('#payment-list').innerHTML = payments.map(p => `<div class="payment-row"><span class="payment-avatar">${p[0]}</span><span><strong>${p[1]}</strong><small>${p[2]}</small></span><span class="payment-amount">${p[3]}<small> sample</small></span></div>`).join('');
 document.querySelector('#payment-dialog-list').innerHTML = payments.length
   ? document.querySelector('#payment-list').innerHTML
   : '<p class="empty-state">No verified payout receipts are available on Devnet yet. The payment tape will populate only after on-chain receipts are indexed.</p>';
 loadReceiptEvidence();
+setInterval(() => { if (!document.hidden) loadReceiptEvidence().catch(() => {}); }, 60_000);
 renderWatchlist();
 let registryLaunches = [];
 let registrySort = 'recent';
 function updateExploreSortAvailability(){
   const select = document.querySelector('#explore-sort');
   if (EXPLORE_CLUSTER !== 'devnet') {
-    const labels = { 'market-cap': 'Market cap', volume: '24h volume', trades: '24h trades', turnover: 'Volume / cap', liquidity: 'Liquidity', 'recent-trade': 'Recent activity', holders: 'Holders', change: '24h price change', newest: 'Newest' };
+    const labels = { 'market-cap': 'Market cap', volume: '24h volume', airdrop: 'Community airdrop allocation', 'holder-fee': 'Creator fees to holders', 'x-fee': 'Creator fees to X account', trades: '24h trades', turnover: 'Volume / cap', liquidity: 'Liquidity', 'recent-trade': 'Recent activity', holders: 'Holders', change: '24h price change', newest: 'Newest' };
     if (select) for (const option of select.options) { option.textContent = labels[option.value]; option.disabled = option.value === 'trades'; }
+    document.querySelectorAll('[data-explore-sort]').forEach(button => { button.disabled = false; button.title = ''; });
     const headings = document.querySelectorAll('.scanner-head span');
     if (headings[2]) headings[2].textContent = 'Market cap';
     if (headings[3]) headings[3].textContent = '24h volume';
@@ -1264,9 +1634,13 @@ function updateExploreSortAvailability(){
     if (activityButton) activityButton.textContent = '24h change';
     return;
   }
+  const benefits = assets.map(withVerifiedExploreBenefits);
   const supported = {
     'market-cap': assets.some(item => item.curveCapSol != null),
     volume: exploreScannedCount === assets.length && assets.some(item => withMarketWindow(item, exploreWindow).windowVolumeSol != null),
+    airdrop: benefits.some(item => item.benefitPolicyVerified && item.communityAirdropPercent != null),
+    'holder-fee': benefits.some(item => item.benefitPolicyVerified && item.holderFeePercent != null),
+    'x-fee': benefits.some(item => item.benefitPolicyVerified && item.xFeePercent != null),
     trades: exploreScannedCount === assets.length && assets.some(item => withMarketWindow(item, exploreWindow).windowTradeCount != null),
     turnover: exploreScannedCount === assets.length && assets.some(item => { const metric = withMarketWindow(item, exploreWindow); return metric.windowVolumeSol != null && metric.curveCapSol > 0; }),
     liquidity: assets.some(item => item.curveReserveSol != null),
@@ -1275,6 +1649,11 @@ function updateExploreSortAvailability(){
     change: assets.some(item => item.priceChange24hPercent != null),
     newest: true,
   };
+  document.querySelectorAll('[data-explore-sort]').forEach(button => {
+    const available = supported[button.dataset.exploreSort] !== false;
+    button.disabled = !available;
+    button.title = available ? '' : 'This sort needs more verified data';
+  });
   if (select) {
     for (const option of select.options) option.disabled = !supported[option.value];
     if (!supported[exploreSort]) {
@@ -1325,7 +1704,7 @@ function renderRegistry(query = exploreQuery){
       <span class="scanner-metric" title="${item.windowCoverage === 'partial' ? 'Partial confirmed trade-history scan; shown as a lower bound' : 'Confirmed trade history'}">${escapeHtml(EXPLORE_CLUSTER === 'devnet' ? formatExploreUsd(item.windowVolumeSol, { partial: item.windowCoverage === 'partial' }) : formatCompactUsd(item.volume24hUsd))}</span>
       <span class="scanner-metric">${escapeHtml(EXPLORE_CLUSTER === 'devnet' ? formatCoinUsd(item.curveReserveSol) : formatCompactUsd(item.liquidityUsd))}</span>
       <span class="scanner-metric ${EXPLORE_CLUSTER !== 'devnet' && Number(item.priceChange24hPercent) < 0 ? 'negative' : ''}">${EXPLORE_CLUSTER === 'devnet' ? `<strong>${formatExploreTradeCount(item.windowTradeCount, item.windowCoverage)}</strong><small>${item.windowBuyCount != null && item.windowSellCount != null ? `${formatExploreTradeCount(item.windowBuyCount, item.windowCoverage)} B · ${formatExploreTradeCount(item.windowSellCount, item.windowCoverage)} S` : 'Split unavailable'}${item.windowTraderCount != null ? ` · ${formatExploreTradeCount(item.windowTraderCount, item.windowCoverage)} wallets` : ''}</small>` : change}</span>
-      <div class="scanner-actions"><button type="button" class="watch-button scanner-watch" data-mint="${mint}" aria-label="Save ${symbol} to watchlist" aria-pressed="false">☆</button>${EXPLORE_CLUSTER === 'devnet' ? `<button type="button" class="scanner-compare" data-compare-mint="${mint}" aria-pressed="false">Compare</button>` : ''}<a href="/token/${encodeURIComponent(item.address)}" aria-label="Inspect ${symbol}">Inspect</a><button type="button" data-trade-mint="${mint}">Trade</button><button type="button" class="copy-row" data-mint="${mint}" aria-label="Copy ${symbol} mint address">⧉</button></div>
+      <div class="scanner-actions"><button type="button" class="watch-button scanner-watch" data-mint="${mint}" aria-label="Save ${symbol} to watchlist" aria-pressed="false">☆</button><a href="/token/${encodeURIComponent(item.address)}" aria-label="Inspect ${symbol}">Inspect</a><button type="button" data-trade-mint="${mint}">Trade</button><button type="button" class="copy-row" data-mint="${mint}" aria-label="Copy ${symbol} mint address">⧉</button></div>
     </div>`;
   }).join('');
   list.querySelectorAll('.scanner-row').forEach((row, index) => {
@@ -1333,7 +1712,6 @@ function renderRegistry(query = exploreQuery){
     if (promotion) row.querySelector('.scanner-token strong')?.append(' ', promotion);
   });
   renderWatchlist();
-  renderExploreComparison();
 }
 renderRegistry();
 
@@ -1448,7 +1826,8 @@ async function previewTrade(){
     const quote = describeTradeQuote(trade, slippagePercent);
     const inputKey = `${mint}:${side}:${amount}:${slippagePercent}:${session.address}`;
     tradePreview = { trade, inputKey, preparedAt: Date.now() };
-    document.querySelector('#trade-quote').textContent = `${quote.route === 'graduated-pool' ? 'Graduated pool' : 'Pump curve'} · Estimated receive: ${quote.expected.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${quote.outputSymbol}. Slippage floor: ${quote.minimum.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${quote.outputSymbol}. App fee: ${quote.appFeeSol.toFixed(6)} SOL, plus network and Pump fees. Quote expires in 15 seconds.`;
+    const outputDigits = quote.outputSymbol === 'SOL' ? 9 : 6;
+    document.querySelector('#trade-quote').textContent = `${quote.route === 'graduated-pool' ? 'Graduated pool' : 'Pump curve'} · Estimated receive: ${quote.expected.toLocaleString(undefined, { maximumFractionDigits: outputDigits })} ${quote.outputSymbol}. Slippage floor: ${quote.minimum.toLocaleString(undefined, { maximumFractionDigits: outputDigits })} ${quote.outputSymbol}. App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network and Pump fees. Quote expires in 15 seconds.`;
     document.querySelector('#trade-submit').disabled = false;
     setTradeStatus('Review this quote and the transaction in your wallet before signing.');
   } catch (error) { if (isWalletSessionCurrent(session)) setTradeStatus(`Quote unavailable: ${error.message}`, true); }
@@ -1475,16 +1854,32 @@ async function executeTrade(){
     showToast(`${side === 'buy' ? 'Buy' : 'Sell'} confirmed on Devnet`); refreshWalletInfo();
   } catch (error) { if (isWalletSessionCurrent(session)) setTradeStatus(`Trade failed or confirmation unavailable: ${error.message}`, true); } finally { if (isWalletSessionCurrent(session)) invalidateTradePreview(); }
 }
-function openInfoDialog(kind){
+const infoDialogRoutes = new Set(['terms', 'disclosures', 'opt-out']);
+function openInfoDialog(kind, { routeDriven = false } = {}){
   const content = {
     terms: ['Terms of Use', '<div class="legal-meta"><span>Effective 18 Sep 2026</span><span>Version 1.0</span><span>Applies to funded.vip Devnet tools</span></div><p>Use the Devnet launcher for testing only. You are responsible for reviewing every transaction before signing and for complying with applicable rules.</p><h3>Contents</h3><ul class="legal-list"><li>Wallet connection and signatures</li><li>Token metadata and deployer responsibility</li><li>Network, fees, and transaction confirmation</li><li>Prohibited use and service limitations</li><li>Privacy, disclosures, and support</li></ul><p class="muted-note">This is a product disclosure for the local build, not legal advice or a production agreement.</p>'],
-  disclosures: ['Disclosures', '<div class="legal-meta"><span>Effective 19 Sep 2026</span><span>Version 1.3</span><span>Applies to the Devnet preview</span></div><p>The Pump Devnet flow creates the coin with the verified funded.vip router PDA written directly into Pump’s creator field. The paying wallet never receives creator-fee authority, and the app reads the bonding curve back before reporting success.</p><h3>Important limits</h3><ul class="legal-list"><li>Devnet SOL has no intended monetary value.</li><li>The production router program, claim worker, settlement services, payout rails, and treasury controls are not deployed by this frontend.</li><li>Permanent token metadata, community-vault funding, X recipient verification, and payout execution require production services that are not connected.</li><li>Pump protocol administrators or a future Pump program upgrade remain outside funded.vip’s control.</li><li>funded.vip is not affiliated with X, Phantom, or Pump.fun.</li></ul><p class="muted-note">Verify the Pump creator address in the launch transaction and bonding-curve account on Solana Explorer.</p>'],
-    capital: ['Capital flow', '<p>This chart shows the flow model. Connect a data source to replace the example series with indexed activity.</p>'],
-  'opt-out': ['Opt out', '<div class="legal-meta"><span>Account controls</span><span>Devnet preview</span></div><p>Request that an account or project be excluded from future indexed activity feeds. This local build does not run a payout or indexing backend yet.</p><div class="optout-steps"><div><b>1</b><span><strong>Sign in with X</strong><small>Verify control of the account you want to manage.</small></span></div><div><b>2</b><span><strong>Choose exclusions</strong><small>Hide the account from discovery and stop new recipient selections.</small></span></div><div><b>3</b><span><strong>Review status</strong><small>Confirm the effective date and any unpaid-fee handling.</small></span></div></div><button type="button" class="secondary-button info-action" disabled>Opt-out requests unavailable</button><p class="muted-note">X sign-in, indexed exclusions, and payout handling are not connected in this Devnet build.</p>'],
+    disclosures: ['Disclosures', '<div class="legal-meta"><span>Effective 23 Sep 2026</span><span>Version 1.4</span><span>Applies to the Devnet preview</span></div><p>The Pump Devnet flow creates the coin with the verified funded.vip router PDA written directly into Pump’s creator field. The paying wallet never receives creator-fee authority, and the app reads the bonding curve back before reporting success.</p><h3>Important limits</h3><ul class="legal-list"><li>Devnet SOL has no intended monetary value.</li><li>This Devnet deployment indexes finalized receipts and can automatically settle configured creator and holder SOL rewards; referral rewards remain wallet-initiated claims.</li><li>Mainnet contracts, audited production treasury controls, X recipient verification, and community-token distribution are not enabled.</li><li>Pump protocol administrators or a future Pump program upgrade remain outside funded.vip’s control.</li><li>funded.vip is not affiliated with X, Phantom, or Pump.fun.</li></ul><p class="muted-note">Verify the Pump creator address in the launch transaction and bonding-curve account on Solana Explorer.</p>'],
+    capital: ['Capital flow', '<p>This calculator illustrates the published allocation policy. Confirmed launch, collection, and payout records appear in the verified workspace pages when the Devnet indexer has recorded them.</p>'],
+  'opt-out': ['Opt out', '<div class="legal-meta"><span>Account controls</span><span>Devnet preview</span></div><p>The Devnet deployment indexes launch and reward activity, but account-level discovery exclusions require verified X identity and are not available yet.</p><div class="optout-steps"><div><b>1</b><span><strong>Sign in with X</strong><small>Verify control of the account you want to manage.</small></span></div><div><b>2</b><span><strong>Choose exclusions</strong><small>Request exclusion from future discovery and recipient selection.</small></span></div><div><b>3</b><span><strong>Review status</strong><small>Confirm the effective date; finalized receipts and existing entitlements remain on record.</small></span></div></div><button type="button" class="secondary-button info-action" disabled>Opt-out requests unavailable</button><p class="muted-note">X sign-in and indexed exclusion requests are not connected in this Devnet build.</p>'],
   }[kind] || ['Information', '<p>Explore the funded.vip workspace and review each transaction before signing.</p>'];
   document.querySelector('#info-title').textContent = content[0];
   document.querySelector('#info-content').innerHTML = content[1];
-  document.querySelector('#info-dialog').showModal();
+  const dialog = document.querySelector('#info-dialog');
+  dialog.dataset.infoKind = kind;
+  dialog.dataset.routeDriven = routeDriven ? 'true' : 'false';
+  if (!dialog.open) dialog.showModal();
+}
+function closeInfoDialog(){
+  const dialog = document.querySelector('#info-dialog');
+  const routeDriven = dialog.dataset.routeDriven === 'true';
+  dialog.close();
+  delete dialog.dataset.infoKind;
+  delete dialog.dataset.routeDriven;
+  const hash = location.hash.replace(/^#/, '');
+  if (routeDriven && infoDialogRoutes.has(hash)) {
+    history.replaceState({}, '', `${location.pathname}${location.search}#overview`);
+    syncPageRoute();
+  }
 }
 function openFilterDialog(button){
   const label = button.textContent.replace('⌄', '').trim();
@@ -1497,7 +1892,10 @@ function openFilterDialog(button){
   options.replaceChildren(...choices.map(choice => { const item = document.createElement('button'); item.type = 'button'; item.textContent = choice; item.addEventListener('click', () => { button.childNodes[0].textContent = `${choice} `; document.querySelector('#filter-dialog').close(); showToast(`${choice} filter selected`); }); return item; }));
   document.querySelector('#filter-dialog').showModal();
 }
-function closeDialog(id){ document.querySelector(`#${id}`)?.close(); }
+function closeDialog(id){
+  const dialog = document.querySelector(`#${id}`);
+  if (dialog?.open && typeof dialog.close === 'function') dialog.close();
+}
 function injectedWalletProviders(){
   return [
     { id: 'phantom', provider: window.phantom?.solana },
@@ -1625,6 +2023,7 @@ async function connectDevWallet(){
     const { PublicKey, Transaction } = await getSolana();
     const publicKey = new PublicKey(result.data.publicKey);
     const devProvider = {
+      devMode: true,
       publicKey,
       isConnected: true,
       signTransaction: async transaction => {
@@ -1701,26 +2100,38 @@ function setLaunchBurnTier(tierId){
   else { updateCostSummary(); updateLaunchButton(); }
 }
 function updateCostSummary(){
+  renderLaunchCostDetails();
   const launchNode = document.querySelector('#cost-launch');
   const totalNode = document.querySelector('#cost-total-enabled');
-  const headlineNode = document.querySelector('#cost-total');
   const noteNode = document.querySelector('#cost-note');
   const previewLaunchNode = document.querySelector('#preview-launch-cost');
   const burnNode = document.querySelector('#cost-burn');
+  const burnRow = document.querySelector('#cost-burn-row');
+  const tierLabelNode = document.querySelector('#cost-tier-label');
   const creatorBuyNode = document.querySelector('#cost-creator-buy');
+  const communityTokensNode = document.querySelector('#cost-community-tokens');
+  const communityDetailNode = document.querySelector('#cost-community-detail');
+  const summaryNode = document.querySelector('#cost-summary');
   const burnPolicy = getLaunchBurnPolicy();
-  const creatorBuyPercent = Number(document.querySelector('#creator-buy-percent')?.value || 0);
-  const creatorBuy = { percent: Number.isFinite(creatorBuyPercent) ? creatorBuyPercent : 0, tokens: Number.isFinite(creatorBuyPercent) && creatorBuyPercent > 0 ? 1_000_000_000 * creatorBuyPercent / 100 : 0 };
-  if (burnNode) burnNode.textContent = burnPolicy.requiresBurn ? `${formatLaunchBurnAmount(burnPolicy.amountTokens)} $FUNDED · irreversible` : 'None';
-  if (creatorBuyNode) creatorBuyNode.textContent = creatorBuy.percent > 0
-    ? `${creatorBuy.tokens.toLocaleString()} tokens · ${estimatedInitialBuyLamports > 0 ? formatLaunchCost(estimatedInitialBuyLamports) : 'quote pending'}`
+  const creatorBuy = getCreatorBuySummary();
+  const communityTokens = getCommunityAirdropTokens();
+  const communityPercent = getCommunityAllocationPercent();
+  if (communityTokensNode) communityTokensNode.textContent = Number.isFinite(communityTokens) ? communityTokens.toLocaleString() : '—';
+  if (communityDetailNode) communityDetailNode.innerHTML = Number.isFinite(communityPercent)
+    ? `<b>${communityPercent.toFixed(2)}% of supply</b> · reserved for $FUNDED holders · migration snapshot eligibility · delivery requires vault funding and a verified active distribution cycle`
+    : '<b>Enter a valid airdrop amount</b>';
+  if (burnNode) burnNode.textContent = burnPolicy.requiresBurn ? `${formatLaunchBurnAmount(burnPolicy.amountTokens)} $FUNDED` : '0 $FUNDED';
+  if (burnRow) burnRow.hidden = !burnPolicy.requiresBurn;
+  if (tierLabelNode) tierLabelNode.textContent = burnPolicy.requiresBurn ? burnPolicy.label.toUpperCase() : 'FREE LAUNCH';
+  if (summaryNode) summaryNode.classList.toggle('free-launch', !burnPolicy.requiresBurn);
+  if (creatorBuyNode) creatorBuyNode.textContent = creatorBuy.sol > 0
+    ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL${creatorBuyExceedsWalletBalance() ? ' · insufficient SOL' : creatorBuy.tokens > 0 ? ` · ${Math.round(creatorBuy.tokens).toLocaleString()} tokens` : ' · quote pending'}`
     : 'None';
-  if (!launchNode || !totalNode || !headlineNode || !noteNode) return;
+  if (!launchNode || !totalNode || !noteNode) return;
   if (estimatedLaunchFeeLamports == null) {
     const pending = !wallet ? 'Connect wallet to estimate' : walletMetricsLoading ? 'Calculating…' : 'Estimate unavailable';
     launchNode.textContent = pending;
     totalNode.textContent = '—';
-    headlineNode.textContent = '—';
     if (previewLaunchNode) previewLaunchNode.textContent = !wallet ? 'Connect wallet' : pending;
     noteNode.textContent = !wallet
       ? 'Connect a wallet to build and estimate the transaction.'
@@ -1732,12 +2143,30 @@ function updateCostSummary(){
     return;
   }
   const launchCost = formatLaunchCost(estimatedLaunchFeeLamports);
-  launchNode.textContent = launchCost;
+  const networkReserve = launchCostReview
+    ? formatLaunchCost(Number(BigInt(launchCostReview.networkFee) + BigInt(launchCostReview.otherLaunchCosts)))
+    : launchCost;
+  launchNode.textContent = networkReserve;
   totalNode.textContent = launchCost;
-  headlineNode.textContent = `${launchCost} now`;
   if (previewLaunchNode) previewLaunchNode.textContent = launchCost;
-  noteNode.textContent = 'This is the Pump creation transaction estimate. No separate funded.vip launch fee is charged.';
+  noteNode.textContent = burnPolicy.requiresBurn
+    ? 'Total includes network fees, account reserve, any creator buy with its 1% allowance, and the selected $FUNDED burn.'
+    : 'The free tier has no $FUNDED burn. Total includes network fees, account reserve, and any creator buy with its 1% allowance.';
 }
+function renderLaunchCostDetails(){
+  let node=document.querySelector('#launch-cost-details');
+  if(!node){node=document.createElement('div');node.id='launch-cost-details';node.className='adoption-panel';document.querySelector('#cost-note')?.after(node);}
+  node.innerHTML=launchReviewMarkup(launchCostReview);
+}
+setInterval(()=>{
+  if(launchCostReview&&!freshLaunchReview(launchCostReview)){
+    setWalletMetrics({
+      balance: walletBalanceLamports,
+      fee: null,
+      error: 'Estimate expired. Refresh before signing.',
+    });
+  }else if(launchCostReview&&requestedPageRoute()==='launch')renderLaunchCostDetails();
+},1000);
 function updatePreviewStatusDrawer(connected){
   const drawer = document.querySelector('.preview-status-drawer');
   const detail = drawer?.querySelector('small');
@@ -1748,7 +2177,7 @@ function setWalletMetrics({ balance = null, fee = null, loading = false, error =
   const note = document.querySelector('#fee-note');
   walletMetricsLoading = loading;
   walletEstimateError = loading || !wallet ? '' : String(error || '');
-  if (loading) estimatedLaunchFeeLamports = null;
+  if (loading || !wallet || fee == null) { estimatedLaunchFeeLamports = null; estimatedInitialBuyLamports = 0; estimatedInitialBuyTokens = 0; launchCostReview = null; }
   if (!wallet) { walletBalanceLamports = null; estimatedLaunchFeeLamports = null; panel.hidden = true; note.hidden = true; document.querySelector('#profile-balance').textContent = 'Connect to load'; updateCostSummary(); updateLaunchButton(); return; }
   panel.hidden = false;
   note.hidden = false;
@@ -1757,13 +2186,22 @@ function setWalletMetrics({ balance = null, fee = null, loading = false, error =
   document.querySelector('#launch-fee').textContent = loading ? 'Calculating…' : fee == null ? 'Unavailable' : `≈ ${formatLaunchCost(fee)}`;
   document.querySelector('#profile-balance').textContent = loading ? 'Loading…' : balance == null ? 'Unavailable' : formatSol(balance);
   const headerBalance = document.querySelector('#header-wallet-balance');
-  if (headerBalance) headerBalance.textContent = loading ? '… SOL' : balance == null ? '— SOL' : formatSol(balance);
+  const popoverBalance = document.querySelector('#wallet-popover-sol');
+  const compactBalance = loading ? '…' : balance == null ? '—' : formatSol(balance).replace(/\s*SOL$/i, '');
+  if (headerBalance) {
+    headerBalance.textContent = compactBalance;
+    const headerWallet = document.querySelector('#connect-button');
+    if (headerWallet?.classList.contains('wallet-pill-connected')) {
+      headerWallet.setAttribute('aria-label', `Wallet ${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)}, ${compactBalance} SOL`);
+    }
+  }
+  if (popoverBalance) popoverBalance.textContent = compactBalance;
+  renderWalletDetail();
+  note.hidden = !loading && (balance == null || fee == null);
   note.textContent = loading
     ? 'Checking wallet balance and estimated launch cost…'
     : balance == null || fee == null
-      ? walletEstimateError
-        ? `Launch estimate unavailable: ${walletEstimateError} Refresh the estimate before launching.`
-        : 'Unable to verify the wallet balance and launch cost. Refresh the estimate before launching.'
+      ? ''
       : balance < fee
         ? 'Insufficient Devnet SOL for the estimated launch cost. Use Airdrop 1 SOL or fund this wallet before launching.'
         : 'Estimate includes mint rent, token-account rent, and the current Devnet transaction fee.';
@@ -1774,7 +2212,8 @@ function updateLaunchPreview(){
   const name = document.querySelector('#token-name').value.trim();
   const symbol = document.querySelector('#token-symbol').value.trim().toUpperCase();
   const recipient = normalizeXHandle(document.querySelector('#x-recipient').value);
-  const allocation = Number(document.querySelector('#community-allocation')?.value) || 0;
+  const allocation = getCommunityAllocationPercent();
+  const communityTokens = getCommunityAirdropTokens();
   const feeDistribution = getFeeDistributionInputs();
   const launchBurn = getLaunchBurnPolicy();
   const creatorBuy = getCreatorBuySummary();
@@ -1786,16 +2225,16 @@ function updateLaunchPreview(){
   const tagline = document.querySelector('#token-tagline')?.value.trim() || '';
   const taglinePreview = document.querySelector('#preview-tagline');
   if (taglinePreview) taglinePreview.textContent = tagline || 'Add a clear thesis for the community.';
-  const buyLabel = creatorBuy.percent > 0 ? `${creatorBuy.percent.toFixed(1).replace('.0','')}% · ${creatorBuy.tokens.toLocaleString()} tokens` : 'Creation only';
+  const buyLabel = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL${creatorBuy.tokens > 0 ? ` · ${Math.round(creatorBuy.tokens).toLocaleString()} tokens` : ''}` : 'Creation only';
   const previewBuy = document.querySelector('#preview-creator-buy');
   const reviewBuy = document.querySelector('#review-creator-buy');
   if (previewBuy) previewBuy.textContent = buyLabel;
   if (reviewBuy) reviewBuy.textContent = buyLabel;
   const buyTokensNode = document.querySelector('#creator-buy-token-amount');
   const buySolNode = document.querySelector('#creator-buy-sol-amount');
-  if (buyTokensNode) buyTokensNode.textContent = creatorBuy.percent > 0 ? `${creatorBuy.tokens.toLocaleString()} tokens` : 'None';
-  if (buySolNode) buySolNode.textContent = creatorBuy.percent > 0 ? 'SOL quote calculated before signing' : 'No additional SOL buy';
-  const image = document.querySelector('#token-image')?.files?.[0];
+  if (buyTokensNode) buyTokensNode.textContent = creatorBuyExceedsWalletBalance() ? 'Insufficient SOL' : creatorBuy.tokens > 0 ? `${Math.round(creatorBuy.tokens).toLocaleString()} tokens` : creatorBuy.sol > 0 ? 'Calculating…' : 'None';
+  if (buySolNode) buySolNode.textContent = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL developer buy` : 'No developer buy';
+  const image = getPreparedImage();
   const roadmap = document.querySelector('#token-roadmap')?.value.trim() || '';
   const website = document.querySelector('#token-website')?.value.trim() || '';
   const quality = [Boolean(image), Boolean(tagline), Boolean(website || document.querySelector('#token-x')?.value.trim() || document.querySelector('#token-telegram')?.value.trim() || document.querySelector('#token-discord')?.value.trim()), Boolean(roadmap)];
@@ -1806,13 +2245,21 @@ function updateLaunchPreview(){
   if (qualityScore) qualityScore.textContent = `${qualityCount} / 4 ready`;
   if (qualityFill) qualityFill.style.width = `${qualityCount / 4 * 100}%`;
   qualityLabels.forEach((key, index) => { const node = document.querySelector(`#preview-quality-${key}`); if (node) { node.textContent = `${quality[index] ? '✓' : '○'} ${key === 'links' ? 'Official link' : key === 'roadmap' ? 'Milestones' : key[0].toUpperCase() + key.slice(1)}`; node.classList.toggle('ready', quality[index]); } });
-  document.querySelector('#preview-community').textContent = allocation ? `${allocation}%` : '—';
-  document.querySelector('#preview-creator-wallet-share').textContent = `${feeDistribution.creatorWalletPercent}%`;
-  document.querySelector('#preview-holder-share').textContent = `${feeDistribution.holderAirdropPercent}%`;
-   document.querySelector('#preview-x-share').textContent = `${feeDistribution.solClaimPercent}%`;
-  document.querySelector('#preview-funded-share').textContent = `${FEE_DISTRIBUTION.fundedPercent}%`;
+  const compactPreviewValues = {
+    '#preview-community': allocation ? `${allocation}%` : '—',
+    '#preview-creator-wallet-share': `${feeDistribution.creatorWalletPercent}%`,
+    '#preview-holder-share': `${feeDistribution.holderAirdropPercent}%`,
+    '#preview-x-share': `${feeDistribution.solClaimPercent}%`,
+    '#preview-funded-share': `${FEE_DISTRIBUTION.fundedPercent}%`,
+  };
+  Object.entries(compactPreviewValues).forEach(([selector, value]) => { const node = document.querySelector(selector); if (node) node.textContent = value; });
   const previewBurnTier = document.querySelector('#preview-burn-tier');
   if (previewBurnTier) { previewBurnTier.textContent = launchBurn.label.toUpperCase(); previewBurnTier.className = `tier-badge ${launchBurn.tier}`; }
+  const promotionBadge = document.querySelector('#preview-promotion-badge');
+  if (promotionBadge) {
+    promotionBadge.textContent = launchBurn.requiresBurn ? `${launchBurn.label.toUpperCase()} PROMOTION` : 'STANDARD';
+    promotionBadge.className = `preview-promotion-badge ${launchBurn.tier}`;
+  }
   const previewBurnAmount = document.querySelector('#preview-burn-amount');
   if (previewBurnAmount) previewBurnAmount.textContent = launchBurn.requiresBurn ? `${formatLaunchBurnAmount(launchBurn.amountTokens)} $FUNDED` : 'None';
   const routerPreview = document.querySelector('#preview-fee-router');
@@ -1823,26 +2270,26 @@ function updateLaunchPreview(){
     feeStatus.textContent = validation.valid
       ? feeDistribution.solClaimPercent > 0
         ? xFeeStatus.ready ? 'X rewards use an isolated per-coin fee router and verified X + wallet claim.' : `X account rewards unavailable: ${xFeeStatus.reasons.join('; ')}.`
-        : 'Creator-directed policy totals 80%.'
+        : 'Creator-directed policy totals 80%. This coin gets its own automatic-reward route.'
       : !validation.sharesValid
         ? 'Each creator destination must be between 0% and 80%.'
         : !validation.xRecipientValid
-          ? 'Enter a valid X account for the planned SOL reward.'
+          ? 'Enter a valid X account for the SOL reward.'
           : `Creator-directed allocation totals ${validation.total.toFixed(1)}%; it must equal 80%.`;
     feeStatus.className = `field-help ${validation.valid && (feeDistribution.solClaimPercent === 0 || xFeeStatus.ready) ? 'funded-mint-valid' : 'funded-mint-invalid'}`;
   }
   document.querySelector('#review-coin').textContent = name && symbol ? `${name} (${symbol})` : 'Add name and ticker';
-  document.querySelector('#review-community').textContent = `${allocation}% of supply`;
+  document.querySelector('#review-community').textContent = Number.isFinite(allocation) ? `${communityTokens.toLocaleString()} tokens · ${allocation.toFixed(2)}% of supply` : 'Enter a valid amount';
   document.querySelector('#review-creator-share').textContent = `${feeDistribution.creatorWalletPercent}% of gross fees`;
   document.querySelector('#review-holder-share').textContent = `${feeDistribution.holderAirdropPercent}% of gross fees`;
-   document.querySelector('#review-x-share').textContent = feeDistribution.solClaimPercent > 0 ? `${feeDistribution.solClaimPercent}% planned for ${recipient || 'missing account'} · ${xFeeStatus.ready ? 'mint-specific router' : 'unavailable'}` : 'Not selected';
+   document.querySelector('#review-x-share').textContent = feeDistribution.solClaimPercent > 0 ? `${feeDistribution.solClaimPercent}% for ${recipient || 'missing account'} · ${xFeeStatus.ready ? 'automatic after identity verification' : 'unavailable until X verification is configured'}` : 'Not selected';
   document.querySelector('#review-burn-tier').textContent = `${launchBurn.label}${launchBurn.requiresBurn ? ' · verified badge' : ' · no burn'}`;
   document.querySelector('#review-burn-amount').textContent = launchBurn.requiresBurn ? `${formatLaunchBurnAmount(launchBurn.amountTokens)} $FUNDED · atomic if it fits` : 'None';
   renderLaunchBurnSelection();
   updateLaunchNavigation();
 }
 function getLaunchMetadataPreview(){
-  const image = document.querySelector('#token-image')?.files?.[0];
+  const image = getPreparedImage();
   return {
     description: document.querySelector('#token-description')?.value.trim() || '',
     tagline: document.querySelector('#token-tagline')?.value.trim() || '',
@@ -1859,7 +2306,8 @@ async function prepareLaunchMetadata({ mint, name, symbol }, session = captureWa
   assertWalletSessionCurrent(session);
   if (typeof session.provider.signMessage !== 'function') throw new Error('This wallet must sign a metadata message before the Devnet transaction.');
   const preview = getLaunchMetadataPreview();
-  const image = document.querySelector('#token-image')?.files?.[0];
+  assertImageReady();
+  const image = getPreparedImage();
   if (image && (!['image/png', 'image/jpeg', 'image/webp'].includes(image.type) || image.size > 600_000)) throw new Error('Choose a PNG, JPG, or WEBP image under 600 KB.');
   const imageBytes = image ? new Uint8Array(await image.arrayBuffer()) : null;
   const imageSha256 = imageBytes ? Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', imageBytes)), byte => byte.toString(16).padStart(2, '0')).join('') : '';
@@ -1888,37 +2336,44 @@ function getFeeDistributionInputs(){
 }
 function updateLaunchButton(){
   const button = document.querySelector('#launch-button');
+  const reviewButton = document.querySelector('#launch-button-review');
   const insufficient = walletBalanceLamports != null && estimatedLaunchFeeLamports != null && walletBalanceLamports < estimatedLaunchFeeLamports;
-  const balanceUnknown = wallet && (walletBalanceLamports == null || estimatedLaunchFeeLamports == null);
-  const allocation = Number(document.querySelector('#community-allocation')?.value);
+  const insufficientDeveloperBuy = creatorBuyExceedsWalletBalance();
+    const balanceUnknown = wallet && (walletBalanceLamports == null || estimatedLaunchFeeLamports == null || !freshLaunchReview(launchCostReview));
   const feeDistribution = validateFeeDistribution(getFeeDistributionInputs());
   const launchBurn = getLaunchBurnPolicy();
-  const creatorBuyPercent = getCreatorBuyPercent();
-  const buyValid = Number.isFinite(creatorBuyPercent) && creatorBuyPercent >= 0 && creatorBuyPercent <= 20;
+  const creatorBuySol = getCreatorBuySol();
+  const buyValid = Number.isFinite(creatorBuySol) && creatorBuySol >= 0 && (estimatedInitialBuyTokens <= 0 || estimatedInitialBuyTokens <= LAUNCH_TOKEN_SUPPLY * .2);
+  const communityTokens = getCommunityAirdropTokens();
+  const communityValid = Number.isSafeInteger(communityTokens) && communityTokens >= MIN_COMMUNITY_AIRDROP_TOKENS && communityTokens <= MAX_COMMUNITY_AIRDROP_TOKENS;
   const burnConfigured = validateLaunchBurnPolicy(launchBurn).valid;
   const burnReady = !launchBurn.requiresBurn || launchBurnReadiness.ready;
   const xRouteReady = feeDistribution.shares.solClaimPercent === 0 || xFeeStatus.ready;
-  const policyValid = Number.isFinite(allocation) && allocation >= 3 && allocation <= 50 && feeDistribution.valid && xRouteReady && feeRouterState.verified && burnConfigured && burnReady && buyValid;
+  const policyValid = feeDistribution.valid && xRouteReady && feeRouterState.verified && burnConfigured && burnReady && buyValid && communityValid;
   const ready = Boolean(canSignTransactions(wallet) && !walletMetricsLoading && !balanceUnknown && !insufficient && policyValid && document.querySelector('#terms-agree')?.checked && document.querySelector('#fee-route-agree')?.checked && document.querySelector('#token-name').value.trim() && document.querySelector('#token-symbol').value.trim());
   button.disabled = !ready;
-  button.textContent = !xRouteReady ? 'X account rewards unavailable' : !feeRouterState.verified ? 'Fee router required' : !buyValid ? 'Creator buy must be 0–20%' : !burnConfigured ? '$FUNDED mint required' : launchBurn.requiresBurn && !burnReady ? 'Verify $FUNDED balance' : !wallet ? 'Connect wallet to launch' : !canSignTransactions(wallet) ? 'Open in wallet to sign' : walletMetricsLoading ? 'Calculating launch cost' : walletBalanceLamports == null ? 'Refresh wallet balance' : estimatedLaunchFeeLamports == null ? 'Refresh launch estimate' : insufficient ? 'Insufficient SOL for launch' : !document.querySelector('#fee-route-agree')?.checked ? 'Confirm the fee route' : !document.querySelector('#terms-agree')?.checked ? 'Agree to terms to launch' : !policyValid ? 'Complete launch policy' : ready ? 'Launch and verify' : 'Add name and ticker';
+  button.textContent = !communityValid ? 'Airdrop must be 30M–500M' : !xRouteReady ? 'X account rewards unavailable' : !feeRouterState.verified ? 'Fee router required' : !buyValid ? 'Enter a valid developer buy' : !burnConfigured ? '$FUNDED mint required' : launchBurn.requiresBurn && !burnReady ? 'Verify $FUNDED balance' : !wallet ? 'Connect wallet to launch' : !canSignTransactions(wallet) ? 'Open in wallet to sign' : walletMetricsLoading ? 'Calculating launch cost' : walletBalanceLamports == null ? 'Refresh wallet balance' : insufficientDeveloperBuy ? 'Insufficient SOL for developer buy' : estimatedLaunchFeeLamports == null ? 'Refresh launch estimate' : insufficient ? 'Insufficient SOL for launch' : !document.querySelector('#fee-route-agree')?.checked ? 'Confirm the fee route' : !document.querySelector('#terms-agree')?.checked ? 'Agree to terms to launch' : !policyValid ? 'Complete launch policy' : ready ? (launchBurn.requiresBurn ? `Create coin · ${launchBurn.label}` : 'Create coin · Free launch') : 'Add name and ticker';
+  if (reviewButton) { reviewButton.disabled = button.disabled; reviewButton.textContent = button.textContent; }
   updateLaunchNavigation();
 }
 function getLaunchStepState(step){
   const name = document.querySelector('#token-name').value.trim();
   const symbol = document.querySelector('#token-symbol').value.trim().toUpperCase();
   if (step === 1) {
+    try{assertImageReady();}catch(error){return {valid:false,message:error.message};}
     if (!name) return { valid: false, message: 'Enter the token name to continue.' };
     if (!/^[A-Z0-9]{1,10}$/.test(symbol)) return { valid: false, message: 'Use 1–10 letters or numbers for the ticker.' };
     return { valid: true, message: 'Coin identity is ready.' };
   }
-  const allocation = Number(document.querySelector('#community-allocation').value);
   const distribution = validateFeeDistribution(getFeeDistributionInputs());
   if (step === 2) {
-    if (!Number.isFinite(allocation) || allocation < 3 || allocation > 50) return { valid: false, message: 'Community allocation must be between 3% and 50%.' };
+    const communityTokens = getCommunityAirdropTokens();
+    if (!Number.isSafeInteger(communityTokens) || communityTokens < MIN_COMMUNITY_AIRDROP_TOKENS || communityTokens > MAX_COMMUNITY_AIRDROP_TOKENS) return { valid: false, message: 'Community airdrop must be between 30,000,000 and 500,000,000 tokens.' };
+    const creatorBuySol = getCreatorBuySol();
+    if (!Number.isFinite(creatorBuySol) || creatorBuySol < 0) return { valid: false, message: 'Developer buy must be a valid SOL amount of zero or more.' };
     if (!distribution.valid) {
       if (!distribution.sharesValid) return { valid: false, message: 'Each creator destination must be between 0% and 80%.' };
-      if (!distribution.xRecipientValid) return { valid: false, message: 'Enter a valid X account for the planned SOL reward.' };
+      if (!distribution.xRecipientValid) return { valid: false, message: 'Enter a valid X account for the SOL reward.' };
       return { valid: false, message: 'Creator wallet, holder rewards, and X account reward must total exactly 80%.' };
     }
     if (distribution.shares.solClaimPercent > 0 && !xFeeStatus.ready) return { valid: false, message: `X account rewards unavailable: ${xFeeStatus.reasons.join('; ')}.` };
@@ -1932,6 +2387,8 @@ function getLaunchStepState(step){
     if (!wallet) return { valid: false, message: 'Connect a wallet to continue to signing.' };
     if (!canSignTransactions(wallet)) return { valid: false, message: 'Open this app inside your wallet to sign.' };
     if (walletMetricsLoading) return { valid: false, message: 'Wait while the launch cost is calculated.' };
+    if (creatorBuyExceedsWalletBalance()) return { valid: false, message: 'Reduce the developer buy or add Devnet SOL before continuing.' };
+    if (!freshLaunchReview(launchCostReview)) return { valid:false, message:'Refresh the launch estimate before continuing; quotes expire after one minute.' };
     if (walletBalanceLamports == null || estimatedLaunchFeeLamports == null) return { valid: false, message: walletEstimateError ? `Launch estimate unavailable: ${walletEstimateError}` : 'Refresh the wallet balance and launch estimate.' };
     if (walletBalanceLamports < estimatedLaunchFeeLamports) return { valid: false, message: 'Add Devnet SOL before continuing.' };
     const launchBurn = getLaunchBurnPolicy();
@@ -1956,6 +2413,21 @@ function updateLaunchNavigation(){
   hint.classList.toggle('ready', state.valid);
 }
 function setLaunchStep(step){
+  const flatPage = document.querySelector('#launch-dialog')?.classList.contains('launch-page-flat');
+  if (flatPage) {
+    launchStep = 1;
+    document.querySelectorAll('[data-launch-step]').forEach(panel => {
+      panel.hidden = false;
+      panel.classList.add('active');
+    });
+    document.querySelectorAll('[data-launch-step-target]').forEach(button => {
+      button.classList.remove('active', 'complete');
+      button.setAttribute('aria-current', 'false');
+    });
+    updateLaunchPreview();
+    updateLaunchButton();
+    return;
+  }
   launchStep = Math.min(4, Math.max(1, Number(step) || 1));
   document.querySelectorAll('[data-launch-step]').forEach(panel => {
     const active = Number(panel.dataset.launchStep) === launchStep;
@@ -1970,7 +2442,7 @@ function setLaunchStep(step){
   });
   updateLaunchPreview();
   updateLaunchButton();
-  document.querySelector('#launch-dialog').scrollTo({ top: 0, behavior: 'smooth' });
+  focusLaunchStep(document.querySelector('#launch-dialog'),launchStep,{reducedMotion:window.matchMedia('(prefers-reduced-motion: reduce)').matches});
 }
 function setLaunchMode(mode){
   launchMode = mode === 'custom' ? 'custom' : 'quick';
@@ -1981,7 +2453,6 @@ function setLaunchMode(mode){
   document.querySelector('#launch-mode-custom').classList.toggle('active', custom);
   document.querySelector('#launch-mode-custom').setAttribute('aria-pressed', String(custom));
   if (!custom) {
-    document.querySelector('#community-allocation').value = '3';
     document.querySelector('#creator-wallet-share').value = '80';
     document.querySelector('#holder-airdrop-share').value = '0';
     document.querySelector('#x-share').value = '0';
@@ -2012,7 +2483,7 @@ function setLaunchProfile(profile){
   }
 }
 function saveLaunchDraft(){
-  const ids = ['token-name','token-symbol','token-description','token-tagline','token-roadmap','token-website','token-x','token-telegram','token-discord','community-allocation','creator-wallet-share','holder-airdrop-share','x-share','x-recipient','creator-buy-percent'];
+  const ids = ['token-name','token-symbol','token-description','token-tagline','token-roadmap','token-website','token-x','token-telegram','token-discord','creator-wallet-share','holder-airdrop-share','x-share','x-recipient','community-airdrop-tokens','creator-buy-sol'];
   const draft = Object.fromEntries(ids.map(id => [id, document.querySelector(`#${id}`)?.value ?? '']));
   draft.profile = launchProfile;
   draft.mode = launchMode;
@@ -2024,13 +2495,16 @@ function restoreLaunchDraft(){
   let draft = null;
   try { draft = JSON.parse(localStorage.getItem(LAUNCH_DRAFT_KEY) || 'null'); } catch {}
   if (!draft) return;
-  const ids = ['token-name','token-symbol','token-description','token-tagline','token-roadmap','token-website','token-x','token-telegram','token-discord','community-allocation','creator-wallet-share','holder-airdrop-share','x-share','x-recipient','creator-buy-percent'];
+  const ids = ['token-name','token-symbol','token-description','token-tagline','token-roadmap','token-website','token-x','token-telegram','token-discord','creator-wallet-share','holder-airdrop-share','x-share','x-recipient','community-airdrop-tokens','creator-buy-sol'];
   ids.forEach(id => { const node = document.querySelector(`#${id}`); if (node && typeof draft[id] === 'string') node.value = draft[id]; });
   if (draft.profile) setLaunchProfile(draft.profile);
   if (draft.mode) setLaunchMode(draft.mode);
   const status = document.querySelector('#draft-status');
   if (status) status.textContent = draft.savedAt ? `Draft restored · ${new Date(draft.savedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}` : 'Draft restored';
+  syncCommunityAirdropPresets();
   updateLaunchPreview();
+  updateCostSummary();
+  updateLaunchButton();
 }
 async function refreshWalletInfo(){
   clearTimeout(launchCostRefreshTimer);
@@ -2040,24 +2514,26 @@ async function refreshWalletInfo(){
   if (!session) { setWalletMetrics(); return; }
   const payer = session.provider.publicKey;
   const request = ++metricsRequest;
+  const quoteStartedAt=Date.now();
   setWalletMetrics({ loading: true });
   try {
     await getSolana();
     const balance = await connection.getBalance(payer, 'confirmed');
     if (request !== metricsRequest || !isWalletSessionCurrent(session)) return;
     if (!feeRouterState.verified || !feeRouterState.address) throw new Error('Fee router is not ready.');
+    const creatorBuySol = getCreatorBuySol();
+    if (creatorBuySol > 0 && Math.ceil(creatorBuySol * 1_000_000_000) >= balance) throw new Error('Insufficient Devnet SOL for the developer buy and network costs. Reduce the buy amount or add test funds.');
     const [{ PUMP_SDK, OnlinePumpSdk }, { normalizeLaunchInput }, { getInitialBuyQuote, prepareFundedLaunchBurn }] = await Promise.all([import('@pump-fun/pump-sdk'), import('./launch-core.js'), import('./launch-flow.js')]);
     const { Keypair, PublicKey } = await getSolana();
     const name = document.querySelector('#token-name').value.trim() || 'Devnet Coin';
     const symbol = document.querySelector('#token-symbol').value.trim().toUpperCase() || 'COIN';
-    const input = normalizeLaunchInput({ name, symbol, supply: 1_000_000_000, decimals: 6 });
-    const initialBuy = await getInitialBuyQuote({ connection, input: { ...input, initialBuyPercent: getCreatorBuyPercent() } });
-    estimatedInitialBuyLamports = Number(initialBuy.solAmountLamports);
+    const input = normalizeLaunchInput({ name, symbol, supply: LAUNCH_TOKEN_SUPPLY, decimals: 6 });
+    const initialBuy = await getInitialBuyQuote({ connection, input: { ...input, initialBuySol: getCreatorBuySol() } });
     const mint = Keypair.generate();
-    const isolated = getFeeDistributionInputs().solClaimPercent > 0;
-    if (isolated && !xFeeStatus.ready) throw new Error('Mint-specific X fee claims are not ready on Devnet.');
-    const mintRouter = isolated ? buildMintRouterInitializeInstruction({ programId: FEE_ROUTER_PROGRAM_ID, mint: mint.publicKey, payer }) : null;
-    const router = mintRouter?.router.address || new PublicKey(feeRouterState.address);
+    const xLinked = getFeeDistributionInputs().solClaimPercent > 0;
+    if (xLinked && !xFeeStatus.ready) throw new Error('Mint-specific X fee claims are not ready on Devnet.');
+    const mintRouter = buildMintRouterInitializeInstruction({ programId: FEE_ROUTER_PROGRAM_ID, mint: mint.publicKey, payer });
+    const router = mintRouter.router.address;
     const launchInstructions = initialBuy.amountBaseUnits > 0n
       ? await PUMP_SDK.createV2AndBuyInstructions({ global: await new OnlinePumpSdk(connection).fetchGlobal(), mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://funded.vip/devnet-metadata/${mint.publicKey.toBase58()}`, creator: router, user: payer, amount: new (await import('bn.js')).default(initialBuy.amountBaseUnits.toString()), solAmount: new (await import('bn.js')).default(initialBuy.solAmountLamports.toString()), mayhemMode: false, cashback: false, holderReward: false })
       : [await PUMP_SDK.createV2Instruction({ mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://funded.vip/devnet-metadata/${mint.publicKey.toBase58()}`, creator: router, user: payer, mayhemMode: false, holderReward: false })];
@@ -2071,6 +2547,7 @@ async function refreshWalletInfo(){
     // The split path still simulates every transaction; the legacy path is the original full launch simulation: connection.simulateTransaction(launchTransaction, undefined, [payer]).
     const estimates = await Promise.all(estimateTransactions.map(async transaction => {
       const transactionFee = await connection.getFeeForMessage(transaction.compileMessage(), 'confirmed');
+      if(transactionFee.value==null)throw new Error('Network fee quote is unavailable. Refresh before signing.');
       const transactionSimulation = await connection.simulateTransaction(transaction, undefined, [payer]);
       if (transactionSimulation.value.err) {
         const reason = JSON.stringify(transactionSimulation.value.err);
@@ -2093,7 +2570,13 @@ async function refreshWalletInfo(){
       ? { ready: true, message: `Wallet verified for an atomic ${formatLaunchBurnAmount(launchBurn.amountTokens)} $FUNDED burn with Pump creation${plan.mintRouterSeparate ? '; router initialization uses a separate approval' : ''}.` }
       : { ready: true, message: 'No creator-funded burn is required.' };
     renderLaunchBurnSelection();
-    setWalletMetrics({ balance, fee: estimatedSpend });
+    const review=launchReview({balance,simulatedSpend:estimatedSpend,networkFee:fee,buyQuote:initialBuy.solAmountLamports,buyMaximum:initialBuy.maxSolAmountLamports,transactionCount:plan.steps.length,curvePremiumBps:initialBuy.curvePremiumBps,now:quoteStartedAt});
+    if(!freshLaunchReview(review))throw new Error('Estimate took too long and expired. Refresh before signing.');
+    launchCostReview=review;
+    estimatedInitialBuyLamports=Number(initialBuy.solAmountLamports);
+    estimatedInitialBuyTokens=Number(initialBuy.amountTokens);
+    updateLaunchPreview();
+    setWalletMetrics({ balance, fee: Number(launchCostReview.budget) });
   } catch (error) {
     if (request === metricsRequest && isWalletSessionCurrent(session)) {
       console.warn('Launch cost estimate failed:', error);
@@ -2131,57 +2614,75 @@ function setWalletState(message, detail = '', connected = false){
   status.querySelector('button').textContent = connected ? 'Disconnect' : 'Connect';
   document.querySelector('#dialog-connect').addEventListener('click', connected ? disconnectWallet : connectWallet);
   const header = document.querySelector('#connect-button');
+  const walletPopover = document.querySelector('#wallet-popover');
+  header.classList.toggle('wallet-pill-connected', connected);
   if (connected) {
-    const balance = document.createElement('span'); balance.className = 'header-wallet-balance'; balance.id = 'header-wallet-balance'; balance.textContent = '— SOL';
-    const check = document.createElement('span'); check.textContent = '✓';
-    header.replaceChildren(document.createTextNode(`Wallet ${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)} `), balance, document.createTextNode(' '), check);
+    const walletIcon = document.createElement('span'); walletIcon.className = 'header-wallet-icon'; walletIcon.setAttribute('aria-hidden', 'true');
+    const solanaMark = document.createElement('span'); solanaMark.className = 'header-solana-mark'; solanaMark.setAttribute('aria-hidden', 'true');
+    const balance = document.createElement('span'); balance.className = 'header-wallet-balance'; balance.id = 'header-wallet-balance'; balance.textContent = '—';
+    const chevron = document.createElement('span'); chevron.className = 'header-wallet-chevron'; chevron.setAttribute('aria-hidden', 'true'); chevron.textContent = '⌄';
+    header.replaceChildren(walletIcon, solanaMark, balance, chevron);
+    header.setAttribute('aria-label', `Wallet ${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)}`);
   } else {
     const arrow = document.createElement('span'); arrow.textContent = '↗';
     header.replaceChildren(document.createTextNode('Connect wallet '), arrow);
+    header.setAttribute('aria-label', 'Connect wallet');
   }
-  header.removeAttribute('title'); header.removeAttribute('aria-label');
-  header.onclick = connected ? () => document.querySelector('#profile-dialog').showModal() : connectWallet;
+  header.removeAttribute('title');
+  header.setAttribute('aria-expanded', 'false');
+  if (walletPopover) walletPopover.hidden = true;
+  header.onclick = connected ? event => {
+    event.stopPropagation();
+    if (!walletPopover) return;
+    const opening = walletPopover.hidden;
+    walletPopover.hidden = !opening;
+    header.setAttribute('aria-expanded', String(opening));
+  } : connectWallet;
+  const popoverAddress = document.querySelector('#wallet-popover-address');
+  const popoverNetwork = document.querySelector('#wallet-popover-network');
+  const popoverDetailLink = document.querySelector('#wallet-popover-detail-link');
+  if (popoverAddress) popoverAddress.textContent = connected ? `${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)}` : 'Wallet';
+  if (popoverNetwork) popoverNetwork.textContent = connected ? 'Solana Devnet' : 'Not connected';
+  if (popoverDetailLink) popoverDetailLink.href = connected ? `/wallet/${encodeURIComponent(connectedWalletAddress)}` : '#profile';
   const sidebarName = document.querySelector('#sidebar-wallet-name');
   const sidebarAddress = document.querySelector('#sidebar-wallet-address');
   const sidebarAvatar = document.querySelector('#sidebar-wallet-avatar');
   if (sidebarName) sidebarName.textContent = connected ? 'Wallet connected' : 'Wallet not connected';
-  if (sidebarAddress) sidebarAddress.textContent = connected ? `${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)}` : 'Your wallet signs locally';
+  if (sidebarAddress) sidebarAddress.textContent = connected ? `${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)}` : 'Connect to review signing';
   if (sidebarAvatar) sidebarAvatar.textContent = connected ? '✓' : '◎';
   const leaderboardBadge = document.querySelector('#leaderboard-wallet-badge');
   const leaderboardTitle = document.querySelector('#leaderboard-wallet-title');
-  const leaderboardDetail = document.querySelector('#leaderboard-wallet-detail');
   const leaderboardLink = document.querySelector('#leaderboard-wallet-link');
   if (leaderboardBadge) leaderboardBadge.textContent = connected ? 'Indexer pending' : 'Wallet required';
   if (leaderboardTitle) leaderboardTitle.textContent = connected ? 'Rank unavailable until activity is indexed' : 'Connect to see your rank';
-  if (leaderboardDetail) leaderboardDetail.textContent = connected
-    ? `Wallet ${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)} connected. Verified launch, trade, and settlement activity is not indexed for rankings yet.`
-    : 'Qualifying activity includes launches, verified trades, and settled referral rewards.';
   if (leaderboardLink) { leaderboardLink.href = connected ? '#docs' : '#profile'; leaderboardLink.textContent = connected ? 'View Devnet status →' : 'Connect wallet →'; }
   const profileName = document.querySelector('#profile-wallet-name');
   const profileAddress = document.querySelector('#profile-wallet-address');
   const profileAvatar = document.querySelector('#profile-wallet-avatar');
   const profileConnect = document.querySelector('#profile-connect');
   if (profileName) profileName.textContent = connected ? 'Wallet connected' : 'Wallet not connected';
-  if (profileAddress) profileAddress.textContent = connected ? `${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)}` : 'Your wallet signs locally';
+  if (profileAddress) profileAddress.textContent = connected ? `${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)}` : 'Connect to review signing';
   if (profileAvatar) profileAvatar.textContent = connected ? '✓' : '◎';
   if (profileConnect) profileConnect.textContent = connected ? 'Wallet connected' : 'Connect wallet';
   renderCreatorLaunches();
   document.querySelector('#profile-address').textContent = connected ? connectedWalletAddress : 'Not connected';
   const profileDisconnect = document.querySelector('#profile-disconnect');
   if (profileDisconnect) profileDisconnect.disabled = !connected;
-  document.querySelector('#profile-status').textContent = connected ? wallet.readOnly ? 'Address linked for viewing. Open this app inside Phantom to sign transactions.' : 'Connected locally. Your wallet remains the signer; private keys do not enter this app.' : 'This profile is local to the demo workspace.';
-  const profileHint = document.querySelector('#profile-wallet-hint');
-  if (profileHint) profileHint.textContent = connected ? 'Connected on Solana Devnet. Review your address and balance below.' : 'Connect a wallet to show your address and Devnet balance.';
+  document.querySelector('#profile-status').textContent = connected ? wallet.readOnly ? 'Address linked for viewing. Open this app inside Phantom to sign transactions.' : wallet.devMode ? 'Disposable Devnet test wallet connected. The local API signs; private keys do not enter this browser app.' : 'Connected locally. Your wallet remains the signer; private keys do not enter this app.' : 'This profile is local to the demo workspace.';
   const reviewIntro = document.querySelector('#review-wallet-intro');
   if (reviewIntro) reviewIntro.textContent = signingReady ? 'Wallet connected. Verify the launch cost and fee route before signing.' : connected ? 'Address linked for viewing. Open this app inside your wallet to sign.' : 'Connect a wallet, verify the cost, and confirm the fee route before signing.';
   const launchPathWallet = document.querySelector('#launch-path-wallet');
-  if (launchPathWallet) { launchPathWallet.querySelector('strong').textContent = connected ? 'Wallet connected' : 'Connect wallet'; launchPathWallet.querySelector('small').textContent = signingReady ? 'Ready for Devnet review.' : connected ? 'Open in your wallet to sign.' : 'Your wallet signs locally.'; launchPathWallet.classList.toggle('complete', signingReady); }
+  if (launchPathWallet) { launchPathWallet.querySelector('strong').textContent = connected ? 'Wallet connected' : 'Connect wallet'; launchPathWallet.querySelector('small').textContent = signingReady ? 'Ready for Devnet review.' : connected ? 'Review before signing.' : 'Connect to review signing.'; launchPathWallet.classList.toggle('complete', signingReady); }
   const onboardingWallet = document.querySelector('[data-onboarding-step="creator"]');
-  if (onboardingWallet) { onboardingWallet.querySelector('strong').textContent = connected ? 'Wallet connected' : 'Connect your wallet'; onboardingWallet.querySelector('small').textContent = signingReady ? 'Ready to review a launch.' : connected ? 'Open in your wallet to sign.' : 'Connect to unlock your workspace.'; }
+  if (onboardingWallet) { onboardingWallet.querySelector('strong').textContent = connected ? 'Wallet connected' : 'Connect your wallet'; onboardingWallet.querySelector('small').textContent = signingReady ? 'Ready to review a launch.' : connected ? 'Review before signing.' : 'Connect to unlock your workspace.'; }
   const claimButton = document.querySelector('#sol-claim-submit');
   if (claimButton) claimButton.textContent = signingReady ? 'Verify linked wallet' : connected ? 'Open in wallet to verify' : 'Connect wallet to verify';
+  updateClaimBindingReview();
   const referralActivity = document.querySelector('#referral-activity-list .empty-state');
-  if (referralActivity) referralActivity.textContent = connected ? 'Wallet connected. Qualified referral activity will appear when verified data is indexed.' : 'Connect a wallet to load qualified referral activity.';
+  if (referralActivity) {
+    referralActivity.hidden = connected;
+    if (!connected) referralActivity.textContent = 'Connect a wallet to load qualified referral activity.';
+  }
   const tradeQuote = document.querySelector('#trade-quote');
   if (tradeQuote && (!connected || !signingReady || tradeQuote.textContent.startsWith('Connect your wallet'))) tradeQuote.textContent = signingReady ? 'Preview a trade to see estimated output, slippage, and fees.' : connected ? 'Open this app inside your wallet to preview and sign a trade.' : 'Connect your wallet and preview a trade to see estimated output, slippage, and fees.';
   const selectedProgram = document.querySelector('[data-program-tier="standard"].active');
@@ -2195,6 +2696,7 @@ function setWalletState(message, detail = '', connected = false){
   updateLaunchButton();
   if (connected) { setWalletMetrics({ loading: true }); if (feeRouterState.status !== 'checking') refreshWalletInfo(); }
   else setWalletMetrics();
+  renderWalletDetail();
 }
 async function connectWallet(){
   const provider = getProvider();
@@ -2217,20 +2719,37 @@ async function connectWallet(){
     showToast(message);
   }
 }
+function updateClaimBindingReview(){
+  if(!document.querySelector('#claim-technical-details')){
+    const details=document.createElement('details');details.id='claim-technical-details';
+    const summary=document.createElement('summary');summary.textContent='Claim details (advanced)';details.append(summary);
+    document.querySelector('#sol-claim-submit')?.before(details);
+    for(const id of ['sol-claim-x-account','sol-claim-id']){const label=document.getElementById(id)?.closest('label');if(label)details.append(label);}
+  }
+  let node=document.querySelector('#claim-binding-review');
+  if(!node){node=document.createElement('div');node.id='claim-binding-review';node.className='adoption-panel';node.innerHTML='<p id="claim-binding-wallet"></p><label><input type="checkbox" id="claim-binding-agree">I control this wallet and understand that this claim cannot be redirected after wallet verification.</label><details><summary>Account changes and recovery</summary><p>Renaming your X handle does not change your stable X account ID or earned entitlement. An expired signing challenge can be renewed, but the original bound wallet remains unchanged.</p><p>If you lose the bound wallet or X account, automated redirection is unavailable. Do not send a seed phrase or private key to anyone. Pause and request support; recovery is not guaranteed.</p></details>';document.querySelector('#sol-claim-submit')?.before(node);}
+  const address=captureWalletSession()?.address||'';
+  const check=node.querySelector('input');if(check.dataset.wallet!==address){check.checked=false;check.dataset.wallet=address;}
+  check.disabled=!address;node.querySelector('p').textContent=address?`Claim destination on Solana Devnet: ${address}`:'Connect the wallet that should receive this claim.';
+}
 async function submitSolClaim(){
   const status = document.querySelector('#sol-claim-status');
   const handle = normalizeXHandle(document.querySelector('#sol-claim-x-account')?.value);
   const claimId = String(document.querySelector('#sol-claim-id')?.value || '').trim();
-  if (!handle || !claimId) { if (status) status.textContent = 'Enter an X handle and claim ID.'; return; }
+  if (!handle || !claimId) { if (status) status.textContent = 'Sign in with X and choose one of your available claims first.'; return; }
   if (!wallet) { await connectWallet(); if (!wallet) return; }
   const session = captureWalletSession();
   if (!session || session.provider.readOnly || typeof session.provider.signMessage !== 'function') { if (status) status.textContent = 'This wallet cannot sign claim messages here.'; return; }
+  updateClaimBindingReview();
+  if(!document.querySelector('#claim-binding-agree')?.checked){if(status)status.textContent='Review and confirm the destination wallet before binding this claim.';return;}
   const button = document.querySelector('#sol-claim-submit'); if (button) button.disabled = true;
   try {
     const identity = await apiRequest('/api/x/me');
     if (!identity.data?.authenticated || `@${identity.data.user.username}`.toLowerCase() !== handle.toLowerCase()) throw new Error('Sign in with the X account named in this claim first.');
     if (status) status.textContent = 'Preparing claim…';
     const prepared = await apiRequest(`/api/sol-claims/${encodeURIComponent(claimId)}/prepare`, { method: 'POST', body: { xHandle: handle } });
+    if(!prepared.available||!prepared.data?.statement)throw new Error('Claim preparation unavailable. No wallet signature requested.');
+    if(prepared.data.boundWallet&&prepared.data.boundWallet!==session.address)throw new Error(`This claim is already bound to ${prepared.data.boundWallet}. Connect that wallet; redirection is not supported.`);
     assertWalletSessionCurrent(session);
     if (status) status.textContent = 'Verifying X identity…';
     await apiRequest(`/api/sol-claims/${encodeURIComponent(claimId)}/attest`, { method: 'POST', body: { xHandle: handle } });
@@ -2244,8 +2763,12 @@ async function submitSolClaim(){
     if (status) status.textContent = 'Settling the mint-specific claim on Devnet…';
     const paid = await apiRequest(`/api/sol-claims/${encodeURIComponent(claimId)}/execute`, { method: 'POST' });
     if (!isWalletSessionCurrent(session)) return { verified, paid };
-    if (status) status.textContent = `Paid ${paid.data.amountSol} SOL to ${publicKey}. Transaction: ${paid.data.signature}`;
-    showToast('X creator fee claim paid');
+    if(!paid.available||!paid.data?.signature)throw new Error('Payout outcome is uncertain. Refresh rewards; do not submit another payout.');
+    const checked=await apiRequest('/api/x-fee/claims').catch(()=>null);
+    if(!isWalletSessionCurrent(session))return {verified,paid};
+    const confirmed=confirmedClaimResult(checked?.data?.claims,claimId,paid.data.signature);
+    if (status) status.textContent = confirmed?`Verified payment of ${confirmed.amountSol} SOL to ${publicKey}. Transaction: ${confirmed.payoutSignature}`:'Settlement response received. Payment verification is pending; refresh rewards later. Do not submit another payout.';
+    showToast(confirmed?'Payment receipt verified':'Payment verification pending');
     await refreshXClaims();
     return { verified, paid };
   } catch (error) { if (isWalletSessionCurrent(session)) { if (status) status.textContent = error.message || 'Claim failed.'; showToast(error.message || 'Claim failed'); } }
@@ -2275,13 +2798,35 @@ function reconcileWalletState(){
   const provider = getProvider();
   if (provider?.isConnected && !wasWalletManuallyDisconnected() && !disconnectingWalletProviders.has(provider) && walletAddress(provider)) activateWallet(provider);
 }
-function openLaunchDialog(event){
+let launchOpener=null;
+function mountLaunchPage(){
+  const shell = document.querySelector('#launch-route-shell');
+  const page = document.querySelector('#launch-dialog');
+  if (shell && page && !shell.contains(page)) shell.append(page);
+  if (page?.classList.contains('launch-page-flat')) {
+    page.querySelectorAll('[data-launch-step]').forEach(panel => {
+      panel.hidden = false;
+      panel.classList.add('active');
+    });
+  }
+  const preview = page?.querySelector('.launch-preview');
+  const costSummary = page?.querySelector('#cost-summary');
+  const previewEconomics = preview?.querySelector('.preview-economics');
+  if (preview && costSummary && previewEconomics && !preview.contains(costSummary)) preview.insertBefore(costSummary, previewEconomics);
+}
+mountLaunchPage();
+function openLaunchPage(event){
   event?.preventDefault();
-  if (location.hash !== '#launch') history.replaceState({}, document.title, `${location.pathname}${location.search}#launch`);
-  syncPageRoute();
-  const dialog = document.querySelector('#launch-dialog');
-  if (typeof dialog.showModal === 'function' && !dialog.open) dialog.showModal(); else dialog.setAttribute('open', '');
+  if(event?.currentTarget instanceof HTMLElement)launchOpener=event.currentTarget;
+  if (location.hash !== '#launch') location.hash = '#launch'; else syncPageRoute();
   setLaunchStep(1);
+}
+function openBurnPageAfterLaunch(launchPolicy){
+  const projectSelect = document.querySelector('#funded-burn-project');
+  const mint = launchPolicy?.mint || '';
+  if (projectSelect && mint && [...projectSelect.options].some(option => option.value === mint)) projectSelect.value = mint;
+  if (location.hash !== '#buybacks') location.hash = '#buybacks';
+  else syncPageRoute();
 }
 async function requestAirdrop(){
   if (!wallet) { await connectWallet(); if (!wallet) return; }
@@ -2297,7 +2842,8 @@ async function launchToken(){
   if (!session || !canSignTransactions(session.provider)) { setLaunchStatus('Open this app inside a signing wallet to launch.', true); return; }
   const name = document.querySelector('#token-name').value.trim(); const symbol = document.querySelector('#token-symbol').value.trim().toUpperCase(); const supply = Number(document.querySelector('#token-supply').value); const decimals = Number(document.querySelector('#token-decimals').value);
   const metadataPreview = getLaunchMetadataPreview();
-  const communityAllocation = Number(document.querySelector('#community-allocation').value);
+  const communityTokens = getCommunityAirdropTokens();
+  const communityAllocation = getCommunityAllocationPercent();
   const xRecipient = normalizeXHandle(document.querySelector('#x-recipient').value);
   const fundedMint = getFundedMintAddress();
   const launchBurn = getLaunchBurnPolicy();
@@ -2307,33 +2853,40 @@ async function launchToken(){
   if (!document.querySelector('#fee-route-agree').checked) { setLaunchStatus('Confirm the funded.vip creator-fee route before launching.', true); return; }
   if (!document.querySelector('#terms-agree').checked) { setLaunchStatus('Agree to the Terms of Use before launching.', true); return; }
   if (!name || !symbol || !Number.isFinite(supply) || supply < 1 || decimals < 0 || decimals > 9) { setLaunchStatus('Enter a valid name, ticker, supply, and decimals.', true); return; }
-  if (!Number.isFinite(communityAllocation) || communityAllocation < 3 || communityAllocation > 50) { setLaunchStatus('Community allocation must be between 3% and 50%.', true); return; }
+  if (!Number.isSafeInteger(communityTokens) || communityTokens < MIN_COMMUNITY_AIRDROP_TOKENS || communityTokens > MAX_COMMUNITY_AIRDROP_TOKENS || !Number.isFinite(communityAllocation)) { setLaunchStatus('Community airdrop must be between 30,000,000 and 500,000,000 tokens.', true); return; }
    if (feeDistributionInput.solClaimPercent > 0 && !/^@[A-Za-z0-9_]{1,15}$/.test(xRecipient)) { setLaunchStatus('Enter a valid X handle such as @account when X account rewards are above 0%.', true); return; }
   if (feeDistributionInput.solClaimPercent > 0 && !xFeeStatus.ready) { setLaunchStatus(`X account rewards unavailable: ${xFeeStatus.reasons.join('; ')}.`, true); return; }
   if (!feeDistribution.valid) { setLaunchStatus('Creator fee shares must total exactly 80%. Check the wallet, holder, and X percentages.', true); return; }
   if (!launchBurnValidation.valid) { setLaunchStatus('The fixed $FUNDED mint must be configured before a paid launch tier can be used.', true); return; }
   if (launchBurn.requiresBurn && !launchBurnReadiness.ready) { setLaunchStatus(launchBurnReadiness.message, true); return; }
   if (!feeRouterState.verified || !feeRouterState.address) { setLaunchStatus('Launch blocked until the funded.vip fee-router PDA is deployed and verified on Devnet.', true); return; }
+  const reviewedCost=launchCostReview;
+  if(!freshLaunchReview(reviewedCost)){setLaunchStatus('Estimate expired. Refresh the launch estimate before signing.',true);return;}
   if (walletBalanceLamports == null || estimatedLaunchFeeLamports == null) { setLaunchStatus('Wallet balance and launch cost could not be verified. Refresh the estimate before signing.', true); return; }
   if (walletBalanceLamports != null && estimatedLaunchFeeLamports != null && walletBalanceLamports < estimatedLaunchFeeLamports) { setLaunchStatus('Insufficient Devnet SOL for this launch. Fund the wallet, then refresh the balance and fee estimate before signing.', true); return; }
-  const launchButton = document.querySelector('#launch-button'); launchButton.disabled = true;
+  document.querySelectorAll('#launch-button, #launch-button-review').forEach(launchButton => { launchButton.disabled = true; });
+  let journalId;
   try {
     const [{ submitPumpDevnetLaunch }, { devnetExplorer }] = await Promise.all([import('./launch-flow.js'), import('./launch-core.js')]);
     assertWalletSessionCurrent(session);
-    const creatorBuyPercent = getCreatorBuyPercent();
-    if (!Number.isFinite(creatorBuyPercent) || creatorBuyPercent < 0 || creatorBuyPercent > 20) { setLaunchStatus('Creator buy must be between 0% and 20% of supply.', true); return; }
-    const isolated = feeDistributionInput.solClaimPercent > 0;
+    const creatorBuySol = getCreatorBuySol();
+    if (!Number.isFinite(creatorBuySol) || creatorBuySol < 0) { setLaunchStatus('Developer buy must be a valid SOL amount of zero or more.', true); return; }
+    const xLinked = feeDistributionInput.solClaimPercent > 0;
     let xUserId = null;
-    if (isolated) {
+    if (xLinked) {
       setLaunchStatus('Resolving the X account to its stable user ID before signing…');
       const resolved = await apiRequest(`/api/x/resolve?handle=${encodeURIComponent(xRecipient)}`);
       assertWalletSessionCurrent(session);
       if (!resolved.available || !/^\d{1,24}$/.test(String(resolved.data?.id || '')) || resolved.data.handle.toLowerCase() !== xRecipient.toLowerCase()) throw new Error('X account identity could not be verified before launch. No coin transaction was sent.');
       xUserId = resolved.data.id;
     }
-    const result = await submitPumpDevnetLaunch({ connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuyPercent: creatorBuyPercent }, prepareMetadata: input => prepareLaunchMetadata(input, session), feeRouterAddress: feeRouterState.address, feeRouterProgramId: FEE_ROUTER_PROGRAM_ID, useMintRouter: isolated, launchBurn, assertWalletCurrent: () => assertWalletSessionCurrent(session), onStatus: message => { if (isWalletSessionCurrent(session)) setLaunchStatus(message); } });
+    const unresolved=readLaunchJournal().find(row=>row.payer===session.address&&row.name===name&&row.symbol===symbol&&['broadcasting','submitted','unknown','confirmed','verification-pending','registration-pending'].includes(row.state));
+    if(unresolved)throw new Error('An earlier launch with this name and ticker needs recovery in Portfolio. Check its receipts before creating another coin.');
+    if(!freshLaunchReview(reviewedCost))throw new Error('Estimate expired during identity lookup. Refresh and review again before signing.');
+    journalId=crypto.randomUUID();recordLaunchEvent(journalId,{state:'prepared',name,symbol,payer:session.address,cluster:'devnet'});
+    const result = await submitPumpDevnetLaunch({ connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuySol: creatorBuySol, maxInitialBuyLamports:reviewedCost.buyMaximum }, prepareMetadata: input => prepareLaunchMetadata(input, session), feeRouterAddress: feeRouterState.address, feeRouterProgramId: FEE_ROUTER_PROGRAM_ID, useMintRouter: true, launchBurn, assertWalletCurrent: () => assertWalletSessionCurrent(session), onJournal:event=>recordLaunchEvent(journalId,event), onStatus: message => { if (isWalletSessionCurrent(session)) setLaunchStatus(message); } });
     const routeAddress = result.feeRouter.toBase58();
-    const routeState = isolated ? { ...feeRouterState, ...deriveMintFeeRouter(FEE_ROUTER_PROGRAM_ID, result.mint.publicKey), address: routeAddress, scope: 'per-mint-v2' } : feeRouterState;
+    const routeState = { ...feeRouterState, ...deriveMintFeeRouter(FEE_ROUTER_PROGRAM_ID, result.mint.publicKey), address: routeAddress, scope: 'per-mint-v2' };
     const launchPolicy = {
       chain: 'solana',
       cluster: 'devnet',
@@ -2359,7 +2912,7 @@ async function launchToken(){
       fundedTokenMint: fundedMint || null,
       feeRouter: buildFeeRouterPolicy(routeState),
       feeDistribution: buildFeeDistributionPolicy({ ...feeDistributionInput, feeRouterAddress: routeAddress }),
-      ...(isolated ? { xUserId } : {}),
+      ...(xLinked ? { xUserId } : {}),
        solClaim: buildSolClaimPolicy({ handle: xRecipient, percent: feeDistributionInput.solClaimPercent, feeRouterAddress: routeAddress }),
       revenueModel: {
         fundedPercentOfCreatorFees: APP_ECONOMICS.fundedSharePercent,
@@ -2378,7 +2931,7 @@ async function launchToken(){
       pumpFeeRoute: {
         percent: 100,
         router: routeAddress,
-        scope: isolated ? 'per-mint-v2' : 'shared-legacy',
+        scope: 'per-mint-v2',
         pumpCreator: result.feeRoute.creator,
         userHasCreatorFeeAuthority: result.feeRoute.userHasCreatorFeeAuthority,
         verified: result.feeRoute.verified,
@@ -2389,6 +2942,7 @@ async function launchToken(){
     localStorage.setItem(`funded.launch.${launchPolicy.mint}`, JSON.stringify(launchPolicy));
     if (isWalletSessionCurrent(session)) renderCreatorLaunches();
     let persistedLaunch = { available: false };
+    recordLaunchEvent(journalId,{state:'registration-pending',signature:result.signature});
     try {
       assertWalletSessionCurrent(session);
       if (typeof session.provider.signMessage !== 'function') throw new Error('Wallet message signing is required to register the immutable launch policy.');
@@ -2397,6 +2951,7 @@ async function launchToken(){
       launchPolicy.policySignature = bs58.encode(policySignature.signature || policySignature);
       localStorage.setItem(`funded.launch.${launchPolicy.mint}`, JSON.stringify(launchPolicy));
       persistedLaunch = await persistLaunchPolicy(launchPolicy);
+      if(persistedLaunch.available)recordLaunchEvent(journalId,{state:'completed'});
     } catch (policyError) {
       if (isWalletSessionCurrent(session)) setLaunchStatus(`Coin confirmed on Devnet, but policy registration is pending: ${policyError.message}`, true);
     }
@@ -2419,8 +2974,8 @@ async function launchToken(){
     ];
     setLaunchLinks(`Launch verified ✓\n${result.name} (${result.symbol}) is confirmed on Solana Devnet.\nMint: ${result.mint.publicKey.toBase58()}\nLaunch tier: ${launchBurn.label}${burnSummary}\nPump creator-fee owner: funded.vip router\nYour wallet has no creator-fee authority.\nCommunity policy: ${communityAllocation}% (${launchPolicy.communityAirdrop.reservedTokens.toLocaleString()} tokens)\nSettlement policy: 80% creator-directed / 20% app protocol${feeDistributionInput.solClaimPercent > 0 ? `\nSOL claim recipient: ${xRecipient}` : ''}`, launchLinks);
     document.querySelector('#launch-status').classList.add('launch-complete');
-    showToast(persistedLaunch.available ? `${result.symbol} launched and listed in Explore` : `${result.symbol} launched on-chain; Explore listing is pending API verification`); renderAirdropClaims(); refreshWalletInfo();
-  } catch (error) { if (isWalletSessionCurrent(session)) setLaunchStatus(`Launch failed: ${error.message}`, true); } finally { updateLaunchButton(); }
+    showToast(persistedLaunch.available ? `${result.symbol} launched and listed in Explore` : `${result.symbol} launched on-chain; Explore listing is pending API verification`); renderAirdropClaims(); refreshWalletInfo(); openBurnPageAfterLaunch(launchPolicy);
+  } catch (error) { const saved=readLaunchJournal().find(row=>row.id===journalId);if(journalId&&saved?.state==='prepared')recordLaunchEvent(journalId,{state:'failed',message:error.message});if (isWalletSessionCurrent(session)) setLaunchStatus(`Launch stopped: ${error.message}${journalId?' Check Portfolio → Launch recovery before retrying.':''}`, true); } finally { updateLaunchButton(); }
 }
 async function simulateLaunch(){
   const name = document.querySelector('#token-name').value.trim(); const symbol = document.querySelector('#token-symbol').value.trim().toUpperCase(); const supply = Number(document.querySelector('#token-supply').value); const decimals = Number(document.querySelector('#token-decimals').value);
@@ -2436,6 +2991,19 @@ async function simulateLaunch(){
     setLaunchStatus(`Dry run passed for ${input.name} (${input.symbol}).\nMint: ${mint.publicKey.toBase58()}\nPump launch transaction: ${launchBytes} bytes\nPump creator-fee owner: ${router.toBase58()}\nPaying user is not the fee owner.${feeRouterState.verified ? '' : '\nTemporary dry-run address used; production router is not configured.'}\nNo network transaction was submitted.`); showToast('Pump fee-route dry run passed');
   } catch (error) { setLaunchStatus(`Dry run failed: ${error.message}`, true); }
 }
+window.addEventListener('funded:recover-registration',async event=>{
+  const report=message=>window.dispatchEvent(new CustomEvent('funded:recovery-result',{detail:message}));
+  try{
+    const {mint,id}=event.detail||{};const row=readLaunchJournal().find(r=>r.id===id&&r.mint===mint&&r.state==='registration-pending');
+    if(!row||row.cluster!=='devnet')throw new Error('No pending Devnet registration matches this request.');
+    const policy=JSON.parse(localStorage.getItem(`funded.launch.${mint}`)||'null');if(!policyMatchesJournal(policy,row))throw new Error('Saved policy does not match this launch. Do not recreate the coin.');
+    const session=captureWalletSession();if(!session||session.address!==row.payer)throw new Error('Connect the original launch wallet before registration.');assertWalletSessionCurrent(session);
+    if(!policy.policySignature){if(typeof session.provider.signMessage!=='function')throw new Error('This wallet must support message signing.');const signed=await session.provider.signMessage(new TextEncoder().encode(launchPolicyStatement(policy)));assertWalletSessionCurrent(session);policy.policySignature=bs58.encode(signed.signature||signed);localStorage.setItem(`funded.launch.${mint}`,JSON.stringify(policy));}
+    report('Checking the original launch and policy with the API. No coin transaction is being sent.');
+    const result=await apiRequest('/api/launches',{method:'POST',body:policy});if(!result.available||result.data?.mint!==mint||!result.data?.onchainVerified)throw new Error('Registration is still pending verified API evidence.');
+    recordLaunchEvent(id,{state:'completed'});report('Original launch registered. No duplicate launch was created.');void loadVerifiedLaunchPolicies();
+  }catch(error){report(error.message);}
+});
 
 document.querySelector('#connect-button').onclick = connectWallet;
 document.querySelector('#profile-connect')?.addEventListener('click', connectWallet);
@@ -2450,24 +3018,41 @@ document.querySelector('#mobile-wallet-close')?.addEventListener('click', () => 
 document.querySelector('#mobile-wallet-open')?.addEventListener('click', openPhantomMobileBrowser);
 document.querySelector('#mobile-wallet-copy')?.addEventListener('click', async () => { const link = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname) ? window.location.href : buildPhantomConnectRequest(); try { await navigator.clipboard.writeText(link); showToast('Phantom connection link copied'); } catch { showToast(link); } });
 document.querySelector('#launch-close').addEventListener('click', () => {
-  closeDialog('launch-dialog');
-  if (location.hash === '#launch') {
-    history.replaceState({}, document.title, `${location.pathname}${location.search}#overview`);
-    syncPageRoute();
-  }
+  location.hash = '#overview';
+  launchOpener=null;
 });
 document.querySelector('#dialog-connect').addEventListener('click', connectWallet);
 document.querySelector('#airdrop-button').addEventListener('click', requestAirdrop);
 document.querySelector('#refresh-wallet').addEventListener('click', refreshWalletInfo);
-document.querySelectorAll('#token-name, #token-symbol, #token-description, #token-tagline, #token-roadmap, #token-website, #token-x, #token-telegram, #token-discord, #x-recipient, #creator-buy-percent').forEach(input => input.addEventListener('input', () => { updateLaunchPreview(); updateLaunchButton(); if (input.matches('#token-name, #token-symbol')) scheduleLaunchCostRefresh(); if (input.matches('#creator-buy-percent')) scheduleLaunchCostRefresh(); }));
-document.querySelector('#token-image')?.addEventListener('change', event => {
+document.querySelectorAll('#token-name, #token-symbol, #token-description, #token-tagline, #token-roadmap, #token-website, #token-x, #token-telegram, #token-discord, #x-recipient, #community-airdrop-tokens, #creator-buy-sol').forEach(input => input.addEventListener('input', () => {
+  if (input.matches('#community-airdrop-tokens')) syncCommunityAirdropPresets();
+  updateLaunchPreview();
+  updateCostSummary();
+  updateLaunchButton();
+  if (input.matches('#token-name, #token-symbol, #creator-buy-sol')) scheduleLaunchCostRefresh();
+}));
+document.querySelectorAll('[data-airdrop-tokens]').forEach(button => button.addEventListener('click', () => {
+  const input = document.querySelector('#community-airdrop-tokens');
+  if (!input) return;
+  input.value = button.dataset.airdropTokens;
+  syncCommunityAirdropPresets();
+  updateLaunchPreview();
+  updateCostSummary();
+  updateLaunchButton();
+}));
+document.querySelector('#token-image')?.addEventListener('change', async event => {
   const file = event.target.files?.[0];
   const preview = document.querySelector('#token-image-preview');
+  const cardPreview = document.querySelector('#preview-token-image');
+  const cardPlaceholder = document.querySelector('#preview-token-image-placeholder');
   if (!preview) return;
-  if (!file) { preview.textContent = '⌁'; preview.style.backgroundImage = ''; return; }
-  const reader = new FileReader();
-  reader.addEventListener('load', () => { preview.textContent = ''; preview.style.backgroundImage = `url(${reader.result})`; });
-  reader.readAsDataURL(file);
+  const status=document.querySelector('#image-preparation-status');
+  const removeButton=document.querySelector('#image-remove');
+  if(removeButton)removeButton.disabled=!file;
+  preview.style.backgroundImage='';preview.textContent=file?'…':'⌁';if(cardPreview){cardPreview.style.backgroundImage='';cardPreview.classList.remove('has-image');}if(cardPlaceholder)cardPlaceholder.hidden=false;if(status)status.textContent=file?'Preparing locally. Nothing is uploaded yet.':'No image selected.';
+  try{const image=await prepareLaunchImage(file,{crop:document.querySelector('#image-square-crop')?.checked});if(file!==event.target.files?.[0])return;if(image){preview.textContent='';preview.style.backgroundImage=`url(${image.url})`;if(cardPreview){cardPreview.style.backgroundImage=`url(${image.url})`;cardPreview.classList.add('has-image');}if(cardPlaceholder)cardPlaceholder.hidden=true;if(status)status.textContent=`Ready: ${image.width} × ${image.height}, ${Math.ceil(image.file.size/1000)} KB. Review the preview before signing.`;}}
+  catch(error){if(status)status.textContent=error.message;preview.textContent='!';}
+  updateLaunchPreview();updateLaunchButton();
 });
 document.querySelector('#terms-agree').addEventListener('change', updateLaunchButton);
 document.querySelector('#fee-route-agree').addEventListener('change', updateLaunchButton);
@@ -2476,7 +3061,7 @@ document.querySelector('#launch-back').addEventListener('click', () => setLaunch
 document.querySelector('#launch-mode-quick').addEventListener('click', () => setLaunchMode('quick'));
 document.querySelector('#launch-mode-custom').addEventListener('click', () => setLaunchMode('custom'));
 document.querySelectorAll('[data-launch-profile]').forEach(card => card.addEventListener('click', () => setLaunchProfile(card.dataset.launchProfile)));
-setLaunchProfile('community');
+setLaunchProfile('fast');
 document.querySelector('#save-launch-draft')?.addEventListener('click', saveLaunchDraft);
 restoreLaunchDraft();
 document.querySelectorAll('[data-burn-tier]').forEach(button => button.addEventListener('click', () => setLaunchBurnTier(button.dataset.burnTier)));
@@ -2532,10 +3117,9 @@ function updateLaunchPolicyControls(){
   updateLaunchPreview();
   updateLaunchButton();
 }
-document.querySelector('#community-allocation').addEventListener('input', updateLaunchPolicyControls);
 document.querySelectorAll('#creator-wallet-share, #holder-airdrop-share, #x-share, #x-recipient').forEach(input => input.addEventListener('input', updateLaunchPolicyControls));
 document.querySelectorAll('[data-info]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); openInfoDialog(link.dataset.info); }));
-document.querySelector('#info-close').addEventListener('click', () => closeDialog('info-dialog'));
+document.querySelector('#info-close').addEventListener('click', closeInfoDialog);
 document.querySelectorAll('[data-close-dialog]').forEach(button => button.addEventListener('click', () => closeDialog(button.dataset.closeDialog)));
 document.querySelector('#open-tape').addEventListener('click', () => document.querySelector('#payment-dialog').showModal());
 document.querySelector('.notification').addEventListener('click', () => document.querySelector('#notification-dialog').showModal());
@@ -2544,13 +3128,46 @@ document.querySelector('#profile-disconnect')?.addEventListener('click', async (
   await disconnectWallet();
   document.querySelector('#profile-dialog')?.close();
 });
+document.querySelector('#wallet-popover-disconnect')?.addEventListener('click', async () => {
+  await disconnectWallet();
+});
+document.querySelector('#wallet-popover-detail-link')?.addEventListener('click', event => {
+  if (!connectedWalletAddress) return;
+  event.preventDefault();
+  walletDetailTab = 'activity';
+  history.pushState({}, '', `/wallet/${encodeURIComponent(connectedWalletAddress)}`);
+  showWalletPage();
+});
+document.querySelector('#wallet-popover')?.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
+  const popover = document.querySelector('#wallet-popover');
+  const trigger = document.querySelector('#connect-button');
+  if (popover) popover.hidden = true;
+  trigger?.setAttribute('aria-expanded', 'false');
+}));
+document.addEventListener('click', event => {
+  const popover = document.querySelector('#wallet-popover');
+  const trigger = document.querySelector('#connect-button');
+  if (!popover || popover.hidden || trigger?.contains(event.target) || popover.contains(event.target)) return;
+  popover.hidden = true;
+  trigger?.setAttribute('aria-expanded', 'false');
+});
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  const popover = document.querySelector('#wallet-popover');
+  const trigger = document.querySelector('#connect-button');
+  if (!popover || popover.hidden) return;
+  popover.hidden = true;
+  trigger?.setAttribute('aria-expanded', 'false');
+  trigger?.focus();
+});
 document.querySelector('#profile-copy-address')?.addEventListener('click', async () => {
   const address = connectedWalletAddress;
   if (!address) return showToast('Connect your wallet to copy its address');
   try { await navigator.clipboard.writeText(address); showToast('Wallet address copied'); } catch { showToast(address); }
 });
 document.querySelector('#launch-button').addEventListener('click', launchToken);
-document.querySelector('#simulate-button').addEventListener('click', simulateLaunch);
+document.querySelector('#launch-button-review')?.addEventListener('click', launchToken);
+document.querySelector('#simulate-button')?.addEventListener('click', simulateLaunch);
 document.querySelector('#trade-preview')?.addEventListener('click', previewTrade);
 document.querySelector('#trade-submit')?.addEventListener('click', executeTrade);
 document.querySelector('#sol-claim-submit')?.addEventListener('click', submitSolClaim);
@@ -2585,7 +3202,7 @@ if (pendingTradeMint && document.querySelector('#trade-mint')) {
   setTradeStatus('Mint selected. Preview a trade for a fresh route and quote.');
   setTimeout(() => document.querySelector('#trade-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
 }
-document.querySelectorAll('a[href="#launch"]').forEach(link => link.addEventListener('click', openLaunchDialog));
+document.querySelectorAll('a[href="#launch"]').forEach(link => link.addEventListener('click', openLaunchPage));
 document.querySelector('#launch-form').addEventListener('submit', event => event.preventDefault());
 function updateExploreViews(){ renderExploreAssets(); renderRegistry(); }
 function clearExploreFilters(){
@@ -2593,6 +3210,8 @@ function clearExploreFilters(){
   exploreRisk = 'all';
   exploreStage = 'all';
   exploreAuthority = 'all';
+  explorePromotion = 'all';
+  exploreReward = 'all';
   exploreWindow = '24h';
   exploreTab = 'trending';
   exploreNewLane = 'launch';
@@ -2608,6 +3227,8 @@ function clearExploreFilters(){
   }
   document.querySelector('#explore-risk-filter').value = 'all';
   document.querySelector('#explore-authority-filter').value = 'all';
+  document.querySelector('#explore-promotion-filter').value = 'all';
+  document.querySelector('#explore-reward-filter').value = 'all';
   document.querySelector('#explore-sort').value = exploreSort;
   document.querySelectorAll('[data-explore-stage]').forEach(button => { const active = button.dataset.exploreStage === exploreStage; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
   document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(button => { const active = button.dataset.exploreTab === exploreTab; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
@@ -2644,10 +3265,25 @@ document.addEventListener('keydown', event => {
     document.querySelector('#global-search').select();
   }
 });
-document.querySelector('#explore-search')?.addEventListener('input', event => { exploreQuery = event.target.value; updateExploreViews(); });
+document.querySelector('#explore-search')?.addEventListener('input', event => {
+  exploreQuery = event.target.value;
+  const field = document.querySelector('#global-search');
+  if (field && field.value !== exploreQuery) field.value = exploreQuery;
+  updateExploreViews();
+});
 document.querySelector('#explore-refresh')?.addEventListener('click', async event => { const button = event.currentTarget; button.disabled = true; try { await loadOnchainExploreData(); await renderStonkEnhancements(); } catch { showToast('Refresh could not verify Devnet data.'); } finally { button.disabled = false; } });
 document.querySelector('#explore-sort')?.addEventListener('change', event => { exploreSort = event.target.value; updateExploreViews(); refreshExploreFeedForSort(); });
+document.querySelectorAll('[data-explore-sort]').forEach(button => button.addEventListener('click', () => {
+  if (button.disabled) return;
+  exploreSort = button.dataset.exploreSort;
+  const select = document.querySelector('#explore-sort');
+  if (select) select.value = exploreSort;
+  updateExploreViews();
+  refreshExploreFeedForSort();
+}));
 document.querySelector('#explore-risk-filter')?.addEventListener('change', event => { exploreRisk = event.target.value; updateExploreViews(); });
+document.querySelector('#explore-promotion-filter')?.addEventListener('change', event => { explorePromotion = event.target.value; updateExploreViews(); });
+document.querySelector('#explore-reward-filter')?.addEventListener('change', event => { exploreReward = event.target.value; updateExploreViews(); });
 document.querySelectorAll('[data-explore-window]').forEach(button => button.addEventListener('click', () => {
   if (EXPLORE_CLUSTER !== 'devnet' || !['1h', '6h', '24h'].includes(button.dataset.exploreWindow)) return;
   exploreWindow = button.dataset.exploreWindow;
@@ -2669,6 +3305,33 @@ document.querySelector('#explore-min-traders')?.addEventListener('input', () => 
   updateExploreViews();
 });
 document.querySelector('#explore-clear-filters')?.addEventListener('click', () => clearExploreFilters());
+function setExploreFilterOpen(open){
+  const popover = document.querySelector('#explore-filter-popover');
+  const toggle = document.querySelector('#explore-filter-toggle');
+  if (!popover || !toggle) return;
+  popover.hidden = !open;
+  toggle.setAttribute('aria-expanded', String(open));
+}
+document.querySelector('#explore-filter-toggle')?.addEventListener('click', event => {
+  event.stopPropagation();
+  const popover = document.querySelector('#explore-filter-popover');
+  setExploreFilterOpen(Boolean(popover?.hidden));
+});
+document.querySelector('#explore-filter-close')?.addEventListener('click', () => {
+  setExploreFilterOpen(false);
+  document.querySelector('#explore-filter-toggle')?.focus();
+});
+document.addEventListener('click', event => {
+  const popover = document.querySelector('#explore-filter-popover');
+  if (!popover || popover.hidden || document.querySelector('.explore-filter-wrap')?.contains(event.target)) return;
+  setExploreFilterOpen(false);
+});
+document.addEventListener('keydown', event => {
+  const popover = document.querySelector('#explore-filter-popover');
+  if (event.key !== 'Escape' || !popover || popover.hidden) return;
+  setExploreFilterOpen(false);
+  document.querySelector('#explore-filter-toggle')?.focus();
+});
 document.querySelector('#explore-pulse')?.addEventListener('click', event => {
   const button = event.target.closest('[data-explore-lane]');
   if (!button) return;
@@ -2685,6 +3348,15 @@ document.querySelector('#explore-auto-refresh')?.addEventListener('click', event
   event.currentTarget.setAttribute('aria-pressed', String(exploreAutoRefresh));
 });
 document.querySelectorAll('[data-explore-view]').forEach(button => button.addEventListener('click', () => { exploreView = button.dataset.exploreView; renderExploreControls(); }));
+document.querySelector('#explore-benefit-leaders')?.addEventListener('click', event => {
+  const button = event.target.closest('[data-explore-leader-sort]');
+  if (!button || button.disabled) return;
+  exploreSort = button.dataset.exploreLeaderSort;
+  const select = document.querySelector('#explore-sort');
+  if (select) select.value = exploreSort;
+  updateExploreViews();
+  refreshExploreFeedForSort();
+});
 document.querySelectorAll('[data-explore-stage]').forEach(button => button.addEventListener('click', () => { exploreStage = button.dataset.exploreStage; document.querySelectorAll('[data-explore-stage]').forEach(item => { const active = item === button; item.classList.toggle('active', active); item.setAttribute('aria-pressed', String(active)); }); updateExploreViews(); }));
 document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(button => button.addEventListener('click', () => {
   document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(item => { const active = item === button; item.classList.toggle('active', active); item.setAttribute('aria-pressed', String(active)); });
@@ -2703,12 +3375,10 @@ document.querySelectorAll('.registry-order button').forEach(button => button.add
 }));
 document.querySelector('#asset-grid').addEventListener('click', event => {
   const button = event.target.closest('.watch-button');
-  const compare = event.target.closest('[data-compare-mint]');
   const share = event.target.closest('.share-asset');
   const trade = event.target.closest('[data-trade-mint]');
   const emptyAction = event.target.closest('[data-explore-empty-action]');
   if (emptyAction) { if (emptyAction.dataset.exploreEmptyAction === 'clear') clearExploreFilters(); else document.querySelector('#explore-refresh')?.click(); return; }
-  if (compare) { toggleExploreComparison(compare.dataset.compareMint); return; }
   if (trade) { openExploreTrade(trade.dataset.tradeMint); return; }
   if (share) {
     const symbol = share.dataset.shareSymbol;
@@ -2730,10 +3400,20 @@ function toggleExploreWatch(mint){
   showToast(next.includes(mint) ? `${symbol} saved to your watchlist` : `${symbol} removed from your watchlist`);
 }
 document.querySelector('#watchlist-items').addEventListener('click', event => {
+  const trade = event.target.closest('[data-trade-mint]');
+  if (trade) { openExploreTrade(trade.dataset.tradeMint); return; }
   const button = event.target.closest('[data-remove-watch]');
   if (!button) return;
   saveWatchlist(getWatchlist().filter(item => item !== button.dataset.removeWatch));
   updateExploreViews();
+});
+document.querySelector('#creator-launch-empty')?.addEventListener('click', event => {
+  const trade = event.target.closest('[data-trade-mint]');
+  if (trade) openExploreTrade(trade.dataset.tradeMint);
+});
+document.querySelector('#home-launch-grid')?.addEventListener('click', event => {
+  const trade = event.target.closest('[data-trade-mint]');
+  if (trade) openExploreTrade(trade.dataset.tradeMint);
 });
 document.querySelector('#airdrop-claim-list')?.addEventListener('click', event => {
   const button = event.target.closest('[data-preview-claim]');
@@ -2800,8 +3480,6 @@ document.querySelector('#referral-example-input').addEventListener('input', even
 document.querySelector('#fee-flow-input')?.addEventListener('input', renderFeeFlowCalculator);
 document.querySelector('#manage-alerts').addEventListener('click', () => showToast('Alerts are ready for the indexed-data phase.'));
 document.querySelector('#launch-list').addEventListener('click', async event => {
-  const compare = event.target.closest('[data-compare-mint]');
-  if (compare) { toggleExploreComparison(compare.dataset.compareMint); return; }
   const watch = event.target.closest('.scanner-watch');
   if (watch) { toggleExploreWatch(watch.dataset.mint); return; }
   const copy = event.target.closest('.copy-row');
@@ -2813,11 +3491,6 @@ document.querySelector('#launch-list').addEventListener('click', async event => 
   if (trade) {
     openExploreTrade(trade.dataset.tradeMint);
   }
-});
-document.querySelector('#explore-compare')?.addEventListener('click', event => {
-  const remove = event.target.closest('[data-compare-remove]');
-  if (remove) { toggleExploreComparison(remove.dataset.compareRemove); return; }
-  if (event.target.closest('#explore-compare-clear')) { exploreCompareMints = []; renderExploreComparison(); }
 });
 document.querySelectorAll('.quick-card, .text-button').forEach(el => el.addEventListener('click', () => { if (el.classList.contains('text-button')) showToast('View updated.'); }));
 document.querySelectorAll('.segmented button:not(.explore-tabs button):not(.registry-order button):not(.explore-timeframe button):not(.explore-view-switch button)').forEach(button => button.addEventListener('click', () => { button.parentElement.querySelector('.active')?.classList.remove('active'); button.classList.add('active'); showToast(`${button.textContent} view selected`); }));
@@ -2864,20 +3537,31 @@ function requestedPageRoute(){
   return pageRouteTargets[hash] ? hash : 'overview';
 }
 const routeGuideCopy = {
-  payments: { group: 'Workspace', state: 'Verified receipts only', description: 'Follow claims from fee collection to recipient payout. Amounts stay unavailable until a confirmed receipt is indexed.', primary: ['View analytics', '#analytics-detail'], secondary: ['How claims work', '#docs'] },
-  'analytics-detail': { group: 'Workspace', state: 'Indexer pending', description: 'Separate published policy from measured activity. Unverified totals are intentionally left blank.', primary: ['See capital flow', '#capital-flow'], secondary: ['Explore launches', '#explore'] },
-  'my-launches': { group: 'Build', state: 'Local workspace', description: 'Review launches associated with this wallet and return to the launch console when you are ready.', primary: ['Create a coin', '#launch'], secondary: ['Launch guide', '#docs'] },
-  referrals: { group: 'Growth', state: 'Preview attribution', description: 'Share an invite, inspect qualified activity, and distinguish example rewards from verified payouts.', primary: ['How rewards work', '#referral-faq'], secondary: ['Explore launches', '#explore'] },
-  community: { group: 'Growth', state: 'Watchlist saved locally', description: 'Keep a focused list of verified launches. Alerts wait for indexed on-chain events.', primary: ['Find launches', '#explore'], secondary: ['See airdrops', '#airdrops'] },
-  leaderboard: { group: 'Growth', state: 'Indexer pending', description: 'Future rankings will use confirmed Devnet activity. The current rows are examples until the ranking index is live.', primary: ['Explore launches', '#explore'], secondary: ['View Devnet status', '#docs'] },
-  airdrops: { group: 'Growth', state: 'Proof required', description: 'Check distribution status and wallet eligibility before any claim. A snapshot alone is not a payout.', primary: ['Explore launches', '#explore'], secondary: ['Claim guide', '#docs'] },
-  buybacks: { group: 'Growth', state: 'Policy preview', description: 'Review the planned allocation and burn trail. Execution remains unavailable without verified receipts.', primary: ['Follow capital flow', '#capital-flow'], secondary: ['Protocol guide', '#docs'] },
-  'capital-flow': { group: 'Protocol', state: 'Example calculator', description: 'Trace the published split for an example claim. The calculator does not represent settled funds.', primary: ['View payments', '#payments'], secondary: ['Read the policy', '#docs'] },
-  docs: { group: 'Protocol', state: 'Devnet guide', description: 'Start with the launch, wallet, and fee-route guides, then inspect the related workspace page.', primary: ['Open launch', '#launch'], secondary: ['See capital flow', '#capital-flow'] },
-  privacy: { group: 'Protocol', state: 'Information', description: 'Review how this preview handles wallet and browser data.', primary: ['Wallet profile', '#profile'], secondary: ['Back to overview', '#overview'] },
-  paid: { group: 'Protocol', state: 'Policy preview', description: 'Understand $FUNDED utility and what is available in the current Devnet preview.', primary: ['See buybacks', '#buybacks'], secondary: ['Read the docs', '#docs'] },
+  payments: { group: 'Workspace', state: 'Verified receipts only', description: 'See what your wallet can claim and review confirmed SOL payout receipts. Anything not verified stays blank.', primary: ['View analytics', '#analytics-detail'], secondary: ['How claims work', '#docs'] },
+  'analytics-detail': { group: 'Workspace', state: 'Verified records only', description: 'Review launches, fees, payouts, trading volume, airdrops, referrals, and burns with a clear unit on every figure.', primary: ['See capital flow', '#capital-flow'], secondary: ['Explore launches', '#explore'] },
+  'my-launches': { group: 'Build', state: 'Project workspace', description: 'Keep drafts, verified launches, market activity, and token actions together in one portfolio.', primary: ['Launch a project', '#launch'], secondary: ['Launch guide', '#docs'] },
+  referrals: { group: 'Growth', state: 'Wallet claim required', description: 'Share one invite link and track qualified creator activity, reward status, and confirmed receipts.', primary: ['How rewards work', '#referral-faq'], secondary: ['Explore launches', '#explore'] },
+  community: { group: 'Growth', state: 'Saved locally', description: 'Save verified launches and compare them with the same market data used on Explore.', primary: ['Find launches', '#explore'], secondary: ['See airdrops', '#airdrops'] },
+  leaderboard: { group: 'Growth', state: 'Verified activity only', description: 'Compare verified creator contribution after launch and trading activity has been confirmed.', primary: ['Explore launches', '#explore'], secondary: ['View Devnet status', '#docs'] },
+  airdrops: { group: 'Growth', state: 'Proof required', description: 'Review community reserves, wallet eligibility, claim progress, and confirmed distribution receipts.', primary: ['Explore launches', '#explore'], secondary: ['Claim guide', '#docs'] },
+  buybacks: { group: 'Protocol', state: 'Burn center', description: 'Buy or burn $FUNDED, attribute a burn to a project, and verify each confirmed supply reduction.', primary: ['View my projects', '#my-launches'], secondary: ['Protocol guide', '#docs'] },
+  'capital-flow': { group: 'Protocol', state: 'Example calculator', description: 'Enter any creator-fee amount to see how every destination is calculated. This preview never moves funds.', primary: ['View payments', '#payments'], secondary: ['Read the policy', '#docs'] },
+  docs: { group: 'Protocol', state: 'Devnet guide', description: 'Understand what is live, what needs a wallet signature, and which records count as verified proof.', primary: ['Open launch', '#launch'], secondary: ['See capital flow', '#capital-flow'] },
+  privacy: { group: 'Protocol', state: 'Information', description: 'Understand what the browser stores, what the wallet signs, and how to verify a transaction safely.', primary: ['Wallet profile', '#profile'], secondary: ['Back to overview', '#overview'] },
+  paid: { group: 'Protocol', state: 'Policy preview', description: 'See how $FUNDED supports community rewards, referrals, operations, and permanent token burns.', primary: ['See buybacks', '#buybacks'], secondary: ['Read the docs', '#docs'] },
 };
+function normalizeDirectPagePathForHashRoute(){
+  if (!location.hash || location.hash.startsWith('#coin/')) return;
+  const directPath = location.pathname.startsWith('/token/') || location.pathname.startsWith('/launch/coin/') || location.pathname.startsWith('/wallet/');
+  if (directPath) history.replaceState({}, '', `/${location.search}${location.hash}`);
+}
 function syncPageRoute(){
+  normalizeDirectPagePathForHashRoute();
+  const requestedHash = location.hash.replace(/^#/, '');
+  const infoRoute = infoDialogRoutes.has(requestedHash) ? requestedHash : '';
+  const infoDialog = document.querySelector('#info-dialog');
+  if (infoRoute && (!infoDialog.open || infoDialog.dataset.infoKind !== infoRoute)) openInfoDialog(infoRoute, { routeDriven: true });
+  else if (!infoRoute && infoDialog.open && infoDialog.dataset.routeDriven === 'true') closeDialog('info-dialog');
   const route = requestedPageRoute();
   document.body.classList.remove('page-route', ...Object.keys(pageRouteTargets).map(key => `page-route-${key}`), 'page-route-overview');
   document.body.classList.add('page-route', `page-route-${route}`);
@@ -2894,12 +3578,12 @@ function syncPageRoute(){
     payments: ['Payments', 'Claims and payout receipts'],
     'analytics-detail': ['Analytics', 'Protocol flow and indexed activity'],
     launch: ['Launch', 'Create and review a Devnet coin'],
-    'my-launches': ['My launches', 'Creator workspace'],
+    'my-launches': ['My projects', 'Creator workspace'],
     referrals: ['Referrals', 'Track qualified growth'],
     community: ['Community', 'Watchlist and verified signals'],
     leaderboard: ['Leaderboard', 'Ranked community contribution'],
     airdrops: ['Airdrops', 'Eligibility and claim records'],
-    buybacks: ['Buybacks', 'Policy preview and burn receipts'],
+    buybacks: ['Burn $FUNDED', 'Supply reduction and burn receipts'],
     'capital-flow': ['Capital flow', 'Follow the published allocation'],
     docs: ['Docs', 'Guides, safety, and disclosures'],
     profile: ['Profile', 'Wallet and signing safety'],
@@ -2967,14 +3651,14 @@ updateLaunchButton();
 observeWalletProvider(getProvider());
 window.addEventListener('focus', reconcileWalletState);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) reconcileWalletState(); });
-if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') document.querySelector('#simulate-button').hidden = true;
+const simulateButton = document.querySelector('#simulate-button');
+if (simulateButton && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') simulateButton.hidden = true;
 
 // Token detail route. Every displayed value comes from Solana RPC or the Pump
 // bonding-curve account. Values that require an off-chain indexer stay explicit.
 const TOKEN_METADATA_PROGRAM_ID = 'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s';
 let coinActivity = { status: 'loading', collections: [], claims: [], accounts: [] };
 let coinMarketActivity = { status: 'loading', trades: [], coverage: null, decimals: 6 };
-let coinSolUsdPrice = null;
 renderExploreAssets();
 renderStonkEnhancements();
 let coinSolUsdValues = { spot: NaN, marketCap: NaN, reserve: NaN };
@@ -2994,15 +3678,15 @@ function shortAddress(address){ return address ? `${address.slice(0, 6)}…${add
 function renderCoinCreatorRoute(address){
   const route = document.querySelector('#coin-creator-route');
   if (!route) return;
-  if (!address) { route.innerHTML = '<strong>No Pump curve creator</strong><small>Creator wallet unavailable from this RPC snapshot</small>'; return; }
+  if (!address) { route.innerHTML = '<strong>Fee recipient unavailable</strong><small>The curve fee-owner address could not be verified.</small>'; return; }
   const safe = escapeHtml(address);
-  route.innerHTML = `<strong>Creator wallet</strong><a class="coin-creator-link" href="/wallet/${encodeURIComponent(address)}">${safe}</a><button type="button" class="copy-creator-wallet" id="coin-copy-creator" aria-label="Copy creator wallet">⧉</button><small>Derived from the bonding-curve account</small>`;
+  route.innerHTML = `<strong>Pump fee recipient</strong><a class="coin-creator-link" href="/wallet/${encodeURIComponent(address)}">${safe}</a><button type="button" class="copy-creator-wallet" id="coin-copy-creator" aria-label="Copy fee recipient">⧉</button><small>Curve fee authority; may be a program/router, not the human creator.</small>`;
 }
 function renderCoinCreatorHeader(address){
   const link = document.querySelector('#coin-creator-by');
   if (!link) return;
   if (!address) { link.hidden = true; link.removeAttribute('href'); return; }
-  link.textContent = `by ${shortAddress(address)}`;
+  link.textContent = `Fee owner ${shortAddress(address)}`;
   link.href = `/wallet/${encodeURIComponent(address)}`;
   link.hidden = false;
 }
@@ -3093,10 +3777,81 @@ function showWalletPage(open = true){
   main.classList.remove('coin-view'); main.classList.add('wallet-view');
   if (coin) coin.hidden = true;
   page.hidden = false;
-  setCoinField('#wallet-page-address', address || 'Wallet address unavailable');
+  renderWalletDetail();
   const explorer = document.querySelector('#wallet-explorer-link');
   if (explorer) { explorer.href = address ? exploreExplorer(`address/${encodeURIComponent(address)}`) : '#'; explorer.hidden = !address; }
+  const routeLabel = document.querySelector('#route-context [data-route-label]');
+  const routeDescription = document.querySelector('#route-context [data-route-description]');
+  if (routeLabel) routeLabel.textContent = 'Wallet';
+  if (routeDescription) routeDescription.textContent = 'Balances, launches, and available activity';
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function walletDetailLaunches(address){
+  if (!address) return [];
+  const combined = new Map();
+  for (const launch of verifiedLaunchPolicies) if (launch.creatorWallet === address && launch.mint) combined.set(launch.mint, launch);
+  if (address === connectedWalletAddress) for (const launch of getLocalLaunchPolicies()) if (launch.creatorWallet === address && launch.mint) combined.set(launch.mint, { ...combined.get(launch.mint), ...launch });
+  for (const asset of assets) if (asset.creator === address && asset.address && !combined.has(asset.address)) combined.set(asset.address, { mint: asset.address, name: asset.name, symbol: asset.symbol, creatorWallet: address, createdAt: asset.createdTimestamp ? new Date(Number(asset.createdTimestamp) * 1000).toISOString() : null, onchainVerified: true });
+  return [...combined.values()].sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0));
+}
+function walletDetailTrades(address){
+  if (!address) return [];
+  return collectRecentTrades(assets, { limit: 100, since: Math.floor(Date.now() / 1000) - 86400 }).filter(trade => trade.trader === address);
+}
+function walletDetailBurned(launches){
+  const values = launches.map(launch => launch.creatorLaunchBurn).filter(burn => burn?.status === 'verified' && burn.receipt);
+  return values.reduce((sum, burn) => sum + Number(burn.receipt.amountTokens ?? burn.amountTokens ?? 0), 0);
+}
+function walletDetailEmpty(title, detail){
+  return `<div class="wallet-detail-empty"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(detail)}</span></div>`;
+}
+function renderWalletDetail(){
+  const page = document.querySelector('#wallet-page');
+  if (!page) return;
+  const address = getWalletDetailAddress();
+  const isSelf = Boolean(address && address === connectedWalletAddress);
+  const launches = walletDetailLaunches(address);
+  const trades = walletDetailTrades(address);
+  const burned = walletDetailBurned(launches);
+  const launchTimes = launches.map(item => Date.parse(item.createdAt || '')).filter(Number.isFinite);
+  const tradeTimes = trades.map(item => Number(item.blockTime) * 1000).filter(Number.isFinite);
+  const lastActivity = Math.max(0, ...launchTimes, ...tradeTimes);
+  const volume = trades.reduce((sum, trade) => sum + Number(trade.solAmount || 0), 0);
+  const title = document.querySelector('#wallet-page-title');
+  const addressNode = document.querySelector('#wallet-page-address');
+  const selfBadge = document.querySelector('#wallet-self-badge');
+  const edit = document.querySelector('#wallet-edit-profile');
+  if (title) title.textContent = shortAddress(address) || 'Wallet';
+  if (addressNode) addressNode.textContent = address || 'Wallet address unavailable';
+  if (selfBadge) selfBadge.hidden = !isSelf;
+  if (edit) edit.hidden = !isSelf;
+  const statSol = document.querySelector('#wallet-stat-sol');
+  const statSolNote = document.querySelector('#wallet-stat-sol-note');
+  if (statSol) statSol.textContent = isSelf && walletBalanceLamports != null ? formatSol(walletBalanceLamports) : '—';
+  if (statSolNote) statSolNote.textContent = isSelf ? (walletBalanceLamports == null ? 'Balance currently unavailable' : 'Connected wallet balance') : 'Connect this wallet to view balance';
+  setCoinField('#wallet-stat-launches', String(launches.length));
+  setCoinField('#wallet-stat-trades', trades.length ? String(trades.length) : '0');
+  setCoinField('#wallet-stat-volume', trades.length ? `${formatOnChainNumber(volume, 4)} SOL` : '0 SOL');
+  setCoinField('#wallet-stat-burned', burned > 0 ? formatOnChainNumber(burned, 2) : launches.length ? '0' : '—');
+  setCoinField('#wallet-stat-last', lastActivity ? formatOnchainAge(lastActivity) : '—');
+  document.querySelectorAll('[data-wallet-tab]').forEach(button => { const active = button.dataset.walletTab === walletDetailTab; button.classList.toggle('active', active); button.setAttribute('aria-selected', String(active)); });
+  const description = document.querySelector('#wallet-detail-description');
+  const content = document.querySelector('#wallet-detail-content');
+  if (!content || !description) return;
+  if (walletDetailTab === 'balances') {
+    description.textContent = 'Balances shown only when the app has a direct, current source.';
+    content.innerHTML = `<div class="wallet-balance-grid"><article><span class="header-solana-mark" aria-hidden="true"></span><div><strong>${escapeHtml(isSelf && walletBalanceLamports != null ? formatSol(walletBalanceLamports) : 'Unavailable')}</strong><small>Native SOL · ${escapeHtml(EXPLORE_CLUSTER)}</small></div></article><article><span class="wallet-funded-mark" aria-hidden="true">f</span><div><strong>Not indexed</strong><small>$FUNDED token balance</small></div></article></div>`;
+    return;
+  }
+  const launchRows = launches.map(launch => `<a class="wallet-activity-row" href="/token/${encodeURIComponent(launch.mint)}"><span class="wallet-activity-icon">✦</span><span><strong>Created ${escapeHtml(launch.name || launch.symbol || 'token')}</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} · ${escapeHtml(shortAddress(launch.mint))}</small></span><b>${launch.onchainVerified ? 'Verified' : 'Local record'}<small>${launch.createdAt ? escapeHtml(formatOnchainAge(Date.parse(launch.createdAt))) : 'Time unavailable'}</small></b></a>`).join('');
+  if (walletDetailTab === 'created') {
+    description.textContent = 'Coins attributed to this wallet in local launch records and the verified registry.';
+    content.innerHTML = launchRows || walletDetailEmpty('No created coins found', 'No local or verified launch record is attributed to this wallet.');
+    return;
+  }
+  description.textContent = 'Launches and trades found in the app’s available Devnet records.';
+  const tradeRows = trades.map(trade => `<a class="wallet-activity-row" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(trade.signature)}`))}" target="_blank" rel="noopener noreferrer"><span class="wallet-activity-icon ${trade.side}">${trade.side === 'buy' ? '↗' : '↘'}</span><span><strong>${trade.side === 'buy' ? 'Bought' : 'Sold'} ${escapeHtml(trade.symbol || 'token')}</strong><small>${escapeHtml(shortAddress(trade.mint))}</small></span><b>${escapeHtml(formatOnChainNumber(trade.solAmount, 4))} SOL<small>${escapeHtml(formatOnchainAge(Number(trade.blockTime) * 1000))}</small></b></a>`).join('');
+  content.innerHTML = tradeRows + launchRows || walletDetailEmpty('No activity found', 'No launch or scanned trade record is attributed to this wallet.');
 }
 function formatOnChainNumber(value, digits = 4){
   if (!Number.isFinite(value)) return '—';
@@ -3131,7 +3886,7 @@ async function loadSolUsdQuote(){
   setCoinField('#coin-liquidity', formatCoinUsd(coinSolUsdValues.reserve));
   if (Number.isFinite(Number(coinMarketActivity.volume24hSol))) setCoinField('#coin-volume', formatExploreUsd(coinMarketActivity.volume24hSol, { partial: coinMarketActivity.coverage === 'partial' }));
   renderCoinPricePath(); renderCoinPulse(); renderCoinActivityTab();
-  renderExploreAssets(); renderRegistry(); renderHomeLaunchBoard();
+  renderExploreAssets(); renderRegistry(); renderHomeLaunchBoard(); renderHomeKpiDashboard(assets);
 }
 void loadSolUsdQuote();
 function readMetadataString(data, offset){
@@ -3246,7 +4001,7 @@ function setCoinTabLabels(){
     chat: 'Chat',
     payments: `Fee claims ${coinActivity.status === 'ready' && coinActivity.ledgerAvailable ? coinActivity.collections.length : '—'}`,
     claims: `Allocations ${coinActivity.status === 'ready' && coinActivity.ledgerAvailable ? coinActivity.claims.length : '—'}`,
-    holders: `Top holders ${coinActivity.accountAvailable ? coinActivity.accounts.length : '—'}`,
+    holders: `Token accounts ${coinActivity.accountAvailable ? coinActivity.accounts.length : '—'}`,
   };
   document.querySelectorAll('[data-coin-tab]').forEach(item => {
     item.textContent = labels[item.dataset.coinTab] || item.textContent;
@@ -3267,14 +4022,14 @@ function renderCoinCommunityPanel(){
   const authorLabel = author => author === 'Guest' || !author ? 'Guest' : shortAddress(author);
   feed.innerHTML = coinChatMessages.length
     ? coinChatMessages.slice(-12).map(item => `<article class="coin-community-message"><div><strong>${escapeHtml(authorLabel(item.author))}</strong><time>${escapeHtml(new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</time></div><p>${escapeHtml(item.text)}</p></article>`).join('')
-    : '<div class="empty-state coin-activity-empty"><strong>No community messages yet</strong><small>Start the conversation around this token.</small></div>';
+    : '<div class="empty-state coin-activity-empty"><strong>Discussion paused</strong><small>Authenticated identities and moderation are required before community posting opens.</small></div>';
 }
 function ensureCoinCommunityPanel(){
   const layout = document.querySelector('.coin-layout');
   if (!layout || layout.querySelector('.coin-community-panel')) return;
   const panel = document.createElement('aside');
   panel.className = 'panel coin-community-panel';
-  panel.innerHTML = '<div class="coin-community-head"><div><p class="eyebrow">Community</p><h2>Chat</h2></div><span class="data-badge">LIVE</span></div><div id="coin-community-feed" class="coin-community-feed"></div><form class="coin-chat-form coin-community-form" id="coin-community-form"><label><span class="sr-only">Message</span><input id="coin-community-input" maxlength="280" autocomplete="off" placeholder="Write a message…" required /></label><button class="primary-button" type="submit">Send</button></form><small class="coin-chat-note">Server-backed token chat</small>';
+  panel.innerHTML = '<div class="coin-community-head"><div><p class="eyebrow">Community</p><h2>Discussion</h2></div><span class="data-badge">PAUSED</span></div><div id="coin-community-feed" class="coin-community-feed"></div><small class="coin-chat-note">No unverified author identities are displayed.</small>';
   layout.prepend(panel);
   renderCoinCommunityPanel();
 }
@@ -3289,7 +4044,7 @@ async function loadCoinChat(mintAddress, loadId = coinLoadId){
 function ensureCoinChatTab(){
   document.querySelector('.coin-tabs [data-coin-tab="chat"]')?.remove();
   const holders = document.querySelector('.coin-tabs [data-coin-tab="holders"]');
-  if (holders) holders.textContent = 'Top holders —';
+  if (holders) holders.textContent = 'Token accounts —';
 }
 function ensureCoinPolicyAccordion(){
   const card = document.querySelector('.coin-policy-card');
@@ -3343,8 +4098,8 @@ function renderCoinActivityTab(){
     return;
   }
   if (tab === 'holders') {
-    if (!coinActivity.accountAvailable) { activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Top holders unavailable</strong><small>Solana RPC did not return a token-account sample.</small></div>'; return; }
-    activity.innerHTML = '<div class="coin-holder-heading"><span>Holder / token account</span><span>Balance</span><span>Supply share</span></div>' + (coinActivity.accounts.length ? coinActivity.accounts.map((item, index) => {
+    if (!coinActivity.accountAvailable) { activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Token-account sample unavailable</strong><small>Solana RPC did not return token accounts for this mint.</small></div>'; return; }
+    activity.innerHTML = '<p class="coin-activity-scope">RPC token-account sample, not a unique holder count. Curve vaults and zero-balance accounts may appear.</p><div class="coin-holder-heading"><span>Token account</span><span>Balance</span><span>Supply share</span></div>' + (coinActivity.accounts.length ? coinActivity.accounts.map((item, index) => {
       const isVault = item.address === coinActivity.curveVaultAddress;
       const share = Number.isFinite(item.share) ? Math.max(0, Math.min(100, item.share)) : 0;
       return `<div class="coin-activity-row coin-account-row ${isVault ? 'is-curve-vault' : ''}"><span class="activity-icon">${index + 1}</span><span><strong><a href="${escapeHtml(exploreExplorer(`address/${item.address}`))}" target="_blank" rel="noopener noreferrer">${escapeHtml(shortAddress(item.address))} ↗</a></strong><small>${isVault ? 'Pump curve vault · excluded from holder count' : 'Token account · wallet owner not classified'}</small><i class="coin-account-share-track"><i style="width:${share}%"></i></i></span><b class="activity-amount">${escapeHtml(item.amount)} ${escapeHtml(coinActivity.symbol)}${item.share == null ? '' : `<small>${escapeHtml(formatOnChainNumber(item.share, 2))}% of supply</small>`}</b><span class="activity-time">RPC</span></div>`;
@@ -3387,6 +4142,7 @@ function renderOnChainUnavailable(message){
   const policyLink = document.querySelector('.policy-link'); if (policyLink) policyLink.hidden = true;
 }
 function resetCoinSurface(mintAddress){
+  document.querySelector('#coin-launched-by')?.remove();
   ensureCoinChatTab();
   ensureCoinPolicyAccordion();
   ensureCoinCommunityPanel();
@@ -3507,7 +4263,7 @@ async function loadCoinOnChain(mintAddress){
     const supply = Number(parsedMint.supply) / (10 ** decimals);
     const metadata = parseOnChainMetadata(metadataInfo?.data);
     const registeredLaunch = launchesResult.status === 'fulfilled' && launchesResult.value.available
-      ? launchesResult.value.data?.find?.(item => item.mint === mintAddress && item.cluster === EXPLORE_CLUSTER && item.onchainVerified && item.metadataUri === devnetMetadataUri(mintAddress))
+      ? verifiedRegistryLaunch(launchesResult.value.data, mintAddress, EXPLORE_CLUSTER)
       : null;
     const symbol = metadata.symbol || registeredLaunch?.symbol || `${mintAddress.slice(0, 4)}…`;
     const name = metadata.name || registeredLaunch?.name || 'Unnamed on-chain token';
@@ -3560,6 +4316,13 @@ async function loadCoinOnChain(mintAddress){
     const policyTitle = document.querySelector('.coin-policy-card h2'); if (policyTitle) policyTitle.textContent = curve ? 'Pump bonding curve' : 'Curve unavailable';
     renderCoinCreatorRoute(curve?.creator || '');
     renderCoinCreatorHeader(curve?.creator || '');
+    document.querySelector('#coin-launched-by')?.remove();
+    if (registeredLaunch?.creatorWallet) {
+      const authorLink = document.createElement('a'); authorLink.id = 'coin-launched-by';
+      authorLink.href = `/wallet/${encodeURIComponent(registeredLaunch.creatorWallet)}`;
+      authorLink.textContent = `Launched by ${shortAddress(registeredLaunch.creatorWallet)}`;
+      document.querySelector('.coin-address')?.append(authorLink);
+    }
     const policySplit = document.querySelector('.policy-split'); if (policySplit) policySplit.innerHTML = curve ? `<span><b>${curve.complete ? 'Complete' : 'Active'}</b><small>Curve state</small></span><span><b>${formatOnChainNumber(curve.realTokenReserves, 0)}</b><small>Real tokens</small></span>` : '<span><b>—</b><small>Curve state</small></span><span><b>—</b><small>Creator</small></span>';
     const policyBar = document.querySelector('.policy-bar'); if (policyBar) policyBar.innerHTML = curve ? `<i style="display:block;height:100%;width:${Math.max(0, Math.min(100, Number(curve.progressPercent) || 0))}%;background:#83cbb0"></i>` : '<i style="display:block;height:100%;width:100%;background:#667085"></i>';
      const policyLink = document.querySelector('.policy-link'); if (policyLink) { policyLink.textContent = 'View mint on explorer →'; policyLink.href = exploreExplorer(`address/${mintAddress}`); policyLink.hidden = false; }
@@ -3640,11 +4403,26 @@ document.querySelector('#coin-page')?.addEventListener('click', async event => {
   if (tab){ document.querySelectorAll('[data-coin-tab]').forEach(item => item.classList.toggle('active', item === tab)); setCoinTabLabels(); renderCoinActivityTab(); }
 });
 document.querySelector('#wallet-page')?.addEventListener('click', async event => {
+  const tab = event.target.closest('[data-wallet-tab]');
+  if (tab) {
+    walletDetailTab = tab.dataset.walletTab;
+    renderWalletDetail();
+    return;
+  }
   const copy = event.target.closest('#wallet-copy-address');
   if (!copy) return;
   const address = getWalletDetailAddress();
   if (!address) return showToast('No wallet address in this route');
   try { await navigator.clipboard.writeText(address); showToast('Wallet address copied'); } catch { showToast(address); }
+});
+document.querySelector('.wallet-detail-tabs')?.addEventListener('keydown', event => {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  const tabs = [...document.querySelectorAll('[data-wallet-tab]')];
+  const current = tabs.indexOf(document.activeElement);
+  if (current < 0) return;
+  event.preventDefault();
+  const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+  tabs[next].focus(); tabs[next].click();
 });
 document.querySelector('#coin-page')?.addEventListener('submit', async event => {
   const form = event.target.closest('#coin-chat-form, #coin-community-form');
@@ -3684,7 +4462,7 @@ const programPreviewData = {
   boost: { name: 'Boost launch', subtitle: 'More visibility with a public signal', progress: '2 of 3 complete', width: '66%', note: 'Your route is ready; review the burn receipt before signing.' },
   pro: { name: 'Pro launch', subtitle: 'For teams ready to move with intent', progress: '2 of 3 complete', width: '78%', note: 'Priority review is available after the published route is confirmed.' },
   airdrop: { name: 'Airdrop reserve', subtitle: 'See who is eligible before you claim', progress: '2 of 3 complete', width: '66%', note: 'Review the allocation policy and claim status before connecting.' },
-  explore: { name: 'Explore the index', subtitle: 'Find launches with a visible signal', progress: '1 of 3 complete', width: '33%', note: 'Open the explorer to compare route, tier, and receipt history.' },
+  explore: { name: 'Explore the index', subtitle: 'Find launches with a visible signal', progress: '1 of 3 complete', width: '33%', note: 'Open the explorer to inspect route, tier, and receipt history.' },
   receipts: { name: 'Receipt center', subtitle: 'Follow value after the launch', progress: '3 of 3 complete', width: '100%', note: 'Every verified event stays linked to its on-chain source.' },
 };
 function programNote(data, tier){
@@ -3707,7 +4485,7 @@ const programViews = {
     href: '#airdrops',
     cards: [
       ['airdrop', 'AIRDROP', 'Claim with context', 'See your community allocation', 'Check eligibility, reserve size, and claim status before signing anything.', '3% MINIMUM', 'Wallet eligibility'],
-      ['explore', 'INDEX', 'Discover with signal', 'Find launches worth a closer look', 'Compare verified routes, launch tiers, and visible commitment signals.', 'LIVE FEED', 'Route + tier'],
+      ['explore', 'INDEX', 'Discover with signal', 'Find launches worth a closer look', 'Inspect verified routes, launch tiers, and visible commitment signals.', 'LIVE FEED', 'Route + tier'],
       ['receipts', 'RECEIPTS', 'Track what happened', 'Follow every value movement', 'Review the public record from launch through claims, burns, and payouts.', 'ON-CHAIN', 'Source linked'],
     ],
   },
@@ -3793,14 +4571,15 @@ async function refreshXClaims(){
       const row = document.createElement('div');
       row.className = 'referral-claim-row';
       const label = document.createElement('span');
-      label.textContent = `${claim.amountSol} SOL · ${claim.mint.slice(0, 6)}… · ${claim.status}`;
+      label.textContent = `${claim.group || 'Pending verification'} · ${claim.amountSol==null?'Amount unavailable':`${claim.amountSol} SOL`} · ${claim.mint.slice(0, 6)}… · ${claim.explanation || claim.status}`;
       row.append(label);
-      if (claim.status !== 'paid') {
+      if (claim.canPrepare === true) {
         const choose = document.createElement('button');
         choose.type = 'button'; choose.className = 'secondary-button'; choose.textContent = 'Choose claim';
-        choose.addEventListener('click', () => { document.querySelector('#sol-claim-id').value = claim.id; document.querySelector('#sol-claim-x-account').value = result.data.handle; });
+        choose.addEventListener('click', () => { document.querySelector('#sol-claim-id').value = claim.id; document.querySelector('#sol-claim-x-account').value = result.data.handle; updateClaimBindingReview();document.querySelector('#claim-binding-agree').checked=false; });
         row.append(choose);
       }
+      if(claim.receiptVerified&&claim.payoutSignature){const receipt=document.createElement('a');receipt.href=`https://explorer.solana.com/tx/${encodeURIComponent(claim.payoutSignature)}?cluster=devnet`;receipt.textContent='Verify payment';receipt.target='_blank';receipt.rel='noopener noreferrer';row.append(receipt);}
       list.append(row);
     }
   } catch (error) { list.textContent = error.message || 'Claim list is unavailable.'; }
@@ -3812,3 +4591,4 @@ document.querySelector('#x-sign-in')?.addEventListener('click', async event => {
   window.location.assign(`${apiBase}/api/x/oauth/start`);
 });
 void loadXIdentity();
+updateClaimBindingReview();

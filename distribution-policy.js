@@ -90,7 +90,7 @@ export function buildFeeDistributionPolicy(input = {}) {
         burnInstruction: 'BurnChecked',
         failedExecutionRule: 'keep-pending-never-reroute',
       },
-      status: 'automatically-settled-from-router',
+      status: 'policy-defined-settlement-requires-verified-receipts',
     },
     creatorDirected: {
       percent: FEE_DISTRIBUTION.creatorPercent,
@@ -102,7 +102,7 @@ export function buildFeeDistributionPolicy(input = {}) {
         solClaimMode: result.shares.solClaimPercent > 0 ? 'x-handle-wallet-verification' : null,
         xPayoutMode: null,
       },
-      status: 'automatically-settled-from-router',
+      status: 'policy-defined-settlement-requires-verified-receipts',
     },
     settlement: {
       source: 'creator-fees-actually-claimed-by-funded-app-router',

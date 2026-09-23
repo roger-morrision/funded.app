@@ -3,6 +3,17 @@ import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createPostgresStore } from './postgres-store.mjs';
 import { coinFeeActivity, routerFeeActivity } from './fee-activity.mjs';
+import { createFileAuthStore } from './file-auth-store.mjs';
+import { creatorDirectoryRecords, directoryPage } from './creator-directory.mjs';
+import { scopedCreatorState, creatorWriteState, mutateCreatorState } from './creator-state.mjs';
+import { selectReceiptCandidates } from './receipt-candidates.mjs';
+import { creatorReceiptPage } from './receipt-history.mjs';
+import { receiptBackfillPage } from './receipt-backfill.mjs';
+import { scopedClaimState,mutateClaimState } from './claim-state.mjs';
+import {scopedReferralClaimState,mutateReferralClaimState} from './referral-claim-state.mjs';
+import { followingUpdatesPage } from './following-updates.mjs';
+import { receiptWorkerOutcome } from './receipt-worker-status.mjs';
+import { receiptRetentionOptions,expiredReceiptProofs,receiptRetentionResult } from './receipt-retention.mjs';
 
 export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-store.json'), databaseUrl = process.env.DATABASE_URL) {
   if (databaseUrl) return createPostgresStore(databaseUrl);
@@ -22,6 +33,7 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     state.xIntake ||= {};
     state.marketActivity ||= {};
     state.coinChats ||= {};
+    state.creatorProfiles ||= {};
     state.referrals ||= { codes: {}, wallets: {}, attributions: {}, challenges: {} };
     state.referrals.codes ||= {};
     state.referrals.wallets ||= {};
@@ -48,6 +60,64 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
   }
 
   return {
+    ...createFileAuthStore(`${filePath}.auth.json`),
+    async readFollowingUpdates(cluster,ids,after='') {const state=await load();return followingUpdatesPage(creatorDirectoryRecords(state,cluster),state.creatorProfiles||{},ids,after);},
+    async readClaimState(id) {return scopedClaimState(await load(),id);},
+    async readReferralClaimState(id) {return scopedReferralClaimState(await load(),id);},
+    async updateReferralClaimState(id,mutator) {
+      return this.update(async current=>{
+        const scoped=scopedReferralClaimState(current,id),output=await mutateReferralClaimState(scoped,id,mutator);
+        current.referralClaims[id]=scoped.referralClaims[id];
+        if(scoped.payouts[`referral:${id}`])current.payouts[`referral:${id}`]=scoped.payouts[`referral:${id}`];
+        return output;
+      });
+    },
+    async updateClaimState(id,mutator) {
+      return this.update(async current=>{const scoped=scopedClaimState(current,id),output=await mutateClaimState(scoped,id,mutator);
+        if(scoped.claims[id])current.claims[id]=scoped.claims[id];
+        if(scoped.payouts[`x:${id}`])current.payouts[`x:${id}`]=scoped.payouts[`x:${id}`];return output;});
+    },
+    async readReceiptBackfillPage(cluster,position) { return receiptBackfillPage(await load(),cluster,position); },
+    async acquireReceiptBackfill(cluster,owner,leaseMs) {
+      return this.update(current=>{current.receiptBackfill ||= {};const prior=current.receiptBackfill[cluster];
+        if(prior?.owner&&prior.expiresAt>Date.now())return null;
+        const row={owner,expiresAt:Date.now()+leaseMs,progress:prior?.progress||{},lastRun:prior?.lastRun||null};current.receiptBackfill[cluster]=row;return structuredClone(row.progress);});
+    },
+    async checkpointReceiptBackfill(cluster,owner,progress,leaseMs) {
+      return this.update(current=>{const row=current.receiptBackfill?.[cluster];if(row?.owner!==owner||row.expiresAt<=Date.now())return false;
+        row.progress=structuredClone(progress);row.expiresAt=Date.now()+leaseMs;return true;});
+    },
+    async releaseReceiptBackfill(cluster,owner) {
+      return this.update(current=>{const row=current.receiptBackfill?.[cluster];if(row?.owner===owner){row.owner=null;row.expiresAt=0;}});
+    },
+    async readReceiptBackfillStatus(cluster) {return structuredClone((await load()).receiptBackfill?.[cluster]||null);},
+    async recordReceiptBackfillOutcome(cluster,owner,outcome) {
+      const clean=receiptWorkerOutcome(outcome);
+      return this.update(current=>{const row=current.receiptBackfill?.[cluster];if(row?.owner!==owner||row.expiresAt<=Date.now())return false;row.lastRun=clean;return true;});
+    },
+    async readCreatorReceiptPage(id, cluster, after = '') { return creatorReceiptPage(await load(), id, cluster, after); },
+    async readReceiptProofs(keys) { const proofs=(await load()).receiptProofs || {};return structuredClone(keys.map(key=>proofs[key]).filter(Boolean)); },
+    async writeReceiptProofs(entries) { return this.update(current=>{current.receiptProofs ||= {};for(const entry of entries)current.receiptProofs[entry.key]=entry;}); },
+    async pruneReceiptProofs(input) {
+      const options=receiptRetentionOptions(input);
+      const run=current=>{const rows=expiredReceiptProofs(current.receiptProofs,options),selected=rows.slice(0,options.limit);
+        if(options.apply)for(const [key] of selected)delete current.receiptProofs[key];
+        return receiptRetentionResult(options,selected.length,rows.length>options.limit,options.apply?selected.length:0);};
+      return options.apply?this.update(run):run(await load());
+    },
+    async updateCreatorProfile(id, mutator) {
+      return this.update(async current => {
+        const scoped = creatorWriteState(current, id);
+        const output = await mutateCreatorState(scoped, id, mutator);
+        current.creatorProfiles ||= {};
+        if (scoped.creatorProfiles[id]) current.creatorProfiles[id] = scoped.creatorProfiles[id];
+        else delete current.creatorProfiles[id];
+        return output;
+      });
+    },
+    async readReceiptCandidates(cluster) { return selectReceiptCandidates(await load(), cluster); },
+    async readCreatorState(id, cluster, options) { return scopedCreatorState(await load(),id,cluster,options); },
+    async readCreatorDirectory({ cluster, ...options }) { return directoryPage(creatorDirectoryRecords(await load(), cluster), options); },
     async read() { return structuredClone(await load()); },
     async readLaunches({ limit = null, offset = 0 } = {}) { const items = Object.values((await load()).launches || {}); return limit == null ? items : items.slice(offset, offset + limit); },
     async readLaunch(mint) { return (await load()).launches?.[mint] || null; },

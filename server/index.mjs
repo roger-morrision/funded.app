@@ -1,4 +1,6 @@
 import { createServer } from 'node:http';
+import { automaticRewardStatus } from './automatic-rewards.mjs';
+import { createAutomaticRewardStore } from './automatic-reward-store.mjs';
 import { randomBytes, createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
@@ -19,10 +21,19 @@ import { createStore } from './store.mjs';
 import { readPumpMarketActivity } from './coin-market.mjs';
 import { sortDevnetLaunches } from './explore-registry.mjs';
 import { isAppPagePath } from './page-routes.mjs';
-import { verifyCollectionReceipt, verifyPayoutReceipt } from './receipt-evidence.mjs';
+import { createCreatorSupportHandler } from './creator-support.mjs';
+import { creatorPageHtml } from './creator-social.mjs';
+import { tokenPageHtml } from './token-social.mjs';
+import { rewardView, renewClaimChallenge } from '../reward-discovery.js';
+import { verifyReferralClaim, pendingReferralClaim } from './referral-claim-state.mjs';
+import { CREATOR_SUPPORT_VERSION } from '../creator-support-model.js';
+import { createXAuth, cookieValue, authCookie, allowedAuthOrigin, callbackUrlFor, SESSION_SECONDS, OAUTH_SECONDS } from './x-auth.mjs';
 import { buildRewardCycle, validateRewardConfig } from '../reward-policy.js';
 import { analyzeLaunchActivity } from '../anti-sniper-policy.js';
-import { buildProductionReadiness } from '../production-readiness.js';
+import { buildProductionReadiness, isKeeperEnabled } from '../production-readiness.js';
+import { createReceiptEvidenceReader } from './receipt-service.mjs';
+import { assertObservedClaim } from './claim-state.mjs';
+import { receiptWorkerStatus } from './receipt-worker-status.mjs';
 import { buildTerminalSignal, creatorReputation, immutableLaunchReview, normalizeXIntake, quoteAssetCatalog } from '../stonk-features.js';
 import { verifyPumpLaunch } from './launch-verification.mjs';
 import { createLaunchBurnTiers } from '../launch-burn-policy.js';
@@ -48,6 +59,50 @@ const port = Number(process.env.PORT || 8787);
 const host = String(process.env.HOST || '127.0.0.1');
 const staticRoot = resolve(process.cwd(), 'dist');
 const storePath = process.env.FUNDED_STORE_PATH || resolve(process.cwd(), 'data', 'funded-store.json');
+const automaticRewardStore = createAutomaticRewardStore(process.env.AUTOMATIC_REWARD_STORE_PATH || (process.env.FUNDED_STORE_PATH ? `${storePath}.automatic-rewards.json` : resolve(process.cwd(), 'data', 'automatic-rewards.json')));
+function solToLamports(value) {
+  const lamports = Math.round(Number(value) * 1_000_000_000);
+  if (!Number.isSafeInteger(lamports) || lamports < 0) throw new Error('Automatic reward amount is not valid lamports.');
+  return String(lamports);
+}
+async function registerAutomaticLaunch(launch) {
+  if (Number(launch?.feeDistribution?.creatorDirected?.shares?.holderAirdropPercent || 0) <= 0) return;
+  const excludedWallets = String(process.env.REWARD_EXCLUDED_WALLETS || '').split(',').map(row => row.trim()).filter(Boolean);
+  const periodSeconds = 86400;
+  const activatedAt = Math.floor(Date.now() / 1000);
+  const firstPeriodStart = Math.ceil(activatedAt / periodSeconds) * periodSeconds;
+  await automaticRewardStore.transaction(state => {
+    state.programs ||= {};
+    state.programs[launch.mint] ||= { mint:launch.mint, enabled:true, asset:'SOL', kind:'holder', periodSeconds, sampleIntervalSeconds:300, payoutDelaySeconds:3600, activatedAt, firstPeriodStart, excludedWallets:[...new Set(excludedWallets)].sort(), updatedAt:new Date().toISOString() };
+  });
+}
+async function queueAutomaticSettlementRewards(settlement) {
+  const main = await store.read(), collection = main.collections?.[settlement.claimSignature], launch = collection?.mint ? main.launches?.[collection.mint] : null;
+  if (collection?.status !== 'collected' || collection.attribution !== 'mint-verified' || !launch?.onchainVerified) throw new Error('Automatic rewards require the verified collection and launch records.');
+  const rows = [
+    { suffix:'creator', kind:'creator', amount:solToLamports(settlement.creatorDestinations?.creatorWallet), recipient:launch.creatorWallet, status:'pending' },
+    { suffix:'holders', kind:'holder', amount:solToLamports(settlement.creatorDestinations?.holderAirdrop), recipient:null, status:'pending' },
+  ];
+  const xObligation = Object.values(main.obligations || {}).find(row => row.claimSignature === settlement.claimSignature && row.mint === collection.mint);
+  if (BigInt(solToLamports(settlement.creatorDestinations?.solClaim)) > 0n) rows.push({ suffix:'x', kind:'x', amount:solToLamports(settlement.creatorDestinations.solClaim), recipient:null, obligationId:xObligation?.id || null, status:'awaiting-verified-recipient' });
+  await automaticRewardStore.transaction(state => {
+    state.fundingRequests ||= {};
+    for (const row of rows.filter(item => BigInt(item.amount) > 0n)) {
+      const id = `${settlement.claimSignature}:${row.suffix}`;
+      const request = { id, mint:collection.mint, asset:'SOL', kind:row.kind, amount:row.amount, recipient:row.recipient, obligationId:row.obligationId || null, sourceSignature:settlement.claimSignature, status:row.status, createdAt:new Date().toISOString() };
+      const prior = state.fundingRequests[id];
+      if (prior && ['mint','asset','kind','amount','recipient','obligationId','sourceSignature'].some(key => prior[key] !== request[key])) throw new Error('Automatic reward funding request conflicts with its immutable settlement.');
+      state.fundingRequests[id] ||= request;
+    }
+  });
+}
+async function enrollAutomaticXReward(claim) {
+  if (!claim?.publicKey || !claim?.xAttestation || claim.xAttestation.subject !== claim.xUserId) return;
+  await automaticRewardStore.transaction(state => {
+    state.fundingRequests ||= {};
+    for (const request of Object.values(state.fundingRequests)) if (request.kind === 'x' && request.obligationId === claim.obligationId && request.status === 'awaiting-verified-recipient') { request.recipient = claim.publicKey; request.status = 'pending'; request.enrolledAt = new Date().toISOString(); }
+  });
+}
 // Explicit test/worker store paths must take precedence over the local database
 // profile so isolated fixtures cannot accidentally write to the shared database.
 const databaseUrl = process.env.FUNDED_STORE_PATH ? '' : process.env.DATABASE_URL;
@@ -63,10 +118,9 @@ const pumpApiUrl = String(process.env.PUMP_API_URL || 'https://frontend-api-v3.p
 const solanaRpcUrl = String(process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com').trim();
 const rpcMethods = new Set(['getAccountInfo', 'getMultipleAccounts', 'getBalance', 'getSlot', 'getTokenSupply', 'getTokenLargestAccounts', 'getTokenAccountsByOwner', 'getTokenAccountBalance', 'getSignaturesForAddress', 'getTransaction', 'getLatestBlockhash', 'getBlockHeight', 'getSignatureStatuses', 'getFeeForMessage', 'getMinimumBalanceForRentExemption', 'getRecentPrioritizationFees', 'simulateTransaction', 'sendTransaction']);
 const rpcCache = new Map();
-let receiptEvidenceCache = { expiresAt: 0, value: null };
-let receiptEvidencePending = null;
 let rpcInflight = 0;
 const publicPostPaths = new Set(['/api/rewards/preview', '/api/anti-sniper/analyze', '/api/referrals/registration/prepare', '/api/referrals/registration/verify', '/api/referrals/attribution/prepare', '/api/referrals/attribution/verify', '/api/launches', '/api/devnet-metadata']);
+publicPostPaths.add('/api/x/logout'); // Cookie-authenticated, with an exact-origin check.
 let verifiedQuoteAssetsCache = null;
 const solanaCluster = String(process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER || 'devnet').trim();
 const devnetTestMode = solanaCluster === 'devnet' && process.env.DEVNET_TEST_MODE === 'true';
@@ -82,8 +136,7 @@ function devWalletKeypair() {
 if (process.env.RPC_ALLOW_EXPENSIVE_METHODS === 'true') rpcMethods.add('getProgramAccounts');
 if (devnetTestMode && process.env.RPC_ALLOW_AIRDROP === 'true') rpcMethods.add('requestAirdrop');
 const xAttestationSecret = String(process.env.X_ATTESTATION_SECRET || '').trim();
-const xAuthRequests = new Map();
-const xSessions = new Map();
+const xAuth = createXAuth(store);
 const referralClaimExpiryMs = 14 * 24 * 60 * 60 * 1000;
 const maxReferralPayoutSol = Number(process.env.MAX_REFERRAL_PAYOUT_SOL || 10);
 const coinMarketCache = new Map();
@@ -310,32 +363,24 @@ async function resolveXUser(handle) {
   if (!response.ok || !/^\d{1,24}$/.test(String(payload.data?.id || '')) || String(payload.data?.username || '').toLowerCase() !== username.toLowerCase()) throw new Error('The X handle could not be resolved to a stable user ID.');
   return { handle: `@${payload.data.username}`, id: String(payload.data.id) };
 }
-function base64Url(buffer) { return buffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, ''); }
-function cookieValue(req, name) { const match = String(req.headers.cookie || '').match(new RegExp(`(?:^|; )${name}=([^;]+)`)); return match ? decodeURIComponent(match[1]) : ''; }
-function xSession(req) {
-  const key = cookieValue(req, 'funded_x_session');
-  const session = xSessions.get(key);
-  if (!session) return null;
-  if (Date.now() - session.createdAt > 86_400_000) { xSessions.delete(key); return null; }
-  return session;
-}
-function xCallbackUrl(req) { return xConfig().callbackUrl || `http://${req.headers.host || '127.0.0.1:8787'}/api/x/oauth/callback`; }
+async function xSession(req) { return xAuth.session(cookieValue(req, 'funded_x_session')); }
+function xCallbackUrl(req) { return callbackUrlFor(req, xConfig().callbackUrl, process.env.NODE_ENV === 'production'); }
 function html(res, status, title, message) { res.writeHead(status, { 'content-type': 'text/html; charset=utf-8' }); res.end(`<!doctype html><title>${title}</title><p>${message}</p>`); }
 function keeperKeypair() {
   const filePath = String(process.env.SOLANA_KEEPER_KEYPAIR_PATH || '').trim();
   if (filePath) return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(filePath), 'utf8'))));
-  const encoded = String(process.env.SOLANA_KEEPER_SECRET_KEY || '').trim();
+  const encoded = String(process.env.SOLANA_KEEPER_SECRET_KEY || (solanaCluster === 'devnet' ? process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY : '') || '').trim();
   if (!encoded) return null;
   return Keypair.fromSecretKey(bs58.decode(encoded));
 }
 function routerAuthorityKeypair() {
   const filePath = String(process.env.FUNDED_ROUTER_AUTHORITY_KEYPAIR_PATH || '').trim();
   if (filePath) return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(filePath), 'utf8'))));
-  const encoded = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
+  const encoded = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || (solanaCluster === 'devnet' ? process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY : '') || '').trim();
   if (!encoded) return null;
   return Keypair.fromSecretKey(bs58.decode(encoded));
 }
-async function xFeeReadiness() {
+async function mintRouterReadiness() {
   const reasons = [];
   if (solanaCluster !== 'devnet') reasons.push('Devnet is required');
   if (process.env.FUNDED_MINT_FEE_ROUTER_ENABLED !== 'true') reasons.push('mint router upgrade is not activated');
@@ -346,8 +391,6 @@ async function xFeeReadiness() {
   let authority = null;
   try { authority = routerAuthorityKeypair(); } catch { reasons.push('router settlement authority key is invalid'); }
   if (!authority) reasons.push('router settlement authority is not configured');
-  if (!xConfig().clientId || !xConfig().clientSecret) reasons.push('X OAuth is not configured');
-  if (!String(process.env.X_BEARER_TOKEN || '').trim()) reasons.push('X user lookup is not configured');
   if (reasons.length === 0) {
     try {
       const router = feeRouterConfig();
@@ -363,13 +406,20 @@ async function xFeeReadiness() {
   }
   return { ready: reasons.length === 0, reasons };
 }
+async function xFeeReadiness() {
+  const base = await mintRouterReadiness();
+  const reasons = [...base.reasons];
+  if (!xConfig().clientId || !xConfig().clientSecret) reasons.push('X OAuth is not configured');
+  if (!String(process.env.X_BEARER_TOKEN || '').trim()) reasons.push('X user lookup is not configured');
+  return { ready: reasons.length === 0, reasons };
+}
 function feeRouterConfig() {
   const programId = String(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || '').trim();
   return programId ? deriveFeeRouter(programId) : null;
 }
 async function executeSolPayout({ recipientWallet, amountSol }) {
   const keeper = keeperKeypair();
-  if (!keeper || (!process.env.SOLANA_KEEPER_CONFIGURED && !devnetTestMode)) throw new Error('Solana keeper is not configured.');
+  if (!keeper || (!isKeeperEnabled(process.env) && !devnetTestMode)) throw new Error('Solana keeper is not configured.');
   const recipient = new PublicKey(recipientWallet);
   const lamports = Math.floor(Number(amountSol) * 1_000_000_000);
   if (!Number.isSafeInteger(lamports) || lamports <= 0) throw new Error('Payout amount must be a positive SOL value.');
@@ -391,7 +441,7 @@ async function collectPumpCreatorFees({ requestedMint }) {
   const perMint = launch.pumpFeeRoute?.scope === 'per-mint-v2';
   const router = perMint ? deriveMintFeeRouter(config.programId, mintKey) : config;
   if (perMint) {
-    if (!(await xFeeReadiness()).ready) throw new Error('Mint-specific collection is not activated.');
+    if (!(await mintRouterReadiness()).ready) throw new Error('Mint-specific collection is not activated.');
     const legacy = await connection.getAccountInfo(config.address, 'confirmed');
     const checked = await verifyMintFeeRouterAccount({ connection, programId: config.programId, mint: mintKey, expectedAuthority: new PublicKey(legacy.data.subarray(41, 73)) });
     if (!checked.verified) throw new Error(`Mint router verification failed: ${checked.reason}.`);
@@ -420,58 +470,19 @@ async function collectPumpCreatorFees({ requestedMint }) {
   return { requestedMint: mintKey.toBase58(), mint: perMint ? mintKey.toBase58() : null, attribution: perMint ? 'mint-verified' : 'router', onchainVerified: perMint && collectedLamports > 0, router: router.address.toBase58(), signature, beforeLamports, afterLamports, collectedLamports, cluster: solanaCluster, status: collectedLamports > 0 ? 'collected' : 'no-fees' };
 }
 
-async function buildReceiptEvidence() {
-  const state = await store.read();
-  const collections = Object.values(state.collections || {}).filter(item => item?.status === 'collected' && item.signature);
-  const payouts = Object.values(state.payouts || {}).filter(item => item?.status === 'paid' && item.signature);
-  const ordered = items => [...items].sort((a, b) => String(b.recordedAt || b.paidAt || '').localeCompare(String(a.recordedAt || a.paidAt || ''))).slice(0, 12);
-  const selectedCollections = ordered(collections);
-  const selectedPayouts = ordered(payouts);
-  const base = { cluster: solanaCluster, generatedAt: new Date().toISOString(), verifiedCollections: [], verifiedPayouts: [],
-    coverage: { recordedCollections: collections.length, recordedPayouts: payouts.length,
-      checkedCollections: selectedCollections.length, checkedPayouts: selectedPayouts.length } };
-  if (solanaCluster !== 'devnet') return { ...base, status: 'unavailable', reason: 'Devnet evidence is disabled on this cluster.' };
-  if (!collections.length && !payouts.length) return { ...base, status: 'no-records', reason: 'No collection or payout signatures are recorded.' };
-  const connection = new Connection(solanaRpcUrl, 'confirmed');
-  try {
-    const [configuredGenesis, officialGenesis] = await Promise.all([
-      connection.getGenesisHash(),
-      new Connection(clusterApiUrl('devnet'), 'confirmed').getGenesisHash(),
-    ]);
-    if (configuredGenesis !== officialGenesis) return { ...base, status: 'unavailable', reason: 'Configured RPC is not Solana Devnet.' };
-  } catch { return { ...base, status: 'unavailable', reason: 'Devnet genesis could not be verified.' }; }
-  let unavailable = 0;
-  const work = [
-    ...selectedCollections.map(record => ({ record, verify: verifyCollectionReceipt, target: base.verifiedCollections })),
-    ...selectedPayouts.map(record => ({ record, verify: verifyPayoutReceipt, target: base.verifiedPayouts })),
-  ];
-  // Keep evidence reads bounded even if the store grows or several clients request the page.
-  for (let index = 0; index < work.length; index += 4) {
-    await Promise.all(work.slice(index, index + 4).map(async ({ record, verify, target }) => {
-      try {
-        const transaction = await connection.getTransaction(record.signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 });
-        if (!transaction) { unavailable += 1; return; }
-        const proof = verify(record, transaction);
-        if (proof) target.push(proof);
-      } catch { unavailable += 1; }
-    }));
-  }
-  const checked = selectedCollections.length + selectedPayouts.length;
-  const verified = base.verifiedCollections.length + base.verifiedPayouts.length;
-  const incomplete = unavailable > 0 || checked < collections.length + payouts.length || verified < checked;
-  return { ...base, status: verified ? incomplete ? 'partial' : 'onchain-indexed' : unavailable ? 'unavailable' : 'unverified-records',
-    reason: incomplete ? 'Only matching confirmed transaction deltas are displayed; totals may be incomplete.' : 'All checked receipts have confirmed matching balance deltas.',
-    unavailableRecords: unavailable };
-}
+const readReceiptEvidence = createReceiptEvidenceReader({ store, cluster: solanaCluster,
+  connectionFactory: () => new Connection(solanaRpcUrl, 'confirmed'),
+  officialGenesis: () => new Connection(clusterApiUrl('devnet'), 'confirmed').getGenesisHash() });
+const readFinalizedEvidence = createReceiptEvidenceReader({ store, cluster: solanaCluster, commitment:'finalized',
+  connectionFactory: () => new Connection(solanaRpcUrl, 'finalized'),
+  officialGenesis: () => new Connection(clusterApiUrl('devnet'), 'finalized').getGenesisHash() });
 
-async function readReceiptEvidence() {
-  if (receiptEvidenceCache.value && receiptEvidenceCache.expiresAt > Date.now()) return receiptEvidenceCache.value;
-  receiptEvidencePending ||= buildReceiptEvidence().then(value => {
-    receiptEvidenceCache = { value, expiresAt: Date.now() + 30_000 };
-    return value;
-  }).finally(() => { receiptEvidencePending = null; });
-  return receiptEvidencePending;
-}
+const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solanaCluster, getSession: xSession, readEvidence: readReceiptEvidence, readFinalizedEvidence,
+  capabilities: async () => ({ version: CREATOR_SUPPORT_VERSION, build: process.env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
+    cluster: solanaCluster, creatorPages: true, creatorIdentity: Boolean(process.env.X_CLIENT_ID && process.env.X_CLIENT_SECRET),
+    sessions: { storage: databaseUrl ? 'postgresql' : 'local-file-single-process', absoluteLifetimeSeconds: SESSION_SECONDS },
+    creatorDirectory: { storage: databaseUrl ? 'postgresql-projection' : 'local-file', cursorPagination: true },
+    xPayouts: await xFeeReadiness(), gifts: { enabled: false, reason: 'No approved gifting provider or delivery-receipt integration is configured.' } }) });
 
 async function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -479,6 +490,7 @@ async function handle(req, res) {
   if (metadataHost && (req.method !== 'GET' || !/^\/(?:devnet-metadata|devnet-images)\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(url.pathname) && url.pathname !== '/default.svg')) return json(res, 404, { error: 'Not found.' });
   if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client' }); return res.end(); }
   try {
+    if (await handleCreatorSupport(req, res, url)) return;
     if (req.method === 'GET' && url.pathname === '/default.svg') {
       res.writeHead(200, { 'content-type': 'image/svg+xml', 'cache-control': 'public, max-age=86400', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'" });
       return res.end('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" rx="48" fill="#111827"/><circle cx="128" cy="128" r="68" fill="#d7b65d"/><text x="128" y="148" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="70" fill="#111827">F</text></svg>');
@@ -531,7 +543,8 @@ async function handle(req, res) {
       try { return json(res, 200, { signature: Buffer.from(nacl.sign.detached(Buffer.from(String(input.message || ''), 'base64'), wallet.keypair.secretKey)).toString('base64') }); }
       catch { return json(res, 400, { error: 'Invalid development message.' }); }
     }
-    if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true, service: 'funded-api', external: { solanaKeeper: Boolean(process.env.SOLANA_KEEPER_CONFIGURED), feeRouter: Boolean(feeRouterConfig()), birdeye: Boolean(birdeyeApiKey), pumpFun: Boolean(pumpApiUrl), xOAuth: Boolean(process.env.X_CLIENT_ID && process.env.X_CLIENT_SECRET) } });
+    if (req.method === 'GET' && url.pathname === '/api/rewards/automatic') return json(res, 200, automaticRewardStatus(new Date(), await automaticRewardStore.read()));
+    if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true, service: 'funded-api', external: { solanaKeeper: isKeeperEnabled(process.env) && Boolean(keeperKeypair()), feeRouter: Boolean(feeRouterConfig()), birdeye: Boolean(birdeyeApiKey), pumpFun: Boolean(pumpApiUrl), xOAuth: Boolean(process.env.X_CLIENT_ID && process.env.X_CLIENT_SECRET) } });
     if (req.method === 'GET' && url.pathname === '/api/market/sol-usd') {
       const quote = await readSolUsdQuote();
       if (!quote) return json(res, 503, { error: 'SOL/USD quote is currently unavailable.', provider: 'coingecko' });
@@ -540,58 +553,73 @@ async function handle(req, res) {
     if (req.method === 'GET' && url.pathname === '/api/x/oauth/start') {
       const config = xConfig();
       if (!config.clientId || !config.clientSecret) return json(res, 503, { error: 'X OAuth is not configured on the server.' });
-      const state = base64Url(randomBytes(32));
-      const verifier = base64Url(randomBytes(48));
-      const challenge = base64Url(createHash('sha256').update(verifier).digest());
-      xAuthRequests.set(state, { verifier, createdAt: Date.now() });
-      const params = new URLSearchParams({ response_type: 'code', client_id: config.clientId, redirect_uri: xCallbackUrl(req), scope: 'users.read offline.access', state, code_challenge: challenge, code_challenge_method: 'S256' });
-      res.writeHead(302, { location: `https://x.com/i/oauth2/authorize?${params.toString()}` });
+      if (!await store.chargeRpcRate(`x-start:${clientKey(req)}`, 1, 10, Math.floor(Date.now()/60000)*60000)) return json(res, 429, { error: 'Please wait before signing in again.' });
+      const callbackUrl = xCallbackUrl(req);
+      const { state, binding, challenge } = await xAuth.start(callbackUrl);
+      const params = new URLSearchParams({ response_type: 'code', client_id: config.clientId, redirect_uri: callbackUrl, scope: 'tweet.read users.read', state, code_challenge: challenge, code_challenge_method: 'S256' });
+      res.writeHead(302, { location: `https://x.com/i/oauth2/authorize?${params.toString()}`, 'cache-control': 'no-store', 'set-cookie': authCookie('funded_x_oauth', binding, OAUTH_SECONDS, callbackUrl) });
       return res.end();
     }
     if (req.method === 'GET' && url.pathname === '/api/x/oauth/callback') {
-      if (url.searchParams.get('error')) return html(res, 400, 'X sign-in cancelled', 'X sign-in was cancelled. Close this window and try again.');
       const state = String(url.searchParams.get('state') || '');
       const code = String(url.searchParams.get('code') || '');
-      const request = xAuthRequests.get(state); xAuthRequests.delete(state);
-      if (!request || !code || Date.now() - request.createdAt > 10 * 60 * 1000) return html(res, 400, 'X sign-in expired', 'The X sign-in request expired. Start again.');
+      const request = await xAuth.consume(state, cookieValue(req, 'funded_x_oauth'));
+      res.setHeader('cache-control', 'no-store');
+      res.setHeader('referrer-policy', 'no-referrer');
+      if (!request) return html(res, 400, 'X sign-in expired', 'Start sign-in again in this browser. The request expired or was already used.');
+      res.setHeader('set-cookie', authCookie('funded_x_oauth', '', 0, request.callbackUrl));
+      if (url.searchParams.get('error')) return html(res, 400, 'X sign-in cancelled', 'X sign-in was cancelled. Start again when ready.');
+      if (!code) return html(res, 400, 'X sign-in failed', 'No authorization code was received. Start again.');
       const config = xConfig();
-      const form = new URLSearchParams({ code, grant_type: 'authorization_code', redirect_uri: xCallbackUrl(req), code_verifier: request.verifier });
-      const tokenResponse = await fetch('https://api.x.com/2/oauth2/token', { method: 'POST', headers: { authorization: `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`, 'content-type': 'application/x-www-form-urlencoded' }, body: form });
+      const form = new URLSearchParams({ code, grant_type: 'authorization_code', redirect_uri: request.callbackUrl, code_verifier: request.verifier });
+      const tokenResponse = await fetch('https://api.x.com/2/oauth2/token', { method: 'POST', headers: { authorization: `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`, 'content-type': 'application/x-www-form-urlencoded' }, body: form, signal: AbortSignal.timeout(10000) });
       const token = await tokenResponse.json().catch(() => ({}));
       if (!tokenResponse.ok || !token.access_token) return html(res, 502, 'X sign-in failed', 'X did not issue an access token. Check the exact callback URL and OAuth settings.');
-      const userResponse = await fetch('https://api.x.com/2/users/me?user.fields=id,name,username,profile_image_url', { headers: { authorization: `Bearer ${token.access_token}` } });
+      const userResponse = await fetch('https://api.x.com/2/users/me?user.fields=id,name,username', { headers: { authorization: `Bearer ${token.access_token}` }, signal: AbortSignal.timeout(10000) });
       const profile = await userResponse.json().catch(() => ({}));
       if (!userResponse.ok || !profile.data?.id) return html(res, 502, 'X profile lookup failed', 'X sign-in succeeded but the account profile could not be loaded.');
-      const sessionId = base64Url(randomBytes(32));
-      xSessions.set(sessionId, { user: profile.data, accessToken: token.access_token, refreshToken: token.refresh_token || null, createdAt: Date.now() });
-      res.writeHead(302, { location: '/?x=connected', 'set-cookie': `funded_x_session=${encodeURIComponent(sessionId)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${xCallbackUrl(req).startsWith('https:') ? '; Secure' : ''}` });
+      await xAuth.revoke(cookieValue(req, 'funded_x_session'));
+      const sessionId = await xAuth.issue(profile.data);
+      res.writeHead(302, { location: '/?x=connected', 'set-cookie': [authCookie('funded_x_session', sessionId, SESSION_SECONDS, request.callbackUrl), authCookie('funded_x_oauth', '', 0, request.callbackUrl)] });
       return res.end();
     }
     if (req.method === 'GET' && url.pathname === '/api/x/me') {
-      const session = xSession(req);
+      const session = await xSession(req);
+      res.setHeader('cache-control', 'no-store');
       return json(res, 200, { authenticated: Boolean(session), user: session?.user || null });
     }
     if (req.method === 'GET' && url.pathname === '/api/x/resolve') {
       const readiness = await xFeeReadiness();
       if (!readiness.ready) return json(res, 503, { error: 'X fee claims are not operational on Devnet yet.', reasons: readiness.reasons });
       if (!await store.chargeRpcRate(`x-resolve:${clientKey(req)}`, 1, 10, Math.floor(Date.now() / 60_000) * 60_000)) return json(res, 429, { error: 'X account lookup limit reached; retry shortly.' });
-      return json(res, 200, await resolveXUser(url.searchParams.get('handle')));
+      const resolved = await resolveXUser(url.searchParams.get('handle'));
+      if ((await store.read()).creatorProfiles?.[resolved.id]?.optedOut) return json(res, 409, { error: 'This creator has opted out of new support launches.' });
+      return json(res, 200, resolved);
     }
     if (req.method === 'GET' && url.pathname === '/api/x-fee/status') return json(res, 200, await xFeeReadiness());
     if (req.method === 'GET' && url.pathname === '/api/x-fee/claims') {
-      const session = xSession(req);
+      const session = await xSession(req);
+      res.setHeader('cache-control', 'no-store');
       if (!session?.user?.username) return json(res, 401, { error: 'Sign in with X to view claims.' });
       const handle = `@${session.user.username}`.toLowerCase();
-      const state = await store.read();
-      const claims = Object.values(state.obligations || {}).filter(item => item.source === 'verified-per-mint-router-collection' && item.xUserId === String(session.user.id)).map(item => ({ id: item.id, mint: item.mint, amountSol: item.amountSol, status: state.claims?.[item.id]?.status || item.status, payoutSignature: state.claims?.[item.id]?.payoutSignature || null }));
+      const state = await store.readCreatorState(String(session.user.id), solanaCluster);
+      const evidence=await readReceiptEvidence(state);
+      const claims = Object.values(state.obligations || {}).filter(item => item.source === 'verified-per-mint-router-collection' && item.xUserId === String(session.user.id)).map(item => rewardView(item,state.claims?.[item.id],evidence.verifiedPayouts));
       return json(res, 200, { handle, claims });
     }
     if (req.method === 'POST' && url.pathname === '/api/x/logout') {
-      xSessions.delete(cookieValue(req, 'funded_x_session'));
-      res.writeHead(204, { 'set-cookie': 'funded_x_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0' });
+      if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error: 'Sign out from the app origin.' });
+      await xAuth.revoke(cookieValue(req, 'funded_x_session'));
+      res.writeHead(204, { 'cache-control': 'no-store', 'set-cookie': authCookie('funded_x_session', '', 0, xCallbackUrl(req)) });
       return res.end();
     }
     if (req.method === 'GET' && url.pathname === '/api/readiness') return json(res, 200, buildProductionReadiness(process.env));
+    if (req.method === 'GET' && url.pathname === '/api/ops/receipt-worker') {
+      res.setHeader('cache-control','no-store');
+      if(!requireAuthorized(req,res))return;
+      if(solanaCluster!=='devnet')return json(res,503,{error:'Receipt worker monitoring is Devnet-only.'});
+      return json(res,200,receiptWorkerStatus(await store.readReceiptBackfillStatus('devnet')));
+    }
     if (req.method === 'POST' && url.pathname === '/api/rewards/preview') {
       const input = await body(req);
       const config = validateRewardConfig(input);
@@ -604,7 +632,8 @@ async function handle(req, res) {
     }
     if (req.method === 'GET' && url.pathname === '/api/keeper/status') {
       const router = feeRouterConfig();
-      return json(res, 200, { cluster: solanaCluster, keeperConfigured: Boolean(keeperKeypair()), routerConfigured: Boolean(router), routerAddress: router?.address?.toBase58() || null, status: router && keeperKeypair() ? 'ready-to-verify-router' : 'waiting-for-deployment-config' });
+      const keeperConfigured = isKeeperEnabled(process.env) && Boolean(keeperKeypair());
+      return json(res, 200, { cluster: solanaCluster, keeperConfigured, routerConfigured: Boolean(router), routerAddress: router?.address?.toBase58() || null, status: router && keeperConfigured ? 'ready-to-verify-router' : 'waiting-for-deployment-config' });
     }
     if (req.method === 'GET' && url.pathname === '/api/birdeye/explore') {
       const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit') || 40)));
@@ -648,15 +677,8 @@ async function handle(req, res) {
       let mint;
       try { mint = new PublicKey(decodeURIComponent(tokenChatMint)).toBase58(); }
       catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
-      if (req.method === 'GET') return json(res, 200, { mint, messages: await store.readCoinChat(mint, 50) });
-      const input = await body(req);
-      const text = String(input.text || '').trim();
-      const author = String(input.author || '').trim();
-      if (!text || text.length > 280) return json(res, 400, { error: 'Chat messages must be between 1 and 280 characters.' });
-      if (author.length > 64) return json(res, 400, { error: 'Chat author is too long.' });
-      const message = { id: id('chat'), author: author || 'Guest', text, createdAt: new Date().toISOString() };
-      await store.appendCoinChat(mint, message);
-      return json(res, 201, { mint, message });
+      if (req.method === 'GET') return json(res, 200, { mint, messages: [], enabled:false, reason:'Discussion is paused until authenticated identities and moderation operations are ready.' });
+      return json(res, 503, { error:'Discussion is paused. Unauthenticated posting is not supported.' });
     }
     const tokenActivityMint = req.method === 'GET' ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/fee-activity$/) : null;
     if (tokenActivityMint) {
@@ -890,9 +912,13 @@ async function handle(req, res) {
     if (req.method === 'POST' && url.pathname === '/api/launches') {
       const input = await body(req); if (!input.mint || input.chain !== 'solana' || input.cluster !== solanaCluster) return json(res, 400, { error: 'A Solana launch on the configured cluster is required.' });
       const policy = canonicalLaunchPolicy(input);
-      const isolated = policy.solClaimPercent > 0;
-      if (isolated && !(await xFeeReadiness()).ready) return json(res, 503, { error: 'X fee claims are not operational on Devnet yet.' });
-      if (isolated && (await resolveXUser(policy.xRecipient)).id !== policy.xUserId) return json(res, 409, { error: 'The X account ID changed since launch preparation; registration is blocked.' });
+      const existingLaunch = await store.readLaunch(policy.mint);
+      if (!existingLaunch && policy.xUserId && (await store.read()).creatorProfiles?.[policy.xUserId]?.optedOut) return json(res, 409, { error: 'This creator has opted out of new support launches. Existing entitlements are unchanged.' });
+      const xLinked = policy.solClaimPercent > 0;
+      const perMint = input.pumpFeeRoute?.scope === 'per-mint-v2';
+      if (!existingLaunch && !perMint) return json(res, 409, { error: 'New launches require a mint-specific fee router for attributable automatic rewards.' });
+      if (xLinked && !(await xFeeReadiness()).ready) return json(res, 503, { error: 'X fee claims are not operational on Devnet yet.' });
+      if (xLinked && (await resolveXUser(policy.xRecipient)).id !== policy.xUserId) return json(res, 409, { error: 'The X account ID changed since launch preparation; registration is blocked.' });
         const promotionTiers = createLaunchBurnTiers({
           boostAmount: Number(process.env.VITE_FUNDED_BOOST_BURN_AMOUNT || 25_000),
           proAmount: Number(process.env.VITE_FUNDED_PRO_BURN_AMOUNT || 100_000),
@@ -905,9 +931,9 @@ async function handle(req, res) {
       if (input.metadataUri && !preparedMetadata) return json(res, 409, { error: 'Signed Devnet metadata is missing.' });
       if (preparedMetadata && (preparedMetadata.creatorWallet !== proof.feePayer || preparedMetadata.name !== proof.name || preparedMetadata.symbol !== proof.symbol || (proof.uri && proof.uri !== devnetMetadataUri(proof.mint)))) return json(res, 409, { error: 'Signed metadata does not match the confirmed Pump launch.' });
       const routerConfig = feeRouterConfig();
-      const configuredRouter = isolated ? deriveMintFeeRouter(routerConfig.programId, proof.mint).address.toBase58() : routerConfig?.address.toBase58();
+      const configuredRouter = perMint ? deriveMintFeeRouter(routerConfig.programId, proof.mint).address.toBase58() : routerConfig?.address.toBase58();
       if (policy.creatorWallet !== proof.feePayer || policy.feeRouter !== proof.creator || policy.feeRouter !== configuredRouter) return json(res, 409, { error: 'Launch payer or Pump fee owner does not match the signed router policy.' });
-      if (isolated) {
+      if (perMint) {
         const connection = new Connection(solanaRpcUrl, 'confirmed');
         const legacy = await connection.getAccountInfo(routerConfig.address, 'confirmed');
         const checked = await verifyMintFeeRouterAccount({ connection, programId: routerConfig.programId, mint: proof.mint, expectedAuthority: new PublicKey(legacy.data.subarray(41, 73)) });
@@ -920,11 +946,11 @@ async function handle(req, res) {
         ...proof, cluster: solanaCluster, creatorWallet: proof.feePayer,
         ...(preparedMetadata ? { metadataUri: devnetMetadataUri(proof.mint), description: preparedMetadata.description, imageUri: preparedMetadata.imageSha256 ? devnetImageUri(proof.mint) : 'https://metadata.funded.vip/default.svg', website: preparedMetadata.website, twitter: preparedMetadata.x, telegram: preparedMetadata.telegram } : {}),
         communityAllocation: policy.communityAllocation,
-        ...(isolated ? { xUserId: policy.xUserId } : {}),
+        ...(xLinked ? { xUserId: policy.xUserId } : {}),
         communityAirdrop: buildCommunityAirdropPolicy({ allocationPercent: policy.communityAllocation, supply: 1_000_000_000 }),
         feeDistribution,
-        solClaim: { ...buildSolClaimPolicy({ handle: policy.xRecipient, percent: policy.solClaimPercent, feeRouterAddress: configuredRouter }), forwardingStatus: isolated ? 'awaiting-mint-verified-collection' : 'not-selected' },
-        pumpFeeRoute: { percent: 100, router: proof.creator, scope: isolated ? 'per-mint-v2' : 'shared-legacy', verified: true, transaction: proof.signature },
+        solClaim: { ...buildSolClaimPolicy({ handle: policy.xRecipient, percent: policy.solClaimPercent, feeRouterAddress: configuredRouter }), forwardingStatus: xLinked ? 'awaiting-mint-verified-collection' : 'not-selected' },
+        pumpFeeRoute: { percent: 100, router: proof.creator, scope: perMint ? 'per-mint-v2' : 'shared-legacy', verified: true, transaction: proof.signature },
         policyStatement: launchPolicyStatement(input), policySignature: String(input.policySignature),
         id: id('launch'), updatedAt: new Date().toISOString(),
       };
@@ -934,9 +960,13 @@ async function handle(req, res) {
           if (existing.policyStatement !== record.policyStatement) throw new Error('An immutable launch policy already exists for this mint.');
           return existing;
         }
+        if (record.xUserId && state.creatorProfiles?.[record.xUserId]?.optedOut) throw new Error('This creator opted out during verification. Registration is blocked.');
         state.launches[record.mint] = record; return record;
       });
-      return json(res, 201, saved);
+      let automaticRewards = { status:'registered' };
+      try { await registerAutomaticLaunch(saved); }
+      catch (error) { automaticRewards = { status:'unavailable', reason:String(error.message || error) }; }
+      return json(res, 201, { ...saved, automaticRewards });
     }
 
     if (req.method === 'POST' && url.pathname === '/api/settlements/claims') {
@@ -962,7 +992,11 @@ async function handle(req, res) {
           .filter(level => level.recipient && level.status === 'claimable')
           .map(level => ({ level: level.level, recipient: level.recipient, amount: level.amount, status: 'claimable' }));
         return settlement;
-      }); return json(res, 201, result);
+      });
+      let automaticRewards = { status:'queued' };
+      try { await queueAutomaticSettlementRewards(result); }
+      catch (error) { automaticRewards = { status:'queue-failed', reason:String(error.message || error) }; }
+      return json(res, 201, { ...result, automaticRewards });
     }
 
     if (req.method === 'POST' && url.pathname === '/api/referral-claims/prepare') {
@@ -987,38 +1021,41 @@ async function handle(req, res) {
 
     const referralClaimId = route(url.pathname, req.method, /^\/api\/referral-claims\/([^/]+)\/verify$/);
     if (referralClaimId) {
-      const input = await body(req); const state = await store.read(); const claim = state.referralClaims?.[referralClaimId]; if (!claim) return json(res, 404, { error: 'Referral claim not found.' });
+      const input = await body(req); const state = await store.readReferralClaimState(referralClaimId); const claim = state.referralClaims?.[referralClaimId]; if (!claim) return json(res, 404, { error: 'Referral claim not found.' });
       if (claim.status === 'wallet-verified' || claim.status === 'paid') return json(res, 200, claim);
-      if (claim.status === 'executing' || (claim.expiresAt && Date.parse(claim.expiresAt) < Date.now())) return json(res, 409, { error: 'Referral claim is no longer available.' });
+      if (['executing','verification-pending','failed'].includes(claim.status) || (claim.expiresAt && Date.parse(claim.expiresAt) < Date.now())) return json(res, 409, { error: 'Referral claim is no longer available. Previous attempts need reconciliation.' });
       const publicKey = new PublicKey(String(input.publicKey || '')); if (publicKey.toBase58() !== claim.recipientWallet) return json(res, 401, { error: 'The claiming wallet must match the referral recipient.' });
       const message = new TextEncoder().encode(`funded.app referral reward claim ${referralClaimId} nonce ${claim.nonce}`); const signature = bs58.decode(String(input.signature || ''));
       if (!nacl.sign.detached.verify(message, signature, publicKey.toBytes())) return json(res, 401, { error: 'Wallet signature is invalid.' });
-      const updated = await store.update(current => { current.referralClaims[referralClaimId] = { ...claim, publicKey: publicKey.toBase58(), status: 'wallet-verified', verifiedAt: new Date().toISOString() }; return current.referralClaims[referralClaimId]; }); return json(res, 200, updated);
+      const updated = await store.updateReferralClaimState(referralClaimId,current => { current.referralClaims[referralClaimId] = verifyReferralClaim(current.referralClaims[referralClaimId],claim,publicKey.toBase58()); return current.referralClaims[referralClaimId]; }); return json(res, 200, updated);
     }
 
     const referralExecuteId = route(url.pathname, req.method, /^\/api\/referral-claims\/([^/]+)\/execute$/);
     if (referralExecuteId) {
-      const state = await store.read(); const claim = state.referralClaims?.[referralExecuteId]; if (!claim) return json(res, 404, { error: 'Referral claim not found.' });
+      const state = await store.readReferralClaimState(referralExecuteId); const claim = state.referralClaims?.[referralExecuteId]; if (!claim) return json(res, 404, { error: 'Referral claim not found.' });
       if (claim.status === 'paid') return json(res, 200, state.payouts[claim.payoutId]);
       if (claim.status !== 'wallet-verified') return json(res, 409, { error: 'The referral claim must be wallet-signed before execution.' });
       if (claim.expiresAt && Date.parse(claim.expiresAt) < Date.now()) return json(res, 409, { error: 'Referral claim has expired.' });
       if (claim.asset !== 'SOL') return json(res, 409, { error: 'Only SOL referral claims are executable by this keeper.' });
       const amountSol = Number(claim.amount); if (!Number.isFinite(amountSol) || amountSol <= 0 || amountSol > maxReferralPayoutSol) return json(res, 409, { error: 'Referral claim exceeds the configured payout limit.' });
-      const locked = await store.update(current => {
+      if ((!isKeeperEnabled(process.env) && !devnetTestMode) || !keeperKeypair()) return json(res, 503, { error: 'Referral payouts are not enabled. Your verified claim remains unchanged.' });
+      const locked = await store.updateReferralClaimState(referralExecuteId,current => {
         const currentClaim = current.referralClaims[referralExecuteId];
-        if (currentClaim.status !== 'wallet-verified') return null;
+        if (!currentClaim || currentClaim.status !== 'wallet-verified') return null;
+        if (['nonce','recipientWallet','amount','asset','expiresAt','publicKey'].some(key=>currentClaim[key]!==claim[key]) || (currentClaim.expiresAt&&Date.parse(currentClaim.expiresAt)<Date.now())) return null;
         currentClaim.status = 'executing'; currentClaim.executionStartedAt = new Date().toISOString(); return currentClaim;
       });
       if (!locked) return json(res, 409, { error: 'Referral claim is already being executed.' });
       try {
         const transfer = await executeSolPayout({ recipientWallet: claim.recipientWallet, amountSol });
-        const payout = await store.update(current => {
-          const record = { id: id('payout'), claimId: referralExecuteId, amountSol, ...transfer, status: 'paid', paidAt: new Date().toISOString(), source: 'solana-keeper-referral-claim' };
-          current.payouts[record.id] = record; current.referralClaims[referralExecuteId] = { ...claim, status: 'paid', payoutId: record.id, payoutSignature: transfer.signature, paidAt: record.paidAt }; return record;
+        const payout = await store.updateReferralClaimState(referralExecuteId,current => {
+          const record = { id: `referral:${referralExecuteId}`, claimId: referralExecuteId, amountSol, ...transfer, status: 'paid', paidAt: new Date().toISOString(), source: 'solana-keeper-referral-claim' };
+          if(current.referralClaims[referralExecuteId]?.status!=='executing')throw new Error('Referral claim changed during execution; reconcile the submitted transfer.');
+          current.payouts[record.id] = record; current.referralClaims[referralExecuteId] = { ...current.referralClaims[referralExecuteId], status: 'paid', payoutId: record.id, payoutSignature: transfer.signature, paidAt: record.paidAt }; return record;
         });
         return json(res, 200, payout);
       } catch (error) {
-        await store.update(current => { current.referralClaims[referralExecuteId] = { ...claim, status: 'failed', failureReason: error.message, failedAt: new Date().toISOString() }; return current.referralClaims[referralExecuteId]; });
+        await store.updateReferralClaimState(referralExecuteId,current => { current.referralClaims[referralExecuteId] = pendingReferralClaim(current.referralClaims[referralExecuteId],error); return current.referralClaims[referralExecuteId]; });
         throw error;
       }
     }
@@ -1042,46 +1079,54 @@ async function handle(req, res) {
     const claimId = decodeURIComponent(route(url.pathname, req.method, /^\/api\/sol-claims\/([^/]+)\/prepare$/) || '');
     if (claimId) {
       const input = await body(req); const recipient = String(input.xHandle || input.recipient || '').trim();
-      const session = xSession(req);
+      const session = await xSession(req);
       if (!session?.user?.id || `@${session.user.username}`.toLowerCase() !== recipient.toLowerCase()) return json(res, 401, { error: 'Sign in with the recipient X account before preparing a claim.' });
-      const obligation = (await store.read()).obligations[claimId];
+      const obligation = (await store.readClaimState(claimId)).obligations[claimId];
       if (!obligation || obligation.source !== 'verified-per-mint-router-collection' || obligation.xUserId !== String(session.user.id)) return json(res, 409, { error: 'A verified X fee obligation for this X user ID is required.' });
-      const claim = await store.update(state => state.claims[claimId] || (state.claims[claimId] = { id: claimId, recipient: obligation.recipient, xUserId: obligation.xUserId, obligationId: obligation.id, nonce: randomBytes(24).toString('hex'), status: 'awaiting-wallet-signature', createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() }));
+      const claim = await store.updateClaimState(claimId,state => {
+        const currentObligation=state.obligations[claimId];
+        if(!currentObligation||currentObligation.source!=='verified-per-mint-router-collection'||currentObligation.xUserId!==String(session.user.id))throw new Error('Claim entitlement changed. Refresh before preparing.');
+        const existing=state.claims[claimId];if(existing){if(existing.xUserId!==String(session.user.id))throw new Error('Claim identity mismatch.');return state.claims[claimId]=renewClaimChallenge(existing,randomBytes(24).toString('hex'));}
+        return state.claims[claimId]={id:claimId,recipient:currentObligation.recipient,xUserId:currentObligation.xUserId,obligationId:currentObligation.id,nonce:randomBytes(24).toString('hex'),status:'awaiting-wallet-signature',createdAt:new Date().toISOString(),expiresAt:new Date(Date.now()+14*24*60*60*1000).toISOString()};
+      });
       if (claim.xUserId !== String(session.user.id)) return json(res, 409, { error: 'Claim X user ID does not match the original account.' });
       if (claim.expiresAt && Date.parse(claim.expiresAt) < Date.now()) return json(res, 409, { error: 'Claim has expired; contact support for a new claim window.' });
-      return json(res, 200, { claimId, recipient: claim.recipient, statement: `funded.app SOL claim ${claimId} for ${claim.recipient} nonce ${claim.nonce}`, expiresAt: claim.expiresAt });
+      return json(res, 200, { claimId, recipient: claim.recipient, boundWallet:claim.publicKey||null, statement: `funded.app SOL claim ${claimId} for ${claim.recipient} nonce ${claim.nonce}`, expiresAt: claim.expiresAt });
     }
 
     const verifyId = decodeURIComponent(route(url.pathname, req.method, /^\/api\/sol-claims\/([^/]+)\/verify$/) || '');
     if (verifyId) {
-      const input = await body(req); const state = await store.read(); const claim = state.claims[verifyId]; if (!claim) return json(res, 404, { error: 'Claim not found.' });
-      const session = xSession(req);
+      const input = await body(req); const state = await store.readClaimState(verifyId); const claim = state.claims[verifyId]; if (!claim) return json(res, 404, { error: 'Claim not found.' });
+      const session = await xSession(req);
       if (!session?.user?.id || String(session.user.id) !== claim.xUserId) return json(res, 401, { error: 'Sign in with the original X account before verifying a wallet.' });
       if (String(input.xHandle || input.recipient || '').toLowerCase() !== `@${session.user.username}`.toLowerCase()) return json(res, 409, { error: 'X handle does not match the signed-in account.' });
       if (claim.expiresAt && Date.parse(claim.expiresAt) < Date.now()) return json(res, 409, { error: 'Claim has expired.' });
       const publicKey = new PublicKey(String(input.publicKey || '')); const message = new TextEncoder().encode(`funded.app SOL claim ${verifyId} for ${claim.recipient} nonce ${claim.nonce}`); const signature = bs58.decode(String(input.signature || ''));
       if (!nacl.sign.detached.verify(message, signature, publicKey.toBytes())) return json(res, 401, { error: 'Wallet signature is invalid.' });
       if (claim.publicKey && claim.publicKey !== publicKey.toBase58()) return json(res, 409, { error: 'Claim is already bound to another verified wallet.' });
-      const updated = await store.update(current => { const existing = current.claims[verifyId]; if (existing.publicKey && existing.publicKey !== publicKey.toBase58()) throw new Error('Claim is already bound to another verified wallet.'); if (existing.status === 'paid' || existing.status === 'executing') return existing; current.claims[verifyId] = { ...existing, publicKey: publicKey.toBase58(), status: existing.xAttestation ? 'ready-to-execute' : 'wallet-verified', verifiedAt: new Date().toISOString() }; return current.claims[verifyId]; }); return json(res, 200, updated);
+      const updated = await store.updateClaimState(verifyId,current => { const existing = current.claims[verifyId];assertObservedClaim(existing,claim); if (existing.publicKey && existing.publicKey !== publicKey.toBase58()) throw new Error('Claim is already bound to another verified wallet.'); if (['paid','executing','verification-pending'].includes(existing.status)) return existing; current.claims[verifyId] = { ...existing, publicKey: publicKey.toBase58(), status: existing.xAttestation ? 'ready-to-execute' : 'wallet-verified', verifiedAt: new Date().toISOString() }; return current.claims[verifyId]; });
+      await enrollAutomaticXReward(updated);
+      return json(res, 200, updated);
     }
 
     const attestId = decodeURIComponent(route(url.pathname, req.method, /^\/api\/sol-claims\/([^/]+)\/attest$/) || '');
     if (attestId) {
       const input = await body(req); const handle = String(input.xHandle || input.recipient || '').trim();
       if (!/^@[A-Za-z0-9_]{1,15}$/.test(handle)) return json(res, 400, { error: 'A valid X handle is required.' });
-      const state = await store.read(); const claim = state.claims[attestId]; if (!claim) return json(res, 404, { error: 'Claim not found.' });
-      const session = xSession(req);
+      const state = await store.readClaimState(attestId); const claim = state.claims[attestId]; if (!claim) return json(res, 404, { error: 'Claim not found.' });
+      const session = await xSession(req);
       const oauthMatchesHandle = session?.user?.id && String(session.user.id) === claim.xUserId && `@${session.user.username}`.toLowerCase() === handle.toLowerCase();
       const trusted = Boolean(oauthMatchesHandle) || (String(input.subject || '') === claim.xUserId && verifyHmacAttestation({ handle, subject: input.subject, issuedAt: input.issuedAt, signature: input.signature }));
       if (!trusted) return json(res, 401, { error: 'Trusted X identity attestation is required.' });
       if (claim.expiresAt && Date.parse(claim.expiresAt) < Date.now()) return json(res, 409, { error: 'Claim has expired.' });
-      const updated = await store.update(current => { const existing = current.claims[attestId]; if (existing.status === 'paid' || existing.status === 'executing') return existing; current.claims[attestId] = { ...existing, xAttestation: { provider: oauthMatchesHandle ? 'x-oauth' : 'trusted-webhook', subject: oauthMatchesHandle ? String(session.user.id) : String(input.subject), attestedAt: new Date().toISOString() }, status: existing.publicKey ? 'ready-to-execute' : 'x-attested-awaiting-wallet' }; return current.claims[attestId]; });
+      const updated = await store.updateClaimState(attestId,current => { const existing = current.claims[attestId];assertObservedClaim(existing,claim); if (['paid','executing','verification-pending'].includes(existing.status)) return existing; current.claims[attestId] = { ...existing, xAttestation: { provider: oauthMatchesHandle ? 'x-oauth' : 'trusted-webhook', subject: oauthMatchesHandle ? String(session.user.id) : String(input.subject), attestedAt: new Date().toISOString() }, status: existing.publicKey ? 'ready-to-execute' : 'x-attested-awaiting-wallet' }; return current.claims[attestId]; });
+      await enrollAutomaticXReward(updated);
       return json(res, 200, updated);
     }
 
     const executeId = decodeURIComponent(route(url.pathname, req.method, /^\/api\/sol-claims\/([^/]+)\/execute$/) || '');
     if (executeId) {
-      const state = await store.read(); const claim = state.claims[executeId]; if (!claim) return json(res, 404, { error: 'Claim not found.' });
+      const state = await store.readClaimState(executeId); const claim = state.claims[executeId]; if (!claim) return json(res, 404, { error: 'Claim not found.' });
       if (claim.expiresAt && Date.parse(claim.expiresAt) < Date.now()) return json(res, 409, { error: 'Claim has expired.' });
       if (!claim.xAttestation || claim.xAttestation.subject !== claim.xUserId) return json(res, 409, { error: 'The original X user ID must be attested before payout.' });
       if (!claim.publicKey) return json(res, 409, { error: 'A verified recipient wallet is required before payout.' });
@@ -1089,6 +1134,8 @@ async function handle(req, res) {
       if (existing) return json(res, 200, existing);
       const obligation = state.obligations[claim.obligationId];
       if (!obligation || obligation.source !== 'verified-per-mint-router-collection') return json(res, 409, { error: 'A verified router-funded X fee obligation is required.' });
+      const automaticRequest = Object.values((await automaticRewardStore.read()).fundingRequests || {}).find(item => item.kind === 'x' && item.obligationId === obligation.id);
+      if (automaticRequest && automaticRequest.status !== 'awaiting-verified-recipient') return json(res, 409, { error: 'This verified X reward is enrolled for automatic delivery.', automaticStatus: automaticRequest.status });
       const recalculated = deriveXFeeObligation(state, { mint: obligation.mint, claimSignature: obligation.claimSignature });
       if (recalculated.id !== obligation.id || recalculated.amountLamports !== obligation.amountLamports || recalculated.router !== obligation.router || recalculated.recipient !== obligation.recipient || recalculated.xUserId !== obligation.xUserId || claim.xUserId !== obligation.xUserId) return json(res, 409, { error: 'Stored X fee amount or user ID does not match the verified launch policy and collection.' });
       const readiness = await xFeeReadiness();
@@ -1105,8 +1152,11 @@ async function handle(req, res) {
       const recordMatches = account => readMintClaimRecord(account, { programId: config.programId, mint: obligation.mint, recipient: claim.publicKey, amountLamports: obligation.amountLamports, claimId: settlement.claimId });
       const priorRecord = await connection.getAccountInfo(settlement.claim, 'confirmed');
       if (priorRecord && !recordMatches(priorRecord)) return json(res, 409, { error: 'The on-chain claim record conflicts with this obligation.' });
-      const locked = await store.update(current => {
+      const locked = await store.updateClaimState(executeId,current => {
         const currentClaim = current.claims[executeId];
+        assertObservedClaim(currentClaim,claim);
+        const currentObligation=deriveXFeeObligation(current,{mint:obligation.mint,claimSignature:obligation.claimSignature});
+        if(currentObligation.amountLamports!==obligation.amountLamports||currentObligation.router!==obligation.router||currentObligation.xUserId!==claim.xUserId)throw new Error('Entitlement changed before execution.');
         if (currentClaim.status === 'paid' || currentClaim.status === 'executing') return false;
         if (!currentClaim.xAttestation || !currentClaim.publicKey || currentClaim.publicKey !== claim.publicKey) return false;
         currentClaim.status = 'executing'; currentClaim.executionStartedAt = new Date().toISOString(); return true;
@@ -1125,7 +1175,7 @@ async function handle(req, res) {
         if (!recordMatches(onchainRecord)) throw new Error('Settlement submitted, but the matching on-chain claim record is not confirmed yet.');
         if (!signature) throw new Error('On-chain claim record exists, but its transaction signature is not indexed yet.');
         const paidAt = new Date().toISOString();
-        const payout = await store.update(current => {
+        const payout = await store.updateClaimState(executeId,current => {
           const payoutId = `x:${executeId}`;
           const record = { id: payoutId, claimId: executeId, obligationId: obligation.id, mint: obligation.mint, amountLamports: obligation.amountLamports, amountSol: obligation.amountSol, from: settlement.router.toBase58(), to: claim.publicKey, signature, status: 'paid', paidAt, source: 'mint-router-settle-mint', cluster: solanaCluster };
           current.payouts[payoutId] = record;
@@ -1134,7 +1184,7 @@ async function handle(req, res) {
         });
         return json(res, 200, payout);
       } catch (error) {
-        await store.update(current => { if (current.claims[executeId]?.status === 'executing') current.claims[executeId] = { ...current.claims[executeId], status: 'verification-pending', failureReason: String(error.message || error), lastAttemptAt: new Date().toISOString() }; });
+        await store.updateClaimState(executeId,current => { if (current.claims[executeId]?.status === 'executing') current.claims[executeId] = { ...current.claims[executeId], status: 'verification-pending', failureReason: String(error.message || error), lastAttemptAt: new Date().toISOString() }; });
         throw error;
       }
     }
@@ -1145,6 +1195,18 @@ async function handle(req, res) {
       const routerAddress = feeRouterConfig()?.address.toBase58();
       if (!launch || launch.cluster !== 'devnet' || !launch.onchainVerified || launch.creator !== routerAddress || !launch.name || !launch.symbol) return json(res, 404, { error: 'Verified Devnet launch metadata is not available.' });
       return json(res, 200, { name: launch.name, symbol: launch.symbol, description: 'Devnet test token launched on funded.vip. Devnet assets have no intended monetary value.', image: 'https://funded.vip/favicon.svg' });
+    }
+    if (req.method === 'GET' && /^\/creator\/x\/\d{1,24}\/?$/.test(url.pathname)) {
+      const creatorId=url.pathname.split('/')[3];
+      const html = creatorPageHtml(await readFile(resolve(staticRoot, 'index.html'), 'utf8'), await store.readCreatorState(creatorId,solanaCluster,{financial:false}), creatorId, solanaCluster);
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
+      return res.end(html);
+    }
+    const tokenPageMint=req.method==='GET'?url.pathname.match(/^\/(?:token|launch\/coin)\/([1-9A-HJ-NP-Za-km-z]{32,44})\/?$/)?.[1]:null;
+    if(tokenPageMint){
+      const [template,launch,metadata]=await Promise.all([readFile(resolve(staticRoot,'index.html'),'utf8'),store.readLaunch(tokenPageMint),store.readMetadata(tokenPageMint)]);
+      const page=tokenPageHtml(template,launch,metadata,tokenPageMint,solanaCluster);
+      res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});return res.end(page);
     }
     if (req.method === 'GET' && isAppPagePath(url.pathname)) return serveStatic('/', res);
     if (req.method === 'GET' && !url.pathname.startsWith('/api/')) return serveStatic(url.pathname, res);

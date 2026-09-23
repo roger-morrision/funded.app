@@ -70,6 +70,9 @@ export function withMarketWindow(record, period = '24h') {
 export function sortMarketRecords(records, sort = 'market-cap') {
   const value = record => {
     if (sort === 'volume') return record.windowPeriod ? record.windowVolumeSol ?? -1 : record.volume24hUsd ?? record.volume24hSol ?? -1;
+    if (sort === 'airdrop') return record.communityAirdropPercent ?? -1;
+    if (sort === 'holder-fee') return record.holderFeePercent ?? -1;
+    if (sort === 'x-fee') return record.xFeePercent ?? -1;
     if (sort === 'trades') return record.windowPeriod ? record.windowTradeCount ?? -1 : record.tradeCount24h ?? -1;
     if (sort === 'turnover') return record.windowPeriod ? record.windowTurnover ?? -1 : record.turnover ?? -1;
     if (sort === 'liquidity') return record.liquidityUsd ?? record.curveReserveSol ?? -1;
@@ -88,7 +91,7 @@ export function sortMarketRecords(records, sort = 'market-cap') {
   return [...records].sort((a, b) => value(b) - value(a));
 }
 
-export function filterMarketRecords(records, { query = '', risk = 'all', stage = 'all', authority = 'all', sort = 'market-cap', watchlist = [], maxAgeHours = null, minVolumeSol = null, minCurveCapSol = null, minTrades = null, minTraders = null, nowMs = Date.now() } = {}) {
+export function filterMarketRecords(records, { query = '', risk = 'all', stage = 'all', authority = 'all', promotion = 'all', reward = 'all', sort = 'market-cap', watchlist = [], maxAgeHours = null, minVolumeSol = null, minCurveCapSol = null, minTrades = null, minTraders = null, nowMs = Date.now() } = {}) {
   const normalized = String(query).trim().toLowerCase();
   const saved = new Set(watchlist);
   const filtered = records.filter(record => {
@@ -102,6 +105,12 @@ export function filterMarketRecords(records, { query = '', risk = 'all', stage =
     if (authority === 'both-revoked' && !(record.mintAuthorityRevoked === true && record.freezeAuthorityRevoked === true)) return false;
     if (authority === 'mint-active' && record.mintAuthorityRevoked !== false) return false;
     if (authority === 'freeze-active' && record.freezeAuthorityRevoked !== false) return false;
+    if (promotion === 'promoted' && !['boost', 'pro', 'premier'].includes(record.promotionTier)) return false;
+    if (['standard', 'boost', 'pro', 'premier'].includes(promotion) && record.promotionTier !== promotion) return false;
+    if (reward === 'community-airdrop' && !(record.communityAirdropPercent > 0)) return false;
+    if (reward === 'holder-fees' && !(record.holderFeePercent > 0)) return false;
+    if (reward === 'x-fees' && !(record.xFeePercent > 0)) return false;
+    if (reward === 'creator-wallet' && !(record.creatorFeePercent > 0)) return false;
     const created = Number(record.createdTimestamp);
     const createdMs = created > 10_000_000_000 ? created : created * 1000;
     if (maxAgeHours != null && (!Number.isFinite(createdMs) || createdMs <= 0 || createdMs > nowMs || nowMs - createdMs > Number(maxAgeHours) * 3_600_000)) return false;

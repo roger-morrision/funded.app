@@ -1,4 +1,4 @@
-import { assertTradeConfirmed, buildTradeFeePolicy, describeTradeQuote, formatBondingCurveSnapshot, submitTrade } from '../pump-trading.js';
+import { assertPositiveQuoteAmount, assertTradeConfirmed, buildTradeFeePolicy, describeTradeQuote, formatBondingCurveSnapshot, submitTrade } from '../pump-trading.js';
 import BN from 'bn.js';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 
@@ -21,6 +21,10 @@ const snapshot = formatBondingCurveSnapshot({
 if (snapshot.progressPercent !== 75 || snapshot.complete) throw new Error('Bonding-curve snapshot calculation is invalid.');
 const quote = describeTradeQuote({ side: 'buy', outputAmount: new BN('12345678'), tokenDecimals: 6, feeLamports: 500000 }, 1);
 if (quote.expected !== 12.345678 || quote.minimum >= quote.expected || quote.appFeeSol !== 0.0005) throw new Error('Trade preview is invalid.');
+assertPositiveQuoteAmount(new BN(1), 'SOL');
+let zeroOutputRejected = false;
+try { assertPositiveQuoteAmount(new BN(0), 'SOL'); } catch (error) { zeroOutputRejected = error.message.includes('no SOL output'); }
+if (!zeroOutputRejected) throw new Error('A zero-output trade quote was accepted.');
 assertTradeConfirmed({ value: { err: null } });
 let failedConfirmationRejected = false;
 try { assertTradeConfirmed({ value: { err: { InstructionError: [0, 'Custom'] } } }); } catch { failedConfirmationRejected = true; }
@@ -46,7 +50,7 @@ try {
     },
     provider: { signTransaction: async () => ({ serialize: () => Buffer.from([1]) }) },
     side: 'buy', mint: user, user, amount: 1, slippagePercent: 1,
-    preparedTrade: { side: 'buy', mint: user, user, inputAmount: 1, slippagePercent: 1, instructions: [SystemProgram.transfer({ fromPubkey: user, toPubkey: user, lamports: 1 })] },
+    preparedTrade: { side: 'buy', mint: user, user, inputAmount: 1, slippagePercent: 1, outputAmount: new BN(1), instructions: [SystemProgram.transfer({ fromPubkey: user, toPubkey: user, lamports: 1 })] },
   });
 } catch (error) { failedSubmitRejected = error.message.includes('did not confirm successfully'); }
 if (!failedSubmitRejected) throw new Error('Failed submitted transaction was reported as confirmed.');

@@ -1,0 +1,10 @@
+# Approved Devnet target. Use with compose.preview.yml and compose.creator-devnet.yml.
+# Secrets stay in the existing ignored .env.deploy; local Vite settings are untouched.
+services:
+  app:
+    image: ${FUNDED_APP_IMAGE:-fundedapp-app:automatic-rewards-v11-20260923h}
+    environment:
+      PUBLIC_APP_URL: https://funded.vip
+      CORS_ORIGIN: https://funded.vip
+      X_CALLBACK_URL: https://funded.vip/api/x/oauth/callback
+      FUNDED_BUILD_ID: ${FUNDED_BUILD_ID:-automatic-rewards-v11-20260923h}

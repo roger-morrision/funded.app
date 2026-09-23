@@ -1,4 +1,17 @@
 // Presentation helpers for bounded, confirmed Pump bonding-curve trade data.
+export function verifiedRegistryLaunch(records, mint, cluster) {
+  if (!Array.isArray(records)) return null;
+  return records.find(item => item?.mint === mint
+    && item.cluster === cluster
+    && item.onchainVerified === true
+    && typeof item.policySignature === 'string'
+    && item.policySignature.length > 0
+    && typeof item.name === 'string'
+    && item.name.trim().length > 0
+    && typeof item.symbol === 'string'
+    && item.symbol.trim().length > 0) || null;
+}
+
 export function selectRecentTrades(trades, { side = 'all', wallet = '', minSol = 0 } = {}) {
   const walletQuery = String(wallet).trim().toLowerCase();
   const minAmount = Number(minSol);

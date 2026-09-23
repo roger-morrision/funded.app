@@ -77,6 +77,7 @@ temp/
 *.sqlite3
 *.mdb
 *.bak
+*.auth.json
 
 # ==========================================
 # Logs
@@ -133,3 +134,7 @@ models/
 *.old
 *.tmp
 *.temp
+
+# Local automatic-reward worker ledger
+data/automatic-rewards.json
+data/automatic-rewards.json.lock
