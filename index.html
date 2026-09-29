@@ -104,7 +104,7 @@
                 <div class="trade-grid"><div>
                   <input id="trade-mint" type="hidden" value="" autocomplete="off" />
                   <div class="coin-side-toggle" role="group" aria-label="Trade action"><button type="button" class="active" data-coin-trade-side="buy" aria-pressed="true">Buy</button><button type="button" data-coin-trade-side="sell" aria-pressed="false">Sell</button></div><label class="coin-native-side-select" hidden>Action<select id="trade-side"><option value="buy">Buy with SOL</option><option value="sell">Sell tokens</option></select></label>
-                  <label id="trade-amount-label">SOL amount<input id="trade-amount" type="number" min="0" step="0.0001" placeholder="0.10" /></label>
+                  <label id="trade-amount-label">SOL amount<input id="trade-amount" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0.10" aria-describedby="trade-live-estimate" /></label>
                   <div class="coin-quick-amounts" id="coin-quick-amounts" role="group" aria-label="Quick buy amounts"><button type="button" data-coin-buy-amount="0.01">0.01 SOL</button><button type="button" data-coin-buy-amount="0.1">0.1 SOL</button><button type="button" data-coin-buy-amount="0.5">0.5 SOL</button></div>
                   <div class="trade-live-estimate" id="trade-live-estimate" aria-live="polite"><span>Estimated tokens received</span><strong id="trade-live-amount">Enter a SOL amount</strong><small id="trade-live-detail">Your estimated token amount will appear here.</small></div>
                   <label>Max slippage %<input id="trade-slippage" type="number" min="0.1" max="10" step="0.1" value="1" /></label>

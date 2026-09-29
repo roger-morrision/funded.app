@@ -1,4 +1,5 @@
 import { Buffer } from 'buffer';
+import { formatTradeAmountInput, parseTradeAmountInput } from './trade-amount-input.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { decryptPhantomMobileResult, verifyPhantomMobileSession, verifyPhantomMobileSignature, verifyPhantomMobileTransaction } from './phantom-mobile-crypto.js';
@@ -2733,11 +2734,16 @@ function renderTradeAmountEstimate(){
   const detailNode = document.querySelector('#trade-live-detail');
   if (!card || !amountNode || !detailNode) return;
   const side = document.querySelector('#trade-side')?.value;
-  card.hidden = side !== 'buy';
-  if (side !== 'buy') return;
-  const amountSol = Number(document.querySelector('#trade-amount')?.value);
+  card.hidden = false;
+  card.querySelector('span').textContent = side === 'sell' ? 'Estimated SOL received' : 'Estimated tokens received';
+  const amountSol = parseTradeAmountInput(document.querySelector('#trade-amount')?.value);
   const mint = document.querySelector('#trade-mint')?.value.trim();
   card.classList.remove('is-ready', 'is-unavailable');
+  if (side === 'sell') {
+    amountNode.textContent = Number.isFinite(amountSol) && amountSol > 0 ? 'Preview to see SOL amount' : 'Enter a token amount';
+    detailNode.textContent = 'Preview uses current on-chain reserves to calculate SOL received, slippage, and fees.';
+    return;
+  }
   if (!Number.isFinite(amountSol) || amountSol <= 0) {
     amountNode.textContent = 'Enter a SOL amount';
     detailNode.textContent = 'Your estimated token amount will appear here.';
@@ -2764,7 +2770,7 @@ function updateTradeAmountLabel(){
   const label = document.querySelector('#trade-amount-label');
   if (label) label.firstChild.textContent = side === 'sell' ? 'Token amount' : 'SOL amount';
   const amount = document.querySelector('#trade-amount');
-  if (amount) amount.placeholder = side === 'sell' ? '1000' : '0.10';
+  if (amount) amount.placeholder = side === 'sell' ? '1,000' : '0.10';
   const presets = document.querySelector('#coin-quick-amounts');
   if (presets) presets.hidden = side === 'sell';
   document.querySelectorAll('[data-coin-trade-side]').forEach(button => {
@@ -2782,6 +2788,7 @@ function invalidateTradePreview(){
   const submit = document.querySelector('#trade-submit');
   if (quote) quote.textContent = 'Preview the current mint, amount, and slippage before signing.';
   if (submit) submit.disabled = true;
+  renderTradeAmountEstimate();
 }
 function tradePreviewFailureMessage(error, side){
   const message = String(error?.message || error || 'Unknown error');
@@ -2793,7 +2800,7 @@ function tradePreviewFailureMessage(error, side){
 function openTradeReview(){
   const mint = document.querySelector('#trade-mint').value.trim();
   const side = document.querySelector('#trade-side').value;
-  const amount = Number(document.querySelector('#trade-amount').value);
+  const amount = parseTradeAmountInput(document.querySelector('#trade-amount').value);
   const slippagePercent = Number(document.querySelector('#trade-slippage').value);
   const session = captureWalletSession();
   const inputKey = `${mint}:${side}:${amount}:${slippagePercent}:${session?.address || ''}`;
@@ -2804,8 +2811,8 @@ function openTradeReview(){
   }
   const reviewedQuote = describeTradeQuote(tradePreview.trade, slippagePercent);
   const reviewedAmount = side === 'buy' && reviewedQuote.maximumSpendSol != null
-    ? `Target ${amount} SOL · max pool spend ${reviewedQuote.maximumSpendSol.toFixed(9)} SOL`
-    : `${side === 'buy' ? 'Spend' : 'Sell'} ${amount} ${side === 'buy' ? 'SOL' : 'tokens'}`;
+    ? `Target ${amount.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL · max pool spend ${reviewedQuote.maximumSpendSol.toFixed(9)} SOL`
+    : `${side === 'buy' ? 'Spend' : 'Sell'} ${amount.toLocaleString('en-US', { maximumFractionDigits:side === 'buy' ? 9 : 6 })} ${side === 'buy' ? 'SOL' : 'tokens'}`;
   document.querySelector('#trade-review-summary').textContent = `${reviewedAmount} · mint ${mint} · max slippage ${slippagePercent}% · wallet ${session.address}`;
   document.querySelector('#trade-review-quote').textContent = document.querySelector('#trade-quote').textContent;
   document.querySelector('#trade-review-dialog').showModal();
@@ -2813,7 +2820,7 @@ function openTradeReview(){
 async function previewTrade(){
   const mint = document.querySelector('#trade-mint').value.trim();
   const side = document.querySelector('#trade-side').value;
-  const amount = Number(document.querySelector('#trade-amount').value);
+  const amount = parseTradeAmountInput(document.querySelector('#trade-amount').value);
   const slippagePercent = Number(document.querySelector('#trade-slippage').value);
   if (!mint || !Number.isFinite(amount) || amount <= 0) return setTradeStatus('Enter a mint and a positive amount to preview.', true);
   if (!Number.isFinite(slippagePercent) || slippagePercent < 0.1 || slippagePercent > 10) return setTradeStatus('Slippage must be between 0.1% and 10%.', true);
@@ -2828,13 +2835,23 @@ async function previewTrade(){
     const trade = await buildTradeTransaction({ connection: previewConnection, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: TRADE_FEE_OWNER, feeBps: TRADE_FEE_BPS });
     assertWalletSessionCurrent(session);
     const quote = describeTradeQuote(trade, slippagePercent);
+    if (side === 'sell' && quote.minimumNetSol <= 0) throw new Error('The app fee would exceed the minimum SOL output. Increase the sell amount.');
     const inputKey = `${mint}:${side}:${amount}:${slippagePercent}:${session.address}`;
     tradePreview = { trade, inputKey, preparedAt: Date.now() };
     const outputDigits = quote.outputSymbol === 'SOL' ? 9 : 6;
-    const receiveText = `${quote.expected.toLocaleString(undefined, { maximumFractionDigits: outputDigits })} ${quote.outputSymbol}`;
+    const receiveText = `${quote.expected.toLocaleString('en-US', { maximumFractionDigits: outputDigits })} ${quote.outputSymbol}`;
+    const estimateCard = document.querySelector('#trade-live-estimate');
+    estimateCard.querySelector('span').textContent = side === 'sell' ? 'Estimated SOL to wallet' : 'Estimated tokens received';
+    document.querySelector('#trade-live-amount').textContent = `≈ ${side === 'sell' ? `${quote.expectedNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL` : receiveText}`;
+    document.querySelector('#trade-live-detail').textContent = side === 'sell'
+      ? `After app fee · minimum after ${slippagePercent}% slippage: ${quote.minimumNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL · network fee additional · quote expires in 15 seconds.`
+      : `Minimum after ${slippagePercent}% slippage: ${quote.minimum.toLocaleString('en-US', { maximumFractionDigits:outputDigits })} ${quote.outputSymbol} · quote expires in 15 seconds.`;
+    estimateCard.classList.add('is-ready');
     const slippageText = quote.maximumSpendSol != null
       ? `Quoted receive: ${receiveText}. Maximum pool spend: ${quote.maximumSpendSol.toFixed(9)} SOL with ${slippagePercent}% slippage.`
-      : `Estimated receive: ${receiveText}. Slippage floor: ${quote.minimum.toLocaleString(undefined, { maximumFractionDigits: outputDigits })} ${quote.outputSymbol}.`;
+      : side === 'sell'
+        ? `Gross Pump output: ${receiveText}. Estimated to wallet after app fee: ${quote.expectedNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL. Minimum after slippage and app fee: ${quote.minimumNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL.`
+        : `Estimated receive: ${receiveText}. Slippage floor: ${quote.minimum.toLocaleString('en-US', { maximumFractionDigits: outputDigits })} ${quote.outputSymbol}.`;
     const feeText = quote.maximumSpendSol != null
       ? `Maximum pool spend includes Pump pool fees. App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network/account costs.`
       : `App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network and Pump fees.`;
@@ -2849,7 +2866,7 @@ async function executeTrade(){
   const session = captureWalletSession();
   if (!session || !canSignTransactions(session.provider)) return setTradeStatus('Open this app in a signing wallet to trade.', true);
   const mint = document.querySelector('#trade-mint').value.trim(); const side = document.querySelector('#trade-side').value;
-  const amount = Number(document.querySelector('#trade-amount').value); const slippagePercent = Number(document.querySelector('#trade-slippage').value);
+  const amount = parseTradeAmountInput(document.querySelector('#trade-amount').value); const slippagePercent = Number(document.querySelector('#trade-slippage').value);
   if (!mint || !Number.isFinite(amount) || amount <= 0) { setTradeStatus('Enter a valid mint and positive trade amount.', true); return; }
   if (!TRADE_FEE_OWNER) { setTradeStatus('Trading is disabled: configure VITE_FUNDED_TRADE_FEE_OWNER for the app owner.', true); return; }
   const inputKey = `${mint}:${side}:${amount}:${slippagePercent}:${session.address}`;
@@ -4391,6 +4408,17 @@ document.querySelectorAll('[data-coin-buy-amount]').forEach(button => button.add
   setTradeStatus('Quick amount selected. Preview a fresh quote before signing.');
 }));
 document.querySelector('#trade-mint')?.addEventListener('change', () => setTradeStatus('Mint selected. Preview a trade for a fresh route and quote.'));
+document.querySelector('#trade-amount')?.addEventListener('input', event => {
+  const input = event.currentTarget;
+  const caret = input.selectionStart;
+  const formatted = formatTradeAmountInput(input.value);
+  if (formatted === input.value) return;
+  const formattedPrefix = caret == null ? formatted : formatTradeAmountInput(input.value.slice(0, caret));
+  input.value = formatted;
+  if (caret != null) input.setSelectionRange(formattedPrefix.length, formattedPrefix.length);
+});
+const restoredTradeAmount = document.querySelector('#trade-amount');
+if (restoredTradeAmount?.value) restoredTradeAmount.value = formatTradeAmountInput(restoredTradeAmount.value);
 document.querySelectorAll('#trade-mint, #trade-amount, #trade-slippage, #trade-side').forEach(input => input.addEventListener('input', () => {
   invalidateTradePreview();
   renderTradeAmountEstimate();

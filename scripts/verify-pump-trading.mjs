@@ -43,6 +43,8 @@ const poolEstimate = estimateBuyTokenAmountFromSnapshot({ amountSol: 1, curveSna
 if (poolEstimate.route !== 'graduated-pool' || poolEstimate.expectedTokens !== 40) throw new Error('Live PumpSwap buy estimate is invalid.');
 const quote = describeTradeQuote({ side: 'buy', outputAmount: new BN('12345678'), tokenDecimals: 6, feeLamports: 500000 }, 1);
 if (quote.expected !== 12.345678 || quote.minimum >= quote.expected || quote.appFeeSol !== 0.0005) throw new Error('Trade preview is invalid.');
+const sellQuote = describeTradeQuote({ side:'sell', outputAmount:new BN('11733814'), feeLamports:58670 }, 1);
+if (sellQuote.expected !== 0.011733814 || sellQuote.expectedNetSol !== 0.011675144 || sellQuote.minimumNetSol >= sellQuote.expectedNetSol) throw new Error('Sell preview must show wallet SOL after the app fee.');
 const poolQuote = describeTradeQuote({ route: 'graduated-pool', side: 'buy', outputAmount: new BN('12345678'), minimumOutputAmount: new BN('12345678'), maximumInputAmount: new BN('10100000'), tokenDecimals: 6, feeLamports: 50000 }, 1);
 if (poolQuote.maximumSpendSol !== 0.0101 || poolQuote.expected !== poolQuote.minimum) throw new Error('Graduated-pool maximum spend is missing from the review quote.');
 assertPositiveQuoteAmount(new BN(1), 'SOL');
