@@ -395,7 +395,8 @@ let activeAirdropFilter = 'all';
 function escapeHtml(value){ return String(value ?? '').replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]); }
 function formatFlowAmount(value){
   const amount = Number(value || 0);
-  return `${amount.toLocaleString(undefined, { minimumFractionDigits: amount > 0 && amount < 1 ? 3 : 0, maximumFractionDigits: 4 })} SOL`;
+  if (amount > 0 && amount < 0.000000001) return '<0.000000001 SOL';
+  return `${amount.toLocaleString(undefined, { minimumFractionDigits: amount > 0 && amount < 1 ? 3 : 0, maximumFractionDigits: 9 })} SOL`;
 }
 function renderFeeFlowCalculator(){
   const input = document.querySelector('#fee-flow-input');
@@ -2266,7 +2267,15 @@ document.querySelectorAll('[data-home-launch-tab]').forEach(button => button.add
   document.querySelectorAll('[data-home-launch-tab]').forEach(item => { const active = item === button; item.classList.toggle('active', active); item.setAttribute('aria-selected', String(active)); });
   renderHomeLaunchBoard();
 }));
+let exploreLoadInFlight = null;
 async function loadOnchainExploreData(){
+  if (exploreLoadInFlight) return exploreLoadInFlight;
+  const load = loadOnchainExploreDataOnce();
+  exploreLoadInFlight = load;
+  try { return await load; }
+  finally { if (exploreLoadInFlight === load) exploreLoadInFlight = null; }
+}
+async function loadOnchainExploreDataOnce(){
     const pumpSort = exploreSort === 'newest' ? 'created_timestamp' : 'last_trade_timestamp';
     const birdeyeSort = exploreSort === 'change' ? 'price_change_24h_percent' : exploreSort === 'market-cap' ? 'market_cap' : 'volume_24h_usd';
     const feeds = [
@@ -2371,7 +2380,7 @@ async function loadOnchainExploreData(){
       renderRegistry();
       return;
     }
-    exploreScannedCount = 0;
+    let scannedCount = 0;
     let marketScanRateLimited = false;
     if (EXPLORE_CLUSTER === 'devnet' && !exploreVerificationFailed) {
       // The endpoint's 60-credit minute budget charges ten credits per fresh scan.
@@ -2394,7 +2403,7 @@ async function loadOnchainExploreData(){
           }
         }
         if (!market) return;
-        exploreScannedCount += 1;
+        scannedCount += 1;
         const volume = Number(market.volume24hSol);
         item.volume24hSol = market.volume24hSol != null && Number.isFinite(volume) && volume >= 0 ? volume : null;
         item.volumeCoverage = market.coverage;
@@ -2415,6 +2424,7 @@ async function loadOnchainExploreData(){
         }
       }));
     }
+    exploreScannedCount = scannedCount;
     if (marketScanRateLimited) exploreBackoffUntil = Date.now() + 60_000;
   assets = Array.from(new Map(verified.map(item => [item.address, item])).values());
     exploreUpdatedAt = new Date().toISOString();

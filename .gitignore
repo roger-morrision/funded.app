@@ -139,3 +139,10 @@ models/
 # Local automatic-reward worker ledger
 data/automatic-rewards.json
 data/automatic-rewards.json.lock
+
+# Local deployment staging, credentials, audit data, and build output
+/.codex-card-release/
+/.codex-remote-overlay/
+/.docker-config/
+/audit-records/
+/dist-mainnet-readonly/

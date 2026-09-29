@@ -1,0 +1,611 @@
+{
+  "label": "local-only; no transactions submitted",
+  "results": [
+    {
+      "name": "Home launches above fold",
+      "status": "passed"
+    },
+    {
+      "name": "overview 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "overview 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "explore 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "explore 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "launch 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "launch 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "payments 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "payments 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "my-launches 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "my-launches 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "community 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "community 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "analytics-detail 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "analytics-detail 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "referrals 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "referrals 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "airdrops 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "airdrops 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "buybacks 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "buybacks 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "capital-flow 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "capital-flow 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "docs 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "docs 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "profile 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "profile 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "leaderboard 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "leaderboard 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "overview 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "overview 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "explore 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "explore 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "launch 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "launch 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "payments 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "payments 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "my-launches 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "my-launches 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "community 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "community 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "analytics-detail 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "analytics-detail 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "referrals 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "referrals 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "airdrops 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "airdrops 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "buybacks 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "buybacks 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "capital-flow 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "capital-flow 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "docs 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "docs 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "profile 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "profile 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "leaderboard 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "leaderboard 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "overview 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "overview 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "explore 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "explore 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "launch 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "launch 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "payments 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "payments 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "my-launches 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "my-launches 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "community 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "community 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "analytics-detail 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "analytics-detail 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "referrals 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "referrals 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "airdrops 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "airdrops 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "buybacks 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "buybacks 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "capital-flow 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "capital-flow 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "docs 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "docs 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "profile 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "profile 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "leaderboard 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "leaderboard 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "overview 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "overview 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "explore 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "explore 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "launch 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "launch 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "payments 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "payments 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "my-launches 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "my-launches 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "community 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "community 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "analytics-detail 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "analytics-detail 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "referrals 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "referrals 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "airdrops 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "airdrops 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "buybacks 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "buybacks 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "capital-flow 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "capital-flow 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "docs 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "docs 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "profile 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "profile 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "leaderboard 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "leaderboard 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "overview 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "overview 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "explore 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "explore 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "launch 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "launch 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "payments 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "payments 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "my-launches 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "my-launches 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "community 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "community 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "analytics-detail 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "analytics-detail 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "referrals 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "referrals 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "airdrops 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "airdrops 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "buybacks 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "buybacks 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "capital-flow 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "capital-flow 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "docs 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "docs 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "profile 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "profile 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "leaderboard 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "leaderboard 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "Explore results above fold",
+      "status": "passed"
+    },
+    {
+      "name": "Rewards tab interaction and keyboard",
+      "status": "passed"
+    },
+    {
+      "name": "Invalid identity blocks step advancement",
+      "status": "passed"
+    },
+    {
+      "name": "Launch settings then review; no signing",
+      "status": "passed"
+    },
+    {
+      "name": "Explicit public draft storage excludes approval state",
+      "status": "passed"
+    },
+    {
+      "name": "Mobile filter controls reach 44px",
+      "status": "passed"
+    },
+    {
+      "name": "Mobile filter dismissal",
+      "status": "passed"
+    },
+    {
+      "name": "Mobile network label visible",
+      "status": "passed"
+    },
+    {
+      "name": "Mobile token trade sheet traps focus and restores it",
+      "status": "passed"
+    },
+    {
+      "name": "No uncaught JavaScript errors",
+      "status": "passed"
+    }
+  ],
+  "failures": [],
+  "errors": []
+}

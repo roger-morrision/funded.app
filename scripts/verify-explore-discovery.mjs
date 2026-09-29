@@ -7,6 +7,8 @@ import { sortDevnetLaunches } from '../server/explore-registry.mjs';
 const exploreMarkup = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const appSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
 const workspaceSource = readFileSync(new URL('../workspace-ui.js', import.meta.url), 'utf8');
+assert.match(appSource, /if \(exploreLoadInFlight\) return exploreLoadInFlight;[\s\S]*?exploreLoadInFlight = load;[\s\S]*?exploreLoadInFlight = null;/, 'Overlapping Explore refreshes must share one load instead of racing their scan counter.');
+assert.match(appSource, /let scannedCount = 0;[\s\S]*?scannedCount \+= 1;[\s\S]*?exploreScannedCount = scannedCount;/, 'A completed Explore load must publish only its own scan count.');
 assert.match(exploreMarkup, /Minimum curve cap · SOL\s*<input id="explore-min-cap-sol"/);
 assert.match(exploreMarkup, /Minimum 24h traded · SOL<\/span><input id="explore-min-volume-sol"/);
 assert.match(exploreMarkup, /id="explore-promotion-filter"[\s\S]*?Any paid promotion[\s\S]*?Premier/);
