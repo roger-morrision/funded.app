@@ -17,7 +17,7 @@ import { receiptRetentionOptions,expiredReceiptProofs,receiptRetentionResult } f
 
 export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-store.json'), databaseUrl = process.env.DATABASE_URL) {
   if (databaseUrl) return createPostgresStore(databaseUrl);
-  let state = { version: 3, launches: {}, settlements: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, launchReviews: {}, alerts: {}, xIntake: {}, marketActivity: {}, coinChats: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
+  let state = { version: 4, launches: {}, settlements: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, marketActivity: {}, coinChats: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
   let loaded = false;
   let updateQueue = Promise.resolve();
   const rpcRates = new Map();
@@ -28,6 +28,8 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     try { state = { ...state, ...JSON.parse(await readFile(filePath, 'utf8')) }; } catch (error) { if (error.code !== 'ENOENT') throw error; }
     state.referralClaims ||= {};
     state.collections ||= {};
+    state.burnReceipts ||= {};
+    state.communityReserveReceipts ||= {};
     state.launchReviews ||= {};
     state.alerts ||= {};
     state.xIntake ||= {};
@@ -39,7 +41,7 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     state.referrals.wallets ||= {};
     state.referrals.attributions ||= {};
     state.referrals.challenges ||= {};
-    state.version = Math.max(3, Number(state.version) || 1);
+    state.version = Math.max(4, Number(state.version) || 1);
     loaded = true;
     return state;
   }

@@ -10,10 +10,24 @@ import { enrichMarketRecord, summarizeMarkets } from '../market-intelligence.js'
 import { buildTradePricePath, selectRecentTrades, summarizeTokenAccounts, verifiedRegistryLaunch } from '../coin-detail-model.js';
 import { readPumpMarketActivity, summarizePumpTrades } from '../server/coin-market.mjs';
 import { routerFeeActivity } from '../server/fee-activity.mjs';
+import { normalizeLargestTokenAccounts } from '../server/token-accounts.mjs';
 
 const appSource = await readFile(new URL('../app.js', import.meta.url), 'utf8');
 assert.match(appSource, /holders: `Token accounts \$\{coinActivity\.accountAvailable/);
-assert.match(appSource, /RPC token-account sample, not a unique holder count/);
+assert.match(appSource, /Confirmed non-zero token-account sample, not a unique holder count/);
+assert.match(appSource, /estimateBuyTokenAmountFromSnapshot/);
+assert.match(appSource, /renderTradeAmountEstimate/);
+assert.match(appSource, /if \(!mint \|\| !Number\.isFinite\(amount\) \|\| amount <= 0\) return setTradeStatus[\s\S]*?if \(!wallet\) \{ await connectWallet\(\);/, 'Trade inputs must be validated before prompting for a wallet connection.');
+assert.match(appSource, /Slippage must be between 0\.1% and 10%\./, 'Trade preview must explain the accepted slippage range.');
+const previewFailureSource = appSource.match(/function tradePreviewFailureMessage\(error, side\)\{[\s\S]*?\n\}/)?.[0];
+assert.ok(previewFailureSource, 'Trade preview failures must have a user-facing formatter.');
+const tradePreviewFailureMessage = new Function(`${previewFailureSource}; return tradePreviewFailureMessage;`)();
+const missingAccount = new Error('Associated token account not found for mint: mint-address and user: wallet-address');
+assert.match(tradePreviewFailureMessage(missingAccount, 'sell'), /this wallet has no token account/);
+assert.doesNotMatch(tradePreviewFailureMessage(missingAccount, 'sell'), /wallet-address|mint-address/);
+assert.equal(tradePreviewFailureMessage(missingAccount, 'buy'), `Quote unavailable: ${missingAccount.message}`);
+assert.equal(tradePreviewFailureMessage(new Error('RPC unavailable'), 'sell'), 'Quote unavailable: RPC unavailable');
+assert.match(appSource, /renderTradeAmountEstimate\(\);\s*setTradeStatus\('Inputs changed\. Preview a fresh quote before signing\.'\)/, 'Editing a trade must clear stale validation errors and require a fresh quote.');
 assert.doesNotMatch(appSource, /Top holders \$\{coinActivity\.accountAvailable/);
 const coinFormatterSource = appSource.match(/function formatCoinUsd\(solValue\)\{[^}]+\}/)?.[0];
 assert.ok(coinFormatterSource, 'coin display formatter is present');
@@ -22,6 +36,7 @@ assert.equal(coinFormatter(null, value => `$${value}`, value => `${value} SOL`)(
 assert.equal(coinFormatter(100, value => `$${value}`, value => `${value} SOL`)(0.5), '$50');
 assert.equal(coinFormatter(null, value => `$${value}`, value => `${value} SOL`)(null), '$—');
 assert.match(appSource, /Observed \$\{Number\.isFinite\(coinSolUsdPrice\) \? 'USD' : 'SOL'\} per token/);
+assert.match(appSource, /function setWatchButtonState[\s\S]*?Remove token from watchlist[\s\S]*?Save token to watchlist/, 'Watch buttons must expose the action that matches their current state.');
 
 const legacyVerifiedLaunch = { mint: 'verified-mint', cluster: 'devnet', onchainVerified: true, policySignature: 'signed-policy', name: 'Verified name', symbol: 'VERIFY' };
 assert.equal(verifiedRegistryLaunch([legacyVerifiedLaunch], 'verified-mint', 'devnet'), legacyVerifiedLaunch, 'Verified legacy records do not require a metadata URI to retain their signed registry name.');
@@ -99,6 +114,13 @@ const accountDistribution = summarizeTokenAccounts([
 assert.deepEqual(accountDistribution, { vaultAddress: curveVault, vaultShare: 90, otherCount: 2, otherShare: 8, largestOtherShare: 6, topTenOtherShare: 8, outsideSampleShare: 2 });
 assert.equal(summarizeTokenAccounts([{ address: 'other-one', share: 6 }], curveVault), null);
 assert.equal(summarizeTokenAccounts([], null), null);
+const tokenAccountSample = normalizeLargestTokenAccounts({ value: [
+  { address: Keypair.generate().publicKey, amount: '1000000', decimals: 6, uiAmountString: '1' },
+  { address: Keypair.generate().publicKey, amount: '0', decimals: 6, uiAmountString: '0' },
+] });
+assert.equal(tokenAccountSample.count, 1);
+assert.equal(tokenAccountSample.coverage, 'complete-account-list');
+assert.equal(tokenAccountSample.accounts[0].uiAmountString, '1');
 
 const directory = await mkdtemp(join(tmpdir(), 'funded-coin-detail-'));
 const mint = Keypair.generate().publicKey.toBase58();

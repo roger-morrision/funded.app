@@ -6,6 +6,7 @@ import { receiptFingerprint, cachedReceiptProof } from './receipt-history.mjs';
 
 export function createReceiptEvidenceReader({ store, cluster, connectionFactory, officialGenesis, maxActive = 4, commitment = 'confirmed' }) {
   if (!['confirmed','finalized'].includes(commitment)) throw new Error('Unsupported receipt commitment.');
+  if (!['devnet','mainnet-beta'].includes(cluster)) throw new Error('Unsupported receipt cluster.');
   const globalCache = createReadCache({ ttlMs: 30_000, maxEntries: 1 });
   const scopedCache = createReadCache({ ttlMs: 30_000, maxEntries: 100 });
   let active = 0;
@@ -13,7 +14,6 @@ export function createReceiptEvidenceReader({ store, cluster, connectionFactory,
     const { collections, payouts, coverage, scope } = candidates;
     const base = { cluster, generatedAt: new Date().toISOString(), verifiedCollections: [], verifiedPayouts: [], coverage, scope, commitment, indexedRecords:0 };
     const unavailable = reason => ({ ...base, status: 'unavailable', reason });
-    if (cluster !== 'devnet') return unavailable('Devnet evidence is disabled on this cluster.');
     if (!coverage.recordedCollections && !coverage.recordedPayouts) return { ...base, status: 'no-records', reason: 'No collection or payout signatures are recorded.' };
     // Separate creator windows must not create unbounded aggregate RPC fan-out.
     // Fail closed instead of growing an unbounded queue behind slow RPC requests.
@@ -42,8 +42,8 @@ export function createReceiptEvidenceReader({ store, cluster, connectionFactory,
         connection = connectionFactory();
         try {
           const [configured, official] = await Promise.all([connection.getGenesisHash(), officialGenesis()]);
-          if (!configured || configured !== official) return unavailable('Configured RPC is not Solana Devnet.');
-        } catch { return unavailable('Devnet genesis could not be verified.'); }
+          if (!configured || configured !== official) return unavailable('Configured RPC does not match the selected Solana cluster.');
+        } catch { return unavailable('Selected Solana cluster genesis could not be verified.'); }
       }
       const additions=[];
       for (let index = 0; index < pending.length; index += 4) {

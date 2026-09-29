@@ -69,4 +69,26 @@ pub mod funded_fee_router {
     ) -> Result<()> {
         reward::payout_token(ctx, amount, leaf_index, proof)
     }
+
+    pub fn initialize_community_drop(
+        ctx: Context<InitializeCommunityDrop>,
+        merkle_root: [u8; 32],
+        snapshot_hash: [u8; 32],
+        migration_signature: [u8; 64],
+        migration_slot: u64,
+        snapshot_slot: u64,
+        migration_at: i64,
+        total_amount: u64,
+        leaf_count: u32,
+    ) -> Result<()> {
+        community::initialize_drop(ctx, merkle_root, snapshot_hash, migration_signature, migration_slot, snapshot_slot, migration_at, total_amount, leaf_count)
+    }
+
+    pub fn claim_community_drop(ctx: Context<ClaimCommunityDrop>, amount: u64, leaf_index: u32, proof: Vec<[u8; 32]>) -> Result<()> {
+        community::claim(ctx, amount, leaf_index, proof)
+    }
+
+    pub fn close_community_drop(ctx: Context<CloseCommunityDrop>) -> Result<()> {
+        community::close(ctx)
+    }
 }

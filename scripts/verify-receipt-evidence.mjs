@@ -18,7 +18,9 @@ const payout = { cluster: 'devnet', signature, status: 'paid', source: 'mint-rou
 
 assert.equal(verifyCollectionReceipt(collection, transaction)?.collectedLamports, 100_000);
 assert.equal(verifyPayoutReceipt(payout, transaction)?.amountLamports, 100_000);
-assert.equal(verifyCollectionReceipt({ ...collection, cluster: 'mainnet-beta' }, transaction), null);
+assert.equal(verifyCollectionReceipt({ ...collection, cluster: 'mainnet-beta' }, transaction)?.collectedLamports, 100_000);
+assert.equal(verifyPayoutReceipt({ ...payout, cluster: 'mainnet-beta' }, transaction)?.amountLamports, 100_000);
+assert.equal(verifyCollectionReceipt({ ...collection, cluster: 'testnet' }, transaction), null);
 assert.equal(verifyCollectionReceipt({ ...collection, attribution: 'router' }, transaction), null);
 assert.equal(verifyCollectionReceipt({ ...collection, onchainVerified: false }, transaction), null);
 assert.equal(verifyCollectionReceipt({ ...collection, collectedLamports: 99_999 }, transaction), null);

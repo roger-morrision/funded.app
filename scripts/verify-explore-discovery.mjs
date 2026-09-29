@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { collectRecentTrades, enrichMarketRecord, filterMarketRecords, summarizeMarkets, withMarketWindow } from '../market-intelligence.js';
-import { formatSolMetric, readCurveMetrics } from '../explore-onchain-metrics.js';
+import { formatSolMetric, readCurveMetrics, readPumpSwapMetrics } from '../explore-onchain-metrics.js';
 import { sortDevnetLaunches } from '../server/explore-registry.mjs';
 
 const exploreMarkup = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const appSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
+const workspaceSource = readFileSync(new URL('../workspace-ui.js', import.meta.url), 'utf8');
 assert.match(exploreMarkup, /Minimum curve cap · SOL\s*<input id="explore-min-cap-sol"/);
 assert.match(exploreMarkup, /Minimum 24h traded · SOL<\/span><input id="explore-min-volume-sol"/);
 assert.match(exploreMarkup, /id="explore-promotion-filter"[\s\S]*?Any paid promotion[\s\S]*?Premier/);
@@ -13,9 +14,23 @@ assert.match(exploreMarkup, /id="explore-reward-filter"[\s\S]*?Community token a
 assert.match(exploreMarkup, /data-explore-sort="airdrop"[\s\S]*?data-explore-sort="holder-fee"[\s\S]*?data-explore-sort="x-fee"/);
 assert.match(exploreMarkup, /id="explore-benefit-leaders"/);
 assert.match(appSource, /document\.querySelector\('#explore-search'\)\?\.addEventListener\('input', event => \{[\s\S]*?document\.querySelector\('#global-search'\)[\s\S]*?field\.value = exploreQuery;[\s\S]*?updateExploreViews\(\);\s*\}\);/, 'Clearing or editing Explore search must keep the persistent global field synchronized.');
+assert.match(appSource, /function clearExploreFilters\(\)[\s\S]*?dispatchEvent\(new Event\('funded:explore-filters-cleared'\)\)/, 'Every Explore clear path must notify the workspace filter summary.');
+assert.match(workspaceSource, /root\?\.addEventListener\('funded:explore-filters-cleared', save\)/, 'Workspace filter status and persisted view must update after a clear action.');
+assert.match(appSource, /toggle\.setAttribute\('aria-label', open \? 'Close launch filters' : 'Open launch filters'\)/, 'The Explore filter control must announce whether it opens or closes the popover.');
+assert.match(appSource, /const loading = exploreProviderStatus === 'On-chain only · loading' && !exploreLastVerifiedAt/, 'Explore must distinguish its initial loading state from a confirmed empty feed.');
+assert.match(appSource, /Loading verified launches…[\s\S]*?Checking the indexed launch feed and confirming current Solana state/, 'Explore must show truthful loading copy while verification is still in flight.');
+assert.match(appSource, /if \(!visible\.length && !loading\)/, 'Explore must not offer an empty-feed retry while the first verification is still loading.');
+assert.match(appSource, /const feedChecked = Boolean\(exploreUpdatedAt\)[\s\S]*?Checking confirmed mints[\s\S]*?Checking confirmed trades/, 'Analytics must not describe pre-fetch launch and trade arrays as confirmed zeroes.');
+assert.match(appSource, /const launchFeedUnavailable = !exploreFeedAvailable && !exploreLastVerifiedAt[\s\S]*?Launch feed unavailable; count not verified/, 'Home must not report zero verified launches when the launch feed is unreachable.');
+assert.match(appSource, /const burnSummaryReady = allocationReady[\s\S]*?allocation\.burnedTokens != null[\s\S]*?Number\.isFinite\(Number\(allocation\.burnedTokens\)\)[\s\S]*?burnSummaryReady \? formatDashboardQuantity\(burnedTokens\) : '—'[\s\S]*?Burn receipts unavailable; amount not verified/, 'Home must not report zero burns when receipts are unreachable.');
+assert.match(appSource, /function showCoinPage\(open = true\)[\s\S]*?if \(!exploreUpdatedAt && !coinExitExploreLoad\) \{[\s\S]*?loadOnchainExploreData\(\)/, 'Leaving a direct token URL must load Explore even if navigation precedes the token-detail render.');
+assert.match(appSource, /const exploreInitialLoadStarted = !coinRouteRequested\(\)[\s\S]*?else if \(!exploreInitialLoadStarted && !exploreUpdatedAt\) showCoinPage\(false\)/, 'Startup must recover a workspace hash selected before the direct-token hashchange listener attached.');
 assert.match(appSource, /function withVerifiedExploreBenefits\(record\)[\s\S]*?benefitPolicyVerified: true[\s\S]*?holderFeePercent[\s\S]*?xFeePercent/, 'Explore benefits must derive from a verified launch policy.');
 assert.match(appSource, /#explore-promotion-filter'[\s\S]*?explorePromotion = event\.target\.value/);
 assert.match(appSource, /#explore-reward-filter'[\s\S]*?exploreReward = event\.target\.value/);
+assert.match(appSource, /function readOptionalSolFilter\(selector, \{ integer = false \} = \{\}\)[\s\S]*?number >= 0 && \(!integer \|\| Number\.isInteger\(number\)\)[\s\S]*?input\.value = ''/, 'Invalid minimum values must not remain visible while their filter is ignored.');
+assert.match(appSource, /exploreMinTrades = readOptionalSolFilter\('#explore-min-trades', \{ integer: true \}\)/, 'The minimum trade count must reject fractions.');
+assert.match(appSource, /exploreMinTraders = readOptionalSolFilter\('#explore-min-traders', \{ integer: true \}\)/, 'The minimum trading-wallet count must reject fractions.');
 assert.deepEqual(filterMarketRecords([
   { address: 'below', curveCapSol: 0.95 },
   { address: 'above', curveCapSol: 1.05 },
@@ -46,6 +61,17 @@ assert.equal(formatSolMetric(0), '0 SOL');
 assert.equal(formatSolMetric(0.000495048, { partial: true }), '≥0.000495 SOL');
 assert.equal(formatSolMetric(null), '—');
 assert.equal(readCurveMetrics({ complete: true, virtualTokenReserves: 1n, virtualQuoteReserves: 1n }, { supply: 1n, decimals: 6 }).curveCapSol, null);
+assert.deepEqual(readPumpSwapMetrics({ baseAmount: 200_000_000n, quoteAmount: 1_000_000_000n, virtualQuoteAmount: 1_000_000_000n, baseDecimals: 6, supply: 1_000_000_000n }), {
+  poolPriceSol: 0.01,
+  poolMarketCapSol: 10,
+  poolReserveSol: 1,
+});
+assert.deepEqual(readPumpSwapMetrics({ baseAmount: 0n, quoteAmount: 500_000_000n, baseDecimals: 6, supply: 1_000_000_000n }), { poolPriceSol: null, poolMarketCapSol: null, poolReserveSol: 0.5 });
+assert.match(appSource, /item\.holders == null \|\| item\.holders === '' \? NaN : Number\(item\.holders\)/, 'A missing indexed holder value must not become a false zero.');
+assert.match(appSource, /<small>\$\{EXPLORE_CLUSTER === 'devnet' \? 'Token accounts' : 'Holders'\}<\/small>/, 'Devnet cards must describe bounded RPC token accounts accurately.');
+assert.match(appSource, /item\.migrated === true \? 'Pool unindexed'/, 'Migrated cards must not present curve-only activity as complete pool volume.');
+assert.match(appSource, /function exploreMarketCapUsd\(record\)/, 'Explore cards must derive USD market cap from the verified curve or pool snapshot.');
+assert.match(appSource, /class="asset-value"[^>]*>\$\{escapeHtml\(exploreMarketCapLabel\(a\)\)\} · \$\{escapeHtml\(exploreMarketCapUsd\(a\)\)\}/, 'Explore card footers must show USD market cap instead of a long decimal spot price.');
 const solRecords = [
   { address: 'lowVolume', symbol: 'LOW', createdTimestamp: 1, volume24hSol: 0.1, curveCapSol: 2, curveReserveSol: 0 },
   { address: 'highVolume', symbol: 'HIGH', createdTimestamp: 2, volume24hSol: 0.2, curveCapSol: 1, curveReserveSol: 0.5 },
@@ -54,6 +80,13 @@ assert.deepEqual(filterMarketRecords(solRecords, { sort: 'volume' }).map(item =>
 assert.deepEqual(filterMarketRecords(solRecords, { sort: 'market-cap' }).map(item => item.address), ['lowVolume', 'highVolume']);
 assert.deepEqual(filterMarketRecords(solRecords, { sort: 'liquidity' }).map(item => item.address), ['highVolume', 'lowVolume']);
 assert.deepEqual(filterMarketRecords(solRecords, { sort: 'turnover' }).map(item => item.address), ['highVolume', 'lowVolume']);
+const migratedMarket = enrichMarketRecord({ address: 'pool', migrated: true, poolMarketCapSol: 5, poolReserveSol: 1, volume24hSol: 99, curveCapSol: null, curveReserveSol: null });
+assert.equal(migratedMarket.poolMarketCapSol, 5);
+assert.equal(migratedMarket.turnover, null, 'Curve-only volume must not be divided by a migrated pool market cap.');
+assert.equal(migratedMarket.riskFlags.includes('market-cap-unavailable'), false);
+assert.equal(migratedMarket.riskFlags.includes('liquidity-unavailable'), false);
+assert.deepEqual(filterMarketRecords([migratedMarket, ...solRecords], { sort: 'market-cap' }).map(item => item.address), ['pool', 'lowVolume', 'highVolume']);
+assert.deepEqual(filterMarketRecords([migratedMarket], { minCurveCapSol: 4 }).map(item => item.address), ['pool']);
 assert.deepEqual(filterMarketRecords([{ address: 'oldActive', createdTimestamp: 1, lastTradeUnixTime: 9 }, { address: 'newQuiet', createdTimestamp: 8, lastTradeUnixTime: 0 }].map(enrichMarketRecord), { sort: 'recent-trade' }).map(item => item.address), ['oldActive', 'newQuiet']);
 const nowMs = 1_000_000_000;
 const discovery = [

@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { canSignTransactions, connectWalletProvider, selectRememberedWalletProvider, selectWalletProvider, walletAddress, walletLaunches } from '../wallet-core.js';
 import { submitTrade } from '../pump-trading.js';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
+import BN from 'bn.js';
 import { isAppPagePath } from '../server/page-routes.mjs';
 
 const keyA = { toBase58: () => 'account-a' };
@@ -46,7 +48,7 @@ await assert.rejects(submitTrade({
   connection: { getLatestBlockhash: async () => { current = false; return { blockhash: user.toBase58(), lastValidBlockHeight: 1 }; }, sendRawTransaction: async () => { sent = true; return 'signature'; } },
   provider: { signTransaction: async () => { signed = true; return { serialize: () => Buffer.from([1]) }; } },
   side: 'buy', mint: user, user, amount: 1, slippagePercent: 1,
-  preparedTrade: { side: 'buy', mint: user, user, inputAmount: 1, slippagePercent: 1, instructions: [instruction] },
+  preparedTrade: { side: 'buy', mint: user, user, inputAmount: 1, slippagePercent: 1, outputAmount: new BN(1), instructions: [instruction] },
   assertWalletCurrent: () => { if (!current) throw new Error('wallet changed'); },
 }), /wallet changed/);
 assert.equal(signed, false);
@@ -59,10 +61,42 @@ await assert.rejects(submitTrade({
   connection: { getLatestBlockhash: async () => ({ blockhash: user.toBase58(), lastValidBlockHeight: 1 }), sendRawTransaction: async () => { sent = true; return 'signature'; } },
   provider: { signTransaction: async () => { signed = true; current = false; return { serialize: () => Buffer.from([1]) }; } },
   side: 'buy', mint: user, user, amount: 1, slippagePercent: 1,
-  preparedTrade: { side: 'buy', mint: user, user, inputAmount: 1, slippagePercent: 1, instructions: [instruction] },
+  preparedTrade: { side: 'buy', mint: user, user, inputAmount: 1, slippagePercent: 1, outputAmount: new BN(1), instructions: [instruction] },
   assertWalletCurrent: () => { if (!current) throw new Error('wallet changed'); },
 }), /wallet changed/);
 assert.equal(signed, true);
 assert.equal(sent, false);
+
+const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const coinDetailCss = await readFile(new URL('../coin-detail.css', import.meta.url), 'utf8');
+const dockerfile = await readFile(new URL('../Dockerfile', import.meta.url), 'utf8');
+const previewCompose = await readFile(new URL('../compose.preview.yml', import.meta.url), 'utf8');
+assert.match(html, /aria-selected="true" tabindex="0" data-wallet-tab="activity"/);
+assert.match(html, /aria-selected="false" tabindex="-1" data-wallet-tab="balances"/);
+assert.match(app, /button\.tabIndex = active \? 0 : -1/);
+assert.match(app, /if \(address && address === connectedWalletAddress\) void loadFundedBurnState\(\)/, 'The connected wallet page must load its live $FUNDED balance.');
+assert.match(app, /const exploreInitialLoadStarted = !coinRouteRequested\(\);\s*if \(exploreInitialLoadStarted\) loadOnchainExploreData\(\)\.catch/, 'Direct wallet routes must load verified trade activity before reporting wallet trade counts.');
+assert.doesNotMatch(app, /!coinRouteRequested\(\) && !walletRouteRequested\(\) && exploreAutoRefresh/, 'Wallet activity must remain eligible for verified market refresh.');
+assert.doesNotMatch(app, /asset\.creator === address && asset\.address && !combined\.has\(asset\.address\)/, 'Wallet launch counts must not promote unregistered market assets to verified funded launches.');
+assert.match(app, /fundedBurnState\.wallet === address && fundedBurnState\.status === 'ready'[\s\S]*?formatTokenBaseUnits\(fundedBurnState\.balanceBaseUnits, fundedBurnState\.decimals, 6\)/, 'The wallet balance tab must use the verified Devnet $FUNDED balance.');
+assert.match(app, /function renderWalletFundedBalance\(\)[\s\S]*?fundedBurnState\.wallet === connectedWalletAddress[\s\S]*?fundedBurnState\.status === 'ready'[\s\S]*?formatTokenBaseUnits\(fundedBurnState\.balanceBaseUnits, fundedBurnState\.decimals, 6\)/, 'The wallet menu must use the verified balance for the currently connected wallet.');
+assert.match(app, /fundedBurnState = \{\s*status: 'ready'[\s\S]*?renderWalletFundedBalance\(\)/, 'The wallet menu must refresh after its live Devnet balance loads.');
+assert.match(html, /id="wallet-popover-funded">—<\/strong><small>\$FUNDED<\/small><\/span><em>Balance unavailable<\/em>/, 'The disconnected wallet menu must not claim its balance is merely unindexed.');
+assert.match(coinDetailCss, /\.wallet-detail-actions>a\[hidden\]\{display:none\}/, 'Hidden wallet actions must not be shown by the flex link style.');
+assert.match(html, /id="profile-copy-address"[^>]+disabled/, 'The initial disconnected profile must not expose a usable copy-address action.');
+assert.match(html, /id="profile-disconnect" disabled/, 'The initial disconnected profile must not expose a usable disconnect action.');
+assert.match(app, /profileCopyAddress\.disabled = !connected/, 'Wallet state must enable copy-address only after connection.');
+assert.match(app, /profileDisconnect\.disabled = !connected/, 'Wallet state must enable disconnect only after connection.');
+assert.match(app, /tradeQuoteButton\.textContent = signingReady \? 'Preview trade' : connected \? 'Open wallet to preview' : 'Connect wallet to preview'/, 'Trade preview must describe its wallet prerequisite before opening a connection flow.');
+assert.match(app, /button\.textContent = fundedBuyBusy \? 'Waiting for Devnet…' : fundedBuyPreview \? 'Confirm buy' : wallet \? 'Preview buy' : 'Connect wallet to preview'/, '$FUNDED buy preview must describe its wallet prerequisite before opening a connection flow.');
+assert.match(dockerfile, /ARG VITE_DEV_WALLET_ROLE=creator/, 'The image build must accept the selected disposable Devnet wallet role.');
+assert.match(previewCompose, /VITE_DEV_MODE: "true"/, 'The local preview must build Dev Mode into the browser bundle.');
+assert.match(previewCompose, /VITE_DEV_AUTOCONNECT: "true"/, 'The local preview must auto-connect its disposable Devnet wallet.');
+assert.match(previewCompose, /SOLANA_DEVNET_CREATOR_SECRET_KEY_FILE: \/run\/secrets\/solana_devnet_creator_secret_key/, 'The local preview must read its server-side disposable creator wallet from a secret file.');
+assert.match(previewCompose, /SOLANA_KEEPER_CONFIGURED: "true"/, 'The Devnet preview must explicitly opt in before its disposable keeper can execute verified referral payouts.');
+assert.match(previewCompose, /SOLANA_KEEPER_SECRET_KEY_FILE: \/run\/secrets\/solana_keeper_secret_key/, 'The Devnet preview keeper must use a configured disposable test wallet secret file.');
+assert.match(previewCompose, /AUTOMATIC_REWARD_STORE_PATH: \/app\/data\/automatic-rewards\/ledger\.json/, 'The preview and automatic reward worker must read the same durable ledger.');
+assert.match(previewCompose, /funded_reward_ledger:\/app\/data\/automatic-rewards/, 'The preview must mount the automatic reward ledger.');
 
 console.log('wallet state checks passed');

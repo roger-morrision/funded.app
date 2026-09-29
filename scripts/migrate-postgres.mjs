@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createPostgresStore } from '../server/postgres-store.mjs';
 
@@ -14,6 +15,15 @@ async function loadLocalEnv() {
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
 
+function loadSecretFiles() {
+  for (const [name, filePath] of Object.entries(process.env)) {
+    if (!name.endsWith('_FILE') || !filePath || process.env[name.slice(0, -5)] != null) continue;
+    try { process.env[name.slice(0, -5)] = readFileSync(filePath, 'utf8').trim(); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+}
+
+loadSecretFiles();
 await loadLocalEnv();
 const databaseUrl = String(process.env.DATABASE_URL || '').trim();
 if (!databaseUrl) throw new Error('DATABASE_URL is required.');

@@ -8,6 +8,9 @@ data
 contracts
 mnt-c-data-dev-apps-funded-app-contracts-funded-fee-router
 secrets
+.secrets
+.codex-*
+dist-mainnet-readonly
 secret
 credentials
 **/*.key
@@ -15,3 +18,6 @@ credentials
 **/*keypair*.json
 **/*.backup
 **/*.dump
+audit-records
+docs/ui-evidence-2026-09-29
+.docker-config

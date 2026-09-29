@@ -1,0 +1,80 @@
+.launch-review-dialog{
+  width:min(620px,calc(100vw - 24px));
+  height:min(800px,calc(100dvh - 24px));
+  max-height:calc(100dvh - 24px);
+  padding:0;
+  overflow:hidden;
+  border-color:#394762;
+  background:#101620;
+}
+.launch-review-dialog[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto}
+.launch-review-head{position:relative;padding:23px 26px 18px;border-bottom:1px solid #293548;background:#131c29}
+.launch-review-head .dialog-kicker{margin:0 0 9px}
+.launch-review-head h2{margin:0 38px 5px 0;font-size:24px;line-height:1.2;letter-spacing:-.03em}
+.launch-review-head>p:not(.dialog-kicker){margin:0;color:#a9b9cd;font-size:12px;line-height:1.5}
+.launch-review-dialog .dialog-close{top:17px;right:19px;width:35px;height:35px;border-radius:8px;color:#a9b9cd}
+.launch-review-dialog .dialog-close:hover,.launch-review-dialog .dialog-close:focus-visible{background:#243148;color:#fff}
+.launch-review-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:20px 26px 23px;scrollbar-color:#475a78 transparent}
+.launch-review-project{display:grid;gap:13px;padding:16px 17px;border:1px solid #34435a;border-radius:12px;background:#182332}
+.launch-review-project>div{display:grid;gap:4px;min-width:0}
+.launch-review-project>div+div{padding-top:12px;border-top:1px solid #334155}
+.launch-review-label{color:#89a2c2;font:600 10px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em}
+.launch-review-project strong{color:#f4f7fc;font-size:17px;line-height:1.3;overflow-wrap:anywhere}
+.launch-review-project small{color:#acd4c4;font-size:11px}
+.launch-review-project code,.launch-review-route code{color:#c6d7f5;font:11px/1.5 'DM Mono',monospace;overflow-wrap:anywhere}
+.launch-review-highlights{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0 14px}
+.launch-review-highlights>div{display:grid;gap:6px;padding:12px 14px;border:1px solid #2d394e;border-radius:10px;background:#151d2a}
+.launch-review-highlights span{color:#9aabc0;font-size:11px}
+.launch-review-highlights strong{color:#f1f5fb;font:600 13px 'DM Mono',monospace;overflow-wrap:anywhere}
+.launch-review-budget{display:grid;grid-template-columns:1.15fr 1fr;gap:9px}
+.launch-review-budget>div{display:grid;align-content:start;gap:6px;min-width:0;padding:16px;border:1px solid #3c6656;border-radius:12px;background:#142820}
+.launch-review-budget>div+div{border-color:#384966;background:#18243a}
+.launch-review-budget span{color:#b0dcc9;font-size:11px;font-weight:700}
+.launch-review-budget>div+div span{color:#b5c9ee}
+.launch-review-budget strong{color:#79f4c2;font:700 clamp(16px,3vw,21px)/1.2 'DM Mono',monospace;letter-spacing:-.04em;overflow-wrap:anywhere}
+.launch-review-budget>div+div strong{color:#d6e3ff}
+.launch-review-budget small{color:#94b6a4;font-size:10px;line-height:1.45}
+.launch-review-budget>div+div small{color:#9aacca}
+.launch-review-costs{margin-top:18px}
+.launch-review-costs h3{margin:0 0 9px;font-size:13px;color:#e4ebf5}
+.launch-review-costs dl{margin:0;padding:1px 15px;border:1px solid #303d51;border-radius:11px;background:#141d29}
+.launch-review-costs dl>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:baseline;padding:11px 0}
+.launch-review-costs dl>div+div{border-top:1px solid #2b384b}
+.launch-review-costs dt{color:#abb9cc;font-size:11px;line-height:1.4}
+.launch-review-costs dd{margin:0;color:#edf3fc;font:600 11px 'DM Mono',monospace;white-space:nowrap;text-align:right}
+.launch-review-notes{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px}
+.launch-review-notes p{margin:0;padding:12px 13px;border:1px solid #2d394e;border-radius:10px;background:#141d29}
+.launch-review-notes strong,.launch-review-notes span{display:block}
+.launch-review-notes strong{color:#dae5f4;font-size:11px;line-height:1.4}
+.launch-review-notes span{margin-top:5px;color:#95a8bf;font-size:10px;line-height:1.45}
+.launch-review-expiry{margin:13px 0 0!important;color:#9baec5!important;font-size:11px!important;line-height:1.5!important}
+.launch-review-expiry strong{color:#d4e3ff}
+.launch-review-route{margin-top:15px;border:1px solid #33435b;border-radius:10px;background:#151e2b}
+.launch-review-route summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;color:#cbd9eb;cursor:pointer;font-size:11px;font-weight:700;list-style:none}
+.launch-review-route summary::-webkit-details-marker{display:none}
+.launch-review-route summary::before{content:'›';font-size:19px;line-height:.7;color:#8da9d5;transition:transform .2s}
+.launch-review-route[open] summary::before{transform:rotate(90deg)}
+.launch-review-route summary span{margin-right:auto}
+.launch-review-route summary code{font-size:10px;white-space:nowrap}
+.launch-review-route-body{display:grid;gap:5px;padding:0 14px 14px;border-top:1px solid #2e3b50}
+.launch-review-route-body>span{margin-top:12px;color:#90a4bf;font-size:10px}
+.launch-review-route-body p{margin:0!important;color:#d5e0ee!important;font-size:11px!important;line-height:1.5!important}
+.launch-review-footer{padding:13px 26px 17px;border-top:1px solid #2c3b52;background:#131c29}
+.launch-review-footer p{margin:0 0 10px!important;color:#a9b9cc!important;font-size:10px!important;line-height:1.45!important}
+.launch-review-footer .profile-actions{display:grid;grid-template-columns:1fr 1.45fr;gap:9px;margin:0}
+.launch-review-footer button{min-height:42px;font-size:11px}
+.launch-review-dialog :focus-visible{outline:2px solid #8ba8ff;outline-offset:2px}
+@media(max-width:520px){
+  .launch-review-dialog{width:calc(100vw - 16px);height:calc(100dvh - 16px);max-height:calc(100dvh - 16px)}
+  .launch-review-head{padding:18px 18px 15px}
+  .launch-review-head h2{font-size:21px}
+  .launch-review-scroll{padding:15px 18px 18px}
+  .launch-review-footer{padding:11px 18px 15px}
+  .launch-review-budget,.launch-review-notes{grid-template-columns:1fr}
+  .launch-review-budget>div{padding:13px 14px}
+  .launch-review-costs dd{font-size:10px}
+}
+@media(max-width:360px){
+  .launch-review-highlights{grid-template-columns:1fr}
+  .launch-review-route summary code{font-size:9px}
+}

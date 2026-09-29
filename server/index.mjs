@@ -1,6 +1,8 @@
 import { createServer } from 'node:http';
 import { automaticRewardStatus } from './automatic-rewards.mjs';
 import { createAutomaticRewardStore } from './automatic-reward-store.mjs';
+import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from './automatic-reward-chain.mjs';
+import { readCommunityReserveStatus } from './community-reserve-status.mjs';
 import { randomBytes, createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
@@ -16,7 +18,7 @@ import { buildCommunityAirdropPolicy } from '../airdrop-policy.js';
 import { canonicalLaunchPolicy, launchPolicyStatement } from '../launch-policy-auth.js';
 import { createReferralCode, normalizeReferralCode, resolveReferralUpline } from '../referral-program.js';
 import { deriveFeeRouter, deriveMintFeeRouter, verifyFeeRouterAccount, verifyMintFeeRouterAccount } from '../fee-router.js';
-import { OnlinePumpSdk } from '@pump-fun/pump-sdk';
+import { OnlinePumpSdk, creatorVaultPda } from '@pump-fun/pump-sdk';
 import { createStore } from './store.mjs';
 import { readPumpMarketActivity } from './coin-market.mjs';
 import { sortDevnetLaunches } from './explore-registry.mjs';
@@ -28,6 +30,7 @@ import { rewardView, renewClaimChallenge } from '../reward-discovery.js';
 import { verifyReferralClaim, pendingReferralClaim } from './referral-claim-state.mjs';
 import { CREATOR_SUPPORT_VERSION } from '../creator-support-model.js';
 import { createXAuth, cookieValue, authCookie, allowedAuthOrigin, callbackUrlFor, SESSION_SECONDS, OAUTH_SECONDS } from './x-auth.mjs';
+import { createMobileWalletRelay } from './mobile-wallet-relay.mjs';
 import { buildRewardCycle, validateRewardConfig } from '../reward-policy.js';
 import { analyzeLaunchActivity } from '../anti-sniper-policy.js';
 import { buildProductionReadiness, isKeeperEnabled } from '../production-readiness.js';
@@ -36,12 +39,29 @@ import { assertObservedClaim } from './claim-state.mjs';
 import { receiptWorkerStatus } from './receipt-worker-status.mjs';
 import { buildTerminalSignal, creatorReputation, immutableLaunchReview, normalizeXIntake, quoteAssetCatalog } from '../stonk-features.js';
 import { verifyPumpLaunch } from './launch-verification.mjs';
+import { verifyFundedBurn } from './burn-verification.mjs';
 import { createLaunchBurnTiers } from '../launch-burn-policy.js';
 import { deriveXFeeObligation } from './x-fee-guard.mjs';
 import { buildMintRouterSettlementInstruction, readMintClaimRecord } from './mint-router-payout.mjs';
 import { parseSignedMetadata, publicMetadata } from './devnet-metadata.mjs';
 import { devnetMetadataUri, devnetImageUri } from '../devnet-metadata.js';
+import { normalizeLargestTokenAccounts } from './token-accounts.mjs';
+import { coinFeeOverview } from './coin-fee-overview.mjs';
+import { homeFeeAllocationSummary } from './home-dashboard-metrics.mjs';
+import { createCreatorFeeChallenges, creatorClaimStatus } from './creator-fee-claim.mjs';
+import { createTokenChatSessions } from './token-chat-session.mjs';
+import { createXUserResolver } from './x-user-lookup.mjs';
+import { TOKEN_CHAT_REPORT_REASONS, tokenChatDeleteStatement, tokenChatPostStatement, tokenChatReportStatement, validateTokenChatText } from '../token-chat.js';
 
+let communityReserveSnapshot = null;
+
+function loadSecretFiles() {
+  for (const [name, filePath] of Object.entries(process.env)) {
+    if (!name.endsWith('_FILE') || !filePath || process.env[name.slice(0, -5)] != null) continue;
+    try { process.env[name.slice(0, -5)] = readFileSync(filePath, 'utf8').trim(); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+}
 function loadLocalEnv() {
   try {
     const contents = readFileSync(resolve(process.cwd(), '.env.local'), 'utf8');
@@ -53,6 +73,7 @@ function loadLocalEnv() {
     }
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
+loadSecretFiles();
 loadLocalEnv();
 
 const port = Number(process.env.PORT || 8787);
@@ -60,6 +81,7 @@ const host = String(process.env.HOST || '127.0.0.1');
 const staticRoot = resolve(process.cwd(), 'dist');
 const storePath = process.env.FUNDED_STORE_PATH || resolve(process.cwd(), 'data', 'funded-store.json');
 const automaticRewardStore = createAutomaticRewardStore(process.env.AUTOMATIC_REWARD_STORE_PATH || (process.env.FUNDED_STORE_PATH ? `${storePath}.automatic-rewards.json` : resolve(process.cwd(), 'data', 'automatic-rewards.json')));
+const creatorFeeChallenges = createCreatorFeeChallenges();
 function solToLamports(value) {
   const lamports = Math.round(Number(value) * 1_000_000_000);
   if (!Number.isSafeInteger(lamports) || lamports < 0) throw new Error('Automatic reward amount is not valid lamports.');
@@ -80,7 +102,7 @@ async function queueAutomaticSettlementRewards(settlement) {
   const main = await store.read(), collection = main.collections?.[settlement.claimSignature], launch = collection?.mint ? main.launches?.[collection.mint] : null;
   if (collection?.status !== 'collected' || collection.attribution !== 'mint-verified' || !launch?.onchainVerified) throw new Error('Automatic rewards require the verified collection and launch records.');
   const rows = [
-    { suffix:'creator', kind:'creator', amount:solToLamports(settlement.creatorDestinations?.creatorWallet), recipient:launch.creatorWallet, status:'pending' },
+    { suffix:'creator', kind:'creator', amount:solToLamports(settlement.creatorDestinations?.creatorWallet), recipient:launch.creatorWallet, status:'claimable' },
     { suffix:'holders', kind:'holder', amount:solToLamports(settlement.creatorDestinations?.holderAirdrop), recipient:null, status:'pending' },
   ];
   const xObligation = Object.values(main.obligations || {}).find(row => row.claimSignature === settlement.claimSignature && row.mint === collection.mint);
@@ -116,10 +138,12 @@ const birdeyeChain = String(process.env.BIRDEYE_CHAIN || 'solana').trim();
 const birdeyeTimeoutMs = 10_000;
 const pumpApiUrl = String(process.env.PUMP_API_URL || 'https://frontend-api-v3.pump.fun').replace(/\/$/, '');
 const solanaRpcUrl = String(process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com').trim();
+const fundedTokenMint = String(process.env.FUNDED_TOKEN_MINT || process.env.VITE_FUNDED_TOKEN_MINT || '').trim();
 const rpcMethods = new Set(['getAccountInfo', 'getMultipleAccounts', 'getBalance', 'getSlot', 'getTokenSupply', 'getTokenLargestAccounts', 'getTokenAccountsByOwner', 'getTokenAccountBalance', 'getSignaturesForAddress', 'getTransaction', 'getLatestBlockhash', 'getBlockHeight', 'getSignatureStatuses', 'getFeeForMessage', 'getMinimumBalanceForRentExemption', 'getRecentPrioritizationFees', 'simulateTransaction', 'sendTransaction']);
 const rpcCache = new Map();
 let rpcInflight = 0;
-const publicPostPaths = new Set(['/api/rewards/preview', '/api/anti-sniper/analyze', '/api/referrals/registration/prepare', '/api/referrals/registration/verify', '/api/referrals/attribution/prepare', '/api/referrals/attribution/verify', '/api/launches', '/api/devnet-metadata']);
+const publicPostPaths = new Set(['/api/rewards/preview', '/api/anti-sniper/analyze', '/api/referrals/registration/prepare', '/api/referrals/registration/verify', '/api/referrals/attribution/prepare', '/api/referrals/attribution/verify', '/api/launches', '/api/burn-receipts', '/api/devnet-metadata']);
+publicPostPaths.add('/api/airdrops/reserves/receipt');
 publicPostPaths.add('/api/x/logout'); // Cookie-authenticated, with an exact-origin check.
 let verifiedQuoteAssetsCache = null;
 const solanaCluster = String(process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER || 'devnet').trim();
@@ -137,14 +161,22 @@ if (process.env.RPC_ALLOW_EXPENSIVE_METHODS === 'true') rpcMethods.add('getProgr
 if (devnetTestMode && process.env.RPC_ALLOW_AIRDROP === 'true') rpcMethods.add('requestAirdrop');
 const xAttestationSecret = String(process.env.X_ATTESTATION_SECRET || '').trim();
 const xAuth = createXAuth(store);
+const mobileWalletRelay = createMobileWalletRelay({
+  appOrigin: new URL(process.env.PUBLIC_APP_URL || `http://127.0.0.1:${port}`).origin,
+  getLatestBlockhash: () => new Connection(solanaRpcUrl, 'confirmed').getLatestBlockhash('confirmed'),
+});
 const referralClaimExpiryMs = 14 * 24 * 60 * 60 * 1000;
 const maxReferralPayoutSol = Number(process.env.MAX_REFERRAL_PAYOUT_SOL || 10);
 const coinMarketCache = new Map();
+const tokenAccountsCache = new Map();
 const coinMarketInflight = new Map();
 let coinMarketActive = 0;
 let devnetVerificationActive = 0;
 let solUsdQuoteCache = { priceUsd: null, fetchedAt: null, expiresAt: 0 };
 let configuredQuoteAssets = [];
+const tokenChatReportThreshold = Math.max(2, Number(process.env.TOKEN_CHAT_REPORT_THRESHOLD || 3));
+const tokenChatSignatureWindowMs = 5 * 60 * 1000;
+const tokenChatSessions = createTokenChatSessions();
 try { configuredQuoteAssets = JSON.parse(process.env.FUNDED_QUOTE_ASSETS_JSON || '[]'); } catch { configuredQuoteAssets = []; }
 
 function json(res, status, body) { res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': process.env.CORS_ORIGIN || '*' }); res.end(JSON.stringify(body)); }
@@ -176,6 +208,30 @@ async function serveStatic(pathname, res) {
   }
 }
 function id(prefix) { return `${prefix}_${Date.now()}_${randomBytes(8).toString('hex')}`; }
+function tokenChatPublicMessage(message) {
+  return {
+    id: message.id,
+    mint: message.mint,
+    author: message.author,
+    text: message.text,
+    createdAt: message.createdAt,
+    reportCount: Object.keys(message.reports || {}).length,
+  };
+}
+function validTokenChatEnvelope(input) {
+  const nonce = String(input?.nonce || '').trim();
+  const issuedAt = String(input?.issuedAt || '').trim();
+  const issued = Date.parse(issuedAt);
+  if (!/^[A-Za-z0-9_-]{16,100}$/.test(nonce)) throw new Error('A valid one-time message nonce is required.');
+  if (!Number.isFinite(issued) || issued < Date.now() - tokenChatSignatureWindowMs || issued > Date.now() + 60_000) throw new Error('The wallet signature request has expired. Try again.');
+  return { nonce, issuedAt: new Date(issued).toISOString() };
+}
+function verifyTokenChatSignature(statement, signatureValue, publicKey) {
+  try {
+    const signature = bs58.decode(String(signatureValue || ''));
+    return signature.length === nacl.sign.signatureLength && nacl.sign.detached.verify(new TextEncoder().encode(statement), signature, publicKey.toBytes());
+  } catch { return false; }
+}
 function clientKey(req) {
   const remote = req.socket.remoteAddress || 'local';
   // Enable only when a trusted edge overwrites this header and direct public
@@ -258,7 +314,19 @@ function authorized(req) {
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 function requireAuthorized(req, res) { if (authorized(req)) return true; json(res, 401, { error: 'Keeper/indexer API authorization is required.' }); return false; }
-function publicPost(path) { return publicPostPaths.has(path) || /^\/api\/sol-claims\/[^/]+\/(?:prepare|verify|attest|execute)$/.test(path) || /^\/api\/referral-claims\/[^/]+\/(?:verify|execute)$/.test(path); }
+function publicPost(path) { return publicPostPaths.has(path) || /^\/api\/sol-claims\/[^/]+\/(?:prepare|verify|attest|execute)$/.test(path) || /^\/api\/referral-claims\/[^/]+\/(?:verify|execute)$/.test(path) || /^\/api\/tokens\/[^/]+\/creator-claim\/(?:prepare|request)$/.test(path); }
+function localDevWalletRequest(req, path) {
+  if (!devMode || !/^\/api\/dev-wallet\/sign-(?:transaction|message)$/.test(path)) return false;
+  try {
+    const origin = new URL(String(req.headers.origin || ''));
+    const hostname = new URL(`http://${req.headers.host || ''}`).hostname;
+    // A localhost-only Docker port reaches Node through the Docker bridge, so
+    // req.socket.remoteAddress is not loopback. Require both the browser origin
+    // and requested host to be local instead; public/tunnel hosts still fail.
+    return origin.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(origin.hostname)
+      && ['localhost', '127.0.0.1'].includes(hostname);
+  } catch { return false; }
+}
 function walletKey(value) { return new PublicKey(String(value || '').trim()).toBase58(); }
 function referralCodeFromBytes() { return createReferralCode(Uint8Array.from(randomBytes(6))); }
 function referralUplineForWallet(state, wallet) {
@@ -353,18 +421,14 @@ function verifyHmacAttestation({ handle, subject, issuedAt, signature }) {
   return actual.length === expected.length && timingSafeEqual(Buffer.from(actual), Buffer.from(expected)) && Math.abs(Date.now() - Number(issuedAt)) < 10 * 60 * 1000;
 }
 function xConfig() { return { clientId: String(process.env.X_CLIENT_ID || '').trim(), clientSecret: String(process.env.X_CLIENT_SECRET || '').trim(), callbackUrl: String(process.env.X_CALLBACK_URL || '').trim() }; }
-async function resolveXUser(handle) {
-  const username = String(handle || '').trim().replace(/^@/, '');
-  if (!/^[A-Za-z0-9_]{1,15}$/.test(username)) throw new Error('A valid X handle is required.');
-  const bearer = String(process.env.X_BEARER_TOKEN || '').trim();
-  if (!bearer) throw new Error('X user lookup is not configured.');
-  const response = await fetch(`https://api.x.com/2/users/by/username/${encodeURIComponent(username)}`, { headers: { authorization: `Bearer ${bearer}` }, signal: AbortSignal.timeout(8000) });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || !/^\d{1,24}$/.test(String(payload.data?.id || '')) || String(payload.data?.username || '').toLowerCase() !== username.toLowerCase()) throw new Error('The X handle could not be resolved to a stable user ID.');
-  return { handle: `@${payload.data.username}`, id: String(payload.data.id) };
-}
+const resolveXUser = createXUserResolver({ getBearerToken: () => process.env.X_BEARER_TOKEN });
 async function xSession(req) { return xAuth.session(cookieValue(req, 'funded_x_session')); }
 function xCallbackUrl(req) { return callbackUrlFor(req, xConfig().callbackUrl, process.env.NODE_ENV === 'production'); }
+function xOAuthConfigured(req) {
+  const config = xConfig();
+  if (!config.clientId || !config.clientSecret) return false;
+  try { xCallbackUrl(req); return true; } catch { return false; }
+}
 function html(res, status, title, message) { res.writeHead(status, { 'content-type': 'text/html; charset=utf-8' }); res.end(`<!doctype html><title>${title}</title><p>${message}</p>`); }
 function keeperKeypair() {
   const filePath = String(process.env.SOLANA_KEEPER_KEYPAIR_PATH || '').trim();
@@ -395,12 +459,13 @@ async function mintRouterReadiness() {
     try {
       const router = feeRouterConfig();
       const connection = new Connection(solanaRpcUrl, 'confirmed');
-      const [program, verified, legacy] = await Promise.all([
-        connection.getAccountInfo(router.programId, 'confirmed'),
+      const [evidence, verified, legacy] = await Promise.all([
+        readProgramDataEvidence(connection, router.programId),
         verifyFeeRouterAccount({ connection, programId: router.programId.toBase58() }),
         connection.getAccountInfo(router.address, 'confirmed'),
       ]);
-      if (!program?.executable || !verified.verified) reasons.push('fee router program or legacy header is not verified');
+      if (!evidence.account?.executable || !verified.verified) reasons.push('fee router program or legacy header is not verified');
+      if (!process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 || evidence.sha256 !== process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256.toLowerCase()) reasons.push('fee router program bytecode is not approved');
       if (legacy?.data?.length !== 74 || !new PublicKey(legacy.data.subarray(41, 73)).equals(authority.publicKey)) reasons.push('settlement authority does not match the on-chain router');
     } catch { reasons.push('Devnet fee router could not be verified'); }
   }
@@ -472,10 +537,10 @@ async function collectPumpCreatorFees({ requestedMint }) {
 
 const readReceiptEvidence = createReceiptEvidenceReader({ store, cluster: solanaCluster,
   connectionFactory: () => new Connection(solanaRpcUrl, 'confirmed'),
-  officialGenesis: () => new Connection(clusterApiUrl('devnet'), 'confirmed').getGenesisHash() });
+  officialGenesis: () => new Connection(clusterApiUrl(solanaCluster), 'confirmed').getGenesisHash() });
 const readFinalizedEvidence = createReceiptEvidenceReader({ store, cluster: solanaCluster, commitment:'finalized',
   connectionFactory: () => new Connection(solanaRpcUrl, 'finalized'),
-  officialGenesis: () => new Connection(clusterApiUrl('devnet'), 'finalized').getGenesisHash() });
+  officialGenesis: () => new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash() });
 
 const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solanaCluster, getSession: xSession, readEvidence: readReceiptEvidence, readFinalizedEvidence,
   capabilities: async () => ({ version: CREATOR_SUPPORT_VERSION, build: process.env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
@@ -488,9 +553,13 @@ async function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const metadataHost = String(req.headers.host || '').split(':')[0].toLowerCase() === 'metadata.funded.vip';
   if (metadataHost && (req.method !== 'GET' || !/^\/(?:devnet-metadata|devnet-images)\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(url.pathname) && url.pathname !== '/default.svg')) return json(res, 404, { error: 'Not found.' });
-  if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client' }); return res.end(); }
+  if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client, authorization' }); return res.end(); }
   try {
     if (await handleCreatorSupport(req, res, url)) return;
+    if (req.method === 'POST' && url.pathname === '/api/mobile-wallet/relay') {
+      if (!await store.chargeRpcRate(`mobile-wallet:${clientKey(req)}`, 1, 12, Math.floor(Date.now() / 60_000) * 60_000)) return json(res, 429, { error: 'Too many wallet connection requests; retry shortly.' });
+    }
+    if (await mobileWalletRelay.handle(req, res, url, body)) return;
     if (req.method === 'GET' && url.pathname === '/default.svg') {
       res.writeHead(200, { 'content-type': 'image/svg+xml', 'cache-control': 'public, max-age=86400', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'" });
       return res.end('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" rx="48" fill="#111827"/><circle cx="128" cy="128" r="68" fill="#d7b65d"/><text x="128" y="148" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="70" fill="#111827">F</text></svg>');
@@ -511,8 +580,8 @@ async function handle(req, res) {
       const cost = ['/api/launches', '/api/devnet-metadata'].includes(url.pathname) ? 10 : url.pathname.startsWith('/api/referrals/') ? 5 : 1;
       const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
       if (!await store.chargeRpcRate(`api:${clientKey(req)}`, cost, 120, windowStart)) return json(res, 429, { error: 'API request limit reached; retry shortly.' });
-      const chatPost = req.method === 'POST' && /^\/api\/tokens\/[^/]+\/chat$/.test(url.pathname);
-      if (!publicPost(url.pathname) && !chatPost && !authorized(req)) return json(res, 401, { error: 'API authorization required.' });
+      const chatPost = req.method === 'POST' && (/^\/api\/tokens\/[^/]+\/chat(?:\/(?:report|delete))?$/.test(url.pathname) || /^\/api\/token-chat\/session\/(?:prepare|verify|revoke)$/.test(url.pathname));
+      if (!publicPost(url.pathname) && !chatPost && !localDevWalletRequest(req, url.pathname) && !authorized(req)) return json(res, 401, { error: 'API authorization required.' });
     }
     if (req.method === 'POST' && url.pathname === '/api/solana/rpc') return await proxySolanaRpc(req, res);
     if (req.method === 'POST' && url.pathname === '/api/devnet-metadata') {
@@ -543,8 +612,64 @@ async function handle(req, res) {
       try { return json(res, 200, { signature: Buffer.from(nacl.sign.detached(Buffer.from(String(input.message || ''), 'base64'), wallet.keypair.secretKey)).toString('base64') }); }
       catch { return json(res, 400, { error: 'Invalid development message.' }); }
     }
-    if (req.method === 'GET' && url.pathname === '/api/rewards/automatic') return json(res, 200, automaticRewardStatus(new Date(), await automaticRewardStore.read()));
-    if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true, service: 'funded-api', external: { solanaKeeper: isKeeperEnabled(process.env) && Boolean(keeperKeypair()), feeRouter: Boolean(feeRouterConfig()), birdeye: Boolean(birdeyeApiKey), pumpFun: Boolean(pumpApiUrl), xOAuth: Boolean(process.env.X_CLIENT_ID && process.env.X_CLIENT_SECRET) } });
+    if (req.method === 'GET' && url.pathname === '/api/rewards/automatic') {
+      const status = automaticRewardStatus(new Date(), await automaticRewardStore.read());
+      const x = await xFeeReadiness();
+      status.modes.x = x.ready ? 'automatic-after-verified-X-wallet' : 'unavailable';
+      status.routeReadiness = { x, community:{ ready:status.modes.community === 'verified-token-airdrop-cycle', reason:status.modes.community === 'verified-token-airdrop-cycle' ? null : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:false, reason:'Accrual policy exists, but fee-funded buyback custody, execution, and burn receipts are not deployed.' } };
+      return json(res, 200, status);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/airdrops/reserves') {
+      if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256) return json(res, 503, { error:'Verified Devnet community reserve checks are unavailable.' });
+      if (communityReserveSnapshot?.expiresAt > Date.now()) return json(res, 200, communityReserveSnapshot.value);
+      try {
+        const connection = new Connection(solanaRpcUrl, 'finalized');
+        const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID);
+        const [genesis, evidence] = await Promise.all([connection.getGenesisHash(), readProgramDataEvidence(connection, programId)]);
+        if (genesis !== DEVNET_GENESIS_HASH || !evidence.account?.executable || evidence.sha256 !== process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256.toLowerCase()) throw new Error('Reward program identity or bytecode could not be verified.');
+        const state = await store.read();
+        const configuredReceipts = JSON.parse(process.env.FUNDED_COMMUNITY_RESERVE_RECEIPTS_JSON || '{}');
+        const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified && row.cluster === 'devnet' && Number.isSafeInteger(Number(row.communityAirdrop?.reservedTokens)) && Number(row.communityAirdrop.reservedTokens) > 0).slice(0, 100);
+        const reserves = [];
+        for (const launch of launches) {
+          const recorded = state.communityReserveReceipts?.[launch.mint]?.signature || configuredReceipts[launch.mint];
+          const reserve = await readCommunityReserveStatus({ connection, programId, authority:process.env.FUNDED_REWARD_AUTHORITY, fundingAuthority:launch.creatorWallet, mint:launch.mint, reservedTokens:Number(launch.communityAirdrop.reservedTokens), fundingSignature:typeof recorded === 'string' ? recorded : null });
+          reserves.push({ ...reserve, creatorWallet:launch.creatorWallet });
+        }
+        const result = { cluster:'devnet', checkedAt:new Date().toISOString(), claimPolicy:{ windowDays:90, unclaimedRecipient:process.env.FUNDED_REWARD_AUTHORITY, status:'not-activated' }, reserves };
+        communityReserveSnapshot = { value:result, expiresAt:Date.now() + 30_000 };
+        return json(res, 200, result);
+      } catch (error) { return json(res, 503, { error:`Community reserve verification unavailable: ${error.message}` }); }
+    }
+    if (req.method === 'POST' && url.pathname === '/api/airdrops/reserves/receipt') {
+      if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256) return json(res, 503, { error:'Devnet community reserve verification is unavailable.' });
+      if (!await store.chargeRpcRate(`community-receipt:${clientKey(req)}`, 1, 5, Math.floor(Date.now()/60000)*60000)) return json(res, 429, { error:'Wait before checking another reserve receipt.' });
+      const input = await body(req);
+      const mint = String(input.mint || '').trim(), signature = String(input.signature || '').trim();
+      if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) || !/^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(signature)) return json(res, 400, { error:'A valid launch mint and finalized funding signature are required.' });
+      const launch = await store.readLaunch(mint);
+      if (!launch?.onchainVerified || launch.cluster !== 'devnet' || !Number.isSafeInteger(Number(launch.communityAirdrop?.reservedTokens)) || Number(launch.communityAirdrop.reservedTokens) <= 0) return json(res, 404, { error:'Verified Devnet community allocation not found.' });
+      try {
+        const connection = new Connection(solanaRpcUrl, 'finalized');
+        const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID);
+        const [genesis, evidence] = await Promise.all([connection.getGenesisHash(), readProgramDataEvidence(connection, programId)]);
+        if (genesis !== DEVNET_GENESIS_HASH || !evidence.account?.executable || evidence.sha256 !== process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256.toLowerCase()) throw new Error('Reward program identity or bytecode could not be verified.');
+        const reserve = await readCommunityReserveStatus({ connection, programId, authority:process.env.FUNDED_REWARD_AUTHORITY, fundingAuthority:launch.creatorWallet, mint, reservedTokens:Number(launch.communityAirdrop.reservedTokens), fundingSignature:signature });
+        if (!reserve.verified) return json(res, 422, { error:'Funding receipt lacks the finalized creator-signed exact reserve transfer.', reserve });
+        await store.update(current => {
+          current.communityReserveReceipts ||= {};
+          const prior = current.communityReserveReceipts[mint];
+          if (prior && prior.signature !== signature) throw new Error('A different immutable funding receipt is already recorded for this launch.');
+          current.communityReserveReceipts[mint] ||= { signature, creatorWallet:launch.creatorWallet, recordedAt:new Date().toISOString() };
+        });
+        communityReserveSnapshot = null;
+        return json(res, 200, { ...reserve, creatorWallet:launch.creatorWallet });
+      } catch (error) { return json(res, 503, { error:`Community funding receipt could not be recorded: ${error.message}` }); }
+    }
+    if (req.method === 'GET' && url.pathname === '/api/health') {
+      const automaticRewards = automaticRewardStatus(new Date(), await automaticRewardStore.read());
+      return json(res, 200, { ok: true, service: 'funded-api', external: { solanaKeeper: isKeeperEnabled(process.env) && Boolean(keeperKeypair()), automaticRewards: automaticRewards.status === 'active', feeRouter: Boolean(feeRouterConfig()), birdeye: Boolean(birdeyeApiKey), pumpFun: Boolean(pumpApiUrl), xOAuth: xOAuthConfigured(req) } });
+    }
     if (req.method === 'GET' && url.pathname === '/api/market/sol-usd') {
       const quote = await readSolUsdQuote();
       if (!quote) return json(res, 503, { error: 'SOL/USD quote is currently unavailable.', provider: 'coingecko' });
@@ -554,6 +679,7 @@ async function handle(req, res) {
       const config = xConfig();
       if (!config.clientId || !config.clientSecret) return json(res, 503, { error: 'X OAuth is not configured on the server.' });
       if (!await store.chargeRpcRate(`x-start:${clientKey(req)}`, 1, 10, Math.floor(Date.now()/60000)*60000)) return json(res, 429, { error: 'Please wait before signing in again.' });
+      if (!xOAuthConfigured(req)) return json(res, 503, { error: 'Configure an exact X OAuth callback URL for this app origin.' });
       const callbackUrl = xCallbackUrl(req);
       const { state, binding, challenge } = await xAuth.start(callbackUrl);
       const params = new URLSearchParams({ response_type: 'code', client_id: config.clientId, redirect_uri: callbackUrl, scope: 'tweet.read users.read', state, code_challenge: challenge, code_challenge_method: 'S256' });
@@ -586,7 +712,7 @@ async function handle(req, res) {
     if (req.method === 'GET' && url.pathname === '/api/x/me') {
       const session = await xSession(req);
       res.setHeader('cache-control', 'no-store');
-      return json(res, 200, { authenticated: Boolean(session), user: session?.user || null });
+      return json(res, 200, { configured: xOAuthConfigured(req), authenticated: Boolean(session), user: session?.user || null });
     }
     if (req.method === 'GET' && url.pathname === '/api/x/resolve') {
       const readiness = await xFeeReadiness();
@@ -672,13 +798,132 @@ async function handle(req, res) {
       const items = await fetchPump('/coins', { offset: String(offset), limit: String(limit), sort, order: 'DESC', includeNsfw: 'false' });
       return json(res, 200, { provider: 'pump.fun', chain: 'solana', fetchedAt: new Date().toISOString(), items: items.map(normalizePumpToken).filter(Boolean) });
     }
-    const tokenChatMint = url.pathname.match(/^\/api\/tokens\/([^/]+)\/chat$/)?.[1] || null;
-    if (tokenChatMint && (req.method === 'GET' || req.method === 'POST')) {
+    const tokenChatSessionAction = req.method === 'POST' ? url.pathname.match(/^\/api\/token-chat\/session\/(prepare|verify|revoke)$/)?.[1] : null;
+    if (tokenChatSessionAction) {
+      if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error: 'Chat session origin is not allowed.' });
+      const origin = String(req.headers.origin);
+      if (tokenChatSessionAction === 'prepare') {
+        const input = await body(req);
+        let address;
+        try { address = walletKey(input.address); }
+        catch { return json(res, 400, { error: 'Connect a valid Solana wallet before posting.' }); }
+        const minute = Math.floor(Date.now() / 60_000) * 60_000;
+        if (!await store.chargeRpcRate(`chat-auth:${clientKey(req)}:${address}`, 1, 8, minute)) return json(res, 429, { error: 'Too many chat verification requests. Wait a minute.' });
+        return json(res, 200, tokenChatSessions.prepare(address, origin));
+      }
+      if (tokenChatSessionAction === 'verify') {
+        const input = await body(req);
+        const result = tokenChatSessions.verify(String(input.challengeId || ''), input.signature, origin);
+        return result ? json(res, 200, result) : json(res, 401, { error: 'Wallet verification failed or expired. Try again.' });
+      }
+      tokenChatSessions.revoke(req.headers['x-token-chat-session']);
+      return json(res, 200, { revoked: true });
+    }
+    const tokenChatMatch = url.pathname.match(/^\/api\/tokens\/([^/]+)\/chat(?:\/(report|delete))?$/);
+    if (tokenChatMatch && (req.method === 'GET' || req.method === 'POST')) {
       let mint;
-      try { mint = new PublicKey(decodeURIComponent(tokenChatMint)).toBase58(); }
+      try { mint = new PublicKey(decodeURIComponent(tokenChatMatch[1])).toBase58(); }
       catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
-      if (req.method === 'GET') return json(res, 200, { mint, messages: [], enabled:false, reason:'Discussion is paused until authenticated identities and moderation operations are ready.' });
-      return json(res, 503, { error:'Discussion is paused. Unauthenticated posting is not supported.' });
+      const action = tokenChatMatch[2] || 'post';
+      if (req.method === 'GET') {
+        if (action !== 'post') return json(res, 405, { error: 'Method not allowed.' });
+        const messages = (await store.readCoinChat(mint, 100)).filter(message => message.status !== 'hidden' && message.status !== 'deleted').slice(-50).map(tokenChatPublicMessage);
+        return json(res, 200, { mint, messages, enabled: true, authentication: 'solana-wallet-session', moderation: { reporting: true, reportThreshold: tokenChatReportThreshold } });
+      }
+      const sessionToken = req.headers['x-token-chat-session'];
+      if (sessionToken && !allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error: 'Chat session origin is not allowed.' });
+      const sessionAddress = sessionToken ? tokenChatSessions.address(sessionToken, String(req.headers.origin)) : null;
+      if (sessionToken && !sessionAddress) return json(res, 401, { error: 'Chat verification expired. Verify your wallet again.' });
+      const input = await body(req);
+      const envelope = sessionAddress ? null : validTokenChatEnvelope(input);
+      if (action === 'post') {
+        let author;
+        try { author = walletKey(input.author); }
+        catch { return json(res, 400, { error: 'Connect a valid Solana wallet before posting.' }); }
+        const text = validateTokenChatText(input.text);
+        if (sessionAddress ? sessionAddress !== author : !verifyTokenChatSignature(tokenChatPostStatement({ mint, author, text, ...envelope }), input.signature, new PublicKey(author))) return json(res, 401, { error: 'Wallet verification is invalid for this account.' });
+        const minute = Math.floor(Date.now() / 60_000) * 60_000;
+        if (!await store.chargeRpcRate(`chat-wallet:${author}`, 1, 5, minute)) return json(res, 429, { error: 'Posting limit reached. Wait a minute before posting again.' });
+        const messageId = sessionAddress ? `chat_${randomBytes(12).toString('hex')}` : `chat_${createHash('sha256').update(String(input.signature)).digest('hex').slice(0, 24)}`;
+        const createdAt = new Date().toISOString();
+        const outcome = await store.update(state => {
+          state.coinChats ||= {};
+          const messages = state.coinChats[mint] || [];
+          if (messages.some(message => message.id === messageId)) return { status: 409, error: 'This signed message was already posted.' };
+          const recentByAuthor = [...messages].reverse().find(message => message.author === author);
+          if (recentByAuthor && Date.now() - Date.parse(recentByAuthor.createdAt) < 10_000) return { status: 429, error: 'Wait a few seconds before posting again.' };
+          const duplicate = messages.some(message => message.author === author && message.text === text && Date.now() - Date.parse(message.createdAt) < 10 * 60_000);
+          if (duplicate) return { status: 409, error: 'This message was already posted recently.' };
+          const message = { id: messageId, mint, author, text, createdAt, status: 'visible', reports: {}, ...(sessionAddress ? { auth: 'wallet-session' } : { signature: String(input.signature) }) };
+          state.coinChats[mint] = [...messages, message].slice(-100);
+          return { status: 201, message: tokenChatPublicMessage(message) };
+        });
+        return json(res, outcome.status, outcome.error ? { error: outcome.error } : { message: outcome.message });
+      }
+      const messageId = String(input.messageId || '').trim();
+      if (!/^chat_[a-f0-9]{24}$/.test(messageId)) return json(res, 400, { error: 'A valid discussion message is required.' });
+      if (action === 'report') {
+        let reporter;
+        try { reporter = walletKey(input.reporter); }
+        catch { return json(res, 400, { error: 'Connect a valid Solana wallet before reporting.' }); }
+        const reason = String(input.reason || '').trim().toLowerCase();
+        if (!TOKEN_CHAT_REPORT_REASONS.includes(reason)) return json(res, 400, { error: 'Choose a valid report reason.' });
+        if (sessionAddress ? sessionAddress !== reporter : !verifyTokenChatSignature(tokenChatReportStatement({ mint, messageId, reporter, reason, ...envelope }), input.signature, new PublicKey(reporter))) return json(res, 401, { error: 'Wallet verification is invalid for this account.' });
+        const minute = Math.floor(Date.now() / 60_000) * 60_000;
+        if (!await store.chargeRpcRate(`chat-report:${reporter}`, 1, 10, minute)) return json(res, 429, { error: 'Report limit reached. Wait before reporting again.' });
+        const outcome = await store.update(state => {
+          const message = (state.coinChats?.[mint] || []).find(item => item.id === messageId);
+          if (!message || message.status === 'deleted') return { status: 404, error: 'Discussion message not found.' };
+          if (message.author === reporter) return { status: 409, error: 'You cannot report your own message.' };
+          message.reports ||= {};
+          if (message.reports[reporter]) return { status: 409, error: 'You already reported this message.' };
+          message.reports[reporter] = { reason, reportedAt: new Date().toISOString() };
+          const reportCount = Object.keys(message.reports).length;
+          if (reportCount >= tokenChatReportThreshold) { message.status = 'hidden'; message.moderatedAt = new Date().toISOString(); message.moderationReason = 'community-report-threshold'; }
+          return { status: 200, hidden: message.status === 'hidden', reportCount };
+        });
+        return json(res, outcome.status, outcome.error ? { error: outcome.error } : outcome);
+      }
+      let author;
+      try { author = walletKey(input.author); }
+      catch { return json(res, 400, { error: 'Connect the author wallet before deleting.' }); }
+      if (sessionAddress ? sessionAddress !== author : !verifyTokenChatSignature(tokenChatDeleteStatement({ mint, messageId, author, ...envelope }), input.signature, new PublicKey(author))) return json(res, 401, { error: 'Wallet verification is invalid for this account.' });
+      const outcome = await store.update(state => {
+        const message = (state.coinChats?.[mint] || []).find(item => item.id === messageId);
+        if (!message) return { status: 404, error: 'Discussion message not found.' };
+        if (message.author !== author) return { status: 403, error: 'Only the author can delete this message.' };
+        message.status = 'deleted'; message.deletedAt = new Date().toISOString(); message.text = '';
+        return { status: 200, deleted: true, messageId };
+      });
+      return json(res, outcome.status, outcome.error ? { error: outcome.error } : outcome);
+    }
+    if (url.pathname === '/api/ops/token-chat' && req.method === 'GET') {
+      if (!requireAuthorized(req, res)) return;
+      const state = await store.read();
+      const messages = Object.entries(state.coinChats || {}).flatMap(([mint, rows]) => (rows || []).map(message => ({ ...tokenChatPublicMessage(message), mint, status: message.status || 'visible', reports: Object.entries(message.reports || {}).map(([reporter, report]) => ({ reporter, ...report })), moderationReason: message.moderationReason || null, moderatedAt: message.moderatedAt || null })));
+      return json(res, 200, { messages: messages.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 500) });
+    }
+    if (url.pathname === '/api/ops/token-chat/moderate' && req.method === 'POST') {
+      if (!requireAuthorized(req, res)) return;
+      const input = await body(req);
+      let mint;
+      try { mint = walletKey(input.mint); }
+      catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
+      const messageId = String(input.messageId || '').trim();
+      const action = String(input.action || '').trim().toLowerCase();
+      const reason = String(input.reason || '').trim().slice(0, 160);
+      if (!['hide', 'restore'].includes(action)) return json(res, 400, { error: 'Moderation action must be hide or restore.' });
+      if (action === 'hide' && !reason) return json(res, 400, { error: 'A moderation reason is required when hiding a message.' });
+      const outcome = await store.update(state => {
+        const message = (state.coinChats?.[mint] || []).find(item => item.id === messageId);
+        if (!message || message.status === 'deleted') return null;
+        message.status = action === 'hide' ? 'hidden' : 'visible';
+        message.moderatedAt = new Date().toISOString();
+        message.moderationReason = action === 'hide' ? reason : null;
+        message.moderatedBy = 'operations';
+        return { ...tokenChatPublicMessage(message), status: message.status, moderationReason: message.moderationReason, moderatedAt: message.moderatedAt };
+      });
+      return outcome ? json(res, 200, outcome) : json(res, 404, { error: 'Discussion message not found.' });
     }
     const tokenActivityMint = req.method === 'GET' ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/fee-activity$/) : null;
     if (tokenActivityMint) {
@@ -686,9 +931,85 @@ async function handle(req, res) {
       try { mint = new PublicKey(decodeURIComponent(tokenActivityMint)).toBase58(); }
       catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
       const activity = await store.readCoinFeeActivity(mint, solanaCluster);
+      const state = await store.read();
+      const launch = state.launches?.[mint];
+      const readPump = async () => {
+        if (!launch?.onchainVerified || launch.cluster !== solanaCluster || launch.pumpFeeRoute?.scope !== 'per-mint-v2' || launch.pumpFeeRoute.router !== launch.creator) return {};
+        let pumpVault = null;
+        try {
+          const owner = new PublicKey(launch.creator);
+          pumpVault = creatorVaultPda(owner).toBase58();
+          const online = new OnlinePumpSdk(new Connection(solanaRpcUrl, 'confirmed'));
+          const amount = await Promise.race([
+            online.getCreatorVaultBalanceBothPrograms(owner),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Pump vault read timed out')), 4500)),
+          ]);
+          return { pumpAccruedLamports:amount.toString(), pumpVault };
+        } catch (error) { return { pumpVault, pumpError:String(error.message || error).slice(0, 180) }; }
+      };
+      const mintPayouts = Object.fromEntries(Object.entries(state.payouts || {}).filter(([, row]) => row.mint === mint || state.collections?.[state.referralClaims?.[row.claimId]?.settlementSignature]?.mint === mint));
+      const readPayouts = async () => {
+        if (!Object.keys(mintPayouts).length) return [];
+        try {
+          const evidence = await Promise.race([
+            readFinalizedEvidence({ collections:{}, payouts:mintPayouts, obligations:{} }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Payout verification timed out')), 3500)),
+          ]);
+          return evidence.verifiedPayouts?.map(row => row.signature) || [];
+        } catch { return []; }
+      };
+      const [pump, verifiedPayoutSignatures, rewardState] = await Promise.all([readPump(), readPayouts(), automaticRewardStore.read()]);
+      const overview = coinFeeOverview({ mint, cluster:solanaCluster, launch, collections:state.collections, settlements:state.settlements,
+        rewardState, referralClaims:state.referralClaims, payouts:state.payouts, verifiedPayoutSignatures, ...pump });
+      overview.creatorClaim = creatorClaimStatus({ mint, wallet:launch?.creatorWallet, launch, collections:state.collections, settlements:state.settlements, rewardState });
       const router = feeRouterConfig()?.address?.toBase58();
       const sharedRouter = router ? { address: router, scope: 'shared-creator-account', collections: await store.readRouterFeeActivity(router, solanaCluster) } : null;
-      return json(res, 200, { mint, cluster: solanaCluster, source: databaseUrl ? 'funded.app-postgresql' : 'funded.app-file-ledger', coverage: 'mint-verified-fee-claims-only', ...activity, sharedRouter });
+      return json(res, 200, { mint, cluster: solanaCluster, source: databaseUrl ? 'funded.app-postgresql' : 'funded.app-file-ledger', coverage: 'mint-verified-fee-claims-only', ...activity, overview, sharedRouter });
+    }
+    const creatorClaimMatch = req.method === 'POST' ? url.pathname.match(/^\/api\/tokens\/([^/]+)\/creator-claim\/(prepare|request)$/) : null;
+    if (creatorClaimMatch) {
+      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Creator fee claims are enabled on Devnet only.' });
+      if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Claim from the app origin.' });
+      let mint;
+      try { mint = new PublicKey(decodeURIComponent(creatorClaimMatch[1])).toBase58(); }
+      catch { return json(res, 400, { error:'A valid Solana mint is required.' }); }
+      const input = await body(req);
+      const main = await store.read();
+      const launch = main.launches?.[mint];
+      if (!launch?.onchainVerified || launch.cluster !== solanaCluster || launch.pumpFeeRoute?.scope !== 'per-mint-v2' || launch.pumpFeeRoute.router !== launch.creator) return json(res, 409, { error:'A verified per-mint Devnet launch is required.' });
+      const wallet = launch.creatorWallet;
+      const rewardState = await automaticRewardStore.read();
+      const status = creatorClaimStatus({ mint, wallet, launch, collections:main.collections, settlements:main.settlements, rewardState });
+      if (!status.eligible) return json(res, 409, { error:'Creator fees have not reached the 0.01 SOL minimum.', ...status });
+      if (creatorClaimMatch[2] === 'prepare') return json(res, 200, creatorFeeChallenges.prepare({ mint, wallet, status, origin:String(req.headers.origin) }));
+      const verified = creatorFeeChallenges.verify({ challengeId:input.challengeId, signature:input.signature, origin:String(req.headers.origin), status });
+      if (!verified || verified.mint !== mint || verified.wallet !== wallet) return json(res, 401, { error:'Creator wallet signature is invalid, expired, or the claim amount changed.' });
+      const requested = await automaticRewardStore.transaction(current => {
+        const fresh = creatorClaimStatus({ mint, wallet, launch, collections:main.collections, settlements:main.settlements, rewardState:current });
+        if (!fresh.eligible || JSON.stringify(fresh.requestIds) !== JSON.stringify(verified.requestIds) || fresh.claimableLamports !== verified.amount) return null;
+        const now = new Date().toISOString();
+        for (const id of fresh.requestIds) { current.fundingRequests[id].status = 'pending'; current.fundingRequests[id].creatorRequestedAt = now; }
+        return { mint, wallet, amountLamports:fresh.claimableLamports, requestIds:fresh.requestIds, status:'payout-requested' };
+      });
+      return requested ? json(res, 202, requested) : json(res, 409, { error:'Claim state changed. Refresh and try again.' });
+    }
+    const tokenAccountsMint = req.method === 'GET' ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/token-accounts$/) : null;
+    if (tokenAccountsMint) {
+      let mint;
+      try { mint = new PublicKey(decodeURIComponent(tokenAccountsMint)); }
+      catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
+      const address = mint.toBase58();
+      const cached = tokenAccountsCache.get(address);
+      if (cached && Date.now() - cached.at < 60_000) return json(res, 200, cached.data);
+      const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
+      if (!await store.chargeRpcRate(`token-accounts:${clientKey(req)}`, 2, 30, windowStart)) return json(res, 429, { error: 'Token-account refresh limit reached; retry shortly.' });
+      try {
+        const sample = normalizeLargestTokenAccounts(await new Connection(solanaRpcUrl, 'confirmed').getTokenLargestAccounts(mint, 'confirmed'));
+        const data = { mint: address, cluster: solanaCluster, observedAt: new Date().toISOString(), ...sample };
+        if (tokenAccountsCache.size >= 500) tokenAccountsCache.delete(tokenAccountsCache.keys().next().value);
+        tokenAccountsCache.set(address, { at: Date.now(), data });
+        return json(res, 200, data);
+      } catch { return json(res, 502, { error: 'Token-account provider is unavailable.' }); }
     }
     const tokenMarketMint = req.method === 'GET' ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/market-activity$/) : null;
     if (tokenMarketMint) {
@@ -739,14 +1060,48 @@ async function handle(req, res) {
       await store.update(state => { state.launches[mint] = { ...(state.launches[mint] || {}), ...record }; state.lastIndexedAt = record.indexedAt; return record; });
       return json(res, 200, record);
     }
+    if (req.method === 'GET' && url.pathname === '/api/keeper/collection-candidates') {
+      if (!requireAuthorized(req, res)) return;
+      const state = await store.read();
+      const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified && row.cluster === 'devnet' && row.pumpFeeRoute?.scope === 'per-mint-v2' && row.pumpFeeRoute.router === row.creator);
+      const rewards = await automaticRewardStore.read();
+      const pendingSettlements = Object.values(state.collections || {}).filter(row => {
+        if (row.status !== 'collected' || row.onchainVerified !== true || row.attribution !== 'mint-verified' || row.cluster !== 'devnet') return false;
+        const settlement = state.settlements?.[row.signature];
+        if (!settlement) return true;
+        return [
+          ['creator', settlement.creatorDestinations?.creatorWallet],
+          ['holders', settlement.creatorDestinations?.holderAirdrop],
+          ['x', settlement.creatorDestinations?.solClaim],
+        ].some(([kind, amount]) => BigInt(solToLamports(amount)) > 0n && !rewards.fundingRequests?.[`${row.signature}:${kind}`]);
+      }).map(row => row.signature);
+      return json(res, 200, { cluster:solanaCluster, minimumCollectionLamports:'10000000', mints:launches.map(row => ({ mint:row.mint, collectionStatus:state.alerts?.[`fee-collect:${row.mint}`]?.status || null })), pendingSettlements });
+    }
     if (req.method === 'POST' && url.pathname === '/api/keeper/collect') {
       if (!requireAuthorized(req, res)) return;
       const input = await body(req); const mint = String(input.mint || '').trim();
       if (!mint) return json(res, 400, { error: 'mint is required.' });
-      const result = await collectPumpCreatorFees({ requestedMint: mint });
-      if (result.signature) await store.update(state => {
+      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Automatic fee collection is Devnet only.' });
+      let mintKey;
+      try { mintKey = new PublicKey(mint).toBase58(); } catch { return json(res, 400, { error:'A valid mint is required.' }); }
+      const started = await store.update(state => {
+        const key = `fee-collect:${mintKey}`;
+        if (state.alerts?.[key] && !['complete','nothing-to-collect','no-fees'].includes(state.alerts[key].status)) return false;
+        state.alerts ||= {};
+        state.alerts[key] = { mint:mintKey, status:'executing', startedAt:new Date().toISOString() };
+        return true;
+      });
+      if (!started) return json(res, 409, { error:'A previous fee collection needs operator reconciliation before retry.' });
+      let result;
+      try { result = await collectPumpCreatorFees({ requestedMint: mintKey }); }
+      catch (error) {
+        await store.update(state => { state.alerts[`fee-collect:${mintKey}`] = { ...state.alerts[`fee-collect:${mintKey}`], status:'review-required', reason:String(error.message || error).slice(0, 240) }; });
+        throw error;
+      }
+      await store.update(state => {
         const recordedAt = new Date().toISOString();
-        state.collections[result.signature] = { id: result.signature, ...result, recordedAt };
+        if (result.signature) state.collections[result.signature] = { id: result.signature, ...result, recordedAt };
+        state.alerts[`fee-collect:${mintKey}`] = { ...state.alerts[`fee-collect:${mintKey}`], status:result.onchainVerified && result.status === 'collected' ? 'complete' : result.status === 'nothing-to-collect' || result.status === 'no-fees' ? result.status : 'review-required', signature:result.signature || null, recordedAt };
         if (result.onchainVerified && result.status === 'collected') {
           try {
             const obligation = deriveXFeeObligation(state, { mint: result.mint, claimSignature: result.signature });
@@ -812,7 +1167,7 @@ async function handle(req, res) {
     if (req.method === 'GET' && url.pathname === '/api/state') return json(res, 200, publicState(await store.readPublicBuckets()));
     if (req.method === 'GET' && url.pathname === '/api/evidence/receipts') return json(res, 200, await readReceiptEvidence());
     if (req.method === 'GET' && url.pathname === '/api/analytics/summary') {
-      const state = await store.read();
+      const [state, evidence] = await Promise.all([store.read(), readReceiptEvidence()]);
       const launches = Object.values(state.launches || {});
       const settlements = Object.values(state.settlements || {});
       const collections = Object.values(state.collections || {}).filter(item => item.status === 'collected' && Number(item.collectedLamports) > 0);
@@ -820,6 +1175,8 @@ async function handle(req, res) {
       const totalCollected = collections.reduce((sum, item) => sum + Number(item.collectedLamports || 0), 0);
       const totalBuyback = settlements.reduce((sum, item) => sum + Number(item.fundedApp?.buyback || 0), 0);
       return json(res, 200, {
+        cluster: solanaCluster,
+        build: process.env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
         source: databaseUrl ? 'funded.app-postgresql' : 'funded.app-file-ledger',
         generatedAt: new Date().toISOString(),
         freshness: state.lastIndexedAt || null,
@@ -829,6 +1186,7 @@ async function handle(req, res) {
         grossCreatorFees: totalGross,
         collectedLamports: totalCollected,
         buybackAccrued: totalBuyback,
+        homeFeeAllocations: homeFeeAllocationSummary(state, evidence, solanaCluster),
         status: state.lastIndexedAt ? 'indexed' : 'recorded-claims-only',
         creatorProfiles: creatorReputation(launches, settlements).length,
       });
@@ -881,6 +1239,14 @@ async function handle(req, res) {
       const offset = requestedOffset == null ? 0 : Math.min(100_000, Number(requestedOffset));
       return json(res, 200, await store.readLaunches({ limit, offset }));
     }
+    if (req.method === 'GET' && url.pathname === '/api/burn-receipts') {
+      let wallet;
+      try { wallet = walletKey(url.searchParams.get('wallet')); } catch { return json(res, 400, { error: 'A valid wallet query parameter is required.' }); }
+      const state = await store.read();
+      const receipts = Object.values(state.burnReceipts || {}).filter(item => item.wallet === wallet)
+        .sort((a, b) => String(b.verifiedAt).localeCompare(String(a.verifiedAt)));
+      return json(res, 200, { wallet, cluster: solanaCluster, receipts });
+    }
     if (req.method === 'GET' && url.pathname === '/api/referral-claims') {
       let wallet;
       try { wallet = walletKey(url.searchParams.get('wallet')); } catch { return json(res, 400, { error: 'A valid wallet query parameter is required.' }); }
@@ -909,7 +1275,49 @@ async function handle(req, res) {
       try { const intake = normalizeXIntake(await body(req)); const record = { id: id('x_intake'), ...intake }; await store.update(state => { state.xIntake[record.id] = record; return record; }); return json(res, 201, record); } catch (error) { return json(res, 400, { error: error.message }); }
     }
 
+    if (req.method === 'POST' && url.pathname === '/api/burn-receipts') {
+      const input = await body(req);
+      const configuredMint = fundedTokenMint;
+      if (!configuredMint) return json(res, 503, { error: 'The protocol $FUNDED mint is not configured.' });
+      let burnWallet;
+      try { burnWallet = walletKey(input.wallet); } catch { return json(res, 400, { error: 'A valid burn wallet is required.' }); }
+      const signature = String(input.signature || '').trim();
+      const projectMint = String(input.projectMint || '').trim() || null;
+      const state = await store.read();
+      const existing = state.burnReceipts?.[signature];
+      if (existing) {
+        if (existing.wallet !== burnWallet || existing.projectMint !== projectMint) return json(res, 409, { error: 'This burn signature is already indexed with different attribution.' });
+        return json(res, 200, existing);
+      }
+      if (projectMint) {
+        try { new PublicKey(projectMint); } catch { return json(res, 400, { error: 'The selected project mint is invalid.' }); }
+        const project = state.launches?.[projectMint];
+        if (!project?.onchainVerified || project.cluster !== solanaCluster) return json(res, 409, { error: 'Project attribution requires a verified launch on this cluster.' });
+        if (project.creatorWallet !== burnWallet) return json(res, 403, { error: 'Only the verified project creator can attribute this burn.' });
+      }
+      let proof;
+      try {
+        proof = await verifyFundedBurn({ connection: new Connection(solanaRpcUrl, 'confirmed'), signature, fundedMint: configuredMint, wallet: burnWallet, amountBaseUnits: input.amountBaseUnits });
+      } catch (error) { return json(res, 409, { error: error.message || 'The burn transaction could not be verified.' }); }
+      const receipt = {
+        id: `burn:${signature}`, signature, cluster: solanaCluster, wallet: burnWallet,
+        fundedMint: configuredMint, projectMint, instruction: 'BurnChecked', tokenProgram: proof.tokenProgram,
+        tokenAccount: proof.tokenAccount, amountBaseUnits: proof.amountBaseUnits, decimals: proof.decimals,
+        amountTokens: Number(proof.amountBaseUnits) / (10 ** proof.decimals), supplyAfterBaseUnits: proof.supplyAfterBaseUnits,
+        slot: proof.slot, blockTime: proof.blockTime, status: 'verified', onchainVerified: true, verifiedAt: proof.verifiedAt,
+      };
+      const saved = await store.update(current => {
+        current.burnReceipts ||= {};
+        const prior = current.burnReceipts[signature];
+        if (prior && (prior.wallet !== burnWallet || prior.projectMint !== projectMint)) throw new Error('This burn signature already has different attribution.');
+        current.burnReceipts[signature] ||= receipt;
+        return current.burnReceipts[signature];
+      });
+      return json(res, 201, saved);
+    }
+
     if (req.method === 'POST' && url.pathname === '/api/launches') {
+      if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Mainnet coin launching is not enabled. No launch policy was registered.' });
       const input = await body(req); if (!input.mint || input.chain !== 'solana' || input.cluster !== solanaCluster) return json(res, 400, { error: 'A Solana launch on the configured cluster is required.' });
       const policy = canonicalLaunchPolicy(input);
       const existingLaunch = await store.readLaunch(policy.mint);
@@ -925,7 +1333,7 @@ async function handle(req, res) {
           premierAmount: Number(process.env.VITE_FUNDED_PREMIER_BURN_AMOUNT || 250_000),
         });
         const proof = await verifyPumpLaunch({ connection: new Connection(solanaRpcUrl, 'confirmed'), mint: input.mint, signature: input.signature || input.pumpFeeRoute?.transaction,
-          promotionClaim: input.creatorLaunchBurn || null, fundedMint: String(process.env.VITE_FUNDED_TOKEN_MINT || '').trim(), promotionTiers });
+          promotionClaim: input.creatorLaunchBurn || null, fundedMint: fundedTokenMint, promotionTiers });
       const preparedMetadata = await store.readMetadata(proof.mint);
       if (input.metadataUri && input.metadataUri !== devnetMetadataUri(proof.mint)) return json(res, 409, { error: 'Launch metadata URL does not match the mint.' });
       if (input.metadataUri && !preparedMetadata) return json(res, 409, { error: 'Signed Devnet metadata is missing.' });

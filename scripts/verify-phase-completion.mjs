@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { launchReview, freshLaunchReview, initialCurvePremiumBps, launchReviewMarkup, formatReviewSol } from '../launch-review.js';
+import { launchReview, freshLaunchReview, initialCurvePremiumBps, launchReviewMarkup, formatReviewSol, launchReviewNeedsRefresh } from '../launch-review.js';
 import { confirmedClaimResult, rewardView } from '../reward-discovery.js';
 import { notificationItems } from '../notification-model.js';
 import { tokenSocialModel, tokenPageHtml } from '../server/token-social.mjs';
@@ -9,6 +9,7 @@ import { scopedCreatorState } from '../server/creator-state.mjs';
 const quote=launchReview({balance:11000000,simulatedSpend:10000000,networkFee:5000,buyQuote:9000000,buyMaximum:9090000,transactionCount:2,now:1000});
 assert.equal(quote.budget,'10090000');assert.equal(quote.otherLaunchCosts,'995000');assert.equal(quote.balanceAfterBudget,'910000');assert.equal(quote.messageCount,2);
 assert.equal(freshLaunchReview(quote,1000),true);assert.equal(freshLaunchReview(quote,60999),true);assert.equal(freshLaunchReview(quote,61000),false);assert.equal(freshLaunchReview(quote,999),false);
+assert.equal(launchReviewNeedsRefresh(quote,55999),false);assert.equal(launchReviewNeedsRefresh(quote,56000),true);assert.equal(launchReviewNeedsRefresh(quote,61000),true);assert.equal(launchReviewNeedsRefresh(quote,999),false);
 assert.equal(formatReviewSol(1),'0.000000001 SOL');assert.equal(formatReviewSol(-1),'-0.000000001 SOL');assert.match(launchReviewMarkup(quote,1000),/2 network transactions and 2 message signatures/);assert.match(launchReviewMarkup(quote,61000),/Refresh the estimate/);
 const short=launchReview({balance:10000000,simulatedSpend:10000000,networkFee:5000,buyQuote:9000000,buyMaximum:9090000,transactionCount:1});assert.equal(short.sufficient,false);
 assert.throws(()=>launchReview({balance:1,simulatedSpend:1,networkFee:2,transactionCount:1}));

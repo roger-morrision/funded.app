@@ -8,6 +8,14 @@ import { rewardView,renewClaimChallenge } from '../reward-discovery.js';
 import { creatorCardPng } from '../server/share-card.mjs';
 import { inflateSync } from 'node:zlib';
 import { createReadCache } from '../server/read-cache.mjs';
+import { readFile } from 'node:fs/promises';
+
+const [uiHtml,uiApp]=await Promise.all([readFile(new URL('../index.html',import.meta.url),'utf8'),readFile(new URL('../app.js',import.meta.url),'utf8')]);
+assert.match(uiHtml,/id="referral-claim-center"[\s\S]*?Connect wallet to check claimable referral rewards/);
+assert.match(uiApp,/const dashboard = document\.querySelector\('#referral-command-center'\)/, 'Manual referral claims must mount on the visible Referrals page.');
+assert.match(uiApp,/renderReferralClaimPrompt\('Referral claim service unavailable'/, 'The visible claim center must explain an unavailable claim API.');
+assert.match(uiHtml,/id="wizard-status" role="status" aria-live="polite"/);
+assert.match(uiApp,/Claim window must be a whole number of at least 1 day\./);
 
 const data=new Map(),storage={getItem:key=>data.get(key),setItem:(key,value)=>data.set(key,value)};
 const cache=createReadCache();let loads=0;const shared=await Promise.all(Array.from({length:40},()=>cache('same',async()=>{loads++;return 'value';})));assert.equal(loads,1);assert.ok(shared.every(value=>value==='value'));
@@ -39,15 +47,15 @@ const idat=png.indexOf(Buffer.from('IDAT'));assert.equal(inflateSync(png.subarra
 async function execute(mode){
   const payer=Keypair.generate(),mint=Keypair.generate(),events=[],hashes=[];let sends=0,approvals=0;
   const steps=['initialize-mint-router','launch'].map(kind=>({kind,transaction:new Transaction().add(SystemProgram.createAccount({fromPubkey:payer.publicKey,newAccountPubkey:mint.publicKey,lamports:1,space:0,programId:SystemProgram.programId}))}));
-  const connection={getLatestBlockhash:async()=>{const blockhash=Keypair.generate().publicKey.toBase58();hashes.push(blockhash);return {blockhash,lastValidBlockHeight:100};},sendRawTransaction:async raw=>{sends++;if(mode==='timeout')throw new Error('RPC timeout');return bs58.encode(Transaction.from(raw).signature);},confirmTransaction:async()=>({value:{err:mode==='chain-error'?{InstructionError:[0,'fixture']}:null}})};
+  const connection={getLatestBlockhash:async()=>{const blockhash=Keypair.generate().publicKey.toBase58();hashes.push(blockhash);return {blockhash,lastValidBlockHeight:100};},sendRawTransaction:async raw=>{sends++;if(mode==='timeout')throw new Error('RPC timeout');return bs58.encode(Transaction.from(raw).signature);},confirmTransaction:async()=>{if(mode.startsWith('expired-'))throw new Error('Signature has expired: block height exceeded');return {value:{err:mode==='chain-error'?{InstructionError:[0,'fixture']}:null}};},getSignatureStatuses:async()=>({value:[mode==='expired-finalized'?{confirmationStatus:'finalized',err:null}:null]})};
   const provider={signTransaction:async tx=>{approvals++;if(mode==='reject'||mode==='second-reject'&&approvals===2)throw new Error('User rejected');tx.partialSign(payer);return tx;}};
-  try {await executeLaunchPlan({connection,provider,payer:payer.publicKey,mint,plan:{steps},onEvent:event=>{events.push(event);if(mode==='journal-fail'&&event.state==='broadcasting')throw new Error('storage unavailable');}});assert.equal(mode,'success');}
-  catch(error){assert.notEqual(mode,'success',error.message);}
-  if(mode==='success'){assert.equal(sends,2);assert.equal(new Set(hashes).size,2);assert.equal(events.filter(e=>e.state==='confirmed').length,2);}
-  if(mode==='timeout'){assert.equal(sends,1);assert.equal(events.at(-1).state,'unknown');assert.ok(events.find(e=>e.state==='broadcasting').signature);}
+  try {await executeLaunchPlan({connection,provider,payer:payer.publicKey,mint,plan:{steps},onEvent:event=>{events.push(event);if(mode==='journal-fail'&&event.state==='broadcasting')throw new Error('storage unavailable');}});assert.ok(['success','expired-finalized'].includes(mode));}
+  catch(error){assert.ok(!['success','expired-finalized'].includes(mode),error.message);}
+  if(mode==='success'||mode==='expired-finalized'){assert.equal(sends,2);assert.equal(new Set(hashes).size,2);assert.equal(events.filter(e=>e.state==='confirmed').length,2);}
+  if(mode==='timeout'||mode==='expired-unconfirmed'){assert.equal(sends,1);assert.equal(events.at(-1).state,'unknown');assert.ok(events.find(e=>e.state==='broadcasting').signature);}
   if(mode==='reject'||mode==='journal-fail')assert.equal(sends,0);
   if(mode==='second-reject'){assert.equal(sends,1);assert.equal(events.at(-1).state,'cancelled');assert.ok(events.find(e=>e.state==='confirmed'));}
   if(mode==='chain-error'){assert.equal(sends,1);assert.equal(events.at(-1).state,'failed');}
 }
-for(const mode of ['success','timeout','reject','second-reject','chain-error','journal-fail'])await execute(mode);
+for(const mode of ['success','expired-finalized','expired-unconfirmed','timeout','reject','second-reject','chain-error','journal-fail'])await execute(mode);
 console.log('Adoption phases: journal privacy/recovery, fresh-blockhash execution, rejection/timeout/partial success, image constraints, reward evidence/renewal and PNG structure passed (local-only/mocked).');

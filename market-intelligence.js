@@ -16,12 +16,16 @@ export function enrichMarketRecord(record = {}) {
   const sellCount24h = finite(record.sellCount24h);
   const curveCapSol = finite(record.curveCapSol);
   const curveReserveSol = finite(record.curveReserveSol);
-  const turnover = volume24hUsd != null && marketCapUsd > 0 ? volume24hUsd / marketCapUsd : volume24hSol != null && curveCapSol > 0 ? volume24hSol / curveCapSol : null;
+  const poolMarketCapSol = finite(record.poolMarketCapSol);
+  const poolReserveSol = finite(record.poolReserveSol);
+  const capSol = record.migrated === true ? poolMarketCapSol : curveCapSol;
+  const reserveSol = record.migrated === true ? poolReserveSol : curveReserveSol;
+  const turnover = volume24hUsd != null && marketCapUsd > 0 ? volume24hUsd / marketCapUsd : record.migrated !== true && volume24hSol != null && capSol > 0 ? volume24hSol / capSol : null;
   const riskFlags = [];
 
-  if (liquidityUsd == null && curveReserveSol == null) riskFlags.push('liquidity-unavailable');
+  if (liquidityUsd == null && reserveSol == null) riskFlags.push('liquidity-unavailable');
   else if (liquidityUsd != null && liquidityUsd < 10_000) riskFlags.push('thin-liquidity');
-  if (marketCapUsd == null && curveCapSol == null) riskFlags.push('market-cap-unavailable');
+  if (marketCapUsd == null && capSol == null) riskFlags.push('market-cap-unavailable');
   if (turnover != null && turnover >= 5) riskFlags.push('extreme-turnover');
   else if (turnover != null && turnover >= 1) riskFlags.push('high-turnover');
   if (Math.abs(priceChange24hPercent || 0) >= 50) riskFlags.push('high-volatility');
@@ -40,6 +44,8 @@ export function enrichMarketRecord(record = {}) {
     sellCount24h,
     curveCapSol,
     curveReserveSol,
+    poolMarketCapSol,
+    poolReserveSol,
     turnover,
     riskFlags,
     riskLevel: riskFlags.includes('extreme-turnover') || riskFlags.includes('thin-liquidity') ? 'high' : riskFlags.length ? 'watch' : 'normal',
@@ -63,7 +69,7 @@ export function withMarketWindow(record, period = '24h') {
     windowSellCount: indexed ? count(indexed.sellCount) : window === '24h' ? count(market.sellCount24h) : null,
     windowTraderCount: indexed ? count(indexed.traderCount) : null,
     windowCoverage: indexed?.coverage === 'partial' || indexed?.coverage === 'complete' ? indexed.coverage : market.volumeCoverage,
-    windowTurnover: volume != null && market.curveCapSol > 0 ? volume / market.curveCapSol : null,
+    windowTurnover: market.migrated !== true && volume != null && market.curveCapSol > 0 ? volume / market.curveCapSol : null,
   };
 }
 
@@ -75,7 +81,7 @@ export function sortMarketRecords(records, sort = 'market-cap') {
     if (sort === 'x-fee') return record.xFeePercent ?? -1;
     if (sort === 'trades') return record.windowPeriod ? record.windowTradeCount ?? -1 : record.tradeCount24h ?? -1;
     if (sort === 'turnover') return record.windowPeriod ? record.windowTurnover ?? -1 : record.turnover ?? -1;
-    if (sort === 'liquidity') return record.liquidityUsd ?? record.curveReserveSol ?? -1;
+    if (sort === 'liquidity') return record.liquidityUsd ?? (record.migrated === true ? record.poolReserveSol : record.curveReserveSol) ?? -1;
     if (sort === 'holders') return record.holders ?? -1;
     if (sort === 'change') return record.priceChange24hPercent ?? -Infinity;
     if (sort === 'recent-trade') {
@@ -86,7 +92,7 @@ export function sortMarketRecords(records, sort = 'market-cap') {
       const timestamp = Number(record.createdTimestamp || record.lastTradeUnixTime || 0);
       return timestamp > 10_000_000_000 ? timestamp : timestamp * 1000;
     }
-    return record.marketCapUsd ?? record.curveCapSol ?? -1;
+    return record.marketCapUsd ?? (record.migrated === true ? record.poolMarketCapSol : record.curveCapSol) ?? -1;
   };
   return [...records].sort((a, b) => value(b) - value(a));
 }
@@ -117,7 +123,8 @@ export function filterMarketRecords(records, { query = '', risk = 'all', stage =
     const volumeSol = record.windowPeriod ? record.windowVolumeSol : record.volume24hSol;
     const tradeCount = record.windowPeriod ? record.windowTradeCount : record.tradeCount24h;
     if (minVolumeSol != null && (volumeSol == null || volumeSol < Number(minVolumeSol))) return false;
-    if (minCurveCapSol != null && (record.curveCapSol == null || record.curveCapSol < Number(minCurveCapSol))) return false;
+    const capSol = record.migrated === true ? record.poolMarketCapSol : record.curveCapSol;
+    if (minCurveCapSol != null && (capSol == null || capSol < Number(minCurveCapSol))) return false;
     if (minTrades != null && (tradeCount == null || tradeCount < Number(minTrades))) return false;
     if (minTraders != null && (record.windowTraderCount == null || record.windowTraderCount < Number(minTraders))) return false;
     if (risk === 'watchlist') {

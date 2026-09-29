@@ -5,6 +5,7 @@
 .env.local
 .env.example
 .env.*
+.secrets/
 *.env
 secrets/
 secret/

@@ -125,12 +125,18 @@ export function createRewardScheduler({ store, indexer, chain }) {
         const config = state.programs[schedule.mint];
         if (!config?.enabled) continue;
         try {
-          const snapshots = snapshotsForPeriod(state.holderSnapshots[schedule.mint], schedule.periodStart, schedule.cutoffAt, config.sampleIntervalSeconds * 2);
-          const weights = holdingWeights({ start: schedule.periodStart, end: schedule.cutoffAt, snapshots, excludedWallets: config.excludedWallets, coverage: 'finalized-sampled-v1' });
           const pools = Object.values(state.rewardPools).filter(pool => pool.status === 'available' && pool.mint === schedule.mint && pool.asset === schedule.asset && pool.fundedAt >= config.activatedAt && pool.fundedAt < schedule.cutoffAt && pool.balanceDeltaVerified);
           const total = pools.reduce((sum, pool) => sum + BigInt(pool.amount), 0n);
-          if (total <= 0n) throw new Error('No finalized, balance-verified reward funding was recorded for this period.');
-          if (schedule.asset === 'SOL' && total < BigInt(AUTOMATIC_REWARDS.minimumLamports)) throw new Error('Reward pool is below the automatic SOL distribution minimum.');
+          if (total <= 0n || (schedule.asset === 'SOL' && total < BigInt(AUTOMATIC_REWARDS.minimumLamports))) {
+            schedule.status = 'deferred';
+            schedule.reason = total <= 0n
+              ? 'No balance-verified reward pool was available at cutoff; later funding remains available for a future period.'
+              : 'Verified SOL reward funding is below the distribution minimum and carries forward to a future period.';
+            schedule.lastCheckedAt = new Date().toISOString();
+            continue;
+          }
+          const snapshots = snapshotsForPeriod(state.holderSnapshots[schedule.mint], schedule.periodStart, schedule.cutoffAt, config.sampleIntervalSeconds * 2);
+          const weights = holdingWeights({ start: schedule.periodStart, end: schedule.cutoffAt, snapshots, excludedWallets: config.excludedWallets, coverage: 'finalized-sampled-v1' });
           const allocation = allocateHolderPool(String(total), weights);
           if (!allocation.allocations.length) throw new Error('No eligible holders had positive time-weighted balances.');
           const cycleId = createRewardCycleId({ mint: schedule.mint, kind: schedule.kind, asset: schedule.asset, periodStart: schedule.periodStart, periodEnd: schedule.cutoffAt });

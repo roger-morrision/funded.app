@@ -10,8 +10,8 @@ export const AUTOMATIC_REWARDS = Object.freeze({
 export function distributionClock(schedule, now = Date.now()) {
   if (!schedule || schedule.status === 'unavailable') return { label: 'Not scheduled', remaining: null };
   if (schedule.status === 'waiting-migration') return { label: 'Waiting for migration', remaining: null };
-  if (['paid', 'delayed', 'distributing', 'blocked', 'skipped'].includes(schedule.status)) {
-    return { label: { paid: 'Paid', delayed: 'Delayed', distributing: 'Distributing', blocked: 'Distribution blocked', skipped: 'Reward period skipped' }[schedule.status], remaining: null };
+  if (['paid', 'delayed', 'distributing', 'blocked', 'skipped', 'deferred'].includes(schedule.status)) {
+    return { label: { paid: 'Paid', delayed: 'Delayed', distributing: 'Distributing', blocked: 'Distribution blocked', skipped: 'Reward period skipped', deferred: 'Reward funding carries forward' }[schedule.status], remaining: null };
   }
   const cutoff = Date.parse(schedule.cutoffAt), payout = Date.parse(schedule.payoutAt);
   if (!Number.isFinite(cutoff) || !Number.isFinite(payout) || payout < cutoff) return { label: 'Schedule unavailable', remaining: null };
@@ -25,6 +25,20 @@ export function countdownText(seconds) {
   if (!Number.isFinite(Number(seconds))) return '—';
   const value = Math.max(0, Math.floor(seconds));
   return [Math.floor(value / 3600), Math.floor(value / 60) % 60, value % 60].map(n => String(n).padStart(2, '0')).join(':');
+}
+
+export function selectDisplaySchedule(schedules = [], mint = null, now = Date.now()) {
+  const rows = (Array.isArray(schedules) ? schedules : []).filter(row => row?.kind === 'holder' && (!mint || row.mint === mint));
+  const live = rows.filter(row => !['paid', 'skipped', 'deferred'].includes(row.status));
+  const timestamp = row => Date.parse(row.cutoffAt);
+  const future = live.filter(row => Number.isFinite(timestamp(row)) && timestamp(row) >= now).sort((a, b) => timestamp(a) - timestamp(b));
+  if (future.length) return future[0];
+  const payoutTimestamp = row => Date.parse(row.payoutAt);
+  const awaitingPayout = live.filter(row => Number.isFinite(payoutTimestamp(row)) && payoutTimestamp(row) >= now).sort((a, b) => payoutTimestamp(a) - payoutTimestamp(b));
+  if (awaitingPayout.length) return awaitingPayout[0];
+  return live.sort((a, b) => Number(b.periodStart || 0) - Number(a.periodStart || 0))[0]
+    || rows.sort((a, b) => Number(b.periodStart || 0) - Number(a.periodStart || 0))[0]
+    || null;
 }
 
 function units(value) {

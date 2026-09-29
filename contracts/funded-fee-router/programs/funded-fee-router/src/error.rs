@@ -32,4 +32,12 @@ pub enum ErrorCode {
     RewardTotalExceeded,
     #[msg("Reward token account does not match the recipient and mint")]
     InvalidRewardTokenAccount,
+    #[msg("Community snapshot or migration evidence is invalid")]
+    InvalidCommunitySnapshot,
+    #[msg("Community claim window has expired or is closed")]
+    CommunityClaimClosed,
+    #[msg("Community claim window has not expired")]
+    CommunityClaimStillOpen,
+    #[msg("Community remainder route is not permitted")]
+    InvalidCommunityRemainder,
 }

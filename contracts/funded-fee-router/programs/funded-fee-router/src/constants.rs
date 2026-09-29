@@ -18,3 +18,7 @@ pub const REWARD_VAULT_SEED: &[u8] = b"reward-vault-v1";
 pub const REWARD_CYCLE_SEED: &[u8] = b"reward-cycle-v1";
 pub const REWARD_PAYMENT_SEED: &[u8] = b"reward-payment-v1";
 pub const REWARD_LEAF_DOMAIN: &[u8] = b"funded-reward-leaf-v1";
+pub const COMMUNITY_DROP_SEED: &[u8] = b"community-drop-v1";
+pub const COMMUNITY_PAYMENT_SEED: &[u8] = b"community-pay-v1";
+pub const COMMUNITY_LEAF_DOMAIN: &[u8] = b"funded-community-leaf-v1";
+pub const COMMUNITY_WINDOW_SECONDS: i64 = 90 * 24 * 60 * 60;

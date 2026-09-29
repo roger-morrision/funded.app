@@ -35,10 +35,10 @@ async function loadLocalEnv() {
 await loadLocalEnv();
 const databaseUrl = process.env.DATABASE_URL;
 assert.equal(process.env.BACKEND_DB_TEST, '1', 'This test must be explicitly enabled.');
-assert.ok(databaseUrl, 'DATABASE_URL is required. Use the isolated PostgreSQL test database on 127.0.0.1:15435/funded_test.');
+assert.ok(databaseUrl, 'DATABASE_URL is required. Use the isolated PostgreSQL test database on 127.0.0.1:15432/funded_test.');
 const url = new URL(databaseUrl);
 assert.equal(url.hostname, '127.0.0.1');
-assert.equal(url.port, '15435');
+assert.equal(url.port, '15432');
 assert.equal(url.pathname, '/funded_test');
 const pool = new pg.Pool({ connectionString: databaseUrl });
 const oldLaunch = { mint: '11111111111111111111111111111111', creatorWallet: 'legacy-creator', updatedAt: '2026-01-01T00:00:00.000Z' };
@@ -53,6 +53,9 @@ const store = createPostgresStore(databaseUrl);
 const other = createPostgresStore(databaseUrl);
 try {
   assert.deepEqual((await store.read()).launches[oldLaunch.mint], oldLaunch, 'Legacy JSON state must migrate once.');
+  const reserveReceipt = { signature:'synthetic-finalized-signature', creatorWallet:'synthetic-creator', recordedAt:'2026-09-29T00:00:00Z' };
+  await store.update(state => { state.communityReserveReceipts[oldLaunch.mint] = reserveReceipt; });
+  assert.deepEqual((await other.read()).communityReserveReceipts[oldLaunch.mint], reserveReceipt, 'Community reserve receipt must survive a separate PostgreSQL store instance.');
   const before = await pool.query('SELECT updated_at FROM launches WHERE mint = $1', [oldLaunch.mint]);
   await store.update(state => { state.alerts.one = { id: 'one', status: 'active' }; });
   const after = await pool.query('SELECT updated_at FROM launches WHERE mint = $1', [oldLaunch.mint]);
@@ -65,7 +68,7 @@ try {
   const state = await other.read();
   assert.equal(state.collections.claim.collectedLamports, 1_000_000_000);
   assert.equal(state.referrals.codes.CODE.wallet, 'inviter');
-  assert.equal((await pool.query('SELECT count(*)::int AS count FROM state_entities')).rows[0].count, 4);
+  assert.equal((await pool.query('SELECT count(*)::int AS count FROM state_entities')).rows[0].count, 5);
   await Promise.all([
     store.update(state=>{state.creatorProfiles['123']={id:'123',handle:'@fixture',listed:true,identityVerified:true,following:['456'],updates:[{text:'Local fixture',createdAt:'2026-09-20T00:00:00Z'}]};}),
     other.update(state=>{state.creatorProfiles['456']={id:'456',handle:'@other',listed:false,optedOut:true};}),

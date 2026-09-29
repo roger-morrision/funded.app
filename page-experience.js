@@ -44,24 +44,24 @@ function upgradeProjectsPage() {
   if (!page) return;
   page.classList.add('projects-page');
   const heading = page.querySelector(':scope > .section-heading');
-  if (heading) heading.innerHTML = `<div><p class="eyebrow">Creator workspace <span class="section-state">local + verified registry</span></p><h1>My projects</h1><p class="projects-lede">Review drafts, launch status, market activity, and token details in one portfolio.</p></div><a class="primary-button projects-launch-button" href="#launch">Launch a project <span aria-hidden="true">↗</span></a>`;
+  if (heading) heading.innerHTML = `<div><p class="eyebrow">Creator workspace <span class="section-state">verified registry</span></p><h1>Portfolio</h1><p class="projects-lede">Review launch status, market activity, and token details in one portfolio.</p></div><a class="primary-button projects-launch-button" href="#launch">Launch token <span aria-hidden="true">↗</span></a>`;
   const creatorPanel = page.querySelector('.role-panel:not(.referral-growth-card)');
   if (!creatorPanel) return;
   creatorPanel.classList.add('projects-panel');
   const head = creatorPanel.querySelector('.role-panel-head');
-  if (head) head.innerHTML = `<span class="role-icon creator">◫</span><div><strong>Your token portfolio</strong><small>Identity, launch state, community reserve, and available market data.</small></div><span class="data-badge">Mixed sources</span>`;
+  if (head) head.innerHTML = `<span class="role-icon creator">◫</span><div><strong>Project portfolio</strong><small>Launches matched to the connected creator wallet.</small></div><span class="data-badge">Checking registry</span>`;
   const stats = creatorPanel.querySelectorAll('.role-stats > div');
-  const labels = [['Projects', '0'], ['Pending review', '—'], ['Trading', '—']];
+  const labels = [['Total', '0'], ['Not migrated', '—'], ['Migrated', '—']];
   stats.forEach((stat, index) => {
     const [label, value] = labels[index] || labels[0];
     const span = stat.querySelector('span');
     const strong = stat.querySelector('b');
     if (span) span.textContent = label;
-    if (strong && index > 0) strong.textContent = value;
+    if (strong) strong.textContent = value;
   });
   const list = byId('creator-launch-empty');
   list?.classList.add('projects-list');
-  addOnce(creatorPanel, 'projects-empty-actions', `<div class="projects-empty-actions" id="projects-empty-actions"><a class="primary-button" href="#launch">Launch a project</a><a class="text-button" href="#explore">Explore launches →</a></div>`);
+  window.dispatchEvent(new Event('funded:projects-view-ready'));
 }
 
 function upgradeAnalyticsDashboard() {
@@ -71,7 +71,7 @@ function upgradeAnalyticsDashboard() {
   const heading = page.querySelector(':scope > .section-heading h2');
   const explanation = byId('analytics-range-status');
   if (heading) heading.textContent = 'Funded at a glance';
-  if (explanation) explanation.textContent = 'Every figure shows its unit and stays blank until the matching Devnet record is confirmed and indexed.';
+  if (explanation) explanation.textContent = 'Checking Devnet activity and receipt evidence…';
   dashboard.classList.add('analytics-kpis-complete');
   dashboard.setAttribute('aria-label', 'Funded protocol key figures');
   dashboard.innerHTML = `
@@ -83,25 +83,7 @@ function upgradeAnalyticsDashboard() {
     <article data-analytics-metric="referrals"><span>Referral rewards</span><strong>—</strong><small><b>USD</b>Confirmed reward receipts</small></article>
     <article data-analytics-metric="burned"><span>$FUNDED burned</span><strong>—</strong><small><b>USD</b>Confirmed burn receipts</small></article>
     <article data-analytics-metric="wallets"><span>Trading wallets</span><strong>—</strong><small><b>COUNT · 24H</b>Observed verified activity</small></article>`;
-}
-
-function renderLocalDraft() {
-  const workspace = byId('my-launches');
-  const panel = workspace?.querySelector('.role-grid');
-  if (!panel) return;
-  let card = byId('local-launch-draft');
-  if (!card) card = addOnce(workspace, 'local-launch-draft', `<article class="local-launch-draft" id="local-launch-draft" hidden>
-    <div><span class="eyebrow">Saved on this device · not launched</span><strong id="local-draft-title"></strong><small id="local-draft-time"></small></div>
-    <button class="secondary-button" type="button" id="resume-local-draft">Resume draft</button>
-  </article>`, panel);
-  let draft;
-  try { draft = JSON.parse(localStorage.getItem('funded.app.launch.draft') || 'null'); } catch { draft = null; }
-  const hasDraft = Boolean(draft && typeof draft === 'object' && (draft['token-name'] || draft['token-symbol']));
-  card.hidden = !hasDraft;
-  if (!hasDraft) return;
-  byId('local-draft-title').textContent = `${draft['token-name'] || 'Untitled coin'}${draft['token-symbol'] ? ` (${draft['token-symbol']})` : ''}`;
-  const date = Date.parse(draft.savedAt);
-  byId('local-draft-time').textContent = Number.isFinite(date) ? `Saved ${new Date(date).toLocaleString()}` : 'Saved locally';
+  document.dispatchEvent(new Event('funded:analytics-upgraded'));
 }
 
 function clarifyDataStates() {
@@ -168,7 +150,7 @@ function addContextPanels() {
   const privacy = byId('privacy');
   addOnce(privacy, 'privacy-safety-steps', `<div class="safety-steps" id="privacy-safety-steps"><div><strong>Before signing</strong><small>Verify Solana Devnet, the exact amount, recipient, and program in the review. Standard wallets also show their own signing prompt.</small></div><div><strong>After signing</strong><small>Open the transaction on Solana Explorer and wait for confirmation. A submitted transaction is not a payout receipt.</small></div><div><strong>If something looks wrong</strong><small>Do not submit. Reject a standard-wallet signing prompt if one appears. Never enter a seed phrase or private key into this page.</small></div></div>`);
   const paid = byId('paid');
-  addOnce(paid, 'paid-status', `<div class="source-note" id="paid-status"><strong>Current status · Devnet preview</strong><span>Fee-route policy can be reviewed before signing. Production settlement, automated recipient payouts, and $FUNDED burns are not live. Any figures below are allocation policy, not paid totals.</span></div>`, paid?.querySelector('.revenue-model'));
+  addOnce(paid, 'paid-status', `<div class="source-note" id="paid-status"><strong>Current status · Devnet preview</strong><span>Fee-route policy can be reviewed before signing. A user-initiated $FUNDED burn flow is available on Devnet, but this status is not proof of a completed burn. Production settlement and automated recipient payouts are not live. Any figures below are allocation policy, not paid totals.</span></div>`, paid?.querySelector('.revenue-model'));
   const profile = byId('profile');
   addOnce(profile, 'profile-source-note', `<p class="source-note" id="profile-source-note">Your wallet connection identifies the signer for this browser session. It does not prove a launch, holding, payout, or eligibility until the corresponding Devnet record is verified.</p>`, profile?.querySelector('.profile-grid'));
   const wallet = byId('wallet-page');
@@ -202,11 +184,7 @@ simplifyExplore();
 showLaunchPath();
 upgradeProjectsPage();
 upgradeAnalyticsDashboard();
-renderLocalDraft();
 clarifyDataStates();
 clarifyReferrals();
 addContextPanels();
 addCoinSections();
-
-byId('save-launch-draft')?.addEventListener('click', () => queueMicrotask(renderLocalDraft));
-byId('resume-local-draft')?.addEventListener('click', () => byId('launch-route-shell')?.querySelector('[data-open-launch]')?.click());

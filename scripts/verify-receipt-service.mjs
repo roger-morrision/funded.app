@@ -20,7 +20,13 @@ assert.equal(calls,4);
 await read(structuredClone(state));assert.equal(calls,4,'Identical scoped reads coalesce.');
 const tampered=structuredClone(state);tampered.payouts.paid.amountLamports=99999;
 const rejected=await read(tampered);assert.equal(rejected.status,'partial');assert.equal(rejected.verifiedPayouts.length,0);assert.equal(calls,6,'Changed payload cannot reuse previous proof.');
-assert.equal((await createReceiptEvidenceReader({...options,cluster:'mainnet-beta'})()).status,'unavailable');
+const mainnetState=structuredClone(state);
+mainnetState.collections.source.cluster='mainnet-beta';mainnetState.payouts.paid.cluster='mainnet-beta';
+const mainnetOptions={...options,cluster:'mainnet-beta',store:{readReceiptCandidates:async()=>selectReceiptCandidates(mainnetState,'mainnet-beta')},
+  connectionFactory:()=>({getGenesisHash:async()=>'mainnet-fixture',getTransaction:async()=>transaction}),officialGenesis:async()=>'mainnet-fixture'};
+assert.equal((await createReceiptEvidenceReader(mainnetOptions)()).status,'onchain-indexed');
+assert.equal((await createReceiptEvidenceReader({...mainnetOptions,officialGenesis:async()=>'devnet-fixture'})()).status,'unavailable');
+assert.throws(()=>createReceiptEvidenceReader({...options,cluster:'testnet'}));
 assert.equal((await createReceiptEvidenceReader({...options,officialGenesis:async()=>'wrong-chain'})()).status,'unavailable');
 assert.equal((await createReceiptEvidenceReader({...options,officialGenesis:async()=>{throw new Error('offline');}})()).status,'unavailable');
 const absent=createReceiptEvidenceReader({...options,connectionFactory:()=>({getGenesisHash:async()=>'devnet-fixture',getTransaction:async()=>null})});

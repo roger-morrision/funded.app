@@ -1,6 +1,6 @@
 import BN from 'bn.js';
 import { OnlinePumpSdk, PUMP_SDK, getBuyTokenAmountFromSolAmount, getSellSolAmountFromTokenAmount } from '@pump-fun/pump-sdk';
-import { OnlinePumpAmmSdk, PUMP_AMM_SDK, buyQuoteInput, canonicalPumpPoolPda, sellBaseInput } from '@pump-fun/pump-swap-sdk';
+import { OnlinePumpAmmSdk, PUMP_AMM_PROGRAM_ID, PUMP_AMM_SDK, buyQuoteInput, canonicalPumpPoolPda, poolPda, sellBaseInput } from '@pump-fun/pump-swap-sdk';
 import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 
@@ -30,7 +30,29 @@ export function describeTradeQuote(trade, slippagePercent) {
   const slippageBps = Math.round(Number(slippagePercent) * 100);
   const floorAmount = trade.minimumOutputAmount || new BN(((BigInt(trade.outputAmount.toString()) * BigInt(10_000 - slippageBps)) / 10_000n).toString());
   const minimum = Number(floorAmount.toString()) / (10 ** outputDecimals);
-  return { expected, minimum, outputSymbol: trade.side === 'buy' ? 'tokens' : 'SOL', appFeeSol: trade.feeLamports / LAMPORTS_PER_SOL, route: trade.route || 'curve' };
+  const maximumSpendSol = trade.side === 'buy' && trade.maximumInputAmount
+    ? Number(trade.maximumInputAmount.toString()) / LAMPORTS_PER_SOL
+    : null;
+  return { expected, minimum, maximumSpendSol, outputSymbol: trade.side === 'buy' ? 'tokens' : 'SOL', appFeeSol: trade.feeLamports / LAMPORTS_PER_SOL, route: trade.route || 'curve' };
+}
+
+export function estimateBuyTokenAmountFromSnapshot({ amountSol, curveSnapshot = null, graduatedPoolSnapshot = null } = {}) {
+  const inputSol = Number(amountSol);
+  if (!Number.isFinite(inputSol) || inputSol <= 0) throw new Error('Enter a positive SOL amount.');
+  const graduated = graduatedPoolSnapshot && Number(graduatedPoolSnapshot.baseTokenReserves) > 0;
+  const tokenReserves = Number(graduated ? graduatedPoolSnapshot.baseTokenReserves : curveSnapshot?.virtualTokenReserves);
+  const quoteReservesSol = Number(graduated ? graduatedPoolSnapshot.effectiveQuoteReservesSol : curveSnapshot?.virtualQuoteReservesSol);
+  if (!Number.isFinite(tokenReserves) || tokenReserves <= 0 || !Number.isFinite(quoteReservesSol) || quoteReservesSol <= 0) {
+    throw new Error('Verified market reserves are unavailable.');
+  }
+  const expectedTokens = tokenReserves * inputSol / (quoteReservesSol + inputSol);
+  if (!Number.isFinite(expectedTokens) || expectedTokens <= 0 || expectedTokens >= tokenReserves) throw new Error('This amount cannot be estimated from the current reserves.');
+  return {
+    inputSol,
+    expectedTokens,
+    route: graduated ? 'graduated-pool' : 'curve',
+    observedAt: graduated ? graduatedPoolSnapshot.observedAt : curveSnapshot?.observedAt,
+  };
 }
 
 function calculateTradeFee(lamports, feePolicy) {
@@ -70,11 +92,29 @@ function poolQuoteArgs(state) {
   };
 }
 
-async function buildGraduatedTrade({ connection, side, mintKey, userKey, amount, slippage, tokenDecimals, feePolicy, snapshot }) {
-  const poolKey = canonicalPumpPoolPda(mintKey, NATIVE_MINT);
+function assertVerifiedSolPool(state, poolKey, mintKey) {
+  if (!state.poolAccountInfo?.owner.equals(PUMP_AMM_PROGRAM_ID) || !state.pool.baseMint.equals(mintKey) || !state.pool.quoteMint.equals(NATIVE_MINT) || !poolPda(state.pool.index, state.pool.creator, mintKey, NATIVE_MINT).equals(poolKey) || state.poolBaseAmount.lte(new BN(0)) || state.poolQuoteAmount.lte(new BN(0))) throw new Error('A verified SOL-quoted PumpSwap pool is unavailable.');
+}
+
+export async function fetchVerifiedPoolSnapshot({ connection, mint, poolAddress }) {
+  const mintKey = requireMint(mint), poolKey = requireMint(poolAddress);
+  const [state, slot, mintAccount] = await Promise.all([
+    new OnlinePumpAmmSdk(connection).swapSolanaState(poolKey, SystemProgram.programId),
+    connection.getSlot('confirmed'),
+    connection.getParsedAccountInfo(mintKey, 'confirmed'),
+  ]);
+  assertVerifiedSolPool(state, poolKey, mintKey);
+  const tokenDecimals = Number(mintAccount.value?.data?.parsed?.info?.decimals);
+  if (!Number.isInteger(tokenDecimals) || tokenDecimals < 0 || tokenDecimals > 18) throw new Error('Pool mint decimals could not be verified.');
+  return formatGraduatedPoolSnapshot({ mint:mintKey, poolKey, state, tokenDecimals, slot });
+}
+
+async function buildGraduatedTrade({ connection, side, mintKey, userKey, amount, slippage, tokenDecimals, feePolicy, snapshot, poolAddress = null }) {
+  const poolKey = poolAddress ? requireMint(poolAddress) : canonicalPumpPoolPda(mintKey, NATIVE_MINT);
   const pool = await new OnlinePumpAmmSdk(connection).swapSolanaState(poolKey, userKey);
-  if (!pool.poolAccountInfo || !pool.pool.baseMint.equals(mintKey) || !pool.pool.quoteMint.equals(NATIVE_MINT) || pool.poolBaseAmount.lte(new BN(0)) || pool.poolQuoteAmount.lte(new BN(0))) throw new Error('A verified SOL-quoted graduated pool is unavailable.');
+  assertVerifiedSolPool(pool, poolKey, mintKey);
   const args = poolQuoteArgs(pool);
+  const route = poolAddress ? 'verified-pool' : 'graduated-pool';
   if (side === 'buy') {
     const solAmount = tradeUnits(amount, 9);
     const quoted = buyQuoteInput({ ...args, quote: solAmount, slippage });
@@ -82,7 +122,7 @@ async function buildGraduatedTrade({ connection, side, mintKey, userKey, amount,
     const instructions = await PUMP_AMM_SDK.buyQuoteInput(pool, solAmount, slippage);
     const feeLamports = calculateTradeFee(solAmount, feePolicy);
     instructions.push(SystemProgram.transfer({ fromPubkey: userKey, toPubkey: new PublicKey(feePolicy.feeOwner), lamports: feeLamports }));
-    return { route: 'graduated-pool', side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: solAmount, outputAmount: quoted.base, minimumOutputAmount: quoted.base, tokenDecimals, feeLamports, feePolicy, snapshot: { ...snapshot, swapQuoteReservesSol:Number(pool.poolQuoteAmount.toString()) / LAMPORTS_PER_SOL }, pool: poolKey.toBase58() };
+    return { route, side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: solAmount, maximumInputAmount: quoted.maxQuote, outputAmount: quoted.base, minimumOutputAmount: quoted.base, tokenDecimals, feeLamports, feePolicy, snapshot: { ...snapshot, swapQuoteReservesSol:Number(pool.poolQuoteAmount.toString()) / LAMPORTS_PER_SOL }, pool: poolKey.toBase58() };
   }
   const tokenAmount = tradeUnits(amount, tokenDecimals);
   const quoted = sellBaseInput({ ...args, base: tokenAmount, slippage });
@@ -90,7 +130,22 @@ async function buildGraduatedTrade({ connection, side, mintKey, userKey, amount,
   const instructions = await PUMP_AMM_SDK.sellBaseInput(pool, tokenAmount, slippage);
   const feeLamports = calculateTradeFee(quoted.uiQuote, feePolicy);
   instructions.push(SystemProgram.transfer({ fromPubkey: userKey, toPubkey: new PublicKey(feePolicy.feeOwner), lamports: feeLamports }));
-  return { route: 'graduated-pool', side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: quoted.uiQuote, outputAmount: quoted.uiQuote, minimumOutputAmount: quoted.minQuote, tokenDecimals, feeLamports, feePolicy, snapshot, pool: poolKey.toBase58() };
+  return { route, side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: quoted.uiQuote, outputAmount: quoted.uiQuote, minimumOutputAmount: quoted.minQuote, tokenDecimals, feeLamports, feePolicy, snapshot, pool: poolKey.toBase58() };
+}
+
+export async function buildVerifiedPoolTradeTransaction({ connection, side, mint, user, amount, slippagePercent = 1, feeOwner, feeBps = DEFAULT_TRADE_FEE_BPS, poolAddress }) {
+  const mintKey = requireMint(mint), userKey = requireMint(user), poolKey = requireMint(poolAddress);
+  const slippage = Number(slippagePercent);
+  if (!['buy', 'sell'].includes(side)) throw new Error('Trade side must be buy or sell.');
+  if (!Number.isFinite(slippage) || slippage < 0.1 || slippage > 5) throw new Error('Pool slippage must be between 0.1% and 5%.');
+  if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) throw new Error('Trade amount must be positive.');
+  const feePolicy = buildTradeFeePolicy({ feeOwner, feeBps });
+  if (!feePolicy.enabled) throw new Error('Trading is disabled until the app owner fee wallet is configured.');
+  const mintAccount = await connection.getParsedAccountInfo(mintKey, 'confirmed');
+  if (!mintAccount.value || (!mintAccount.value.owner.equals(TOKEN_PROGRAM_ID) && !mintAccount.value.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('The configured token mint is not verified.');
+  const tokenDecimals = Number(mintAccount.value.data?.parsed?.info?.decimals);
+  if (!Number.isInteger(tokenDecimals) || tokenDecimals < 0 || tokenDecimals > 18) throw new Error('Token decimals could not be verified.');
+  return buildGraduatedTrade({ connection, side, mintKey, userKey, amount, slippage, tokenDecimals, feePolicy, poolAddress:poolKey });
 }
 
 export function formatBondingCurveSnapshot({ mint, bondingCurve, slot = null, observedAt = new Date().toISOString() }) {
@@ -124,12 +179,47 @@ export async function fetchBondingCurveSnapshot({ connection, mint }) {
   return formatBondingCurveSnapshot({ mint: mintKey, bondingCurve, slot });
 }
 
+export function formatGraduatedPoolSnapshot({ mint, poolKey, state, tokenDecimals = 6, slot = null, observedAt = new Date().toISOString() }) {
+  if (!state?.pool || !state.poolBaseAmount || !state.poolQuoteAmount) throw new Error('PumpSwap pool data is unavailable.');
+  const baseTokenReserves = bnToNumber(state.poolBaseAmount, tokenDecimals);
+  const quoteReservesSol = bnToNumber(state.poolQuoteAmount, 9);
+  const virtualQuoteReservesSol = bnToNumber(state.pool.virtualQuoteReserves, 9);
+  const effectiveQuoteReservesSol = quoteReservesSol + virtualQuoteReservesSol;
+  return {
+    mint: requireMint(mint).toBase58(),
+    pool: requireMint(poolKey).toBase58(),
+    poolBaseTokenAccount: state.pool.poolBaseTokenAccount?.toBase58?.() || String(state.pool.poolBaseTokenAccount || ''),
+    poolQuoteTokenAccount: state.pool.poolQuoteTokenAccount?.toBase58?.() || String(state.pool.poolQuoteTokenAccount || ''),
+    baseTokenReserves,
+    quoteReservesSol,
+    virtualQuoteReservesSol,
+    effectiveQuoteReservesSol,
+    spotPriceSol: baseTokenReserves > 0 ? effectiveQuoteReservesSol / baseTokenReserves : NaN,
+    creator: state.pool.creator?.toBase58?.() || String(state.pool.creator || ''),
+    coinCreator: state.pool.coinCreator?.toBase58?.() || String(state.pool.coinCreator || ''),
+    slot,
+    observedAt,
+  };
+}
+
+export async function fetchGraduatedPoolSnapshot({ connection, mint, tokenDecimals = 6 }) {
+  const mintKey = requireMint(mint);
+  const poolKey = canonicalPumpPoolPda(mintKey, NATIVE_MINT);
+  const sdk = new OnlinePumpAmmSdk(connection);
+  const [state, slot] = await Promise.all([
+    sdk.swapSolanaState(poolKey, SystemProgram.programId),
+    connection.getSlot('confirmed'),
+  ]);
+  if (!state.poolAccountInfo || !state.baseMint?.equals?.(mintKey) || !state.pool.quoteMint?.equals?.(NATIVE_MINT)) throw new Error('A verified SOL-quoted PumpSwap pool is unavailable.');
+  return formatGraduatedPoolSnapshot({ mint: mintKey, poolKey, state, tokenDecimals, slot });
+}
+
 export async function buildTradeTransaction({ connection, side, mint, user, amount, slippagePercent = 1, feeOwner, feeBps = DEFAULT_TRADE_FEE_BPS }) {
   const mintKey = requireMint(mint);
   const userKey = user instanceof PublicKey ? user : new PublicKey(String(user || '').trim());
   const slippage = Number(slippagePercent);
   if (!['buy', 'sell'].includes(side)) throw new Error('Trade side must be buy or sell.');
-  if (!Number.isFinite(slippage) || slippage <= 0 || slippage > 10) throw new Error('Slippage must be between 0 and 10%.');
+  if (!Number.isFinite(slippage) || slippage < 0.1 || slippage > 10) throw new Error('Slippage must be between 0.1% and 10%.');
   if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) throw new Error('Trade amount must be positive.');
   const feePolicy = buildTradeFeePolicy({ feeOwner, feeBps });
   if (!feePolicy.enabled) throw new Error('Trading is disabled until the app owner fee wallet is configured.');
@@ -202,9 +292,26 @@ export async function submitTrade({ connection, provider, side, mint, user, amou
   onStatus('Waiting for wallet approval…');
   const signed = await provider.signTransaction(transaction);
   assertWalletCurrent();
-  const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
+  const signedBlockhash = signed.recentBlockhash || latest.blockhash;
+  const lastValidBlockHeight = signed.fundedLastValidBlockHeight || latest.lastValidBlockHeight;
+  if (provider.remoteMobile) {
+    const currentHeight = await connection.getBlockHeight('confirmed');
+    if (currentHeight >= lastValidBlockHeight - 10) throw new Error('The Devnet transaction expired during phone approval. Preview the trade and sign again.');
+  }
+  let signature;
+  try {
+    signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false, preflightCommitment: 'confirmed' });
+  } catch (error) {
+    if (/blockhash not found/i.test(String(error?.message || ''))) throw new Error('The Devnet transaction expired during phone approval. Preview the trade and sign again.');
+    throw error;
+  }
   onStatus('Confirming trade on Solana Devnet…');
-  const confirmation = await connection.confirmTransaction({ signature, blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight }, 'confirmed');
-  assertTradeConfirmed(confirmation);
+  try {
+    const confirmation = await connection.confirmTransaction({ signature, blockhash: signedBlockhash, lastValidBlockHeight }, 'confirmed');
+    assertTradeConfirmed(confirmation);
+  } catch (error) {
+    error.signature = signature;
+    throw error;
+  }
   return { ...trade, signature, confirmedAt: new Date().toISOString() };
 }

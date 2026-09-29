@@ -22,13 +22,13 @@ export function buildCommunityAirdropPolicy({ allocationPercent, supply }) {
   if (!allocation.valid) throw new Error('Community allocation must be between 3% and 50%.');
   if (!Number.isSafeInteger(normalizedSupply) || normalizedSupply < 1) throw new Error('Airdrop supply must be a positive safe integer.');
   return {
-    model: 'launch-funded-community-reserve',
+    model: 'community-allocation-pending-funding',
     reserve: {
-      funding: 'same-launch-transaction',
-      purchasePrice: 'launch-price',
-      custody: 'community-vault-pda',
-      creatorCanWithdraw: false,
-      status: 'requires-community-vault-program',
+      funding: 'verified-post-launch-transfer-required',
+      purchasePrice: null,
+      custody: 'reward-vault-pda-after-funding',
+      creatorCanWithdraw: null,
+      status: 'funding-unverified',
     },
     allocationPercent: allocation.allocationPercent,
     reservedTokens: Math.floor(normalizedSupply * allocation.allocationPercent / 100),
@@ -42,19 +42,19 @@ export function buildCommunityAirdropPolicy({ allocationPercent, supply }) {
       status: 'pending-migration',
     },
     claim: {
-      mechanism: 'merkle-proof-from-community-vault',
+      mechanism: 'merkle-proof-from-funded-community-vault',
       windowDays: COMMUNITY_AIRDROP.claimWindowDays,
-      status: 'opens-after-snapshot-root',
-      doubleClaimProtection: 'wallet-claim-bitset',
-      expiredFunds: 'community-growth-reserve',
+      status: 'requires-funded-vault-and-migration-snapshot',
+      doubleClaimProtection: 'recipient-payment-pda',
+      expiredFunds: 'app-owner-reward-authority-wallet',
     },
     safeguards: {
       minimumHoldingPeriodDays: 0,
       maxWalletAllocationPercent: null,
-      sybilScreening: 'required-before-root-publication',
+      sybilScreening: 'not-implemented',
       publicReceipts: true,
     },
-    productionRequirements: ['community-vault-program', 'holder-indexer', 'merkle-root-publisher'],
+    productionRequirements: ['same-launch-reserve-funding', 'migration-time-holder-snapshot', 'claim-proof-publisher', 'verified-app-owner-reward-authority'],
   };
 }
 
@@ -64,9 +64,9 @@ export function buildLaunchReservePlan({ allocationPercent, supply, mintAddress 
     ...policy.reserve,
     mint: mintAddress,
     reservedTokens: policy.reservedTokens,
-    atomic: true,
-    instructions: ['create-token', 'fund-community-reserve', 'write-airdrop-policy'],
-    onChainStatus: 'not-deployed-in-frontend',
+    atomic: false,
+    instructions: [],
+    onChainStatus: 'funding-not-in-launch-transaction',
   };
 }
 

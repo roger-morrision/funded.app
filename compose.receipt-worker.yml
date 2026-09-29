@@ -9,11 +9,14 @@ services:
     environment:
       NODE_ENV: production
       VITE_SOLANA_CLUSTER: devnet
-      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
-      DATABASE_URL: postgresql://funded:${FUNDED_DB_PASSWORD:?Use the protected deployment environment}@db:5432/funded_app
+      SOLANA_RPC_URL_FILE: /run/secrets/solana_rpc_url
+      DATABASE_URL_FILE: /run/secrets/database_url
       DATABASE_SSL: "false"
       FUNDED_RECEIPT_BACKFILL_ENABLED: "true"
       FUNDED_BACKFILL_PAGES: "5"
+    secrets:
+      - solana_rpc_url
+      - database_url
     depends_on:
       db:
         condition: service_healthy

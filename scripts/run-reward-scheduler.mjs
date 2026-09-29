@@ -8,6 +8,11 @@ import { createAutomaticRewardChain } from '../server/automatic-reward-chain.mjs
 import { createRewardScheduler } from '../server/reward-scheduler.mjs';
 import { createRewardFundingProcessor } from '../server/reward-funding-processor.mjs';
 
+for (const [name, filePath] of Object.entries(process.env)) {
+  if (!name.endsWith('_FILE') || !filePath || process.env[name.slice(0, -5)] != null) continue;
+  process.env[name.slice(0, -5)] = readFileSync(filePath, 'utf8').trim();
+}
+
 function signer() {
   const cluster = String(process.env.SOLANA_CLUSTER || process.env.VITE_SOLANA_CLUSTER || 'devnet');
   const encoded = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || (cluster === 'devnet' ? process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY : '') || '').trim();

@@ -1,0 +1,21 @@
+services:
+  fee-collector:
+    image: ${FUNDED_APP_IMAGE:?Set the deployed funded.app image}
+    restart: unless-stopped
+    command: ["node", "scripts/run-fee-collector.mjs"]
+    environment:
+      SOLANA_CLUSTER: devnet
+      FUNDED_API_TOKEN_FILE: /run/secrets/funded_api_token
+      FUNDED_FEE_COLLECTION_API: http://app:8787
+      FUNDED_FEE_COLLECTION_TICK_MS: ${FUNDED_FEE_COLLECTION_TICK_MS:-300000}
+    secrets:
+      - funded_api_token
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "scripts/run-fee-collector.mjs", "--check"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 90s

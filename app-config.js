@@ -24,6 +24,7 @@ export const APP_IS_MAINNET = APP_CLUSTER === 'mainnet-beta';
 export const APP_EXPLORER_QUERY = APP_IS_MAINNET ? '' : `?cluster=${APP_CLUSTER}`;
 export const APP_ENVIRONMENT_LABEL = APP_IS_MAINNET ? 'Solana Mainnet' : 'Solana Devnet';
 export const APP_ALLOW_MAINNET = String(import.meta.env.VITE_ALLOW_MAINNET || '').toLowerCase() === 'true';
+export const APP_MAINNET_READ_ONLY = APP_IS_MAINNET && String(import.meta.env.VITE_MAINNET_READ_ONLY || '').toLowerCase() === 'true';
 export const DEV_MODE = String(import.meta.env.VITE_DEV_MODE || '').toLowerCase() === 'true' && !APP_IS_MAINNET;
 export const DEV_WALLET_ROLE = String(import.meta.env.VITE_DEV_WALLET_ROLE || 'creator').trim().toLowerCase();
 export const DEV_WALLET_AUTOCONNECT = DEV_MODE && String(import.meta.env.VITE_DEV_AUTOCONNECT || '').toLowerCase() === 'true';

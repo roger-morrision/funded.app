@@ -1,8 +1,10 @@
+import { readFileSync } from 'node:fs';
 import {createStore} from '../server/store.mjs';
 import {receiptWorkerStatus} from '../server/receipt-worker-status.mjs';
-if(!process.env.DATABASE_URL&&!process.env.FUNDED_STORE_PATH)throw new Error('Choose an explicit worker status store.');
 if((process.env.VITE_SOLANA_CLUSTER||process.env.SOLANA_CLUSTER||'devnet')!=='devnet')throw new Error('Worker status is Devnet-only.');
-const store=createStore(process.env.FUNDED_STORE_PATH,process.env.FUNDED_STORE_PATH?'':process.env.DATABASE_URL);
+const databaseUrl = process.env.FUNDED_STORE_PATH ? '' : process.env.DATABASE_URL || (process.env.DATABASE_URL_FILE ? readFileSync(process.env.DATABASE_URL_FILE, 'utf8').trim() : '');
+if(!databaseUrl&&!process.env.FUNDED_STORE_PATH)throw new Error('Choose an explicit worker status store.');
+const store=createStore(process.env.FUNDED_STORE_PATH,process.env.FUNDED_STORE_PATH?'':databaseUrl);
 try {
   const status=receiptWorkerStatus(await store.readReceiptBackfillStatus('devnet'));
   console.log(JSON.stringify(status));

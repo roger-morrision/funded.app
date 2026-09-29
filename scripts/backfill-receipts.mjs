@@ -1,8 +1,14 @@
+import { readFileSync } from 'node:fs';
 import { Connection,clusterApiUrl } from '@solana/web3.js';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createStore } from '../server/store.mjs';
 import { createReceiptEvidenceReader } from '../server/receipt-service.mjs';
 import { runReceiptBackfill } from '../server/receipt-backfill.mjs';
+
+for (const [name, filePath] of Object.entries(process.env)) {
+  if (!name.endsWith('_FILE') || !filePath || process.env[name.slice(0, -5)] != null) continue;
+  process.env[name.slice(0, -5)] = readFileSync(filePath, 'utf8').trim();
+}
 
 if(process.env.FUNDED_RECEIPT_BACKFILL_ENABLED!=='true')throw new Error('Backfill is disabled. Configure an approved Devnet store/RPC and explicitly enable FUNDED_RECEIPT_BACKFILL_ENABLED.');
 const cluster=process.env.VITE_SOLANA_CLUSTER||process.env.SOLANA_CLUSTER||'devnet';

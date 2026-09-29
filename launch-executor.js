@@ -6,9 +6,13 @@ export async function executeLaunchPlan({connection,provider,payer,mint,plan,onE
   for(const step of plan.steps) {
     let broadcast=false, signature=null;
     try {
-      const latest=await connection.getLatestBlockhash('confirmed');
+      // A finalized hash is slightly older but is visible across every backend
+      // in a load-balanced Devnet RPC pool. A merely confirmed hash can be
+      // returned by one backend and rejected as unknown by the next.
+      const latest=await connection.getLatestBlockhash('finalized');
       step.transaction.recentBlockhash=latest.blockhash;step.transaction.feePayer=payer;
       step.transaction.signatures=[];step.transaction.partialSign(mint);
+      step.transaction.fundedLastValidBlockHeight=latest.lastValidBlockHeight;
       assertWalletCurrent();
       onEvent({state:'awaiting-approval',step:step.kind,lastValidBlockHeight:latest.lastValidBlockHeight});
       const signed=await provider.signTransaction(step.transaction);assertWalletCurrent();
@@ -19,7 +23,17 @@ export async function executeLaunchPlan({connection,provider,payer,mint,plan,onE
       const returned=await connection.sendRawTransaction(raw,{skipPreflight:false});
       if(returned!==signature)throw new Error('RPC returned an unexpected signature.');
       onEvent({state:'submitted',step:step.kind,signature});
-      const confirmation=await connection.confirmTransaction({signature,...latest},'confirmed');
+      let confirmation;
+      try { confirmation=await connection.confirmTransaction({signature,...latest},'finalized'); }
+      catch(error) {
+        // A block-height expiry can race a finalized transaction on a lagging
+        // RPC backend. Reconcile the same signature; never send it again.
+        let status;
+        try { status=(await connection.getSignatureStatuses([signature],{searchTransactionHistory:true})).value?.[0]; }
+        catch {}
+        if(status?.confirmationStatus!=='finalized')throw error;
+        confirmation={value:{err:status.err}};
+      }
       if(confirmation.value.err) {
         onEvent({state:'failed',step:step.kind,signature,message:JSON.stringify(confirmation.value.err)});
         const error=new Error(`${step.kind} failed on-chain. Inspect ${signature}.`);error.knownFailure=true;throw error;

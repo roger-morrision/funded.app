@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import bs58 from 'bs58';
+import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { Connection, Keypair, PublicKey, SystemProgram, Transaction, clusterApiUrl, sendAndConfirmTransaction } from '@solana/web3.js';
+import { buildVerifiedPoolTradeTransaction, describeTradeQuote, fetchVerifiedPoolSnapshot } from '../pump-trading.js';
+
+assert.equal(process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER, 'devnet');
+const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || clusterApiUrl('devnet'), 'finalized');
+assert.equal(await connection.getGenesisHash(), 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG');
+const mint = new PublicKey(process.env.VITE_FUNDED_TOKEN_MINT), poolAddress = process.env.VITE_FUNDED_SWAP_POOL;
+const buyer = Keypair.generate();
+const snapshot = await fetchVerifiedPoolSnapshot({ connection, mint, poolAddress });
+const trade = await buildVerifiedPoolTradeTransaction({ connection, side:'buy', mint, poolAddress, user:buyer.publicKey, amount:0.001, slippagePercent:1, feeOwner:process.env.VITE_FUNDED_TRADE_FEE_OWNER });
+const quote = describeTradeQuote(trade, 1);
+assert.ok(quote.expected > 0 && quote.maximumSpendSol <= 0.00101);
+if (!process.argv.includes('--execute')) {
+  console.log(JSON.stringify({ status:'quoted', cluster:'devnet', pool:snapshot.pool, quote, signer:'in-memory-ephemeral' }));
+  process.exit(0);
+}
+const issuer = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY));
+const fundingSignature = await sendAndConfirmTransaction(connection, new Transaction().add(SystemProgram.transfer({ fromPubkey:issuer.publicKey, toPubkey:buyer.publicKey, lamports:10_000_000 })), [issuer], { commitment:'finalized', preflightCommitment:'confirmed' });
+assert.ok(await connection.getBalance(buyer.publicKey, 'finalized') >= 10_000_000);
+const mintAccount = await connection.getAccountInfo(mint, 'finalized');
+assert.ok(mintAccount?.owner.equals(TOKEN_PROGRAM_ID));
+const buyerToken = getAssociatedTokenAddressSync(mint, buyer.publicKey);
+const poolBaseToken = new PublicKey(snapshot.poolBaseTokenAccount);
+const poolBefore = BigInt((await connection.getTokenAccountBalance(poolBaseToken, 'finalized')).value.amount);
+const block = await connection.getLatestBlockhash('finalized');
+const transaction = new Transaction({ feePayer:buyer.publicKey, recentBlockhash:block.blockhash }).add(...trade.instructions);
+transaction.sign(buyer);
+assert.ok(transaction.serialize().length <= 1232);
+const signature = await sendAndConfirmTransaction(connection, transaction, [buyer], { commitment:'finalized', preflightCommitment:'confirmed' });
+const status = await connection.getSignatureStatus(signature, { searchTransactionHistory:true });
+assert.equal(status.value?.confirmationStatus, 'finalized');
+assert.equal(status.value?.err, null);
+const acquired = BigInt((await connection.getTokenAccountBalance(buyerToken, 'finalized')).value.amount);
+const poolAfter = BigInt((await connection.getTokenAccountBalance(poolBaseToken, 'finalized')).value.amount);
+assert.ok(acquired >= BigInt(trade.minimumOutputAmount.toString()));
+assert.equal(poolBefore - poolAfter, acquired);
+console.log(JSON.stringify({ status:'verified', cluster:'devnet', fundingSignature, signature, pool:snapshot.pool, buyer:buyer.publicKey.toBase58(), acquiredBaseUnits:String(acquired), poolBaseDelta:String(poolBefore - poolAfter), signer:'in-memory-ephemeral', privateKeyPersisted:false }));

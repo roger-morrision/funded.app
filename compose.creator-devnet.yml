@@ -13,19 +13,25 @@ services:
       CORS_ORIGIN: ${PUBLIC_APP_URL:-https://funded.vip}
       X_CALLBACK_URL: ${X_CALLBACK_URL:-}
       X_CLIENT_ID: ${X_CLIENT_ID:-}
-      X_CLIENT_SECRET: ${X_CLIENT_SECRET:-}
-      X_BEARER_TOKEN: ${X_BEARER_TOKEN:-}
+      X_CLIENT_SECRET_FILE: /run/secrets/x_client_secret
       FUNDED_BUILD_ID: ${FUNDED_BUILD_ID:-automatic-rewards-v11-20260923d}
-      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
-      SOLANA_DEVNET_RPC_URL: ${SOLANA_DEVNET_RPC_URL:-}
+      SOLANA_RPC_URL_FILE: /run/secrets/solana_rpc_url
+      SOLANA_DEVNET_RPC_URL_FILE: /run/secrets/solana_devnet_rpc_url
       SOLANA_KEEPER_CONFIGURED: "true"
       FUNDED_MINT_FEE_ROUTER_ENABLED: "true"
       FUNDED_REWARD_PROGRAM_DATA_SHA256: ${FUNDED_REWARD_PROGRAM_DATA_SHA256:?Missing approved reward program-data hash}
-      FUNDED_ROUTER_AUTHORITY_SECRET_KEY: ${FUNDED_ROUTER_AUTHORITY_SECRET_KEY:-}
-      SOLANA_DEVNET_CREATOR_SECRET_KEY: ${SOLANA_DEVNET_CREATOR_SECRET_KEY:-}
+      FUNDED_ROUTER_AUTHORITY_SECRET_KEY_FILE: /run/secrets/funded_router_authority_secret_key
+      SOLANA_DEVNET_CREATOR_SECRET_KEY_FILE: /run/secrets/solana_devnet_creator_secret_key
       SOLANA_ALLOW_KEEPER_TRANSFER: "false"
       FUNDED_RECEIPT_BACKFILL_ENABLED: "false"
       FUNDED_RECEIPT_RETENTION_ENABLED: "false"
+    secrets:
+      - solana_rpc_url
+      - solana_devnet_rpc_url
+      - funded_router_authority_secret_key
+      - solana_devnet_creator_secret_key
+      - x_client_secret
+      - x_bearer_token
     healthcheck:
       test: ["CMD", "node", "--input-type=module", "-e", "const r=await fetch('http://127.0.0.1:8787/api/health',{signal:AbortSignal.timeout(3000)});process.exit(r.ok?0:1)"]
       interval: 30s

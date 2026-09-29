@@ -1,0 +1,249 @@
+/* Shared finishing layer for every route. Keep the existing route and state styles intact. */
+:root {
+  --bg: #0d1018;
+  --panel: #151b28;
+  --panel-2: #1a2232;
+  --line: #344057;
+  --muted: #aab6ca;
+  --text: #f5f7fc;
+}
+
+body {
+  background: radial-gradient(circle at 82% -8%, #211b35 0, transparent 32%), #0d1018;
+  color: var(--text);
+}
+
+/* Navigation and search remain legible while the user moves between long pages. */
+.sidebar {
+  border-color: #2c3548;
+  background: #10141e;
+}
+.sidebar .brand-row { padding-bottom: 23px; }
+.sidebar .primary-nav { padding-right: 7px; }
+.nav-label {
+  color: #8997ad;
+  font-size: 10px;
+  letter-spacing: 1.1px;
+}
+.nav-label-spaced { margin-top: 22px; }
+.nav-item {
+  min-height: 39px;
+  margin: 2px 0;
+  color: #b4bfd0;
+  font-size: 12px;
+  border: 1px solid transparent;
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+}
+.nav-item:hover { color: #f5f7fc; background: #1a2334; }
+.nav-item.active {
+  border-color: #475175;
+  background: #22273f;
+  box-shadow: inset 3px 0 0 #a18af8;
+}
+.nav-icon { color: #9ba9c1; }
+.nav-item.active .nav-icon { color: #bcabff; }
+.profile-row { padding: 12px 5px 4px; }
+.profile-row small { color: #aab6c8; }
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  height: 72px;
+  background: #0f1320f2;
+  border-bottom-color: #343d51;
+  backdrop-filter: blur(18px);
+}
+.topbar-context span { font-size: 13px; }
+.topbar-context small { color: #9eabc0; font-size: 11px; }
+.search-box { max-width: 360px; }
+.search-box input::placeholder { color: #a4b0c4; }
+.search-box kbd { color: #a8b3c8; }
+
+/* Give each destination a useful, readable introduction. */
+.page-route:not(.page-route-overview):not(.page-route-launch) .route-guide {
+  margin: 25px 0 27px;
+  padding: 8px 0 26px;
+  border-bottom-color: #39445a;
+}
+.page-route:not(.page-route-overview):not(.page-route-launch) .route-guide h1 {
+  margin: 6px 0 9px;
+  font-size: clamp(33px, 3.6vw, 43px);
+  line-height: 1.06;
+}
+.page-route:not(.page-route-overview):not(.page-route-launch) .route-guide p:last-child {
+  max-width: 660px;
+  color: #b5c0d2;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.route-guide .eyebrow { color: #a5b4ca; font-size: 10px; }
+.route-guide-state { font-size: 10px; }
+.route-guide-secondary { color: #c4b8ff; }
+
+.page-route .main-content > section { scroll-margin-top: 92px; }
+.section-heading h2, .panel-heading h2 { line-height: 1.2; }
+.section-heading .eyebrow, .panel-heading .eyebrow, .main-content .eyebrow {
+  color: #a1afc4;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.main-content .panel-explainer,
+.main-content .page-lede,
+.main-content .projects-lede,
+.main-content .hero-copy {
+  color: #b3bfd2;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+/* Panels share a quiet surface; meaning comes from headings, data, and status. */
+.page-route .main-content :is(.panel, .support-card, .community-card, .role-panel, .airdrop-analytics-card, .airdrop-wallets-card) {
+  border-color: #354158;
+  border-radius: 13px;
+  background-color: #151b29;
+}
+.main-content :is(.panel, .support-card, .community-card, .role-panel) p:not(.eyebrow) {
+  color: #b5c0d1;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.main-content :is(.panel, .support-card, .community-card, .role-panel) h2,
+.main-content .section-heading h2 {
+  color: #f4f6fb;
+  font-size: clamp(21px, 2vw, 26px);
+  line-height: 1.18;
+}
+.main-content h3 { line-height: 1.25; }
+.main-content small { font-size: 11px !important; line-height: 1.45; }
+.main-content .field-help { color: #a9b6ca; font-size: 12px !important; line-height: 1.55; }
+.main-content .unavailable-note { color: #acb9cc; font-size: 12px; }
+.main-content .data-badge { font-size: 10px; line-height: 1.3; }
+
+/* The home dashboard is a set of individual, scannable summaries. */
+.home-kpi-heading { padding: 25px 26px 21px; }
+.home-kpi-heading p:not(.eyebrow) { color: #b4c0d1; font-size: 12px; line-height: 1.6; }
+.home-kpi-freshness span, .home-kpi-freshness small { color: #a2afc3; font-size: 10px !important; }
+.home-kpi-grid { gap: 9px; padding: 9px; background: transparent; }
+.home-kpi-card,
+.home-kpi-card[data-state='unavailable'] {
+  min-height: 142px;
+  padding: 18px;
+  border: 1px solid #354158;
+  border-radius: 10px;
+  background: #171f2e;
+}
+.home-kpi-card small { color: #b5c1d3; font-size: 10px !important; line-height: 1.45; }
+.home-kpi-card em { color: #a8b5c8; font-size: 11px; line-height: 1.5; }
+.home-kpi-value b { color: #b6c2d6; font-size: 9px; }
+.home-kpi-footer { padding: 15px 26px; }
+.home-kpi-footer > span, .home-kpi-footer a { color: #aebbd0; font-size: 11px; }
+.home-live-heading p:not(.eyebrow) { color: #b4c0d1; font-size: 12px; }
+.home-live-metrics span { color: #aebbd0; font-size: 10px; }
+.home-live-metrics small, .home-live-footnote { color: #a1aec2; font-size: 10px !important; }
+.home-referral-guide-head > div > p:last-child { color: #b3bfd1; font-size: 12px; }
+.home-referral-levels p { color: #d5ddeb; font-size: 11px; }
+.home-referral-levels em, .home-referral-link-panel > small { color: #aab7c9; font-size: 10px; }
+
+/* Dense workflow pages: readable explanations and compact but clear controls. */
+.referral-command-center > .section-heading .panel-explainer,
+.referral-toolkit > .section-heading .panel-explainer,
+.docs-process p:not(.eyebrow),
+.leaderboard-hero p:not(.eyebrow) { color: #b6c2d4; font-size: 12px; line-height: 1.6; }
+.referral-command-center .referral-kpi-grid span,
+.home-referral-levels small,
+.projects-panel .role-stats span,
+.airdrop-section .airdrop-stat span { color: #b2bed0; font-size: 10px; }
+.referral-command-center .referral-kpi-grid small,
+.referral-toolkit .campaign-link-list small,
+.docs-process li small { color: #aebbd0; font-size: 11px !important; }
+.main-content :is(.payment-row, .signal-list, .docs-links, .coin-activity-list, .leaderboard-table) {
+  color: #c8d2e1;
+}
+.main-content .empty-state strong { color: #e4e9f3; font-size: 13px; }
+.main-content .empty-state small { color: #aebbd0; }
+
+.main-content :is(input:not([type='checkbox']):not([type='radio']):not([type='hidden']), select, textarea) {
+  color: #f2f5fc;
+  font-size: 13px;
+}
+.main-content :is(input, textarea)::placeholder { color: #899ab3; opacity: 1; }
+.main-content :is(.primary-button, .secondary-button, .create-coin-button, .connect-button) {
+  min-height: 40px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.main-content :is(.text-button, .docs-links a, .support-card a) { font-size: 12px; }
+.main-content :is(.filter, .segmented button, .coin-tabs button, .launch-steps button) { font-size: 11px; }
+
+/* My projects uses the same market card as Explore when an RPC record exists. */
+.page-route-my-launches .projects-list .project-token-card.asset-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 16px;
+  border-color: #293649;
+  border-radius: 12px;
+  background: #111925;
+  box-shadow: none;
+}
+.page-route-my-launches .project-token-card.asset-card:hover { transform: none; box-shadow: none; }
+.page-route-my-launches .project-token-card .asset-top { display: flex; align-items: center; gap: 9px; }
+.page-route-my-launches .project-token-card .asset-symbol { flex: 1; min-width: 0; }
+.page-route-my-launches .project-token-card .watch-button { margin-left: auto; }
+.page-route-my-launches .project-token-card :is(.asset-authorities, .asset-risk, .asset-proof-link, .asset-flow-buy, .asset-flow-sell) { display: none !important; }
+.page-route-my-launches .project-token-card .asset-status { margin-top: 11px; }
+.page-route-my-launches .project-token-card .asset-name {
+  min-height: 0;
+  margin: 8px 0 16px;
+  color: #9aa8bc;
+  font-size: 11px;
+}
+.page-route-my-launches .project-token-card .asset-signal-row {
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 11px 0;
+  border-top: 1px solid #263143;
+  border-bottom: 1px solid #263143;
+}
+.page-route-my-launches .project-token-card .asset-signal-row span { display: grid; gap: 4px; min-width: 0; }
+.page-route-my-launches .project-token-card .asset-signal-row b { color: #d9e3f2; font-size: 11px; }
+.page-route-my-launches .project-token-card .asset-trade-flow { justify-content: space-between; margin-bottom: 12px; }
+.page-route-my-launches .project-token-card :is(.asset-buy-pressure, .asset-curve-progress) { margin-bottom: 13px; }
+.page-route-my-launches .project-token-card .asset-bottom {
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 0;
+  padding-top: 13px;
+}
+.page-route-my-launches .project-token-card .asset-value { font-size: 17px; line-height: 1.25; }
+.page-route-my-launches .project-token-card .asset-actions { gap: 8px; margin-top: 14px; }
+.page-route-my-launches .project-token-card .asset-actions :is(a, button) { min-height: 38px; border-radius: 8px; }
+.asset-icon:has(img) { overflow: hidden; }
+.asset-icon img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+
+@media (max-width: 1100px) {
+  .page-route-my-launches .projects-list.creator-launch-list { grid-template-columns: minmax(0, 1fr); }
+}
+
+:is(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid #c1b4ff;
+  outline-offset: 3px;
+}
+@media (max-width: 700px) {
+  .topbar { height: 66px; }
+  .page-route:not(.page-route-overview):not(.page-route-launch) .route-guide {
+    align-items: flex-start;
+    gap: 18px;
+    margin: 18px 0 22px;
+    padding-bottom: 22px;
+  }
+  .page-route:not(.page-route-overview):not(.page-route-launch) .route-guide h1 { font-size: 34px; }
+  .page-route:not(.page-route-overview):not(.page-route-launch) .route-guide-actions { width: 100%; }
+  .home-kpi-grid { gap: 7px; padding: 7px; }
+  .home-kpi-card { min-height: 122px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-item, .main-content :is(a, button) { transition-duration: .01ms; }
+}

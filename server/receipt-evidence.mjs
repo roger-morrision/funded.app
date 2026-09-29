@@ -29,7 +29,7 @@ function transactionBalances(transaction, signature) {
 }
 
 function validRecord(record) {
-  return record?.cluster === 'devnet' && signaturePattern.test(String(record.signature || ''));
+  return ['devnet', 'mainnet-beta'].includes(record?.cluster) && signaturePattern.test(String(record.signature || ''));
 }
 
 export function verifyCollectionReceipt(record, transaction) {

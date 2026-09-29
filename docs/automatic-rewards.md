@@ -1,6 +1,6 @@
 # Automatic reward delivery
 
-Status: the payout contract is deployed on Devnet. Fee collection, SOL/token transfers, buy-and-distribute, and the scheduler have been live-verified there; the scheduler verification used a one-shot local worker rather than claiming a continuously deployed worker. Holder indexing uses the configured Helius endpoint, reads accounts at finalized commitment, and accepts a snapshot only when its balances exactly equal finalized mint supply. Mainnet remains disabled pending a separate audit and release authorization.
+Status: the payout contract is deployed on Devnet. Fee collection, SOL/token transfers, buy-and-distribute, and the scheduler have been live-verified there; the scheduler verification used a one-shot local worker rather than claiming a continuously deployed worker. Holder indexing uses the configured Helius endpoint, reads accounts at finalized commitment, and accepts a snapshot only when its balances exactly equal finalized mint supply. Current live holder periods below the 0.01 SOL funding minimum are correctly deferred. Mainnet remains disabled pending a separate audit and release authorization.
 
 The existing 80/20 fee rule is unchanged. Creator-directed SOL can be delivered to creators, eligible coin holders, and verified X wallets. Referral rewards remain manual claims. Token rewards can use the same automatic cycle after the token reserve is funded and holder eligibility is finalized. Optional buy-and-distribute converts a bounded SOL budget into the launched token, verifies the exact token balance increase, funds the reward vault, and then schedules token payouts.
 
@@ -10,18 +10,22 @@ The existing 80/20 fee rule is unchanged. Creator-directed SOL can be delivered 
 - Deterministic JS Merkle manifests and matching vault/cycle/payment PDA derivation.
 - Finalized SPL holder snapshots persisted by mint and slot. The daily model uses time-weighted balances from fixed-interval samples, rejects missing boundaries or oversized gaps, aggregates token accounts by wallet, and supports explicit vault/pool exclusions. Program scans, paginated indexed token-account discovery, and a small-holder-set fallback all require exact finalized supply coverage.
 - Durable per-mint UTC schedules with cutoff, payout time, allocation manifest, cycle address, recipient-level confirmation evidence, and restart-safe status.
-- Every new launch uses its own mint-specific fee router, so collection and reward funding remain attributable without requiring an X reward selection. X credentials gate only the optional X destination.
+- The mint-specific fee-router code is available for new launches, but the running Devnet app has not activated its router upgrade. X credentials gate the optional X destination once that upgrade is verified.
 - SOL funding from the existing per-mint fee router into the constrained reward vault, with an immutable settlement claim and exact finalized vault delta.
 - Automatic SOL and token payout adapters. A payout is marked paid only after a finalized payment PDA and the expected recipient balance delta are both observed.
 - Token-vault funding with idempotent associated-token-account creation and exact finalized token deltas.
-- One-time launched-token airdrops from a finalized `$FUNDED` eligibility snapshot, with excluded wallets, immutable snapshot slot, pro-rata allocation, and automatic token delivery.
+- Deterministic one-time launched-token community allocation builder and an additive 90-day on-chain claim candidate. No production claim cycle has an independently verified migration-time `$FUNDED` snapshot; live community claims remain closed.
 - Optional Pump/PumpSwap buy-and-distribute executor with explicit enablement, maximum budget, slippage cap, price-impact cap, minimum output, finalized acquired-token delta, and a second verified vault-funding delta.
 - Live `/api/rewards/automatic` status sourced from the durable reward ledger. Schedules are shown only when recorded; service activity expires when worker readiness becomes stale.
 - Referral exclusion. Referrals continue through the existing user-signed manual claim flow.
 
+## Routes still gated
+
+The running Devnet app now loads X OAuth and user-lookup configuration from ignored `.env.x` plus the matching mounted secret files. `/api/x/oauth/start` returns an X authorization redirect with the configured HTTPS callback; a real account sign-in has not yet been completed. X payouts still report unavailable because the mint-specific router upgrade is not activated. The local readiness check also pins the deployed program bytecode before reporting ready. Keep X payout controls disabled until OAuth identity, destination wallet, router collection, and finalized payout delta are jointly verified. Buy-and-distribute to holders has separate Devnet evidence above; the advertised fee-funded **buyback and burn** route has no deployed custody, execution, or burn receipt and remains accrual-only. Community claims require the custody and exact-slot eligibility work in `docs/community-airdrop-devnet.md`. Creator and holder payouts continue under the 0.01 SOL minimum; a deferred period is not a failed settlement. Referral rewards remain user-signed manual claims with receipt reconciliation.
+
 ## Operational model
 
-The default period is 24 hours, with five-minute finalized snapshots, cutoff at 00:00 UTC, and payout at 01:00 UTC. A newly activated program starts with the next complete UTC period; earlier partial periods are marked skipped and their verified funding rolls forward. A schedule is blocked if finalized history has a gap greater than two sampling intervals, if no balance-verified pool funding exists, or if there are no eligible holders. SOL pools below 0.01 SOL carry forward.
+The default period is 24 hours, with five-minute finalized snapshots, cutoff at 00:00 UTC, and payout at 01:00 UTC. A newly activated program starts with the next complete UTC period; earlier partial periods are marked skipped and their verified funding rolls forward. An unfunded period or SOL pool below 0.01 SOL is marked deferred; verified funding stays available for the next period. A funded schedule is blocked if finalized history has a gap greater than two sampling intervals or if there are no eligible holders. The indexer retains up to 35 days of five-minute samples per mint; missing historical samples are never synthesized.
 
 The worker command is:
 

@@ -6,7 +6,7 @@ const canonical = value => Array.isArray(value) ? value.map(canonical) : value &
 export const receiptFingerprint = (kind, record) => createHash('sha256').update(JSON.stringify(canonical({ version:1, kind, record }))).digest('hex');
 export function cachedReceiptProof(entry, kind, record) {
   const proof = entry?.proof;
-  if (entry?.key !== receiptFingerprint(kind,record) || entry.cluster !== 'devnet' || entry.commitment !== 'finalized'
+  if (entry?.key !== receiptFingerprint(kind,record) || entry.cluster !== record.cluster || entry.commitment !== 'finalized'
     || !proof || proof.signature !== record.signature || !Number.isSafeInteger(proof.slot) || proof.slot <= 0) return null;
   if (kind === 'collections') return proof.mint === record.mint && proof.collectedLamports === record.collectedLamports ? proof : null;
   return proof.claimId === (record.claimId || null) && proof.to === record.to && proof.source === record.source

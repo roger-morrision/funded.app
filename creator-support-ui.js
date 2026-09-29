@@ -21,6 +21,35 @@ async function copy(text, status) {
 function safeFollowing() { try { const list = JSON.parse(localStorage.getItem('funded.creator.following') || '[]'); return Array.isArray(list) ? list.filter(id=>/^\d{1,24}$/.test(id)).slice(0,200) : []; } catch { return []; } }
 function creatorRoute() { return location.hash.match(/^#creator\/(\d{1,24})$/)?.[1] || (!location.hash && location.pathname.match(/^\/creator\/x\/(\d{1,24})\/?$/)?.[1]); }
 function routeKind() { return creatorRoute() ? 'creator' : location.hash === '#creators' ? 'directory' : location.hash === '#creator-settings' ? 'settings' : null; }
+async function loadCreatorCoinLogos(generation) {
+  try {
+    const response = await fetch('/api/launches', { signal: AbortSignal.timeout(8000) });
+    if (!response.ok) return;
+    const launches = await response.json();
+    if (generation !== routeGeneration || !Array.isArray(launches)) return;
+    const verified = new Map(launches.filter(launch => launch.onchainVerified === true && launch.cluster === APP_CLUSTER)
+      .map(launch => [launch.mint, launch]));
+    page.querySelectorAll('.creator-coin-card').forEach(card => {
+      const avatar = card.querySelector('.creator-coin-logo');
+      const mint = card.dataset.coinMint;
+      const launch = verified.get(mint);
+      if (!avatar || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)
+        || launch?.imageUri !== `https://metadata.funded.vip/devnet-images/${mint}`) return;
+      const sources = [`/devnet-images/${encodeURIComponent(mint)}`, launch.imageUri];
+      let next = 0;
+      const trySource = () => {
+        if (generation !== routeGeneration || !avatar.isConnected || next >= sources.length) return;
+        const image = new Image();
+        image.alt = '';
+        image.decoding = 'async';
+        image.onload = () => { if (generation === routeGeneration && avatar.isConnected) avatar.replaceChildren(image); };
+        image.onerror = trySource;
+        image.src = sources[next++];
+      };
+      trySource();
+    });
+  } catch { /* Keep the mint initial when the verified image is unavailable. */ }
+}
 
 for (const target of ['#explore','#my-launches','#payments']) {
   const holder=$(target); if(!holder)continue;
@@ -35,6 +64,17 @@ intro.innerHTML=`<h3>Who do you want to support?</h3><label>Creator-fee benefici
   <p id="support-launch-capability" role="status">Checking creator-support service…</p>`;
 $('.coin-fields')?.before(intro);
 document.querySelectorAll('[data-launch-step-target]').forEach(button=>{const step=Number(button.dataset.launchStepTarget);button.setAttribute('aria-label',`Step ${step}: ${['Coin','Benefits','Review','Sign'][step-1]}`);});
+function syncSupportLaunchCapability() {
+  const status=$('#support-launch-capability');
+  if (!status) return;
+  if ($('#support-target').value!=='x') {
+    status.textContent='Your wallet is selected. X support is optional; review the final fee policy before signing.';
+  } else if (!capabilities) {
+    status.textContent='X-support launches are blocked until the creator-support service is verified. You can still prepare a draft.';
+  } else {
+    status.textContent=capabilities.xPayouts?.ready?'X payouts are available in this Devnet setup. Enter and verify an X account, then review the fee policy before signing.':`X-support launches are blocked: ${(capabilities.xPayouts?.reasons||['settlement is not ready']).join('; ')}. You can still prepare a draft.`;
+  }
+}
 function applySupportPreset() {
   const isX=$('#support-target').value==='x'; $('#support-x-fields').hidden=!isX;
   if(isX) {
@@ -43,6 +83,7 @@ function applySupportPreset() {
       const input=$(`#${id}`);input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));
     }
   } else $('#launch-mode-quick')?.click();
+  syncSupportLaunchCapability();
 }
 $('#support-target').addEventListener('change',applySupportPreset);
 $('#support-handle').addEventListener('input',()=>{ const input=$('#x-recipient');input.value=$('#support-handle').value;input.dispatchEvent(new Event('input',{bubbles:true}));$('#support-identity').textContent='Account changed. Check again before continuing.'; });
@@ -56,8 +97,9 @@ $('#support-lookup').addEventListener('click',async()=>{
     setStatus($('#support-identity'),`${result.data.handle} · account found. This does not mean the creator endorses your coin.`);
   } catch(error){setStatus($('#support-identity'),error.message);} finally{button.disabled=false;}
 });
-$('#launch-mode-quick')?.addEventListener('click',()=>{ $('#support-target').value='self';$('#support-x-fields').hidden=true; });
+$('#launch-mode-quick')?.addEventListener('click',()=>{ $('#support-target').value='self';$('#support-x-fields').hidden=true;syncSupportLaunchCapability(); });
 if(Number($('#x-share')?.value)>0){$('#support-target').value='x';$('#support-handle').value=$('#x-recipient').value;$('#support-x-fields').hidden=false;}
+syncSupportLaunchCapability();
 
 const notice=document.createElement('p');notice.className='support-capability-note';notice.id='support-capability-note';notice.setAttribute('role','status');
 notice.textContent='Checking creator support availability…';$('.topbar')?.after(notice);
@@ -67,8 +109,8 @@ async function refreshCapabilities() {
     if(!result.available || result.data?.version!==CREATOR_SUPPORT_VERSION || result.data.cluster!==APP_CLUSTER)throw new Error('Preview API is missing or out of date. Creator support is unavailable; restart the API using the current build.');
     capabilities=result.data;
     notice.textContent=`${APP_CLUSTER} · Creator support ${capabilities.xPayouts?.ready?'configured; verify each receipt':'not active for payouts'}. Streaming gifts are not connected.`;
-    $('#support-launch-capability').textContent=capabilities.xPayouts?.ready?'X fee route is configured. Review identity, wallet and fee policy before signing.':`X-support launches are blocked: ${(capabilities.xPayouts?.reasons||['settlement is not ready']).join('; ')}. You can still prepare a draft.`;
-  } catch(error) { capabilities=null;notice.textContent=error.message;$('#support-launch-capability').textContent=error.message; }
+    syncSupportLaunchCapability();
+  } catch(error) { capabilities=null;notice.textContent=error.message;syncSupportLaunchCapability(); }
 }
 void refreshCapabilities();
 
@@ -106,10 +148,11 @@ async function renderCreator(id,generation) {
       <div class="support-actions"><button id="creator-follow">${safeFollowing().includes(id)?'Unfollow':'Follow on this device'}</button><button id="creator-share">Copy creator link</button><button id="creator-share-card">Download share card</button><a class="primary-button" href="#launch" id="creator-support-launch">Create a support coin</a><a href="#payments">Check my claims</a></div><p id="creator-action-status" role="status"></p>
       <p class="support-warning">Support depends on collected trading fees. Fan-created coins are not endorsements. No guaranteed earnings; tokens can lose all value. ${esc(c.cluster)} assets are not evidence of production payments.</p>
       <div class="support-metrics"><article><small>Confirmed support in checked receipts</small><strong>${hasProof?sol(c.paidLamports):'Not verified'}</strong><p>${esc(c.coverage)}</p></article><article><small>Verified support policies</small><strong>${c.coins.length}</strong><p>A policy is not a paid reward.</p></article><article><small>Receipt milestone</small><strong>${hasProof&&c.milestone.achievedLamports!=='0'?sol(c.milestone.achievedLamports):'No verified milestone'}</strong><p>Based only on this receipt window. Not an earnings forecast.</p></article></div>
-      <h2>Coins supporting this account</h2><div class="creator-grid">${c.coins.map(coin=>`<article class="creator-card"><a href="/token/${esc(coin.mint)}"><h3>${esc(coin.name)} (${esc(coin.symbol)})</h3></a><span class="support-badge">${coin.authorization==='creator-authorized'?'Creator-authorized':'Fan-created · not endorsed'}</span><p>${coin.sharePercent}% of collected creator fees allocated to this recipient.</p><small>${esc(coin.mint)}</small></article>`).join('')||'<p>No verified support coins yet.</p>'}</div>
+      <h2>Coins supporting this account</h2><div class="creator-grid">${c.coins.map(coin=>`<article class="creator-card creator-coin-card" data-coin-mint="${esc(coin.mint)}"><a href="/token/${esc(coin.mint)}"><span class="creator-coin-logo" aria-hidden="true">${esc(String(coin.symbol || 'T').slice(0, 1))}</span><h3>${esc(coin.name)} (${esc(coin.symbol)})</h3></a><span class="support-badge">${coin.authorization==='creator-authorized'?'Creator-authorized':'Fan-created · not endorsed'}</span><p>${coin.sharePercent}% of collected creator fees allocated to this recipient.</p><small>${esc(coin.mint)}</small></article>`).join('')||'<p>No verified support coins yet.</p>'}</div>
       <h2>Creator updates</h2><div class="creator-updates">${c.updates.map(update=>`<article class="creator-card"><p>${esc(update.text)}</p><time>${esc(update.createdAt)}</time><button data-update-card="${esc(update.id)}">Download update card</button></article>`).join('')||'<p>No verified-account updates yet.</p>'}</div>
       <h2>Confirmed payout receipts</h2><p>Evidence status: ${esc(c.evidenceStatus)}. Missing or partial evidence is never treated as a complete balance.</p><div>${c.receipts.map(receipt=>`<article class="support-receipt"><strong>${sol(receipt.amountLamports)}</strong><a href="https://explorer.solana.com/tx/${esc(receipt.signature)}?cluster=${encodeURIComponent(c.cluster)}" target="_blank" rel="noopener noreferrer">Verify payout ↗</a><button data-share-receipt="${esc(receipt.signature)}">Copy receipt link</button><button data-receipt-card="${esc(receipt.signature)}">Download receipt card</button></article>`).join('')||'<p>No matched collection and payout receipts in the checked window.</p>'}</div>
       <details class="support-integrations"><summary>Streaming integrations and launch kit</summary><p>Twitch/Kick subscriptions and YouTube donations are not connected. No gift is purchased, queued or promised by this page.</p><button disabled>Automatic gifts · unavailable</button><button id="creator-widget">Download stream overlay</button><button id="creator-kit">Copy creator launch kit</button><p>The overlay is a manual browser-source link to this public page. It does not post alerts or spend funds. Add it to your streaming software yourself.</p></details>`;
+    void loadCreatorCoinLogos(generation);
     const history=document.createElement('section');history.className='support-history';
     page.querySelector('.support-integrations').before(history);
     mountReceiptHistory(history,id,c.cluster,()=>generation===routeGeneration);

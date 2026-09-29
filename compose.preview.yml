@@ -5,7 +5,9 @@ services:
     environment:
       POSTGRES_DB: funded_app
       POSTGRES_USER: funded
-      POSTGRES_PASSWORD: ${FUNDED_DB_PASSWORD:?Run npm.cmd run deploy:init first}
+      POSTGRES_PASSWORD_FILE: /run/secrets/funded_db_password
+    secrets:
+      - funded_db_password
     volumes:
       - funded_vip_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -22,22 +24,53 @@ services:
         VITE_SOLANA_CLUSTER: devnet
         VITE_EXPLORE_CLUSTER: devnet
         VITE_ALLOW_MAINNET: "false"
+        VITE_DEV_MODE: "true"
+        VITE_DEV_AUTOCONNECT: "true"
+        VITE_DEV_WALLET_ROLE: ${DEV_WALLET_ROLE:-creator}
         VITE_FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_FEE_ROUTER_PROGRAM_ID:?Missing Devnet router ID}
         VITE_FUNDED_TRADE_FEE_OWNER: ${FUNDED_TRADE_FEE_OWNER:?Missing Devnet fee owner}
         VITE_FUNDED_TOKEN_MINT: ${FUNDED_TOKEN_MINT:-}
+        VITE_FUNDED_SWAP_POOL: ${FUNDED_SWAP_POOL:-}
     restart: unless-stopped
     command: ["sh", "-c", "node scripts/migrate-postgres.mjs && node server/index.mjs"]
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
+      DEV_MODE: "true"
+      DEV_WALLET_ROLE: ${DEV_WALLET_ROLE:-creator}
+      SOLANA_DEVNET_CREATOR_SECRET_KEY_FILE: /run/secrets/solana_devnet_creator_secret_key
+      SOLANA_KEEPER_CONFIGURED: "true"
+      SOLANA_KEEPER_SECRET_KEY_FILE: /run/secrets/solana_keeper_secret_key
       HOST: 0.0.0.0
       PORT: 8787
       VITE_SOLANA_CLUSTER: devnet
-      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      SOLANA_RPC_URL_FILE: /run/secrets/solana_rpc_url
+      FUNDED_TOKEN_MINT: ${FUNDED_TOKEN_MINT:?Missing Devnet FUNDED mint}
+      VITE_FUNDED_TOKEN_MINT: ${FUNDED_TOKEN_MINT:?Missing Devnet FUNDED mint}
       FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_FEE_ROUTER_PROGRAM_ID}
-      FUNDED_API_TOKEN: ${FUNDED_API_TOKEN:?Run npm.cmd run deploy:init first}
-      DATABASE_URL: postgresql://funded:${FUNDED_DB_PASSWORD}@db:5432/funded_app
+      FUNDED_REWARD_AUTHORITY: ${FUNDED_REWARD_AUTHORITY:-}
+      FUNDED_REWARD_PROGRAM_DATA_SHA256: ${FUNDED_REWARD_PROGRAM_DATA_SHA256:-}
+      FUNDED_COMMUNITY_RESERVE_RECEIPTS_JSON: ${FUNDED_COMMUNITY_RESERVE_RECEIPTS_JSON:-}
+      FUNDED_API_TOKEN_FILE: /run/secrets/funded_api_token
+      X_CLIENT_ID: ${X_CLIENT_ID:-}
+      X_CLIENT_SECRET_FILE: /run/secrets/x_client_secret
+      X_CALLBACK_URL: ${X_CALLBACK_URL:-}
+      X_BEARER_TOKEN_FILE: /run/secrets/x_bearer_token
+      DATABASE_URL_FILE: /run/secrets/database_url
       DATABASE_SSL: "false"
       TRUST_PROXY: "true"
+      AUTOMATIC_REWARD_STORE_PATH: /app/data/automatic-rewards/ledger.json
+    secrets:
+      - funded_api_token
+      - database_url
+      - funded_db_password
+      - solana_rpc_url
+      - solana_devnet_creator_secret_key
+      - solana_keeper_secret_key
+      - funded_router_authority_secret_key
+      - x_client_secret
+      - x_bearer_token
+    volumes:
+      - funded_reward_ledger:/app/data/automatic-rewards
     ports:
       - "127.0.0.1:${FUNDED_PREVIEW_PORT:-8788}:8787"
     depends_on:
@@ -56,3 +89,28 @@ services:
 
 volumes:
   funded_vip_pgdata:
+  funded_reward_ledger:
+
+secrets:
+  funded_api_token:
+    file: ./.secrets/funded-api-token
+  database_url:
+    file: ./.secrets/database-url
+  funded_db_password:
+    file: ./.secrets/funded-db-password
+  solana_rpc_url:
+    file: ./.secrets/solana-rpc-url
+  solana_devnet_rpc_url:
+    file: ./.secrets/solana-devnet-rpc-url
+  solana_holder_index_rpc_url:
+    file: ./.secrets/solana-holder-index-rpc-url
+  solana_devnet_creator_secret_key:
+    file: ./.secrets/solana-devnet-creator-secret-key
+  solana_keeper_secret_key:
+    file: ./.secrets/solana-keeper-secret-key
+  funded_router_authority_secret_key:
+    file: ./.secrets/funded-router-authority-secret-key
+  x_client_secret:
+    file: ./.secrets/x-client-secret
+  x_bearer_token:
+    file: ./.secrets/x-bearer-token

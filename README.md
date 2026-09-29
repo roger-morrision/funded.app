@@ -8,11 +8,13 @@ Trades use a configurable platform fee (50 bps / 0.50% by default) paid to `VITE
 
 ## Local API foundation
 
-Run `npm.cmd run server` in a second terminal to start the local persistence API. Set `VITE_API_BASE_URL=http://localhost:8787` before starting Vite. The API stores launch policies, idempotent Pump fee settlements, X-linked SOL claim obligations, and wallet-signature claim state. It intentionally stops before moving real funds until the Solana keeper is configured.
+Run `npm.cmd run server` in a second terminal to start the local persistence API; it loads `.env.local` and `.env.x` when present. For browser sign-in, use the Vite `/api` proxy with `VITE_API_BASE_URL=/` and `API_PROXY_TARGET` pointing to the API. The API stores launch policies, idempotent Pump fee settlements, X-linked SOL claim obligations, and wallet-signature claim state. It intentionally stops before moving real funds until the Solana keeper is configured.
 
 ### X account sign-in
 
-The claim page uses X OAuth 2.0 Authorization Code with PKCE only to identify the X account; it is not X Money. In the X Developer Console, open the app's User authentication settings, enable OAuth 2.0, choose a web/confidential client, and register the exact callback URL `http://127.0.0.1:8787/api/x/oauth/callback` for local development. Set `X_CLIENT_ID`, `X_CLIENT_SECRET`, and `X_CALLBACK_URL` in the server environment. The integration requests only `users.read offline.access`, keeps the secret server-side, and looks up the authenticated profile through `GET /2/users/me`.
+The claim page uses X OAuth 2.0 Authorization Code with PKCE only to identify the X account; it is not X Money. In the X Developer Console, enable OAuth 2.0 for a web/confidential app and register the exact callback URL. Set `X_CLIENT_ID`, `X_CLIENT_SECRET`, and `X_CALLBACK_URL` in the server environment. The integration requests `tweet.read users.read`, keeps the secret server-side, and looks up the authenticated profile through `GET /2/users/me`. It does not request offline access or retain an X access token.
+
+For local Vite development, proxy `/api` to the API and register `http://127.0.0.1:5173/api/x/oauth/callback` (or your actual Vite origin) so the OAuth callback, session cookie, and app share one browser origin. For the Docker desktop preview, register `http://127.0.0.1:8788/api/x/oauth/callback`. Put the X credentials and the matching callback URL in ignored `.env.deploy`, or put them in ignored `.env.x` and add `--env-file .env.x` after `--env-file .env.deploy` in Docker Compose commands. A public deployment needs its own exact HTTPS callback URL. Add the callback under the X app's OAuth 2.0 user-authentication settings, not as a webhook: webhook CRC requires a direct 200 response, while the protected public preview currently redirects unauthenticated requests to Cloudflare Access. `X_BEARER_TOKEN` is separately required for handle lookup and X-linked fee routing. Without credentials, sign-in stays disabled and airdrop vault/snapshot/claim readiness remains independent.
 
 ### Desktop Docker preview for funded.vip
 

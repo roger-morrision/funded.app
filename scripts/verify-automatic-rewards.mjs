@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { holdingWeights, allocateHolderPool, distributionClock, countdownText } from '../automatic-rewards.js';
+import { holdingWeights, allocateHolderPool, distributionClock, countdownText, selectDisplaySchedule } from '../automatic-rewards.js';
 import { createAutomaticRewardWorker, automaticRewardStatus } from '../server/automatic-rewards.mjs';
+import { rewardServiceHealth } from '../server/reward-service-health.mjs';
 import { createAutomaticRewardStore } from '../server/automatic-reward-store.mjs';
 import { buildRewardManifest, createRewardCycleId, verifyRewardProof } from '../reward-merkle.js';
 import { createHolderHistoryIndexer, snapshotsForPeriod } from '../server/holder-history-indexer.mjs';
@@ -45,7 +46,35 @@ assert.equal(countdownText(60), '00:01:00');
 assert.equal(countdownText(3661), '01:01:01');
 assert.equal(countdownText(Number.NaN), '—');
 assert.equal(countdownText(Number.POSITIVE_INFINITY), '—');
+const displaySchedules = [
+  { mint:'mint-a', kind:'holder', status:'indexing', periodStart:2, cutoffAt:'2026-09-25T00:00:00Z', payoutAt:'2026-09-25T01:00:00Z' },
+  { mint:'mint-a', kind:'holder', status:'indexing', periodStart:3, cutoffAt:'2026-09-26T00:00:00Z', payoutAt:'2026-09-26T01:00:00Z' },
+  { mint:'mint-a', kind:'holder', status:'paid', periodStart:1, cutoffAt:'2026-09-24T00:00:00Z', payoutAt:'2026-09-24T01:00:00Z' },
+  { mint:'mint-b', kind:'holder', status:'indexing', periodStart:4, cutoffAt:'2026-09-27T00:00:00Z', payoutAt:'2026-09-27T01:00:00Z' },
+];
+assert.equal(selectDisplaySchedule(displaySchedules, null, Date.parse('2026-09-24T12:00:00Z')).periodStart, 2, 'Home must show the nearest persisted holder schedule.');
+assert.equal(selectDisplaySchedule(displaySchedules, 'mint-b', Date.parse('2026-09-24T12:00:00Z')).mint, 'mint-b', 'Token views must select their own holder schedule.');
+assert.equal(selectDisplaySchedule([], null), null);
+assert.equal(distributionClock({ status:'deferred' }).label, 'Reward funding carries forward');
+assert.equal(selectDisplaySchedule([...displaySchedules, { mint:'mint-a', kind:'holder', status:'deferred', periodStart:5, cutoffAt:'2026-09-24T11:00:00Z', payoutAt:'2026-09-24T12:00:00Z' }], 'mint-a', Date.parse('2026-09-24T12:00:00Z')).periodStart, 2);
 assert.equal(automaticRewardStatus().schedules.length, 0);
+assert.equal(automaticRewardStatus().modes.x, 'unavailable');
+assert.equal(automaticRewardStatus().modes.community, 'awaiting-funded-migration-snapshot');
+assert.equal(automaticRewardStatus().modes.buyback, 'accrual-only-execution-unavailable');
+const degraded = automaticRewardStatus(new Date('2026-09-24T21:00:00.000Z'), {
+  serviceStatus: { constrainedPayouts:true, checkedAt:'2026-09-24T20:59:00.000Z' },
+  schedules: { blocked:{ id:'blocked', mint:'mint-a', asset:'SOL', kind:'holder', periodStart:1, cutoffAt:2, payoutAt:3, status:'blocked', reason:'Holder snapshot gap exceeds the configured sampling interval.' } },
+});
+assert.equal(degraded.status, 'degraded');
+assert.match(degraded.reason, /1 reward schedule is blocked/);
+assert.equal(degraded.schedules[0].status, 'blocked');
+const statusNow = Date.parse('2026-09-24T21:00:00.000Z');
+const staleService = { constrainedPayouts:true, reasons:[], checkedAt:'2026-09-24T20:55:00.000Z' };
+assert.deepEqual(rewardServiceHealth(staleService, statusNow).reasons, ['worker-readiness-stale']);
+assert.equal(rewardServiceHealth(staleService, statusNow).healthy, false);
+assert.match(automaticRewardStatus(new Date(statusNow), { serviceStatus: staleService }).reason, /not reported readiness in over 3 minutes/);
+assert.equal(rewardServiceHealth({ ...staleService, checkedAt:'2026-09-24T20:59:00.000Z' }, statusNow).healthy, true);
+assert.deepEqual(rewardServiceHealth({ constrainedPayouts:false, reasons:[] }, statusNow).reasons, ['worker-has-not-reported-readiness']);
 
 const mint = Keypair.generate().publicKey.toBase58(), recipientA = Keypair.generate().publicKey.toBase58(), recipientB = Keypair.generate().publicKey.toBase58();
 const cycleId = createRewardCycleId({ mint, kind:'holder', asset:'SOL', periodStart:0, periodEnd:100 });
@@ -153,6 +182,30 @@ try {
   const activated = await scheduler.status(new Date(10800 * 1000));
   assert.equal(activated.schedules.some(row => row.mint === activationMint && row.periodStart === 3600), false);
   assert.equal(activated.schedules.find(row => row.mint === activationMint && row.periodStart === 7200).status, 'prepared');
+  const carryMint = Keypair.generate().publicKey.toBase58();
+  await scheduler.register({ mint:carryMint, asset:'SOL', periodSeconds:3600, sampleIntervalSeconds:1800, payoutDelaySeconds:0, activatedAt:3600 });
+  await scheduler.recordFundedPool({ id:'carry-dust', mint:carryMint, asset:'SOL', amount:'3569', fundingSignature:'dust-funding', balanceDeltaVerified:true, fundedAt:4000 });
+  await scheduler.prepare(7200);
+  let carried = await schedulerStore.read();
+  assert.equal(carried.schedules[`${carryMint}:3600:holder:SOL`].status, 'deferred', 'Underfunded periods must not be blocked by missing snapshots.');
+  assert.equal(carried.rewardPools['carry-dust'].status, 'available', 'Subminimum verified funding must remain available for a later period.');
+  await schedulerStore.transaction(state => { state.holderSnapshots[carryMint] = [
+    { at:7200, slot:30, finalized:true, accounts:[{ account:'carry-a', wallet:recipientA, balance:'1' }] },
+    { at:9000, slot:31, finalized:true, accounts:[{ account:'carry-a', wallet:recipientA, balance:'1' }] },
+    { at:10799, slot:32, finalized:true, accounts:[{ account:'carry-a', wallet:recipientA, balance:'1' }] },
+  ]; });
+  await scheduler.recordFundedPool({ id:'carry-top-up', mint:carryMint, asset:'SOL', amount:'9996431', fundingSignature:'top-up-funding', balanceDeltaVerified:true, fundedAt:8000 });
+  await scheduler.prepare(10800);
+  carried = await schedulerStore.read();
+  assert.equal(carried.schedules[`${carryMint}:7200:holder:SOL`].status, 'prepared');
+  assert.equal(carried.schedules[`${carryMint}:7200:holder:SOL`].manifest.totalAmount, '10000000');
+  assert.equal(carried.rewardPools['carry-dust'].status, 'assigned');
+  const gapMint = Keypair.generate().publicKey.toBase58();
+  await scheduler.register({ mint:gapMint, asset:'SOL', periodSeconds:3600, sampleIntervalSeconds:1800, payoutDelaySeconds:0, activatedAt:3600 });
+  await scheduler.recordFundedPool({ id:'gap-funded', mint:gapMint, asset:'SOL', amount:'10000000', fundingSignature:'gap-funding', balanceDeltaVerified:true, fundedAt:4000 });
+  await scheduler.prepare(7200);
+  carried = await schedulerStore.read();
+  assert.equal(carried.schedules[`${gapMint}:3600:holder:SOL`].status, 'blocked', 'Funded periods must still require complete finalized holder history.');
   await scheduler.recordDirectFunded({ id:'creator-settlement-1', mint, asset:'SOL', kind:'creator', recipient:recipientA, amount:'7', fundingSignature:'creator-funding', balanceDeltaVerified:true, fundedAt:7201 });
   await scheduler.execute(7201);
   const direct = (await scheduler.status(new Date(7201 * 1000))).schedules.find(row => row.kind === 'creator');

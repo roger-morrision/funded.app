@@ -6,12 +6,15 @@ import { Connection, Keypair, PublicKey, Transaction, clusterApiUrl } from '@sol
 import { getAccount, getAssociatedTokenAddressSync, getMint } from '@solana/spl-token';
 import { submitPumpDevnetLaunch } from '../launch-flow.js';
 import { buildTradeTransaction } from '../pump-trading.js';
-import { deriveFeeRouter, verifyFeeRouterAccount } from '../fee-router.js';
+import { deriveFeeRouter, deriveMintFeeRouter, verifyFeeRouterAccount, verifyMintFeeRouterAccount } from '../fee-router.js';
 import { buildFeeDistributionPolicy } from '../distribution-policy.js';
 import { buildLaunchBurnPolicy, createLaunchBurnTiers } from '../launch-burn-policy.js';
 import { launchPolicyStatement } from '../launch-policy-auth.js';
 
 const execute = process.argv.includes('--execute');
+const resumeMint = process.argv.find(argument => argument.startsWith('--resume-mint='))?.slice('--resume-mint='.length) || null;
+const resumeLaunchSignature = process.argv.find(argument => argument.startsWith('--resume-launch='))?.slice('--resume-launch='.length) || null;
+assert.equal(Boolean(resumeMint), Boolean(resumeLaunchSignature), '--resume-mint and --resume-launch must be provided together.');
 const cluster = String(process.env.SOLANA_CLUSTER || process.env.VITE_SOLANA_CLUSTER || '').trim();
 assert.equal(cluster, 'devnet', 'This QA journey is restricted to Solana Devnet.');
 assert.equal(String(process.env.VITE_ALLOW_MAINNET || 'false'), 'false', 'Mainnet must remain disabled.');
@@ -203,22 +206,52 @@ try {
   });
   assert.equal(attribution.inviterWallet, referrer.publicKey.toBase58(), 'The creator is already attributed to a different wallet.');
 
-  stage = 'launching-boost-coin';
-  const name = `Funded Dashboard QA ${Date.now().toString(36).slice(-6)}`;
+  stage = resumeMint ? 'recovering-finalized-boost-coin' : 'launching-boost-coin';
+  const name = resumeMint ? 'Funded Dashboard QA duwgn0' : `Funded Dashboard QA ${Date.now().toString(36).slice(-6)}`;
   const symbol = 'FDQA';
   const provider = { signTransaction: async transaction => { transaction.partialSign(creator); return transaction; } };
-  const launch = await submitPumpDevnetLaunch({
-    connection,
-    provider,
-    payer: creator.publicKey,
-    input: { name, symbol, supply: 1_000_000_000, decimals: 6, initialBuyPercent: 0 },
-    feeRouterAddress: sharedRouter.address.toBase58(),
-    feeRouterProgramId: programId,
-    useMintRouter: true,
-    launchBurn: burnPolicy,
-  });
-  await waitForFinalizedSignature(launch.signature);
-  if (launch.mintRouterSignature) await waitForFinalizedSignature(launch.mintRouterSignature);
+  let launch;
+  if (resumeMint) {
+    const recoveredMint = new PublicKey(resumeMint);
+    await waitForFinalizedSignature(resumeLaunchSignature);
+    const recoveredRouter = deriveMintFeeRouter(programId, recoveredMint);
+    const checkedRouter = await verifyMintFeeRouterAccount({ connection, programId, mint: recoveredMint, expectedAuthority: creator.publicKey });
+    assert.equal(checkedRouter.verified, true, `Recovered mint router is not verified: ${checkedRouter.reason}`);
+    assert.equal(checkedRouter.address.toBase58(), recoveredRouter.address.toBase58(), 'Recovered mint router address does not match its PDA.');
+    const fundedAfter = await getMint(connection, fundedMint, 'finalized');
+    launch = {
+      mint: { publicKey: recoveredMint },
+      signature: resumeLaunchSignature,
+      mintRouterSignature: null,
+      feeRouter: recoveredRouter.address,
+      launchBurnReceipt: {
+        signature: resumeLaunchSignature,
+        instruction: 'BurnChecked',
+        mint: fundedMint.toBase58(),
+        tokenAccount: creatorFundedAccount.address.toBase58(),
+        amountTokens: burnPolicy.amountTokens,
+        amountBaseUnits: burnBaseUnits.toString(),
+        decimals: fundedMintAccount.decimals,
+        supplyBefore: (fundedAfter.supply + burnBaseUnits).toString(),
+        supplyAfter: fundedAfter.supply.toString(),
+        atomicWithPumpLaunch: true,
+        verified: true,
+      },
+    };
+  } else {
+    launch = await submitPumpDevnetLaunch({
+      connection,
+      provider,
+      payer: creator.publicKey,
+      input: { name, symbol, supply: 1_000_000_000, decimals: 6, initialBuyPercent: 0 },
+      feeRouterAddress: sharedRouter.address.toBase58(),
+      feeRouterProgramId: programId,
+      useMintRouter: true,
+      launchBurn: burnPolicy,
+    });
+    await waitForFinalizedSignature(launch.signature);
+    if (launch.mintRouterSignature) await waitForFinalizedSignature(launch.mintRouterSignature);
+  }
   assert.equal(launch.launchBurnReceipt?.verified, true, 'The Boost $FUNDED burn was not verified.');
 
   stage = 'registering-launch-policy';
@@ -253,14 +286,21 @@ try {
 
   stage = 'buying-and-selling-coin';
   const mint = launch.mint.publicKey;
-  const buy = await finalizedTrade({ side: 'buy', mint, wallet: holder, amount: 0.01 });
-  const holderTokenAccount = getAssociatedTokenAddressSync(mint, holder.publicKey);
-  const rawAfterBuy = (await getAccount(connection, holderTokenAccount, 'finalized')).amount;
+  let holderTokenAccounts = await connection.getParsedTokenAccountsByOwner(holder.publicKey, { mint }, 'finalized');
+  let buy = { signature: null, feeLamports: null };
+  if (!holderTokenAccounts.value.some(item => BigInt(item.account.data.parsed.info.tokenAmount.amount) > 0n)) {
+    buy = await finalizedTrade({ side: 'buy', mint, wallet: holder, amount: 0.01 });
+    holderTokenAccounts = await connection.getParsedTokenAccountsByOwner(holder.publicKey, { mint }, 'finalized');
+  }
+  assert.equal(holderTokenAccounts.value.length, 1, 'Expected exactly one holder token account after the finalized buy.');
+  const holderTokenAccount = holderTokenAccounts.value[0].pubkey;
+  const parsedBalance = holderTokenAccounts.value[0].account.data.parsed.info.tokenAmount;
+  const rawAfterBuy = BigInt(parsedBalance.amount);
   assert(rawAfterBuy > 0n, 'The finalized buy produced no holder tokens.');
-  const sellTokens = Number(rawAfterBuy / 5n) / 1_000_000;
+  const sellTokens = Number(rawAfterBuy / 5n) / (10 ** Number(parsedBalance.decimals));
   assert(sellTokens > 0, 'The holder balance is too small for a partial sell.');
   const sell = await finalizedTrade({ side: 'sell', mint, wallet: holder, amount: sellTokens });
-  const rawAfterSell = (await getAccount(connection, holderTokenAccount, 'finalized')).amount;
+  const rawAfterSell = BigInt((await connection.getTokenAccountBalance(holderTokenAccount, 'finalized')).value.amount);
   assert(rawAfterSell > 0n && rawAfterSell < rawAfterBuy, 'The partial sell did not leave the expected positive holder balance.');
 
   stage = 'collecting-creator-fees';
@@ -340,7 +380,7 @@ try {
       reservedTokens: registeredLaunch.communityAirdrop.reservedTokens,
     },
     trades: {
-      buySignature: buy.signature,
+      buySignature: buy.signature || activity.recentTrades?.find(item => item.side === 'buy' && item.trader === holder.publicKey.toBase58())?.signature || null,
       sellSignature: sell.signature,
       tokenBaseUnitsAfterBuy: rawAfterBuy.toString(),
       tokenBaseUnitsAfterSell: rawAfterSell.toString(),

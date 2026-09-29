@@ -5,9 +5,11 @@ import { buildRewardManifest, createRewardCycleId, verifyRewardProof } from '../
 import { rewardAddresses } from '../server/automatic-reward-chain.mjs';
 
 const root = new URL('../contracts/funded-fee-router/programs/funded-fee-router/src/', import.meta.url);
-const [lib, reward, state] = await Promise.all([readFile(new URL('lib.rs', root), 'utf8'), readFile(new URL('instructions/reward.rs', root), 'utf8'), readFile(new URL('state.rs', root), 'utf8')]);
+const [lib, reward, community, state] = await Promise.all([readFile(new URL('lib.rs', root), 'utf8'), readFile(new URL('instructions/reward.rs', root), 'utf8'), readFile(new URL('instructions/community.rs', root), 'utf8'), readFile(new URL('state.rs', root), 'utf8')]);
 for (const instruction of ['initialize_reward_vault', 'create_reward_cycle', 'payout_reward_sol', 'payout_reward_token']) assert.match(lib, new RegExp(`pub fn ${instruction}`));
 for (const guard of ['verify_proof', 'RewardCycleNotPayable', 'RewardTotalExceeded', 'transfer_checked', 'RewardPayment']) assert.match(`${reward}\n${state}`, new RegExp(guard));
+for (const instruction of ['initialize_community_drop', 'claim_community_drop', 'close_community_drop']) assert.match(lib, new RegExp(`pub fn ${instruction}`));
+for (const guard of ['claim_window_open', 'close_eligible', 'CommunityPayment', 'snapshot_slot == migration_slot', 'COMMUNITY_WINDOW_SECONDS', 'proof_valid', 'app_owner.key\\(\\) == ctx.accounts.protocol_authority.key\\(\\)', 'remainder_token_account.owner == drop.app_owner']) assert.match(`${community}\n${state}`, new RegExp(guard));
 const programId = Keypair.generate().publicKey, authority = Keypair.generate().publicKey, mint = Keypair.generate().publicKey, recipient = Keypair.generate().publicKey;
 const cycleId = createRewardCycleId({ mint:mint.toBase58(), kind:'holder', asset:'SOL', periodStart:1, periodEnd:2 });
 const manifest = buildRewardManifest({ cycleId, allocations:[{ recipient:recipient.toBase58(), amount:'1' }] });

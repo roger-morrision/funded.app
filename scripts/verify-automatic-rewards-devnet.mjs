@@ -52,10 +52,23 @@ if (!readiness.constrainedPayouts) {
     );
   } else {
     fundingSource = 'devnet-faucet';
-    testWalletFundingSignature = await connection.requestAirdrop(authority.publicKey, Math.floor(0.1 * LAMPORTS_PER_SOL));
-    const latest = await connection.getLatestBlockhash('finalized');
-    const confirmation = await connection.confirmTransaction({ signature:testWalletFundingSignature, ...latest }, 'finalized');
-    if (confirmation.value.err) throw new Error('Devnet faucet transaction failed.');
+    try {
+      testWalletFundingSignature = await connection.requestAirdrop(authority.publicKey, Math.floor(0.1 * LAMPORTS_PER_SOL));
+      const latest = await connection.getLatestBlockhash('finalized');
+      const confirmation = await connection.confirmTransaction({ signature:testWalletFundingSignature, ...latest }, 'finalized');
+      if (confirmation.value.err) throw new Error('Devnet faucet transaction failed.');
+    } catch (error) {
+      console.log(JSON.stringify({
+        status:'blocked',
+        verification:'devnet-end-to-end',
+        reason:'ephemeral-wallet-funding-unavailable',
+        detail:String(error?.message || error),
+        faucetRetryAttempted:false,
+        signer:'in-memory-ephemeral',
+        privateKeyPersisted:false,
+      }, null, 2));
+      process.exit(2);
+    }
   }
   const afterFunding = await connection.getBalance(authority.publicKey, 'finalized');
   if (afterFunding <= beforeFunding) throw new Error('Devnet funding did not produce a finalized ephemeral-wallet balance delta.');

@@ -4,11 +4,11 @@ import { BUYBACK_POLICY, buildBuybackAccrual, buildBuybackPolicy, buildBuybackRe
 
 const appSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
 const htmlSource = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const sanitizerSource = readFileSync(new URL('../data-label-sanitizer.js', import.meta.url), 'utf8');
-const receiptEmptyState = 'No verified on-chain buyback receipts are indexed on Devnet yet.';
+const bootstrapSource = readFileSync(new URL('../bootstrap.js', import.meta.url), 'utf8');
+const receiptEmptyState = 'No verified $FUNDED burn receipts are indexed on Devnet yet. Fee-funded buybacks and launch-promotion burns are tracked separately.';
 assert.ok(appSource.includes(receiptEmptyState), 'rendered buyback ledger explains missing on-chain receipts');
 assert.ok(htmlSource.includes(receiptEmptyState), 'initial buyback ledger explains missing on-chain receipts');
-assert.match(sanitizerSource, /if \(element\.matches\('\.empty-state'\)\) return;/, 'truthful empty-state explanations stay visible');
+assert.doesNotMatch(bootstrapSource, /import\(['"]\.\/data-label-sanitizer\.js['"]\)/, 'the UI must not hide verification and empty-state explanations');
 const previewRendererSource = appSource.match(/function renderBuybackExample\(\)\{[\s\S]*?\n\}/)?.[0];
 assert.ok(previewRendererSource, 'buyback input has a local-only preview renderer');
 const input = { value: '10', parentElement: { querySelector: () => help } };

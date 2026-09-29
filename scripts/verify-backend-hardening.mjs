@@ -8,6 +8,11 @@ import { Keypair } from '@solana/web3.js';
 import { createStore } from '../server/store.mjs';
 import { pgPoolConfig } from '../server/db-config.mjs';
 
+const dockerIgnore = await readFile(resolve('.dockerignore'), 'utf8');
+assert.match(dockerIgnore, /^\.secrets\/?$/m, 'Docker builds must exclude local secret files before COPY . .');
+const dockerfile = await readFile(resolve('Dockerfile'), 'utf8');
+assert.match(dockerfile, /\[ -z "\$VITE_API_BASE_URL" \]/, 'Devnet browser builds must reject an empty API base.');
+
 const directory = await mkdtemp(join(tmpdir(), 'funded-hardening-'));
 const storePath = join(directory, 'store.json');
 const port = 18107;

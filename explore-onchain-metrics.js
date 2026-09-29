@@ -30,6 +30,31 @@ export function readCurveMetrics(curve, mint) {
   };
 }
 
+// PumpSwap pool vault balances provide an indicative spot ratio. This is not an
+// executable quote and intentionally excludes fees and price impact.
+export function readPumpSwapMetrics({ baseAmount, quoteAmount, virtualQuoteAmount = 0, baseDecimals, quoteDecimals = 9, supply }) {
+  const baseRaw = asFinite(baseAmount);
+  const quoteRaw = asFinite(quoteAmount);
+  const virtualQuoteRaw = asFinite(virtualQuoteAmount);
+  const supplyRaw = asFinite(supply);
+  const baseScale = 10 ** Number(baseDecimals);
+  const quoteScale = 10 ** Number(quoteDecimals);
+  if (!Number.isFinite(baseScale) || !Number.isFinite(quoteScale) || baseScale <= 0 || quoteScale <= 0) {
+    return { poolPriceSol: null, poolMarketCapSol: null, poolReserveSol: null };
+  }
+  const poolReserveSol = quoteRaw == null ? null : quoteRaw / quoteScale;
+  if (!baseRaw || quoteRaw == null || virtualQuoteRaw == null || supplyRaw == null) {
+    return { poolPriceSol: null, poolMarketCapSol: null, poolReserveSol };
+  }
+  const poolPriceSol = ((quoteRaw + virtualQuoteRaw) / quoteScale) / (baseRaw / baseScale);
+  const poolMarketCapSol = poolPriceSol * (supplyRaw / baseScale);
+  return {
+    poolPriceSol: Number.isFinite(poolPriceSol) ? poolPriceSol : null,
+    poolMarketCapSol: Number.isFinite(poolMarketCapSol) ? poolMarketCapSol : null,
+    poolReserveSol,
+  };
+}
+
 export function formatSolMetric(value, { partial = false, digits = 6 } = {}) {
   if (value == null || !Number.isFinite(Number(value)) || Number(value) < 0) return '—';
   const number = Number(value);

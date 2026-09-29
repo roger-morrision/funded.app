@@ -23,6 +23,7 @@ export async function submitLaunch({ connection, provider, payer, input, onStatu
   transaction.recentBlockhash = latest.blockhash;
   transaction.feePayer = payer;
   transaction.partialSign(mint);
+  transaction.fundedLastValidBlockHeight = latest.lastValidBlockHeight;
   onStatus('Waiting for wallet approval…');
   const signed = await provider.signTransaction(transaction);
   const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
@@ -120,7 +121,8 @@ export async function prepareFundedLaunchBurn({ connection, payer, fundedMint, a
   };
 }
 
-export async function submitPumpDevnetLaunch({ connection, provider, payer, input, metadataUri, prepareMetadata, feeRouterAddress, feeRouterProgramId = null, useMintRouter = false, launchBurn = null, onStatus = () => {}, onJournal = () => {}, assertWalletCurrent = () => {} }) {
+export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, provider, payer, input, metadataUri, prepareMetadata, feeRouterAddress, feeRouterProgramId = null, useMintRouter = false, launchBurn = null, onStatus = () => {}, onJournal = () => {}, assertWalletCurrent = () => {} }) {
+  if (cluster !== 'devnet') throw new Error('Mainnet coin launching is not enabled. No transaction was prepared or sent.');
   const launchInput = normalizeLaunchInput(input);
   const initialBuy = await getInitialBuyQuote({ connection, input });
   if(input.maxInitialBuyLamports!=null&&initialBuy.maxSolAmountLamports>BigInt(input.maxInitialBuyLamports))throw new Error('The initial-buy cost increased beyond the reviewed maximum. Refresh the quote and review again; no transaction was sent.');

@@ -38,7 +38,7 @@ try {
   const accepted=await get(callback,binding);assert.equal(accepted.status,302);
   const session=accepted.headers.getSetCookie().find(cookie=>cookie.startsWith('funded_x_session=')).split(';')[0];
   assert.equal((await get(callback,binding)).status,400,'Callback replay is rejected.');
-  const identity=await get('/api/x/me',session);assert.equal(identity.headers.get('cache-control'),'no-store');assert.equal((await identity.json()).user.id,'9000001');
+  const identity=await get('/api/x/me',session);assert.equal(identity.headers.get('cache-control'),'no-store');const identityBody=await identity.json();assert.equal(identityBody.configured,true);assert.equal(identityBody.user.id,'9000001');
   const settings=await(await get('/api/creator-support/me',session)).json();assert.ok(settings.csrf);
   const claims=await get('/api/x-fee/claims',session);assert.equal(claims.status,200);assert.deepEqual((await claims.json()).claims,[]);
   const receipts=await(await get('/api/evidence/receipts')).json();assert.equal(receipts.status,'no-records');assert.equal(receipts.scope,'global-recent');
@@ -73,6 +73,16 @@ try {
   assert.equal((await logout('https://attacker.invalid')).status,403);
   assert.equal((await logout(base)).status,204);
   assert.equal((await(await get('/api/x/me',session)).json()).authenticated,false);
+  await stop();
+  env.X_CLIENT_ID='';env.X_CLIENT_SECRET='';
+  await start();
+  assert.equal((await(await get('/api/x/me')).json()).configured,false);
+  assert.equal((await get('/api/x/oauth/start')).status,503);
+  await stop();
+  env.X_CLIENT_ID='synthetic-client';env.X_CLIENT_SECRET='synthetic-secret';env.X_CALLBACK_URL='https://example.test/wrong-path';
+  await start();
+  assert.equal((await(await get('/api/x/me')).json()).configured,false);
+  assert.equal((await get('/api/x/oauth/start')).status,503);
   const persisted=await readFile(`${statePath}.auth.json`,'utf8');assert.ok(!persisted.includes('synthetic-token-not-persisted'));
   console.log('X auth HTTP: restart-safe OAuth/CSRF, scoped claim renewal, old-signature rejection, original-wallet binding, attestation and uncertainty preservation passed with mocked X provider and ephemeral signing keys. No payout or real OAuth.');
 } finally {await stop();await rm(directory,{recursive:true,force:true});}
