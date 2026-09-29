@@ -2,6 +2,10 @@ const LAMPORTS = 1_000_000_000n;
 
 function units(value) {
   if (value == null || value === '') return 0n;
+  if (typeof value === 'number') {
+    const lamports = Math.round(value * Number(LAMPORTS));
+    return Number.isSafeInteger(lamports) && lamports >= 0 ? BigInt(lamports) : 0n;
+  }
   const text = String(value);
   if (!/^(?:0|[1-9]\d*)(?:\.\d{1,9})?$/.test(text)) return 0n;
   const [whole, fraction = ''] = text.split('.');

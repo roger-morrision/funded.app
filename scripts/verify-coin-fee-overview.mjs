@@ -40,4 +40,10 @@ const paid = coinFeeOverview({ ...base, collections:{ a:collection }, settlement
 assert.equal(paid.receivers.find(row => row.id === 'referral-1').confirmedPaidLamports, '20000000');
 const unverified = coinFeeOverview({ ...base, collections:{ a:collection }, settlements:{ 'claim-a':settlement }, rewardState, referralClaims:{ r:{ settlementSignature:'claim-a', level:1, recipientWallet:'referrer-a', status:'paid', payoutSignature:'ref-paid' } } });
 assert.equal(unverified.receivers.find(row => row.id === 'referral-1').confirmedPaidLamports, '0');
+const micro = coinFeeOverview({ ...base, collections:{ tiny:{ ...collection, signature:'tiny', collectedLamports:17822 } },
+  settlements:{ tiny:{ ...settlement, grossCreatorFees:0.000017822, creatorDestinations:{ creatorWallet:0.000012475, holderAirdrop:0.000001782, solClaim:0 },
+    fundedApp:{ ...settlement.fundedApp, operations:0.000002495, communityBase:3.56e-7, buyback:1.78e-7,
+      referralLevels:[{ level:1, recipient:'referrer-a', amount:3.56e-7 }] } } } });
+assert.equal(micro.receivers.find(row => row.id === 'referral-1').allocatedLamports, '356');
+assert.equal(micro.receivers.find(row => row.id === 'community').allocatedLamports, '356');
 console.log('coin fee overview: verified collection isolation, allocation, and confirmed payment totals');
