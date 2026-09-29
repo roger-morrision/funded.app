@@ -89,17 +89,18 @@ if (!failedSubmitRejected) throw new Error('Failed submitted transaction was rep
 const mobilePayer = Keypair.generate();
 const originalBlockhash = Keypair.generate().publicKey.toBase58();
 const refreshedBlockhash = Keypair.generate().publicKey.toBase58();
-const mobileTrade = { side:'buy', mint:user, user:mobilePayer.publicKey, inputAmount:0.01, slippagePercent:1, outputAmount:new BN(1), instructions:[SystemProgram.transfer({ fromPubkey:mobilePayer.publicKey, toPubkey:user, lamports:1 })] };
-let broadcastOptions, confirmationStrategy;
+const mobileTrade = { side:'buy', mint:user, user:mobilePayer.publicKey, inputAmount:0.01, slippagePercent:1, outputAmount:new BN(1), tokenDecimals:6, feeLamports:5_000, instructions:[SystemProgram.transfer({ fromPubkey:mobilePayer.publicKey, toPubkey:user, lamports:1 })] };
+let broadcastOptions, confirmationStrategy, mobileSummary, reportedSignature;
 const mobileConnection = {
   getLatestBlockhash:async () => ({ blockhash:originalBlockhash, lastValidBlockHeight:100 }),
   getBlockHeight:async () => 50,
   sendRawTransaction:async (bytes, options) => { broadcastOptions=options; if (Transaction.from(bytes).recentBlockhash !== refreshedBlockhash) throw new Error('The signed blockhash was not refreshed.'); return 'mobile-signature'; },
   confirmTransaction:async strategy => { confirmationStrategy=strategy; return { value:{ err:null } }; },
 };
-const mobileProvider = { remoteMobile:true, signTransaction:async unsigned => { unsigned.recentBlockhash=refreshedBlockhash; unsigned.sign(mobilePayer); unsigned.fundedLastValidBlockHeight=100; return unsigned; } };
-const mobileResult = await submitTrade({ connection:mobileConnection, provider:mobileProvider, side:'buy', mint:user, user:mobilePayer.publicKey, amount:0.01, slippagePercent:1, preparedTrade:mobileTrade });
-if (mobileResult.signature !== 'mobile-signature' || broadcastOptions.preflightCommitment !== 'confirmed' || confirmationStrategy.blockhash !== refreshedBlockhash) throw new Error('Refreshed mobile trade was not broadcast and confirmed with the signed blockhash.');
+const mobileProvider = { remoteMobile:true, signTransaction:async unsigned => { mobileSummary=unsigned.fundedTradeSummary; unsigned.recentBlockhash=refreshedBlockhash; unsigned.sign(mobilePayer); unsigned.fundedLastValidBlockHeight=100; return unsigned; }, reportTradeSubmission:async signature => { reportedSignature=signature; } };
+const mobileResult = await submitTrade({ connection:mobileConnection, provider:mobileProvider, side:'buy', mint:user, user:mobilePayer.publicKey, amount:0.01, slippagePercent:1, preparedTrade:mobileTrade, tokenName:'Funded Clean QA', tokenSymbol:'FCQA' });
+if (mobileSummary?.tokenName !== 'Funded Clean QA' || mobileSummary?.tokenSymbol !== 'FCQA' || mobileSummary?.spendSol !== '0.010000000' || mobileSummary?.appFeeSol !== '0.000005000') throw new Error('Mobile trade review is missing the token and SOL quote.');
+if (mobileResult.signature !== 'mobile-signature' || reportedSignature !== 'mobile-signature' || broadcastOptions.preflightCommitment !== 'confirmed' || confirmationStrategy.blockhash !== refreshedBlockhash) throw new Error('Refreshed mobile trade was not broadcast, reported, and confirmed with the signed blockhash.');
 let expiredMobileRejected = false;
 try { await submitTrade({ connection:{ ...mobileConnection, getBlockHeight:async () => 95, sendRawTransaction:async () => { throw new Error('Expired trade was broadcast.'); } }, provider:mobileProvider, side:'buy', mint:user, user:mobilePayer.publicKey, amount:0.01, slippagePercent:1, preparedTrade:mobileTrade }); }
 catch (error) { expiredMobileRejected=error.message.includes('expired during phone approval'); }

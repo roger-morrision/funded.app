@@ -167,6 +167,7 @@ const xAuth = createXAuth(store);
 const mobileWalletRelay = createMobileWalletRelay({
   appOrigin: new URL(process.env.PUBLIC_APP_URL || `http://127.0.0.1:${port}`).origin,
   getLatestBlockhash: () => new Connection(solanaRpcUrl, 'confirmed').getLatestBlockhash('confirmed'),
+  getFinalizedTransaction: signature => new Connection(solanaRpcUrl, 'finalized').getParsedTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 }),
 });
 const referralClaimExpiryMs = 14 * 24 * 60 * 60 * 1000;
 const maxReferralPayoutSol = Number(process.env.MAX_REFERRAL_PAYOUT_SOL || 10);

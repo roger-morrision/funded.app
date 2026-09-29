@@ -283,7 +283,7 @@ export async function buildTradeTransaction({ connection, side, mint, user, amou
   return { route: 'curve', side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: solAmount, outputAmount: solAmount, tokenDecimals, feeLamports, feePolicy, snapshot };
 }
 
-export async function submitTrade({ connection, provider, side, mint, user, amount, slippagePercent = 1, feeOwner, feeBps = DEFAULT_TRADE_FEE_BPS, preparedTrade = null, onStatus = () => {}, assertWalletCurrent = () => {} }) {
+export async function submitTrade({ connection, provider, side, mint, user, amount, slippagePercent = 1, feeOwner, feeBps = DEFAULT_TRADE_FEE_BPS, preparedTrade = null, tokenName = '', tokenSymbol = '', onStatus = () => {}, assertWalletCurrent = () => {} }) {
   if (!provider?.signTransaction) throw new Error('Connect a wallet that can sign transactions.');
   onStatus(`Reading ${side} quote and Solana state…`);
   const trade = preparedTrade || await buildTradeTransaction({ connection, side, mint, user, amount, slippagePercent, feeOwner, feeBps });
@@ -291,6 +291,21 @@ export async function submitTrade({ connection, provider, side, mint, user, amou
   assertPositiveQuoteAmount(trade.outputAmount, side === 'sell' ? 'SOL' : 'token');
   const latest = await connection.getLatestBlockhash('confirmed');
   const transaction = new Transaction({ recentBlockhash: latest.blockhash, feePayer: user }).add(...trade.instructions);
+  if (provider.remoteMobile) {
+    const quote = describeTradeQuote(trade, slippagePercent);
+    transaction.fundedTradeSummary = {
+      side,
+      mint:trade.mint.toBase58(),
+      tokenName:String(tokenName || tokenSymbol || 'Token').slice(0, 80),
+      tokenSymbol:String(tokenSymbol || 'token').slice(0, 16),
+      tokenAmount:side === 'sell' ? String(trade.inputAmount) : quote.expected.toFixed(Math.min(9, trade.tokenDecimals)),
+      minimumTokenAmount:side === 'buy' ? quote.minimum.toFixed(Math.min(9, trade.tokenDecimals)) : null,
+      spendSol:side === 'buy' ? Number(trade.inputAmount).toFixed(9) : null,
+      expectedSol:side === 'sell' ? quote.expectedNetSol.toFixed(9) : null,
+      minimumSol:side === 'sell' ? quote.minimumNetSol.toFixed(9) : null,
+      appFeeSol:quote.appFeeSol.toFixed(9),
+    };
+  }
   assertWalletCurrent();
   onStatus('Waiting for wallet approval…');
   const signed = await provider.signTransaction(transaction);
@@ -307,6 +322,9 @@ export async function submitTrade({ connection, provider, side, mint, user, amou
   } catch (error) {
     if (/blockhash not found/i.test(String(error?.message || ''))) throw new Error('The Devnet transaction expired during phone approval. Preview the trade and sign again.');
     throw error;
+  }
+  if (provider.remoteMobile && typeof provider.reportTradeSubmission === 'function') {
+    try { await provider.reportTradeSubmission(signature); } catch { /* A status update must not undo a submitted trade. */ }
   }
   onStatus('Confirming trade on Solana Devnet…');
   try {

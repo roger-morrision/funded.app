@@ -7,8 +7,9 @@ import { createPhantomSignMessageRequest, createPhantomSignTransactionRequest, d
 
 const origin = 'https://funded.vip';
 let clock = 0;
+let finalizedTrade = null;
 const refreshedBlockhash = bs58.encode(nacl.randomBytes(32));
-const relay = createMobileWalletRelay({ appOrigin:origin, now:() => clock, getLatestBlockhash:async () => ({ blockhash:refreshedBlockhash, lastValidBlockHeight:500 }) });
+const relay = createMobileWalletRelay({ appOrigin:origin, now:() => clock, getLatestBlockhash:async () => ({ blockhash:refreshedBlockhash, lastValidBlockHeight:500 }), getFinalizedTransaction:async () => finalizedTrade });
 const id = 'a'.repeat(48), pollToken = 'b'.repeat(64);
 async function call(method, path, { headers = {}, input } = {}) {
   const result = { status:0, headers:{}, body:'' };
@@ -117,6 +118,27 @@ assert.equal((await call('POST', `/api/mobile-wallet/trade/${fallbackId}`, { hea
 assert.equal((await call('POST', `/api/mobile-wallet/trade/${fallbackId}`, { headers:{ origin }, input:{ transaction:Buffer.from(signedTransaction.serialize()).toString('base64') } })).status, 200);
 assert.equal((await call('GET', `/api/mobile-wallet/relay/${fallbackId}`, { headers:{ 'x-mobile-wallet-token':fallbackToken } })).json.result.transaction, encodedSigned);
 assert.equal((await call('POST', `/api/mobile-wallet/trade/${fallbackId}`, { headers:{ origin }, input:{ transaction:Buffer.from(signedTransaction.serialize()).toString('base64') } })).status, 404);
+const summaryId = 'b'.repeat(48), summaryToken = '0'.repeat(64);
+const summary = { side:'sell', mint:destination.toBase58(), tokenName:'Funded Clean QA', tokenSymbol:'FCQA', tokenAmount:'10000000', expectedSol:'0.011675144', minimumSol:'0.011557806', appFeeSol:'0.000058670' };
+assert.equal((await call('POST', '/api/mobile-wallet/relay', { headers:{ origin }, input:{ id:summaryId, pollToken:summaryToken, transactionRequest:{ ...transactionRequest, summary:{ ...summary, minimumSol:'100' } } } })).status, 400);
+assert.equal((await call('POST', '/api/mobile-wallet/relay', { headers:{ origin }, input:{ id:summaryId, pollToken:summaryToken, transactionRequest:{ ...transactionRequest, summary } } })).status, 201);
+assert.deepEqual((await call('GET', `/api/mobile-wallet/trade-request/${summaryId}`)).json.summary, summary);
+assert.match((await call('GET', `/api/mobile-wallet/trade/${summaryId}`)).body, /Token and quantity[\s\S]*Estimated SOL to wallet/);
+assert.equal((await call('GET', `/api/mobile-wallet/trade-status/${summaryId}`)).json.status, 'review');
+assert.equal((await call('POST', `/api/mobile-wallet/trade/${summaryId}`, { headers:{ origin }, input:{ transaction:Buffer.from(signedTransaction.serialize()).toString('base64') } })).status, 200);
+assert.equal((await call('GET', `/api/mobile-wallet/trade-status/${summaryId}`)).json.status, 'signed');
+const expectedTradeSignature = bs58.encode(signedTransaction.signature);
+assert.equal((await call('POST', `/api/mobile-wallet/trade-status/${summaryId}`, { headers:{ origin:'https://evil.example', 'x-mobile-wallet-token':summaryToken }, input:{ signature:expectedTradeSignature } })).status, 404);
+assert.equal((await call('POST', `/api/mobile-wallet/trade-status/${summaryId}`, { headers:{ origin, 'x-mobile-wallet-token':summaryToken }, input:{ signature:bs58.encode(nacl.randomBytes(64)) } })).status, 400);
+assert.equal((await call('POST', `/api/mobile-wallet/trade-status/${summaryId}`, { headers:{ origin, 'x-mobile-wallet-token':summaryToken }, input:{ signature:expectedTradeSignature } })).json.status, 'submitted');
+assert.equal((await call('GET', `/api/mobile-wallet/trade-status/${summaryId}`)).json.status, 'submitted');
+finalizedTrade = { slot:505481324, transaction:{ message:{ accountKeys:[{ pubkey:payer.publicKey }] } }, meta:{ err:null, preBalances:[1_000_000_000], postBalances:[1_011_000_000], preTokenBalances:[{ owner:session.publicKey, mint:summary.mint, uiTokenAmount:{ amount:'10000000000000', decimals:6 } }], postTokenBalances:[{ owner:session.publicKey, mint:summary.mint, uiTokenAmount:{ amount:'0', decimals:6 } }] } };
+clock += 3001;
+const finalizedStatus = (await call('GET', `/api/mobile-wallet/trade-status/${summaryId}`)).json;
+assert.equal(finalizedStatus.status, 'finalized');
+assert.equal(finalizedStatus.solDeltaLamports, '11000000');
+assert.equal(finalizedStatus.tokenDeltaRaw, '-10000000000000');
+assert.equal(finalizedStatus.tokenDecimals, 6);
 const phantomBudget = new Transaction({ feePayer:payer.publicKey, recentBlockhash:transaction.recentBlockhash }).add(
   ComputeBudgetProgram.setComputeUnitLimit({ units:300_000 }),
   ComputeBudgetProgram.setComputeUnitPrice({ microLamports:1_000 }),

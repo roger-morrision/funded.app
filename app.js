@@ -1120,7 +1120,7 @@ async function handleFundedBuy(){
     const before = beforeAccount ? BigInt((await rpc.getTokenAccountBalance(tokenAccount, 'finalized')).value.amount) : 0n;
     const preparedTrade = fundedBuyPreview.trade;
     fundedBuyPreview = null;
-    const result = await submitTrade({ connection:rpc, provider:session.provider, side:'buy', mint, user:session.provider.publicKey, amount, slippagePercent:1, feeOwner:TRADE_FEE_OWNER, feeBps:TRADE_FEE_BPS, preparedTrade, assertWalletCurrent:()=>assertWalletSessionCurrent(session), onStatus:renderFundedBuyControl });
+    const result = await submitTrade({ connection:rpc, provider:session.provider, side:'buy', mint, user:session.provider.publicKey, amount, slippagePercent:1, feeOwner:TRADE_FEE_OWNER, feeBps:TRADE_FEE_BPS, preparedTrade, tokenName:'Funded', tokenSymbol:'FUNDED', assertWalletCurrent:()=>assertWalletSessionCurrent(session), onStatus:renderFundedBuyControl });
     submittedSignature = result.signature;
     await waitForSignatureConfirmation(rpc, { signature:result.signature, commitment:'finalized' });
     assertWalletSessionCurrent(session);
@@ -2651,12 +2651,14 @@ async function waitForMobileWalletFlow(flow, version){
 async function createMobileWalletProvider(session){
   verifyPhantomMobileSession(session, window.location.origin);
   const { PublicKey } = await getSolana();
+  let pendingTradeFlow = null;
   const provider = {
     publicKey:new PublicKey(session.publicKey), isConnected:true, remoteMobile:true,
     async signTransaction(transaction){
       if (!provider.isConnected) throw new Error('Reconnect the mobile wallet before trading.');
-      const transactionRequest = { publicKey:session.publicKey, transaction:Buffer.from(transaction.serialize({ requireAllSignatures:false, verifySignatures:false })).toString('base64'), ...(Number.isSafeInteger(transaction.fundedLastValidBlockHeight) ? { lastValidBlockHeight:transaction.fundedLastValidBlockHeight } : {}) };
+      const transactionRequest = { publicKey:session.publicKey, transaction:Buffer.from(transaction.serialize({ requireAllSignatures:false, verifySignatures:false })).toString('base64'), ...(Number.isSafeInteger(transaction.fundedLastValidBlockHeight) ? { lastValidBlockHeight:transaction.fundedLastValidBlockHeight } : {}), ...(transaction.fundedTradeSummary ? { summary:transaction.fundedTradeSummary } : {}) };
       const flow = await registerMobileWalletFlow(null, transactionRequest);
+      pendingTradeFlow = flow;
       const version = ++mobileWalletRequestVersion;
       const signerUrl = `${window.location.origin}/api/mobile-wallet/trade/${flow.id}`;
       const browseLink = `https://phantom.app/ul/browse/${encodeURIComponent(signerUrl)}?ref=${encodeURIComponent(window.location.origin)}`;
@@ -2673,6 +2675,18 @@ async function createMobileWalletProvider(session){
         if (label) label.textContent = error.message;
         throw error;
       }
+    },
+    async reportTradeSubmission(signature){
+      if (!pendingTradeFlow) return;
+      const flow = pendingTradeFlow;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const response = await fetch(`/api/mobile-wallet/trade-status/${flow.id}`, { method:'POST', headers:{ 'content-type':'application/json', 'x-mobile-wallet-token':flow.pollToken }, body:JSON.stringify({ signature }) });
+          if (response.ok) return;
+        } catch { /* Retry a transient relay failure. */ }
+        if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      throw new Error('Could not update the phone with the Devnet transaction signature.');
     },
     async signMessage(message){
       if (!provider.isConnected) throw new Error('Reconnect the mobile wallet before signing.');
@@ -2875,7 +2889,8 @@ async function executeTrade(){
   try {
     const activeConnection = connection || (await getSolana(), connection);
     assertWalletSessionCurrent(session);
-    const result = await submitTrade({ connection: activeConnection, provider: session.provider, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: TRADE_FEE_OWNER, feeBps: TRADE_FEE_BPS, preparedTrade: tradePreview.trade, assertWalletCurrent: () => assertWalletSessionCurrent(session), onStatus: message => { if (isWalletSessionCurrent(session)) setTradeStatus(message); } });
+    const shownCoin = getCoinMintAddress() === mint;
+    const result = await submitTrade({ connection: activeConnection, provider: session.provider, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: TRADE_FEE_OWNER, feeBps: TRADE_FEE_BPS, preparedTrade: tradePreview.trade, tokenName:shownCoin ? document.querySelector('#coin-page-title')?.textContent?.trim() : '', tokenSymbol:shownCoin ? document.querySelector('#coin-symbol')?.textContent?.trim() : '', assertWalletCurrent: () => assertWalletSessionCurrent(session), onStatus: message => { if (isWalletSessionCurrent(session)) setTradeStatus(message); } });
     if (!isWalletSessionCurrent(session)) return;
     setTradeStatus(`${side === 'buy' ? 'Buy' : 'Sell'} confirmed: ${result.signature}. App fee: ${(result.feeLamports / 1_000_000_000).toFixed(6)} SOL.`);
     if (getCoinMintAddress() === mint) void loadCoinOnChain(mint);

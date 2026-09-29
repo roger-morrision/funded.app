@@ -4,6 +4,7 @@ import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Transaction } from '@solana/web3.js';
 import { inspectPhantomTradeTransaction } from '../phantom-mobile-crypto.js';
+import { renderTradeSignerPage } from './trade-signer-page.mjs';
 
 const FLOW_ID = /^[a-f0-9]{48}$/;
 const POLL_TOKEN = /^[a-f0-9]{64}$/;
@@ -11,7 +12,35 @@ const B58 = /^[1-9A-HJ-NP-Za-km-z]+$/;
 const SIGNATURE_B64 = /^[A-Za-z0-9+/]{86}==$/;
 const MAX_FLOWS = 256;
 const FLOW_TTL_MS = 5 * 60_000;
+const TRADE_RESULT_TTL_MS = 15 * 60_000;
 const WEB3_BROWSER_SCRIPT = readFileSync(new URL('../node_modules/@solana/web3.js/lib/index.iife.min.js', import.meta.url));
+
+function validTradeSummary(summary) {
+  if (!summary || !['buy', 'sell'].includes(summary.side)) return false;
+  const amount = value => typeof value === 'string' && value.length <= 32 && /^\d+(?:\.\d{1,9})?$/.test(value) && Number.isFinite(Number(value)) && Number(value) >= 0;
+  if (typeof summary.mint !== 'string' || !B58.test(summary.mint) || bs58.decode(summary.mint).length !== 32
+    || typeof summary.tokenName !== 'string' || !summary.tokenName.trim() || summary.tokenName.length > 80 || /[\x00-\x1f<>]/.test(summary.tokenName)
+    || typeof summary.tokenSymbol !== 'string' || !summary.tokenSymbol.trim() || summary.tokenSymbol.length > 16 || /[\x00-\x1f<>]/.test(summary.tokenSymbol)
+    || !amount(summary.tokenAmount) || Number(summary.tokenAmount) <= 0 || !amount(summary.appFeeSol)) return false;
+  if (summary.side === 'sell') return amount(summary.expectedSol) && amount(summary.minimumSol) && Number(summary.expectedSol) >= Number(summary.minimumSol) && Number(summary.minimumSol) > 0;
+  return amount(summary.spendSol) && Number(summary.spendSol) > 0 && amount(summary.minimumTokenAmount) && Number(summary.tokenAmount) >= Number(summary.minimumTokenAmount);
+}
+
+function finalizedTradeOutcome(transaction, wallet, mint) {
+  if (!transaction?.meta || !transaction?.transaction?.message?.accountKeys) return null;
+  if (transaction.meta.err) return { state:'failed', slot:transaction.slot, error:'The Devnet transaction finalized with an error.' };
+  const keys = transaction.transaction.message.accountKeys;
+  const walletIndex = keys.findIndex(key => String(key.pubkey || key) === wallet);
+  if (walletIndex < 0) return { state:'failed', slot:transaction.slot, error:'The finalized transaction did not contain the expected wallet.' };
+  const solDeltaLamports = BigInt(transaction.meta.postBalances[walletIndex]) - BigInt(transaction.meta.preBalances[walletIndex]);
+  const tokenAmount = balances => (balances || []).filter(balance => balance.owner === wallet && balance.mint === mint)
+    .reduce((total, balance) => total + BigInt(balance.uiTokenAmount.amount), 0n);
+  const tokenBalances = [...(transaction.meta.postTokenBalances || []), ...(transaction.meta.preTokenBalances || [])].filter(balance => balance.owner === wallet && balance.mint === mint);
+  return {
+    state:'finalized', slot:transaction.slot, solDeltaLamports:String(solDeltaLamports),
+    ...(mint ? { tokenDeltaRaw:String(tokenAmount(transaction.meta.postTokenBalances) - tokenAmount(transaction.meta.preTokenBalances)), tokenDecimals:tokenBalances[0]?.uiTokenAmount?.decimals ?? null } : {}),
+  };
+}
 
 function reply(res, status, data) {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
@@ -67,20 +96,7 @@ button.addEventListener('click',async()=>{button.disabled=true;try{const provide
   return { html, nonce };
 }
 
-function tradeSignerPage(id) {
-  const nonce = randomBytes(18).toString('base64');
-  const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Approve funded.vip Devnet trade</title><style>body{font:16px system-ui;max-width:34rem;margin:3rem auto;padding:0 1.25rem;background:#15121f;color:#fff}button{font:inherit;padding:.9rem 1.2rem;border:0;border-radius:.7rem;background:#b4a3ff;color:#171125}code{overflow-wrap:anywhere}p{line-height:1.5;color:#d4cce5}</style><h1>Approve your Devnet trade</h1><p>Review the transaction in Phantom before signing. The funded.vip desktop tab will submit it and verify the result.</p><p>Expected wallet: <code id="wallet">Loading…</code></p><button id="sign" disabled>Connect and review in Phantom</button><p id="status" role="status">Loading request…</p><script nonce="${nonce}" src="/api/mobile-wallet/web3.js"></script><script nonce="${nonce}">
-const id='${id}';
-const status=document.querySelector('#status');
-const button=document.querySelector('#sign');
-let request;
-fetch('/api/mobile-wallet/trade-request/'+id,{cache:'no-store'}).then(async response=>{if(!response.ok)throw new Error('Trade request expired. Start again on the desktop.');request=await response.json();if(!window.solanaWeb3?.Transaction)throw new Error('Transaction decoder did not load. Reload this page.');document.querySelector('#wallet').textContent=request.publicKey;button.disabled=false;status.textContent='Check the wallet, then tap Connect and review.'}).catch(error=>status.textContent=error.message);
-button.addEventListener('click',async()=>{button.disabled=true;try{const provider=window.phantom?.solana||window.solana;if(!provider?.signTransaction)throw new Error('Open this page inside Phantom on your phone.');if(!window.solanaWeb3?.Transaction)throw new Error('Transaction decoder did not load. Reload this page.');const connected=await provider.connect();const address=String(connected?.publicKey||provider.publicKey||'');if(address!==request.publicKey)throw new Error('Wrong wallet selected. Switch Phantom to '+request.publicKey+' and try again.');status.textContent='Refreshing the Devnet transaction before approval…';const refreshed=await fetch('/api/mobile-wallet/trade-refresh/'+id,{method:'POST'});if(!refreshed.ok)throw new Error((await refreshed.json()).error||'Could not refresh the trade. Start again on the desktop.');const current=await refreshed.json();const bytes=Uint8Array.from(atob(current.transaction),character=>character.charCodeAt(0));const transaction=window.solanaWeb3.Transaction.from(bytes);status.textContent='Review the transaction in Phantom…';const signed=await provider.signTransaction(transaction);const signedBytes=signed.serialize();const encoded=btoa(Array.from(signedBytes,byte=>String.fromCharCode(byte)).join(''));const response=await fetch('/api/mobile-wallet/trade/'+id,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({transaction:encoded})});if(!response.ok)throw new Error((await response.json()).error||'Could not return the signed transaction to the desktop.');status.textContent='Signature received. Return to the funded.vip desktop tab for Devnet confirmation.'}catch(error){status.textContent=error.message||'Signing failed.';button.disabled=false}});
-  </script></html>`;
-  return { html, nonce };
-}
-
-export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBlockhash = null } = {}) {
+export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBlockhash = null, getFinalizedTransaction = null } = {}) {
   if (!appOrigin || new URL(appOrigin).origin !== appOrigin) throw new Error('A fixed app origin is required for mobile wallet callbacks.');
   const flows = new Map();
   const sweep = () => {
@@ -93,8 +109,9 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
       const sign = url.pathname.match(/^\/api\/mobile-wallet\/(sign|sign-request)\/([a-f0-9]{48})$/);
       const linkRoute = url.pathname.match(/^\/api\/mobile-wallet\/(link|open)\/([a-f0-9]{48})$/);
       const trade = url.pathname.match(/^\/api\/mobile-wallet\/(trade|trade-request|trade-refresh)\/([a-f0-9]{48})$/);
+      const tradeStatus = url.pathname.match(/^\/api\/mobile-wallet\/trade-status\/([a-f0-9]{48})$/);
       const browserScript = url.pathname === '/api/mobile-wallet/web3.js';
-      if (!register && !match && !sign && !linkRoute && !trade && !browserScript) return false;
+      if (!register && !match && !sign && !linkRoute && !trade && !tradeStatus && !browserScript) return false;
       sweep();
       if (browserScript && req.method === 'GET') {
         res.writeHead(200, { 'content-type':'text/javascript; charset=utf-8', 'cache-control':'public, max-age=86400', 'x-content-type-options':'nosniff' });
@@ -120,9 +137,10 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
             const coSignatures = unsigned.signatures.filter(entry => entry.publicKey.toBase58() !== transactionRequest.publicKey && entry.signature);
             if (coSignatures.some(entry => !nacl.sign.detached.verify(message, entry.signature, entry.publicKey.toBytes()))) throw new Error('Invalid transaction co-signature.');
             if (coSignatures.length && (!Number.isSafeInteger(transactionRequest.lastValidBlockHeight) || transactionRequest.lastValidBlockHeight <= 0)) throw new Error('Missing signed transaction expiry.');
+            if (transactionRequest.summary !== undefined && !validTradeSummary(transactionRequest.summary)) throw new Error('Invalid trade review.');
           } catch { reply(res, 400, { error:'Invalid transaction request.' }); return true; }
         }
-        flows.set(input.id, { pollToken: input.pollToken, expiresAt: now() + FLOW_TTL_MS, result: null, signRequest: signRequest || null, transactionRequest:transactionRequest || null, preSigned: Boolean(transactionRequest && Transaction.from(Buffer.from(transactionRequest.transaction, 'base64')).signatures.some(entry => entry.publicKey.toBase58() !== transactionRequest.publicKey && entry.signature)) });
+        flows.set(input.id, { pollToken: input.pollToken, expiresAt: now() + FLOW_TTL_MS, result: null, signRequest: signRequest || null, transactionRequest:transactionRequest || null, preSigned: Boolean(transactionRequest && Transaction.from(Buffer.from(transactionRequest.transaction, 'base64')).signatures.some(entry => entry.publicKey.toBase58() !== transactionRequest.publicKey && entry.signature)), submittedSignature:null, outcome:null, nextStatusCheckAt:0 });
         reply(res, 201, { callbackUrl: `${appOrigin}/api/mobile-wallet/callback/${input.id}`, expiresInSeconds: FLOW_TTL_MS / 1000 });
         return true;
       }
@@ -173,6 +191,36 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
         reply(res, 200, { status:'complete' });
         return true;
       }
+      if (tradeStatus && req.method === 'POST') {
+        const flow = flows.get(tradeStatus[1]);
+        const provided = String(req.headers['x-mobile-wallet-token'] || '');
+        if (req.headers.origin !== appOrigin || !flow?.transactionRequest || !flow.result?.transaction || !POLL_TOKEN.test(provided) || !timingSafeEqual(Buffer.from(provided), Buffer.from(flow.pollToken))) { reply(res, 404, { error:'Trade status unavailable.' }); return true; }
+        const input = await readBody(req);
+        const signature = String(input.signature || '');
+        let expectedSignature;
+        try {
+          const signed = Transaction.from(bs58.decode(flow.result.transaction));
+          expectedSignature = bs58.encode(signed.signatures.find(entry => entry.publicKey.toBase58() === flow.transactionRequest.publicKey).signature);
+        } catch { reply(res, 400, { error:'Signed transaction is unavailable.' }); return true; }
+        if (signature !== expectedSignature) { reply(res, 400, { error:'Signature does not match the signed trade.' }); return true; }
+        flow.submittedSignature = signature;
+        flow.expiresAt = now() + TRADE_RESULT_TTL_MS;
+        reply(res, 200, { status:'submitted', signature });
+        return true;
+      }
+      if (tradeStatus && req.method === 'GET') {
+        const flow = flows.get(tradeStatus[1]);
+        if (!flow?.transactionRequest) { reply(res, 404, { error:'Trade status unavailable.' }); return true; }
+        if (flow.submittedSignature && !flow.outcome && typeof getFinalizedTransaction === 'function' && now() >= flow.nextStatusCheckAt) {
+          flow.nextStatusCheckAt = now() + 3000;
+          try {
+            const finalized = await getFinalizedTransaction(flow.submittedSignature);
+            if (finalized) flow.outcome = finalizedTradeOutcome(finalized, flow.transactionRequest.publicKey, flow.transactionRequest.summary?.mint || null);
+          } catch { /* Keep the submitted state while the Devnet RPC is unavailable. */ }
+        }
+        reply(res, 200, { status:flow.outcome?.state || (flow.submittedSignature ? 'submitted' : flow.result ? 'signed' : 'review'), ...(flow.submittedSignature ? { signature:flow.submittedSignature } : {}), ...(flow.outcome || {}) });
+        return true;
+      }
       if (trade?.[1] === 'trade-request' && req.method === 'GET') {
         const flow = flows.get(trade[2]);
         if (!flow?.transactionRequest || flow.result) { reply(res, 404, { error:'Trade request unavailable.' }); return true; }
@@ -204,7 +252,7 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
       if (trade?.[1] === 'trade' && req.method === 'GET') {
         const flow = flows.get(trade[2]);
         if (!flow?.transactionRequest || flow.result) { reply(res, 404, { error:'Trade request unavailable.' }); return true; }
-        const { html, nonce } = tradeSignerPage(trade[2]);
+        const { html, nonce } = renderTradeSignerPage(trade[2]);
         res.writeHead(200, { 'content-type':'text/html; charset=utf-8', 'cache-control':'no-store', 'referrer-policy':'no-referrer', 'x-content-type-options':'nosniff', 'content-security-policy':`default-src 'none'; connect-src 'self'; script-src 'self' 'nonce-${nonce}'; style-src 'unsafe-inline'` });
         res.end(html);
         return true;
