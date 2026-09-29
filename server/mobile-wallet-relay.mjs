@@ -17,6 +17,33 @@ function reply(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
+function tradeSignatureFailure(code) {
+  const error = new Error(code);
+  error.code = code;
+  return error;
+}
+
+function sameTradeInstructions(expected, actual) {
+  if (!expected.feePayer?.equals(actual.feePayer) || expected.instructions.length !== actual.instructions.length) return false;
+  return expected.instructions.every((instruction, index) => {
+    const other = actual.instructions[index];
+    return instruction.programId.equals(other.programId)
+      && Buffer.from(instruction.data).equals(Buffer.from(other.data))
+      && instruction.keys.length === other.keys.length
+      && instruction.keys.every((key, keyIndex) => key.pubkey.equals(other.keys[keyIndex].pubkey)
+        && key.isSigner === other.keys[keyIndex].isSigner && key.isWritable === other.keys[keyIndex].isWritable);
+  });
+}
+
+const TRADE_SIGNATURE_ERRORS = Object.freeze({
+  'invalid-encoding':'Phantom returned an unreadable signed transaction. Nothing was submitted.',
+  'blockhash-changed':'Phantom changed the Devnet blockhash during signing. Nothing was submitted.',
+  'instructions-changed':'Phantom changed the trade instructions during signing. Nothing was submitted.',
+  'wallet-signature-missing':'Phantom did not sign with the connected wallet. Nothing was submitted.',
+  'wallet-signature-invalid':'The connected wallet signature did not verify. Nothing was submitted.',
+  'other-signature-invalid':'The returned transaction has an invalid or missing additional signature. Nothing was submitted.',
+});
+
 function signerPage(id) {
   const nonce = randomBytes(18).toString('base64');
   const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign funded.vip claim</title><style>body{font:16px system-ui;max-width:34rem;margin:3rem auto;padding:0 1.25rem;background:#15121f;color:#fff}button{font:inherit;padding:.9rem 1.2rem;border:0;border-radius:.7rem;background:#b4a3ff;color:#171125}code{overflow-wrap:anywhere}p{line-height:1.5;color:#d4cce5}</style><h1>Sign your Devnet claim</h1><p>This page asks Phantom to sign the exact claim message. The funded.vip desktop tab will receive the result.</p><p>Expected wallet: <code id="wallet">Loading…</code></p><p>Message: <code id="message">Loading…</code></p><button id="sign" disabled>Connect and sign in Phantom</button><p id="status" role="status">Loading request…</p><script nonce="${nonce}">
@@ -179,16 +206,25 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
         const input = await readBody(req);
         const encoded = String(input.transaction || '');
         try {
-          if (encoded.length > 4000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) throw new Error('Invalid signed transaction.');
+          if (encoded.length > 4000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) throw tradeSignatureFailure('invalid-encoding');
           const raw = Buffer.from(encoded, 'base64');
           const signed = Transaction.from(raw);
           const unsigned = Transaction.from(Buffer.from(flow.transactionRequest.transaction, 'base64'));
           const message = unsigned.serializeMessage();
-          if (!Buffer.from(signed.serializeMessage()).equals(Buffer.from(message))) throw new Error('Transaction changed.');
+          if (!Buffer.from(signed.serializeMessage()).equals(Buffer.from(message))) {
+            throw tradeSignatureFailure(sameTradeInstructions(unsigned, signed) ? 'blockhash-changed' : 'instructions-changed');
+          }
           const signature = signed.signatures.find(entry => entry.publicKey.toBase58() === flow.transactionRequest.publicKey)?.signature;
-          if (!signature || !nacl.sign.detached.verify(message, signature, bs58.decode(flow.transactionRequest.publicKey)) || !signed.verifySignatures()) throw new Error('Wrong or incomplete wallet signatures.');
+          if (!signature) throw tradeSignatureFailure('wallet-signature-missing');
+          if (!nacl.sign.detached.verify(message, signature, bs58.decode(flow.transactionRequest.publicKey))) throw tradeSignatureFailure('wallet-signature-invalid');
+          if (!signed.verifySignatures()) throw tradeSignatureFailure('other-signature-invalid');
           flow.result = { transaction:bs58.encode(raw), publicKey:flow.transactionRequest.publicKey, blockhash:signed.recentBlockhash, lastValidBlockHeight:flow.lastValidBlockHeight, source:'phantom-injected' };
-        } catch { reply(res, 400, { error:'Signed transaction does not match the requested wallet and trade.' }); return true; }
+        } catch (error) {
+          const code = Object.hasOwn(TRADE_SIGNATURE_ERRORS, error?.code) ? error.code : 'invalid-encoding';
+          console.warn(JSON.stringify({ event:'mobile-trade-signature-rejected', code }));
+          reply(res, 400, { code, error:TRADE_SIGNATURE_ERRORS[code] });
+          return true;
+        }
         reply(res, 200, { status:'complete' });
         return true;
       }

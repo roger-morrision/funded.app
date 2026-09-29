@@ -110,7 +110,10 @@ const changed = new Transaction({ feePayer:payer.publicKey, recentBlockhash:tran
 changed.sign(payer);
 assert.throws(() => verifyPhantomMobileTransaction(transaction,bs58.encode(changed.serialize()),session.publicKey), /different transaction/);
 assert.throws(() => verifyPhantomMobileTransaction(transaction,tradePayload.transaction,session.publicKey), /did not sign/);
-assert.equal((await call('POST', `/api/mobile-wallet/trade/${fallbackId}`, { headers:{ origin }, input:{ transaction:Buffer.from(changed.serialize()).toString('base64') } })).status, 400);
+const changedResponse = await call('POST', `/api/mobile-wallet/trade/${fallbackId}`, { headers:{ origin }, input:{ transaction:Buffer.from(changed.serialize()).toString('base64') } });
+assert.equal(changedResponse.status, 400);
+assert.equal(changedResponse.json.code, 'instructions-changed');
+assert.equal((await call('POST', `/api/mobile-wallet/trade/${fallbackId}`, { headers:{ origin }, input:{ transaction:Buffer.from(transaction.serialize({ requireAllSignatures:false, verifySignatures:false })).toString('base64') } })).json.code, 'wallet-signature-missing');
 assert.equal((await call('POST', `/api/mobile-wallet/trade/${fallbackId}`, { headers:{ origin }, input:{ transaction:Buffer.from(signedTransaction.serialize()).toString('base64') } })).status, 200);
 assert.equal((await call('GET', `/api/mobile-wallet/relay/${fallbackId}`, { headers:{ 'x-mobile-wallet-token':fallbackToken } })).json.result.transaction, encodedSigned);
 assert.equal((await call('POST', `/api/mobile-wallet/trade/${fallbackId}`, { headers:{ origin }, input:{ transaction:Buffer.from(signedTransaction.serialize()).toString('base64') } })).status, 404);
@@ -123,7 +126,9 @@ const refreshedTransaction = Transaction.from(Buffer.from(refreshed.json.transac
 assert.equal(refreshedTransaction.recentBlockhash, refreshedBlockhash);
 assert.notDeepEqual(refreshedTransaction.serializeMessage(), transaction.serializeMessage());
 refreshedTransaction.sign(payer);
-assert.equal((await call('POST', `/api/mobile-wallet/trade/${refreshedId}`, { headers:{ origin }, input:{ transaction:Buffer.from(signedTransaction.serialize()).toString('base64') } })).status, 400);
+const staleResponse = await call('POST', `/api/mobile-wallet/trade/${refreshedId}`, { headers:{ origin }, input:{ transaction:Buffer.from(signedTransaction.serialize()).toString('base64') } });
+assert.equal(staleResponse.status, 400);
+assert.equal(staleResponse.json.code, 'blockhash-changed');
 assert.equal((await call('POST', `/api/mobile-wallet/trade/${refreshedId}`, { headers:{ origin }, input:{ transaction:Buffer.from(refreshedTransaction.serialize()).toString('base64') } })).status, 200);
 const refreshedResult = (await call('GET', `/api/mobile-wallet/relay/${refreshedId}`, { headers:{ 'x-mobile-wallet-token':refreshedToken } })).json.result;
 assert.equal(refreshedResult.blockhash, refreshedBlockhash);
