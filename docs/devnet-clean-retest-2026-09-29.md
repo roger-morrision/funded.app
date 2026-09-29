@@ -71,3 +71,9 @@ Daily holder rewards cannot be marked paid before their real cutoff and payout
 time. X payouts require a verified X-linked recipient with an actual eligible
 settlement. Buyback and burn require a finalized atomic purchase/burn receipt and
 refund proof. These flows remain distinct from local or mocked checks.
+
+An independent in-memory Devnet reward-contract fixture did finalize both a SOL
+holder-style payout (`3UP1vQVxxzJ2jmp4kdWg3vUpHB5XGHHviy92nr7mnBBzMpEadHyQSymkBfC793SpfX3YfgaaUAVVQozxp56d1Vn1`)
+and an SPL token payout (`4FYPvWqCiodEMdyhQYjH2VyoKEBibygFPcjbsFyqQ2c7of4p5GV9AWsqQFxuQsxxv2sFwJZFUxHBMWw3nuUAxbSG`)
+with payment records and exact vault/recipient deltas. This verifies the reward
+contract's payout path, not FCQA's real daily holder cycle.
