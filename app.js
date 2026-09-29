@@ -1,5 +1,6 @@
 import { Buffer } from 'buffer';
 import { formatTradeAmountInput, parseTradeAmountInput } from './trade-amount-input.js';
+import { formatTokenBaseAmount, tokenBalancePercentage } from './trade-panel-balance.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { decryptPhantomMobileResult, verifyPhantomMobileSession, verifyPhantomMobileSignature, verifyPhantomMobileTransaction } from './phantom-mobile-crypto.js';
@@ -106,6 +107,8 @@ let tradeQuoteTimer = null;
 let tradeQuoteInFlight = null;
 let tradeActionBusy = false;
 let coinTradeEstimate = null;
+let tradeBalanceRequest = 0;
+let tradeBalanceState = { key:'', solLamports:null, tokenRaw:null, tokenDecimals:0 };
 let launchStep = 1;
 let launchMode = 'quick';
 let launchProfile = 'fast';
@@ -2741,6 +2744,65 @@ async function restoreMobileWallet(){
   catch { sessionStorage.removeItem(MOBILE_WALLET_SESSION_KEY); return false; }
 }
 function setTradeStatus(message, error = false){ const node = document.querySelector('#trade-status'); if (node) { node.textContent = message; node.className = `field-help ${error ? 'funded-mint-invalid' : ''}`; } }
+function tradeBalanceKey(){
+  const session = captureWalletSession();
+  const mint = document.querySelector('#trade-mint')?.value.trim();
+  return session && mint ? `${session.address}:${mint}` : '';
+}
+function resetTradeBalances(){
+  tradeBalanceRequest++;
+  tradeBalanceState = { key:'', solLamports:null, tokenRaw:null, tokenDecimals:0 };
+  renderTradeBalances();
+}
+function renderTradeBalances(){
+  const node = document.querySelector('#trade-wallet-balance');
+  if (!node) return;
+  const warning = document.querySelector('#trade-balance-warning');
+  const side = document.querySelector('#trade-side')?.value;
+  const current = Boolean(tradeBalanceState.key && tradeBalanceState.key === tradeBalanceKey());
+  const symbol = coinTradeEstimate?.symbol || document.querySelector('#coin-symbol')?.textContent?.trim() || 'token';
+  if (!wallet) node.textContent = 'Connect wallet';
+  else if (!current) node.textContent = 'Checking balance…';
+  else if (side === 'sell') node.textContent = tradeBalanceState.tokenRaw == null ? 'Balance unavailable' : `${formatTradeAmountInput(formatTokenBaseAmount(tradeBalanceState.tokenRaw, tradeBalanceState.tokenDecimals, Math.min(9, tradeBalanceState.tokenDecimals)))} ${symbol}`;
+  else node.textContent = tradeBalanceState.solLamports == null ? 'Balance unavailable' : `${formatTradeAmountInput(formatTokenBaseAmount(tradeBalanceState.solLamports, 9, 6))} SOL`;
+  document.querySelectorAll('[data-coin-sell-percent]').forEach(button => { button.disabled = !current || tradeBalanceState.tokenRaw == null || tradeBalanceState.tokenRaw <= 0n; });
+  const amount = parseTradeAmountInput(document.querySelector('#trade-amount')?.value);
+  const insufficient = current && Number.isFinite(amount) && amount > 0 && (side === 'buy'
+    ? tradeBalanceState.solLamports != null && Math.ceil(amount * 1_000_000_000) >= tradeBalanceState.solLamports
+    : tradeBalanceState.tokenRaw != null && amount > Number(tradeBalanceState.tokenRaw) / (10 ** tradeBalanceState.tokenDecimals));
+  if (warning) { warning.hidden = !insufficient; warning.textContent = side === 'buy' ? 'Insufficient SOL for this amount and trade fees.' : `Insufficient ${symbol} balance.`; }
+  updateTradeActionState();
+}
+async function refreshTradeBalances(){
+  const key = tradeBalanceKey();
+  const session = captureWalletSession();
+  const mint = document.querySelector('#trade-mint')?.value.trim();
+  if (!key || !session || !mint) { resetTradeBalances(); return; }
+  const request = ++tradeBalanceRequest;
+  tradeBalanceState = { key, solLamports:null, tokenRaw:null, tokenDecimals:coinTradeEstimate?.mint === mint ? coinTradeEstimate.decimals : 0 };
+  renderTradeBalances();
+  try {
+    const { PublicKey } = await getSolana();
+    const rpc = await getExploreConnection();
+    const [sol, tokens] = await Promise.allSettled([
+      rpc.getBalance(session.provider.publicKey, 'confirmed'),
+      rpc.getParsedTokenAccountsByOwner(session.provider.publicKey, { mint:new PublicKey(mint) }, 'confirmed'),
+    ]);
+    if (request !== tradeBalanceRequest || !isWalletSessionCurrent(session) || key !== tradeBalanceKey()) return;
+    const accounts = tokens.status === 'fulfilled' ? tokens.value.value : [];
+    const parsed = accounts.map(account => account.account.data.parsed?.info?.tokenAmount).filter(Boolean);
+    tradeBalanceState = {
+      key,
+      solLamports:sol.status === 'fulfilled' ? BigInt(sol.value) : null,
+      tokenRaw:tokens.status === 'fulfilled' ? parsed.reduce((total, token) => total + BigInt(token.amount), 0n) : null,
+      tokenDecimals:parsed.length ? Number(parsed[0].decimals) : coinTradeEstimate?.mint === mint ? coinTradeEstimate.decimals : 0,
+    };
+  } catch {
+    if (request !== tradeBalanceRequest || key !== tradeBalanceKey()) return;
+    tradeBalanceState = { key, solLamports:null, tokenRaw:null, tokenDecimals:0 };
+  }
+  renderTradeBalances();
+}
 function formatTradeEstimateAmount(value){
   if (!Number.isFinite(value)) return '—';
   const digits = value < 0.01 ? 9 : value < 1 ? 6 : 4;
@@ -2788,12 +2850,18 @@ function renderTradeAmountEstimate(){
 }
 function updateTradeAmountLabel(){
   const side = document.querySelector('#trade-side')?.value;
-  const label = document.querySelector('#trade-amount-label');
-  if (label) label.firstChild.textContent = side === 'sell' ? 'Token amount' : 'SOL amount';
+  const panel = document.querySelector('#trade-panel');
+  if (panel) panel.dataset.side = side;
+  const label = document.querySelector('#trade-amount-heading');
+  if (label) label.textContent = side === 'sell' ? 'Tokens to sell' : 'SOL to spend';
+  const asset = document.querySelector('#trade-asset-symbol');
+  if (asset) asset.textContent = side === 'sell' ? coinTradeEstimate?.symbol || document.querySelector('#coin-symbol')?.textContent?.trim() || 'Token' : '◎ SOL';
   const amount = document.querySelector('#trade-amount');
   if (amount) amount.placeholder = side === 'sell' ? '1,000' : '0.10';
   const presets = document.querySelector('#coin-quick-amounts');
   if (presets) presets.hidden = side === 'sell';
+  const sellPresets = document.querySelector('#coin-sell-percentages');
+  if (sellPresets) sellPresets.hidden = side !== 'sell';
   document.querySelectorAll('[data-coin-trade-side]').forEach(button => {
     const active = button.dataset.coinTradeSide === side;
     button.classList.toggle('active', active);
@@ -2801,7 +2869,7 @@ function updateTradeAmountLabel(){
   });
   const submit = document.querySelector('#trade-submit');
   if (submit) submit.textContent = side === 'sell' ? 'Approve Sell' : 'Approve Buy';
-  updateTradeActionState();
+  renderTradeBalances();
   renderTradeAmountEstimate();
 }
 function tradeInputs(){
@@ -2813,7 +2881,12 @@ function tradeInputs(){
 }
 function updateTradeActionState(){
   const submit = document.querySelector('#trade-submit');
-  if (submit) submit.disabled = tradeActionBusy || !tradeInputs().valid;
+  const { side, amount, valid } = tradeInputs();
+  const current = Boolean(tradeBalanceState.key && tradeBalanceState.key === tradeBalanceKey());
+  const insufficient = current && valid && (side === 'buy'
+    ? tradeBalanceState.solLamports != null && Math.ceil(amount * 1_000_000_000) >= tradeBalanceState.solLamports
+    : tradeBalanceState.tokenRaw != null && amount > Number(tradeBalanceState.tokenRaw) / (10 ** tradeBalanceState.tokenDecimals));
+  if (submit) submit.disabled = tradeActionBusy || !valid || insufficient;
 }
 function invalidateTradePreview(){
   tradeQuoteVersion++;
@@ -2955,6 +3028,7 @@ async function executeTrade(){
     setTradeStatus(`${side === 'buy' ? 'Buy' : 'Sell'} confirmed: ${result.signature}. App fee: ${(result.feeLamports / 1_000_000_000).toFixed(6)} SOL.`);
     if (getCoinMintAddress() === mint) void loadCoinOnChain(mint);
     showToast(`${side === 'buy' ? 'Buy' : 'Sell'} confirmed on Devnet`); refreshWalletInfo();
+    void refreshTradeBalances();
   } catch (error) { if (isWalletSessionCurrent(session)) setTradeStatus(`Trade failed or confirmation unavailable: ${error.message}`, true); } finally {
     tradeActionBusy = false;
     if (isWalletSessionCurrent(session)) { invalidateTradePreview(); queueTradeQuote(); }
@@ -3074,6 +3148,7 @@ function resetWalletDependentViews(){
   launchCostRefreshTimer = null;
   walletBalanceLamports = null;
   estimatedLaunchFeeLamports = null;
+  resetTradeBalances();
   invalidateTradePreview();
   renderReferralClaimPrompt();
   for (const id of ['referral-active-creators', 'referral-conversion-rate']) {
@@ -3109,6 +3184,7 @@ function activateWallet(provider, message = 'Wallet connected'){
   if (providerId) { try { sessionStorage.setItem(WALLET_PROVIDER_KEY, providerId); } catch {} }
   observeWalletProvider(provider);
   setWalletState(message, address, true);
+  void refreshTradeBalances();
   queueTradeQuote();
 }
 function clearWalletState(message = 'Wallet not connected', detail = 'Connect a wallet to continue'){
@@ -3118,6 +3194,7 @@ function clearWalletState(message = 'Wallet not connected', detail = 'Connect a 
   try { sessionStorage.removeItem(COIN_CHAT_SESSION_KEY); } catch {}
   wallet = null;
   connectedWalletAddress = null;
+  renderTradeBalances();
   setWalletState(message, detail);
   setLaunchStatus('');
 }
@@ -4483,7 +4560,30 @@ document.querySelectorAll('[data-coin-buy-amount]').forEach(button => button.add
   amount.dispatchEvent(new Event('input', { bubbles: true }));
   setTradeStatus('Quick amount selected. Calculating a live quote.');
 }));
-document.querySelector('#trade-mint')?.addEventListener('change', () => setTradeStatus('Mint selected. Calculating a live quote.'));
+document.querySelectorAll('[data-coin-sell-percent]').forEach(button => button.addEventListener('click', () => {
+  if (document.querySelector('#trade-side')?.value !== 'sell' || tradeBalanceState.key !== tradeBalanceKey() || tradeBalanceState.tokenRaw == null) return;
+  const value = tokenBalancePercentage(tradeBalanceState.tokenRaw, tradeBalanceState.tokenDecimals, Number(button.dataset.coinSellPercent));
+  const amount = document.querySelector('#trade-amount');
+  if (!amount) return;
+  amount.value = formatTradeAmountInput(value);
+  amount.dispatchEvent(new Event('input', { bubbles:true }));
+}));
+function syncTradeSlippagePresets(){
+  const value = Number(document.querySelector('#trade-slippage')?.value);
+  document.querySelectorAll('[data-coin-slippage]').forEach(button => {
+    const active = Number(button.dataset.coinSlippage) === value;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+document.querySelectorAll('[data-coin-slippage]').forEach(button => button.addEventListener('click', () => {
+  const input = document.querySelector('#trade-slippage');
+  if (!input) return;
+  input.value = button.dataset.coinSlippage;
+  input.dispatchEvent(new Event('input', { bubbles:true }));
+}));
+document.querySelector('#trade-slippage')?.addEventListener('input', syncTradeSlippagePresets);
+document.querySelector('#trade-mint')?.addEventListener('change', () => { setTradeStatus('Mint selected. Calculating a live quote.'); void refreshTradeBalances(); });
 document.querySelector('#trade-amount')?.addEventListener('input', event => {
   const input = event.currentTarget;
   const caret = input.selectionStart;
@@ -4497,6 +4597,7 @@ const restoredTradeAmount = document.querySelector('#trade-amount');
 if (restoredTradeAmount?.value) restoredTradeAmount.value = formatTradeAmountInput(restoredTradeAmount.value);
 document.querySelectorAll('#trade-mint, #trade-amount, #trade-slippage, #trade-side').forEach(input => input.addEventListener('input', () => {
   invalidateTradePreview();
+  renderTradeBalances();
   if (tradeInputs().valid) { setTradeStatus(wallet ? 'Calculating a live quote…' : 'Connect a signing wallet to calculate the SOL amount.'); queueTradeQuote(); }
   else setTradeStatus('Enter a positive amount and slippage between 0.1% and 10%.');
 }));
@@ -4504,11 +4605,13 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && !tradeActionBusy && !document.querySelector('#trade-review-dialog')?.open && (!tradePreview || Date.now() - tradePreview.preparedAt >= 12_000)) { invalidateTradePreview(); queueTradeQuote(0); }
 });
 updateTradeAmountLabel();
+syncTradeSlippagePresets();
 queueTradeQuote();
 normalizePreviewLabels();
 const pendingTradeMint = sessionStorage.getItem('funded.pendingTradeMint');
 if (pendingTradeMint && document.querySelector('#trade-mint')) {
   document.querySelector('#trade-mint').value = pendingTradeMint;
+  void refreshTradeBalances();
   sessionStorage.removeItem('funded.pendingTradeMint');
   setTradeStatus('Mint selected. Calculating a live quote.');
   invalidateTradePreview();
@@ -5794,6 +5897,7 @@ function resetCoinSurface(mintAddress){
   renderCoinFlow(NaN, NaN); renderCoinPulse();
   const path = document.querySelector('#coin-price-path'); if (path) path.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Reading trade observations…</strong><small>This is not a historical candle chart.</small></div>';
   const tradeMint = document.querySelector('#trade-mint'); if (tradeMint) tradeMint.value = mintAddress || '';
+  void refreshTradeBalances();
   invalidateTradePreview();
   queueTradeQuote();
   setCoinTabLabels(); renderCoinActivityTab();
@@ -5918,7 +6022,9 @@ async function loadCoinOnChain(mintAddress){
     coinSummaryLaunch = registeredLaunch;
     const symbol = metadata.symbol || registeredLaunch?.symbol || `${mintAddress.slice(0, 4)}…`;
     const name = metadata.name || registeredLaunch?.name || 'Unnamed on-chain token';
-    coinTradeEstimate = { mint: mintAddress, symbol, curve, graduatedPool };
+    coinTradeEstimate = { mint: mintAddress, symbol, curve, graduatedPool, decimals };
+    updateTradeAmountLabel();
+    void refreshTradeBalances();
     renderTradeAmountEstimate();
     const spotPriceSol = graduatedPool?.spotPriceSol ?? (curve && curve.virtualTokenReserves > 0 ? curve.virtualQuoteReservesSol / curve.virtualTokenReserves : NaN);
     const marketCapSol = spotPriceSol * supply;
