@@ -30,12 +30,31 @@ same image, database secret, and reward ledger volume.
 - A 30 million token community reserve was transferred to the verified reward
   vault with exact finalized source and destination deltas. Custody is verified;
   eligibility and claims remain closed.
-- Creator and referral settlement must be checked by finalized payout signatures
-  and exact recipient deltas. The app-owner trade fee is transferred within each
-  trade. The operations share uses a separate reward-vault payout to the configured
-  reward authority.
+- The fresh coin's two collections totaled 14,973,273 lamports. The public fee
+  overview reconciles exactly 14,973,273 allocated lamports, including small
+  scientific-notation settlement amounts. Creator payouts total 10,481,291
+  lamports, direct referral payouts 299,465 lamports, and operations payouts to
+  `B2Ns79FNQBseayg77fT7CvxQYs2NJ3DJBR3R1nDbwk3n` 2,096,258 lamports. Each
+  has finalized payout evidence and exact recipient deltas. The 0.5% app-owner
+  trade fee is transferred within each trade to the configured trade-fee wallet.
 - Buyback accruals remain pending until the 0.25 SOL minimum batch or six-hour
   maximum wait is reached. A pending allocation is not a burn receipt.
+
+## Migration mechanics fixture
+
+The public FCQA coin was not migrated. A separate Pump Devnet coin
+`JCdaTfvi38ah7jQPtMmKF6Dc7q9Y9EcA6kWGxNwRuqEH` was created only for
+migration mechanics. Its metadata explicitly promises no community allocation,
+and it is absent from the app launch registry. The issuer wallet bought the
+remaining curve tokens, retained them, and migrated the completed curve. Launch
+`A5XJUaGZPmNUdP53S8JvryQT5ZBFCvAVbYKwyZgA9zgC4mx2V3uihDTFcbHCVzGvGWNiwT2Zj5HvNUqBNwuswVB`,
+finishing buy `F1AxQzWLAaqaKev961uX8vELNVFKvdCKkSX8oqSVZh8qLRR4DFaZqpnpprNpsNLcBBSoSunRYkc3zixfxodpRRd`,
+and migration `3xpbuKoYD8JcW2n8pkeJZV4XrpNdhsMRuF38xJNThdrFEhVWWjvkaQponaWbSSMDgwaU2JJQhKpJxcam9suRm2Lr`
+are finalized. The canonical pool `4wE9RXDSQSFt5W6FGKmPTm1Str5HoWme5esytcBFMSL1`
+is owned by PumpSwap. A disposable wallet then completed a pool buy and sell;
+the final token balance was zero, and the fee-owner wallet received 15,000 and
+14,630 lamports in the finalized trade transactions. This proves Pump migration
+and the graduated trading route, not the app's community claim lifecycle.
 
 ## Gates that a fresh database cannot remove
 

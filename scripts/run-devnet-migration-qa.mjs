@@ -27,8 +27,11 @@ const faucetConnection = new Connection(clusterApiUrl('devnet'), 'confirmed');
 const officialGenesis = await faucetConnection.getGenesisHash();
 assert.equal(await connection.getGenesisHash(), officialGenesis, 'Configured RPC is not Devnet.');
 
-const migrationWallet = Keypair.generate();
 const recoveryWallet = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY));
+// An issuer-owned, isolated fixture retains the purchased tokens after migration.
+// The default disposable payer remains available for older, already-funded tests.
+const issuerWalletMode = process.argv.includes('--issuer-wallet');
+const migrationWallet = issuerWalletMode ? recoveryWallet : Keypair.generate();
 const feeOwner = new PublicKey(process.env.VITE_FUNDED_TRADE_FEE_OWNER);
 const sdk = new OnlinePumpSdk(connection);
 
@@ -43,6 +46,7 @@ async function send(instructions, signer) {
 }
 
 async function refundUnusedSol() {
+  if (issuerWalletMode) return null;
   const balance = await connection.getBalance(migrationWallet.publicKey, 'confirmed');
   if (balance <= 10_000) return null;
   return send([SystemProgram.transfer({ fromPubkey: migrationWallet.publicKey, toPubkey: recoveryWallet.publicKey, lamports: balance - 5_000 })], migrationWallet);
@@ -62,7 +66,9 @@ const poolAlreadyMigrated = poolAccount?.owner?.equals(PUMP_AMM_PROGRAM_ID) === 
 const qaFundingLamports = poolAlreadyMigrated ? 0 : initialCurve.complete ? 150_000_000 : 3_050_000_000;
 const recoveryBalance = await connection.getBalance(recoveryWallet.publicKey, 'confirmed');
 let qaFundSignature = null;
-if (qaFundingLamports > 0 && recoveryBalance > qaFundingLamports + 10_000) {
+if (issuerWalletMode && qaFundingLamports > 0) {
+  assert(recoveryBalance > qaFundingLamports + 10_000, 'Issuer wallet lacks the bounded Devnet migration budget.');
+} else if (qaFundingLamports > 0 && recoveryBalance > qaFundingLamports + 10_000) {
   qaFundSignature = await send([
     SystemProgram.transfer({ fromPubkey: recoveryWallet.publicKey, toPubkey: migrationWallet.publicKey, lamports: qaFundingLamports }),
   ], recoveryWallet);
@@ -131,7 +137,8 @@ try {
 console.log(JSON.stringify({
   cluster: 'devnet',
   mint: mint.toBase58(),
-  ephemeralMigrationWallet: migrationWallet.publicKey.toBase58(),
+  migrationWallet: migrationWallet.publicKey.toBase58(),
+  payerRole: issuerWalletMode ? 'devnet-issuer' : 'disposable',
   qaFundSignature,
   airdropSignatures,
   requiredSol: Number(requiredLamports) / LAMPORTS_PER_SOL,
