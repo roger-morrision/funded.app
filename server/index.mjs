@@ -447,7 +447,7 @@ function routerAuthorityKeypair() {
 async function mintRouterReadiness() {
   const reasons = [];
   if (solanaCluster !== 'devnet') reasons.push('Devnet is required');
-  if (process.env.FUNDED_MINT_FEE_ROUTER_ENABLED !== 'true') reasons.push('mint router upgrade is not activated');
+  if (process.env.FUNDED_MINT_FEE_ROUTER_ENABLED !== 'true') reasons.push('mint router route is disabled');
   if (!feeRouterConfig()) reasons.push('fee router is not configured');
   let keeper = null;
   try { keeper = keeperKeypair(); } catch { reasons.push('fee collector key is invalid'); }

@@ -12,6 +12,8 @@ services:
       NODE_ENV: production
       DEV_MODE: "false"
       DEVNET_TEST_MODE: "false"
+      # Devnet InitializeMint and SettleMint were finalized with exact claim/recipient deltas.
+      FUNDED_MINT_FEE_ROUTER_ENABLED: "true"
       PUBLIC_APP_URL: https://funded.vip
       CORS_ORIGIN: https://funded.vip
       X_CALLBACK_URL: https://funded.vip/api/x/oauth/callback

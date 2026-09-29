@@ -46,7 +46,7 @@ try {
   await ready();
   const xStatus = await fetch(`${base}/api/x-fee/status`).then(response => response.json());
   assert.equal(xStatus.ready, false);
-  assert.ok(xStatus.reasons.some(reason => reason.includes('mint router upgrade')));
+  assert.ok(xStatus.reasons.some(reason => reason.includes('mint router route is disabled')));
   const anonymousClaims = await fetch(`${base}/api/x-fee/claims`);
   assert.equal(anonymousClaims.status, 401);
   const unsupportedXPolicy = { ...basePolicy, xUserId: '123456789', pumpFeeRoute:{ ...basePolicy.pumpFeeRoute, scope:'per-mint-v2' }, feeDistribution: buildFeeDistributionPolicy({ creatorWalletPercent: 60, holderAirdropPercent: 10, solClaimPercent: 10, xRecipient: '@fundedqa', feeRouterAddress: router }) };
