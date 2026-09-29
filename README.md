@@ -10,6 +10,12 @@ Trades use a configurable platform fee (50 bps / 0.50% by default) paid to `VITE
 
 Run `npm.cmd run server` in a second terminal to start the local persistence API; it loads `.env.local` and `.env.x` when present. For browser sign-in, use the Vite `/api` proxy with `VITE_API_BASE_URL=/` and `API_PROXY_TARGET` pointing to the API. The API stores launch policies, idempotent Pump fee settlements, X-linked SOL claim obligations, and wallet-signature claim state. It intentionally stops before moving real funds until the Solana keeper is configured.
 
+### Local Devnet test wallet
+
+With `VITE_DEV_MODE=true`, `VITE_DEV_AUTOCONNECT=true`, and `DEV_MODE=true` in ignored `.env.local`, start `npm.cmd run server` and `npm.cmd run dev`, then open the local Vite URL (currently `http://127.0.0.1:5174/`). The configured creator wallet connects automatically unless the tab was manually disconnected; click **Connect wallet** to reconnect. `DEV_WALLET_ROLE` and `VITE_DEV_WALLET_ROLE` must match one of `creator`, `referrer`, or `claimant`, and the corresponding server-only `SOLANA_DEVNET_*_SECRET_KEY` must be configured. Never put secret keys in `VITE_*` variables.
+
+`GET /api/dev-wallet` and the two signing routes are local test tools. Public `funded.vip` deployments keep Dev Mode off and return 403 for all three routes; the public app uses an injected or mobile wallet. Do not enable server-held test-wallet signing on a public origin. Run `npm.cmd run verify:dev-wallet-local-signing` to verify local signing and public-mode denial without broadcasting a transaction.
+
 ### X account sign-in
 
 The claim page uses X OAuth 2.0 Authorization Code with PKCE only to identify the X account; it is not X Money. In the X Developer Console, enable OAuth 2.0 for a web/confidential app and register the exact callback URL. Set `X_CLIENT_ID`, `X_CLIENT_SECRET`, and `X_CALLBACK_URL` in the server environment. The integration requests `tweet.read users.read`, keeps the secret server-side, and looks up the authenticated profile through `GET /2/users/me`. It does not request offline access or retain an X access token.

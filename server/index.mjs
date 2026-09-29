@@ -578,6 +578,8 @@ async function handle(req, res) {
       if (metadataHost) return json(res, 404, { error: 'Devnet metadata not found.' });
     }
     if (req.method === 'POST' && url.pathname !== '/api/solana/rpc') {
+      if (/^\/api\/dev-wallet\/sign-(?:transaction|message)$/.test(url.pathname) && !devMode)
+        return json(res, 403, { error: 'Development wallet signing is available only in the local Devnet preview.' });
       const cost = ['/api/launches', '/api/devnet-metadata'].includes(url.pathname) ? 10 : url.pathname.startsWith('/api/referrals/') ? 5 : 1;
       const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
       if (!await store.chargeRpcRate(`api:${clientKey(req)}`, cost, 120, windowStart)) return json(res, 429, { error: 'API request limit reached; retry shortly.' });
@@ -592,13 +594,14 @@ async function handle(req, res) {
       return json(res, 201, { uri: devnetMetadataUri(record.mint), image: record.imageSha256 ? devnetImageUri(record.mint) : 'https://metadata.funded.vip/default.svg', mint: record.mint });
     }
     if (req.method === 'GET' && url.pathname === '/api/dev-wallet') {
+      if (!devMode) return json(res, 403, { error: 'Automatic development wallet access is available only in the local Devnet preview.' });
       const wallet = devWalletKeypair();
-      if (!wallet) return json(res, 404, { error: 'Development wallet mode is not enabled or configured.' });
+      if (!wallet) return json(res, 503, { error: 'Local Devnet wallet role is not configured.' });
       return json(res, 200, { role: wallet.role, publicKey: wallet.keypair.publicKey.toBase58(), cluster: 'devnet' });
     }
     if (req.method === 'POST' && url.pathname === '/api/dev-wallet/sign-transaction') {
       const wallet = devWalletKeypair();
-      if (!wallet) return json(res, 404, { error: 'Development wallet mode is not enabled or configured.' });
+      if (!wallet) return json(res, 503, { error: 'Local Devnet wallet role is not configured.' });
       const input = await body(req);
       try {
         const transaction = Transaction.from(Buffer.from(String(input.transaction || ''), 'base64'));
@@ -608,7 +611,7 @@ async function handle(req, res) {
     }
     if (req.method === 'POST' && url.pathname === '/api/dev-wallet/sign-message') {
       const wallet = devWalletKeypair();
-      if (!wallet) return json(res, 404, { error: 'Development wallet mode is not enabled or configured.' });
+      if (!wallet) return json(res, 503, { error: 'Local Devnet wallet role is not configured.' });
       const input = await body(req);
       try { return json(res, 200, { signature: Buffer.from(nacl.sign.detached(Buffer.from(String(input.message || ''), 'base64'), wallet.keypair.secretKey)).toString('base64') }); }
       catch { return json(res, 400, { error: 'Invalid development message.' }); }

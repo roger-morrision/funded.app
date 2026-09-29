@@ -10,14 +10,15 @@ import { Keypair, SystemProgram, Transaction } from '@solana/web3.js';
 
 const wallet = Keypair.generate();
 const directory = await mkdtemp(join(tmpdir(), 'funded-dev-wallet-http-'));
-const port = await new Promise((resolve, reject) => {
+async function freePort() { return new Promise((resolve, reject) => {
   const socket = createServer();
   socket.once('error', reject);
   socket.listen(0, '127.0.0.1', () => {
     const selected = socket.address().port;
     socket.close(() => resolve(selected));
   });
-});
+}); }
+const port = await freePort();
 const base = `http://127.0.0.1:${port}`;
 const child = spawn(process.execPath, ['server/index.mjs'], {
   cwd: process.cwd(),
@@ -71,7 +72,32 @@ try {
   const localGate = serverSource.slice(serverSource.indexOf('function localDevWalletRequest'), serverSource.indexOf('function walletKey'));
   assert.doesNotMatch(localGate, /req\.socket\.remoteAddress\s*\)/, 'Docker bridge addresses must not block an otherwise localhost-only Dev wallet request.');
   assert.match(localGate, /origin\.protocol === 'http:'[\s\S]*origin\.hostname[\s\S]*hostname/, 'Dev wallet signing must remain gated by both local origin and local host.');
-  console.log('Dev Mode localhost and Docker-preview signing gate, plus nonlocal-origin rejection, passed');
+  const disabledPort = await freePort();
+  const disabledBase = `http://127.0.0.1:${disabledPort}`;
+  const disabled = spawn(process.execPath, ['server/index.mjs'], {
+    cwd: process.cwd(),
+    env: { ...process.env, NODE_ENV: 'test', HOST: '127.0.0.1', PORT: String(disabledPort), DEV_MODE: 'false',
+      SOLANA_CLUSTER: 'devnet', VITE_SOLANA_CLUSTER: 'devnet', DATABASE_URL: '',
+      FUNDED_STORE_PATH: join(directory, 'disabled-store.json') },
+    stdio: 'ignore',
+  });
+  try {
+    let disabledReady = false;
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      if (disabled.exitCode !== null) throw new Error('Disabled Dev Mode API exited before readiness.');
+      try { if ((await fetch(`${disabledBase}/api/health`)).ok) { disabledReady = true; break; } } catch {}
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    assert.ok(disabledReady, 'Disabled Dev Mode API did not become ready.');
+    assert.equal((await fetch(`${disabledBase}/api/dev-wallet`)).status, 403);
+    for (const path of ['/api/dev-wallet/sign-message', '/api/dev-wallet/sign-transaction']) {
+      assert.equal((await fetch(`${disabledBase}${path}`, { method: 'POST', headers: { origin, 'content-type': 'application/json' }, body: '{}' })).status, 403);
+    }
+  } finally {
+    disabled.kill();
+    if (disabled.exitCode === null) await new Promise(resolve => disabled.once('exit', resolve));
+  }
+  console.log('Local Devnet signing, nonlocal-origin rejection, and disabled-route responses passed');
 } finally {
   child.kill();
   if (child.exitCode === null) await new Promise(resolve => child.once('exit', resolve));
