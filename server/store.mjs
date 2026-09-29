@@ -17,7 +17,7 @@ import { receiptRetentionOptions,expiredReceiptProofs,receiptRetentionResult } f
 
 export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-store.json'), databaseUrl = process.env.DATABASE_URL) {
   if (databaseUrl) return createPostgresStore(databaseUrl);
-  let state = { version: 4, launches: {}, settlements: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, marketActivity: {}, coinChats: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
+  let state = { version: 4, launches: {}, settlements: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, marketActivity: {}, coinChats: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
   let loaded = false;
   let updateQueue = Promise.resolve();
   const rpcRates = new Map();
@@ -29,6 +29,7 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     state.referralClaims ||= {};
     state.collections ||= {};
     state.burnReceipts ||= {};
+    state.buybackOrders ||= {};
     state.communityReserveReceipts ||= {};
     state.launchReviews ||= {};
     state.alerts ||= {};

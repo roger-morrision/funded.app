@@ -43,6 +43,7 @@ import { verifyFundedBurn } from './burn-verification.mjs';
 import { createLaunchBurnTiers } from '../launch-burn-policy.js';
 import { deriveXFeeObligation } from './x-fee-guard.mjs';
 import { buildMintRouterSettlementInstruction, readMintClaimRecord } from './mint-router-payout.mjs';
+import { buybackQueue } from './buyback-executor.mjs';
 import { parseSignedMetadata, publicMetadata } from './devnet-metadata.mjs';
 import { devnetMetadataUri, devnetImageUri } from '../devnet-metadata.js';
 import { normalizeLargestTokenAccounts } from './token-accounts.mjs';
@@ -616,8 +617,15 @@ async function handle(req, res) {
       const status = automaticRewardStatus(new Date(), await automaticRewardStore.read());
       const x = await xFeeReadiness();
       status.modes.x = x.ready ? 'automatic-after-verified-X-wallet' : 'unavailable';
-      status.routeReadiness = { x, community:{ ready:status.modes.community === 'verified-token-airdrop-cycle', reason:status.modes.community === 'verified-token-airdrop-cycle' ? null : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:false, reason:'Accrual policy exists, but fee-funded buyback custody, execution, and burn receipts are not deployed.' } };
+      const buybackState = await store.read();
+      const verifiedBurns = Object.values(buybackState.buybackOrders || {}).filter(row => row.status === 'finalized' && row.refundVerified).length;
+      status.modes.buyback = solanaCluster === 'devnet' && verifiedBurns > 0 ? 'verified-devnet-atomic-buy-and-burn' : 'accrual-only-execution-unavailable';
+      status.routeReadiness = { x, community:{ ready:status.modes.community === 'verified-token-airdrop-cycle', reason:status.modes.community === 'verified-token-airdrop-cycle' ? null : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:false, devnetExecutorVerified:solanaCluster === 'devnet' && verifiedBurns > 0, verifiedBurns, pending:buybackQueue(buybackState), reason:verifiedBurns > 0 ? 'Devnet atomic router-to-PumpSwap buy-and-burn receipts are verified; a dedicated buyback PDA and independent program audit are still required for Mainnet.' : 'No finalized fee-funded buy-and-burn receipt is indexed; Mainnet buyback custody and audit are pending.' } };
       return json(res, 200, status);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/buyback/status') {
+      const state = await store.read();
+      return json(res, 200, { cluster:solanaCluster, custody:'per-mint-fee-router-pda', mainnetReady:false, pending:buybackQueue(state), receipts:Object.values(state.buybackOrders || {}).filter(row => row.status === 'finalized' && row.refundVerified).map(({ signedTransaction, refundTransaction, ...row }) => row) });
     }
     if (req.method === 'GET' && url.pathname === '/api/airdrops/reserves') {
       if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256) return json(res, 503, { error:'Verified Devnet community reserve checks are unavailable.' });

@@ -1,0 +1,31 @@
+# Opt-in Devnet executor. Keep Mainnet gated until dedicated buyback PDA custody is audited.
+services:
+  buyback-worker:
+    profiles: ["buyback-devnet"]
+    image: ${FUNDED_APP_IMAGE:?Set the deployed funded.app image}
+    restart: unless-stopped
+    command: ["node", "scripts/run-buyback-executor.mjs", "--watch"]
+    environment:
+      SOLANA_CLUSTER: devnet
+      SOLANA_RPC_URL_FILE: /run/secrets/solana_rpc_url
+      DATABASE_URL_FILE: /run/secrets/database_url
+      FUNDED_ROUTER_AUTHORITY_SECRET_KEY_FILE: /run/secrets/funded_router_authority_secret_key
+      FUNDED_BUYBACK_OPERATOR_SECRET_KEY_FILE: /run/secrets/funded_buyback_operator_secret_key
+      FUNDED_BUYBACK_LOOKUP_TABLE: ${FUNDED_BUYBACK_LOOKUP_TABLE:?Missing Devnet buyback address lookup table}
+      FUNDED_REWARD_AUTHORITY: ${FUNDED_REWARD_AUTHORITY:?Missing Devnet reward authority}
+      FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_FEE_ROUTER_PROGRAM_ID:?Missing Devnet router}
+      FUNDED_REWARD_PROGRAM_DATA_SHA256: ${FUNDED_REWARD_PROGRAM_DATA_SHA256:?Missing approved Devnet program hash}
+      FUNDED_TOKEN_MINT: ${FUNDED_TOKEN_MINT:?Missing Devnet FUNDED mint}
+      FUNDED_SWAP_POOL: ${FUNDED_SWAP_POOL:?Missing verified Devnet FUNDED pool}
+      FUNDED_TRADE_FEE_OWNER: ${FUNDED_TRADE_FEE_OWNER:?Missing Devnet fee owner}
+      FUNDED_TRADE_FEE_BPS: ${FUNDED_TRADE_FEE_BPS:-50}
+      FUNDED_BUYBACK_EXECUTOR_ENABLED: "true"
+      FUNDED_BUYBACK_TICK_MS: ${FUNDED_BUYBACK_TICK_MS:-300000}
+    secrets:
+      - database_url
+      - solana_rpc_url
+      - funded_router_authority_secret_key
+      - funded_buyback_operator_secret_key
+    depends_on:
+      app:
+        condition: service_healthy

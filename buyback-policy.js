@@ -109,12 +109,13 @@ function sumByAsset(records) {
   }, {});
 }
 
-export function evaluateBuybackBatch({ pendingAmount, asset = 'SOL', lastExecutionAt = null, now = new Date().toISOString(), quote = null }) {
+export function evaluateBuybackBatch({ pendingAmount, asset = 'SOL', lastExecutionAt = null, oldestPendingAt = null, now = new Date().toISOString(), quote = null }) {
   const normalizedAsset = normalizeAsset(asset);
   const pending = requireFiniteNonNegative(pendingAmount, 'Pending buyback amount');
   const minimumBatch = BUYBACK_POLICY.minimumBatch[normalizedAsset];
-  const elapsedHours = lastExecutionAt
-    ? Math.max(0, (new Date(now).getTime() - new Date(lastExecutionAt).getTime()) / 3_600_000)
+  const elapsedFrom = lastExecutionAt || oldestPendingAt;
+  const elapsedHours = elapsedFrom
+    ? Math.max(0, (new Date(now).getTime() - new Date(elapsedFrom).getTime()) / 3_600_000)
     : 0;
   const thresholdReached = pending >= minimumBatch;
   const maximumWaitReached = pending > 0 && elapsedHours >= BUYBACK_POLICY.maximumWaitHours;

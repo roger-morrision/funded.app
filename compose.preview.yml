@@ -45,6 +45,10 @@ services:
       VITE_SOLANA_CLUSTER: devnet
       SOLANA_RPC_URL_FILE: /run/secrets/solana_rpc_url
       FUNDED_TOKEN_MINT: ${FUNDED_TOKEN_MINT:?Missing Devnet FUNDED mint}
+      FUNDED_SWAP_POOL: ${FUNDED_SWAP_POOL:?Missing verified Devnet FUNDED pool}
+      FUNDED_TRADE_FEE_OWNER: ${FUNDED_TRADE_FEE_OWNER:?Missing Devnet fee owner}
+      FUNDED_TRADE_FEE_BPS: ${FUNDED_TRADE_FEE_BPS:-50}
+      FUNDED_BUYBACK_EXECUTOR_ENABLED: ${FUNDED_BUYBACK_EXECUTOR_ENABLED:-false}
       VITE_FUNDED_TOKEN_MINT: ${FUNDED_TOKEN_MINT:?Missing Devnet FUNDED mint}
       FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_FEE_ROUTER_PROGRAM_ID}
       FUNDED_REWARD_AUTHORITY: ${FUNDED_REWARD_AUTHORITY:-}
@@ -110,6 +114,8 @@ secrets:
     file: ./.secrets/solana-keeper-secret-key
   funded_router_authority_secret_key:
     file: ./.secrets/funded-router-authority-secret-key
+  funded_buyback_operator_secret_key:
+    file: ./.secrets/funded-buyback-operator-secret-key
   x_client_secret:
     file: ./.secrets/x-client-secret
   x_bearer_token:

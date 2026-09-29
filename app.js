@@ -952,6 +952,15 @@ function renderAirdropClaims(filter = activeAirdropFilter){
 function getBuybackPreviewState(){
   return { accruals: [], receipts: [] };
 }
+let buybackNetworkState = { status:'loading', receipts:[], pending:[] };
+async function loadBuybackNetworkState(){
+  try {
+    const response = await apiRequest('/api/buyback/status', { signal:AbortSignal.timeout(8000) });
+    if (!response.available || !response.data || response.data.cluster !== 'devnet') throw new Error('Devnet buyback index unavailable.');
+    buybackNetworkState = { status:'ready', receipts:Array.isArray(response.data.receipts) ? response.data.receipts : [], pending:Array.isArray(response.data.pending) ? response.data.pending : [] };
+  } catch { buybackNetworkState = { status:'unavailable', receipts:[], pending:[] }; }
+  renderBuybackDashboard();
+}
 function saveBuybackPreviewState(state){ localStorage.setItem(BUYBACK_PREVIEW_KEY, JSON.stringify(state)); }
 function formatBuybackAmount(value, maximumFractionDigits = 4){ return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits }); }
 function renderBuybackExample(){
@@ -1144,7 +1153,9 @@ function renderBuybackDashboard(message = ''){
   document.querySelector('#buyback-pending').textContent = fundedBurnState.status === 'ready' ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : '—';
   document.querySelector('#buyback-burned').textContent = fundedBurnState.status === 'ready' ? formatTokenBaseUnits(fundedBurnState.burnedBaseUnits, fundedBurnState.decimals, 6) : '—';
   document.querySelector('#buyback-claims').textContent = connectedWalletAddress && fundedBurnState.status === 'ready' ? String(receiptSignatures.size) : '—';
-  document.querySelector('#buyback-execution-count').textContent = `${receiptSignatures.size} wallet receipt${receiptSignatures.size === 1 ? '' : 's'} indexed`;
+  const feeReceipts = buybackNetworkState.receipts;
+  const totalReceiptCount = feeReceipts.length + launchBurns.length + standaloneReceipts.filter(receipt => !launchBurns.some(launch => launch.creatorLaunchBurn.receipt.signature === receipt.signature)).length;
+  document.querySelector('#buyback-execution-count').textContent = `${totalReceiptCount} verified receipt${totalReceiptCount === 1 ? '' : 's'}`;
   const burnedNote = document.querySelector('#buyback-burned')?.parentElement?.querySelector('em');
   const claimsNote = document.querySelector('#buyback-claims')?.parentElement?.querySelector('em');
   const balanceNote = document.querySelector('#buyback-pending')?.parentElement?.querySelector('em');
@@ -1171,11 +1182,17 @@ function renderBuybackDashboard(message = ''){
     return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${formatBuybackAmount(receipt.amountTokens ?? burn.amountTokens, 2)} $FUNDED burned</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} launch promotion · ${escapeHtml(burn.label || burn.tier || 'verified tier')} · BurnChecked</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed transaction ↗</a></span><b>Supply ↓</b></div>`;
   }).join('');
   const standaloneRows = standaloneReceipts.filter(receipt => !launchBurns.some(launch => launch.creatorLaunchBurn.receipt.signature === receipt.signature)).map(receipt => `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${formatBuybackAmount(receipt.amountTokens, 6)} $FUNDED burned</strong><small>${escapeHtml(fundedReceiptProject(receipt))} · BurnChecked · server verified</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed transaction ↗</a></span><b>Supply ↓</b></div>`).join('');
-  document.querySelector('#buyback-ledger').innerHTML = `${standaloneRows}${launchRows}${previewRows}` || '<div class="empty-state">No verified $FUNDED burn receipts are indexed on Devnet yet. Fee-funded buybacks and launch-promotion burns are tracked separately.</div>';
+  const feeRows = feeReceipts.map(receipt => {
+    const baseUnits = BigInt(receipt.boughtAndBurnedBaseUnits || '0');
+    const amount = formatTokenBaseUnits(baseUnits, Number(receipt.tokenDecimals ?? 6), 6);
+    const spentSol = (BigInt(receipt.settledLamports || '0') - BigInt(receipt.returnedLamports || '0'));
+    return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${escapeHtml(amount)} $FUNDED bought and burned</strong><small>${escapeHtml(formatTokenBaseUnits(spentSol, 9, 9))} SOL from verified creator fees · BurnChecked · unused SOL returned to router</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed buy and burn ↗</a></span><b>Supply ↓</b></div>`;
+  }).join('');
+  document.querySelector('#buyback-ledger').innerHTML = `${feeRows}${standaloneRows}${launchRows}${previewRows}` || (buybackNetworkState.status === 'unavailable' ? '<div class="empty-state">Devnet buyback receipt index is unavailable. Try again shortly.</div>' : '<div class="empty-state">No verified $FUNDED burn receipts are indexed on Devnet yet. Fee-funded buybacks and launch-promotion burns are tracked separately.</div>');
   const runButton = document.querySelector('#buyback-run-preview');
   const addButton = document.querySelector('#buyback-add-claim');
   if (addButton) { addButton.disabled = true; addButton.title = 'Recording requires verified fee-claim receipts and a deployed buyback vault.'; }
-  if (runButton) { runButton.disabled = true; runButton.title = 'Burn execution requires a verified route, funded vault, and on-chain receipt infrastructure.'; }
+  if (runButton) { runButton.disabled = true; runButton.title = 'Live Devnet buybacks execute automatically from verified fee accruals. This local preview control is disabled.'; }
   renderBuybackExample();
   const burnCard = document.querySelector('.burn-token-card');
   const burnBadge = burnCard?.querySelector('.burn-status');
@@ -1201,7 +1218,9 @@ function renderBuybackDashboard(message = ''){
   if (message) status.textContent = message;
   else if (pendingSol >= 0.25) status.textContent = `${formatBuybackAmount(pendingSol)} SOL is ready for a protected batch preview.`;
   else if (pendingSol > 0) status.textContent = `${formatBuybackAmount(pendingSol)} SOL is safely accumulating toward the 0.25 SOL threshold.`;
-  else status.textContent = 'Local calculation only. Recording and protected burns are unavailable until verified claims, vault, route, and receipts are deployed.';
+  else status.textContent = feeReceipts.length > 0
+    ? `${feeReceipts.length} verified fee-funded Devnet buyback${feeReceipts.length === 1 ? '' : 's'} completed. New batches run automatically from collected fees; this example cannot create a claim.`
+    : 'Local calculation only. Live Devnet buybacks run automatically from verified fee collections; this example cannot create a claim.';
 }
 async function submitFundedBurn(){
   if (!wallet) { await connectWallet(); if (!wallet) return; }
@@ -4950,6 +4969,8 @@ renderCreatorLaunches();
 loadVerifiedLaunchPolicies().catch(() => {});
 setInterval(() => { if (!document.hidden) loadVerifiedLaunchPolicies().catch(() => {}); }, 60_000);
 renderBuybackDashboard();
+void loadBuybackNetworkState();
+setInterval(() => { if (!document.hidden) void loadBuybackNetworkState(); }, 60_000);
 void refreshFundedBuyRoute();
 setInterval(() => { if (!document.hidden && !fundedBuyBusy) void refreshFundedBuyRoute(); }, 60_000);
 renderFeeFlowCalculator();

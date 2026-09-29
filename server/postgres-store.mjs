@@ -18,14 +18,14 @@ import { receiptRetentionOptions,receiptRetentionResult } from './receipt-retent
 
 const { Pool } = pg;
 const schemaPath = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'db', 'schema.sql');
-const buckets = ['launches', 'settlements', 'obligations', 'claims', 'referralClaims', 'payouts', 'collections', 'burnReceipts', 'communityReserveReceipts', 'launchReviews', 'alerts', 'xIntake', 'coinChats', 'referralCodes', 'referralWallets', 'referralAttributions', 'referralChallenges'];
+const buckets = ['launches', 'settlements', 'obligations', 'claims', 'referralClaims', 'payouts', 'collections', 'burnReceipts', 'buybackOrders', 'communityReserveReceipts', 'launchReviews', 'alerts', 'xIntake', 'coinChats', 'referralCodes', 'referralWallets', 'referralAttributions', 'referralChallenges'];
 const referralBuckets = { referralCodes: 'codes', referralWallets: 'wallets', referralAttributions: 'attributions', referralChallenges: 'challenges' };
 buckets.push('creatorProfiles');
 
 function entriesFor(state, bucket) { return referralBuckets[bucket] ? state.referrals[referralBuckets[bucket]] : state[bucket]; }
 
 function initialState() {
-  return { version: 4, launches: {}, settlements: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, coinChats: {}, creatorProfiles: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
+  return { version: 4, launches: {}, settlements: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, coinChats: {}, creatorProfiles: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
 }
 
 function normalizeState(state) {
@@ -38,6 +38,7 @@ function normalizeState(state) {
   next.payouts ||= {};
   next.collections ||= {};
   next.burnReceipts ||= {};
+  next.buybackOrders ||= {};
   next.communityReserveReceipts ||= {};
   next.launchReviews ||= {};
   next.alerts ||= {};
