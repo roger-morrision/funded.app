@@ -63,7 +63,7 @@ export function createRewardScheduler({ store, indexer, chain }) {
 
   async function recordDirectFunded(input) {
     const amount = requireUnits(String(input.amount), 'Direct reward amount');
-    if (!input.id || !input.mint || !input.recipient || !input.fundingSignature || input.balanceDeltaVerified !== true || !['creator', 'x', 'community'].includes(input.kind)) throw new Error('A direct reward requires a kind, recipient, immutable ID, finalized funding signature, and verified balance delta.');
+    if (!input.id || !input.mint || !input.recipient || !input.fundingSignature || input.balanceDeltaVerified !== true || !['creator', 'x', 'community', 'operations'].includes(input.kind)) throw new Error('A direct reward requires a kind, recipient, immutable ID, finalized funding signature, and verified balance delta.');
     const fundedAt = Number(input.fundedAt || Math.floor(Date.now() / 1000));
     const id = `direct:${input.kind}:${input.id}`, cycleId = createHash('sha256').update(`funded-direct-cycle-v1:${id}`).digest('hex');
     const manifest = buildRewardManifest({ cycleId, asset:String(input.asset || 'SOL'), allocations:[{ recipient:String(input.recipient), amount }] });

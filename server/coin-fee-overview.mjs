@@ -12,7 +12,7 @@ function integerUnits(value) {
 }
 const asString = value => value.toString();
 
-export function coinFeeOverview({ mint, cluster, launch, collections = {}, settlements = {}, rewardState = {}, referralClaims = {}, payouts = {}, verifiedPayoutSignatures = [], pumpAccruedLamports = null, pumpVault = null, pumpError = null }) {
+export function coinFeeOverview({ mint, cluster, launch, collections = {}, settlements = {}, rewardState = {}, referralClaims = {}, payouts = {}, verifiedPayoutSignatures = [], operationsRecipient = null, pumpAccruedLamports = null, pumpVault = null, pumpError = null }) {
   const verified = Boolean(launch?.onchainVerified && launch.cluster === cluster && launch.pumpFeeRoute?.scope === 'per-mint-v2' && launch.pumpFeeRoute.router === launch.creator);
   const payoutProofs = new Set(verifiedPayoutSignatures);
   const rows = Object.values(collections).filter(row => row.mint === mint && row.cluster === cluster && row.status === 'collected' && row.attribution === 'mint-verified' && row.onchainVerified === true && row.signature && integerUnits(row.collectedLamports) > 0n);
@@ -24,7 +24,7 @@ export function coinFeeOverview({ mint, cluster, launch, collections = {}, settl
     { id:'creator', label:'Coin creator', percent:Number(shares.creatorWalletPercent || 0), recipient:launch?.creatorWallet || null, kind:'creator', path:'wallet requested payout' },
     { id:'holders', label:'Token holders', percent:Number(shares.holderAirdropPercent || 0), recipient:null, kind:'holder', path:'snapshot based distribution' },
     { id:'x', label:'X recipient', percent:Number(shares.solClaimPercent || 0), recipient:launch?.feeDistribution?.creatorDirected?.recipients?.xAccount || null, kind:'x', path:'X sign in and wallet verification' },
-    { id:'operations', label:'Operations', percent:14, recipient:null, kind:null, path:'protocol allocation' },
+    { id:'operations', label:'Operations', percent:14, recipient:operationsRecipient, kind:'operations', path:'automatic verified payout' },
     { id:'referral-1', label:'Direct referral', percent:2, recipient:null, kind:null, path:'wallet claim' },
     { id:'referral-2', label:'Second referral', percent:0.6, recipient:null, kind:null, path:'wallet claim' },
     { id:'referral-3', label:'Third referral', percent:0.4, recipient:null, kind:null, path:'wallet claim' },
@@ -51,7 +51,7 @@ export function coinFeeOverview({ mint, cluster, launch, collections = {}, settl
       else byId.community.allocated += units(level.amount);
     }
     let xAutomaticallyPaid = false;
-    for (const kind of ['creator','holders','x']) {
+    for (const kind of ['creator','holders','x','operations']) {
       const request = rewardState.fundingRequests?.[`${collection.signature}:${kind}`];
       if (!request) continue;
       byId[kind].statuses.add(request.status || 'pending');

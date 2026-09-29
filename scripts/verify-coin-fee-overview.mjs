@@ -19,12 +19,21 @@ const settlement = {
     { level:3, recipient:null, amount:0.004 },
   ] },
 };
-const rewardState = { fundingRequests:{ 'claim-a:creator':{ id:'claim-a:creator', status:'funded', recipient:'creator-wallet', scheduleId:'schedule-a' } }, schedules:{ 'schedule-a':{ payments:{ 'creator-wallet':{ status:'paid', amount:'800000000', finalized:true, balanceDeltaVerified:true, signature:'paid-a' } } } } };
-const after = coinFeeOverview({ ...base, collections:{ a:collection, unrelated:{ ...collection, mint:'other', signature:'claim-other', collectedLamports:5_000_000_000 }, shared:{ ...collection, signature:'claim-shared', attribution:'router' } }, settlements:{ 'claim-a':settlement }, rewardState });
+const rewardState = { fundingRequests:{
+  'claim-a:creator':{ id:'claim-a:creator', status:'funded', recipient:'creator-wallet', scheduleId:'schedule-a' },
+  'claim-a:operations':{ id:'claim-a:operations', status:'funded', recipient:'owner-wallet', scheduleId:'schedule-operations' },
+}, schedules:{
+  'schedule-a':{ payments:{ 'creator-wallet':{ status:'paid', amount:'800000000', finalized:true, balanceDeltaVerified:true, signature:'paid-a' } } },
+  'schedule-operations':{ payments:{ 'owner-wallet':{ status:'paid', amount:'140000000', finalized:true, balanceDeltaVerified:true, signature:'paid-operations' } } },
+} };
+const after = coinFeeOverview({ ...base, operationsRecipient:'owner-wallet', collections:{ a:collection, unrelated:{ ...collection, mint:'other', signature:'claim-other', collectedLamports:5_000_000_000 }, shared:{ ...collection, signature:'claim-shared', attribution:'router' } }, settlements:{ 'claim-a':settlement }, rewardState });
 assert.equal(after.collectedLamports, '1000000000');
 assert.equal(after.allocatedLamports, '1000000000');
 assert.equal(after.receivers.find(row => row.id === 'creator').confirmedPaidLamports, '800000000');
 assert.equal(after.receivers.find(row => row.id === 'creator').withoutConfirmedPayoutLamports, '0');
+assert.equal(after.receivers.find(row => row.id === 'operations').recipient, 'owner-wallet');
+assert.equal(after.receivers.find(row => row.id === 'operations').confirmedPaidLamports, '140000000');
+assert.deepEqual(after.receivers.find(row => row.id === 'operations').payoutSignatures, ['paid-operations']);
 assert.equal(after.receivers.find(row => row.id === 'community').allocatedLamports, '30000000');
 assert.equal(after.receivers.find(row => row.id === 'referral-1').withoutConfirmedPayoutLamports, '20000000');
 const paid = coinFeeOverview({ ...base, collections:{ a:collection }, settlements:{ 'claim-a':settlement }, rewardState, referralClaims:{ r:{ settlementSignature:'claim-a', level:1, recipientWallet:'referrer-a', status:'paid', payoutSignature:'ref-paid' } }, verifiedPayoutSignatures:['ref-paid'] });

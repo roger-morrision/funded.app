@@ -210,13 +210,17 @@ try {
   await scheduler.execute(7201);
   const direct = (await scheduler.status(new Date(7201 * 1000))).schedules.find(row => row.kind === 'creator');
   assert.equal(direct.status, 'paid'); assert.equal(direct.recipientCount, 1);
-  assert.equal(cycles, 2); assert.equal(payouts, 3);
+  await scheduler.recordDirectFunded({ id:'operations-settlement-1', mint, asset:'SOL', kind:'operations', recipient:recipientB, amount:'11', fundingSignature:'operations-funding', balanceDeltaVerified:true, fundedAt:7201 });
+  await scheduler.execute(7201);
+  const operations = (await scheduler.status(new Date(7201 * 1000))).schedules.find(row => row.kind === 'operations');
+  assert.equal(operations.status, 'paid'); assert.equal(operations.recipientCount, 1);
+  assert.equal(cycles, 3); assert.equal(payouts, 4);
   const eligibilityMint = Keypair.generate().publicKey.toBase58();
   await scheduler.recordSnapshotAirdrop({ id:'migration-airdrop-1', mint, eligibilityMint, asset:mint, amount:'100', fundingSignature:'token-vault-funding', balanceDeltaVerified:true, fundedAt:7202, excludedWallets:[recipientB], snapshot:{ mint:eligibilityMint, slot:44, at:7202, finalized:true, coverage:'finalized-sampled-v1', accounts:[{ account:'funded-a', wallet:recipientA, balance:'3' }, { account:'funded-b', wallet:recipientB, balance:'9' }] } });
   await scheduler.execute(7202);
   const airdrop = (await scheduler.status(new Date(7202 * 1000))).schedules.find(row => row.kind === 'community');
   assert.equal(airdrop.status, 'paid'); assert.equal(airdrop.recipientCount, 1); assert.equal(airdrop.totalAmount, '100');
-  assert.equal(cycles, 3); assert.equal(payouts, 4);
+  assert.equal(cycles, 4); assert.equal(payouts, 5);
 
   const processorStore = createAutomaticRewardStore(join(dir, 'processor.json'));
   const processorScheduler = createRewardScheduler({ store:processorStore, chain:schedulerChain, indexer:{ capture:async()=>null } });

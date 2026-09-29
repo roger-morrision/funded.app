@@ -105,7 +105,9 @@ async function queueAutomaticSettlementRewards(settlement) {
   const rows = [
     { suffix:'creator', kind:'creator', amount:solToLamports(settlement.creatorDestinations?.creatorWallet), recipient:launch.creatorWallet, status:'claimable' },
     { suffix:'holders', kind:'holder', amount:solToLamports(settlement.creatorDestinations?.holderAirdrop), recipient:null, status:'pending' },
+    { suffix:'operations', kind:'operations', amount:solToLamports(settlement.fundedApp?.operations), recipient:process.env.FUNDED_REWARD_AUTHORITY, status:'pending' },
   ];
+  if (rows.some(row => row.kind === 'operations' && BigInt(row.amount) > 0n && !row.recipient)) throw new Error('Operations payout requires the configured reward-authority wallet.');
   const xObligation = Object.values(main.obligations || {}).find(row => row.claimSignature === settlement.claimSignature && row.mint === collection.mint);
   if (BigInt(solToLamports(settlement.creatorDestinations?.solClaim)) > 0n) rows.push({ suffix:'x', kind:'x', amount:solToLamports(settlement.creatorDestinations.solClaim), recipient:null, obligationId:xObligation?.id || null, status:'awaiting-verified-recipient' });
   await automaticRewardStore.transaction(state => {
@@ -971,7 +973,8 @@ async function handle(req, res) {
       };
       const [pump, verifiedPayoutSignatures, rewardState] = await Promise.all([readPump(), readPayouts(), automaticRewardStore.read()]);
       const overview = coinFeeOverview({ mint, cluster:solanaCluster, launch, collections:state.collections, settlements:state.settlements,
-        rewardState, referralClaims:state.referralClaims, payouts:state.payouts, verifiedPayoutSignatures, ...pump });
+        rewardState, referralClaims:state.referralClaims, payouts:state.payouts, verifiedPayoutSignatures,
+        operationsRecipient:process.env.FUNDED_REWARD_AUTHORITY, ...pump });
       overview.creatorClaim = creatorClaimStatus({ mint, wallet:launch?.creatorWallet, launch, collections:state.collections, settlements:state.settlements, rewardState });
       const router = feeRouterConfig()?.address?.toBase58();
       const sharedRouter = router ? { address: router, scope: 'shared-creator-account', collections: await store.readRouterFeeActivity(router, solanaCluster) } : null;
