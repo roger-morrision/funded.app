@@ -17,8 +17,10 @@ assert.match(appSource, /holders: `Token accounts \$\{coinActivity\.accountAvail
 assert.match(appSource, /Confirmed non-zero token-account sample, not a unique holder count/);
 assert.match(appSource, /estimateBuyTokenAmountFromSnapshot/);
 assert.match(appSource, /renderTradeAmountEstimate/);
-assert.match(appSource, /if \(!mint \|\| !Number\.isFinite\(amount\) \|\| amount <= 0\) return setTradeStatus[\s\S]*?if \(!wallet\) \{ await connectWallet\(\);/, 'Trade inputs must be validated before prompting for a wallet connection.');
-assert.match(appSource, /Slippage must be between 0\.1% and 10%\./, 'Trade preview must explain the accepted slippage range.');
+const reviewSource = appSource.match(/async function openTradeReview\(\)\{[\s\S]*?\n\}/)?.[0];
+assert.ok(reviewSource, 'Trade review handler must exist.');
+assert.ok(reviewSource.indexOf('if (!valid)') >= 0 && reviewSource.indexOf('if (!valid)') < reviewSource.indexOf('prepareTradeQuote({ connectIfNeeded:true })'), 'Trade inputs must be validated before prompting for a wallet connection.');
+assert.match(appSource, /slippagePercent >= 0\.1 && slippagePercent <= 10/, 'Trade inputs must enforce the 0.1% to 10% slippage range.');
 const previewFailureSource = appSource.match(/function tradePreviewFailureMessage\(error, side\)\{[\s\S]*?\n\}/)?.[0];
 assert.ok(previewFailureSource, 'Trade preview failures must have a user-facing formatter.');
 const tradePreviewFailureMessage = new Function(`${previewFailureSource}; return tradePreviewFailureMessage;`)();
@@ -27,7 +29,8 @@ assert.match(tradePreviewFailureMessage(missingAccount, 'sell'), /this wallet ha
 assert.doesNotMatch(tradePreviewFailureMessage(missingAccount, 'sell'), /wallet-address|mint-address/);
 assert.equal(tradePreviewFailureMessage(missingAccount, 'buy'), `Quote unavailable: ${missingAccount.message}`);
 assert.equal(tradePreviewFailureMessage(new Error('RPC unavailable'), 'sell'), 'Quote unavailable: RPC unavailable');
-assert.match(appSource, /renderTradeAmountEstimate\(\);\s*setTradeStatus\('Inputs changed\. Preview a fresh quote before signing\.'\)/, 'Editing a trade must clear stale validation errors and require a fresh quote.');
+const tradeInputSource = appSource.match(/document\.querySelectorAll\('#trade-mint, #trade-amount, #trade-slippage, #trade-side'\)[\s\S]*?\n\}\);/)?.[0];
+assert.match(tradeInputSource || '', /invalidateTradePreview\(\);[\s\S]*?queueTradeQuote\(\)/, 'Editing a trade must invalidate the old quote and request a fresh one.');
 assert.doesNotMatch(appSource, /Top holders \$\{coinActivity\.accountAvailable/);
 const coinFormatterSource = appSource.match(/function formatCoinUsd\(solValue\)\{[^}]+\}/)?.[0];
 assert.ok(coinFormatterSource, 'coin display formatter is present');
