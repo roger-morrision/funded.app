@@ -101,6 +101,10 @@ let walletMetricsLoading = false;
 let walletEstimateError = '';
 let walletDetailTab = 'activity';
 let tradePreview = null;
+let tradeQuoteVersion = 0;
+let tradeQuoteTimer = null;
+let tradeQuoteInFlight = null;
+let tradeActionBusy = false;
 let coinTradeEstimate = null;
 let launchStep = 1;
 let launchMode = 'quick';
@@ -2752,10 +2756,13 @@ function renderTradeAmountEstimate(){
   card.querySelector('span').textContent = side === 'sell' ? 'Estimated SOL received' : 'Estimated tokens received';
   const amountSol = parseTradeAmountInput(document.querySelector('#trade-amount')?.value);
   const mint = document.querySelector('#trade-mint')?.value.trim();
+  const input = tradeInputs();
+  const session = captureWalletSession();
+  if (tradePreview?.inputKey === `${input.mint}:${input.side}:${input.amount}:${input.slippagePercent}:${session?.address || ''}` && Date.now() - tradePreview.preparedAt < 15_000) return;
   card.classList.remove('is-ready', 'is-unavailable');
   if (side === 'sell') {
-    amountNode.textContent = Number.isFinite(amountSol) && amountSol > 0 ? 'Preview to see SOL amount' : 'Enter a token amount';
-    detailNode.textContent = 'Preview uses current on-chain reserves to calculate SOL received, slippage, and fees.';
+    amountNode.textContent = Number.isFinite(amountSol) && amountSol > 0 ? wallet ? 'Calculating SOL…' : 'Connect wallet for quote' : 'Enter a token amount';
+    detailNode.textContent = 'The live quote includes the app fee and slippage floor.';
     return;
   }
   if (!Number.isFinite(amountSol) || amountSol <= 0) {
@@ -2771,7 +2778,7 @@ function renderTradeAmountEstimate(){
   try {
     const estimate = estimateBuyTokenAmountFromSnapshot({ amountSol, curveSnapshot: coinTradeEstimate.curve, graduatedPoolSnapshot: coinTradeEstimate.graduatedPool });
     amountNode.textContent = `≈ ${formatTradeEstimateAmount(estimate.expectedTokens)} ${coinTradeEstimate.symbol}`;
-    detailNode.textContent = `${estimate.route === 'graduated-pool' ? 'PumpSwap pool' : 'Pump curve'} reserve estimate · Preview confirms protocol fees and slippage.`;
+    detailNode.textContent = `${estimate.route === 'graduated-pool' ? 'PumpSwap pool' : 'Pump curve'} reserve estimate · A live quote adds fees and slippage.`;
     card.classList.add('is-ready');
   } catch (error) {
     amountNode.textContent = 'Estimate unavailable';
@@ -2792,65 +2799,74 @@ function updateTradeAmountLabel(){
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   });
+  const submit = document.querySelector('#trade-submit');
+  if (submit) submit.textContent = side === 'sell' ? 'Approve Sell' : 'Approve Buy';
+  updateTradeActionState();
   renderTradeAmountEstimate();
 }
+function tradeInputs(){
+  const mint = document.querySelector('#trade-mint')?.value.trim() || '';
+  const side = document.querySelector('#trade-side')?.value;
+  const amount = parseTradeAmountInput(document.querySelector('#trade-amount')?.value);
+  const slippagePercent = Number(document.querySelector('#trade-slippage')?.value);
+  return { mint, side, amount, slippagePercent, valid: Boolean(mint && ['buy', 'sell'].includes(side) && Number.isFinite(amount) && amount > 0 && Number.isFinite(slippagePercent) && slippagePercent >= 0.1 && slippagePercent <= 10) };
+}
+function updateTradeActionState(){
+  const submit = document.querySelector('#trade-submit');
+  if (submit) submit.disabled = tradeActionBusy || !tradeInputs().valid;
+}
 function invalidateTradePreview(){
+  tradeQuoteVersion++;
+  clearTimeout(tradeQuoteTimer);
+  tradeQuoteTimer = null;
   tradePreview = null;
   const reviewDialog = document.querySelector('#trade-review-dialog');
   if (reviewDialog?.open) reviewDialog.close();
   const quote = document.querySelector('#trade-quote');
-  const submit = document.querySelector('#trade-submit');
-  if (quote) quote.textContent = 'Preview the current mint, amount, and slippage before signing.';
-  if (submit) submit.disabled = true;
+  if (quote) quote.textContent = !tradeInputs().valid ? 'Enter a positive amount to calculate the quote.' : !wallet ? 'Connect a signing wallet to calculate an exact trade quote.' : 'Calculating the current route, amount, slippage, and fees.';
+  updateTradeActionState();
   renderTradeAmountEstimate();
 }
 function tradePreviewFailureMessage(error, side){
   const message = String(error?.message || error || 'Unknown error');
   if (side === 'sell' && /Associated token account not found for mint:/i.test(message)) {
-    return 'Sell unavailable: this wallet has no token account for this mint. Connect a wallet that holds the token, then preview again. No trade was submitted.';
+    return 'Sell unavailable: this wallet has no token account for this mint. Connect a wallet that holds the token. No trade was submitted.';
   }
   return `Quote unavailable: ${message}`;
 }
-function openTradeReview(){
-  const mint = document.querySelector('#trade-mint').value.trim();
-  const side = document.querySelector('#trade-side').value;
-  const amount = parseTradeAmountInput(document.querySelector('#trade-amount').value);
-  const slippagePercent = Number(document.querySelector('#trade-slippage').value);
-  const session = captureWalletSession();
-  const inputKey = `${mint}:${side}:${amount}:${slippagePercent}:${session?.address || ''}`;
-  if (!tradePreview || !session || tradePreview.inputKey !== inputKey || Date.now() - tradePreview.preparedAt > 15_000) {
-    invalidateTradePreview();
-    setTradeStatus('Quote changed or expired. Preview again before reviewing.', true);
+function queueTradeQuote(delay = 350){
+  clearTimeout(tradeQuoteTimer);
+  if (!tradeInputs().valid || !wallet || !canSignTransactions(wallet) || document.visibilityState === 'hidden' || document.querySelector('#trade-panel')?.hidden) return;
+  tradeQuoteTimer = setTimeout(() => { void prepareTradeQuote().catch(() => {}); }, delay);
+}
+function refreshTradeQuoteWhenIdle(version){
+  if (version !== tradeQuoteVersion) return;
+  if (document.querySelector('#trade-review-dialog')?.open || tradeActionBusy) {
+    tradeQuoteTimer = setTimeout(() => refreshTradeQuoteWhenIdle(version), 1000);
     return;
   }
-  const reviewedQuote = describeTradeQuote(tradePreview.trade, slippagePercent);
-  const reviewedAmount = side === 'buy' && reviewedQuote.maximumSpendSol != null
-    ? `Target ${amount.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL · max pool spend ${reviewedQuote.maximumSpendSol.toFixed(9)} SOL`
-    : `${side === 'buy' ? 'Spend' : 'Sell'} ${amount.toLocaleString('en-US', { maximumFractionDigits:side === 'buy' ? 9 : 6 })} ${side === 'buy' ? 'SOL' : 'tokens'}`;
-  document.querySelector('#trade-review-summary').textContent = `${reviewedAmount} · mint ${mint} · max slippage ${slippagePercent}% · wallet ${session.address}`;
-  document.querySelector('#trade-review-quote').textContent = document.querySelector('#trade-quote').textContent;
-  document.querySelector('#trade-review-dialog').showModal();
-}
-async function previewTrade(){
-  const mint = document.querySelector('#trade-mint').value.trim();
-  const side = document.querySelector('#trade-side').value;
-  const amount = parseTradeAmountInput(document.querySelector('#trade-amount').value);
-  const slippagePercent = Number(document.querySelector('#trade-slippage').value);
-  if (!mint || !Number.isFinite(amount) || amount <= 0) return setTradeStatus('Enter a mint and a positive amount to preview.', true);
-  if (!Number.isFinite(slippagePercent) || slippagePercent < 0.1 || slippagePercent > 10) return setTradeStatus('Slippage must be between 0.1% and 10%.', true);
-  if (!wallet) { await connectWallet(); if (!wallet) return; }
-  const session = captureWalletSession();
-  if (!session || !canSignTransactions(session.provider)) return setTradeStatus('Open this app in a signing wallet to trade.', true);
-  const button = document.querySelector('#trade-preview'); button.disabled = true;
   invalidateTradePreview();
-  try {
+  queueTradeQuote(0);
+}
+async function prepareTradeQuote({ connectIfNeeded = false } = {}){
+  const { mint, side, amount, slippagePercent, valid } = tradeInputs();
+  if (!valid) throw new Error('Enter a positive amount and slippage between 0.1% and 10%.');
+  if (!wallet && connectIfNeeded) await connectWallet();
+  const session = captureWalletSession();
+  if (!session || !canSignTransactions(session.provider)) throw new Error('Connect a signing wallet to calculate the trade quote.');
+  const inputKey = `${mint}:${side}:${amount}:${slippagePercent}:${session.address}`;
+  if (tradePreview?.inputKey === inputKey && Date.now() - tradePreview.preparedAt < 15_000) return tradePreview;
+  if (tradeQuoteInFlight?.inputKey === inputKey && tradeQuoteInFlight.version === tradeQuoteVersion) return tradeQuoteInFlight.promise;
+  const version = tradeQuoteVersion;
+  const request = (async () => {
+    setTradeStatus('Calculating the current on-chain quote…');
     const previewConnection = await getTradePreviewConnection();
     assertWalletSessionCurrent(session);
     const trade = await buildTradeTransaction({ connection: previewConnection, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: TRADE_FEE_OWNER, feeBps: TRADE_FEE_BPS });
     assertWalletSessionCurrent(session);
+    if (version !== tradeQuoteVersion || !tradeInputs().valid || `${tradeInputs().mint}:${tradeInputs().side}:${tradeInputs().amount}:${tradeInputs().slippagePercent}:${session.address}` !== inputKey) return null;
     const quote = describeTradeQuote(trade, slippagePercent);
     if (side === 'sell' && quote.minimumNetSol <= 0) throw new Error('The app fee would exceed the minimum SOL output. Increase the sell amount.');
-    const inputKey = `${mint}:${side}:${amount}:${slippagePercent}:${session.address}`;
     tradePreview = { trade, inputKey, preparedAt: Date.now() };
     const outputDigits = quote.outputSymbol === 'SOL' ? 9 : 6;
     const receiveText = `${quote.expected.toLocaleString('en-US', { maximumFractionDigits: outputDigits })} ${quote.outputSymbol}`;
@@ -2870,13 +2886,50 @@ async function previewTrade(){
       ? `Maximum pool spend includes Pump pool fees. App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network/account costs.`
       : `App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network and Pump fees.`;
     document.querySelector('#trade-quote').textContent = `${quote.route === 'graduated-pool' ? 'Graduated pool' : 'Pump curve'} · ${slippageText} ${feeText} Quote expires in 15 seconds.`;
-    document.querySelector('#trade-submit').disabled = false;
     setTradeStatus('Review this quote and the transaction in your wallet before signing.');
-  } catch (error) { if (isWalletSessionCurrent(session)) setTradeStatus(tradePreviewFailureMessage(error, side), true); }
-  finally { button.disabled = false; }
+    tradeQuoteTimer = setTimeout(() => refreshTradeQuoteWhenIdle(version), 12_000);
+    return tradePreview;
+  })();
+  tradeQuoteInFlight = { inputKey, version, promise:request };
+  try { return await request; }
+  catch (error) {
+    if (version === tradeQuoteVersion && isWalletSessionCurrent(session)) {
+      tradePreview = null;
+      const card = document.querySelector('#trade-live-estimate');
+      card?.classList.add('is-unavailable');
+      document.querySelector('#trade-live-amount').textContent = 'Quote unavailable';
+      document.querySelector('#trade-live-detail').textContent = error.message;
+      document.querySelector('#trade-quote').textContent = tradePreviewFailureMessage(error, side);
+      setTradeStatus(tradePreviewFailureMessage(error, side), true);
+    }
+    throw error;
+  } finally { if (tradeQuoteInFlight?.promise === request) tradeQuoteInFlight = null; }
+}
+async function openTradeReview(){
+  if (tradeActionBusy) return;
+  const { mint, side, amount, slippagePercent, valid } = tradeInputs();
+  if (!valid) return setTradeStatus('Enter a positive amount and slippage between 0.1% and 10%.', true);
+  tradeActionBusy = true;
+  updateTradeActionState();
+  const version = tradeQuoteVersion;
+  try {
+    const prepared = await prepareTradeQuote({ connectIfNeeded:true });
+    if (!prepared) return;
+    const session = captureWalletSession();
+    const inputKey = `${mint}:${side}:${amount}:${slippagePercent}:${session?.address || ''}`;
+    if (!session || prepared.inputKey !== inputKey || Date.now() - prepared.preparedAt > 15_000) return;
+    const reviewedQuote = describeTradeQuote(prepared.trade, slippagePercent);
+    const reviewedAmount = side === 'buy' && reviewedQuote.maximumSpendSol != null
+      ? `Target ${amount.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL · max pool spend ${reviewedQuote.maximumSpendSol.toFixed(9)} SOL`
+      : `${side === 'buy' ? 'Spend' : 'Sell'} ${amount.toLocaleString('en-US', { maximumFractionDigits:side === 'buy' ? 9 : 6 })} ${side === 'buy' ? 'SOL' : 'tokens'}`;
+    document.querySelector('#trade-review-summary').textContent = `${reviewedAmount} · mint ${mint} · max slippage ${slippagePercent}% · wallet ${session.address}`;
+    document.querySelector('#trade-review-quote').textContent = document.querySelector('#trade-quote').textContent;
+    document.querySelector('#trade-review-dialog').showModal();
+  } catch (error) { if (version === tradeQuoteVersion) setTradeStatus(tradePreviewFailureMessage(error, side), true); }
+  finally { tradeActionBusy = false; updateTradeActionState(); }
 }
 async function executeTrade(){
-  if (!wallet) return setTradeStatus('Connect a wallet and preview the trade first.', true);
+  if (!wallet) return setTradeStatus('Connect a signing wallet to trade.', true);
   const session = captureWalletSession();
   if (!session || !canSignTransactions(session.provider)) return setTradeStatus('Open this app in a signing wallet to trade.', true);
   const mint = document.querySelector('#trade-mint').value.trim(); const side = document.querySelector('#trade-side').value;
@@ -2884,8 +2937,15 @@ async function executeTrade(){
   if (!mint || !Number.isFinite(amount) || amount <= 0) { setTradeStatus('Enter a valid mint and positive trade amount.', true); return; }
   if (!TRADE_FEE_OWNER) { setTradeStatus('Trading is disabled: configure VITE_FUNDED_TRADE_FEE_OWNER for the app owner.', true); return; }
   const inputKey = `${mint}:${side}:${amount}:${slippagePercent}:${session.address}`;
-  if (!tradePreview || tradePreview.inputKey !== inputKey || Date.now() - tradePreview.preparedAt > 15_000) { invalidateTradePreview(); setTradeStatus('Quote changed or expired. Preview again before signing.', true); return; }
-  const button = document.querySelector('#trade-submit'); button.disabled = true;
+  if (!tradePreview || tradePreview.inputKey !== inputKey || Date.now() - tradePreview.preparedAt > 15_000) {
+    invalidateTradePreview();
+    setTradeStatus('The quote changed or expired. Calculating a new quote for review.');
+    await openTradeReview();
+    return;
+  }
+  clearTimeout(tradeQuoteTimer);
+  tradeActionBusy = true;
+  updateTradeActionState();
   try {
     const activeConnection = connection || (await getSolana(), connection);
     assertWalletSessionCurrent(session);
@@ -2895,7 +2955,10 @@ async function executeTrade(){
     setTradeStatus(`${side === 'buy' ? 'Buy' : 'Sell'} confirmed: ${result.signature}. App fee: ${(result.feeLamports / 1_000_000_000).toFixed(6)} SOL.`);
     if (getCoinMintAddress() === mint) void loadCoinOnChain(mint);
     showToast(`${side === 'buy' ? 'Buy' : 'Sell'} confirmed on Devnet`); refreshWalletInfo();
-  } catch (error) { if (isWalletSessionCurrent(session)) setTradeStatus(`Trade failed or confirmation unavailable: ${error.message}`, true); } finally { if (isWalletSessionCurrent(session)) invalidateTradePreview(); }
+  } catch (error) { if (isWalletSessionCurrent(session)) setTradeStatus(`Trade failed or confirmation unavailable: ${error.message}`, true); } finally {
+    tradeActionBusy = false;
+    if (isWalletSessionCurrent(session)) { invalidateTradePreview(); queueTradeQuote(); }
+  }
 }
 const infoDialogRoutes = new Set(['terms', 'disclosures', 'opt-out']);
 function openInfoDialog(kind, { routeDriven = false } = {}){
@@ -3046,6 +3109,7 @@ function activateWallet(provider, message = 'Wallet connected'){
   if (providerId) { try { sessionStorage.setItem(WALLET_PROVIDER_KEY, providerId); } catch {} }
   observeWalletProvider(provider);
   setWalletState(message, address, true);
+  queueTradeQuote();
 }
 function clearWalletState(message = 'Wallet not connected', detail = 'Connect a wallet to continue'){
   walletConnectRequest++;
@@ -3825,9 +3889,7 @@ function setWalletState(message, detail = '', connected = false){
     if (!connected) referralActivity.textContent = 'Connect a wallet to load qualified referral activity.';
   }
   const tradeQuote = document.querySelector('#trade-quote');
-  if (tradeQuote && (!connected || !signingReady || tradeQuote.textContent.startsWith('Connect your wallet'))) tradeQuote.textContent = signingReady ? 'Preview a trade to see estimated output, slippage, and fees.' : connected ? 'Open this app inside your wallet to preview and sign a trade.' : 'Connect your wallet and preview a trade to see estimated output, slippage, and fees.';
-  const tradeQuoteButton = document.querySelector('#trade-preview');
-  if (tradeQuoteButton) tradeQuoteButton.textContent = signingReady ? 'Preview trade' : connected ? 'Open wallet to preview' : 'Connect wallet to preview';
+  if (tradeQuote && (!connected || !signingReady || tradeQuote.textContent.startsWith('Connect your wallet'))) tradeQuote.textContent = signingReady ? 'The current quote appears automatically when you enter an amount.' : connected ? 'Open this app inside your wallet to calculate and approve a trade.' : 'Connect a signing wallet to calculate an exact trade quote.';
   const selectedProgram = document.querySelector('[data-program-tier="standard"].active');
   const programNote = document.querySelector('#program-progress-note');
   if (selectedProgram && programNote) programNote.textContent = signingReady ? 'Wallet connected. Review the fee route and launch cost before signing.' : connected ? 'Address linked. Open inside your wallet before signing.' : 'Connect a wallet to begin your launch review.';
@@ -4374,7 +4436,6 @@ document.querySelector('#launch-review-cancel')?.addEventListener('click', close
 document.querySelector('#launch-review-dialog')?.addEventListener('close', () => { pendingLaunchReview = null; });
 document.querySelector('#launch-review-confirm')?.addEventListener('click', confirmLaunchReview);
 document.querySelector('#simulate-button')?.addEventListener('click', simulateLaunch);
-document.querySelector('#trade-preview')?.addEventListener('click', previewTrade);
 document.querySelector('#trade-submit')?.addEventListener('click', openTradeReview);
 document.querySelector('#trade-review-close')?.addEventListener('click', () => document.querySelector('#trade-review-dialog')?.close());
 document.querySelector('#trade-review-cancel')?.addEventListener('click', () => document.querySelector('#trade-review-dialog')?.close());
@@ -4412,7 +4473,7 @@ document.querySelectorAll('[data-coin-trade-side]').forEach(button => button.add
   select.dispatchEvent(new Event('input', { bubbles: true }));
   const amount = document.querySelector('#trade-amount');
   if (amount) { amount.value = ''; amount.dispatchEvent(new Event('input', { bubbles: true })); }
-  setTradeStatus(`Enter a ${side === 'buy' ? 'SOL' : 'token'} amount, then preview a fresh quote.`);
+  setTradeStatus(`Enter a ${side === 'buy' ? 'SOL' : 'token'} amount to calculate a live quote.`);
 }));
 document.querySelectorAll('[data-coin-buy-amount]').forEach(button => button.addEventListener('click', () => {
   if (document.querySelector('#trade-side')?.value !== 'buy') return;
@@ -4420,9 +4481,9 @@ document.querySelectorAll('[data-coin-buy-amount]').forEach(button => button.add
   if (!amount) return;
   amount.value = button.dataset.coinBuyAmount;
   amount.dispatchEvent(new Event('input', { bubbles: true }));
-  setTradeStatus('Quick amount selected. Preview a fresh quote before signing.');
+  setTradeStatus('Quick amount selected. Calculating a live quote.');
 }));
-document.querySelector('#trade-mint')?.addEventListener('change', () => setTradeStatus('Mint selected. Preview a trade for a fresh route and quote.'));
+document.querySelector('#trade-mint')?.addEventListener('change', () => setTradeStatus('Mint selected. Calculating a live quote.'));
 document.querySelector('#trade-amount')?.addEventListener('input', event => {
   const input = event.currentTarget;
   const caret = input.selectionStart;
@@ -4436,16 +4497,22 @@ const restoredTradeAmount = document.querySelector('#trade-amount');
 if (restoredTradeAmount?.value) restoredTradeAmount.value = formatTradeAmountInput(restoredTradeAmount.value);
 document.querySelectorAll('#trade-mint, #trade-amount, #trade-slippage, #trade-side').forEach(input => input.addEventListener('input', () => {
   invalidateTradePreview();
-  renderTradeAmountEstimate();
-  setTradeStatus('Inputs changed. Preview a fresh quote before signing.');
+  if (tradeInputs().valid) { setTradeStatus(wallet ? 'Calculating a live quote…' : 'Connect a signing wallet to calculate the SOL amount.'); queueTradeQuote(); }
+  else setTradeStatus('Enter a positive amount and slippage between 0.1% and 10%.');
 }));
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && !tradeActionBusy && !document.querySelector('#trade-review-dialog')?.open && (!tradePreview || Date.now() - tradePreview.preparedAt >= 12_000)) { invalidateTradePreview(); queueTradeQuote(0); }
+});
 updateTradeAmountLabel();
+queueTradeQuote();
 normalizePreviewLabels();
 const pendingTradeMint = sessionStorage.getItem('funded.pendingTradeMint');
 if (pendingTradeMint && document.querySelector('#trade-mint')) {
   document.querySelector('#trade-mint').value = pendingTradeMint;
   sessionStorage.removeItem('funded.pendingTradeMint');
-  setTradeStatus('Mint selected. Preview a trade for a fresh route and quote.');
+  setTradeStatus('Mint selected. Calculating a live quote.');
+  invalidateTradePreview();
+  queueTradeQuote();
   setTimeout(() => document.querySelector('#trade-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
 }
 document.querySelectorAll('a[href="#launch"]').forEach(link => link.addEventListener('click', openLaunchPage));
@@ -5728,6 +5795,7 @@ function resetCoinSurface(mintAddress){
   const path = document.querySelector('#coin-price-path'); if (path) path.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Reading trade observations…</strong><small>This is not a historical candle chart.</small></div>';
   const tradeMint = document.querySelector('#trade-mint'); if (tradeMint) tradeMint.value = mintAddress || '';
   invalidateTradePreview();
+  queueTradeQuote();
   setCoinTabLabels(); renderCoinActivityTab();
   setCoinField('.coin-live-dot', 'Checking data');
   setCoinField('#coin-avatar', '?'); setCoinField('#coin-symbol', 'TOKEN'); setCoinField('#coin-page-title', 'Loading token…'); setCoinField('#coin-address', shortAddress(mintAddress));
