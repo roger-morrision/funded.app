@@ -82,6 +82,11 @@ try {
     assert.equal(await page.locator('#trade-panel').getAttribute('aria-modal'),'true');
     await page.keyboard.press('Shift+Tab');assert(await page.locator('#trade-panel').evaluate(el=>el.contains(document.activeElement)));
     assert(await page.locator('.mobile-workspace-nav').evaluate(el=>el.inert));
+    assert(!(await page.locator('#trade-review-dialog').evaluate(el=>el.inert)));
+    assert(!(await page.locator('#mobile-wallet-dialog').evaluate(el=>el.inert)));
+    await page.locator('#trade-review-dialog').evaluate(el=>el.showModal());
+    await page.locator('#trade-review-cancel').click({timeout:1500});
+    assert(!(await page.locator('#trade-review-dialog').evaluate(el=>el.open)));
     await page.keyboard.press('Escape');assert.equal(await button.getAttribute('aria-expanded'),'false');assert(await button.evaluate(el=>el===document.activeElement));
     assert(!(await page.locator('.mobile-workspace-nav').evaluate(el=>el.inert)));
   });

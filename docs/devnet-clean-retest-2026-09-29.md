@@ -12,6 +12,13 @@ command. Omitting it selects the old database and ledger. The ignored local secr
 file `.secrets/database-url-retest-20260929` supplies the new database URL. Do not
 commit that file or the backup in `audit-records/`.
 
+The Devnet app and workers now use `fundedapp-app:trade-dialog-20260929`. The mobile
+trade sheet had made its body-sibling review dialog inert, so Confirm Devnet trade
+could not receive clicks. The UI fix leaves native dialogs interactive while the
+sheet is open. The local mobile dialog regression and production build pass; a
+user-signed trade and finalized balance delta are still required to confirm the
+live transaction flow. Refresh an already-open tab before retrying.
+
 For this deployment the full Compose file order is `compose.preview.yml`,
 `compose.creator-devnet.yml`, `compose.funded-vip.yml`,
 `compose.reward-worker.yml`, `compose.fee-collector.yml`,

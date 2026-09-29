@@ -286,7 +286,7 @@ function tokenPage() {
   const setSheet = open => {
     root.classList.toggle('trade-sheet-open',open);button.setAttribute('aria-expanded',String(open));
     if(open){
-      for(let branch=trade;branch?.parentElement;branch=branch.parentElement){for(const sibling of branch.parentElement.children){if(sibling!==branch&&!sheetBackground.has(sibling)){sheetBackground.set(sibling,sibling.inert);sibling.inert=true;}}if(branch.parentElement===document.body)break;}
+      for(let branch=trade;branch?.parentElement;branch=branch.parentElement){for(const sibling of branch.parentElement.children){if(sibling!==branch&&sibling.tagName!=='DIALOG'&&!sheetBackground.has(sibling)){sheetBackground.set(sibling,sibling.inert);sibling.inert=true;}}if(branch.parentElement===document.body)break;}
       trade?.setAttribute('role','dialog');trade?.setAttribute('aria-modal','true');trade?.setAttribute('aria-label','Trade token');trade?.setAttribute('tabindex','-1');trade?.focus();
     }
     else {for(const [element,inert] of sheetBackground)element.inert=inert;sheetBackground.clear();trade?.removeAttribute('role');trade?.removeAttribute('aria-modal');trade?.removeAttribute('aria-label');}
