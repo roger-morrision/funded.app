@@ -139,6 +139,14 @@ assert.equal(finalizedStatus.status, 'finalized');
 assert.equal(finalizedStatus.solDeltaLamports, '11000000');
 assert.equal(finalizedStatus.tokenDeltaRaw, '-10000000000000');
 assert.equal(finalizedStatus.tokenDecimals, 6);
+const buyId = 'd'.repeat(48), buyToken = '1'.repeat(64);
+const buySummary = { side:'buy', mint:destination.toBase58(), tokenName:'Funded Clean QA', tokenSymbol:'FCQA', tokenAmount:'90573116.910001', minimumTokenAmount:'89667385.740900', spendSol:'0.100000000', maximumSpendSol:'0.101000000', targetTotalSol:'0.100500000', maximumTotalSol:'0.101500000', appFeeSol:'0.000500000' };
+assert.equal((await call('POST', '/api/mobile-wallet/relay', { headers:{ origin }, input:{ id:buyId, pollToken:buyToken, transactionRequest:{ ...transactionRequest, summary:{ ...buySummary, maximumTotalSol:'0.100500000' } } } })).status, 400);
+assert.equal((await call('POST', '/api/mobile-wallet/relay', { headers:{ origin }, input:{ id:buyId, pollToken:buyToken, transactionRequest:{ ...transactionRequest, summary:buySummary } } })).status, 201);
+assert.deepEqual((await call('GET', `/api/mobile-wallet/trade-request/${buyId}`)).json.summary, buySummary);
+const buyPage = (await call('GET', `/api/mobile-wallet/trade/${buyId}`)).body;
+assert.match(buyPage, /Estimated SOL to pay/);
+assert.match(buyPage, /Maximum SOL to pay/);
 const phantomBudget = new Transaction({ feePayer:payer.publicKey, recentBlockhash:transaction.recentBlockhash }).add(
   ComputeBudgetProgram.setComputeUnitLimit({ units:300_000 }),
   ComputeBudgetProgram.setComputeUnitPrice({ microLamports:1_000 }),

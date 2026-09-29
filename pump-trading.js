@@ -293,6 +293,14 @@ export async function submitTrade({ connection, provider, side, mint, user, amou
   const transaction = new Transaction({ recentBlockhash: latest.blockhash, feePayer: user }).add(...trade.instructions);
   if (provider.remoteMobile) {
     const quote = describeTradeQuote(trade, slippagePercent);
+    const lamportsText = value => `${value / 1_000_000_000n}.${(value % 1_000_000_000n).toString().padStart(9, '0')}`;
+    const targetSpendLamports = side === 'buy' ? BigInt(trade.quoteAmount.toString()) : 0n;
+    const maximumSpendLamports = side === 'buy'
+      ? trade.maximumInputAmount
+        ? BigInt(trade.maximumInputAmount.toString())
+        : targetSpendLamports + targetSpendLamports * BigInt(Math.floor(Number(slippagePercent) * 10)) / 1000n
+      : 0n;
+    const appFeeLamports = BigInt(trade.feeLamports || 0);
     transaction.fundedTradeSummary = {
       side,
       mint:trade.mint.toBase58(),
@@ -300,10 +308,13 @@ export async function submitTrade({ connection, provider, side, mint, user, amou
       tokenSymbol:String(tokenSymbol || 'token').slice(0, 16),
       tokenAmount:side === 'sell' ? String(trade.inputAmount) : quote.expected.toFixed(Math.min(9, trade.tokenDecimals)),
       minimumTokenAmount:side === 'buy' ? quote.minimum.toFixed(Math.min(9, trade.tokenDecimals)) : null,
-      spendSol:side === 'buy' ? Number(trade.inputAmount).toFixed(9) : null,
+      spendSol:side === 'buy' ? lamportsText(targetSpendLamports) : null,
+      maximumSpendSol:side === 'buy' ? lamportsText(maximumSpendLamports) : null,
+      targetTotalSol:side === 'buy' ? lamportsText(targetSpendLamports + appFeeLamports) : null,
+      maximumTotalSol:side === 'buy' ? lamportsText(maximumSpendLamports + appFeeLamports) : null,
       expectedSol:side === 'sell' ? quote.expectedNetSol.toFixed(9) : null,
       minimumSol:side === 'sell' ? quote.minimumNetSol.toFixed(9) : null,
-      appFeeSol:quote.appFeeSol.toFixed(9),
+      appFeeSol:lamportsText(appFeeLamports),
     };
   }
   assertWalletCurrent();

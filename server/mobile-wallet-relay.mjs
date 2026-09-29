@@ -23,7 +23,12 @@ function validTradeSummary(summary) {
     || typeof summary.tokenSymbol !== 'string' || !summary.tokenSymbol.trim() || summary.tokenSymbol.length > 16 || /[\x00-\x1f<>]/.test(summary.tokenSymbol)
     || !amount(summary.tokenAmount) || Number(summary.tokenAmount) <= 0 || !amount(summary.appFeeSol)) return false;
   if (summary.side === 'sell') return amount(summary.expectedSol) && amount(summary.minimumSol) && Number(summary.expectedSol) >= Number(summary.minimumSol) && Number(summary.minimumSol) > 0;
-  return amount(summary.spendSol) && Number(summary.spendSol) > 0 && amount(summary.minimumTokenAmount) && Number(summary.tokenAmount) >= Number(summary.minimumTokenAmount);
+  if (!amount(summary.spendSol) || !amount(summary.maximumSpendSol) || !amount(summary.targetTotalSol) || !amount(summary.maximumTotalSol)
+    || Number(summary.spendSol) <= 0 || !amount(summary.minimumTokenAmount) || Number(summary.tokenAmount) < Number(summary.minimumTokenAmount)) return false;
+  const lamports = value => { const [whole, fraction = ''] = value.split('.'); return BigInt(whole) * 1_000_000_000n + BigInt(fraction.padEnd(9, '0') || '0'); };
+  return lamports(summary.maximumSpendSol) >= lamports(summary.spendSol)
+    && lamports(summary.targetTotalSol) === lamports(summary.spendSol) + lamports(summary.appFeeSol)
+    && lamports(summary.maximumTotalSol) === lamports(summary.maximumSpendSol) + lamports(summary.appFeeSol);
 }
 
 function finalizedTradeOutcome(transaction, wallet, mint) {

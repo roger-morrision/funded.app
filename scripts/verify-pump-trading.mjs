@@ -89,7 +89,7 @@ if (!failedSubmitRejected) throw new Error('Failed submitted transaction was rep
 const mobilePayer = Keypair.generate();
 const originalBlockhash = Keypair.generate().publicKey.toBase58();
 const refreshedBlockhash = Keypair.generate().publicKey.toBase58();
-const mobileTrade = { side:'buy', mint:user, user:mobilePayer.publicKey, inputAmount:0.01, slippagePercent:1, outputAmount:new BN(1), tokenDecimals:6, feeLamports:5_000, instructions:[SystemProgram.transfer({ fromPubkey:mobilePayer.publicKey, toPubkey:user, lamports:1 })] };
+const mobileTrade = { side:'buy', mint:user, user:mobilePayer.publicKey, inputAmount:0.01, slippagePercent:1, quoteAmount:new BN(10_000_000), outputAmount:new BN(1), tokenDecimals:6, feeLamports:5_000, instructions:[SystemProgram.transfer({ fromPubkey:mobilePayer.publicKey, toPubkey:user, lamports:1 })] };
 let broadcastOptions, confirmationStrategy, mobileSummary, reportedSignature;
 const mobileConnection = {
   getLatestBlockhash:async () => ({ blockhash:originalBlockhash, lastValidBlockHeight:100 }),
@@ -99,8 +99,13 @@ const mobileConnection = {
 };
 const mobileProvider = { remoteMobile:true, signTransaction:async unsigned => { mobileSummary=unsigned.fundedTradeSummary; unsigned.recentBlockhash=refreshedBlockhash; unsigned.sign(mobilePayer); unsigned.fundedLastValidBlockHeight=100; return unsigned; }, reportTradeSubmission:async signature => { reportedSignature=signature; } };
 const mobileResult = await submitTrade({ connection:mobileConnection, provider:mobileProvider, side:'buy', mint:user, user:mobilePayer.publicKey, amount:0.01, slippagePercent:1, preparedTrade:mobileTrade, tokenName:'Funded Clean QA', tokenSymbol:'FCQA' });
-if (mobileSummary?.tokenName !== 'Funded Clean QA' || mobileSummary?.tokenSymbol !== 'FCQA' || mobileSummary?.spendSol !== '0.010000000' || mobileSummary?.appFeeSol !== '0.000005000') throw new Error('Mobile trade review is missing the token and SOL quote.');
+if (mobileSummary?.tokenName !== 'Funded Clean QA' || mobileSummary?.tokenSymbol !== 'FCQA' || mobileSummary?.spendSol !== '0.010000000' || mobileSummary?.maximumSpendSol !== '0.010100000' || mobileSummary?.targetTotalSol !== '0.010005000' || mobileSummary?.maximumTotalSol !== '0.010105000' || mobileSummary?.appFeeSol !== '0.000005000') throw new Error('Mobile buy review is missing the token or maximum SOL cost.');
 if (mobileResult.signature !== 'mobile-signature' || reportedSignature !== 'mobile-signature' || broadcastOptions.preflightCommitment !== 'confirmed' || confirmationStrategy.blockhash !== refreshedBlockhash) throw new Error('Refreshed mobile trade was not broadcast, reported, and confirmed with the signed blockhash.');
+await submitTrade({ connection:mobileConnection, provider:mobileProvider, side:'buy', mint:user, user:mobilePayer.publicKey, amount:0.01, slippagePercent:1, preparedTrade:{ ...mobileTrade, route:'graduated-pool', maximumInputAmount:new BN(10_200_000) }, tokenName:'Funded Clean QA', tokenSymbol:'FCQA' });
+if (mobileSummary?.maximumSpendSol !== '0.010200000' || mobileSummary?.maximumTotalSol !== '0.010205000') throw new Error('Mobile pool buy review omitted the pool maximum spend.');
+const mobileSellTrade = { ...mobileTrade, side:'sell', inputAmount:10_000_000, quoteAmount:new BN(11_733_814), outputAmount:new BN(11_733_814), feeLamports:58_670 };
+await submitTrade({ connection:mobileConnection, provider:mobileProvider, side:'sell', mint:user, user:mobilePayer.publicKey, amount:10_000_000, slippagePercent:1, preparedTrade:mobileSellTrade, tokenName:'Funded Clean QA', tokenSymbol:'FCQA' });
+if (mobileSummary?.tokenAmount !== '10000000' || mobileSummary?.expectedSol !== '0.011675144' || mobileSummary?.minimumSol !== '0.011557805') throw new Error('Mobile sell review omitted tokens sold or net SOL received.');
 let expiredMobileRejected = false;
 try { await submitTrade({ connection:{ ...mobileConnection, getBlockHeight:async () => 95, sendRawTransaction:async () => { throw new Error('Expired trade was broadcast.'); } }, provider:mobileProvider, side:'buy', mint:user, user:mobilePayer.publicKey, amount:0.01, slippagePercent:1, preparedTrade:mobileTrade }); }
 catch (error) { expiredMobileRejected=error.message.includes('expired during phone approval'); }
