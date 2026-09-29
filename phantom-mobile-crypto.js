@@ -2,6 +2,52 @@ import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Transaction } from '@solana/web3.js';
 
+const COMPUTE_BUDGET_PROGRAM = 'ComputeBudget111111111111111111111111111111';
+const MAX_COMPUTE_UNITS = 1_400_000n;
+const MAX_PHANTOM_PRIORITY_FEE_LAMPORTS = 100_000n;
+
+function sameBytes(expected, actual){
+  return expected.length === actual.length && expected.every((byte, index) => byte === actual[index]);
+}
+
+function sameInstruction(expected, actual){
+  return Boolean(actual) && expected.programId.equals(actual.programId)
+    && sameBytes(expected.data, actual.data)
+    && expected.keys.length === actual.keys.length
+    && expected.keys.every((key, index) => key.pubkey.equals(actual.keys[index].pubkey)
+      && key.isSigner === actual.keys[index].isSigner && key.isWritable === actual.keys[index].isWritable);
+}
+
+export function inspectPhantomTradeTransaction(expected, signed){
+  if (!expected.feePayer?.equals(signed.feePayer)) return { ok:false, code:'fee-payer-changed' };
+  if (expected.recentBlockhash !== signed.recentBlockhash) return { ok:false, code:'blockhash-changed' };
+  const added = signed.instructions.length - expected.instructions.length;
+  if (added < 0 || added > 2 || (added > 0 && expected.instructions.some(instruction => instruction.programId.toBase58() === COMPUTE_BUDGET_PROGRAM))) return { ok:false, code:'instructions-changed' };
+  if (!expected.instructions.every((instruction, index) => sameInstruction(instruction, signed.instructions[index + added]))) return { ok:false, code:'instructions-changed' };
+  if (!added) return sameBytes(expected.serializeMessage(), signed.serializeMessage())
+    ? { ok:true, priorityFeeLamports:0 } : { ok:false, code:'instructions-changed' };
+
+  let computeUnits = MAX_COMPUTE_UNITS;
+  let microLamports = 0n;
+  const seen = new Set();
+  for (const instruction of signed.instructions.slice(0, added)) {
+    const data = instruction.data;
+    const type = data[0];
+    if (instruction.programId.toBase58() !== COMPUTE_BUDGET_PROGRAM || instruction.keys.length || seen.has(type)) return { ok:false, code:'unsafe-compute-budget' };
+    seen.add(type);
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    if (type === 2 && data.length === 5) {
+      computeUnits = BigInt(view.getUint32(1, true));
+      if (computeUnits < 1n || computeUnits > MAX_COMPUTE_UNITS) return { ok:false, code:'unsafe-compute-budget' };
+    } else if (type === 3 && data.length === 9) {
+      microLamports = view.getBigUint64(1, true);
+    } else return { ok:false, code:'unsafe-compute-budget' };
+  }
+  const priorityFee = (computeUnits * microLamports + 999_999n) / 1_000_000n;
+  if (priorityFee > MAX_PHANTOM_PRIORITY_FEE_LAMPORTS) return { ok:false, code:'priority-fee-too-high' };
+  return { ok:true, priorityFeeLamports:Number(priorityFee) };
+}
+
 export function verifyPhantomMobileSession(session, appOrigin){
   const publicKey = bs58.decode(session.publicKey || '');
   const proof = publicKey.length === 32 ? nacl.sign.open(bs58.decode(session.session || ''), publicKey) : null;
@@ -53,11 +99,11 @@ export function verifyPhantomMobileTransaction(original, encodedSigned, publicKe
     if (bs58.decode(refreshedBlockhash).length !== 32) throw new Error('Phantom returned an invalid Devnet blockhash. Nothing was submitted.');
     expected.recentBlockhash = refreshedBlockhash;
   }
-  const expectedMessage = expected.serializeMessage();
+  const inspection = inspectPhantomTradeTransaction(expected, signed);
+  if (!inspection.ok) throw new Error(`Phantom returned a different transaction (${inspection.code}). Nothing was submitted.`);
   const signedMessage = signed.serializeMessage();
-  if (signedMessage.length !== expectedMessage.length || signedMessage.some((byte, index) => byte !== expectedMessage[index])) throw new Error('Phantom returned a different transaction. Nothing was submitted.');
   const signature = signed.signatures.find(entry => entry.publicKey.toBase58() === publicKey)?.signature;
-  if (!signature || !nacl.sign.detached.verify(expectedMessage, signature, bs58.decode(publicKey))) throw new Error('Phantom did not sign with the connected wallet. Nothing was submitted.');
+  if (!signature || !nacl.sign.detached.verify(signedMessage, signature, bs58.decode(publicKey)) || !signed.verifySignatures()) throw new Error('Phantom did not sign with the connected wallet. Nothing was submitted.');
   return signed;
 }
 

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Transaction } from '@solana/web3.js';
+import { inspectPhantomTradeTransaction } from '../phantom-mobile-crypto.js';
 
 const FLOW_ID = /^[a-f0-9]{48}$/;
 const POLL_TOKEN = /^[a-f0-9]{64}$/;
@@ -23,22 +24,31 @@ function tradeSignatureFailure(code) {
   return error;
 }
 
-function sameTradeInstructions(expected, actual) {
-  if (!expected.feePayer?.equals(actual.feePayer) || expected.instructions.length !== actual.instructions.length) return false;
-  return expected.instructions.every((instruction, index) => {
-    const other = actual.instructions[index];
-    return instruction.programId.equals(other.programId)
-      && Buffer.from(instruction.data).equals(Buffer.from(other.data))
-      && instruction.keys.length === other.keys.length
-      && instruction.keys.every((key, keyIndex) => key.pubkey.equals(other.keys[keyIndex].pubkey)
-        && key.isSigner === other.keys[keyIndex].isSigner && key.isWritable === other.keys[keyIndex].isWritable);
-  });
+function tradeInstructionDifference(expected, actual) {
+  const programs = transaction => transaction.instructions.map(instruction => instruction.programId.toBase58());
+  return {
+    feePayerChanged: !expected.feePayer?.equals(actual.feePayer),
+    blockhashChanged: expected.recentBlockhash !== actual.recentBlockhash,
+    expectedPrograms: programs(expected),
+    actualPrograms: programs(actual),
+    firstChangedInstruction: expected.instructions.findIndex((instruction, index) => {
+      const other = actual.instructions[index];
+      return !other || !instruction.programId.equals(other.programId)
+        || !Buffer.from(instruction.data).equals(Buffer.from(other.data))
+        || instruction.keys.length !== other.keys.length
+        || instruction.keys.some((key, keyIndex) => !key.pubkey.equals(other.keys[keyIndex].pubkey)
+          || key.isSigner !== other.keys[keyIndex].isSigner || key.isWritable !== other.keys[keyIndex].isWritable);
+    }),
+  };
 }
 
 const TRADE_SIGNATURE_ERRORS = Object.freeze({
   'invalid-encoding':'Phantom returned an unreadable signed transaction. Nothing was submitted.',
   'blockhash-changed':'Phantom changed the Devnet blockhash during signing. Nothing was submitted.',
+  'fee-payer-changed':'Phantom changed the trade fee payer during signing. Nothing was submitted.',
   'instructions-changed':'Phantom changed the trade instructions during signing. Nothing was submitted.',
+  'unsafe-compute-budget':'Phantom added an unsupported compute-budget instruction. Nothing was submitted.',
+  'priority-fee-too-high':'Phantom added a priority fee above the Devnet safety limit. Nothing was submitted.',
   'wallet-signature-missing':'Phantom did not sign with the connected wallet. Nothing was submitted.',
   'wallet-signature-invalid':'The connected wallet signature did not verify. Nothing was submitted.',
   'other-signature-invalid':'The returned transaction has an invalid or missing additional signature. Nothing was submitted.',
@@ -205,15 +215,18 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
         if (!flow?.transactionRequest || flow.result) { reply(res, 404, { error:'Trade request unavailable.' }); return true; }
         const input = await readBody(req);
         const encoded = String(input.transaction || '');
+        let instructionDifference = null;
         try {
           if (encoded.length > 4000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) throw tradeSignatureFailure('invalid-encoding');
           const raw = Buffer.from(encoded, 'base64');
           const signed = Transaction.from(raw);
           const unsigned = Transaction.from(Buffer.from(flow.transactionRequest.transaction, 'base64'));
-          const message = unsigned.serializeMessage();
-          if (!Buffer.from(signed.serializeMessage()).equals(Buffer.from(message))) {
-            throw tradeSignatureFailure(sameTradeInstructions(unsigned, signed) ? 'blockhash-changed' : 'instructions-changed');
+          const inspection = inspectPhantomTradeTransaction(unsigned, signed);
+          if (!inspection.ok) {
+            instructionDifference = tradeInstructionDifference(unsigned, signed);
+            throw tradeSignatureFailure(inspection.code);
           }
+          const message = signed.serializeMessage();
           const signature = signed.signatures.find(entry => entry.publicKey.toBase58() === flow.transactionRequest.publicKey)?.signature;
           if (!signature) throw tradeSignatureFailure('wallet-signature-missing');
           if (!nacl.sign.detached.verify(message, signature, bs58.decode(flow.transactionRequest.publicKey))) throw tradeSignatureFailure('wallet-signature-invalid');
@@ -221,7 +234,7 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
           flow.result = { transaction:bs58.encode(raw), publicKey:flow.transactionRequest.publicKey, blockhash:signed.recentBlockhash, lastValidBlockHeight:flow.lastValidBlockHeight, source:'phantom-injected' };
         } catch (error) {
           const code = Object.hasOwn(TRADE_SIGNATURE_ERRORS, error?.code) ? error.code : 'invalid-encoding';
-          console.warn(JSON.stringify({ event:'mobile-trade-signature-rejected', code }));
+          console.warn(JSON.stringify({ event:'mobile-trade-signature-rejected', code, ...(instructionDifference ? { instructionDifference } : {}) }));
           reply(res, 400, { code, error:TRADE_SIGNATURE_ERRORS[code] });
           return true;
         }

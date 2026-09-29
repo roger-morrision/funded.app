@@ -3,22 +3,22 @@
 # The secret file and Docker volume are local and never belong in Git.
 services:
   app:
-    image: ${FUNDED_RETEST_IMAGE:-fundedapp-app:mobile-trade-diagnostic-20260929}
+    image: ${FUNDED_RETEST_IMAGE:-fundedapp-app:mobile-trade-compute-20260929}
     environment:
-      FUNDED_BUILD_ID: mobile-trade-diagnostic-20260929
+      FUNDED_BUILD_ID: mobile-trade-compute-20260929
       FUNDED_COMMUNITY_RESERVE_RECEIPTS_JSON: '{}'
   reward-volume-init:
-    image: ${FUNDED_RETEST_IMAGE:-fundedapp-app:mobile-trade-diagnostic-20260929}
+    image: ${FUNDED_RETEST_IMAGE:-fundedapp-app:mobile-trade-compute-20260929}
   reward-worker:
-    image: ${FUNDED_RETEST_IMAGE:-fundedapp-app:mobile-trade-diagnostic-20260929}
+    image: ${FUNDED_RETEST_IMAGE:-fundedapp-app:mobile-trade-compute-20260929}
     environment:
       FUNDED_REWARD_PROGRAMS_JSON: '[]'
   fee-collector:
-    image: ${FUNDED_RETEST_IMAGE:-fundedapp-app:mobile-trade-diagnostic-20260929}
+    image: ${FUNDED_RETEST_IMAGE:-fundedapp-app:mobile-trade-compute-20260929}
   receipt-worker:
-    image: ${FUNDED_RETEST_IMAGE:-fundedapp-app:mobile-trade-diagnostic-20260929}
+    image: ${FUNDED_RETEST_IMAGE:-fundedapp-app:mobile-trade-compute-20260929}
   buyback-worker:
-    image: ${FUNDED_RETEST_IMAGE:-fundedapp-app:mobile-trade-diagnostic-20260929}
+    image: ${FUNDED_RETEST_IMAGE:-fundedapp-app:mobile-trade-compute-20260929}
 
 volumes:
   funded_reward_ledger:

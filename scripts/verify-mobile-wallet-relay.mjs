@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { Keypair, SystemProgram, Transaction } from '@solana/web3.js';
+import { ComputeBudgetProgram, Keypair, SystemProgram, Transaction } from '@solana/web3.js';
 import { createMobileWalletRelay } from '../server/mobile-wallet-relay.mjs';
-import { createPhantomSignMessageRequest, createPhantomSignTransactionRequest, decryptPhantomMobileResult, verifyPhantomMobileSession, verifyPhantomMobileSignature, verifyPhantomMobileTransaction } from '../phantom-mobile-crypto.js';
+import { createPhantomSignMessageRequest, createPhantomSignTransactionRequest, decryptPhantomMobileResult, inspectPhantomTradeTransaction, verifyPhantomMobileSession, verifyPhantomMobileSignature, verifyPhantomMobileTransaction } from '../phantom-mobile-crypto.js';
 
 const origin = 'https://funded.vip';
 let clock = 0;
@@ -117,6 +117,42 @@ assert.equal((await call('POST', `/api/mobile-wallet/trade/${fallbackId}`, { hea
 assert.equal((await call('POST', `/api/mobile-wallet/trade/${fallbackId}`, { headers:{ origin }, input:{ transaction:Buffer.from(signedTransaction.serialize()).toString('base64') } })).status, 200);
 assert.equal((await call('GET', `/api/mobile-wallet/relay/${fallbackId}`, { headers:{ 'x-mobile-wallet-token':fallbackToken } })).json.result.transaction, encodedSigned);
 assert.equal((await call('POST', `/api/mobile-wallet/trade/${fallbackId}`, { headers:{ origin }, input:{ transaction:Buffer.from(signedTransaction.serialize()).toString('base64') } })).status, 404);
+const phantomBudget = new Transaction({ feePayer:payer.publicKey, recentBlockhash:transaction.recentBlockhash }).add(
+  ComputeBudgetProgram.setComputeUnitLimit({ units:300_000 }),
+  ComputeBudgetProgram.setComputeUnitPrice({ microLamports:1_000 }),
+  ...transaction.instructions,
+);
+phantomBudget.sign(payer);
+assert.deepEqual(inspectPhantomTradeTransaction(transaction, phantomBudget), { ok:true, priorityFeeLamports:300 });
+assert.deepEqual(verifyPhantomMobileTransaction(transaction, bs58.encode(phantomBudget.serialize()), session.publicKey).serialize(), phantomBudget.serialize());
+const budgetId = '7'.repeat(48), budgetToken = '8'.repeat(64);
+assert.equal((await call('POST', '/api/mobile-wallet/relay', { headers:{ origin }, input:{ id:budgetId, pollToken:budgetToken, transactionRequest } })).status, 201);
+assert.equal((await call('POST', `/api/mobile-wallet/trade/${budgetId}`, { headers:{ origin }, input:{ transaction:Buffer.from(phantomBudget.serialize()).toString('base64') } })).status, 200);
+assert.equal((await call('GET', `/api/mobile-wallet/relay/${budgetId}`, { headers:{ 'x-mobile-wallet-token':budgetToken } })).json.result.transaction, bs58.encode(phantomBudget.serialize()));
+const expensiveBudget = new Transaction({ feePayer:payer.publicKey, recentBlockhash:transaction.recentBlockhash }).add(
+  ComputeBudgetProgram.setComputeUnitLimit({ units:300_000 }),
+  ComputeBudgetProgram.setComputeUnitPrice({ microLamports:1_000_000 }),
+  ...transaction.instructions,
+);
+expensiveBudget.sign(payer);
+assert.equal(inspectPhantomTradeTransaction(transaction, expensiveBudget).code, 'priority-fee-too-high');
+assert.throws(() => verifyPhantomMobileTransaction(transaction, bs58.encode(expensiveBudget.serialize()), session.publicKey), /priority-fee-too-high/);
+const expensiveId = '9'.repeat(48), expensiveToken = 'a'.repeat(64);
+assert.equal((await call('POST', '/api/mobile-wallet/relay', { headers:{ origin }, input:{ id:expensiveId, pollToken:expensiveToken, transactionRequest } })).status, 201);
+assert.equal((await call('POST', `/api/mobile-wallet/trade/${expensiveId}`, { headers:{ origin }, input:{ transaction:Buffer.from(expensiveBudget.serialize()).toString('base64') } })).json.code, 'priority-fee-too-high');
+const changedBudget = new Transaction({ feePayer:payer.publicKey, recentBlockhash:transaction.recentBlockhash }).add(
+  ComputeBudgetProgram.setComputeUnitLimit({ units:300_000 }),
+  ComputeBudgetProgram.setComputeUnitPrice({ microLamports:1_000 }),
+  ...changed.instructions,
+);
+changedBudget.sign(payer);
+assert.equal(inspectPhantomTradeTransaction(transaction, changedBudget).code, 'instructions-changed');
+const malformedBudget = new Transaction({ feePayer:payer.publicKey, recentBlockhash:transaction.recentBlockhash }).add(
+  ComputeBudgetProgram.requestHeapFrame({ bytes:32_768 }),
+  ...transaction.instructions,
+);
+malformedBudget.sign(payer);
+assert.equal(inspectPhantomTradeTransaction(transaction, malformedBudget).code, 'unsafe-compute-budget');
 const refreshedId = '3'.repeat(48), refreshedToken = '4'.repeat(64);
 assert.equal((await call('POST', '/api/mobile-wallet/relay', { headers:{ origin }, input:{ id:refreshedId, pollToken:refreshedToken, transactionRequest } })).status, 201);
 assert.equal((await call('POST', `/api/mobile-wallet/trade-refresh/${refreshedId}`, { headers:{ origin:'https://evil.example' } })).status, 403);
