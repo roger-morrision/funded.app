@@ -35,7 +35,10 @@ same image, database secret, and reward ledger volume.
   scientific-notation settlement amounts. Creator payouts total 10,481,291
   lamports, direct referral payouts 299,465 lamports, and operations payouts to
   `B2Ns79FNQBseayg77fT7CvxQYs2NJ3DJBR3R1nDbwk3n` 2,096,258 lamports. Each
-  has finalized payout evidence and exact recipient deltas. The 0.5% app-owner
+  has finalized payout records. Referral payments have exact recipient deltas.
+  For creator and operations payments, the recipient also pays transaction fees
+  and payment-account rent; the exact vault/cycle debit and the recipient delta
+  plus those costs reconcile to each recorded payout. The 0.5% app-owner
   trade fee is transferred within each trade to the configured trade-fee wallet.
 - Buyback accruals remain pending until the 0.25 SOL minimum batch or six-hour
   maximum wait is reached. A pending allocation is not a burn receipt.
