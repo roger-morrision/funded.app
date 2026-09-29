@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import { buildTradeReview } from '../trade-review-model.js';
+
+const common = { mint:'Cg95LJcnH18e34ivwTk71iexiFHKPwQ19MQC5LEBP5Ba', wallet:'6XfCMmD3PujEL1GhLfBQB7n5yMBKCsDRzczFxi2ANghq', tokenName:'Funded Clean QA', tokenSymbol:'FCQA', slippagePercent:1 };
+const buyTrade = { quoteAmount:250_000_000n, outputAmount:172_897_492_213_206n, feeLamports:1_250_000, tokenDecimals:6, route:'curve' };
+const buy = buildTradeReview({ ...common, trade:buyTrade, side:'buy', amount:0.25 });
+assert.equal(buy.title, 'Buy FCQA');
+assert.equal(buy.payAmount, '0.25125 SOL');
+assert.equal(buy.receiveAmount, '172,897,492.213206 FCQA');
+assert.equal(buy.limitAmount, '0.25375 SOL');
+assert.equal(buy.minimumAmount, '171,168,517.291073 FCQA');
+assert.equal(buy.fee, '0.00125 SOL');
+const pool = buildTradeReview({ ...common, trade:{ ...buyTrade, maximumInputAmount:260_000_000n, route:'graduated-pool' }, side:'buy', amount:0.25 });
+assert.equal(pool.limitAmount, '0.26125 SOL');
+assert.equal(pool.route, 'PumpSwap pool');
+const sell = buildTradeReview({ ...common, trade:{ outputAmount:11_733_814n, feeLamports:58_670, tokenDecimals:6, route:'curve' }, side:'sell', amount:10_000_000 });
+assert.equal(sell.payAmount, '10,000,000 FCQA');
+assert.equal(sell.receiveAmount, '0.011675144 SOL');
+assert.equal(sell.limitAmount, '0.011557805 SOL');
+assert.equal(sell.minimumLabel, '');
+console.log('Trade review amounts and labels verified.');

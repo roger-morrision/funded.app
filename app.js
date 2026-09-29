@@ -1,6 +1,7 @@
 import { Buffer } from 'buffer';
 import { formatTradeAmountInput, parseTradeAmountInput } from './trade-amount-input.js';
 import { formatTokenBaseAmount, tokenBalancePercentage } from './trade-panel-balance.js';
+import { buildTradeReview } from './trade-review-model.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { decryptPhantomMobileResult, verifyPhantomMobileSession, verifyPhantomMobileSignature, verifyPhantomMobileTransaction } from './phantom-mobile-crypto.js';
@@ -2991,12 +2992,23 @@ async function openTradeReview(){
     const session = captureWalletSession();
     const inputKey = `${mint}:${side}:${amount}:${slippagePercent}:${session?.address || ''}`;
     if (!session || prepared.inputKey !== inputKey || Date.now() - prepared.preparedAt > 15_000) return;
-    const reviewedQuote = describeTradeQuote(prepared.trade, slippagePercent);
-    const reviewedAmount = side === 'buy' && reviewedQuote.maximumSpendSol != null
-      ? `Target ${amount.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL · max pool spend ${reviewedQuote.maximumSpendSol.toFixed(9)} SOL`
-      : `${side === 'buy' ? 'Spend' : 'Sell'} ${amount.toLocaleString('en-US', { maximumFractionDigits:side === 'buy' ? 9 : 6 })} ${side === 'buy' ? 'SOL' : 'tokens'}`;
-    document.querySelector('#trade-review-summary').textContent = `${reviewedAmount} · mint ${mint} · max slippage ${slippagePercent}% · wallet ${session.address}`;
-    document.querySelector('#trade-review-quote').textContent = document.querySelector('#trade-quote').textContent;
+    const shownCoin = getCoinMintAddress() === mint;
+    const review = buildTradeReview({ trade:prepared.trade, side, amount, slippagePercent, mint, wallet:session.address,
+      tokenName:shownCoin ? document.querySelector('#coin-page-title')?.textContent?.trim() : '',
+      tokenSymbol:shownCoin ? document.querySelector('#coin-symbol')?.textContent?.trim() : '' });
+    const fields = {
+      '#trade-review-title':review.title, '#trade-review-token-name':review.tokenName,
+      '#trade-review-pay-label':review.payLabel, '#trade-review-pay':review.payAmount,
+      '#trade-review-receive-label':review.receiveLabel, '#trade-review-receive':review.receiveAmount,
+      '#trade-review-limit-label':review.limitLabel, '#trade-review-limit':review.limitAmount,
+      '#trade-review-minimum-label':review.minimumLabel, '#trade-review-minimum':review.minimumAmount,
+      '#trade-review-slippage':review.slippage, '#trade-review-fee':review.fee,
+      '#trade-review-route':review.route, '#trade-review-mint':review.mint, '#trade-review-wallet':review.wallet,
+      '#trade-review-note':review.note, '#trade-review-confirm':review.confirmLabel,
+    };
+    for (const [selector, value] of Object.entries(fields)) document.querySelector(selector).textContent = value;
+    document.querySelector('#trade-review-minimum-row').hidden = !review.minimumLabel;
+    document.querySelector('#trade-review-dialog').dataset.side = side;
     document.querySelector('#trade-review-dialog').showModal();
   } catch (error) { if (version === tradeQuoteVersion) setTradeStatus(tradePreviewFailureMessage(error, side), true); }
   finally { tradeActionBusy = false; updateTradeActionState(); }
