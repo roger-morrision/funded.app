@@ -5707,12 +5707,12 @@ function setCoinTabLabels(){
 function renderCoinChat(activity){
   const messages = coinChatMessages;
   const rows = messages.length ? messages.map(tokenChatMessageMarkup).join('') : tokenChatEmptyMarkup();
-  activity.innerHTML = `<div class="coin-chat"><div class="coin-chat-intro"><div><strong>${escapeHtml(coinActivity.symbol || 'Token')} discussion</strong><small>Wallet-verified community messages</small></div><span>${messages.length} message${messages.length === 1 ? '' : 's'}</span></div><div class="coin-chat-messages">${rows}</div>${tokenChatComposerMarkup('coin-chat')}</div>`;
+  activity.innerHTML = `<div class="coin-chat"><div class="coin-chat-intro"><div><strong>${escapeHtml(coinActivity.symbol || 'Token')} chat</strong><small>Wallet-verified community messages</small></div><span>${messages.length} message${messages.length === 1 ? '' : 's'}</span></div><div class="coin-chat-messages">${rows}</div>${tokenChatComposerMarkup('coin-chat')}</div>`;
 }
 function tokenChatAuthorLabel(author){ return author ? shortAddress(author) : 'Unknown wallet'; }
 function tokenChatEmptyMarkup(){
-  if (coinChatState.loading) return '<div class="empty-state coin-activity-empty"><strong>Loading discussion…</strong><small>Reading wallet-verified messages.</small></div>';
-  if (!coinChatState.enabled) return `<div class="empty-state coin-activity-empty"><strong>Discussion unavailable</strong><small>${escapeHtml(coinChatState.reason || 'The discussion service could not be reached.')}</small></div>`;
+  if (coinChatState.loading) return '<div class="empty-state coin-activity-empty"><strong>Loading chat…</strong><small>Reading wallet-verified messages.</small></div>';
+  if (!coinChatState.enabled) return `<div class="empty-state coin-activity-empty"><strong>Chat unavailable</strong><small>${escapeHtml(coinChatState.reason || 'The chat service could not be reached.')}</small></div>`;
   return '<div class="empty-state coin-activity-empty"><strong>Start the conversation</strong><small>Share a useful observation about this token. Your wallet verifies authorship; signing does not send a transaction.</small></div>';
 }
 function tokenChatMessageMarkup(item){
@@ -5752,7 +5752,7 @@ function ensureCoinCommunityPanel(){
   }
   const panel = document.createElement('aside');
   panel.className = 'panel coin-community-panel';
-  panel.innerHTML = '<div class="coin-community-head"><div><p class="eyebrow">Community</p><h2>Discussion</h2></div><span class="data-badge">LOADING</span></div><div id="coin-community-feed" class="coin-community-feed"></div>';
+  panel.innerHTML = '<div class="coin-community-head"><div><p class="eyebrow">Community</p><h2>Chat</h2></div><span class="data-badge">LOADING</span></div><div id="coin-community-feed" class="coin-community-feed"></div>';
   layout.append(panel);
   renderCoinCommunityPanel();
 }
@@ -5763,7 +5763,7 @@ async function loadCoinChat(mintAddress, loadId = coinLoadId){
   const response = await apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/chat`, { signal: AbortSignal.timeout(5000) }).catch(() => ({ available: false, data: null }));
   if (loadId !== coinLoadId) return;
   coinChatMessages = response.available && Array.isArray(response.data?.messages) ? response.data.messages : [];
-  coinChatState = { loading: false, enabled: response.available && response.data?.enabled === true, reason: response.data?.reason || (response.available ? '' : 'The discussion API is unavailable.') };
+  coinChatState = { loading: false, enabled: response.available && response.data?.enabled === true, reason: response.data?.reason || (response.available ? '' : 'The chat service is unavailable.') };
   renderCoinCommunityPanel();
   if (document.querySelector('[data-coin-tab="chat"].active')) renderCoinActivityTab();
 }
@@ -6179,7 +6179,7 @@ document.querySelector('#coin-page')?.addEventListener('click', async event => {
   if (reportMessage) {
     const reason = reportMessage.closest('[data-chat-message]')?.querySelector('.coin-chat-report-reason select')?.value || 'other';
     reportMessage.disabled = true;
-    try { await tokenChatRequest('report', { messageId: reportMessage.dataset.chatReport, reason }); await refreshCoinChat(); showToast('Report received. Thank you for helping moderate the discussion.'); }
+    try { await tokenChatRequest('report', { messageId: reportMessage.dataset.chatReport, reason }); await refreshCoinChat(); showToast('Report received. Thank you for helping moderate the chat.'); }
     catch (error) { showToast(error.message || 'The report could not be submitted'); reportMessage.disabled = false; }
     return;
   }
