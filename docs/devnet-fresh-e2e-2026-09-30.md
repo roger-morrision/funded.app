@@ -1,0 +1,38 @@
+# Fresh-token Devnet end-to-end audit — 2026-09-30
+
+Scope: two new Standard launches using the rotated Devnet QA wallets. Legacy tokens and held wallets were excluded. A transaction is counted as passed only after a finalized, error-free receipt and the expected on-chain and app state changes. This is Devnet evidence, not Mainnet approval.
+
+## Fresh mints
+
+| Purpose | Mint | Policy | Result |
+| --- | --- | --- | --- |
+| Trade, referral and small-fee test | `3WF4YwLtwcVJ738tNKgqsPXMBxYSrosPZ316HSNkvbaZ` | 70% creator, 10% coin holders; 3% community token reserve | Finalized launch; registry, metadata, image bytes and rotated fee-router authority verified. |
+| Automatic collection, creator claim and migration | `5D6NrzqP94RdCjnyJan44AGxJF1fANjkVWDa6G4HtTBC` | 60% creator, 20% coin holders; 3% community token reserve | Finalized launch and developer buy; metadata, image bytes and rotated fee-router authority verified. |
+
+## Finalized live flows
+
+| Flow | Evidence |
+| --- | --- |
+| First-mint holder buy | [Transaction](https://explorer.solana.com/tx/3NqJiVvKCWiuXfTAiDK858JupxcNXgtcqs7oQDTMMrAwjQsYqwbJjUbUSEPyd2ZZ1AAb9jFAvgz2Z7zaTJTgHjSA?cluster=devnet) finalized; holder gained 10,519,606,686,908 token base units and app trading treasury gained 50,000 lamports. |
+| First-mint manual small-fee collection | [Transaction](https://explorer.solana.com/tx/3NKjWucaWg7TmzHuziyPc6CT5HPpe823kJGao6XR2sYwoHiFASBkiK8ZsVPWmoSfQVkWGkZeASqK1YFW63txY5Fd?cluster=devnet) moved exactly 89,109 lamports from Pump vault to the mint router. One settlement was recorded; replay was idempotent. This amount was below the automatic threshold. |
+| Three-level referrals | Rotated QA L1, L2 and L3 recipients received exact finalized deltas of [1,782](https://explorer.solana.com/tx/23UYpyGg6PPkYnaSjA4Qs4EqgcmN44N7byAR7HfzvsLqfTpuqgdnrn9Ckg1pNkNQWcaTzmCRoncSdwwwbVqSANYS?cluster=devnet), [535](https://explorer.solana.com/tx/5RAgYAqppxTj5JrHhCAvEjFLtNeYgWex2gr3WWi7EoAALVdsiMJ1wZRjuragH46hsE3ckfc537CgdPQQ2yvEcUne?cluster=devnet) and [356](https://explorer.solana.com/tx/3X3CFdV4CDW6uiuyxK719MqG779KGbdbm3qdR5TKyg61vWGbFYByhHtT7auJKTkmDSJtFi9KR7KCC91tYVHxbrkk?cluster=devnet) lamports. Public API shows paid receipts. |
+| Second-mint community reserve | [Transaction](https://explorer.solana.com/tx/2edJ8gKVPr1h3mALyrqGNYvXquef9AUqXRWsLBFhj28ap7eUgDdWRmkQ8XyL9fzkGFf2i8M19KTbTd2PQLSWgkAi?cluster=devnet) transferred exactly 30,000,000 tokens from the rotated creator to the reward vault. Public reserve API reports `funded`, `verified: true` and the same signature. |
+| Second-mint pre-migration trades | Six capped claimant buy/sell rounds finalized; the claimant's token position returned to zero after each. The app trading treasury deltas matched the reviewed fees. Public token page indexed 13 curve trades including the launch buy and showed 24-hour volume in USD. |
+| Automatic fee collection | Scheduled collector tick at `2026-09-30T14:01:30Z` collected and settled once. [Transaction](https://explorer.solana.com/tx/5prXG6KcF8owvVBh454zpTN2jLGiw16hM9StgBs5WrpXEjJpTrD51DPjtVkJk1FU28rhKSt5s9o22HKjRHs1AvNj?cluster=devnet) moved exactly 17,881,194 lamports from Pump vault to mint router; accrued balance became zero. No manual keeper request was used on this mint. |
+| Creator claim | [Transaction](https://explorer.solana.com/tx/4kyrxukPV8RyAHgRYc8bcafHKPMXWujvLuXrttiNSqkGEUiTjZkC3PqDvctpWD2NiVsUVM7fTFqNeq7Vq6Q6XeYm?cluster=devnet) finalized at slot 505928236. Rotated creator received exactly 10,728,716 lamports. App paid amount matched and outstanding became zero. |
+| Migration | [Finishing buy](https://explorer.solana.com/tx/69Lf2YJL4TBUHzr8nfXDcYv9arFAdf323PUyTT3md7UoRVAURGAHB6Yjd6K8aCiwdbTAVCyzbAF45YBtpwN8FfD?cluster=devnet) of 2.823847108 Devnet SOL finalized at slot 505928947; curve real token reserves fell from 752,223,810.909805 to zero. [Migration](https://explorer.solana.com/tx/2TSb3dLp6EE7SfaVEvL6454za1JhpFcZsYJ7bQug2mp3Fuu2rbsvXfAWWvsFeaD7wMoRkUPrRcoNzMyvnyzA3VPN?cluster=devnet) finalized at slot 505928958. Canonical PumpSwap pool `G5tgKtFeRFwFmAVXys8Eo5ioHRtDZgXFT2H2vhKCXFHG` has the expected program owner and positive token/SOL reserves. Read-only postmigration verification passed again. Public token page displays `Migrated · PumpSwap`. |
+| Postmigration PumpSwap trade | Rotated claimant [bought](https://explorer.solana.com/tx/4LQ39ihzxUmTmnma2n7gZo3RB8WuEMwWcQw82HLc8Kszn3ZdQRvuE8z9kgGGhuEQEtydL8ngdEH5U4kMFmHgApod?cluster=devnet) with 0.0095 SOL and [sold](https://explorer.solana.com/tx/36W7uhUhiaQQHRevvZ43urqrMhSiEVz7QmqtbQeRF11q37s2r5NCeCXPzBmrm3yFWDMwb31Jrq19wp3dYpwTWHMW?cluster=devnet) the exact 471,552,674,318 received token base units. Both were simulated and finalized without error. Pool token and quote reserve deltas were checked for each swap, app trading treasury gained 47,500 then 46,328 lamports, and claimant finished with zero tokens. |
+| Public postmigration indexing | Replaced only the public Devnet app container with image `fundedapp-app:qa-pumpswap-scan-c-20260930`; it was healthy after replacement. The live API returned complete 24h coverage, 45 combined trades, 31 verified PumpSwap pool trades, and 9.356219596 SOL combined volume. Its recent rows included both finalized QA swap signatures above. The public token page displayed `Migrated · PumpSwap`, the combined activity feed and volume, and accurate curve + pool captions. |
+| Token chat | On the second mint, a rotated QA wallet approved one session, posted a disposable message (201, persisted), deleted its own message (200, absent afterward), and revoked the session. Challenge replay and posting after revocation returned 401. No user content was touched. |
+
+## Coverage limits and release blockers
+
+- **Community token claims remain blocked.** Reserve funding and migration are real, but no live service builds the exact migration-slot `$FUNDED` holder snapshot and Merkle manifest or invokes `initialize_community_drop` and `claim_community_drop`. The public Airdrops page correctly shows `Vault Verified`, `Snapshot Pending`, and `No verified proof`.
+- **Coin-holder payout is not yet due.** The public reward schedule lists cutoff `2026-10-02 00:00 UTC` and payout `01:00 UTC`; no finalized holder-cycle payment can be claimed in this audit. Allocation logic passed only with mocked chain fixtures.
+- **X reward is untested live.** Neither fresh mint assigned an X share, and no consenting, OAuth-linked X test account was available. Local OAuth/claim tests passed with a mocked provider only.
+- **Boost and paid listing are untested live.** Each burn needs 25,000 `$FUNDED`; the safely rotated QA wallets do not hold that amount, and the mint has no active authority to mint more for testing.
+- **Mainnet was not exercised.** No Mainnet transaction or deployment-readiness claim follows from these Devnet results.
+
+## Local validation
+
+Production Vite build passed. `verify:automatic-rewards`, `verify:community-reserve-funding`, `verify:community-manifest`, `verify:fee-router`, `verify:buyback-executor`, `verify:referral-program`, `verify:token-chat`, `verify:x-auth`, `verify:x-auth-http`, `verify:referral-claim-state`, `verify:creator-support`, `verify:launch-matrix` and `verify:pump-trading` passed. Tests that use fixtures or mocked providers are explicitly separate from the live results above.

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import bs58 from 'bs58';
 import { createCloseAccountInstruction, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Connection, Keypair, PublicKey, Transaction, clusterApiUrl } from '@solana/web3.js';
@@ -12,6 +13,12 @@ assert.equal(process.env.VITE_SOLANA_CLUSTER, 'devnet');
 const mint = new PublicKey(mintArg);
 const trader = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CLAIMANT_SECRET_KEY || ''));
 const owner = new PublicKey(process.env.VITE_FUNDED_TRADE_FEE_OWNER);
+const qaWallets = JSON.parse(readFileSync('.secrets/devnet-qa-wallets-20260930/public.json', 'utf8'));
+const appRoles = JSON.parse(readFileSync('.secrets/devnet-app-roles-20260930/public.json', 'utf8'));
+assert.equal(trader.publicKey.toBase58(), qaWallets.find(item => item.role === 'claimant' && item.cluster === 'devnet')?.address,
+  'Trade signer differs from the rotated Devnet QA manifest.');
+assert.equal(owner.toBase58(), appRoles.find(item => item.role === 'trading_fee_treasury' && item.cluster === 'devnet')?.address,
+  'Trade fee destination differs from the Devnet app-role manifest.');
 const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || clusterApiUrl('devnet'), 'finalized');
 assert.equal(await connection.getGenesisHash(), await new Connection(clusterApiUrl('devnet')).getGenesisHash(), 'Configured RPC is not Devnet.');
 const launches = await (await fetch('http://127.0.0.1:8788/api/launches')).json();
@@ -28,7 +35,7 @@ const initialSol = await connection.getBalance(trader.publicKey, 'finalized');
 assert(initialSol >= Math.ceil((buySol + 0.05) * 1e9), 'Volume wallet has insufficient Devnet SOL.');
 const curveBefore = await fetchBondingCurveSnapshot({ connection, mint });
 assert.equal(curveBefore.complete, false, 'Use the bonding-curve route before migration.');
-console.log(JSON.stringify({ stage:'preflight', execute:process.argv.includes('--execute'), mint:mint.toBase58(), trader:trader.publicKey.toBase58(), rounds, buySol, maxGrossBuySol:rounds*buySol, startingSol:initialSol/1e9, curveProgress:curveBefore.progressPercent }));
+console.log(JSON.stringify({ stage:'preflight', execute:process.argv.includes('--execute'), mint:mint.toBase58(), trader:trader.publicKey.toBase58(), feeOwner:owner.toBase58(), signerManifestVerified:true, rounds, buySol, maxGrossBuySol:rounds*buySol, startingSol:initialSol/1e9, curveProgress:curveBefore.progressPercent }));
 if (!process.argv.includes('--execute')) process.exit(0);
 
 async function send(instructions) {

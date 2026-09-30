@@ -73,12 +73,13 @@ export function buildCoinSummary({ mint, cluster, launch, ledgerMint, overview, 
   }
 
   const volumeSol = market?.volume24hSol == null ? null : Number(market.volume24hSol);
-  const volumeReady = ['complete', 'partial'].includes(market?.coverage) && !market?.graduated;
+  const volumeReady = ['complete', 'partial'].includes(market?.coverage)
+    && (!market?.graduated || Number(market.poolTradeCount24h) > 0);
   const volumeUsd = toUsd(volumeReady ? volumeSol : null, solUsd);
   cards.push(card('volume', 'Trading volume · 24h', '⌁', 'USD', volumeUsd,
     volumeUsd == null ? 'unavailable' : market.coverage === 'partial' ? 'partial' : volumeUsd > 0 ? 'available' : 'empty',
-    volumeUsd == null ? 'Pump curve trade scan or SOL/USD quote unavailable'
-      : `Confirmed curve trades${market.coverage === 'partial' ? ' · partial RPC scan' : ''}`));
+    volumeUsd == null ? 'Verified trade scan or SOL/USD quote unavailable'
+      : `Confirmed ${market.graduated ? 'curve and pool' : 'curve'} trades${market.coverage === 'partial' ? ' · partial RPC scan' : ''}`));
 
   return { visible: true, cards };
 }

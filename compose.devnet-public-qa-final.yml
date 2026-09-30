@@ -2,6 +2,6 @@
 # test and router-rotation overlays cannot replace the verified app image.
 services:
   app:
-    image: fundedapp-app:qa-final-20260930
+    image: fundedapp-app:qa-pumpswap-scan-c-20260930
     environment:
-      FUNDED_BUILD_ID: qa-final-20260930
+      FUNDED_BUILD_ID: qa-pumpswap-scan-c-20260930

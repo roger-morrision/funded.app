@@ -38,6 +38,12 @@ assert.equal(cards.airdrop.state, 'partial');
 assert.equal(cards.burn.amount, 25_000);
 assert.equal(cards.volume.amount, 50);
 assert.equal(cards.volume.state, 'partial');
+const migratedWithPoolTrades = buildCoinSummary({ ...input, market:{ coverage:'partial', graduated:true, poolTradeCount24h:2, volume24hSol:0.503913943 } });
+const migratedVolume = migratedWithPoolTrades.cards.find(card => card.id === 'volume');
+assert.equal(migratedVolume.amount, 50.3913943);
+assert.equal(migratedVolume.state, 'partial');
+assert.match(migratedVolume.note, /curve and pool trades · partial RPC scan/);
+assert.equal(buildCoinSummary({ ...input, market:{ coverage:'complete', graduated:true, poolTradeCount24h:0, volume24hSol:0.5 } }).cards.find(card => card.id === 'volume').amount, null);
 
 assert.deepEqual(buildCoinSummary({ ...input, launch:{ ...launch, onchainVerified:false } }), { visible:false, cards:[] });
 const wrongLedger = buildCoinSummary({ ...input, ledgerMint:'different-mint' });

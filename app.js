@@ -5574,9 +5574,9 @@ async function loadSolUsdQuote(){
   setCoinField('#coin-liquidity', formatCoinUsd(coinSolUsdValues.reserve));
   renderCoinSnapshotUsd();
   renderCoinSummary();
-  if (coinMarketActivity.graduated) setCoinField('#coin-volume', 'Pool activity unindexed');
+  if (coinMarketActivity.graduated && coinMarketActivity.status === 'unavailable') setCoinField('#coin-volume', 'Pool activity unavailable');
   else if (coinMarketActivity.coverage === 'complete' && coinMarketActivity.tradeCount === 0) setCoinField('#coin-volume', 'No trades');
-  else if (Number.isFinite(Number(coinMarketActivity.volume24hSol))) setCoinField('#coin-volume', formatExploreUsd(coinMarketActivity.volume24hSol, { partial: coinMarketActivity.coverage === 'partial' }));
+  else if (Number.isFinite(Number(coinMarketActivity.volume24hSol))) setCoinField('#coin-volume', `${formatExploreUsd(coinMarketActivity.volume24hSol, { partial: coinMarketActivity.coverage === 'partial' })}${coinMarketActivity.coverage === 'partial' ? ' · partial' : ''}`);
   renderCoinPricePath(); renderCoinPulse(); renderCoinActivityTab();
   renderExploreAssets(); renderRegistry(); renderHomeLaunchBoard(); renderHomeKpiDashboard(assets); renderOnchainReportState(assets);
   if (document.querySelector('#wallet-page:not([hidden])')) renderWalletDetail();
@@ -5648,15 +5648,18 @@ function renderCoinFlow(buy, sell, partial = false){
   const buyBar = document.querySelector('#coin-flow-buy');
   const sellBar = document.querySelector('#coin-flow-sell');
   const note = document.querySelector('#coin-flow .coin-flow-heading small');
+  setCoinField('#coin-flow .coin-flow-heading > span', coinMarketActivity.graduated ? 'Observed 24h curve + pool volume' : 'Observed 24h curve volume');
   const valid = Number.isFinite(buy) && Number.isFinite(sell) && buy >= 0 && sell >= 0;
   const total = valid ? buy + sell : 0;
   if (buyBar) buyBar.style.width = `${total ? buy / total * 100 : 0}%`;
   if (sellBar) sellBar.style.width = `${total ? sell / total * 100 : 0}%`;
   setCoinField('#coin-flow-buy-label', valid ? `Buy ${formatExploreUsd(buy, { partial })}` : 'Buy —');
   setCoinField('#coin-flow-sell-label', valid ? `Sell ${formatExploreUsd(sell, { partial })}` : 'Sell —');
-  if (note) note.textContent = valid ? total ? `${partial ? 'Partial' : 'Confirmed'} curve trade scan` : 'No observed curve volume' : 'Buy/sell volume unavailable';
+  if (note) note.textContent = valid ? total ? `${partial ? 'Partial' : 'Confirmed'} ${coinMarketActivity.graduated ? 'curve and pool' : 'curve'} trade scan` : 'No observed trade volume' : 'Buy/sell volume unavailable';
 }
 function renderCoinPulse(){
+  setCoinField('.coin-pulse-head .eyebrow', coinMarketActivity.graduated ? 'Confirmed curve + pool activity' : 'Confirmed curve activity');
+  setCoinField('.coin-pulse-grid > div:nth-child(3) > span', coinMarketActivity.graduated ? 'Trade volume' : 'Curve volume');
   document.querySelectorAll('[data-coin-pulse-period]').forEach(button => {
     const active = button.dataset.coinPulsePeriod === coinPulsePeriod;
     button.classList.toggle('active', active);
@@ -5686,7 +5689,7 @@ function renderCoinPulse(){
   const volume = Number(pulse.buyVolumeSol) + Number(pulse.sellVolumeSol);
   if (buyBar) buyBar.style.width = `${volume > 0 ? Number(pulse.buyVolumeSol) / volume * 100 : 0}%`;
   if (sellBar) sellBar.style.width = `${volume > 0 ? Number(pulse.sellVolumeSol) / volume * 100 : 0}%`;
-  if (note) note.textContent = `${partial ? 'Partial RPC scan · values are observed lower bounds' : 'Complete RPC scan'} · Pump curve only · distinct trader addresses are not holder counts.`;
+  if (note) note.textContent = `${partial ? 'Partial RPC scan · values are observed lower bounds' : 'Complete RPC scan'} · ${coinMarketActivity.graduated ? 'Pump curve and PumpSwap pool' : 'Pump curve'} · distinct trader addresses are not holder counts.`;
 }
 function coinAuthorityLabel(value){ return value === null ? 'Disabled' : value ? shortAddress(value) : 'Unavailable'; }
 function setCoinAuthority(selector, value){ setCoinFact(selector, coinAuthorityLabel(value), value === null ? 'clear' : value ? 'caution' : 'unknown'); }
@@ -5977,19 +5980,26 @@ function resetCoinSurface(mintAddress){
   setCoinField('#coin-network', `Solana · ${EXPLORE_CLUSTER}`);
 }
 async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
-  if (graduated) {
-    coinMarketActivity = { status: 'unavailable', trades: [], coverage: null, decimals, graduated: true };
-    renderCoinPricePath(); renderCoinFlow(NaN, NaN); renderCoinPulse();
-    setCoinField('#coin-volume', 'Pool activity unindexed'); setCoinField('#coin-volume-source', 'PumpSwap swaps are not indexed yet');
-    setCoinField('#coin-change', 'Pool change unindexed'); setCoinField('#coin-trade-count', 'Unindexed');
-    setCoinField('#coin-trade-breakdown', 'Pool trades not indexed'); setCoinField('#coin-trade-coverage', 'Post-migration PumpSwap trade history is not indexed yet.');
-    setCoinTabLabels(); renderCoinActivityTab();
-    renderCoinSummary();
-    return;
-  }
   const response = await apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/market-activity`, { signal: AbortSignal.timeout(12000) }).catch(() => ({ available: false, data: null }));
   if (loadId !== coinLoadId) return;
   const market = response.available && response.data?.cluster === EXPLORE_CLUSTER ? response.data : null;
+  const hasPoolTradeCount = Number.isInteger(market?.poolTradeCount24h);
+  if (graduated && !(hasPoolTradeCount && market.poolTradeCount24h > 0
+    && ['complete', 'partial'].includes(market.coverage) && Number.isFinite(Number(market.volume24hSol)))) {
+    const poolScanNote = !market ? 'PumpSwap trade history is unavailable from RPC.'
+      : !hasPoolTradeCount ? 'This API response does not include PumpSwap swaps.'
+        : market.coverage === 'partial' ? 'No pool swaps were found in this partial RPC scan.'
+          : 'No verified PumpSwap swaps were found in the last 24h.';
+    coinMarketActivity = { status: 'unavailable', trades: [], coverage: market?.coverage || null, decimals, graduated: true };
+    renderCoinPricePath(); renderCoinFlow(NaN, NaN); renderCoinPulse();
+    setCoinField('#coin-volume', 'Pool activity unavailable'); setCoinField('#coin-volume-source', poolScanNote);
+    setCoinField('#coin-change', 'Pool change unavailable'); setCoinField('#coin-trade-count', 'Unavailable');
+    setCoinField('#coin-trade-breakdown', hasPoolTradeCount ? 'No pool swaps observed' : 'Pool trades unavailable');
+    setCoinField('#coin-trade-coverage', poolScanNote);
+    setCoinField('#coin-description', `On-chain mint and verified PumpSwap pool snapshot. ${poolScanNote}`);
+    setCoinTabLabels(); renderCoinActivityTab(); renderCoinSummary();
+    return;
+  }
   if (!market || market.volume24hSol == null || !Number.isFinite(Number(market.volume24hSol))) {
     coinMarketActivity = { status: 'unavailable', trades: [], coverage: null, decimals };
     renderCoinPricePath(); renderCoinFlow(NaN, NaN); renderCoinPulse();
@@ -6008,7 +6018,7 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
     setCoinField('#coin-liquidity', formatCoinUsd(coinSolUsdValues.reserve));
     renderCoinSnapshotUsd();
   }
-  coinMarketActivity = { status: hasTradeRows ? 'ready' : 'summary-only', trades: hasTradeRows ? market.recentTrades : [], activityWindows: market.activityWindows, coverage: market.coverage, decimals, graduated: false, tradeCount: Number(market.tradeCount24h) || 0, volume24hSol: Number(market.volume24hSol), buyVolume24hSol: Number(market.buyVolume24hSol), sellVolume24hSol: Number(market.sellVolume24hSol) };
+  coinMarketActivity = { status: hasTradeRows ? 'ready' : 'summary-only', trades: hasTradeRows ? market.recentTrades : [], activityWindows: market.activityWindows, coverage: market.coverage, decimals, graduated: Boolean(graduated), poolTradeCount24h: Number(market.poolTradeCount24h) || 0, tradeCount: Number(market.tradeCount24h) || 0, volume24hSol: Number(market.volume24hSol), buyVolume24hSol: Number(market.buyVolume24hSol), sellVolume24hSol: Number(market.sellVolume24hSol) };
   renderCoinSummary();
   const partial = market.coverage === 'partial';
   if (hasTradeRows && market.recentTrades.length >= 2) setCoinChartView('trades');
@@ -6017,12 +6027,13 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
   setCoinField('#coin-trade-count', `${partial ? '≥' : ''}${coinMarketActivity.tradeCount}`);
   const hasSideCounts = Number.isInteger(market.buyCount24h) && Number.isInteger(market.sellCount24h);
   setCoinField('#coin-trade-breakdown', hasSideCounts ? `${partial ? '≥' : ''}${market.buyCount24h} buys · ${partial ? '≥' : ''}${market.sellCount24h} sells` : 'Buy/sell split unavailable');
-  setCoinField('#coin-trade-coverage', `Confirmed Pump bonding-curve trades · last 24h${partial ? ' · partial RPC scan' : ''} · ${hasTradeRows ? `latest ${Math.min(20, coinMarketActivity.trades.length)} shown` : 'individual rows not indexed'}${graduated ? ' · post-graduation pool trades excluded' : ''}`);
+  setCoinField('#coin-trade-coverage', `Confirmed ${graduated ? 'Pump curve + PumpSwap pool' : 'Pump curve'} trades · last 24h${partial ? ' · partial RPC scan' : ''} · ${hasTradeRows ? `latest ${Math.min(20, coinMarketActivity.trades.length)} shown` : 'individual rows not indexed'}`);
   setCoinTabLabels(); renderCoinActivityTab();
   const noTrades = market.coverage === 'complete' && Number(market.tradeCount24h) === 0;
   const volume = `${market.coverage === 'partial' ? '≥' : ''}${formatCoinUsd(Number(market.volume24hSol))}`;
   setCoinField('#coin-volume', noTrades ? 'No trades' : market.coverage === 'partial' ? `${volume} · partial` : volume);
-  setCoinField('#coin-volume-source', noTrades ? 'Complete Pump curve scan · last 24h' : partial ? 'Partial curve RPC scan' : 'Pump curve RPC scan · 24h');
+  setCoinField('#coin-volume-source', noTrades ? 'Complete Pump curve scan · last 24h' : partial ? `Partial ${graduated ? 'curve + pool' : 'curve'} RPC scan` : `${graduated ? 'Pump curve + PumpSwap pool' : 'Pump curve'} RPC scan · 24h`);
+  if (graduated) setCoinField('#coin-description', `On-chain mint and verified PumpSwap pool snapshot. Confirmed curve and pool trade observations${partial ? ' from a partial RPC scan' : ''}.`);
   const change = Number(market.priceChangePercent);
   const basis = market.priceChangeBasis;
   setCoinField('#coin-change', noTrades ? 'No 24h trades' : market.priceChangePercent != null && Number.isFinite(change) && basis
@@ -6106,7 +6117,7 @@ async function loadCoinOnChain(mintAddress){
     setCoinField('.coin-live-dot', 'RPC confirmed');
     setCoinField('#coin-avatar', symbol.slice(0, 1).toUpperCase()); setCoinField('#coin-symbol', symbol); setCoinField('#coin-page-title', name);
     setCoinField('#coin-address', shortAddress(mintAddress)); setCoinField('#coin-full-address', mintAddress);
-    setCoinField('#coin-description', graduatedPool ? 'On-chain mint and verified PumpSwap pool snapshot. Pool trade history is not yet indexed.' : 'On-chain mint and Pump bonding-curve snapshot. Signed Devnet metadata is checked separately.');
+    setCoinField('#coin-description', graduatedPool ? 'On-chain mint and verified PumpSwap pool snapshot. Reading confirmed trade activity from RPC…' : 'On-chain mint and Pump bonding-curve snapshot. Signed Devnet metadata is checked separately.');
     setCoinFact('#coin-stage', graduatedPool ? 'Migrated · PumpSwap' : curve ? curve.complete ? 'Curve complete · pool unavailable' : 'On Pump curve' : 'Unverified', curve ? 'clear' : 'unknown');
     setCoinFact('#coin-fee-owner', linkedRouter ? 'App router address matched' : curve?.creator ? shortAddress(curve.creator) : 'Unavailable', linkedRouter ? 'clear' : 'unknown');
     setCoinFact('#coin-metadata-status', metadataInfo?.data && (metadata.name || metadata.symbol) ? 'On-chain name / symbol' : registeredLaunch ? 'Pump create event verified' : 'No verified name', metadataInfo?.data && (metadata.name || metadata.symbol) || registeredLaunch ? 'clear' : 'unknown');
