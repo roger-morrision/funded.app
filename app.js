@@ -565,7 +565,7 @@ function loadTokenLogo(avatar, launch){
   trySource();
 }
 function loadPortfolioLogo(card, launch){
-  loadTokenLogo(card?.querySelector('.portfolio-token-avatar, .asset-icon, .wallet-activity-icon, .home-token-avatar, .home-holder-reward-avatar, .claim-token-mark, .claim-token > span, .explore-ticker-token > i, .explore-tape-logo, .terminal-signal-logo, .leader-token-logo'), launch);
+  loadTokenLogo(card?.querySelector('.portfolio-token-avatar, .asset-icon, .wallet-activity-icon, .home-token-avatar, .home-holder-reward-avatar, .claim-token-mark, .claim-token > span, .explore-ticker-token > i, .explore-tape-logo, .terminal-signal-logo, .leader-token-logo, .coin-trade-token-avatar'), launch);
 }
 function loadVerifiedTokenLogos(container){
   container?.querySelectorAll('[data-logo-mint]').forEach(row => loadPortfolioLogo(row, verifiedLaunchPolicyForMint(row.dataset.logoMint)));
@@ -5806,13 +5806,16 @@ function renderCoinActivityTab(){
     const minInput = document.querySelector('#coin-trade-min-sol')?.value || '';
     const minSol = minInput === '' ? 0 : Math.max(0, Number(minInput) || 0);
     const trades = selectRecentTrades(coinMarketActivity.trades, { side: coinTradeFilter, wallet: walletQuery, minSol });
+    const mint = getCoinMintAddress();
+    const symbol = coinActivity.symbol || 'TOKEN';
     activity.innerHTML = trades.length ? trades.map(item => {
       const time = Number.isFinite(Number(item.blockTime)) ? new Date(Number(item.blockTime) * 1000).toLocaleString() : 'Time unavailable';
       const sol = Number(item.solLamports) / 1_000_000_000;
       const tokens = Number(item.tokenAmountRaw) / (10 ** coinMarketActivity.decimals);
       const side = item.side === 'buy' ? 'Buy' : 'Sell';
-      return `<div class="coin-activity-row coin-trade-row ${item.side === 'buy' ? 'is-buy' : 'is-sell'}"><span class="activity-icon">${item.side === 'buy' ? '↗' : '↘'}</span><span><strong>${side} <a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(item.signature)}`))}" target="_blank" rel="noopener noreferrer">${escapeHtml(shortAddress(item.signature))} ↗</a></strong><small>Trader <a href="/wallet/${encodeURIComponent(item.trader)}" aria-label="View wallet profile for ${escapeHtml(item.trader)}">${escapeHtml(shortAddress(item.trader))}</a></small></span><b class="activity-amount">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}<small>${Number.isFinite(tokens) ? escapeHtml(formatOnChainNumber(tokens, 2)) : '—'} ${escapeHtml(coinActivity.symbol || 'tokens')}</small><time class="activity-time">${escapeHtml(time)}</time></b></div>`;
+      return `<div class="coin-activity-row coin-trade-row ${item.side === 'buy' ? 'is-buy' : 'is-sell'}" data-logo-mint="${escapeHtml(mint)}"><span class="activity-icon coin-trade-token-avatar" aria-hidden="true">${escapeHtml(symbol.slice(0, 1).toUpperCase())}</span><span><strong>${side} <span class="coin-trade-symbol">${escapeHtml(symbol)}</span></strong><small>Trader <a href="/wallet/${encodeURIComponent(item.trader)}" aria-label="View wallet profile for ${escapeHtml(item.trader)}">${escapeHtml(shortAddress(item.trader))}</a></small></span><b class="activity-amount">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}<small>${Number.isFinite(tokens) ? escapeHtml(formatOnChainNumber(tokens, 2)) : '—'} ${escapeHtml(symbol)}</small><time class="activity-time">${escapeHtml(time)}</time></b></div>`;
     }).join('') : `<div class="empty-state coin-activity-empty"><strong>No matching trades in this view</strong><small>${coinMarketActivity.coverage === 'partial' ? 'RPC coverage is partial; more activity may exist.' : coinTradeFilter !== 'all' || walletQuery || minSol ? 'Filters apply to the latest 20 shown. The 24-hour totals include all scanned trades.' : 'No confirmed Pump bonding-curve trade was found in the scanned 24-hour window.'}</small></div>`;
+    if (trades.length) loadVerifiedTokenLogos(activity);
     return;
   }
   if (coinActivity.status === 'loading') {

@@ -195,8 +195,11 @@ main.wallet-view>#wallet-page{display:block!important}
 .coin-page .coin-trade-refine small{grid-column:1/-1;color:#8d9eb3;font:10px 'DM Mono',monospace}
 .coin-page .coin-trade-row.is-buy .activity-icon{background:#143b32;color:#8ce0bd}
 .coin-page .coin-trade-row.is-sell .activity-icon{background:#3f242d;color:#ef9da9}
+.coin-page .coin-trade-row .coin-trade-token-avatar{width:32px;height:32px;overflow:hidden;border:1px solid #38536a;border-radius:10px;font:700 12px Manrope,sans-serif}
+.coin-page .coin-trade-row .coin-trade-token-avatar img{display:block;width:100%;height:100%;object-fit:cover}
 .coin-page .coin-trade-row.is-buy strong{color:#9de2c3}
 .coin-page .coin-trade-row.is-sell strong{color:#efadba}
+.coin-page .coin-trade-row .coin-trade-symbol{margin-left:3px;color:#e0e9f5;font-weight:650}
 .coin-page .coin-trade-row strong a{margin-left:4px;color:#b7c6da;font-weight:500}
 .coin-page .coin-trade-row small a{color:#899fbd;text-decoration:none}
 .coin-page .coin-trade-row{grid-template-columns:34px minmax(0,1fr) minmax(0,max-content)}
