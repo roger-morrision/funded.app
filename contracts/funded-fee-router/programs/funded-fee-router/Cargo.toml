@@ -21,8 +21,8 @@ custom-panic = []
 
 
 [dependencies]
-anchor-lang = "1.0.0"
-anchor-spl = "1.0.0"
+anchor-lang = "=1.2.0"
+anchor-spl = "=1.2.0"
 solana-sha256-hasher = "3.1.0"
 
 [dev-dependencies]

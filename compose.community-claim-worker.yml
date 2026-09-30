@@ -1,0 +1,29 @@
+services:
+  community-claim-worker:
+    profiles: ["automatic-rewards"]
+    image: ${FUNDED_APP_IMAGE:?Set the deployed funded.app image}
+    restart: unless-stopped
+    command: ["node", "scripts/run-community-claim-worker.mjs"]
+    environment:
+      SOLANA_CLUSTER: devnet
+      SOLANA_RPC_URL_FILE: /run/secrets/solana_rpc_url
+      FUNDED_API_TOKEN_FILE: /run/secrets/funded_api_token
+      FUNDED_ROUTER_AUTHORITY_SECRET_KEY_FILE: /run/secrets/funded_router_authority_secret_key
+      FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_FEE_ROUTER_PROGRAM_ID:?Missing Devnet router program ID}
+      FUNDED_REWARD_AUTHORITY: ${FUNDED_REWARD_AUTHORITY:?Missing Devnet reward authority}
+      FUNDED_REWARD_PROGRAM_DATA_SHA256: ${FUNDED_REWARD_PROGRAM_DATA_SHA256:?Missing reviewed program hash}
+      FUNDED_COMMUNITY_CLAIM_API: http://app:8787
+      FUNDED_COMMUNITY_CLAIM_TICK_MS: ${FUNDED_COMMUNITY_CLAIM_TICK_MS:-20000}
+    secrets:
+      - solana_rpc_url
+      - funded_api_token
+      - funded_router_authority_secret_key
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "scripts/run-community-claim-worker.mjs", "--check"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s

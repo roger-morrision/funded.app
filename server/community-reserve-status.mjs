@@ -36,7 +36,8 @@ async function verifiedDrop({ connection, program, issuer, funder, mintKey, toke
   }
   const root = data.subarray(168, 200).toString('hex'), snapshotHash = data.subarray(200, 232).toString('hex');
   const migrationSlot = Number(data.readBigUInt64LE(296)), snapshotSlot = Number(data.readBigUInt64LE(304));
-  const total = data.readBigUInt64LE(312), claimed = data.readBigUInt64LE(320), closed = data[348] !== 0;
+  const total = data.readBigUInt64LE(312), claimed = data.readBigUInt64LE(320), leafCount = data.readUInt32LE(344), closed = data[348] !== 0;
+  const migrationAt = Number(data.readBigInt64LE(328)), expiresAt = Number(data.readBigInt64LE(336));
   const destination = getAssociatedTokenAddressSync(mintKey, drop, true, tokenProgram);
   const destinationInfo = await connection.getAccountInfo(destination, 'finalized');
   if (!destinationInfo || !destinationInfo.owner.equals(tokenProgram) || destinationInfo.data.length < 109
@@ -86,7 +87,8 @@ async function verifiedDrop({ connection, program, issuer, funder, mintKey, toke
   return { status:receiptVerified ? closed ? 'drop-closed' : 'drop-active' : 'funding-unverified', verified:receiptVerified,
     drop:drop.toBase58(), dropTokenAccount:destination.toBase58(), dropOpeningSignature:receiptVerified ? dropOpeningSignature : null,
     merkleRoot:receiptVerified ? root : null, snapshotHash:receiptVerified ? snapshotHash : null,
-    migrationSlot, snapshotSlot, totalBaseUnits:String(total), claimedBaseUnits:String(claimed), remainingBaseUnits:String(remaining),
+    migrationSlot, snapshotSlot, migrationAt, expiresAt, leafCount,
+    totalBaseUnits:String(total), claimedBaseUnits:String(claimed), remainingBaseUnits:String(remaining),
     sourceVault:sourceVault.toBase58() };
 }
 

@@ -58,7 +58,7 @@ export function buildCommunityInitializeInstruction({ programId, authority, crea
     u64(manifest.totalAmount), u32(manifest.leaves.length)]);
   const keys = [
     { pubkey:issuer, isSigner:true, isWritable:true },
-    { pubkey:creatorKey, isSigner:true, isWritable:true },
+    { pubkey:creatorKey, isSigner:false, isWritable:false },
     { pubkey:issuer, isSigner:false, isWritable:false },
     { pubkey:asset, isSigner:false, isWritable:false },
     { pubkey:eligible, isSigner:false, isWritable:false },

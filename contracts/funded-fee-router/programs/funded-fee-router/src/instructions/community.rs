@@ -46,8 +46,8 @@ pub struct InitializeCommunityDrop<'info> {
 pub struct InitializeCommunityDropFromRewardVault<'info> {
     #[account(mut)]
     pub protocol_authority: Signer<'info>,
-    #[account(mut)]
-    pub creator: Signer<'info>,
+    /// CHECK: The service binds this address to a verified launch and finalized funding receipt.
+    pub creator: UncheckedAccount<'info>,
     /// CHECK: Equality with the current router authority is enforced in the handler.
     pub app_owner: UncheckedAccount<'info>,
     pub mint: InterfaceAccount<'info, Mint>,
@@ -65,7 +65,7 @@ pub struct InitializeCommunityDropFromRewardVault<'info> {
     pub reward_vault_token_account: InterfaceAccount<'info, TokenAccount>,
     #[account(
         init,
-        payer = creator,
+        payer = protocol_authority,
         space = 8 + CommunityDrop::INIT_SPACE,
         seeds = [COMMUNITY_DROP_SEED, protocol_authority.key().as_ref(), mint.key().as_ref()],
         bump
@@ -73,7 +73,7 @@ pub struct InitializeCommunityDropFromRewardVault<'info> {
     pub drop: Account<'info, CommunityDrop>,
     #[account(
         init,
-        payer = creator,
+        payer = protocol_authority,
         associated_token::mint = mint,
         associated_token::authority = drop,
         associated_token::token_program = token_program
