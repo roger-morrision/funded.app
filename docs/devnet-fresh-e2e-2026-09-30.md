@@ -1,5 +1,7 @@
 # Fresh-token Devnet end-to-end audit — 2026-09-30
 
+Follow-up: the [October 1 community claim audit](devnet-community-claim-e2e-2026-10-01.md) records the later program upgrade, fresh migration, verified drop opening, and finalized wallet claim. The coverage limits below describe the September 30 state.
+
 Scope: two new Standard launches using the rotated Devnet QA wallets. Legacy tokens and held wallets were excluded. A transaction is counted as passed only after a finalized, error-free receipt and the expected on-chain and app state changes. This is Devnet evidence, not Mainnet approval.
 
 ## Fresh mints

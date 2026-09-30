@@ -17,7 +17,7 @@ const makeStore = () => {
   return { read:async () => structuredClone(state), transaction:async mutate => mutate(state) };
 };
 const pin = 'ab'.repeat(32);
-function fixture({ store = makeStore(), observedHash = pin, reserveStatus = 'funded', openingOverrides = {} } = {}) {
+function fixture({ store = makeStore(), observedHash = pin, reserveStatus = 'funded', openingOverrides = {}, snapshot = fixedSnapshot } = {}) {
   const connection = { getGenesisHash:async () => DEVNET_GENESIS_HASH,
     getAccountInfo:async address => address.toBase58() === mint ? { owner:TOKEN_PROGRAM_ID, data:mintBytes } : null,
     getTokenAccountBalance:async () => ({ value:{ amount:'1000' } }) };
@@ -29,7 +29,7 @@ function fixture({ store = makeStore(), observedHash = pin, reserveStatus = 'fun
       ...openingOverrides };
   };
   return { store, service:createCommunityClaimService({ connection, store, programId, authority, eligibilityMint,
-    expectedCommunityProgramDataSha256:pin, captureSnapshot:async () => fixedSnapshot, reserveReader,
+    expectedCommunityProgramDataSha256:pin, captureSnapshot:async () => snapshot, reserveReader,
     programEvidence:async () => ({ account:{ executable:true }, sha256:observedHash }) }) };
 }
 const input = { mint, creator, reservedTokens:1000, fundingSignature:'funded-finalized', migrationSignature };
@@ -80,4 +80,15 @@ test('refuses a finalized opening receipt whose on-chain root differs from the p
   await service.prepare(input);
   await assert.rejects(service.recordOpening({ mint, signature:'opening-finalized' }), /differ from the immutable/);
   assert.equal((await service.prepared(mint)).openingSignature, null);
+});
+
+test('opens a full reserve when integer pro-rata shares leave token dust for the expiry recipient', async () => {
+  const other = key();
+  const snapshot = { ...fixedSnapshot, supplyBaseUnits:'3', accounts:[
+    { wallet:holder, balance:'1' }, { wallet:other, balance:'2' }] };
+  const { service } = fixture({ snapshot });
+  const record = await service.prepare(input);
+  assert.equal(record.manifest.allocatedAmount, '999');
+  assert.equal(record.manifest.remainderAmount, '1');
+  assert.equal((await service.openingInstruction(mint)).instruction.keys.length, 13);
 });

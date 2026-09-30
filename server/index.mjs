@@ -1598,6 +1598,7 @@ async function handle(req, res) {
         if (record.xUserId && state.creatorProfiles?.[record.xUserId]?.optedOut) throw new Error('This creator opted out during verification. Registration is blocked.');
         state.launches[record.mint] = record; return record;
       });
+      communityReserveSnapshot = null;
       let automaticRewards = { status:'registered' };
       try { await registerAutomaticLaunch(saved); }
       catch (error) { automaticRewards = { status:'unavailable', reason:String(error.message || error) }; }

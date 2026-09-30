@@ -36,7 +36,9 @@ export function buildCommunityInitializeInstruction({ programId, authority, crea
   if (manifest.drop !== drop.toBase58() || manifest.launchMint !== asset.toBase58() || manifest.eligibilityMint !== eligible.toBase58()
     || manifest.migrationSlot !== manifest.snapshotSlot && manifest.snapshotSlot !== undefined
     || !Array.isArray(manifest.leaves) || manifest.leaves.length < 1 || manifest.leaves.length > 0xffffffff
-    || BigInt(manifest.allocatedAmount) !== BigInt(manifest.totalAmount)
+    || BigInt(manifest.allocatedAmount) <= 0n
+    || BigInt(manifest.allocatedAmount) > BigInt(manifest.totalAmount)
+    || BigInt(manifest.remainderAmount) !== BigInt(manifest.totalAmount) - BigInt(manifest.allocatedAmount)
     || BigInt(sourceVaultBalance) !== BigInt(manifest.totalAmount)) {
     throw new Error('Community manifest does not match the fully funded launch reserve and exact migration slot.');
   }

@@ -195,7 +195,7 @@ export async function captureExactCommunitySnapshot({ connection, mint, launchMi
   const blocks = new Map();
   for (const slot of slots) {
     const block = await connection.getParsedBlock(slot, { commitment:'finalized', transactionDetails:'full', rewards:false,
-      maxSupportedTransactionVersion:0 });
+      maxSupportedTransactionVersion:1 });
     if (!block) throw new Error(`Finalized block ${slot} is unavailable.`);
     blocks.set(slot, block);
   }
