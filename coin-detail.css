@@ -200,7 +200,11 @@ main.wallet-view>#wallet-page{display:block!important}
 .coin-page .coin-trade-row.is-buy strong{color:#9de2c3}
 .coin-page .coin-trade-row.is-sell strong{color:#efadba}
 .coin-page .coin-trade-row .coin-trade-symbol{margin-left:3px;color:#e0e9f5;font-weight:650}
-.coin-page .coin-trade-row strong a{margin-left:4px;color:#b7c6da;font-weight:500}
+.coin-page .coin-trade-row strong .coin-trade-explorer{display:inline-flex;position:relative;align-items:center;justify-content:center;width:25px;height:25px;margin-left:7px;border:1px solid #3a4964;border-radius:6px;background:#172131;vertical-align:-7px;text-decoration:none}
+.coin-page .coin-trade-row .coin-trade-explorer svg{display:block;width:17px;height:17px}
+.coin-page .coin-trade-row .coin-trade-explorer::after{content:'↗';position:absolute;top:0;right:1px;color:#cbd5e8;font:8px 'DM Mono',monospace}
+.coin-page .coin-trade-row .coin-trade-explorer:hover{border-color:#a9b9ec;background:#243248}
+.coin-page .coin-trade-row .coin-trade-explorer:focus-visible{outline:2px solid #a9b9ec;outline-offset:2px}
 .coin-page .coin-trade-row small a{color:#899fbd;text-decoration:none}
 .coin-page .coin-trade-row{grid-template-columns:34px minmax(0,1fr) minmax(0,max-content)}
 .coin-page .coin-trade-row .activity-amount{display:flex;min-width:92px;flex-direction:column;align-items:flex-end;line-height:1.35}
