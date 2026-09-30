@@ -5825,10 +5825,18 @@ function renderCoinActivityTab(){
   }
   if (tab === 'holders') {
     if (!coinActivity.accountAvailable) { activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Token-account sample unavailable</strong><small>Solana RPC did not return token accounts for this mint.</small></div>'; return; }
-    activity.innerHTML = '<p class="coin-activity-scope">Confirmed non-zero token-account sample, not a unique holder count. Protocol vaults are labeled and excluded from the account summary.</p><div class="coin-holder-heading"><span>Token account</span><span>Balance</span><span>Supply share</span></div>' + (coinActivity.accounts.length ? coinActivity.accounts.map((item, index) => {
+    activity.innerHTML = '<p class="coin-activity-scope">Confirmed non-zero token-account sample, not a unique holder count. Protocol vaults are labeled and excluded from the account summary.</p><div class="coin-holder-heading"><span>Wallet / token account</span><span>Balance</span><span>Supply share</span></div>' + (coinActivity.accounts.length ? coinActivity.accounts.map((item, index) => {
       const isVault = item.address === coinActivity.vaultAddress;
       const share = Number.isFinite(item.share) ? Math.max(0, Math.min(100, item.share)) : 0;
-      return `<div class="coin-activity-row coin-account-row ${isVault ? 'is-curve-vault' : ''}"><span class="activity-icon">${index + 1}</span><span><strong><a href="${escapeHtml(exploreExplorer(`address/${item.address}`))}" target="_blank" rel="noopener noreferrer">${escapeHtml(shortAddress(item.address))} ↗</a></strong><small>${isVault ? `${escapeHtml(coinActivity.vaultLabel || 'Protocol vault')} · excluded from account summary` : 'Token account · wallet owner not classified'}</small><i class="coin-account-share-track"><i style="width:${share}%"></i></i></span><b class="activity-amount">${escapeHtml(item.amount)} ${escapeHtml(coinActivity.symbol)}${item.share == null ? '' : `<small>${escapeHtml(formatOnChainNumber(item.share, 2))}% of supply</small>`}</b><span class="activity-time">RPC</span></div>`;
+      const wallet = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(item.wallet || '') ? item.wallet : null;
+      const accountLink = `<a href="${escapeHtml(exploreExplorer(`address/${item.address}`))}" target="_blank" rel="noopener noreferrer">${escapeHtml(shortAddress(item.address))} ↗</a>`;
+      const identity = !isVault && wallet
+        ? `<a href="/wallet/${encodeURIComponent(wallet)}">${escapeHtml(shortAddress(wallet))}</a>`
+        : accountLink;
+      const detail = isVault
+        ? `${escapeHtml(coinActivity.vaultLabel || 'Protocol vault')} · excluded from account summary`
+        : wallet ? `Token account ${accountLink}` : 'Wallet owner unavailable · token account';
+      return `<div class="coin-activity-row coin-account-row ${isVault ? 'is-curve-vault' : ''}"><span class="activity-icon">${index + 1}</span><span><strong>${identity}</strong><small>${detail}</small><i class="coin-account-share-track"><i style="width:${share}%"></i></i></span><b class="activity-amount">${escapeHtml(item.amount)} ${escapeHtml(coinActivity.symbol)}${item.share == null ? '' : `<small>${escapeHtml(formatOnChainNumber(item.share, 2))}% of supply</small>`}</b><span class="activity-time">RPC</span></div>`;
     }).join('') : '<div class="empty-state coin-activity-empty"><strong>No token accounts returned</strong><small>Solana RPC returned an empty account sample.</small></div>');
     return;
   }
@@ -6045,6 +6053,7 @@ async function loadCoinOnChain(mintAddress){
       ? getAssociatedTokenAddressSync(mint, bondingCurvePda(mint), true, tokenProgram).toBase58() : null);
     const accounts = largestAccounts.filter(item => Number(item.amount) > 0).map(item => ({
       address: String(item.address),
+      wallet: item.wallet || null,
       amount: formatOnChainNumber(Number(item.uiAmountString ?? Number(item.amount) / (10 ** decimals)), 4),
       share: rawSupply > 0 ? Number(item.amount) / rawSupply * 100 : null,
     }));

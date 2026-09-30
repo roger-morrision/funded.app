@@ -46,7 +46,7 @@ import { buildMintRouterSettlementInstruction, readMintClaimRecord } from './min
 import { buybackQueue } from './buyback-executor.mjs';
 import { parseSignedMetadata, publicMetadata } from './devnet-metadata.mjs';
 import { devnetMetadataUri, devnetImageUri } from '../devnet-metadata.js';
-import { normalizeLargestTokenAccounts } from './token-accounts.mjs';
+import { attachVerifiedTokenAccountWallets, normalizeLargestTokenAccounts } from './token-accounts.mjs';
 import { coinFeeOverview } from './coin-fee-overview.mjs';
 import { homeFeeAllocationSummary } from './home-dashboard-metrics.mjs';
 import { createCreatorFeeChallenges, creatorClaimStatus } from './creator-fee-claim.mjs';
@@ -1019,8 +1019,13 @@ async function handle(req, res) {
       const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
       if (!await store.chargeRpcRate(`token-accounts:${clientKey(req)}`, 2, 30, windowStart)) return json(res, 429, { error: 'Token-account refresh limit reached; retry shortly.' });
       try {
-        const sample = normalizeLargestTokenAccounts(await new Connection(solanaRpcUrl, 'confirmed').getTokenLargestAccounts(mint, 'confirmed'));
-        const data = { mint: address, cluster: solanaCluster, observedAt: new Date().toISOString(), ...sample };
+        const connection = new Connection(solanaRpcUrl, 'confirmed');
+        const sample = normalizeLargestTokenAccounts(await connection.getTokenLargestAccounts(mint, 'confirmed'));
+        const infos = sample.accounts.length
+          ? await connection.getMultipleAccountsInfo(sample.accounts.map(account => new PublicKey(account.address)), 'confirmed').catch(() => [])
+          : [];
+        const verifiedSample = attachVerifiedTokenAccountWallets(sample, infos, mint);
+        const data = { mint: address, cluster: solanaCluster, observedAt: new Date().toISOString(), ...verifiedSample };
         if (tokenAccountsCache.size >= 500) tokenAccountsCache.delete(tokenAccountsCache.keys().next().value);
         tokenAccountsCache.set(address, { at: Date.now(), data });
         return json(res, 200, data);
