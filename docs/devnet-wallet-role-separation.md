@@ -34,11 +34,12 @@ for manual referral transfers, with `SOLANA_REFERRAL_PAYOUT_CONFIGURED=true` onl
 that wallet is funded and payout verification is ready. Trading uses the public `VITE_FUNDED_TRADE_FEE_OWNER`
 and `FUNDED_TRADE_FEE_OWNER` address. These settings must not reuse addresses.
 
-**Activation gate:** the current Devnet legacy router still has its older authority on
-chain. A newly generated authority cannot sign for that router. Do not point the live
-worker at the new authority or assert that the new treasury is receiving funds until
-a reviewed Devnet router migration or deployment and finalized payout tests are complete.
-Existing obligations keep their original recipient; new allocations use the dedicated
-Pump revenue wallet once configured. Fund the fee keeper and referral payout funder
-separately before their live tests. Mainnet requires new, independently controlled
+**Devnet verification (2026-09-30):** the legacy router and 22 mint routers now point
+to the separate authority `7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y`.
+The retired authority was rejected by an on-chain simulation, and SOL and token
+reward payouts using the new authority reached finalized recipient balances.
+The dedicated referral payout funder is funded and its isolated QA claim reached
+a finalized recipient balance. These results do not establish that the public
+Docker worker or Mainnet is ready: verify its live secret mounts, health, settlement
+and recipient receipts after deployment. Mainnet requires independently controlled
 production keys and a separate custody review.

@@ -131,6 +131,7 @@ const server = spawn(process.execPath, ['server/index.mjs'], {
     FUNDED_STORE_PATH: storePath,
     AUTOMATIC_REWARD_STORE_PATH: automaticStorePath,
     FUNDED_API_TOKEN: apiToken,
+    CORS_ORIGIN: base,
     SOLANA_CLUSTER: 'devnet',
     VITE_SOLANA_CLUSTER: 'devnet',
     VITE_ALLOW_MAINNET: 'false',
@@ -291,7 +292,7 @@ try {
   const fundingProcessor = createRewardFundingProcessor({ store: automaticStore, chain, scheduler });
   const fundingResult = await fundingProcessor.processPending();
   assert.equal(fundingResult.status, 'processed', 'Queued automatic reward funding was not processed.');
-  assert(fundingResult.funded >= 2, 'Creator and holder automatic funding requests were not both funded.');
+  assert(fundingResult.funded >= 2, 'Holder and operations automatic funding requests were not both funded.');
 
   stage = 'capturing-finalized-holder-history';
   const now = Math.floor(Date.now() / 1000);
@@ -347,7 +348,17 @@ try {
   assert(execution.submitted >= 1, 'The automatic holder reward submitted no payout.');
   const finalRewardState = await automaticStore.read();
   const creatorSchedule = Object.values(finalRewardState.schedules || {}).find(row => row.kind === 'creator' && row.mint === mint.publicKey.toBase58());
-  assert.equal(creatorSchedule?.status, 'paid', 'The automatic creator schedule did not reach paid status.');
+  const creatorRequest = Object.values(finalRewardState.fundingRequests || {}).find(row => row.kind === 'creator' && row.mint === mint.publicKey.toBase58());
+  assert.equal(creatorRequest?.status, 'claimable', 'Creator fees must remain claimable until the creator requests payout.');
+  assert.equal(creatorSchedule, undefined, 'Creator fees below the claim minimum must not be paid automatically.');
+  const creatorPrepare = await fetch(`${base}/api/tokens/${mint.publicKey.toBase58()}/creator-claim/prepare`, {
+    method:'POST', headers:{ 'content-type':'application/json', origin:base }, body:'{}',
+  });
+  const creatorMinimum = await creatorPrepare.json();
+  assert.equal(creatorPrepare.status, 409, 'A creator claim below the 0.01 SOL minimum must be rejected.');
+  assert.equal(creatorMinimum.eligible, false);
+  assert.equal(creatorMinimum.claimableLamports, creatorRequest.amount);
+  assert.equal(creatorMinimum.minimumLamports, '10000000');
   const holderSchedule = Object.values(finalRewardState.schedules || {}).find(row => row.kind === 'holder' && row.mint === mint.publicKey.toBase58() && row.periodStart === periodStart);
   assert.equal(holderSchedule?.status, 'paid', 'The automatic holder schedule did not reach paid status.');
   const holderPayment = holderSchedule.payments?.[holder.publicKey.toBase58()];
@@ -358,7 +369,7 @@ try {
 
   result = {
     status: 'passed',
-    verification: 'devnet-test-wallet-create-trade-auto-manual-rewards',
+    verification: 'devnet-test-wallet-create-trade-holder-and-referral-rewards',
     cluster: 'devnet',
     mainnetEnabled: false,
     privateKeysPersisted: false,
@@ -404,11 +415,10 @@ try {
       paymentAccount: holderPayment.payment,
       finalizedBalanceDeltaLamports: String(holderBalanceAfter - holderBalanceBefore),
     },
-    automaticCreatorReward: {
-      scheduleId: creatorSchedule.id,
-      status: creatorSchedule.status,
-      paymentAccount: creatorSchedule.payments?.[creator.publicKey.toBase58()]?.payment || null,
-      payoutSignature: creatorSchedule.payments?.[creator.publicKey.toBase58()]?.signature || null,
+    creatorClaim: {
+      status: 'below-minimum',
+      claimableLamports: creatorMinimum.claimableLamports,
+      minimumLamports: creatorMinimum.minimumLamports,
     },
     creatorTopUp: topUp,
   };

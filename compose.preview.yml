@@ -41,6 +41,8 @@ services:
       SOLANA_KEEPER_CONFIGURED: "true"
       SOLANA_KEEPER_SECRET_KEY_FILE: /run/secrets/solana_keeper_secret_key
       FUNDED_ROUTER_AUTHORITY_SECRET_KEY_FILE: /run/secrets/funded_router_authority_secret_key
+      SOLANA_REFERRAL_PAYOUT_SECRET_KEY_FILE: /run/secrets/solana_referral_payout_secret_key
+      SOLANA_REFERRAL_PAYOUT_CONFIGURED: ${SOLANA_REFERRAL_PAYOUT_CONFIGURED:-false}
       HOST: 0.0.0.0
       PORT: 8787
       VITE_SOLANA_CLUSTER: devnet
@@ -73,6 +75,7 @@ services:
       - solana_devnet_creator_secret_key
       - solana_keeper_secret_key
       - funded_router_authority_secret_key
+      - solana_referral_payout_secret_key
       - x_client_secret
       - x_bearer_token
     volumes:
@@ -116,6 +119,8 @@ secrets:
     file: ./.secrets/solana-keeper-secret-key
   funded_router_authority_secret_key:
     file: ./.secrets/funded-router-authority-secret-key
+  solana_referral_payout_secret_key:
+    file: ./.secrets/solana-referral-payout-secret-key
   funded_buyback_operator_secret_key:
     file: ./.secrets/funded-buyback-operator-secret-key
   x_client_secret:
