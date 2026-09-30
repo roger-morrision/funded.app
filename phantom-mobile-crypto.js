@@ -4,7 +4,7 @@ import { Transaction } from '@solana/web3.js';
 
 const COMPUTE_BUDGET_PROGRAM = 'ComputeBudget111111111111111111111111111111';
 const MAX_COMPUTE_UNITS = 1_400_000n;
-const MAX_PHANTOM_PRIORITY_FEE_LAMPORTS = 100_000n;
+const MAX_PHANTOM_PRIORITY_FEE_LAMPORTS = 5_000_000n;
 
 function sameBytes(expected, actual){
   return expected.length === actual.length && expected.every((byte, index) => byte === actual[index]);
@@ -44,7 +44,11 @@ export function inspectPhantomTradeTransaction(expected, signed){
     } else return { ok:false, code:'unsafe-compute-budget' };
   }
   const priorityFee = (computeUnits * microLamports + 999_999n) / 1_000_000n;
-  if (priorityFee > MAX_PHANTOM_PRIORITY_FEE_LAMPORTS) return { ok:false, code:'priority-fee-too-high' };
+  if (priorityFee > MAX_PHANTOM_PRIORITY_FEE_LAMPORTS) return {
+    ok:false, code:'priority-fee-too-high',
+    priorityFeeLamports:priorityFee.toString(),
+    maxPriorityFeeLamports:MAX_PHANTOM_PRIORITY_FEE_LAMPORTS.toString(),
+  };
   return { ok:true, priorityFeeLamports:Number(priorityFee) };
 }
 

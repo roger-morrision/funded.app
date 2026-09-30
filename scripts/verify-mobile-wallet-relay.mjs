@@ -159,17 +159,34 @@ const budgetId = '7'.repeat(48), budgetToken = '8'.repeat(64);
 assert.equal((await call('POST', '/api/mobile-wallet/relay', { headers:{ origin }, input:{ id:budgetId, pollToken:budgetToken, transactionRequest } })).status, 201);
 assert.equal((await call('POST', `/api/mobile-wallet/trade/${budgetId}`, { headers:{ origin }, input:{ transaction:Buffer.from(phantomBudget.serialize()).toString('base64') } })).status, 200);
 assert.equal((await call('GET', `/api/mobile-wallet/relay/${budgetId}`, { headers:{ 'x-mobile-wallet-token':budgetToken } })).json.result.transaction, bs58.encode(phantomBudget.serialize()));
-const expensiveBudget = new Transaction({ feePayer:payer.publicKey, recentBlockhash:transaction.recentBlockhash }).add(
+const commonBudget = new Transaction({ feePayer:payer.publicKey, recentBlockhash:transaction.recentBlockhash }).add(
   ComputeBudgetProgram.setComputeUnitLimit({ units:300_000 }),
   ComputeBudgetProgram.setComputeUnitPrice({ microLamports:1_000_000 }),
   ...transaction.instructions,
 );
+commonBudget.sign(payer);
+assert.deepEqual(inspectPhantomTradeTransaction(transaction, commonBudget), { ok:true, priorityFeeLamports:300_000 });
+assert.deepEqual(verifyPhantomMobileTransaction(transaction, bs58.encode(commonBudget.serialize()), session.publicKey).serialize(), commonBudget.serialize());
+const cappedBudget = new Transaction({ feePayer:payer.publicKey, recentBlockhash:transaction.recentBlockhash }).add(
+  ComputeBudgetProgram.setComputeUnitLimit({ units:500_000 }),
+  ComputeBudgetProgram.setComputeUnitPrice({ microLamports:10_000_000 }),
+  ...transaction.instructions,
+);
+cappedBudget.sign(payer);
+assert.deepEqual(inspectPhantomTradeTransaction(transaction, cappedBudget), { ok:true, priorityFeeLamports:5_000_000 });
+const expensiveBudget = new Transaction({ feePayer:payer.publicKey, recentBlockhash:transaction.recentBlockhash }).add(
+  ComputeBudgetProgram.setComputeUnitLimit({ units:300_000 }),
+  ComputeBudgetProgram.setComputeUnitPrice({ microLamports:20_000_000 }),
+  ...transaction.instructions,
+);
 expensiveBudget.sign(payer);
-assert.equal(inspectPhantomTradeTransaction(transaction, expensiveBudget).code, 'priority-fee-too-high');
+assert.deepEqual(inspectPhantomTradeTransaction(transaction, expensiveBudget), { ok:false, code:'priority-fee-too-high', priorityFeeLamports:'6000000', maxPriorityFeeLamports:'5000000' });
 assert.throws(() => verifyPhantomMobileTransaction(transaction, bs58.encode(expensiveBudget.serialize()), session.publicKey), /priority-fee-too-high/);
 const expensiveId = '9'.repeat(48), expensiveToken = 'a'.repeat(64);
 assert.equal((await call('POST', '/api/mobile-wallet/relay', { headers:{ origin }, input:{ id:expensiveId, pollToken:expensiveToken, transactionRequest } })).status, 201);
-assert.equal((await call('POST', `/api/mobile-wallet/trade/${expensiveId}`, { headers:{ origin }, input:{ transaction:Buffer.from(expensiveBudget.serialize()).toString('base64') } })).json.code, 'priority-fee-too-high');
+const expensiveResponse = (await call('POST', `/api/mobile-wallet/trade/${expensiveId}`, { headers:{ origin }, input:{ transaction:Buffer.from(expensiveBudget.serialize()).toString('base64') } })).json;
+assert.equal(expensiveResponse.code, 'priority-fee-too-high');
+assert.match(expensiveResponse.error, /0\.006 SOL priority fee; the Devnet limit is 0\.005 SOL/);
 const changedBudget = new Transaction({ feePayer:payer.publicKey, recentBlockhash:transaction.recentBlockhash }).add(
   ComputeBudgetProgram.setComputeUnitLimit({ units:300_000 }),
   ComputeBudgetProgram.setComputeUnitPrice({ microLamports:1_000 }),

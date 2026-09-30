@@ -52,6 +52,11 @@ function reply(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
+function formatSolLamports(value) {
+  const lamports = BigInt(value);
+  return `${lamports / 1_000_000_000n}.${(lamports % 1_000_000_000n).toString().padStart(9, '0').replace(/0+$/, '') || '0'}`;
+}
+
 function tradeSignatureFailure(code) {
   const error = new Error(code);
   error.code = code;
@@ -269,6 +274,7 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
         const input = await readBody(req);
         const encoded = String(input.transaction || '');
         let instructionDifference = null;
+        let priorityFeeDetails = null;
         try {
           if (encoded.length > 4000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) throw tradeSignatureFailure('invalid-encoding');
           const raw = Buffer.from(encoded, 'base64');
@@ -277,6 +283,7 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
           const inspection = inspectPhantomTradeTransaction(unsigned, signed);
           if (!inspection.ok) {
             instructionDifference = tradeInstructionDifference(unsigned, signed);
+            if (inspection.code === 'priority-fee-too-high') priorityFeeDetails = inspection;
             throw tradeSignatureFailure(inspection.code);
           }
           const message = signed.serializeMessage();
@@ -288,7 +295,10 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
         } catch (error) {
           const code = Object.hasOwn(TRADE_SIGNATURE_ERRORS, error?.code) ? error.code : 'invalid-encoding';
           console.warn(JSON.stringify({ event:'mobile-trade-signature-rejected', code, ...(instructionDifference ? { instructionDifference } : {}) }));
-          reply(res, 400, { code, error:TRADE_SIGNATURE_ERRORS[code] });
+          const message = priorityFeeDetails
+            ? `Phantom added a ${formatSolLamports(priorityFeeDetails.priorityFeeLamports)} SOL priority fee; the Devnet limit is ${formatSolLamports(priorityFeeDetails.maxPriorityFeeLamports)} SOL. Nothing was submitted.`
+            : TRADE_SIGNATURE_ERRORS[code];
+          reply(res, 400, { code, error:message });
           return true;
         }
         reply(res, 200, { status:'complete' });
