@@ -271,15 +271,36 @@ function tokenPage() {
   const layout=$('.coin-layout',root);
   const chart=$('.coin-chart-panel',root);const column=chart?.parentElement;
   if(column)column.prepend(chart);
+  const hero=$('.coin-hero-card',root);
+  const description=$('#coin-description',root);
+  if(hero&&description){
+    const about=node('div','coin-hero-about');
+    about.append(node('span','coin-hero-about-label','About this token'),description);
+    hero.append(about);
+  }
   const accounting=node('section','token-accounting');accounting.id='token-accounting';
   const fees=$('.coin-fee-dashboard',root);const metrics=$('#coin-summary-dashboard');
   if(fees)accounting.append(fees);if(metrics)accounting.append(metrics);
   if(layout){layout.after(accounting);disclose(accounting,'Rewards, creator claims, and allocation records');}
-  const policy=$('.coin-policy-card',root); if(policy)disclose(policy,'On-chain facts and addresses');
+  const trade=$('#trade-panel',root);
+  const pulse=$('.coin-pulse-panel',root);
+  const side=$('.coin-side-column',root);
+  if(trade&&pulse&&side)trade.after(pulse);
+  const curve=$('.coin-curve-track',root);
+  const flow=$('.coin-flow',root);
+  if(pulse&&curve&&flow){
+    const market=node('section','panel coin-market-aside');
+    market.append(node('h2','coin-market-aside-title','Bonding curve'),curve,flow);
+    pulse.after(market);
+  }
+  const policy=$('.coin-policy-card',root);
+  if(policy){
+    const facts=disclose(policy,'On-chain facts and addresses');
+    if(facts)facts.open=true;
+  }
   $$('.coin-section-nav button',root).forEach(button=>button.addEventListener('click',()=>{
     if(button.textContent==='On-chain checks' && policy?.parentElement.tagName==='DETAILS')policy.parentElement.open=true;
   },true));
-  const trade=$('#trade-panel');
   const slippage=$('#trade-slippage')?.closest('label');disclose(slippage,'Trade settings · slippage');
   const button=node('button','mobile-trade-open','Trade token');button.type='button';
   const sheetBackground = new Map();

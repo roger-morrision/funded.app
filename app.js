@@ -5918,9 +5918,9 @@ function resetCoinSurface(mintAddress){
   document.querySelector('#coin-launched-by')?.remove();
   ensureCoinChatTab();
   ensureCoinPolicyAccordion();
-  const coinLayout = document.querySelector('.coin-layout');
+  const coinMainColumn = document.querySelector('.coin-main-column');
   const transactionPanel = document.querySelector('.coin-tabs-panel');
-  if (coinLayout && transactionPanel?.parentElement !== coinLayout) coinLayout.append(transactionPanel);
+  if (coinMainColumn && transactionPanel?.parentElement !== coinMainColumn) coinMainColumn.append(transactionPanel);
   ensureCoinCommunityPanel();
   renderCoinCreatorHeader('');
   const snapshotMode = document.querySelector('[data-coin-chart-view="snapshot"]');
