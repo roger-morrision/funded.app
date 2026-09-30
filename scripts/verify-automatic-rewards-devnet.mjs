@@ -1,7 +1,7 @@
 import bs58 from 'bs58';
-import { clusterApiUrl, Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, sendAndConfirmTransaction, SystemProgram, Transaction } from '@solana/web3.js';
+import { clusterApiUrl, Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { createMint, getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token';
-import { createAutomaticRewardChain, DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
+import { createAutomaticRewardChain, DEVNET_GENESIS_HASH, finalizedSend } from '../server/automatic-reward-chain.mjs';
 import { buildRewardManifest, createRewardCycleId } from '../reward-merkle.js';
 
 const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || clusterApiUrl('devnet'), 'finalized');
@@ -46,12 +46,9 @@ if (!readiness.constrainedPayouts) {
   if (configuredFunder) {
     const funder = configuredFunder.keypair;
     fundingSource = `configured-devnet-test-wallet:${configuredFunder.name}`;
-    testWalletFundingSignature = await sendAndConfirmTransaction(
-      connection,
+    testWalletFundingSignature = await finalizedSend(connection,
       new Transaction().add(SystemProgram.transfer({ fromPubkey:funder.publicKey, toPubkey:authority.publicKey, lamports:requestedFunding })),
-      [funder],
-      { commitment:'finalized', preflightCommitment:'finalized' },
-    );
+      [funder]);
   } else {
     fundingSource = 'devnet-faucet';
     try {

@@ -6,7 +6,7 @@ Scope: newly created QA tokens on Solana Devnet. This record does not establish 
 
 - The reviewed Anchor 1.2 SBF binary (`d6cd394bc144ea58c9f1d5feac3c829757da36e3c3d8e064e336db3dc909d4b7`) passed the isolated Agave 4.1.2 instruction test. [Devnet upgrade](https://explorer.solana.com/tx/QC1x28oecHtDEAMiTgxYsEUHUebWV5NWSeEGn3cGqM9gmjvxP2mz6dYmA7K6cUJUoWnJJMfuxS9iXeLQxfLiG6z?cluster=devnet) finalized for program `2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik`. Finalized ProgramData SHA-256 became `ef4ec9e95f5bfdc90718abc73d7e412e88078e4f997a889fe7346964b94eabe2`; upgrade authority remained the separate app owner `3NMjsHsau8uw598UKZqbKq8dhFjGMEYpdx5wU72Kfh1P`. The previous ProgramData bytes were backed up in ignored `.secrets/release-backups`; the upload buffer was closed.
 - The public Devnet app, reward worker, and buyback worker were recreated with that pinned hash. The opt-in community claim worker started. The app health endpoint reported `ok: true`, fee router and automatic rewards ready. The claim worker reported `ready`. Only Devnet was changed.
-- To preserve the existing public UI while the checkout contains unrelated edits, the app image was patched from the already running public image. The current live app image is `fundedapp-app:qa-community-cache-v4`, the claim worker uses `fundedapp-app:qa-community-dust-v3`, and the reward worker remains `fundedapp-app:qa-holder-index-20260930`. The app now invalidates its reserve index immediately after a verified new launch. Reconcile the public UI source with committed code before any future full image rebuild.
+- To preserve the existing public UI while the checkout contains unrelated edits, the app image was patched from the already running public image. The current live app image is `fundedapp-app:qa-community-cache-v4`, the claim worker uses `fundedapp-app:qa-community-dust-v3`, and the reward worker uses `fundedapp-app:qa-reward-rpc-poll-20261001`. The app now invalidates its reserve index immediately after a verified new launch. Reconcile the public UI source with committed code before any future full image rebuild.
 
 ## Fresh token and finalized claim
 
@@ -22,10 +22,22 @@ The first QA token created during this rollout, `EjTB5RYfcg5YkKSY1ierJ8wsSnAidVJ
 
 The second rollout exposed a two-base-unit pro-rata rounding remainder (`29,999,999,999,998` allocated from `30,000,000,000,000`). The opening preflight now verifies `0 < allocated <= total` and `remainder = total - allocated`; the on-chain drop holds the whole reserve, and the remainder stays for the configured expiry route. A focused test covers this class of case. This was a JS preflight fix; the reviewed on-chain binary did not change.
 
+## Post-upgrade reward payout regression
+
+The initial regression check stalled on a Devnet RPC WebSocket HTTP 429 during confirmation. The reward sender now signs once, submits once, and polls the exact signature's finalized status over HTTP. It does not create a new transaction when submission is uncertain. Four focused sender tests passed, including ambiguous 429 submission, an on-chain failure, and expiry without resubmission.
+
+A fresh post-upgrade Devnet run then passed both reward assets with finalized source and recipient balance deltas:
+
+| Asset | Vault funding | Cycle | Payout |
+| --- | --- | --- | --- |
+| SOL | [54KSjTRQjtPj74sHYWYuXUJd6X24kkv5JDK7GpVHS6K2ALoS5VAvrjSbjQLnjw2Q2gGP3trp5jAbnJJimq39uCae](https://explorer.solana.com/tx/54KSjTRQjtPj74sHYWYuXUJd6X24kkv5JDK7GpVHS6K2ALoS5VAvrjSbjQLnjw2Q2gGP3trp5jAbnJJimq39uCae?cluster=devnet) | [5CCQHwozrvTVm1h8jA1hu9Wza5yVVcJA5f7jo1JGjM5nRCAUw95EtF2hHVxdbijYGyVLpEU5EoKDweJ2NkjtR4hQ](https://explorer.solana.com/tx/5CCQHwozrvTVm1h8jA1hu9Wza5yVVcJA5f7jo1JGjM5nRCAUw95EtF2hHVxdbijYGyVLpEU5EoKDweJ2NkjtR4hQ?cluster=devnet) | [2xnKV8adksPe1XjYjb7kMztw2w7wnPLUBEfMUoJCz1z3tuXh1J9DXGCuNExvd1gaDkZLuBSdGF9NfnB7EaA6uvkD](https://explorer.solana.com/tx/2xnKV8adksPe1XjYjb7kMztw2w7wnPLUBEfMUoJCz1z3tuXh1J9DXGCuNExvd1gaDkZLuBSdGF9NfnB7EaA6uvkD?cluster=devnet) |
+| Token `4XEayL3ZvbEEGHkQZwDKqDB3VDLXuymU6G7MJbHDqgA1` | [5oteBfd9P6AcijVzuyuUivBe6cRAMcRmqVXvpqtka1dvxAfX1Z7SfmhwWETH3n6njyr9zims1dfpKsTCFj4VjHcb](https://explorer.solana.com/tx/5oteBfd9P6AcijVzuyuUivBe6cRAMcRmqVXvpqtka1dvxAfX1Z7SfmhwWETH3n6njyr9zims1dfpKsTCFj4VjHcb?cluster=devnet) | [JSHHowvm2WVjWkNH5x3Xq1bQtsHHZ2omDqEKh89piCBvYofDZxP6jF7GFoX33L3PWCvXiSUyFE7ddJ4K3kK8MCg](https://explorer.solana.com/tx/JSHHowvm2WVjWkNH5x3Xq1bQtsHHZ2omDqEKh89piCBvYofDZxP6jF7GFoX33L3PWCvXiSUyFE7ddJ4K3kK8MCg?cluster=devnet) | [4auSJKUSvbT9XDS3vwKbCAS9gEeHTJauWagQK6Y3227kYDYr3M2WD1Jgm2sSovjL9pxMS7tQ6qf69EyiYDGZzkrR](https://explorer.solana.com/tx/4auSJKUSvbT9XDS3vwKbCAS9gEeHTJauWagQK6Y3227kYDYr3M2WD1Jgm2sSovjL9pxMS7tQ6qf69EyiYDGZzkrR?cluster=devnet) |
+
+The reward worker was recreated from the patched image and its own health gate reported `healthy: true`, zero blocked schedules, and five active programs. This verifies the isolated payout path and current worker readiness, not the later scheduled coin-holder payout.
+
 ## Remaining gates
 
 - The scheduled coin-holder SOL payout for prior fresh mints remains below its 10,000,000-lamport minimum and has a 2026-10-02 UTC cutoff. An earlier isolated Devnet holder payout verified the chain adapter, not that scheduled distribution.
 - Live X reward needs a consenting OAuth-linked QA X account and a new launch with an X allocation. Paid listing and Boost each require 25,000 Devnet `$FUNDED` in a QA wallet; the rotated QA wallets do not hold that balance. These flows were not fabricated or claimed as passed.
-- A post-upgrade read-only reward-program check passed. An optional additional SOL/token payout regression run hit RPC WebSocket HTTP 429 before it returned finalized evidence and was stopped without retries. Its result is unavailable; prior Devnet payout evidence predates this upgrade.
 - Runtime API checks used the healthy local app port behind the Devnet tunnel. A direct `https://funded.vip/api/health` request from this host failed at TLS setup, so independent external HTTPS reachability and Phantom UI signing were not verified in this run.
 - Mainnet deployment, transaction testing, security review, and production operations remain unverified.

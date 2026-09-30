@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
+import bs58 from 'bs58';
 import {
   PublicKey,
   SystemProgram,
   Transaction,
   TransactionInstruction,
-  sendAndConfirmTransaction,
 } from '@solana/web3.js';
 import {
   createAssociatedTokenAccountIdempotentInstruction,
@@ -70,24 +70,43 @@ function parsePayment(account) {
   return { cycle: new PublicKey(data.subarray(8, 40)).toBase58(), recipient: new PublicKey(data.subarray(40, 72)).toBase58(), amount: String(data.readBigUInt64LE(72)), leafIndex: data.readUInt32LE(80), paidAt: Number(data.readBigInt64LE(84)) };
 }
 
-async function finalizedSend(connection, transaction, signers) {
-  let lastError;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const fresh = new Transaction().add(...transaction.instructions);
-    if (transaction.feePayer) fresh.feePayer = transaction.feePayer;
-    try {
-      const signature = await sendAndConfirmTransaction(connection, fresh, signers, { commitment: 'finalized', preflightCommitment: 'confirmed' });
-      const status = await connection.getSignatureStatus(signature, { searchTransactionHistory: true });
-      if (!status?.value || status.value.err || status.value.confirmationStatus !== 'finalized') throw new Error('Reward transaction is not finalized successfully.');
-      return signature;
-    } catch (error) {
-      lastError = error;
-      const message = String(error?.message || error);
-      if (attempt === 2 || !/blockhash not found|429|too many requests/i.test(message)) throw error;
-      await new Promise(resolveWait => setTimeout(resolveWait, 500 * (attempt + 1)));
-    }
+export async function finalizedSend(connection, transaction, signers, { pollMs = 1000, timeoutMs = 90_000 } = {}) {
+  if (!Array.isArray(signers) || !signers.length) throw new Error('A reward transaction signer is required.');
+  const latest = await connection.getLatestBlockhash('finalized');
+  const fresh = new Transaction({ feePayer:transaction.feePayer || signers[0].publicKey,
+    recentBlockhash:latest.blockhash }).add(...transaction.instructions);
+  fresh.sign(...signers);
+  const signature = bs58.encode(fresh.signature);
+  try {
+    const submitted = await connection.sendRawTransaction(fresh.serialize(), {
+      skipPreflight:false, preflightCommitment:'confirmed', maxRetries:2 });
+    if (submitted !== signature) throw new Error('RPC returned a different reward transaction signature.');
+  } catch (error) {
+    // A transport failure can occur after submission. Reconcile this exact
+    // signature; never sign a fresh transaction while its outcome is unknown.
+    if (!/429|too many requests|timed? out|fetch failed|network/i.test(String(error?.message || error))) throw error;
   }
-  throw lastError;
+  const deadline = Date.now() + timeoutMs;
+  let lastRpcError = null;
+  while (Date.now() < deadline) {
+    try {
+      const status = (await connection.getSignatureStatuses([signature], { searchTransactionHistory:true })).value?.[0];
+      if (status?.err) throw new Error(`Reward transaction failed: ${JSON.stringify(status.err)}`);
+      if (status?.confirmationStatus === 'finalized') return signature;
+      const height = await connection.getBlockHeight('finalized');
+      if (height > latest.lastValidBlockHeight) break;
+      lastRpcError = null;
+    } catch (error) {
+      if (/Reward transaction failed:/.test(String(error?.message || error))) throw error;
+      lastRpcError = error;
+    }
+    await new Promise(resolveWait => setTimeout(resolveWait, pollMs));
+  }
+  const finalStatus = await connection.getSignatureStatuses([signature], { searchTransactionHistory:true }).catch(() => null);
+  const status = finalStatus?.value?.[0];
+  if (status?.err) throw new Error(`Reward transaction failed: ${JSON.stringify(status.err)}`);
+  if (status?.confirmationStatus === 'finalized') return signature;
+  throw new Error(`Reward transaction ${signature} has no verified finalized receipt; reconcile before retrying.${lastRpcError ? ` Last RPC error: ${String(lastRpcError.message || lastRpcError)}` : ''}`);
 }
 
 export async function readProgramDataEvidence(connection, program) {
