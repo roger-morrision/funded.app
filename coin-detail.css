@@ -241,6 +241,17 @@ main.wallet-view>#wallet-page{display:block!important}
 .coin-page .coin-holder-trades:hover{border-color:#a9b9ec;background:#243248}
 .coin-page .coin-holder-trades:focus-visible,.coin-page .coin-holder-address:focus-visible{outline:2px solid #a9b9ec;outline-offset:2px}
 .coin-page .coin-holder-no-trades{color:#68788f}
+.coin-page .coin-fee-table{min-width:640px}
+.coin-page .coin-fee-table th:nth-child(3),.coin-page .coin-fee-collections-table th:nth-child(4){text-align:right}
+.coin-page .coin-fee-allocations-table th:nth-child(4){text-align:left}
+.coin-page .coin-fee-table th:last-child{text-align:center}
+.coin-page .coin-fee-table td{height:47px}
+.coin-page .coin-fee-table td:nth-child(2),.coin-page .coin-fee-allocations-table td:nth-child(4){text-align:left}
+.coin-page .coin-fee-event{display:block;color:#e1eaf5;font-size:11px;font-weight:700}
+.coin-page .coin-fee-detail{display:block;margin-top:4px;color:#8194ac;font-size:9px}
+.coin-page .coin-fee-amount{text-align:right;color:#91e1bc!important;font-weight:700;font-variant-numeric:tabular-nums}
+.coin-page .coin-fee-status{display:inline-flex;padding:5px 8px;border:1px solid #356f59;border-radius:5px;background:#18382d;color:#9fe6c1;font-size:9px;font-weight:700;white-space:nowrap}
+.coin-page .coin-fee-action{text-align:center}
 .coin-page .coin-activity-row{min-width:0}
 .coin-page .coin-tabs button{font-size:11px}
 .coin-page .coin-activity-row strong{font-size:12px}

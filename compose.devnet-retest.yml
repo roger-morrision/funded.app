@@ -1,13 +1,13 @@
 # Clean, rollback-safe Devnet retest. Keep this overlay in every funded.vip
 # Compose invocation until a reviewed data migration replaces this database.
 # The secret file and Docker volume are local and never belong in Git.
-x-retest-image: &retest-image ${FUNDED_RETEST_IMAGE:-fundedapp-app:holder-table-20260930}
+x-retest-image: &retest-image ${FUNDED_RETEST_IMAGE:-fundedapp-app:fee-table-20260930}
 
 services:
   app:
     image: *retest-image
     environment:
-      FUNDED_BUILD_ID: holder-table-20260930
+      FUNDED_BUILD_ID: fee-table-20260930
       FUNDED_COMMUNITY_RESERVE_RECEIPTS_JSON: '{}'
   reward-volume-init:
     image: *retest-image
