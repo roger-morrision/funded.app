@@ -5,7 +5,7 @@ import { NATIVE_MINT, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import bs58 from 'bs58';
 import { buildTradeTransaction } from '../pump-trading.js';
 import { buildMintRouterInitializeInstruction } from '../mint-router-launch.js';
-import { deriveFeeRouter, verifyMintFeeRouterAccount } from '../fee-router.js';
+import { deriveFeeRouter, verifyFeeRouterAccount, verifyMintFeeRouterAccount } from '../fee-router.js';
 import { createAutomaticRewardChain } from '../server/automatic-reward-chain.mjs';
 
 const cluster = String(process.env.SOLANA_CLUSTER || process.env.VITE_SOLANA_CLUSTER || 'devnet').trim();
@@ -19,6 +19,21 @@ const [rpcGenesis, devnetGenesis] = await Promise.all([
   new Connection(clusterApiUrl('devnet'), 'confirmed').getGenesisHash(),
 ]);
 assert.equal(rpcGenesis, devnetGenesis, 'The configured RPC endpoint is not Solana Devnet.');
+const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || '2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik');
+const sharedRouter = deriveFeeRouter(programId).address;
+const sharedRouterProof = await verifyFeeRouterAccount({ connection, programId });
+assert.ok(sharedRouterProof.verified, `Verified legacy router is required before any Devnet transaction: ${sharedRouterProof.reason}`);
+const legacyAccount = await connection.getAccountInfo(sharedRouter, 'finalized');
+assert.ok(legacyAccount?.data?.length >= 74, 'Verified legacy router header is required before any Devnet transaction.');
+const legacyAuthority = new PublicKey(legacyAccount.data.subarray(41, 73));
+// This disposable Devnet role was exposed before this verifier run. Mint routers
+// inherit its authority even when a new creator pays to initialize them.
+assert.notEqual(legacyAuthority.toBase58(), 'B2Ns79FNQBseayg77fT7CvxQYs2NJ3DJBR3R1nDbwk3n',
+  'Devnet router authority is under a key-exposure hold. No transaction was prepared or sent. Deploy a reviewed router with a new authority before retesting.');
+const authoritySecret = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
+assert.ok(authoritySecret, 'A separate router authority signer is required for the full flow. No transaction was prepared or sent.');
+const routerAuthority = Keypair.fromSecretKey(bs58.decode(authoritySecret));
+assert.equal(routerAuthority.publicKey.toBase58(), legacyAuthority.toBase58(), 'The configured router signer does not match the verified on-chain authority. No transaction was prepared or sent.');
 
 async function requestAirdropOnce(publicKey, lamports) {
   const response = await fetch(devnetRpcUrl, {
@@ -57,8 +72,6 @@ if (!payerReady) {
   // Leave the process naturally so Node can close fetch handles on Windows.
   // The nonzero exit code marks this as an infrastructure blocker, not a pass.
 } else {
-const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || '2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik');
-const sharedRouter = deriveFeeRouter(programId).address;
 const tradeFeeOwner = new PublicKey(process.env.VITE_FUNDED_TRADE_FEE_OWNER || sharedRouter.toBase58());
 assert(!tradeFeeOwner.equals(payer.publicKey), 'Trade fee owner must differ from the test payer to verify its balance delta.');
 const tradeAmountSol = Number(process.env.TEST_TRADE_SOL || 0.01);
@@ -71,7 +84,7 @@ const initializeRouter = new Transaction({ recentBlockhash:latest.blockhash, fee
 initializeRouter.sign(payer, mint);
 const mintRouterSignature = await connection.sendRawTransaction(initializeRouter.serialize(), { skipPreflight:false });
 await connection.confirmTransaction({ signature:mintRouterSignature, blockhash:latest.blockhash, lastValidBlockHeight:latest.lastValidBlockHeight }, 'finalized');
-const checkedRouter = await verifyMintFeeRouterAccount({ connection, programId, mint:mint.publicKey, expectedAuthority:payer.publicKey });
+const checkedRouter = await verifyMintFeeRouterAccount({ connection, programId, mint:mint.publicKey, expectedAuthority:legacyAuthority });
 assert(checkedRouter.verified, `Mint router verification failed: ${checkedRouter.reason}`);
 const router = checkedRouter.address;
 const routerBefore = await connection.getBalance(router, 'finalized');
@@ -122,7 +135,7 @@ await connection.confirmTransaction({ signature:collectionSignature, blockhash:l
 const routerAfterCollection = await connection.getBalance(router, 'finalized');
 const collectedLamports = routerAfterCollection - routerBefore;
 assert(collectedLamports > 0, 'Mint-specific Pump creator-fee collection produced no finalized router balance delta.');
-const chain = createAutomaticRewardChain({ connection, programId, authority:payer, expectedProgramDataSha256:process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
+const chain = createAutomaticRewardChain({ connection, programId, authority:routerAuthority, expectedProgramDataSha256:process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
 const readiness = await chain.readiness();
 assert(readiness.constrainedPayouts, `Reward chain unavailable: ${readiness.reasons.join(', ')}`);
 const routerRent = await connection.getMinimumBalanceForRentExemption(106, 'finalized');
