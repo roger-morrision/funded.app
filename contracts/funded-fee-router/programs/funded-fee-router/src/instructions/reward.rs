@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
 use solana_sha256_hasher::hashv;
 use crate::{constants::*, error::ErrorCode, state::{RewardCycle, RewardPayment, RewardVault}};
+use super::rotate::assert_current_router_authority;
 
 #[derive(Accounts)]
 pub struct InitializeRewardVault<'info> {
@@ -16,10 +17,14 @@ pub struct InitializeRewardVault<'info> {
         bump
     )]
     pub vault: Account<'info, RewardVault>,
+    /// CHECK: Validated against the current router header before creating a vault.
+    #[account(seeds = [SEED], bump)]
+    pub legacy_router: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
 pub fn initialize_vault(ctx: Context<InitializeRewardVault>) -> Result<()> {
+    assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
     let vault = &mut ctx.accounts.vault;
     vault.authority = ctx.accounts.authority.key();
     vault.mint = ctx.accounts.mint.key();
@@ -46,6 +51,9 @@ pub struct CreateRewardCycle<'info> {
         bump
     )]
     pub cycle: Account<'info, RewardCycle>,
+    /// CHECK: Validated against the current router header before creating a cycle.
+    #[account(seeds = [SEED], bump)]
+    pub legacy_router: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -59,6 +67,7 @@ pub fn create_cycle(
     payout_at: i64,
     leaf_count: u32,
 ) -> Result<()> {
+    assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
     require!(total_amount > 0 && leaf_count > 0, ErrorCode::InvalidAmount);
     require!(payout_at >= cutoff_at && cutoff_at > 0, ErrorCode::InvalidRewardTiming);
     let cycle = &mut ctx.accounts.cycle;

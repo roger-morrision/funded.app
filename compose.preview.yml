@@ -40,6 +40,7 @@ services:
       SOLANA_DEVNET_CREATOR_SECRET_KEY_FILE: /run/secrets/solana_devnet_creator_secret_key
       SOLANA_KEEPER_CONFIGURED: "true"
       SOLANA_KEEPER_SECRET_KEY_FILE: /run/secrets/solana_keeper_secret_key
+      FUNDED_ROUTER_AUTHORITY_SECRET_KEY_FILE: /run/secrets/funded_router_authority_secret_key
       HOST: 0.0.0.0
       PORT: 8787
       VITE_SOLANA_CLUSTER: devnet

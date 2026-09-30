@@ -35,6 +35,10 @@ pub mod funded_fee_router {
         repair::handler(ctx)
     }
 
+    pub fn rotate_authority(ctx: Context<RotateAuthority>) -> Result<()> {
+        rotate::handler(ctx)
+    }
+
     pub fn initialize_reward_vault(ctx: Context<InitializeRewardVault>) -> Result<()> {
         reward::initialize_vault(ctx)
     }

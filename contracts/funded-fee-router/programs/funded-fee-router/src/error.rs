@@ -40,4 +40,6 @@ pub enum ErrorCode {
     CommunityClaimStillOpen,
     #[msg("Community remainder route is not permitted")]
     InvalidCommunityRemainder,
+    #[msg("Router authority rotation is not approved by the program upgrade owner")]
+    InvalidRotationAuthority,
 }

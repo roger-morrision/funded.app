@@ -23,6 +23,7 @@ export const REWARD_PROGRAM_VERSION = 'reward-manifest-v1';
 const VAULT_SEED = Buffer.from('reward-vault-v1');
 const CYCLE_SEED = Buffer.from('reward-cycle-v1');
 const PAYMENT_SEED = Buffer.from('reward-payment-v1');
+const ROUTER_SEED = Buffer.from('funded-fee-router-v1');
 const BPF_LOADER_UPGRADEABLE_PROGRAM_ID = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 
 function discriminator(namespace, name) {
@@ -103,10 +104,11 @@ export async function readProgramDataEvidence(connection, program) {
 
 export function createAutomaticRewardChain({ connection, programId, authority, expectedProgramDataSha256, expectedVersion = REWARD_PROGRAM_VERSION }) {
   const program = new PublicKey(programId);
+  const [legacyRouter] = PublicKey.findProgramAddressSync([ROUTER_SEED], program);
   if (!authority?.publicKey) throw new Error('A reward authority signer is required.');
 
   async function readiness() {
-    const [genesisHash, evidence] = await Promise.all([connection.getGenesisHash(), readProgramDataEvidence(connection, program)]);
+    const [genesisHash, evidence, routerAccount] = await Promise.all([connection.getGenesisHash(), readProgramDataEvidence(connection, program), connection.getAccountInfo(legacyRouter, 'finalized')]);
     const account = evidence.account;
     const reasons = [];
     if (genesisHash !== DEVNET_GENESIS_HASH) reasons.push('cluster-is-not-devnet');
@@ -114,6 +116,8 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     if (expectedVersion !== REWARD_PROGRAM_VERSION) reasons.push('program-version-not-approved');
     if (!expectedProgramDataSha256) reasons.push('program-data-hash-not-configured');
     if (expectedProgramDataSha256 && evidence.sha256 !== expectedProgramDataSha256.toLowerCase()) reasons.push('program-data-hash-mismatch');
+    const routerData = Buffer.from(routerAccount?.data || []);
+    if (!routerAccount?.owner?.equals(program) || routerData.length !== 74 || routerData.subarray(0, 8).toString() !== 'FUNDFEE1' || !routerData.subarray(41, 73).equals(authority.publicKey.toBuffer())) reasons.push('router-authority-mismatch');
     return { constrainedPayouts: reasons.length === 0, cluster: genesisHash === DEVNET_GENESIS_HASH ? 'devnet' : 'unknown', program: program.toBase58(), programDataAddress: evidence.programDataAddress || null, observedProgramDataSha256: evidence.sha256, reasons };
   }
 
@@ -122,7 +126,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     if (await connection.getAccountInfo(vault, 'finalized')) return vault;
     const instruction = new TransactionInstruction({
       programId: program,
-      keys: [{ pubkey: authority.publicKey, isSigner: true, isWritable: true }, { pubkey: new PublicKey(mint), isSigner: false, isWritable: false }, { pubkey: vault, isSigner: false, isWritable: true }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }],
+      keys: [{ pubkey: authority.publicKey, isSigner: true, isWritable: true }, { pubkey: new PublicKey(mint), isSigner: false, isWritable: false }, { pubkey: vault, isSigner: false, isWritable: true }, { pubkey: legacyRouter, isSigner: false, isWritable: false }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }],
       data: discriminator('global', 'initialize_reward_vault'),
     });
     await finalizedSend(connection, new Transaction().add(instruction), [authority]);
@@ -142,7 +146,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     }
     const asset = plan.manifest.asset === 'SOL' ? SOL_ASSET_MINT : plan.manifest.asset;
     const data = Buffer.concat([discriminator('global', 'create_reward_cycle'), hex32(plan.manifest.cycleId, 'cycleId'), hex32(plan.manifest.root, 'root'), new PublicKey(asset).toBuffer(), u64(plan.manifest.totalAmount), i64(plan.cutoffAt), i64(plan.payoutAt), u32(plan.manifest.leaves.length)]);
-    const instruction = new TransactionInstruction({ programId: program, keys: [{ pubkey: authority.publicKey, isSigner: true, isWritable: true }, { pubkey: vault, isSigner: false, isWritable: false }, { pubkey: cycle, isSigner: false, isWritable: true }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }], data });
+    const instruction = new TransactionInstruction({ programId: program, keys: [{ pubkey: authority.publicKey, isSigner: true, isWritable: true }, { pubkey: vault, isSigner: false, isWritable: false }, { pubkey: cycle, isSigner: false, isWritable: true }, { pubkey: legacyRouter, isSigner: false, isWritable: false }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }], data });
     const signature = await finalizedSend(connection, new Transaction().add(instruction), [authority]);
     const committed = parseCycle(await connection.getAccountInfo(cycle, 'finalized'));
     if (!committed || committed.root !== expected.root || committed.totalAmount !== expected.totalAmount) throw new Error('Reward cycle transaction finalized without the expected state delta.');

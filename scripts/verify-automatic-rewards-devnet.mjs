@@ -5,7 +5,9 @@ import { createAutomaticRewardChain, DEVNET_GENESIS_HASH } from '../server/autom
 import { buildRewardManifest, createRewardCycleId } from '../reward-merkle.js';
 
 const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || clusterApiUrl('devnet'), 'finalized');
-const authority = Keypair.generate(), recipient = Keypair.generate(), launchMint = Keypair.generate().publicKey;
+const configuredAuthority = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
+const authority = configuredAuthority ? Keypair.fromSecretKey(bs58.decode(configuredAuthority)) : Keypair.generate();
+const recipient = Keypair.generate(), launchMint = Keypair.generate().publicKey;
 const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || '2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik');
 const chain = createAutomaticRewardChain({ connection, programId, authority, expectedProgramDataSha256: process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
 async function getOrCreateFinalizedTokenAccount(mint, owner) {
@@ -24,10 +26,10 @@ const genesisHash = await connection.getGenesisHash();
 if (genesisHash !== DEVNET_GENESIS_HASH) throw new Error('Configured RPC is not Solana Devnet.');
 const readiness = await chain.readiness();
 if (!readiness.constrainedPayouts) {
-  console.log(JSON.stringify({ status:'blocked', verification:'devnet-read-only', reasons:readiness.reasons, program:readiness.program, programDataAddress:readiness.programDataAddress, observedProgramDataSha256:readiness.observedProgramDataSha256, signer:'in-memory-ephemeral' }, null, 2));
+  console.log(JSON.stringify({ status:'blocked', verification:'devnet-read-only', reasons:readiness.reasons, program:readiness.program, programDataAddress:readiness.programDataAddress, observedProgramDataSha256:readiness.observedProgramDataSha256, signer:configuredAuthority ? 'configured-devnet-router' : 'in-memory-ephemeral' }, null, 2));
   process.exitCode = 2;
 } else if (process.env.DEVNET_REWARD_E2E !== 'true') {
-  console.log(JSON.stringify({ status:'ready-not-executed', verification:'devnet-read-only', reason:'Set DEVNET_REWARD_E2E=true to authorize one ephemeral-wallet Devnet payout test.', program:readiness.program, signer:'in-memory-ephemeral' }, null, 2));
+  console.log(JSON.stringify({ status:'ready-not-executed', verification:'devnet-read-only', reason:'Set DEVNET_REWARD_E2E=true to run one configured-authority Devnet payout test.', program:readiness.program, signer:configuredAuthority ? 'configured-devnet-router' : 'in-memory-ephemeral' }, null, 2));
 } else {
   const beforeFunding = await connection.getBalance(authority.publicKey, 'finalized');
   let testWalletFundingSignature = null, fundingSource;
@@ -89,5 +91,5 @@ if (!readiness.constrainedPayouts) {
   const tokenPlan = { mint:launchMint.toBase58(), cutoffAt:now - 60, payoutAt:now - 30, manifest:tokenManifest };
   const tokenCycle = await chain.ensureCycle(tokenPlan), tokenPayout = await chain.submitLeaf(tokenPlan, tokenManifest.leaves[0]);
   if (!tokenFunding.balanceDeltaVerified || !tokenPayout.finalized || !tokenPayout.balanceDeltaVerified) throw new Error('Devnet token reward E2E lacks required finalized token-account deltas.');
-  console.log(JSON.stringify({ status:'passed', verification:'devnet-end-to-end', program:readiness.program, authority:authority.publicKey.toBase58(), recipient:recipient.publicKey.toBase58(), launchMint:launchMint.toBase58(), fundingSource, testWalletFundingSignature, sol:{ vaultFundingSignature:funding.signature, cycleSignature:cycle.signature, payoutSignature:payout.signature, payment:payout.payment }, token:{ mint:tokenMint.toBase58(), mintToSignature, vaultFundingSignature:tokenFunding.signature, cycleSignature:tokenCycle.signature, payoutSignature:tokenPayout.signature, payment:tokenPayout.payment }, signer:'in-memory-ephemeral', privateKeyPersisted:false }, null, 2));
+  console.log(JSON.stringify({ status:'passed', verification:'devnet-end-to-end', program:readiness.program, authority:authority.publicKey.toBase58(), recipient:recipient.publicKey.toBase58(), launchMint:launchMint.toBase58(), fundingSource, testWalletFundingSignature, sol:{ vaultFundingSignature:funding.signature, cycleSignature:cycle.signature, payoutSignature:payout.signature, payment:payout.payment }, token:{ mint:tokenMint.toBase58(), mintToSignature:mintToSignature, vaultFundingSignature:tokenFunding.signature, cycleSignature:tokenCycle.signature, payoutSignature:tokenPayout.signature, payment:tokenPayout.payment }, signer:configuredAuthority ? 'configured-devnet-router' : 'in-memory-ephemeral', privateKeyPersistedByTest:false }, null, 2));
 }
