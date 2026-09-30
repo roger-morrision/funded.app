@@ -39,10 +39,14 @@ function configuredWallet(name) {
 const creator = configuredWallet('SOLANA_DEVNET_CREATOR_SECRET_KEY');
 const holder = configuredWallet('SOLANA_DEVNET_CLAIMANT_SECRET_KEY');
 const referrer = configuredWallet('SOLANA_DEVNET_REFERRER_SECRET_KEY');
+const level2Key = process.env.SOLANA_DEVNET_REFERRER_LEVEL_2_SECRET_KEY;
+const level3Key = process.env.SOLANA_DEVNET_REFERRER_LEVEL_3_SECRET_KEY;
+assert.equal(Boolean(level2Key), Boolean(level3Key), 'Both additional referral wallets must be configured together.');
+const referralWallets = level2Key ? [referrer, configuredWallet('SOLANA_DEVNET_REFERRER_LEVEL_2_SECRET_KEY'), configuredWallet('SOLANA_DEVNET_REFERRER_LEVEL_3_SECRET_KEY')] : [referrer];
 const keeper = configuredWallet('SOLANA_KEEPER_SECRET_KEY');
 const authority = configuredWallet('FUNDED_ROUTER_AUTHORITY_SECRET_KEY');
 const pumpRevenue = new PublicKey(process.env.FUNDED_PUMP_REVENUE_WALLET || '').toBase58();
-assert.equal(new Set([creator, holder, referrer, keeper, authority].map(wallet => wallet.publicKey.toBase58()).concat(pumpRevenue)).size, 6, 'Test wallet and app roles must be distinct.');
+assert.equal(new Set([creator, holder, ...referralWallets, keeper, authority].map(wallet => wallet.publicKey.toBase58()).concat(pumpRevenue)).size, 5 + referralWallets.length, 'Test wallet and app roles must be distinct.');
 
 const rpcUrl = String(process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || clusterApiUrl('devnet')).trim();
 const connection = new Connection(rpcUrl, 'finalized');
@@ -172,13 +176,26 @@ try {
   const topUp = await ensureCreatorFunding();
 
   stage = 'registering-referral';
-  const registration = await post('/api/referrals/registration/prepare', { wallet: referrer.publicKey.toBase58() });
-  const registered = await post('/api/referrals/registration/verify', {
-    challengeId: registration.challengeId,
-    wallet: referrer.publicKey.toBase58(),
-    signature: walletSignature(registration.statement, referrer),
-  });
-  const attribution = await post('/api/referrals/attribution/prepare', { wallet: creator.publicKey.toBase58(), code: registered.code });
+  let inviterCode = null;
+  for (const wallet of [...referralWallets].reverse()) {
+    const registration = await post('/api/referrals/registration/prepare', { wallet: wallet.publicKey.toBase58() });
+    const registered = await post('/api/referrals/registration/verify', {
+      challengeId: registration.challengeId,
+      wallet: wallet.publicKey.toBase58(),
+      signature: walletSignature(registration.statement, wallet),
+    });
+    if (inviterCode) {
+      const attribution = await post('/api/referrals/attribution/prepare', { wallet: wallet.publicKey.toBase58(), code: inviterCode });
+      const attributed = await post('/api/referrals/attribution/verify', {
+        challengeId: attribution.challengeId,
+        wallet: wallet.publicKey.toBase58(),
+        signature: walletSignature(attribution.statement, wallet),
+      });
+      assert.equal(attributed.inviterWallet, referralWallets[referralWallets.indexOf(wallet) + 1].publicKey.toBase58());
+    }
+    inviterCode = registered.code;
+  }
+  const attribution = await post('/api/referrals/attribution/prepare', { wallet: creator.publicKey.toBase58(), code: inviterCode });
   const attributed = await post('/api/referrals/attribution/verify', {
     challengeId: attribution.challengeId,
     wallet: creator.publicKey.toBase58(),
@@ -261,28 +278,36 @@ try {
 
   stage = 'settling-collected-fees';
   const settlement = await post('/api/settlements/claims', { claimSignature: collection.signature }, { authorized: true });
-  const referralLevel = settlement.fundedApp.referralLevels.find(item => item.level === 1);
-  assert.equal(referralLevel.recipient, referrer.publicKey.toBase58(), 'Settlement did not resolve the registered direct referrer.');
-  assert.equal(referralLevel.status, 'claimable', 'Direct referral reward is not claimable.');
+  for (const [index, wallet] of referralWallets.entries()) {
+    const referralLevel = settlement.fundedApp.referralLevels.find(item => item.level === index + 1);
+    assert.equal(referralLevel?.recipient, wallet.publicKey.toBase58(), `Settlement did not resolve referral level ${index + 1}.`);
+    assert.equal(referralLevel?.status, 'claimable', `Referral level ${index + 1} is not claimable.`);
+  }
   assert(Number(settlement.creatorDestinations.holderAirdrop) > 0, 'Settlement did not allocate a positive holder reward.');
 
   stage = 'executing-manual-referral-claim';
-  const manualClaim = await post('/api/referral-claims/prepare', {
-    settlementSignature: collection.signature,
-    recipientWallet: referrer.publicKey.toBase58(),
-    level: 1,
-  }, { authorized: true });
-  const verifiedClaim = await post(`/api/referral-claims/${manualClaim.id}/verify`, {
-    publicKey: referrer.publicKey.toBase58(),
-    signature: walletSignature(manualClaim.statement, referrer),
-  });
-  assert.equal(verifiedClaim.status, 'wallet-verified', 'Referral wallet signature was not accepted.');
-  const referralBalanceBefore = await connection.getBalance(referrer.publicKey, 'finalized');
-  const manualPayout = await post(`/api/referral-claims/${manualClaim.id}/execute`, {});
-  await waitForFinalizedSignature(manualPayout.signature);
-  const referralBalanceAfter = await connection.getBalance(referrer.publicKey, 'finalized');
-  const expectedReferralLamports = Math.floor(Number(manualClaim.amount) * 1_000_000_000);
-  assert.equal(referralBalanceAfter - referralBalanceBefore, expectedReferralLamports, 'Manual referral claim lacks the exact finalized recipient balance delta.');
+  const manualReferralClaims = [];
+  for (const [index, wallet] of referralWallets.entries()) {
+    const level = index + 1;
+    const manualClaim = await post('/api/referral-claims/prepare', {
+      settlementSignature: collection.signature,
+      recipientWallet: wallet.publicKey.toBase58(),
+      level,
+    }, { authorized: true });
+    const verifiedClaim = await post(`/api/referral-claims/${manualClaim.id}/verify`, {
+      publicKey: wallet.publicKey.toBase58(),
+      signature: walletSignature(manualClaim.statement, wallet),
+    });
+    assert.equal(verifiedClaim.status, 'wallet-verified', `Referral level ${level} wallet signature was not accepted.`);
+    const before = await connection.getBalance(wallet.publicKey, 'finalized');
+    const payout = await post(`/api/referral-claims/${manualClaim.id}/execute`, {});
+    await waitForFinalizedSignature(payout.signature);
+    const after = await connection.getBalance(wallet.publicKey, 'finalized');
+    const expected = Math.floor(Number(manualClaim.amount) * 1_000_000_000);
+    assert.equal(after - before, expected, `Referral level ${level} payout lacks the exact finalized recipient balance delta.`);
+    manualReferralClaims.push({ level, recipient:wallet.publicKey.toBase58(), claimId:manualClaim.id, amountSol:manualClaim.amount,
+      payoutSignature:payout.signature, finalizedBalanceDeltaLamports:String(after - before) });
+  }
 
   stage = 'processing-automatic-reward-funding';
   const automaticStore = createAutomaticRewardStore(automaticStorePath);
@@ -379,6 +404,8 @@ try {
       creator: creator.publicKey.toBase58(),
       holder: holder.publicKey.toBase58(),
       referrer: referrer.publicKey.toBase58(),
+      referralLevel2: referralWallets[1]?.publicKey.toBase58() || null,
+      referralLevel3: referralWallets[2]?.publicKey.toBase58() || null,
     },
     coin: {
       mint: mint.publicKey.toBase58(),
@@ -400,12 +427,7 @@ try {
       settlementStatus: settlement.status,
       holderAllocationSol: settlement.creatorDestinations.holderAirdrop,
     },
-    manualReferralClaim: {
-      claimId: manualClaim.id,
-      amountSol: manualClaim.amount,
-      payoutSignature: manualPayout.signature,
-      finalizedBalanceDeltaLamports: String(referralBalanceAfter - referralBalanceBefore),
-    },
+    manualReferralClaims,
     automaticHolderReward: {
       scheduleId: holderSchedule.id,
       snapshotSlots: holderSchedule.snapshotSlots,
