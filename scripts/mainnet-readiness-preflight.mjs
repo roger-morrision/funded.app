@@ -4,7 +4,7 @@ import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
 import { readProgramDataEvidence } from '../server/automatic-reward-chain.mjs';
 
 const UPGRADEABLE_LOADER = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
-const PUBLIC_MAINNET_RPC = 'api.mainnet.solana.com';
+const PUBLIC_MAINNET_RPCS = new Set([new URL(clusterApiUrl('mainnet-beta')).hostname, 'api.mainnet.solana.com']);
 
 function validPublicKey(value) {
   try { return new PublicKey(String(value || '').trim()).toBase58(); }
@@ -15,7 +15,7 @@ function validProductionRpc(value) {
   try {
     const url = new URL(value);
     return url.protocol === 'https:' && !url.username && !url.password
-      && url.hostname !== PUBLIC_MAINNET_RPC
+      && !PUBLIC_MAINNET_RPCS.has(url.hostname)
       && !/^(localhost|127\.|\[::1\])|devnet|testnet/i.test(url.hostname);
   } catch { return false; }
 }

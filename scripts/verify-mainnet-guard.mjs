@@ -47,6 +47,7 @@ assert.equal(assessMainnetConfig({ ...mainnetFixture, MAINNET_APPROVED_UPGRADE_A
 for (const changes of [
   { VITE_SOLANA_CLUSTER:'devnet' }, { SOLANA_CLUSTER:'devnet' }, { VITE_ALLOW_MAINNET:'true' },
   { SOLANA_RPC_URL:'https://api.devnet.solana.com' }, { SOLANA_RPC_URL:'https://api.mainnet.solana.com' },
+  { SOLANA_RPC_URL:'https://api.mainnet-beta.solana.com' },
   { VITE_FUNDED_FEE_ROUTER_PROGRAM_ID:'11111111111111111111111111111111' },
   { FUNDED_REWARD_PROGRAM_DATA_SHA256:'bad' }, { MAINNET_APPROVED_UPGRADE_AUTHORITY:'bad' },
   { MAINNET_APPROVED_IMMUTABLE_PROGRAM:'true' },
