@@ -123,7 +123,10 @@ const summary = { side:'sell', mint:destination.toBase58(), tokenName:'Funded Cl
 assert.equal((await call('POST', '/api/mobile-wallet/relay', { headers:{ origin }, input:{ id:summaryId, pollToken:summaryToken, transactionRequest:{ ...transactionRequest, summary:{ ...summary, minimumSol:'100' } } } })).status, 400);
 assert.equal((await call('POST', '/api/mobile-wallet/relay', { headers:{ origin }, input:{ id:summaryId, pollToken:summaryToken, transactionRequest:{ ...transactionRequest, summary } } })).status, 201);
 assert.deepEqual((await call('GET', `/api/mobile-wallet/trade-request/${summaryId}`)).json.summary, summary);
-assert.match((await call('GET', `/api/mobile-wallet/trade/${summaryId}`)).body, /Token and quantity[\s\S]*Estimated SOL to wallet/);
+const sellPage = (await call('GET', `/api/mobile-wallet/trade/${summaryId}`)).body;
+assert.match(sellPage, /Estimated SOL to wallet[\s\S]*Token and quantity/);
+assert.match(sellPage, /id="outcome" hidden[\s\S]*id="receipt-amounts"/);
+assert.match(sellPage, /document\.querySelector\('#review'\)\.hidden=true/);
 assert.equal((await call('GET', `/api/mobile-wallet/trade-status/${summaryId}`)).json.status, 'review');
 assert.equal((await call('POST', `/api/mobile-wallet/trade/${summaryId}`, { headers:{ origin }, input:{ transaction:Buffer.from(signedTransaction.serialize()).toString('base64') } })).status, 200);
 assert.equal((await call('GET', `/api/mobile-wallet/trade-status/${summaryId}`)).json.status, 'signed');
