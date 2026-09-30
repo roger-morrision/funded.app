@@ -5808,13 +5808,19 @@ function renderCoinActivityTab(){
     const trades = selectRecentTrades(coinMarketActivity.trades, { side: coinTradeFilter, wallet: walletQuery, minSol });
     const mint = getCoinMintAddress();
     const symbol = coinActivity.symbol || 'TOKEN';
-    activity.innerHTML = trades.length ? trades.map(item => {
-      const time = Number.isFinite(Number(item.blockTime)) ? new Date(Number(item.blockTime) * 1000).toLocaleString() : 'Time unavailable';
+    const explorerIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 4h14l-3 3H3z" fill="#78e7b4"/><path d="M4 10h14l3 3H7z" fill="#ab91ff"/><path d="M6 16h14l-3 3H3z" fill="#78e7b4"/></svg>';
+    const rows = trades.map(item => {
+      const timestamp = Number(item.blockTime) * 1000;
+      const validTime = Number.isFinite(timestamp) && timestamp > 0 && timestamp < 8.64e15;
+      const time = validTime ? new Date(timestamp).toLocaleString() : 'Time unavailable';
       const sol = Number(item.solLamports) / 1_000_000_000;
       const tokens = Number(item.tokenAmountRaw) / (10 ** coinMarketActivity.decimals);
       const side = item.side === 'buy' ? 'Buy' : 'Sell';
-      return `<div class="coin-activity-row coin-trade-row ${item.side === 'buy' ? 'is-buy' : 'is-sell'}" data-logo-mint="${escapeHtml(mint)}"><span class="activity-icon coin-trade-token-avatar" aria-hidden="true">${escapeHtml(symbol.slice(0, 1).toUpperCase())}</span><span><strong>${side} <span class="coin-trade-symbol">${escapeHtml(symbol)}</span><a class="coin-trade-explorer" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(item.signature)}`))}" target="_blank" rel="noopener noreferrer" aria-label="View ${side} ${escapeHtml(symbol)} transaction on Solana Explorer" title="View transaction on Solana Explorer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 4h14l-3 3H3z" fill="#78e7b4"/><path d="M4 10h14l3 3H7z" fill="#ab91ff"/><path d="M6 16h14l-3 3H3z" fill="#78e7b4"/></svg></a></strong><small>Trader <a href="/wallet/${encodeURIComponent(item.trader)}" aria-label="View wallet profile for ${escapeHtml(item.trader)}">${escapeHtml(shortAddress(item.trader))}</a></small></span><b class="activity-amount">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}<small>${Number.isFinite(tokens) ? escapeHtml(formatOnChainNumber(tokens, 2)) : '—'} ${escapeHtml(symbol)}</small><time class="activity-time">${escapeHtml(time)}</time></b></div>`;
-    }).join('') : `<div class="empty-state coin-activity-empty"><strong>No matching trades in this view</strong><small>${coinMarketActivity.coverage === 'partial' ? 'RPC coverage is partial; more activity may exist.' : coinTradeFilter !== 'all' || walletQuery || minSol ? 'Filters apply to the latest 20 shown. The 24-hour totals include all scanned trades.' : 'No confirmed Pump bonding-curve trade was found in the scanned 24-hour window.'}</small></div>`;
+      const tokenQuantity = Number.isFinite(tokens) ? formatOnChainNumber(tokens, tokens >= 1 ? 2 : 6) : '—';
+      const price = Number.isFinite(sol) && Number.isFinite(tokens) && tokens > 0 ? formatCoinSnapshotUsd(sol / tokens) : '$—';
+      return `<tr class="coin-transaction-row ${item.side === 'buy' ? 'is-buy' : 'is-sell'}" data-logo-mint="${escapeHtml(mint)}"><td><time datetime="${validTime ? new Date(timestamp).toISOString() : ''}" title="${escapeHtml(time)}">${validTime ? escapeHtml(formatOnchainAge(timestamp)) : '—'}</time></td><td><span class="coin-transaction-side"><i aria-hidden="true">${item.side === 'buy' ? '↑' : '↓'}</i>${side}</span></td><td class="coin-transaction-number">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}</td><td><span class="coin-transaction-token"><span class="coin-trade-token-avatar" aria-hidden="true">${escapeHtml(symbol.slice(0, 1).toUpperCase())}</span><span>${escapeHtml(tokenQuantity)} <small>${escapeHtml(symbol)}</small></span></span></td><td class="coin-transaction-number">${Number.isFinite(sol) ? escapeHtml(formatOnChainNumber(sol, 6)) : '—'}</td><td class="coin-transaction-number">${escapeHtml(price)}</td><td><a class="coin-transaction-trader" href="/wallet/${encodeURIComponent(item.trader)}" aria-label="View wallet profile for ${escapeHtml(item.trader)}">${escapeHtml(shortAddress(item.trader))}</a></td><td><a class="coin-trade-explorer" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(item.signature)}`))}" target="_blank" rel="noopener noreferrer" aria-label="View ${side} ${escapeHtml(symbol)} transaction on Solana Explorer" title="View transaction on Solana Explorer">${explorerIcon}</a></td></tr>`;
+    }).join('');
+    activity.innerHTML = trades.length ? `<div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(symbol)} transactions" tabindex="0"><table class="coin-transactions-table"><thead><tr><th scope="col">Date</th><th scope="col">Type</th><th scope="col" title="At the current SOL/USD quote">USD est.</th><th scope="col">Token</th><th scope="col">SOL</th><th scope="col" title="Average trade price at the current SOL/USD quote">Price est.</th><th scope="col">Trader</th><th scope="col">Txn</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<div class="empty-state coin-activity-empty"><strong>No matching trades in this view</strong><small>${coinMarketActivity.coverage === 'partial' ? 'RPC coverage is partial; more activity may exist.' : coinTradeFilter !== 'all' || walletQuery || minSol ? 'Filters apply to the latest 20 shown. The 24-hour totals include all scanned trades.' : 'No confirmed Pump bonding-curve trade was found in the scanned 24-hour window.'}</small></div>`;
     if (trades.length) loadVerifiedTokenLogos(activity);
     return;
   }
@@ -5888,6 +5894,9 @@ function resetCoinSurface(mintAddress){
   document.querySelector('#coin-launched-by')?.remove();
   ensureCoinChatTab();
   ensureCoinPolicyAccordion();
+  const coinLayout = document.querySelector('.coin-layout');
+  const transactionPanel = document.querySelector('.coin-tabs-panel');
+  if (coinLayout && transactionPanel?.parentElement !== coinLayout) coinLayout.append(transactionPanel);
   ensureCoinCommunityPanel();
   renderCoinCreatorHeader('');
   const snapshotMode = document.querySelector('[data-coin-chart-view="snapshot"]');
