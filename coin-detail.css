@@ -236,6 +236,7 @@ main.wallet-view>#wallet-page{display:block!important}
 .coin-page .coin-account-row.is-curve-vault small{color:#b0a8e2}
 .coin-page .coin-account-row small a{color:#a9c4ee;text-decoration:none}
 .coin-page .coin-account-row small a:hover{text-decoration:underline}
+.coin-page .coin-account-row strong a{display:inline-block;max-width:100%;overflow-wrap:anywhere;font:10px/1.5 'DM Mono',monospace}
 .coin-page .coin-chat{padding:16px}
 .coin-page .coin-chat-intro{display:flex;justify-content:space-between;gap:12px;padding:0 0 12px;border-bottom:1px solid #29384b}
 .coin-page .coin-chat-intro strong,.coin-page .coin-chat-intro small{display:block}

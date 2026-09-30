@@ -5696,7 +5696,7 @@ function setCoinTabLabels(){
     chat: 'Chat',
     payments: `Fee claims ${coinActivity.status === 'ready' && coinActivity.ledgerAvailable ? coinActivity.collections.length : '—'}`,
     claims: `Allocations ${coinActivity.status === 'ready' && coinActivity.ledgerAvailable ? coinActivity.claims.length : '—'}`,
-    holders: `Token accounts ${coinActivity.accountAvailable ? coinActivity.accounts.length : '—'}`,
+    holders: `Holders ${coinActivity.accountAvailable && coinActivity.holderCount > 0 ? `${coinActivity.holderCount}${coinActivity.holderCountPartial ? '+' : ''}` : '—'}`,
   };
   document.querySelectorAll('[data-coin-tab]').forEach(item => {
     item.textContent = labels[item.dataset.coinTab] || item.textContent;
@@ -5770,7 +5770,7 @@ async function loadCoinChat(mintAddress, loadId = coinLoadId){
 function ensureCoinChatTab(){
   document.querySelector('.coin-tabs [data-coin-tab="chat"]')?.remove();
   const holders = document.querySelector('.coin-tabs [data-coin-tab="holders"]');
-  if (holders) holders.textContent = 'Token accounts —';
+  if (holders) holders.textContent = 'Holders —';
 }
 function ensureCoinPolicyAccordion(){
   const card = document.querySelector('.coin-policy-card');
@@ -5825,19 +5825,16 @@ function renderCoinActivityTab(){
   }
   if (tab === 'holders') {
     if (!coinActivity.accountAvailable) { activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Token-account sample unavailable</strong><small>Solana RPC did not return token accounts for this mint.</small></div>'; return; }
-    activity.innerHTML = '<p class="coin-activity-scope">Confirmed non-zero token-account sample, not a unique holder count. Protocol vaults are labeled and excluded from the account summary.</p><div class="coin-holder-heading"><span>Wallet / token account</span><span>Balance</span><span>Supply share</span></div>' + (coinActivity.accounts.length ? coinActivity.accounts.map((item, index) => {
-      const isVault = item.address === coinActivity.vaultAddress;
+    const holderAccounts = coinActivity.accounts.filter(item => item.address !== coinActivity.vaultAddress);
+    const scope = coinActivity.holderCountPartial ? 'Largest non-vault token-account sample. Verified wallet owners are shown; more holders may exist.' : 'Verified holder wallets. Balances are per token account when a wallet has more than one.';
+    activity.innerHTML = `<p class="coin-activity-scope">${scope} Protocol vault excluded.</p><div class="coin-holder-heading"><span>Holder wallet</span><span>Balance</span><span>Supply share</span></div>` + (holderAccounts.length ? holderAccounts.map((item, index) => {
       const share = Number.isFinite(item.share) ? Math.max(0, Math.min(100, item.share)) : 0;
       const wallet = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(item.wallet || '') ? item.wallet : null;
       const accountLink = `<a href="${escapeHtml(exploreExplorer(`address/${item.address}`))}" target="_blank" rel="noopener noreferrer">${escapeHtml(shortAddress(item.address))} ↗</a>`;
-      const identity = !isVault && wallet
-        ? `<a href="/wallet/${encodeURIComponent(wallet)}">${escapeHtml(shortAddress(wallet))}</a>`
-        : accountLink;
-      const detail = isVault
-        ? `${escapeHtml(coinActivity.vaultLabel || 'Protocol vault')} · excluded from account summary`
-        : wallet ? `Token account ${accountLink}` : 'Wallet owner unavailable · token account';
-      return `<div class="coin-activity-row coin-account-row ${isVault ? 'is-curve-vault' : ''}"><span class="activity-icon">${index + 1}</span><span><strong>${identity}</strong><small>${detail}</small><i class="coin-account-share-track"><i style="width:${share}%"></i></i></span><b class="activity-amount">${escapeHtml(item.amount)} ${escapeHtml(coinActivity.symbol)}${item.share == null ? '' : `<small>${escapeHtml(formatOnChainNumber(item.share, 2))}% of supply</small>`}</b><span class="activity-time">RPC</span></div>`;
-    }).join('') : '<div class="empty-state coin-activity-empty"><strong>No token accounts returned</strong><small>Solana RPC returned an empty account sample.</small></div>');
+      const identity = wallet ? `<a href="/wallet/${encodeURIComponent(wallet)}">${escapeHtml(wallet)}</a>` : accountLink;
+      const detail = wallet ? `Token account ${accountLink}` : 'Wallet owner unavailable · token account';
+      return `<div class="coin-activity-row coin-account-row"><span class="activity-icon">${index + 1}</span><span><strong>${identity}</strong><small>${detail}</small><i class="coin-account-share-track"><i style="width:${share}%"></i></i></span><b class="activity-amount">${escapeHtml(item.amount)} ${escapeHtml(coinActivity.symbol)}${item.share == null ? '' : `<small>${escapeHtml(formatOnChainNumber(item.share, 2))}% of supply</small>`}</b><span class="activity-time">RPC</span></div>`;
+    }).join('') : '<div class="empty-state coin-activity-empty"><strong>No holders found</strong><small>No non-vault token accounts were returned.</small></div>');
     return;
   }
   if (!coinActivity.ledgerAvailable) {
@@ -6059,12 +6056,15 @@ async function loadCoinOnChain(mintAddress){
     }));
     const tokenAccounts = accounts.length;
     const distribution = accountAvailable ? summarizeTokenAccounts(accounts, curveVaultAddress) : null;
+    const holderAccounts = accounts.filter(item => item.address !== distribution?.vaultAddress);
+    const holderWallets = new Set(holderAccounts.map(item => item.wallet).filter(wallet => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet || '')));
+    const holderCountPartial = largestResult.value?.coverage !== 'complete-account-list' || holderAccounts.some(item => !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(item.wallet || '')) || !distribution?.vaultAddress;
     const realQuote = graduatedPool?.quoteReservesSol ?? curve?.realQuoteReservesSol;
     const ledger = await apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/fee-activity`, { signal: AbortSignal.timeout(8000) }).catch(() => ({ available: false, data: null }));
     if (loadId !== coinLoadId) return;
     const ledgerAvailable = ledger.available && ledger.data?.cluster === EXPLORE_CLUSTER;
     const linkedRouter = ledgerAvailable && curve?.creator === ledger.data?.sharedRouter?.address;
-    coinActivity = { status: 'ready', symbol, accounts, accountAvailable, vaultAddress: distribution?.vaultAddress || null, vaultLabel: graduatedPool ? 'PumpSwap pool vault' : 'Pump curve vault', ledgerAvailable, ledgerSource: ledger.data?.source === 'funded.app-postgresql' ? 'app database' : 'file ledger', collections: ledgerAvailable ? ledger.data.collections || [] : [], claims: ledgerAvailable ? ledger.data.claims || [] : [], sharedRouterCollections: linkedRouter ? ledger.data.sharedRouter.collections || [] : [] };
+    coinActivity = { status: 'ready', symbol, accounts, accountAvailable, holderCount: holderWallets.size, holderCountPartial, vaultAddress: distribution?.vaultAddress || null, vaultLabel: graduatedPool ? 'PumpSwap pool vault' : 'Pump curve vault', ledgerAvailable, ledgerSource: ledger.data?.source === 'funded.app-postgresql' ? 'app database' : 'file ledger', collections: ledgerAvailable ? ledger.data.collections || [] : [], claims: ledgerAvailable ? ledger.data.claims || [] : [], sharedRouterCollections: linkedRouter ? ledger.data.sharedRouter.collections || [] : [] };
     coinSummaryLedgerMint = ledgerAvailable && ledger.data?.mint === mintAddress ? mintAddress : null;
     renderCoinFeeDashboard(coinSummaryLedgerMint ? ledger.data?.overview : { available:false });
     renderCoinAccountDistribution(distribution, tokenAccounts, graduatedPool ? 'PumpSwap pool vault' : 'Curve vault');
