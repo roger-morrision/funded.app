@@ -5696,7 +5696,7 @@ function setCoinTabLabels(){
     chat: 'Chat',
     payments: `Fee claims ${coinActivity.status === 'ready' && coinActivity.ledgerAvailable ? coinActivity.collections.length : '—'}`,
     claims: `Allocations ${coinActivity.status === 'ready' && coinActivity.ledgerAvailable ? coinActivity.claims.length : '—'}`,
-    holders: `Holders ${coinActivity.accountAvailable && coinActivity.holderCount > 0 ? `${coinActivity.holderCount}${coinActivity.holderCountPartial ? '+' : ''}` : '—'}`,
+    holders: `Token accounts ${coinActivity.accountAvailable && coinActivity.holderCount > 0 ? `${coinActivity.holderCount}${coinActivity.holderCountPartial ? '+' : ''}` : '—'}`,
   };
   document.querySelectorAll('[data-coin-tab]').forEach(item => {
     item.textContent = labels[item.dataset.coinTab] || item.textContent;
@@ -5829,7 +5829,7 @@ function renderCoinActivityTab(){
   if (tab === 'holders') {
     if (!coinActivity.accountAvailable) { activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Token-account sample unavailable</strong><small>Solana RPC did not return token accounts for this mint.</small></div>'; return; }
     const holderAccounts = coinActivity.accounts.filter(item => item.address !== coinActivity.vaultAddress);
-    const scope = coinActivity.holderCountPartial ? 'Largest non-vault token-account sample. Verified wallet owners are shown; more holders may exist.' : 'Verified holder wallets. Balances are per token account when a wallet has more than one.';
+    const scope = coinActivity.holderCountPartial ? 'Confirmed non-zero token-account sample, not a unique holder count. More accounts may exist.' : 'Confirmed non-zero token-account sample, not a unique holder count. Balances are per token account.';
     activity.innerHTML = `<p class="coin-activity-scope">${scope} Protocol vault excluded.</p><div class="coin-holder-heading"><span>Holder wallet</span><span>Balance</span><span>Supply share</span></div>` + (holderAccounts.length ? holderAccounts.map((item, index) => {
       const share = Number.isFinite(item.share) ? Math.max(0, Math.min(100, item.share)) : 0;
       const wallet = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(item.wallet || '') ? item.wallet : null;

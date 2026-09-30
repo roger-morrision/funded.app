@@ -88,7 +88,8 @@ assert.match(html, /id="profile-copy-address"[^>]+disabled/, 'The initial discon
 assert.match(html, /id="profile-disconnect" disabled/, 'The initial disconnected profile must not expose a usable disconnect action.');
 assert.match(app, /profileCopyAddress\.disabled = !connected/, 'Wallet state must enable copy-address only after connection.');
 assert.match(app, /profileDisconnect\.disabled = !connected/, 'Wallet state must enable disconnect only after connection.');
-assert.match(app, /tradeQuoteButton\.textContent = signingReady \? 'Preview trade' : connected \? 'Open wallet to preview' : 'Connect wallet to preview'/, 'Trade preview must describe its wallet prerequisite before opening a connection flow.');
+assert.match(app, /if \(!tradeInputs\(\)\.valid \|\| !wallet \|\| !canSignTransactions\(wallet\)[^\n]*\) return;/, 'Automatic trade quotes must require valid inputs and a signing wallet.');
+assert.match(app, /Connect a signing wallet to calculate an exact trade quote/, 'Trade quote must explain its wallet prerequisite.');
 assert.match(app, /button\.textContent = fundedBuyBusy \? 'Waiting for Devnet…' : fundedBuyPreview \? 'Confirm buy' : wallet \? 'Preview buy' : 'Connect wallet to preview'/, '$FUNDED buy preview must describe its wallet prerequisite before opening a connection flow.');
 assert.match(dockerfile, /ARG VITE_DEV_WALLET_ROLE=creator/, 'The image build must accept the selected disposable Devnet wallet role.');
 assert.match(previewCompose, /VITE_DEV_MODE: "true"/, 'The local preview must build Dev Mode into the browser bundle.');
