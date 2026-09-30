@@ -5559,9 +5559,6 @@ function formatCoinSnapshotUsd(solValue){
 function renderCoinSnapshotUsd(){
   setCoinField('#coin-snapshot-spot-usd', formatCoinSnapshotUsd(coinSolUsdValues.spot));
   setCoinField('#coin-snapshot-quote-usd', formatCoinSnapshotUsd(coinSolUsdValues.virtualQuote));
-  const rate = document.querySelector('#coin-snapshot-usd-rate');
-  if (rate) rate.textContent = Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0
-    ? `Indicative USD at current ${formatUsd(coinSolUsdPrice)}/SOL` : 'SOL/USD quote unavailable';
 }
 function formatExploreUsd(value, options = {}){
   const prefix = options.partial ? '≥' : '';
@@ -6090,7 +6087,7 @@ async function loadCoinOnChain(mintAddress){
     setCoinField('#coin-chart-heading', `${symbol} / SOL ${graduatedPool ? 'pool' : 'curve'} snapshot`); setCoinField('#coin-full-address', mintAddress);
     const chart = document.querySelector('.coin-chart');
     if (chart) chart.innerHTML = graduatedPool ? `<div class="onchain-snapshot"><div><span>Pool spot price · USD/token</span><strong id="coin-snapshot-spot-usd">$—</strong><small>${formatCoinSpot(spotPriceSol)} per token</small></div><div><span>Token reserve</span><strong>${formatOnChainNumber(graduatedPool.baseTokenReserves, 4)} ${escapeHtml(symbol)}</strong></div><div><span>SOL reserve</span><strong>${formatCoinSpot(graduatedPool.quoteReservesSol)}</strong></div><div><span>Observed slot</span><strong>${graduatedPool.slot ?? '—'}</strong></div></div>` : curve ? `<div class="onchain-snapshot"><div><span>Spot price · USD/token</span><strong id="coin-snapshot-spot-usd">$—</strong><small>${formatCoinSpot(spotPriceSol)} per token</small></div><div><span>Virtual quote · USD</span><strong id="coin-snapshot-quote-usd">$—</strong><small>${formatCoinSpot(curve.virtualQuoteReservesSol)}</small></div><div><span>Real reserve</span><strong>${formatCoinSpot(realQuote)}</strong></div><div><span>Observed slot</span><strong>${curve.slot ?? '—'}</strong></div></div>` : `<div class="onchain-snapshot"><div><span>Pump curve</span><strong>Unavailable</strong></div><div><span>Cluster</span><strong>${EXPLORE_CLUSTER}</strong></div></div>`;
-    const chartFooter = document.querySelector('.coin-chart-panel > .chart-footer'); if (chartFooter) chartFooter.innerHTML = `<span>Mint decimals <b>${decimals}</b></span><span>Supply <b>${formatOnChainNumber(supply, 6)}</b></span><span id="coin-snapshot-usd-rate">SOL/USD quote unavailable</span>`;
+    const chartFooter = document.querySelector('.coin-chart-panel > .chart-footer'); if (chartFooter) chartFooter.innerHTML = `<span>Mint decimals <b>${decimals}</b></span><span>Supply <b>${formatOnChainNumber(supply, 6)}</b></span>`;
     renderCoinSnapshotUsd();
     const policyEyebrow = document.querySelector('.coin-policy-card .eyebrow'); if (policyEyebrow) policyEyebrow.textContent = 'On-chain account';
     const policyTitle = document.querySelector('.coin-policy-card h2'); if (policyTitle) policyTitle.textContent = graduatedPool ? 'Canonical PumpSwap pool' : curve ? 'Pump bonding curve' : 'Curve unavailable';
