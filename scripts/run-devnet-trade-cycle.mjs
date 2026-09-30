@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import bs58 from 'bs58';
 import { createCloseAccountInstruction } from '@solana/spl-token';
 import {
@@ -12,14 +13,25 @@ import {
 } from '@solana/web3.js';
 import { assertTradeConfirmed, buildTradeTransaction, fetchBondingCurveSnapshot } from '../pump-trading.js';
 
-const mint = new PublicKey(process.argv[2] || '');
+const execute = process.argv.includes('--execute');
+const preflight = process.argv.includes('--preflight');
+assert.notEqual(execute, preflight, 'Pass exactly one of --preflight (read-only) or --execute (sends Devnet transactions).');
+const mint = new PublicKey(process.argv.find((argument, index) => index >= 2 && argument !== '--execute' && argument !== '--preflight') || '');
 assert.equal(process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER, 'devnet', 'Devnet configuration is required.');
+const funder = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CLAIMANT_SECRET_KEY));
+const qaWallets = JSON.parse(readFileSync(new URL('../.secrets/devnet-qa-wallets-20260930/public.json', import.meta.url), 'utf8'));
+const qaClaimant = qaWallets.find(wallet => wallet.role === 'claimant' && wallet.cluster === 'devnet');
+assert(qaClaimant?.address, 'The rotated Devnet QA claimant manifest is required.');
+assert.equal(funder.publicKey.toBase58(), qaClaimant.address, 'The configured claimant is not the rotated Devnet QA wallet. Load .env.devnet-qa-wallets.local.');
 const connection = new Connection(process.env.SOLANA_RPC_URL || clusterApiUrl('devnet'), 'confirmed');
 assert.equal(await connection.getGenesisHash(), await new Connection(clusterApiUrl('devnet'), 'confirmed').getGenesisHash(), 'Configured RPC is not Devnet.');
-
-const funder = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CLAIMANT_SECRET_KEY));
 const trader = Keypair.generate();
 const feeOwner = new PublicKey(process.env.VITE_FUNDED_TRADE_FEE_OWNER);
+if (preflight) {
+  const snapshot = await fetchBondingCurveSnapshot({ connection, mint });
+  console.log(JSON.stringify({ mode:'read-only', cluster:'devnet', mint:mint.toBase58(), funder:funder.publicKey.toBase58(), feeOwner:feeOwner.toBase58(), curveComplete:snapshot.complete }));
+  process.exit(0);
+}
 
 async function sendTransaction(instructions, signers) {
   const latest = await connection.getLatestBlockhash('confirmed');
