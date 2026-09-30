@@ -222,6 +222,25 @@ main.wallet-view>#wallet-page{display:block!important}
 .coin-page .coin-trade-explorer::after{content:'↗';position:absolute;top:0;right:1px;color:#cbd5e8;font:8px 'DM Mono',monospace}
 .coin-page .coin-trade-explorer:hover{border-color:#a9b9ec;background:#243248}
 .coin-page .coin-trade-explorer:focus-visible,.coin-page .coin-transaction-trader:focus-visible{outline:2px solid #a9b9ec;outline-offset:2px}
+.coin-page .coin-holders-table{min-width:790px}
+.coin-page .coin-holders-table th:nth-child(3),.coin-page .coin-holders-table th:nth-child(5){text-align:right}
+.coin-page .coin-holders-table th:nth-child(6),.coin-page .coin-holders-table th:nth-child(7){text-align:center}
+.coin-page .coin-holders-table td{height:54px}
+.coin-page .coin-holder-rank{color:#91a0b6!important;font-weight:700}
+.coin-page .coin-holder-address{color:#c6d4e8;font-weight:700;text-decoration:none}
+.coin-page .coin-holder-address:hover{text-decoration:underline}
+.coin-page .coin-holder-account-note{display:block;color:#7789a1;font-size:9px}
+.coin-page .coin-holder-percent,.coin-page .coin-holder-value{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.coin-page .coin-holder-amount{display:grid;grid-template-columns:minmax(0,max-content) minmax(55px,1fr);align-items:center;gap:12px;min-width:210px;font-variant-numeric:tabular-nums}
+.coin-page .coin-holder-amount strong{color:#e2e9f3;font-weight:650}
+.coin-page .coin-holder-amount small{color:#95a9c1;font-size:9px;font-weight:400}
+.coin-page .coin-holder-bar{display:block;height:6px;overflow:hidden;border-radius:99px;background:#394558}
+.coin-page .coin-holder-bar i{display:block;height:100%;min-width:2px;border-radius:inherit;background:#8ad5ba}
+.coin-page .coin-holder-action{text-align:center}
+.coin-page .coin-holder-trades{display:inline-grid;place-items:center;width:25px;height:25px;border:1px solid #3a4964;border-radius:6px;background:#172131;color:#c3d2e6;font:700 18px Manrope,sans-serif;cursor:pointer}
+.coin-page .coin-holder-trades:hover{border-color:#a9b9ec;background:#243248}
+.coin-page .coin-holder-trades:focus-visible,.coin-page .coin-holder-address:focus-visible{outline:2px solid #a9b9ec;outline-offset:2px}
+.coin-page .coin-holder-no-trades{color:#68788f}
 .coin-page .coin-activity-row{min-width:0}
 .coin-page .coin-tabs button{font-size:11px}
 .coin-page .coin-activity-row strong{font-size:12px}

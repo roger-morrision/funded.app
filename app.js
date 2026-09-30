@@ -5696,7 +5696,7 @@ function setCoinTabLabels(){
     chat: 'Chat',
     payments: `Fee claims ${coinActivity.status === 'ready' && coinActivity.ledgerAvailable ? coinActivity.collections.length : '—'}`,
     claims: `Allocations ${coinActivity.status === 'ready' && coinActivity.ledgerAvailable ? coinActivity.claims.length : '—'}`,
-    holders: `Token accounts ${coinActivity.accountAvailable && coinActivity.holderCount > 0 ? `${coinActivity.holderCount}${coinActivity.holderCountPartial ? '+' : ''}` : '—'}`,
+    holders: `Holders ${coinActivity.accountAvailable && coinActivity.holderCount > 0 ? `${coinActivity.holderCount}${coinActivity.holderCountPartial ? '+' : ''}` : '—'}`,
   };
   document.querySelectorAll('[data-coin-tab]').forEach(item => {
     item.textContent = labels[item.dataset.coinTab] || item.textContent;
@@ -5834,16 +5834,20 @@ function renderCoinActivityTab(){
   }
   if (tab === 'holders') {
     if (!coinActivity.accountAvailable) { activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Token-account sample unavailable</strong><small>Solana RPC did not return token accounts for this mint.</small></div>'; return; }
-    const holderAccounts = coinActivity.accounts.filter(item => item.address !== coinActivity.vaultAddress);
-    const scope = coinActivity.holderCountPartial ? 'Confirmed non-zero token-account sample, not a unique holder count. More accounts may exist.' : 'Confirmed non-zero token-account sample, not a unique holder count. Balances are per token account.';
-    activity.innerHTML = `<p class="coin-activity-scope">${scope} Protocol vault excluded.</p><div class="coin-holder-heading"><span>Holder wallet</span><span>Balance</span><span>Supply share</span></div>` + (holderAccounts.length ? holderAccounts.map((item, index) => {
-      const share = Number.isFinite(item.share) ? Math.max(0, Math.min(100, item.share)) : 0;
+    const holderAccounts = coinActivity.accounts.filter(item => item.address !== coinActivity.vaultAddress).sort((a, b) => (Number(b.balance) || 0) - (Number(a.balance) || 0));
+    const scope = coinActivity.holderCountPartial ? 'Largest non-zero token-account sample; more holders may exist.' : 'Non-zero token-account sample.';
+    const explorerIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 4h14l-3 3H3z" fill="#78e7b4"/><path d="M4 10h14l3 3H7z" fill="#ab91ff"/><path d="M6 16h14l-3 3H3z" fill="#78e7b4"/></svg>';
+    const rows = holderAccounts.map((item, index) => {
+      const share = Number.isFinite(item.share) ? Math.max(0, Math.min(100, item.share)) : null;
       const wallet = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(item.wallet || '') ? item.wallet : null;
-      const accountLink = `<a href="${escapeHtml(exploreExplorer(`address/${item.address}`))}" target="_blank" rel="noopener noreferrer">${escapeHtml(shortAddress(item.address))} ↗</a>`;
-      const identity = wallet ? `<a href="/wallet/${encodeURIComponent(wallet)}">${escapeHtml(wallet)}</a>` : accountLink;
-      const detail = wallet ? `Token account ${accountLink}` : 'Wallet owner unavailable · token account';
-      return `<div class="coin-activity-row coin-account-row"><span class="activity-icon">${index + 1}</span><span><strong>${identity}</strong><small>${detail}</small><i class="coin-account-share-track"><i style="width:${share}%"></i></i></span><b class="activity-amount">${escapeHtml(item.amount)} ${escapeHtml(coinActivity.symbol)}${item.share == null ? '' : `<small>${escapeHtml(formatOnChainNumber(item.share, 2))}% of supply</small>`}</b><span class="activity-time">RPC</span></div>`;
-    }).join('') : '<div class="empty-state coin-activity-empty"><strong>No holders found</strong><small>No non-vault token accounts were returned.</small></div>');
+      const address = wallet || item.address;
+      const balance = Number(item.balance);
+      const value = Number.isFinite(balance) && Number.isFinite(coinSolUsdValues.spot) && coinSolUsdValues.spot > 0 && Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? formatUsd(balance * coinSolUsdValues.spot * coinSolUsdPrice) : '$—';
+      const profile = wallet ? `/wallet/${encodeURIComponent(wallet)}` : exploreExplorer(`address/${encodeURIComponent(item.address)}`);
+      const tradeAction = wallet ? `<button type="button" class="coin-holder-trades" data-coin-holder-trades="${escapeHtml(wallet)}" aria-label="Show recent trades by ${escapeHtml(wallet)}" title="Filter recent trades by this wallet">⌕</button>` : '<span class="coin-holder-no-trades" title="Wallet owner unavailable">—</span>';
+      return `<tr><td class="coin-holder-rank">#${index + 1}</td><td><a class="coin-holder-address" href="${escapeHtml(profile)}" ${wallet ? '' : 'target="_blank" rel="noopener noreferrer"'} title="${escapeHtml(address)}">${escapeHtml(shortAddress(address))}</a>${wallet ? '' : '<small class="coin-holder-account-note">Token account</small>'}</td><td class="coin-holder-percent">${share == null ? '—' : `${escapeHtml(formatOnChainNumber(share, 2))}%`}</td><td><div class="coin-holder-amount"><strong>${escapeHtml(item.amount)} <small>${escapeHtml(coinActivity.symbol)}</small></strong><span class="coin-holder-bar" aria-hidden="true"><i style="width:${share == null ? 0 : share}%"></i></span></div></td><td class="coin-holder-value">${escapeHtml(value)}</td><td class="coin-holder-action">${tradeAction}</td><td class="coin-holder-action"><a class="coin-trade-explorer" href="${escapeHtml(exploreExplorer(`address/${encodeURIComponent(item.address)}`))}" target="_blank" rel="noopener noreferrer" aria-label="View token account ${escapeHtml(item.address)} on Solana Explorer" title="View token account on Solana Explorer">${explorerIcon}</a></td></tr>`;
+    }).join('');
+    activity.innerHTML = `<p class="coin-activity-scope">${scope} Balances are per token account, so rows may share a wallet. Protocol vault excluded. Value uses the current token spot price and SOL/USD quote.</p>` + (rows ? `<div class="coin-transactions-scroll coin-holders-scroll" role="region" aria-label="${escapeHtml(coinActivity.symbol)} holder account sample" tabindex="0"><table class="coin-transactions-table coin-holders-table"><thead><tr><th scope="col">Rank</th><th scope="col">Address</th><th scope="col">% supply</th><th scope="col">Amount</th><th scope="col" title="Spot token price at the current SOL/USD quote">Value est.</th><th scope="col">Txns</th><th scope="col">Explore</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state coin-activity-empty"><strong>No holders found</strong><small>No non-vault token accounts were returned.</small></div>');
     return;
   }
   if (!coinActivity.ledgerAvailable) {
@@ -6060,15 +6064,13 @@ async function loadCoinOnChain(mintAddress){
     const verifiedTokenProgram = tokenProgram?.equals?.(TOKEN_PROGRAM_ID) || tokenProgram?.equals?.(TOKEN_2022_PROGRAM_ID);
     const curveVaultAddress = graduatedPool?.poolBaseTokenAccount || (curve && verifiedTokenProgram
       ? getAssociatedTokenAddressSync(mint, bondingCurvePda(mint), true, tokenProgram).toBase58() : null);
-    const accounts = largestAccounts.filter(item => Number(item.amount) > 0).map(item => ({
-      address: String(item.address),
-      wallet: item.wallet || null,
-      amount: formatOnChainNumber(Number(item.uiAmountString ?? Number(item.amount) / (10 ** decimals)), 4),
-      share: rawSupply > 0 ? Number(item.amount) / rawSupply * 100 : null,
-    }));
+    const accounts = largestAccounts.filter(item => Number(item.amount) > 0).map(item => {
+      const balance = Number(item.uiAmountString == null || item.uiAmountString === '' ? Number(item.amount) / (10 ** decimals) : item.uiAmountString);
+      return { address: String(item.address), wallet: item.wallet || null, balance, amount: formatOnChainNumber(balance, 4), share: rawSupply > 0 ? Number(item.amount) / rawSupply * 100 : null };
+    });
     const tokenAccounts = accounts.length;
     const distribution = accountAvailable ? summarizeTokenAccounts(accounts, curveVaultAddress) : null;
-    const holderAccounts = accounts.filter(item => item.address !== distribution?.vaultAddress);
+    const holderAccounts = accounts.filter(item => item.address !== curveVaultAddress);
     const holderWallets = new Set(holderAccounts.map(item => item.wallet).filter(wallet => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet || '')));
     const holderCountPartial = largestResult.value?.coverage !== 'complete-account-list' || holderAccounts.some(item => !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(item.wallet || '')) || !distribution?.vaultAddress;
     const realQuote = graduatedPool?.quoteReservesSol ?? curve?.realQuoteReservesSol;
@@ -6076,7 +6078,7 @@ async function loadCoinOnChain(mintAddress){
     if (loadId !== coinLoadId) return;
     const ledgerAvailable = ledger.available && ledger.data?.cluster === EXPLORE_CLUSTER;
     const linkedRouter = ledgerAvailable && curve?.creator === ledger.data?.sharedRouter?.address;
-    coinActivity = { status: 'ready', symbol, accounts, accountAvailable, holderCount: holderWallets.size, holderCountPartial, vaultAddress: distribution?.vaultAddress || null, vaultLabel: graduatedPool ? 'PumpSwap pool vault' : 'Pump curve vault', ledgerAvailable, ledgerSource: ledger.data?.source === 'funded.app-postgresql' ? 'app database' : 'file ledger', collections: ledgerAvailable ? ledger.data.collections || [] : [], claims: ledgerAvailable ? ledger.data.claims || [] : [], sharedRouterCollections: linkedRouter ? ledger.data.sharedRouter.collections || [] : [] };
+    coinActivity = { status: 'ready', symbol, accounts, accountAvailable, holderCount: holderWallets.size, holderCountPartial, vaultAddress: curveVaultAddress || null, vaultLabel: graduatedPool ? 'PumpSwap pool vault' : 'Pump curve vault', ledgerAvailable, ledgerSource: ledger.data?.source === 'funded.app-postgresql' ? 'app database' : 'file ledger', collections: ledgerAvailable ? ledger.data.collections || [] : [], claims: ledgerAvailable ? ledger.data.claims || [] : [], sharedRouterCollections: linkedRouter ? ledger.data.sharedRouter.collections || [] : [] };
     coinSummaryLedgerMint = ledgerAvailable && ledger.data?.mint === mintAddress ? mintAddress : null;
     renderCoinFeeDashboard(coinSummaryLedgerMint ? ledger.data?.overview : { available:false });
     renderCoinAccountDistribution(distribution, tokenAccounts, graduatedPool ? 'PumpSwap pool vault' : 'Curve vault');
@@ -6229,6 +6231,8 @@ document.querySelector('#coin-page')?.addEventListener('click', async event => {
   if (copy){ const address = getCoinMintAddress(); if (!address) return showToast('No mint address in this route'); try { await navigator.clipboard.writeText(address); showToast('Token address copied'); } catch { showToast(address); } }
   const clearTradeFilters = event.target.closest('#coin-trade-clear');
   if (clearTradeFilters){ coinTradeFilter = 'all'; document.querySelectorAll('[data-coin-trade-filter]').forEach(button => { const active = button.dataset.coinTradeFilter === 'all'; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); }); document.querySelector('#coin-trade-wallet').value = ''; document.querySelector('#coin-trade-min-sol').value = ''; renderCoinActivityTab(); return; }
+  const holderTrades = event.target.closest('[data-coin-holder-trades]');
+  if (holderTrades){ const wallet = holderTrades.dataset.coinHolderTrades; if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet || '')) return; document.querySelector('#coin-trade-wallet').value = wallet; coinTradeFilter = 'all'; document.querySelectorAll('[data-coin-trade-filter]').forEach(button => { const active = button.dataset.coinTradeFilter === 'all'; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); }); document.querySelectorAll('[data-coin-tab]').forEach(button => button.classList.toggle('active', button.dataset.coinTab === 'trades')); setCoinTabLabels(); renderCoinActivityTab(); return; }
   const tradeFilter = event.target.closest('[data-coin-trade-filter]');
   if (tradeFilter){ coinTradeFilter = tradeFilter.dataset.coinTradeFilter; document.querySelectorAll('[data-coin-trade-filter]').forEach(button => { const active = button === tradeFilter; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); }); renderCoinActivityTab(); return; }
   const tab = event.target.closest('[data-coin-tab]');
