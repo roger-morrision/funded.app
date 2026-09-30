@@ -5,10 +5,12 @@ import bs58 from 'bs58';
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction } from '@solana/web3.js';
 
 const program = new PublicKey('2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik');
-const old = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY || ''));
+const old = Keypair.fromSecretKey(bs58.decode(process.env.RETIRED_DEVNET_ROUTER_SECRET_KEY || ''));
+const qaCreator = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY || ''));
 const next = new PublicKey('7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y');
 const owner = '3NMjsHsau8uw598UKZqbKq8dhFjGMEYpdx5wU72Kfh1P';
 assert.equal(old.publicKey.toBase58(), 'B2Ns79FNQBseayg77fT7CvxQYs2NJ3DJBR3R1nDbwk3n');
+assert.equal(qaCreator.publicKey.toBase58(), '8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk');
 const connection = new Connection(process.env.SOLANA_RPC_URL, 'finalized');
 assert.equal(await connection.getGenesisHash(), 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG');
 const executable = await connection.getAccountInfo(program, 'finalized');
@@ -40,9 +42,12 @@ const instruction = new TransactionInstruction({
   data: createHash('sha256').update('global:initialize_reward_vault').digest().subarray(0, 8),
 });
 const blockhash = await connection.getLatestBlockhash('finalized');
-const tx = new Transaction({ feePayer: old.publicKey, recentBlockhash: blockhash.blockhash }).add(instruction);
-tx.sign(old);
-const simulated = await connection.simulateTransaction(tx, [old]);
+const tx = new Transaction({ feePayer: qaCreator.publicKey, recentBlockhash: blockhash.blockhash }).add(
+  SystemProgram.transfer({ fromPubkey: qaCreator.publicKey, toPubkey: old.publicKey, lamports: 2_000_000 }),
+  instruction,
+);
+tx.sign(qaCreator, old);
+const simulated = await connection.simulateTransaction(tx, [qaCreator, old]);
 assert(simulated.value.err, 'Old authority unexpectedly created a new reward vault');
 assert.match((simulated.value.logs || []).join('\n'), /InvalidRouterHeader|0x1771/i, 'Expected the router authority guard to reject the old key');
 assert.equal(await connection.getAccountInfo(vault, 'finalized'), null, 'Simulation must not create an account');

@@ -18,7 +18,7 @@ function signer(env, expected) {
   return keypair;
 }
 
-const old = signer('SOLANA_DEVNET_CREATOR_SECRET_KEY', OLD);
+const old = signer('RETIRED_DEVNET_ROUTER_SECRET_KEY', OLD);
 const next = signer('QA_DEVNET_ROUTER_AUTHORITY_SECRET_KEY', NEW);
 const owner = signer('QA_DEVNET_APP_OWNER_SECRET_KEY', OWNER);
 assert.equal(await connection.getGenesisHash(), DEVNET_GENESIS, 'Devnet only');
