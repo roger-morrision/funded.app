@@ -106,8 +106,8 @@ const server = spawn(process.execPath, ['server/index.mjs'], {
     SOLANA_KEEPER_CONFIGURED: 'true',
     SOLANA_ALLOW_KEEPER_TRANSFER: 'true',
     FUNDED_MINT_FEE_ROUTER_ENABLED: 'true',
-    SOLANA_KEEPER_SECRET_KEY: process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY,
-    FUNDED_ROUTER_AUTHORITY_SECRET_KEY: process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY,
+    SOLANA_KEEPER_SECRET_KEY: process.env.SOLANA_KEEPER_SECRET_KEY || '',
+    FUNDED_ROUTER_AUTHORITY_SECRET_KEY: process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '',
   },
   stdio: ['ignore', 'pipe', 'pipe'],
 });

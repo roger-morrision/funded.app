@@ -11,7 +11,7 @@ assert.ok(mintValue, 'Pass --mint=<verified launch mint>.');
 assert.equal(process.env.SOLANA_CLUSTER || process.env.VITE_SOLANA_CLUSTER, 'devnet');
 assert.equal(process.env.VITE_ALLOW_MAINNET || 'false', 'false');
 const mint = new PublicKey(mintValue);
-const issuerSecret = process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY;
+const issuerSecret = process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY;
 assert.ok(issuerSecret, 'A configured Devnet issuer signer is required.');
 const authority = Keypair.fromSecretKey(bs58.decode(issuerSecret));
 if (process.env.FUNDED_REWARD_AUTHORITY) assert.equal(authority.publicKey.toBase58(), process.env.FUNDED_REWARD_AUTHORITY, 'Issuer differs from the published reward-vault authority.');

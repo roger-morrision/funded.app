@@ -15,7 +15,7 @@ for (const [name, filePath] of Object.entries(process.env)) {
 
 function signer() {
   const cluster = String(process.env.SOLANA_CLUSTER || process.env.VITE_SOLANA_CLUSTER || 'devnet');
-  const encoded = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || (cluster === 'devnet' ? process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY : '') || '').trim();
+  const encoded = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
   const file = String(process.env.FUNDED_ROUTER_AUTHORITY_KEYPAIR_PATH || '').trim();
   if (encoded) return Keypair.fromSecretKey(bs58.decode(encoded));
   if (file) return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(file), 'utf8'))));

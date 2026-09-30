@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import bs58 from 'bs58';
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction, sendAndConfirmTransaction } from '@solana/web3.js';
 
-const encoded = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY || '').trim();
+const encoded = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
 let payer;
 if (encoded) payer = Keypair.fromSecretKey(bs58.decode(encoded));
 else {

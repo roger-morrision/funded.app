@@ -36,8 +36,8 @@ if (!expectedProgram) throw new Error('FUNDED_FEE_ROUTER_PROGRAM_ID is required.
 const keypairProgram = run('solana-keygen', ['pubkey', programKeypairPath]).stdout.trim();
 if (keypairProgram !== expectedProgram) throw new Error(`Program keypair resolves to ${keypairProgram}, expected ${expectedProgram}.`);
 
-const encodedPayer = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY || '').trim();
-if (!encodedPayer) throw new Error('A Devnet router authority/creator secret is required for deployment.');
+const encodedPayer = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
+if (!encodedPayer) throw new Error('A dedicated Devnet router authority secret is required for deployment.');
 const payerBytes = decodeBase58(encodedPayer);
 if (payerBytes.length !== 64) throw new Error(`Deployment secret decoded to ${payerBytes.length} bytes; expected 64.`);
 const rpcUrl = process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';

@@ -105,17 +105,18 @@ async function queueAutomaticSettlementRewards(settlement) {
   const rows = [
     { suffix:'creator', kind:'creator', amount:solToLamports(settlement.creatorDestinations?.creatorWallet), recipient:launch.creatorWallet, status:'claimable' },
     { suffix:'holders', kind:'holder', amount:solToLamports(settlement.creatorDestinations?.holderAirdrop), recipient:null, status:'pending' },
-    { suffix:'operations', kind:'operations', amount:solToLamports(settlement.fundedApp?.operations), recipient:process.env.FUNDED_REWARD_AUTHORITY, status:'pending' },
+    { suffix:'operations', kind:'operations', amount:solToLamports(settlement.fundedApp?.operations), recipient:process.env.FUNDED_PUMP_REVENUE_WALLET, status:'pending' },
   ];
-  if (rows.some(row => row.kind === 'operations' && BigInt(row.amount) > 0n && !row.recipient)) throw new Error('Operations payout requires the configured reward-authority wallet.');
+  if (rows.some(row => row.kind === 'operations' && BigInt(row.amount) > 0n && !row.recipient)) throw new Error('Operations payout requires a dedicated Pump revenue wallet.');
+  if (rows.some(row => row.kind === 'operations' && BigInt(row.amount) > 0n)) new PublicKey(process.env.FUNDED_PUMP_REVENUE_WALLET);
   const xObligation = Object.values(main.obligations || {}).find(row => row.claimSignature === settlement.claimSignature && row.mint === collection.mint);
   if (BigInt(solToLamports(settlement.creatorDestinations?.solClaim)) > 0n) rows.push({ suffix:'x', kind:'x', amount:solToLamports(settlement.creatorDestinations.solClaim), recipient:null, obligationId:xObligation?.id || null, status:'awaiting-verified-recipient' });
   await automaticRewardStore.transaction(state => {
     state.fundingRequests ||= {};
     for (const row of rows.filter(item => BigInt(item.amount) > 0n)) {
       const id = `${settlement.claimSignature}:${row.suffix}`;
-      const request = { id, mint:collection.mint, asset:'SOL', kind:row.kind, amount:row.amount, recipient:row.recipient, obligationId:row.obligationId || null, sourceSignature:settlement.claimSignature, status:row.status, createdAt:new Date().toISOString() };
       const prior = state.fundingRequests[id];
+      const request = { id, mint:collection.mint, asset:'SOL', kind:row.kind, amount:row.amount, recipient:prior?.kind === 'operations' ? prior.recipient : row.recipient, obligationId:row.obligationId || null, sourceSignature:settlement.claimSignature, status:row.status, createdAt:new Date().toISOString() };
       if (prior && ['mint','asset','kind','amount','recipient','obligationId','sourceSignature'].some(key => prior[key] !== request[key])) throw new Error('Automatic reward funding request conflicts with its immutable settlement.');
       state.fundingRequests[id] ||= request;
     }
@@ -437,14 +438,27 @@ function html(res, status, title, message) { res.writeHead(status, { 'content-ty
 function keeperKeypair() {
   const filePath = String(process.env.SOLANA_KEEPER_KEYPAIR_PATH || '').trim();
   if (filePath) return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(filePath), 'utf8'))));
-  const encoded = String(process.env.SOLANA_KEEPER_SECRET_KEY || (solanaCluster === 'devnet' ? process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY : '') || '').trim();
+  const encoded = String(process.env.SOLANA_KEEPER_SECRET_KEY || '').trim();
   if (!encoded) return null;
   return Keypair.fromSecretKey(bs58.decode(encoded));
+}
+function referralPayoutKeypair() {
+  const filePath = String(process.env.SOLANA_REFERRAL_PAYOUT_KEYPAIR_PATH || '').trim();
+  if (filePath) return uniquePayoutKeypair(Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(filePath), 'utf8')))));
+  const encoded = String(process.env.SOLANA_REFERRAL_PAYOUT_SECRET_KEY || '').trim();
+  return encoded ? uniquePayoutKeypair(Keypair.fromSecretKey(bs58.decode(encoded))) : null;
+}
+function uniquePayoutKeypair(payer) {
+  const keeper = keeperKeypair(), authority = routerAuthorityKeypair();
+  const recipientWallets = [process.env.FUNDED_PUMP_REVENUE_WALLET, process.env.FUNDED_TRADE_FEE_OWNER || process.env.VITE_FUNDED_TRADE_FEE_OWNER].filter(Boolean);
+  if ((keeper && payer.publicKey.equals(keeper.publicKey)) || (authority && payer.publicKey.equals(authority.publicKey))
+    || recipientWallets.some(address => payer.publicKey.equals(new PublicKey(address)))) return null;
+  return payer;
 }
 function routerAuthorityKeypair() {
   const filePath = String(process.env.FUNDED_ROUTER_AUTHORITY_KEYPAIR_PATH || '').trim();
   if (filePath) return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(filePath), 'utf8'))));
-  const encoded = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || (solanaCluster === 'devnet' ? process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY : '') || '').trim();
+  const encoded = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
   if (!encoded) return null;
   return Keypair.fromSecretKey(bs58.decode(encoded));
 }
@@ -459,6 +473,23 @@ async function mintRouterReadiness() {
   let authority = null;
   try { authority = routerAuthorityKeypair(); } catch { reasons.push('router settlement authority key is invalid'); }
   if (!authority) reasons.push('router settlement authority is not configured');
+  if (keeper && authority && keeper.publicKey.equals(authority.publicKey)) reasons.push('fee collector and router settlement authority must use separate wallets');
+  const revenueWallet = String(process.env.FUNDED_PUMP_REVENUE_WALLET || '').trim();
+  if (!revenueWallet) reasons.push('Pump revenue wallet is not configured');
+  else {
+    try {
+      const revenue = new PublicKey(revenueWallet);
+      if ((keeper && revenue.equals(keeper.publicKey)) || (authority && revenue.equals(authority.publicKey))) reasons.push('Pump revenue wallet must differ from the fee collector and router authority');
+      const tradeOwner = String(process.env.FUNDED_TRADE_FEE_OWNER || process.env.VITE_FUNDED_TRADE_FEE_OWNER || '').trim();
+      if (tradeOwner) {
+        try {
+          const trade = new PublicKey(tradeOwner);
+          if (revenue.equals(trade) || (keeper && trade.equals(keeper.publicKey)) || (authority && trade.equals(authority.publicKey))) reasons.push('Trading fee wallet must differ from Pump revenue, fee collector, and router authority');
+        }
+        catch { reasons.push('Trading fee wallet is invalid'); }
+      }
+    } catch { reasons.push('Pump revenue wallet is invalid'); }
+  }
   if (reasons.length === 0) {
     try {
       const router = feeRouterConfig();
@@ -487,15 +518,15 @@ function feeRouterConfig() {
   return programId ? deriveFeeRouter(programId) : null;
 }
 async function executeSolPayout({ recipientWallet, amountSol }) {
-  const keeper = keeperKeypair();
-  if (!keeper || (!isKeeperEnabled(process.env) && !devnetTestMode)) throw new Error('Solana keeper is not configured.');
+  const payer = referralPayoutKeypair();
+  if (!payer || (process.env.SOLANA_REFERRAL_PAYOUT_CONFIGURED !== 'true' && !devnetTestMode)) throw new Error('Dedicated referral payout wallet is not configured.');
   const recipient = new PublicKey(recipientWallet);
   const lamports = Math.floor(Number(amountSol) * 1_000_000_000);
   if (!Number.isSafeInteger(lamports) || lamports <= 0) throw new Error('Payout amount must be a positive SOL value.');
   const connection = new Connection(solanaRpcUrl, 'confirmed');
-  const transaction = new Transaction().add(SystemProgram.transfer({ fromPubkey: keeper.publicKey, toPubkey: recipient, lamports }));
-  const signature = await sendAndConfirmTransaction(connection, transaction, [keeper], { commitment: 'confirmed' });
-  return { signature, from: keeper.publicKey.toBase58(), to: recipient.toBase58(), amountSol: Number(amountSol), cluster: solanaCluster };
+  const transaction = new Transaction().add(SystemProgram.transfer({ fromPubkey: payer.publicKey, toPubkey: recipient, lamports }));
+  const signature = await sendAndConfirmTransaction(connection, transaction, [payer], { commitment: 'confirmed' });
+  return { signature, from: payer.publicKey.toBase58(), to: recipient.toBase58(), amountSol: Number(amountSol), cluster: solanaCluster };
 }
 async function collectPumpCreatorFees({ requestedMint }) {
   const keeper = keeperKeypair();
@@ -975,7 +1006,7 @@ async function handle(req, res) {
       const [pump, verifiedPayoutSignatures, rewardState] = await Promise.all([readPump(), readPayouts(), automaticRewardStore.read()]);
       const overview = coinFeeOverview({ mint, cluster:solanaCluster, launch, collections:state.collections, settlements:state.settlements,
         rewardState, referralClaims:state.referralClaims, payouts:state.payouts, verifiedPayoutSignatures,
-        operationsRecipient:process.env.FUNDED_REWARD_AUTHORITY, ...pump });
+        operationsRecipient:process.env.FUNDED_PUMP_REVENUE_WALLET, ...pump });
       overview.creatorClaim = creatorClaimStatus({ mint, wallet:launch?.creatorWallet, launch, collections:state.collections, settlements:state.settlements, rewardState });
       const router = feeRouterConfig()?.address?.toBase58();
       const sharedRouter = router ? { address: router, scope: 'shared-creator-account', collections: await store.readRouterFeeActivity(router, solanaCluster) } : null;
@@ -1464,9 +1495,9 @@ async function handle(req, res) {
       if (claim.status === 'paid') return json(res, 200, state.payouts[claim.payoutId]);
       if (claim.status !== 'wallet-verified') return json(res, 409, { error: 'The referral claim must be wallet-signed before execution.' });
       if (claim.expiresAt && Date.parse(claim.expiresAt) < Date.now()) return json(res, 409, { error: 'Referral claim has expired.' });
-      if (claim.asset !== 'SOL') return json(res, 409, { error: 'Only SOL referral claims are executable by this keeper.' });
+      if (claim.asset !== 'SOL') return json(res, 409, { error: 'Only SOL referral claims are executable by this payout wallet.' });
       const amountSol = Number(claim.amount); if (!Number.isFinite(amountSol) || amountSol <= 0 || amountSol > maxReferralPayoutSol) return json(res, 409, { error: 'Referral claim exceeds the configured payout limit.' });
-      if ((!isKeeperEnabled(process.env) && !devnetTestMode) || !keeperKeypair()) return json(res, 503, { error: 'Referral payouts are not enabled. Your verified claim remains unchanged.' });
+      if ((process.env.SOLANA_REFERRAL_PAYOUT_CONFIGURED !== 'true' && !devnetTestMode) || !referralPayoutKeypair()) return json(res, 503, { error: 'Referral payouts are not enabled. Your verified claim remains unchanged.' });
       const locked = await store.updateReferralClaimState(referralExecuteId,current => {
         const currentClaim = current.referralClaims[referralExecuteId];
         if (!currentClaim || currentClaim.status !== 'wallet-verified') return null;

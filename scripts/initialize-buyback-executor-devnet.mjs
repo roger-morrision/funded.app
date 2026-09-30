@@ -8,7 +8,7 @@ import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from '../server/automati
 const path = '.secrets/funded-buyback-operator-secret-key';
 const lookupPath = '.secrets/funded-buyback-lookup-table-address';
 if (!existsSync(path)) throw new Error('Dedicated Devnet buyback operator wallet has not been generated.');
-const authority = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY));
+const authority = Keypair.fromSecretKey(bs58.decode(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || ''));
 const operator = Keypair.fromSecretKey(bs58.decode(readFileSync(path, 'utf8').trim()));
 if (authority.publicKey.toBase58() !== process.env.FUNDED_REWARD_AUTHORITY || operator.publicKey.equals(authority.publicKey)) throw new Error('Devnet buyback signer roles are invalid.');
 const connection = new Connection(process.env.SOLANA_RPC_URL, 'confirmed');

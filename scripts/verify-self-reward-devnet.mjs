@@ -10,7 +10,7 @@ const mint = new PublicKey(process.argv[2] || '');
 const rpcUrl = process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || clusterApiUrl('devnet');
 const connection = new Connection(rpcUrl, 'finalized');
 assert.equal(await connection.getGenesisHash(), await new Connection(clusterApiUrl('devnet'), 'finalized').getGenesisHash(), 'Configured RPC is not Devnet.');
-const authority = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY));
+const authority = Keypair.fromSecretKey(bs58.decode(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || ''));
 const chain = createAutomaticRewardChain({
   connection,
   programId: new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID),

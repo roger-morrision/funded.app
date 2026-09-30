@@ -9,7 +9,7 @@ import { createBuyAndDistributeExecutor } from '../server/buy-and-distribute.mjs
 
 function signer() {
   const cluster = String(process.env.SOLANA_CLUSTER || process.env.VITE_SOLANA_CLUSTER || 'devnet');
-  const encoded = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || (cluster === 'devnet' ? process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY : '') || '').trim(), path = String(process.env.FUNDED_ROUTER_AUTHORITY_KEYPAIR_PATH || '').trim();
+  const encoded = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim(), path = String(process.env.FUNDED_ROUTER_AUTHORITY_KEYPAIR_PATH || '').trim();
   if (encoded) return Keypair.fromSecretKey(bs58.decode(encoded));
   if (path) return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(path), 'utf8'))));
   throw new Error('Reward authority is not configured.');

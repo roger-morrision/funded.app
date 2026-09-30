@@ -5,7 +5,7 @@ import { createAutomaticRewardChain, DEVNET_GENESIS_HASH, rewardAddresses } from
 
 assert.equal(process.env.SOLANA_CLUSTER || process.env.VITE_SOLANA_CLUSTER, 'devnet');
 assert.equal(process.env.VITE_ALLOW_MAINNET || 'false', 'false');
-const secret = process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY;
+const secret = process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY;
 assert.ok(secret, 'A configured Devnet reward authority is required.');
 const authority = Keypair.fromSecretKey(bs58.decode(secret));
 if (process.env.FUNDED_REWARD_AUTHORITY) assert.equal(authority.publicKey.toBase58(), process.env.FUNDED_REWARD_AUTHORITY, 'Reward authority differs from the published vault authority.');

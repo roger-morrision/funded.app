@@ -39,7 +39,10 @@ function configuredWallet(name) {
 const creator = configuredWallet('SOLANA_DEVNET_CREATOR_SECRET_KEY');
 const holder = configuredWallet('SOLANA_DEVNET_CLAIMANT_SECRET_KEY');
 const referrer = configuredWallet('SOLANA_DEVNET_REFERRER_SECRET_KEY');
-assert.equal(new Set([creator.publicKey.toBase58(), holder.publicKey.toBase58(), referrer.publicKey.toBase58()]).size, 3, 'Test wallet roles must be distinct.');
+const keeper = configuredWallet('SOLANA_KEEPER_SECRET_KEY');
+const authority = configuredWallet('FUNDED_ROUTER_AUTHORITY_SECRET_KEY');
+const pumpRevenue = new PublicKey(process.env.FUNDED_PUMP_REVENUE_WALLET || '').toBase58();
+assert.equal(new Set([creator, holder, referrer, keeper, authority].map(wallet => wallet.publicKey.toBase58()).concat(pumpRevenue)).size, 6, 'Test wallet and app roles must be distinct.');
 
 const rpcUrl = String(process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || clusterApiUrl('devnet')).trim();
 const connection = new Connection(rpcUrl, 'finalized');
@@ -49,6 +52,9 @@ assert.equal(await connection.getGenesisHash(), await official.getGenesisHash(),
 const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID);
 const expectedProgramDataSha256 = String(process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 || '').trim();
 assert(expectedProgramDataSha256, 'FUNDED_REWARD_PROGRAM_DATA_SHA256 is required.');
+const legacyRouter = await connection.getAccountInfo(deriveFeeRouter(programId).address, 'finalized');
+assert(legacyRouter?.data?.length === 74 && new PublicKey(legacyRouter.data.subarray(41, 73)).equals(authority.publicKey),
+  'The configured router authority does not match the on-chain Devnet router; no test transaction was sent.');
 
 async function finalizedTransaction(instructions, signers) {
   // Use a finalized blockhash so every backend behind an RPC load balancer has
@@ -135,8 +141,9 @@ const server = spawn(process.execPath, ['server/index.mjs'], {
     SOLANA_KEEPER_CONFIGURED: 'true',
     SOLANA_ALLOW_KEEPER_TRANSFER: 'true',
     DEVNET_TEST_MODE: 'true',
-    FUNDED_ROUTER_AUTHORITY_SECRET_KEY: process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY,
-    SOLANA_KEEPER_SECRET_KEY: process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY,
+    FUNDED_ROUTER_AUTHORITY_SECRET_KEY: process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY,
+    SOLANA_KEEPER_SECRET_KEY: process.env.SOLANA_KEEPER_SECRET_KEY,
+    FUNDED_PUMP_REVENUE_WALLET: pumpRevenue,
   },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -182,7 +189,7 @@ try {
   const mint = Keypair.generate();
   const initialized = buildMintRouterInitializeInstruction({ programId, mint: mint.publicKey, payer: creator.publicKey });
   const mintRouterSignature = await finalizedTransaction([initialized.instruction], [creator, mint]);
-  const checkedRouter = await verifyMintFeeRouterAccount({ connection, programId, mint: mint.publicKey, expectedAuthority: creator.publicKey });
+  const checkedRouter = await verifyMintFeeRouterAccount({ connection, programId, mint: mint.publicKey, expectedAuthority: authority.publicKey });
   assert(checkedRouter.verified, `Mint router verification failed: ${checkedRouter.reason}`);
   const router = checkedRouter.address;
 
@@ -278,7 +285,7 @@ try {
 
   stage = 'processing-automatic-reward-funding';
   const automaticStore = createAutomaticRewardStore(automaticStorePath);
-  const chain = createAutomaticRewardChain({ connection, programId, authority: creator, expectedProgramDataSha256 });
+  const chain = createAutomaticRewardChain({ connection, programId, authority, expectedProgramDataSha256 });
   const indexer = createHolderHistoryIndexer({ connection, store: automaticStore, rpcUrl });
   const scheduler = createRewardScheduler({ store: automaticStore, chain, indexer });
   const fundingProcessor = createRewardFundingProcessor({ store: automaticStore, chain, scheduler });
