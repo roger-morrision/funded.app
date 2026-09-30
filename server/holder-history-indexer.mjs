@@ -55,7 +55,7 @@ async function completeIndexedAccountsFallback(connection, mint, mintAccount, rp
     const response = await fetchImpl(rpcUrl, {
       method:'POST',
       headers:{ 'content-type':'application/json' },
-      body:JSON.stringify({ jsonrpc:'2.0', id:`funded-holder-index-${page}`, method:'getTokenAccounts', params:{ mint:mint.toBase58(), page, limit:INDEX_PAGE_SIZE, displayOptions:{} } }),
+      body:JSON.stringify({ jsonrpc:'2.0', id:`funded-holder-index-${page}`, method:'getTokenAccounts', params:{ mintAddress:mint.toBase58(), page, limit:INDEX_PAGE_SIZE, displayOptions:{} } }),
     });
     if (!response.ok) throw new Error(`Indexed token-account request failed with HTTP ${response.status}.`);
     const payload = await response.json();

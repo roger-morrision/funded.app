@@ -40,6 +40,8 @@ import { receiptWorkerStatus } from './receipt-worker-status.mjs';
 import { buildTerminalSignal, creatorReputation, immutableLaunchReview, normalizeXIntake, quoteAssetCatalog } from '../stonk-features.js';
 import { verifyPumpLaunch } from './launch-verification.mjs';
 import { verifyFundedBurn } from './burn-verification.mjs';
+import { readVerifiedListingMint } from './token-metadata.mjs';
+import { LISTING_BURN_TOKENS, listingBurnBaseUnits, listingMemo } from '../listing-policy.js';
 import { createLaunchBurnTiers } from '../launch-burn-policy.js';
 import { deriveXFeeObligation } from './x-fee-guard.mjs';
 import { buildMintRouterSettlementInstruction, readMintClaimRecord } from './mint-router-payout.mjs';
@@ -146,7 +148,7 @@ const fundedTokenMint = String(process.env.FUNDED_TOKEN_MINT || process.env.VITE
 const rpcMethods = new Set(['getAccountInfo', 'getMultipleAccounts', 'getBalance', 'getSlot', 'getTokenSupply', 'getTokenLargestAccounts', 'getTokenAccountsByOwner', 'getTokenAccountBalance', 'getSignaturesForAddress', 'getTransaction', 'getLatestBlockhash', 'getBlockHeight', 'getSignatureStatuses', 'getFeeForMessage', 'getMinimumBalanceForRentExemption', 'getRecentPrioritizationFees', 'simulateTransaction', 'sendTransaction']);
 const rpcCache = new Map();
 let rpcInflight = 0;
-const publicPostPaths = new Set(['/api/rewards/preview', '/api/anti-sniper/analyze', '/api/referrals/registration/prepare', '/api/referrals/registration/verify', '/api/referrals/attribution/prepare', '/api/referrals/attribution/verify', '/api/launches', '/api/burn-receipts', '/api/devnet-metadata']);
+const publicPostPaths = new Set(['/api/rewards/preview', '/api/anti-sniper/analyze', '/api/referrals/registration/prepare', '/api/referrals/registration/verify', '/api/referrals/attribution/prepare', '/api/referrals/attribution/verify', '/api/launches', '/api/listings', '/api/burn-receipts', '/api/devnet-metadata']);
 publicPostPaths.add('/api/airdrops/reserves/receipt');
 publicPostPaths.add('/api/x/logout'); // Cookie-authenticated, with an exact-origin check.
 let verifiedQuoteAssetsCache = null;
@@ -398,7 +400,13 @@ function normalizePumpToken(item) {
     createdTimestamp: item.created_timestamp ?? item.createdTimestamp ?? null,
     lastTradeTimestamp: item.last_trade_timestamp ?? item.lastTradeTimestamp ?? null,
     replyCount: item.reply_count ?? null,
+    listingPayment: item.listingPayment || null,
   };
+}
+function listingBurnAlreadyUsed(state, signature) {
+  return Boolean(state.burnReceipts?.[signature]
+    || Object.values(state.listings || {}).some(item => item.signature === signature)
+    || Object.values(state.launches || {}).some(item => item.creatorLaunchBurn?.receipt?.signature === signature));
 }
 function normalizeBirdeyeToken(item) {
   const address = String(item?.address || '').trim();
@@ -836,8 +844,18 @@ async function handle(req, res) {
           } catch { return null; }
           finally { devnetVerificationActive -= 1; }
         }));
-        const localItems = [...alreadyVerified, ...newlyVerified.filter(Boolean)].map(normalizePumpToken).filter(Boolean);
-        const sorted = sortDevnetLaunches(localItems, sort);
+        const paidListings = Object.values((await store.read()).listings || {})
+          .filter(item => item.cluster === 'devnet' && item.onchainVerified === true)
+          .map(item => ({ mint: item.mint, name: item.name || 'Paid listing', symbol: item.symbol || 'TOKEN',
+            createdTimestamp: Math.floor(Date.parse(item.listedAt) / 1000), listingPayment: { signature: item.signature, amountTokens: item.amountTokens } }));
+        const launchItems = [...alreadyVerified, ...newlyVerified.filter(Boolean)].map(normalizePumpToken).filter(Boolean);
+        const uniqueByMint = new Map(launchItems.map(item => [item.mint, item]));
+        for (const item of paidListings.map(normalizePumpToken).filter(Boolean)) {
+          const prior = uniqueByMint.get(item.mint);
+          uniqueByMint.set(item.mint, prior ? { ...prior, listingPayment: item.listingPayment } : item);
+        }
+        const uniqueItems = [...uniqueByMint.values()];
+        const sorted = sortDevnetLaunches(uniqueItems, sort);
         return json(res, 200, { provider: 'funded.app-devnet-registry', chain: 'solana', cluster: 'devnet', fetchedAt: new Date().toISOString(), items: sorted.slice(offset, offset + limit) });
       }
       const items = await fetchPump('/coins', { offset: String(offset), limit: String(limit), sort, order: 'DESC', includeNsfw: 'false' });
@@ -1290,6 +1308,30 @@ async function handle(req, res) {
       const offset = requestedOffset == null ? 0 : Math.min(100_000, Number(requestedOffset));
       return json(res, 200, await store.readLaunches({ limit, offset }));
     }
+    if (req.method === 'GET' && url.pathname === '/api/listings/config') {
+      return json(res, 200, { cluster: solanaCluster, enabled: solanaCluster === 'devnet' && Boolean(fundedTokenMint),
+        fundedMint: fundedTokenMint || null, burnTokens: Number(LISTING_BURN_TOKENS), paymentMethod: 'BurnChecked',
+        status: solanaCluster === 'devnet' && fundedTokenMint ? 'ready' : 'unavailable' });
+    }
+    const listingMintMatch = req.method === 'GET' ? /^\/api\/listings\/mint\/([^/]+)$/.exec(url.pathname) : null;
+    if (listingMintMatch) {
+      if (solanaCluster !== 'devnet') return json(res, 503, { error:'Listing mint checks require Devnet.' });
+      let listingMint;
+      try { listingMint = new PublicKey(listingMintMatch[1]).toBase58(); }
+      catch { return json(res, 400, { error:'A valid token mint is required.' }); }
+      try {
+        const rpc = new Connection(solanaRpcUrl, 'finalized');
+        if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'Listing mint checks require a Solana Devnet RPC.' });
+        const [trustedLaunch, signedMetadata] = await Promise.all([store.readLaunch(listingMint), store.readMetadata(listingMint)]);
+        return json(res, 200, { cluster:'devnet', ...(await readVerifiedListingMint(rpc, listingMint, { trustedLaunch, signedMetadata })) });
+      } catch (error) { return json(res, 409, { error:error.message || 'Verified token metadata is unavailable.' }); }
+    }
+    if (req.method === 'GET' && url.pathname === '/api/listings') {
+      const state = await store.read();
+      return json(res, 200, { cluster: solanaCluster, listings: Object.values(state.listings || {})
+        .filter(item => item.cluster === solanaCluster && item.onchainVerified === true)
+        .sort((a, b) => String(b.listedAt).localeCompare(String(a.listedAt))) });
+    }
     if (req.method === 'GET' && url.pathname === '/api/burn-receipts') {
       let wallet;
       try { wallet = walletKey(url.searchParams.get('wallet')); } catch { return json(res, 400, { error: 'A valid wallet query parameter is required.' }); }
@@ -1365,6 +1407,53 @@ async function handle(req, res) {
         return current.burnReceipts[signature];
       });
       return json(res, 201, saved);
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/listings') {
+      if (solanaCluster !== 'devnet' || !fundedTokenMint) return json(res, 503, { error: 'Paid listings require a configured Devnet $FUNDED mint.' });
+      const input = await body(req);
+      let mint, burnWallet;
+      try { mint = new PublicKey(String(input.mint || '')).toBase58(); burnWallet = walletKey(input.wallet); }
+      catch { return json(res, 400, { error: 'A valid token mint and paying wallet are required.' }); }
+      const signature = String(input.signature || '').trim();
+      if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature)) return json(res, 400, { error: 'A confirmed burn signature is required.' });
+      const priorState = await store.read();
+      const existing = priorState.listings?.[mint];
+      if (existing) return existing.signature === signature && existing.wallet === burnWallet
+        ? json(res, 200, existing) : json(res, 409, { error: 'This mint has already been listed with another payment.' });
+      if (listingBurnAlreadyUsed(priorState, signature))
+        return json(res, 409, { error: 'This burn signature has already been used.' });
+      const rpc = new Connection(solanaRpcUrl, 'finalized');
+      let proof, listingMetadata;
+      try {
+        if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH)
+          return json(res, 503, { error: 'Listing payments require a Solana Devnet RPC.' });
+        const [trustedLaunch, signedMetadata] = await Promise.all([store.readLaunch(mint), store.readMetadata(mint)]);
+        listingMetadata = await readVerifiedListingMint(rpc, mint, { trustedLaunch, signedMetadata });
+        const fundedSupply = await rpc.getTokenSupply(new PublicKey(fundedTokenMint), 'finalized');
+        const amountBaseUnits = listingBurnBaseUnits(fundedSupply.value.decimals);
+        proof = await verifyFundedBurn({ connection: rpc, signature, fundedMint: fundedTokenMint, wallet: burnWallet,
+          amountBaseUnits: amountBaseUnits.toString(), expectedMemo: listingMemo(mint) });
+      } catch (error) { return json(res, 409, { error: error.message || 'The listing payment could not be verified on Devnet.' }); }
+      const record = { mint, name:listingMetadata.name, symbol:listingMetadata.symbol, wallet: burnWallet, cluster: 'devnet', signature,
+        fundedMint: fundedTokenMint, amountBaseUnits: proof.amountBaseUnits, amountTokens: Number(LISTING_BURN_TOKENS),
+        slot: proof.slot, status: 'listed', onchainVerified: true, metadataSource:listingMetadata.source,
+        metadataAddress:listingMetadata.address, listedAt: proof.verifiedAt };
+      try {
+        const saved = await store.update(state => {
+          state.listings ||= {};
+          const prior = state.listings[mint];
+          if (prior) {
+            if (prior.signature !== signature || prior.wallet !== burnWallet) throw new Error('This mint has already been listed.');
+            return prior;
+          }
+          if (listingBurnAlreadyUsed(state, signature))
+            throw new Error('This burn signature has already been used.');
+          state.listings[mint] = record;
+          return record;
+        });
+        return json(res, saved === record ? 201 : 200, saved);
+      } catch (error) { return json(res, 409, { error: error.message || 'This listing could not be indexed.' }); }
     }
 
     if (req.method === 'POST' && url.pathname === '/api/launches') {

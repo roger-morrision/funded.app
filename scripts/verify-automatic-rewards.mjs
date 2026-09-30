@@ -101,7 +101,13 @@ try {
     getAccountInfo:async()=>({ owner:TOKEN_2022_PROGRAM_ID, data:mintData }), getSlot:async()=>6, getBlockTime:async()=>122,
     getProgramAccounts:async()=>{ throw new Error('excluded from account secondary indexes; this RPC method unavailable for key'); },
     getMultipleAccountsInfo:async addresses=>addresses.map(address=>({ owner:TOKEN_2022_PROGRAM_ID, data:address.equals(accountA)?tokenData(ownerA,20):tokenData(ownerB,10) })),
-  }, store, fetchImpl:async()=>({ ok:true, json:async()=>({ result:{ token_accounts:[{ address:accountA.toBase58() }, { address:accountB.toBase58() }] } }) }) }).capture(mint, 99_000);
+  }, store, fetchImpl:async(_url, request)=>{
+    const query = JSON.parse(request.body);
+    assert.equal(query.method, 'getTokenAccounts');
+    assert.equal(query.params.mintAddress, mint);
+    assert.equal('mint' in query.params, false);
+    return { ok:true, json:async()=>({ result:{ token_accounts:[{ address:accountA.toBase58() }, { address:accountB.toBase58() }] } }) };
+  } }).capture(mint, 99_000);
   assert.equal(indexedSnapshot.source, 'indexed-token-accounts-complete');
   assert.equal(indexedSnapshot.holderCount, 2);
   const fallbackSnapshot = await createHolderHistoryIndexer({ connection:{

@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="/claim-flow.css" />
     <link rel="stylesheet" href="/launch-review.css" />
     <link rel="stylesheet" href="/ui-refinement.css" />
+    <link rel="stylesheet" href="/list-page.css" />
     <title>funded.vip — Launches on the record</title>
   </head>
   <body class="page-route page-route-overview">
@@ -343,7 +344,43 @@
             </aside>
           </div>
         </section>
-         <section class="section-block explore-page" id="explore">
+                 <section class="section-block list-page" id="list" aria-labelledby="list-title">
+          <a class="list-back" href="#explore">← Back to the index</a>
+          <p class="eyebrow">funded.vip · Get listed</p>
+          <h1 id="list-title">Get your token listed</h1>
+          <div class="list-layout">
+            <div class="list-main">
+              <div class="list-form-card">
+                <div class="list-form-head"><span>Listing fee</span><strong id="list-availability">Checking Devnet</strong></div>
+                <div class="list-form-body">
+                  <label for="list-mint">Token mint address</label>
+                  <input id="list-mint" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste the token's mint address" aria-describedby="list-mint-help" />
+                  <p id="list-mint-help" role="status">Enter a Solana Devnet mint to check its address format.</p>
+                  <div class="list-token-fields" hidden><label for="list-name">Token name<input id="list-name" type="text" maxlength="80" autocomplete="off" placeholder="Token name" /></label><label for="list-symbol">Ticker<input id="list-symbol" type="text" maxlength="20" autocomplete="off" placeholder="TOKEN" /></label></div>
+                  <p class="list-field-note" hidden>Name and ticker must match verified token metadata. The mint and burn are checked on Devnet.</p>
+                  <button type="button" class="primary-button list-pay-button" id="list-pay" disabled hidden>Check listing availability</button>
+                  <p id="list-payment-status" class="list-payment-status" role="status" hidden>Checking the payment route and public listing index…</p>
+                  <div class="list-recovery" id="list-recovery" hidden><p>A burn was submitted. If indexing was interrupted, retry the receipt with the same mint and wallet. Do not burn again.</p><button type="button" class="secondary-button" id="list-retry">Retry receipt verification</button></div>
+                </div>
+              </div>
+              <div class="list-process-heading"><span aria-hidden="true">||||||||||||</span><span>How listing works</span></div>
+              <ol class="list-steps">
+                <li><span>01</span><h2>Paste the mint</h2><p>Start with a Solana token mint address. The address is checked locally before any listing step.</p></li>
+                <li><span>02</span><h2>Burn $FUNDED</h2><p>Approve an irreversible 25,000 $FUNDED BurnChecked transaction. The same transaction binds the payment to this mint.</p></li>
+                <li><span>03</span><h2>Go live</h2><p>After the burn and token mint are verified on Devnet, the token appears in the index. Market data appears only when available.</p></li>
+              </ol>
+              <p class="list-disclosure">Burns permanently reduce $FUNDED supply. The fee is 25,000 tokens, not a fixed USD value. A wallet approval and verified receipt are required before a listing appears.</p>
+            </div>
+            <aside class="list-art" aria-label="Funded listing artwork"><img src="/list-airdrop-art.png" alt="A black bull with green glowing horns beneath a parachute carrying a supply crate" /></aside>
+          </div>
+          <section class="list-live" aria-labelledby="list-live-title"><div><p class="eyebrow">On-chain verified</p><h2 id="list-live-title">Paid listings</h2></div><div id="list-live-items" class="list-live-items" role="list"><p>Loading verified listings…</p></div></section>
+          <footer class="list-footer">
+            <div class="list-footer-brand"><a href="#overview">funded.vip</a><p>Launch on Solana. Follow the market. Verify where the fees and rewards go.</p></div>
+            <nav aria-label="Listing page links"><strong>Protocol</strong><a href="#explore">Explore</a><a href="#launch">Launch token</a><a href="/funded">$FUNDED</a><a href="#buybacks">Burn $FUNDED</a><a href="#leaderboard">Leaderboard</a><a href="#airdrops">Airdrops</a><a href="#list">Get listed</a></nav>
+            <div class="list-footer-bottom"><span>© 2026 funded.vip · Solana Devnet</span><a href="#docs">Docs and help ↗</a></div>
+          </footer>
+        </section>
+<section class="section-block explore-page" id="explore">
 <div class="explore-hero"><div><p class="eyebrow">Solana discovery <span class="section-state">on-chain only</span></p><h1>Explore <em>launches.</em></h1></div><div class="explore-hero-stat"><span>VERIFIED MATCHES</span><strong id="explore-launch-count">00</strong><small id="explore-cluster-label">Solana · awaiting verification</small></div></div>
            <div class="explore-ticker" id="explore-ticker" aria-label="Trending tokens"><span class="ticker-label"><i></i> Trending</span><span id="explore-ticker-status">Waiting for verified Solana launches</span></div>
             <div class="section-heading explore-heading"><div><p class="eyebrow">All launches</p><h2>Explore launches</h2></div><div class="heading-actions"><div class="segmented explore-tabs" role="group" aria-label="Explore pages"><button type="button" class="active" data-explore-tab="trending" aria-pressed="true">All tokens</button><button type="button" data-explore-tab="new" aria-pressed="false">New</button></div><div class="segmented explore-view-switch" role="group" aria-label="Results layout"><button type="button" class="active" data-explore-view="grid" aria-pressed="true">Cards</button><button type="button" data-explore-view="table" aria-pressed="false">Table</button></div></div></div>
@@ -635,6 +672,7 @@
         <div class="profile-actions"><button type="button" class="secondary-button" id="launch-review-cancel">Back</button><button type="button" class="primary-button" id="launch-review-confirm">Continue to Phantom</button></div>
       </footer>
     </dialog>
+    <dialog class="info-dialog list-review" id="list-review" aria-labelledby="list-review-title"><h2 id="list-review-title">Review listing burn</h2><p>Burning 25,000 $FUNDED is permanent. The transaction will bind this payment to the token mint below. The listing appears after the server verifies the finalized burn and token metadata.</p><dl><div><dt>Network</dt><dd>Solana Devnet</dd></div><div><dt>Mint</dt><dd id="list-review-mint"></dd></div><div><dt>Wallet</dt><dd id="list-review-wallet"></dd></div><div><dt>Payment</dt><dd>25,000 $FUNDED · BurnChecked</dd></div></dl><div class="list-review-actions"><button type="button" class="secondary-button" id="list-review-cancel">Cancel</button><button type="button" class="primary-button" id="list-review-confirm">Approve in wallet</button></div></dialog>
     <dialog class="info-dialog mobile-wallet-dialog" id="mobile-wallet-dialog"><button class="dialog-close" id="mobile-wallet-close" aria-label="Close mobile wallet dialog">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> Mobile wallet</p><h2>Connect Phantom to this desktop</h2><p id="mobile-wallet-message">Scan with Phantom and approve the Devnet connection. Your wallet address will appear here.</p><div class="mobile-wallet-qr-wrap"><img id="mobile-wallet-qr" alt="Scan to connect Phantom mobile wallet to this desktop" hidden /><span id="mobile-wallet-qr-label">Preparing a secure request…</span></div><div class="mobile-wallet-steps"><div><b>1</b><span>Scan this QR with Phantom on your phone</span></div><div><b>2</b><span>Approve the Devnet wallet connection</span></div><div><b>3</b><span>Continue on this desktop; scan again when a claim needs signing</span></div></div><div class="mobile-wallet-actions"><button type="button" class="secondary-button" id="mobile-wallet-copy">Copy Phantom link</button><button type="button" class="secondary-button" id="mobile-wallet-alternate" hidden>Use browser signing</button></div><small class="field-help">The phone approves requests. Your private key never enters this desktop or the app server.</small></dialog>
     <div class="toast" id="toast" role="status"></div>
     <script type="module" src="/bootstrap.js"></script>

@@ -1,15 +1,27 @@
 import { PublicKey } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import bs58 from 'bs58';
 
 const tokenPrograms = new Set([TOKEN_PROGRAM_ID.toBase58(), TOKEN_2022_PROGRAM_ID.toBase58()]);
 
 function keyText(entry) { return entry?.pubkey?.toBase58?.() || String(entry?.pubkey || entry || ''); }
 
-export function readVerifiedBurnChecked(transaction, { fundedMint, wallet, amountBaseUnits = null }) {
+export function readVerifiedBurnChecked(transaction, { fundedMint, wallet, amountBaseUnits = null, expectedMemo = null }) {
   if (!transaction || transaction.meta?.err) throw new Error('The burn transaction is not confirmed successfully.');
   const keys = transaction.transaction?.message?.accountKeys || [];
   const feePayer = keyText(keys[0]);
   if (feePayer !== wallet) throw new Error('The burn transaction fee payer does not match the connected wallet.');
+  if (expectedMemo != null) {
+    const memoProgram = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
+    const memos = (transaction.transaction?.message?.instructions || [])
+      .filter(item => keyText(item.programId) === memoProgram)
+      .map(item => {
+        if (typeof item.parsed === 'string') return item.parsed;
+        if (typeof item.parsed?.memo === 'string') return item.parsed.memo;
+        try { return item.data ? Buffer.from(bs58.decode(item.data)).toString('utf8') : ''; } catch { return ''; }
+      });
+    if (memos.length !== 1 || memos[0] !== expectedMemo) throw new Error('The listing mint is not bound to this burn transaction.');
+  }
   const instruction = (transaction.transaction?.message?.instructions || []).find(item => {
     const program = keyText(item.programId);
     const parsed = item.parsed;
@@ -34,12 +46,12 @@ export function readVerifiedBurnChecked(transaction, { fundedMint, wallet, amoun
   return { feePayer, wallet, fundedMint, tokenAccount: accountAddress, amountBaseUnits: amount, decimals, tokenProgram: keyText(instruction.programId) };
 }
 
-export async function verifyFundedBurn({ connection, signature, fundedMint, wallet, amountBaseUnits = null }) {
+export async function verifyFundedBurn({ connection, signature, fundedMint, wallet, amountBaseUnits = null, expectedMemo = null }) {
   if (!signature || typeof signature !== 'string') throw new Error('A burn transaction signature is required.');
   new PublicKey(fundedMint);
   new PublicKey(wallet);
-  const transaction = await connection.getParsedTransaction(signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 });
-  const burn = readVerifiedBurnChecked(transaction, { fundedMint, wallet, amountBaseUnits });
-  const supply = await connection.getTokenSupply(new PublicKey(fundedMint), 'confirmed');
+  const transaction = await connection.getParsedTransaction(signature, { commitment: 'finalized', maxSupportedTransactionVersion: 0 });
+  const burn = readVerifiedBurnChecked(transaction, { fundedMint, wallet, amountBaseUnits, expectedMemo });
+  const supply = await connection.getTokenSupply(new PublicKey(fundedMint), 'finalized');
   return { ...burn, signature, slot: transaction.slot, blockTime: transaction.blockTime || null, supplyAfterBaseUnits: String(supply.value.amount), verifiedAt: new Date().toISOString() };
 }

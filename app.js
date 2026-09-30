@@ -27,6 +27,7 @@ import {focusLaunchStep} from './launch-accessibility.js';
 import { getPreparedImage, prepareLaunchImage, assertImageReady } from './launch-image.js';
 import { launchPolicyStatement } from './launch-policy-auth.js';
 import { verifiedPromotionBadge } from './promotion-badge.js';
+import { initPaidListing } from './list-page.js';
 import { metadataStatement, devnetMetadataUri, devnetImageUri } from './devnet-metadata.js';
 import { collectRecentTrades, enrichMarketRecord, filterMarketRecords, formatSignal, sortMarketRecords, summarizeMarkets, withMarketWindow } from './market-intelligence.js';
 import { formatSolMetric, readCurveMetrics, readPumpSwapMetrics } from './explore-onchain-metrics.js';
@@ -5027,6 +5028,7 @@ document.querySelector('#menu-backdrop').addEventListener('click', () => setMenu
 document.addEventListener('keydown', event => { if (event.key === 'Escape' && document.querySelector('#sidebar').classList.contains('open')) setMenuOpen(false, true); });
 const pageRouteTargets = {
   launch: '#launch-route-shell',
+  list: '#list',
   explore: '#explore',
   payments: '#payments',
   'analytics-detail': '#analytics-detail',
@@ -6564,3 +6566,7 @@ document.querySelector('#x-sign-in')?.addEventListener('click', async event => {
 });
 void loadXIdentity();
 updateClaimBindingReview();
+
+initPaidListing({ getSolana, getConnection: () => connection, getSession: captureWalletSession,
+  assertSession: assertWalletSessionCurrent, connectWallet, cluster: APP_CLUSTER,
+  fundedMint: PROTOCOL_FUNDED_MINT, mainnetReadOnly: APP_MAINNET_READ_ONLY });

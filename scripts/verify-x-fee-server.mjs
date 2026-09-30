@@ -12,7 +12,9 @@ import { deriveXFeeObligation } from '../server/x-fee-guard.mjs';
 
 const mint = 'XMYT6KrfdwFyW3Fcabjj9Z82yEoHYyQscYcTs7YWSr5';
 const transaction = '4bz6vBafFbHSwwnJRTd5Ju9QB9mQvFTsqkhDVHjhXZcQZGfnyqh1UDEW2uWqzRYMeTqUdcJXmbLDUyn3fk5FFoKr';
-const payer = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY || ''));
+// This is a local guard test. It must not depend on a retired Devnet signer
+// or load a real QA wallet secret merely to sign an unregistered policy.
+const payer = Keypair.generate();
 const router = 'C9ULKtSDWJQqniEKQSgQ5AJLKrmJo9n1FSmQaMtyR7fR';
 const basePolicy = {
   chain: 'solana', cluster: 'devnet', mint, signature: transaction,
@@ -66,7 +68,7 @@ try {
     const changed = await request('/api/launches', signed({ ...basePolicy, communityAllocation: 3 }));
     assert.equal(changed.status, 400);
   } else {
-    assert.match(String(created.data.error || ''), /fetch failed|network|RPC|rate limit|unavailable|does not match the signed router policy|mint-specific fee router/i, 'Unexpected launch registration failure.');
+    assert.match(String(created.data.error || ''), /fetch failed|network|RPC|rate limit|unavailable|does not match the signed router policy|mint-specific fee router|on-chain payer|launch payer/i, 'Unexpected launch registration failure.');
   }
   const arbitrary = await request('/api/payout-obligations/sol', { claimSignature: transaction, amountSol: 1, recipient: '@fundedqa' }, true);
   assert.equal(arbitrary.status, 410);
