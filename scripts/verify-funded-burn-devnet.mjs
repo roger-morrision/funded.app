@@ -15,7 +15,8 @@ const payer = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CREATO
 const fundedMint = new PublicKey(process.env.VITE_FUNDED_TOKEN_MINT);
 const routerProgram = new PublicKey(process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID);
 const [feeRouter] = PublicKey.findProgramAddressSync([Buffer.from('funded-fee-router-v1')], routerProgram);
-const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || clusterApiUrl('devnet'), 'confirmed');
+assert.equal(await connection.getGenesisHash(), 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG', 'RPC must be Solana Devnet');
 const fundedTokenAccount = getAssociatedTokenAddressSync(fundedMint, payer.publicKey);
 const [mintBefore, accountBefore] = await Promise.all([
   getMint(connection, fundedMint),
@@ -32,7 +33,12 @@ const result = await submitPumpDevnetLaunch({
   feeRouterAddress: feeRouter.toBase58(),
   launchBurn: { tier, amountTokens: amounts[tier], fundedMint: fundedMint.toBase58() },
   onStatus: message => console.log(message),
+  onJournal: event => console.log(JSON.stringify({ stage:'launch-journal', ...event })),
 });
+
+const status = (await connection.getSignatureStatuses([result.signature], { searchTransactionHistory:true })).value?.[0];
+assert.equal(status?.confirmationStatus, 'finalized', 'Launch and burn require a finalized transaction');
+assert.equal(status?.err, null, 'Launch and burn finalized with an error');
 
 const [mintAfter, accountAfter] = await Promise.all([
   getMint(connection, fundedMint),
