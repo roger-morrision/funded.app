@@ -3,9 +3,9 @@
 # The secret file and Docker volume are local and never belong in Git.
 services:
   app:
-    image: ${FUNDED_RETEST_IMAGE:-fundedapp-app:mobile-receipt-20260930}
+    image: ${FUNDED_RETEST_IMAGE:-fundedapp-app:trader-wallet-profile-20260930}
     environment:
-      FUNDED_BUILD_ID: mobile-receipt-20260930
+      FUNDED_BUILD_ID: trader-wallet-profile-20260930
       FUNDED_COMMUNITY_RESERVE_RECEIPTS_JSON: '{}'
   reward-volume-init:
     image: ${FUNDED_RETEST_IMAGE:-fundedapp-app:phantom-priority-20260929}
