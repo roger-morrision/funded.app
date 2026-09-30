@@ -43,6 +43,7 @@ services:
       FUNDED_ROUTER_AUTHORITY_SECRET_KEY_FILE: /run/secrets/funded_router_authority_secret_key
       SOLANA_REFERRAL_PAYOUT_SECRET_KEY_FILE: /run/secrets/solana_referral_payout_secret_key
       SOLANA_REFERRAL_PAYOUT_CONFIGURED: ${SOLANA_REFERRAL_PAYOUT_CONFIGURED:-false}
+      MAX_REFERRAL_PAYOUT_SOL: "0.01"
       HOST: 0.0.0.0
       PORT: 8787
       VITE_SOLANA_CLUSTER: devnet
