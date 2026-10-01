@@ -89,8 +89,6 @@ export function rewardExperience(state = {}, rewards = {}, evidence = {}, cluste
         || amount(settlement.grossCreatorFees) !== gross) continue;
       totals.allocated += gross;
       for (const key of ['creator', 'holder', 'x', 'community', 'buyback']) totals[key] += allocation(settlement, key);
-      // Unassigned referral levels belong to the community reserve.
-      for (const level of settlement.fundedApp?.referralLevels || []) if (!level.recipient) totals.community += amount(level.amount);
     }
     communityAllocated += totals.community;
     const payouts = paymentRows(rewards, mint, verifiedCollections);

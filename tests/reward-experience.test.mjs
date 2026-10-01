@@ -37,6 +37,17 @@ test('verified collection, allocation, holder payment, and burn stay distinct', 
   assert.equal(result.community.paidLamports, null);
 });
 
+test('community total includes redirected referrals exactly once', () => {
+  const withMissingReferral = structuredClone(state);
+  withMissingReferral.settlements[claim].fundedApp.referralLevels = [
+    { level:1, recipient:null, amount:0.001 },
+  ];
+  withMissingReferral.settlements[claim].fundedApp.community = 0.003;
+  const result = rewardExperience(withMissingReferral, rewards, evidence, 'devnet');
+  assert.equal(result.tokens[0].totals.community, '3000000');
+  assert.equal(result.community.allocatedLamports, '3000000');
+});
+
 test('unverified collections and unmatched payment leaves cannot become proof', () => {
   const unverified = rewardExperience(state, { schedules:{ one:{ ...rewards.schedules.one,
     manifest:{ leaves:[{ recipient:holder, amount:'1' }] } } } },
