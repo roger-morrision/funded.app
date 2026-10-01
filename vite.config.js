@@ -4,16 +4,17 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const mainnetReadOnly = process.env.VITE_SOLANA_CLUSTER === 'mainnet-beta' && process.env.VITE_MAINNET_READ_ONLY === 'true';
   const apiTarget = String(env.API_PROXY_TARGET || '').trim();
+  const apiProxy = apiTarget && !mainnetReadOnly ? {
+    '/api': { target: apiTarget, changeOrigin: false },
+    '/devnet-images': { target: apiTarget, changeOrigin: false },
+  } : undefined;
   return {
     server: {
       // Keep the browser Host so OAuth callback inference and exact-origin POST checks
       // use the Vite origin that owns the session cookie.
-      proxy: apiTarget && !mainnetReadOnly ? {
-        '/api': { target: apiTarget, changeOrigin: false },
-        '/devnet-images': { target: apiTarget, changeOrigin: false },
-      } : undefined,
+      proxy: apiProxy,
     },
-    preview: { proxy: mainnetReadOnly ? {} : undefined },
+    preview: { proxy: apiProxy },
     build: {
       rollupOptions: {
         output: {
