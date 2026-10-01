@@ -2,6 +2,18 @@ import { AUTOMATIC_REWARDS, allocateHolderPool, holdingWeights } from '../automa
 import { buildRewardManifest, createRewardCycleId } from '../reward-merkle.js';
 import { snapshotsForPeriod } from './holder-history-indexer.mjs';
 import { createHash } from 'node:crypto';
+import { NATIVE_MINT } from '@solana/spl-token';
+import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
+import { PublicKey } from '@solana/web3.js';
+
+function excludedHolderWallets(mint, configured = []) {
+  const excluded = new Set(configured.map(String));
+  let mintKey;
+  try { mintKey = new PublicKey(mint); }
+  catch { return [...excluded].sort(); /* Unit fixtures may use non-address mint labels. */ }
+  excluded.add(canonicalPumpPoolPda(mintKey, NATIVE_MINT).toBase58());
+  return [...excluded].sort();
+}
 
 function requireUnits(value, label) {
   if (typeof value !== 'string' || !/^\d+$/.test(value) || BigInt(value) <= 0n) throw new Error(`${label} must be a positive integer string.`);
@@ -11,16 +23,17 @@ function requireUnits(value, label) {
 function programConfig(input) {
   const periodSeconds = Number(input.periodSeconds || AUTOMATIC_REWARDS.periodSeconds);
   const sampleIntervalSeconds = Number(input.sampleIntervalSeconds || AUTOMATIC_REWARDS.sampleIntervalSeconds);
+  const minimumPeriodSeconds = process.env.SOLANA_CLUSTER === 'devnet' && process.env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true' ? 300 : 3600;
   const payoutDelaySeconds = Number(input.payoutDelaySeconds ?? 3600);
   const activatedAt = Number(input.activatedAt ?? Math.floor(Date.now() / 1000));
   const firstPeriodStart = Number(input.firstPeriodStart ?? Math.ceil(activatedAt / periodSeconds) * periodSeconds);
-  if (![periodSeconds, sampleIntervalSeconds, payoutDelaySeconds].every(Number.isSafeInteger) || periodSeconds < 3600 || sampleIntervalSeconds < 30 || sampleIntervalSeconds > periodSeconds || payoutDelaySeconds < 0) throw new Error('Invalid reward schedule timing.');
+  if (![periodSeconds, sampleIntervalSeconds, payoutDelaySeconds].every(Number.isSafeInteger) || periodSeconds < minimumPeriodSeconds || sampleIntervalSeconds < 30 || sampleIntervalSeconds > periodSeconds || payoutDelaySeconds < 0) throw new Error('Invalid reward schedule timing.');
   if (![activatedAt, firstPeriodStart].every(Number.isSafeInteger) || activatedAt < 0 || firstPeriodStart < activatedAt || firstPeriodStart % periodSeconds !== 0) throw new Error('Invalid reward program activation time.');
   if (!['SOL', String(input.mint)].includes(String(input.asset || 'SOL'))) throw new Error('Holder rewards must use SOL or the launched token.');
   return {
     mint: String(input.mint), enabled: input.enabled !== false, asset: String(input.asset || 'SOL'), kind: 'holder',
     periodSeconds, sampleIntervalSeconds, payoutDelaySeconds, activatedAt, firstPeriodStart,
-    excludedWallets: [...new Set((input.excludedWallets || []).map(String))].sort(),
+    excludedWallets: excludedHolderWallets(input.mint, input.excludedWallets || []),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -136,7 +149,7 @@ export function createRewardScheduler({ store, indexer, chain }) {
             continue;
           }
           const snapshots = snapshotsForPeriod(state.holderSnapshots[schedule.mint], schedule.periodStart, schedule.cutoffAt, config.sampleIntervalSeconds * 2);
-          const weights = holdingWeights({ start: schedule.periodStart, end: schedule.cutoffAt, snapshots, excludedWallets: config.excludedWallets, coverage: 'finalized-sampled-v1' });
+          const weights = holdingWeights({ start: schedule.periodStart, end: schedule.cutoffAt, snapshots, excludedWallets: excludedHolderWallets(schedule.mint, config.excludedWallets || []), coverage: 'finalized-sampled-v1' });
           const allocation = allocateHolderPool(String(total), weights);
           if (!allocation.allocations.length) throw new Error('No eligible holders had positive time-weighted balances.');
           const cycleId = createRewardCycleId({ mint: schedule.mint, kind: schedule.kind, asset: schedule.asset, periodStart: schedule.periodStart, periodEnd: schedule.cutoffAt });
@@ -179,6 +192,10 @@ export function createRewardScheduler({ store, indexer, chain }) {
     const plans = await store.transaction(state => structuredClone(Object.values(state.schedules || {}).filter(row => ['prepared', 'distributing'].includes(row.status) && now >= row.payoutAt)));
     let submitted = 0;
     for (const plan of plans) {
+      if (plan.kind === 'holder' && plan.manifest.leaves.some(leaf => excludedHolderWallets(plan.mint, []).includes(leaf.recipient))) {
+        await store.transaction(state => { const row = state.schedules[plan.id]; row.status = 'blocked'; row.reason = 'Holder manifest contains the PumpSwap liquidity pool; reconcile before payout.'; });
+        continue;
+      }
       const cycle = await chain.ensureCycle(plan);
       await store.transaction(state => { const row = state.schedules[plan.id]; row.cycle = cycle.address; row.cycleSignature ||= cycle.signature || null; row.status = 'distributing'; });
       for (const leaf of plan.manifest.leaves) {

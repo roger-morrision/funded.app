@@ -1,0 +1,48 @@
+import { readFile, writeFile } from 'node:fs/promises';
+import { Connection, Keypair, PublicKey, clusterApiUrl } from '@solana/web3.js';
+import bs58 from 'bs58';
+import { createAutomaticRewardStore } from '../server/automatic-reward-store.mjs';
+import { createAutomaticRewardChain } from '../server/automatic-reward-chain.mjs';
+import { createRewardScheduler } from '../server/reward-scheduler.mjs';
+import { createHolderHistoryIndexer } from '../server/holder-history-indexer.mjs';
+
+const mint = process.env.QA_HOLDER_MINT || 'FWmi66ecpuAYkcpjT86i2RsBKZhm2cJdnKXqcoreW8DH';
+const source = process.env.QA_HOLDER_SOURCE_LEDGER || 'tmp/qa-holder-live-ledger.json';
+const destination = process.env.QA_HOLDER_TEST_LEDGER || 'tmp/qa-holder-qa-ledger.json';
+const amount = process.env.QA_HOLDER_AMOUNT_LAMPORTS || '20000000';
+const periodSeconds = Number(process.env.QA_HOLDER_PERIOD_SECONDS || 3600);
+const sampleIntervalSeconds = Number(process.env.QA_HOLDER_SAMPLE_INTERVAL_SECONDS || 300);
+if (!/^\d+$/.test(amount) || BigInt(amount) < 10_000_000n || BigInt(amount) > 50_000_000n) throw new Error('QA holder pool must be 0.01–0.05 SOL');
+const now = Math.floor(Date.now() / 1000);
+const start = Math.floor(now / periodSeconds) * periodSeconds;
+const authority = Keypair.fromSecretKey(bs58.decode(process.env.QA_DEVNET_ROUTER_AUTHORITY_SECRET_KEY || ''));
+if (authority.publicKey.toBase58() !== '7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y') throw new Error('Unexpected Devnet QA authority');
+const connection = new Connection(process.env.SOLANA_RPC_URL || clusterApiUrl('devnet'), 'finalized');
+if (await connection.getGenesisHash() !== 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG') throw new Error('Devnet only');
+const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID);
+const chain = createAutomaticRewardChain({ connection, programId, authority, expectedProgramDataSha256: process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
+const readiness = await chain.readiness();
+if (!readiness.constrainedPayouts) throw new Error(`Payout not ready: ${readiness.reasons.join(', ')}`);
+if (process.argv[2] === 'setup') {
+  if (now >= start + periodSeconds - 60) throw new Error('Too close to cutoff for verified funding');
+  const live = JSON.parse(await readFile(source, 'utf8'));
+  const snapshots = live.holderSnapshots?.[mint] || [];
+  const opening = snapshots.filter(row => row.finalized && row.at <= start).at(-1);
+  if (!opening || start - opening.at > sampleIntervalSeconds * 2) throw new Error('Fresh finalized opening snapshot required');
+  const state = { version:2, obligations:{}, batches:{}, programs:{}, schedules:{}, holderSnapshots:{ [mint]:snapshots }, rewardPools:{}, buyOrders:{}, fundingRequests:{} };
+  await writeFile(destination, JSON.stringify(state), { flag:'wx' });
+  const store = createAutomaticRewardStore(destination);
+  const indexer = createHolderHistoryIndexer({ connection, store, rpcUrl:connection.rpcEndpoint });
+  if (!snapshots.some(row => row.at >= start)) await indexer.capture(mint);
+  const scheduler = createRewardScheduler({ store, chain, indexer });
+  await scheduler.register({ mint, asset:'SOL', periodSeconds, sampleIntervalSeconds, payoutDelaySeconds:0, activatedAt:start, firstPeriodStart:start });
+  const funded = await chain.fundSolVault({ mint, amount });
+  await scheduler.recordFundedPool({ id:`qa-hourly:${start}`, mint, asset:'SOL', amount, fundingSignature:funded.signature, fundedAt:Math.floor(Date.now()/1000), balanceDeltaVerified:funded.balanceDeltaVerified });
+  console.log(JSON.stringify({ mode:'setup', mint, periodStart:start, cutoffAt:start+periodSeconds, fundingSignature:funded.signature, vault:funded.vault, amount:funded.amount, snapshotCount:snapshots.length }));
+} else if (process.argv[2] === 'run') {
+  const store = createAutomaticRewardStore(destination);
+  const scheduler = createRewardScheduler({ store, chain, indexer:createHolderHistoryIndexer({ connection, store, rpcUrl:connection.rpcEndpoint }) });
+  const result = await scheduler.tick();
+  const state = await store.read();
+  console.log(JSON.stringify({ mode:'run', result, schedules:Object.values(state.schedules || {}).map(row => ({ id:row.id, status:row.status, reason:row.reason, cutoffAt:row.cutoffAt, recipientCount:row.manifest?.leaves?.length, payments:row.payments, cycle:row.cycle, cycleSignature:row.cycleSignature })) }));
+} else throw new Error('Use setup or run');

@@ -13,6 +13,8 @@ import { estimateBuyPriceImpactPercent, validateBuyAndDistributePolicy } from '.
 import { createRewardFundingProcessor } from '../server/reward-funding-processor.mjs';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import { NATIVE_MINT } from '@solana/spl-token';
+import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
 
 const snapshots = [
   { at: 0, accounts: [{ account:'a1', wallet:'a', balance:'50' }, { account:'a2', wallet:'a', balance:'50' }, { account:'vault', wallet:'pool', balance:'999999' }] },
@@ -163,19 +165,28 @@ try {
   };
   const scheduler = createRewardScheduler({ store:schedulerStore, chain:schedulerChain, indexer:{ capture:async()=>{ throw new Error('not due'); } } });
   await scheduler.register({ mint, asset:'SOL', periodSeconds:3600, sampleIntervalSeconds:1800, payoutDelaySeconds:0, activatedAt:3600, excludedWallets:[] });
+  const poolWallet = canonicalPumpPoolPda(new PublicKey(mint), NATIVE_MINT).toBase58();
   await schedulerStore.transaction(state => { state.holderSnapshots[mint] = [
-    { at:3600, slot:10, finalized:true, accounts:[{ account:'a', wallet:recipientA, balance:'3' }] },
-    { at:5400, slot:11, finalized:true, accounts:[{ account:'a', wallet:recipientA, balance:'3' }, { account:'b', wallet:recipientB, balance:'1' }] },
-    { at:7199, slot:12, finalized:true, accounts:[{ account:'a', wallet:recipientA, balance:'3' }, { account:'b', wallet:recipientB, balance:'1' }] },
+    { at:3600, slot:10, finalized:true, accounts:[{ account:'a', wallet:recipientA, balance:'3' }, { account:'pool', wallet:poolWallet, balance:'999' }] },
+    { at:5400, slot:11, finalized:true, accounts:[{ account:'a', wallet:recipientA, balance:'3' }, { account:'b', wallet:recipientB, balance:'1' }, { account:'pool', wallet:poolWallet, balance:'999' }] },
+    { at:7199, slot:12, finalized:true, accounts:[{ account:'a', wallet:recipientA, balance:'3' }, { account:'b', wallet:recipientB, balance:'1' }, { account:'pool', wallet:poolWallet, balance:'999' }] },
   ]; });
   await scheduler.recordFundedPool({ id:'funding-1', mint, asset:'SOL', amount:'10000000', fundingSignature:'funding-signature', balanceDeltaVerified:true, fundedAt:4000 });
   await scheduler.prepare(7200);
   const prepared = await scheduler.status(new Date(7200 * 1000));
   assert.equal(prepared.schedules.find(row => row.periodStart === 3600).status, 'prepared');
+  const preparedState = await schedulerStore.read();
+  assert.equal(preparedState.schedules[`${mint}:3600:holder:SOL`].manifest.leaves.some(leaf => leaf.recipient === poolWallet), false, 'Liquidity pool must never receive holder rewards');
   await scheduler.execute(7200);
   const completed = await scheduler.status(new Date(7200 * 1000));
   assert.equal(completed.schedules.find(row => row.periodStart === 3600).status, 'paid');
   assert.equal(cycles, 1); assert.equal(payouts, 2);
+  const legacyStore = createAutomaticRewardStore(join(dir, 'legacy-pool-schedule.json'));
+  await legacyStore.transaction(state => { state.schedules.legacy = { id:'legacy', mint, kind:'holder', status:'prepared', payoutAt:7200, manifest:{ leaves:[{ recipient:poolWallet }] }, payments:{} }; });
+  const legacyScheduler = createRewardScheduler({ store:legacyStore, chain:schedulerChain, indexer:null });
+  await legacyScheduler.execute(7200);
+  assert.equal((await legacyStore.read()).schedules.legacy.status, 'blocked', 'Prepared pool payout must fail closed');
+  assert.equal(cycles, 1, 'Blocked pool payout must not create a cycle');
   const activationMint = Keypair.generate().publicKey.toBase58();
   await scheduler.register({ mint:activationMint, asset:'SOL', periodSeconds:3600, sampleIntervalSeconds:1800, payoutDelaySeconds:0, activatedAt:4000, excludedWallets:[] });
   await schedulerStore.transaction(state => { state.holderSnapshots[activationMint] = [

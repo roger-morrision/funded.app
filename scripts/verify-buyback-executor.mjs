@@ -15,6 +15,14 @@ let queue = buybackQueue(state, new Date('2026-09-18T01:00:00.000Z'));
 assert.equal(queue[0].eligible, true, 'threshold permits execution');
 state.settlements[signature].fundedApp.buyback = 0.000001;
 state.collections[signature].collectedLamports = 100000;
+const priorCluster = process.env.SOLANA_CLUSTER, priorMint = process.env.FUNDED_QA_BUYBACK_MINT, priorWait = process.env.FUNDED_QA_BUYBACK_WAIT_SECONDS;
+process.env.SOLANA_CLUSTER = 'devnet'; process.env.FUNDED_QA_BUYBACK_MINT = mint; process.env.FUNDED_QA_BUYBACK_WAIT_SECONDS = '60';
+assert.equal(buybackQueue(state, new Date('2026-09-18T00:02:00.000Z'))[0].eligible, true, 'explicit Devnet QA mint can use a short wait');
+process.env.SOLANA_CLUSTER = 'mainnet-beta';
+assert.equal(buybackQueue(state, new Date('2026-09-18T00:02:00.000Z'))[0].eligible, false, 'short wait cannot activate on Mainnet');
+for (const [key, value] of [['SOLANA_CLUSTER', priorCluster], ['FUNDED_QA_BUYBACK_MINT', priorMint], ['FUNDED_QA_BUYBACK_WAIT_SECONDS', priorWait]]) {
+  if (value === undefined) delete process.env[key]; else process.env[key] = value;
+}
 queue = buybackQueue(state, new Date('2026-09-18T07:00:00.000Z'));
 assert.equal(queue[0].eligible, true, 'first accrual becomes eligible after six hours without a prior execution');
 state.buybackOrders.existing = { id: 'existing', mint, status: 'submitted', settledLamports: '900' };

@@ -109,7 +109,7 @@ function sumByAsset(records) {
   }, {});
 }
 
-export function evaluateBuybackBatch({ pendingAmount, asset = 'SOL', lastExecutionAt = null, oldestPendingAt = null, now = new Date().toISOString(), quote = null }) {
+export function evaluateBuybackBatch({ pendingAmount, asset = 'SOL', lastExecutionAt = null, oldestPendingAt = null, now = new Date().toISOString(), quote = null, maximumWaitHours = BUYBACK_POLICY.maximumWaitHours }) {
   const normalizedAsset = normalizeAsset(asset);
   const pending = requireFiniteNonNegative(pendingAmount, 'Pending buyback amount');
   const minimumBatch = BUYBACK_POLICY.minimumBatch[normalizedAsset];
@@ -118,7 +118,8 @@ export function evaluateBuybackBatch({ pendingAmount, asset = 'SOL', lastExecuti
     ? Math.max(0, (new Date(now).getTime() - new Date(elapsedFrom).getTime()) / 3_600_000)
     : 0;
   const thresholdReached = pending >= minimumBatch;
-  const maximumWaitReached = pending > 0 && elapsedHours >= BUYBACK_POLICY.maximumWaitHours;
+  if (!Number.isFinite(maximumWaitHours) || maximumWaitHours <= 0 || maximumWaitHours > BUYBACK_POLICY.maximumWaitHours) throw new Error('Invalid buyback maximum wait.');
+  const maximumWaitReached = pending > 0 && elapsedHours >= maximumWaitHours;
   const eligible = thresholdReached || maximumWaitReached;
   if (!eligible) return { eligible: false, executable: false, reason: 'accumulating', pendingAmount: pending, minimumBatch, elapsedHours };
   if (!quote) return { eligible: true, executable: false, reason: 'protected-quote-required', pendingAmount: pending, minimumBatch, elapsedHours };

@@ -42,7 +42,11 @@ export function buybackQueue(state, now = new Date()) {
     const reserved = mintOrders.filter(order => ['submitted', 'burn-finalized-refund-pending', 'finalized'].includes(order.status)).reduce((sum, order) => sum + BigInt(order.settledLamports) - BigInt(order.refundVerified ? order.returnedLamports || '0' : '0'), 0n);
     const pending = group.accruedLamports - reserved;
     if (pending < 0n) throw new Error('Buyback settled amount exceeds verified accruals.');
-    const policy = evaluateBuybackBatch({ pendingAmount: Number(pending) / Number(LAMPORTS), oldestPendingAt: group.oldestPendingAt, now: now.toISOString() });
+    const qaWaitSeconds = Number(process.env.FUNDED_QA_BUYBACK_WAIT_SECONDS);
+    const qaWaitEnabled = process.env.SOLANA_CLUSTER === 'devnet' && process.env.FUNDED_QA_BUYBACK_MINT === group.mint
+      && Number.isSafeInteger(qaWaitSeconds) && qaWaitSeconds >= 60 && qaWaitSeconds <= 21_600;
+    const policy = evaluateBuybackBatch({ pendingAmount: Number(pending) / Number(LAMPORTS), oldestPendingAt: group.oldestPendingAt,
+      now: now.toISOString(), maximumWaitHours: qaWaitEnabled ? qaWaitSeconds / 3600 : BUYBACK_POLICY.maximumWaitHours });
     const residue = mintOrders.some(order => order.status === 'finalized') && pending < 10_000n;
     return { mint: group.mint, router: group.router, accrualIds: group.accrualIds.sort(), accruedLamports: String(group.accruedLamports), reservedLamports: String(reserved), pendingLamports: String(pending), oldestPendingAt: group.oldestPendingAt, eligible: policy.eligible && !residue, reason: residue ? 'rounding-residue-awaiting-next-accrual' : policy.reason, activeOrder: mintOrders.find(order => ['submitted','burn-finalized-refund-pending'].includes(order.status))?.id || null };
   });
