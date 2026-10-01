@@ -32,7 +32,7 @@ try {
   if ($Action -eq 'build') {
     & docker compose @composeArgs build app
     if ($LASTEXITCODE -ne 0) { throw 'Devnet reward image build failed.' }
-    Write-Output 'Built fundedapp-app:reward-experience-de08b07; the running container was not changed.'
+    Write-Output 'Built fundedapp-app:pump-fee-recovery-v1-20261001; the running container was not changed.'
   } else {
     & docker compose @composeArgs up -d --no-deps --no-build app
     if ($LASTEXITCODE -ne 0) { throw 'Devnet app-only deployment failed.' }

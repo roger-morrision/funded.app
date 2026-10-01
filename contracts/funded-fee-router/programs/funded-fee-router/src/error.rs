@@ -42,4 +42,6 @@ pub enum ErrorCode {
     InvalidCommunityRemainder,
     #[msg("Router authority rotation is not approved by the program upgrade owner")]
     InvalidRotationAuthority,
+    #[msg("Wrapped SOL account is not the mint router's native mint ATA")]
+    InvalidWrappedSolAccount,
 }

@@ -31,6 +31,10 @@ pub mod funded_fee_router {
         settle::mint_handler(ctx, claim_id, amounts)
     }
 
+    pub fn recover_mint_wrapped_sol(ctx: Context<RecoverMintWrappedSol>) -> Result<()> {
+        recover_wrapped_sol::handler(ctx)
+    }
+
     pub fn repair_header(ctx: Context<RepairHeader>) -> Result<()> {
         repair::handler(ctx)
     }

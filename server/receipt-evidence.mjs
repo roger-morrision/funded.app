@@ -1,5 +1,6 @@
 // Only a confirmed, successful transaction with the expected lamport delta is a receipt.
 // A local ledger row or a submitted signature is never enough on its own.
+import { verifyWrappedSolRecoveryReceipt } from './wrapped-sol-recovery-receipt.mjs';
 const addressPattern = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const signaturePattern = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 
@@ -38,7 +39,13 @@ export function verifyCollectionReceipt(record, transaction) {
     || !addressPattern.test(String(record.router || ''))
     || !Number.isSafeInteger(record.collectedLamports) || record.collectedLamports <= 0) return null;
   const balances = transactionBalances(transaction, record.signature);
-  if (!balances || balances.delta(record.router) !== record.collectedLamports) return null;
+  if (!balances) return null;
+  if (record.collectionMethod === 'wrapped-sol-recovery') {
+    const proof = verifyWrappedSolRecoveryReceipt({ transaction, signature:record.signature,
+      mint:record.mint, router:record.router, programId:record.programId });
+    if (!proof || proof.collectedLamports !== record.collectedLamports
+      || proof.rentRefundLamports !== record.rentRefundLamports) return null;
+  } else if (balances.delta(record.router) !== record.collectedLamports) return null;
   return { signature: record.signature, mint: record.mint, collectedLamports: record.collectedLamports,
     slot: balances.slot, blockTime: balances.blockTime };
 }

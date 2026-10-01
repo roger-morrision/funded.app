@@ -46,4 +46,20 @@ const micro = coinFeeOverview({ ...base, collections:{ tiny:{ ...collection, sig
       referralLevels:[{ level:1, recipient:'referrer-a', amount:3.56e-7 }] } } } });
 assert.equal(micro.receivers.find(row => row.id === 'referral-1').allocatedLamports, '356');
 assert.equal(micro.receivers.find(row => row.id === 'community').allocatedLamports, '356');
+const holderSettlement = { ...settlement, creatorDestinations:{ creatorWallet:0.7, holderAirdrop:0.1, solClaim:0 } };
+const holderRequestId = 'claim-a:holders';
+const holderPool = { id:holderRequestId, mint, asset:'SOL', status:'assigned', scheduleId:'holder-cycle', amount:'100000000', balanceDeltaVerified:true };
+const holderPayment = { status:'paid', amount:'99999999', finalized:true, balanceDeltaVerified:true, signature:'holder-paid' };
+const holderState = { ...rewardState, rewardPools:{ [holderRequestId]:holderPool }, schedules:{ ...rewardState.schedules,
+  'holder-cycle':{ id:'holder-cycle', mint, kind:'holder', asset:'SOL', poolIds:[holderRequestId], payments:{ 'holder-wallet':holderPayment } },
+} };
+const holderOverview = coinFeeOverview({ ...base, collections:{ a:collection }, settlements:{ 'claim-a':holderSettlement }, rewardState:holderState });
+assert.equal(holderOverview.receivers.find(row => row.id === 'holders').confirmedPaidLamports, '99999999');
+assert.deepEqual(holderOverview.receivers.find(row => row.id === 'holders').payoutSignatures, ['holder-paid']);
+const mixedState = { ...holderState, rewardPools:{ ...holderState.rewardPools,
+  'qa-top-up':{ ...holderPool, id:'qa-top-up' } }, schedules:{ ...holderState.schedules,
+  'holder-cycle':{ ...holderState.schedules['holder-cycle'], poolIds:[holderRequestId, 'qa-top-up'] },
+} };
+const mixedOverview = coinFeeOverview({ ...base, collections:{ a:collection }, settlements:{ 'claim-a':holderSettlement }, rewardState:mixedState });
+assert.equal(mixedOverview.receivers.find(row => row.id === 'holders').confirmedPaidLamports, '0');
 console.log('coin fee overview: verified collection isolation, allocation, and confirmed payment totals');

@@ -51,6 +51,8 @@ import { parseSignedMetadata, publicMetadata } from './devnet-metadata.mjs';
 import { devnetMetadataUri, devnetImageUri } from '../devnet-metadata.js';
 import { attachVerifiedTokenAccountWallets, normalizeLargestTokenAccounts } from './token-accounts.mjs';
 import { coinFeeOverview } from './coin-fee-overview.mjs';
+import { buildMintCreatorFeeCollectionInstructions } from './pump-fee-collection.mjs';
+import { verifyWrappedSolRecoveryReceipt } from './wrapped-sol-recovery-receipt.mjs';
 import { rewardExperience } from './reward-experience.mjs';
 import { homeFeeAllocationSummary } from './home-dashboard-metrics.mjs';
 import { createCreatorFeeChallenges, creatorClaimStatus } from './creator-fee-claim.mjs';
@@ -570,7 +572,7 @@ async function collectPumpCreatorFees({ requestedMint }) {
   if (!curve?.creator?.equals(router.address) || launch.creator !== router.address.toBase58()) throw new Error('The on-chain Pump fee owner does not match this launch router.');
   const beforeLamports = await connection.getBalance(router.address, 'confirmed');
   const instructions = perMint
-    ? await online.collectCoinCreatorFeeV2Instructions(router.address, NATIVE_MINT, TOKEN_PROGRAM_ID, keeper.publicKey)
+    ? (await buildMintCreatorFeeCollectionInstructions({ connection, router:router.address, keeper:keeper.publicKey })).instructions
     : await online.collectCoinCreatorFeeInstructions(router.address, keeper.publicKey);
   if (!instructions.length) return { requestedMint: mintKey.toBase58(), mint: perMint ? mintKey.toBase58() : null, attribution: perMint ? 'mint-verified' : 'router', router: router.address.toBase58(), status: 'nothing-to-collect', beforeLamports, afterLamports: beforeLamports };
   const latest = await connection.getLatestBlockhash('confirmed');
@@ -1284,6 +1286,49 @@ async function handle(req, res) {
         return result;
       });
       return json(res, 200, result);
+    }
+    if (req.method === 'POST' && url.pathname === '/api/keeper/reconcile-wrapped-sol') {
+      if (!requireAuthorized(req, res)) return;
+      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Wrapped SOL reconciliation is Devnet only.' });
+      const input = await body(req);
+      let mint;
+      try { mint = new PublicKey(String(input.mint || '')).toBase58(); }
+      catch { return json(res, 400, { error:'A valid mint is required.' }); }
+      const signature = String(input.signature || '');
+      if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature)) return json(res, 400, { error:'A valid recovery signature is required.' });
+      const config = feeRouterConfig();
+      const launch = await store.readLaunch(mint);
+      if (!config || !launch?.onchainVerified || launch.cluster !== solanaCluster || launch.pumpFeeRoute?.scope !== 'per-mint-v2')
+        return json(res, 409, { error:'A verified mint-router launch is required.' });
+      const connection = new Connection(solanaRpcUrl, 'finalized');
+      if (await connection.getGenesisHash() !== 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')
+        return json(res, 409, { error:'Configured RPC is not Solana Devnet.' });
+      const router = deriveMintFeeRouter(config.programId, new PublicKey(mint));
+      if (launch.creator !== router.address.toBase58()) return json(res, 409, { error:'Launch router mismatch.' });
+      const tx = await connection.getTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
+      const proof = verifyWrappedSolRecoveryReceipt({ transaction:tx, signature, mint,
+        router:router.address.toBase58(), programId:config.programId.toBase58() });
+      if (!proof) return json(res, 409, { error:'Finalized mint-router wrapped SOL recovery proof is missing or invalid.' });
+      const recorded = await store.update(state => {
+        if (state.collections[signature]) return null;
+        const recordedAt = new Date().toISOString();
+        const collection = { id:signature, signature, requestedMint:mint, mint, attribution:'mint-verified',
+          onchainVerified:true, router:router.address.toBase58(), programId:config.programId.toBase58(),
+          collectionMethod:'wrapped-sol-recovery', wrappedSolAccount:proof.wrappedSolAccount,
+          collectedLamports:proof.collectedLamports, rentRefundLamports:proof.rentRefundLamports,
+          cluster:solanaCluster, status:'collected', recordedAt };
+        state.collections[signature] = collection;
+        try {
+          const obligation = deriveXFeeObligation(state, { mint, claimSignature:signature });
+          state.obligations[obligation.id] ||= { ...obligation, createdAt:recordedAt };
+        } catch (error) {
+          collection.obligationStatus = 'reconciliation-required';
+          collection.obligationError = String(error.message || error);
+        }
+        return collection;
+      });
+      if (!recorded) return json(res, 409, { error:'Recovery signature was already reconciled.' });
+      return json(res, 200, { ...recorded, proof });
     }
     if (req.method === 'POST' && url.pathname === '/api/referrals/registration/prepare') {
       const input = await body(req); const wallet = walletKey(input.wallet);

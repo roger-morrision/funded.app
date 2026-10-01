@@ -78,6 +78,27 @@ export function coinFeeOverview({ mint, cluster, launch, collections = {}, settl
     const manualX = xObligation && Object.values(payouts).find(item => item.obligationId === xObligation.obligationId && item.mint === mint && item.status === 'paid' && item.signature);
     if (manualX && !xAutomaticallyPaid && payoutProofs.has(manualX.signature)) { byId.x.paid += integerUnits(manualX.amountLamports); byId.x.signatures.add(manualX.signature); }
   }
+  // Holder payments are attached to a reward cycle, not to a funding request.
+  // Count a cycle only when every pool it consumed came from one of this
+  // mint's verified Pump collections. A cycle mixed with an unrelated QA
+  // top-up cannot be presented as a fully fee-funded payout here.
+  const feeFundedHolderPools = new Set(claimed.map(row => `${row.signature}:holders`));
+  for (const schedule of Object.values(rewardState.schedules || {})) {
+    if (schedule.mint !== mint || schedule.kind !== 'holder' || schedule.asset !== 'SOL'
+      || !Array.isArray(schedule.poolIds) || schedule.poolIds.length === 0
+      || !schedule.poolIds.every(id => feeFundedHolderPools.has(id))) continue;
+    const pools = schedule.poolIds.map(id => rewardState.rewardPools?.[id]);
+    if (pools.some(pool => !pool || pool.mint !== mint || pool.asset !== 'SOL'
+      || pool.status !== 'assigned' || pool.scheduleId !== schedule.id || pool.balanceDeltaVerified !== true)) continue;
+    const funded = pools.reduce((sum, pool) => sum + integerUnits(pool.amount), 0n);
+    const payments = Object.values(schedule.payments || {}).filter(payment => payment.status === 'paid'
+      && payment.finalized === true && payment.balanceDeltaVerified === true && payment.signature);
+    const paid = payments.reduce((sum, payment) => sum + integerUnits(payment.amount), 0n);
+    if (paid > funded) continue;
+    byId.holders.paid += paid;
+    if (paid > 0n) byId.holders.statuses.add('paid');
+    payments.forEach(payment => byId.holders.signatures.add(payment.signature));
+  }
   return {
     available:verified,
     source:'mint-verified-collections-and-payout-receipts',

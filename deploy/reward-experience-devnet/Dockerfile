@@ -6,6 +6,9 @@ WORKDIR /app
 RUN NODE_ENV=development npm ci
 COPY reward-experience-ui.js reward-experience.css ./
 COPY server/reward-experience.mjs ./server/
+COPY server/pump-fee-collection.mjs server/coin-fee-overview.mjs ./server/
+COPY server/wrapped-sol-recovery-receipt.mjs server/receipt-evidence.mjs ./server/
+COPY server/index.mjs ./scripts/recovery-index-patch-source.mjs
 COPY deploy/reward-experience-devnet/apply-patch.mjs ./scripts/apply-reward-image-patch.mjs
 RUN node scripts/apply-reward-image-patch.mjs
 ARG VITE_API_BASE_URL=/
@@ -37,5 +40,9 @@ COPY --from=build /app/dist /app/dist
 COPY --from=build /app/bootstrap.js /app/bootstrap.js
 COPY --from=build /app/server/index.mjs /app/server/index.mjs
 COPY --from=build /app/server/reward-experience.mjs /app/server/reward-experience.mjs
+COPY --from=build /app/server/pump-fee-collection.mjs /app/server/pump-fee-collection.mjs
+COPY --from=build /app/server/coin-fee-overview.mjs /app/server/coin-fee-overview.mjs
+COPY --from=build /app/server/wrapped-sol-recovery-receipt.mjs /app/server/wrapped-sol-recovery-receipt.mjs
+COPY --from=build /app/server/receipt-evidence.mjs /app/server/receipt-evidence.mjs
 COPY --from=build /app/reward-experience-ui.js /app/reward-experience-ui.js
 COPY --from=build /app/reward-experience.css /app/reward-experience.css
