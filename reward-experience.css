@@ -1,0 +1,45 @@
+.reward-experience-panel{margin:24px 0;padding:24px;border:1px solid #2b3630;border-radius:3px;background:#101419;color:#e6e9ed}
+.reward-experience-panel>header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:18px}
+.reward-experience-panel h2{margin:4px 0 8px;font-size:clamp(1.35rem,2.5vw,2rem)}
+.reward-experience-panel header p:not(.eyebrow){margin:0;color:#9eada3;line-height:1.5}
+.reward-experience-panel header>span,.reward-experience-panel header>label{color:#78e491;font-size:.82rem}
+.reward-experience-panel a{color:#7de291}
+.reward-experience-panel button,.reward-experience-panel select{border:1px solid #344139;border-radius:2px;background:#0d1412;color:#e6e9ed;padding:9px 12px;cursor:pointer}
+.reward-experience-panel button:hover,.reward-experience-panel a:hover{color:#81f6c1}
+.reward-experience-panel small{color:#889a8f;line-height:1.45}
+.reward-stage-key{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
+.reward-stage-key span{padding:5px 9px;border:1px solid #344139;border-radius:2px;color:#a8b9ab;font-size:.74rem}
+.reward-portfolio-summary,.reward-buyback-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.reward-buyback-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+.reward-portfolio-summary>div,.reward-buyback-stats>div{display:flex;flex-direction:column;gap:7px;padding:14px;border:1px solid #2b3630;border-radius:2px;background:#111b16}
+.reward-portfolio-summary strong,.reward-buyback-stats strong{font-size:1.13rem;overflow-wrap:anywhere}
+.reward-portfolio-list,.reward-discovery-list,.reward-buyback-list,.reward-proof-events{display:grid;gap:9px}
+.reward-portfolio-list article,.reward-discovery-list article,.reward-buyback-list p,.reward-proof-events>div{margin:0;padding:13px 15px;border:1px solid #2b3630;border-radius:2px;background:#0d1412}
+.reward-row-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.reward-row-head>a{font-weight:700;overflow-wrap:anywhere}
+.reward-token-identity{display:flex;align-items:center;gap:10px;min-width:0}
+.reward-token-identity>a{font-weight:700;overflow-wrap:anywhere}
+.reward-token-identity img{width:34px;height:34px;border-radius:9px;object-fit:cover;flex:none}
+.reward-row-head>span{color:#64e782;font-size:.79rem;white-space:nowrap}
+.reward-portfolio-list p,.reward-discovery-list p{margin:8px 0 0;color:#a7b7aa;font-size:.88rem}
+.reward-portfolio-links{display:flex;flex-wrap:wrap;gap:18px;margin:16px 0}
+.reward-empty{color:#9faea3;margin:8px 0}
+.reward-proof-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;list-style:none;padding:0;margin:0 0 16px}
+.reward-proof-steps li{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid #344139;border-radius:2px;background:#111b16}
+.reward-proof-steps li.complete{border-color:#357b4b;background:#12251a}
+.reward-proof-steps strong{font-size:.84rem}
+.reward-proof-steps small{overflow-wrap:anywhere}
+.reward-source-note{color:#a9bbaa;font-size:.84rem}
+.reward-proof-events>div{display:flex;justify-content:space-between;gap:12px;font-size:.85rem}
+.reward-studio-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.reward-studio-grid article{display:flex;flex-direction:column;gap:10px;padding:15px;border:1px solid #344139;border-radius:2px;background:#111b16}
+.reward-studio-grid button{margin-top:auto}
+.reward-studio>[data-studio-status]{color:#78e491}
+.reward-community-total{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.reward-community-total strong{color:#64e782;font-size:1.55rem}
+.reward-ideas{color:#a7b7aa}
+.reward-alerts header label{display:flex;gap:7px;align-items:center}
+.reward-alerts input{accent-color:#47d86a}
+.reward-alerts [data-alert-list] p{margin:8px 0}
+.reward-buyback-list p{font-size:.86rem}
+@media(max-width:760px){.reward-experience-panel{padding:17px}.reward-experience-panel>header{flex-direction:column}.reward-portfolio-summary,.reward-studio-grid{grid-template-columns:1fr}.reward-proof-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.reward-proof-events>div{flex-direction:column}.reward-buyback-stats{grid-template-columns:1fr}}

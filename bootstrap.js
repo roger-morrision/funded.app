@@ -10,3 +10,4 @@ await import('./adoption-ui.js');
 await import('./automatic-rewards-ui.js');
 await import('./personal-rewards-ui.js');
 await import('./workspace-ui.js');
+await import('./reward-experience-ui.js');

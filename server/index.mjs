@@ -51,6 +51,7 @@ import { parseSignedMetadata, publicMetadata } from './devnet-metadata.mjs';
 import { devnetMetadataUri, devnetImageUri } from '../devnet-metadata.js';
 import { attachVerifiedTokenAccountWallets, normalizeLargestTokenAccounts } from './token-accounts.mjs';
 import { coinFeeOverview } from './coin-fee-overview.mjs';
+import { rewardExperience } from './reward-experience.mjs';
 import { homeFeeAllocationSummary } from './home-dashboard-metrics.mjs';
 import { createCreatorFeeChallenges, creatorClaimStatus } from './creator-fee-claim.mjs';
 import { createTokenChatSessions } from './token-chat-session.mjs';
@@ -681,6 +682,17 @@ async function handle(req, res) {
     if (req.method === 'GET' && url.pathname === '/api/buyback/status') {
       const state = await store.read();
       return json(res, 200, { cluster:solanaCluster, custody:'per-mint-fee-router-pda', mainnetReady:false, pending:buybackQueue(state), receipts:Object.values(state.buybackOrders || {}).filter(row => row.status === 'finalized' && row.refundVerified).map(({ signedTransaction, refundTransaction, ...row }) => row) });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/rewards/experience') {
+      if (!await store.chargeRpcRate(`reward-experience:${clientKey(req)}`, 1, 30, Math.floor(Date.now() / 60_000) * 60_000))
+        return json(res, 429, { error:'Reward proof request limit reached; retry shortly.' });
+      let wallet = null, mint = null;
+      try {
+        if (url.searchParams.has('wallet')) wallet = new PublicKey(url.searchParams.get('wallet')).toBase58();
+        if (url.searchParams.has('mint')) mint = new PublicKey(url.searchParams.get('mint')).toBase58();
+      } catch { return json(res, 400, { error:'A valid Solana wallet and mint are required.' }); }
+      const [state, rewards, evidence] = await Promise.all([store.read(), automaticRewardStore.read(), readFinalizedEvidence()]);
+      return json(res, 200, rewardExperience(state, rewards, evidence, solanaCluster, wallet, mint));
     }
     if (req.method === 'GET' && url.pathname === '/api/airdrops/reserves') {
       if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256) return json(res, 503, { error:'Verified Devnet community reserve checks are unavailable.' });
