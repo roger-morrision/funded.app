@@ -1,0 +1,10 @@
+# Last app overlay for the public Devnet stack. This pins the prior public image
+# and adds only the checked-in reward experience files. Never use for Mainnet.
+services:
+  app:
+    image: fundedapp-app:reward-experience-de08b07
+    build:
+      context: .
+      dockerfile: deploy/reward-experience-devnet/Dockerfile
+    environment:
+      FUNDED_BUILD_ID: reward-experience-de08b07
