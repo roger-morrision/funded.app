@@ -24,16 +24,17 @@ export function coinFeeOverview({ mint, cluster, launch, collections = {}, settl
   const gross = rows.reduce((sum, row) => sum + integerUnits(row.collectedLamports), 0n);
   const settled = claimed.reduce((sum, row) => sum + units(settlements[row.signature].grossCreatorFees), 0n);
   const shares = launch?.feeDistribution?.creatorDirected?.shares || {};
+  const fixed = launch?.feeDistribution?.fixedFunded;
   const definitions = [
     { id:'creator', label:'Coin creator', percent:Number(shares.creatorWalletPercent || 0), recipient:launch?.creatorWallet || null, kind:'creator', path:'wallet requested payout' },
     { id:'holders', label:'Token holders', percent:Number(shares.holderAirdropPercent || 0), recipient:null, kind:'holder', path:'snapshot based distribution' },
     { id:'x', label:'X recipient', percent:Number(shares.solClaimPercent || 0), recipient:launch?.feeDistribution?.creatorDirected?.recipients?.xAccount || null, kind:'x', path:'X sign in and wallet verification' },
-    { id:'operations', label:'Operations', percent:14, recipient:operationsRecipient, kind:'operations', path:'automatic verified payout' },
-    { id:'referral-1', label:'Direct referral', percent:2, recipient:null, kind:null, path:'wallet claim' },
-    { id:'referral-2', label:'Second referral', percent:0.6, recipient:null, kind:null, path:'wallet claim' },
-    { id:'referral-3', label:'Third referral', percent:0.4, recipient:null, kind:null, path:'wallet claim' },
-    { id:'community', label:'Community programs reserve', percent:2, recipient:null, kind:null, path:'reserved for future published programs' },
-    { id:'buyback', label:'Buyback and burn', percent:1, recipient:null, kind:null, path:'protocol allocation' },
+    { id:'operations', label:'Operations', percent:Number(fixed?.operations?.effectivePercentOfCreatorFees ?? 14), recipient:operationsRecipient, kind:'operations', path:'automatic verified payout' },
+    { id:'referral-1', label:'Direct referral', percent:Number(fixed?.appReferral?.levels?.[0]?.effectivePercentOfCreatorFees ?? 2), recipient:null, kind:null, path:'wallet claim' },
+    { id:'referral-2', label:'Second referral', percent:Number(fixed?.appReferral?.levels?.[1]?.effectivePercentOfCreatorFees ?? 0.6), recipient:null, kind:null, path:'wallet claim' },
+    { id:'referral-3', label:'Third referral', percent:Number(fixed?.appReferral?.levels?.[2]?.effectivePercentOfCreatorFees ?? 0.4), recipient:null, kind:null, path:'wallet claim' },
+    { id:'community', label:'Community programs reserve', percent:Number(fixed?.communityRewards?.effectivePercentOfCreatorFees ?? 2), recipient:null, kind:null, path:'reserved for future published programs' },
+    { id:'buyback', label:'Buyback and burn', percent:Number(fixed?.fundedBuyback?.effectivePercentOfCreatorFees ?? 1), recipient:null, kind:null, path:'protocol allocation' },
   ];
   const entries = definitions.map(definition => ({ ...definition, allocated:0n, paid:0n, statuses:new Set(), signatures:new Set() }));
   const byId = Object.fromEntries(entries.map(row => [row.id, row]));

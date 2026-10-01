@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { APP_REFERRAL_LEVELS, buildFeeDistributionPolicy, calculateCreatorFeeClaim, FEE_DISTRIBUTION, settleCreatorFeeClaim, validateFeeDistribution } from '../distribution-policy.js';
+import { APP_REFERRAL_LEVELS, buildFeeDistributionPolicy, calculateCreatorFeeClaim, FEE_DISTRIBUTION, settleCreatorFeeClaim, validateFeeDistribution, validateProtocolFeeSplit } from '../distribution-policy.js';
 
 assert.equal(FEE_DISTRIBUTION.pumpRoutedPercent, 100);
 assert.equal(FEE_DISTRIBUTION.pumpRoutedShareBps, 10_000);
@@ -53,4 +53,25 @@ const first = settleCreatorFeeClaim({ claimSignature: 'claim-1', grossCreatorFee
 const duplicate = settleCreatorFeeClaim({ claimSignature: 'claim-1', grossCreatorFees: 999 }, { creatorWalletPercent: 80, holderAirdropPercent: 0, xPercent: 0 }, {}, claims);
 assert.equal(first, duplicate);
 assert.equal(claims.size, 1);
+const alternate = { operationsPercent: 50, referralLevelPercents: [12, 5, 3], communityPercent: 20, buybackPercent: 10 };
+assert.deepEqual(validateProtocolFeeSplit(alternate), alternate);
+assert.throws(() => validateProtocolFeeSplit({ ...alternate, buybackPercent: 11 }), /totaling 100%/);
+assert.throws(() => validateProtocolFeeSplit({ ...alternate, referralLevelPercents: [20, -3, 3] }), /totaling 100%/);
+assert.throws(() => validateProtocolFeeSplit({ ...alternate, referralLevelPercents: [12, 8] }), /three referral levels/);
+const alternatePolicy = buildFeeDistributionPolicy({ creatorWalletPercent: 80 }, { fundedSplit: alternate });
+assert.equal(alternatePolicy.fixedFunded.operations.effectivePercentOfCreatorFees, 10);
+assert.deepEqual(alternatePolicy.fixedFunded.appReferral.levels.map(level => level.effectivePercentOfCreatorFees), [2.4, 1, 0.6]);
+assert.equal(alternatePolicy.fixedFunded.communityRewards.effectivePercentOfCreatorFees, 4);
+assert.equal(alternatePolicy.fixedFunded.fundedBuyback.effectivePercentOfCreatorFees, 2);
+const alternateClaim = calculateCreatorFeeClaim(100, { creatorWalletPercent: 80 }, { fixedFunded: alternatePolicy.fixedFunded, referralRecipients: ['L1', 'L2', 'L3'] });
+assert.deepEqual([alternateClaim.fundedApp.operations, alternateClaim.fundedApp.referralPayout, alternateClaim.fundedApp.community, alternateClaim.fundedApp.buyback], [10, 4, 4, 2]);
+assert.equal(alternateClaim.totalAllocated, 100);
+const oldClaim = calculateCreatorFeeClaim(100, { creatorWalletPercent: 80 }, { fixedFunded: policy.fixedFunded, referralRecipients: ['L1', 'L2', 'L3'] });
+assert.deepEqual([oldClaim.fundedApp.operations, oldClaim.fundedApp.referralPayout, oldClaim.fundedApp.community, oldClaim.fundedApp.buyback], [14, 3, 2, 1]);
+assert.throws(() => calculateCreatorFeeClaim(100, { creatorWalletPercent: 80 }, { fixedFunded: { ...alternatePolicy.fixedFunded, percent: 25 } }), /20% app share/);
+for (let lamports = 1; lamports <= 1000; lamports++) {
+  const exact = calculateCreatorFeeClaim(lamports / 1_000_000_000, { creatorWalletPercent: 80 }, { fixedFunded: alternatePolicy.fixedFunded, referralRecipients: ['L1', 'L2', 'L3'] });
+  assert.equal(Math.round(exact.totalAllocated * 1_000_000_000), lamports);
+  assert.equal(Math.round((exact.creatorTotal + exact.fundedApp.total) * 1_000_000_000), lamports);
+}
 console.log('fee distribution policy checks passed');

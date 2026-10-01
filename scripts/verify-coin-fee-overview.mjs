@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { coinFeeOverview } from '../server/coin-fee-overview.mjs';
+import { buildFeeDistributionPolicy } from '../distribution-policy.js';
 
 const mint = 'mint-a', cluster = 'devnet';
 const launch = { onchainVerified:true, cluster, creatorWallet:'creator-wallet', creator:'router-a', pumpFeeRoute:{ scope:'per-mint-v2', router:'router-a' }, feeDistribution:{ creatorDirected:{ shares:{ creatorWalletPercent:80, holderAirdropPercent:0, solClaimPercent:0 } } } };
@@ -62,4 +63,7 @@ const mixedState = { ...holderState, rewardPools:{ ...holderState.rewardPools,
 } };
 const mixedOverview = coinFeeOverview({ ...base, collections:{ a:collection }, settlements:{ 'claim-a':holderSettlement }, rewardState:mixedState });
 assert.equal(mixedOverview.receivers.find(row => row.id === 'holders').confirmedPaidLamports, '0');
+const customPolicy = buildFeeDistributionPolicy({ creatorWalletPercent:80 }, { fundedSplit:{ operationsPercent:50, referralLevelPercents:[12,5,3], communityPercent:20, buybackPercent:10 } });
+const customOverview = coinFeeOverview({ ...base, launch:{ ...launch, feeDistribution:customPolicy } });
+assert.deepEqual(customOverview.receivers.filter(row => row.id === 'operations' || row.id.startsWith('referral-') || row.id === 'community' || row.id === 'buyback').map(row => row.percent), [10, 2.4, 1, 0.6, 4, 2]);
 console.log('coin fee overview: verified collection isolation, allocation, and confirmed payment totals');

@@ -1680,7 +1680,7 @@ async function handle(req, res) {
         const policy = { ...shares, xRecipient: launch.feeDistribution.creatorDirected.recipients?.xAccount || null };
         const grossCreatorFees = Number(collection.collectedLamports) / 1_000_000_000;
         const referralRecipients = referralUplineForWallet(state, creatorWallet);
-        const settlement = settleCreatorFeeClaim({ claimSignature: signature, grossCreatorFees, asset: 'SOL', claimedAt: collection.recordedAt }, policy, { referralRecipients });
+        const settlement = settleCreatorFeeClaim({ claimSignature: signature, grossCreatorFees, asset: 'SOL', claimedAt: collection.recordedAt }, policy, { referralRecipients, fixedFunded: launch.feeDistribution.fixedFunded });
         settlement.creatorWallet = creatorWallet;
         settlement.referralResolution = { source: 'server-referral-graph', directInviter: referralRecipients[0] || null, depth: referralRecipients.length };
         state.settlements[signature] = settlement;

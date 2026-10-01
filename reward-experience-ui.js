@@ -221,7 +221,7 @@ function renderCommunity(data) {
     node('span','','reserved from finalized, mint-attributed fee collections'));
   root.append(block);
   if (data.community.baseAllocatedLamports != null && data.community.referralRolloverLamports != null) {
-    root.append(node('p','',`${sol(data.community.baseAllocatedLamports)} fixed 2% reserve · ${sol(data.community.referralRolloverLamports)} from unassigned referrals`));
+    root.append(node('p','',`${sol(data.community.baseAllocatedLamports)} community base reserve · ${sol(data.community.referralRolloverLamports)} from unassigned referrals`));
   }
   if (data.community.fundedLamports != null && BigInt(data.community.fundedLamports) > 0n) {
     root.append(node('p','',`${sol(data.community.fundedLamports)} transferred to the dedicated on-chain program vault with verified funding receipts.`));

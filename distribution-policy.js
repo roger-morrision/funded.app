@@ -1,23 +1,57 @@
+import { PROTOCOL_FEE_SPLIT } from './config/protocol-fee-split.js';
+
+export function validateProtocolFeeSplit(split = PROTOCOL_FEE_SPLIT) {
+  const levels = split?.referralLevelPercents;
+  const rates = [split?.operationsPercent, ...(Array.isArray(levels) ? levels : []), split?.communityPercent, split?.buybackPercent];
+  if (!Array.isArray(levels) || levels.length !== 3 || rates.some(rate => typeof rate !== 'number' || !Number.isFinite(rate) || rate < 0 || rate > 100 || Math.abs(Math.round(rate * 10_000) - rate * 10_000) > 0.000001)
+    || Math.abs(rates.reduce((sum, rate) => sum + rate, 0) - 100) > 0.000001) {
+    throw new Error('Protocol fee split must contain operations, three referral levels, community, and buyback percentages totaling 100% of the 20% app share.');
+  }
+  return {
+    operationsPercent: split.operationsPercent,
+    referralLevelPercents: [...levels],
+    communityPercent: split.communityPercent,
+    buybackPercent: split.buybackPercent,
+  };
+}
+
+const DEFAULT_PROTOCOL_SPLIT = validateProtocolFeeSplit();
+const effectivePercent = rate => Number((rate * 0.2).toFixed(6));
+
 export const FEE_DISTRIBUTION = Object.freeze({
   pumpRoutedPercent: 100,
   pumpRoutedShareBps: 10_000,
   fundedPercent: 20,
   creatorPercent: 80,
-  operationsRateOfFundedRevenue: 70,
-  operationsEffectivePercent: 14,
-  appReferralRateOfFundedRevenue: 15,
-  appReferralEffectivePercent: 3,
-  communityRateOfFundedRevenue: 10,
-  communityEffectivePercent: 2,
-  buybackRateOfFundedRevenue: 5,
-  buybackEffectivePercent: 1,
+  operationsRateOfFundedRevenue: DEFAULT_PROTOCOL_SPLIT.operationsPercent,
+  operationsEffectivePercent: effectivePercent(DEFAULT_PROTOCOL_SPLIT.operationsPercent),
+  appReferralRateOfFundedRevenue: DEFAULT_PROTOCOL_SPLIT.referralLevelPercents.reduce((sum, rate) => sum + rate, 0),
+  appReferralEffectivePercent: effectivePercent(DEFAULT_PROTOCOL_SPLIT.referralLevelPercents.reduce((sum, rate) => sum + rate, 0)),
+  communityRateOfFundedRevenue: DEFAULT_PROTOCOL_SPLIT.communityPercent,
+  communityEffectivePercent: effectivePercent(DEFAULT_PROTOCOL_SPLIT.communityPercent),
+  buybackRateOfFundedRevenue: DEFAULT_PROTOCOL_SPLIT.buybackPercent,
+  buybackEffectivePercent: effectivePercent(DEFAULT_PROTOCOL_SPLIT.buybackPercent),
 });
 
-export const APP_REFERRAL_LEVELS = Object.freeze([
-  Object.freeze({ level: 1, relationship: 'direct-inviter', percentOfFundedRevenue: 10, effectivePercentOfCreatorFees: 2 }),
-  Object.freeze({ level: 2, relationship: 'inviter-upline', percentOfFundedRevenue: 3, effectivePercentOfCreatorFees: 0.6 }),
-  Object.freeze({ level: 3, relationship: 'second-upline', percentOfFundedRevenue: 2, effectivePercentOfCreatorFees: 0.4 }),
-]);
+const REFERRAL_RELATIONSHIPS = ['direct-inviter', 'inviter-upline', 'second-upline'];
+const referralLevelsFor = split => split.referralLevelPercents.map((rate, index) => ({
+  level: index + 1,
+  relationship: REFERRAL_RELATIONSHIPS[index],
+  percentOfFundedRevenue: rate,
+  effectivePercentOfCreatorFees: effectivePercent(rate),
+}));
+export const APP_REFERRAL_LEVELS = Object.freeze(referralLevelsFor(DEFAULT_PROTOCOL_SPLIT).map(level => Object.freeze(level)));
+
+function splitFromSnapshot(fixedFunded) {
+  if (!fixedFunded) return DEFAULT_PROTOCOL_SPLIT;
+  if (Number(fixedFunded.percent) !== FEE_DISTRIBUTION.fundedPercent) throw new Error('Launch fee policy must preserve the 20% app share.');
+  return validateProtocolFeeSplit({
+    operationsPercent: fixedFunded.operations?.percentOfFundedRevenue,
+    referralLevelPercents: fixedFunded.appReferral?.levels?.map(level => level.percentOfFundedRevenue),
+    communityPercent: fixedFunded.communityRewards?.percentOfFundedRevenue,
+    buybackPercent: fixedFunded.fundedBuyback?.percentOfFundedRevenue,
+  });
+}
 
 const X_HANDLE_PATTERN = /^@[A-Za-z0-9_]{1,15}$/;
 
@@ -45,9 +79,12 @@ export function validateFeeDistribution(input = {}) {
   };
 }
 
-export function buildFeeDistributionPolicy(input = {}) {
+export function buildFeeDistributionPolicy(input = {}, { fundedSplit = DEFAULT_PROTOCOL_SPLIT } = {}) {
   const result = validateFeeDistribution(input);
   if (!result.valid) throw new Error('Creator fee shares must total exactly 80%, with a valid X recipient when enabled.');
+  const split = validateProtocolFeeSplit(fundedSplit);
+  const referralLevels = referralLevelsFor(split);
+  const referralPercent = split.referralLevelPercents.reduce((sum, rate) => sum + rate, 0);
   return {
     pumpCreatorFeeRoute: {
       percent: FEE_DISTRIBUTION.pumpRoutedPercent,
@@ -62,14 +99,14 @@ export function buildFeeDistributionPolicy(input = {}) {
     fixedFunded: {
       percent: FEE_DISTRIBUTION.fundedPercent,
       operations: {
-        percentOfFundedRevenue: FEE_DISTRIBUTION.operationsRateOfFundedRevenue,
-        effectivePercentOfCreatorFees: FEE_DISTRIBUTION.operationsEffectivePercent,
+        percentOfFundedRevenue: split.operationsPercent,
+        effectivePercentOfCreatorFees: effectivePercent(split.operationsPercent),
       },
       appReferral: {
-        percentOfFundedRevenue: FEE_DISTRIBUTION.appReferralRateOfFundedRevenue,
-        effectivePercentOfCreatorFees: FEE_DISTRIBUTION.appReferralEffectivePercent,
-        maxDepth: APP_REFERRAL_LEVELS.length,
-        levels: APP_REFERRAL_LEVELS,
+        percentOfFundedRevenue: referralPercent,
+        effectivePercentOfCreatorFees: effectivePercent(referralPercent),
+        maxDepth: referralLevels.length,
+        levels: referralLevels,
         basis: 'funded-app-revenue-from-invited-guest-creators',
         qualification: 'collected-revenue-only-no-recruitment-bounty',
         attribution: 'account-level-first-touch',
@@ -78,15 +115,15 @@ export function buildFeeDistributionPolicy(input = {}) {
         unattributedDestination: 'community-growth-reserve',
       },
       communityRewards: {
-        percentOfFundedRevenue: FEE_DISTRIBUTION.communityRateOfFundedRevenue,
-        effectivePercentOfCreatorFees: FEE_DISTRIBUTION.communityEffectivePercent,
+        percentOfFundedRevenue: split.communityPercent,
+        effectivePercentOfCreatorFees: effectivePercent(split.communityPercent),
         destination: 'community-program-reserve',
         use: 'future-published-community-programs',
         payoutMode: 'disabled-until-program-rules-and-verified-receipts',
       },
       fundedBuyback: {
-        percentOfFundedRevenue: FEE_DISTRIBUTION.buybackRateOfFundedRevenue,
-        effectivePercentOfCreatorFees: FEE_DISTRIBUTION.buybackEffectivePercent,
+        percentOfFundedRevenue: split.buybackPercent,
+        effectivePercentOfCreatorFees: effectivePercent(split.buybackPercent),
         action: 'buyback-and-burn',
         allocationTiming: 'when-creator-fees-are-actually-claimed',
         vault: 'dedicated-buyback-pda',
@@ -121,22 +158,34 @@ function roundAmount(value) {
   return Number(Number(value).toFixed(9));
 }
 
-export function calculateCreatorFeeClaim(grossCreatorFees, input = {}, { referralRecipients = [] } = {}) {
+function allocateLamports(gross, percentages) {
+  const lamports = Math.round(gross * 1_000_000_000);
+  if (!Number.isSafeInteger(lamports)) throw new Error('Gross creator fees exceed the safe lamport accounting range.');
+  const rateTotal = percentages.reduce((sum, rate) => sum + rate, 0);
+  const exact = percentages.map(rate => lamports * rate / rateTotal);
+  const amounts = exact.map(Math.floor);
+  const remaining = lamports - amounts.reduce((sum, amount) => sum + amount, 0);
+  const order = exact.map((amount, index) => index).sort((a, b) => (exact[b] - amounts[b]) - (exact[a] - amounts[a]) || percentages[b] - percentages[a] || a - b);
+  for (let index = 0; index < remaining; index++) amounts[order[index]]++;
+  return amounts.map(amount => amount / 1_000_000_000);
+}
+
+export function calculateCreatorFeeClaim(grossCreatorFees, input = {}, { referralRecipients = [], fixedFunded = null } = {}) {
   const gross = Number(grossCreatorFees);
   if (!Number.isFinite(gross) || gross < 0) throw new Error('Gross creator fees must be a non-negative number.');
   const validation = validateFeeDistribution(input);
   if (!validation.valid) throw new Error('Creator fee shares must total exactly 80%, with a valid X recipient when enabled.');
+  const split = splitFromSnapshot(fixedFunded);
 
-  const creatorDestinations = {
-    creatorWallet: roundAmount(gross * validation.shares.creatorWalletPercent / 100),
-    holderAirdrop: roundAmount(gross * validation.shares.holderAirdropPercent / 100),
-    solClaim: roundAmount(gross * validation.shares.solClaimPercent / 100),
-  };
-  const operations = roundAmount(gross * FEE_DISTRIBUTION.operationsEffectivePercent / 100);
-  const buyback = roundAmount(gross * FEE_DISTRIBUTION.buybackEffectivePercent / 100);
-  const communityBase = roundAmount(gross * FEE_DISTRIBUTION.communityEffectivePercent / 100);
-  const referralLevels = APP_REFERRAL_LEVELS.map((level, index) => {
-    const amount = roundAmount(gross * level.effectivePercentOfCreatorFees / 100);
+  const levelDefinitions = referralLevelsFor(split);
+  const [creatorWallet, holderAirdrop, solClaim, operations, communityBase, buyback, ...referralAmounts] = allocateLamports(gross, [
+    validation.shares.creatorWalletPercent, validation.shares.holderAirdropPercent, validation.shares.solClaimPercent,
+    effectivePercent(split.operationsPercent), effectivePercent(split.communityPercent), effectivePercent(split.buybackPercent),
+    ...levelDefinitions.map(level => level.effectivePercentOfCreatorFees),
+  ]);
+  const creatorDestinations = { creatorWallet, holderAirdrop, solClaim };
+  const referralLevels = levelDefinitions.map((level, index) => {
+    const amount = referralAmounts[index];
     return {
       level: level.level,
       recipient: referralRecipients[index] || null,
@@ -150,7 +199,7 @@ export function calculateCreatorFeeClaim(grossCreatorFees, input = {}, { referra
   const community = roundAmount(communityBase + missingReferral);
   const creatorTotal = roundAmount(Object.values(creatorDestinations).reduce((sum, amount) => sum + amount, 0));
   const totalAllocated = roundAmount(creatorTotal + operations + referralPayout + community + buyback);
-  if (Math.abs(totalAllocated - gross) > 0.000001) throw new Error('Creator-fee settlement must allocate exactly 100% of the claimed amount.');
+  if (Math.round(totalAllocated * 1_000_000_000) !== Math.round(gross * 1_000_000_000)) throw new Error('Creator-fee settlement must allocate every claimed lamport exactly once.');
 
   return {
     grossCreatorFees: roundAmount(gross),
@@ -158,7 +207,7 @@ export function calculateCreatorFeeClaim(grossCreatorFees, input = {}, { referra
     creatorDestinations,
     creatorTotal,
     fundedApp: {
-      total: roundAmount(gross * FEE_DISTRIBUTION.fundedPercent / 100),
+      total: roundAmount(operations + referralPayout + community + buyback),
       operations,
       referralLevels,
       referralPayout,
