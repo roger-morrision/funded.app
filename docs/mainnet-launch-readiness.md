@@ -2,6 +2,12 @@
 
 The hosted funded.vip launch remains **Devnet only**. The separate Mainnet preview is read only. A Mainnet build must not enable coin creation by changing `VITE_ALLOW_MAINNET` alone: the launch client, metadata service, registration API, and fee distribution still contain Devnet-specific paths. The client launch function and registration API reject Mainnet until these dependencies are implemented and verified.
 
+## Current evidence — 2026-10-01
+
+The public Devnet release contract passed through `https://funded.vip`: health, capabilities, deep links, assets, wallet-signed chat contract, and 20 parallel read requests. The [fee-funded holder payout](devnet-fee-funded-holder-payout-qa-2026-10-01.md) and [four buy-and-burn receipts](devnet-holder-payout-buyback-qa-2026-10-01.md) have finalized on-chain checks. These are Devnet results. The public `/api/readiness` response remains `ready: false` with `scope: configuration-only`.
+
+The remaining Mainnet gates are concrete: an independently reviewed and deployed fee router; dedicated audited buyback custody rather than the Devnet executor; a verified community migration snapshot and payable cycle; Mainnet proof for X, creator, holder, referral, and fee routing with separate credentials and infrastructure; and a self-contained source release after the mixed checkout is reconciled. The pinned Devnet overlay is a reproducible patch on this host, not a Mainnet artifact.
+
 ## Required before enabling Mainnet
 
 1. Deploy and independently review the fee-router program on Mainnet. Verify its program ID, authority, mint-specific PDA, Pump creator-fee route, and recovery path against Mainnet accounts.
