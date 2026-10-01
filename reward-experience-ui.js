@@ -94,7 +94,7 @@ function createPanels() {
     const oldStatus = byId('community-alert-status');
     if (oldStatus) oldStatus.textContent = 'Optional in-app alerts for watched coins are available below.';
     const section = node('section', 'reward-experience-panel', null); section.id = 'community-reward-reserve';
-    section.innerHTML = `<header><div><p class="eyebrow">Community allocation</p><h2>Community reserve</h2><p>See SOL allocated from the available finalized collection receipts. Spending requires its own payout proof.</p></div></header><div data-community-reserve>Checking verified allocations…</div><p class="reward-ideas">Have a reserve idea? Share it in the relevant coin’s discussion. Allocation here does not mean the reserve has been spent.</p>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Protocol reserve</p><h2>Community programs reserve</h2><p>Collected SOL is set aside in the fee ledger for future community programs. No jackpot, leaderboard bonus, game, or airdrop payout is active yet.</p></div></header><div data-community-reserve>Checking verified allocations…</div><p class="reward-ideas">Each future program needs published rules and verified payout receipts before any spending is shown here.</p>`;
     community.append(section);
     const alerts = node('section', 'reward-experience-panel reward-alerts', null); alerts.id = 'reward-alerts';
     alerts.innerHTML = `<header><div><p class="eyebrow">Followed coins</p><h2>Reward alerts</h2><p>Get an in-app notice when a watched coin has a newly verified fee collection, holder payment, or buyback burn.</p></div><label><input type="checkbox" data-alert-toggle /> Enable</label></header><div data-alert-status role="status">Alerts are off.</div><div data-alert-list></div><small>Alerts work while this page is open and are saved on this device. They do not promise a payout or run in the background.</small>`;
@@ -218,8 +218,12 @@ function renderCommunity(data) {
   root.replaceChildren();
   if (!data || data.evidence.status === 'unavailable') { root.textContent = 'Finalized community allocation evidence is unavailable.'; return; }
   const block = node('div','reward-community-total'); block.append(node('strong','',sol(data.community.allocatedLamports)),
-    node('span','','allocated from finalized, mint-attributed fee collections'));
-  root.append(block,node('p','', 'Confirmed community disbursements are not indexed here. No spent amount is claimed.'));
+    node('span','','reserved from finalized, mint-attributed fee collections'));
+  root.append(block);
+  if (data.community.baseAllocatedLamports != null && data.community.referralRolloverLamports != null) {
+    root.append(node('p','',`${sol(data.community.baseAllocatedLamports)} fixed 2% reserve · ${sol(data.community.referralRolloverLamports)} from unassigned referrals`));
+  }
+  root.append(node('p','', 'No community SOL payout program is active. This is a ledger allocation, not proof of a separately funded on-chain vault.'));
 }
 function renderBuybacks(data) {
   const root = document.querySelector('[data-buyback-flow]'); if (!root) return;

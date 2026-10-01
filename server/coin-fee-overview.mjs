@@ -32,7 +32,7 @@ export function coinFeeOverview({ mint, cluster, launch, collections = {}, settl
     { id:'referral-1', label:'Direct referral', percent:2, recipient:null, kind:null, path:'wallet claim' },
     { id:'referral-2', label:'Second referral', percent:0.6, recipient:null, kind:null, path:'wallet claim' },
     { id:'referral-3', label:'Third referral', percent:0.4, recipient:null, kind:null, path:'wallet claim' },
-    { id:'community', label:'Community reserve', percent:2, recipient:null, kind:null, path:'protocol allocation' },
+    { id:'community', label:'Community programs reserve', percent:2, recipient:null, kind:null, path:'reserved for future published programs' },
     { id:'buyback', label:'Buyback and burn', percent:1, recipient:null, kind:null, path:'protocol allocation' },
   ];
   const entries = definitions.map(definition => ({ ...definition, allocated:0n, paid:0n, statuses:new Set(), signatures:new Set() }));

@@ -80,6 +80,9 @@ export function buildFeeDistributionPolicy(input = {}) {
       communityRewards: {
         percentOfFundedRevenue: FEE_DISTRIBUTION.communityRateOfFundedRevenue,
         effectivePercentOfCreatorFees: FEE_DISTRIBUTION.communityEffectivePercent,
+        destination: 'community-program-reserve',
+        use: 'future-published-community-programs',
+        payoutMode: 'disabled-until-program-rules-and-verified-receipts',
       },
       fundedBuyback: {
         percentOfFundedRevenue: FEE_DISTRIBUTION.buybackRateOfFundedRevenue,

@@ -30,6 +30,8 @@ assert.equal(policy.fixedFunded.appReferral.maxDepth, 3);
 assert.equal(policy.fixedFunded.appReferral.levels.length, 3);
 assert.equal(policy.fixedFunded.appReferral.unattributedDestination, 'community-growth-reserve');
 assert.equal(policy.fixedFunded.communityRewards.effectivePercentOfCreatorFees, 2);
+assert.equal(policy.fixedFunded.communityRewards.destination, 'community-program-reserve');
+assert.equal(policy.fixedFunded.communityRewards.payoutMode, 'disabled-until-program-rules-and-verified-receipts');
 assert.equal(policy.fixedFunded.fundedBuyback.effectivePercentOfCreatorFees, 1);
 assert.equal(policy.creatorDirected.percent, 80);
 assert.equal(policy.immutable, true);

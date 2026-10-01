@@ -16,7 +16,7 @@ const state = { launches:{ [mint]:launch }, collections:{ [claim]:{ mint, cluste
   onchainVerified:true, attribution:'mint-verified', signature:claim, collectedLamports:100_000_000, recordedAt:'2026-10-01T00:00:00Z' } },
   settlements:{ [claim]:{ claimSignature:claim, asset:'SOL', grossCreatorFees:0.1,
     creatorDestinations:{ creatorWallet:0.06, holderAirdrop:0.02, solClaim:0 },
-    fundedApp:{ community:0.002, buyback:0.001, referralLevels:[] } } },
+    fundedApp:{ communityBase:0.002, missingReferralToCommunity:0, community:0.002, buyback:0.001, referralLevels:[] } } },
   buybackOrders:{ one:{ mint, status:'finalized', refundVerified:true, signature:burn,
     boughtAndBurnedBaseUnits:'500', supplyBefore:'10000', supplyAfter:'9500', settledLamports:'1000000' } } };
 const rewards = { schedules:{ one:{ mint, kind:'holder', asset:'SOL', manifest:{ leaves:[{ recipient:holder, amount:'20000000' }] },
@@ -43,9 +43,13 @@ test('community total includes redirected referrals exactly once', () => {
     { level:1, recipient:null, amount:0.001 },
   ];
   withMissingReferral.settlements[claim].fundedApp.community = 0.003;
+  withMissingReferral.settlements[claim].fundedApp.missingReferralToCommunity = 0.001;
   const result = rewardExperience(withMissingReferral, rewards, evidence, 'devnet');
   assert.equal(result.tokens[0].totals.community, '3000000');
   assert.equal(result.community.allocatedLamports, '3000000');
+  assert.equal(result.community.baseAllocatedLamports, '2000000');
+  assert.equal(result.community.referralRolloverLamports, '1000000');
+  assert.equal(result.community.status, 'reserved-for-future-programs-no-payout-policy');
 });
 
 test('unverified collections and unmatched payment leaves cannot become proof', () => {
