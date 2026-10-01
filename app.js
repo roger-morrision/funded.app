@@ -3416,7 +3416,7 @@ function formatLaunchCost(lamports){ return `${(Number(lamports) / 1_000_000_000
 function formatLaunchBurnAmount(amount){ return Number(amount || 0).toLocaleString(); }
 function renderLaunchBurnSelection(){
   const policy = getLaunchBurnPolicy();
-  document.querySelectorAll('[data-burn-tier]').forEach(button => {
+  document.querySelectorAll('.creator-burn-card[data-burn-tier]').forEach(button => {
     const active = button.dataset.burnTier === policy.tier;
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
@@ -4565,7 +4565,7 @@ document.querySelector('#launch-mode-quick').addEventListener('click', () => set
 document.querySelector('#launch-mode-custom').addEventListener('click', () => setLaunchMode('custom'));
 document.querySelectorAll('[data-launch-profile]').forEach(card => card.addEventListener('click', () => setLaunchProfile(card.dataset.launchProfile)));
 setLaunchProfile('fast');
-document.querySelectorAll('[data-burn-tier]').forEach(button => button.addEventListener('click', () => setLaunchBurnTier(button.dataset.burnTier)));
+document.querySelectorAll('.creator-burn-card[data-burn-tier]').forEach(button => button.addEventListener('click', () => setLaunchBurnTier(button.dataset.burnTier)));
 document.querySelectorAll('[data-launch-step-target]').forEach(button => button.addEventListener('click', () => { const target = Number(button.dataset.launchStepTarget); setLaunchStep(target); }));
 document.querySelectorAll('[data-copy-referral-link]').forEach(button => button.addEventListener('click', async () => { const code = await referralCodeForShare(); if (!code) return; const link = buildReferralUrl(code); try { await navigator.clipboard.writeText(link); trackReferralEvent('invite_link_copied'); showToast('Invite link copied'); } catch { showToast(link); } }));
 document.querySelector('#referral-share-native')?.addEventListener('click', async () => { const code = await referralCodeForShare(); if (!code) return; const link = buildReferralUrl(code); if (navigator.share) { try { await navigator.share({ title: 'Join funded.app', text: 'Launch with a transparent creator-fee route.', url: link }); trackReferralEvent('referral_command_center_shared'); } catch {} } else { try { await navigator.clipboard.writeText(link); showToast('Invite link copied'); } catch { showToast(link); } } });
