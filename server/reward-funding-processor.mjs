@@ -2,16 +2,28 @@ export function createRewardFundingProcessor({ store, chain, scheduler }) {
   async function processPending() {
     const readiness = await chain.readiness();
     if (!readiness.constrainedPayouts) return { status:'unavailable', reasons:readiness.reasons || [], pending:0, funded:0 };
-    const requests = await store.transaction(state => structuredClone(Object.values(state.fundingRequests || {}).filter(row => ['pending', 'funding'].includes(row.status))));
+    const requests = await store.transaction(state => structuredClone(Object.values(state.fundingRequests || {}).filter(row =>
+      ['pending', 'funding'].includes(row.status) || row.kind === 'community-reserve' && row.status === 'verification-pending')));
     let funded = 0;
     for (const request of requests) {
       const locked = await store.transaction(state => {
         const current = state.fundingRequests?.[request.id];
-        if (!current || !['pending', 'funding'].includes(current.status)) return false;
+        if (!current || !(['pending', 'funding'].includes(current.status)
+          || current.kind === 'community-reserve' && current.status === 'verification-pending')) return false;
         current.status = 'funding'; current.startedAt = new Date().toISOString(); return true;
       });
       if (!locked) continue;
       try {
+        if (request.kind === 'community-reserve') {
+          if (request.asset !== 'SOL' || request.recipient) throw new Error('Community reserve requests must hold SOL without a payout recipient.');
+          const funding = await chain.fundCommunitySolVaultFromMintRouter({ mint:request.mint, amount:request.amount, fundingId:request.id });
+          if (funding.balanceDeltaVerified !== true || !funding.claim || !funding.vault) throw new Error('Community reserve requires a verified vault funding claim.');
+          await store.transaction(state => { state.fundingRequests[request.id] = { ...state.fundingRequests[request.id],
+            status:'funded', fundingSignature:funding.signature || null, fundingClaim:funding.claim,
+            vault:funding.vault, balanceDeltaVerified:true, fundedAt:new Date().toISOString() }; });
+          funded += 1;
+          continue;
+        }
         const funding = request.asset === 'SOL'
           ? await chain.fundSolVaultFromMintRouter({ mint:request.mint, amount:request.amount, fundingId:request.id })
           : await chain.fundTokenVault({ mint:request.mint, asset:request.asset, amount:request.amount, decimals:request.decimals });

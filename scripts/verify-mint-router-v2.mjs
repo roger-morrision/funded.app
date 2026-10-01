@@ -5,6 +5,7 @@ import { PUMP_SDK } from '@pump-fun/pump-sdk';
 import { deriveMintFeeRouter, FEE_ROUTER_POLICY_HASH_HEX, MINT_FEE_ROUTER_MAGIC, MINT_FEE_ROUTER_SEED, verifyMintFeeRouterAccount, buildFeeRouterPolicy } from '../fee-router.js';
 import { buildMintRouterInitializeInstruction, buildPumpLaunchPlan } from '../mint-router-launch.js';
 import { buildMintRouterSettlementInstruction, readMintClaimRecord } from '../server/mint-router-payout.mjs';
+import { communityProgramReserveAddress, rewardAddresses } from '../server/automatic-reward-chain.mjs';
 
 const program = Keypair.generate().publicKey;
 const mint = Keypair.generate();
@@ -41,6 +42,12 @@ const settlement = buildMintRouterSettlementInstruction({ programId: program, mi
 assert.equal(settlement.router.toBase58(), router.address.toBase58());
 assert.equal(settlement.instruction.keys[5].pubkey.toBase58(), recipient.toBase58());
 assert.equal(settlement.instruction.data.readBigUInt64LE(44), 12345678n);
+const reserveSettlement = buildMintRouterSettlementInstruction({ programId:program, mint:mint.publicKey,
+  authority, recipient, amountLamports:'2000000', obligationId:'claim-a:community', claimDomain:'community-reserve' });
+assert.notEqual(reserveSettlement.claim.toBase58(), settlement.claim.toBase58());
+assert.notEqual(reserveSettlement.claimId.toString('hex'), settlement.claimId.toString('hex'));
+assert.notEqual(communityProgramReserveAddress({ programId:program, authority }).toBase58(),
+  rewardAddresses({ programId:program, authority, mint:mint.publicKey }).vault.toBase58());
 const accountData = Buffer.alloc(120);
 createHash('sha256').update('account:MintClaimRecord').digest().copy(accountData, 0, 0, 8);
 settlement.claimId.copy(accountData, 8);

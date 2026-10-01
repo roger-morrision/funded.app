@@ -248,5 +248,20 @@ try {
   const fundingProcessor = createRewardFundingProcessor({ store:processorStore, chain:{ readiness:async()=>({ constrainedPayouts:true, reasons:[] }), fundSolVaultFromMintRouter:async request=>({ signature:`fund-${request.fundingId}`, claim:`claim-${request.fundingId}`, balanceDeltaVerified:true }) }, scheduler:processorScheduler });
   assert.deepEqual(await fundingProcessor.processPending(), { status:'processed', pending:2, funded:2 });
   await processorStore.transaction(state => { assert.equal(state.fundingRequests.creator.status, 'funded'); assert.equal(state.fundingRequests.holders.status, 'funded'); assert.equal(state.rewardPools.holders.status, 'available'); assert.equal(state.schedules['direct:creator:creator'].status, 'prepared'); });
+  await processorStore.transaction(state => { state.fundingRequests.community = {
+    id:'community', mint, asset:'SOL', kind:'community-reserve', recipient:null, amount:'2000000', status:'pending', sourceSignature:'fee-claim',
+  }; });
+  const reserveProcessor = createRewardFundingProcessor({ store:processorStore, chain:{
+    readiness:async()=>({ constrainedPayouts:true, reasons:[] }),
+    fundCommunitySolVaultFromMintRouter:async request=>({ signature:'community-funding', claim:'community-claim',
+      vault:'community-vault', balanceDeltaVerified:true, amount:request.amount }),
+  }, scheduler:processorScheduler });
+  assert.deepEqual(await reserveProcessor.processPending(), { status:'processed', pending:1, funded:1 });
+  await processorStore.transaction(state => {
+    assert.equal(state.fundingRequests.community.status, 'funded');
+    assert.equal(state.fundingRequests.community.fundingClaim, 'community-claim');
+    assert.equal(state.fundingRequests.community.vault, 'community-vault');
+    assert.equal(state.schedules['direct:community:community'], undefined);
+  });
 } finally { await rm(dir, { recursive:true, force:true }); }
 console.log('Automatic reward allocation, Merkle proofs, sampled holder history, durable scheduling, manual referral exclusion, buy policy and finalized-delta gates passed (mocked chain).');

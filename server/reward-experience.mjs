@@ -69,7 +69,8 @@ export function rewardExperience(state = {}, rewards = {}, evidence = {}, cluste
   const tokens = [];
   const walletRows = [];
   const events = [];
-  let communityAllocated = 0n, communityBaseAllocated = 0n, referralRolloverAllocated = 0n;
+  let communityAllocated = 0n, communityBaseAllocated = 0n, referralRolloverAllocated = 0n, communityFunded = 0n;
+  const communityVaults = new Set();
   for (const launch of Object.values(state.launches || {})) {
     if (!verifiedLaunch(launch, cluster) || selectedMint && launch.mint !== selectedMint) continue;
     const mint = launch.mint;
@@ -91,6 +92,14 @@ export function rewardExperience(state = {}, rewards = {}, evidence = {}, cluste
       for (const key of ['creator', 'holder', 'x', 'community', 'buyback']) totals[key] += allocation(settlement, key);
       communityBaseAllocated += amount(settlement.fundedApp?.communityBase);
       referralRolloverAllocated += amount(settlement.fundedApp?.missingReferralToCommunity);
+      const reserve = rewards.fundingRequests?.[`${row.signature}:community`];
+      if (reserve?.kind === 'community-reserve' && reserve.mint === mint && reserve.asset === 'SOL'
+        && reserve.sourceSignature === row.signature && reserve.status === 'funded'
+        && reserve.balanceDeltaVerified === true && reserve.fundingClaim && ADDRESS.test(String(reserve.vault || ''))
+        && integer(reserve.amount) === allocation(settlement, 'community')) {
+        communityFunded += integer(reserve.amount);
+        communityVaults.add(reserve.vault);
+      }
     }
     communityAllocated += totals.community;
     const payouts = paymentRows(rewards, mint, verifiedCollections);
@@ -148,6 +157,8 @@ export function rewardExperience(state = {}, rewards = {}, evidence = {}, cluste
     commitment:evidenceReady ? 'finalized' : null, coverage:evidenceReady ? evidence.coverage || null : null },
     tokens:tokens.slice(0, 100), wallet:wallet ? { address:wallet, rows:walletRows } : null,
     community:{ allocatedLamports:String(communityAllocated), baseAllocatedLamports:String(communityBaseAllocated),
-      referralRolloverLamports:String(referralRolloverAllocated), paidLamports:null,
-      status:'reserved-for-future-programs-no-payout-policy' }, events:events.slice(0, 100) };
+      referralRolloverLamports:String(referralRolloverAllocated), fundedLamports:String(communityFunded),
+      vaultAddress:communityVaults.size === 1 ? [...communityVaults][0] : null, paidLamports:null,
+      status:communityFunded > 0n ? communityFunded === communityAllocated ? 'vault-funded-no-program-payout' : 'partially-funded-no-program-payout'
+        : 'allocated-awaiting-vault-funding' }, events:events.slice(0, 100) };
 }

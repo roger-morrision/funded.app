@@ -50,6 +50,11 @@ export function rewardAddresses({ programId, authority, mint, cycleId, recipient
   return result;
 }
 
+export function communityProgramReserveAddress({ programId, authority }) {
+  // The program ID is a reserved vault namespace, never a launched token mint.
+  return rewardAddresses({ programId, authority, mint:programId }).vault;
+}
+
 function parseCycle(account) {
   const data = Buffer.from(account?.data || []);
   if (data.length < 173 || !data.subarray(0, 8).equals(discriminator('account', 'RewardCycle'))) return null;
@@ -142,13 +147,26 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
 
   async function ensureVault(mint) {
     const { vault } = rewardAddresses({ programId: program, authority: authority.publicKey, mint });
-    if (await connection.getAccountInfo(vault, 'finalized')) return vault;
+    const [, bump] = PublicKey.findProgramAddressSync([VAULT_SEED, authority.publicKey.toBuffer(), new PublicKey(mint).toBuffer()], program);
+    const validVault = account => {
+      const data = Buffer.from(account?.data || []);
+      return account?.owner?.equals(program) && data.length === 73
+        && data.subarray(0, 8).equals(discriminator('account', 'RewardVault'))
+        && data.subarray(8, 40).equals(authority.publicKey.toBuffer())
+        && data.subarray(40, 72).equals(new PublicKey(mint).toBuffer()) && data[72] === bump;
+    };
+    const existing = await connection.getAccountInfo(vault, 'finalized');
+    if (existing) {
+      if (!validVault(existing)) throw new Error('Reward vault account failed program and authority verification.');
+      return vault;
+    }
     const instruction = new TransactionInstruction({
       programId: program,
       keys: [{ pubkey: authority.publicKey, isSigner: true, isWritable: true }, { pubkey: new PublicKey(mint), isSigner: false, isWritable: false }, { pubkey: vault, isSigner: false, isWritable: true }, { pubkey: legacyRouter, isSigner: false, isWritable: false }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }],
       data: discriminator('global', 'initialize_reward_vault'),
     });
     await finalizedSend(connection, new Transaction().add(instruction), [authority]);
+    if (!validVault(await connection.getAccountInfo(vault, 'finalized'))) throw new Error('Reward vault initialization lacks a verified finalized account.');
     return vault;
   }
 
@@ -259,6 +277,28 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     return { signature, vault: vault.toBase58(), amount: String(amount), balanceDeltaVerified: true, claim: settlement.claim.toBase58() };
   }
 
+  async function fundCommunitySolVaultFromMintRouter({ mint, amount, fundingId }) {
+    const ready = await readiness();
+    if (!ready.constrainedPayouts) throw new Error(`Community reserve vault unavailable: ${ready.reasons.join(', ')}`);
+    const vault = await ensureVault(program);
+    const settlement = buildMintRouterSettlementInstruction({ programId:program, mint, authority:authority.publicKey,
+      recipient:vault, amountLamports:String(amount), obligationId:fundingId, claimDomain:'community-reserve' });
+    const expected = account => readMintClaimRecord(account, { programId:program, mint, recipient:vault,
+      amountLamports:String(amount), claimId:settlement.claimId });
+    const prior = await connection.getAccountInfo(settlement.claim, 'finalized');
+    if (prior) {
+      if (!expected(prior)) throw new Error('Existing community reserve claim conflicts with this allocation.');
+      return { signature:null, vault:vault.toBase58(), amount:String(amount), balanceDeltaVerified:true,
+        alreadyFunded:true, claim:settlement.claim.toBase58() };
+    }
+    const before = await connection.getBalance(vault, 'finalized');
+    const signature = await finalizedSend(connection, new Transaction().add(settlement.instruction), [authority]);
+    const [after, claim] = await Promise.all([connection.getBalance(vault, 'finalized'), connection.getAccountInfo(settlement.claim, 'finalized')]);
+    if (BigInt(after - before) !== BigInt(amount) || !expected(claim)) throw new Error('Community reserve funding lacks the exact finalized vault and claim-record deltas.');
+    return { signature, vault:vault.toBase58(), amount:String(amount), balanceDeltaVerified:true,
+      claim:settlement.claim.toBase58() };
+  }
+
   async function fundTokenVault({ mint, asset, amount, decimals }) {
     const vault = await ensureVault(mint), assetKey = new PublicKey(asset), assetInfo = await connection.getAccountInfo(assetKey, 'finalized');
     if (!assetInfo || (!assetInfo.owner.equals(TOKEN_PROGRAM_ID) && !assetInfo.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('Funding asset is not a supported SPL mint.');
@@ -272,5 +312,6 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     return { signature, vault: vault.toBase58(), tokenAccount: destination.toBase58(), amount: String(amount), balanceDeltaVerified: true };
   }
 
-  return { readiness, ensureVault, ensureCycle, submitLeaf, fundSolVault, fundSolVaultFromMintRouter, fundTokenVault };
+  return { readiness, ensureVault, ensureCycle, submitLeaf, fundSolVault, fundSolVaultFromMintRouter,
+    fundCommunitySolVaultFromMintRouter, fundTokenVault };
 }

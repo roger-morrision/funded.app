@@ -223,7 +223,11 @@ function renderCommunity(data) {
   if (data.community.baseAllocatedLamports != null && data.community.referralRolloverLamports != null) {
     root.append(node('p','',`${sol(data.community.baseAllocatedLamports)} fixed 2% reserve · ${sol(data.community.referralRolloverLamports)} from unassigned referrals`));
   }
-  root.append(node('p','', 'No community SOL payout program is active. This is a ledger allocation, not proof of a separately funded on-chain vault.'));
+  if (data.community.fundedLamports != null && BigInt(data.community.fundedLamports) > 0n) {
+    root.append(node('p','',`${sol(data.community.fundedLamports)} transferred to the dedicated on-chain program vault with verified funding receipts.`));
+    if (data.community.vaultAddress) root.append(link(`Reserve vault ${short(data.community.vaultAddress)} ↗`, explorer(data.community.vaultAddress), true));
+  } else root.append(node('p','', 'Vault funding is pending; the allocation remains in the fee ledger.'));
+  root.append(node('p','', 'No community SOL payout program is active. The live vault balance and future spending need separate verification.'));
 }
 function renderBuybacks(data) {
   const root = document.querySelector('[data-buyback-flow]'); if (!root) return;

@@ -112,6 +112,7 @@ async function queueAutomaticSettlementRewards(settlement) {
     { suffix:'creator', kind:'creator', amount:solToLamports(settlement.creatorDestinations?.creatorWallet), recipient:launch.creatorWallet, status:'claimable' },
     { suffix:'holders', kind:'holder', amount:solToLamports(settlement.creatorDestinations?.holderAirdrop), recipient:null, status:'pending' },
     { suffix:'operations', kind:'operations', amount:solToLamports(settlement.fundedApp?.operations), recipient:process.env.FUNDED_PUMP_REVENUE_WALLET, status:'pending' },
+    { suffix:'community', kind:'community-reserve', amount:solToLamports(settlement.fundedApp?.community), recipient:null, status:'pending' },
   ];
   if (rows.some(row => row.kind === 'operations' && BigInt(row.amount) > 0n && !row.recipient)) throw new Error('Operations payout requires a dedicated Pump revenue wallet.');
   if (rows.some(row => row.kind === 'operations' && BigInt(row.amount) > 0n)) new PublicKey(process.env.FUNDED_PUMP_REVENUE_WALLET);
@@ -1243,6 +1244,8 @@ async function handle(req, res) {
           ['creator', settlement.creatorDestinations?.creatorWallet],
           ['holders', settlement.creatorDestinations?.holderAirdrop],
           ['x', settlement.creatorDestinations?.solClaim],
+          ['operations', settlement.fundedApp?.operations],
+          ['community', settlement.fundedApp?.community],
         ].some(([kind, amount]) => BigInt(solToLamports(amount)) > 0n && !rewards.fundingRequests?.[`${row.signature}:${kind}`]);
       }).map(row => row.signature);
       return json(res, 200, { cluster:solanaCluster, minimumCollectionLamports:'10000000', mints:launches.map(row => ({ mint:row.mint, collectionStatus:state.alerts?.[`fee-collect:${row.mint}`]?.status || null })), pendingSettlements });

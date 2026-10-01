@@ -14,6 +14,11 @@ export function buybackClaimId(collectionSignature) {
   return createHash('sha256').update(`funded.buyback.claim.v1:${collectionSignature}`).digest();
 }
 
+export function communityReserveClaimId(fundingId) {
+  if (!String(fundingId || '').trim()) throw new Error('A community reserve funding ID is required.');
+  return createHash('sha256').update(`funded.community.reserve.v1:${fundingId}`).digest();
+}
+
 export function deriveMintClaim(programId, mint, claimId) {
   const program = new PublicKey(programId);
   const mintKey = new PublicKey(mint);
@@ -29,8 +34,9 @@ export function buildMintRouterSettlementInstruction({ programId, mint, authorit
   const amount = BigInt(amountLamports);
   if (amount <= 0n || amount > 0xffffffffffffffffn) throw new Error('Router settlement amount is outside the u64 range.');
   const router = deriveMintFeeRouter(programId, mintKey);
-  if (!['x', 'buyback'].includes(claimDomain)) throw new Error('Unsupported router claim domain.');
-  const claimId = claimDomain === 'buyback' ? buybackClaimId(obligationId) : xClaimId(obligationId);
+  if (!['x', 'buyback', 'community-reserve'].includes(claimDomain)) throw new Error('Unsupported router claim domain.');
+  const claimId = claimDomain === 'buyback' ? buybackClaimId(obligationId)
+    : claimDomain === 'community-reserve' ? communityReserveClaimId(obligationId) : xClaimId(obligationId);
   const claim = deriveMintClaim(programId, mintKey, claimId);
   const data = Buffer.alloc(8 + 32 + 4 + 8);
   SETTLE_MINT_DISCRIMINATOR.copy(data, 0);

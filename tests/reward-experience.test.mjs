@@ -49,7 +49,20 @@ test('community total includes redirected referrals exactly once', () => {
   assert.equal(result.community.allocatedLamports, '3000000');
   assert.equal(result.community.baseAllocatedLamports, '2000000');
   assert.equal(result.community.referralRolloverLamports, '1000000');
-  assert.equal(result.community.status, 'reserved-for-future-programs-no-payout-policy');
+  assert.equal(result.community.status, 'allocated-awaiting-vault-funding');
+});
+
+test('community vault funding is distinct from allocation and spending', () => {
+  const vault = 'H'.repeat(32);
+  const funded = rewardExperience(state, { ...rewards, fundingRequests:{ [`${claim}:community`]:{
+    id:`${claim}:community`, kind:'community-reserve', mint, asset:'SOL', sourceSignature:claim,
+    amount:'2000000', status:'funded', balanceDeltaVerified:true, fundingClaim:'claim-record', vault,
+  } } }, evidence, 'devnet');
+  assert.equal(funded.community.allocatedLamports, '2000000');
+  assert.equal(funded.community.fundedLamports, '2000000');
+  assert.equal(funded.community.vaultAddress, vault);
+  assert.equal(funded.community.paidLamports, null);
+  assert.equal(funded.community.status, 'vault-funded-no-program-payout');
 });
 
 test('unverified collections and unmatched payment leaves cannot become proof', () => {
