@@ -1,0 +1,10 @@
+# Public Devnet app release. Append last to the current funded.vip Compose stack.
+# Keep worker images and persistent volumes unchanged.
+services:
+  app:
+    image: fundedapp-app:public-devnet-20261001b
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      FUNDED_BUILD_ID: public-devnet-20261001b

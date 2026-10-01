@@ -69,6 +69,7 @@ out/
 coverage/
 tmp/
 temp/
+.tmp-*/
 
 # ==========================================
 # Database / Local Data
