@@ -1,0 +1,9 @@
+# Devnet community SOL reserve
+
+The fixed 2% of verified Pump creator-fee collections, plus referral levels without an eligible recipient, now funds a dedicated program-owned SOL reward vault. Its vault namespace uses the fee-router program ID instead of a coin mint, separating it from every coin-holder reward vault. The ordinary reward scheduler rejects a payout cycle for this namespace. Community programs need their own published rules and payout implementation later.
+
+The reward worker funds this vault from each verified mint router with a domain-separated, idempotent claim ID. It records a request as funded only after finalized vault balance and exact claim-record deltas are verified. The rewards API reports allocation and verified funding separately; it does not present the balance as a community payout.
+
+Devnet evidence on 2026-10-01: vault `GiXEap3HFduTsvk9yqQptDqWtkJZoGgNDpHS8h6eA6CU` had eight verified fee-claim transfers totaling 1,473,262 lamports. Its finalized balance was 2,494,342 lamports, exactly 1,021,080 rent plus those transfers. The fresh QA mint `FWmi66ecpuAYkcpjT86i2RsBKZhm2cJdnKXqcoreW8DH` contributed 664,658 lamports from four claims. The read-only verifier checked the approved program hash, vault owner and header, each claim PDA and exact amount, finalized funding signatures, and the current balance.
+
+The Devnet images preserve the previously running app UI and reward-worker bases. Rebuild with `docker build -f deploy/community-reserve-devnet/app.Dockerfile -t fundedapp-app:community-reserve-app-v2-20261001 .` and the matching worker Dockerfile and tag. Append `deploy/community-reserve-devnet.yml` after the public Devnet Compose overlays when recreating the app and reward worker. The main app UI bundle remains the previous release; the updated API exposes reserve funding now. No Mainnet deployment or community spending is enabled by this change.

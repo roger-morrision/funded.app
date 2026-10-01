@@ -1,0 +1,9 @@
+# Append after the existing public Devnet UI and QA overlays.
+# This release funds a dedicated program-owned SOL reserve and does not schedule payouts.
+services:
+  app:
+    image: fundedapp-app:community-reserve-app-v2-20261001
+    environment:
+      FUNDED_BUILD_ID: community-reserve-app-v2-20261001
+  reward-worker:
+    image: fundedapp-app:community-reserve-worker-v2-20261001
