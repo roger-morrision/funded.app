@@ -17,7 +17,7 @@
 
 ## Limits and next gates
 
-- No new on-chain transaction was submitted in this QA pass. A fee-funded holder payout was not proven end to end: the largest verified available holder pool was 3,576,239 lamports, below the current 10,000,000-lamport payout minimum.
+- At the initial UI deployment, no new on-chain transaction was submitted and every fee-funded holder pool was below the normal 10,000,000-lamport minimum. A subsequent exact-mint Devnet QA window completed a [verified fee-funded holder payout](devnet-fee-funded-holder-payout-qa-2026-10-01.md); the normal daily worker and minimum were restored afterward.
 - Community reward delivery still requires a verified migration snapshot and payable funded cycle.
 - The Devnet buyback worker has verified atomic buy-and-burn receipts. Mainnet buyback custody still requires its dedicated PDA and independent program audit, as reported by the live route-readiness API.
 - The reward proof endpoint limits requests to 30 per minute per client address. Rapid local QA exhausted the shared local test address; a fresh test address returned the expected records. This was a QA traffic artifact, not evidence of a failed public user flow.

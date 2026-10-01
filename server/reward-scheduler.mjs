@@ -20,6 +20,21 @@ function requireUnits(value, label) {
   return value;
 }
 
+function devnetQaShortWindow(config, env = process.env) {
+  return env.SOLANA_CLUSTER === 'devnet' && env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true'
+    && env.FUNDED_QA_HOLDER_MINT === config.mint && config.periodSeconds === 300;
+}
+
+export function holderFundingMinimumLamports(config, env = process.env) {
+  const standard = BigInt(AUTOMATIC_REWARDS.minimumLamports);
+  if (!devnetQaShortWindow(config, env)) return standard;
+  const raw = String(env.FUNDED_QA_HOLDER_MIN_LAMPORTS || '');
+  if (!/^[1-9]\d*$/.test(raw)) throw new Error('A numeric Devnet QA holder minimum is required.');
+  const minimum = BigInt(raw);
+  if (minimum < 100_000n || minimum >= standard) throw new Error('Devnet QA holder minimum is outside the bounded test range.');
+  return minimum;
+}
+
 function programConfig(input) {
   const periodSeconds = Number(input.periodSeconds || AUTOMATIC_REWARDS.periodSeconds);
   const sampleIntervalSeconds = Number(input.sampleIntervalSeconds || AUTOMATIC_REWARDS.sampleIntervalSeconds);
@@ -122,7 +137,8 @@ export function createRewardScheduler({ store, indexer, chain }) {
       for (const config of Object.values(state.programs).filter(item => item.enabled)) {
         if (!Number.isSafeInteger(config.activatedAt)) config.activatedAt = Math.floor(Date.parse(config.updatedAt) / 1000);
         if (!Number.isSafeInteger(config.firstPeriodStart)) config.firstPeriodStart = Math.ceil(config.activatedAt / config.periodSeconds) * config.periodSeconds;
-        for (const schedule of Object.values(state.schedules).filter(row => row.mint === config.mint && row.kind === 'holder' && row.periodStart < config.firstPeriodStart && ['indexing', 'blocked'].includes(row.status))) {
+        for (const schedule of Object.values(state.schedules).filter(row => row.mint === config.mint && row.kind === 'holder' && row.periodStart < config.firstPeriodStart && ['indexing', 'blocked'].includes(row.status)
+          && (!devnetQaShortWindow(config) || row.cutoffAt - row.periodStart <= 300))) {
           schedule.status = 'skipped';
           schedule.reason = 'Reward program activated after this period began; rewards roll into the first fully indexed period.';
         }
@@ -140,7 +156,7 @@ export function createRewardScheduler({ store, indexer, chain }) {
         try {
           const pools = Object.values(state.rewardPools).filter(pool => pool.status === 'available' && pool.mint === schedule.mint && pool.asset === schedule.asset && pool.fundedAt >= config.activatedAt && pool.fundedAt < schedule.cutoffAt && pool.balanceDeltaVerified);
           const total = pools.reduce((sum, pool) => sum + BigInt(pool.amount), 0n);
-          if (total <= 0n || (schedule.asset === 'SOL' && total < BigInt(AUTOMATIC_REWARDS.minimumLamports))) {
+          if (total <= 0n || (schedule.asset === 'SOL' && total < holderFundingMinimumLamports(config))) {
             schedule.status = 'deferred';
             schedule.reason = total <= 0n
               ? 'No balance-verified reward pool was available at cutoff; later funding remains available for a future period.'
