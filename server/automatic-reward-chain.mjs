@@ -171,6 +171,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
   }
 
   async function ensureCycle(plan) {
+    if (new PublicKey(plan.mint).equals(program)) throw new Error('Community program reserve payouts require a separate published program flow.');
     const ready = await readiness();
     if (!ready.constrainedPayouts) throw new Error(`Reward chain unavailable: ${ready.reasons.join(', ')}`);
     const vault = await ensureVault(plan.mint);

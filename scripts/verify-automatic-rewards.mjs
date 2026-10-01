@@ -11,10 +11,15 @@ import { createHolderHistoryIndexer, snapshotsForPeriod } from '../server/holder
 import { createRewardScheduler } from '../server/reward-scheduler.mjs';
 import { estimateBuyPriceImpactPercent, validateBuyAndDistributePolicy } from '../server/buy-and-distribute.mjs';
 import { createRewardFundingProcessor } from '../server/reward-funding-processor.mjs';
+import { createAutomaticRewardChain } from '../server/automatic-reward-chain.mjs';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { NATIVE_MINT } from '@solana/spl-token';
 import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
+
+const reserveProgram = Keypair.generate().publicKey;
+const guardedChain = createAutomaticRewardChain({ connection:{}, programId:reserveProgram, authority:Keypair.generate() });
+await assert.rejects(guardedChain.ensureCycle({ mint:reserveProgram }), /Community program reserve payouts require a separate published program flow/);
 
 const snapshots = [
   { at: 0, accounts: [{ account:'a1', wallet:'a', balance:'50' }, { account:'a2', wallet:'a', balance:'50' }, { account:'vault', wallet:'pool', balance:'999999' }] },
