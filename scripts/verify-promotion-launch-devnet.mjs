@@ -15,6 +15,11 @@ import { verifiedPromotionBadge } from '../promotion-badge.js';
 
 const tierId = String(process.argv[2] || '').toLowerCase();
 const execute = process.argv.includes('--execute');
+const launchSupply = 1_000_000_000;
+const launchDecimals = 6;
+const communityAllocation = 3;
+const communityAirdrop = buildCommunityAirdropPolicy({ allocationPercent: communityAllocation, supply: launchSupply });
+const reserveTokens = communityAirdrop.reservedTokens;
 assert(['boost', 'pro', 'premier'].includes(tierId), 'Choose boost, pro, or premier.');
 assert.equal(process.env.VITE_SOLANA_CLUSTER, 'devnet', 'Devnet-only configuration required.');
 assert.equal(process.env.VITE_ALLOW_MAINNET, 'false', 'Mainnet must be disabled.');
@@ -48,9 +53,18 @@ for (const base of [apiBase, publicMetadataApi]) {
   const response = await fetch(`${base}/api/health`, { signal: AbortSignal.timeout(5000) });
   assert.equal(response.status, 200, `${base} is not healthy.`);
 }
+const reserveConfigResponse = await fetch(`${apiBase}/api/launch-reserve-config`, { signal: AbortSignal.timeout(10_000) });
+const reserveConfig = await reserveConfigResponse.json().catch(() => ({}));
+assert.equal(reserveConfigResponse.status, 200,
+  `Atomic community reserve configuration is unavailable: ${reserveConfig.error || reserveConfigResponse.status}`);
+assert.equal(reserveConfig.cluster, 'devnet', 'Launch reserve configuration is not Devnet.');
+assert.equal(reserveConfig.programId, routerProgramId.toBase58(), 'Launch reserve program differs from the verified fee router.');
+assert.equal(reserveConfig.authority, process.env.FUNDED_REWARD_AUTHORITY, 'Launch reserve authority differs from the published authority.');
+const reserveLookupTable = (await connection.getAddressLookupTable(new PublicKey(reserveConfig.lookupTable), { commitment:'finalized' })).value;
+assert(reserveLookupTable?.isActive(), 'Atomic community reserve lookup table is unavailable.');
 console.log(JSON.stringify({ stage: 'preflight', tier: tierId, amountTokens: burn.amountTokens,
   payer: payer.publicKey.toBase58(), router: router.address.toBase58(), solBalance: solBefore / 1e9,
-  fundedBalance: Number(walletBefore.amount) / 10 ** mintBefore.decimals, execute }));
+  fundedBalance: Number(walletBefore.amount) / 10 ** mintBefore.decimals, reserveTokens, execute }));
 if (!execute) process.exit(0);
 
 async function postJson(base, path, payload, expectedStatus = 201) {
@@ -81,11 +95,12 @@ const launch = await submitPumpDevnetLaunch({
   connection,
   provider: { signTransaction: async transaction => { transaction.partialSign(payer); return transaction; } },
   payer: payer.publicKey,
-  input: { name, symbol, supply: 1_000_000_000, decimals: 6, initialBuyPercent: 0 },
+  input: { name, symbol, supply: launchSupply, decimals: launchDecimals, initialBuyPercent: 0, reserveTokens },
   feeRouterAddress: router.address.toBase58(),
   feeRouterProgramId: routerProgramId,
   useMintRouter: true,
   launchBurn: burn,
+  reserveConfig,
   prepareMetadata: async ({ mint }) => {
     preparedMint = mint;
     const record = { mint, creatorWallet: payer.publicKey.toBase58(), name, symbol,
@@ -116,11 +131,13 @@ const mint = launch.mint.publicKey.toBase58();
 console.log(JSON.stringify({ stage: 'launch-confirmed', tier: tierId, mint, signature: launch.signature }));
 assert.equal(launch.launchBurnReceipt?.verified, true);
 assert.equal(launch.feeRoute.verified, true);
+assert.equal(launch.reserveReceipt?.atomic, true);
+assert.equal(launch.reserveReceipt?.fundedTokens, reserveTokens);
 
 const policy = {
   chain: 'solana', cluster: 'devnet', mint, creatorWallet: payer.publicKey.toBase58(), name, symbol,
-  metadataUri: launch.metadataUri, signature: launch.signature, communityAllocation: 3,
-  communityAirdrop: buildCommunityAirdropPolicy({ allocationPercent: 3, supply: 1_000_000_000 }),
+  metadataUri: launch.metadataUri, signature: launch.signature, communityAllocation,
+  communityAirdrop,
   feeDistribution: buildFeeDistributionPolicy({ creatorWalletPercent: 80, holderAirdropPercent: 0,
     solClaimPercent: 0, feeRouterAddress: launch.feeRouter.toBase58() }),
   creatorLaunchBurn: { ...burn, status: 'verified', receipt: launch.launchBurnReceipt },

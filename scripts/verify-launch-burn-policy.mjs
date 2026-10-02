@@ -36,6 +36,12 @@ assert.match(launchFlow, /buildPumpLaunchPlan\(/);
 assert.match(launchFlow, /burnInstruction: burnPlan\?\.instruction/);
 assert.match(launchFlow, /atomicWithPumpLaunch: true/);
 assert.match(launchFlow, /supplyAfter/);
+const promotionLaunch = await readFile(new URL('./verify-promotion-launch-devnet.mjs', import.meta.url), 'utf8');
+assert.match(promotionLaunch, /\/api\/launch-reserve-config/);
+assert.match(promotionLaunch, /reserveLookupTable\?\.isActive\(\)/);
+assert.match(promotionLaunch, /input: \{[^\n]*reserveTokens \}/);
+assert.match(promotionLaunch, /launchBurn: burn,\s*reserveConfig,/);
+assert.match(promotionLaunch, /launch\.reserveReceipt\?\.atomic/);
 
 const payer = Keypair.generate();
 const coinMint = Keypair.generate();
