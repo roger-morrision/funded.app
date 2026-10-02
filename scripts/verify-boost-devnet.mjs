@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction, clusterApiUrl, sendAndConfirmTransaction } from '@solana/web3.js';
+import bs58 from 'bs58';
 import { BOOST_MEMO_PROGRAM } from '../boost-offer.js';
 import { DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
 
@@ -18,6 +19,16 @@ const payer = Keypair.generate();
 const recipient = Keypair.generate();
 const rpc = new Connection(clusterApiUrl('devnet'), 'confirmed');
 assert.equal(await rpc.getGenesisHash(), DEVNET_GENESIS_HASH);
+const qaFunding = process.env.BOOST_TEST_FUNDING === 'qa';
+let qaFunder = null;
+if (qaFunding) {
+  assert.equal(process.env.VITE_SOLANA_CLUSTER, 'devnet');
+  assert.equal(process.env.VITE_ALLOW_MAINNET, 'false');
+  qaFunder = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY || ''));
+  const manifest = JSON.parse(await readFile(new URL('../.secrets/devnet-qa-wallets-20260930/public.json', import.meta.url), 'utf8'));
+  assert.equal(qaFunder.publicKey.toBase58(), manifest.find(row => row.role === 'creator' && row.cluster === 'devnet')?.address);
+  assert(await rpc.getBalance(qaFunder.publicKey, 'confirmed') > fundingLamports + 10_000);
+}
 const temporaryDirectory = await mkdtemp(join(tmpdir(), 'funded-boost-devnet-'));
 const storePath = join(temporaryDirectory, 'store.json');
 const listener = createServer();
@@ -26,6 +37,7 @@ const port = listener.address().port;
 await new Promise(resolve => listener.close(resolve));
 const origin = `http://127.0.0.1:${port}`;
 await writeFile(storePath, JSON.stringify({ launches:{ [mint]:{ mint, cluster:'devnet', onchainVerified:true, creatorWallet:recipient.publicKey.toBase58() } } }));
+let qaFundingSignature = null;
 const child = spawn(process.execPath, ['server/index.mjs'], { cwd:resolve('.'), env:{ ...process.env,
   NODE_ENV:'test', DATABASE_URL:'', FUNDED_STORE_PATH:storePath, PORT:String(port), HOST:'127.0.0.1',
   CORS_ORIGIN:origin, PUBLIC_APP_URL:origin, VITE_SOLANA_CLUSTER:'devnet', SOLANA_RPC_URL:clusterApiUrl('devnet'),
@@ -44,8 +56,12 @@ try {
     const response = await fetch(`${origin}${path}`, { method:'POST', headers:{ origin, 'content-type':'application/json' }, body:JSON.stringify(body) });
     return { status:response.status, data:await response.json() };
   };
-  const funding = await rpc.requestAirdrop(payer.publicKey, fundingLamports);
+  const funding = qaFunder
+    ? await sendAndConfirmTransaction(rpc, new Transaction().add(SystemProgram.transfer({ fromPubkey:qaFunder.publicKey, toPubkey:payer.publicKey, lamports:fundingLamports })), [qaFunder], { commitment:'confirmed' })
+    : await rpc.requestAirdrop(payer.publicKey, fundingLamports);
+  if (qaFunder) qaFundingSignature = funding;
   await rpc.confirmTransaction(funding, 'confirmed');
+  assert.equal(await rpc.getBalance(payer.publicKey, 'confirmed'), fundingLamports);
   const before = await rpc.getBalance(recipient.publicKey, 'confirmed');
   const quoteResponse = await request('/api/boosts/quote', { mint, payer:payer.publicKey.toBase58(), packageId:'10x' });
   assert.equal(quoteResponse.status, 201, JSON.stringify(quoteResponse.data));
@@ -67,15 +83,41 @@ try {
   assert.equal(confirmed.status, 201, JSON.stringify(confirmed.data));
   assert.equal(confirmed.data.payer, payer.publicKey.toBase58());
   assert.equal(confirmed.data.mint, mint);
+  console.log(JSON.stringify({ stage:'receipt-finalized', signature, mint, amountLamports:quote.lamports }));
   const after = await rpc.getBalance(recipient.publicKey, 'finalized');
   assert.equal(after - before, quote.lamports);
-  const status = await (await fetch(`${origin}/api/boosts?mint=${mint}`)).json();
+  let status;
+  for (let attempt = 0; attempt < 15; attempt += 1) {
+    status = await (await fetch(`${origin}/api/boosts?mint=${mint}`)).json();
+    if (status.active?.[mint]) break;
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  assert(status.active?.[mint], 'Finalized boost is not active after the chain block time.');
   assert.equal(status.active[mint].multiplier, 10);
   assert.equal(status.history[0].signature, signature);
   const replay = await request('/api/boosts/confirm', { quoteId:quote.id, signature });
   assert.equal(replay.status, 200);
-  console.log(JSON.stringify({ result:'confirmed', cluster:'devnet', mint, payer:payer.publicKey.toBase58(), recipient:recipient.publicKey.toBase58(), signature, amountLamports:quote.lamports, activeMultiplier:status.active[mint].multiplier }));
+  console.log(JSON.stringify({ result:'confirmed', cluster:'devnet', mint, payer:payer.publicKey.toBase58(), recipient:recipient.publicKey.toBase58(), fundingSource:qaFunder?'qa-devnet-wallet':'faucet', fundingSignature:funding, signature, amountLamports:quote.lamports, activeMultiplier:status.active[mint].multiplier }));
 } finally {
+  if (qaFunder && qaFundingSignature) {
+    try {
+      const remainder = await rpc.getBalance(payer.publicKey, 'confirmed');
+      if (remainder > 10_000) {
+        const latest = await rpc.getLatestBlockhash('confirmed');
+        const refund = new Transaction({ recentBlockhash:latest.blockhash, feePayer:payer.publicKey }).add(
+          SystemProgram.transfer({ fromPubkey:payer.publicKey, toPubkey:qaFunder.publicKey, lamports:1 }));
+        const fee = (await rpc.getFeeForMessage(refund.compileMessage(), 'confirmed')).value;
+        assert(Number.isSafeInteger(fee) && fee > 0 && remainder > fee, 'Cannot quote the refund network fee.');
+        refund.instructions[0] = SystemProgram.transfer({ fromPubkey:payer.publicKey, toPubkey:qaFunder.publicKey, lamports:remainder - fee });
+        refund.sign(payer);
+        const refundSignature = await rpc.sendRawTransaction(refund.serialize(), { skipPreflight:false });
+        const confirmation = await rpc.confirmTransaction({ signature:refundSignature, ...latest }, 'confirmed');
+        assert.equal(confirmation.value.err, null);
+        assert.equal(await rpc.getBalance(payer.publicKey, 'confirmed'), 0);
+        console.log(JSON.stringify({ stage:'qa-funds-refunded', signature:refundSignature, lamports:remainder - fee }));
+      }
+    } catch (error) { console.error(`QA funding refund failed: ${String(error.message || error)}`); }
+  }
   child.kill();
   if (child.exitCode == null) await new Promise(resolve => child.once('exit', resolve));
   const absolute = resolve(temporaryDirectory);
