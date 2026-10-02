@@ -1,0 +1,8 @@
+services:
+  app:
+    image: fundedapp-app:launch-burn-parser-20261002a
+    build:
+      context: .
+      dockerfile: deploy/launch-burn-parser-20261002a.Dockerfile
+    environment:
+      FUNDED_BUILD_ID: launch-burn-parser-20261002a

@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { Keypair, Transaction } from '@solana/web3.js';
+import { Keypair, Transaction, TransactionMessage } from '@solana/web3.js';
 import { createBurnCheckedInstruction, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { PUMP_SDK } from '@pump-fun/pump-sdk';
 import { buildLaunchBurnPolicy, createLaunchBurnTiers, tokensToBaseUnits, validateLaunchBurnPolicy } from '../launch-burn-policy.js';
 import { buildPumpLaunchPlan } from '../mint-router-launch.js';
+import { verifyAtomicLaunchPromotion } from '../server/launch-verification.mjs';
 
 const tiers = createLaunchBurnTiers({ boostAmount: 25_000, proAmount: 100_000, premierAmount: 250_000 });
 assert.deepEqual(tiers.map(tier => tier.id), ['standard', 'boost', 'pro', 'premier']);
@@ -68,5 +69,19 @@ assert.ok(transactionBytes <= 1232, `Atomic launch is too large: ${transactionBy
 const plan = buildPumpLaunchPlan({ payer: payer.publicKey, mint: coinMint, blockhash: transaction.recentBlockhash, launchInstructions: [createInstruction], burnInstruction });
 assert.equal(plan.steps.length, 1);
 assert.equal(plan.steps[0].bytes, transactionBytes);
+
+for (const message of [
+  transaction.compileMessage(),
+  new TransactionMessage({ payerKey:payer.publicKey, recentBlockhash:transaction.recentBlockhash,
+    instructions:[burnInstruction, createInstruction] }).compileToV0Message(),
+]) {
+  const receipt = verifyAtomicLaunchPromotion({
+    transaction:{ transaction:{ message }, meta:{ loadedAddresses:{ writable:[], readonly:[] } } },
+    payer:payer.publicKey.toBase58(), signature:'atomic-burn-test',
+    claim:buildLaunchBurnPolicy({ tierId:'boost', fundedMint:fundedMint.toBase58(), tiers }),
+    fundedMint:fundedMint.toBase58(), tiers,
+  });
+  assert.equal(receipt?.receipt?.atomicWithPumpLaunch, true);
+}
 
 console.log(`launch burn policy verification passed (${transactionBytes} byte atomic transaction)`);

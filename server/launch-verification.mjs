@@ -36,10 +36,12 @@ export function verifyAtomicLaunchPromotion({ transaction, payer, signature, cla
   const instruction = (transaction.transaction.message.instructions || transaction.transaction.message.compiledInstructions || []).find(compiled => {
     if (!keys[compiled.programIdIndex]?.equals(TOKEN_PROGRAM_ID)) return false;
     try {
+      const accountIndexes = compiled.accounts || compiled.accountKeyIndexes;
+      const data = typeof compiled.data === 'string' ? bs58.decode(compiled.data) : compiled.data;
       const decoded = decodeBurnCheckedInstruction(new TransactionInstruction({
         programId: TOKEN_PROGRAM_ID,
-        keys: compiled.accounts.map(index => ({ pubkey: keys[index], isSigner: keys[index]?.toBase58() === payer, isWritable: true })),
-        data: bs58.decode(compiled.data),
+        keys: accountIndexes.map(index => ({ pubkey: keys[index], isSigner: keys[index]?.toBase58() === payer, isWritable: true })),
+        data,
       }));
       return decoded.keys.mint.pubkey.toBase58() === fundedMint
         && decoded.keys.owner.pubkey.toBase58() === payer
