@@ -1,0 +1,170 @@
+body.page-route-overview .main-content > .home-rewards-stack { display:grid; order:2; gap:12px; width:100%; min-width:0; margin-bottom:18px; }
+body.page-route-overview .home-rewards-spotlight {
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  margin-bottom: 0;
+  padding: 16px 18px;
+}
+body.page-route-overview .home-rewards-spotlight-coin { border-color:#3b6070; background:linear-gradient(120deg,#14252d,#151c2b 68%); }
+body.page-route-overview .home-rewards-spotlight-x { border-color:#5b4e70; background:linear-gradient(120deg,#211c2f,#171b2b 68%); }
+body.page-route-overview .home-rewards-heading { align-items: center; }
+body.page-route-overview .home-rewards-heading h2 {
+  margin: 3px 0 4px;
+  font-size: clamp(20px, 2vw, 25px);
+}
+body.page-route-overview .home-rewards-heading p:last-child { font-size: 11px; }
+body.page-route-overview .home-rewards-grid {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 13px;
+  padding: 0 0 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #4c6c62 transparent;
+}
+body.page-route-overview .home-rewards-grid:focus-visible {
+  outline: 2px solid #9ce5ba;
+  outline-offset: 3px;
+}
+body.page-route-overview .home-rewards-grid .home-reward-token-card {
+  position: relative;
+  display: flex;
+  flex: 0 0 clamp(245px, 25vw, 310px);
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 200px;
+  padding: 13px;
+  scroll-snap-align: start;
+  background: #101e23;
+}
+body.page-route-overview [data-home-reward-grid="funded"] .home-reward-token-card { padding: 12px; }
+body.page-route-overview [data-home-reward-grid="funded"] .home-reward-token-values { gap: 2px; margin: 9px 0 4px; }
+body.page-route-overview [data-home-reward-grid="funded"] .home-reward-snapshot { margin: 2px 0 6px; padding: 5px 0; }
+body.page-route-overview [data-home-reward-grid="funded"] .home-reward-token-card .home-rewards-timing { padding: 6px 0; }
+body.page-route-overview .home-reward-token-card .home-reward-token-link {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+body.page-route-overview .home-reward-token-card .home-reward-token-link:focus-visible {
+  outline: 2px solid #9ce5ba;
+  outline-offset: 2px;
+}
+body.page-route-overview .home-reward-token-card:has(.home-reward-token-link:hover) {
+  border-color: #9ce5ba;
+  cursor: pointer;
+}
+.home-reward-token-head { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.home-reward-token-logo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  border: 1px solid #4a7063;
+  border-radius: 50%;
+  background: #203b35;
+  color: #d2f5a2;
+  font: 800 16px Manrope, sans-serif;
+}
+.home-reward-token-logo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.home-reward-token-identity { display: grid; min-width: 0; flex: 1; }
+.home-reward-token-identity strong {
+  overflow: hidden;
+  color: #edf8ee;
+  font-size: 15px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-reward-token-identity small {
+  margin-top: 2px;
+  overflow: hidden;
+  color: #abc2b7;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-reward-token-type {
+  flex: none;
+  max-width: 92px;
+  color: #95deb4;
+  font: 700 9px/1.25 'DM Mono', monospace;
+  text-align: right;
+}
+.home-reward-token-values { display: grid; gap: 5px; margin: 12px 0 6px; }
+.home-reward-token-values > span { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.home-reward-token-values small {
+  flex: 1;
+  margin: 0;
+  color: #a9c2ba;
+  font-size: 10px;
+}
+.home-reward-token-values strong {
+  color: #d2f5a2;
+  font: 700 14px/1.2 'DM Mono', monospace;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+body.page-route-overview .home-rewards-grid .home-reward-token-proof {
+  margin: 0 0 6px;
+  color: #b0c8ba;
+  font-size: 10px;
+  line-height: 1.35;
+}
+.home-reward-snapshot { display:grid; gap:5px; margin:3px 0 8px; padding:8px 0; border-top:1px solid #355047; }
+.home-reward-snapshot span { color:#d6efe2; font:600 11px/1.4 'DM Mono',monospace; }
+body.page-route-overview .home-reward-token-proof[hidden],
+body.page-route-overview .home-reward-snapshot[hidden],
+body.page-route-overview .home-rewards-timing[hidden] { display:none; }
+body.page-route-overview .home-rewards-note a { color:#a3e8c0; font-weight:700; text-decoration:none; }
+body.page-route-overview .home-rewards-note a:hover { text-decoration:underline; }
+body.page-route-overview .home-reward-token-card .home-rewards-timing {
+  gap: 8px;
+  margin: auto 0 7px;
+  padding: 8px 0;
+}
+body.page-route-overview .home-reward-token-card .home-rewards-timing span { font-size: 10px; }
+body.page-route-overview .home-reward-token-card .home-rewards-timing b { font-size: 13px; }
+body.page-route-overview .home-reward-token-card .home-rewards-timing:has(.home-reward-curve-track:not([hidden])) { flex-wrap: wrap; }
+body.page-route-overview .home-reward-token-card .home-reward-curve-track {
+  display: block;
+  flex-basis: 100%;
+  height: 5px;
+  margin: -2px 0 0;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #354d48;
+}
+body.page-route-overview .home-reward-token-card .home-reward-curve-track[hidden] { display: none; }
+body.page-route-overview .home-reward-token-card .home-reward-curve-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #9ce5ba;
+}
+body.page-route-overview .home-rewards-note { margin-top: 7px; font-size: 10px; }
+.home-rewards-empty {
+  flex: 1;
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed #355a50;
+  border-radius: 9px;
+  color: #b7cbc0;
+  font-size: 11px;
+}
+@media (max-width: 700px) {
+  body.page-route-overview .home-rewards-spotlight { padding: 14px; }
+  body.page-route-overview .home-rewards-heading { display: flex; align-items: flex-start; }
+  body.page-route-overview .home-rewards-heading > a { margin: 0; font-size: 10px; text-align: right; }
+  body.page-route-overview .home-rewards-heading h2 { font-size: 19px; }
+  body.page-route-overview .home-rewards-grid .home-reward-token-card { flex-basis: min(76vw, 270px); }
+}

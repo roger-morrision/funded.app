@@ -1,0 +1,14 @@
+services:
+  app:
+    image: fundedapp-app:verified-devnet-20261002a
+    build:
+      context: .
+      dockerfile: deploy/token-card-consistency-20261002a.Dockerfile
+      args:
+        VITE_DEV_MODE: "false"
+        VITE_DEV_AUTOCONNECT: "false"
+    environment:
+      NODE_ENV: production
+      DEV_MODE: "false"
+      DEVNET_TEST_MODE: "false"
+      FUNDED_BUILD_ID: verified-devnet-20261002a

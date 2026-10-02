@@ -4,9 +4,6 @@
 .explore-search-label:focus-within { border-color:#8299df; box-shadow:0 0 0 3px #8198e022; }
 .explore-search-label input { width:100%; min-width:0; height:42px; border:0; outline:0; background:transparent; color:#f1f5fb; font:12px Manrope,sans-serif; }
 .explore-search-label input::placeholder { color:#77869b; }
-.explore-refresh { padding:0 15px; border:1px solid #34435b; border-radius:9px; background:#182337; color:#c2d3f2; font:10px 'DM Mono',monospace; cursor:pointer; }
-.explore-refresh:hover { background:#23324b; }
-.explore-refresh:disabled { opacity:.55; cursor:wait; }
 .explore-heading .heading-actions { display:flex; align-items:center; flex-wrap:wrap; justify-content:flex-end; gap:9px; }
 .explore-view-switch button { min-height:34px; }
 .explore-refine-row { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:0 0 16px; color:#8b9ab1; font:10px 'DM Mono',monospace; }
@@ -48,7 +45,7 @@
 .explore-benefit-leader-grid button:disabled { cursor:not-allowed; opacity:.68; }
 .explore-benefit-leader-grid span { overflow:hidden; color:#8f9fb7; font:700 9px 'DM Mono',monospace; text-overflow:ellipsis; text-transform:uppercase; white-space:nowrap; }
 .explore-benefit-leader-grid strong { overflow:hidden; color:#eef4ff; font:500 20px 'DM Mono',monospace; letter-spacing:-.6px; text-overflow:ellipsis; white-space:nowrap; }
-.explore-benefit-leader-grid small { overflow:hidden; color:#83d5b5; font:9px Manrope,sans-serif; text-overflow:ellipsis; white-space:nowrap; }
+.explore-benefit-leader-grid small { overflow:hidden; color:#e9e1cf; font:9px Manrope,sans-serif; text-overflow:ellipsis; white-space:nowrap; }
 .explore-benefit-leader-grid button[data-state="empty"] small,.explore-benefit-leader-grid button[data-state="unavailable"] small { color:#8290a5; }
 .explore-page[data-explore-view="grid"] .explore-scanner { display:none; }
 .explore-page[data-explore-view="table"] #asset-grid { display:none; }
@@ -60,35 +57,35 @@
 .explore-timeframe button:focus-visible { outline:2px solid #a9c3ff; outline-offset:2px; }
 .asset-curve-progress { display:grid; gap:5px; margin:0 0 10px; color:#94a6bd; font:9px 'DM Mono',monospace; }
 .asset-curve-progress span { display:flex; justify-content:space-between; }
-.asset-curve-progress b { color:#9ee5c5; }
+.asset-curve-progress b { color:#e9e1cf; }
 .asset-curve-progress i { height:4px; border-radius:99px; background:#263a4b; overflow:hidden; }
-.asset-curve-progress em { display:block; height:100%; border-radius:99px; background:#76d7b4; }
+.asset-curve-progress em { display:block; height:100%; border-radius:99px; background:#ffd28a; }
 .asset-actions .asset-proof-link { flex:1.1; }
 .explore-page .asset-top { grid-template-columns:minmax(0,1fr) auto; }
 .explore-page .asset-top .watch-button { grid-column:2; grid-row:1; margin-left:3px; }
 .asset-trade-flow { display:flex; align-items:center; flex-wrap:wrap; gap:6px 12px; margin:0 0 11px; color:#95a8c0; font:9px 'DM Mono',monospace; }
 .asset-trade-flow span:first-child { margin-right:auto; }
 .asset-trade-flow b { color:#e0e9f8; }
-.asset-trade-flow .asset-flow-buy { color:#84d9b3; }
+.asset-trade-flow .asset-flow-buy { color:#e9e1cf; }
 .asset-trade-flow .asset-flow-sell { color:#e4a1a8; }
 .asset-buy-pressure { display:grid; gap:5px; margin:0 0 10px; color:#8d9fb8; font:9px 'DM Mono',monospace; }
 .asset-buy-pressure span { display:flex; justify-content:space-between; }
-.asset-buy-pressure b { color:#9fe5bd; }
+.asset-buy-pressure b { color:#e9e1cf; }
 .asset-buy-pressure i { height:4px; overflow:hidden; border-radius:99px; background:#5a343d; }
-.asset-buy-pressure em { display:block; height:100%; border-radius:99px; background:#70cfa0; }
+.asset-buy-pressure em { display:block; height:100%; border-radius:99px; background:#ffd28a; }
 .asset-authorities { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 10px; }
 .asset-authorities span { padding:4px 6px; border:1px solid #3b4b60; border-radius:5px; color:#aab8cb; font:9px 'DM Mono',monospace; }
-.asset-authorities .revoked { border-color:#355b4c; background:#1b342e; color:#a1dfbf; }
+.asset-authorities .revoked { border-color:#26354d; background:#26354d; color:#e9e1cf; }
 .asset-authorities .active { border-color:#715c43; background:#34291f; color:#e6be8c; }
 .asset-benefit-policy { display:flex; flex-wrap:wrap; gap:5px; margin:0 0 10px; }
 .asset-benefit-policy span { padding:4px 6px; border:1px solid #344359; border-radius:5px; background:#141d29; color:#9eacc0; font:8px 'DM Mono',monospace; white-space:nowrap; }
 .asset-benefit-policy .promotion { border-color:#4c4374; background:#211d38; color:#c5b9f5; text-transform:capitalize; }
-.asset-benefit-policy .positive { border-color:#35604f; background:#142c25; color:#8fd8b7; }
+.asset-benefit-policy .positive { border-color:#9a6d36; background:#111b2e; color:#e9e1cf; }
 .asset-benefit-policy .zero { color:#6e7a8c; }
 .explore-stage-filter { display:flex; gap:3px; padding:3px; border:1px solid #303c50; border-radius:7px; background:#0d141e; }
 .explore-stage-filter button { padding:6px 9px; border:0; border-radius:5px; background:transparent; color:#8191a6; font:9px 'DM Mono',monospace; white-space:nowrap; cursor:pointer; }
-.explore-stage-filter button.active { background:#253b43; color:#ace8d1; }
-.explore-stage-filter button:focus-visible,.explore-refresh:focus-visible,.asset-actions a:focus-visible,.asset-actions button:focus-visible,.scanner-actions a:focus-visible,.scanner-actions button:focus-visible { outline:2px solid #a9c3ff; outline-offset:2px; }
+.explore-stage-filter button.active { background:#253b43; color:#e9e1cf; }
+.explore-stage-filter button:focus-visible,.asset-actions a:focus-visible,.asset-actions button:focus-visible,.scanner-actions a:focus-visible,.scanner-actions button:focus-visible { outline:2px solid #a9c3ff; outline-offset:2px; }
 .explore-page .filter-row { flex-wrap:wrap; gap:9px; }
 .explore-page .live-label { margin-left:auto; }
 .explore-page .asset-card { display:flex; flex-direction:column; min-height:245px; }
@@ -96,14 +93,14 @@
 .explore-page .asset-card .asset-bottom { margin-top:auto; }
 .asset-actions { display:flex; gap:7px; margin-top:12px; }
 .asset-actions a,.asset-actions button { display:grid; place-items:center; flex:1; min-height:31px; padding:6px 9px; border:1px solid #364660; border-radius:6px; background:#1b2940; color:#d3def6; text-decoration:none; font:600 10px Manrope,sans-serif; cursor:pointer; }
-.asset-actions button { border-color:#3e7060; background:#1b3a30; color:#b9eed6; }
+.asset-actions button { border-color:#9a6d36; background:#26354d; color:#b9eed6; }
 .asset-actions a:hover,.asset-actions button:hover { filter:brightness(1.18); }
 .explore-scanner { margin-top:35px!important; }
 .scanner-note { max-width:480px; margin:0; color:#7f8ea3; font-size:10px; line-height:1.5; }
 .registry-order button:disabled { opacity:.42; cursor:not-allowed; }
 .explore-scanner .registry-toolbar { display:flex; align-items:center; justify-content:space-between; gap:15px; margin-bottom:12px; }
 .scanner-scroll { overflow-x:auto; border:1px solid #293648; border-radius:10px; background:#101720; }
-.scanner-head,.scanner-row { display:grid; grid-template-columns:minmax(190px,2fr) 95px repeat(4,minmax(80px,.8fr)) 260px; gap:12px; align-items:center; min-width:1010px; padding:11px 14px; }
+.scanner-head,.scanner-row { display:grid; grid-template-columns:minmax(155px,1.5fr) 96px 70px minmax(62px,.7fr) minmax(62px,.7fr) minmax(108px,.9fr) minmax(62px,.7fr) 142px 100px; gap:6px; align-items:center; min-width:940px; padding:9px; }
 .scanner-head { background:#192436; color:#788ba6; font:9px 'DM Mono',monospace; text-transform:uppercase; letter-spacing:.45px; }
 .scanner-row { min-height:58px; border-top:1px solid #263447; color:#d5dfea; font:11px 'DM Mono',monospace; }
 .scanner-row:hover { background:#182437; }
@@ -122,11 +119,10 @@
 .scanner-metric.negative { color:#e994a1; }
 .scanner-actions { display:flex; align-items:center; gap:5px; }
 .scanner-actions a,.scanner-actions button { padding:6px 7px; border:1px solid #34445d; border-radius:5px; background:#1c2a40; color:#c9d9f5; text-decoration:none; font:9px 'DM Mono',monospace; cursor:pointer; }
-.scanner-actions button[data-trade-mint] { border-color:#3c6b59; background:#1c382e; color:#b8ebd2; }
 .scanner-actions .copy-row { font-size:13px; }
 .scanner-actions .scanner-watch { min-width:26px; font-size:14px; }
 .scanner-actions .scanner-watch.active { color:#f2ce84; border-color:#8b764b; }
-.scanner-scroll .empty-state { min-width:1010px; padding:20px; }
+.scanner-scroll .empty-state { min-width:900px; padding:20px; }
 .explore-trade-tape { margin-top:28px; }
 .explore-trade-tape[hidden] { display:none; }
 .explore-trade-tape-list { overflow-x:auto; border:1px solid #2b384b; border-radius:9px; }
@@ -134,7 +130,7 @@
 .explore-tape-row:first-child { border-top:0; }
 .explore-tape-row:hover { background:#1b283a; }
 .explore-tape-side { width:max-content; padding:5px 7px; border-radius:5px; }
-.explore-tape-side.buy { background:#1c3a2e; color:#9fe5bd; }
+.explore-tape-side.buy { background:#26354d; color:#e9e1cf; }
 .explore-tape-side.sell { background:#3a252c; color:#efacb4; }
 .explore-tape-token { display:grid; gap:3px; min-width:0; }
 .explore-tape-token a { overflow:hidden; color:#ebf2fd; font-weight:700; text-decoration:none; text-overflow:ellipsis; }
@@ -157,7 +153,6 @@
   .explore-advanced-fields { min-width:min(270px,calc(100vw - 50px)); }
   .explore-view-switch { flex:none; }
   .explore-search-row { gap:6px; }
-  .explore-refresh { padding:0 10px; }
   .explore-stage-filter { width:100%; }
   .explore-stage-filter button { flex:1; }
   .explore-page .asset-card { min-height:218px; }

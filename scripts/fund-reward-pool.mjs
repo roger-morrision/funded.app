@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import bs58 from 'bs58';
 import { clusterApiUrl, Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { createAutomaticRewardStore } from '../server/automatic-reward-store.mjs';
+import { rewardLedgerPath } from '../server/reward-ledger-path.mjs';
 import { createAutomaticRewardChain } from '../server/automatic-reward-chain.mjs';
 import { createRewardScheduler } from '../server/reward-scheduler.mjs';
 import { createHolderHistoryIndexer } from '../server/holder-history-indexer.mjs';
@@ -25,7 +26,7 @@ const rpcUrl = process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL |
 const holderIndexRpcUrl = process.env.SOLANA_HOLDER_INDEX_RPC_URL || rpcUrl;
 const connection = new Connection(rpcUrl, 'finalized'), holderIndexConnection = new Connection(holderIndexRpcUrl, 'finalized'), authority = signer();
 const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID);
-const store = createAutomaticRewardStore(process.env.AUTOMATIC_REWARD_STORE_PATH || resolve(process.cwd(), 'data', 'automatic-rewards.json'));
+const store = createAutomaticRewardStore(rewardLedgerPath());
 const chain = createAutomaticRewardChain({ connection, programId, authority, expectedProgramDataSha256: process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
 const indexer = createHolderHistoryIndexer({ connection:holderIndexConnection, store, rpcUrl:holderIndexRpcUrl }), scheduler = createRewardScheduler({ store, chain, indexer });
 const ready = await chain.readiness(); if (!ready.constrainedPayouts) throw new Error(`Reward chain unavailable: ${ready.reasons.join(', ')}`);

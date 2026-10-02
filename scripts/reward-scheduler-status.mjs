@@ -1,8 +1,8 @@
-import { resolve } from 'node:path';
 import { createAutomaticRewardStore } from '../server/automatic-reward-store.mjs';
+import { rewardLedgerPath } from '../server/reward-ledger-path.mjs';
 import { rewardServiceHealth } from '../server/reward-service-health.mjs';
 
-const store = createAutomaticRewardStore(process.env.AUTOMATIC_REWARD_STORE_PATH || resolve(process.cwd(), 'data', 'automatic-rewards.json'));
+const store = createAutomaticRewardStore(rewardLedgerPath());
 const state = await store.read(), service = state.serviceStatus || {};
 const worker = rewardServiceHealth(service);
 const schedules = Object.values(state.schedules || {});

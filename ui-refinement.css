@@ -99,9 +99,9 @@ body {
 
 /* Panels share a quiet surface; meaning comes from headings, data, and status. */
 .page-route .main-content :is(.panel, .support-card, .community-card, .role-panel, .airdrop-analytics-card, .airdrop-wallets-card) {
-  border-color: #354158;
-  border-radius: 13px;
-  background-color: #151b29;
+  border-color: var(--line);
+  border-radius: var(--radius-panel);
+  background-color: var(--panel);
 }
 .main-content :is(.panel, .support-card, .community-card, .role-panel) p:not(.eyebrow) {
   color: #b5c0d1;

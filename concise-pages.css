@@ -1,0 +1,250 @@
+/* Keep the image as the short guide; its heading and steps are printed on the artwork. */
+body.page-route .infographic-poster {
+  padding: 12px;
+  margin: 14px 0 22px;
+  background: #101827;
+}
+body.page-route .infographic-poster-header,
+body.page-route .infographic-poster-rail { display: none; }
+body.page-route .infographic-poster-body { display: block; }
+body.page-route .infographic-poster-art { max-width: 880px; margin: 0 auto; }
+body.page-route .infographic-poster-art img { max-height: 285px; }
+body.page-route .infographic-poster-details { margin-top: 8px; padding-top: 8px; }
+body.page-route .infographic-poster-footnote { margin: 8px 2px 0; }
+
+body.page-route .page-infographic {
+  display: none;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  padding: 12px;
+  margin: 14px 0 22px;
+  background: #101827;
+}
+body.page-route .page-infographic figure { width: min(100%, 880px); margin: 0 auto; }
+body.page-route .page-infographic figure img { max-height: 285px; }
+body.page-route .page-infographic-copy { padding: 3px 6px; align-items: center; }
+body.page-route .page-infographic-copy :is(span,h3,img) { display: none; }
+body.page-route .page-infographic-copy p { max-width: 75ch; text-align: center; }
+
+/* Three reusable money-flow posters replace generic diagrams on related pages. */
+body.page-route [data-money-flow-poster] figure {
+  position: relative;
+  box-sizing: border-box;
+  width: min(100%, 980px);
+  max-width: 980px;
+  margin: 0 auto;
+  overflow: hidden;
+  aspect-ratio: 2.55 / 1;
+  border: 1px solid #30405b;
+  border-radius: 4px;
+  background: #0b1020;
+}
+body.page-route [data-money-flow-poster] figure > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
+}
+body.page-route [data-money-flow-poster].page-infographic .page-infographic-copy { display: none; }
+body.page-route [data-money-flow-poster] .money-flow-caption {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  padding: clamp(12px, 2vw, 24px);
+  background: linear-gradient(180deg, rgba(4, 9, 19, .92), transparent 34%, transparent 54%, rgba(4, 9, 19, .95));
+  pointer-events: none;
+}
+body.page-route [data-money-flow-poster] .money-flow-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+body.page-route [data-money-flow-poster] .money-flow-top > strong {
+  width: fit-content;
+  color: #fff3dc;
+  font: 800 clamp(17px, 2.25vw, 30px)/1.05 Manrope, sans-serif;
+  letter-spacing: -.035em;
+}
+body.page-route [data-money-flow-poster] .money-flow-stat {
+  display: grid;
+  justify-items: end;
+  flex: none;
+  text-align: right;
+}
+body.page-route [data-money-flow-poster] .money-flow-stat b {
+  color: #ffbe68;
+  font: 800 clamp(21px, 2.8vw, 39px)/1 Manrope, sans-serif;
+  letter-spacing: -.045em;
+}
+body.page-route [data-money-flow-poster] .money-flow-stat small {
+  max-width: 24ch;
+  margin-top: 4px;
+  color: #e7d8bd;
+  font: 700 clamp(9px, .9vw, 11px)/1.25 'DM Mono', monospace;
+}
+body.page-route [data-money-flow-poster] .money-flow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+body.page-route [data-money-flow-poster] .money-flow-steps > span {
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 190, 104, .42);
+  background: rgba(8, 16, 29, .86);
+  color: #fff3dc;
+  font: 700 clamp(9px, .95vw, 12px)/1.2 'DM Mono', monospace;
+  white-space: nowrap;
+}
+body.page-route [data-money-flow-poster="distribution"] .money-flow-steps > span:first-child {
+  border-color: #ffbe68;
+  background: rgba(89, 54, 13, .9);
+}
+body.page-route-overview:not(.page-route-coin):not(.page-route-wallet) .page-infographic-home,
+body.page-route-launch .page-infographic-launch,
+body.page-route-list .page-infographic-list,
+body.page-route-analytics-detail:not(.page-route-capital-flow) .page-infographic-analytics,
+body.page-route-community .page-infographic-community,
+body.page-route-capital-flow .page-infographic-capital,
+body.page-route-profile .page-infographic-profile,
+body.page-route-payments #rewards-holder .page-infographic-holder,
+body.page-route-coin .page-infographic-coin,
+body.page-route-wallet .page-infographic-wallet,
+body.page-route-docs.docs-subtopic-without-poster .page-infographic-docs-subtopic { display: grid; }
+
+body.page-route-overview .home-kpi-heading > div:first-child > p:last-child { display: none; }
+body.page-route-overview .home-kpi-card em { line-height: 1.35; }
+body.page-route-overview .home-jackpot-spotlight.concise-unavailable { display: none !important; }
+
+/* Reward categories already have tabs. Present their entry cards as a compact index. */
+body.page-route-payments #rewards-overview .reward-entry-grid { gap: 8px; }
+body.page-route-payments #rewards-overview .reward-entry-grid > * {
+  min-height: 56px; padding: 12px 14px; align-items: center;
+}
+body.page-route-payments #rewards-overview .reward-entry-grid :is(span,small) { display: none; }
+body.page-route-payments #rewards-overview .reward-entry-grid strong { margin: 0; font-size: 14px; }
+body.page-route-payments #rewards-overview .reward-entry-grid > button[data-reward-open] { display: none; }
+body.page-route-payments #rewards-overview .reward-entry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+body.page-route-payments #rewards-overview .jackpot-overview-spotlight.concise-unavailable { display: none !important; }
+body.page-route-payments #reward-discovery [data-reward-discovery]:not(.concise-expanded) .reward-discovery-list > article:nth-child(n+4) { display: none; }
+body.page-route-payments #reward-discovery .concise-reward-more {
+  display: block; width: 100%; margin: 10px 0 0; padding: 10px 14px;
+  border: 1px solid #30405b; background: #101827; color: #ffbe68;
+  font: 700 11px/1.4 'DM Mono', monospace; text-align: center; cursor: pointer;
+}
+body.page-route-payments #funded-holder-token-rewards:not(.concise-expanded) [data-funded-token-list] > li:nth-child(n+5) { display: none; }
+body.page-route-payments #funded-holder-token-rewards .concise-holder-more {
+  display: block; width: 100%; margin: 10px 0 0; padding: 10px 14px;
+  border: 1px solid #30405b; background: #101827; color: #ffbe68;
+  font: 700 11px/1.4 'DM Mono', monospace; text-align: center; cursor: pointer;
+}
+
+/* Each merged workspace tab owns its main content. */
+body.page-route-paid:not(.page-route-buybacks) #paid > #buybacks,
+body.page-route-analytics-detail:not(.page-route-capital-flow) #analytics-detail > #capital-flow,
+body.page-route-my-launches:not(.page-route-community) #my-launches > #community { display: none !important; }
+body.page-route-paid:not(.page-route-buybacks) .paid-hero-actions a[href="#explore"],
+body.page-route-paid:not(.page-route-buybacks) .paid-hero-actions a[href="#launch"] { display: none !important; }
+body.page-route-paid:not(.page-route-buybacks) .funded-token-story article { min-height: 0; padding: 16px 18px; }
+
+/* The listing poster already shows the three steps and wolf illustration. */
+body.page-route-list #list :is(.list-process-heading,.list-steps,.list-art) { display: none !important; }
+body.page-route-list #list .list-layout { grid-template-columns: minmax(0, 1fr); }
+
+body.page-route-community #community .concise-community-reserve { margin-top: 16px; border-top: 1px solid #30405b; }
+body.page-route-community #community .concise-community-reserve > summary {
+  padding: 12px 4px; color: #ffbe68; cursor: pointer;
+  font: 700 11px/1.4 'DM Mono', monospace; letter-spacing: .04em; text-transform: uppercase;
+}
+body.page-route-community #community .concise-community-reserve > #community-reward-reserve { margin-top: 8px; }
+body.page-route-community #my-launches > :is(.section-heading,.support-shortcuts) { display: none !important; }
+body.page-route-analytics-detail .recipients-panel:not(.concise-expanded) .payment-list > .payment-row:nth-child(n+6) { display: none; }
+body.page-route-analytics-detail .recipients-panel .concise-recipient-more {
+  display: block; width: 100%; margin-top: 10px; padding: 10px 14px;
+  border: 1px solid #30405b; background: #101827; color: #ffbe68;
+  font: 700 11px/1.4 'DM Mono', monospace; text-align: center; cursor: pointer;
+}
+body.page-route-paid .paid-hero-mark {
+  font-size: 0 !important; text-shadow: none !important;
+  background: url('/wolf-mark.svg') center / contain no-repeat !important;
+}
+body.page-route-paid .funded-token-footer-brand > span {
+  display: inline-block; width: 30px; height: 30px; font-size: 0;
+  background: url('/wolf-mark.svg') center / contain no-repeat;
+}
+
+/* Put the transaction controls first; the queue and older proof remain available on demand. */
+body.page-route #buybacks .concise-buyback-queue,
+body.page-route #buybacks .concise-policy-preview,
+body.page-route #buybacks .concise-tier-preview,
+body.page-route #buybacks .concise-ledger-more,
+body.page-route #my-launches .concise-pilot-details {
+  border-top: 1px solid #30405b;
+  margin-top: 12px;
+}
+body.page-route #buybacks :is(.concise-buyback-queue,.concise-policy-preview,.concise-tier-preview,.concise-ledger-more) > summary,
+body.page-route #my-launches .concise-pilot-details > summary {
+  color: #ffbe68;
+  cursor: pointer;
+  padding: 12px 4px;
+  font: 700 11px/1.4 'DM Mono', monospace;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+body.page-route #buybacks :is(.concise-policy-preview,.concise-tier-preview) > .panel { margin-top: 8px; }
+body.page-route #buybacks .concise-ledger-more { width: 100%; }
+body.page-route #buybacks .concise-ledger-more > .buyback-ledger-row { margin-top: 8px; }
+body.page-route #my-launches .concise-pilot-body { padding: 8px 0 16px; }
+body.page-route #my-launches .concise-pilot-body > h2 { display: none; }
+body.page-route #paid .funded-token-story article p { line-height: 1.5; }
+body.page-route-buybacks #paid .funded-token-story { display: none !important; }
+
+/* The poster carries the claim sequence; keep the searchable directory first. */
+body.page-route-airdrops #airdrops .airdrop-allocation-heading,
+body.page-route-airdrops #airdrops .airdrop-reference-flow { display: none !important; }
+body.page-route-airdrops #airdrops .airdrop-hero-layout { grid-template-columns: 1fr; margin-bottom: 16px; }
+body.page-route-airdrops #airdrops .airdrop-hero-art,
+body.page-route-airdrops #airdrops .airdrop-wallet-art { display: none !important; }
+body.page-route-airdrops #airdrops .airdrop-wallet-gate-body { min-height: 0; padding: 20px; }
+body.page-route-airdrops #airdrops .airdrop-wallet-gate h3 { font-size: 22px; }
+body.page-route-airdrops #airdrops .airdrop-wallet-gate p { margin: 8px 0 14px; }
+body.page-route-airdrops .airdrop-trust { margin-top: 16px; }
+
+/* The burn poster already explains why and how; action cards and receipts remain. */
+body.page-route-buybacks #buybacks .burn-why-card,
+body.page-route-paid #buybacks .burn-why-card { display: none !important; }
+
+/* Hide repeated help sentences when their adjacent value and state remain readable. */
+body.page-route .reward-experience-panel > header p:not(.eyebrow),
+body.page-route .funded-token-story article p + p { line-height: 1.5; }
+
+@media (max-width: 900px) {
+  body.page-route-payments #rewards-overview .reward-entry-grid > * { min-height: 54px; padding: 10px; }
+  body.page-route .infographic-poster-art img,
+  body.page-route .page-infographic figure img { max-height: none; }
+  body.page-route .page-infographic-copy { padding: 2px 3px; }
+  body.page-route .page-infographic-copy p { font-size: 11px; }
+}
+@media (max-width: 600px) {
+  body.page-route [data-money-flow-poster] figure { aspect-ratio: 1.55 / 1; }
+  body.page-route [data-money-flow-poster] figure > img { height: 100%; aspect-ratio: auto; object-fit: contain; }
+  body.page-route [data-money-flow-poster] .money-flow-caption {
+    position: absolute;
+    padding: 10px;
+    gap: 9px;
+    background: linear-gradient(180deg, rgba(4, 9, 19, .98), rgba(4, 9, 19, .1) 36%, rgba(4, 9, 19, .3) 52%, rgba(4, 9, 19, .98) 76%);
+  }
+  body.page-route [data-money-flow-poster] .money-flow-top > strong { font-size: 14px; max-width: 47%; }
+  body.page-route [data-money-flow-poster] .money-flow-stat { max-width: 53%; }
+  body.page-route [data-money-flow-poster] .money-flow-stat b { font-size: 21px; }
+  body.page-route [data-money-flow-poster] .money-flow-stat small { font-size: 8px; }
+  body.page-route [data-money-flow-poster] .money-flow-steps { gap: 4px; }
+  body.page-route [data-money-flow-poster] .money-flow-steps > span { padding: 5px 6px; font-size: 9px; }
+}
+@media (max-width: 600px) {
+  body.page-route-overview .hero-section { min-height: 420px !important; }
+}

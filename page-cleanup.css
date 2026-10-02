@@ -1,0 +1,123 @@
+/* Optional illustrations are one click away; page tasks and evidence stay first. */
+body.page-route .page-cleanup-guide {
+  display: block;
+  min-width: 0;
+  margin: 12px 0 18px;
+  border: 1px solid #34435a;
+  border-radius: 4px;
+  background: #111827;
+}
+body.page-route .page-cleanup-guide > summary {
+  padding: 12px 16px;
+  color: #e5d5b5;
+  cursor: pointer;
+  font: 700 11px/1.45 'DM Mono', monospace;
+  letter-spacing: .02em;
+}
+body.page-route .page-cleanup-guide > summary:hover,
+body.page-route .page-cleanup-guide > summary:focus-visible { color: #ffd28a; background: #1b2940; }
+body.page-route .page-cleanup-guide > :is(.page-infographic,.infographic-poster) {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid #34435a;
+  border-radius: 0;
+  box-shadow: none;
+}
+body.page-route-docs:not(.docs-subtopic-without-poster) .page-cleanup-guide[data-guide="docs-subtopic"] { display: none; }
+body.page-route-capital-flow #analytics-detail > .page-cleanup-guide[data-guide="analytics"],
+body.page-route-buybacks #paid > .page-cleanup-guide[data-guide="fees"] { display: none; }
+
+/* One global create action is enough; the page itself has the form. */
+body.page-route #sidebar .primary-nav > a.nav-item[href="#launch"] { display: none !important; }
+body.page-route-launch .topbar .create-coin-button { display: none !important; }
+
+/* Keep discovery and action controls in the first viewport. */
+html body.page-route-explore .explore-hero { min-height: 188px; padding: 22px 28px; }
+html body.page-route-explore .explore-hero h1 { font-size: clamp(35px, 4vw, 53px); }
+body.page-route-explore .explore-page { padding-top: 14px; }
+body.page-route-explore .explore-page .section-heading.explore-heading { margin-top: 12px; }
+body.page-route-explore .explore-quick-filters { display: none !important; }
+body.page-route-explore .explore-filter-toggle { width: auto; min-width: 86px; padding: 0 10px; gap: 7px; }
+body.page-route-explore #asset-grid { margin-top: 14px; }
+body.page-route-explore .explore-benefit-leaders { margin-top: 25px; }
+body.page-route-explore .page-cleanup-explore-guide { margin-top: 24px; border: 1px solid #34435a; background: #111827; }
+body.page-route-explore .page-cleanup-explore-guide > summary { padding: 12px 16px; color: #e5d5b5; cursor: pointer; font: 700 11px 'DM Mono', monospace; }
+body.page-route-explore .page-cleanup-explore-guide .explore-hero-links { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 16px 16px; }
+
+body.page-route-overview .home-launch-tabs [data-home-launch-tab="standard"],
+body.page-route-overview .home-launch-tabs [data-home-launch-tab="boost"],
+body.page-route-overview .home-launch-tabs [data-home-launch-tab="pro"],
+body.page-route-overview .home-launch-tabs [data-home-launch-tab="premier"] { display: none !important; }
+body.page-route-overview .page-cleanup-home-tiers { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 12px 14px; border-bottom: 1px solid #34435a; }
+body.page-route-overview .page-cleanup-home-tiers strong { flex-basis: 100%; color: #a9b7c9; font: 700 10px 'DM Mono', monospace; text-transform: uppercase; }
+body.page-route-overview .page-cleanup-home-tiers button { padding: 7px 9px; border: 1px solid #34435a; background: #18253a; color: #d9e3ec; cursor: pointer; font: 700 10px 'DM Mono', monospace; }
+body.page-route-overview .page-cleanup-home-tiers button[aria-pressed="true"] { border-color: #f4a340; color: #ffd28a; }
+body.page-route-overview .page-cleanup-selected-tier { align-self: center; padding: 6px 7px; border: 1px solid #9a6d36; color: #ffd28a; font: 700 9px 'DM Mono', monospace; }
+body.page-route-overview .page-cleanup-selected-tier[hidden] { display: none; }
+
+/* The public airdrop list comes before wallet eligibility checks. */
+body.page-route-airdrops #airdrops .airdrop-public-programs { margin-top: 18px; }
+body.page-route-airdrops #airdrops .airdrop-hero-layout { margin: 22px 0 0; }
+body.page-route-airdrops #airdrops .airdrop-wallet-gate-body { padding: 16px 20px; }
+body.page-route-airdrops #airdrops .airdrop-wallet-gate h3 { font-size: 18px; }
+
+/* Empty portfolio: keep its browse path visible without a large wallet card. */
+body.page-route-my-launches .projects-panel { padding: 16px; }
+body.page-route-my-launches .projects-panel .role-panel-head { margin-bottom: 10px; padding-bottom: 10px; }
+body.page-route-my-launches .projects-empty-content { padding: 16px; }
+body.page-route-my-launches .projects-empty-icon { display: none; }
+body.page-route-my-launches .projects-empty-content h3 { margin: 0 0 5px; font-size: 17px; }
+body.page-route-my-launches .projects-empty-actions { justify-content: flex-start; margin-top: 10px; }
+body.page-route-my-launches .projects-public-launches { margin-top: 14px; padding-top: 12px; }
+
+/* Spend the home card space on identity and proof rather than empty artwork. */
+html body.page-route-overview .hero-section { min-height: 375px !important; }
+html body.page-route-overview .home-launch-card-media { aspect-ratio: 3 / 2; }
+body.page-route-overview .home-launch-card-media .home-token-avatar { font-size: 48px; }
+body.page-route-overview .home-reward-token-proof { font-weight: 650; line-height: 1.35; }
+body.page-route-overview .home-rewards-note { max-width: 78ch; }
+html body.page-route-overview .home-rewards-spotlight { padding: 12px 16px; }
+html body.page-route-overview .home-rewards-grid { margin-top: 10px; }
+body.page-route-overview .home-reward-snapshot { gap: 4px; margin: 4px 0 6px; padding: 7px 0; }
+@media (min-width: 701px) {
+  html body.page-route-overview .home-rewards-grid .home-reward-token-card { flex-basis: clamp(270px, 28vw, 315px); }
+}
+
+/* Token identity, market facts and trade controls get the vertical space. */
+html body.page-route-coin .coin-page .coin-hero-card { grid-template-rows: minmax(120px,auto) auto auto; min-height: 0; }
+body.page-route-coin .coin-page .coin-artwork { min-height: 120px; max-height: 150px; }
+body.page-route-coin .coin-page .coin-artwork::before { width: min(30vw,200px); }
+body.page-route-coin .coin-page .coin-artwork-symbol { font-size: clamp(35px,5vw,68px); }
+body.page-route-coin .coin-page .coin-identity { padding: 12px 16px; }
+body.page-route-coin .coin-page .coin-avatar { width: 55px; height: 55px; font-size: 23px; }
+body.page-route-coin .coin-page .coin-hero-about { height: auto; overflow: visible; }
+body.page-route-coin .coin-page :is(.coin-profile-panel,.coin-profile-roadmap-section,.coin-profile-links) {
+  max-height: none; overflow: visible; padding: 12px 14px;
+}
+body.page-route-coin .coin-page .coin-stat-strip > div { min-height: 62px; padding: 9px 12px; }
+body.page-route-coin .coin-page .coin-layout { margin-top: 12px; }
+body.page-route-coin .page-cleanup-about-toggle { display: none; }
+
+/* Reserve floating space for useful controls only. */
+body.page-route-paid .funded-token-tape { display: none !important; }
+body.page-route .preview-status-drawer { position: static !important; width: min(100% - 32px, 720px); margin: 26px auto 18px; }
+body.page-route-docs .help-topics-trigger,
+body.page-route-docs .help-topics-panel { display: none !important; }
+body.page-route .help-topics-trigger { right: 12px; bottom: 12px; min-width: 42px; height: 36px; padding: 0 9px; font-size: 10px; }
+body.page-route-referrals #referral-command-center .section-heading .section-state { display: none; }
+
+@media (max-width: 700px) {
+  html body.page-route-explore .explore-hero { min-height: 0; padding: 22px 16px; }
+  body.page-route-explore .explore-hero-actions { display: none !important; }
+  html body.page-route-overview .hero-section { min-height: 330px !important; }
+  body.page-route-overview .home-launch-card-media { aspect-ratio: 3 / 2; }
+  body.page-route-coin .coin-page .coin-hero-card { display: block; }
+  body.page-route-coin .coin-page .coin-artwork { display: none !important; }
+  body.page-route-coin .page-cleanup-about-toggle { display: block; width: 100%; padding: 12px 16px; border: 0; border-top: 1px solid #26354d; background: #111b2e; color: #ffd28a; cursor: pointer; text-align: left; font: 700 11px 'DM Mono', monospace; }
+  body.page-route-coin .page-cleanup-about-toggle::after { content: '⌄'; float: right; }
+  body.page-route-coin .coin-page .coin-hero-aside { display: none; }
+  body.page-route-coin .coin-page .coin-hero-card.page-cleanup-about-expanded .coin-hero-aside { display: flex; }
+  body.page-route-coin .coin-page .coin-hero-about { max-height: none; }
+  body.page-route .help-topics-trigger,
+  body.page-route .help-topics-panel { display: none !important; }
+}

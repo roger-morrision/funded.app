@@ -13,7 +13,7 @@ export function rewardServiceHealth(service = {}, nowMs = Date.now()) {
   if (service.constrainedPayouts !== true && reasons.length === 0) reasons.push('constrained-payouts-not-ready');
 
   return {
-    healthy: service.constrainedPayouts === true && ageMs !== null && ageMs >= 0 && ageMs <= MAX_STATUS_AGE_MS,
+    healthy: service.constrainedPayouts === true && reasons.length === 0 && ageMs !== null && ageMs >= 0 && ageMs <= MAX_STATUS_AGE_MS,
     checkedAt,
     ageSeconds: ageMs === null ? null : Math.floor(ageMs / 1000),
     reasons: [...new Set(reasons)],

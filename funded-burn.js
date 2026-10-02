@@ -1,5 +1,11 @@
 export const FUNDED_INITIAL_SUPPLY_TOKENS = 1_000_000_000;
 
+export function projectBurnMemo(projectMint) {
+  const mint = String(projectMint || '').trim();
+  if (!mint) throw new Error('A project mint is required for attributed burns.');
+  return `funded.vip:project-burn:v1:${mint}`;
+}
+
 export function parseTokenAmount(value, decimals) {
   const text = String(value ?? '').trim();
   if (!Number.isInteger(decimals) || decimals < 0 || decimals > 18) throw new Error('Token decimals are invalid.');
@@ -23,6 +29,21 @@ export function burnedSupplyBaseUnits(currentSupply, decimals, initialSupplyToke
   const initial = BigInt(initialSupplyTokens) * (10n ** BigInt(decimals));
   const current = BigInt(currentSupply ?? 0);
   return current < initial ? initial - current : 0n;
+}
+
+export function planTokenAccountBurns(tokenAccounts = [], amountBaseUnits) {
+  let remaining = BigInt(amountBaseUnits ?? 0);
+  if (remaining <= 0n) throw new Error('Enter a token amount above zero.');
+  const burns = [];
+  for (const account of tokenAccounts) {
+    const available = BigInt(account?.amount ?? 0);
+    if (available <= 0n || remaining <= 0n) continue;
+    const amount = available < remaining ? available : remaining;
+    burns.push({ address: account.address, amount });
+    remaining -= amount;
+  }
+  if (remaining > 0n) throw new Error('The burn amount exceeds this wallet’s $FUNDED balance.');
+  return burns;
 }
 
 export async function waitForSignatureConfirmation(connection, { signature, lastValidBlockHeight = null, commitment = 'confirmed', timeoutMs = 90_000, pollIntervalMs = 1_000 }) {

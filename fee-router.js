@@ -60,10 +60,10 @@ export async function verifyFeeRouterAccount({ connection, programId }) {
   if (!account) return { ...router, verified: false, reason: 'router-account-not-deployed' };
   if (!account.owner.equals(router.programId)) return { ...router, verified: false, reason: 'router-owner-mismatch' };
   const data = Uint8Array.from(account.data || []);
-  if (data.length < expectedPrefix.length || expectedPrefix.some((byte, index) => data[index] !== byte)) {
+  if (data.length !== 74 || expectedPrefix.some((byte, index) => data[index] !== byte) || data[73] !== router.bump) {
     return { ...router, verified: false, reason: 'router-policy-layout-mismatch' };
   }
-  return { ...router, verified: true, reason: 'verified' };
+  return { ...router, authority: new PublicKey(data.slice(41, 73)), verified: true, reason: 'verified' };
 }
 
 export function buildFeeRouterPolicy({ programId, address, bump, scope = 'shared-legacy', mint = null } = {}) {

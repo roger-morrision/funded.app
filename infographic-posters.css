@@ -1,0 +1,172 @@
+/* Short visual explanations; the exact source note remains in each disclosure. */
+body.page-route .infographic-poster {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  min-width: 0;
+  margin: 18px 0;
+  padding: 20px;
+  overflow: hidden;
+  border: 1px solid #485a73;
+  border-radius: 6px;
+  background: linear-gradient(125deg, #17243a 0%, #121b2e 62%, #101827 100%);
+  color: #f6f2e9;
+  text-align: left;
+  box-shadow: inset 3px 0 #f4a340;
+}
+body.page-route .infographic-poster::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  right: -70px;
+  top: -125px;
+  width: 310px;
+  height: 310px;
+  border: 1px solid #f4a34021;
+  border-radius: 50%;
+  box-shadow: 0 0 0 42px #f4a34008, 0 0 0 84px #f4a34005;
+  pointer-events: none;
+}
+body.page-route .infographic-poster-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 17px;
+}
+body.page-route .infographic-poster-eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  color: #f4a340;
+  font: 700 10px/1.4 'DM Mono', monospace;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+body.page-route .infographic-poster h3 {
+  margin: 0;
+  color: #f6f2e9;
+  font: 800 clamp(17px, 2vw, 24px)/1.2 Manrope, sans-serif;
+  letter-spacing: -.035em;
+}
+body.page-route .infographic-poster-mark {
+  display: grid;
+  flex: 0 0 38px;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #a7743e;
+  border-radius: 50%;
+  background: #202b42;
+}
+body.page-route .infographic-poster-mark img { display: block; width: 27px; height: 27px; object-fit: contain; }
+body.page-route .infographic-poster-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(265px, .8fr);
+  align-items: stretch;
+  gap: 12px;
+}
+body.page-route .infographic-poster-art {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #30405b;
+  border-radius: 4px;
+  background: #0b1020;
+}
+body.page-route .infographic-poster-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: 255px;
+  object-fit: contain;
+}
+body.page-route .infographic-poster-rail {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+body.page-route .infographic-poster-step {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #30405b;
+  border-radius: 4px;
+  background: #0e1829dc;
+}
+body.page-route .infographic-poster-number {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #a7743e;
+  border-radius: 50%;
+  background: #2a2a32;
+  color: #ffd28a;
+  font: 700 11px/1 'DM Mono', monospace;
+  white-space: nowrap;
+}
+body.page-route .infographic-poster-step strong,
+body.page-route .infographic-poster-step small { display: block; min-width: 0; }
+body.page-route .infographic-poster-step strong {
+  margin: 1px 0 4px;
+  color: #f6f2e9;
+  font: 800 13px/1.25 Manrope, sans-serif;
+}
+body.page-route .infographic-poster-step small {
+  color: #a9b7c9;
+  font: 500 11px/1.45 Manrope, sans-serif;
+}
+body.page-route .infographic-poster-footnote {
+  margin: 12px 0 0;
+  color: #ffd28a;
+  font: 700 11px/1.4 'DM Mono', monospace;
+}
+body.page-route .infographic-poster-details {
+  margin-top: 13px;
+  padding-top: 11px;
+  border-top: 1px solid #30405b;
+}
+body.page-route .infographic-poster-details summary {
+  width: fit-content;
+  color: #a9b7c9;
+  font: 700 11px/1.4 'DM Mono', monospace;
+  cursor: pointer;
+}
+body.page-route .infographic-poster-details summary:hover,
+body.page-route .infographic-poster-details summary:focus-visible { color: #ffd28a; }
+body.page-route .infographic-poster-details summary:focus-visible { outline: 2px solid #f4a340; outline-offset: 3px; }
+body.page-route .infographic-poster-details :is(p,small) {
+  display: block;
+  max-width: 80ch;
+  margin: 11px 0 0;
+  color: #a9b7c9;
+  font: 500 12px/1.6 Manrope, sans-serif;
+}
+body.page-route .infographic-poster-details strong { color: #f6f2e9; }
+body.page-route #airdrops .airdrop-trust:has(.infographic-poster) {
+  display: block; padding: 0; border: 0; background: transparent;
+}
+body.page-route #airdrops .airdrop-trust:has(.infographic-poster) > span { display: none; }
+body.page-route #airdrops .airdrop-trust .infographic-poster { margin: 0; }
+body.page-route .infographic-poster-visits { margin-top: 11px; }
+body.page-route-buybacks .infographic-poster-fees { display: none; }
+@media (max-width: 900px) {
+  body.page-route .infographic-poster { padding: 16px; }
+  body.page-route .infographic-poster-body { grid-template-columns: 1fr; }
+  body.page-route .infographic-poster-art { aspect-ratio: 2 / 1; }
+  body.page-route .infographic-poster-art img { max-height: none; }
+  body.page-route .infographic-poster-step { grid-template-columns: 36px minmax(0, 1fr); padding: 9px 10px; }
+  body.page-route .infographic-poster-number { width: 32px; height: 32px; font-size: 10px; }
+  body.page-route .infographic-poster-step strong { margin: 0 0 2px; }
+}
+@media (max-width: 430px) {
+  body.page-route .infographic-poster { padding: 14px; }
+  body.page-route .infographic-poster h3 { font-size: 17px; }
+}

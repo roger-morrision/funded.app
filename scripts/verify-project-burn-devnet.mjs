@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import bs58 from 'bs58';
+import { Connection, Keypair, PublicKey, Transaction, TransactionInstruction, clusterApiUrl, sendAndConfirmTransaction } from '@solana/web3.js';
+import { createBurnCheckedInstruction, getAccount, getAssociatedTokenAddressSync, getMint, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { parseTokenAmount, projectBurnMemo } from '../funded-burn.js';
+
+assert.equal(process.env.VITE_SOLANA_CLUSTER, 'devnet');
+assert.equal(process.env.VITE_ALLOW_MAINNET, 'false');
+const apiBase = String(process.env.FUNDED_QA_API_BASE || 'http://127.0.0.1:8795').replace(/\/$/, '');
+const creator = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY));
+const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || clusterApiUrl('devnet'), 'finalized');
+assert.equal(await connection.getGenesisHash(), 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG');
+const launchesResponse = await fetch(`${apiBase}/api/launches`, { signal:AbortSignal.timeout(15_000) });
+assert.equal(launchesResponse.status, 200);
+const launches = await launchesResponse.json();
+const requestedMint = String(process.argv[2] || '').trim();
+const project = launches.find(row => row.mint === requestedMint && row.creatorWallet === creator.publicKey.toBase58())
+  || launches.find(row => row.creatorWallet === creator.publicKey.toBase58() && row.onchainVerified && row.cluster === 'devnet');
+assert(project, 'A verified Devnet launch owned by the rotated creator wallet is required.');
+const fundedMint = new PublicKey(process.env.VITE_FUNDED_TOKEN_MINT);
+const ata = getAssociatedTokenAddressSync(fundedMint, creator.publicKey);
+const [mintBefore, accountBefore] = await Promise.all([getMint(connection, fundedMint), getAccount(connection, ata)]);
+const amount = parseTokenAmount(process.env.FUNDED_QA_PROJECT_BURN_TOKENS || '0.001', mintBefore.decimals);
+assert(accountBefore.amount >= amount, 'Creator QA budget is insufficient for the attributed burn.');
+const memo = new TransactionInstruction({ programId:new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'), keys:[], data:Buffer.from(projectBurnMemo(project.mint), 'utf8') });
+const transaction = new Transaction().add(createBurnCheckedInstruction(ata, fundedMint, creator.publicKey, amount, mintBefore.decimals, [], TOKEN_PROGRAM_ID), memo);
+const signature = await sendAndConfirmTransaction(connection, transaction, [creator], { commitment:'finalized', preflightCommitment:'confirmed' });
+const status = await connection.getSignatureStatus(signature, { searchTransactionHistory:true });
+assert.equal(status.value?.confirmationStatus, 'finalized'); assert.equal(status.value?.err, null);
+const [mintAfter, accountAfter] = await Promise.all([getMint(connection, fundedMint), getAccount(connection, ata)]);
+assert.equal(mintBefore.supply - mintAfter.supply, amount); assert.equal(accountBefore.amount - accountAfter.amount, amount);
+const response = await fetch(`${apiBase}/api/burn-receipts`, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({ signature, wallet:creator.publicKey.toBase58(), amountBaseUnits:String(amount), projectMint:project.mint }), signal:AbortSignal.timeout(60_000) });
+const receipt = await response.json(); assert.equal(response.status, 201, JSON.stringify(receipt)); assert.equal(receipt.onchainVerified, true); assert.equal(receipt.projectMint, project.mint);
+const board = await fetch(`${apiBase}/api/leaderboard/burn-board`, { signal:AbortSignal.timeout(15_000) }).then(row => row.json());
+assert(board.projects.some(row => row.mint === project.mint && row.receiptCount >= 1), 'Attributed burn is absent from the Burn Board.');
+console.log(JSON.stringify({ status:'verified', cluster:'devnet', projectMint:project.mint, wallet:creator.publicKey.toBase58(), signature, amountBaseUnits:String(amount), supplyBefore:String(mintBefore.supply), supplyAfter:String(mintAfter.supply) }));

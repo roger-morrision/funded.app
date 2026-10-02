@@ -2,7 +2,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { Transaction } from '@solana/web3.js';
+import { Transaction, VersionedTransaction } from '@solana/web3.js';
 import { inspectPhantomTradeTransaction } from '../phantom-mobile-crypto.js';
 import { renderTradeSignerPage } from './trade-signer-page.mjs';
 
@@ -14,8 +14,25 @@ const MAX_FLOWS = 256;
 const FLOW_TTL_MS = 5 * 60_000;
 const TRADE_RESULT_TTL_MS = 15 * 60_000;
 const WEB3_BROWSER_SCRIPT = readFileSync(new URL('../node_modules/@solana/web3.js/lib/index.iife.min.js', import.meta.url));
+const parseTransaction = bytes => { const parsed = VersionedTransaction.deserialize(bytes); return parsed.version === 'legacy' ? Transaction.from(bytes) : parsed; };
+const payerOf = transaction => transaction instanceof VersionedTransaction ? transaction.message.staticAccountKeys[0]?.toBase58() : transaction.feePayer?.toBase58();
+const coSignatures = (transaction, payer) => transaction instanceof VersionedTransaction
+  ? transaction.signatures.slice(0, transaction.message.header.numRequiredSignatures).map((signature,index) => ({ publicKey:transaction.message.staticAccountKeys[index], signature })).filter(row => row.publicKey.toBase58() !== payer && row.signature.some(byte => byte !== 0))
+  : transaction.signatures.filter(row => row.publicKey.toBase58() !== payer && row.signature);
+const serializedMessage = transaction => transaction instanceof VersionedTransaction ? transaction.message.serialize() : transaction.serializeMessage();
+const payerSignature = (transaction, payer) => transaction instanceof VersionedTransaction
+  ? transaction.message.staticAccountKeys[0]?.toBase58() === payer ? transaction.signatures[0] : null
+  : transaction.signatures.find(entry => entry.publicKey.toBase58() === payer)?.signature;
 
 function validTradeSummary(summary) {
+  if (summary?.kind === 'launch') return typeof summary.mint === 'string' && B58.test(summary.mint) && bs58.decode(summary.mint).length === 32
+    && typeof summary.vault === 'string' && B58.test(summary.vault) && bs58.decode(summary.vault).length === 32
+    && typeof summary.tokenName === 'string' && summary.tokenName.trim().length > 0 && summary.tokenName.length <= 80 && !/[\x00-\x1f<>]/.test(summary.tokenName)
+    && typeof summary.tokenSymbol === 'string' && /^[A-Z0-9]{1,10}$/.test(summary.tokenSymbol)
+    && typeof summary.reserveTokens === 'string' && /^\d{1,12}$/.test(summary.reserveTokens) && Number(summary.reserveTokens) > 0
+    && typeof summary.expectedSol === 'string' && /^\d+(?:\.\d{1,9})?$/.test(summary.expectedSol)
+    && typeof summary.maximumSol === 'string' && /^\d+(?:\.\d{1,9})?$/.test(summary.maximumSol)
+    && Number(summary.maximumSol) >= Number(summary.expectedSol);
   if (!summary || !['buy', 'sell'].includes(summary.side)) return false;
   const amount = value => typeof value === 'string' && value.length <= 32 && /^\d+(?:\.\d{1,9})?$/.test(value) && Number.isFinite(Number(value)) && Number(value) >= 0;
   if (typeof summary.mint !== 'string' || !B58.test(summary.mint) || bs58.decode(summary.mint).length !== 32
@@ -32,9 +49,9 @@ function validTradeSummary(summary) {
 }
 
 function finalizedTradeOutcome(transaction, wallet, mint) {
-  if (!transaction?.meta || !transaction?.transaction?.message?.accountKeys) return null;
+  if (!transaction?.meta || !transaction?.transaction?.message) return null;
   if (transaction.meta.err) return { state:'failed', slot:transaction.slot, error:'The Devnet transaction finalized with an error.' };
-  const keys = transaction.transaction.message.accountKeys;
+  const keys = transaction.transaction.message.accountKeys || transaction.transaction.message.staticAccountKeys || [];
   const walletIndex = keys.findIndex(key => String(key.pubkey || key) === wallet);
   if (walletIndex < 0) return { state:'failed', slot:transaction.slot, error:'The finalized transaction did not contain the expected wallet.' };
   const solDeltaLamports = BigInt(transaction.meta.postBalances[walletIndex]) - BigInt(transaction.meta.preBalances[walletIndex]);
@@ -64,6 +81,11 @@ function tradeSignatureFailure(code) {
 }
 
 function tradeInstructionDifference(expected, actual) {
+  if (expected instanceof VersionedTransaction || actual instanceof VersionedTransaction) return {
+    versioned:true, expectedMessageBytes:serializedMessage(expected).length,
+    actualMessageBytes:serializedMessage(actual).length,
+    messageChanged:!Buffer.from(serializedMessage(expected)).equals(Buffer.from(serializedMessage(actual))),
+  };
   const programs = transaction => transaction.instructions.map(instruction => instruction.programId.toBase58());
   return {
     feePayerChanged: !expected.feePayer?.equals(actual.feePayer),
@@ -141,16 +163,16 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
         if (transactionRequest !== undefined) {
           try {
             if (!transactionRequest || typeof transactionRequest.publicKey !== 'string' || !B58.test(transactionRequest.publicKey) || bs58.decode(transactionRequest.publicKey).length !== 32 || typeof transactionRequest.transaction !== 'string' || transactionRequest.transaction.length > 4000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(transactionRequest.transaction)) throw new Error('Invalid transaction request.');
-            const unsigned = Transaction.from(Buffer.from(transactionRequest.transaction, 'base64'));
-            if (unsigned.feePayer?.toBase58() !== transactionRequest.publicKey) throw new Error('Invalid fee payer.');
-            const message = unsigned.serializeMessage();
-            const coSignatures = unsigned.signatures.filter(entry => entry.publicKey.toBase58() !== transactionRequest.publicKey && entry.signature);
-            if (coSignatures.some(entry => !nacl.sign.detached.verify(message, entry.signature, entry.publicKey.toBytes()))) throw new Error('Invalid transaction co-signature.');
-            if (coSignatures.length && (!Number.isSafeInteger(transactionRequest.lastValidBlockHeight) || transactionRequest.lastValidBlockHeight <= 0)) throw new Error('Missing signed transaction expiry.');
+            const unsigned = parseTransaction(Buffer.from(transactionRequest.transaction, 'base64'));
+            if (payerOf(unsigned) !== transactionRequest.publicKey) throw new Error('Invalid fee payer.');
+            const message = serializedMessage(unsigned);
+            const otherSignatures = coSignatures(unsigned, transactionRequest.publicKey);
+            if (otherSignatures.some(entry => !nacl.sign.detached.verify(message, entry.signature, entry.publicKey.toBytes()))) throw new Error('Invalid transaction co-signature.');
+            if (otherSignatures.length && (!Number.isSafeInteger(transactionRequest.lastValidBlockHeight) || transactionRequest.lastValidBlockHeight <= 0)) throw new Error('Missing signed transaction expiry.');
             if (transactionRequest.summary !== undefined && !validTradeSummary(transactionRequest.summary)) throw new Error('Invalid trade review.');
           } catch { reply(res, 400, { error:'Invalid transaction request.' }); return true; }
         }
-        flows.set(input.id, { pollToken: input.pollToken, expiresAt: now() + FLOW_TTL_MS, result: null, signRequest: signRequest || null, transactionRequest:transactionRequest || null, preSigned: Boolean(transactionRequest && Transaction.from(Buffer.from(transactionRequest.transaction, 'base64')).signatures.some(entry => entry.publicKey.toBase58() !== transactionRequest.publicKey && entry.signature)), submittedSignature:null, outcome:null, nextStatusCheckAt:0 });
+        flows.set(input.id, { pollToken: input.pollToken, expiresAt: now() + FLOW_TTL_MS, result: null, signRequest: signRequest || null, transactionRequest:transactionRequest || null, preSigned: Boolean(transactionRequest && coSignatures(parseTransaction(Buffer.from(transactionRequest.transaction, 'base64')), transactionRequest.publicKey).length), submittedSignature:null, outcome:null, nextStatusCheckAt:0 });
         reply(res, 201, { callbackUrl: `${appOrigin}/api/mobile-wallet/callback/${input.id}`, expiresInSeconds: FLOW_TTL_MS / 1000 });
         return true;
       }
@@ -209,8 +231,8 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
         const signature = String(input.signature || '');
         let expectedSignature;
         try {
-          const signed = Transaction.from(bs58.decode(flow.result.transaction));
-          expectedSignature = bs58.encode(signed.signatures.find(entry => entry.publicKey.toBase58() === flow.transactionRequest.publicKey).signature);
+          const signed = parseTransaction(bs58.decode(flow.result.transaction));
+          expectedSignature = bs58.encode(payerSignature(signed, flow.transactionRequest.publicKey));
         } catch { reply(res, 400, { error:'Signed transaction is unavailable.' }); return true; }
         if (signature !== expectedSignature) { reply(res, 400, { error:'Signature does not match the signed trade.' }); return true; }
         flow.submittedSignature = signature;
@@ -251,7 +273,8 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
         try {
           const latest = await getLatestBlockhash();
           if (!B58.test(latest?.blockhash || '') || bs58.decode(latest.blockhash).length !== 32 || !Number.isSafeInteger(latest.lastValidBlockHeight) || latest.lastValidBlockHeight <= 0) throw new Error('Invalid Devnet blockhash.');
-          const unsigned = Transaction.from(Buffer.from(flow.transactionRequest.transaction, 'base64'));
+          const unsigned = parseTransaction(Buffer.from(flow.transactionRequest.transaction, 'base64'));
+          if (unsigned instanceof VersionedTransaction) throw new Error('A pre-signed launch blockhash cannot be refreshed.');
           unsigned.recentBlockhash = latest.blockhash;
           flow.transactionRequest = { ...flow.transactionRequest, transaction:Buffer.from(unsigned.serialize({ requireAllSignatures:false, verifySignatures:false })).toString('base64') };
           flow.lastValidBlockHeight = latest.lastValidBlockHeight;
@@ -278,20 +301,21 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
         try {
           if (encoded.length > 4000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) throw tradeSignatureFailure('invalid-encoding');
           const raw = Buffer.from(encoded, 'base64');
-          const signed = Transaction.from(raw);
-          const unsigned = Transaction.from(Buffer.from(flow.transactionRequest.transaction, 'base64'));
+          const signed = parseTransaction(raw);
+          const unsigned = parseTransaction(Buffer.from(flow.transactionRequest.transaction, 'base64'));
           const inspection = inspectPhantomTradeTransaction(unsigned, signed);
           if (!inspection.ok) {
             instructionDifference = tradeInstructionDifference(unsigned, signed);
             if (inspection.code === 'priority-fee-too-high') priorityFeeDetails = inspection;
             throw tradeSignatureFailure(inspection.code);
           }
-          const message = signed.serializeMessage();
-          const signature = signed.signatures.find(entry => entry.publicKey.toBase58() === flow.transactionRequest.publicKey)?.signature;
+          const message = serializedMessage(signed);
+          const signature = payerSignature(signed, flow.transactionRequest.publicKey);
           if (!signature) throw tradeSignatureFailure('wallet-signature-missing');
           if (!nacl.sign.detached.verify(message, signature, bs58.decode(flow.transactionRequest.publicKey))) throw tradeSignatureFailure('wallet-signature-invalid');
-          if (!signed.verifySignatures()) throw tradeSignatureFailure('other-signature-invalid');
-          flow.result = { transaction:bs58.encode(raw), publicKey:flow.transactionRequest.publicKey, blockhash:signed.recentBlockhash, lastValidBlockHeight:flow.lastValidBlockHeight, source:'phantom-injected' };
+          if (coSignatures(signed, flow.transactionRequest.publicKey).some(entry => !nacl.sign.detached.verify(message, entry.signature, entry.publicKey.toBytes()))) throw tradeSignatureFailure('other-signature-invalid');
+          if (signed instanceof Transaction && !signed.verifySignatures()) throw tradeSignatureFailure('other-signature-invalid');
+          flow.result = { transaction:bs58.encode(raw), publicKey:flow.transactionRequest.publicKey, blockhash:signed instanceof VersionedTransaction ? signed.message.recentBlockhash : signed.recentBlockhash, lastValidBlockHeight:flow.lastValidBlockHeight, source:'phantom-injected' };
         } catch (error) {
           const code = Object.hasOwn(TRADE_SIGNATURE_ERRORS, error?.code) ? error.code : 'invalid-encoding';
           console.warn(JSON.stringify({ event:'mobile-trade-signature-rejected', code, ...(instructionDifference ? { instructionDifference } : {}) }));

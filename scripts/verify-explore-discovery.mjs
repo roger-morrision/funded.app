@@ -1,19 +1,53 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { collectRecentTrades, enrichMarketRecord, filterMarketRecords, summarizeMarkets, withMarketWindow } from '../market-intelligence.js';
+import { explorePageNumbers, paginateExploreRows } from '../explore-pagination.js';
+import { exploreSocialLinks } from '../explore-social-links.js';
 import { formatSolMetric, readCurveMetrics, readPumpSwapMetrics } from '../explore-onchain-metrics.js';
 import { sortDevnetLaunches } from '../server/explore-registry.mjs';
 
 const exploreMarkup = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const appSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
 const workspaceSource = readFileSync(new URL('../workspace-ui.js', import.meta.url), 'utf8');
+assert.deepEqual(exploreSocialLinks({}, {}), [], 'Tokens without social links leave the icon group empty.');
+assert.deepEqual(exploreSocialLinks({ website:'https://token.example', twitter:'javascript:alert(1)', telegram:'https://t.me/token' }, { x:'https://x.com/token', discord:'https://discord.gg/token' }).map(link => [link.label, link.href]), [
+  ['Website', 'https://token.example/'],
+  ['X', 'https://x.com/token'],
+  ['Telegram', 'https://t.me/token'],
+  ['Discord', 'https://discord.gg/token'],
+], 'Explore shows available public links, rejects unsafe URLs, and uses verified launch links when needed.');
+assert.match(appSource, /!feedChecked \? 'Checking confirmed mints' : marketUnavailable \? 'Launch feed unavailable'/, 'Unavailable launch feeds must not be described as zero confirmed mints.');
+assert.match(appSource, /marketUnavailable \? '— <small>launch feed unavailable<\/small>'/, 'The analytics strip must distinguish unavailable registry data from a verified empty result.');
+assert.match(appSource, /verifiedLaunchPoliciesStatus === 'unavailable' \? 'Launch registry unavailable; allocations not verified'/, 'Analytics must not claim there are no community allocations when the launch registry is unavailable.');
+assert.match(appSource, /receiptEvidenceChecked && !receiptEvidence \? 'Receipt verification unavailable' : 'No verified referral payouts'/, 'Analytics must not claim there are no referral payouts when receipt verification is unavailable.');
+assert.match(appSource, /registryUnavailable \? 'Launch feed unavailable' : `\$\{filtered\.length\} of \$\{registryLaunches\.length\} shown`/, 'Explore must not show a verified zero result while the feed and launch registry are unavailable.');
 assert.match(appSource, /if \(exploreLoadInFlight\) return exploreLoadInFlight;[\s\S]*?exploreLoadInFlight = load;[\s\S]*?exploreLoadInFlight = null;/, 'Overlapping Explore refreshes must share one load instead of racing their scan counter.');
 assert.match(appSource, /let scannedCount = 0;[\s\S]*?scannedCount \+= 1;[\s\S]*?exploreScannedCount = scannedCount;/, 'A completed Explore load must publish only its own scan count.');
-assert.match(exploreMarkup, /Minimum curve cap · SOL\s*<input id="explore-min-cap-sol"/);
-assert.match(exploreMarkup, /Minimum 24h traded · SOL<\/span><input id="explore-min-volume-sol"/);
-assert.match(exploreMarkup, /id="explore-promotion-filter"[\s\S]*?Any paid promotion[\s\S]*?Premier/);
+assert.match(exploreMarkup, /Minimum MC · USD\s*<input id="explore-min-cap-sol"/);
+assert.match(exploreMarkup, /Minimum 24h traded · USD<\/span><input id="explore-min-volume-sol"/);
+assert.match(exploreMarkup, /id="explore-promotion-filter"[\s\S]*?Any paid tier[\s\S]*?Premier/);
+assert.match(exploreMarkup, /role="table" aria-label="Verified launch table"[\s\S]*?<span role="columnheader">#<\/span><span role="columnheader">Coin<\/span><span role="columnheader">Tier<\/span><span role="columnheader">MC<\/span><span role="columnheader">Age<\/span>/, 'The index shows ranked coins with separate tier, market cap, and age columns.');
+assert.match(appSource, /function refreshRegistryLaunches\(\)[\s\S]*?registryLaunches = assets\.filter[\s\S]*?\.map\(item => withVerifiedExploreBenefits\(/, 'Scanner filters use verified launch tier data.');
+assert.match(appSource, /function exploreAirdropMarkup\(record\)[\s\S]*?\['funded', 'drop-active'\]\.includes\(reserve\.status\)[\s\S]*?const detail = active \? 'Drop active' : funded \? 'Vault funded' : 'Funding unverified'/, 'The Explore airdrop cell must not label a verified active drop as unfunded.');
+assert.match(workspaceSource, /aria-label', 'Verified launch tier filters'[\s\S]*?\['Standard', 'standard'\][\s\S]*?\['Premier', 'premier'\]/, 'The visible tier chips expose verified launch tiers.');
+const rankedLaunches = Array.from({ length: 23 }, (_, index) => ({ address: `mint-${index + 1}` }));
+const secondPage = paginateExploreRows(rankedLaunches, 2);
+assert.deepEqual([secondPage.page, secondPage.pages, secondPage.start, secondPage.end, secondPage.rows[0].address], [2, 3, 10, 20, 'mint-11']);
+assert.deepEqual(paginateExploreRows(rankedLaunches.slice(0, 3), 9).rows.map(item => item.address), ['mint-1', 'mint-2', 'mint-3'], 'A smaller filtered result clamps back to its last available page.');
+assert.deepEqual(explorePageNumbers(7, 12), [5, 6, 7, 8, 9], 'Numbered paging keeps the active page centered when possible.');
+assert.deepEqual(explorePageNumbers(12, 12), [8, 9, 10, 11, 12], 'Numbered paging ends at the last available page.');
+assert.deepEqual(filterMarketRecords([
+  { address: 'standard', promotionBurnTokens: 0 },
+  { address: 'verified-boost', promotionBurnTokens: 100_000 },
+  { address: 'unverified', promotionBurnTokens: null },
+], { sort: 'tier-burn' }).map(item => item.address), ['verified-boost', 'standard', 'unverified'], 'Tier ranking uses the verified launch burn amount.');
+assert.match(exploreMarkup, /id="scanner-trades-heading"[\s\S]*?id="scanner-volume-heading"[\s\S]*?<span role="columnheader">24h<\/span><span role="columnheader">Airdrop<\/span><span role="columnheader">Status<\/span><span role="columnheader">Boost<\/span>/, 'The index shows trading, airdrop, status, and boost in separate columns.');
 assert.match(exploreMarkup, /id="explore-reward-filter"[\s\S]*?Community token airdrop[\s\S]*?Creator fees → holders[\s\S]*?Creator fees → X account/);
-assert.match(exploreMarkup, /data-explore-sort="airdrop"[\s\S]*?data-explore-sort="holder-fee"[\s\S]*?data-explore-sort="x-fee"/);
+assert.match(exploreMarkup, /<option value="airdrop">[\s\S]*?<option value="holder-fee">[\s\S]*?<option value="x-fee">/, 'Advanced reward sorts remain available inside Filters.');
+assert.match(exploreMarkup, /data-explore-sort="volume"[\s\S]*?data-explore-sort="market-cap"[\s\S]*?data-explore-sort="recent-trade"/, 'The visible sort bar should stay compact.');
+assert.match(appSource, /sortMarketRecords\(records\.filter\(asset =>[\s\S]*?asset\.windowVolumeSol != null[\s\S]*?asset\.volume24hUsd != null[\s\S]*?, 'volume'\)\.slice\(0, 8\)/, 'Trending must rank scanned volume independently of the current search and sort.');
+assert.match(appSource, /class="explore-ticker-view-all"[\s\S]*?scrollIntoView\(\{ block: 'start', behavior: 'smooth' \}\)/, 'View all must scroll within Explore instead of replacing its route hash.');
+assert.match(appSource, /class="asset-mint-row"[\s\S]*?class="asset-copy-mint"[\s\S]*?if \(copyMint\) \{ const mint = copyMint\.dataset\.mint;[\s\S]*?navigator\.clipboard\.writeText\(mint\)/, 'Gallery mint copy must use the actual verified card address.');
 assert.match(exploreMarkup, /id="explore-benefit-leaders"/);
 assert.match(appSource, /document\.querySelector\('#explore-search'\)\?\.addEventListener\('input', event => \{[\s\S]*?document\.querySelector\('#global-search'\)[\s\S]*?field\.value = exploreQuery;[\s\S]*?updateExploreViews\(\);\s*\}\);/, 'Clearing or editing Explore search must keep the persistent global field synchronized.');
 assert.match(appSource, /function clearExploreFilters\(\)[\s\S]*?dispatchEvent\(new Event\('funded:explore-filters-cleared'\)\)/, 'Every Explore clear path must notify the workspace filter summary.');
@@ -70,8 +104,8 @@ assert.deepEqual(readPumpSwapMetrics({ baseAmount: 200_000_000n, quoteAmount: 1_
 });
 assert.deepEqual(readPumpSwapMetrics({ baseAmount: 0n, quoteAmount: 500_000_000n, baseDecimals: 6, supply: 1_000_000_000n }), { poolPriceSol: null, poolMarketCapSol: null, poolReserveSol: 0.5 });
 assert.match(appSource, /item\.holders == null \|\| item\.holders === '' \? NaN : Number\(item\.holders\)/, 'A missing indexed holder value must not become a false zero.');
-assert.match(appSource, /<small>\$\{EXPLORE_CLUSTER === 'devnet' \? 'Token accounts' : 'Holders'\}<\/small>/, 'Devnet cards must describe bounded RPC token accounts accurately.');
-assert.match(appSource, /item\.migrated === true \? 'Pool unindexed'/, 'Migrated cards must not present curve-only activity as complete pool volume.');
+assert.match(appSource, /<small>Holders<\/small>/, 'Home cards must label distinct wallet owners as holders.');
+assert.match(appSource, /function exploreDevnetVolume\(record\)\{ return record\.migrated === true \? 'Unindexed'/, 'Migrated cards must not present curve-only activity as complete pool volume.');
 assert.match(appSource, /function exploreMarketCapUsd\(record\)/, 'Explore cards must derive USD market cap from the verified curve or pool snapshot.');
 assert.match(appSource, /class="asset-value"[^>]*>\$\{escapeHtml\(exploreMarketCapLabel\(a\)\)\} · \$\{escapeHtml\(exploreMarketCapUsd\(a\)\)\}/, 'Explore card footers must show USD market cap instead of a long decimal spot price.');
 const solRecords = [

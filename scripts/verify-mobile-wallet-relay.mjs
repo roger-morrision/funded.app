@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { ComputeBudgetProgram, Keypair, SystemProgram, Transaction } from '@solana/web3.js';
+import { ComputeBudgetProgram, Keypair, SystemProgram, Transaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
 import { createMobileWalletRelay } from '../server/mobile-wallet-relay.mjs';
 import { createPhantomSignMessageRequest, createPhantomSignTransactionRequest, decryptPhantomMobileResult, inspectPhantomTradeTransaction, verifyPhantomMobileSession, verifyPhantomMobileSignature, verifyPhantomMobileTransaction } from '../phantom-mobile-crypto.js';
 
@@ -242,4 +242,23 @@ assert.equal((await call('POST', `/api/mobile-wallet/trade/${launchId}`, { heade
 const launchResult = (await call('GET', `/api/mobile-wallet/relay/${launchId}`, { headers:{ 'x-mobile-wallet-token':launchToken } })).json.result;
 assert.equal(launchResult.lastValidBlockHeight, 700);
 assert.equal(launchResult.blockhash, launchTransaction.recentBlockhash);
+const versionedMint = Keypair.generate();
+const versionedMessage = new TransactionMessage({ payerKey:payer.publicKey, recentBlockhash:bs58.encode(nacl.randomBytes(32)),
+  instructions:[SystemProgram.transfer({ fromPubkey:versionedMint.publicKey, toPubkey:destination, lamports:1 })] }).compileToV0Message();
+const versionedLaunch = new VersionedTransaction(versionedMessage);
+versionedLaunch.sign([versionedMint]);
+const versionedSummary = { kind:'launch', mint:versionedMint.publicKey.toBase58(), tokenName:'Reserve QA', tokenSymbol:'RQA',
+  reserveTokens:'30000000', vault:destination.toBase58(), expectedSol:'0.029050817', maximumSol:'0.029341326' };
+const versionedRequest = { publicKey:session.publicKey, transaction:Buffer.from(versionedLaunch.serialize()).toString('base64'),
+  lastValidBlockHeight:800, summary:versionedSummary };
+const versionedId='0'.repeat(48), versionedToken='c'.repeat(64);
+assert.equal((await call('POST', '/api/mobile-wallet/relay', { headers:{ origin }, input:{ id:versionedId, pollToken:versionedToken, transactionRequest:versionedRequest } })).status, 201);
+assert.equal((await call('POST', `/api/mobile-wallet/trade-refresh/${versionedId}`, { headers:{ origin } })).json.transaction, versionedRequest.transaction);
+const signedVersioned=VersionedTransaction.deserialize(versionedLaunch.serialize());
+signedVersioned.sign([payer]);
+assert.equal((await call('POST', `/api/mobile-wallet/trade/${versionedId}`, { headers:{ origin }, input:{ transaction:Buffer.from(signedVersioned.serialize()).toString('base64') } })).status, 200);
+const versionedResult=(await call('GET', `/api/mobile-wallet/relay/${versionedId}`, { headers:{ 'x-mobile-wallet-token':versionedToken } })).json.result;
+assert.deepEqual(verifyPhantomMobileTransaction(versionedLaunch, versionedResult.transaction, session.publicKey).serialize(), signedVersioned.serialize());
+assert.equal((await call('POST', `/api/mobile-wallet/trade-status/${versionedId}`, { headers:{ origin, 'x-mobile-wallet-token':versionedToken },
+  input:{ signature:bs58.encode(signedVersioned.signatures[0]) } })).status, 200);
 console.log('Mobile Phantom relay, Devnet session proof, remote message signature, and transaction signature verified.');

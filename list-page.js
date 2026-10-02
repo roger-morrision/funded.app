@@ -24,6 +24,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
   const symbolInput = byId('list-symbol');
   const detailFields = document.querySelector('.list-token-fields');
   const detailNote = document.querySelector('.list-field-note');
+  const preview = byId('list-token-preview');
   const help = byId('list-mint-help');
   const availability = byId('list-availability');
   const status = byId('list-payment-status');
@@ -31,12 +32,32 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
   const review = byId('list-review');
   const recovery = byId('list-recovery');
   const live = byId('list-live-items');
-  const exploreLive = byId('explore-paid-listing-items');
   let config = null;
   let listings = [];
   let listingsAvailable = false;
   let busy = false;
   let prepared = null;
+  let lookup = null;
+  let lookupSequence = 0;
+  let lookupTimer = null;
+
+  const configuredBurnTokens = () => {
+    const amount = Number(config?.burnTokens);
+    return Number.isSafeInteger(amount) && amount > 0 && amount <= Number(LISTING_BURN_TOKENS) ? amount : null;
+  };
+  const burnLabel = () => (configuredBurnTokens() || Number(LISTING_BURN_TOKENS)).toLocaleString('en-US');
+  const burnTokenNoun = () => configuredBurnTokens() === 1 ? 'token' : 'tokens';
+  function renderBurnCopy() {
+    const label = burnLabel();
+    const step = byId('list-burn-step-copy');
+    const disclosure = byId('list-burn-disclosure');
+    const reviewCopy = byId('list-review-copy');
+    const reviewPayment = byId('list-review-payment');
+    if (step) step.textContent = `Approve an irreversible ${label} $FUNDED BurnChecked transaction. The same transaction binds the payment to this mint.`;
+    if (disclosure) disclosure.textContent = `Burns permanently reduce $FUNDED supply. The fee is ${label} ${burnTokenNoun()}, not a fixed USD value. A wallet approval and verified receipt are required before a listing appears.`;
+    if (reviewCopy) reviewCopy.textContent = `Burning ${label} $FUNDED is permanent. The transaction will bind this payment to the token mint below. The listing appears after the server verifies the finalized burn and token metadata.`;
+    if (reviewPayment) reviewPayment.textContent = `${label} $FUNDED · BurnChecked`;
+  }
 
   function mintValue() {
     try { return new PublicKey(mintInput.value.trim()).toBase58(); } catch { return null; }
@@ -53,33 +74,98 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
   function draw() {
     const mint = mintValue();
     const value = mintInput.value.trim();
-    for (const element of [detailFields, detailNote, payButton, status]) if (element) element.hidden = !mint;
+    const verified = mint && lookup?.mint === mint && lookup.status === 'verified';
+    const pending = readPending();
+    if (detailFields) detailFields.hidden = true;
+    if (detailNote) detailNote.hidden = true;
+    if (status) status.hidden = !verified && !pending;
     mintInput.removeAttribute('aria-invalid');
     help.classList.remove('is-valid', 'is-invalid');
     if (!value) help.textContent = 'Enter a Solana Devnet mint to check its address format.';
     else if (!mint) { help.textContent = 'Enter a valid Solana mint address.'; help.classList.add('is-invalid'); mintInput.setAttribute('aria-invalid', 'true'); }
     else { help.textContent = 'Valid address format. The token mint will be checked on Devnet before payment.'; help.classList.add('is-valid'); }
     const existing = mint && listings.find(item => item.mint === mint);
-    const pending = readPending();
+    preview.hidden = !mint;
+    preview.replaceChildren();
+    if (mint) {
+      const title = document.createElement('strong');
+      const note = document.createElement('small');
+      if (verified) {
+        title.textContent = lookup.name;
+        note.textContent = `${lookup.symbol} · Verified Devnet token metadata`;
+        if (existing) {
+          const link = document.createElement('a');
+          link.href = `/token/${encodeURIComponent(mint)}`;
+          link.textContent = 'Already listed ↗';
+          preview.append(title, note, link);
+        } else preview.append(title, note);
+      } else {
+        title.textContent = lookup?.mint === mint && lookup.status === 'error' ? 'Token lookup unavailable' : 'Checking token metadata…';
+        note.textContent = lookup?.mint === mint && lookup.status === 'error'
+          ? `${lookup.message} No listing payment can be reviewed.`
+          : 'Reading the mint and signed metadata from Solana Devnet.';
+        preview.append(title, note);
+      }
+    }
+    if (payButton) payButton.hidden = !verified || Boolean(existing);
     recovery.hidden = !pending;
+    const amountTokens = configuredBurnTokens();
     const ready = listingsAvailable && config?.enabled === true && config.cluster === 'devnet' && config.fundedMint === fundedMint
-      && Number(config.burnTokens) === Number(LISTING_BURN_TOKENS) && cluster === 'devnet' && !mainnetReadOnly;
-    availability.textContent = ready ? '25,000 $FUNDED · Devnet' : 'Payment unavailable';
-    payButton.disabled = !ready || !mint || !nameInput.value.trim() || !symbolInput.value.trim() || busy || Boolean(existing) || Boolean(pending);
-    payButton.textContent = busy ? 'Processing…' : pending ? 'Resolve pending burn first' : existing ? 'Already listed' : ready ? 'Review 25,000 $FUNDED burn' : 'Listing unavailable';
-    if (existing) setStatus('This mint is already listed.', existing.signature);
+      && amountTokens != null && cluster === 'devnet' && !mainnetReadOnly;
+    renderBurnCopy();
+    availability.textContent = ready ? `${burnLabel()} $FUNDED · Devnet` : 'Payment unavailable';
+    payButton.disabled = !ready || !verified || busy || Boolean(existing) || Boolean(pending);
+    payButton.textContent = busy ? 'Processing…' : pending ? 'Resolve pending burn first' : existing ? 'Already listed' : ready ? `Review ${burnLabel()} $FUNDED burn` : 'Listing unavailable';
+    if (existing) setStatus('Listing burn verified.', existing.signature);
+  }
+  function queueLookup() {
+    const sequence = ++lookupSequence;
+    clearTimeout(lookupTimer);
+    const mint = mintValue();
+    nameInput.value = '';
+    symbolInput.value = '';
+    lookup = mint ? { mint, status:'pending' } : null;
+    setStatus(mint ? 'Checking verified Devnet token metadata before payment.' : 'Enter a mint to check listing availability.');
+    draw();
+    if (!mint) return;
+    const existing = listings.find(item => item.mint === mint && item.onchainVerified === true && item.cluster === 'devnet');
+    if (existing?.name && existing?.symbol) {
+      lookup = { mint, status:'verified', name:existing.name, symbol:existing.symbol };
+      nameInput.value = existing.name;
+      symbolInput.value = existing.symbol;
+      draw();
+      return;
+    }
+    lookupTimer = setTimeout(async () => {
+      try {
+        const result = await apiRequest(`/api/listings/mint/${encodeURIComponent(mint)}`, { signal:AbortSignal.timeout(12000) });
+        if (sequence !== lookupSequence || mint !== mintValue()) return;
+        if (!result.available || result.data?.cluster !== 'devnet' || result.data.mint !== mint
+          || !result.data.name || !result.data.symbol) throw new Error('Verified token metadata is unavailable.');
+        lookup = { mint, status:'verified', name:result.data.name, symbol:result.data.symbol };
+        nameInput.value = lookup.name;
+        symbolInput.value = lookup.symbol;
+        setStatus('Token metadata verified on Devnet. Review remains gated by listing availability and wallet checks.');
+      } catch (error) {
+        if (sequence !== lookupSequence || mint !== mintValue()) return;
+        lookup = { mint, status:'error', message:error instanceof TypeError ? 'Devnet metadata service unavailable.' : error.message || 'The Devnet metadata service did not respond.' };
+        setStatus('Token metadata could not be verified. No listing payment can be reviewed.');
+      }
+      draw();
+    }, 250);
   }
   function renderListings() {
-    for (const container of [live, exploreLive].filter(Boolean)) {
-      container.replaceChildren();
-      if (!listings.length) { const empty = document.createElement('p'); empty.textContent = 'No paid listings have been verified on Devnet yet.'; container.append(empty); continue; }
-      for (const item of listings) {
+    if (!live) return;
+    live.replaceChildren();
+    if (!listings.length) { const empty = document.createElement('p'); empty.textContent = 'No paid listings have been verified on Devnet yet.'; live.append(empty); return; }
+    for (const item of listings) {
       const row = document.createElement('a'); row.href = `/token/${encodeURIComponent(item.mint)}`; row.setAttribute('role', 'listitem');
       const title = document.createElement('strong'); title.textContent = `${item.name} · ${item.symbol}`;
       const mint = document.createElement('code'); mint.textContent = item.mint;
-      const note = document.createElement('small'); note.textContent = '25,000 $FUNDED burn finalized · token name and ticker verified';
-      row.append(title, mint, note); container.append(row);
-      }
+      const amount = Number(item.amountTokens);
+      const amountLabel = Number.isSafeInteger(amount) && amount > 0 ? amount.toLocaleString('en-US') : burnLabel();
+      const note = document.createElement('small'); note.textContent = `${amountLabel} $FUNDED burn finalized · token name and ticker verified`;
+      row.append(title, mint, note); live.append(row);
     }
   }
   async function refreshListings() {
@@ -90,9 +176,11 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       listingsAvailable = true;
       const pending = readPending();
       if (pending && listings.some(item => item.mint === pending.mint && item.signature === pending.signature)) savePending(null);
-      renderListings(); draw();
+      renderListings();
+      if (mintValue() && listings.some(item => item.mint === mintValue() && item.onchainVerified === true)) queueLookup();
+      else draw();
       return true;
-    } catch { listingsAvailable = false; live.textContent = 'The verified listing index is unavailable.'; if (exploreLive) exploreLive.textContent = 'The verified listing index is unavailable.'; setStatus('The public listing index is unavailable. Payment is paused.'); draw(); return false; }
+    } catch { listings = []; listingsAvailable = false; live.textContent = 'The verified listing index is unavailable.'; setStatus('The public listing index is unavailable. Payment is paused.'); draw(); return false; }
   }
   async function refreshConfig() {
     try {
@@ -132,14 +220,16 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
         throw new Error('The configured $FUNDED mint is unavailable on Devnet.');
       const tokenProgram = fundedAccount.owner;
       const funded = await getMint(rpc, fundedKey, 'confirmed', tokenProgram);
-      const amount = listingBurnBaseUnits(funded.decimals);
+      const amountTokens = configuredBurnTokens();
+      if (amountTokens == null) throw new Error('The Devnet listing burn policy is unavailable.');
+      const amount = listingBurnBaseUnits(funded.decimals, amountTokens);
       const accounts = await rpc.getTokenAccountsByOwner(new PublicKey(session.address), { mint: fundedKey }, 'confirmed');
       const source = accounts.value.map(row => ({ address: row.pubkey, amount: unpackAccount(row.pubkey, row.account, tokenProgram).amount }))
         .find(row => row.amount >= amount);
-      if (!source) throw new Error('This wallet needs 25,000 $FUNDED in one token account to list this mint.');
+      if (!source) throw new Error(`This wallet needs ${burnLabel()} $FUNDED in one token account to list this mint.`);
       assertSession(session);
       prepared = { session, rpc, mint, name: nameInput.value.trim(), symbol: symbolInput.value.trim(),
-        fundedKey, tokenProgram, decimals: funded.decimals, amount, source, supplyBefore: funded.supply };
+        fundedKey, tokenProgram, decimals: funded.decimals, amountTokens, amount, source, supplyBefore: funded.supply };
       byId('list-review-mint').textContent = mint;
       byId('list-review-wallet').textContent = session.address;
       review.showModal();
@@ -155,7 +245,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       if (!result.available || result.data?.mint !== pending.mint || result.data?.signature !== pending.signature || result.data?.onchainVerified !== true)
         throw new Error('The receipt was not confirmed by the listing index.');
       savePending(null);
-      setStatus('Listing verified and live in the index.', pending.signature);
+      setStatus('Listing verified and live in Launch Directory.', pending.signature);
       await refreshListings();
       window.dispatchEvent(new Event('funded:listing-verified'));
     } catch (error) { setStatus(`Burn submitted; listing verification is pending: ${error.message}`, pending.signature); }
@@ -177,7 +267,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
           payment.amount, payment.decimals, [], payment.tokenProgram),
         new TransactionInstruction({ programId: MEMO_PROGRAM, keys: [], data: Buffer.from(listingMemo(payment.mint), 'utf8') }),
       );
-      setStatus('Review the irreversible 25,000 $FUNDED burn in your wallet.');
+      setStatus(`Review the irreversible ${Number(payment.amountTokens).toLocaleString('en-US')} $FUNDED burn in your wallet.`);
       const signed = await payment.session.provider.signTransaction(transaction);
       assertSession(payment.session);
       signature = await payment.rpc.sendRawTransaction(signed.serialize(), { skipPreflight: false, maxRetries: 3 });
@@ -199,10 +289,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     } finally { busy = false; draw(); }
   }
 
-  for (const input of [mintInput, nameInput, symbolInput]) input.addEventListener('input', () => {
-    draw();
-    if (!payButton.disabled) setStatus('Ready to check the mint and wallet balance before the burn.');
-  });
+  mintInput.addEventListener('input', queueLookup);
   payButton.addEventListener('click', preparePayment);
   byId('list-review-cancel').addEventListener('click', () => { prepared = null; review.close(); });
   byId('list-review-confirm').addEventListener('click', submitPayment);
@@ -211,5 +298,5 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
   window.addEventListener('funded:route-change', event => { if (event.detail?.route === 'list') void refreshListings(); });
   const pending = readPending();
   if (pending) { mintInput.value = pending.mint; nameInput.value = pending.name; symbolInput.value = pending.symbol; }
-  draw(); void refreshConfig(); void refreshListings();
+  queueLookup(); void refreshConfig(); void refreshListings();
 }

@@ -1,6 +1,10 @@
 import { PublicKey } from '@solana/web3.js';
 import { validateFeeDistribution } from '../distribution-policy.js';
 
+export function xFeeObligationRequired(launch) {
+  return Number(launch?.feeDistribution?.creatorDirected?.shares?.solClaimPercent || 0) > 0;
+}
+
 export function deriveXFeeObligation(state, { mint, claimSignature }) {
   const mintAddress = new PublicKey(String(mint || '')).toBase58();
   const signature = String(claimSignature || '').trim();
@@ -8,7 +12,6 @@ export function deriveXFeeObligation(state, { mint, claimSignature }) {
   const launch = state.launches?.[mintAddress];
   if (!launch?.onchainVerified || launch.cluster !== 'devnet') throw new Error('A verified Devnet launch policy is required.');
   const route = launch.pumpFeeRoute;
-  if (!/^\d{1,24}$/.test(String(launch.xUserId || ''))) throw new Error('The launch has no stable X user ID; a handle alone is not sufficient for a fee claim.');
   if (route?.scope !== 'per-mint-v2' || route?.verified !== true || route.router !== launch.creator) {
     throw new Error('This launch has no isolated, verified per-mint fee router. Shared-router fees cannot be attributed to an X claim.');
   }
@@ -16,6 +19,7 @@ export function deriveXFeeObligation(state, { mint, claimSignature }) {
   const recipient = launch.feeDistribution?.creatorDirected?.recipients?.xAccount;
   const validation = validateFeeDistribution({ ...shares, xRecipient: recipient });
   if (!validation.valid || validation.shares.solClaimPercent <= 0) throw new Error('The verified launch policy has no valid X-linked fee share.');
+  if (!/^\d{1,24}$/.test(String(launch.xUserId || ''))) throw new Error('The launch has no stable X user ID; a handle alone is not sufficient for a fee claim.');
   const collection = state.collections?.[signature];
   if (collection?.status !== 'collected' || collection.mint !== mintAddress || collection.router !== route.router || collection.attribution !== 'mint-verified' || collection.onchainVerified !== true) {
     throw new Error('A mint-attributed, on-chain-verified fee collection is required.');
@@ -33,4 +37,17 @@ export function deriveXFeeObligation(state, { mint, claimSignature }) {
     shareBps: Number(shareBps), status: 'claimable-after-x-and-wallet-verification',
     source: 'verified-per-mint-router-collection',
   };
+}
+
+export function reconcileXFeeObligation(state, { mint, claimSignature, createdAt = new Date().toISOString() }) {
+  const launch = state.launches?.[String(mint || '')];
+  if (!xFeeObligationRequired(launch)) return { obligationStatus: 'not-applicable' };
+  try {
+    const obligation = deriveXFeeObligation(state, { mint, claimSignature });
+    state.obligations ||= {};
+    state.obligations[obligation.id] ||= { ...obligation, createdAt };
+    return { obligationId: obligation.id };
+  } catch (error) {
+    return { obligationStatus: 'reconciliation-required', obligationError: String(error.message || error) };
+  }
 }

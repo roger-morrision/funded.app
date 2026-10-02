@@ -17,7 +17,7 @@ import { receiptRetentionOptions,expiredReceiptProofs,receiptRetentionResult } f
 
 export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-store.json'), databaseUrl = process.env.DATABASE_URL) {
   if (databaseUrl) return createPostgresStore(databaseUrl);
-  let state = { version: 4, launches: {}, settlements: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, marketActivity: {}, coinChats: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
+  let state = { version: 4, launches: {}, listings: {}, boostQuotes: {}, boostReceipts: {}, settlements: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, marketActivity: {}, coinChats: {}, shareVisits: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
   let loaded = false;
   let updateQueue = Promise.resolve();
   const rpcRates = new Map();
@@ -27,6 +27,9 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     if (loaded) return state;
     try { state = { ...state, ...JSON.parse(await readFile(filePath, 'utf8')) }; } catch (error) { if (error.code !== 'ENOENT') throw error; }
     state.referralClaims ||= {};
+    state.listings ||= {};
+    state.boostQuotes ||= {};
+    state.boostReceipts ||= {};
     state.collections ||= {};
     state.burnReceipts ||= {};
     state.buybackOrders ||= {};
@@ -36,6 +39,7 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     state.xIntake ||= {};
     state.marketActivity ||= {};
     state.coinChats ||= {};
+    state.shareVisits ||= {};
     state.creatorProfiles ||= {};
     state.referrals ||= { codes: {}, wallets: {}, attributions: {}, challenges: {} };
     state.referrals.codes ||= {};

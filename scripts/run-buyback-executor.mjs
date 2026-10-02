@@ -1,8 +1,9 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import bs58 from 'bs58';
 import { Keypair } from '@solana/web3.js';
 import { createStore } from '../server/store.mjs';
 import { createDevnetBuybackExecutor } from '../server/buyback-executor.mjs';
+import { resolveDevnetBuybackConfig } from './devnet-role-config.mjs';
 
 function config(name) {
   const path = process.env[`${name}_FILE`];
@@ -14,13 +15,17 @@ const watch = args.includes('--watch');
 const mintIndex = args.indexOf('--mint');
 const selectedMint = mintIndex >= 0 ? args[mintIndex + 1] : null;
 if (mintIndex >= 0 && !selectedMint) throw new Error('--mint requires a Devnet launch mint.');
-const authoritySecret = config('FUNDED_ROUTER_AUTHORITY_SECRET_KEY');
+const resolved = resolveDevnetBuybackConfig(process.env);
+const authoritySecret = resolved.authoritySecret;
 const authority = authoritySecret ? Keypair.fromSecretKey(bs58.decode(authoritySecret)) : null;
 if (!authority) throw new Error('Devnet router authority is not configured.');
 if (config('FUNDED_REWARD_AUTHORITY') !== authority.publicKey.toBase58()) throw new Error('Router authority differs from the configured reward authority.');
-const operatorSecret = config('FUNDED_BUYBACK_OPERATOR_SECRET_KEY');
+const operatorSecret = resolved.operatorSecret;
 const operator = operatorSecret ? Keypair.fromSecretKey(bs58.decode(operatorSecret)) : null;
 if (!operator || operator.publicKey.equals(authority.publicKey)) throw new Error('A separate Devnet buyback operator is required.');
+const qaLookupPath = `.secrets/funded-buyback-lookup-table-${authority.publicKey.toBase58()}.address`;
+const lookupTableAddress = resolved.source === 'qa-role' && existsSync(qaLookupPath)
+  ? readFileSync(qaLookupPath, 'utf8').trim() : config('FUNDED_BUYBACK_LOOKUP_TABLE');
 const store = createStore(process.env.FUNDED_STORE_PATH, config('DATABASE_URL'));
 const executor = createDevnetBuybackExecutor({
   store,
@@ -31,10 +36,10 @@ const executor = createDevnetBuybackExecutor({
   poolAddress: config('FUNDED_SWAP_POOL'),
   authority,
   operator,
-  lookupTableAddress: config('FUNDED_BUYBACK_LOOKUP_TABLE'),
+  lookupTableAddress,
   feeOwner: config('FUNDED_TRADE_FEE_OWNER'),
   feeBps: Number(config('FUNDED_TRADE_FEE_BPS') || '50'),
-  enabled: config('FUNDED_BUYBACK_EXECUTOR_ENABLED') === 'true' && config('SOLANA_CLUSTER') === 'devnet',
+  enabled: resolved.enabled,
 });
 
 async function tick() {

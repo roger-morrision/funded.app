@@ -32,3 +32,17 @@ export function attachVerifiedTokenAccountWallets(sample, infos, mint) {
     }),
   };
 }
+
+export function normalizeAllTokenAccounts(rows, mint, tokenProgram) {
+  const mintBytes = new PublicKey(mint).toBuffer();
+  const accounts = rows.map(row => {
+    const data = row?.account?.data;
+    if (!Buffer.isBuffer(data) || data.length < 165 || !row.account.owner?.equals?.(tokenProgram)
+      || !data.subarray(0, 32).equals(mintBytes) || data[108] === 0) {
+      throw new Error('The complete token account scan contains an unverified account.');
+    }
+    const amount = data.readBigUInt64LE(64);
+    return amount > 0n ? { address: row.pubkey.toBase58(), wallet: new PublicKey(data.subarray(32, 64)).toBase58(), amount: amount.toString() } : null;
+  }).filter(Boolean);
+  return { accounts, count: accounts.length, coverage: 'complete-account-list', source: 'solana-getProgramAccounts' };
+}

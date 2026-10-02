@@ -1,5 +1,6 @@
 import './reward-experience.css';
 import { summarizeXClaims, formatXClaimSol } from './x-claim-summary.js';
+import { createTokenCardActions } from './token-card-controls.js';
 
 const LAMPORTS = 1_000_000_000n;
 const ALERT_KEY = 'funded.vip.reward-alerts.v1';
@@ -45,7 +46,7 @@ function createPanels() {
   const rewardsOverview = byId('rewards-overview') || payments;
   if (payments && !byId('reward-portfolio')) {
     const section = node('section', 'reward-experience-panel', null); section.id = 'reward-portfolio';
-    section.innerHTML = `<header><div><p class="eyebrow">Your wallet · verified records</p><h2>Your reward activity</h2><p>Track collected fees, open claims, and confirmed payments.</p></div><span data-reward-evidence>Checking evidence…</span></header><div class="reward-stage-key"><span>Published</span><span>Collected</span><span>Allocated</span><span>Available</span><span>Paid</span></div><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><nav class="reward-portfolio-links"><a href="#airdrops">$FUNDED holder airdrops →</a><a href="#referrals">Referral claims →</a><a href="#payments">X account claims ↓</a></nav><small>Unpaid allocations are not wallet balances. X rewards require the matching X sign-in; airdrop eligibility requires a finalized migration snapshot.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Your wallet · verified records</p><h2>Your reward activity</h2><p>Track collected fees, open claims, and confirmed payments.</p></div><span data-reward-evidence>Checking evidence…</span></header><div class="reward-stage-key"><span>Published</span><span>Collected</span><span>Allocated</span><span>Available</span><span>Paid</span></div><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><nav class="reward-portfolio-links"><a href="#airdrops">$FUNDED holder airdrops →</a><a href="#referrals">Referral claims →</a><a href="#payments">X account claims ↓</a></nav><small>Unpaid allocations are not wallet balances. Preparing a claim is not payment. X rewards require the matching X sign-in; airdrop eligibility requires a finalized migration snapshot.</small>`;
     rewardsOverview.append(section);
   }
   if (payments && !byId('reward-discovery')) {
@@ -53,41 +54,6 @@ function createPanels() {
     section.innerHTML = `<header><div><p class="eyebrow">Verified benefits</p><h2>Coins rewarding holders</h2><p>Browse published policies and actual payout records separately.</p></div><label>Show <select data-reward-filter><option value="all">All holder policies</option><option value="allocated">Fees allocated</option><option value="paid">Holders paid</option></select></label></header><div data-reward-discovery role="status">Checking verified launches…</div><small>Amounts use the available finalized receipt window, not a lifetime total. Order uses distinct paid wallets, then latest payment; wallets are not people.</small>`;
     rewardsOverview.append(section);
     section.querySelector('[data-reward-filter]').addEventListener('change', () => renderDiscovery(latest));
-  }
-  const fee = byId('coin-fee-dashboard')?.closest('.coin-fee-dashboard');
-  if (fee && !byId('token-reward-proof')) {
-    const section = node('section', 'reward-experience-panel token-reward-proof', null); section.id = 'token-reward-proof';
-    section.innerHTML = `<header><div><p class="eyebrow">Public proof</p><h2>Where this coin’s fees went</h2><p>Collection, allocation, payments, and buybacks have separate evidence.</p></div><button type="button" data-copy-proof>Copy proof link</button></header><div data-token-proof role="status">Open a verified token to inspect its reward history.</div>`;
-    fee.after(section);
-    section.querySelector('[data-copy-proof]').addEventListener('click', async event => {
-      const mint = location.pathname.match(/^\/token\/([^/]+)$/)?.[1];
-      if (!validMint(mint)) return;
-      try { await navigator.clipboard.writeText(new URL(tokenUrl(mint), location.origin).href); event.currentTarget.textContent = 'Link copied'; }
-      catch { event.currentTarget.textContent = 'Copy unavailable'; }
-      setTimeout(() => { if (event.currentTarget.isConnected) event.currentTarget.textContent = 'Copy proof link'; }, 2500);
-    });
-  }
-  const launch = document.querySelector('#launch-form [data-launch-step="2"]');
-  if (launch && !byId('creator-reward-studio')) {
-    const section = node('section', 'reward-experience-panel reward-studio', null); section.id = 'creator-reward-studio';
-    section.innerHTML = `<header><div><p class="eyebrow">Creator planning</p><h2>Choose who benefits</h2><p>Compare the fixed 80% creator-directed share before signing. Examples use 1 SOL of creator fees actually collected.</p></div></header><div class="reward-studio-grid"><article><strong>Creator first</strong><span>0.8 SOL creator · 0 holders · 0 X</span><button type="button" data-studio-preset="creator">Use split</button></article><article><strong>Shared with holders</strong><span>0.6 SOL creator · 0.2 SOL holders</span><button type="button" data-studio-preset="holders">Use split</button></article><article><strong>Creator, holders &amp; X</strong><span>0.5 SOL creator · 0.2 SOL holders · 0.1 SOL X</span><small>Requires a verified X recipient.</small><button type="button" data-studio-preset="partner">Use split</button></article></div><p data-studio-status role="status">The remaining 20% follows the published protocol allocation. These examples are not projected earnings.</p>`;
-    launch.prepend(section);
-    section.addEventListener('click', event => {
-      const choice = event.target.closest('[data-studio-preset]')?.dataset.studioPreset;
-      if (!choice) return;
-      const presets = { creator:[80,0,0], holders:[60,20,0], partner:[50,20,10] };
-      const values = presets[choice];
-      if (choice === 'partner' && byId('x-share')?.disabled) {
-        section.querySelector('[data-studio-status]').textContent = 'X routing is currently unavailable. Choose another split or check the X service status.';
-        return;
-      }
-      byId('launch-mode-custom')?.click();
-      for (const [id, value] of [['creator-wallet-share',values[0]], ['holder-airdrop-share',values[1]], ['x-share',values[2]]]) {
-        const input = byId(id); if (!input) continue; input.value = String(value); input.dispatchEvent(new Event('input', { bubbles:true }));
-      }
-      section.querySelector('[data-studio-status]').textContent = choice === 'partner'
-        ? 'Split applied. Enter and verify the X account before launch review.' : 'Split applied to the launch form. Review the final route before signing.';
-    });
   }
   const community = byId('community');
   if (community && !byId('community-reward-reserve')) {
@@ -99,6 +65,20 @@ function createPanels() {
     const alerts = node('section', 'reward-experience-panel reward-alerts', null); alerts.id = 'reward-alerts';
     alerts.innerHTML = `<header><div><p class="eyebrow">Followed coins</p><h2>Reward alerts</h2><p>Get an in-app notice when a watched coin has a newly verified fee collection, holder payment, or buyback burn.</p></div><label><input type="checkbox" data-alert-toggle /> Enable</label></header><div data-alert-status role="status">Alerts are off.</div><div data-alert-list></div><small>Alerts work while this page is open and are saved on this device. They do not promise a payout or run in the background.</small>`;
     community.append(alerts);
+    const navigateCommunity = (target, focusToggle = false) => {
+      const destination = target === 'alerts' ? alerts : community.querySelector('.community-grid');
+      if (!destination) return;
+      community.querySelectorAll('[data-community-target]').forEach(button => {
+        const active = button.dataset.communityTarget === target;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+      destination.scrollIntoView({ behavior:'smooth', block:'start' });
+      if (focusToggle) alerts.querySelector('[data-alert-toggle]')?.focus({ preventScroll:true });
+    };
+    community.querySelectorAll('[data-community-target]').forEach(button => button.addEventListener('click', () =>
+      navigateCommunity(button.dataset.communityTarget)));
+    byId('manage-alerts')?.addEventListener('click', () => navigateCommunity('alerts', true));
     alerts.querySelector('[data-alert-toggle]').checked = alertPrefs().enabled;
     alerts.querySelector('[data-alert-toggle]').addEventListener('change', event => {
       const prefs = alertPrefs(); prefs.enabled = event.target.checked;
@@ -131,7 +111,7 @@ function renderPortfolio(data, referralData, xData) {
   for (const [label, value] of [['Creator allocation without payout proof',sol(creatorUnpaid)],
     ['Verified SOL payments',sol(paid.reduce((sum, row) => sum + BigInt(row.amountLamports), 0n))],
     ['Open referral claims',referralClaims ? sol(referralOpen.reduce((sum, row) => sum + decimalLamports(row.amount), 0n)) : 'Unavailable'],
-    ['X ready to claim',xClaims ? formatXClaimSol(xClaims.unclaimed) : document.querySelector('#x-sign-in')?.dataset.connected === 'true' ? 'Unavailable' : 'Sign in with X']]) {
+    ['X requests ready to prepare',xClaims ? formatXClaimSol(xClaims.unclaimed) : document.querySelector('#x-sign-in')?.dataset.connected === 'true' ? 'Unavailable' : 'Sign in with X']]) {
     const card = node('div'); card.append(node('small','',label), node('strong','',value)); summary.append(card);
   }
   body.append(summary);
@@ -149,6 +129,7 @@ function renderPortfolio(data, referralData, xData) {
       if (payment.feeSourceVerified && payment.sourceClaims?.length) line.append(node('span','', ' · fee collection linked'));
       article.append(line);
     }
+    if (validMint(row.mint)) article.append(createTokenCardActions({ mint: row.mint, symbol: row.symbol, name: row.name, className: 'reward-token-actions' }));
     list.append(article);
   }
   body.append(list);
@@ -177,41 +158,10 @@ function renderDiscovery(data) {
     article.append(title);
     article.append(node('p','',`${row.holderSharePercent}% fee share · ${sol(row.totals.holder)} allocated · ${row.holderPaidWallets} paid wallet${row.holderPaidWallets === 1 ? '' : 's'}`));
     if (row.lastHolderPayout) article.append(node('small','',`Latest recorded holder payment ${new Date(row.lastHolderPayout).toLocaleString()}`));
+    if (validMint(row.mint)) article.append(createTokenCardActions({ mint: row.mint, symbol: row.symbol, name: row.name, className: 'reward-token-actions' }));
     list.append(article);
   }
   root.append(list);
-}
-function renderToken(data) {
-  const root = document.querySelector('[data-token-proof]'); if (!root) return;
-  root.replaceChildren();
-  if (data?.evidence.status === 'unavailable') { root.textContent = 'Finalized fee evidence is unavailable. This page cannot confirm collection or payout totals right now.'; return; }
-  const mint = location.pathname.match(/^\/token\/([^/]+)$/)?.[1];
-  if (!validMint(mint)) { root.textContent = 'Open a verified token to inspect its reward history.'; return; }
-  const row = data?.tokens?.find(item => item.mint === mint);
-  if (!row) { root.textContent = data ? 'No finalized fee-route record for this token.' : 'Reward proof is unavailable.'; return; }
-  const steps = node('ol','reward-proof-steps');
-  const details = [
-    ['Policy published',`${row.holderSharePercent}% to coin holders`,true],
-    ['Fees collected',`${sol(row.totals.collected)} · ${row.collectionCount} collection receipts`,row.collectionCount > 0],
-    ['Fees allocated',`${sol(row.totals.allocated)} across the published policy`,BigInt(row.totals.allocated) > 0n],
-    ['Holders paid',`${row.holderPaidWallets} wallets · ${row.holderPayoutCount} finalized payments`,row.holderPayoutCount > 0],
-    ['Buyback burned',`${row.buybackBurnCount} verified burns · ${row.buybackBurnedBaseUnits} $FUNDED base units`,row.buybackBurnCount > 0],
-  ];
-  for (const [title, detail, done] of details) {
-    const item = node('li', done ? 'complete' : 'pending'); item.append(node('strong','',title),node('small','',detail)); steps.append(item);
-  }
-  root.append(steps);
-  if (row.holderPayoutCount) root.append(node('p','reward-source-note',row.payoutSource === 'verified-fee-funded-cycle'
-    ? 'Every listed holder payment is linked to a verified fee collection and balance-verified funded pool.'
-    : 'Some holder payments are finalized, but their funding source is not linked to a specific fee claim in this view.'));
-  // Signatures are only rendered as links when they came from the verified API model.
-  const eventList = node('div','reward-proof-events');
-  for (const event of (data.events || []).filter(item => item.mint === mint).slice(0, 12)) {
-    const article = node('div'); article.append(node('span','',`${event.label} · ${sol(event.amountLamports)}`), link('Transaction ↗', explorer(event.signature), true));
-    if (event.feeSourceVerified && event.sourceClaims?.length) article.append(link('Source fee claim ↗', explorer(event.sourceClaims[0]), true));
-    eventList.append(article);
-  }
-  if (eventList.children.length) root.append(eventList);
 }
 function renderCommunity(data) {
   const root = document.querySelector('[data-community-reserve]'); if (!root) return;
@@ -279,11 +229,17 @@ function renderAlerts() {
 function captureAlerts(data) {
   const prefs = alertPrefs(); if (!prefs.enabled || !data || data.evidence.status === 'unavailable') return;
   const watched = watchedMints(); const seen = new Set(prefs.seen);
-  for (const event of (data.events || []).slice().reverse()) {
+  const activeKinds = new Set(['holder-paid', 'buyback-burned']);
+  const dailyNotices = new Set(prefs.notices.map(row => `${row.mint}:${row.kind}:${String(row.at || '').slice(0, 10)}`));
+  for (const event of (data.events || [])) {
     const key = `${event.kind}:${event.signature}`;
     if (!watched.has(event.mint) || seen.has(key)) continue;
     seen.add(key);
-    prefs.notices.push({ mint:event.mint, signature:event.signature, label:event.label, at:event.at });
+    if (!activeKinds.has(event.kind) || event.kind === 'holder-paid' && event.feeSourceVerified !== true) continue;
+    const dayKey = `${event.mint}:${event.kind}:${String(event.at || '').slice(0, 10)}`;
+    if (!event.at || dailyNotices.has(dayKey)) continue;
+    dailyNotices.add(dayKey);
+    prefs.notices.push({ mint:event.mint, signature:event.signature, label:event.label, kind:event.kind, at:event.at });
   }
   prefs.seen = [...seen].slice(-150); prefs.notices = prefs.notices.slice(-30);
   saveAlertPrefs(prefs); renderAlerts();
@@ -311,9 +267,12 @@ async function refresh() {
   ]);
   if (current !== refreshToken) return;
   latest = experience.status === 'fulfilled' ? experience.value : null;
+  if (location.hash === '#payments' && latest?.evidence?.status === 'onchain-indexed'
+    && latest.events?.some(event => event.kind?.endsWith('-paid') && event.feeSourceVerified === true))
+    window.dispatchEvent(new Event('funded:verified-reward-view'));
   document.querySelectorAll('[data-reward-evidence]').forEach(element => { element.textContent = latest?.evidence?.status === 'onchain-indexed' ? 'Finalized receipts' : latest?.evidence?.status === 'partial' ? 'Partial receipt coverage' : latest?.evidence?.status === 'no-records' ? 'No finalized receipts yet' : 'Evidence unavailable'; });
   renderPortfolio(latest, referrals.status === 'fulfilled' ? referrals.value : null, xClaims.status === 'fulfilled' ? xClaims.value : null);
-  renderDiscovery(scoped ? null : latest); renderToken(scoped ? latest : null);
+  renderDiscovery(scoped ? null : latest);
   renderCommunity(scoped ? null : latest);
   renderBuybacks(buybacks.status === 'fulfilled' ? buybacks.value : null);
   if (!scoped) captureAlerts(latest);

@@ -4,12 +4,15 @@ import { AddressLookupTableProgram, Connection, Keypair, PublicKey, SystemProgra
 import { createAssociatedTokenAccountIdempotentInstruction, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { buildVerifiedPoolTradeTransaction } from '../pump-trading.js';
 import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from '../server/automatic-reward-chain.mjs';
+import { resolveDevnetBuybackConfig } from './devnet-role-config.mjs';
 
 const path = '.secrets/funded-buyback-operator-secret-key';
 const lookupPath = '.secrets/funded-buyback-lookup-table-address';
-if (!existsSync(path)) throw new Error('Dedicated Devnet buyback operator wallet has not been generated.');
-const authority = Keypair.fromSecretKey(bs58.decode(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || ''));
-const operator = Keypair.fromSecretKey(bs58.decode(readFileSync(path, 'utf8').trim()));
+const resolved = resolveDevnetBuybackConfig(process.env);
+const authority = Keypair.fromSecretKey(bs58.decode(resolved.authoritySecret));
+const operatorSecret = resolved.operatorSecret || (existsSync(path) ? readFileSync(path, 'utf8').trim() : '');
+if (!operatorSecret) throw new Error('Dedicated Devnet buyback operator wallet has not been generated.');
+const operator = Keypair.fromSecretKey(bs58.decode(operatorSecret));
 if (authority.publicKey.toBase58() !== process.env.FUNDED_REWARD_AUTHORITY || operator.publicKey.equals(authority.publicKey)) throw new Error('Devnet buyback signer roles are invalid.');
 const connection = new Connection(process.env.SOLANA_RPC_URL, 'confirmed');
 if (await connection.getGenesisHash() !== DEVNET_GENESIS_HASH) throw new Error('Buyback initialization is Devnet-only.');
@@ -36,17 +39,27 @@ for (const instruction of trade.instructions) {
   for (const entry of instruction.keys) if (!entry.isSigner) keys.set(entry.pubkey.toBase58(), entry.pubkey);
 }
 const addresses = [...keys.values()];
-let tableAddress;
-if (existsSync(lookupPath)) {
-  tableAddress = new PublicKey(readFileSync(lookupPath, 'utf8').trim());
-  const table = await connection.getAddressLookupTable(tableAddress, { commitment:'finalized' });
-  if (!table.value || addresses.some(address => !table.value.state.addresses.some(existing => existing.equals(address)))) throw new Error('Existing Devnet buyback lookup table lacks required pool accounts.');
+const qaLookupPath = `.secrets/funded-buyback-lookup-table-${authority.publicKey.toBase58()}.address`;
+let tableAddress = null, table = null;
+for (const candidate of [qaLookupPath, lookupPath]) {
+  if (!existsSync(candidate)) continue;
+  const address = new PublicKey(readFileSync(candidate, 'utf8').trim());
+  const result = await connection.getAddressLookupTable(address, { commitment:'finalized' });
+  if (result.value?.state.authority?.equals(authority.publicKey)) { tableAddress = address; table = result.value; break; }
+}
+if (tableAddress && table) {
+  const missing = addresses.filter(address => !table.state.addresses.some(existing => existing.equals(address)));
+  for (let index = 0; index < missing.length; index += 20) {
+    const extend = AddressLookupTableProgram.extendLookupTable({ payer:authority.publicKey, authority:authority.publicKey, lookupTable:tableAddress, addresses:missing.slice(index,index+20) });
+    const signature = await sendAndConfirmTransaction(connection, new Transaction().add(extend), [authority], { commitment:'finalized' });
+    console.log(JSON.stringify({ step:'extend-existing-lookup-table', signature, from:index, count:Math.min(20,missing.length-index) }));
+  }
 } else {
   const slot = await connection.getSlot('finalized');
   const [create, address] = AddressLookupTableProgram.createLookupTable({ authority:authority.publicKey, payer:authority.publicKey, recentSlot:slot });
   const created = await sendAndConfirmTransaction(connection, new Transaction().add(create), [authority], { commitment:'finalized' });
   tableAddress = address;
-  writeFileSync(lookupPath, address.toBase58(), { flag:'wx', mode:0o600 });
+  writeFileSync(qaLookupPath, address.toBase58(), { flag:'wx', mode:0o600 });
   console.log(JSON.stringify({ step:'create-lookup-table', signature:created, lookupTable:address.toBase58() }));
   for (let index = 0; index < addresses.length; index += 20) {
     const extend = AddressLookupTableProgram.extendLookupTable({ payer:authority.publicKey, authority:authority.publicKey, lookupTable:address, addresses:addresses.slice(index,index+20) });

@@ -1,0 +1,25 @@
+.share-dialog{width:min(94vw,720px);max-height:90vh;padding:0;border:1px solid #485a73;border-radius:6px;background:#121b2e;color:#f6f2e9;box-shadow:0 25px 80px #0009}
+.share-dialog::backdrop{background:#06101bc9}
+.share-dialog-inner{padding:28px;display:grid;gap:16px;max-height:90vh;overflow:auto}
+.share-dialog-head{display:flex;justify-content:space-between;align-items:start;gap:16px}
+.share-dialog-head h2{margin:0;font-size:1.55rem}
+.share-dialog-head button{display:grid;place-items:center;width:34px;height:34px;background:#1b2940;border:1px solid #30405b;border-radius:4px;color:#ffd28a;cursor:pointer}
+.share-dialog-head button:hover{background:#243149;border-color:#a7743e}
+.share-dialog-head button svg{display:block;width:17px;height:17px}
+.share-dialog label{display:grid;gap:7px;font-weight:650}
+.share-dialog textarea,.share-dialog input[type=url]{width:100%;box-sizing:border-box;border:1px solid #30405b;border-radius:4px;padding:12px;background:#0d1728;color:#f6f2e9;font:inherit}
+.share-dialog textarea{min-height:96px;resize:vertical}
+.share-dialog input[type=url]{font-size:.85rem}
+.share-dialog .share-channel-grid,.share-dialog .share-main-actions{display:flex;gap:9px;flex-wrap:wrap}
+.share-dialog .share-channel-grid button,.share-dialog .share-main-actions button{min-width:92px}
+.share-dialog small,.share-dialog #share-status{color:#a9b7c9}
+.share-result-options{display:grid;gap:12px}
+.share-result-options[hidden],.share-result-options .share-privacy label[hidden],.share-result-options a[hidden],#trade-share[hidden],#trade-roundtrip-share[hidden]{display:none!important}
+.share-result-options canvas{width:100%;height:auto;border-radius:4px}
+.share-result-options .share-privacy{display:flex;gap:18px;flex-wrap:wrap}
+.share-result-options .share-privacy label{display:flex;align-items:center;gap:7px;font-weight:500}
+.share-insights{margin-top:16px;padding:15px;border:1px solid #30405b;border-radius:4px;background:#1b2940;display:grid;gap:7px}
+.share-insights strong{font-size:1.2rem}
+.share-visit-consent{display:flex;align-items:center;gap:8px;cursor:pointer}
+.share-visit-consent input{width:18px;height:18px;flex:none}
+@media(max-width:560px){.share-dialog-inner{padding:18px}.share-dialog .share-channel-grid button{flex:1 1 30%}}

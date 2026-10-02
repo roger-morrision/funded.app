@@ -90,12 +90,18 @@ CREATE INDEX IF NOT EXISTS referral_claims_recipient_idx ON referral_claims ((pa
 
 -- Separate from public ledger buckets. Only hashes of browser bearer tokens are stored.
 CREATE TABLE IF NOT EXISTS auth_records (
-  kind TEXT NOT NULL CHECK (kind IN ('session', 'oauth')),
+  kind TEXT NOT NULL,
   token_hash TEXT NOT NULL,
   payload JSONB NOT NULL,
   expires_at TIMESTAMPTZ NOT NULL,
   PRIMARY KEY (kind, token_hash)
 );
+-- CREATE TABLE IF NOT EXISTS does not update an existing CHECK constraint.
+-- Recreate it so deployed databases accept every private auth namespace used
+-- by the current server.
+ALTER TABLE auth_records DROP CONSTRAINT IF EXISTS auth_records_kind_check;
+ALTER TABLE auth_records ADD CONSTRAINT auth_records_kind_check
+  CHECK (kind IN ('session', 'oauth', 'referral-challenge', 'referral-session'));
 CREATE INDEX IF NOT EXISTS auth_records_expiry_idx ON auth_records (expires_at);
 
 CREATE TABLE IF NOT EXISTS read_model_versions (name TEXT PRIMARY KEY, version INTEGER NOT NULL);

@@ -11,9 +11,9 @@ import { creatorPageHtml } from '../server/creator-social.mjs';
 
 const creatorUiSource = await readFile(new URL('../creator-support-ui.js', import.meta.url), 'utf8');
 assert.match(creatorUiSource, /if\(!kind\)\{document\.title='funded\.vip — Launches on the record';return;\}/);
-assert.match(creatorUiSource, /if \(\$\('#support-target'\)\.value!=='x'\) \{/);
-assert.match(creatorUiSource, /Your wallet is selected\. X support is optional/);
-assert.match(creatorUiSource, /X payouts are available in this Devnet setup\. Enter and verify an X account/);
+assert.doesNotMatch(creatorUiSource, /Who do you want to support\?|support-target/);
+assert.match(creatorUiSource, /function applySupportPreset\(handle\)/);
+assert.match(creatorUiSource, /\['x-recipient',normalizeCreatorHandle\(handle\)\]/);
 
 // Local-only fixtures: no keys, chain transactions, or real identities.
 const mint='5'.repeat(44), router='2'.repeat(44), recipient='4'.repeat(44), id='123';

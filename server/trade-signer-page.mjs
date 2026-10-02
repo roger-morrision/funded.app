@@ -45,6 +45,25 @@ const number=(value,digits=9)=>Number(value).toLocaleString('en-US',{maximumFrac
 function units(raw,decimals){let value=BigInt(raw),negative=value<0n;if(negative)value=-value;const scale=10n**BigInt(decimals),whole=(value/scale).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g,','),fraction=(value%scale).toString().padStart(decimals,'0').replace(/0+$/,'');return (negative?'-':'+')+whole+(fraction?'.'+fraction:'');}
 function showReview(summary){
  if(!summary)throw new Error('Trade details are unavailable. Refresh the desktop tab and start a new trade.');
+ if(summary.kind==='launch'){
+  document.querySelector('#heading').textContent='Review coin launch';
+  document.querySelector('#intro').textContent='Approve the coin creation and community vault funding together in Phantom.';
+  document.querySelector('#review').hidden=false;
+  document.querySelector('#trade-title').textContent='Launch '+summary.tokenSymbol;
+  document.querySelector('#sol-label').textContent='Estimated SOL for reserve buy';
+  document.querySelector('#sol-amount').textContent=number(summary.expectedSol)+' SOL';
+  document.querySelector('#sol-hint').textContent='Launch rent and network fees are additional.';
+  document.querySelector('#token-label').textContent='Tokens sent to reward vault';
+  document.querySelector('#token-amount').textContent=number(summary.reserveTokens)+' '+summary.tokenSymbol;
+  document.querySelector('#token-name').textContent=summary.tokenName;
+  document.querySelector('#limit-label').textContent='Maximum reserve buy';
+  document.querySelector('#limit-amount').textContent=number(summary.maximumSol)+' SOL';
+  document.querySelector('#app-fee').textContent='Included in the launch quote';
+  document.querySelector('#mint').textContent=summary.mint;
+  document.querySelector('#fee-note').textContent='Reward vault: '+summary.vault+'. Claims open only after a verified migration snapshot.';
+  button.textContent='Approve Launch in Phantom';
+  return;
+ }
  const sell=summary.side==='sell',symbol=summary.tokenSymbol;
  document.querySelector('#review').hidden=false;
  document.querySelector('#trade-title').textContent=(sell?'Sell ':'Buy ')+symbol;
@@ -69,6 +88,16 @@ function showOutcome(result){
  const link=document.querySelector('#explorer');
  if(result.signature){link.href='https://explorer.solana.com/tx/'+encodeURIComponent(result.signature)+'?cluster=devnet';link.hidden=false;}
  if(state==='finalized'){
+  if(summary?.kind==='launch'){
+   setText('#heading','Launch finalized');setText('#intro','Confirmed on Solana Devnet. The desktop tab verifies the vault and registers the launch.');
+   setText('#outcome-title',summary.tokenSymbol+' created');
+   setText('#receipt-sol-label','Wallet SOL change, including fees');setText('#receipt-sol',units(result.solDeltaLamports,9)+' SOL');
+   setText('#receipt-token-label','Community reserve');setText('#receipt-token',number(summary.reserveTokens)+' '+summary.tokenSymbol+' sent to vault');
+   document.querySelector('#receipt-amounts').hidden=false;
+   setText('#outcome-detail','Check the desktop tab for the final vault receipt.');
+   if(result.slot!=null){document.querySelector('#slot-row').hidden=false;setText('#slot-row','Devnet slot '+result.slot);}
+   status.hidden=true;clearInterval(pollTimer);window.scrollTo(0,0);return;
+  }
   setText('#heading','Trade complete');setText('#intro','Confirmed on Solana Devnet.');
   setText('#outcome-title',(side==='sell'?'Sold ':'Bought ')+(summary?.tokenSymbol||'tokens'));
   const solRaw=BigInt(result.solDeltaLamports),solChange=units(result.solDeltaLamports,9);
@@ -99,8 +128,8 @@ function showOutcome(result){
  }
 }
 async function pollStatus(){try{const response=await fetch('/api/mobile-wallet/trade-status/'+id,{cache:'no-store'});if(!response.ok)throw new Error('Status expired. Check the desktop tab or Solana Explorer.');showOutcome(await response.json());}catch(error){status.textContent=error.message||'Could not check Devnet status.';}}
-fetch('/api/mobile-wallet/trade-request/'+id,{cache:'no-store'}).then(async response=>{if(!response.ok)throw new Error('Trade request expired. Start again on the desktop.');request=await response.json();if(!window.solanaWeb3?.Transaction)throw new Error('Transaction decoder did not load. Reload this page.');document.querySelector('#wallet').textContent=request.publicKey;showReview(request.summary);button.disabled=false;status.textContent='Review the amounts and wallet, then approve in Phantom.'}).catch(error=>status.textContent=error.message);
-button.addEventListener('click',async()=>{button.disabled=true;try{const provider=window.phantom?.solana||window.solana;if(!provider?.signTransaction)throw new Error('Open this page inside Phantom on your phone.');const connected=await provider.connect();const address=String(connected?.publicKey||provider.publicKey||'');if(address!==request.publicKey)throw new Error('Wrong wallet selected. Switch Phantom to '+request.publicKey+' and try again.');status.textContent='Refreshing the Devnet transaction before approval…';const refreshed=await fetch('/api/mobile-wallet/trade-refresh/'+id,{method:'POST'});if(!refreshed.ok)throw new Error((await refreshed.json()).error||'Could not refresh the trade. Start again on the desktop.');const current=await refreshed.json();const bytes=Uint8Array.from(atob(current.transaction),character=>character.charCodeAt(0));const transaction=window.solanaWeb3.Transaction.from(bytes);status.textContent='Review the transaction in Phantom…';const signed=await provider.signTransaction(transaction);const signedBytes=signed.serialize();const encoded=btoa(Array.from(signedBytes,byte=>String.fromCharCode(byte)).join(''));const response=await fetch('/api/mobile-wallet/trade/'+id,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({transaction:encoded})});if(!response.ok)throw new Error((await response.json()).error||'Could not return the signed transaction to the desktop.');button.hidden=true;status.textContent='Signature received. Waiting for Devnet submission and finalization…';await pollStatus();if(!['finalized','failed'].includes(document.querySelector('#outcome').dataset.state))pollTimer=setInterval(pollStatus,2000);}catch(error){status.textContent=error.message||'Signing failed.';button.disabled=false}});
+fetch('/api/mobile-wallet/trade-request/'+id,{cache:'no-store'}).then(async response=>{if(!response.ok)throw new Error('Wallet request expired. Start again on the desktop.');request=await response.json();if(!window.solanaWeb3?.Transaction)throw new Error('Transaction decoder did not load. Reload this page.');document.querySelector('#wallet').textContent=request.publicKey;showReview(request.summary);button.disabled=false;status.textContent='Review the amounts and wallet, then approve in Phantom.'}).catch(error=>status.textContent=error.message);
+button.addEventListener('click',async()=>{button.disabled=true;try{const provider=window.phantom?.solana||window.solana;if(!provider?.signTransaction)throw new Error('Open this page inside Phantom on your phone.');const connected=await provider.connect();const address=String(connected?.publicKey||provider.publicKey||'');if(address!==request.publicKey)throw new Error('Wrong wallet selected. Switch Phantom to '+request.publicKey+' and try again.');status.textContent='Refreshing the Devnet transaction before approval…';const refreshed=await fetch('/api/mobile-wallet/trade-refresh/'+id,{method:'POST'});if(!refreshed.ok)throw new Error((await refreshed.json()).error||'Could not refresh the transaction. Start again on the desktop.');const current=await refreshed.json();const bytes=Uint8Array.from(atob(current.transaction),character=>character.charCodeAt(0));const transaction=request.summary?.kind==='launch'?window.solanaWeb3.VersionedTransaction.deserialize(bytes):window.solanaWeb3.Transaction.from(bytes);status.textContent='Review the transaction in Phantom…';const signed=await provider.signTransaction(transaction);const signedBytes=signed.serialize();const encoded=btoa(Array.from(signedBytes,byte=>String.fromCharCode(byte)).join(''));const response=await fetch('/api/mobile-wallet/trade/'+id,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({transaction:encoded})});if(!response.ok)throw new Error((await response.json()).error||'Could not return the signed transaction to the desktop.');button.hidden=true;status.textContent='Signature received. Waiting for Devnet submission and finalization…';await pollStatus();if(!['finalized','failed'].includes(document.querySelector('#outcome').dataset.state))pollTimer=setInterval(pollStatus,2000);}catch(error){status.textContent=error.message||'Signing failed.';button.disabled=false}});
 </script></html>`;
   return { html, nonce };
 }

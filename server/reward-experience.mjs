@@ -102,16 +102,17 @@ export function rewardExperience(state = {}, rewards = {}, evidence = {}, cluste
       }
     }
     communityAllocated += totals.community;
-    const payouts = paymentRows(rewards, mint, verifiedCollections);
+    const recordedPayouts = paymentRows(rewards, mint, verifiedCollections);
     for (const payout of Object.values(state.payouts || {})) {
       const proof = verifiedPayouts.get(payout.signature);
       const payoutMint = payout.mint || state.collections?.[state.referralClaims?.[payout.claimId]?.settlementSignature]?.mint;
       if (payoutMint !== mint || !proof || proof.to !== payout.to || proof.source !== payout.source
         || integer(proof.amountLamports) !== (payout.amountLamports == null ? amount(payout.amountSol) : integer(payout.amountLamports))) continue;
-      payouts.push({ kind:payout.source === 'mint-router-settle-mint' ? 'x' : 'referral', wallet:payout.to,
+      recordedPayouts.push({ kind:payout.source === 'mint-router-settle-mint' ? 'x' : 'referral', wallet:payout.to,
         signature:payout.signature, amountLamports:String(proof.amountLamports), paidAt:payout.paidAt || null,
         source:'finalized-matching-balance-delta', feeSourceVerified:true });
     }
+    const payouts = [...new Map(recordedPayouts.map(row => [`${row.kind}:${row.wallet}:${row.signature}`, row])).values()];
     for (const row of payouts) events.push({ mint, kind:`${row.kind}-paid`, signature:row.signature,
       amountLamports:row.amountLamports, at:row.paidAt, label:`${row.kind} reward paid`,
       feeSourceVerified:row.feeSourceVerified, sourceClaims:row.sourceClaims || [] });
@@ -124,13 +125,19 @@ export function rewardExperience(state = {}, rewards = {}, evidence = {}, cluste
       label:'Fee-funded $FUNDED buyback and burn' });
     const holderPaid = payouts.filter(row => row.kind === 'holder');
     const holderWallets = new Set(holderPaid.map(row => row.wallet));
+    const xPaid = payouts.filter(row => row.kind === 'x');
+    const xWallets = new Set(xPaid.map(row => row.wallet));
     const lastHolderPayout = holderPaid.map(row => row.paidAt).filter(Boolean).sort().at(-1) || null;
     const token = { mint, name:launch.name || launch.symbol || mint, symbol:launch.symbol || '',
       imageUri:launch.imageUri || null, creatorWallet:launch.creatorWallet || null,
       holderSharePercent:Number(launch.feeDistribution?.creatorDirected?.shares?.holderAirdropPercent || 0),
       totals:Object.fromEntries(Object.entries(totals).map(([key, value]) => [key, value.toString()])),
       collectionCount:collections.length, holderPaidWallets:holderWallets.size,
-      holderPayoutCount:holderPaid.length, lastHolderPayout, buybackBurnCount:burns.length,
+      holderPayoutCount:holderPaid.length,
+      holderPaidLamports:holderPaid.reduce((sum, row) => sum + integer(row.amountLamports), 0n).toString(),
+      xPaidWallets:xWallets.size, xPayoutCount:xPaid.length,
+      xPaidLamports:xPaid.reduce((sum, row) => sum + integer(row.amountLamports), 0n).toString(),
+      lastHolderPayout, buybackBurnCount:burns.length,
       buybackBurnedBaseUnits:burns.reduce((sum, row) => sum + integer(row.boughtAndBurnedBaseUnits || row.burnedBaseUnits), 0n).toString(),
       status:holderPaid.length ? 'holders-paid' : totals.holder > 0n ? 'holder-fees-allocated' :
         Number(launch.feeDistribution?.creatorDirected?.shares?.holderAirdropPercent || 0) > 0 ? 'policy-published' : 'no-holder-share',

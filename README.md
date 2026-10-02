@@ -10,11 +10,17 @@ Trades use a configurable platform fee (50 bps / 0.50% by default) paid to `VITE
 
 Run `npm.cmd run server` in a second terminal to start the local persistence API; it loads `.env.local` and `.env.x` when present. For browser sign-in, use the Vite `/api` proxy with `VITE_API_BASE_URL=/` and `API_PROXY_TARGET` pointing to the API. The API stores launch policies, idempotent Pump fee settlements, X-linked SOL claim obligations, and wallet-signature claim state. It intentionally stops before moving real funds until the Solana keeper is configured.
 
+The jackpot preview is hidden by default. `VITE_JACKPOT_ENABLED=false` omits its Home and Rewards panels and makes `/api/jackpots/status` return 404. To show the Devnet prototype later, set `VITE_JACKPOT_ENABLED=true` for both the browser build and API, then rebuild and restart them. The Docker preview passes the same value to both stages. This flag only controls the prototype's visibility; it does not create funded rounds, entry indexing, draws, or payouts.
+
+Home leads with coin-holder SOL and $FUNDED-holder token reward evidence. A coin cycle amount appears only with a recorded allocation; its countdown uses the recorded cutoff or target payout. A featured token amount is labeled as a published allocation until its reserve is verified. Its countdown appears only for a verified active claim window with an on-chain expiry. Missing schedules or proof display an unavailable or unscheduled state.
+
 ### Local Devnet test wallet
 
 With `VITE_DEV_MODE=true`, `VITE_DEV_AUTOCONNECT=true`, and `DEV_MODE=true` in ignored `.env.local`, start `npm.cmd run server` and `npm.cmd run dev`, then open the local Vite URL (currently `http://127.0.0.1:5174/`). The configured creator wallet connects automatically unless the tab was manually disconnected; click **Connect wallet** to reconnect. `DEV_WALLET_ROLE` and `VITE_DEV_WALLET_ROLE` must match one of `creator`, `referrer`, or `claimant`, and the corresponding server-only `SOLANA_DEVNET_*_SECRET_KEY` must be configured. Never put secret keys in `VITE_*` variables.
 
 `GET /api/dev-wallet` and the two signing routes are local test tools. Public `funded.vip` deployments keep Dev Mode off and return 403 for all three routes; the public app uses an injected or mobile wallet. Do not enable server-held test-wallet signing on a public origin. Run `npm.cmd run verify:dev-wallet-local-signing` to verify local signing and public-mode denial without broadcasting a transaction.
+
+If the disposable Devnet role keys may have been exposed, stop the local API and all signing workers first. The owner can run `node scripts/rotate-devnet-test-wallets.mjs --apply` locally; it replaces only the creator, referrer, and claimant entries in ignored `.env.local`, requires the Devnet profile, and prints only the new public addresses. It does not back up old keys, fund new addresses, update on-chain authority, or rotate dedicated keeper/router-authority credentials and Docker `.secrets` files. Treat old addresses as compromised, handle any remaining test assets separately, and do not restart signer workers until their credentials and on-chain authority are checked. The generic `rotate-local-secrets.mjs` rotates API/database secrets only and no longer copies a wallet key into signer files. Never paste role secrets into chat or logs; explicitly confirm completion of the local rotation before resuming automated wallet-gated audits.
 
 ### X account sign-in
 
@@ -127,6 +133,32 @@ The client-side Pump launch and fee-route instructions are implemented, but prod
 
 ## Settlement and Devnet testing
 
+### Focused burn and buyback QA
+
+The focused QA workflow uses only the rotated disposable Devnet roles and the smallest configured test amounts. It does not use mainnet assets. Keep secret values in ignored local environment files and never print them.
+
+```powershell
+# Dry-run the creator/claimant $FUNDED budget plan, then fund only shortfalls.
+npm.cmd run qa:fund-burn-wallets
+npm.cmd run qa:fund-burn-wallets -- --execute
+
+# Create a paid-tier launch; use its returned mint for the remaining checks.
+npm.cmd run verify:promotion-launch-devnet -- boost --execute
+npm.cmd run verify:project-burn-devnet -- <mint>
+npm.cmd run verify:listing-devnet -- <mint>
+npm.cmd run verify:buyback-accrual-devnet -- <mint>
+
+# Initialize the isolated buyback operator lookup table, execute after the
+# configured minimum wait, then reconcile the finalized receipt.
+npm.cmd run buyback:initialize-devnet
+$env:FUNDED_QA_BUYBACK_MINT='<mint>'
+$env:FUNDED_QA_BUYBACK_WAIT_SECONDS='60'
+npm.cmd run buyback:execute
+npm.cmd run verify:buyback-devnet-receipts
+```
+
+Every on-chain check requires finalized confirmation plus the expected token-account, mint-supply, queue, receipt, attribution, listing, or badge delta. A submitted signature alone is not a pass. `qa:fund-burn-wallets` is a dry run unless `--execute` is supplied, transfers only configured shortfalls, and verifies that total supply is unchanged. The project-burn and listing checks use irreversible `BurnChecked` transactions; use only disposable Devnet fixtures.
+
 The local API exposes `/api/indexer/status` and `POST /api/indexer/sync` for Pump launch indexing. The keeper exposes `/api/keeper/status` and `POST /api/keeper/collect`; protected writes require `FUNDED_API_TOKEN` and fail closed when it is absent. Settlement requests accept a collection signature only: the recorded positive mint-verified collection and the saved, verified launch policy supply the amount, creator, and shares. The keeper verifies the deployed router PDA, builds Pump SDK creator-fee collection instructions, signs with the server-side keeper, and records the confirmed collection signature. It fails closed when the router account is missing or its policy header is invalid. Referral registration and attribution use signed challenges; referral claims use `prepare -> verify -> execute`, with a 14-day expiry, idempotent keeper payout, and `MAX_REFERRAL_PAYOUT_SOL` limit. SOL claims use `prepare -> attest -> verify -> execute`; execution is idempotent and requires a server-side keeper key plus a stored payout obligation. On Devnet only, `DEVNET_TEST_MODE=true` enables the explicit `I_CONTROL_THIS_X_HANDLE` test attestation. Production X identity must be supplied by a trusted webhook using `X_ATTESTATION_SECRET`; the browser never accepts a private key or treats a self-asserted handle as production identity.
 
 Coin detail needs both the Vite app and the local API (`npm.cmd run server`). The page reads mint, metadata, curve, and largest token accounts from the configured Devnet RPC. `/api/tokens/:mint/fee-activity` returns only mint-verified claims and allocations from the active database (or file fallback). Pump's `collectCoinCreatorFeeInstructions` collects for the shared creator account, not a requested mint; such transactions are stored as router-scoped records and are never counted as this coin's revenue. For a token whose on-chain creator is that router, the page lists positive shared-router collections separately with that limitation stated. `/api/tokens/:mint/market-activity` scans up to 50 recent Pump curve signatures for 24-hour SOL trade volume and price movement; it marks volume as partial if that scan does not cover the full period. Price movement needs a valid earlier trade baseline. Refreshes are rate-limited, coalesced per mint, capped globally, and cached in PostgreSQL for 60 seconds. The public RPC relay has weighted per-client budgets; `getProgramAccounts` is off unless `RPC_ALLOW_EXPENSIVE_METHODS=true` and remains API-token protected, while airdrops require both Devnet test mode and `RPC_ALLOW_AIRDROP=true`. Set `TRUST_PROXY=true` only when a trusted proxy overwrites `CF-Connecting-IP` and direct public API access is blocked. These endpoints do not provide a complete holder count, payout index, a tested live graduated-pool swap, or historical candles. Restart the API process after changing its source.
@@ -145,3 +177,14 @@ The local API includes a proof-first discovery layer modeled on the useful parts
 The Explore screen shows the verified quote catalog and terminal signals. These features remain informational until production indexer, quote validation, alert delivery, and launch-admission controls are connected.
 
 Explore also has a compact market scanner, mint search, source-aware cards, curve/graduated stage filters, watchlist, and inspect-or-trade shortcuts. Mint accounts and Pump curve stage are read from confirmed Solana RPC; Birdeye market figures are provider-indexed estimates and remain blank when unavailable. A shortcut only selects the mint—the user must preview a fresh quote before signing. Run `npm.cmd run verify:explore-discovery` for the filter and missing-data checks.
+# Paid listings (Devnet)
+
+`/list` accepts any existing Solana Devnet SPL mint. The default listing policy costs exactly 25,000 $FUNDED burned by the paying wallet. In explicit local `DEVNET_TEST_MODE`, `FUNDED_QA_LISTING_BURN_TOKENS` may lower that amount for disposable-wallet QA but can never raise it above the default. The browser reads the active amount from the API. The BurnChecked transaction includes `funded.vip:list:<mint>` as a memo; the API verifies the confirmed burn, exact configured amount, fee payer, memo, and token mint before recording the listing. A burn signature cannot be reused for another listing or a recorded burn.
+
+The name and ticker are provided by the lister; they are not claimed as chain-verified metadata. Paid listings appear on `/list` and in the Explore paid listings section. Market fields remain unavailable until independently verified. The browser saves a pending public signature in session storage so a submitted burn can be rechecked if API indexing is interrupted. Mainnet remains read-only.
+
+## Devnet SOL boosts
+
+Verified tokens in the funded.vip Devnet directory can be boosted by any signing wallet, including wallets other than the launch creator. The five fixed USD packages are 10x/$99, 30x/$249, 50x/$399 (12 hours) and 100x/$899, 500x/$3,999 (24 hours). Checkout quotes the exact lamports at a fresh server SOL/USD rate for five minutes. The wallet signs one SOL transfer to `FUNDED_BOOST_PAYMENT_WALLET` with the unique quote memo. The API activates a boost only after the Devnet transaction is finalized and its signer, destination, amount, memo, and time window match the stored quote. A signature and quote cannot be reused. Active boosts stack; Home labels paid placement as Sponsored, while market figures retain their observed values.
+
+Set `FUNDED_BOOST_ENABLED=true` to issue new quotes. Turning it off stops new purchases but leaves receipt confirmation available for payments already sent. The Devnet Compose profile defaults `FUNDED_BOOST_PAYMENT_WALLET` to the existing trade fee owner; set a dedicated System-owned wallet to keep boost proceeds separate from trading fees. Mainnet checkout remains disabled. `node --test tests/boost-payment.test.mjs tests/boost-http.test.mjs` checks pricing, proof rejection, persistence, replay protection, and promoted filtering. `BOOST_DEVNET_E2E=true BOOST_TEST_MINT=<verified Devnet mint> node scripts/verify-boost-devnet.mjs` attempts one real transfer using ephemeral wallets and the public Devnet faucet; it does not use or save a production key.

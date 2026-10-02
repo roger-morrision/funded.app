@@ -81,6 +81,9 @@ assert.deepEqual(rewardServiceHealth(staleService, statusNow).reasons, ['worker-
 assert.equal(rewardServiceHealth(staleService, statusNow).healthy, false);
 assert.match(automaticRewardStatus(new Date(statusNow), { serviceStatus: staleService }).reason, /not reported readiness in over 3 minutes/);
 assert.equal(rewardServiceHealth({ ...staleService, checkedAt:'2026-09-24T20:59:00.000Z' }, statusNow).healthy, true);
+const blockedService = { constrainedPayouts:true, checkedAt:'2026-09-24T20:59:00.000Z', reasons:['rpc-unavailable'] };
+assert.equal(rewardServiceHealth(blockedService, statusNow).healthy, false);
+assert.equal(automaticRewardStatus(new Date(statusNow), { serviceStatus:blockedService }).status, 'unavailable');
 assert.deepEqual(rewardServiceHealth({ constrainedPayouts:false, reasons:[] }, statusNow).reasons, ['worker-has-not-reported-readiness']);
 
 const mint = Keypair.generate().publicKey.toBase58(), recipientA = Keypair.generate().publicKey.toBase58(), recipientB = Keypair.generate().publicKey.toBase58();

@@ -1,14 +1,15 @@
 import { buildLaunchTransaction, normalizeLaunchInput } from './launch-core.js';
 import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
-import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, TOKEN_PROGRAM_ID, createBurnCheckedInstruction, getAccount, getAssociatedTokenAddress, getMint } from '@solana/spl-token';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, createBurnCheckedInstruction, getAccount, getAssociatedTokenAddress, getMint } from '@solana/spl-token';
 import { getBuySolAmountFromTokenAmount, getBuyTokenAmountFromSolAmount, OnlinePumpSdk, PUMP_SDK } from '@pump-fun/pump-sdk';
 import BN from 'bn.js';
 import { tokensToBaseUnits } from './launch-burn-policy.js';
 import { devnetMetadataUri } from './devnet-metadata.js';
-import { verifyMintFeeRouterAccount } from './fee-router.js';
+import { verifyFeeRouterAccount, verifyMintFeeRouterAccount } from './fee-router.js';
 import { buildMintRouterInitializeInstruction, buildPumpLaunchPlan } from './mint-router-launch.js';
 import { executeLaunchPlan } from './launch-executor.js';
 import { initialCurvePremiumBps } from './launch-review.js';
+import { launchReserveInstructions, quoteAtomicReserveBuy } from './launch-community-reserve.js';
 
 export async function submitLaunch({ connection, provider, payer, input, onStatus = () => {} }) {
   const launchInput = normalizeLaunchInput(input);
@@ -121,15 +122,26 @@ export async function prepareFundedLaunchBurn({ connection, payer, fundedMint, a
   };
 }
 
-export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, provider, payer, input, metadataUri, prepareMetadata, feeRouterAddress, feeRouterProgramId = null, useMintRouter = false, launchBurn = null, onStatus = () => {}, onJournal = () => {}, assertWalletCurrent = () => {} }) {
+export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, provider, payer, input, metadataUri, prepareMetadata, feeRouterAddress, feeRouterProgramId = null, useMintRouter = false, launchBurn = null, reserveConfig = null, onStatus = () => {}, onJournal = () => {}, assertWalletCurrent = () => {} }) {
   if (cluster !== 'devnet') throw new Error('Mainnet coin launching is not enabled. No transaction was prepared or sent.');
   const launchInput = normalizeLaunchInput(input);
-  const initialBuy = await getInitialBuyQuote({ connection, input });
+  if (!reserveConfig?.authority || !reserveConfig?.lookupTable || !Number.isSafeInteger(input.reserveTokens) || input.reserveTokens <= 0)
+    throw new Error('An active, configured community reward vault is required before coin creation.');
+  const developerBuy = await getInitialBuyQuote({ connection, input });
+  const initialBuy = await quoteAtomicReserveBuy({ connection, supply:launchInput.supply, decimals:launchInput.decimals,
+    reserveTokens:input.reserveTokens, developerBaseUnits:developerBuy.amountBaseUnits });
+  initialBuy.curvePremiumBps = initialCurvePremiumBps(initialBuy.amountBaseUnits, initialBuy.global.initialVirtualTokenReserves.toString());
+  initialBuy.percent = Number(initialBuy.amountBaseUnits) / (launchInput.supply * 10 ** launchInput.decimals) * 100;
+  initialBuy.developerAmountTokens = developerBuy.amountTokens;
   if(input.maxInitialBuyLamports!=null&&initialBuy.maxSolAmountLamports>BigInt(input.maxInitialBuyLamports))throw new Error('The initial-buy cost increased beyond the reviewed maximum. Refresh the quote and review again; no transaction was sent.');
   const mint = Keypair.generate();
   onJournal({state:'prepared',mint:mint.publicKey.toBase58()});
   const mintRouter = useMintRouter ? buildMintRouterInitializeInstruction({ programId: feeRouterProgramId, mint: mint.publicKey, payer }) : null;
   const feeRouter = mintRouter?.router.address || new PublicKey(String(feeRouterAddress || '').trim());
+  const lookupTable = (await connection.getAddressLookupTable(new PublicKey(reserveConfig.lookupTable), { commitment:'finalized' })).value;
+  if (!lookupTable?.isActive()) throw new Error('Devnet launch reserve lookup table is missing or inactive. No coin was created.');
+  const reserve = launchReserveInstructions({ mint:mint.publicKey, payer, programId:feeRouterProgramId,
+    authority:reserveConfig.authority, reserveTokens:input.reserveTokens, decimals:launchInput.decimals });
   if (prepareMetadata) {
     onStatus('Storing signed Devnet image and metadata before wallet transaction approval…');
     metadataUri = await prepareMetadata({ mint: mint.publicKey.toBase58(), name: launchInput.name, symbol: launchInput.symbol });
@@ -141,7 +153,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
     : null;
   const launchInstructions = initialBuy.amountBaseUnits > 0n
     ? await PUMP_SDK.createV2AndBuyInstructions({
-      global: await new OnlinePumpSdk(connection).fetchGlobal(),
+      global: initialBuy.global,
       mint: mint.publicKey,
       name: launchInput.name,
       symbol: launchInput.symbol,
@@ -165,19 +177,36 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
       holderReward: false,
     })];
   const latest = await connection.getLatestBlockhash('confirmed');
-  const plan = buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions, burnInstruction: burnPlan?.instruction, mintRouterInstruction: mintRouter?.instruction });
+  const plan = buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions,
+    burnInstruction: burnPlan?.instruction, mintRouterInstruction: mintRouter?.instruction,
+    reserveInstructions:reserve.instructions, lookupTable });
+  plan.steps.find(step => step.kind === 'launch').transaction.fundedLaunchSummary = {
+    kind:'launch', mint:mint.publicKey.toBase58(), tokenName:launchInput.name, tokenSymbol:launchInput.symbol,
+    reserveTokens:String(input.reserveTokens), vault:reserve.vault.toBase58(),
+    expectedSol:(Number(initialBuy.solAmountLamports) / 1_000_000_000).toFixed(9),
+    maximumSol:(Number(initialBuy.maxSolAmountLamports) / 1_000_000_000).toFixed(9),
+  };
   assertWalletCurrent();
   onStatus(plan.mintRouterSeparate ? 'Approve mint router initialization, then approve the Pump launch…' : burnPlan
     ? `Approve one transaction to create the Pump coin and burn ${burnPlan.amountTokens.toLocaleString()} $FUNDED…`
     : 'Approve the Pump launch with funded.app set as creator-fee owner…');
   const {signature,mintRouterSignature}=await executeLaunchPlan({connection,provider,payer,mint,plan,assertWalletCurrent,onEvent:onJournal});
   onJournal({state:'verification-pending',signature});
+  const reserveAccount = await getAccount(connection, reserve.destination, 'finalized', TOKEN_2022_PROGRAM_ID);
+  if (!reserveAccount.owner.equals(reserve.vault) || !reserveAccount.mint.equals(mint.publicKey) || reserveAccount.amount !== reserve.amount)
+    throw new Error(`Coin was created but its exact community reserve is not verified. Mint: ${mint.publicKey.toBase58()}; transaction: ${signature}`);
+  const reserveTransaction = await connection.getTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
+  const fundedInTransaction = reserveTransaction && !reserveTransaction.meta?.err
+    && (reserveTransaction.meta.postTokenBalances || []).some(row => row.mint === mint.publicKey.toBase58()
+      && row.owner === reserve.vault.toBase58() && BigInt(row.uiTokenAmount.amount) === reserve.amount)
+    && !(reserveTransaction.meta.preTokenBalances || []).some(row => row.mint === mint.publicKey.toBase58()
+      && row.owner === reserve.vault.toBase58() && BigInt(row.uiTokenAmount.amount) !== 0n);
+  if (!fundedInTransaction) throw new Error(`Coin was created but its atomic reserve receipt could not be verified. Mint: ${mint.publicKey.toBase58()}; transaction: ${signature}`);
   onStatus('Verifying Pump recorded funded.app—not the user—as creator-fee owner…');
   if (mintRouter) {
-    const legacyAccount = await connection.getAccountInfo(new PublicKey(feeRouterAddress), 'confirmed');
-    const expectedAuthority = legacyAccount?.data?.length >= 74 ? new PublicKey(legacyAccount.data.subarray(41, 73)) : null;
-    if (!expectedAuthority) throw new Error(`Coin was created, but the legacy router authority could not be verified. Mint: ${mint.publicKey.toBase58()}`);
-    const verifiedRouter = await verifyMintFeeRouterAccount({ connection, programId: feeRouterProgramId, mint: mint.publicKey, expectedAuthority });
+    const legacy = await verifyFeeRouterAccount({ connection, programId: feeRouterProgramId });
+    if (!legacy.verified) throw new Error(`Coin was created, but the legacy router policy could not be verified (${legacy.reason}). Mint: ${mint.publicKey.toBase58()}`);
+    const verifiedRouter = await verifyMintFeeRouterAccount({ connection, programId: feeRouterProgramId, mint: mint.publicKey, expectedAuthority: legacy.authority });
     if (!verifiedRouter.verified) throw new Error(`Coin was created, but its isolated fee router is not verified (${verifiedRouter.reason}). Mint: ${mint.publicKey.toBase58()}`);
   }
   const bondingCurve = await new OnlinePumpSdk(connection).fetchBondingCurve(mint.publicKey);
@@ -203,5 +232,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
       verified: true,
     };
   }
-  return { ...launchInput, mint, signature, mintRouterSignature, mintRouterSeparate: plan.mintRouterSeparate, pump: true, feeRouter, feeRoute, launchBurnReceipt, initialBuy, metadataUri: metadataUri || `https://funded.vip/devnet-metadata/${mint.publicKey.toBase58()}` };
+  return { ...launchInput, mint, signature, mintRouterSignature, mintRouterSeparate: plan.mintRouterSeparate, pump: true, feeRouter, feeRoute, launchBurnReceipt, initialBuy,
+    reserveReceipt:{ signature, vault:reserve.vault.toBase58(), tokenAccount:reserve.destination.toBase58(), fundedTokens:input.reserveTokens, atomic:true },
+    metadataUri: metadataUri || `https://funded.vip/devnet-metadata/${mint.publicKey.toBase58()}` };
 }

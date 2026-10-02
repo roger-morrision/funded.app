@@ -1,0 +1,89 @@
+.home-jackpot-spotlight{display:none}
+body.page-route-overview .home-jackpot-spotlight{display:block;margin:0 0 38px;padding:22px;border:1px solid #614e31;background:linear-gradient(115deg,#1a1d25,#111b2e 75%)}
+.home-jackpot-heading{display:flex;align-items:start;justify-content:space-between;gap:18px}
+.home-jackpot-heading .eyebrow{margin-bottom:7px;color:#f1c873}
+.home-jackpot-heading h2{margin:0 0 6px;font-size:clamp(19px,2vw,26px)}
+.home-jackpot-heading p:not(.eyebrow){margin:0;color:#aab5c5;font-size:12px;line-height:1.5}
+.home-jackpot-heading>a{flex:none;color:#f1c873;font-size:12px;font-weight:700;text-decoration:none}
+.home-jackpot-heading>a:hover{text-decoration:underline}
+.home-jackpot-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
+.home-jackpot-grid article{padding:16px;border:1px solid #353d48;background:#101720}
+.home-jackpot-grid span,.home-jackpot-grid strong,.home-jackpot-grid small{display:block}
+.home-jackpot-grid span{color:#aab5c5;font-size:12px;font-weight:700}
+.home-jackpot-grid strong{margin:7px 0;color:#f2d78c;font-size:clamp(20px,2.3vw,30px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.home-jackpot-grid small{color:#8794a5;font-size:11px;line-height:1.4}
+.home-jackpot-disclosure{margin:12px 0 0;color:#8c9aac;font-size:11px;line-height:1.5}
+.jackpot-overview-spotlight{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:16px 0 22px;padding:15px 18px;border:1px solid rgba(215,182,93,.36);border-radius:12px;background:linear-gradient(110deg,rgba(215,182,93,.11),rgba(17,27,46,.8))}
+.jackpot-overview-spotlight strong{display:block;color:#f2d78c;font-size:15px}
+.jackpot-overview-spotlight p{margin:4px 0 0;color:#aab5c5;font-size:11px}
+.jackpot-overview-values{display:flex;gap:18px}
+.jackpot-overview-values span{color:#aab5c5;font-size:11px;white-space:nowrap}
+.jackpot-overview-values b{display:block;margin-top:3px;color:#f2d78c;font-size:17px;font-variant-numeric:tabular-nums}
+.jackpot-overview-spotlight button{flex:none;border:0;background:none;color:#f2d78c;font-size:11px;font-weight:700;cursor:pointer}
+.jackpot-overview-spotlight button:hover{text-decoration:underline}
+.jackpot-context-link{margin:10px 0;color:#f2d78c;font-size:12px;font-weight:700}
+.jackpot-context-link[hidden]{display:none}
+.jackpot-context-link a{color:inherit;text-decoration:none}
+.jackpot-context-link a:hover{text-decoration:underline}
+.jackpot-disclosure{grid-column:1/-1;margin:0 0 1.5rem;border:1px solid rgba(215,182,93,.25);border-radius:14px;padding:.85rem 1rem}
+.jackpot-disclosure>summary{cursor:pointer;font-weight:700}
+.jackpot-preview{margin:1.5rem 0;padding:1.25rem;border:1px solid rgba(215,182,93,.35);border-radius:18px;background:rgba(215,182,93,.055)}
+.jackpot-preview-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}
+.jackpot-preview-head h3{margin:.25rem 0;font-size:1.3rem}.jackpot-preview-head p{max-width:56rem;margin:.4rem 0}
+.jackpot-preview-badge{white-space:nowrap;padding:.4rem .7rem;border-radius:99px;border:1px solid currentColor;font-size:.8rem}
+.jackpot-preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:1rem}
+.jackpot-preview-card{padding:1rem;border:1px solid rgba(215,182,93,.22);border-radius:14px;background:rgba(0,0,0,.08)}
+.jackpot-preview-card h4{margin:0 0 .5rem}.jackpot-preview-card p{margin:.5rem 0}
+.jackpot-amount-label{font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;opacity:.78}
+.jackpot-amount{display:block;margin:.1rem 0 .75rem;color:#f2d78c;font-size:clamp(1.45rem,2.5vw,2rem);line-height:1.15;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.jackpot-amount-updated{animation:jackpot-amount-glow 1.2s ease-out}
+@keyframes jackpot-amount-glow{0%{text-shadow:0 0 18px rgba(245,195,93,.6)}100%{text-shadow:none}}
+.jackpot-preview-countdown{display:block;margin:.75rem 0;font-variant-numeric:tabular-nums}
+.jackpot-draw-note{font-size:.85rem;opacity:.78}
+.jackpot-reveal{position:relative;display:flex;align-items:center;gap:1rem;min-height:7.5rem;margin:.9rem 0;padding:1rem;border:1px solid rgba(242,215,140,.48);border-radius:14px;background:radial-gradient(circle at 12% 50%,rgba(242,215,140,.16),transparent 55%),rgba(0,0,0,.15);overflow:hidden}
+.jackpot-reveal[hidden]{display:none}
+.jackpot-reveal-stage{position:relative;display:grid;flex:none;place-items:center;width:4.5rem;height:4.5rem}
+.jackpot-reveal-wheel{width:3.3rem;height:3.3rem;border:.35rem solid rgba(242,215,140,.2);border-top-color:#f2d78c;border-right-color:#f2d78c;border-radius:50%}
+.jackpot-reveal.is-drawing .jackpot-reveal-wheel{animation:jackpot-draw-spin .65s linear infinite}
+.jackpot-reveal.is-winner .jackpot-reveal-wheel{border-color:#f2d78c;box-shadow:0 0 0 .4rem rgba(242,215,140,.12),0 0 1.5rem rgba(242,215,140,.45);animation:jackpot-win-ring .7s ease-out both}
+.jackpot-reveal.is-winner .jackpot-reveal-wheel::after{content:'★';display:grid;place-items:center;height:100%;color:#f2d78c;font-size:1.5rem}
+.jackpot-reveal-copy{min-width:0}.jackpot-reveal-copy p{margin:.15rem 0}
+.jackpot-reveal-kicker{font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;opacity:.78}
+.jackpot-reveal-title{display:block;font-size:1.15rem;line-height:1.25}
+.jackpot-reveal.is-winner .jackpot-reveal-title{animation:jackpot-win-pop .65s cubic-bezier(.2,1.5,.4,1) both}
+.jackpot-reveal-wallet{font-size:1.15rem;font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.jackpot-reveal-receipt,.jackpot-replay{display:inline-block;margin:.45rem .75rem 0 0;font-size:.85rem}
+.jackpot-replay{padding:0;border:0;background:none;color:inherit;text-decoration:underline;cursor:pointer}
+.jackpot-reveal-receipt[hidden],.jackpot-replay[hidden]{display:none}
+.jackpot-confetti{position:absolute;top:50%;left:50%;width:.35rem;height:.7rem;opacity:0;background:#f2d78c;border-radius:2px}
+.jackpot-confetti:nth-child(2){--x:-2.8rem;--y:-2.5rem;--r:-30deg}
+.jackpot-confetti:nth-child(3){--x:2.5rem;--y:-2.8rem;--r:50deg;background:#8ddfd2}
+.jackpot-confetti:nth-child(4){--x:-3.2rem;--y:.3rem;--r:90deg;background:#ffb28f}
+.jackpot-confetti:nth-child(5){--x:3rem;--y:.4rem;--r:-65deg}
+.jackpot-confetti:nth-child(6){--x:-1.8rem;--y:2.6rem;--r:35deg;background:#8ddfd2}
+.jackpot-confetti:nth-child(7){--x:2rem;--y:2.5rem;--r:-25deg;background:#ffb28f}
+.jackpot-reveal.is-winner .jackpot-confetti{animation:jackpot-confetti-burst .9s ease-out both}
+@keyframes jackpot-draw-spin{to{transform:rotate(360deg)}}
+@keyframes jackpot-win-ring{0%{transform:scale(.55);opacity:.35}65%{transform:scale(1.18)}100%{transform:scale(1);opacity:1}}
+@keyframes jackpot-win-pop{0%{transform:translateY(.6rem) scale(.8);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+@keyframes jackpot-confetti-burst{0%{transform:translate(0,0) rotate(0);opacity:1}75%{opacity:1}100%{transform:translate(var(--x),var(--y)) rotate(var(--r));opacity:0}}
+.jackpot-status-error{margin:.75rem 0 0;color:#f2c37b}
+.jackpot-history{padding-left:1.2rem;overflow-wrap:anywhere}
+.jackpot-preview-note{margin:1rem 0 0;font-size:.9rem}
+.jackpot-proof{margin-top:1.1rem;padding:.85rem 1rem;border:1px solid rgba(215,182,93,.23);border-radius:12px;background:rgba(0,0,0,.12)}
+.jackpot-proof summary{cursor:pointer;font-weight:700}
+.jackpot-proof-body{margin-top:.8rem;color:#aebaca;font-size:12px;line-height:1.6}
+.jackpot-proof-body p{margin:0 0 .65rem}.jackpot-proof-body ul{margin:.4rem 0 .7rem;padding-left:1.2rem}
+.jackpot-proof-status{color:#f2d78c}
+.jackpot-alerts{margin-top:1rem;padding:.85rem 1rem;border:1px solid rgba(141,223,210,.24);border-radius:12px;background:rgba(141,223,210,.045);font-size:12px}
+.jackpot-alerts[hidden]{display:none}.jackpot-alerts label{display:flex;align-items:center;gap:.5rem;font-weight:700}
+.jackpot-alerts p{margin:.55rem 0;color:#aebaca}.jackpot-alerts ul{margin:.4rem 0;padding-left:1.2rem}
+.jackpot-alerts small{color:#8f9ead}.jackpot-alerts a{color:#8ddfd2}
+.jackpot-alerts{margin-top:1rem;padding:.85rem 1rem;border:1px solid rgba(141,223,210,.24);border-radius:12px;background:rgba(141,223,210,.045);font-size:12px}
+.jackpot-alerts[hidden]{display:none}.jackpot-alerts label{display:flex;align-items:center;gap:.5rem;font-weight:700}
+.jackpot-alerts p{margin:.55rem 0;color:#aebaca}.jackpot-alerts ul{margin:.4rem 0;padding-left:1.2rem}
+.jackpot-alerts small{color:#8f9ead}.jackpot-alerts a{color:#8ddfd2}
+@media(prefers-reduced-motion:reduce){.jackpot-amount-updated,.jackpot-reveal.is-drawing .jackpot-reveal-wheel,.jackpot-reveal.is-winner .jackpot-reveal-wheel,.jackpot-reveal.is-winner .jackpot-reveal-title,.jackpot-reveal.is-winner .jackpot-confetti{animation:none}}
+@media(max-width:700px){.jackpot-preview-head{display:block}.jackpot-preview-badge{display:inline-block;margin-top:.5rem}.jackpot-preview-grid{grid-template-columns:1fr}}
+@media(max-width:700px){body.page-route-overview .home-jackpot-spotlight{padding:16px;margin-bottom:24px}.home-jackpot-heading{display:block}.home-jackpot-heading>a{display:inline-block;margin-top:10px}.home-jackpot-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.jackpot-overview-spotlight{display:block}.jackpot-overview-values{margin:12px 0;gap:24px}.jackpot-overview-spotlight button{padding:0}}

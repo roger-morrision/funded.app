@@ -13,7 +13,7 @@ body.page-route-list #list {
   text-decoration: none;
   text-transform: uppercase;
 }
-.list-page .list-back:hover { color: #63e985; }
+.list-page .list-back:hover { color: #ffd28a; }
 .list-page > .eyebrow { margin: 0 0 8px; }
 .list-page > h1 {
   margin: 0 0 28px;
@@ -62,17 +62,24 @@ body.page-route-list #list-mint {
 #list-mint::placeholder { color: #767b86; }
 #list-mint[aria-invalid="true"] { border-color: #d97878 !important; }
 #list-mint-help { min-height: 19px; margin: 9px 0 0; color: #7e8c91; font-size: 11px; line-height: 1.5; }
-#list-mint-help.is-valid { color: #77d68d; }
+#list-mint-help.is-valid { color: #ffd28a; }
 #list-mint-help.is-invalid { color: #e49a9a; }
+.list-token-preview { display: grid; gap: 5px; margin-top: 18px; padding: 15px 16px; border: 1px solid #33413a; background: #111b2e; }
+.list-token-preview[hidden] { display: none; }
+.list-token-preview strong { color: #eef4ef; font-size: 15px; font-weight: 800; overflow-wrap: anywhere; }
+.list-token-preview small { color: #91a69b; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.list-token-preview a { justify-self: start; margin-top: 4px; color: #ffd28a; font: 700 11px 'DM Mono', monospace; text-decoration: none; text-transform: uppercase; }
+.list-token-preview a:hover { text-decoration: underline; }
 .list-token-fields { display: grid; grid-template-columns: minmax(0, 2fr) minmax(110px, 1fr); gap: 12px; margin-top: 20px; }
-body.page-route-list :is(.list-token-fields, .list-field-note, .list-pay-button, .list-payment-status)[hidden] { display: none !important; }
+body.page-route-list :is(.list-token-preview, .list-token-fields, .list-field-note, .list-pay-button, .list-payment-status)[hidden] { display: none !important; }
 .list-token-fields label { margin: 0; }
 body.page-route-list .list-token-fields input { width: 100%; min-height: 44px; margin-top: 8px; padding: 10px 12px; color: #eff2ef; font: 12px 'DM Mono', monospace; }
+body.page-route-list .list-token-fields input[readonly] { border-color: #33413a; background: #111b2e; color: #cfe1d2; }
 .list-field-note { margin: 10px 0 18px; color: #7e8c91; font-size: 11px; line-height: 1.5; }
 body.page-route-list .list-pay-button { width: 100%; min-height: 45px; justify-content: center; font: 700 11px 'DM Mono', monospace; text-transform: uppercase; }
 body.page-route-list .list-pay-button:disabled { cursor: not-allowed; opacity: .48; }
 .list-payment-status { min-height: 20px; margin: 11px 0 0; color: #8f9da1; font-size: 11px; line-height: 1.5; }
-.list-payment-status a { color: #68e486; }
+.list-payment-status a { color: #ffd28a; }
 .list-recovery { margin-top: 12px; padding: 14px; border: 1px solid #655a36; background: #201d12; color: #d6c997; font-size: 12px; }
 .list-recovery[hidden] { display: none; }
 .list-recovery p { margin: 0 0 12px; }
@@ -97,19 +104,14 @@ body.page-route-list .list-pay-button:disabled { cursor: not-allowed; opacity: .
 .list-steps h2 { margin: 12px 0; color: #eff1ef; font-size: 15px; font-weight: 800; letter-spacing: -.035em; text-transform: uppercase; }
 .list-steps p { margin: 0; color: #97a1a5; font-size: 12px; line-height: 1.7; }
 .list-disclosure { margin: 22px 0 0; color: #697980; font-size: 11px; line-height: 1.6; }
-.list-art { min-height: 455px; overflow: hidden; border: 1px solid #30373b; border-radius: 3px; background: #080c0b; }
+.list-art { min-height: 455px; overflow: hidden; border: 1px solid #30373b; border-radius: 3px; background: #111b2e; }
 .list-art img { display: block; width: 100%; height: 100%; min-height: 455px; object-fit: cover; object-position: center; }
 .list-live { margin-top: 50px; border-top: 1px solid #30373b; padding-top: 24px; }
-.explore-paid-listings { margin: 16px 0 24px; padding: 18px 0; border-top: 1px solid #30373b; border-bottom: 1px solid #30373b; }
-.explore-paid-listings > div:first-child { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-.explore-paid-listings .eyebrow { margin: 0; }
-.explore-paid-listings h2 { margin: 0; color: #eff2ef; font-size: 18px; text-transform: uppercase; }
-.explore-paid-listings > div:first-child a { margin-left: auto; color: #66e582; font: 700 11px 'DM Mono', monospace; text-decoration: none; text-transform: uppercase; }
 .list-live h2 { margin: 3px 0 18px; color: #eff2ef; font-size: 24px; text-transform: uppercase; }
 .list-live-items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .list-live-items > p { grid-column: 1/-1; padding: 20px; border: 1px solid #30373b; color: #8d9b9e; }
 .list-live-items a { display: grid; gap: 6px; min-width: 0; padding: 17px; border: 1px solid #30373b; color: #eff2ef; background: #101419; text-decoration: none; }
-.list-live-items a:hover { border-color: #47d86a; }
+.list-live-items a:hover { border-color: #f4a340; }
 .list-live-items strong, .list-live-items code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .list-live-items small { color: #8d9b9e; }
 body.page-route-list .list-footer { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 32px; margin-top: 72px; padding: 32px 0 0; border-top: 1px solid #30373b; color: #7f8a8e; }
@@ -118,7 +120,7 @@ body.page-route-list .list-footer { display: grid; grid-template-columns: minmax
 .list-footer nav { display: grid; grid-template-columns: 1fr 1fr; gap: 11px 18px; align-content: start; }
 .list-footer nav strong { grid-column: 1 / -1; margin-bottom: 6px; color: #e3e9e4; font: 700 10px 'DM Mono', monospace; letter-spacing: .12em; text-transform: uppercase; }
 body.page-route-list .list-footer a { margin-left: 0; color: #98a5a2; font-size: 12px; text-decoration: none; }
-body.page-route-list .list-footer a:hover { color: #66e582; }
+body.page-route-list .list-footer a:hover { color: #ffd28a; }
 body.page-route-list .list-footer .list-footer-brand > a { color: #edf2ef; font-size: 22px; }
 .list-footer-bottom { display: flex; justify-content: space-between; gap: 16px; grid-column: 1 / -1; padding-top: 22px; border-top: 1px solid #252d30; color: #6f7b7f; font: 10px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .04em; }
 body.page-route-list .list-footer .list-footer-bottom a { font: inherit; }

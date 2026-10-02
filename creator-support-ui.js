@@ -51,55 +51,23 @@ async function loadCreatorCoinLogos(generation) {
   } catch { /* Keep the mint initial when the verified image is unavailable. */ }
 }
 
-for (const target of ['#explore','#my-launches','#payments']) {
-  const holder=$(target); if(!holder)continue;
-  const bar=document.createElement('nav');bar.className='support-shortcuts';bar.setAttribute('aria-label','Creator support');
-  bar.innerHTML='<a href="#creators">Find creators</a><a href="#creator-settings">My creator page</a><a href="#community">Following coins</a>';
-  holder.prepend(bar);
+function syncSupportShortcutState() {
+  const current=location.hash||'#overview';
+  document.querySelectorAll('.support-shortcuts a').forEach(link=>{
+    const destination=link.getAttribute('href');
+    const selected=destination===current||(destination==='#creators'&&current.startsWith('#creator/'));
+    if(selected)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
+  });
 }
 
-const intro=document.createElement('div');intro.className='support-launch-intent';
-intro.innerHTML=`<h3>Who do you want to support?</h3><label>Creator-fee beneficiary<select id="support-target"><option value="self">My wallet · default creator share</option><option value="x">An X creator · support preset</option></select></label>
-  <div id="support-x-fields" hidden><label>X handle<input id="support-handle" placeholder="@creator" maxlength="16" autocomplete="off"></label><button type="button" id="support-lookup">Check account</button><p id="support-identity" role="status">A handle is not proof of authorization. The account is verified again before launch.</p><p>Preset: 80% of collected creator fees to this X recipient; 20% to app programs. This is not 80% of trade volume. Review the final split in Benefits.</p><p>Fan-created unless the creator explicitly authorizes the coin. No endorsement or guaranteed earnings.</p></div>
-  <p id="support-launch-capability" role="status">Checking creator-support service…</p>`;
-$('.coin-fields')?.before(intro);
 document.querySelectorAll('[data-launch-step-target]').forEach(button=>{const step=Number(button.dataset.launchStepTarget);button.setAttribute('aria-label',`Step ${step}: ${['Coin','Benefits','Review','Sign'][step-1]}`);});
-function syncSupportLaunchCapability() {
-  const status=$('#support-launch-capability');
-  if (!status) return;
-  if ($('#support-target').value!=='x') {
-    status.textContent='Your wallet is selected. X support is optional; review the final fee policy before signing.';
-  } else if (!capabilities) {
-    status.textContent='X-support launches are blocked until the creator-support service is verified. You can still prepare a draft.';
-  } else {
-    status.textContent=capabilities.xPayouts?.ready?'X payouts are available in this Devnet setup. Enter and verify an X account, then review the fee policy before signing.':`X-support launches are blocked: ${(capabilities.xPayouts?.reasons||['settlement is not ready']).join('; ')}. You can still prepare a draft.`;
+function applySupportPreset(handle) {
+  $('#launch-mode-custom')?.click();
+  for(const [id,value] of [['creator-wallet-share','0'],['holder-airdrop-share','0'],['x-share','80'],['x-recipient',normalizeCreatorHandle(handle)]]) {
+    const input=$(`#${id}`);if(!input)continue;
+    input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));
   }
 }
-function applySupportPreset() {
-  const isX=$('#support-target').value==='x'; $('#support-x-fields').hidden=!isX;
-  if(isX) {
-    $('#launch-mode-custom')?.click();
-    for(const [id,value] of [['creator-wallet-share','0'],['holder-airdrop-share','0'],['x-share','80'],['x-recipient',$('#support-handle').value]]) {
-      const input=$(`#${id}`);input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));
-    }
-  } else $('#launch-mode-quick')?.click();
-  syncSupportLaunchCapability();
-}
-$('#support-target').addEventListener('change',applySupportPreset);
-$('#support-handle').addEventListener('input',()=>{ const input=$('#x-recipient');input.value=$('#support-handle').value;input.dispatchEvent(new Event('input',{bubbles:true}));$('#support-identity').textContent='Account changed. Check again before continuing.'; });
-$('#support-lookup').addEventListener('click',async()=>{
-  const button=$('#support-lookup'), value=$('#support-handle').value;button.disabled=true;
-  try {
-    const handle=normalizeCreatorHandle(value);
-    const result=await apiRequest(`/api/x/resolve?handle=${encodeURIComponent(handle)}`,{signal:AbortSignal.timeout(12000)});
-    if($('#support-handle').value!==value)return;
-    if(!result.available || !result.data?.id)throw new Error('Account lookup is unavailable.');
-    setStatus($('#support-identity'),`${result.data.handle} · account found. This does not mean the creator endorses your coin.`);
-  } catch(error){setStatus($('#support-identity'),error.message);} finally{button.disabled=false;}
-});
-$('#launch-mode-quick')?.addEventListener('click',()=>{ $('#support-target').value='self';$('#support-x-fields').hidden=true;syncSupportLaunchCapability(); });
-if(Number($('#x-share')?.value)>0){$('#support-target').value='x';$('#support-handle').value=$('#x-recipient').value;$('#support-x-fields').hidden=false;}
-syncSupportLaunchCapability();
 
 const notice=document.createElement('p');notice.className='support-capability-note';notice.id='support-capability-note';notice.setAttribute('role','status');
 notice.textContent='Checking creator support availability…';$('.topbar')?.after(notice);
@@ -109,13 +77,12 @@ async function refreshCapabilities() {
     if(!result.available || result.data?.version!==CREATOR_SUPPORT_VERSION || result.data.cluster!==APP_CLUSTER)throw new Error('Preview API is missing or out of date. Creator support is unavailable; restart the API using the current build.');
     capabilities=result.data;
     notice.textContent=`${APP_CLUSTER} · Creator support ${capabilities.xPayouts?.ready?'configured; verify each receipt':'not active for payouts'}. Streaming gifts are not connected.`;
-    syncSupportLaunchCapability();
-  } catch(error) { capabilities=null;notice.textContent=error.message;syncSupportLaunchCapability(); }
+  } catch(error) { capabilities=null;notice.textContent=error.message; }
 }
 void refreshCapabilities();
 
 async function renderDirectory() {
-  page.innerHTML=`<p class="eyebrow">Creator communities · ${esc(APP_CLUSTER)}</p><h1>Support people. Follow the proof.</h1><p>Discover creators named in verified fee policies or who opted in. A fan-created coin is not an endorsement. Tokens can lose all value.</p><nav class="support-shortcuts"><a href="#launch">Create a coin</a><a href="#creator-settings">Manage my page</a></nav><label>Find a creator<input id="creator-search" type="search" placeholder="Name or X handle" maxlength="80"></label><label class="support-check"><input id="creators-followed" type="checkbox">Following on this device</label><p id="creator-directory-status" role="status">Loading creators…</p><div id="creator-directory" class="creator-grid"></div>`;
+  page.innerHTML=`<p class="eyebrow">Creator communities · ${esc(APP_CLUSTER)}</p><h1>Support people. Follow the proof.</h1><p>Discover creators named in verified fee policies or who opted in. A fan-created coin is not an endorsement. Tokens can lose all value.</p><nav class="support-shortcuts" aria-label="Creator actions"><a href="#launch" data-shortcut-icon="＋">Create a coin</a><a href="#creator-settings" data-shortcut-icon="◎">Manage my page</a></nav><label>Find a creator<input id="creator-search" type="search" placeholder="Name or X handle" maxlength="80"></label><label class="support-check"><input id="creators-followed" type="checkbox">Following on this device</label><p id="creator-directory-status" role="status">Loading creators…</p><div id="creator-directory" class="creator-grid"></div>`;
   const more=document.createElement('button');more.textContent='Load more creators';more.hidden=true;page.append(more);let cursor=null;
   const generation=routeGeneration;
   const search=async(append=false)=>{
@@ -161,7 +128,7 @@ async function renderCreator(id,generation) {
     $('#creator-share-card').onclick=()=>downloadCard(c);
     page.querySelectorAll('[data-update-card]').forEach(button=>button.onclick=()=>downloadCard(c,button,{update:button.dataset.updateCard}));
     page.querySelectorAll('[data-receipt-card]').forEach(button=>button.onclick=()=>downloadCard(c,button,{receipt:button.dataset.receiptCard}));
-    $('#creator-support-launch').onclick=()=>{ $('#support-handle').value=c.handle;$('#support-target').value='x';applySupportPreset();$('#launch-route-shell [data-open-launch]')?.click(); };
+    $('#creator-support-launch').onclick=()=>{ applySupportPreset(c.handle);$('#launch-route-shell [data-open-launch]')?.click(); };
     page.querySelectorAll('[data-share-receipt]').forEach(button=>button.onclick=()=>copy(`Confirmed ${c.cluster} payout receipt. Not an earnings forecast. https://explorer.solana.com/tx/${button.dataset.shareReceipt}?cluster=${encodeURIComponent(c.cluster)}`,$('#creator-action-status')));
     $('#creator-kit').onclick=()=>copy(`Community launch checklist\n1. Review the named beneficiary and creator authorization.\n2. Explain total fees and token risks.\n3. Share the canonical coin address.\n4. Publish useful updates, not price promises.\n5. Share only confirmed payout receipts.\n${supportShareText(c,location.origin)}`,$('#creator-action-status'));
     $('#creator-widget').onclick=()=>{const url=new URL(`/creator/x/${id}?overlay=1`,location.origin).href;download(`funded-${id}-overlay.html`,'text/html',`<!doctype html><html><meta charset="utf-8"><title>Creator support overlay</title><iframe title="Creator support receipts" src="${esc(url)}" style="width:100%;height:96vh;border:0"></iframe></html>`);setStatus($('#creator-action-status'),'Overlay downloaded. It shows current page data only; no automated posts or gifts.');};
@@ -184,10 +151,10 @@ async function renderSettings(generation) {
     page.innerHTML=`<a href="#creators">← Creators</a><h1>Manage @${esc(managed.user.username)}</h1><p>Only your verified X session can change this page. Listing your profile does not endorse any coin.</p><form id="creator-settings-form"><label class="support-check"><input id="creator-listed" type="checkbox" ${p.listed?'checked':''}>List my creator page publicly</label><label class="support-check"><input id="creator-opt-out" type="checkbox" ${p.optedOut?'checked':''}>Exclude my page and block new support launches</label><p>Exclusion does not erase blockchain records or existing payment entitlements.</p><fieldset><legend>Explicit coin authorization</legend><p>Check only coins you authorize. Unchecked coins remain fan-created, not endorsed.</p>${managed.coins.map(c=>`<label class="support-check"><input type="checkbox" name="authorizedMint" value="${esc(c.mint)}" ${p.authorizedMints?.includes(c.mint)?'checked':''}>${esc(c.name || c.mint)}<small>${esc(c.mint)}</small></label>`).join('')||'<p>No eligible support coins.</p>'}</fieldset><button type="submit">Save my choices</button></form><p id="creator-settings-status" role="status"></p><a href="/creator/x/${id}">View public page</a><h2>Publish a community update</h2><form id="creator-update-form"><label>Update<textarea id="creator-update-text" maxlength="280" rows="4" required placeholder="Share progress, not price promises."></textarea></label><p>Public immediately after publication. Requires an opted-in listed page.</p><button type="submit">Publish update</button></form>`;
     const status=$('#creator-settings-status'), updateText=$('#creator-update-text');
     $('#creator-settings-form').onsubmit=async event=>{event.preventDefault();const button=event.submitter;button.disabled=true;try{const saved=await apiRequest('/api/creator-support/profile',{method:'POST',headers:{'x-creator-csrf':managed.csrf},body:{listed:$('#creator-listed').checked,optedOut:$('#creator-opt-out').checked,authorizedMints:[...page.querySelectorAll('[name="authorizedMint"]:checked')].map(input=>input.value)}});if(!saved.available)throw new Error('API unavailable. Choices were not saved.');status.textContent='Saved. Existing financial obligations are unchanged.';}catch(error){status.textContent=error.message;}finally{button.disabled=false;}};
-    $('#creator-update-form').onsubmit=async event=>{event.preventDefault();const button=event.submitter;button.disabled=true;try{const saved=await apiRequest('/api/creator-support/updates',{method:'POST',headers:{'x-creator-csrf':managed.csrf},body:{text:updateText.value}});if(!saved.available)throw new Error('API unavailable. Update was not published.');updateText.value='';status.textContent='Update published.';}catch(error){status.textContent=error.message;}finally{button.disabled=false;}};
+    $('#creator-update-form').onsubmit=async event=>{event.preventDefault();const button=event.submitter;button.disabled=true;try{const saved=await apiRequest('/api/creator-support/updates',{method:'POST',headers:{'x-creator-csrf':managed.csrf},body:{text:updateText.value}});if(!saved.available)throw new Error('API unavailable. Update was not published.');updateText.value='';status.textContent='Update published.';window.dispatchEvent(new Event('funded:creator-update-published'));}catch(error){status.textContent=error.message;}finally{button.disabled=false;}};
   }catch(error){if(generation===routeGeneration)page.innerHTML=`<h1>Manage your creator identity</h1><p role="status">${esc(error.message)}</p><p>Sign in from Rewards, then return here. No wallet connection proves ownership of an X account.</p><a href="#payments">Open X sign-in in Rewards</a>`;}
 }
-function syncRoute(){const kind=routeKind();routeGeneration++;document.body.classList.toggle('support-view-active',Boolean(kind));document.body.classList.toggle('support-overlay',kind==='creator'&&new URLSearchParams(location.search).get('overlay')==='1');page.hidden=!kind;if(!kind){document.title='funded.vip — Launches on the record';return;}const label=kind==='settings'?'Creator settings':kind==='directory'?'Creators':'Creator support';$('[data-route-label]').textContent=label;$('[data-route-description]').textContent='Identity, consent and verified receipts';document.title=`${label} | funded.vip (${APP_CLUSTER})`;window.scrollTo(0,0);if(kind==='directory')void renderDirectory();else if(kind==='settings')void renderSettings(routeGeneration);else void renderCreator(creatorRoute(),routeGeneration);}
+function syncRoute(){const kind=routeKind();syncSupportShortcutState();routeGeneration++;document.body.classList.toggle('support-view-active',Boolean(kind));document.body.classList.toggle('support-overlay',kind==='creator'&&new URLSearchParams(location.search).get('overlay')==='1');page.hidden=!kind;if(!kind){document.title='funded.vip — Launches on the record';return;}const label=kind==='settings'?'Creator settings':kind==='directory'?'Creators':'Creator support';$('[data-route-label]').textContent=label;$('[data-route-description]').textContent='Identity, consent and verified receipts';document.title=`${label} | funded.vip (${APP_CLUSTER})`;window.scrollTo(0,0);if(kind==='directory')void renderDirectory();else if(kind==='settings')void renderSettings(routeGeneration);else void renderCreator(creatorRoute(),routeGeneration);}
 window.addEventListener('hashchange',syncRoute);window.addEventListener('popstate',syncRoute);syncRoute();
 
 const tradebar=document.createElement('nav');tradebar.className='support-mobile-trade';tradebar.setAttribute('aria-label','Token trade actions');tradebar.innerHTML='<button data-support-trade="buy">Buy</button><button data-support-trade="sell">Sell</button>';

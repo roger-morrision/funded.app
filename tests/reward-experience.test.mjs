@@ -31,10 +31,32 @@ test('verified collection, allocation, holder payment, and burn stay distinct', 
   assert.equal(result.tokens[0].totals.collected, '100000000');
   assert.equal(result.tokens[0].totals.holder, '20000000');
   assert.equal(result.tokens[0].holderPaidWallets, 1);
+  assert.equal(result.tokens[0].holderPaidLamports, '20000000');
+  assert.equal(result.tokens[0].xPaidWallets, 0);
+  assert.equal(result.tokens[0].xPaidLamports, '0');
   assert.equal(result.tokens[0].buybackBurnedBaseUnits, '500');
   assert.equal(result.tokens[0].payoutSource, 'finalized-cycle-source-not-attributed-to-fee-claim');
   assert.equal(result.wallet.rows[0].payouts[0].feeSourceVerified, false);
   assert.equal(result.community.paidLamports, null);
+});
+
+test('X recipient totals count only finalized matching payout evidence', () => {
+  const xPayment = 'J'.repeat(64);
+  const missingEvidence = 'K'.repeat(64);
+  const paidState = structuredClone(state);
+  paidState.payouts = {
+    verified:{ mint, source:'mint-router-settle-mint', to:wallet, signature:xPayment,
+      amountLamports:'3000000', paidAt:'2026-10-01T02:00:00Z' },
+    unmatched:{ mint, source:'mint-router-settle-mint', to:holder, signature:missingEvidence,
+      amountLamports:'9000000' },
+  };
+  const paidEvidence = { ...evidence, verifiedPayouts:[{ signature:xPayment, to:wallet,
+    source:'mint-router-settle-mint', amountLamports:'3000000' }] };
+  const result = rewardExperience(paidState, rewards, paidEvidence, 'devnet');
+  assert.equal(result.tokens[0].xPaidWallets, 1);
+  assert.equal(result.tokens[0].xPayoutCount, 1);
+  assert.equal(result.tokens[0].xPaidLamports, '3000000');
+  assert.equal(result.tokens[0].holderPaidLamports, '20000000');
 });
 
 test('community total includes redirected referrals exactly once', () => {

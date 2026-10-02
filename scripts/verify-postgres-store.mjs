@@ -19,6 +19,7 @@ import { verifyFollowingStore } from './verify-following-updates.mjs';
 import { verifyReceiptRetention } from './verify-receipt-retention.mjs';
 import { verifyReceiptCounts } from './verify-receipt-counts.mjs';
 import {verifyReferralScopedStore} from './verify-referral-scoped-store.mjs';
+import { createReferralAuth } from '../server/referral-auth.mjs';
 
 async function loadLocalEnv() {
   try {
@@ -83,6 +84,14 @@ try {
   try { assert.deepEqual((await migrated.readCreatorDirectory({cluster:'devnet'})).creators.map(c=>c.id),['123']); }
   finally { await migrated.close(); }
   await verifyAuthStore(store, other, async () => JSON.stringify((await pool.query('SELECT * FROM auth_records')).rows));
+  const referralWallet='11111111111111111111111111111111';
+  const referralAuth=createReferralAuth(store,{verifyMessage:(_statement,signature)=>signature==='approved'});
+  const referralAuthReader=createReferralAuth(other);
+  const referralChallenge=await referralAuth.start(referralWallet);
+  const referralSession=await referralAuth.verify(referralChallenge.challengeId,referralWallet,'approved');
+  assert.equal((await referralAuthReader.session(referralSession.token)).wallet,referralWallet);
+  await referralAuth.revoke(referralSession.token);
+  assert.equal(await referralAuthReader.session(referralSession.token),null);
   const supportMint='5'.repeat(44), router='2'.repeat(44);
   const supportLaunch={mint:supportMint,cluster:'devnet',onchainVerified:true,policySignature:'fixture',xUserId:'700',creator:router,pumpFeeRoute:{verified:true,scope:'per-mint-v2',router},feeDistribution:{creatorDirected:{shares:{solClaimPercent:80},recipients:{xAccount:'@fan_fixture'}}}};
   await store.update(s=>{

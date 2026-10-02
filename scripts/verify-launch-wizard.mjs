@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { launchReviewStillCurrent } from '../launch-review-gate.js';
 
 const [html, app, styles, pageStyles, workspaceStyles] = await Promise.all([
   readFile(new URL('../index.html', import.meta.url), 'utf8'),
@@ -40,16 +41,17 @@ assert.match(launchPage, /id="creator-buy-sol"[\s\S]*?min="0"[\s\S]*?step="0\.01
 assert.match(app, /function getCommunityAllocationPercent\(\)[\s\S]*?getCommunityAirdropTokens\(\) \/ LAUNCH_TOKEN_SUPPLY \* 100/, 'The airdrop policy percentage must derive from the entered token amount.');
 assert.match(app, /'#preview-community': Number\.isFinite\(allocation\) \? formatVerifiedPercent\(allocation\) : '—'/, 'The launch summary must format fractional reserve percentages without floating-point scientific notation.');
 assert.match(app, /initialBuySol: getCreatorBuySol\(\)/, 'The developer SOL amount must feed the live Pump quote.');
-assert.match(app, /estimatedInitialBuyTokens=Number\(initialBuy\.amountTokens\);\s*updateLaunchPreview\(\);/, 'The live Pump quote must refresh the visible developer-buy token estimate.');
+assert.match(app, /estimatedInitialBuyTokens=Number\(developerBuy\.amountTokens\);\s*updateLaunchPreview\(\);/, 'The live Pump quote must refresh the visible developer-buy token estimate.');
 assert.match(app, /creatorBuy\.sol > 0 \? wallet \? 'Calculating…' : 'Connect wallet to estimate' : 'None'/, 'An unconnected developer buy must ask for a wallet instead of remaining stuck on Calculating.');
 assert.match(app, /wallet \? ' · quote pending' : ' · connect wallet to quote'/, 'The launch cost summary must label an unconnected developer-buy quote truthfully.');
 assert.match(app, /!feeDistribution\.valid \? 'Fix fee distribution'/, 'Invalid fee shares must be explained before the disconnected-wallet prompt.');
 assert.match(launchPage, /id="preview-promotion-badge"/, 'The launch preview must show the selected promotion badge.');
 assert.match(launchPage, /class="cost-summary launch-pay-summary free-launch"[\s\S]*?id="cost-tier-label">Platform launch fee: 0[\s\S]*?id="cost-burn-row" hidden[\s\S]*?id="cost-burn"/, 'Zero platform fee must remain distinct from paid promotion burns and network costs.');
-assert.match(launchPage, /class="community-airdrop-highlight"[\s\S]*?30,000,000[\s\S]*?3\.00% of supply[\s\S]*?planned \$FUNDED-holder allocation[\s\S]*?vault funding unverified/, 'The You pay panel must show the planned airdrop without implying funded delivery.');
+assert.match(launchPage, /class="community-airdrop-highlight"[\s\S]*?30,000,000[\s\S]*?3\.00% of supply[\s\S]*?bought and locked in the reward vault when launch finalizes/, 'The You pay panel must describe atomic reserve funding.');
 assert.doesNotMatch(launchPage, /delivery requires vault funding and a verified active distribution cycle/, 'The removed delivery sentence must not return to the launch panel.');
 assert.doesNotMatch(launchPage, /claimable at migration/, 'Migration alone must not promise a claimable payout.');
-assert.match(launchPage, /class="enhanced-token-page"[\s\S]*?Enhanced token page[\s\S]*?INCLUDED/, 'The enhanced token-page editor must remain visible.');
+assert.match(launchPage, /class="enhanced-token-page"[\s\S]*?id="token-tagline"[\s\S]*?id="token-roadmap"/, 'The project story editor must retain thesis and roadmap fields.');
+assert.doesNotMatch(launchPage, /Enhanced token page[\s\S]*?Tell the full story[\s\S]*?INCLUDED/, 'The redundant story promotion must not return inside the form.');
 assert.doesNotMatch(launchPage, /launch-route-badge|Pump launch<\/strong>|Solana · Devnet preview/, 'The removed launch-route banner must not return.');
 assert.doesNotMatch(launchPage, /HTTPS links are published with the signed Devnet metadata|must use their official domains/, 'The removed social-link helper sentence must not return.');
 assert.match(launchPage, /placeholder="https:\/\/yourproject\.com"/);
@@ -57,9 +59,10 @@ assert.match(launchPage, /placeholder="https:\/\/x\.com\/yourproject"/);
 assert.match(launchPage, /placeholder="https:\/\/t\.me\/yourproject"/);
 assert.match(launchPage, /placeholder="https:\/\/discord\.gg\/yourproject"/);
 for (const label of ['Project website URL', 'Project X profile URL', 'Project Telegram URL', 'Project Discord URL']) assert.match(launchPage, new RegExp(`aria-label="${label}"`));
-assert.match(app, /function validPublicUrl\(value\)/, 'Optional public links must be validated before metadata preparation.');
-assert.match(app, /\['http:', 'https:'\]\.includes\(new URL\(value\)\.protocol\)/, 'Launch metadata links must reject non-web URL schemes.');
-assert.match(app, /invalidLaunchSocial\(\)[\s\S]*?complete http:\/\/ or https:\/\/ URL/, 'Malformed optional launch links must block the launch review.');
+assert.match(app, /canonicalLaunchSocialUrl\(preview\.x, 'x'\)/, 'The X link must meet metadata API rules before wallet message signing.');
+assert.match(app, /function invalidLaunchSocial\(\)[\s\S]*?updateLaunchSocialValidity\(field\)[\s\S]*?validPublicUrl\(launchSocialValue\(field\), field\.id\)/, 'Optional social links must meet the API rules before review.');
+assert.match(app, /function openLaunchReview\(\)[\s\S]*?normalizeLaunchSocialField\(document\.querySelector\('#token-x'\)\)/, 'The X profile link must be normalized before review state is captured.');
+assert.match(app, /const identityValid = getLaunchStepState\(1\)\.valid/, 'Invalid social links must disable launch review.');
 assert.match(app, /!identityValid \? 'Fix coin details'/, 'The primary launch action must surface invalid coin details before asking for a wallet.');
 assert.match(launchPage, /class="launch-submit-row launch-preview-submit"[\s\S]*?id="launch-button"/, 'The essential launch action must sit directly below the You pay panel.');
 assert.doesNotMatch(launchPage, /launch-button-review/, 'The review step must not duplicate the signing action.');
@@ -91,27 +94,18 @@ const handleLaunchAction = new Function('refreshWalletInfo', 'openLaunchReview',
 handleLaunchAction({ currentTarget: { dataset: { launchAction: 'refresh-estimate' } } });
 handleLaunchAction({ currentTarget: { dataset: { launchAction: 'launch' } } });
 assert.deepEqual(launchActionCalls, ['refresh', 'review'], 'Refresh clicks must estimate while launch clicks must require review before signing.');
-const pendingReviewSource = app.match(/function renderPendingLaunchReview\(\)\{[\s\S]*?\n\}/)?.[0];
-assert.ok(pendingReviewSource, 'The open launch review must refresh its expiry state.');
-const reviewNodes = {
-  '#launch-review-dialog': { open: true },
-  '#launch-review-details': { innerHTML: '' },
-  '#launch-review-confirm': { disabled: false, textContent: '' },
-};
-const renderReview = (review, pending, fresh) => new Function(
-  'document', 'pendingLaunchReview', 'launchCostReview', 'freshLaunchReview', 'connectedWalletAddress', 'feeRouterState', 'launchReviewMarkup',
-  `${pendingReviewSource}\nrenderPendingLaunchReview();`,
-)({ querySelector: selector => reviewNodes[selector] }, pending, review, () => fresh, 'test-wallet', { address: 'test-router' }, () => '<p>fresh estimate</p>');
-const reviewedCost = { quote: 1 };
-const pendingReview = { reviewedCost, wallet: 'test-wallet', router: 'test-router' };
-renderReview(reviewedCost, pendingReview, true);
-assert.equal(reviewNodes['#launch-review-confirm'].disabled, false, 'A current review must allow the wallet handoff.');
-assert.match(reviewNodes['#launch-review-details'].innerHTML, /fresh estimate/);
-renderReview(reviewedCost, pendingReview, false);
-assert.equal(reviewNodes['#launch-review-confirm'].disabled, true, 'An expired review must disable the wallet handoff.');
-assert.match(reviewNodes['#launch-review-details'].innerHTML, /estimate expired or changed/i);
-renderReview({ quote: 2 }, pendingReview, true);
-assert.equal(reviewNodes['#launch-review-confirm'].disabled, true, 'A changed estimate must require a new review.');
+assert.match(app, /function renderPendingLaunchReview\(\)[\s\S]*?launchReviewStillCurrent\(pending, currentLaunchReviewState\(\)\)/);
+assert.match(app, /function confirmLaunchReview\(\)[\s\S]*?launchReviewStillCurrent\(pending, currentLaunchReviewState\(\)\)/);
+const reviewedCost = { quotedAt: 100, expiresAt: 200 };
+const image = {};
+const pendingReview = { reviewedCost, wallet: 'test-wallet', router: 'test-router', form: '{"name":"QA"}', image };
+const currentReview = { ...pendingReview, feeConsent: true, termsConsent: true };
+assert.equal(launchReviewStillCurrent(pendingReview, currentReview, 150), true, 'A current review must allow the wallet handoff.');
+assert.equal(launchReviewStillCurrent(pendingReview, currentReview, 200), false, 'An expired review must disable the wallet handoff.');
+assert.equal(launchReviewStillCurrent(pendingReview, { ...currentReview, reviewedCost: { ...reviewedCost } }, 150), false, 'A changed estimate must require a new review.');
+assert.equal(launchReviewStillCurrent(pendingReview, { ...currentReview, form: '{"name":"Changed"}' }, 150), false, 'A changed token or fee policy must require a new review.');
+assert.equal(launchReviewStillCurrent(pendingReview, { ...currentReview, termsConsent: false }, 150), false, 'Consent withdrawal must block the wallet handoff.');
+assert.equal(launchReviewStillCurrent(pendingReview, { ...currentReview, image: {} }, 150), false, 'Changing the image must require a new review.');
 assert.doesNotMatch(launchPage, /review-referrer|<span>Inviter<\/span>|Gross fees across three app levels|<small>Referrals<\/small>/);
 assert.match(launchPage, /APP PROTOCOL<\/span><strong>20%/);
 assert.match(launchPage, /app-level referrals, \$FUNDED buyback and burn, community programs, and operations\/marketing/);
@@ -138,7 +132,7 @@ assert.match(app, /history\.replaceState\(\{\}, '', `\$\{location\.pathname\}\$\
 assert.match(app, /fee-route-agree/);
 assert.match(app, /function setLaunchBurnTier\(/);
 assert.match(app, /launchBurnReadiness/);
-assert.match(app, /buildPumpLaunchPlan\(\{ payer, mint, blockhash: latest\.blockhash, launchInstructions, burnInstruction: burnPlan\?\.instruction, mintRouterInstruction: mintRouter\?\.instruction \}\)/, 'Estimate must use the same size-bounded transaction plan as launch.');
+assert.match(app, /buildPumpLaunchPlan\(\{ payer, mint, blockhash: latest\.blockhash, launchInstructions, burnInstruction: burnPlan\?\.instruction,\s*mintRouterInstruction: mintRouter\?\.instruction, reserveInstructions:reserve\.instructions,\s*lookupTable \}\)/, 'Estimate must use the same reserve-funded transaction plan as launch.');
 assert.match(app, /for \(let blockhashAttempt = 0; blockhashAttempt < 2; blockhashAttempt \+= 1\)[\s\S]*?getLatestBlockhash\('finalized'\)/, 'Launch estimation must use a finalized blockhash and one bounded retry.');
 assert.match(app, /BlockhashNotFound\|blockhash not found[\s\S]*?if \(!blockhashMissing \|\| blockhashAttempt > 0\) throw error/, 'Only BlockhashNotFound may retry, and only once.');
 assert.match(app, /blockhashAttempt > 0\) await new Promise\(resolve => setTimeout\(resolve, 1100\)\)/, 'The blockhash retry must outwait the one-second RPC proxy cache.');
@@ -201,5 +195,13 @@ for (const pattern of removedDeadFeatures) assert.doesNotMatch(html, pattern);
 assert.doesNotMatch(app, /launchFeeSol/);
 assert.doesNotMatch(app, /handleMobileWalletCallback/);
 assert.doesNotMatch(app, /mobile signing setup required/i);
+
+const xFeeFailureDetailSource = app.match(/function xFeeFailureDetail\(\)\{[\s\S]*?\n\}/)?.[0];
+assert.ok(xFeeFailureDetailSource, 'X fee unavailability needs a reusable sentence-safe reason formatter.');
+const xFeeFailureDetail = new Function('xFeeStatus', `${xFeeFailureDetailSource}\nreturn xFeeFailureDetail;`)({
+  reasons: ['API service unavailable. Check the local API and database services, then retry.'],
+});
+assert.equal(xFeeFailureDetail(), 'API service unavailable. Check the local API and database services, then retry');
+assert.match(app, /`Unavailable: \$\{xFeeFailureDetail\(\)\}\.`/, 'The X reward gate should add one final sentence period.');
 
 console.log('launch wizard checks passed');

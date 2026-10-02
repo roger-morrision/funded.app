@@ -49,6 +49,25 @@ export function resolveReferralUpline(directInviter, graph = {}, maxDepth = 3) {
   return result;
 }
 
+export function resolveReferralNetwork(wallet, attributions = [], maxDepth = 3) {
+  const root = String(wallet || '').trim();
+  if (!root || !Number.isInteger(maxDepth) || maxDepth < 1) return [];
+  const rows = Array.isArray(attributions) ? attributions : Object.values(attributions || {});
+  const graph = Object.fromEntries(rows.map(item => [item.wallet, item.inviterWallet]).filter(([child, parent]) => child && parent));
+  return rows.filter(item => {
+    const visited = new Set();
+    let current = item.inviterWallet;
+    let depth = 1;
+    while (current && !visited.has(current) && depth <= maxDepth) {
+      if (current === root) return true;
+      visited.add(current);
+      current = graph[current] || null;
+      depth += 1;
+    }
+    return false;
+  }).map(item => item.wallet);
+}
+
 export function calculateReferralRewards(grossCreatorFees, {
   fundedPercent = 20,
   levels = [],

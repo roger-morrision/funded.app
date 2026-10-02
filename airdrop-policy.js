@@ -70,6 +70,20 @@ export function buildLaunchReservePlan({ allocationPercent, supply, mintAddress 
   };
 }
 
+export function fundedCommunityAirdropPolicy({ allocationPercent, supply, receipt }) {
+  const policy = buildCommunityAirdropPolicy({ allocationPercent, supply });
+  if (!receipt?.atomic || !receipt?.signature || !receipt?.vault || receipt.fundedTokens !== policy.reservedTokens)
+    throw new Error('A finalized, exact atomic community reserve receipt is required.');
+  return {
+    ...policy,
+    model:'community-allocation-funded-at-launch',
+    reserve:{ funding:'atomic-pump-create-buy-transfer', purchasePrice:null, custody:'reward-vault-pda',
+      creatorCanWithdraw:false, status:'funded', signature:receipt.signature, vault:receipt.vault },
+    claim:{ ...policy.claim, status:'requires-migration-snapshot-and-published-claims' },
+    productionRequirements:['migration-time-holder-snapshot', 'claim-proof-publisher', 'verified-app-owner-reward-authority'],
+  };
+}
+
 export function calculateProRataClaim({ walletBalance, totalEligibleBalance, reservedTokens }) {
   const wallet = Number(walletBalance);
   const total = Number(totalEligibleBalance);

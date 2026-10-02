@@ -3,8 +3,14 @@ import { Connection, Keypair, PublicKey, clusterApiUrl } from '@solana/web3.js';
 import { getAccount, getAssociatedTokenAddressSync, getMint } from '@solana/spl-token';
 import bs58 from 'bs58';
 import { submitPumpDevnetLaunch } from '../launch-flow.js';
+import { createLaunchBurnTiers } from '../launch-burn-policy.js';
 
-const amounts = { boost: 25_000, pro: 100_000, premier: 250_000 };
+const configuredTiers = createLaunchBurnTiers({
+  boostAmount:Number(process.env.VITE_FUNDED_BOOST_BURN_AMOUNT || 25_000),
+  proAmount:Number(process.env.VITE_FUNDED_PRO_BURN_AMOUNT || 100_000),
+  premierAmount:Number(process.env.VITE_FUNDED_PREMIER_BURN_AMOUNT || 250_000),
+});
+const amounts = Object.fromEntries(configuredTiers.filter(row => row.amountTokens > 0).map(row => [row.id, row.amountTokens]));
 const tier = String(process.argv[2] || '').toLowerCase();
 if (!(tier in amounts)) throw new Error('Pass one tier: boost, pro, or premier. This creates a Devnet coin and burns $FUNDED.');
 if (process.env.VITE_SOLANA_CLUSTER !== 'devnet' || process.env.VITE_ALLOW_MAINNET !== 'false') {

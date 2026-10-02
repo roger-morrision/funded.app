@@ -1,8 +1,8 @@
 import { createServer } from 'node:http';
 import { automaticRewardStatus } from './automatic-rewards.mjs';
 import { createAutomaticRewardStore } from './automatic-reward-store.mjs';
-import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from './automatic-reward-chain.mjs';
-import { readCommunityReserveStatus } from './community-reserve-status.mjs';
+import { DEVNET_GENESIS_HASH, readProgramDataEvidence, createAutomaticRewardChain } from './automatic-reward-chain.mjs';
+import { readCommunityReserveStatus, verifiedCommunityClaimedWalletCount } from './community-reserve-status.mjs';
 import { createCommunityClaimService } from './community-claim-service.mjs';
 import { randomBytes, createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -15,12 +15,16 @@ import { Connection, Keypair, PublicKey, SystemProgram, Transaction, clusterApiU
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { buildSolClaimPolicy } from '../sol-claim-policy.js';
 import { buildFeeDistributionPolicy, settleCreatorFeeClaim } from '../distribution-policy.js';
-import { buildCommunityAirdropPolicy } from '../airdrop-policy.js';
+import { buildCommunityAirdropPolicy, fundedCommunityAirdropPolicy } from '../airdrop-policy.js';
 import { canonicalLaunchPolicy, launchPolicyStatement } from '../launch-policy-auth.js';
-import { createReferralCode, normalizeReferralCode, resolveReferralUpline } from '../referral-program.js';
+import { verifyLaunchRouterReadiness } from './launch-router-readiness.mjs';
+import { createReferralCode, normalizeReferralCode, resolveReferralNetwork, resolveReferralUpline } from '../referral-program.js';
 import { deriveFeeRouter, deriveMintFeeRouter, verifyFeeRouterAccount, verifyMintFeeRouterAccount } from '../fee-router.js';
 import { OnlinePumpSdk, creatorVaultPda } from '@pump-fun/pump-sdk';
 import { createStore } from './store.mjs';
+import { rewardLedgerPath } from './reward-ledger-path.mjs';
+import { analyticsReceiptTotals } from './analytics-summary.mjs';
+import { cleanShareSource, pruneShareVisits, recordShareVisit, summarizeShareVisits } from './share-visits.mjs';
 import { readPumpMarketActivity } from './coin-market.mjs';
 import { sortDevnetLaunches } from './explore-registry.mjs';
 import { isAppPagePath } from './page-routes.mjs';
@@ -43,22 +47,29 @@ import { verifyPumpLaunch } from './launch-verification.mjs';
 import { verifyFundedBurn } from './burn-verification.mjs';
 import { readVerifiedListingMint } from './token-metadata.mjs';
 import { LISTING_BURN_TOKENS, listingBurnBaseUnits, listingMemo } from '../listing-policy.js';
+import { projectBurnMemo } from '../funded-burn.js';
 import { createLaunchBurnTiers } from '../launch-burn-policy.js';
-import { deriveXFeeObligation } from './x-fee-guard.mjs';
+import { deriveXFeeObligation, reconcileXFeeObligation } from './x-fee-guard.mjs';
 import { buildMintRouterSettlementInstruction, readMintClaimRecord } from './mint-router-payout.mjs';
 import { buybackQueue } from './buyback-executor.mjs';
 import { parseSignedMetadata, publicMetadata } from './devnet-metadata.mjs';
 import { devnetMetadataUri, devnetImageUri } from '../devnet-metadata.js';
-import { attachVerifiedTokenAccountWallets, normalizeLargestTokenAccounts } from './token-accounts.mjs';
+import { attachVerifiedTokenAccountWallets, normalizeAllTokenAccounts, normalizeLargestTokenAccounts } from './token-accounts.mjs';
 import { coinFeeOverview } from './coin-fee-overview.mjs';
+import { homeLaunchFeeIndex } from './home-launch-fee-index.mjs';
 import { buildMintCreatorFeeCollectionInstructions } from './pump-fee-collection.mjs';
 import { verifyWrappedSolRecoveryReceipt } from './wrapped-sol-recovery-receipt.mjs';
 import { rewardExperience } from './reward-experience.mjs';
+import { jackpotPreview } from './jackpot-model.mjs';
 import { homeFeeAllocationSummary } from './home-dashboard-metrics.mjs';
+import { projectBurnBoard, walletBurnBoard } from './leaderboard-burn-board.mjs';
 import { createCreatorFeeChallenges, creatorClaimStatus } from './creator-fee-claim.mjs';
 import { createTokenChatSessions } from './token-chat-session.mjs';
 import { createXUserResolver } from './x-user-lookup.mjs';
-import { TOKEN_CHAT_REPORT_REASONS, tokenChatDeleteStatement, tokenChatPostStatement, tokenChatReportStatement, validateTokenChatText } from '../token-chat.js';
+import { tokenChatDeleteStatement, tokenChatPostStatement, validateTokenChatText } from '../token-chat.js';
+import { createReferralAuth, REFERRAL_SESSION_SECONDS } from './referral-auth.mjs';
+import { BOOST_PACKAGES, activeBoosts, boostLamports, boostMemo, boostPackage } from '../boost-offer.js';
+import { verifyBoostPayment } from './boost-proof.mjs';
 
 let communityReserveSnapshot = null;
 
@@ -80,14 +91,16 @@ function loadLocalEnv() {
     }
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
-loadSecretFiles();
-loadLocalEnv();
+if (process.env.FUNDED_SKIP_LOCAL_ENV !== 'true') {
+  loadSecretFiles();
+  loadLocalEnv();
+}
 
 const port = Number(process.env.PORT || 8787);
 const host = String(process.env.HOST || '127.0.0.1');
 const staticRoot = resolve(process.cwd(), 'dist');
 const storePath = process.env.FUNDED_STORE_PATH || resolve(process.cwd(), 'data', 'funded-store.json');
-const automaticRewardStore = createAutomaticRewardStore(process.env.AUTOMATIC_REWARD_STORE_PATH || (process.env.FUNDED_STORE_PATH ? `${storePath}.automatic-rewards.json` : resolve(process.cwd(), 'data', 'automatic-rewards.json')));
+const automaticRewardStore = createAutomaticRewardStore(rewardLedgerPath());
 const creatorFeeChallenges = createCreatorFeeChallenges();
 function solToLamports(value) {
   const lamports = Math.round(Number(value) * 1_000_000_000);
@@ -153,12 +166,16 @@ const fundedTokenMint = String(process.env.FUNDED_TOKEN_MINT || process.env.VITE
 const rpcMethods = new Set(['getAccountInfo', 'getMultipleAccounts', 'getBalance', 'getSlot', 'getTokenSupply', 'getTokenLargestAccounts', 'getTokenAccountsByOwner', 'getTokenAccountBalance', 'getSignaturesForAddress', 'getTransaction', 'getLatestBlockhash', 'getBlockHeight', 'getSignatureStatuses', 'getFeeForMessage', 'getMinimumBalanceForRentExemption', 'getRecentPrioritizationFees', 'simulateTransaction', 'sendTransaction']);
 const rpcCache = new Map();
 let rpcInflight = 0;
-const publicPostPaths = new Set(['/api/rewards/preview', '/api/anti-sniper/analyze', '/api/referrals/registration/prepare', '/api/referrals/registration/verify', '/api/referrals/attribution/prepare', '/api/referrals/attribution/verify', '/api/launches', '/api/listings', '/api/burn-receipts', '/api/devnet-metadata']);
+const publicPostPaths = new Set(['/api/rewards/preview', '/api/anti-sniper/analyze', '/api/referrals/registration/prepare', '/api/referrals/registration/verify', '/api/referrals/attribution/prepare', '/api/referrals/attribution/verify', '/api/referrals/session/prepare', '/api/referrals/session/verify', '/api/referrals/session/logout', '/api/launches', '/api/listings', '/api/burn-receipts', '/api/devnet-metadata']);
 publicPostPaths.add('/api/airdrops/reserves/receipt');
 publicPostPaths.add('/api/airdrops/claims/claim-instruction');
 publicPostPaths.add('/api/x/logout'); // Cookie-authenticated, with an exact-origin check.
+publicPostPaths.add('/api/shares/visit');
+publicPostPaths.add('/api/boosts/quote');
+publicPostPaths.add('/api/boosts/confirm');
 let verifiedQuoteAssetsCache = null;
 const solanaCluster = String(process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER || 'devnet').trim();
+const boostPurchasesEnabled = solanaCluster === 'devnet' && String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
 function communityClaimService() {
   if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_FEE_ROUTER_PROGRAM_ID
     || !fundedTokenMint) throw new Error('Devnet community claim configuration is unavailable.');
@@ -168,6 +185,9 @@ function communityClaimService() {
     expectedCommunityProgramDataSha256:process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
 }
 const devnetTestMode = solanaCluster === 'devnet' && process.env.DEVNET_TEST_MODE === 'true';
+const configuredQaListingBurn = Number(process.env.FUNDED_QA_LISTING_BURN_TOKENS || Number(LISTING_BURN_TOKENS));
+const listingBurnTokens = devnetTestMode && Number.isSafeInteger(configuredQaListingBurn) && configuredQaListingBurn > 0
+  && configuredQaListingBurn <= Number(LISTING_BURN_TOKENS) ? configuredQaListingBurn : Number(LISTING_BURN_TOKENS);
 const devMode = process.env.NODE_ENV !== 'production' && solanaCluster === 'devnet' && String(process.env.DEV_MODE || '').toLowerCase() === 'true';
 const devWalletRoles = { creator: 'SOLANA_DEVNET_CREATOR_SECRET_KEY', referrer: 'SOLANA_DEVNET_REFERRER_SECRET_KEY', claimant: 'SOLANA_DEVNET_CLAIMANT_SECRET_KEY' };
 function devWalletKeypair() {
@@ -181,6 +201,7 @@ if (process.env.RPC_ALLOW_EXPENSIVE_METHODS === 'true') rpcMethods.add('getProgr
 if (devnetTestMode && process.env.RPC_ALLOW_AIRDROP === 'true') rpcMethods.add('requestAirdrop');
 const xAttestationSecret = String(process.env.X_ATTESTATION_SECRET || '').trim();
 const xAuth = createXAuth(store);
+const referralAuth = createReferralAuth(store);
 const mobileWalletRelay = createMobileWalletRelay({
   appOrigin: new URL(process.env.PUBLIC_APP_URL || `http://127.0.0.1:${port}`).origin,
   getLatestBlockhash: () => new Connection(solanaRpcUrl, 'confirmed').getLatestBlockhash('confirmed'),
@@ -195,7 +216,6 @@ let coinMarketActive = 0;
 let devnetVerificationActive = 0;
 let solUsdQuoteCache = { priceUsd: null, fetchedAt: null, expiresAt: 0 };
 let configuredQuoteAssets = [];
-const tokenChatReportThreshold = Math.max(2, Number(process.env.TOKEN_CHAT_REPORT_THRESHOLD || 3));
 const tokenChatSignatureWindowMs = 5 * 60 * 1000;
 const tokenChatSessions = createTokenChatSessions();
 try { configuredQuoteAssets = JSON.parse(process.env.FUNDED_QUOTE_ASSETS_JSON || '[]'); } catch { configuredQuoteAssets = []; }
@@ -236,7 +256,6 @@ function tokenChatPublicMessage(message) {
     author: message.author,
     text: message.text,
     createdAt: message.createdAt,
-    reportCount: Object.keys(message.reports || {}).length,
   };
 }
 function validTokenChatEnvelope(input) {
@@ -324,7 +343,6 @@ function publicState(state) {
     launches: Object.values(state.launches),
     settlements: Object.values(state.settlements).map(item => ({ claimSignature: item.claimSignature, claimedAt: item.claimedAt, asset: item.asset, grossCreatorFees: item.grossCreatorFees, totalAllocated: item.totalAllocated, status: item.status, fundedApp: { total: item.fundedApp?.total, referralPayout: item.fundedApp?.referralPayout, community: item.fundedApp?.community, buyback: item.fundedApp?.buyback, referralLevels: (item.fundedApp?.referralLevels || []).map(level => ({ level: level.level, amount: level.amount, status: level.status })) } })),
     collections: Object.values(state.collections || {}).map(item => ({ id: item.id, mint: item.mint, signature: item.signature, status: item.status, collectedLamports: item.collectedLamports, recordedAt: item.recordedAt })),
-    referralClaims: Object.values(state.referralClaims || {}).map(item => ({ id: item.id, level: item.level, amount: item.amount, asset: item.asset, status: item.status, createdAt: item.createdAt, verifiedAt: item.verifiedAt, paidAt: item.paidAt, payoutSignature: item.payoutSignature })),
   };
 }
 function authorized(req) {
@@ -357,12 +375,7 @@ function referralUplineForWallet(state, wallet) {
   return resolveReferralUpline(direct, graph, 3);
 }
 function referralNetworkForWallet(state, wallet) {
-  const graph = Object.fromEntries(Object.values(state.referrals.attributions).map(item => [item.wallet, item.inviterWallet]).filter(([key]) => key));
-  return Object.values(state.referrals.attributions).filter(item => {
-    const visited = new Set(); let current = item.inviterWallet;
-    while (current && !visited.has(current)) { if (current === wallet) return true; visited.add(current); current = graph[current] || null; }
-    return false;
-  }).map(item => item.wallet);
+  return resolveReferralNetwork(wallet, state.referrals.attributions, 3);
 }
 function referralChallengeStatement(challenge) { return `funded.app referral ${challenge.action} ${challenge.wallet} nonce ${challenge.nonce}`; }
 async function fetchBirdeye(path, params = {}) {
@@ -401,8 +414,9 @@ function normalizePumpToken(item) {
     imageUri: item.imageUri || item.image_uri || item.image || null,
     metadataUri: item.metadataUri || item.metadata_uri || item.uri || null,
     website: item.website || null,
-    twitter: item.twitter || null,
+    twitter: item.twitter || item.x || null,
     telegram: item.telegram || null,
+    discord: item.discord || null,
     marketCapUsd: marketCap != null && Number.isFinite(Number(marketCap)) ? Number(marketCap) : null,
     complete: Boolean(item.complete),
     bondingCurve: item.bonding_curve || null,
@@ -450,6 +464,12 @@ function verifyHmacAttestation({ handle, subject, issuedAt, signature }) {
 function xConfig() { return { clientId: String(process.env.X_CLIENT_ID || '').trim(), clientSecret: String(process.env.X_CLIENT_SECRET || '').trim(), callbackUrl: String(process.env.X_CALLBACK_URL || '').trim() }; }
 const resolveXUser = createXUserResolver({ getBearerToken: () => process.env.X_BEARER_TOKEN });
 async function xSession(req) { return xAuth.session(cookieValue(req, 'funded_x_session')); }
+async function referralSession(req) { return referralAuth.session(cookieValue(req, 'funded_referral_session')); }
+function requestCookieUrl(req) {
+  const origin = String(req.headers.origin || '');
+  if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) throw new Error('Use the app origin for referral access.');
+  return new URL('/api/referrals/session/verify', origin).href;
+}
 function xCallbackUrl(req) { return callbackUrlFor(req, xConfig().callbackUrl, process.env.NODE_ENV === 'production'); }
 function xOAuthConfigured(req) {
   const config = xConfig();
@@ -538,6 +558,19 @@ async function xFeeReadiness() {
 function feeRouterConfig() {
   const programId = String(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || '').trim();
   return programId ? deriveFeeRouter(programId) : null;
+}
+function launchPolicyConfig() {
+  const tiers = createLaunchBurnTiers({
+    boostAmount: Number(process.env.VITE_FUNDED_BOOST_BURN_AMOUNT || 25_000),
+    proAmount: Number(process.env.VITE_FUNDED_PRO_BURN_AMOUNT || 100_000),
+    premierAmount: Number(process.env.VITE_FUNDED_PREMIER_BURN_AMOUNT || 250_000),
+  });
+  return {
+    cluster: solanaCluster,
+    feeRouterProgramId: feeRouterConfig()?.programId.toBase58() || null,
+    fundedMint: fundedTokenMint || null,
+    burnAmounts: Object.fromEntries(tiers.map(tier => [tier.id, tier.amountTokens])),
+  };
 }
 async function executeSolPayout({ recipientWallet, amountSol }) {
   const payer = referralPayoutKeypair();
@@ -643,6 +676,96 @@ async function handle(req, res) {
       if (!publicPost(url.pathname) && !chatPost && !localDevWalletRequest(req, url.pathname) && !authorized(req)) return json(res, 401, { error: 'API authorization required.' });
     }
     if (req.method === 'POST' && url.pathname === '/api/solana/rpc') return await proxySolanaRpc(req, res);
+    if (req.method === 'GET' && url.pathname === '/api/boosts') {
+      const state = await store.read();
+      const mint = url.searchParams.get('mint');
+      if (mint) {
+        try { if (new PublicKey(mint).toBase58() !== mint) throw new Error(); }
+        catch { return json(res, 400, { error:'A valid token mint is required.' }); }
+      }
+      const active = activeBoosts(state.boostReceipts);
+      const history = mint ? Object.values(state.boostReceipts || {}).filter(row => row.mint === mint)
+        .sort((a, b) => Date.parse(b.startsAt) - Date.parse(a.startsAt)).slice(0, 30) : [];
+      return json(res, 200, { cluster:solanaCluster, enabled:boostPurchasesEnabled && Boolean(process.env.FUNDED_BOOST_PAYMENT_WALLET), packages:BOOST_PACKAGES, active:mint ? (active[mint] ? { [mint]:active[mint] } : {}) : active, history });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/boosts/quote') {
+      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Boost payments are available on Devnet only.' });
+      if (!boostPurchasesEnabled) return json(res, 503, { error:'New boost purchases are currently paused.' });
+      if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Start boost checkout from funded.vip.' });
+      if (!await store.chargeRpcRate(`boost-quote:${clientKey(req)}`, 1, 8, Math.floor(Date.now() / 60_000) * 60_000))
+        return json(res, 429, { error:'Too many boost quotes; retry shortly.' });
+      const input = await body(req);
+      let mint, payer, recipient;
+      try {
+        mint = new PublicKey(String(input.mint || '')).toBase58();
+        payer = new PublicKey(String(input.payer || '')).toBase58();
+        recipient = new PublicKey(String(process.env.FUNDED_BOOST_PAYMENT_WALLET || '')).toBase58();
+      } catch { return json(res, 503, { error:'Boost requires a valid mint, wallet, and configured Devnet payment address.' }); }
+      if (mint !== input.mint || payer !== input.payer || payer === recipient) return json(res, 400, { error:'A valid token mint and distinct paying wallet are required.' });
+      const selected = boostPackage(input.packageId);
+      if (!selected) return json(res, 400, { error:'Choose a supported boost package.' });
+      const state = await store.read();
+      const launch = state.launches?.[mint];
+      const listing = state.listings?.[mint];
+      if (!(launch?.onchainVerified && launch.cluster === 'devnet') && !(listing?.onchainVerified && listing.cluster === 'devnet'))
+        return json(res, 404, { error:'Only verified tokens in the funded.vip Devnet directory can be boosted.' });
+      const price = await readSolUsdQuote();
+      if (!price || Date.now() - Date.parse(price.fetchedAt) > 120_000)
+        return json(res, 503, { error:'A fresh SOL/USD quote is unavailable. No payment was requested.' });
+      const now = Date.now();
+      const quote = { id:id('boost'), mint, payer, recipient, packageId:selected.id, multiplier:selected.multiplier,
+        hours:selected.hours, usd:selected.usd, solUsd:price.priceUsd, lamports:boostLamports(selected.usd, price.priceUsd),
+        cluster:'devnet', createdAt:new Date(now).toISOString(), expiresAt:new Date(now + 5 * 60_000).toISOString() };
+      await store.update(current => {
+        current.boostQuotes ||= {};
+        for (const [key, old] of Object.entries(current.boostQuotes))
+          if (Date.parse(old.expiresAt) < now - 48 * 3_600_000) delete current.boostQuotes[key];
+        current.boostQuotes[quote.id] = quote;
+      });
+      return json(res, 201, { ...quote, memo:boostMemo(quote.id) });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/boosts/confirm') {
+      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Boost payments are available on Devnet only.' });
+      if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Confirm boost checkout from funded.vip.' });
+      const input = await body(req);
+      const quoteId = String(input.quoteId || '');
+      const signature = String(input.signature || '');
+      if (!/^boost_\d+_[0-9a-f]{16}$/.test(quoteId) || !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature))
+        return json(res, 400, { error:'A valid boost quote and Solana signature are required.' });
+      const state = await store.read();
+      const existing = state.boostReceipts?.[signature];
+      if (existing) return existing.quoteId === quoteId ? json(res, 200, existing) : json(res, 409, { error:'This transaction was already used.' });
+      const quote = state.boostQuotes?.[quoteId];
+      if (!quote) return json(res, 404, { error:'Boost quote was not found.' });
+      const rpc = new Connection(solanaRpcUrl, 'finalized');
+      let transaction;
+      try {
+        if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC is not Solana Devnet.' });
+        transaction = await rpc.getParsedTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
+      } catch { return json(res, 503, { error:'Finalized Devnet payment proof is currently unavailable. Retry the same signature.' }); }
+      if (!transaction) return json(res, 202, { status:'pending', signature, message:'Payment is not finalized yet. Retry verification with the same signature.' });
+      let proof;
+      try { proof = verifyBoostPayment(transaction, quote); }
+      catch (error) { return json(res, 409, { error:error.message || 'Payment does not match this boost quote.' }); }
+      const record = { signature, quoteId, mint:quote.mint, payer:quote.payer, recipient:quote.recipient,
+        packageId:quote.packageId, multiplier:quote.multiplier, hours:quote.hours, usd:quote.usd,
+        solUsd:quote.solUsd, lamports:quote.lamports, cluster:'devnet', status:'finalized',
+        slot:proof.slot, startsAt:proof.startsAt, expiresAt:proof.expiresAt };
+      try {
+        const saved = await store.update(current => {
+          current.boostReceipts ||= {};
+          if (current.boostReceipts[signature]) {
+            if (current.boostReceipts[signature].quoteId !== quoteId) throw new Error('This transaction was already used.');
+            return current.boostReceipts[signature];
+          }
+          if (Object.values(current.boostReceipts).some(row => row.quoteId === quoteId)) throw new Error('This boost quote was already paid.');
+          if (JSON.stringify(current.boostQuotes?.[quoteId]) !== JSON.stringify(quote)) throw new Error('Boost quote changed during verification.');
+          current.boostReceipts[signature] = record;
+          return record;
+        });
+        return json(res, saved === record ? 201 : 200, saved);
+      } catch (error) { return json(res, 409, { error:error.message || 'The boost payment could not be recorded.' }); }
+    }
     if (req.method === 'POST' && url.pathname === '/api/devnet-metadata') {
       if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Metadata publishing is Devnet-only.' });
       const { record, image, imageType } = parseSignedMetadata(await body(req));
@@ -686,6 +809,11 @@ async function handle(req, res) {
       const state = await store.read();
       return json(res, 200, { cluster:solanaCluster, custody:'per-mint-fee-router-pda', mainnetReady:false, pending:buybackQueue(state), receipts:Object.values(state.buybackOrders || {}).filter(row => row.status === 'finalized' && row.refundVerified).map(({ signedTransaction, refundTransaction, ...row }) => row) });
     }
+    if (req.method === 'GET' && url.pathname === '/api/jackpots/status') {
+      if (solanaCluster !== 'devnet' || String(process.env.VITE_JACKPOT_ENABLED || '').toLowerCase() !== 'true')
+        return json(res, 404, { error:'Jackpot preview is disabled.' });
+      return json(res, 200, jackpotPreview(Math.floor(Date.now() / 1000), solanaCluster));
+    }
     if (req.method === 'GET' && url.pathname === '/api/rewards/experience') {
       if (!await store.chargeRpcRate(`reward-experience:${clientKey(req)}`, 1, 30, Math.floor(Date.now() / 60_000) * 60_000))
         return json(res, 429, { error:'Reward proof request limit reached; retry shortly.' });
@@ -717,7 +845,14 @@ async function handle(req, res) {
             fundingAuthority:launch.creatorWallet, mint:launch.mint, reservedTokens:Number(launch.communityAirdrop.reservedTokens),
             fundingSignature:typeof recorded === 'string' ? recorded : null,
             expectedEligibilityMint:fundedTokenMint, dropOpeningSignature:claim?.openingSignature || null });
+          let claimedWalletCount = null;
+          if (reserve.verified && ['drop-active', 'drop-closed'].includes(reserve.status)) {
+            try { claimedWalletCount = await verifiedCommunityClaimedWalletCount({ connection, programId,
+              drop:reserve.drop, claimedBaseUnits:reserve.claimedBaseUnits, leafCount:reserve.leafCount }); }
+            catch { /* Keep the verified token total; do not guess a wallet count from incomplete payment accounts. */ }
+          }
           reserves.push({ ...reserve, creatorWallet:launch.creatorWallet,
+            claimedWalletCount,
             fundingSignature:reserve.verified ? reserve.fundingSignature || recorded || null : null,
             claimPreparation:claim ? claim.openingSignature ? 'opened' : 'prepared' : 'pending' });
         }
@@ -823,7 +958,7 @@ async function handle(req, res) {
     }
     if (req.method === 'GET' && url.pathname === '/api/health') {
       const automaticRewards = automaticRewardStatus(new Date(), await automaticRewardStore.read());
-      return json(res, 200, { ok: true, service: 'funded-api', external: { solanaKeeper: isKeeperEnabled(process.env) && Boolean(keeperKeypair()), automaticRewards: automaticRewards.status === 'active', feeRouter: Boolean(feeRouterConfig()), birdeye: Boolean(birdeyeApiKey), pumpFun: Boolean(pumpApiUrl), xOAuth: xOAuthConfigured(req) } });
+      return json(res, 200, { ok: true, service: 'funded-api', launchPolicy: launchPolicyConfig(), external: { solanaKeeper: isKeeperEnabled(process.env) && Boolean(keeperKeypair()), automaticRewards: automaticRewards.status === 'active', feeRouter: Boolean(feeRouterConfig()), birdeye: Boolean(birdeyeApiKey), pumpFun: Boolean(pumpApiUrl), xOAuth: xOAuthConfigured(req) } });
     }
     if (req.method === 'GET' && url.pathname === '/api/market/sol-usd') {
       const quote = await readSolUsdQuote();
@@ -877,6 +1012,7 @@ async function handle(req, res) {
       if ((await store.read()).creatorProfiles?.[resolved.id]?.optedOut) return json(res, 409, { error: 'This creator has opted out of new support launches.' });
       return json(res, 200, resolved);
     }
+    if (req.method === 'GET' && url.pathname === '/api/mint-router/status') return json(res, 200, await mintRouterReadiness());
     if (req.method === 'GET' && url.pathname === '/api/x-fee/status') return json(res, 200, await xFeeReadiness());
     if (req.method === 'GET' && url.pathname === '/api/x-fee/claims') {
       const session = await xSession(req);
@@ -949,7 +1085,7 @@ async function handle(req, res) {
         const paidListings = Object.values((await store.read()).listings || {})
           .filter(item => item.cluster === 'devnet' && item.onchainVerified === true)
           .map(item => ({ mint: item.mint, name: item.name || 'Paid listing', symbol: item.symbol || 'TOKEN',
-            createdTimestamp: Math.floor(Date.parse(item.listedAt) / 1000), listingPayment: { signature: item.signature, amountTokens: item.amountTokens } }));
+            createdTimestamp: Math.floor(Date.parse(item.listedAt) / 1000), listingPayment: { signature: item.signature, amountTokens: item.amountTokens, verified: true } }));
         const launchItems = [...alreadyVerified, ...newlyVerified.filter(Boolean)].map(normalizePumpToken).filter(Boolean);
         const uniqueByMint = new Map(launchItems.map(item => [item.mint, item]));
         for (const item of paidListings.map(normalizePumpToken).filter(Boolean)) {
@@ -984,7 +1120,7 @@ async function handle(req, res) {
       tokenChatSessions.revoke(req.headers['x-token-chat-session']);
       return json(res, 200, { revoked: true });
     }
-    const tokenChatMatch = url.pathname.match(/^\/api\/tokens\/([^/]+)\/chat(?:\/(report|delete))?$/);
+    const tokenChatMatch = url.pathname.match(/^\/api\/tokens\/([^/]+)\/chat(?:\/(delete))?$/);
     if (tokenChatMatch && (req.method === 'GET' || req.method === 'POST')) {
       let mint;
       try { mint = new PublicKey(decodeURIComponent(tokenChatMatch[1])).toBase58(); }
@@ -993,7 +1129,7 @@ async function handle(req, res) {
       if (req.method === 'GET') {
         if (action !== 'post') return json(res, 405, { error: 'Method not allowed.' });
         const messages = (await store.readCoinChat(mint, 100)).filter(message => message.status !== 'hidden' && message.status !== 'deleted').slice(-50).map(tokenChatPublicMessage);
-        return json(res, 200, { mint, messages, enabled: true, authentication: 'solana-wallet-session', moderation: { reporting: true, reportThreshold: tokenChatReportThreshold } });
+        return json(res, 200, { mint, messages, enabled: true, authentication: 'solana-wallet-session' });
       }
       const sessionToken = req.headers['x-token-chat-session'];
       if (sessionToken && !allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error: 'Chat session origin is not allowed.' });
@@ -1027,28 +1163,6 @@ async function handle(req, res) {
       }
       const messageId = String(input.messageId || '').trim();
       if (!/^chat_[a-f0-9]{24}$/.test(messageId)) return json(res, 400, { error: 'A valid discussion message is required.' });
-      if (action === 'report') {
-        let reporter;
-        try { reporter = walletKey(input.reporter); }
-        catch { return json(res, 400, { error: 'Connect a valid Solana wallet before reporting.' }); }
-        const reason = String(input.reason || '').trim().toLowerCase();
-        if (!TOKEN_CHAT_REPORT_REASONS.includes(reason)) return json(res, 400, { error: 'Choose a valid report reason.' });
-        if (sessionAddress ? sessionAddress !== reporter : !verifyTokenChatSignature(tokenChatReportStatement({ mint, messageId, reporter, reason, ...envelope }), input.signature, new PublicKey(reporter))) return json(res, 401, { error: 'Wallet verification is invalid for this account.' });
-        const minute = Math.floor(Date.now() / 60_000) * 60_000;
-        if (!await store.chargeRpcRate(`chat-report:${reporter}`, 1, 10, minute)) return json(res, 429, { error: 'Report limit reached. Wait before reporting again.' });
-        const outcome = await store.update(state => {
-          const message = (state.coinChats?.[mint] || []).find(item => item.id === messageId);
-          if (!message || message.status === 'deleted') return { status: 404, error: 'Discussion message not found.' };
-          if (message.author === reporter) return { status: 409, error: 'You cannot report your own message.' };
-          message.reports ||= {};
-          if (message.reports[reporter]) return { status: 409, error: 'You already reported this message.' };
-          message.reports[reporter] = { reason, reportedAt: new Date().toISOString() };
-          const reportCount = Object.keys(message.reports).length;
-          if (reportCount >= tokenChatReportThreshold) { message.status = 'hidden'; message.moderatedAt = new Date().toISOString(); message.moderationReason = 'community-report-threshold'; }
-          return { status: 200, hidden: message.status === 'hidden', reportCount };
-        });
-        return json(res, outcome.status, outcome.error ? { error: outcome.error } : outcome);
-      }
       let author;
       try { author = walletKey(input.author); }
       catch { return json(res, 400, { error: 'Connect the author wallet before deleting.' }); }
@@ -1089,6 +1203,9 @@ async function handle(req, res) {
         return { ...tokenChatPublicMessage(message), status: message.status, moderationReason: message.moderationReason, moderatedAt: message.moderatedAt };
       });
       return outcome ? json(res, 200, outcome) : json(res, 404, { error: 'Discussion message not found.' });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/home/launch-filter-fees') {
+      return json(res, 200, homeLaunchFeeIndex(await store.read(), solanaCluster));
     }
     const tokenActivityMint = req.method === 'GET' ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/fee-activity$/) : null;
     if (tokenActivityMint) {
@@ -1175,7 +1292,18 @@ async function handle(req, res) {
         const infos = sample.accounts.length
           ? await connection.getMultipleAccountsInfo(sample.accounts.map(account => new PublicKey(account.address)), 'confirmed').catch(() => [])
           : [];
-        const verifiedSample = attachVerifiedTokenAccountWallets(sample, infos, mint);
+        let verifiedSample = attachVerifiedTokenAccountWallets(sample, infos, mint);
+        if (sample.coverage === 'lower-bound') {
+          try {
+            const mintInfo = await connection.getAccountInfo(mint, 'confirmed');
+            if (mintInfo && (mintInfo.owner.equals(TOKEN_PROGRAM_ID) || mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID))) {
+              const rows = await connection.getProgramAccounts(mintInfo.owner, {
+                commitment: 'confirmed', filters: [{ memcmp: { offset: 0, bytes: address } }],
+              });
+              verifiedSample = normalizeAllTokenAccounts(rows, mint, mintInfo.owner);
+            }
+          } catch { /* Retain the bounded, owner-verified sample when full scanning is unavailable. */ }
+        }
         const data = { mint: address, cluster: solanaCluster, observedAt: new Date().toISOString(), ...verifiedSample };
         if (tokenAccountsCache.size >= 500) tokenAccountsCache.delete(tokenAccountsCache.keys().next().value);
         tokenAccountsCache.set(address, { at: Date.now(), data });
@@ -1276,15 +1404,10 @@ async function handle(req, res) {
         if (result.signature) state.collections[result.signature] = { id: result.signature, ...result, recordedAt };
         state.alerts[`fee-collect:${mintKey}`] = { ...state.alerts[`fee-collect:${mintKey}`], status:result.onchainVerified && result.status === 'collected' ? 'complete' : result.status === 'nothing-to-collect' || result.status === 'no-fees' ? result.status : 'review-required', signature:result.signature || null, recordedAt };
         if (result.onchainVerified && result.status === 'collected') {
-          try {
-            const obligation = deriveXFeeObligation(state, { mint: result.mint, claimSignature: result.signature });
-            state.obligations[obligation.id] ||= { ...obligation, createdAt: recordedAt };
-            result.obligationId = obligation.id;
-          } catch (error) {
-            result.obligationStatus = 'reconciliation-required';
-            result.obligationError = String(error.message || error);
-            state.collections[result.signature] = { ...state.collections[result.signature], obligationStatus: result.obligationStatus, obligationError: result.obligationError };
-          }
+          Object.assign(result, reconcileXFeeObligation(state, { mint:result.mint, claimSignature:result.signature, createdAt:recordedAt }));
+          state.collections[result.signature] = { ...state.collections[result.signature],
+            ...(result.obligationStatus ? { obligationStatus:result.obligationStatus } : {}),
+            ...(result.obligationError ? { obligationError:result.obligationError } : {}) };
         }
         return result;
       });
@@ -1333,6 +1456,39 @@ async function handle(req, res) {
       if (!recorded) return json(res, 409, { error:'Recovery signature was already reconciled.' });
       return json(res, 200, { ...recorded, proof });
     }
+    if (req.method === 'GET' && url.pathname === '/api/referrals/session') {
+      const session = await referralSession(req);
+      res.setHeader('cache-control', 'no-store');
+      return session?.wallet ? json(res, 200, { authenticated:true, wallet:session.wallet }) : json(res, 401, { error:'Approve referral dashboard access with your wallet.' });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/referrals/session/prepare') {
+      if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Start referral access from the app origin.' });
+      const input = await body(req);
+      let wallet;
+      try { wallet = walletKey(input.wallet); }
+      catch { return json(res, 400, { error:'A valid wallet is required for referral access.' }); }
+      try { return json(res, 200, await referralAuth.start(wallet)); }
+      catch (error) {
+        console.error('Referral session preparation failed:', error);
+        return json(res, 503, { error:'Referral access is temporarily unavailable.' });
+      }
+    }
+    if (req.method === 'POST' && url.pathname === '/api/referrals/session/verify') {
+      let cookieUrl;
+      try { cookieUrl = requestCookieUrl(req); } catch (error) { return json(res, 403, { error:error.message }); }
+      const input = await body(req);
+      const verified = await referralAuth.verify(input.challengeId, input.wallet, input.signature);
+      if (!verified) return json(res, 401, { error:'Referral access approval is invalid or expired.' });
+      res.setHeader('set-cookie', authCookie('funded_referral_session', verified.token, REFERRAL_SESSION_SECONDS, cookieUrl));
+      return json(res, 200, { authenticated:true, wallet:verified.wallet });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/referrals/session/logout') {
+      let cookieUrl;
+      try { cookieUrl = requestCookieUrl(req); } catch (error) { return json(res, 403, { error:error.message }); }
+      await referralAuth.revoke(cookieValue(req, 'funded_referral_session'));
+      res.setHeader('set-cookie', authCookie('funded_referral_session', '', 0, cookieUrl));
+      return json(res, 200, { authenticated:false });
+    }
     if (req.method === 'POST' && url.pathname === '/api/referrals/registration/prepare') {
       const input = await body(req); const wallet = walletKey(input.wallet);
       const challenge = await store.update(state => {
@@ -1361,7 +1517,7 @@ async function handle(req, res) {
       if (!inviter) return json(res, 404, { error: 'Referral code is not registered.' });
       if (inviter.wallet === wallet) return json(res, 400, { error: 'Self-referral is not allowed.' });
       const challenge = await store.update(current => {
-        const item = { id: id('referral_attribution'), action: 'attribution', wallet, code, inviterWallet: inviter.wallet, nonce: randomBytes(24).toString('hex'), expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(), status: 'awaiting-signature' };
+        const item = { id: id('referral_attribution'), action: 'attribution', wallet, code, source:cleanShareSource(input.source), inviterWallet: inviter.wallet, nonce: randomBytes(24).toString('hex'), expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(), status: 'awaiting-signature' };
         current.referrals.challenges[item.id] = item; return item;
       });
       return json(res, 200, { challengeId: challenge.id, statement: referralChallengeStatement(challenge), expiresAt: challenge.expiresAt });
@@ -1375,36 +1531,42 @@ async function handle(req, res) {
       const attribution = await store.update(current => {
         const existing = current.referrals.attributions[challenge.wallet];
         if (existing) return existing;
-        const record = { wallet: challenge.wallet, inviterWallet: challenge.inviterWallet, inviterCode: challenge.code, capturedAt: new Date().toISOString(), lock: 'first-touch', status: 'active' };
+        const record = { wallet: challenge.wallet, inviterWallet: challenge.inviterWallet, inviterCode: challenge.code, source:challenge.source || 'direct', capturedAt: new Date().toISOString(), lock: 'first-touch', status: 'active' };
         current.referrals.attributions[challenge.wallet] = record; current.referrals.challenges[challenge.id] = { ...challenge, status: 'verified', verifiedAt: record.capturedAt }; return record;
       });
       return json(res, 200, attribution);
     }
+    if (req.method === 'POST' && url.pathname === '/api/shares/visit') {
+      if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Visit origin is not allowed.' });
+      const input = await body(req);
+      const code = normalizeReferralCode(input.code);
+      if (!code || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(input.visitorId || ''))) return json(res, 400, { error:'A valid opt-in visit is required.' });
+      const minute = Math.floor(Date.now() / 60_000) * 60_000;
+      if (!await store.chargeRpcRate(`share-visit:${clientKey(req)}`, 1, 30, minute)) return json(res, 429, { error:'Visit limit reached.' });
+      const recorded = await store.update(state => {
+        if (!state.referrals.codes[code]) return false;
+        state.shareVisits ||= {};
+        recordShareVisit(state.shareVisits, { code, visitorId:input.visitorId, source:input.source });
+        return true;
+      });
+      return recorded ? json(res, 202, { recorded:true, scope:'consented-browser-day' }) : json(res, 404, { error:'Referral code is not registered.' });
+    }
     if (req.method === 'GET' && url.pathname === '/api/state') return json(res, 200, publicState(await store.readPublicBuckets()));
     if (req.method === 'GET' && url.pathname === '/api/evidence/receipts') return json(res, 200, await readReceiptEvidence());
     if (req.method === 'GET' && url.pathname === '/api/analytics/summary') {
-      const [state, evidence] = await Promise.all([store.read(), readReceiptEvidence()]);
-      const launches = Object.values(state.launches || {});
-      const settlements = Object.values(state.settlements || {});
-      const collections = Object.values(state.collections || {}).filter(item => item.status === 'collected' && Number(item.collectedLamports) > 0);
-      const totalGross = settlements.reduce((sum, item) => sum + Number(item.grossCreatorFees || 0), 0);
-      const totalCollected = collections.reduce((sum, item) => sum + Number(item.collectedLamports || 0), 0);
-      const totalBuyback = settlements.reduce((sum, item) => sum + Number(item.fundedApp?.buyback || 0), 0);
+      const [state, evidence] = await Promise.all([store.read(), readFinalizedEvidence()]);
+      const launches = Object.values(state.launches || {}).filter(row => row.cluster === solanaCluster && row.onchainVerified === true);
+      const totals = analyticsReceiptTotals(state, evidence, solanaCluster);
       return json(res, 200, {
         cluster: solanaCluster,
         build: process.env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
         source: databaseUrl ? 'funded.app-postgresql' : 'funded.app-file-ledger',
         generatedAt: new Date().toISOString(),
-        freshness: state.lastIndexedAt || null,
+        freshness: evidence.generatedAt || null,
         launches: launches.length,
-        collections: collections.length,
-        settlements: settlements.length,
-        grossCreatorFees: totalGross,
-        collectedLamports: totalCollected,
-        buybackAccrued: totalBuyback,
+        ...totals,
         homeFeeAllocations: homeFeeAllocationSummary(state, evidence, solanaCluster),
-        status: state.lastIndexedAt ? 'indexed' : 'recorded-claims-only',
-        creatorProfiles: creatorReputation(launches, settlements).length,
+        creatorProfiles: creatorReputation(launches).length,
       });
     }
     if (req.method === 'GET' && url.pathname === '/api/quote-assets') {
@@ -1457,7 +1619,7 @@ async function handle(req, res) {
     }
     if (req.method === 'GET' && url.pathname === '/api/listings/config') {
       return json(res, 200, { cluster: solanaCluster, enabled: solanaCluster === 'devnet' && Boolean(fundedTokenMint),
-        fundedMint: fundedTokenMint || null, burnTokens: Number(LISTING_BURN_TOKENS), paymentMethod: 'BurnChecked',
+        fundedMint: fundedTokenMint || null, burnTokens: listingBurnTokens, paymentMethod: 'BurnChecked',
         status: solanaCluster === 'devnet' && fundedTokenMint ? 'ready' : 'unavailable' });
     }
     const listingMintMatch = req.method === 'GET' ? /^\/api\/listings\/mint\/([^/]+)$/.exec(url.pathname) : null;
@@ -1479,6 +1641,14 @@ async function handle(req, res) {
         .filter(item => item.cluster === solanaCluster && item.onchainVerified === true)
         .sort((a, b) => String(b.listedAt).localeCompare(String(a.listedAt))) });
     }
+    if (req.method === 'GET' && url.pathname === '/api/leaderboard/burn-board') {
+      const state = await store.read();
+      return json(res, 200, { cluster: solanaCluster, source: 'verified-burn-receipts', projects: projectBurnBoard(state, solanaCluster) });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/leaderboard/burners') {
+      const state = await store.read();
+      return json(res, 200, { cluster: solanaCluster, source: 'verified-burn-receipts', wallets: walletBurnBoard(state, solanaCluster) });
+    }
     if (req.method === 'GET' && url.pathname === '/api/burn-receipts') {
       let wallet;
       try { wallet = walletKey(url.searchParams.get('wallet')); } catch { return json(res, 400, { error: 'A valid wallet query parameter is required.' }); }
@@ -1490,14 +1660,22 @@ async function handle(req, res) {
     if (req.method === 'GET' && url.pathname === '/api/referral-claims') {
       let wallet;
       try { wallet = walletKey(url.searchParams.get('wallet')); } catch { return json(res, 400, { error: 'A valid wallet query parameter is required.' }); }
+      const session = await referralSession(req);
+      if (session?.wallet !== wallet) return json(res, 401, { error:'Approve referral dashboard access with this wallet.' });
       const claims = (await store.readReferralClaimsForWallet(wallet)).map(item => ({ id: item.id, level: item.level, amount: item.amount, asset: item.asset, status: item.status, createdAt: item.createdAt, expiresAt: item.expiresAt, statement: `funded.app referral reward claim ${item.id} nonce ${item.nonce}`, payoutSignature: item.payoutSignature }));
       return json(res, 200, { wallet, claims });
     }
     if (req.method === 'GET' && url.pathname === '/api/referrals/dashboard') {
       let wallet;
       try { wallet = walletKey(url.searchParams.get('wallet')); } catch { return json(res, 400, { error: 'A valid wallet query parameter is required.' }); }
+      const session = await referralSession(req);
+      if (session?.wallet !== wallet) return json(res, 401, { error:'Approve referral dashboard access with this wallet.' });
       const state = await store.read(); const network = referralNetworkForWallet(state, wallet); const qualified = new Set(Object.values(state.settlements).filter(item => network.includes(item.creatorWallet)).map(item => item.creatorWallet));
-      return json(res, 200, { wallet, directCreators: Object.values(state.referrals.attributions).filter(item => item.inviterWallet === wallet).length, networkCreators: network.length, qualifiedCreators: qualified.size, conversionRate: network.length ? Number((qualified.size / network.length * 100).toFixed(1)) : null });
+      const code = state.referrals.wallets[wallet]?.code;
+      const direct = Object.values(state.referrals.attributions).filter(item => item.inviterWallet === wallet);
+      const directCreatorsBySource = {};
+      for (const item of direct) directCreatorsBySource[cleanShareSource(item.source)] = (directCreatorsBySource[cleanShareSource(item.source)] || 0) + 1;
+      return json(res, 200, { wallet, directCreators: direct.length, directCreatorsBySource, networkCreators: network.length, qualifiedCreators: qualified.size, conversionRate: network.length ? Number((qualified.size / network.length * 100).toFixed(1)) : null, shareVisits:code ? summarizeShareVisits(state.shareVisits, code) : null });
     }
     if (req.method === 'POST' && url.pathname === '/api/launch-reviews') {
       const review = immutableLaunchReview(await body(req));
@@ -1537,7 +1715,8 @@ async function handle(req, res) {
       }
       let proof;
       try {
-        proof = await verifyFundedBurn({ connection: new Connection(solanaRpcUrl, 'confirmed'), signature, fundedMint: configuredMint, wallet: burnWallet, amountBaseUnits: input.amountBaseUnits });
+        proof = await verifyFundedBurn({ connection: new Connection(solanaRpcUrl, 'confirmed'), signature, fundedMint: configuredMint, wallet: burnWallet,
+          amountBaseUnits: input.amountBaseUnits, expectedMemo: projectMint ? projectBurnMemo(projectMint) : null });
       } catch (error) { return json(res, 409, { error: error.message || 'The burn transaction could not be verified.' }); }
       const receipt = {
         id: `burn:${signature}`, signature, cluster: solanaCluster, wallet: burnWallet,
@@ -1578,12 +1757,12 @@ async function handle(req, res) {
         const [trustedLaunch, signedMetadata] = await Promise.all([store.readLaunch(mint), store.readMetadata(mint)]);
         listingMetadata = await readVerifiedListingMint(rpc, mint, { trustedLaunch, signedMetadata });
         const fundedSupply = await rpc.getTokenSupply(new PublicKey(fundedTokenMint), 'finalized');
-        const amountBaseUnits = listingBurnBaseUnits(fundedSupply.value.decimals);
+        const amountBaseUnits = listingBurnBaseUnits(fundedSupply.value.decimals, listingBurnTokens);
         proof = await verifyFundedBurn({ connection: rpc, signature, fundedMint: fundedTokenMint, wallet: burnWallet,
           amountBaseUnits: amountBaseUnits.toString(), expectedMemo: listingMemo(mint) });
       } catch (error) { return json(res, 409, { error: error.message || 'The listing payment could not be verified on Devnet.' }); }
       const record = { mint, name:listingMetadata.name, symbol:listingMetadata.symbol, wallet: burnWallet, cluster: 'devnet', signature,
-        fundedMint: fundedTokenMint, amountBaseUnits: proof.amountBaseUnits, amountTokens: Number(LISTING_BURN_TOKENS),
+        fundedMint: fundedTokenMint, amountBaseUnits: proof.amountBaseUnits, amountTokens: listingBurnTokens,
         slot: proof.slot, status: 'listed', onchainVerified: true, metadataSource:listingMetadata.source,
         metadataAddress:listingMetadata.address, listedAt: proof.verifiedAt };
       try {
@@ -1603,6 +1782,13 @@ async function handle(req, res) {
       } catch (error) { return json(res, 409, { error: error.message || 'This listing could not be indexed.' }); }
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/launch-reserve-config') {
+      if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE)
+        return json(res, 503, { error:'Atomic Devnet community reserve is not configured.' });
+      return json(res, 200, { cluster:'devnet', authority:process.env.FUNDED_REWARD_AUTHORITY,
+        programId:process.env.FUNDED_FEE_ROUTER_PROGRAM_ID,
+        lookupTable:process.env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE });
+    }
     if (req.method === 'POST' && url.pathname === '/api/launches') {
       if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Mainnet coin launching is not enabled. No launch policy was registered.' });
       const input = await body(req); if (!input.mint || input.chain !== 'solana' || input.cluster !== solanaCluster) return json(res, 400, { error: 'A Solana launch on the configured cluster is required.' });
@@ -1614,11 +1800,8 @@ async function handle(req, res) {
       if (!existingLaunch && !perMint) return json(res, 409, { error: 'New launches require a mint-specific fee router for attributable automatic rewards.' });
       if (xLinked && !(await xFeeReadiness()).ready) return json(res, 503, { error: 'X fee claims are not operational on Devnet yet.' });
       if (xLinked && (await resolveXUser(policy.xRecipient)).id !== policy.xUserId) return json(res, 409, { error: 'The X account ID changed since launch preparation; registration is blocked.' });
-        const promotionTiers = createLaunchBurnTiers({
-          boostAmount: Number(process.env.VITE_FUNDED_BOOST_BURN_AMOUNT || 25_000),
-          proAmount: Number(process.env.VITE_FUNDED_PRO_BURN_AMOUNT || 100_000),
-          premierAmount: Number(process.env.VITE_FUNDED_PREMIER_BURN_AMOUNT || 250_000),
-        });
+        const burnAmounts = launchPolicyConfig().burnAmounts;
+        const promotionTiers = createLaunchBurnTiers({ boostAmount: burnAmounts.boost, proAmount: burnAmounts.pro, premierAmount: burnAmounts.premier });
         const proof = await verifyPumpLaunch({ connection: new Connection(solanaRpcUrl, 'confirmed'), mint: input.mint, signature: input.signature || input.pumpFeeRoute?.transaction,
           promotionClaim: input.creatorLaunchBurn || null, fundedMint: fundedTokenMint, promotionTiers });
       const preparedMetadata = await store.readMetadata(proof.mint);
@@ -1626,23 +1809,46 @@ async function handle(req, res) {
       if (input.metadataUri && !preparedMetadata) return json(res, 409, { error: 'Signed Devnet metadata is missing.' });
       if (preparedMetadata && (preparedMetadata.creatorWallet !== proof.feePayer || preparedMetadata.name !== proof.name || preparedMetadata.symbol !== proof.symbol || (proof.uri && proof.uri !== devnetMetadataUri(proof.mint)))) return json(res, 409, { error: 'Signed metadata does not match the confirmed Pump launch.' });
       const routerConfig = feeRouterConfig();
-      const configuredRouter = perMint ? deriveMintFeeRouter(routerConfig.programId, proof.mint).address.toBase58() : routerConfig?.address.toBase58();
+      const routeReadiness = await verifyLaunchRouterReadiness({ connection: new Connection(solanaRpcUrl, 'confirmed'), routerConfig, mint: proof.mint, perMint });
+      if (!routeReadiness.ready) return json(res, routeReadiness.status, { error: routeReadiness.error });
+      const configuredRouter = routeReadiness.configuredRouter;
       if (policy.creatorWallet !== proof.feePayer || policy.feeRouter !== proof.creator || policy.feeRouter !== configuredRouter) return json(res, 409, { error: 'Launch payer or Pump fee owner does not match the signed router policy.' });
-      if (perMint) {
-        const connection = new Connection(solanaRpcUrl, 'confirmed');
-        const legacy = await connection.getAccountInfo(routerConfig.address, 'confirmed');
-        const checked = await verifyMintFeeRouterAccount({ connection, programId: routerConfig.programId, mint: proof.mint, expectedAuthority: new PublicKey(legacy.data.subarray(41, 73)) });
-        if (!checked.verified) return json(res, 409, { error: `The mint-specific fee router is not verified: ${checked.reason}.` });
-      }
       const signature = bs58.decode(String(input.policySignature || ''));
       if (!nacl.sign.detached.verify(new TextEncoder().encode(launchPolicyStatement(input)), signature, new PublicKey(policy.creatorWallet).toBytes())) return json(res, 401, { error: 'Creator wallet signature for this launch policy is invalid.' });
+      let verifiedReserve = null;
+      if (!existingLaunch) {
+        const authority = routerAuthorityKeypair();
+        const requiredAuthority = String(process.env.FUNDED_REWARD_AUTHORITY || '');
+        if (!authority || authority.publicKey.toBase58() !== requiredAuthority || !process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256)
+          return json(res, 503, { error:'Community vault authority is unavailable. The coin cannot be registered as a funded airdrop.' });
+        const reserveConnection = new Connection(solanaRpcUrl, 'finalized');
+        const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID);
+        const [genesis, programEvidence] = await Promise.all([reserveConnection.getGenesisHash(), readProgramDataEvidence(reserveConnection, programId)]);
+        if (genesis !== DEVNET_GENESIS_HASH || !programEvidence.account?.executable
+          || programEvidence.sha256 !== process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256.toLowerCase())
+          return json(res, 503, { error:'The approved Devnet reward program could not be verified.' });
+        const chain = createAutomaticRewardChain({ connection:reserveConnection, programId, authority,
+          expectedProgramDataSha256:process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
+        await chain.ensureVault(proof.mint);
+        const allocation = buildCommunityAirdropPolicy({ allocationPercent:policy.communityAllocation, supply:1_000_000_000 });
+        verifiedReserve = await readCommunityReserveStatus({ connection:reserveConnection, programId,
+          authority:requiredAuthority, fundingAuthority:proof.feePayer, mint:proof.mint,
+          reservedTokens:allocation.reservedTokens, fundingSignature:proof.signature });
+        if (!verifiedReserve.verified || verifiedReserve.status !== 'funded' || verifiedReserve.fundingSignature !== proof.signature)
+          return json(res, 422, { error:'Launch transaction did not fund the exact community reserve in the reward vault.', reserve:verifiedReserve });
+      }
       const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent: policy.creatorWalletPercent, holderAirdropPercent: policy.holderAirdropPercent, solClaimPercent: policy.solClaimPercent, xRecipient: policy.xRecipient, feeRouterAddress: configuredRouter });
       const record = {
         ...proof, cluster: solanaCluster, creatorWallet: proof.feePayer,
-        ...(preparedMetadata ? { metadataUri: devnetMetadataUri(proof.mint), description: preparedMetadata.description, imageUri: preparedMetadata.imageSha256 ? devnetImageUri(proof.mint) : 'https://metadata.funded.vip/default.svg', website: preparedMetadata.website, twitter: preparedMetadata.x, telegram: preparedMetadata.telegram } : {}),
+        ...(preparedMetadata ? { metadataUri: devnetMetadataUri(proof.mint), description: preparedMetadata.description, imageUri: preparedMetadata.imageSha256 ? devnetImageUri(proof.mint) : 'https://metadata.funded.vip/default.svg', website: preparedMetadata.website, twitter: preparedMetadata.x, telegram: preparedMetadata.telegram, discord: preparedMetadata.discord } : {}),
         communityAllocation: policy.communityAllocation,
         ...(xLinked ? { xUserId: policy.xUserId } : {}),
-        communityAirdrop: buildCommunityAirdropPolicy({ allocationPercent: policy.communityAllocation, supply: 1_000_000_000 }),
+        communityAirdrop: verifiedReserve
+          ? fundedCommunityAirdropPolicy({ allocationPercent:policy.communityAllocation, supply:1_000_000_000,
+            receipt:{ atomic:true, signature:proof.signature, vault:verifiedReserve.vault, fundedTokens:Number(verifiedReserve.fundedTokens) } })
+          : buildCommunityAirdropPolicy({ allocationPercent: policy.communityAllocation, supply: 1_000_000_000 }),
+        ...(verifiedReserve ? { communityReserve:{ vault:verifiedReserve.vault, tokenAccount:verifiedReserve.tokenAccount,
+          fundingSignature:proof.signature, fundedTokens:verifiedReserve.fundedTokens, verified:true, atomicWithPumpLaunch:true } } : {}),
         feeDistribution,
         solClaim: { ...buildSolClaimPolicy({ handle: policy.xRecipient, percent: policy.solClaimPercent, feeRouterAddress: configuredRouter }), forwardingStatus: xLinked ? 'awaiting-mint-verified-collection' : 'not-selected' },
         pumpFeeRoute: { percent: 100, router: proof.creator, scope: perMint ? 'per-mint-v2' : 'shared-legacy', verified: true, transaction: proof.signature },
@@ -1656,7 +1862,13 @@ async function handle(req, res) {
           return existing;
         }
         if (record.xUserId && state.creatorProfiles?.[record.xUserId]?.optedOut) throw new Error('This creator opted out during verification. Registration is blocked.');
-        state.launches[record.mint] = record; return record;
+        state.launches[record.mint] = record;
+        if (verifiedReserve) {
+          state.communityReserveReceipts ||= {};
+          state.communityReserveReceipts[record.mint] = { signature:proof.signature,
+            creatorWallet:proof.feePayer, recordedAt:new Date().toISOString() };
+        }
+        return record;
       });
       communityReserveSnapshot = null;
       let automaticRewards = { status:'registered' };
@@ -1729,6 +1941,8 @@ async function handle(req, res) {
     const referralExecuteId = route(url.pathname, req.method, /^\/api\/referral-claims\/([^/]+)\/execute$/);
     if (referralExecuteId) {
       const state = await store.readReferralClaimState(referralExecuteId); const claim = state.referralClaims?.[referralExecuteId]; if (!claim) return json(res, 404, { error: 'Referral claim not found.' });
+      const session = await referralSession(req);
+      if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN) || session?.wallet !== claim.recipientWallet) return json(res, 403, { error:'Execute this referral payout from its approved wallet session.' });
       if (claim.status === 'paid') return json(res, 200, state.payouts[claim.payoutId]);
       if (claim.status !== 'wallet-verified') return json(res, 409, { error: 'The referral claim must be wallet-signed before execution.' });
       if (claim.expiresAt && Date.parse(claim.expiresAt) < Date.now()) return json(res, 409, { error: 'Referral claim has expired.' });
@@ -1901,7 +2115,7 @@ async function handle(req, res) {
     const tokenPageMint=req.method==='GET'?url.pathname.match(/^\/(?:token|launch\/coin)\/([1-9A-HJ-NP-Za-km-z]{32,44})\/?$/)?.[1]:null;
     if(tokenPageMint){
       const [template,launch,metadata]=await Promise.all([readFile(resolve(staticRoot,'index.html'),'utf8'),store.readLaunch(tokenPageMint),store.readMetadata(tokenPageMint)]);
-      const page=tokenPageHtml(template,launch,metadata,tokenPageMint,solanaCluster);
+      const page=tokenPageHtml(template,launch,metadata,tokenPageMint,solanaCluster,undefined,url.search);
       res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});return res.end(page);
     }
     if (req.method === 'GET' && isAppPagePath(url.pathname)) return serveStatic('/', res);
@@ -1917,7 +2131,13 @@ async function handle(req, res) {
   }
 }
 
-await store.read();
+async function pruneStoredShareVisits() {
+  const state = await store.read();
+  const expired = pruneShareVisits(structuredClone(state.shareVisits || {}));
+  if (expired) await store.update(current => pruneShareVisits(current.shareVisits ||= {}));
+}
+await pruneStoredShareVisits();
+setInterval(() => { void pruneStoredShareVisits().catch(error => console.error('Share visit cleanup failed:', error)); }, 24 * 60 * 60 * 1000).unref();
 const server = createServer(handle);
 server.headersTimeout = 10_000;
 server.requestTimeout = 30_000;

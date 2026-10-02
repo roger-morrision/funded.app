@@ -6,6 +6,11 @@ import { createLaunchBurnTiers, tokensToBaseUnits } from '../launch-burn-policy.
 
 const createDiscriminator = Buffer.from(pumpIdl.events.find(event => event.name === 'CreateEvent').discriminator);
 const pumpProgram = PUMP_PROGRAM_ID.toBase58();
+function transactionKeys(transaction) {
+  const message = transaction.transaction.message;
+  return [...(message.accountKeys || message.staticAccountKeys || []), ...(transaction.meta?.loadedAddresses?.writable || []), ...(transaction.meta?.loadedAddresses?.readonly || [])]
+    .map(key => new PublicKey(key.pubkey || key));
+}
 
 export function readPumpCreateEvent(logs = []) {
   const stack = [];
@@ -27,8 +32,8 @@ export function verifyAtomicLaunchPromotion({ transaction, payer, signature, cla
   if (!tier || !fundedMint || claim.fundedMint !== fundedMint || claim.amountTokens !== tier.amountTokens) {
     throw new Error('The claimed promotion package does not match the configured $FUNDED burn policy.');
   }
-  const keys = transaction.transaction.message.accountKeys;
-  const instruction = transaction.transaction.message.instructions.find(compiled => {
+  const keys = transactionKeys(transaction);
+  const instruction = (transaction.transaction.message.instructions || transaction.transaction.message.compiledInstructions || []).find(compiled => {
     if (!keys[compiled.programIdIndex]?.equals(TOKEN_PROGRAM_ID)) return false;
     try {
       const decoded = decodeBurnCheckedInstruction(new TransactionInstruction({
@@ -48,22 +53,24 @@ export function verifyAtomicLaunchPromotion({ transaction, payer, signature, cla
   };
 }
 
-export async function verifyPumpLaunch({ connection, mint, signature, promotionClaim = null, fundedMint = null, promotionTiers }) {
+export async function verifyPumpLaunch({ connection, mint, signature, promotionClaim = null, fundedMint = null, promotionTiers, commitment = 'confirmed' }) {
+  if (!['confirmed', 'finalized'].includes(commitment)) throw new Error('Unsupported launch verification commitment.');
   const mintKey = new PublicKey(String(mint || '').trim());
   if (!signature || typeof signature !== 'string') throw new Error('A Pump creation transaction signature is required.');
-  const transaction = await connection.getTransaction(signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 });
-  if (!transaction || transaction.meta?.err) throw new Error('The Pump creation transaction is not confirmed.');
+  const transaction = await connection.getTransaction(signature, { commitment, maxSupportedTransactionVersion: 0 });
+  if (!transaction || transaction.meta?.err) throw new Error(`The Pump creation transaction is not ${commitment}.`);
   const event = readPumpCreateEvent(transaction.meta?.logMessages);
   if (!event || !event.mint.equals(mintKey)) throw new Error('The transaction has no matching Pump creation event.');
-  const account = await connection.getAccountInfo(mintKey, 'confirmed');
+  const account = await connection.getAccountInfo(mintKey, commitment);
   if (!account || (!account.owner.equals(TOKEN_PROGRAM_ID) && !account.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('The mint account is not owned by a supported token program.');
   unpackMint(mintKey, account, account.owner);
-  const promotion = verifyAtomicLaunchPromotion({ transaction, payer: transaction.transaction.message.accountKeys[0].toBase58(), signature, claim: promotionClaim, fundedMint, tiers: promotionTiers });
+  const payer = (transaction.transaction.message.accountKeys || transaction.transaction.message.staticAccountKeys)[0].toBase58();
+  const promotion = verifyAtomicLaunchPromotion({ transaction, payer, signature, claim: promotionClaim, fundedMint, tiers: promotionTiers });
   return {
     chain: 'solana', mint: mintKey.toBase58(), signature,
-    feePayer: transaction.transaction.message.accountKeys[0].toBase58(),
+    feePayer:payer,
     name: event.name, symbol: event.symbol, uri: event.uri || null, creator: event.creator.toBase58(),
-    createdTimestamp: Number(event.timestamp.toString()),
+    createdTimestamp: Number(event.timestamp.toString()), blockTime: transaction.blockTime ?? null,
     tokenProgram: account.owner.toBase58(),
     source: 'pump-onchain-create-event', onchainVerified: true,
     onchainVerifiedAt: new Date().toISOString(),

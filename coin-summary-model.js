@@ -63,7 +63,7 @@ export function buildCoinSummary({ mint, cluster, launch, ledgerMint, overview, 
     cards.push(card('airdrop', 'Indicative airdrop allocation', '◈', 'USD', amount,
       amount == null ? 'unavailable' : 'partial', amount == null
         ? 'Published token reserve · spot price or USD quote unavailable'
-        : `${reserved.toLocaleString()} tokens at current spot · vault funding unverified`));
+        : `${reserved.toLocaleString()} tokens at current spot · check vault funding on Airdrops`));
   }
 
   const burn = launch.creatorLaunchBurn;

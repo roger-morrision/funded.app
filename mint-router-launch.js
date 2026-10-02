@@ -1,5 +1,5 @@
 import { Buffer } from 'buffer';
-import { PublicKey, SystemProgram, Transaction, TransactionInstruction } from '@solana/web3.js';
+import { PublicKey, SystemProgram, Transaction, TransactionInstruction, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
 import { deriveFeeRouter, deriveMintFeeRouter } from './fee-router.js';
 
 export const MAX_LAUNCH_TRANSACTION_BYTES = 1232;
@@ -33,7 +33,7 @@ function serializedLength(transaction) {
   }
 }
 
-export function buildPumpLaunchPlan({ payer, mint, blockhash, launchInstructions, burnInstruction = null, mintRouterInstruction = null }) {
+export function buildPumpLaunchPlan({ payer, mint, blockhash, launchInstructions, burnInstruction = null, mintRouterInstruction = null, reserveInstructions = [], lookupTable = null }) {
   const prepare = (instructions, kind) => {
     const transaction = new Transaction().add(...instructions);
     transaction.recentBlockhash = blockhash;
@@ -43,6 +43,33 @@ export function buildPumpLaunchPlan({ payer, mint, blockhash, launchInstructions
     return { kind, transaction, bytes: serializedLength(transaction) };
   };
   const pumpInstructions = [...launchInstructions, ...(burnInstruction ? [burnInstruction] : [])];
+  if (reserveInstructions.length) {
+    if (!lookupTable?.isActive?.()) throw new Error('Verified Devnet launch reserve lookup table is unavailable. No coin was created.');
+    const instructions = [...pumpInstructions, ...reserveInstructions];
+    const compile = items => {
+      const message = new TransactionMessage({ payerKey:new PublicKey(payer), recentBlockhash:blockhash, instructions:items }).compileToV0Message([lookupTable]);
+      if (!message.addressTableLookups.some(row => row.accountKey.equals(lookupTable.key))) throw new Error('Launch reserve lookup table did not compress this transaction.');
+      const transaction = new VersionedTransaction(message);
+      transaction.sign([mint]);
+      let bytes;
+      try { bytes = transaction.serialize().length; }
+      catch (error) { if (!isOversized(error)) throw error; bytes = Infinity; }
+      return { kind:'launch', transaction, bytes };
+    };
+    const combined = compile([...(mintRouterInstruction ? [mintRouterInstruction] : []), ...instructions]);
+    if (combined.bytes <= MAX_LAUNCH_TRANSACTION_BYTES) return { steps:[combined], mintRouterSeparate:false, reserveAtomic:true };
+    const launch = compile(instructions);
+    const bytes = launch.bytes;
+    if (bytes > MAX_LAUNCH_TRANSACTION_BYTES) throw new Error(`Atomic community reserve transaction is ${bytes} bytes, above Solana's limit. Shorten the coin name or select Standard; no coin was created.`);
+    const steps = [];
+    if (mintRouterInstruction) {
+      const initialize = prepare([mintRouterInstruction], 'initialize-mint-router');
+      if (initialize.bytes > MAX_LAUNCH_TRANSACTION_BYTES) throw new Error('Mint router initialization exceeds Solana’s size limit.');
+      steps.push(initialize);
+    }
+    steps.push(launch);
+    return { steps, mintRouterSeparate:Boolean(mintRouterInstruction), reserveAtomic:true };
+  }
   const combined = prepare([...(mintRouterInstruction ? [mintRouterInstruction] : []), ...pumpInstructions], 'launch');
   if (combined.bytes <= MAX_LAUNCH_TRANSACTION_BYTES) return { steps: [combined], mintRouterSeparate: false };
   if (mintRouterInstruction) {
@@ -52,5 +79,5 @@ export function buildPumpLaunchPlan({ payer, mint, blockhash, launchInstructions
       return { steps: [initialize, launch], mintRouterSeparate: true };
     }
   }
-  throw new Error('Pump launch exceeds Solana’s transaction size limit. Reduce the creator buy or choose Standard; no launch transaction was signed.');
+  throw new Error('Pump launch exceeds Solana’s transaction size limit. Set the creator buy to zero or choose Standard; no launch transaction was signed.');
 }

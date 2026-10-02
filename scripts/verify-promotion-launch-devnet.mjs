@@ -34,6 +34,7 @@ const [genesis, devnetGenesis] = await Promise.all([
 assert.equal(genesis, devnetGenesis, 'Configured RPC is not Solana Devnet.');
 const router = await verifyFeeRouterAccount({ connection, programId: process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID });
 assert.equal(router.verified, true, `Fee router is not verified: ${router.reason}`);
+const routerProgramId = new PublicKey(process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID);
 const ata = getAssociatedTokenAddressSync(fundedMintKey, payer.publicKey);
 const [mintBefore, walletBefore, solBefore] = await Promise.all([
   getMint(connection, fundedMintKey), getAccount(connection, ata), connection.getBalance(payer.publicKey, 'confirmed'),
@@ -82,6 +83,8 @@ const launch = await submitPumpDevnetLaunch({
   payer: payer.publicKey,
   input: { name, symbol, supply: 1_000_000_000, decimals: 6, initialBuyPercent: 0 },
   feeRouterAddress: router.address.toBase58(),
+  feeRouterProgramId: routerProgramId,
+  useMintRouter: true,
   launchBurn: burn,
   prepareMetadata: async ({ mint }) => {
     preparedMint = mint;
@@ -119,9 +122,9 @@ const policy = {
   metadataUri: launch.metadataUri, signature: launch.signature, communityAllocation: 3,
   communityAirdrop: buildCommunityAirdropPolicy({ allocationPercent: 3, supply: 1_000_000_000 }),
   feeDistribution: buildFeeDistributionPolicy({ creatorWalletPercent: 80, holderAirdropPercent: 0,
-    solClaimPercent: 0, feeRouterAddress: router.address.toBase58() }),
+    solClaimPercent: 0, feeRouterAddress: launch.feeRouter.toBase58() }),
   creatorLaunchBurn: { ...burn, status: 'verified', receipt: launch.launchBurnReceipt },
-  pumpFeeRoute: { router: router.address.toBase58(), transaction: launch.signature },
+  pumpFeeRoute: { router: launch.feeRouter.toBase58(), scope: 'per-mint-v2', transaction: launch.signature },
 };
 policy.policySignature = bs58.encode(nacl.sign.detached(new TextEncoder().encode(launchPolicyStatement(policy)), payer.secretKey));
 const registered = await postJson(apiBase, '/api/launches', policy);

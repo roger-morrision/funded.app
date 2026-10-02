@@ -1,6 +1,6 @@
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { Transaction } from '@solana/web3.js';
+import { Transaction, VersionedTransaction } from '@solana/web3.js';
 
 const COMPUTE_BUDGET_PROGRAM = 'ComputeBudget111111111111111111111111111111';
 const MAX_COMPUTE_UNITS = 1_400_000n;
@@ -19,6 +19,11 @@ function sameInstruction(expected, actual){
 }
 
 export function inspectPhantomTradeTransaction(expected, signed){
+  if (expected instanceof VersionedTransaction || signed instanceof VersionedTransaction) {
+    if (!(expected instanceof VersionedTransaction) || !(signed instanceof VersionedTransaction)) return { ok:false, code:'instructions-changed' };
+    return sameBytes(expected.message.serialize(), signed.message.serialize())
+      ? { ok:true, priorityFeeLamports:0 } : { ok:false, code:'instructions-changed' };
+  }
   if (!expected.feePayer?.equals(signed.feePayer)) return { ok:false, code:'fee-payer-changed' };
   if (expected.recentBlockhash !== signed.recentBlockhash) return { ok:false, code:'blockhash-changed' };
   const added = signed.instructions.length - expected.instructions.length;
@@ -87,7 +92,7 @@ export function createPhantomSignTransactionRequest(session, transaction, callba
   const sharedSecret = nacl.box.before(bs58.decode(session.phantomPublicKey), keyPair.secretKey);
   const nonce = nacl.randomBytes(nacl.box.nonceLength);
   const payload = {
-    transaction:bs58.encode(transaction.serialize({ requireAllSignatures:false, verifySignatures:false })),
+    transaction:bs58.encode(transaction instanceof VersionedTransaction ? transaction.serialize() : transaction.serialize({ requireAllSignatures:false, verifySignatures:false })),
     session:session.session,
   };
   const encrypted = nacl.box.after(new TextEncoder().encode(JSON.stringify(payload)), nonce, sharedSecret);
@@ -97,17 +102,27 @@ export function createPhantomSignTransactionRequest(session, transaction, callba
 }
 
 export function verifyPhantomMobileTransaction(original, encodedSigned, publicKey, refreshedBlockhash = null){
-  const signed = Transaction.from(bs58.decode(encodedSigned || ''));
-  const expected = Transaction.from(original.serialize({ requireAllSignatures:false, verifySignatures:false }));
+  const versioned = original instanceof VersionedTransaction;
+  const signed = versioned ? VersionedTransaction.deserialize(bs58.decode(encodedSigned || '')) : Transaction.from(bs58.decode(encodedSigned || ''));
+  const expected = versioned ? VersionedTransaction.deserialize(original.serialize()) : Transaction.from(original.serialize({ requireAllSignatures:false, verifySignatures:false }));
   if (refreshedBlockhash) {
     if (bs58.decode(refreshedBlockhash).length !== 32) throw new Error('Phantom returned an invalid Devnet blockhash. Nothing was submitted.');
-    expected.recentBlockhash = refreshedBlockhash;
+    if (versioned) expected.message.recentBlockhash = refreshedBlockhash;
+    else expected.recentBlockhash = refreshedBlockhash;
   }
   const inspection = inspectPhantomTradeTransaction(expected, signed);
   if (!inspection.ok) throw new Error(`Phantom returned a different transaction (${inspection.code}). Nothing was submitted.`);
-  const signedMessage = signed.serializeMessage();
-  const signature = signed.signatures.find(entry => entry.publicKey.toBase58() === publicKey)?.signature;
-  if (!signature || !nacl.sign.detached.verify(signedMessage, signature, bs58.decode(publicKey)) || !signed.verifySignatures()) throw new Error('Phantom did not sign with the connected wallet. Nothing was submitted.');
+  const signedMessage = versioned ? signed.message.serialize() : signed.serializeMessage();
+  if (versioned) {
+    const signerIndex = signed.message.staticAccountKeys.findIndex(key => key.toBase58() === publicKey);
+    if (signerIndex < 0 || signerIndex >= signed.message.header.numRequiredSignatures) throw new Error('Connected wallet is not a signer of this launch. Nothing was submitted.');
+    for (let index = 0; index < signed.message.header.numRequiredSignatures; index++)
+      if (!nacl.sign.detached.verify(signedMessage, signed.signatures[index], signed.message.staticAccountKeys[index].toBytes()))
+        throw new Error('Phantom returned an invalid wallet or mint signature. Nothing was submitted.');
+  } else {
+    const signature = signed.signatures.find(entry => entry.publicKey.toBase58() === publicKey)?.signature;
+    if (!signature || !nacl.sign.detached.verify(signedMessage, signature, bs58.decode(publicKey)) || !signed.verifySignatures()) throw new Error('Phantom did not sign with the connected wallet. Nothing was submitted.');
+  }
   return signed;
 }
 

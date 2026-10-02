@@ -1,0 +1,124 @@
+/* Keep verified token identity and addresses in the same order across card sizes. */
+.token-card-shell .token-card-addresses {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+  color: #b8c4ce;
+  font: 9px 'DM Mono', monospace;
+}
+.token-card-shell .token-card-addresses > span {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.token-card-shell .token-card-addresses > span:last-child { text-align: right; }
+.token-card-shell .token-card-addresses small {
+  grid-column: 1 / -1;
+  color: #788692;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+.token-card-shell .token-card-addresses code {
+  min-width: 0;
+  overflow: hidden;
+  color: #cdd7e0;
+  font: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.token-card-shell .token-card-addresses > span:last-child code { text-align: right; }
+.token-card-shell .token-card-copy-address {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 2px;
+  border: 1px solid #364660;
+  border-radius: 2px;
+  background: #111b2e;
+  color: #a7bac9;
+  cursor: pointer;
+}
+.token-card-shell .token-card-copy-address svg { width: 13px; height: 13px; }
+.token-card-shell .token-card-copy-address:hover { border-color: #ffd28a; color: #fff0cd; }
+.token-card-shell .token-card-copy-address:focus-visible { outline: 2px solid #ffd28a; outline-offset: 2px; }
+.token-card-shell .explore-social-links { display: inline-flex; gap: 4px; }
+.token-card-shell .explore-social-link {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  padding: 4px;
+  border: 1px solid #364660;
+  border-radius: 2px;
+  background: #111b2ee8;
+  color: #bdeac7;
+  text-decoration: none;
+}
+.token-card-shell .explore-social-link svg { display: block; width: 15px; height: 15px; }
+.token-card-shell .explore-social-link:hover { border-color: #ffd28a; color: #fff0cd; }
+.token-card-shell .explore-social-link:focus-visible { outline: 2px solid #ffd28a; outline-offset: 2px; }
+
+body.page-route-explore .asset-card .asset-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+  align-items: baseline;
+  margin: 8px 4px 0;
+}
+body.page-route-explore .asset-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+body.page-route-explore .asset-card .asset-symbol { font-size: 12px; }
+body.page-route-explore .asset-card .asset-name {
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  color: #98a5b0;
+  font-size: 10px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.page-route-explore .asset-card .asset-status { justify-content: flex-start; min-height: 0; margin: 6px 4px 0; }
+body.page-route-explore .asset-card .asset-artwork > .explore-social-links {
+  position: absolute;
+  z-index: 3;
+  top: 36px;
+  left: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, 25px);
+  gap: 4px;
+}
+body.page-route-explore .asset-card .token-card-addresses {
+  order: 8;
+  margin: 9px 4px 0;
+  padding-top: 6px;
+  border-top: 1px solid #303438;
+}
+body.page-route-explore .asset-card .token-card-addresses small { font-size: 8px; }
+body.page-route-explore .asset-card .asset-actions { order: 9; }
+
+.portfolio-token-card .token-card-addresses { margin: 0 15px 10px; padding-top: 8px; border-top: 1px solid #273246; }
+.portfolio-token-card .portfolio-token-source { display: block; padding-bottom: 8px; }
+.portfolio-token-card .portfolio-token-social { margin: 0 15px 12px; }
+.airdrop-directory-card .directory-token-identity { display: flex; justify-content: space-between; gap: 10px; min-width: 0; }
+.airdrop-directory-card .directory-token-identity strong,
+.airdrop-directory-card .directory-token-identity a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.airdrop-directory-card .directory-token-identity a { color: #8794a8; font-size: 10px; text-align: right; }
+.airdrop-directory-card .token-card-addresses { max-width: 260px; margin: 6px 0; }
+.airdrop-directory-card .explore-social-links { margin-top: 5px; }
+@media (max-width: 980px) {
+  body.page-route-explore .asset-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  body.page-route-explore .asset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .token-card-shell .token-card-addresses { gap: 3px; }
+  .token-card-shell .token-card-addresses code { font-size: 8px; }
+  .token-card-shell .token-card-copy-address { width: 18px; height: 18px; padding: 1px; }
+}
+@media (max-width: 430px) {
+  body.page-route-explore .asset-grid { grid-template-columns: minmax(0, 1fr); }
+}

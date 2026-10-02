@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { APP_REFERRAL_LEVELS, FEE_DISTRIBUTION } from '../distribution-policy.js';
-import { bindReferralAttribution, calculateReferralRewards, captureFirstTouch, createReferralCode, normalizeReferralCode, resolveReferralUpline, settleReferralRevenue } from '../referral-program.js';
+import { bindReferralAttribution, calculateReferralRewards, captureFirstTouch, createReferralCode, normalizeReferralCode, resolveReferralNetwork, resolveReferralUpline, settleReferralRevenue } from '../referral-program.js';
 
 assert.equal(normalizeReferralCode(' fnd-a1b2c3d4 '), 'FND-A1B2C3D4');
 assert.equal(normalizeReferralCode('not-a-referral'), '');
@@ -16,6 +16,13 @@ assert.equal(bindReferralAttribution({ ...firstTouch, wallet: 'wallet-a' }, 'wal
 
 assert.deepEqual(resolveReferralUpline('level-1', { 'level-1': 'level-2', 'level-2': 'level-3' }), ['level-1', 'level-2', 'level-3']);
 assert.throws(() => resolveReferralUpline('level-1', { 'level-1': 'level-2', 'level-2': 'level-1' }), /cycle/);
+const network = resolveReferralNetwork('root', [
+  { wallet:'level-1', inviterWallet:'root' },
+  { wallet:'level-2', inviterWallet:'level-1' },
+  { wallet:'level-3', inviterWallet:'level-2' },
+  { wallet:'level-4', inviterWallet:'level-3' },
+]);
+assert.deepEqual(network, ['level-1', 'level-2', 'level-3'], 'Dashboard metrics must stop at the three paid referral levels.');
 
 const rewards = calculateReferralRewards(1000, { fundedPercent: FEE_DISTRIBUTION.fundedPercent, levels: APP_REFERRAL_LEVELS, upline: ['alice', 'bob', 'carol'] });
 assert.equal(rewards.fundedRevenue, 200);

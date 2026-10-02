@@ -22,7 +22,7 @@ export function readVerifiedBurnChecked(transaction, { fundedMint, wallet, amoun
       });
     if (memos.length !== 1 || memos[0] !== expectedMemo) throw new Error('The listing mint is not bound to this burn transaction.');
   }
-  const instruction = (transaction.transaction?.message?.instructions || []).find(item => {
+  const instructions = (transaction.transaction?.message?.instructions || []).filter(item => {
     const program = keyText(item.programId);
     const parsed = item.parsed;
     const info = parsed?.info || {};
@@ -30,20 +30,29 @@ export function readVerifiedBurnChecked(transaction, { fundedMint, wallet, amoun
       && String(info.mint || '') === fundedMint
       && String(info.authority || '') === wallet;
   });
-  if (!instruction) throw new Error('No matching SPL BurnChecked instruction was found.');
-  const info = instruction.parsed.info;
-  const amount = String(info.tokenAmount?.amount || '');
-  const decimals = Number(info.tokenAmount?.decimals);
-  if (!/^\d+$/.test(amount) || BigInt(amount) <= 0n || !Number.isInteger(decimals)) throw new Error('The BurnChecked amount is invalid.');
-  if (amountBaseUnits != null && BigInt(String(amountBaseUnits)) !== BigInt(amount)) throw new Error('The submitted burn amount does not match the confirmed transaction.');
-  const accountAddress = String(info.account || '');
-  const accountIndex = keys.findIndex(entry => keyText(entry) === accountAddress);
-  const pre = transaction.meta?.preTokenBalances?.find(row => row.accountIndex === accountIndex && row.mint === fundedMint && row.owner === wallet);
-  const post = transaction.meta?.postTokenBalances?.find(row => row.accountIndex === accountIndex && row.mint === fundedMint && row.owner === wallet);
-  if (!pre || !post || BigInt(pre.uiTokenAmount.amount) - BigInt(post.uiTokenAmount.amount) !== BigInt(amount)) {
-    throw new Error('The token-account balance delta does not match the BurnChecked amount.');
+  if (!instructions.length) throw new Error('No matching SPL BurnChecked instruction was found.');
+  let totalAmount = 0n;
+  let decimals = null;
+  const tokenAccounts = [];
+  for (const instruction of instructions) {
+    const info = instruction.parsed.info;
+    const amount = String(info.tokenAmount?.amount || '');
+    const instructionDecimals = Number(info.tokenAmount?.decimals);
+    if (!/^\d+$/.test(amount) || BigInt(amount) <= 0n || !Number.isInteger(instructionDecimals)) throw new Error('The BurnChecked amount is invalid.');
+    if (decimals != null && decimals !== instructionDecimals) throw new Error('BurnChecked instructions use inconsistent mint decimals.');
+    decimals = instructionDecimals;
+    const accountAddress = String(info.account || '');
+    const accountIndex = keys.findIndex(entry => keyText(entry) === accountAddress);
+    const pre = transaction.meta?.preTokenBalances?.find(row => row.accountIndex === accountIndex && row.mint === fundedMint && row.owner === wallet);
+    const post = transaction.meta?.postTokenBalances?.find(row => row.accountIndex === accountIndex && row.mint === fundedMint && row.owner === wallet);
+    if (!pre || !post || BigInt(pre.uiTokenAmount.amount) - BigInt(post.uiTokenAmount.amount) !== BigInt(amount)) {
+      throw new Error('The token-account balance delta does not match the BurnChecked amount.');
+    }
+    totalAmount += BigInt(amount);
+    tokenAccounts.push(accountAddress);
   }
-  return { feePayer, wallet, fundedMint, tokenAccount: accountAddress, amountBaseUnits: amount, decimals, tokenProgram: keyText(instruction.programId) };
+  if (amountBaseUnits != null && BigInt(String(amountBaseUnits)) !== totalAmount) throw new Error('The submitted burn amount does not match the confirmed transaction.');
+  return { feePayer, wallet, fundedMint, tokenAccount: tokenAccounts[0], tokenAccounts, amountBaseUnits: String(totalAmount), decimals, tokenProgram: keyText(instructions[0].programId) };
 }
 
 export async function verifyFundedBurn({ connection, signature, fundedMint, wallet, amountBaseUnits = null, expectedMemo = null }) {

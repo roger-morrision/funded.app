@@ -1,0 +1,63 @@
+.token-card-actions { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.token-card-action-watch,
+.token-card-action-share {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 6px 9px;
+  border: 1px solid #52606b;
+  border-radius: 2px;
+  background: #111b2e;
+  color: #cbd7de;
+  cursor: pointer;
+  font: 700 10px 'DM Mono', monospace;
+}
+.token-card-action-watch { width: 30px; padding: 5px; }
+.token-card-action-watch svg { display: block; width: 16px; height: 16px; }
+.token-card-action-watch.active { border-color: #f4a340; color: #ffd28a; }
+.token-card-action-watch:hover,
+.token-card-action-share:hover { border-color: #f4a340; color: #ffd28a; }
+.token-card-action-watch:focus-visible,
+.token-card-action-share:focus-visible { outline: 2px solid #ffd28a; outline-offset: 2px; }
+
+body.page-route-overview .home-launch-card-media > .token-card-action-watch {
+  position: absolute;
+  z-index: 4;
+  top: 8px;
+  right: 8px;
+  width: 27px;
+  min-height: 27px;
+  padding: 4px;
+  border-radius: 50%;
+  background: #111b2ee8;
+}
+body.page-route-overview .home-launch-card-media:has(> .token-card-action-watch) .home-launch-media-stage { top: 42px; }
+body.page-route-overview .home-launch-card-actions > .token-card-action-share { margin-right: auto; }
+
+.portfolio-token-footer > div { flex-wrap: wrap; justify-content: flex-end; }
+.portfolio-token-footer > div > .token-card-action-watch { flex: 0 0 30px; padding: 5px; }
+.portfolio-token-footer > div > .token-card-action-share { flex: none; }
+.airdrop-directory-card .directory-footer .token-card-actions { justify-content: flex-end; flex-wrap: nowrap; width: 100%; }
+body.page-route-airdrops .airdrop-public-programs .directory-footer .token-card-actions > button { width: auto; min-width: 0; }
+body.page-route-airdrops .airdrop-public-programs .directory-footer .token-card-actions > .token-card-action-watch { flex: 0 0 34px; padding: 5px; }
+body.page-route-airdrops .airdrop-public-programs .directory-footer .token-card-actions > .token-card-action-share { flex: 0 0 auto; }
+body.page-route-airdrops .airdrop-public-programs .directory-footer .token-card-actions > .directory-claim { flex: 1; }
+.claim-card .claim-token-actions { grid-column: 1 / -1; }
+.claim-card .claim-token-actions .claim-action { grid-column: auto; flex: 1; width: auto; }
+
+body.page-route-overview .home-reward-token-actions {
+  position: relative;
+  z-index: 2;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #35504b;
+}
+.reward-token-actions { justify-content: flex-end; margin-top: 10px; padding-top: 9px; border-top: 1px solid #33423d; }
+@media (max-width: 600px) {
+  .airdrop-directory-card .directory-footer .token-card-actions { justify-content: flex-start; }
+  .claim-card .claim-token-actions { flex-wrap: wrap; }
+  .claim-card .claim-token-actions .claim-action { flex-basis: 100%; }
+}

@@ -8,7 +8,7 @@ import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { buildFeeDistributionPolicy } from '../distribution-policy.js';
 import { launchPolicyStatement } from '../launch-policy-auth.js';
-import { deriveXFeeObligation } from '../server/x-fee-guard.mjs';
+import { deriveXFeeObligation, reconcileXFeeObligation, xFeeObligationRequired } from '../server/x-fee-guard.mjs';
 
 const mint = 'XMYT6KrfdwFyW3Fcabjj9Z82yEoHYyQscYcTs7YWSr5';
 const transaction = '4bz6vBafFbHSwwnJRTd5Ju9QB9mQvFTsqkhDVHjhXZcQZGfnyqh1UDEW2uWqzRYMeTqUdcJXmbLDUyn3fk5FFoKr';
@@ -87,10 +87,20 @@ try {
     collections: { [transaction]: { status: 'collected', mint, router: isolatedRouter, attribution: 'mint-verified', onchainVerified: true, collectedLamports: 123_456_789 } },
   };
   const obligation = deriveXFeeObligation(verifiedFixture, { mint, claimSignature: transaction });
+  assert.equal(xFeeObligationRequired(verifiedFixture.launches[mint]), true);
   assert.equal(obligation.amountLamports, '12345678');
   assert.equal(obligation.recipient, '@fundedqa');
   assert.equal(obligation.xUserId, '123456789');
   assert.throws(() => deriveXFeeObligation({ ...verifiedFixture, launches: { [mint]: { ...verifiedFixture.launches[mint], xUserId: '' } } }, { mint, claimSignature: transaction }), /stable X user ID/);
+  const nonXLaunch = { ...verifiedFixture.launches[mint], xUserId: '', feeDistribution: { creatorDirected: { shares: { creatorWalletPercent:70, holderAirdropPercent:10, solClaimPercent:0 }, recipients: { xAccount:null } } } };
+  assert.equal(xFeeObligationRequired(nonXLaunch), false, 'A 0% X policy must not enter obligation reconciliation.');
+  assert.throws(() => deriveXFeeObligation({ ...verifiedFixture, launches:{ [mint]:nonXLaunch } }, { mint, claimSignature:transaction }), /no valid X-linked fee share/);
+  const nonXState={...verifiedFixture,launches:{[mint]:nonXLaunch},obligations:{}};
+  assert.deepEqual(reconcileXFeeObligation(nonXState,{mint,claimSignature:transaction,createdAt:'2026-10-01T00:00:00Z'}),{obligationStatus:'not-applicable'});
+  assert.deepEqual(nonXState.obligations,{});
+  const reconciledState=structuredClone(verifiedFixture);
+  assert.deepEqual(reconcileXFeeObligation(reconciledState,{mint,claimSignature:transaction,createdAt:'2026-10-01T00:00:00Z'}),{obligationId:obligation.id});
+  assert.equal(reconciledState.obligations[obligation.id].createdAt,'2026-10-01T00:00:00Z');
   assert.throws(() => deriveXFeeObligation({ ...verifiedFixture, collections: {} }, { mint, claimSignature: transaction }), /collection/);
   console.log(JSON.stringify({ result: 'x-fee server checks passed', evidence: liveProofAvailable ? 'Devnet registration and local X guard' : 'local-only guard; per-mint router intentionally disabled in fixture', verifiedLaunchMint: liveProofAvailable ? mint : null, xShareBps: obligation.shareBps, sharedRouterPayoutBlocked: true }));
 } finally {

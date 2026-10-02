@@ -29,9 +29,6 @@ await writeSecret('database-url', `postgresql://funded:${nextDatabasePassword}@d
 await writeSecret('solana-rpc-url', local.SOLANA_RPC_URL || 'https://api.devnet.solana.com');
 await writeSecret('solana-devnet-rpc-url', local.SOLANA_DEVNET_RPC_URL || '');
 await writeSecret('solana-holder-index-rpc-url', local.SOLANA_HOLDER_INDEX_RPC_URL || '');
-await writeSecret('solana-devnet-creator-secret-key', local.SOLANA_DEVNET_CREATOR_SECRET_KEY);
-await writeSecret('solana-keeper-secret-key', local.SOLANA_DEVNET_CREATOR_SECRET_KEY);
-await writeSecret('funded-router-authority-secret-key', local.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || local.SOLANA_DEVNET_CREATOR_SECRET_KEY);
 await writeSecret('x-client-secret', local.X_CLIENT_SECRET || '');
 await writeSecret('x-bearer-token', local.X_BEARER_TOKEN || '');
-console.log('Local API/database secrets rotated and Docker secret files initialized. Values were not printed.');
+console.log('Local API/database secrets rotated. Signer secret files were NOT rotated or copied; verify and rotate them separately before starting signing workers. Values were not printed.');

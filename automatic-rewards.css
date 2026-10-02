@@ -1,4 +1,25 @@
 [data-automatic-rewards] { margin:20px auto; padding:24px; width:100%; max-width:1180px; border:1px solid #343448; border-radius:16px; background:#141422; container-type:inline-size; }
+.home-rewards-spotlight{display:none}
+body.page-route-overview .home-rewards-spotlight{display:block;margin:0 0 32px;padding:22px;border:1px solid #506858;border-radius:12px;background:linear-gradient(120deg,#142a26,#141c2b 68%)}
+.home-rewards-heading{display:flex;align-items:start;justify-content:space-between;gap:18px}
+.home-rewards-heading .eyebrow{color:#9ce5ba}
+.home-rewards-heading h2{margin:5px 0 7px;font-size:clamp(21px,2.4vw,31px)}
+.home-rewards-heading p:last-child{margin:0;color:#b5c7c1;font-size:12px;line-height:1.5}
+.home-rewards-heading>a{flex:none;color:#9ce5ba;font-size:12px;font-weight:700;text-decoration:none}
+.home-rewards-heading>a:hover{text-decoration:underline}
+.home-rewards-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}
+.home-rewards-grid article{min-width:0;padding:19px;border:1px solid #355a50;border-radius:10px;background:#0e1c22}
+.home-rewards-type{color:#9ce5ba;font:700 10px 'DM Mono',monospace;letter-spacing:.08em}
+.home-rewards-grid h3{margin:9px 0;color:#e6f5eb;font-size:17px}
+.home-rewards-amount{display:block;color:#d2f5a2;font:700 clamp(22px,2.5vw,32px) 'DM Mono',monospace;overflow-wrap:anywhere}
+.home-rewards-grid small{display:block;margin-top:6px;color:#b0c1bc;font-size:11px;line-height:1.5}
+.home-rewards-timing{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:17px 0 12px;padding:12px 0;border-top:1px solid #355047;border-bottom:1px solid #355047}
+.home-rewards-timing span{color:#a9c2ba;font-size:11px;line-height:1.4}
+.home-rewards-timing b{flex:none;color:#ffcd80;font:700 19px 'DM Mono',monospace;font-variant-numeric:tabular-nums}
+.home-rewards-grid article>a{color:#a3e8c0;font-size:11px;font-weight:700;text-decoration:none}
+.home-rewards-grid article>a:hover{text-decoration:underline}
+.home-rewards-note{margin:13px 0 0;color:#9cb7ae;font-size:10px;line-height:1.5}
+@media(max-width:700px){body.page-route-overview .home-rewards-spotlight{padding:16px}.home-rewards-heading{display:block}.home-rewards-heading>a{display:inline-block;margin-top:11px}.home-rewards-grid{grid-template-columns:1fr}.home-rewards-timing{flex-wrap:wrap}}
 .auto-rewards-heading { display:flex; justify-content:space-between; align-items:start; gap:16px; margin-bottom:22px; }
 .auto-rewards-heading h2 { margin:6px 0 0; font-size:clamp(24px,3vw,32px); line-height:1.2; }
 .auto-rewards-intro { margin:9px 0 0; color:#aeb2c9; font-size:14px; line-height:1.5; }
@@ -13,7 +34,7 @@
 .auto-reward-card > p { margin:0; color:#b9bbce; font-size:13px; line-height:1.6; }
 .auto-schedule,.auto-airdrop-note { display:flex; flex-direction:column; gap:7px; min-height:132px; margin-top:20px; padding:15px; border:1px solid #3e4458; border-radius:10px; background:#141a25; }
 .auto-schedule-label { color:#d9f7ea; font-size:13px; font-weight:650; }
-.auto-countdown { display:block; color:#80efc4; font:26px 'DM Mono',monospace; letter-spacing:-.025em; }
+.auto-countdown { display:block; color:#ffd28a; font:26px 'DM Mono',monospace; letter-spacing:-.025em; }
 .auto-countdown[hidden],.auto-schedule-dates[hidden],.auto-schedule a[hidden],.auto-reward-status[hidden] { display:none; }
 .auto-schedule a { color:#c5b5fa; font-size:12px; text-decoration:none; }
 .auto-schedule a:hover,.auto-schedule a:focus-visible,.auto-reward-link:hover,.auto-reward-link:focus-visible { text-decoration:underline; }
@@ -24,7 +45,7 @@
 .auto-airdrop-note strong { color:#e3d4ff; font-size:14px; }
 .auto-airdrop-note span { color:#b8accb; font-size:12px; line-height:1.5; }
 .auto-reward-card > small { display:block; margin-top:12px; color:#979db3; font-size:11px; line-height:1.5; }
-.auto-reward-link { display:inline-flex; align-self:flex-start; gap:6px; margin-top:16px; color:#9ef2d2; font-size:13px; font-weight:700; text-decoration:none; }
+.auto-reward-link { display:inline-flex; align-self:flex-start; gap:6px; margin-top:16px; color:#e9e1cf; font-size:13px; font-weight:700; text-decoration:none; }
 .auto-rewards-fineprint { margin:15px 0 0; color:#999db4; font-size:11px; line-height:1.5; }
 .auto-reward-status { margin:14px 0 0; color:#eec9a2; font-size:12px; line-height:1.5; }
 .personal-rewards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-top:16px; }

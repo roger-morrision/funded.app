@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import bs58 from 'bs58';
 import { clusterApiUrl, Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { createAutomaticRewardStore } from '../server/automatic-reward-store.mjs';
+import { rewardLedgerPath } from '../server/reward-ledger-path.mjs';
 import { createAutomaticRewardChain } from '../server/automatic-reward-chain.mjs';
 import { createRewardScheduler } from '../server/reward-scheduler.mjs';
 import { createBuyAndDistributeExecutor } from '../server/buy-and-distribute.mjs';
@@ -17,7 +18,7 @@ function signer() {
 if (String(process.env.SOLANA_CLUSTER || process.env.VITE_SOLANA_CLUSTER || 'devnet') !== 'devnet') throw new Error('Buy-and-distribute is Devnet-only.');
 const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || clusterApiUrl('devnet'), 'finalized'), authority = signer();
 const mint = new PublicKey(process.env.REWARD_MINT).toBase58(), programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID);
-const store = createAutomaticRewardStore(process.env.AUTOMATIC_REWARD_STORE_PATH || resolve(process.cwd(), 'data', 'automatic-rewards.json'));
+const store = createAutomaticRewardStore(rewardLedgerPath());
 const chain = createAutomaticRewardChain({ connection, programId, authority, expectedProgramDataSha256:process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
 const scheduler = createRewardScheduler({ store, chain, indexer:{ capture:async()=>{ throw new Error('Indexer is not used by the buy command.'); } } });
 await scheduler.register({ mint, asset:mint, excludedWallets:String(process.env.REWARD_EXCLUDED_WALLETS || '').split(',').map(row=>row.trim()).filter(Boolean) });

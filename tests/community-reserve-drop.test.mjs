@@ -6,7 +6,7 @@ import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-tok
 import { Keypair } from '@solana/web3.js';
 import { communityAddresses } from '../server/community-claim-chain.mjs';
 import { rewardAddresses } from '../server/automatic-reward-chain.mjs';
-import { readCommunityReserveStatus } from '../server/community-reserve-status.mjs';
+import { readCommunityReserveStatus, verifiedCommunityClaimedWalletCount } from '../server/community-reserve-status.mjs';
 
 const key = () => Keypair.generate().publicKey;
 const programId = key(), authority = key(), creator = key(), mint = key(), eligibilityMint = key();
@@ -74,4 +74,21 @@ test('recognizes only a finalized atomic escrow transfer with exact opening and 
   assert.equal(unrelatedInstruction.verified, false);
   const withoutExpectedEligibility = await readCommunityReserveStatus({ ...input, expectedEligibilityMint:null });
   assert.equal(withoutExpectedEligibility.verified, false);
+});
+
+test('claimed wallet count requires payment PDAs that reconcile with on-chain claimed tokens', async () => {
+  const recipient = key();
+  const { payment } = communityAddresses({ programId, authority, mint, recipient });
+  const bytes = Buffer.alloc(92);
+  createHash('sha256').update('account:CommunityPayment').digest().copy(bytes, 0, 0, 8);
+  drop.toBuffer().copy(bytes, 8); recipient.toBuffer().copy(bytes, 40);
+  bytes.writeBigUInt64LE(30n, 72); bytes.writeUInt32LE(0, 80);
+  const paymentConnection = { getProgramAccounts:async () => [{ pubkey:payment,
+    account:{ owner:programId, data:bytes } }] };
+  const input = { connection:paymentConnection, programId, drop, claimedBaseUnits:'30', leafCount:3 };
+  assert.equal(await verifiedCommunityClaimedWalletCount(input), 1);
+  assert.equal(await verifiedCommunityClaimedWalletCount({ ...input, claimedBaseUnits:'0' }), 0);
+  await assert.rejects(verifiedCommunityClaimedWalletCount({ ...input, claimedBaseUnits:'31' }), /reconcile/);
+  await assert.rejects(verifiedCommunityClaimedWalletCount({ ...input,
+    connection:{ getProgramAccounts:async () => [{ pubkey:key(), account:{ owner:programId, data:bytes } }] } }), /does not match/);
 });

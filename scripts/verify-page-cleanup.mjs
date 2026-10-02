@@ -1,0 +1,86 @@
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { stat } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { preview } from 'vite';
+
+const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const server = await preview({ preview: { host: '127.0.0.1', port: 5219, strictPort: true } });
+const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const context = await browser.newContext({ reducedMotion: 'reduce' });
+await context.addInitScript(() => sessionStorage.setItem('funded.app.wallet.manual-disconnect', '1'));
+await context.route('**/api/**', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
+const page = await context.newPage();
+const errors = [];
+page.on('pageerror', error => errors.push(error.message));
+
+async function open(route, width) {
+  await page.setViewportSize({ width, height: 900 });
+  await page.goto(`http://127.0.0.1:5219/#${route}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(expected => document.body.classList.contains(`page-route-${expected}`) && document.body.classList.contains('workspace-ready'), route);
+  await page.waitForFunction(() => document.querySelector('.page-cleanup-home-tiers'));
+  const dimensions = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
+  assert(dimensions.document <= dimensions.viewport + 1, `${route}: horizontal overflow ${JSON.stringify(dimensions)}`);
+}
+
+try {
+  await open('payments', 1280);
+  const rewardGuide = page.locator('#rewards-overview .page-cleanup-guide[data-guide="rewards"]');
+  await rewardGuide.waitFor({ state: 'visible' });
+  assert.equal(await rewardGuide.evaluate(element => element.open), false);
+  assert((await page.locator('#rewards-overview .reward-entry-grid').boundingBox()).y < 450);
+  await rewardGuide.locator(':scope > summary').click();
+  assert(await rewardGuide.locator('figure img').evaluate(image => image.getAttribute('src').endsWith('.webp')));
+  assert(await rewardGuide.locator('.infographic-poster-details').count());
+
+  await open('airdrops', 1280);
+  assert(await page.locator('#airdrops').evaluate(root => {
+    const list = root.querySelector('.airdrop-public-programs');
+    const gate = root.querySelector('.airdrop-hero-layout');
+    return Boolean(list && gate && (list.compareDocumentPosition(gate) & Node.DOCUMENT_POSITION_FOLLOWING));
+  }));
+  assert((await page.locator('.airdrop-public-programs').boundingBox()).y < 400);
+
+  await open('explore', 1280);
+  assert.equal(await page.locator('.explore-quick-filters').isVisible(), false);
+  assert(await page.locator('#explore').evaluate(root => {
+    const results = root.querySelector('#asset-grid');
+    const extras = root.querySelector('.explore-benefit-leaders');
+    return Boolean(results && extras && (results.compareDocumentPosition(extras) & Node.DOCUMENT_POSITION_FOLLOWING));
+  }));
+  assert(await page.locator('.page-cleanup-explore-guide').count());
+  await page.locator('#explore-filter-toggle').click();
+  assert(await page.locator('#explore-filter-popover').isVisible());
+  assert(await page.locator('#explore-min-cap-sol').isVisible());
+
+  await open('overview', 1280);
+  assert((await page.locator('.hero-section').boundingBox()).height < 420);
+  assert.equal(await page.locator('.home-launch-tabs button:visible').count(), 5);
+  await page.locator('.home-feed-settings > summary').click();
+  await page.locator('[data-home-tier-shortcut="boost"]').click();
+  assert.equal(await page.locator('.home-launch-tabs [aria-selected="true"]').getAttribute('data-home-launch-tab'), 'boost');
+  assert(await page.locator('.page-cleanup-selected-tier').isVisible());
+  assert.equal(await page.locator('.preview-status-drawer').evaluate(element => getComputedStyle(element).position), 'static');
+
+  await open('buybacks', 1280);
+  assert((await page.locator('#buybacks .burn-center-layout').boundingBox()).y < 650);
+  assert.equal(await page.locator('#buybacks .page-cleanup-guide[data-guide="burn"]').evaluate(element => element.open), false);
+
+  await open('capital-flow', 1280);
+  assert.equal(await page.locator('#analytics-detail > .page-cleanup-guide[data-guide="analytics"]').isVisible(), false);
+  assert(await page.locator('#capital-flow .page-cleanup-guide[data-guide="capital"]').isVisible());
+
+  for (const route of ['overview', 'explore', 'airdrops', 'payments', 'buybacks', 'my-launches', 'community', 'docs']) {
+    await open(route, 390);
+    assert.equal(await page.locator('.help-topics-trigger').isVisible(), false, `${route}: floating Help should not cover mobile content`);
+  }
+
+  const png = await stat(resolve('public/posters/fee-distribution-flow-v1.png'));
+  const webp = await stat(resolve('public/posters/fee-distribution-flow-v1.webp'));
+  assert(webp.size < png.size / 2, 'Fee poster should load the smaller WebP asset');
+  assert.deepEqual(errors, []);
+  console.log('Page cleanup passed: task-first routes, filter shortcuts, disclosures, responsive layout, and optimized poster asset.');
+} finally {
+  await browser.close();
+  await new Promise(resolveServer => server.httpServer.close(resolveServer));
+}

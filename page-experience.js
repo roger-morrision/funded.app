@@ -6,7 +6,7 @@ function addOnce(parent, key, markup, before = null) {
   const holder = document.createElement('div');
   holder.innerHTML = markup.trim();
   const node = holder.firstElementChild;
-  if (before) parent.insertBefore(node, before);
+  if (before?.parentNode === parent) parent.insertBefore(node, before);
   else parent.append(node);
   return node;
 }
@@ -44,7 +44,7 @@ function upgradeProjectsPage() {
   if (!page) return;
   page.classList.add('projects-page');
   const heading = page.querySelector(':scope > .section-heading');
-  if (heading) heading.innerHTML = `<div><p class="eyebrow">Creator workspace <span class="section-state">verified registry</span></p><h1>Portfolio</h1><p class="projects-lede">Review launch status, market activity, and token details in one portfolio.</p></div><a class="primary-button projects-launch-button" href="#launch">Launch token <span aria-hidden="true">↗</span></a>`;
+  if (heading) heading.innerHTML = `<div><p class="eyebrow">Wallet portfolio · Solana Devnet</p><h1>Portfolio</h1><p class="projects-lede">Review token holdings, observed trade P&amp;L, transactions, and your launches.</p></div><a class="primary-button projects-launch-button" href="#launch">Launch token <span aria-hidden="true">↗</span></a>`;
   const creatorPanel = page.querySelector('.role-panel:not(.referral-growth-card)');
   if (!creatorPanel) return;
   creatorPanel.classList.add('projects-panel');
@@ -81,7 +81,7 @@ function upgradeAnalyticsDashboard() {
     <article data-analytics-metric="volume"><span>Trading volume</span><strong>—</strong><small><b>USD · 24H</b>Verified Pump events</small></article>
     <article data-analytics-metric="airdrops"><span>Community airdrops</span><strong>—</strong><small><b>USD</b>Claimed distributions only</small></article>
     <article data-analytics-metric="referrals"><span>Referral rewards</span><strong>—</strong><small><b>USD</b>Confirmed reward receipts</small></article>
-    <article data-analytics-metric="burned"><span>$FUNDED burned</span><strong>—</strong><small><b>USD</b>Confirmed burn receipts</small></article>
+    <article data-analytics-metric="burned"><span>Launch-tier $FUNDED burns</span><strong>—</strong><small><b>$FUNDED</b>Verified launch burn receipts only</small></article>
     <article data-analytics-metric="wallets"><span>Trading wallets</span><strong>—</strong><small><b>COUNT · 24H</b>Observed verified activity</small></article>`;
   document.dispatchEvent(new Event('funded:analytics-upgraded'));
 }
@@ -101,7 +101,7 @@ function clarifyDataStates() {
   addOnce(analytics, 'analytics-source-note', `<p id="analytics-source-note" class="source-note">A confirmed mint count is not a fee or payout total. Fee charts and recipients appear only from indexed signatures and receipts.</p>`, analytics?.querySelector('.analytics-kpis'));
 
   const community = byId('community');
-  community?.querySelector('.heading-actions')?.setAttribute('hidden', '');
+  community?.querySelector('.heading-actions')?.removeAttribute('hidden');
   const signalList = community?.querySelector('.signal-list');
   const syncSignals = () => {
     const values = [...(signalList?.querySelectorAll('b') || [])].map(node => node.textContent.trim());
@@ -150,34 +150,11 @@ function addContextPanels() {
   const privacy = byId('privacy');
   addOnce(privacy, 'privacy-safety-steps', `<div class="safety-steps" id="privacy-safety-steps"><div><strong>Before signing</strong><small>Verify Solana Devnet, the exact amount, recipient, and program in the review. Standard wallets also show their own signing prompt.</small></div><div><strong>After signing</strong><small>Open the transaction on Solana Explorer and wait for confirmation. A submitted transaction is not a payout receipt.</small></div><div><strong>If something looks wrong</strong><small>Do not submit. Reject a standard-wallet signing prompt if one appears. Never enter a seed phrase or private key into this page.</small></div></div>`);
   const paid = byId('paid');
-  addOnce(paid, 'paid-status', `<div class="source-note" id="paid-status"><strong>Current status · Devnet preview</strong><span>Fee-route policy can be reviewed before signing. A user-initiated $FUNDED burn flow is available on Devnet, but this status is not proof of a completed burn. Production settlement and automated recipient payouts are not live. Any figures below are allocation policy, not paid totals.</span></div>`, paid?.querySelector('.revenue-model'));
+  addOnce(paid, 'paid-status', `<div class="source-note" id="paid-status"><strong>Current status · Devnet preview</strong><span>Fee-route policy can be reviewed before signing. A user-initiated $FUNDED burn requires a configured Devnet mint, an eligible wallet, and on-chain confirmation; check Buy & burn for current availability. Production settlement and automated recipient payouts are not live. Any figures below are allocation policy, not paid totals.</span></div>`, paid?.querySelector('.revenue-model'));
   const profile = byId('profile');
   addOnce(profile, 'profile-source-note', `<p class="source-note" id="profile-source-note">Your wallet connection identifies the signer for this browser session. It does not prove a launch, holding, payout, or eligibility until the corresponding Devnet record is verified.</p>`, profile?.querySelector('.profile-grid'));
   const wallet = byId('wallet-page');
   addOnce(wallet?.querySelector('.wallet-detail-card'), 'wallet-source-note', `<p class="source-note" id="wallet-source-note">This page verifies an address associated with a token record. Holdings, trades, and payouts for this wallet are not indexed here.</p>`);
-}
-
-function addCoinSections() {
-  const page = byId('coin-page');
-  if (!page) return;
-  const panels = [
-    ['Snapshot', page.querySelector('.coin-chart-panel')],
-    ['Activity', page.querySelector('.coin-tabs-panel')],
-    ['Trade', byId('trade-panel')],
-    ['On-chain checks', page.querySelector('.coin-policy-card')],
-  ];
-  const nav = document.createElement('nav');
-  nav.className = 'coin-section-nav';
-  nav.setAttribute('aria-label', 'Token page sections');
-  for (const [label, target] of panels) {
-    if (!target) continue;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = label;
-    button.addEventListener('click', () => target.scrollIntoView({ block: 'start', behavior: 'smooth' }));
-    nav.append(button);
-  }
-  page.querySelector('.coin-stat-strip')?.after(nav);
 }
 
 simplifyExplore();
@@ -187,4 +164,3 @@ upgradeAnalyticsDashboard();
 clarifyDataStates();
 clarifyReferrals();
 addContextPanels();
-addCoinSections();

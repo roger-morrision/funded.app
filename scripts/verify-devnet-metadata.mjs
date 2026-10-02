@@ -10,6 +10,7 @@ import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Keypair } from '@solana/web3.js';
 import { metadataStatement, devnetMetadataUri } from '../devnet-metadata.js';
+import { canonicalLaunchSocialUrl, normalizeXProfileInput } from '../launch-social-url.js';
 import { parseSignedMetadata, publicMetadata } from '../server/devnet-metadata.mjs';
 import { createStore } from '../server/store.mjs';
 
@@ -22,6 +23,14 @@ const record = {
   website: 'https://example.com/', x: 'https://x.com/example', telegram: '', discord: '',
   imageSha256: createHash('sha256').update(png).digest('hex'),
 };
+assert.equal(normalizeXProfileInput('http://x.com/example'), 'https://x.com/example');
+assert.equal(normalizeXProfileInput('x.com/example'), 'https://x.com/example');
+assert.equal(normalizeXProfileInput('@example'), 'https://x.com/example');
+assert.equal(canonicalLaunchSocialUrl(normalizeXProfileInput('http://x.com/example'), 'x'), record.x);
+assert.throws(() => canonicalLaunchSocialUrl('http://x.com/example', 'x'), /X link must be a valid HTTPS URL/);
+assert.throws(() => canonicalLaunchSocialUrl('https://elsewhere.example/example', 'x'), /X link must be a valid HTTPS URL/);
+assert.throws(() => canonicalLaunchSocialUrl('https://user:pass@x.com/example', 'x'), /X link must be a valid HTTPS URL/);
+assert.throws(() => canonicalLaunchSocialUrl('http://example.com', 'website'), /Website must be a valid HTTPS URL/);
 const signature = bs58.encode(nacl.sign.detached(new TextEncoder().encode(metadataStatement(record)), creator.secretKey));
 const input = { ...record, imageBase64: png.toString('base64'), imageType: 'image/png', signature };
 function hostedRequest(port, path, method = 'GET') {
@@ -44,6 +53,7 @@ assert.equal(devnetMetadataUri(mint), `https://metadata.funded.vip/devnet-metada
 assert.throws(() => parseSignedMetadata({ ...input, description: 'Tampered' }), /signature/);
 assert.throws(() => parseSignedMetadata({ ...input, imageBase64: Buffer.from('not an image').toString('base64') }), /Image bytes/);
 assert.throws(() => parseSignedMetadata({ ...input, x: 'javascript:alert(1)' }), /HTTPS/);
+assert.throws(() => parseSignedMetadata({ ...input, x: 'https://elsewhere.example/example' }), /HTTPS/);
 assert.throws(() => parseSignedMetadata({ ...input, website: 'https://user:pass@example.com' }), /HTTPS/);
 
 const directory = await mkdtemp(join(tmpdir(), 'funded-devnet-metadata-'));

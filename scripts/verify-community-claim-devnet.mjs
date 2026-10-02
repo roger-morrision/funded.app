@@ -10,13 +10,15 @@ import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from '../server/automati
 
 const mintValue = process.argv.find(arg => arg.startsWith('--mint='))?.slice(7);
 const execute = process.argv.includes('--execute');
+const role = process.argv.find(arg => arg.startsWith('--role='))?.slice(7) || 'creator';
 assert(mintValue, 'Pass --mint=<fresh verified Devnet launch>.');
+assert(['creator', 'referrer', 'claimant'].includes(role), 'Use a rotated Devnet QA role.');
 assert.equal(process.env.SOLANA_CLUSTER || process.env.VITE_SOLANA_CLUSTER, 'devnet');
 assert.notEqual(process.env.VITE_ALLOW_MAINNET, 'true');
 const mint = new PublicKey(mintValue), program = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID);
-const wallet = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY || ''));
+const wallet = Keypair.fromSecretKey(bs58.decode(process.env[`SOLANA_DEVNET_${role.toUpperCase()}_SECRET_KEY`] || ''));
 const manifest = JSON.parse(readFileSync('.secrets/devnet-qa-wallets-20260930/public.json', 'utf8'));
-assert.equal(wallet.publicKey.toBase58(), manifest.find(row => row.role === 'creator')?.address);
+assert.equal(wallet.publicKey.toBase58(), manifest.find(row => row.role === role && row.cluster === 'devnet')?.address);
 const connection = new Connection(process.env.SOLANA_RPC_URL, 'finalized');
 assert.equal(await connection.getGenesisHash(), DEVNET_GENESIS_HASH);
 const evidence = await readProgramDataEvidence(connection, program);
@@ -50,8 +52,10 @@ const vault = getAssociatedTokenAddressSync(mint, drop, true, tokenProgram);
 const [payment] = PublicKey.findProgramAddressSync([Buffer.from('community-pay-v1'), drop.toBuffer(), wallet.publicKey.toBuffer()], program);
 const balance = async address => connection.getTokenAccountBalance(address, 'finalized').then(row => BigInt(row.value.amount)).catch(() => 0n);
 const before = await balance(destination);
+const feeBufferLamports = await connection.getBalance(wallet.publicKey, 'finalized');
+assert(feeBufferLamports >= 10_000_000, 'Claimant needs a bounded Devnet fee buffer.');
 console.log(JSON.stringify({ stage:'preflight', cluster:'devnet', execute, mint:mint.toBase58(),
-  wallet:wallet.publicKey.toBase58(), drop:drop.toBase58(), amountBaseUnits:proof.amount,
+  role, wallet:wallet.publicKey.toBase58(), drop:drop.toBase58(), amountBaseUnits:proof.amount,
   index:proof.index, programHash:evidence.sha256, recipientBeforeBaseUnits:String(before) }));
 if (!execute) process.exit(0);
 const response = await fetch(`${api}/api/airdrops/claims/claim-instruction`, { method:'POST',

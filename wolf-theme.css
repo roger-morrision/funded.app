@@ -1,0 +1,387 @@
+/* Funded's black wolf identity: deep ink, storm blue, warm amber and ivory. */
+:root {
+  --bg: #0b1020;
+  --panel: #121b2e;
+  --panel-2: #1b2940;
+  --line: #30405b;
+  --text: #f6f2e9;
+  --muted: #a9b7c9;
+  --blue: #8fb2f0;
+  --mint: #f4a340;
+  --yellow: #ffd28a;
+  color-scheme: dark;
+}
+body.page-route {
+  --bg: #0b1020 !important;
+  --panel: #121b2e !important;
+  --panel-2: #1b2940 !important;
+  --line: #30405b !important;
+  --text: #f6f2e9 !important;
+  --muted: #a9b7c9 !important;
+  --blue: #8fb2f0 !important;
+  --mint: #f4a340 !important;
+  background: #0b1020;
+}
+body.page-route-overview {
+  --home-green: #f4a340;
+  --home-line: #30405b;
+  --home-muted: #a9b7c9;
+}
+body.page-route .sidebar { background: #0d1628; border-color: var(--line); }
+body.page-route .topbar { background: #0b1020f5; border-color: var(--line); }
+body.page-route .panel,
+body.page-route .support-card,
+body.page-route .ui-disclosure { background: var(--panel); border-color: var(--line); }
+body.page-route .brand-mark,
+body.page-route-overview .sidebar .brand-mark,
+body.page-route-overview .home-footer-brand .brand-mark {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 7px;
+  background: #111b2f;
+}
+body.page-route .brand-mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
+body.page-route .brand-dot { color: #f4a340; }
+body.page-route :is(.header-search-trigger,.notification,.mobile-menu,#close-menu) svg {
+  display: block; width: 18px; height: 18px;
+}
+body.page-route .mobile-menu svg { width: 20px; height: 20px; }
+body.page-route :is(.search-box > span,.header-search-field > span,.header-search-close,
+  .desktop-sidebar-toggle span,.home-market-ticker-arrows button,.home-feed-pause,
+  .home-feed-settings summary,.watch-button,.asset-copy-mint,.copy-row,
+  .explore-tier-info,.copy-creator-wallet,.coin-watch,.copy-inline,
+  .coin-socials.is-compact a,.coin-socials.is-compact button) svg {
+  display: block; width: 16px; height: 16px; flex: none;
+}
+body.page-route :is(.desktop-sidebar-toggle span,.home-market-ticker-arrows button,
+  .home-feed-pause,.home-feed-settings summary,.watch-button,.asset-copy-mint,
+  .copy-row,.explore-tier-info,.copy-creator-wallet) { align-items: center; justify-content: center; }
+body.page-route :is(.home-feed-pause,.home-feed-settings summary,.explore-tier-info) svg { margin: auto; }
+body.page-route .header-search-close svg { width: 18px; height: 18px; }
+body.page-route .nav-more summary span svg { display: block; width: 12px; height: 12px; }
+body.page-route .home-board-view button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+body.page-route .home-board-view button svg { display: block; width: 12px; height: 12px; }
+body.page-route-overview .home-kpi-icon svg { display: block; width: 16px; height: 16px; }
+body.page-route :is(.dialog-close,#explore-filter-close,.help-topics-panel header button,
+  .explore-proof-head button,.launch-tier-guide-close) svg { display: block; width: 16px; height: 16px; margin: auto; }
+body.page-route-coin .coin-page .coin-socials.is-compact :is(a,button) { border-color: #9a6d36; background: #1b2940; color: #ffd28a; }
+body.page-route .nav-item.active,
+body.page-route .sidebar .primary-nav > .nav-item.active,
+body.page-route .sidebar .nav-more-menu .nav-item.active,
+body.page-route .mobile-workspace-nav a[aria-current='page'] {
+  color: #ffd28a;
+  background: #202b42;
+  border-color: #785b38;
+  box-shadow: inset 3px 0 #f4a340;
+}
+body.page-route .nav-item.active .nav-icon { color: #f4a340; }
+body.page-route .create-coin-button,
+body.page-route .primary-button,
+body.page-route-overview .top-actions .create-coin-button,
+body.page-route-overview .hero-actions .primary-button {
+  color: #18151c;
+  background: #f4a340;
+  border-color: #f4a340;
+}
+body.page-route .create-coin-button:hover,
+body.page-route .primary-button:hover { background: #ffc270; border-color: #ffc270; }
+body.page-route .secondary-button,
+body.page-route input:not([type='checkbox']):not([type='range']),
+body.page-route select,
+body.page-route textarea { background-color: #111b2d; border-color: #30405b; }
+body.page-route :focus-visible { outline-color: #f4a340; }
+body.page-route .header-search-dialog,
+body.page-route .help-topics-panel { background: #121b2e; border-color: #485a73; }
+body.page-route .help-topics-trigger { background: #18253a; color: #ffd28a; border-color: #9a6d36; }
+body.page-route .help-topics-trigger:hover { background: #243149; }
+body.page-route .help-topics-panel header { background: #1b2940; border-color: var(--line); }
+body.page-route .help-topics-panel { border-radius: 6px; color: #f6f2e9; }
+body.page-route .help-topics-panel :is(header small,.help-topics-intro,.help-topics-answer p) { color: #a9b7c9; }
+body.page-route .help-topics-answer strong { color: #f6f2e9; }
+body.page-route .help-topics-choices button { background: #18253a; border-color: var(--line); color: var(--text); }
+body.page-route .help-topics-choices button:hover,
+body.page-route .help-topics-choices button[aria-pressed='true'] { background: #243149; border-color: #f4a340; }
+body.page-route .help-topics-answer { background: #0d1728; border-color: var(--line); }
+body.page-route .help-topics-answer a { color: #ffd28a; }
+body.page-route .header-search-field { border-color: #f4a340; background: #0d1728; }
+body.page-route .header-search-field > span { color: #f4a340; }
+body.page-route .header-search-result:hover,
+body.page-route .header-search-result[aria-selected='true'] { background: #243149; outline-color: #f4a340; }
+body.page-route-explore .explore-filter-toggle:is(:hover,[aria-expanded='true']) {
+  border-color: #a7743e; background: #243149; color: #ffd28a;
+}
+body.page-route-explore .explore-filter-popover { background: #121b2e; border-color: #485a73; color: #f6f2e9; }
+@media (min-width: 621px) {
+  body.page-route-explore .explore-filter-popover {
+    box-sizing: border-box;
+    position: fixed;
+    top: max(68px, calc((100dvh - 620px) / 2));
+    left: max(12px, calc(50vw - 470px));
+    right: auto;
+    max-height: min(620px, calc(100dvh - 96px));
+  }
+}
+body.page-route-explore .explore-filter-head button { background: #243149; color: #ffd28a; }
+body.page-route-explore .explore-filter-popover :is(select,input,.explore-stage-filter) {
+  background: #0d1728; border-color: #30405b; color: #f6f2e9;
+}
+body.page-route-explore .explore-filter-popover :is(select,input):focus {
+  border-color: #f4a340; box-shadow: 0 0 0 2px #f4a34033;
+}
+body.page-route-explore .explore-filter-popover .explore-stage-filter button { color: #a9b7c9; }
+body.page-route-explore .explore-filter-popover .explore-stage-filter button.active { background: #f4a340; color: #18151c; }
+body.page-route-explore .explore-filter-popover :is(.explore-filter-label,small) { color: #a9b7c9; }
+body.page-route-explore .explore-benefit-leader-grid button:is(:hover,.active):not(:disabled) {
+  border-color: #a7743e; background: linear-gradient(145deg, #243149, #121b2e);
+}
+.header-search-token { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; }
+.header-search-avatar {
+  display: grid; place-items: center; flex: 0 0 34px; width: 34px; height: 34px;
+  overflow: hidden; border: 1px solid #9a6d36; border-radius: 7px;
+  background: linear-gradient(145deg, #594932, #202b42);
+  color: #ffd28a; font: 700 13px 'DM Mono', monospace;
+}
+.header-search-avatar img { width: 100%; height: 100%; object-fit: cover; }
+body.page-route-overview .hero-section {
+  min-height: 500px !important;
+  background: linear-gradient(90deg, #0b1020 0%, #0b1020e8 30%, #0b102080 68%, #0b102033 100%),
+    linear-gradient(0deg, #0b1020 0%, #0b102000 34%),
+    url('/home-wolf-hero.png') center right / cover no-repeat,
+    #0b1020 !important;
+}
+body.page-route-overview .hero-copy-column { max-width: 690px !important; }
+body.page-route-overview .hero-section h1 { font-size: clamp(52px, 6.5vw, 104px) !important; line-height: .95; letter-spacing: -.075em; }
+body.page-route-overview .hero-actions .hero-secondary-action { background: #111b2dd9; border-color: #a7743e; color: #ffd28a; }
+body.page-route-overview .home-market-window button.active { background: #243149; border-color: #a7743e; }
+body.page-route-overview .hero-section h1 em { color: #ffd28a; }
+body.page-route-overview .hero-stakeholder-grid i,
+body.page-route-overview .home-option-icon,
+body.page-route-overview .home-holder-reward-avatar {
+  background: #243149; border-color: #a7743e; color: #ffd28a;
+}
+body.page-route-overview .home-flow-line-main::after { border-left-color: #f4a340; }
+body.page-route-overview .home-flow-router .home-flow-icon { color: #ffd28a; border-color: #a7743e; }
+body.page-route-overview .home-fee-bar i:first-child { background: #f4a340; }
+body.page-route-overview .home-launch-tabs button.active { background: #f4a340; color: #18151c; }
+body.page-route-overview .home-launch-card:hover { border-color: #a7743e; }
+body.page-route-overview .home-launch-progress i { background: linear-gradient(90deg, #8fb2f0, #f4a340); }
+body.page-route-overview .home-kpi-card-primary { background: radial-gradient(circle at 0 0, #f4a34024, transparent 52%), #121b2e; }
+body.page-route-overview .home-launch-card-media { background: radial-gradient(circle at 50% 40%, #344768, #111b2e 70%); }
+body.page-route-overview .home-launch-card-actions button { background: #202b42; border-color: #a7743e; }
+body.page-route-overview .home-launch-media-stage { background: #0b1020d9; border-color: #a7743e; color: #ffd28a; }
+body.page-route-overview .home-feed-settings-panel {
+  width: min(430px, calc(100vw - 32px));
+  border-color: #30405b; background: #121b2e;
+}
+body.page-route-overview .home-feed-settings-panel .home-filter-checks label {
+  display: flex; flex-direction: row; align-items: center; gap: 10px; min-height: 28px;
+  color: #f6f2e9; font-size: 12px;
+}
+body.page-route-overview .home-feed-settings-panel .home-filter-checks input { width: 16px; height: 16px; margin: 0; accent-color: #f4a340; }
+body.page-route-overview .home-feed-settings-note { color: #a9b7c9; }
+body.page-route .list-art { background: #111b2e; }
+body.page-route-explore .explore-hero,
+body.page-route-leaderboard .leaderboard-hero { background-position: center center, right top !important; }
+/* Utility pages and token placeholders share the same identity as the main navigation. */
+body.page-route .topbar .top-actions .connect-button { border-color: #485a73 !important; color: #e9e1cf !important; }
+body.page-route .topbar .top-actions .connect-button:hover { color: #ffd28a !important; }
+body.page-route:is(.page-route-analytics-detail,.page-route-referrals,.page-route-privacy) #route-guide .route-guide-secondary,
+body.page-route-explore .scanner-actions :is(.scanner-watch,.copy-row),
+body.page-route-analytics-detail .recipients-panel .payment-row a { color: #8fb2f0 !important; }
+body.page-route-explore .scanner-actions :is(.scanner-watch,.copy-row):hover,
+body.page-route-analytics-detail .recipients-panel .payment-row a:hover { color: #ffd28a !important; }
+body.page-route .coin-page .coin-avatar:not([style]):not(:has(img)),
+body.page-route .home-token-avatar:not([style]):not(:has(img)),
+body.page-route-airdrops .airdrop-directory-card .claim-token-mark:not([style]):not(:has(img)) {
+  border-color: #9a6d36 !important;
+  background: linear-gradient(145deg, #594932, #202b42) !important;
+  color: #ffd28a !important;
+}
+body.page-route .wallet-funded-mark { background: #243149; color: #ffd28a; }
+body.page-route .launch-page-flat .launch-preview .funded-burn-row b { color: #ffd28a; }
+body.page-route .projects-panel .role-icon,
+body.page-route .projects-empty-icon { background: #243149; border-color: #a7743e; color: #ffd28a; }
+body.page-route .projects-public-launches a:is(:hover,:focus-visible),
+body.page-route .projects-list .creator-launch-link:hover { border-color: #a7743e; background: #243149; }
+body.page-route-community #my-launches > .pilot-panel { display: none !important; }
+body.page-route-community #my-launches > .pilot-panel { display: none !important; }
+body.page-route-analytics-detail .analytics-kpis-complete article > small b {
+  border-color: #a7743e; background: #243149; color: #ffd28a;
+}
+/* Reward schedules, token allocations, and creator tools share the same surfaces. */
+body.page-route [data-automatic-rewards],
+body.page-route :is(.auto-reward-card,.personal-reward-card,.funded-holder-token-rewards) {
+  background: #121b2e; border-color: #30405b;
+}
+body.page-route :is(.auto-reward-icon,.funded-token-avatar) {
+  background: #243149; border-color: #a7743e; color: #ffd28a;
+}
+body.page-route :is(.auto-reward-type,.funded-token-arrow,.auto-schedule a,
+  .personal-reward-card a) { color: #ffd28a; }
+body.page-route :is(.auto-airdrop-note,.personal-reward-values > div,.reward-review-note) {
+  background: #1b2940; border-color: #30405b;
+}
+body.page-route :is(.auto-airdrop-note strong,.personal-reward-values strong,.funded-token-amount strong) { color: #f6f2e9; }
+body.page-route .funded-holder-token-rewards header > strong { border-color: #a7743e; color: #ffd28a; }
+body.page-route .funded-token-row:is(:hover,:focus-visible) { background: #243149; }
+body.page-route .reward-review-note { border-left-color: #f4a340; }
+body.page-route .creator-support-page :is(a,.support-shortcuts a),
+body.page-route #notification-dialog article a,
+body.page-route #claim-technical-details summary { color: #8fb2f0; }
+body.page-route .creator-support-page button,
+body.page-route #notification-dialog article button { background: #1b2940; border-color: #30405b; color: #f6f2e9; }
+body.page-route .creator-support-page :is(button,input,textarea):focus-visible,
+body.page-route .launch-dialog .image-picker:focus-within { outline-color: #f4a340; }
+body.page-route .launch-dialog .image-picker-actions button:hover { border-color: #f4a340; background: #243149; }
+/* Dialogs, pilot notes, and rewards dashboards use the same card surfaces. */
+body.page-route dialog.info-dialog { background: #121b2e; border-color: #485a73; border-radius: 6px; color: #f6f2e9; }
+body.page-route dialog.info-dialog :is(p,dt) { color: #a9b7c9; }
+body.page-route dialog.info-dialog :is(dl,dl div) { border-color: #30405b; }
+body.page-route .coin-quick-edit-fields label { color: #a9b7c9; }
+body.page-route .coin-quick-edit-fields label span { background: #0d1728; border-color: #30405b; }
+body.page-route .coin-quick-edit-fields input { color: #f6f2e9; }
+body.page-route .coin-quick-edit-actions button:not(.primary-button) { background: #1b2940; border: 1px solid #30405b; color: #f6f2e9; }
+body.page-route .coin-quick-edit-actions button:not(.primary-button):hover { background: #243149; border-color: #a7743e; }
+body.page-route .coin-quick-edit-trigger { background: #1b2940; border-color: #30405b; color: #a9b7c9; }
+body.page-route .coin-quick-edit-trigger:hover { color: #ffd28a; }
+body.page-route.page-route-payments .reward-entry-grid > :is(a,button),
+body.page-route.page-route-payments .reward-experience-panel,
+body.page-route.page-route-my-launches :is(.projects-panel,.projects-empty-content,.community-card),
+body.page-route.page-route-referrals .referral-kpi-grid article,
+body.page-route.page-route-analytics-detail .analytics-kpis-complete article {
+  background: #121b2e; border-color: #30405b; color: #f6f2e9;
+}
+body.page-route.page-route-payments .reward-entry-grid > :is(a,button):hover {
+  background: #243149; border-color: #a7743e;
+}
+body.page-route.page-route-privacy .share-visit-consent {
+  display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
+  gap: 10px; text-align: left;
+}
+body.page-route :is(.pilot-panel,.jackpot-preview,.jackpot-disclosure,.jackpot-preview-card,
+  .launch-optional-story,.launch-advanced-options) {
+  background: #121b2e;
+  border-color: #30405b;
+  border-radius: 4px;
+}
+body.page-route :is(.pilot-panel,.jackpot-preview,.jackpot-disclosure) :is(a,summary:hover) { color: #ffd28a; }
+/* Token facts and the trade ticket use the same navy surfaces as the index. */
+body.page-route-coin .coin-page :is(.coin-stat-strip,.coin-chart-modes,.coin-pulse-periods,
+  .coin-tabs,.coin-quick-amounts,.coin-slippage-presets,.coin-side-toggle) {
+  background: #1b2940;
+  border-color: #30405b;
+}
+body.page-route-coin .coin-page .coin-stat-strip > div,
+body.page-route-coin .coin-page .coin-pulse-grid > div { background: #121b2e; border-color: #30405b; }
+body.page-route-coin .coin-page .coin-stat-strip :is(span,small),
+body.page-route-coin .coin-page .coin-section-nav button,
+body.page-route-coin .coin-page .coin-profile-links-note,
+body.page-route-coin .coin-page .coin-holders-aside-status { color: #a9b7c9; }
+body.page-route-coin .coin-page .coin-stat-strip strong,
+body.page-route-coin .coin-page :is(.coin-market-aside-title,.coin-holders-aside h2,.coin-profile-tagline) { color: #f6f2e9; }
+body.page-route-coin .coin-page :is(.coin-market-aside,.coin-holders-aside,.coin-tabs-panel,
+  .coin-pulse-panel,.token-trading-panel,.coin-side-column > .ui-disclosure,
+  .coin-trade-amount-card,.coin-trade-slippage,.trade-live-estimate) {
+  background: #121b2e;
+  border-color: #30405b;
+}
+body.page-route-coin .coin-page :is(.coin-chart-modes button,.coin-pulse-periods button,.coin-tabs button).active,
+body.page-route-coin .coin-page .coin-slippage-presets button.active { background: #243149; color: #ffd28a; }
+body.page-route-coin .coin-page :is(.coin-quick-amounts button,.coin-slippage-presets button) { border-color: #30405b; color: #a9b7c9; }
+body.page-route-coin .coin-page :is(.coin-quick-amounts button,.coin-slippage-presets button):hover { background: #243149; color: #f6f2e9; }
+body.page-route-coin .coin-page .coin-side-toggle button.active[data-coin-trade-side='buy'] { background: #243149; color: #ffd28a; }
+body.page-route-coin .coin-page .coin-transactions-table th { background: #1b2940; color: #a9b7c9; border-color: #30405b; }
+body.page-route-coin .coin-page .coin-transactions-table td { border-color: #30405b; }
+body.page-route-coin .coin-page .coin-transactions-table tbody tr:nth-child(even) { background: #121b2e; }
+body.page-route-coin .coin-page .coin-transactions-table tbody tr:hover { background: #243149; }
+@media (max-width: 700px) {
+  body.page-route-explore .scanner-scroll .empty-state {
+    box-sizing: border-box; min-width: 0;
+    width: min(900px, calc(100vw - 64px));
+    white-space: normal; overflow-wrap: anywhere;
+  }
+  body.page-route .sidebar { background: #0d1628; }
+  body.page-route .topbar .topbar-context { display: flex; align-items: center; gap: 7px; }
+  body.page-route.page-route-explore .explore-control-bar {
+    flex-direction: column; align-items: stretch; gap: 8px;
+  }
+  body.page-route.page-route-explore .explore-sort-buttons {
+    order: 0; flex: none; width: 100%; box-sizing: border-box;
+    overflow-x: auto; scrollbar-width: thin;
+  }
+  body.page-route.page-route-explore .explore-sort-buttons button {
+    flex: 0 0 auto; white-space: nowrap; padding: 0 11px; font-size: 11px;
+  }
+  body.page-route.page-route-explore .explore-control-left {
+    order: 1; width: 100%; justify-content: space-between;
+  }
+  body.page-route .mobile-workspace-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  body.page-route .help-topics-trigger {
+    top: auto; bottom: calc(8px + env(safe-area-inset-bottom)); right: 8px;
+    width: calc((100% - 16px) / 5); min-width: 0; height: 48px; padding: 3px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    border: 1px solid transparent; border-radius: 4px; box-shadow: none;
+    background: transparent; color: #a9b7c9; font-size: 10px; z-index: 31;
+  }
+  body.page-route .help-topics-trigger::before {
+    content: '?'; display: grid; place-items: center;
+    width: 17px; height: 17px; border: 1.7px solid currentColor; border-radius: 50%;
+    font: 700 11px/1 'DM Mono', monospace;
+  }
+  body.page-route .help-topics-trigger:hover,
+  body.page-route .help-topics-trigger[aria-expanded='true'] {
+    background: #1b2940; color: #ffd28a; border-color: #a7743e;
+  }
+  body.page-route .help-topics-panel {
+    top: auto; bottom: calc(72px + env(safe-area-inset-bottom)); right: 12px;
+    max-height: calc(100dvh - 160px);
+  }
+  body.page-route .topbar .topbar-context::before {
+    content: '';
+    display: block;
+    flex: 0 0 22px;
+    height: 22px;
+    background: url('/wolf-mark.svg') center / contain no-repeat;
+  }
+  body.page-route .mobile-trade-open { background: #f4a340; border-color: #ffd28a; color: #18151c; }
+  body.page-route-overview .hero-section { min-height: 545px !important; background-position: center, center, 60% bottom, center !important; }
+  body.page-route-overview .hero-section h1 { font-size: clamp(47px, 12vw, 70px) !important; white-space: normal; }
+}
+/* Keep secondary dashboards and instructional dialogs on the shared wolf palette. */
+body.page-route .reward-experience-panel,
+body.page-route .explore-proof-dialog,
+body.page-route .launch-tier-guide-dialog,
+body.page-route .explore-boost-dialog,
+body.page-route .explore-tier-dialog {
+  background: #121b2e; border-color: #485a73; color: #f6f2e9;
+}
+body.page-route .reward-experience-panel :is(button,select,.reward-stage-key span,
+  .reward-portfolio-summary > div,.reward-buyback-stats > div,
+  .reward-portfolio-list article,.reward-discovery-list article,.reward-buyback-list p,
+  .reward-proof-events > div,.reward-proof-steps li) {
+  background: #1b2940; border-color: #30405b; color: #f6f2e9;
+}
+body.page-route .reward-experience-panel :is(small,.reward-stage-key span,
+  .reward-portfolio-list p,.reward-discovery-list p,.reward-empty,.reward-source-note,
+  .reward-ideas,header p:not(.eyebrow)) { color: #a9b7c9; }
+body.page-route .explore-proof-head,
+body.page-route .explore-proof-list p { border-color: #30405b; }
+body.page-route .explore-proof-list span,
+body.page-route .launch-tier-guide-dialog p:not(.eyebrow) { color: #a9b7c9; }
+body.page-route .explore-proof-head button,
+body.page-route .launch-tier-guide-close { color: #f6f2e9; }
+body.page-route-overview .home-feed-settings-panel {
+  box-sizing: border-box; background: #121b2e !important; border-color: #485a73 !important;
+}
+body.page-route-overview .home-feed-settings-panel strong { color: #f6f2e9; }
+#airdrop-selected-program { scroll-margin-top: 110px; }
+@media (max-width: 700px) {
+  body.page-route-overview .home-feed-settings-panel {
+    position: fixed !important; top: 76px !important; right: 12px !important; left: auto !important;
+    width: min(430px, calc(100vw - 24px)) !important; max-height: calc(100dvh - 96px) !important;
+    overflow-y: auto;
+  }
+}

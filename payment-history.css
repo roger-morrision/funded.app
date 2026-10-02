@@ -1,0 +1,91 @@
+/* Compact verified payout rows, shared by the Payments card and receipt dialog. */
+.x-claim-activity .panel-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.x-claim-activity .panel-heading h2 { margin-bottom: 0; }
+.x-claim-activity #open-tape { white-space: nowrap; }
+
+.x-claim-activity .payment-history-row,
+#payment-dialog-list .payment-history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 62px;
+  padding: 10px 0;
+}
+
+.payment-history-identity {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.payment-history-identity strong,
+.payment-history-identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payment-history-identity strong { color: #eff3fa; font-size: 12px; }
+.payment-history-identity small {
+  color: #8fa0b7;
+  font: 10px 'DM Mono', monospace;
+}
+
+.payment-history-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.payment-history-actions .payment-amount {
+  margin: 0;
+  color: #e9eef9;
+  font: 500 11px 'DM Mono', monospace;
+  white-space: nowrap;
+}
+
+.payment-receipt-link {
+  display: inline-flex;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #354258;
+  border-radius: 8px;
+  background: #192133;
+  color: #aebfff;
+  text-decoration: none;
+  transition: border-color .15s, background .15s, color .15s;
+}
+
+.payment-receipt-link svg { width: 17px; height: 17px; }
+.payment-receipt-link:hover {
+  border-color: #89a6ec;
+  background: #223151;
+  color: #f5f7ff;
+}
+.payment-receipt-link:focus-visible {
+  outline: 2px solid #a9bcff;
+  outline-offset: 2px;
+}
+
+.x-claim-activity .panel-footnote { margin-top: 5px; padding-top: 10px; }
+
+@media (max-width: 390px) {
+  .x-claim-activity .payment-history-row,
+  #payment-dialog-list .payment-history-row { gap: 6px; }
+  .payment-history-actions { gap: 6px; }
+  .payment-history-actions .payment-amount { font-size: 10px; }
+}

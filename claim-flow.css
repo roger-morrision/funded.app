@@ -9,7 +9,7 @@
 .x-claim-heading .data-badge{flex:none}
 .x-claim-dashboard{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:0 0 9px}
 .x-claim-dashboard article{min-width:0;padding:14px;border:1px solid #334156;border-radius:10px;background:#121d2c}
-.x-claim-dashboard article:nth-child(2){border-color:#386650;background:#14271f}
+.x-claim-dashboard article:nth-child(2){border-color:#9a6d36;background:#111b2e}
 .x-claim-dashboard article:nth-child(3){border-color:#465c91;background:#19243d}
 .x-claim-dashboard article>span,.x-claim-dashboard article>strong,.x-claim-dashboard article>small{display:block}
 .x-claim-dashboard article>span{color:#acbad0;font-size:11px;font-weight:700}
@@ -21,8 +21,8 @@
 .x-claim-steps b{display:grid;place-items:center;flex:none;width:23px;height:23px;border:1px solid #48576b;border-radius:50%;font:700 11px 'DM Mono',monospace}
 .x-claim-steps li.current{border-color:#728de3;background:#1b2844;color:#e4ebff}
 .x-claim-steps li.current b{border-color:#a6b8ff;color:#fff}
-.x-claim-steps li.complete{border-color:#3d695b;background:#172b25;color:#bcebd6}
-.x-claim-steps li.complete b{border-color:#74bc9a;color:#c4f5da}
+.x-claim-steps li.complete{border-color:#9a6d36;background:#111b2e;color:#bcebd6}
+.x-claim-steps li.complete b{border-color:#f4a340;color:#c4f5da}
 .x-claim-section{padding:18px 0;border-top:1px solid #2b3544}
 .x-claim-section>strong,.x-claim-section-head strong{display:block;color:#edf3fb;font-size:14px}
 .x-claim-section-head small{display:block;color:#91a0b4;font-size:12px;margin-top:4px}
@@ -35,7 +35,7 @@
 .x-claim-reward{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:13px 14px;border:1px solid #334156;border-radius:10px;background:#111b29}
 .x-claim-reward.selected{border-color:#879ef0;background:#1b2944}
 .x-claim-reward-state{flex:none;min-width:94px;padding:6px 8px;border-radius:999px;text-align:center;background:#2d3441;color:#bec9d8;font-size:10px;font-weight:800}
-.x-claim-reward-state.ready{background:#174d3b;color:#b6f1ce}
+.x-claim-reward-state.ready{background:#26354d;color:#b6f1ce}
 .x-claim-reward-state.paid{background:#253c62;color:#c8d7ff}
 .x-claim-reward-copy{flex:1;min-width:170px}
 .x-claim-reward-copy strong{display:block;color:#f3f6fb;font:600 14px 'DM Mono',monospace}
@@ -61,3 +61,6 @@
 @media(max-width:720px){.x-claim-panel{padding:19px!important}.x-claim-heading h2{font-size:23px}.x-claim-heading p:last-child{font-size:13px}.x-claim-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.x-claim-identity{align-items:stretch;flex-direction:column}.x-claim-identity button{width:100%}}
 @media(max-width:480px){.x-claim-heading .data-badge{display:none}.x-claim-reward{align-items:flex-start}.x-claim-reward-copy{min-width:calc(100% - 110px)}.x-claim-reward .secondary-button,.x-claim-reward a{margin-left:auto}}
 @media(max-width:380px){.x-claim-dashboard{grid-template-columns:minmax(0,1fr)}}
+.airdrop-proof-value { overflow-wrap: anywhere; }
+.airdrop-status.claiming { color: #bde7d3; background: #1b3b31; }
+.airdrop-status.closed { color: #a7b2c8; background: #293143; }

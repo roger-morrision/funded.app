@@ -7,7 +7,36 @@ import { communityAddresses } from './community-claim-chain.mjs';
 
 const vaultDiscriminator = createHash('sha256').update('account:RewardVault').digest().subarray(0, 8);
 const dropDiscriminator = createHash('sha256').update('account:CommunityDrop').digest().subarray(0, 8);
+const paymentDiscriminator = createHash('sha256').update('account:CommunityPayment').digest().subarray(0, 8);
 const openingDiscriminator = createHash('sha256').update('global:initialize_community_drop_from_reward_vault').digest().subarray(0, 8);
+
+export async function verifiedCommunityClaimedWalletCount({ connection, programId, drop, claimedBaseUnits, leafCount }) {
+  const claimed = BigInt(claimedBaseUnits);
+  if (claimed === 0n) return 0;
+  const program = new PublicKey(programId), dropKey = new PublicKey(drop);
+  if (claimed < 0n || !Number.isSafeInteger(leafCount) || leafCount <= 0) throw new Error('Invalid community claim total.');
+  const rows = await connection.getProgramAccounts(program, { commitment:'finalized', filters:[
+    { dataSize:92 },
+    { memcmp:{ offset:0, bytes:bs58.encode(paymentDiscriminator) } },
+    { memcmp:{ offset:8, bytes:dropKey.toBase58() } },
+  ] });
+  const recipients = new Set(), indexes = new Set();
+  let total = 0n;
+  for (const row of rows) {
+    const data = Buffer.from(row.account?.data || []);
+    if (!row.account?.owner?.equals(program) || data.length !== 92
+      || !data.subarray(0, 8).equals(paymentDiscriminator)
+      || !data.subarray(8, 40).equals(dropKey.toBuffer())) throw new Error('Invalid community payment account.');
+    const recipient = new PublicKey(data.subarray(40, 72));
+    const [expected] = PublicKey.findProgramAddressSync([Buffer.from('community-pay-v1'), dropKey.toBuffer(), recipient.toBuffer()], program);
+    const amount = data.readBigUInt64LE(72), index = data.readUInt32LE(80);
+    if (!row.pubkey.equals(expected) || amount <= 0n || index >= leafCount
+      || recipients.has(recipient.toBase58()) || indexes.has(index)) throw new Error('Community payment does not match its recipient and leaf.');
+    recipients.add(recipient.toBase58()); indexes.add(index); total += amount;
+  }
+  if (total !== claimed) throw new Error('Community payment accounts do not reconcile with the claimed total.');
+  return recipients.size;
+}
 
 function transactionKeys(transaction) {
   const message = transaction.transaction.message;
@@ -18,6 +47,30 @@ function transactionKeys(transaction) {
   if (message.addressTableLookups?.length && (!loaded || keys.length === staticKeys.length))
     throw new Error('CommunityDrop opening receipt has unresolved address lookups.');
   return keys;
+}
+
+export function verifyAtomicLaunchReserveTransfer({ transaction, mint, creator, source, destination, required, decimals }) {
+  if (!transaction?.meta || transaction.meta.err) return false;
+  let keys;
+  try { keys = transactionKeys(transaction); } catch { return false; }
+  const message = transaction.transaction.message;
+  const mintKey = new PublicKey(mint), creatorKey = new PublicKey(creator);
+  const sourceKey = new PublicKey(source), destinationKey = new PublicKey(destination);
+  if (!keys.slice(0, message.header.numRequiredSignatures).some(key => key.equals(creatorKey))) return false;
+  const destinationIndex = keys.findIndex(key => key.equals(destinationKey));
+  if (destinationIndex < 0) return false;
+  const balance = (rows, index) => BigInt(rows?.find(row => row.accountIndex === index && row.mint === mintKey.toBase58())?.uiTokenAmount?.amount || '0');
+  if (balance(transaction.meta.postTokenBalances, destinationIndex) - balance(transaction.meta.preTokenBalances, destinationIndex) !== BigInt(required)) return false;
+  return (message.instructions || message.compiledInstructions || []).some(ix => {
+    const accounts = Array.from(ix.accounts || ix.accountKeyIndexes || []);
+    if (!keys[ix.programIdIndex]?.equals(TOKEN_2022_PROGRAM_ID) || accounts.length < 4
+      || !keys[accounts[0]]?.equals(sourceKey) || !keys[accounts[1]]?.equals(mintKey)
+      || !keys[accounts[2]]?.equals(destinationKey) || !keys[accounts[3]]?.equals(creatorKey)) return false;
+    try {
+      const data = typeof ix.data === 'string' ? Buffer.from(bs58.decode(ix.data)) : Buffer.from(ix.data);
+      return data.length === 10 && data[0] === 12 && data.readBigUInt64LE(1) === BigInt(required) && data[9] === decimals;
+    } catch { return false; }
+  });
 }
 
 async function verifiedDrop({ connection, program, issuer, funder, mintKey, tokenProgram, sourceVault, sourceTokenAccount,
@@ -128,7 +181,7 @@ export async function readCommunityReserveStatus({ connection, programId, author
       connection.getTransaction(fundingSignature, { commitment:'finalized', maxSupportedTransactionVersion:0 }),
     ]);
     if (status?.value?.confirmationStatus === 'finalized' && !status.value.err && transaction?.meta && !transaction.meta.err) {
-      const keys = transaction.transaction.message.accountKeys.map(key => new PublicKey(key.pubkey || key));
+      const keys = transactionKeys(transaction);
       const source = getAssociatedTokenAddressSync(mintKey, funder, false, mintInfo.owner);
       const sourceIndex = keys.findIndex(key => key.equals(source));
       const destinationIndex = keys.findIndex(key => key.equals(tokenAccount));
@@ -136,7 +189,9 @@ export async function readCommunityReserveStatus({ connection, programId, author
       const tokenAmount = (rows, index) => BigInt(rows?.find(row => row.accountIndex === index && row.mint === mintKey.toBase58())?.uiTokenAmount?.amount || '0');
       const sourceDelta = tokenAmount(transaction.meta.postTokenBalances, sourceIndex) - tokenAmount(transaction.meta.preTokenBalances, sourceIndex);
       const destinationDelta = tokenAmount(transaction.meta.postTokenBalances, destinationIndex) - tokenAmount(transaction.meta.preTokenBalances, destinationIndex);
-      receiptVerified = signer && sourceIndex >= 0 && destinationIndex >= 0 && sourceDelta === -required && destinationDelta === required;
+      receiptVerified = signer && sourceIndex >= 0 && destinationIndex >= 0 && destinationDelta === required
+        && (sourceDelta === -required || verifyAtomicLaunchReserveTransfer({ transaction, mint:mintKey, creator:funder,
+          source, destination:tokenAccount, required, decimals }));
     }
   }
   return {

@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { Keypair } from '@solana/web3.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { tokenChatDeleteStatement, tokenChatPostStatement, tokenChatReportStatement } from '../token-chat.js';
+import { tokenChatDeleteStatement, tokenChatPostStatement } from '../token-chat.js';
 
 const directory = await mkdtemp(join(tmpdir(), 'funded-token-chat-'));
 const storePath = join(directory, 'store.json');
@@ -17,7 +17,6 @@ const secondSessionMint = Keypair.generate().publicKey.toBase58();
 const author = Keypair.generate();
 const sessionAuthor = Keypair.generate();
 const secondAuthor = Keypair.generate();
-const reporters = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
 const token = 'token-chat-ops-test';
 
 const probe = createServer();
@@ -28,7 +27,7 @@ const base = `http://127.0.0.1:${port}`;
 
 const server = spawn(process.execPath, ['server/index.mjs'], {
   cwd: process.cwd(),
-  env: { ...process.env, NODE_ENV: 'test', HOST: '127.0.0.1', PORT: String(port), FUNDED_STORE_PATH: storePath, DATABASE_URL: '', FUNDED_API_TOKEN: token, CORS_ORIGIN: base, VITE_SOLANA_CLUSTER: 'devnet', TOKEN_CHAT_REPORT_THRESHOLD: '3' },
+  env: { ...process.env, NODE_ENV: 'test', HOST: '127.0.0.1', PORT: String(port), FUNDED_STORE_PATH: storePath, DATABASE_URL: '', FUNDED_API_TOKEN: token, CORS_ORIGIN: base, VITE_SOLANA_CLUSTER: 'devnet' },
   stdio: 'ignore',
 });
 
@@ -40,10 +39,6 @@ function envelope() { return { nonce: crypto.randomUUID(), issuedAt: new Date().
 function signedPost(keypair, text) {
   const payload = { mint, author: keypair.publicKey.toBase58(), text, ...envelope() };
   return { ...payload, signature: bs58.encode(nacl.sign.detached(new TextEncoder().encode(tokenChatPostStatement(payload)), keypair.secretKey)) };
-}
-function signedReport(keypair, messageId, reason = 'spam-or-scam') {
-  const payload = { mint, messageId, reporter: keypair.publicKey.toBase58(), reason, ...envelope() };
-  return { ...payload, signature: bs58.encode(nacl.sign.detached(new TextEncoder().encode(tokenChatReportStatement(payload)), keypair.secretKey)) };
 }
 function signedDelete(keypair, messageId) {
   const payload = { mint, messageId, author: keypair.publicKey.toBase58(), ...envelope() };
@@ -92,15 +87,11 @@ try {
   assert.equal(wrongWallet.status, 401);
   const sessionDelete = await request(`${sessionPath}/delete`, { method: 'POST', headers: sessionHeaders, body: { author: sessionAuthor.publicKey.toBase58(), messageId: sessionPost.data.message.id } });
   assert.equal(sessionDelete.status, 200);
-  const otherMessage = await request(sessionPath, { method: 'POST', body: { ...signedPost(secondAuthor, 'Reportable text.'), mint: sessionMint } });
+  const otherMessage = await request(sessionPath, { method: 'POST', body: { ...signedPost(secondAuthor, 'Other token text.'), mint: sessionMint } });
   // The signed statement is bound to its mint, so post a correctly signed message below.
   assert.equal(otherMessage.status, 401);
-  const reportable = { mint: sessionMint, author: secondAuthor.publicKey.toBase58(), text: 'Reportable text.', ...envelope() };
-  const reportableSigned = { ...reportable, signature: bs58.encode(nacl.sign.detached(new TextEncoder().encode(tokenChatPostStatement(reportable)), secondAuthor.secretKey)) };
-  const otherPost = await request(sessionPath, { method: 'POST', body: reportableSigned });
-  assert.equal(otherPost.status, 201);
-  const sessionReport = await request(`${sessionPath}/report`, { method: 'POST', headers: sessionHeaders, body: { reporter: sessionAuthor.publicKey.toBase58(), messageId: otherPost.data.message.id, reason: 'misleading' } });
-  assert.equal(sessionReport.status, 200);
+  const removedReport = await request(`${sessionPath}/report`, { method: 'POST', headers: sessionHeaders, body: { messageId: sessionPost.data.message.id } });
+  assert.equal(removedReport.status, 404);
   const revoked = await request('/api/token-chat/session/revoke', { method: 'POST', headers: sessionHeaders });
   assert.equal(revoked.status, 200);
   const afterRevoke = await request(sessionPath, { method: 'POST', headers: sessionHeaders, body: { author: sessionAuthor.publicKey.toBase58(), text: 'Should not post.' } });
@@ -123,12 +114,9 @@ try {
   const deleted = await request(`${path}/delete`, { method: 'POST', body: signedDelete(secondAuthor, second.data.message.id) });
   assert.equal(deleted.status, 200);
 
-  for (const [index, reporter] of reporters.entries()) {
-    const report = await request(`${path}/report`, { method: 'POST', body: signedReport(reporter, first.data.message.id, index === 2 ? 'misleading' : 'spam-or-scam') });
-    assert.equal(report.status, 200);
-    assert.equal(report.data.reportCount, index + 1);
-    assert.equal(report.data.hidden, index === 2);
-  }
+  const hide = await request('/api/ops/token-chat/moderate', { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: { mint, messageId: first.data.message.id, action: 'hide', reason: 'Operations review' } });
+  assert.equal(hide.status, 200);
+  assert.equal(hide.data.status, 'hidden');
   const hiddenFeed = await request(path);
   assert.deepEqual(hiddenFeed.data.messages, []);
 
@@ -136,7 +124,6 @@ try {
   assert.equal(queue.status, 200);
   const moderated = queue.data.messages.find(message => message.id === first.data.message.id);
   assert.equal(moderated.status, 'hidden');
-  assert.equal(moderated.reports.length, 3);
   const restore = await request('/api/ops/token-chat/moderate', { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: { mint, messageId: first.data.message.id, action: 'restore' } });
   assert.equal(restore.status, 200);
   assert.equal(restore.data.status, 'visible');
@@ -145,9 +132,9 @@ try {
 
   const stored = JSON.parse(await readFile(storePath, 'utf8'));
   assert.equal(stored.coinChats[mint].length, 2);
-  assert.equal(stored.coinChats[mint][0].reports[reporters[0].publicKey.toBase58()].reason, 'spam-or-scam');
+  assert.equal(stored.coinChats[mint][0].moderatedBy, 'operations');
   assert.equal(stored.coinChats[mint][1].status, 'deleted');
-  console.log('Token chat: one-time wallet approval, multiple unsigned session actions, revocation, legacy signatures, persistence, and moderation passed with ephemeral keys.');
+  console.log('Token chat: wallet approval, session actions, disabled reporting, persistence, and operations moderation passed with ephemeral keys.');
 } finally {
   server.kill();
   await rm(directory, { recursive: true, force: true });

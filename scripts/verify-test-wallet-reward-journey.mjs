@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -45,13 +46,24 @@ assert.equal(Boolean(level2Key), Boolean(level3Key), 'Both additional referral w
 const referralWallets = level2Key ? [referrer, configuredWallet('SOLANA_DEVNET_REFERRER_LEVEL_2_SECRET_KEY'), configuredWallet('SOLANA_DEVNET_REFERRER_LEVEL_3_SECRET_KEY')] : [referrer];
 const keeper = configuredWallet('SOLANA_KEEPER_SECRET_KEY');
 const authority = configuredWallet('FUNDED_ROUTER_AUTHORITY_SECRET_KEY');
+const payoutPath = String(process.env.SOLANA_REFERRAL_PAYOUT_KEYPAIR_PATH || '').trim();
+const payoutSecret = String(process.env.SOLANA_REFERRAL_PAYOUT_SECRET_KEY || '').trim();
+assert(payoutPath || payoutSecret, 'A dedicated referral payout signer is required before starting the on-chain journey.');
+const payout = payoutPath
+  ? Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(payoutPath, 'utf8'))))
+  : Keypair.fromSecretKey(bs58.decode(payoutSecret));
 const pumpRevenue = new PublicKey(process.env.FUNDED_PUMP_REVENUE_WALLET || '').toBase58();
+const tradeFeeOwner = String(process.env.FUNDED_TRADE_FEE_OWNER || process.env.VITE_FUNDED_TRADE_FEE_OWNER || '').trim();
 assert.equal(new Set([creator, holder, ...referralWallets, keeper, authority].map(wallet => wallet.publicKey.toBase58()).concat(pumpRevenue)).size, 5 + referralWallets.length, 'Test wallet and app roles must be distinct.');
+assert(![keeper, authority, ...referralWallets, creator, holder].some(wallet => wallet.publicKey.equals(payout.publicKey))
+  && ![pumpRevenue, tradeFeeOwner].includes(payout.publicKey.toBase58()), 'The referral payout signer must be a dedicated wallet.');
 
 const rpcUrl = String(process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || clusterApiUrl('devnet')).trim();
 const connection = new Connection(rpcUrl, 'finalized');
 const official = new Connection(clusterApiUrl('devnet'), 'finalized');
 assert.equal(await connection.getGenesisHash(), await official.getGenesisHash(), 'Configured RPC is not Solana Devnet.');
+assert((await connection.getBalance(payout.publicKey, 'finalized')) > 10_000_000,
+  'The dedicated referral payout signer needs at least 0.01 Devnet SOL before starting the journey.');
 
 const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID);
 const expectedProgramDataSha256 = String(process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 || '').trim();
@@ -154,11 +166,12 @@ const server = spawn(process.execPath, ['server/index.mjs'], {
 });
 for (const stream of [server.stdout, server.stderr]) stream.on('data', chunk => { serverOutput = `${serverOutput}${chunk}`.slice(-12_000); });
 
-async function post(path, input, { authorized = false } = {}) {
+async function post(path, input, { authorized = false, cookie = null } = {}) {
   const response = await fetch(`${base}${path}`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
+      ...(cookie ? { origin: base, cookie } : {}),
       ...(authorized ? { authorization: `Bearer ${apiToken}` } : {}),
     },
     body: JSON.stringify(input),
@@ -168,10 +181,34 @@ async function post(path, input, { authorized = false } = {}) {
   return data;
 }
 
+async function referralSessionCookie(wallet) {
+  const challenge = await fetch(`${base}/api/referrals/session/prepare`, {
+    method: 'POST', headers: { 'content-type': 'application/json', origin: base },
+    body: JSON.stringify({ wallet: wallet.publicKey.toBase58() }),
+  });
+  const prepared = await challenge.json();
+  assert(challenge.ok, `Referral session preparation failed: ${prepared.error || challenge.status}`);
+  const verified = await fetch(`${base}/api/referrals/session/verify`, {
+    method: 'POST', headers: { 'content-type': 'application/json', origin: base },
+    body: JSON.stringify({ challengeId: prepared.challengeId, wallet: wallet.publicKey.toBase58(), signature: walletSignature(prepared.statement, wallet) }),
+  });
+  const result = await verified.json();
+  assert(verified.ok && result.wallet === wallet.publicKey.toBase58(), `Referral session verification failed: ${result.error || verified.status}`);
+  const cookie = verified.headers.get('set-cookie')?.split(';', 1)[0];
+  assert(cookie?.startsWith('funded_referral_session='), 'Referral session cookie was not issued.');
+  return cookie;
+}
+
 let result;
 let stage = 'starting-isolated-api';
 try {
   await waitForServer(base, server);
+  stage = 'checking-mint-router-readiness';
+  const routeResponse = await fetch(`${base}/api/mint-router/status`);
+  assert(routeResponse.ok, 'Mint-router readiness endpoint failed.');
+  const routeStatus = await routeResponse.json();
+  assert.equal(routeStatus.ready, true,
+    `Mint-specific collection is not ready: ${(routeStatus.reasons || []).join('; ')}`);
   stage = 'funding-creator-test-wallet';
   const topUp = await ensureCreatorFunding();
 
@@ -300,7 +337,8 @@ try {
     });
     assert.equal(verifiedClaim.status, 'wallet-verified', `Referral level ${level} wallet signature was not accepted.`);
     const before = await connection.getBalance(wallet.publicKey, 'finalized');
-    const payout = await post(`/api/referral-claims/${manualClaim.id}/execute`, {});
+    const cookie = await referralSessionCookie(wallet);
+    const payout = await post(`/api/referral-claims/${manualClaim.id}/execute`, {}, { cookie });
     await waitForFinalizedSignature(payout.signature);
     const after = await connection.getBalance(wallet.publicKey, 'finalized');
     const expected = Math.floor(Number(manualClaim.amount) * 1_000_000_000);

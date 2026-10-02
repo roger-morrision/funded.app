@@ -1,0 +1,84 @@
+/* Compact artwork-first guides for pages without an existing infographic. */
+body.page-route .page-infographic {
+  box-sizing: border-box;
+  display: none;
+  grid-template-columns: minmax(0, 1.7fr) minmax(220px, .7fr);
+  align-items: stretch;
+  gap: 14px;
+  min-width: 0;
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid #485a73;
+  border-radius: 6px;
+  background: linear-gradient(125deg, #17243a, #101827);
+  box-shadow: inset 3px 0 #f4a340;
+  color: #f6f2e9;
+  text-align: left;
+}
+body.page-route .page-infographic figure {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #30405b;
+  border-radius: 4px;
+  background: #0b1020;
+}
+body.page-route .page-infographic figure img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 250px;
+  object-fit: contain;
+}
+body.page-route .page-infographic-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  padding: 10px 8px;
+}
+body.page-route .page-infographic-copy span {
+  color: #f4a340;
+  font: 700 10px/1.4 'DM Mono', monospace;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+body.page-route .page-infographic-copy h3 {
+  margin: 8px 0;
+  color: #f6f2e9;
+  font: 800 clamp(18px, 2vw, 26px)/1.2 Manrope, sans-serif;
+  letter-spacing: -.035em;
+}
+body.page-route .page-infographic-copy p {
+  margin: 0;
+  color: #a9b7c9;
+  font: 500 12px/1.5 Manrope, sans-serif;
+}
+body.page-route .page-infographic-copy img {
+  display: block;
+  width: 26px;
+  height: 26px;
+  margin-top: 14px;
+  object-fit: contain;
+}
+body.page-route-list .page-infographic-list,
+body.page-route-analytics-detail:not(.page-route-capital-flow) .page-infographic-analytics,
+body.page-route-community .page-infographic-community,
+body.page-route-capital-flow .page-infographic-capital,
+body.page-route-profile .page-infographic-profile,
+body.page-route-payments #rewards-holder .page-infographic-holder,
+body.page-route-coin .page-infographic-coin,
+body.page-route-wallet .page-infographic-wallet,
+body.page-route-docs.docs-subtopic-without-poster .page-infographic-docs-subtopic { display: grid; }
+@media (max-width: 900px) {
+  body.page-route .page-infographic { grid-template-columns: 1fr; gap: 8px; padding: 12px; }
+  body.page-route .page-infographic figure { aspect-ratio: 2 / 1; }
+  body.page-route .page-infographic figure img { max-height: none; }
+  body.page-route .page-infographic-copy { padding: 3px 4px 4px; }
+  body.page-route .page-infographic-copy h3 { margin: 4px 0; font-size: 16px; }
+  body.page-route .page-infographic-copy p { font-size: 11px; }
+  body.page-route .page-infographic-copy img { display: none; }
+}
