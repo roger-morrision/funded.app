@@ -8,6 +8,7 @@ import { createHolderHistoryIndexer } from '../server/holder-history-indexer.mjs
 import { createAutomaticRewardChain } from '../server/automatic-reward-chain.mjs';
 import { createRewardScheduler } from '../server/reward-scheduler.mjs';
 import { createRewardFundingProcessor } from '../server/reward-funding-processor.mjs';
+import { rpcQuotaExhausted, rpcWorkerWaitMs } from '../rpc-retry.js';
 
 for (const [name, filePath] of Object.entries(process.env)) {
   if (!name.endsWith('_FILE') || !filePath || process.env[name.slice(0, -5)] != null) continue;
@@ -43,8 +44,21 @@ let stopped = false;
 process.once('SIGINT', () => { stopped = true; });
 process.once('SIGTERM', () => { stopped = true; });
 do {
+  let waitMs = intervalMs;
   try { console.log(JSON.stringify({ at: new Date().toISOString(), funding:await fundingProcessor.processPending(), ...(await scheduler.tick()) })); }
-  catch (error) { console.error(JSON.stringify({ at: new Date().toISOString(), status: 'error', error: String(error.message || error) })); }
+  catch (error) {
+    const quotaExhausted = rpcQuotaExhausted(error);
+    if (quotaExhausted) {
+      waitMs = rpcWorkerWaitMs(error, intervalMs);
+      await store.transaction(state => { state.serviceStatus = {
+        constrainedPayouts: false, reasons: ['rpc-quota-exhausted'],
+        reason: 'Automatic distributions are unavailable because the Devnet RPC quota is exhausted.',
+        checkedAt: new Date().toISOString(),
+      }; }).catch(() => {});
+    }
+    console.error(JSON.stringify({ at: new Date().toISOString(), status: quotaExhausted ? 'rpc-quota-exhausted' : 'error',
+      retryAfterMs: quotaExhausted ? waitMs : undefined, error: String(error.message || error) }));
+  }
   if (runOnce) break;
-  if (!stopped) await new Promise(resolveWait => setTimeout(resolveWait, intervalMs));
+  if (!stopped) await new Promise(resolveWait => setTimeout(resolveWait, waitMs));
 } while (!stopped);

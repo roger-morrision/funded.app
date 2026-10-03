@@ -1,6 +1,15 @@
 export function retryableRpcError(error) {
   const detail = String(error?.message || error || '');
-  return /(?:\b429\b|rate limit|too many requests|failed to fetch|networkerror|econnrefused|timed out|temporarily unavailable)/i.test(detail);
+  return !rpcQuotaExhausted(error)
+    && /(?:\b429\b|rate limit|too many requests|failed to fetch|networkerror|econnrefused|timed out|temporarily unavailable)/i.test(detail);
+}
+
+export function rpcQuotaExhausted(error) {
+  return /\b429\b[\s\S]*max usage reached/i.test(String(error?.message || error || ''));
+}
+
+export function rpcWorkerWaitMs(error, intervalMs) {
+  return rpcQuotaExhausted(error) ? Math.max(intervalMs, 15 * 60_000) : intervalMs;
 }
 
 export async function withRpcRetry(operation, {

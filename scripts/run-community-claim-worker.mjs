@@ -5,6 +5,7 @@ import { NATIVE_MINT } from '@solana/spl-token';
 import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
 import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from '../server/automatic-reward-chain.mjs';
 import { verifyPumpMigrationTransaction } from '../server/community-snapshot.mjs';
+import { rpcQuotaExhausted, rpcWorkerWaitMs } from '../rpc-retry.js';
 
 const heartbeat = '/tmp/funded-community-claim-worker-status.json';
 const intervalMs = Math.max(15_000, Number(process.env.FUNDED_COMMUNITY_CLAIM_TICK_MS || 20_000));
@@ -12,6 +13,7 @@ const api = String(process.env.FUNDED_COMMUNITY_CLAIM_API || 'http://app:8787').
 const expectedHash = String(process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 || '').toLowerCase();
 if (process.argv.includes('--check')) {
   const status = JSON.parse(await readFile(heartbeat, 'utf8'));
+  if (status.status !== 'ready') console.log(JSON.stringify(status));
   if (Date.now() - Date.parse(status.at) > intervalMs * 3 + 30_000 || status.status !== 'ready') process.exitCode = 1;
 } else {
   if (process.env.SOLANA_CLUSTER !== 'devnet' || !/^[a-f0-9]{64}$/.test(expectedHash))
@@ -113,8 +115,16 @@ if (process.argv.includes('--check')) {
     console.log(JSON.stringify(report));
   }
   for (;;) {
+    let waitMs = intervalMs;
     try { await tick(); }
-    catch (error) { console.error(`Community claim worker: ${String(error.message || error)}`); }
-    await new Promise(resolve => setTimeout(resolve, intervalMs));
+    catch (error) {
+      const quotaExhausted = rpcQuotaExhausted(error);
+      if (quotaExhausted) {
+        waitMs = rpcWorkerWaitMs(error, intervalMs);
+        await writeFile(heartbeat, JSON.stringify({ status:'rpc-quota-exhausted', at:new Date().toISOString(), retryAfterMs:waitMs })).catch(() => {});
+      }
+      console.error(`Community claim worker: ${String(error.message || error)}${quotaExhausted ? `; retry after ${waitMs}ms` : ''}`);
+    }
+    await new Promise(resolve => setTimeout(resolve, waitMs));
   }
 }
