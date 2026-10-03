@@ -2124,7 +2124,8 @@ function renderWatchlist(){
     const asset = assets.find(item => item.address === mint);
     const policy = verifiedLaunchPolicyForMint(mint);
     return asset ? portfolioTokenCardMarkup({ mint: asset.address, name: asset.name, symbol: asset.symbol, source: 'Saved token · RPC verified', verified: true, removable: true })
-      : policy?.onchainVerified ? portfolioTokenCardMarkup({ mint, name: policy.name, symbol: policy.symbol, source: 'Saved token · verified launch', verified: true, removable: true }) : '';
+      : policy?.onchainVerified ? portfolioTokenCardMarkup({ mint, name: policy.name, symbol: policy.symbol, source: 'Saved token · verified launch', verified: true, removable: true })
+        : `<div class="empty-state watchlist-unavailable"><strong>Saved token unavailable</strong><span>Verification data for ${escapeHtml(mint)} is unavailable. Check again later or remove it from this browser.</span><button type="button" class="secondary-button" data-remove-watch="${escapeHtml(mint)}">Remove saved token</button></div>`;
   }).join('');
   items?.querySelectorAll('.watchlist-token-card').forEach(card => loadPortfolioLogo(card, verifiedLaunchPolicyForMint(card.dataset.mint)));
   document.querySelectorAll('.watch-button').forEach(button => setWatchButtonState(button, saved.includes(button.dataset.mint)));

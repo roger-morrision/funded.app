@@ -18,3 +18,8 @@ services:
       CORS_ORIGIN: https://funded.vip
       X_CALLBACK_URL: https://funded.vip/api/x/oauth/callback
       FUNDED_BUILD_ID: ${FUNDED_BUILD_ID:-automatic-rewards-v11-20260923h}
+
+# Keep the public app on the active Devnet reward-worker ledger across UI releases.
+volumes:
+  funded_reward_ledger:
+    name: fundedapp_funded_reward_ledger_retest_20260929

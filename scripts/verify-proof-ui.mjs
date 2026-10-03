@@ -76,7 +76,25 @@ assert.match(app, /Market checked \$\{formatFeedAge\(market\.fetchedAt\)\}/, 'Po
 assert.match(app, /portfolio-token-stats/);
 assert.match(app, /const volume = market \? formatExploreUsd\(market\.volume24hSol/, 'Portfolio volume must come from the observed market feed.');
 assert.match(app, /\['24h volume', volume\]/, 'Migrated portfolio cards must show available observed volume.');
-assert.match(app, /Saved from Explore · RPC verified/);
+assert.match(app, /source: 'Saved token · RPC verified'/, 'A verified market row must identify its RPC source.');
+assert.match(app, /source: 'Saved token · verified launch'/, 'A registry-only row must identify its launch source.');
+const watchlistRenderSource = app.match(/function renderWatchlist\(\)\{[\s\S]*?\n\}/)?.[0];
+assert.ok(watchlistRenderSource, 'Watchlist renderer must be present.');
+const watchlistNodes = {
+  '#watch-count': { textContent: '' },
+  '#watchlist-empty': { hidden: false },
+  '#watchlist-items': { innerHTML: '', querySelectorAll: () => [] },
+};
+const renderWatchlistFixture = new Function('document', 'getWatchlist', 'assets', 'verifiedLaunchPolicyForMint', 'portfolioTokenCardMarkup', 'escapeHtml', 'loadPortfolioLogo', 'setWatchButtonState',
+  `${watchlistRenderSource}; return renderWatchlist;`);
+const renderUnavailableWatchlist = renderWatchlistFixture(
+  { querySelector: selector => watchlistNodes[selector], querySelectorAll: () => [] },
+  () => ['missing-mint'], [], () => null, () => 'VERIFIED CARD', value => String(value), () => {}, () => {},
+);
+renderUnavailableWatchlist();
+assert.equal(watchlistNodes['#watch-count'].textContent, '1 saved');
+assert.equal(watchlistNodes['#watchlist-empty'].hidden, true);
+assert.match(watchlistNodes['#watchlist-items'].innerHTML, /Saved token unavailable[\s\S]*?data-remove-watch="missing-mint"/, 'A saved mint without verified data must remain removable.');
 const portfolioHolderSource = app.match(/function portfolioHolderCount\(asset\)\{[\s\S]*?\n\}/)?.[0];
 assert.ok(portfolioHolderSource, 'Watchlist and portfolio must format verified holder wallet counts.');
 const holderCache = new Map([['mint', { count: 1, coverage: 'complete-account-list', at: Date.now() }]]);

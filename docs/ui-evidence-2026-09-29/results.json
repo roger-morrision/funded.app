@@ -2,8 +2,40 @@
   "label": "local-only; no transactions submitted",
   "results": [
     {
-      "name": "Home launches above fold",
+      "name": "Home prioritizes holder rewards before launches",
+      "status": "failed",
+      "message": "locator.boundingBox: Error: strict mode violation: locator('.home-rewards-spotlight') resolved to 3 elements:\n    1) <section class=\"home-rewards-spotlight\" data-home-reward-section=\"funded\" aria-labelledby=\"home-funded-rewards-title\">…</section> aka getByRole('region', { name: '$FUNDED holders' })\n    2) <section data-home-reward-section=\"coin\" aria-labelledby=\"home-coin-rewards-title\" class=\"home-rewards-spotlight home-rewards-spotlight-coin\">…</section> aka getByRole('region', { name: 'Coin h"
+    },
+    {
+      "name": "Home keeps one metrics section and one legal footer",
       "status": "passed"
+    },
+    {
+      "name": "Home navigation exposes the reference destination pages",
+      "status": "passed"
+    },
+    {
+      "name": "Migrated home cards do not suppress indexed trade metrics",
+      "status": "passed"
+    },
+    {
+      "name": "Help topics open without implying live support",
+      "status": "passed"
+    },
+    {
+      "name": "Home feed controls switch view, pause order, and animation setting",
+      "status": "failed",
+      "message": "locator.textContent: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.home-feed-settings-panel > strong')\u001b[22m\n"
+    },
+    {
+      "name": "Feed settings popup remains on screen across responsive widths",
+      "status": "failed",
+      "message": "Feed checkbox options misaligned at 320px"
+    },
+    {
+      "name": "Feed settings opens inside a fresh mobile viewport",
+      "status": "failed",
+      "message": "The expression evaluated to a falsy value:\n\n  assert(await page.locator('#home-feed-animations').isVisible())\n"
     },
     {
       "name": "overview 360px no overflow",
@@ -19,6 +51,10 @@
     },
     {
       "name": "explore 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "Explore 360px sort labels stay readable",
       "status": "passed"
     },
     {
@@ -118,6 +154,30 @@
       "status": "passed"
     },
     {
+      "name": "paid 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "paid 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "list 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "list 360px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "privacy 360px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "privacy 360px route isolation",
+      "status": "passed"
+    },
+    {
       "name": "overview 390px no overflow",
       "status": "passed"
     },
@@ -126,11 +186,25 @@
       "status": "passed"
     },
     {
+      "name": "overview mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
+    },
+    {
       "name": "explore 390px no overflow",
       "status": "passed"
     },
     {
       "name": "explore 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "explore mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
+    },
+    {
+      "name": "Explore 390px sort labels stay readable",
       "status": "passed"
     },
     {
@@ -142,11 +216,25 @@
       "status": "passed"
     },
     {
+      "name": "launch mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
+    },
+    {
       "name": "payments 390px no overflow",
       "status": "passed"
     },
     {
       "name": "payments 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "payments mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
+    },
+    {
+      "name": "Reward choices use the shared navy surface",
       "status": "passed"
     },
     {
@@ -158,12 +246,22 @@
       "status": "passed"
     },
     {
+      "name": "my-launches mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
+    },
+    {
       "name": "community 390px no overflow",
       "status": "passed"
     },
     {
       "name": "community 390px route isolation",
       "status": "passed"
+    },
+    {
+      "name": "community mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
     },
     {
       "name": "analytics-detail 390px no overflow",
@@ -174,12 +272,22 @@
       "status": "passed"
     },
     {
+      "name": "analytics-detail mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
+    },
+    {
       "name": "referrals 390px no overflow",
       "status": "passed"
     },
     {
       "name": "referrals 390px route isolation",
       "status": "passed"
+    },
+    {
+      "name": "referrals mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
     },
     {
       "name": "airdrops 390px no overflow",
@@ -190,12 +298,22 @@
       "status": "passed"
     },
     {
+      "name": "airdrops mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
+    },
+    {
       "name": "buybacks 390px no overflow",
       "status": "passed"
     },
     {
       "name": "buybacks 390px route isolation",
       "status": "passed"
+    },
+    {
+      "name": "buybacks mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
     },
     {
       "name": "capital-flow 390px no overflow",
@@ -206,12 +324,22 @@
       "status": "passed"
     },
     {
+      "name": "capital-flow mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
+    },
+    {
       "name": "docs 390px no overflow",
       "status": "passed"
     },
     {
       "name": "docs 390px route isolation",
       "status": "passed"
+    },
+    {
+      "name": "docs mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
     },
     {
       "name": "profile 390px no overflow",
@@ -222,11 +350,64 @@
       "status": "passed"
     },
     {
+      "name": "profile mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
+    },
+    {
       "name": "leaderboard 390px no overflow",
       "status": "passed"
     },
     {
       "name": "leaderboard 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "leaderboard mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
+    },
+    {
+      "name": "paid 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "paid 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "paid mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
+    },
+    {
+      "name": "list 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "list 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "list mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
+    },
+    {
+      "name": "privacy 390px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "privacy 390px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "privacy mobile Help stays in the bottom navigation",
+      "status": "failed",
+      "message": "{\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}"
+    },
+    {
+      "name": "Privacy measurement checkbox aligns with its label",
       "status": "passed"
     },
     {
@@ -342,6 +523,30 @@
       "status": "passed"
     },
     {
+      "name": "paid 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "paid 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "list 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "list 768px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "privacy 768px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "privacy 768px route isolation",
+      "status": "passed"
+    },
+    {
       "name": "overview 1024px no overflow",
       "status": "passed"
     },
@@ -451,6 +656,30 @@
     },
     {
       "name": "leaderboard 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "paid 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "paid 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "list 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "list 1024px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "privacy 1024px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "privacy 1024px route isolation",
       "status": "passed"
     },
     {
@@ -566,11 +795,189 @@
       "status": "passed"
     },
     {
+      "name": "paid 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "paid 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "list 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "list 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "privacy 1440px no overflow",
+      "status": "passed"
+    },
+    {
+      "name": "privacy 1440px route isolation",
+      "status": "passed"
+    },
+    {
+      "name": "overview uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "explore uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "launch uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "payments uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "my-launches uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "community uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "analytics-detail uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "referrals uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "airdrops uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "buybacks uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "capital-flow uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "docs uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "profile uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "leaderboard uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "paid uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "list uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "privacy uses the shared desktop page shell",
+      "status": "passed"
+    },
+    {
+      "name": "Workspace page titles and panels share the same scale and shape",
+      "status": "passed"
+    },
+    {
+      "name": "Watchlist, capital flow, and burn subroutes open with their page headings visible",
+      "status": "passed"
+    },
+    {
+      "name": "Desktop Explore filter panel remains fully reachable",
+      "status": "passed"
+    },
+    {
+      "name": "Shared search shows verified suggestions and opens Explore on unmatched query",
+      "status": "passed"
+    },
+    {
+      "name": "Shared search opens a verified token from its suggestion list",
+      "status": "passed"
+    },
+    {
+      "name": "Changing routes closes an open index dialog",
+      "status": "passed"
+    },
+    {
       "name": "Explore results above fold",
       "status": "passed"
     },
     {
+      "name": "Launch Directory keeps its verified comparison columns",
+      "status": "passed"
+    },
+    {
+      "name": "Launch Directory guide choices open distinct verification explanations",
+      "status": "failed",
+      "message": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.explore-hero-links').getByRole('button', { name: 'About Launch Directory', exact: true })\u001b[22m\n"
+    },
+    {
+      "name": "Watchlist preserves indexed migrated-market metrics",
+      "status": "passed"
+    },
+    {
+      "name": "Leaderboard Burners and Burn Board switch with arrow keys",
+      "status": "passed"
+    },
+    {
+      "name": "Airdrops show one directory and holder guidance in order",
+      "status": "failed",
+      "message": "[5,3,7,8]"
+    },
+    {
+      "name": "Airdrop detail distinguishes an unverified snapshot from token migration",
+      "status": "passed"
+    },
+    {
+      "name": "Airdrop details open in the mobile viewport",
+      "status": "passed"
+    },
+    {
+      "name": "Burn page shows per-launch tier requirements without cumulative unlock claims",
+      "status": "passed"
+    },
+    {
+      "name": "Get Listed gates payment on verified metadata (mocked UI response)",
+      "status": "passed"
+    },
+    {
+      "name": "Docs topics have direct links and browser history",
+      "status": "passed"
+    },
+    {
+      "name": "Legal dialogs have accessible names and Escape clears direct routes",
+      "status": "passed"
+    },
+    {
+      "name": "Public wallet activity filters expose verified record types",
+      "status": "passed"
+    },
+    {
+      "name": "Mobile wallet profile keeps its coverage and stats within the viewport",
+      "status": "passed"
+    },
+    {
       "name": "Rewards tab interaction and keyboard",
+      "status": "passed"
+    },
+    {
+      "name": "Holder allocation status does not claim migrated coins await migration",
+      "status": "passed"
+    },
+    {
+      "name": "Launch tier explanations show the selected policy and close",
       "status": "passed"
     },
     {
@@ -583,10 +990,23 @@
     },
     {
       "name": "Explicit public draft storage excludes approval state",
+      "status": "failed",
+      "message": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#save-launch-draft')\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" id=\"save-launch-draft\" class=\"secondary-button\">Save draft</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled a"
+    },
+    {
+      "name": "Analytics source disclosure does not wait on a hidden-tab refresh",
       "status": "passed"
     },
     {
-      "name": "Mobile filter controls reach 44px",
+      "name": "Related menu pages share one destination and keep old links working",
+      "status": "passed"
+    },
+    {
+      "name": "Parent pages retain their primary panels while child subroutes focus their own",
+      "status": "passed"
+    },
+    {
+      "name": "Mobile Explore keeps quick sorts visible and detail controls in Filters",
       "status": "passed"
     },
     {
@@ -594,7 +1014,30 @@
       "status": "passed"
     },
     {
+      "name": "Mobile Explore table empty state wraps inside its viewport",
+      "status": "passed"
+    },
+    {
       "name": "Mobile network label visible",
+      "status": "passed"
+    },
+    {
+      "name": "Coin profile keeps empty optional tabs out of navigation",
+      "status": "failed",
+      "message": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   'About',\n-   'Updates'\n- ]\n"
+    },
+    {
+      "name": "Mocked signed profile metadata opens Roadmap and Links tabs",
+      "status": "failed",
+      "message": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   'About',\n-   'Updates',\n-   'Roadmap',\n-   'Links'\n- ]\n"
+    },
+    {
+      "name": "Coin chart filters confirmed observations by selected range",
+      "status": "failed",
+      "message": "The expression evaluated to a falsy value:\n\n  assert(await page.getByRole('button',{name:'Snapshot',exact:true}).first().isVisible())\n"
+    },
+    {
+      "name": "Coin quick buy shortcuts can be edited and reset locally",
       "status": "passed"
     },
     {
@@ -606,6 +1049,34 @@
       "status": "passed"
     }
   ],
-  "failures": [],
+  "failures": [
+    "Home prioritizes holder rewards before launches: locator.boundingBox: Error: strict mode violation: locator('.home-rewards-spotlight') resolved to 3 elements:",
+    "Home feed controls switch view, pause order, and animation setting: locator.textContent: Timeout 30000ms exceeded.",
+    "Feed settings popup remains on screen across responsive widths: Feed checkbox options misaligned at 320px",
+    "Feed settings opens inside a fresh mobile viewport: The expression evaluated to a falsy value:",
+    "overview mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "explore mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "launch mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "payments mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "my-launches mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "community mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "analytics-detail mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "referrals mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "airdrops mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "buybacks mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "capital-flow mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "docs mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "profile mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "leaderboard mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "paid mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "list mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "privacy mobile Help stays in the bottom navigation: {\"help\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0},\"nav\":{\"left\":0,\"right\":380,\"top\":934.5,\"bottom\":1000},\"lastLink\":{\"left\":226.390625,\"right\":299.1875,\"top\":943.5,\"bottom\":992}}",
+    "Launch Directory guide choices open distinct verification explanations: locator.click: Timeout 30000ms exceeded.",
+    "Airdrops show one directory and holder guidance in order: [5,3,7,8]",
+    "Explicit public draft storage excludes approval state: locator.click: Timeout 30000ms exceeded.",
+    "Coin profile keeps empty optional tabs out of navigation: Expected values to be strictly deep-equal:",
+    "Mocked signed profile metadata opens Roadmap and Links tabs: Expected values to be strictly deep-equal:",
+    "Coin chart filters confirmed observations by selected range: The expression evaluated to a falsy value:"
+  ],
   "errors": []
 }

@@ -147,3 +147,5 @@ data/automatic-rewards.json.lock
 /.docker-config/
 /audit-records/
 /dist-mainnet-readonly/
+/deploy
+/data

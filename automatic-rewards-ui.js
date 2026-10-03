@@ -2,6 +2,7 @@ import { distributionClock, countdownText, selectDisplaySchedule } from './autom
 import { EXPLORE_CLUSTER } from './app-config.js';
 import { verifiedCurveProgress } from './verified-curve-state.js';
 import { createTokenCardActions } from './token-card-controls.js';
+import { airdropClaimState } from './airdrop-directory-model.js';
 import './automatic-rewards.css';
 
 const panels = document.querySelectorAll('[data-automatic-rewards]');
@@ -36,6 +37,13 @@ const claimedTokenAmount = (reserve, launch) => {
   const fraction = scale === 1n ? '' : String(claimed % scale).padStart(String(scale).length - 1, '0').replace(/0+$/, '');
   return `${whole}${fraction ? '.' + fraction : ''} ${launch.symbol || 'tokens'}`;
 };
+const airdropFinished = (reserve, nowSeconds) => {
+  if (airdropClaimState(reserve, nowSeconds).status === 'closed') return true;
+  return reserve?.status === 'drop-active'
+    && safeLamports(reserve.totalBaseUnits) && safeLamports(reserve.claimedBaseUnits)
+    && BigInt(reserve.totalBaseUnits) > 0n
+    && BigInt(reserve.claimedBaseUnits) === BigInt(reserve.totalBaseUnits);
+};
 function renderHomeRewardCards() {
   if (!homeSpotlight) return;
   const track = homeSpotlight.querySelector('[data-home-reward-grid="funded"]');
@@ -50,7 +58,8 @@ function renderHomeRewardCards() {
       const reserve = matched.get(launch.mint);
       return reserve?.verified === true
         && Number(reserve.reservedTokens) === Number(launch.communityAirdrop.reservedTokens)
-        && ['funded', 'drop-active', 'drop-closed'].includes(reserve.status);
+        && ['funded', 'drop-active'].includes(reserve.status)
+        && !airdropFinished(reserve, Math.floor((Date.now() + offset) / 1000));
     })
     .sort((a, b) => Number(b.createdTimestamp || 0) - Number(a.createdTimestamp || 0));
   track.replaceChildren();
@@ -59,7 +68,7 @@ function renderHomeRewardCards() {
     empty.textContent = !homeFundedTokens.length ? 'No $FUNDED holder airdrops are available.'
       : homeReserves === null ? 'Checking funded vaults…'
       : !reservesAvailable ? 'Vault verification is unavailable.'
-      : 'No vault-funded $FUNDED airdrops yet.';
+      : 'No active vault-funded $FUNDED airdrops.';
     track.append(empty);
     renderSimpleRewardCards('coin');
     renderSimpleRewardCards('x');
@@ -170,14 +179,27 @@ function renderSimpleRewardCards(kind) {
     const paid = homePaidSummary?.tokens.get(launch.mint);
     const paidWallets = kind === 'coin' ? paid?.holderPaidWallets : paid?.xPaidWallets;
     const paidLamports = kind === 'coin' ? paid?.holderPaidLamports : paid?.xPaidLamports;
-    const verifiedPaid = Number.isSafeInteger(paidWallets) && paidWallets >= 0 && safeLamports(paidLamports);
+    const verifiedPaid = safeLamports(paidLamports)
+      && (kind !== 'coin' || Number.isSafeInteger(paidWallets) && paidWallets >= 0);
     const partial = homePaidSummary?.status === 'partial';
-    const count = verifiedPaid ? `${partial ? '≥' : ''}${paidWallets.toLocaleString()} ${paidWallets === 1 ? 'wallet' : 'wallets'}`
-      : homePaidSummary === null ? 'Checking…' : '—';
     const amount = verifiedPaid ? `${partial ? '≥' : ''}${BigInt(paidLamports) === 0n ? '0 SOL' : solAmount(paidLamports)}`
       : homePaidSummary === null ? 'Checking…' : '—';
-    addValue('Paid wallets', count).title = 'Distinct wallets with finalized, verified SOL payments in the indexed receipt window.';
-    addValue('SOL received', amount).title = 'Finalized, verified SOL payments in the indexed receipt window; unpaid fee allocations are excluded.';
+    if (kind === 'coin') {
+      const count = verifiedPaid ? `${partial ? '≥' : ''}${paidWallets.toLocaleString()} ${paidWallets === 1 ? 'wallet' : 'wallets'}`
+        : homePaidSummary === null ? 'Checking…' : '—';
+      addValue('Paid wallets', count).title = 'Distinct wallets with finalized, verified SOL payments in the indexed receipt window.';
+      addValue('SOL received', amount).title = 'Finalized, verified SOL payments in the indexed receipt window; unpaid fee allocations are excluded.';
+    } else {
+      const allocated = paid?.totals?.x;
+      const exact = ['onchain-indexed', 'no-records'].includes(homePaidSummary?.status);
+      const unclaimed = exact && safeLamports(allocated) && verifiedPaid
+        && BigInt(allocated) >= BigInt(paidLamports)
+        ? BigInt(allocated) - BigInt(paidLamports) : null;
+      addValue('Unclaimed', unclaimed === null ? homePaidSummary === null ? 'Checking…' : '—'
+        : unclaimed === 0n ? '0 SOL' : solAmount(unclaimed))
+        .title = 'Verified X fee allocation not yet paid. X identity and wallet verification may still be required.';
+      addValue('Claimed', amount).title = 'SOL paid to the X recipient with finalized, verified transaction evidence.';
+    }
     const detail = document.createElement('small'); detail.className = 'home-reward-token-proof';
     const snapshot = document.createElement('div'); snapshot.className = 'home-reward-snapshot';
     if (kind === 'coin') {
@@ -366,6 +388,10 @@ function renderHomeClocks() {
     timing.hidden = false;
     label.removeAttribute('title');
     const expiresAt = Number(card.dataset.claimExpiresAt);
+    if (expiresAt > 0 && expiresAt <= now) {
+      renderHomeRewardCards();
+      return;
+    }
     if (expiresAt > now) {
       label.textContent = 'Claim window closes in';
       value.textContent = countdownText(Math.ceil((expiresAt - now) / 1000));

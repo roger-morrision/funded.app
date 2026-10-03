@@ -1,7 +1,7 @@
-// Advance compact reward cards only when they overflow. Users can always scroll the row.
+// Advance each reward row only when it overflows. Users can always scroll manually.
 (() => {
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-  const findTrack = () => document.querySelector('.home-rewards-spotlight .home-rewards-grid');
+  const findTracks = () => [...document.querySelectorAll('.home-rewards-spotlight .home-rewards-grid')];
 
   function setup(track) {
     if (track.dataset.carouselReady) return;
@@ -26,17 +26,19 @@
       const firstLeft = cards[0].offsetLeft;
       const next = cards.find(card => card.offsetLeft - firstLeft > track.scrollLeft + 4);
       track.scrollTo({ left: Math.min(next ? next.offsetLeft - firstLeft : maxScroll, maxScroll), behavior: 'smooth' });
-    }, 4500);
+    }, 3600);
   }
 
-  const track = findTrack();
-  if (track) setup(track);
-  else {
+  const setupAll = () => {
+    const tracks = findTracks();
+    if (tracks.length !== 3) return false;
+    tracks.forEach(setup);
+    return true;
+  };
+  if (!setupAll()) {
     const observer = new MutationObserver(() => {
-      const readyTrack = findTrack();
-      if (!readyTrack) return;
+      if (!setupAll()) return;
       observer.disconnect();
-      setup(readyTrack);
     });
     observer.observe(document.body, { childList: true, subtree: true });
   }

@@ -8,14 +8,14 @@ const server = await preview({ preview: { host: '127.0.0.1', port: 0 } });
 const previewOrigin = `http://127.0.0.1:${server.httpServer.address().port}`;
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const now = Math.floor(Date.now() / 1000);
-const mints = Array.from({ length: 6 }, (_, index) => String(index + 1).repeat(32));
+const mints = Array.from({ length: 7 }, (_, index) => String(index + 1).repeat(32));
 const launches = mints.map((mint, index) => ({
   mint, symbol: 'T' + (index + 1), name: 'Token ' + (index + 1),
   imageUri: index === 0 ? 'https://metadata.funded.vip/devnet-images/' + mint : undefined,
   cluster: 'devnet', onchainVerified: true, createdTimestamp: now - index,
-  feeDistribution: { creatorDirected: { shares: { holderAirdropPercent: index === 1 ? 0 : 10,
+  feeDistribution: { creatorDirected: { shares: { holderAirdropPercent: [1, 6].includes(index) ? 0 : 10,
     solClaimPercent: index === 4 ? 30 : 0 }, recipients: { xAccount: index === 4 ? '@qa_x' : null } } },
-  communityAirdrop: index < 5 ? {
+  communityAirdrop: index < 5 || index === 6 ? {
     eligibility: { asset: '$FUNDED' }, reservedTokens: 250000 + index * 1000,
     allocationPercent: 2.5
   } : undefined
@@ -28,7 +28,7 @@ const schedules = [mints[0], mints[5]].map((mint, index) => ({
   totalAmount: index === 0 ? '1250000000' : '900000000'
 }));
 const json = body => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
-const fixture = async context => {
+const fixture = async (context, evidenceStatus = 'onchain-indexed') => {
   await context.route('**/api/**', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Read-only fixture"}' }));
   await context.route('**/api/launches', route => route.fulfill(json(launches)));
   await context.route('**/api/listings/config', route => route.fulfill(json({ cluster:'devnet', fundedMint:mints[5] })));
@@ -40,10 +40,10 @@ const fixture = async context => {
     status: 'active', serverTime: new Date().toISOString(), schedules
   })));
   await context.route('**/api/rewards/experience', route => route.fulfill(json({
-    cluster:'devnet', evidence:{ status:'onchain-indexed' }, wallet:null, events:[],
+    cluster:'devnet', evidence:{ status:evidenceStatus }, wallet:null, events:[],
     community:{ allocatedLamports:'0', fundedLamports:'0' }, tokens:[
       { mint:mints[0], holderPaidWallets:2, holderPaidLamports:'1230000000', xPaidWallets:0, xPaidLamports:'0' },
-      { mint:mints[4], holderPaidWallets:0, holderPaidLamports:'0', xPaidWallets:1, xPaidLamports:'250000000' },
+      { mint:mints[4], holderPaidWallets:0, holderPaidLamports:'0', xPaidWallets:1, xPaidLamports:'250000000', totals:{ x:'500000000' } },
       ...[mints[2], mints[3], mints[5]].map(mint => ({ mint, holderPaidWallets:0, holderPaidLamports:'0', xPaidWallets:0, xPaidLamports:'0' }))
     ].map(row => ({ ...row, holderSharePercent:0 }))
   })));
@@ -52,9 +52,12 @@ const fixture = async context => {
     cluster: 'devnet', claimPolicy:{ unclaimedRecipient:mints[3] }, reserves: [{ mint: mints[0], verified: true, status: 'drop-active',
       reservedTokens: 250000, migrationSlot: 123456789, migrationAt: now - 1000, expiresAt: now + 3600,
       leafCount:3, claimedWalletCount:2, totalBaseUnits:'250000', claimedBaseUnits:'50' },
+    { mint: mints[1], verified: true, status: 'drop-active', reservedTokens: 251000, expiresAt: now - 60 },
     { mint: mints[2], verified: false, status: 'unfunded', reservedTokens: 252000 },
-    { mint: mints[3], verified: true, status: 'funded', reservedTokens: 1 },
-    { mint: mints[4], verified: true, status: 'funded', reservedTokens: 254000 }]
+    { mint: mints[3], verified: true, status: 'drop-closed', reservedTokens: 253000 },
+    { mint: mints[4], verified: true, status: 'funded', reservedTokens: 254000 },
+    { mint: mints[6], verified: true, status: 'drop-active', reservedTokens: 256000,
+      expiresAt: now + 3600, totalBaseUnits:'256000', claimedBaseUnits:'256000' }]
   })));
   await context.route('**/devnet-images/**', route => route.fulfill({
     status: 200, contentType: 'image/svg+xml',
@@ -63,7 +66,7 @@ const fixture = async context => {
 };
 await mkdir('.tmp-ui-evidence', { recursive: true });
 try {
-  const desktop = await browser.newContext({ viewport: { width: 1050, height: 800 } });
+  const desktop = await browser.newContext({ viewport: { width: 1440, height: 800 }, reducedMotion: 'reduce' });
   await fixture(desktop);
   const page = await desktop.newPage();
   const errors = [];
@@ -77,8 +80,19 @@ try {
   const coinGroup = page.locator('[data-home-reward-grid="coin"]');
   const xGroup = page.locator('[data-home-reward-grid="x"]');
   assert.equal(await fundedGroup.locator('.home-reward-token-card').count(), 2);
+  assert.equal(await fundedGroup.locator('.home-reward-token-card[data-reward-mint="' + mints[1] + '"]').count(), 0);
+  assert.equal(await fundedGroup.locator('.home-reward-token-card[data-reward-mint="' + mints[3] + '"]').count(), 0);
+  assert.equal(await fundedGroup.locator('.home-reward-token-card[data-reward-mint="' + mints[6] + '"]').count(), 0);
   assert.equal(await coinGroup.locator('.home-reward-token-card').count(), 5);
   assert.equal(await xGroup.locator('.home-reward-token-card').count(), 1);
+  const sectionBoxes = await Promise.all(['funded','coin','x'].map(kind =>
+    page.locator(`[data-home-reward-section="${kind}"]`).boundingBox()));
+  assert(sectionBoxes.every(Boolean));
+  assert(Math.max(...sectionBoxes.map(box => box.y)) - Math.min(...sectionBoxes.map(box => box.y)) < 3,
+    'Desktop reward sections must share one row');
+  const visibleCards = await coinGroup.evaluate(track =>
+    track.clientWidth / track.querySelector('article').getBoundingClientRect().width);
+  assert(visibleCards >= 2 && visibleCards < 2.4, `Desktop should show two coin cards per section (actual ${visibleCards})`);
   assert.equal(await coinGroup.locator('.home-reward-token-card[data-reward-mint="' + mints[1] + '"]').count(), 0);
   const first = fundedGroup.locator('.home-reward-token-card[data-reward-mint="' + mints[0] + '"]');
   assert.match(await first.textContent(), /T1/);
@@ -110,8 +124,9 @@ try {
   assert.match(await xCard.textContent(), /@qa_x/);
   assert.match(await xCard.textContent(), /30%/);
   assert.match(await xCard.textContent(), /X payouts unavailable/);
-  assert.match(await xCard.textContent(), /Paid wallets1 wallet/);
-  assert.match(await xCard.textContent(), /SOL received0\.25 SOL/);
+  assert.match(await xCard.textContent(), /Unclaimed0\.25 SOL/);
+  assert.match(await xCard.textContent(), /Claimed0\.25 SOL/);
+  assert.doesNotMatch(await xCard.textContent(), /Paid wallets|SOL received/);
   assert.doesNotMatch(await xCard.textContent(), /Airdrop|SOL allocation/);
   const before = await first.locator('.home-reward-clock').textContent();
   await page.waitForTimeout(1200);
@@ -122,10 +137,40 @@ try {
   assert(await track.evaluate(element => element.scrollLeft > 0));
   const section = await page.locator('[data-home-reward-section="funded"]').boundingBox();
   await track.evaluate(element => { element.scrollLeft = 0; });
-  await page.locator('.home-rewards-stack').screenshot({ path: '.tmp-ui-evidence/holder-reward-cards-desktop.png' });
+  await page.screenshot({ path: '.tmp-ui-evidence/holder-reward-cards-desktop.png' });
   assert(section && section.height < 420, 'Home rewards section should remain compact');
   assert.equal(errors.length, 0, errors.join('\n'));
   await desktop.close();
+
+  const partial = await browser.newContext({ viewport: { width: 1440, height: 800 }, reducedMotion: 'reduce' });
+  await fixture(partial, 'partial');
+  const partialPage = await partial.newPage();
+  await partialPage.goto(`${previewOrigin}/#overview`, { waitUntil: 'domcontentloaded' });
+  await partialPage.waitForFunction(() => document.querySelector('[data-home-reward-grid="x"]')?.textContent.includes('≥0.25 SOL'));
+  const partialX = await partialPage.locator('[data-home-reward-grid="x"] .home-reward-token-card').innerText();
+  assert.match(partialX, /Unclaimed\s*—/);
+  assert.match(partialX, /Claimed\s*≥0\.25 SOL/);
+  await partial.close();
+
+  const wide = await browser.newContext({ viewport: { width: 1920, height: 900 }, reducedMotion: 'reduce' });
+  await fixture(wide);
+  const widePage = await wide.newPage();
+  await widePage.goto(`${previewOrigin}/#overview`, { waitUntil: 'domcontentloaded' });
+  await widePage.waitForFunction(() => document.querySelectorAll('.home-reward-token-card').length === 8);
+  const wideVisible = await widePage.locator('[data-home-reward-grid="coin"]').evaluate(track =>
+    track.clientWidth / track.querySelector('article').getBoundingClientRect().width);
+  assert(wideVisible >= 3 && wideVisible < 3.4, 'Wide desktop should show three cards per section');
+  await wide.close();
+
+  const moving = await browser.newContext({ viewport: { width: 1440, height: 800 }, reducedMotion: 'no-preference' });
+  await fixture(moving);
+  const movingPage = await moving.newPage();
+  await movingPage.goto(`${previewOrigin}/#overview`, { waitUntil: 'domcontentloaded' });
+  await movingPage.waitForFunction(() => document.querySelector('[data-home-reward-grid="coin"]')?.scrollLeft > 5,
+    null, { timeout: 10000 });
+  assert.equal(await movingPage.locator('[data-home-reward-grid="x"]').evaluate(track => track.scrollLeft), 0,
+    'A section without overflow must stay still');
+  await moving.close();
 
   const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
   await fixture(mobile);
@@ -138,7 +183,7 @@ try {
   assert(await mobileTrack.evaluate(element => element.scrollLeft > 0));
   await mobileTrack.evaluate(element => { element.scrollLeft = 0; });
   assert(await mobilePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
-  await mobilePage.locator('.home-rewards-stack').screenshot({ path: '.tmp-ui-evidence/holder-reward-cards-mobile.png' });
+  await mobilePage.screenshot({ path: '.tmp-ui-evidence/holder-reward-cards-mobile.png' });
   await mobile.close();
   console.log('Holder reward cards passed: per-token values, logo, proof, countdowns, overflow motion, and mobile scrolling (read-only fixtures).');
 } finally {
