@@ -69,11 +69,27 @@ try {
       if (artwork) assert(mobile.imageRight <= mobile.heroRight + 1, `${tier} artwork is clipped by the hero`);
       if (tier === 'pro') assert(mobile.artworkHeight > 150, 'Pro banner should be taller than Boost');
       if (tier === 'premier') assert(mobile.artworkHeight > 180, 'Premier banner should be taller than Pro');
+      for (const width of [320, 768]) {
+        await page.setViewportSize({ width, height: 844 });
+        const layout = await page.evaluate(() => {
+          const hero = document.querySelector('.coin-hero-card').getBoundingClientRect();
+          const image = document.querySelector('.coin-artwork').getBoundingClientRect();
+          return {
+            overflow: document.documentElement.scrollWidth > innerWidth + 1,
+            imageVisible: getComputedStyle(document.querySelector('.coin-artwork')).display !== 'none',
+            imageRight: image.right,
+            heroRight: hero.right,
+          };
+        });
+        assert.equal(layout.overflow, false, `${tier} ${width}px overflow`);
+        assert.equal(layout.imageVisible, artwork, `${tier} ${width}px artwork`);
+        if (artwork) assert(layout.imageRight <= layout.heroRight + 1, `${tier} ${width}px artwork clipping`);
+      }
     } finally {
       await context.close();
     }
   }
-  console.log('Coin package UI: four verified tiers, forged receipt rejection, desktop/mobile layout, and overflow passed (mocked API; local-only).');
+  console.log('Coin package UI: four verified tiers, forged receipt rejection, 320/390/768/1440px layout, and overflow passed (mocked API; local-only).');
 } finally {
   await browser.close();
 }

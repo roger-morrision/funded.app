@@ -794,3 +794,14 @@ main.wallet-view>#wallet-page{display:block!important}
 .coin-quick-edit-error { min-height: 18px; margin: 10px 0; color: #f18891; font-size: 11px; }
 .coin-quick-edit-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 .coin-quick-edit-actions button { padding: 8px 12px; cursor: pointer; }
+
+@media (max-width:700px) {
+  .coin-page .coin-socials.is-compact a,
+  .coin-page .coin-socials.is-compact button { width:40px; height:40px; }
+  .coin-page .coin-watch { min-width:40px; min-height:40px; }
+  .coin-page:not([hidden]) .mobile-trade-open { position:static; width:100%; margin:12px 0 18px; }
+}
+@media (max-width:360px) {
+  .coin-page .coin-chart-panel .coin-panel-head { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; }
+  .coin-page .coin-chart-panel .coin-panel-head .data-badge { justify-self:start; }
+}

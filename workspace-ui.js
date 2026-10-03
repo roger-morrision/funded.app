@@ -870,7 +870,9 @@ function tokenPage() {
     else {for(const [element,inert] of sheetBackground)element.inert=inert;sheetBackground.clear();trade?.removeAttribute('role');trade?.removeAttribute('aria-modal');trade?.removeAttribute('aria-label');}
   };
   button.addEventListener('click',()=>setSheet(!root.classList.contains('trade-sheet-open')));
-  button.setAttribute('aria-controls','trade-panel');button.setAttribute('aria-expanded','false');root.append(button);
+  button.setAttribute('aria-controls','trade-panel');button.setAttribute('aria-expanded','false');
+  const tradeActionAnchor=$('.coin-stat-strip',root);
+  if(tradeActionAnchor)tradeActionAnchor.after(button);else root.append(button);
   const close=node('button','mobile-trade-close','Close trade');close.type='button';close.addEventListener('click',()=>{setSheet(false);button.focus();});trade?.prepend(close);
   window.addEventListener('hashchange',()=>setSheet(false));
   matchMedia('(max-width:700px)').addEventListener('change',()=>setSheet(false));
