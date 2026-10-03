@@ -1,14 +1,17 @@
 import { createHash } from 'node:crypto';
 import { AUTOMATIC_REWARDS } from '../automatic-rewards.js';
 import { rewardServiceHealth } from './reward-service-health.mjs';
+import { RPC_QUOTA_COOLDOWN_MS } from '../rpc-retry.js';
 
 export function automaticRewardStatus(now = new Date(), state = {}) {
   const service = state.serviceStatus || {};
   const health = rewardServiceHealth(service, now.getTime());
   const active = health.healthy;
+  const quotaCheckedMs = health.reasons.includes('rpc-quota-exhausted') ? Date.parse(health.checkedAt) : NaN;
+  const retryNotBefore = Number.isFinite(quotaCheckedMs) ? new Date(quotaCheckedMs + RPC_QUOTA_COOLDOWN_MS).toISOString() : null;
   const schedules = Object.values(state.schedules || {}).sort((a, b) => Number(b.periodStart) - Number(a.periodStart)).slice(0, 20).map(row => ({ id:row.id, mint:row.mint, asset:row.asset, kind:row.kind, periodStart:row.periodStart, cutoffAt:new Date(row.cutoffAt * 1000).toISOString(), payoutAt:new Date(row.payoutAt * 1000).toISOString(), status:row.status, reason:row.reason || null, recipientCount:row.manifest?.leaves?.length || 0, totalAmount:row.manifest?.totalAmount || null, paidCount:Object.values(row.payments || {}).filter(item => item.status === 'paid').length }));
   const blockedSchedules = schedules.filter(row => row.status === 'blocked').length;
-  return { policy: AUTOMATIC_REWARDS, serverTime: now.toISOString(), status: active ? blockedSchedules ? 'degraded' : 'active' : 'unavailable', schedules,
+  return { policy: AUTOMATIC_REWARDS, serverTime: now.toISOString(), status: active ? blockedSchedules ? 'degraded' : 'active' : 'unavailable', schedules, retryNotBefore,
     reason: active ? blockedSchedules ? `${blockedSchedules} reward schedule${blockedSchedules === 1 ? ' is' : 's are'} blocked; inspect each reason before promising a payout.` : null : health.reasons.includes('rpc-quota-exhausted')
       ? health.reasons.includes('worker-readiness-stale')
         ? 'The last reward-worker check failed because the Devnet RPC quota was exhausted. Reward readiness is stale until its next check.'

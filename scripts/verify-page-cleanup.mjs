@@ -17,7 +17,7 @@ await context.route('**/api/**', route => {
     return route.fulfill({ status:503, contentType:'application/json', body:'{}' });
   }
   return route.fulfill(automatic
-    ? { status: 200, contentType: 'application/json', body: JSON.stringify({ status:'unavailable', serverTime:new Date().toISOString(), schedules:[], reason:'The last reward-worker check failed because the Devnet RPC quota was exhausted.' }) }
+    ? { status: 200, contentType: 'application/json', body: JSON.stringify({ status:'unavailable', serverTime:new Date().toISOString(), retryNotBefore:new Date(Date.now() + 15 * 60_000).toISOString(), schedules:[], reason:'The last reward-worker check failed because the Devnet RPC quota was exhausted.' }) }
     : { status: 503, contentType: 'application/json', body: '{}' });
 });
 const page = await context.newPage();
@@ -86,8 +86,13 @@ try {
   }
 
   await open('explore', 390);
-  await page.waitForFunction(() => document.querySelector('#scanner-count')?.textContent === 'Launch feed unavailable');
-  assert.match(await page.locator('#launch-list').innerText(), /Solana verification is unavailable/);
+  await page.waitForFunction(() => document.querySelector('#scanner-count')?.textContent === 'Launch feed unavailable.');
+  const outageCopy = await page.evaluate(() => ({
+    card:[document.querySelector('#asset-grid .empty-state strong')?.textContent, document.querySelector('#asset-grid .empty-state span')?.textContent],
+    table:[document.querySelector('#launch-list .empty-state strong')?.textContent, document.querySelector('#launch-list .empty-state span')?.textContent],
+  }));
+  assert.deepEqual(outageCopy.card, outageCopy.table);
+  assert.match(outageCopy.card.join(' '), /launch API did not return a verified registry/i);
   assert.match(await page.locator('.explore-hero').evaluate(element => getComputedStyle(element).backgroundImage), /linear-gradient/);
 
   await open('launch', 390);
@@ -104,6 +109,7 @@ try {
   const holderStatus = page.locator('#rewards-holder [data-auto-status]');
   await holderStatus.waitFor({ state:'visible' });
   await page.waitForFunction(() => document.querySelector('#rewards-holder [data-auto-status]')?.textContent.includes('Devnet RPC quota was exhausted'));
+  assert.match(await holderStatus.innerText(), /Earliest worker retry:.*your time/);
   assert((await holderStatus.boundingBox()).y < (await page.locator('#rewards-holder .auto-rewards-grid').boundingBox()).y);
 
   const png = await stat(resolve('public/posters/fee-distribution-flow-v1.png'));

@@ -443,6 +443,14 @@ function renderClocks() {
     }
   }
 }
+function rewardRetryCopy(data) {
+  const retryAt = Date.parse(data.retryNotBefore);
+  if (data.status !== 'unavailable' || !Number.isFinite(retryAt)) return '';
+  const serverNow = Date.parse(data.serverTime);
+  if (retryAt <= (Number.isFinite(serverNow) ? serverNow : Date.now())) return ' The minimum 15-minute cooldown has elapsed; awaiting a new worker report.';
+  const localTime = new Date(retryAt).toLocaleString([], { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+  return ` Earliest worker retry: ${localTime} (your time).`;
+}
 async function refreshSchedules({ retry = true } = {}) {
   try {
     const response = await fetch('/api/rewards/automatic', { signal: AbortSignal.timeout(15000) });
@@ -453,12 +461,13 @@ async function refreshSchedules({ retry = true } = {}) {
     scheduleRows = ['active', 'degraded'].includes(data.status) && Array.isArray(data.schedules) ? data.schedules : [];
     schedule = selectPublishedSchedule();
     renderHomeRewardCards();
+    const retryCopy = rewardRetryCopy(data);
     for (const panel of panels) {
       panel.querySelector('.preview-chip').textContent = data.status === 'active' ? 'Schedules live' : data.status === 'degraded' ? 'Schedules need attention' : 'Schedules unavailable';
       panel.querySelector('.preview-chip').dataset.state = data.status === 'active' ? 'active' : 'unavailable';
       const status = panel.querySelector('[data-auto-status]');
       status.hidden = data.status === 'active';
-      status.textContent = data.reason || 'Reward schedules are temporarily unavailable.';
+      status.textContent = `${data.reason || 'Reward schedules are temporarily unavailable.'}${retryCopy}`;
     }
   } catch {
     schedule = null;

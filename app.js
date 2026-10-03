@@ -2418,6 +2418,16 @@ function decorateExploreAssetCard(card, asset, launch = verifiedLaunchPolicyForM
     progress.querySelector('em').style.width = `${percent}%`;
     card.querySelector('.asset-bottom')?.before(progress);
 }
+function exploreOutageCopy(){
+  if (/RPC (?:rate limited|unavailable)/i.test(exploreProviderStatus)) return {
+    title: 'Solana verification unavailable.',
+    detail: `${exploreProviderStatus}. Retry verification when RPC access recovers; unverified tokens remain hidden.`,
+  };
+  return {
+    title: 'Launch feed unavailable.',
+    detail: 'The launch API did not return a verified registry. Retry verification when the service recovers.',
+  };
+}
 function renderExploreAssets({ force = false } = {}){
   const grid = document.querySelector('#asset-grid');
   // Preserve the focused action through background market refreshes.
@@ -2433,6 +2443,7 @@ function renderExploreAssets({ force = false } = {}){
   const loading = exploreProviderStatus === 'On-chain only · loading' && !exploreLastVerifiedAt;
   const feedUnavailable = !exploreFeedAvailable && !exploreLastVerifiedAt;
   const rpcUnavailable = /RPC (?:rate limited|unavailable)/.test(exploreProviderStatus);
+  const outage = exploreOutageCopy();
   if (clusterLabel) clusterLabel.textContent = `Solana ${EXPLORE_CLUSTER === 'mainnet-beta' ? 'mainnet' : EXPLORE_CLUSTER} · ${exploreProviderStatus.includes('stale') ? 'last verified snapshot' : exploreProviderStatus.includes('RPC verified') ? 'RPC verified' : exploreProviderStatus.includes('unavailable') ? 'data unavailable' : 'awaiting verification'}`;
   if (scope && EXPLORE_CLUSTER !== 'devnet') scope.textContent = 'Solana mainnet discovery · Pump.fun listings are shown only after mint verification. Missing market figures stay unavailable.';
   const records = assets.map(item => withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(item, exploreWindow) : enrichMarketRecord(item)));
@@ -2455,16 +2466,14 @@ function renderExploreAssets({ force = false } = {}){
       ticker.innerHTML = `<div class="explore-ticker-heading"><span class="ticker-label"><i></i> Trending</span><button type="button" class="explore-ticker-view-all">View all</button></div><div class="explore-ticker-window" aria-label="Tokens ranked by verified ${escapeHtml(exploreWindow)} traded volume"><div class="explore-ticker-track"><div class="explore-ticker-set">${tickerItems}</div></div></div>`;
       loadVerifiedTokenLogos(ticker);
     } else {
-      ticker.innerHTML = `<div class="explore-ticker-heading"><span class="ticker-label"><i></i> Trending</span><button type="button" class="explore-ticker-view-all">View all</button></div><span id="explore-ticker-status">${loading ? 'Loading verified launches…' : feedUnavailable ? 'Launch feed unavailable' : rpcUnavailable ? 'On-chain verification unavailable' : 'No scanned volume yet'}</span>`;
+      ticker.innerHTML = `<div class="explore-ticker-heading"><span class="ticker-label"><i></i> Trending</span><button type="button" class="explore-ticker-view-all">View all</button></div><span id="explore-ticker-status">${loading ? 'Loading verified launches…' : feedUnavailable || rpcUnavailable ? escapeHtml(outage.title) : 'No scanned volume yet'}</span>`;
     }
   }
   if (!grid) return;
   grid.innerHTML = visible.length ? visible.map(exploreAssetCardMarkup).join('') : loading
     ? '<div class="empty-state onchain-empty"><strong>Loading verified launches…</strong><span>Checking the indexed launch feed and confirming current Solana state.</span></div>'
-    : feedUnavailable
-      ? '<div class="empty-state onchain-empty"><strong>Launch feed unavailable.</strong><span>The launch API did not return a verified registry. Retry verification after the service is available.</span></div>'
-      : rpcUnavailable
-        ? `<div class="empty-state onchain-empty"><strong>On-chain verification is temporarily unavailable.</strong><span>${escapeHtml(exploreProviderStatus)}. Retry verification shortly; no unverified tokens are shown.</span></div>`
+    : feedUnavailable || rpcUnavailable
+      ? `<div class="empty-state onchain-empty"><strong>${escapeHtml(outage.title)}</strong><span>${escapeHtml(outage.detail)}</span></div>`
         : `<div class="empty-state onchain-empty"><strong>${assets.length ? 'No verified launches match these filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'Indexed launches could not be verified.' : 'No Devnet launches are indexed yet.'}</strong><span>${assets.length ? 'Broaden the search or clear the filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'The indexed mints did not pass current Solana verification. Retry when the RPC is available.' : 'Confirmed funded.vip launches will appear here after they are indexed.'}</span></div>`;
   if (!visible.length && assets.length && !feedUnavailable && !rpcUnavailable) {
     const reason = exploreEmptyReason();
@@ -4024,9 +4033,10 @@ function renderRegistry(query = exploreQuery){
   const page = paginateExploreRows(filtered, registryPage);
   registryPage = page.page;
   const registryLoading = exploreProviderStatus === 'On-chain only · loading' && !exploreLastVerifiedAt;
-  const registryUnavailable = !registryLoading && /rate limited|unavailable/i.test(exploreProviderStatus) && !assets.length;
+  const registryUnavailable = !registryLoading && !assets.length && ((!exploreFeedAvailable && !exploreLastVerifiedAt) || /RPC (?:rate limited|unavailable)/i.test(exploreProviderStatus));
+  const outage = exploreOutageCopy();
   const count = document.querySelector('#scanner-count');
-  if (count) count.textContent = registryLoading ? 'Checking launches' : registryUnavailable ? 'Launch feed unavailable' : `${filtered.length} of ${registryLaunches.length} shown`;
+  if (count) count.textContent = registryLoading ? 'Checking launches' : registryUnavailable ? outage.title : `${filtered.length} of ${registryLaunches.length} shown`;
   const range = document.querySelector('#scanner-range');
   if (range) range.textContent = registryLoading ? 'Loading' : registryUnavailable ? 'Unavailable' : page.total ? `${page.start + 1}–${page.end} of ${page.total} launches` : '0 launches';
   const pageLabel = document.querySelector('#scanner-page-label');
@@ -4046,7 +4056,7 @@ function renderRegistry(query = exploreQuery){
     list.innerHTML = registryLoading
       ? '<div class="empty-state">Checking the verified launch feed…</div>'
       : registryUnavailable
-      ? '<div class="empty-state">Solana verification is unavailable. The feed will update when the connection recovers.</div>'
+      ? `<div class="empty-state"><strong>${escapeHtml(outage.title)}</strong><span>${escapeHtml(outage.detail)}</span></div>`
       : `<div class="empty-state">${escapeHtml(reason?.[0] || 'No verified launches match these filters.')} ${escapeHtml(reason?.[1] || 'Try All stages or clear the search.')}</div>`;
     return;
   }

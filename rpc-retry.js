@@ -1,3 +1,5 @@
+export const RPC_QUOTA_COOLDOWN_MS = 15 * 60_000;
+
 export function retryableRpcError(error) {
   const detail = String(error?.message || error || '');
   return !rpcQuotaExhausted(error)
@@ -9,7 +11,7 @@ export function rpcQuotaExhausted(error) {
 }
 
 export function rpcWorkerWaitMs(error, intervalMs) {
-  return rpcQuotaExhausted(error) ? Math.max(intervalMs, 15 * 60_000) : intervalMs;
+  return rpcQuotaExhausted(error) ? Math.max(intervalMs, RPC_QUOTA_COOLDOWN_MS) : intervalMs;
 }
 
 export async function withRpcRetry(operation, {

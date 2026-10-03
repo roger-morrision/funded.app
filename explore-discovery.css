@@ -123,6 +123,8 @@
 .scanner-actions .scanner-watch { min-width:26px; font-size:14px; }
 .scanner-actions .scanner-watch.active { color:#f2ce84; border-color:#8b764b; }
 .scanner-scroll .empty-state { min-width:900px; padding:20px; }
+.scanner-scroll .empty-state strong,.scanner-scroll .empty-state span { display:block; }
+.scanner-scroll .empty-state span { margin-top:6px; color:#aebbd0; }
 .explore-trade-tape { margin-top:28px; }
 .explore-trade-tape[hidden] { display:none; }
 .explore-trade-tape-list { overflow-x:auto; border:1px solid #2b384b; border-radius:9px; }
