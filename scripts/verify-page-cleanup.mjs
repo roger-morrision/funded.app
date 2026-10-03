@@ -9,7 +9,9 @@ const server = await preview({ preview: { host: '127.0.0.1', port: 5219, strictP
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const context = await browser.newContext({ reducedMotion: 'reduce' });
 await context.addInitScript(() => sessionStorage.setItem('funded.app.wallet.manual-disconnect', '1'));
-await context.route('**/api/**', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
+await context.route('**/api/**', route => route.fulfill(route.request().url().endsWith('/api/rewards/automatic')
+  ? { status: 200, contentType: 'application/json', body: JSON.stringify({ status:'unavailable', serverTime:new Date().toISOString(), schedules:[], reason:'The last reward-worker check failed because the Devnet RPC quota was exhausted.' }) }
+  : { status: 503, contentType: 'application/json', body: '{}' }));
 const page = await context.newPage();
 const errors = [];
 page.on('pageerror', error => errors.push(error.message));
@@ -74,6 +76,26 @@ try {
     await open(route, 390);
     assert.equal(await page.locator('.help-topics-trigger').isVisible(), false, `${route}: floating Help should not cover mobile content`);
   }
+
+  await open('explore', 390);
+  await page.waitForFunction(() => document.querySelector('#scanner-count')?.textContent === 'Launch feed unavailable');
+  assert.match(await page.locator('#launch-list').innerText(), /Solana verification is unavailable/);
+  assert.match(await page.locator('.explore-hero').evaluate(element => getComputedStyle(element).backgroundImage), /linear-gradient/);
+
+  await open('launch', 390);
+  const header = await page.evaluate(() => {
+    const title = document.querySelector('.topbar-context span').getBoundingClientRect();
+    const network = document.querySelector('.topbar .workspace-network').getBoundingClientRect();
+    return { titleRight:title.right, titleBottom:title.bottom, networkLeft:network.left, networkTop:network.top };
+  });
+  assert(header.networkTop >= header.titleBottom || header.networkLeft >= header.titleRight + 8, `Mobile header overlaps the Devnet badge: ${JSON.stringify(header)}`);
+
+  await open('payments', 390);
+  await page.locator('#rewards-holder-tab').click();
+  const holderStatus = page.locator('#rewards-holder [data-auto-status]');
+  await holderStatus.waitFor({ state:'visible' });
+  await page.waitForFunction(() => document.querySelector('#rewards-holder [data-auto-status]')?.textContent.includes('Devnet RPC quota was exhausted'));
+  assert((await holderStatus.boundingBox()).y < (await page.locator('#rewards-holder .auto-rewards-grid').boundingBox()).y);
 
   const png = await stat(resolve('public/posters/fee-distribution-flow-v1.png'));
   const webp = await stat(resolve('public/posters/fee-distribution-flow-v1.webp'));

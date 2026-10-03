@@ -47,7 +47,7 @@ body.page-route-overview .home-rewards-spotlight{display:block;margin:0 0 32px;p
 .auto-reward-card > small { display:block; margin-top:12px; color:#979db3; font-size:11px; line-height:1.5; }
 .auto-reward-link { display:inline-flex; align-self:flex-start; gap:6px; margin-top:16px; color:#e9e1cf; font-size:13px; font-weight:700; text-decoration:none; }
 .auto-rewards-fineprint { margin:15px 0 0; color:#999db4; font-size:11px; line-height:1.5; }
-.auto-reward-status { margin:14px 0 0; color:#eec9a2; font-size:12px; line-height:1.5; }
+.auto-reward-status { margin:0 0 16px; padding:12px 14px; border:1px solid #725345; border-radius:8px; background:#30251f; color:#f4d5b0; font-size:12px; line-height:1.5; }
 .personal-rewards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-top:16px; }
 .personal-rewards:has([data-x-rewards][hidden]) { grid-template-columns:1fr; }
 .personal-rewards[hidden],.personal-reward-card[hidden] { display:none; }
