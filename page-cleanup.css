@@ -121,3 +121,44 @@ body.page-route-referrals #referral-command-center .section-heading .section-sta
   body.page-route .help-topics-trigger,
   body.page-route .help-topics-panel { display: none !important; }
 }
+
+/* A verified launch burn selects the token detail presentation. */
+body.page-route-coin .coin-hero-card[data-launch-tier] { --package-accent: #71879c; --package-glow: #71879c30; border-radius: 4px; }
+body.page-route-coin .coin-hero-card[data-launch-tier="boost"] { --package-accent: #62c9c4; --package-glow: #62c9c42b; }
+body.page-route-coin .coin-hero-card[data-launch-tier="pro"] { --package-accent: #e0b66a; --package-glow: #e0b66a2b; }
+body.page-route-coin .coin-hero-card[data-launch-tier="premier"] { --package-accent: #a5a9f3; --package-glow: #a5a9f32e; }
+body.page-route-coin .coin-hero-card[data-launch-tier="pro"] .coin-package-chip--promotion { border-color: #b98a38; background: #352919; color: #ffe1a0; }
+body.page-route-coin .coin-hero-card[data-launch-tier="premier"] .coin-package-chip--promotion { border-color: #8088d7; background: #202341; color: #d6d9ff; }
+body.page-route-coin .coin-hero-card[data-launch-tier]:not([data-launch-tier="standard"]):not([data-launch-tier="unknown"]) { border-color: var(--package-accent); box-shadow: 0 18px 46px #0006, 0 0 36px var(--package-glow); }
+body.page-route-coin .coin-hero-card[data-launch-tier]:not([data-launch-tier="standard"]):not([data-launch-tier="unknown"]) .coin-artwork { border-bottom-color: var(--package-accent); }
+body.page-route-coin .coin-hero-card[data-launch-tier]:not([data-launch-tier="standard"]):not([data-launch-tier="unknown"]) .coin-identity { border-left: 3px solid var(--package-accent); }
+body.page-route-coin .coin-hero-card[data-launch-tier]:not([data-launch-tier="standard"]):not([data-launch-tier="unknown"]) .coin-hero-about .ui-tabs button[aria-selected="true"] { border-bottom-color: var(--package-accent); }
+body.page-route-coin .coin-hero-card[data-launch-tier="boost"] .coin-artwork { min-height: 170px; max-height: 200px; }
+body.page-route-coin .coin-hero-card[data-launch-tier="pro"] .coin-artwork { min-height: 230px; max-height: 260px; }
+body.page-route-coin .coin-hero-card[data-launch-tier="premier"] .coin-artwork { min-height: 290px; max-height: 320px; }
+body.page-route-coin .coin-hero-card[data-launch-tier="pro"] .coin-hero-about { min-height: 210px; }
+body.page-route-coin .coin-hero-card[data-launch-tier="premier"] .coin-hero-about { min-height: 260px; }
+body.page-route-coin .coin-artwork-package { position: absolute; z-index: 2; right: 14px; top: 14px; max-width: min(75%, 340px); padding: 6px 9px; border: 1px solid var(--package-accent); background: #0b1020dc; color: var(--package-accent); font: 700 10px/1.35 'DM Mono', monospace; text-align: right; text-transform: uppercase; }
+body.page-route-coin .coin-artwork-package[hidden] { display: none !important; }
+body.page-route-coin .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) { grid-template-rows: auto auto; }
+body.page-route-coin .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) { grid-template-columns: minmax(0,1fr); }
+body.page-route-coin .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) .coin-artwork { display: none; }
+body.page-route-coin .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) .coin-identity { grid-row: 1; }
+body.page-route-coin .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) .coin-stat-strip { grid-row: 2; }
+body.page-route-coin .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) .coin-hero-aside { display: none; }
+body.page-route-coin .coin-hero-card[data-launch-tier="standard"] .coin-hero-about { min-height: 175px; }
+body.page-route-coin .coin-hero-card[data-launch-tier="unknown"] .coin-hero-about { min-height: 175px; }
+body.page-route-coin .coin-side-column > .coin-hero-about { height: auto; min-height: 185px; border: 1px solid #26354d; border-radius: 4px; background: #101a1b; }
+body.page-route-coin .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) .page-cleanup-about-toggle { display: none; }
+
+@media (max-width: 700px) {
+  body.page-route-coin .coin-hero-card[data-launch-tier]:not([data-launch-tier="standard"]):not([data-launch-tier="unknown"]) .coin-artwork { display: grid !important; box-sizing: border-box; width: 100%; max-height: none; min-height: 150px; aspect-ratio: 2.5 / 1; }
+  body.page-route-coin .coin-hero-card[data-launch-tier="pro"] .coin-artwork { min-height: 180px !important; aspect-ratio: 2 / 1 !important; }
+  body.page-route-coin .coin-hero-card[data-launch-tier="premier"] .coin-artwork { min-height: 210px !important; aspect-ratio: 1.8 / 1 !important; }
+  body.page-route-coin .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) .coin-artwork { display: none !important; }
+  body.page-route-coin .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) .coin-package-rail { flex-direction: row; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; }
+  body.page-route-coin .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) .coin-package-rail .coin-watch { flex: 0 0 28px; margin: 0; }
+  body.page-route-coin .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) .coin-package-chip,
+  body.page-route-coin .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) .coin-package-rail #coin-promotion-badge { width: 125px; }
+  body.page-route-coin .coin-artwork-package { right: 10px; top: 38px; max-width: calc(100% - 20px); font-size: 9px; }
+}

@@ -3,7 +3,7 @@ import { Keypair, Transaction } from '@solana/web3.js';
 import { createBurnCheckedInstruction, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { createLaunchBurnTiers, tokensToBaseUnits } from '../launch-burn-policy.js';
 import { verifyAtomicLaunchPromotion } from '../server/launch-verification.mjs';
-import { verifiedPromotionBadge } from '../promotion-badge.js';
+import { coinDetailPackage, verifiedPromotionBadge } from '../promotion-badge.js';
 import { canonicalLaunchPolicy, launchPolicyStatement } from '../launch-policy-auth.js';
 
 const payer = Keypair.generate().publicKey;
@@ -23,6 +23,7 @@ for (const tier of tiers.slice(1)) {
   const promotion = verifyAtomicLaunchPromotion({ transaction, payer: payer.toBase58(), signature, claim, fundedMint: fundedMint.toBase58(), tiers });
   assert.equal(promotion.tier, tier.id);
   assert.equal(verifiedPromotionBadge({ onchainVerified: true, creatorLaunchBurn: promotion, signature }).tier, tier.id);
+  assert.equal(coinDetailPackage({ onchainVerified: true, creatorLaunchBurn: promotion, signature }).tier, tier.id);
   assert.equal(verifiedPromotionBadge({ onchainVerified: false, creatorLaunchBurn: promotion, signature }), null);
   assert.equal(verifiedPromotionBadge({ onchainVerified: true, creatorLaunchBurn: promotion, signature: 'other' }), null);
   assert.throws(() => verifyAtomicLaunchPromotion({ transaction, payer: payer.toBase58(), signature, claim: { ...claim, tier: tier.id === 'premier' ? 'boost' : 'premier' }, fundedMint: fundedMint.toBase58(), tiers }), /matching|policy/);
@@ -31,6 +32,9 @@ for (const tier of tiers.slice(1)) {
   assert.throws(() => verifyAtomicLaunchPromotion({ transaction: transactionFor(payer, fundedMint, 1n), payer: payer.toBase58(), signature, claim, fundedMint: fundedMint.toBase58(), tiers }), /matching atomic/);
 }
 assert.equal(verifiedPromotionBadge({ onchainVerified: true, signature, creatorLaunchBurn: { tier: 'standard', status: 'verified' } }), null);
+assert.equal(coinDetailPackage({ onchainVerified: true, signature }).tier, 'standard');
+assert.equal(coinDetailPackage({ onchainVerified: true, creatorLaunchBurn: { tier: 'pro', status: 'pending' }, signature }).tier, 'unknown');
+assert.equal(coinDetailPackage(null).tier, 'unknown');
 assert.equal(verifyAtomicLaunchPromotion({ claim: { tier: 'standard' } }), null);
 
 const policy = {

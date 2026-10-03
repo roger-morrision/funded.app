@@ -33,7 +33,7 @@ import {focusLaunchStep} from './launch-accessibility.js';
 import { withRpcRetry } from './rpc-retry.js';
 import { getPreparedImage, prepareLaunchImage, assertImageReady } from './launch-image.js';
 import { launchPolicyStatement } from './launch-policy-auth.js';
-import { verifiedPromotionBadge } from './promotion-badge.js';
+import { coinDetailPackage, verifiedPromotionBadge } from './promotion-badge.js';
 import { initPaidListing } from './list-page.js';
 import { metadataStatement, devnetMetadataUri, devnetImageUri } from './devnet-metadata.js';
 import { canonicalLaunchSocialUrl, normalizeXProfileInput } from './launch-social-url.js';
@@ -1092,7 +1092,27 @@ function renderCoinPromotionBadge(){
     rail.append(holder);
   }
   holder.replaceChildren();
-  const badge = promotionForMint(mint);
+  const presentation = coinDetailPackage(verifiedLaunchPolicyForMint(mint));
+  const badge = presentation.badge;
+  const hero = document.querySelector('#coin-page .coin-hero-card');
+  if (hero) hero.dataset.launchTier = presentation.tier;
+  const profile = document.querySelector('#coin-profile');
+  const heroAside = hero?.querySelector('.coin-hero-aside');
+  const side = document.querySelector('#coin-page .coin-side-column');
+  if (profile && heroAside && side) {
+    if (presentation.tier === 'standard' || presentation.tier === 'unknown') {
+      const market = side.querySelector('.coin-market-aside');
+      if (market) market.after(profile);
+      else side.append(profile);
+    } else {
+      heroAside.prepend(profile);
+    }
+  }
+  const artworkLabel = document.querySelector('#coin-artwork-package');
+  if (artworkLabel) {
+    artworkLabel.hidden = !badge;
+    artworkLabel.textContent = badge ? `${presentation.label} launch · ${Number(badge.amountTokens).toLocaleString()} $FUNDED burned` : '';
+  }
   const packageElement = document.createElement(badge ? 'a' : 'span');
   packageElement.className = `coin-package-chip coin-package-chip--promotion${badge ? ` is-${badge.tier}` : ''}`;
   if (badge) {
@@ -1102,11 +1122,36 @@ function renderCoinPromotionBadge(){
     packageElement.title = `${badge.amountTokens.toLocaleString()} $FUNDED burned in the verified launch · view receipt`;
     packageElement.setAttribute('aria-label', `${badge.tier} launch promotion · view verified burn receipt`);
   } else {
-    packageElement.title = 'No verified paid launch package';
+    packageElement.title = presentation.tier === 'standard' ? 'Verified standard launch; no paid promotion burn' : 'Launch package cannot be verified yet';
   }
   const symbol = badge?.tier === 'premier' ? '★' : badge?.tier === 'pro' ? '◆' : '✦';
-  packageElement.innerHTML = `<span class="coin-package-bag" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9h16l-1.3 11H5.3L4 9Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg><span>${symbol}</span></span><span class="coin-package-copy"><small>Launch package</small><strong>${badge ? badge.tier[0].toUpperCase() + badge.tier.slice(1) : 'None verified'}</strong></span>`;
+  packageElement.innerHTML = `<span class="coin-package-bag" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9h16l-1.3 11H5.3L4 9Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg><span>${symbol}</span></span><span class="coin-package-copy"><small>Launch package</small><strong>${presentation.label}</strong></span>`;
   holder.append(packageElement);
+  renderCoinRegistryIdentity(mint);
+}
+window.fundedRenderCoinPromotionBadge = renderCoinPromotionBadge;
+function renderCoinRegistryIdentity(mint){
+  if (document.querySelector('#coin-rpc-status')?.textContent?.trim() !== 'Data unavailable') return;
+  const launch = verifiedLaunchPolicyForMint(mint);
+  if (!launch?.onchainVerified) return;
+  const name = typeof launch.name === 'string' ? launch.name.trim() : '';
+  const symbol = typeof launch.symbol === 'string' ? launch.symbol.trim() : '';
+  if (!name && !symbol) return;
+  setCoinField('#coin-page-title', name || 'Verified launch');
+  setCoinField('#coin-symbol', symbol || '—');
+  setCoinField('#coin-artwork-symbol', symbol || '—');
+  setCoinField('#coin-avatar', (symbol || name).slice(0, 1).toUpperCase());
+  setCoinField('#coin-description', 'Name and symbol come from the verified launch registry. Live mint, market, and holder facts are unavailable from Devnet RPC.');
+  setCoinFact('#coin-metadata-status', 'Verified launch registry', 'clear');
+  if (launch.imageUri === devnetImageUri(mint)) {
+    const avatar = document.querySelector('#coin-avatar');
+    if (avatar) {
+      avatar.textContent = '';
+      avatar.style.backgroundImage = `url("${launch.imageUri}")`;
+      avatar.style.backgroundSize = 'cover';
+      avatar.style.backgroundPosition = 'center';
+    }
+  }
 }
 function getWalletLaunchPolicies(){
   return walletLaunches(verifiedLaunchPolicies, connectedWalletAddress);
@@ -8309,6 +8354,7 @@ async function loadCoinOnChain(mintAddress){
       : /timed out/i.test(detail)
         ? 'Devnet RPC timed out. Check your connection and select Refresh.'
         : detail || 'Solana RPC could not load this mint.');
+    renderCoinRegistryIdentity(mintAddress);
   }
 }
 let coinExitExploreLoad = null;

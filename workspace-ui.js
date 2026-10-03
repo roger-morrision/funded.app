@@ -747,8 +747,9 @@ function tokenPage() {
   if(hero&&description){
     const artwork=node('div','coin-artwork');
     artwork.setAttribute('aria-hidden','true');
+    const packageLabel=node('span','coin-artwork-package');packageLabel.id='coin-artwork-package';packageLabel.hidden=true;
     const artworkSymbol=node('span','coin-artwork-symbol','TOKEN');artworkSymbol.id='coin-artwork-symbol';
-    artwork.append(node('span','coin-artwork-network',EXPLORE_CLUSTER === 'mainnet-beta' ? 'SOLANA · MAINNET' : 'SOLANA · DEVNET'),artworkSymbol);
+    artwork.append(node('span','coin-artwork-network',EXPLORE_CLUSTER === 'mainnet-beta' ? 'SOLANA · MAINNET' : 'SOLANA · DEVNET'),packageLabel,artworkSymbol);
     hero.prepend(artwork);
     const symbolLabel=$('#coin-symbol',hero);
     const avatar=$('#coin-avatar',hero);
@@ -802,6 +803,7 @@ function tokenPage() {
     heroAside=node('div','coin-hero-aside');
     heroAside.append(about);
     hero.append(heroAside);
+    window.fundedRenderCoinPromotionBadge?.();
   }
   const chartPanel=$('.coin-chart-panel',root);
   const chartPath=$('#coin-price-path',chartPanel);
@@ -828,7 +830,6 @@ function tokenPage() {
   const trade=$('#trade-panel',root);
   const pulse=$('.coin-pulse-panel',root);
   const side=$('.coin-side-column',root);
-  if(pulse&&heroAside)heroAside.append(pulse);
   const curve=$('.coin-curve-track',root);
   const flow=$('.coin-flow',root);
   flow?.remove();
@@ -837,6 +838,7 @@ function tokenPage() {
     market.append(node('h2','coin-market-aside-title','Bonding curve'),curve);
     trade.after(market);
   }
+  if(pulse&&trade)trade.after(pulse);
   const policy=$('.coin-policy-card',root);
   const distribution=$('#coin-account-distribution',root);
   if(side&&policy&&distribution){

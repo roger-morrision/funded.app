@@ -90,6 +90,7 @@
     "verify:proof-ui": "node scripts/verify-proof-ui.mjs",
     "verify:receipt-evidence": "node scripts/verify-receipt-evidence.mjs",
     "verify:coin-detail": "node scripts/verify-coin-detail.mjs",
+    "verify:coin-package-ui": "node scripts/verify-coin-package-ui.mjs",
     "verify:backend-hardening": "node scripts/verify-backend-hardening.mjs",
     "verify:postgres-store": "node scripts/verify-postgres-store.mjs",
     "verify:launch-burn-policy": "node scripts/verify-launch-burn-policy.mjs",
