@@ -80,6 +80,9 @@ const staleService = { constrainedPayouts:true, reasons:[], checkedAt:'2026-09-2
 assert.deepEqual(rewardServiceHealth(staleService, statusNow).reasons, ['worker-readiness-stale']);
 assert.equal(rewardServiceHealth(staleService, statusNow).healthy, false);
 assert.match(automaticRewardStatus(new Date(statusNow), { serviceStatus: staleService }).reason, /not reported readiness in over 3 minutes/);
+const quotaService = { constrainedPayouts:false, reasons:['rpc-quota-exhausted'], checkedAt:'2026-09-24T20:55:00.000Z', reason:'Devnet RPC quota exhausted.' };
+assert.match(automaticRewardStatus(new Date(statusNow), { serviceStatus:quotaService }).reason, /last reward-worker check.*quota was exhausted/i);
+assert.match(automaticRewardStatus(new Date(statusNow), { serviceStatus:{ ...quotaService, checkedAt:'2026-09-24T20:59:00.000Z' } }).reason, /Devnet RPC quota exhausted/);
 assert.equal(rewardServiceHealth({ ...staleService, checkedAt:'2026-09-24T20:59:00.000Z' }, statusNow).healthy, true);
 const blockedService = { constrainedPayouts:true, checkedAt:'2026-09-24T20:59:00.000Z', reasons:['rpc-unavailable'] };
 assert.equal(rewardServiceHealth(blockedService, statusNow).healthy, false);

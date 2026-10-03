@@ -413,9 +413,13 @@ input[type='search']:focus-visible {
 @media (max-width: 480px) {
   .topbar .create-coin-button { display: none; }
   .topbar .connect-button { max-width: 122px; }
+  .topbar .top-actions .workspace-network { position: absolute; top: 53px; right: 0; }
   .route-guide-actions { flex-direction: column; align-items: stretch; }
   .route-guide-actions a, .route-guide-actions .primary-button { flex: none; width: 100%; }
   .route-guide-secondary { padding: 7px 0; }
+}
+@media (max-width: 360px) {
+  body.page-route .topbar .topbar-context::before { display: none; }
 }
 
 /* Focus the active task, while preserving tools once backed by verified data. */

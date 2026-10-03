@@ -4023,11 +4023,12 @@ function renderRegistry(query = exploreQuery){
   const filtered = filterMarketRecords(registryLaunches, exploreFilterOptions(query));
   const page = paginateExploreRows(filtered, registryPage);
   registryPage = page.page;
-  const registryUnavailable = /rate limited|unavailable/i.test(exploreProviderStatus) && !assets.length && verifiedLaunchPoliciesStatus !== 'ready';
+  const registryLoading = exploreProviderStatus === 'On-chain only · loading' && !exploreLastVerifiedAt;
+  const registryUnavailable = !registryLoading && /rate limited|unavailable/i.test(exploreProviderStatus) && !assets.length;
   const count = document.querySelector('#scanner-count');
-  if (count) count.textContent = registryUnavailable ? 'Launch feed unavailable' : `${filtered.length} of ${registryLaunches.length} shown`;
+  if (count) count.textContent = registryLoading ? 'Checking launches' : registryUnavailable ? 'Launch feed unavailable' : `${filtered.length} of ${registryLaunches.length} shown`;
   const range = document.querySelector('#scanner-range');
-  if (range) range.textContent = registryUnavailable ? 'Unavailable' : page.total ? `${page.start + 1}–${page.end} of ${page.total} launches` : '0 launches';
+  if (range) range.textContent = registryLoading ? 'Loading' : registryUnavailable ? 'Unavailable' : page.total ? `${page.start + 1}–${page.end} of ${page.total} launches` : '0 launches';
   const pageLabel = document.querySelector('#scanner-page-label');
   if (pageLabel) pageLabel.textContent = `Page ${page.page} of ${page.pages}`;
   const pagination = document.querySelector('#scanner-pagination');
@@ -4042,7 +4043,9 @@ function renderRegistry(query = exploreQuery){
   if (!list) return;
   if (!filtered.length) {
     const reason = exploreEmptyReason();
-    list.innerHTML = registryUnavailable
+    list.innerHTML = registryLoading
+      ? '<div class="empty-state">Checking the verified launch feed…</div>'
+      : registryUnavailable
       ? '<div class="empty-state">Solana verification is unavailable. The feed will update when the connection recovers.</div>'
       : `<div class="empty-state">${escapeHtml(reason?.[0] || 'No verified launches match these filters.')} ${escapeHtml(reason?.[1] || 'Try All stages or clear the search.')}</div>`;
     return;

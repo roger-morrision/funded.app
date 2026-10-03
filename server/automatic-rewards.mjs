@@ -9,7 +9,11 @@ export function automaticRewardStatus(now = new Date(), state = {}) {
   const schedules = Object.values(state.schedules || {}).sort((a, b) => Number(b.periodStart) - Number(a.periodStart)).slice(0, 20).map(row => ({ id:row.id, mint:row.mint, asset:row.asset, kind:row.kind, periodStart:row.periodStart, cutoffAt:new Date(row.cutoffAt * 1000).toISOString(), payoutAt:new Date(row.payoutAt * 1000).toISOString(), status:row.status, reason:row.reason || null, recipientCount:row.manifest?.leaves?.length || 0, totalAmount:row.manifest?.totalAmount || null, paidCount:Object.values(row.payments || {}).filter(item => item.status === 'paid').length }));
   const blockedSchedules = schedules.filter(row => row.status === 'blocked').length;
   return { policy: AUTOMATIC_REWARDS, serverTime: now.toISOString(), status: active ? blockedSchedules ? 'degraded' : 'active' : 'unavailable', schedules,
-    reason: active ? blockedSchedules ? `${blockedSchedules} reward schedule${blockedSchedules === 1 ? ' is' : 's are'} blocked; inspect each reason before promising a payout.` : null : health.reasons.includes('worker-readiness-stale')
+    reason: active ? blockedSchedules ? `${blockedSchedules} reward schedule${blockedSchedules === 1 ? ' is' : 's are'} blocked; inspect each reason before promising a payout.` : null : health.reasons.includes('rpc-quota-exhausted')
+      ? health.reasons.includes('worker-readiness-stale')
+        ? 'The last reward-worker check failed because the Devnet RPC quota was exhausted. Reward readiness is stale until its next check.'
+        : service.reason || 'Automatic distributions are unavailable because the Devnet RPC quota is exhausted.'
+      : health.reasons.includes('worker-readiness-stale')
       ? 'Automatic distributions are unavailable because the reward worker has not reported readiness in over 3 minutes.'
       : service.reason || 'Automatic distributions are unavailable until the Devnet reward program and worker pass their constrained-payout readiness checks.',
     modes: { creator: 'wallet-requested-after-minimum', holders: 'automatic-SOL-or-token', x: 'unavailable', community: schedules.some(row => row.kind === 'community' && ['prepared', 'distributing', 'paid'].includes(row.status)) ? 'verified-token-airdrop-cycle' : 'awaiting-funded-migration-snapshot', referrals: 'manual-claim', buyback: 'accrual-only-execution-unavailable' } };

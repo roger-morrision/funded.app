@@ -573,7 +573,7 @@ body.page-route-explore .scanner-stage strong { color: #d4ded8; }
 body.page-route-explore .scanner-boost span { display: none; }
 body.page-route-explore .scanner-boost .explore-boost-button { min-width: 68px; }
 @media (max-width: 700px) {
-  body.page-route-explore .explore-hero { min-height: 320px; margin-top: 14px; padding: 28px 18px; background-position: 58% center; }
+  body.page-route-explore .explore-hero { min-height: 320px; margin-top: 14px; padding: 28px 18px; background-image: linear-gradient(90deg,#0b1020f5 0%,#0b1020df 60%,#0b1020bb 100%),url('./index-wolf-network.png'); background-position: center,70% center; }
   body.page-route-explore .explore-hero h1 { font-size: 46px; }
   body.page-route-explore .explore-heading .heading-actions { width: 100%; }
   body.page-route-explore .explore-index-filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; padding-bottom: 6px; }
