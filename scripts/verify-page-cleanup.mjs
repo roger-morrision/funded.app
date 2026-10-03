@@ -9,9 +9,17 @@ const server = await preview({ preview: { host: '127.0.0.1', port: 5219, strictP
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const context = await browser.newContext({ reducedMotion: 'reduce' });
 await context.addInitScript(() => sessionStorage.setItem('funded.app.wallet.manual-disconnect', '1'));
-await context.route('**/api/**', route => route.fulfill(route.request().url().endsWith('/api/rewards/automatic')
-  ? { status: 200, contentType: 'application/json', body: JSON.stringify({ status:'unavailable', serverTime:new Date().toISOString(), schedules:[], reason:'The last reward-worker check failed because the Devnet RPC quota was exhausted.' }) }
-  : { status: 503, contentType: 'application/json', body: '{}' }));
+let automaticFailuresRemaining = 0;
+await context.route('**/api/**', route => {
+  const automatic = route.request().url().endsWith('/api/rewards/automatic');
+  if (automatic && automaticFailuresRemaining > 0) {
+    automaticFailuresRemaining--;
+    return route.fulfill({ status:503, contentType:'application/json', body:'{}' });
+  }
+  return route.fulfill(automatic
+    ? { status: 200, contentType: 'application/json', body: JSON.stringify({ status:'unavailable', serverTime:new Date().toISOString(), schedules:[], reason:'The last reward-worker check failed because the Devnet RPC quota was exhausted.' }) }
+    : { status: 503, contentType: 'application/json', body: '{}' });
+});
 const page = await context.newPage();
 const errors = [];
 page.on('pageerror', error => errors.push(error.message));
@@ -90,6 +98,7 @@ try {
   });
   assert(header.networkTop >= header.titleBottom || header.networkLeft >= header.titleRight + 8, `Mobile header overlaps the Devnet badge: ${JSON.stringify(header)}`);
 
+  automaticFailuresRemaining = 1;
   await open('payments', 390);
   await page.locator('#rewards-holder-tab').click();
   const holderStatus = page.locator('#rewards-holder [data-auto-status]');

@@ -443,9 +443,9 @@ function renderClocks() {
     }
   }
 }
-async function refreshSchedules() {
+async function refreshSchedules({ retry = true } = {}) {
   try {
-    const response = await fetch('/api/rewards/automatic', { signal: AbortSignal.timeout(8000) });
+    const response = await fetch('/api/rewards/automatic', { signal: AbortSignal.timeout(15000) });
     if (!response.ok) throw new Error('Unavailable');
     const data = await response.json();
     const time = Date.parse(data.serverTime);
@@ -471,6 +471,7 @@ async function refreshSchedules() {
       status.hidden = false;
       status.textContent = 'Reward schedules are temporarily unavailable.';
     }
+    if (retry) setTimeout(() => { if (!document.hidden) void refreshSchedules({ retry:false }); }, 1500);
   }
   renderClocks();
 }
