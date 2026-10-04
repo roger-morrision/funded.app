@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
+import {pilotRecord} from './helpers/pilot-storage.js';
 
 const failures=new WeakMap();
-const key='funded.vip.pilot.v1';
 test.beforeEach(async({page})=>{
   const errors=[];failures.set(page,errors);page.on('pageerror',error=>errors.push(error.message));
   await page.route('**/api/**',route=>route.fulfill({status:503,contentType:'application/json',body:'{"error":"Offline QA fixture"}'}));
@@ -34,7 +34,7 @@ test('Home has a clear Devnet pilot path and setup requires no wallet',async({pa
     await page.locator('#token-name').fill('Wallet-free preparation');
     expect(await page.evaluate(()=>window.pilotWalletRequests.every(options=>options?.onlyIfTrusted===true)), 'No interactive wallet connection is requested').toBe(true);
     expect(await page.evaluate(()=>window.phantom.solana.isConnected)).toBe(false);
-    expect(await page.evaluate(key=>localStorage.getItem(key),key)).toBeNull();
+    expect(await pilotRecord(page)).toBeNull();
   }
 });
 
@@ -71,15 +71,15 @@ test('invitation copy and clipboard fallback do not enroll or send messages',asy
   expect(await page.evaluate(()=>window.pilotCopiedText)).toMatch(/Devnet \(test funds\).*\/#pilot/);
   await page.evaluate(()=>{navigator.clipboard.writeText=async()=>{throw new Error('Clipboard denied');};});
   await page.locator('[data-pilot-copy]').click();await expect(page.locator('[data-pilot-copy-status]')).toContainText('Your pilot link:');
-  expect(await page.evaluate(key=>localStorage.getItem(key),key)).toBeNull();expect(writes).toEqual([]);
+  expect(await pilotRecord(page)).toBeNull();expect(writes).toEqual([]);
 });
 
 test('optional pilot setup focuses an enabled control after enrollment locks the role',async({page})=>{
   await open(page);await page.locator('[data-pilot-role]').selectOption('community');
-  await page.locator('[data-pilot-source]').selectOption('test');await page.locator('[data-pilot-consent]').check();
+  await page.locator('[data-pilot-source]').selectOption('test');await page.locator('[data-pilot-consent]').click();
   await expect(page.locator('[data-pilot-role]')).toBeDisabled();await expect(page.locator('[data-pilot-export]')).toBeEnabled();
-  const id=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).participantId,key);
+  const id=(await pilotRecord(page)).participantId;
   await page.locator('[data-pilot-enroll]').focus();await page.keyboard.press('Enter');
   await expect(page.locator('[data-pilot-consent]')).toBeFocused();await expect(page.locator('[data-pilot-consent]')).toBeChecked();
-  expect(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).participantId,key)).toBe(id);
+  expect((await pilotRecord(page)).participantId).toBe(id);
 });
