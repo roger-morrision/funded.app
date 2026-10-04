@@ -8,6 +8,7 @@ import { deriveXFeeObligation } from './x-fee-guard.mjs';
 import { verifyPumpLaunch } from './launch-verification.mjs';
 import { verifyFundedBurn } from './burn-verification.mjs';
 import { listingMemo } from '../listing-policy.js';
+import { exactSolLamports } from './exact-sol-units.mjs';
 
 const DEVNET_GENESIS = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -21,12 +22,6 @@ const identity = (kind, source) => `devnet:${kind}:${createHash('sha256').update
 const validProof = proof => proof?.cluster === 'devnet' && proof.commitment === 'finalized' && proof.verified === true
   && signatureValid(proof.signature) && Number.isSafeInteger(proof.slot) && proof.slot > 0;
 const stableProof = proof => ({ signature: proof.signature, slot: proof.slot, cluster: 'devnet', commitment: 'finalized', verified: true });
-function decimalSolUnits(value) {
-  if (typeof value === 'number') { const units = value * 1_000_000_000; if (!Number.isSafeInteger(units) || units < 0 || units / 1_000_000_000 !== value) throw new Error('Exact SOL amount unavailable.'); return String(units); }
-  const text = String(value ?? '');
-  if (!/^(?:0|[1-9]\d*)(?:\.\d{1,9})?$/.test(text)) throw new Error('Exact SOL amount unavailable.');
-  const [whole, fraction = ''] = text.split('.'); return (BigInt(whole) * 1_000_000_000n + BigInt(fraction.padEnd(9, '0'))).toString();
-}
 function proofsOf(proofs) {
   if (!Array.isArray(proofs) || !proofs.length || proofs.some(proof => !validProof(proof))) throw new Error('Finalized Devnet proofs are required.');
   const slots = new Map();
@@ -66,7 +61,8 @@ export function createXPostChainAdapters({ connection, fundedMint, programId, re
       let amountLamports, recipient, mint, id;
       if (candidate.record) {
         const record = candidate.record;
-        const payoutProof = verifyPayoutReceipt(record, proof.transaction);
+        const payoutRecord = record.amountLamports == null ? { ...record, amountLamports: exactSolLamports(record.amountSol) } : record;
+        const payoutProof = verifyPayoutReceipt(payoutRecord, proof.transaction);
         if (!payoutProof) throw new Error('Recorded payout does not match finalized balance deltas.');
         amountLamports = String(payoutProof.amountLamports); recipient = payoutProof.to; id = record.id || `${record.source}:${record.claimId}`;
         if (record.source === 'mint-router-settle-mint') {
@@ -83,9 +79,9 @@ export function createXPostChainAdapters({ connection, fundedMint, programId, re
           const claim = state.referralClaims?.[record.claimId], settlement = state.settlements?.[claim?.settlementSignature];
           const level = settlement?.fundedApp?.referralLevels?.find(row => Number(row.level) === Number(claim?.level));
           const collection = state.collections?.[claim?.settlementSignature];
-          const amount = decimalSolUnits(claim?.amount);
+          const amount = exactSolLamports(claim?.amount);
           if (!claim || claim.status !== 'paid' || claim.asset !== 'SOL' || claim.recipientWallet !== recipient || claim.publicKey !== recipient
-            || claim.payoutSignature !== signature || amount !== amountLamports || !level || level.recipient !== recipient || decimalSolUnits(level.amount) !== amountLamports || !collection?.mint) throw new Error('Payout does not match its original referral entitlement.');
+            || claim.payoutSignature !== signature || amount !== amountLamports || !level || level.recipient !== recipient || exactSolLamports(level.amount) !== amountLamports || !collection?.mint) throw new Error('Payout does not match its original referral entitlement.');
           const source = await finalized(collection.signature);
           if (!verifyCollectionReceipt(collection, source.transaction)) throw new Error('Referral collection provenance is unavailable.');
           mint = collection.mint; proofs.push(source);
@@ -176,6 +172,9 @@ export function createXPostChainAdapters({ connection, fundedMint, programId, re
  * Read-only collector. Persist returned cursor ONLY in the same transaction as all
  * formatted outbox events. On enqueue failure retain the old cursor and retry.
  * enabledAt is a durable activation baseline, not the current polling time.
+ * Timestamp-boundary IDs preserve late arrivals at the current highwater time.
+ * Older backdated insertions require a separately indexed backfill; this bounded
+ * incremental scan does not promise discovery behind an advanced timestamp.
  * Daily providers must cover the exact full UTC day and reverify every included
  * transaction. Bounded dashboard caches and user-supplied aggregates are not providers.
  */
@@ -208,8 +207,16 @@ export async function collectXPostEvents({ state = {}, rewardState = null, enabl
       .map(row => ({ row, at: stream.at(row), id: identity(stream.kind, stream.identity(row)) }))
       .filter(item => Number.isFinite(item.at) && item.at >= baseline && item.at <= nowMs)
       .sort((a, b) => a.at - b.at || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    const legacyBoundary = position.after && position.boundaryIds == null;
+    if (legacyBoundary && typeof adapters.isKnownEvent !== 'function') {
+      gap(stream.kind, 'A legacy timestamp cursor requires durable outbox deduplication before boundary reconciliation.');
+      continue;
+    }
+    if (position.boundaryIds != null && (!Array.isArray(position.boundaryIds) || position.boundaryIds.length > 500
+      || position.boundaryIds.some(id => typeof id !== 'string' || !/^devnet:[a-z_]+:[0-9a-f]{64}$/.test(id)))) throw new Error('Invalid event timestamp boundary.');
+    let boundaryIds = new Set(position.boundaryIds || []);
     const pending = new Set(position.pending);
-    const fresh = rows.filter(item => !pending.has(item.id) && (!position.after || item.at > position.after.at || item.at === position.after.at && item.id > position.after.id));
+    const fresh = rows.filter(item => !pending.has(item.id) && (!position.after || item.at > position.after.at || item.at === position.after.at && !boundaryIds.has(item.id)));
     const byId = new Map(rows.map(item => [item.id, item]));
     const retry = [...pending].map(id => byId.get(id)).filter(Boolean);
     for (const id of [...pending]) if (!retry.some(item => item.id === id)) { pending.delete(id); gap(stream.kind, 'Pending source was removed or is no longer eligible.', id); }
@@ -223,9 +230,14 @@ export async function collectXPostEvents({ state = {}, rewardState = null, enabl
     for (const item of [...retry.slice(0, retryLimit), ...fresh]) {
       if (budget <= 0 || streamBudget <= 0) break;
       const isRetry = pending.has(item.id);
+      if (!isRetry && position.after?.at === item.at && boundaryIds.size >= 500) { gap(stream.kind, 'Timestamp boundary capacity is full; highwater has not advanced. Reconcile this source before continuing.'); break; }
       if (!isRetry && pending.size >= 200) { gap(stream.kind, 'Pending verification capacity is full; fresh highwater has not advanced.'); break; }
       budget -= 1; streamBudget -= 1;
-      if (!isRetry) position.after = { at: item.at, id: item.id };
+      if (!isRetry) {
+        if (position.after?.at !== item.at) boundaryIds = new Set();
+        boundaryIds.add(item.id);
+        position.after = { at: item.at, id: item.id };
+      }
       try {
         if (await known(item.id)) { pending.delete(item.id); continue; }
         const verified = await stream.verifier(item.row, { state, rewardState });
@@ -248,7 +260,7 @@ export async function collectXPostEvents({ state = {}, rewardState = null, enabl
         pending.delete(item.id);
       } catch { pending.delete(item.id); pending.add(item.id); gap(stream.kind, 'Finalized evidence is unavailable or mismatched; retry is retained without publishing.', item.id); }
     }
-    position.pending = [...pending]; next.streams[stream.kind] = position;
+    position.pending = [...pending]; position.boundaryIds = [...boundaryIds]; next.streams[stream.kind] = position;
   }
   // Only the latest completed UTC day is eligible: outages cannot trigger a backlog
   // of old daily posts. The first daily window must begin after activation.

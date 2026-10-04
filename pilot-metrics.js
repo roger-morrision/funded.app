@@ -37,7 +37,10 @@ function render(message){
   if(record){role.value=record.role;source.value=record.source;
     status.textContent=message || (record.coverageEndedAt?'Local event capacity reached. Recording paused; export or delete this record.':`Local recording on · ${record.events.length} events. Detailed cohort results are available by analyzing an export you consent to share.`);
   }else status.textContent=message || 'Pilot recording is off.';
-  if(!pilotEnabled)status.textContent='Local pilot recording is available only on Devnet. Existing records can still be exported or deleted.';
+  if(!pilotEnabled){
+    const notice='Local pilot recording is available only on Devnet. Existing records can still be exported or deleted.';
+    status.textContent=message?`${message} ${notice}`:notice;
+  }
   if(record?.cluster==='unknown')status.textContent+=' Legacy record network is unknown; it is not counted as Devnet evidence.';
   if(record && !serialized)status.textContent+=' Use one pilot tab: this browser cannot serialize changes across tabs.';
 }

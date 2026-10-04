@@ -91,6 +91,33 @@ test('a failed event write stops recording and prevents stale export',async({pag
   await expect(page.locator('[data-pilot-status]')).toContainText(/Recording.*stopped/i);expect(await record(page)).toEqual(before);
 });
 
+test('read-only network preserves a failed deletion warning for an existing device record',async({page})=>{
+  await open(page);await enroll(page);const before=await record(page);
+  // Keep the actual UI/controller while supplying a read-only mainnet build configuration.
+  await page.route('**/app-config.js',async route=>{
+    const response=await route.fetch();let body=await response.text();
+    for(const [name,value] of [['APP_CLUSTER',"'mainnet-beta'"],['APP_ALLOW_MAINNET','true'],['APP_MAINNET_READ_ONLY','true']]){
+      const declaration=new RegExp(`export const ${name} = [^;]+;`);
+      expect(body).toMatch(declaration);body=body.replace(declaration,`export const ${name} = ${value};`);
+    }
+    await route.fulfill({response,body});
+  });
+  await page.reload();await expect(page.locator('[data-pilot-consent]')).toBeDisabled();
+  await expect(page.locator('[data-pilot-status]')).toContainText('available only on Devnet');
+  await expect(page.locator('[data-pilot-export]')).toBeEnabled();
+  await signal(page,'launch-stopped');expect(await record(page)).toEqual(before);
+  await page.evaluate(()=>{
+    for(const method of ['setItem','removeItem']){const original=Storage.prototype[method];Storage.prototype[method]=function(key,...rest){if(key.startsWith('funded.vip.pilot.'))throw new DOMException('Storage unavailable','SecurityError');return original.call(this,key,...rest);};}
+  });
+  await page.locator('[data-pilot-clear]').click();
+  await expect(page.locator('[data-pilot-status]')).toContainText('could not be cleared');
+  await expect(page.locator('[data-pilot-status]')).toContainText('clear this site’s browser data');
+  await expect(page.locator('[data-pilot-status]')).toContainText('available only on Devnet');
+  await expect(page.locator('[data-pilot-consent]')).not.toBeChecked();
+  await expect(page.locator('[data-pilot-export]')).toBeDisabled();
+  expect(await record(page)).toEqual(before);
+});
+
 test('parallel tabs retain distinct events under the shared recorder lock',async({page,context})=>{
   await open(page);await enroll(page);const other=await context.newPage();await configure(other,failures.get(page));await open(other);
   const batches=[['launch-review-opened','launch-review-cancelled','launch-submission-started','launch-stopped','launch-registration-pending'],['claim-started','claim-pending','claim-stopped','claim-cancelled','launch-cancelled']];
@@ -115,7 +142,13 @@ test('simultaneous enrollment creates one device record instead of overwriting a
   await open(page);const other=await context.newPage();await configure(other,failures.get(page));await open(other);
   await page.locator('[data-pilot-role]').selectOption('creator');await other.locator('[data-pilot-role]').selectOption('community');
   await Promise.all([page,other].map(tab=>tab.evaluate(()=>{window.pilotSeenIds=[];window.addEventListener('storage',event=>{if(event.key==='funded.vip.pilot.v1'&&event.newValue)window.pilotSeenIds.push(JSON.parse(event.newValue).participantId);});})));
-  await Promise.all([page,other].map(tab=>tab.locator('[data-pilot-consent]').click()));
+  // Queue both opt-ins before either storage event can turn the other checkbox on.
+  // Otherwise a later click legitimately revokes consent rather than testing two enrollments.
+  await page.evaluate(()=>new Promise(resolve=>{
+    void navigator.locks.request('funded-pilot-record',()=>new Promise(release=>{window.releasePilotEnrollmentLock=release;resolve();}));
+  }));
+  try{await Promise.all([page,other].map(tab=>tab.locator('[data-pilot-consent]').check()));}
+  finally{await page.evaluate(()=>window.releasePilotEnrollmentLock());}
   await Promise.all([page,other].map(tab=>tab.evaluate(async()=>{await navigator.locks.request('funded-pilot-record',()=>{});})));
   await expect(page.locator('[data-pilot-consent]')).toBeChecked();await expect(other.locator('[data-pilot-consent]')).toBeChecked();
   const value=await record(page);expect(await record(other)).toEqual(value);

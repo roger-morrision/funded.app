@@ -90,3 +90,11 @@ body.page-route :is(.primary-button, .hero-secondary-action, .create-coin-button
 body.page-route :is(.primary-button, .connect-button, .create-coin-button, .hero-secondary-action) > svg { flex: 0 0 14px; width: 14px; height: 14px; }
 
 body.page-route .connect-button:not(.wallet-pill-connected) > span { display: none; }
+
+/* Pilot navigation switches the desktop shell from Home's horizontal layout.
+   Animate neither sidebar width nor content offset: independent transitions can
+   briefly put the route caption behind the sidebar during routing or resizing. */
+@media(min-width:701px){
+  body.page-route-pilot .sidebar,
+  body.page-route-pilot .main-content{transition:none}
+}

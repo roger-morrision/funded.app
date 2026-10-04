@@ -223,3 +223,70 @@ test('strict profit adapter binds signed consent to the configured publisher bef
   await assert.rejects(correctPublisher(row), /requires Solana Devnet/);
   assert.equal(reads, 1);
 });
+
+test('equal-time late smaller IDs survive a persisted cursor without duplicate events', async () => {
+  const rows = [launch, { ...launch, mint: router, signature: otherSignature }];
+  const input = { enabledAt, now, adapters: { verifyLaunch: verifiedLaunch } };
+  const all = await collectXPostEvents({ ...input, state: { launches: rows } });
+  const [smaller, larger] = [...all.events].sort((a, b) => a.id.localeCompare(b.id));
+  const initialRow = rows.find(row => row.mint === larger.payload.mint);
+  const first = await collectXPostEvents({ ...input, state: { launches: [initialRow] } });
+  const second = await collectXPostEvents({ ...input, state: { launches: rows }, cursor: JSON.parse(JSON.stringify(first.cursor)) });
+  assert.deepEqual(second.events.map(event => event.id), [smaller.id]);
+  const third = await collectXPostEvents({ ...input, state: { launches: rows }, cursor: second.cursor });
+  assert.equal(third.events.length, 0);
+});
+
+test('same-time boundary spans batches and retains failed verification across restart', async () => {
+  const rows = Array.from({ length: 7 }, (_, index) => ({ ...launch, mint: Keypair.fromSeed(new Uint8Array(32).fill(index + 10)).publicKey.toBase58() }));
+  let cursor, calls = 0;
+  const ids = new Set();
+  for (let poll = 0; poll < 6; poll++) {
+    const result = await collectXPostEvents({ state: { launches: rows }, enabledAt, now, maxBatch: 2, cursor,
+      adapters: { verifyLaunch: async row => { if (calls++ === 0) throw new Error('Not finalized yet'); return verifiedLaunch(row); } } });
+    cursor = JSON.parse(JSON.stringify(result.cursor));
+    for (const event of result.events) { assert.equal(ids.has(event.id), false); ids.add(event.id); }
+  }
+  assert.equal(ids.size, 7);
+  assert.equal(cursor.streams.launch.pending.length, 0);
+  assert.equal(cursor.streams.launch.boundaryIds.length, 7);
+});
+
+test('legacy timestamp cursors reconcile through durable outbox IDs and otherwise fail closed', async () => {
+  const input = { enabledAt, now, state: { launches: [launch] }, adapters: { verifyLaunch: verifiedLaunch } };
+  const first = await collectXPostEvents(input);
+  const cursor = structuredClone(first.cursor); delete cursor.streams.launch.boundaryIds;
+  const without = await collectXPostEvents({ ...input, cursor });
+  assert.equal(without.events.length, 0);
+  assert.match(without.sourceGaps.find(gap => gap.source === 'launch').reason, /durable outbox deduplication/);
+  const state = { launches: [launch, { ...launch, mint: router, signature: otherSignature }] };
+  const withDedup = await collectXPostEvents({ ...input, state, cursor, adapters: { verifyLaunch: verifiedLaunch, isKnownEvent: async id => id === first.events[0].id } });
+  assert.equal(withDedup.events.length, 1);
+  assert.equal(withDedup.events[0].payload.mint, router);
+  assert.equal(withDedup.cursor.streams.launch.boundaryIds.length, 2);
+  assert.equal((await collectXPostEvents({ ...input, state, cursor: withDedup.cursor })).events.length, 0);
+});
+
+test('full timestamp boundary stops before unseen records and reports its bounded capacity', async () => {
+  const first = await collectXPostEvents({ state: { launches: [launch] }, enabledAt, now, adapters: { verifyLaunch: verifiedLaunch } });
+  const cursor = structuredClone(first.cursor);
+  cursor.streams.launch.boundaryIds = Array.from({ length: 500 }, (_, index) => `devnet:launch:${index.toString(16).padStart(64, '0')}`);
+  const result = await collectXPostEvents({ state: { launches: [launch] }, enabledAt, now, cursor, adapters: { verifyLaunch: async () => assert.fail('No verification beyond bounded capacity') } });
+  assert.equal(result.events.length, 0);
+  assert.match(result.sourceGaps.find(gap => gap.source === 'launch').reason, /Timestamp boundary capacity is full/);
+  assert.deepEqual(result.cursor.streams.launch.after, cursor.streams.launch.after);
+  assert.equal(result.cursor.streams.launch.boundaryIds.length, 500);
+});
+
+test('daily rewards verify a 15-lamport receipt fixture without mutating its ledger record', async () => {
+  const fixture = referralFixture();
+  const payout = fixture.state.payouts['referral:claim'];
+  payout.amountSol = 1.5e-8;
+  fixture.state.referralClaims.claim.amount = 1.5e-8;
+  fixture.state.settlements[otherSignature].fundedApp.referralLevels[0].amount = 1.5e-8;
+  fixture.txs[signature].meta.postBalances = [19994985, 15];
+  const before = structuredClone(fixture.state);
+  const result = await createXPostChainAdapters({ connection: fixture.connection }).verifiedDailyRewards({ state: fixture.state, rewardState: { schedules: {} }, windowStart: '2026-10-03T00:00:00Z', windowEnd: '2026-10-04T00:00:00Z' });
+  assert.equal(result.payments[0].amountLamports, '15');
+  assert.deepEqual(fixture.state, before);
+});
