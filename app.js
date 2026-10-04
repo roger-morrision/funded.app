@@ -4753,6 +4753,13 @@ document.querySelector('#trade-roundtrip-share')?.addEventListener('click', asyn
     url.searchParams.set('sell', pair.sellSignature);
     const code = registeredShareCode(); if (code) url.searchParams.set('ref', code);
     openShareComposer({ kind:'roundtrip', title:'Verified closed Devnet trade on funded.vip',
+      publicShareApproval:{ assertCurrent:()=>assertWalletSessionCurrent(session), sign:async statement=>{
+        assertWalletSessionCurrent(session);
+        if (typeof session.provider.signMessage !== 'function') throw new Error('Use a wallet that supports message signing.');
+        const signed=await session.provider.signMessage(new TextEncoder().encode(statement));
+        assertWalletSessionCurrent(session);
+        return bs58.encode(signed.signature || signed);
+      } },
       text:`My closed ${pair.symbol || 'token'} trade changed my wallet SOL balance by +${netSol} SOL across its buy and sell receipts. Includes all SOL movements in those transactions; not wallet-wide profit. Verify both receipts.`, url:url.toString(),
       result:{ kind:'roundtrip', verified:true, accountHistoryVerified:true, netLamports:proof.netLamports, mint,
         buyReceipt:pair.buySignature, buyReceiptUrl:exploreExplorer(`tx/${encodeURIComponent(pair.buySignature)}`),
@@ -6268,6 +6275,7 @@ document.querySelector('#save-launch-draft')?.addEventListener('click', () => wi
   if (includeImage) assertImageReady();
   const image = includeImage ? getPreparedImage() : null;
   const draft = saveLaunchDraft(launchDraftFromForm());
+  document.dispatchEvent(new Event('funded:launch-draft-change'));
   try {
     if (image) await saveDraftImage(draft, image);
     else await deleteDraftImage();
@@ -6294,6 +6302,7 @@ document.querySelector('#restore-launch-draft')?.addEventListener('click', () =>
 }));
 document.querySelector('#delete-launch-draft')?.addEventListener('click', () => withDraftOperation(async () => {
   deleteLaunchDraft();
+  document.dispatchEvent(new Event('funded:launch-draft-change'));
   try { await deleteDraftImage(); launchDraftStatus('Saved launch draft deleted. Current form is unchanged.'); }
   catch { launchDraftStatus('Text draft deleted. Image storage could not be cleared; retry Delete to remove the saved image.'); }
 }));

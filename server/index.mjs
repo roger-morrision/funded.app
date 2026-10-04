@@ -1,3 +1,5 @@
+import { publicTradeShareConfig, createPublicTradeConsent } from './x-public-trade-consent.mjs';
+import { createXProfitVerifier } from './x-profit-proof.mjs';
 import { serviceStatus } from './service-status.mjs';
 import { createReadCache } from './read-cache.mjs';
 import { applyHttpPolicy, invalidRequest, publicError, staticCacheControl, validateInput } from './http-policy.mjs';
@@ -179,6 +181,8 @@ publicPostPaths.add('/api/x/logout'); // Cookie-authenticated, with an exact-ori
 publicPostPaths.add('/api/shares/visit');
 publicPostPaths.add('/api/boosts/quote');
 publicPostPaths.add('/api/boosts/confirm');
+publicPostPaths.add('/api/x-public-trade-shares/challenge');
+publicPostPaths.add('/api/x-public-trade-shares/consent');
 let verifiedQuoteAssetsCache = null;
 const solanaCluster = String(process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER || 'devnet').trim();
 const boostPurchasesEnabled = solanaCluster === 'devnet' && String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
@@ -642,6 +646,15 @@ const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solan
     creatorDirectory: { storage: databaseUrl ? 'postgresql-projection' : 'local-file', cursorPagination: true },
     xPayouts: await xFeeReadiness(), gifts: { enabled: false, reason: 'No approved gifting provider or delivery-receipt integration is configured.' } }) });
 
+const publicTradeConfig = publicTradeShareConfig(process.env, solanaCluster);
+const publicTradeConsent = createPublicTradeConsent({ store, config: publicTradeConfig,
+  verifyTrade: publicTradeConfig.enabled ? createXProfitVerifier({
+    connection: new Connection(solanaRpcUrl, { commitment: 'finalized', disableRetryOnRateLimit: true,
+      fetch: (url, options) => fetch(url, { ...options, signal: AbortSignal.timeout(15000) }) }),
+    publicOrigin: publicTradeConfig.origin, xAccount: publicTradeConfig.account,
+    appFeeRecipient: process.env.FUNDED_TRADE_FEE_OWNER || process.env.VITE_FUNDED_TRADE_FEE_OWNER || null,
+  }) : async () => { throw new Error('Disabled'); } });
+
 async function handle(req, res) {
   const requestId = applyHttpPolicy(req, res);
   try {
@@ -652,6 +665,19 @@ async function handle(req, res) {
   const metadataHost = String(req.headers.host || '').split(':')[0].toLowerCase() === 'metadata.funded.vip';
   if (metadataHost && (req.method !== 'GET' || !/^\/(?:devnet-metadata|devnet-images)\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(url.pathname) && url.pathname !== '/default.svg')) return json(res, 404, { error: 'Not found.' });
   if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client, authorization, x-token-chat-session' }); return res.end(); }
+    if (req.method === 'GET' && url.pathname === '/api/x-public-trade-shares/config') return json(res, 200, publicTradeConfig);
+    if (req.method === 'POST' && ['/api/x-public-trade-shares/challenge', '/api/x-public-trade-shares/consent'].includes(url.pathname)) {
+      if (!publicTradeConfig.enabled) return json(res, 404, { error: 'Public trade sharing is unavailable.' });
+      const origin = String(req.headers.origin || '');
+      if (origin !== publicTradeConfig.origin) return json(res, 403, { error: 'Open trade sharing from the configured app origin.' });
+      const minute = Math.floor(Date.now() / 60000) * 60000;
+      if (!await store.chargeRpcRate(`x-public-share:${clientKey(req)}`, 1, 6, minute)
+        || !await store.chargeRpcRate('x-public-share:global', 1, 60, minute)) return json(res, 429, { error: 'Please wait before requesting another public share.' });
+      const input = await readJsonBody(req, { maxBytes: 4096, timeoutMs: 5000 });
+      if (url.pathname.endsWith('/challenge')) return json(res, 201, await publicTradeConsent.prepare(input, origin));
+      const result = await publicTradeConsent.accept(input, origin);
+      return json(res, result.created ? 201 : 200, result.share);
+    }
     if (await handleCreatorSupport(req, res, url)) return;
     if (req.method === 'POST' && url.pathname === '/api/mobile-wallet/relay') {
       if (!await store.chargeRpcRate(`mobile-wallet:${clientKey(req)}`, 1, 12, Math.floor(Date.now() / 60_000) * 60_000)) return json(res, 429, { error: 'Too many wallet connection requests; retry shortly.' });

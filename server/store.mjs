@@ -18,7 +18,7 @@ import { receiptRetentionOptions,expiredReceiptProofs,receiptRetentionResult } f
 
 export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-store.json'), databaseUrl = process.env.DATABASE_URL) {
   if (databaseUrl) return createPostgresStore(databaseUrl);
-  let state = { version: 4, launches: {}, listings: {}, boostQuotes: {}, boostReceipts: {}, settlements: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, marketActivity: {}, coinChats: {}, shareVisits: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
+  let state = { version: 4, launches: {}, listings: {}, boostQuotes: {}, boostReceipts: {}, xPublicTradeShares: {}, settlements: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, marketActivity: {}, coinChats: {}, shareVisits: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
   let loaded = false;
   let updateQueue = Promise.resolve();
   const rpcRates = new Map();
@@ -31,6 +31,7 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     state.listings ||= {};
     state.boostQuotes ||= {};
     state.boostReceipts ||= {};
+    state.xPublicTradeShares ||= {};
     state.collections ||= {};
     state.burnReceipts ||= {};
     state.buybackOrders ||= {};

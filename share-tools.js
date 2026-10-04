@@ -135,7 +135,7 @@ function updateResultPreview() {
   } catch (error) { status(error.message); return false; }
 }
 
-export function openShareComposer({ kind = 'coin', title, text, url, result = null, network = '' }) {
+export function openShareComposer({ kind = 'coin', title, text, url, result = null, network = '', publicShareApproval = null }) {
   const dialog = document.querySelector('#share-dialog');
   if (!dialog) throw new Error('Share menu is unavailable');
   activeShare = { kind, title: cleanText(title, 100), url: taggedShareUrl(url), result };
@@ -149,7 +149,14 @@ export function openShareComposer({ kind = 'coin', title, text, url, result = nu
   if (note) note.textContent = kind === 'trade' ? 'This card confirms one finalized trade. It does not show profit, cost basis, or future returns.' : kind === 'roundtrip' ? 'The amount is the wallet SOL balance change in two finalized transactions, including fees, rent, and any other SOL movements in those receipts. It is not wallet-wide trading profit or a future return.' : 'Paid referral earnings are not trading profit or a prediction of future returns.';
   status('Choose a channel or copy your link. You review the post before publishing.');
   updateResultPreview();
+  dialog.querySelector('#public-trade-share')?.remove();
   if (!dialog.open) dialog.showModal();
+  if (publicShareApproval && kind === 'roundtrip') {
+    const context = activeShare;
+    import('./public-trade-share-ui.js').then(({ mountPublicTradeShare }) => {
+      if (activeShare === context && dialog.open) mountPublicTradeShare(dialog, result, publicShareApproval);
+    }).catch(() => status('Optional platform sharing is unavailable. Your existing sharing options still work.'));
+  }
 }
 
 export function initShareComposer() {

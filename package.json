@@ -123,7 +123,12 @@
     "verify:critical": "npm run verify:token-chat && npm run verify:backend-hardening && npm run verify:launch-draft && npm run verify:production-policies && npm run verify:fee-policy && npm run verify:receipt-evidence",
     "verify:release-manifest": "node scripts/verify-release-manifest.mjs",
     "verify:local-regressions": "node scripts/verify-local-regressions.mjs",
-    "verify:build-settings": "node scripts/verify-build-settings.mjs"
+    "verify:build-settings": "node scripts/verify-build-settings.mjs",
+    "x:posts": "node scripts/run-x-post-worker.mjs",
+    "verify:x-post-outbox": "node scripts/verify-x-post-outbox.mjs",
+    "verify:x-post-cycle": "node scripts/verify-x-post-cycle.mjs",
+    "verify:x-post-draft": "node scripts/verify-x-post-draft.mjs",
+    "verify:x-post-recovery": "node scripts/verify-x-post-recovery.mjs --run"
   },
   "dependencies": {
     "@pump-fun/pump-sdk": "^2.0.0",

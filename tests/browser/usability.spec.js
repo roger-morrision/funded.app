@@ -129,6 +129,7 @@ test('saved search validation and clipboard fallback are usable on mobile', asyn
   await expect(fallback).toHaveValue(/\/explore\?filters=1/);
   await remove.click();
   await expect(page.getByLabel('Saved searches on this device')).toBeDisabled();
-  await expect(page.locator('#saved-search-feedback')).toHaveText('Saved search deleted.');
+  await expect(page.locator('#saved-search-feedback')).toHaveText('Deleted “A short list”. You can undo this deletion.');
+  await expect(page.getByRole('button', { name: 'Undo deletion', exact: true })).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

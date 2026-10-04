@@ -491,6 +491,8 @@ function explore() {
   const saveSearch = node('button', 'secondary-button', 'Save search'); saveSearch.type = 'button';
   const savedSelect = node('select'); savedSelect.setAttribute('aria-label', 'Saved searches on this device');
   const removeSearch = node('button', 'text-button', 'Delete selected'); removeSearch.type = 'button';
+  const undoDelete = node('button', 'text-button', 'Undo deletion'); undoDelete.type = 'button'; undoDelete.hidden = true;
+  let deletedSearch = null;
   const feedback = node('span'); feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');
   feedback.id = 'saved-search-feedback';
   name.setAttribute('aria-describedby', feedback.id);
@@ -527,6 +529,7 @@ function explore() {
       const rows = previous.filter(row => row.name !== label);
       rows.unshift({ name: label, filters: capture() });
       localStorage.setItem(savedKey,JSON.stringify(rows.slice(0,10)));
+      document.dispatchEvent(new Event('funded:saved-search-change'));
       showSaved(); savedSelect.value = '0'; removeSearch.disabled = false; feedback.textContent = replaced ? `Updated “${label}” in this browser.` : `Saved “${label}” in this browser.${previous.length === 10 ? ' The oldest saved search was replaced.' : ''}`;
     } catch { feedback.textContent = 'Device storage is unavailable. Use Share this search.'; }
   };
@@ -537,10 +540,45 @@ function explore() {
   };
   removeSearch.onclick = () => {
     if (savedSelect.value === '') return;
-    try { const rows = readSaved(); rows.splice(Number(savedSelect.value),1); localStorage.setItem(savedKey,JSON.stringify(rows)); showSaved(); feedback.textContent = 'Saved search deleted.'; }
+    try {
+      const rows = readSaved();
+      const index = Number(savedSelect.value);
+      const row = rows[index];
+      if (!row) return;
+      rows.splice(index, 1); localStorage.setItem(savedKey,JSON.stringify(rows));
+      deletedSearch = { row, index }; undoDelete.hidden = false;
+      showSaved(); feedback.textContent = `Deleted “${row.name}”. You can undo this deletion.`;
+      document.dispatchEvent(new Event('funded:saved-search-change'));
+      undoDelete.focus();
+    }
     catch { feedback.textContent = 'Device storage is unavailable.'; }
   };
-  tools.append(toolsTitle,toolsHelp,name,saveSearch,savedSelect,removeSearch,copySearch,share,manualLink,feedback);
+  undoDelete.onclick = () => {
+    if (!deletedSearch) return;
+    try {
+      const rows = readSaved();
+      if (rows.some(row => row.name === deletedSearch.row.name)) { feedback.textContent = 'A search with this name already exists. Your current saved search was kept.'; return; }
+      if (rows.length >= 10) { feedback.textContent = 'You have 10 saved searches. Delete another search before restoring this one.'; return; }
+      rows.splice(Math.min(deletedSearch.index, rows.length), 0, deletedSearch.row);
+      localStorage.setItem(savedKey, JSON.stringify(rows));
+      const restoredName = deletedSearch.row.name;
+      showSaved();
+      deletedSearch = null; undoDelete.hidden = true;
+      feedback.textContent = `Restored “${restoredName}”. Select it to apply its filters.`;
+      document.dispatchEvent(new Event('funded:saved-search-change'));
+      savedSelect.focus();
+    } catch { feedback.textContent = 'Device storage is unavailable. The deleted search can still be restored while this page stays open.'; }
+  };
+  window.addEventListener('storage', event => {
+    if (event.key !== savedKey && event.key !== null) return;
+    const selectedName = savedSelect.value !== '' ? savedSelect.selectedOptions[0]?.textContent : null;
+    showSaved();
+    if (selectedName) {
+      const index = readSaved().findIndex(row => row.name === selectedName);
+      if (index >= 0) { savedSelect.value = String(index); removeSearch.disabled = false; }
+    }
+  });
+  tools.append(toolsTitle,toolsHelp,name,saveSearch,savedSelect,removeSearch,undoDelete,copySearch,share,manualLink,feedback);
   count.after(tools);
   root?.addEventListener('click', event => { if (event.target.closest('[data-explore-stage],[data-explore-tab],[data-explore-window],[data-explore-view]')) queueMicrotask(save); });
   window.addEventListener('popstate', () => restore());
