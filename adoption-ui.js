@@ -42,7 +42,7 @@ async function reconcileRegisteredLaunches(){
 void reconcileRegisteredLaunches();
 
 const preferences=document.createElement('section');preferences.className='adoption-panel';preferences.id='community-preferences';
-preferences.innerHTML='<h2>Following & updates</h2><p>Following works without buying. Optionally save or restore your list using your signed-in X account.</p><div class="support-actions"><button id="save-following">Save following to my X account</button><button id="restore-following">Restore saved following</button></div><label><input id="updates-consent" type="checkbox">Show followed creator updates in this app (refresh at most once a minute while visible)</label><button id="updates-refresh">Refresh followed updates</button><p id="following-status" role="status"></p><div id="following-updates"></div><details><summary>Private product diagnostics</summary><label><input id="diagnostics-consent" type="checkbox">Count my navigation on this device</label><p>No wallet addresses, text, handles or browsing URLs are collected. Nothing is sent to an analytics service. This does not measure unique users or retention.</p><pre id="diagnostics-summary"></pre><button id="diagnostics-clear">Clear local counters</button></details>';
+preferences.innerHTML='<h2>Following & updates</h2><p>Following works without buying. Optionally save or restore your list using your signed-in X account.</p><div class="support-actions"><button id="save-following">Save following to my X account</button><button id="restore-following">Restore saved following</button></div><label><input id="updates-consent" type="checkbox">Show followed creator updates in this app (refresh at most once a minute while visible)</label><button id="updates-refresh">Refresh followed updates</button><p id="following-status" role="status"></p><div id="following-updates"></div><details><summary>Private product diagnostics</summary><label><input id="diagnostics-consent" type="checkbox" aria-describedby="diagnostics-status">Count my navigation on this device</label><p id="diagnostics-status" role="status" aria-live="polite"></p><p>No wallet addresses, text, handles or browsing URLs are collected. Nothing is sent to an analytics service. This does not measure unique users or retention.</p><pre id="diagnostics-summary"></pre><button id="diagnostics-clear">Clear local counters</button></details>';
 $('#my-launches').append(preferences);
 const feedControls=document.createElement('div');feedControls.className='support-actions';
 feedControls.innerHTML='<button id="updates-previous" disabled>Previous creators</button><button id="updates-next" disabled>Next creators</button><button id="updates-first" disabled>Start over</button>';
@@ -62,7 +62,7 @@ const updatesFeed=createFollowingFeed({
 });
 const updateFeedContext=()=>updatesFeed.setContext(following(),$('#updates-consent').checked);
 $('#updates-previous').onclick=()=>void updatesFeed.previous();$('#updates-next').onclick=()=>void updatesFeed.next();$('#updates-first').onclick=()=>void updatesFeed.first();
-for(const [id,key] of [['updates-consent','funded.updates.enabled'],['diagnostics-consent','funded.diagnostics.enabled']]){$(`#${id}`).checked=storeGet(key,false)===true;$(`#${id}`).onchange=()=>{if(id==='updates-consent')updateFeedContext();try{localStorage.setItem(key,JSON.stringify($(`#${id}`).checked));if(id==='updates-consent'&&$(`#${id}`).checked)void refreshUpdates();}catch{if(id==='updates-consent'){$(`#${id}`).checked=false;updateFeedContext();}$('#following-status').textContent='Preference could not be saved. Updates remain disabled.';}};}
+for(const [id,key] of [['updates-consent','funded.updates.enabled']]){$(`#${id}`).checked=storeGet(key,false)===true;$(`#${id}`).onchange=()=>{if(id==='updates-consent')updateFeedContext();try{localStorage.setItem(key,JSON.stringify($(`#${id}`).checked));if(id==='updates-consent'&&$(`#${id}`).checked)void refreshUpdates();}catch{if(id==='updates-consent'){$(`#${id}`).checked=false;updateFeedContext();}$('#following-status').textContent='Preference could not be saved. Updates remain disabled.';}};}
 async function syncFollowing(restore){try{const me=await apiRequest('/api/creator-support/me');if(!me.available||!me.data?.csrf)throw new Error('Sign in with X in Rewards first.');if(restore){const rows=me.data.profile?.following||[];localStorage.setItem('funded.creator.following',JSON.stringify(rows));updateFeedContext();if($('#updates-consent').checked)await refreshUpdates();else $('#following-status').textContent=`Restored ${rows.length} follows on this device. Updates remain disabled.`;}else{const response=await apiRequest('/api/creator-support/preferences',{method:'POST',headers:{'x-creator-csrf':me.data.csrf},body:{following:following()}});if(!response.available)throw new Error('API unavailable; following was not saved.');$('#following-status').textContent='Following saved to your X account.';}}catch(error){$('#following-status').textContent=error.message;}}
 $('#save-following').onclick=()=>syncFollowing(false);$('#restore-following').onclick=()=>syncFollowing(true);
 async function refreshUpdates(){updateFeedContext();if(!$('#updates-consent').checked||document.hidden)return;await updatesFeed.refresh();}
@@ -71,7 +71,67 @@ window.addEventListener('funded:following',()=>{updateFeedContext();});
 window.addEventListener('storage',event=>{if(event.key===null||['funded.creator.following','funded.updates.enabled'].includes(event.key)){$('#updates-consent').checked=storeGet('funded.updates.enabled',false)===true;updateFeedContext();}});
 $('#updates-refresh').onclick=()=>{if(!$('#updates-consent').checked){$('#following-status').textContent='Enable in-app updates first.';return;}void refreshUpdates();};
 setInterval(()=>{if(location.hash==='#my-launches')void refreshUpdates();},60000);
-function diagnostic(event){if(!$('#diagnostics-consent').checked)return;try{const today=new Date().toISOString().slice(0,10);const rows=storeGet('funded.diagnostics.counts',{});rows[today]||={};rows[today][event]=(Number(rows[today][event])||0)+1;localStorage.setItem('funded.diagnostics.counts',JSON.stringify(Object.fromEntries(Object.entries(rows).slice(-30))));renderDiagnostics();}catch{}}
-function renderDiagnostics(){$('#diagnostics-summary').textContent=JSON.stringify(storeGet('funded.diagnostics.counts',{}),null,2);}
-$('#diagnostics-clear').onclick=()=>{localStorage.removeItem('funded.diagnostics.counts');renderDiagnostics();};renderDiagnostics();
+const diagnosticsConsent=$('#diagnostics-consent'),diagnosticsStatus=$('#diagnostics-status');
+const diagnosticsConsentKey='funded.diagnostics.enabled',diagnosticsCountsKey='funded.diagnostics.counts';
+let diagnosticsStopped=false;
+function stopDiagnostics(message){
+  diagnosticsStopped=true;diagnosticsConsent.checked=false;diagnosticsStatus.textContent=message;
+}
+function readDiagnostics(){
+  const rows=JSON.parse(localStorage.getItem(diagnosticsCountsKey)||'{}');
+  if(!rows || typeof rows!=='object' || Array.isArray(rows))throw new Error('Invalid counters');
+  return rows;
+}
+function renderDiagnostics(){
+  try{$('#diagnostics-summary').textContent=JSON.stringify(readDiagnostics(),null,2);return true;}
+  catch{stopDiagnostics('Local counters could not be read. Counting stopped in this tab. Allow browser storage and reload to review your saved setting.');return false;}
+}
+try{diagnosticsConsent.checked=localStorage.getItem(diagnosticsConsentKey)==='true';}
+catch{stopDiagnostics('Your diagnostics preference could not be read. Counting is off in this tab. Allow browser storage and reload to try again.');}
+diagnosticsConsent.onchange=()=>{
+  const enabled=diagnosticsConsent.checked;
+  // The checkbox represents a saved choice, never an optimistic storage write.
+  diagnosticsConsent.checked=false;
+  if(!enabled)diagnosticsStopped=true;
+  try{
+    localStorage.setItem(diagnosticsConsentKey,String(enabled));
+    if(localStorage.getItem(diagnosticsConsentKey)!==String(enabled))throw new Error('Preference not saved');
+    diagnosticsStopped=!enabled;diagnosticsConsent.checked=enabled;
+    diagnosticsStatus.textContent=enabled?'Navigation counting is on for this device. Nothing is uploaded.':'Navigation counting is off. Existing local counters were kept.';
+  }catch{
+    stopDiagnostics('Your diagnostics preference could not be saved. Counting stopped in this tab; the saved setting may be unchanged. Allow browser storage and reload to review it.');
+  }
+};
+function diagnostic(event){
+  if(diagnosticsStopped || !diagnosticsConsent.checked || event!=='navigation')return;
+  try{
+    if(localStorage.getItem(diagnosticsConsentKey)!=='true'){stopDiagnostics('Navigation counting was turned off. Existing local counters were kept.');return;}
+    const today=new Date().toISOString().slice(0,10),rows=readDiagnostics();
+    rows[today]??={};
+    if(typeof rows[today]!=='object' || Array.isArray(rows[today]))throw new Error('Invalid counters');
+    const count=rows[today][event]??0;
+    if(!Number.isSafeInteger(count) || count<0 || count===Number.MAX_SAFE_INTEGER)throw new Error('Invalid count');
+    rows[today][event]=count+1;
+    if(localStorage.getItem(diagnosticsConsentKey)!=='true'){stopDiagnostics('Navigation counting was turned off. Existing local counters were kept.');return;}
+    localStorage.setItem(diagnosticsCountsKey,JSON.stringify(Object.fromEntries(Object.entries(rows).slice(-30))));
+    if(localStorage.getItem(diagnosticsConsentKey)!=='true'){stopDiagnostics('Navigation counting was turned off. Existing local counters were kept.');return;}
+    renderDiagnostics();
+  }catch{stopDiagnostics('Local counters could not be updated. Counting stopped in this tab. Allow browser storage and reload to review your saved setting.');}
+}
+$('#diagnostics-clear').onclick=()=>{
+  try{
+    localStorage.removeItem(diagnosticsCountsKey);
+    if(!renderDiagnostics())return;
+    diagnosticsStatus.textContent=`Local counters cleared. Navigation counting ${!diagnosticsStopped && diagnosticsConsent.checked?'remains on':'is off in this tab'}.`;
+  }catch{stopDiagnostics('Local counters could not be cleared. Saved data may remain. Counting stopped in this tab; allow browser storage and try Clear local counters again.');}
+};
+window.addEventListener('storage',event=>{
+  // Honor an off notification directly: another renderer's localStorage cache
+  // can lag. A remote opt-in never reverses this tab's explicit/failure stop.
+  if(event.key===null || event.key===diagnosticsConsentKey && event.newValue!=='true'){
+    stopDiagnostics(event.key===null?'Browser data was cleared in another tab. Navigation counting stopped.':'Navigation counting was turned off in another tab. Existing local counters were kept.');
+  }
+  if(event.key===null || event.key===diagnosticsCountsKey)renderDiagnostics();
+});
+renderDiagnostics();
 window.addEventListener('hashchange',()=>{diagnostic('navigation');if(location.hash==='#my-launches')void refreshUpdates();});

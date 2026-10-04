@@ -7,7 +7,10 @@ export function createFollowingFeed({ load, render }) {
   async function refresh() {
     if(!enabled)return;
     invalidate();const request=sequence,controller=new AbortController();abort=controller;
-    state={...state,creators:[],loading:true,error:''};emit();
+    // The old page's cursor is not valid for a page whose load may fail.
+    // Keep the requested page/history for retry and Previous, but enable Next
+    // only after this response supplies its own cursor.
+    state={...state,creators:[],nextCursor:null,loading:true,error:''};emit();
     try {
       const page=await load([...ids],state.after,controller.signal);
       if(request!==sequence||!enabled)return;

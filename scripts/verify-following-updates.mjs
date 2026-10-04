@@ -44,7 +44,14 @@ async function verifyFeed() {
   await feed.next();assert.equal(view.after,'120');assert.deepEqual(view.previous,['']);
   await feed.previous();assert.equal(view.after,'');
   load=async()=>{throw new Error('unavailable');};await feed.next();assert.match(view.error,/Retry/);assert.equal(view.after,'120');assert.equal(view.creators.length,0);
+  assert.equal(view.nextCursor,null,'A failed page must not retain the preceding page’s Next cursor.');
+  assert.deepEqual(view.previous,[''],'The requested second page retains its correct return history.');
+  const failedCalls=calls;await feed.next();
+  assert.equal(calls,failedCalls,'Next on a failed page cannot issue another request.');
+  assert.deepEqual(view.previous,[''],'Repeated Next must not duplicate the current page in history.');
   load=async(ids,after)=>pages(ids,after);await feed.refresh();assert.equal(view.after,'120');assert.equal(view.error,'');
+  assert.equal(view.previous.length+1,2,'Recovered second page must still be labeled page two.');
+  await feed.previous();assert.equal(view.after,'','Previous after recovery returns to the first page.');assert.deepEqual(view.previous,[]);
   load=()=>new Promise(resolve=>resolveOld=resolve);const old=feed.refresh();feed.setContext(ids,false);assert.equal(view.creators.length,0);resolveOld(pages(ids,''));await old;assert.equal(view.creators.length,0,'Disabled consent discards late responses.');
   feed.setContext(ids,true);const beforeChange=feed.refresh();feed.setContext(['999'],true);resolveOld(pages(ids,''));await beforeChange;assert.equal(view.creators.length,0,'Changed follows discard old responses.');assert.equal(view.after,'');
   load=async(ids,after)=>pages(ids,after);await feed.refresh();assert.equal(view.creators[0].id,'999');feed.dispose();assert.equal(view.creators.length,0);
