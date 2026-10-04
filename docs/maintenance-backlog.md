@@ -76,3 +76,7 @@ The simple navigation counters are separate from transactional pilot records. Th
 ## Remaining Devnet faucet confirmation gap
 
 An offline reproduction of the active `requestAirdrop()` handler returned a confirmation containing `value.err`, yet the UI displayed “Airdrop confirmed” and refreshed the balance. Check confirmation errors before reporting success; cover success, confirmed failure and uncertain/transport failure without issuing faucet transactions. The wallet funding control remains subject to its existing capability gates. This finding does not apply to the main launch executor, which already checks finalized errors, and no on-chain airdrop was performed to reproduce it.
+
+## Deterministic rate-limit acceptance
+
+RPC budgets use fixed minute windows. An HTTP verifier that sends its budget assertions across a real minute boundary can correctly receive a reset budget and incorrectly fail the release. Keep the verifier's clock control confined to its disposable server child, check the full ordinary/write/preview budgets within each window, then explicitly advance across the boundary and verify the reset. Do not add a production clock override, weaken limits or rely on sleeping/retrying until a run is green.

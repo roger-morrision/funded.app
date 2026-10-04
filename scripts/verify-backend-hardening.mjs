@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { createServer, request } from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve, sep } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { Keypair } from '@solana/web3.js';
 import { createStore } from '../server/store.mjs';
 import { pgPoolConfig } from '../server/db-config.mjs';
@@ -15,6 +16,25 @@ assert.match(dockerfile, /\[ -z "\$VITE_API_BASE_URL" \]/, 'Devnet browser build
 
 const directory = await mkdtemp(join(tmpdir(), 'funded-hardening-'));
 const storePath = join(directory, 'store.json');
+const clockPath = join(directory, 'clock.json');
+const clockModule = join(directory, 'clock.mjs');
+// Rate limits intentionally reset at each UTC minute. Keep only this spawned
+// fixture's Date.now controlled, so wall-clock rollover cannot split a budget
+// assertion. The production server and its real HTTP/store paths stay unchanged.
+const lastMillisecond = Math.floor(Date.now() / 60_000) * 60_000 + 59_999;
+async function setClock(value) {
+  await writeFile(`${clockPath}.next`, String(value));
+  await rename(`${clockPath}.next`, clockPath);
+}
+await setClock(lastMillisecond);
+await writeFile(clockModule, `import { readFileSync } from 'node:fs';
+if (process.env.NODE_ENV !== 'test') throw new Error('The hardening fixture clock is test-only.');
+Date.now = () => {
+  const value = Number(readFileSync(${JSON.stringify(clockPath)}, 'utf8'));
+  if (!Number.isSafeInteger(value)) throw new Error('Invalid hardening fixture clock.');
+  return value;
+};
+`);
 const port = 18107;
 let rpcCalls = 0;
 const rpc = createServer(async (req, res) => {
@@ -28,7 +48,7 @@ const rpc = createServer(async (req, res) => {
 });
 await new Promise(resolve => rpc.listen(0, '127.0.0.1', resolve));
 const rpcPort = rpc.address().port;
-const server = spawn(process.execPath, ['server/index.mjs'], {
+const server = spawn(process.execPath, ['--import', pathToFileURL(clockModule).href, 'server/index.mjs'], {
   cwd: process.cwd(),
   env: { ...process.env, NODE_ENV: 'test', PORT: String(port), FUNDED_STORE_PATH: storePath, FUNDED_API_TOKEN: '', SOLANA_RPC_URL: `http://127.0.0.1:${rpcPort}`, VITE_SOLANA_CLUSTER: 'devnet' },
   stdio: 'ignore',
@@ -83,20 +103,27 @@ try {
   assert.equal(oversized.headers['x-request-id'], oversized.data.requestId);
   assert.equal(oversized.headers.connection, 'close');
   assert.equal(rpcCalls, 0, 'Rejected RPC requests must not reach the provider.');
-  for (let attempt = 0; attempt < 11; attempt += 1) {
-    const result = await post('/api/solana/rpc', { jsonrpc: '2.0', id: attempt + 10, method: 'sendTransaction', params: ['AAAA'] });
-    assert.equal(result.status, attempt < 10 ? 200 : 429, 'Transaction submission must have a tighter per-client budget.');
+  async function verifyRpcBudgets(offset) {
+    const before = rpcCalls;
+    for (let attempt = 0; attempt < 11; attempt += 1) {
+      const result = await post('/api/solana/rpc', { jsonrpc: '2.0', id: offset + attempt + 10, method: 'sendTransaction', params: ['AAAA'] });
+      assert.equal(result.status, attempt < 10 ? 200 : 429, 'Transaction submission must have a tighter per-client budget.');
+    }
+    assert.equal(rpcCalls, before + 10, 'Rejected transaction must not reach the provider.');
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      assert.equal((await post('/api/solana/rpc', { jsonrpc: '2.0', id: offset + 30 + attempt, method: 'getAccountInfo', params: [`account-${offset}-${attempt}`] })).status, 200);
+    }
+    assert.equal((await post('/api/solana/rpc', { jsonrpc: '2.0', id: offset + 40, method: 'getAccountInfo', params: ['ordinary-exhausted'] })).status, 429);
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      assert.equal((await post('/api/solana/rpc?purpose=trade-preview', { jsonrpc: '2.0', id: offset + 50 + attempt, method: 'getAccountInfo', params: [`preview-account-${offset}`] })).status, 200);
+    }
+    assert.equal((await post('/api/solana/rpc?purpose=trade-preview', { jsonrpc: '2.0', id: offset + 90, method: 'getAccountInfo', params: ['preview-exhausted'] })).status, 429);
+    assert.equal((await post('/api/solana/rpc?purpose=trade-preview', { jsonrpc: '2.0', id: offset + 91, method: 'getSlot', params: [] })).status, 429, 'Preview purpose must not bypass the ordinary budget for unrelated methods.');
+    assert.equal(rpcCalls, before + 21, 'Cached previews and rejected requests must not consume provider calls.');
   }
-  assert.equal(rpcCalls, 10);
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    assert.equal((await post('/api/solana/rpc', { jsonrpc: '2.0', id: 30 + attempt, method: 'getAccountInfo', params: [`account-${attempt}`] })).status, 200);
-  }
-  assert.equal((await post('/api/solana/rpc', { jsonrpc: '2.0', id: 40, method: 'getAccountInfo', params: ['ordinary-exhausted'] })).status, 429);
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    assert.equal((await post('/api/solana/rpc?purpose=trade-preview', { jsonrpc: '2.0', id: 50 + attempt, method: 'getAccountInfo', params: ['preview-account'] })).status, 200);
-  }
-  assert.equal((await post('/api/solana/rpc?purpose=trade-preview', { jsonrpc: '2.0', id: 90, method: 'getAccountInfo', params: ['preview-exhausted'] })).status, 429);
-  assert.equal((await post('/api/solana/rpc?purpose=trade-preview', { jsonrpc: '2.0', id: 91, method: 'getSlot', params: [] })).status, 429, 'Preview purpose must not bypass the ordinary budget for unrelated methods.');
+  await verifyRpcBudgets(0);
+  await setClock(lastMillisecond + 1);
+  await verifyRpcBudgets(100); // Every budget resets exactly at the next minute.
   rpcCalls = 0;
 
   const mint = Keypair.generate().publicKey.toBase58();
