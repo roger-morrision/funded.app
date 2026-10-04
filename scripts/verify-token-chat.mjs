@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
+import { createServer, request as httpRequest } from 'node:http';
 import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -32,8 +32,33 @@ const server = spawn(process.execPath, ['server/index.mjs'], {
 });
 
 async function request(path, options = {}) {
-  const response = await fetch(`${base}${path}`, { ...options, headers: { ...(options.body ? { 'content-type': 'application/json' } : {}), ...(options.headers || {}) }, body: options.body ? JSON.stringify(options.body) : undefined });
-  return { status: response.status, data: await response.json() };
+  const body = options.body ? JSON.stringify(options.body) : undefined;
+  try {
+    const response = await fetch(`${base}${path}`, { ...options, headers: { ...(body ? { 'content-type': 'application/json' } : {}), ...(options.headers || {}) }, body });
+    return { status: response.status, data: await response.json() };
+  } catch (cause) {
+    throw new Error(`${options.method || 'GET'} ${path} (${Buffer.byteLength(body || '')} bytes) failed before a complete JSON response.`, { cause });
+  }
+}
+function oversizedHeaders(path) {
+  // The API rejects an oversized Content-Length before reading the upload.
+  // Uploading a megabyte through fetch races that valid early close against
+  // Undici's writes (intermittent EPIPE). Require the actual early response;
+  // tests/request-body.test.mjs separately exercises streamed body overflow.
+  return new Promise((resolve, reject) => {
+    const req = httpRequest(`${base}${path}`, { method:'POST', headers:{ 'content-type':'application/json', 'content-length':'1000001' } }, res => {
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.once('error', reject);
+      res.once('end', () => {
+        try { resolve({ status:res.statusCode, headers:res.headers, data:JSON.parse(Buffer.concat(chunks).toString('utf8')) }); }
+        catch (error) { reject(error); }
+      });
+    });
+    req.once('error', reject);
+    req.setTimeout(5000, () => req.destroy(new Error('Oversized chat headers did not receive an early HTTP response.')));
+    req.flushHeaders();
+  });
 }
 function envelope() { return { nonce: crypto.randomUUID(), issuedAt: new Date().toISOString() }; }
 function signedPost(keypair, text) {
@@ -66,8 +91,12 @@ try {
     const error = await malformed.json();
     assert.equal(error.requestId, malformed.headers.get('x-request-id'));
   }
-  const oversized = await fetch(`${base}${path}`, { method: 'POST', body: JSON.stringify({ text: 'x'.repeat(1_000_001) }) });
+  const oversized = await oversizedHeaders(path);
   assert.equal(oversized.status, 413, 'Oversized bodies must return an HTTP response.');
+  assert.equal(oversized.data.error, 'Request body too large.');
+  assert.match(oversized.data.requestId, /^[a-f0-9-]{36}$/);
+  assert.equal(oversized.headers['x-request-id'], oversized.data.requestId);
+  assert.equal(oversized.headers.connection, 'close');
 
   const unsigned = await request(path, { method: 'POST', body: { author: author.publicKey.toBase58(), text: 'Unsigned message' } });
   assert.equal(unsigned.status, 400);

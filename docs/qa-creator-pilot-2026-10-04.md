@@ -55,3 +55,15 @@ The final local run passed **238/238 unit tests**, syntax checks for **470 JavaS
 Logs are `/tmp/funded-pilot-final-unit.log`, `/tmp/funded-pilot-final-check.log`, and `/tmp/funded-pilot-final-browser.log`. An earlier browser run was intentionally stopped when the final performance/copy changes landed; it is not used as final evidence.
 
 Exact-image container results and screenshots are written separately under `/workspace/funded-delivery/pilot-smoke/` after release verification. This document does not claim that a subsequent deployment has already passed.
+
+## Production-route follow-up
+
+The exact-image smoke on revision `71f9f7efe94fe897449268a4c9e95241a5aefb04` caught a production-only failure: `/pilot` returned HTTP 404 despite passing in Vite. Build identity and Devnet/PostgreSQL checks passed before that failure. The release agent rolled back to the prior healthy preview while preserving its database.
+
+The correction adds explicit `/pilot` and `/pilot/` paths to the production SPA route policy. A real isolated API/static-serving test now requires the application shell for both paths and a query-string variant, while an unrecognized nested path still returns 404. The release contract now checks both pilot deep links against the deployed Home HTML. The focused route and static HTTP tests passed **2/2**; release-contract syntax and `git diff --check` passed. The earlier 238-unit/40-browser result remains evidence for the pilot implementation in `71f9f7e`; the follow-up server routing change has separate verification.
+
+Hash-route screenshots from the rejected image remain under `/workspace/funded-delivery/pilot-smoke/hash-pilot-{1440,390}.png` for visual review. They do not turn the failed direct-route deployment into a passing release. The final direct-route container smoke must pass against the follow-up revision before acceptance.
+
+The follow-up passed **239/239 unit tests**, **471 JavaScript syntax checks** and the isolated production HTTP contract including both pilot deep links. Browser source was unchanged; the earlier 40 browser journeys remain applicable, with exact-image pilot checks still required after redeployment.
+
+The initial exact-branch CI also exposed an intermittent oversized-upload probe race in `verify-token-chat`: a full fetch upload could raise EPIPE when the server correctly rejected Content-Length early with HTTP 413 and closed the connection. The probe now sends headers first and requires the complete 413 JSON body, matching request ID and connection-close response. Network errors still fail. Streamed overflow remains covered separately. All six critical checks, the body-parser tests and three patched token-chat runs passed on Node 24.21.0. No production request-limit behavior was changed.
