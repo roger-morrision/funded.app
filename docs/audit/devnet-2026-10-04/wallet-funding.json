@@ -1,0 +1,14 @@
+{
+  "network": "devnet",
+  "createdAt": "2026-10-04T04:58:02.260Z",
+  "from": "AMQ9x851U9XV2jRz2oKkCVnxkdqb4c2PyeSncaHVRDVP",
+  "to": "8tYcqWardbjghVuRL1dQkgULMGbeJGfuCcSKYKFzizig",
+  "lamports": 100000000,
+  "signature": "3LZ3Nw9P26h5hQfNqGpqw21xeUfgsL5HHEKjvFnDBWkojjQWqJTPkkuBReBP2kpK83Sn61No8ktbbjHGk5QKHKE8",
+  "lastValidBlockHeight": 494495081,
+  "finalized": true,
+  "slot": 507248946,
+  "feeLamports": 5000,
+  "recipientCreditLamports": 100000000,
+  "explorer": "https://explorer.solana.com/tx/3LZ3Nw9P26h5hQfNqGpqw21xeUfgsL5HHEKjvFnDBWkojjQWqJTPkkuBReBP2kpK83Sn61No8ktbbjHGk5QKHKE8?cluster=devnet"
+}

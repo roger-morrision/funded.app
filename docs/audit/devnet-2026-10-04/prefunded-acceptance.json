@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-10-04T04:59:55.531Z",
+  "mode": "execute",
+  "network": "devnet",
+  "rpcOrigin": "https://api.devnet.solana.com",
+  "appOrigin": "https://funded.vip",
+  "checks": [
+    {
+      "name": "network",
+      "status": "passed",
+      "at": "2026-10-04T04:59:58.848Z",
+      "genesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+      "finalizedSlot": 507249441
+    },
+    {
+      "name": "deployed-program",
+      "status": "passed",
+      "at": "2026-10-04T04:59:59.329Z",
+      "programId": "2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik",
+      "programDataAddress": "DrQmTSxHsRACofnAA6oLgfrSxQfLZFDvNmnu3Rz37EVA",
+      "programDataSha256": "9ce7c1137d250ffa84668e65b53546b7c1d4239eaf888957c41316708cda977b",
+      "executableSha256": "e9da7cd43232f0997786112c97f339c7b53d425881b66baf6b9dccf7bf85bc16",
+      "upgradeAuthority": "3NMjsHsau8uw598UKZqbKq8dhFjGMEYpdx5wU72Kfh1P"
+    },
+    {
+      "name": "router-policy",
+      "status": "passed",
+      "at": "2026-10-04T04:59:59.425Z",
+      "address": "Dzs5c17shnJkSoQnRL7fDbjD4eAFnoh6dpzgHhfV1cmW",
+      "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y"
+    },
+    {
+      "name": "pump-program",
+      "status": "passed",
+      "at": "2026-10-04T04:59:59.525Z",
+      "programId": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+    },
+    {
+      "name": "public-app",
+      "status": "blocked",
+      "at": "2026-10-04T04:59:59.701Z",
+      "reason": "Public health returned HTTP 530: <!doctype html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US"
+    },
+    {
+      "name": "prefunded-test-payer",
+      "status": "passed",
+      "at": "2026-10-04T04:59:59.971Z",
+      "payer": "AMQ9x851U9XV2jRz2oKkCVnxkdqb4c2PyeSncaHVRDVP",
+      "balanceLamports": 4899995000,
+      "faucetRequested": false
+    },
+    {
+      "name": "fee-recipient-funding",
+      "status": "passed",
+      "at": "2026-10-04T05:00:00.072Z",
+      "address": "8tYcqWardbjghVuRL1dQkgULMGbeJGfuCcSKYKFzizig",
+      "balanceLamports": 100000000,
+      "fundingRequired": false
+    },
+    {
+      "name": "mint-router",
+      "status": "passed",
+      "at": "2026-10-04T05:00:03.845Z",
+      "signature": "56Fh29xz2BkN13qx1rRkAvmF4w6fFdGyBiY71f39uBGej285iVdkSatD7NQmu64xj6D3qsCuFLvR34sCFabtVjh8",
+      "slot": 507249451
+    },
+    {
+      "name": "isolated-pump-launch",
+      "status": "passed",
+      "at": "2026-10-04T05:00:06.556Z",
+      "signature": "LGc1waFuA5MoviB2zXRvtWTfaJbSNRbfrfJ7p4XMrSyTdy4Zt4SwTLpA6U2E4V5jZ6hWxkxtKx32cz6aAY2AfK5",
+      "slot": 507249468
+    },
+    {
+      "name": "buy",
+      "status": "passed",
+      "at": "2026-10-04T05:00:09.750Z",
+      "signature": "2UfaVuNkDfxLHc3it2sdhdNCLY1Nr3EMLEy2i5gNdGqdoeXxjrfSFYKPfo6Fbt6173dJwVyRwMVtKhLAQgtPbtTa",
+      "slot": 507249482
+    },
+    {
+      "name": "buy-fee-delta",
+      "status": "passed",
+      "at": "2026-10-04T05:00:09.845Z",
+      "lamports": 15000
+    },
+    {
+      "name": "sell",
+      "status": "passed",
+      "at": "2026-10-04T05:00:13.015Z",
+      "signature": "5Kw3xdG2fSZVEuSNpLgKGiMLEDt3DMRm4Vs5xFkeVbqYmncjcYNTXzZ7NHwhCpN3FuGQH7ijpS2h86b1tntruPPZ",
+      "slot": 507249496
+    },
+    {
+      "name": "sell-fee-delta",
+      "status": "passed",
+      "at": "2026-10-04T05:00:13.109Z",
+      "lamports": 14703
+    },
+    {
+      "name": "creator-fee-collection",
+      "status": "passed",
+      "at": "2026-10-04T05:00:16.058Z",
+      "signature": "9kgLcwXzfqooCWjkc2zsfSGM823SWoc6XDoZzG5MiWQ8iZxsqerKQUS1QaEZePaXt45UXwSa67a2wMgwwmebceU",
+      "slot": 507249509
+    },
+    {
+      "name": "creator-fee-delta",
+      "status": "passed",
+      "at": "2026-10-04T05:00:16.154Z",
+      "lamports": 17822
+    }
+  ],
+  "transactions": [
+    {
+      "name": "mint-router",
+      "signature": "56Fh29xz2BkN13qx1rRkAvmF4w6fFdGyBiY71f39uBGej285iVdkSatD7NQmu64xj6D3qsCuFLvR34sCFabtVjh8",
+      "explorer": "https://explorer.solana.com/tx/56Fh29xz2BkN13qx1rRkAvmF4w6fFdGyBiY71f39uBGej285iVdkSatD7NQmu64xj6D3qsCuFLvR34sCFabtVjh8?cluster=devnet",
+      "finalized": true,
+      "slot": 507249451
+    },
+    {
+      "name": "isolated-pump-launch",
+      "signature": "LGc1waFuA5MoviB2zXRvtWTfaJbSNRbfrfJ7p4XMrSyTdy4Zt4SwTLpA6U2E4V5jZ6hWxkxtKx32cz6aAY2AfK5",
+      "explorer": "https://explorer.solana.com/tx/LGc1waFuA5MoviB2zXRvtWTfaJbSNRbfrfJ7p4XMrSyTdy4Zt4SwTLpA6U2E4V5jZ6hWxkxtKx32cz6aAY2AfK5?cluster=devnet",
+      "finalized": true,
+      "slot": 507249468
+    },
+    {
+      "name": "buy",
+      "signature": "2UfaVuNkDfxLHc3it2sdhdNCLY1Nr3EMLEy2i5gNdGqdoeXxjrfSFYKPfo6Fbt6173dJwVyRwMVtKhLAQgtPbtTa",
+      "explorer": "https://explorer.solana.com/tx/2UfaVuNkDfxLHc3it2sdhdNCLY1Nr3EMLEy2i5gNdGqdoeXxjrfSFYKPfo6Fbt6173dJwVyRwMVtKhLAQgtPbtTa?cluster=devnet",
+      "finalized": true,
+      "slot": 507249482
+    },
+    {
+      "name": "sell",
+      "signature": "5Kw3xdG2fSZVEuSNpLgKGiMLEDt3DMRm4Vs5xFkeVbqYmncjcYNTXzZ7NHwhCpN3FuGQH7ijpS2h86b1tntruPPZ",
+      "explorer": "https://explorer.solana.com/tx/5Kw3xdG2fSZVEuSNpLgKGiMLEDt3DMRm4Vs5xFkeVbqYmncjcYNTXzZ7NHwhCpN3FuGQH7ijpS2h86b1tntruPPZ?cluster=devnet",
+      "finalized": true,
+      "slot": 507249496
+    },
+    {
+      "name": "creator-fee-collection",
+      "signature": "9kgLcwXzfqooCWjkc2zsfSGM823SWoc6XDoZzG5MiWQ8iZxsqerKQUS1QaEZePaXt45UXwSa67a2wMgwwmebceU",
+      "explorer": "https://explorer.solana.com/tx/9kgLcwXzfqooCWjkc2zsfSGM823SWoc6XDoZzG5MiWQ8iZxsqerKQUS1QaEZePaXt45UXwSa67a2wMgwwmebceU?cluster=devnet",
+      "finalized": true,
+      "slot": 507249509
+    }
+  ],
+  "blockers": [
+    "Public app health unavailable; metadata publishing, launch registration, claims and indexing require a reachable configured Devnet app.",
+    "Allocation, claims, holder payouts, buyback, community reserve/claim and graduation are not verified by this isolated flow. They require configured application services and authorized isolated custody signers."
+  ],
+  "coverage": {
+    "fullApplicationJourney": false,
+    "mainnetReadiness": false,
+    "isolatedChainLaunchTradeCollection": true
+  },
+  "wallets": {
+    "payer": "AMQ9x851U9XV2jRz2oKkCVnxkdqb4c2PyeSncaHVRDVP",
+    "mint": "XVzXGMiFdXe7SCHpnZRotg5Ed7gtfPcDNotKZ4WTKhW",
+    "feeRecipient": "8tYcqWardbjghVuRL1dQkgULMGbeJGfuCcSKYKFzizig",
+    "payerSource": "explicit-test-wallet",
+    "privateKeyPersistence": "payer loaded from explicit test keyfile; mint process memory only"
+  },
+  "finishedAt": "2026-10-04T05:00:16.154Z",
+  "status": "blocked"
+}

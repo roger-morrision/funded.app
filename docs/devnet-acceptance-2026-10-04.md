@@ -1,6 +1,8 @@
 # Devnet acceptance — October 4, 2026
 
-**Result: blocked for a fresh full application journey.** Public Devnet chain reads and seventeen historical transaction checks passed. No new funded transaction was submitted. Historical receipt checks do not establish that the current app, workers, current source, or public website work end to end.
+**Update:** Subsequent user-funded wallets enabled five fresh public Devnet transactions; see [funded follow-up](devnet-funded-followup-2026-10-04.md). The initial run below is retained as historical evidence.
+
+**Initial result: blocked for a fresh full application journey.** Public Devnet chain reads and seventeen historical transaction checks passed. No new funded transaction was submitted. Historical receipt checks do not establish that the current app, workers, current source, or public website work end to end.
 
 ## Current live checks
 

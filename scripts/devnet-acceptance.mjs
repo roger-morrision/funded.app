@@ -1,7 +1,7 @@
-/** Live, disposable Devnet-only checks. Does not load application secrets or saved wallets. */
+/** Live Devnet-only checks. Saved test keys are read only with an explicit --wallet path. */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import bs58 from 'bs58';
@@ -22,7 +22,28 @@ export function assertFinalized(status) {
 }
 const delay = milliseconds => new Promise(resolveDelay => setTimeout(resolveDelay, milliseconds));
 
-export async function runAcceptance({ execute = false, output, rpcUrl = 'https://api.devnet.solana.com', appOrigin = 'https://funded.vip', programId = DEFAULT_PROGRAM } = {}) {
+/** Resolve only an explicitly selected test key, after validating the live network. */
+export async function prepareAcceptancePayer({ connection, walletFile = null, readWalletFile = readFile }) {
+  assertDevnet(await connection.getGenesisHash());
+  if (!walletFile) return { payer: Keypair.generate(), prefunded: false, source: 'ephemeral-faucet', balanceLamports: 0 };
+  assert(typeof walletFile === 'string' && walletFile.trim(), 'An explicit test-wallet keyfile path is required.');
+  let payer;
+  try {
+    const bytes = JSON.parse(await readWalletFile(resolve(walletFile), 'utf8'));
+    assert(Array.isArray(bytes) && bytes.length === 64 && bytes.every(byte => Number.isInteger(byte) && byte >= 0 && byte <= 255));
+    payer = Keypair.fromSecretKey(Uint8Array.from(bytes));
+  } catch {
+    // JSON/crypto parser errors can include key contents. Never propagate them.
+    throw new Error('Explicit test-wallet keyfile must contain a valid 64-byte Solana keypair JSON array.');
+  }
+  const balanceLamports = await connection.getBalance(payer.publicKey, 'finalized');
+  assert(Number.isSafeInteger(balanceLamports) && balanceLamports >= 100_000_000, 'Explicit test payer needs at least 0.1 finalized Devnet SOL; no faucet request or transaction was sent.');
+  return { payer, prefunded: true, source: 'explicit-test-wallet', balanceLamports };
+}
+
+
+export async function runAcceptance({ execute = false, output, rpcUrl = 'https://api.devnet.solana.com', appOrigin = 'https://funded.vip', programId = DEFAULT_PROGRAM, walletFile = null, feeRecipientAddress = null } = {}) {
+  assert(!walletFile || execute, '--wallet is permitted only with --execute.');
   const evidence = { schemaVersion: 1, startedAt: new Date().toISOString(), mode: execute ? 'execute' : 'read-only', network: 'devnet', rpcOrigin: new URL(rpcUrl).origin, appOrigin: new URL(appOrigin).origin, checks: [], transactions: [], blockers: [], coverage: { fullApplicationJourney: false, mainnetReadiness: false } };
   const record = (name, status, details = {}) => {
     const check = { name, status, at: new Date().toISOString(), ...details };
@@ -54,7 +75,7 @@ export async function runAcceptance({ execute = false, output, rpcUrl = 'https:/
     // Persist submission before waiting so interruptions do not erase evidence.
     await persist();
     try {
-      const returnedSignature = await connection.sendRawTransaction(transaction.serialize(), { skipPreflight: false, maxRetries: 2 });
+      const returnedSignature = await connection.sendRawTransaction(transaction.serialize(), { skipPreflight: false, preflightCommitment: 'confirmed', maxRetries: 2 });
       assert.equal(returnedSignature, signature, 'RPC returned a different transaction signature.');
     } catch (error) {
       receipt.submissionError = safeError(error);
@@ -112,13 +133,16 @@ export async function runAcceptance({ execute = false, output, rpcUrl = 'https:/
       record('live-transactions', 'not-run', { reason: 'Pass --execute to create ephemeral wallets and request faucet SOL.' });
       return evidence;
     }
-    stage = 'ephemeral-faucet';
-    const payer = Keypair.generate();
+    stage = walletFile ? 'prefunded-test-payer' : 'ephemeral-faucet';
+    const preparedPayer = await prepareAcceptancePayer({ connection, walletFile });
+    const { payer } = preparedPayer;
     const mint = Keypair.generate();
-    const feeRecipient = Keypair.generate().publicKey;
-    evidence.wallets = { payer: payer.publicKey.toBase58(), mint: mint.publicKey.toBase58(), feeRecipient: feeRecipient.toBase58(), privateKeyPersistence: 'none; process memory only' };
-    let funded = false;
-    for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const feeRecipient = feeRecipientAddress ? new PublicKey(feeRecipientAddress) : Keypair.generate().publicKey;
+    assert(!feeRecipient.equals(payer.publicKey), 'Fee recipient must differ from payer for exact fee delta verification.');
+    evidence.wallets = { payer: payer.publicKey.toBase58(), mint: mint.publicKey.toBase58(), feeRecipient: feeRecipient.toBase58(), payerSource: preparedPayer.source, privateKeyPersistence: walletFile ? 'payer loaded from explicit test keyfile; mint process memory only' : 'none; process memory only' };
+    let funded = preparedPayer.prefunded;
+    if (funded) record(stage, 'passed', { payer: payer.publicKey.toBase58(), balanceLamports: preparedPayer.balanceLamports, faucetRequested: false });
+    for (let attempt = 1; !funded && attempt <= 2; attempt += 1) {
       assertDevnet(await connection.getGenesisHash());
       const response = await fetch(rpcUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: attempt, method: 'requestAirdrop', params: [payer.publicKey.toBase58(), 1_000_000_000] }), signal: AbortSignal.timeout(25_000) });
       const payload = await response.json();
@@ -145,7 +169,12 @@ export async function runAcceptance({ execute = false, output, rpcUrl = 'https:/
     // This isolated SDK path tests chain adapters. Public registration and the app's atomic
     // community-reserve launch require their own configured application acceptance run.
     stage = 'fee-recipient-funding';
-    await send(stage, [SystemProgram.transfer({ fromPubkey: payer.publicKey, toPubkey: feeRecipient, lamports: 1_000_000 })], [payer]);
+    const feeRecipientBalance = await connection.getBalance(feeRecipient, 'finalized');
+    if (feeRecipientBalance < 1_000_000) {
+      await send(stage, [SystemProgram.transfer({ fromPubkey: payer.publicKey, toPubkey: feeRecipient, lamports: 1_000_000 - feeRecipientBalance })], [payer]);
+    } else {
+      record(stage, 'passed', { address: feeRecipient.toBase58(), balanceLamports: feeRecipientBalance, fundingRequired: false });
+    }
     stage = 'mint-router';
     const mintRouter = buildMintRouterInitializeInstruction({ programId: program, mint: mint.publicKey, payer: payer.publicKey });
     await send(stage, [mintRouter.instruction], [payer, mint]);
@@ -198,7 +227,13 @@ export async function runAcceptance({ execute = false, output, rpcUrl = 'https:/
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const flags = process.argv.slice(2);
   assert(flags.includes('--execute') !== flags.includes('--read-only'), 'Pass exactly one of --execute or --read-only.');
-  assert(flags.every(flag => flag === '--execute' || flag === '--read-only' || flag.startsWith('--output=')), 'Unknown argument.');
-  const result = await runAcceptance({ execute: flags.includes('--execute'), output: flags.find(flag => flag.startsWith('--output='))?.slice(9) || 'docs/audit/devnet-2026-10-04/live-acceptance.json' });
+  assert(flags.every(flag => flag === '--execute' || flag === '--read-only' || flag.startsWith('--output=') || flag.startsWith('--wallet=') || flag.startsWith('--fee-recipient=')), 'Unknown argument.');
+  const walletFlag = flags.find(flag => flag.startsWith('--wallet='));
+  assert(!walletFlag || walletFlag.slice(9).trim(), '--wallet requires an explicit test keyfile path.');
+  assert(flags.filter(flag => flag.startsWith('--wallet=')).length <= 1, 'Pass --wallet only once.');
+  const feeRecipientFlag = flags.find(flag => flag.startsWith('--fee-recipient='));
+  assert(!feeRecipientFlag || feeRecipientFlag.slice(16).trim(), '--fee-recipient requires a public address.');
+  assert(flags.filter(flag => flag.startsWith('--fee-recipient=')).length <= 1, 'Pass --fee-recipient only once.');
+  const result = await runAcceptance({ feeRecipientAddress: feeRecipientFlag?.slice(16) || null, walletFile: walletFlag?.slice(9) || null, execute: flags.includes('--execute'), output: flags.find(flag => flag.startsWith('--output='))?.slice(9) || 'docs/audit/devnet-2026-10-04/live-acceptance.json' });
   process.exitCode = result.status === 'passed' ? 0 : 2;
 }
