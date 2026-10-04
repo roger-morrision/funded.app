@@ -1,3 +1,4 @@
+import { emitPilotSignal, pilotInterruptedSignal, verifiedPilotLaunchRegistration } from './pilot-event-signals.js';
 import { validateBoostQuote, boostPaymentResolution, readPendingBoost, archiveBoostPayment, saveSignedBoostPayment } from './boost-checkout-recovery.js';
 import { readHiddenChatAuthors, hideChatAuthor, resetHiddenChatAuthors } from './token-chat-preferences.js';
 import { saveDraftImage, readDraftImage, deleteDraftImage } from './launch-draft-image.js';
@@ -1547,7 +1548,7 @@ async function submitCommunityClaim(mintAddress){
   const session = captureWalletSession();
   const status = document.querySelector('#airdrop-selected-status');
   const review = communityClaimReview;
-  let submittedSignature = null;
+  let submittedSignature = null, claimExecutionRequested = false, claimVerified = false;
   if (!session || !canSignTransactions(session.provider) || !review || review.mint !== mintAddress
     || review.wallet !== session.address || Date.now() - review.at > 60_000) {
     status.append(document.createTextNode(' Check the allocation again before signing.'));
@@ -1556,6 +1557,7 @@ async function submitCommunityClaim(mintAddress){
   communityClaimReview = null;
   const button = status.querySelector('[data-claim-community-mint]');
   if (button) button.disabled = true;
+  emitPilotSignal('claim-started');
   try {
     const response = await apiRequest('/api/airdrops/claims/claim-instruction', { method:'POST',
       body:{ mint:mintAddress, wallet:session.address } });
@@ -1602,6 +1604,7 @@ async function submitCommunityClaim(mintAddress){
       pubkey:new PublicKey(row.pubkey), isSigner:row.isSigner, isWritable:row.isWritable })), data }));
     const signed = await session.provider.signTransaction(transaction);
     assertWalletSessionCurrent(session);
+    claimExecutionRequested = true;
     submittedSignature = await rpc.sendRawTransaction(signed.serialize(), { skipPreflight:false, maxRetries:3 });
     const confirmation = await waitForSignatureConfirmation(rpc, { signature:submittedSignature,
       lastValidBlockHeight:latest.lastValidBlockHeight, commitment:'finalized' });
@@ -1609,10 +1612,13 @@ async function submitCommunityClaim(mintAddress){
     const after = BigInt((await rpc.getTokenAccountBalance(recipientToken, 'finalized')).value.amount);
     if (after - before !== BigInt(review.amount) || !(await rpc.getAccountInfo(payment, 'finalized'))?.owner.equals(program))
       throw new Error('Claim finalized without the exact token and payment-record deltas.');
+    claimVerified = true;
+    emitPilotSignal('claim-verified');
     await loadCommunityReserveStatuses();
     renderAirdropProgramDetail(getAirdropPrograms().find(row => row.id === mintAddress));
     showToast('Community tokens claimed and verified on Devnet');
   } catch (error) {
+    if (!claimVerified) emitPilotSignal(pilotInterruptedSignal('claim', error, claimExecutionRequested));
     status.append(document.createTextNode(submittedSignature
       ? ` Claim ${submittedSignature} was submitted. Check its finalized Devnet receipt before retrying: ${String(error.message || error)}`
       : ` Claim stopped: ${String(error.message || error)}`));
@@ -5375,14 +5381,16 @@ function openLaunchReview(){
   document.querySelector('#launch-review-details').innerHTML = launchReviewMarkup(reviewedCost);
   document.querySelector('#launch-review-dialog').showModal();
   renderPendingLaunchReview();
+  emitPilotSignal('launch-review-opened');
 }
-function closeLaunchReview(){
+function closeLaunchReview({ confirmed = false } = {}){
+  if (pendingLaunchReview && !confirmed) emitPilotSignal('launch-review-cancelled');
   pendingLaunchReview = null;
   document.querySelector('#launch-review-dialog')?.close();
 }
 function confirmLaunchReview(){
   const pending = pendingLaunchReview;
-  closeLaunchReview();
+  closeLaunchReview({ confirmed: true });
   if (!launchReviewStillCurrent(pending, currentLaunchReviewState())) {
     setLaunchStatus('Launch review changed or expired. Refresh the estimate and review again; no transaction was sent.', true);
     return;
@@ -5928,6 +5936,8 @@ async function submitSolClaim(){
   updateClaimBindingReview();
   if(!document.querySelector('#claim-binding-agree')?.checked){if(status)status.textContent='Review and confirm the destination wallet before binding this claim.';return;}
   const button = document.querySelector('#sol-claim-submit'); if (button){button.disabled=true;button.dataset.processing='true';}
+  let claimExecutionRequested = false, claimVerified = false;
+  emitPilotSignal('claim-started');
   try {
     const identity = await apiRequest('/api/x/me');
     if (!identity.data?.authenticated || `@${identity.data.user.username}`.toLowerCase() !== handle.toLowerCase()) throw new Error('Sign in with the X account named in this claim first.');
@@ -5946,17 +5956,20 @@ async function submitSolClaim(){
     const verified = await apiRequest(`/api/sol-claims/${encodeURIComponent(claimId)}/verify`, { method: 'POST', body: { xHandle: handle, publicKey, signature: bs58.encode(signed.signature || signed) } });
     if (!isWalletSessionCurrent(session)) return { verified };
     if (status) status.textContent = 'Settling the mint-specific claim on Devnet…';
+    claimExecutionRequested = true;
     const paid = await apiRequest(`/api/sol-claims/${encodeURIComponent(claimId)}/execute`, { method: 'POST' });
     if (!isWalletSessionCurrent(session)) return { verified, paid };
     if(!paid.available||!paid.data?.signature)throw new Error('Payout outcome is uncertain. Refresh rewards; do not submit another payout.');
     const checked=await apiRequest('/api/x-fee/claims').catch(()=>null);
     if(!isWalletSessionCurrent(session))return {verified,paid};
     const confirmed=confirmedClaimResult(checked?.data?.claims,claimId,paid.data.signature);
+    claimVerified = Boolean(confirmed);
+    emitPilotSignal(claimVerified ? 'claim-verified' : 'claim-pending');
     if (status) status.textContent = confirmed?`Verified payment of ${confirmed.amountSol} SOL to ${publicKey}. Transaction: ${confirmed.payoutSignature}`:'Settlement response received. Payment verification is pending; refresh rewards later. Do not submit another payout.';
     showToast(confirmed?'Payment receipt verified':'Payment verification pending');
     await refreshXClaims();
     return { verified, paid };
-  } catch (error) { if (isWalletSessionCurrent(session)) { if (status) status.textContent = error.message || 'Claim failed.'; showToast(error.message || 'Claim failed'); } }
+  } catch (error) { if (!claimVerified) emitPilotSignal(pilotInterruptedSignal('claim', error, claimExecutionRequested)); if (isWalletSessionCurrent(session)) { if (status) status.textContent = error.message || 'Claim failed.'; showToast(error.message || 'Claim failed'); } }
   finally { if (button) delete button.dataset.processing; syncXClaimFlow(); }
 }
 async function disconnectWallet(){
@@ -6064,7 +6077,7 @@ async function launchToken(){
   if (walletBalanceLamports == null || estimatedLaunchFeeLamports == null) { setLaunchStatus('Wallet balance and launch cost could not be verified. Refresh the estimate before signing.', true); return; }
   if (walletBalanceLamports != null && estimatedLaunchFeeLamports != null && walletBalanceLamports < estimatedLaunchFeeLamports) { setLaunchStatus('Insufficient Devnet SOL for this launch. Fund the wallet, then refresh the balance and fee estimate before signing.', true); return; }
   document.querySelector('#launch-button').disabled = true;
-  let journalId;
+  let journalId, pilotLaunchVerified = false;
   try {
     const [{ submitPumpDevnetLaunch }, { devnetExplorer }] = await Promise.all([import('./launch-flow.js'), import('./launch-core.js')]);
     assertWalletSessionCurrent(session);
@@ -6091,6 +6104,7 @@ async function launchToken(){
     const reserveConfig = await getLaunchReserveConfig();
     assertWalletSessionCurrent(session);
     journalId=crypto.randomUUID();recordLaunchEvent(journalId,{state:'prepared',name,symbol,payer:session.address,cluster:'devnet'});
+    emitPilotSignal('launch-submission-started');
     const result = await submitPumpDevnetLaunch({ cluster: APP_CLUSTER, connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuySol: creatorBuySol, reserveTokens:communityTokens, maxInitialBuyLamports:reviewedCost.buyMaximum }, prepareMetadata: input => prepareLaunchMetadata(input, session), feeRouterAddress: feeRouterState.address, feeRouterProgramId: FEE_ROUTER_PROGRAM_ID, useMintRouter: true, launchBurn, reserveConfig, assertWalletCurrent: () => assertWalletSessionCurrent(session), onJournal:event=>recordLaunchEvent(journalId,event), onStatus: message => { if (isWalletSessionCurrent(session)) setLaunchStatus(message); } });
     const routeAddress = result.feeRouter.toBase58();
     const routeState = { ...feeRouterState, ...deriveMintFeeRouter(FEE_ROUTER_PROGRAM_ID, result.mint.publicKey), address: routeAddress, scope: 'per-mint-v2' };
@@ -6162,6 +6176,8 @@ async function launchToken(){
       launchPolicy.policySignature = bs58.encode(policySignature.signature || policySignature);
       localStorage.setItem(`funded.launch.${launchPolicy.mint}`, JSON.stringify(launchPolicy));
       persistedLaunch = await persistLaunchPolicy(launchPolicy);
+      pilotLaunchVerified = verifiedPilotLaunchRegistration(persistedLaunch, launchPolicy.mint);
+      if (pilotLaunchVerified) emitPilotSignal('launch-confirmed');
       if(persistedLaunch.available){
         recordLaunchEvent(journalId,{state:'completed'});
         localStorage.removeItem(`funded.launch.${launchPolicy.mint}`);
@@ -6169,6 +6185,7 @@ async function launchToken(){
     } catch (policyError) {
       if (isWalletSessionCurrent(session)) setLaunchStatus(`Coin confirmed on Devnet, but policy registration is pending: ${policyError.message}`, true);
     }
+    if (!verifiedPilotLaunchRegistration(persistedLaunch, launchPolicy.mint)) emitPilotSignal('launch-registration-pending');
     const tradeMint = document.querySelector('#trade-mint');
     if (tradeMint) tradeMint.value = launchPolicy.mint;
     if (persistedLaunch.available) await loadOnchainExploreData(); else renderRegistry();
@@ -6193,6 +6210,7 @@ async function launchToken(){
     let saved=readLaunchJournal().find(row=>row.id===journalId);
     if(journalId&&saved?.state==='prepared')saved=recordLaunchEvent(journalId,{state:'failed',message:error.message});
     const needsRecovery=Boolean(saved&&(saved.signature||saved.events?.some(event=>event.signature||['broadcasting','submitted','confirmed','verification-pending','registration-pending','unknown'].includes(event.state))));
+    if (!pilotLaunchVerified) emitPilotSignal(pilotInterruptedSignal('launch', error, needsRecovery));
     if (isWalletSessionCurrent(session)) {
       const message = `Launch stopped: ${error.message}${needsRecovery ? ' A transaction may have reached Devnet. Check its receipt before attempting another launch.' : ' No transaction was sent; correct the issue and retry.'}`;
       if (needsRecovery && saved?.signature) {
@@ -6225,6 +6243,7 @@ window.addEventListener('funded:recover-registration',async event=>{
     if(!policy.policySignature){if(typeof session.provider.signMessage!=='function')throw new Error('This wallet must support message signing.');const signed=await session.provider.signMessage(new TextEncoder().encode(launchPolicyStatement(policy)));assertWalletSessionCurrent(session);policy.policySignature=bs58.encode(signed.signature||signed);localStorage.setItem(`funded.launch.${mint}`,JSON.stringify(policy));}
     report('Checking the original launch and policy with the API. No coin transaction is being sent.');
     const result=await apiRequest('/api/launches',{method:'POST',body:policy});if(!result.available||result.data?.mint!==mint||!result.data?.onchainVerified)throw new Error('Registration is still pending verified API evidence.');
+    if (verifiedPilotLaunchRegistration(result, mint)) emitPilotSignal('launch-confirmed');
     recordLaunchEvent(id,{state:'completed'});report('Original launch registered. No duplicate launch was created.');void loadVerifiedLaunchPolicies();
   }catch(error){report(error.message);}
 });
@@ -6461,7 +6480,7 @@ document.querySelector('#profile-copy-address')?.addEventListener('click', async
 document.querySelector('#launch-button').addEventListener('click', handleLaunchAction);
 document.querySelector('#launch-review-close')?.addEventListener('click', closeLaunchReview);
 document.querySelector('#launch-review-cancel')?.addEventListener('click', closeLaunchReview);
-document.querySelector('#launch-review-dialog')?.addEventListener('close', () => { pendingLaunchReview = null; });
+document.querySelector('#launch-review-dialog')?.addEventListener('close', () => { if (pendingLaunchReview) emitPilotSignal('launch-review-cancelled'); pendingLaunchReview = null; });
 document.querySelector('#launch-review-confirm')?.addEventListener('click', confirmLaunchReview);
 document.querySelector('#simulate-button')?.addEventListener('click', simulateLaunch);
 document.querySelector('#trade-submit')?.addEventListener('click', openTradeReview);
@@ -7099,6 +7118,7 @@ document.querySelector('#close-menu').addEventListener('click', () => setMenuOpe
 document.querySelector('#menu-backdrop').addEventListener('click', () => setMenuOpen(false, true));
 document.addEventListener('keydown', event => { if (event.key === 'Escape' && document.querySelector('#sidebar').classList.contains('open')) setMenuOpen(false, true); });
 const pageRouteTargets = {
+  pilot: '#creator-pilot',
   launch: '#launch-route-shell',
   list: '#list',
   explore: '#explore',
@@ -7137,6 +7157,7 @@ function focusCurrentPageRoute(){
   heading.focus({ preventScroll: true });
 }
 function requestedPageRoute(){
+  if (/^\/pilot\/?$/.test(location.pathname) && !location.hash) return 'pilot';
   if (/^\/funded\/?$/.test(location.pathname) && !location.hash) return 'paid';
   if (/^\/list\/?$/.test(location.pathname) && !location.hash) return 'list';
   if (/^\/explore\/?$/.test(location.pathname)) return 'explore';
@@ -7191,6 +7212,7 @@ function syncPageRoute(){
   });
   let copy = {
     overview: ['Overview', 'Verified activity and next steps'],
+    pilot: ['Creator pilot', 'Test a transparent fee allocation with your community'],
     explore: ['Explore', 'Verified launches and market signals'],
     list: ['Get listed', 'Listing status and token mint check'],
     payments: ['Rewards', 'Claims and payout receipts'],

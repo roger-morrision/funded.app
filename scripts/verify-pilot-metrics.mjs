@@ -5,6 +5,7 @@ const day = 86_400_000;
 const start = Date.parse('2026-09-01T00:00:00Z');
 const at = (offset, hour = 12) => new Date(start + offset * day + hour * 3_600_000).toISOString();
 const participant = { participantId:'00000000-0000-4000-8000-000000000001', consented:true, source:'creator-invite',
+  observedThrough:at(17),
   events:[{ name:'draft-started', at:at(0) }, { name:'draft-reviewed', at:at(0, 13) },
     { name:'follow-creator', at:at(1) }, { name:'followed-creator-view', at:at(8) },
     { name:'creator-update-published', at:at(1) }, { name:'creator-update-published', at:at(9) }] };
@@ -15,6 +16,7 @@ assert.equal(pilot.d7Eligible, 1);
 assert.equal(pilot.d7Returned, 0); // Activation was on day 0 at draft review; day 8 does not count.
 assert.equal(pilot.creatorFollowThroughEligible, 1);
 assert.equal(pilot.creatorSecondUpdate, 1);
+assert.equal(summarizePilot([{...participant,observedThrough:at(9)}],start+17*day).creatorFollowThroughEligible,0,'An old export is not evidence of full follow-up.');
 assert.equal(summarizePilot([participant], start + 7 * day).d7Eligible, 0);
 assert.equal(summarizePilot([{ ...participant, source:'test' }], start + 17 * day).participants, 0);
 assert.equal(summarizePilot([participant, participant], start + 17 * day).participants, 1);
