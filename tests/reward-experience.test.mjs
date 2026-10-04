@@ -51,12 +51,56 @@ test('X recipient totals count only finalized matching payout evidence', () => {
       amountLamports:'9000000' },
   };
   const paidEvidence = { ...evidence, verifiedPayouts:[{ signature:xPayment, to:wallet,
-    source:'mint-router-settle-mint', amountLamports:'3000000' }] };
+    source:'mint-router-settle-mint', amountLamports:3000000 }] };
   const result = rewardExperience(paidState, rewards, paidEvidence, 'devnet');
   assert.equal(result.tokens[0].xPaidWallets, 1);
   assert.equal(result.tokens[0].xPayoutCount, 1);
   assert.equal(result.tokens[0].xPaidLamports, '3000000');
   assert.equal(result.tokens[0].holderPaidLamports, '20000000');
+});
+
+test('direct finalized X and referral payments retain delivery proof without claiming unverified fee provenance', () => {
+  for (const source of ['mint-router-settle-mint', 'solana-keeper-referral-claim']) {
+    const direct = { launches:{ [mint]:launch }, collections:{}, payouts:{ paid:{
+      mint, cluster:'devnet', source, status:'paid', from:router, to:wallet,
+      signature:payment, amountLamports:15,
+    } } };
+    const proof = { ...evidence, status:'partial', verifiedCollections:[], verifiedPayouts:[{
+      signature:payment, source, to:wallet, amountLamports:15, slot:1,
+    }] };
+    const result = rewardExperience(direct, {}, proof, 'devnet', wallet);
+    const paid = result.wallet.rows[0].payouts[0];
+    assert.equal(paid.amountLamports, '15');
+    assert.equal(paid.source, 'finalized-matching-balance-delta');
+    assert.equal(paid.feeSourceVerified, false);
+    assert.deepEqual(paid.sourceClaims, []);
+    assert.equal(result.events[0].kind, source === 'mint-router-settle-mint' ? 'x-paid' : 'referral-paid');
+    assert.equal(result.events[0].feeSourceVerified, false);
+    assert.deepEqual(result.events[0].sourceClaims, []);
+    if (source === 'mint-router-settle-mint') assert.equal(result.tokens[0].xPaidLamports, '15');
+  }
+});
+
+test('direct payment display uses the same exact 15-lamport legacy SOL conversion as receipt verification', () => {
+  const payout = { mint, cluster:'devnet', source:'mint-router-settle-mint', status:'paid', from:router, to:wallet,
+    signature:payment, amountSol:1.5e-8 };
+  const direct = { launches:{ [mint]:launch }, payouts:{ paid:payout } };
+  const proof = { ...evidence, verifiedCollections:[], verifiedPayouts:[{
+    signature:payment, source:payout.source, to:wallet, amountLamports:15,
+  }] };
+  const result = rewardExperience(direct, {}, proof, 'devnet', wallet);
+  assert.equal(result.tokens[0].xPaidLamports, '15');
+  assert.equal(result.wallet.rows[0].payouts[0].feeSourceVerified, false);
+  for (const invalid of [true, '15.000000000000001', '1.5e1', ' 15', Number.MAX_SAFE_INTEGER + 1]) {
+    const changed = structuredClone(direct);
+    changed.payouts.paid.amountLamports = invalid;
+    assert.equal(rewardExperience(changed, {}, proof, 'devnet').tokens[0].xPayoutCount, 0);
+  }
+  for (const invalidProof of ['15', true, 15.5, Number.MAX_SAFE_INTEGER + 1]) {
+    const changed = structuredClone(proof);
+    changed.verifiedPayouts[0].amountLamports = invalidProof;
+    assert.equal(rewardExperience(direct, {}, changed, 'devnet').tokens[0].xPayoutCount, 0);
+  }
 });
 
 test('community total includes redirected referrals exactly once', () => {

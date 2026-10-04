@@ -17,6 +17,13 @@ export function mountReceiptHistory(container, id, cluster, isCurrent = () => tr
   };
   async function load(after, number) {
     if (busy || !isCurrent()) return;
+    const initiator = document.activeElement;
+    const restoreFocus = [next, retry, reset].includes(initiator);
+    let focusMoved = false;
+    const trackFocus = event => {
+      if (event.target !== initiator && event.target !== document.body) focusMoved = true;
+    };
+    if (restoreFocus) document.addEventListener('focusin', trackFocus);
     busy = true; next.disabled = retry.disabled = reset.disabled = true; exportButton.disabled = true;
     rows.setAttribute('aria-busy', 'true');
     status.textContent = `Checking payment records for page ${number}…`;
@@ -58,6 +65,12 @@ export function mountReceiptHistory(container, id, cluster, isCurrent = () => tr
       busy = false; rows.setAttribute('aria-busy', 'false');
       next.disabled = retry.disabled = reset.disabled = false;
       exportButton.disabled = !isCurrent() || !exportRows.length;
+      document.removeEventListener('focusin', trackFocus);
+      if (restoreFocus && !focusMoved && isCurrent() && container.isConnected && container.getClientRects().length) {
+        const target = retry.hidden ? status : retry;
+        if (target === status) status.tabIndex = -1;
+        target.focus({ preventScroll: true });
+      }
     }
   }
   next.onclick = () => load(cursor, pageNumber + 1);

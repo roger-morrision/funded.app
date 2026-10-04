@@ -1,3 +1,5 @@
+import { payoutReceiptLamports } from './receipt-evidence.mjs';
+
 const LAMPORTS = 1_000_000_000n;
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
@@ -105,12 +107,15 @@ export function rewardExperience(state = {}, rewards = {}, evidence = {}, cluste
     const recordedPayouts = paymentRows(rewards, mint, verifiedCollections);
     for (const payout of Object.values(state.payouts || {})) {
       const proof = verifiedPayouts.get(payout.signature);
+      const expectedAmount = payoutReceiptLamports(payout);
       const payoutMint = payout.mint || state.collections?.[state.referralClaims?.[payout.claimId]?.settlementSignature]?.mint;
       if (payoutMint !== mint || !proof || proof.to !== payout.to || proof.source !== payout.source
-        || integer(proof.amountLamports) !== (payout.amountLamports == null ? amount(payout.amountSol) : integer(payout.amountLamports))) continue;
+        || expectedAmount === null || !Number.isSafeInteger(proof.amountLamports) || proof.amountLamports !== expectedAmount) continue;
       recordedPayouts.push({ kind:payout.source === 'mint-router-settle-mint' ? 'x' : 'referral', wallet:payout.to,
         signature:payout.signature, amountLamports:String(proof.amountLamports), paidAt:payout.paidAt || null,
-        source:'finalized-matching-balance-delta', feeSourceVerified:true });
+        // A matching payment delta proves delivery, not its original fee funding
+        // or entitlement. This path does not perform those provenance joins.
+        source:'finalized-matching-balance-delta', feeSourceVerified:false, sourceClaims:[] });
     }
     const payouts = [...new Map(recordedPayouts.map(row => [`${row.kind}:${row.wallet}:${row.signature}`, row])).values()];
     for (const row of payouts) events.push({ mint, kind:`${row.kind}-paid`, signature:row.signature,

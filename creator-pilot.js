@@ -43,7 +43,7 @@ if(main && !document.querySelector('#creator-pilot')) {
   };
   page.querySelector('[data-pilot-enroll]').addEventListener('click',()=>{
     const target=page.querySelector('#creator-pilot-metrics');
-    const control=target.querySelector('[data-pilot-role], input, select, button');
+    const control=[...target.querySelectorAll('input, select, button')].find(element=>!element.disabled && element.getClientRects().length);
     if(control){control.focus({preventScroll:true});target.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});}
     else{const status=page.querySelector('[data-pilot-copy-status]');status.textContent='Optional recording is unavailable. You can still follow every test step.';status.tabIndex=-1;status.focus();}
   });

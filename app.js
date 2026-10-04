@@ -1,3 +1,5 @@
+import { exactLamports } from './exact-lamports.js';
+import { formatReceiptSol } from './receipt-export.js';
 import { emitPilotSignal, pilotInterruptedSignal, verifiedPilotLaunchRegistration } from './pilot-event-signals.js';
 import { validateBoostQuote, boostPaymentResolution, readPendingBoost, archiveBoostPayment, saveSignedBoostPayment } from './boost-checkout-recovery.js';
 import { readHiddenChatAuthors, hideChatAuthor, resetHiddenChatAuthors } from './token-chat-preferences.js';
@@ -2881,9 +2883,13 @@ function renderVerifiedReceiptEvidence(){
   const payoutCard = document.querySelector('[data-analytics-metric="payouts"]') || cards[2];
   if (feeCard && !collections.length) {
     const recorded = Number(receiptEvidence?.coverage?.recordedCollections || 0);
-    const ledgerLamports = Number(analyticsSummary?.recordedCollectedLamports);
-    const ledgerAmount = Number.isSafeInteger(ledgerLamports) && ledgerLamports > 0
-      ? `; ${(ledgerLamports / 1_000_000_000).toFixed(9).replace(/0+$/, '').replace(/\.$/, '')} SOL recorded in the ledger` : '';
+    let ledgerAmount = '';
+    if (analyticsSummary && Object.hasOwn(analyticsSummary, 'recordedCollectedLamports')) {
+      try {
+        const ledgerLamports = exactLamports(analyticsSummary.exactLamports?.recordedCollectedLamports ?? analyticsSummary.recordedCollectedLamports);
+        if (ledgerLamports > 0n) ledgerAmount = `; ${formatReceiptSol(ledgerLamports)} SOL recorded in the ledger`;
+      } catch { ledgerAmount = '; recorded amount unavailable'; }
+    }
     feeCard.querySelector('span').textContent = 'Verified fees collected';
     feeCard.querySelector('small').innerHTML = receiptEvidence?.status === 'unverified-records' && recorded
       ? `<b>LEDGER ONLY</b>${recorded} claim${recorded === 1 ? '' : 's'} in the checked window${ledgerAmount}; no matching on-chain proof`
@@ -2891,9 +2897,14 @@ function renderVerifiedReceiptEvidence(){
   }
   if (collections.length && feeCard) {
     feeCard.querySelector('span').textContent = 'Verified fees collected';
-    const lamports = collections.reduce((sum, item) => sum + Number(item.collectedLamports || 0), 0);
-    feeCard.querySelector('strong').textContent = `${(lamports / 1_000_000_000).toFixed(6)} SOL`;
-    feeCard.querySelector('small').innerHTML = `<b>SOL</b>${collections.length} confirmed fee claims · verified subset`;
+    try {
+      const lamports = collections.reduce((sum, item) => sum + exactLamports(item.collectedLamports), 0n);
+      feeCard.querySelector('strong').textContent = `${formatReceiptSol(lamports)} SOL`;
+      feeCard.querySelector('small').innerHTML = `<b>SOL</b>${collections.length} confirmed fee claims · verified subset`;
+    } catch {
+      feeCard.querySelector('strong').textContent = '—';
+      feeCard.querySelector('small').innerHTML = '<b>SOL</b>Collection total unavailable; inspect individual receipts';
+    }
   }
   if (payouts.length && payoutCard) {
     payoutCard.querySelector('span').textContent = 'Verified payouts';

@@ -29,3 +29,16 @@ For an existing HTTPS reverse proxy, set `FUNDED_WORKSPACE_ORIGIN` to its exact 
 Credentials are generated once in a directory with mode 0700, excluded from Git and Docker build context, and mounted as individual files. Do not delete them while retaining the database volume: PostgreSQL keeps its original password. Do not run `docker compose down --volumes` unless you intend to delete the stored records. Back up before deleting a Codespace or its Docker storage.
 
 For this managed ChatGPT workspace, the assistant maintains a separate deployment under `/workspace/funded-deployment` with the environment's proxy/CA settings. Its local port is reachable inside that workspace; `127.0.0.1` is not a public link to your computer. Use the GitHub Codespaces option above for a browser-accessible workspace when no preview forwarding is available here.
+
+## Check capacity before upgrading an existing deployment
+
+A previous image built successfully but app recreation failed because the workspace filesystem was full. Before building, run this read-only check against the existing app container; run it again with `--phase switch` after the build and before changing image selectors or recreating the app:
+
+```sh
+node scripts/check-deployment-capacity.mjs --container funded-devnet-workspace-app-1 --workspace /workspace/funded.app --phase build
+node scripts/check-deployment-capacity.mjs --container funded-devnet-workspace-app-1 --workspace /workspace/funded.app --phase switch
+```
+
+The helper checks available bytes and free inodes on the workspace filesystem and the existing container's root filesystem through the explicit local Docker socket. It requires 4 GiB/10,000 inodes before building and 2 GiB/5,000 inodes before replacement. These are conservative operating estimates for this app, not a guarantee that future writes will fit. Separate data volumes, daemon quotas and concurrent writers require their own checks. Both readings must meet the threshold; unavailable measurements fail closed with exit code 1. This is an operator preflight, not an automatic hook in the startup helper, and requires an existing Node application container.
+
+The check creates no container, writes no data and performs no cleanup. If it fails, leave the healthy app and image selectors alone, inspect capacity, and choose an explicit recovery action. Preserve database/application volumes, backups, the current image and its rollback image. Do not turn a capacity failure into an automatic system or volume prune; record any selected cache cleanup and re-run both checks before continuing.

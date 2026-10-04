@@ -44,3 +44,19 @@ The desktop Home-to-pilot transition animated the sidebar width and content offs
 ## Remaining event-history and amount gaps
 
 The X collector now reconciles IDs at its current timestamp boundary, but older backdated insertions still need a reviewed indexed backfill. A 500-ID boundary or 200 pending verification limit must produce an explicit diagnostic without dropping the remaining sources; preserve cursor/outbox data during investigation. Shared payout receipt verification and cached history now use the same exact decimal conversion. Regression fixtures cover valid 15-lamport payouts, rejection of fractional or coerced base units, recipient/sender balance bindings, and persisted proof reuse after restart. Receipt display and CSV accept canonical bounded base-unit values, reject unsafe JSON numbers, and mark omitted records as incomplete with a retry action. This closes the reproduced receipt-path precision gap; it is not an audit of every amount calculation in the app.
+
+## Recovery and proof boundaries
+
+Direct payout balance-delta proofs establish delivery, not original fee funding. Those reward rows remain visible with `feeSourceVerified: false` until the necessary collection and entitlement joins are independently established. Verified reward-cycle funding retains its separate proof path.
+
+Analytics base-unit aggregates expose exact decimal strings in `exactLamports`. The three legacy numeric totals remain numbers only while safely representable; overflow yields `null`, `precisionStatus: overflow` and the affected `precisionUnavailableFields`. Consumers must use the exact representation or show unavailable, never coerce null to zero. This precision status covers the base-unit totals, not every derived SOL allocation field.
+
+A disk-full app recreation was observed during the prior release. Run the read-only [capacity preflight](workspace-deployment.md#check-capacity-before-upgrading-an-existing-deployment) before building and before switching the existing app. It is a point-in-time threshold check, not a reservation or a guarantee of future writes; preserve images, volumes and backups when capacity is insufficient.
+
+Keep keyboard regression coverage for pilot setup after recording is enabled and receipt recovery after its initiating control is hidden. Null receipt timestamps can still render as the Unix epoch in existing date display code; a future bounded change should treat missing timestamps as unknown rather than infer a payment date.
+
+## Release blocker: cross-tab pilot persistence
+
+A browser run reproduced two simultaneous opt-ins creating different participant IDs despite sequential Web Locks. An instrumented repetition confirmed that the second lock holder could read stale empty `localStorage`, overwrite the first tab's record, and leave the first recorder stopped after the replacement propagated. The full suite had 52 passes and this one failure; native-event diagnostics reproduced the failure twice in ten runs. This is a persistence bug, not evidence of two participants or an assertion to relax. Keep the concurrency regression enabled and hold deployment until the fix passes.
+
+Use an authoritative transactional store for the pilot record and consent grant together. A proposed IndexedDB adapter can retain the synchronous recorder model inside each transaction while making UI success depend on commit. Acceptance must cover simultaneous enrollment with one ID, distinct cross-tab events without lost writes, one-time legacy migration preserving the existing ID, immediate revocation, no resurrection from stale legacy storage or tabs, and read/write/commit failure behavior. Preserve deletion/export privacy guarantees. Arbitrary sleeps, relaxed assertions, and a passing retry do not establish that this race is fixed.

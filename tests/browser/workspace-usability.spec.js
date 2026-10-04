@@ -11,6 +11,7 @@ test.afterEach(async({page})=>expect(failures.get(page),'No uncaught browser err
 
 async function mountHistory(page,id){
   await page.goto('/#docs');
+  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await page.evaluate(async id=>{
     const {mountReceiptHistory}=await import('/receipt-history-ui.js');
     const container=document.createElement('section');container.id='exact-receipt-fixture';document.querySelector('#docs').append(container);
@@ -113,4 +114,52 @@ for(const [reason,cluster,commitment] of [['another network','mainnet-beta','fin
   await expect(panel.locator('.receipt-history-card')).toHaveCount(0);
   await expect(panel.getByRole('button',{name:'Download page as CSV'})).toBeDisabled();
   await expect(panel.getByRole('button',{name:'Retry this page'})).toBeVisible();
+});
+
+test('keyboard receipt loading focuses Retry after failure and results after recovery',async({page})=>{
+  let attempt=0;
+  await page.route('**/api/creators/keyboard-user/receipts',route=>++attempt===1
+    ?route.fulfill({status:503,contentType:'application/json',body:'{"error":"Temporarily unavailable"}'})
+    :route.fulfill({contentType:'application/json',body:JSON.stringify({cluster:'devnet',commitment:'finalized',status:'onchain-indexed',checkedPayouts:1,receipts:[{signature:'7'.repeat(88),slot:51,amountLamports:'15'}]})}));
+  const panel=await mountHistory(page,'keyboard-user');
+  await panel.getByRole('button',{name:'Load payment history'}).focus();await page.keyboard.press('Enter');
+  await expect(panel.getByRole('button',{name:'Retry this page'})).toBeFocused();
+  await expect(panel.locator('[role=status]')).toContainText('history is unavailable');
+  await page.keyboard.press('Enter');
+  await expect(panel.locator('.receipt-history-card strong')).toHaveText('0.000000015 SOL');
+  await expect(panel.locator('[role=status]')).toBeFocused();
+  await expect(panel.locator('[role=status]')).toContainText('reached the end');
+  await expect(panel.getByRole('button',{name:'Retry this page'})).toBeHidden();
+});
+
+test('receipt completion does not steal focus after the user moves to another control',async({page})=>{
+  let pending;
+  await page.route('**/api/creators/focus-user/receipts',route=>{pending=route;});
+  const panel=await mountHistory(page,'focus-user');
+  await page.evaluate(()=>{const button=document.createElement('button');button.id='unrelated-receipt-action';button.textContent='Another action';document.querySelector('#exact-receipt-fixture').after(button);});
+  await panel.getByRole('button',{name:'Load payment history'}).focus();await page.keyboard.press('Enter');
+  await expect.poll(()=>Boolean(pending)).toBe(true);
+  await expect(panel.locator('[data-history-rows]')).toHaveAttribute('aria-busy','true');
+  await page.locator('#unrelated-receipt-action').focus();
+  await pending.fulfill({contentType:'application/json',body:JSON.stringify({cluster:'devnet',commitment:'finalized',status:'no-records',checkedPayouts:0,receipts:[]})});
+  await expect(panel.locator('[data-history-rows]')).toHaveAttribute('aria-busy','false');
+  await expect(panel.locator('[role=status]')).toContainText('reached the end');
+  await expect(page.locator('#unrelated-receipt-action')).toBeFocused();
+});
+
+test('analytics preserves exact large totals and keeps missing collection amounts unavailable',async({page})=>{
+  const exact='9007199254740993';
+  await page.route('**/api/analytics/summary',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({homeFeeAllocations:{cluster:'devnet'},recordedCollectedLamports:null,exactLamports:{recordedCollectedLamports:exact},precisionStatus:'overflow'})}));
+  let evidence={cluster:'devnet',status:'unverified-records',coverage:{recordedCollections:2},verifiedCollections:[],verifiedPayouts:[]};
+  await page.route('**/api/evidence/receipts',route=>route.fulfill({contentType:'application/json',body:JSON.stringify(evidence)}));
+  await page.goto('/#analytics-detail');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  const card=page.locator('[data-analytics-metric="fees"]');
+  await expect(card.locator('small')).toContainText('9007199.254740993 SOL recorded in the ledger');
+  await expect(card.locator('small')).toContainText('no matching on-chain proof');
+  evidence={...evidence,status:'onchain-indexed',verifiedCollections:[{collectedLamports:Number.MAX_SAFE_INTEGER},{collectedLamports:2}]};
+  await page.reload();await expect(card.locator('strong')).toHaveText('9007199.254740993 SOL');
+  await expect(card.locator('small')).toContainText('verified subset');
+  evidence={...evidence,verifiedCollections:[{collectedLamports:null}]};
+  await page.reload();await expect(card.locator('strong')).toHaveText('—');
+  await expect(card.locator('small')).toContainText(/collection total unavailable/i);
 });
