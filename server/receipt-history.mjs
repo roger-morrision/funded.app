@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { RECEIPT_WINDOW } from './receipt-candidates.mjs';
+import { payoutReceiptLamports } from './receipt-evidence.mjs';
 
 const canonical = value => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object'
   ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
@@ -9,8 +10,10 @@ export function cachedReceiptProof(entry, kind, record) {
   if (entry?.key !== receiptFingerprint(kind,record) || entry.cluster !== record.cluster || entry.commitment !== 'finalized'
     || !proof || proof.signature !== record.signature || !Number.isSafeInteger(proof.slot) || proof.slot <= 0) return null;
   if (kind === 'collections') return proof.mint === record.mint && proof.collectedLamports === record.collectedLamports ? proof : null;
+  const amount = payoutReceiptLamports(record);
+  if (amount === null) return null;
   return proof.claimId === (record.claimId || null) && proof.to === record.to && proof.source === record.source
-    && proof.amountLamports === Number(record.amountLamports ?? Number(record.amountSol)*1e9) ? proof : null;
+    && proof.amountLamports === amount ? proof : null;
 }
 export function encodeReceiptCursor(key) { return Buffer.from(key,'utf8').toString('base64url'); }
 export function decodeReceiptCursor(cursor = '') {

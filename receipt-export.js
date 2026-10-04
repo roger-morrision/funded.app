@@ -1,6 +1,7 @@
+import { exactLamports } from './exact-lamports.js';
+
 export function formatReceiptSol(amountLamports) {
-  if (!/^\d+$/.test(amountLamports)) throw new Error('Invalid SOL amount.');
-  const units = BigInt(amountLamports);
+  const units = exactLamports(amountLamports);
   const fraction = String(units % 1_000_000_000n).padStart(9, '0').replace(/0+$/, '');
   return `${units / 1_000_000_000n}${fraction ? `.${fraction}` : ''}`;
 }
@@ -12,15 +13,31 @@ const csvCell = value => {
   return `"${text.replaceAll('"', '""')}"`;
 };
 
+// The history view and its CSV must include exactly the same accepted amounts.
+export function selectExactReceiptRows(input) {
+  if (!Array.isArray(input)) throw new Error('Invalid receipt page.');
+  const receipts = [], seen = new Set();
+  let omittedCount = 0;
+  for (const row of input) {
+    try {
+      if (!row || typeof row.signature !== 'string' || !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(row.signature)
+        || seen.has(row.signature) || !Number.isSafeInteger(row.slot) || row.slot < 1) throw new Error('Invalid receipt.');
+      const units = exactLamports(row.amountLamports);
+      if (units === 0n) throw new Error('A paid receipt must have a positive amount.');
+      const amountLamports = units.toString();
+      seen.add(row.signature);
+      receipts.push({ ...row, amountLamports });
+    } catch { omittedCount++; }
+  }
+  return { receipts, omittedCount };
+}
+
 export function receiptPageCsv(receipts, cluster, page) {
   if (!['devnet', 'mainnet-beta'].includes(cluster)) throw new Error('Unsupported receipt network.');
   const rows = [['network', 'coverage', 'page', 'asset', 'amount_base_units', 'amount_sol', 'mint', 'payout_signature', 'finalized_slot', 'paid_at', 'recipient', 'source_collection_signature', 'obligation_id']];
   if (!Array.isArray(receipts) || !Number.isSafeInteger(page) || page < 1) throw new Error('Invalid receipt page.');
-  const seen = new Set();
-  for (const receipt of receipts) {
-    if (!receipt || seen.has(receipt.signature) || !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(receipt.signature) || !/^\d+$/.test(receipt.amountLamports) || !Number.isSafeInteger(receipt.slot) || receipt.slot < 1) continue;
-    seen.add(receipt.signature);
-    rows.push([cluster, 'current verified page only', page, 'SOL', receipt.amountLamports, formatReceiptSol(receipt.amountLamports), receipt.mint, receipt.signature, receipt.slot, receipt.paidAt, receipt.recipient, receipt.sourceCollectionSignature, receipt.obligationId]);
+  for (const receipt of selectExactReceiptRows(receipts).receipts) {
+    rows.push([cluster, 'current verified page only (verified subset)', page, 'SOL', receipt.amountLamports, formatReceiptSol(receipt.amountLamports), receipt.mint, receipt.signature, receipt.slot, receipt.paidAt, receipt.recipient, receipt.sourceCollectionSignature, receipt.obligationId]);
   }
   return rows.map(row => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }

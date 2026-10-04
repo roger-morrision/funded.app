@@ -1,10 +1,23 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
+const failures = new WeakMap();
 test.beforeEach(async ({ page }) => {
+  const errors=[];failures.set(page,errors);page.on('pageerror',error=>errors.push(error.message));
   await page.route('**/api/**', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"offline fixture"}' }));
   await page.route('https://**/*', route => route.abort());
 });
+test.afterEach(async({page})=>expect(failures.get(page),'No uncaught browser errors').toEqual([]));
+
+async function mountHistory(page,id){
+  await page.goto('/#docs');
+  await page.evaluate(async id=>{
+    const {mountReceiptHistory}=await import('/receipt-history-ui.js');
+    const container=document.createElement('section');container.id='exact-receipt-fixture';document.querySelector('#docs').append(container);
+    mountReceiptHistory(container,id,'devnet');
+  },id);
+  return page.locator('#exact-receipt-fixture');
+}
 
 test('service status explains each check without equating availability with payment success', async ({ page }) => {
   await page.route('**/api/status', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ cluster: 'devnet', status: 'degraded', observedAt: '2026-10-04T05:00:00Z', checks: [{ id: 'storage', status: 'operational' }, { id: 'network', status: 'wrong-network' }] }) }));
@@ -59,4 +72,45 @@ test('empty payment history explains pending rewards and disables export', async
   await expect(panel.locator('.receipt-history-empty')).toContainText('check pending amounts');
   await expect(panel.getByRole('button', { name: 'Download page as CSV' })).toBeDisabled();
   await expect(panel.locator('[data-history-rows]')).toHaveAttribute('aria-busy', 'false');
+});
+
+test('mixed receipt evidence keeps fifteen lamports exact and flags omitted invalid rows',async({page})=>{
+  const valid={signature:'1'.repeat(88),slot:50,amountLamports:'15',paidAt:'2026-10-04T05:00:00Z'};
+  await page.route('**/api/creators/exact-user/receipts',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({cluster:'devnet',commitment:'finalized',status:'onchain-indexed',checkedPayouts:4,receipts:[valid,{...valid,signature:'2'.repeat(88),amountLamports:9007199254740992},{...valid,signature:'3'.repeat(88),amountLamports:'15.0000000000000001'},{...valid,signature:'4'.repeat(88),slot:0}]})}));
+  const panel=await mountHistory(page,'exact-user');await panel.getByRole('button',{name:'Load payment history'}).click();
+  await expect(panel.locator('.receipt-history-card')).toHaveCount(1);
+  await expect(panel.locator('.receipt-history-card strong')).toHaveText('0.000000015 SOL');
+  await expect(panel.locator('[role=status]')).toContainText(/could not be verified|invalid|incomplete/i);
+  await expect(panel.locator('[role=status]')).not.toContainText('reached the end');
+  await expect(panel.getByRole('button',{name:'Retry this page'})).toBeVisible();
+  const pending=page.waitForEvent('download');await panel.getByRole('button',{name:'Download page as CSV'}).click();
+  const csv=await readFile(await(await pending).path(),'utf8');
+  await expect(panel.locator('[role=status]')).toContainText(/could not be verified|invalid|incomplete/i);
+  await expect(panel.getByRole('button',{name:'Retry this page'})).toBeVisible();
+  expect(csv.trim().split('\r\n')).toHaveLength(2);
+  expect(csv).toContain('current verified page only (verified subset)');
+  expect(csv).toContain('"15","0.000000015"');expect(csv).toContain(valid.signature);
+  for(const digit of ['2','3','4'])expect(csv).not.toContain(digit.repeat(88));
+});
+
+test('unknown receipt proof stays retryable until a finalized exact payment is available',async({page})=>{
+  let attempts=0;
+  await page.route('**/api/creators/proof-user/receipts',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({cluster:'devnet',commitment:'finalized',status:++attempts===1?'proof-unavailable':'onchain-indexed',checkedPayouts:1,receipts:attempts===1?[]:[{signature:'5'.repeat(88),slot:51,amountLamports:'15',paidAt:'2026-10-04T05:00:00Z'}]})}));
+  const panel=await mountHistory(page,'proof-user');await panel.getByRole('button',{name:'Load payment history'}).click();
+  await expect(panel.locator('.receipt-history-empty')).toContainText('missing evidence');
+  await expect(panel.getByRole('button',{name:'Download page as CSV'})).toBeDisabled();
+  await expect(panel.locator('[role=status]')).not.toContainText('reached the end');
+  await panel.getByRole('button',{name:'Retry this page'}).click();
+  await expect(panel.locator('.receipt-history-card strong')).toHaveText('0.000000015 SOL');
+  await expect(panel.getByRole('button',{name:'Download page as CSV'})).toBeEnabled();
+  await expect(panel.getByRole('button',{name:'Retry this page'})).toBeHidden();
+});
+
+for(const [reason,cluster,commitment] of [['another network','mainnet-beta','finalized'],['unfinalized evidence','devnet','confirmed']])test(`receipt history rejects ${reason} without exporting it`,async({page})=>{
+  await page.route('**/api/creators/untrusted-user/receipts',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({cluster,commitment,status:'onchain-indexed',checkedPayouts:1,receipts:[{signature:'6'.repeat(88),slot:51,amountLamports:'15',paidAt:'2026-10-04T05:00:00Z'}]})}));
+  const panel=await mountHistory(page,'untrusted-user');await panel.getByRole('button',{name:'Load payment history'}).click();
+  await expect(panel.locator('[role=status]')).toContainText('history is unavailable');
+  await expect(panel.locator('.receipt-history-card')).toHaveCount(0);
+  await expect(panel.getByRole('button',{name:'Download page as CSV'})).toBeDisabled();
+  await expect(panel.getByRole('button',{name:'Retry this page'})).toBeVisible();
 });

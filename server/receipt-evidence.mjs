@@ -1,6 +1,7 @@
 // Only a confirmed, successful transaction with the expected lamport delta is a receipt.
 // A local ledger row or a submitted signature is never enough on its own.
 import { verifyWrappedSolRecoveryReceipt } from './wrapped-sol-recovery-receipt.mjs';
+import { exactSolLamports } from './exact-sol-units.mjs';
 const addressPattern = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const signaturePattern = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 
@@ -33,6 +34,23 @@ function validRecord(record) {
   return ['devnet', 'mainnet-beta'].includes(record?.cluster) && signaturePattern.test(String(record.signature || ''));
 }
 
+// Ledger amounts and cached proofs must use the same exact conversion. Do not
+// coerce booleans, fractional base-unit strings, or unsafe integers into money.
+// Missing/null base units retain the legacy decimal-SOL fallback.
+export function payoutReceiptLamports(record) {
+  if (!record || typeof record !== 'object') return null;
+  let amount;
+  if (record.amountLamports == null) {
+    try { amount = Number(exactSolLamports(record.amountSol)); }
+    catch { return null; }
+  } else {
+    const value = record.amountLamports;
+    if (typeof value !== 'number' && (typeof value !== 'string' || value.length > 16 || !/^(?:0|[1-9]\d*)$/.test(value))) return null;
+    amount = Number(value);
+  }
+  return Number.isSafeInteger(amount) && amount > 0 ? amount : null;
+}
+
 export function verifyCollectionReceipt(record, transaction) {
   if (!validRecord(record) || record.status !== 'collected' || record.attribution !== 'mint-verified'
     || record.onchainVerified !== true || !addressPattern.test(String(record.mint || ''))
@@ -54,8 +72,8 @@ export function verifyPayoutReceipt(record, transaction) {
   if (!validRecord(record) || record.status !== 'paid' || !['solana-keeper-referral-claim', 'mint-router-settle-mint'].includes(record.source)
     || !addressPattern.test(String(record.from || '')) || !addressPattern.test(String(record.to || ''))
     || record.from === record.to) return null;
-  const amount = record.amountLamports == null ? Number(record.amountSol) * 1_000_000_000 : Number(record.amountLamports);
-  if (!Number.isSafeInteger(amount) || amount <= 0) return null;
+  const amount = payoutReceiptLamports(record);
+  if (amount === null) return null;
   const balances = transactionBalances(transaction, record.signature);
   if (!balances || balances.delta(record.to) !== amount || balances.delta(record.from) > -amount) return null;
   return { signature: record.signature, claimId: record.claimId || null, source: record.source,
