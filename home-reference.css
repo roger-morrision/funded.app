@@ -474,7 +474,7 @@ body.page-route-overview .main-content > footer { display: none; }
 }
 @media (max-width: 440px) {
   body.page-route-overview .hero-section { min-height: 570px; }
-  body.page-route-overview .hero-section h1 { font-size: clamp(33px, 9vw, 39px); letter-spacing: -.08em; white-space: nowrap; }
+  body.page-route-overview .hero-section h1 { font-size: clamp(33px, 9vw, 39px); letter-spacing: -.08em; white-space: normal; }
   body.page-route-overview .home-hero-facts { grid-template-columns: 1fr; gap: 8px; margin-top: 22px; padding-top: 12px; }
   body.page-route-overview .home-hero-facts > span,
   body.page-route-overview .home-hero-facts > span + span { padding: 0; border: 0; }

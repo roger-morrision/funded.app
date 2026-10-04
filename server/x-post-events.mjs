@@ -191,8 +191,9 @@ export function createXPostChainAdapters({ connection, fundedMint, programId, re
  * formatted outbox events. On enqueue failure retain the old cursor and retry.
  * enabledAt is a durable activation baseline, not the current polling time.
  * Timestamp-boundary IDs preserve late arrivals at the current highwater time.
- * Older backdated insertions require a separately indexed backfill; this bounded
- * incremental scan does not promise discovery behind an advanced timestamp.
+ * A separate cyclic ID sweep reconciles older insertions from the loaded snapshot.
+ * Its proof/deduplication work is bounded; loading and sorting the snapshot is not
+ * an indexed backfill and still scales with the recorded source history.
  * Daily providers must cover the exact full UTC day and reverify every included
  * transaction. Bounded dashboard caches and user-supplied aggregates are not providers.
  */
@@ -202,11 +203,14 @@ export async function collectXPostEvents({ state = {}, rewardState = null, enabl
   if (!Number.isSafeInteger(maxBatch) || maxBatch < 1 || maxBatch > 200) throw new Error('Collector batch must be from 1 to 200.');
   if (!positiveUnits(minProfitLamports)) throw new Error('A positive profit threshold in lamports is required.');
   if (cursor && (cursor.version !== 1 || cursor.enabledAt !== iso(baseline))) throw new Error('Collector cursor activation baseline differs; explicitly reset before changing it.');
+  const firstStream = cursor?.nextStream ?? 0;
+  if (!Number.isInteger(firstStream) || firstStream < 0 || firstStream > 4) throw new Error('Invalid event stream scheduling cursor.');
   const events = [], sourceGaps = [], batchToken = Symbol('x-event-poll');
   const gap = (source, reason, id = null) => sourceGaps.push({ source, reason, ...(id ? { id } : {}) });
-  const next = { version: 1, enabledAt: iso(baseline), streams: structuredClone(cursor?.streams || {}), lastPolledAt: iso(nowMs) };
+  const next = { version: 1, enabledAt: iso(baseline), streams: structuredClone(cursor?.streams || {}), lastPolledAt: iso(nowMs), nextStream: (firstStream + 1) % 5 };
   let budget = maxBatch;
   const known = async id => typeof adapters.isKnownEvent === 'function' && await adapters.isKnownEvent(id);
+  const end = Math.floor(nowMs / DAY) * DAY, start = end - DAY;
   const streams = [
     { kind: 'launch', rows: Object.values(state.launches || {}).filter(row => row?.onchainVerified === true && row.cluster === 'devnet'), verifier: adapters.verifyLaunch,
       at: row => Number.isFinite(time(row.onchainVerifiedAt)) ? time(row.onchainVerifiedAt) : Number.isSafeInteger(row.createdTimestamp) ? row.createdTimestamp * 1000 : NaN, identity: row => `${row.mint}:${row.signature}` },
@@ -216,15 +220,27 @@ export async function collectXPostEvents({ state = {}, rewardState = null, enabl
     // populated only after a wallet-signed, purpose-specific public-sharing consent.
     { kind: 'trade_profit', rows: Object.values(state.xPublicTradeShares || {}).filter(row => row?.cluster === 'devnet' && row.publicConsent === true && row.consentVerified === true), verifier: adapters.verifyPublicClosedTrade,
       at: row => time(row.consentedAt), identity: row => `${row.wallet}:${row.mint}:${row.buySignature}:${row.sellSignature}` },
+    { kind: 'daily_projects', daily: true, provider: adapters.verifiedDailyProjects },
+    { kind: 'daily_rewards', daily: true, provider: adapters.verifiedDailyRewards },
   ];
-  for (const [streamIndex, stream] of streams.entries()) {
+  // Each kind gets first priority within five polls, even with a one-item budget.
+  // Otherwise repeated known older rows could starve later streams indefinitely.
+  const orderedStreams = [...streams.slice(firstStream), ...streams.slice(0, firstStream)];
+  for (const [streamIndex, stream] of orderedStreams.entries()) {
+    if (stream.daily) { await collectDaily(stream.kind, stream.provider); continue; }
     if (typeof stream.verifier !== 'function') { gap(stream.kind, stream.kind === 'trade_profit' ? 'No authenticated public trade-consent and complete realized-cost-basis verifier is configured.' : 'A finalized on-chain event verifier is required.'); continue; }
     const position = next.streams[stream.kind] || { after: null, pending: [] };
     if (!Array.isArray(position.pending) || position.pending.length > 200 || position.after && (!Number.isFinite(position.after.at) || typeof position.after.id !== 'string')) throw new Error('Invalid event cursor.');
+    const eventId = id => typeof id === 'string' && /^devnet:[a-z_]+:[0-9a-f]{64}$/.test(id);
+    if (position.nextClass != null && (!Number.isInteger(position.nextClass) || position.nextClass < 0 || position.nextClass > 2)) throw new Error('Invalid event scheduling cursor.');
+    if (position.reconciliation != null && (!eventId(position.reconciliation.throughId)
+      || position.reconciliation.afterId !== null && (!eventId(position.reconciliation.afterId) || position.reconciliation.afterId > position.reconciliation.throughId))) throw new Error('Invalid event reconciliation cursor.');
+    const seenIds = new Set();
     const rows = stream.rows.filter(row => ADDRESS.test(row.mint || '') && (stream.kind === 'trade_profit' || signatureValid(row.signature)))
       .map(row => ({ row, at: stream.at(row), id: identity(stream.kind, stream.identity(row)) }))
       .filter(item => Number.isFinite(item.at) && item.at >= baseline && item.at <= nowMs)
-      .sort((a, b) => a.at - b.at || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+      .sort((a, b) => a.at - b.at || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+      .filter(item => { if (seenIds.has(item.id)) return false; seenIds.add(item.id); return true; });
     const legacyBoundary = position.after && position.boundaryIds == null;
     if (legacyBoundary && typeof adapters.isKnownEvent !== 'function') {
       gap(stream.kind, 'A legacy timestamp cursor requires durable outbox deduplication before boundary reconciliation.');
@@ -234,62 +250,100 @@ export async function collectXPostEvents({ state = {}, rewardState = null, enabl
       || position.boundaryIds.some(id => typeof id !== 'string' || !/^devnet:[a-z_]+:[0-9a-f]{64}$/.test(id)))) throw new Error('Invalid event timestamp boundary.');
     let boundaryIds = new Set(position.boundaryIds || []);
     const pending = new Set(position.pending);
+    if (position.reconciliationPending != null && (!Array.isArray(position.reconciliationPending) || position.reconciliationPending.length > 200
+      || new Set(position.reconciliationPending).size !== position.reconciliationPending.length
+      || position.reconciliationPending.some(id => !eventId(id) || !pending.has(id)))) throw new Error('Invalid event reconciliation retry cursor.');
+    const reconciliationPending = new Set(position.reconciliationPending || []);
+    const clearPending = id => { pending.delete(id); reconciliationPending.delete(id); };
+    const canReconcile = typeof adapters.isKnownEvent === 'function';
     const fresh = rows.filter(item => !pending.has(item.id) && (!position.after || item.at > position.after.at || item.at === position.after.at && !boundaryIds.has(item.id)));
     const byId = new Map(rows.map(item => [item.id, item]));
-    const retry = [...pending].map(id => byId.get(id)).filter(Boolean);
-    for (const id of [...pending]) if (!retry.some(item => item.id === id)) { pending.delete(id); gap(stream.kind, 'Pending source was removed or is no longer eligible.', id); }
-    // Rotate failed retries, reserve room for new sources, and stop advancing
-    // highwater before the bounded retry ledger becomes full.
-    const dayEnd = Math.floor(nowMs / DAY) * DAY;
-    const remainingSources = streams.slice(streamIndex + 1).filter(nextStream => typeof nextStream.verifier === 'function' && nextStream.rows.length).length
-      + (dayEnd - DAY >= baseline ? [['daily_projects', adapters.verifiedDailyProjects], ['daily_rewards', adapters.verifiedDailyRewards]].filter(([kind, provider]) => typeof provider === 'function' && next.streams[kind]?.windowEnd !== iso(dayEnd)).length : 0);
+    for (const id of [...pending]) if (!byId.has(id)) { clearPending(id); gap(stream.kind, 'Pending source was removed or is no longer eligible.', id); }
+    const retry = [...pending].map(id => byId.get(id)).filter(item => canReconcile || !reconciliationPending.has(item.id));
+    if (!canReconcile && reconciliationPending.size) gap(stream.kind, 'Older reconciliation retries require durable outbox deduplication; pending sources are retained.');
+    const older = rows.filter(item => position.after && item.at < position.after.at && !pending.has(item.id))
+      .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+    if (!canReconcile && older.length) gap(stream.kind, 'Older source reconciliation requires durable outbox deduplication.');
+    if (canReconcile && !position.reconciliation && older.length) position.reconciliation = { afterId: null, throughId: older.at(-1).id };
+    const reconciliation = canReconcile && position.reconciliation;
+    const reconcile = reconciliation ? older.filter(item => (!reconciliation.afterId || item.id > reconciliation.afterId) && item.id <= reconciliation.throughId) : [];
+    // Persist class rotation so even a one-item stream budget gives retries, fresh
+    // sources and older reconciliation a turn. A finite sweep ceiling prevents
+    // new higher IDs from continually extending the current pass.
+    const remainingSources = orderedStreams.slice(streamIndex + 1).filter(nextStream => nextStream.daily
+      ? start >= baseline && typeof nextStream.provider === 'function' && next.streams[nextStream.kind]?.windowEnd !== iso(end)
+      : typeof nextStream.verifier === 'function' && nextStream.rows.length).length;
     let streamBudget = Math.max(1, Math.floor(budget / (remainingSources + 1)));
-    const retryLimit = fresh.length && pending.size < 200 ? Math.max(1, Math.floor(streamBudget / 2)) : streamBudget;
-    for (const item of [...retry.slice(0, retryLimit), ...fresh]) {
-      if (budget <= 0 || streamBudget <= 0) break;
-      const isRetry = pending.has(item.id);
-      if (!isRetry && position.after?.at === item.at && boundaryIds.size >= 500) { gap(stream.kind, 'Timestamp boundary capacity is full; highwater has not advanced. Reconcile this source before continuing.'); break; }
-      if (!isRetry && pending.size >= 200) { gap(stream.kind, 'Pending verification capacity is full; fresh highwater has not advanced.'); break; }
+    const queues = [retry, fresh, reconcile], offsets = [0, 0, 0], blocked = [false, false, false];
+    let nextClass = position.nextClass ?? 0;
+    while (budget > 0 && streamBudget > 0) {
+      let selected = -1;
+      for (let step = 0; step < queues.length; step += 1) {
+        const kind = (nextClass + step) % queues.length;
+        const candidate = queues[kind][offsets[kind]];
+        if (!candidate || blocked[kind]) continue;
+        if (kind !== 0 && pending.size >= 200) {
+          gap(stream.kind, 'Pending verification capacity is full; fresh and reconciliation cursors have not advanced.');
+          blocked[kind] = true; continue;
+        }
+        if (kind === 1 && position.after?.at === candidate.at && boundaryIds.size >= 500) {
+          gap(stream.kind, 'Timestamp boundary capacity is full; highwater has not advanced. Reconcile this source before continuing.');
+          blocked[kind] = true; continue;
+        }
+        selected = kind; break;
+      }
+      if (selected < 0) break;
+      const item = queues[selected][offsets[selected]++];
+      nextClass = (selected + 1) % queues.length;
       budget -= 1; streamBudget -= 1;
-      if (!isRetry) {
+      if (selected === 1) {
         if (position.after?.at !== item.at) boundaryIds = new Set();
         boundaryIds.add(item.id);
         position.after = { at: item.at, id: item.id };
       }
+      if (selected === 2) reconciliation.afterId = item.id;
       try {
-        if (await known(item.id)) { pending.delete(item.id); continue; }
+        if (await known(item.id)) { clearPending(item.id); continue; }
         const verified = await stream.verifier(item.row, { state, rewardState });
         const proofs = proofsOf(verified?.proofs);
         const observed = time(verified.occurredAt);
         if (verified.mint !== item.row.mint || !Number.isFinite(observed) || observed > nowMs) throw new Error('Verified event identity or timestamp does not match its source.');
-        if (observed < baseline) { pending.delete(item.id); continue; } // Old receipts never become launch announcements through a new registry write.
+        if (observed < baseline) { clearPending(item.id); continue; } // Old receipts never become launch announcements through a new registry write.
         let payload;
         if (stream.kind === 'trade_profit') {
           if (verified.publicConsent !== true || verified.completeCostBasis !== true || verified.positionClosed !== true || proofs.length < 2
             || verified.wallet !== item.row.wallet || !proofs.some(proof => proof.signature === item.row.buySignature) || !proofs.some(proof => proof.signature === item.row.sellSignature)
             || !positiveUnits(verified.buyCostLamports) || !positiveUnits(verified.sellProceedsLamports) || !/^(?:0|[1-9]\d*)$/.test(verified.feesLamports || '')) throw new Error('Verified closed-position cost basis, fees and public consent are required.');
-          if (BigInt(verified.sellProceedsLamports) - BigInt(verified.buyCostLamports) - BigInt(verified.feesLamports) < BigInt(minProfitLamports)) { pending.delete(item.id); continue; }
+          if (BigInt(verified.sellProceedsLamports) - BigInt(verified.buyCostLamports) - BigInt(verified.feesLamports) < BigInt(minProfitLamports)) { clearPending(item.id); continue; }
           payload = { mint: verified.mint, name: verified.name, publicConsent: true, completeCostBasis: true, positionClosed: true, buyCostLamports: verified.buyCostLamports, sellProceedsLamports: verified.sellProceedsLamports, feesLamports: verified.feesLamports, proofs };
         } else {
           if (!proofs.some(proof => proof.signature === item.row.signature)) throw new Error('Verified proof does not match the recorded signature.');
           payload = { mint: verified.mint, name: verified.name, symbol: verified.symbol, ...(stream.kind === 'listing' ? { listingType: 'paid' } : {}), proofs };
         }
         events.push({ id: item.id, kind: stream.kind, cluster: 'devnet', occurredAt: iso(observed), payload });
-        pending.delete(item.id);
-      } catch { pending.delete(item.id); pending.add(item.id); gap(stream.kind, 'Finalized evidence is unavailable or mismatched; retry is retained without publishing.', item.id); }
+        clearPending(item.id);
+      } catch {
+        pending.delete(item.id); pending.add(item.id);
+        if (selected === 2) reconciliationPending.add(item.id);
+        gap(stream.kind, 'Finalized evidence is unavailable or mismatched; retry is retained without publishing.', item.id);
+      }
     }
+    // Wrap only after exhausting this sweep; a later poll catches insertions
+    // behind afterId. Failed verification is already retained in pending above.
+    if (reconciliation && offsets[2] === reconcile.length && !blocked[2]) position.reconciliation = null;
+    position.nextClass = nextClass;
+    position.reconciliationPending = [...reconciliationPending];
     position.pending = [...pending]; position.boundaryIds = [...boundaryIds]; next.streams[stream.kind] = position;
   }
   // Only the latest completed UTC day is eligible: outages cannot trigger a backlog
   // of old daily posts. The first daily window must begin after activation.
-  const end = Math.floor(nowMs / DAY) * DAY, start = end - DAY;
-  for (const [kind, provider] of [['daily_projects', adapters.verifiedDailyProjects], ['daily_rewards', adapters.verifiedDailyRewards]]) {
-    if (typeof provider !== 'function') { gap(kind, kind === 'daily_projects' ? 'A complete finalized 24-hour project metric provider is not configured; confirmed or partial market caches are excluded.' : 'Complete finalized payout and entitlement verification across the requested reward sources is not configured.'); continue; }
-    if (start < baseline || budget <= 0 || next.streams[kind]?.windowEnd === iso(end)) continue;
+  async function collectDaily(kind, provider) {
+    if (typeof provider !== 'function') { gap(kind, kind === 'daily_projects' ? 'A complete finalized 24-hour project metric provider is not configured; confirmed or partial market caches are excluded.' : 'Complete finalized payout and entitlement verification across the requested reward sources is not configured.'); return; }
+    if (start < baseline || budget <= 0 || next.streams[kind]?.windowEnd === iso(end)) return;
     const id = identity(kind, `${iso(start)}:${iso(end)}`);
     budget -= 1;
     try {
-      if (await known(id)) { next.streams[kind] = { windowEnd: iso(end) }; continue; }
+      if (await known(id)) { next.streams[kind] = { windowEnd: iso(end) }; return; }
       const result = await provider({ state, rewardState, batchToken, cluster: 'devnet', windowStart: iso(start), windowEnd: iso(end) });
       if (result?.coverage !== 'complete' || result.cluster !== 'devnet' || result.windowStart !== iso(start) || result.windowEnd !== iso(end)) throw new Error('Incomplete or mismatched daily window.');
       const proofs = proofsOf(result.proofs);

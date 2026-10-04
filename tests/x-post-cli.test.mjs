@@ -102,3 +102,34 @@ test('formatter independently rejects malformed daily metadata even on otherwise
   }
   assert.deepEqual(fixture.transport,[]);
 });
+
+test('backdated recovery commits its checkpoint with the outbox and survives lost commit acknowledgement', async () => {
+  for (const failure of ['before-commit', 'after-commit']) {
+    const fixture = dailyPipelineFixture();
+    const signature = bs58.encode(new Uint8Array(64).fill(20));
+    const firstMint = bs58.encode(new Uint8Array(32).fill(20)), lateMint = bs58.encode(new Uint8Array(32).fill(21));
+    fixture.state.launches = { first: { mint: firstMint, signature, cluster: 'devnet', onchainVerified: true, onchainVerifiedAt: '2026-10-04T11:00:00.000Z' } };
+    const adapters = { verifyLaunch: async row => ({ mint: row.mint, name: 'Fixture', occurredAt: row.onchainVerifiedAt,
+      proofs: [{ signature: row.signature, slot: 123, cluster: 'devnet', commitment: 'finalized', verified: true }] }) };
+    await fixture.publisher.verifyAccount();
+    const options = { ...fixture.options, adapters };
+    assert.equal((await runXPostCycle(options)).dispatch.posted, 1);
+    const before = await fixture.store.readCursor();
+    fixture.state.launches.late = { ...fixture.state.launches.first, mint: lateMint, onchainVerifiedAt: '2026-10-04T10:00:00.000Z' };
+    const enqueue = fixture.store.enqueueBatch;
+    let fail = true;
+    fixture.store.enqueueBatch = async (...args) => {
+      if (fail && failure === 'before-commit') { fail = false; throw new Error('Synthetic persistence outage'); }
+      await enqueue(...args);
+      if (fail) { fail = false; throw new Error('Synthetic acknowledgement lost'); }
+    };
+    await assert.rejects(runXPostCycle(options), /Synthetic/);
+    assert.equal(fixture.transport.filter(call => call.method === 'POST').length, 1, 'An unacknowledged checkpoint must not dispatch');
+    if (failure === 'before-commit') assert.deepEqual(await fixture.store.readCursor(), before);
+    for (let index = 0; index < 4; index++) await runXPostCycle(options);
+    assert.equal(fixture.rows.size, 2, 'The backdated event must eventually reach the durable outbox');
+    assert.equal(fixture.transport.filter(call => call.method === 'POST').length, 2, 'Recovery must deliver each event once');
+    assert.deepEqual((await fixture.store.readCursor()).cursor.streams.launch.after, before.cursor.streams.launch.after);
+    assert([...fixture.rows.values()].every(row => row.status === 'posted'));
+  }
+});

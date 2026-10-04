@@ -31,6 +31,76 @@ const adapters = {
 const config = { execute: false, handle: accountId, cluster: 'devnet', enabledAt: '2026-10-02T00:00:00.000Z', origin: 'https://funded.vip', minProfitLamports: '1000000000', maxPosts: 20 };
 const options = { config, store, mainStore: { read: async () => ({ launches: { launch }, listings: { listing }, xPublicTradeShares: { share } }) }, readRewards: async () => null, adapters, now,
   publish: () => assert.fail('Draft collection must not publish') };
+
+async function verifyOlderSourceRecovery() {
+  const recoveryAccount = 'cycle-older-fixture';
+  const sourcePrefix = 'qa-x-older-';
+  const sourceStore = createPostgresStore(databaseUrl);
+  const openOutbox = () => createXPostStore({ databaseUrl, accountId: recoveryAccount });
+  let recoveryStore = openOutbox();
+  const verifications = new Map();
+  const newer = { ...launch, mint: bs58.encode(new Uint8Array(32).fill(100)), signature: proof(100).signature };
+  const older = Array.from({ length: 60 }, (_, index) => ({
+    ...launch, mint: bs58.encode(new Uint8Array(32).fill(index + 20)), signature: proof(index + 20).signature,
+    createdTimestamp: Date.parse('2026-10-03T01:00:00Z') / 1000 + index,
+  }));
+  const recoveryOptions = {
+    ...options, config: { ...config, handle: recoveryAccount },
+    mainStore: { read: async () => ({ launches: Object.fromEntries(Object.entries((await sourceStore.read()).launches || {}).filter(([key]) => key.startsWith(sourcePrefix))) }) },
+    adapters: { verifyLaunch: async row => {
+      verifications.set(row.signature, (verifications.get(row.signature) || 0) + 1);
+      return { mint: row.mint, name: 'Recovered fixture', occurredAt: new Date(row.createdTimestamp * 1000).toISOString(), proofs: [{ ...proof(1), signature: row.signature }] };
+    } },
+  };
+  const cycle = () => runXPostCycle({ ...recoveryOptions, store: recoveryStore });
+  try {
+    await recoveryStore.init();
+    await pool.query('DELETE FROM x_post_outbox WHERE account_id=$1', [recoveryAccount]);
+    await pool.query('UPDATE x_post_accounts SET collector_cursor=NULL,cursor_version=0 WHERE account_id=$1', [recoveryAccount]);
+    await sourceStore.update(state => {
+      state.launches ||= {};
+      for (const key of Object.keys(state.launches)) if (key.startsWith(sourcePrefix)) delete state.launches[key];
+      state.launches[`${sourcePrefix}newer`] = newer;
+    });
+    assert.equal((await cycle()).collected, 1);
+    const highwater = (await recoveryStore.readCursor()).cursor.streams.launch.after;
+    await sourceStore.update(state => {
+      older.forEach((row, index) => { state.launches[`${sourcePrefix}${index}`] = row; });
+    });
+
+    // A failed durable enqueue must not acknowledge the older-source scan.
+    const beforeFailure = await recoveryStore.readCursor();
+    await assert.rejects(runXPostCycle({ ...recoveryOptions, store: { ...recoveryStore, enqueueBatch: async () => { throw new Error('Fixture enqueue unavailable'); } } }), /Fixture enqueue unavailable/);
+    assert.deepEqual(await recoveryStore.readCursor(), beforeFailure);
+    assert.equal((await recoveryStore.list({ limit: 200 })).length, 1);
+
+    await cycle();
+    const checkpoint = await recoveryStore.readCursor();
+    assert.deepEqual(checkpoint.cursor.streams.launch.after, highwater, 'Older-source reconciliation must not move the fresh highwater backward');
+    assert.ok(checkpoint.cursor.streams.launch.reconciliation?.throughId, 'A bounded older-source sweep must persist its finite ceiling');
+    const partiallySaved = await recoveryStore.list({ limit: 200 });
+    assert(partiallySaved.length > 1 && partiallySaved.length < older.length + 1, 'More than one batch must be needed to discover the older sources');
+    await recoveryStore.close();
+    recoveryStore = openOutbox();
+    await recoveryStore.init();
+    assert.deepEqual(await recoveryStore.readCursor(), checkpoint, 'Cyclic scan checkpoint survives closing and reopening the PostgreSQL outbox');
+    assert.deepEqual(await recoveryStore.list({ limit: 200 }), partiallySaved, 'Partial drafts survive closing and reopening the PostgreSQL outbox');
+
+    for (let attempt = 0; attempt < 10 && (await recoveryStore.list({ limit: 200 })).length < older.length + 1; attempt += 1) await cycle();
+    const all = await recoveryStore.list({ limit: 200 });
+    assert.equal(all.length, older.length + 1, 'All eligible sources inserted behind the timestamp highwater must be discovered');
+    assert.equal(new Set(all.map(row => row.event.id)).size, all.length);
+    assert.deepEqual(new Set(all.map(row => row.event.proofs[0].signature)), new Set([newer, ...older].map(row => row.signature)));
+    assert(all.every(row => row.status === 'pending' && row.attempts === 0), 'Reconciliation creates drafts without dispatch');
+    const verifiedBeforeReplay = new Map(verifications);
+    await recoveryStore.close();
+    recoveryStore = openOutbox();
+    await recoveryStore.init();
+    for (let attempt = 0; attempt < 4; attempt += 1) assert.equal((await cycle()).collected, 0, 'Restarted cyclic sweeps must suppress every durable event ID');
+    assert.deepEqual(verifications, verifiedBeforeReplay, 'Known drafts are not reverified or republished during reconciliation');
+    assert.deepEqual(await recoveryStore.list({ limit: 200 }), all, 'Retry and restart preserve exactly one immutable draft per source');
+  } finally { await recoveryStore.close(); await sourceStore.close(); }
+}
 try {
   await store.init();
   await pool.query('DELETE FROM x_post_outbox WHERE account_id=$1', [accountId]);
@@ -51,5 +121,6 @@ try {
   const reopenedLedger = createPostgresStore(databaseUrl);
   try { assert.deepEqual((await reopenedLedger.read()).xPublicTradeShares['qa-persisted-consent'], share, 'Public trade consent bucket must survive closing and reopening the PostgreSQL main state store'); }
   finally { await reopenedLedger.close(); }
-  console.log(JSON.stringify({ mode: 'real PostgreSQL with synthetic verified source adapters; no network or publications', passed: 3, checks: ['Five event kinds collect, format and enqueue atomically', 'Second draft cycle preserves exact amounts and suppresses replay', 'Main-state public trade consent bucket survives store close and reopen'] }, null, 2));
+  await verifyOlderSourceRecovery();
+  console.log(JSON.stringify({ mode: 'real PostgreSQL with synthetic verified source adapters; no network or publications', passed: 4, checks: ['Five event kinds collect, format and enqueue atomically', 'Second draft cycle preserves exact amounts and suppresses replay', 'Main-state public trade consent bucket survives store close and reopen', 'Older eligible sources reconcile across bounded batches, enqueue failure, store restart and duplicate sweeps'] }, null, 2));
 } finally { await store.close(); await pool.end(); }

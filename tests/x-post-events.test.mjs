@@ -361,3 +361,195 @@ test('daily cache cannot bypass validation or reuse evidence for another request
   assert.equal(restored.windowStart, millisecond.windowStart);
   assert.equal(restored.windowEnd, millisecond.windowEnd);
 });
+
+// These fixtures exercise source discovery only; their finalized proofs are
+// synthetic. The production chain and signed-consent adapters have separate tests.
+function backdatedFixture(kind = 'launch') {
+  const bucket = { launch: 'launches', listing: 'listings', trade_profit: 'xPublicTradeShares' }[kind];
+  const verifierName = { launch: 'verifyLaunch', listing: 'verifyListing', trade_profit: 'verifyPublicClosedTrade' }[kind];
+  const rows = [], known = new Set(), calls = [];
+  const make = (index, at = occurredAt) => {
+    const rowMint = bs58.encode(new Uint8Array(32).fill(index));
+    return { ...launch, mint: rowMint, onchainVerifiedAt: at, listedAt: at, status: 'listed', wallet,
+      buySignature: signature, sellSignature: otherSignature, publicConsent: true, consentVerified: true, consentedAt: at };
+  };
+  const verified = async row => {
+    calls.push(row.mint);
+    if (row.unavailable) throw new Error('Synthetic provider outage');
+    return { mint: row.mint, name: 'Fixture', wallet, listingType: 'paid', occurredAt: row.receiptAt || row.onchainVerifiedAt,
+      publicConsent: true, completeCostBasis: !row.incomplete, positionClosed: true,
+      buyCostLamports: '1000000000', sellProceedsLamports: '3000000000', feesLamports: '5000',
+      proofs: (kind === 'trade_profit' ? [proof(), proof(otherSignature)] : [proof()]).map(item => row.confirmed ? { ...item, commitment: 'confirmed' } : item) };
+  };
+  const input = { enabledAt, now, state: { [bucket]: rows }, adapters: { [verifierName]: verified, isKnownEvent: async id => known.has(id) } };
+  let cursor;
+  const poll = async (options = {}) => {
+    const result = await collectXPostEvents({ ...input, cursor, ...options });
+    cursor = JSON.parse(JSON.stringify(result.cursor));
+    for (const event of result.events) { assert(!known.has(event.id), 'A durable outbox event must not be emitted twice'); known.add(event.id); }
+    return result;
+  };
+  return { make, rows, known, calls, input, poll, get cursor() { return cursor; } };
+}
+
+for (const kind of ['launch', 'listing', 'trade_profit']) {
+  test(`backdated ${kind} insertion is recovered after restart without moving highwater or duplicating known events`, async () => {
+    const fixture = backdatedFixture(kind);
+    fixture.rows.push(fixture.make(20, '2026-10-04T01:30:00Z'));
+    await fixture.poll();
+    const after = structuredClone(fixture.cursor.streams[kind].after);
+    fixture.rows.push(fixture.make(21));
+    const recovered = [];
+    for (let index = 0; index < 4; index++) recovered.push(...(await fixture.poll()).events);
+    assert.deepEqual(recovered.map(event => event.payload.mint), [fixture.rows[1].mint]);
+    assert.deepEqual(fixture.cursor.streams[kind].after, after);
+    assert.equal(fixture.known.size, 2);
+    assert(recovered[0].payload.proofs.every(item => item.commitment === 'finalized'));
+  });
+}
+
+test('backdated reconciliation preserves activation, finality and complete realized-profit proof gates', async () => {
+  for (const kind of ['launch', 'listing', 'trade_profit']) {
+    const fixture = backdatedFixture(kind);
+    fixture.rows.push(fixture.make(20, '2026-10-04T01:30:00Z'));
+    await fixture.poll();
+    fixture.rows.push(fixture.make(21, '2026-10-03T23:00:00Z'), { ...fixture.make(22), receiptAt: '2026-10-03T23:59:00Z' },
+      { ...fixture.make(23), confirmed: true }, ...(kind === 'trade_profit' ? [{ ...fixture.make(24), incomplete: true }] : []));
+    for (let index = 0; index < 3; index++) assert.equal((await fixture.poll()).events.length, 0);
+    assert(!fixture.calls.includes(fixture.rows[1].mint), 'Preactivation sources must never reach the provider');
+    assert(fixture.calls.includes(fixture.rows[2].mint), 'Eligible ingestion still requires actual receipt-time verification');
+    assert(fixture.cursor.streams[kind].pending.length >= 1, 'Unfinalized evidence remains retryable');
+  }
+});
+
+test('backdated reconciliation requires durable dedup and recovers after its lookup outage', async () => {
+  const fixture = backdatedFixture();
+  fixture.rows.push(fixture.make(20, '2026-10-04T01:30:00Z')); await fixture.poll();
+  fixture.rows.push(fixture.make(21));
+  for (const isKnownEvent of [undefined, async () => { throw new Error('Outbox unavailable'); }, undefined]) {
+    const blocked = await fixture.poll({ adapters: { ...fixture.input.adapters, isKnownEvent } });
+    assert.equal(blocked.events.length, 0);
+    assert.equal(fixture.calls.length, 1, 'Unavailable durable dedup must not invoke backdated chain verification');
+  }
+  let recovered = 0;
+  for (let index = 0; index < 4; index++) recovered += (await fixture.poll()).events.length;
+  assert.equal(recovered, 1);
+});
+
+test('bounded reconciliation wraps to discover a lower ID inserted behind its finite sweep', async () => {
+  const fixture = backdatedFixture();
+  fixture.rows.push(fixture.make(20, '2026-10-04T01:30:00Z')); await fixture.poll();
+  const candidates = Array.from({ length: 8 }, (_, index) => fixture.make(index + 30));
+  const eligible = await collectXPostEvents({ ...fixture.input, state: { launches: candidates } });
+  const ordered = [...eligible.events].sort((a, b) => a.id < b.id ? -1 : 1);
+  const delayed = candidates.find(row => row.mint === ordered[0].payload.mint);
+  fixture.rows.push(...candidates.filter(row => row !== delayed));
+  await fixture.poll({ maxBatch: 1 });
+  fixture.rows.push(delayed);
+  for (let index = 0; index < 20; index++) {
+    const result = await fixture.poll({ maxBatch: 1 });
+    assert(result.events.length <= 1);
+  }
+  assert.equal(fixture.known.size, 9, 'A new lower ID must be discovered on the next finite sweep');
+});
+
+test('one-record batches fairly revisit retries, fresh sources and backdated sources', async () => {
+  const fixture = backdatedFixture();
+  fixture.rows.push(fixture.make(20, '2026-10-04T01:30:00Z')); await fixture.poll();
+  const retry = { ...fixture.make(21, '2026-10-04T01:31:00Z'), unavailable: true };
+  fixture.rows.push(retry); await fixture.poll({ maxBatch: 1 });
+  const late = fixture.make(22); fixture.rows.push(late); fixture.calls.length = 0;
+  for (let index = 0; index < 12; index++) {
+    fixture.rows.push(fixture.make(index + 30, `2026-10-04T01:${String(32 + index).padStart(2, '0')}:00Z`));
+    const result = await fixture.poll({ maxBatch: 1 });
+    assert(result.events.length <= 1);
+  }
+  assert(fixture.calls.includes(late.mint), 'Continuous fresh sources must not starve older discovery');
+  assert(fixture.calls.filter(value => value === retry.mint).length >= 2, 'Retries must keep receiving a bounded share');
+  assert(fixture.known.size >= 3, 'Fresh events must continue while retries fail');
+});
+
+test('full retry capacity cannot discard a newly discovered backdated source', async () => {
+  const fixture = backdatedFixture();
+  fixture.rows.push(...Array.from({ length: 200 }, (_, index) => ({ ...fixture.make(index + 1, '2026-10-04T01:30:00Z'), unavailable: true })));
+  await fixture.poll({ maxBatch: 200 });
+  assert.equal(fixture.cursor.streams.launch.pending.length, 200);
+  const late = fixture.make(220); fixture.rows.push(late);
+  const blocked = await fixture.poll({ maxBatch: 3 });
+  assert.equal(blocked.events.length, 0);
+  assert(!fixture.calls.includes(late.mint));
+  for (const row of fixture.rows) row.unavailable = false;
+  for (let index = 0; index < 5; index++) await fixture.poll({ maxBatch: 200 });
+  assert.equal(fixture.known.size, 201);
+});
+
+test('duplicate storage rows produce one logical event and one verification per poll', async () => {
+  const fixture = backdatedFixture();
+  const first = fixture.make(20, '2026-10-04T01:30:00Z');
+  fixture.rows.push(first, structuredClone(first));
+  assert.equal((await fixture.poll()).events.length, 1);
+  assert.equal(fixture.calls.length, 1);
+  const late = fixture.make(21);
+  fixture.rows.push(late, structuredClone(late));
+  assert.equal((await fixture.poll()).events.length, 1);
+  assert.equal(fixture.calls.filter(value => value === late.mint).length, 1);
+  assert.equal((await fixture.poll()).events.length, 0);
+});
+
+
+test('backdated proof retries retain durable dedup requirements after an adapter configuration outage', async () => {
+  const fixture = backdatedFixture();
+  fixture.rows.push(fixture.make(20, '2026-10-04T01:30:00Z')); await fixture.poll();
+  const late = { ...fixture.make(21), unavailable: true }; fixture.rows.push(late);
+  await fixture.poll();
+  assert.equal(fixture.cursor.streams.launch.pending.length, 1);
+  const calls = fixture.calls.length; late.unavailable = false;
+  const blocked = await fixture.poll({ adapters: { ...fixture.input.adapters, isKnownEvent: undefined } });
+  assert.equal(blocked.events.length, 0);
+  assert.equal(fixture.calls.length, calls, 'A reconciliation retry must not bypass durable dedup');
+  assert.equal(fixture.cursor.streams.launch.pending.length, 1);
+  assert.equal((await fixture.poll()).events.length, 1);
+  assert.equal((await fixture.poll()).events.length, 0);
+});
+
+test('known launch reconciliation cannot starve listings, profits or completed daily summaries in tiny batches', async () => {
+  for (const maxBatch of [1, 2]) {
+    const fixture = backdatedFixture();
+    fixture.input.enabledAt = '2026-10-01T00:00:00Z';
+    fixture.rows.push(fixture.make(20), fixture.make(21, '2026-10-04T01:30:00Z'));
+    await fixture.poll();
+    fixture.input.state.listings = [{ mint, signature, cluster: 'devnet', onchainVerified: true, status: 'listed', listedAt: occurredAt }];
+    fixture.input.adapters.verifyListing = async () => ({ mint, name: 'Fixture', occurredAt, proofs: [proof()] });
+    fixture.input.adapters.verifiedDailyProjects = async ({ windowStart, windowEnd }) => ({ cluster: 'devnet', windowStart, windowEnd, coverage: 'complete', scope: 'recorded-verified-payouts', metric: 'paid_rewards_lamports', projects: [{ mint, name: 'Fixture', amountLamports: '15' }], proofs: [proof()] });
+    fixture.input.adapters.verifiedDailyRewards = async ({ windowStart, windowEnd }) => ({ cluster: 'devnet', windowStart, windowEnd, coverage: 'complete', scope: 'recorded-verified-payouts', payments: [{ id: 'fixture', recipient: wallet, signature, asset: 'SOL', amountLamports: '15', status: 'paid', finalized: true, balanceDeltaVerified: true }], proofs: [proof()] });
+    fixture.input.state.xPublicTradeShares = [{ mint, wallet, buySignature: signature, sellSignature: otherSignature, cluster: 'devnet', publicConsent: true, consentVerified: true, consentedAt: occurredAt }];
+    fixture.input.adapters.verifyPublicClosedTrade = async () => ({ mint, wallet, name: 'Fixture', occurredAt, publicConsent: true, completeCostBasis: true, positionClosed: true, buyCostLamports: '1000000000', sellProceedsLamports: '3000000000', feesLamports: '5000', proofs: [proof(), proof(otherSignature)] });
+    const kinds = [];
+    for (let index = 0; index < 12; index++) {
+      const result = await fixture.poll({ maxBatch });
+      assert(result.events.length <= maxBatch);
+      kinds.push(...result.events.map(event => event.kind));
+    }
+    assert.deepEqual(kinds.sort(), ['daily_projects', 'daily_rewards', 'listing', 'trade_profit']);
+    assert.equal(fixture.known.size, 6);
+  }
+});
+
+test('settled sources do not prevent an older launch from receiving a one-record reconciliation turn', async () => {
+  const fixture = backdatedFixture();
+  fixture.rows.push(fixture.make(20), fixture.make(21, '2026-10-04T01:30:00Z'));
+  fixture.input.state.listings = fixture.rows.map(row => ({ ...row, status: 'listed', listedAt: row.onchainVerifiedAt }));
+  fixture.input.adapters.verifyListing = async row => ({ mint: row.mint, name: 'Fixture', occurredAt: row.listedAt, proofs: [proof()] });
+  fixture.input.state.xPublicTradeShares = fixture.rows.map(row => ({ ...row, wallet, buySignature: signature, sellSignature: otherSignature, publicConsent: true, consentVerified: true, consentedAt: row.onchainVerifiedAt }));
+  fixture.input.adapters.verifyPublicClosedTrade = async row => ({ mint: row.mint, wallet, name: 'Fixture', occurredAt: row.consentedAt, publicConsent: true, completeCostBasis: true, positionClosed: true, buyCostLamports: '1000000000', sellProceedsLamports: '3000000000', feesLamports: '5000', proofs: [proof(), proof(otherSignature)] });
+  await fixture.poll();
+  assert.equal(fixture.known.size, 6);
+  const late = fixture.make(22, '2026-10-04T00:30:00Z'); fixture.rows.push(late);
+  const emitted = [];
+  for (let index = 0; index < 20; index++) {
+    const result = await fixture.poll({ maxBatch: 1 });
+    assert(result.events.length <= 1);
+    emitted.push(...result.events);
+  }
+  assert.deepEqual(emitted.map(event => [event.kind, event.payload.mint]), [['launch', late.mint]]);
+});
