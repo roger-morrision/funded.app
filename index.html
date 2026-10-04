@@ -10,6 +10,27 @@
     <meta property="og:description" content="Explore Solana launches, inspect published fee routes, and follow verified activity. Devnet is for testing." />
     <meta name="twitter:card" content="summary" />
     <script>try{if(localStorage.getItem('funded.desktop-sidebar-collapsed')==='true')document.documentElement.classList.add('sidebar-collapsed')}catch{}</script>
+    <script>
+      (() => {
+        const showStartupFailure = () => {
+          if (document.documentElement.dataset.bootstrapEntryFailed !== 'true' || document.body?.dataset.bootstrapState !== 'loading') return;
+          const message = document.querySelector('[data-bootstrap-message]');
+          if (!message) return;
+          document.body.dataset.bootstrapState = 'failed';
+          message.textContent = 'The app could not finish loading. Check your connection and reload to try again.';
+        };
+        window.addEventListener('error', event => {
+          const script = event.target;
+          if (!(script instanceof HTMLScriptElement) || script.type !== 'module') return;
+          const url = new URL(script.src, location.href);
+          if (url.origin !== location.origin || (url.pathname !== '/bootstrap.js' && !url.pathname.startsWith('/assets/'))) return;
+          if (['ready', 'degraded'].includes(document.body?.dataset.bootstrapState)) return;
+          document.documentElement.dataset.bootstrapEntryFailed = 'true';
+          showStartupFailure();
+        }, true);
+        document.addEventListener('DOMContentLoaded', showStartupFailure, { once: true });
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -37,10 +58,16 @@
     <link rel="stylesheet" href="/token-card-controls.css" />
     <link rel="stylesheet" href="/portfolio-dashboard.css" />
     <link rel="stylesheet" href="/interface-polish.css" />
+    <link rel="stylesheet" href="/bootstrap-gate.css" />
     <title>funded.vip — Launches on the record</title>
   </head>
-  <body class="page-route page-route-overview">
-    <a class="skip-link" href="#main-content">Skip to content</a><div class="app-shell">
+  <body class="page-route page-route-overview" data-bootstrap-state="loading">
+    <aside id="bootstrap-status" role="status" aria-live="polite">
+      <p data-bootstrap-message>Loading the app. Controls will become available when the core app is ready. If loading stalls, check your connection and reload.</p>
+      <a id="bootstrap-reload" href="" onclick="location.reload(); return false;">Reload app</a>
+      <noscript><p>JavaScript is required to use this app. Enable it and reload.</p></noscript>
+    </aside>
+    <a inert data-bootstrap-inert class="skip-link" href="#main-content">Skip to content</a><div class="app-shell" inert data-bootstrap-inert aria-busy="true">
       <aside class="sidebar" id="sidebar" aria-label="Site navigation">
         <div class="brand-row">
           <a class="brand" href="#overview" aria-label="funded.vip home"><span class="brand-mark"><img src="/wolf-mark.svg" alt="" /></span><span>funded<span class="brand-dot">.</span>vip</span></a>
@@ -594,7 +621,7 @@
         </section>
     </main>
     </div>
-    <section class="launch-dialog launch-page launch-page-wizard" id="launch-dialog" aria-labelledby="launch-title">
+    <section inert data-bootstrap-inert class="launch-dialog launch-page launch-page-wizard" id="launch-dialog" aria-labelledby="launch-title">
       <form class="launch-form" id="launch-form">
         <button type="button" class="launch-page-back" id="launch-close" aria-label="Back to home">← Back to home</button>
         <div class="dialog-kicker"><span class="pulse-dot"></span> Pump · Solana Devnet</div>
@@ -719,14 +746,14 @@
           </div>
       </form>
     </section>
-    <dialog class="info-dialog" id="info-dialog" aria-labelledby="info-title"><button class="dialog-close" id="info-close" aria-label="Close information dialog">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> funded.vip</p><h2 id="info-title">Information</h2><div id="info-content"></div></dialog>
-    <dialog class="info-dialog explore-tier-dialog" id="explore-tier-dialog" aria-labelledby="explore-tier-title"><button type="button" class="dialog-close" id="explore-tier-close" aria-label="Close tier details">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> Verified launch policy</p><h2 id="explore-tier-title">Launch tier</h2><div id="explore-tier-details"></div></dialog>
-    <dialog class="info-dialog explore-boost-dialog" id="explore-boost-dialog" aria-labelledby="explore-boost-title"><button type="button" class="dialog-close" id="explore-boost-close" aria-label="Close boost details">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> Promotion · Solana Devnet</p><h2 id="explore-boost-title">Boost a token</h2><div id="explore-boost-details"></div></dialog>
-    <dialog class="info-dialog filter-dialog" id="filter-dialog"><button class="dialog-close" id="filter-close" aria-label="Close filter dialog">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> Explore filters</p><h2 id="filter-title">Choose a filter</h2><div class="filter-options" id="filter-options"></div></dialog>
-    <dialog class="info-dialog" id="payment-dialog"><button class="dialog-close" data-close-dialog="payment-dialog" aria-label="Close payment tape">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> Settlement feed</p><h2>Payment tape</h2><div class="payment-list" id="payment-dialog-list"></div></dialog>
-    <dialog class="info-dialog" id="notification-dialog"><button class="dialog-close" data-close-dialog="notification-dialog" aria-label="Close notifications">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> Notifications</p><h2>No verified notifications</h2><div class="notice-list"><div><strong>Notification feed unavailable</strong><small>This Devnet preview does not index wallet activity for notifications. Check My launches and Payments for available verified status.</small></div></div></dialog>
-    <dialog class="info-dialog" id="profile-dialog"><button class="dialog-close" data-close-dialog="profile-dialog" aria-label="Close wallet profile">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> Wallet details</p><h2>Your wallet workspace</h2><div class="profile-dialog-row"><span>Network</span><strong>Solana Devnet</strong></div><div class="profile-dialog-row profile-address-row"><span>Wallet address</span><span class="profile-address-value"><strong id="profile-address">Not connected</strong><button type="button" class="copy-icon-button" id="profile-copy-address" aria-label="Copy wallet address" title="Connect a wallet before copying its address" disabled>⧉</button></span></div><div class="profile-dialog-row"><span>Wallet balance</span><strong id="profile-balance">Connect to load</strong></div><div class="profile-dialog-row"><span>Private keys</span><strong>Not stored in browser</strong></div><div class="profile-status" id="profile-status">Connect to review your wallet.</div><div class="profile-actions"><button type="button" class="secondary-button" id="profile-disconnect" disabled>Disconnect wallet</button></div></dialog>
-    <dialog class="info-dialog trade-review-dialog" id="trade-review-dialog" aria-labelledby="trade-review-title">
+    <dialog inert data-bootstrap-inert class="info-dialog" id="info-dialog" aria-labelledby="info-title"><button class="dialog-close" id="info-close" aria-label="Close information dialog">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> funded.vip</p><h2 id="info-title">Information</h2><div id="info-content"></div></dialog>
+    <dialog inert data-bootstrap-inert class="info-dialog explore-tier-dialog" id="explore-tier-dialog" aria-labelledby="explore-tier-title"><button type="button" class="dialog-close" id="explore-tier-close" aria-label="Close tier details">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> Verified launch policy</p><h2 id="explore-tier-title">Launch tier</h2><div id="explore-tier-details"></div></dialog>
+    <dialog inert data-bootstrap-inert class="info-dialog explore-boost-dialog" id="explore-boost-dialog" aria-labelledby="explore-boost-title"><button type="button" class="dialog-close" id="explore-boost-close" aria-label="Close boost details">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> Promotion · Solana Devnet</p><h2 id="explore-boost-title">Boost a token</h2><div id="explore-boost-details"></div></dialog>
+    <dialog inert data-bootstrap-inert class="info-dialog filter-dialog" id="filter-dialog"><button class="dialog-close" id="filter-close" aria-label="Close filter dialog">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> Explore filters</p><h2 id="filter-title">Choose a filter</h2><div class="filter-options" id="filter-options"></div></dialog>
+    <dialog inert data-bootstrap-inert class="info-dialog" id="payment-dialog"><button class="dialog-close" data-close-dialog="payment-dialog" aria-label="Close payment tape">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> Settlement feed</p><h2>Payment tape</h2><div class="payment-list" id="payment-dialog-list"></div></dialog>
+    <dialog inert data-bootstrap-inert class="info-dialog" id="notification-dialog"><button class="dialog-close" data-close-dialog="notification-dialog" aria-label="Close notifications">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> Notifications</p><h2>No verified notifications</h2><div class="notice-list"><div><strong>Notification feed unavailable</strong><small>This Devnet preview does not index wallet activity for notifications. Check My launches and Payments for available verified status.</small></div></div></dialog>
+    <dialog inert data-bootstrap-inert class="info-dialog" id="profile-dialog"><button class="dialog-close" data-close-dialog="profile-dialog" aria-label="Close wallet profile">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> Wallet details</p><h2>Your wallet workspace</h2><div class="profile-dialog-row"><span>Network</span><strong>Solana Devnet</strong></div><div class="profile-dialog-row profile-address-row"><span>Wallet address</span><span class="profile-address-value"><strong id="profile-address">Not connected</strong><button type="button" class="copy-icon-button" id="profile-copy-address" aria-label="Copy wallet address" title="Connect a wallet before copying its address" disabled>⧉</button></span></div><div class="profile-dialog-row"><span>Wallet balance</span><strong id="profile-balance">Connect to load</strong></div><div class="profile-dialog-row"><span>Private keys</span><strong>Not stored in browser</strong></div><div class="profile-status" id="profile-status">Connect to review your wallet.</div><div class="profile-actions"><button type="button" class="secondary-button" id="profile-disconnect" disabled>Disconnect wallet</button></div></dialog>
+    <dialog inert data-bootstrap-inert class="info-dialog trade-review-dialog" id="trade-review-dialog" aria-labelledby="trade-review-title">
       <button type="button" class="dialog-close" id="trade-review-close" aria-label="Cancel trade review">×</button>
       <p class="dialog-kicker"><span class="pulse-dot"></span> Solana Devnet · live quote</p>
       <h2 id="trade-review-title">Review trade</h2><p class="trade-review-token-name" id="trade-review-token-name"></p>
@@ -740,7 +767,7 @@
       <p class="trade-review-note" id="trade-review-note"></p><p class="trade-review-expiry">Quote expires in 15 seconds. If it expires, you’ll review a fresh quote before signing.</p>
       <div class="profile-actions trade-review-actions"><button type="button" class="secondary-button" id="trade-review-cancel">Cancel</button><button type="button" class="primary-button" id="trade-review-confirm">Approve in Phantom</button></div>
     </dialog>
-    <dialog class="info-dialog launch-review-dialog" id="launch-review-dialog" aria-labelledby="launch-review-title">
+    <dialog inert data-bootstrap-inert class="info-dialog launch-review-dialog" id="launch-review-dialog" aria-labelledby="launch-review-title">
       <header class="launch-review-head">
         <button type="button" class="dialog-close" id="launch-review-close" aria-label="Close launch review">×</button>
         <p class="dialog-kicker"><span class="pulse-dot"></span> Solana Devnet</p>
@@ -770,10 +797,10 @@
         <div class="profile-actions"><button type="button" class="secondary-button" id="launch-review-cancel">Back</button><button type="button" class="primary-button" id="launch-review-confirm">Continue to Phantom</button></div>
       </footer>
     </dialog>
-    <dialog class="info-dialog list-review" id="list-review" aria-labelledby="list-review-title"><h2 id="list-review-title">Review listing burn</h2><p id="list-review-copy">Burning 25,000 $FUNDED is permanent. The transaction will bind this payment to the token mint below. The listing appears after the server verifies the finalized burn and token metadata.</p><dl><div><dt>Network</dt><dd>Solana Devnet</dd></div><div><dt>Mint</dt><dd id="list-review-mint"></dd></div><div><dt>Wallet</dt><dd id="list-review-wallet"></dd></div><div><dt>Payment</dt><dd id="list-review-payment">25,000 $FUNDED · BurnChecked</dd></div></dl><div class="list-review-actions"><button type="button" class="secondary-button" id="list-review-cancel">Cancel</button><button type="button" class="primary-button" id="list-review-confirm">Approve in wallet</button></div></dialog>
-    <dialog class="info-dialog coin-quick-edit-dialog" id="coin-quick-edit-dialog" aria-labelledby="coin-quick-edit-title"><h2 id="coin-quick-edit-title">Quick buy amounts</h2><p>Set the SOL shortcuts shown on coin trade panels. Saved on this device only.</p><form method="dialog" id="coin-quick-edit-form"><div class="coin-quick-edit-fields" id="coin-quick-edit-fields"></div><p class="coin-quick-edit-error" id="coin-quick-edit-error" role="status"></p><div class="coin-quick-edit-actions"><button type="button" id="coin-quick-edit-reset">Reset defaults</button><button type="button" id="coin-quick-edit-cancel">Cancel</button><button type="submit" class="primary-button">Save</button></div></form></dialog>
-    <dialog class="info-dialog mobile-wallet-dialog" id="mobile-wallet-dialog"><button class="dialog-close" id="mobile-wallet-close" aria-label="Close mobile wallet dialog">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> Mobile wallet</p><h2>Connect Phantom to this desktop</h2><p id="mobile-wallet-message">Scan with Phantom and approve the Devnet connection. Your wallet address will appear here.</p><div class="mobile-wallet-qr-wrap"><img id="mobile-wallet-qr" alt="Scan to connect Phantom mobile wallet to this desktop" hidden /><span id="mobile-wallet-qr-label">Preparing a secure request…</span></div><div class="mobile-wallet-steps"><div><b>1</b><span>Scan this QR with Phantom on your phone</span></div><div><b>2</b><span>Approve the Devnet wallet connection</span></div><div><b>3</b><span>Continue on this desktop; scan again when a claim needs signing</span></div></div><div class="mobile-wallet-actions"><button type="button" class="secondary-button" id="mobile-wallet-copy">Copy Phantom link</button><button type="button" class="secondary-button" id="mobile-wallet-alternate" hidden>Use browser signing</button></div><small class="field-help">The phone approves requests. Your private key never enters this desktop or the app server.</small></dialog>
-    <dialog class="share-dialog" id="share-dialog" aria-labelledby="share-title">
+    <dialog inert data-bootstrap-inert class="info-dialog list-review" id="list-review" aria-labelledby="list-review-title"><h2 id="list-review-title">Review listing burn</h2><p id="list-review-copy">Burning 25,000 $FUNDED is permanent. The transaction will bind this payment to the token mint below. The listing appears after the server verifies the finalized burn and token metadata.</p><dl><div><dt>Network</dt><dd>Solana Devnet</dd></div><div><dt>Mint</dt><dd id="list-review-mint"></dd></div><div><dt>Wallet</dt><dd id="list-review-wallet"></dd></div><div><dt>Payment</dt><dd id="list-review-payment">25,000 $FUNDED · BurnChecked</dd></div></dl><div class="list-review-actions"><button type="button" class="secondary-button" id="list-review-cancel">Cancel</button><button type="button" class="primary-button" id="list-review-confirm">Approve in wallet</button></div></dialog>
+    <dialog inert data-bootstrap-inert class="info-dialog coin-quick-edit-dialog" id="coin-quick-edit-dialog" aria-labelledby="coin-quick-edit-title"><h2 id="coin-quick-edit-title">Quick buy amounts</h2><p>Set the SOL shortcuts shown on coin trade panels. Saved on this device only.</p><form method="dialog" id="coin-quick-edit-form"><div class="coin-quick-edit-fields" id="coin-quick-edit-fields"></div><p class="coin-quick-edit-error" id="coin-quick-edit-error" role="status"></p><div class="coin-quick-edit-actions"><button type="button" id="coin-quick-edit-reset">Reset defaults</button><button type="button" id="coin-quick-edit-cancel">Cancel</button><button type="submit" class="primary-button">Save</button></div></form></dialog>
+    <dialog inert data-bootstrap-inert class="info-dialog mobile-wallet-dialog" id="mobile-wallet-dialog"><button class="dialog-close" id="mobile-wallet-close" aria-label="Close mobile wallet dialog">×</button><p class="dialog-kicker"><span class="pulse-dot"></span> Mobile wallet</p><h2>Connect Phantom to this desktop</h2><p id="mobile-wallet-message">Scan with Phantom and approve the Devnet connection. Your wallet address will appear here.</p><div class="mobile-wallet-qr-wrap"><img id="mobile-wallet-qr" alt="Scan to connect Phantom mobile wallet to this desktop" hidden /><span id="mobile-wallet-qr-label">Preparing a secure request…</span></div><div class="mobile-wallet-steps"><div><b>1</b><span>Scan this QR with Phantom on your phone</span></div><div><b>2</b><span>Approve the Devnet wallet connection</span></div><div><b>3</b><span>Continue on this desktop; scan again when a claim needs signing</span></div></div><div class="mobile-wallet-actions"><button type="button" class="secondary-button" id="mobile-wallet-copy">Copy Phantom link</button><button type="button" class="secondary-button" id="mobile-wallet-alternate" hidden>Use browser signing</button></div><small class="field-help">The phone approves requests. Your private key never enters this desktop or the app server.</small></dialog>
+    <dialog inert data-bootstrap-inert class="share-dialog" id="share-dialog" aria-labelledby="share-title">
       <div class="share-dialog-inner">
         <div class="share-dialog-head"><div><p class="eyebrow">Share from funded.vip</p><h2 id="share-title">Share</h2><small id="share-network"></small></div><button type="button" id="share-close" aria-label="Close share menu">×</button></div>
         <label>Message<textarea id="share-message" maxlength="280"></textarea></label>

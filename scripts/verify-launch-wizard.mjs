@@ -17,7 +17,29 @@ for (const step of [1, 2, 3]) {
 
 assert.match(html, /id="launch-mode-quick"/);
 assert.match(html, /id="launch-mode-custom"/);
-const launchPage = html.split('<section class="launch-dialog launch-page launch-page-wizard"')[1]?.split('<dialog class="info-dialog"')[0] || '';
+function launchSection(source) {
+  // The launch workspace contains nested sections. Match its ID regardless of
+  // attribute order, then stop at its own closing tag, not a later dialog.
+  const tags = /<!--[\s\S]*?-->|<section\b(?:"[^"]*"|'[^']*'|[^'">])*>|<\/section\s*>/gi;
+  let start = -1, depth = 0;
+  for (const match of source.matchAll(tags)) {
+    if (match[0].startsWith('<!--')) continue;
+    const closing = /^<\//.test(match[0]);
+    if (start < 0) {
+      if (closing || !/\sid\s*=\s*(["'])launch-dialog\1(?=\s|>)/i.test(match[0])) continue;
+      start = match.index;
+    }
+    depth += closing ? -1 : 1;
+    if (depth === 0) return source.slice(start, match.index + match[0].length);
+  }
+  return '';
+}
+for (const opening of ['<section id="launch-dialog" class="launch-page" inert>', "<section inert class='launch-page' id='launch-dialog'>"]) {
+  const section = `${opening}<section>Nested</section><p>After nested section</p></section>`;
+  assert.equal(launchSection(`<section data-id="launch-dialog">Outside</section><!-- <section id="launch-dialog"> -->${section}<section>Following</section><dialog>Outside dialog</dialog>`), section, 'Section extraction must preserve nested content and exclude adjacent markup.');
+}
+assert.equal(launchSection('<section id="launch-dialog"><section>Incomplete</section>'), '', 'An unclosed launch workspace must not absorb unrelated markup.');
+const launchPage = launchSection(html);
 assert.ok(launchPage, 'Dedicated launch page must exist');
 assert.doesNotMatch(html, /<dialog[^>]+id="launch-dialog"/, 'Launch workspace must not be a modal dialog.');
 assert.match(html, /class="launch-dialog launch-page launch-page-wizard"/, 'Launch workspace must use the three-step layout.');

@@ -1,0 +1,26 @@
+#bootstrap-status {
+  position: relative;
+  z-index: 1001;
+  box-sizing: border-box;
+  width: min(1120px, calc(100% - 32px));
+  margin: 16px auto;
+  padding: 16px 20px;
+  border: 1px solid #6c7891;
+  border-radius: 10px;
+  background: #151d2a;
+  color: #f3f6fa;
+  font: 14px/1.5 system-ui, sans-serif;
+}
+#bootstrap-status[hidden] { display: none !important; }
+#bootstrap-status p { margin: 0 0 10px; }
+#bootstrap-reload {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  color: #f3c27b;
+  text-underline-offset: 3px;
+}
+#bootstrap-reload:focus-visible { outline: 3px solid #ffd28a; outline-offset: 3px; }
