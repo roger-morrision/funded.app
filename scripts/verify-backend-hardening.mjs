@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
+import { createServer, request } from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -35,8 +35,33 @@ const server = spawn(process.execPath, ['server/index.mjs'], {
 });
 const base = `http://127.0.0.1:${port}`;
 async function post(path, payload, headers = {}) {
-  const response = await fetch(`${base}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(payload) });
-  return { status: response.status, data: await response.json() };
+  const body = JSON.stringify(payload);
+  try {
+    const response = await fetch(`${base}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body });
+    return { status: response.status, data: await response.json() };
+  } catch (cause) {
+    throw new Error(`POST ${path} (${Buffer.byteLength(body)} bytes) failed before a complete JSON response.`, { cause });
+  }
+}
+function oversizedHeaders() {
+  // A server may reject Content-Length before receiving the upload. Sending a
+  // megabyte through fetch races that valid early close against Undici's writes
+  // (EPIPE on Node 24). Send the headers first and require the actual HTTP error;
+  // streamed overflow without Content-Length is covered by request-body tests.
+  return new Promise((resolve, reject) => {
+    const req = request(`${base}/api/solana/rpc`, { method:'POST', headers:{ 'content-type':'application/json', 'content-length':'1000001' } }, res => {
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.once('error', reject);
+      res.once('end', () => {
+        try { resolve({ status:res.statusCode, headers:res.headers, data:JSON.parse(Buffer.concat(chunks).toString('utf8')) }); }
+        catch (error) { reject(error); }
+      });
+    });
+    req.once('error', reject);
+    req.setTimeout(5000, () => req.destroy(new Error('Oversized headers did not receive an early HTTP response.')));
+    req.flushHeaders();
+  });
 }
 try {
   let ready = false;
@@ -51,7 +76,12 @@ try {
   assert.equal((await post('/api/solana/rpc', { jsonrpc: '2.0', id: 1, method: 'requestAirdrop', params: [] })).status, 400);
   assert.equal((await post('/api/solana/rpc', { jsonrpc: '2.0', id: 2, method: 'getProgramAccounts', params: [] })).status, 400);
   assert.equal((await post('/api/solana/rpc', { jsonrpc: '2.0', id: 3, method: 'sendTransaction', params: ['x'.repeat(3001)] })).status, 400);
-  assert.equal((await post('/api/solana/rpc', { jsonrpc: '2.0', id: 4, method: 'sendTransaction', params: ['x'.repeat(1_000_001)] })).status, 413);
+  const oversized = await oversizedHeaders();
+  assert.equal(oversized.status, 413);
+  assert.equal(oversized.data.error, 'Request body too large.');
+  assert.match(oversized.data.requestId, /^[0-9a-f-]{36}$/);
+  assert.equal(oversized.headers['x-request-id'], oversized.data.requestId);
+  assert.equal(oversized.headers.connection, 'close');
   assert.equal(rpcCalls, 0, 'Rejected RPC requests must not reach the provider.');
   for (let attempt = 0; attempt < 11; attempt += 1) {
     const result = await post('/api/solana/rpc', { jsonrpc: '2.0', id: attempt + 10, method: 'sendTransaction', params: ['AAAA'] });
