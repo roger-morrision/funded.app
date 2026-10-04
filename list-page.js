@@ -1,21 +1,15 @@
 import { Buffer } from 'buffer';
+import bs58 from 'bs58';
 import { PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
 import { createBurnCheckedInstruction, getAccount, getMint, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, unpackAccount } from '@solana/spl-token';
 import { apiRequest } from './client.js';
 import { waitForSignatureConfirmation } from './funded-burn.js';
 import { LISTING_BURN_TOKENS, LISTING_DEVNET_GENESIS_HASH, listingBurnBaseUnits, listingMemo } from './listing-policy.js';
 import { canSignTransactions } from './wallet-core.js';
+import { readPendingListing, savePendingListing, clearPendingListing } from './listing-recovery.js';
 
 const MEMO_PROGRAM = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
-const PENDING_KEY = 'funded.vip.pending-listing-burn.v1';
 const byId = id => document.getElementById(id);
-
-function readPending() {
-  try { return JSON.parse(sessionStorage.getItem(PENDING_KEY) || 'null'); } catch { return null; }
-}
-function savePending(value) {
-  try { if (value) sessionStorage.setItem(PENDING_KEY, JSON.stringify(value)); else sessionStorage.removeItem(PENDING_KEY); } catch {}
-}
 
 export function initPaidListing({ getSolana, getConnection, getSession, assertSession, connectWallet, cluster, fundedMint, mainnetReadOnly }) {
   const mintInput = byId('list-mint');
@@ -40,6 +34,25 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
   let lookup = null;
   let lookupSequence = 0;
   let lookupTimer = null;
+  let recoveryError = '';
+  let pendingNotice = null;
+  let retainedPending = null;
+  function readPending() {
+    try {
+      const pending = readPendingListing();
+      if (retainedPending && JSON.stringify(pending) !== JSON.stringify(retainedPending)) throw new Error('Saved listing recovery changed or disappeared. The original signed receipt is retained in this tab; do not submit another burn.');
+      if (pending) retainedPending = pending;
+      recoveryError = ''; return pending;
+    }
+    catch (error) { recoveryError = error.message || 'Listing recovery storage is unavailable. Do not submit another burn.'; return retainedPending; }
+  }
+  function setPendingStatus(message, pending) {
+    pendingNotice = { signature: pending.signature, message };
+    setStatus(message, pending.signature);
+  }
+  function sessionCurrent(session) {
+    try { assertSession(session); return true; } catch { return false; }
+  }
 
   const configuredBurnTokens = () => {
     const amount = Number(config?.burnTokens);
@@ -78,7 +91,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     const pending = readPending();
     if (detailFields) detailFields.hidden = true;
     if (detailNote) detailNote.hidden = true;
-    if (status) status.hidden = !verified && !pending;
+    if (status) status.hidden = !verified && !pending && !recoveryError;
     mintInput.removeAttribute('aria-invalid');
     help.classList.remove('is-valid', 'is-invalid');
     if (!value) help.textContent = 'Enter a Solana Devnet mint to check its address format.';
@@ -108,15 +121,19 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       }
     }
     if (payButton) payButton.hidden = !verified || Boolean(existing);
-    recovery.hidden = !pending;
+    recovery.hidden = !pending && !recoveryError;
+    byId('list-retry').disabled = busy || !pending || Boolean(recoveryError);
     const amountTokens = configuredBurnTokens();
     const ready = listingsAvailable && config?.enabled === true && config.cluster === 'devnet' && config.fundedMint === fundedMint
       && amountTokens != null && cluster === 'devnet' && !mainnetReadOnly;
     renderBurnCopy();
     availability.textContent = ready ? `${burnLabel()} $FUNDED · Devnet` : 'Payment unavailable';
-    payButton.disabled = !ready || !verified || busy || Boolean(existing) || Boolean(pending);
+    payButton.disabled = !ready || !verified || busy || Boolean(existing) || Boolean(pending) || Boolean(recoveryError);
     payButton.textContent = busy ? 'Processing…' : pending ? 'Resolve pending burn first' : existing ? 'Already listed' : ready ? `Review ${burnLabel()} $FUNDED burn` : 'Listing unavailable';
-    if (existing) setStatus('Listing burn verified.', existing.signature);
+    if (recoveryError) setStatus(recoveryError, pending?.signature);
+    else if (pending) setStatus(pendingNotice?.signature === pending.signature ? pendingNotice.message
+      : 'A signed burn is saved in this tab. Verify its original receipt before another payment; submission may be unconfirmed.', pending.signature);
+    else if (existing) setStatus('Listing burn verified.', existing.signature);
   }
   function queueLookup() {
     const sequence = ++lookupSequence;
@@ -175,7 +192,11 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       listings = result.data.listings;
       listingsAvailable = true;
       const pending = readPending();
-      if (pending && listings.some(item => item.mint === pending.mint && item.signature === pending.signature)) savePending(null);
+      if (pending && listings.some(item => item.mint === pending.mint && item.signature === pending.signature
+        && item.onchainVerified === true && item.cluster === 'devnet' && (item.wallet == null || item.wallet === pending.wallet))) {
+        try { clearPendingListing(pending); retainedPending = null; pendingNotice = null; }
+        catch (error) { setPendingStatus(`Listing receipt verified, but recovery cleanup is incomplete: ${error.message}`, pending); }
+      }
       renderListings();
       if (mintValue() && listings.some(item => item.mint === mintValue() && item.onchainVerified === true)) queueLookup();
       else draw();
@@ -196,6 +217,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     if (payButton.disabled) return;
     busy = true; draw();
     try {
+      if (readPending() || recoveryError) throw new Error(recoveryError || 'Verify the saved signed burn before another payment.');
       if (!await refreshListings()) throw new Error('The public listing index is unavailable. Payment is paused.');
       if (listings.some(item => item.mint === mintValue())) throw new Error('This mint is already listed. No new payment is needed.');
       let session = getSession();
@@ -238,17 +260,19 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     finally { busy = false; draw(); }
   }
   async function claimPending(pending = readPending()) {
-    if (!pending) return;
+    if (busy || !pending || recoveryError) return;
     busy = true; draw();
     try {
       const result = await apiRequest('/api/listings', { method: 'POST', body: pending, signal: AbortSignal.timeout(20000) });
-      if (!result.available || result.data?.mint !== pending.mint || result.data?.signature !== pending.signature || result.data?.onchainVerified !== true)
+      if (!result.available || result.data?.mint !== pending.mint || result.data?.signature !== pending.signature || result.data?.onchainVerified !== true
+        || result.data?.cluster !== 'devnet' || (result.data.wallet != null && result.data.wallet !== pending.wallet))
         throw new Error('The receipt was not confirmed by the listing index.');
-      savePending(null);
+      try { clearPendingListing(pending); retainedPending = null; pendingNotice = null; }
+      catch (error) { retainedPending = pending; setPendingStatus(`Listing receipt verified, but recovery cleanup is incomplete: ${error.message}`, pending); return; }
       setStatus('Listing verified and live in Launch Directory.', pending.signature);
       await refreshListings();
       window.dispatchEvent(new Event('funded:listing-verified'));
-    } catch (error) { setStatus(`Burn submitted; listing verification is pending: ${error.message}`, pending.signature); }
+    } catch (error) { setPendingStatus(`Signed burn receipt verification is pending: ${error.message} Do not submit another burn.`, pending); }
     finally { busy = false; draw(); }
   }
   async function submitPayment() {
@@ -257,11 +281,15 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     busy = true; draw();
     let signature = '';
     let confirmedFailure = false;
+    let broadcastStarted = false;
+    let pending = null;
     try {
       assertSession(payment.session);
+      if (readPending() || recoveryError) throw new Error(recoveryError || 'Verify the saved signed burn before another payment.');
       if (mintInput.value.trim() !== payment.mint || nameInput.value.trim() !== payment.name || symbolInput.value.trim() !== payment.symbol)
         throw new Error('Listing details changed. Review the payment again.');
       const latest = await payment.rpc.getLatestBlockhash('confirmed');
+      assertSession(payment.session);
       const transaction = new Transaction({ feePayer: payment.session.provider.publicKey, recentBlockhash: latest.blockhash }).add(
         createBurnCheckedInstruction(payment.source.address, payment.fundedKey, payment.session.provider.publicKey,
           payment.amount, payment.decimals, [], payment.tokenProgram),
@@ -270,22 +298,46 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       setStatus(`Review the irreversible ${Number(payment.amountTokens).toLocaleString('en-US')} $FUNDED burn in your wallet.`);
       const signed = await payment.session.provider.signTransaction(transaction);
       assertSession(payment.session);
-      signature = await payment.rpc.sendRawTransaction(signed.serialize(), { skipPreflight: false, maxRetries: 3 });
-      const pending = { mint: payment.mint, name: payment.name, symbol: payment.symbol, wallet: payment.session.address, signature };
-      savePending(pending);
-      setStatus('Burn submitted. Waiting for Devnet confirmation.', signature);
+      const raw = signed.serialize();
+      const signedIdentity = Transaction.from(raw).signature;
+      if (!signedIdentity || signedIdentity.length !== 64) throw new Error('The wallet did not return a valid signed transaction.');
+      signature = bs58.encode(signedIdentity);
+      pending = { mint: payment.mint, name: payment.name, symbol: payment.symbol, wallet: payment.session.address, signature, cluster: 'devnet' };
+      savePendingListing(pending);
+      retainedPending = pending;
+      assertSession(payment.session);
+      broadcastStarted = true;
+      const returned = await payment.rpc.sendRawTransaction(raw, { skipPreflight: false, maxRetries: 3 });
+      if (returned !== signature) throw new Error('RPC returned a different signature. Verify the originally signed burn.');
+      if (!sessionCurrent(payment.session)) return;
+      setPendingStatus('Burn submitted. Waiting for Devnet confirmation.', pending);
       const confirmation = await waitForSignatureConfirmation(payment.rpc, { signature, lastValidBlockHeight: latest.lastValidBlockHeight, commitment:'finalized' });
-      if (confirmation.value.err) { savePending(null); confirmedFailure = true; throw new Error('The burn transaction failed on-chain.'); }
+      if (!sessionCurrent(payment.session)) return;
+      if (confirmation?.status?.confirmationStatus !== 'finalized') throw new Error('The original burn has no finalized outcome yet.');
+      if (confirmation?.value?.err !== null) {
+        if (confirmation?.value?.err !== undefined) {
+          confirmedFailure = true;
+          try { clearPendingListing(pending); retainedPending = null; pendingNotice = null; }
+          catch (error) { setPendingStatus(`The burn failed on-chain. Recovery cleanup is incomplete: ${error.message}`, pending); return; }
+          throw new Error('The burn transaction failed on-chain.');
+        }
+        throw new Error('Finalized confirmation is unavailable.');
+      }
       const [sourceAfter, mintAfter] = await Promise.all([
         getAccount(payment.rpc, payment.source.address, 'finalized', payment.tokenProgram),
         getMint(payment.rpc, payment.fundedKey, 'finalized', payment.tokenProgram),
       ]);
       if (payment.source.amount - sourceAfter.amount !== payment.amount || payment.supplyBefore - mintAfter.supply < payment.amount)
         throw new Error('The expected token balance and supply deltas were not observed.');
+      if (!sessionCurrent(payment.session)) return;
+      busy = false;
       await claimPending(pending);
     } catch (error) {
-      setStatus(confirmedFailure ? 'The burn transaction failed on Devnet; no listing fee was paid.'
-        : signature ? `Burn submitted; listing verification is pending: ${error.message}` : `No burn submitted: ${error.message}`, signature);
+      if (!sessionCurrent(payment.session)) return;
+      if (confirmedFailure) setStatus('The burn transaction failed on Devnet; no listing fee was paid.', signature);
+      else if (broadcastStarted) setPendingStatus(`Burn outcome is uncertain: ${error.message} Verify the original receipt; do not submit another burn.`, pending);
+      else if (pending && readPending()?.signature === signature) setPendingStatus(`No broadcast was started. The signed burn remains saved for verification: ${error.message}`, pending);
+      else setStatus(`No burn submitted: ${error.message}`);
     } finally { busy = false; draw(); }
   }
 

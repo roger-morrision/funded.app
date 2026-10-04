@@ -110,3 +110,21 @@ The optional `funded.pendingTradeMint` handoff previously made required App init
 ## Explore pagination input contract
 
 Malformed pagination previously became `NaN` or fractional values, producing an empty HTTP 200 Devnet feed or invalid upstream provider parameters. Both Explore endpoints now accept a single unsigned decimal safe integer for each supplied `limit` and `offset`. Missing values default to 40 and 0; valid values retain the existing 1–100 and 0–10,000 clamps, including a zero limit becoming 1. Leading zeroes are accepted. Explicit empty values, duplicates, signs, whitespace, fractions, exponent/hex syntax and unsafe integers return HTTP 400 before storage, connection or provider work. Keep actual-route regressions for this ordering and for valid page selection; validation does not establish indexed feed scalability.
+
+## Signature-history RPC budget
+
+The proxy previously checked an omitted `getSignaturesForAddress` limit as 100 but forwarded the omission unchanged; Solana's default is 1,000. Normalize missing configuration or limit to an explicit 100 before cache lookup and forwarding. Explicit limits must be numeric integers from 1 through 100, and configuration must be an object. Preserve cursor, commitment and minimum-slot options. Keep actual-proxy tests for rejected inputs before rate/storage/provider work, equivalent default/explicit cache keys and caller-specific response IDs. This bounds one request's history count, not total application scaling.
+
+## Listing-burn uncertainty and recovery
+
+The active listing handler previously reported “No burn submitted” when RPC broadcast timed out after possible acceptance. It also ignored recovery-storage failures and broadcast without retaining a receipt. Persist and verify the original signed transaction identity before broadcast; if storage cannot be read or confirmed, pause payment. Never replace that identity with a different RPC return value. Preserve the receipt and block another burn across uncertain broadcast, confirmation and indexing results. Only a matching verified Devnet listing or a finalized failure can clear the saved record; failed cleanup must retain the lock and explain the remaining record. A non-finalized error is still an uncertain outcome for this purpose.
+
+Keep offline handler and native component-browser tests for denied/corrupt storage, failed writes and cleanup, reload recovery, mismatched RPC identities, early errors, stale wallet sessions and repeated receipt verification. The journal is sessionStorage in the current tab, with an in-memory fallback during that page session; it is not cross-tab or permanent recovery after closing the tab. Never infer global duplicate-payment prevention or live wallet acceptance from these fixtures. Keep the tab and original signature while verification is unresolved; do not clear site data as a recovery shortcut.
+
+Receipt Retry asks the listing verifier about the saved transaction. After reload, a signed-only, never-landed or failed transaction may remain conservatively locked if that verifier cannot establish a successful listing. A separately reviewed finalized-failure/expiry recovery path is still needed; this repair does not infer failure from an absent receipt or promise complete automatic recovery.
+
+## Remaining observed usability and release gaps
+
+Native watchlist Save and Remove actions with a denied localStorage write currently throw an uncaught quota error without useful feedback; the stored selection and pressed state stay unchanged. Add explicit failure feedback and retain the last persisted selection, then verify native actions under storage failure. Airdrop draft Save/Delete has a similar unguarded storage path in code, but still needs an independent browser reproduction before selecting a repair.
+
+The standalone container-browser verifier receives `FUNDED_EXPECT_BUILD` in CI but does not itself assert or report that identity. Earlier image and HTTP checks currently bind the CI chain to the expected source. Extend standalone browser evidence to enforce that identity before presenting it as a self-contained release check; do not misclassify the current whole CI chain as unbound.

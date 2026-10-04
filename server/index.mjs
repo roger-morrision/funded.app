@@ -302,7 +302,18 @@ async function proxySolanaRpc(req, res) {
   if (request.method === 'getProgramAccounts' && !authorized(req)) return json(res, 401, { error: 'Privileged Solana RPC authorization is required.' });
   const now = Date.now();
   if (['sendTransaction', 'simulateTransaction'].includes(request.method) && (typeof request.params[0] !== 'string' || request.params[0].length > 3_000)) return json(res, 400, { error: 'Invalid serialized transaction.' });
-  if (request.method === 'getSignaturesForAddress' && Number(request.params[1]?.limit || 100) > 100) return json(res, 400, { error: 'Signature lookup limit exceeds 100.' });
+  if (request.method === 'getSignaturesForAddress') {
+    const options = request.params.length === 1 ? {} : request.params[1];
+    if (request.params.length < 1 || request.params.length > 2 || !options || typeof options !== 'object' || Array.isArray(options)) {
+      return json(res, 400, { error: 'Signature lookup requires an address and an optional configuration object.' });
+    }
+    const { limit: requestedLimit, ...config } = options;
+    const limit = Object.hasOwn(options, 'limit') ? requestedLimit : 100;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) return json(res, 400, { error: 'Signature lookup limit must be an integer from 1 to 100.' });
+    // Solana defaults to 1,000 if omitted. Normalize before cache keys and
+    // forwarding so omitted and explicit capped limits use the same request.
+    request.params = [request.params[0], { ...config, limit }];
+  }
   const cacheable = !['sendTransaction', 'simulateTransaction', 'requestAirdrop'].includes(request.method);
   const cacheKey = cacheable ? JSON.stringify([request.method, request.params]) : null;
   const cached = cacheKey && rpcCache.get(cacheKey);
