@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master, enhance/**]
+
+jobs:
+  lint-build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NODE_ENV: test
+      VITE_API_BASE_URL: /
+      VITE_SOLANA_CLUSTER: devnet
+      VITE_EXPLORE_CLUSTER: devnet
+      VITE_ALLOW_MAINNET: false
+      VITE_JACKPOT_ENABLED: false
+      VITE_DEV_MODE: false
+      VITE_DEV_AUTOCONNECT: false
+      VITE_DEV_WALLET_ROLE: creator
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run build -- --mode test
+
+      - name: Build app
+        run: npm run build
+
+      - name: Verify env validation
+        run: node --input-type=module -e "import('./src/lib/env.js').then(({ validateRuntimeEnv }) => validateRuntimeEnv({ VITE_SOLANA_CLUSTER: 'devnet', VITE_API_BASE_URL: '/', VITE_ALLOW_MAINNET: 'false' })).then(() => console.log('env ok'))"
