@@ -53,13 +53,14 @@ jobs:
     timeout-minutes: 25
     env:
       FUNDED_CI_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
-      FUNDED_CI_ROOT: ${{ runner.temp }}/funded-image-ci
       FUNDED_CI_PROJECT: funded-image-ci-${{ github.run_id }}-${{ github.run_attempt }}
       FUNDED_CI_NODE_IMAGE: node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Initialize the runner-local verification directory
+        run: printf 'FUNDED_CI_ROOT=%s/funded-image-ci\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
