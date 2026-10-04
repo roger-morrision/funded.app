@@ -42,7 +42,8 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
     VITE_FUNDED_PREMIER_BURN_AMOUNT=$VITE_FUNDED_PREMIER_BURN_AMOUNT
 RUN if [ "$VITE_SOLANA_CLUSTER" = "devnet" ] && [ -z "$VITE_API_BASE_URL" ]; then \
       echo "VITE_API_BASE_URL is required for the Devnet browser build" >&2; exit 1; \
-    fi && npm run build && npm prune --omit=dev --ignore-scripts --offline --no-audit --no-fund
+    fi && npm run build && npm prune --omit=dev --ignore-scripts --offline --no-audit --no-fund \
+    && chmod -R a+rX /app
 
 FROM ${NODE_IMAGE}
 ARG VITE_DEVNET_METADATA_ORIGIN=https://metadata.funded.vip
@@ -55,7 +56,8 @@ ENV FUNDED_BUILD_ID=$FUNDED_SOURCE_REVISION
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=8787
 WORKDIR /app
 COPY --from=build /app /app
-RUN chmod -R a+rX /app && mkdir -p /app/data && chown node:node /app/data
+# Permissions are normalized before COPY so runtime layers do not copy up /app.
+RUN mkdir -p /app/data && chown node:node /app/data
 USER node
 EXPOSE 8787
 CMD ["node", "server/index.mjs"]

@@ -48,6 +48,114 @@ jobs:
         with:
           name: browser-failure-traces
           path: test-results/
+  docker-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      FUNDED_CI_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      FUNDED_CI_ROOT: ${{ runner.temp }}/funded-image-ci
+      FUNDED_CI_PROJECT: funded-image-ci-${{ github.run_id }}-${{ github.run_attempt }}
+      FUNDED_CI_NODE_IMAGE: node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Build the exact revision with restrictive source permissions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$FUNDED_CI_REVISION"
+          # Reproduce private archive modes; the runtime must still read these.
+          chmod 700 server scripts db
+          chmod 600 server/index.mjs scripts/migrate-postgres.mjs db/schema.sql
+          build_args=(--build-arg "NODE_IMAGE=$FUNDED_CI_NODE_IMAGE" --build-arg "FUNDED_SOURCE_REVISION=$FUNDED_CI_REVISION")
+          if [ -n "${CODEX_PROXY_CERT:-}" ]; then
+            build_args+=(--secret "id=proxy_ca,src=$CODEX_PROXY_CERT")
+          fi
+          docker build "${build_args[@]}" --tag "funded-ci:$FUNDED_CI_REVISION" .
+      - name: Prepare isolated disposable runtime credentials
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { mkdir, writeFile } from 'node:fs/promises';
+          import { randomBytes } from 'node:crypto';
+          import { join } from 'node:path';
+          const root = process.env.FUNDED_CI_ROOT;
+          await mkdir(join(root, 'evidence'), { recursive: true, mode: 0o700 });
+          const password = randomBytes(32).toString('hex');
+          for (const [name, value] of Object.entries({
+            database_password: password,
+            database_url: `postgresql://funded:${password}@db:5432/funded_app`,
+            api_token: randomBytes(32).toString('hex'),
+            solana_devnet_rpc_url: 'https://api.devnet.solana.com',
+          })) await writeFile(join(root, name), value + '\n', { mode: 0o444 });
+          const selectors = {
+            FUNDED_APP_IMAGE: `funded-ci:${process.env.FUNDED_CI_REVISION}`,
+            FUNDED_BUILD_ID: process.env.FUNDED_CI_REVISION,
+            FUNDED_PUBLIC_APP_URL: 'http://127.0.0.1:8788',
+            FUNDED_DB_PASSWORD_FILE: join(root, 'database_password'),
+            FUNDED_DATABASE_URL_FILE: join(root, 'database_url'),
+            FUNDED_API_TOKEN_FILE: join(root, 'api_token'),
+            FUNDED_DEVNET_RPC_URL_FILE: join(root, 'solana_devnet_rpc_url'),
+          };
+          await writeFile(join(root, 'selectors.env'), Object.entries(selectors).map(([key, value]) => `${key}=${value}`).join('\n') + '\n', { mode: 0o600 });
+          NODE
+      - name: Start the read-only Devnet app and isolated PostgreSQL
+        run: docker compose --env-file "$FUNDED_CI_ROOT/selectors.env" -p "$FUNDED_CI_PROJECT" -f compose.devnet-release.yml up -d --wait --wait-timeout 120
+      - name: Verify image permissions, source identity and runtime layer size
+        shell: bash
+        run: |
+          set -euo pipefail
+          container_id="$(docker compose --env-file "$FUNDED_CI_ROOT/selectors.env" -p "$FUNDED_CI_PROJECT" -f compose.devnet-release.yml ps -q app)"
+          FUNDED_EXPECT_BUILD="$FUNDED_CI_REVISION" node scripts/verify-container-image.mjs "$container_id" > "$FUNDED_CI_ROOT/evidence/image.json"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { execFileSync } from 'node:child_process';
+          import { writeFileSync } from 'node:fs';
+          const image = `funded-ci:${process.env.FUNDED_CI_REVISION}`;
+          const docker = args => execFileSync('docker', args, { encoding: 'utf8' });
+          const [metadata] = JSON.parse(docker(['image', 'inspect', image]));
+          assert.equal(metadata.Config.Labels['org.opencontainers.image.revision'], process.env.FUNDED_CI_REVISION);
+          const history = docker(['history', '--human=false', '--no-trunc', '--format', '{{json .}}', image]).trim().split('\n').map(line => JSON.parse(line));
+          assert.equal(history.some(row => row.CreatedBy.includes('chmod -R a+rX /app')), false, 'The runtime image must not contain a recursive permission layer.');
+          const dataLayer = history.find(row => row.CreatedBy.includes('mkdir -p /app/data') && row.CreatedBy.includes('chown node:node /app/data'));
+          assert.ok(dataLayer, 'The runtime data directory must be provisioned.');
+          const dataLayerBytes = Number(dataLayer.Size);
+          assert.ok(Number.isSafeInteger(dataLayerBytes) && dataLayerBytes >= 0 && dataLayerBytes < 1024 * 1024, 'Data-directory setup should not copy up application files.');
+          writeFileSync(`${process.env.FUNDED_CI_ROOT}/evidence/layers.json`, JSON.stringify({ source: process.env.FUNDED_CI_REVISION, imageId: metadata.Id, logicalImageBytes: metadata.Size, dataLayerBytes, history, scope: 'Logical image/layer sizes; no host-disk reclaim or build-speed claim' }, null, 2) + '\n');
+          NODE
+      - name: Verify actual HTTP and browser startup
+        env:
+          FUNDED_CONTAINER_BASE: http://127.0.0.1:8788
+          FUNDED_RELEASE_BASE: http://127.0.0.1:8788
+          FUNDED_EXPECT_BUILD: ${{ github.event.pull_request.head.sha || github.sha }}
+          FUNDED_REQUIRE_POSTGRES: 'true'
+        run: |
+          set -e
+          node scripts/verify-container-http.mjs > "$FUNDED_CI_ROOT/evidence/http.json"
+          node scripts/verify-release-contract.mjs > "$FUNDED_CI_ROOT/evidence/release.txt"
+          node scripts/verify-container-browser.mjs > "$FUNDED_CI_ROOT/evidence/browser.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: docker-image-evidence-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/funded-image-ci/evidence/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Remove only this job's disposable stack
+        if: always()
+        shell: bash
+        run: |
+          trap 'rm -f "$FUNDED_CI_ROOT/database_password" "$FUNDED_CI_ROOT/database_url" "$FUNDED_CI_ROOT/api_token" "$FUNDED_CI_ROOT/solana_devnet_rpc_url"' EXIT
+          if [ -f "$FUNDED_CI_ROOT/selectors.env" ]; then
+            docker compose --env-file "$FUNDED_CI_ROOT/selectors.env" -p "$FUNDED_CI_PROJECT" -f compose.devnet-release.yml down --volumes --remove-orphans
+          fi
   postgres:
     runs-on: ubuntu-latest
     timeout-minutes: 15
