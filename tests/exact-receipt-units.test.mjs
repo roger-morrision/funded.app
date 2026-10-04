@@ -19,3 +19,19 @@ test('history and CSV select the same positive exact subset and report all omiss
   const selected=selectExactReceiptRows(input);assert.equal(selected.receipts.length,1);assert.equal(selected.omittedCount,5);assert.equal(selected.receipts[0].amountLamports,'15');
   const csv=receiptPageCsv(input,'devnet',1);assert.equal(csv.split('\r\n').length,3);assert.match(csv,/verified subset/);assert.match(csv,/"15","0.000000015"/);assert.doesNotMatch(csv,/9007199254740992/);
 });
+test('CSV leaves unknown recorded time blank while preserving verified receipt rows and exact amounts',()=>{
+  for(const paidAt of [undefined,null,false,true,0,1,'0','','not-a-date','2026-02-30T12:00:00Z','2026-10-04T05:00:00']){
+    const value={...receipt('15'),paidAt,recipient:'recipient',sourceCollectionSignature:'source',obligationId:'obligation'};
+    const lines=receiptPageCsv([value],'devnet',1).trimEnd().split('\r\n');
+    assert.equal(lines.length,2);assert.equal(lines[0].split(',')[9],'"paid_at"');
+    const cells=lines[1].split(',');assert.equal(cells.length,13);assert.equal(cells[9],'""');
+    assert.equal(cells[4],'"15"');assert.equal(cells[5],'"0.000000015"');
+    assert.deepEqual(cells.slice(10),['"recipient"','"source"','"obligation"']);
+  }
+});
+test('CSV preserves valid recorded ISO strings including their original timezone and precision',()=>{
+  for(const paidAt of ['2026-10-04T05:00:00Z','2026-10-04T05:00:00.123Z','2026-10-04T05:00:00.1+05:30']){
+    const csv=receiptPageCsv([{...receipt('15'),paidAt}],'devnet',1);
+    assert.equal(csv.split('\r\n')[1].split(',')[9],`"${paidAt}"`);
+  }
+});

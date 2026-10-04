@@ -1,5 +1,6 @@
 import { downloadReceiptPage, formatReceiptSol, selectExactReceiptRows } from './receipt-export.js';
 import { apiRequest } from './client.js';
+import { receiptPaidAtDate } from './receipt-timestamp.js';
 
 export function mountReceiptHistory(container, id, cluster, isCurrent = () => true) {
   container.innerHTML = '<h2>Payment history</h2><p>Browse payments matched to finalized collection and entitlement records. Each page shows recorded payments, not lifetime earnings.</p><p data-history-status role="status" aria-live="polite">Load your recorded payments when you are ready.</p><div class="creator-receipts" data-history-rows></div><div class="support-actions receipt-history-actions"><button type="button" data-history-next>Load payment history</button><button type="button" data-history-retry hidden>Retry this page</button><button type="button" data-history-reset hidden>First page</button><button type="button" data-history-export disabled>Download page as CSV</button></div><p class="receipt-history-coverage">CSV downloads include only the displayed verified records from this page, with exact SOL amounts, network and transaction references.</p>';
@@ -39,8 +40,8 @@ export function mountReceiptHistory(container, id, cluster, isCurrent = () => tr
         const amount = document.createElement('strong'); amount.textContent = `${formatReceiptSol(receipt.amountLamports)} SOL`;
         const link = document.createElement('a'); link.textContent = 'View payment transaction ↗'; link.target = '_blank'; link.rel = 'noopener noreferrer';
         link.href = `https://explorer.solana.com/tx/${receipt.signature}?cluster=${encodeURIComponent(cluster)}`;
-        const detail = document.createElement('small'); const paidAt = new Date(receipt.paidAt);
-        detail.textContent = `${cluster === 'devnet' ? 'Devnet' : 'Mainnet'} · Finalized${Number.isNaN(paidAt.getTime()) ? '' : ` · ${paidAt.toLocaleString()}`}`;
+        const detail = document.createElement('small'); const paidAt = receiptPaidAtDate(receipt.paidAt);
+        detail.textContent = `${cluster === 'devnet' ? 'Devnet' : 'Mainnet'} · Finalized · ${paidAt ? `Recorded payment time: ${paidAt.toLocaleString()}` : 'Recorded payment time unavailable'}`;
         const slot = document.createElement('small'); slot.textContent = `Slot ${receipt.slot.toLocaleString()}`;
         article.append(amount, detail, slot, link); rows.append(article);
       }

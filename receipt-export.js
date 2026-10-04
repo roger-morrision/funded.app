@@ -1,4 +1,5 @@
 import { exactLamports } from './exact-lamports.js';
+import { receiptPaidAtDate } from './receipt-timestamp.js';
 
 export function formatReceiptSol(amountLamports) {
   const units = exactLamports(amountLamports);
@@ -37,7 +38,10 @@ export function receiptPageCsv(receipts, cluster, page) {
   const rows = [['network', 'coverage', 'page', 'asset', 'amount_base_units', 'amount_sol', 'mint', 'payout_signature', 'finalized_slot', 'paid_at', 'recipient', 'source_collection_signature', 'obligation_id']];
   if (!Array.isArray(receipts) || !Number.isSafeInteger(page) || page < 1) throw new Error('Invalid receipt page.');
   for (const receipt of selectExactReceiptRows(receipts).receipts) {
-    rows.push([cluster, 'current verified page only (verified subset)', page, 'SOL', receipt.amountLamports, formatReceiptSol(receipt.amountLamports), receipt.mint, receipt.signature, receipt.slot, receipt.paidAt, receipt.recipient, receipt.sourceCollectionSignature, receipt.obligationId]);
+    // Keep the existing paid_at column: this is ledger-recorded time, not
+    // verified block time. Unknown metadata stays blank without losing proof.
+    const paidAt = receiptPaidAtDate(receipt.paidAt) ? receipt.paidAt : '';
+    rows.push([cluster, 'current verified page only (verified subset)', page, 'SOL', receipt.amountLamports, formatReceiptSol(receipt.amountLamports), receipt.mint, receipt.signature, receipt.slot, paidAt, receipt.recipient, receipt.sourceCollectionSignature, receipt.obligationId]);
   }
   return rows.map(row => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }

@@ -94,6 +94,52 @@ test('mixed receipt evidence keeps fifteen lamports exact and flags omitted inva
   for(const digit of ['2','3','4'])expect(csv).not.toContain(digit.repeat(88));
 });
 
+test('missing or malformed recorded payment times never become invented dates or discard finalized amounts',async({page})=>{
+  const dates=[null,undefined,true,false,0,1791090000000,'1791090000000',' 2026-10-04T05:00:00Z ','2026-10-04','2026-02-30T05:00:00Z','2026-10-04T05:00:00','not-a-date'];
+  const signatures='123456789ABC';
+  const receipts=dates.map((paidAt,index)=>({signature:signatures[index].repeat(88),slot:50+index,amountLamports:'15',paidAt}));
+  await page.route('**/api/creators/date-unknown/receipts',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({cluster:'devnet',commitment:'finalized',status:'onchain-indexed',checkedPayouts:receipts.length,receipts})}));
+  const panel=await mountHistory(page,'date-unknown');
+  await panel.getByRole('button',{name:'Load payment history'}).focus();await page.keyboard.press('Enter');
+  await expect(panel.locator('.receipt-history-card')).toHaveCount(receipts.length);
+  for(const card of await panel.locator('.receipt-history-card').all()){
+    await expect(card.locator('strong')).toHaveText('0.000000015 SOL');
+    await expect(card.locator('small').first()).toHaveText('Devnet · Finalized · Recorded payment time unavailable');
+    await expect(card).not.toContainText('1970');
+  }
+  await expect(panel.locator('[role=status]')).toBeFocused();
+  await expect(panel.locator('[role=status]')).toContainText('reached the end');
+  await expect(panel.getByRole('button',{name:'Retry this page'})).toBeHidden();
+  const pending=page.waitForEvent('download');await panel.getByRole('button',{name:'Download page as CSV'}).click();
+  const csv=await readFile(await(await pending).path(),'utf8');
+  expect(csv.trim().split('\r\n')).toHaveLength(receipts.length+1);
+  expect(csv.match(/"15","0\.000000015"/g)).toHaveLength(receipts.length);
+  expect(csv.split('\r\n')[0].split(',')[9]).toBe('"paid_at"');
+  for(const row of csv.trim().split('\r\n').slice(1))expect(row.match(/"(?:[^"]|"")*"/g)[9]).toBe('""');
+  for(const receipt of receipts)expect(csv).toContain(receipt.signature);
+  await expect(panel.locator('[role=status]')).toContainText('reached the end');
+});
+
+test('valid UTC and offset recorded payment times preserve their instant and finalized fifteen-lamport export',async({page})=>{
+  const dates=['2026-10-04T05:00:00Z','2026-10-04T07:00:00+02:00','2024-02-29T23:59:59.123Z'];
+  const receipts=dates.map((paidAt,index)=>({signature:'DEF'[index].repeat(88),slot:70+index,amountLamports:'15',paidAt}));
+  await page.route('**/api/creators/date-valid/receipts',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({cluster:'devnet',commitment:'finalized',status:'onchain-indexed',checkedPayouts:receipts.length,receipts})}));
+  const panel=await mountHistory(page,'date-valid');await panel.getByRole('button',{name:'Load payment history'}).click();
+  await expect(panel.locator('.receipt-history-card')).toHaveCount(receipts.length);
+  const display=await page.evaluate(values=>values.map(value=>new Date(value).toLocaleString()),dates);
+  expect(display[0]).toBe(display[1]);
+  for(let index=0;index<receipts.length;index++){
+    const card=panel.locator('.receipt-history-card').nth(index);
+    await expect(card.locator('small').first()).toHaveText(`Devnet · Finalized · Recorded payment time: ${display[index]}`);
+    await expect(card.locator('strong')).toHaveText('0.000000015 SOL');
+  }
+  const pending=page.waitForEvent('download');await panel.getByRole('button',{name:'Download page as CSV'}).click();
+  const csv=await readFile(await(await pending).path(),'utf8');
+  expect(csv.trim().split('\r\n')).toHaveLength(receipts.length+1);
+  for(const date of dates)expect(csv).toContain(date);
+  expect(csv.match(/"15","0\.000000015"/g)).toHaveLength(receipts.length);
+});
+
 test('unknown receipt proof stays retryable until a finalized exact payment is available',async({page})=>{
   let attempts=0;
   await page.route('**/api/creators/proof-user/receipts',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({cluster:'devnet',commitment:'finalized',status:++attempts===1?'proof-unavailable':'onchain-indexed',checkedPayouts:1,receipts:attempts===1?[]:[{signature:'5'.repeat(88),slot:51,amountLamports:'15',paidAt:'2026-10-04T05:00:00Z'}]})}));

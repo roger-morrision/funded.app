@@ -53,7 +53,9 @@ Analytics base-unit aggregates expose exact decimal strings in `exactLamports`. 
 
 A disk-full app recreation was observed during the prior release. Run the read-only [capacity preflight](workspace-deployment.md#check-capacity-before-upgrading-an-existing-deployment) before building and before switching the existing app. It is a point-in-time threshold check, not a reservation or a guarantee of future writes; preserve images, volumes and backups when capacity is insufficient.
 
-Keep keyboard regression coverage for pilot setup after recording is enabled and receipt recovery after its initiating control is hidden. Null receipt timestamps can still render as the Unix epoch in existing date display code; a future bounded change should treat missing timestamps as unknown rather than infer a payment date.
+Keep keyboard regression coverage for pilot setup after recording is enabled and receipt recovery after its initiating control is hidden. Receipt dates now accept explicit ISO timestamps with valid calendar and timezone components. Missing or malformed dates show “Recorded payment time unavailable” and export a blank `paid_at` field without discarding an otherwise verified payment. Valid timestamps retain their original ISO representation in CSV. These are ledger-recorded payment times, including recovery observations, not verified transaction block times. A synthetic receipt on the preceding built image reproduced `paidAt: null` as January 1970; keep the browser regression for that coercion, valid timezone localization and exact amounts.
+
+The daily X summary publishing path rejects missing receipt block times and invalid windows. A direct call to the exported daily adapter with invalid window dates can nevertheless return `coverage: complete`, because comparisons with an invalid date do not exclude rows. The collector supplies valid UTC windows and the formatter rejects invalid windows, so this is a defensive adapter-validation gap, not demonstrated public overstatement. Add bounded adapter input validation in a future pass and retain mock-only publication tests.
 
 ## Transactional pilot persistence
 
