@@ -7,6 +7,7 @@ import { allowedAuthOrigin } from './x-auth.mjs';
 import { decodeReceiptCursor, receiptFingerprint } from './receipt-history.mjs';
 import { followingWindow } from './following-updates.mjs';
 import { readJsonBody } from './request-body.mjs';
+import { validateInput } from './http-policy.mjs';
 export { eligibleSupportLaunches } from './creator-directory.mjs';
 const financialInputs=state=>Object.fromEntries(['launches','obligations','claims','collections','payouts'].map(bucket=>[bucket,state[bucket]||{}]));
 const sameFinancialInputs=(before,after)=>receiptFingerprint('creator-inputs',financialInputs(before))===receiptFingerprint('creator-inputs',financialInputs(after));
@@ -108,7 +109,7 @@ export function createCreatorSupportHandler({ store, cluster, getSession, readEv
         return respond(res, error.statusCode || 400, { error: error.message });
       }
       try {
-        const result = await store.updateCreatorProfile(String(session.user.id), state => {
+        const result = await store.updateCreatorProfile(String(session.user.id), state => validateInput(() => {
           if (url.pathname.endsWith('/profile')) return updateCreatorProfile(state, session.user, input);
           if(url.pathname.endsWith('/preferences')) {
             if(!Array.isArray(input.following)||input.following.length>200||input.following.some(id=>typeof id!=='string'||!validXId(id)))throw new Error('Choose up to 200 valid creator accounts.');
@@ -121,9 +122,12 @@ export function createCreatorSupportHandler({ store, cluster, getSession, readEv
           if (!text || text.length > 280) throw new Error('Updates must contain 1–280 characters.');
           const update = { id: randomBytes(12).toString('hex'), text, createdAt: new Date().toISOString() };
           profile.updates = [...(profile.updates || []), update].slice(-20); return update;
-        });
+        }));
         return respond(res, 200, result);
-      } catch (error) { return respond(res, 400, { error: error.message }); }
+      } catch (error) {
+        if (error.statusCode === 400) return respond(res, 400, { error:error.message });
+        return respond(res, 503, { error:'Creator settings could not be saved. Retry shortly; refresh your settings to check the current state.' });
+      }
     }
     if (req.method === 'GET' && url.pathname === '/api/creators') {
       const query = String(url.searchParams.get('q') || '').trim().toLowerCase().slice(0,80);

@@ -62,12 +62,22 @@ test('launch image and settings restore after reload while consent resets', asyn
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await page.locator('#token-name').fill('Recovery test');
   await page.locator('#token-symbol').fill('RECOVER');
+  await expect(page.locator('.launch-optional-socials')).not.toHaveAttribute('open', '');
+  await page.locator('.launch-optional-socials summary').click();
+  await page.locator('#token-website').fill('https://example.org/recovery');
   const image = await page.evaluate(() => {
     const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
     const context = canvas.getContext('2d'); context.fillStyle = '#336699'; context.fillRect(0, 0, 512, 512);
     return canvas.toDataURL('image/png').split(',')[1];
   });
   await page.locator('#token-image').setInputFiles({ name: 'recovery.png', mimeType: 'image/png', buffer: Buffer.from(image, 'base64') });
+  await expect(page.locator('#image-preparation-status')).toContainText('Ready:');
+  await page.locator('#token-website').fill('invalid website');
+  await page.locator('.launch-optional-socials summary').click();
+  await page.locator('#launch-next').click();
+  await expect(page.locator('.launch-optional-socials')).toHaveAttribute('open', '');
+  await expect(page.locator('#token-website')).toBeFocused();
+  await page.locator('#token-website').fill('https://example.org/recovery');
   if (!await page.locator('.launch-draft-panel').evaluate(node => node.open)) await page.locator('.launch-draft-panel summary').click();
   await page.locator('#save-launch-image').check();
   await expect.poll(() => page.locator('#image-remove').isEnabled()).toBe(true);
@@ -78,6 +88,8 @@ test('launch image and settings restore after reload while consent resets', asyn
   await page.locator('#restore-launch-draft').click();
   await expect(page.locator('#token-name')).toHaveValue('Recovery test');
   await expect(page.locator('#token-symbol')).toHaveValue('RECOVER');
+  await expect(page.locator('#token-website')).toHaveValue('https://example.org/recovery');
+  await expect(page.locator('.launch-optional-socials')).toHaveAttribute('open', '');
   await expect.poll(() => page.locator('#token-image').evaluate(input => input.files.length)).toBe(1);
   await expect(page.locator('#fee-route-agree')).not.toBeChecked();
   await expect(page.locator('#terms-agree')).not.toBeChecked();
@@ -103,6 +115,7 @@ test('launch image and settings restore after reload while consent resets', asyn
 });
 
 test('wallet cancellation retries and account/network changes clear launch consent', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
     sessionStorage.setItem('funded.app.wallet.manual-disconnect', '1');
     const handlers = {};
@@ -131,6 +144,7 @@ test('wallet cancellation retries and account/network changes clear launch conse
   await expect(page.locator('#launch-status')).toContainText('User rejected');
   await page.locator('#connect-button').click();
   await expect(page.locator('#launch-status')).toContainText('Ready to sign');
+  await expect(page.locator('#header-wallet-balance')).toBeVisible();
   for (const event of ['chainChanged', 'accountChanged']) {
     await page.evaluate(() => {
       for (const id of ['fee-route-agree', 'terms-agree']) document.getElementById(id).checked = true;

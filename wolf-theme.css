@@ -149,7 +149,7 @@ body.page-route-overview .hero-section {
   min-height: 500px !important;
   background: linear-gradient(90deg, #0b1020 0%, #0b1020e8 30%, #0b102080 68%, #0b102033 100%),
     linear-gradient(0deg, #0b1020 0%, #0b102000 34%),
-    url('/home-wolf-hero.png') center right / cover no-repeat,
+    url('/home-wolf-hero.webp') center right / cover no-repeat,
     #0b1020 !important;
 }
 body.page-route-overview .hero-copy-column { max-width: 690px !important; }

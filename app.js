@@ -1,3 +1,4 @@
+import { validateBoostQuote, boostPaymentResolution, readPendingBoost, archiveBoostPayment, saveSignedBoostPayment } from './boost-checkout-recovery.js';
 import { readHiddenChatAuthors, hideChatAuthor, resetHiddenChatAuthors } from './token-chat-preferences.js';
 import { saveDraftImage, readDraftImage, deleteDraftImage } from './launch-draft-image.js';
 import { createRoutePoller } from './route-polling.js';
@@ -909,12 +910,12 @@ function openExploreBoost(mint){
   if (!asset || !dialog) return;
   boostCheckout = { mint, packageId:'10x', quote:null, pendingSignature:null, busy:false, message:'' };
   try {
-    const pending = JSON.parse(localStorage.getItem(`funded.boost.pending.${mint}`) || 'null');
+    const pending = readPendingBoost(mint);
     if (pending?.quote?.mint === mint && pending?.signature && pending?.quote?.id) {
       boostCheckout = { ...boostCheckout, packageId:pending.quote.packageId, quote:pending.quote,
         pendingSignature:pending.signature, message:'A submitted payment is awaiting proof. Retry verification before paying again.' };
     }
-  } catch {}
+  } catch (error) { boostCheckout.recoveryError = error.message || 'Saved payment details are unavailable. Check device storage before paying again.'; }
   exploreBoostHistory = [];
   renderExploreBoostDialog();
   if (!dialog.open) dialog.showModal();
@@ -935,7 +936,7 @@ async function loadExploreBoostHistory(mint){
   renderExploreBoostDialog();
 }
 function renderExploreBoostDialog(){
-  const { mint, packageId, quote, pendingSignature, busy, message } = boostCheckout;
+  const { mint, packageId, quote, pendingSignature, busy, message, failureProof, recoveryError } = boostCheckout;
   const asset = boostAssetForMint(mint);
   const details = document.querySelector('#explore-boost-details');
   if (!asset || !details) return;
@@ -944,19 +945,30 @@ function renderExploreBoostDialog(){
   document.querySelector('#explore-boost-title').textContent = `Boost ${asset.symbol || asset.name || 'token'}`;
   const active = activeBoostMultiplier(verifiedBoosts[mint]) ? verifiedBoosts[mint] : null;
   const selected = boostPackage(packageId);
-  const available = (EXPLORE_CLUSTER === 'devnet' && !APP_MAINNET_READ_ONLY && boostPurchasesEnabled) || Boolean(pendingSignature);
+  const available = !recoveryError && ((EXPLORE_CLUSTER === 'devnet' && !APP_MAINNET_READ_ONLY && boostPurchasesEnabled) || Boolean(pendingSignature));
   details.innerHTML = `<p class="explore-boost-intro">Anyone with a signing Devnet wallet can boost ${name}. Choose a fixed window. Overlapping boosts stack; paid placement is labelled and does not change observed trade volume or market cap.</p>
     <div class="explore-boost-current"><span>Active paid boost</span><strong>${active ? `${escapeHtml(active.multiplier)}x${active.golden ? ' · golden' : ''}` : 'None'}</strong><small>${active ? `${active.count} verified payment${active.count === 1 ? '' : 's'} · latest expiry ${escapeHtml(new Date(active.expiresAt).toLocaleString())}` : 'No active verified payment'} · Launch tier: ${escapeHtml(promotion?.label || 'Standard')}</small></div>
     <div class="explore-boost-packages" role="group" aria-label="Boost packages">${BOOST_PACKAGES.map(item => `<button type="button" data-boost-package="${item.id}" aria-pressed="${item.id === packageId}" ${busy || pendingSignature ? 'disabled' : ''}><strong>⚡ ${item.id}</strong><small>${item.hours}h</small><b>$${item.usd.toLocaleString()}</b><small>${Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? `≈ ${(item.usd / coinSolUsdPrice).toFixed(4)} SOL` : 'SOL quote at checkout'}</small></button>`).join('')}</div>
     <p class="explore-boost-explainer">Fixed USD package price, paid in Devnet SOL at the fresh checkout rate. Devnet SOL has no intended monetary value. Network fee is additional. Boosting is paid visibility, not an endorsement or trade guarantee.</p>
     ${quote ? `<div class="explore-boost-quote"><strong>Review exact payment</strong><span>${(quote.lamports / 1e9).toFixed(9)} SOL · $${quote.usd} at $${quote.solUsd}/SOL</span><small>Recipient ${escapeHtml(quote.recipient)} · Quote expires ${escapeHtml(new Date(quote.expiresAt).toLocaleTimeString())}</small></div>` : ''}
     ${pendingSignature ? `<a class="explore-boost-proof" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(pendingSignature)}`))}" target="_blank" rel="noopener noreferrer">View submitted transaction ↗</a>` : ''}
-    <button type="button" class="primary-button explore-boost-pay" ${!available || busy ? 'disabled' : ''}>${busy ? 'Checking Devnet…' : pendingSignature ? 'Retry payment verification' : quote ? `Pay ${(quote.lamports / 1e9).toFixed(6)} SOL · ${selected.id}` : `Get SOL quote · ${selected.id}`}</button>
-    <p class="explore-boost-message" role="status">${escapeHtml(message || (available ? 'Connect a wallet only when you are ready to get a quote.' : 'New boost purchases are currently unavailable.'))}</p>
+    <button type="button" class="primary-button explore-boost-pay" ${!available || busy ? 'disabled' : ''}>${busy ? 'Checking payment…' : failureProof ? 'Start a new quote' : pendingSignature ? 'Retry payment verification' : quote ? `Pay ${(quote.lamports / 1e9).toFixed(6)} SOL · ${selected.id}` : `Get SOL quote · ${selected.id}`}</button>
+    <p class="explore-boost-message" role="status">${escapeHtml(recoveryError || message || (available ? 'Connect a wallet when you are ready to get a quote.' : 'New boost purchases are currently unavailable.'))}</p>
     <div class="explore-boost-history"><strong>Payment history</strong>${exploreBoostHistory.filter(row => row.mint === mint).slice(0, 5).map(row => `<p><span>${escapeHtml(row.packageId)} · ${escapeHtml(shortAddress(row.payer))} · ${escapeHtml(new Date(row.expiresAt).toLocaleString())}</span><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(row.signature)}`))}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></p>`).join('') || '<small>No verified boost payments yet.</small>'}</div>`;
 }
 async function handleExploreBoostPay(){
-  if (boostCheckout.busy || !boostCheckout.mint) return;
+  if (boostCheckout.busy || !boostCheckout.mint || boostCheckout.recoveryError) return;
+  if (boostCheckout.failureProof) {
+    try {
+      archiveBoostPayment(boostCheckout, boostCheckout.failureProof);
+      boostCheckout.pendingSignature = null;
+      boostCheckout.quote = null;
+      boostCheckout.failureProof = null;
+      boostCheckout.message = 'The failed transaction is saved in device history. Request a new quote when you are ready.';
+    } catch (error) { boostCheckout.message = error.message || 'Recovery could not be saved. Keep the original payment and retry.'; }
+    renderExploreBoostDialog();
+    return;
+  }
   if (boostCheckout.pendingSignature) return verifyExploreBoostPayment();
   boostCheckout.busy = true;
   boostCheckout.message = '';
@@ -968,14 +980,17 @@ async function handleExploreBoostPay(){
     if (!boostCheckout.quote || boostCheckout.quote.mint !== boostCheckout.mint || boostCheckout.quote.packageId !== boostCheckout.packageId || boostCheckout.quote.payer !== session.address || Date.parse(boostCheckout.quote.expiresAt) <= Date.now()) {
       const response = await apiRequest('/api/boosts/quote', { method:'POST', body:{ mint:boostCheckout.mint, payer:session.address, packageId:boostCheckout.packageId } });
       assertWalletSessionCurrent(session);
-      boostCheckout.quote = response.data;
+      if (!response.available) throw new Error('Quotes are unavailable. Try again shortly.');
+      boostCheckout.quote = validateBoostQuote(response.data, { mint: boostCheckout.mint, payer: session.address, packageId: boostCheckout.packageId });
       boostCheckout.message = 'Review the exact SOL amount and recipient, then select Pay.';
     } else {
       const { PublicKey, SystemProgram, Transaction, TransactionInstruction } = await getSolana();
       assertWalletSessionCurrent(session);
       const rpc = connection;
-      const quote = boostCheckout.quote;
+      const quote = validateBoostQuote(boostCheckout.quote, { mint: boostCheckout.mint, payer: session.address, packageId: boostCheckout.packageId });
       const latest = await rpc.getLatestBlockhash('confirmed');
+      assertWalletSessionCurrent(session);
+      validateBoostQuote(quote, { mint: boostCheckout.mint, payer: session.address, packageId: boostCheckout.packageId });
       const transaction = new Transaction().add(
         SystemProgram.transfer({ fromPubkey:session.provider.publicKey, toPubkey:new PublicKey(quote.recipient), lamports:quote.lamports }),
         new TransactionInstruction({ keys:[], programId:new PublicKey(BOOST_MEMO_PROGRAM), data:new TextEncoder().encode(quote.memo) }),
@@ -986,13 +1001,14 @@ async function handleExploreBoostPay(){
       renderExploreBoostDialog();
       const signed = await session.provider.signTransaction(transaction);
       assertWalletSessionCurrent(session);
+      validateBoostQuote(quote, { mint: boostCheckout.mint, payer: session.address, packageId: boostCheckout.packageId });
       const signedBytes = signed.serialize();
       if (!signed.signature || signed.signature.length !== 64) throw new Error('Wallet returned a transaction without a valid signature. No payment was sent.');
       const signature = bs58.encode(signed.signature);
       // Persist the signed identity BEFORE broadcast. An RPC timeout can occur after acceptance.
       // Recovery remains verification-only until the original signature is resolved.
-      try { localStorage.setItem(`funded.boost.pending.${quote.mint}`, JSON.stringify({ quote, signature, lastValidBlockHeight: latest.lastValidBlockHeight })); }
-      catch { throw new Error('Device recovery storage is unavailable. No payment was sent; enable storage and retry.'); }
+      try { await saveSignedBoostPayment({ quote, signature, lastValidBlockHeight: latest.lastValidBlockHeight }); }
+      catch (error) { throw new Error(`${error.message || 'Device recovery storage is unavailable.'} No payment was sent.`); }
       boostCheckout.pendingSignature = signature;
       boostCheckout.quote = quote;
       const submitted = await rpc.sendRawTransaction(signedBytes, { skipPreflight:false, maxRetries:3 });
@@ -1010,9 +1026,16 @@ async function verifyExploreBoostPayment(alreadyBusy = false){
   try {
     for (let attempt = 0; attempt < 10; attempt += 1) {
       const response = await apiRequest('/api/boosts/confirm', { method:'POST', body:{ quoteId:boostCheckout.quote.id, signature:boostCheckout.pendingSignature } });
-      if (response.data?.status === 'finalized') {
+      if (!response.available) throw new Error('Payment verification is unavailable. Try again shortly.');
+      const resolution = boostPaymentResolution(response.data, boostCheckout);
+      if (resolution === 'failed') {
+        boostCheckout.failureProof = response.data;
+        boostCheckout.message = 'The transaction failed on-chain. The boost payment was not transferred; a network fee may apply. You can start a new quote.';
+        return;
+      }
+      if (resolution === 'finalized') {
         const mint = boostCheckout.mint;
-        try { localStorage.removeItem(`funded.boost.pending.${mint}`); } catch {}
+        archiveBoostPayment(boostCheckout, response.data);
         boostCheckout.pendingSignature = null;
         boostCheckout.quote = null;
         boostCheckout.message = 'Boost activated from a finalized Devnet payment. View the receipt below.';
@@ -1022,7 +1045,7 @@ async function verifyExploreBoostPayment(alreadyBusy = false){
       }
       await new Promise(resolve => setTimeout(resolve, 3000));
     }
-    boostCheckout.message = 'Payment is still pending. Use Retry payment verification; do not send a second payment.';
+    boostCheckout.message = 'The payment outcome is still unconfirmed. Check the original transaction again. An expired quote alone does not mean the payment failed.';
   } catch (error) { boostCheckout.message = `${error.message || 'Payment verification failed.'} Retry this transaction; do not pay again.`; }
   finally { boostCheckout.busy = false; renderExploreBoostDialog(); }
 }
@@ -2514,6 +2537,15 @@ function renderExploreAssets({ force = false } = {}){
   renderWatchlist();
   renderWalletDetail();
 }
+document.addEventListener('click', async event => {
+  const button = event.target.closest('[data-verified-feed-retry]');
+  if (!button || button.disabled) return;
+  button.disabled = true;
+  button.textContent = 'Checking launches…';
+  try { await loadOnchainExploreData(); }
+  catch { showToast('Verification is unavailable. Please try again shortly.'); }
+  finally { button.disabled = false; button.textContent = 'Retry verification'; }
+});
 document.querySelector('#asset-grid')?.addEventListener('focusout', () => {
   queueMicrotask(() => {
     const grid = document.querySelector('#asset-grid');
@@ -3518,8 +3550,8 @@ function renderHomeLaunchBoard(){
     const feedUnavailable = !exploreFeedAvailable && !exploreLastVerifiedAt;
     const title = feedUnavailable ? 'Launch feed unavailable.' : homeLaunchTab === 'watchlist' ? 'No watched launches yet.' : homeLaunchFilterCount(homeLaunchFilters) ? 'No launches match these filters.' : 'No verified launches in this view.';
     const detail = feedUnavailable ? 'Verified market data could not be loaded.' : homeLaunchTab === 'watchlist' ? 'Save a verified mint from Explore to see it here.' : 'Try another view or adjust the filters.';
-    grid.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${detail}</span></div>`;
-    if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="home-table-empty"><strong>${title}</strong><span>${detail}</span></td></tr>`;
+    grid.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${detail}</span>${feedUnavailable ? '<button type="button" class="secondary-button" data-verified-feed-retry>Retry verification</button>' : ''}</div>`;
+    if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="home-table-empty"><strong>${title}</strong><span>${detail}</span>${feedUnavailable ? '<button type="button" class="secondary-button" data-verified-feed-retry>Retry verification</button>' : ''}</td></tr>`;
     return;
   }
   if (tableBody) {
@@ -4086,7 +4118,7 @@ function renderRegistry(query = exploreQuery){
     list.innerHTML = registryLoading
       ? '<div class="empty-state">Checking the verified launch feed…</div>'
       : registryUnavailable
-      ? `<div class="empty-state"><strong>${escapeHtml(outage.title)}</strong><span>${escapeHtml(outage.detail)}</span></div>`
+      ? `<div class="empty-state"><strong>${escapeHtml(outage.title)}</strong><span>${escapeHtml(outage.detail)}</span><button type="button" class="secondary-button" data-verified-feed-retry>Retry verification</button></div>`
       : `<div class="empty-state">${escapeHtml(reason?.[0] || 'No verified launches match these filters.')} ${escapeHtml(reason?.[1] || 'Try All stages or clear the search.')}</div>`;
     return;
   }
@@ -5446,6 +5478,7 @@ function setLaunchStep(step){
       if (!state.valid) {
         document.querySelector('#wizard-hint').textContent = state.message;
         const invalid = state.field && document.querySelector(state.field);
+        for (let details = invalid?.closest('details'); details; details = details.parentElement?.closest('details')) details.open = true;
         if (invalid && invalid.getClientRects().length) {
           if (invalid.matches('#token-name, #token-symbol')) {
             invalid.dataset.launchTouched = 'true';
@@ -5530,6 +5563,8 @@ function restoreLaunchDraftToForm(draft){
   };
   for (const [field,id] of Object.entries(fieldIds)) document.getElementById(id).value = String(draft[field]);
   normalizeLaunchSocialField(document.querySelector('#token-x'));
+  const socials = document.querySelector('.launch-optional-socials');
+  if (socials && ['website', 'x', 'telegram', 'discord'].some(field => draft[field])) socials.open = true;
   document.querySelector('#x-recipient').disabled = draft.solClaimPercent <= 0;
   const image = document.querySelector('#token-image');
   image.value = '';
@@ -6009,7 +6044,7 @@ async function launchToken(){
   if (!document.querySelector('#terms-agree').checked) { setLaunchStatus('Agree to the Terms of Use before launching.', true); return; }
   if (!name || !/^[A-Z0-9]{1,10}$/.test(symbol) || !Number.isFinite(supply) || supply < 1 || decimals < 0 || decimals > 9) { setLaunchStatus('Enter a valid name and a 1–10 character ticker using letters or numbers.', true); return; }
   const invalidSocial = invalidLaunchSocial();
-  if (invalidSocial) { invalidSocial.reportValidity(); setLaunchStatus(invalidSocial.validationMessage, true); return; }
+  if (invalidSocial) { const details = invalidSocial.closest('details'); if (details) details.open = true; invalidSocial.reportValidity(); setLaunchStatus(invalidSocial.validationMessage, true); return; }
   if (!Number.isSafeInteger(communityTokens) || communityTokens < MIN_COMMUNITY_AIRDROP_TOKENS || communityTokens > MAX_COMMUNITY_AIRDROP_TOKENS || !Number.isFinite(communityAllocation)) { setLaunchStatus('Community airdrop must be between 30,000,000 and 500,000,000 tokens.', true); return; }
    if (feeDistributionInput.solClaimPercent > 0 && !/^@[A-Za-z0-9_]{1,15}$/.test(xRecipient)) { setLaunchStatus('Enter a valid X handle such as @account when X account rewards are above 0%.', true); return; }
   if (feeDistributionInput.solClaimPercent > 0 && !xFeeStatus.ready) { setLaunchStatus(`X account rewards unavailable: ${xFeeFailureDetail()}.`, true); return; }

@@ -1,9 +1,9 @@
 import { exploreFilterUrl, readExploreFilterUrl, sanitizeExploreFilters } from './explore-filter-url.js';
 // Workspace composition owns layout and navigation. Financial state remains in its source modules.
-import { EXPLORE_CLUSTER } from './app-config.js';
+import { EXPLORE_CLUSTER, APP_MAINNET_READ_ONLY } from './app-config.js';
 import { mountDocsReference } from './docs-reference.js';
 import { icon } from './ui-icons.js';
-import airdropWolfDropUrl from './airdrop-wolf-drop.png';
+import airdropWolfDropUrl from './airdrop-wolf-drop.webp';
 import './workspace-ui.css';
 import './home-reference.css';
 import './ansem-pages.css';
@@ -129,7 +129,7 @@ function navigation() {
   const searchDialog = node('dialog', 'header-search-dialog');
   searchDialog.id = 'header-search-dialog';
   searchDialog.setAttribute('aria-label', 'Search launches');
-  searchDialog.innerHTML = `<form class="header-search-panel"><label for="header-search-input">Search launches</label><div class="header-search-field"><span aria-hidden="true">${icon('explore')}</span><input id="header-search-input" type="search" autocomplete="off" placeholder="Search name, ticker, or mint" aria-controls="header-search-results" /><button type="button" class="header-search-close" aria-label="Close search">${icon('close')}</button></div><div class="header-search-results-head"><strong id="header-search-results-title">TOP VERIFIED LAUNCHES</strong><span>NAME · $TICKER · MINT</span></div><div id="header-search-results" class="header-search-results" role="listbox" aria-label="Verified launch search results"></div><p id="header-search-help">↑↓ navigate · ↵ open · Esc close</p></form>`;
+  searchDialog.innerHTML = `<form class="header-search-panel"><label for="header-search-input">Search launches</label><div class="header-search-field"><span aria-hidden="true">${icon('explore')}</span><input id="header-search-input" type="search" role="combobox" aria-autocomplete="list" aria-expanded="true" autocomplete="off" placeholder="Search name, ticker, or mint" aria-controls="header-search-results" /><button type="button" class="header-search-close" aria-label="Close search">${icon('close')}</button></div><div class="header-search-results-head"><strong id="header-search-results-title">TOP VERIFIED LAUNCHES</strong><span>NAME · $TICKER · MINT</span></div><div id="header-search-results" class="header-search-results" role="listbox" aria-label="Verified launch search results"></div><p id="header-search-help">↑↓ navigate · ↵ open · Esc close</p></form>`;
   document.body.append(searchDialog);
   const modalSearch = $('#header-search-input', searchDialog);
   const globalSearch = $('#global-search');
@@ -220,7 +220,7 @@ function navigation() {
   helpPanel.innerHTML = `<header><div><strong>funded.vip</strong><small>Devnet help topics</small></div><button type="button" aria-label="Close help topics">${icon('close')}</button></header><p class="help-topics-intro">Find the record or guide you need. Live messaging is unavailable in this preview.</p><div class="help-topics-choices"><button type="button" data-help-topic="coin">Coin details</button><button type="button" data-help-topic="trade">Trading issues</button><button type="button" data-help-topic="airdrop">Airdrop status</button><button type="button" data-help-topic="launch">Launch receipts</button></div><div class="help-topics-answer" role="status" aria-live="polite"><strong>How can we help?</strong><p>Choose a topic to see where to check its verified Devnet record.</p><a href="#docs">Open the help guide →</a></div>`;
   const helpTopics = {
     coin: { title: 'Coin details', answer: 'Open a token page to compare its mint, creator, market snapshot, and launch policy. Missing indexed fields are marked unavailable.', href: '#docs/coin-pages', link: 'Read about coin pages →' },
-    trade: { title: 'Trading issues', answer: 'Check the quoted amount and slippage, then inspect the finalized signature and token balance change. A submitted transaction alone does not prove a trade completed.', href: '#docs/trading', link: 'Read trading guidance →' },
+    trade: { title: 'Trading issues', answer: 'If your wallet shows a submitted trade, open its transaction link and check the result before trying again. If you cancelled in your wallet, refresh the quote when you are ready.', href: '#docs/trading', link: 'Read trading guidance →' },
     airdrop: { title: 'Airdrop status', answer: 'Check vault funding, the migration snapshot, claim proof, and any confirmed receipt before treating an allocation as claimable.', href: '#airdrops', link: 'Check airdrop evidence →' },
     launch: { title: 'Launch receipts', answer: 'Compare the mint, fee owner, tier burn, and finalized transaction from the token record. A selected tier is not a verified badge until its burn receipt is confirmed.', href: '#docs/launch', link: 'Read launch guidance →' },
   };
@@ -255,8 +255,8 @@ function navigation() {
     link.innerHTML = icon(glyph); link.append(node('span', '', label)); mobile.append(link);
   }
   document.body.append(mobile);
-  const network = node('span', 'workspace-network', EXPLORE_CLUSTER === 'mainnet-beta' ? 'Mainnet · read only' : 'Devnet');
-  network.title = 'Network for the current workspace'; $('.top-actions')?.prepend(network);
+  const network = node('span', 'workspace-network', EXPLORE_CLUSTER === 'mainnet-beta' ? (APP_MAINNET_READ_ONLY ? 'Mainnet · read only' : 'Mainnet') : 'Devnet · test SOL');
+  network.title = EXPLORE_CLUSTER === 'devnet' ? 'Solana Devnet uses test SOL with no monetary value.' : APP_MAINNET_READ_ONLY ? 'Solana Mainnet preview: transactions are disabled.' : 'Solana Mainnet: transactions use real SOL.'; network.setAttribute('aria-label', network.title); $('.top-actions')?.prepend(network);
   const sidebar = $('#sidebar');
   sidebar?.addEventListener('click', event => {
     if (event.target.closest('a')) $('#close-menu')?.click();
@@ -491,35 +491,56 @@ function explore() {
   const saveSearch = node('button', 'secondary-button', 'Save search'); saveSearch.type = 'button';
   const savedSelect = node('select'); savedSelect.setAttribute('aria-label', 'Saved searches on this device');
   const removeSearch = node('button', 'text-button', 'Delete selected'); removeSearch.type = 'button';
-  const feedback = node('span'); feedback.setAttribute('role', 'status');
+  const feedback = node('span'); feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');
+  feedback.id = 'saved-search-feedback';
+  name.setAttribute('aria-describedby', feedback.id);
+  const toolsTitle = node('strong', 'saved-search-heading', 'Your search, ready to revisit');
+  const toolsHelp = node('p', 'saved-search-help', 'Save up to 10 searches in this browser, or copy a link to share the current filters.');
+  const copySearch = node('button', 'secondary-button', 'Copy search link'); copySearch.type = 'button';
+  const manualLink = node('input', 'saved-search-share-url'); manualLink.readOnly = true; manualLink.hidden = true; manualLink.setAttribute('aria-label', 'Search link to copy');
+  copySearch.onclick = async () => {
+    const href = exploreFilterUrl(location.origin, capture());
+    manualLink.hidden = true;
+    try {
+      await navigator.clipboard.writeText(href);
+      feedback.textContent = 'Search link copied. Anyone with the link can open these filters.';
+    } catch {
+      manualLink.value = href; manualLink.hidden = false; manualLink.focus(); manualLink.select();
+      feedback.textContent = 'Copy the selected link to share this search.';
+    }
+  };
   const savedKey = 'funded.explore.saved-searches.v1';
   const readSaved = () => { try { const rows = JSON.parse(localStorage.getItem(savedKey) || '[]'); return Array.isArray(rows) ? rows.filter(row => row && typeof row.name === 'string' && row.name.trim() && row.name.length <= 60 && row.filters && typeof row.filters === 'object' && !Array.isArray(row.filters)).slice(0,10) : []; } catch { return []; } };
   const showSaved = () => {
     savedSelect.replaceChildren(new Option('Choose a saved search', ''));
     readSaved().forEach((row,index) => savedSelect.add(new Option(row.name,String(index))));
     removeSearch.disabled = true;
+    savedSelect.disabled = savedSelect.options.length === 1;
   };
   saveSearch.onclick = () => {
     const label = name.value.trim();
-    if (!label) { feedback.textContent = 'Enter a name for this search.'; name.focus(); return; }
+    if (!label) { name.setAttribute('aria-invalid', 'true'); feedback.textContent = 'Enter a name for this search.'; name.focus(); return; }
     try {
-      const rows = readSaved().filter(row => row.name !== label);
+      name.removeAttribute('aria-invalid');
+      const previous = readSaved();
+      const replaced = previous.some(row => row.name === label);
+      const rows = previous.filter(row => row.name !== label);
       rows.unshift({ name: label, filters: capture() });
       localStorage.setItem(savedKey,JSON.stringify(rows.slice(0,10)));
-      showSaved(); feedback.textContent = 'Search saved on this device.';
+      showSaved(); savedSelect.value = '0'; removeSearch.disabled = false; feedback.textContent = replaced ? `Updated “${label}” in this browser.` : `Saved “${label}” in this browser.${previous.length === 10 ? ' The oldest saved search was replaced.' : ''}`;
     } catch { feedback.textContent = 'Device storage is unavailable. Use Share this search.'; }
   };
   savedSelect.onchange = () => {
     const row = savedSelect.value === '' ? null : readSaved()[Number(savedSelect.value)];
     removeSearch.disabled = !row;
-    if (row) { restore(row.filters); save(); feedback.textContent = `Loaded ${row.name}.`; }
+    if (row) { name.value = row.name; restore(row.filters); save(); feedback.textContent = `Loaded ${row.name}.`; }
   };
   removeSearch.onclick = () => {
     if (savedSelect.value === '') return;
     try { const rows = readSaved(); rows.splice(Number(savedSelect.value),1); localStorage.setItem(savedKey,JSON.stringify(rows)); showSaved(); feedback.textContent = 'Saved search deleted.'; }
     catch { feedback.textContent = 'Device storage is unavailable.'; }
   };
-  tools.append(share,name,saveSearch,savedSelect,removeSearch,feedback);
+  tools.append(toolsTitle,toolsHelp,name,saveSearch,savedSelect,removeSearch,copySearch,share,manualLink,feedback);
   count.after(tools);
   root?.addEventListener('click', event => { if (event.target.closest('[data-explore-stage],[data-explore-tab],[data-explore-window],[data-explore-view]')) queueMicrotask(save); });
   window.addEventListener('popstate', () => restore());

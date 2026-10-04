@@ -31,6 +31,7 @@ try {
     await context.route('**/api/**', route => route.request().method() === 'GET'
       ? route.fulfill({ status: 503, contentType: 'application/json', body: '{}' })
       : route.fulfill({ status: 403, body: 'Read-only responsive verification' }));
+    await context.route('https://**/*', route => new URL(route.request().url()).origin === new URL(base).origin ? route.fallback() : route.abort());
     for (const route of routes) {
       const page = await context.newPage();
       const errors = [];

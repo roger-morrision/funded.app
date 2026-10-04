@@ -3,17 +3,18 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import bs58 from 'bs58';
+import { validateBoostQuote, archiveBoostPayment } from '../boost-checkout-recovery.js';
 const source = await readFile(new URL('../app.js', import.meta.url), 'utf8');
 const handler = source.slice(source.indexOf('async function handleExploreBoostPay(){'), source.indexOf('async function verifyExploreBoostPayment('));
 test('wallet change during boost broadcast preserves the signed quote for payment verification', async () => {
-  const quote = { id: 'original', mint: 'mint', packageId: '10x', payer: 'payer', expiresAt: new Date(Date.now() + 60_000).toISOString(), recipient: 'recipient', lamports: 10, memo: 'memo' };
+  const quote = { id: 'boost_123_0123456789abcdef', cluster: 'devnet', mint: 'mint', packageId: '10x', payer: 'payer', expiresAt: new Date(Date.now() + 60_000).toISOString(), recipient: '1'.repeat(32), lamports: 10, usd: 99, solUsd: 100, memo: 'funded.vip:boost:devnet:boost_123_0123456789abcdef' };
   const checkout = { mint: 'mint', packageId: '10x', quote, busy: false, pendingSignature: null };
   class Transaction { add() { return this; } }
   const saved = [];
   let verified = false, sends = 0;
   const signature = bs58.encode(new Uint8Array(64).fill(1));
   const context = {
-    bs58, boostCheckout: checkout, wallet: {}, renderExploreBoostDialog() {}, canSignTransactions: () => true,
+    saveSignedBoostPayment: async record => context.localStorage.setItem('pending', JSON.stringify(record)), validateBoostQuote, archiveBoostPayment, bs58, boostCheckout: checkout, wallet: {}, renderExploreBoostDialog() {}, canSignTransactions: () => true,
     captureWalletSession: () => ({ address: 'payer', provider: { publicKey: 'payer', signTransaction: async () => ({ signature: new Uint8Array(64).fill(1), serialize: () => new Uint8Array() }) } }),
     assertWalletSessionCurrent() {}, TextEncoder, BOOST_MEMO_PROGRAM: 'memo-program',
     getSolana: async () => ({ PublicKey: class {}, Transaction, TransactionInstruction: class {}, SystemProgram: { transfer() {} } }),
@@ -24,7 +25,7 @@ test('wallet change during boost broadcast preserves the signed quote for paymen
   vm.runInNewContext(handler, context);
   await context.handleExploreBoostPay();
   assert.equal(verified, true);
-  assert.equal(saved[0].quote.id, 'original');
+  assert.equal(saved[0].quote.id, quote.id);
   assert.equal(checkout.busy, false);
   await context.handleExploreBoostPay();
   assert.equal(sends, 1, 'Retry verifies the recorded signature without sending a second payment');

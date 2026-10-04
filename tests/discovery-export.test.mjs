@@ -26,3 +26,14 @@ test('malformed shared URLs are ignored and receipt exports reject invalid pages
   const csv = receiptPageCsv([null, receipt, receipt], 'devnet', 1);
   assert.equal(csv.split('\r\n').length, 3, 'One header and one unique valid receipt');
 });
+
+test('receipt CSV includes an exact human-readable SOL amount without floating point rounding', async () => {
+  const { formatReceiptSol } = await import('../receipt-export.js');
+  assert.equal(formatReceiptSol('1'), '0.000000001');
+  assert.equal(formatReceiptSol('1000000000'), '1');
+  assert.equal(formatReceiptSol('18446744073709551615'), '18446744073.709551615');
+  assert.throws(() => formatReceiptSol('-1'), /Invalid SOL amount/);
+  const csv = receiptPageCsv([{ signature: '1'.repeat(88), amountLamports: '18446744073709551615', slot: 22 }], 'devnet', 1);
+  assert.ok(csv.includes('"amount_sol"'));
+  assert.ok(csv.includes('"18446744073.709551615"'));
+});

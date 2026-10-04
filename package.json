@@ -122,7 +122,8 @@
     "release:manifest": "node scripts/release-manifest.mjs",
     "verify:critical": "npm run verify:token-chat && npm run verify:backend-hardening && npm run verify:launch-draft && npm run verify:production-policies && npm run verify:fee-policy && npm run verify:receipt-evidence",
     "verify:release-manifest": "node scripts/verify-release-manifest.mjs",
-    "verify:local-regressions": "node scripts/verify-local-regressions.mjs"
+    "verify:local-regressions": "node scripts/verify-local-regressions.mjs",
+    "verify:build-settings": "node scripts/verify-build-settings.mjs"
   },
   "dependencies": {
     "@pump-fun/pump-sdk": "^2.0.0",

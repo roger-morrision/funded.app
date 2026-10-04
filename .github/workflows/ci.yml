@@ -22,6 +22,7 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm run verify:release-manifest
+      - run: npm run verify:build-settings
       - run: npm test
       - run: npm run verify:critical
       - run: npm run verify:local-regressions

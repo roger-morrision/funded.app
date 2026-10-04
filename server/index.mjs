@@ -234,10 +234,11 @@ async function serveStatic(pathname, res) {
   const fileName = pathname === '/' ? 'index.html' : pathname.slice(1);
   const filePath = resolve(staticRoot, fileName);
   if (!filePath.startsWith(`${staticRoot}${sep}`)) return json(res, 404, { error: 'Not found.' });
-  const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
+  const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon',
+    '.webp': 'image/webp', '.avif': 'image/avif', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.woff2': 'font/woff2', '.woff': 'font/woff' };
   try {
     const content = await readFile(filePath);
-    res.writeHead(200, { 'content-type': mime[extname(filePath)] || 'application/octet-stream', 'cache-control': staticCacheControl(fileName), 'x-content-type-options': 'nosniff' });
+    res.writeHead(200, { 'content-type': mime[extname(filePath).toLowerCase()] || 'application/octet-stream', 'cache-control': staticCacheControl(fileName), 'x-content-type-options': 'nosniff' });
     return res.end(content);
   } catch (error) {
     if (error.code === 'ENOENT' || error.code === 'EISDIR') return json(res, 404, { error: 'Not found.' });
@@ -704,8 +705,9 @@ async function handle(req, res) {
       try {
         mint = new PublicKey(String(input.mint || '')).toBase58();
         payer = new PublicKey(String(input.payer || '')).toBase58();
-        recipient = new PublicKey(String(process.env.FUNDED_BOOST_PAYMENT_WALLET || '')).toBase58();
-      } catch { return json(res, 503, { error:'Boost requires a valid mint, wallet, and configured Devnet payment address.' }); }
+      } catch { return json(res, 400, { error:'Enter a valid token mint and paying wallet before requesting a boost quote.' }); }
+      try { recipient = new PublicKey(String(process.env.FUNDED_BOOST_PAYMENT_WALLET || '')).toBase58(); }
+      catch { return json(res, 503, { error:'The Devnet boost payment address is not configured. No payment was requested.' }); }
       if (mint !== input.mint || payer !== input.payer || payer === recipient) return json(res, 400, { error:'A valid token mint and distinct paying wallet are required.' });
       const selected = boostPackage(input.packageId);
       if (!selected) return json(res, 400, { error:'Choose a supported boost package.' });
@@ -742,13 +744,18 @@ async function handle(req, res) {
       if (existing) return existing.quoteId === quoteId ? json(res, 200, existing) : json(res, 409, { error:'This transaction was already used.' });
       const quote = state.boostQuotes?.[quoteId];
       if (!quote) return json(res, 404, { error:'Boost quote was not found.' });
-      const rpc = new Connection(solanaRpcUrl, 'finalized');
+      const rpc = new Connection(solanaRpcUrl, { commitment:'finalized', disableRetryOnRateLimit:true,
+        fetch:(url, options) => fetch(url, { ...options, signal:AbortSignal.timeout(8000) }) });
       let transaction;
       try {
         if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC is not Solana Devnet.' });
         transaction = await rpc.getParsedTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
       } catch { return json(res, 503, { error:'Finalized Devnet payment proof is currently unavailable. Retry the same signature.' }); }
       if (!transaction) return json(res, 202, { status:'pending', signature, message:'Payment is not finalized yet. Retry verification with the same signature.' });
+      if (transaction.transaction?.signatures?.[0] !== signature || !Number.isSafeInteger(transaction.slot) || transaction.slot < 1)
+        return json(res, 503, { error:'Finalized payment proof did not match the requested signature. Retry verification of the same payment.' });
+      if (transaction.meta?.err != null) return json(res, 200, { status:'failed', signature, quoteId,
+        cluster:'devnet', commitment:'finalized', slot:transaction.slot });
       let proof;
       try { proof = verifyBoostPayment(transaction, quote); }
       catch (error) { return json(res, 409, { error:error.message || 'Payment does not match this boost quote.' }); }
@@ -760,16 +767,20 @@ async function handle(req, res) {
         const saved = await store.update(current => {
           current.boostReceipts ||= {};
           if (current.boostReceipts[signature]) {
-            if (current.boostReceipts[signature].quoteId !== quoteId) throw new Error('This transaction was already used.');
+            if (current.boostReceipts[signature].quoteId !== quoteId) throw Object.assign(new Error('This transaction was already used.'), { statusCode:409 });
             return current.boostReceipts[signature];
           }
-          if (Object.values(current.boostReceipts).some(row => row.quoteId === quoteId)) throw new Error('This boost quote was already paid.');
-          if (JSON.stringify(current.boostQuotes?.[quoteId]) !== JSON.stringify(quote)) throw new Error('Boost quote changed during verification.');
+          if (Object.values(current.boostReceipts).some(row => row.quoteId === quoteId)) throw Object.assign(new Error('This boost quote was already paid.'), { statusCode:409 });
+          if (JSON.stringify(current.boostQuotes?.[quoteId]) !== JSON.stringify(quote)) throw Object.assign(new Error('Boost quote changed during verification.'), { statusCode:409 });
           current.boostReceipts[signature] = record;
           return record;
         });
         return json(res, saved === record ? 201 : 200, saved);
-      } catch (error) { return json(res, 409, { error:error.message || 'The boost payment could not be recorded.' }); }
+      } catch (error) {
+        if (error.statusCode === 409) return json(res, 409, { error:error.message });
+        console.error(JSON.stringify({ event:'boost_receipt_storage_failure', requestId }));
+        return json(res, 503, { error:'The payment receipt could not be saved. Retry verification with the same signature; do not pay again.', requestId });
+      }
     }
     if (req.method === 'POST' && url.pathname === '/api/devnet-metadata') {
       if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Metadata publishing is Devnet-only.' });
@@ -1147,7 +1158,7 @@ async function handle(req, res) {
       catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
       const action = tokenChatMatch[2] || 'post';
       if (req.method === 'GET') {
-        if (action !== 'post') return json(res, 405, { error: 'Method not allowed.' });
+        if (action !== 'post') { res.setHeader('allow', 'POST'); return json(res, 405, { error: 'Method not allowed.' }); }
         const messages = (await store.readCoinChat(mint, 100)).filter(message => message.status !== 'hidden' && message.status !== 'deleted').slice(-50).map(tokenChatPublicMessage);
         return json(res, 200, { mint, messages, enabled: true, authentication: 'solana-wallet-session' });
       }
@@ -1504,7 +1515,7 @@ async function handle(req, res) {
       catch { return json(res, 400, { error:'A valid wallet is required for referral access.' }); }
       try { return json(res, 200, await referralAuth.start(wallet)); }
       catch (error) {
-        console.error('Referral session preparation failed:', error);
+        console.error(JSON.stringify({ event:'referral_session_preparation_failure', requestId }));
         return json(res, 503, { error:'Referral access is temporarily unavailable.' });
       }
     }
@@ -1726,7 +1737,11 @@ async function handle(req, res) {
       await store.update(state => { state.alerts[alert.id] = alert; return alert; }); return json(res, 201, alert);
     }
     if (req.method === 'POST' && url.pathname === '/api/x-intake') {
-      try { const intake = normalizeXIntake(await body(req)); const record = { id: id('x_intake'), ...intake }; await store.update(state => { state.xIntake[record.id] = record; return record; }); return json(res, 201, record); } catch (error) { return json(res, 400, { error: error.message }); }
+      const input = await body(req);
+      const intake = validateInput(() => normalizeXIntake(input));
+      const record = { id: id('x_intake'), ...intake };
+      await store.update(state => { state.xIntake[record.id] = record; return record; });
+      return json(res, 201, record);
     }
 
     if (req.method === 'POST' && url.pathname === '/api/burn-receipts') {

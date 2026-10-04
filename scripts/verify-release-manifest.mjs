@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, copyFile, writeFile, readFile, rm } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { browserSourceDigest } from './browser-source-digest.mjs';
 
 const directory = await mkdtemp(join(tmpdir(), 'funded-manifest-'));
 const run = (command, args, env = {}) => spawnSync(command, args, { cwd: directory, encoding: 'utf8',
@@ -12,11 +13,14 @@ const report = async () => JSON.parse(await readFile(join(directory, 'dist/relea
 try {
   for (const name of ['server', 'scripts', 'db', 'dist']) await mkdir(join(directory, name));
   await copyFile(resolve('scripts/release-manifest.mjs'), join(directory, 'scripts/release-manifest.mjs'));
+  await copyFile(resolve('scripts/browser-source-digest.mjs'), join(directory, 'scripts/browser-source-digest.mjs'));
   for (const [name, contents] of Object.entries({ 'package.json': '{"version":"0.1.0"}', 'package-lock.json': '{}',
-    'dist/index.html': '<!doctype html>', '.gitignore': 'dist/\n', 'db/schema.sql': 'SELECT 1;' })) await writeFile(join(directory, name), contents);
+    'dist/index.html': '<!doctype html>', 'dist/build-settings.json': JSON.stringify({ schemaVersion: 1, cluster: 'devnet', exploreCluster: 'devnet', mainnetEnabled: false, devWalletEnabled: false }), '.gitignore': 'dist/\n', 'db/schema.sql': 'SELECT 1;' })) await writeFile(join(directory, name), contents);
   for (const args of [['init', '-q'], ['add', '.'], ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@localhost', 'commit', '-qm', 'Canonical fixture']]) {
     const result = run('git', args); assert.equal(result.status, 0, result.stderr);
   }
+  const fixtureSettings = { schemaVersion: 1, cluster: 'devnet', exploreCluster: 'devnet', mainnetEnabled: false, devWalletEnabled: false, sourceDigest: await browserSourceDigest(directory) };
+  await writeFile(join(directory, 'dist/build-settings.json'), JSON.stringify(fixtureSettings));
   assert.equal(execute().status, 0);
   const clean = await report();
   assert.equal(clean.releaseEligible, true);
@@ -34,6 +38,12 @@ try {
   assert.notEqual(local.sourceDigest, clean.sourceDigest);
   assert.notEqual(execute(['--allow-dirty'], { VITE_SOLANA_CLUSTER: 'mainnet-beta' }).status, 0);
   assert.notEqual(execute(['--allow-dirty'], { VITE_ALLOW_MAINNET: 'true' }).status, 0);
+  await writeFile(join(directory, 'dist/build-settings.json'), JSON.stringify({ schemaVersion: 1, cluster: 'mainnet-beta', exploreCluster: 'mainnet-beta', mainnetEnabled: true }));
+  assert.notEqual(execute(['--allow-dirty']).status, 0, 'Reject a previously built Mainnet bundle even with a Devnet manifest environment');
+  await writeFile(join(directory, 'dist/build-settings.json'), JSON.stringify(fixtureSettings));
+  await writeFile(join(directory, 'browser.js'), 'export const updated = true;');
+  assert.notEqual(execute(['--allow-dirty']).status, 0, 'Reject browser source changed after build');
+  await rm(join(directory, 'browser.js'));
   await rm(join(directory, 'server/changed.mjs'));
   const amend = run('git', ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@localhost', 'commit', '--amend', '-qm', 'Local review snapshot of abc123']);
   assert.equal(amend.status, 0, amend.stderr);

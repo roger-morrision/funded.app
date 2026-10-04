@@ -15,6 +15,8 @@ if (homeSpotlight) {
   homeHero.after(homeSpotlight);
 }
 let homeVerifiedLaunches = [];
+let homeLaunchPolicyStatus = 'loading';
+let policyFetchRevision = 0;
 let homeFundedTokens = [];
 let homeReserves = null;
 let homeReceiverEstimate = null;
@@ -65,7 +67,9 @@ function renderHomeRewardCards() {
   track.replaceChildren();
   if (!launches.length) {
     const empty = document.createElement('p'); empty.className = 'home-rewards-empty';
-    empty.textContent = !homeFundedTokens.length ? 'No $FUNDED holder airdrops are available.'
+    empty.textContent = homeLaunchPolicyStatus === 'unavailable' ? 'Verified reward data is unavailable.'
+      : homeLaunchPolicyStatus === 'loading' ? 'Checking verified reward policies…'
+      : !homeFundedTokens.length ? 'No $FUNDED holder airdrops are available.'
       : homeReserves === null ? 'Checking funded vaults…'
       : !reservesAvailable ? 'Vault verification is unavailable.'
       : 'No active vault-funded $FUNDED airdrops.';
@@ -155,7 +159,9 @@ function renderSimpleRewardCards(kind) {
   track.replaceChildren();
   if (!launches.length) {
     const empty = document.createElement('p'); empty.className = 'home-rewards-empty';
-    empty.textContent = kind === 'coin' ? 'No verified coin holder reward policies.' : 'No verified X account reward policies.';
+    empty.textContent = homeLaunchPolicyStatus === 'unavailable' ? 'Verified reward data is unavailable.'
+      : homeLaunchPolicyStatus === 'loading' ? 'Checking verified reward policies…'
+      : kind === 'coin' ? 'No verified coin holder reward policies.' : 'No verified X account reward policies.';
     track.append(empty);
     return;
   }
@@ -258,11 +264,14 @@ for (const panel of panels) {
   panel.querySelector('.auto-rewards-heading').after(panel.querySelector('[data-auto-status]'));
 }
 async function refreshFundedHolderTokens() {
+  const request = ++policyFetchRevision;
   try {
     const response = await fetch('/api/launches', { signal: AbortSignal.timeout(8000) });
     if (!response.ok) throw new Error('Unavailable');
     const launches = await response.json();
     if (!Array.isArray(launches)) throw new Error('Invalid launch list');
+    if (request !== policyFetchRevision) return;
+    homeLaunchPolicyStatus = 'ready';
     homeVerifiedLaunches = launches.filter(launch => launch.onchainVerified === true && launch.cluster === EXPLORE_CLUSTER && launch.mint);
     launchNames = new Map(homeVerifiedLaunches
       .map(launch => [launch.mint, launch.symbol || launch.name || 'Coin']));
@@ -328,6 +337,8 @@ async function refreshFundedHolderTokens() {
       .then(reserves => { if (revision === fundedFetchRevision) { homeReserves = reserves; renderHomeRewardCards(); } })
       .catch(() => { if (revision === fundedFetchRevision) { homeReserves = { status: 'unavailable' }; renderHomeRewardCards(); } });
   } catch {
+    if (request !== policyFetchRevision) return;
+    homeLaunchPolicyStatus = 'unavailable';
     fundedFetchRevision += 1;
     homeVerifiedLaunches = [];
     homeFundedTokens = [];
@@ -336,7 +347,6 @@ async function refreshFundedHolderTokens() {
     schedule = null;
     renderClocks();
     renderHomeRewardCards();
-    if (homeSpotlight) for (const empty of homeSpotlight.querySelectorAll('.home-rewards-empty')) empty.textContent = 'Verified reward data is unavailable.';
     for (const panel of panels) {
       panel.querySelector('[data-funded-token-count]').textContent = 'Unavailable';
       panel.querySelector('[data-funded-token-list]').innerHTML = '<li class="funded-token-empty">Verified token allocations are unavailable right now.</li>';

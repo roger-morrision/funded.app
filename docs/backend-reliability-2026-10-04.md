@@ -77,3 +77,28 @@ restore drills, real identity-provider callback verification, device-wallet test
 and finalized launch/trade/collection/payout evidence. File storage is a local
 single-process fallback. The broader legacy ledger update path still exists;
 this change scopes chat writes without rewriting financial transaction semantics.
+
+## Follow-up backend review
+
+- Boost confirmation now distinguishes a matching finalized failed transaction
+  from missing or uncertain proof. The failed response includes the original
+  signature, quote ID, network, commitment and positive slot; it never creates an
+  active boost. A mismatched RPC transaction remains unavailable. RPC requests in
+  this recovery path time out after eight seconds and do not retry rate limits.
+- A receipt persistence failure returns a sanitized 503 instructing the caller to
+  retry the same signature without paying again. The HTTP regression deliberately
+  prevents the durable file write, then restores storage and verifies that the
+  same payment can be recorded and replayed idempotently.
+- Invalid boost mint/wallet input produces 400; a missing configured payment
+  address produces 503. Creator profile persistence failures also produce a safe
+  503 while invalid profile fields retain actionable 400 responses. X intake
+  validation is separated from storage error handling.
+- Static WebP/AVIF/JPEG/font files have their proper MIME types. An isolated HTTP
+  test checks exact image bytes, MIME, `nosniff`, and distinct cache behavior for
+  stable and hashed filenames. Reporting routes return `Allow: POST` with 405.
+
+Additional passing checks: `tests/boost-http.test.mjs`,
+`tests/boost-payment.test.mjs`, `tests/creator-support-errors.test.mjs`,
+`tests/static-http.test.mjs`, `scripts/verify-token-chat.mjs`, and
+`scripts/verify-creator-support.mjs`. All payment proofs in these checks are mocked;
+no transaction is submitted.

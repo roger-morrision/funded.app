@@ -1,0 +1,92 @@
+/* Shared interaction styles. Keep data states and route-specific layouts intact. */
+body.page-route :is(button, input, select, textarea) { font-family: 'Manrope', sans-serif; }
+body.page-route :is(.primary-button, .secondary-button, .connect-button, .create-coin-button, .hero-secondary-action) {
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 700;
+  letter-spacing: .01em !important;
+  text-transform: none !important;
+  line-height: 1.4;
+  min-height: 44px;
+  border-radius: 6px;
+}
+body.page-route .sidebar .primary-nav :is(.nav-item, summary) {
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 12px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+body.page-route .sidebar .primary-nav > :is(a[href='#my-launches'], a[href='#payments']) { display: flex !important; }
+body.page-route .nav-more-menu .nav-item { min-height: 40px; }
+body.page-route :is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid #ffd28a !important;
+  outline-offset: 3px;
+}
+body.page-route .empty-state { line-height: 1.65; }
+body.page-route .empty-state > :is(p, small) { font-size: 13px; }
+body.page-route .topbar .connect-button { white-space: nowrap; }
+body.page-route .topbar .workspace-network { white-space: nowrap; }
+
+@media (max-width: 700px) {
+  body.page-route .topbar .header-search-trigger {
+    display: inline-flex; align-items: center; justify-content: flex-start;
+    gap: 9px; width: auto; min-width: 144px; min-height: 44px; padding: 0 12px;
+    border-radius: 6px;
+  }
+  body.page-route .topbar .header-search-trigger::after {
+    content: 'Search tokens'; font: 500 12px/1.4 'Manrope', sans-serif;
+  }
+  body.page-route .topbar .top-actions .connect-button {
+    max-width: none; min-height: 44px; padding: 8px 10px; font-size: 12px !important;
+  }
+  body.page-route .connect-button:not(.wallet-pill-connected) > span { display: none; }
+  body.page-route :is(.launch-form, .explore-search-field, .header-search-field) :is(input:not([type='checkbox']):not([type='radio']), textarea, select) {
+    font-size: 16px;
+  }
+  body.page-route :is(.home-market-window button, .home-market-ticker-arrows button, .home-launch-tabs button, .home-launch-toolbar button, .home-feed-settings summary) {
+    min-height: 44px; min-width: 44px;
+  }
+  body.page-route #launch-close {
+    display: inline-flex; align-items: center; min-height: 44px; padding: 8px 0;
+    font: 600 13px/1.4 'Manrope', sans-serif;
+  }
+  body.page-route .hero-actions :is(.primary-button, .hero-secondary-action) { min-height: 46px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  body.page-route :is(button, a, input, select, summary) { transition: none !important; }
+}
+
+body.page-route .launch-optional-socials {
+  padding: 4px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+body.page-route .launch-optional-socials > summary {
+  cursor: pointer; min-height: 44px; padding: 12px 0;
+  color: var(--text); font: 600 13px/1.5 'Manrope', sans-serif;
+}
+body.page-route .launch-optional-socials > summary span { color: var(--muted); font-weight: 400; }
+body.page-route .launch-optional-socials .social-grid { padding: 4px 0 14px; }
+/* Route themes must not hide primary destinations at intermediate widths. */
+body.page-route #sidebar .primary-nav > :is(a[href='#my-launches'], a[href='#payments']) { display: flex !important; }
+body.page-route :is(.primary-button, .hero-secondary-action, .create-coin-button) > span[aria-hidden='true'] {
+  font-family: system-ui, sans-serif;
+}
+@media (max-width: 700px) {
+  body.page-route .topbar { grid-template-columns: 44px minmax(0, 1fr) auto !important; }
+  body.page-route .topbar #route-context { min-width: 0; width: 100%; padding: 0; overflow: hidden; }
+  body.page-route .topbar #route-context > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+  body.page-route .topbar .header-search-trigger { grid-column: 1 / 3; justify-self: start; }
+  body.page-route .topbar #open-menu { width: 44px; min-height: 44px; }
+  body.page-route .topbar .top-actions .connect-button { min-height: 44px !important; }
+}
+@media (max-width: 700px) {
+  body.page-route .topbar { display: grid !important; height: auto !important; min-height: 112px; padding-top: 8px; padding-bottom: 8px; grid-template-rows: 44px 44px; }
+}
+@media (min-width: 901px) and (max-width: 1399px) {
+  body.page-route-overview .topbar .top-actions .create-coin-button,
+  body.page-route-overview .topbar .search-box { display: none !important; }
+  body.page-route-overview .topbar .header-search-trigger { display: grid !important; }
+}
+body.page-route :is(.primary-button, .connect-button, .create-coin-button, .hero-secondary-action) > svg { flex: 0 0 14px; width: 14px; height: 14px; }
+
+body.page-route .connect-button:not(.wallet-pill-connected) > span { display: none; }

@@ -2,6 +2,45 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_instruction;
 use crate::{constants::*, error::ErrorCode};
 
+// An empty system-owned PDA may already hold a third-party deposit. Funding it
+// must not prevent initialization, and those lamports must remain in the vault.
+fn create_router_account<'info>(
+    payer: AccountInfo<'info>,
+    router: AccountInfo<'info>,
+    system_program: AccountInfo<'info>,
+    program_id: &Pubkey,
+    data_len: usize,
+    seeds: &[&[u8]],
+) -> Result<()> {
+    require!(router.data_is_empty() && router.owner == &System::id(), ErrorCode::AlreadyInitialized);
+    let rent = Rent::get()?.minimum_balance(data_len);
+    if router.lamports() == 0 {
+        return anchor_lang::solana_program::program::invoke_signed(
+            &system_instruction::create_account(payer.key, router.key, rent, data_len as u64, program_id),
+            &[payer, router, system_program],
+            &[seeds],
+        ).map_err(Into::into);
+    }
+    let top_up = rent.saturating_sub(router.lamports());
+    if top_up > 0 {
+        anchor_lang::solana_program::program::invoke(
+            &system_instruction::transfer(payer.key, router.key, top_up),
+            &[payer, router.clone(), system_program.clone()],
+        )?;
+    }
+    anchor_lang::solana_program::program::invoke_signed(
+        &system_instruction::allocate(router.key, data_len as u64),
+        &[router.clone(), system_program.clone()],
+        &[seeds],
+    )?;
+    anchor_lang::solana_program::program::invoke_signed(
+        &system_instruction::assign(router.key, program_id),
+        &[router, system_program],
+        &[seeds],
+    )?;
+    Ok(())
+}
+
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(mut)]
@@ -13,20 +52,11 @@ pub struct Initialize<'info> {
 
 pub fn handler(ctx: Context<Initialize>) -> Result<()> {
     let router = &ctx.accounts.router;
-    require!(router.data_is_empty() && router.lamports() == 0, ErrorCode::AlreadyInitialized);
     let bump = ctx.bumps.router;
-    let rent = Rent::get()?.minimum_balance(ROUTER_DATA_LEN);
-    let create = system_instruction::create_account(
-        ctx.accounts.authority.key,
-        router.key,
-        rent,
-        ROUTER_DATA_LEN as u64,
-        ctx.program_id,
-    );
-    anchor_lang::solana_program::program::invoke_signed(
-        &create,
-        &[ctx.accounts.authority.to_account_info(), router.to_account_info(), ctx.accounts.system_program.to_account_info()],
-        &[&[SEED, &[bump]]],
+    create_router_account(
+        ctx.accounts.authority.to_account_info(), router.to_account_info(),
+        ctx.accounts.system_program.to_account_info(), ctx.program_id,
+        ROUTER_DATA_LEN, &[SEED, &[bump]],
     )?;
     let mut data = router.try_borrow_mut_data()?;
     data[0..8].copy_from_slice(MAGIC);
@@ -59,21 +89,12 @@ pub fn mint_handler(ctx: Context<InitializeMint>) -> Result<()> {
     drop(legacy);
 
     let router = &ctx.accounts.router;
-    require!(router.data_is_empty() && router.lamports() == 0, ErrorCode::AlreadyInitialized);
     let bump = ctx.bumps.router;
-    let rent = Rent::get()?.minimum_balance(MINT_ROUTER_DATA_LEN);
     let mint_key = ctx.accounts.mint.key();
-    let create = system_instruction::create_account(
-        ctx.accounts.payer.key,
-        router.key,
-        rent,
-        MINT_ROUTER_DATA_LEN as u64,
-        ctx.program_id,
-    );
-    anchor_lang::solana_program::program::invoke_signed(
-        &create,
-        &[ctx.accounts.payer.to_account_info(), router.to_account_info(), ctx.accounts.system_program.to_account_info()],
-        &[&[MINT_ROUTER_SEED, mint_key.as_ref(), &[bump]]],
+    create_router_account(
+        ctx.accounts.payer.to_account_info(), router.to_account_info(),
+        ctx.accounts.system_program.to_account_info(), ctx.program_id,
+        MINT_ROUTER_DATA_LEN, &[MINT_ROUTER_SEED, mint_key.as_ref(), &[bump]],
     )?;
     let mut data = router.try_borrow_mut_data()?;
     data[0..8].copy_from_slice(MINT_ROUTER_MAGIC);
