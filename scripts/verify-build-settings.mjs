@@ -33,3 +33,16 @@ try {
   await assert.rejects(prunePosterSources({ root, outDir: 'public' }), /source artwork/);
   console.log('Build artwork: archival PNG pruning, referenced images, WebP preservation, dynamic-path fallback and source safety passed.');
 } finally { await rm(root, { recursive: true, force: true }); }
+
+// Shared browser policy lives below config/, so changes there must invalidate bundles.
+const { browserSourceDigest } = await import('./browser-source-digest.mjs');
+const digestRoot = await mkdtemp(join(tmpdir(), 'funded-browser-digest-'));
+try {
+  await mkdir(join(digestRoot, 'config'));
+  const policyPath = join(digestRoot, 'config/protocol-fee-split.js');
+  await writeFile(policyPath, 'export const policy = 1;');
+  const before = await browserSourceDigest(digestRoot);
+  await writeFile(policyPath, 'export const policy = 2;');
+  assert.notEqual(await browserSourceDigest(digestRoot), before);
+  console.log('Browser source identity includes nested shared policy configuration.');
+} finally { await rm(digestRoot, { recursive: true, force: true }); }

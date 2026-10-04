@@ -1,0 +1,23 @@
+# Free, Devnet-only web service. PostgreSQL is supplied by Neon.
+# Signing workers require a separate always-on deployment.
+services:
+  - type: web
+    name: funded-devnet
+    runtime: node
+    plan: free
+    branch: enhancements/devnet-readiness-2026-10-04
+    autoDeployTrigger: 'off'
+    buildCommand: npm ci --include=dev --no-audit --no-fund && node scripts/render-devnet.mjs --build
+    startCommand: node scripts/render-devnet.mjs --start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: '24'
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: FUNDED_API_TOKEN
+        generateValue: true
+      - key: SOLANA_RPC_URL
+        value: https://api.devnet.solana.com

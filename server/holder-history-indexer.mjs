@@ -101,8 +101,9 @@ export function snapshotsForPeriod(snapshots, start, end, maxGapSeconds) {
 
 // Five-minute sampling needs 288 snapshots per day. Retain 35 days so an
 // unresolved funded period can be investigated without immediately losing data.
-export function createHolderHistoryIndexer({ connection, store, rpcUrl = connection?.rpcEndpoint, fetchImpl = globalThis.fetch, maxSnapshotsPerMint = 10_080 }) {
+export function createHolderHistoryIndexer({ connection, store, rpcUrl = connection?.rpcEndpoint, fetchImpl = globalThis.fetch, expectedGenesisHash = null, maxSnapshotsPerMint = 10_080 }) {
   async function capture(mintValue, observedAt = Date.now()) {
+    if (expectedGenesisHash && await connection.getGenesisHash() !== expectedGenesisHash) throw new Error('Holder index RPC network does not match the reward network; no snapshot was recorded.');
     const mint = new PublicKey(mintValue);
     const mintAccount = await connection.getAccountInfo(mint, 'finalized');
     if (!mintAccount) throw new Error('Reward mint does not exist at finalized commitment.');

@@ -14,6 +14,29 @@ async function open(page, route) {
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
 }
 
+test('a stalled optional fee-status provider does not block the workspace', async ({ page }) => {
+  let requested = false;
+  let feeStatusFinished = false;
+  page.on('requestfailed', request => { if (request.url().endsWith('/api/x-fee/status')) feeStatusFinished = true; });
+  page.on('response', response => { if (response.url().endsWith('/api/x-fee/status')) feeStatusFinished = true; });
+  await page.route('**/api/x-fee/status', () => { requested = true; });
+  await page.goto('/#explore', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  expect(requested).toBe(true);
+  expect(feeStatusFinished, 'The workspace becomes usable before the optional status request finishes').toBe(false);
+  await expect(page.getByLabel('Saved search name', { exact: true })).toBeVisible();
+});
+
+test('an unavailable optional module leaves navigation usable and explains reload recovery', async ({ page }) => {
+  await page.route('**/pilot-metrics.js*', route => route.abort('failed'));
+  await open(page, 'explore');
+  await expect(page.locator('#bootstrap-status')).toContainText('Reload');
+  await expect(page.getByLabel('Saved search name', { exact: true })).toBeVisible();
+  await page.goto('/#docs');
+  await page.getByRole('button', { name: 'Check service status' }).click();
+  await expect(page.locator('#service-status [role=status]')).toContainText('unavailable');
+});
+
 test('desktop primary destinations are unique and More closes with keyboard focus restored', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page, 'explore');

@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { metadataStatement } from '../devnet-metadata.js';
 import { createPostgresStore } from './postgres-store.mjs';
 import { coinFeeActivity, routerFeeActivity } from './fee-activity.mjs';
 import { createFileAuthStore } from './file-auth-store.mjs';
@@ -145,7 +146,7 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
       try { await writeFile(metadataPath, JSON.stringify({ record, image: image?.toString('base64') || '', imageType }), { encoding: 'utf8', flag: 'wx' }); }
       catch (error) { if (error.code !== 'EEXIST') throw error; }
       const existing = JSON.parse(await readFile(metadataPath, 'utf8'));
-      if (JSON.stringify(existing.record) !== JSON.stringify(record)) throw new Error('Immutable Devnet metadata already exists for this mint.');
+      if (metadataStatement(existing.record) !== metadataStatement(record)) throw new Error('Immutable Devnet metadata already exists for this mint.');
       return existing.record;
     },
     async readMetadata(mint) {

@@ -67,7 +67,7 @@ try {
   assert.deepEqual((await reopened.readMetadataImage(mint)).bytes, png);
   await assert.rejects(reopened.writeMetadata({ ...prepared.record, description: 'Changed' }, prepared.image, prepared.imageType), /Immutable/);
   const port = await new Promise((resolve, reject) => { const socket = createServer(); socket.once('error', reject); socket.listen(0, '127.0.0.1', () => { const chosen = socket.address().port; socket.close(() => resolve(chosen)); }); });
-  const child = spawn(process.execPath, ['server/index.mjs'], { cwd: process.cwd(), env: { ...process.env, FUNDED_STORE_PATH: path, DATABASE_URL: '', HOST: '127.0.0.1', PORT: String(port), NODE_ENV: 'test', VITE_SOLANA_CLUSTER: 'devnet' }, stdio: 'ignore' });
+  const child = spawn(process.execPath, ['server/index.mjs'], { cwd: process.cwd(), env: { ...process.env, FUNDED_STORE_PATH: path, DATABASE_URL: '', HOST: '127.0.0.1', PORT: String(port), NODE_ENV: 'test', VITE_SOLANA_CLUSTER: 'devnet', FUNDED_SKIP_LOCAL_ENV: 'true', DEVNET_METADATA_ORIGIN: 'https://funded-preview.onrender.com', SOLANA_RPC_URL: 'http://127.0.0.1:9' }, stdio: 'ignore' });
   try {
     let ready = false;
     for (let attempt = 0; attempt < 50; attempt += 1) {
@@ -78,10 +78,33 @@ try {
     const metadataResponse = await hostedRequest(port, `/devnet-metadata/${mint}`);
     assert.equal(metadataResponse.status, 200);
     assert.equal(JSON.parse(metadataResponse.body).description, record.description);
+    assert.equal(JSON.parse(metadataResponse.body).image, `https://metadata.funded.vip/devnet-images/${mint}`, 'Legacy metadata image origin must remain immutable.');
     const imageResponse = await hostedRequest(port, `/devnet-images/${mint}`);
     assert.equal(imageResponse.status, 200);
     assert.equal(imageResponse.headers['content-type'], 'image/png');
     assert.deepEqual(imageResponse.body, png);
+    const postMetadata = async data => {
+      const response = await fetch(`http://127.0.0.1:${port}/api/devnet-metadata`, { method:'POST', headers:{'content-type':'application/json', Host:'untrusted.example'}, body:JSON.stringify(data) });
+      assert.equal(response.status, 201, await response.clone().text());
+      return response.json();
+    };
+    assert.equal((await postMetadata(input)).uri, devnetMetadataUri(mint), 'Legacy repeat uploads must retain the original origin.');
+    for (const withImage of [false, true]) {
+      const freshRecord = { ...record, mint:Keypair.generate().publicKey.toBase58(), imageSha256:withImage ? record.imageSha256 : '' };
+      const freshInput = { ...freshRecord, metadataOrigin:'https://attacker.example', imageBase64:withImage ? input.imageBase64 : '', imageType:withImage ? 'image/png' : '', signature:bs58.encode(nacl.sign.detached(new TextEncoder().encode(metadataStatement(freshRecord)), creator.secretKey)) };
+      const saved = await postMetadata(freshInput);
+      assert.equal(saved.uri, devnetMetadataUri(freshRecord.mint, 'https://funded-preview.onrender.com'));
+      assert.equal(saved.image, withImage ? `https://funded-preview.onrender.com/devnet-images/${freshRecord.mint}` : 'https://funded-preview.onrender.com/default.svg');
+      assert.deepEqual(await postMetadata(freshInput), saved, 'Idempotent uploads must retain origin and signed data.');
+      const publicResponse = await fetch(`http://127.0.0.1:${port}/devnet-metadata/${freshRecord.mint}`);
+      assert.equal(publicResponse.status, 200);
+      assert.equal((await publicResponse.json()).image, saved.image);
+      assert.equal((await reopened.readMetadata(freshRecord.mint)).metadataOrigin, 'https://funded-preview.onrender.com');
+    }
+    const fallback = await fetch(`http://127.0.0.1:${port}/default.svg`);
+    assert.equal(fallback.status, 200, 'Default image must exist on the app host.');
+    assert.equal(fallback.headers.get('content-type'), 'image/svg+xml');
+    assert.match(await fallback.text(), /^<svg/);
     assert.equal((await hostedRequest(port, '/api/health')).status, 404);
     assert.equal((await hostedRequest(port, '/')).status, 404);
     assert.equal((await hostedRequest(port, '/api/devnet-metadata', 'POST')).status, 404);

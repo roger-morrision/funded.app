@@ -1,0 +1,127 @@
+{
+  "ok": true,
+  "runtime": "local-agave-4.1.2-sbf",
+  "mint": "2CdgRaZXTLKEPt7qmyMosopaRBwQgVHvnxNa9NCPRLQ4",
+  "drop": "5CdsybngwtnzWhdjDgNe9BWYuEqAehrgDxoy8oSTA88e",
+  "creatorSignedOpening": false,
+  "opened": "2Xi3KSJU8ohv8gMg5sCoCdup4c3asxWpUPcgd4BNu2T4Tqwn6LtswcPAFo8naGVs3FGeJ5RF4Ec8oBHkWhGTEQhm",
+  "claimed": "4kwqicYUrxA74BsoqyVJxv6ggbwZ7vMaA5vs2uvmRE1nt71WwYpWuFMpT1mBRUo7zKoXnp8QaxExAPRp65X2aEfe",
+  "sourceAfter": "0",
+  "recipientAfter": "100",
+  "wrongAmountRejected": true,
+  "openingReplayRejected": true,
+  "duplicateClaimRejected": true,
+  "evidenceType": "fresh-isolated-local-validator",
+  "checkedAt": "2026-10-04T05:56:33.343Z",
+  "network": "localnet",
+  "genesis": "H4hRR2uYQiNdWkjRRb1mtuu6vLDJpKvqW4WT113u2CND",
+  "programSha256": "f2fe2b160a861c74ddcff7aa74e79874191c2dc2c9d21b6ef5b1b4529daca470",
+  "finalizedReceipts": [
+    {
+      "name": "opening",
+      "signature": "2Xi3KSJU8ohv8gMg5sCoCdup4c3asxWpUPcgd4BNu2T4Tqwn6LtswcPAFo8naGVs3FGeJ5RF4Ec8oBHkWhGTEQhm",
+      "slot": 27,
+      "err": null,
+      "preTokenBalances": [
+        {
+          "accountIndex": 3,
+          "mint": "2CdgRaZXTLKEPt7qmyMosopaRBwQgVHvnxNa9NCPRLQ4",
+          "owner": "4ztfqLS6JXzp4ibB27vW9X3KV428KCx4wrD1uHV71zeL",
+          "programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "uiTokenAmount": {
+            "amount": "100",
+            "decimals": 0,
+            "uiAmount": 100,
+            "uiAmountString": "100"
+          }
+        }
+      ],
+      "postTokenBalances": [
+        {
+          "accountIndex": 2,
+          "mint": "2CdgRaZXTLKEPt7qmyMosopaRBwQgVHvnxNa9NCPRLQ4",
+          "owner": "5CdsybngwtnzWhdjDgNe9BWYuEqAehrgDxoy8oSTA88e",
+          "programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "uiTokenAmount": {
+            "amount": "100",
+            "decimals": 0,
+            "uiAmount": 100,
+            "uiAmountString": "100"
+          }
+        },
+        {
+          "accountIndex": 3,
+          "mint": "2CdgRaZXTLKEPt7qmyMosopaRBwQgVHvnxNa9NCPRLQ4",
+          "owner": "4ztfqLS6JXzp4ibB27vW9X3KV428KCx4wrD1uHV71zeL",
+          "programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "uiTokenAmount": {
+            "amount": "0",
+            "decimals": 0,
+            "uiAmount": null,
+            "uiAmountString": "0"
+          }
+        }
+      ]
+    },
+    {
+      "name": "claim",
+      "signature": "4kwqicYUrxA74BsoqyVJxv6ggbwZ7vMaA5vs2uvmRE1nt71WwYpWuFMpT1mBRUo7zKoXnp8QaxExAPRp65X2aEfe",
+      "slot": 60,
+      "err": null,
+      "preTokenBalances": [
+        {
+          "accountIndex": 3,
+          "mint": "2CdgRaZXTLKEPt7qmyMosopaRBwQgVHvnxNa9NCPRLQ4",
+          "owner": "5CdsybngwtnzWhdjDgNe9BWYuEqAehrgDxoy8oSTA88e",
+          "programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "uiTokenAmount": {
+            "amount": "100",
+            "decimals": 0,
+            "uiAmount": 100,
+            "uiAmountString": "100"
+          }
+        },
+        {
+          "accountIndex": 4,
+          "mint": "2CdgRaZXTLKEPt7qmyMosopaRBwQgVHvnxNa9NCPRLQ4",
+          "owner": "DRnVnkBDvd1sJtowpYoC77hPZt1Nn6hFY7XE555w234y",
+          "programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "uiTokenAmount": {
+            "amount": "0",
+            "decimals": 0,
+            "uiAmount": null,
+            "uiAmountString": "0"
+          }
+        }
+      ],
+      "postTokenBalances": [
+        {
+          "accountIndex": 3,
+          "mint": "2CdgRaZXTLKEPt7qmyMosopaRBwQgVHvnxNa9NCPRLQ4",
+          "owner": "5CdsybngwtnzWhdjDgNe9BWYuEqAehrgDxoy8oSTA88e",
+          "programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "uiTokenAmount": {
+            "amount": "0",
+            "decimals": 0,
+            "uiAmount": null,
+            "uiAmountString": "0"
+          }
+        },
+        {
+          "accountIndex": 4,
+          "mint": "2CdgRaZXTLKEPt7qmyMosopaRBwQgVHvnxNa9NCPRLQ4",
+          "owner": "DRnVnkBDvd1sJtowpYoC77hPZt1Nn6hFY7XE555w234y",
+          "programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "uiTokenAmount": {
+            "amount": "100",
+            "decimals": 0,
+            "uiAmount": 100,
+            "uiAmountString": "100"
+          }
+        }
+      ]
+    }
+  ],
+  "publicDevnetPass": false,
+  "mainnetReadiness": false
+}

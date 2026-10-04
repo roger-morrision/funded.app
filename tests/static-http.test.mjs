@@ -16,6 +16,7 @@ test('static image responses preserve format, content and cache policy without s
   await new Promise(resolve => probe.close(resolve));
   await mkdir(join(directory, 'dist', 'assets'), { recursive:true });
   const fixtures = [
+    ['build-settings.json', 'application/json; charset=utf-8', Buffer.from('{"cluster":"devnet"}')],
     ['poster.webp', 'image/webp', Buffer.from('RIFFfixtureWEBP')],
     ['poster.avif', 'image/avif', Buffer.from('fixtureftypavif')],
     ['assets/artwork-AbC_1234.webp', 'image/webp', Buffer.from('RIFFhashedWEBP')],

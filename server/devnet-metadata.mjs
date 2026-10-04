@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { devnetImageUri, metadataStatement } from '../devnet-metadata.js';
+import { devnetImageUri, metadataStatement, LEGACY_DEVNET_METADATA_ORIGIN, normalizeDevnetMetadataOrigin } from '../devnet-metadata.js';
 import { canonicalLaunchSocialUrl } from '../launch-social-url.js';
 
 export const MAX_METADATA_IMAGE_BYTES = 600_000;
@@ -49,12 +49,19 @@ export function parseSignedMetadata(input) {
   return { record, image, imageType };
 }
 
-export function publicMetadata(record) {
+// Missing origin identifies records created before configurable hosting. Their
+// immutable public URLs must not change when a deployment changes its origin.
+export function metadataRecordOrigin(record) {
+  return normalizeDevnetMetadataOrigin(record?.metadataOrigin || LEGACY_DEVNET_METADATA_ORIGIN);
+}
+
+export function publicMetadata(record, origin = metadataRecordOrigin(record)) {
+  origin = normalizeDevnetMetadataOrigin(origin);
   return {
     name: record.name,
     symbol: record.symbol,
     description: record.description || 'Devnet test token launched on funded.vip. Devnet assets have no intended monetary value.',
-    image: record.imageSha256 ? devnetImageUri(record.mint) : 'https://metadata.funded.vip/default.svg',
+    image: record.imageSha256 ? devnetImageUri(record.mint, origin) : `${origin}/default.svg`,
     ...(record.website ? { external_url: record.website, website: record.website } : {}),
     ...(record.x ? { twitter: record.x } : {}),
     ...(record.telegram ? { telegram: record.telegram } : {}),

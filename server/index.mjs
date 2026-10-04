@@ -57,8 +57,8 @@ import { createLaunchBurnTiers } from '../launch-burn-policy.js';
 import { deriveXFeeObligation, reconcileXFeeObligation } from './x-fee-guard.mjs';
 import { buildMintRouterSettlementInstruction, readMintClaimRecord } from './mint-router-payout.mjs';
 import { buybackQueue } from './buyback-executor.mjs';
-import { parseSignedMetadata, publicMetadata } from './devnet-metadata.mjs';
-import { devnetMetadataUri, devnetImageUri } from '../devnet-metadata.js';
+import { parseSignedMetadata, publicMetadata, metadataRecordOrigin } from './devnet-metadata.mjs';
+import { devnetMetadataUri, normalizeDevnetMetadataOrigin, LEGACY_DEVNET_METADATA_ORIGIN } from '../devnet-metadata.js';
 import { attachVerifiedTokenAccountWallets, normalizeAllTokenAccounts, normalizeLargestTokenAccounts } from './token-accounts.mjs';
 import { coinFeeOverview } from './coin-fee-overview.mjs';
 import { homeLaunchFeeIndex } from './home-launch-fee-index.mjs';
@@ -161,6 +161,7 @@ if (process.env.NODE_ENV === 'production' && !databaseUrl) throw new Error('DATA
 if (process.env.NODE_ENV === 'production' && !String(process.env.FUNDED_API_TOKEN || '').trim()) throw new Error('FUNDED_API_TOKEN is required in production.');
 const store = createStore(storePath, databaseUrl);
 const maxBodyBytes = 1_000_000;
+const devnetMetadataOrigin = normalizeDevnetMetadataOrigin(process.env.DEVNET_METADATA_ORIGIN || LEGACY_DEVNET_METADATA_ORIGIN);
 const birdeyeApiKey = String(process.env.BIRDEYE_API_KEY || '').trim();
 const birdeyeBaseUrl = String(process.env.BIRDEYE_API_URL || 'https://public-api.birdeye.so').replace(/\/$/, '');
 const birdeyeChain = String(process.env.BIRDEYE_CHAIN || 'solana').trim();
@@ -235,7 +236,7 @@ async function serveStatic(pathname, res) {
   const filePath = resolve(staticRoot, fileName);
   if (!filePath.startsWith(`${staticRoot}${sep}`)) return json(res, 404, { error: 'Not found.' });
   const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon',
-    '.webp': 'image/webp', '.avif': 'image/avif', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.woff2': 'font/woff2', '.woff': 'font/woff' };
+    '.json': 'application/json; charset=utf-8', '.webp': 'image/webp', '.avif': 'image/avif', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.woff2': 'font/woff2', '.woff': 'font/woff' };
   try {
     const content = await readFile(filePath);
     res.writeHead(200, { 'content-type': mime[extname(filePath).toLowerCase()] || 'application/octet-stream', 'cache-control': staticCacheControl(fileName), 'x-content-type-options': 'nosniff' });
@@ -786,8 +787,8 @@ async function handle(req, res) {
       if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Metadata publishing is Devnet-only.' });
       const input = await body(req);
       const { record, image, imageType } = validateInput(() => parseSignedMetadata(input));
-      await store.writeMetadata(record, image, imageType);
-      return json(res, 201, { uri: devnetMetadataUri(record.mint), image: record.imageSha256 ? devnetImageUri(record.mint) : 'https://metadata.funded.vip/default.svg', mint: record.mint });
+      const saved = await store.writeMetadata({ ...record, metadataOrigin: devnetMetadataOrigin }, image, imageType);
+      return json(res, 201, { uri: devnetMetadataUri(saved.mint, metadataRecordOrigin(saved)), image: publicMetadata(saved).image, mint: saved.mint });
     }
     if (req.method === 'GET' && url.pathname === '/api/dev-wallet') {
       if (!devMode) return json(res, 403, { error: 'Automatic development wallet access is available only in the local Devnet preview.' });
@@ -1856,9 +1857,10 @@ async function handle(req, res) {
         const proof = await verifyPumpLaunch({ connection: new Connection(solanaRpcUrl, 'confirmed'), mint: input.mint, signature: input.signature || input.pumpFeeRoute?.transaction,
           promotionClaim: input.creatorLaunchBurn || null, fundedMint: fundedTokenMint, promotionTiers });
       const preparedMetadata = await store.readMetadata(proof.mint);
-      if (input.metadataUri && input.metadataUri !== devnetMetadataUri(proof.mint)) return json(res, 409, { error: 'Launch metadata URL does not match the mint.' });
+      const preparedMetadataUri = devnetMetadataUri(proof.mint, metadataRecordOrigin(preparedMetadata));
+      if (input.metadataUri && input.metadataUri !== preparedMetadataUri) return json(res, 409, { error: 'Launch metadata URL does not match the mint.' });
       if (input.metadataUri && !preparedMetadata) return json(res, 409, { error: 'Signed Devnet metadata is missing.' });
-      if (preparedMetadata && (preparedMetadata.creatorWallet !== proof.feePayer || preparedMetadata.name !== proof.name || preparedMetadata.symbol !== proof.symbol || (proof.uri && proof.uri !== devnetMetadataUri(proof.mint)))) return json(res, 409, { error: 'Signed metadata does not match the confirmed Pump launch.' });
+      if (preparedMetadata && (preparedMetadata.creatorWallet !== proof.feePayer || preparedMetadata.name !== proof.name || preparedMetadata.symbol !== proof.symbol || (proof.uri && proof.uri !== preparedMetadataUri))) return json(res, 409, { error: 'Signed metadata does not match the confirmed Pump launch.' });
       const routerConfig = feeRouterConfig();
       const routeReadiness = await verifyLaunchRouterReadiness({ connection: new Connection(solanaRpcUrl, 'confirmed'), routerConfig, mint: proof.mint, perMint });
       if (!routeReadiness.ready) return json(res, routeReadiness.status, { error: routeReadiness.error });
@@ -1891,7 +1893,7 @@ async function handle(req, res) {
       const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent: policy.creatorWalletPercent, holderAirdropPercent: policy.holderAirdropPercent, solClaimPercent: policy.solClaimPercent, xRecipient: policy.xRecipient, feeRouterAddress: configuredRouter });
       const record = {
         ...proof, cluster: solanaCluster, creatorWallet: proof.feePayer,
-        ...(preparedMetadata ? { metadataUri: devnetMetadataUri(proof.mint), description: preparedMetadata.description, imageUri: preparedMetadata.imageSha256 ? devnetImageUri(proof.mint) : 'https://metadata.funded.vip/default.svg', website: preparedMetadata.website, twitter: preparedMetadata.x, telegram: preparedMetadata.telegram, discord: preparedMetadata.discord } : {}),
+        ...(preparedMetadata ? { metadataUri: preparedMetadataUri, description: preparedMetadata.description, imageUri: publicMetadata(preparedMetadata).image, website: preparedMetadata.website, twitter: preparedMetadata.x, telegram: preparedMetadata.telegram, discord: preparedMetadata.discord } : {}),
         communityAllocation: policy.communityAllocation,
         ...(xLinked ? { xUserId: policy.xUserId } : {}),
         communityAirdrop: verifiedReserve

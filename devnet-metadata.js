@@ -1,11 +1,30 @@
-export const DEVNET_METADATA_ORIGIN = 'https://metadata.funded.vip';
+export const LEGACY_DEVNET_METADATA_ORIGIN = 'https://metadata.funded.vip';
 
-export function devnetMetadataUri(mint) {
-  return `${DEVNET_METADATA_ORIGIN}/devnet-metadata/${mint}`;
+// Only deployment configuration may choose the host. Never derive this from an
+// upload or a request Host header. Local HTTP is useful for isolated previews.
+export function normalizeDevnetMetadataOrigin(value = LEGACY_DEVNET_METADATA_ORIGIN) {
+  const input = String(value).trim();
+  let url;
+  try { url = new URL(input); } catch { throw new Error('Devnet metadata origin must be an HTTPS origin.'); }
+  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+  if ((url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) || url.username || url.password || url.pathname !== '/' || url.search || url.hash || /[\s\\]/.test(input) || !/^https?:\/\/[^/?#]+\/?$/i.test(input)) {
+    throw new Error('Devnet metadata origin must be an HTTPS origin without credentials, path, query, or fragment.');
+  }
+  return url.origin;
 }
 
-export function devnetImageUri(mint) {
-  return `${DEVNET_METADATA_ORIGIN}/devnet-images/${mint}`;
+export const DEVNET_METADATA_ORIGIN = normalizeDevnetMetadataOrigin(import.meta.env?.VITE_DEVNET_METADATA_ORIGIN || LEGACY_DEVNET_METADATA_ORIGIN);
+
+export function devnetMetadataUri(mint, origin = DEVNET_METADATA_ORIGIN) {
+  return `${normalizeDevnetMetadataOrigin(origin)}/devnet-metadata/${mint}`;
+}
+
+export function devnetImageUri(mint, origin = DEVNET_METADATA_ORIGIN) {
+  return `${normalizeDevnetMetadataOrigin(origin)}/devnet-images/${mint}`;
+}
+
+export function isDevnetImageUri(uri, mint) {
+  return uri === devnetImageUri(mint) || uri === devnetImageUri(mint, LEGACY_DEVNET_METADATA_ORIGIN);
 }
 
 export function metadataStatement(record) {

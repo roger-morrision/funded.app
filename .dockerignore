@@ -22,3 +22,8 @@ docs/ui-evidence-2026-09-29
 .docker-config
 .tmp-*/
 tmp/
+
+# Local verification output and deployment staging are not image inputs.
+/test-results
+/playwright-report
+/deploy

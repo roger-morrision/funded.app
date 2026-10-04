@@ -5,9 +5,10 @@ import { clusterApiUrl, Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { createAutomaticRewardStore } from '../server/automatic-reward-store.mjs';
 import { rewardLedgerPath } from '../server/reward-ledger-path.mjs';
 import { createHolderHistoryIndexer } from '../server/holder-history-indexer.mjs';
-import { createAutomaticRewardChain } from '../server/automatic-reward-chain.mjs';
+import { createAutomaticRewardChain, DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
 import { createRewardScheduler } from '../server/reward-scheduler.mjs';
 import { createRewardFundingProcessor } from '../server/reward-funding-processor.mjs';
+import { rewardWorkerFailureStatus } from '../server/worker-readiness.mjs';
 import { rpcQuotaExhausted, rpcWorkerWaitMs } from '../rpc-retry.js';
 
 for (const [name, filePath] of Object.entries(process.env)) {
@@ -33,7 +34,7 @@ const authority = signer();
 const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID);
 const store = createAutomaticRewardStore(rewardLedgerPath());
 const chain = createAutomaticRewardChain({ connection, programId, authority, expectedProgramDataSha256: process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
-const scheduler = createRewardScheduler({ store, chain, indexer: createHolderHistoryIndexer({ connection:holderIndexConnection, store, rpcUrl:holderIndexRpcUrl }) });
+const scheduler = createRewardScheduler({ store, chain, indexer: createHolderHistoryIndexer({ connection:holderIndexConnection, store, rpcUrl:holderIndexRpcUrl, expectedGenesisHash:DEVNET_GENESIS_HASH }) });
 const fundingProcessor = createRewardFundingProcessor({ store, chain, scheduler });
 const configs = JSON.parse(process.env.FUNDED_REWARD_PROGRAMS_JSON || '[]');
 for (const config of configs) await scheduler.register(config);
@@ -50,12 +51,8 @@ do {
     const quotaExhausted = rpcQuotaExhausted(error);
     if (quotaExhausted) {
       waitMs = rpcWorkerWaitMs(error, intervalMs);
-      await store.transaction(state => { state.serviceStatus = {
-        constrainedPayouts: false, reasons: ['rpc-quota-exhausted'],
-        reason: 'Automatic distributions are unavailable because the Devnet RPC quota is exhausted.',
-        checkedAt: new Date().toISOString(),
-      }; }).catch(() => {});
     }
+    await store.transaction(state => { state.serviceStatus = rewardWorkerFailureStatus({ quotaExhausted }); }).catch(() => {});
     console.error(JSON.stringify({ at: new Date().toISOString(), status: quotaExhausted ? 'rpc-quota-exhausted' : 'error',
       retryAfterMs: quotaExhausted ? waitMs : undefined, error: String(error.message || error) }));
   }

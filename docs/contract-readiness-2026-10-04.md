@@ -64,3 +64,20 @@ The second-pass local artifact supersedes the earlier source-build artifact abov
 A new SBF regression demonstrated that sending SOL to a known, uninitialized router PDA made both global and mint-router initialization fail: the initializer required a zero balance. The fix preserves the existing zero-balance creation path and handles an empty, system-owned prefunded PDA by topping up only the rent shortfall, then allocating and assigning it using the existing PDA signer seeds. Existing lamports remain in the router; initialized accounts still reject initialization. Authority selection, mint signature requirements, instruction accounts/discriminators, layout, and PDA derivation are unchanged. The first-caller global authority limitation remains unresolved.
 
 Additional transaction regressions cover deposits below and above rent, exact resulting balances, initialized-account replay rejection, wrong-authority header-repair rollback, and authorized header repair preserving balances and authority. The new prefunding regression failed against the prior artifact before the fix. After rebuilding with the same pinned toolchain and commands above, **`cargo test --locked` passed all 13 tests: 4 host unit tests and 9 SBF integration tests**. `git diff --check` passed. Launch client account builders and post-submit router verification remain compatible; no frontend adapter change was needed.
+
+## Fresh local-validator acceptance of the current artifact
+
+The current `f2fe2b160a861c74ddcff7aa74e79874191c2dc2c9d21b6ef5b1b4529daca470` build also passed two fresh, isolated Agave 4.1.2 validator runs. Each loaded executable was compared byte-for-byte with the local build. Both validators were stopped after verification; no public program was deployed, upgraded, or rotated.
+
+- [Current-build community evidence](audit/devnet-2026-10-04/local-community-current-build.json): exact 100-token reward-vault escrow moved into the community drop without a creator signature and then to the recipient. Opening and claim finalized at local slots 27 and 60. Wrong opening amount, duplicate opening, and duplicate claim were rejected. The script's synthetic migration marker tests escrow/claim mechanics, not verification of a real Pump graduation.
+- [Current-build router lifecycle evidence](audit/devnet-2026-10-04/local-router-lifecycle-acceptance.json): 14 successful finalized transactions (including four local airdrops) and eight explicit checks. Global and per-mint initialization preserved prefunded balances; a 5,000,000-lamport mint-router settlement funded a committed two-recipient reward cycle; claims delivered exactly 2,000,000 and 3,000,000 lamports and left only vault rent. Settlement/reward replays and a wrong reward amount were rejected in simulation. Three-signature rotation updated the global and mint routers; a wrong upgrade owner and retired-authority cycle creation/settlement were rejected. A previously committed reward remained payable after rotation, and the new authority created its own vault.
+
+Reproduce the lifecycle run on a **fresh** loopback validator loaded with the current artifact using `--upgradeable-program <program-id> <artifact.so> <disposable-local-owner-keyfile>` and an isolated ledger. Then run:
+
+```sh
+LOCAL_SOLANA_RPC_URL=http://127.0.0.1:18899 \
+LOCAL_TEST_UPGRADE_AUTHORITY_FILE=/tmp/disposable-local-owner.json \
+node scripts/verify-router-lifecycle-local.mjs
+```
+
+The harness verifies the loaded artifact before reading the disposable key and checks that the key matches the upgrade owner before signing, accepts only a loopback endpoint, creates fresh in-memory protocol/test wallets, and labels negative simulations separately from successful finalized transactions. Community acceptance uses `node scripts/verify-community-router-local.mjs` on a separate fresh ledger because it initializes its own singleton router. These tests close the current-artifact local-validator evidence gap; independent review, on-chain policy enforcement, and public deployment readiness remain separate requirements.

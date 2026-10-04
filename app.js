@@ -10,8 +10,6 @@ import { formatTradeAmountInput, parseTradeAmountInput } from './trade-amount-in
 import { formatTokenBaseAmount, tokenBalancePercentage } from './trade-panel-balance.js';
 import { buildTradeReview } from './trade-review-model.js';
 import bs58 from 'bs58';
-import nacl from 'tweetnacl';
-import { decryptPhantomMobileResult, verifyPhantomMobileSession, verifyPhantomMobileSignature, verifyPhantomMobileTransaction } from './phantom-mobile-crypto.js';
 import { formatXClaimSol, summarizeXClaims } from './x-claim-summary.js';
 import { APP_REFERRAL_LEVELS, buildFeeDistributionPolicy, FEE_DISTRIBUTION, validateFeeDistribution } from './distribution-policy.js';
 import { buildLaunchReservePlan, fundedCommunityAirdropPolicy } from './airdrop-policy.js';
@@ -39,7 +37,7 @@ import { getPreparedImage, prepareLaunchImage, assertImageReady } from './launch
 import { launchPolicyStatement } from './launch-policy-auth.js';
 import { coinDetailPackage, verifiedPromotionBadge } from './promotion-badge.js';
 import { initPaidListing } from './list-page.js';
-import { metadataStatement, devnetMetadataUri, devnetImageUri } from './devnet-metadata.js';
+import { metadataStatement, devnetMetadataUri, devnetImageUri, isDevnetImageUri } from './devnet-metadata.js';
 import { canonicalLaunchSocialUrl, normalizeXProfileInput } from './launch-social-url.js';
 import { claimerRate, sortClaimers, claimantWalletLabel } from './airdrop-claimers-model.js';
 import { airdropClaimState } from './airdrop-directory-model.js';
@@ -663,7 +661,7 @@ async function checkFeeRouterConfig(){
 }
 async function refreshXFeeStatus(){
   try {
-    const result = await apiRequest('/api/x-fee/status');
+    const result = await apiRequest('/api/x-fee/status', { signal: AbortSignal.timeout(8000) });
     xFeeStatus = result.available && result.data?.ready === true ? result.data : { ready: false, reasons: result.data?.reasons || ['X fee service is unavailable'] };
   } catch (error) { xFeeStatus = { ready: false, reasons: [error.message || 'X fee service is unavailable'] }; }
   const help = document.querySelector('#x-share-help');
@@ -1181,7 +1179,7 @@ function renderCoinRegistryIdentity(mint){
   setCoinField('#coin-avatar', (symbol || name).slice(0, 1).toUpperCase());
   setCoinField('#coin-description', 'Name and symbol come from the verified launch registry. Live mint, market, and holder facts are unavailable from Devnet RPC.');
   setCoinFact('#coin-metadata-status', 'Verified launch registry', 'clear');
-  if (launch.imageUri === devnetImageUri(mint)) {
+  if (isDevnetImageUri(launch.imageUri, mint)) {
     const avatar = document.querySelector('#coin-avatar');
     if (avatar) {
       avatar.textContent = '';
@@ -1207,7 +1205,7 @@ function portfolioHolderCount(asset){
 }
 function loadTokenLogo(avatar, launch, { probeMissing = false } = {}){
   const mint = String(launch?.mint || '');
-  if (!avatar || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) || (!probeMissing && launch?.imageUri !== devnetImageUri(mint))) return;
+  if (!avatar || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) || (!probeMissing && !isDevnetImageUri(launch?.imageUri, mint))) return;
   const sources = [`/devnet-images/${encodeURIComponent(mint)}`, devnetImageUri(mint)];
   let next = 0;
   const trySource = () => {
@@ -4212,6 +4210,7 @@ async function waitForMobileWalletFlow(flow, version){
   throw new Error('Phantom approval expired. Start a new wallet request.');
 }
 async function createMobileWalletProvider(session){
+  const { verifyPhantomMobileSession, verifyPhantomMobileSignature, verifyPhantomMobileTransaction } = await import('./phantom-mobile-crypto.js');
   verifyPhantomMobileSession(session, window.location.origin);
   const { PublicKey } = await getSolana();
   let pendingTradeFlow = null;
@@ -4274,6 +4273,7 @@ async function createMobileWalletProvider(session){
 async function openMobileWalletDialog(){
   if (window.location.protocol !== 'https:') { showToast('Use the hosted HTTPS site to connect Phantom on your phone.'); return; }
   try {
+    const [{ default: nacl }, { decryptPhantomMobileResult, verifyPhantomMobileSession }] = await Promise.all([import('tweetnacl'), import('./phantom-mobile-crypto.js')]);
     const flow = await registerMobileWalletFlow();
     const version = ++mobileWalletRequestVersion;
     const keyPair = nacl.box.keyPair();
@@ -7285,8 +7285,8 @@ void refreshFundedBuyRoute();
 createRoutePoller({ run: signal => refreshFundedBuyRoute(signal), active: () => !fundedBuyBusy && ['buybacks', 'paid'].includes(requestedPageRoute()), intervalMs: 60_000 });
 renderPublishedFeeRates();
 renderFeeFlowCalculator();
-await refreshFeeRouterConfig();
-await refreshXFeeStatus();
+// Launch controls stay gated by their verified state while the workspace renders.
+void Promise.allSettled([refreshFeeRouterConfig(), refreshXFeeStatus()]);
 renderLaunchBurnSelection();
 updateLaunchPreview();
 updateCostSummary();
@@ -8464,7 +8464,7 @@ async function loadCoinOnChain(mintAddress){
       if (tagline) { tagline.textContent = details.tagline || ''; tagline.hidden = !details.tagline; }
       window.fundedSetCoinProfileMetadata?.(details);
       setCoinFact('#coin-metadata-status', 'App name / symbol matched', 'clear');
-      if (details.image === `https://metadata.funded.vip/devnet-images/${mintAddress}`) {
+      if (isDevnetImageUri(details.image, mintAddress)) {
         const avatar = document.querySelector('#coin-avatar');
         if (avatar) { avatar.textContent = ''; avatar.style.backgroundImage = `url("${details.image}")`; avatar.style.backgroundSize = 'cover'; avatar.style.backgroundPosition = 'center'; }
         const artwork = document.querySelector('.coin-artwork');

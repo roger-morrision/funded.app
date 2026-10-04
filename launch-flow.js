@@ -157,7 +157,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
       mint: mint.publicKey,
       name: launchInput.name,
       symbol: launchInput.symbol,
-      uri: metadataUri || `https://funded.vip/devnet-metadata/${mint.publicKey.toBase58()}`,
+      uri: metadataUri || devnetMetadataUri(mint.publicKey.toBase58()),
       creator: feeRouter,
       user: payer,
       amount: new BN(initialBuy.amountBaseUnits.toString()),
@@ -170,7 +170,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
       mint: mint.publicKey,
       name: launchInput.name,
       symbol: launchInput.symbol,
-      uri: metadataUri || `https://funded.vip/devnet-metadata/${mint.publicKey.toBase58()}`,
+      uri: metadataUri || devnetMetadataUri(mint.publicKey.toBase58()),
       creator: feeRouter,
       user: payer,
       mayhemMode: false,
@@ -234,5 +234,5 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   }
   return { ...launchInput, mint, signature, mintRouterSignature, mintRouterSeparate: plan.mintRouterSeparate, pump: true, feeRouter, feeRoute, launchBurnReceipt, initialBuy,
     reserveReceipt:{ signature, vault:reserve.vault.toBase58(), tokenAccount:reserve.destination.toBase58(), fundedTokens:input.reserveTokens, atomic:true },
-    metadataUri: metadataUri || `https://funded.vip/devnet-metadata/${mint.publicKey.toBase58()}` };
+    metadataUri: metadataUri || devnetMetadataUri(mint.publicKey.toBase58()) };
 }

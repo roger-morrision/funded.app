@@ -22,6 +22,7 @@ services:
       args:
         FUNDED_SOURCE_REVISION: ${FUNDED_BUILD_ID:-local-development}
         VITE_API_BASE_URL: /
+        VITE_DEVNET_METADATA_ORIGIN: ${FUNDED_DEVNET_METADATA_ORIGIN:-https://metadata.funded.vip}
         VITE_SOLANA_CLUSTER: devnet
         VITE_EXPLORE_CLUSTER: devnet
         VITE_ALLOW_MAINNET: "false"
@@ -47,6 +48,7 @@ services:
     environment:
       FUNDED_BUILD_ID: ${FUNDED_BUILD_ID:-local-development}
       SOLANA_CLUSTER: devnet
+      DEVNET_METADATA_ORIGIN: ${FUNDED_DEVNET_METADATA_ORIGIN:-https://metadata.funded.vip}
       VITE_ALLOW_MAINNET: "false"
       NODE_ENV: production
       DEV_MODE: "false"

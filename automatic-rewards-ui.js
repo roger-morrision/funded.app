@@ -516,7 +516,9 @@ async function refreshHomePaidSummary() {
   renderSimpleRewardCards('x');
 }
 if (panels.length) {
-  await Promise.all([refreshSchedules(), refreshFundedHolderTokens(), refreshXRoute(), refreshHomePaidSummary()]);
+  // Publish the loading panels immediately; provider responses update them independently.
+  // Slow reward services must not block workspace navigation during module import.
+  void Promise.allSettled([refreshSchedules(), refreshFundedHolderTokens(), refreshXRoute(), refreshHomePaidSummary()]);
   setInterval(() => { if (!document.hidden) void refreshSchedules(); }, 30000);
   setInterval(() => { if (!document.hidden) void refreshFundedHolderTokens(); }, 60000);
   setInterval(() => { if (!document.hidden) void refreshXRoute(); }, 60000);

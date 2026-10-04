@@ -1,0 +1,89 @@
+{
+  "observedAt": "2026-10-04T06:05:21.634249+00:00",
+  "image": "sha256:e26e279d3b32169056a4f042f8cb3acb7d9965f2e2201028243bc6c2b962400a",
+  "browserSourceDigest": "7eb65c57fe3819d5c2f79173c22399e4de5ac542d5edda91443e5fb63417b973",
+  "http": {
+    "mode": "real local container HTTP and PostgreSQL; no interception or chain broadcasts",
+    "base": "http://127.0.0.1:8788",
+    "replicas": 2,
+    "build": "local-container-verification",
+    "checks": [
+      "production API identifies Devnet, expected build and PostgreSQL storage",
+      "real database health and network status remain distinct from settlement authorization",
+      "anonymous privileged reads and writes fail closed",
+      "built assets, safe browser settings, cache policies and deep links are served by the real container",
+      "two real replicas share PostgreSQL single-use approval and authenticated post/read",
+      "message deletion and session revocation persist across actual HTTP requests"
+    ],
+    "network": "operational",
+    "publicDevnetTransactions": 0
+  },
+  "browser": {
+    "mode": "real local container browser; no request interception",
+    "checks": [
+      {
+        "route": "/#explore",
+        "width": 1440,
+        "status": 200,
+        "workspaceReady": true,
+        "uncaughtErrors": 0,
+        "overflow": false
+      },
+      {
+        "route": "/#launch",
+        "width": 1440,
+        "status": 200,
+        "workspaceReady": true,
+        "uncaughtErrors": 0,
+        "overflow": false
+      },
+      {
+        "route": "/#docs",
+        "width": 1440,
+        "status": 200,
+        "workspaceReady": true,
+        "uncaughtErrors": 0,
+        "overflow": false
+      },
+      {
+        "route": "/#explore",
+        "width": 390,
+        "status": 200,
+        "workspaceReady": true,
+        "uncaughtErrors": 0,
+        "overflow": false
+      },
+      {
+        "route": "/#launch",
+        "width": 390,
+        "status": 200,
+        "workspaceReady": true,
+        "uncaughtErrors": 0,
+        "overflow": false
+      },
+      {
+        "route": "/#docs",
+        "width": 390,
+        "status": 200,
+        "workspaceReady": true,
+        "uncaughtErrors": 0,
+        "overflow": false
+      }
+    ]
+  },
+  "restart": {
+    "mode": "real production container restart and shared PostgreSQL",
+    "container": "funded-devnet-verify-app-1",
+    "pendingChallengeSurvived": true,
+    "existingSessionSurvived": true,
+    "replayRejected": true,
+    "testMessagesDeleted": true,
+    "sessionsRevoked": true,
+    "onchainTransactions": 0
+  },
+  "limitations": [
+    "Local disposable containers; not a deployed public site.",
+    "No Solana transactions or funded wallets used.",
+    "Candidate image precedes subsequent startup and metadata MIME fixes; final image must be rebuilt and verified."
+  ]
+}

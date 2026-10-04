@@ -7,14 +7,21 @@ import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from '../server/automati
 import { verifyPumpMigrationTransaction } from '../server/community-snapshot.mjs';
 import { rpcQuotaExhausted, rpcWorkerWaitMs } from '../rpc-retry.js';
 
+import { workerHeartbeatHealth, workerFailureReport } from '../server/worker-readiness.mjs';
+
 const heartbeat = '/tmp/funded-community-claim-worker-status.json';
-const intervalMs = Math.max(15_000, Number(process.env.FUNDED_COMMUNITY_CLAIM_TICK_MS || 20_000));
+const configuredInterval = Number(process.env.FUNDED_COMMUNITY_CLAIM_TICK_MS || 20_000);
+if (!Number.isFinite(configuredInterval) || configuredInterval <= 0) throw new Error('Community worker interval must be a finite positive number.');
+const intervalMs = Math.max(15_000, configuredInterval);
 const api = String(process.env.FUNDED_COMMUNITY_CLAIM_API || 'http://app:8787').replace(/\/$/, '');
 const expectedHash = String(process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 || '').toLowerCase();
 if (process.argv.includes('--check')) {
-  const status = JSON.parse(await readFile(heartbeat, 'utf8'));
-  if (status.status !== 'ready') console.log(JSON.stringify(status));
-  if (Date.now() - Date.parse(status.at) > intervalMs * 3 + 30_000 || status.status !== 'ready') process.exitCode = 1;
+  let status = null;
+  try { status = JSON.parse(await readFile(heartbeat, 'utf8')); } catch { /* Missing or partial status is unavailable. */ }
+  const health = workerHeartbeatHealth(status, { maxAgeMs: intervalMs * 3 + 30_000, expectedCluster: 'devnet' });
+  if (process.env.SOLANA_CLUSTER !== 'devnet') { health.healthy = false; health.reasons.push('worker-configuration-is-not-devnet'); }
+  console.log(JSON.stringify(health));
+  if (!health.healthy) process.exitCode = 1;
 } else {
   if (process.env.SOLANA_CLUSTER !== 'devnet' || !/^[a-f0-9]{64}$/.test(expectedHash))
     throw new Error('Pinned Devnet program identity is required for automatic community claims.');
@@ -109,7 +116,7 @@ if (process.argv.includes('--check')) {
       if (result === 'opened') opened += 1;
       else recovered += 1;
     }
-    const report = { status:'ready', at:new Date().toISOString(), funded:(reserves.reserves || []).filter(row => row.status === 'funded').length,
+    const report = { status:'ready', cluster:'devnet', at:new Date().toISOString(), funded:(reserves.reserves || []).filter(row => row.status === 'funded').length,
       prepared, opened, recovered };
     await writeFile(heartbeat, JSON.stringify(report));
     console.log(JSON.stringify(report));
@@ -121,8 +128,8 @@ if (process.argv.includes('--check')) {
       const quotaExhausted = rpcQuotaExhausted(error);
       if (quotaExhausted) {
         waitMs = rpcWorkerWaitMs(error, intervalMs);
-        await writeFile(heartbeat, JSON.stringify({ status:'rpc-quota-exhausted', at:new Date().toISOString(), retryAfterMs:waitMs })).catch(() => {});
       }
+      await writeFile(heartbeat, JSON.stringify(workerFailureReport({ quotaExhausted, retryAfterMs: waitMs }))).catch(() => {});
       console.error(`Community claim worker: ${String(error.message || error)}${quotaExhausted ? `; retry after ${waitMs}ms` : ''}`);
     }
     await new Promise(resolve => setTimeout(resolve, waitMs));

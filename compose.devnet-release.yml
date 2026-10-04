@@ -1,0 +1,82 @@
+# Standalone signer-disabled Devnet release. Build/test the immutable image first.
+# Supply credential FILE PATHS via the secret manager; no signing keys are mounted.
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: funded_app
+      POSTGRES_USER: funded
+      POSTGRES_PASSWORD_FILE: /run/secrets/database_password
+    secrets: [database_password]
+    volumes:
+      - devnet_database:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U funded -d funded_app]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    image: ${FUNDED_APP_IMAGE:?Set the verified image digest}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    command: [sh, -c, 'node scripts/migrate-postgres.mjs && exec node server/index.mjs']
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: '8787'
+      FUNDED_BUILD_ID: ${FUNDED_BUILD_ID:?Set the verified source revision}
+      SOLANA_CLUSTER: devnet
+      DEVNET_METADATA_ORIGIN: ${FUNDED_DEVNET_METADATA_ORIGIN:-https://metadata.funded.vip}
+      VITE_SOLANA_CLUSTER: devnet
+      VITE_ALLOW_MAINNET: 'false'
+      DEV_MODE: 'false'
+      DEVNET_TEST_MODE: 'false'
+      SOLANA_KEEPER_CONFIGURED: 'false'
+      SOLANA_REFERRAL_PAYOUT_CONFIGURED: 'false'
+      FUNDED_MINT_FEE_ROUTER_ENABLED: 'false'
+      FUNDED_BUYBACK_EXECUTOR_ENABLED: 'false'
+      FUNDED_BOOST_ENABLED: 'false'
+      RPC_ALLOW_AIRDROP: 'false'
+      RPC_ALLOW_EXPENSIVE_METHODS: 'false'
+      TRUST_PROXY: 'false'
+      PUBLIC_APP_URL: ${FUNDED_PUBLIC_APP_URL:?Set the HTTPS public app origin}
+      CORS_ORIGIN: ${FUNDED_PUBLIC_APP_URL:?Set the HTTPS public app origin}
+      SOLANA_RPC_URL_FILE: /run/secrets/solana_devnet_rpc_url
+      DATABASE_URL_FILE: /run/secrets/database_url
+      DATABASE_SSL: 'false'
+      FUNDED_API_TOKEN_FILE: /run/secrets/api_token
+      AUTOMATIC_REWARD_STORE_PATH: /app/data/automatic-rewards/ledger.json
+    secrets: [database_url, api_token, solana_devnet_rpc_url]
+    volumes:
+      - devnet_app_data:/app/data
+    ports:
+      - '127.0.0.1:${FUNDED_PREVIEW_PORT:-8788}:8787'
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8787/api/health',{signal:AbortSignal.timeout(8000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  devnet_database:
+  devnet_app_data:
+
+secrets:
+  database_password:
+    file: ${FUNDED_DB_PASSWORD_FILE:?Set the database password file path}
+  database_url:
+    file: ${FUNDED_DATABASE_URL_FILE:?Set the private database URL file path}
+  api_token:
+    file: ${FUNDED_API_TOKEN_FILE:?Set the API token file path}
+  solana_devnet_rpc_url:
+    file: ${FUNDED_DEVNET_RPC_URL_FILE:?Set the Devnet RPC URL file path}

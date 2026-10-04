@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "network": "isolated-local-validator",
+  "genesis": "GHjF7f4sRVBJMpG9W3XXzH1yw6W2kKfwVoCUSspfTMRp",
+  "startedAt": "2026-10-04T05:56:48.721Z",
+  "program": "2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik",
+  "artifactSha256": "f2fe2b160a861c74ddcff7aa74e79874191c2dc2c9d21b6ef5b1b4529daca470",
+  "transactions": [
+    {
+      "name": "local-airdrop",
+      "signature": "4EWNAZnSVxzVpDzP39gDvQiHLmXoJUVu6GekqskTHSdzxmh7LBzHawYYJEXU82XQfxiCwzAhkECoMz1DF2UoCTMT",
+      "finalized": true,
+      "slot": 3,
+      "feeLamports": 5000
+    },
+    {
+      "name": "local-airdrop",
+      "signature": "3wQLUAeKspAHoJi6yGFJCCbs4ESpuNKJm2BAkHqZnYNapmvcsFwHH5CcBhWcBhsUP7H6cL1KVjPnK9bbqsqwuXDY",
+      "finalized": true,
+      "slot": 4,
+      "feeLamports": 5000
+    },
+    {
+      "name": "local-airdrop",
+      "signature": "2jrV1MyfonKPbiTsf8YdXbvt9c1U1R1F6ksrUrkm1D8P2QsYSNsTALWBznkzkvWMzNFCHUdg3TtEXfdW842caDmf",
+      "finalized": true,
+      "slot": 5,
+      "feeLamports": 5000
+    },
+    {
+      "name": "local-airdrop",
+      "signature": "43T9ed34VHjKrGu917r37UrtE8HWPLCr2fdSGPrW2a8Da6D44iry4qAYGJDihvVtQ3CgS3oqQYjJrhgeGDkLsZUH",
+      "finalized": true,
+      "slot": 6,
+      "feeLamports": 5000
+    },
+    {
+      "name": "prefund-global-and-mint-router",
+      "signature": "3erqKawKJYENGCyecRRsJUEHVX2MeiAeK8Zo5jnEKTwQNkowF4BynTJ4rtuKauWsvskMRCyX7qTreTZJv1F4KA7a",
+      "finalized": true,
+      "slot": 7,
+      "feeLamports": 5000
+    },
+    {
+      "name": "initialize-prefunded-global-router",
+      "signature": "5s2EtUGQW27REwgSxC9QyzBUZNZAVYxkrzcJArQkSxbbTVoLBTUHpGq7CRwhg3tDmtboQKPSviNYxRLGrhirh1CQ",
+      "finalized": true,
+      "slot": 8,
+      "feeLamports": 5000
+    },
+    {
+      "name": "initialize-prefunded-mint-router",
+      "signature": "2LMksWbd8561UMgXtqcerTUbHTewDwjrXiTreNvUSVQMFU8zakm5hvijJkNYWW3FdPVexdqvkbpkjZs1kxynQ7M2",
+      "finalized": true,
+      "slot": 9,
+      "feeLamports": 10000
+    },
+    {
+      "name": "initialize-reward-vault",
+      "signature": "3pHMXFuxpdskv5WnHwwqQcmbW9Vn9rcWVEU7WhFUpJMiAW9tXFfAhQz5bXptxpNwbDiXabfVEkh8u5PoKEc8Zj7s",
+      "finalized": true,
+      "slot": 10,
+      "feeLamports": 5000
+    },
+    {
+      "name": "settle-mint-router-to-reward-vault",
+      "signature": "2LC5H5JmZR8iaRZQnkaYixpekKkra8c6o8MFxNkXwRgNwxqr8wbQ7LxWbMDFEwstMZ9sQBAYXqC5TaBwSuBJEgxw",
+      "finalized": true,
+      "slot": 11,
+      "feeLamports": 5000
+    },
+    {
+      "name": "commit-reward-manifest",
+      "signature": "4KN7hXxBBLdYZcMTVhz15dvNrVKX6quiSi37fwmgaXmRMDEQbjQraYvbKBEbeM6RbWVJZfLEp8Qj1KUTXiU8kpmq",
+      "finalized": true,
+      "slot": 33,
+      "feeLamports": 5000
+    },
+    {
+      "name": "claim-reward-recipient-a",
+      "signature": "45u5YSDc1zzXzNtURXdCdLhomDeAsBz4Q9rBc1CKRnCg4iPAx766tgz9Bz5GpQUTYJpoeiPKDQH13obrKdhzMZyh",
+      "finalized": true,
+      "slot": 34,
+      "feeLamports": 5000
+    },
+    {
+      "name": "rotate-global-and-mint-authority",
+      "signature": "4B347hKWAyAN8y822vpBmx21FfqW8Lw34wSscj9iUpoQJxa3NuGnpSSYrxexH9nabq6ZCGHmyyKrViMvWzWeNBct",
+      "finalized": true,
+      "slot": 35,
+      "feeLamports": 15000
+    },
+    {
+      "name": "claim-committed-reward-after-rotation",
+      "signature": "3t6ifmn7YfbiJLCdqrA1utvNDD7Zp1CbuZmCsLFqEr6CTnoEGDTQrXVepJo1CRXnSToq66pKPqksPZ2hP2UqonBb",
+      "finalized": true,
+      "slot": 36,
+      "feeLamports": 5000
+    },
+    {
+      "name": "new-authority-creates-vault",
+      "signature": "4e9D8WYDHvudeCqVEvPLPeeaGfirdGJvC4NfuyZFgxkc3nLfnzC2CCNo9C6exSrb4xPFnY1CU6YTroV59zeHXgoC",
+      "finalized": true,
+      "slot": 37,
+      "feeLamports": 5000
+    }
+  ],
+  "checks": [
+    {
+      "name": "prefunded-router-deposit-conservation",
+      "passed": true
+    },
+    {
+      "name": "settlement-replay-rejected",
+      "passed": true,
+      "mode": "simulation",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "reward-wrong-amount-rejected",
+      "passed": true,
+      "mode": "simulation",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6011
+          }
+        ]
+      }
+    },
+    {
+      "name": "reward-replay-rejected",
+      "passed": true,
+      "mode": "simulation",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "rotation-wrong-upgrade-owner-rejected",
+      "passed": true,
+      "mode": "simulation",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6019
+          }
+        ]
+      }
+    },
+    {
+      "name": "retired-authority-cannot-commit-cycle",
+      "passed": true,
+      "mode": "simulation",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6001
+          }
+        ]
+      }
+    },
+    {
+      "name": "retired-authority-cannot-settle",
+      "passed": true,
+      "mode": "simulation",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6007
+          }
+        ]
+      }
+    },
+    {
+      "name": "reward-conservation-and-pending-claims-survive-rotation",
+      "passed": true,
+      "recipientALamports": 2000000,
+      "recipientBLamports": 3000000,
+      "distributedLamports": 5000000
+    }
+  ],
+  "limitations": [
+    "This is local validator evidence, not Devnet or Mainnet.",
+    "Root creation and settlement recipients remain operator controlled; no independent audit is implied."
+  ],
+  "finishedAt": "2026-10-04T05:57:17.337Z",
+  "status": "passed"
+}
