@@ -84,6 +84,7 @@ test('launch image and settings restore after reload while consent resets', asyn
   await page.locator('#save-launch-draft').click();
   await expect(page.locator('#launch-draft-status')).toContainText('Draft and prepared image saved');
   await page.reload();
+  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   if (!await page.locator('.launch-draft-panel').evaluate(node => node.open)) await page.locator('.launch-draft-panel summary').click();
   await page.locator('#restore-launch-draft').click();
   await expect(page.locator('#token-name')).toHaveValue('Recovery test');
@@ -109,6 +110,7 @@ test('launch image and settings restore after reload while consent resets', asyn
   await page.locator('#delete-launch-draft').click();
   await expect(page.locator('#launch-draft-status')).toContainText('deleted');
   await page.reload();
+  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   if (!await page.locator('.launch-draft-panel').evaluate(node => node.open)) await page.locator('.launch-draft-panel summary').click();
   await page.locator('#restore-launch-draft').click();
   await expect(page.locator('#launch-draft-status')).toContainText('No saved launch draft');

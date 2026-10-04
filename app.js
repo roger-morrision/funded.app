@@ -6045,14 +6045,65 @@ function openBurnPageAfterLaunch(launchPolicy){
   if (location.hash !== '#buybacks') location.hash = '#buybacks';
   else syncPageRoute();
 }
+let airdropRequestInFlight = false;
 async function requestAirdrop(){
-  if (!wallet) { await connectWallet(); if (!wallet) return; }
-  const session = captureWalletSession();
-  if (!session) return;
+  if (APP_CLUSTER !== 'devnet') { setLaunchStatus('Test SOL is available only on Devnet. No faucet request was sent.', true); return; }
+  if (airdropRequestInFlight) return;
+  airdropRequestInFlight = true;
   const button = document.querySelector('#airdrop-button'); button.disabled = true;
-  try { const { LAMPORTS_PER_SOL } = await getSolana(); assertWalletSessionCurrent(session); setLaunchStatus('Requesting 1 Devnet SOL…'); const signature = await connection.requestAirdrop(session.provider.publicKey, LAMPORTS_PER_SOL); await connection.confirmTransaction(signature, 'confirmed'); if (!isWalletSessionCurrent(session)) return; setLaunchLinks('Airdrop confirmed.', [{ label: 'View airdrop transaction on Explorer', href: explorer(`tx/${signature}`) }]); refreshWalletInfo(); }
-  catch (error) { if (!isWalletSessionCurrent(session)) return; const message = String(error?.message || error); const lower = message.toLowerCase(); const faucetIssue = message.includes('429') || lower.includes('rate limit') || lower.includes('faucet') || lower.includes('internal error') || lower.includes('service unavailable') || lower.includes('timed out') || lower.includes('unsupported solana rpc request'); if (faucetIssue) setLaunchLinks('The API faucet is unavailable or disabled. Fund this Devnet wallet through the Solana Faucet.', [{ label: 'Open Solana Faucet', href: 'https://faucet.solana.com/' }], true); else setLaunchStatus(`Airdrop failed: ${message}`, true); } finally { button.disabled = false; }
+  let session = null, signature = '', requestStarted = false;
+  const transactionLinks = () => [{ label: 'View airdrop transaction on Explorer', href: explorer(`tx/${encodeURIComponent(signature)}`) }];
+  const walletLinks = () => [{ label: 'View Devnet wallet on Explorer', href: explorer(`address/${encodeURIComponent(session.address)}`) }];
+  try {
+    if (!wallet) { await connectWallet(); if (!wallet) return; }
+    session = captureWalletSession();
+    if (!session) return;
+    const { LAMPORTS_PER_SOL } = await getSolana();
+    assertWalletSessionCurrent(session);
+    setLaunchStatus('Requesting 1 Devnet SOL…');
+    requestStarted = true;
+    const receipt = await connection.requestAirdrop(session.provider.publicKey, LAMPORTS_PER_SOL);
+    if (!isWalletSessionCurrent(session)) return;
+    let validSignature = false;
+    if (typeof receipt === 'string' && /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(receipt)) {
+      try { validSignature = bs58.decode(receipt).length === 64; } catch { /* Unknown receipt; never build a transaction link from it. */ }
+    }
+    if (!validSignature) {
+      setLaunchLinks('The faucet request outcome is unknown; no valid transaction signature was returned. Check this Devnet wallet on Explorer before requesting more test SOL.', walletLinks(), true);
+      return;
+    }
+    signature = receipt;
+    const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+    if (!isWalletSessionCurrent(session)) return;
+    if (confirmation?.value?.err === null) {
+      setLaunchLinks('Airdrop confirmed.', transactionLinks());
+      // Refresh failures concern the displayed balance, not the confirmed receipt.
+      try { await refreshWalletInfo(); }
+      catch { if (isWalletSessionCurrent(session)) setLaunchLinks('Airdrop confirmed. The wallet balance could not be refreshed; check the transaction on Explorer.', transactionLinks()); }
+    } else if (confirmation?.value?.err !== undefined) {
+      setLaunchLinks('The airdrop transaction failed on Devnet. Review its result on Explorer before requesting more test SOL.', transactionLinks(), true);
+    } else {
+      setLaunchLinks('Airdrop outcome is unknown because confirmation was incomplete. Check this transaction on Explorer before requesting more test SOL.', transactionLinks(), true);
+    }
+  } catch (error) {
+    if (!session || !isWalletSessionCurrent(session)) return;
+    if (signature) {
+      setLaunchLinks('Airdrop outcome is unknown. Confirmation could not be completed. Check this transaction on Explorer before requesting more test SOL.', transactionLinks(), true);
+    } else if (!requestStarted) {
+      setLaunchStatus('The Devnet airdrop could not be prepared. Check your wallet connection and try again.', true);
+    } else {
+      const message = String(error?.message || error).toLowerCase();
+      const uncertain = /timed?\s*out|timeout|network|failed to fetch|disconnect|socket|abort|internal error|service unavailable/.test(message);
+      const faucetIssue = /429|rate limit|faucet|unsupported solana rpc request|not allowed|disabled/.test(message);
+      if (faucetIssue && !uncertain) {
+        setLaunchLinks('The API faucet did not confirm this request. Check your Devnet wallet balance before using the Solana Faucet.', [{ label: 'Open Solana Faucet', href: 'https://faucet.solana.com/' }], true);
+      } else {
+        setLaunchLinks('The faucet request outcome is unknown; no transaction signature was returned. Check this Devnet wallet on Explorer before requesting more test SOL.', walletLinks(), true);
+      }
+    }
+  } finally { airdropRequestInFlight = false; button.disabled = false; }
 }
+
 async function launchToken(){
   if (APP_CLUSTER !== 'devnet') {
     setLaunchStatus('Mainnet coin launching is not available yet. Use the Devnet launch while Mainnet routing, metadata, and settlement are prepared.', true);
