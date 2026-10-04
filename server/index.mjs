@@ -34,6 +34,7 @@ import { analyticsReceiptTotals } from './analytics-summary.mjs';
 import { cleanShareSource, pruneShareVisits, recordShareVisit, summarizeShareVisits } from './share-visits.mjs';
 import { readPumpMarketActivity } from './coin-market.mjs';
 import { sortDevnetLaunches } from './explore-registry.mjs';
+import { explorePagination } from './explore-pagination.mjs';
 import { isAppPagePath } from './page-routes.mjs';
 import { createCreatorSupportHandler } from './creator-support.mjs';
 import { creatorPageHtml } from './creator-social.mjs';
@@ -1111,8 +1112,7 @@ async function handle(req, res) {
       return json(res, 200, { cluster: solanaCluster, keeperConfigured, routerConfigured: Boolean(router), routerAddress: router?.address?.toBase58() || null, status: router && keeperConfigured ? 'ready-to-verify-router' : 'waiting-for-deployment-config' });
     }
     if (req.method === 'GET' && url.pathname === '/api/birdeye/explore') {
-      const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit') || 40)));
-      const offset = Math.min(10_000, Math.max(0, Number(url.searchParams.get('offset') || 0)));
+      const { limit, offset } = explorePagination(url.searchParams);
       const sortBy = ['volume_24h_usd', 'market_cap', 'recent_listing_time', 'price_change_24h_percent'].includes(url.searchParams.get('sort_by')) ? url.searchParams.get('sort_by') : 'volume_24h_usd';
       if (solanaCluster === 'devnet') return json(res, 503, { error: 'Birdeye market discovery is disabled for Devnet. Use the verified Devnet launch registry.', provider: 'birdeye', chain: 'solana', cluster: 'devnet', configured: false });
       const result = await fetchBirdeye('/defi/v3/token/list', { sort_by: sortBy, sort_type: 'desc', offset: String(offset), limit: String(limit), min_liquidity: '100' });
@@ -1120,8 +1120,7 @@ async function handle(req, res) {
       return json(res, 200, { provider: 'birdeye', chain: birdeyeChain, fetchedAt: new Date().toISOString(), items: Array.isArray(result.data?.items) ? result.data.items.map(normalizeBirdeyeToken).filter(Boolean) : [] });
     }
     if (req.method === 'GET' && url.pathname === '/api/pump/explore') {
-      const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit') || 40)));
-      const offset = Math.min(10_000, Math.max(0, Number(url.searchParams.get('offset') || 0)));
+      const { limit, offset } = explorePagination(url.searchParams);
       const sort = ['market_cap', 'created_timestamp', 'last_trade_timestamp'].includes(url.searchParams.get('sort')) ? url.searchParams.get('sort') : 'market_cap';
       if (solanaCluster === 'devnet') {
         const connection = new Connection(solanaRpcUrl, 'confirmed');

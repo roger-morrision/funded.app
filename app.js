@@ -4314,7 +4314,7 @@ async function openMobileWalletDialog(){
 async function restoreMobileWallet(){
   if (wallet || wasWalletManuallyDisconnected()) return false;
   try { const stored=JSON.parse(sessionStorage.getItem(MOBILE_WALLET_SESSION_KEY)||'null'); if(!stored)return false; activateWallet(await createMobileWalletProvider(stored), 'Phantom mobile wallet restored'); return true; }
-  catch { sessionStorage.removeItem(MOBILE_WALLET_SESSION_KEY); return false; }
+  catch { try { sessionStorage.removeItem(MOBILE_WALLET_SESSION_KEY); } catch { /* Storage may also prevent cleanup; no session was restored. */ } return false; }
 }
 function setTradeStatus(message, error = false){ const node = document.querySelector('#trade-status'); if (node) { node.textContent = message; node.className = `field-help ${error ? 'funded-mint-invalid' : ''}`; } }
 function setTradeReceiptStatus(message, signature, error = false) {
@@ -5951,14 +5951,16 @@ async function submitSolClaim(){
   emitPilotSignal('claim-started');
   try {
     const identity = await apiRequest('/api/x/me');
+    assertWalletSessionCurrent(session);
     if (!identity.data?.authenticated || `@${identity.data.user.username}`.toLowerCase() !== handle.toLowerCase()) throw new Error('Sign in with the X account named in this claim first.');
     if (status) status.textContent = 'Preparing claim…';
     const prepared = await apiRequest(`/api/sol-claims/${encodeURIComponent(claimId)}/prepare`, { method: 'POST', body: { xHandle: handle } });
+    assertWalletSessionCurrent(session);
     if(!prepared.available||!prepared.data?.statement)throw new Error('Claim preparation unavailable. No wallet signature requested.');
     if(prepared.data.boundWallet&&prepared.data.boundWallet!==session.address)throw new Error(`This claim is already bound to ${prepared.data.boundWallet}. Connect that wallet; redirection is not supported.`);
-    assertWalletSessionCurrent(session);
     if (status) status.textContent = 'Verifying X identity…';
     await apiRequest(`/api/sol-claims/${encodeURIComponent(claimId)}/attest`, { method: 'POST', body: { xHandle: handle } });
+    assertWalletSessionCurrent(session);
     if (status) status.textContent = 'Requesting wallet signature…';
     const message = new TextEncoder().encode(prepared.data.statement);
     const signed = await session.provider.signMessage(message);
@@ -6683,11 +6685,18 @@ updateTradeAmountLabel();
 syncTradeSlippagePresets();
 queueTradeQuote();
 normalizePreviewLabels();
-const pendingTradeMint = sessionStorage.getItem('funded.pendingTradeMint');
-if (pendingTradeMint && document.querySelector('#trade-mint')) {
+let pendingTradeMint = null;
+try {
+  const storedMint = sessionStorage.getItem('funded.pendingTradeMint');
+  if (storedMint) {
+    sessionStorage.removeItem('funded.pendingTradeMint');
+    pendingTradeMint = storedMint;
+  }
+} catch { /* This optional handoff must not block startup or replay an unconsumed hint. */ }
+const requestedTradeMint = getCoinMintAddress();
+if (pendingTradeMint && (!requestedTradeMint || pendingTradeMint === requestedTradeMint) && document.querySelector('#trade-mint')) {
   document.querySelector('#trade-mint').value = pendingTradeMint;
   void refreshTradeBalances();
-  sessionStorage.removeItem('funded.pendingTradeMint');
   setTradeStatus('Mint selected. Calculating a live quote.');
   invalidateTradePreview();
   queueTradeQuote();
@@ -6743,7 +6752,7 @@ function readOptionalSolFilter(selector, { integer = false } = {}){
 }
 function openExploreTrade(mint){
   if (!assets.some(item => item.address === mint)) return;
-  sessionStorage.setItem('funded.pendingTradeMint', mint);
+  try { sessionStorage.setItem('funded.pendingTradeMint', mint); } catch { /* The destination URL already carries the selected mint. */ }
   window.location.assign(`/token/${encodeURIComponent(mint)}`);
 }
 document.querySelector('#global-search').addEventListener('input', event => {

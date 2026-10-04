@@ -15,6 +15,12 @@ if(process.env.FUNDED_REQUIRE_POSTGRES==='true'){assert.equal(capabilities.sessi
 const directory=await(await get('/api/creators')).json();assert.ok(Array.isArray(directory.creators));assert.ok(directory.creators.length<=50);
 const following=await(await get('/api/creator-support/following-updates')).json();assert.deepEqual(following.creators,[]);assert.equal(following.checkedCount,0);
 assert.equal((await get('/api/ops/receipt-worker')).status,401,'Worker operations must not be public.');
+for(const path of ['/api/pump/explore','/api/birdeye/explore']){
+  for(const [query,field] of [['?limit=invalid','limit'],['?offset=1.5','offset'],['?limit=1&limit=2','limit']]){
+    const invalid=await get(path+query);assert.equal(invalid.status,400,`Invalid Explore pagination must fail before discovery: ${path+query}`);
+    const error=await invalid.json();assert.match(error.error,new RegExp(`^${field} must be supplied once`));assert.equal(typeof error.requestId,'string');
+  }
+}
 const home=await get('/');assert.equal(home.status,200);const html=await home.text();
 const assetPaths=[...html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+\.(?:js|css))"/g)].map(match=>match[1]);assert.ok(assetPaths.length,'Build assets missing.');
 for(const path of new Set(assetPaths)){const asset=await get(path);assert.equal(asset.status,200,`Missing built asset ${path}`);assert.doesNotMatch(await asset.text(),/^<!doctype/i,`Asset returned HTML ${path}`);}
@@ -33,4 +39,4 @@ const forgedReport=await fetch(new URL(reportPath,base),{method:'POST',headers:{
 assert.ok([401,403].includes(forgedReport.status),'Forged sessions must fail the origin/session boundary.');
 // Small read-only concurrency smoke check, not a production capacity benchmark.
 const started=Date.now();const statuses=await Promise.all(Array.from({length:20},async()=>{const r=await get('/api/capabilities');return r.status;}));assert.ok(statuses.every(status=>status===200));
-console.log(`Release contract: API ${capabilities.version}, Devnet, ${new Set(assetPaths).size} built assets, deep links, wallet-signed chat contract and 20 parallel reads passed (${Date.now()-started}ms concurrency smoke). Optional X payout readiness: ${capabilities.xPayouts.ready?'configured, not payment proof':'not configured in this environment'}.`);
+console.log(`Release contract: API ${capabilities.version}, Devnet, ${new Set(assetPaths).size} built assets, deep links, Explore pagination rejection, wallet-signed chat contract and 20 parallel reads passed (${Date.now()-started}ms concurrency smoke). Optional X payout readiness: ${capabilities.xPayouts.ready?'configured, not payment proof':'not configured in this environment'}.`);
