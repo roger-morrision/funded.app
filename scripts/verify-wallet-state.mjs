@@ -92,8 +92,8 @@ assert.match(app, /if \(!tradeInputs\(\)\.valid \|\| !wallet \|\| !canSignTransa
 assert.match(app, /Connect a signing wallet to calculate an exact trade quote/, 'Trade quote must explain its wallet prerequisite.');
 assert.match(app, /button\.textContent = fundedBuyBusy \? 'Waiting for Devnet…' : fundedBuyPreview \? 'Confirm buy' : wallet \? 'Preview buy' : 'Connect wallet to preview'/, '$FUNDED buy preview must describe its wallet prerequisite before opening a connection flow.');
 assert.match(dockerfile, /ARG VITE_DEV_WALLET_ROLE=creator/, 'The image build must accept the selected disposable Devnet wallet role.');
-assert.match(previewCompose, /VITE_DEV_MODE: "true"/, 'The local preview must build Dev Mode into the browser bundle.');
-assert.match(previewCompose, /VITE_DEV_AUTOCONNECT: "true"/, 'The local preview must auto-connect its disposable Devnet wallet.');
+assert.match(previewCompose, /VITE_DEV_MODE: "false"/, 'The default preview must not expose a disposable signing wallet.');
+assert.match(previewCompose, /VITE_DEV_AUTOCONNECT: "false"/, 'The default preview must require deliberate wallet connection.');
 assert.match(previewCompose, /SOLANA_DEVNET_CREATOR_SECRET_KEY_FILE: \/run\/secrets\/solana_devnet_creator_secret_key/, 'The local preview must read its server-side disposable creator wallet from a secret file.');
 assert.match(previewCompose, /SOLANA_KEEPER_CONFIGURED: "true"/, 'The Devnet preview must explicitly opt in before its disposable keeper can execute verified referral payouts.');
 assert.match(previewCompose, /SOLANA_KEEPER_SECRET_KEY_FILE: \/run\/secrets\/solana_keeper_secret_key/, 'The Devnet preview keeper must use a configured disposable test wallet secret file.');

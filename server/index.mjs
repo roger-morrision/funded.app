@@ -1,3 +1,8 @@
+import { serviceStatus } from './service-status.mjs';
+import { createReadCache } from './read-cache.mjs';
+import { applyHttpPolicy, invalidRequest, publicError, staticCacheControl, validateInput } from './http-policy.mjs';
+import { readJsonBody } from './request-body.mjs';
+import { createSolUsdQuoteReader } from './price-quote.mjs';
 import { createServer } from 'node:http';
 import { automaticRewardStatus } from './automatic-rewards.mjs';
 import { createAutomaticRewardStore } from './automatic-reward-store.mjs';
@@ -214,25 +219,16 @@ const tokenAccountsCache = new Map();
 const coinMarketInflight = new Map();
 let coinMarketActive = 0;
 let devnetVerificationActive = 0;
-let solUsdQuoteCache = { priceUsd: null, fetchedAt: null, expiresAt: 0 };
+const readProviderSolUsdQuote = createSolUsdQuoteReader();
 let configuredQuoteAssets = [];
 const tokenChatSignatureWindowMs = 5 * 60 * 1000;
-const tokenChatSessions = createTokenChatSessions();
+const tokenChatSessions = createTokenChatSessions(store, { cluster: solanaCluster });
+const statusCache = createReadCache({ ttlMs: 15_000, maxEntries: 1 });
 try { configuredQuoteAssets = JSON.parse(process.env.FUNDED_QUOTE_ASSETS_JSON || '[]'); } catch { configuredQuoteAssets = []; }
 
-function json(res, status, body) { res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': process.env.CORS_ORIGIN || '*' }); res.end(JSON.stringify(body)); }
+function json(res, status, body) { const encoded = JSON.stringify(body); res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': process.env.CORS_ORIGIN || '*' }); res.end(encoded); }
 async function readSolUsdQuote() {
-  const configured = Number(process.env.SOL_USD_PRICE || process.env.SOLANA_USD_PRICE);
-  if (Number.isFinite(configured) && configured > 0) return { priceUsd: configured, source: 'server-config', fetchedAt: new Date().toISOString() };
-  if (solUsdQuoteCache.expiresAt > Date.now() && Number.isFinite(solUsdQuoteCache.priceUsd)) return { priceUsd: solUsdQuoteCache.priceUsd, source: 'coingecko', fetchedAt: solUsdQuoteCache.fetchedAt };
-  try {
-    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd', { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(5000) });
-    const data = await response.json().catch(() => ({}));
-    const priceUsd = Number(data?.solana?.usd);
-    if (!response.ok || !Number.isFinite(priceUsd) || priceUsd <= 0) return null;
-    solUsdQuoteCache = { priceUsd, fetchedAt: new Date().toISOString(), expiresAt: Date.now() + 60_000 };
-    return { priceUsd, source: 'coingecko', fetchedAt: solUsdQuoteCache.fetchedAt };
-  } catch { return null; }
+  return readProviderSolUsdQuote(process.env.SOL_USD_PRICE || process.env.SOLANA_USD_PRICE);
 }
 async function serveStatic(pathname, res) {
   const fileName = pathname === '/' ? 'index.html' : pathname.slice(1);
@@ -241,7 +237,7 @@ async function serveStatic(pathname, res) {
   const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
   try {
     const content = await readFile(filePath);
-    res.writeHead(200, { 'content-type': mime[extname(filePath)] || 'application/octet-stream', 'cache-control': fileName === 'index.html' ? 'no-cache' : 'public, max-age=31536000, immutable', 'x-content-type-options': 'nosniff' });
+    res.writeHead(200, { 'content-type': mime[extname(filePath)] || 'application/octet-stream', 'cache-control': staticCacheControl(fileName), 'x-content-type-options': 'nosniff' });
     return res.end(content);
   } catch (error) {
     if (error.code === 'ENOENT' || error.code === 'EISDIR') return json(res, 404, { error: 'Not found.' });
@@ -262,12 +258,13 @@ function validTokenChatEnvelope(input) {
   const nonce = String(input?.nonce || '').trim();
   const issuedAt = String(input?.issuedAt || '').trim();
   const issued = Date.parse(issuedAt);
-  if (!/^[A-Za-z0-9_-]{16,100}$/.test(nonce)) throw new Error('A valid one-time message nonce is required.');
-  if (!Number.isFinite(issued) || issued < Date.now() - tokenChatSignatureWindowMs || issued > Date.now() + 60_000) throw new Error('The wallet signature request has expired. Try again.');
+  if (!/^[A-Za-z0-9_-]{16,100}$/.test(nonce)) throw Object.assign(new Error('A valid one-time message nonce is required.'), { statusCode: 400 });
+  if (!Number.isFinite(issued) || issued < Date.now() - tokenChatSignatureWindowMs || issued > Date.now() + 60_000) throw Object.assign(new Error('The wallet signature request has expired. Try again.'), { statusCode: 400 });
   return { nonce, issuedAt: new Date(issued).toISOString() };
 }
 function verifyTokenChatSignature(statement, signatureValue, publicKey) {
   try {
+    if (typeof signatureValue !== 'string' || signatureValue.length > 100) return false;
     const signature = bs58.decode(String(signatureValue || ''));
     return signature.length === nacl.sign.signatureLength && nacl.sign.detached.verify(new TextEncoder().encode(statement), signature, publicKey.toBytes());
   } catch { return false; }
@@ -283,14 +280,7 @@ function clientKey(req) {
   return remote;
 }
 async function body(req) {
-  const chunks = [];
-  let bytes = 0;
-  for await (const chunk of req) {
-    bytes += chunk.length;
-    if (bytes > maxBodyBytes) throw Object.assign(new Error('Request body too large.'), { statusCode: 413 });
-    chunks.push(chunk);
-  }
-  return bytes ? JSON.parse(Buffer.concat(chunks, bytes).toString('utf8')) : {};
+  return readJsonBody(req, { maxBytes: maxBodyBytes });
 }
 function route(path, method, pattern) { const match = path.match(pattern); return match && match[1] && method ? match[1] : null; }
 async function proxySolanaRpc(req, res) {
@@ -366,7 +356,18 @@ function localDevWalletRequest(req, path) {
       && ['localhost', '127.0.0.1'].includes(hostname);
   } catch { return false; }
 }
-function walletKey(value) { return new PublicKey(String(value || '').trim()).toBase58(); }
+function walletKey(value) {
+  try { return new PublicKey(String(value || '').trim()).toBase58(); }
+  catch { throw invalidRequest('A valid Solana wallet is required.'); }
+}
+function walletSignature(value) {
+  try {
+    if (typeof value !== 'string' || value.length > 100) throw new Error();
+    const signature = bs58.decode(value);
+    if (signature.length !== nacl.sign.signatureLength) throw new Error();
+    return signature;
+  } catch { throw invalidRequest('A valid wallet signature is required.'); }
+}
 function referralCodeFromBytes() { return createReferralCode(Uint8Array.from(randomBytes(6))); }
 function referralUplineForWallet(state, wallet) {
   const direct = state.referrals.attributions[wallet]?.inviterWallet || null;
@@ -640,11 +641,15 @@ const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solan
     xPayouts: await xFeeReadiness(), gifts: { enabled: false, reason: 'No approved gifting provider or delivery-receipt integration is configured.' } }) });
 
 async function handle(req, res) {
-  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const requestId = applyHttpPolicy(req, res);
+  try {
+  // Routing does not depend on the untrusted Host header being a valid URL.
+  let url;
+  try { url = new URL(req.url, 'http://localhost'); }
+  catch { throw invalidRequest('Invalid request URL.'); }
   const metadataHost = String(req.headers.host || '').split(':')[0].toLowerCase() === 'metadata.funded.vip';
   if (metadataHost && (req.method !== 'GET' || !/^\/(?:devnet-metadata|devnet-images)\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(url.pathname) && url.pathname !== '/default.svg')) return json(res, 404, { error: 'Not found.' });
-  if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client, authorization' }); return res.end(); }
-  try {
+  if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client, authorization, x-token-chat-session' }); return res.end(); }
     if (await handleCreatorSupport(req, res, url)) return;
     if (req.method === 'POST' && url.pathname === '/api/mobile-wallet/relay') {
       if (!await store.chargeRpcRate(`mobile-wallet:${clientKey(req)}`, 1, 12, Math.floor(Date.now() / 60_000) * 60_000)) return json(res, 429, { error: 'Too many wallet connection requests; retry shortly.' });
@@ -768,7 +773,8 @@ async function handle(req, res) {
     }
     if (req.method === 'POST' && url.pathname === '/api/devnet-metadata') {
       if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Metadata publishing is Devnet-only.' });
-      const { record, image, imageType } = parseSignedMetadata(await body(req));
+      const input = await body(req);
+      const { record, image, imageType } = validateInput(() => parseSignedMetadata(input));
       await store.writeMetadata(record, image, imageType);
       return json(res, 201, { uri: devnetMetadataUri(record.mint), image: record.imageSha256 ? devnetImageUri(record.mint) : 'https://metadata.funded.vip/default.svg', mint: record.mint });
     }
@@ -956,6 +962,20 @@ async function handle(req, res) {
           payment:result.payment, recipientToken:result.recipientToken, vaultToken:result.vaultToken });
       } catch (error) { return json(res, 422, { error:`Community claim is unavailable: ${error.message}` }); }
     }
+    if (req.method === 'GET' && url.pathname === '/api/status') {
+      const report = await statusCache('service-status', () => serviceStatus({
+        cluster: solanaCluster, build: process.env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
+        database: () => store.health(),
+        rpc: async () => {
+          const response = await fetch(solanaRpcUrl, { method: 'POST', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getGenesisHash', params: [] }), signal: AbortSignal.timeout(5000) });
+          const data = await response.json();
+          if (!response.ok || data.error || typeof data.result !== 'string') throw new Error('RPC unavailable');
+          return data.result;
+        },
+      }));
+      return json(res, 200, report);
+    }
     if (req.method === 'GET' && url.pathname === '/api/health') {
       const automaticRewards = automaticRewardStatus(new Date(), await automaticRewardStore.read());
       return json(res, 200, { ok: true, service: 'funded-api', launchPolicy: launchPolicyConfig(), external: { solanaKeeper: isKeeperEnabled(process.env) && Boolean(keeperKeypair()), automaticRewards: automaticRewards.status === 'active', feeRouter: Boolean(feeRouterConfig()), birdeye: Boolean(birdeyeApiKey), pumpFun: Boolean(pumpApiUrl), xOAuth: xOAuthConfigured(req) } });
@@ -1039,9 +1059,9 @@ async function handle(req, res) {
     }
     if (req.method === 'POST' && url.pathname === '/api/rewards/preview') {
       const input = await body(req);
-      const config = validateRewardConfig(input);
+      const config = validateInput(() => validateRewardConfig(input));
       if (!config.valid) return json(res, 400, { error: 'Unsupported reward configuration.', config });
-      return json(res, 200, buildRewardCycle(input));
+      return json(res, 200, validateInput(() => buildRewardCycle(input)));
     }
     if (req.method === 'POST' && url.pathname === '/api/anti-sniper/analyze') {
       const input = await body(req);
@@ -1110,17 +1130,17 @@ async function handle(req, res) {
         catch { return json(res, 400, { error: 'Connect a valid Solana wallet before posting.' }); }
         const minute = Math.floor(Date.now() / 60_000) * 60_000;
         if (!await store.chargeRpcRate(`chat-auth:${clientKey(req)}:${address}`, 1, 8, minute)) return json(res, 429, { error: 'Too many chat verification requests. Wait a minute.' });
-        return json(res, 200, tokenChatSessions.prepare(address, origin));
+        return json(res, 200, await tokenChatSessions.prepare(address, origin));
       }
       if (tokenChatSessionAction === 'verify') {
         const input = await body(req);
-        const result = tokenChatSessions.verify(String(input.challengeId || ''), input.signature, origin);
+        const result = await tokenChatSessions.verify(String(input.challengeId || ''), input.signature, origin);
         return result ? json(res, 200, result) : json(res, 401, { error: 'Wallet verification failed or expired. Try again.' });
       }
-      tokenChatSessions.revoke(req.headers['x-token-chat-session']);
+      await tokenChatSessions.revoke(req.headers['x-token-chat-session']);
       return json(res, 200, { revoked: true });
     }
-    const tokenChatMatch = url.pathname.match(/^\/api\/tokens\/([^/]+)\/chat(?:\/(delete))?$/);
+    const tokenChatMatch = url.pathname.match(/^\/api\/tokens\/([^/]+)\/chat(?:\/(delete|report))?$/);
     if (tokenChatMatch && (req.method === 'GET' || req.method === 'POST')) {
       let mint;
       try { mint = new PublicKey(decodeURIComponent(tokenChatMatch[1])).toBase58(); }
@@ -1133,30 +1153,45 @@ async function handle(req, res) {
       }
       const sessionToken = req.headers['x-token-chat-session'];
       if (sessionToken && !allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error: 'Chat session origin is not allowed.' });
-      const sessionAddress = sessionToken ? tokenChatSessions.address(sessionToken, String(req.headers.origin)) : null;
+      const sessionAddress = sessionToken ? await tokenChatSessions.address(sessionToken, String(req.headers.origin)) : null;
       if (sessionToken && !sessionAddress) return json(res, 401, { error: 'Chat verification expired. Verify your wallet again.' });
       const input = await body(req);
+      if (action === 'report') {
+        if (!sessionAddress) return json(res, 401, { error: 'Verify your wallet before reporting.' });
+        const messageId = String(input.messageId || '');
+        const reason = String(input.reason || 'spam-or-scam');
+        if (!/^chat_[a-f0-9]{24}$/.test(messageId) || !['spam-or-scam', 'harassment', 'impersonation'].includes(reason)) return json(res, 400, { error: 'Select a valid message and report reason.' });
+        if (!await store.chargeRpcRate(`chat-report:${sessionAddress}`, 1, 5, Math.floor(Date.now()/60000)*60000)) return json(res, 429, { error: 'Reporting limit reached. Please wait a minute.' });
+        const outcome = await store.updateCoinChat(mint, messages => {
+          const message = messages.find(row => row.id === messageId && row.status !== 'deleted');
+          if (!message) return { status: 404, error: 'Discussion message not found.' };
+          if (message.author === sessionAddress) return { status: 400, error: 'You can delete your own message.' };
+          message.reports ||= {};
+          if (!message.reports[sessionAddress] && Object.keys(message.reports).length >= 100) return { status: 200, reported: true };
+          message.reports[sessionAddress] ||= { reason, createdAt: new Date().toISOString() };
+          return { status: 200, reported: true };
+        });
+        return json(res, outcome.status, outcome.error ? { error: outcome.error } : { reported: true });
+      }
       const envelope = sessionAddress ? null : validTokenChatEnvelope(input);
       if (action === 'post') {
         let author;
         try { author = walletKey(input.author); }
         catch { return json(res, 400, { error: 'Connect a valid Solana wallet before posting.' }); }
-        const text = validateTokenChatText(input.text);
+        const text = validateInput(() => validateTokenChatText(input.text));
         if (sessionAddress ? sessionAddress !== author : !verifyTokenChatSignature(tokenChatPostStatement({ mint, author, text, ...envelope }), input.signature, new PublicKey(author))) return json(res, 401, { error: 'Wallet verification is invalid for this account.' });
         const minute = Math.floor(Date.now() / 60_000) * 60_000;
         if (!await store.chargeRpcRate(`chat-wallet:${author}`, 1, 5, minute)) return json(res, 429, { error: 'Posting limit reached. Wait a minute before posting again.' });
         const messageId = sessionAddress ? `chat_${randomBytes(12).toString('hex')}` : `chat_${createHash('sha256').update(String(input.signature)).digest('hex').slice(0, 24)}`;
         const createdAt = new Date().toISOString();
-        const outcome = await store.update(state => {
-          state.coinChats ||= {};
-          const messages = state.coinChats[mint] || [];
+        const outcome = await store.updateCoinChat(mint, messages => {
           if (messages.some(message => message.id === messageId)) return { status: 409, error: 'This signed message was already posted.' };
           const recentByAuthor = [...messages].reverse().find(message => message.author === author);
           if (recentByAuthor && Date.now() - Date.parse(recentByAuthor.createdAt) < 10_000) return { status: 429, error: 'Wait a few seconds before posting again.' };
           const duplicate = messages.some(message => message.author === author && message.text === text && Date.now() - Date.parse(message.createdAt) < 10 * 60_000);
           if (duplicate) return { status: 409, error: 'This message was already posted recently.' };
           const message = { id: messageId, mint, author, text, createdAt, status: 'visible', reports: {}, ...(sessionAddress ? { auth: 'wallet-session' } : { signature: String(input.signature) }) };
-          state.coinChats[mint] = [...messages, message].slice(-100);
+          messages.push(message);
           return { status: 201, message: tokenChatPublicMessage(message) };
         });
         return json(res, outcome.status, outcome.error ? { error: outcome.error } : { message: outcome.message });
@@ -1167,8 +1202,8 @@ async function handle(req, res) {
       try { author = walletKey(input.author); }
       catch { return json(res, 400, { error: 'Connect the author wallet before deleting.' }); }
       if (sessionAddress ? sessionAddress !== author : !verifyTokenChatSignature(tokenChatDeleteStatement({ mint, messageId, author, ...envelope }), input.signature, new PublicKey(author))) return json(res, 401, { error: 'Wallet verification is invalid for this account.' });
-      const outcome = await store.update(state => {
-        const message = (state.coinChats?.[mint] || []).find(item => item.id === messageId);
+      const outcome = await store.updateCoinChat(mint, messages => {
+        const message = messages.find(item => item.id === messageId);
         if (!message) return { status: 404, error: 'Discussion message not found.' };
         if (message.author !== author) return { status: 403, error: 'Only the author can delete this message.' };
         message.status = 'deleted'; message.deletedAt = new Date().toISOString(); message.text = '';
@@ -1193,8 +1228,8 @@ async function handle(req, res) {
       const reason = String(input.reason || '').trim().slice(0, 160);
       if (!['hide', 'restore'].includes(action)) return json(res, 400, { error: 'Moderation action must be hide or restore.' });
       if (action === 'hide' && !reason) return json(res, 400, { error: 'A moderation reason is required when hiding a message.' });
-      const outcome = await store.update(state => {
-        const message = (state.coinChats?.[mint] || []).find(item => item.id === messageId);
+      const outcome = await store.updateCoinChat(mint, messages => {
+        const message = messages.find(item => item.id === messageId);
         if (!message || message.status === 'deleted') return null;
         message.status = action === 'hide' ? 'hidden' : 'visible';
         message.moderatedAt = new Date().toISOString();
@@ -1500,8 +1535,8 @@ async function handle(req, res) {
     if (req.method === 'POST' && url.pathname === '/api/referrals/registration/verify') {
       const input = await body(req); const state = await store.read(); const challenge = state.referrals.challenges[String(input.challengeId || '')];
       if (!challenge || challenge.action !== 'registration' || challenge.status !== 'awaiting-signature' || Date.parse(challenge.expiresAt) < Date.now()) return json(res, 409, { error: 'Referral registration challenge is invalid or expired.' });
-      const publicKey = new PublicKey(String(input.wallet || '')); if (publicKey.toBase58() !== challenge.wallet) return json(res, 401, { error: 'Wallet does not match the registration challenge.' });
-      const signature = bs58.decode(String(input.signature || '')); const message = new TextEncoder().encode(referralChallengeStatement(challenge));
+      const publicKey = new PublicKey(walletKey(input.wallet)); if (publicKey.toBase58() !== challenge.wallet) return json(res, 401, { error: 'Wallet does not match the registration challenge.' });
+      const signature = walletSignature(input.signature); const message = new TextEncoder().encode(referralChallengeStatement(challenge));
       if (!nacl.sign.detached.verify(message, signature, publicKey.toBytes())) return json(res, 401, { error: 'Wallet signature is invalid.' });
       const result = await store.update(current => {
         const existing = current.referrals.wallets[challenge.wallet]; if (existing) return existing;
@@ -1512,7 +1547,7 @@ async function handle(req, res) {
       return json(res, 200, result);
     }
     if (req.method === 'POST' && url.pathname === '/api/referrals/attribution/prepare') {
-      const input = await body(req); const wallet = walletKey(input.wallet); const code = normalizeReferralCode(input.code);
+      const input = await body(req); const wallet = walletKey(input.wallet); const code = validateInput(() => normalizeReferralCode(input.code));
       const state = await store.read(); const inviter = state.referrals.codes[code];
       if (!inviter) return json(res, 404, { error: 'Referral code is not registered.' });
       if (inviter.wallet === wallet) return json(res, 400, { error: 'Self-referral is not allowed.' });
@@ -1525,8 +1560,8 @@ async function handle(req, res) {
     if (req.method === 'POST' && url.pathname === '/api/referrals/attribution/verify') {
       const input = await body(req); const state = await store.read(); const challenge = state.referrals.challenges[String(input.challengeId || '')];
       if (!challenge || challenge.action !== 'attribution' || challenge.status !== 'awaiting-signature' || Date.parse(challenge.expiresAt) < Date.now()) return json(res, 409, { error: 'Referral attribution challenge is invalid or expired.' });
-      const publicKey = new PublicKey(String(input.wallet || '')); if (publicKey.toBase58() !== challenge.wallet) return json(res, 401, { error: 'Wallet does not match the attribution challenge.' });
-      const signature = bs58.decode(String(input.signature || '')); const message = new TextEncoder().encode(referralChallengeStatement(challenge));
+      const publicKey = new PublicKey(walletKey(input.wallet)); if (publicKey.toBase58() !== challenge.wallet) return json(res, 401, { error: 'Wallet does not match the attribution challenge.' });
+      const signature = walletSignature(input.signature); const message = new TextEncoder().encode(referralChallengeStatement(challenge));
       if (!nacl.sign.detached.verify(message, signature, publicKey.toBytes())) return json(res, 401, { error: 'Wallet signature is invalid.' });
       const attribution = await store.update(current => {
         const existing = current.referrals.attributions[challenge.wallet];
@@ -1539,7 +1574,7 @@ async function handle(req, res) {
     if (req.method === 'POST' && url.pathname === '/api/shares/visit') {
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Visit origin is not allowed.' });
       const input = await body(req);
-      const code = normalizeReferralCode(input.code);
+      const code = validateInput(() => normalizeReferralCode(input.code));
       if (!code || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(input.visitorId || ''))) return json(res, 400, { error:'A valid opt-in visit is required.' });
       const minute = Math.floor(Date.now() / 60_000) * 60_000;
       if (!await store.chargeRpcRate(`share-visit:${clientKey(req)}`, 1, 30, minute)) return json(res, 429, { error:'Visit limit reached.' });
@@ -1678,7 +1713,8 @@ async function handle(req, res) {
       return json(res, 200, { wallet, directCreators: direct.length, directCreatorsBySource, networkCreators: network.length, qualifiedCreators: qualified.size, conversionRate: network.length ? Number((qualified.size / network.length * 100).toFixed(1)) : null, shareVisits:code ? summarizeShareVisits(state.shareVisits, code) : null });
     }
     if (req.method === 'POST' && url.pathname === '/api/launch-reviews') {
-      const review = immutableLaunchReview(await body(req));
+      const input = await body(req);
+      const review = validateInput(() => immutableLaunchReview(input));
       if (!review.mint || !review.creatorWallet) return json(res, 400, { error: 'mint and creatorWallet are required.' });
       const result = await store.update(state => { const existing = state.launchReviews[review.mint]; if (existing) return existing; state.launchReviews[review.mint] = review; return review; });
       return json(res, 201, result);
@@ -1728,7 +1764,7 @@ async function handle(req, res) {
       const saved = await store.update(current => {
         current.burnReceipts ||= {};
         const prior = current.burnReceipts[signature];
-        if (prior && (prior.wallet !== burnWallet || prior.projectMint !== projectMint)) throw new Error('This burn signature already has different attribution.');
+        if (prior && (prior.wallet !== burnWallet || prior.projectMint !== projectMint)) throw invalidRequest('This burn signature already has different attribution.');
         current.burnReceipts[signature] ||= receipt;
         return current.burnReceipts[signature];
       });
@@ -1792,7 +1828,7 @@ async function handle(req, res) {
     if (req.method === 'POST' && url.pathname === '/api/launches') {
       if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Mainnet coin launching is not enabled. No launch policy was registered.' });
       const input = await body(req); if (!input.mint || input.chain !== 'solana' || input.cluster !== solanaCluster) return json(res, 400, { error: 'A Solana launch on the configured cluster is required.' });
-      const policy = canonicalLaunchPolicy(input);
+      const policy = validateInput(() => canonicalLaunchPolicy(input));
       const existingLaunch = await store.readLaunch(policy.mint);
       if (!existingLaunch && policy.xUserId && (await store.read()).creatorProfiles?.[policy.xUserId]?.optedOut) return json(res, 409, { error: 'This creator has opted out of new support launches. Existing entitlements are unchanged.' });
       const xLinked = policy.solClaimPercent > 0;
@@ -1813,7 +1849,7 @@ async function handle(req, res) {
       if (!routeReadiness.ready) return json(res, routeReadiness.status, { error: routeReadiness.error });
       const configuredRouter = routeReadiness.configuredRouter;
       if (policy.creatorWallet !== proof.feePayer || policy.feeRouter !== proof.creator || policy.feeRouter !== configuredRouter) return json(res, 409, { error: 'Launch payer or Pump fee owner does not match the signed router policy.' });
-      const signature = bs58.decode(String(input.policySignature || ''));
+      const signature = walletSignature(input.policySignature);
       if (!nacl.sign.detached.verify(new TextEncoder().encode(launchPolicyStatement(input)), signature, new PublicKey(policy.creatorWallet).toBytes())) return json(res, 401, { error: 'Creator wallet signature for this launch policy is invalid.' });
       let verifiedReserve = null;
       if (!existingLaunch) {
@@ -1858,10 +1894,10 @@ async function handle(req, res) {
       const saved = await store.update(state => {
         const existing = state.launches[record.mint];
         if (existing) {
-          if (existing.policyStatement !== record.policyStatement) throw new Error('An immutable launch policy already exists for this mint.');
+          if (existing.policyStatement !== record.policyStatement) throw invalidRequest('An immutable launch policy already exists for this mint.');
           return existing;
         }
-        if (record.xUserId && state.creatorProfiles?.[record.xUserId]?.optedOut) throw new Error('This creator opted out during verification. Registration is blocked.');
+        if (record.xUserId && state.creatorProfiles?.[record.xUserId]?.optedOut) throw invalidRequest('This creator opted out during verification. Registration is blocked.');
         state.launches[record.mint] = record;
         if (verifiedReserve) {
           state.communityReserveReceipts ||= {};
@@ -1884,10 +1920,10 @@ async function handle(req, res) {
         const collection = state.collections?.[signature];
         if (!collection || collection.signature !== signature || collection.status !== 'collected' || collection.attribution !== 'mint-verified'
           || collection.cluster !== solanaCluster || !collection.mint || !Number.isSafeInteger(Number(collection.collectedLamports))
-          || Number(collection.collectedLamports) <= 0) throw new Error('A positive, mint-verified collection on the configured cluster is required.');
+          || Number(collection.collectedLamports) <= 0) throw invalidRequest('A positive, mint-verified collection on the configured cluster is required.');
         const launch = state.launches?.[collection.mint];
         const shares = launch?.feeDistribution?.creatorDirected?.shares;
-        if (!launch?.onchainVerified || launch.cluster !== solanaCluster || !launch.creatorWallet || !shares) throw new Error('A verified launch with an immutable fee policy is required.');
+        if (!launch?.onchainVerified || launch.cluster !== solanaCluster || !launch.creatorWallet || !shares) throw invalidRequest('A verified launch with an immutable fee policy is required.');
         const creatorWallet = walletKey(launch.creatorWallet);
         const policy = { ...shares, xRecipient: launch.feeDistribution.creatorDirected.recipients?.xAccount || null };
         const grossCreatorFees = Number(collection.collectedLamports) / 1_000_000_000;
@@ -1917,7 +1953,7 @@ async function handle(req, res) {
       const claim = await store.update(state => {
         const settlement = state.settlements[settlementSignature];
         const level = settlement?.fundedApp?.referralLevels?.find(item => item.level === levelNumber && item.recipient === recipientWallet && item.status === 'claimable');
-        if (!level) throw new Error('No claimable referral reward matches this wallet.');
+        if (!level) throw invalidRequest('No claimable referral reward matches this wallet.');
         const existing = Object.values(state.referralClaims || {}).find(item => item.settlementSignature === settlementSignature && item.level === levelNumber && item.recipientWallet === recipientWallet);
         if (existing) return existing;
         const createdAt = new Date().toISOString(); const created = { id: id('referral_claim'), settlementSignature, level: levelNumber, recipientWallet, amount: level.amount, asset: settlement.asset, nonce: randomBytes(24).toString('hex'), status: 'awaiting-wallet-signature', createdAt, expiresAt: new Date(Date.now() + referralClaimExpiryMs).toISOString() };
@@ -1932,8 +1968,8 @@ async function handle(req, res) {
       const input = await body(req); const state = await store.readReferralClaimState(referralClaimId); const claim = state.referralClaims?.[referralClaimId]; if (!claim) return json(res, 404, { error: 'Referral claim not found.' });
       if (claim.status === 'wallet-verified' || claim.status === 'paid') return json(res, 200, claim);
       if (['executing','verification-pending','failed'].includes(claim.status) || (claim.expiresAt && Date.parse(claim.expiresAt) < Date.now())) return json(res, 409, { error: 'Referral claim is no longer available. Previous attempts need reconciliation.' });
-      const publicKey = new PublicKey(String(input.publicKey || '')); if (publicKey.toBase58() !== claim.recipientWallet) return json(res, 401, { error: 'The claiming wallet must match the referral recipient.' });
-      const message = new TextEncoder().encode(`funded.app referral reward claim ${referralClaimId} nonce ${claim.nonce}`); const signature = bs58.decode(String(input.signature || ''));
+      const publicKey = new PublicKey(walletKey(input.publicKey)); if (publicKey.toBase58() !== claim.recipientWallet) return json(res, 401, { error: 'The claiming wallet must match the referral recipient.' });
+      const message = new TextEncoder().encode(`funded.app referral reward claim ${referralClaimId} nonce ${claim.nonce}`); const signature = walletSignature(input.signature);
       if (!nacl.sign.detached.verify(message, signature, publicKey.toBytes())) return json(res, 401, { error: 'Wallet signature is invalid.' });
       const updated = await store.updateReferralClaimState(referralClaimId,current => { current.referralClaims[referralClaimId] = verifyReferralClaim(current.referralClaims[referralClaimId],claim,publicKey.toBase58()); return current.referralClaims[referralClaimId]; }); return json(res, 200, updated);
     }
@@ -1977,7 +2013,7 @@ async function handle(req, res) {
       if (!requireAuthorized(req, res)) return;
       const input = await body(req);
       const obligation = await store.update(state => {
-        const computed = deriveXFeeObligation(state, input);
+        const computed = validateInput(() => deriveXFeeObligation(state, input));
         const existing = state.obligations[computed.id];
         if (existing) return existing;
         state.obligations[computed.id] = { ...computed, createdAt: new Date().toISOString() };
@@ -2011,10 +2047,10 @@ async function handle(req, res) {
       if (!session?.user?.id || String(session.user.id) !== claim.xUserId) return json(res, 401, { error: 'Sign in with the original X account before verifying a wallet.' });
       if (String(input.xHandle || input.recipient || '').toLowerCase() !== `@${session.user.username}`.toLowerCase()) return json(res, 409, { error: 'X handle does not match the signed-in account.' });
       if (claim.expiresAt && Date.parse(claim.expiresAt) < Date.now()) return json(res, 409, { error: 'Claim has expired.' });
-      const publicKey = new PublicKey(String(input.publicKey || '')); const message = new TextEncoder().encode(`funded.app SOL claim ${verifyId} for ${claim.recipient} nonce ${claim.nonce}`); const signature = bs58.decode(String(input.signature || ''));
+      const publicKey = new PublicKey(walletKey(input.publicKey)); const message = new TextEncoder().encode(`funded.app SOL claim ${verifyId} for ${claim.recipient} nonce ${claim.nonce}`); const signature = walletSignature(input.signature);
       if (!nacl.sign.detached.verify(message, signature, publicKey.toBytes())) return json(res, 401, { error: 'Wallet signature is invalid.' });
       if (claim.publicKey && claim.publicKey !== publicKey.toBase58()) return json(res, 409, { error: 'Claim is already bound to another verified wallet.' });
-      const updated = await store.updateClaimState(verifyId,current => { const existing = current.claims[verifyId];assertObservedClaim(existing,claim); if (existing.publicKey && existing.publicKey !== publicKey.toBase58()) throw new Error('Claim is already bound to another verified wallet.'); if (['paid','executing','verification-pending'].includes(existing.status)) return existing; current.claims[verifyId] = { ...existing, publicKey: publicKey.toBase58(), status: existing.xAttestation ? 'ready-to-execute' : 'wallet-verified', verifiedAt: new Date().toISOString() }; return current.claims[verifyId]; });
+      const updated = await store.updateClaimState(verifyId,current => { const existing = current.claims[verifyId];assertObservedClaim(existing,claim); if (existing.publicKey && existing.publicKey !== publicKey.toBase58()) throw invalidRequest('Claim is already bound to another verified wallet.'); if (['paid','executing','verification-pending'].includes(existing.status)) return existing; current.claims[verifyId] = { ...existing, publicKey: publicKey.toBase58(), status: existing.xAttestation ? 'ready-to-execute' : 'wallet-verified', verifiedAt: new Date().toISOString() }; return current.claims[verifyId]; });
       await enrollAutomaticXReward(updated);
       return json(res, 200, updated);
     }
@@ -2118,16 +2154,20 @@ async function handle(req, res) {
       const page=tokenPageHtml(template,launch,metadata,tokenPageMint,solanaCluster,undefined,url.search);
       res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});return res.end(page);
     }
-    if (req.method === 'GET' && isAppPagePath(url.pathname)) return serveStatic('/', res);
-    if (req.method === 'GET' && !url.pathname.startsWith('/api/')) return serveStatic(url.pathname, res);
+    if (req.method === 'GET' && isAppPagePath(url.pathname)) return await serveStatic('/', res);
+    if (req.method === 'GET' && !url.pathname.startsWith('/api/')) return await serveStatic(url.pathname, res);
     return json(res, 404, { error: 'Not found.' });
   } catch (error) {
-    if (error.statusCode === 413) return json(res, 413, { error: 'Request body too large.' });
+    if (res.headersSent || res.destroyed) { res.destroy(); return; }
+    if (!req.complete) { res.shouldKeepAlive = false; res.setHeader('connection', 'close'); }
     if (error.severity || ['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT'].includes(error.code)) {
-      console.error('Backend dependency failure:', error);
-      return json(res, 503, { error: 'Backend dependency is temporarily unavailable.' });
+      console.error(JSON.stringify({ event: 'dependency_failure', requestId, code: error.code || 'DEPENDENCY_ERROR' }));
+      return json(res, 503, { error: 'Backend dependency is temporarily unavailable.', requestId });
     }
-    return json(res, 400, { error: error.message || 'Request failed.' });
+    if (error instanceof URIError) error = Object.assign(new Error('Invalid URL encoding.'), { statusCode: 400 });
+    const output = publicError(error, requestId);
+    if (output.status >= 500) console.error(JSON.stringify({ event: 'request_failure', requestId, code: 'INTERNAL_ERROR' }));
+    return json(res, output.status, output.body);
   }
 }
 

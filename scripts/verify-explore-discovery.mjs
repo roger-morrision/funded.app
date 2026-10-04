@@ -20,7 +20,7 @@ assert.match(appSource, /!feedChecked \? 'Checking confirmed mints' : marketUnav
 assert.match(appSource, /marketUnavailable \? '— <small>launch feed unavailable<\/small>'/, 'The analytics strip must distinguish unavailable registry data from a verified empty result.');
 assert.match(appSource, /verifiedLaunchPoliciesStatus === 'unavailable' \? 'Launch registry unavailable; allocations not verified'/, 'Analytics must not claim there are no community allocations when the launch registry is unavailable.');
 assert.match(appSource, /receiptEvidenceChecked && !receiptEvidence \? 'Receipt verification unavailable' : 'No verified referral payouts'/, 'Analytics must not claim there are no referral payouts when receipt verification is unavailable.');
-assert.match(appSource, /registryUnavailable \? 'Launch feed unavailable' : `\$\{filtered\.length\} of \$\{registryLaunches\.length\} shown`/, 'Explore must not show a verified zero result while the feed and launch registry are unavailable.');
+assert.match(appSource, /registryUnavailable \? outage\.title : `\$\{filtered\.length\} of \$\{registryLaunches\.length\} shown`/, 'Explore must explain the current outage instead of showing a verified zero result while its sources are unavailable.');
 assert.match(appSource, /if \(exploreLoadInFlight\) return exploreLoadInFlight;[\s\S]*?exploreLoadInFlight = load;[\s\S]*?exploreLoadInFlight = null;/, 'Overlapping Explore refreshes must share one load instead of racing their scan counter.');
 assert.match(appSource, /let scannedCount = 0;[\s\S]*?scannedCount \+= 1;[\s\S]*?exploreScannedCount = scannedCount;/, 'A completed Explore load must publish only its own scan count.');
 assert.match(exploreMarkup, /Minimum MC · USD\s*<input id="explore-min-cap-sol"/);
@@ -47,7 +47,9 @@ assert.match(exploreMarkup, /<option value="airdrop">[\s\S]*?<option value="hold
 assert.match(exploreMarkup, /data-explore-sort="volume"[\s\S]*?data-explore-sort="market-cap"[\s\S]*?data-explore-sort="recent-trade"/, 'The visible sort bar should stay compact.');
 assert.match(appSource, /sortMarketRecords\(records\.filter\(asset =>[\s\S]*?asset\.windowVolumeSol != null[\s\S]*?asset\.volume24hUsd != null[\s\S]*?, 'volume'\)\.slice\(0, 8\)/, 'Trending must rank scanned volume independently of the current search and sort.');
 assert.match(appSource, /class="explore-ticker-view-all"[\s\S]*?scrollIntoView\(\{ block: 'start', behavior: 'smooth' \}\)/, 'View all must scroll within Explore instead of replacing its route hash.');
-assert.match(appSource, /class="asset-mint-row"[\s\S]*?class="asset-copy-mint"[\s\S]*?if \(copyMint\) \{ const mint = copyMint\.dataset\.mint;[\s\S]*?navigator\.clipboard\.writeText\(mint\)/, 'Gallery mint copy must use the actual verified card address.');
+assert.match(appSource, /tokenCardAddressesMarkup\(a\.address\)/, 'Gallery addresses must use the verified card mint.');
+assert.match(appSource, /class="token-card-copy-address" data-copy-address="\$\{escapeHtml\(value\)\}"/, 'Copy controls must retain the full escaped address.');
+assert.match(appSource, /navigator\.clipboard\.writeText\(copy\.dataset\.copyAddress\)/, 'The shared copy action must copy the full address rather than its abbreviated label.');
 assert.match(exploreMarkup, /id="explore-benefit-leaders"/);
 assert.match(appSource, /document\.querySelector\('#explore-search'\)\?\.addEventListener\('input', event => \{[\s\S]*?document\.querySelector\('#global-search'\)[\s\S]*?field\.value = exploreQuery;[\s\S]*?updateExploreViews\(\);\s*\}\);/, 'Clearing or editing Explore search must keep the persistent global field synchronized.');
 assert.match(appSource, /function clearExploreFilters\(\)[\s\S]*?dispatchEvent\(new Event\('funded:explore-filters-cleared'\)\)/, 'Every Explore clear path must notify the workspace filter summary.');

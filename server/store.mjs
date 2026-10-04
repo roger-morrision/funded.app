@@ -68,6 +68,17 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
 
   return {
     ...createFileAuthStore(`${filePath}.auth.json`),
+    async health() { await load(); return true; },
+    async updateCoinChat(mint, mutator) {
+      return this.update(state => {
+        state.coinChats ||= {};
+        const messages = state.coinChats[mint] ||= [];
+        const result = mutator(messages);
+        if (result && typeof result.then === 'function') throw new Error('Chat mutations must be synchronous.');
+        state.coinChats[mint] = messages.slice(-100);
+        return result;
+      });
+    },
     async readFollowingUpdates(cluster,ids,after='') {const state=await load();return followingUpdatesPage(creatorDirectoryRecords(state,cluster),state.creatorProfiles||{},ids,after);},
     async readClaimState(id) {return scopedClaimState(await load(),id);},
     async readReferralClaimState(id) {return scopedReferralClaimState(await load(),id);},
@@ -159,6 +170,7 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     async readMarketActivity(mint, cluster) { return (await load()).marketActivity[`${cluster}:${mint}`] || null; },
     async writeMarketActivity(mint, cluster, data) { await this.update(current => { current.marketActivity[`${cluster}:${mint}`] = data; }); },
     async chargeRpcRate(clientKey, units, limit, windowStart) {
+      if (!Number.isSafeInteger(units) || !Number.isSafeInteger(limit) || units <= 0 || units > limit || !Number.isSafeInteger(windowStart)) return false;
       if (rpcWindowStart !== windowStart) { rpcRates.clear(); rpcWindowStart = windowStart; }
       const key = clientKey;
       const used = rpcRates.get(key) || 0;

@@ -69,6 +69,7 @@ pub fn create_cycle(
 ) -> Result<()> {
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
     require!(total_amount > 0 && leaf_count > 0, ErrorCode::InvalidAmount);
+    require!(merkle_root != [0; 32], ErrorCode::InvalidRewardProof);
     require!(payout_at >= cutoff_at && cutoff_at > 0, ErrorCode::InvalidRewardTiming);
     let cycle = &mut ctx.accounts.cycle;
     cycle.vault = ctx.accounts.vault.key();
@@ -105,11 +106,13 @@ fn verify_proof(mut node: [u8; 32], proof: &[[u8; 32]], root: &[u8; 32]) -> bool
 
 fn validate_payment(cycle: &mut RewardCycle, recipient: &Pubkey, amount: u64, leaf_index: u32, proof: &[[u8; 32]]) -> Result<i64> {
     require!(amount > 0 && leaf_index < cycle.leaf_count, ErrorCode::InvalidAmount);
+    require!(proof.len() <= 32, ErrorCode::InvalidRewardProof);
     let now = Clock::get()?.unix_timestamp;
     require!(now >= cycle.payout_at, ErrorCode::RewardCycleNotPayable);
     require!(verify_proof(reward_leaf(cycle, recipient, amount, leaf_index), proof, &cycle.merkle_root), ErrorCode::InvalidRewardProof);
-    cycle.distributed_amount = cycle.distributed_amount.checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
-    require!(cycle.distributed_amount <= cycle.total_amount, ErrorCode::RewardTotalExceeded);
+    let distributed_amount = cycle.distributed_amount.checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
+    require!(distributed_amount <= cycle.total_amount, ErrorCode::RewardTotalExceeded);
+    cycle.distributed_amount = distributed_amount;
     Ok(now)
 }
 
@@ -154,11 +157,13 @@ pub struct PayoutRewardSol<'info> {
 
 pub fn payout_sol(ctx: Context<PayoutRewardSol>, amount: u64, leaf_index: u32, proof: Vec<[u8; 32]>) -> Result<()> {
     require!(ctx.accounts.cycle.asset_mint == Pubkey::default(), ErrorCode::InvalidRewardAsset);
+    require_keys_neq!(ctx.accounts.recipient.key(), ctx.accounts.vault.key(), ErrorCode::InvalidDestination);
     let paid_at = validate_payment(&mut ctx.accounts.cycle, &ctx.accounts.recipient.key(), amount, leaf_index, &proof)?;
     let rent = Rent::get()?.minimum_balance(8 + RewardVault::INIT_SPACE);
     require!(amount <= ctx.accounts.vault.to_account_info().lamports().saturating_sub(rent), ErrorCode::InsufficientRouterBalance);
     **ctx.accounts.vault.to_account_info().try_borrow_mut_lamports()? -= amount;
-    **ctx.accounts.recipient.to_account_info().try_borrow_mut_lamports()? += amount;
+    let recipient_balance = ctx.accounts.recipient.lamports().checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
+    **ctx.accounts.recipient.to_account_info().try_borrow_mut_lamports()? = recipient_balance;
     record_payment(&mut ctx.accounts.payment, ctx.accounts.cycle.key(), ctx.accounts.recipient.key(), amount, leaf_index, paid_at);
     emit!(RewardPaid { cycle: ctx.accounts.cycle.key(), recipient: ctx.accounts.recipient.key(), asset_mint: Pubkey::default(), amount, leaf_index });
     Ok(())
@@ -203,6 +208,8 @@ pub struct PayoutRewardToken<'info> {
 pub fn payout_token(ctx: Context<PayoutRewardToken>, amount: u64, leaf_index: u32, proof: Vec<[u8; 32]>) -> Result<()> {
     require!(ctx.accounts.cycle.asset_mint != Pubkey::default(), ErrorCode::InvalidRewardAsset);
     let paid_at = validate_payment(&mut ctx.accounts.cycle, &ctx.accounts.recipient.key(), amount, leaf_index, &proof)?;
+    let vault_before = ctx.accounts.vault_token_account.amount;
+    let recipient_before = ctx.accounts.recipient_token_account.amount;
     let authority = ctx.accounts.vault.authority;
     let mint = ctx.accounts.vault.mint;
     let bump = [ctx.accounts.vault.bump];
@@ -221,9 +228,20 @@ pub fn payout_token(ctx: Context<PayoutRewardToken>, amount: u64, leaf_index: u3
         amount,
         ctx.accounts.asset_mint.decimals,
     )?;
+    ctx.accounts.vault_token_account.reload()?;
+    ctx.accounts.recipient_token_account.reload()?;
+    // A successful Token-2022 CPI may withhold a transfer fee or be a self-transfer.
+    // Record a payment only when the committed amount actually reached its recipient.
+    require!(exact_token_delivery(vault_before, ctx.accounts.vault_token_account.amount,
+        recipient_before, ctx.accounts.recipient_token_account.amount, amount), ErrorCode::InvalidAmount);
     record_payment(&mut ctx.accounts.payment, ctx.accounts.cycle.key(), ctx.accounts.recipient.key(), amount, leaf_index, paid_at);
     emit!(RewardPaid { cycle: ctx.accounts.cycle.key(), recipient: ctx.accounts.recipient.key(), asset_mint: ctx.accounts.asset_mint.key(), amount, leaf_index });
     Ok(())
+}
+
+fn exact_token_delivery(vault_before: u64, vault_after: u64, recipient_before: u64, recipient_after: u64, amount: u64) -> bool {
+    vault_before.checked_sub(vault_after) == Some(amount)
+        && recipient_after.checked_sub(recipient_before) == Some(amount)
 }
 
 #[event]
@@ -250,6 +268,32 @@ pub struct RewardPaid {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn payment_requires_exact_recipient_credit() {
+        assert!(exact_token_delivery(100, 60, 10, 50, 40));
+        assert!(!exact_token_delivery(100, 60, 10, 49, 40)); // transfer fee
+        assert!(!exact_token_delivery(100, 100, 100, 100, 40)); // self-transfer
+        assert!(!exact_token_delivery(100, 60, 50, 10, 40)); // recipient debit
+        assert!(!exact_token_delivery(60, 100, 10, 50, 40)); // source credit
+        assert!(!exact_token_delivery(u64::MAX, 0, 1, 0, u64::MAX));
+    }
+
+    #[test]
+    fn proof_binds_cycle_recipient_asset_amount_and_index() {
+        let mut cycle = RewardCycle { vault: Pubkey::new_unique(), cycle_id: [7; 32], merkle_root: [0; 32], asset_mint: Pubkey::default(), total_amount: 5, distributed_amount: 0, cutoff_at: 1, payout_at: 2, leaf_count: 2, bump: 1 };
+        let recipient = Pubkey::new_unique();
+        let root = reward_leaf(&cycle, &recipient, 5, 0);
+        assert!(verify_proof(root, &[], &root));
+        assert!(!verify_proof(reward_leaf(&cycle, &Pubkey::new_unique(), 5, 0), &[], &root));
+        assert!(!verify_proof(reward_leaf(&cycle, &recipient, 4, 0), &[], &root));
+        assert!(!verify_proof(reward_leaf(&cycle, &recipient, 5, 1), &[], &root));
+        cycle.asset_mint = Pubkey::new_unique();
+        assert!(!verify_proof(reward_leaf(&cycle, &recipient, 5, 0), &[], &root));
+        cycle.asset_mint = Pubkey::default();
+        cycle.cycle_id = [8; 32];
+        assert!(!verify_proof(reward_leaf(&cycle, &recipient, 5, 0), &[], &root));
+    }
 
     #[test]
     fn sorted_merkle_proof_verifies() {

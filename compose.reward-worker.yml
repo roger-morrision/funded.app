@@ -22,8 +22,6 @@ services:
 
   reward-worker:
     profiles: ["automatic-rewards"]
-    build:
-      context: .
     image: ${FUNDED_APP_IMAGE:-fundedapp-app:automatic-rewards-v11-20260923h}
     restart: unless-stopped
     command: ["node", "scripts/run-reward-scheduler.mjs"]

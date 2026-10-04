@@ -7,7 +7,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const base = process.env.UI_BASE_URL || 'http://127.0.0.1:5173';
 const output = resolve(process.env.UI_EVIDENCE_DIR || 'docs/ui-evidence-2026-09-29');
 await mkdir(output,{recursive:true});
-const browser = await chromium.launch({channel:'chrome',headless:true});
+const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: 'chrome' }), headless: true });
 const context = await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
 await context.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
 const page = await context.newPage();

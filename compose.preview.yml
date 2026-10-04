@@ -20,6 +20,7 @@ services:
     build:
       context: .
       args:
+        FUNDED_SOURCE_REVISION: ${FUNDED_BUILD_ID:-local-development}
         VITE_API_BASE_URL: /
         VITE_SOLANA_CLUSTER: devnet
         VITE_EXPLORE_CLUSTER: devnet
@@ -36,8 +37,17 @@ services:
         VITE_FUNDED_PRO_BURN_AMOUNT: ${VITE_FUNDED_PRO_BURN_AMOUNT:-100000}
         VITE_FUNDED_PREMIER_BURN_AMOUNT: ${VITE_FUNDED_PREMIER_BURN_AMOUNT:-250000}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/api/health',{signal:AbortSignal.timeout(8000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
     command: ["sh", "-c", "node scripts/migrate-postgres.mjs && node server/index.mjs"]
     environment:
+      FUNDED_BUILD_ID: ${FUNDED_BUILD_ID:-local-development}
+      SOLANA_CLUSTER: devnet
+      VITE_ALLOW_MAINNET: "false"
       NODE_ENV: production
       DEV_MODE: "false"
       DEV_WALLET_ROLE: ${DEV_WALLET_ROLE:-creator}

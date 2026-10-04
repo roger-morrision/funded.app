@@ -11,7 +11,7 @@ process.env.VITE_JACKPOT_ENABLED = 'true';
 const outDir = await mkdtemp(join(tmpdir(), 'funded-jackpot-ui-'));
 await build({ build:{ outDir, emptyOutDir:true, logLevel:'silent' }, logLevel:'silent' });
 const server = await preview({ build:{ outDir }, preview:{ host:'127.0.0.1', port:5199, strictPort:true } });
-const browser = await chromium.launch({ channel:'chrome', headless:true });
+const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: 'chrome' }), headless: true });
 const context = await browser.newContext({ viewport:{ width:900, height:800 } });
 const signature = '5'.repeat(88);
 let creatorAmount = '123456789';
@@ -78,6 +78,9 @@ try {
   assert.equal(await page.locator('.jackpot-alerts').isVisible(), true);
   await page.locator('[data-jackpot-alert-toggle]').check();
   assert.match(await page.locator('[data-jackpot-alert-status]').textContent(), /On · new finalized/);
+  // Amount/reveal animations intentionally pause outside the viewport. The
+  // alerts checkbox may scroll the cards out of view on shorter test screens.
+  await cards.first().scrollIntoViewIfNeeded();
   const before = await cards.first().locator('.jackpot-preview-countdown').textContent();
   await page.waitForTimeout(1200);
   const after = await cards.first().locator('.jackpot-preview-countdown').textContent();
@@ -90,6 +93,7 @@ try {
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await page.waitForFunction(() => document.querySelector('.jackpot-preview-card .jackpot-amount')?.textContent === 'Funding proof unavailable');
   creatorVerified = true;
+  await cards.first().scrollIntoViewIfNeeded();
   await page.waitForTimeout(100);
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await page.waitForFunction(() => document.querySelector('.jackpot-preview-card .jackpot-amount')?.textContent === '0.223456789 SOL');

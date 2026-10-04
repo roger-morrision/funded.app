@@ -6,6 +6,7 @@ import { eligibleSupportLaunches } from './creator-directory.mjs';
 import { allowedAuthOrigin } from './x-auth.mjs';
 import { decodeReceiptCursor, receiptFingerprint } from './receipt-history.mjs';
 import { followingWindow } from './following-updates.mjs';
+import { readJsonBody } from './request-body.mjs';
 export { eligibleSupportLaunches } from './creator-directory.mjs';
 const financialInputs=state=>Object.fromEntries(['launches','obligations','claims','collections','payouts'].map(bucket=>[bucket,state[bucket]||{}]));
 const sameFinancialInputs=(before,after)=>receiptFingerprint('creator-inputs',financialInputs(before))===receiptFingerprint('creator-inputs',financialInputs(after));
@@ -42,7 +43,8 @@ export function buildCreatorSupport(state, id, evidence, cluster) {
     const expected = BigInt(collectionProof.collectedLamports) * BigInt(bps) / 10000n;
     if (String(obligation.amountLamports) !== expected.toString() || BigInt(proof.amountLamports) !== expected) continue;
     seen.add(proof.signature);
-    receipts.push({ signature: proof.signature, mint: launch.mint, amountLamports: expected.toString(), paidAt: payout.paidAt, slot: proof.slot });
+    receipts.push({ signature: proof.signature, mint: launch.mint, amountLamports: expected.toString(), paidAt: payout.paidAt, slot: proof.slot,
+      recipient: proof.to, sourceCollectionSignature: obligation.claimSignature, obligationId: obligation.id });
   }
   const paidLamports = receipts.reduce((sum, receipt) => sum + BigInt(receipt.amountLamports), 0n).toString();
   return { id, handle, name: profile?.name || handle, cluster,
@@ -99,8 +101,12 @@ export function createCreatorSupportHandler({ store, cluster, getSession, readEv
       if (!session?.user?.id) return respond(res, 401, { error: 'Verified X sign-in is required.' });
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN) || !session.creatorCsrf || req.headers['x-creator-csrf'] !== session.creatorCsrf) return respond(res, 403, { error: 'Reload your creator settings before saving.' });
       if (!await store.chargeRpcRate(`creator-write:${session.user.id}`, 1, 10, Math.floor(Date.now()/60000)*60000)) return respond(res, 429, { error: 'Please wait before updating again.' });
-      let body = ''; for await (const chunk of req) { body += chunk; if (Buffer.byteLength(body) > 16000) return respond(res, 413, { error: 'Creator update is too large.' }); }
-      let input; try { input = JSON.parse(body); } catch { return respond(res, 400, { error: 'Invalid JSON.' }); }
+      let input;
+      try { input = await readJsonBody(req, { maxBytes: 16000 }); }
+      catch (error) {
+        if (!req.complete) { res.shouldKeepAlive = false; res.setHeader('connection', 'close'); }
+        return respond(res, error.statusCode || 400, { error: error.message });
+      }
       try {
         const result = await store.updateCreatorProfile(String(session.user.id), state => {
           if (url.pathname.endsWith('/profile')) return updateCreatorProfile(state, session.user, input);
@@ -142,7 +148,7 @@ export function createCreatorSupportHandler({ store, cluster, getSession, readEv
       if(!buildCreatorSupport(latest,historyId,null,cluster))return respond(res,404,{error:'Creator unavailable.'});
       if(!sameFinancialInputs(history.state,refreshed.state))return respond(res,503,{error:'Receipt records changed during verification. Retry this page; no payout was submitted.'});
       const creator=buildCreatorSupport({...refreshed.state,creatorProfiles:latest.creatorProfiles},historyId,evidence,cluster);
-      return respond(res,200,{receipts:evidence.commitment==='finalized'?creator?.receipts||[]:[],nextCursor:history.nextCursor,
+      return respond(res,200,{cluster,receipts:evidence.commitment==='finalized'?creator?.receipts||[]:[],nextCursor:history.nextCursor,
         checkedPayouts:history.checkedPayouts,status:evidence.status,commitment:'finalized',indexedRecords:evidence.indexedRecords||0,
         coverage:'This page verifies recorded payouts and their source collections. Missing or unmatched records are excluded; this is not lifetime earnings or a complete chain index.'});
     }

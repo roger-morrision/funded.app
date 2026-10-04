@@ -1,0 +1,509 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-04T04:39:38.349Z",
+  "network": "devnet",
+  "evidenceType": "historical-receipt-reverification",
+  "freshTransactionsSubmitted": 0,
+  "applicationStateVerified": false,
+  "fullApplicationJourney": false,
+  "receipts": [
+    {
+      "name": "fresh-token-launch",
+      "signature": "5Rs9wsB3Pp1rrKMc6RNohmjUDWBypwi5vnTGicgEoV3bcTkSSPSLteVBbQ2UCoAfcZ49QoxU2H8a3tJJihfg2UQq",
+      "explorer": "https://explorer.solana.com/tx/5Rs9wsB3Pp1rrKMc6RNohmjUDWBypwi5vnTGicgEoV3bcTkSSPSLteVBbQ2UCoAfcZ49QoxU2H8a3tJJihfg2UQq?cluster=devnet",
+      "slot": 505975122,
+      "blockTime": 1790788052,
+      "finalized": true,
+      "launchMint": "FWmi66ecpuAYkcpjT86i2RsBKZhm2cJdnKXqcoreW8DH",
+      "lamportChecks": [],
+      "tokenDeltas": [
+        {
+          "account": "7mGdP6xiV9Fw9WDvJgP7CJAr2pihKnaPcBjnHMTaw8hu",
+          "mint": "FWmi66ecpuAYkcpjT86i2RsBKZhm2cJdnKXqcoreW8DH",
+          "owner": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+          "deltaBaseUnits": "50613206090750"
+        },
+        {
+          "account": "Dj2ggm1pTzu7g8ZfxCcLn6hKYye8jz73ky5mUGQ1Pd1k",
+          "mint": "FWmi66ecpuAYkcpjT86i2RsBKZhm2cJdnKXqcoreW8DH",
+          "owner": "2sxXkuFbXJuZTcYWAE3aPRgMswjz2KYmrFKKTEwtcJPn",
+          "deltaBaseUnits": "949386793909250"
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "name": "post-graduation-buy",
+      "signature": "4LQ39ihzxUmTmnma2n7gZo3RB8WuEMwWcQw82HLc8Kszn3ZdQRvuE8z9kgGGhuEQEtydL8ngdEH5U4kMFmHgApod",
+      "explorer": "https://explorer.solana.com/tx/4LQ39ihzxUmTmnma2n7gZo3RB8WuEMwWcQw82HLc8Kszn3ZdQRvuE8z9kgGGhuEQEtydL8ngdEH5U4kMFmHgApod?cluster=devnet",
+      "slot": 505930727,
+      "blockTime": 1790777650,
+      "finalized": true,
+      "lamportChecks": [],
+      "tokenDeltas": [
+        {
+          "account": "4uzPz9TPskXiiEZ6X78rqud8LvfdxkJBr5EKHgbx4azP",
+          "mint": "So11111111111111111111111111111111111111112",
+          "owner": "Freijj9xKLefjrb5fHgT6KMbYG1XBP2mA83tqeXYUMYM",
+          "deltaBaseUnits": "78534"
+        },
+        {
+          "account": "57bbBVmZJ1K77MEaGfuSDEHAGQm7w64R2Dkvu4TnrdNM",
+          "mint": "5D6NrzqP94RdCjnyJan44AGxJF1fANjkVWDa6G4HtTBC",
+          "owner": "G5tgKtFeRFwFmAVXys8Eo5ioHRtDZgXFT2H2vhKCXFHG",
+          "deltaBaseUnits": "-471552674318"
+        },
+        {
+          "account": "6rVkF4HSgy1jrnC3HogfRgPHrq4CtLg5f11URpsC4i9D",
+          "mint": "So11111111111111111111111111111111111111112",
+          "owner": "3BpXnfJaUTiwXnJNe7Ej1rcbzqTTQUvLShZaWazebsVR",
+          "deltaBaseUnits": "8726"
+        },
+        {
+          "account": "C7zoPU3KXkUbqtKxtwRLhMQw4nCJ83WxxpgMT8kWC5XP",
+          "mint": "So11111111111111111111111111111111111111112",
+          "owner": "G5tgKtFeRFwFmAVXys8Eo5ioHRtDZgXFT2H2vhKCXFHG",
+          "deltaBaseUnits": "9384590"
+        },
+        {
+          "account": "85a6Kh34wpQKuphe64Rkkm7Lx19TYWrKWquB8VheCRUJ",
+          "mint": "So11111111111111111111111111111111111111112",
+          "owner": "7SXYM7xpnqrmNPz85WWW256wqquUXtghbw1E6ArHjaFV",
+          "deltaBaseUnits": "28149"
+        },
+        {
+          "account": "RHbLTiFihqAfdD3p9ZE8wJAKvw7MHsPEnkGCQ2Gtj2C",
+          "mint": "5D6NrzqP94RdCjnyJan44AGxJF1fANjkVWDa6G4HtTBC",
+          "owner": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+          "deltaBaseUnits": "471552674318"
+        }
+      ],
+      "tradeSide": "buy",
+      "status": "passed"
+    },
+    {
+      "name": "post-graduation-sell",
+      "signature": "36W7uhUhiaQQHRevvZ43urqrMhSiEVz7QmqtbQeRF11q37s2r5NCeCXPzBmrm3yFWDMwb31Jrq19wp3dYpwTWHMW",
+      "explorer": "https://explorer.solana.com/tx/36W7uhUhiaQQHRevvZ43urqrMhSiEVz7QmqtbQeRF11q37s2r5NCeCXPzBmrm3yFWDMwb31Jrq19wp3dYpwTWHMW?cluster=devnet",
+      "slot": 505930748,
+      "blockTime": 1790777655,
+      "finalized": true,
+      "lamportChecks": [],
+      "tokenDeltas": [
+        {
+          "account": "57bbBVmZJ1K77MEaGfuSDEHAGQm7w64R2Dkvu4TnrdNM",
+          "mint": "5D6NrzqP94RdCjnyJan44AGxJF1fANjkVWDa6G4HtTBC",
+          "owner": "G5tgKtFeRFwFmAVXys8Eo5ioHRtDZgXFT2H2vhKCXFHG",
+          "deltaBaseUnits": "471552674318"
+        },
+        {
+          "account": "85a6Kh34wpQKuphe64Rkkm7Lx19TYWrKWquB8VheCRUJ",
+          "mint": "So11111111111111111111111111111111111111112",
+          "owner": "7SXYM7xpnqrmNPz85WWW256wqquUXtghbw1E6ArHjaFV",
+          "deltaBaseUnits": "28149"
+        },
+        {
+          "account": "BWS634asUFdrpYpfofFA1CrGB9wEbh9gt8XswZ4AWz9J",
+          "mint": "So11111111111111111111111111111111111111112",
+          "owner": "3PAxmkxnM2vHno9amWQCsaaFjYnPGcD87HZGx1ChVjPj",
+          "deltaBaseUnits": "78534"
+        },
+        {
+          "account": "C7zoPU3KXkUbqtKxtwRLhMQw4nCJ83WxxpgMT8kWC5XP",
+          "mint": "So11111111111111111111111111111111111111112",
+          "owner": "G5tgKtFeRFwFmAVXys8Eo5ioHRtDZgXFT2H2vhKCXFHG",
+          "deltaBaseUnits": "-9380841"
+        },
+        {
+          "account": "CASRL2zkwDnppxEFQ4LgdwgR9pdz5Q8R8nEMKVZ9QoLp",
+          "mint": "So11111111111111111111111111111111111111112",
+          "owner": "5eHhjP8JaYkz83CWwvGU2uMUXefd3AazWGx4gpcuEEYD",
+          "deltaBaseUnits": "8726"
+        },
+        {
+          "account": "RHbLTiFihqAfdD3p9ZE8wJAKvw7MHsPEnkGCQ2Gtj2C",
+          "mint": "5D6NrzqP94RdCjnyJan44AGxJF1fANjkVWDa6G4HtTBC",
+          "owner": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+          "deltaBaseUnits": "-471552674318"
+        }
+      ],
+      "tradeSide": "sell",
+      "status": "passed"
+    },
+    {
+      "name": "boost-launch-burn",
+      "signature": "2t8pEcEbbjuczDSGHpHFvjwLFkfFRwfNNVGaJ1yaauGk4ndYtkmbeqwtAKEQwZXxt1HgTfduUggJEKavDew4mgse",
+      "explorer": "https://explorer.solana.com/tx/2t8pEcEbbjuczDSGHpHFvjwLFkfFRwfNNVGaJ1yaauGk4ndYtkmbeqwtAKEQwZXxt1HgTfduUggJEKavDew4mgse?cluster=devnet",
+      "slot": 505984360,
+      "blockTime": 1790790218,
+      "finalized": true,
+      "launchMint": "BHrufSkFKWqYsReUcVGGvxki1fh2VZryHCzd42KkuYeA",
+      "lamportChecks": [],
+      "tokenDeltas": [
+        {
+          "account": "67QnbRGSScbJzEtoRk28tkymCUCivxJDufvDEMdYL9oS",
+          "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+          "owner": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+          "deltaBaseUnits": "-25000000000"
+        },
+        {
+          "account": "83brCFioCnA68ewdHoLujYhXBMnvzPWyMKGLw8BY1zgo",
+          "mint": "BHrufSkFKWqYsReUcVGGvxki1fh2VZryHCzd42KkuYeA",
+          "owner": "6VVWPZNmUCgky7fSKH1kYtWjorkpE2GbaHeej8PWX7BK",
+          "deltaBaseUnits": "1000000000000000"
+        }
+      ],
+      "burn": {
+        "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+        "baseUnits": "25000000000",
+        "program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+      },
+      "status": "passed"
+    },
+    {
+      "name": "pro-launch-burn",
+      "signature": "35ryPnWdCTtbEYnFHHmLqwKSxeKU6yV7qhH1sFnsWtkHoV71Un6VHP8R2yz8PmjhZPTyBMWnj6EbERQreggkegLi",
+      "explorer": "https://explorer.solana.com/tx/35ryPnWdCTtbEYnFHHmLqwKSxeKU6yV7qhH1sFnsWtkHoV71Un6VHP8R2yz8PmjhZPTyBMWnj6EbERQreggkegLi?cluster=devnet",
+      "slot": 505985472,
+      "blockTime": 1790790478,
+      "finalized": true,
+      "launchMint": "8n2DHBtMGGp2GWQzRdjY9bDra9wndcHKiDJvmiHUogy6",
+      "lamportChecks": [],
+      "tokenDeltas": [
+        {
+          "account": "67QnbRGSScbJzEtoRk28tkymCUCivxJDufvDEMdYL9oS",
+          "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+          "owner": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+          "deltaBaseUnits": "-100000000000"
+        },
+        {
+          "account": "9TD6RdEPV28tW9Dsv9pbzidAL9JGBrQLmdZiogewZLBk",
+          "mint": "8n2DHBtMGGp2GWQzRdjY9bDra9wndcHKiDJvmiHUogy6",
+          "owner": "BdYBxvHPFkNrX3HxRUiYyZ8zLV38nVFkv3szpRZw7AN8",
+          "deltaBaseUnits": "1000000000000000"
+        }
+      ],
+      "burn": {
+        "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+        "baseUnits": "100000000000",
+        "program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+      },
+      "status": "passed"
+    },
+    {
+      "name": "premier-launch-burn",
+      "signature": "Kof418ZwxMmtD3XVFrFXZsZdhd7j2rfakmUK55GCZpPFtnwq2fsUkKukf4vaAznaNUJxGYpV4gsMeg2XhzLwLvY",
+      "explorer": "https://explorer.solana.com/tx/Kof418ZwxMmtD3XVFrFXZsZdhd7j2rfakmUK55GCZpPFtnwq2fsUkKukf4vaAznaNUJxGYpV4gsMeg2XhzLwLvY?cluster=devnet",
+      "slot": 505985532,
+      "blockTime": 1790790493,
+      "finalized": true,
+      "launchMint": "35jU9iX21TkjeaMvxh726x1MeAucHz2CdKwDn1nfxW9v",
+      "lamportChecks": [],
+      "tokenDeltas": [
+        {
+          "account": "67QnbRGSScbJzEtoRk28tkymCUCivxJDufvDEMdYL9oS",
+          "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+          "owner": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+          "deltaBaseUnits": "-250000000000"
+        },
+        {
+          "account": "EPUtac7Bj3QhukVFHJDmSGVj5ktmYkwmkjhn9dKaLxfZ",
+          "mint": "35jU9iX21TkjeaMvxh726x1MeAucHz2CdKwDn1nfxW9v",
+          "owner": "6uXbWH2b8pwvai2s2xMG3wBRbKR1J2tBXJG9rWsd3eEd",
+          "deltaBaseUnits": "1000000000000000"
+        }
+      ],
+      "burn": {
+        "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+        "baseUnits": "250000000000",
+        "program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+      },
+      "status": "passed"
+    },
+    {
+      "name": "paid-listing-burn",
+      "signature": "J3oU5M6QPQGoKoeEGAi8PUvGEiu5uyxb8vMuKpaXZGn7NPzFwWa6zDBCw7x9Fuvn3hxubQC6eqHE9Nn8SZgYQbA",
+      "explorer": "https://explorer.solana.com/tx/J3oU5M6QPQGoKoeEGAi8PUvGEiu5uyxb8vMuKpaXZGn7NPzFwWa6zDBCw7x9Fuvn3hxubQC6eqHE9Nn8SZgYQbA?cluster=devnet",
+      "slot": 505985975,
+      "blockTime": 1790790596,
+      "finalized": true,
+      "lamportChecks": [],
+      "tokenDeltas": [
+        {
+          "account": "DrbkuTkSyLrSX2dsUAEVyMWsBmgNG5qGHSSLyeGCiz3j",
+          "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+          "owner": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+          "deltaBaseUnits": "-25000000000"
+        }
+      ],
+      "burn": {
+        "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+        "baseUnits": "25000000000",
+        "program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+      },
+      "status": "passed"
+    },
+    {
+      "name": "creator-fee-collection",
+      "signature": "2WE8nJ3iTm8DixxUsxF9tr4kYqG7xZRoZi6pVYikFPw8ZKaMzMiTd3NnHQBTRnBiSAqDp5vp9sgHbrWdpeHen8zF",
+      "explorer": "https://explorer.solana.com/tx/2WE8nJ3iTm8DixxUsxF9tr4kYqG7xZRoZi6pVYikFPw8ZKaMzMiTd3NnHQBTRnBiSAqDp5vp9sgHbrWdpeHen8zF?cluster=devnet",
+      "slot": 506084508,
+      "blockTime": 1790813686,
+      "finalized": true,
+      "lamportChecks": [
+        {
+          "address": "5fbyRAEDqWqvq5Abbqw7NJpGF6fmLJjbEM1oesx7LRpy",
+          "expected": 8500537,
+          "actual": 8500537
+        }
+      ],
+      "tokenDeltas": [
+        {
+          "account": "DxCyqdHqwW27ZyFd5GePMP2JqCFtHfMwqxostSo6nz5n",
+          "mint": "So11111111111111111111111111111111111111112",
+          "owner": "24556J6Wr467rSuhVYes624FsBPL8PEN26EzRGbrgtjq",
+          "deltaBaseUnits": "-1540742"
+        },
+        {
+          "account": "7V9LKRAxZdJmHJ15XLqvXsbgoAcFGaYCp2J1Rt2gkU5P",
+          "mint": "So11111111111111111111111111111111111111112",
+          "owner": "5fbyRAEDqWqvq5Abbqw7NJpGF6fmLJjbEM1oesx7LRpy",
+          "deltaBaseUnits": "1540742"
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "name": "holder-vault-funding",
+      "signature": "Tsto6M3spBfDDzAcP3RG6BSRVA2wXxkUf3KM1wU3boZyf8s3iGBh7SxkaeSzR4uaJiwy1GrN41GxjvREk5ooZD6",
+      "explorer": "https://explorer.solana.com/tx/Tsto6M3spBfDDzAcP3RG6BSRVA2wXxkUf3KM1wU3boZyf8s3iGBh7SxkaeSzR4uaJiwy1GrN41GxjvREk5ooZD6?cluster=devnet",
+      "slot": 506084741,
+      "blockTime": 1790813741,
+      "finalized": true,
+      "lamportChecks": [
+        {
+          "address": "HZwtGTtJ6xmrvfeMwWccbUwMwvdd7Nk5fK27i9DdfMbE",
+          "expected": 850054,
+          "actual": 850054
+        },
+        {
+          "address": "5fbyRAEDqWqvq5Abbqw7NJpGF6fmLJjbEM1oesx7LRpy",
+          "expected": -850054,
+          "actual": -850054
+        }
+      ],
+      "tokenDeltas": [],
+      "status": "passed"
+    },
+    {
+      "name": "holder-payout-1",
+      "signature": "61DBrPuDVUxXJwVohmc5uhAsyNyshXdDtGAntLHRzR5cArSGHxPWSVWFck7F6LVoZvbSH6vDzgFr9eKfHtFamTz6",
+      "explorer": "https://explorer.solana.com/tx/61DBrPuDVUxXJwVohmc5uhAsyNyshXdDtGAntLHRzR5cArSGHxPWSVWFck7F6LVoZvbSH6vDzgFr9eKfHtFamTz6?cluster=devnet",
+      "slot": 506114164,
+      "blockTime": 1790820635,
+      "finalized": true,
+      "lamportChecks": [
+        {
+          "address": "7ngaVZdeipr6uZy2inh267PjZLLYFuAfsPoTRZixjJMk",
+          "expected": 23437,
+          "actual": 23437
+        },
+        {
+          "address": "HZwtGTtJ6xmrvfeMwWccbUwMwvdd7Nk5fK27i9DdfMbE",
+          "expected": -23437,
+          "actual": -23437
+        }
+      ],
+      "tokenDeltas": [],
+      "status": "passed"
+    },
+    {
+      "name": "holder-payout-2",
+      "signature": "4M9f74n28PHEU35KFn9s3coTxmd3arQBtSXogbBCXdphLXtdUgV4RQj7VYz1cm9ZwoYEjwDumbDrtfKbqeJ5JNrp",
+      "explorer": "https://explorer.solana.com/tx/4M9f74n28PHEU35KFn9s3coTxmd3arQBtSXogbBCXdphLXtdUgV4RQj7VYz1cm9ZwoYEjwDumbDrtfKbqeJ5JNrp?cluster=devnet",
+      "slot": 506114184,
+      "blockTime": 1790820640,
+      "finalized": true,
+      "lamportChecks": [
+        {
+          "address": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+          "expected": 795348,
+          "actual": 795348
+        },
+        {
+          "address": "HZwtGTtJ6xmrvfeMwWccbUwMwvdd7Nk5fK27i9DdfMbE",
+          "expected": -795348,
+          "actual": -795348
+        }
+      ],
+      "tokenDeltas": [],
+      "status": "passed"
+    },
+    {
+      "name": "holder-payout-3",
+      "signature": "J23DEv9D4GDtdDfjLEq8Vd5A8GjQmjmpeR3zD86iUPNGj4HSrw45fw2cnPxrV2VL6W1eXEg84hxayJbmwCUSGJR",
+      "explorer": "https://explorer.solana.com/tx/J23DEv9D4GDtdDfjLEq8Vd5A8GjQmjmpeR3zD86iUPNGj4HSrw45fw2cnPxrV2VL6W1eXEg84hxayJbmwCUSGJR?cluster=devnet",
+      "slot": 506114204,
+      "blockTime": 1790820644,
+      "finalized": true,
+      "lamportChecks": [
+        {
+          "address": "CRRaMRKxThkTUUMj9DrshBxDWbcVRdTgWj9ubbMnXTm7",
+          "expected": 31267,
+          "actual": 31267
+        },
+        {
+          "address": "HZwtGTtJ6xmrvfeMwWccbUwMwvdd7Nk5fK27i9DdfMbE",
+          "expected": -31267,
+          "actual": -31267
+        }
+      ],
+      "tokenDeltas": [],
+      "status": "passed"
+    },
+    {
+      "name": "community-reserve-funding",
+      "signature": "3nauE1HuT3Df1zaEBaPwpShadLfdazEswwq5ye6UHtraDPnyEe6Y2Q4ntetmKuqqK23qvhzqzm21bMre6osr9iMm",
+      "explorer": "https://explorer.solana.com/tx/3nauE1HuT3Df1zaEBaPwpShadLfdazEswwq5ye6UHtraDPnyEe6Y2Q4ntetmKuqqK23qvhzqzm21bMre6osr9iMm?cluster=devnet",
+      "slot": 505975250,
+      "blockTime": 1790788083,
+      "finalized": true,
+      "lamportChecks": [],
+      "tokenDeltas": [
+        {
+          "account": "7mGdP6xiV9Fw9WDvJgP7CJAr2pihKnaPcBjnHMTaw8hu",
+          "mint": "FWmi66ecpuAYkcpjT86i2RsBKZhm2cJdnKXqcoreW8DH",
+          "owner": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+          "deltaBaseUnits": "-30000000000000"
+        },
+        {
+          "account": "51iVeEudiUbZxyWp84FcCoT3jXStwEfjjRpsMzrZrAXD",
+          "mint": "FWmi66ecpuAYkcpjT86i2RsBKZhm2cJdnKXqcoreW8DH",
+          "owner": "HZwtGTtJ6xmrvfeMwWccbUwMwvdd7Nk5fK27i9DdfMbE",
+          "deltaBaseUnits": "30000000000000"
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "name": "community-drop-opening",
+      "signature": "46yo1umgDnzkw7KTrADRVgANMEqvVSsPbUeTDrKkGPSKMXNBvxSvRSo48Q1rnveBESEuPjPPNuq9eiv8gHmAxSBW",
+      "explorer": "https://explorer.solana.com/tx/46yo1umgDnzkw7KTrADRVgANMEqvVSsPbUeTDrKkGPSKMXNBvxSvRSo48Q1rnveBESEuPjPPNuq9eiv8gHmAxSBW?cluster=devnet",
+      "slot": 505976385,
+      "blockTime": 1790788349,
+      "finalized": true,
+      "lamportChecks": [],
+      "tokenDeltas": [
+        {
+          "account": "51iVeEudiUbZxyWp84FcCoT3jXStwEfjjRpsMzrZrAXD",
+          "mint": "FWmi66ecpuAYkcpjT86i2RsBKZhm2cJdnKXqcoreW8DH",
+          "owner": "HZwtGTtJ6xmrvfeMwWccbUwMwvdd7Nk5fK27i9DdfMbE",
+          "deltaBaseUnits": "-30000000000000"
+        },
+        {
+          "account": "7GLRRxBqu8mkAybApAiMuiSFcfzg8yKcGAacVnKNqyAw",
+          "mint": "FWmi66ecpuAYkcpjT86i2RsBKZhm2cJdnKXqcoreW8DH",
+          "owner": "CRRaMRKxThkTUUMj9DrshBxDWbcVRdTgWj9ubbMnXTm7",
+          "deltaBaseUnits": "30000000000000"
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "name": "community-wallet-claim",
+      "signature": "5Z4W5iyRwpThaobwVePxcEaRVSVru6XCV2EEDrRiDbBzPswRHsLe6srbCJnVKWiEEUeuuyE2x9szCZ4eQi9kKbm1",
+      "explorer": "https://explorer.solana.com/tx/5Z4W5iyRwpThaobwVePxcEaRVSVru6XCV2EEDrRiDbBzPswRHsLe6srbCJnVKWiEEUeuuyE2x9szCZ4eQi9kKbm1?cluster=devnet",
+      "slot": 505977148,
+      "blockTime": 1790788527,
+      "finalized": true,
+      "lamportChecks": [],
+      "tokenDeltas": [
+        {
+          "account": "7GLRRxBqu8mkAybApAiMuiSFcfzg8yKcGAacVnKNqyAw",
+          "mint": "FWmi66ecpuAYkcpjT86i2RsBKZhm2cJdnKXqcoreW8DH",
+          "owner": "CRRaMRKxThkTUUMj9DrshBxDWbcVRdTgWj9ubbMnXTm7",
+          "deltaBaseUnits": "-42353538"
+        },
+        {
+          "account": "7mGdP6xiV9Fw9WDvJgP7CJAr2pihKnaPcBjnHMTaw8hu",
+          "mint": "FWmi66ecpuAYkcpjT86i2RsBKZhm2cJdnKXqcoreW8DH",
+          "owner": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+          "deltaBaseUnits": "42353538"
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "name": "buyback-and-burn",
+      "signature": "2QMWeJmahR8DVCbvbFwZe3NWDrFB8An4we73etaaM8JQKXbnR59TbJPgwMdWgUWYzh4TnXYmv2p4gSjbTAMUkL1y",
+      "explorer": "https://explorer.solana.com/tx/2QMWeJmahR8DVCbvbFwZe3NWDrFB8An4we73etaaM8JQKXbnR59TbJPgwMdWgUWYzh4TnXYmv2p4gSjbTAMUkL1y?cluster=devnet",
+      "slot": 506085082,
+      "blockTime": 1790813821,
+      "finalized": true,
+      "lamportChecks": [],
+      "tokenDeltas": [
+        {
+          "account": "AHEgRGXFn8JbhXccWM4i1meRGPFbx8kzb9BGN6ocqRFL",
+          "mint": "So11111111111111111111111111111111111111112",
+          "owner": "9xvDPD6G7NRCEu7W2M9vCLeo8we23Ww7pzQEhXcuJAmA",
+          "deltaBaseUnits": "38"
+        },
+        {
+          "account": "GAFuhgcd328SkkBYHpfadzmef9hTGAFRCi9QoCnsZQug",
+          "mint": "So11111111111111111111111111111111111111112",
+          "owner": "9M4giFFMxmFGXtc3feFzRai56WbBqehoSeRE5GK7gf7",
+          "deltaBaseUnits": "4"
+        },
+        {
+          "account": "GdZJqsPqa6joZEEwFrgAnUCb54pMPF14up3rsu6otiq2",
+          "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+          "owner": "Ejix4fR6teMF3paes3roLR39yyBZMGGhSHxxZhwnwuzu",
+          "deltaBaseUnits": "0"
+        },
+        {
+          "account": "6TrzVkkNsRCM6MFvwtpimwxXbHgwFRqE6W9MEjUg7K71",
+          "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+          "owner": "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32",
+          "deltaBaseUnits": "-2232461"
+        },
+        {
+          "account": "5wh6A73Nz8a3M8Qenmyb6WASpE5JWtWpQzvN83q4M5PX",
+          "mint": "So11111111111111111111111111111111111111112",
+          "owner": "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32",
+          "deltaBaseUnits": "83295"
+        },
+        {
+          "account": "Ei6iux5MMYG8JxCTr58goADqFTtMroL9TXJityF3fAQc",
+          "mint": "So11111111111111111111111111111111111111112",
+          "owner": "8N3GDaZ2iwN65oxVatKTLPNooAVUJTbfiVJ1ahyqwjSk",
+          "deltaBaseUnits": "0"
+        }
+      ],
+      "burn": {
+        "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+        "baseUnits": "2232461",
+        "program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+      },
+      "status": "passed"
+    },
+    {
+      "name": "buyback-refund",
+      "signature": "5RWFZMxZYDZX1HyDNxXYpzvhDTrp36V86ioj9h7giZnbiNFB2sqRnAwhLVN6P6vRiAaWi1kR8rVAkSobKoYfdjrb",
+      "explorer": "https://explorer.solana.com/tx/5RWFZMxZYDZX1HyDNxXYpzvhDTrp36V86ioj9h7giZnbiNFB2sqRnAwhLVN6P6vRiAaWi1kR8rVAkSobKoYfdjrb?cluster=devnet",
+      "slot": 506085093,
+      "blockTime": 1790813823,
+      "finalized": true,
+      "lamportChecks": [
+        {
+          "address": "5fbyRAEDqWqvq5Abbqw7NJpGF6fmLJjbEM1oesx7LRpy",
+          "expected": 834,
+          "actual": 834
+        }
+      ],
+      "tokenDeltas": [],
+      "status": "passed"
+    }
+  ],
+  "passed": 17,
+  "blocked": 0
+}

@@ -23,7 +23,8 @@ const rpc = createServer(async (req, res) => {
   const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
   rpcCalls += 1;
   res.writeHead(200, { 'content-type': 'application/json' });
-  res.end(JSON.stringify({ jsonrpc: '2.0', id: body.id, result: [] }));
+  const result = body.method === 'getAccountInfo' ? { context: { slot: 1 }, value: null } : [];
+  res.end(JSON.stringify({ jsonrpc: '2.0', id: body.id, result }));
 });
 await new Promise(resolve => rpc.listen(0, '127.0.0.1', resolve));
 const rpcPort = rpc.address().port;
@@ -72,7 +73,7 @@ try {
   const [one, two] = await Promise.all([fetch(`${base}/api/tokens/${mint}/market-activity`), fetch(`${base}/api/tokens/${mint}/market-activity`)]);
   assert.equal(one.status, 200);
   assert.equal(two.status, 200);
-  assert.equal(rpcCalls, 1, 'Concurrent requests for one mint should share one scan.');
+  assert.equal(rpcCalls, 2, 'Concurrent requests for one mint should share one pool lookup and one curve scan.');
   const saved = JSON.parse(await readFile(storePath, 'utf8'));
   assert.equal(saved.marketActivity[`devnet:${mint}`].coverage, 'unavailable');
 

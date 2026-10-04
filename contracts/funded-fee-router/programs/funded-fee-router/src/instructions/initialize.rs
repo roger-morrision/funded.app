@@ -50,9 +50,11 @@ pub struct InitializeMint<'info> {
 }
 
 pub fn mint_handler(ctx: Context<InitializeMint>) -> Result<()> {
+    require!(ctx.accounts.legacy_router.owner == ctx.program_id, ErrorCode::InvalidRouterHeader);
     let legacy = ctx.accounts.legacy_router.try_borrow_data()?;
     require!(legacy.len() == ROUTER_DATA_LEN, ErrorCode::InvalidRouterHeader);
     require!(&legacy[0..8] == MAGIC && legacy[8] == VERSION && legacy[9..41] == POLICY_HASH, ErrorCode::InvalidRouterHeader);
+    require!(legacy[73] == ctx.bumps.legacy_router, ErrorCode::InvalidRouterHeader);
     let authority = legacy[41..73].to_vec();
     drop(legacy);
 

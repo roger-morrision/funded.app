@@ -149,3 +149,8 @@ data/automatic-rewards.json.lock
 /dist-mainnet-readonly/
 /deploy
 /data
+
+
+# Browser verification output
+/test-results/
+/playwright-report/

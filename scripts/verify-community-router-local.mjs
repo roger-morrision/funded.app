@@ -46,7 +46,7 @@ const migrationSlot = Math.max(1, await connection.getSlot('finalized'));
 const migrationBlockTime = Math.floor(Date.now() / 1000) - 60;
 const manifest = { drop:drop.toBase58(), launchMint:mint.toBase58(), eligibilityMint:eligibilityMint.toBase58(),
   migrationSignature:bs58.encode(Buffer.alloc(64, 7)), migrationSlot, snapshotSlot:migrationSlot,
-  migrationBlockTime, totalAmount:'100', allocatedAmount:'100', snapshotHash:'09'.repeat(32),
+  migrationBlockTime, totalAmount:'100', allocatedAmount:'100', remainderAmount:'0', snapshotHash:'09'.repeat(32),
   leaves:[{ recipient:recipient.publicKey.toBase58(), amount:'100', index:0, proof:[] }] };
 manifest.root = communityLeaf({ drop:manifest.drop, recipient:recipient.publicKey, amount:'100', index:0 }).toString('hex');
 const opening = buildCommunityInitializeInstruction({ programId, authority:authority.publicKey,
@@ -80,6 +80,7 @@ const claim = buildCommunityClaimInstruction({ programId, authority:authority.pu
   tokenProgram:(await connection.getAccountInfo(mint)).owner, manifest,
   recipient:recipient.publicKey, payer:authority.publicKey });
 const claimSignature = await send(claim.instruction);
+await connection.confirmTransaction(claimSignature, 'finalized');
 assert.equal(Number((await getAccount(connection, recipientToken.address)).amount), 100);
 assert.equal(Number((await getAccount(connection, new PublicKey(opening.dropToken))).amount), 0);
 await assert.rejects(send(claim.instruction));

@@ -8,50 +8,45 @@ const challengeLifetimeMs = 5 * 60_000;
 const sessionLifetimeMs = 30 * 60_000;
 const digest = value => createHash('sha256').update(value).digest('hex');
 const opaque = () => randomBytes(32).toString('base64url');
+const validToken = value => typeof value === 'string' && /^[A-Za-z0-9_-]{43}$/.test(value);
 
-export function createTokenChatSessions() {
-  const challenges = new Map();
-  const sessions = new Map();
-  const prune = () => {
-    const now = Date.now();
-    for (const [key, value] of challenges) if (value.expiresAtMs <= now) challenges.delete(key);
-    for (const [key, value] of sessions) if (value.expiresAtMs <= now) sessions.delete(key);
-    while (challenges.size > 1000) challenges.delete(challenges.keys().next().value);
-    while (sessions.size > 5000) sessions.delete(sessions.keys().next().value);
-  };
+export function createTokenChatSessions(store, { cluster = 'devnet', now = Date.now } = {}) {
+  if (!store?.authPut || !store?.authRead || !store?.authTake || !store?.authDelete) throw new Error('Chat requires an authentication store.');
+  const challengeKind = `chat-challenge:${cluster}`;
+  const sessionKind = `chat-session:${cluster}`;
   return {
-    prepare(address, origin) {
-      prune();
+    async prepare(address, origin) {
       const wallet = new PublicKey(address).toBase58();
-      const now = Date.now();
+      const time = now();
       const challengeId = opaque();
-      const challenge = { address: wallet, origin, nonce: opaque(), issuedAt: new Date(now).toISOString(), expiresAt: new Date(now + challengeLifetimeMs).toISOString(), expiresAtMs: now + challengeLifetimeMs };
-      challenges.set(challengeId, challenge);
+      const challenge = { address: wallet, origin, nonce: opaque(), issuedAt: new Date(time).toISOString(), expiresAt: new Date(time + challengeLifetimeMs).toISOString(), expiresAtMs: time + challengeLifetimeMs };
+      await store.authPut(challengeKind, digest(challengeId), challenge, challenge.expiresAtMs);
       return { challengeId, statement: tokenChatSessionStatement(challenge), expiresAt: challenge.expiresAt };
     },
-    verify(challengeId, signatureValue, origin) {
-      prune();
-      const challenge = challenges.get(challengeId);
-      if (!challenge || challenge.origin !== origin) return null;
-      challenges.delete(challengeId);
+    async verify(challengeId, signatureValue, origin) {
+      if (!validToken(challengeId) || typeof signatureValue !== 'string' || signatureValue.length > 100) return null;
+      const key = digest(challengeId);
+      const visible = await store.authRead(challengeKind, key);
+      if (!visible || visible.origin !== origin) return null;
+      // DELETE RETURNING in PostgreSQL makes verification one-use across replicas.
+      const challenge = await store.authTake(challengeKind, key);
+      if (!challenge || challenge.origin !== origin || challenge.expiresAtMs <= now()) return null;
       try {
         const signature = bs58.decode(String(signatureValue || ''));
         if (signature.length !== nacl.sign.signatureLength || !nacl.sign.detached.verify(new TextEncoder().encode(tokenChatSessionStatement(challenge)), signature, new PublicKey(challenge.address).toBytes())) return null;
       } catch { return null; }
       const token = opaque();
-      const expiresAtMs = Date.now() + sessionLifetimeMs;
-      sessions.set(digest(token), { address: challenge.address, origin, expiresAtMs });
+      const expiresAtMs = now() + sessionLifetimeMs;
+      await store.authPut(sessionKind, digest(token), { address: challenge.address, origin, expiresAtMs }, expiresAtMs);
       return { token, address: challenge.address, expiresAt: new Date(expiresAtMs).toISOString() };
     },
-    address(token, origin) {
-      if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(token)) return null;
-      const session = sessions.get(digest(token));
-      if (!session) return null;
-      if (session.expiresAtMs <= Date.now()) { sessions.delete(digest(token)); return null; }
-      return session.origin === origin ? session.address : null;
+    async address(token, origin) {
+      if (!validToken(token)) return null;
+      const session = await store.authRead(sessionKind, digest(token));
+      return session?.origin === origin && session.expiresAtMs > now() ? session.address : null;
     },
-    revoke(token) {
-      if (typeof token === 'string' && /^[A-Za-z0-9_-]{43}$/.test(token)) sessions.delete(digest(token));
+    async revoke(token) {
+      if (validToken(token)) await store.authDelete(sessionKind, digest(token));
     },
   };
 }

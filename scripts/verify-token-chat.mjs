@@ -58,6 +58,17 @@ try {
   assert.equal(initial.data.authentication, 'solana-wallet-session');
   assert.deepEqual(initial.data.messages, []);
 
+  for (const raw of ['null', '[]', '{']) {
+    const malformed = await fetch(`${base}${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: raw });
+    assert.equal(malformed.status, 400, 'Malformed bodies must be client errors.');
+    assert.equal(malformed.headers.get('cache-control'), 'no-store');
+    assert.match(malformed.headers.get('x-request-id'), /^[a-f0-9-]{36}$/);
+    const error = await malformed.json();
+    assert.equal(error.requestId, malformed.headers.get('x-request-id'));
+  }
+  const oversized = await fetch(`${base}${path}`, { method: 'POST', body: JSON.stringify({ text: 'x'.repeat(1_000_001) }) });
+  assert.equal(oversized.status, 413, 'Oversized bodies must return an HTTP response.');
+
   const unsigned = await request(path, { method: 'POST', body: { author: author.publicKey.toBase58(), text: 'Unsigned message' } });
   assert.equal(unsigned.status, 400);
 
@@ -92,6 +103,17 @@ try {
   assert.equal(otherMessage.status, 401);
   const removedReport = await request(`${sessionPath}/report`, { method: 'POST', headers: sessionHeaders, body: { messageId: sessionPost.data.message.id } });
   assert.equal(removedReport.status, 404);
+  const reportPayload = { mint: sessionMint, author: secondAuthor.publicKey.toBase58(), text: 'Report fixture.', ...envelope() };
+  reportPayload.signature = bs58.encode(nacl.sign.detached(new TextEncoder().encode(tokenChatPostStatement(reportPayload)), secondAuthor.secretKey));
+  const reportTarget = await request(sessionPath, { method: 'POST', body: reportPayload });
+  assert.equal(reportTarget.status, 201);
+  const reportBody = { messageId: reportTarget.data.message.id, reason: 'spam-or-scam' };
+  assert.equal((await request(`${sessionPath}/report`, { method: 'POST', body: reportBody })).status, 401);
+  for (let i = 0; i < 2; i++) assert.equal((await request(`${sessionPath}/report`, { method: 'POST', headers: sessionHeaders, body: reportBody })).status, 200);
+  const reportedQueue = await request('/api/ops/token-chat', { headers: { authorization: `Bearer ${token}` } });
+  const reported = reportedQueue.data.messages.find(row => row.id === reportBody.messageId);
+  assert.equal(reported.reports.length, 1);
+  assert.equal(reported.status, 'visible', 'A report alone must not hide a message.');
   const revoked = await request('/api/token-chat/session/revoke', { method: 'POST', headers: sessionHeaders });
   assert.equal(revoked.status, 200);
   const afterRevoke = await request(sessionPath, { method: 'POST', headers: sessionHeaders, body: { author: sessionAuthor.publicKey.toBase58(), text: 'Should not post.' } });
@@ -134,7 +156,7 @@ try {
   assert.equal(stored.coinChats[mint].length, 2);
   assert.equal(stored.coinChats[mint][0].moderatedBy, 'operations');
   assert.equal(stored.coinChats[mint][1].status, 'deleted');
-  console.log('Token chat: wallet approval, session actions, disabled reporting, persistence, and operations moderation passed with ephemeral keys.');
+  console.log('Token chat: wallet approval, session actions, authenticated reporting, persistence, and operations moderation passed with ephemeral keys.');
 } finally {
   server.kill();
   await rm(directory, { recursive: true, force: true });

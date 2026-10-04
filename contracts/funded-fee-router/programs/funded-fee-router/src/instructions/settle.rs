@@ -28,6 +28,7 @@ pub struct SettleMint<'info> {
 
 pub fn mint_handler(ctx: Context<SettleMint>, claim_id: [u8; 32], amounts: Vec<u64>) -> Result<()> {
     let router = &ctx.accounts.router;
+    require!(router.owner == ctx.program_id, ErrorCode::InvalidMintRouter);
     let data = router.try_borrow_data()?;
     require!(data.len() == MINT_ROUTER_DATA_LEN, ErrorCode::InvalidMintRouter);
     require!(&data[0..8] == MINT_ROUTER_MAGIC && data[8] == MINT_ROUTER_VERSION && data[9..41] == POLICY_HASH, ErrorCode::InvalidMintRouter);
@@ -47,7 +48,8 @@ pub fn mint_handler(ctx: Context<SettleMint>, claim_id: [u8; 32], amounts: Vec<u
     require!(total <= router.lamports().saturating_sub(minimum), ErrorCode::InsufficientRouterBalance);
     for (destination, amount) in destinations.iter().zip(amounts.iter()) {
         **router.try_borrow_mut_lamports()? -= amount;
-        **destination.try_borrow_mut_lamports()? += amount;
+        let balance = destination.lamports().checked_add(*amount).ok_or(ErrorCode::AmountOverflow)?;
+        **destination.try_borrow_mut_lamports()? = balance;
     }
     let claim = &mut ctx.accounts.claim;
     claim.claim_id = claim_id;
@@ -61,17 +63,20 @@ pub fn mint_handler(ctx: Context<SettleMint>, claim_id: [u8; 32], amounts: Vec<u
 
 pub fn handler(ctx: Context<Settle>, claim_id: [u8; 32], amounts: Vec<u64>) -> Result<()> {
     let router = &ctx.accounts.router;
+    require!(router.owner == ctx.program_id, ErrorCode::InvalidRouterHeader);
     let data = router.try_borrow_data()?;
     require!(data.len() == ROUTER_DATA_LEN, ErrorCode::InvalidRouterHeader);
     require!(&data[0..8] == MAGIC && data[8] == VERSION && data[9..41] == POLICY_HASH, ErrorCode::InvalidRouterHeader);
     require!(&data[41..73] == ctx.accounts.authority.key.as_ref(), ErrorCode::InvalidRouterHeader);
+    require!(data[73] == ctx.bumps.router, ErrorCode::InvalidRouterHeader);
     drop(data);
 
     let destinations = ctx.remaining_accounts;
-    require!(destinations.len() == amounts.len(), ErrorCode::DestinationAmountMismatch);
+    require!(!amounts.is_empty() && destinations.len() == amounts.len(), ErrorCode::DestinationAmountMismatch);
     let mut total = 0u64;
-    for amount in &amounts {
+    for (destination, amount) in destinations.iter().zip(amounts.iter()) {
         require!(*amount > 0, ErrorCode::InvalidAmount);
+        require!(destination.is_writable && destination.key != router.key, ErrorCode::InvalidDestination);
         total = total.checked_add(*amount).ok_or(ErrorCode::AmountOverflow)?;
     }
     let minimum = Rent::get()?.minimum_balance(ROUTER_DATA_LEN);
@@ -80,7 +85,8 @@ pub fn handler(ctx: Context<Settle>, claim_id: [u8; 32], amounts: Vec<u64>) -> R
 
     for (destination, amount) in destinations.iter().zip(amounts.iter()) {
         **router.try_borrow_mut_lamports()? -= amount;
-        **destination.try_borrow_mut_lamports()? += amount;
+        let balance = destination.lamports().checked_add(*amount).ok_or(ErrorCode::AmountOverflow)?;
+        **destination.try_borrow_mut_lamports()? = balance;
     }
     let claim = &mut ctx.accounts.claim;
     claim.claim_id = claim_id;

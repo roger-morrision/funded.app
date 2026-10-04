@@ -24,7 +24,7 @@ assert.match(app,/find\(candidate => candidate\.getClientRects\(\)\.length > 0\)
 assert.match(app,/requestAnimationFrame\(focusCurrentPageRoute\)/);
 assert.match(app,/if \(!toast\.classList\.contains\('show'\) && toast\.textContent === message\) toast\.textContent = '';/, 'Expired toast text must leave the live region instead of following users across routes.');
 assert.match(app,/link\.download = 'funded-airdrop-unclaimed-wallets\.csv'[\s\S]*?document\.body\.append\(link\)[\s\S]*?setTimeout\(\(\) => URL\.revokeObjectURL\(url\), 1000\)/);
-assert.match(app,/catch\(error\)\{await prepareLaunchImage\(null\);event\.target\.value='';if\(removeButton\)removeButton\.disabled=true/);
+assert.match(app,/catch\(error\)\{if\(revision!==imagePreparationRevision\|\|file!==event\.target\.files\?\.\[0\]\)return;await prepareLaunchImage\(null\);event\.target\.value='';if\(removeButton\)removeButton\.disabled=true/);
 assert.match(creatorSupportCss,/#claim-technical-details:not\(\[open\]\)>label\{display:none\}/);
 assert.match(styles,/details:not\(\[open\]\)>:not\(summary\)\{display:none!important\}/);
 console.log('Launch accessibility: visible-panel focus, route focus, disclosure state, reduced-motion scrolling and live validation markup passed (local-only).');

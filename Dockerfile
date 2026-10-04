@@ -1,4 +1,5 @@
-FROM node:24-bookworm-slim AS build
+ARG NODE_IMAGE=node:24-bookworm-slim
+FROM ${NODE_IMAGE} AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY vendor ./vendor
@@ -38,7 +39,11 @@ RUN if [ "$VITE_SOLANA_CLUSTER" = "devnet" ] && [ -z "$VITE_API_BASE_URL" ]; the
       echo "VITE_API_BASE_URL is required for the Devnet browser build" >&2; exit 1; \
     fi && npm run build && npm prune --omit=dev
 
-FROM node:24-bookworm-slim
+FROM ${NODE_IMAGE}
+ARG FUNDED_SOURCE_REVISION=local-development
+LABEL org.opencontainers.image.source="https://github.com/roger-morrision/funded.app" \
+      org.opencontainers.image.revision=$FUNDED_SOURCE_REVISION
+ENV FUNDED_BUILD_ID=$FUNDED_SOURCE_REVISION
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=8787
 WORKDIR /app
 COPY --from=build /app /app

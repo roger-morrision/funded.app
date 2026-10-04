@@ -1,3 +1,6 @@
+import { readHiddenChatAuthors, hideChatAuthor, resetHiddenChatAuthors } from './token-chat-preferences.js';
+import { saveDraftImage, readDraftImage, deleteDraftImage } from './launch-draft-image.js';
+import { createRoutePoller } from './route-polling.js';
 import { Buffer } from 'buffer';
 import { icon } from './ui-icons.js';
 import { summarizeFullHolderDistribution, summarizeHolderWalletSample } from './holder-wallet-sample.js';
@@ -766,8 +769,9 @@ async function loadCommunityReserveStatuses(){
   renderAirdropClaims();
   renderRegistry();
 }
-async function loadVerifiedLaunchPolicies(){
-  const response = await apiRequest('/api/launches').catch(() => ({ available: false }));
+async function loadVerifiedLaunchPolicies(signal){
+  const response = await apiRequest('/api/launches', { signal }).catch(() => ({ available: false }));
+  signal?.throwIfAborted();
   if (!response.available || !Array.isArray(response.data)) {
     if (verifiedLaunchPoliciesStatus !== 'ready') {
       verifiedLaunchPoliciesStatus = 'unavailable';
@@ -819,8 +823,9 @@ function scheduleBoostExpiryRefresh(){
     if (!document.hidden) void loadVerifiedBoosts();
   }, Math.max(100, nextExpiry - Date.now() + 100));
 }
-async function loadVerifiedBoosts(){
-  const response = await apiRequest('/api/boosts').catch(() => ({ available:false }));
+async function loadVerifiedBoosts(signal){
+  const response = await apiRequest('/api/boosts', { signal }).catch(() => ({ available:false }));
+  signal?.throwIfAborted();
   if (!response.available || response.data?.cluster !== EXPLORE_CLUSTER) {
     verifiedBoostsAvailable = false;
     renderCoinPromotionBadge();
@@ -898,6 +903,7 @@ function boostAssetForMint(mint){
     ? { address:mint, symbol:document.querySelector('#coin-symbol')?.textContent?.trim(), name:document.querySelector('#coin-page-title')?.textContent?.trim() } : null);
 }
 function openExploreBoost(mint){
+  if (boostCheckout.busy) { showToast('Finish the current boost payment or verification before opening another checkout.'); return; }
   const asset = boostAssetForMint(mint);
   const dialog = document.querySelector('#explore-boost-dialog');
   if (!asset || !dialog) return;
@@ -980,13 +986,22 @@ async function handleExploreBoostPay(){
       renderExploreBoostDialog();
       const signed = await session.provider.signTransaction(transaction);
       assertWalletSessionCurrent(session);
-      boostCheckout.pendingSignature = await rpc.sendRawTransaction(signed.serialize(), { skipPreflight:false, maxRetries:3 });
-      try { localStorage.setItem(`funded.boost.pending.${quote.mint}`, JSON.stringify({ quote, signature:boostCheckout.pendingSignature })); } catch {}
+      const signedBytes = signed.serialize();
+      if (!signed.signature || signed.signature.length !== 64) throw new Error('Wallet returned a transaction without a valid signature. No payment was sent.');
+      const signature = bs58.encode(signed.signature);
+      // Persist the signed identity BEFORE broadcast. An RPC timeout can occur after acceptance.
+      // Recovery remains verification-only until the original signature is resolved.
+      try { localStorage.setItem(`funded.boost.pending.${quote.mint}`, JSON.stringify({ quote, signature, lastValidBlockHeight: latest.lastValidBlockHeight })); }
+      catch { throw new Error('Device recovery storage is unavailable. No payment was sent; enable storage and retry.'); }
+      boostCheckout.pendingSignature = signature;
+      boostCheckout.quote = quote;
+      const submitted = await rpc.sendRawTransaction(signedBytes, { skipPreflight:false, maxRetries:3 });
+      if (submitted !== signature) throw new Error('RPC returned a different signature. Verify the originally signed payment before continuing.');
       boostCheckout.message = 'Transaction submitted. Waiting for finalized Devnet proof.';
       await verifyExploreBoostPayment(true);
       return;
     }
-  } catch (error) { boostCheckout.message = error.message || 'Boost checkout failed. No boost was activated.'; }
+  } catch (error) { boostCheckout.message = boostCheckout.pendingSignature ? `${error.message || 'Submission could not be confirmed.'} Use Retry payment verification for the signed transaction; do not send another payment.` : error.message || 'Boost checkout failed. No boost was activated.'; }
   finally { boostCheckout.busy = false; renderExploreBoostDialog(); }
 }
 async function verifyExploreBoostPayment(alreadyBusy = false){
@@ -1730,12 +1745,13 @@ function getBuybackPreviewState(){
   return { accruals: [], receipts: [] };
 }
 let buybackNetworkState = { status:'loading', receipts:[], pending:[] };
-async function loadBuybackNetworkState(){
+async function loadBuybackNetworkState(signal){
   try {
-    const response = await apiRequest('/api/buyback/status', { signal:AbortSignal.timeout(8000) });
+    const response = await apiRequest('/api/buyback/status', { signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(8000)]) : AbortSignal.timeout(8000) });
+    signal?.throwIfAborted();
     if (!response.available || !response.data || response.data.cluster !== 'devnet') throw new Error('Devnet buyback index unavailable.');
     buybackNetworkState = { status:'ready', receipts:Array.isArray(response.data.receipts) ? response.data.receipts : [], pending:Array.isArray(response.data.pending) ? response.data.pending : [] };
-  } catch { buybackNetworkState = { status:'unavailable', receipts:[], pending:[] }; }
+  } catch { signal?.throwIfAborted(); buybackNetworkState = { status:'unavailable', receipts:[], pending:[] }; }
   renderBuybackDashboard();
 }
 function saveBuybackPreviewState(state){ localStorage.setItem(BUYBACK_PREVIEW_KEY, JSON.stringify(state)); }
@@ -1845,7 +1861,7 @@ function renderFundedBuyControl(message = null){
   if (message != null) status.textContent = message;
   else if (!ready) status.textContent = fundedBuyRoute.reason;
 }
-async function refreshFundedBuyRoute(){
+async function refreshFundedBuyRoute(signal){
   try {
     if (APP_CLUSTER !== 'devnet' || APP_MAINNET_READ_ONLY || !PROTOCOL_FUNDED_MINT || !PROTOCOL_FUNDED_SWAP_POOL) throw new Error('A Devnet $FUNDED mint and pool are required.');
     const snapshot = await withRpcRetry(async attempt => {
@@ -1853,11 +1869,15 @@ async function refreshFundedBuyRoute(){
       const rpc = await getTradePreviewConnection();
       return fetchVerifiedPoolSnapshot({ connection:rpc, mint:PROTOCOL_FUNDED_MINT, poolAddress:PROTOCOL_FUNDED_SWAP_POOL });
     });
+    signal?.throwIfAborted();
+    if (fundedBuyBusy) return;
     fundedBuyPreview = null;
     fundedBuyRoute = { status:'ready', snapshot, reason:null };
     renderFundedBuyControl(`Verified Devnet pool ${snapshot.pool.slice(0, 6)}…${snapshot.pool.slice(-4)} · ${snapshot.quoteReservesSol.toFixed(3)} SOL liquidity.`);
     renderFundedTokenLanding();
   } catch (error) {
+    signal?.throwIfAborted();
+    if (fundedBuyBusy) return;
     fundedBuyPreview = null;
     const detail = String(error?.message || error);
     const reason = /(?:\b429\b|rate limit|too many requests)/i.test(detail)
@@ -3751,22 +3771,27 @@ window.addEventListener('resize', () => {
   syncHomeTickerArrows();
 });
 let exploreLoadInFlight = null;
-async function loadOnchainExploreData(){
+async function loadOnchainExploreData(signal){
   if (exploreLoadInFlight) return exploreLoadInFlight;
-  const load = loadOnchainExploreDataOnce();
+  const requestedSort = exploreSort;
+  const load = loadOnchainExploreDataOnce(signal, requestedSort);
   exploreLoadInFlight = load;
   try { return await load; }
-  finally { if (exploreLoadInFlight === load) exploreLoadInFlight = null; }
+  finally {
+    if (exploreLoadInFlight === load) exploreLoadInFlight = null;
+    if (requestedSort !== exploreSort && !signal?.aborted) void loadOnchainExploreData(signal).catch(() => {});
+  }
 }
-async function loadOnchainExploreDataOnce(){
-    const pumpSort = exploreSort === 'newest' ? 'created_timestamp' : 'last_trade_timestamp';
-    const birdeyeSort = exploreSort === 'change' ? 'price_change_24h_percent' : exploreSort === 'market-cap' ? 'market_cap' : 'volume_24h_usd';
+async function loadOnchainExploreDataOnce(signal, requestedSort){
+    const pumpSort = requestedSort === 'newest' ? 'created_timestamp' : 'last_trade_timestamp';
+    const birdeyeSort = requestedSort === 'change' ? 'price_change_24h_percent' : requestedSort === 'market-cap' ? 'market_cap' : 'volume_24h_usd';
     const feeds = [
       Promise.resolve({ available: false, data: null }),
-      apiRequest(`/api/pump/explore?limit=40&sort=${encodeURIComponent(pumpSort)}`).catch(() => ({ available: false, data: null })),
+      apiRequest(`/api/pump/explore?limit=40&sort=${encodeURIComponent(pumpSort)}`, { signal }).catch(() => ({ available: false, data: null })),
     ];
-    if (EXPLORE_CLUSTER !== 'devnet') feeds[0] = apiRequest(`/api/birdeye/explore?limit=40&sort_by=${encodeURIComponent(birdeyeSort)}`).catch(() => ({ available: false, data: null }));
+    if (EXPLORE_CLUSTER !== 'devnet') feeds[0] = apiRequest(`/api/birdeye/explore?limit=40&sort_by=${encodeURIComponent(birdeyeSort)}`, { signal }).catch(() => ({ available: false, data: null }));
     const [birdeyeFeed, pumpFeed] = await Promise.all(feeds);
+    signal?.throwIfAborted();
     exploreFeedAvailable = pumpFeed.available;
     if (pumpFeed.available) exploreFeedSort = pumpSort;
     const birdeyeRecords = Array.isArray(birdeyeFeed.data?.items) ? birdeyeFeed.data.items : [];
@@ -3854,6 +3879,8 @@ async function loadOnchainExploreDataOnce(){
          }
       } catch (error) { exploreVerificationFailed = true; exploreRateLimited = /429|rate.?limit|too many requests/i.test(String(error?.message || '')); }
     }
+    signal?.throwIfAborted();
+    if (requestedSort !== exploreSort) return;
     if (exploreRateLimited) exploreBackoffUntil = Date.now() + 60_000;
     else if (!exploreVerificationFailed) exploreBackoffUntil = 0;
     if ((exploreVerificationFailed || !pumpFeed.available) && assets.length && exploreLastVerifiedAt) {
@@ -3878,7 +3905,7 @@ async function loadOnchainExploreDataOnce(){
           && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h));
         let market = cached && Date.now() - cached.at < 60_000 && hasBreakdown(cached.data) ? cached.data : null;
         if (!market) {
-          const response = await apiRequest(`/api/tokens/${encodeURIComponent(item.address)}/market-activity`, { signal: AbortSignal.timeout(12000) }).catch(error => {
+          const response = await apiRequest(`/api/tokens/${encodeURIComponent(item.address)}/market-activity`, { signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(12000)]) : AbortSignal.timeout(12000) }).catch(error => {
             if (/rate limit|429|too many requests/i.test(String(error?.message || ''))) marketScanRateLimited = true;
             return { available: false, data: null };
           });
@@ -3909,6 +3936,8 @@ async function loadOnchainExploreDataOnce(){
         }
       }));
     }
+    signal?.throwIfAborted();
+    if (requestedSort !== exploreSort) return;
     exploreScannedCount = scannedCount;
     if (marketScanRateLimited) exploreBackoffUntil = Date.now() + 60_000;
   assets = Array.from(new Map(verified.map(item => [item.address, item])).values());
@@ -3944,17 +3973,18 @@ if (exploreInitialLoadStarted) loadOnchainExploreData().catch(error => {
   if (status) status.textContent = 'Solana RPC · unavailable';
   if (note) note.textContent = 'Unable to verify live data';
 });
-setInterval(() => { if (!document.hidden && !coinRouteRequested() && exploreAutoRefresh && Date.now() >= exploreBackoffUntil) loadOnchainExploreData().catch(() => {}); }, 30000);
-setInterval(() => { if (!document.hidden && exploreAutoRefresh) renderStonkEnhancements(); }, 30000);
+createRoutePoller({ run: signal => loadOnchainExploreData(signal), active: () => !coinRouteRequested() && ['overview', 'explore', 'community', 'leaderboard'].includes(requestedPageRoute()) && exploreAutoRefresh && Date.now() >= exploreBackoffUntil, intervalMs: 30_000 });
+createRoutePoller({ run: () => renderStonkEnhancements(), active: () => !coinRouteRequested() && requestedPageRoute() === 'explore' && exploreAutoRefresh, intervalMs: 30_000 });
 let receiptEvidenceLoading = false;
-async function loadReceiptEvidence(){
+async function loadReceiptEvidence(signal){
   if (receiptEvidenceLoading) return;
   receiptEvidenceLoading = true;
   try {
     const [result, summary] = await Promise.all([
-      apiRequest('/api/evidence/receipts').catch(() => null),
-      apiRequest('/api/analytics/summary').catch(() => null),
+      apiRequest('/api/evidence/receipts', { signal }).catch(() => null),
+      apiRequest('/api/analytics/summary', { signal }).catch(() => null),
     ]);
+    signal?.throwIfAborted();
     const data = result?.data;
     receiptEvidence = result?.available === true && data?.cluster === EXPLORE_CLUSTER ? data : null;
     receiptEvidenceChecked = true;
@@ -3971,7 +4001,7 @@ document.querySelector('#payment-dialog-list').innerHTML = payments.length
   ? document.querySelector('#payment-list').innerHTML
   : '<p class="empty-state">No verified payout receipts are available on Devnet yet. The payment tape will populate only after on-chain receipts are indexed.</p>';
 loadReceiptEvidence();
-setInterval(() => { if (!document.hidden) loadReceiptEvidence().catch(() => {}); }, 60_000);
+createRoutePoller({ run: signal => loadReceiptEvidence(signal), active: () => coinRouteRequested() || ['overview', 'payments', 'analytics-detail', 'buybacks'].includes(requestedPageRoute()), intervalMs: 60_000 });
 renderWatchlist();
 let registryLaunches = [];
 let registryPage = 1;
@@ -4815,6 +4845,11 @@ function resetWalletDependentViews(){
   estimatedLaunchFeeLamports = null;
   resetTradeBalances();
   invalidateTradePreview();
+  fundedBuyPreview = null;
+  if (!boostCheckout.pendingSignature) boostCheckout.quote = null;
+  launchCostReview = null;
+  document.querySelector('#launch-review-dialog')?.close();
+  for (const id of ['fee-route-agree', 'terms-agree']) { const input = document.getElementById(id); if (input) input.checked = false; }
   renderReferralClaimPrompt();
   for (const id of ['referral-active-creators', 'referral-conversion-rate']) {
     const node = document.querySelector(`#${id}`); if (node) node.textContent = '—';
@@ -4833,6 +4868,15 @@ function observeWalletProvider(provider){
   provider.on('connect', () => { if (!wallet && !wasWalletManuallyDisconnected() && provider.isConnected && walletAddress(provider)) activateWallet(provider); });
   provider.on('disconnect', () => { if (wallet === provider) { markWalletManuallyDisconnected(); clearWalletState(); } });
   provider.on('accountChanged', publicKey => handleAccountChanged(provider, publicKey));
+  const networkChanged = () => {
+    if (wallet !== provider) return;
+    walletVersion++;
+    resetWalletDependentViews();
+    setLaunchStatus('Wallet network changed. Verify the app network and refresh the estimate before signing.');
+    void refreshWalletInfo().catch(() => {});
+  };
+  provider.on('chainChanged', networkChanged);
+  provider.on('networkChanged', networkChanged);
 }
 function activateWallet(provider, message = 'Wallet connected'){
   if (APP_MAINNET_READ_ONLY) return;
@@ -6168,22 +6212,56 @@ document.querySelector('#launch-review-retry')?.addEventListener('click', async 
   else if (wallet) await refreshWalletInfo();
   updateLaunchNavigation();
 });
-document.querySelector('#save-launch-draft')?.addEventListener('click', () => {
-  try { saveLaunchDraft(launchDraftFromForm()); launchDraftStatus('Launch draft saved on this device. Image and consent are not saved.'); }
-  catch (error) { launchDraftStatus(error.message || 'Launch draft could not be saved on this device.'); }
-});
-document.querySelector('#restore-launch-draft')?.addEventListener('click', () => {
+const saveImageLabel = document.createElement('label');
+saveImageLabel.innerHTML = '<input type="checkbox" id="save-launch-image" /> Save prepared image on this device';
+document.querySelector('#save-launch-draft')?.before(saveImageLabel);
+let draftOperationBusy = false;
+let draftFormRevision = 0;
+const launchDraftForm = document.querySelector('#launch-form');
+for (const event of ['input', 'change']) launchDraftForm?.addEventListener(event, () => { draftFormRevision++; });
+async function withDraftOperation(operation) {
+  if (draftOperationBusy) return;
+  draftOperationBusy = true;
+  const buttons = ['save', 'restore', 'delete'].map(action => document.querySelector(`#${action}-launch-draft`)).filter(Boolean);
+  buttons.forEach(button => { button.disabled = true; });
+  try { await operation(); }
+  catch (error) { launchDraftStatus(error.message || 'Device storage is unavailable.'); }
+  finally { draftOperationBusy = false; buttons.forEach(button => { button.disabled = false; }); }
+}
+document.querySelector('#save-launch-draft')?.addEventListener('click', () => withDraftOperation(async () => {
+  const includeImage = document.querySelector('#save-launch-image')?.checked;
+  if (includeImage) assertImageReady();
+  const image = includeImage ? getPreparedImage() : null;
+  const draft = saveLaunchDraft(launchDraftFromForm());
   try {
-    const draft = readLaunchDraft();
-    if (!draft) { launchDraftStatus('No saved launch draft on this device.'); return; }
-    restoreLaunchDraftToForm(draft);
-    launchDraftStatus('Launch draft restored. Recheck the image, fee route, estimate, and consent before launching.');
-  } catch (error) { launchDraftStatus(error.message || 'Launch draft could not be restored.'); }
-});
-document.querySelector('#delete-launch-draft')?.addEventListener('click', () => {
-  try { deleteLaunchDraft(); launchDraftStatus('Saved launch draft deleted. Current form is unchanged.'); }
-  catch { launchDraftStatus('Saved launch draft could not be deleted on this device.'); }
-});
+    if (image) await saveDraftImage(draft, image);
+    else await deleteDraftImage();
+    launchDraftStatus(image ? 'Draft and prepared image saved on this device. Consent is not saved.' : 'Launch draft saved on this device. Image and consent are not saved.');
+  } catch { launchDraftStatus('Text draft saved. Image storage is unavailable; reselect the image when restoring.'); }
+}));
+document.querySelector('#restore-launch-draft')?.addEventListener('click', () => withDraftOperation(async () => {
+  const draft = readLaunchDraft();
+  if (!draft) { launchDraftStatus('No saved launch draft on this device.'); return; }
+  const revision = draftFormRevision;
+  const formBeforeRestore = JSON.stringify(launchDraftFromForm());
+  let image;
+  try { image = await readDraftImage(draft); } catch { /* Optional storage does not block text restoration. */ }
+  if (revision !== draftFormRevision || formBeforeRestore !== JSON.stringify(launchDraftFromForm())) { launchDraftStatus('The form changed while loading the draft. Select Restore again to replace your current edits.'); return; }
+  restoreLaunchDraftToForm(draft);
+  if (image) {
+    try {
+      const input = document.querySelector('#token-image');
+      const transfer = new DataTransfer(); transfer.items.add(image); input.files = transfer.files;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    } catch { launchDraftStatus('Text draft restored. Select your image again, then recheck fees and consent.'); return; }
+  }
+  launchDraftStatus('Launch draft restored. Recheck the image, fee route, estimate, and consent before launching.');
+}));
+document.querySelector('#delete-launch-draft')?.addEventListener('click', () => withDraftOperation(async () => {
+  deleteLaunchDraft();
+  try { await deleteDraftImage(); launchDraftStatus('Saved launch draft deleted. Current form is unchanged.'); }
+  catch { launchDraftStatus('Text draft deleted. Image storage could not be cleared; retry Delete to remove the saved image.'); }
+}));
 document.querySelectorAll('#token-name, #token-symbol, #token-description, #token-tagline, #token-roadmap, #token-website, #token-x, #token-telegram, #token-discord, #x-recipient, #community-airdrop-tokens, #creator-buy-sol').forEach(input => input.addEventListener('input', () => {
   if (input.matches('#token-name, #token-symbol')) { input.dataset.launchTouched = 'true'; updateLaunchIdentityWarnings(); }
   if (LAUNCH_SOCIAL_FIELDS.includes(input.id)) updateLaunchSocialValidity(input);
@@ -6209,7 +6287,9 @@ document.querySelectorAll('[data-airdrop-tokens]').forEach(button => button.addE
   input.value = button.dataset.airdropTokens;
   input.dispatchEvent(new Event('input', { bubbles: true }));
 }));
+let imagePreparationRevision = 0;
 document.querySelector('#token-image')?.addEventListener('change', async event => {
+  const revision = ++imagePreparationRevision;
   const file = event.target.files?.[0];
   const preview = document.querySelector('#token-image-preview');
   const cardPreview = document.querySelector('#preview-token-image');
@@ -6219,8 +6299,8 @@ document.querySelector('#token-image')?.addEventListener('change', async event =
   const removeButton=document.querySelector('#image-remove');
   if(removeButton)removeButton.disabled=!file;
   preview.style.backgroundImage='';preview.textContent=file?'…':'⌁';if(cardPreview){cardPreview.style.backgroundImage='';cardPreview.classList.remove('has-image');}if(cardPlaceholder)cardPlaceholder.hidden=false;if(status)status.textContent=file?'Preparing locally. Nothing is uploaded yet.':'No image selected.';
-  try{const image=await prepareLaunchImage(file,{crop:document.querySelector('#image-square-crop')?.checked});if(file!==event.target.files?.[0])return;if(image){preview.textContent='';preview.style.backgroundImage=`url(${image.url})`;if(cardPreview){cardPreview.style.backgroundImage=`url(${image.url})`;cardPreview.classList.add('has-image');}if(cardPlaceholder)cardPlaceholder.hidden=true;if(status)status.textContent=`Ready: ${image.width} × ${image.height}, ${Math.ceil(image.file.size/1000)} KB. Review the preview before signing.`;}}
-  catch(error){await prepareLaunchImage(null);event.target.value='';if(removeButton)removeButton.disabled=true;if(status)status.textContent=error.message;preview.textContent='!';}
+  try{const image=await prepareLaunchImage(file,{crop:document.querySelector('#image-square-crop')?.checked});if(revision!==imagePreparationRevision||file!==event.target.files?.[0])return;if(image){preview.textContent='';preview.style.backgroundImage=`url(${image.url})`;if(cardPreview){cardPreview.style.backgroundImage=`url(${image.url})`;cardPreview.classList.add('has-image');}if(cardPlaceholder)cardPlaceholder.hidden=true;if(status)status.textContent=`Ready: ${image.width} × ${image.height}, ${Math.ceil(image.file.size/1000)} KB. Review the preview before signing.`;}}
+  catch(error){if(revision!==imagePreparationRevision||file!==event.target.files?.[0])return;await prepareLaunchImage(null);event.target.value='';if(removeButton)removeButton.disabled=true;if(status)status.textContent=error.message;preview.textContent='!';}
   updateLaunchPreview();updateLaunchButton();
 });
 document.querySelector('#terms-agree').addEventListener('change', updateLaunchButton);
@@ -6675,11 +6755,9 @@ document.querySelector('#asset-grid').addEventListener('click', async event => {
   const boost = event.target.closest('[data-boost-mint]');
   if (boost) { openExploreBoost(boost.dataset.boostMint); return; }
   const button = event.target.closest('.watch-button');
-  const copyMint = event.target.closest('.asset-copy-mint');
   const share = event.target.closest('.share-asset');
   const emptyAction = event.target.closest('[data-explore-empty-action]');
   if (emptyAction) { if (emptyAction.dataset.exploreEmptyAction === 'clear') clearExploreFilters(); else loadOnchainExploreData().catch(() => showToast('Retry could not verify Devnet data.')); return; }
-  if (copyMint) { const mint = copyMint.dataset.mint; if (!mint) return; try { await navigator.clipboard.writeText(mint); showToast('Mint address copied'); } catch { showToast(mint); } return; }
   if (share) { openCoinShare(share.dataset.shareMint || '', share.dataset.shareSymbol || 'Coin', share.dataset.shareName || ''); return; }
  if (!button) return;
   toggleExploreWatch(button.dataset.mint);
@@ -7163,13 +7241,13 @@ renderAirdropClaims();
 renderCreatorLaunches();
 loadVerifiedLaunchPolicies().catch(() => {});
 void loadVerifiedBoosts();
-setInterval(() => { if (!document.hidden) loadVerifiedLaunchPolicies().catch(() => {}); }, 60_000);
-setInterval(() => { if (!document.hidden) void loadVerifiedBoosts(); }, 60_000);
+createRoutePoller({ run: signal => loadVerifiedLaunchPolicies(signal), active: () => coinRouteRequested() || ['overview', 'explore', 'my-launches', 'payments', 'airdrops', 'community'].includes(requestedPageRoute()), intervalMs: 60_000 });
+createRoutePoller({ run: signal => loadVerifiedBoosts(signal), active: () => coinRouteRequested() || ['overview', 'explore', 'list'].includes(requestedPageRoute()), intervalMs: 60_000 });
 renderBuybackDashboard();
 void loadBuybackNetworkState();
-setInterval(() => { if (!document.hidden) void loadBuybackNetworkState(); }, 60_000);
+createRoutePoller({ run: signal => loadBuybackNetworkState(signal), active: () => ['buybacks', 'paid', 'payments'].includes(requestedPageRoute()), intervalMs: 60_000 });
 void refreshFundedBuyRoute();
-setInterval(() => { if (!document.hidden && !fundedBuyBusy) void refreshFundedBuyRoute(); }, 60_000);
+createRoutePoller({ run: signal => refreshFundedBuyRoute(signal), active: () => !fundedBuyBusy && ['buybacks', 'paid'].includes(requestedPageRoute()), intervalMs: 60_000 });
 renderPublishedFeeRates();
 renderFeeFlowCalculator();
 await refreshFeeRouterConfig();
@@ -7849,9 +7927,13 @@ function setCoinTabLabels(){
   });
 }
 function renderCoinChat(activity){
-  const messages = coinChatMessages;
+  const messages = visibleCoinChatMessages();
   const rows = messages.length ? messages.map(tokenChatMessageMarkup).join('') : tokenChatEmptyMarkup();
   activity.innerHTML = `<div class="coin-chat"><div class="coin-chat-intro"><div><strong>${escapeHtml(coinActivity.symbol || 'Token')} chat</strong><small>Wallet-verified community messages</small></div><span>${messages.length} message${messages.length === 1 ? '' : 's'}</span></div><div class="coin-chat-messages">${rows}</div>${tokenChatComposerMarkup('coin-chat')}</div>`;
+}
+function visibleCoinChatMessages(){
+  const hidden = readHiddenChatAuthors(EXPLORE_CLUSTER);
+  return coinChatMessages.filter(message => !hidden.has(message.author));
 }
 function tokenChatAuthorLabel(author){ return author ? shortAddress(author) : 'Unknown wallet'; }
 function tokenChatEmptyMarkup(){
@@ -7861,7 +7943,7 @@ function tokenChatEmptyMarkup(){
 }
 function tokenChatMessageMarkup(item){
   const own = Boolean(connectedWalletAddress && item.author === connectedWalletAddress);
-  const action = own ? `<footer><button type="button" data-chat-delete="${escapeHtml(item.id)}">Delete</button></footer>` : '';
+  const action = own ? `<footer><button type="button" data-chat-delete="${escapeHtml(item.id)}">Delete</button></footer>` : `<footer><button type="button" data-chat-report="${escapeHtml(item.id)}" title="Report spam or a scam for moderation review">Report spam or scam</button><button type="button" data-chat-hide="${escapeHtml(item.author)}">Hide this wallet</button></footer>`;
   return `<article class="coin-community-message" data-chat-message="${escapeHtml(item.id)}"><div><strong>${escapeHtml(tokenChatAuthorLabel(item.author))}<small class="verified-author">✓ wallet</small></strong><time>${escapeHtml(new Date(item.createdAt).toLocaleString())}</time></div><p>${escapeHtml(item.text)}</p>${action}</article>`;
 }
 function tokenChatComposerMarkup(prefix = 'coin-community'){
@@ -7870,12 +7952,15 @@ function tokenChatComposerMarkup(prefix = 'coin-community'){
   const ready = tokenChatSessionReady();
   const buttonLabel = !connected ? 'Connect wallet' : ready ? 'Post' : 'Verify once & post';
   const note = !connected ? 'Connect a Solana wallet to post' : ready ? `Posting as ${escapeHtml(shortAddress(connectedWalletAddress))} · no approval needed for each post` : `Posting as ${escapeHtml(shortAddress(connectedWalletAddress))} · one wallet approval starts a 30-minute chat session`;
-  return `<form class="coin-chat-form coin-community-form" id="${prefix}-form"><label><span class="sr-only">Message</span><input id="${prefix}-input" maxlength="${TOKEN_CHAT_MAX_LENGTH}" autocomplete="off" placeholder="Share a useful observation…" required /></label><button class="primary-button" type="submit">${buttonLabel}</button></form><small class="coin-chat-note">${note}</small>`;
+  const hidden = readHiddenChatAuthors(EXPLORE_CLUSTER);
+  const unhide = hidden.size ? `<button type="button" data-chat-unhide>Show ${hidden.size} hidden wallet${hidden.size === 1 ? '' : 's'}</button>` : '';
+  return `<form class="coin-chat-form coin-community-form" id="${prefix}-form"><label><span class="sr-only">Message</span><input id="${prefix}-input" maxlength="${TOKEN_CHAT_MAX_LENGTH}" autocomplete="off" placeholder="Share a useful observation…" required /></label><button class="primary-button" type="submit">${buttonLabel}</button></form><small class="coin-chat-note">${note}. Wallet verification confirms authorship, not trust. ${unhide}</small>`;
 }
 function renderCoinCommunityPanel(){
   const feed = document.querySelector('#coin-community-feed');
   if (!feed) return;
-  feed.innerHTML = coinChatMessages.length ? coinChatMessages.slice(-12).map(tokenChatMessageMarkup).join('') : tokenChatEmptyMarkup();
+  const messages = visibleCoinChatMessages();
+  feed.innerHTML = messages.length ? messages.slice(-12).map(tokenChatMessageMarkup).join('') : coinChatMessages.length ? '<p role="status">Messages from hidden wallets are hidden on this device.</p>' : tokenChatEmptyMarkup();
   const panel = feed.closest('.coin-community-panel');
   const badge = panel?.querySelector('.data-badge');
   if (badge) { badge.textContent = coinChatState.loading ? 'LOADING' : coinChatState.enabled ? 'LIVE' : 'OFFLINE'; badge.classList.toggle('is-live', coinChatState.enabled); }
@@ -8461,6 +8546,26 @@ window.addEventListener('hashchange', () => { if (coinRouteRequested()) showCoin
 window.addEventListener('popstate', () => { if (coinRouteRequested()) showCoinPage(); else if (walletRouteRequested()) showWalletPage(); else { showCoinPage(false); showWalletPage(false); } });
 document.querySelector('#asset-grid')?.addEventListener('click', event => { if (event.target.closest('button, a')) return; const card = event.target.closest('.asset-card'); const mint = card?.dataset.mint; if (!mint) return; location.href = `/token/${encodeURIComponent(mint)}`; });
 document.querySelector('#coin-page')?.addEventListener('click', async event => {
+  const hideAuthor = event.target.closest('[data-chat-hide]');
+  const unhideAuthors = event.target.closest('[data-chat-unhide]');
+  if (hideAuthor || unhideAuthors) {
+    try {
+      if (hideAuthor) hideChatAuthor(EXPLORE_CLUSTER, hideAuthor.dataset.chatHide);
+      else resetHiddenChatAuthors(EXPLORE_CLUSTER);
+      renderCoinCommunityPanel();
+      if (document.querySelector('[data-coin-tab="chat"].active')) renderCoinActivityTab();
+      showToast(hideAuthor ? 'Wallet hidden on this device.' : 'Hidden wallets are visible again.');
+    } catch { showToast('Device storage is unavailable. Your chat preferences could not be saved.'); }
+    return;
+  }
+  const reportMessage = event.target.closest('[data-chat-report]');
+  if (reportMessage) {
+    reportMessage.disabled = true;
+    try { await tokenChatRequest('report', { messageId: reportMessage.dataset.chatReport, reason: 'spam-or-scam' }); showToast('Report recorded for moderation review.'); }
+    catch (error) { showToast(error.message || 'Report could not be recorded.'); }
+    finally { reportMessage.disabled = false; }
+    return;
+  }
   const deleteMessage = event.target.closest('[data-chat-delete]');
   if (deleteMessage) {
     deleteMessage.disabled = true;

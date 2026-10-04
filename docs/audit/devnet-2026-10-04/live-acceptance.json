@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-10-04T04:32:42.223Z",
+  "mode": "execute",
+  "network": "devnet",
+  "rpcOrigin": "https://api.devnet.solana.com",
+  "appOrigin": "https://funded.vip",
+  "checks": [
+    {
+      "name": "network",
+      "status": "passed",
+      "at": "2026-10-04T04:32:42.883Z",
+      "genesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+      "finalizedSlot": 507242461
+    },
+    {
+      "name": "deployed-program",
+      "status": "passed",
+      "at": "2026-10-04T04:32:43.403Z",
+      "programId": "2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik",
+      "programDataAddress": "DrQmTSxHsRACofnAA6oLgfrSxQfLZFDvNmnu3Rz37EVA",
+      "programDataSha256": "9ce7c1137d250ffa84668e65b53546b7c1d4239eaf888957c41316708cda977b",
+      "executableSha256": "e9da7cd43232f0997786112c97f339c7b53d425881b66baf6b9dccf7bf85bc16",
+      "upgradeAuthority": "3NMjsHsau8uw598UKZqbKq8dhFjGMEYpdx5wU72Kfh1P"
+    },
+    {
+      "name": "router-policy",
+      "status": "passed",
+      "at": "2026-10-04T04:32:43.545Z",
+      "address": "Dzs5c17shnJkSoQnRL7fDbjD4eAFnoh6dpzgHhfV1cmW",
+      "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y"
+    },
+    {
+      "name": "pump-program",
+      "status": "passed",
+      "at": "2026-10-04T04:32:43.688Z",
+      "programId": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+    },
+    {
+      "name": "public-app",
+      "status": "blocked",
+      "at": "2026-10-04T04:32:44.184Z",
+      "reason": "Public health returned HTTP 530: <!doctype html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US"
+    },
+    {
+      "name": "ephemeral-faucet",
+      "status": "blocked",
+      "at": "2026-10-04T04:32:44.679Z",
+      "attempt": 1,
+      "httpStatus": 429,
+      "rpcCode": 429,
+      "reason": "You've either reached your airdrop limit today or the airdrop faucet has run dry. Please visit https://faucet.solana.com for alternate sources of test SOL"
+    },
+    {
+      "name": "ephemeral-faucet",
+      "status": "blocked",
+      "at": "2026-10-04T04:32:50.056Z",
+      "attempt": 2,
+      "httpStatus": 429,
+      "rpcCode": 429,
+      "reason": "You've either reached your airdrop limit today or the airdrop faucet has run dry. Please visit https://faucet.solana.com for alternate sources of test SOL"
+    }
+  ],
+  "transactions": [],
+  "blockers": [
+    "Public app health unavailable; metadata publishing, launch registration, claims and indexing require a reachable configured Devnet app.",
+    "Official Devnet faucet rejected both bounded attempts; ephemeral payer has no SOL. No launch, trade, collection or payout was submitted."
+  ],
+  "coverage": {
+    "fullApplicationJourney": false,
+    "mainnetReadiness": false
+  },
+  "wallets": {
+    "payer": "HGLxySubAiMhBQ2p5hzY1hxox4B9HvyE1xbHaRLnm8P1",
+    "mint": "2zfU7aRQLm1py4PpEpnTavrWqmKNPnSoFNsxaJqCYwFd",
+    "feeRecipient": "7xdwB3rC6bbXVgnsA1qdEe4AH3mFUu7wKBf6h7wFGiuG",
+    "privateKeyPersistence": "none; process memory only"
+  },
+  "finishedAt": "2026-10-04T04:32:50.057Z",
+  "status": "blocked"
+}

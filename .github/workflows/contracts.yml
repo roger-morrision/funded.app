@@ -1,0 +1,44 @@
+name: Contract bytecode regression
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: contract-bytecode-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  bytecode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.89.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts/funded-fee-router
+      - name: Install checksum-verified Agave 4.1.2 build tools
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/funded-agave"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/funded-agave/agave.tar.bz2" https://github.com/anza-xyz/agave/releases/download/v4.1.2/solana-release-x86_64-unknown-linux-gnu.tar.bz2
+          printf '%s  %s\n' '5991d027a686eb419a709a479178b33eb83501e8a2bfbf599a81a286bfcbf770' "$RUNNER_TEMP/funded-agave/agave.tar.bz2" | sha256sum --check
+          tar -xjf "$RUNNER_TEMP/funded-agave/agave.tar.bz2" -C "$RUNNER_TEMP/funded-agave"
+      - name: Build pinned SBF v0 bytecode
+        working-directory: contracts/funded-fee-router
+        run: '"$RUNNER_TEMP/funded-agave/solana-release/bin/cargo-build-sbf" --manifest-path programs/funded-fee-router/Cargo.toml --arch v0 --tools-version v1.54 -- --locked'
+      - name: Execute local bytecode transaction regressions
+        working-directory: contracts/funded-fee-router
+        run: cargo test --locked
+      - name: Record source and bytecode hashes
+        working-directory: contracts/funded-fee-router
+        run: |
+          git rev-parse HEAD > target/deploy/source-revision.txt
+          sha256sum target/deploy/funded_fee_router.so > target/deploy/bytecode.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tested-contract-bytecode-${{ github.sha }}
+          path: |
+            contracts/funded-fee-router/target/deploy/funded_fee_router.so
+            contracts/funded-fee-router/target/deploy/source-revision.txt
+            contracts/funded-fee-router/target/deploy/bytecode.sha256
+          retention-days: 30

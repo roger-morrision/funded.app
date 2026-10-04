@@ -9,6 +9,9 @@ export function pgPoolConfig(databaseUrl) {
   return {
     connectionString: url.toString(),
     max: Number(process.env.DATABASE_POOL_MAX || 10),
+    connectionTimeoutMillis: 5000,
+    statement_timeout: 30000,
+    idle_in_transaction_session_timeout: 30000,
     ssl: useTls ? { rejectUnauthorized: true, ...(ca ? { ca } : {}) } : undefined,
   };
 }

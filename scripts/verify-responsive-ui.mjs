@@ -15,7 +15,7 @@ const routes = [
 ];
 const widths = [320, 390, 768, 1280];
 if (evidenceDir) await mkdir(evidenceDir, { recursive: true });
-const browser = await chromium.launch({ channel, headless: true });
+const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel }), headless: true });
 const failures = [];
 const observations = [];
 

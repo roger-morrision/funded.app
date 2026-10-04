@@ -15,3 +15,6 @@ await import('./reward-experience-ui.js');
 if (APP_JACKPOT_ENABLED) await import('./jackpot-ui.js');
 await import('./retention-ux.js');
 await import('./pilot-metrics.js');
+
+
+await import('./service-status-ui.js');

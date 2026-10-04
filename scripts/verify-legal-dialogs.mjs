@@ -21,7 +21,7 @@ ${app.slice(dialogStart, dialogEnd)}
 ${app.slice(handlerStart, handlerEnd)}
 openInfoDialog(location.hash.slice(1), { routeDriven: true });
 </script></body></html>`;
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: 'chrome' }), headless: true });
 try {
   const context = await browser.newContext();
   await context.route('**/*', route => {

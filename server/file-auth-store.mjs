@@ -1,12 +1,13 @@
 import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 // Local single-process fallback only. Auth data is never part of public app state.
+const queues = new Map();
 export function createFileAuthStore(path) {
-  let queue = Promise.resolve();
+  path = resolve(path);
   const mutate = operation => {
-    const result = queue.then(async () => {
+    const result = (queues.get(path) || Promise.resolve()).then(async () => {
       let rows = {};
       try { rows = JSON.parse(await readFile(path, 'utf8')); }
       catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -20,7 +21,9 @@ export function createFileAuthStore(path) {
       } finally { await unlink(temporary).catch(error => { if (error.code !== 'ENOENT') throw error; }); }
       return value;
     });
-    queue = result.catch(() => {});
+    const queue = result.catch(() => {});
+    queues.set(path, queue);
+    void queue.then(() => { if (queues.get(path) === queue) queues.delete(path); });
     return result;
   };
   return {
@@ -31,7 +34,7 @@ export function createFileAuthStore(path) {
       });
     },
     async authRead(kind, key) {
-      await queue;
+      await queues.get(path);
       try {
         const row = JSON.parse(await readFile(path, 'utf8'))[`${kind}:${key}`];
         return row?.expiresAt > Date.now() ? row.payload : null;

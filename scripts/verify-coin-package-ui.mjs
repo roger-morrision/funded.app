@@ -13,7 +13,7 @@ const packages = [
   { tier: 'unknown', claimTier: 'pro', amount: 100_000, artwork: false, profileParent: 'coin-side-column' },
 ];
 
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: 'chrome' }), headless: true });
 try {
   for (const { tier, claimTier, amount, artwork, profileParent } of packages) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });

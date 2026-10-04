@@ -115,7 +115,14 @@
     "verify:explore-discovery": "node scripts/verify-explore-discovery.mjs",
     "db:migrate": "node scripts/migrate-postgres.mjs",
     "db:import-legacy-collections": "node --env-file=.env.local scripts/import-legacy-collections.mjs",
-    "deploy:init": "node scripts/init-local-deploy.mjs"
+    "deploy:init": "node scripts/init-local-deploy.mjs",
+    "check": "node scripts/check-source.mjs",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "test:browser": "playwright test",
+    "release:manifest": "node scripts/release-manifest.mjs",
+    "verify:critical": "npm run verify:token-chat && npm run verify:backend-hardening && npm run verify:launch-draft && npm run verify:production-policies && npm run verify:fee-policy && npm run verify:receipt-evidence",
+    "verify:release-manifest": "node scripts/verify-release-manifest.mjs",
+    "verify:local-regressions": "node scripts/verify-local-regressions.mjs"
   },
   "dependencies": {
     "@pump-fun/pump-sdk": "^2.0.0",
@@ -129,6 +136,7 @@
     "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "vite": "^7.1.7"
   },
   "overrides": {
@@ -136,5 +144,8 @@
     "stream-json": "^3.6.0",
     "toml": "^5.0.0",
     "uuid": "^14.0.2"
+  },
+  "engines": {
+    "node": ">=24 <25"
   }
 }

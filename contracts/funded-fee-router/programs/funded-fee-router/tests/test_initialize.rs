@@ -93,3 +93,56 @@ fn test_mint_router_claim() {
     assert_eq!(&recorded.data[72..104], recipient.as_ref());
     assert_eq!(u64::from_le_bytes(recorded.data[104..112].try_into().unwrap()), 100_000_000);
 }
+
+#[test]
+fn legacy_settlement_rejects_empty_self_and_invalid_destinations() {
+    use anchor_lang::prelude::Pubkey;
+    use solana_account::Account;
+    use funded_fee_router::{MAGIC, VERSION, POLICY_HASH, ROUTER_DATA_LEN, SEED};
+    let program_id = funded_fee_router::id();
+    let authority = Keypair::new();
+    let recipient = Pubkey::new_unique();
+    let mut svm = LiteSVM::new();
+    svm.add_program(program_id, include_bytes!("../../../target/deploy/funded_fee_router.so")).unwrap();
+    svm.airdrop(&authority.pubkey(), 1_000_000_000).unwrap();
+    let (router, bump) = Pubkey::find_program_address(&[SEED], &program_id);
+    let mut data = vec![0; ROUTER_DATA_LEN];
+    data[..8].copy_from_slice(MAGIC);
+    data[8] = VERSION;
+    data[9..41].copy_from_slice(&POLICY_HASH);
+    data[41..73].copy_from_slice(authority.pubkey().as_ref());
+    data[73] = bump;
+    svm.set_account(router, Account { lamports: 200_000_000, data, owner: program_id, executable: false, rent_epoch: 0 }).unwrap();
+    for (index, destinations, amounts) in [
+        (0, vec![], vec![]),
+        (1, vec![AccountMeta::new(router, false)], vec![1_000_000]),
+        (3, vec![AccountMeta::new_readonly(recipient, false)], vec![1_000_000]),
+        (4, vec![AccountMeta::new(recipient, false)], vec![0]),
+        (5, vec![AccountMeta::new(recipient, false)], vec![200_000_000]),
+    ] {
+        let claim_id = [index; 32];
+        let claim = Pubkey::find_program_address(&[b"claim", &claim_id], &program_id).0;
+        let mut metas = funded_fee_router::accounts::Settle { authority: authority.pubkey(), router, claim,
+            system_program: anchor_lang::system_program::ID }.to_account_metas(None);
+        metas.extend(destinations);
+        let instruction = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::Settle { claim_id, amounts }.data(), metas);
+        let message = Message::new_with_blockhash(&[instruction], Some(&authority.pubkey()), &svm.latest_blockhash());
+        let transaction = VersionedTransaction::try_new(VersionedMessage::Legacy(message), &[&authority]).unwrap();
+        assert!(svm.send_transaction(transaction).is_err(), "invalid settlement {index} accepted");
+        assert!(svm.get_account(&claim).is_none());
+        assert_eq!(svm.get_account(&router).unwrap().lamports, 200_000_000);
+    }
+    // Legacy callers may legitimately pay the authority; preserve that supported path.
+    let claim_id = [9; 32];
+    let claim = Pubkey::find_program_address(&[b"claim", &claim_id], &program_id).0;
+    let mut metas = funded_fee_router::accounts::Settle { authority: authority.pubkey(), router, claim,
+        system_program: anchor_lang::system_program::ID }.to_account_metas(None);
+    metas.push(AccountMeta::new(authority.pubkey(), false));
+    let instruction = Instruction::new_with_bytes(program_id,
+        &funded_fee_router::instruction::Settle { claim_id, amounts: vec![1_000_000] }.data(), metas);
+    let message = Message::new_with_blockhash(&[instruction], Some(&authority.pubkey()), &svm.latest_blockhash());
+    let transaction = VersionedTransaction::try_new(VersionedMessage::Legacy(message), &[&authority]).unwrap();
+    svm.send_transaction(transaction).unwrap();
+    assert!(svm.get_account(&claim).is_some());
+    assert_eq!(svm.get_account(&router).unwrap().lamports, 199_000_000);
+}

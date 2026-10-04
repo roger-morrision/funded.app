@@ -20,6 +20,10 @@ import { verifyReceiptRetention } from './verify-receipt-retention.mjs';
 import { verifyReceiptCounts } from './verify-receipt-counts.mjs';
 import {verifyReferralScopedStore} from './verify-referral-scoped-store.mjs';
 import { createReferralAuth } from '../server/referral-auth.mjs';
+import { createTokenChatSessions } from '../server/token-chat-session.mjs';
+import { Keypair } from '@solana/web3.js';
+import bs58 from 'bs58';
+import nacl from 'tweetnacl';
 
 async function loadLocalEnv() {
   try {
@@ -83,7 +87,51 @@ try {
   const migrated=createPostgresStore(databaseUrl);
   try { assert.deepEqual((await migrated.readCreatorDirectory({cluster:'devnet'})).creators.map(c=>c.id),['123']); }
   finally { await migrated.close(); }
+  await Promise.all(Array.from({length: 20}, (_, index) => (index % 2 ? other : store).updateCoinChat('scoped-chat', messages => { messages.push({ id: String(index), text: 'fixture' }); })));
+  assert.equal((await store.readCoinChat('scoped-chat')).length, 20, 'Concurrent scoped chat writes must not lose messages.');
+  await assert.rejects(store.updateCoinChat('scoped-chat', messages => { messages.length = 0; throw new Error('rollback'); }), /rollback/);
+  assert.equal((await other.readCoinChat('scoped-chat')).length, 20, 'Failed chat mutations must roll back.');
+  await Promise.all([store.updateCoinChat('scoped-chat', messages => { messages.push({ id: 'scoped' }); }), other.update(state => { state.alerts.chatConcurrency = { status: 'active' }; })]);
+  assert.equal((await other.readCoinChat('scoped-chat')).length, 21);
+  assert.equal((await store.read()).alerts.chatConcurrency.status, 'active');
   await verifyAuthStore(store, other, async () => JSON.stringify((await pool.query('SELECT * FROM auth_records')).rows));
+  // Reproduce a deployed pre-chat database, including existing private sign-ins.
+  const legacyAuthKinds = ['session', 'oauth', 'referral-challenge', 'referral-session'];
+  for (const [index, kind] of legacyAuthKinds.entries()) {
+    await store.authPut(kind, `migration-${index}`, { fixture: kind }, Date.now() + 60_000);
+  }
+  await pool.query('ALTER TABLE auth_records DROP CONSTRAINT auth_records_kind_check');
+  await pool.query("ALTER TABLE auth_records ADD CONSTRAINT auth_records_kind_check CHECK (kind IN ('session', 'oauth', 'referral-challenge', 'referral-session'))");
+  await assert.rejects(store.authPut('chat-challenge:devnet', 'before-migration', {}, Date.now() + 60_000), error => error.code === '23514');
+  const upgrading = [createPostgresStore(databaseUrl), createPostgresStore(databaseUrl)];
+  try {
+    // Both instances use the existing migration transaction/advisory lock.
+    await Promise.all(upgrading.map(instance => instance.health()));
+    for (const [index, kind] of legacyAuthKinds.entries()) {
+      assert.deepEqual(await upgrading[1].authRead(kind, `migration-${index}`), { fixture: kind }, 'Schema upgrade preserves existing X/referral auth rows.');
+    }
+    for (const network of ['devnet', 'testnet', 'mainnet-beta']) {
+      for (const type of ['challenge', 'session']) {
+        const kind = `chat-${type}:${network}`;
+        await upgrading[0].authPut(kind, 'migration-chat', { fixture: kind }, Date.now() + 60_000);
+        assert.deepEqual(await upgrading[1].authTake(kind, 'migration-chat'), { fixture: kind });
+      }
+    }
+    await assert.rejects(upgrading[0].authPut('chat-session:unknown', 'invalid-network', {}, Date.now() + 60_000), error => error.code === '23514');
+  } finally { await Promise.all(upgrading.map(instance => instance.close())); }
+  const chatWallet = Keypair.generate();
+  const chatOrigin = 'https://chat-fixture.example';
+  const chatAuth = createTokenChatSessions(store);
+  const chatReplica = createTokenChatSessions(other);
+  const chatChallenge = await chatAuth.prepare(chatWallet.publicKey.toBase58(), chatOrigin);
+  const chatSignature = bs58.encode(nacl.sign.detached(new TextEncoder().encode(chatChallenge.statement), chatWallet.secretKey));
+  const chatResults = await Promise.all([chatAuth.verify(chatChallenge.challengeId, chatSignature, chatOrigin), chatReplica.verify(chatChallenge.challengeId, chatSignature, chatOrigin)]);
+  assert.equal(chatResults.filter(Boolean).length, 1, 'Only one replica can consume a chat approval.');
+  const chatSession = chatResults.find(Boolean);
+  assert.equal(await chatReplica.address(chatSession.token, chatOrigin), chatWallet.publicKey.toBase58());
+  assert.equal(await createTokenChatSessions(other, { cluster: 'mainnet-beta' }).address(chatSession.token, chatOrigin), null);
+  await chatAuth.revoke(chatSession.token);
+  assert.equal(await chatReplica.address(chatSession.token, chatOrigin), null, 'Revocation reaches all replicas.');
   const referralWallet='11111111111111111111111111111111';
   const referralAuth=createReferralAuth(store,{verifyMessage:(_statement,signature)=>signature==='approved'});
   const referralAuthReader=createReferralAuth(other);
@@ -119,6 +167,7 @@ try {
   await store.writeMarketActivity(oldLaunch.mint, 'devnet', market);
   assert.deepEqual(await other.readMarketActivity(oldLaunch.mint, 'devnet'), market);
   const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
+  assert.equal(await store.chargeRpcRate('initial-over-budget', 11, 10, windowStart), false, 'First requests cannot exceed the budget.');
   assert.equal(await store.chargeRpcRate('integration', 7, 10, windowStart), true);
   assert.equal(await other.chargeRpcRate('integration', 4, 10, windowStart), false, 'Rate budget must be shared between store instances.');
   await store.update(s=>{

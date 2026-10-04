@@ -1,3 +1,4 @@
+import { exploreFilterUrl, readExploreFilterUrl, sanitizeExploreFilters } from './explore-filter-url.js';
 // Workspace composition owns layout and navigation. Financial state remains in its source modules.
 import { EXPLORE_CLUSTER } from './app-config.js';
 import { mountDocsReference } from './docs-reference.js';
@@ -446,12 +447,18 @@ function explore() {
   };
   const save = () => {
     summarize(); if (restoring) return;
+    share.href = exploreFilterUrl(location.origin, capture());
     try { sessionStorage.setItem('funded.explore-view.usd', JSON.stringify(capture())); } catch {}
   };
-  const restore = () => {
+  const restore = (selected) => {
     restoring = true;
     try {
-      const saved = JSON.parse(sessionStorage.getItem('funded.explore-view.usd') || '{}');
+      const saved = sanitizeExploreFilters(selected || readExploreFilterUrl(location.href) || JSON.parse(sessionStorage.getItem('funded.explore-view.usd') || '{}'));
+      if (selected || readExploreFilterUrl(location.href)) {
+        $('#explore-clear-filters')?.click();
+        const search = $('#explore-search');
+        if (search) { search.value = ''; search.dispatchEvent(new Event('input', { bubbles: true })); }
+      }
       for (const [key, selector, attribute] of [
         ['tab', '.explore-tabs', 'exploreTab'],
         ['window', '.explore-timeframe', 'exploreWindow'],
@@ -464,19 +471,59 @@ function explore() {
       }
       for (const id of keys.filter(id => id !== 'explore-sort')) {
         const input = $('#'+id);
-        if (input && typeof saved[id] === 'string' && saved[id].length < 200) {
+        if (input && typeof saved[id] === 'string' && saved[id].length < 200 && (input.tagName !== 'SELECT' || [...input.options].some(option => option.value === saved[id] && !option.disabled))) {
           input.value = saved[id];
           input.dispatchEvent(new Event(input.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
         }
       }
       const savedSort = $$('#explore-sort option').find(option => option.value === saved['explore-sort'] && !option.disabled);
       if (savedSort) { sort.value = savedSort.value; sort.dispatchEvent(new Event('change', { bubbles: true })); }
-    } catch {} finally { restoring = false; summarize(); }
+    } catch {} finally { restoring = false; summarize(); share.href = exploreFilterUrl(location.origin, capture()); }
   };
   root?.addEventListener('input', save); root?.addEventListener('change', save);
   root?.addEventListener('funded:explore-filters-cleared', save);
   $('#explore-clear-filters')?.addEventListener('click', save);
-  restore();
+  const tools = node('div', 'explore-saved-searches');
+  const share = node('a', 'secondary-button', 'Share this search');
+  share.href = exploreFilterUrl(location.origin, capture());
+  share.addEventListener('click', () => { share.href = exploreFilterUrl(location.origin, capture()); });
+  const name = node('input'); name.placeholder = 'Search name'; name.maxLength = 60; name.setAttribute('aria-label', 'Saved search name');
+  const saveSearch = node('button', 'secondary-button', 'Save search'); saveSearch.type = 'button';
+  const savedSelect = node('select'); savedSelect.setAttribute('aria-label', 'Saved searches on this device');
+  const removeSearch = node('button', 'text-button', 'Delete selected'); removeSearch.type = 'button';
+  const feedback = node('span'); feedback.setAttribute('role', 'status');
+  const savedKey = 'funded.explore.saved-searches.v1';
+  const readSaved = () => { try { const rows = JSON.parse(localStorage.getItem(savedKey) || '[]'); return Array.isArray(rows) ? rows.filter(row => row && typeof row.name === 'string' && row.name.trim() && row.name.length <= 60 && row.filters && typeof row.filters === 'object' && !Array.isArray(row.filters)).slice(0,10) : []; } catch { return []; } };
+  const showSaved = () => {
+    savedSelect.replaceChildren(new Option('Choose a saved search', ''));
+    readSaved().forEach((row,index) => savedSelect.add(new Option(row.name,String(index))));
+    removeSearch.disabled = true;
+  };
+  saveSearch.onclick = () => {
+    const label = name.value.trim();
+    if (!label) { feedback.textContent = 'Enter a name for this search.'; name.focus(); return; }
+    try {
+      const rows = readSaved().filter(row => row.name !== label);
+      rows.unshift({ name: label, filters: capture() });
+      localStorage.setItem(savedKey,JSON.stringify(rows.slice(0,10)));
+      showSaved(); feedback.textContent = 'Search saved on this device.';
+    } catch { feedback.textContent = 'Device storage is unavailable. Use Share this search.'; }
+  };
+  savedSelect.onchange = () => {
+    const row = savedSelect.value === '' ? null : readSaved()[Number(savedSelect.value)];
+    removeSearch.disabled = !row;
+    if (row) { restore(row.filters); save(); feedback.textContent = `Loaded ${row.name}.`; }
+  };
+  removeSearch.onclick = () => {
+    if (savedSelect.value === '') return;
+    try { const rows = readSaved(); rows.splice(Number(savedSelect.value),1); localStorage.setItem(savedKey,JSON.stringify(rows)); showSaved(); feedback.textContent = 'Saved search deleted.'; }
+    catch { feedback.textContent = 'Device storage is unavailable.'; }
+  };
+  tools.append(share,name,saveSearch,savedSelect,removeSearch,feedback);
+  count.after(tools);
+  root?.addEventListener('click', event => { if (event.target.closest('[data-explore-stage],[data-explore-tab],[data-explore-window],[data-explore-view]')) queueMicrotask(save); });
+  window.addEventListener('popstate', () => restore());
+  restore(); showSaved();
   syncThresholds();
 }
 

@@ -1,0 +1,85 @@
+name: Application checks
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches: [main, 'enhancements/**']
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run verify:release-manifest
+      - run: npm test
+      - run: npm run verify:critical
+      - run: npm run verify:local-regressions
+      - run: npm run build
+        env:
+          VITE_API_BASE_URL: /
+          VITE_SOLANA_CLUSTER: devnet
+          VITE_ALLOW_MAINNET: 'false'
+      - run: npm run verify:isolated-release
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - run: npm run release:manifest
+        env:
+          VITE_SOLANA_CLUSTER: devnet
+          VITE_ALLOW_MAINNET: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-devnet-build-${{ github.sha }}
+          path: dist/
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failure-traces
+          path: test-results/
+  postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: funded
+          POSTGRES_PASSWORD: isolated-ci-only
+          POSTGRES_DB: funded_test
+        ports: ['15432:5432']
+        options: >-
+          --health-cmd "pg_isready -U funded -d funded_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run verify:postgres-store
+        env:
+          BACKEND_DB_TEST: '1'
+          DATABASE_URL: postgresql://funded:isolated-ci-only@127.0.0.1:15432/funded_test
+  contract-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.89.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts/funded-fee-router
+      # Host policy tests only; SBF transaction tests require an audited build toolchain.
+      - run: cargo test --locked --lib --manifest-path contracts/funded-fee-router/programs/funded-fee-router/Cargo.toml

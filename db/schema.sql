@@ -101,7 +101,8 @@ CREATE TABLE IF NOT EXISTS auth_records (
 -- by the current server.
 ALTER TABLE auth_records DROP CONSTRAINT IF EXISTS auth_records_kind_check;
 ALTER TABLE auth_records ADD CONSTRAINT auth_records_kind_check
-  CHECK (kind IN ('session', 'oauth', 'referral-challenge', 'referral-session'));
+  CHECK (kind IN ('session', 'oauth', 'referral-challenge', 'referral-session')
+    OR kind ~ '^chat-(challenge|session):(devnet|testnet|mainnet-beta)$');
 CREATE INDEX IF NOT EXISTS auth_records_expiry_idx ON auth_records (expires_at);
 
 CREATE TABLE IF NOT EXISTS read_model_versions (name TEXT PRIMARY KEY, version INTEGER NOT NULL);
