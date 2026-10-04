@@ -1,0 +1,17 @@
+{
+  "name": "Funded Devnet",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/node:1": { "version": "24" }
+  },
+  "remoteUser": "vscode",
+  "hostRequirements": { "cpus": 2, "memory": "4gb", "storage": "16gb" },
+  "forwardPorts": [8788],
+  "portsAttributes": {
+    "8788": { "label": "Funded Devnet", "onAutoForward": "openBrowser", "protocol": "http" }
+  },
+  "postStartCommand": "node scripts/workspace-devnet.mjs start",
+  "waitFor": "postStartCommand",
+  "shutdownAction": "stopContainer"
+}
