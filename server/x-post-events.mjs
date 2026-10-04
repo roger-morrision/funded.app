@@ -29,6 +29,20 @@ function proofsOf(proofs) {
   return [...new Map(proofs.map(proof => [proof.signature, stableProof(proof)])).values()].sort((a, b) => a.signature.localeCompare(b.signature));
 }
 
+// Match the formatter's explicit, minute-aligned UTC 24-hour contract. The
+// collector chooses completed midnight windows; direct adapters never infer dates.
+function dailyWindow(windowStart, windowEnd) {
+  const parse = value => {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:00(?:\.000)?Z$/.test(value)) throw new Error('Daily window requires explicit UTC timestamps.');
+    const parsed = Date.parse(value);
+    if (!Number.isFinite(parsed) || iso(parsed) !== value.replace(/:00Z$/, ':00.000Z')) throw new Error('Daily window contains an invalid UTC timestamp.');
+    return parsed;
+  };
+  const start = parse(windowStart), end = parse(windowEnd);
+  if (end - start !== DAY) throw new Error('Daily window must span exactly 24 hours.');
+  return { start, end };
+}
+
 /** RPC adapters reverify receipt contents; persisted onchainVerified flags alone are insufficient. */
 export function createXPostChainAdapters({ connection, fundedMint, programId, rewardAuthority, maxDailyRecords = 100 }) {
   async function network() {
@@ -40,7 +54,7 @@ export function createXPostChainAdapters({ connection, fundedMint, programId, re
       || !Number.isSafeInteger(tx.blockTime) || tx.blockTime <= 0) throw new Error('Finalized event receipt is unavailable.');
     return { transaction: tx, signature, slot: tx.slot, blockTime: tx.blockTime, cluster: 'devnet', commitment: 'finalized', verified: true };
   }
-  const dailyRewards = async ({ state, rewardState, windowStart, windowEnd }) => {
+  const dailyRewards = async ({ state, rewardState, windowStart, windowEnd }, { start, end }) => {
     await network();
     if (!rewardState || !rewardState.schedules || Array.isArray(rewardState.schedules) || typeof rewardState.schedules !== 'object') throw Object.assign(new Error('A complete automatic reward ledger is required.'), { code: 'DAILY_LEDGER_MISSING' });
     const candidates = Object.values(state.payouts || {}).filter(row => row?.cluster === 'devnet' && row.status === 'paid').map(row => ({ record: row }));
@@ -57,7 +71,7 @@ export function createXPostChainAdapters({ connection, fundedMint, programId, re
       const signature = candidate.record?.signature || candidate.payment?.signature;
       if (!signatureValid(signature)) throw new Error('A recorded paid event lacks its receipt.');
       const proof = await finalized(signature);
-      if (proof.blockTime * 1000 < time(windowStart) || proof.blockTime * 1000 >= time(windowEnd)) continue;
+      if (proof.blockTime * 1000 < start || proof.blockTime * 1000 >= end) continue;
       let amountLamports, recipient, mint, id;
       if (candidate.record) {
         const record = candidate.record;
@@ -136,12 +150,16 @@ export function createXPostChainAdapters({ connection, fundedMint, programId, re
     }
     return { cluster: 'devnet', windowStart, windowEnd, coverage: 'complete', scope: 'recorded-verified-payouts', payments, proofs };
   };
-  // Cache only within an explicitly identified collector poll; never reuse evidence
-  // across separate polls, mutable snapshots or windows.
+  // Cache within an explicitly identified poll and requested window. Callers must
+  // keep that poll's source snapshot immutable; the collector uses a new token per poll.
   let dailyCache;
-  const dailyForPoll = input => {
-    if (!input.batchToken) return dailyRewards(input);
-    if (dailyCache?.token !== input.batchToken) dailyCache = { token: input.batchToken, result: dailyRewards(input) };
+  const dailyForPoll = async input => {
+    // Validate every public invocation, including cache hits, before any RPC read.
+    const window = dailyWindow(input?.windowStart, input?.windowEnd);
+    if (!input.batchToken) return dailyRewards(input, window);
+    if (dailyCache?.token !== input.batchToken || dailyCache.windowStart !== input.windowStart || dailyCache.windowEnd !== input.windowEnd) {
+      dailyCache = { token: input.batchToken, windowStart: input.windowStart, windowEnd: input.windowEnd, result: dailyRewards(input, window) };
+    }
     return dailyCache.result;
   };
   return {

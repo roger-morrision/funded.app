@@ -290,3 +290,74 @@ test('daily rewards verify a 15-lamport receipt fixture without mutating its led
   assert.equal(result.payments[0].amountLamports, '15');
   assert.deepEqual(fixture.state, before);
 });
+
+test('daily project and reward adapters reject invalid UTC windows before any provider reads', async () => {
+  let reads = 0;
+  const adapters = createXPostChainAdapters({ connection: { getGenesisHash: async () => { reads++; throw new Error('Unexpected provider read'); } } });
+  const base = { state: {}, rewardState: { schedules: {} }, windowStart: '2026-10-03T00:00:00Z', windowEnd: '2026-10-04T00:00:00Z' };
+  const invalid = [
+    undefined, {}, { ...base, windowStart: undefined }, { ...base, windowEnd: undefined },
+    { ...base, windowStart: null }, { ...base, windowEnd: '' }, { ...base, windowStart: 'not-a-date', windowEnd: 'not-a-date' },
+    { ...base, windowStart: NaN }, { ...base, windowStart: Date.parse(base.windowStart) },
+    { ...base, windowStart: '2026-02-30T00:00:00Z', windowEnd: '2026-03-03T00:00:00Z' },
+    { ...base, windowStart: '2026-02-29T00:00:00Z', windowEnd: '2026-03-02T00:00:00Z' },
+    { ...base, windowStart: '2026-10-03T00:00:00+00:00' }, { ...base, windowStart: '2026-10-03T00:00:00' },
+    { ...base, windowStart: '2026-10-03' }, { ...base, windowStart: '2026-10-03T00:00:01Z' },
+    { ...base, windowStart: '2026-10-03T00:00:00.001Z' }, { ...base, windowStart: ' 2026-10-03T00:00:00Z' },
+    { ...base, windowEnd: base.windowStart }, { ...base, windowEnd: '2026-10-02T00:00:00Z' },
+    { ...base, windowEnd: '2026-10-03T23:00:00Z' }, { ...base, windowEnd: '2026-10-04T01:00:00Z' },
+    { ...base, windowEnd: '2026-10-05T00:00:00Z' },
+  ];
+  for (const method of ['verifiedDailyProjects', 'verifiedDailyRewards']) {
+    for (const input of invalid) await assert.rejects(adapters[method](input), /Daily window/);
+  }
+  assert.equal(reads, 0);
+});
+
+test('valid UTC daily adapters keep exact lower-inclusive and upper-exclusive receipt boundaries', async () => {
+  for (const suffix of ['Z', '.000Z']) {
+    const fixture = referralFixture(), adapters = createXPostChainAdapters({ connection: fixture.connection });
+    const input = { state: fixture.state, rewardState: { schedules: {} }, windowStart: `2026-10-03T00:00:00${suffix}`, windowEnd: `2026-10-04T00:00:00${suffix}` };
+    const start = Date.parse(input.windowStart) / 1000, end = Date.parse(input.windowEnd) / 1000;
+    fixture.txs[otherSignature].blockTime = start - 2;
+    for (const [blockTime, count] of [[start - 1, 0], [start, 1], [end - 1, 1], [end, 0]]) {
+      fixture.txs[signature].blockTime = blockTime;
+      const rewards = await adapters.verifiedDailyRewards(input);
+      const projects = await adapters.verifiedDailyProjects(input);
+      assert.equal(rewards.payments.length, count);
+      assert.equal(projects.projects.length, count);
+      for (const result of [rewards, projects]) {
+        assert.equal(result.coverage, 'complete');
+        assert.equal(result.windowStart, input.windowStart);
+        assert.equal(result.windowEnd, input.windowEnd);
+      }
+      if (count) { assert.equal(rewards.payments[0].amountLamports, '10000000'); assert.equal(projects.projects[0].amountLamports, '10000000'); }
+    }
+  }
+  const fixture = referralFixture();
+  const result = await createXPostChainAdapters({ connection: fixture.connection }).verifiedDailyRewards({ state: fixture.state, rewardState: { schedules: {} }, windowStart: '2026-10-03T12:00:00Z', windowEnd: '2026-10-04T12:00:00Z' });
+  assert.equal(result.payments.length, 1, 'Explicit minute-aligned 24-hour windows remain valid like the formatter');
+});
+
+test('daily cache cannot bypass validation or reuse evidence for another requested interval', async () => {
+  const fixture = referralFixture(), adapters = createXPostChainAdapters({ connection: fixture.connection });
+  const input = { state: fixture.state, rewardState: { schedules: {} }, windowStart: '2026-10-03T00:00:00Z', windowEnd: '2026-10-04T00:00:00Z', batchToken: Symbol('same-poll') };
+  assert.equal((await adapters.verifiedDailyRewards(input)).payments.length, 1);
+  assert.equal((await adapters.verifiedDailyProjects(input)).projects.length, 1);
+  assert.equal(fixture.reads.length, 2);
+  for (const method of ['verifiedDailyProjects', 'verifiedDailyRewards']) {
+    await assert.rejects(adapters[method]({ ...input, windowStart: 'not-a-date', windowEnd: 'not-a-date' }), /Daily window/);
+  }
+  assert.equal(fixture.reads.length, 2, 'Malformed cached requests never reach RPC');
+  const previous = { ...input, windowStart: '2026-10-02T00:00:00Z', windowEnd: '2026-10-03T00:00:00Z' };
+  const result = await adapters.verifiedDailyProjects(previous);
+  assert.equal(result.projects.length, 0);
+  assert.equal(result.windowStart, previous.windowStart);
+  assert.equal(result.windowEnd, previous.windowEnd);
+  assert.equal(fixture.reads.length, 3, 'A different valid interval rechecks receipt times');
+  const millisecond = { ...input, windowStart: '2026-10-03T00:00:00.000Z', windowEnd: '2026-10-04T00:00:00.000Z' };
+  const restored = await adapters.verifiedDailyRewards(millisecond);
+  assert.equal(restored.payments.length, 1);
+  assert.equal(restored.windowStart, millisecond.windowStart);
+  assert.equal(restored.windowEnd, millisecond.windowEnd);
+});
