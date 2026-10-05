@@ -19,6 +19,7 @@ import { quoteAtomicReserveBuy, launchReserveInstructions } from '../launch-comm
 
 const execute = process.argv.includes('--execute');
 const boost = process.argv.includes('--boost');
+assert(!boost, 'Boost is a post-launch checkout, not a launch tier. Test it through the Boost payment flow.');
 const recoveryMint = process.argv.find(arg => arg.startsWith('--recover-mint='))?.split('=')[1] || null;
 const recoverySignature = process.argv.find(arg => arg.startsWith('--launch-signature='))?.split('=')[1] || null;
 if (recoveryMint || recoverySignature) assert(recoveryMint && recoverySignature, 'Recovery requires both mint and launch signature.');
