@@ -142,7 +142,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "vite": "^7.1.7"
+    "vite": "^8.3.2"
   },
   "overrides": {
     "bigint-buffer": "file:vendor/bigint-buffer",
