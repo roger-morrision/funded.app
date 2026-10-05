@@ -6,6 +6,18 @@ const $=selector=>document.querySelector(selector);
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const storeGet=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
 const following=()=>{const list=storeGet('funded.creator.following',[]);return Array.isArray(list)?list.filter(id=>/^\d{1,24}$/.test(id)).slice(0,200):[];};
+function followingForAccountSave(){
+  let raw;
+  try { raw=localStorage.getItem('funded.creator.following'); }
+  catch { throw new Error('Your local following list could not be read. Nothing was sent to your X account. Allow browser storage and try Save again.'); }
+  if(raw===null)throw new Error('No local following list is saved on this device. Restore saved following or follow a creator before saving to your X account.');
+  let rows;
+  try { rows=JSON.parse(raw); }
+  catch { throw new Error('Your local following list is unreadable. Nothing was sent to your X account. Restore saved following to recover your account list.'); }
+  if(!Array.isArray(rows)||rows.length>200||rows.some(id=>typeof id!=='string'||!/^\d{1,24}$/.test(id)))
+    throw new Error('Your local following list must contain up to 200 valid creator IDs. Nothing was sent to your X account. Review your following or restore your saved account list.');
+  return [...new Set(rows)];
+}
 let notificationCreators=[];
 function renderNotifications(){
   const dialog=$('#notification-dialog');if(!dialog)return;
@@ -63,7 +75,30 @@ const updatesFeed=createFollowingFeed({
 const updateFeedContext=()=>updatesFeed.setContext(following(),$('#updates-consent').checked);
 $('#updates-previous').onclick=()=>void updatesFeed.previous();$('#updates-next').onclick=()=>void updatesFeed.next();$('#updates-first').onclick=()=>void updatesFeed.first();
 for(const [id,key] of [['updates-consent','funded.updates.enabled']]){$(`#${id}`).checked=storeGet(key,false)===true;$(`#${id}`).onchange=()=>{if(id==='updates-consent')updateFeedContext();try{localStorage.setItem(key,JSON.stringify($(`#${id}`).checked));if(id==='updates-consent'&&$(`#${id}`).checked)void refreshUpdates();}catch{if(id==='updates-consent'){$(`#${id}`).checked=false;updateFeedContext();}$('#following-status').textContent='Preference could not be saved. Updates remain disabled.';}};}
-async function syncFollowing(restore){try{const me=await apiRequest('/api/creator-support/me');if(!me.available||!me.data?.csrf)throw new Error('Sign in with X in Rewards first.');if(restore){const rows=me.data.profile?.following||[];localStorage.setItem('funded.creator.following',JSON.stringify(rows));updateFeedContext();if($('#updates-consent').checked)await refreshUpdates();else $('#following-status').textContent=`Restored ${rows.length} follows on this device. Updates remain disabled.`;}else{const response=await apiRequest('/api/creator-support/preferences',{method:'POST',headers:{'x-creator-csrf':me.data.csrf},body:{following:following()}});if(!response.available)throw new Error('API unavailable; following was not saved.');$('#following-status').textContent='Following saved to your X account.';}}catch(error){$('#following-status').textContent=error.message;}}
+async function syncFollowing(restore){
+  let accountSaveRequested=false;
+  try{
+    // Capture explicit Save intent before the identity request; rendering's
+    // empty fallback must never become a destructive account update.
+    const rowsToSave=restore?null:followingForAccountSave();
+    const me=await apiRequest('/api/creator-support/me');
+    if(!me.available||!me.data?.csrf)throw new Error('Sign in with X in Rewards first.');
+    if(restore){
+      const rows=me.data.profile?.following||[];
+      localStorage.setItem('funded.creator.following',JSON.stringify(rows));
+      updateFeedContext();
+      if($('#updates-consent').checked)await refreshUpdates();
+      else $('#following-status').textContent=`Restored ${rows.length} follows on this device. Updates remain disabled.`;
+    }else{
+      accountSaveRequested=true;
+      const response=await apiRequest('/api/creator-support/preferences',{method:'POST',headers:{'x-creator-csrf':me.data.csrf},body:{following:rowsToSave}});
+      if(!response.available)throw new Error('Account save unconfirmed');
+      $('#following-status').textContent='Following saved to your X account.';
+    }
+  }catch(error){$('#following-status').textContent=accountSaveRequested
+    ? 'The account save could not be confirmed. Your saved list may have changed. Review your local following and try Save again.'
+    : error.message;}
+}
 $('#save-following').onclick=()=>syncFollowing(false);$('#restore-following').onclick=()=>syncFollowing(true);
 async function refreshUpdates(){updateFeedContext();if(!$('#updates-consent').checked||document.hidden)return;await updatesFeed.refresh();}
 updateFeedContext();

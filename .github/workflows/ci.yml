@@ -11,11 +11,11 @@ concurrency:
   cancel-in-progress: true
 jobs:
   application:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
           cache: npm
@@ -38,30 +38,30 @@ jobs:
         env:
           VITE_SOLANA_CLUSTER: devnet
           VITE_ALLOW_MAINNET: 'false'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: verified-devnet-build-${{ github.sha }}
           path: dist/
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with:
           name: browser-failure-traces
           path: test-results/
   docker-image:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
       FUNDED_CI_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
       FUNDED_CI_PROJECT: funded-image-ci-${{ github.run_id }}-${{ github.run_attempt }}
       FUNDED_CI_NODE_IMAGE: node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Initialize the runner-local verification directory
         run: printf 'FUNDED_CI_ROOT=%s/funded-image-ci\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
           cache: npm
@@ -142,7 +142,7 @@ jobs:
           node scripts/verify-container-http.mjs > "$FUNDED_CI_ROOT/evidence/http.json"
           node scripts/verify-release-contract.mjs > "$FUNDED_CI_ROOT/evidence/release.txt"
           node scripts/verify-container-browser.mjs > "$FUNDED_CI_ROOT/evidence/browser.json"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: docker-image-evidence-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
@@ -158,7 +158,7 @@ jobs:
             docker compose --env-file "$FUNDED_CI_ROOT/selectors.env" -p "$FUNDED_CI_PROJECT" -f compose.devnet-release.yml down --volumes --remove-orphans
           fi
   postgres:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     services:
       postgres:
@@ -183,8 +183,8 @@ jobs:
           --health-cmd "pg_isready -U funded -d funded_x_test"
           --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
           cache: npm
@@ -207,10 +207,10 @@ jobs:
           X_POST_DB_TEST: '1'
           X_POST_TEST_DATABASE_URL: postgresql://funded:isolated-x-ci-only@127.0.0.1:15433/funded_x_test
   contract-host:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@1.89.0
       - uses: Swatinem/rust-cache@v2
         with:
