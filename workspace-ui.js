@@ -1,4 +1,4 @@
-import { exploreFilterUrl, readExploreFilterUrl, sanitizeExploreFilters } from './explore-filter-url.js';
+import { readExploreFilterUrl, sanitizeExploreFilters } from './explore-filter-url.js';
 // Workspace composition owns layout and navigation. Financial state remains in its source modules.
 import { EXPLORE_CLUSTER, APP_MAINNET_READ_ONLY } from './app-config.js';
 import { mountDocsReference } from './docs-reference.js';
@@ -198,11 +198,15 @@ function navigation() {
     if (activeCandidate >= 0) { location.assign(`/token/${encodeURIComponent(candidates[activeCandidate].mint)}`); return; }
     const query = modalSearch.value.trim();
     searchDialog.close();
-    if (globalSearch) {
+    const applyQuery = () => {
+      if (!globalSearch) return;
       globalSearch.value = query;
       globalSearch.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-    if (location.hash !== '#explore') location.hash = '#explore';
+    };
+    if (location.hash !== '#explore') {
+      window.addEventListener('hashchange', () => requestAnimationFrame(applyQuery), { once: true });
+      location.hash = '#explore';
+    } else applyQuery();
   });
   searchDialog.addEventListener('click', event => { if (event.target === searchDialog) searchDialog.close(); });
   searchDialog.addEventListener('close', () => { if (searchTrigger.getClientRects().length) searchTrigger.focus(); });
@@ -250,7 +254,7 @@ function navigation() {
   window.addEventListener('hashchange', () => { if (!helpPanel.hidden) setHelpOpen(false); });
   document.body.append(helpTrigger, helpPanel);
   const mobile = node('nav', 'mobile-workspace-nav'); mobile.setAttribute('aria-label', 'Mobile workspace');
-  for (const [href, label, glyph] of [['explore','Explore','explore'],['launch','Launch','launch'],['my-launches','Portfolio','portfolio'],['payments','Rewards','rewards']]) {
+  for (const [href, label, glyph] of [['overview','Home','home'],['explore','Explore','explore'],['launch','Launch','launch'],['my-launches','Portfolio','portfolio'],['payments','Rewards','rewards']]) {
     const link = node('a', '', ''); link.href = `#${href}`;
     link.innerHTML = icon(glyph); link.append(node('span', '', label)); mobile.append(link);
   }
@@ -283,41 +287,6 @@ function home() {
 
 function explore() {
   const root = $('#explore');
-  const proofButton = node('button', 'explore-proof-trigger', 'About Launch Directory');
-  proofButton.type = 'button';
-  const proofDialog = node('dialog', 'explore-proof-dialog');
-  proofDialog.id = 'explore-proof-dialog';
-  proofDialog.setAttribute('aria-labelledby', 'explore-proof-title');
-  proofDialog.innerHTML = `<div class="explore-proof-head"><div><p class="eyebrow">Launch Directory guide</p><h2 id="explore-proof-title"></h2></div><button type="button" aria-label="Close Launch Directory guide">${icon('close')}</button></div><div class="explore-proof-list"></div>`;
-  const proofTopics = {
-    index: { title:'About Launch Directory', details:'<p><strong>Verified launches</strong><span>Browse funded.vip mints and paid listings confirmed on Solana Devnet.</span></p><p><strong>Compare</strong><span>Filter by launch stage and tier, then compare available market activity in the table.</span></p><p><strong>Open a coin</strong><span>Inspect its mint, launch policy, curve state, trade observations, and available receipts.</span></p>' },
-    problem: { title:'Why Launch Directory exists', details:'<p><strong>Names are easy to copy</strong><span>A ticker or image alone cannot prove how a token launched or whether a tier was paid.</span></p><p><strong>Numbers need context</strong><span>Market cap is a spot estimate, and bounded RPC scans may have partial trade coverage.</span></p><p><strong>Rewards need proof</strong><span>An airdrop allocation is policy, not proof that its vault was funded or tokens were delivered.</span></p>' },
-    proof: { title:'What is verified?', details:'<p><strong>Launch</strong><span>Directory entries come from confirmed mints and the verified launch registry on this network.</span></p><p><strong>Tier</strong><span>A paid tier requires a confirmed $FUNDED BurnChecked receipt bound to the launch. Standard has no paid burn.</span></p><p><strong>Market and airdrop</strong><span>Trade figures show their scan coverage. Vault funding, eligibility, and distributions are checked separately.</span></p>' }
-  };
-  function openProof(topic){
-    const content = proofTopics[topic];
-    proofDialog.querySelector('#explore-proof-title').textContent = content.title;
-    proofDialog.querySelector('.explore-proof-list').innerHTML = content.details;
-    proofDialog.showModal();
-  }
-  $('.explore-hero-disclosure', root)?.after(proofButton);
-  const heroLinks = node('div', 'explore-hero-links');
-  proofButton.before(heroLinks);
-  heroLinks.append(proofButton);
-  for (const [topic, label] of [['problem','The problem'],['proof','Proof of launch']]) {
-    const button = node('button', '', label);
-    button.type = 'button';
-    button.setAttribute('aria-haspopup', 'dialog');
-    button.setAttribute('aria-controls', proofDialog.id);
-    button.addEventListener('click', () => openProof(topic));
-    heroLinks.append(button);
-  }
-  proofButton.setAttribute('aria-haspopup', 'dialog');
-  proofButton.setAttribute('aria-controls', proofDialog.id);
-  root?.append(proofDialog);
-  proofButton.addEventListener('click', () => openProof('index'));
-  proofDialog.querySelector('button')?.addEventListener('click', () => proofDialog.close());
-  proofDialog.addEventListener('click', event => { if (event.target === proofDialog) proofDialog.close(); });
   const leaders = $('.explore-benefit-leaders', root);
   const scanner = $('.explore-scanner', root);
   if (leaders && scanner) {
@@ -356,7 +325,7 @@ function explore() {
   tierStrip.setAttribute('role', 'group');
   tierStrip.setAttribute('aria-label', 'Verified launch tier filters');
   tierStrip.append(node('span', 'explore-quick-label', 'TIER'));
-  for (const [label, value] of [['All tiers', 'all'], ['Promoted', 'promoted'], ['Standard', 'standard'], ['Boost', 'boost'], ['Pro', 'pro'], ['Premier', 'premier']]) {
+  for (const [label, value] of [['All tiers', 'all'], ['Promoted', 'promoted'], ['Standard', 'standard'], ['Pro', 'pro'], ['Premier', 'premier']]) {
     const button = node('button', 'index-filter', label);
     button.type = 'button';
     button.dataset.promotion = value;
@@ -447,14 +416,14 @@ function explore() {
   };
   const save = () => {
     summarize(); if (restoring) return;
-    share.href = exploreFilterUrl(location.origin, capture());
     try { sessionStorage.setItem('funded.explore-view.usd', JSON.stringify(capture())); } catch {}
   };
-  const restore = (selected) => {
+  const restore = () => {
     restoring = true;
     try {
-      const saved = sanitizeExploreFilters(selected || readExploreFilterUrl(location.href) || JSON.parse(sessionStorage.getItem('funded.explore-view.usd') || '{}'));
-      if (selected || readExploreFilterUrl(location.href)) {
+      const shared = readExploreFilterUrl(location.href);
+      const saved = sanitizeExploreFilters(shared || JSON.parse(sessionStorage.getItem('funded.explore-view.usd') || '{}'));
+      if (shared) {
         $('#explore-clear-filters')?.click();
         const search = $('#explore-search');
         if (search) { search.value = ''; search.dispatchEvent(new Event('input', { bubbles: true })); }
@@ -478,131 +447,36 @@ function explore() {
       }
       const savedSort = $$('#explore-sort option').find(option => option.value === saved['explore-sort'] && !option.disabled);
       if (savedSort) { sort.value = savedSort.value; sort.dispatchEvent(new Event('change', { bubbles: true })); }
-    } catch {} finally { restoring = false; summarize(); share.href = exploreFilterUrl(location.origin, capture()); }
+    } catch {} finally { restoring = false; summarize(); }
   };
   root?.addEventListener('input', save); root?.addEventListener('change', save);
+  $('#global-search')?.addEventListener('input', () => queueMicrotask(save));
   root?.addEventListener('funded:explore-filters-cleared', save);
   $('#explore-clear-filters')?.addEventListener('click', save);
-  const tools = node('div', 'explore-saved-searches');
-  const share = node('a', 'secondary-button', 'Share this search');
-  share.href = exploreFilterUrl(location.origin, capture());
-  share.addEventListener('click', () => { share.href = exploreFilterUrl(location.origin, capture()); });
-  const name = node('input'); name.placeholder = 'Search name'; name.maxLength = 60; name.setAttribute('aria-label', 'Saved search name');
-  const saveSearch = node('button', 'secondary-button', 'Save search'); saveSearch.type = 'button';
-  const savedSelect = node('select'); savedSelect.setAttribute('aria-label', 'Saved searches on this device');
-  const removeSearch = node('button', 'text-button', 'Delete selected'); removeSearch.type = 'button';
-  const undoDelete = node('button', 'text-button', 'Undo deletion'); undoDelete.type = 'button'; undoDelete.hidden = true;
-  let deletedSearch = null;
-  const feedback = node('span'); feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');
-  feedback.id = 'saved-search-feedback';
-  name.setAttribute('aria-describedby', feedback.id);
-  const toolsTitle = node('strong', 'saved-search-heading', 'Your search, ready to revisit');
-  const toolsHelp = node('p', 'saved-search-help', 'Save up to 10 searches in this browser, or copy a link to share the current filters.');
-  const copySearch = node('button', 'secondary-button', 'Copy search link'); copySearch.type = 'button';
-  const manualLink = node('input', 'saved-search-share-url'); manualLink.readOnly = true; manualLink.hidden = true; manualLink.setAttribute('aria-label', 'Search link to copy');
-  copySearch.onclick = async () => {
-    const href = exploreFilterUrl(location.origin, capture());
-    manualLink.hidden = true;
-    try {
-      await navigator.clipboard.writeText(href);
-      feedback.textContent = 'Search link copied. Anyone with the link can open these filters.';
-    } catch {
-      manualLink.value = href; manualLink.hidden = false; manualLink.focus(); manualLink.select();
-      feedback.textContent = 'Copy the selected link to share this search.';
-    }
-  };
-  const savedKey = 'funded.explore.saved-searches.v1';
-  const readSaved = () => { try { const rows = JSON.parse(localStorage.getItem(savedKey) || '[]'); return Array.isArray(rows) ? rows.filter(row => row && typeof row.name === 'string' && row.name.trim() && row.name.length <= 60 && row.filters && typeof row.filters === 'object' && !Array.isArray(row.filters)).slice(0,10) : []; } catch { return []; } };
-  const showSaved = () => {
-    savedSelect.replaceChildren(new Option('Choose a saved search', ''));
-    readSaved().forEach((row,index) => savedSelect.add(new Option(row.name,String(index))));
-    removeSearch.disabled = true;
-    savedSelect.disabled = savedSelect.options.length === 1;
-  };
-  saveSearch.onclick = () => {
-    const label = name.value.trim();
-    if (!label) { name.setAttribute('aria-invalid', 'true'); feedback.textContent = 'Enter a name for this search.'; name.focus(); return; }
-    try {
-      name.removeAttribute('aria-invalid');
-      const previous = readSaved();
-      const replaced = previous.some(row => row.name === label);
-      const rows = previous.filter(row => row.name !== label);
-      rows.unshift({ name: label, filters: capture() });
-      localStorage.setItem(savedKey,JSON.stringify(rows.slice(0,10)));
-      document.dispatchEvent(new Event('funded:saved-search-change'));
-      showSaved(); savedSelect.value = '0'; removeSearch.disabled = false; feedback.textContent = replaced ? `Updated “${label}” in this browser.` : `Saved “${label}” in this browser.${previous.length === 10 ? ' The oldest saved search was replaced.' : ''}`;
-    } catch { feedback.textContent = 'Device storage is unavailable. Use Share this search.'; }
-  };
-  savedSelect.onchange = () => {
-    const row = savedSelect.value === '' ? null : readSaved()[Number(savedSelect.value)];
-    removeSearch.disabled = !row;
-    if (row) { name.value = row.name; restore(row.filters); save(); feedback.textContent = `Loaded ${row.name}.`; }
-  };
-  removeSearch.onclick = () => {
-    if (savedSelect.value === '') return;
-    try {
-      const rows = readSaved();
-      const index = Number(savedSelect.value);
-      const row = rows[index];
-      if (!row) return;
-      rows.splice(index, 1); localStorage.setItem(savedKey,JSON.stringify(rows));
-      deletedSearch = { row, index }; undoDelete.hidden = false;
-      showSaved(); feedback.textContent = `Deleted “${row.name}”. You can undo this deletion.`;
-      document.dispatchEvent(new Event('funded:saved-search-change'));
-      undoDelete.focus();
-    }
-    catch { feedback.textContent = 'Device storage is unavailable.'; }
-  };
-  undoDelete.onclick = () => {
-    if (!deletedSearch) return;
-    try {
-      const rows = readSaved();
-      if (rows.some(row => row.name === deletedSearch.row.name)) { feedback.textContent = 'A search with this name already exists. Your current saved search was kept.'; return; }
-      if (rows.length >= 10) { feedback.textContent = 'You have 10 saved searches. Delete another search before restoring this one.'; return; }
-      rows.splice(Math.min(deletedSearch.index, rows.length), 0, deletedSearch.row);
-      localStorage.setItem(savedKey, JSON.stringify(rows));
-      const restoredName = deletedSearch.row.name;
-      showSaved();
-      deletedSearch = null; undoDelete.hidden = true;
-      feedback.textContent = `Restored “${restoredName}”. Select it to apply its filters.`;
-      document.dispatchEvent(new Event('funded:saved-search-change'));
-      savedSelect.focus();
-    } catch { feedback.textContent = 'Device storage is unavailable. The deleted search can still be restored while this page stays open.'; }
-  };
-  window.addEventListener('storage', event => {
-    if (event.key !== savedKey && event.key !== null) return;
-    const selectedName = savedSelect.value !== '' ? savedSelect.selectedOptions[0]?.textContent : null;
-    showSaved();
-    if (selectedName) {
-      const index = readSaved().findIndex(row => row.name === selectedName);
-      if (index >= 0) { savedSelect.value = String(index); removeSearch.disabled = false; }
-    }
-  });
-  tools.append(toolsTitle,toolsHelp,name,saveSearch,savedSelect,removeSearch,undoDelete,copySearch,share,manualLink,feedback);
-  count.after(tools);
   root?.addEventListener('click', event => { if (event.target.closest('[data-explore-stage],[data-explore-tab],[data-explore-window],[data-explore-view]')) queueMicrotask(save); });
   window.addEventListener('popstate', () => restore());
-  restore(); showSaved();
+  restore();
   syncThresholds();
 }
 
 function launch() {
   $('#wizard-hint')?.setAttribute('tabindex','-1');
-  const path=$('.launch-profile-grid');
-  const pathHeading=$('.launch-profile-heading');
-  if(path){const options=node('div');path.before(options);if(pathHeading)options.append(pathHeading);options.append(path);disclose(options,'Optional launch presets');}
   $$('[data-launch-step-target]').forEach(button=>button.setAttribute('aria-label',`Step ${button.dataset.launchStepTarget}: ${['Token details','Launch settings','Review'][Number(button.dataset.launchStepTarget)-1]}`));
   disclose($('.enhanced-token-page'), 'Optional story and roadmap');
   const tier = $('.creator-burn-section');
   const firstStep = $('[data-launch-step="1"]');
   if (tier && firstStep) { tier.classList.add('launch-tier-first'); firstStep.prepend(tier); }
+  const coinFields = firstStep?.querySelector('.coin-fields');
+  const description = firstStep?.querySelector('.full-label:has(#token-description)');
+  const socials = firstStep?.querySelector('.launch-optional-socials');
+  const image = firstStep?.querySelector('.full-label:has(#token-image-picker)');
+  if (coinFields && description && socials && image) coinFields.after(description, socials, image);
   text('#creator-burn-title', 'Launch tier');
   text('#creator-burn-title + span', 'Choose before coin details');
   if (tier) {
     const explanations = {
       standard: ['Standard', 'No $FUNDED burn. The core Pump launch and published community airdrop policy still apply.'],
-      boost: ['Boost', 'A confirmed $FUNDED burn is bound to the launch transaction. Its badge and directory filter appear after the launch is verified.'],
-      pro: ['Pro', 'Includes the Boost benefits and makes the launch eligible for featured review. Placement requires a separate review.'],
+      pro: ['Pro', 'A confirmed $FUNDED burn is bound to the launch transaction. Its badge and featured-review eligibility appear after verification. Placement requires a separate review.'],
       premier: ['Premier', 'Includes the Pro benefits and makes the launch eligible for homepage spotlight review. Placement is not guaranteed.'],
     };
     const guide = node('div', 'launch-tier-guide-links');
@@ -996,7 +870,8 @@ function syncRoute() {
   const pageRoute=mergedRoutes[route]|| (route==='funded-holder-token-rewards'?'payments':route.startsWith('docs/')?'docs':route);
   const tokenOrWallet = /^\/(token|wallet|launch\/coin)\//.test(location.pathname) && !location.hash || route.startsWith('coin/');
   $$('[data-workspace-route]').forEach(element => { element.hidden = tokenOrWallet || element.dataset.workspaceRoute !== pageRoute; });
-  $$('.mobile-workspace-nav a').forEach(link=>{if(link.hash===`#${pageRoute}`)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
+  const mobileRoute = tokenOrWallet && (/^\/token\//.test(location.pathname) || route.startsWith('coin/')) ? 'explore' : pageRoute;
+  $$('.mobile-workspace-nav a').forEach(link=>{if(link.hash===`#${mobileRoute}`)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
   $$('[data-purpose-route]').forEach(link=>{const active=link.dataset.purposeRoute===route||(!location.hash&&link.dataset.purposeRoute===pageRoute);if(active)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');});
   const more=$('.nav-more');if(more)more.open=!matchMedia('(min-width:1180px)').matches && Boolean($('a[aria-current="page"]',more));
   const target=$('#route-guide');if(target&&['payments','my-launches','community','profile'].includes(route))target.hidden=true;
@@ -1012,7 +887,7 @@ function syncRoute() {
     });
   }
   if(pageRoute==='payments')document.title='Rewards · funded.vip';
-  else if(route==='launch')document.title='Launch token · funded.vip';
+  else if(route==='launch')document.title='Create a coin · funded.vip';
   else document.title=`${$('[data-route-label]')?.textContent||'funded.vip'} · funded.vip`;
   if(route!==lastSyncedRoute && !route.includes('/') && route!=='funded-holder-token-rewards') {
     // Each workspace route begins with its own header. Native fragment scrolling

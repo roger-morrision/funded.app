@@ -5,6 +5,8 @@ import { createReadCache } from './read-cache.mjs';
 import { applyHttpPolicy, invalidRequest, publicError, staticCacheControl, validateInput } from './http-policy.mjs';
 import { readJsonBody } from './request-body.mjs';
 import { createSolUsdQuoteReader } from './price-quote.mjs';
+import { fetchVerifiedPoolSnapshot } from '../pump-trading.js';
+import { LAUNCH_TIER_USD, launchTierAmounts } from '../launch-tier-quote.js';
 import { createServer } from 'node:http';
 import { automaticRewardStatus } from './automatic-rewards.mjs';
 import { createAutomaticRewardStore } from './automatic-reward-store.mjs';
@@ -172,6 +174,7 @@ const birdeyeTimeoutMs = 10_000;
 const pumpApiUrl = String(process.env.PUMP_API_URL || 'https://frontend-api-v3.pump.fun').replace(/\/$/, '');
 const solanaRpcUrl = String(process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com').trim();
 const fundedTokenMint = String(process.env.FUNDED_TOKEN_MINT || process.env.VITE_FUNDED_TOKEN_MINT || '').trim();
+const fundedSwapPool = String(process.env.FUNDED_SWAP_POOL || process.env.VITE_FUNDED_SWAP_POOL || '').trim();
 const rpcMethods = new Set(['getAccountInfo', 'getMultipleAccounts', 'getBalance', 'getSlot', 'getTokenSupply', 'getTokenLargestAccounts', 'getTokenAccountsByOwner', 'getTokenAccountBalance', 'getSignaturesForAddress', 'getTransaction', 'getLatestBlockhash', 'getBlockHeight', 'getSignatureStatuses', 'getFeeForMessage', 'getMinimumBalanceForRentExemption', 'getRecentPrioritizationFees', 'simulateTransaction', 'sendTransaction']);
 const rpcCache = new Map();
 let rpcInflight = 0;
@@ -182,6 +185,7 @@ publicPostPaths.add('/api/x/logout'); // Cookie-authenticated, with an exact-ori
 publicPostPaths.add('/api/shares/visit');
 publicPostPaths.add('/api/boosts/quote');
 publicPostPaths.add('/api/boosts/confirm');
+publicPostPaths.add('/api/launch-tier-quote');
 publicPostPaths.add('/api/x-public-trade-shares/challenge');
 publicPostPaths.add('/api/x-public-trade-shares/consent');
 let verifiedQuoteAssetsCache = null;
@@ -579,17 +583,33 @@ function feeRouterConfig() {
   return programId ? deriveFeeRouter(programId) : null;
 }
 function launchPolicyConfig() {
-  const tiers = createLaunchBurnTiers({
-    boostAmount: Number(process.env.VITE_FUNDED_BOOST_BURN_AMOUNT || 25_000),
-    proAmount: Number(process.env.VITE_FUNDED_PRO_BURN_AMOUNT || 100_000),
-    premierAmount: Number(process.env.VITE_FUNDED_PREMIER_BURN_AMOUNT || 250_000),
-  });
   return {
     cluster: solanaCluster,
     feeRouterProgramId: feeRouterConfig()?.programId.toBase58() || null,
     fundedMint: fundedTokenMint || null,
-    burnAmounts: Object.fromEntries(tiers.map(tier => [tier.id, tier.amountTokens])),
+    burnAmounts: { boost: Number(process.env.VITE_FUNDED_BOOST_BURN_AMOUNT || 25_000) },
+    burnUsdTargets: LAUNCH_TIER_USD,
+    burnPricing: 'verified-pool-spot',
   };
+}
+let launchTierPriceCache = null;
+async function currentLaunchTierPricing() {
+  if (launchTierPriceCache && launchTierPriceCache.expires > Date.now()) return launchTierPriceCache.value;
+  if (solanaCluster !== 'devnet' || !fundedTokenMint || !fundedSwapPool)
+    throw new Error('The Devnet $FUNDED mint and verified SOL pool must be configured.');
+  const [sol, pool] = await Promise.all([
+    readSolUsdQuote(),
+    fetchVerifiedPoolSnapshot({ connection:new Connection(solanaRpcUrl, 'confirmed'), mint:fundedTokenMint, poolAddress:fundedSwapPool }),
+  ]);
+  if (!sol || Date.now() - Date.parse(sol.fetchedAt) > 120_000)
+    throw new Error('A fresh SOL/USD quote is unavailable.');
+  const priceUsd = Number(pool.spotPriceSol) * Number(sol.priceUsd);
+  const amounts = launchTierAmounts(priceUsd);
+  const value = { cluster:'devnet', fundedMint:fundedTokenMint, pool:pool.pool, slot:pool.slot,
+    tokenPriceUsd:priceUsd, solUsd:Number(sol.priceUsd), amounts,
+    observedAt:new Date().toISOString(), source:'verified-pump-swap-pool' };
+  launchTierPriceCache = { value, expires:Date.now() + 30_000 };
+  return value;
 }
 async function executeSolPayout({ recipientWallet, amountSol }) {
   const payer = referralPayoutKeypair();
@@ -1034,6 +1054,36 @@ async function handle(req, res) {
       const quote = await readSolUsdQuote();
       if (!quote) return json(res, 503, { error: 'SOL/USD quote is currently unavailable.', provider: 'coingecko' });
       return json(res, 200, quote);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/launch-tier-quote') {
+      try { return json(res, 200, await currentLaunchTierPricing()); }
+      catch (error) { return json(res, 503, { error: String(error.message || 'The $FUNDED tier price is unavailable.') }); }
+    }
+    if (req.method === 'POST' && url.pathname === '/api/launch-tier-quote') {
+      if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Request the launch quote from funded.vip.' });
+      if (!await store.chargeRpcRate(`launch-tier-quote:${clientKey(req)}`, 1, 8, Math.floor(Date.now() / 60_000) * 60_000))
+        return json(res, 429, { error:'Too many launch quotes; retry shortly.' });
+      const input = await body(req);
+      const tier = String(input.tier || '');
+      if (!Object.hasOwn(LAUNCH_TIER_USD, tier)) return json(res, 400, { error:'Choose Pro or Premier for a paid launch quote.' });
+      let payer;
+      try { payer = new PublicKey(String(input.payer || '')).toBase58(); }
+      catch { return json(res, 400, { error:'Connect a valid Devnet wallet before requesting a paid tier quote.' }); }
+      let pricing;
+      try { pricing = await currentLaunchTierPricing(); }
+      catch (error) { return json(res, 503, { error:String(error.message || 'The $FUNDED tier price is unavailable.') }); }
+      const now = Date.now();
+      const quote = { id:id('launch_tier'), tier, payer, fundedMint:fundedTokenMint,
+        amountTokens:pricing.amounts[tier], usd:LAUNCH_TIER_USD[tier], tokenPriceUsd:pricing.tokenPriceUsd,
+        pool:pricing.pool, slot:pricing.slot, source:pricing.source,
+        createdAt:new Date(now).toISOString(), expiresAt:new Date(now + 10 * 60_000).toISOString() };
+      await store.update(current => {
+        current.launchTierQuotes ||= {};
+        for (const [key, old] of Object.entries(current.launchTierQuotes))
+          if (Date.parse(old.expiresAt) < now - 48 * 3_600_000) delete current.launchTierQuotes[key];
+        current.launchTierQuotes[quote.id] = quote;
+      });
+      return json(res, 201, quote);
     }
     if (req.method === 'GET' && url.pathname === '/api/x/oauth/start') {
       const config = xConfig();
@@ -1888,10 +1938,21 @@ async function handle(req, res) {
       if (!existingLaunch && !perMint) return json(res, 409, { error: 'New launches require a mint-specific fee router for attributable automatic rewards.' });
       if (xLinked && !(await xFeeReadiness()).ready) return json(res, 503, { error: 'X fee claims are not operational on Devnet yet.' });
       if (xLinked && (await resolveXUser(policy.xRecipient)).id !== policy.xUserId) return json(res, 409, { error: 'The X account ID changed since launch preparation; registration is blocked.' });
-        const burnAmounts = launchPolicyConfig().burnAmounts;
-        const promotionTiers = createLaunchBurnTiers({ boostAmount: burnAmounts.boost, proAmount: burnAmounts.pro, premierAmount: burnAmounts.premier });
-        const proof = await verifyPumpLaunch({ connection: new Connection(solanaRpcUrl, 'confirmed'), mint: input.mint, signature: input.signature || input.pumpFeeRoute?.transaction,
-          promotionClaim: input.creatorLaunchBurn || null, fundedMint: fundedTokenMint, promotionTiers });
+      const promotionClaim = input.creatorLaunchBurn || null;
+      const paidClaim = promotionClaim && promotionClaim.tier !== 'standard';
+      const promotionQuote = paidClaim && promotionClaim.quoteId
+        ? (await store.read()).launchTierQuotes?.[String(promotionClaim.quoteId)] : null;
+      if (paidClaim && !existingLaunch && (!promotionQuote
+        || promotionQuote.tier !== promotionClaim.tier || promotionQuote.payer !== policy.creatorWallet
+        || promotionQuote.fundedMint !== fundedTokenMint || promotionQuote.amountTokens !== promotionClaim.amountTokens))
+        return json(res, 409, { error:'A saved $FUNDED launch quote matching this wallet and burn is required.' });
+      const promotionTiers = createLaunchBurnTiers({
+        boostAmount:Number(process.env.VITE_FUNDED_BOOST_BURN_AMOUNT || 25_000),
+        proAmount:Number(process.env.VITE_FUNDED_PRO_BURN_AMOUNT || 100_000),
+        premierAmount:Number(process.env.VITE_FUNDED_PREMIER_BURN_AMOUNT || 250_000),
+      });
+      const proof = await verifyPumpLaunch({ connection: new Connection(solanaRpcUrl, 'confirmed'), mint: input.mint, signature: input.signature || input.pumpFeeRoute?.transaction,
+        promotionClaim, promotionQuote, fundedMint: fundedTokenMint, promotionTiers });
       const preparedMetadata = await store.readMetadata(proof.mint);
       const preparedMetadataUri = devnetMetadataUri(proof.mint, metadataRecordOrigin(preparedMetadata));
       if (input.metadataUri && input.metadataUri !== preparedMetadataUri) return json(res, 409, { error: 'Launch metadata URL does not match the mint.' });

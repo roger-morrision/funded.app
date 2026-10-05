@@ -53,15 +53,6 @@ function showExploreResultsBeforeExtras() {
   if (!cards || !table || !anchor) return;
   if (anchor.nextElementSibling !== cards) anchor.after(cards);
   if (cards.nextElementSibling !== table) cards.after(table);
-  const links = root.querySelector('.explore-hero-links');
-  if (links && !links.closest('.page-cleanup-explore-guide')) {
-    const guide = document.createElement('details');
-    guide.className = 'page-cleanup-explore-guide';
-    const label = document.createElement('summary');
-    label.textContent = 'About the Launch Directory';
-    root.append(guide);
-    guide.append(label, links);
-  }
 }
 
 function setupHomeTierShortcuts() {

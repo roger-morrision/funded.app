@@ -155,8 +155,5 @@ async function renderSettings(generation) {
   }catch(error){if(generation===routeGeneration)page.innerHTML=`<h1>Manage your creator identity</h1><p role="status">${esc(error.message)}</p><p>Sign in from Rewards, then return here. No wallet connection proves ownership of an X account.</p><a href="#payments">Open X sign-in in Rewards</a>`;}
 }
 function syncRoute(){const kind=routeKind();syncSupportShortcutState();routeGeneration++;document.body.classList.toggle('support-view-active',Boolean(kind));document.body.classList.toggle('support-overlay',kind==='creator'&&new URLSearchParams(location.search).get('overlay')==='1');page.hidden=!kind;if(!kind){document.title='funded.vip — Launches on the record';return;}const label=kind==='settings'?'Creator settings':kind==='directory'?'Creators':'Creator support';$('[data-route-label]').textContent=label;$('[data-route-description]').textContent='Identity, consent and verified receipts';document.title=`${label} | funded.vip (${APP_CLUSTER})`;window.scrollTo(0,0);if(kind==='directory')void renderDirectory();else if(kind==='settings')void renderSettings(routeGeneration);else void renderCreator(creatorRoute(),routeGeneration);}
-window.addEventListener('hashchange',syncRoute);window.addEventListener('popstate',syncRoute);syncRoute();
-
-const tradebar=document.createElement('nav');tradebar.className='support-mobile-trade';tradebar.setAttribute('aria-label','Token trade actions');tradebar.innerHTML='<button data-support-trade="buy">Buy</button><button data-support-trade="sell">Sell</button>';
-main.append(tradebar);
-tradebar.querySelectorAll('button').forEach(button=>button.onclick=()=>{const side=$(`[data-coin-trade-side="${button.dataset.supportTrade}"]`);side?.click();$('#trade-panel')?.scrollIntoView({behavior:'smooth',block:'start'});$('#trade-amount')?.focus({preventScroll:true});});
+window.addEventListener('hashchange',syncRoute);window.addEventListener('popstate',syncRoute);
+syncRoute();

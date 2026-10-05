@@ -26,11 +26,20 @@ export function readPumpCreateEvent(logs = []) {
   return null;
 }
 
-export function verifyAtomicLaunchPromotion({ transaction, payer, signature, claim, fundedMint, tiers = createLaunchBurnTiers() }) {
+export function verifyAtomicLaunchPromotion({ transaction, payer, signature, claim, fundedMint, tiers = createLaunchBurnTiers(), quote = null }) {
   if (!claim || claim.tier === 'standard') return null;
   const tier = tiers.find(item => item.id === claim.tier && item.amountTokens > 0);
-  if (!tier || !fundedMint || claim.fundedMint !== fundedMint || claim.amountTokens !== tier.amountTokens) {
+  const requiredAmount = quote ? quote.amountTokens : tier?.amountTokens;
+  if (!tier || !fundedMint || claim.fundedMint !== fundedMint || claim.amountTokens !== requiredAmount
+    || (quote && (claim.quoteId !== quote.id || quote.tier !== claim.tier || quote.payer !== payer
+      || quote.fundedMint !== fundedMint || quote.usd !== (claim.tier === 'pro' ? 100 : claim.tier === 'premier' ? 200 : null)))) {
     throw new Error('The claimed promotion package does not match the configured $FUNDED burn policy.');
+  }
+  if (quote) {
+    const blockTime = Number(transaction.blockTime) * 1000;
+    if (!Number.isFinite(blockTime) || blockTime < Date.parse(quote.createdAt) - 30_000
+      || blockTime > Date.parse(quote.expiresAt) + 30_000)
+      throw new Error('The $FUNDED launch quote was not current when the burn confirmed.');
   }
   const keys = transactionKeys(transaction);
   const instruction = (transaction.transaction.message.instructions || transaction.transaction.message.compiledInstructions || []).find(compiled => {
@@ -45,17 +54,17 @@ export function verifyAtomicLaunchPromotion({ transaction, payer, signature, cla
       }));
       return decoded.keys.mint.pubkey.toBase58() === fundedMint
         && decoded.keys.owner.pubkey.toBase58() === payer
-        && decoded.data.amount === tokensToBaseUnits(tier.amountTokens, decoded.data.decimals);
+        && decoded.data.amount === tokensToBaseUnits(requiredAmount, decoded.data.decimals);
     } catch { return false; }
   });
   if (!instruction) throw new Error('The Pump creation transaction has no matching atomic $FUNDED BurnChecked instruction.');
   return {
-    tier: tier.id, label: tier.label, amountTokens: tier.amountTokens, fundedMint,
+    tier: tier.id, label: tier.label, amountTokens: requiredAmount, fundedMint,
     status: 'verified', receipt: { signature, instruction: 'BurnChecked', atomicWithPumpLaunch: true, verified: true },
   };
 }
 
-export async function verifyPumpLaunch({ connection, mint, signature, promotionClaim = null, fundedMint = null, promotionTiers, commitment = 'confirmed' }) {
+export async function verifyPumpLaunch({ connection, mint, signature, promotionClaim = null, promotionQuote = null, fundedMint = null, promotionTiers, commitment = 'confirmed' }) {
   if (!['confirmed', 'finalized'].includes(commitment)) throw new Error('Unsupported launch verification commitment.');
   const mintKey = new PublicKey(String(mint || '').trim());
   if (!signature || typeof signature !== 'string') throw new Error('A Pump creation transaction signature is required.');
@@ -67,7 +76,7 @@ export async function verifyPumpLaunch({ connection, mint, signature, promotionC
   if (!account || (!account.owner.equals(TOKEN_PROGRAM_ID) && !account.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('The mint account is not owned by a supported token program.');
   unpackMint(mintKey, account, account.owner);
   const payer = (transaction.transaction.message.accountKeys || transaction.transaction.message.staticAccountKeys)[0].toBase58();
-  const promotion = verifyAtomicLaunchPromotion({ transaction, payer, signature, claim: promotionClaim, fundedMint, tiers: promotionTiers });
+  const promotion = verifyAtomicLaunchPromotion({ transaction, payer, signature, claim: promotionClaim, fundedMint, tiers: promotionTiers, quote: promotionQuote });
   return {
     chain: 'solana', mint: mintKey.toBase58(), signature,
     feePayer:payer,

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
-import { BOOST_MEMO_PROGRAM, BOOST_PACKAGES, activeBoostMultiplier, activeBoosts, boostLamports, boostMemo } from '../boost-offer.js';
+import { BOOST_MEMO_PROGRAM, BOOST_PACKAGES, activeBoostMultiplier, activeBoostPackages, activeBoosts, boostLamports, boostMemo } from '../boost-offer.js';
 import { verifyBoostPayment } from '../server/boost-proof.mjs';
 import { filterMarketRecords } from '../market-intelligence.js';
 
@@ -39,16 +39,22 @@ test('receipt requires exact payer, recipient, amount, memo, and finalized proof
 test('overlapping finalized boosts stack and expire independently', () => {
   const at = Date.parse('2026-10-02T01:00:00Z');
   const base = { mint:recipient, cluster:'devnet', status:'finalized', startsAt:'2026-10-02T00:00:00Z', expiresAt:'2026-10-02T12:00:00Z' };
-  const active = activeBoosts({ a:{ ...base, multiplier:10 }, b:{ ...base, multiplier:500, expiresAt:'2026-10-03T00:00:00Z' }, c:{ ...base, multiplier:100, status:'pending' } }, at);
+  const active = activeBoosts({ a:{ ...base, packageId:'10x', multiplier:10 }, b:{ ...base, packageId:'500x', multiplier:500, expiresAt:'2026-10-03T00:00:00Z' }, c:{ ...base, packageId:'100x', multiplier:100, status:'pending' } }, at);
   assert.equal(active[recipient].multiplier, 510);
   assert.equal(active[recipient].golden, true);
   assert.equal(active[recipient].count, 2);
   assert.equal(active[recipient].nextExpiry, '2026-10-02T12:00:00Z');
   assert.equal(activeBoostMultiplier(active[recipient], at), 510);
-  assert.equal(activeBoostMultiplier(active[recipient], Date.parse('2026-10-02T12:00:00Z')), 0);
+  assert.deepEqual(activeBoostPackages(active[recipient], at).map(pack => pack.packageId), ['500x', '10x']);
+  assert.deepEqual(activeBoostPackages(active[recipient], Date.parse('2026-10-02T12:00:00Z')).map(pack => pack.packageId), ['500x']);
+  assert.equal(activeBoostMultiplier(active[recipient], Date.parse('2026-10-02T12:00:00Z')), 500);
   assert.equal(activeBoostMultiplier(active[recipient], Date.parse('2026-10-03T01:00:00Z')), 0);
   assert.equal(activeBoostMultiplier({ multiplier: 500, expiresAt: 'invalid' }, at), 0);
-  assert.deepEqual(activeBoosts({ a:{ ...base, multiplier:10 } }, Date.parse('2026-10-03T01:00:00Z')), {});
+  assert.deepEqual(activeBoosts({ a:{ ...base, packageId:'10x', multiplier:10 } }, Date.parse('2026-10-03T01:00:00Z')), {});
+  assert.deepEqual(activeBoosts({ invalid:{ ...base, packageId:'100x', multiplier:500 }, pending:{ ...base, packageId:'500x', multiplier:500, status:'pending' } }, at), {});
+  const cumulative = activeBoosts(Object.fromEntries(Array.from({ length:5 }, (_, index) => [String(index), { ...base, packageId:'100x', multiplier:100 }])), at);
+  assert.equal(cumulative[recipient].multiplier, 500);
+  assert.equal(cumulative[recipient].golden, true, 'Five overlapping 100x packs unlock the golden ticker.');
 });
 
 test('active SOL boosts appear in paid promotion filters without changing launch tier', () => {
@@ -60,4 +66,9 @@ test('active SOL boosts appear in paid promotion filters without changing launch
   assert.deepEqual(filterMarketRecords(records, { promotion:'boost' }).map(item => item.address), ['paid']);
   assert.deepEqual(filterMarketRecords(records, { promotion:'standard' }).map(item => item.address), ['plain']);
   assert.equal(records[0].promotionTier, 'standard');
+  assert.deepEqual(filterMarketRecords([
+    { address:'plain', postLaunchBoostMultiplier:0, volume24hUsd:1000 },
+    { address:'medium', postLaunchBoostMultiplier:30, volume24hUsd:100 },
+    { address:'top', postLaunchBoostMultiplier:500, volume24hUsd:1 },
+  ], { sort:'boosted' }).map(item => item.address), ['top','medium','plain']);
 });

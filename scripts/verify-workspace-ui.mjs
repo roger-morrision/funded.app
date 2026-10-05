@@ -373,8 +373,8 @@ try {
     if(await tierDisclosure.count()) await tierDisclosure.locator(':scope > summary').click();
     const card=page.locator('.burn-tier-card');
     await page.waitForFunction(()=>[...document.querySelectorAll('.burn-tier-row b')].every(element=>element.textContent.includes('$FUNDED')));
-    assert.equal(await card.locator('.burn-tier-row').count(),3);
-    assert.deepEqual(await card.locator('.burn-tier-row strong').allTextContents(),['Boost','Pro','Premier']);
+    assert.equal(await card.locator('.burn-tier-row').count(),2);
+    assert.deepEqual(await card.locator('.burn-tier-row strong').allTextContents(),['Pro','Premier']);
     const amounts=(await card.locator('.burn-tier-row b').allTextContents()).map(text=>Number(text.replace(/[^\d]/g,'')));
     assert(amounts.every((amount,index)=>amount>0 && (index===0 || amount>amounts[index-1])));
     assert((await card.innerText()).includes('Standalone burns remain in your receipt history'));
@@ -512,19 +512,6 @@ try {
     await page.locator('#launch-back').click();assert.equal(await page.locator('#token-name').inputValue(),'UI review draft');
   });
   await page.screenshot({path:resolve(output,'launch-desktop.png'),timeout:12000});
-  await check('Explicit public draft storage excludes approval state',async()=>{
-    const current=await page.locator('#save-launch-draft').count()>0;
-    const draftKey=current?'funded.launch.draft.v1':'funded.public-launch-draft';
-    const action=name=>page.locator(current?`#${name}-launch-draft`:`[data-draft-action="${name}"]`);
-    await action('save').click();
-    const saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),draftKey);
-    assert(saved,'Draft should be stored explicitly');
-    assert.deepEqual(current?[saved.name,saved.symbol]:[saved['token-name'],saved['token-symbol']],['UI review draft','UITEST']);
-    assert(!Object.keys(saved).some(key=>/walletSecret|feeConsent|termsConsent|terms-agree|fee-route-agree/i.test(key)));
-    await page.locator('#token-name').fill('Changed name');await action('restore').click();assert.equal(await page.locator('#token-name').inputValue(),'UI review draft');
-    assert(!(await page.locator('#terms-agree').isChecked()));assert(!(await page.locator('#fee-route-agree').isChecked()));
-    await action('delete').click();assert.equal(await page.evaluate(key=>localStorage.getItem(key),draftKey),null);
-  });
   await check('Analytics source disclosure does not wait on a hidden-tab refresh',async()=>{
     await open('analytics-detail');
     await page.locator('#analytics-detail .ui-disclosure summary').click();

@@ -118,3 +118,13 @@ body .watchlist-items > .watchlist-unavailable {
   overflow-wrap: anywhere;
 }
 body .watchlist-items > .watchlist-unavailable > * { max-width: 100%; }
+/* Show each live, verified paid Boost package beside the token identity. */
+.boost-package-badges { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 3px; min-width: 0; max-width: 100%; vertical-align: middle; }
+.boost-package-badge { display: inline-flex; align-items: center; gap: 2px; max-width: 100%; padding: 2px 5px; border: 1px solid #b98927; border-radius: 4px; background: #35270e; color: #ffd059; font: 700 10px/1.2 'DM Mono', monospace; white-space: nowrap; }
+.boost-package-badge small { margin: 0 !important; color: #ffe5a0 !important; font: inherit !important; text-align: left !important; }
+.page-route-explore .asset-card .asset-symbol { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; overflow: visible; white-space: normal; }
+.page-route-overview .home-token-identity { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.page-route-overview .home-token-identity > small { flex-basis: 100%; text-align: left; }
+.home-table-coin .boost-package-badges { margin-left: 5px; }
+.coin-page .coin-title-row { flex-wrap: wrap; gap: 5px; }
+#coin-boost-packages { display: inline-flex; min-width: 0; }

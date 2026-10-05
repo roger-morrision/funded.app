@@ -16,6 +16,7 @@ export function canonicalLaunchPolicy(input = {}) {
     tier: String(burn.tier || ''),
     amountTokens: Number(burn.amountTokens),
     fundedMint: new PublicKey(String(burn.fundedMint || '')).toBase58(),
+    ...(burn.quoteId ? { quoteId:String(burn.quoteId) } : {}),
   } : null;
   return {
     mint: new PublicKey(String(input.mint || '')).toBase58(),

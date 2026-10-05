@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
 import { PUMP_AMM_PROGRAM_ID, getPumpAmmProgram } from '@pump-fun/pump-swap-sdk';
-import { decodePumpSwapTrades, readPumpMarketActivity } from '../server/coin-market.mjs';
+import { decodePumpSwapTrades, readPumpMarketActivity, summarizePumpTrades } from '../server/coin-market.mjs';
 
 // Exact PumpSwap event data from two finalized Devnet transactions on the
 // fresh QA mint. The signer and account balances are intentionally omitted.
@@ -78,4 +78,21 @@ test('a capped pool signature page retains partial coverage', async () => {
     nowSeconds:Math.max(...fixture.cases.map(item => item.blockTime)) + 30 });
   assert.equal(data.tradeCount24h, 2);
   assert.equal(data.coverage, 'partial');
+});
+
+test('market-cap change uses a priced trade before each selected window', () => {
+  const now = 1_000_000;
+  const records = [
+    [now - 90_000, 1], [now - 8_000, 2], [now - 5_000, 3],
+    [now - 1_200, 4], [now - 60, 5],
+  ].map(([blockTime, priceRatio], order) => ({
+    blockTime, priceRatio, order, solLamports:1n, isBuy:true, trader:`trader-${order}`,
+  }));
+  const complete = summarizePumpTrades(records, { cutoffSeconds:now - 86_400, complete:true });
+  assert.equal(complete.activityWindows['5m'].priceChangePercent, 25);
+  assert.equal(complete.activityWindows['1h'].priceChangePercent, (5 / 3 - 1) * 100);
+  assert.equal(complete.activityWindows['6h'].priceChangePercent, 400);
+  assert.equal(complete.activityWindows['24h'].priceChangeBasis, 'window');
+  const partial = summarizePumpTrades(records, { cutoffSeconds:now - 86_400, complete:false });
+  assert.equal(partial.activityWindows['5m'].priceChangePercent, null);
 });

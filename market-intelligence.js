@@ -68,6 +68,9 @@ export function withMarketWindow(record, period = '24h') {
     windowBuyCount: indexed ? count(indexed.buyCount) : window === '24h' ? count(market.buyCount24h) : null,
     windowSellCount: indexed ? count(indexed.sellCount) : window === '24h' ? count(market.sellCount24h) : null,
     windowTraderCount: indexed ? count(indexed.traderCount) : null,
+    windowPriceChangePercent: indexed?.priceChangeBasis === 'window'
+      ? finite(indexed.priceChangePercent)
+      : window === '24h' ? market.priceChange24hPercent : null,
     windowCoverage: indexed?.coverage === 'partial' || indexed?.coverage === 'complete' ? indexed.coverage : market.volumeCoverage,
     windowTurnover: market.migrated !== true && volume != null && market.curveCapSol > 0 ? volume / market.curveCapSol : null,
   };
@@ -75,6 +78,7 @@ export function withMarketWindow(record, period = '24h') {
 
 export function sortMarketRecords(records, sort = 'market-cap') {
   const value = record => {
+    if (sort === 'boosted') return Number(record.postLaunchBoostMultiplier) > 0 ? Number(record.postLaunchBoostMultiplier) : 0;
     if (sort === 'volume') return record.windowPeriod ? record.windowVolumeSol ?? -1 : record.volume24hUsd ?? record.volume24hSol ?? -1;
     if (sort === 'airdrop') return record.communityAirdropPercent ?? -1;
     if (sort === 'tier-burn') return record.promotionBurnTokens ?? -1;
@@ -95,7 +99,8 @@ export function sortMarketRecords(records, sort = 'market-cap') {
     }
     return record.marketCapUsd ?? (record.migrated === true ? record.poolMarketCapSol : record.curveCapSol) ?? -1;
   };
-  return [...records].sort((a, b) => value(b) - value(a));
+  return [...records].sort((a, b) => value(b) - value(a)
+    || (sort === 'boosted' ? (Number(b.windowVolumeSol ?? b.volume24hUsd ?? b.volume24hSol) || 0) - (Number(a.windowVolumeSol ?? a.volume24hUsd ?? a.volume24hSol) || 0) : 0));
 }
 
 export function filterMarketRecords(records, { query = '', risk = 'all', stage = 'all', authority = 'all', promotion = 'all', reward = 'all', sort = 'market-cap', watchlist = [], maxAgeHours = null, minVolumeSol = null, minCurveCapSol = null, minTrades = null, minTraders = null, nowMs = Date.now() } = {}) {

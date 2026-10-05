@@ -24,14 +24,14 @@ test('a stalled optional fee-status provider does not block the workspace', asyn
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   expect(requested).toBe(true);
   expect(feeStatusFinished, 'The workspace becomes usable before the optional status request finishes').toBe(false);
-  await expect(page.getByLabel('Saved search name', { exact: true })).toBeVisible();
+  await expect(page.locator('#explore-search')).toBeVisible();
 });
 
 test('an unavailable optional module leaves navigation usable and explains reload recovery', async ({ page }) => {
   await page.route('**/pilot-metrics.js*', route => route.abort('failed'));
   await open(page, 'explore');
   await expect(page.locator('#bootstrap-status')).toContainText('Reload');
-  await expect(page.getByLabel('Saved search name', { exact: true })).toBeVisible();
+  await expect(page.locator('#explore-search')).toBeVisible();
   await page.goto('/#docs');
   await page.getByRole('button', { name: 'Check service status' }).click();
   await expect(page.locator('#service-status [role=status]')).toContainText('unavailable');
@@ -106,30 +106,4 @@ test('unavailable feeds stay truthful and retry from Home and both Explore layou
     await page.locator(`button[data-explore-view="${layout}"]`).click();
     await retry();
   }
-});
-
-test('saved search validation and clipboard fallback are usable on mobile', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await open(page, 'explore');
-  const input = page.getByLabel('Saved search name', { exact: true });
-  const save = page.getByRole('button', { name: 'Save search', exact: true });
-  await save.click();
-  await expect(input).toBeFocused();
-  await expect(input).toHaveAttribute('aria-invalid', 'true');
-  await expect(page.locator('#saved-search-feedback')).toContainText('Enter a name');
-  await input.fill('A short list'); await save.click();
-  await expect(page.locator('#saved-search-feedback')).toContainText('Saved');
-  await expect(input).not.toHaveAttribute('aria-invalid', 'true');
-  const remove = page.getByRole('button', { name: 'Delete selected', exact: true });
-  expect((await remove.boundingBox()).height).toBeGreaterThanOrEqual(44);
-  await page.evaluate(() => { navigator.clipboard.writeText = async () => { throw new Error('Permission denied fixture'); }; });
-  await page.getByRole('button', { name: 'Copy search link', exact: true }).click();
-  const fallback = page.getByLabel('Search link to copy', { exact: true });
-  await expect(fallback).toBeVisible(); await expect(fallback).toBeFocused();
-  await expect(fallback).toHaveValue(/\/explore\?filters=1/);
-  await remove.click();
-  await expect(page.getByLabel('Saved searches on this device')).toBeDisabled();
-  await expect(page.locator('#saved-search-feedback')).toHaveText('Deleted “A short list”. You can undo this deletion.');
-  await expect(page.getByRole('button', { name: 'Undo deletion', exact: true })).toBeFocused();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

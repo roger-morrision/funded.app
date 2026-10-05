@@ -10,7 +10,7 @@ await loadBootstrapModules([
   { name: 'App', required: true, load: async () => { await import('./app.js'); appReady(); } },
   { name: 'Page layout', load: () => import('./page-experience.js') },
   { name: 'Creator support', load: () => import('./creator-support-ui.js') },
-  { name: 'Following and drafts', load: () => import('./adoption-ui.js') },
+  { name: 'Following', load: () => import('./adoption-ui.js') },
   { name: 'Reward schedules', load: () => import('./automatic-rewards-ui.js') },
   { name: 'Personal rewards', load: () => import('./personal-rewards-ui.js') },
   { name: 'Workspace layout', load: () => import('./workspace-ui.js') },

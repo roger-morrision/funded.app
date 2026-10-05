@@ -66,7 +66,7 @@ body.page-route .home-board-view button { display: inline-flex; align-items: cen
 body.page-route .home-board-view button svg { display: block; width: 12px; height: 12px; }
 body.page-route-overview .home-kpi-icon svg { display: block; width: 16px; height: 16px; }
 body.page-route :is(.dialog-close,#explore-filter-close,.help-topics-panel header button,
-  .explore-proof-head button,.launch-tier-guide-close) svg { display: block; width: 16px; height: 16px; margin: auto; }
+  .launch-tier-guide-close) svg { display: block; width: 16px; height: 16px; margin: auto; }
 body.page-route-coin .coin-page .coin-socials.is-compact :is(a,button) { border-color: #9a6d36; background: #1b2940; color: #ffd28a; }
 body.page-route .nav-item.active,
 body.page-route .sidebar .primary-nav > .nav-item.active,
@@ -318,7 +318,24 @@ body.page-route-coin .coin-page .coin-transactions-table tbody tr:hover { backgr
   body.page-route.page-route-explore .explore-control-left {
     order: 1; width: 100%; justify-content: space-between;
   }
-  body.page-route .mobile-workspace-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  body.page-route .mobile-workspace-nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    background: #101621;
+    box-shadow: 0 -8px 24px #0008;
+  }
+  body.page-route .mobile-workspace-nav a {
+    min-width: 0;
+    min-height: 52px;
+    justify-content: center;
+    gap: 3px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: #b7c3d5;
+    font: 600 11px/1.2 Manrope, sans-serif;
+  }
+  body.page-route .mobile-workspace-nav a svg { flex: none; }
+  body.page-route .mobile-workspace-nav a[aria-current='page'] { box-shadow: inset 0 2px #f4a340; }
   body.page-route .help-topics-trigger {
     top: auto; bottom: calc(8px + env(safe-area-inset-bottom)); right: 8px;
     width: calc((100% - 16px) / 5); min-width: 0; height: 48px; padding: 3px;
@@ -352,7 +369,6 @@ body.page-route-coin .coin-page .coin-transactions-table tbody tr:hover { backgr
 }
 /* Keep secondary dashboards and instructional dialogs on the shared wolf palette. */
 body.page-route .reward-experience-panel,
-body.page-route .explore-proof-dialog,
 body.page-route .launch-tier-guide-dialog,
 body.page-route .explore-boost-dialog,
 body.page-route .explore-tier-dialog {
@@ -367,11 +383,7 @@ body.page-route .reward-experience-panel :is(button,select,.reward-stage-key spa
 body.page-route .reward-experience-panel :is(small,.reward-stage-key span,
   .reward-portfolio-list p,.reward-discovery-list p,.reward-empty,.reward-source-note,
   .reward-ideas,header p:not(.eyebrow)) { color: #a9b7c9; }
-body.page-route .explore-proof-head,
-body.page-route .explore-proof-list p { border-color: #30405b; }
-body.page-route .explore-proof-list span,
 body.page-route .launch-tier-guide-dialog p:not(.eyebrow) { color: #a9b7c9; }
-body.page-route .explore-proof-head button,
 body.page-route .launch-tier-guide-close { color: #f6f2e9; }
 body.page-route-overview .home-feed-settings-panel {
   box-sizing: border-box; background: #121b2e !important; border-color: #485a73 !important;

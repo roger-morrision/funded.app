@@ -21,6 +21,8 @@ audit-records
 docs/ui-evidence-2026-09-29
 .docker-config
 .tmp-*/
+.tmp-*
+mnt-c-*/
 tmp/
 
 # Local verification output and deployment staging are not image inputs.

@@ -246,7 +246,7 @@ function shortenPageCopy() {
     ['#rewards-overview .workspace-page-header > p:last-child', 'Choose a reward type to check eligibility and receipts.'],
     ['#my-launches > .section-heading .panel-explainer', 'Your launches and saved tokens.'],
     ['#capital-flow > .section-heading .panel-explainer', 'Preview the fee split. Live totals need verified receipts.'],
-    ['#launch-route-shell > .page-lede', 'Create a Pump token and review costs before signing.'],
+    ['#launch-route-shell > .page-lede', 'Add the coin details, choose a tier, and review the cost before connecting your wallet.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
     ['#analytics-source-note', 'Fees and payouts use confirmed, indexed receipts.'],
     ['#community .section-heading .panel-explainer', 'Save coins from Explore to watch them here.'],

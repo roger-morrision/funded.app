@@ -15,7 +15,7 @@ async function locked(page){
   await expect(page.locator('#launch-dialog')).toHaveAttribute('inert','');
   await expect(page.locator('body')).not.toHaveClass(/workspace-ready/);
   await page.keyboard.press('Tab');await expect(reload(page)).toBeFocused();
-  expect(await page.locator('#restore-launch-draft').evaluate(node=>Boolean(node.closest('[inert]')))).toBe(true);
+  expect(await page.locator('#token-name').evaluate(node=>Boolean(node.closest('[inert]')))).toBe(true);
 }
 async function ready(page){
   await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state','ready');
@@ -23,9 +23,9 @@ async function ready(page){
   await expect(page.locator('[data-bootstrap-inert]')).toHaveCount(0);
   await expect(gate(page)).toBeHidden();
 }
-async function restore(page){
-  const panel=page.locator('.launch-draft-panel');if(!await panel.evaluate(node=>node.open))await panel.locator('summary').click();
-  await page.locator('#restore-launch-draft').click();await expect(page.locator('#launch-draft-status')).toContainText('No saved launch draft');
+async function launchReady(page){
+  await expect(page.locator('#token-name')).toBeVisible();
+  await expect(page.locator('.launch-draft-panel')).toHaveCount(0);
 }
 
 for(const width of [1440,390])test(`static startup guard blocks early interaction and keyboard Reload preserves the route at ${width}px`,async({page})=>{
@@ -39,10 +39,10 @@ for(const width of [1440,390])test(`static startup guard blocks early interactio
   await page.screenshot({path:test.info().outputPath(`startup-loading-${width}.png`)});
   await page.unroute('**/bootstrap-gate.js*');
   await Promise.all([page.waitForURL(url=>url.search==='?startup=fixture'&&url.hash==='#launch',{waitUntil:'domcontentloaded'}),page.keyboard.press('Enter')]);
-  await ready(page);await expect(page).toHaveURL(/\?startup=fixture#launch$/);await restore(page);
+  await ready(page);await expect(page).toHaveURL(/\?startup=fixture#launch$/);await launchReady(page);
 });
 
-test('a held required app import cannot accept Restore or keyboard focus before handlers exist',async({page})=>{
+test('a held required app import cannot accept launch input or keyboard focus before handlers exist',async({page})=>{
   let held;await page.route('**/app.js*',route=>{held=route;});await page.goto('/#launch',{waitUntil:'commit'});await expect.poll(()=>Boolean(held)).toBe(true);await locked(page);
   await page.keyboard.press('Tab');expect(await page.evaluate(()=>Boolean(document.activeElement.closest('[inert]')))).toBe(false);
   // Independent sentinel elements prove the gate owns only its own inert markers.
@@ -63,7 +63,7 @@ test('a held required app import cannot accept Restore or keyboard focus before 
   await expect(page.locator('#qa-existing-inert')).toHaveAttribute('inert','');
   await expect(page.locator('#qa-financial-disabled')).toBeDisabled();
   await expect(reload(page)).not.toBeFocused();
-  expect(await page.evaluate(()=>Boolean(document.activeElement.closest('[hidden],[inert]')))).toBe(false);await restore(page);
+  expect(await page.evaluate(()=>Boolean(document.activeElement.closest('[hidden],[inert]')))).toBe(false);await launchReady(page);
 });
 
 for(const [name,path,state] of [['gate','bootstrap-gate.js','failed'],['entry','bootstrap.js','failed'],['required app','app.js','failed']])test(`${name} import failure leaves an accessible recovery action and reload restores the requested route`,async({page})=>{
@@ -72,20 +72,20 @@ for(const [name,path,state] of [['gate','bootstrap-gate.js','failed'],['entry','
   await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state',state);await expect(page.locator('.app-shell')).toHaveAttribute('inert','');
   await expect(gate(page)).toBeVisible();await expect(reload(page)).toBeVisible();if(state==='failed')await expect(gate(page)).toContainText(/could not|unable|failed/i);
   await page.keyboard.press('Tab');await expect(reload(page)).toBeFocused();await page.unroute(`**/${path}*`);await page.keyboard.press('Enter');
-  await ready(page);await expect(page).toHaveURL(/\?recover=1#launch$/);await restore(page);
+  await ready(page);await expect(page).toHaveURL(/\?recover=1#launch$/);await launchReady(page);
 });
 
 test('optional module failure reports degraded startup while initialized app controls remain usable',async({page})=>{
   await page.route('**/creator-support-ui.js*',route=>route.abort('failed'));await page.goto('/#launch');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state','degraded');
-  await expect(page.locator('[data-bootstrap-inert]')).toHaveCount(0);await expect(gate(page)).toBeVisible();await expect(gate(page)).toContainText(/some features|could not/i);await restore(page);
+  await expect(page.locator('[data-bootstrap-inert]')).toHaveCount(0);await expect(gate(page)).toBeVisible();await expect(gate(page)).toContainText(/some features|could not/i);await launchReady(page);
   await expect(reload(page)).toBeVisible();
 });
 
 test('an unresolved optional module does not keep already initialized app controls locked',async({page})=>{
   let held;await page.route('**/creator-support-ui.js*',route=>{held=route;});await page.goto('/#launch',{waitUntil:'commit'});await expect.poll(()=>Boolean(held)).toBe(true);
   await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state','ready');await expect(page.locator('[data-bootstrap-inert]')).toHaveCount(0);await expect(gate(page)).toBeHidden();
-  await expect(page.locator('body')).not.toHaveClass(/workspace-ready/);await restore(page);
+  await expect(page.locator('body')).not.toHaveClass(/workspace-ready/);await launchReady(page);
   await page.locator('#token-name').fill('Kept while optional module loads');await held.continue();await ready(page);
   await expect(page.locator('#token-name')).toHaveValue('Kept while optional module loads');await expect(page.locator('#token-name')).toBeFocused();
 });

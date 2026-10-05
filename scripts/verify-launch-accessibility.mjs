@@ -12,13 +12,11 @@ dialog.open=true;panel.hidden=true;focusLaunchStep(dialog,2);assert.equal(focuse
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
 assert.match(html,/id="wizard-hint" role="status" aria-live="polite" aria-atomic="true"/);
 assert.match(html,/id="launch-next" aria-describedby="wizard-hint"/);
-assert.match(html,/id="toggle-airdrop-wizard" aria-expanded="false" aria-controls="airdrop-wizard"/);
 const app=await readFile(new URL('../app.js',import.meta.url),'utf8');
 const creatorSupportCss=await readFile(new URL('../creator-support.css',import.meta.url),'utf8');
 const styles=await readFile(new URL('../styles.css',import.meta.url),'utf8');
 assert.match(app,/Fee-router verification is unavailable\. Check your connection before trying again\. Signing stays blocked until verification succeeds\./);
 assert.doesNotMatch(app,/status\.textContent = `Launch blocked: \$\{error\.message\}`/);
-assert.match(app,/event\.currentTarget\.setAttribute\('aria-expanded', String\(!wizard\.hidden\)\)/);
 assert.match(app,/function focusCurrentPageRoute\(\)/);
 assert.match(app,/find\(candidate => candidate\.getClientRects\(\)\.length > 0\)/);
 assert.match(app,/requestAnimationFrame\(focusCurrentPageRoute\)/);

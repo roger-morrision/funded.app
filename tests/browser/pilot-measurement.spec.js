@@ -26,7 +26,7 @@ test('measurement is off by default and explicit enrollment records role and sou
 });
 
 test('export contains only allowed event facts and preserves voluntary versus incentivized context',async({page})=>{
-  const writes=[];page.on('request',request=>{if(!['GET','HEAD','OPTIONS'].includes(request.method()))writes.push(request.url());});
+  const writes=[];page.on('request',request=>{if(!['GET','HEAD','OPTIONS'].includes(request.method()) && new URL(request.url()).pathname !== '/api/solana/rpc')writes.push(request.url());});
   await open(page);await enroll(page);
   await page.locator('[data-pilot-incentive]').selectOption('none');await page.locator('[data-pilot-prompt]').selectOption('voluntary');
   await signal(page,'launch-review-opened',{wallet:'PRIVATE-WALLET-CANARY',receipt:'PRIVATE-RECEIPT-CANARY',url:'https://secret.example',postText:'PRIVATE-POST-CANARY'});
@@ -92,9 +92,9 @@ test('a failed event write stops recording and prevents stale export',async({pag
 test('read-only network preserves a failed deletion warning for an existing device record',async({page})=>{
   await open(page);await enroll(page);const before=await record(page);
   // Keep the actual UI/controller while supplying a read-only mainnet build configuration.
-  await page.route('**/app-config.js',async route=>{
+  await page.route('**/app-config.js*',async route=>{
     const response=await route.fetch();let body=await response.text();
-    for(const [name,value] of [['APP_CLUSTER',"'mainnet-beta'"],['APP_ALLOW_MAINNET','true'],['APP_MAINNET_READ_ONLY','true']]){
+    for(const [name,value] of [['APP_CLUSTER',"'mainnet-beta'"],['EXPLORE_CLUSTER',"'mainnet-beta'"],['APP_ALLOW_MAINNET','true'],['APP_MAINNET_READ_ONLY','true']]){
       const declaration=new RegExp(`export const ${name} = [^;]+;`);
       expect(body).toMatch(declaration);body=body.replace(declaration,`export const ${name} = ${value};`);
     }

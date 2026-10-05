@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { resolve } from 'node:path';
 import { Keypair } from '@solana/web3.js';
 import { assertDevnet, assertFinalized, DEVNET_GENESIS, prepareAcceptancePayer, runAcceptance } from '../scripts/devnet-acceptance.mjs';
 
@@ -53,7 +54,7 @@ test('prefunded explicit payer uses finalized funding without requesting faucet 
       requestAirdrop: async () => { throw new Error('Prefunded mode must never request an airdrop'); },
     },
     walletFile: '/test/creator.json',
-    readWalletFile: async path => { calls.push('read'); assert.equal(path, '/test/creator.json'); return JSON.stringify(Array.from(key.secretKey)); },
+    readWalletFile: async path => { calls.push('read'); assert.equal(path, resolve('/test/creator.json')); return JSON.stringify(Array.from(key.secretKey)); },
   });
   assert.deepEqual(calls, ['genesis', 'read', 'balance']);
   assert(prepared.payer.publicKey.equals(key.publicKey));

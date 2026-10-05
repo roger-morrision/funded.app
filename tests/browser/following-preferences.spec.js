@@ -14,7 +14,7 @@ const seedCounts={'2026-10-01':{navigation:7}};
 async function seed(page){await page.addInitScript(({key,rows})=>localStorage.setItem(key,JSON.stringify(rows)),{key:COUNTS,rows:seedCounts});}
 
 for(const width of [1440,390])test(`Portfolio preferences and diagnostics are wallet-free and keyboard reachable at ${width}px`,async({page})=>{
-  await page.setViewportSize({width,height:900});const writes=[];page.on('request',request=>{if(!['GET','HEAD','OPTIONS'].includes(request.method()))writes.push(request.url());});
+  await page.setViewportSize({width,height:900});const writes=[];page.on('request',request=>{if(!['GET','HEAD','OPTIONS'].includes(request.method()) && new URL(request.url()).pathname !== '/api/solana/rpc')writes.push(request.url());});
   await open(page);const panel=page.locator('#community-preferences');
   await expect(panel.getByRole('heading',{name:'Following & updates'})).toBeVisible();
   await expect(page.locator('#updates-consent')).toBeVisible();await expect(page.locator('#updates-consent')).not.toBeChecked();

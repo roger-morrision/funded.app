@@ -3,12 +3,11 @@ import { formatReceiptSol } from './receipt-export.js';
 import { emitPilotSignal, pilotInterruptedSignal, verifiedPilotLaunchRegistration } from './pilot-event-signals.js';
 import { validateBoostQuote, boostPaymentResolution, readPendingBoost, archiveBoostPayment, saveSignedBoostPayment } from './boost-checkout-recovery.js';
 import { readHiddenChatAuthors, hideChatAuthor, resetHiddenChatAuthors } from './token-chat-preferences.js';
-import { saveDraftImage, readDraftImage, deleteDraftImage } from './launch-draft-image.js';
 import { createRoutePoller } from './route-polling.js';
 import { Buffer } from 'buffer';
 import { icon } from './ui-icons.js';
 import { summarizeFullHolderDistribution, summarizeHolderWalletSample } from './holder-wallet-sample.js';
-import { BOOST_MEMO_PROGRAM, BOOST_PACKAGES, activeBoostMultiplier, boostPackage } from './boost-offer.js';
+import { BOOST_MEMO_PROGRAM, BOOST_PACKAGES, activeBoostMultiplier, activeBoostPackages, boostPackage } from './boost-offer.js';
 import { formatTradeAmountInput, parseTradeAmountInput } from './trade-amount-input.js';
 import { formatTokenBaseAmount, tokenBalancePercentage } from './trade-panel-balance.js';
 import { buildTradeReview } from './trade-review-model.js';
@@ -20,7 +19,8 @@ import { buildBuybackAccrual, buildBuybackPolicy, buildBuybackReceipt, evaluateB
 import { buildFeeRouterPolicy, deriveMintFeeRouter, verifyFeeRouterAccount } from './fee-router.js';
 import { buildMintRouterInitializeInstruction, buildPumpLaunchPlan } from './mint-router-launch.js';
 import { launchReserveInstructions, quoteAtomicReserveBuy } from './launch-community-reserve.js';
-import { buildLaunchBurnPolicy, createLaunchBurnTiers, validateLaunchBurnPolicy } from './launch-burn-policy.js';
+import { buildLaunchBurnPolicy, createLaunchBurnTiers, tokensToBaseUnits, validateLaunchBurnPolicy } from './launch-burn-policy.js';
+import { LAUNCH_TIER_USD, launchTierQuoteCurrent } from './launch-tier-quote.js';
 import { burnedSupplyBaseUnits, formatTokenBaseUnits, parseTokenAmount, planTokenAccountBurns, projectBurnMemo, waitForSignatureConfirmation } from './funded-burn.js';
 import { bindReferralAttribution, captureFirstTouch, createReferralCode, normalizeReferralCode } from './referral-program.js';
   import { buildSolClaimPolicy, normalizeXHandle } from './sol-claim-policy.js';
@@ -30,7 +30,6 @@ import { PUMP_AMM_PROGRAM_ID, PUMP_AMM_SDK, canonicalPumpPoolPda } from '@pump-f
 import { APP_CLUSTER, APP_ENVIRONMENT_LABEL, APP_EXPLORER_QUERY, APP_MAINNET_READ_ONLY, APP_RPC_URL, DEV_MODE, DEV_WALLET_AUTOCONNECT, DEV_WALLET_ROLE, EXPLORE_CLUSTER, EXPLORE_RPC_URL, TRADE_FEE_BPS, TRADE_FEE_OWNER } from './app-config.js';
 import { apiRequest, persistLaunchPolicy } from './client.js';
 import { recordLaunchEvent, readLaunchJournal, policyMatchesJournal } from './launch-journal.js';
-import { saveLaunchDraft, readLaunchDraft, deleteLaunchDraft } from './launch-draft.js';
 import { launchReview, freshLaunchReview, launchReviewMarkup, launchReviewNeedsRefresh, initialCurvePremiumBps } from './launch-review.js';
 import { launchReviewStillCurrent } from './launch-review-gate.js';
 import { confirmedClaimResult } from './reward-discovery.js';
@@ -144,6 +143,8 @@ let launchMode = 'quick';
 let launchProfile = 'fast';
 let launchBurnTier = 'standard';
 let launchBurnReadiness = { ready: true, message: 'No creator-funded burn is required.' };
+let launchTierPricing = null;
+let launchTierQuote = null;
 let fundedBurnRequest = 0;
 let fundedBurnState = { status: 'idle', wallet: null, decimals: 0, balanceBaseUnits: 0n, supplyBaseUnits: 0n, burnedBaseUnits: 0n, tokenAccounts: [], receipts: [], message: '' };
 let fundedBuyRoute = { status:'checking', snapshot:null, reason:'Checking the verified Devnet pool…' };
@@ -173,6 +174,7 @@ const LAUNCH_BURN_TIERS = createLaunchBurnTiers({
   proAmount: Number(import.meta.env.VITE_FUNDED_PRO_BURN_AMOUNT || 100_000),
   premierAmount: Number(import.meta.env.VITE_FUNDED_PREMIER_BURN_AMOUNT || 250_000),
 });
+const SELECTABLE_LAUNCH_TIERS = new Set(['standard', 'pro', 'premier']);
 let feeRouterState = { status: 'checking', verified: false, address: null, programId: FEE_ROUTER_PROGRAM_ID || null, bump: null };
 let feeRouterRefreshPromise = null;
 let xFeeStatus = { ready: false, reasons: ['X fee service has not been verified'] };
@@ -191,7 +193,24 @@ const APP_ECONOMICS = Object.freeze({
 });
 
 function getFundedMintAddress(){ return PROTOCOL_FUNDED_MINT; }
-function getLaunchBurnPolicy(){ return buildLaunchBurnPolicy({ tierId: launchBurnTier, fundedMint: PROTOCOL_FUNDED_MINT || null, tiers: LAUNCH_BURN_TIERS }); }
+function currentLaunchTierQuote(){
+  if (!connectedWalletAddress) return null;
+  return launchTierQuoteCurrent(launchTierQuote, { tier:launchBurnTier, payer:connectedWalletAddress, mint:PROTOCOL_FUNDED_MINT })
+    ? launchTierQuote : null;
+}
+function currentLaunchTierAmounts(){
+  return launchTierPricing && Date.now() - Date.parse(launchTierPricing.observedAt) < 120_000
+    ? launchTierPricing.amounts : null;
+}
+function getLaunchBurnPolicy(){
+  const quote = currentLaunchTierQuote();
+  const amounts = currentLaunchTierAmounts();
+  const tiers = LAUNCH_BURN_TIERS.map(tier => Object.hasOwn(LAUNCH_TIER_USD, tier.id)
+    ? { ...tier, amountTokens:quote?.tier === tier.id ? quote.amountTokens : amounts?.[tier.id] || 0 } : tier);
+  const policy = buildLaunchBurnPolicy({ tierId:launchBurnTier, fundedMint:PROTOCOL_FUNDED_MINT || null, tiers });
+  return Object.hasOwn(LAUNCH_TIER_USD, policy.tier)
+    ? { ...policy, quoteId:quote?.id || null, usdTarget:LAUNCH_TIER_USD[policy.tier] } : policy;
+}
 function renderFundedTokenLanding(){
   const set = (id, value) => { const element = document.getElementById(id); if (element) element.textContent = value; };
   const mintReady = validateSolanaMint(PROTOCOL_FUNDED_MINT).valid === true;
@@ -204,7 +223,10 @@ function renderFundedTokenLanding(){
     explorer.hidden = !mintReady;
     if (mintReady) { explorer.href = 'https://explorer.solana.com/address/' + encodeURIComponent(PROTOCOL_FUNDED_MINT) + APP_EXPLORER_QUERY; explorer.target = '_blank'; explorer.rel = 'noopener noreferrer'; explorer.textContent = 'VIEW ON SOLANA ↗'; }
   }
-  for (const tier of LAUNCH_BURN_TIERS.filter(item => item.amountTokens > 0)) set('funded-token-' + tier.id, tier.amountTokens.toLocaleString());
+  const tierAmounts = currentLaunchTierAmounts();
+  for (const tier of LAUNCH_BURN_TIERS.filter(item => item.id !== 'standard'))
+    set('funded-token-' + tier.id, Object.hasOwn(LAUNCH_TIER_USD, tier.id)
+      ? tierAmounts?.[tier.id]?.toLocaleString() || '—' : tier.amountTokens.toLocaleString());
   const asset = mintReady && exploreUpdatedAt ? assets.find(item => item.address === PROTOCOL_FUNDED_MINT) : null;
   const pool = fundedBuyRoute.status === 'ready' && fundedBuyRoute.snapshot?.mint === PROTOCOL_FUNDED_MINT
     ? fundedBuyRoute.snapshot : null;
@@ -215,11 +237,10 @@ function renderFundedTokenLanding(){
   const assetPriceUsd = Number(asset?.priceUsd) > 0 ? Number(asset.priceUsd)
     : Number(asset?.curvePriceSol) > 0 && solUsdReady ? Number(asset.curvePriceSol) * coinSolUsdPrice : null;
   const quote = poolReady ? poolPriceUsd : assetPriceUsd;
-  for (const tier of LAUNCH_BURN_TIERS.filter(item => item.amountTokens > 0)) {
-    set('funded-token-' + tier.id + '-note', Number.isFinite(quote) && quote > 0
-      ? `≈ ${formatDashboardUsd(tier.amountTokens * quote)} at current spot`
-      : '$FUNDED burn per launch');
-  }
+  for (const tier of LAUNCH_BURN_TIERS.filter(item => item.id !== 'standard'))
+    set('funded-token-' + tier.id + '-note', Object.hasOwn(LAUNCH_TIER_USD, tier.id)
+      ? `$${LAUNCH_TIER_USD[tier.id]} target · ${tierAmounts?.[tier.id] ? 'current pool quote' : 'quote unavailable'}`
+      : Number.isFinite(quote) && quote > 0 ? `≈ ${formatDashboardUsd(tier.amountTokens * quote)} at current spot` : '$FUNDED burn per launch');
   const poolUnavailableNote = fundedBuyRoute.status === 'unavailable'
     ? /rate limit/i.test(fundedBuyRoute.reason || '') ? 'Devnet RPC rate limited' : 'Verified Devnet pool unavailable'
     : 'Verified quote unavailable';
@@ -270,6 +291,37 @@ function renderFundedTokenLanding(){
   }
 }
 window.addEventListener('funded:token-page-ready', renderFundedTokenLanding);
+let launchTierPriceRequest = 0;
+async function refreshLaunchTierPricing(){
+  const request = ++launchTierPriceRequest;
+  const previousAmount = getLaunchBurnPolicy().amountTokens;
+  try {
+    const response = await apiRequest('/api/launch-tier-quote');
+    if (!response.available) throw new Error(response.data?.error || 'The verified $FUNDED price is unavailable.');
+    const data = response.data;
+    if (data?.fundedMint !== PROTOCOL_FUNDED_MINT || data?.pool !== PROTOCOL_FUNDED_SWAP_POOL
+      || !Number.isFinite(Number(data.tokenPriceUsd)) || Number(data.tokenPriceUsd) <= 0
+      || !['pro', 'premier'].every(tier => Number.isSafeInteger(data.amounts?.[tier]) && data.amounts[tier] > 0))
+      throw new Error('The launch tier quote did not match the configured $FUNDED pool.');
+    if (request !== launchTierPriceRequest) return;
+    launchTierPricing = data;
+  } catch (error) {
+    if (request !== launchTierPriceRequest) return;
+    launchTierPricing = null;
+    const status = document.querySelector('#launch-tier-quote-status');
+    if (status) status.textContent = String(error.message || 'The verified $FUNDED price is unavailable.');
+  }
+  if (launchBurnTier !== 'standard' && !currentLaunchTierQuote() && getLaunchBurnPolicy().amountTokens !== previousAmount) {
+    launchBurnReadiness = { ready:false, message:'Refresh the wallet and launch estimate after the $FUNDED quote changes.' };
+    launchCostReview = null;
+    estimatedLaunchFeeLamports = null;
+    if (wallet) scheduleLaunchCostRefresh();
+  }
+  renderLaunchBurnSelection();
+  renderFundedTokenLanding();
+  updateCostSummary();
+  updateLaunchButton();
+}
 function getCreatorBuySol(){
   const value = Number(document.querySelector('#creator-buy-sol')?.value || 0);
   return Number.isFinite(value) ? value : 0;
@@ -818,13 +870,18 @@ let boostExpiryTimer = null;
 let boostCheckout = { mint: null, packageId: '10x', quote: null, pendingSignature: null, busy: false, message: '' };
 function scheduleBoostExpiryRefresh(){
   clearTimeout(boostExpiryTimer);
-  const nextExpiry = Math.min(...Object.values(verifiedBoosts).map(item => Date.parse(item.nextExpiry || item.expiresAt)).filter(time => Number.isFinite(time) && time > Date.now()));
+  const nextExpiry = Math.min(...Object.values(verifiedBoosts).flatMap(item => Array.isArray(item.packages)
+    ? item.packages.map(pack => Date.parse(pack.expiresAt)) : [Date.parse(item.nextExpiry || item.expiresAt)])
+    .filter(time => Number.isFinite(time) && time > Date.now()));
   if (!Number.isFinite(nextExpiry)) return;
   boostExpiryTimer = setTimeout(() => {
     for (const asset of assets) asset.postLaunchBoostMultiplier = activeBoostMultiplier(verifiedBoosts[asset.address]);
     renderExploreAssets();
     renderRegistry();
     renderHomeLaunchBoard();
+    renderWatchlist();
+    renderCreatorLaunches();
+    renderAirdropDirectory();
     renderCoinPromotionBadge();
     scheduleBoostExpiryRefresh();
     if (!document.hidden) void loadVerifiedBoosts();
@@ -835,6 +892,15 @@ async function loadVerifiedBoosts(signal){
   signal?.throwIfAborted();
   if (!response.available || response.data?.cluster !== EXPLORE_CLUSTER) {
     verifiedBoostsAvailable = false;
+    verifiedBoosts = {};
+    clearTimeout(boostExpiryTimer);
+    for (const asset of assets) asset.postLaunchBoostMultiplier = 0;
+    renderExploreAssets();
+    renderRegistry();
+    renderHomeLaunchBoard();
+    renderWatchlist();
+    renderCreatorLaunches();
+    renderAirdropDirectory();
     renderCoinPromotionBadge();
     return;
   }
@@ -846,6 +912,9 @@ async function loadVerifiedBoosts(signal){
   renderExploreAssets();
   renderRegistry();
   renderHomeLaunchBoard();
+  renderWatchlist();
+  renderCreatorLaunches();
+  renderAirdropDirectory();
   renderCoinPromotionBadge();
   if (document.querySelector('#explore-boost-dialog')?.open) renderExploreBoostDialog();
 }
@@ -856,11 +925,19 @@ function exploreBoostStatus(mint){
 }
 function exploreBoostAmountMarkup(mint){
   const boost = verifiedBoosts[mint];
-  const multiplier = activeBoostMultiplier(boost);
-  if (!multiplier) return '';
-  const receiptCount = Number(boost.count) || 1;
-  const title = `${multiplier.toLocaleString()}x active boost from ${receiptCount} finalized payment${receiptCount === 1 ? '' : 's'} · next expiry ${new Date(boost.nextExpiry || boost.expiresAt).toLocaleString()}`;
-  return `<span class="explore-boost-amount" title="${escapeHtml(title)}" aria-label="Verified active boost ${multiplier.toLocaleString()} times">⚡${multiplier.toLocaleString()}x</span>`;
+  const groups = new Map();
+  for (const pack of activeBoostPackages(boost)) {
+    const group = groups.get(pack.packageId) || { multiplier: pack.multiplier, count: 0, nextExpiry: pack.expiresAt };
+    group.count += 1;
+    if (Date.parse(pack.expiresAt) < Date.parse(group.nextExpiry)) group.nextExpiry = pack.expiresAt;
+    groups.set(pack.packageId, group);
+  }
+  if (!groups.size) return '';
+  return `<span class="boost-package-badges" aria-label="Active paid boost packages">${[...groups.values()].map(group => {
+    const label = `${group.multiplier}x`;
+    const title = `${group.count} verified active ${label} boost payment${group.count === 1 ? '' : 's'} · next expiry ${new Date(group.nextExpiry).toLocaleString()}`;
+    return `<span class="boost-package-badge" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}">⚡${label}${group.count > 1 ? `<small>×${group.count}</small>` : ''}</span>`;
+  }).join('')}</span>`;
 }
 function exploreTierBadgeMarkup(mint){
   const promotion = promotionForMint(mint);
@@ -906,8 +983,13 @@ function exploreAirdropMarkup(record){
   return `<a class="scanner-airdrop" href="#airdrops" title="${escapeHtml(`${percent} of token supply in the verified launch policy. ${status}`)}"><strong>${escapeHtml(percent)}</strong><small>${detail}</small></a>`;
 }
 function boostAssetForMint(mint){
-  return assets.find(item => item.address === mint) || (getCoinMintAddress() === mint
-    ? { address:mint, symbol:document.querySelector('#coin-symbol')?.textContent?.trim(), name:document.querySelector('#coin-page-title')?.textContent?.trim() } : null);
+  const known = assets.find(item => item.address === mint);
+  if (known || getCoinMintAddress() !== mint) return known || null;
+  const symbol = document.querySelector('#coin-symbol')?.textContent?.trim() || '';
+  const name = document.querySelector('#coin-page-title')?.textContent?.trim() || '';
+  return { address:mint,
+    symbol: /^(?:on-chain|loading.*|unavailable|—|–)$/i.test(symbol) ? shortAddress(mint) : symbol || shortAddress(mint),
+    name: /^(?:loading token.*|token.*unavailable|—|–)$/i.test(name) ? shortAddress(mint) : name || shortAddress(mint) };
 }
 function openExploreBoost(mint){
   if (boostCheckout.busy) { showToast('Finish the current boost payment or verification before opening another checkout.'); return; }
@@ -948,18 +1030,25 @@ function renderExploreBoostDialog(){
   if (!asset || !details) return;
   const promotion = promotionForMint(mint);
   const name = escapeHtml(asset.name || asset.symbol || shortAddress(mint));
-  document.querySelector('#explore-boost-title').textContent = `Boost ${asset.symbol || asset.name || 'token'}`;
+  document.querySelector('#explore-boost-title').textContent = `Give ${asset.symbol || asset.name || 'token'} a ⚡ Boost`;
   const active = activeBoostMultiplier(verifiedBoosts[mint]) ? verifiedBoosts[mint] : null;
   const selected = boostPackage(packageId);
   const available = !recoveryError && ((EXPLORE_CLUSTER === 'devnet' && !APP_MAINNET_READ_ONLY && boostPurchasesEnabled) || Boolean(pendingSignature));
-  details.innerHTML = `<p class="explore-boost-intro">Anyone with a signing Devnet wallet can boost ${name}. Choose a fixed window. Overlapping boosts stack; paid placement is labelled and does not change observed trade volume or market cap.</p>
-    <div class="explore-boost-current"><span>Active paid boost</span><strong>${active ? `${escapeHtml(active.multiplier)}x${active.golden ? ' · golden' : ''}` : 'None'}</strong><small>${active ? `${active.count} verified payment${active.count === 1 ? '' : 's'} · latest expiry ${escapeHtml(new Date(active.expiresAt).toLocaleString())}` : 'No active verified payment'} · Launch tier: ${escapeHtml(promotion?.label || 'Standard')}</small></div>
-    <div class="explore-boost-packages" role="group" aria-label="Boost packages">${BOOST_PACKAGES.map(item => `<button type="button" data-boost-package="${item.id}" aria-pressed="${item.id === packageId}" ${busy || pendingSignature ? 'disabled' : ''}><strong>⚡ ${item.id}</strong><small>${item.hours}h</small><b>$${item.usd.toLocaleString()}</b><small>${Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? `≈ ${(item.usd / coinSolUsdPrice).toFixed(4)} SOL` : 'SOL quote at checkout'}</small></button>`).join('')}</div>
+  const boostTotal = verifiedBoostsAvailable && active ? Number(active.multiplier) : 0;
+  const quotedAmount = quote && quote.mint === mint && quote.packageId === packageId && Date.parse(quote.expiresAt) > Date.now()
+    ? (quote.lamports / 1e9).toFixed(9) : null;
+  details.innerHTML = `<p class="explore-boost-intro">Showcase your support for ${name} with a timed, clearly labelled paid boost. Active boosts can improve its position in the Boosted view; market cap and trading activity still come from observed data.</p>
+    <details class="explore-boost-how"><summary>How does it work?</summary><p>Choose a pack, request a fresh Devnet SOL quote, then review the payment in your wallet. The boost activates only after its payment is finalized and verified. Overlapping packs add together until each expires. A boost does not guarantee a ranking or trading activity.</p></details>
+    <h3 class="explore-boost-pack-heading">Choose a boost pack</h3>
+    <p class="explore-boost-payment-method"><span>Payment method</span><strong>SOL · Solana Devnet</strong><small>Estimated SOL amounts are shown below. Review the exact amount and recipient before signing.</small></p>
+    <div class="explore-boost-packages" role="group" aria-label="Boost packages">${BOOST_PACKAGES.map(item => `<button type="button" data-boost-package="${item.id}" aria-pressed="${item.id === packageId}" ${busy || pendingSignature ? 'disabled' : ''}><span class="boost-pack-bolt" aria-hidden="true">⚡</span><strong>${item.id}</strong><small>${item.hours} hours</small><b>${Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? `≈ ${(item.usd / coinSolUsdPrice).toFixed(4)} SOL` : 'Pay in SOL'}</b><small>$${item.usd.toLocaleString()} package · exact SOL quote at checkout</small></button>`).join('')}</div>
+    <div class="explore-boost-golden"><h3>Golden ticker unlocks at 500 active boosts</h3><div class="explore-boost-golden-preview"><span>Verified active boosts</span><strong class="${boostTotal >= 500 ? 'golden-ticker' : ''}">${escapeHtml(asset.symbol || 'TOKEN')}</strong><span>${boostTotal >= 500 ? 'Golden ticker active' : 'Golden ticker preview'}</span></div><p>Boosts active: <strong>${verifiedBoostsAvailable ? boostTotal.toLocaleString() : 'Unavailable'}</strong><span>Boosts needed: <strong>${verifiedBoostsAvailable ? Math.max(0, 500 - boostTotal).toLocaleString() : 'Unavailable'}</strong></span></p></div>
+    <div class="explore-boost-current"><span>Active paid boost</span><strong>${verifiedBoostsAvailable ? (active ? `${escapeHtml(active.multiplier)}x${active.golden ? ' · golden ticker' : ''}` : 'None') : 'Unavailable'}</strong><small>${active ? `${active.count} verified payment${active.count === 1 ? '' : 's'} · latest expiry ${escapeHtml(new Date(active.expiresAt).toLocaleString())}` : 'No active verified payment'} · Launch tier: ${escapeHtml(promotion?.label || 'Standard')}</small></div>
     <p class="explore-boost-explainer">Fixed USD package price, paid in Devnet SOL at the fresh checkout rate. Devnet SOL has no intended monetary value. Network fee is additional. Boosting is paid visibility, not an endorsement or trade guarantee.</p>
-    ${quote ? `<div class="explore-boost-quote"><strong>Review exact payment</strong><span>${(quote.lamports / 1e9).toFixed(9)} SOL · $${quote.usd} at $${quote.solUsd}/SOL</span><small>Recipient ${escapeHtml(quote.recipient)} · Quote expires ${escapeHtml(new Date(quote.expiresAt).toLocaleTimeString())}</small></div>` : ''}
+    ${quotedAmount ? `<div class="explore-boost-quote"><strong>Review exact SOL payment</strong><span>${quotedAmount} SOL</span><small>$${quote.usd} package at $${quote.solUsd}/SOL · network fee additional</small><small>Recipient ${escapeHtml(quote.recipient)} · Quote expires ${escapeHtml(new Date(quote.expiresAt).toLocaleTimeString())}</small></div>` : quote && !pendingSignature ? '<p class="explore-boost-quote-expired">The SOL quote expired. Request a fresh amount before paying.</p>' : ''}
     ${pendingSignature ? `<a class="explore-boost-proof" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(pendingSignature)}`))}" target="_blank" rel="noopener noreferrer">View submitted transaction ↗</a>` : ''}
-    <button type="button" class="primary-button explore-boost-pay" ${!available || busy ? 'disabled' : ''}>${busy ? 'Checking payment…' : failureProof ? 'Start a new quote' : pendingSignature ? 'Retry payment verification' : quote ? `Pay ${(quote.lamports / 1e9).toFixed(6)} SOL · ${selected.id}` : `Get SOL quote · ${selected.id}`}</button>
-    <p class="explore-boost-message" role="status">${escapeHtml(recoveryError || message || (available ? 'Connect a wallet when you are ready to get a quote.' : 'New boost purchases are currently unavailable.'))}</p>
+    <button type="button" class="primary-button explore-boost-pay" ${!available || busy ? 'disabled' : ''}>${busy ? 'Checking payment…' : failureProof ? 'Start a new quote' : pendingSignature ? 'Retry payment verification' : quotedAmount ? `Pay ${quotedAmount} SOL · ${selected.id}` : `Get exact SOL quote · ${selected.id}`}</button>
+    <p class="explore-boost-message" role="status">${escapeHtml(recoveryError || message || (available ? 'Connect a Devnet wallet in a wallet-enabled browser to get the exact SOL quote.' : 'New boost purchases are currently unavailable.'))}</p>
     <div class="explore-boost-history"><strong>Payment history</strong>${exploreBoostHistory.filter(row => row.mint === mint).slice(0, 5).map(row => `<p><span>${escapeHtml(row.packageId)} · ${escapeHtml(shortAddress(row.payer))} · ${escapeHtml(new Date(row.expiresAt).toLocaleString())}</span><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(row.signature)}`))}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></p>`).join('') || '<small>No verified boost payments yet.</small>'}</div>`;
 }
 async function handleExploreBoostPay(){
@@ -1117,6 +1206,14 @@ function renderCoinPromotionBadge(){
   const mint = getCoinMintAddress();
   const active = verifiedBoosts[mint];
   const activeMultiplier = activeBoostMultiplier(active);
+  let packageBadges = identity.querySelector('#coin-boost-packages');
+  if (!packageBadges) {
+    packageBadges = document.createElement('span');
+    packageBadges.id = 'coin-boost-packages';
+    identity.querySelector('#coin-symbol')?.after(packageBadges);
+  }
+  packageBadges.innerHTML = exploreBoostAmountMarkup(mint);
+  document.querySelector('#coin-page-title')?.classList.toggle('golden-ticker', verifiedBoostsAvailable && activeMultiplier >= 500);
   const boostTotal = rail.querySelector('#coin-boost-total');
   if (boostTotal) boostTotal.textContent = verifiedBoostsAvailable
     ? (activeMultiplier ? `${activeMultiplier.toLocaleString()}x total` : 'No active boost')
@@ -1125,7 +1222,7 @@ function renderCoinPromotionBadge(){
   if (boostButton) {
     boostButton.classList.toggle('is-active', verifiedBoostsAvailable && Boolean(activeMultiplier));
     boostButton.title = verifiedBoostsAvailable
-      ? (activeMultiplier ? `${active.count} verified boost payment${active.count === 1 ? '' : 's'} · active total ${activeMultiplier}x` : 'No active verified boost · view packages')
+      ? (activeMultiplier ? `${activeBoostPackages(active).length} verified boost payment${activeBoostPackages(active).length === 1 ? '' : 's'} · active total ${activeMultiplier}x` : 'No active verified boost · view packages')
       : 'Boost status unavailable · view packages';
     boostButton.setAttribute('aria-label', `View boost packages · ${boostTotal?.textContent || 'status unavailable'}`);
   }
@@ -1272,7 +1369,7 @@ function portfolioTokenCardMarkup({ mint, name, symbol, source, allocationPercen
   return `<article class="token-card-shell portfolio-token-card${removable ? ' watchlist-token-card' : ' project-token-card'}" data-mint="${safeMint}">
     <div class="portfolio-token-card-top">
       <span class="portfolio-token-avatar">${escapeHtml(icon)}</span>
-      <span class="portfolio-token-identity"><strong>${escapeHtml(tokenSymbol)}</strong><small>${escapeHtml(tokenName)}</small></span>
+      <span class="portfolio-token-identity"><strong>${escapeHtml(tokenSymbol)}</strong>${exploreBoostAmountMarkup(mint)}<small>${escapeHtml(tokenName)}</small></span>
       <span class="portfolio-token-stage">${escapeHtml(stage)}</span>
     </div>
     <p class="portfolio-token-source">${escapeHtml(source || 'Solana Devnet')}</p>
@@ -1470,7 +1567,7 @@ function renderAirdropDirectory(programs = getAirdropPrograms()){
     const safeSymbol = escapeHtml(program.symbol);
     const snapshotReady = program.eligibleWallets != null;
     return `<article class="token-card-shell airdrop-directory-card" data-logo-mint="${safeMint}">
-      <div class="directory-card-top"><span class="claim-token-mark" aria-hidden="true" title="Project artwork not published for this token">${escapeHtml(program.symbol.slice(0, 2).toUpperCase())}</span><div><span class="directory-token-identity"><strong>${safeSymbol}</strong><a href="/token/${encodeURIComponent(program.id)}">${escapeHtml(program.name)}</a></span>${tokenCardAddressesMarkup(program.id)}<span class="airdrop-status ${program.status}">${escapeHtml(program.statusLabel)}</span>${exploreSocialLinksMarkup({ address: program.id, symbol: program.symbol })}</div></div>
+      <div class="directory-card-top"><span class="claim-token-mark" aria-hidden="true" title="Project artwork not published for this token">${escapeHtml(program.symbol.slice(0, 2).toUpperCase())}</span><div><span class="directory-token-identity"><strong>${safeSymbol}</strong>${exploreBoostAmountMarkup(program.id)}<a href="/token/${encodeURIComponent(program.id)}">${escapeHtml(program.name)}</a></span>${tokenCardAddressesMarkup(program.id)}<span class="airdrop-status ${program.status}">${escapeHtml(program.statusLabel)}</span>${exploreSocialLinksMarkup({ address: program.id, symbol: program.symbol })}</div></div>
       <div class="directory-stats"><span><small>Policy reserve</small><b>${formatTokenAmount(program.reservedTokens)} $${safeSymbol}</b></span><span><small>Vault</small><b>${program.vaultVerified ? 'Verified' : 'Unverified'}</b></span><span><small>Snapshot</small><b>${snapshotReady ? `${formatTokenAmount(program.eligibleWallets)} wallets` : 'Pending'}</b></span></div>
       <div class="directory-footer"><span><small>Your allocation</small><b>${program.walletAllocation == null ? program.claimActive ? 'Connect to check' : 'Available after snapshot' : formatTokenAmount(program.walletAllocation)}</b></span><div class="token-card-actions">${tokenCardWatchMarkup(program.id, program.symbol)}${tokenCardShareMarkup(program.id, program.symbol, program.name)}<button type="button" class="secondary-button directory-claim" data-directory-mint="${safeMint}" aria-controls="airdrop-selected-program">View details</button></div></div>
     </article>`;
@@ -1828,6 +1925,7 @@ function renderWalletFundedBalance(){
   const ready = currentWallet && fundedBurnState.status === 'ready';
   balance.textContent = ready ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : '—';
   if (note) note.textContent = ready ? 'Live SPL token balance' : currentWallet && fundedBurnState.status === 'loading' ? 'Loading from Devnet' : 'Balance unavailable';
+  renderLaunchBurnSelection();
 }
 async function loadFundedBurnState({ force = false } = {}){
   const address = connectedWalletAddress;
@@ -1869,7 +1967,7 @@ async function loadFundedBurnState({ force = false } = {}){
   } catch (error) {
     if (request !== fundedBurnRequest) return;
     const detail = String(error?.message || '');
-    const unavailable = /(?:5\d\d Internal Server Error|failed to fetch|networkerror|econnrefused|\b429\b|rate limit|too many requests)/i.test(detail);
+    const unavailable = /(?:5\d\d (?:Internal Server Error|Bad Gateway)|returned an invalid response|failed to fetch|networkerror|econnrefused|\b429\b|rate limit|too many requests)/i.test(detail);
     fundedBurnState = { ...fundedBurnState, status: 'error', wallet: address, message: unavailable
       ? 'Devnet RPC unavailable; $FUNDED mint and balance could not be verified.'
       : detail || 'Devnet burn data is unavailable.' };
@@ -1916,7 +2014,7 @@ async function refreshFundedBuyRoute(signal){
     const detail = String(error?.message || error);
     const reason = /(?:\b429\b|rate limit|too many requests)/i.test(detail)
       ? 'Buy preview is temporarily unavailable because Solana RPC is rate limited. Try again shortly.'
-      : /(?:failed to fetch|networkerror|econnrefused|timed out)/i.test(detail)
+      : /(?:5\d\d (?:Internal Server Error|Bad Gateway)|returned an invalid response|failed to fetch|networkerror|econnrefused|timed out)/i.test(detail)
         ? 'Buy preview is unavailable while the Devnet RPC connection recovers.'
         : `Buy preview is unavailable: ${detail.slice(0, 220)}`;
     fundedBuyRoute = { status:'unavailable', snapshot:null, reason };
@@ -2048,7 +2146,7 @@ function renderBuybackDashboard(message = ''){
   if (burnStatus) burnStatus.textContent = fundedBurnState.message;
   const tierCard = document.querySelector('.burn-tier-card');
   if (tierCard) {
-    const paidTiers = LAUNCH_BURN_TIERS.filter(tier => tier.amountTokens > 0);
+    const paidTiers = LAUNCH_BURN_TIERS.filter(tier => SELECTABLE_LAUNCH_TIERS.has(tier.id) && tier.amountTokens > 0);
     const maximum = paidTiers.at(-1)?.amountTokens || 1;
     paidTiers.forEach(tier => {
       const row = tierCard.querySelector(`[data-burn-tier="${tier.id}"]`);
@@ -2380,6 +2478,10 @@ function renderExploreControls(){
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   });
+  const boostCount = document.querySelector('#explore-boost-sort-count');
+  if (boostCount) boostCount.textContent = verifiedBoostsAvailable
+    ? String(assets.filter(item => activeBoostMultiplier(verifiedBoosts[item.address]) > 0).length)
+    : '—';
   const volumeSortButton = document.querySelector('[data-explore-sort="volume"]');
   if (volumeSortButton) volumeSortButton.textContent = `${exploreWindow} volume`;
   const hasExploreFilters = exploreRisk !== 'all' || exploreStage !== 'all' || exploreAuthority !== 'all'
@@ -2450,7 +2552,7 @@ function exploreAssetCardMarkup(a){
   const age = a.createdTimestamp ? escapeHtml(formatOnchainAge(Number(a.createdTimestamp) * 1000)) : 'Age unavailable';
   return `<article class="token-card-shell asset-card signal-${escapeHtml(a.riskLevel)}" data-search="${escapeHtml(a.symbol)} ${escapeHtml(a.name)} ${mint}" data-mint="${mint}">
     <div class="asset-artwork"><a class="asset-artwork-link" href="${tokenUrl}" aria-label="Open ${escapeHtml(a.name)} token"><i class="asset-icon">${escapeHtml(a.icon)}</i></a><span class="asset-artwork-stage">${escapeHtml(exploreStageLabel(a))}</span><span class="asset-artwork-age">${age}</span><button type="button" class="watch-button" data-mint="${mint}" aria-label="Save ${escapeHtml(a.symbol)} to watchlist" aria-pressed="false">${icon('star')}</button>${exploreSocialLinksMarkup(a)}</div>
-    <div class="asset-top"><span class="asset-symbol">${escapeHtml(a.symbol)}</span><p class="asset-name"><a class="asset-title-link" href="${tokenUrl}">${escapeHtml(a.name)}</a></p></div>
+    <div class="asset-top"><span class="asset-symbol${activeBoostMultiplier(verifiedBoosts[a.address]) >= 500 ? ' golden-ticker' : ''}">${escapeHtml(a.symbol)} ${exploreBoostAmountMarkup(a.address)}</span><p class="asset-name"><a class="asset-title-link" href="${tokenUrl}">${escapeHtml(a.name)}</a></p></div>
     <div class="asset-status"><span class="asset-status-badge">${verifiedPaidListingPayment(a) ? 'Paid listing' : a.promotionTier === 'standard' ? 'Standard launch' : a.promotionTier ? 'Promoted launch' : 'Tier unavailable'}</span>${explorePaidListingBagMarkup(a)}<span class="asset-meta">${escapeHtml(exploreStageLabel(a))} · ${age}</span></div>
     <div class="asset-signal-row"><span>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetVolumeLabel(a) : '24h volume'} <b>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetVolume(a) : formatSignal(a.volume24hUsd, ' USD')}</b></span><span>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetReserveLabel(a) : 'Liquidity'} <b>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetReserve(a) : formatSignal(a.liquidityUsd, ' USD')}</b></span></div>
     <div class="asset-bottom"><span class="asset-value" title="${verifiedPaidListingPayment(a) && a.complete == null ? 'Market cap unavailable without verified market data' : `Estimated market capitalization from the confirmed ${a.migrated === true ? 'PumpSwap pool' : 'Pump curve'} snapshot`}">${escapeHtml(exploreMarketCapLabel(a))} · ${escapeHtml(exploreMarketCapUsd(a))}</span><span class="asset-change">${escapeHtml(a.migrated === true ? 'Pool change unindexed' : a.change)}</span></div>
@@ -3060,25 +3162,8 @@ function renderOnchainReportState(verified){
   if (communityBadge) communityBadge.textContent = 'RPC state';
   renderVerifiedReceiptEvidence();
   renderExtendedAnalyticsDashboard();
-  const rangeStatus = document.querySelector('#analytics-range-status');
-  if (rangeStatus) {
-    const clusterLabel = EXPLORE_CLUSTER === 'mainnet-beta' ? 'Mainnet' : 'Devnet';
-    const dataSource = `${clusterLabel} · ${analyticsSummary ? 'Recorded activity. ' : 'Activity service unavailable. '}`;
-    const technical = document.querySelector('#analytics-technical-source');
-    if (technical) technical.textContent = analyticsSummary ? `Build: ${analyticsSummary.build || 'unavailable'} · Source: ${analyticsSummary.source || 'unavailable'}` : 'Source details unavailable.';
-    const recorded = Number(receiptEvidence?.coverage?.recordedCollections || 0);
-    const proven = receiptEvidence?.verifiedCollections?.length || 0;
-    const launchStatus = indexedLaunches != null
-      ? feedChecked && !marketUnavailable && verified.length === indexedLaunches
-        ? `${indexedLaunches} funded launch${indexedLaunches === 1 ? '' : 'es'} in the current verified ${clusterLabel} feed.`
-        : `${indexedLaunches} previously verified funded launch${indexedLaunches === 1 ? '' : 'es'} in the ${clusterLabel} index. Live RPC scan incomplete.`
-      : !feedChecked ? `Checking the ${clusterLabel} launch feed.` : `${verified.length} funded launch${verified.length === 1 ? '' : 'es'} in the current ${clusterLabel} feed.`;
-    const receiptStatus = !receiptEvidenceChecked ? 'Checking fee and payout receipts.'
-      : !receiptEvidence || receiptEvidence.status === 'unavailable' ? 'Receipt verification is unavailable.'
-        : recorded > proven ? `${recorded - proven} recorded fee claim${recorded - proven === 1 ? '' : 's'} ${recorded - proven === 1 ? 'lacks' : 'lack'} matching on-chain proof and ${recorded - proven === 1 ? 'is' : 'are'} excluded from verified totals.`
-          : 'Fee and payout figures use matching on-chain receipt proofs.';
-    rangeStatus.textContent = `${dataSource}${launchStatus} ${receiptStatus}`;
-  }
+  const technical = document.querySelector('#analytics-technical-source');
+  if (technical) technical.textContent = analyticsSummary ? `Build: ${analyticsSummary.build || 'unavailable'} · Source: ${analyticsSummary.source || 'unavailable'}` : 'Source details unavailable.';
 }
 document.addEventListener('funded:analytics-upgraded', () => renderOnchainReportState(assets));
 let leaderboardView = 'burners';
@@ -3522,12 +3607,6 @@ function renderHomeLaunchBoard(){
   const tableBody = document.querySelector('#home-launch-table-body');
   grid.hidden = homeLaunchView === 'table';
   if (tableWrap) tableWrap.hidden = homeLaunchView !== 'table';
-  const feedState = document.querySelector('#home-feed-state');
-  if (feedState) {
-    feedState.textContent = exploreFeedAvailable ? `Feed available · Solana ${EXPLORE_CLUSTER === 'mainnet-beta' ? 'mainnet' : EXPLORE_CLUSTER}`
-      : exploreLastVerifiedAt ? 'Last verified snapshot' : 'Feed unavailable';
-    feedState.dataset.state = exploreFeedAvailable ? 'live' : exploreLastVerifiedAt ? 'snapshot' : 'unavailable';
-  }
   const tickerLabel = document.querySelector('#home-market-ticker-label');
   if (tickerLabel) tickerLabel.textContent = `Trending · ${homeLaunchWindow} volume`;
   const volumeFilterLabel = document.querySelector('#home-filter-volume-label');
@@ -3590,11 +3669,16 @@ function renderHomeLaunchBoard(){
   if (ticker) {
     const ranked = verified.filter(item => volumeRank(item) >= 0)
       .sort((a, b) => volumeRank(b) - volumeRank(a)).slice(0, 6);
-    const tickerMarkup = ranked.length ? ranked.map(item => {
-      const shownVolume = volumeUsd(item);
-      const changeValue = Number.parseFloat(item.change || '');
-      const trendClass = Number.isFinite(changeValue) ? changeValue >= 0 ? 'is-positive' : 'is-negative' : '';
-      return `<a href="/token/${encodeURIComponent(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}"><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span><strong>${escapeHtml(item.symbol || 'TOKEN')}</strong>${homeLaunchWindow === '24h' ? `<span class="${trendClass}" title="24h change">${escapeHtml(item.change || '—')}</span>` : ''}<small>${escapeHtml(shownVolume)}</small></a>`;
+    const tickerMarkup = ranked.length ? ranked.map((item, index) => {
+      const currentCap = capUsd(item);
+      const marketCap = currentCap >= 0 ? formatCompactUsd(currentCap) : '$—';
+      const changeValue = EXPLORE_CLUSTER === 'devnet' ? item.windowPriceChangePercent : item.priceChange24hPercent;
+      const hasChange = changeValue != null && Number.isFinite(Number(changeValue));
+      const change = hasChange ? `${Number(changeValue) >= 0 ? '+' : ''}${Number(changeValue).toFixed(2)}%` : '—%';
+      const trendClass = hasChange ? Number(changeValue) >= 0 ? 'is-positive' : 'is-negative' : '';
+      const symbol = item.symbol || 'TOKEN';
+      const detail = `${symbol} · ${homeLaunchWindow} market-cap change ${change} · ${item.migrated === true ? 'pool' : 'curve'} MC ${marketCap}`;
+      return `<a href="/token/${encodeURIComponent(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}" aria-label="${escapeHtml(detail)}" title="${escapeHtml(detail)}"><span class="home-ticker-rank" aria-hidden="true">${index + 1}</span><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon || String(symbol).slice(0, 1))}</span><strong>${escapeHtml(symbol)}</strong><span class="home-ticker-change ${trendClass}" title="${escapeHtml(homeLaunchWindow)} market-cap change">${escapeHtml(change)}</span><small class="home-ticker-mc">MC ${escapeHtml(marketCap)}</small></a>`;
     }).join('') : `<span class="home-ticker-empty">${exploreFeedAvailable ? `No verified ${escapeHtml(homeLaunchWindow)} trades in this feed` : 'Checking verified market activity'}</span>`;
     setupHomeTicker(ticker, tickerMarkup, ranked.length);
   }
@@ -3640,7 +3724,7 @@ function renderHomeLaunchBoard(){
       const curve = item.migrated === true ? 'Migrated' : item.complete === true ? 'Graduated'
         : Number.isFinite(progress) ? `${Math.round(Math.max(0, Math.min(100, progress)))}%` : '—';
       const shownChange = change;
-      return `<tr><td><a class="home-table-coin" data-logo-mint="${escapeHtml(item.address || '')}" href="/token/${encodeURIComponent(item.address || '')}"><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span><span><strong>${escapeHtml(item.symbol || 'TOKEN')}</strong><small>${escapeHtml(item.name || 'Unnamed token')}</small></span></a></td><td><span class="home-table-tier" data-tier="${tier}">${escapeHtml(tier)}</span></td><td>${escapeHtml(cap)}</td><td>${escapeHtml(volumeUsd(item))}</td><td>${escapeHtml(trades)}</td><td class="${trendClass}">${escapeHtml(shownChange)}</td><td><span class="home-table-curve">${escapeHtml(curve)}</span></td></tr>`;
+      return `<tr><td><a class="home-table-coin" data-logo-mint="${escapeHtml(item.address || '')}" href="/token/${encodeURIComponent(item.address || '')}"><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span><span><strong>${escapeHtml(item.symbol || 'TOKEN')}</strong>${exploreBoostAmountMarkup(item.address)}<small>${escapeHtml(item.name || 'Unnamed token')}</small></span></a></td><td><span class="home-table-tier" data-tier="${tier}">${escapeHtml(tier)}</span></td><td>${escapeHtml(cap)}</td><td>${escapeHtml(volumeUsd(item))}</td><td>${escapeHtml(trades)}</td><td class="${trendClass}">${escapeHtml(shownChange)}</td><td><span class="home-table-curve">${escapeHtml(curve)}</span></td></tr>`;
     }).join('');
     loadVerifiedTokenLogos(tableBody);
   }
@@ -3670,14 +3754,14 @@ function renderHomeLaunchBoard(){
     const creatorLabel = creatorWallet ? `${creatorWallet.slice(0, 5)}…${creatorWallet.slice(-4)}` : '';
     const feeRoute = homeLaunchFeeRouteMarkup(launchPolicy);
     const boost = verifiedBoosts[item.address];
-    const boostMultiplier = Number(boost?.multiplier);
-    const activeBoost = Number.isSafeInteger(boostMultiplier) && boostMultiplier > 0
-      && Date.parse(boost?.nextExpiry || boost?.expiresAt) > Date.now() && Date.parse(boost.expiresAt) > Date.now();
+    const boostMultiplier = activeBoostMultiplier(boost);
+    const activeBoost = boostMultiplier > 0;
+    const boostPaymentCount = activeBoostPackages(boost).length;
     return `<article class="token-card-shell home-launch-card" data-mint="${escapeHtml(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}">
       <a class="home-launch-card-link" href="/token/${encodeURIComponent(item.address || '')}" aria-label="Open ${escapeHtml(item.name || item.symbol || 'token')} token details"></a>
-      <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span>${exploreSocialLinksMarkup(item)}${tokenCardWatchMarkup(item.address, item.symbol)}<span class="home-launch-media-stage">${escapeHtml(exploreStageLabel(item))}</span><div class="home-launch-media-badges"><span class="home-launch-media-package"></span>${activeBoost ? `<span class="home-launch-media-boost" title="Verified paid boost until ${escapeHtml(new Date(boost.expiresAt).toLocaleString())}">Boost ${escapeHtml(String(boostMultiplier))}x${boost.golden ? ' ★' : ''}</span>` : ''}</div></div>
+      <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span>${exploreSocialLinksMarkup(item)}${tokenCardWatchMarkup(item.address, item.symbol)}<span class="home-launch-media-stage">${escapeHtml(exploreStageLabel(item))}</span><div class="home-launch-media-badges"><span class="home-launch-media-package"></span>${activeBoost ? `<span class="home-launch-media-boost" title="${escapeHtml(`${boostPaymentCount} verified boost payment${boostPaymentCount === 1 ? '' : 's'} · active until ${new Date(boost.expiresAt).toLocaleString()}`)}">${escapeHtml(String(boostMultiplier))}x · ${escapeHtml(String(boostPaymentCount))} paid${boostMultiplier >= 500 ? ' ★' : ''}</span>` : ''}</div></div>
       <div class="home-launch-card-top">
-        <span class="home-token-identity"><strong>${escapeHtml(item.symbol || 'TOKEN')}</strong><small>${escapeHtml(item.name || 'Unnamed token')}</small></span>
+        <span class="home-token-identity"><strong class="${activeBoost && boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(item.symbol || 'TOKEN')}</strong>${exploreBoostAmountMarkup(item.address)}<small>${escapeHtml(item.name || 'Unnamed token')}</small></span>
         <div class="home-launch-card-addresses"><span title="Token contract: ${escapeHtml(item.address || '')}"><small>CA</small><code>${escapeHtml(mintLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(item.address || '')}" data-copy-kind="token" aria-label="Copy full token address" title="Copy full token address">${icon('copy')}</button></span>${creatorWallet ? `<span title="Verified launch creator: ${escapeHtml(creatorWallet)}"><small>Creator</small><code>${escapeHtml(creatorLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(creatorWallet)}" data-copy-kind="creator" aria-label="Copy full creator wallet address" title="Copy full creator wallet address">${icon('copy')}</button></span>` : ''}</div>
         ${feeRoute}
       </div>
@@ -3696,7 +3780,11 @@ function renderHomeLaunchBoard(){
     const mint = visible[index]?.address;
     const packageBadge = card.querySelector('.home-launch-media-package');
     const promotion = promotionElement(mint, true);
-    if (promotion) packageBadge?.append(promotion);
+    if (promotion) {
+      const launchPromotion = promotionForMint(mint);
+      if (launchPromotion?.tier === 'boost') promotion.textContent = `Boost · ${launchPromotion.amountTokens.toLocaleString()} $FUNDED`;
+      packageBadge?.append(promotion);
+    }
     else if (verifiedLaunchPolicyForMint(mint)?.onchainVerified) {
       const standard = document.createElement('span');
       standard.className = 'home-launch-package-standard';
@@ -3734,7 +3822,7 @@ for (const [selector, property] of [['[data-home-window]', 'homeWindow'], ['[dat
 const homeFilterPopup = document.querySelector('.home-feed-settings');
 const homeFilterForm = document.querySelector('#home-launch-filter-form');
 const HOME_FILTER_PRESETS_KEY = 'funded.home.launch-filters.v1';
-function readHomeFilterDraft() {
+function readHomeFilterForm() {
   const ranges = Object.fromEntries(HOME_FILTER_RANGES.map(name => [name, Object.fromEntries(['min', 'max'].map(bound => {
     const raw = homeFilterForm?.querySelector(`[data-home-range="${name}"][data-home-bound="${bound}"]`)?.value;
     return [bound, raw === '' || raw == null ? null : Number(raw)];
@@ -3745,7 +3833,7 @@ function readHomeFilterDraft() {
     ranges,
   });
 }
-function writeHomeFilterDraft(value) {
+function writeHomeFilterForm(value) {
   const filters = normalizeHomeLaunchFilters(value);
   const search = document.querySelector('#home-filter-search');
   if (search) search.value = filters.query;
@@ -3763,7 +3851,7 @@ function syncHomeFilterIndicator() {
   const badge = document.querySelector('#home-filter-active-count');
   if (badge) badge.textContent = String(count);
 }
-function applyHomeFilterDraft(value) {
+function applyHomeFilterForm(value) {
   homeLaunchFilters = normalizeHomeLaunchFilters(value);
   homeFrozenOrder = null;
   syncHomeFilterIndicator();
@@ -3795,18 +3883,18 @@ function renderHomeFilterPresets() {
     : '<p class="home-feed-settings-note">No saved filters yet.</p>';
 }
 homeFilterPopup?.addEventListener('toggle', () => {
-  if (homeFilterPopup.open) { writeHomeFilterDraft(homeLaunchFilters); showHomeFilterView('current'); }
+  if (homeFilterPopup.open) { writeHomeFilterForm(homeLaunchFilters); showHomeFilterView('current'); }
 });
 document.querySelector('#home-filter-close')?.addEventListener('click', () => { homeFilterPopup.open = false; });
 document.querySelectorAll('[data-home-filter-view]').forEach(button => button.addEventListener('click', () => showHomeFilterView(button.dataset.homeFilterView)));
 homeFilterForm?.addEventListener('submit', event => {
   event.preventDefault();
-  applyHomeFilterDraft(readHomeFilterDraft());
+  applyHomeFilterForm(readHomeFilterForm());
   homeFilterPopup.open = false;
 });
 document.querySelector('#home-filter-reset')?.addEventListener('click', () => {
-  writeHomeFilterDraft(emptyHomeLaunchFilters());
-  applyHomeFilterDraft(emptyHomeLaunchFilters());
+  writeHomeFilterForm(emptyHomeLaunchFilters());
+  applyHomeFilterForm(emptyHomeLaunchFilters());
 });
 document.querySelector('#home-filter-save-open')?.addEventListener('click', () => {
   showHomeFilterView('saved');
@@ -3817,7 +3905,7 @@ document.querySelector('#home-filter-save')?.addEventListener('click', () => {
   const name = input?.value.trim().slice(0, 40);
   if (!name) { input?.focus(); return; }
   const presets = readHomeFilterPresets().filter(item => item.name.toLowerCase() !== name.toLowerCase());
-  presets.unshift({ name, filters: readHomeFilterDraft() });
+  presets.unshift({ name, filters: readHomeFilterForm() });
   try { localStorage.setItem(HOME_FILTER_PRESETS_KEY, JSON.stringify(presets.slice(0, 10))); } catch {}
   input.value = '';
   renderHomeFilterPresets();
@@ -3830,8 +3918,8 @@ document.querySelector('#home-filter-saved-list')?.addEventListener('click', eve
   const index = Number((load || remove).dataset[load ? 'homePresetLoad' : 'homePresetDelete']);
   if (!Number.isInteger(index) || !presets[index]) return;
   if (load) {
-    writeHomeFilterDraft(presets[index].filters);
-    applyHomeFilterDraft(presets[index].filters);
+    writeHomeFilterForm(presets[index].filters);
+    applyHomeFilterForm(presets[index].filters);
     homeFilterPopup.open = false;
   } else {
     presets.splice(index, 1);
@@ -4112,7 +4200,7 @@ let registryCriteriaKey = '';
 function updateExploreSortAvailability(){
   const select = document.querySelector('#explore-sort');
   if (EXPLORE_CLUSTER !== 'devnet') {
-    const labels = { 'market-cap': 'Market cap', volume: '24h volume', airdrop: 'Community airdrop allocation', 'tier-burn': 'Verified tier burn', 'holder-fee': 'Creator fees to holders', 'x-fee': 'Creator fees to X account', trades: '24h trades', turnover: 'Volume / cap', liquidity: 'Liquidity', 'recent-trade': 'Recent activity', holders: 'Holders', change: '24h price change', newest: 'Newest' };
+    const labels = { 'market-cap': 'Market cap', volume: '24h volume', boosted: 'Active paid boosts', airdrop: 'Community airdrop allocation', 'tier-burn': 'Verified tier burn', 'holder-fee': 'Creator fees to holders', 'x-fee': 'Creator fees to X account', trades: '24h trades', turnover: 'Volume / cap', liquidity: 'Liquidity', 'recent-trade': 'Recent activity', holders: 'Holders', change: '24h price change', newest: 'Newest' };
     if (select) for (const option of select.options) { option.textContent = labels[option.value]; option.disabled = option.value === 'trades'; }
     document.querySelectorAll('[data-explore-sort]').forEach(button => { button.disabled = false; button.title = ''; });
     const headings = document.querySelectorAll('.scanner-head span');
@@ -4125,6 +4213,7 @@ function updateExploreSortAvailability(){
   }
   const benefits = assets.map(withVerifiedExploreBenefits);
   const supported = {
+    boosted: true,
     'market-cap': assets.some(item => item.curveCapSol != null),
     volume: exploreScannedCount === assets.length && assets.some(item => withMarketWindow(item, exploreWindow).windowVolumeSol != null),
     airdrop: benefits.some(item => item.benefitPolicyVerified && item.communityAirdropPercent != null),
@@ -4201,7 +4290,7 @@ function renderRegistry(query = exploreQuery){
     const change = item.priceChange24hPercent == null ? '—' : `${item.priceChange24hPercent >= 0 ? '+' : ''}${Number(item.priceChange24hPercent).toFixed(2)}%`;
     return `<div class="scanner-row" role="row" data-logo-mint="${mint}">
       <span class="scanner-rank" role="cell">${page.start + index + 1}</span>
-      <div class="scanner-token" role="cell"><span class="asset-icon">${escapeHtml(item.icon)}</span><span><span class="scanner-token-heading"><a class="scanner-token-link" href="/token/${encodeURIComponent(item.address)}"><strong>${symbol} <small>${escapeHtml(item.name)}</small></strong></a>${explorePaidListingBagMarkup(item)}${exploreBoostAmountMarkup(item.address)}</span><small title="${mint}">${escapeHtml(shortAddress(item.address))} · RPC mint</small><small class="scanner-authorities">Mint ${item.mintAuthorityRevoked ? 'revoked' : 'active'} · Freeze ${item.freezeAuthorityRevoked ? 'revoked' : 'active'}</small><span class="scanner-actions"><button type="button" class="watch-button scanner-watch" data-mint="${mint}" aria-label="Save ${symbol} to watchlist" aria-pressed="false">${icon('star')}</button>${exploreSocialLinksMarkup(item)}<button type="button" class="copy-row" data-mint="${mint}" aria-label="Copy ${symbol} mint address">${icon('copy')}</button></span></span></div>
+      <div class="scanner-token" role="cell"><span class="asset-icon">${escapeHtml(item.icon)}</span><span><span class="scanner-token-heading"><a class="scanner-token-link" href="/token/${encodeURIComponent(item.address)}"><strong class="${activeBoostMultiplier(verifiedBoosts[item.address]) >= 500 ? 'golden-ticker' : ''}">${symbol} <small>${escapeHtml(item.name)}</small></strong></a>${explorePaidListingBagMarkup(item)}${exploreBoostAmountMarkup(item.address)}</span><small title="${mint}">${escapeHtml(shortAddress(item.address))}</small><span class="scanner-actions"><button type="button" class="watch-button scanner-watch" data-mint="${mint}" aria-label="Save ${symbol} to watchlist" aria-pressed="false">${icon('star')}</button>${exploreSocialLinksMarkup(item)}<button type="button" class="copy-row" data-mint="${mint}" aria-label="Copy ${symbol} mint address">${icon('copy')}</button></span></span></div>
       <div class="scanner-tier" role="cell">${exploreTierBadgeMarkup(item.address)}</div>
       <span class="scanner-metric" role="cell">${escapeHtml(EXPLORE_CLUSTER === 'devnet' ? formatCoinUsd(item.curveCapSol) : formatCompactUsd(item.marketCapUsd))}</span>
       <span class="scanner-age" role="cell">${age}</span>
@@ -4210,7 +4299,7 @@ function renderRegistry(query = exploreQuery){
       <span class="scanner-metric ${Number(item.priceChange24hPercent) < 0 ? 'negative' : ''}" role="cell" title="Observed 24-hour price change when available">${change}</span>
       <div class="scanner-airdrop-cell" role="cell">${exploreAirdropMarkup(item)}</div>
       <div class="scanner-stage" role="cell"><strong>${stage}</strong><small>${item.complete === false && item.curveProgressPercent != null && Number.isFinite(Number(item.curveProgressPercent)) ? `${Number(item.curveProgressPercent).toFixed(0)}% curve` : ''}</small></div>
-      <div class="scanner-boost" role="cell">${activeBoostMultiplier(verifiedBoosts[item.address]) ? `<span>${escapeHtml(exploreBoostStatus(item.address))}</span>` : ''}<button type="button" class="explore-boost-button" data-boost-mint="${mint}" aria-label="Boost options for ${escapeHtml(item.name)}">Boost ↗</button></div>
+      <div class="scanner-boost" role="cell">${activeBoostMultiplier(verifiedBoosts[item.address]) ? `<span class="scanner-boost-total">⚡ ${activeBoostMultiplier(verifiedBoosts[item.address]).toLocaleString()}x active</span>` : ''}<button type="button" class="explore-boost-button" data-boost-mint="${mint}" aria-label="Boost options for ${escapeHtml(item.name)}">Boost ↗</button></div>
     </div>`;
   }).join('');
   loadVerifiedTokenLogos(list);
@@ -5017,6 +5106,7 @@ function clearWalletState(message = 'Wallet not connected', detail = 'Connect a 
   try { sessionStorage.removeItem(COIN_CHAT_SESSION_KEY); } catch {}
   wallet = null;
   connectedWalletAddress = null;
+  launchTierQuote = null;
   void refreshPortfolioHoldings();
   renderTradeBalances();
   setWalletState(message, detail);
@@ -5081,23 +5171,39 @@ function formatLaunchCost(lamports){ return `${(Number(lamports) / 1_000_000_000
 function formatLaunchBurnAmount(amount){ return Number(amount || 0).toLocaleString(); }
 function renderLaunchBurnSelection(){
   const policy = getLaunchBurnPolicy();
+  const amounts = currentLaunchTierAmounts();
+  const walletReady = Boolean(connectedWalletAddress && fundedBurnState.wallet === connectedWalletAddress && fundedBurnState.status === 'ready');
+  const walletBalance = walletReady ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : null;
+  const walletNode = document.querySelector('#launch-tier-wallet-balance');
+  if (walletNode) walletNode.textContent = walletReady ? `${walletBalance} $FUNDED available`
+    : !connectedWalletAddress ? 'Connect wallet to check $FUNDED'
+      : fundedBurnState.status === 'loading' ? 'Checking Devnet balance…' : 'Balance unavailable';
+  const selectionNote = document.querySelector('.launch-tier-selection-note');
+  if (selectionNote) selectionNote.textContent = `${policy.label} launch is selected. Your 80% creator-directed fee share goes to your wallet unless you choose a custom split.`;
   document.querySelectorAll('.creator-burn-card[data-burn-tier]').forEach(button => {
     const active = button.dataset.burnTier === policy.tier;
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
     const tier = LAUNCH_BURN_TIERS.find(item => item.id === button.dataset.burnTier);
     const action = button.querySelector('b');
-    if (action && tier) action.textContent = active ? 'Selected' : tier.amountTokens ? `Select ${tier.label}` : 'Included';
+    if (action && tier) action.textContent = active ? 'Selected' : tier.id === 'standard' ? 'Included' : `Select ${tier.label}`;
   });
-  const boost = LAUNCH_BURN_TIERS.find(item => item.id === 'boost');
-  const pro = LAUNCH_BURN_TIERS.find(item => item.id === 'pro');
-  const premier = LAUNCH_BURN_TIERS.find(item => item.id === 'premier');
-  const boostAmount = document.querySelector('#boost-burn-amount');
-  const proAmount = document.querySelector('#pro-burn-amount');
-  const premierAmount = document.querySelector('#premier-burn-amount');
-  if (boostAmount) boostAmount.textContent = `${formatLaunchBurnAmount(boost.amountTokens)} $FUNDED`;
-  if (proAmount) proAmount.textContent = `${formatLaunchBurnAmount(pro.amountTokens)} $FUNDED`;
-  if (premierAmount) premierAmount.textContent = `${formatLaunchBurnAmount(premier.amountTokens)} $FUNDED`;
+  for (const tier of ['pro', 'premier']) {
+    const amount = policy.tier === tier && currentLaunchTierQuote() ? policy.amountTokens : amounts?.[tier];
+    const count = document.querySelector(`#${tier}-burn-amount`);
+    const progress = document.querySelector(`#${tier}-tier-progress`);
+    if (count) count.textContent = amount ? `${formatLaunchBurnAmount(amount)} $FUNDED` : 'Quote unavailable';
+    if (progress) {
+      progress.textContent = amount && walletReady ? `${walletBalance} / ${formatLaunchBurnAmount(amount)} $FUNDED`
+        : amount ? 'Connect wallet to check balance' : 'Waiting for verified price';
+      progress.classList.toggle('short', Boolean(amount && walletReady && fundedBurnState.balanceBaseUnits < tokensToBaseUnits(amount, fundedBurnState.decimals)));
+    }
+  }
+  const quoteStatus = document.querySelector('#launch-tier-quote-status');
+  if (quoteStatus) quoteStatus.textContent = amounts
+    ? `1 $FUNDED ≈ $${Number(launchTierPricing.tokenPriceUsd).toLocaleString(undefined, { maximumSignificantDigits:6 })} · verified pool slot ${launchTierPricing.slot} · exact burn locked at review`
+    : currentLaunchTierQuote() ? `Your ${policy.label} quote is locked until ${new Date(launchTierQuote.expiresAt).toLocaleTimeString()}.`
+      : 'Verified $FUNDED/USD pool price unavailable. Paid tiers cannot be launched until it refreshes.';
   const status = document.querySelector('#creator-burn-status');
   if (status) {
     const configured = validateLaunchBurnPolicy(policy).valid;
@@ -5105,14 +5211,17 @@ function renderLaunchBurnSelection(){
     status.className = `creator-burn-status ${ready ? 'ready' : 'blocked'}`;
     status.innerHTML = ready
       ? `<span>✓</span><p><strong>${policy.label} selected.</strong> ${policy.requiresBurn ? launchBurnReadiness.message : 'No creator-funded burn is required.'}</p>`
-      : `<span>!</span><p><strong>${policy.label} cannot launch yet.</strong> ${configured ? launchBurnReadiness.message : 'The protocol $FUNDED mint is not configured, so this tier stays disabled.'}</p>`;
+      : `<span>!</span><p><strong>${policy.label} cannot launch yet.</strong> ${configured ? launchBurnReadiness.message : PROTOCOL_FUNDED_MINT ? 'The verified $FUNDED price is unavailable.' : 'The protocol $FUNDED mint is not configured.'}</p>`;
   }
 }
 function setLaunchBurnTier(tierId){
-  launchBurnTier = LAUNCH_BURN_TIERS.some(item => item.id === tierId) ? tierId : 'standard';
+  launchBurnTier = SELECTABLE_LAUNCH_TIERS.has(tierId) ? tierId : 'standard';
+  launchTierQuote = null;
   const policy = getLaunchBurnPolicy();
   launchBurnReadiness = policy.requiresBurn
-    ? { ready: false, message: PROTOCOL_FUNDED_MINT ? wallet ? 'Checking the connected wallet’s $FUNDED balance…' : 'Connect a wallet to verify its $FUNDED balance.' : 'The fixed $FUNDED mint is not configured.' }
+    ? { ready: false, message: !PROTOCOL_FUNDED_MINT ? 'The fixed $FUNDED mint is not configured.'
+      : !policy.amountTokens ? 'The verified $FUNDED price is unavailable. Refresh the quote.'
+        : wallet ? 'Checking the connected wallet’s $FUNDED balance…' : 'Connect a wallet to verify its $FUNDED balance.' }
     : { ready: true, message: 'No creator-funded burn is required.' };
   estimatedLaunchFeeLamports = null;
   renderLaunchBurnSelection();
@@ -5385,25 +5494,33 @@ function updateLaunchButton(){
     developerBuyBlocked: insufficientDeveloperBuy,
     estimateUnavailable: balanceUnknown,
   });
-  button.disabled = !(ready || estimateRefreshReady);
-  button.dataset.launchAction = estimateRefreshReady ? 'refresh-estimate' : 'launch';
-  button.textContent = !communityValid ? 'Airdrop must be 30M–500M' : !identityValid ? 'Fix coin details' : !feeDistribution.valid ? 'Fix fee distribution' : !xRouteReady ? 'X account rewards unavailable' : !feeRouterState.verified ? 'Fee router required' : !buyValid ? 'Enter a valid developer buy' : !burnConfigured ? '$FUNDED mint required' : launchBurn.requiresBurn && !burnReady ? 'Verify $FUNDED balance' : !wallet ? 'Connect wallet to launch' : !canSignTransactions(wallet) ? 'Open in wallet to sign' : walletMetricsLoading ? 'Calculating launch cost' : walletBalanceLamports == null ? 'Refresh wallet balance' : insufficientDeveloperBuy ? 'Insufficient SOL for developer buy' : estimatedLaunchFeeLamports == null ? 'Refresh launch estimate' : insufficient ? 'Insufficient SOL for launch' : !document.querySelector('#fee-route-agree')?.checked ? 'Confirm the fee route' : !document.querySelector('#terms-agree')?.checked ? 'Agree to terms to launch' : !policyValid ? 'Complete launch policy' : ready ? (launchBurn.requiresBurn ? `Review launch · ${launchBurn.label}` : 'Review launch') : 'Add name and ticker';
+  const connectReady = !wallet && !APP_MAINNET_READ_ONLY && identityValid && feeDistribution.valid && xRouteReady && burnConfigured && buyValid && communityValid;
+  button.disabled = !(ready || estimateRefreshReady || connectReady);
+  button.dataset.launchAction = connectReady ? 'connect-wallet' : estimateRefreshReady ? 'refresh-estimate' : 'launch';
+  button.textContent = !communityValid ? 'Airdrop must be 30M–500M' : !identityValid ? 'Fix coin details' : !feeDistribution.valid ? 'Fix fee distribution' : !xRouteReady ? 'X account rewards unavailable' : !feeRouterState.verified ? 'Fee router required' : !buyValid ? 'Enter a valid developer buy' : !burnConfigured ? (PROTOCOL_FUNDED_MINT ? '$FUNDED price unavailable' : '$FUNDED mint required') : launchBurn.requiresBurn && !burnReady ? 'Verify $FUNDED balance' : !wallet ? 'Connect wallet to launch' : !canSignTransactions(wallet) ? 'Open in wallet to sign' : walletMetricsLoading ? 'Calculating launch cost' : walletBalanceLamports == null ? 'Refresh wallet balance' : insufficientDeveloperBuy ? 'Insufficient SOL for developer buy' : estimatedLaunchFeeLamports == null ? 'Refresh launch estimate' : insufficient ? 'Insufficient SOL for launch' : !document.querySelector('#fee-route-agree')?.checked ? 'Confirm the fee route' : !document.querySelector('#terms-agree')?.checked ? 'Agree to terms to launch' : !policyValid ? 'Complete launch policy' : ready ? (launchBurn.requiresBurn ? `Review launch · ${launchBurn.label}` : 'Review launch') : 'Add name and ticker';
+  if (connectReady) button.textContent = 'Connect wallet to create coin';
   updateLaunchNavigation();
 }
 function handleLaunchAction(event){
+  if (event.currentTarget?.dataset.launchAction === 'connect-wallet') {
+    void connectWallet();
+    return;
+  }
   if (event.currentTarget?.dataset.launchAction === 'refresh-estimate') {
     void refreshWalletInfo();
     return;
   }
-  openLaunchReview();
+  void openLaunchReview();
 }
 let pendingLaunchReview = null;
 function currentLaunchReviewState(){
   return {
     reviewedCost: launchCostReview,
+    tierQuoteId: currentLaunchTierQuote()?.id || null,
+    tierBurnAmount: getLaunchBurnPolicy().amountTokens,
     wallet: connectedWalletAddress,
     router: feeRouterState.address,
-    form: JSON.stringify(launchDraftFromForm()),
+    form: JSON.stringify(launchFormSnapshot()),
     image: getPreparedImage(),
     feeConsent: document.querySelector('#fee-route-agree').checked,
     termsConsent: document.querySelector('#terms-agree').checked,
@@ -5424,7 +5541,7 @@ function renderPendingLaunchReview(){
     confirm.textContent = current ? 'Continue to Phantom' : 'Estimate expired — go back';
   }
 }
-function openLaunchReview(){
+async function openLaunchReview(){
   const reviewedCost = launchCostReview;
   const session = captureWalletSession();
   if (!session || !freshLaunchReview(reviewedCost) || document.querySelector('#launch-button')?.disabled) {
@@ -5435,10 +5552,42 @@ function openLaunchReview(){
   const name = document.querySelector('#token-name').value.trim();
   const symbol = document.querySelector('#token-symbol').value.trim().toUpperCase();
   const shares = getFeeDistributionInputs();
-  const burn = getLaunchBurnPolicy();
+  let burn = getLaunchBurnPolicy();
+  const estimatedBurnAmount = burn.amountTokens;
+  if (burn.requiresBurn) {
+    try {
+      const reusable = currentLaunchTierQuote();
+      const quote = reusable && Date.parse(reusable.expiresAt) - Date.now() > 120_000
+        ? reusable
+        : (await apiRequest('/api/launch-tier-quote', { method:'POST', body:{ tier:burn.tier, payer:session.address } })).data;
+      if (!launchTierQuoteCurrent(quote, { tier:burn.tier, payer:session.address, mint:PROTOCOL_FUNDED_MINT }))
+        throw new Error('The paid tier quote could not be verified.');
+      assertWalletSessionCurrent(session);
+      if (launchBurnTier !== burn.tier) throw new Error('Launch tier changed while getting the quote. Review again.');
+      launchTierQuote = quote;
+      burn = getLaunchBurnPolicy();
+      renderLaunchBurnSelection();
+      if (estimatedBurnAmount !== burn.amountTokens) {
+        launchCostReview = null;
+        launchBurnReadiness = { ready:false, message:'The $FUNDED price changed. Refresh the launch estimate, then review the new burn amount.' };
+        await refreshWalletInfo();
+        setLaunchStatus('The $FUNDED quote changed. Check the new amount and review the refreshed estimate.', true);
+        return;
+      }
+    } catch (error) {
+      setLaunchStatus(String(error.message || 'The $FUNDED quote is unavailable.'), true);
+      return;
+    }
+  }
+  if (!freshLaunchReview(reviewedCost) || !isWalletSessionCurrent(session) || launchCostReview !== reviewedCost) {
+    setLaunchStatus('Refresh the launch estimate and review again.', true);
+    return;
+  }
   pendingLaunchReview = { ...currentLaunchReviewState(), wallet: session.address };
   document.querySelector('#launch-review-token').textContent = `${name} (${symbol})`;
-  document.querySelector('#launch-review-tier').textContent = `${burn.label} tier`;
+  document.querySelector('#launch-review-tier').textContent = burn.requiresBurn
+    ? `${burn.label} · ${formatLaunchBurnAmount(burn.amountTokens)} $FUNDED (≈$${burn.usdTarget})`
+    : `${burn.label} tier`;
   document.querySelector('#launch-review-wallet').textContent = session.address;
   document.querySelector('#launch-review-reserve').textContent = `${getCommunityAirdropTokens().toLocaleString()} tokens`;
   document.querySelector('#launch-review-buy').textContent = getCreatorBuySol() ? `${getCreatorBuySol()} SOL` : 'None';
@@ -5616,10 +5765,10 @@ function setLaunchMode(mode){
   }
   updateLaunchPolicyControls();
 }
-function launchDraftFromForm(){
+function launchFormSnapshot(){
   const value = id => document.getElementById(id)?.value || '';
   return {
-    version: 1, profile: launchProfile, mode: launchMode, tier: launchBurnTier,
+    profile: launchProfile, mode: launchMode, tier: launchBurnTier,
     name: value('token-name').trim(), symbol: value('token-symbol').trim().toUpperCase(),
     description: value('token-description'), tagline: value('token-tagline'), roadmap: value('token-roadmap'),
     website: value('token-website').trim(), x: value('token-x').trim(), telegram: value('token-telegram').trim(), discord: value('token-discord').trim(),
@@ -5627,37 +5776,6 @@ function launchDraftFromForm(){
     creatorWalletPercent: Number(value('creator-wallet-share')), holderAirdropPercent: Number(value('holder-airdrop-share')),
     solClaimPercent: Number(value('x-share')), xRecipient: normalizeXHandle(value('x-recipient')),
   };
-}
-function launchDraftStatus(message){
-  const status = document.querySelector('#launch-draft-status');
-  if (status) status.textContent = message;
-}
-function restoreLaunchDraftToForm(draft){
-  setLaunchProfile(draft.profile);
-  setLaunchMode(draft.mode);
-  setLaunchBurnTier(draft.tier);
-  const fieldIds = {
-    name:'token-name', symbol:'token-symbol', description:'token-description', tagline:'token-tagline', roadmap:'token-roadmap',
-    website:'token-website', x:'token-x', telegram:'token-telegram', discord:'token-discord',
-    communityTokens:'community-airdrop-tokens', creatorBuySol:'creator-buy-sol',
-    creatorWalletPercent:'creator-wallet-share', holderAirdropPercent:'holder-airdrop-share',
-    solClaimPercent:'x-share', xRecipient:'x-recipient',
-  };
-  for (const [field,id] of Object.entries(fieldIds)) document.getElementById(id).value = String(draft[field]);
-  normalizeLaunchSocialField(document.querySelector('#token-x'));
-  const socials = document.querySelector('.launch-optional-socials');
-  if (socials && ['website', 'x', 'telegram', 'discord'].some(field => draft[field])) socials.open = true;
-  document.querySelector('#x-recipient').disabled = draft.solClaimPercent <= 0;
-  const image = document.querySelector('#token-image');
-  image.value = '';
-  image.dispatchEvent(new Event('change', { bubbles: true }));
-  document.querySelector('#fee-route-agree').checked = false;
-  document.querySelector('#terms-agree').checked = false;
-  launchCostReview = null;
-  estimatedLaunchFeeLamports = null;
-  syncCommunityAirdropPresets();
-  updateLaunchPreview(); updateCostSummary(); updateLaunchButton();
-  if (wallet) scheduleLaunchCostRefresh();
 }
 function setLaunchProfile(profile){
   launchProfile = profile === 'fast' ? 'fast' : 'community';
@@ -5904,7 +6022,7 @@ function setWalletState(message, detail = '', connected = false){
   if (tradeQuote && (!connected || !signingReady || tradeQuote.textContent.startsWith('Connect your wallet'))) tradeQuote.textContent = signingReady ? 'The current quote appears automatically when you enter an amount.' : connected ? 'Open this app inside your wallet to calculate and approve a trade.' : 'Connect a signing wallet to calculate an exact trade quote.';
   const selectedProgram = document.querySelector('[data-program-tier="standard"].active');
   const programNote = document.querySelector('#program-progress-note');
-  if (selectedProgram && programNote) programNote.textContent = signingReady ? 'Wallet connected. Review the fee route and launch cost before signing.' : connected ? 'Address linked. Open inside your wallet before signing.' : 'Draft the name and ticker first. Connect only when you are ready to sign.';
+  if (selectedProgram && programNote) programNote.textContent = signingReady ? 'Wallet connected. Review the fee route and launch cost before signing.' : connected ? 'Address linked. Open inside your wallet before signing.' : 'Enter the name and ticker first. Connect only when you are ready to sign.';
   updatePreviewStatusDrawer(connected);
   if (connected) { bindAppReferralToWallet(); void refreshReferralClaims().catch(() => {}); }
   updateReferralLink();
@@ -6190,6 +6308,9 @@ async function launchToken(){
   if (feeDistributionInput.solClaimPercent > 0 && !xFeeStatus.ready) { setLaunchStatus(`X account rewards unavailable: ${xFeeFailureDetail()}.`, true); return; }
   if (!feeDistribution.valid) { setLaunchStatus('Creator fee shares must total exactly 80%. Check the wallet, holder, and X percentages.', true); return; }
   if (!launchBurnValidation.valid) { setLaunchStatus('The fixed $FUNDED mint must be configured before a paid launch tier can be used.', true); return; }
+  if (launchBurn.requiresBurn && (!currentLaunchTierQuote() || launchBurn.quoteId !== currentLaunchTierQuote().id)) {
+    setLaunchStatus('The $FUNDED tier quote expired or changed. Review the launch again.', true); return;
+  }
   if (launchBurn.requiresBurn && !launchBurnReadiness.ready) { setLaunchStatus(launchBurnReadiness.message, true); return; }
   if (!feeRouterState.verified || !feeRouterState.address) { setLaunchStatus('Launch blocked until the funded.vip fee-router PDA is deployed and verified on Devnet.', true); return; }
   const reviewedCost=launchCostReview;
@@ -6221,8 +6342,12 @@ async function launchToken(){
     const unresolved=readLaunchJournal().find(row=>row.payer===session.address&&row.name===name&&row.symbol===symbol&&['broadcasting','submitted','unknown','confirmed','verification-pending','registration-pending'].includes(row.state));
     if(unresolved)throw new Error('An earlier launch with this name and ticker needs recovery in Portfolio. Check its receipts before creating another coin.');
     if(!freshLaunchReview(reviewedCost))throw new Error('Estimate expired during identity lookup. Refresh and review again before signing.');
+    if (launchBurn.requiresBurn && (!currentLaunchTierQuote() || launchBurn.quoteId !== currentLaunchTierQuote().id || launchBurn.amountTokens !== currentLaunchTierQuote().amountTokens))
+      throw new Error('The $FUNDED tier quote expired before signing. Review the launch again.');
     const reserveConfig = await getLaunchReserveConfig();
     assertWalletSessionCurrent(session);
+    if (launchBurn.requiresBurn && (!currentLaunchTierQuote() || launchBurn.quoteId !== currentLaunchTierQuote().id))
+      throw new Error('The $FUNDED tier quote expired before signing. Review the launch again.');
     journalId=crypto.randomUUID();recordLaunchEvent(journalId,{state:'prepared',name,symbol,payer:session.address,cluster:'devnet'});
     emitPilotSignal('launch-submission-started');
     const result = await submitPumpDevnetLaunch({ cluster: APP_CLUSTER, connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuySol: creatorBuySol, reserveTokens:communityTokens, maxInitialBuyLamports:reviewedCost.buyMaximum }, prepareMetadata: input => prepareLaunchMetadata(input, session), feeRouterAddress: feeRouterState.address, feeRouterProgramId: FEE_ROUTER_PROGRAM_ID, useMintRouter: true, launchBurn, reserveConfig, assertWalletCurrent: () => assertWalletSessionCurrent(session), onJournal:event=>recordLaunchEvent(journalId,event), onStatus: message => { if (isWalletSessionCurrent(session)) setLaunchStatus(message); } });
@@ -6393,58 +6518,6 @@ document.querySelector('#launch-review-retry')?.addEventListener('click', async 
   else if (wallet) await refreshWalletInfo();
   updateLaunchNavigation();
 });
-const saveImageLabel = document.createElement('label');
-saveImageLabel.innerHTML = '<input type="checkbox" id="save-launch-image" /> Save prepared image on this device';
-document.querySelector('#save-launch-draft')?.before(saveImageLabel);
-let draftOperationBusy = false;
-let draftFormRevision = 0;
-const launchDraftForm = document.querySelector('#launch-form');
-for (const event of ['input', 'change']) launchDraftForm?.addEventListener(event, () => { draftFormRevision++; });
-async function withDraftOperation(operation) {
-  if (draftOperationBusy) return;
-  draftOperationBusy = true;
-  const buttons = ['save', 'restore', 'delete'].map(action => document.querySelector(`#${action}-launch-draft`)).filter(Boolean);
-  buttons.forEach(button => { button.disabled = true; });
-  try { await operation(); }
-  catch (error) { launchDraftStatus(error.message || 'Device storage is unavailable.'); }
-  finally { draftOperationBusy = false; buttons.forEach(button => { button.disabled = false; }); }
-}
-document.querySelector('#save-launch-draft')?.addEventListener('click', () => withDraftOperation(async () => {
-  const includeImage = document.querySelector('#save-launch-image')?.checked;
-  if (includeImage) assertImageReady();
-  const image = includeImage ? getPreparedImage() : null;
-  const draft = saveLaunchDraft(launchDraftFromForm());
-  document.dispatchEvent(new Event('funded:launch-draft-change'));
-  try {
-    if (image) await saveDraftImage(draft, image);
-    else await deleteDraftImage();
-    launchDraftStatus(image ? 'Draft and prepared image saved on this device. Consent is not saved.' : 'Launch draft saved on this device. Image and consent are not saved.');
-  } catch { launchDraftStatus('Text draft saved. Image storage is unavailable; reselect the image when restoring.'); }
-}));
-document.querySelector('#restore-launch-draft')?.addEventListener('click', () => withDraftOperation(async () => {
-  const draft = readLaunchDraft();
-  if (!draft) { launchDraftStatus('No saved launch draft on this device.'); return; }
-  const revision = draftFormRevision;
-  const formBeforeRestore = JSON.stringify(launchDraftFromForm());
-  let image;
-  try { image = await readDraftImage(draft); } catch { /* Optional storage does not block text restoration. */ }
-  if (revision !== draftFormRevision || formBeforeRestore !== JSON.stringify(launchDraftFromForm())) { launchDraftStatus('The form changed while loading the draft. Select Restore again to replace your current edits.'); return; }
-  restoreLaunchDraftToForm(draft);
-  if (image) {
-    try {
-      const input = document.querySelector('#token-image');
-      const transfer = new DataTransfer(); transfer.items.add(image); input.files = transfer.files;
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    } catch { launchDraftStatus('Text draft restored. Select your image again, then recheck fees and consent.'); return; }
-  }
-  launchDraftStatus('Launch draft restored. Recheck the image, fee route, estimate, and consent before launching.');
-}));
-document.querySelector('#delete-launch-draft')?.addEventListener('click', () => withDraftOperation(async () => {
-  deleteLaunchDraft();
-  document.dispatchEvent(new Event('funded:launch-draft-change'));
-  try { await deleteDraftImage(); launchDraftStatus('Saved launch draft deleted. Current form is unchanged.'); }
-  catch { launchDraftStatus('Text draft deleted. Image storage could not be cleared; retry Delete to remove the saved image.'); }
-}));
 document.querySelectorAll('#token-name, #token-symbol, #token-description, #token-tagline, #token-roadmap, #token-website, #token-x, #token-telegram, #token-discord, #x-recipient, #community-airdrop-tokens, #creator-buy-sol').forEach(input => input.addEventListener('input', () => {
   if (input.matches('#token-name, #token-symbol')) { input.dataset.launchTouched = 'true'; updateLaunchIdentityWarnings(); }
   if (LAUNCH_SOCIAL_FIELDS.includes(input.id)) updateLaunchSocialValidity(input);
@@ -6495,6 +6568,10 @@ document.querySelector('#launch-mode-custom').addEventListener('click', () => se
 document.querySelectorAll('[data-launch-profile]').forEach(card => card.addEventListener('click', () => setLaunchMode(card.dataset.launchProfile === 'community' ? 'custom' : 'quick')));
 setLaunchProfile('fast');
 document.querySelectorAll('.creator-burn-card[data-burn-tier]').forEach(button => button.addEventListener('click', () => setLaunchBurnTier(button.dataset.burnTier)));
+document.querySelector('#launch-tier-refresh')?.addEventListener('click', async () => {
+  await Promise.allSettled([refreshLaunchTierPricing(), loadFundedBurnState({ force:true })]);
+  if (wallet) scheduleLaunchCostRefresh();
+});
 document.querySelectorAll('[data-launch-step-target]').forEach(button => button.addEventListener('click', () => { const target = Number(button.dataset.launchStepTarget); setLaunchStep(target); }));
 document.querySelectorAll('[data-copy-referral-link]').forEach(button => button.addEventListener('click', async () => { const code = await referralCodeForShare(); if (!code) return; const link = buildReferralUrl(code); try { await navigator.clipboard.writeText(link); trackReferralEvent('invite_link_copied'); showToast('Invite link copied'); } catch { showToast(link); } }));
 document.querySelector('#referral-share-native')?.addEventListener('click', async () => { const code = await referralCodeForShare(); if (!code) return; openShareComposer({ kind:'referral', title:'Join funded.vip', text:'Explore verified launches and published fee routes with me on funded.vip.', url:buildReferralUrl(code) }); });
@@ -7079,118 +7156,6 @@ document.querySelector('#airdrop-selected-status')?.addEventListener('click', ev
 document.querySelector('#leaderboard-sort')?.addEventListener('change', () => renderAirdropAnalytics());
 document.querySelector('#leaderboard-private')?.addEventListener('change', () => renderAirdropAnalytics());
 document.querySelector('#airdrop-export-csv')?.addEventListener('click', exportAirdropCsv);
-document.querySelector('#toggle-airdrop-wizard')?.addEventListener('click', event => {
-  const wizard = document.querySelector('#airdrop-wizard');
-  if (!wizard) return;
-  wizard.hidden = !wizard.hidden;
-  event.currentTarget.textContent = wizard.hidden ? 'Open wizard' : 'Close wizard';
-  event.currentTarget.setAttribute('aria-expanded', String(!wizard.hidden));
-});
-function resetAirdropWizardStatus(event) {
-  if (!event.target.matches('input, select, textarea')) return;
-  const status = document.querySelector('#wizard-status');
-  if (status) status.textContent = 'Changes are local until saved. Production publishing is not connected.';
-}
-document.querySelector('#airdrop-wizard')?.addEventListener('input', resetAirdropWizardStatus);
-document.querySelector('#airdrop-wizard')?.addEventListener('change', resetAirdropWizardStatus);
-const communityClaimWindow = document.querySelector('#wizard-window');
-if (communityClaimWindow) {
-  communityClaimWindow.value = '90';
-  communityClaimWindow.disabled = true;
-  communityClaimWindow.title = 'Community claims close 90 days after migration.';
-  const fixedWindowNote = document.createElement('span');
-  fixedWindowNote.className = 'field-help';
-  fixedWindowNote.textContent = 'Fixed at 90 days after migration.';
-  communityClaimWindow.after(fixedWindowNote);
-}
-document.querySelector('#save-airdrop-draft')?.addEventListener('click', () => {
-  const draft = {
-    name: document.querySelector('#wizard-token-name')?.value.trim(),
-    symbol: document.querySelector('#wizard-token-symbol')?.value.trim().toUpperCase(),
-    allocationPercent: Number(document.querySelector('#wizard-allocation')?.value),
-    claimWindowDays: Number(document.querySelector('#wizard-window')?.value),
-    snapshotRule: document.querySelector('#wizard-snapshot')?.value,
-    vesting: document.querySelector('#wizard-vesting')?.value,
-    minimumHolding: Boolean(document.querySelector('#wizard-min-hold')?.checked),
-    maxWallet: Boolean(document.querySelector('#wizard-max-wallet')?.checked),
-    sybilScreening: Boolean(document.querySelector('#wizard-sybil')?.checked),
-    savedAt: new Date().toISOString(),
-  };
-  if (!draft.name || !/^[A-Z0-9]{1,8}$/.test(draft.symbol) || !Number.isFinite(draft.allocationPercent) || draft.allocationPercent < 3 || draft.allocationPercent > 50) {
-    document.querySelector('#wizard-status').textContent = 'Add a token name, a 1–8 character ticker using letters or numbers, and an allocation between 3% and 50%.';
-    return;
-  }
-  if (draft.claimWindowDays !== 90) {
-    document.querySelector('#wizard-status').textContent = 'The community claim window is fixed at 90 days after migration.';
-    return;
-  }
-  let wrote = false;
-  try {
-    const serialized = JSON.stringify(draft);
-    localStorage.setItem('funded.airdrop.draft', serialized);
-    wrote = true;
-    if (localStorage.getItem('funded.airdrop.draft') !== serialized) throw new Error('Draft save unconfirmed');
-    document.querySelector('#wizard-status').textContent = `Draft saved locally for ${draft.name} (${draft.symbol}). Production publishing is not connected.`;
-    showToast('Airdrop draft saved locally');
-  } catch {
-    document.querySelector('#wizard-status').textContent = wrote
-      ? 'The draft save could not be verified. Saved data may have changed. Your form is unchanged; allow browser storage and try Save again.'
-      : 'The draft could not be saved. Your form is unchanged. Allow browser storage and try Save again.';
-    showToast(document.querySelector('#wizard-status').textContent);
-  }
-});
-document.querySelector('#restore-airdrop-draft')?.addEventListener('click', () => {
-  const status = document.querySelector('#wizard-status');
-  let raw, draft;
-  try {
-    raw = localStorage.getItem('funded.airdrop.draft');
-  } catch {
-    status.textContent = 'The saved draft could not be read. Your form and saved data were not changed. Allow browser storage and try Restore again.';
-    showToast(status.textContent);
-    return;
-  }
-  if (raw === null) {
-    status.textContent = 'No saved airdrop draft on this device.';
-    return;
-  }
-  const snapshot = document.querySelector('#wizard-snapshot');
-  const vesting = document.querySelector('#wizard-vesting');
-  try {
-    draft = JSON.parse(raw);
-    if (!draft || typeof draft !== 'object' || Array.isArray(draft)
-      || typeof draft.name !== 'string' || !draft.name.trim() || draft.name.length > 64
-      || typeof draft.symbol !== 'string' || !/^[A-Z0-9]{1,8}$/.test(draft.symbol)
-      || typeof draft.allocationPercent !== 'number' || !Number.isFinite(draft.allocationPercent) || draft.allocationPercent < 3 || draft.allocationPercent > 50
-      || draft.claimWindowDays !== 90
-      || !Array.from(snapshot.options).some(option => option.value === draft.snapshotRule)
-      || !Array.from(vesting.options).some(option => option.value === draft.vesting)
-      || ['minimumHolding', 'maxWallet', 'sybilScreening'].some(key => typeof draft[key] !== 'boolean')) throw new Error('Invalid draft');
-  } catch {
-    status.textContent = 'The saved draft is unreadable or has invalid fields. Your form and saved data were kept. Review your current form before choosing Save to replace it, or Delete saved draft to remove it.';
-    showToast(status.textContent);
-    return;
-  }
-  document.querySelector('#wizard-token-name').value = draft.name;
-  document.querySelector('#wizard-token-symbol').value = draft.symbol;
-  document.querySelector('#wizard-allocation').value = String(draft.allocationPercent ?? 3);
-  document.querySelector('#wizard-window').value = '90';
-  snapshot.value = draft.snapshotRule;
-  vesting.value = draft.vesting;
-  document.querySelector('#wizard-min-hold').checked = Boolean(draft.minimumHolding);
-  document.querySelector('#wizard-max-wallet').checked = Boolean(draft.maxWallet);
-  document.querySelector('#wizard-sybil').checked = draft.sybilScreening !== false;
-  status.textContent = `Draft restored for ${draft.name} (${draft.symbol}). Review all fields before saving again.`;
-});
-document.querySelector('#delete-airdrop-draft')?.addEventListener('click', () => {
-  try {
-    localStorage.removeItem('funded.airdrop.draft');
-    if (localStorage.getItem('funded.airdrop.draft') !== null) throw new Error('Draft deletion unconfirmed');
-    document.querySelector('#wizard-status').textContent = 'Saved airdrop draft deleted. Current form is unchanged.';
-  } catch {
-    document.querySelector('#wizard-status').textContent = 'Draft deletion could not be verified. Saved data may remain; your current form is unchanged. Allow browser storage and try Delete again.';
-    showToast(document.querySelector('#wizard-status').textContent);
-  }
-});
 document.querySelector('#buyback-add-claim')?.addEventListener('click', recordBuybackPreviewClaim);
 document.querySelector('#buyback-run-preview')?.addEventListener('click', runBuybackPreview);
 document.querySelector('#buyback-example-fees')?.addEventListener('input', renderBuybackExample);
@@ -7376,7 +7341,7 @@ function syncPageRoute(){
     list: ['Get listed', 'Listing status and token mint check'],
     payments: ['Rewards', 'Claims and payout receipts'],
     'analytics-detail': ['Analytics', 'Protocol flow and indexed activity'],
-    launch: ['Launch token', 'Create and review a Devnet coin'],
+    launch: ['Create a coin', 'Create and review a Devnet coin'],
     'my-launches': ['Portfolio', 'Launches and saved tokens'],
     referrals: ['Referrals', 'Track qualified growth'],
     community: ['Watchlist', 'Watchlist and verified signals'],
@@ -7472,7 +7437,9 @@ renderBuybackDashboard();
 void loadBuybackNetworkState();
 createRoutePoller({ run: signal => loadBuybackNetworkState(signal), active: () => ['buybacks', 'paid', 'payments'].includes(requestedPageRoute()), intervalMs: 60_000 });
 void refreshFundedBuyRoute();
+void refreshLaunchTierPricing();
 createRoutePoller({ run: signal => refreshFundedBuyRoute(signal), active: () => !fundedBuyBusy && ['buybacks', 'paid'].includes(requestedPageRoute()), intervalMs: 60_000 });
+createRoutePoller({ run: () => refreshLaunchTierPricing(), active: () => requestedPageRoute() === 'launch', intervalMs: 60_000 });
 renderPublishedFeeRates();
 renderFeeFlowCalculator();
 // Launch controls stay gated by their verified state while the workspace renders.
@@ -7514,8 +7481,6 @@ function renderCoinSummary() {
   });
   root.hidden = !summary.visible;
   if (!summary.visible) { grid.replaceChildren(); return; }
-  const source = document.querySelector('#coin-summary-source');
-  if (source) source.textContent = `Verified launch · ${EXPLORE_CLUSTER}`;
   grid.innerHTML = summary.cards.filter(item => item.id !== 'volume').map(item => {
     const value = item.amount == null ? item.unit === 'USD' ? '$—' : '—'
       : item.unit === 'USD' ? formatSmallDashboardUsd(item.amount, { partial:item.id === 'volume' && item.state === 'partial' })
@@ -8164,7 +8129,7 @@ function tokenChatAuthorLabel(author){ return author ? shortAddress(author) : 'U
 function tokenChatEmptyMarkup(){
   if (coinChatState.loading) return '<div class="empty-state coin-activity-empty"><strong>Loading chat…</strong><small>Reading wallet-verified messages.</small></div>';
   if (!coinChatState.enabled) return `<div class="empty-state coin-activity-empty"><strong>Chat unavailable</strong><small>${escapeHtml(coinChatState.reason || 'The chat service could not be reached.')}</small></div>`;
-  return '<div class="empty-state coin-activity-empty"><strong>Start the conversation</strong><small>Share a useful observation about this token. Your wallet verifies authorship; signing does not send a transaction.</small></div>';
+  return '';
 }
 function tokenChatMessageMarkup(item){
   const own = Boolean(connectedWalletAddress && item.author === connectedWalletAddress);
@@ -8376,9 +8341,13 @@ function renderCoinActivityTab(){
   activity.innerHTML = (mintRows ? `<p class="coin-activity-scope">Creator fees collected for this mint. Collection does not confirm recipient payout.</p>${table(mintRows, `${coinActivity.symbol} fee collections`)}` : '<div class="empty-state coin-activity-empty"><strong>No fee claim attributed to this mint</strong><small>Only mint-verified collections appear in this ledger.</small></div>') + (routerRows ? `<div class="coin-activity-context"><strong>Shared-router collections</strong><span>These may include other coins and are excluded from this mint’s totals.</span></div>${table(routerRows, 'Shared-router fee collections')}` : '');
 }
 function renderOnChainUnavailable(message){
+  const detail = String(message || '');
+  const displayMessage = /(?:5\d\d (?:Internal Server Error|Bad Gateway)|returned an invalid response)/i.test(detail)
+    ? 'Solana Devnet RPC is unavailable. Retry when network access recovers.'
+    : detail;
   coinTradeEstimate = null;
   renderTradeAmountEstimate();
-  coinActivity = { status: 'unavailable', message, collections: [], claims: [], accounts: [] };
+  coinActivity = { status: 'unavailable', message: displayMessage, collections: [], claims: [], accounts: [] };
   coinSummaryLaunch = null;
   coinSummaryLedgerMint = null;
   renderCoinFeeDashboard({ available:false });
@@ -8388,14 +8357,13 @@ function renderOnChainUnavailable(message){
   setCoinTabLabels(); renderCoinActivityTab();
   setCoinField('.coin-live-dot', 'Data unavailable');
   setCoinField('#coin-page-title', 'Token data unavailable');
-  setCoinField('#coin-avatar', '?'); setCoinField('#coin-symbol', '—'); setCoinField('#coin-description', message);
+  setCoinField('#coin-avatar', '?'); setCoinField('#coin-symbol', '—'); setCoinField('#coin-description', displayMessage);
   ['#coin-stage','#coin-fee-owner','#coin-metadata-status','#coin-mint-authority','#coin-freeze-authority'].forEach(selector => setCoinFact(selector, 'Unavailable'));
   ['#coin-market-cap','#coin-change','#coin-strip-market-cap','#coin-volume','#coin-liquidity','#coin-holders','#coin-trade-count','#coin-holder-count','#coin-vault-share','#coin-largest-account-share','#coin-top-ten-share','#coin-supply'].forEach(selector => setCoinField(selector, 'Unavailable'));
-  setCoinField('#coin-holder-note', 'Holder wallet sample unavailable');
-  setCoinField('#coin-volume-source', 'RPC trade history unavailable'); setCoinField('#coin-trade-breakdown', 'RPC trade history unavailable'); setCoinField('#coin-trade-coverage', 'Trade history unavailable'); setCoinField('#coin-accounts-source', 'Largest-account sample unavailable'); setCoinCurveProgress(null);
+  setCoinField('#coin-volume-source', 'RPC trade history unavailable'); setCoinField('#coin-trade-breakdown', 'RPC trade history unavailable'); setCoinField('#coin-accounts-source', 'Largest-account sample unavailable'); setCoinCurveProgress(null);
   setCoinField('#coin-chart-heading', 'Chart unavailable');
   setCoinField('#coin-market-cap-label', 'Estimated market cap'); setCoinField('#coin-market-cap-source', 'Confirmed Solana RPC snapshot');
-  setCoinField('#coin-liquidity-label', 'Reserve'); setCoinField('#coin-liquidity-source', 'Confirmed on-chain state unavailable');
+  setCoinField('#coin-liquidity-label', 'Reserve');
   const footer = document.querySelector('.chart-footer'); if (footer) footer.innerHTML = '<span>On-chain only</span><span>Historical candles not indexed</span>';
   const policyEyebrow = document.querySelector('.coin-policy-card .eyebrow'); if (policyEyebrow) policyEyebrow.textContent = 'On-chain account';
   const policyBadge = document.querySelector('.coin-policy-card .data-badge'); if (policyBadge) policyBadge.textContent = 'RPC only';
@@ -8454,12 +8422,11 @@ function resetCoinSurface(mintAddress){
   compactCoinSocials();
   setCoinField('#coin-description', 'Reading the mint, metadata account, and Pump bonding curve from Solana RPC…');
   setCoinField('#coin-market-cap-label', 'Estimated market cap'); setCoinField('#coin-market-cap-source', 'Reading confirmed Solana RPC state');
-  setCoinField('#coin-liquidity-label', 'Reserve'); setCoinField('#coin-liquidity-source', 'Reading confirmed on-chain state');
+  setCoinField('#coin-liquidity-label', 'Reserve');
   const explorerLink = document.querySelector('#coin-explorer-link'); if (explorerLink) { explorerLink.href = exploreExplorer(`address/${encodeURIComponent(mintAddress)}`); explorerLink.hidden = !mintAddress; }
   document.querySelectorAll('.coin-chart-panel .chart-tools button').forEach(button => { button.disabled = true; button.title = 'Historical candles are not indexed for this token.'; });
   ['#coin-market-cap','#coin-change','#coin-strip-market-cap','#coin-volume','#coin-liquidity','#coin-holders','#coin-trade-count','#coin-holder-count','#coin-vault-share','#coin-largest-account-share','#coin-top-ten-share','#coin-supply'].forEach(selector => setCoinField(selector, 'Loading…'));
-  setCoinField('#coin-holder-note', 'Counting distinct non-vault wallets…');
-  setCoinField('#coin-volume-source', 'RPC trade scan if available'); setCoinField('#coin-trade-breakdown', 'Confirmed Pump events'); setCoinField('#coin-trade-coverage', 'Reading confirmed trades…'); setCoinField('#coin-accounts-source', 'Largest-account sample, not holder count'); setCoinCurveProgress(null);
+  setCoinField('#coin-volume-source', 'RPC trade scan if available'); setCoinField('#coin-trade-breakdown', 'Confirmed Pump events'); setCoinField('#coin-accounts-source', 'Largest-account sample, not holder count'); setCoinCurveProgress(null);
   setCoinField('#coin-chart-heading', 'Reading trade observations…');
   const footer = document.querySelector('.chart-footer'); if (footer) footer.innerHTML = '<span>On-chain only</span><span>Historical candles not indexed</span>';
   const policyBadge = document.querySelector('.coin-policy-card .data-badge'); if (policyBadge) policyBadge.textContent = 'RPC only';
@@ -8486,7 +8453,6 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
     setCoinField('#coin-volume', 'Pool activity unavailable'); setCoinField('#coin-volume-source', poolScanNote);
     setCoinField('#coin-change', 'Pool change unavailable'); setCoinField('#coin-trade-count', 'Unavailable');
     setCoinField('#coin-trade-breakdown', hasPoolTradeCount ? 'No pool swaps observed' : 'Pool trades unavailable');
-    setCoinField('#coin-trade-coverage', poolScanNote);
     setCoinField('#coin-description', `On-chain mint and verified PumpSwap pool snapshot. ${poolScanNote}`);
     setCoinTabLabels(); renderCoinActivityTab(); renderCoinSummary();
     return;
@@ -8495,7 +8461,7 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
     coinMarketActivity = { status: 'unavailable', trades: [], coverage: null, decimals };
     renderCoinPricePath(); renderCoinFlow(NaN, NaN); renderCoinPulse();
     setCoinField('#coin-volume', 'Unavailable'); setCoinField('#coin-volume-source', 'RPC trade history unavailable');
-    setCoinField('#coin-trade-count', 'Unavailable'); setCoinField('#coin-trade-breakdown', 'RPC trade history unavailable'); setCoinField('#coin-trade-coverage', 'Trade history unavailable');
+    setCoinField('#coin-trade-count', 'Unavailable'); setCoinField('#coin-trade-breakdown', 'RPC trade history unavailable');
     setCoinTabLabels(); renderCoinActivityTab();
     renderCoinSummary();
     return;
@@ -8516,7 +8482,6 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
   setCoinField('#coin-trade-count', `${partial ? '≥' : ''}${coinMarketActivity.tradeCount}`);
   const hasSideCounts = Number.isInteger(market.buyCount24h) && Number.isInteger(market.sellCount24h);
   setCoinField('#coin-trade-breakdown', hasSideCounts ? `${partial ? '≥' : ''}${market.buyCount24h} buys · ${partial ? '≥' : ''}${market.sellCount24h} sells` : 'Buy/sell split unavailable');
-  setCoinField('#coin-trade-coverage', `Confirmed ${graduated ? 'Pump curve + PumpSwap pool' : 'Pump curve'} trades · last 24h${partial ? ' · partial RPC scan' : ''} · ${hasTradeRows ? `latest ${Math.min(20, coinMarketActivity.trades.length)} shown` : 'individual rows not indexed'}`);
   setCoinTabLabels(); renderCoinActivityTab();
   const noTrades = market.coverage === 'complete' && Number(market.tradeCount24h) === 0;
   const volume = `${market.coverage === 'partial' ? '≥' : ''}${formatCoinUsd(Number(market.volume24hSol))}`;
@@ -8617,10 +8582,8 @@ async function loadCoinOnChain(mintAddress){
     setCoinField('#coin-market-cap-label', graduatedPool ? 'Estimated PumpSwap market cap' : 'Estimated curve market cap');
     setCoinField('#coin-market-cap-source', graduatedPool ? 'PumpSwap vault ratio · indicative RPC snapshot' : 'Confirmed Pump curve RPC snapshot');
     setCoinField('#coin-liquidity-label', graduatedPool ? 'Pool reserve' : 'Real reserve');
-    setCoinField('#coin-liquidity-source', graduatedPool ? 'Wrapped SOL in the verified PumpSwap vault' : 'Bonding curve · not DEX liquidity');
     setCoinField('#coin-holders', fullHolderDistribution ? `${formatOnChainNumber(fullHolderDistribution.holderShare, 2)}%` : 'Unavailable');
     setCoinField('#coin-holder-count', fullHolderDistribution ? `${fullHolderDistribution.walletCount}` : 'Unavailable');
-    setCoinField('#coin-holder-note', fullHolderDistribution ? 'Distinct non-vault wallets · full minted supply reconciled' : 'Full wallet distribution unavailable');
     setCoinField('#coin-accounts-source', fullHolderDistribution ? `${fullHolderDistribution.accountCount} non-zero token accounts · full minted supply reconciled` : distribution ? `${distribution.otherCount} non-vault token accounts in top ${tokenAccounts} · partial sample` : `${graduatedPool ? 'Pool' : 'Curve'} vault not identified in largest-account sample`);
     setCoinField('#coin-vault-share', distribution ? `${formatOnChainNumber(distribution.vaultShare, 2)}% of supply` : curveVaultAddress && accountAvailable ? 'Outside top sample' : 'Unavailable');
     setCoinField('#coin-largest-account-share', distribution ? distribution.otherCount ? `${formatOnChainNumber(distribution.largestOtherShare, 2)}% of supply` : 'None in sample' : 'Unavailable');
@@ -8667,7 +8630,7 @@ async function loadCoinOnChain(mintAddress){
     }).catch(() => {});
     void loadSolUsdQuote();
     if (curve && EXPLORE_CLUSTER === 'devnet') void loadCoinMarketActivity(mintAddress, loadId, decimals, curve.complete === true);
-    else { coinMarketActivity = { status: 'unavailable', trades: [], coverage: null, decimals }; renderCoinSummary(); renderCoinPricePath(); renderCoinFlow(NaN, NaN); renderCoinPulse(); setCoinField('#coin-trade-count', 'Unavailable'); setCoinField('#coin-trade-breakdown', 'Pump curve required'); setCoinField('#coin-trade-coverage', 'No Pump curve trade history'); setCoinTabLabels(); renderCoinActivityTab(); }
+    else { coinMarketActivity = { status: 'unavailable', trades: [], coverage: null, decimals }; renderCoinSummary(); renderCoinPricePath(); renderCoinFlow(NaN, NaN); renderCoinPulse(); setCoinField('#coin-trade-count', 'Unavailable'); setCoinField('#coin-trade-breakdown', 'Pump curve required'); setCoinTabLabels(); renderCoinActivityTab(); }
   } catch (error) {
     if (loadId !== coinLoadId) return;
     console.error('On-chain token detail failed', error);
@@ -8981,8 +8944,8 @@ document.querySelector('.coin-tabs')?.addEventListener('keydown', event => {
 
 const programPreviewData = {
   standard: { name: 'Standard launch', subtitle: 'A calm, accountable first step', progress: '1 of 3 complete', width: '33%', note: 'Connect a wallet to begin your launch review.' },
-  boost: { name: 'Boost launch', subtitle: 'More visibility with a public signal', progress: '2 of 3 complete', width: '66%', note: 'Your route is ready; review the burn receipt before signing.' },
   pro: { name: 'Pro launch', subtitle: 'For teams ready to move with intent', progress: '2 of 3 complete', width: '78%', note: 'Priority review is available after the published route is confirmed.' },
+  premier: { name: 'Premier launch', subtitle: 'Largest project showcase', progress: '2 of 3 complete', width: '88%', note: 'Spotlight review is available after the published route is confirmed.' },
   airdrop: { name: 'Airdrop reserve', subtitle: 'See who is eligible before you claim', progress: '2 of 3 complete', width: '66%', note: 'Review the allocation policy and claim status before connecting.' },
   explore: { name: 'Browse Launch Directory', subtitle: 'Find launches with a visible signal', progress: '1 of 3 complete', width: '33%', note: 'Open the explorer to inspect route, tier, and receipt history.' },
   receipts: { name: 'Receipt center', subtitle: 'Follow value after the launch', progress: '3 of 3 complete', width: '100%', note: 'Every verified event stays linked to its on-chain source.' },
@@ -8997,8 +8960,8 @@ const programViews = {
     href: '#launch',
     cards: [
       ['standard', 'STANDARD', 'Start here', 'Launch without the guesswork', 'Core Pump launch, public fee route, and a verifiable receipt preview.', '0 $FUNDED', '1 route to review'],
-      ['boost', 'BOOST', 'More visibility', 'Put your launch in front of the right eyes', 'Verified badge, Boost directory filter, and a public burn receipt.', '25,000 $FUNDED', 'Featured eligibility'],
-      ['pro', 'PRO', 'For serious launches', 'Give the launch a stronger signal', 'All Boost benefits, Pro badge, and featured-review eligibility.', '100,000 $FUNDED', 'Priority review'],
+      ['pro', 'PRO', 'For serious launches', 'Give the launch a stronger signal', 'Pro badge, public burn receipt, and featured-review eligibility.', '$100 in $FUNDED', 'Priority review'],
+      ['premier', 'PREMIER', 'Largest showcase', 'Put your launch in the spotlight', 'Premier badge, public burn receipt, and homepage spotlight-review eligibility.', '$200 in $FUNDED', 'Spotlight review'],
     ],
   },
   community: {

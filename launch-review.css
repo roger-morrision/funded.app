@@ -85,6 +85,3 @@
   .launch-review-highlights{grid-template-columns:1fr}
   .launch-review-route summary code{font-size:9px}
 }
-.launch-draft-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin:1rem 0; }
-.launch-draft-actions .secondary-button { padding:.55rem .8rem; }
-.launch-draft-actions [role="status"] { flex-basis:100%; font-size:.8rem; opacity:.8; }

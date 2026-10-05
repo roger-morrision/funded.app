@@ -38,18 +38,12 @@ test('Home has a clear Devnet pilot path and setup requires no wallet',async({pa
   }
 });
 
-test('pilot resumes a saved draft only after explicit restore',async({page})=>{
-  await open(page,'/#launch');await page.locator('#token-name').fill('Pilot saved draft');
-  await page.locator('#token-symbol').fill('PILOT');
-  await page.locator('.launch-draft-panel summary').click();await page.locator('#save-launch-draft').click();
-  await expect(page.locator('#launch-draft-status')).toContainText('saved');
-  await page.locator('#token-name').fill('Current unsaved work');
-  await page.evaluate(()=>{location.hash='pilot';});
-  await expect(page.locator('[data-pilot-primary]')).toHaveText('Resume your draft');
-  await expect(page.locator('[data-pilot-step="0"]')).toHaveText('Draft saved on this device');
-  await page.locator('[data-pilot-primary]').click();await expect(page.locator('#restore-launch-draft')).toBeFocused();
-  await expect(page.locator('#token-name')).toHaveValue('Current unsaved work');
-  await page.locator('#restore-launch-draft').click();await expect(page.locator('#token-name')).toHaveValue('Pilot saved draft');
+test('pilot opens the launch form without draft actions',async({page})=>{
+  await open(page,'/#pilot');
+  await expect(page.locator('[data-pilot-primary]')).toHaveText('Prepare your token');
+  await page.locator('[data-pilot-primary]').click();
+  await expect(page.locator('#token-name')).toBeVisible();
+  await expect(page.locator('.launch-draft-panel')).toHaveCount(0);
 });
 
 test('unfinished launch routes to receipt recovery without claiming success',async({page})=>{
@@ -63,7 +57,7 @@ test('unfinished launch routes to receipt recovery without claiming success',asy
 });
 
 test('invitation copy and clipboard fallback do not enroll or send messages',async({page})=>{
-  const writes=[];page.on('request',request=>{if(!['GET','HEAD','OPTIONS'].includes(request.method()))writes.push(request.url());});
+  const writes=[];page.on('request',request=>{if(!['GET','HEAD','OPTIONS'].includes(request.method()) && new URL(request.url()).pathname !== '/api/solana/rpc')writes.push(request.url());});
   await open(page,'/pilot');await expect(page.locator('#creator-pilot')).toBeVisible();
   await page.evaluate(()=>{navigator.clipboard.writeText=async value=>{window.pilotCopiedText=value;};});
   await page.locator('[data-pilot-copy]').click();

@@ -60,8 +60,8 @@ main.wallet-view>#wallet-page{display:block!important}
 .coin-page .coin-creator-by{margin-left:8px;color:#e9e1cf;font:10px 'DM Mono',monospace;text-decoration:none}
 .coin-page .coin-creator-by:hover{color:#d7ffe4;text-decoration:underline}
 .coin-page .coin-description,.coin-page .coin-fact-ribbon{display:none!important}
-.coin-page .coin-socials.is-compact{display:flex!important;align-items:center;gap:5px;margin:0}
-.coin-page .coin-socials.is-compact a,.coin-page .coin-socials.is-compact button{display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid #2f4656;border-radius:6px;background:#111d28;color:#b7cad8;font:13px 'DM Mono',monospace;text-decoration:none;cursor:pointer}
+.coin-page .coin-socials.is-compact{display:flex!important;align-items:center;flex-wrap:nowrap;gap:5px;margin:0}
+.coin-page .coin-socials.is-compact a,.coin-page .coin-socials.is-compact button{box-sizing:border-box;display:grid;flex:none;place-items:center;width:30px;height:30px;padding:0;border:1px solid #2f4656;border-radius:6px;background:#111d28;color:#b7cad8;font:13px 'DM Mono',monospace;text-decoration:none;cursor:pointer}
 .coin-page .coin-socials.is-compact a:hover,.coin-page .coin-socials.is-compact button:hover{border-color:#f4a340;background:#26354d;color:#e2fbf5}
 .coin-page .coin-socials.is-compact .is-unavailable{opacity:.45;cursor:default}
 .coin-page .coin-hero-stat{min-width:170px;padding-left:18px}
@@ -79,7 +79,6 @@ main.wallet-view>#wallet-page{display:block!important}
 .coin-page .coin-summary-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid #2b394d}
 .coin-page .coin-summary-heading h2{margin:4px 0 5px;color:#f1f5fb;font-size:19px}
 .coin-page .coin-summary-heading p:last-child{margin:0;color:#91a2b8;font-size:11px;line-height:1.5}
-.coin-page .coin-summary-heading .data-badge{white-space:nowrap}
 .coin-page .coin-summary-grid{display:flex;flex-wrap:wrap;gap:1px;background:#2a3850}
 .coin-page .coin-summary-card{position:relative;display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;flex:1 1 calc(25% - 1px);box-sizing:border-box;min-width:200px;min-height:110px;padding:16px;background:#111b2a}
 .coin-page .coin-summary-card:after{content:'';position:absolute;left:16px;right:16px;bottom:0;height:2px;background:transparent}
@@ -595,7 +594,7 @@ main.wallet-view>#wallet-page{display:block!important}
 .coin-page .coin-package-bag svg{width:27px;height:27px;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .coin-page .coin-package-bag span{position:absolute;top:11px;left:0;width:100%;font:700 12px/1 'DM Mono',monospace;text-align:center}
 .coin-page .coin-package-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
-.coin-page .coin-package-copy small{color:inherit;opacity:.74;font:700 9px/1.15 'DM Mono',monospace;white-space:nowrap}
+.coin-page .coin-package-copy small{color:inherit;opacity:.74;font:700 9px/1.15 'DM Mono',monospace;font-size:9px!important;line-height:1.15!important;overflow-wrap:anywhere}
 .coin-page .coin-package-copy strong{color:inherit;font:800 11px/1.2 Manrope,sans-serif;overflow-wrap:anywhere}
 .coin-page .coin-avatar{width:76px;height:76px;border:1px solid #a9d8ae66;border-radius:16px;background-color:#26354d;background-size:cover;box-shadow:0 0 0 5px #111b2e88,0 14px 28px #0007;font-size:30px}
 .coin-page .coin-identity h1{margin:5px 0 6px;color:#f1f8f1;font-size:clamp(22px,2.4vw,34px);letter-spacing:-.05em}
@@ -742,7 +741,6 @@ main.wallet-view>#wallet-page{display:block!important}
   .coin-page .coin-identity{grid-column:1;grid-row:2;padding:15px 17px}
   .coin-page .coin-package-rail{flex-basis:132px}
   .coin-page .coin-package-chip{gap:5px;padding:5px 6px}
-  .coin-page .coin-package-copy small{font-size:8px}
   .coin-page .coin-package-copy strong{font-size:10px}
   .coin-page .coin-avatar{width:58px;height:58px;font-size:23px}
   .coin-page .coin-hero-card>.coin-stat-strip{grid-column:1;grid-row:3}
@@ -758,7 +756,12 @@ main.wallet-view>#wallet-page{display:block!important}
   .coin-page .coin-section-nav button{flex:none;padding:7px 10px}
 }
 @container coin-detail (max-width:520px){
-  .coin-page .coin-identity{flex-wrap:wrap}
+  .coin-page .coin-identity{display:grid;grid-template-columns:55px minmax(0,1fr);column-gap:12px;row-gap:0;align-items:start}
+  .coin-page .coin-identity>.coin-identity-main{display:contents}
+  .coin-page .coin-avatar{grid-column:1;grid-row:1 / span 4;align-self:center}
+  .coin-page .coin-title-row,.coin-page .coin-identity h1,.coin-page .coin-address,.coin-page .coin-attribution{grid-column:2;min-width:0}
+  .coin-page .coin-socials.is-compact,.coin-page .coin-identity>.field-help,.coin-page .coin-package-rail{grid-column:1/-1}
+  .coin-page .coin-socials.is-compact{margin-top:10px}
   .coin-page .coin-package-rail{flex:0 0 100%;align-items:flex-end;align-self:auto}
   .coin-page .coin-package-chip,.coin-page .coin-package-rail #coin-promotion-badge{width:156px}
 }
@@ -797,9 +800,14 @@ main.wallet-view>#wallet-page{display:block!important}
 
 @media (max-width:700px) {
   .coin-page .coin-socials.is-compact a,
-  .coin-page .coin-socials.is-compact button { width:40px; height:40px; }
+  .coin-page .coin-socials.is-compact button { width:32px; height:32px; }
   .coin-page .coin-watch { min-width:40px; min-height:40px; }
   .coin-page:not([hidden]) .mobile-trade-open { position:static; width:100%; margin:12px 0 18px; }
+}
+@container coin-detail (max-width:290px) {
+  .coin-page .coin-socials.is-compact{gap:4px}
+  .coin-page .coin-socials.is-compact a,
+  .coin-page .coin-socials.is-compact button{width:26px;height:26px}
 }
 @media (max-width:360px) {
   .coin-page .coin-chart-panel .coin-panel-head { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; }

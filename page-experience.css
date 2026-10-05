@@ -1743,9 +1743,9 @@ input[type='search']:focus-visible {
 .launch-page-flat > .launch-form > .dialog-kicker,
 .launch-page-flat > .launch-form > .dialog-copy { display: none; }
 .launch-page-flat .launch-fields { display: grid; gap: 0; overflow: hidden; border: 1px solid #263943; border-radius: 11px; background: #0d1c22; }
-.launch-page-flat .launch-fields > [data-launch-step='2'] { order: 1; }
-.launch-page-flat .launch-fields > [data-launch-step='1'] { order: 2; }
-.launch-page-flat .launch-fields > .wizard-actions { order: 3; }
+.launch-page-flat .launch-fields > [data-launch-step='1'] { order: 1; }
+.launch-page-flat .launch-fields > [data-launch-step='2'] { order: 2; }
+.launch-page-flat .launch-fields > .wizard-actions { order: 4; }
 .launch-page-flat .launch-step-panel,
 .launch-page-flat .launch-step-panel[hidden] {
   display: block !important;
@@ -1757,6 +1757,8 @@ input[type='search']:focus-visible {
   background: transparent;
   animation: none;
 }
+.launch-page-flat .launch-review-step,
+.launch-page-flat .launch-review-step[hidden] { display: none !important; }
 .launch-page-flat .step-heading { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid #263943; }
 .launch-page-flat .step-heading > span { display: block; color: #6fa8b8; font: 700 9px 'DM Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
 .launch-page-flat .step-heading h3 { margin: 6px 0 5px; font-size: 19px; }
@@ -1830,6 +1832,8 @@ input[type='search']:focus-visible {
 .launch-pay-approval { min-width: 0; max-width: 100%; }
 .launch-pay-consents { display: grid; gap: 10px; }
 .launch-pay-consents .terms-check { margin: 0; color: #9eb0b6; font-size: 9px; line-height: 1.45; }
+.launch-pay-consents .terms-check input[type="checkbox"] { flex: 0 0 20px; width: 20px; height: 20px; box-sizing: border-box; margin: 0; }
+.launch-pay-consents .terms-check span { min-width: 0; }
 .launch-pay-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
 .launch-pay-actions .secondary-button { padding: 8px 10px; font-size: 9px; }
 .launch-pay-approval .launch-status { min-height: 0; margin-top: 10px; }

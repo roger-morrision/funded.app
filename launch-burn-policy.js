@@ -62,7 +62,7 @@ export function findLaunchBurnTier(tierId, tiers = LAUNCH_BURN_TIERS) {
 export function buildLaunchBurnPolicy({ tierId = 'standard', fundedMint = null, tiers = LAUNCH_BURN_TIERS } = {}) {
   const tier = findLaunchBurnTier(tierId, tiers);
   const mint = String(fundedMint || '').trim() || null;
-  const requiresBurn = tier.amountTokens > 0;
+  const requiresBurn = tier.id !== 'standard';
   return {
     version: LAUNCH_BURN_POLICY_VERSION,
     tier: tier.id,

@@ -33,7 +33,6 @@ const checks = [
   "verify:reward-contract-source",
   "verify:launch",
   "verify:launch-wizard",
-  "verify:launch-draft",
   "verify:devnet-metadata",
   "verify:local-flow",
   "verify:fee-policy",

@@ -6,8 +6,16 @@ const TRADE_EVENT_DISCRIMINATOR = Buffer.from([189, 219, 127, 211, 78, 230, 97, 
 const DAY_SECONDS = 24 * 60 * 60;
 const ACTIVITY_WINDOWS = { '5m': 5 * 60, '1h': 60 * 60, '6h': 6 * 60 * 60, '24h': DAY_SECONDS };
 
-function summarizeActivityWindow(records, cutoffSeconds, complete) {
+function summarizeActivityWindow(records, cutoffSeconds, complete, sinceLaunch = false) {
   const selected = records.filter(item => item.blockTime >= cutoffSeconds);
+  const priced = selected.filter(item => Number.isFinite(item.priceRatio))
+    .sort((a, b) => b.blockTime - a.blockTime || a.order - b.order);
+  const prior = records.filter(item => item.blockTime < cutoffSeconds && Number.isFinite(item.priceRatio))
+    .sort((a, b) => b.blockTime - a.blockTime || a.order - b.order);
+  const latest = priced[0];
+  const baseline = prior[0] || (sinceLaunch && priced.length > 1 ? priced.at(-1) : null);
+  const changePercent = complete && latest && baseline && baseline.priceRatio > 0 && latest !== baseline
+    ? (latest.priceRatio / baseline.priceRatio - 1) * 100 : null;
   const buy = selected.filter(item => item.isBuy === true);
   const sell = selected.filter(item => item.isBuy === false);
   const totalLamports = selected.reduce((sum, item) => sum + item.solLamports, 0n);
@@ -23,6 +31,8 @@ function summarizeActivityWindow(records, cutoffSeconds, complete) {
     sellVolumeSol: Number(sellLamports) / 1_000_000_000,
     traderCount: new Set(selected.map(item => item.trader).filter(Boolean)).size,
     largestTradeSol: Number(largestLamports) / 1_000_000_000,
+    priceChangePercent: Number.isFinite(changePercent) ? changePercent : null,
+    priceChangeBasis: changePercent == null ? null : prior.length ? 'window' : 'since-first-trade',
     coverage: complete ? 'complete' : 'partial',
   };
 }
@@ -97,7 +107,7 @@ export function summarizePumpTrades(records, { cutoffSeconds, complete, sinceLau
     ? (latest.priceRatio / baseline.priceRatio - 1) * 100 : null;
   const nowSeconds = cutoffSeconds + DAY_SECONDS;
   const activityWindows = Object.fromEntries(Object.entries(ACTIVITY_WINDOWS).map(([period, seconds]) =>
-    [period, summarizeActivityWindow(records, nowSeconds - seconds, complete)]));
+    [period, summarizeActivityWindow(records, nowSeconds - seconds, complete, sinceLaunch)]));
   return {
     activityWindows,
     poolTradeCount24h: recent.filter(item => item.route === 'pool').length,
