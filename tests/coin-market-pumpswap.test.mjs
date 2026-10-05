@@ -59,6 +59,16 @@ test('market activity merges the two pool receipts once with exact 24h volume', 
   assert.deepEqual(data.recentTrades.map(trade => trade.route), ['pool', 'pool']);
 });
 
+test('older trades remain in observed volume after the 24h window closes', async () => {
+  const data = await readPumpMarketActivity({ connection:fakeConnection(), mint,
+    nowSeconds:Math.max(...fixture.cases.map(item => item.blockTime)) + 2 * 24 * 60 * 60 });
+  assert.equal(data.tradeCount24h, 0);
+  assert.equal(data.volume24hSol, 0);
+  assert.equal(data.observedTradeCount, 2);
+  assert.equal(data.observedVolumeSol, 0.018765431);
+  assert.equal(data.observedCoverage, 'complete');
+});
+
 test('bonding curve history stays in the merged feed after migration', async () => {
   const data = await readPumpMarketActivity({ connection:fakeConnection({ includeCurve:true }), mint,
     nowSeconds:Math.max(...fixture.cases.map(item => item.blockTime)) + 30 });

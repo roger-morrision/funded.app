@@ -10,7 +10,7 @@ export function deriveXFeeObligation(state, { mint, claimSignature }) {
   const signature = String(claimSignature || '').trim();
   if (!signature) throw new Error('A confirmed fee-collection signature is required.');
   const launch = state.launches?.[mintAddress];
-  if (!launch?.onchainVerified || launch.cluster !== 'devnet') throw new Error('A verified Devnet launch policy is required.');
+  if (!launch?.onchainVerified || launch.cluster !== 'devnet') throw new Error('A verified Solana launch policy is required.');
   const route = launch.pumpFeeRoute;
   if (route?.scope !== 'per-mint-v2' || route?.verified !== true || route.router !== launch.creator) {
     throw new Error('This launch has no isolated, verified per-mint fee router. Shared-router fees cannot be attributed to an X claim.');

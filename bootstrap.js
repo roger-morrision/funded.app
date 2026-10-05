@@ -17,11 +17,10 @@ await loadBootstrapModules([
   { name: 'Reward history', load: () => import('./reward-experience-ui.js') },
   ...(APP_JACKPOT_ENABLED ? [{ name: 'Jackpot', load: () => import('./jackpot-ui.js') }] : []),
   { name: 'Saved preferences', load: () => import('./retention-ux.js') },
-  { name: 'Creator community pilot', load: () => import('./creator-pilot.js') },
-  { name: 'Device diagnostics', load: () => import('./pilot-metrics.js') },
   { name: 'Service status', load: () => import('./service-status-ui.js') },
 ], ({ name, required, error }) => {
   console.error(`Could not initialize ${name}:`, error);
   if (required) appFailed();
   else optionalFeatureFailed();
 });
+try { localStorage.removeItem('funded.vip.pilot.v1'); } catch { /* Storage may be unavailable. */ }

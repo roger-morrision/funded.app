@@ -94,9 +94,9 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     if (status) status.hidden = !verified && !pending && !recoveryError;
     mintInput.removeAttribute('aria-invalid');
     help.classList.remove('is-valid', 'is-invalid');
-    if (!value) help.textContent = 'Enter a Solana Devnet mint to check its address format.';
+    if (!value) help.textContent = 'Enter a Solana mint to check its address format.';
     else if (!mint) { help.textContent = 'Enter a valid Solana mint address.'; help.classList.add('is-invalid'); mintInput.setAttribute('aria-invalid', 'true'); }
-    else { help.textContent = 'Valid address format. The token mint will be checked on Devnet before payment.'; help.classList.add('is-valid'); }
+    else { help.textContent = 'Valid address format. The token mint will be checked on Solana before payment.'; help.classList.add('is-valid'); }
     const existing = mint && listings.find(item => item.mint === mint);
     preview.hidden = !mint;
     preview.replaceChildren();
@@ -105,7 +105,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       const note = document.createElement('small');
       if (verified) {
         title.textContent = lookup.name;
-        note.textContent = `${lookup.symbol} · Verified Devnet token metadata`;
+        note.textContent = `${lookup.symbol} · Verified Solana token metadata`;
         if (existing) {
           const link = document.createElement('a');
           link.href = `/token/${encodeURIComponent(mint)}`;
@@ -116,7 +116,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
         title.textContent = lookup?.mint === mint && lookup.status === 'error' ? 'Token lookup unavailable' : 'Checking token metadata…';
         note.textContent = lookup?.mint === mint && lookup.status === 'error'
           ? `${lookup.message} No listing payment can be reviewed.`
-          : 'Reading the mint and signed metadata from Solana Devnet.';
+          : 'Reading the mint and signed metadata from Solana.';
         preview.append(title, note);
       }
     }
@@ -142,7 +142,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     nameInput.value = '';
     symbolInput.value = '';
     lookup = mint ? { mint, status:'pending' } : null;
-    setStatus(mint ? 'Checking verified Devnet token metadata before payment.' : 'Enter a mint to check listing availability.');
+    setStatus(mint ? 'Checking verified Solana token metadata before payment.' : 'Enter a mint to check listing availability.');
     draw();
     if (!mint) return;
     const existing = listings.find(item => item.mint === mint && item.onchainVerified === true && item.cluster === 'devnet');
@@ -162,10 +162,10 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
         lookup = { mint, status:'verified', name:result.data.name, symbol:result.data.symbol };
         nameInput.value = lookup.name;
         symbolInput.value = lookup.symbol;
-        setStatus('Token metadata verified on Devnet. Review remains gated by listing availability and wallet checks.');
+        setStatus('Token metadata verified on Solana. Review remains gated by listing availability and wallet checks.');
       } catch (error) {
         if (sequence !== lookupSequence || mint !== mintValue()) return;
-        lookup = { mint, status:'error', message:error instanceof TypeError ? 'Devnet metadata service unavailable.' : error.message || 'The Devnet metadata service did not respond.' };
+        lookup = { mint, status:'error', message:error instanceof TypeError ? 'Solana metadata service unavailable.' : error.message || 'The Solana metadata service did not respond.' };
         setStatus('Token metadata could not be verified. No listing payment can be reviewed.');
       }
       draw();
@@ -174,7 +174,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
   function renderListings() {
     if (!live) return;
     live.replaceChildren();
-    if (!listings.length) { const empty = document.createElement('p'); empty.textContent = 'No paid listings have been verified on Devnet yet.'; live.append(empty); return; }
+    if (!listings.length) { const empty = document.createElement('p'); empty.textContent = 'No paid listings have been verified on Solana yet.'; live.append(empty); return; }
     for (const item of listings) {
       const row = document.createElement('a'); row.href = `/token/${encodeURIComponent(item.mint)}`; row.setAttribute('role', 'listitem');
       const title = document.createElement('strong'); title.textContent = `${item.name} · ${item.symbol}`;
@@ -209,7 +209,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       config = result.available ? result.data : null;
       const pending = readPending();
       setStatus(pending ? 'A prior burn is awaiting receipt verification. Retry the receipt before another payment.'
-        : config?.enabled ? 'Enter a mint, name, and ticker to review the burn.' : 'Listing payments are unavailable until the Devnet API and $FUNDED mint are configured.', pending?.signature);
+        : config?.enabled ? 'Enter a mint, name, and ticker to review the burn.' : 'Listing payments are unavailable until the Solana API and $FUNDED mint are configured.', pending?.signature);
     } catch { config = null; setStatus('Listing payment service unavailable. No burn can be submitted.'); }
     draw();
   }
@@ -222,14 +222,14 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       if (listings.some(item => item.mint === mintValue())) throw new Error('This mint is already listed. No new payment is needed.');
       let session = getSession();
       if (!session) { await connectWallet(); session = getSession(); }
-      if (!session || !canSignTransactions(session.provider)) throw new Error('Connect a signing Devnet wallet to continue.');
+      if (!session || !canSignTransactions(session.provider)) throw new Error('Connect a signing Solana wallet to continue.');
       await getSolana();
       const rpc = getConnection();
-      if (await rpc.getGenesisHash() !== LISTING_DEVNET_GENESIS_HASH) throw new Error('Wallet RPC is not connected to Solana Devnet. No burn was submitted.');
+      if (await rpc.getGenesisHash() !== LISTING_DEVNET_GENESIS_HASH) throw new Error('Wallet RPC failed verification. No burn was submitted.');
       const mint = new PublicKey(mintInput.value.trim()).toBase58();
       const mintAccount = await rpc.getAccountInfo(new PublicKey(mint), 'finalized');
       if (!mintAccount || (!mintAccount.owner.equals(TOKEN_PROGRAM_ID) && !mintAccount.owner.equals(TOKEN_2022_PROGRAM_ID)))
-        throw new Error('This mint is not a supported SPL token on Devnet.');
+        throw new Error('This mint is not a supported SPL token on Solana.');
       const listingMetadata = await apiRequest(`/api/listings/mint/${encodeURIComponent(mint)}`, { signal:AbortSignal.timeout(12000) });
       if (!listingMetadata.available || listingMetadata.data?.mint !== mint || listingMetadata.data?.cluster !== 'devnet'
         || !listingMetadata.data?.name || !listingMetadata.data?.symbol)
@@ -239,11 +239,11 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       const fundedKey = new PublicKey(fundedMint);
       const fundedAccount = await rpc.getAccountInfo(fundedKey, 'confirmed');
       if (!fundedAccount || (!fundedAccount.owner.equals(TOKEN_PROGRAM_ID) && !fundedAccount.owner.equals(TOKEN_2022_PROGRAM_ID)))
-        throw new Error('The configured $FUNDED mint is unavailable on Devnet.');
+        throw new Error('The configured $FUNDED mint is unavailable on Solana.');
       const tokenProgram = fundedAccount.owner;
       const funded = await getMint(rpc, fundedKey, 'confirmed', tokenProgram);
       const amountTokens = configuredBurnTokens();
-      if (amountTokens == null) throw new Error('The Devnet listing burn policy is unavailable.');
+      if (amountTokens == null) throw new Error('The Solana listing burn policy is unavailable.');
       const amount = listingBurnBaseUnits(funded.decimals, amountTokens);
       const accounts = await rpc.getTokenAccountsByOwner(new PublicKey(session.address), { mint: fundedKey }, 'confirmed');
       const source = accounts.value.map(row => ({ address: row.pubkey, amount: unpackAccount(row.pubkey, row.account, tokenProgram).amount }))
@@ -255,7 +255,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       byId('list-review-mint').textContent = mint;
       byId('list-review-wallet').textContent = session.address;
       review.showModal();
-      setStatus('Review the exact Devnet burn before asking your wallet to sign.');
+      setStatus('Review the exact Solana burn before asking your wallet to sign.');
     } catch (error) { setStatus(error.message || 'Listing review is unavailable.'); }
     finally { busy = false; draw(); }
   }

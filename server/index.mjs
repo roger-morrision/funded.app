@@ -193,7 +193,7 @@ const solanaCluster = String(process.env.VITE_SOLANA_CLUSTER || process.env.SOLA
 const boostPurchasesEnabled = solanaCluster === 'devnet' && String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
 function communityClaimService() {
   if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_FEE_ROUTER_PROGRAM_ID
-    || !fundedTokenMint) throw new Error('Devnet community claim configuration is unavailable.');
+    || !fundedTokenMint) throw new Error('Solana community claim configuration is unavailable.');
   return createCommunityClaimService({ connection:new Connection(solanaRpcUrl, 'finalized'), store:automaticRewardStore,
     programId:process.env.FUNDED_FEE_ROUTER_PROGRAM_ID, authority:process.env.FUNDED_REWARD_AUTHORITY,
     eligibilityMint:fundedTokenMint, cluster:solanaCluster,
@@ -529,7 +529,7 @@ function routerAuthorityKeypair() {
 }
 async function mintRouterReadiness() {
   const reasons = [];
-  if (solanaCluster !== 'devnet') reasons.push('Devnet is required');
+  if (solanaCluster !== 'devnet') reasons.push('Solana is required');
   if (process.env.FUNDED_MINT_FEE_ROUTER_ENABLED !== 'true') reasons.push('mint router route is disabled');
   if (!feeRouterConfig()) reasons.push('fee router is not configured');
   let keeper = null;
@@ -567,7 +567,7 @@ async function mintRouterReadiness() {
       if (!evidence.account?.executable || !verified.verified) reasons.push('fee router program or legacy header is not verified');
       if (!process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 || evidence.sha256 !== process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256.toLowerCase()) reasons.push('fee router program bytecode is not approved');
       if (legacy?.data?.length !== 74 || !new PublicKey(legacy.data.subarray(41, 73)).equals(authority.publicKey)) reasons.push('settlement authority does not match the on-chain router');
-    } catch { reasons.push('Devnet fee router could not be verified'); }
+    } catch { reasons.push('Solana fee router could not be verified'); }
   }
   return { ready: reasons.length === 0, reasons };
 }
@@ -666,10 +666,10 @@ async function collectPumpCreatorFees({ requestedMint }) {
 
 const readReceiptEvidence = createReceiptEvidenceReader({ store, cluster: solanaCluster,
   connectionFactory: () => new Connection(solanaRpcUrl, 'confirmed'),
-  officialGenesis: () => new Connection(clusterApiUrl(solanaCluster), 'confirmed').getGenesisHash() });
+  officialGenesis: () => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'confirmed').getGenesisHash() });
 const readFinalizedEvidence = createReceiptEvidenceReader({ store, cluster: solanaCluster, commitment:'finalized',
   connectionFactory: () => new Connection(solanaRpcUrl, 'finalized'),
-  officialGenesis: () => new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash() });
+  officialGenesis: () => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash() });
 
 const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solanaCluster, getSession: xSession, readEvidence: readReceiptEvidence, readFinalizedEvidence,
   capabilities: async () => ({ version: CREATOR_SUPPORT_VERSION, build: process.env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
@@ -729,11 +729,11 @@ async function handle(req, res) {
     if (publicMint && url.pathname.startsWith('/devnet-metadata/')) {
       const prepared = await store.readMetadata(publicMint);
       if (prepared) return json(res, 200, publicMetadata(prepared));
-      if (metadataHost) return json(res, 404, { error: 'Devnet metadata not found.' });
+      if (metadataHost) return json(res, 404, { error: 'Solana metadata not found.' });
     }
     if (req.method === 'POST' && url.pathname !== '/api/solana/rpc') {
       if (/^\/api\/dev-wallet\/sign-(?:transaction|message)$/.test(url.pathname) && !devMode)
-        return json(res, 403, { error: 'Development wallet signing is available only in the local Devnet preview.' });
+        return json(res, 403, { error: 'Local wallet signing is unavailable here.' });
       const cost = ['/api/launches', '/api/devnet-metadata'].includes(url.pathname) ? 10 : url.pathname.startsWith('/api/referrals/') ? 5 : 1;
       const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
       if (!await store.chargeRpcRate(`api:${clientKey(req)}`, cost, 120, windowStart)) return json(res, 429, { error: 'API request limit reached; retry shortly.' });
@@ -754,7 +754,7 @@ async function handle(req, res) {
       return json(res, 200, { cluster:solanaCluster, enabled:boostPurchasesEnabled && Boolean(process.env.FUNDED_BOOST_PAYMENT_WALLET), packages:BOOST_PACKAGES, active:mint ? (active[mint] ? { [mint]:active[mint] } : {}) : active, history });
     }
     if (req.method === 'POST' && url.pathname === '/api/boosts/quote') {
-      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Boost payments are available on Devnet only.' });
+      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Boost payments are available on Solana only.' });
       if (!boostPurchasesEnabled) return json(res, 503, { error:'New boost purchases are currently paused.' });
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Start boost checkout from funded.vip.' });
       if (!await store.chargeRpcRate(`boost-quote:${clientKey(req)}`, 1, 8, Math.floor(Date.now() / 60_000) * 60_000))
@@ -774,7 +774,7 @@ async function handle(req, res) {
       const launch = state.launches?.[mint];
       const listing = state.listings?.[mint];
       if (!(launch?.onchainVerified && launch.cluster === 'devnet') && !(listing?.onchainVerified && listing.cluster === 'devnet'))
-        return json(res, 404, { error:'Only verified tokens in the funded.vip Devnet directory can be boosted.' });
+        return json(res, 404, { error:'Only verified tokens in the funded.vip Solana directory can be boosted.' });
       const price = await readSolUsdQuote();
       if (!price || Date.now() - Date.parse(price.fetchedAt) > 120_000)
         return json(res, 503, { error:'A fresh SOL/USD quote is unavailable. No payment was requested.' });
@@ -791,7 +791,7 @@ async function handle(req, res) {
       return json(res, 201, { ...quote, memo:boostMemo(quote.id) });
     }
     if (req.method === 'POST' && url.pathname === '/api/boosts/confirm') {
-      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Boost payments are available on Devnet only.' });
+      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Boost payments are available on Solana only.' });
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Confirm boost checkout from funded.vip.' });
       const input = await body(req);
       const quoteId = String(input.quoteId || '');
@@ -807,9 +807,9 @@ async function handle(req, res) {
         fetch:(url, options) => fetch(url, { ...options, signal:AbortSignal.timeout(8000) }) });
       let transaction;
       try {
-        if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC is not Solana Devnet.' });
+        if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC failed verification.' });
         transaction = await rpc.getParsedTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
-      } catch { return json(res, 503, { error:'Finalized Devnet payment proof is currently unavailable. Retry the same signature.' }); }
+      } catch { return json(res, 503, { error:'Finalized Solana payment proof is currently unavailable. Retry the same signature.' }); }
       if (!transaction) return json(res, 202, { status:'pending', signature, message:'Payment is not finalized yet. Retry verification with the same signature.' });
       if (transaction.transaction?.signatures?.[0] !== signature || !Number.isSafeInteger(transaction.slot) || transaction.slot < 1)
         return json(res, 503, { error:'Finalized payment proof did not match the requested signature. Retry verification of the same payment.' });
@@ -849,14 +849,14 @@ async function handle(req, res) {
       return json(res, 201, { uri: devnetMetadataUri(saved.mint, metadataRecordOrigin(saved)), image: publicMetadata(saved).image, mint: saved.mint });
     }
     if (req.method === 'GET' && url.pathname === '/api/dev-wallet') {
-      if (!devMode) return json(res, 403, { error: 'Automatic development wallet access is available only in the local Devnet preview.' });
+      if (!devMode) return json(res, 403, { error: 'Automatic wallet access is unavailable here.' });
       const wallet = devWalletKeypair();
-      if (!wallet) return json(res, 503, { error: 'Local Devnet wallet role is not configured.' });
+      if (!wallet) return json(res, 503, { error: 'Local Solana wallet role is not configured.' });
       return json(res, 200, { role: wallet.role, publicKey: wallet.keypair.publicKey.toBase58(), cluster: 'devnet' });
     }
     if (req.method === 'POST' && url.pathname === '/api/dev-wallet/sign-transaction') {
       const wallet = devWalletKeypair();
-      if (!wallet) return json(res, 503, { error: 'Local Devnet wallet role is not configured.' });
+      if (!wallet) return json(res, 503, { error: 'Local Solana wallet role is not configured.' });
       const input = await body(req);
       try {
         const transaction = Transaction.from(Buffer.from(String(input.transaction || ''), 'base64'));
@@ -866,7 +866,7 @@ async function handle(req, res) {
     }
     if (req.method === 'POST' && url.pathname === '/api/dev-wallet/sign-message') {
       const wallet = devWalletKeypair();
-      if (!wallet) return json(res, 503, { error: 'Local Devnet wallet role is not configured.' });
+      if (!wallet) return json(res, 503, { error: 'Local Solana wallet role is not configured.' });
       const input = await body(req);
       try { return json(res, 200, { signature: Buffer.from(nacl.sign.detached(Buffer.from(String(input.message || ''), 'base64'), wallet.keypair.secretKey)).toString('base64') }); }
       catch { return json(res, 400, { error: 'Invalid development message.' }); }
@@ -878,7 +878,7 @@ async function handle(req, res) {
       const buybackState = await store.read();
       const verifiedBurns = Object.values(buybackState.buybackOrders || {}).filter(row => row.status === 'finalized' && row.refundVerified).length;
       status.modes.buyback = solanaCluster === 'devnet' && verifiedBurns > 0 ? 'verified-devnet-atomic-buy-and-burn' : 'accrual-only-execution-unavailable';
-      status.routeReadiness = { x, community:{ ready:status.modes.community === 'verified-token-airdrop-cycle', reason:status.modes.community === 'verified-token-airdrop-cycle' ? null : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:false, devnetExecutorVerified:solanaCluster === 'devnet' && verifiedBurns > 0, verifiedBurns, pending:buybackQueue(buybackState), reason:verifiedBurns > 0 ? 'Devnet atomic router-to-PumpSwap buy-and-burn receipts are verified; a dedicated buyback PDA and independent program audit are still required for Mainnet.' : 'No finalized fee-funded buy-and-burn receipt is indexed; Mainnet buyback custody and audit are pending.' } };
+      status.routeReadiness = { x, community:{ ready:status.modes.community === 'verified-token-airdrop-cycle', reason:status.modes.community === 'verified-token-airdrop-cycle' ? null : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:false, devnetExecutorVerified:solanaCluster === 'devnet' && verifiedBurns > 0, verifiedBurns, pending:buybackQueue(buybackState), reason:verifiedBurns > 0 ? 'Buy-and-burn receipts are verified; dedicated custody and audit checks are still pending.' : 'No finalized fee-funded buy-and-burn receipt is indexed.' } };
       return json(res, 200, status);
     }
     if (req.method === 'GET' && url.pathname === '/api/buyback/status') {
@@ -902,7 +902,7 @@ async function handle(req, res) {
       return json(res, 200, rewardExperience(state, rewards, evidence, solanaCluster, wallet, mint));
     }
     if (req.method === 'GET' && url.pathname === '/api/airdrops/reserves') {
-      if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256) return json(res, 503, { error:'Verified Devnet community reserve checks are unavailable.' });
+      if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256) return json(res, 503, { error:'Verified Solana community reserve checks are unavailable.' });
       if (communityReserveSnapshot?.expiresAt > Date.now()) return json(res, 200, communityReserveSnapshot.value);
       try {
         const connection = new Connection(solanaRpcUrl, 'finalized');
@@ -940,13 +940,13 @@ async function handle(req, res) {
       } catch (error) { return json(res, 503, { error:`Community reserve verification unavailable: ${error.message}` }); }
     }
     if (req.method === 'POST' && url.pathname === '/api/airdrops/reserves/receipt') {
-      if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256) return json(res, 503, { error:'Devnet community reserve verification is unavailable.' });
+      if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256) return json(res, 503, { error:'Solana community reserve verification is unavailable.' });
       if (!await store.chargeRpcRate(`community-receipt:${clientKey(req)}`, 1, 5, Math.floor(Date.now()/60000)*60000)) return json(res, 429, { error:'Wait before checking another reserve receipt.' });
       const input = await body(req);
       const mint = String(input.mint || '').trim(), signature = String(input.signature || '').trim();
       if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) || !/^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(signature)) return json(res, 400, { error:'A valid launch mint and finalized funding signature are required.' });
       const launch = await store.readLaunch(mint);
-      if (!launch?.onchainVerified || launch.cluster !== 'devnet' || !Number.isSafeInteger(Number(launch.communityAirdrop?.reservedTokens)) || Number(launch.communityAirdrop.reservedTokens) <= 0) return json(res, 404, { error:'Verified Devnet community allocation not found.' });
+      if (!launch?.onchainVerified || launch.cluster !== 'devnet' || !Number.isSafeInteger(Number(launch.communityAirdrop?.reservedTokens)) || Number(launch.communityAirdrop.reservedTokens) <= 0) return json(res, 404, { error:'Verified Solana community allocation not found.' });
       try {
         const connection = new Connection(solanaRpcUrl, 'finalized');
         const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID);
@@ -984,7 +984,7 @@ async function handle(req, res) {
       const receipt = (await store.read()).communityReserveReceipts?.[mint];
       if (!launch?.onchainVerified || launch.cluster !== 'devnet' || !receipt?.signature
         || !Number.isSafeInteger(Number(launch.communityAirdrop?.reservedTokens)) || Number(launch.communityAirdrop.reservedTokens) <= 0)
-        return json(res, 404, { error:'Verified Devnet launch and community funding receipt are required.' });
+        return json(res, 404, { error:'Verified Solana launch and community funding receipt are required.' });
       try {
         const record = await communityClaimService().prepare({ mint, creator:launch.creatorWallet,
           reservedTokens:Number(launch.communityAirdrop.reservedTokens), fundingSignature:receipt.signature, migrationSignature });
@@ -1126,7 +1126,7 @@ async function handle(req, res) {
     }
     if (req.method === 'GET' && url.pathname === '/api/x/resolve') {
       const readiness = await xFeeReadiness();
-      if (!readiness.ready) return json(res, 503, { error: 'X fee claims are not operational on Devnet yet.', reasons: readiness.reasons });
+      if (!readiness.ready) return json(res, 503, { error: 'X fee claims are not operational on Solana yet.', reasons: readiness.reasons });
       if (!await store.chargeRpcRate(`x-resolve:${clientKey(req)}`, 1, 10, Math.floor(Date.now() / 60_000) * 60_000)) return json(res, 429, { error: 'X account lookup limit reached; retry shortly.' });
       const resolved = await resolveXUser(url.searchParams.get('handle'));
       if ((await store.read()).creatorProfiles?.[resolved.id]?.optedOut) return json(res, 409, { error: 'This creator has opted out of new support launches.' });
@@ -1154,7 +1154,7 @@ async function handle(req, res) {
     if (req.method === 'GET' && url.pathname === '/api/ops/receipt-worker') {
       res.setHeader('cache-control','no-store');
       if(!requireAuthorized(req,res))return;
-      if(solanaCluster!=='devnet')return json(res,503,{error:'Receipt worker monitoring is Devnet-only.'});
+      if(solanaCluster!=='devnet')return json(res,503,{error:'Receipt worker monitoring is unavailable for this configuration.'});
       return json(res,200,receiptWorkerStatus(await store.readReceiptBackfillStatus('devnet')));
     }
     if (req.method === 'POST' && url.pathname === '/api/rewards/preview') {
@@ -1175,7 +1175,7 @@ async function handle(req, res) {
     if (req.method === 'GET' && url.pathname === '/api/birdeye/explore') {
       const { limit, offset } = explorePagination(url.searchParams);
       const sortBy = ['volume_24h_usd', 'market_cap', 'recent_listing_time', 'price_change_24h_percent'].includes(url.searchParams.get('sort_by')) ? url.searchParams.get('sort_by') : 'volume_24h_usd';
-      if (solanaCluster === 'devnet') return json(res, 503, { error: 'Birdeye market discovery is disabled for Devnet. Use the verified Devnet launch registry.', provider: 'birdeye', chain: 'solana', cluster: 'devnet', configured: false });
+      if (solanaCluster === 'devnet') return json(res, 503, { error: 'Birdeye market discovery is disabled for Solana. Use the verified Solana launch registry.', provider: 'birdeye', chain: 'solana', cluster: 'devnet', configured: false });
       const result = await fetchBirdeye('/defi/v3/token/list', { sort_by: sortBy, sort_type: 'desc', offset: String(offset), limit: String(limit), min_liquidity: '100' });
       if (!result.configured) return json(res, 503, { error: 'Birdeye is not configured.', provider: 'birdeye', configured: false });
       return json(res, 200, { provider: 'birdeye', chain: birdeyeChain, fetchedAt: new Date().toISOString(), items: Array.isArray(result.data?.items) ? result.data.items.map(normalizeBirdeyeToken).filter(Boolean) : [] });
@@ -1384,7 +1384,7 @@ async function handle(req, res) {
     }
     const creatorClaimMatch = req.method === 'POST' ? url.pathname.match(/^\/api\/tokens\/([^/]+)\/creator-claim\/(prepare|request)$/) : null;
     if (creatorClaimMatch) {
-      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Creator fee claims are enabled on Devnet only.' });
+      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Creator fee claims are enabled on Solana only.' });
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Claim from the app origin.' });
       let mint;
       try { mint = new PublicKey(decodeURIComponent(creatorClaimMatch[1])).toBase58(); }
@@ -1392,7 +1392,7 @@ async function handle(req, res) {
       const input = await body(req);
       const main = await store.read();
       const launch = main.launches?.[mint];
-      if (!launch?.onchainVerified || launch.cluster !== solanaCluster || launch.pumpFeeRoute?.scope !== 'per-mint-v2' || launch.pumpFeeRoute.router !== launch.creator) return json(res, 409, { error:'A verified per-mint Devnet launch is required.' });
+      if (!launch?.onchainVerified || launch.cluster !== solanaCluster || launch.pumpFeeRoute?.scope !== 'per-mint-v2' || launch.pumpFeeRoute.router !== launch.creator) return json(res, 409, { error:'A verified per-mint Solana launch is required.' });
       const wallet = launch.creatorWallet;
       const rewardState = await automaticRewardStore.read();
       const status = creatorClaimStatus({ mint, wallet, launch, collections:main.collections, settlements:main.settlements, rewardState });
@@ -1445,14 +1445,14 @@ async function handle(req, res) {
     }
     const tokenMarketMint = req.method === 'GET' ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/market-activity$/) : null;
     if (tokenMarketMint) {
-      if (solanaCluster !== 'devnet') return json(res, 503, { error: 'Pump trade scanning is currently available for Devnet only.' });
+      if (solanaCluster !== 'devnet') return json(res, 503, { error: 'Pump trade scanning is currently available for Solana only.' });
       let mint;
       try { mint = new PublicKey(decodeURIComponent(tokenMarketMint)); }
       catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
       const address = mint.toBase58();
-      const hasTradeBreakdown = data => data?.tradeCount24h == null || (data.activityWindows?.['1h']
+      const hasTradeBreakdown = data => data && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
         && data.activityWindows?.['6h'] && data.activityWindows?.['24h']
-        && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h));
+        && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h)));
       const cached = coinMarketCache.get(address);
       if (cached && Date.now() - cached.at < 60_000 && hasTradeBreakdown(cached.data)) return json(res, 200, cached.data);
       const persisted = await store.readMarketActivity(address, solanaCluster);
@@ -1515,7 +1515,7 @@ async function handle(req, res) {
       if (!requireAuthorized(req, res)) return;
       const input = await body(req); const mint = String(input.mint || '').trim();
       if (!mint) return json(res, 400, { error: 'mint is required.' });
-      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Automatic fee collection is Devnet only.' });
+      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Automatic fee collection is Solana only.' });
       let mintKey;
       try { mintKey = new PublicKey(mint).toBase58(); } catch { return json(res, 400, { error:'A valid mint is required.' }); }
       const started = await store.update(state => {
@@ -1548,7 +1548,7 @@ async function handle(req, res) {
     }
     if (req.method === 'POST' && url.pathname === '/api/keeper/reconcile-wrapped-sol') {
       if (!requireAuthorized(req, res)) return;
-      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Wrapped SOL reconciliation is Devnet only.' });
+      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Wrapped SOL reconciliation is Solana only.' });
       const input = await body(req);
       let mint;
       try { mint = new PublicKey(String(input.mint || '')).toBase58(); }
@@ -1561,7 +1561,7 @@ async function handle(req, res) {
         return json(res, 409, { error:'A verified mint-router launch is required.' });
       const connection = new Connection(solanaRpcUrl, 'finalized');
       if (await connection.getGenesisHash() !== 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')
-        return json(res, 409, { error:'Configured RPC is not Solana Devnet.' });
+        return json(res, 409, { error:'Configured RPC failed verification.' });
       const router = deriveMintFeeRouter(config.programId, new PublicKey(mint));
       if (launch.creator !== router.address.toBase58()) return json(res, 409, { error:'Launch router mismatch.' });
       const tx = await connection.getTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
@@ -1757,13 +1757,13 @@ async function handle(req, res) {
     }
     const listingMintMatch = req.method === 'GET' ? /^\/api\/listings\/mint\/([^/]+)$/.exec(url.pathname) : null;
     if (listingMintMatch) {
-      if (solanaCluster !== 'devnet') return json(res, 503, { error:'Listing mint checks require Devnet.' });
+      if (solanaCluster !== 'devnet') return json(res, 503, { error:'Listing mint checks require Solana.' });
       let listingMint;
       try { listingMint = new PublicKey(listingMintMatch[1]).toBase58(); }
       catch { return json(res, 400, { error:'A valid token mint is required.' }); }
       try {
         const rpc = new Connection(solanaRpcUrl, 'finalized');
-        if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'Listing mint checks require a Solana Devnet RPC.' });
+        if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'Listing mint checks require a Solana RPC.' });
         const [trustedLaunch, signedMetadata] = await Promise.all([store.readLaunch(listingMint), store.readMetadata(listingMint)]);
         return json(res, 200, { cluster:'devnet', ...(await readVerifiedListingMint(rpc, listingMint, { trustedLaunch, signedMetadata })) });
       } catch (error) { return json(res, 409, { error:error.message || 'Verified token metadata is unavailable.' }); }
@@ -1874,7 +1874,7 @@ async function handle(req, res) {
     }
 
     if (req.method === 'POST' && url.pathname === '/api/listings') {
-      if (solanaCluster !== 'devnet' || !fundedTokenMint) return json(res, 503, { error: 'Paid listings require a configured Devnet $FUNDED mint.' });
+      if (solanaCluster !== 'devnet' || !fundedTokenMint) return json(res, 503, { error: 'Paid listings require a configured Solana $FUNDED mint.' });
       const input = await body(req);
       let mint, burnWallet;
       try { mint = new PublicKey(String(input.mint || '')).toBase58(); burnWallet = walletKey(input.wallet); }
@@ -1891,14 +1891,14 @@ async function handle(req, res) {
       let proof, listingMetadata;
       try {
         if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH)
-          return json(res, 503, { error: 'Listing payments require a Solana Devnet RPC.' });
+          return json(res, 503, { error: 'Listing payments require a Solana RPC.' });
         const [trustedLaunch, signedMetadata] = await Promise.all([store.readLaunch(mint), store.readMetadata(mint)]);
         listingMetadata = await readVerifiedListingMint(rpc, mint, { trustedLaunch, signedMetadata });
         const fundedSupply = await rpc.getTokenSupply(new PublicKey(fundedTokenMint), 'finalized');
         const amountBaseUnits = listingBurnBaseUnits(fundedSupply.value.decimals, listingBurnTokens);
         proof = await verifyFundedBurn({ connection: rpc, signature, fundedMint: fundedTokenMint, wallet: burnWallet,
           amountBaseUnits: amountBaseUnits.toString(), expectedMemo: listingMemo(mint) });
-      } catch (error) { return json(res, 409, { error: error.message || 'The listing payment could not be verified on Devnet.' }); }
+      } catch (error) { return json(res, 409, { error: error.message || 'The listing payment could not be verified on Solana.' }); }
       const record = { mint, name:listingMetadata.name, symbol:listingMetadata.symbol, wallet: burnWallet, cluster: 'devnet', signature,
         fundedMint: fundedTokenMint, amountBaseUnits: proof.amountBaseUnits, amountTokens: listingBurnTokens,
         slot: proof.slot, status: 'listed', onchainVerified: true, metadataSource:listingMetadata.source,
@@ -1922,13 +1922,13 @@ async function handle(req, res) {
 
     if (req.method === 'GET' && url.pathname === '/api/launch-reserve-config') {
       if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE)
-        return json(res, 503, { error:'Atomic Devnet community reserve is not configured.' });
+        return json(res, 503, { error:'Atomic Solana community reserve is not configured.' });
       return json(res, 200, { cluster:'devnet', authority:process.env.FUNDED_REWARD_AUTHORITY,
         programId:process.env.FUNDED_FEE_ROUTER_PROGRAM_ID,
         lookupTable:process.env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE });
     }
     if (req.method === 'POST' && url.pathname === '/api/launches') {
-      if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Mainnet coin launching is not enabled. No launch policy was registered.' });
+      if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Coin launching is unavailable for this configuration. No launch policy was registered.' });
       const input = await body(req); if (!input.mint || input.chain !== 'solana' || input.cluster !== solanaCluster) return json(res, 400, { error: 'A Solana launch on the configured cluster is required.' });
       const policy = validateInput(() => canonicalLaunchPolicy(input));
       const existingLaunch = await store.readLaunch(policy.mint);
@@ -1936,7 +1936,7 @@ async function handle(req, res) {
       const xLinked = policy.solClaimPercent > 0;
       const perMint = input.pumpFeeRoute?.scope === 'per-mint-v2';
       if (!existingLaunch && !perMint) return json(res, 409, { error: 'New launches require a mint-specific fee router for attributable automatic rewards.' });
-      if (xLinked && !(await xFeeReadiness()).ready) return json(res, 503, { error: 'X fee claims are not operational on Devnet yet.' });
+      if (xLinked && !(await xFeeReadiness()).ready) return json(res, 503, { error: 'X fee claims are not operational on Solana yet.' });
       if (xLinked && (await resolveXUser(policy.xRecipient)).id !== policy.xUserId) return json(res, 409, { error: 'The X account ID changed since launch preparation; registration is blocked.' });
       const promotionClaim = input.creatorLaunchBurn || null;
       const paidClaim = promotionClaim && promotionClaim.tier !== 'standard';
@@ -1976,7 +1976,7 @@ async function handle(req, res) {
         const [genesis, programEvidence] = await Promise.all([reserveConnection.getGenesisHash(), readProgramDataEvidence(reserveConnection, programId)]);
         if (genesis !== DEVNET_GENESIS_HASH || !programEvidence.account?.executable
           || programEvidence.sha256 !== process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256.toLowerCase())
-          return json(res, 503, { error:'The approved Devnet reward program could not be verified.' });
+          return json(res, 503, { error:'The approved Solana reward program could not be verified.' });
         const chain = createAutomaticRewardChain({ connection:reserveConnection, programId, authority,
           expectedProgramDataSha256:process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
         await chain.ensureVault(proof.mint);
@@ -2199,7 +2199,7 @@ async function handle(req, res) {
       const recalculated = deriveXFeeObligation(state, { mint: obligation.mint, claimSignature: obligation.claimSignature });
       if (recalculated.id !== obligation.id || recalculated.amountLamports !== obligation.amountLamports || recalculated.router !== obligation.router || recalculated.recipient !== obligation.recipient || recalculated.xUserId !== obligation.xUserId || claim.xUserId !== obligation.xUserId) return json(res, 409, { error: 'Stored X fee amount or user ID does not match the verified launch policy and collection.' });
       const readiness = await xFeeReadiness();
-      if (!readiness.ready) return json(res, 503, { error: 'Mint-router payout is not active on Devnet.', reasons: readiness.reasons });
+      if (!readiness.ready) return json(res, 503, { error: 'Mint-router payout is not active on Solana.', reasons: readiness.reasons });
       const config = feeRouterConfig();
       const authority = routerAuthorityKeypair();
       const connection = new Connection(solanaRpcUrl, 'confirmed');
@@ -2253,8 +2253,8 @@ async function handle(req, res) {
     if (metadataMint) {
       const launch = await store.readLaunch(metadataMint);
       const routerAddress = feeRouterConfig()?.address.toBase58();
-      if (!launch || launch.cluster !== 'devnet' || !launch.onchainVerified || launch.creator !== routerAddress || !launch.name || !launch.symbol) return json(res, 404, { error: 'Verified Devnet launch metadata is not available.' });
-      return json(res, 200, { name: launch.name, symbol: launch.symbol, description: 'Devnet test token launched on funded.vip. Devnet assets have no intended monetary value.', image: 'https://funded.vip/favicon.svg' });
+      if (!launch || launch.cluster !== 'devnet' || !launch.onchainVerified || launch.creator !== routerAddress || !launch.name || !launch.symbol) return json(res, 404, { error: 'Verified Solana launch metadata is not available.' });
+      return json(res, 200, { name: launch.name, symbol: launch.symbol, description: 'Token launched on funded.vip.', image: 'https://funded.vip/favicon.svg' });
     }
     if (req.method === 'GET' && /^\/creator\/x\/\d{1,24}\/?$/.test(url.pathname)) {
       const creatorId=url.pathname.split('/')[3];

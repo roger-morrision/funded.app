@@ -66,12 +66,7 @@ for(const width of [390,1440]){
   if(route==='paid') assert.equal(await page.locator('#paid .funded-token-story article:visible').count(),3);
   if(route==='my-launches'){
    assert.equal(await page.locator('#my-launches > #community').isVisible(),false);
-   const pilot=page.locator('#my-launches .pilot-panel');
-   if(await pilot.count()){
-    assert(await pilot.locator('.concise-pilot-details > summary').isVisible());
-    await pilot.locator('.concise-pilot-details > summary').click();
-    assert(await pilot.locator('[data-pilot-consent]').isVisible());
-   }
+   assert.equal(await page.locator('#my-launches .pilot-panel').count(),0);
   }
   if(route==='community'){
    assert(await page.locator('#community').isVisible());
@@ -95,4 +90,4 @@ for(const width of [390,1440]){
  }
  await context.close();
 }
-await browser.close();console.log(`Verified ${checks.length} page/viewport combinations, rewards navigation, buy/burn disclosure and order, token story, and pilot controls.`);
+await browser.close();console.log(`Verified ${checks.length} page/viewport combinations, rewards navigation, buy/burn disclosure and order, token story, and portfolio without pilot controls.`);

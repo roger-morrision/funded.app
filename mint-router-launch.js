@@ -44,7 +44,7 @@ export function buildPumpLaunchPlan({ payer, mint, blockhash, launchInstructions
   };
   const pumpInstructions = [...launchInstructions, ...(burnInstruction ? [burnInstruction] : [])];
   if (reserveInstructions.length) {
-    if (!lookupTable?.isActive?.()) throw new Error('Verified Devnet launch reserve lookup table is unavailable. No coin was created.');
+    if (!lookupTable?.isActive?.()) throw new Error('Verified Solana launch reserve lookup table is unavailable. No coin was created.');
     const instructions = [...pumpInstructions, ...reserveInstructions];
     const compile = items => {
       const message = new TransactionMessage({ payerKey:new PublicKey(payer), recentBlockhash:blockhash, instructions:items }).compileToV0Message([lookupTable]);

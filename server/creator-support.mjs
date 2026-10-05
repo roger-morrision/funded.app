@@ -98,7 +98,7 @@ export function createCreatorSupportHandler({ store, cluster, getSession, readEv
         coins: eligibleSupportLaunches(state, cluster).filter(row => row.xUserId === session.user.id).map(row => ({ mint: row.mint, name: row.name })) });
     }
     if (req.method === 'POST' && ['/api/creator-support/profile', '/api/creator-support/updates', '/api/creator-support/preferences'].includes(url.pathname)) {
-      if (cluster !== 'devnet') return respond(res, 503, { error: 'Creator support is Devnet-only pending production review.' });
+      if (cluster !== 'devnet') return respond(res, 503, { error: 'Creator support is unavailable for this configuration.' });
       if (!session?.user?.id) return respond(res, 401, { error: 'Verified X sign-in is required.' });
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN) || !session.creatorCsrf || req.headers['x-creator-csrf'] !== session.creatorCsrf) return respond(res, 403, { error: 'Reload your creator settings before saving.' });
       if (!await store.chargeRpcRate(`creator-write:${session.user.id}`, 1, 10, Math.floor(Date.now()/60000)*60000)) return respond(res, 429, { error: 'Please wait before updating again.' });

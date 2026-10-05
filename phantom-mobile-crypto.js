@@ -62,7 +62,7 @@ export function verifyPhantomMobileSession(session, appOrigin){
   const proof = publicKey.length === 32 ? nacl.sign.open(bs58.decode(session.session || ''), publicKey) : null;
   if (!proof) throw new Error('Phantom wallet ownership was not verified.');
   const fields = JSON.parse(new TextDecoder().decode(proof));
-  if (new URL(fields.app_url).origin !== appOrigin || fields.chain !== 'solana' || fields.cluster !== 'devnet') throw new Error('Phantom did not approve this Devnet app.');
+  if (new URL(fields.app_url).origin !== appOrigin || fields.chain !== 'solana' || fields.cluster !== 'devnet') throw new Error('Phantom did not approve this Solana app.');
   if (bs58.decode(session.secretKey || '').length !== 32 || bs58.decode(session.phantomPublicKey || '').length !== 32) throw new Error('Phantom encryption keys are invalid.');
   return session;
 }
@@ -106,7 +106,7 @@ export function verifyPhantomMobileTransaction(original, encodedSigned, publicKe
   const signed = versioned ? VersionedTransaction.deserialize(bs58.decode(encodedSigned || '')) : Transaction.from(bs58.decode(encodedSigned || ''));
   const expected = versioned ? VersionedTransaction.deserialize(original.serialize()) : Transaction.from(original.serialize({ requireAllSignatures:false, verifySignatures:false }));
   if (refreshedBlockhash) {
-    if (bs58.decode(refreshedBlockhash).length !== 32) throw new Error('Phantom returned an invalid Devnet blockhash. Nothing was submitted.');
+    if (bs58.decode(refreshedBlockhash).length !== 32) throw new Error('Phantom returned an invalid Solana blockhash. Nothing was submitted.');
     if (versioned) expected.message.recentBlockhash = refreshedBlockhash;
     else expected.recentBlockhash = refreshedBlockhash;
   }

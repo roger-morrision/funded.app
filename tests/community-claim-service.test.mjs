@@ -67,7 +67,7 @@ test('publishes only a verified recipient proof after the immutable opening rece
 
 test('fails closed on Mainnet, unverified funding and unpinned program bytes', async () => {
   assert.throws(() => createCommunityClaimService({ connection:{}, store:makeStore(), programId, authority,
-    eligibilityMint, cluster:'mainnet-beta' }), /Devnet-only/);
+    eligibilityMint, cluster:'mainnet-beta' }), /unavailable for this configuration/);
   await assert.rejects(fixture({ reserveStatus:'funding-unverified' }).service.prepare(input), /verified finalized funding/);
   const { service } = fixture({ observedHash:'cd'.repeat(32) });
   await service.prepare(input);

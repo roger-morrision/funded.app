@@ -432,7 +432,6 @@ input[type='search']:focus-visible {
 .source-note { margin: 14px 0 0; padding: 12px 14px; border: 1px solid #34445c; border-radius: 9px; background: #151f2c; color: #b5c4d7; font-size: 11px; line-height: 1.6; }
 .source-note strong, .source-note span { display: block; }
 .source-note strong { margin-bottom: 3px; color: #ecf2fa; }
-#analytics-source-note { margin: 0 0 14px; }
 .payments-summary [hidden], .analytics-range[hidden], .community-section .heading-actions[hidden], .buyback-preview-actions[hidden] { display: none !important; }
 .signals-unavailable .community-card:has(.signal-list) { display: none; }
 .signals-unavailable .community-grid { grid-template-columns: minmax(0, 1fr); }
@@ -998,6 +997,7 @@ input[type='search']:focus-visible {
 .home-kpi-heading p:not(.eyebrow) { max-width: 560px; margin: 0; color: #7f8da2; font-size: 10px; line-height: 1.55; }
 .home-kpi-freshness { display: grid; justify-items: end; gap: 6px; flex: 0 0 auto; }
 .home-kpi-freshness span { display: flex; align-items: center; gap: 7px; color: #a8b5c8; font: 8px 'DM Mono', monospace; letter-spacing: .35px; text-transform: uppercase; }
+.home-kpi-freshness span[hidden] { display: none; }
 .home-kpi-freshness span i, .home-kpi-footer > span i { width: 7px; height: 7px; border-radius: 50%; background: #ffd28a; box-shadow: 0 0 0 5px #ffd28a16; }
 .home-kpi-freshness small { color: #66758b; font: 8px 'DM Mono', monospace; }
 .home-kpi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: #283449; }
@@ -2599,3 +2599,9 @@ input[type='search']:focus-visible {
   .home-referral-link-box { grid-template-columns: minmax(0, 1fr); }
   .home-referral-link-box .primary-button { width: 100%; }
 }
+
+.topbar .top-actions .workspace-network { display: inline-flex; align-items: center; justify-content: center; flex: none; border: 1px solid #705f3d; border-radius: 6px; padding: 4px 8px; color: #efca83; font: 500 11px/1.5 'DM Mono', monospace; white-space: nowrap; }
+@media (max-width: 480px) { .topbar .top-actions .workspace-network { position: static; padding: 4px 6px; font-size: 10px; } }
+
+body.page-route-paid .topbar .top-actions .workspace-network { display: inline-flex !important; }
+@media (max-width: 480px) { body.page-route .topbar .topbar-context { display: none; } }

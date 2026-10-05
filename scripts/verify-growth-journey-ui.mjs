@@ -51,7 +51,7 @@ try {
 
   await page.goto('http://127.0.0.1:5198/#my-launches', { waitUntil:'domcontentloaded' });
   await page.locator('#my-launches').waitFor({ state:'visible' });
-  assert.equal(await page.locator('[data-pilot-consent]').isVisible(), false, 'Wallet-only export must stay hidden while disconnected.');
+  assert.equal(await page.locator('.pilot-panel, [data-pilot-consent]').count(), 0, 'Pilot UI is removed.');
 
   await page.goto('http://127.0.0.1:5198/#payments', { waitUntil:'domcontentloaded' });
   await page.locator('#payments').waitFor({ state:'visible' });

@@ -1,7 +1,7 @@
 import bs58 from 'bs58';
 import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 
-// This is only for in-memory Devnet test keys. Keep the process alive on a
+// This is only for in-memory Solana test keys. Keep the process alive on a
 // transient refund failure so the keys are not discarded before reconciliation.
 export async function refundEphemeralDevnetBalances({ connection, signers, refundAddress,
   waitForRetry, onReceipt = () => {}, send = null }) {

@@ -550,7 +550,7 @@ body.page-route-wallet .wallet-balance-grid article { background: #111b2e; }
   body.page-route-wallet .wallet-detail-stats > div { min-height: 104px; padding: 16px; }
 }
 
-/* The Index table follows the reference column order while retaining verified Devnet data. */
+/* The Index table follows the reference column order while retaining verified Solana data. */
 body.page-route-explore .scanner-head,
 body.page-route-explore .scanner-row {
   grid-template-columns: 28px minmax(220px,1.7fr) 78px 78px 70px 54px 78px 65px 95px 86px 80px;
@@ -708,7 +708,7 @@ body.page-route-analytics-detail .recipients-panel .payment-row a:hover { border
 body.page-route-analytics-detail .recipients-panel .payment-row a:focus-visible { outline-color: #ffd28a; }
 /* Subroutes start with their own content, while retaining the parent page tabs. */
 body.page-route-community #my-launches > .role-grid,
-body.page-route-capital-flow #analytics-detail > :is(.section-heading,.analytics-kpis,.analytics-grid,.recipients-panel,.ui-disclosure,#analytics-source-note),
+body.page-route-capital-flow #analytics-detail > :is(.section-heading,.analytics-kpis,.analytics-grid,.recipients-panel,.ui-disclosure),
 body.page-route-buybacks #paid > :is(.paid-reference-hero,.paid-reference-metrics) { display: none !important; }
 body.page-route:is(.page-route-community,.page-route-capital-flow,.page-route-buybacks) :is(#my-launches > #community,#analytics-detail > #capital-flow,#paid > #buybacks) { margin-top: 12px; padding-top: 0; border-top: 0; }
 body.page-route-community #community .section-heading .panel-explainer { margin-top: 8px; }

@@ -31,18 +31,21 @@ test('analytics excludes unproved and other-cluster ledger amounts', () => {
   };
   const evidence = { cluster:'devnet', commitment:'finalized', scope:'global-recent', status:'partial',
     verifiedCollections:[{ signature:'sig-a', mint:'mintA', collectedLamports:1_000_000_000 }],
-    verifiedPayouts:[{ signature:'paid-a', amountLamports:100_000_000 }] };
+    verifiedPayouts:[{ signature:'paid-a', source:'solana-keeper-referral-claim', amountLamports:100_000_000 },
+      { signature:'paid-b', source:'mint-router-settle-mint', amountLamports:200_000_000 }] };
   const totals = analyticsReceiptTotals(state, evidence, 'devnet');
   assert.equal(totals.status, 'partial');
   assert.equal(totals.recordedCollectedLamports, 3_000_000_000);
   assert.equal(totals.collectedLamports, 1_000_000_000);
   assert.equal(totals.grossCreatorFees, 1);
   assert.equal(totals.buybackAccrued, 0.01);
-  assert.equal(totals.finalizedPaidLamports, 100_000_000);
-  assert.equal(totals.verifiedPayoutCount, 1);
+  assert.equal(totals.finalizedPaidLamports, 300_000_000);
+  assert.equal(totals.verifiedPayoutCount, 2);
   assert.equal(totals.precisionStatus, 'safe');
   assert.deepEqual(totals.precisionUnavailableFields, []);
-  assert.deepEqual(totals.exactLamports, { recordedCollectedLamports:'3000000000', collectedLamports:'1000000000', finalizedPaidLamports:'100000000' });
+  assert.deepEqual(totals.exactLamports, { recordedCollectedLamports:'3000000000', collectedLamports:'1000000000', finalizedPaidLamports:'300000000', referralPaidLamports:'100000000' });
+  assert.equal(totals.referralPaidLamports, 100_000_000);
+  assert.equal(totals.referralPayoutCount, 1);
   assert.equal(analyticsReceiptTotals(state, { ...evidence, commitment:'confirmed' }, 'devnet').collectedLamports, 0);
   assert.equal(analyticsReceiptTotals(state, { ...evidence, status:'unavailable' }, 'devnet').status, 'unavailable');
   assert.equal(analyticsReceiptTotals(state, { ...evidence, status:'unverified-records' }, 'devnet').status, 'recorded-claims-only');

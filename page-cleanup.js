@@ -18,7 +18,6 @@ const guideLabels = {
   referrals: 'How referral rewards qualify',
   privacy: 'How wallet signing works',
   visits: 'How optional visit tracking works',
-  pilot: 'How optional pilot data works',
 };
 
 function foldVisualGuides() {

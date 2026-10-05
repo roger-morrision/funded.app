@@ -206,8 +206,6 @@ body.page-route .projects-panel .role-icon,
 body.page-route .projects-empty-icon { background: #243149; border-color: #a7743e; color: #ffd28a; }
 body.page-route .projects-public-launches a:is(:hover,:focus-visible),
 body.page-route .projects-list .creator-launch-link:hover { border-color: #a7743e; background: #243149; }
-body.page-route-community #my-launches > .pilot-panel { display: none !important; }
-body.page-route-community #my-launches > .pilot-panel { display: none !important; }
 body.page-route-analytics-detail .analytics-kpis-complete article > small b {
   border-color: #a7743e; background: #243149; color: #ffd28a;
 }
@@ -236,7 +234,7 @@ body.page-route #notification-dialog article button { background: #1b2940; borde
 body.page-route .creator-support-page :is(button,input,textarea):focus-visible,
 body.page-route .launch-dialog .image-picker:focus-within { outline-color: #f4a340; }
 body.page-route .launch-dialog .image-picker-actions button:hover { border-color: #f4a340; background: #243149; }
-/* Dialogs, pilot notes, and rewards dashboards use the same card surfaces. */
+/* Dialogs and rewards dashboards use the same card surfaces. */
 body.page-route dialog.info-dialog { background: #121b2e; border-color: #485a73; border-radius: 6px; color: #f6f2e9; }
 body.page-route dialog.info-dialog :is(p,dt) { color: #a9b7c9; }
 body.page-route dialog.info-dialog :is(dl,dl div) { border-color: #30405b; }
@@ -261,13 +259,13 @@ body.page-route.page-route-privacy .share-visit-consent {
   display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
   gap: 10px; text-align: left;
 }
-body.page-route :is(.pilot-panel,.jackpot-preview,.jackpot-disclosure,.jackpot-preview-card,
+body.page-route :is(.jackpot-preview,.jackpot-disclosure,.jackpot-preview-card,
   .launch-optional-story,.launch-advanced-options) {
   background: #121b2e;
   border-color: #30405b;
   border-radius: 4px;
 }
-body.page-route :is(.pilot-panel,.jackpot-preview,.jackpot-disclosure) :is(a,summary:hover) { color: #ffd28a; }
+body.page-route :is(.jackpot-preview,.jackpot-disclosure) :is(a,summary:hover) { color: #ffd28a; }
 /* Token facts and the trade ticket use the same navy surfaces as the index. */
 body.page-route-coin .coin-page :is(.coin-stat-strip,.coin-chart-modes,.coin-pulse-periods,
   .coin-tabs,.coin-quick-amounts,.coin-slippage-presets,.coin-side-toggle) {

@@ -1,4 +1,4 @@
-// Devnet hosts the API on the same origin. Keep that route available even when
+// Solana hosts the API on the same origin. Keep that route available even when
 // an image build accidentally passes an empty VITE_API_BASE_URL.
 const CONFIGURED_API_BASE = String(import.meta.env.VITE_API_BASE_URL || (String(import.meta.env.VITE_SOLANA_CLUSTER || 'devnet') === 'devnet' ? '/' : '')).trim();
 const API_BASE = CONFIGURED_API_BASE === '/' ? '' : CONFIGURED_API_BASE.replace(/\/$/, '');

@@ -51,11 +51,11 @@ const posterDefinitions = [
   {
     selector: '#privacy > p:not(.eyebrow):not(.field-help)', key: 'privacy',
     eyebrow: 'Wallet safety', title: 'Know where signing happens',
-    summary: 'Read the full wallet and Devnet explanation',
+    summary: 'Read the full wallet and Solana explanation',
     items: [
       ['01', 'Standard wallet', 'Signs in your wallet app.'],
-      ['02', 'Dev Mode', 'Uses a disposable local Devnet wallet.'],
-      ['03', 'Verify', 'Check the network and final receipt.'],
+      ['02', 'Transaction review', 'Check recipient, amount, and fees before signing.'],
+      ['03', 'Verify', 'Check the final receipt.'],
     ],
     footnote: 'Never enter a seed phrase here.',
   },
@@ -67,16 +67,6 @@ const posterDefinitions = [
       ['01', 'Opt in', 'Only if you check the box.'],
       ['30d', 'Limited record', 'One-way ID and visit day.'],
       ['03', 'Opt out', 'Uncheck to stop future measurement.'],
-    ],
-  },
-  {
-    selector: '#my-launches .pilot-panel > p', key: 'pilot',
-    eyebrow: 'Optional pilot', title: 'Your test events stay local',
-    summary: 'Read the full pilot data note',
-    items: [
-      ['01', 'Observe', 'Measure the launch journey.'],
-      ['02', 'Keep local', 'Events stay on this device.'],
-      ['03', 'Export', 'Only when you choose to share.'],
     ],
   },
   {

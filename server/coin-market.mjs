@@ -94,7 +94,7 @@ export function decodePumpSwapTrades(logMessages, pool, decodeEvent) {
   return trades;
 }
 
-export function summarizePumpTrades(records, { cutoffSeconds, complete, sinceLaunch = false }) {
+export function summarizePumpTrades(records, { cutoffSeconds, complete, sinceLaunch = false, observedComplete = complete }) {
   const recent = records.filter(item => item.blockTime >= cutoffSeconds).sort((a, b) => b.blockTime - a.blockTime || a.order - b.order);
   const older = records.filter(item => item.blockTime < cutoffSeconds).sort((a, b) => b.blockTime - a.blockTime || a.order - b.order);
   const pricedRecent = recent.filter(item => Number.isFinite(item.priceRatio));
@@ -105,11 +105,15 @@ export function summarizePumpTrades(records, { cutoffSeconds, complete, sinceLau
   const baseline = older.find(item => Number.isFinite(item.priceRatio)) || (complete && sinceLaunch && pricedRecent.length > 1 ? pricedRecent.at(-1) : null);
   const changePercent = complete && latest && baseline && baseline.priceRatio > 0 && latest !== baseline
     ? (latest.priceRatio / baseline.priceRatio - 1) * 100 : null;
+  const observedLamports = records.reduce((sum, item) => sum + item.solLamports, 0n);
   const nowSeconds = cutoffSeconds + DAY_SECONDS;
   const activityWindows = Object.fromEntries(Object.entries(ACTIVITY_WINDOWS).map(([period, seconds]) =>
     [period, summarizeActivityWindow(records, nowSeconds - seconds, complete, sinceLaunch)]));
   return {
     activityWindows,
+    observedVolumeSol: Number(observedLamports) / 1_000_000_000,
+    observedTradeCount: records.length,
+    observedCoverage: observedComplete ? 'complete' : 'partial',
     poolTradeCount24h: recent.filter(item => item.route === 'pool').length,
     volume24hSol: Number(volumeLamports) / 1_000_000_000,
     buyVolume24hSol: Number(buyVolumeLamports) / 1_000_000_000,
@@ -144,13 +148,12 @@ export async function readPumpMarketActivity({ connection, mint, nowSeconds = Ma
     ...route,
     signatures:await connection.getSignaturesForAddress(route.address, { limit:maxSignatures }, 'confirmed'),
   })));
-  if (scans.every(scan => !scan.signatures.length)) return { volume24hSol: null, buyVolume24hSol: null, sellVolume24hSol: null, tradeCount24h: null, poolTradeCount24h: 0, buyCount24h: null, sellCount24h: null, recentTrades: [], activityWindows: null, priceChangePercent: null, priceChangeBasis: null, coverage: 'unavailable' };
+  if (scans.every(scan => !scan.signatures.length)) return { observedVolumeSol: null, observedTradeCount: null, observedCoverage: 'unavailable', volume24hSol: null, buyVolume24hSol: null, sellVolume24hSol: null, tradeCount24h: null, poolTradeCount24h: 0, buyCount24h: null, sellCount24h: null, recentTrades: [], activityWindows: null, priceChangePercent: null, priceChangeBasis: null, coverage: 'unavailable' };
   const firstOlder = scans.some(scan => scan.signatures.some(item => item.blockTime != null && item.blockTime < cutoffSeconds));
   const selectedBySignature = new Map();
   for (const scan of scans) {
-    const recent = scan.signatures.filter(item => !item.err && item.blockTime != null && item.blockTime >= cutoffSeconds);
-    const older = scan.signatures.filter(item => !item.err && item.blockTime != null && item.blockTime < cutoffSeconds).slice(0, 5);
-    for (const item of [...recent, ...older]) {
+    // Scan every fetched signature, including trades before the 24h chart window.
+    for (const item of scan.signatures.filter(item => !item.err && item.blockTime != null)) {
       const entry = selectedBySignature.get(item.signature) || { ...item, routes:new Set() };
       entry.routes.add(scan.kind);
       selectedBySignature.set(item.signature, entry);
@@ -179,6 +182,8 @@ export async function readPumpMarketActivity({ connection, mint, nowSeconds = Ma
   }
   const complete = !missingTransactions && scans.every(scan => scan.signatures.every(item => item.blockTime != null)
     && (scan.signatures.length < maxSignatures || scan.signatures.some(item => item.blockTime < cutoffSeconds)));
-  return summarizePumpTrades(records, { cutoffSeconds, complete,
+  const observedComplete = !missingTransactions && scans.every(scan => scan.signatures.length < maxSignatures
+    && scan.signatures.every(item => item.blockTime != null));
+  return summarizePumpTrades(records, { cutoffSeconds, complete, observedComplete,
     sinceLaunch:!firstOlder && scans.every(scan => scan.signatures.length < maxSignatures) });
 }

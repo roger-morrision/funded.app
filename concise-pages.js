@@ -120,21 +120,6 @@ function compactTokenStory() {
   story.dataset.conciseStory = '2';
 }
 
-function compactPortfolioPilot() {
-  const pilot = document.querySelector('#my-launches .pilot-panel');
-  if (!pilot || pilot.querySelector('.concise-pilot-details')) return;
-  const poster = pilot.querySelector('.infographic-poster');
-  const disclosure = document.createElement('details');
-  disclosure.className = 'concise-pilot-details';
-  const summary = document.createElement('summary');
-  summary.textContent = 'Optional visit research';
-  const body = document.createElement('div');
-  body.className = 'concise-pilot-body';
-  for (const child of [...pilot.children]) if (child !== poster) body.append(child);
-  disclosure.append(summary, body);
-  pilot.append(disclosure);
-}
-
 function compactRewardsSpotlight() {
   const spotlight = document.querySelector('#rewards-overview .jackpot-overview-spotlight');
   const status = spotlight?.querySelector('[data-jackpot-overview-status]');
@@ -243,12 +228,11 @@ function compactRecipients() {
 
 function shortenPageCopy() {
   const edits = [
-    ['#rewards-overview .workspace-page-header > p:last-child', 'Choose a reward type to check eligibility and receipts.'],
+    ['#payments > .workspace-page-header > p:last-child', 'Check verified allocations, available claims, and payments.'],
     ['#my-launches > .section-heading .panel-explainer', 'Your launches and saved tokens.'],
     ['#capital-flow > .section-heading .panel-explainer', 'Preview the fee split. Live totals need verified receipts.'],
     ['#launch-route-shell > .page-lede', 'Add the coin details, choose a tier, and review the cost before connecting your wallet.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
-    ['#analytics-source-note', 'Fees and payouts use confirmed, indexed receipts.'],
     ['#community .section-heading .panel-explainer', 'Save coins from Explore to watch them here.'],
     ['#reward-alerts > header p:not(.eyebrow)', 'Get alerts for verified activity on saved coins.'],
     ['#reward-alerts > small', 'Alerts work while this page is open. No payout is guaranteed.'],
@@ -268,10 +252,10 @@ function shortenPageCopy() {
     ['#referral-faq .faq-grid details:nth-child(2) p', 'Unfilled levels go to the community reserve; they are not reassigned.'],
     ['#referral-faq .faq-grid details:nth-child(3) p', 'Rates are policy, not promised income. Payouts depend on collected creator fees.'],
     ['#referral-faq .faq-grid details:nth-child(4) p', 'Failed or unverified collections earn nothing. Claims open after indexing.'],
-    ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Buy from the verified Devnet pool. Check spend, then approve in your wallet.'],
+    ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Buy from the verified Solana pool. Check spend, then approve in your wallet.'],
     ['#buybacks .burn-token-card > p:not(.eyebrow):not(.funded-burn-status)', 'Choose project attribution, then approve BurnChecked in your wallet.'],
     ['#buybacks .burn-receipts-panel > .field-help', 'This ledger shows app-verified receipts; total supply includes other burns.'],
-    ['#reward-portfolio > small', 'Allocations are not balances. X claims need matching sign-in; airdrops need a finalized snapshot.'],
+    ['#reward-portfolio > small', 'Only finalized transfer receipts count as paid.'],
     ['#reward-discovery > small', 'Finalized receipt window, not lifetime. Sorted by paid wallets; wallets are not people.'],
     ['#payments .auto-rewards-intro', 'Next holder cycle and token airdrops.'],
     ['#payments .auto-reward-card:nth-child(1) > p', 'Eligible wallets receive SOL after a verified daily snapshot.'],
@@ -280,10 +264,10 @@ function shortenPageCopy() {
     ['#funded-holder-token-rewards > small', 'Policy allocations only. Check Airdrops for funding and claim status.'],
     ['#airdrops .airdrop-wallet-gate p', 'Connect to check allocation after snapshot and proof verification.'],
     ['#airdrops .airdrop-trust > p', 'Claims need a finalized snapshot, published proof, and indexed receipts.'],
-    ['#list .list-field-note', 'Verified Devnet metadata supplies name and ticker. Mint and burn are rechecked before payment.'],
-    ['#list .list-recovery p', 'Keep this tab open. Retry the original receipt; do not burn again. Recovery does not survive tab closure.'],
+    ['#list .list-field-note', 'Verified Solana metadata supplies name and ticker. Mint and burn are rechecked before payment.'],
+    ['#list .list-recovery p', 'Retry verification with the same mint and wallet. Do not burn again.'],
     ['#profile .section-heading .panel-explainer', 'Check wallet and network before signing.'],
-    ['#profile .source-note', 'Wallet connection identifies the signer, not launch, holding, or reward proof. Verify the Devnet record.'],
+    ['#profile .source-note', 'Wallet connection identifies the signer, not launch, holding, or reward proof. Verify the Solana record.'],
   ];
   for (const [selector, copy] of edits) {
     const element = document.querySelector(selector);
@@ -374,7 +358,6 @@ function refreshConcisePages() {
     compactJackpot();
     compactBuyback();
     compactTokenStory();
-    compactPortfolioPilot();
     compactRewardsSpotlight();
     compactRewardDirectory();
     compactCommunityReserve();

@@ -14,7 +14,6 @@
     "verify:home-rewards-ui": "node scripts/verify-home-rewards-ui.mjs",
     "verify:jackpot-entries": "node scripts/verify-jackpot-entries.mjs",
     "verify:jackpot-refund": "node scripts/verify-jackpot-refund.mjs",
-    "verify:pilot-metrics": "node scripts/verify-pilot-metrics.mjs",
     "verify:workspace-ui": "node scripts/verify-workspace-ui.mjs",
     "verify:token-chat": "node scripts/verify-token-chat.mjs",
     "verify:referral-scoped-store": "node scripts/verify-referral-scoped-store.mjs",

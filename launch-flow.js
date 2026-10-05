@@ -28,7 +28,7 @@ export async function submitLaunch({ connection, provider, payer, input, onStatu
   onStatus('Waiting for wallet approval…');
   const signed = await provider.signTransaction(transaction);
   const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
-  onStatus('Confirming on Solana Devnet…');
+  onStatus('Confirming on Solana…');
   await connection.confirmTransaction({ signature, blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight }, 'confirmed');
   return { ...launchInput, mint, ata, amount, signature };
 }
@@ -139,15 +139,15 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   const mintRouter = useMintRouter ? buildMintRouterInitializeInstruction({ programId: feeRouterProgramId, mint: mint.publicKey, payer }) : null;
   const feeRouter = mintRouter?.router.address || new PublicKey(String(feeRouterAddress || '').trim());
   const lookupTable = (await connection.getAddressLookupTable(new PublicKey(reserveConfig.lookupTable), { commitment:'finalized' })).value;
-  if (!lookupTable?.isActive()) throw new Error('Devnet launch reserve lookup table is missing or inactive. No coin was created.');
+  if (!lookupTable?.isActive()) throw new Error('Solana launch reserve lookup table is missing or inactive. No coin was created.');
   const reserve = launchReserveInstructions({ mint:mint.publicKey, payer, programId:feeRouterProgramId,
     authority:reserveConfig.authority, reserveTokens:input.reserveTokens, decimals:launchInput.decimals });
   if (prepareMetadata) {
-    onStatus('Storing signed Devnet image and metadata before wallet transaction approval…');
+    onStatus('Storing signed Solana image and metadata before wallet transaction approval…');
     metadataUri = await prepareMetadata({ mint: mint.publicKey.toBase58(), name: launchInput.name, symbol: launchInput.symbol });
     if (metadataUri !== devnetMetadataUri(mint.publicKey.toBase58())) throw new Error('Metadata service returned an unexpected URL. Launch was not submitted.');
   }
-  onStatus('Preparing Pump Devnet bonding-curve launch…');
+  onStatus('Preparing Pump Solana bonding-curve launch…');
   const burnPlan = launchBurn?.amountTokens > 0
     ? await prepareFundedLaunchBurn({ connection, payer, fundedMint: launchBurn.fundedMint, amountTokens: launchBurn.amountTokens })
     : null;

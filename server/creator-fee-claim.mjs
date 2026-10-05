@@ -52,5 +52,5 @@ export function createCreatorFeeChallenges() {
 }
 
 function statement(row) {
-  return `funded.vip Devnet creator fee claim\nMint: ${row.mint}\nWallet: ${row.wallet}\nAmount: ${row.amount} lamports\nRequests: ${row.requestIds.join(',')}\nNonce: ${row.nonce}`;
+  return `funded.vip Solana creator fee claim\nMint: ${row.mint}\nWallet: ${row.wallet}\nAmount: ${row.amount} lamports\nRequests: ${row.requestIds.join(',')}\nNonce: ${row.nonce}`;
 }

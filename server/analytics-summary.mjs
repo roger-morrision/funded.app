@@ -30,12 +30,14 @@ export function analyticsReceiptTotals(state, evidence, cluster) {
       && solLamports(row.grossCreatorFees) === collection.collectedLamports ? [row] : [];
   });
   const verifiedPayouts = evidenceReady ? evidence.verifiedPayouts || [] : [];
+  const referralPayouts = verifiedPayouts.filter(row => row.source === 'solana-keeper-referral-claim');
   // Individual safe integers can still overflow when added. Preserve exact
   // base units and withhold only the incompatible numeric representation.
   const exact = {
     recordedCollectedLamports:exactTotal(recorded, 'collectedLamports'),
     collectedLamports:exactTotal(collections, 'collectedLamports'),
     finalizedPaidLamports:exactTotal(verifiedPayouts, 'amountLamports'),
+    referralPaidLamports:exactTotal(referralPayouts, 'amountLamports'),
   };
   const numeric = Object.fromEntries(Object.entries(exact).map(([key, value]) => [key, safeTotal(value)]));
   const precisionUnavailableFields = Object.keys(numeric).filter(key => numeric[key] === null);
@@ -58,6 +60,9 @@ export function analyticsReceiptTotals(state, evidence, cluster) {
     collectedLamports: numeric.collectedLamports,
     buybackAccrued: settlements.reduce((sum, row) => sum + sol(row.fundedApp?.buyback), 0),
     finalizedPaidLamports: numeric.finalizedPaidLamports,
+    referralPaidLamports: numeric.referralPaidLamports,
+    referralPayoutCount: referralPayouts.length,
+    recordedPayouts: Number(evidence?.coverage?.recordedPayouts || 0),
     verifiedPayoutCount: verifiedPayouts.length,
   };
 }
