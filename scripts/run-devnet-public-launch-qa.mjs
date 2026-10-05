@@ -20,6 +20,9 @@ import { quoteAtomicReserveBuy, launchReserveInstructions } from '../launch-comm
 const execute = process.argv.includes('--execute');
 const boost = process.argv.includes('--boost');
 assert(!boost, 'Boost is a post-launch checkout, not a launch tier. Test it through the Boost payment flow.');
+const tierId = process.argv.find(arg => arg.startsWith('--tier='))?.slice('--tier='.length) || 'standard';
+assert(['standard', 'pro', 'premier'].includes(tierId), 'Choose standard, pro, or premier.');
+const paidTier = tierId !== 'standard';
 const recoveryMint = process.argv.find(arg => arg.startsWith('--recover-mint='))?.split('=')[1] || null;
 const recoverySignature = process.argv.find(arg => arg.startsWith('--launch-signature='))?.split('=')[1] || null;
 if (recoveryMint || recoverySignature) assert(recoveryMint && recoverySignature, 'Recovery requires both mint and launch signature.');
@@ -65,24 +68,45 @@ const launchesBefore = await (await fetch(`${base}/api/launches`)).json();
 assert(Array.isArray(launchesBefore), 'The launch registry response must be an array.');
 const creatorBalance = await connection.getBalance(creator.publicKey, 'finalized');
 assert(creatorBalance > 50_000_000, 'Creator needs at least 0.05 Devnet SOL for launch.');
-const fundedMint = boost ? new PublicKey(process.env.VITE_FUNDED_TOKEN_MINT) : null;
+const fundedMint = paidTier ? new PublicKey(process.env.VITE_FUNDED_TOKEN_MINT) : null;
 const burnTiers = createLaunchBurnTiers({
   boostAmount:Number(process.env.VITE_FUNDED_BOOST_BURN_AMOUNT || 25_000),
   proAmount:Number(process.env.VITE_FUNDED_PRO_BURN_AMOUNT || 100_000),
   premierAmount:Number(process.env.VITE_FUNDED_PREMIER_BURN_AMOUNT || 250_000),
 });
-const burnPolicy = boost ? buildLaunchBurnPolicy({ tierId:'boost', fundedMint:fundedMint.toBase58(), tiers:burnTiers }) : null;
-if (boost && !recoveryMint) {
+let tierQuote = null;
+if (paidTier && !recoveryMint) {
+  const response = await fetch(`${base}/api/launch-tier-quote`, {
+    method:'POST', headers:{ 'content-type':'application/json', origin:'https://funded.vip' },
+    body:JSON.stringify({ tier:tierId, payer:creator.publicKey.toBase58() }), signal:AbortSignal.timeout(15_000),
+  });
+  assert.equal(response.status, 201, `Paid launch quote failed: ${response.status}`);
+  tierQuote = await response.json();
+  assert.equal(tierQuote.tier, tierId);
+  assert.equal(tierQuote.payer, creator.publicKey.toBase58());
+  assert.equal(tierQuote.fundedMint, fundedMint.toBase58());
+  assert(Date.parse(tierQuote.expiresAt) - Date.now() > 8 * 60_000, 'Paid launch quote is too close to expiry.');
+}
+if (paidTier && recoveryMint) {
+  const id = process.argv.find(arg => arg.startsWith('--quote-id='))?.slice('--quote-id='.length);
+  const amountTokens = Number(process.argv.find(arg => arg.startsWith('--burn-amount-tokens='))?.slice('--burn-amount-tokens='.length));
+  assert(/^launch_tier_\d+_[0-9a-f]{16}$/.test(id || '') && Number.isSafeInteger(amountTokens) && amountTokens > 0,
+    'Paid-tier recovery requires the original --quote-id and --burn-amount-tokens.');
+  tierQuote = { id, amountTokens };
+}
+const burnPolicy = paidTier ? { ...buildLaunchBurnPolicy({ tierId, fundedMint:fundedMint.toBase58(), tiers:burnTiers }),
+  amountTokens:tierQuote?.amountTokens, quoteId:tierQuote?.id } : null;
+if (paidTier && !recoveryMint) {
   assert.equal(health.launchPolicy?.cluster, 'devnet', 'Public API launch policy is unavailable or is not Devnet; no launch signed.');
   assert.equal(health.launchPolicy?.feeRouterProgramId, programId.toBase58(), 'Public API fee router program differs from the QA profile; no launch signed.');
   assert.equal(health.launchPolicy?.fundedMint, fundedMint.toBase58(), 'Public API $FUNDED mint differs from the QA profile; no launch signed.');
-  assert.equal(health.launchPolicy?.burnAmounts?.boost, burnPolicy.amountTokens, 'Public API Boost burn policy differs from the QA profile; no launch signed.');
+  assert(Number.isSafeInteger(burnPolicy.amountTokens) && burnPolicy.amountTokens > 0, 'Paid tier quote has no valid token amount.');
 }
-const fundedAccount = boost ? getAssociatedTokenAddressSync(fundedMint, creator.publicKey) : null;
-const fundedBefore = boost ? await getMint(connection, fundedMint, 'finalized', TOKEN_PROGRAM_ID) : null;
-const fundedWalletBefore = boost ? await getAccount(connection, fundedAccount, 'finalized', TOKEN_PROGRAM_ID) : null;
-const burnUnits = boost ? BigInt(burnPolicy.amountTokens) * 10n ** BigInt(fundedBefore.decimals) : 0n;
-if (boost && !recoveryMint) assert(fundedWalletBefore.amount >= burnUnits, 'Creator lacks the $FUNDED required for Boost.');
+const fundedAccount = paidTier ? getAssociatedTokenAddressSync(fundedMint, creator.publicKey) : null;
+const fundedBefore = paidTier ? await getMint(connection, fundedMint, 'finalized', TOKEN_PROGRAM_ID) : null;
+const fundedWalletBefore = paidTier ? await getAccount(connection, fundedAccount, 'finalized', TOKEN_PROGRAM_ID) : null;
+const burnUnits = paidTier ? BigInt(burnPolicy.amountTokens) * 10n ** BigInt(fundedBefore.decimals) : 0n;
+if (paidTier && !recoveryMint) assert(fundedWalletBefore.amount >= burnUnits, `Creator lacks the $FUNDED required for ${tierId}.`);
 const buyQuote = await getInitialBuyQuote({ connection, input:{ name:'Funded QA', symbol:'FQA', supply:1_000_000_000, decimals:6, initialBuySol } });
 const reserveConfigResponse = await fetch(`${base}/api/launch-reserve-config`, { signal:AbortSignal.timeout(10_000) });
 assert.equal(reserveConfigResponse.status, 200, 'Atomic community reserve configuration is unavailable.');
@@ -103,7 +127,7 @@ if (!recoveryMint) {
     amount:new BN(atomicQuote.amountBaseUnits.toString()), solAmount:new BN(atomicQuote.solAmountLamports.toString()), cashback:false });
   const reserve = launchReserveInstructions({ mint:trialMint.publicKey, payer:creator.publicKey, programId,
     authority:reserveConfig.authority, reserveTokens:30_000_000, decimals:6 });
-  const burnInstruction = boost ? (await prepareFundedLaunchBurn({ connection, payer:creator.publicKey, fundedMint:fundedMint.toBase58(), amountTokens:burnPolicy.amountTokens })).instruction : null;
+  const burnInstruction = paidTier ? (await prepareFundedLaunchBurn({ connection, payer:creator.publicKey, fundedMint:fundedMint.toBase58(), amountTokens:burnPolicy.amountTokens })).instruction : null;
   const blockhash = (await connection.getLatestBlockhash('confirmed')).blockhash;
   try {
     const plan = buildPumpLaunchPlan({ payer:creator.publicKey, mint:trialMint, blockhash, launchInstructions,
@@ -111,11 +135,11 @@ if (!recoveryMint) {
     launchPlanBytes = plan.steps.map(step => step.bytes);
   } catch (error) {
     if (!/size limit/.test(String(error.message))) throw error;
-    console.log(JSON.stringify({ stage:'preflight-blocked', tier:boost?'boost':'standard', initialBuySol, reason:'Solana transaction size limit', signed:false, metadataPublished:false }));
+    console.log(JSON.stringify({ stage:'preflight-blocked', tier:tierId, initialBuySol, reason:'Solana transaction size limit', signed:false, metadataPublished:false }));
     process.exit(2);
   }
 }
-console.log(JSON.stringify({ stage:'preflight', execute, tier:boost?'boost':'standard', creator:creator.publicKey.toBase58(), referrer:referrer.publicKey.toBase58(), claimant:claimant.publicKey.toBase58(), creatorBalanceSol:creatorBalance / 1e9, fundedBalanceTokens:boost?Number(fundedWalletBefore.amount)/10**fundedBefore.decimals:null, router:router.address.toBase58(), launchesBefore:launchesBefore.length, creatorShare, holderShare, initialBuySol, reserveTokens:30_000_000, totalBuyMaxSol:Number(atomicQuote.maxSolAmountLamports) / 1e9, launchPlanBytes, imageBytes:image?.length || 0, signerManifestVerified:true }));
+console.log(JSON.stringify({ stage:'preflight', execute, tier:tierId, quoteId:tierQuote?.id || null, quoteExpiresAt:tierQuote?.expiresAt || null, burnAmountTokens:burnPolicy?.amountTokens || 0, creator:creator.publicKey.toBase58(), referrer:referrer.publicKey.toBase58(), claimant:claimant.publicKey.toBase58(), creatorBalanceSol:creatorBalance / 1e9, fundedBalanceTokens:paidTier?Number(fundedWalletBefore.amount)/10**fundedBefore.decimals:null, router:router.address.toBase58(), launchesBefore:launchesBefore.length, creatorShare, holderShare, initialBuySol, reserveTokens:30_000_000, totalBuyMaxSol:Number(atomicQuote.maxSolAmountLamports) / 1e9, launchPlanBytes, imageBytes:image?.length || 0, signerManifestVerified:true }));
 if (!execute) process.exit(0);
 
 const token = readFileSync('.secrets/funded-api-token', 'utf8').trim();
@@ -200,15 +224,15 @@ try {
     assert.equal(buyerBalance, launch.initialBuy.developerBaseUnits, 'Creator token balance does not match the optional developer buy after reserve funding.');
     journal({ stage:'initial-buy-verified', mint, signature:launch.signature, buyerAccount:buyerAccount.toBase58(), boughtBaseUnits:buyerBalance.toString() });
   }
-  if (boost && !recoveryMint) {
+  if (paidTier && !recoveryMint) {
     const [mintAfter, walletAfter] = await Promise.all([
       getMint(connection, fundedMint, 'finalized', TOKEN_PROGRAM_ID),
       getAccount(connection, fundedAccount, 'finalized', TOKEN_PROGRAM_ID),
     ]);
-    assert.equal(fundedBefore.supply - mintAfter.supply, burnUnits, 'Boost did not reduce $FUNDED supply by the configured amount.');
-    assert.equal(fundedWalletBefore.amount - walletAfter.amount, burnUnits, 'Boost did not debit the creator $FUNDED account by the configured amount.');
-    assert.equal(launch.launchBurnReceipt?.signature, launch.signature, 'Boost burn was not atomic with launch.');
-    journal({ stage:'boost-burn-verified', mint, signature:launch.signature, amountTokens:burnPolicy.amountTokens, supplyBefore:fundedBefore.supply.toString(), supplyAfter:mintAfter.supply.toString(), creatorBalanceAfter:walletAfter.amount.toString() });
+    assert.equal(fundedBefore.supply - mintAfter.supply, burnUnits, `${tierId} did not reduce $FUNDED supply by the quoted amount.`);
+    assert.equal(fundedWalletBefore.amount - walletAfter.amount, burnUnits, `${tierId} did not debit the creator $FUNDED account by the quoted amount.`);
+    assert.equal(launch.launchBurnReceipt?.signature, launch.signature, `${tierId} burn was not atomic with launch.`);
+    journal({ stage:'paid-tier-burn-verified', tier:tierId, mint, signature:launch.signature, amountTokens:burnPolicy.amountTokens, supplyBefore:fundedBefore.supply.toString(), supplyAfter:mintAfter.supply.toString(), creatorBalanceAfter:walletAfter.amount.toString() });
   }
 
   stage = 'register-launch';
@@ -220,15 +244,17 @@ try {
   const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent:creatorShare, holderAirdropPercent:holderShare, solClaimPercent:0, feeRouterAddress:launch.feeRouter.toBase58() });
   const record = { mint, chain:'solana', cluster:'devnet', signature:launch.signature, creatorWallet:creator.publicKey.toBase58(), communityAllocation:3,
     feeDistribution, pumpFeeRoute:{ router:launch.feeRouter.toBase58(), scope:'per-mint-v2', transaction:launch.signature },
-    ...(boost ? { creatorLaunchBurn:burnPolicy } : {}) };
+    ...(paidTier ? { creatorLaunchBurn:burnPolicy } : {}) };
   record.policySignature = sign(launchPolicyStatement(record), creator);
   const saved = await post('/api/launches', record);
   assert.equal(saved.onchainVerified, true, 'Launch registration lacks on-chain verification.');
   assert.equal(saved.communityReserve?.verified, true, 'Launch registration lacks the exact funded community vault receipt.');
   assert.equal(saved.communityReserve?.fundedTokens, '30000000', 'Community vault did not receive exactly 30 million tokens.');
-  if (boost) {
-    assert.equal(saved.creatorLaunchBurn?.status, 'verified', 'Boost promotion was not verified during registration.');
-    assert.equal(saved.creatorLaunchBurn.receipt?.signature, launch.signature, 'Registered Boost burn receipt differs from launch.');
+  if (paidTier) {
+    assert.equal(saved.creatorLaunchBurn?.status, 'verified', `${tierId} promotion was not verified during registration.`);
+    assert.equal(saved.creatorLaunchBurn.tier, tierId, 'Registered tier differs from the quoted tier.');
+    assert.equal(saved.creatorLaunchBurn.amountTokens, burnPolicy.amountTokens, 'Registered burn amount differs from the quote.');
+    assert.equal(saved.creatorLaunchBurn.receipt?.signature, launch.signature, 'Registered paid-tier burn receipt differs from launch.');
   }
   assert.equal(saved.automaticRewards?.status, 'registered', 'Holder reward registration failed.');
   const launchesAfter = await (await fetch(`${base}/api/launches`)).json();
