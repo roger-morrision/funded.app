@@ -16,7 +16,7 @@ if (host) {
   rewardsSummary.className = 'jackpot-overview-spotlight';
   rewardsSummary.setAttribute('aria-label', 'Jackpot funding preview');
   rewardsSummary.innerHTML = `<div><strong>Jackpot preview · Devnet</strong><p data-jackpot-overview-status>Checking verified funding.</p></div><div class="jackpot-overview-values"><span>Creator <b data-jackpot-overview-amount="creator">—</b></span><span>Trader <b data-jackpot-overview-amount="trader">—</b></span></div><button type="button">Rules and receipts →</button>`;
-  document.querySelector('#rewards-overview > .workspace-page-header')?.after(rewardsSummary);
+  document.querySelector('#rewards-overview')?.prepend(rewardsSummary);
   const disclosure = document.createElement('details');
   disclosure.className = 'jackpot-disclosure';
   disclosure.open = true;

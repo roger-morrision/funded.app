@@ -46,12 +46,12 @@ function createPanels() {
   const rewardsOverview = byId('rewards-overview') || payments;
   if (payments && !byId('reward-portfolio')) {
     const section = node('section', 'reward-experience-panel', null); section.id = 'reward-portfolio';
-    section.innerHTML = `<header><div><p class="eyebrow">Your wallet · verified records</p><h2>Your reward activity</h2><p>Track collected fees, open claims, and confirmed payments.</p></div><span data-reward-evidence>Checking evidence…</span></header><div class="reward-stage-key"><span>Published</span><span>Collected</span><span>Allocated</span><span>Available</span><span>Paid</span></div><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><nav class="reward-portfolio-links"><a href="#airdrops">$FUNDED holder airdrops →</a><a href="#referrals">Referral claims →</a><a href="#payments">X account claims ↓</a></nav><small>Unpaid allocations are not wallet balances. Preparing a claim is not payment. X rewards require the matching X sign-in; airdrop eligibility requires a finalized migration snapshot.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Your wallet · verified records</p><h2>Your reward activity</h2><p>Verified allocations and payments for your wallet.</p></div><div class="reward-portfolio-top-actions"><span data-reward-evidence>Checking evidence…</span><button type="button" data-reward-connect>Connect wallet</button></div></header><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><small class="reward-portfolio-note">Only finalized transfer receipts count as paid.</small>`;
     rewardsOverview.append(section);
   }
   if (payments && !byId('reward-discovery')) {
     const section = node('section', 'reward-experience-panel reward-discovery', null); section.id = 'reward-discovery';
-    section.innerHTML = `<header><div><p class="eyebrow">Verified benefits</p><h2>Coins rewarding holders</h2><p>Browse published policies and actual payout records separately.</p></div><label>Show <select data-reward-filter><option value="all">All holder policies</option><option value="allocated">Fees allocated</option><option value="paid">Holders paid</option></select></label></header><div data-reward-discovery role="status">Checking verified launches…</div><small>Amounts use the available finalized receipt window, not a lifetime total. Order uses distinct paid wallets, then latest payment; wallets are not people.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Verified benefits</p><h2>Coins rewarding holders</h2><p>Compare holder fee share, allocations, and verified payouts.</p></div><label>Show <select data-reward-filter><option value="all">All holder policies</option><option value="allocated">Fees allocated</option><option value="paid">Holders paid</option></select></label></header><div data-reward-discovery role="status">Checking verified launches…</div><small>Amounts use available finalized receipts. Wallet counts are not unique people.</small>`;
     rewardsOverview.append(section);
     section.querySelector('[data-reward-filter]').addEventListener('change', () => renderDiscovery(latest));
   }
@@ -98,6 +98,9 @@ let latest = null;
 function renderPortfolio(data, referralData, xData) {
   const body = document.querySelector('[data-reward-portfolio]'); if (!body) return;
   const wallet = data?.wallet;
+  byId('reward-portfolio')?.classList.toggle('reward-no-wallet', !wallet);
+  const connectButton = byId('reward-portfolio')?.querySelector('[data-reward-connect]');
+  if (connectButton) connectButton.hidden = Boolean(wallet);
   body.replaceChildren();
   if (!wallet) { body.textContent = 'Connect a wallet to see your reward records.'; return; }
   if (data.evidence.status === 'unavailable') { body.textContent = 'Finalized receipt coverage is unavailable. Your balances are not shown until it recovers.'; return; }

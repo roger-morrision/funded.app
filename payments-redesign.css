@@ -1,0 +1,253 @@
+/* Rewards: one clear entry point, compact evidence, focused claim tabs. */
+body.page-route-payments #payments {
+  padding-top: 20px;
+}
+body.page-route-payments #payments > .rewards-page-header {
+  margin: 0 0 16px;
+  padding: 0 0 17px;
+  border-bottom: 1px solid #30405b;
+}
+body.page-route-payments .rewards-page-header .eyebrow {
+  margin: 0 0 5px;
+  color: #f4b457;
+  font: 700 10px/1.4 'DM Mono', monospace;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+body.page-route-payments .rewards-page-header h1 {
+  margin: 0;
+  font-size: clamp(28px, 3vw, 38px);
+  line-height: 1.1;
+}
+body.page-route-payments .rewards-page-header > p:last-child {
+  margin: 7px 0 0;
+  color: #a9b7c9;
+  font-size: 14px;
+  line-height: 1.45;
+}
+body.page-route-payments #payments > .ui-tabs {
+  margin: 0 0 18px;
+}
+body.page-route-payments #rewards-overview {
+  display: grid;
+  grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+  gap: 14px;
+  align-items: start;
+}
+body.page-route-payments #rewards-overview > .reward-entry-grid {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+body.page-route-payments #rewards-overview .reward-entry-grid > a {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  width: auto;
+  min-height: 38px;
+  padding: 8px 13px;
+  border-color: #344158;
+  background: #111b2e;
+  color: #d9e5f3;
+  text-decoration: none;
+}
+body.page-route-payments #rewards-overview .reward-entry-grid > a:hover,
+body.page-route-payments #rewards-overview .reward-entry-grid > a:focus-visible {
+  border-color: #f4a340;
+  color: #ffd28a;
+}
+body.page-route-payments #rewards-overview > .page-cleanup-guide,
+body.page-route-payments #rewards-overview > .jackpot-overview-spotlight {
+  grid-column: 1 / -1;
+}
+body.page-route-payments #rewards-overview > .page-cleanup-guide { order: 5; margin: 0; }
+body.page-route-payments #rewards-overview > .jackpot-overview-spotlight { order: -1; margin: 0; }
+body.page-route-payments #rewards-overview > .reward-experience-panel {
+  min-width: 0;
+  margin: 0;
+  padding: 18px;
+  border-color: #30405b;
+  background: #121b2e;
+}
+body.page-route-payments #rewards-overview > .reward-experience-panel > header {
+  gap: 10px;
+  margin: 0 0 14px;
+}
+body.page-route-payments #rewards-overview .reward-experience-panel h2 {
+  margin: 2px 0 4px;
+  font-size: clamp(19px, 2vw, 23px);
+}
+body.page-route-payments #rewards-overview .reward-experience-panel header p:not(.eyebrow) {
+  color: #a9b7c9;
+  font-size: 13px;
+}
+body.page-route-payments #reward-portfolio .reward-portfolio-top-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 9px;
+  flex: none;
+}
+body.page-route-payments #reward-portfolio [data-reward-evidence] {
+  color: #a9b7c9;
+  font-size: 11px;
+  white-space: nowrap;
+}
+body.page-route-payments #reward-portfolio [data-reward-connect] {
+  min-height: 36px;
+  padding: 7px 12px;
+  border-color: #f4a340;
+  background: #f4a340;
+  color: #10131b;
+  font-weight: 800;
+}
+body.page-route-payments #reward-portfolio.reward-no-wallet [data-reward-portfolio] {
+  padding: 12px 14px;
+  border: 1px solid #30405b;
+  background: #18243a;
+  color: #d3deec;
+  font-size: 13px;
+}
+body.page-route-payments #reward-portfolio .reward-portfolio-note {
+  display: block;
+  margin-top: 11px;
+  color: #8799ad;
+}
+body.page-route-payments #reward-portfolio .reward-portfolio-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+body.page-route-payments #reward-discovery > header {
+  align-items: end;
+}
+body.page-route-payments #reward-discovery > header > label {
+  display: grid;
+  gap: 5px;
+  color: #98a9bc;
+  font: 700 10px 'DM Mono', monospace;
+  text-transform: uppercase;
+}
+body.page-route-payments #reward-discovery [data-reward-filter] {
+  max-width: 180px;
+  min-height: 36px;
+  padding: 6px 10px;
+  color: #e4edf8;
+  font-size: 12px;
+}
+body.page-route-payments #reward-discovery .reward-discovery-list { gap: 6px; }
+body.page-route-payments #reward-discovery .reward-discovery-list > article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 10px;
+  padding: 10px 12px;
+  border-color: #30405b;
+  background: #19263b;
+}
+body.page-route-payments #reward-discovery .reward-row-head {
+  grid-column: 1 / -1;
+  gap: 12px;
+}
+body.page-route-payments #reward-discovery .reward-token-identity a {
+  color: #f3e2bb;
+  font-size: 13px;
+  line-height: 1.35;
+}
+body.page-route-payments #reward-discovery .reward-row-head > span {
+  color: #f4b457;
+  font-size: 10px;
+  line-height: 1.35;
+  text-align: right;
+}
+body.page-route-payments #reward-discovery .reward-discovery-list article > p {
+  grid-column: 1;
+  align-self: center;
+  margin: 0;
+  color: #a9b7c9;
+  font-size: 11px;
+  line-height: 1.4;
+}
+body.page-route-payments #reward-discovery .reward-discovery-list article > small { grid-column: 1 / -1; }
+body.page-route-payments #reward-discovery .reward-token-actions {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+body.page-route-payments #reward-discovery .concise-reward-more {
+  min-height: 36px;
+  margin-top: 7px;
+}
+body.page-route-payments #rewards-creator {
+  padding: 22px;
+  border: 1px solid #30405b;
+  background: #121b2e;
+}
+body.page-route-payments #rewards-creator .reward-section-intro h2 { margin: 3px 0 5px; }
+body.page-route-payments #rewards-creator .reward-section-intro p:last-child { margin: 0; color: #a9b7c9; }
+body.page-route-payments #rewards-creator .reward-creator-gate {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #30405b;
+}
+body.page-route-payments #rewards-creator .reward-wallet-prompt { margin: 0 0 12px; }
+body.page-route-payments #rewards-creator .reward-creator-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+body.page-route-payments #rewards-holder [data-automatic-rewards] {
+  margin: 0;
+  padding: 18px;
+  border-color: #30405b;
+  border-radius: 4px;
+  background: #121b2e;
+}
+body.page-route-payments #rewards-holder .auto-rewards-heading { margin-bottom: 14px; }
+body.page-route-payments #rewards-holder .auto-reward-card { padding: 16px; }
+body.page-route-payments #rewards-holder .auto-reward-card h3 { margin-top: 11px; }
+body.page-route-payments #rewards-holder :is(.auto-schedule,.auto-airdrop-note) {
+  min-height: 0;
+  margin-top: 12px;
+  padding: 12px;
+}
+body.page-route-payments #rewards-holder .funded-holder-token-rewards { margin-top: 14px; }
+body.page-route-payments #rewards-holder #funded-holder-token-rewards:not(.concise-expanded) [data-funded-token-list] > li:nth-child(n+3) { display: none; }
+body.page-route-payments #rewards-x [data-x-rewards] { display: none !important; }
+body.page-route-payments #rewards-x .payment-actions { margin: 0; }
+body.page-route-payments #rewards-x .x-claim-panel { border-color: #30405b; background: #121b2e; }
+body.page-route-payments #rewards-x:has(#x-sign-in:not([data-connected="true"])) :is(.x-claim-dashboard,.x-claim-dashboard-note,.x-claim-steps,.x-claim-section:not(.x-claim-identity),.x-claim-technical,.x-claim-submit,.x-claim-status,.x-claim-activity) {
+  display: none !important;
+}
+body.page-route-payments #rewards-x:has(#x-sign-in:not([data-connected="true"])) .x-claim-panel { padding: 22px; }
+body.page-route-payments #rewards-x:has(#x-sign-in:not([data-connected="true"])) .x-claim-heading { margin-bottom: 15px; }
+body.page-route-payments #rewards-x:has(#x-sign-in:not([data-connected="true"])) .x-claim-identity {
+  margin: 0;
+  padding: 15px;
+  border: 1px solid #30405b;
+  background: #19263b;
+}
+@media (max-width: 900px) {
+  body.page-route-payments #rewards-overview { grid-template-columns: minmax(0, 1fr); }
+  body.page-route-payments #rewards-overview > .reward-entry-grid,
+  body.page-route-payments #rewards-overview > .page-cleanup-guide,
+  body.page-route-payments #rewards-overview > .jackpot-overview-spotlight { grid-column: 1; }
+}
+@media (max-width: 520px) {
+  body.page-route-payments #payments { padding-top: 16px; }
+  body.page-route-payments #payments > .rewards-page-header { margin-bottom: 12px; padding-bottom: 14px; }
+  body.page-route-payments #payments > .ui-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin-bottom: 14px; }
+  body.page-route-payments #payments > .ui-tabs button { min-width: 0; padding: 9px 3px; font-size: 9px; white-space: nowrap; }
+  body.page-route-payments #rewards-overview > .reward-entry-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.page-route-payments #rewards-overview .reward-entry-grid > a { justify-content: center; padding: 8px; font-size: 12px; text-align: center; }
+  body.page-route-payments #rewards-overview > .reward-experience-panel { padding: 14px; }
+  body.page-route-payments #rewards-overview > .reward-experience-panel > header { align-items: start; }
+  body.page-route-payments #reward-portfolio .reward-portfolio-top-actions { align-items: start; }
+  body.page-route-payments #reward-portfolio [data-reward-evidence] { white-space: normal; }
+  body.page-route-payments #reward-discovery > header { align-items: stretch; }
+  body.page-route-payments #reward-discovery [data-reward-filter] { max-width: none; width: 100%; }
+  body.page-route-payments #reward-discovery .reward-discovery-list > article { padding: 10px; }
+  body.page-route-payments #reward-discovery .reward-row-head > span { max-width: 84px; white-space: normal; }
+  body.page-route-payments #rewards-creator { padding: 17px; }
+  body.page-route-payments #rewards-holder [data-automatic-rewards] { padding: 14px; }
+  body.page-route-payments #rewards-x:has(#x-sign-in:not([data-connected="true"])) .x-claim-panel { padding: 17px; }
+  body.page-route-payments #rewards-x:has(#x-sign-in:not([data-connected="true"])) .x-claim-identity { align-items: stretch; flex-direction: column; }
+}

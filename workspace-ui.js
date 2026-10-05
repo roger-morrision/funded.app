@@ -6,6 +6,7 @@ import airdropWolfDropUrl from './airdrop-wolf-drop.png';
 import './workspace-ui.css';
 import './home-reference.css';
 import './ansem-pages.css';
+import './payments-redesign.css';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -581,21 +582,22 @@ function rewards() {
   const x = node('div'); x.id = 'rewards-x';
   while(root.firstChild) x.append(root.firstChild);
   const overview = node('div'); overview.id = 'rewards-overview';
-  overview.innerHTML = '<div class="workspace-page-header"><p class="eyebrow">Your rewards</p><h1>Rewards, in one place</h1><p>Choose a reward type to check eligibility, review available amounts, and find confirmed receipts.</p></div><div class="reward-entry-grid"><button type="button" data-reward-open="creator"><strong>Creator fees</strong><span>Collected fees from your tokens</span><small>Connect your launch wallet</small></button><button type="button" data-reward-open="holder"><strong>Holder rewards</strong><span>SOL distributions and eligibility</span><small>Snapshot and funding required</small></button><button type="button" data-reward-open="x"><strong>X partner rewards</strong><span>Claims linked to your X account</span><small>X sign-in required</small></button><a href="#referrals"><strong>Referral rewards</strong><span>Qualified activity and claim receipts</span><small>Wallet attribution required</small></a><a href="#airdrops"><strong>Token airdrops</strong><span>Allocation, eligibility, and claims</span><small>Verified vault and proof required</small></a></div><p class="source-note">Allocated amounts, claimable rewards, and confirmed payments are different states. Each reward type shows its own units and evidence.</p>';
+  overview.innerHTML = '<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Rewards · Solana Devnet</p><h1>Rewards</h1><p>Check verified allocations, available claims, and payments.</p></div><div class="reward-entry-grid"><button type="button" data-reward-open="creator"><strong>Creator fees</strong><span>Collected fees from your tokens</span><small>Connect your launch wallet</small></button><button type="button" data-reward-open="holder"><strong>Holder rewards</strong><span>SOL distributions and eligibility</span><small>Snapshot and funding required</small></button><button type="button" data-reward-open="x"><strong>X partner rewards</strong><span>Claims linked to your X account</span><small>X sign-in required</small></button><a href="#referrals"><strong>Referral rewards</strong><span>Qualified activity and claim receipts</span><small>Wallet attribution required</small></a><a href="#airdrops"><strong>Token airdrops</strong><span>Allocation, eligibility, and claims</span><small>Verified vault and proof required</small></a></div><p class="source-note">Allocated amounts, claimable rewards, and confirmed payments are different states. Each reward type shows its own units and evidence.</p>';
   const creator = node('div'); creator.id = 'rewards-creator';
-  creator.innerHTML = '<h2>Creator rewards</h2><p>Review collected fees for the connected launch wallet. Open a token in Portfolio to request a payout when its verified threshold is met.</p><p class="reward-wallet-prompt">Connect your launch wallet to see your records.</p><a class="secondary-button" href="#my-launches">Open Portfolio →</a>';
+  creator.innerHTML = '<div class="reward-section-intro"><p class="eyebrow">Your launches</p><h2>Creator fees</h2><p>Review collected fees and claimable amounts for tokens you launched.</p></div><div class="reward-creator-gate"><p class="reward-wallet-prompt">Connect your launch wallet to view creator rewards.</p><div class="reward-creator-actions"><button type="button" class="primary-button" data-reward-connect>Connect wallet</button><a class="secondary-button" href="#my-launches">Open Portfolio →</a></div></div>';
   const personal = $('[data-personal-rewards]'); if(personal)creator.append(personal);
   const xSummary = $('[data-x-rewards]',personal || creator);if(xSummary)x.prepend(xSummary);
   const holder = node('div'); holder.id = 'rewards-holder';
   const automatic = $('[data-automatic-rewards]'); if(automatic)holder.append(automatic);
   root.append(overview,creator,holder,x);
   const select = tabs(root,[{key:'overview',label:'Overview',panel:overview},{key:'creator',label:'Creator',panel:creator},{key:'holder',label:'Holder',panel:holder},{key:'x',label:'X partner',panel:x}],'Reward type');
+  root.prepend(overview.querySelector('.workspace-page-header'));
   $$('[data-reward-open]',root).forEach(button=>button.addEventListener('click',()=>select(button.dataset.rewardOpen,true)));
   $$('a[href="#payments"]',personal || creator).forEach(link=>link.addEventListener('click',()=>select('x',true)));
-  const syncIdentity=()=>{const prompt=$('.reward-wallet-prompt'); if(prompt)prompt.hidden=Boolean(document.documentElement.dataset.connectedWallet);};
+  const syncIdentity=()=>{const gate=$('.reward-creator-gate'); if(gate)gate.hidden=Boolean(document.documentElement.dataset.connectedWallet);};
   window.addEventListener('funded:reward-identity-change',syncIdentity); syncIdentity();
   text('.x-claim-heading h2','X partner claims');
-  text('.x-claim-heading > div > p:last-child','Sign in with X, choose a reward, and review the destination wallet before approving.');
+  text('.x-claim-heading > div > p:last-child','Review rewards linked to your X account and confirm a wallet before claiming.');
 }
 
 function secondaryPages() {

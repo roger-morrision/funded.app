@@ -228,7 +228,7 @@ function compactRecipients() {
 
 function shortenPageCopy() {
   const edits = [
-    ['#rewards-overview .workspace-page-header > p:last-child', 'Choose a reward type to check eligibility and receipts.'],
+    ['#payments > .workspace-page-header > p:last-child', 'Check verified allocations, available claims, and payments.'],
     ['#my-launches > .section-heading .panel-explainer', 'Your launches and saved tokens.'],
     ['#capital-flow > .section-heading .panel-explainer', 'Preview the fee split. Live totals need verified receipts.'],
     ['#launch-route-shell > .page-lede', 'Create a Pump token and review costs before signing.'],
@@ -255,7 +255,7 @@ function shortenPageCopy() {
     ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Buy from the verified Devnet pool. Check spend, then approve in your wallet.'],
     ['#buybacks .burn-token-card > p:not(.eyebrow):not(.funded-burn-status)', 'Choose project attribution, then approve BurnChecked in your wallet.'],
     ['#buybacks .burn-receipts-panel > .field-help', 'This ledger shows app-verified receipts; total supply includes other burns.'],
-    ['#reward-portfolio > small', 'Allocations are not balances. X claims need matching sign-in; airdrops need a finalized snapshot.'],
+    ['#reward-portfolio > small', 'Only finalized transfer receipts count as paid.'],
     ['#reward-discovery > small', 'Finalized receipt window, not lifetime. Sorted by paid wallets; wallets are not people.'],
     ['#payments .auto-rewards-intro', 'Next holder cycle and token airdrops.'],
     ['#payments .auto-reward-card:nth-child(1) > p', 'Eligible wallets receive SOL after a verified daily snapshot.'],
