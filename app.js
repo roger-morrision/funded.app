@@ -2695,7 +2695,10 @@ function renderHomeKpiDashboard(verified = assets){
 
   const status = document.querySelector('#home-dashboard-status');
   const updated = document.querySelector('#home-dashboard-updated');
-  if (status) status.innerHTML = `<i></i> ${launchFeedUnavailable ? `Launch feed unavailable · ${EXPLORE_CLUSTER}` : fundedLaunchRecords.length ? `Verified funded launches · ${EXPLORE_CLUSTER}` : `Awaiting verified funded launches · ${EXPLORE_CLUSTER}`}`;
+  if (status) {
+    status.hidden = !launchFeedUnavailable && !fundedLaunchRecords.length;
+    if (!status.hidden) status.innerHTML = `<i></i> ${launchFeedUnavailable ? `Launch feed unavailable · ${EXPLORE_CLUSTER}` : `Verified funded launches · ${EXPLORE_CLUSTER}`}`;
+  }
   if (updated) updated.textContent = exploreUpdatedAt ? `Checked ${new Date(exploreUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Waiting for first check';
   renderFundedTokenLanding();
 }
