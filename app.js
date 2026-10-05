@@ -7124,39 +7124,72 @@ document.querySelector('#save-airdrop-draft')?.addEventListener('click', () => {
     document.querySelector('#wizard-status').textContent = 'The community claim window is fixed at 90 days after migration.';
     return;
   }
-  localStorage.setItem('funded.airdrop.draft', JSON.stringify(draft));
-  document.querySelector('#wizard-status').textContent = `Draft saved locally for ${draft.name} (${draft.symbol}). Production publishing is not connected.`;
-  showToast('Airdrop draft saved locally');
+  let wrote = false;
+  try {
+    const serialized = JSON.stringify(draft);
+    localStorage.setItem('funded.airdrop.draft', serialized);
+    wrote = true;
+    if (localStorage.getItem('funded.airdrop.draft') !== serialized) throw new Error('Draft save unconfirmed');
+    document.querySelector('#wizard-status').textContent = `Draft saved locally for ${draft.name} (${draft.symbol}). Production publishing is not connected.`;
+    showToast('Airdrop draft saved locally');
+  } catch {
+    document.querySelector('#wizard-status').textContent = wrote
+      ? 'The draft save could not be verified. Saved data may have changed. Your form is unchanged; allow browser storage and try Save again.'
+      : 'The draft could not be saved. Your form is unchanged. Allow browser storage and try Save again.';
+    showToast(document.querySelector('#wizard-status').textContent);
+  }
 });
 document.querySelector('#restore-airdrop-draft')?.addEventListener('click', () => {
   const status = document.querySelector('#wizard-status');
-  let draft;
+  let raw, draft;
   try {
-    draft = JSON.parse(localStorage.getItem('funded.airdrop.draft') || 'null');
+    raw = localStorage.getItem('funded.airdrop.draft');
   } catch {
-    status.textContent = 'Saved draft is unreadable. Delete it and save a new draft.';
+    status.textContent = 'The saved draft could not be read. Your form and saved data were not changed. Allow browser storage and try Restore again.';
+    showToast(status.textContent);
     return;
   }
-  if (!draft || typeof draft.name !== 'string' || typeof draft.symbol !== 'string') {
+  if (raw === null) {
     status.textContent = 'No saved airdrop draft on this device.';
+    return;
+  }
+  const snapshot = document.querySelector('#wizard-snapshot');
+  const vesting = document.querySelector('#wizard-vesting');
+  try {
+    draft = JSON.parse(raw);
+    if (!draft || typeof draft !== 'object' || Array.isArray(draft)
+      || typeof draft.name !== 'string' || !draft.name.trim() || draft.name.length > 64
+      || typeof draft.symbol !== 'string' || !/^[A-Z0-9]{1,8}$/.test(draft.symbol)
+      || typeof draft.allocationPercent !== 'number' || !Number.isFinite(draft.allocationPercent) || draft.allocationPercent < 3 || draft.allocationPercent > 50
+      || draft.claimWindowDays !== 90
+      || !Array.from(snapshot.options).some(option => option.value === draft.snapshotRule)
+      || !Array.from(vesting.options).some(option => option.value === draft.vesting)
+      || ['minimumHolding', 'maxWallet', 'sybilScreening'].some(key => typeof draft[key] !== 'boolean')) throw new Error('Invalid draft');
+  } catch {
+    status.textContent = 'The saved draft is unreadable or has invalid fields. Your form and saved data were kept. Review your current form before choosing Save to replace it, or Delete saved draft to remove it.';
+    showToast(status.textContent);
     return;
   }
   document.querySelector('#wizard-token-name').value = draft.name;
   document.querySelector('#wizard-token-symbol').value = draft.symbol;
   document.querySelector('#wizard-allocation').value = String(draft.allocationPercent ?? 3);
   document.querySelector('#wizard-window').value = '90';
-  const snapshot = document.querySelector('#wizard-snapshot');
-  if (Array.from(snapshot.options).some(option => option.value === draft.snapshotRule)) snapshot.value = draft.snapshotRule;
-  const vesting = document.querySelector('#wizard-vesting');
-  if (Array.from(vesting.options).some(option => option.value === draft.vesting)) vesting.value = draft.vesting;
+  snapshot.value = draft.snapshotRule;
+  vesting.value = draft.vesting;
   document.querySelector('#wizard-min-hold').checked = Boolean(draft.minimumHolding);
   document.querySelector('#wizard-max-wallet').checked = Boolean(draft.maxWallet);
   document.querySelector('#wizard-sybil').checked = draft.sybilScreening !== false;
   status.textContent = `Draft restored for ${draft.name} (${draft.symbol}). Review all fields before saving again.`;
 });
 document.querySelector('#delete-airdrop-draft')?.addEventListener('click', () => {
-  localStorage.removeItem('funded.airdrop.draft');
-  document.querySelector('#wizard-status').textContent = 'Saved airdrop draft deleted. Current form is unchanged.';
+  try {
+    localStorage.removeItem('funded.airdrop.draft');
+    if (localStorage.getItem('funded.airdrop.draft') !== null) throw new Error('Draft deletion unconfirmed');
+    document.querySelector('#wizard-status').textContent = 'Saved airdrop draft deleted. Current form is unchanged.';
+  } catch {
+    document.querySelector('#wizard-status').textContent = 'Draft deletion could not be verified. Saved data may remain; your current form is unchanged. Allow browser storage and try Delete again.';
+    showToast(document.querySelector('#wizard-status').textContent);
+  }
 });
 document.querySelector('#buyback-add-claim')?.addEventListener('click', recordBuybackPreviewClaim);
 document.querySelector('#buyback-run-preview')?.addEventListener('click', runBuybackPreview);

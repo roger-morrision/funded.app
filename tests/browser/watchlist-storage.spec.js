@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { writeFileSync } from 'node:fs';
 
 const KEY = 'funded.app.community.watchlist';
 const MINT = 'So11111111111111111111111111111111111111112';
@@ -151,4 +152,38 @@ test('Explore native watch action does not announce success when saving fails', 
   await page.evaluate(() => qaRestoreWatchStorage()); await watch.click();
   await expect(watch).toHaveAttribute('aria-pressed', 'true'); expect(JSON.parse(await raw(page))).toEqual([MINT]);
   expect(await page.evaluate(() => qaWatchEvents)).toBe(1);
+});
+
+for (const width of [1440, 390]) test(`watchlist fallback and long failure notice remain readable at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 }); await seed(page, JSON.stringify([MINT]));
+  await page.goto('/#community'); await ready(page);
+  const row = page.locator('.watchlist-unavailable'); await expect(row).toBeVisible();
+  await fault(page, 'noop'); await row.getByRole('button', { name: 'Remove saved token' }).click();
+  await expect(page.locator('#toast')).toHaveClass(/show/); await expect(page.locator('#toast')).toHaveCSS('opacity', '1');
+  const geometry = await page.evaluate(() => {
+    const box = node => { if (!node || !node.getClientRects().length) return null; const r = node.getBoundingClientRect(); return { x: r.x, y: r.y, right: r.right, bottom: r.bottom, width: r.width, height: r.height }; };
+    const textBoxes = node => { const range = document.createRange(); range.selectNodeContents(node); return Array.from(range.getClientRects()).map(r => ({ x: r.x, y: r.y, right: r.right, bottom: r.bottom })); };
+    const row = document.querySelector('.watchlist-unavailable'), toast = document.querySelector('#toast');
+    return { row: box(row), title: box(row.querySelector('strong')), description: box(row.querySelector('span')), remove: box(row.querySelector('button')),
+      descriptionText: textBoxes(row.querySelector('span')), toast: box(toast), toastText: textBoxes(toast),
+      nav: box(document.querySelector('.mobile-workspace-nav')), help: box(document.querySelector('#help-topics-trigger')), documentWidth: document.documentElement.scrollWidth };
+  });
+  writeFileSync(test.info().outputPath(`watchlist-geometry-${width}.json`), JSON.stringify(geometry, null, 2));
+  if (width >= 701) expect(geometry.help, 'Desktop Help control is present in this native route').not.toBeNull();
+  expect(geometry.description.y, 'Description starts below its heading').toBeGreaterThanOrEqual(geometry.title.bottom);
+  expect(geometry.remove.y, 'Remove action follows the description').toBeGreaterThanOrEqual(geometry.description.bottom);
+  expect(geometry.remove.height).toBeGreaterThanOrEqual(44);
+  for (const rect of geometry.descriptionText) {
+    expect(rect.x).toBeGreaterThanOrEqual(geometry.row.x - 1); expect(rect.right).toBeLessThanOrEqual(geometry.row.right + 1);
+  }
+  expect(geometry.documentWidth).toBeLessThanOrEqual(width);
+  for (const rect of geometry.toastText) { expect(rect.x).toBeGreaterThanOrEqual(0); expect(rect.right).toBeLessThanOrEqual(width); }
+  if (geometry.nav) expect(geometry.toast.bottom, 'Notice must clear fixed mobile navigation').toBeLessThanOrEqual(geometry.nav.y);
+  if (geometry.help) {
+    const a = geometry.toast, b = geometry.help;
+    expect(a.right <= b.x || a.x >= b.right || a.bottom <= b.y || a.y >= b.bottom, 'Help must not obscure the notice').toBe(true);
+  }
+  await page.screenshot({ path: test.info().outputPath(`watchlist-layout-${width}.png`) });
+  await row.getByRole('button', { name: 'Remove saved token' }).focus(); await expect(row.getByRole('button', { name: 'Remove saved token' })).toBeFocused();
+  expect(JSON.parse(await raw(page))).toEqual([MINT]);
 });
