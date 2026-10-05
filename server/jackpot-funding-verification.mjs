@@ -5,12 +5,12 @@ const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const key = row => typeof row.pubkey === 'string' ? row.pubkey : row.pubkey?.toBase58?.();
 
-// Verify a Devnet transfer from the configured app-fee owner, backed by the
+// Verify a test network transfer from the configured app-fee owner, backed by the
 // exact finalized trade signatures whose fees it contributes to this round.
 export async function verifyTraderJackpotFunding({ connection, expectedGenesisHash,
   sourceSignatures, fundingSignature, feeOwner, vault, window }) {
   if (!connection || !expectedGenesisHash || await connection.getGenesisHash() !== expectedGenesisHash)
-    throw new Error('Trusted Devnet RPC is required.');
+    throw new Error('Trusted test network RPC is required.');
   if (!ADDRESS.test(String(feeOwner || '')) || !ADDRESS.test(String(vault || ''))
     || feeOwner === vault || !SIGNATURE.test(String(fundingSignature || ''))
     || !Array.isArray(sourceSignatures) || !sourceSignatures.length

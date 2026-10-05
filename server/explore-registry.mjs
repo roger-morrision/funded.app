@@ -1,4 +1,4 @@
-// Apply ordering before pagination; the Devnet registry is not an ordered index.
+// Apply ordering before pagination; the test network registry is not an ordered index.
 export function sortDevnetLaunches(items, sort = 'last_trade_timestamp') {
   const time = value => {
     const number = Number(value);

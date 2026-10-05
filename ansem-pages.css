@@ -545,7 +545,7 @@ body.page-route-wallet .wallet-balance-grid article { background: #111b2e; }
   body.page-route-wallet .wallet-detail-stats > div { min-height: 104px; padding: 16px; }
 }
 
-/* The Index table follows the reference column order while retaining verified Devnet data. */
+/* The Index table follows the reference column order while retaining verified test network data. */
 body.page-route-explore .scanner-head,
 body.page-route-explore .scanner-row {
   grid-template-columns: 28px minmax(220px,1.7fr) 78px 78px 70px 54px 78px 65px 95px 86px 80px;

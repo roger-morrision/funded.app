@@ -19,12 +19,12 @@ export function createCommunityClaimService({ connection, store, programId, auth
   cluster = 'devnet', expectedCommunityProgramDataSha256,
   captureSnapshot = captureExactCommunitySnapshot, reserveReader = readCommunityReserveStatus,
   programEvidence = readProgramDataEvidence }) {
-  if (cluster !== 'devnet') throw new Error('Community claim service is Devnet-only.');
+  if (cluster !== 'devnet') throw new Error('Community claim service is test network-only.');
   if (!store?.transaction || !store?.read) throw new Error('An atomic persistent reward store is required.');
   const program = new PublicKey(programId), issuer = new PublicKey(authority), eligible = new PublicKey(eligibilityMint);
 
   async function assertDevnet() {
-    if (await connection.getGenesisHash() !== DEVNET_GENESIS_HASH) throw new Error('Community claim RPC is not Devnet.');
+    if (await connection.getGenesisHash() !== DEVNET_GENESIS_HASH) throw new Error('Community claim RPC is not test network.');
   }
 
   async function assertReviewedProgram() {

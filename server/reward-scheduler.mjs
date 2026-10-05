@@ -29,9 +29,9 @@ export function holderFundingMinimumLamports(config, env = process.env) {
   const standard = BigInt(AUTOMATIC_REWARDS.minimumLamports);
   if (!devnetQaShortWindow(config, env)) return standard;
   const raw = String(env.FUNDED_QA_HOLDER_MIN_LAMPORTS || '');
-  if (!/^[1-9]\d*$/.test(raw)) throw new Error('A numeric Devnet QA holder minimum is required.');
+  if (!/^[1-9]\d*$/.test(raw)) throw new Error('A numeric test network QA holder minimum is required.');
   const minimum = BigInt(raw);
-  if (minimum < 100_000n || minimum >= standard) throw new Error('Devnet QA holder minimum is outside the bounded test range.');
+  if (minimum < 100_000n || minimum >= standard) throw new Error('test network QA holder minimum is outside the bounded test range.');
   return minimum;
 }
 

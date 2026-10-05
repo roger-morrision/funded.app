@@ -14,11 +14,11 @@ export function automaticRewardStatus(now = new Date(), state = {}) {
   return { policy: AUTOMATIC_REWARDS, serverTime: now.toISOString(), status: active ? blockedSchedules ? 'degraded' : 'active' : 'unavailable', schedules, retryNotBefore,
     reason: active ? blockedSchedules ? `${blockedSchedules} reward schedule${blockedSchedules === 1 ? ' is' : 's are'} blocked; inspect each reason before promising a payout.` : null : health.reasons.includes('rpc-quota-exhausted')
       ? health.reasons.includes('worker-readiness-stale')
-        ? 'The last reward-worker check failed because the Devnet RPC quota was exhausted. Reward readiness is stale until its next check.'
-        : service.reason || 'Automatic distributions are unavailable because the Devnet RPC quota is exhausted.'
+        ? 'The last reward-worker check failed because the test network RPC quota was exhausted. Reward readiness is stale until its next check.'
+        : service.reason || 'Automatic distributions are unavailable because the test network RPC quota is exhausted.'
       : health.reasons.includes('worker-readiness-stale')
       ? 'Automatic distributions are unavailable because the reward worker has not reported readiness in over 3 minutes.'
-      : service.reason || 'Automatic distributions are unavailable until the Devnet reward program and worker pass their constrained-payout readiness checks.',
+      : service.reason || 'Automatic distributions are unavailable until the test network reward program and worker pass their constrained-payout readiness checks.',
     modes: { creator: 'wallet-requested-after-minimum', holders: 'automatic-SOL-or-token', x: 'unavailable', community: schedules.some(row => row.kind === 'community' && ['prepared', 'distributing', 'paid'].includes(row.status)) ? 'verified-token-airdrop-cycle' : 'awaiting-funded-migration-snapshot', referrals: 'manual-claim', buyback: 'accrual-only-execution-unavailable' } };
 }
 

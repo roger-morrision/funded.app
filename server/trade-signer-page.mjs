@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 
 export function renderTradeSignerPage(id) {
   const nonce = randomBytes(18).toString('base64');
-  const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Review funded.vip Devnet trade</title>
+  const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Review funded.vip test network trade</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}*{box-sizing:border-box}
 body{max-width:36rem;margin:0 auto;padding:1.4rem 1.1rem 3rem;background:#14111e;color:#f5f1fb}
@@ -20,7 +20,7 @@ h1{font-size:clamp(1.75rem,6vw,2.2rem);line-height:1.16;letter-spacing:-.03em;ma
 a{display:inline-flex;align-items:center;justify-content:center;min-height:2.7rem;padding:.5rem .75rem;border:1px solid #8171b4;border-radius:.6rem;color:#e4d9ff;text-decoration:none;font-weight:650}
 a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid #e0ceff;outline-offset:3px}.receipt-actions{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.2rem}.receipt-actions a{flex:1}[hidden]{display:none!important}
 </style>
-<p class="eyebrow">Solana Devnet · funded.vip</p>
+<p class="eyebrow">Solana test network · funded.vip</p>
 <h1 id="heading">Review trade</h1><p id="intro">Check the amounts, then approve the transaction in Phantom.</p>
 <section class="card" id="review" hidden aria-label="Trade review">
 <h2 id="trade-title">Trade</h2><div class="flow">
@@ -29,7 +29,7 @@ a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid #e0
 <div class="amount-block"><span class="label" id="token-label">Token and quantity</span><strong class="amount" id="token-amount"></strong><span class="subtle" id="token-name"></span></div></div>
 <hr class="divider"><div class="detail-grid"><span id="limit-label">After slippage</span><strong id="limit-amount"></strong></div>
 <details><summary>Fees and token details</summary><div class="detail-grid" style="margin-top:1rem"><span>App fee</span><strong id="app-fee"></strong><span>Token mint</span><code class="mint" id="mint"></code></div><p class="subtle" id="fee-note"></p></details></section>
-<section class="card" id="outcome" hidden aria-live="polite"><h2 id="outcome-title">Devnet result</h2>
+<section class="card" id="outcome" hidden aria-live="polite"><h2 id="outcome-title">test network result</h2>
 <div id="receipt-amounts" class="flow" hidden>
 <div class="amount-block"><span class="label" id="receipt-sol-label"></span><strong class="amount" id="receipt-sol"></strong></div>
 <div class="arrow" aria-hidden="true">↓</div>
@@ -89,16 +89,16 @@ function showOutcome(result){
  if(result.signature){link.href='https://explorer.solana.com/tx/'+encodeURIComponent(result.signature)+'?cluster=devnet';link.hidden=false;}
  if(state==='finalized'){
   if(summary?.kind==='launch'){
-   setText('#heading','Launch finalized');setText('#intro','Confirmed on Solana Devnet. The desktop tab verifies the vault and registers the launch.');
+   setText('#heading','Launch finalized');setText('#intro','Confirmed on Solana test network. The desktop tab verifies the vault and registers the launch.');
    setText('#outcome-title',summary.tokenSymbol+' created');
    setText('#receipt-sol-label','Wallet SOL change, including fees');setText('#receipt-sol',units(result.solDeltaLamports,9)+' SOL');
    setText('#receipt-token-label','Community reserve');setText('#receipt-token',number(summary.reserveTokens)+' '+summary.tokenSymbol+' sent to vault');
    document.querySelector('#receipt-amounts').hidden=false;
    setText('#outcome-detail','Check the desktop tab for the final vault receipt.');
-   if(result.slot!=null){document.querySelector('#slot-row').hidden=false;setText('#slot-row','Devnet slot '+result.slot);}
+   if(result.slot!=null){document.querySelector('#slot-row').hidden=false;setText('#slot-row','test network slot '+result.slot);}
    status.hidden=true;clearInterval(pollTimer);window.scrollTo(0,0);return;
   }
-  setText('#heading','Trade complete');setText('#intro','Confirmed on Solana Devnet.');
+  setText('#heading','Trade complete');setText('#intro','Confirmed on Solana test network.');
   setText('#outcome-title',(side==='sell'?'Sold ':'Bought ')+(summary?.tokenSymbol||'tokens'));
   const solRaw=BigInt(result.solDeltaLamports),solChange=units(result.solDeltaLamports,9);
   const directional=(side==='buy'&&solRaw<0n)||(side==='sell'&&solRaw>0n);
@@ -113,23 +113,23 @@ function showOutcome(result){
   }else{setText('#receipt-token-label','Token amount');setText('#receipt-token','See transaction details');}
   document.querySelector('#receipt-amounts').hidden=false;
   setText('#outcome-detail','Actual wallet balance changes from the finalized transaction.');
-  if(result.slot!=null){document.querySelector('#slot-row').hidden=false;setText('#slot-row','Devnet slot '+result.slot);}
+  if(result.slot!=null){document.querySelector('#slot-row').hidden=false;setText('#slot-row','test network slot '+result.slot);}
   status.hidden=true;clearInterval(pollTimer);window.scrollTo(0,0);
  }else if(state==='failed'){
-  setText('#heading','Trade failed');setText('#intro','The Devnet transaction did not settle.');
+  setText('#heading','Trade failed');setText('#intro','The test network transaction did not settle.');
   setText('#outcome-title','Transaction failed');setText('#outcome-detail',result.error||'Check the desktop tab for details.');
   document.querySelector('#receipt-amounts').hidden=true;status.hidden=true;clearInterval(pollTimer);window.scrollTo(0,0);
  }else{
   setText('#heading',state==='submitted'?'Trade submitted':'Trade signed');
-  setText('#intro',state==='submitted'?'Checking the final Devnet result.':'Waiting for the desktop tab to submit.');
+  setText('#intro',state==='submitted'?'Checking the final test network result.':'Waiting for the desktop tab to submit.');
   setText('#outcome-title',state==='submitted'?'Waiting for confirmation':'Signature received');
-  setText('#outcome-detail',state==='submitted'?'Your transaction was sent to Solana Devnet.':'Keep the desktop tab open while the trade is submitted.');
+  setText('#outcome-detail',state==='submitted'?'Your transaction was sent to Solana test network.':'Keep the desktop tab open while the trade is submitted.');
   status.hidden=true;window.scrollTo(0,0);
  }
 }
-async function pollStatus(){try{const response=await fetch('/api/mobile-wallet/trade-status/'+id,{cache:'no-store'});if(!response.ok)throw new Error('Status expired. Check the desktop tab or Solana Explorer.');showOutcome(await response.json());}catch(error){status.textContent=error.message||'Could not check Devnet status.';}}
+async function pollStatus(){try{const response=await fetch('/api/mobile-wallet/trade-status/'+id,{cache:'no-store'});if(!response.ok)throw new Error('Status expired. Check the desktop tab or Solana Explorer.');showOutcome(await response.json());}catch(error){status.textContent=error.message||'Could not check test network status.';}}
 fetch('/api/mobile-wallet/trade-request/'+id,{cache:'no-store'}).then(async response=>{if(!response.ok)throw new Error('Wallet request expired. Start again on the desktop.');request=await response.json();if(!window.solanaWeb3?.Transaction)throw new Error('Transaction decoder did not load. Reload this page.');document.querySelector('#wallet').textContent=request.publicKey;showReview(request.summary);button.disabled=false;status.textContent='Review the amounts and wallet, then approve in Phantom.'}).catch(error=>status.textContent=error.message);
-button.addEventListener('click',async()=>{button.disabled=true;try{const provider=window.phantom?.solana||window.solana;if(!provider?.signTransaction)throw new Error('Open this page inside Phantom on your phone.');const connected=await provider.connect();const address=String(connected?.publicKey||provider.publicKey||'');if(address!==request.publicKey)throw new Error('Wrong wallet selected. Switch Phantom to '+request.publicKey+' and try again.');status.textContent='Refreshing the Devnet transaction before approval…';const refreshed=await fetch('/api/mobile-wallet/trade-refresh/'+id,{method:'POST'});if(!refreshed.ok)throw new Error((await refreshed.json()).error||'Could not refresh the transaction. Start again on the desktop.');const current=await refreshed.json();const bytes=Uint8Array.from(atob(current.transaction),character=>character.charCodeAt(0));const transaction=request.summary?.kind==='launch'?window.solanaWeb3.VersionedTransaction.deserialize(bytes):window.solanaWeb3.Transaction.from(bytes);status.textContent='Review the transaction in Phantom…';const signed=await provider.signTransaction(transaction);const signedBytes=signed.serialize();const encoded=btoa(Array.from(signedBytes,byte=>String.fromCharCode(byte)).join(''));const response=await fetch('/api/mobile-wallet/trade/'+id,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({transaction:encoded})});if(!response.ok)throw new Error((await response.json()).error||'Could not return the signed transaction to the desktop.');button.hidden=true;status.textContent='Signature received. Waiting for Devnet submission and finalization…';await pollStatus();if(!['finalized','failed'].includes(document.querySelector('#outcome').dataset.state))pollTimer=setInterval(pollStatus,2000);}catch(error){status.textContent=error.message||'Signing failed.';button.disabled=false}});
+button.addEventListener('click',async()=>{button.disabled=true;try{const provider=window.phantom?.solana||window.solana;if(!provider?.signTransaction)throw new Error('Open this page inside Phantom on your phone.');const connected=await provider.connect();const address=String(connected?.publicKey||provider.publicKey||'');if(address!==request.publicKey)throw new Error('Wrong wallet selected. Switch Phantom to '+request.publicKey+' and try again.');status.textContent='Refreshing the test network transaction before approval…';const refreshed=await fetch('/api/mobile-wallet/trade-refresh/'+id,{method:'POST'});if(!refreshed.ok)throw new Error((await refreshed.json()).error||'Could not refresh the transaction. Start again on the desktop.');const current=await refreshed.json();const bytes=Uint8Array.from(atob(current.transaction),character=>character.charCodeAt(0));const transaction=request.summary?.kind==='launch'?window.solanaWeb3.VersionedTransaction.deserialize(bytes):window.solanaWeb3.Transaction.from(bytes);status.textContent='Review the transaction in Phantom…';const signed=await provider.signTransaction(transaction);const signedBytes=signed.serialize();const encoded=btoa(Array.from(signedBytes,byte=>String.fromCharCode(byte)).join(''));const response=await fetch('/api/mobile-wallet/trade/'+id,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({transaction:encoded})});if(!response.ok)throw new Error((await response.json()).error||'Could not return the signed transaction to the desktop.');button.hidden=true;status.textContent='Signature received. Waiting for test network submission and finalization…';await pollStatus();if(!['finalized','failed'].includes(document.querySelector('#outcome').dataset.state))pollTimer=setInterval(pollStatus,2000);}catch(error){status.textContent=error.message||'Signing failed.';button.disabled=false}});
 </script></html>`;
   return { html, nonce };
 }

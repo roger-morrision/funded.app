@@ -7,7 +7,7 @@ export function tokenSocialModel(launch, metadata, mint, cluster, publicOrigin='
   const purpose=signed?String(metadata.tagline||metadata.description||'').slice(0,160):'';
   let origin=null;try{const url=new URL(publicOrigin);if(['http:','https:'].includes(url.protocol)&&!url.username&&!url.password)origin=url.origin;}catch{}
   return {available:true,title:`${String(launch.name).slice(0,32)} (${String(launch.symbol).slice(0,10)}) | funded.vip (${cluster})`,
-    description:`${purpose?purpose+' ':''}Review the canonical mint and fee policy. Not an endorsement. Tokens can lose all value. ${cluster==='devnet'?'Devnet test assets have no intended monetary value.':''}`,
+    description:`${purpose?purpose+' ':''}Review the canonical mint and fee policy. Not an endorsement. Tokens can lose all value. ${cluster==='devnet'?'Test-network assets have no intended monetary value.':''}`,
     canonical:origin?`${origin}/token/${mint}`:null,image:origin&&signed&&metadata.imageSha256&&cluster==='devnet'?`${origin}/devnet-images/${mint}`:null};
 }
 export function tokenPageHtml(template, launch, metadata, mint, cluster, publicOrigin=process.env.PUBLIC_APP_URL, shareSearch='') {

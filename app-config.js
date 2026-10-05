@@ -3,9 +3,9 @@ const supportedClusters = new Set(['devnet', 'mainnet-beta']);
 export const APP_CLUSTER = String(import.meta.env.VITE_SOLANA_CLUSTER || 'devnet').trim();
 if (!supportedClusters.has(APP_CLUSTER)) throw new Error(`Unsupported VITE_SOLANA_CLUSTER: ${APP_CLUSTER}`);
 
-// Keep local Devnet profiles coherent unless an operator explicitly opts the
+// Keep local test network profiles coherent unless an operator explicitly opts the
 // discovery feed into another cluster.  Showing mainnet RPC results alongside
-// Devnet launch controls is misleading and can cause users to inspect the
+// test network launch controls is misleading and can cause users to inspect the
 // wrong network before signing.
 export const EXPLORE_CLUSTER = String(import.meta.env.VITE_EXPLORE_CLUSTER || APP_CLUSTER).trim();
 if (!supportedClusters.has(EXPLORE_CLUSTER)) throw new Error(`Unsupported VITE_EXPLORE_CLUSTER: ${EXPLORE_CLUSTER}`);
@@ -22,10 +22,10 @@ export const EXPLORE_RPC_URL = APP_RPC_URL;
 
 export const APP_IS_MAINNET = APP_CLUSTER === 'mainnet-beta';
 export const APP_EXPLORER_QUERY = APP_IS_MAINNET ? '' : `?cluster=${APP_CLUSTER}`;
-export const APP_ENVIRONMENT_LABEL = APP_IS_MAINNET ? 'Solana Mainnet' : 'Solana Devnet';
+export const APP_ENVIRONMENT_LABEL = APP_IS_MAINNET ? 'Solana Mainnet' : 'Solana test network';
 export const APP_ALLOW_MAINNET = String(import.meta.env.VITE_ALLOW_MAINNET || '').toLowerCase() === 'true';
 export const APP_MAINNET_READ_ONLY = APP_IS_MAINNET && String(import.meta.env.VITE_MAINNET_READ_ONLY || '').toLowerCase() === 'true';
-// Jackpot is an inactive Devnet prototype. Keep it out of the product until explicitly enabled.
+// Jackpot is an inactive test network prototype. Keep it out of the product until explicitly enabled.
 export const APP_JACKPOT_ENABLED = !APP_IS_MAINNET && String(import.meta.env.VITE_JACKPOT_ENABLED || '').toLowerCase() === 'true';
 export const DEV_MODE = String(import.meta.env.VITE_DEV_MODE || '').toLowerCase() === 'true' && !APP_IS_MAINNET;
 export const DEV_WALLET_ROLE = String(import.meta.env.VITE_DEV_WALLET_ROLE || 'creator').trim().toLowerCase();

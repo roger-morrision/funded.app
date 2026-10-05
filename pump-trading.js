@@ -325,19 +325,19 @@ export async function submitTrade({ connection, provider, side, mint, user, amou
   const lastValidBlockHeight = signed.fundedLastValidBlockHeight || latest.lastValidBlockHeight;
   if (provider.remoteMobile) {
     const currentHeight = await connection.getBlockHeight('confirmed');
-    if (currentHeight >= lastValidBlockHeight - 10) throw new Error('The Devnet transaction expired during phone approval. Preview the trade and sign again.');
+    if (currentHeight >= lastValidBlockHeight - 10) throw new Error('The test network transaction expired during phone approval. Preview the trade and sign again.');
   }
   let signature;
   try {
     signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false, preflightCommitment: 'confirmed' });
   } catch (error) {
-    if (/blockhash not found/i.test(String(error?.message || ''))) throw new Error('The Devnet transaction expired during phone approval. Preview the trade and sign again.');
+    if (/blockhash not found/i.test(String(error?.message || ''))) throw new Error('The test network transaction expired during phone approval. Preview the trade and sign again.');
     throw error;
   }
   if (provider.remoteMobile && typeof provider.reportTradeSubmission === 'function') {
     try { await provider.reportTradeSubmission(signature); } catch { /* A status update must not undo a submitted trade. */ }
   }
-  onStatus('Confirming trade on Solana Devnet…');
+  onStatus('Confirming trade on Solana test network…');
   try {
     const confirmation = await connection.confirmTransaction({ signature, blockhash: signedBlockhash, lastValidBlockHeight }, 'confirmed');
     assertTradeConfirmed(confirmation);

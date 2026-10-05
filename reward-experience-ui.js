@@ -89,7 +89,7 @@ function createPanels() {
   const buybacks = byId('buybacks');
   if (buybacks && !byId('verified-buyback-flow')) {
     const section = node('section', 'reward-experience-panel', null); section.id = 'verified-buyback-flow';
-    section.innerHTML = `<header><div><p class="eyebrow">Fee-funded $FUNDED burn</p><h2>Buyback execution</h2><p>Follow allocated fees through the queue to a verified buy and burn.</p></div></header><div data-buyback-flow role="status">Checking the Devnet buyback queue…</div><small>Launch-tier burns are separate. A buyback does not guarantee a price change.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Fee-funded $FUNDED burn</p><h2>Buyback execution</h2><p>Follow allocated fees through the queue to a verified buy and burn.</p></div></header><div data-buyback-flow role="status">Checking the test network buyback queue…</div><small>Launch-tier burns are separate. A buyback does not guarantee a price change.</small>`;
     buybacks.prepend(section);
   }
 }

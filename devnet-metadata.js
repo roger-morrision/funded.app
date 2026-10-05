@@ -10,5 +10,5 @@ export function devnetImageUri(mint) {
 
 export function metadataStatement(record) {
   const fields = ['mint', 'creatorWallet', 'name', 'symbol', 'description', 'tagline', 'roadmap', 'website', 'x', 'telegram', 'discord', 'imageSha256'];
-  return `funded.vip Devnet metadata v1\n${JSON.stringify(Object.fromEntries(fields.map(key => [key, record[key] || ''])))}`;
+  return `funded.vip test network metadata v1\n${JSON.stringify(Object.fromEntries(fields.map(key => [key, record[key] || ''])))}`;
 }

@@ -9,7 +9,7 @@ export function creatorCardPng(handle,cluster,detail=null){
   const rect=(x,y,w,h,color)=>{for(let row=Math.max(0,y);row<Math.min(height,y+h);row++)for(let col=Math.max(0,x);col<Math.min(width,x+w);col++){const p=row*stride+1+col*3;pixels[p]=color[0];pixels[p+1]=color[1];pixels[p+2]=color[2];}};
   const text=(value,x,y,scale,color)=>{for(const [i,char] of value.toUpperCase().split('').entries())for(const [r,line] of (glyphs[char]||glyphs[' ']).entries())for(const [c,bit] of line.split('').entries())if(bit==='1')rect(x+i*6*scale+c*scale,y+r*scale,scale,scale,color);};
   rect(0,0,width,height,[17,20,35]);rect(48,48,1104,534,[32,37,59]);rect(48,48,1104,8,[167,135,245]);
-  text(`FUNDED.VIP  ${cluster==='devnet'?'DEVNET':'MAINNET'}`,95,95,5,[190,175,238]);
+  text(`FUNDED.VIP  ${cluster==='devnet'?'TEST NETWORK':'MAINNET'}`,95,95,5,[190,175,238]);
   if (detail?.type === 'receipt') {
     const amount=BigInt(detail.amountLamports), whole=amount/1000000000n, fraction=(amount%1000000000n).toString().padStart(9,'0').replace(/0+$/,'');
     text('CONFIRMED PAYOUT',95,170,6,[245,246,255]);

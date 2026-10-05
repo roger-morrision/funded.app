@@ -67,7 +67,7 @@ export function drawEarningsCard(canvas, result, { hideAmount = false, hideWalle
   ctx.fillStyle = '#ffffff'; ctx.font = '700 58px sans-serif'; ctx.fillText('Paid referral earnings', 72, 200);
   ctx.font = '700 88px sans-serif'; ctx.fillText(hideAmount ? 'Amount hidden' : `${result.amount.toFixed(4)} ${result.asset || 'SOL'}`, 72, 336);
   ctx.fillStyle = '#bbd3d5'; ctx.font = '30px sans-serif';
-  ctx.fillText(`${result.network || 'Devnet'} · paid receipt · ${result.period || 'All time'}`, 72, 395);
+  ctx.fillText(`${result.network || 'test network'} · paid receipt · ${result.period || 'All time'}`, 72, 395);
   if (!hideWallet && result.wallet) ctx.fillText(`Wallet ${result.wallet.slice(0, 6)}…${result.wallet.slice(-6)}`, 72, 447);
   ctx.fillStyle = '#214f56'; roundedRect(ctx, 72, 500, 1056, 74, 14);
   ctx.fillStyle = '#d5f8ee'; ctx.font = '25px sans-serif'; ctx.fillText(`Receipt ${result.receipt.slice(0, 14)}…  ·  Verify in funded.vip`, 95, 548);
@@ -83,7 +83,7 @@ export function drawTradeCard(canvas, result, { hideWallet = true } = {}) {
   gradient.addColorStop(0, '#101a34'); gradient.addColorStop(1, '#123c42');
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1200, 630);
   ctx.fillStyle = '#66e4c6'; ctx.font = '700 32px sans-serif'; ctx.fillText('funded.vip', 72, 82);
-  ctx.fillStyle = '#ffffff'; ctx.font = '700 58px sans-serif'; ctx.fillText('Verified Devnet trade', 72, 200);
+  ctx.fillStyle = '#ffffff'; ctx.font = '700 58px sans-serif'; ctx.fillText('Verified test network trade', 72, 200);
   ctx.font = '700 82px sans-serif'; ctx.fillText(`${result.side === 'buy' ? 'Bought' : 'Sold'} ${String(result.tokenSymbol || 'token').slice(0, 16)}`, 72, 325);
   ctx.fillStyle = '#bbd3d5'; ctx.font = '27px sans-serif';
   ctx.fillText(`Mint ${result.mint.slice(0, 10)}…${result.mint.slice(-8)}`, 72, 392);
@@ -103,7 +103,7 @@ export function drawRoundTripCard(canvas, result, { hideAmount = false, hideWall
   gradient.addColorStop(0, '#101a34'); gradient.addColorStop(1, '#123c42');
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1200, 630);
   ctx.fillStyle = '#66e4c6'; ctx.font = '700 32px sans-serif'; ctx.fillText('funded.vip', 72, 82);
-  ctx.fillStyle = '#ffffff'; ctx.font = '700 55px sans-serif'; ctx.fillText('Closed trade · Devnet', 72, 190);
+  ctx.fillStyle = '#ffffff'; ctx.font = '700 55px sans-serif'; ctx.fillText('Closed trade · test network', 72, 190);
   const lamports = BigInt(result.netLamports);
   const fractional = (lamports % 1_000_000_000n).toString().padStart(9, '0').replace(/0+$/, '');
   const amount = `${lamports / 1_000_000_000n}${fractional ? `.${fractional}` : ''}`;

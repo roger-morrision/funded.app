@@ -166,13 +166,13 @@ export function createDevnetBuybackExecutor({ store, rpcUrl, programId, programD
   }
 
   async function execute(mint) {
-    if (!enabled) throw new Error('Devnet buyback executor is disabled.');
+    if (!enabled) throw new Error('test network buyback executor is disabled.');
     if (!authority?.publicKey || !new PublicKey(authority.publicKey).equals(new PublicKey(process.env.FUNDED_REWARD_AUTHORITY || authority.publicKey))) throw new Error('Buyback authority does not match the configured reward authority.');
-    if (!operator?.publicKey || operator.publicKey.equals(authority.publicKey)) throw new Error('A separate Devnet buyback operator signer is required by the mint router.');
+    if (!operator?.publicKey || operator.publicKey.equals(authority.publicKey)) throw new Error('A separate test network buyback operator signer is required by the mint router.');
     const genesis = await connection.getGenesisHash();
-    if (genesis !== 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG') throw new Error('Buyback execution is Devnet-only.');
+    if (genesis !== 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG') throw new Error('Buyback execution is test network-only.');
     const programEvidence = await readProgramDataEvidence(connection, new PublicKey(programId));
-    if (!programEvidence.account?.executable || !programDataSha256 || programEvidence.sha256 !== String(programDataSha256).toLowerCase()) throw new Error('Mint-router program bytes do not match the approved Devnet deployment.');
+    if (!programEvidence.account?.executable || !programDataSha256 || programEvidence.sha256 !== String(programDataSha256).toLowerCase()) throw new Error('Mint-router program bytes do not match the approved test network deployment.');
     const state = await store.read();
     const existing = Object.values(state.buybackOrders || {}).find(row => row.mint === mint && ['submitted','burn-finalized-refund-pending'].includes(row.status));
     if (existing) return existing.status === 'submitted' ? reconcile(existing) : refundUnspent(existing);
@@ -206,8 +206,8 @@ export function createDevnetBuybackExecutor({ store, rpcUrl, programId, programD
     const ata = getAssociatedTokenAddressSync(mintKey, operator.publicKey, false, mintInfo.owner);
     const burn = createBurnCheckedInstruction(ata, mintKey, operator.publicKey, BigInt(trade.outputAmount.toString()), trade.tokenDecimals, [], mintInfo.owner);
     const lookup = await connection.getAddressLookupTable(new PublicKey(lookupTableAddress), { commitment:'finalized' });
-    if (!lookup.value || lookup.value.state.addresses.length < 10) throw new Error('Verified Devnet buyback address lookup table is unavailable.');
-    if (await connection.getBalance(operator.publicKey, 'finalized') < 10_000_000) throw new Error('Devnet buyback operator lacks transaction/rent balance.');
+    if (!lookup.value || lookup.value.state.addresses.length < 10) throw new Error('Verified test network buyback address lookup table is unavailable.');
+    if (await connection.getBalance(operator.publicKey, 'finalized') < 10_000_000) throw new Error('test network buyback operator lacks transaction/rent balance.');
     const blockhash = await connection.getLatestBlockhash('finalized');
     const message = new TransactionMessage({ payerKey:operator.publicKey, recentBlockhash:blockhash.blockhash, instructions:[settle.instruction, ...trade.instructions, burn] }).compileToV0Message([lookup.value]);
     const transaction = new VersionedTransaction(message);

@@ -252,7 +252,7 @@ function shortenPageCopy() {
     ['#referral-faq .faq-grid details:nth-child(2) p', 'Unfilled levels go to the community reserve; they are not reassigned.'],
     ['#referral-faq .faq-grid details:nth-child(3) p', 'Rates are policy, not promised income. Payouts depend on collected creator fees.'],
     ['#referral-faq .faq-grid details:nth-child(4) p', 'Failed or unverified collections earn nothing. Claims open after indexing.'],
-    ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Buy from the verified Devnet pool. Check spend, then approve in your wallet.'],
+    ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Buy from the verified test network pool. Check spend, then approve in your wallet.'],
     ['#buybacks .burn-token-card > p:not(.eyebrow):not(.funded-burn-status)', 'Choose project attribution, then approve BurnChecked in your wallet.'],
     ['#buybacks .burn-receipts-panel > .field-help', 'This ledger shows app-verified receipts; total supply includes other burns.'],
     ['#reward-portfolio > small', 'Only finalized transfer receipts count as paid.'],
@@ -264,10 +264,10 @@ function shortenPageCopy() {
     ['#funded-holder-token-rewards > small', 'Policy allocations only. Check Airdrops for funding and claim status.'],
     ['#airdrops .airdrop-wallet-gate p', 'Connect to check allocation after snapshot and proof verification.'],
     ['#airdrops .airdrop-trust > p', 'Claims need a finalized snapshot, published proof, and indexed receipts.'],
-    ['#list .list-field-note', 'Verified Devnet metadata supplies name and ticker. Mint and burn are rechecked before payment.'],
+    ['#list .list-field-note', 'Verified test network metadata supplies name and ticker. Mint and burn are rechecked before payment.'],
     ['#list .list-recovery p', 'Retry verification with the same mint and wallet. Do not burn again.'],
     ['#profile .section-heading .panel-explainer', 'Check wallet and network before signing.'],
-    ['#profile .source-note', 'Wallet connection identifies the signer, not launch, holding, or reward proof. Verify the Devnet record.'],
+    ['#profile .source-note', 'Wallet connection identifies the signer, not launch, holding, or reward proof. Verify the test network record.'],
   ];
   for (const [selector, copy] of edits) {
     const element = document.querySelector(selector);

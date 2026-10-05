@@ -42,7 +42,7 @@ export async function readVerifiedListingMint(connection, mint, { trustedLaunch 
   const mintKey = new PublicKey(mint);
   const account = await connection.getAccountInfo(mintKey, 'finalized');
   if (!account || (!account.owner.equals(TOKEN_PROGRAM_ID) && !account.owner.equals(TOKEN_2022_PROGRAM_ID)))
-    throw new Error('The listing mint is not a supported SPL token on Devnet.');
+    throw new Error('The listing mint is not a supported SPL token on test network.');
   await connection.getTokenSupply(mintKey, 'finalized');
   if (trustedLaunch?.mint === mintKey.toBase58() && trustedLaunch.onchainVerified === true && trustedLaunch.cluster === 'devnet'
     && signedMetadata?.mint === mintKey.toBase58() && signedMetadata.creatorWallet === trustedLaunch.creatorWallet
