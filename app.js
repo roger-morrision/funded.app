@@ -7140,7 +7140,11 @@ function toggleExploreWatch(mint, button){
   const symbol = asset?.symbol || verifiedLaunchPolicyForMint(mint)?.symbol || 'TOKEN';
   if (!saveWatchlist(mint, { remove: button?.getAttribute('aria-pressed') === 'true' })) return;
   renderWatchlist();
-  updateExploreViews();
+  // Keep the current cards mounted so a follow-up action on the same card
+  // cannot lose its click while the watchlist changes.
+  if (exploreRisk === 'watchlist') updateExploreViews();
+  else renderRegistry();
+  if (homeLaunchTab === 'watchlist') renderHomeLaunchBoard();
   showToast(lastKnownWatchlist.includes(mint) ? `${symbol} saved to your watchlist` : `${symbol} removed from your watchlist`);
 }
 document.addEventListener('click', event => {
