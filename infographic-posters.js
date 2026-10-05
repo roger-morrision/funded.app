@@ -70,16 +70,6 @@ const posterDefinitions = [
     ],
   },
   {
-    selector: '#my-launches .pilot-panel > p', key: 'pilot',
-    eyebrow: 'Optional pilot', title: 'Your test events stay local',
-    summary: 'Read the full pilot data note',
-    items: [
-      ['01', 'Observe', 'Measure the launch journey.'],
-      ['02', 'Keep local', 'Events stay on this device.'],
-      ['03', 'Export', 'Only when you choose to share.'],
-    ],
-  },
-  {
     selector: '#referral-command-center .panel-explainer', key: 'referrals',
     eyebrow: 'Referral journey', title: 'An invite is only the start',
     summary: 'Read the full referral explanation',

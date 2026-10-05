@@ -13,7 +13,7 @@ await context.route('**/api/**',route=>route.fulfill({status:503,contentType:'ap
 const page=await context.newPage();
 const errors=[];
 page.on('pageerror',error=>errors.push(error.message));
-const coverage={payments:'rewards',airdrops:'airdrops',buybacks:'burn',paid:'fees',docs:'docs',privacy:'privacy','my-launches':'pilot',referrals:'referrals'};
+const coverage={payments:'rewards',airdrops:'airdrops',buybacks:'burn',paid:'fees',docs:'docs',privacy:'privacy',referrals:'referrals'};
 const flowAssets={payments:'holder-rewards-flow-v1.webp',paid:'fee-distribution-flow-v1.webp'};
 const results=[];
 try {

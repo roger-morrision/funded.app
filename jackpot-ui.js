@@ -51,25 +51,9 @@ if (host) {
     else anchor.after(note);
     contextLinks.push({ kind, note });
   }
-  const trackPilot = name => window.dispatchEvent(new CustomEvent('funded:jackpot-pilot',
-    { detail:{ name } }));
   home.querySelector('a')?.addEventListener('click', () => {
     document.querySelector('#rewards-overview-tab')?.click();
-    trackPilot('jackpot-open');
   });
-  section.querySelector('.jackpot-proof')?.addEventListener('toggle', event => {
-    if (event.currentTarget.open) trackPilot('jackpot-rules-view');
-  });
-  const impressionObserver = 'IntersectionObserver' in window
-    ? new IntersectionObserver(entries => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        trackPilot(entry.target === home ? 'jackpot-home-view' : 'jackpot-rewards-view');
-        impressionObserver.unobserve(entry.target);
-      }
-    }, { threshold:0.45 }) : null;
-  impressionObserver?.observe(home);
-  impressionObserver?.observe(rewardsSummary);
 
   const grid = section.querySelector('.jackpot-preview-grid');
   const cards = new Map();

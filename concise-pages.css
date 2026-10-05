@@ -181,13 +181,11 @@ body.page-route-paid .funded-token-footer-brand > span {
 body.page-route #buybacks .concise-buyback-queue,
 body.page-route #buybacks .concise-policy-preview,
 body.page-route #buybacks .concise-tier-preview,
-body.page-route #buybacks .concise-ledger-more,
-body.page-route #my-launches .concise-pilot-details {
+body.page-route #buybacks .concise-ledger-more {
   border-top: 1px solid #30405b;
   margin-top: 12px;
 }
-body.page-route #buybacks :is(.concise-buyback-queue,.concise-policy-preview,.concise-tier-preview,.concise-ledger-more) > summary,
-body.page-route #my-launches .concise-pilot-details > summary {
+body.page-route #buybacks :is(.concise-buyback-queue,.concise-policy-preview,.concise-tier-preview,.concise-ledger-more) > summary {
   color: #ffbe68;
   cursor: pointer;
   padding: 12px 4px;
@@ -198,8 +196,6 @@ body.page-route #my-launches .concise-pilot-details > summary {
 body.page-route #buybacks :is(.concise-policy-preview,.concise-tier-preview) > .panel { margin-top: 8px; }
 body.page-route #buybacks .concise-ledger-more { width: 100%; }
 body.page-route #buybacks .concise-ledger-more > .buyback-ledger-row { margin-top: 8px; }
-body.page-route #my-launches .concise-pilot-body { padding: 8px 0 16px; }
-body.page-route #my-launches .concise-pilot-body > h2 { display: none; }
 body.page-route #paid .funded-token-story article p { line-height: 1.5; }
 body.page-route-buybacks #paid .funded-token-story { display: none !important; }
 

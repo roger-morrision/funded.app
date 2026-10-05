@@ -2147,9 +2147,7 @@ const payments = [];
 
 function getWatchlist(){ try { return JSON.parse(localStorage.getItem(WATCHLIST_KEY) || '[]'); } catch { return []; } }
 function saveWatchlist(list){
-  const prior = new Set(getWatchlist());
   localStorage.setItem(WATCHLIST_KEY, JSON.stringify(list));
-  if (list.some(mint => !prior.has(mint))) window.dispatchEvent(new Event('funded:watchlist-added'));
 }
 function setWatchButtonState(button, active){
   if (!button) return;

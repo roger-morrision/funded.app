@@ -267,9 +267,6 @@ async function refresh() {
   ]);
   if (current !== refreshToken) return;
   latest = experience.status === 'fulfilled' ? experience.value : null;
-  if (location.hash === '#payments' && latest?.evidence?.status === 'onchain-indexed'
-    && latest.events?.some(event => event.kind?.endsWith('-paid') && event.feeSourceVerified === true))
-    window.dispatchEvent(new Event('funded:verified-reward-view'));
   document.querySelectorAll('[data-reward-evidence]').forEach(element => { element.textContent = latest?.evidence?.status === 'onchain-indexed' ? 'Finalized receipts' : latest?.evidence?.status === 'partial' ? 'Partial receipt coverage' : latest?.evidence?.status === 'no-records' ? 'No finalized receipts yet' : 'Evidence unavailable'; });
   renderPortfolio(latest, referrals.status === 'fulfilled' ? referrals.value : null, xClaims.status === 'fulfilled' ? xClaims.value : null);
   renderDiscovery(scoped ? null : latest);

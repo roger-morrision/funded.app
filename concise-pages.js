@@ -120,21 +120,6 @@ function compactTokenStory() {
   story.dataset.conciseStory = '2';
 }
 
-function compactPortfolioPilot() {
-  const pilot = document.querySelector('#my-launches .pilot-panel');
-  if (!pilot || pilot.querySelector('.concise-pilot-details')) return;
-  const poster = pilot.querySelector('.infographic-poster');
-  const disclosure = document.createElement('details');
-  disclosure.className = 'concise-pilot-details';
-  const summary = document.createElement('summary');
-  summary.textContent = 'Optional visit research';
-  const body = document.createElement('div');
-  body.className = 'concise-pilot-body';
-  for (const child of [...pilot.children]) if (child !== poster) body.append(child);
-  disclosure.append(summary, body);
-  pilot.append(disclosure);
-}
-
 function compactRewardsSpotlight() {
   const spotlight = document.querySelector('#rewards-overview .jackpot-overview-spotlight');
   const status = spotlight?.querySelector('[data-jackpot-overview-status]');
@@ -373,7 +358,6 @@ function refreshConcisePages() {
     compactJackpot();
     compactBuyback();
     compactTokenStory();
-    compactPortfolioPilot();
     compactRewardsSpotlight();
     compactRewardDirectory();
     compactCommunityReserve();

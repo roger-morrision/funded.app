@@ -9,7 +9,7 @@ const output = resolve(process.env.UI_EVIDENCE_DIR || '.tmp-ui-evidence/all-page
 await mkdir(output, { recursive: true });
 const routes = [
   ['/#list', 'list'],
-  ['/#payments', 'rewards'], ['/#analytics-detail', 'analytics'], ['/#my-launches', 'pilot'],
+  ['/#payments', 'rewards'], ['/#analytics-detail', 'analytics'],
   ['/#community', 'community'], ['/#referrals', 'referrals'],
   ['/#airdrops', 'airdrops'], ['/#buybacks', 'burn'], ['/#capital-flow', 'capital'],
   ['/#docs', 'docs'], ['/#docs/launch', 'docs-subtopic'], ['/#docs/wallet', 'docs-subtopic'],
