@@ -3,7 +3,7 @@ on:
   pull_request:
   workflow_dispatch:
   push:
-    branches: [main, 'enhancements/**']
+    branches: [main, master, 'enhance/**', 'enhancements/**']
 permissions:
   contents: read
 concurrency:
@@ -20,6 +20,8 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Verify architecture environment validation
+        run: node --input-type=module -e "import('./src/lib/env.js').then(({ validateRuntimeEnv }) => validateRuntimeEnv({ VITE_SOLANA_CLUSTER: 'devnet', VITE_API_BASE_URL: '/', VITE_ALLOW_MAINNET: 'false' })).then(() => console.log('env ok'))"
       - run: npm run check
       - run: npm run verify:release-manifest
       - run: npm run verify:build-settings
