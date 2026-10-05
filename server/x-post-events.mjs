@@ -15,6 +15,14 @@ const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const signatureValid = value => { try { return SIGNATURE.test(value || '') && bs58.decode(value).length === 64; } catch { return false; } };
 const DAY = 86_400_000;
+const marketingTier = row => {
+  const burn = row?.creatorLaunchBurn;
+  if (!burn || burn.tier === 'standard' && (!burn.amountTokens || burn.amountTokens === 0) && !burn.receipt) return 'standard';
+  return ['pro', 'premier'].includes(burn?.tier) && burn.status === 'verified'
+    && Number.isSafeInteger(burn.amountTokens) && burn.amountTokens > 0 ? burn.tier : null;
+};
+const launchTime = row => Number.isSafeInteger(row?.blockTime) && row.blockTime > 0 ? row.blockTime * 1000
+  : Number.isSafeInteger(row?.createdTimestamp) ? row.createdTimestamp * 1000 : time(row?.onchainVerifiedAt);
 const positiveUnits = value => typeof value === 'string' && /^[1-9]\d*$/.test(value);
 const time = value => typeof value === 'number' ? value : Date.parse(value);
 const iso = value => new Date(value).toISOString();
@@ -171,10 +179,23 @@ export function createXPostChainAdapters({ connection, fundedMint, programId, re
     },
     async verifyLaunch(record) {
       await network();
-      const verified = await verifyPumpLaunch({ connection, mint: record.mint, signature: record.signature, commitment: 'finalized' });
-      if (verified.feePayer !== record.creatorWallet || verified.creator !== record.creator) throw new Error('Launch identity differs from the registered policy.');
+      const tier = marketingTier(record);
+      if (!tier) throw new Error('The registered launch tier is invalid.');
+      if (tier !== 'standard' && (!fundedMint || record.creatorLaunchBurn.fundedMint !== fundedMint
+        || record.creatorLaunchBurn.receipt?.signature !== record.signature
+        || record.creatorLaunchBurn.receipt?.verified !== true
+        || record.creatorLaunchBurn.receipt?.atomicWithPumpLaunch !== true))
+        throw new Error('A verified paid $FUNDED launch tier is required.');
+      const verified = await verifyPumpLaunch({ connection, mint: record.mint, signature: record.signature, commitment: 'finalized',
+        ...(tier === 'standard' ? {} : { promotionClaim: record.creatorLaunchBurn, fundedMint,
+          promotionTiers: [{ id: tier, label: tier, amountTokens: record.creatorLaunchBurn.amountTokens }] }) });
+      if (verified.feePayer !== record.creatorWallet || verified.creator !== record.creator
+        || (tier === 'standard' ? Boolean(verified.creatorLaunchBurn)
+          : verified.creatorLaunchBurn?.tier !== tier || verified.creatorLaunchBurn?.amountTokens !== record.creatorLaunchBurn.amountTokens))
+        throw new Error('Launch identity or paid burn differs from the registered policy.');
       const proof = await finalized(record.signature);
-      return { mint: verified.mint, name: verified.name, symbol: verified.symbol, proofs: [proof], occurredAt: iso(proof.blockTime * 1000) };
+      return { mint: verified.mint, name: verified.name, symbol: verified.symbol, marketingTier: tier,
+        proofs: [proof], occurredAt: iso(proof.blockTime * 1000) };
     },
     async verifyListing(record) {
       await network();
@@ -204,15 +225,15 @@ export async function collectXPostEvents({ state = {}, rewardState = null, enabl
   if (!positiveUnits(minProfitLamports)) throw new Error('A positive profit threshold in lamports is required.');
   if (cursor && (cursor.version !== 1 || cursor.enabledAt !== iso(baseline))) throw new Error('Collector cursor activation baseline differs; explicitly reset before changing it.');
   const firstStream = cursor?.nextStream ?? 0;
-  if (!Number.isInteger(firstStream) || firstStream < 0 || firstStream > 4) throw new Error('Invalid event stream scheduling cursor.');
+  if (!Number.isInteger(firstStream) || firstStream < 0 || firstStream > 5) throw new Error('Invalid event stream scheduling cursor.');
   const events = [], sourceGaps = [], batchToken = Symbol('x-event-poll');
   const gap = (source, reason, id = null) => sourceGaps.push({ source, reason, ...(id ? { id } : {}) });
-  const next = { version: 1, enabledAt: iso(baseline), streams: structuredClone(cursor?.streams || {}), lastPolledAt: iso(nowMs), nextStream: (firstStream + 1) % 5 };
+  const next = { version: 1, enabledAt: iso(baseline), streams: structuredClone(cursor?.streams || {}), lastPolledAt: iso(nowMs), nextStream: (firstStream + 1) % 6 };
   let budget = maxBatch;
   const known = async id => typeof adapters.isKnownEvent === 'function' && await adapters.isKnownEvent(id);
   const end = Math.floor(nowMs / DAY) * DAY, start = end - DAY;
   const streams = [
-    { kind: 'launch', rows: Object.values(state.launches || {}).filter(row => row?.onchainVerified === true && row.cluster === 'devnet'), verifier: adapters.verifyLaunch,
+    { kind: 'launch', rows: Object.values(state.launches || {}).filter(row => row?.onchainVerified === true && row.cluster === 'devnet' && marketingTier(row)), verifier: adapters.verifyLaunch,
       at: row => Number.isFinite(time(row.onchainVerifiedAt)) ? time(row.onchainVerifiedAt) : Number.isSafeInteger(row.createdTimestamp) ? row.createdTimestamp * 1000 : NaN, identity: row => `${row.mint}:${row.signature}` },
     { kind: 'listing', rows: Object.values(state.listings || {}).filter(row => row?.onchainVerified === true && row.cluster === 'devnet' && row.status === 'listed'), verifier: adapters.verifyListing,
       at: row => time(row.listedAt), identity: row => `${row.mint}:${row.signature}` },
@@ -222,8 +243,10 @@ export async function collectXPostEvents({ state = {}, rewardState = null, enabl
       at: row => time(row.consentedAt), identity: row => `${row.wallet}:${row.mint}:${row.buySignature}:${row.sellSignature}` },
     { kind: 'daily_projects', daily: true, provider: adapters.verifiedDailyProjects },
     { kind: 'daily_rewards', daily: true, provider: adapters.verifiedDailyRewards },
+    { kind: 'launch_followup', rows: Object.values(state.launches || {}).filter(row => row?.onchainVerified === true && row.cluster === 'devnet' && marketingTier(row) === 'premier'), verifier: adapters.verifyLaunch,
+      at: row => launchTime(row) + DAY, identity: row => `${row.mint}:${row.signature}` },
   ];
-  // Each kind gets first priority within five polls, even with a one-item budget.
+  // Each kind gets first priority within six polls, even with a one-item budget.
   // Otherwise repeated known older rows could starve later streams indefinitely.
   const orderedStreams = [...streams.slice(firstStream), ...streams.slice(0, firstStream)];
   for (const [streamIndex, stream] of orderedStreams.entries()) {
@@ -304,11 +327,16 @@ export async function collectXPostEvents({ state = {}, rewardState = null, enabl
       if (selected === 2) reconciliation.afterId = item.id;
       try {
         if (await known(item.id)) { clearPending(item.id); continue; }
+        if (stream.kind === 'launch_followup' && (typeof adapters.isPostedEvent !== 'function'
+          || !await adapters.isPostedEvent(identity('launch', `${item.row.mint}:${item.row.signature}`))))
+          throw new Error('The Premier launch post must be published before its follow-up.');
         const verified = await stream.verifier(item.row, { state, rewardState });
         const proofs = proofsOf(verified?.proofs);
         const observed = time(verified.occurredAt);
         if (verified.mint !== item.row.mint || !Number.isFinite(observed) || observed > nowMs) throw new Error('Verified event identity or timestamp does not match its source.');
         if (observed < baseline) { clearPending(item.id); continue; } // Old receipts never become launch announcements through a new registry write.
+        if ((stream.kind === 'launch' || stream.kind === 'launch_followup')
+          && verified.marketingTier !== marketingTier(item.row)) throw new Error('Verified marketing tier differs from the registered burn.');
         let payload;
         if (stream.kind === 'trade_profit') {
           if (verified.publicConsent !== true || verified.completeCostBasis !== true || verified.positionClosed !== true || proofs.length < 2
@@ -318,7 +346,9 @@ export async function collectXPostEvents({ state = {}, rewardState = null, enabl
           payload = { mint: verified.mint, name: verified.name, publicConsent: true, completeCostBasis: true, positionClosed: true, buyCostLamports: verified.buyCostLamports, sellProceedsLamports: verified.sellProceedsLamports, feesLamports: verified.feesLamports, proofs };
         } else {
           if (!proofs.some(proof => proof.signature === item.row.signature)) throw new Error('Verified proof does not match the recorded signature.');
-          payload = { mint: verified.mint, name: verified.name, symbol: verified.symbol, ...(stream.kind === 'listing' ? { listingType: 'paid' } : {}), proofs };
+          payload = { mint: verified.mint, name: verified.name, symbol: verified.symbol,
+            ...(stream.kind === 'listing' ? { listingType: 'paid' } : {}),
+            ...(['launch', 'launch_followup'].includes(stream.kind) ? { marketingTier: verified.marketingTier } : {}), proofs };
         }
         events.push({ id: item.id, kind: stream.kind, cluster: 'devnet', occurredAt: iso(observed), payload });
         clearPending(item.id);

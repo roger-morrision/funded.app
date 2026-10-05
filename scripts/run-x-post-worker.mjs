@@ -41,6 +41,9 @@ export function xWorkerConfig(env, args = []) {
   if (execute && env.X_POST_ENABLED !== 'true') throw new Error('Live publication requires X_POST_ENABLED=true as well as --execute.');
   if (execute && env.X_POST_ALLOW_DEVNET !== 'true') throw new Error('Public Devnet posts require explicit X_POST_ALLOW_DEVNET=true authorization.');
   if (execute && !env.X_POST_ACCESS_TOKEN) throw new Error('Configure a separate X_POST_ACCESS_TOKEN for the selected account.');
+  const oauth1 = ['X_POST_API_KEY', 'X_POST_API_SECRET', 'X_POST_ACCESS_TOKEN_SECRET'].some(key => Boolean(env[key]));
+  if (execute && oauth1 && ['X_POST_API_KEY', 'X_POST_API_SECRET', 'X_POST_ACCESS_TOKEN', 'X_POST_ACCESS_TOKEN_SECRET'].some(key => !env[key]))
+    throw new Error('Complete X OAuth 1.0a user credentials are required for publication.');
   const minProfitLamports = env.X_POST_MIN_PROFIT_LAMPORTS || '1000000000';
   if (!/^[1-9]\d{0,19}$/.test(minProfitLamports)) throw new Error('X_POST_MIN_PROFIT_LAMPORTS must be positive integer lamports.');
   return {
@@ -56,7 +59,8 @@ export function xWorkerConfig(env, args = []) {
 async function loadSecrets(env, execute) {
   const loaded = { ...env };
   // Deliberate whitelist: no local env files, signing keys or creator OAuth keys.
-  for (const name of ['DATABASE_URL', 'SOLANA_RPC_URL', ...(execute ? ['X_POST_ACCESS_TOKEN'] : [])]) {
+  for (const name of ['DATABASE_URL', 'SOLANA_RPC_URL', ...(execute
+    ? ['X_POST_API_KEY', 'X_POST_API_SECRET', 'X_POST_ACCESS_TOKEN', 'X_POST_ACCESS_TOKEN_SECRET'] : [])]) {
     if (!loaded[name] && loaded[`${name}_FILE`]) loaded[name] = (await readFile(loaded[`${name}_FILE`], 'utf8')).trim();
   }
   return loaded;
@@ -77,7 +81,7 @@ export async function runXPostCycle({ config, store, mainStore, readRewards, ada
   const checkpoint = await store.readCursor();
   const [state, rewardState] = await Promise.all([mainStore.read(), readRewards()]);
   const collected = await collectXPostEvents({ state, rewardState, enabledAt: config.enabledAt, now,
-    cursor: checkpoint.cursor, adapters: { ...adapters, isKnownEvent: id => store.has(id) }, minProfitLamports: config.minProfitLamports });
+    cursor: checkpoint.cursor, adapters: { ...adapters, isKnownEvent: id => store.has(id), isPostedEvent: id => store.isPosted(id) }, minProfitLamports: config.minProfitLamports });
   // Any formatting failure leaves the entire cursor unchanged for investigation.
   const events = collected.events.map(event => ({ id: event.id, occurredAt: event.occurredAt,
     ...buildXPost(event.kind, event.payload, { cluster: event.cluster, publicOrigin: config.origin, minProfitLamports: config.minProfitLamports }) }));
@@ -108,7 +112,10 @@ async function main(args) {
       console.log(JSON.stringify({ account: config.handle, events: rows }, null, 2));
       return;
     }
-    const publisher = config.execute ? createXPublisher({ accessToken: env.X_POST_ACCESS_TOKEN,
+    const publisher = config.execute ? createXPublisher({
+      ...(env.X_POST_ACCESS_TOKEN_SECRET ? { oauth1: { apiKey: env.X_POST_API_KEY, apiSecret: env.X_POST_API_SECRET,
+        accessToken: env.X_POST_ACCESS_TOKEN, accessTokenSecret: env.X_POST_ACCESS_TOKEN_SECRET } }
+        : { accessToken: env.X_POST_ACCESS_TOKEN }),
       expectedHandle: config.handle, expectedAccountId: env.X_POST_ACCOUNT_ID }) : null;
     mainStore = createPostgresStore(env.DATABASE_URL);
     const connection = new Connection(env.SOLANA_RPC_URL || 'https://api.devnet.solana.com', { commitment: 'finalized', disableRetryOnRateLimit: true,

@@ -17,12 +17,13 @@ const recipient = bs58.encode(Uint8Array.from({ length: 32 }, (_, i) => i + 2));
 const proof = n => ({ signature: bs58.encode(Uint8Array.from({ length: 64 }, (_, i) => (i + n) % 256)), slot: n + 100, commitment: 'finalized', verified: true, cluster: 'devnet' });
 const now = Date.parse('2026-10-04T12:00:00Z');
 const occurredAt = '2026-10-03T12:00:00.000Z';
-const launch = { mint, signature: proof(1).signature, cluster: 'devnet', onchainVerified: true, createdTimestamp: Date.parse(occurredAt) / 1000 };
+const launch = { mint, signature: proof(1).signature, cluster: 'devnet', onchainVerified: true, createdTimestamp: Date.parse(occurredAt) / 1000,
+  creatorLaunchBurn: { tier: 'pro', status: 'verified', amountTokens: 100, receipt: { signature: proof(1).signature, verified: true, atomicWithPumpLaunch: true } } };
 const listing = { ...launch, signature: proof(2).signature, status: 'listed', listedAt: occurredAt };
 const share = { mint, wallet: recipient, cluster: 'devnet', publicConsent: true, consentVerified: true, consentedAt: occurredAt, buySignature: proof(3).signature, sellSignature: proof(4).signature };
 const common = { cluster: 'devnet', coverage: 'complete', windowStart: '2026-10-03T00:00:00.000Z', windowEnd: '2026-10-04T00:00:00.000Z', proofs: [proof(5)] };
 const adapters = {
-  verifyLaunch: async () => ({ mint, name: 'Fixture launch', proofs: [proof(1)], occurredAt }),
+  verifyLaunch: async () => ({ mint, name: 'Fixture launch', marketingTier: 'pro', proofs: [proof(1)], occurredAt }),
   verifyListing: async () => ({ mint, name: 'Fixture listing', listingType: 'paid', proofs: [proof(2)], occurredAt }),
   verifyPublicClosedTrade: async () => ({ mint, wallet: recipient, name: 'Fixture trade', publicConsent: true, positionClosed: true, completeCostBasis: true, buyCostLamports: '1000000000', sellProceedsLamports: '3000000000', feesLamports: '1000000', proofs: [proof(3), proof(4)], occurredAt }),
   verifiedDailyProjects: async () => ({ ...common, metric: 'volume_lamports', projects: [{ mint, name: 'Fixture project', amountLamports: '3000000000' }] }),
@@ -49,7 +50,7 @@ async function verifyOlderSourceRecovery() {
     mainStore: { read: async () => ({ launches: Object.fromEntries(Object.entries((await sourceStore.read()).launches || {}).filter(([key]) => key.startsWith(sourcePrefix))) }) },
     adapters: { verifyLaunch: async row => {
       verifications.set(row.signature, (verifications.get(row.signature) || 0) + 1);
-      return { mint: row.mint, name: 'Recovered fixture', occurredAt: new Date(row.createdTimestamp * 1000).toISOString(), proofs: [{ ...proof(1), signature: row.signature }] };
+      return { mint: row.mint, name: 'Recovered fixture', marketingTier: 'pro', occurredAt: new Date(row.createdTimestamp * 1000).toISOString(), proofs: [{ ...proof(1), signature: row.signature }] };
     } },
   };
   const cycle = () => runXPostCycle({ ...recoveryOptions, store: recoveryStore });

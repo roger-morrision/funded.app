@@ -37,6 +37,7 @@
     "verify:phase-completion": "node scripts/verify-phase-completion.mjs",
     "verify:x-auth": "node scripts/verify-x-auth.mjs",
     "verify:x-auth-http": "node scripts/verify-x-auth-http.mjs",
+    "verify:x-public-trade-share": "node scripts/verify-x-public-trade-share.mjs",
     "verify:release-contract": "node scripts/verify-release-contract.mjs",
     "verify:launch-matrix": "node scripts/verify-launch-matrix.mjs",
     "verify:adoption-phases": "node scripts/verify-adoption-phases.mjs",

@@ -115,6 +115,10 @@ export function createXPostStore({ databaseUrl, accountId, minIntervalMs = 60_00
       if (typeof id !== 'string' || !/^[A-Za-z0-9:_./-]{1,240}$/.test(id)) throw new Error('X event ID is invalid.');
       return Boolean((await pool.query('SELECT 1 FROM x_post_outbox WHERE account_id=$1 AND event_id=$2',[accountId,id])).rowCount);
     },
+    async isPosted(id) {
+      if (typeof id !== 'string' || !/^[A-Za-z0-9:_./-]{1,240}$/.test(id)) throw new Error('X event ID is invalid.');
+      return Boolean((await pool.query("SELECT 1 FROM x_post_outbox WHERE account_id=$1 AND event_id=$2 AND status='posted'",[accountId,id])).rowCount);
+    },
     async readCursor() {
       const account = (await pool.query('SELECT collector_cursor,cursor_version FROM x_post_accounts WHERE account_id=$1',[accountId])).rows[0];
       if (!account) throw new Error('Initialize the X account before reading its cursor.');

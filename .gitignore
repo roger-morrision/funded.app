@@ -154,3 +154,4 @@ data/automatic-rewards.json.lock
 # Browser verification output
 /test-results/
 /playwright-report/
+/mnt-c-data-dev-apps-funded-app-contracts-funded-fee-router

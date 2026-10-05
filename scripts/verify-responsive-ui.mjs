@@ -10,8 +10,9 @@ const evidenceDir = process.env.UI_EVIDENCE_DIR ? resolve(process.env.UI_EVIDENC
 const mint = '9Dp8MYwvFTAwoMtxaXvAZjZyjsWUbuXGp15z8EkZzu1B';
 const routes = [
   '/#overview', '/#explore', '/#launch', '/#my-launches', '/#payments',
-  '/#referrals', '/#airdrops', '/#buybacks', '/#community', '/#list',
-  '/#profile', `/token/${mint}`,
+  '/#analytics-detail', '/#referrals', '/#community', '/#leaderboard',
+  '/#airdrops', '/#buybacks', '/#capital-flow', '/#docs', '/#profile',
+  '/#privacy', '/#paid', '/#list', '/#pilot', `/token/${mint}`,
 ];
 const widths = [320, 390, 768, 1280];
 if (evidenceDir) await mkdir(evidenceDir, { recursive: true });
@@ -61,6 +62,19 @@ try {
         if (state.document > state.viewport + 1 || !state.mainWidth || errors.length) {
           failures.push({ route, width, ...state, errors });
         }
+        if (route === '/#payments') {
+          assert.equal(await page.locator('#rewards-overview .reward-entry-grid').isVisible(), false);
+          assert.equal(await page.locator('#reward-portfolio .reward-portfolio-links > a:visible').count(), 3);
+        }
+        if (route === '/#community') {
+          assert(await page.locator('#community-title').isVisible());
+          assert.equal(await page.locator('#my-launches > .portfolio-dashboard').isVisible(), false);
+          assert(await page.locator('#community-preferences').evaluate(element => element.parentElement?.id === 'community'));
+        }
+        if (route === '/#capital-flow') {
+          assert.equal(await page.locator('#route-guide').isVisible(), false);
+          assert(await page.locator('#capital-flow-title').isVisible());
+        }
         if (width === 320 && route.startsWith('/token/')) {
           const tokenLayout = await page.evaluate(() => {
             const heading = document.querySelector('#coin-chart-heading').getBoundingClientRect();
@@ -78,6 +92,7 @@ try {
           assert(tokenLayout.actionHeights.every(size => size >= 40), 'Token action touch targets should be at least 40px tall');
           assert.equal(tokenLayout.tradePosition, 'static', 'Mobile trade action should participate in page layout');
           assert(tokenLayout.tradeBottom <= tokenLayout.chartTop, 'Mobile trade action should not cover the chart');
+          assert.equal(await page.locator('.mobile-trade-open').innerText(), 'View trade status', 'Unavailable token data must not invite a trade');
           await page.locator('.mobile-trade-open').click();
           assert(await page.locator('#coin-page').evaluate(element => element.classList.contains('trade-sheet-open')), 'Mobile trade sheet should open');
           await page.locator('.mobile-trade-close').click();

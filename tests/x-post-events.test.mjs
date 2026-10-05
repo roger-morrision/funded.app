@@ -15,8 +15,42 @@ const router = Keypair.fromSeed(new Uint8Array(32).fill(3)).publicKey.toBase58()
 const signature = bs58.encode(new Uint8Array(64).fill(1)), otherSignature = bs58.encode(new Uint8Array(64).fill(2));
 const enabledAt = '2026-10-04T00:00:00Z', occurredAt = '2026-10-04T01:00:00Z', now = '2026-10-04T02:00:00Z';
 const proof = (sig = signature) => ({ signature: sig, slot: 123, cluster: 'devnet', commitment: 'finalized', verified: true });
-const launch = { mint, signature, cluster: 'devnet', onchainVerified: true, createdTimestamp: Date.parse(occurredAt) / 1000 };
-const verifiedLaunch = async row => ({ mint: row.mint, name: 'Example', symbol: 'EX', occurredAt, proofs: [proof(row.signature)] });
+const launch = { mint, signature, cluster: 'devnet', onchainVerified: true, createdTimestamp: Date.parse(occurredAt) / 1000,
+  creatorLaunchBurn: { tier: 'pro', status: 'verified', amountTokens: 100, receipt: { signature, verified: true, atomicWithPumpLaunch: true } } };
+const verifiedLaunch = async row => ({ mint: row.mint, name: 'Example', symbol: 'EX', marketingTier: row.creatorLaunchBurn?.tier || 'standard', occurredAt, proofs: [proof(row.signature)] });
+
+test('all launch tiers get an announcement, and only Premier gets a follow-up after publication', async () => {
+  const pro = launch;
+  const premier = { ...launch, mint: router, signature: otherSignature,
+    creatorLaunchBurn: { ...launch.creatorLaunchBurn, tier: 'premier', receipt: { ...launch.creatorLaunchBurn.receipt, signature: otherSignature } } };
+  const standard = { ...launch, mint: wallet, creatorLaunchBurn: null };
+  const state = { launches: [pro, premier, standard] };
+  const initial = await collectXPostEvents({ state, enabledAt, now, adapters: { verifyLaunch: verifiedLaunch, isPostedEvent: async () => false } });
+  assert.deepEqual(initial.events.map(event => event.kind), ['launch', 'launch', 'launch']);
+  assert.deepEqual(initial.events.map(event => event.payload.marketingTier).sort(), ['premier', 'pro', 'standard']);
+  const later = '2026-10-05T02:00:00Z';
+  const waiting = await collectXPostEvents({ state, enabledAt, now: later, cursor: initial.cursor,
+    adapters: { verifyLaunch: verifiedLaunch, isPostedEvent: async () => false } });
+  assert.equal(waiting.events.length, 0);
+  assert.equal(waiting.cursor.streams.launch_followup.pending.length, 1);
+  const postedIds = new Set(initial.events.map(event => event.id));
+  const ready = await collectXPostEvents({ state, enabledAt, now: later, cursor: waiting.cursor,
+    adapters: { verifyLaunch: verifiedLaunch, isPostedEvent: async id => postedIds.has(id) } });
+  assert.deepEqual(ready.events.map(event => event.kind), ['launch_followup']);
+  assert.equal(ready.events[0].payload.marketingTier, 'premier');
+  assert.notEqual(ready.events[0].id, initial.events.find(event => event.payload.marketingTier === 'premier').id);
+  assert.equal((await collectXPostEvents({ state, enabledAt, now: later, cursor: ready.cursor,
+    adapters: { verifyLaunch: verifiedLaunch, isPostedEvent: async () => true } })).events.length, 0);
+});
+
+test('activation excludes older verified projects and malformed paid tiers', async () => {
+  const standard = { ...launch, creatorLaunchBurn: null };
+  const old = { ...standard, mint: router, createdTimestamp: Date.parse('2026-10-03T23:00:00Z') / 1000 };
+  const malformed = { ...launch, mint: wallet, creatorLaunchBurn: { tier: 'pro', status: 'pending', amountTokens: 100 } };
+  const result = await collectXPostEvents({ state: { launches: [standard, old, malformed] }, enabledAt, now,
+    adapters: { verifyLaunch: verifiedLaunch } });
+  assert.deepEqual(result.events.map(event => event.payload.marketingTier), ['standard']);
+});
 
 test('launch events require a separate finalized proof and skip historical announcements', async () => {
   const state = { launches: { [mint]: launch } };
@@ -376,7 +410,7 @@ function backdatedFixture(kind = 'launch') {
   const verified = async row => {
     calls.push(row.mint);
     if (row.unavailable) throw new Error('Synthetic provider outage');
-    return { mint: row.mint, name: 'Fixture', wallet, listingType: 'paid', occurredAt: row.receiptAt || row.onchainVerifiedAt,
+    return { mint: row.mint, name: 'Fixture', wallet, listingType: 'paid', marketingTier: row.creatorLaunchBurn?.tier, occurredAt: row.receiptAt || row.onchainVerifiedAt,
       publicConsent: true, completeCostBasis: !row.incomplete, positionClosed: true,
       buyCostLamports: '1000000000', sellProceedsLamports: '3000000000', feesLamports: '5000',
       proofs: (kind === 'trade_profit' ? [proof(), proof(otherSignature)] : [proof()]).map(item => row.confirmed ? { ...item, commitment: 'confirmed' } : item) };
