@@ -150,6 +150,11 @@ let fundedBuyRoute = { status:'checking', snapshot:null, reason:'Checking the ve
 let fundedBuyPreview = null;
 let fundedBuyBusy = false;
 const WATCHLIST_KEY = 'funded.app.community.watchlist';
+let lastKnownWatchlist = [];
+let watchlistUnavailable = false;
+let watchlistNotice = '';
+let watchlistReadWarning = false;
+let watchlistWriteUnconfirmed = false;
 const APP_REFERRAL_KEY = 'funded.app.referral.attribution';
 const REFERRAL_ANALYTICS_KEY = 'funded.app.referral.analytics';
 const REFERRAL_SERVER_KEY_PREFIX = 'funded.app.referral.server.';
@@ -2194,11 +2199,61 @@ const exploreActivityCache = new Map();
 let exploreScannedCount = 0;
 const payments = [];
 
-function getWatchlist(){ try { return JSON.parse(localStorage.getItem(WATCHLIST_KEY) || '[]'); } catch { return []; } }
-function saveWatchlist(list){
-  const prior = new Set(getWatchlist());
-  localStorage.setItem(WATCHLIST_KEY, JSON.stringify(list));
-  if (list.some(mint => !prior.has(mint))) window.dispatchEvent(new Event('funded:watchlist-added'));
+function readWatchlist(){
+  const raw = localStorage.getItem(WATCHLIST_KEY);
+  const saved = raw === null ? [] : JSON.parse(raw);
+  if (!Array.isArray(saved) || saved.some(mint => typeof mint !== 'string' || mint !== mint.trim() || !validateSolanaMint(mint).valid)) throw new Error('Invalid saved watchlist');
+  return saved;
+}
+function showWatchlistStatus(message){
+  watchlistNotice = message;
+  for (const host of [document.querySelector('#watchlist-items')?.parentElement, document.querySelector('#coin-watch')?.closest('.coin-identity')]) {
+    if (!host) continue;
+    let status = host.querySelector('[data-watchlist-status]');
+    if (!status) { status = document.createElement('p'); status.className = 'field-help'; status.dataset.watchlistStatus = ''; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); host.append(status); }
+    if (status.textContent !== message) status.textContent = message;
+    status.hidden = !message;
+  }
+}
+function getWatchlist(){
+  try {
+    lastKnownWatchlist = readWatchlist(); watchlistUnavailable = false;
+    if (watchlistReadWarning) { watchlistReadWarning = false; showWatchlistStatus('Saved watchlist is available again.'); }
+  }
+  catch {
+    watchlistUnavailable = true;
+    if (!watchlistWriteUnconfirmed) {
+      watchlistReadWarning = true;
+      showWatchlistStatus('Saved watchlist could not be read. Showing the last known selection, if available. Allow browser storage and try again.');
+    }
+  }
+  return [...lastKnownWatchlist];
+}
+function saveWatchlist(mint, { remove = false } = {}){
+  let wrote = false, read = false;
+  try {
+    if (typeof mint !== 'string' || mint !== mint.trim() || !validateSolanaMint(mint).valid) throw new Error('Invalid watchlist mint');
+    const prior = readWatchlist();
+    read = true;
+    lastKnownWatchlist = prior;
+    const saved = remove ? prior.filter(item => item !== mint) : prior.includes(mint) ? prior : [...prior, mint];
+    localStorage.setItem(WATCHLIST_KEY, JSON.stringify(saved));
+    wrote = true;
+    const confirmed = readWatchlist();
+    if (JSON.stringify(confirmed) !== JSON.stringify(saved)) throw new Error('Watchlist write was not confirmed');
+    lastKnownWatchlist = confirmed; watchlistUnavailable = false; watchlistReadWarning = false; watchlistWriteUnconfirmed = false;
+    showWatchlistStatus(saved.includes(mint) ? 'Token saved to your watchlist on this device.' : 'Token removed from your watchlist on this device.');
+    if (saved.some(item => !prior.includes(item))) window.dispatchEvent(new Event('funded:watchlist-added'));
+    return true;
+  } catch {
+    watchlistUnavailable = true; watchlistReadWarning = false;
+    watchlistWriteUnconfirmed = wrote || (!read && watchlistWriteUnconfirmed);
+    const message = watchlistWriteUnconfirmed
+      ? 'The watchlist update could not be verified. The saved selection may have changed. Allow browser storage and check again before relying on it.'
+      : 'Watchlist could not be updated. Your saved data was not replaced. Allow browser storage and try again.';
+    showWatchlistStatus(message); showToast(message);
+    return false;
+  }
 }
 function setWatchButtonState(button, active){
   if (!button) return;
@@ -2212,8 +2267,8 @@ function renderWatchlist(){
   const count = document.querySelector('#watch-count');
   const empty = document.querySelector('#watchlist-empty');
   const items = document.querySelector('#watchlist-items');
-  if (count) count.textContent = `${saved.length} saved`;
-  if (empty) empty.hidden = saved.length > 0;
+  if (count) count.textContent = watchlistUnavailable ? 'Saved list unavailable' : `${saved.length} saved`;
+  if (empty) empty.hidden = saved.length > 0 || watchlistUnavailable;
   if (items) items.innerHTML = saved.map(mint => {
     const asset = assets.find(item => item.address === mint);
     const policy = verifiedLaunchPolicyForMint(mint);
@@ -2223,6 +2278,7 @@ function renderWatchlist(){
   }).join('');
   items?.querySelectorAll('.watchlist-token-card').forEach(card => loadPortfolioLogo(card, verifiedLaunchPolicyForMint(card.dataset.mint)));
   document.querySelectorAll('.watch-button').forEach(button => setWatchButtonState(button, saved.includes(button.dataset.mint)));
+  showWatchlistStatus(watchlistNotice);
 }
 function formatFeedAge(timestamp){
   const ms = Date.parse(String(timestamp || ''));
@@ -6894,23 +6950,22 @@ document.querySelector('#asset-grid').addEventListener('click', async event => {
   if (emptyAction) { if (emptyAction.dataset.exploreEmptyAction === 'clear') clearExploreFilters(); else loadOnchainExploreData().catch(() => showToast('Retry could not verify Devnet data.')); return; }
   if (share) { openCoinShare(share.dataset.shareMint || '', share.dataset.shareSymbol || 'Coin', share.dataset.shareName || ''); return; }
  if (!button) return;
-  toggleExploreWatch(button.dataset.mint);
+  toggleExploreWatch(button.dataset.mint, button);
 });
-function toggleExploreWatch(mint){
+function toggleExploreWatch(mint, button){
   const asset = assets.find(item => item.address === mint);
   const symbol = asset?.symbol || verifiedLaunchPolicyForMint(mint)?.symbol || 'TOKEN';
-  const saved = getWatchlist();
-  const next = saved.includes(mint) ? saved.filter(item => item !== mint) : [...saved, mint];
-  saveWatchlist(next);
+  if (!saveWatchlist(mint, { remove: button?.getAttribute('aria-pressed') === 'true' })) return;
+  renderWatchlist();
   updateExploreViews();
-  showToast(next.includes(mint) ? `${symbol} saved to your watchlist` : `${symbol} removed from your watchlist`);
+  showToast(lastKnownWatchlist.includes(mint) ? `${symbol} saved to your watchlist` : `${symbol} removed from your watchlist`);
 }
 document.addEventListener('click', event => {
   const watch = event.target.closest('.token-card-action-watch');
   if (watch) {
     event.preventDefault();
     event.stopPropagation();
-    if (watch.dataset.mint) toggleExploreWatch(watch.dataset.mint);
+    if (watch.dataset.mint) toggleExploreWatch(watch.dataset.mint, watch);
     return;
   }
   const share = event.target.closest('.token-card-action-share');
@@ -6925,12 +6980,12 @@ document.querySelector('#watchlist-items').addEventListener('click', event => {
   if (trade) { openExploreTrade(trade.dataset.tradeMint); return; }
   const button = event.target.closest('[data-remove-watch]');
   if (!button) return;
-  saveWatchlist(getWatchlist().filter(item => item !== button.dataset.removeWatch));
+  if (!saveWatchlist(button.dataset.removeWatch, { remove: true })) return;
   updateExploreViews();
 });
 document.querySelector('#creator-launch-empty')?.addEventListener('click', event => {
   const watch = event.target.closest('.watch-button');
-  if (watch) { toggleExploreWatch(watch.dataset.mint); return; }
+  if (watch) { toggleExploreWatch(watch.dataset.mint, watch); return; }
   const share = event.target.closest('.share-asset');
   if (share) { openCoinShare(share.dataset.shareMint || '', share.dataset.shareSymbol || 'Coin', share.dataset.shareName || ''); return; }
   const trade = event.target.closest('[data-trade-mint]');
@@ -7126,7 +7181,7 @@ document.querySelector('#launch-list').addEventListener('click', async event => 
   const boost = event.target.closest('[data-boost-mint]');
   if (boost) { openExploreBoost(boost.dataset.boostMint); return; }
   const watch = event.target.closest('.scanner-watch');
-  if (watch) { toggleExploreWatch(watch.dataset.mint); return; }
+  if (watch) { toggleExploreWatch(watch.dataset.mint, watch); return; }
   const copy = event.target.closest('.copy-row');
   if (copy) {
     try { await navigator.clipboard.writeText(copy.dataset.mint); showToast('Mint address copied'); } catch { showToast(copy.dataset.mint); }
@@ -8635,7 +8690,14 @@ function showCoinPage(open = true){
       const title = document.createElement('strong'); title.textContent = 'Opened a shared coin link';
       const detail = document.createElement('small'); detail.textContent = 'Save this coin to your watchlist on this device so you can find it again. Check the live data before acting.';
       const save = document.createElement('button'); save.type = 'button'; save.className = 'secondary-button'; save.textContent = getWatchlist().includes(mintAddress) ? 'Saved to watchlist' : 'Save to watchlist';
-      save.addEventListener('click', () => { watch?.click(); save.textContent = getWatchlist().includes(mintAddress) ? 'Saved to watchlist' : 'Save to watchlist'; });
+      save.setAttribute('aria-pressed', String(lastKnownWatchlist.includes(mintAddress)));
+      save.addEventListener('click', () => {
+        if (!saveWatchlist(mintAddress, { remove: save.getAttribute('aria-pressed') === 'true' })) return;
+        renderWatchlist();
+        setWatchButtonState(watch, lastKnownWatchlist.includes(mintAddress));
+        save.setAttribute('aria-pressed', String(lastKnownWatchlist.includes(mintAddress)));
+        save.textContent = lastKnownWatchlist.includes(mintAddress) ? 'Saved to watchlist' : 'Save to watchlist';
+      });
       callout.append(title, detail, save);
       if (sharedTradeReceipts && validateSolanaMint(mintAddress).valid) {
         const tradeTitle = document.createElement('strong'); tradeTitle.textContent = 'Check the shared closed trade';
@@ -8725,7 +8787,7 @@ document.querySelector('#coin-page')?.addEventListener('click', async event => {
   const refresh = event.target.closest('#coin-refresh');
   if (refresh){ const mint = getCoinMintAddress(); resetCoinSurface(mint); loadCoinOnChain(mint); return; }
   const watch = event.target.closest('#coin-watch');
-  if (watch){ const mint = getCoinMintAddress(); if (!mint) return; const saved = getWatchlist(); saveWatchlist(saved.includes(mint) ? saved.filter(item => item !== mint) : [...saved, mint]); renderWatchlist(); setWatchButtonState(watch, getWatchlist().includes(mint)); return; }
+  if (watch){ const mint = getCoinMintAddress(); if (!mint || !saveWatchlist(mint, { remove: watch.getAttribute('aria-pressed') === 'true' })) return; renderWatchlist(); setWatchButtonState(watch, lastKnownWatchlist.includes(mint)); return; }
   const share = event.target.closest('#coin-share-link');
    if (share){ event.preventDefault(); openCoinShare(getCoinMintAddress(), document.querySelector('#coin-symbol')?.textContent?.trim() || 'Coin', document.querySelector('#coin-page-title')?.textContent?.trim() || ''); return; }
   const boost = event.target.closest('#coin-boost');

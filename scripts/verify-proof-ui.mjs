@@ -85,11 +85,12 @@ const watchlistNodes = {
   '#watchlist-empty': { hidden: false },
   '#watchlist-items': { innerHTML: '', querySelectorAll: () => [] },
 };
-const renderWatchlistFixture = new Function('document', 'getWatchlist', 'assets', 'verifiedLaunchPolicyForMint', 'portfolioTokenCardMarkup', 'escapeHtml', 'loadPortfolioLogo', 'setWatchButtonState',
+const renderWatchlistFixture = new Function('document', 'getWatchlist', 'assets', 'verifiedLaunchPolicyForMint', 'portfolioTokenCardMarkup', 'escapeHtml', 'loadPortfolioLogo', 'setWatchButtonState', 'watchlistUnavailable', 'watchlistNotice', 'showWatchlistStatus',
   `${watchlistRenderSource}; return renderWatchlist;`);
 const renderUnavailableWatchlist = renderWatchlistFixture(
   { querySelector: selector => watchlistNodes[selector], querySelectorAll: () => [] },
   () => ['missing-mint'], [], () => null, () => 'VERIFIED CARD', value => String(value), () => {}, () => {},
+  false, '', () => {},
 );
 renderUnavailableWatchlist();
 assert.equal(watchlistNodes['#watch-count'].textContent, '1 saved');

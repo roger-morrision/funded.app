@@ -2,11 +2,26 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-const base = new URL(process.env.FUNDED_CONTAINER_BASE || '');
-assert.ok(['http:', 'https:'].includes(base.protocol) && ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname) && !base.username && !base.password && base.pathname === '/' && !base.search && !base.hash, 'Use an explicit disposable loopback container origin.');
-const evidenceDir = process.env.FUNDED_CONTAINER_BROWSER_EVIDENCE_DIR;
+import { pathToFileURL } from 'node:url';
+
+export async function verifyContainerBuildIdentity(baseValue, expectedBuild) {
+ const base = new URL(baseValue || '');
+ assert.ok(['http:', 'https:'].includes(base.protocol) && ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname) && !base.username && !base.password && base.pathname === '/' && !base.search && !base.hash, 'Use an explicit disposable loopback container origin.');
+ assert.match(expectedBuild || '', /^[a-f0-9]{40}$/, 'Set FUNDED_EXPECT_BUILD to the full source commit SHA.');
+ const response = await fetch(new URL('/api/capabilities', base), { redirect: 'error', signal: AbortSignal.timeout(15_000) });
+ assert.equal(response.status, 200, 'Build identity endpoint must return HTTP 200.');
+ const capabilities = await response.json();
+ assert.equal(capabilities?.build, expectedBuild, 'Container build must match FUNDED_EXPECT_BUILD.');
+ assert.equal(capabilities?.cluster, 'devnet', 'Container browser verification requires Devnet.');
+ return { base: base.origin, expectedBuild, observedBuild: capabilities.build };
+}
+
+export async function verifyContainerBrowser({ env = process.env, launchBrowser = options => chromium.launch(options) } = {}) {
+ const identity = await verifyContainerBuildIdentity(env.FUNDED_CONTAINER_BASE, env.FUNDED_EXPECT_BUILD);
+const base = new URL(identity.base);
+const evidenceDir = env.FUNDED_CONTAINER_BROWSER_EVIDENCE_DIR;
 if (evidenceDir) await mkdir(evidenceDir, { recursive: true });
-const browser=await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}),headless:true});
+const browser=await launchBrowser({ ...(env.CHROMIUM_PATH ? { executablePath: env.CHROMIUM_PATH } : {}),headless:true});
 const results=[];
 try {
  for(const width of [1440,390]){
@@ -27,5 +42,11 @@ try {
   }
   await context.close();
  }
+ await verifyContainerBuildIdentity(identity.base, identity.expectedBuild);
 }finally{await browser.close()}
-console.log(JSON.stringify({mode:'real local container browser; no request interception',passed:results.length,interceptedRequests:0,checks:results},null,2));
+return {mode:'real local container browser; no request interception',...identity,identityCheckedBeforeAndAfter:true,identityScope:'API build observed before and after browser checks; asset bytes require the separate image/source-digest verification',passed:results.length,interceptedRequests:0,checks:results};
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+ console.log(JSON.stringify(await verifyContainerBrowser(), null, 2));
+}
