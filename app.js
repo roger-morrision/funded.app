@@ -2611,7 +2611,7 @@ function renderHomeKpiDashboard(verified = assets){
     return policy?.onchainVerified && (policy.creatorWallet || policy.feePayer);
   });
   const solQuoteReady = Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0;
-  const launchFeedUnavailable = !exploreFeedAvailable && !exploreLastVerifiedAt;
+  const launchFeedUnavailable = verifiedLaunchPoliciesStatus !== 'ready';
   const launchCard = document.querySelector('#home-kpi-launches-card');
   const launchValue = document.querySelector('#home-pulse-launches');
   const launchNote = document.querySelector('#home-pulse-launches-note');
@@ -2619,14 +2619,27 @@ function renderHomeKpiDashboard(verified = assets){
   if (launchValue) launchValue.textContent = launchFeedUnavailable ? '—' : fundedLaunchRecords.length.toLocaleString();
   if (launchNote) launchNote.textContent = launchFeedUnavailable ? 'Launch feed unavailable; count not verified' : fundedLaunchRecords.length ? `Funded policy and mint confirmed on Solana` : 'No funded launch policies confirmed';
 
+  const finalizedReady = analyticsSummary?.cluster === EXPLORE_CLUSTER
+    && analyticsSummary.receiptCommitment === 'finalized'
+    && ['indexed', 'partial', 'no-records'].includes(analyticsSummary.status);
+  const finalizedCollectionLamports = Number(analyticsSummary?.collectedLamports);
+  const feesFromFinalized = finalizedReady && Number.isSafeInteger(finalizedCollectionLamports)
+    && finalizedCollectionLamports >= 0;
   const evidenceReady = ['onchain-indexed', 'partial'].includes(receiptEvidence?.status);
   const collections = evidenceReady && Array.isArray(receiptEvidence?.verifiedCollections) ? receiptEvidence.verifiedCollections : [];
-  const collectionSol = collections.reduce((sum, item) => sum + Number(item.collectedLamports || 0) / 1_000_000_000, 0);
-  const feeAvailable = evidenceReady && solQuoteReady;
-  const recordedCollections = Number(receiptEvidence?.coverage?.recordedCollections || 0);
-  setHomeDashboardMetric('fees', feeAvailable ? formatDashboardUsd(collectionSol * coinSolUsdPrice) : '$—', feeAvailable
-    ? `${collections.length} verified claim receipt${collections.length === 1 ? '' : 's'}`
-    : recordedCollections ? `${recordedCollections} recorded claim${recordedCollections === 1 ? '' : 's'} awaiting receipt verification` : solQuoteReady ? 'No verified fee receipts indexed' : 'USD quote or verified receipts unavailable', feeAvailable ? (receiptEvidence.status === 'partial' ? 'partial' : 'available') : 'unavailable');
+  const collectionSol = feesFromFinalized
+    ? finalizedCollectionLamports / 1_000_000_000
+    : collections.reduce((sum, item) => sum + Number(item.collectedLamports || 0) / 1_000_000_000, 0);
+  const feeCount = feesFromFinalized ? Number(analyticsSummary.collections || 0) : collections.length;
+  const recordedCollections = Number(analyticsSummary?.recordedCollections ?? receiptEvidence?.coverage?.recordedCollections ?? 0);
+  const feeAvailable = solQuoteReady && (feesFromFinalized || evidenceReady);
+  const partialFees = feesFromFinalized
+    ? analyticsSummary.status === 'partial' || feeCount < recordedCollections
+    : receiptEvidence?.status === 'partial' || feeCount < recordedCollections;
+  setHomeDashboardMetric('fees', feeAvailable ? formatDashboardUsd(collectionSol * coinSolUsdPrice, { partial:partialFees }) : '$—',
+    feeAvailable ? `${feeCount} verified collection receipt${feeCount === 1 ? '' : 's'}${partialFees ? ' · partial coverage' : ''}`
+      : recordedCollections ? `${recordedCollections} recorded claim${recordedCollections === 1 ? '' : 's'} awaiting receipt verification` : 'USD quote or verified receipts unavailable',
+    feeAvailable ? partialFees ? 'partial' : 'available' : 'unavailable');
 
   const allocation = homeFeeAllocations;
   const allocationReady = ['verified', 'partial'].includes(allocation?.status);
@@ -2687,32 +2700,45 @@ function renderHomeKpiDashboard(verified = assets){
   }, 0);
   const airdropAvailable = reservePrograms.length > 0 && pricedPrograms > 0;
   const partialAirdrop = airdropAvailable && pricedPrograms < reservePrograms.length;
-  setHomeDashboardMetric('airdrop', airdropAvailable ? formatDashboardUsd(airdropUsd, { partial: partialAirdrop }) : '$—', launchFeedUnavailable
+  const airdropUnit = document.querySelector('#home-kpi-airdrop-unit');
+  if (airdropUnit) airdropUnit.textContent = airdropAvailable ? 'USD' : 'ALLOCATIONS';
+  setHomeDashboardMetric('airdrop', airdropAvailable ? formatDashboardUsd(airdropUsd, { partial: partialAirdrop }) : launchFeedUnavailable ? '—' : String(reservePrograms.length), launchFeedUnavailable
     ? 'Launch policies unavailable; allocation not verified'
     : airdropAvailable
     ? `${pricedPrograms}/${reservePrograms.length} policy allocation${reservePrograms.length === 1 ? '' : 's'} valued at spot · check vault funding per launch`
-    : reservePrograms.length ? `${reservePrograms.length} policy allocation${reservePrograms.length === 1 ? '' : 's'} · USD pricing unavailable · check vault funding per launch` : 'No published community allocations', partialAirdrop ? 'partial' : airdropAvailable ? 'available' : 'unavailable');
+    : reservePrograms.length ? `${reservePrograms.length} policy allocation${reservePrograms.length === 1 ? '' : 's'} · USD pricing unavailable · check vault funding per launch` : 'No published community allocations', partialAirdrop ? 'partial' : airdropAvailable ? 'available' : launchFeedUnavailable ? 'unavailable' : 'empty');
 
   const payoutEvidenceReady = Boolean(receiptEvidence) && Array.isArray(receiptEvidence?.verifiedPayouts);
   const referralPayouts = payoutEvidenceReady ? receiptEvidence.verifiedPayouts.filter(item => item.source === 'solana-keeper-referral-claim') : [];
-  const referralSol = referralPayouts.reduce((sum, item) => sum + Number(item.amountLamports || 0) / 1_000_000_000, 0);
-  const recordedPayouts = Number(receiptEvidence?.coverage?.recordedPayouts || 0);
-  const referralAvailable = payoutEvidenceReady && solQuoteReady && (referralPayouts.length > 0 || recordedPayouts === 0);
-  setHomeDashboardMetric('referrals', referralAvailable ? formatDashboardUsd(referralSol * coinSolUsdPrice) : '$—', referralAvailable
-    ? referralPayouts.length ? `${referralPayouts.length} verified referral payout${referralPayouts.length === 1 ? '' : 's'}` : 'No verified referral payouts yet'
-    : recordedPayouts ? 'Recorded payouts are awaiting receipt verification' : 'USD quote or payout evidence unavailable', referralPayouts.length ? 'available' : referralAvailable ? 'empty' : 'unavailable');
+  const finalizedReferralLamports = Number(analyticsSummary?.referralPaidLamports);
+  const referralsFromFinalized = finalizedReady && Number.isSafeInteger(finalizedReferralLamports)
+    && finalizedReferralLamports >= 0 && Number.isSafeInteger(Number(analyticsSummary.referralPayoutCount));
+  const referralCount = referralsFromFinalized ? Number(analyticsSummary.referralPayoutCount) : referralPayouts.length;
+  const referralSol = referralsFromFinalized ? finalizedReferralLamports / 1_000_000_000
+    : referralPayouts.reduce((sum, item) => sum + Number(item.amountLamports || 0) / 1_000_000_000, 0);
+  const recordedPayouts = Number(analyticsSummary?.recordedPayouts ?? receiptEvidence?.coverage?.recordedPayouts ?? 0);
+  const referralAvailable = solQuoteReady && (referralsFromFinalized || payoutEvidenceReady)
+    && (referralCount > 0 || recordedPayouts === 0);
+  const partialReferrals = referralsFromFinalized ? analyticsSummary.status === 'partial' : receiptEvidence?.status === 'partial';
+  setHomeDashboardMetric('referrals', referralAvailable ? formatDashboardUsd(referralSol * coinSolUsdPrice, { partial:partialReferrals }) : '$—',
+    referralAvailable ? referralCount ? `${referralCount} verified referral payout${referralCount === 1 ? '' : 's'}${partialReferrals ? ' · partial coverage' : ''}` : 'No verified referral payouts yet'
+      : recordedPayouts ? 'Recorded payouts are awaiting receipt verification' : 'USD quote or payout evidence unavailable',
+    referralAvailable ? partialReferrals ? 'partial' : referralCount ? 'available' : 'empty' : 'unavailable');
 
-  const windowed = fundedLaunchRecords.map(item => withMarketWindow(item, '24h'));
-  const volumeRecords = windowed.filter(item => item.windowVolumeSol != null);
-  const totalVolumeSol = volumeRecords.reduce((sum, item) => sum + Number(item.windowVolumeSol || 0), 0);
-  const partialVolume = volumeRecords.length < fundedLaunchRecords.length || volumeRecords.some(item => item.windowCoverage === 'partial');
+  const volumeRecords = fundedLaunchRecords.filter(item => item.observedVolumeSol != null
+    && Number.isFinite(Number(item.observedVolumeSol)) && Number(item.observedVolumeSol) >= 0);
+  const totalVolumeSol = volumeRecords.reduce((sum, item) => sum + Number(item.observedVolumeSol), 0);
+  const partialVolume = volumeRecords.length < fundedLaunchRecords.length
+    || volumeRecords.some(item => item.observedCoverage === 'partial');
   const volumeAvailable = volumeRecords.length > 0 && solQuoteReady;
   const volumeCard = document.querySelector('#home-kpi-volume-card');
   const volumeValue = document.querySelector('#home-pulse-volume');
   const volumeNote = document.querySelector('#home-pulse-volume-note');
   if (volumeCard) volumeCard.dataset.state = volumeAvailable ? (partialVolume ? 'partial' : 'available') : 'unavailable';
-  if (volumeValue) volumeValue.textContent = volumeAvailable ? formatDashboardUsd(totalVolumeSol * coinSolUsdPrice, { partial: partialVolume }) : '$—';
-  if (volumeNote) volumeNote.textContent = volumeAvailable ? `${volumeRecords.length}/${fundedLaunchRecords.length} funded launches scanned${partialVolume ? ' · partial coverage' : ''}` : 'USD quote or trade history unavailable';
+  if (volumeValue) volumeValue.textContent = volumeAvailable ? formatDashboardUsd(totalVolumeSol * coinSolUsdPrice, { partial:partialVolume }) : '$—';
+  if (volumeNote) volumeNote.textContent = volumeAvailable
+    ? `${volumeRecords.length}/${fundedLaunchRecords.length} launches scanned across available trade history${partialVolume ? ' · partial coverage' : ''}`
+    : 'Observed trade history or USD quote unavailable';
 
   const heroLaunches = document.querySelector('#home-hero-launches');
   const heroAirdrop = document.querySelector('#home-hero-airdrop');
@@ -2739,9 +2765,10 @@ function renderHomeOnchainSnapshot(verified){
   const count = document.querySelector('#home-verified-launches');
   const countNote = document.querySelector('#home-verified-launches-note');
   const policyUpdated = document.querySelector('#home-policy-updated');
-  status.textContent = `Solana RPC · confirmed`;
-  if (count) count.textContent = String(verified.length);
-  if (countNote) countNote.textContent = verified.length ? `Confirmed on ${EXPLORE_NETWORK_LABEL}` : 'No confirmed launches found';
+  const registeredLaunches = verifiedLaunchPolicies.length;
+  status.textContent = verified.length ? 'Solana RPC · confirmed' : 'Verified launch registry';
+  if (count) count.textContent = String(registeredLaunches);
+  if (countNote) countNote.textContent = registeredLaunches ? 'Verified launch records' : 'No confirmed launches found';
   const pulseStatus = document.querySelector('#home-pulse-status');
   const pulseNetwork = document.querySelector('#home-pulse-network');
   const pulseLaunches = document.querySelector('#home-pulse-launches');
@@ -2761,8 +2788,8 @@ function renderHomeOnchainSnapshot(verified){
   const partialVolume = volumeRecords.some(item => item.windowCoverage === 'partial') || volumeRecords.length < verified.length;
   if (pulseStatus) pulseStatus.textContent = `Solana RPC · confirmed`;
   if (pulseNetwork) pulseNetwork.textContent = `Solana`;
-  if (pulseLaunches) pulseLaunches.textContent = verified.length ? String(verified.length) : '—';
-  if (pulseLaunchesNote) pulseLaunchesNote.textContent = verified.length ? `Confirmed on ${EXPLORE_NETWORK_LABEL}` : 'No confirmed launches';
+  if (pulseLaunches) pulseLaunches.textContent = registeredLaunches ? String(registeredLaunches) : '—';
+  if (pulseLaunchesNote) pulseLaunchesNote.textContent = registeredLaunches ? 'Verified launch records' : 'No confirmed launches';
   if (pulseTrades) pulseTrades.textContent = totalTrades == null ? '—' : formatExploreTradeCount(totalTrades, partialTrades ? 'partial' : 'complete');
   if (pulseTradesNote) pulseTradesNote.textContent = totalTrades == null ? 'Not available from current feed' : `${partialTrades ? 'Partial scan · ' : ''}confirmed Pump events`;
   if (pulseVolume) pulseVolume.textContent = totalVolume == null ? '—' : formatExploreUsd(totalVolume, { partial: partialVolume });
@@ -2771,7 +2798,7 @@ function renderHomeOnchainSnapshot(verified){
   if (pulseGraduated) pulseGraduated.textContent = graduated ? String(graduated) : verified.length ? '0' : '—';
   if (pulseGraduatedNote) pulseGraduatedNote.textContent = verified.length ? 'Verified PumpSwap stage' : 'Waiting for verified mints';
   if (policyUpdated) policyUpdated.textContent = `RPC checked ${new Date().toLocaleTimeString()}`;
-  renderHomeKpiDashboard(verified);
+  renderHomeKpiDashboard(assets);
 }
 let receiptEvidence = null;
 let homeFeeAllocations = null;
@@ -3884,9 +3911,9 @@ async function loadOnchainExploreDataOnce(){
       const scanned = verified.slice(0, 5);
       await Promise.all(scanned.map(async item => {
         const cached = exploreActivityCache.get(item.address);
-        const hasBreakdown = data => data?.tradeCount24h == null || (data.activityWindows?.['1h']
+        const hasBreakdown = data => data && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
           && data.activityWindows?.['6h'] && data.activityWindows?.['24h']
-          && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h));
+          && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h)));
         let market = cached && Date.now() - cached.at < 60_000 && hasBreakdown(cached.data) ? cached.data : null;
         if (!market) {
           const response = await apiRequest(`/api/tokens/${encodeURIComponent(item.address)}/market-activity`, { signal: AbortSignal.timeout(12000) }).catch(error => {
@@ -3903,6 +3930,9 @@ async function loadOnchainExploreDataOnce(){
         const volume = Number(market.volume24hSol);
         item.volume24hSol = market.volume24hSol != null && Number.isFinite(volume) && volume >= 0 ? volume : null;
         item.volumeCoverage = market.coverage;
+        const observedVolume = Number(market.observedVolumeSol);
+        item.observedVolumeSol = market.observedVolumeSol != null && Number.isFinite(observedVolume) && observedVolume >= 0 ? observedVolume : null;
+        item.observedCoverage = market.observedCoverage || 'unavailable';
         for (const key of ['tradeCount24h', 'buyCount24h', 'sellCount24h']) {
           const count = Number(market[key]);
           item[key] = market[key] != null && Number.isInteger(count) && count >= 0 ? count : null;

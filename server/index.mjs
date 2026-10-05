@@ -627,10 +627,10 @@ async function collectPumpCreatorFees({ requestedMint }) {
 
 const readReceiptEvidence = createReceiptEvidenceReader({ store, cluster: solanaCluster,
   connectionFactory: () => new Connection(solanaRpcUrl, 'confirmed'),
-  officialGenesis: () => new Connection(clusterApiUrl(solanaCluster), 'confirmed').getGenesisHash() });
+  officialGenesis: () => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'confirmed').getGenesisHash() });
 const readFinalizedEvidence = createReceiptEvidenceReader({ store, cluster: solanaCluster, commitment:'finalized',
   connectionFactory: () => new Connection(solanaRpcUrl, 'finalized'),
-  officialGenesis: () => new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash() });
+  officialGenesis: () => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash() });
 
 const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solanaCluster, getSession: xSession, readEvidence: readReceiptEvidence, readFinalizedEvidence,
   capabilities: async () => ({ version: CREATOR_SUPPORT_VERSION, build: process.env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
@@ -1317,9 +1317,9 @@ async function handle(req, res) {
       try { mint = new PublicKey(decodeURIComponent(tokenMarketMint)); }
       catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
       const address = mint.toBase58();
-      const hasTradeBreakdown = data => data?.tradeCount24h == null || (data.activityWindows?.['1h']
+      const hasTradeBreakdown = data => data && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
         && data.activityWindows?.['6h'] && data.activityWindows?.['24h']
-        && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h));
+        && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h)));
       const cached = coinMarketCache.get(address);
       if (cached && Date.now() - cached.at < 60_000 && hasTradeBreakdown(cached.data)) return json(res, 200, cached.data);
       const persisted = await store.readMarketActivity(address, solanaCluster);

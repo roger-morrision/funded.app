@@ -24,6 +24,7 @@ export function analyticsReceiptTotals(state, evidence, cluster) {
       && solLamports(row.grossCreatorFees) === collection.collectedLamports ? [row] : [];
   });
   const verifiedPayouts = evidenceReady ? evidence.verifiedPayouts || [] : [];
+  const referralPayouts = verifiedPayouts.filter(row => row.source === 'solana-keeper-referral-claim');
   const status = !evidenceReady ? recorded.length && evidence?.status === 'unverified-records' ? 'recorded-claims-only' : 'unavailable'
     : evidence.status === 'partial' ? 'partial'
       : evidence.status === 'no-records' ? recorded.length ? 'recorded-claims-only' : 'no-records'
@@ -40,6 +41,9 @@ export function analyticsReceiptTotals(state, evidence, cluster) {
     collectedLamports: collections.reduce((sum, row) => sum + lamports(row.collectedLamports), 0),
     buybackAccrued: settlements.reduce((sum, row) => sum + sol(row.fundedApp?.buyback), 0),
     finalizedPaidLamports: verifiedPayouts.reduce((sum, row) => sum + lamports(row.amountLamports), 0),
+    referralPaidLamports: referralPayouts.reduce((sum, row) => sum + lamports(row.amountLamports), 0),
+    referralPayoutCount: referralPayouts.length,
+    recordedPayouts: Number(evidence?.coverage?.recordedPayouts || 0),
     verifiedPayoutCount: verifiedPayouts.length,
   };
 }
