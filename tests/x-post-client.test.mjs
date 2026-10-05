@@ -36,12 +36,14 @@ test('transport failures never expose provider bodies or access tokens in errors
   let response=Response.json({data:{id:'123',username:'fundedfixture'}});
   const publisher=createXPublisher({accessToken:'synthetic-private-token',expectedHandle:'fundedfixture',fetchImpl:async()=>response});
   await publisher.verifyAccount();
-  for(const status of [403,408,429,503]){
+  for(const status of [401,402,403,408,429,503]){
     response=new Response('provider echoed synthetic-private-token',{status});
     await assert.rejects(publisher.publish(event),error=>{
       assert.doesNotMatch(error.message,/synthetic-private-token|provider echoed/);
       assert.equal(error.status,status);
-      assert.equal(error.delivery,status===429?'not-sent':status===403?'rejected':'unknown');
+      assert.equal(error.delivery,status===429?'not-sent':[401,402,403].includes(status)?'rejected':'unknown');
+      if(status===401)assert.match(error.message,/publishing credentials/);
+      if(status===402)assert.match(error.message,/credits/);
       return true;
     });
   }

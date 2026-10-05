@@ -75,7 +75,7 @@ import { homeFeeAllocationSummary } from './home-dashboard-metrics.mjs';
 import { projectBurnBoard, walletBurnBoard } from './leaderboard-burn-board.mjs';
 import { createCreatorFeeChallenges, creatorClaimStatus } from './creator-fee-claim.mjs';
 import { createTokenChatSessions } from './token-chat-session.mjs';
-import { createXUserResolver } from './x-user-lookup.mjs';
+import { createXUserResolver, xLookupHttpError } from './x-user-lookup.mjs';
 import { tokenChatDeleteStatement, tokenChatPostStatement, validateTokenChatText } from '../token-chat.js';
 import { createReferralAuth, REFERRAL_SESSION_SECONDS } from './referral-auth.mjs';
 import { BOOST_PACKAGES, activeBoosts, boostLamports, boostMemo, boostPackage } from '../boost-offer.js';
@@ -571,11 +571,12 @@ async function mintRouterReadiness() {
   }
   return { ready: reasons.length === 0, reasons };
 }
-async function xFeeReadiness() {
+async function xFeeReadiness({ includeLookupHealth = true } = {}) {
   const base = await mintRouterReadiness();
   const reasons = [...base.reasons];
   if (!xConfig().clientId || !xConfig().clientSecret) reasons.push('X OAuth is not configured');
   if (!String(process.env.X_BEARER_TOKEN || '').trim()) reasons.push('X user lookup is not configured');
+  if (includeLookupHealth && resolveXUser.health()) reasons.push(resolveXUser.health());
   return { ready: reasons.length === 0, reasons };
 }
 function feeRouterConfig() {
@@ -1108,11 +1109,17 @@ async function handle(req, res) {
       if (!code) return html(res, 400, 'X sign-in failed', 'No authorization code was received. Start again.');
       const config = xConfig();
       const form = new URLSearchParams({ code, grant_type: 'authorization_code', redirect_uri: request.callbackUrl, code_verifier: request.verifier });
-      const tokenResponse = await fetch('https://api.x.com/2/oauth2/token', { method: 'POST', headers: { authorization: `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`, 'content-type': 'application/x-www-form-urlencoded' }, body: form, signal: AbortSignal.timeout(10000) });
+      let tokenResponse;
+      try { tokenResponse = await fetch('https://api.x.com/2/oauth2/token', { method: 'POST', headers: { authorization: `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`, 'content-type': 'application/x-www-form-urlencoded' }, body: form, signal: AbortSignal.timeout(10000) }); }
+      catch { return html(res, 503, 'X sign-in unavailable', 'X could not be reached. Start sign-in again shortly.'); }
       const token = await tokenResponse.json().catch(() => ({}));
+      if (tokenResponse.status === 402) return html(res, 503, 'X sign-in unavailable', 'X API credits are unavailable. Contact the funded.vip operator.');
       if (!tokenResponse.ok || !token.access_token) return html(res, 502, 'X sign-in failed', 'X did not issue an access token. Check the exact callback URL and OAuth settings.');
-      const userResponse = await fetch('https://api.x.com/2/users/me?user.fields=id,name,username', { headers: { authorization: `Bearer ${token.access_token}` }, signal: AbortSignal.timeout(10000) });
+      let userResponse;
+      try { userResponse = await fetch('https://api.x.com/2/users/me?user.fields=id,name,username', { headers: { authorization: `Bearer ${token.access_token}` }, signal: AbortSignal.timeout(10000) }); }
+      catch { return html(res, 503, 'X profile unavailable', 'X could not load the account profile. Start sign-in again shortly.'); }
       const profile = await userResponse.json().catch(() => ({}));
+      if (userResponse.status === 402) return html(res, 503, 'X profile unavailable', 'X API credits are unavailable. Contact the funded.vip operator.');
       if (!userResponse.ok || !profile.data?.id) return html(res, 502, 'X profile lookup failed', 'X sign-in succeeded but the account profile could not be loaded.');
       await xAuth.revoke(cookieValue(req, 'funded_x_session'));
       const sessionId = await xAuth.issue(profile.data);
@@ -1125,10 +1132,17 @@ async function handle(req, res) {
       return json(res, 200, { configured: xOAuthConfigured(req), authenticated: Boolean(session), user: session?.user || null });
     }
     if (req.method === 'GET' && url.pathname === '/api/x/resolve') {
-      const readiness = await xFeeReadiness();
+      // A prior provider failure must not block a fresh lookup after X recovers.
+      const readiness = await xFeeReadiness({ includeLookupHealth: false });
       if (!readiness.ready) return json(res, 503, { error: 'X fee claims are not operational on Solana yet.', reasons: readiness.reasons });
       if (!await store.chargeRpcRate(`x-resolve:${clientKey(req)}`, 1, 10, Math.floor(Date.now() / 60_000) * 60_000)) return json(res, 429, { error: 'X account lookup limit reached; retry shortly.' });
-      const resolved = await resolveXUser(url.searchParams.get('handle'));
+      let resolved;
+      try { resolved = await resolveXUser(url.searchParams.get('handle')); }
+      catch (error) {
+        const failure = xLookupHttpError(error);
+        if (failure) return json(res, failure.status, { error: failure.message });
+        throw error;
+      }
       if ((await store.read()).creatorProfiles?.[resolved.id]?.optedOut) return json(res, 409, { error: 'This creator has opted out of new support launches.' });
       return json(res, 200, resolved);
     }

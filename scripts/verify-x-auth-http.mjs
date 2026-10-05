@@ -73,7 +73,18 @@ try {
   assert.equal((await logout('https://attacker.invalid')).status,403);
   assert.equal((await logout(base)).status,204);
   assert.equal((await(await get('/api/x/me',session)).json()).authenticated,false);
+  for(const mode of ['token-network','token-credits','profile-network','profile-credits']){
+    await stop();env.FUNDED_AUTH_HTTP_X_FAILURE=mode;await start();
+    const attempt=await get('/api/x/oauth/start');assert.equal(attempt.status,302);
+    const target=new URL(attempt.headers.get('location'));
+    const cookie=attempt.headers.getSetCookie()[0].split(';')[0];
+    const failed=await get(`/api/x/oauth/callback?state=${target.searchParams.get('state')}&code=synthetic-code`,cookie);
+    assert.equal(failed.status,503,`${mode} must have a safe, actionable sign-in response`);
+    assert.match(await failed.text(),mode.endsWith('credits')?/API credits/:/Start sign-in again/);
+    assert.equal((await(await get('/api/x/me')).json()).authenticated,false);
+  }
   await stop();
+  delete env.FUNDED_AUTH_HTTP_X_FAILURE;
   env.X_CLIENT_ID='';env.X_CLIENT_SECRET='';
   await start();
   assert.equal((await(await get('/api/x/me')).json()).configured,false);

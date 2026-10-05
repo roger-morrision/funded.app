@@ -17,3 +17,11 @@ The target supplied by the owner is [@fundedvip](https://x.com/fundedvip). A ded
 The worker remains in draft mode until the account check succeeds and publication is explicitly started. Set `X_POST_EXPECTED_HANDLE=fundedvip`, `X_POST_PUBLIC_ORIGIN=https://funded.vip`, `X_POST_START_AT` to the activation timestamp, `X_POST_ENABLED=true`, `X_POST_ALLOW_DEVNET=true`, and a durable `DATABASE_URL`. Then run `node scripts/run-x-post-worker.mjs --loop --execute` under a supervised process, with the four OAuth 1.0a secrets mounted. Use `node scripts/run-x-post-worker.mjs --status` to inspect the outbox. Do not put credentials in the repository or reuse creator X sign-in credentials.
 
 The account write credentials are configured in the local workspace, but publication stays disabled until the account and provider access are verified. Package copy discloses that posting occurs only while the platform publisher is active. A local build or synthetic test does not prove an X post was published.
+
+## Provider recovery checks
+
+- `GET /api/x/oauth/start` returning a redirect proves only that sign-in can begin. Complete a real callback before treating X identity as verified.
+- `GET /api/x/resolve?handle=...` requires provider lookup access. HTTP 503 with an API-credits message means X returned HTTP 402; restore the X project's API credits. The launch stops before a wallet signature or transaction.
+- Run the read-only account check from the workspace containing `.env.x` and its referenced secret files: `node --env-file=.env.x scripts/verify-x-post-account.mjs`. HTTP 401 means the dedicated posting credentials were rejected. Regenerate the OAuth 1.0a API key/secret and user token/secret for the same X app and intended account, then repeat the check.
+- `GET /api/x-fee/status` reports router and X lookup readiness. After a failed lookup, it briefly reports the observed provider problem; another lookup can verify recovery. Readiness alone does not prove a completed sign-in, payout, or public post.
+- Keep the worker in draft mode until the provider checks pass. Enabling public publication is a separate operational decision; inspect the durable outbox and verify an actual X post ID after any authorized dispatch.

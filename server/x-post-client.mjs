@@ -49,7 +49,12 @@ export function createXPublisher({ accessToken, oauth1, expectedHandle, expected
       await response.body?.cancel().catch(() => {});
       if (response.status === 429) throw failure('X rate limit reached; wait for the provider retry window.', 'not-sent', 429, retryDelay(response));
       const uncertain = response.status >= 500 || response.status === 408;
-      throw failure(uncertain ? 'X delivery outcome is unknown; reconcile before retrying.' : 'X rejected the request. Check account access and posting permissions.', uncertain && method === 'POST' ? 'unknown' : 'rejected', response.status);
+      const message = uncertain ? 'X delivery outcome is unknown; reconcile before retrying.'
+        : response.status === 401 ? 'X rejected the publishing credentials. Regenerate the dedicated user token and check its API key pairing.'
+          : response.status === 402 ? 'X API credits are unavailable for the publishing account.'
+            : response.status === 403 ? 'X denied this account or app permission for the requested action.'
+              : 'X rejected the request. Check account access and posting permissions.';
+      throw failure(message, uncertain && method === 'POST' ? 'unknown' : 'rejected', response.status);
     }
     try { return await response.json(); }
     catch { throw failure('X returned an unreadable response; delivery cannot be confirmed.', method === 'POST' ? 'unknown' : 'rejected', response.status); }
