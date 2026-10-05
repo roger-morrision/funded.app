@@ -432,7 +432,6 @@ input[type='search']:focus-visible {
 .source-note { margin: 14px 0 0; padding: 12px 14px; border: 1px solid #34445c; border-radius: 9px; background: #151f2c; color: #b5c4d7; font-size: 11px; line-height: 1.6; }
 .source-note strong, .source-note span { display: block; }
 .source-note strong { margin-bottom: 3px; color: #ecf2fa; }
-#analytics-source-note { margin: 0 0 14px; }
 .payments-summary [hidden], .analytics-range[hidden], .community-section .heading-actions[hidden], .buyback-preview-actions[hidden] { display: none !important; }
 .signals-unavailable .community-card:has(.signal-list) { display: none; }
 .signals-unavailable .community-grid { grid-template-columns: minmax(0, 1fr); }

@@ -98,7 +98,6 @@ function clarifyDataStates() {
   const analytics = byId('analytics-detail');
   const ranges = analytics?.querySelector('.analytics-range');
   if (ranges?.querySelector('button[disabled]')) ranges.hidden = true;
-  addOnce(analytics, 'analytics-source-note', `<p id="analytics-source-note" class="source-note">A confirmed mint count is not a fee or payout total. Fee charts and recipients appear only from indexed signatures and receipts.</p>`, analytics?.querySelector('.analytics-kpis'));
 
   const community = byId('community');
   community?.querySelector('.heading-actions')?.removeAttribute('hidden');

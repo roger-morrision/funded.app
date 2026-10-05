@@ -248,7 +248,6 @@ function shortenPageCopy() {
     ['#capital-flow > .section-heading .panel-explainer', 'Preview the fee split. Live totals need verified receipts.'],
     ['#launch-route-shell > .page-lede', 'Create a Pump token and review costs before signing.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
-    ['#analytics-source-note', 'Fees and payouts use confirmed, indexed receipts.'],
     ['#community .section-heading .panel-explainer', 'Save coins from Explore to watch them here.'],
     ['#reward-alerts > header p:not(.eyebrow)', 'Get alerts for verified activity on saved coins.'],
     ['#reward-alerts > small', 'Alerts work while this page is open. No payout is guaranteed.'],
