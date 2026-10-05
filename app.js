@@ -2937,25 +2937,8 @@ function renderOnchainReportState(verified){
   if (communityBadge) communityBadge.textContent = 'RPC state';
   renderVerifiedReceiptEvidence();
   renderExtendedAnalyticsDashboard();
-  const rangeStatus = document.querySelector('#analytics-range-status');
-  if (rangeStatus) {
-    const clusterLabel = EXPLORE_CLUSTER === 'mainnet-beta' ? 'Mainnet' : 'Devnet';
-    const dataSource = `${clusterLabel} · ${analyticsSummary ? 'Recorded activity. ' : 'Activity service unavailable. '}`;
-    const technical = document.querySelector('#analytics-technical-source');
-    if (technical) technical.textContent = analyticsSummary ? `Build: ${analyticsSummary.build || 'unavailable'} · Source: ${analyticsSummary.source || 'unavailable'}` : 'Source details unavailable.';
-    const recorded = Number(receiptEvidence?.coverage?.recordedCollections || 0);
-    const proven = receiptEvidence?.verifiedCollections?.length || 0;
-    const launchStatus = indexedLaunches != null
-      ? feedChecked && !marketUnavailable && verified.length === indexedLaunches
-        ? `${indexedLaunches} funded launch${indexedLaunches === 1 ? '' : 'es'} in the current verified ${clusterLabel} feed.`
-        : `${indexedLaunches} previously verified funded launch${indexedLaunches === 1 ? '' : 'es'} in the ${clusterLabel} index. Live RPC scan incomplete.`
-      : !feedChecked ? `Checking the ${clusterLabel} launch feed.` : `${verified.length} funded launch${verified.length === 1 ? '' : 'es'} in the current ${clusterLabel} feed.`;
-    const receiptStatus = !receiptEvidenceChecked ? 'Checking fee and payout receipts.'
-      : !receiptEvidence || receiptEvidence.status === 'unavailable' ? 'Receipt verification is unavailable.'
-        : recorded > proven ? `${recorded - proven} recorded fee claim${recorded - proven === 1 ? '' : 's'} ${recorded - proven === 1 ? 'lacks' : 'lack'} matching on-chain proof and ${recorded - proven === 1 ? 'is' : 'are'} excluded from verified totals.`
-          : 'Fee and payout figures use matching on-chain receipt proofs.';
-    rangeStatus.textContent = `${dataSource}${launchStatus} ${receiptStatus}`;
-  }
+  const technical = document.querySelector('#analytics-technical-source');
+  if (technical) technical.textContent = analyticsSummary ? `Build: ${analyticsSummary.build || 'unavailable'} · Source: ${analyticsSummary.source || 'unavailable'}` : 'Source details unavailable.';
 }
 document.addEventListener('funded:analytics-upgraded', () => renderOnchainReportState(assets));
 let leaderboardView = 'burners';
