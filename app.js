@@ -766,6 +766,33 @@ async function loadCommunityReserveStatuses(){
   renderAirdropClaims();
   renderRegistry();
 }
+function includeVerifiedRegistryLaunches(marketAssets, feedRecords = []) {
+  if (EXPLORE_CLUSTER !== 'devnet') return marketAssets;
+  const byMint = new Map(marketAssets.filter(item => !item.registryFallback).map(item => [item.address, item]));
+  const feedByMint = new Map(feedRecords.map(item => [item.address, item]));
+  for (const launch of verifiedLaunchPolicies) {
+    if (!launch.mint || byMint.has(launch.mint)) continue;
+    const feed = feedByMint.get(launch.mint);
+    byMint.set(launch.mint, {
+      address: launch.mint, mint: launch.mint,
+      name: launch.name || feed?.name || 'Unnamed token',
+      symbol: launch.symbol || feed?.symbol || 'TOKEN',
+      icon: String(launch.symbol || feed?.symbol || 'T').slice(0, 1),
+      imageUri: launch.imageUri || feed?.imageUri || null,
+      website: launch.website || feed?.website || null,
+      twitter: launch.twitter || feed?.twitter || null,
+      telegram: launch.telegram || feed?.telegram || null,
+      discord: launch.discord || feed?.discord || null,
+      creator: launch.creatorWallet || launch.feePayer || null,
+      description: launch.description || feed?.description || '',
+      createdTimestamp: Number(launch.createdTimestamp || launch.blockTime || feed?.createdTimestamp) || null,
+      source: 'Verified launch registry', registryFallback: true,
+      complete: null, migrated: null, change: '—',
+      value: 'MC unavailable', meta: 'Verified launch · market data unavailable',
+    });
+  }
+  return [...byMint.values()];
+}
 async function loadVerifiedLaunchPolicies(){
   const response = await apiRequest('/api/launches').catch(() => ({ available: false }));
   if (!response.available || !Array.isArray(response.data)) {
@@ -781,6 +808,7 @@ async function loadVerifiedLaunchPolicies(){
   verifiedLaunchPolicies = response.data.filter(launch => launch.onchainVerified
     && launch.cluster === EXPLORE_CLUSTER
     && (launch.creatorWallet || launch.feePayer));
+  assets = includeVerifiedRegistryLaunches(assets);
   updateExploreSortAvailability();
   renderCreatorLaunches();
   renderExploreAssets();
@@ -2442,7 +2470,7 @@ function renderExploreAssets({ force = false } = {}){
   const feedUnavailable = !exploreFeedAvailable && !exploreLastVerifiedAt;
   const rpcUnavailable = /RPC (?:rate limited|unavailable)/.test(exploreProviderStatus);
   const outage = exploreOutageCopy();
-  if (clusterLabel) clusterLabel.textContent = `${exploreProviderStatus.includes('stale') ? 'last verified snapshot' : exploreProviderStatus.includes('RPC verified') ? 'RPC verified' : exploreProviderStatus.includes('unavailable') ? 'data unavailable' : 'awaiting verification'}`;
+  if (clusterLabel) clusterLabel.textContent = `${exploreProviderStatus.includes('Verified launch registry') ? 'Verified launch registry' : exploreProviderStatus.includes('stale') ? 'last verified snapshot' : exploreProviderStatus.includes('RPC verified') ? 'RPC verified' : exploreProviderStatus.includes('unavailable') ? 'data unavailable' : 'awaiting verification'}`;
   if (scope && EXPLORE_CLUSTER !== 'devnet') scope.textContent = 'Solana mainnet discovery · Pump.fun listings are shown only after mint verification. Missing market figures stay unavailable.';
   const records = assets.map(item => withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(item, exploreWindow) : enrichMarketRecord(item)));
   const visible = filterMarketRecords(records, exploreFilterOptions());
@@ -3388,7 +3416,7 @@ function renderHomeLaunchBoard(){
     feedState.dataset.state = exploreFeedAvailable ? 'live' : exploreLastVerifiedAt ? 'snapshot' : 'unavailable';
   }
   const tickerLabel = document.querySelector('#home-market-ticker-label');
-  if (tickerLabel) tickerLabel.textContent = `Trending · ${homeLaunchWindow} volume`;
+  if (tickerLabel) tickerLabel.textContent = 'All verified launches';
   const volumeFilterLabel = document.querySelector('#home-filter-volume-label');
   if (volumeFilterLabel?.firstChild) volumeFilterLabel.firstChild.textContent = `${homeLaunchWindow} Vol `;
   const tradesFilterLabel = document.querySelector('#home-filter-trades-label');
@@ -3447,14 +3475,14 @@ function renderHomeLaunchBoard(){
     tableTxnsHeading.title = `${homeLaunchWindow} observed transactions`;
   }
   if (ticker) {
-    const ranked = verified.filter(item => volumeRank(item) >= 0)
-      .sort((a, b) => volumeRank(b) - volumeRank(a)).slice(0, 6);
+    const ranked = [...verified].sort((a, b) => volumeRank(b) - volumeRank(a)
+      || Number(b.createdTimestamp || 0) - Number(a.createdTimestamp || 0));
     const tickerMarkup = ranked.length ? ranked.map(item => {
       const shownVolume = volumeUsd(item);
       const changeValue = Number.parseFloat(item.change || '');
       const trendClass = Number.isFinite(changeValue) ? changeValue >= 0 ? 'is-positive' : 'is-negative' : '';
       return `<a href="/token/${encodeURIComponent(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}"><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span><strong>${escapeHtml(item.symbol || 'TOKEN')}</strong>${homeLaunchWindow === '24h' ? `<span class="${trendClass}" title="24h change">${escapeHtml(item.change || '—')}</span>` : ''}<small>${escapeHtml(shownVolume)}</small></a>`;
-    }).join('') : `<span class="home-ticker-empty">${exploreFeedAvailable ? `No verified ${escapeHtml(homeLaunchWindow)} trades in this feed` : 'Checking verified market activity'}</span>`;
+    }).join('') : `<span class="home-ticker-empty">${exploreFeedAvailable ? `No verified launches in this feed` : 'Checking verified market activity'}</span>`;
     setupHomeTicker(ticker, tickerMarkup, ranked.length);
   }
   let visible = [...verified];
@@ -3473,7 +3501,7 @@ function renderHomeLaunchBoard(){
     const frozenRank = new Map(homeFrozenOrder.map((mint, index) => [mint, index]));
     visible.sort((a, b) => (frozenRank.get(a.address) ?? Infinity) - (frozenRank.get(b.address) ?? Infinity));
   }
-  visible = visible.slice(0, 12);
+  // Show every verified launch; the volume window only changes metrics and ordering.
   const boardCount = document.querySelector('#home-board-count');
   if (boardCount) boardCount.textContent = visible.length ? `Showing ${visible.length} verified coin${visible.length === 1 ? '' : 's'}` : '';
   if (!visible.length) {
@@ -3749,6 +3777,7 @@ async function loadOnchainExploreDataOnce(){
     ];
     if (EXPLORE_CLUSTER !== 'devnet') feeds[0] = apiRequest(`/api/birdeye/explore?limit=40&sort_by=${encodeURIComponent(birdeyeSort)}`).catch(() => ({ available: false, data: null }));
     const [birdeyeFeed, pumpFeed] = await Promise.all(feeds);
+    if (EXPLORE_CLUSTER === 'devnet' && verifiedLaunchPoliciesStatus !== 'ready') await loadVerifiedLaunchPolicies();
     exploreFeedAvailable = pumpFeed.available;
     if (pumpFeed.available) exploreFeedSort = pumpSort;
     const birdeyeRecords = Array.isArray(birdeyeFeed.data?.items) ? birdeyeFeed.data.items : [];
@@ -3893,12 +3922,14 @@ async function loadOnchainExploreDataOnce(){
     }
     exploreScannedCount = scannedCount;
     if (marketScanRateLimited) exploreBackoffUntil = Date.now() + 60_000;
-  assets = Array.from(new Map(verified.map(item => [item.address, item])).values());
+  assets = includeVerifiedRegistryLaunches(Array.from(new Map(verified.map(item => [item.address, item])).values()), records);
     publishVerifiedCurves(assets);
     document.dispatchEvent(new Event('funded:verified-search-index'));
     exploreUpdatedAt = new Date().toISOString();
     if (!exploreVerificationFailed && pumpFeed.available && records.length) exploreLastVerifiedAt = exploreUpdatedAt;
-    exploreProviderStatus = exploreVerificationFailed ? `Solana RPC ${exploreRateLimited ? 'rate limited · retry shortly' : 'unavailable'}` : !pumpFeed.available ? 'Launch feed unavailable' : !records.length ? 'No indexed launches · awaiting RPC verification' : !verified.length ? 'Indexed launches · none passed RPC verification' : EXPLORE_CLUSTER === 'devnet' ? `Solana registry · RPC verified${marketScanRateLimited ? ' · trade history rate limited' : ''}` : !birdeyeFeed.available ? `Pump.fun · Birdeye unavailable · RPC verified` : 'Pump.fun + Birdeye · RPC verified';
+    exploreProviderStatus = EXPLORE_CLUSTER === 'devnet' && assets.length && verified.length < assets.length
+      ? `Verified launch registry · ${verified.length ? `${verified.length}/${assets.length} live mint checks` : 'live mint checks unavailable'}`
+      : exploreVerificationFailed ? `Solana RPC ${exploreRateLimited ? 'rate limited · retry shortly' : 'unavailable'}` : !pumpFeed.available ? 'Launch feed unavailable' : !records.length ? 'No indexed launches · awaiting RPC verification' : !verified.length ? 'Indexed launches · none passed RPC verification' : EXPLORE_CLUSTER === 'devnet' ? `Solana registry · RPC verified${marketScanRateLimited ? ' · trade history rate limited' : ''}` : !birdeyeFeed.available ? `Pump.fun · Birdeye unavailable · RPC verified` : 'Pump.fun + Birdeye · RPC verified';
     const feedStatus = document.querySelector('#explore-data-status');
     renderExploreAssets();
     renderHomeLaunchBoard();
