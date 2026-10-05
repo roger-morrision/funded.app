@@ -90,3 +90,42 @@ body .service-status-checks{display:grid;grid-template-columns:repeat(2,minmax(0
 .receipt-history-card{display:grid;gap:6px;min-width:0}.receipt-history-card>strong{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.receipt-history-card>a,.service-status-panel>a{display:inline-flex;align-items:center;min-height:44px;font-size:13px}
 .receipt-history-actions{display:flex;flex-wrap:wrap;gap:8px}.receipt-history-actions button{min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);color:var(--text);padding:10px 14px;font-size:13px}.receipt-history-empty{padding:18px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);grid-column:1/-1}
 @media(max-width:700px){body .service-status-checks{grid-template-columns:1fr}.receipt-history-actions>button{flex:1 1 140px}}
+
+/* One bottom navigation surface for every mobile route. */
+@media (max-width: 700px) {
+  html body.page-route .mobile-workspace-nav {
+    display: grid;
+    right: auto;
+    width: 100vw;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    min-height: 82px;
+    padding: 10px 4px calc(10px + env(safe-area-inset-bottom));
+    background: #111426;
+    border-top: 1px solid #343b49;
+    box-shadow: 0 -6px 18px #0006;
+  }
+  html body.page-route .mobile-workspace-nav a {
+    min-width: 0;
+    min-height: 62px;
+    padding: 7px 2px;
+    justify-content: center;
+    gap: 5px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    color: #b9c3d7;
+    background: transparent;
+    box-shadow: none;
+    font: 700 clamp(12px, 2.2vw, 14px)/1.15 Manrope, sans-serif;
+    text-align: center;
+  }
+  html body.page-route .mobile-workspace-nav a svg { width: 22px; height: 22px; }
+  html body.page-route .mobile-workspace-nav a[aria-current='page'] {
+    color: #ffbd24;
+    background: #17182e;
+    border-color: #a97500;
+    box-shadow: inset 4px 0 #ffb800;
+  }
+  body.page-route .main-content { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+  body.page-route .toast { bottom: calc(96px + env(safe-area-inset-bottom)); }
+}

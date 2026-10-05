@@ -865,12 +865,14 @@ function tokenPage() {
 
 let lastSyncedRoute = null;
 function syncRoute() {
-  const route=location.hash.slice(1)||(/^\/funded\/?$/.test(location.pathname)?'paid':/^\/list\/?$/.test(location.pathname)?'list':/^\/pilot\/?$/.test(location.pathname)?'pilot':'overview');
+  const route=location.hash.slice(1)||(/^\/funded\/?$/.test(location.pathname)?'paid':/^\/list\/?$/.test(location.pathname)?'list':/^\/pilot\/?$/.test(location.pathname)?'pilot':/^\/explore\/?$/.test(location.pathname)?'explore':'overview');
   const mergedRoutes={community:'my-launches','capital-flow':'analytics-detail',buybacks:'paid'};
   const pageRoute=mergedRoutes[route]|| (route==='funded-holder-token-rewards'?'payments':route.startsWith('docs/')?'docs':route);
   const tokenOrWallet = /^\/(token|wallet|launch\/coin)\//.test(location.pathname) && !location.hash || route.startsWith('coin/');
   $$('[data-workspace-route]').forEach(element => { element.hidden = tokenOrWallet || element.dataset.workspaceRoute !== pageRoute; });
-  const mobileRoute = tokenOrWallet && (/^\/token\//.test(location.pathname) || route.startsWith('coin/')) ? 'explore' : pageRoute;
+  const mobileRoute = tokenOrWallet
+    ? (/^\/wallet\//.test(location.pathname) ? 'my-launches' : /^\/launch\/coin\//.test(location.pathname) ? 'launch' : 'explore')
+    : ({ community: 'my-launches', leaderboard: 'explore', airdrops: 'payments', referrals: 'payments', profile: 'my-launches', list: 'launch', paid: 'payments' }[pageRoute] || pageRoute);
   $$('.mobile-workspace-nav a').forEach(link=>{if(link.hash===`#${mobileRoute}`)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
   $$('[data-purpose-route]').forEach(link=>{const active=link.dataset.purposeRoute===route||(!location.hash&&link.dataset.purposeRoute===pageRoute);if(active)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');});
   const more=$('.nav-more');if(more)more.open=!matchMedia('(min-width:1180px)').matches && Boolean($('a[aria-current="page"]',more));
