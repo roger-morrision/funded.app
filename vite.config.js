@@ -47,6 +47,10 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (!id.includes('node_modules')) return undefined;
+            // The browser entry installs Buffer before importing the Solana SDK.
+            // Keep its implementation outside the SDK chunk so importing Buffer
+            // cannot evaluate SDK module code first.
+            if (id.replaceAll('\\', '/').includes('/node_modules/buffer/')) return 'buffer-polyfill';
             if (id.includes('@pump-fun/pump-swap-sdk')) return 'pump-swap-sdk';
             if (id.includes('@pump-fun/pump-sdk')) return 'pump-sdk';
             if (id.includes('@solana/spl-token')) return 'solana-spl-token';
