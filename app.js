@@ -2937,8 +2937,6 @@ function renderOnchainReportState(verified){
   if (communityBadge) communityBadge.textContent = 'RPC state';
   renderVerifiedReceiptEvidence();
   renderExtendedAnalyticsDashboard();
-  const technical = document.querySelector('#analytics-technical-source');
-  if (technical) technical.textContent = analyticsSummary ? `Build: ${analyticsSummary.build || 'unavailable'} · Source: ${analyticsSummary.source || 'unavailable'}` : 'Source details unavailable.';
 }
 document.addEventListener('funded:analytics-upgraded', () => renderOnchainReportState(assets));
 let leaderboardView = 'burners';

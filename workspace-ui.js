@@ -601,13 +601,6 @@ function rewards() {
 function secondaryPages() {
   text('#referral-command-title', 'Your referral activity');
   disclose($('.referral-toolkit'), 'Campaign links and sharing tools');
-  const analytics = $('#analytics-detail');
-  if(analytics){
-    const details=node('details','ui-disclosure');
-    details.innerHTML='<summary>Data source details</summary><p id="analytics-technical-source"></p>';
-    details.querySelector('#analytics-technical-source').textContent=$('#analytics-range-status')?.textContent?.trim() || 'Source details unavailable.';
-    analytics.append(details);
-  }
   const receipts=$('.burn-receipts-panel');
   if(receipts)receipts.prepend(node('p','field-help','Supply reduction includes all on-chain burns; this ledger includes only verified receipts available to the app. Voluntary, promotion, and fee-funded burns are distinct.'));
   disclose($('.burn-policy-preview'), 'Fee-funded buyback policy · example calculator');
