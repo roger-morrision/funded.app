@@ -109,7 +109,7 @@
         </section>
 
         <section class="launch-route-shell section-block" id="launch-route-shell" aria-labelledby="launch-route-title">
-          <p class="eyebrow">Create · Pump · Solana Devnet</p><h1 id="launch-route-title">Create a coin</h1>
+          <p class="eyebrow">Create · Pump · Solana</p><h1 id="launch-route-title">Create a coin</h1>
           <p class="page-lede">Add the coin details, choose a tier, and review the cost before connecting your wallet.</p>
           <div class="route-shell-actions"><a class="text-button" href="#docs">Read the launch guide →</a></div>
         </section>
@@ -638,7 +638,7 @@
           <div class="launch-layout">
             <div class="launch-fields">
               <section class="launch-step-panel active" data-launch-step="1" aria-labelledby="coin-step-title">
-                <div class="step-heading"><span>Coin details</span><h3 id="coin-step-title">Name your coin</h3><p>Name, ticker, description, and image are published at launch.</p></div>
+                <div class="step-heading"><span>Coin details</span><h3 id="coin-step-title">Tell people about your coin</h3><p>Add a name, ticker, and image. You can add a description and links too.</p></div>
                 <div class="form-grid coin-fields">
                   <label>Token name<input id="token-name" name="tokenName" placeholder="Nova Protocol" maxlength="32" autocomplete="off" aria-describedby="token-name-warning" required /><span class="field-help launch-field-warning" id="token-name-warning" role="alert" hidden>Enter a token name.</span></label>
                   <label>Ticker<input id="token-symbol" name="tokenSymbol" placeholder="NOVA" maxlength="10" autocomplete="off" aria-describedby="token-symbol-warning" required /><span class="field-help launch-field-warning" id="token-symbol-warning" role="alert" hidden>Enter a ticker.</span></label>
@@ -646,13 +646,26 @@
                 <label class="full-label">Token image
                   <span class="image-picker" id="token-image-picker"><span class="image-preview" id="token-image-preview" aria-hidden="true">⌁</span><span><strong>Choose image</strong><small class="field-help" id="token-image-help">PNG, JPG, WEBP · up to 12 MB · resized locally before upload · square artwork recommended</small></span><input id="token-image" name="tokenImage" type="file" aria-label="Choose token image" aria-describedby="token-image-help image-preparation-status" accept="image/png,image/jpeg,image/webp" /></span>
                 </label>
+                <section class="launch-package-preview" aria-labelledby="launch-package-preview-title">
+                  <div class="launch-package-preview-heading"><div><span>PACKAGE PREVIEW</span><h3 id="launch-package-preview-title">Your selected package</h3></div><p>Example layout. The mint, market data, and post link appear after launch.</p></div>
+                  <div class="launch-package-preview-grid">
+                    <div class="launch-package-example" id="launch-package-example" data-tier="standard">
+                      <div class="launch-package-example-top"><span>Token page</span><strong id="launch-package-label">Standard</strong></div>
+                      <div class="launch-package-example-art" id="launch-package-example-art"><span>Token artwork</span><b id="launch-package-art-badge">PRO PROMOTION</b></div>
+                      <div class="launch-package-example-identity"><div class="launch-token-preview-image" id="preview-token-image"><span id="preview-token-image-placeholder">◎</span></div><div class="launch-package-example-title"><strong id="preview-name">Token name</strong><span id="preview-symbol">TICKER</span></div><b class="preview-promotion-badge standard" id="preview-promotion-badge">STANDARD</b></div>
+                      <p id="preview-tagline">Your coin description appears here.</p>
+                      <div class="launch-package-example-tabs" aria-hidden="true"><span>Overview</span><span>Trades</span><span>Holders</span></div>
+                    </div>
+                    <div class="launch-x-example"><div class="launch-x-example-heading"><span>X post preview</span><strong id="launch-x-post-count">1 post</strong></div><div class="launch-x-example-account"><span aria-hidden="true">f</span><div><strong>funded.vip</strong><small>@fundedvip</small></div></div><p id="launch-x-post-preview"></p><div class="launch-x-example-followup" id="launch-x-followup" hidden><strong>Follow-up after 24 hours</strong><p id="launch-x-followup-preview"></p></div><small>Sample copy. Posting requires a verified launch and an active publisher.</small></div>
+                  </div>
+                </section>
                 <div class="launch-profile-heading"><strong>Choose your launch path</strong><span>20% protocol · choose where your 80% share goes</span></div>
                 <div class="launch-profile-grid" role="group" aria-label="Launch path">
                   <button type="button" class="launch-profile-card active" id="launch-profile-fast" data-launch-profile="fast" aria-pressed="true"><span>QUICK SETUP</span><strong>Creator wallet only</strong><p>Your full 80% creator share goes to your wallet. Holder and X rewards stay at 0%.</p><b>Simple fee route</b></button>
                   <button type="button" class="launch-profile-card" id="launch-profile-community" data-launch-profile="community" aria-pressed="false"><span>COMMUNITY SETUP</span><strong>Share with your community</strong><p>Split your 80% between your wallet, holder rewards, and a verified X account. Add links, thesis, and roadmap.</p><b>Choose your split in Launch settings</b></button>
                 </div>
                 <details class="launch-optional-socials"><summary id="launch-social-links-title">Social links <span>(optional)</span></summary><div class="social-grid"><label for="token-website">Website<input id="token-website" name="tokenWebsite" type="url" aria-label="Project website URL" placeholder="https://yourproject.com" autocomplete="url" /></label><label for="token-x">X profile<input id="token-x" name="tokenX" type="url" aria-label="Project X profile URL" placeholder="https://x.com/yourproject" autocomplete="url" /></label><label for="token-telegram">Telegram<input id="token-telegram" name="tokenTelegram" type="url" aria-label="Project Telegram URL" placeholder="https://t.me/yourproject" autocomplete="url" /></label><label for="token-discord">Discord<input id="token-discord" name="tokenDiscord" type="url" aria-label="Project Discord URL" placeholder="https://discord.gg/yourproject" autocomplete="url" /></label></div></details>
-                <label class="full-label">Description<textarea id="token-description" name="tokenDescription" maxlength="280" rows="3" placeholder="What is this coin about?"></textarea><small class="field-counter" id="token-description-counter">0/280 · published with Devnet metadata</small></label>
+                <label class="full-label">Description <span class="optional">optional</span><textarea id="token-description" name="tokenDescription" maxlength="280" rows="3" placeholder="What is this coin about?"></textarea><small class="field-counter" id="token-description-counter">0/280</small></label>
                 <section class="enhanced-token-page" aria-label="Project story fields"><div class="launch-page-fields"><label>One-line thesis<input id="token-tagline" name="tokenTagline" maxlength="90" placeholder="A simple idea worth watching" /></label><label>Roadmap / milestones<textarea id="token-roadmap" name="tokenRoadmap" maxlength="420" rows="3" placeholder="01 · Launch the community&#10;02 · Ship the first release"></textarea></label></div></section>
                 <p class="field-help launch-immutable-note">Choose carefully: token identity and any story entered here are published with the launch. This flow cannot edit them after creation.</p>
                 <input id="token-supply" name="tokenSupply" type="hidden" value="1000000000" />
@@ -660,23 +673,23 @@
               </section>
 
               <section class="launch-step-panel" data-launch-step="2" aria-labelledby="benefits-step-title" hidden>
-                <div class="step-heading"><span>Launch cost</span><h3 id="benefits-step-title">Community buy and extras</h3><p>Choose the community token amount. Developer buy and custom fee sharing are optional.</p></div>
+                <div class="step-heading"><span>Launch settings</span><h3 id="benefits-step-title">Funding and fees</h3><p>Choose the community allocation. Developer buy and fee sharing are optional.</p></div>
                 <div class="launch-feature-strip" aria-label="Launch modules"><div><i>◇</i><span><strong>Community reserve</strong><small>3% minimum, shown in the receipt trail</small></span><b>ON</b></div><div><i>⌁</i><span><strong>Fee route</strong><small>100% enters the verified router first</small></span><b>LOCKED</b></div><div><i>▣</i><span><strong>Public profile</strong><small>Thesis, links, and milestones stay together</small></span><b>OPTIONAL</b></div><div><i>♨</i><span><strong>Visibility tier</strong><small>Optional $FUNDED commitment and receipt</small></span><b>OPTIONAL</b></div></div>
                 <section class="launch-tier launch-funding-section" aria-labelledby="launch-funding-title"><div class="section-label-row"><strong id="launch-funding-title">Launch funding</strong><span>Developer buy is optional</span></div><div class="launch-funding-grid"><label>Community airdrop amount<div class="amount-input"><input id="community-airdrop-tokens" name="communityAirdropTokens" type="number" min="30000000" max="500000000" step="1000000" value="30000000" inputmode="numeric" aria-describedby="community-airdrop-help"><b>tokens</b></div><small class="field-help" id="community-airdrop-help">30M minimum · 500M maximum (3%–50% of supply).</small><span class="amount-presets" aria-label="Community airdrop presets"><button type="button" class="active" data-airdrop-tokens="30000000" aria-pressed="true">MIN 30M</button><button type="button" data-airdrop-tokens="50000000" aria-pressed="false">50M</button></span></label><label>Developer buy <span class="optional">optional</span><div class="amount-input"><input id="creator-buy-sol" name="creatorBuySol" type="number" min="0" step="0.01" value="0" inputmode="decimal" aria-describedby="creator-buy-help"><b>SOL</b></div><small class="field-help" id="creator-buy-help">Enter the SOL to buy from the fresh curve. Maximum 20% of supply.</small><div class="creator-buy-preview"><span>Estimated tokens</span><strong id="creator-buy-token-amount">None</strong><small id="creator-buy-sol-amount">No developer buy</small></div></label></div></section>
                 <section class="creator-burn-section" aria-labelledby="creator-burn-title">
-                  <div class="section-label-row"><strong id="creator-burn-title">Launch tier</strong><span>Verified on-chain</span></div>
-                  <p class="creator-burn-intro">Paid tiers burn $FUNDED in the launch transaction. Choose Standard for no burn.</p>
+                  <div class="section-label-row"><strong id="creator-burn-title">Promotion package</strong><span>Select one</span></div>
+                  <p class="creator-burn-intro">Paid packages burn $FUNDED when you launch. Select a package to preview its token page and X post.</p>
                   <div class="creator-burn-tiers" role="group" aria-label="$FUNDED burn tier">
-                    <button type="button" class="creator-burn-card active" data-burn-tier="standard" aria-pressed="true"><span>STANDARD</span><strong>0 $FUNDED</strong><small>Core Pump launch, community airdrop, and basic X announcement.</small><b>Included</b></button>
-                    <button type="button" class="creator-burn-card pro" data-burn-tier="pro" aria-pressed="false"><span>PRO · $100</span><strong id="pro-burn-amount">Checking price…</strong><small>Pro badge, burn receipt, and a featured X launch post after verification.</small><em id="pro-tier-progress">Connect wallet to check balance</em><b>Select Pro</b></button>
-                    <button type="button" class="creator-burn-card premier" data-burn-tier="premier" aria-pressed="false"><span>PREMIER · $200</span><strong id="premier-burn-amount">Checking price…</strong><small>Premier badge, featured X launch post, and follow-up after 24 hours.</small><em id="premier-tier-progress">Connect wallet to check balance</em><b>Select Premier</b></button>
+                    <button type="button" class="creator-burn-card active" data-burn-tier="standard" aria-pressed="true"><span>STANDARD</span><strong>Free</strong><small>Compact token page · one launch post</small><b>Selected</b></button>
+                    <button type="button" class="creator-burn-card pro" data-burn-tier="pro" aria-pressed="false"><span>PRO · $100</span><strong id="pro-burn-amount">Checking price…</strong><small>Larger token page · one featured post</small><em id="pro-tier-progress">Connect wallet to check balance</em><b>Select Pro</b></button>
+                    <button type="button" class="creator-burn-card premier" data-burn-tier="premier" aria-pressed="false"><span>PREMIER · $200</span><strong id="premier-burn-amount">Checking price…</strong><small>Largest token page · launch + follow-up posts</small><em id="premier-tier-progress">Connect wallet to check balance</em><b>Select Premier</b></button>
                   </div>
-                  <p class="launch-tier-quote-status">X posts publish only while the funded.vip account publisher is active. Devnet posts are labeled as tests.</p>
+                  <p class="launch-tier-quote-status">X posts publish only after launch verification and while the funded.vip publisher is active.</p>
                   <div class="launch-tier-balance"><span>Your wallet: <strong id="launch-tier-wallet-balance">Connect wallet to check $FUNDED</strong></span><button type="button" id="launch-tier-refresh">Refresh price &amp; balance</button></div>
                   <p class="launch-tier-quote-status" id="launch-tier-quote-status" role="status" aria-live="polite">Checking the verified $FUNDED pool price…</p>
                 </section>
 
-                <div class="launch-mode-grid" role="group" aria-label="Distribution mode">
+                <details class="launch-fee-options"><summary>Fee sharing <span>Optional · 80% goes to your wallet by default</span></summary><div class="launch-fee-options-body"><div class="launch-mode-grid" role="group" aria-label="Distribution mode">
                   <button type="button" class="launch-mode-card active" id="launch-mode-quick" aria-pressed="true"><span>RECOMMENDED</span><strong>Simple fee route</strong><small>Allocate all 80% to your wallet. Coin-holder and X-partner fee shares are 0%.</small></button>
                   <button type="button" class="launch-mode-card" id="launch-mode-custom" aria-pressed="false"><span>ADVANCED</span><strong>Custom distribution</strong><small>Split your 80% between your wallet, holder rewards, and a verified X account's linked wallet. X rewards require the mint-specific router to be active.</small></button>
                 </div>
@@ -693,7 +706,7 @@
                     <label class="full-span">Rewarded X account <span class="optional">required above 0%</span><input id="x-recipient" name="xRecipient" placeholder="@account" disabled /></label>
                   </div>
                   <p class="field-help" id="fee-distribution-status" role="status"></p>
-                </section>
+                </section></div></details>
               </section>
 
               <section class="launch-step-panel launch-review-step" data-launch-step="3" hidden aria-labelledby="launch-final-title">
@@ -727,7 +740,7 @@
               <div class="wizard-actions"><button type="button" class="secondary-button" id="launch-back" hidden>Back</button><span id="wizard-hint" role="status" aria-live="polite" aria-atomic="true">Enter the coin name and ticker to continue.</span><button type="button" class="secondary-button" id="launch-review-retry" hidden>Retry checks</button><button type="button" class="primary-button" id="launch-next" aria-describedby="wizard-hint">Continue</button></div>
             </div>
             <aside class="launch-preview" aria-label="Launch summary"><div class="launch-preview-sticky">
-              <section class="launch-preview-panel" aria-labelledby="launch-preview-title"><div class="launch-preview-heading"><strong id="launch-preview-title">Launch summary</strong><span>LOCAL PREVIEW</span></div><div class="launch-summary-specs"><div><span>Launchpad</span><strong id="preview-launchpad">Pump.fun</strong></div><div><span>Supply</span><strong id="preview-supply">1 billion</strong></div><div><span>Community reserve</span><strong id="preview-community">3%</strong></div><div><span>Developer buy</span><strong id="preview-creator-buy">Creation only</strong></div><div><span>Launch tier</span><strong id="preview-burn-tier" class="tier-badge standard">STANDARD</strong></div><div><span>Estimated total</span><strong id="preview-launch-cost">Connect wallet</strong></div></div><article class="launch-token-preview-card"><div class="launch-token-preview-image" id="preview-token-image"><span id="preview-token-image-placeholder">◎</span><b class="preview-promotion-badge standard" id="preview-promotion-badge">STANDARD</b></div><div class="preview-title"><strong id="preview-name">Token name</strong><span id="preview-symbol">TICKER</span></div><p id="preview-tagline">Add a clear thesis for the community.</p></article></section>
+              <section class="launch-preview-panel" aria-labelledby="launch-preview-title"><div class="launch-preview-heading"><strong id="launch-preview-title">Launch summary</strong></div><div class="launch-summary-specs"><div><span>Launchpad</span><strong id="preview-launchpad">Pump.fun</strong></div><div><span>Supply</span><strong id="preview-supply">1 billion</strong></div><div><span>Community reserve</span><strong id="preview-community">3%</strong></div><div><span>Developer buy</span><strong id="preview-creator-buy">Creation only</strong></div><div><span>Launch tier</span><strong id="preview-burn-tier" class="tier-badge standard">STANDARD</strong></div><div><span>Estimated total</span><strong id="preview-launch-cost">Connect wallet</strong></div></div></section>
               <div class="cost-summary launch-pay-summary free-launch" id="cost-summary" aria-live="polite">
                 <div class="cost-summary-head"><span>You pay</span><strong id="cost-tier-label">Platform launch fee: 0</strong></div>
                   <div class="community-airdrop-highlight"><span>COMMUNITY RESERVE</span><strong><b id="cost-community-tokens">30,000,000</b> tokens</strong><p id="cost-community-detail"><b>3.00% of supply</b> · bought and locked in the reward vault when launch finalizes</p></div>

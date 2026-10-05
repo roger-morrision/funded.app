@@ -91,7 +91,7 @@ assert.match(launchPage, /class="launch-submit-row launch-preview-submit"[\s\S]*
 assert.doesNotMatch(launchPage, /launch-button-review/, 'The review step must not duplicate the signing action.');
 assert.match(launchPage, /id="launch-review-summary"/, 'The review step must summarize selected details.');
 assert.match(launchPage, /id="preview-launchpad">Pump\.fun<\/strong>/, 'Launchpad summary should always have a visible fallback.');
-assert.match(launchPage, /id="preview-network">Solana Devnet<\/strong>/, 'Network summary should always have a visible fallback.');
+assert.match(launchPage, /id="launch-package-example" data-tier="standard"/, 'The selected token page package should have a visible Standard fallback.');
 assert.match(launchPage, /id="preview-supply">1 billion<\/strong>/, 'Supply summary should always have a visible fallback.');
 assert.match(pageStyles, /\.launch-summary-specs > div \{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(90px, auto\)/s, 'Launch summary rows should contain long values instead of clipping them.');
 assert.match(pageStyles, /\.launch-pay-summary \.cost-row > b \{[^}]*white-space: normal;[^}]*overflow-wrap: anywhere/s, 'Launch cost values should wrap instead of widening the preview card.');
@@ -134,7 +134,7 @@ assert.doesNotMatch(launchPage, /review-referrer|<span>Inviter<\/span>|Gross fee
 assert.match(launchPage, /APP PROTOCOL<\/span><strong>20%/);
 assert.match(launchPage, /app-level referrals, \$FUNDED buyback and burn, community programs, and operations\/marketing/);
 assert.doesNotMatch(launchPage, /automated funding and settlement are not live yet/, 'The removed Devnet policy paragraph must not return to the launch form.');
-assert.match(launchPage, /Paid tiers burn \$FUNDED in the launch transaction/);
+assert.match(launchPage, /Paid packages burn \$FUNDED when you launch/);
 assert.doesNotMatch(launchPage, /claim-example-receipt|Example for 1 SOL claimed|Illustration only; this is not a revenue forecast or a live claim/, 'The removed after-launch example card must not return.');
 assert.match(html, /data-burn-tier="standard"/);
 assert.doesNotMatch(launchPage, /class="creator-burn-card boost"|data-burn-tier="boost"/, 'Boost must not appear as a new launch tier.');

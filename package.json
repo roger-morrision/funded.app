@@ -58,6 +58,7 @@
     "verify:self-reward-devnet": "node --env-file=.env.local scripts/verify-self-reward-devnet.mjs",
     "verify:launch": "node scripts/verify-launch.mjs",
     "verify:launch-wizard": "node scripts/verify-launch-wizard.mjs",
+    "verify:launch-package-preview": "node scripts/verify-launch-package-preview.mjs",
     "verify:devnet-metadata": "node scripts/verify-devnet-metadata.mjs",
     "verify:local-flow": "node scripts/verify-local-flow.mjs",
     "verify:fee-policy": "node scripts/verify-fee-policy.mjs",

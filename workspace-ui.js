@@ -472,8 +472,8 @@ function launch() {
   const socials = firstStep?.querySelector('.launch-optional-socials');
   const image = firstStep?.querySelector('.full-label:has(#token-image-picker)');
   if (coinFields && description && socials && image) coinFields.after(description, socials, image);
-  text('#creator-burn-title', 'Launch tier');
-  text('#creator-burn-title + span', 'Choose before coin details');
+  text('#creator-burn-title', 'Promotion package');
+  text('#creator-burn-title + span', 'Select one');
   if (tier) {
     const explanations = {
       standard: ['Standard', 'No $FUNDED burn. The core Pump launch, community airdrop policy, and basic funded.vip X announcement apply when account publishing is active.'],

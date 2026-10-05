@@ -28,7 +28,7 @@ const secondStep = document.querySelector('[data-launch-step="2"]');
 if (secondStep) {
   const mode = secondStep.querySelector('.launch-mode-grid');
   const custom = secondStep.querySelector('#custom-policy');
-  if (mode && custom) {
+  if (mode && custom && !mode.closest('.launch-fee-options')) {
     const advanced = document.createElement('details');
     advanced.className = 'launch-advanced-options';
     advanced.id = 'launch-advanced-options';

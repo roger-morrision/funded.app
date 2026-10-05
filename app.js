@@ -5245,6 +5245,8 @@ function formatLaunchCost(lamports){ return `${(Number(lamports) / 1_000_000_000
 function formatLaunchBurnAmount(amount){ return Number(amount || 0).toLocaleString(); }
 function renderLaunchBurnSelection(){
   const policy = getLaunchBurnPolicy();
+  const tierSection = document.querySelector('.creator-burn-section');
+  if (tierSection) tierSection.dataset.selectedTier = policy.tier;
   const amounts = currentLaunchTierAmounts();
   const walletReady = Boolean(connectedWalletAddress && fundedBurnState.wallet === connectedWalletAddress && fundedBurnState.status === 'ready');
   const walletBalance = walletReady ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : null;
@@ -5324,7 +5326,9 @@ function updateCostSummary(){
   if (communityDetailNode) communityDetailNode.innerHTML = Number.isFinite(communityPercent)
     ? `<b>${communityPercent.toFixed(2)}% of supply</b> · bought and locked in the reward vault when launch finalizes`
     : '<b>Enter a valid airdrop amount</b>';
-  if (burnNode) burnNode.textContent = burnPolicy.requiresBurn ? `${formatLaunchBurnAmount(burnPolicy.amountTokens)} $FUNDED` : '0 $FUNDED';
+  if (burnNode) burnNode.textContent = burnPolicy.requiresBurn
+    ? burnPolicy.amountTokens > 0 ? `${formatLaunchBurnAmount(burnPolicy.amountTokens)} $FUNDED` : 'Quote unavailable'
+    : '0 $FUNDED';
   if (burnRow) burnRow.hidden = !burnPolicy.requiresBurn;
   if (tierLabelNode) tierLabelNode.textContent = burnPolicy.requiresBurn ? burnPolicy.label.toUpperCase() : 'Platform launch fee: 0';
   if (summaryNode) summaryNode.classList.toggle('free-launch', !burnPolicy.requiresBurn);
@@ -5354,7 +5358,7 @@ function updateCostSummary(){
   totalNode.textContent = launchCost;
   if (previewLaunchNode) previewLaunchNode.textContent = launchCost;
   noteNode.textContent = burnPolicy.requiresBurn
-    ? 'Total includes network fees, account reserve, any creator buy with its 1% allowance, and the selected $FUNDED burn.'
+    ? 'SOL total includes network fees, account reserve, and any developer buy. The $FUNDED burn is separate.'
     : 'The free tier has no $FUNDED burn. Total includes network fees, account reserve, and any creator buy with its 1% allowance.';
 }
 function renderLaunchCostDetails(){
@@ -5440,7 +5444,37 @@ function updateLaunchPreview(){
   if (descriptionCounter) descriptionCounter.textContent = `${description.length}/280 · published with Solana metadata`;
   const tagline = document.querySelector('#token-tagline')?.value.trim() || '';
   const taglinePreview = document.querySelector('#preview-tagline');
-  if (taglinePreview) taglinePreview.textContent = tagline || 'Add a clear thesis for the community.';
+  if (taglinePreview) taglinePreview.textContent = tagline || description.trim() || 'Your coin description appears here.';
+  const packageExample = document.querySelector('#launch-package-example');
+  if (packageExample) packageExample.dataset.tier = launchBurn.tier;
+  const packageLabel = document.querySelector('#launch-package-label');
+  if (packageLabel) packageLabel.textContent = launchBurn.label;
+  const packageArtBadge = document.querySelector('#launch-package-art-badge');
+  if (packageArtBadge) packageArtBadge.textContent = `${launchBurn.label.toUpperCase()} PROMOTION`;
+  const cleanedXLabel = (name || symbol || 'Token name').normalize('NFKC')
+    .replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, ' ')
+    .replace(/[^\p{L}\p{N}\p{M} _-]/gu, ' ').replace(/\s+/g, ' ').trim() || 'Unnamed token';
+  let xLabel = '', xLabelWeight = 0;
+  for (const character of cleanedXLabel) {
+    const weight = character.codePointAt(0) <= 0x7f ? 1 : 2;
+    if (xLabelWeight + weight > 32) break;
+    xLabel += character;
+    xLabelWeight += weight;
+  }
+  xLabel = xLabel.trim() || 'Token';
+  const xPrefix = EXPLORE_CLUSTER === 'devnet' ? '[Devnet test] ' : '[Mainnet] ';
+  const xLink = 'https://funded.vip/token/{mint-after-launch}';
+  const xLaunch = launchBurn.tier === 'standard'
+    ? `New project on funded.vip: “${xLabel}”. Token creation finalized.`
+    : `${launchBurn.tier === 'premier' ? 'Premier' : 'Pro'} launch: “${xLabel}”. Creation and $FUNDED tier burn finalized.`;
+  const xPost = document.querySelector('#launch-x-post-preview');
+  if (xPost) xPost.textContent = `${xPrefix}${xLaunch}\n${xLink}`;
+  const xPostCount = document.querySelector('#launch-x-post-count');
+  if (xPostCount) xPostCount.textContent = launchBurn.tier === 'premier' ? '2 posts' : '1 post';
+  const xFollowup = document.querySelector('#launch-x-followup');
+  if (xFollowup) xFollowup.hidden = launchBurn.tier !== 'premier';
+  const xFollowupText = document.querySelector('#launch-x-followup-preview');
+  if (xFollowupText) xFollowupText.textContent = `${xPrefix}Premier project follow-up: “${xLabel}”. Explore the verified launch and public token page.\n${xLink}`;
   const buyLabel = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL${creatorBuy.tokens > 0 ? ` · ${Math.round(creatorBuy.tokens).toLocaleString()} tokens` : ''}` : 'Creation only';
   const previewBuy = document.querySelector('#preview-creator-buy');
   if (previewBuy) previewBuy.textContent = buyLabel;
@@ -5890,7 +5924,7 @@ function setLaunchProfile(profile){
     if (pageDetails) pageDetails.open = true;
     const story = document.querySelector('.launch-optional-story');
     if (story) story.open = true;
-    const advanced = document.querySelector('#launch-advanced-options');
+    const advanced = document.querySelector('#launch-advanced-options, .launch-fee-options');
     if (advanced) advanced.open = true;
   }
   const hint = document.querySelector('#wizard-hint');
@@ -6656,12 +6690,13 @@ document.querySelector('#token-image')?.addEventListener('change', async event =
   const preview = document.querySelector('#token-image-preview');
   const cardPreview = document.querySelector('#preview-token-image');
   const cardPlaceholder = document.querySelector('#preview-token-image-placeholder');
+  const packageArtwork = document.querySelector('#launch-package-example-art');
   if (!preview) return;
   const status=document.querySelector('#image-preparation-status');
   const removeButton=document.querySelector('#image-remove');
   if(removeButton)removeButton.disabled=!file;
-  preview.style.backgroundImage='';preview.textContent=file?'…':'⌁';if(cardPreview){cardPreview.style.backgroundImage='';cardPreview.classList.remove('has-image');}if(cardPlaceholder)cardPlaceholder.hidden=false;if(status)status.textContent=file?'Preparing locally. Nothing is uploaded yet.':'No image selected.';
-  try{const image=await prepareLaunchImage(file,{crop:document.querySelector('#image-square-crop')?.checked});if(revision!==imagePreparationRevision||file!==event.target.files?.[0])return;if(image){preview.textContent='';preview.style.backgroundImage=`url(${image.url})`;if(cardPreview){cardPreview.style.backgroundImage=`url(${image.url})`;cardPreview.classList.add('has-image');}if(cardPlaceholder)cardPlaceholder.hidden=true;if(status)status.textContent=`Ready: ${image.width} × ${image.height}, ${Math.ceil(image.file.size/1000)} KB. Review the preview before signing.`;}}
+  preview.style.backgroundImage='';preview.textContent=file?'…':'⌁';if(cardPreview){cardPreview.style.backgroundImage='';cardPreview.classList.remove('has-image');}if(packageArtwork){packageArtwork.style.backgroundImage='';packageArtwork.classList.remove('has-image');}if(cardPlaceholder)cardPlaceholder.hidden=false;if(status)status.textContent=file?'Preparing locally. Nothing is uploaded yet.':'No image selected.';
+  try{const image=await prepareLaunchImage(file,{crop:document.querySelector('#image-square-crop')?.checked});if(revision!==imagePreparationRevision||file!==event.target.files?.[0])return;if(image){preview.textContent='';preview.style.backgroundImage=`url(${image.url})`;if(cardPreview){cardPreview.style.backgroundImage=`url(${image.url})`;cardPreview.classList.add('has-image');}if(packageArtwork){packageArtwork.style.backgroundImage=`url(${image.url})`;packageArtwork.classList.add('has-image');}if(cardPlaceholder)cardPlaceholder.hidden=true;if(status)status.textContent=`Ready: ${image.width} × ${image.height}, ${Math.ceil(image.file.size/1000)} KB. Review the preview before signing.`;}}
   catch(error){if(revision!==imagePreparationRevision||file!==event.target.files?.[0])return;await prepareLaunchImage(null);event.target.value='';if(removeButton)removeButton.disabled=true;if(status)status.textContent=error.message;preview.textContent='!';}
   updateLaunchPreview();updateLaunchButton();
 });
