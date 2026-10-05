@@ -46,7 +46,7 @@ function createPanels() {
   const rewardsOverview = byId('rewards-overview') || payments;
   if (payments && !byId('reward-portfolio')) {
     const section = node('section', 'reward-experience-panel', null); section.id = 'reward-portfolio';
-    section.innerHTML = `<header><div><p class="eyebrow">Your wallet · verified records</p><h2>Your reward activity</h2><p>Verified allocations and payments for your wallet.</p></div><div class="reward-portfolio-top-actions"><span data-reward-evidence>Checking evidence…</span><button type="button" data-reward-connect>Connect wallet</button></div></header><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><small class="reward-portfolio-note">Only finalized transfer receipts count as paid.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Your wallet · verified records</p><h2>Your reward activity</h2><p>Verified allocations and payments for your wallet.</p></div><div class="reward-portfolio-top-actions"><span data-reward-evidence>Checking evidence…</span><button type="button" data-reward-connect>Connect wallet</button></div></header><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><div class="reward-portfolio-destinations"><p class="reward-portfolio-label">Explore rewards</p><nav class="reward-portfolio-links" aria-label="Reward programs"><a href="#airdrops"><span><strong>$FUNDED airdrops</strong><small>Holder eligibility and claims</small></span><b aria-hidden="true">↗</b></a><a href="#referrals"><span><strong>Referral rewards</strong><small>Earned SOL and claim status</small></span><b aria-hidden="true">↗</b></a><a href="#payments"><span><strong>X account rewards</strong><small>Sign in to check SOL claims</small></span><b aria-hidden="true">↗</b></a></nav></div><small class="reward-portfolio-note">Allocations are not balances. X claims need matching sign-in; airdrops need a finalized snapshot.</small>`;
     rewardsOverview.append(section);
   }
   if (payments && !byId('reward-discovery')) {
@@ -102,7 +102,18 @@ function renderPortfolio(data, referralData, xData) {
   const connectButton = byId('reward-portfolio')?.querySelector('[data-reward-connect]');
   if (connectButton) connectButton.hidden = Boolean(wallet);
   body.replaceChildren();
-  if (!wallet) { body.textContent = 'Connect a wallet to see your reward records.'; return; }
+  if (!wallet) {
+    const empty = node('div', 'reward-portfolio-empty');
+    const copy = node('div', 'reward-portfolio-empty-copy');
+    copy.append(node('span', 'reward-portfolio-empty-icon', '◈'), node('h3', '', 'Connect to see your records'),
+      node('p', '', 'Connect a wallet to check your verified payments and open claims.'));
+    const button = node('button', 'reward-portfolio-connect', 'Connect wallet');
+    button.type = 'button';
+    button.addEventListener('click', () => byId('connect-button')?.click());
+    empty.append(copy, button);
+    body.append(empty);
+    return;
+  }
   if (data.evidence.status === 'unavailable') { body.textContent = 'Finalized receipt coverage is unavailable. Your balances are not shown until it recovers.'; return; }
   const rows = wallet.rows || [];
   const paid = rows.flatMap(row => row.payouts || []);

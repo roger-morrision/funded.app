@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { createPostgresStore } from '../server/postgres-store.mjs';
 import bs58 from 'bs58';
@@ -18,7 +19,9 @@ try {
   // Include an otherwise eligible launch so zero traffic cannot be explained by an empty source ledger.
   const mint = bs58.encode(Uint8Array.from({ length: 32 }, (_, i) => i + 1));
   const signature = bs58.encode(Uint8Array.from({ length: 64 }, (_, i) => i + 1));
-  await store.update(state => { state.launches[mint] = { mint, signature, name: 'Offline draft fixture', cluster: 'devnet', onchainVerified: true, createdTimestamp: Math.floor(Date.now() / 1000) - 10 }; });
+  await store.update(state => { state.launches[mint] = { mint, signature, name: 'Offline draft fixture', cluster: 'devnet', onchainVerified: true, createdTimestamp: Math.floor(Date.now() / 1000) - 10,
+    creatorLaunchBurn: { tier: 'pro', status: 'verified', amountTokens: 100, fundedMint: mint,
+      receipt: { signature, verified: true, atomicWithPumpLaunch: true } } }; });
   await writeFile(trap, `
     import http from 'node:http'; import https from 'node:https';
     import { syncBuiltinESMExports } from 'node:module'; import { writeFileSync } from 'node:fs';
@@ -29,7 +32,7 @@ try {
   `);
   const outputs = [];
   for (const args of [[], ['--status']]) {
-    const result = spawnSync(process.execPath, ['--import', trap, 'scripts/run-x-post-worker.mjs', ...args], {
+    const result = spawnSync(process.execPath, ['--import', pathToFileURL(trap).href, 'scripts/run-x-post-worker.mjs', ...args], {
       cwd: new URL('..', import.meta.url), timeout: 15_000, encoding: 'utf8',
       env: { PATH: process.env.PATH, DATABASE_URL: databaseUrl, SOLANA_CLUSTER: 'devnet', X_POST_EXPECTED_HANDLE: 'draftfixture', X_POST_PUBLIC_ORIGIN: 'https://funded.vip', X_POST_START_AT: '2026-10-01T00:00:00.000Z', AUTOMATIC_REWARD_STORE_PATH: join(directory, 'missing-ledger.json') },
     });

@@ -195,6 +195,21 @@ input[type='search']:focus-visible {
   padding-top: 10px;
   border-top: 1px solid #252e3b;
 }
+.platform-x-topbar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #354052;
+  border-radius: 8px;
+  color: #c9d6e8;
+  font: 700 16px Arial, sans-serif;
+  text-decoration: none;
+}
+.platform-x-topbar:hover,
+.platform-x-topbar:focus-visible { border-color: #79a8ee; color: #fff; }
 
 /* Referrals route: keep the hero copy readable and give KPI cards a clearer rhythm. */
 .referral-command-center > .section-heading {

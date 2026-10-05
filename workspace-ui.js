@@ -476,9 +476,9 @@ function launch() {
   text('#creator-burn-title + span', 'Choose before coin details');
   if (tier) {
     const explanations = {
-      standard: ['Standard', 'No $FUNDED burn. The core Pump launch and published community airdrop policy still apply.'],
-      pro: ['Pro', 'A confirmed $FUNDED burn is bound to the launch transaction. Its badge and featured-review eligibility appear after verification. Placement requires a separate review.'],
-      premier: ['Premier', 'Includes the Pro benefits and makes the launch eligible for homepage spotlight review. Placement is not guaranteed.'],
+      standard: ['Standard', 'No $FUNDED burn. The core Pump launch, community airdrop policy, and basic funded.vip X announcement apply when account publishing is active.'],
+      pro: ['Pro', 'A confirmed $FUNDED burn is bound to the launch transaction. The package adds a verified badge and a featured funded.vip X launch post when account publishing is active.'],
+      premier: ['Premier', 'A confirmed $FUNDED burn adds the Premier badge, one funded.vip X launch post, and a separate follow-up after 24 hours once the first post is published.'],
     };
     const guide = node('div', 'launch-tier-guide-links');
     const guideDialog = node('dialog', 'launch-tier-guide-dialog');
@@ -651,7 +651,7 @@ function protocolPage() {
   if (!root || $('.paid-reference-hero', root)) return;
   const policyContent = [...root.children];
   const hero = node('div', 'paid-reference-hero');
-  hero.innerHTML = '<span class="paid-hero-mark" aria-hidden="true">ƒ</span><div><p class="eyebrow">$FUNDED · THE NETWORK TOKEN</p><h1>ONE TOKEN BEHIND EVERY LAUNCH.</h1><p>$FUNDED connects launch tiers, community allocations, and the published burn policy. Teams can burn it for promotion, while the platform tracks holder rewards and fee flows through verifiable records.</p><div class="paid-hero-actions"><a class="primary-button" href="#buybacks">BUY OR BURN $FUNDED ↗</a><a class="secondary-button" id="funded-token-chart" href="#explore" hidden>VIEW ON SOLANA ↗</a><a class="secondary-button" href="#explore">EXPLORE LAUNCHES</a><a class="secondary-button" href="#launch">BURN FOR A TIER</a></div></div>';
+  hero.innerHTML = '<span class="paid-hero-mark" aria-hidden="true">ƒ</span><div><p class="eyebrow">$FUNDED · network token</p><h1>The token behind every launch</h1><p>$FUNDED connects launch tiers, community allocations, and the published burn policy. Verify holder rewards and burns through their receipts.</p><div class="paid-hero-actions"><a class="primary-button" href="#buybacks">Buy or burn $FUNDED ↗</a><a class="secondary-button" id="funded-token-chart" href="#explore" hidden>View on Solana ↗</a><a class="secondary-button" href="#explore">Explore launches</a><a class="secondary-button" href="#launch">Burn for a tier</a></div></div>';
   const facts = node('div', 'paid-reference-metrics');
   facts.setAttribute('aria-label', '$FUNDED token and tier metrics');
   facts.innerHTML = '<div><span>PRICE</span><strong id="funded-token-price">$—</strong><small id="funded-token-price-note">Verified quote unavailable</small></div><div><span>MARKET CAP</span><strong id="funded-token-market-cap">$—</strong><small id="funded-token-market-cap-note">Verified market unavailable</small></div><div><span>$FUNDED BURNED</span><strong id="funded-token-burned">—</strong><small id="funded-token-burned-note">Checking on-chain supply</small></div><div><span>BOOST TIER</span><strong id="funded-token-boost">—</strong><small id="funded-token-boost-note">$FUNDED burn per launch</small></div><div><span>PRO TIER</span><strong id="funded-token-pro">—</strong><small id="funded-token-pro-note">$FUNDED burn per launch</small></div><div><span>PREMIER TIER</span><strong id="funded-token-premier">—</strong><small id="funded-token-premier-note">$FUNDED burn per launch</small></div>';
@@ -706,6 +706,9 @@ function mergePurposePages() {
     if (group.childAtEnd) host.append(child);
     else nav.after(child);
   }
+  const followingPreferences = $('#community-preferences');
+  const watchlist = $('#community');
+  if (followingPreferences && watchlist && !watchlist.contains(followingPreferences)) watchlist.append(followingPreferences);
 }
 
 function tokenPage() {
@@ -835,6 +838,14 @@ function tokenPage() {
   policy?.remove();
   const slippage=$('#trade-slippage')?.closest('label');disclose(slippage,'Trade settings · slippage');
   const button=node('button','mobile-trade-open','Trade token');button.type='button';
+  const tradeHeading = $('#coin-page-title', root);
+  const syncTradeAction = () => {
+    const unavailable = tradeHeading?.textContent?.trim() === 'Token data unavailable';
+    button.classList.toggle('is-unavailable', unavailable);
+    button.textContent = unavailable ? 'View trade status' : 'Trade token';
+  };
+  if (tradeHeading) new MutationObserver(syncTradeAction).observe(tradeHeading, { childList: true, characterData: true, subtree: true });
+  syncTradeAction();
   const sheetBackground = new Map();
   const setSheet = open => {
     root.classList.toggle('trade-sheet-open',open);button.setAttribute('aria-expanded',String(open));
@@ -872,7 +883,6 @@ function syncRoute() {
   $$('[data-purpose-route]').forEach(link=>{const active=link.dataset.purposeRoute===route||(!location.hash&&link.dataset.purposeRoute===pageRoute);if(active)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');});
   const more=$('.nav-more');if(more)more.open=!matchMedia('(min-width:1180px)').matches && Boolean($('a[aria-current="page"]',more));
   const target=$('#route-guide');if(target&&['payments','my-launches','community','profile'].includes(route))target.hidden=true;
-  if(route==='community'){text('#community h2','Watchlist');}
   if(route==='funded-holder-token-rewards'){
     $('#rewards-holder-tab')?.click();
     requestAnimationFrame(()=>{

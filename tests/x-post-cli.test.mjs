@@ -24,6 +24,10 @@ test('CLI requires independent explicit live gates and a dedicated publication t
   const enabled = { ...environment, X_POST_ENABLED: 'true', X_POST_ALLOW_DEVNET: 'true', X_POST_ACCESS_TOKEN: 'synthetic-fixture' };
   assert.equal(xWorkerConfig(enabled, ['--execute']).execute, true);
   assert.equal(xWorkerConfig(enabled).execute, false, 'Environment alone must not enable publishing');
+  const oauth1 = { ...enabled, X_POST_API_KEY: 'fixture-key', X_POST_API_SECRET: 'fixture-secret',
+    X_POST_ACCESS_TOKEN_SECRET: 'fixture-user-secret' };
+  assert.equal(xWorkerConfig(oauth1, ['--execute']).execute, true);
+  assert.throws(() => xWorkerConfig({ ...oauth1, X_POST_API_SECRET: '' }, ['--execute']), /OAuth 1.0a/);
 });
 test('CLI rejects ambiguous modes, wrong networks and unsafe public destinations', () => {
   for (const args of [['--once','--loop'], ['--status','--once'], ['--unknown']]) assert.throws(() => xWorkerConfig(environment, args));
@@ -108,8 +112,9 @@ test('backdated recovery commits its checkpoint with the outbox and survives los
     const fixture = dailyPipelineFixture();
     const signature = bs58.encode(new Uint8Array(64).fill(20));
     const firstMint = bs58.encode(new Uint8Array(32).fill(20)), lateMint = bs58.encode(new Uint8Array(32).fill(21));
-    fixture.state.launches = { first: { mint: firstMint, signature, cluster: 'devnet', onchainVerified: true, onchainVerifiedAt: '2026-10-04T11:00:00.000Z' } };
-    const adapters = { verifyLaunch: async row => ({ mint: row.mint, name: 'Fixture', occurredAt: row.onchainVerifiedAt,
+    fixture.state.launches = { first: { mint: firstMint, signature, cluster: 'devnet', onchainVerified: true, onchainVerifiedAt: '2026-10-04T11:00:00.000Z',
+      creatorLaunchBurn: { tier: 'pro', status: 'verified', amountTokens: 100, receipt: { signature, verified: true, atomicWithPumpLaunch: true } } } };
+    const adapters = { verifyLaunch: async row => ({ mint: row.mint, name: 'Fixture', marketingTier: 'pro', occurredAt: row.onchainVerifiedAt,
       proofs: [{ signature: row.signature, slot: 123, cluster: 'devnet', commitment: 'finalized', verified: true }] }) };
     await fixture.publisher.verifyAccount();
     const options = { ...fixture.options, adapters };

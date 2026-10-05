@@ -1,0 +1,78 @@
+.token-card-evidence,
+.token-card-more > small {
+  display: block;
+  color: #a5b9c6;
+  font: 10px/1.5 'DM Mono', monospace;
+}
+.home-launch-card .token-card-evidence { margin: 6px 12px 0; }
+.home-reward-token-card .token-card-evidence { margin-top: 2px; font-size: 9px; line-height: 1.2; }
+.token-card-shell .token-card-more {
+  min-width: 0;
+  padding: 8px 14px 11px;
+  border-top: 1px solid #273246;
+}
+.token-card-shell .token-card-more summary {
+  width: fit-content;
+  color: #d6e5ed;
+  cursor: pointer;
+  font: 700 11px 'DM Mono', monospace;
+}
+.token-card-shell .token-card-more summary:focus-visible { outline: 2px solid #ffd28a; outline-offset: 3px; }
+.token-card-shell .token-card-more[open] .token-card-addresses { margin: 10px 0 8px; }
+body.page-route-airdrops .airdrop-public-programs .airdrop-directory-card > .token-card-more { grid-column: 1 / -1; }
+body.page-route-airdrops .airdrop-public-programs .directory-card-top .directory-token-identity { display: block; }
+body.page-route-airdrops .airdrop-public-programs .directory-card-top .directory-token-identity a { display: block; margin-top: 3px; text-align: left; }
+.watchlist-unavailable-mint { font: 12px 'DM Mono', monospace; overflow-wrap: anywhere; }
+.watchlist-unavailable-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.watchlist-unavailable-actions button { min-height: 40px; }
+.explore-policy-link { display: inline-flex; align-items: center; min-height: 40px; color: #d9b979; text-decoration: underline; text-underline-offset: 3px; }
+.explore-policy-link:focus-visible { outline: 2px solid #ffd28a; outline-offset: 3px; }
+.card-boost-packages { display: inline-flex; min-width: 0; max-width: 100%; }
+.card-boost-packages .boost-package-badges { gap: 4px; }
+.boost-package-badge { padding: 0; border: 0; border-radius: 0; background: transparent; color: #ffd34f; font: 800 11px/1.2 'DM Mono', monospace; }
+.boost-package-badges { gap: 5px; }
+body.page-route-explore .explore-ticker-token .explore-ticker-primary { display: flex; align-items: center; gap: 5px; min-width: 0; }
+body.page-route-explore .explore-ticker-token .explore-ticker-primary strong { flex: 0 1 auto; min-width: 0; }
+body.page-route-explore .explore-ticker-token .explore-ticker-primary strong.golden-ticker,
+body.page-route-overview .home-market-ticker-items strong.golden-ticker { color: #f4a340; }
+body.page-route-explore .explore-ticker-token:has(.boost-package-badges) { min-width: 260px; }
+body.page-route-explore .explore-ticker-token .boost-package-badges,
+body.page-route-explore .scanner-token-heading .boost-package-badges,
+body.page-route-overview .home-market-ticker-items .boost-package-badges { flex: none; flex-wrap: nowrap; }
+body.page-route-explore .scanner-head,
+body.page-route-explore .scanner-row { grid-template-columns: 28px minmax(260px,1.7fr) 78px 78px 70px 54px 78px 65px 95px 86px 80px; min-width: 1140px; }
+body.page-route-explore .scanner-token > span:last-child { min-width: 0; }
+body.page-route-explore .scanner-token .scanner-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 5px; min-width: 0; margin-top: 2px; }
+body.page-route-explore .scanner-actions .scanner-contract { display: inline-flex; flex: none; align-items: center; gap: 4px; min-height: 20px; padding: 0 2px; border: 0; background: transparent; color: #a9bac7; font: 10px/1 'DM Mono', monospace; white-space: nowrap; }
+body.page-route-explore .scanner-actions .scanner-contract span { display: inline; overflow: visible; }
+body.page-route-explore .scanner-actions .scanner-contract svg { width: 12px; height: 12px; }
+body.page-route-explore .scanner-actions .scanner-contract:hover { background: transparent; color: #ffd28a; }
+body.page-route-explore .scanner-actions .explore-social-links { gap: 3px; }
+body.page-route-explore .scanner-actions .explore-social-link { width: 20px; height: 20px; min-height: 20px; padding: 2px; }
+body.page-route-explore .scanner-actions .explore-social-link svg { width: 13px; height: 13px; }
+body.page-route-explore .scanner-actions .scanner-watch { min-width: 20px; width: 20px; min-height: 20px; padding: 1px; }
+body.page-route-overview .home-market-ticker-items a:has(.boost-package-badges) { width: max-content; max-width: none; }
+body.page-route-overview .home-market-ticker-items a:has(.boost-package-badges) > strong { max-width: 100px; }
+.home-reward-token-identity .card-boost-packages { margin-top: 4px; }
+.reward-row-head:has(.card-boost-packages),
+.reward-token-identity:has(.card-boost-packages) { flex-wrap: wrap; }
+.creator-coin-card > .card-boost-packages { margin: 8px 0 2px; }
+.claim-token .card-boost-packages { margin-top: 4px; }
+@media (min-width: 1200px) {
+  body.page-route-overview [data-home-reward-grid="funded"] .home-reward-token-values { gap: 0 !important; margin: 5px 0 2px !important; }
+  body.page-route-overview [data-home-reward-grid="funded"] .home-reward-snapshot { gap: 2px !important; margin: 0 0 2px !important; padding: 2px 0 !important; }
+  body.page-route-overview [data-home-reward-grid="funded"] .home-reward-token-card .home-rewards-timing { margin-bottom: 3px !important; padding: 3px 0 !important; }
+  body.page-route-overview [data-home-reward-grid="coin"] .home-reward-token-values { gap: 2px !important; margin: 8px 0 4px !important; }
+}
+@media (max-width: 700px) {
+  body.page-route-coin .coin-page .coin-socials.is-compact { flex-wrap: wrap; }
+  body.page-route-coin .coin-page .coin-socials.is-compact :is(a, button) { width: 40px; height: 40px; }
+  .token-card-action-watch,
+  .token-card-action-share,
+  .token-card-shell .token-card-copy-address,
+  body.page-route-airdrops .airdrop-public-programs .directory-footer button { min-height: 40px; }
+  .token-card-action-watch,
+  .token-card-shell .token-card-copy-address { width: 40px; }
+  body.page-route-airdrops .airdrop-public-programs .directory-footer .token-card-actions { flex-wrap: wrap; }
+  body.page-route-airdrops .airdrop-public-programs .directory-footer .directory-claim { flex-basis: 100%; }
+}

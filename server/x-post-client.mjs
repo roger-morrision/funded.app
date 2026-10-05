@@ -1,4 +1,6 @@
-// Separate user-context token for the platform account. Never reuse creator-login
+import { xOAuth1Authorization } from './x-oauth1.mjs';
+
+// Separate user-context credentials for the platform account. Never reuse creator-login
 // tokens or the app-only bearer token used for public profile lookup.
 function failure(message, delivery, status, retryAfterMs) {
   return Object.assign(new Error(message), { delivery, status, retryAfterMs });
@@ -13,8 +15,15 @@ function retryDelay(response) {
   return Math.min(86_400_000, Math.max(1000, delay));
 }
 
-export function createXPublisher({ accessToken, expectedHandle, expectedAccountId, fetchImpl = globalThis.fetch, timeoutMs = 15_000 } = {}) {
-  if (typeof accessToken !== 'string' || !accessToken.trim()) throw new Error('X_POST_ACCESS_TOKEN must be a user-context token with tweet.write permission.');
+export function createXPublisher({ accessToken, oauth1, expectedHandle, expectedAccountId, fetchImpl = globalThis.fetch, timeoutMs = 15_000 } = {}) {
+  const usingOAuth1 = oauth1 != null;
+  if (usingOAuth1 && accessToken) throw new Error('Choose exactly one X user authentication method.');
+  if (usingOAuth1) {
+    if (['apiKey', 'apiSecret', 'accessToken', 'accessTokenSecret'].some(key => typeof oauth1[key] !== 'string' || !oauth1[key].trim()))
+      throw new Error('Complete X OAuth 1.0a user credentials are required.');
+  } else if (typeof accessToken !== 'string' || !accessToken.trim()) {
+    throw new Error('X_POST_ACCESS_TOKEN must be a user-context token with tweet.write permission.');
+  }
   const handle = String(expectedHandle || '').replace(/^@/, '');
   if (!/^[A-Za-z0-9_]{1,15}$/.test(handle)) throw new Error('Configure the intended X_POST_EXPECTED_HANDLE before publishing.');
   if (expectedAccountId && !/^\d{1,30}$/.test(String(expectedAccountId))) throw new Error('X_POST_ACCOUNT_ID must be a numeric X user ID.');
@@ -26,9 +35,11 @@ export function createXPublisher({ accessToken, expectedHandle, expectedAccountI
     const combined = signal ? AbortSignal.any([signal, deadline]) : deadline;
     let response;
     try {
-      response = await fetchImpl(`https://api.x.com${path}`, {
+      const url = new URL(path, 'https://api.x.com');
+      response = await fetchImpl(url.href, {
         method, redirect: 'error', signal: combined,
-        headers: { authorization: `Bearer ${accessToken}`, accept: 'application/json', ...(body ? { 'content-type': 'application/json' } : {}) },
+        headers: { authorization: usingOAuth1 ? xOAuth1Authorization({ method, url, ...oauth1 }) : `Bearer ${accessToken}`,
+          accept: 'application/json', ...(body ? { 'content-type': 'application/json' } : {}) },
         ...(body ? { body: JSON.stringify(body) } : {}),
       });
     } catch {
@@ -48,8 +59,8 @@ export function createXPublisher({ accessToken, expectedHandle, expectedAccountI
     async verifyAccount({ signal } = {}) {
       // Clear any previous approval before re-verifying a potentially rotated token.
       account = null;
-      const result = await request('/2/users/me', { signal });
-      const user = result?.data;
+      const result = await request(usingOAuth1 ? '/1.1/account/verify_credentials.json' : '/2/users/me', { signal });
+      const user = usingOAuth1 ? { id: result?.id_str, username: result?.screen_name } : result?.data;
       if (!/^\d{1,30}$/.test(user?.id || '') || String(user?.username || '').toLowerCase() !== handle.toLowerCase()
         || (expectedAccountId && user.id !== String(expectedAccountId))) {
         throw failure('X token belongs to a different account than the configured publishing account.', 'rejected');

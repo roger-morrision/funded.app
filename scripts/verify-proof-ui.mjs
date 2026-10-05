@@ -16,7 +16,7 @@ assert.match(html, /id="capital-flow"/);
 assert.match(app, /setCoinField\('\.coin-live-dot', graduatedPool \? 'Mint \/ pool confirmed' : curve \? 'Mint \/ curve confirmed' : 'Mint confirmed'\)/, 'The token badge must scope confirmation to mint and market accounts, not unavailable trade or fee data.');
 assert.match(html, /id="referral-ledger-list"><div class="empty-state referral-empty-state"><strong>No receipts to show<\/strong><small>Connect your wallet to check finalized referral claims\.<\/small><\/div>/, 'Disconnected referral history must not imply verified absence of claims.');
 assert.match(html, /id="fee-flow-input"/);
-assert.match(html, /This example is not a collection or payout; live totals above require verified indexed receipts\./, 'Capital-flow preview copy must distinguish a policy example from indexed live totals.');
+assert.match(html, /Enter a gross fee amount to preview the policy split\. This example does not move funds\./, 'Capital-flow preview copy must distinguish a policy example from live activity.');
 assert.match(html, /class="home-kpi-footer"[\s\S]*?<a href="#analytics-detail">Open analytics →<\/a>/, 'The home dashboard must link to the routed analytics page.');
 assert.match(html, /Indicative airdrop allocation value/, 'The home KPI must label a policy allocation as indicative, not a funded reserve.');
 assert.match(app, /policy allocation\$\{reservePrograms\.length === 1 \? '' : 's'\} valued at spot · check vault funding per launch/, 'The home KPI must direct users to per-launch vault status without falsely marking every vault unverified.');
@@ -44,7 +44,7 @@ assert.match(app, /verified = verified\.filter\(item => \{[\s\S]*?return policy\
 assert.match(app, /const fundedLaunchRecords = records\.filter\(item => \{[\s\S]*?return policy\?\.onchainVerified && \(policy\.creatorWallet \|\| policy\.feePayer\)/, 'Overview must not count unregistered mints as funded launches.');
 assert.match(app, /verifiedLaunchPolicies = response\.data\.filter\(launch => launch\.onchainVerified[\s\S]*?&& \(launch\.creatorWallet \|\| launch\.feePayer\)\)/, 'Explore benefit badges must require a creator-attributed funded policy.');
 assert.match(app, /function renderHomeLaunchBoard\(\)\{[\s\S]*?const verified = assets\.filter\(item => verifiedLaunchPolicyForMint\(item\.address\)\)[\s\S]*?let visible = \[\.\.\.verified\]/, 'The Home launch board must exclude mints without a funded policy.');
-assert.match(html, /<p class="eyebrow">Confirmed Devnet activity<\/p><h1 id="leaderboard-title">LEADERBOARDS<\/h1>/, 'The leaderboard must label its evidence scope.');
+assert.match(html, /<p class="eyebrow">Confirmed Devnet activity<\/p><h1 id="leaderboard-title">Leaderboards<\/h1>/, 'The leaderboard must label its evidence scope.');
 assert.match(html, /id="leaderboard-burners-tab"[^>]*aria-selected="true"[^>]*>Burners<\/button>/, 'Verified wallet burn leaderboard tab should be selected.');
 assert.doesNotMatch(app, /escapeHtml\(initials\(item\.wallet\)\)/, 'Wallet burn rows must not call an undefined avatar helper.');
 assert.match(html, /id="leaderboard-creators-tab"[^>]*>Creators<\/button>/, 'Verified creator leaderboard tab should be available.');
@@ -72,7 +72,7 @@ assert.match(css, /\.fee-output-grid/);
 assert.match(pageCss, /Clean workspace pages: one compact intro/);
 assert.match(pageCss, /\.page-route-community \.community-grid \{ grid-template-columns: minmax\(0, 1fr\); \}/);
 assert.match(app, /function portfolioTokenCardMarkup\(/);
-assert.match(app, /Market checked \$\{formatFeedAge\(market\.fetchedAt\)\}/, 'Portfolio freshness must not read like launch age.');
+assert.match(app, /const freshness = tokenCardEvidenceLabel\(cardData\)/, 'Portfolio cards must label data evidence separately from launch age.');
 assert.match(app, /portfolio-token-stats/);
 assert.match(app, /const volume = market \? formatExploreUsd\(market\.volume24hSol/, 'Portfolio volume must come from the observed market feed.');
 assert.match(app, /\['24h volume', volume\]/, 'Migrated portfolio cards must show available observed volume.');
@@ -85,17 +85,17 @@ const watchlistNodes = {
   '#watchlist-empty': { hidden: false },
   '#watchlist-items': { innerHTML: '', querySelectorAll: () => [] },
 };
-const renderWatchlistFixture = new Function('document', 'getWatchlist', 'assets', 'verifiedLaunchPolicyForMint', 'portfolioTokenCardMarkup', 'escapeHtml', 'loadPortfolioLogo', 'setWatchButtonState', 'watchlistUnavailable', 'watchlistNotice', 'showWatchlistStatus',
+const renderWatchlistFixture = new Function('document', 'getWatchlist', 'assets', 'verifiedLaunchPolicyForMint', 'portfolioTokenCardMarkup', 'escapeHtml', 'shortAddress', 'loadPortfolioLogo', 'setWatchButtonState', 'watchlistUnavailable', 'watchlistNotice', 'showWatchlistStatus',
   `${watchlistRenderSource}; return renderWatchlist;`);
 const renderUnavailableWatchlist = renderWatchlistFixture(
   { querySelector: selector => watchlistNodes[selector], querySelectorAll: () => [] },
-  () => ['missing-mint'], [], () => null, () => 'VERIFIED CARD', value => String(value), () => {}, () => {},
+  () => ['missing-mint'], [], () => null, () => 'VERIFIED CARD', value => String(value), value => String(value).slice(0, 5), () => {}, () => {},
   false, '', () => {},
 );
 renderUnavailableWatchlist();
 assert.equal(watchlistNodes['#watch-count'].textContent, '1 saved');
 assert.equal(watchlistNodes['#watchlist-empty'].hidden, true);
-assert.match(watchlistNodes['#watchlist-items'].innerHTML, /Saved token unavailable[\s\S]*?data-remove-watch="missing-mint"/, 'A saved mint without verified data must remain removable.');
+assert.match(watchlistNodes['#watchlist-items'].innerHTML, /Saved token · verification unavailable[\s\S]*?data-remove-watch="missing-mint"/, 'A saved mint without verified data must remain removable.');
 const portfolioHolderSource = app.match(/function portfolioHolderCount\(asset\)\{[\s\S]*?\n\}/)?.[0];
 assert.ok(portfolioHolderSource, 'Watchlist and portfolio must format verified holder wallet counts.');
 const holderCache = new Map([['mint', { count: 1, coverage: 'complete-account-list', at: Date.now() }]]);
@@ -109,7 +109,7 @@ assert.match(app, /token-card-shell asset-card/);
 assert.match(app, /token-card-shell portfolio-token-card/);
 assert.match(app, /token-card-shell airdrop-directory-card/);
 assert.match(html, /id="airdrop-selected-program"[^>]+hidden/, 'Airdrop policy detail must be hidden until a program is selected.');
-assert.match(app, /const safeMint = escapeHtml\(program\.id\)[\s\S]*?data-directory-mint="\$\{safeMint\}"[\s\S]*?View details/, 'The airdrop details action must target a unique mint.');
+assert.match(app, /const safeMint = escapeHtml\(program\.id\)[\s\S]*?data-directory-mint="\$\{safeMint\}"[\s\S]*?View claim status/, 'The airdrop details action must target a unique mint.');
 assert.match(app, /function renderAirdropProgramDetail\(program\)[\s\S]*?vault funding, a finalized eligibility snapshot, and a claim proof are not verified/, 'Airdrop details must disclose missing claim prerequisites.');
 assert.match(app, /function resetSolClaimStatus\(\)[\s\S]*?Sign in with X to see your rewards\./, 'Editing a SOL claim must clear stale validation status.');
 assert.match(app, /getElementById\(id\)\?\.addEventListener\('input', \(\) => \{ updateClaimBindingReview\(\); resetSolClaimStatus\(\); \}\)/, 'Changing claim identity fields must reset stale validation.');
@@ -125,7 +125,7 @@ assert.match(pageExperience, /Funded at a glance/);
 assert.match(pageExperience, /A user-initiated \$FUNDED burn requires a configured Devnet mint[\s\S]*?check Buy & burn for current availability/, 'The $FUNDED status must not claim a burn is available when its Devnet mint is unconfigured.');
 assert.match(app, /creatorRankingUnavailable = verifiedLaunchPoliciesStatus !== 'ready' \|\| !exploreFeedAvailable/, 'Creator leaderboard must treat an unavailable registry or market feed as unavailable, not empty.');
 assert.match(pageExperience, /data-analytics-metric="burned"/);
-assert.match(html, /<h2>Saved launches<\/h2>/);
+assert.match(html, /<h1 id="community-title">Watchlist<\/h1>/);
 assert.match(html, /<h2>All airdrops<\/h2>/);
 assert.match(app, /Vault verification unavailable; funded count unknown[\s\S]*?<span>Policy allocation<\/span>/, 'Indexed policy allocations must not imply verified vault funding.');
 assert.match(html, /id="airdrop-export-csv" disabled title="Requires an indexed, verified list of unclaimed wallets"/, 'Airdrop CSV export must be gated on verified wallet rows, not a snapshot count alone.');

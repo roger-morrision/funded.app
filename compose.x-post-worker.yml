@@ -25,10 +25,13 @@ services:
       FUNDED_TRADE_FEE_OWNER: ${FUNDED_TRADE_FEE_OWNER:-}
       X_POST_ENABLED: ${X_POST_ENABLED:-false}
       X_POST_ALLOW_DEVNET: ${X_POST_ALLOW_DEVNET:-false}
-      X_POST_EXPECTED_HANDLE: ${X_POST_EXPECTED_HANDLE:-johntrand83}
+      X_POST_EXPECTED_HANDLE: ${X_POST_EXPECTED_HANDLE:-fundedvip}
       X_POST_ACCOUNT_ID: ${X_POST_ACCOUNT_ID:-}
+      X_POST_API_KEY_FILE: /run/secrets/x_post_api_key
+      X_POST_API_SECRET_FILE: /run/secrets/x_post_api_secret
       X_POST_ACCESS_TOKEN_FILE: /run/secrets/x_post_access_token
-      X_POST_PUBLIC_ORIGIN: ${X_POST_PUBLIC_ORIGIN:-}
+      X_POST_ACCESS_TOKEN_SECRET_FILE: /run/secrets/x_post_access_token_secret
+      X_POST_PUBLIC_ORIGIN: ${X_POST_PUBLIC_ORIGIN:-https://funded.vip}
       X_POST_START_AT: ${X_POST_START_AT:-}
       # Deliberately bounded in this profile; the worker also validates its limits.
       X_POST_INTERVAL_MS: '60000'
@@ -36,7 +39,7 @@ services:
       X_POST_MAX_HOURLY: '6'
       X_POST_MAX_DAILY: '24'
       X_POST_MIN_PROFIT_LAMPORTS: '1000000000'
-    secrets: [database_url, solana_devnet_rpc_url, x_post_access_token]
+    secrets: [database_url, solana_devnet_rpc_url, x_post_api_key, x_post_api_secret, x_post_access_token, x_post_access_token_secret]
     volumes:
       - devnet_app_data:/app/data:ro
     depends_on:
@@ -46,5 +49,11 @@ services:
         condition: service_healthy
 
 secrets:
+  x_post_api_key:
+    file: ${X_POST_API_KEY_FILE:-./.secrets/x-post-api-key}
+  x_post_api_secret:
+    file: ${X_POST_API_SECRET_FILE:-./.secrets/x-post-api-secret}
   x_post_access_token:
     file: ${X_POST_ACCESS_TOKEN_FILE:-./.secrets/x-post-user-token}
+  x_post_access_token_secret:
+    file: ${X_POST_ACCESS_TOKEN_SECRET_FILE:-./.secrets/x-post-user-token-secret}

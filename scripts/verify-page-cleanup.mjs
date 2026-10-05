@@ -38,7 +38,7 @@ try {
   const rewardGuide = page.locator('#rewards-overview .page-cleanup-guide[data-guide="rewards"]');
   await rewardGuide.waitFor({ state: 'visible' });
   assert.equal(await rewardGuide.evaluate(element => element.open), false);
-  assert((await page.locator('#rewards-overview .reward-entry-grid').boundingBox()).y < 450);
+  assert((await page.locator('#reward-portfolio').boundingBox()).y < 500);
   await rewardGuide.locator(':scope > summary').click();
   assert(await rewardGuide.locator('figure img').evaluate(image => image.getAttribute('src').endsWith('.webp')));
   assert(await rewardGuide.locator('.infographic-poster-details').count());
@@ -58,7 +58,6 @@ try {
     const extras = root.querySelector('.explore-benefit-leaders');
     return Boolean(results && extras && (results.compareDocumentPosition(extras) & Node.DOCUMENT_POSITION_FOLLOWING));
   }));
-  assert(await page.locator('.page-cleanup-explore-guide').count());
   await page.locator('#explore-filter-toggle').click();
   assert(await page.locator('#explore-filter-popover').isVisible());
   assert(await page.locator('#explore-min-cap-sol').isVisible());

@@ -9,20 +9,35 @@ const recipient = new PublicKey(Uint8Array.from({ length: 32 }, (_, index) => in
 const sig = value => bs58.encode(Uint8Array.from({ length: 64 }, (_, index) => (index + value) % 256));
 const proof = (value = 1, cluster = 'devnet') => ({ signature: sig(value), slot: 100 + value, cluster, verified: true, commitment: 'finalized' });
 const options = { cluster: 'devnet', publicOrigin: 'https://funded.vip' };
-const base = () => ({ mint, name: 'Example token', proofs: [proof()] });
+const base = () => ({ mint, name: 'Example token', marketingTier: 'pro', proofs: [proof()] });
 const window = { windowStart: '2026-10-03T00:00:00.000Z', windowEnd: '2026-10-04T00:00:00.000Z', coverage: 'complete' };
 const payment = (overrides = {}) => ({ id: 'payout-1', recipient, signature: sig(1), asset: 'SOL', amountLamports: '1000000001', status: 'paid', finalized: true, balanceDeltaVerified: true, ...overrides });
 
 test('launch and paid listing copy remain distinct and explicitly label Devnet', () => {
   const launch = buildXPost('launch', base(), options);
   const listing = buildXPost('listing', { ...base(), listingType: 'paid' }, options);
-  assert.match(launch.text, /^\[Devnet test\] Token launch:/);
+  assert.match(launch.text, /^\[Devnet test\] Pro launch:/);
   assert.match(listing.text, /^\[Devnet test\] Paid listing added:/);
   assert.doesNotMatch(listing.text, /launch/);
   assert.match(launch.text, new RegExp(`https://funded.vip/token/${mint}$`));
   assert.equal(launch.kind, 'launch'); assert.equal(launch.cluster, 'devnet');
   assert.equal(launch.weightedLength, xWeightedLength(launch.text));
   assert.throws(() => buildXPost('listing', base(), options), /paid listing/);
+});
+
+test('Standard, Pro, and Premier launch copy have distinct packages', () => {
+  const standard = buildXPost('launch', { ...base(), marketingTier: 'standard' }, options);
+  const pro = buildXPost('launch', base(), options);
+  const premier = buildXPost('launch', { ...base(), marketingTier: 'premier' }, options);
+  const followup = buildXPost('launch_followup', { ...base(), marketingTier: 'premier' }, options);
+  assert.match(standard.text, /New project on funded\.vip:/);
+  assert.doesNotMatch(standard.text, /\$FUNDED tier burn/);
+  assert.match(pro.text, /Pro launch:/);
+  assert.match(premier.text, /Premier launch:/);
+  assert.match(followup.text, /Premier project follow-up:/);
+  assert.notEqual(premier.text, followup.text);
+  assert.throws(() => buildXPost('launch_followup', base(), options), /Premier/);
+  assert.throws(() => buildXPost('launch', { ...base(), marketingTier: 'boost' }, options), /verified marketing tier/);
 });
 
 test('project labels cannot inject mentions, hashtags, URLs, newlines or directional controls', () => {

@@ -23,7 +23,7 @@ export function createLaunchBurnTiers({
       label: 'Standard',
       amountTokens: 0,
       tone: 'standard',
-      benefits: Object.freeze(['Core Pump launch', 'Community airdrop', 'Published fee route']),
+      benefits: Object.freeze(['Core Pump launch', 'Community airdrop', 'Basic funded.vip X launch announcement when publishing is active', 'Published fee route']),
     }),
     Object.freeze({
       id: 'boost',
@@ -37,14 +37,14 @@ export function createLaunchBurnTiers({
       label: 'Pro',
       amountTokens: pro,
       tone: 'pro',
-      benefits: Object.freeze(['Verified Pro badge', 'All Boost benefits', 'Featured-review eligibility']),
+      benefits: Object.freeze(['Verified Pro badge', 'Public burn receipt', 'One featured verified funded.vip X launch post when publishing is active']),
     }),
     Object.freeze({
       id: 'premier',
       label: 'Premier',
       amountTokens: premier,
       tone: 'premier',
-      benefits: Object.freeze(['Verified Premier badge', 'All Pro benefits', 'Homepage spotlight-review eligibility']),
+      benefits: Object.freeze(['Verified Premier badge', 'Public burn receipt', 'One verified funded.vip X launch post and a follow-up after 24 hours when publishing is active']),
     }),
   ]);
 }

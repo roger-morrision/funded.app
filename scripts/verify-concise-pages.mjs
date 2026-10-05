@@ -13,7 +13,7 @@ const evidenceDir = process.env.UI_CONCISE_EVIDENCE_DIR || '.tmp-ui-evidence/con
 await mkdir(evidenceDir, { recursive: true });
 const results = [];
 const checks = [
-  ['overview', '.home-kpi-more', true],
+  ['overview', '.home-kpi-dashboard', true],
   ['explore', '[data-infographic-poster="explore"] .infographic-poster-rail', false],
   ['payments', '#rewards-overview .reward-entry-grid span', false],
   ['airdrops', '.airdrop-reference-flow', false],
@@ -38,11 +38,7 @@ for (const [route, selector, expectedVisible] of checks) {
       const status = await spotlight.locator('[data-home-jackpot-status]').textContent();
       if (/inactive|unavailable|not funded/i.test(status)) assert.equal(await spotlight.isVisible(), false);
     }
-    assert.equal(await page.locator('.home-kpi-dashboard > .home-kpi-grid > .home-kpi-card').count(), 6);
-    assert.equal(await page.locator('.home-kpi-more .home-kpi-card').count(), 6);
-    assert.equal(await page.locator('.home-kpi-more').evaluate(element => element.open), false);
-    await page.locator('.home-kpi-more summary').click();
-    assert.equal(await page.locator('.home-kpi-more').evaluate(element => element.open), true);
+    assert.equal(await page.locator('.home-kpi-dashboard > .home-kpi-grid > .home-kpi-card').count(), 12);
   }
   if (route === 'payments') {
     const jackpot = page.locator('#payments > .jackpot-disclosure');

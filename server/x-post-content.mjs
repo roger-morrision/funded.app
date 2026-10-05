@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
 import { PublicKey } from '@solana/web3.js';
 
-export const X_POST_KINDS = Object.freeze(['launch', 'listing', 'trade_profit', 'daily_projects', 'daily_rewards']);
+export const X_POST_KINDS = Object.freeze(['launch', 'launch_followup', 'listing', 'trade_profit', 'daily_projects', 'daily_rewards']);
 export const DEFAULT_BIG_PROFIT_LAMPORTS = '1000000000';
 const LAMPORTS = 1_000_000_000n;
 const DAY_MS = 86_400_000;
@@ -112,11 +112,20 @@ export function buildXPost(kind, payload, { cluster, publicOrigin = 'https://fun
   const proofs = finalizedProofs(payload.proofs, cluster);
   const prefix = cluster === 'devnet' ? '[Devnet test] ' : '[Mainnet] ';
   let makeText;
-  if (kind === 'launch' || kind === 'listing' || kind === 'trade_profit') {
+  if (kind === 'launch' || kind === 'launch_followup' || kind === 'listing' || kind === 'trade_profit') {
     const mint = address(payload.mint);
     const link = `${origin}/token/${mint}`;
     const project = budget => `“${sanitizeXLabel(payload.name || payload.symbol, budget)}”`;
-    if (kind === 'launch') makeText = budget => `${prefix}Token launch: ${project(budget)}. Creation finalized.\n${link}`;
+    if (kind === 'launch') {
+      requireValue(['standard', 'pro', 'premier'].includes(payload.marketingTier), 'Launch posts require a verified marketing tier.');
+      makeText = budget => payload.marketingTier === 'standard'
+        ? `${prefix}New project on funded.vip: ${project(budget)}. Token creation finalized.\n${link}`
+        : `${prefix}${payload.marketingTier === 'premier' ? 'Premier' : 'Pro'} launch: ${project(budget)}. Creation and $FUNDED tier burn finalized.\n${link}`;
+    }
+    if (kind === 'launch_followup') {
+      requireValue(payload.marketingTier === 'premier', 'Follow-up posts require a verified Premier marketing tier.');
+      makeText = budget => `${prefix}Premier project follow-up: ${project(budget)}. Explore the verified launch and public token page.\n${link}`;
+    }
     if (kind === 'listing') {
       requireValue(payload.listingType === 'paid', 'Listing posts require a verified paid listing type.');
       makeText = budget => `${prefix}Paid listing added: ${project(budget)}. Listing payment finalized.\n${link}`;

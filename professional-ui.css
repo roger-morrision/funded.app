@@ -1,0 +1,94 @@
+/* Shared editorial pass: readable type, quieter surfaces, and one clear task per route. */
+body.page-route .main-content :is(.panel, .role-panel, .support-card, .airdrop-analytics-card, .airdrop-wallets-card, .reward-experience-panel) {
+  border-radius: 10px !important;
+}
+body.page-route .main-content :is(.eyebrow, .data-badge, .section-state, .panel-count) {
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+body.page-route .main-content :is(.field-help, .source-note, .panel-explainer, .projects-lede, .page-lede, .explore-lede) {
+  font-size: 14px;
+  line-height: 1.6;
+}
+body.page-route .main-content small { font-size: max(12px, .8em); }
+body.page-route .main-content :is(.ui-disclosure, .page-cleanup-guide) > summary {
+  min-height: 42px;
+  padding-block: 11px;
+  color: #ebd3aa;
+  font: 700 12px/1.45 Manrope, sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+}
+body.page-route .main-content .empty-state { border-radius: 8px; }
+body.page-route .main-content :is(.ui-tabs, .purpose-page-nav) { margin-bottom: 22px; }
+body.page-route .main-content :is(.ui-tabs, .purpose-page-nav) :is(button, a) {
+  font: 700 12px/1.4 Manrope, sans-serif;
+  letter-spacing: 0;
+}
+body.page-route .route-guide { margin-block: 18px 22px; }
+body.page-route .route-guide h1 { font-size: clamp(32px, 3.2vw, 42px); line-height: 1.12; letter-spacing: -.045em; }
+body.page-route .route-guide p:last-child { font-size: 14px; line-height: 1.6; }
+
+/* The rewards panel already links to each program; do not repeat those links above it. */
+body.page-route-payments #rewards-overview .reward-entry-grid { display: none !important; }
+body.page-route-payments #rewards-overview .workspace-page-header { margin-bottom: 20px; }
+body.page-route-payments #rewards-overview .workspace-page-header h1 { font-size: clamp(34px, 4vw, 46px); letter-spacing: -.045em; }
+body.page-route-payments #reward-portfolio { margin-top: 18px; }
+
+/* Merged routes should show the selected page's content immediately. */
+body.page-route-community #my-launches > .portfolio-dashboard { display: none !important; }
+body.page-route.page-route-analytics-detail.page-route-capital-flow .main-content > #route-guide:not([hidden]) { display: none !important; }
+body.page-route-community #my-launches > #community { margin-top: 8px; }
+body.page-route-capital-flow #capital-flow-title,
+body.page-route-community #community-title { font-size: clamp(32px, 3.7vw, 44px); line-height: 1.1; letter-spacing: -.045em; }
+
+/* Keep marketing headings expressive without overwhelming the task below. */
+html body.page-route-overview .hero-section h1 {
+  max-width: 730px;
+  font-size: clamp(44px, 5.6vw, 72px) !important;
+  line-height: 1.06;
+  letter-spacing: -.045em;
+  text-transform: none !important;
+  white-space: normal;
+}
+body.page-route-explore .explore-hero h1,
+body.page-route-leaderboard #leaderboard-title,
+body.page-route-airdrops #airdrops > .section-heading h1,
+body.page-route-list #list-title,
+body.page-route-launch #launch-route-title {
+  font-size: clamp(34px, 4.2vw, 48px);
+  line-height: 1.06;
+  letter-spacing: -.045em;
+  text-transform: none;
+}
+body.page-route-paid:not(.page-route-buybacks) .paid-reference-hero h1 {
+  max-width: 17ch;
+  font-size: clamp(36px, 5vw, 58px);
+  line-height: 1.07;
+  letter-spacing: -.045em;
+  text-transform: none;
+}
+body.page-route-paid .paid-hero-actions a { text-transform: none; letter-spacing: 0; }
+body.page-route-coin .mobile-trade-open.is-unavailable {
+  background: #1b2940 !important;
+  border-color: #52647d !important;
+  color: #e5ebf5 !important;
+}
+
+@media (max-width: 700px) {
+  body.page-route .route-guide { margin-block: 14px 18px; }
+  body.page-route .route-guide h1 { font-size: 31px; }
+  html body.page-route-overview .hero-section h1 {
+    max-width: 15ch;
+    font-size: clamp(34px, 9vw, 42px) !important;
+    line-height: 1.08;
+  }
+  body.page-route-explore .explore-hero h1,
+  body.page-route-leaderboard #leaderboard-title,
+  body.page-route-airdrops #airdrops > .section-heading h1,
+  body.page-route-list #list-title,
+  body.page-route-launch #launch-route-title { font-size: 32px; }
+  body.page-route-paid:not(.page-route-buybacks) .paid-reference-hero h1 { font-size: 36px; }
+  body.page-route-paid .paid-hero-mark { width: 72px; height: 72px; }
+  body.page-route-payments #rewards-overview .workspace-page-header h1 { font-size: 34px; }
+}

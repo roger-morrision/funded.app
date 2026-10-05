@@ -19,7 +19,7 @@ for(const width of [390,1440]){
    assert.equal(await page.locator('#list .list-steps').isVisible(),false);
    assert.equal(await page.locator('#list .list-art').isVisible(),false);
    assert(await page.locator('#list-mint').isVisible());
-   assert(await page.locator('[data-page-infographic="list"]').isVisible());
+   await page.locator('#list .page-cleanup-guide[data-guide="list"]').waitFor({ state: 'visible', timeout: 10000 });
   }
   if(route==='analytics-detail'){
    assert.equal(await page.locator('#capital-flow').isVisible(),false);
@@ -33,7 +33,9 @@ for(const width of [390,1440]){
   if(route==='capital-flow') assert(await page.locator('#capital-flow').isVisible());
   if(route==='payments'){
    assert.equal(await page.locator('#rewards-overview .reward-entry-grid > button[data-reward-open]:visible').count(),0);
-   assert.equal(await page.locator('#rewards-overview .reward-entry-grid > a:visible').count(),2);
+   assert.equal(await page.locator('#rewards-overview .reward-entry-grid > a:visible').count(),0);
+   await page.locator('#reward-portfolio .reward-portfolio-links > a').first().waitFor({ state:'visible', timeout:10000 });
+   assert.equal(await page.locator('#reward-portfolio .reward-portfolio-links > a:visible').count(),3);
    assert.equal(await page.locator('#payments .ui-tabs button:visible').count(),4);
    const rewardRows = page.locator('#reward-discovery .reward-discovery-list > article');
    if (await rewardRows.count() > 3) {
@@ -70,9 +72,9 @@ for(const width of [390,1440]){
   }
   if(route==='community'){
    assert(await page.locator('#community').isVisible());
-   assert.equal(await page.locator('#my-launches > .section-heading').isVisible(),false);
+   assert.equal(await page.locator('#my-launches > .section-heading').first().isVisible(),false);
    const reserve=page.locator('.concise-community-reserve');
-   assert(await reserve.locator(':scope > summary').isVisible());
+   await reserve.locator(':scope > summary').waitFor({ state:'visible', timeout:10000 });
    await reserve.locator(':scope > summary').click();
    assert(await page.locator('#community-reward-reserve').isVisible());
    assert(await page.locator('#reward-alerts').isVisible());

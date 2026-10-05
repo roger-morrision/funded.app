@@ -142,9 +142,8 @@ try {
       if(route==='privacy' && width===390) await check('Privacy measurement checkbox aligns with its label',async()=>{
         assert.equal(await page.locator('.share-visit-consent').evaluate(element=>getComputedStyle(element).flexDirection),'row');
       });
-      if(route==='payments' && width===390) await check('Reward choices use the shared navy surface',async()=>{
-        await page.mouse.move(0,0);
-        assert.equal(await page.locator('.reward-entry-grid > button').first().evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(18, 27, 46)');
+      if(route==='payments' && width===390) await check('Reward programs remain easy to find',async()=>{
+        assert.equal(await page.locator('#reward-portfolio .reward-portfolio-links > a:visible').count(),3);
       });
       if(route==='explore' && width<=390) await check(`Explore ${width}px sort labels stay readable`,async()=>{
         const layout=await page.evaluate(()=>{
@@ -266,7 +265,7 @@ try {
     assert(bounds && bounds.y<900,`Explore results position: ${JSON.stringify(bounds)}`);
   });
   await check('Launch Directory keeps its verified comparison columns',async()=>{
-    assert.equal(await page.locator('.explore-hero h1').innerText(),'LAUNCH DIRECTORY');
+    assert.equal(await page.locator('.explore-hero h1').innerText(),'Launch directory');
     assert.equal((await page.locator('.scanner-heading span').first().textContent()).trim(),'Verified launches');
     await page.locator('button[data-explore-view="table"]').click();
     const table=page.getByRole('table',{name:'Verified launch table'});
@@ -275,15 +274,10 @@ try {
     if(await rows.count()) assert.equal(await rows.first().locator('[role="cell"]').count(),11);
     await page.locator('button[data-explore-view="grid"]').click();
   });
-  await check('Launch Directory guide choices open distinct verification explanations',async()=>{
-    const dialog=page.locator('#explore-proof-dialog');
-    for(const [label,title] of [['About Launch Directory','About Launch Directory'],['The problem','Why Launch Directory exists'],['Proof of launch','What is verified?']]){
-      await page.locator('.explore-hero-links').getByRole('button',{name:label,exact:true}).click();
-      assert(await dialog.evaluate(element=>element.open));
-      assert.equal(await dialog.evaluate(element=>getComputedStyle(element).borderTopColor),'rgb(72, 90, 115)');
-      assert.equal(await dialog.locator('h2').innerText(),title);
-      await dialog.getByRole('button',{name:'Close Launch Directory guide'}).click();
-    }
+  await check('Launch Directory omits the explainer panel',async()=>{
+    assert.equal(await page.locator('.explore-guide').count(),0);
+    assert.equal(await page.locator('.explore-hero-links').count(),0);
+    assert.equal(await page.locator('#explore-proof-dialog').count(),0);
   });
   await check('Watchlist preserves indexed migrated-market metrics',async()=>{
     const row=page.getByRole('table',{name:'Verified launch table'}).getByRole('row').filter({hasText:'Migrated'}).first();
@@ -473,7 +467,7 @@ try {
     await page.getByRole('tab',{name:'Creator',exact:true}).click();assert(await page.locator('#rewards-creator').isVisible());assert(!await page.locator('#rewards-x').isVisible());
     await page.keyboard.press('ArrowRight');assert(await page.locator('#rewards-holder').isVisible());
     await page.getByRole('tab',{name:'X partner',exact:true}).click();assert(await page.locator('#x-sign-in').isVisible());
-    await page.getByRole('tab',{name:'Overview',exact:true}).click();assert(await page.locator('#rewards-overview').isVisible());assert(await page.locator('#rewards-overview .reward-entry-grid > a').first().isVisible());
+    await page.getByRole('tab',{name:'Overview',exact:true}).click();assert(await page.locator('#rewards-overview').isVisible());assert(await page.locator('#reward-portfolio .reward-portfolio-links > a').first().isVisible());
   });
   await check('Holder allocation status does not claim migrated coins await migration',async()=>{
     await page.getByRole('tab',{name:'Holder',exact:true}).click();
