@@ -1,10 +1,10 @@
-use anchor_lang::{prelude::{Pubkey, Rent}, solana_program::{instruction::Instruction, system_instruction}, InstructionData, ToAccountMetas};
+use anchor_lang::{prelude::Pubkey, solana_program::{instruction::Instruction, system_instruction}, InstructionData, ToAccountMetas};
 use funded_fee_router::{MAGIC, POLICY_HASH, ROUTER_DATA_LEN, VERSION};
 use litesvm::LiteSVM;
-use solana_keypair::Keypair;
-use solana_message::{Message, VersionedMessage};
-use solana_signer::Signer;
-use solana_transaction::versioned::VersionedTransaction;
+use solana_keypair_lite::Keypair;
+use solana_message_lite::{Message, VersionedMessage};
+use solana_signer_lite::Signer;
+use solana_transaction_lite::versioned::VersionedTransaction;
 
 fn send(svm: &mut LiteSVM, payer: &Keypair, signers: &[&Keypair], instruction: Instruction) -> bool {
     let message = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &svm.latest_blockhash());
@@ -33,7 +33,7 @@ fn prefunded_router_initialization_preserves_deposits_and_rejects_reinitializati
         assert!(send(&mut svm, &payer, &[&payer], initialize.clone()), "prefunded global router must initialize");
         let account = svm.get_account(&legacy_router).unwrap();
         assert_eq!(account.owner, program);
-        assert_eq!(account.lamports, prefunding.max(svm.get_sysvar::<Rent>().minimum_balance(ROUTER_DATA_LEN)));
+        assert_eq!(account.lamports, prefunding.max(svm.minimum_balance_for_rent_exemption(ROUTER_DATA_LEN)));
         assert_eq!(account.data.len(), ROUTER_DATA_LEN);
         assert_eq!(account.data[73], legacy_bump);
         let initialize_mint = Instruction::new_with_bytes(program, &funded_fee_router::instruction::InitializeMint {}.data(),
@@ -42,7 +42,7 @@ fn prefunded_router_initialization_preserves_deposits_and_rejects_reinitializati
         assert!(send(&mut svm, &payer, &[&payer, &mint], initialize_mint.clone()), "prefunded mint router must initialize");
         let mint_account = svm.get_account(&router).unwrap();
         assert_eq!(mint_account.owner, program);
-        assert_eq!(mint_account.lamports, prefunding.max(svm.get_sysvar::<Rent>().minimum_balance(funded_fee_router::MINT_ROUTER_DATA_LEN)));
+        assert_eq!(mint_account.lamports, prefunding.max(svm.minimum_balance_for_rent_exemption(funded_fee_router::MINT_ROUTER_DATA_LEN)));
         assert_eq!(&mint_account.data[41..73], payer.pubkey().as_ref());
         assert_eq!(&mint_account.data[73..105], mint.pubkey().as_ref());
         assert_eq!(mint_account.data[105], mint_bump);

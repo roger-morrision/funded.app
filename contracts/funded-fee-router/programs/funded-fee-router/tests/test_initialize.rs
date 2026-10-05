@@ -2,10 +2,10 @@
 use {
     anchor_lang::{solana_program::{instruction::{AccountMeta, Instruction}, system_instruction}, InstructionData, ToAccountMetas},
     litesvm::LiteSVM,
-    solana_message::{Message, VersionedMessage},
-    solana_signer::Signer,
-    solana_keypair::Keypair,
-    solana_transaction::versioned::VersionedTransaction,
+    solana_message_lite::{Message, VersionedMessage},
+    solana_signer_lite::Signer,
+    solana_keypair_lite::Keypair,
+    solana_transaction_lite::versioned::VersionedTransaction,
 };
 
 #[test]

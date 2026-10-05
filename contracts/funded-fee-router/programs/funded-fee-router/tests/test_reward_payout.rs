@@ -6,11 +6,11 @@ use anchor_lang::{
 use funded_fee_router::{RewardCycle, RewardVault};
 use litesvm::LiteSVM;
 use solana_account::Account;
-use solana_keypair::Keypair;
-use solana_message::{Message, VersionedMessage};
+use solana_keypair_lite::Keypair;
+use solana_message_lite::{Message, VersionedMessage};
 use solana_sha256_hasher::hashv;
-use solana_signer::Signer;
-use solana_transaction::versioned::VersionedTransaction;
+use solana_signer_lite::Signer;
+use solana_transaction_lite::versioned::VersionedTransaction;
 
 fn send(svm: &mut LiteSVM, payer: &Keypair, instruction: Instruction) -> bool {
     let message = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &svm.latest_blockhash());

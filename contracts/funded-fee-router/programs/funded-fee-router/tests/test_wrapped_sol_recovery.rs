@@ -3,10 +3,10 @@ use {
     anchor_spl::{associated_token::{get_associated_token_address, spl_associated_token_account}, token::spl_token},
     litesvm::LiteSVM,
     solana_account::Account,
-    solana_keypair::Keypair,
-    solana_message::{Message, VersionedMessage},
-    solana_signer::Signer,
-    solana_transaction::versioned::VersionedTransaction,
+    solana_keypair_lite::Keypair,
+    solana_message_lite::{Message, VersionedMessage},
+    solana_signer_lite::Signer,
+    solana_transaction_lite::versioned::VersionedTransaction,
 };
 
 fn send(svm: &mut LiteSVM, payer: &Keypair, signers: &[&Keypair], instructions: &[Instruction]) -> bool {
