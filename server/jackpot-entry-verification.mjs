@@ -20,7 +20,7 @@ function assertWindow(window, blockTime) {
 
 export async function verifyJackpotCreatorEntry({ connection, expectedGenesisHash, appLaunch, window }) {
   if (!connection || !expectedGenesisHash || await connection.getGenesisHash() !== expectedGenesisHash)
-    throw new Error('Trusted test network RPC is required.');
+    throw new Error('Trusted Solana RPC is required.');
   if (!appLaunch || appLaunch.cluster !== 'devnet' || appLaunch.onchainVerified !== true
     || appLaunch.pumpFeeRoute?.scope !== 'per-mint-v2' || !appLaunch.mint
     || !appLaunch.creatorWallet || !appLaunch.signature)
@@ -41,7 +41,7 @@ export async function verifyJackpotCreatorEntry({ connection, expectedGenesisHas
 export async function verifyJackpotTraderEntry({ connection, expectedGenesisHash,
   signature, feeOwner, window }) {
   if (!connection || !expectedGenesisHash || await connection.getGenesisHash() !== expectedGenesisHash)
-    throw new Error('Trusted test network RPC is required.');
+    throw new Error('Trusted Solana RPC is required.');
   if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(feeOwner || ''))
     || !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(String(signature || '')))
     throw new Error('Trade signature and configured fee owner are required.');

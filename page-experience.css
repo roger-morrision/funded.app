@@ -2592,3 +2592,9 @@ input[type='search']:focus-visible {
   .home-referral-link-box { grid-template-columns: minmax(0, 1fr); }
   .home-referral-link-box .primary-button { width: 100%; }
 }
+
+.topbar .top-actions .workspace-network { display: inline-flex; align-items: center; justify-content: center; flex: none; border: 1px solid #705f3d; border-radius: 6px; padding: 4px 8px; color: #efca83; font: 500 11px/1.5 'DM Mono', monospace; white-space: nowrap; }
+@media (max-width: 480px) { .topbar .top-actions .workspace-network { position: static; padding: 4px 6px; font-size: 10px; } }
+
+body.page-route-paid .topbar .top-actions .workspace-network { display: inline-flex !important; }
+@media (max-width: 480px) { body.page-route .topbar .topbar-context { display: none; } }

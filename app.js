@@ -56,7 +56,7 @@ import { hasBuyBalance } from './trade-spend-guard.js';
 import { aggregateTokenAccounts, matchedTradePnl } from './portfolio-model.js';
 
 globalThis.Buffer ??= Buffer;
-const EXPLORE_NETWORK_LABEL = EXPLORE_CLUSTER === 'devnet' ? 'test network' : EXPLORE_CLUSTER;
+const EXPLORE_NETWORK_LABEL = EXPLORE_CLUSTER === 'devnet' ? 'Solana' : EXPLORE_CLUSTER;
 let solanaModules;
 let connection;
 let exploreConnection;
@@ -142,7 +142,7 @@ let launchBurnTier = 'standard';
 let launchBurnReadiness = { ready: true, message: 'No creator-funded burn is required.' };
 let fundedBurnRequest = 0;
 let fundedBurnState = { status: 'idle', wallet: null, decimals: 0, balanceBaseUnits: 0n, supplyBaseUnits: 0n, burnedBaseUnits: 0n, tokenAccounts: [], receipts: [], message: '' };
-let fundedBuyRoute = { status:'checking', snapshot:null, reason:'Checking the verified test network pool…' };
+let fundedBuyRoute = { status:'checking', snapshot:null, reason:'Checking the verified Solana pool…' };
 let fundedBuyPreview = null;
 let fundedBuyBusy = false;
 const WATCHLIST_KEY = 'funded.app.community.watchlist';
@@ -186,7 +186,6 @@ function getLaunchBurnPolicy(){ return buildLaunchBurnPolicy({ tierId: launchBur
 function renderFundedTokenLanding(){
   const set = (id, value) => { const element = document.getElementById(id); if (element) element.textContent = value; };
   const mintReady = validateSolanaMint(PROTOCOL_FUNDED_MINT).valid === true;
-  set('funded-token-network', APP_ENVIRONMENT_LABEL.toUpperCase());
   set('funded-token-mint', mintReady ? PROTOCOL_FUNDED_MINT : 'Mint not configured');
   const copy = document.getElementById('funded-token-copy');
   if (copy) { copy.disabled = !mintReady; copy.dataset.mint = mintReady ? PROTOCOL_FUNDED_MINT : ''; }
@@ -212,11 +211,11 @@ function renderFundedTokenLanding(){
       : '$FUNDED burn per launch');
   }
   const poolUnavailableNote = fundedBuyRoute.status === 'unavailable'
-    ? /rate limit/i.test(fundedBuyRoute.reason || '') ? 'test network RPC rate limited' : 'Verified test network pool unavailable'
+    ? /rate limit/i.test(fundedBuyRoute.reason || '') ? 'Solana RPC rate limited' : 'Verified Solana pool unavailable'
     : 'Verified quote unavailable';
   set('funded-token-price', Number.isFinite(quote) ? '$' + quote.toLocaleString(undefined, { maximumSignificantDigits: 6 })
     : poolReady ? poolSpotSol.toPrecision(6) + ' SOL' : '$—');
-  set('funded-token-price-note', poolReady ? `Verified test network pool · slot ${pool.slot}` : Number.isFinite(quote) ? 'Verified market snapshot' : poolUnavailableNote);
+  set('funded-token-price-note', poolReady ? `Verified Solana pool · slot ${pool.slot}` : Number.isFinite(quote) ? 'Verified market snapshot' : poolUnavailableNote);
   const supplyReady = fundedBurnState.status === 'ready' && mintReady;
   const supplyTokens = supplyReady ? Number(fundedBurnState.supplyBaseUnits) / 10 ** fundedBurnState.decimals : null;
   const poolCapSol = poolReady && Number.isFinite(supplyTokens) ? poolSpotSol * supplyTokens : null;
@@ -247,7 +246,7 @@ function renderFundedTokenLanding(){
       }
     }
     tape.replaceChildren();
-    if (!entries.length) tape.textContent = 'Waiting for verified test network market data';
+    if (!entries.length) tape.textContent = 'Waiting for verified Solana market data';
     for (const [label, value, href] of entries) {
       const link = document.createElement('a');
       link.href = href;
@@ -646,7 +645,7 @@ async function checkFeeRouterConfig(){
     feeRouterState = { status: verified.reason, verified: verified.verified, address: verified.address.toBase58(), programId: verified.programId.toBase58(), bump: verified.bump };
     if (addressNode) addressNode.textContent = `${feeRouterState.address.slice(0, 6)}…${feeRouterState.address.slice(-6)}`;
     if (status) {
-      status.textContent = verified.verified ? 'Verified on test network. This PDA can be assigned as Pump’s fee owner at creation.' : `Launch blocked: ${verified.reason.replaceAll('-', ' ')}.`;
+      status.textContent = verified.verified ? 'Verified on Solana. This PDA can be assigned as Pump’s fee owner at creation.' : `Launch blocked: ${verified.reason.replaceAll('-', ' ')}.`;
       status.className = `field-help ${verified.verified ? 'funded-mint-valid' : 'funded-mint-invalid'}`;
     }
   } catch (error) {
@@ -940,13 +939,13 @@ function renderExploreBoostDialog(){
   const active = activeBoostMultiplier(verifiedBoosts[mint]) ? verifiedBoosts[mint] : null;
   const selected = boostPackage(packageId);
   const available = (EXPLORE_CLUSTER === 'devnet' && !APP_MAINNET_READ_ONLY && boostPurchasesEnabled) || Boolean(pendingSignature);
-  details.innerHTML = `<p class="explore-boost-intro">Anyone with a signing test network wallet can boost ${name}. Choose a fixed window. Overlapping boosts stack; paid placement is labelled and does not change observed trade volume or market cap.</p>
+  details.innerHTML = `<p class="explore-boost-intro">Anyone with a signing Solana wallet can boost ${name}. Choose a fixed window. Overlapping boosts stack; paid placement is labelled and does not change observed trade volume or market cap.</p>
     <div class="explore-boost-current"><span>Active paid boost</span><strong>${active ? `${escapeHtml(active.multiplier)}x${active.golden ? ' · golden' : ''}` : 'None'}</strong><small>${active ? `${active.count} verified payment${active.count === 1 ? '' : 's'} · latest expiry ${escapeHtml(new Date(active.expiresAt).toLocaleString())}` : 'No active verified payment'} · Launch tier: ${escapeHtml(promotion?.label || 'Standard')}</small></div>
     <div class="explore-boost-packages" role="group" aria-label="Boost packages">${BOOST_PACKAGES.map(item => `<button type="button" data-boost-package="${item.id}" aria-pressed="${item.id === packageId}" ${busy || pendingSignature ? 'disabled' : ''}><strong>⚡ ${item.id}</strong><small>${item.hours}h</small><b>$${item.usd.toLocaleString()}</b><small>${Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? `≈ ${(item.usd / coinSolUsdPrice).toFixed(4)} SOL` : 'SOL quote at checkout'}</small></button>`).join('')}</div>
-    <p class="explore-boost-explainer">Fixed USD package price, paid in test network SOL at the fresh checkout rate. test network SOL has no intended monetary value. Network fee is additional. Boosting is paid visibility, not an endorsement or trade guarantee.</p>
+    <p class="explore-boost-explainer">Fixed USD package price, paid in SOL at the fresh checkout rate. Network fee is additional. Boosting is paid visibility, not an endorsement or trade guarantee.</p>
     ${quote ? `<div class="explore-boost-quote"><strong>Review exact payment</strong><span>${(quote.lamports / 1e9).toFixed(9)} SOL · $${quote.usd} at $${quote.solUsd}/SOL</span><small>Recipient ${escapeHtml(quote.recipient)} · Quote expires ${escapeHtml(new Date(quote.expiresAt).toLocaleTimeString())}</small></div>` : ''}
     ${pendingSignature ? `<a class="explore-boost-proof" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(pendingSignature)}`))}" target="_blank" rel="noopener noreferrer">View submitted transaction ↗</a>` : ''}
-    <button type="button" class="primary-button explore-boost-pay" ${!available || busy ? 'disabled' : ''}>${busy ? 'Checking test network…' : pendingSignature ? 'Retry payment verification' : quote ? `Pay ${(quote.lamports / 1e9).toFixed(6)} SOL · ${selected.id}` : `Get SOL quote · ${selected.id}`}</button>
+    <button type="button" class="primary-button explore-boost-pay" ${!available || busy ? 'disabled' : ''}>${busy ? 'Checking Solana…' : pendingSignature ? 'Retry payment verification' : quote ? `Pay ${(quote.lamports / 1e9).toFixed(6)} SOL · ${selected.id}` : `Get SOL quote · ${selected.id}`}</button>
     <p class="explore-boost-message" role="status">${escapeHtml(message || (available ? 'Connect a wallet only when you are ready to get a quote.' : 'New boost purchases are currently unavailable.'))}</p>
     <div class="explore-boost-history"><strong>Payment history</strong>${exploreBoostHistory.filter(row => row.mint === mint).slice(0, 5).map(row => `<p><span>${escapeHtml(row.packageId)} · ${escapeHtml(shortAddress(row.payer))} · ${escapeHtml(new Date(row.expiresAt).toLocaleString())}</span><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(row.signature)}`))}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></p>`).join('') || '<small>No verified boost payments yet.</small>'}</div>`;
 }
@@ -959,7 +958,7 @@ async function handleExploreBoostPay(){
   try {
     if (!wallet) await connectWallet();
     const session = captureWalletSession();
-    if (!session || !canSignTransactions(session.provider)) throw new Error('Connect a test network wallet that can sign transactions.');
+    if (!session || !canSignTransactions(session.provider)) throw new Error('Connect a Solana wallet that can sign transactions.');
     if (!boostCheckout.quote || boostCheckout.quote.mint !== boostCheckout.mint || boostCheckout.quote.packageId !== boostCheckout.packageId || boostCheckout.quote.payer !== session.address || Date.parse(boostCheckout.quote.expiresAt) <= Date.now()) {
       const response = await apiRequest('/api/boosts/quote', { method:'POST', body:{ mint:boostCheckout.mint, payer:session.address, packageId:boostCheckout.packageId } });
       assertWalletSessionCurrent(session);
@@ -983,7 +982,7 @@ async function handleExploreBoostPay(){
       assertWalletSessionCurrent(session);
       boostCheckout.pendingSignature = await rpc.sendRawTransaction(signed.serialize(), { skipPreflight:false, maxRetries:3 });
       try { localStorage.setItem(`funded.boost.pending.${quote.mint}`, JSON.stringify({ quote, signature:boostCheckout.pendingSignature })); } catch {}
-      boostCheckout.message = 'Transaction submitted. Waiting for finalized test network proof.';
+      boostCheckout.message = 'Transaction submitted. Waiting for finalized Solana proof.';
       await verifyExploreBoostPayment(true);
       return;
     }
@@ -1001,7 +1000,7 @@ async function verifyExploreBoostPayment(alreadyBusy = false){
         try { localStorage.removeItem(`funded.boost.pending.${mint}`); } catch {}
         boostCheckout.pendingSignature = null;
         boostCheckout.quote = null;
-        boostCheckout.message = 'Boost activated from a finalized test network payment. View the receipt below.';
+        boostCheckout.message = 'Boost activated from a finalized Solana payment. View the receipt below.';
         await loadVerifiedBoosts();
         await loadExploreBoostHistory(mint);
         return;
@@ -1142,7 +1141,7 @@ function renderCoinRegistryIdentity(mint){
   setCoinField('#coin-symbol', symbol || '—');
   setCoinField('#coin-artwork-symbol', symbol || '—');
   setCoinField('#coin-avatar', (symbol || name).slice(0, 1).toUpperCase());
-  setCoinField('#coin-description', 'Name and symbol come from the verified launch registry. Live mint, market, and holder facts are unavailable from test network RPC.');
+  setCoinField('#coin-description', 'Name and symbol come from the verified launch registry. Live mint, market, and holder facts are unavailable from Solana RPC.');
   setCoinFact('#coin-metadata-status', 'Verified launch registry', 'clear');
   if (launch.imageUri === devnetImageUri(mint)) {
     const avatar = document.querySelector('#coin-avatar');
@@ -1232,7 +1231,7 @@ function portfolioTokenCardMarkup({ mint, name, symbol, source, allocationPercen
       <span class="portfolio-token-identity"><strong>${escapeHtml(tokenSymbol)}</strong><small>${escapeHtml(tokenName)}</small></span>
       <span class="portfolio-token-stage">${escapeHtml(stage)}</span>
     </div>
-    <p class="portfolio-token-source">${escapeHtml(source || 'Solana test network')}</p>
+    <p class="portfolio-token-source">${escapeHtml(source || 'Solana')}</p>
     ${tokenCardAddressesMarkup(mint)}
     ${socialLinks ? `<div class="portfolio-token-social">${socialLinks}</div>` : ''}
     <div class="portfolio-token-stats">${facts.map(([label, value, className = '']) => `<span class="${className}"><small>${escapeHtml(label)}</small><strong>${escapeHtml(value)}</strong></span>`).join('')}</div>
@@ -1251,7 +1250,7 @@ function renderCreatorLaunches(){
   if (projectSelect) {
     const selectedMint = projectSelect.value;
     projectSelect.replaceChildren(new Option('No project selected', ''));
-    for (const launch of launches) projectSelect.add(new Option(`${launch.name || 'test network coin'} (${launch.symbol || 'TOKEN'})`, launch.mint));
+    for (const launch of launches) projectSelect.add(new Option(`${launch.name || 'Solana coin'} (${launch.symbol || 'TOKEN'})`, launch.mint));
     projectSelect.value = launches.some(launch => launch.mint === selectedMint) ? selectedMint : '';
   }
   const stats = document.querySelector('#my-launches .projects-panel .role-stats');
@@ -1317,7 +1316,7 @@ function renderCreatorLaunches(){
       ? withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(market, exploreWindow) : enrichMarketRecord(market))
       : withVerifiedExploreBenefits({
           address: launch.mint,
-          name: launch.name || 'test network coin',
+          name: launch.name || 'Solana coin',
           symbol: launch.symbol || 'TOKEN',
           icon: (launch.symbol || 'T').slice(0, 1).toUpperCase(),
           riskLevel: 'watch',
@@ -1359,7 +1358,7 @@ function getAirdropPrograms(){
       ? Number(BigInt(reserve.claimedBaseUnits) * BigInt(reservedTokens) * 1_000_000n / BigInt(reserve.totalBaseUnits)) / 1_000_000 : null;
     return [{
       id: launch.mint,
-      name: launch.name || 'test network launch',
+      name: launch.name || 'Solana launch',
       symbol: launch.symbol || 'TOKEN',
       allocationPercent,
       reservedTokens,
@@ -1447,7 +1446,7 @@ function renderAirdropProgramDetail(program){
   const unavailableButton = document.querySelector('#airdrop-claim-unavailable');
   if (unavailableButton) unavailableButton.hidden = program.claimActive;
   const eyebrow = document.querySelector('#airdrop-selected-eyebrow');
-  if (eyebrow) eyebrow.textContent = program.vaultVerified ? 'Indexed launch policy · vault funded on test network' : 'Indexed launch policy · funding unverified';
+  if (eyebrow) eyebrow.textContent = program.vaultVerified ? 'Indexed launch policy · vault funded on Solana' : 'Indexed launch policy · funding unverified';
   document.querySelector('#airdrop-selected-title').textContent = `${program.name} (${program.symbol})`;
   document.querySelector('#airdrop-selected-stats').innerHTML = `<span><small>Policy reserve</small><strong>${formatTokenAmount(program.reservedTokens)} tokens · ${program.allocationPercent}% of supply</strong></span><span><small>Claimed</small><strong>${formatVerifiedAirdropAmount(program.claimedTokens)}</strong></span><span><small>Snapshot</small><strong>${escapeHtml(program.snapshot)}</strong></span><span><small>Snapshot hash</small><strong class="airdrop-proof-value">${escapeHtml(program.snapshotHash || 'Pending verified snapshot')}</strong></span><span><small>Proof root</small><strong class="airdrop-proof-value">${escapeHtml(program.merkleRoot || 'Pending published proof')}</strong></span><span><small>Eligible wallets</small><strong>${formatVerifiedAirdropAmount(program.eligibleWallets)}</strong></span><span><small>Vesting</small><strong>${program.claimPublished ? 'One full claim during the 90-day window; no staged vesting' : 'No claim schedule active'}</strong></span>`;
   const status = document.querySelector('#airdrop-selected-status');
@@ -1489,7 +1488,7 @@ async function checkCommunityClaim(mintAddress){
   const status = document.querySelector('#airdrop-selected-status');
   if (!wallet) await connectWallet();
   const session = captureWalletSession();
-  if (!session) { status.append(document.createTextNode(' Connect a test network wallet to check this allocation.')); return; }
+  if (!session) { status.append(document.createTextNode(' Connect a Solana wallet to check this allocation.')); return; }
   const program = getAirdropPrograms().find(row => row.id === mintAddress);
   if (!program?.claimActive) { status.append(document.createTextNode(' Claims are not open for this token.')); return; }
   const response = await apiRequest(`/api/airdrops/claims/proof?mint=${encodeURIComponent(mintAddress)}&wallet=${encodeURIComponent(session.address)}`);
@@ -1576,10 +1575,10 @@ async function submitCommunityClaim(mintAddress){
       throw new Error('Claim finalized without the exact token and payment-record deltas.');
     await loadCommunityReserveStatuses();
     renderAirdropProgramDetail(getAirdropPrograms().find(row => row.id === mintAddress));
-    showToast('Community tokens claimed and verified on test network');
+    showToast('Community tokens claimed and verified on Solana');
   } catch (error) {
     status.append(document.createTextNode(submittedSignature
-      ? ` Claim ${submittedSignature} was submitted. Check its finalized test network receipt before retrying: ${String(error.message || error)}`
+      ? ` Claim ${submittedSignature} was submitted. Check its finalized Solana receipt before retrying: ${String(error.message || error)}`
       : ` Claim stopped: ${String(error.message || error)}`));
   } finally { if (button) button.disabled = false; }
 }
@@ -1592,7 +1591,7 @@ async function fundCommunityReserve(mintAddress){
   button.disabled = true;
   try {
     const launch = verifiedLaunchPolicies.find(row => row.mint === mintAddress && row.onchainVerified && row.cluster === 'devnet');
-    if (!launch || launch.creatorWallet !== session.address || APP_CLUSTER !== 'devnet' || APP_MAINNET_READ_ONLY) throw new Error('Only the verified test network launch creator can fund this reserve.');
+    if (!launch || launch.creatorWallet !== session.address || APP_CLUSTER !== 'devnet' || APP_MAINNET_READ_ONLY) throw new Error('Only the verified Solana launch creator can fund this reserve.');
     const fresh = await apiRequest('/api/airdrops/reserves');
     const reserve = fresh.data?.reserves?.find(row => row.mint === mintAddress);
     if (!fresh.available || fresh.data.cluster !== 'devnet' || !reserve?.vaultInitialized || reserve.verified || reserve.creatorWallet !== session.address || reserve.status !== 'unfunded' || Number(reserve.reservedTokens) !== Number(launch.communityAirdrop?.reservedTokens)) throw new Error('Reserve state changed or the reward vault is not ready. Refresh the program details.');
@@ -1636,11 +1635,11 @@ async function fundCommunityReserve(mintAddress){
     if (!recorded.available || !recorded.data?.verified) throw new Error('The server did not verify the finalized creator funding receipt.');
     await loadCommunityReserveStatuses();
     renderAirdropProgramDetail(getAirdropPrograms().find(row => row.id === mintAddress));
-    showToast('Community reserve funded and verified on test network');
+    showToast('Community reserve funded and verified on Solana');
   } catch (error) {
     communityFundingPreview = null;
     status.append(document.createTextNode(submittedSignature
-      ? ` Funding status is uncertain for ${submittedSignature}. Check the test network transaction before retrying: ${String(error.message || error)}`
+      ? ` Funding status is uncertain for ${submittedSignature}. Check the Solana transaction before retrying: ${String(error.message || error)}`
       : ` Funding stopped: ${String(error.message || error)}`));
   } finally { button.disabled = false; }
 }
@@ -1717,7 +1716,7 @@ function renderAirdropClaims(filter = activeAirdropFilter){
   if (list) loadVerifiedTokenLogos(list);
   document.querySelectorAll('[data-airdrop-filter]').forEach(button => button.classList.toggle('active', button.dataset.airdropFilter === filter));
   const state = document.querySelector('#claim-wallet-state');
-  if (state) state.textContent = connectedWalletAddress ? `Wallet ${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)} connected. Check an open claim for your verified allocation.` : 'Connect your wallet to check open test network claims.';
+  if (state) state.textContent = connectedWalletAddress ? `Wallet ${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)} connected. Check an open claim for your verified allocation.` : 'Connect your wallet to check open Solana claims.';
   const count = document.querySelector('#claim-program-count');
   if (count) count.textContent = verifiedLaunchPoliciesStatus === 'ready'
     ? `${programs.length} published ${programs.length === 1 ? 'allocation' : 'allocations'}`
@@ -1734,7 +1733,7 @@ let buybackNetworkState = { status:'loading', receipts:[], pending:[] };
 async function loadBuybackNetworkState(){
   try {
     const response = await apiRequest('/api/buyback/status', { signal:AbortSignal.timeout(8000) });
-    if (!response.available || !response.data || response.data.cluster !== 'devnet') throw new Error('Test network buyback index unavailable.');
+    if (!response.available || !response.data || response.data.cluster !== 'devnet') throw new Error('Solana buyback index unavailable.');
     buybackNetworkState = { status:'ready', receipts:Array.isArray(response.data.receipts) ? response.data.receipts : [], pending:Array.isArray(response.data.pending) ? response.data.pending : [] };
   } catch { buybackNetworkState = { status:'unavailable', receipts:[], pending:[] }; }
   renderBuybackDashboard();
@@ -1753,7 +1752,7 @@ function renderBuybackExample(){
 function fundedReceiptProject(receipt){
   if (!receipt?.projectMint) return 'No project attribution';
   const launch = verifiedLaunchPolicies.find(item => item.mint === receipt.projectMint);
-  return launch ? `${launch.name || 'test network coin'} (${launch.symbol || 'TOKEN'})` : `${receipt.projectMint.slice(0, 4)}…${receipt.projectMint.slice(-4)}`;
+  return launch ? `${launch.name || 'Solana coin'} (${launch.symbol || 'TOKEN'})` : `${receipt.projectMint.slice(0, 4)}…${receipt.projectMint.slice(-4)}`;
 }
 function updateFundedBurnButton(){
   const input = document.querySelector('#funded-burn-amount');
@@ -1778,14 +1777,14 @@ function renderWalletFundedBalance(){
   const currentWallet = Boolean(connectedWalletAddress && fundedBurnState.wallet === connectedWalletAddress);
   const ready = currentWallet && fundedBurnState.status === 'ready';
   balance.textContent = ready ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : '—';
-  if (note) note.textContent = ready ? 'Live SPL token balance' : currentWallet && fundedBurnState.status === 'loading' ? 'Loading from test network' : 'Balance unavailable';
+  if (note) note.textContent = ready ? 'Live SPL token balance' : currentWallet && fundedBurnState.status === 'loading' ? 'Loading from Solana' : 'Balance unavailable';
 }
 async function loadFundedBurnState({ force = false } = {}){
   const address = connectedWalletAddress;
   if (!force && fundedBurnState.status === 'loading') return;
   if (!force && fundedBurnState.status === 'ready' && fundedBurnState.wallet === address && Date.now() - (fundedBurnState.loadedAt || 0) < 30_000) return;
   const request = ++fundedBurnRequest;
-  fundedBurnState = { ...fundedBurnState, status: 'loading', wallet: address, message: 'Reading the $FUNDED mint, wallet balance, and indexed receipts from test network…' };
+  fundedBurnState = { ...fundedBurnState, status: 'loading', wallet: address, message: 'Reading the $FUNDED mint, wallet balance, and indexed receipts from Solana…' };
   renderBuybackDashboard();
   renderWalletFundedBalance();
   try {
@@ -1793,7 +1792,7 @@ async function loadFundedBurnState({ force = false } = {}){
     const { PublicKey, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getMint, unpackAccount } = await getSolana();
     const mint = new PublicKey(PROTOCOL_FUNDED_MINT);
     const mintAccount = await connection.getAccountInfo(mint, 'confirmed');
-    if (!mintAccount || (!mintAccount.owner.equals(TOKEN_PROGRAM_ID) && !mintAccount.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('The configured $FUNDED mint is not a supported SPL mint on test network.');
+    if (!mintAccount || (!mintAccount.owner.equals(TOKEN_PROGRAM_ID) && !mintAccount.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('The configured $FUNDED mint is not a supported SPL mint on Solana.');
     const tokenProgram = mintAccount.owner;
     const mintState = await getMint(connection, mint, 'confirmed', tokenProgram);
     let tokenAccounts = [];
@@ -1814,16 +1813,16 @@ async function loadFundedBurnState({ force = false } = {}){
       supplyBaseUnits: mintState.supply, burnedBaseUnits: burnedSupplyBaseUnits(mintState.supply, mintState.decimals),
       tokenProgram, tokenAccounts, receipts: indexed.available && Array.isArray(indexed.data?.receipts) ? indexed.data.receipts : [],
       receiptIndexAvailable: indexed.available, loadedAt: Date.now(), message: address
-        ? (indexed.available ? 'Live test network balance and server-verified receipts loaded.' : 'Live test network balance loaded; the receipt index is unavailable.')
-        : 'Live test network supply loaded. Connect a wallet to view its balance and burn receipts.',
+        ? (indexed.available ? 'Live Solana balance and server-verified receipts loaded.' : 'Live Solana balance loaded; the receipt index is unavailable.')
+        : 'Live Solana supply loaded. Connect a wallet to view its balance and burn receipts.',
     };
   } catch (error) {
     if (request !== fundedBurnRequest) return;
     const detail = String(error?.message || '');
     const unavailable = /(?:5\d\d Internal Server Error|failed to fetch|networkerror|econnrefused|\b429\b|rate limit|too many requests)/i.test(detail);
     fundedBurnState = { ...fundedBurnState, status: 'error', wallet: address, message: unavailable
-      ? 'test network RPC unavailable; $FUNDED mint and balance could not be verified.'
-      : detail || 'test network burn data is unavailable.' };
+      ? 'Solana RPC unavailable; $FUNDED mint and balance could not be verified.'
+      : detail || 'Solana burn data is unavailable.' };
   }
   renderBuybackDashboard();
   renderWalletFundedBalance();
@@ -1840,15 +1839,15 @@ function renderFundedBuyControl(message = null){
   const amount = Number(input.value);
   input.disabled = !ready || fundedBuyBusy;
   button.disabled = !ready || fundedBuyBusy || !Number.isFinite(amount) || amount <= 0;
-  button.textContent = fundedBuyBusy ? 'Waiting for test network…' : fundedBuyPreview ? 'Confirm buy' : wallet ? 'Preview buy' : 'Connect wallet to preview';
-  badge.textContent = ready ? 'test network pool live' : fundedBuyRoute.status === 'checking' ? 'Checking' : 'Unavailable';
+  button.textContent = fundedBuyBusy ? 'Waiting for Solana…' : fundedBuyPreview ? 'Confirm buy' : wallet ? 'Preview buy' : 'Connect wallet to preview';
+  badge.textContent = ready ? 'Solana pool live' : fundedBuyRoute.status === 'checking' ? 'Checking' : 'Unavailable';
   badge.classList.toggle('unavailable', !ready);
   if (message != null) status.textContent = message;
   else if (!ready) status.textContent = fundedBuyRoute.reason;
 }
 async function refreshFundedBuyRoute(){
   try {
-    if (APP_CLUSTER !== 'devnet' || APP_MAINNET_READ_ONLY || !PROTOCOL_FUNDED_MINT || !PROTOCOL_FUNDED_SWAP_POOL) throw new Error('A test network $FUNDED mint and pool are required.');
+    if (APP_CLUSTER !== 'devnet' || APP_MAINNET_READ_ONLY || !PROTOCOL_FUNDED_MINT || !PROTOCOL_FUNDED_SWAP_POOL) throw new Error('A Solana $FUNDED mint and pool are required.');
     const snapshot = await withRpcRetry(async attempt => {
       if (attempt > 0) tradePreviewConnection = null;
       const rpc = await getTradePreviewConnection();
@@ -1856,7 +1855,7 @@ async function refreshFundedBuyRoute(){
     });
     fundedBuyPreview = null;
     fundedBuyRoute = { status:'ready', snapshot, reason:null };
-    renderFundedBuyControl(`Verified test network pool ${snapshot.pool.slice(0, 6)}…${snapshot.pool.slice(-4)} · ${snapshot.quoteReservesSol.toFixed(3)} SOL liquidity.`);
+    renderFundedBuyControl(`Verified Solana pool ${snapshot.pool.slice(0, 6)}…${snapshot.pool.slice(-4)} · ${snapshot.quoteReservesSol.toFixed(3)} SOL liquidity.`);
     renderFundedTokenLanding();
   } catch (error) {
     fundedBuyPreview = null;
@@ -1864,7 +1863,7 @@ async function refreshFundedBuyRoute(){
     const reason = /(?:\b429\b|rate limit|too many requests)/i.test(detail)
       ? 'Buy preview is temporarily unavailable because Solana RPC is rate limited. Try again shortly.'
       : /(?:failed to fetch|networkerror|econnrefused|timed out)/i.test(detail)
-        ? 'Buy preview is unavailable while the test network RPC connection recovers.'
+        ? 'Buy preview is unavailable while the Solana RPC connection recovers.'
         : `Buy preview is unavailable: ${detail.slice(0, 220)}`;
     fundedBuyRoute = { status:'unavailable', snapshot:null, reason };
     renderFundedBuyControl();
@@ -1879,7 +1878,7 @@ async function handleFundedBuy(){
   if (amount > maxAmount) return renderFundedBuyControl(`This test pool limits each buy to ${maxAmount.toFixed(6)} SOL (3% of verified reserves).`);
   if (!wallet) { await connectWallet(); if (!wallet) return; }
   const session = captureWalletSession();
-  if (!session || !canSignTransactions(session.provider)) return renderFundedBuyControl('Open the app in a wallet that can sign test network transactions.');
+  if (!session || !canSignTransactions(session.provider)) return renderFundedBuyControl('Open the app in a wallet that can sign Solana transactions.');
   const samePreview = fundedBuyPreview && fundedBuyPreview.amount === amount && fundedBuyPreview.wallet === session.address;
   if (fundedBuyPreview && (!samePreview || Date.now() - fundedBuyPreview.preparedAt > 15_000)) {
     fundedBuyPreview = null;
@@ -1917,12 +1916,12 @@ async function handleFundedBuy(){
     if (after - before < minimum) throw new Error(`Transaction ${result.signature} finalized, but the expected $FUNDED balance increase was not observed.`);
     document.querySelector('#funded-buy-amount').value = '';
     renderFundedBuyControl(`Buy finalized: ${result.signature}. Received ${Number(after - before) / 10 ** result.tokenDecimals} $FUNDED.`);
-    showToast('Verified $FUNDED buy finalized on test network');
+    showToast('Verified $FUNDED buy finalized on Solana');
     void loadFundedBurnState({ force:true });
   } catch (error) {
     fundedBuyPreview = null;
     renderFundedBuyControl(error.signature || submittedSignature
-      ? `Confirmation is uncertain for ${error.signature || submittedSignature}. Check that signature on test network before trying again.`
+      ? `Confirmation is uncertain for ${error.signature || submittedSignature}. Check that signature on Solana before trying again.`
       : `Buy stopped or confirmation unavailable: ${String(error.message || error)}`);
   } finally {
     fundedBuyBusy = false;
@@ -1952,7 +1951,7 @@ function renderBuybackDashboard(message = ''){
   const burnedNote = document.querySelector('#buyback-burned')?.parentElement?.querySelector('em');
   const claimsNote = document.querySelector('#buyback-claims')?.parentElement?.querySelector('em');
   const balanceNote = document.querySelector('#buyback-pending')?.parentElement?.querySelector('em');
-  if (balanceNote) balanceNote.textContent = walletBalanceReady ? 'Live SPL token balance' : connectedWalletAddress && fundedBurnState.status === 'loading' ? 'Loading from test network' : connectedWalletAddress ? 'Balance unavailable' : 'Connect wallet to check balance';
+  if (balanceNote) balanceNote.textContent = walletBalanceReady ? 'Live SPL token balance' : connectedWalletAddress && fundedBurnState.status === 'loading' ? 'Loading from Solana' : connectedWalletAddress ? 'Balance unavailable' : 'Connect wallet to check balance';
   if (burnedNote) burnedNote.textContent = fundedBurnState.status === 'ready' ? 'On-chain supply delta from 1B mint' : 'Supply unavailable';
   if (claimsNote) claimsNote.textContent = fundedBurnState.receiptIndexAvailable ? 'Server-verified BurnChecked receipts' : 'Receipt index unavailable';
   const executedIds = new Set(state.receipts.flatMap(receipt => receipt.accrualIds || []));
@@ -1981,11 +1980,11 @@ function renderBuybackDashboard(message = ''){
     const spentSol = (BigInt(receipt.settledLamports || '0') - BigInt(receipt.returnedLamports || '0'));
     return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${escapeHtml(amount)} $FUNDED bought and burned</strong><small>${escapeHtml(formatTokenBaseUnits(spentSol, 9, 9))} SOL from verified creator fees · BurnChecked · unused SOL returned to router</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed buy and burn ↗</a></span><b>Supply ↓</b></div>`;
   }).join('');
-  document.querySelector('#buyback-ledger').innerHTML = `${feeRows}${standaloneRows}${launchRows}${previewRows}` || (buybackNetworkState.status === 'unavailable' ? '<div class="empty-state">test network buyback receipt index is unavailable. Try again shortly.</div>' : '<div class="empty-state">No verified $FUNDED burn receipts are indexed on test network yet. Fee-funded buybacks and launch-promotion burns are tracked separately.</div>');
+  document.querySelector('#buyback-ledger').innerHTML = `${feeRows}${standaloneRows}${launchRows}${previewRows}` || (buybackNetworkState.status === 'unavailable' ? '<div class="empty-state">Solana buyback receipt index is unavailable. Try again shortly.</div>' : '<div class="empty-state">No verified $FUNDED burn receipts are indexed on Solana yet. Fee-funded buybacks and launch-promotion burns are tracked separately.</div>');
   const runButton = document.querySelector('#buyback-run-preview');
   const addButton = document.querySelector('#buyback-add-claim');
   if (addButton) { addButton.disabled = true; addButton.title = 'Recording requires verified fee-claim receipts and a deployed buyback vault.'; }
-  if (runButton) { runButton.disabled = true; runButton.title = 'Live test network buybacks execute automatically from verified fee accruals. This local preview control is disabled.'; }
+  if (runButton) { runButton.disabled = true; runButton.title = 'Buybacks execute automatically from verified fee accruals. Manual execution is unavailable.'; }
   renderBuybackExample();
   const burnCard = document.querySelector('.burn-token-card');
   const burnBadge = burnCard?.querySelector('.burn-status');
@@ -2010,8 +2009,8 @@ function renderBuybackDashboard(message = ''){
   else if (pendingSol >= 0.25) status.textContent = `${formatBuybackAmount(pendingSol)} SOL is ready for a protected batch preview.`;
   else if (pendingSol > 0) status.textContent = `${formatBuybackAmount(pendingSol)} SOL is safely accumulating toward the 0.25 SOL threshold.`;
   else status.textContent = feeReceipts.length > 0
-    ? `${feeReceipts.length} verified fee-funded test network buyback${feeReceipts.length === 1 ? '' : 's'} completed. New batches run automatically from collected fees; this example cannot create a claim.`
-    : 'Local calculation only. Live test network buybacks run automatically from verified fee collections; this example cannot create a claim.';
+    ? `${feeReceipts.length} verified fee-funded Solana buyback${feeReceipts.length === 1 ? '' : 's'} completed. New batches run automatically from collected fees; this example cannot create a claim.`
+    : 'Local calculation only. Live Solana buybacks run automatically from verified fee collections; this example cannot create a claim.';
 }
 async function submitFundedBurn(){
   if (!wallet) { await connectWallet(); if (!wallet) return; }
@@ -2048,7 +2047,7 @@ async function submitFundedBurn(){
     const signed = await session.provider.signTransaction(transaction);
     assertWalletSessionCurrent(session);
     const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false, maxRetries: 3 });
-    fundedBurnState.message = `Burn submitted (${signature.slice(0, 8)}…). Waiting for test network confirmation.`;
+    fundedBurnState.message = `Burn submitted (${signature.slice(0, 8)}…). Waiting for Solana confirmation.`;
     renderBuybackDashboard();
     const confirmation = await waitForSignatureConfirmation(connection, { signature, lastValidBlockHeight: latest.lastValidBlockHeight });
     if (confirmation.value.err) throw new Error(`Burn transaction failed: ${JSON.stringify(confirmation.value.err)}`);
@@ -2062,9 +2061,9 @@ async function submitFundedBurn(){
     }, 0n);
     if (accountDelta !== amount || previousSupply - mintAfter.supply !== amount) throw new Error(`Burn confirmed as ${signature}, but the expected balance and supply deltas were not observed.`);
     const indexed = await apiRequest('/api/burn-receipts', { method: 'POST', body: { signature, wallet: session.address, amountBaseUnits: amount.toString(), projectMint } });
-    fundedBurnState.message = indexed.available ? `Burn confirmed and indexed: ${signature}` : `Burn confirmed on test network, but receipt indexing is unavailable: ${signature}`;
+    fundedBurnState.message = indexed.available ? `Burn confirmed and indexed: ${signature}` : `Burn confirmed on Solana, but receipt indexing is unavailable: ${signature}`;
     input.value = '';
-    showToast('BurnChecked confirmed on test network');
+    showToast('BurnChecked confirmed on Solana');
     fundedBurnState.status = 'idle';
     await loadFundedBurnState({ force: true });
   } catch (error) {
@@ -2443,7 +2442,7 @@ function renderExploreAssets({ force = false } = {}){
   const feedUnavailable = !exploreFeedAvailable && !exploreLastVerifiedAt;
   const rpcUnavailable = /RPC (?:rate limited|unavailable)/.test(exploreProviderStatus);
   const outage = exploreOutageCopy();
-  if (clusterLabel) clusterLabel.textContent = `Solana ${EXPLORE_CLUSTER === 'mainnet-beta' ? 'mainnet' : EXPLORE_NETWORK_LABEL} · ${exploreProviderStatus.includes('stale') ? 'last verified snapshot' : exploreProviderStatus.includes('RPC verified') ? 'RPC verified' : exploreProviderStatus.includes('unavailable') ? 'data unavailable' : 'awaiting verification'}`;
+  if (clusterLabel) clusterLabel.textContent = `${exploreProviderStatus.includes('stale') ? 'last verified snapshot' : exploreProviderStatus.includes('RPC verified') ? 'RPC verified' : exploreProviderStatus.includes('unavailable') ? 'data unavailable' : 'awaiting verification'}`;
   if (scope && EXPLORE_CLUSTER !== 'devnet') scope.textContent = 'Solana mainnet discovery · Pump.fun listings are shown only after mint verification. Missing market figures stay unavailable.';
   const records = assets.map(item => withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(item, exploreWindow) : enrichMarketRecord(item)));
   const visible = filterMarketRecords(records, exploreFilterOptions());
@@ -2473,7 +2472,7 @@ function renderExploreAssets({ force = false } = {}){
     ? '<div class="empty-state onchain-empty"><strong>Loading verified launches…</strong><span>Checking the indexed launch feed and confirming current Solana state.</span></div>'
     : feedUnavailable || rpcUnavailable
       ? `<div class="empty-state onchain-empty"><strong>${escapeHtml(outage.title)}</strong><span>${escapeHtml(outage.detail)}</span></div>`
-        : `<div class="empty-state onchain-empty"><strong>${assets.length ? 'No verified launches match these filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'Indexed launches could not be verified.' : 'No test network launches are indexed yet.'}</strong><span>${assets.length ? 'Broaden the search or clear the filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'The indexed mints did not pass current Solana verification. Retry when the RPC is available.' : 'Confirmed funded.vip launches will appear here after they are indexed.'}</span></div>`;
+        : `<div class="empty-state onchain-empty"><strong>${assets.length ? 'No verified launches match these filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'Indexed launches could not be verified.' : 'No Solana launches are indexed yet.'}</strong><span>${assets.length ? 'Broaden the search or clear the filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'The indexed mints did not pass current Solana verification. Retry when the RPC is available.' : 'Confirmed funded.vip launches will appear here after they are indexed.'}</span></div>`;
   if (!visible.length && assets.length && !feedUnavailable && !rpcUnavailable) {
     const reason = exploreEmptyReason();
     if (reason) { grid.querySelector('.empty-state strong').textContent = reason[0]; grid.querySelector('.empty-state span').textContent = reason[1]; }
@@ -2590,7 +2589,7 @@ function renderHomeKpiDashboard(verified = assets){
   const launchNote = document.querySelector('#home-pulse-launches-note');
   if (launchCard) launchCard.dataset.state = launchFeedUnavailable ? 'unavailable' : fundedLaunchRecords.length ? 'available' : 'empty';
   if (launchValue) launchValue.textContent = launchFeedUnavailable ? '—' : fundedLaunchRecords.length.toLocaleString();
-  if (launchNote) launchNote.textContent = launchFeedUnavailable ? 'Launch feed unavailable; count not verified' : fundedLaunchRecords.length ? `Funded policy and mint confirmed on Solana ${EXPLORE_NETWORK_LABEL}` : 'No funded launch policies confirmed';
+  if (launchNote) launchNote.textContent = launchFeedUnavailable ? 'Launch feed unavailable; count not verified' : fundedLaunchRecords.length ? `Funded policy and mint confirmed on Solana` : 'No funded launch policies confirmed';
 
   const evidenceReady = ['onchain-indexed', 'partial'].includes(receiptEvidence?.status);
   const collections = evidenceReady && Array.isArray(receiptEvidence?.verifiedCollections) ? receiptEvidence.verifiedCollections : [];
@@ -2698,7 +2697,7 @@ function renderHomeKpiDashboard(verified = assets){
   const updated = document.querySelector('#home-dashboard-updated');
   if (status) {
     status.hidden = !launchFeedUnavailable && !fundedLaunchRecords.length;
-    if (!status.hidden) status.innerHTML = `<i></i> ${launchFeedUnavailable ? `Launch feed unavailable · ${EXPLORE_NETWORK_LABEL}` : `Verified funded launches · ${EXPLORE_NETWORK_LABEL}`}`;
+    if (!status.hidden) status.innerHTML = `<i></i> ${launchFeedUnavailable ? `Launch feed unavailable` : `Verified funded launches`}`;
   }
   if (updated) updated.textContent = exploreUpdatedAt ? `Checked ${new Date(exploreUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Waiting for first check';
   renderFundedTokenLanding();
@@ -2712,7 +2711,7 @@ function renderHomeOnchainSnapshot(verified){
   const count = document.querySelector('#home-verified-launches');
   const countNote = document.querySelector('#home-verified-launches-note');
   const policyUpdated = document.querySelector('#home-policy-updated');
-  status.textContent = `Solana RPC · ${EXPLORE_NETWORK_LABEL} confirmed`;
+  status.textContent = `Solana RPC · confirmed`;
   if (count) count.textContent = String(verified.length);
   if (countNote) countNote.textContent = verified.length ? `Confirmed on ${EXPLORE_NETWORK_LABEL}` : 'No confirmed launches found';
   const pulseStatus = document.querySelector('#home-pulse-status');
@@ -2732,8 +2731,8 @@ function renderHomeOnchainSnapshot(verified){
   const totalVolume = volumeRecords.length ? volumeRecords.reduce((sum, item) => sum + Number(item.windowVolumeSol || 0), 0) : null;
   const partialTrades = tradeRecords.some(item => item.windowCoverage === 'partial') || tradeRecords.length < verified.length;
   const partialVolume = volumeRecords.some(item => item.windowCoverage === 'partial') || volumeRecords.length < verified.length;
-  if (pulseStatus) pulseStatus.textContent = `Solana RPC · ${EXPLORE_NETWORK_LABEL} confirmed`;
-  if (pulseNetwork) pulseNetwork.textContent = `Solana ${EXPLORE_CLUSTER === 'devnet' ? 'test network' : EXPLORE_CLUSTER}`;
+  if (pulseStatus) pulseStatus.textContent = `Solana RPC · confirmed`;
+  if (pulseNetwork) pulseNetwork.textContent = `Solana`;
   if (pulseLaunches) pulseLaunches.textContent = verified.length ? String(verified.length) : '—';
   if (pulseLaunchesNote) pulseLaunchesNote.textContent = verified.length ? `Confirmed on ${EXPLORE_NETWORK_LABEL}` : 'No confirmed launches';
   if (pulseTrades) pulseTrades.textContent = totalTrades == null ? '—' : formatExploreTradeCount(totalTrades, partialTrades ? 'partial' : 'complete');
@@ -2743,7 +2742,7 @@ function renderHomeOnchainSnapshot(verified){
   const graduated = verified.filter(item => item.migrated === true).length;
   if (pulseGraduated) pulseGraduated.textContent = graduated ? String(graduated) : verified.length ? '0' : '—';
   if (pulseGraduatedNote) pulseGraduatedNote.textContent = verified.length ? 'Verified PumpSwap stage' : 'Waiting for verified mints';
-  if (policyUpdated) policyUpdated.textContent = `RPC checked ${new Date().toLocaleTimeString()} · ${EXPLORE_NETWORK_LABEL}`;
+  if (policyUpdated) policyUpdated.textContent = `RPC checked ${new Date().toLocaleTimeString()}`;
   renderHomeKpiDashboard(verified);
 }
 let receiptEvidence = null;
@@ -2882,7 +2881,7 @@ function renderVerifiedReceiptEvidence(){
     list.append(row);
   }
   if (payouts.length) tape.replaceChildren(...[...list.children].map(row => row.cloneNode(true)));
-  else tape.innerHTML = '<p class="empty-state">No verified payout receipts are available on test network yet. The payment tape will populate only after on-chain receipts are indexed.</p>';
+  else tape.innerHTML = '<p class="empty-state">No verified payout receipts are available on Solana yet. The payment tape will populate only after on-chain receipts are indexed.</p>';
   const footnote = document.querySelector('#payments .panel-footnote');
   if (footnote) footnote.textContent = payouts.length
     ? `${payouts.length} verified receipt${payouts.length === 1 ? '' : 's'} · checked window${receiptEvidence.status === 'partial' ? ' · partial coverage' : ''}`
@@ -2909,7 +2908,7 @@ function renderOnchainReportState(verified){
   const launchCount = indexedLaunches ?? verified.length;
   const marketUnavailable = /rate limited|unavailable/i.test(exploreProviderStatus);
   if (feeCard) { feeCard.querySelector('span').textContent = 'Verified fees collected'; feeCard.querySelector('strong').textContent = '—'; feeCard.querySelector('small').innerHTML = '<b>SOL</b>Checking receipt evidence'; }
-  if (launchCard) { launchCard.querySelector('strong').textContent = launchCount ? String(launchCount) : '—'; launchCard.querySelector('small').innerHTML = `<b>COUNT</b>${indexedLaunches != null ? feedChecked && !marketUnavailable && verified.length === indexedLaunches ? `Confirmed mints · ${EXPLORE_NETWORK_LABEL}` : 'Saved verified launch records · live RPC scan incomplete' : !feedChecked ? 'Checking confirmed mints' : marketUnavailable ? 'Launch feed unavailable' : verified.length ? `Confirmed mints · ${EXPLORE_NETWORK_LABEL}` : `No confirmed mints · ${EXPLORE_NETWORK_LABEL}`}`; }
+  if (launchCard) { launchCard.querySelector('strong').textContent = launchCount ? String(launchCount) : '—'; launchCard.querySelector('small').innerHTML = `<b>COUNT</b>${indexedLaunches != null ? feedChecked && !marketUnavailable && verified.length === indexedLaunches ? `Confirmed mints` : 'Saved verified launch records · live RPC scan incomplete' : !feedChecked ? 'Checking confirmed mints' : marketUnavailable ? 'Launch feed unavailable' : verified.length ? `Confirmed mints` : `No confirmed mints`}`; }
   if (payoutCard) { payoutCard.querySelector('span').textContent = 'Verified payouts'; payoutCard.querySelector('strong').textContent = '—'; payoutCard.querySelector('small').innerHTML = '<b>COUNT</b>Checking receipt evidence'; }
   const volumeSol = verified.reduce((sum, item) => sum + (Number.isFinite(Number(item.volume24hSol)) ? Number(item.volume24hSol) : 0), 0);
   const hasVolume = verified.some(item => item.volume24hSol != null && Number.isFinite(Number(item.volume24hSol)));
@@ -2926,7 +2925,7 @@ function renderOnchainReportState(verified){
     walletCard.querySelector('small').innerHTML = `<b>COUNT · 24H</b>${!feedChecked ? 'Checking confirmed trades' : hasWallets ? partialWallets && observedWallets === 0 ? 'Partial scan · wallet total unavailable' : observedWallets === 0 ? 'No trading wallets in the checked 24h window' : `${partialWallets ? 'Partial scan · ' : ''}sum of per-launch wallet counts` : marketUnavailable ? 'Market scan unavailable' : 'No verified wallet activity'}`;
   }
   const strip = document.querySelector('#analytics .strip-stat');
-  if (strip) strip.innerHTML = !feedChecked ? '— <small>checking confirmed mints</small>' : marketUnavailable ? '— <small>launch feed unavailable</small>' : verified.length ? `${verified.length} <small>confirmed mints · ${EXPLORE_NETWORK_LABEL}</small>` : '— <small>no confirmed mints</small>';
+  if (strip) strip.innerHTML = !feedChecked ? '— <small>checking confirmed mints</small>' : marketUnavailable ? '— <small>launch feed unavailable</small>' : verified.length ? `${verified.length} <small>confirmed mints</small>` : '— <small>no confirmed mints</small>';
   const chart = document.querySelector('.analytics-chart .mini-chart');
   if (chart) chart.innerHTML = '<div class="empty-state onchain-report-empty"><strong>No fee events to chart.</strong><span>Charts appear after confirmed router claim signatures are indexed.</span></div>';
   const chartBadge = document.querySelector('.analytics-chart .data-badge');
@@ -2974,15 +2973,15 @@ function renderWalletBurnersBoard(){
   const board = burnersBoardState.status === 'unavailable' && verifiedLaunchPoliciesStatus === 'ready'
     ? { status:'partial', wallets:launchBurnersFallback() } : burnersBoardState;
   document.querySelector('#leaderboard-panel')?.setAttribute('aria-labelledby', 'leaderboard-burners-tab');
-  setCoinField('#leaderboard-table-kicker', board.status === 'partial' ? 'Verified launch burns · partial test network index' : 'Verified $FUNDED burns · test network');
+  setCoinField('#leaderboard-table-kicker', board.status === 'partial' ? 'Verified launch burns · partial Solana index' : 'Verified $FUNDED burns · Solana');
   setCoinField('#leaderboard-table-title', 'Wallet burn leaderboard');
-  setCoinField('#leaderboard-hero-description', 'Wallets ranked by confirmed $FUNDED BurnChecked receipts on test network.');
+  setCoinField('#leaderboard-hero-description', 'Wallets ranked by confirmed $FUNDED BurnChecked receipts on Solana.');
   setCoinField('#leaderboard-source-note', board.status === 'partial'
     ? 'Only verified atomic launch burns are available. Standalone burns require the receipt index.'
     : 'Only confirmed BurnChecked receipts on this network count. Duplicate signatures are counted once.');
   const builders = document.querySelector('#leaderboard .leaderboard-grid')?.closest('details');
   if (builders) builders.hidden = true;
-  table.setAttribute('aria-label', 'test network wallet burn leaderboard');
+  table.setAttribute('aria-label', 'Solana wallet burn leaderboard');
   const header = '<div class="leaderboard-table-head" role="row"><span>Rank</span><span>Wallet</span><span>Burned</span><span>First burn</span><span>Proof</span></div>';
   if (!['ready','partial'].includes(board.status)) {
     table.innerHTML = `${header}<div class="empty-state">${board.status === 'unavailable' ? 'Verified receipt index unavailable.' : 'Checking verified BurnChecked receipts…'}</div>`;
@@ -3038,14 +3037,14 @@ function renderProjectBurnBoard(){
   const note = document.querySelector('#leaderboard-source-note');
   const heroDescription = document.querySelector('#leaderboard-hero-description');
   const builders = document.querySelector('#leaderboard .leaderboard-grid')?.closest('details');
-  if (kicker) kicker.textContent = board.status === 'partial' ? 'Verified launch burns · partial test network index' : 'Verified $FUNDED burns · test network';
+  if (kicker) kicker.textContent = board.status === 'partial' ? 'Verified launch burns · partial Solana index' : 'Verified $FUNDED burns · Solana';
   if (heading) heading.textContent = 'Project burn board';
   if (note) note.textContent = board.status === 'partial'
     ? 'Showing verified atomic launch burns from the available launch feed. Project-attributed standalone burns require the updated receipt index.'
     : 'Projects are ranked by BurnChecked receipts attributed to verified launches. Unattributed burns and unverified claims are excluded.';
   if (heroDescription) heroDescription.textContent = 'Projects ranked by verified $FUNDED burns attributed to their launches.';
   if (builders) builders.hidden = true;
-  table.setAttribute('aria-label', 'test network project burn board');
+  table.setAttribute('aria-label', 'Solana project burn board');
   const header = '<div class="leaderboard-table-head" role="row"><span>Rank</span><span>Project</span><span>Burned</span><span>Last burn</span><span>Proof</span></div>';
   if (!['ready', 'partial'].includes(board.status)) {
     const message = board.status === 'unavailable'
@@ -3123,14 +3122,14 @@ function renderLeaderboard(){
   if (leaderboardView === 'burn-board') { renderProjectBurnBoard(); return; }
   if (leaderboardView === 'traders') {
     document.querySelector('#leaderboard-panel')?.setAttribute('aria-labelledby', 'leaderboard-traders-tab');
-    setCoinField('#leaderboard-table-kicker', 'Confirmed wallet trading · test network');
+    setCoinField('#leaderboard-table-kicker', 'Confirmed wallet trading · Solana');
     setCoinField('#leaderboard-table-title', 'Trader leaderboard');
     setCoinField('#leaderboard-hero-description', 'Trader rankings require wallet-attributed, confirmed trade history.');
     setCoinField('#leaderboard-source-note', 'Unavailable: the verified wallet activity index is not running. Token trade observations cannot establish a wallet ranking.');
     setCoinField('#leaderboard-status-title', 'Trader ranking unavailable');
     setCoinField('#leaderboard-status-note', 'A wallet-attributed trade index is required before ranks can be shown.');
     setCoinField('#leaderboard-status-badge', 'Unavailable');
-    table.setAttribute('aria-label', 'test network trader leaderboard unavailable');
+    table.setAttribute('aria-label', 'Solana trader leaderboard unavailable');
     table.innerHTML = '<div class="leaderboard-table-head" role="row"><span>Rank</span><span>Wallet</span><span>Trades</span><span>Volume</span><span>Proof</span></div><div class="empty-state"><strong>Trader ranking unavailable</strong><span>Confirmed token trades alone do not prove each trader’s wallet activity. Rankings will appear after that activity is indexed and verified.</span></div>';
     return;
   }
@@ -3140,13 +3139,13 @@ function renderLeaderboard(){
   const sourceNote = document.querySelector('#leaderboard-source-note');
   const heroDescription = document.querySelector('#leaderboard-hero-description');
   const builders = document.querySelector('#leaderboard .leaderboard-grid')?.closest('details');
-  if (kicker) kicker.textContent = 'Verified launches · test network';
+  if (kicker) kicker.textContent = 'Verified launches · Solana';
   if (heading) heading.textContent = 'Creator launches';
-  if (sourceNote) sourceNote.textContent = 'Only confirmed test network launches are shown. Market cap uses the verified curve or pool value and an available SOL/USD rate.';
+  if (sourceNote) sourceNote.textContent = 'Only confirmed Solana launches are shown. Market cap uses the verified curve or pool value and an available SOL/USD rate.';
   if (heroDescription) heroDescription.textContent = 'Creators behind confirmed launches, ranked by available market cap.';
   if (builders) builders.hidden = true;
   table.dataset.view = 'creators';
-  table.setAttribute('aria-label', 'test network creator launch leaderboard');
+  table.setAttribute('aria-label', 'Solana creator launch leaderboard');
   const launchByMint = new Map((Array.isArray(verifiedLaunchPolicies) ? verifiedLaunchPolicies : []).map(item => [item.mint, item]));
   const verified = EXPLORE_CLUSTER === 'devnet'
     ? assets.flatMap(item => {
@@ -3169,15 +3168,15 @@ function renderLeaderboard(){
   const creatorRankingUnavailable = verifiedLaunchPoliciesStatus !== 'ready' || !exploreFeedAvailable;
   const empty = creatorRankingUnavailable
     ? '<div class="empty-state"><strong>Creator ranking unavailable.</strong><span>The verified launch registry or market feed could not be loaded; an empty ranking is not evidence of zero launches.</span></div>'
-    : '<div class="empty-state"><strong>No verified creator launches yet.</strong><span>Launches appear after their policy and mint are confirmed on test network.</span></div>';
+    : '<div class="empty-state"><strong>No verified creator launches yet.</strong><span>Launches appear after their policy and mint are confirmed on Solana.</span></div>';
   if (!ranked.length) {
-    if (title) title.textContent = creatorRankingUnavailable ? 'Creator ranking unavailable' : EXPLORE_CLUSTER === 'devnet' ? 'No verified test network launches yet' : 'Leaderboard unavailable on this cluster';
+    if (title) title.textContent = creatorRankingUnavailable ? 'Creator ranking unavailable' : EXPLORE_CLUSTER === 'devnet' ? 'No verified Solana launches yet' : 'Leaderboard unavailable on this cluster';
     if (note) note.textContent = creatorRankingUnavailable ? 'Launch registry or market feed unavailable; creator count not verified.' : 'No confirmed creator launches are available to rank.';
     if (badge) badge.textContent = 'Unavailable';
     table.innerHTML = `${header}${empty}`;
     return;
   }
-  if (title) title.textContent = `${ranked.length} verified launch${ranked.length === 1 ? '' : 'es'} on test network`;
+  if (title) title.textContent = `${ranked.length} verified launch${ranked.length === 1 ? '' : 'es'} on Solana`;
   if (note) note.textContent = 'Ranked from confirmed launch policies and available market caps. Missing market data is shown as unavailable.';
   if (badge) badge.textContent = 'RPC verified';
   const avatarClass = index => ['mint', 'lavender', 'coral', 'blue'][index % 4];
@@ -3351,7 +3350,7 @@ function renderHomeHolderRewardCoins(){
   list.innerHTML = coins.map(({ launch, share }) => `<li>
     <a class="home-holder-reward-coin" data-logo-mint="${escapeHtml(launch.mint)}" href="/token/${encodeURIComponent(launch.mint)}">
       <span class="home-holder-reward-avatar" aria-hidden="true">${escapeHtml(String(launch.symbol || launch.name || 'C').slice(0, 1).toUpperCase())}</span>
-      <span class="home-holder-reward-identity"><strong>${escapeHtml(launch.name || launch.symbol || 'Unnamed coin')}</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} · Solana ${escapeHtml(EXPLORE_NETWORK_LABEL)}</small></span>
+      <span class="home-holder-reward-identity"><strong>${escapeHtml(launch.name || launch.symbol || 'Unnamed coin')}</strong><small>${escapeHtml(launch.symbol || 'TOKEN')}</small></span>
       <span class="home-holder-reward-share"><strong>${escapeHtml(share.toLocaleString(undefined, { maximumFractionDigits: 2 }))}%</strong><small>of collected creator fees</small></span>
       <span class="home-holder-reward-link">View coin →</span>
     </a>
@@ -3384,7 +3383,7 @@ function renderHomeLaunchBoard(){
   if (tableWrap) tableWrap.hidden = homeLaunchView !== 'table';
   const feedState = document.querySelector('#home-feed-state');
   if (feedState) {
-    feedState.textContent = exploreFeedAvailable ? `Feed available · Solana ${EXPLORE_CLUSTER === 'mainnet-beta' ? 'mainnet' : 'test network'}`
+    feedState.textContent = exploreFeedAvailable ? `Feed available`
       : exploreLastVerifiedAt ? 'Last verified snapshot' : 'Feed unavailable';
     feedState.dataset.state = exploreFeedAvailable ? 'live' : exploreLastVerifiedAt ? 'snapshot' : 'unavailable';
   }
@@ -3767,7 +3766,7 @@ async function loadOnchainExploreDataOnce(){
         volume24hUsd: market?.volume24hUsd ?? null,
         holders: market?.holders ?? null,
         lastTradeUnixTime: market?.lastTradeUnixTime ?? pump.lastTradeTimestamp ?? null,
-        source: verifiedPaidListingPayment(pump) ? 'Paid listing · mint verified' : market ? 'Pump.fun + Birdeye' : EXPLORE_CLUSTER === 'devnet' ? 'Verified test network registry' : 'Pump.fun',
+        source: verifiedPaidListingPayment(pump) ? 'Paid listing · mint verified' : market ? 'Pump.fun + Birdeye' : EXPLORE_CLUSTER === 'devnet' ? 'Verified Solana registry' : 'Pump.fun',
         fetchedAt: market ? birdeyeFeed.data?.fetchedAt : pumpFeed.data?.fetchedAt,
       };
     });
@@ -3842,7 +3841,7 @@ async function loadOnchainExploreDataOnce(){
     if ((exploreVerificationFailed || !pumpFeed.available) && assets.length && exploreLastVerifiedAt) {
       publishVerifiedCurves([]);
       exploreUpdatedAt = new Date().toISOString();
-      const cause = exploreVerificationFailed ? `Solana ${EXPLORE_NETWORK_LABEL} RPC ${exploreRateLimited ? 'rate limited' : 'unavailable'}` : 'Launch feed unavailable';
+      const cause = exploreVerificationFailed ? `Solana RPC ${exploreRateLimited ? 'rate limited' : 'unavailable'}` : 'Launch feed unavailable';
       exploreProviderStatus = `${cause} · last verified ${formatFeedAge(exploreLastVerifiedAt)} · stale`;
       renderExploreAssets();
       renderRegistry();
@@ -3899,7 +3898,7 @@ async function loadOnchainExploreDataOnce(){
     document.dispatchEvent(new Event('funded:verified-search-index'));
     exploreUpdatedAt = new Date().toISOString();
     if (!exploreVerificationFailed && pumpFeed.available && records.length) exploreLastVerifiedAt = exploreUpdatedAt;
-    exploreProviderStatus = exploreVerificationFailed ? `Solana ${EXPLORE_NETWORK_LABEL} RPC ${exploreRateLimited ? 'rate limited · retry shortly' : 'unavailable'}` : !pumpFeed.available ? 'Launch feed unavailable' : !records.length ? 'No indexed launches · awaiting RPC verification' : !verified.length ? 'Indexed launches · none passed RPC verification' : EXPLORE_CLUSTER === 'devnet' ? `Test network registry · RPC verified${marketScanRateLimited ? ' · trade history rate limited' : ''}` : !birdeyeFeed.available ? `Pump.fun · Birdeye unavailable · RPC verified` : 'Pump.fun + Birdeye · RPC verified';
+    exploreProviderStatus = exploreVerificationFailed ? `Solana RPC ${exploreRateLimited ? 'rate limited · retry shortly' : 'unavailable'}` : !pumpFeed.available ? 'Launch feed unavailable' : !records.length ? 'No indexed launches · awaiting RPC verification' : !verified.length ? 'Indexed launches · none passed RPC verification' : EXPLORE_CLUSTER === 'devnet' ? `Solana registry · RPC verified${marketScanRateLimited ? ' · trade history rate limited' : ''}` : !birdeyeFeed.available ? `Pump.fun · Birdeye unavailable · RPC verified` : 'Pump.fun + Birdeye · RPC verified';
     const feedStatus = document.querySelector('#explore-data-status');
     renderExploreAssets();
     renderHomeLaunchBoard();
@@ -3952,7 +3951,7 @@ async function loadReceiptEvidence(){
 document.querySelector('#payment-list').innerHTML = payments.map(p => `<div class="payment-row"><span class="payment-avatar">${p[0]}</span><span><strong>${p[1]}</strong><small>${p[2]}</small></span><span class="payment-amount">${p[3]}<small> sample</small></span></div>`).join('');
 document.querySelector('#payment-dialog-list').innerHTML = payments.length
   ? document.querySelector('#payment-list').innerHTML
-  : '<p class="empty-state">No verified payout receipts are available on test network yet. The payment tape will populate only after on-chain receipts are indexed.</p>';
+  : '<p class="empty-state">No verified payout receipts are available on Solana yet. The payment tape will populate only after on-chain receipts are indexed.</p>';
 loadReceiptEvidence();
 setInterval(() => { if (!document.hidden) loadReceiptEvidence().catch(() => {}); }, 60_000);
 renderWatchlist();
@@ -4096,17 +4095,17 @@ function showMobileWalletRequest(link, phase, qrLink = link){
   const qrLabel = document.querySelector('#mobile-wallet-qr-label');
   const alternate = document.querySelector('#mobile-wallet-alternate');
   if (alternate) alternate.hidden = phase !== 'sign';
-  dialog.querySelector('h2').textContent = phase === 'connect' ? 'Connect Phantom to this desktop' : phase === 'sign-fallback' ? 'Approve the message in Phantom' : phase === 'transaction' ? 'Review the test network trade in Phantom' : 'Approve the claim in Phantom';
+  dialog.querySelector('h2').textContent = phase === 'connect' ? 'Connect Phantom to this desktop' : phase === 'sign-fallback' ? 'Approve the message in Phantom' : phase === 'transaction' ? 'Review the Solana trade in Phantom' : 'Approve the claim in Phantom';
   const steps = dialog.querySelectorAll('.mobile-wallet-steps span');
   if (steps.length === 3) {
     steps[0].textContent = 'Scan this QR with Phantom on your phone';
-    steps[1].textContent = phase === 'connect' ? 'Approve the test network wallet connection' : phase === 'sign-fallback' ? 'Tap Connect and sign the message' : phase === 'transaction' ? 'Tap Connect and review, then approve the transaction' : 'Approve the claim message in Phantom';
-    steps[2].textContent = phase === 'connect' ? 'Continue on this desktop; scan again when a claim needs signing' : phase === 'transaction' ? 'Return here for test network confirmation' : 'Return to this desktop for payout verification';
+    steps[1].textContent = phase === 'connect' ? 'Approve the Solana wallet connection' : phase === 'sign-fallback' ? 'Tap Connect and sign the message' : phase === 'transaction' ? 'Tap Connect and review, then approve the transaction' : 'Approve the claim message in Phantom';
+    steps[2].textContent = phase === 'connect' ? 'Continue on this desktop; scan again when a claim needs signing' : phase === 'transaction' ? 'Return here for Solana confirmation' : 'Return to this desktop for payout verification';
   }
   mobileWalletLink = link;
-  message.textContent = phase === 'connect' ? 'Scan with Phantom and approve this test network wallet connection. The address will appear in this desktop tab.' : phase === 'sign-fallback' ? 'Scan with Phantom, then tap Connect and sign on the funded.vip signer page. The signature returns to this desktop tab.' : phase === 'transaction' ? 'This QR opens a small funded.vip signer inside Phantom. Review the amount, fee, and token there before approving. Your desktop wallet stays connected and submits the signed transaction.' : 'Scan with Phantom and approve the claim message. The signature will return to this desktop tab.';
+  message.textContent = phase === 'connect' ? 'Scan with Phantom and approve this Solana wallet connection. The address will appear in this desktop tab.' : phase === 'sign-fallback' ? 'Scan with Phantom, then tap Connect and sign on the funded.vip signer page. The signature returns to this desktop tab.' : phase === 'transaction' ? 'This QR opens a small funded.vip signer inside Phantom. Review the amount, fee, and token there before approving. Your desktop wallet stays connected and submits the signed transaction.' : 'Scan with Phantom and approve the claim message. The signature will return to this desktop tab.';
   qr.src = `https://quickchart.io/qr?size=320&margin=2&text=${encodeURIComponent(qrLink)}`;
-  qr.alt = phase === 'connect' ? 'Scan to connect Phantom mobile wallet to this desktop' : phase === 'sign-fallback' ? 'Scan to open funded.vip signer in Phantom' : phase === 'transaction' ? 'Scan to sign the test network trade transaction with Phantom mobile wallet' : 'Scan to sign claim message with Phantom mobile wallet';
+  qr.alt = phase === 'connect' ? 'Scan to connect Phantom mobile wallet to this desktop' : phase === 'sign-fallback' ? 'Scan to open funded.vip signer in Phantom' : phase === 'transaction' ? 'Scan to sign the Solana trade transaction with Phantom mobile wallet' : 'Scan to sign claim message with Phantom mobile wallet';
   qr.hidden = false;
   qrLabel.textContent = 'Waiting for approval in Phantom · expires in 5 minutes';
   if (!dialog.open) { if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', ''); }
@@ -4149,7 +4148,7 @@ async function createMobileWalletProvider(session){
       showMobileWalletRequest(browseLink, 'transaction');
       try {
         const result = await waitForMobileWalletFlow(flow, version);
-        if (!Number.isSafeInteger(result.lastValidBlockHeight) || result.lastValidBlockHeight <= 0) throw new Error('Phantom returned a trade without a verified test network expiry. Nothing was submitted.');
+        if (!Number.isSafeInteger(result.lastValidBlockHeight) || result.lastValidBlockHeight <= 0) throw new Error('Phantom returned a trade without a verified Solana expiry. Nothing was submitted.');
         const signed = verifyPhantomMobileTransaction(transaction, result.transaction, session.publicKey, result.blockhash);
         signed.fundedLastValidBlockHeight = result.lastValidBlockHeight;
         closeDialog('mobile-wallet-dialog');
@@ -4170,7 +4169,7 @@ async function createMobileWalletProvider(session){
         } catch { /* Retry a transient relay failure. */ }
         if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500));
       }
-      throw new Error('Could not update the phone with the test network transaction signature.');
+      throw new Error('Could not update the phone with the Solana transaction signature.');
     },
     async signMessage(message){
       if (!provider.isConnected) throw new Error('Reconnect the mobile wallet before signing.');
@@ -4626,7 +4625,7 @@ async function verifyPendingTrade(activeConnection = null, targetSignature = nul
       share.hidden = false;
     }
     if (getCoinMintAddress() === pending.mint) void loadCoinOnChain(pending.mint);
-    showToast(`${pending.side === 'buy' ? 'Buy' : 'Sell'} verified on test network`);
+    showToast(`${pending.side === 'buy' ? 'Buy' : 'Sell'} verified on Solana`);
     refreshWalletInfo();
     void refreshPortfolioHoldings();
   } finally { if (button) button.disabled = false; }
@@ -4649,8 +4648,8 @@ document.querySelector('#trade-share')?.addEventListener('click', async event =>
     if (!isWalletSessionCurrent(session)) return;
     const url = new URL(`/token/${encodeURIComponent(button.dataset.mint)}`, location.origin);
     const code = registeredShareCode(); if (code) url.searchParams.set('ref', code);
-    openShareComposer({ kind:'trade', title:'Finalized test network trade on funded.vip',
-      text:`I ${button.dataset.side === 'buy' ? 'bought' : 'sold'} ${button.dataset.symbol || 'a token'} on Solana test network. Review the token and finalized receipt. This is not a profit claim.`, url:url.toString(),
+    openShareComposer({ kind:'trade', title:'Finalized Solana trade on funded.vip',
+      text:`I ${button.dataset.side === 'buy' ? 'bought' : 'sold'} ${button.dataset.symbol || 'a token'} on Solana. Review the token and finalized receipt. This is not a profit claim.`, url:url.toString(),
       result:{ kind:'trade', verified:true, side:button.dataset.side, mint:button.dataset.mint, tokenSymbol:button.dataset.symbol,
         receipt:button.dataset.signature, receiptUrl:exploreExplorer(`tx/${encodeURIComponent(button.dataset.signature)}`), wallet:session.address, network:EXPLORE_CLUSTER } });
   } catch (error) { setTradeStatus(error.message || 'Trade receipt verification is unavailable.', true); }
@@ -4673,7 +4672,7 @@ document.querySelector('#trade-roundtrip-share')?.addEventListener('click', asyn
     url.searchParams.set('buy', pair.buySignature);
     url.searchParams.set('sell', pair.sellSignature);
     const code = registeredShareCode(); if (code) url.searchParams.set('ref', code);
-    openShareComposer({ kind:'roundtrip', title:'Verified closed test network trade on funded.vip',
+    openShareComposer({ kind:'roundtrip', title:'Verified closed Solana trade on funded.vip',
       text:`My closed ${pair.symbol || 'token'} trade changed my wallet SOL balance by +${netSol} SOL across its buy and sell receipts. Includes all SOL movements in those transactions; not wallet-wide profit. Verify both receipts.`, url:url.toString(),
       result:{ kind:'roundtrip', verified:true, accountHistoryVerified:true, netLamports:proof.netLamports, mint,
         buyReceipt:pair.buySignature, buyReceiptUrl:exploreExplorer(`tx/${encodeURIComponent(pair.buySignature)}`),
@@ -4685,10 +4684,10 @@ document.querySelector('#trade-roundtrip-share')?.addEventListener('click', asyn
 const infoDialogRoutes = new Set(['terms', 'disclosures', 'opt-out']);
 function openInfoDialog(kind, { routeDriven = false } = {}){
   const content = {
-    terms: ['Terms of Use', '<div class="legal-meta"><span>Effective 18 Sep 2026</span><span>Version 1.0</span><span>Applies to funded.vip test network tools</span></div><p>Use the test network launcher for testing only. You are responsible for reviewing every transaction before signing and for complying with applicable rules.</p><h3>Contents</h3><ul class="legal-list"><li>Wallet connection and signatures</li><li>Token metadata and deployer responsibility</li><li>Network, fees, and transaction confirmation</li><li>Prohibited use and service limitations</li><li>Privacy, disclosures, and support</li></ul><p class="muted-note">This is a product disclosure for the local build, not legal advice or a production agreement.</p>'],
-    disclosures: ['Disclosures', '<div class="legal-meta"><span>Effective 23 Sep 2026</span><span>Version 1.5</span><span>Applies to the test network preview</span></div><p>The Pump test network flow creates the coin with the verified funded.vip router PDA written directly into Pump’s creator field. The paying wallet never receives creator-fee authority, and the app reads the bonding curve back before reporting success.</p><h3>Important limits</h3><ul class="legal-list"><li>test network SOL has no intended monetary value.</li><li>This test network deployment indexes finalized receipts. Automatic creator and holder SOL delivery requires verified funding and an active healthy distribution worker; holder payouts also require complete finalized indexing. Check the live status on Home before relying on delivery. Referral rewards remain wallet-initiated claims.</li><li>Mainnet contracts, audited production treasury controls, X recipient verification, and community-token distribution are not enabled.</li><li>Pump protocol administrators or a future Pump program upgrade remain outside funded.vip’s control.</li><li>funded.vip is not affiliated with X, Phantom, or Pump.fun.</li></ul><p class="muted-note">Verify the Pump creator address in the launch transaction and bonding-curve account on Solana Explorer.</p>'],
-    capital: ['Capital flow', '<p>This calculator illustrates the published allocation policy. Confirmed launch, collection, and payout records appear in the verified workspace pages when the test network indexer has recorded them.</p>'],
-  'opt-out': ['Opt out', '<div class="legal-meta"><span>Account controls</span><span>Test network preview</span></div><p>The test network deployment indexes launch and reward activity, but account-level discovery exclusions require verified X identity and are not available yet.</p><div class="optout-steps"><div><b>1</b><span><strong>Sign in with X</strong><small>Verify control of the account you want to manage.</small></span></div><div><b>2</b><span><strong>Choose exclusions</strong><small>Request exclusion from future discovery and recipient selection.</small></span></div><div><b>3</b><span><strong>Review status</strong><small>Confirm the effective date; finalized receipts and existing entitlements remain on record.</small></span></div></div><button type="button" class="secondary-button info-action" disabled>Opt-out requests unavailable</button><p class="muted-note">X sign-in and indexed exclusion requests are not connected in this test network build.</p>'],
+    terms: ['Terms of Use', '<div class="legal-meta"><span>Effective 18 Sep 2026</span><span>Version 1.0</span><span>Applies to funded.vip</span></div><p>You are responsible for reviewing every transaction before signing and for complying with applicable rules.</p><h3>Contents</h3><ul class="legal-list"><li>Wallet connection and signatures</li><li>Token metadata and deployer responsibility</li><li>Network, fees, and transaction confirmation</li><li>Prohibited use and service limitations</li><li>Privacy, disclosures, and support</li></ul><p class="muted-note">This is product information, not legal advice.</p>'],
+    disclosures: ['Disclosures', '<div class="legal-meta"><span>Effective 23 Sep 2026</span><span>Version 1.5</span><span>Applies to funded.vip</span></div><p>The Pump launch flow creates the coin with the verified funded.vip router PDA written directly into Pump’s creator field. The paying wallet never receives creator-fee authority, and the app reads the bonding curve back before reporting success.</p><h3>Important limits</h3><ul class="legal-list"><li>The app indexes finalized receipts. Automatic creator and holder SOL delivery requires verified funding and an active healthy distribution worker; holder payouts also require complete finalized indexing. Check the live status on Home before relying on delivery. Referral rewards remain wallet-initiated claims.</li><li>X recipient verification and community-token distribution are not enabled.</li><li>Pump protocol administrators or a future Pump program upgrade remain outside funded.vip’s control.</li><li>funded.vip is not affiliated with X, Phantom, or Pump.fun.</li></ul><p class="muted-note">Verify the Pump creator address in the launch transaction and bonding-curve account on Solana Explorer.</p>'],
+    capital: ['Capital flow', '<p>This calculator illustrates the published allocation policy. Confirmed launch, collection, and payout records appear in the verified workspace pages when the receipt indexer has recorded them.</p>'],
+  'opt-out': ['Opt out', '<div class="legal-meta"><span>Account controls</span><span>Identity controls</span></div><p>The app indexes launch and reward activity, but account-level discovery exclusions require verified X identity and are not available yet.</p><div class="optout-steps"><div><b>1</b><span><strong>Sign in with X</strong><small>Verify control of the account you want to manage.</small></span></div><div><b>2</b><span><strong>Choose exclusions</strong><small>Request exclusion from future discovery and recipient selection.</small></span></div><div><b>3</b><span><strong>Review status</strong><small>Confirm the effective date; finalized receipts and existing entitlements remain on record.</small></span></div></div><button type="button" class="secondary-button info-action" disabled>Opt-out requests unavailable</button><p class="muted-note">X sign-in and indexed exclusion requests are not connected at this time.</p>'],
   }[kind] || ['Information', '<p>Explore the funded.vip workspace and review each transaction before signing.</p>'];
   document.querySelector('#info-title').textContent = content[0];
   document.querySelector('#info-content').innerHTML = content[1];
@@ -4790,7 +4789,7 @@ function resetWalletDependentViews(){
   }
   metricsRequest++;
   fundedBurnRequest++;
-  fundedBurnState = { status: 'idle', wallet: null, decimals: 0, balanceBaseUnits: 0n, supplyBaseUnits: 0n, burnedBaseUnits: 0n, tokenAccounts: [], receipts: [], message: 'Connect a wallet to load its test network balance.' };
+  fundedBurnState = { status: 'idle', wallet: null, decimals: 0, balanceBaseUnits: 0n, supplyBaseUnits: 0n, burnedBaseUnits: 0n, tokenAccounts: [], receipts: [], message: 'Connect a wallet to load its Solana balance.' };
   renderWalletFundedBalance();
   clearTimeout(launchCostRefreshTimer);
   launchCostRefreshTimer = null;
@@ -4853,8 +4852,8 @@ function normalizePreviewLabels(){
   const replacements = new Map([
     ['Solana only', 'Preview route'],
     ['Solana claims', 'Claims'],
-    ['Open test network trading ↗', 'Open trading ↗'],
-    ['Get 1 test network SOL', 'Get test funds'],
+    ['Open Solana trading ↗', 'Open trading ↗'],
+    ['Get 1 SOL', 'Open faucet'],
   ]);
   document.querySelectorAll('button, .panel-count, .data-badge, .eyebrow').forEach(node => {
     const replacement = replacements.get(node.textContent.trim());
@@ -4884,8 +4883,8 @@ async function connectDevWallet(){
       },
       disconnect: async () => {},
     };
-    activateWallet(devProvider, 'Dev wallet connected');
-    setLaunchStatus(`Development wallet ready: ${DEV_WALLET_ROLE}`);
+    activateWallet(devProvider, 'Wallet connected');
+    setLaunchStatus(`Wallet ready: ${DEV_WALLET_ROLE}`);
     return true;
   } catch { return false; }
 }
@@ -4984,7 +4983,7 @@ function updateCostSummary(){
     noteNode.textContent = !wallet
       ? 'Connect a wallet to build and estimate the transaction.'
       : walletMetricsLoading
-        ? 'Building and estimating the test network transaction…'
+        ? 'Building and estimating the Solana transaction…'
         : walletEstimateError
           ? `Could not estimate the transaction: ${walletEstimateError} Refresh the estimate to try again.`
           : 'The launch cost is not verified. Refresh the estimate before signing.';
@@ -5053,7 +5052,7 @@ function updateLaunchPreview(){
   document.querySelector('#preview-symbol').textContent = symbol || 'TICKER';
   const description = document.querySelector('#token-description')?.value || '';
   const descriptionCounter = document.querySelector('#token-description-counter');
-  if (descriptionCounter) descriptionCounter.textContent = `${description.length}/280 · published with test network metadata`;
+  if (descriptionCounter) descriptionCounter.textContent = `${description.length}/280 · published with Solana metadata`;
   const tagline = document.querySelector('#token-tagline')?.value.trim() || '';
   const taglinePreview = document.querySelector('#preview-tagline');
   if (taglinePreview) taglinePreview.textContent = tagline || 'Add a clear thesis for the community.';
@@ -5077,7 +5076,6 @@ function updateLaunchPreview(){
   qualityLabels.forEach((key, index) => { const node = document.querySelector(`#preview-quality-${key}`); if (node) { node.textContent = `${quality[index] ? '✓' : '○'} ${key === 'links' ? 'Official link' : key === 'roadmap' ? 'Milestones' : key[0].toUpperCase() + key.slice(1)}`; node.classList.toggle('ready', quality[index]); } });
   const compactPreviewValues = {
     '#preview-launchpad': 'Pump.fun',
-    '#preview-network': 'Solana test network',
     '#preview-supply': '1 billion',
     '#preview-community': Number.isFinite(allocation) ? formatVerifiedPercent(allocation) : '—',
     '#preview-creator-wallet-share': `${feeDistribution.creatorWalletPercent}%`,
@@ -5131,7 +5129,7 @@ function getLaunchMetadataPreview(){
 }
 async function prepareLaunchMetadata({ mint, name, symbol }, session = captureWalletSession()){
   assertWalletSessionCurrent(session);
-  if (typeof session.provider.signMessage !== 'function') throw new Error('This wallet must sign a metadata message before the test network transaction.');
+  if (typeof session.provider.signMessage !== 'function') throw new Error('This wallet must sign a metadata message before the Solana transaction.');
   const preview = getLaunchMetadataPreview();
   assertImageReady();
   const image = getPreparedImage();
@@ -5150,7 +5148,7 @@ async function prepareLaunchMetadata({ mint, name, symbol }, session = captureWa
   assertWalletSessionCurrent(session);
   const response = await apiRequest('/api/devnet-metadata', { method: 'POST', body: { ...record, imageBase64, imageType: image?.type || '', signature: bs58.encode(signed.signature || signed) } });
   assertWalletSessionCurrent(session);
-  if (!response.available || response.data?.uri !== devnetMetadataUri(mint)) throw new Error('test network metadata could not be published. No token transaction was sent.');
+  if (!response.available || response.data?.uri !== devnetMetadataUri(mint)) throw new Error('Solana metadata could not be published. No token transaction was sent.');
   return response.data.uri;
 }
 function getFeeDistributionInputs(){
@@ -5337,19 +5335,19 @@ function getLaunchStepState(step){
   }
   if (step === 3) {
     if (!feeRouterState.verified) return { valid: false, message: feeRouterState.status === 'checking'
-      ? 'Checking the test network fee router…'
+      ? 'Checking the Solana fee router…'
       : feeRouterState.status === 'router-verification-unavailable'
-        ? 'Fee-router verification could not reach test network. Retry checks before signing.'
+        ? 'Fee-router verification could not reach Solana. Retry checks before signing.'
         : feeRouterState.status === 'program-id-not-configured'
           ? 'The fee-router program is not configured for this site.'
-          : 'The fee-router policy is not verified on test network. Retry checks before signing.' };
+          : 'The fee-router policy is not verified on Solana. Retry checks before signing.' };
     if (!wallet) return { valid: false, message: 'Connect a wallet to continue to signing.' };
     if (!canSignTransactions(wallet)) return { valid: false, message: 'Open this app inside your wallet to sign.' };
     if (walletMetricsLoading) return { valid: false, message: 'Wait while the launch cost is calculated.' };
-    if (creatorBuyExceedsWalletBalance()) return { valid: false, message: 'Reduce the developer buy or add test network SOL before continuing.' };
+    if (creatorBuyExceedsWalletBalance()) return { valid: false, message: 'Reduce the developer buy or add SOL before continuing.' };
     if (!freshLaunchReview(launchCostReview)) return { valid:false, message:'Refresh the launch estimate before continuing; quotes expire after one minute.' };
     if (walletBalanceLamports == null || estimatedLaunchFeeLamports == null) return { valid: false, message: walletEstimateError ? `Launch estimate unavailable: ${walletEstimateError}` : 'Refresh the wallet balance and launch estimate.' };
-    if (walletBalanceLamports < estimatedLaunchFeeLamports) return { valid: false, message: 'Add test network SOL before continuing.' };
+    if (walletBalanceLamports < estimatedLaunchFeeLamports) return { valid: false, message: 'Add SOL before continuing.' };
     const launchBurn = getLaunchBurnPolicy();
     if (launchBurn.requiresBurn && !launchBurnReadiness.ready) return { valid: false, message: launchBurnReadiness.message };
     if (!document.querySelector('#fee-route-agree').checked) return { valid: false, message: 'Confirm that the Pump creator-fee route belongs to funded.vip.' };
@@ -5516,13 +5514,13 @@ async function refreshWalletInfo({ rateLimitRetry = 0 } = {}){
     const balance = await connection.getBalance(payer, 'confirmed');
     if (request !== metricsRequest || !isWalletSessionCurrent(session)) return;
     if (!feeRouterState.verified || !feeRouterState.address) throw new Error(feeRouterState.status === 'router-verification-unavailable'
-      ? 'Fee-router check could not reach test network. Retry checks.'
-      : 'Fee-router policy is not verified on test network.');
+      ? 'Fee-router check could not reach Solana. Retry checks.'
+      : 'Fee-router policy is not verified on Solana.');
     const creatorBuySol = getCreatorBuySol();
-    if (creatorBuySol > 0 && Math.ceil(creatorBuySol * 1_000_000_000) >= balance) throw new Error('Insufficient test network SOL for the developer buy and network costs. Reduce the buy amount or add test funds.');
+    if (creatorBuySol > 0 && Math.ceil(creatorBuySol * 1_000_000_000) >= balance) throw new Error('Insufficient SOL for the developer buy and network costs. Reduce the buy amount or add SOL.');
     const [{ PUMP_SDK, OnlinePumpSdk }, { normalizeLaunchInput }, { getInitialBuyQuote, prepareFundedLaunchBurn }] = await Promise.all([import('@pump-fun/pump-sdk'), import('./launch-core.js'), import('./launch-flow.js')]);
     const { Keypair, PublicKey } = await getSolana();
-    const name = document.querySelector('#token-name').value.trim() || 'test network Coin';
+    const name = document.querySelector('#token-name').value.trim() || 'Solana Coin';
     const symbol = document.querySelector('#token-symbol').value.trim().toUpperCase() || 'COIN';
     const input = normalizeLaunchInput({ name, symbol, supply: LAUNCH_TOKEN_SUPPLY, decimals: 6 });
     const reserveConfig = await getLaunchReserveConfig();
@@ -5532,7 +5530,7 @@ async function refreshWalletInfo({ rateLimitRetry = 0 } = {}){
     initialBuy.curvePremiumBps = initialCurvePremiumBps(initialBuy.amountBaseUnits, initialBuy.global.initialVirtualTokenReserves.toString());
     const mint = Keypair.generate();
     const xLinked = getFeeDistributionInputs().solClaimPercent > 0;
-    if (xLinked && !xFeeStatus.ready) throw new Error('Mint-specific X fee claims are not ready on test network.');
+    if (xLinked && !xFeeStatus.ready) throw new Error('Mint-specific X fee claims are not ready on Solana.');
     const mintRouter = buildMintRouterInitializeInstruction({ programId: FEE_ROUTER_PROGRAM_ID, mint: mint.publicKey, payer });
     const router = mintRouter.router.address;
     const launchInstructions = initialBuy.amountBaseUnits > 0n
@@ -5549,7 +5547,7 @@ async function refreshWalletInfo({ rateLimitRetry = 0 } = {}){
     let estimates;
     for (let blockhashAttempt = 0; blockhashAttempt < 2; blockhashAttempt += 1) {
       // A finalized hash is visible across every backend in a load-balanced
-      // test network RPC pool. Retry once after the proxy cache window if a backend
+      // Solana RPC pool. Retry once after the proxy cache window if a backend
       // still reports that it has not observed the hash.
       if (blockhashAttempt > 0) await new Promise(resolve => setTimeout(resolve, 1100));
       const latest = await connection.getLatestBlockhash('finalized');
@@ -5567,12 +5565,12 @@ async function refreshWalletInfo({ rateLimitRetry = 0 } = {}){
             : await connection.simulateTransaction(transaction, undefined, [payer]);
           if (transactionSimulation.value.err) {
             const reason = JSON.stringify(transactionSimulation.value.err);
-            throw new Error(`The launch transaction could not be simulated on test network: ${reason}.`);
+            throw new Error(`The launch transaction could not be simulated on Solana: ${reason}.`);
           }
           const simulatedPayerBalance = transactionSimulation.value.accounts?.[0]?.lamports;
           const fee = Number(transactionFee.value);
           const estimatedSpend = balance - simulatedPayerBalance;
-          if (!Number.isSafeInteger(simulatedPayerBalance) || !Number.isSafeInteger(fee) || !Number.isSafeInteger(estimatedSpend) || estimatedSpend < fee) throw new Error('The full test network launch cost could not be verified.');
+          if (!Number.isSafeInteger(simulatedPayerBalance) || !Number.isSafeInteger(fee) || !Number.isSafeInteger(estimatedSpend) || estimatedSpend < fee) throw new Error('The full Solana launch cost could not be verified.');
           return { fee, spend: estimatedSpend };
         }));
         break;
@@ -5581,12 +5579,12 @@ async function refreshWalletInfo({ rateLimitRetry = 0 } = {}){
         if (!blockhashMissing || blockhashAttempt > 0) throw error;
       }
     }
-    if (!plan || !estimates) throw new Error('The test network blockhash could not be refreshed for launch estimation.');
+    if (!plan || !estimates) throw new Error('The Solana blockhash could not be refreshed for launch estimation.');
     const fee = estimates.reduce((total, item) => total + item.fee, 0);
     const estimatedSpend = estimates.reduce((total, item) => total + item.spend, 0);
     if (!Number.isSafeInteger(fee)
       || !Number.isSafeInteger(estimatedSpend) || estimatedSpend < fee) {
-      throw new Error('The full test network launch cost could not be verified.');
+      throw new Error('The full Solana launch cost could not be verified.');
     }
     if (request !== metricsRequest || !isWalletSessionCurrent(session)) return;
     launchBurnReadiness = burnPlan
@@ -5602,7 +5600,7 @@ async function refreshWalletInfo({ rateLimitRetry = 0 } = {}){
     setWalletMetrics({ balance, fee: Number(launchCostReview.budget) });
   } catch (error) {
     if (request === metricsRequest && isWalletSessionCurrent(session)) {
-      const rawReason = String(error?.message || 'The exact test network launch cost could not be verified.');
+      const rawReason = String(error?.message || 'The exact Solana launch cost could not be verified.');
       const rateLimited = /\b429\b|rate limit|too many requests/i.test(rawReason);
       if (rateLimited && rateLimitRetry < 2) {
         await new Promise(resolve => setTimeout(resolve, (rateLimitRetry + 1) * 2_000));
@@ -5618,7 +5616,7 @@ async function refreshWalletInfo({ rateLimitRetry = 0 } = {}){
       ].includes(rawReason);
       if (!expectedInputError) console.warn('Launch cost estimate failed:', error);
       const reason = rateLimited
-        ? 'test network RPC is rate limited. Wait a moment, then refresh the estimate.'
+        ? 'Solana RPC is rate limited. Wait a moment, then refresh the estimate.'
         : rawReason.slice(0, 180);
       const launchBurn = getLaunchBurnPolicy();
       if (launchBurn.requiresBurn) {
@@ -5676,7 +5674,7 @@ function setWalletState(message, detail = '', connected = false){
   const popoverNetwork = document.querySelector('#wallet-popover-network');
   const popoverDetailLink = document.querySelector('#wallet-popover-detail-link');
   if (popoverAddress) popoverAddress.textContent = connected ? `${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)}` : 'Wallet';
-  if (popoverNetwork) popoverNetwork.textContent = connected ? 'Solana test network' : 'Not connected';
+  if (popoverNetwork) popoverNetwork.textContent = connected ? 'Solana' : 'Not connected';
   if (popoverDetailLink) popoverDetailLink.href = connected ? `/wallet/${encodeURIComponent(connectedWalletAddress)}` : '#profile';
   renderWalletFundedBalance();
   const sidebarName = document.querySelector('#sidebar-wallet-name');
@@ -5690,7 +5688,7 @@ function setWalletState(message, detail = '', connected = false){
   const leaderboardLink = document.querySelector('#leaderboard-wallet-link');
   if (leaderboardBadge) leaderboardBadge.textContent = connected ? 'Indexer pending' : 'Wallet required';
   if (leaderboardTitle) leaderboardTitle.textContent = connected ? 'Rank unavailable until activity is indexed' : 'Connect to see your rank';
-  if (leaderboardLink) { leaderboardLink.href = connected ? '#docs' : '#profile'; leaderboardLink.textContent = connected ? 'View test network status →' : 'Connect wallet →'; }
+  if (leaderboardLink) { leaderboardLink.href = connected ? '#docs' : '#profile'; leaderboardLink.textContent = connected ? 'View Solana status →' : 'Connect wallet →'; }
   const profileName = document.querySelector('#profile-wallet-name');
   const profileAddress = document.querySelector('#profile-wallet-address');
   const profileAvatar = document.querySelector('#profile-wallet-avatar');
@@ -5709,9 +5707,9 @@ function setWalletState(message, detail = '', connected = false){
   }
   const profileDisconnect = document.querySelector('#profile-disconnect');
   if (profileDisconnect) profileDisconnect.disabled = !connected;
-  document.querySelector('#profile-status').textContent = connected ? wallet.remoteMobile ? 'Phantom mobile wallet connected. Scan a new QR to approve each claim or trade on your phone.' : wallet.readOnly ? 'Address linked for viewing. Open this app inside Phantom to sign transactions.' : wallet.devMode ? 'Disposable test network test wallet connected. The local API signs; private keys do not enter this browser app.' : 'Connected locally. Your wallet remains the signer; private keys do not enter this app.' : 'This profile is local to the demo workspace.';
+  document.querySelector('#profile-status').textContent = connected ? wallet.remoteMobile ? 'Phantom mobile wallet connected. Scan a new QR to approve each claim or trade on your phone.' : wallet.readOnly ? 'Address linked for viewing. Open this app inside Phantom to sign transactions.' : wallet.devMode ? 'Local signing wallet connected. The local API signs; private keys do not enter this browser app.' : 'Connected locally. Your wallet remains the signer; private keys do not enter this app.' : 'This profile is local to the demo workspace.';
   const launchPathWallet = document.querySelector('#launch-path-wallet');
-  if (launchPathWallet) { launchPathWallet.querySelector('strong').textContent = connected ? 'Wallet connected' : 'Connect wallet'; launchPathWallet.querySelector('small').textContent = signingReady ? 'Ready for test network review.' : connected ? 'Review before signing.' : 'Connect to review signing.'; launchPathWallet.classList.toggle('complete', signingReady); }
+  if (launchPathWallet) { launchPathWallet.querySelector('strong').textContent = connected ? 'Wallet connected' : 'Connect wallet'; launchPathWallet.querySelector('small').textContent = signingReady ? 'Ready for Solana review.' : connected ? 'Review before signing.' : 'Connect to review signing.'; launchPathWallet.classList.toggle('complete', signingReady); }
   const onboardingWallet = document.querySelector('[data-onboarding-step="creator"]');
   if (onboardingWallet) { onboardingWallet.querySelector('strong').textContent = connected ? 'Wallet connected' : 'Connect your wallet'; onboardingWallet.querySelector('small').textContent = signingReady ? 'Ready to review a launch.' : connected ? 'Review before signing.' : 'Connect to unlock your workspace.'; }
   const claimButton = document.querySelector('#sol-claim-submit');
@@ -5742,8 +5740,8 @@ function setWalletState(message, detail = '', connected = false){
 }
 async function connectWallet(){
   if (APP_MAINNET_READ_ONLY) {
-    setLaunchStatus('This private Mainnet preview is read-only. Wallet connection and signing are disabled.', true);
-    showToast('Mainnet preview is read-only. Wallet actions are disabled.');
+    setLaunchStatus('This workspace is read-only. Wallet connection and signing are disabled.', true);
+    showToast('This workspace is read-only. Wallet actions are disabled.');
     return;
   }
   const provider = getProvider();
@@ -5811,7 +5809,7 @@ function updateClaimBindingReview(){
   if(check?.dataset.wallet!==address){check.checked=false;check.dataset.wallet=address;}
   if(check)check.disabled=!address;
   const destination=document.querySelector('#claim-binding-wallet');
-  if(destination)destination.textContent=address?`Solana test network · ${address}`:'Connect the wallet that should receive this claim.';
+  if(destination)destination.textContent=address?`Solana · ${address}`:'Connect the wallet that should receive this claim.';
   syncXClaimFlow();
 }
 async function submitSolClaim(){
@@ -5842,7 +5840,7 @@ async function submitSolClaim(){
     const publicKey = session.address;
     const verified = await apiRequest(`/api/sol-claims/${encodeURIComponent(claimId)}/verify`, { method: 'POST', body: { xHandle: handle, publicKey, signature: bs58.encode(signed.signature || signed) } });
     if (!isWalletSessionCurrent(session)) return { verified };
-    if (status) status.textContent = 'Settling the mint-specific claim on test network…';
+    if (status) status.textContent = 'Settling the mint-specific claim on Solana…';
     const paid = await apiRequest(`/api/sol-claims/${encodeURIComponent(claimId)}/execute`, { method: 'POST' });
     if (!isWalletSessionCurrent(session)) return { verified, paid };
     if(!paid.available||!paid.data?.signature)throw new Error('Payout outcome is uncertain. Refresh rewards; do not submit another payout.');
@@ -5908,7 +5906,7 @@ function openBurnPageAfterLaunch(launchPolicy){
       let prompt = page.querySelector('#launch-share-prompt');
       if (!prompt) { prompt = document.createElement('div'); prompt.id = 'launch-share-prompt'; prompt.className = 'share-insights'; page.prepend(prompt); }
       prompt.replaceChildren();
-      const title = document.createElement('strong'); title.textContent = `${launchPolicy.name || launchPolicy.symbol || 'Coin'} launched on test network`;
+      const title = document.createElement('strong'); title.textContent = `${launchPolicy.name || launchPolicy.symbol || 'Coin'} launched on Solana`;
       const note = document.createElement('small'); note.textContent = 'Your confirmed coin has a link visitors can open and watch. Share it when ready.';
       const button = document.createElement('button'); button.type = 'button'; button.className = 'primary-button'; button.textContent = 'Share launch';
       button.addEventListener('click', () => openCoinShare(mint, launchPolicy.symbol, launchPolicy.name));
@@ -5923,12 +5921,12 @@ async function requestAirdrop(){
   const session = captureWalletSession();
   if (!session) return;
   const button = document.querySelector('#airdrop-button'); button.disabled = true;
-  try { const { LAMPORTS_PER_SOL } = await getSolana(); assertWalletSessionCurrent(session); setLaunchStatus('Requesting 1 test network SOL…'); const signature = await connection.requestAirdrop(session.provider.publicKey, LAMPORTS_PER_SOL); await connection.confirmTransaction(signature, 'confirmed'); if (!isWalletSessionCurrent(session)) return; setLaunchLinks('Airdrop confirmed.', [{ label: 'View airdrop transaction on Explorer', href: explorer(`tx/${signature}`) }]); refreshWalletInfo(); }
-  catch (error) { if (!isWalletSessionCurrent(session)) return; const message = String(error?.message || error); const lower = message.toLowerCase(); const faucetIssue = message.includes('429') || lower.includes('rate limit') || lower.includes('faucet') || lower.includes('internal error') || lower.includes('service unavailable') || lower.includes('timed out') || lower.includes('unsupported solana rpc request'); if (faucetIssue) setLaunchLinks('The API faucet is unavailable or disabled. Fund this test network wallet through the Solana Faucet.', [{ label: 'Open Solana Faucet', href: 'https://faucet.solana.com/' }], true); else setLaunchStatus(`Airdrop failed: ${message}`, true); } finally { button.disabled = false; }
+  try { const { LAMPORTS_PER_SOL } = await getSolana(); assertWalletSessionCurrent(session); setLaunchStatus('Requesting 1 SOL…'); const signature = await connection.requestAirdrop(session.provider.publicKey, LAMPORTS_PER_SOL); await connection.confirmTransaction(signature, 'confirmed'); if (!isWalletSessionCurrent(session)) return; setLaunchLinks('Airdrop confirmed.', [{ label: 'View airdrop transaction on Explorer', href: explorer(`tx/${signature}`) }]); refreshWalletInfo(); }
+  catch (error) { if (!isWalletSessionCurrent(session)) return; const message = String(error?.message || error); const lower = message.toLowerCase(); const faucetIssue = message.includes('429') || lower.includes('rate limit') || lower.includes('faucet') || lower.includes('internal error') || lower.includes('service unavailable') || lower.includes('timed out') || lower.includes('unsupported solana rpc request'); if (faucetIssue) setLaunchLinks('The API faucet is unavailable or disabled. Fund this Solana wallet through the Solana Faucet.', [{ label: 'Open Solana Faucet', href: 'https://faucet.solana.com/' }], true); else setLaunchStatus(`Airdrop failed: ${message}`, true); } finally { button.disabled = false; }
 }
 async function launchToken(){
   if (APP_CLUSTER !== 'devnet') {
-    setLaunchStatus('Mainnet coin launching is not available yet. Use the test network launch while Mainnet routing, metadata, and settlement are prepared.', true);
+    setLaunchStatus('Coin launching is unavailable in this workspace.', true);
     return;
   }
   if (!wallet) { await connectWallet(); if (!wallet) return; }
@@ -5955,11 +5953,11 @@ async function launchToken(){
   if (!feeDistribution.valid) { setLaunchStatus('Creator fee shares must total exactly 80%. Check the wallet, holder, and X percentages.', true); return; }
   if (!launchBurnValidation.valid) { setLaunchStatus('The fixed $FUNDED mint must be configured before a paid launch tier can be used.', true); return; }
   if (launchBurn.requiresBurn && !launchBurnReadiness.ready) { setLaunchStatus(launchBurnReadiness.message, true); return; }
-  if (!feeRouterState.verified || !feeRouterState.address) { setLaunchStatus('Launch blocked until the funded.vip fee-router PDA is deployed and verified on test network.', true); return; }
+  if (!feeRouterState.verified || !feeRouterState.address) { setLaunchStatus('Launch blocked until the funded.vip fee-router PDA is deployed and verified on Solana.', true); return; }
   const reviewedCost=launchCostReview;
   if(!freshLaunchReview(reviewedCost)){setLaunchStatus('Estimate expired. Refresh the launch estimate before signing.',true);return;}
   if (walletBalanceLamports == null || estimatedLaunchFeeLamports == null) { setLaunchStatus('Wallet balance and launch cost could not be verified. Refresh the estimate before signing.', true); return; }
-  if (walletBalanceLamports != null && estimatedLaunchFeeLamports != null && walletBalanceLamports < estimatedLaunchFeeLamports) { setLaunchStatus('Insufficient test network SOL for this launch. Fund the wallet, then refresh the balance and fee estimate before signing.', true); return; }
+  if (walletBalanceLamports != null && estimatedLaunchFeeLamports != null && walletBalanceLamports < estimatedLaunchFeeLamports) { setLaunchStatus('Insufficient SOL for this launch. Fund the wallet, then refresh the balance and fee estimate before signing.', true); return; }
   document.querySelector('#launch-button').disabled = true;
   let journalId;
   try {
@@ -6064,7 +6062,7 @@ async function launchToken(){
         localStorage.removeItem(`funded.launch.${launchPolicy.mint}`);
       }
     } catch (policyError) {
-      if (isWalletSessionCurrent(session)) setLaunchStatus(`Coin confirmed on test network, but policy registration is pending: ${policyError.message}`, true);
+      if (isWalletSessionCurrent(session)) setLaunchStatus(`Coin confirmed on Solana, but policy registration is pending: ${policyError.message}`, true);
     }
     const tradeMint = document.querySelector('#trade-mint');
     if (tradeMint) tradeMint.value = launchPolicy.mint;
@@ -6083,7 +6081,7 @@ async function launchToken(){
       { label: 'Open My launches →', href: '#my-launches' },
       { label: 'Publish community airdrop →', href: '#airdrops' },
     ];
-    setLaunchLinks(`Launch verified ✓\n${result.name} (${result.symbol}) is confirmed on Solana test network.\nMint: ${result.mint.publicKey.toBase58()}\nLaunch tier: ${launchBurn.label}${burnSummary}\nPump creator-fee owner: funded.vip router\nYour wallet has no creator-fee authority.\nCommunity reserve funded: ${communityAllocation}% (${launchPolicy.communityAirdrop.reservedTokens.toLocaleString()} tokens)\nReward vault: ${result.reserveReceipt.vault}\nClaims open after a verified migration snapshot.\nSettlement policy: 80% creator-directed / 20% app protocol${feeDistributionInput.solClaimPercent > 0 ? `\nSOL claim recipient: ${xRecipient}` : ''}`, launchLinks);
+    setLaunchLinks(`Launch verified ✓\n${result.name} (${result.symbol}) is confirmed on Solana.\nMint: ${result.mint.publicKey.toBase58()}\nLaunch tier: ${launchBurn.label}${burnSummary}\nPump creator-fee owner: funded.vip router\nYour wallet has no creator-fee authority.\nCommunity reserve funded: ${communityAllocation}% (${launchPolicy.communityAirdrop.reservedTokens.toLocaleString()} tokens)\nReward vault: ${result.reserveReceipt.vault}\nClaims open after a verified migration snapshot.\nSettlement policy: 80% creator-directed / 20% app protocol${feeDistributionInput.solClaimPercent > 0 ? `\nSOL claim recipient: ${xRecipient}` : ''}`, launchLinks);
     document.querySelector('#launch-status').classList.add('launch-complete');
     showToast(persistedLaunch.available ? `${result.symbol} launched and listed in Explore` : `${result.symbol} launched on-chain; Explore listing is pending API verification`); renderAirdropClaims(); refreshWalletInfo(); openBurnPageAfterLaunch(launchPolicy);
   } catch (error) {
@@ -6091,7 +6089,7 @@ async function launchToken(){
     if(journalId&&saved?.state==='prepared')saved=recordLaunchEvent(journalId,{state:'failed',message:error.message});
     const needsRecovery=Boolean(saved&&(saved.signature||saved.events?.some(event=>event.signature||['broadcasting','submitted','confirmed','verification-pending','registration-pending','unknown'].includes(event.state))));
     if (isWalletSessionCurrent(session)) {
-      const message = `Launch stopped: ${error.message}${needsRecovery ? ' A transaction may have reached test network. Check its receipt before attempting another launch.' : ' No transaction was sent; correct the issue and retry.'}`;
+      const message = `Launch stopped: ${error.message}${needsRecovery ? ' A transaction may have reached Solana. Check its receipt before attempting another launch.' : ' No transaction was sent; correct the issue and retry.'}`;
       if (needsRecovery && saved?.signature) {
         setLaunchLinks(message, [{ label: 'Check transaction on Solana Explorer ↗', href: exploreExplorer(`tx/${encodeURIComponent(saved.signature)}`) }], true);
       } else setLaunchStatus(message, true);
@@ -6116,7 +6114,7 @@ window.addEventListener('funded:recover-registration',async event=>{
   const report=message=>window.dispatchEvent(new CustomEvent('funded:recovery-result',{detail:message}));
   try{
     const {mint,id}=event.detail||{};const row=readLaunchJournal().find(r=>r.id===id&&r.mint===mint&&r.state==='registration-pending');
-    if(!row||row.cluster!=='devnet')throw new Error('No pending test network registration matches this request.');
+    if(!row||row.cluster!=='devnet')throw new Error('No pending Solana registration matches this request.');
     const policy=JSON.parse(localStorage.getItem(`funded.launch.${mint}`)||'null');if(!policyMatchesJournal(policy,row))throw new Error('Saved policy does not match this launch. Do not recreate the coin.');
     const session=captureWalletSession();if(!session||session.address!==row.payer)throw new Error('Connect the original launch wallet before registration.');assertWalletSessionCurrent(session);
     if(!policy.policySignature){if(typeof session.provider.signMessage!=='function')throw new Error('This wallet must support message signing.');const signed=await session.provider.signMessage(new TextEncoder().encode(launchPolicyStatement(policy)));assertWalletSessionCurrent(session);policy.policySignature=bs58.encode(signed.signature||signed);localStorage.setItem(`funded.launch.${mint}`,JSON.stringify(policy));}
@@ -6661,7 +6659,7 @@ document.querySelector('#asset-grid').addEventListener('click', async event => {
   const copyMint = event.target.closest('.asset-copy-mint');
   const share = event.target.closest('.share-asset');
   const emptyAction = event.target.closest('[data-explore-empty-action]');
-  if (emptyAction) { if (emptyAction.dataset.exploreEmptyAction === 'clear') clearExploreFilters(); else loadOnchainExploreData().catch(() => showToast('Retry could not verify test network data.')); return; }
+  if (emptyAction) { if (emptyAction.dataset.exploreEmptyAction === 'clear') clearExploreFilters(); else loadOnchainExploreData().catch(() => showToast('Retry could not verify Solana data.')); return; }
   if (copyMint) { const mint = copyMint.dataset.mint; if (!mint) return; try { await navigator.clipboard.writeText(mint); showToast('Mint address copied'); } catch { showToast(mint); } return; }
   if (share) { openCoinShare(share.dataset.shareMint || '', share.dataset.shareSymbol || 'Coin', share.dataset.shareName || ''); return; }
  if (!button) return;
@@ -6879,7 +6877,7 @@ document.querySelector('#buyback-run-preview')?.addEventListener('click', runBuy
 document.querySelector('#buyback-example-fees')?.addEventListener('input', renderBuybackExample);
 document.querySelector('#funded-burn-amount')?.addEventListener('input', updateFundedBurnButton);
 document.querySelector('#funded-burn-submit')?.addEventListener('click', submitFundedBurn);
-document.querySelector('#funded-buy-amount')?.addEventListener('input', () => { fundedBuyPreview = null; renderFundedBuyControl('Preview the current test network pool quote before signing.'); });
+document.querySelector('#funded-buy-amount')?.addEventListener('input', () => { fundedBuyPreview = null; renderFundedBuyControl('Preview the current Solana pool quote before signing.'); });
 document.querySelector('#funded-buy-submit')?.addEventListener('click', handleFundedBuy);
 document.querySelector('#referral-example-input').addEventListener('input', event => {
   const fees = Math.max(0, Number(event.target.value) || 0);
@@ -7015,11 +7013,11 @@ const routeGuideCopy = {
   'my-launches': { group: 'Build', state: 'Project workspace', description: 'Review verified launches, market activity, and token actions in one portfolio.', primary: ['Launch a project', '#launch'], secondary: ['Launch guide', '#docs'] },
   referrals: { group: 'Growth', state: 'Wallet claim required', description: 'Share one invite link and track qualified creator activity, reward status, and confirmed receipts.', primary: ['How rewards work', '#referral-faq'], secondary: ['Explore launches', '#explore'] },
   community: { group: 'Growth', state: 'Saved locally', description: 'Save verified launches and compare them with the same market data used on Explore.', primary: ['Find launches', '#explore'], secondary: ['See airdrops', '#airdrops'] },
-  leaderboard: { group: 'Growth', state: 'Verified activity only', description: 'Compare verified creator contribution after launch and trading activity has been confirmed.', primary: ['Explore launches', '#explore'], secondary: ['View test network status', '#docs'] },
+  leaderboard: { group: 'Growth', state: 'Verified activity only', description: 'Compare verified creator contribution after launch and trading activity has been confirmed.', primary: ['Explore launches', '#explore'], secondary: ['View Solana status', '#docs'] },
   airdrops: { group: 'Growth', state: 'Proof required', description: 'Review community reserves, wallet eligibility, claim progress, and confirmed distribution receipts.', primary: ['Explore launches', '#explore'], secondary: ['Claim guide', '#docs'] },
   buybacks: { group: 'Protocol', state: 'Burn center', description: 'Buy or burn $FUNDED, attribute a burn to a project, and verify each confirmed supply reduction.', primary: ['View my projects', '#my-launches'], secondary: ['Protocol guide', '#docs'] },
   'capital-flow': { group: 'Protocol', state: 'Example calculator', description: 'Enter any creator-fee amount to see how every destination is calculated. This preview never moves funds.', primary: ['View payments', '#payments'], secondary: ['Read the policy', '#docs'] },
-  docs: { group: 'Protocol', state: 'test network guide', description: 'Understand what is live, what needs a wallet signature, and which records count as verified proof.', primary: ['Open launch', '#launch'], secondary: ['See capital flow', '#capital-flow'] },
+  docs: { group: 'Protocol', state: 'Solana guide', description: 'Understand what is live, what needs a wallet signature, and which records count as verified proof.', primary: ['Open launch', '#launch'], secondary: ['See capital flow', '#capital-flow'] },
   privacy: { group: 'Protocol', state: 'Information', description: 'Understand what the browser stores, what the wallet signs, and how to verify a transaction safely.', primary: ['Wallet profile', '#profile'], secondary: ['Back to overview', '#overview'] },
   paid: { group: 'Protocol', state: 'Policy preview', description: 'See how $FUNDED supports community rewards, referrals, operations, and permanent token burns.', primary: ['See buybacks', '#buybacks'], secondary: ['Read the docs', '#docs'] },
 };
@@ -7056,7 +7054,7 @@ function syncPageRoute(){
     list: ['Get listed', 'Listing status and token mint check'],
     payments: ['Rewards', 'Claims and payout receipts'],
     'analytics-detail': ['Analytics', 'Protocol flow and indexed activity'],
-    launch: ['Launch token', 'Create and review a test network coin'],
+    launch: ['Launch token', 'Create and review a Solana coin'],
     'my-launches': ['Portfolio', 'Launches and saved tokens'],
     referrals: ['Referrals', 'Track qualified growth'],
     community: ['Watchlist', 'Watchlist and verified signals'],
@@ -7130,7 +7128,7 @@ if (APP_MAINNET_READ_ONLY) {
   const banner = document.createElement('div');
   banner.id = 'mainnet-readonly-banner';
   banner.setAttribute('role', 'status');
-  banner.textContent = 'Private Mainnet preview · read-only · wallet signing and financial actions disabled';
+  banner.textContent = 'Read-only workspace · wallet signing and financial actions disabled';
   document.body.prepend(banner);
 } else {
   if (existingProvider?.isConnected && walletAddress(existingProvider) && !wasWalletManuallyDisconnected()) activateWallet(existingProvider);
@@ -7195,7 +7193,7 @@ function renderCoinSummary() {
   root.hidden = !summary.visible;
   if (!summary.visible) { grid.replaceChildren(); return; }
   const source = document.querySelector('#coin-summary-source');
-  if (source) source.textContent = `Verified launch · ${EXPLORE_NETWORK_LABEL}`;
+  if (source) source.textContent = `Verified launch`;
   grid.innerHTML = summary.cards.filter(item => item.id !== 'volume').map(item => {
     const value = item.amount == null ? item.unit === 'USD' ? '$—' : '—'
       : item.unit === 'USD' ? formatSmallDashboardUsd(item.amount, { partial:item.id === 'volume' && item.state === 'partial' })
@@ -7237,9 +7235,9 @@ function renderCoinFeeDashboard(overview = null) {
   const claimButton = root.querySelector('#coin-creator-claim-button');
   if (claimButton && ready) claimButton.onclick = () => { void requestCreatorFeeClaim(claimButton); };
   const stage = root.querySelector('.coin-fee-stage');
-  if (stage) stage.textContent = `Fees are accruing in Pump. The test network collector checks the vault automatically and records allocations once at least ${coinFeeSol(minimum)} is available.`;
+  if (stage) stage.textContent = `Fees are accruing in Pump. The Solana collector checks the vault automatically and records allocations once at least ${coinFeeSol(minimum)} is available.`;
   const how = root.querySelector('.coin-fee-how');
-  if (how) how.innerHTML = `<strong>How the coin creator receives fees</strong><ol><li>Pump accrues fees in this coin’s vault.</li><li>The test network collector moves fees into this coin’s router and records the allocation automatically.</li><li>Once allocated creator fees reach ${escapeHtml(coinFeeSol(minimum))}, connect launch wallet ${walletLink} and select Claim creator fees. The payout worker sends SOL to that wallet; a paid receipt appears after confirmation.</li></ol><small>Only the verified launch wallet can request payment. Amounts still in Pump are estimates until collected and allocated.</small>`;
+  if (how) how.innerHTML = `<strong>How the coin creator receives fees</strong><ol><li>Pump accrues fees in this coin’s vault.</li><li>The Solana collector moves fees into this coin’s router and records the allocation automatically.</li><li>Once allocated creator fees reach ${escapeHtml(coinFeeSol(minimum))}, connect launch wallet ${walletLink} and select Claim creator fees. The payout worker sends SOL to that wallet; a paid receipt appears after confirmation.</li></ol><small>Only the verified launch wallet can request payment. Amounts still in Pump are estimates until collected and allocated.</small>`;
 }
 async function requestCreatorFeeClaim(button) {
   const mint = getCoinMintAddress();
@@ -7470,8 +7468,8 @@ function renderPortfolio(){
     if (holdingValue != null) { pricedCount += 1; total += holdingValue; }
     const label = asset?.symbol || shortAddress(holding.mint);
     return `<a class="portfolio-holding-row" href="/token/${encodeURIComponent(holding.mint)}"><span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(asset?.name || shortAddress(holding.mint))}</small></span><span>${escapeHtml(formatOnChainNumber(holding.quantity, 6))}</span><span>${holdingValue == null ? '—' : escapeHtml(formatDashboardUsd(holdingValue))}</span><span title="Complete cost basis unavailable">—</span></a>`;
-  }).join('') || `<div class="empty-state">${!address ? 'Connect a wallet to see token holdings.' : portfolioHoldings.status === 'loading' ? 'Checking live test network balances…' : portfolioHoldings.status === 'unavailable' ? 'Token balances are unavailable from test network RPC.' : 'No SPL token holdings in this wallet.'}</div>`;
-  status.textContent = !address ? 'Connect wallet' : current ? `${holdings.length} tokens · ${portfolioHoldings.coverage}${pricedCount < holdings.length ? ' · some values unavailable' : ''}` : portfolioHoldings.status === 'loading' ? 'Checking test network balances' : 'Balance lookup unavailable';
+  }).join('') || `<div class="empty-state">${!address ? 'Connect a wallet to see token holdings.' : portfolioHoldings.status === 'loading' ? 'Checking live Solana balances…' : portfolioHoldings.status === 'unavailable' ? 'Token balances are unavailable from Solana RPC.' : 'No SPL token holdings in this wallet.'}</div>`;
+  status.textContent = !address ? 'Connect wallet' : current ? `${holdings.length} tokens · ${portfolioHoldings.coverage}${pricedCount < holdings.length ? ' · some values unavailable' : ''}` : portfolioHoldings.status === 'loading' ? 'Checking Solana balances' : 'Balance lookup unavailable';
   value.textContent = pricedCount ? `${pricedCount < holdings.length ? '≥' : ''}${formatDashboardUsd(total)}` : holdings.length ? '—' : current ? '$0.00' : '—';
   const trades = address ? walletDetailTrades(address) : [];
   const observed = matchedTradePnl(trades, decimalsByMint);
@@ -7486,7 +7484,7 @@ function renderPortfolio(){
     const receiptUrl = exploreExplorer(`tx/${encodeURIComponent(trade.signature)}`);
     return `<tr class="portfolio-trade-row"><td><time datetime="${escapeHtml(new Date(timestamp).toISOString())}" title="${escapeHtml(new Date(timestamp).toLocaleString())}">${escapeHtml(formatOnchainAge(timestamp))}</time></td><td><span class="portfolio-trade-side ${trade.side}">${trade.side === 'buy' ? 'Buy' : 'Sell'}</span></td><td><a href="/token/${encodeURIComponent(trade.mint)}">${escapeHtml(trade.symbol || shortAddress(trade.mint))}</a></td><td class="numeric">${escapeHtml(tokenAmount)}</td><td class="numeric">${escapeHtml(formatOnChainNumber(trade.solAmount, 5))}</td><td><a href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener noreferrer" aria-label="View transaction ${escapeHtml(shortAddress(trade.signature))} on Solana Explorer">${escapeHtml(shortAddress(trade.signature))} ↗</a></td></tr>`;
   }).join('') || `<tr><td class="portfolio-trade-empty" colspan="6"><span>${!address ? 'Connect a wallet to see trade transactions.' : 'No trades found in the available 24-hour coin scan.'}</span></td></tr>`;
-  txNote.textContent = !address ? 'Connect a wallet for test network trade history.' : `Last 24 hours · ${exploreScannedCount} of ${assets.length} listed coins scanned · up to 20 trades per coin, 100 wallet rows. Older or unscanned transactions may be missing.`;
+  txNote.textContent = !address ? 'Connect a wallet for Solana trade history.' : `Last 24 hours · ${exploreScannedCount} of ${assets.length} listed coins scanned · up to 20 trades per coin, 100 wallet rows. Older or unscanned transactions may be missing.`;
 }
 function activatePortfolioTab(name, focus = false){
   const tabs = document.querySelectorAll('[data-portfolio-tab]');
@@ -7577,8 +7575,8 @@ function renderWalletDetail(){
     description.textContent = 'Balances shown only when the app has a direct, current source.';
     const fundedBalance = isSelf && fundedBurnState.wallet === address && fundedBurnState.status === 'ready'
       ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6)
-      : isSelf && fundedBurnState.wallet === address && fundedBurnState.status === 'loading' ? 'Checking test network…' : 'Unavailable';
-    content.innerHTML = `<div class="wallet-balance-grid"><article><span class="header-solana-mark" aria-hidden="true"></span><div><strong>${escapeHtml(isSelf && walletBalanceLamports != null ? formatSol(walletBalanceLamports) : 'Unavailable')}</strong><small>Native SOL · ${escapeHtml(EXPLORE_NETWORK_LABEL)}</small></div></article><article><span class="wallet-funded-mark" aria-hidden="true">f</span><div><strong>${escapeHtml(fundedBalance)}</strong><small>$FUNDED token balance${fundedBalance !== 'Unavailable' && fundedBalance !== 'Checking test network…' ? ' · live test network' : ''}</small></div></article></div>`;
+      : isSelf && fundedBurnState.wallet === address && fundedBurnState.status === 'loading' ? 'Checking Solana…' : 'Unavailable';
+    content.innerHTML = `<div class="wallet-balance-grid"><article><span class="header-solana-mark" aria-hidden="true"></span><div><strong>${escapeHtml(isSelf && walletBalanceLamports != null ? formatSol(walletBalanceLamports) : 'Unavailable')}</strong><small>Native SOL</small></div></article><article><span class="wallet-funded-mark" aria-hidden="true">f</span><div><strong>${escapeHtml(fundedBalance)}</strong><small>$FUNDED token balance${fundedBalance !== 'Unavailable' && fundedBalance !== 'Checking Solana…' ? ' · live' : ''}</small></div></article></div>`;
     return;
   }
   const launchRows = launches.map(launch => ({ type:'launch', time:Date.parse(launch.createdAt || '') || 0, mint:launch.mint, html:`<a class="wallet-activity-row" data-token-mint="${escapeHtml(launch.mint)}" href="/token/${encodeURIComponent(launch.mint)}"><span class="wallet-activity-icon">✦</span><span><strong>Created ${escapeHtml(launch.name || launch.symbol || 'token')}</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} · ${escapeHtml(shortAddress(launch.mint))}</small></span><b>Verified<small>${launch.createdAt ? escapeHtml(formatOnchainAge(Date.parse(launch.createdAt))) : 'Time unavailable'}</small></b></a>` }));
@@ -7588,7 +7586,7 @@ function renderWalletDetail(){
     loadWalletRowLogos(content, launches);
     return;
   }
-  description.textContent = `Verified launches and burns, plus observed trades from the last 24 hours on test network. ${scanNote}.`;
+  description.textContent = `Verified launches and burns, plus observed trades from the last 24 hours on Solana. ${scanNote}.`;
   const tradeRows = trades.map(trade => ({ type:trade.side, time:Number(trade.blockTime) * 1000 || 0, html:`<a class="wallet-activity-row" data-token-mint="${escapeHtml(trade.mint)}" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(trade.signature)}`))}" target="_blank" rel="noopener noreferrer"><span class="wallet-activity-icon ${trade.side}">${trade.side === 'buy' ? '↗' : '↘'}</span><span><strong>${trade.side === 'buy' ? 'Bought' : 'Sold'} ${escapeHtml(trade.symbol || 'token')}</strong><small>${escapeHtml(shortAddress(trade.mint))}</small></span><b>${escapeHtml(formatOnChainNumber(trade.solAmount, 4))} SOL<small>${escapeHtml(formatOnchainAge(Number(trade.blockTime) * 1000))}</small></b></a>` }));
   const seenBurns = new Set();
   const burnRows = launches.flatMap(launch => {
@@ -8141,7 +8139,7 @@ function resetCoinSurface(mintAddress){
   const policySplit = document.querySelector('.policy-split'); if (policySplit) policySplit.innerHTML = '<span><b>—</b><small>Curve state</small></span><span><b>—</b><small>Real tokens</small></span>';
   const policyBar = document.querySelector('.policy-bar'); if (policyBar) { policyBar.style.display = 'block'; policyBar.innerHTML = '<i style="display:block;height:100%;width:100%;background:#667085"></i>'; }
   const policyLink = document.querySelector('.policy-link'); if (policyLink) policyLink.hidden = true;
-  setCoinField('#coin-network', `Solana · ${EXPLORE_NETWORK_LABEL}`);
+  setCoinField('#coin-network', `Solana`);
 }
 async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
   const response = await apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/market-activity`, { signal: AbortSignal.timeout(12000) }).catch(() => ({ available: false, data: null }));
@@ -8278,7 +8276,7 @@ async function loadCoinOnChain(mintAddress){
     setCoinField('.coin-live-dot', graduatedPool ? 'Mint / pool confirmed' : curve ? 'Mint / curve confirmed' : 'Mint confirmed');
     setCoinField('#coin-avatar', symbol.slice(0, 1).toUpperCase()); setCoinField('#coin-symbol', symbol); setCoinField('#coin-artwork-symbol', symbol); setCoinField('#coin-page-title', name);
     setCoinField('#coin-address', shortAddress(mintAddress)); setCoinField('#coin-full-address', mintAddress);
-    setCoinField('#coin-description', graduatedPool ? 'On-chain mint and verified PumpSwap pool snapshot. Reading confirmed trade activity from RPC…' : 'On-chain mint and Pump bonding-curve snapshot. Signed test network metadata is checked separately.');
+    setCoinField('#coin-description', graduatedPool ? 'On-chain mint and verified PumpSwap pool snapshot. Reading confirmed trade activity from RPC…' : 'On-chain mint and Pump bonding-curve snapshot. Signed Solana metadata is checked separately.');
     setCoinFact('#coin-stage', graduatedPool ? 'Migrated · PumpSwap' : curve ? curve.complete ? 'Curve complete · pool unavailable' : 'On Pump curve' : 'Unverified', curve ? 'clear' : 'unknown');
     setCoinFact('#coin-fee-owner', linkedRouter ? 'App router address matched' : curve?.creator ? shortAddress(curve.creator) : 'Unavailable', linkedRouter ? 'clear' : 'unknown');
     setCoinFact('#coin-metadata-status', metadataInfo?.data && (metadata.name || metadata.symbol) ? 'On-chain name / symbol' : registeredLaunch ? 'Pump create event verified' : 'No verified name', metadataInfo?.data && (metadata.name || metadata.symbol) || registeredLaunch ? 'clear' : 'unknown');
@@ -8318,11 +8316,11 @@ async function loadCoinOnChain(mintAddress){
     const policyBar = document.querySelector('.policy-bar'); if (policyBar) policyBar.innerHTML = curve ? `<i style="display:block;height:100%;width:${Math.max(0, Math.min(100, Number(curve.progressPercent) || 0))}%;background:#83cbb0"></i>` : '<i style="display:block;height:100%;width:100%;background:#667085"></i>';
      const policyLink = document.querySelector('.policy-link'); if (policyLink) { policyLink.textContent = graduatedPool ? 'View PumpSwap pool on explorer →' : 'View mint on explorer →'; policyLink.href = exploreExplorer(`address/${graduatedPool?.pool || mintAddress}`); policyLink.hidden = false; }
     const explorerLink = document.querySelector('#coin-explorer-link'); if (explorerLink) { explorerLink.href = exploreExplorer(`address/${mintAddress}`); explorerLink.hidden = false; }
-    setCoinField('#coin-network', `Solana · ${EXPLORE_NETWORK_LABEL}`);
+    setCoinField('#coin-network', `Solana`);
     if (EXPLORE_CLUSTER === 'devnet') void apiRequest(`/devnet-metadata/${encodeURIComponent(mintAddress)}`, { signal: AbortSignal.timeout(5000) }).then(response => {
       if (loadId !== coinLoadId || !response.available || response.data?.name !== name || response.data?.symbol !== symbol) return;
       const details = response.data;
-      setCoinField('#coin-description', details.description || 'Signed test network metadata is available.');
+      setCoinField('#coin-description', details.description || 'Signed Solana metadata is available.');
       const tagline = document.querySelector('#coin-profile-tagline');
       if (tagline) { tagline.textContent = details.tagline || ''; tagline.hidden = !details.tagline; }
       window.fundedSetCoinProfileMetadata?.(details);
@@ -8346,9 +8344,9 @@ async function loadCoinOnChain(mintAddress){
     console.error('On-chain token detail failed', error);
     const detail = String(error?.message || '');
     renderOnChainUnavailable(/\b429\b|rate limit|too many requests/i.test(detail)
-      ? 'test network RPC is rate limited. Wait a moment, then select Refresh.'
+      ? 'Solana RPC is rate limited. Wait a moment, then select Refresh.'
       : /timed out/i.test(detail)
-        ? 'test network RPC timed out. Check your connection and select Refresh.'
+        ? 'Solana RPC timed out. Check your connection and select Refresh.'
         : detail || 'Solana RPC could not load this mint.');
     renderCoinRegistryIdentity(mintAddress);
   }
@@ -8715,7 +8713,7 @@ function renderXClaimSummary(claims){
     if(count)count.textContent=summary?labels[key](summary[key].count):'Sign in to view';
   }
   const note=document.querySelector('#x-claim-dashboard-note');
-  if(note)note.textContent=summary&&Object.values(summary).some(bucket=>!bucket.complete)?'One or more reward amounts are unavailable, so affected totals are hidden. Claimed amounts still require a verified test network payment receipt.':'Totals use collected creator-fee rewards linked to your signed-in X account. Claimed amounts require a verified test network payment receipt.';
+  if(note)note.textContent=summary&&Object.values(summary).some(bucket=>!bucket.complete)?'One or more reward amounts are unavailable, so affected totals are hidden. Claimed amounts still require a verified Solana payment receipt.':'Totals use collected creator-fee rewards linked to your signed-in X account. Claimed amounts require a verified Solana payment receipt.';
 }
 async function loadXIdentity() {
   const button = document.querySelector('#x-sign-in');

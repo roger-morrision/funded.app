@@ -87,3 +87,6 @@ body .launch-page-wizard[data-step="3"] #wizard-hint.ready{border-color:#588d7d;
 @media(max-width:760px){.launch-review-overview{grid-template-columns:1fr}.launch-review-estimate{align-items:flex-start;flex-direction:column;gap:8px}.launch-review-estimate p{max-width:none}}
 @media(max-width:520px){.launch-review-card{padding:16px}.launch-review-token-identity strong{font-size:20px}body .launch-page-wizard .launch-draft-panel>summary{align-items:flex-start;flex-direction:column;gap:1px}body .launch-page-wizard[data-step="3"] #wizard-hint{flex-basis:100%}}
 @media(prefers-reduced-motion:reduce){.launch-review-fee-bar span{transition:none}}
+
+body .topbar .top-actions .workspace-network, body.page-route-paid .topbar .top-actions .workspace-network { display: inline-flex; align-items: center; justify-content: center; }
+@media (max-width: 480px) { body .topbar .top-actions .workspace-network { position: static; top: auto; right: auto; font-size: 10px; padding: 4px 6px; } body.page-route .topbar-context { display: none; } }

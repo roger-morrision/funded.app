@@ -134,7 +134,7 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
       try { await writeFile(metadataPath, JSON.stringify({ record, image: image?.toString('base64') || '', imageType }), { encoding: 'utf8', flag: 'wx' }); }
       catch (error) { if (error.code !== 'EEXIST') throw error; }
       const existing = JSON.parse(await readFile(metadataPath, 'utf8'));
-      if (JSON.stringify(existing.record) !== JSON.stringify(record)) throw new Error('Immutable test network metadata already exists for this mint.');
+      if (JSON.stringify(existing.record) !== JSON.stringify(record)) throw new Error('Immutable Solana metadata already exists for this mint.');
       return existing.record;
     },
     async readMetadata(mint) {

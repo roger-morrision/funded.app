@@ -73,11 +73,11 @@ export function settleJackpotRound(round, proof, existingReceipts = []) {
 }
 
 // Query finalized chain data rather than accepting a caller's payout flags.
-// expectedGenesisHash must be the trusted test network genesis hash from deployment config.
+// expectedGenesisHash must be the trusted Solana genesis hash from deployment config.
 export async function verifyJackpotPayoutOnchain({ connection, expectedGenesisHash,
   round, signature, existingReceipts = [] }) {
   if (!connection || !expectedGenesisHash || !SIGNATURE.test(String(signature || '')))
-    throw new Error('Trusted test network RPC and payout signature are required.');
+    throw new Error('Trusted Solana RPC and payout signature are required.');
   if (await connection.getGenesisHash() !== expectedGenesisHash)
     throw new Error('Payout RPC is on the wrong Solana cluster.');
   const tx = await connection.getParsedTransaction(signature,

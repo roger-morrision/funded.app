@@ -7,7 +7,7 @@ if (host) {
   const home = document.createElement('section');
   home.className = 'home-jackpot-spotlight';
   home.setAttribute('aria-labelledby', 'home-jackpot-heading');
-  home.innerHTML = `<div class="home-jackpot-heading"><div><p class="eyebrow">Solana test network · prize preview</p><h2 id="home-jackpot-heading">Creator and trader jackpots</h2><p data-home-jackpot-status>Checking verified funding. Draws and payouts are currently inactive.</p></div><a href="#payments">View jackpots in Rewards →</a></div><div class="home-jackpot-grid"><article><span>Creator jackpot</span><strong data-home-jackpot-amount="creator">—</strong><small>1% of funded.vip’s collected creator-fee share</small></article><article><span>Trader jackpot</span><strong data-home-jackpot-amount="trader">—</strong><small>5% of funded.vip’s collected trading fees</small></article></div><p class="home-jackpot-disclosure" data-home-jackpot-note>Only verified funded amounts appear here. The preview countdown in Rewards is an accounting window, not a scheduled draw.</p>`;
+  home.innerHTML = `<div class="home-jackpot-heading"><div><p class="eyebrow">Solana · prize preview</p><h2 id="home-jackpot-heading">Creator and trader jackpots</h2><p data-home-jackpot-status>Checking verified funding. Draws and payouts are currently inactive.</p></div><a href="#payments">View jackpots in Rewards →</a></div><div class="home-jackpot-grid"><article><span>Creator jackpot</span><strong data-home-jackpot-amount="creator">—</strong><small>1% of funded.vip’s collected creator-fee share</small></article><article><span>Trader jackpot</span><strong data-home-jackpot-amount="trader">—</strong><small>5% of funded.vip’s collected trading fees</small></article></div><p class="home-jackpot-disclosure" data-home-jackpot-note>Only verified funded amounts appear here. The preview countdown in Rewards is an accounting window, not a scheduled draw.</p>`;
   homeHero?.after(home);
   const homeAmounts = Object.fromEntries(['creator', 'trader'].map(kind => [kind,
     { element:home.querySelector(`[data-home-jackpot-amount="${kind}"]`),
@@ -15,7 +15,7 @@ if (host) {
   const rewardsSummary = document.createElement('section');
   rewardsSummary.className = 'jackpot-overview-spotlight';
   rewardsSummary.setAttribute('aria-label', 'Jackpot funding preview');
-  rewardsSummary.innerHTML = `<div><strong>Jackpot preview · test network</strong><p data-jackpot-overview-status>Checking verified funding.</p></div><div class="jackpot-overview-values"><span>Creator <b data-jackpot-overview-amount="creator">—</b></span><span>Trader <b data-jackpot-overview-amount="trader">—</b></span></div><button type="button">Rules and receipts →</button>`;
+  rewardsSummary.innerHTML = `<div><strong>Jackpot preview · Solana</strong><p data-jackpot-overview-status>Checking verified funding.</p></div><div class="jackpot-overview-values"><span>Creator <b data-jackpot-overview-amount="creator">—</b></span><span>Trader <b data-jackpot-overview-amount="trader">—</b></span></div><button type="button">Rules and receipts →</button>`;
   document.querySelector('#rewards-overview')?.prepend(rewardsSummary);
   const disclosure = document.createElement('details');
   disclosure.className = 'jackpot-disclosure';
@@ -25,7 +25,7 @@ if (host) {
   const section = document.createElement('section');
   section.className = 'jackpot-preview';
   section.setAttribute('aria-labelledby', 'jackpot-preview-heading');
-  section.innerHTML = `<div class="jackpot-preview-head"><div><p class="eyebrow">test network prototype</p><h3 id="jackpot-preview-heading">24-hour jackpots</h3><p>Draws and automatic SOL payouts are inactive until fee funding, verified entries, and eligibility are approved.</p></div><span class="jackpot-preview-badge">Payouts inactive</span></div><div class="jackpot-preview-grid"></div><p class="jackpot-preview-note">The countdown marks the UTC accounting window, not a scheduled draw. No jackpot has been funded or paid.</p><details class="jackpot-proof"><summary>Rules, funding, and draw proof</summary><div class="jackpot-proof-body"><p><strong>Planned creator pool:</strong> 1% of funded.vip’s share of collected Pump creator fees in each UTC day. A unique finalized launch would count once.</p><p><strong>Planned trader pool:</strong> 5% of funded.vip’s collected app trading fees in each UTC day. A unique finalized fee-paying trade would count once.</p><p data-jackpot-rules-state>These are design formulas, not an active entry offer. No odds, eligibility rules, or payout date are published. Verified funding and entries, independent winner selection, and a finalized wallet payout are required before a round can be shown as paid.</p><ul data-jackpot-blockers></ul><p class="jackpot-proof-status" data-jackpot-proof-status>Checking round evidence…</p></div></details><div class="jackpot-alerts" hidden><label><input type="checkbox" data-jackpot-alert-toggle> Show new finalized draw results on this device</label><p data-jackpot-alert-status>Alerts are off.</p><ul data-jackpot-alert-list></ul><small>In-app notices appear while this page is open. No wallet connection or background notification is required.</small></div>`;
+  section.innerHTML = `<div class="jackpot-preview-head"><div><p class="eyebrow">Solana prototype</p><h3 id="jackpot-preview-heading">24-hour jackpots</h3><p>Draws and automatic SOL payouts are inactive until fee funding, verified entries, and eligibility are approved.</p></div><span class="jackpot-preview-badge">Payouts inactive</span></div><div class="jackpot-preview-grid"></div><p class="jackpot-preview-note">The countdown marks the UTC accounting window, not a scheduled draw. No jackpot has been funded or paid.</p><details class="jackpot-proof"><summary>Rules, funding, and draw proof</summary><div class="jackpot-proof-body"><p><strong>Planned creator pool:</strong> 1% of funded.vip’s share of collected Pump creator fees in each UTC day. A unique finalized launch would count once.</p><p><strong>Planned trader pool:</strong> 5% of funded.vip’s collected app trading fees in each UTC day. A unique finalized fee-paying trade would count once.</p><p data-jackpot-rules-state>These are design formulas, not an active entry offer. No odds, eligibility rules, or payout date are published. Verified funding and entries, independent winner selection, and a finalized wallet payout are required before a round can be shown as paid.</p><ul data-jackpot-blockers></ul><p class="jackpot-proof-status" data-jackpot-proof-status>Checking round evidence…</p></div></details><div class="jackpot-alerts" hidden><label><input type="checkbox" data-jackpot-alert-toggle> Show new finalized draw results on this device</label><p data-jackpot-alert-status>Alerts are off.</p><ul data-jackpot-alert-list></ul><small>In-app notices appear while this page is open. No wallet connection or background notification is required.</small></div>`;
   disclosure.append(disclosureSummary, section);
   host.prepend(disclosure);
   rewardsSummary.querySelector('button')?.addEventListener('click', () => {
@@ -224,7 +224,7 @@ if (host) {
     const reveal = document.createElement('div');
     reveal.className = 'jackpot-reveal';
     reveal.hidden = true;
-    reveal.innerHTML = `<div class="jackpot-reveal-stage" aria-hidden="true"><span class="jackpot-reveal-wheel"></span><span class="jackpot-confetti"></span><span class="jackpot-confetti"></span><span class="jackpot-confetti"></span><span class="jackpot-confetti"></span><span class="jackpot-confetti"></span><span class="jackpot-confetti"></span></div><div class="jackpot-reveal-copy"><p class="jackpot-reveal-kicker">Finalized test network result replay</p><strong class="jackpot-reveal-title" aria-live="polite"></strong><p class="jackpot-reveal-wallet"></p><a class="jackpot-reveal-receipt" target="_blank" rel="noopener noreferrer">View payout receipt</a><button class="jackpot-replay" type="button">Replay reveal</button></div>`;
+    reveal.innerHTML = `<div class="jackpot-reveal-stage" aria-hidden="true"><span class="jackpot-reveal-wheel"></span><span class="jackpot-confetti"></span><span class="jackpot-confetti"></span><span class="jackpot-confetti"></span><span class="jackpot-confetti"></span><span class="jackpot-confetti"></span><span class="jackpot-confetti"></span></div><div class="jackpot-reveal-copy"><p class="jackpot-reveal-kicker">Finalized Solana result replay</p><strong class="jackpot-reveal-title" aria-live="polite"></strong><p class="jackpot-reveal-wallet"></p><a class="jackpot-reveal-receipt" target="_blank" rel="noopener noreferrer">View payout receipt</a><button class="jackpot-replay" type="button">Replay reveal</button></div>`;
     card.append(heading, terms, amountLabel, amount, entries, countdown, drawNote, reveal, history, historyList);
     grid.append(card);
     cards.set(kind, { card, amount, entries, countdown, drawNote, history,
@@ -441,19 +441,19 @@ if (host) {
       const response = await apiRequest('/api/jackpots/status');
       if (!response.available || response.data?.cluster !== 'devnet'
         || !response.data.creator || !response.data.trader)
-        throw new Error('test network jackpot status unavailable.');
+        throw new Error('Solana jackpot status unavailable.');
       const data = response.data;
       const serverTime = Date.parse(data.generatedAt);
       if (Number.isFinite(serverTime)) clockOffsetMs = serverTime - Date.now();
       const enabled = activeRound(data.creator) || activeRound(data.trader);
       for (const { kind, note } of contextLinks) note.hidden = !activeRound(data[kind]);
-      disclosureSummary.textContent = enabled ? 'test network jackpot rounds' : 'Experimental jackpots · inactive';
-      section.querySelector('.jackpot-preview-badge').textContent = enabled ? 'test network only' : 'Payouts inactive';
+      disclosureSummary.textContent = enabled ? 'Solana jackpot rounds' : 'Experimental jackpots · inactive';
+      section.querySelector('.jackpot-preview-badge').textContent = enabled ? 'Solana only' : 'Payouts inactive';
       section.querySelector('.jackpot-preview-head p:not(.eyebrow)').textContent = enabled
-        ? 'Verified test network rounds and finalized payout receipts.'
+        ? 'Verified Solana rounds and finalized payout receipts.'
         : 'Draws and automatic SOL payouts are inactive until fee funding, verified entries, and eligibility are approved.';
       section.querySelector('.jackpot-preview-note').textContent = enabled
-        ? 'Only finalized test network payout transactions appear in winner history.'
+        ? 'Only finalized Solana payout transactions appear in winner history.'
         : 'The countdown marks the UTC accounting window, not a scheduled draw. No jackpot has been funded or paid.';
       updateCard(cards.get('creator'), data.creator);
       updateCard(cards.get('trader'), data.trader);
@@ -467,16 +467,16 @@ if (host) {
             ? solAmount(round.fundedLamports) : 'Proof unavailable';
       }
       rewardsSummary.querySelector('[data-jackpot-overview-status]').textContent = enabled
-        ? 'Verified test network round status · review rules and receipts.'
+        ? 'Verified Solana round status · review rules and receipts.'
         : 'Inactive preview · entries and payouts are not open.';
       home.querySelector('[data-home-jackpot-status]').textContent = enabled
-        ? 'Verified test network funding and round status. Review rules and payout proof before taking part.'
-        : 'Inactive test network preview · no entries or automatic draws are open.';
+        ? 'Verified Solana funding and round status. Review rules and payout proof before taking part.'
+        : 'Inactive Solana preview · no entries or automatic draws are open.';
       home.querySelector('[data-home-jackpot-note]').textContent = enabled
         ? 'Only verified funded amounts appear here. Round closure does not guarantee an immediate payout.'
         : 'Only verified funded amounts appear here. The preview countdown in Rewards is an accounting window, not a scheduled draw.';
       section.querySelector('[data-jackpot-rules-state]').textContent = enabled
-        ? 'A funded test network round still requires published eligibility and odds, independent winner selection, and a finalized payout receipt. Check the evidence below before taking part.'
+        ? 'A funded Solana round still requires published eligibility and odds, independent winner selection, and a finalized payout receipt. Check the evidence below before taking part.'
         : 'These are design formulas, not an active entry offer. No odds, eligibility rules, or payout date are published. Verified funding and entries, independent winner selection, and a finalized wallet payout are required before a round can be shown as paid.';
       updateProof(data);
       updateAlerts(data, enabled);

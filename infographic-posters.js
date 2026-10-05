@@ -51,11 +51,11 @@ const posterDefinitions = [
   {
     selector: '#privacy > p:not(.eyebrow):not(.field-help)', key: 'privacy',
     eyebrow: 'Wallet safety', title: 'Know where signing happens',
-    summary: 'Read the full wallet and test network explanation',
+    summary: 'Read the full wallet and Solana explanation',
     items: [
       ['01', 'Standard wallet', 'Signs in your wallet app.'],
-      ['02', 'Dev Mode', 'Uses a disposable local test network wallet.'],
-      ['03', 'Verify', 'Check the network and final receipt.'],
+      ['02', 'Transaction review', 'Check recipient, amount, and fees before signing.'],
+      ['03', 'Verify', 'Check the final receipt.'],
     ],
     footnote: 'Never enter a seed phrase here.',
   },

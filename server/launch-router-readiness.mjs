@@ -1,7 +1,7 @@
 import { deriveMintFeeRouter, verifyFeeRouterAccount, verifyMintFeeRouterAccount } from '../fee-router.js';
 
 export async function verifyLaunchRouterReadiness({ connection, routerConfig, mint, perMint }) {
-  if (!routerConfig) return { ready: false, status: 503, error: 'The test network fee-router program is not configured. Launch registration is blocked.' };
+  if (!routerConfig) return { ready: false, status: 503, error: 'The Solana fee-router program is not configured. Launch registration is blocked.' };
   const configuredRouter = perMint
     ? deriveMintFeeRouter(routerConfig.programId, mint).address.toBase58()
     : routerConfig.address.toBase58();
@@ -12,7 +12,7 @@ export async function verifyLaunchRouterReadiness({ connection, routerConfig, mi
     const checked = await verifyMintFeeRouterAccount({ connection, programId: routerConfig.programId, mint, expectedAuthority: legacy.authority });
     if (!checked.verified) return { ready: false, status: 409, error: `The mint-specific fee router is not verified: ${checked.reason}.` };
   } catch {
-    return { ready: false, status: 503, error: 'The test network fee-router accounts could not be verified. Launch registration is blocked.' };
+    return { ready: false, status: 503, error: 'The Solana fee-router accounts could not be verified. Launch registration is blocked.' };
   }
   return { ready: true, configuredRouter };
 }

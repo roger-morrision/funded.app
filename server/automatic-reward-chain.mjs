@@ -16,8 +16,8 @@ import {
 import { SOL_ASSET_MINT, verifyRewardProof } from '../reward-merkle.js';
 import { buildMintRouterSettlementInstruction, readMintClaimRecord } from './mint-router-payout.mjs';
 
-// Solana test network may be reset. Keep this value aligned with the current official
-// test network RPC evidence and fail closed when the configured endpoint differs.
+// Solana may be reset. Keep this value aligned with the current official
+// Solana RPC evidence and fail closed when the configured endpoint differs.
 export const DEVNET_GENESIS_HASH = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
 export const REWARD_PROGRAM_VERSION = 'reward-manifest-v1';
 const VAULT_SEED = Buffer.from('reward-vault-v1');

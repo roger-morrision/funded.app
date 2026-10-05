@@ -1,4 +1,4 @@
-/* Evidence-first token detail, adapted to funded.vip's test network data model. */
+/* Evidence-first token detail, adapted to funded.vip's Solana data model. */
 main.wallet-view>section:not(#wallet-page),main.wallet-view>footer{display:none!important}
 main.wallet-view>#wallet-page{display:block!important}
 .wallet-page{width:100%;max-width:1180px;margin:0 auto;padding:24px 0 64px}

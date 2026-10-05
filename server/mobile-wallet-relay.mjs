@@ -50,7 +50,7 @@ function validTradeSummary(summary) {
 
 function finalizedTradeOutcome(transaction, wallet, mint) {
   if (!transaction?.meta || !transaction?.transaction?.message) return null;
-  if (transaction.meta.err) return { state:'failed', slot:transaction.slot, error:'The test network transaction finalized with an error.' };
+  if (transaction.meta.err) return { state:'failed', slot:transaction.slot, error:'The Solana transaction finalized with an error.' };
   const keys = transaction.transaction.message.accountKeys || transaction.transaction.message.staticAccountKeys || [];
   const walletIndex = keys.findIndex(key => String(key.pubkey || key) === wallet);
   if (walletIndex < 0) return { state:'failed', slot:transaction.slot, error:'The finalized transaction did not contain the expected wallet.' };
@@ -105,11 +105,11 @@ function tradeInstructionDifference(expected, actual) {
 
 const TRADE_SIGNATURE_ERRORS = Object.freeze({
   'invalid-encoding':'Phantom returned an unreadable signed transaction. Nothing was submitted.',
-  'blockhash-changed':'Phantom changed the test network blockhash during signing. Nothing was submitted.',
+  'blockhash-changed':'Phantom changed the Solana blockhash during signing. Nothing was submitted.',
   'fee-payer-changed':'Phantom changed the trade fee payer during signing. Nothing was submitted.',
   'instructions-changed':'Phantom changed the trade instructions during signing. Nothing was submitted.',
   'unsafe-compute-budget':'Phantom added an unsupported compute-budget instruction. Nothing was submitted.',
-  'priority-fee-too-high':'Phantom added a priority fee above the test network safety limit. Nothing was submitted.',
+  'priority-fee-too-high':'Phantom added a priority fee above the Solana safety limit. Nothing was submitted.',
   'wallet-signature-missing':'Phantom did not sign with the connected wallet. Nothing was submitted.',
   'wallet-signature-invalid':'The connected wallet signature did not verify. Nothing was submitted.',
   'other-signature-invalid':'The returned transaction has an invalid or missing additional signature. Nothing was submitted.',
@@ -117,7 +117,7 @@ const TRADE_SIGNATURE_ERRORS = Object.freeze({
 
 function signerPage(id) {
   const nonce = randomBytes(18).toString('base64');
-  const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign funded.vip claim</title><style>body{font:16px system-ui;max-width:34rem;margin:3rem auto;padding:0 1.25rem;background:#15121f;color:#fff}button{font:inherit;padding:.9rem 1.2rem;border:0;border-radius:.7rem;background:#b4a3ff;color:#171125}code{overflow-wrap:anywhere}p{line-height:1.5;color:#d4cce5}</style><h1>Sign your test network claim</h1><p>This page asks Phantom to sign the exact claim message. The funded.vip desktop tab will receive the result.</p><p>Expected wallet: <code id="wallet">Loading…</code></p><p>Message: <code id="message">Loading…</code></p><button id="sign" disabled>Connect and sign in Phantom</button><p id="status" role="status">Loading request…</p><script nonce="${nonce}">
+  const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign funded.vip claim</title><style>body{font:16px system-ui;max-width:34rem;margin:3rem auto;padding:0 1.25rem;background:#15121f;color:#fff}button{font:inherit;padding:.9rem 1.2rem;border:0;border-radius:.7rem;background:#b4a3ff;color:#171125}code{overflow-wrap:anywhere}p{line-height:1.5;color:#d4cce5}</style><h1>Sign your Solana claim</h1><p>This page asks Phantom to sign the exact claim message. The funded.vip desktop tab will receive the result.</p><p>Expected wallet: <code id="wallet">Loading…</code></p><p>Message: <code id="message">Loading…</code></p><button id="sign" disabled>Connect and sign in Phantom</button><p id="status" role="status">Loading request…</p><script nonce="${nonce}">
 const id='${id}';
 const status=document.querySelector('#status');
 const button=document.querySelector('#sign');
@@ -248,7 +248,7 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
           try {
             const finalized = await getFinalizedTransaction(flow.submittedSignature);
             if (finalized) flow.outcome = finalizedTradeOutcome(finalized, flow.transactionRequest.publicKey, flow.transactionRequest.summary?.mint || null);
-          } catch { /* Keep the submitted state while the test network RPC is unavailable. */ }
+          } catch { /* Keep the submitted state while the Solana RPC is unavailable. */ }
         }
         reply(res, 200, { status:flow.outcome?.state || (flow.submittedSignature ? 'submitted' : flow.result ? 'signed' : 'review'), ...(flow.submittedSignature ? { signature:flow.submittedSignature } : {}), ...(flow.outcome || {}) });
         return true;
@@ -269,17 +269,17 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
           reply(res, 200, flow.transactionRequest);
           return true;
         }
-        if (typeof getLatestBlockhash !== 'function') { reply(res, 503, { error:'test network blockhash refresh is unavailable.' }); return true; }
+        if (typeof getLatestBlockhash !== 'function') { reply(res, 503, { error:'Solana blockhash refresh is unavailable.' }); return true; }
         try {
           const latest = await getLatestBlockhash();
-          if (!B58.test(latest?.blockhash || '') || bs58.decode(latest.blockhash).length !== 32 || !Number.isSafeInteger(latest.lastValidBlockHeight) || latest.lastValidBlockHeight <= 0) throw new Error('Invalid test network blockhash.');
+          if (!B58.test(latest?.blockhash || '') || bs58.decode(latest.blockhash).length !== 32 || !Number.isSafeInteger(latest.lastValidBlockHeight) || latest.lastValidBlockHeight <= 0) throw new Error('Invalid Solana blockhash.');
           const unsigned = parseTransaction(Buffer.from(flow.transactionRequest.transaction, 'base64'));
           if (unsigned instanceof VersionedTransaction) throw new Error('A pre-signed launch blockhash cannot be refreshed.');
           unsigned.recentBlockhash = latest.blockhash;
           flow.transactionRequest = { ...flow.transactionRequest, transaction:Buffer.from(unsigned.serialize({ requireAllSignatures:false, verifySignatures:false })).toString('base64') };
           flow.lastValidBlockHeight = latest.lastValidBlockHeight;
           reply(res, 200, flow.transactionRequest);
-        } catch { reply(res, 503, { error:'Could not refresh the test network transaction. Try again.' }); }
+        } catch { reply(res, 503, { error:'Could not refresh the Solana transaction. Try again.' }); }
         return true;
       }
       if (trade?.[1] === 'trade' && req.method === 'GET') {
@@ -320,7 +320,7 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
           const code = Object.hasOwn(TRADE_SIGNATURE_ERRORS, error?.code) ? error.code : 'invalid-encoding';
           console.warn(JSON.stringify({ event:'mobile-trade-signature-rejected', code, ...(instructionDifference ? { instructionDifference } : {}) }));
           const message = priorityFeeDetails
-            ? `Phantom added a ${formatSolLamports(priorityFeeDetails.priorityFeeLamports)} SOL priority fee; the test network limit is ${formatSolLamports(priorityFeeDetails.maxPriorityFeeLamports)} SOL. Nothing was submitted.`
+            ? `Phantom added a ${formatSolLamports(priorityFeeDetails.priorityFeeLamports)} SOL priority fee; the Solana limit is ${formatSolLamports(priorityFeeDetails.maxPriorityFeeLamports)} SOL. Nothing was submitted.`
             : TRADE_SIGNATURE_ERRORS[code];
           reply(res, 400, { code, error:message });
           return true;

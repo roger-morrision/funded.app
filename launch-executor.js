@@ -10,7 +10,7 @@ export async function executeLaunchPlan({connection,provider,payer,mint,plan,onE
     let broadcast=false, signature=null;
     try {
       // A finalized hash is slightly older but is visible across every backend
-      // in a load-balanced test network RPC pool. A merely confirmed hash can be
+      // in a load-balanced Solana RPC pool. A merely confirmed hash can be
       // returned by one backend and rejected as unknown by the next.
       const latest=await connection.getLatestBlockhash('finalized');
       const versioned=step.transaction instanceof VersionedTransaction;

@@ -17,7 +17,7 @@ export function receiptBackfillPage(state, cluster, position) {
 // Advances only after durable finalized evidence processing. No signing or transfer API.
 // A completed pass covers recorded eligible rows, not all transactions on the chain.
 export async function runReceiptBackfill({store,readEvidence,cluster='devnet',maxPages=5,signal,now=()=>new Date().toISOString()}) {
-  if(cluster!=='devnet')throw new Error('Receipt backfill is test network-only.');
+  if(cluster!=='devnet')throw new Error('Receipt backfill is unavailable for this configuration.');
   if(!Number.isInteger(maxPages)||maxPages<1||maxPages>100)throw new Error('Choose 1–100 backfill pages per batch.');
   signal?.throwIfAborted();
   const owner=randomUUID(),leaseMs=120000;

@@ -409,7 +409,7 @@ export function createPostgresStore(databaseUrl) {
       const inserted = await pool.query('INSERT INTO devnet_metadata (mint, creator_wallet, payload, image, image_mime) VALUES ($1, $2, $3::jsonb, $4, $5) ON CONFLICT (mint) DO NOTHING RETURNING mint', [record.mint, record.creatorWallet, JSON.stringify(record), image, imageType]);
       if (inserted.rowCount) return record;
       const existing = await pool.query('SELECT payload FROM devnet_metadata WHERE mint = $1', [record.mint]);
-      if (!existing.rows[0]?.payload || metadataStatement(existing.rows[0].payload) !== metadataStatement(record)) throw new Error('Immutable test network metadata already exists for this mint.');
+      if (!existing.rows[0]?.payload || metadataStatement(existing.rows[0].payload) !== metadataStatement(record)) throw new Error('Immutable Solana metadata already exists for this mint.');
       return existing.rows[0].payload;
     },
     async readMetadata(mint) {

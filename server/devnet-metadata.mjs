@@ -53,7 +53,7 @@ export function publicMetadata(record) {
   return {
     name: record.name,
     symbol: record.symbol,
-    description: record.description || 'Test token launched on funded.vip. Tokens on this test network have no intended monetary value.',
+    description: record.description || 'Token launched on funded.vip.',
     image: record.imageSha256 ? devnetImageUri(record.mint) : 'https://metadata.funded.vip/default.svg',
     ...(record.website ? { external_url: record.website, website: record.website } : {}),
     ...(record.x ? { twitter: record.x } : {}),

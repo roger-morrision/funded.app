@@ -22,5 +22,5 @@ export function creatorMilestone(paidLamports) {
 }
 export function supportShareText(creator, origin) {
   const url = new URL(`/creator/x/${creator.id}`, origin);
-  return `Follow support for ${creator.handle} on funded.vip (${creator.cluster === 'devnet' ? 'test network' : creator.cluster}). View coin policies and confirmed receipts. Fan-created coins are not endorsements; tokens can lose all value. ${url}`;
+  return `Follow support for ${creator.handle} on funded.vip (${creator.cluster === 'devnet' ? 'Solana' : creator.cluster}). View coin policies and confirmed receipts. Fan-created coins are not endorsements; tokens can lose all value. ${url}`;
 }
