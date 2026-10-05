@@ -67,7 +67,8 @@ try {
           assert.equal(await page.locator('#reward-portfolio .reward-portfolio-links > a:visible').count(), 3);
         }
         if (route === '/#community') {
-          assert(await page.locator('#community-title').isVisible());
+          assert(await page.locator('#community .section-heading h2').isVisible());
+          assert.equal(await page.locator('#community .section-heading h2').innerText(), 'Saved launches');
           assert.equal(await page.locator('#my-launches > .portfolio-dashboard').isVisible(), false);
           assert(await page.locator('#community-preferences').evaluate(element => element.parentElement?.id === 'community'));
         }
