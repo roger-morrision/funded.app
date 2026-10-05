@@ -116,6 +116,8 @@ let mobileWalletLink = '';
 let metricsRequest = 0;
 let launchCostRefreshTimer = null;
 let walletBalanceLamports = null;
+let walletBalanceRequest = 0;
+let walletBalanceFetchedAt = 0;
 let estimatedLaunchFeeLamports = null;
 let estimatedInitialBuyLamports = 0;
 let estimatedInitialBuyTokens = 0;
@@ -4855,6 +4857,8 @@ function resetWalletDependentViews(){
   clearTimeout(launchCostRefreshTimer);
   launchCostRefreshTimer = null;
   walletBalanceLamports = null;
+  walletBalanceRequest++;
+  walletBalanceFetchedAt = 0;
   estimatedLaunchFeeLamports = null;
   resetTradeBalances();
   invalidateTradePreview();
@@ -5079,27 +5083,55 @@ function updatePreviewStatusDrawer(connected){
   const detail = drawer?.querySelector('small');
   if (detail) detail.textContent = `Indexer pending · Wallet ${connected ? 'connected' : 'not connected'}`;
 }
-function setWalletMetrics({ balance = null, fee = null, loading = false, error = '' } = {}){
-  walletMetricsLoading = loading;
-  walletEstimateError = loading || !wallet ? '' : String(error || '');
-  if (loading || !wallet || fee == null) { estimatedLaunchFeeLamports = null; estimatedInitialBuyLamports = 0; estimatedInitialBuyTokens = 0; launchCostReview = null; }
-  if (!wallet) { walletBalanceLamports = null; estimatedLaunchFeeLamports = null; document.querySelector('#profile-balance').textContent = 'Connect to load'; updateCostSummary(); updateLaunchButton(); return; }
-  if (!loading) { walletBalanceLamports = balance; estimatedLaunchFeeLamports = fee; }
-  document.querySelector('#profile-balance').textContent = loading ? 'Loading…' : balance == null ? 'Unavailable' : formatSol(balance);
+function renderWalletBalance({ loading = false } = {}){
+  const balance = walletBalanceLamports;
+  const display = loading && balance == null ? 'Loading…' : balance == null ? 'Unavailable' : formatSol(balance);
+  document.querySelector('#profile-balance').textContent = wallet ? display : 'Connect to load';
+  const compactBalance = loading && balance == null ? '…' : balance == null ? '—' : formatSol(balance).replace(/\s*SOL$/i, '');
   const headerBalance = document.querySelector('#header-wallet-balance');
-  const popoverBalance = document.querySelector('#wallet-popover-sol');
-  const compactBalance = loading ? '…' : balance == null ? '—' : formatSol(balance).replace(/\s*SOL$/i, '');
-  if (headerBalance) {
-    headerBalance.textContent = compactBalance;
-    const headerWallet = document.querySelector('#connect-button');
-    if (headerWallet?.classList.contains('wallet-pill-connected')) {
-      headerWallet.setAttribute('aria-label', `Wallet ${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)}, ${compactBalance} SOL`);
-    }
+  const headerWallet = document.querySelector('#connect-button');
+  if (headerBalance) headerBalance.textContent = compactBalance;
+  if (headerWallet?.classList.contains('wallet-pill-connected')) {
+    headerWallet.setAttribute('aria-label', `Wallet ${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)}, ${balance == null ? 'SOL balance unavailable' : `${compactBalance} SOL`}`);
+    headerWallet.title = balance == null && !loading ? 'SOL balance unavailable. Open the wallet menu to retry.' : '';
   }
+  const popoverBalance = document.querySelector('#wallet-popover-sol');
   if (popoverBalance) popoverBalance.textContent = compactBalance;
   renderWalletDetail();
   updateLaunchButton();
   updateCostSummary();
+}
+async function refreshWalletBalance({ force = false } = {}){
+  const session = captureWalletSession();
+  if (!session || (!force && Date.now() - walletBalanceFetchedAt < 15_000)) return;
+  const request = ++walletBalanceRequest;
+  renderWalletBalance({ loading: true });
+  try {
+    await getSolana();
+    const balance = await withRpcRetry(() => connection.getBalance(session.provider.publicKey, 'confirmed'), { attempts: 2, delaysMs: [700] });
+    if (request !== walletBalanceRequest || !isWalletSessionCurrent(session)) return;
+    walletBalanceLamports = balance;
+    walletBalanceFetchedAt = Date.now();
+  } catch (error) {
+    if (request !== walletBalanceRequest || !isWalletSessionCurrent(session)) return;
+    walletBalanceFetchedAt = 0;
+    console.warn('SOL balance refresh failed:', error);
+  }
+  renderWalletBalance();
+}
+function setWalletMetrics({ balance, fee = null, loading = false, error = '' } = {}){
+  walletMetricsLoading = loading;
+  walletEstimateError = loading || !wallet ? '' : String(error || '');
+  if (loading || !wallet || fee == null) { estimatedLaunchFeeLamports = null; estimatedInitialBuyLamports = 0; estimatedInitialBuyTokens = 0; launchCostReview = null; }
+  if (!wallet) { walletBalanceLamports = null; estimatedLaunchFeeLamports = null; renderWalletBalance(); return; }
+  if (!loading) {
+    if (balance !== undefined) {
+      walletBalanceLamports = balance;
+      if (balance != null) walletBalanceFetchedAt = Date.now();
+    }
+    estimatedLaunchFeeLamports = fee;
+  }
+  renderWalletBalance({ loading });
 }
 function updateLaunchPreview(){
   const name = document.querySelector('#token-name').value.trim();
@@ -5574,6 +5606,9 @@ async function refreshWalletInfo({ rateLimitRetry = 0 } = {}){
     await getSolana();
     const balance = await connection.getBalance(payer, 'confirmed');
     if (request !== metricsRequest || !isWalletSessionCurrent(session)) return;
+    walletBalanceLamports = balance;
+    walletBalanceFetchedAt = Date.now();
+    renderWalletBalance();
     if (!feeRouterState.verified || !feeRouterState.address) throw new Error(feeRouterState.status === 'router-verification-unavailable'
       ? 'Fee-router check could not reach Solana. Retry checks.'
       : 'Fee-router policy is not verified on Solana.');
@@ -5730,6 +5765,7 @@ function setWalletState(message, detail = '', connected = false){
     const opening = walletPopover.hidden;
     walletPopover.hidden = !opening;
     header.setAttribute('aria-expanded', String(opening));
+    if (opening) void refreshWalletBalance({ force: true });
   } : connectWallet;
   const popoverAddress = document.querySelector('#wallet-popover-address');
   const popoverNetwork = document.querySelector('#wallet-popover-network');
@@ -5792,7 +5828,7 @@ function setWalletState(message, detail = '', connected = false){
   updateOnboardingProgress();
   renderAirdropClaims();
   updateLaunchButton();
-  if (connected) { setWalletMetrics({ loading: true }); if (feeRouterState.status !== 'checking') refreshWalletInfo(); }
+  if (connected) { setWalletMetrics({ loading: true }); void refreshWalletBalance(); if (feeRouterState.status !== 'checking') refreshWalletInfo(); }
   else setWalletMetrics();
   renderWalletDetail();
   void loadFundedBurnState({ force: true });
@@ -5934,6 +5970,7 @@ function handleAccountChanged(provider, publicKey){
 function reconcileWalletState(){
   if (wallet) {
     if (wallet.isConnected === false || walletAddress(wallet) !== connectedWalletAddress) clearWalletState('Wallet account changed', 'Reconnect your wallet to continue safely.');
+    else void refreshWalletBalance();
     return;
   }
   const provider = getProvider();
