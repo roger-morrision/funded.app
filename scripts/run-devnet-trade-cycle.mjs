@@ -19,7 +19,7 @@ assert.notEqual(execute, preflight, 'Pass exactly one of --preflight (read-only)
 const mint = new PublicKey(process.argv.find((argument, index) => index >= 2 && argument !== '--execute' && argument !== '--preflight') || '');
 assert.equal(process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER, 'devnet', 'Devnet configuration is required.');
 const funder = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CLAIMANT_SECRET_KEY));
-const qaWallets = JSON.parse(readFileSync(new URL('../.secrets/devnet-qa-wallets-20260930/public.json', import.meta.url), 'utf8'));
+const qaWallets = JSON.parse(readFileSync('.secrets/devnet-qa-wallets-20260930/public.json', 'utf8'));
 const qaClaimant = qaWallets.find(wallet => wallet.role === 'claimant' && wallet.cluster === 'devnet');
 assert(qaClaimant?.address, 'The rotated Devnet QA claimant manifest is required.');
 assert.equal(funder.publicKey.toBase58(), qaClaimant.address, 'The configured claimant is not the rotated Devnet QA wallet. Load .env.devnet-qa-wallets.local.');
