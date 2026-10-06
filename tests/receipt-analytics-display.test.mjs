@@ -10,7 +10,7 @@ function render(evidence,summary=null){
   const fields={span:{textContent:''},strong:{textContent:'—'},small:{innerHTML:''}};
   const card={querySelector:key=>fields[key]};
   const context={receiptEvidence:evidence,analyticsSummary:summary,receiptEvidenceChecked:true,exactLamports,formatReceiptSol,
-    document:{querySelectorAll:()=>[],querySelector:key=>key==='[data-analytics-metric="fees"]'?card:null}};
+    document:{querySelectorAll:()=>[],querySelector:key=>key==='[data-analytics-metric="fees"]'?card:null,addEventListener:()=>{}}};
   runInNewContext(renderer,context);context.renderVerifiedReceiptEvidence();return fields;
 }
 test('verified collection total preserves lamports when safe individual amounts exceed safe aggregate precision',()=>{
