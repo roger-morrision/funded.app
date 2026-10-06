@@ -9265,18 +9265,24 @@ async function refreshXClaims(){
     if(selectedId&&!result.data.claims.some(claim=>claim.id===selectedId&&claim.canPrepare===true)){
       clearSelection();
     }
-    for (const claim of result.data.claims) {
+    const claimsByAction = [...result.data.claims].sort((a, b) =>
+      Number(b.canPrepare === true) - Number(a.canPrepare === true)
+      || Number(a.receiptVerified === true) - Number(b.receiptVerified === true));
+    for (const claim of claimsByAction) {
       const row=document.createElement('div');row.className='x-claim-reward';row.dataset.claimId=claim.id;
       if(claim.id===selectedId&&claim.canPrepare===true)row.classList.add('selected');
       const state=document.createElement('span');state.className=`x-claim-reward-state ${claim.receiptVerified?'paid':claim.canPrepare?'ready':'pending'}`;state.textContent=claim.receiptVerified?'Paid':claim.canPrepare?'Ready to claim':String(claim.status).startsWith('automatic-')?'Processing payout':'Not ready yet';
       const copy=document.createElement('div');copy.className='x-claim-reward-copy';
+      const launch=verifiedLaunchPolicyForMint(claim.mint);
+      const coinLabel=launch?[launch.symbol,launch.name].filter(Boolean).join(' · '):`Coin ${String(claim.mint||'').slice(0,6)}…`;
+      const coin=document.createElement('a');coin.className='x-claim-coin';coin.href=`/token/${encodeURIComponent(claim.mint)}`;coin.textContent=coinLabel;
       const amount=document.createElement('strong');amount.textContent=claim.amountSol==null?'Amount unavailable':`${claim.amountSol} SOL`;
-      const context=document.createElement('small');context.textContent=`Token ${String(claim.mint||'').slice(0,6)}… · ${claim.receiptVerified?`Paid to ${claim.payoutWallet||'verified wallet'}`:claim.canPrepare?'Collected creator fees':claim.explanation||'Waiting for collected fees'}`;
-      copy.append(amount,context);row.append(state,copy);
-      row.dataset.claimSummary=`${amount.textContent} from token ${String(claim.mint||'').slice(0,6)}…`;
+      const context=document.createElement('small');context.textContent=claim.receiptVerified?`Paid to ${claim.payoutWallet||'verified wallet'}`:claim.canPrepare?'Collected creator fees · ready for your wallet verification':claim.explanation||'Waiting for collected fees';
+      copy.append(coin,amount,context);row.append(state,copy);
+      row.dataset.claimSummary=`${amount.textContent} from ${coinLabel}`;
       if (claim.canPrepare === true) {
         const choose = document.createElement('button');
-        choose.type = 'button'; choose.className = 'secondary-button'; choose.textContent = 'Choose reward';
+        choose.type = 'button'; choose.className = 'secondary-button'; choose.textContent = 'Select reward';
         choose.addEventListener('click', () => { document.querySelector('#sol-claim-id').value=claim.id;document.querySelector('#sol-claim-x-account').value=result.data.handle;document.querySelectorAll('#sol-claim-list .x-claim-reward').forEach(item=>item.classList.toggle('selected',item===row));const check=document.querySelector('#claim-binding-agree');if(check)check.checked=false;updateClaimBindingReview();resetSolClaimStatus(); });
         row.append(choose);
       }

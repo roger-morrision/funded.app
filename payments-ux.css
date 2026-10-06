@@ -1,0 +1,77 @@
+.page-route-payments #payments.x-claim-page{max-width:1120px;gap:18px;padding-top:30px}
+body.page-route.page-route-payments #payments #rewards-overview{grid-template-columns:minmax(0,1fr)!important;gap:14px}
+#payments .rewards-page-header{padding-bottom:3px}
+#payments .rewards-page-header h1{letter-spacing:-.045em}
+#payments .rewards-page-header p:last-child{max-width:680px;color:#b2c0d2;line-height:1.6}
+.reward-overview-start{margin:10px 0 15px}
+.reward-overview-start .eyebrow{margin-bottom:7px;color:#f3bd72}
+.reward-overview-start h2{margin:0;color:#f9f5ed;font-size:clamp(1.35rem,2.5vw,1.8rem);letter-spacing:-.035em}
+.reward-overview-start p:last-child{margin:7px 0 0;color:#aebcd0;font-size:13px;line-height:1.5}
+.reward-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.reward-action-grid>a,.reward-action-grid>button{display:flex;align-items:flex-start;gap:12px;min-width:0;min-height:92px;padding:17px;border:1px solid #35435a;border-radius:12px;background:#151e2e;color:#eaf0f8;font:inherit;text-align:left;text-decoration:none;cursor:pointer;transition:border-color .15s ease,background .15s ease,transform .15s ease}
+.reward-action-grid>a:hover,.reward-action-grid>button:hover,.reward-action-grid>a:focus-visible,.reward-action-grid>button:focus-visible{border-color:#88a1d5;background:#1b2941;transform:translateY(-1px);outline:none}
+.reward-action-grid>button:first-child{border-color:#9b7543;background:linear-gradient(120deg,#2a2940,#1b2940)}
+.reward-action-icon{display:grid;place-items:center;flex:none;width:36px;height:36px;border:1px solid #53617c;border-radius:9px;color:#f3c273;font-size:20px;line-height:1}
+.reward-action-grid :is(a,button)>span:nth-child(2){display:grid;gap:6px;min-width:0}
+.reward-action-grid strong{color:#f8f5ef;font-size:14px;line-height:1.3}
+.reward-action-grid small{color:#aebbd0;font-size:12px;line-height:1.45}
+.reward-action-grid b{margin-left:auto;color:#f3c273;font-size:16px;font-weight:400}
+.reward-overview-rule{margin:14px 0 0;padding:12px 15px;border-left:2px solid #b7884a;background:#192333;color:#c3d0df;font-size:12px;line-height:1.5}
+@media(max-width:760px){.reward-action-grid{grid-template-columns:1fr}.reward-action-grid>a,.reward-action-grid>button{min-height:76px;padding:13px 15px}}
+#payments .x-claim-panel{padding:28px!important;border-color:#46546e;border-radius:14px;background:linear-gradient(160deg,#171d30,#131a29 35%,#111925)}
+#payments .x-claim-heading{margin-bottom:22px}
+#payments .x-claim-heading .eyebrow{margin-bottom:7px;color:#f3bf71}
+#payments .x-claim-heading h2{margin:0 0 8px;color:#f9f6ef;font-size:clamp(1.45rem,2.5vw,2rem);letter-spacing:-.03em}
+#payments .x-claim-heading p:last-child{max-width:680px;color:#b7c5d8;font-size:13px}
+#payments .x-claim-dashboard{grid-template-columns:1.35fr repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px}
+#payments .x-claim-dashboard article{padding:16px;border-color:#34425a;border-radius:10px;background:#172237}
+#payments .x-claim-dashboard article:first-child{border-color:#ae7e42;background:linear-gradient(120deg,#40301d,#28273a)}
+#payments .x-claim-dashboard article:nth-child(2),#payments .x-claim-dashboard article:nth-child(3){border-color:#34425a;background:#172237}
+#payments .x-claim-dashboard article>span{color:#c1cddd;font-size:11px}
+#payments .x-claim-dashboard article:first-child>span{color:#ffdc9e}
+#payments .x-claim-dashboard article>strong{margin:11px 0 5px;color:#f9f7f1;font-size:18px}
+#payments .x-claim-dashboard article:first-child>strong{font-size:22px}
+#payments .x-claim-dashboard article>small{color:#aebdd0;font-size:11px}
+#payments .x-claim-dashboard-note{margin-bottom:22px;color:#9faec2;font-size:11px}
+#payments .x-claim-steps{gap:7px;margin-bottom:20px}
+#payments .x-claim-steps li{min-height:52px;padding:10px;border-radius:8px;font-size:11px}
+#payments .x-claim-section{padding:19px;border:1px solid #32405a;border-radius:10px;background:#141f30;margin-top:10px}
+#payments .x-claim-section>strong,#payments .x-claim-section-head strong{font-size:14px}
+#payments .x-claim-identity{margin-top:0}
+#payments .x-claim-identity .field-help{line-height:1.5}
+#payments .x-claim-identity button{margin:0;min-height:42px}
+#payments .x-claim-available{background:#121d2d}
+#payments .x-claim-section-head small{color:#b1bfd1;line-height:1.5}
+#payments .x-claim-page .claim-list{margin-top:15px}
+#payments .x-claim-empty{padding:18px;border:1px dashed #40506b;border-radius:8px;background:#172336;color:#c0cde0;line-height:1.5}
+#payments .x-claim-reward{gap:12px;border-color:#3d4d68;border-radius:9px;background:#1a2940}
+#payments .x-claim-reward.selected{border-color:#e5b468;background:#2a3049;box-shadow:0 0 0 1px #e5b46855}
+#payments .x-claim-reward-copy{display:grid;gap:4px}
+#payments .x-claim-reward-copy .x-claim-coin{width:max-content;max-width:100%;color:#e9c482;font-size:12px;font-weight:700;text-decoration:none;white-space:normal;overflow-wrap:anywhere}
+#payments .x-claim-reward-copy .x-claim-coin:hover{text-decoration:underline}
+#payments .x-claim-reward-copy strong{font-size:16px}
+#payments .x-claim-reward-copy small{margin:0;color:#b1bfd0;overflow-wrap:anywhere}
+#payments .x-claim-reward .secondary-button{border-color:#e6b970;background:#e7bd7a;color:#241d17;font-weight:800}
+#payments .x-claim-reward .secondary-button:hover{background:#f6d398;color:#241d17}
+#payments .x-claim-review{border-color:#68728c;background:#202a40}
+#payments .x-claim-wallet{border-color:#a67d48;background:#292736}
+#payments .x-claim-wallet p{font-family:'DM Mono',monospace;font-size:11px}
+#payments .x-claim-technical{margin-top:15px;padding:0 2px 10px;border-top:0}
+#payments .x-claim-technical summary{padding-top:0}
+#payments .x-claim-technical input[readonly]{background:#111a29;color:#9eabc0;cursor:default}
+#payments .x-claim-submit{min-height:48px;margin-top:5px;font-size:13px}
+#payments .x-claim-status{margin-top:12px;color:#c2cee0}
+#payments #reward-portfolio{margin:0;border-color:#35445a;border-radius:12px;background:#141c29}
+#payments #reward-portfolio.reward-no-wallet .reward-portfolio-top-actions{display:none}
+#payments #reward-portfolio .reward-portfolio-summary{grid-template-columns:repeat(4,minmax(0,1fr))}
+#payments #reward-portfolio .reward-portfolio-summary>div{border-radius:8px;border-color:#35435a;background:#19253a}
+#payments #reward-portfolio .reward-portfolio-summary small{font-size:11px}
+#payments #reward-portfolio .reward-portfolio-summary strong{font-size:14px}
+#payments .x-claim-activity{padding:22px!important;border-color:#303c50;border-radius:12px;background:#131b29}
+#payments .x-claim-activity .panel-heading p{margin:5px 0 0;color:#a7b7ca;font-size:12px;line-height:1.45}
+#payments #reward-discovery{margin:0;border-color:#303c50;border-radius:12px;background:#111925}
+#payments #reward-discovery>header p:not(.eyebrow){max-width:620px;color:#afbed0}
+#payments #reward-discovery>small{display:block;margin-top:16px;color:#aab9ca}
+@media(max-width:900px){#payments .x-claim-dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}#payments #reward-portfolio .reward-portfolio-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.payments-paths{grid-template-columns:1fr}.payments-path{align-items:center;padding:13px 15px}.payments-intro{flex-direction:column;gap:10px}.payments-intro .data-badge{margin:0}#payments .x-claim-panel{padding:20px!important}#payments .x-claim-steps{grid-template-columns:repeat(2,minmax(0,1fr))}#payments .x-claim-identity{align-items:stretch;flex-direction:column}#payments .x-claim-identity button{width:100%}}
+@media(max-width:500px){.page-route-payments #payments.x-claim-page{padding-top:20px}.payments-intro h1{font-size:1.8rem}#payments .x-claim-dashboard{gap:7px}#payments .x-claim-dashboard article{padding:12px}#payments .x-claim-dashboard article>strong,#payments .x-claim-dashboard article:first-child>strong{font-size:15px}#payments .x-claim-steps li{min-height:47px}#payments .x-claim-section{padding:15px}#payments .x-claim-reward{align-items:flex-start}#payments .x-claim-reward-copy{min-width:calc(100% - 111px)}#payments .x-claim-reward .secondary-button{width:100%}#payments #reward-portfolio .reward-portfolio-summary{grid-template-columns:1fr}}

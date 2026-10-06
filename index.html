@@ -65,6 +65,7 @@
     <link rel="stylesheet" href="/interface-polish.css" />
     <link rel="stylesheet" href="/token-card-enhancements.css" />
     <link rel="stylesheet" href="/bootstrap-gate.css" />
+    <link rel="stylesheet" href="/payments-ux.css" />
     <title>funded.vip — Launches on the record</title>
   </head>
   <body class="page-route page-route-overview" data-bootstrap-state="loading">
@@ -493,24 +494,24 @@
         </section>
 
 <section class="section-block x-claim-page" id="payments" aria-label="Rewards workspace">
-  <div class="payment-actions"><div class="panel action-panel x-claim-panel">
-    <div class="x-claim-heading"><div><p class="eyebrow">X rewards</p><h2>Claim your SOL</h2><p>Check your rewards, choose one, then approve a wallet message to receive the payment.</p></div><span class="data-badge">Solana</span></div>
+  <div class="payment-actions"><div class="panel action-panel x-claim-panel" id="x-claim-panel">
+    <div class="x-claim-heading"><div><p class="eyebrow">Claim with X</p><h2>Your X account rewards</h2><p>Sign in with the X account named by the coin's reward policy. Only rewards linked to that account appear below.</p></div></div>
     <div class="x-claim-dashboard" id="x-claim-dashboard" aria-label="X reward summary">
-      <article><span>Total rewards</span><strong id="x-claim-total-value">—</strong><small id="x-claim-total-count">Sign in to view</small></article>
-      <article><span>Claimed</span><strong id="x-claim-claimed-value">—</strong><small id="x-claim-claimed-count">Verified payments</small></article>
-      <article><span>Unclaimed</span><strong id="x-claim-unclaimed-value">—</strong><small id="x-claim-unclaimed-count">Ready to start</small></article>
-      <article><span>Pending</span><strong id="x-claim-pending-value">—</strong><small id="x-claim-pending-count">Claims in progress</small></article>
+      <article><span>Ready to claim</span><strong id="x-claim-unclaimed-value">—</strong><small id="x-claim-unclaimed-count">Sign in to check</small></article>
+      <article><span>Processing</span><strong id="x-claim-pending-value">—</strong><small id="x-claim-pending-count">Waiting for verification</small></article>
+      <article><span>Paid</span><strong id="x-claim-claimed-value">—</strong><small id="x-claim-claimed-count">Verified payments</small></article>
+      <article><span>All linked rewards</span><strong id="x-claim-total-value">—</strong><small id="x-claim-total-count">Sign in to view</small></article>
     </div>
     <p class="x-claim-dashboard-note" id="x-claim-dashboard-note">Totals use collected creator-fee rewards linked to your signed-in X account. Claimed amounts require a verified Solana payment receipt.</p>
-    <ol class="x-claim-steps" id="x-claim-steps" aria-label="Claim progress"><li data-claim-step="x"><b>1</b><span>Connect X</span></li><li data-claim-step="choose"><b>2</b><span>Choose reward</span></li><li data-claim-step="wallet"><b>3</b><span>Confirm wallet</span></li><li data-claim-step="paid"><b>4</b><span>Get paid</span></li></ol>
+    <ol class="x-claim-steps" id="x-claim-steps" aria-label="Claim progress"><li data-claim-step="x"><b>1</b><span>Sign in with X</span></li><li data-claim-step="choose"><b>2</b><span>Select a reward</span></li><li data-claim-step="wallet"><b>3</b><span>Confirm your wallet</span></li><li data-claim-step="paid"><b>4</b><span>Verify payment</span></li></ol>
     <div class="x-claim-section x-claim-identity"><div><strong>Your X account</strong><small id="x-identity-status" class="field-help">Sign in to see rewards linked to your X account.</small></div><button id="x-sign-in" type="button" class="primary-button">Sign in with X</button></div>
-    <div class="x-claim-section"><div class="x-claim-section-head"><strong>Your rewards</strong><small>Only collected creator fees can be claimed.</small></div><div id="sol-claim-list" class="claim-list" aria-live="polite"><p class="x-claim-empty">Sign in with X to see your rewards.</p></div></div>
+    <div class="x-claim-section x-claim-available"><div class="x-claim-section-head"><strong>Rewards linked to your X account</strong><small>Choose a reward marked “Ready to claim.” Other states explain what is still needed.</small></div><div id="sol-claim-list" class="claim-list" aria-live="polite"><p class="x-claim-empty">Sign in with X to see your rewards.</p></div></div>
     <div class="x-claim-section x-claim-review" id="selected-claim-review" hidden><strong>Selected reward</strong><p id="selected-claim-summary"></p></div>
-    <div id="claim-binding-review" class="x-claim-section x-claim-wallet" hidden><strong>Wallet receiving this payment</strong><p id="claim-binding-wallet">Connect the wallet that should receive this claim.</p><label><input type="checkbox" id="claim-binding-agree" /> I control this wallet and understand this claim cannot be sent to a different wallet after verification.</label><details><summary>What if my X account or wallet changes?</summary><p>Changing your X handle does not change your earned reward. An expired signing request can be renewed, but a bound claim stays with its original wallet. Never share your seed phrase or private key.</p></details></div>
-    <details id="claim-technical-details" class="x-claim-technical"><summary>Claim details</summary><label>X account<input id="sol-claim-x-account" type="text" placeholder="@account" /></label><label>Claim ID<input id="sol-claim-id" type="text" placeholder="Choose a reward above" /></label></details>
+    <div id="claim-binding-review" class="x-claim-section x-claim-wallet" hidden><strong>Choose where the SOL will arrive</strong><p id="claim-binding-wallet">Connect the wallet that should receive this claim.</p><label><input type="checkbox" id="claim-binding-agree" /> I control this wallet and understand this reward stays bound to it after verification.</label><details><summary>What if my X account or wallet changes?</summary><p>Changing your X handle does not change your earned reward. An expired signing request can be renewed, but a bound claim stays with its original wallet. Never share your seed phrase or private key.</p></details></div>
+    <details id="claim-technical-details" class="x-claim-technical"><summary>Technical claim details</summary><label>X account<input id="sol-claim-x-account" type="text" placeholder="Sign in with X" readonly /></label><label>Claim ID<input id="sol-claim-id" type="text" placeholder="Choose a reward above" readonly /></label></details>
     <button id="sol-claim-submit" type="button" class="primary-button x-claim-submit" disabled>Choose a reward to continue</button><p id="sol-claim-status" class="x-claim-status" role="status" aria-live="polite">Sign in with X to see your rewards.</p>
   </div></div>
-  <div class="panel x-claim-activity"><div class="panel-heading"><div><p class="eyebrow">Verified payments</p><h2>Payment history</h2></div><button class="text-button" id="open-tape" aria-label="View all payment receipts">View all →</button></div><div class="payment-list" id="payment-list"></div><div class="panel-footnote">Payments appear after receipt verification.</div></div>
+  <div class="panel x-claim-activity"><div class="panel-heading"><div><p class="eyebrow">Public receipts</p><h2>Recent verified payouts</h2><p>Payments to all recipients. Your own records appear under “My rewards.”</p></div><button class="text-button" id="open-tape" aria-label="View all payment receipts">View all →</button></div><div class="payment-list" id="payment-list"></div><div class="panel-footnote">Payments appear after receipt verification.</div></div>
 </section>
 
         <section class="capital-flow-section section-block" id="capital-flow" aria-labelledby="capital-flow-title">

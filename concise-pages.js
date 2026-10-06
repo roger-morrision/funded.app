@@ -228,7 +228,7 @@ function compactRecipients() {
 
 function shortenPageCopy() {
   const edits = [
-    ['#payments > .workspace-page-header > p:last-child', 'Check verified allocations, available claims, and payments.'],
+    ['#payments > .workspace-page-header > p:last-child', 'Choose the account or wallet that earned a reward, then check what is ready to claim.'],
     ['#my-launches > .section-heading .panel-explainer', 'Your launches and saved tokens.'],
     ['#capital-flow > .section-heading .panel-explainer', 'Preview the fee split. Live totals need verified receipts.'],
     ['#launch-route-shell > .page-lede', 'Add the coin details, choose a tier, and review the cost before connecting your wallet.'],
@@ -255,8 +255,8 @@ function shortenPageCopy() {
     ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Buy from the verified Solana pool. Check spend, then approve in your wallet.'],
     ['#buybacks .burn-token-card > p:not(.eyebrow):not(.funded-burn-status)', 'Choose project attribution, then approve BurnChecked in your wallet.'],
     ['#buybacks .burn-receipts-panel > .field-help', 'This ledger shows app-verified receipts; total supply includes other burns.'],
-    ['#reward-portfolio .reward-portfolio-note', 'Allocations are not balances. X claims need matching sign-in; airdrops need a finalized snapshot.'],
-    ['#reward-discovery > small', 'Finalized receipt window, not lifetime. Sorted by paid wallets; wallets are not people.'],
+    ['#reward-portfolio .reward-portfolio-note', 'Allocations are not balances. Holder SOL is automatic after a verified snapshot; X claims need matching sign-in.'],
+    ['#reward-discovery > small', 'Eligible wallets receive SOL automatically after a verified snapshot and sufficient fees. “0 paid wallets” means no verified holder payout.'],
     ['#payments .auto-rewards-intro', 'Next holder cycle and token airdrops.'],
     ['#payments .auto-reward-card:nth-child(1) > p', 'Eligible wallets receive SOL after a verified daily snapshot.'],
     ['#payments .auto-reward-card:nth-child(2) > p', 'Migration snapshot sets $FUNDED holder eligibility. Vault funding and claims are verified separately.'],
