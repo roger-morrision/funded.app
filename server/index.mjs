@@ -41,7 +41,7 @@ import { isAppPagePath } from './page-routes.mjs';
 import { createCreatorSupportHandler } from './creator-support.mjs';
 import { creatorPageHtml } from './creator-social.mjs';
 import { tokenPageHtml } from './token-social.mjs';
-import { rewardView, renewClaimChallenge } from '../reward-discovery.js';
+import { automaticXClaimState, rewardView, renewClaimChallenge } from '../reward-discovery.js';
 import { verifyReferralClaim, pendingReferralClaim } from './referral-claim-state.mjs';
 import { CREATOR_SUPPORT_VERSION } from '../creator-support-model.js';
 import { createXAuth, cookieValue, authCookie, allowedAuthOrigin, callbackUrlFor, SESSION_SECONDS, OAUTH_SECONDS } from './x-auth.mjs';
@@ -154,9 +154,10 @@ async function queueAutomaticSettlementRewards(settlement) {
 }
 async function enrollAutomaticXReward(claim) {
   if (!claim?.publicKey || !claim?.xAttestation || claim.xAttestation.subject !== claim.xUserId) return;
-  await automaticRewardStore.transaction(state => {
+  return automaticRewardStore.transaction(state => {
     state.fundingRequests ||= {};
     for (const request of Object.values(state.fundingRequests)) if (request.kind === 'x' && request.obligationId === claim.obligationId && request.status === 'awaiting-verified-recipient') { request.recipient = claim.publicKey; request.status = 'pending'; request.enrolledAt = new Date().toISOString(); }
+    return Object.values(state.fundingRequests).find(request => request.kind === 'x' && request.obligationId === claim.obligationId && request.recipient === claim.publicKey)?.status || null;
   });
 }
 // Explicit test/worker store paths must take precedence over the local database
@@ -1155,7 +1156,11 @@ async function handle(req, res) {
       const handle = `@${session.user.username}`.toLowerCase();
       const state = await store.readCreatorState(String(session.user.id), solanaCluster);
       const evidence=await readReceiptEvidence(state);
-      const claims = Object.values(state.obligations || {}).filter(item => item.source === 'verified-per-mint-router-collection' && item.xUserId === String(session.user.id)).map(item => rewardView(item,state.claims?.[item.id],evidence.verifiedPayouts));
+      const rewards = await automaticRewardStore.read();
+      const claims = Object.values(state.obligations || {}).filter(item => item.source === 'verified-per-mint-router-collection' && item.xUserId === String(session.user.id)).map(item => {
+        const claim = state.claims?.[item.id];
+        return rewardView(item, claim, evidence.verifiedPayouts, automaticXClaimState(item, claim, rewards));
+      });
       return json(res, 200, { handle, claims });
     }
     if (req.method === 'POST' && url.pathname === '/api/x/logout') {
@@ -2179,8 +2184,8 @@ async function handle(req, res) {
       if (!nacl.sign.detached.verify(message, signature, publicKey.toBytes())) return json(res, 401, { error: 'Wallet signature is invalid.' });
       if (claim.publicKey && claim.publicKey !== publicKey.toBase58()) return json(res, 409, { error: 'Claim is already bound to another verified wallet.' });
       const updated = await store.updateClaimState(verifyId,current => { const existing = current.claims[verifyId];assertObservedClaim(existing,claim); if (existing.publicKey && existing.publicKey !== publicKey.toBase58()) throw invalidRequest('Claim is already bound to another verified wallet.'); if (['paid','executing','verification-pending'].includes(existing.status)) return existing; current.claims[verifyId] = { ...existing, publicKey: publicKey.toBase58(), status: existing.xAttestation ? 'ready-to-execute' : 'wallet-verified', verifiedAt: new Date().toISOString() }; return current.claims[verifyId]; });
-      await enrollAutomaticXReward(updated);
-      return json(res, 200, updated);
+      const automaticStatus = await enrollAutomaticXReward(updated);
+      return json(res, 200, { ...updated, automaticStatus });
     }
 
     const attestId = decodeURIComponent(route(url.pathname, req.method, /^\/api\/sol-claims\/([^/]+)\/attest$/) || '');

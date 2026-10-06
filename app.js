@@ -6281,6 +6281,17 @@ async function submitSolClaim(){
     const publicKey = session.address;
     const verified = await apiRequest(`/api/sol-claims/${encodeURIComponent(claimId)}/verify`, { method: 'POST', body: { xHandle: handle, publicKey, signature: bs58.encode(signed.signature || signed) } });
     if (!isWalletSessionCurrent(session)) return { verified };
+    if (verified.data?.automaticStatus) {
+      const claims = await refreshXClaims();
+      if (!isWalletSessionCurrent(session)) return { verified };
+      const paidClaim = claims?.find(claim => claim.id === claimId && claim.receiptVerified === true && claim.payoutWallet === publicKey);
+      claimVerified = Boolean(paidClaim);
+      emitPilotSignal(claimVerified ? 'claim-verified' : 'claim-pending');
+      if (status) status.textContent = claimVerified
+        ? `Verified payment of ${paidClaim.amountSol} SOL to ${publicKey}. Transaction: ${paidClaim.payoutSignature}`
+        : 'Wallet verified. Automatic SOL delivery is in progress; check this reward for its payment receipt.';
+      return { verified };
+    }
     if (status) status.textContent = 'Settling the mint-specific claim on Devnet…';
     claimExecutionRequested = true;
     const paid = await apiRequest(`/api/sol-claims/${encodeURIComponent(claimId)}/execute`, { method: 'POST' });
@@ -9234,10 +9245,10 @@ async function refreshXClaims(){
     for (const claim of result.data.claims) {
       const row=document.createElement('div');row.className='x-claim-reward';row.dataset.claimId=claim.id;
       if(claim.id===selectedId&&claim.canPrepare===true)row.classList.add('selected');
-      const state=document.createElement('span');state.className=`x-claim-reward-state ${claim.receiptVerified?'paid':claim.canPrepare?'ready':'pending'}`;state.textContent=claim.receiptVerified?'Paid':claim.canPrepare?'Ready to claim':'Not ready yet';
+      const state=document.createElement('span');state.className=`x-claim-reward-state ${claim.receiptVerified?'paid':claim.canPrepare?'ready':'pending'}`;state.textContent=claim.receiptVerified?'Paid':claim.canPrepare?'Ready to claim':String(claim.status).startsWith('automatic-')?'Processing payout':'Not ready yet';
       const copy=document.createElement('div');copy.className='x-claim-reward-copy';
       const amount=document.createElement('strong');amount.textContent=claim.amountSol==null?'Amount unavailable':`${claim.amountSol} SOL`;
-      const context=document.createElement('small');context.textContent=`Token ${String(claim.mint||'').slice(0,6)}… · ${claim.receiptVerified?'Payment confirmed':claim.canPrepare?'Collected creator fees':claim.explanation||'Waiting for collected fees'}`;
+      const context=document.createElement('small');context.textContent=`Token ${String(claim.mint||'').slice(0,6)}… · ${claim.receiptVerified?`Paid to ${claim.payoutWallet||'verified wallet'}`:claim.canPrepare?'Collected creator fees':claim.explanation||'Waiting for collected fees'}`;
       copy.append(amount,context);row.append(state,copy);
       row.dataset.claimSummary=`${amount.textContent} from token ${String(claim.mint||'').slice(0,6)}…`;
       if (claim.canPrepare === true) {
@@ -9250,6 +9261,7 @@ async function refreshXClaims(){
       list.append(row);
     }
     syncXClaimFlow();
+    return result.data.claims;
   } catch (error) { clearSelection();list.textContent = error.message || 'Rewards are temporarily unavailable.';renderXClaimSummary(null); syncXClaimFlow(); }
 }
 document.querySelector('#x-sign-in')?.addEventListener('click', async event => {
