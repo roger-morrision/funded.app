@@ -10,7 +10,7 @@ import { createStore } from '../server/store.mjs';
 const signature='3'.repeat(88),from='2'.repeat(44),to='4'.repeat(44);
 const record=fields=>({cluster:'devnet',signature,status:'paid',source:'mint-router-settle-mint',from,to,claimId:'receipt-amount-fixture',...fields});
 function transaction(amount=15,debit=amount+5000){return{slot:123,blockTime:1700000000,transaction:{signatures:[signature],message:{accountKeys:[from,to]}},meta:{err:null,preBalances:[100000,1000],postBalances:[100000-debit,1000+amount]}};}
-function cached(row,amount=15){return{key:receiptFingerprint('payouts',row),cluster:'devnet',commitment:'finalized',proof:{signature,claimId:row.claimId,source:row.source,to,amountLamports:amount,slot:123,blockTime:1700000000}};}
+function cached(row,amount=15){return{key:receiptFingerprint('payouts',row),cluster:'devnet',commitment:'finalized',proof:{signature,claimId:row.claimId,source:row.source,to,amountLamports:amount,actualReceivedLamports:amount,feeLamports:null,feePayer:from,slot:123,blockTime:1700000000}};}
 
 test('exact decimal SOL, including numeric 15-lamport values, verifies identically live and cached',()=>{
   for(const fields of [{amountSol:1.5e-8},{amountSol:'0.000000015'},{amountSol:'0.0000000150'},{amountLamports:15},{amountLamports:'15'},{amountLamports:null,amountSol:1.5e-8}]){

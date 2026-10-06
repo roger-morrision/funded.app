@@ -9,7 +9,7 @@ const renderer=app.slice(app.indexOf('function renderVerifiedReceiptEvidence(){'
 function render(evidence,summary=null){
   const fields={span:{textContent:''},strong:{textContent:'—'},small:{innerHTML:''}};
   const card={querySelector:key=>fields[key]};
-  const context={receiptEvidence:evidence,analyticsSummary:summary,receiptEvidenceChecked:true,exactLamports,formatReceiptSol,
+  const context={receiptEvidence:evidence,paymentHistoryEvidence:null,analyticsSummary:summary,receiptEvidenceChecked:true,exactLamports,formatReceiptSol,
     document:{querySelectorAll:()=>[],querySelector:key=>key==='[data-analytics-metric="fees"]'?card:null,addEventListener:()=>{}}};
   runInNewContext(renderer,context);context.renderVerifiedReceiptEvidence();return fields;
 }
