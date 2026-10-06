@@ -7802,12 +7802,13 @@ function renderCoinCreatorHeader(address){
 }
 function renderCoinRewardsPolicy(policy, mint = getCoinMintAddress()){
   const summary = document.querySelector('#coin-fee-route');
-  if (!summary) return;
+  const value = document.querySelector('#coin-fee-route-value');
+  if (!summary || !value) return;
   const verified = verifiedCoinRewardsPolicy(policy, mint, EXPLORE_CLUSTER)
     || verifiedCoinRewardsPolicy(coinSummaryLaunch, mint, EXPLORE_CLUSTER)
     || verifiedCoinRewardsPolicy(verifiedLaunchPolicyForMint(mint), mint, EXPLORE_CLUSTER);
   summary.hidden = !verified;
-  summary.textContent = verified?.compact || '';
+  value.textContent = verified?.compact || '';
 }
 function compactCoinSocials(){
   const labels = {

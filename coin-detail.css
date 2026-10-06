@@ -814,5 +814,7 @@ main.wallet-view>#wallet-page{display:block!important}
   .coin-page .coin-chart-panel .coin-panel-head .data-badge { justify-self:start; }
 }
 
-.coin-page .coin-fee-route{max-width:100%;color:#aebcc7;font:10px/1.4 'DM Mono',monospace;overflow-wrap:anywhere}
+.coin-page .coin-fee-route{display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px 8px;max-width:100%;min-height:24px;padding:4px 7px;border:1px solid #705733;border-radius:5px;background:#282317;color:#e7e9e0;font:10px/1.3 'DM Mono',monospace;overflow-wrap:anywhere}
+.coin-page .coin-fee-route-label{color:#ffd28a;font-size:9px;font-weight:700;text-transform:uppercase;white-space:nowrap}
+.coin-page #coin-fee-route-value{min-width:0}
 .coin-page .coin-fee-route[hidden]{display:none!important}
