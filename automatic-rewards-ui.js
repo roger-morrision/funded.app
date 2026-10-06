@@ -8,6 +8,7 @@ import { validateSolClaimRecipient } from './sol-claim-policy.js';
 import './automatic-rewards.css';
 
 const panels = document.querySelectorAll('[data-automatic-rewards]');
+const fundedDirectory = panel => panel.querySelector('#funded-holder-token-rewards') || document.getElementById('funded-holder-token-rewards');
 let fundedFetchRevision = 0;
 const homeHero = document.querySelector('.hero-section');
 const homeSpotlight = homeHero ? document.createElement('div') : null;
@@ -301,8 +302,9 @@ async function refreshFundedHolderTokens() {
     homeReserves = null;
     renderHomeRewardCards();
     for (const panel of panels) {
-      panel.querySelector('[data-funded-token-count]').textContent = `${tokens.length} published ${tokens.length === 1 ? 'allocation' : 'allocations'}`;
-      const list = panel.querySelector('[data-funded-token-list]');
+      const directory = fundedDirectory(panel);
+      directory.querySelector('[data-funded-token-count]').textContent = `${tokens.length} published ${tokens.length === 1 ? 'allocation' : 'allocations'}`;
+      const list = directory.querySelector('[data-funded-token-list]');
       list.replaceChildren();
       if (!tokens.length) {
         const empty = document.createElement('li');
@@ -362,8 +364,9 @@ async function refreshFundedHolderTokens() {
     renderClocks();
     renderHomeRewardCards();
     for (const panel of panels) {
-      panel.querySelector('[data-funded-token-count]').textContent = 'Unavailable';
-      panel.querySelector('[data-funded-token-list]').innerHTML = '<li class="funded-token-empty">Verified token allocations are unavailable right now.</li>';
+      const directory = fundedDirectory(panel);
+      directory.querySelector('[data-funded-token-count]').textContent = 'Unavailable';
+      directory.querySelector('[data-funded-token-list]').innerHTML = '<li class="funded-token-empty">Verified token allocations are unavailable right now.</li>';
     }
   }
 }

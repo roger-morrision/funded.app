@@ -17,7 +17,14 @@ body.page-route.page-route-payments #payments #rewards-overview{grid-template-co
 .reward-action-grid small{color:#aebbd0;font-size:12px;line-height:1.45}
 .reward-action-grid b{margin-left:auto;color:#f3c273;font-size:16px;font-weight:400}
 .reward-overview-rule{margin:14px 0 0;padding:12px 15px;border-left:2px solid #b7884a;background:#192333;color:#c3d0df;font-size:12px;line-height:1.5}
+#payments #rewards-holder .auto-rewards-grid{grid-template-columns:minmax(0,1fr)}
+#payments #rewards-funded .reward-section-intro{padding:21px;border:1px solid #35445a;border-radius:12px;background:#151e2e}
+#payments #rewards-funded .reward-section-intro .eyebrow{color:#f3bd72}
+#payments #rewards-funded .reward-section-intro p:last-child{max-width:700px;color:#b6c4d5;line-height:1.55}
+#payments #rewards-funded .funded-claim-link{display:inline-flex;align-items:center;width:max-content;max-width:100%;min-height:42px;margin:16px 0;text-decoration:none}
+#payments #rewards-funded .funded-holder-token-rewards{margin-top:19px;border-color:#394961;background:#151e2e}
 @media(max-width:760px){.reward-action-grid{grid-template-columns:1fr}.reward-action-grid>a,.reward-action-grid>button{min-height:76px;padding:13px 15px}}
+@media(max-width:760px){body.page-route-payments #payments>.ui-tabs{display:flex!important;flex-wrap:nowrap!important;gap:5px;overflow-x:auto;scrollbar-width:thin}body.page-route-payments #payments>.ui-tabs button{flex:0 0 auto;min-height:42px;padding:9px 11px;font-size:11px!important}#payments #rewards-funded .reward-section-intro{padding:17px}}
 #payments .x-claim-panel{padding:28px!important;border-color:#46546e;border-radius:14px;background:linear-gradient(160deg,#171d30,#131a29 35%,#111925)}
 #payments .x-claim-heading{margin-bottom:22px}
 #payments .x-claim-heading .eyebrow{margin-bottom:7px;color:#f3bf71}

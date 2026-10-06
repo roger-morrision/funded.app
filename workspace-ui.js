@@ -562,15 +562,31 @@ function rewards() {
   const x = node('div'); x.id = 'rewards-x';
   while(root.firstChild) x.append(root.firstChild);
   const overview = node('div'); overview.id = 'rewards-overview';
-  overview.innerHTML = '<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Rewards · Solana Devnet</p><h1>Find your rewards</h1><p>Check rewards linked to your X account or wallet, then see what is ready to claim.</p></div><div class="reward-overview-start"><p class="eyebrow">Start here</p><h2>How do you earn?</h2><p>Choose the account or wallet that earned the reward. Public coin allocations are not personal claims.</p></div><div class="reward-action-grid"><button type="button" data-reward-open="x"><span class="reward-action-icon" aria-hidden="true">𝕏</span><span><strong>X account rewards</strong><small>Sign in with X to see and claim your SOL.</small></span><b aria-hidden="true">→</b></button><button type="button" data-reward-open="holder"><span class="reward-action-icon" aria-hidden="true">◎</span><span><strong>Coin holder rewards</strong><small>Eligible wallets receive SOL automatically.</small></span><b aria-hidden="true">→</b></button><button type="button" data-reward-open="creator"><span class="reward-action-icon" aria-hidden="true">✦</span><span><strong>Creator fees</strong><small>Check fees earned by coins you launched.</small></span><b aria-hidden="true">→</b></button><a href="#referrals"><span class="reward-action-icon" aria-hidden="true">↗</span><span><strong>Referral rewards</strong><small>Connect your wallet to check and claim.</small></span><b aria-hidden="true">→</b></a></div><p class="reward-overview-rule">Ready to claim means an action is available. Processing means a payment is being verified. Paid means a finalized receipt exists.</p>';
+  overview.innerHTML = `<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Rewards · Solana Devnet</p><h1>Find your rewards</h1><p>Check rewards linked to your X account or wallet, then see what is ready to claim.</p></div>
+    <div class="reward-overview-start"><p class="eyebrow">Start here</p><h2>How do you earn?</h2><p>Choose the account or wallet that earned the reward. Public coin allocations are not personal claims.</p></div>
+    <div class="reward-action-grid">
+      <button type="button" data-reward-open="x"><span class="reward-action-icon" aria-hidden="true">𝕏</span><span><strong>X account rewards</strong><small>Sign in with X to see and claim your SOL.</small></span><b aria-hidden="true">→</b></button>
+      <button type="button" data-reward-open="holder"><span class="reward-action-icon" aria-hidden="true">◎</span><span><strong>Coin holder rewards</strong><small>Eligible coin wallets receive SOL automatically.</small></span><b aria-hidden="true">→</b></button>
+      <button type="button" data-reward-open="funded"><span class="reward-action-icon" aria-hidden="true">ƒ</span><span><strong>$FUNDED holder airdrops</strong><small>Check token allocations and claim eligibility.</small></span><b aria-hidden="true">→</b></button>
+      <button type="button" data-reward-open="creator"><span class="reward-action-icon" aria-hidden="true">✦</span><span><strong>Creator fees</strong><small>Check fees earned by coins you launched.</small></span><b aria-hidden="true">→</b></button>
+      <a href="#referrals"><span class="reward-action-icon" aria-hidden="true">↗</span><span><strong>Referral rewards</strong><small>Connect your wallet to check and claim.</small></span><b aria-hidden="true">→</b></a>
+    </div><p class="reward-overview-rule">Ready to claim means an action is available. Processing means a payment is being verified. Paid means a finalized receipt exists.</p>`;
   const creator = node('div'); creator.id = 'rewards-creator';
   creator.innerHTML = '<div class="reward-section-intro"><p class="eyebrow">Your launches</p><h2>Creator fees</h2><p>Review collected fees and claimable amounts for tokens you launched.</p></div><div class="reward-creator-gate"><p class="reward-wallet-prompt">Connect your launch wallet to view creator rewards.</p><div class="reward-creator-actions"><button type="button" class="primary-button" data-reward-connect>Connect wallet</button><a class="secondary-button" href="#my-launches">Open Portfolio →</a></div></div>';
   const personal = $('[data-personal-rewards]'); if(personal)creator.append(personal);
   const xSummary = $('[data-x-rewards]',personal || creator);if(xSummary)x.prepend(xSummary);
   const holder = node('div'); holder.id = 'rewards-holder';
   const automatic = $('[data-automatic-rewards]'); if(automatic)holder.append(automatic);
-  root.append(overview,creator,holder,x);
-  const select = tabs(root,[{key:'overview',label:'My rewards',panel:overview},{key:'creator',label:'Creator',panel:creator},{key:'holder',label:'Holder',panel:holder},{key:'x',label:'X claims',panel:x}],'Reward type');
+  const funded = node('div'); funded.id = 'rewards-funded';
+  funded.innerHTML = '<div class="reward-section-intro"><p class="eyebrow">$FUNDED holders</p><h2>Token airdrops for $FUNDED holders</h2><p>Hold $FUNDED through a launch’s migration snapshot. After funding and proof are verified, connect the same wallet on Airdrops to check eligibility and claim.</p></div><a class="primary-button funded-claim-link" href="#airdrops">Check eligibility and claim →</a>';
+  const fundedCard = automatic?.querySelector('.auto-reward-card:nth-child(2)');
+  const fundedDirectory = automatic?.querySelector('#funded-holder-token-rewards');
+  fundedCard?.remove();
+  if(fundedDirectory)funded.append(fundedDirectory);
+  const holderIntro = automatic?.querySelector('.auto-rewards-intro');
+  if(holderIntro)holderIntro.textContent = 'Check the next recorded coin holder SOL cycle and verified payouts.';
+  root.append(overview,creator,holder,funded,x);
+  const select = tabs(root,[{key:'overview',label:'My rewards',panel:overview},{key:'holder',label:'Coin holders',panel:holder},{key:'funded',label:'$FUNDED holders',panel:funded},{key:'creator',label:'Creator',panel:creator},{key:'x',label:'X claims',panel:x}],'Reward type');
   root.prepend(overview.querySelector('.workspace-page-header'));
   $$('[data-reward-open]',root).forEach(button=>button.addEventListener('click',()=>select(button.dataset.rewardOpen,true)));
   $$('a[href="#payments"]',personal || creator).forEach(link=>link.addEventListener('click',()=>select('x',true)));
@@ -882,7 +898,7 @@ function syncRoute() {
   const more=$('.nav-more');if(more)more.open=!matchMedia('(min-width:1180px)').matches && Boolean($('a[aria-current="page"]',more));
   const target=$('#route-guide');if(target&&['payments','my-launches','community','profile'].includes(route))target.hidden=true;
   if(route==='funded-holder-token-rewards'){
-    $('#rewards-holder-tab')?.click();
+    $('#rewards-funded-tab')?.click();
     requestAnimationFrame(()=>{
       const target=$('#funded-holder-token-rewards');
       if(!target?.getClientRects().length)return;
