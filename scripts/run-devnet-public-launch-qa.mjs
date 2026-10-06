@@ -236,11 +236,8 @@ try {
   }
 
   stage = 'register-launch';
-  if (recoveryMint && launchesBefore.some(item => item.mint === mint)) {
-    assert.equal(launchesBefore.find(item => item.mint === mint).onchainVerified, true, 'Existing recovery launch lacks on-chain verification.');
-    journal({ stage:'already-registered', mint, launchSignature:launch.signature, journalPath });
-    process.exit(0);
-  }
+  const existingRecovery = recoveryMint ? launchesBefore.find(item => item.mint === mint) : null;
+  if (existingRecovery) assert.equal(existingRecovery.onchainVerified, true, 'Existing recovery launch lacks on-chain verification.');
   const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent:creatorShare, holderAirdropPercent:holderShare, solClaimPercent:0, feeRouterAddress:launch.feeRouter.toBase58() });
   const record = { mint, chain:'solana', cluster:'devnet', signature:launch.signature, creatorWallet:creator.publicKey.toBase58(), communityAllocation:3,
     feeDistribution, pumpFeeRoute:{ router:launch.feeRouter.toBase58(), scope:'per-mint-v2', transaction:launch.signature },
@@ -256,11 +253,11 @@ try {
     assert.equal(saved.creatorLaunchBurn.amountTokens, burnPolicy.amountTokens, 'Registered burn amount differs from the quote.');
     assert.equal(saved.creatorLaunchBurn.receipt?.signature, launch.signature, 'Registered paid-tier burn receipt differs from launch.');
   }
-  assert.equal(saved.automaticRewards?.status, 'registered', 'Holder reward registration failed.');
+  assert.equal(saved.automaticRewards?.status, 'registered', `Holder reward registration failed: ${saved.automaticRewards?.reason || 'no reason returned'}`);
   const launchesAfter = await (await fetch(`${base}/api/launches`)).json();
-  assert.equal(launchesAfter.length, launchesBefore.length + 1, 'Public registry did not add exactly one new launch.');
+  assert.equal(launchesAfter.length, launchesBefore.length + (existingRecovery ? 0 : 1), 'Public registry count changed unexpectedly.');
   assert.equal(launchesAfter.filter(item => item.mint === mint).length, 1, 'Public registry must contain the new mint exactly once.');
-  journal({ stage:'registered', mint, launchSignature:launch.signature, automaticRewards:saved.automaticRewards.status, launchesAfter:launchesAfter.length, journalPath });
+  journal({ stage:existingRecovery ? 'registration-recovered' : 'registered', mint, launchSignature:launch.signature, automaticRewards:saved.automaticRewards.status, launchesAfter:launchesAfter.length, journalPath });
 } catch (error) {
   journal({ stage:'failed', atStage:stage, error:String(error.message || error) });
   process.exitCode = 1;

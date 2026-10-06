@@ -107,6 +107,8 @@ const dir = await mkdtemp(join(tmpdir(), 'funded-auto-rewards-'));
 try {
   const file = join(dir, 'ledger.json');
   const store = createAutomaticRewardStore(file);
+  await Promise.all(Array.from({ length: 10 }, () => store.transaction(state => { state.concurrentWrites = (state.concurrentWrites || 0) + 1; })));
+  assert.equal((await store.read()).concurrentWrites, 10, 'Concurrent reward writes must wait for the ledger lock rather than fail.');
   const ownerA = Keypair.generate().publicKey, ownerB = Keypair.generate().publicKey;
   const accountA = Keypair.generate().publicKey, accountB = Keypair.generate().publicKey;
   const mintData = Buffer.alloc(82); mintData.writeBigUInt64LE(30n, 36);

@@ -1,10 +1,20 @@
 import { mkdir, open, readFile, rename, unlink } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { setTimeout as delay } from 'node:timers/promises';
 
 // Dedicated ledger; existing immutable launches are never rewritten. A crashed
 // lock needs operator investigation rather than unsafe automatic lock expiration.
 export function createAutomaticRewardStore(path) {
+  async function acquireLock() {
+    for (let attempt = 0; attempt < 40; attempt++) {
+      try { return await open(`${path}.lock`, 'wx'); }
+      catch (error) {
+        if (error.code !== 'EEXIST' || attempt === 39) throw error;
+        await delay(50);
+      }
+    }
+  }
   async function readState() {
     try {
       const state = JSON.parse(await readFile(path, 'utf8'));
@@ -17,7 +27,7 @@ export function createAutomaticRewardStore(path) {
   }
   return { async read() { return structuredClone(await readState()); }, async transaction(mutator) {
     await mkdir(dirname(path), { recursive: true });
-    const lock = await open(`${path}.lock`, 'wx');
+    const lock = await acquireLock();
     const temp = `${path}.${randomUUID()}.tmp`;
     try {
       const state = await readState();
