@@ -22,7 +22,7 @@ async function setup(page, local) {
     await route.fulfill({ json: { profile: { following: state.account } } });
   });
   if (local !== null) await page.addInitScript(({ key, local }) => localStorage.setItem(key, local), { key: KEY, local });
-  await page.goto('/#my-launches'); await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  await page.goto('/#community'); await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await expect(page.locator('#save-following')).toBeVisible(); return state;
 }
 const status = page => page.locator('#following-status');

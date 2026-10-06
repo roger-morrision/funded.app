@@ -5,7 +5,7 @@ const errors=new WeakMap();
 async function configure(page,found){page.on('pageerror',error=>found.push(error.message));await page.route('**/api/**',route=>route.fulfill({status:503,contentType:'application/json',body:'{}'}));await page.route('https://**/*',route=>route.abort());}
 test.beforeEach(async({page})=>{const found=[];errors.set(page,found);await configure(page,found);});
 test.afterEach(async({page})=>expect(errors.get(page),'No uncaught browser errors').toEqual([]));
-async function open(page){await page.goto('/#my-launches');await expect(page.locator('body')).toHaveClass(/workspace-ready/);await expect(page.locator('#community-preferences')).toBeVisible();}
+async function open(page){await page.goto('/#community');await expect(page.locator('body')).toHaveClass(/workspace-ready/);await expect(page.locator('#community-preferences')).toBeVisible();}
 async function diagnostics(page){await open(page);await page.locator('#community-preferences summary').click();}
 async function raw(page,key){return page.evaluate(key=>(window.qaDiagnosticsGet||Storage.prototype.getItem).call(localStorage,key),key);}
 async function navigateHome(page){await page.getByRole('link',{name:'Home',exact:true}).first().click();await expect(page).toHaveURL(/#overview$/);}
@@ -13,7 +13,7 @@ async function deny(page,method,key){await page.evaluate(({method,key})=>{const 
 const seedCounts={'2026-10-01':{navigation:7}};
 async function seed(page){await page.addInitScript(({key,rows})=>localStorage.setItem(key,JSON.stringify(rows)),{key:COUNTS,rows:seedCounts});}
 
-for(const width of [1440,390])test(`Portfolio preferences and diagnostics are wallet-free and keyboard reachable at ${width}px`,async({page})=>{
+for(const width of [1440,390])test(`Community preferences and diagnostics are wallet-free and keyboard reachable at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});const writes=[];page.on('request',request=>{if(!['GET','HEAD','OPTIONS'].includes(request.method()) && new URL(request.url()).pathname !== '/api/solana/rpc')writes.push(request.url());});
   await open(page);const panel=page.locator('#community-preferences');
   await expect(panel.getByRole('heading',{name:'Following & updates'})).toBeVisible();

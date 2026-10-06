@@ -55,7 +55,7 @@ void reconcileRegisteredLaunches();
 
 const preferences=document.createElement('section');preferences.className='adoption-panel';preferences.id='community-preferences';
 preferences.innerHTML='<h2>Following & updates</h2><p>Following works without buying. Optionally save or restore your list using your signed-in X account.</p><div class="support-actions"><button id="save-following">Save following to my X account</button><button id="restore-following">Restore saved following</button></div><label><input id="updates-consent" type="checkbox">Show followed creator updates in this app (refresh at most once a minute while visible)</label><button id="updates-refresh">Refresh followed updates</button><p id="following-status" role="status"></p><div id="following-updates"></div><details><summary>Private product diagnostics</summary><label><input id="diagnostics-consent" type="checkbox" aria-describedby="diagnostics-status">Count my navigation on this device</label><p id="diagnostics-status" role="status" aria-live="polite"></p><p>No wallet addresses, text, handles or browsing URLs are collected. Nothing is sent to an analytics service. This does not measure unique users or retention.</p><pre id="diagnostics-summary"></pre><button id="diagnostics-clear">Clear local counters</button></details>';
-$('#my-launches').append(preferences);
+$('#community').append(preferences);
 const feedControls=document.createElement('div');feedControls.className='support-actions';
 feedControls.innerHTML='<button id="updates-previous" disabled>Previous creators</button><button id="updates-next" disabled>Next creators</button><button id="updates-first" disabled>Start over</button>';
 $('#following-updates').after(feedControls);
@@ -105,7 +105,7 @@ updateFeedContext();
 window.addEventListener('funded:following',()=>{updateFeedContext();});
 window.addEventListener('storage',event=>{if(event.key===null||['funded.creator.following','funded.updates.enabled'].includes(event.key)){$('#updates-consent').checked=storeGet('funded.updates.enabled',false)===true;updateFeedContext();}});
 $('#updates-refresh').onclick=()=>{if(!$('#updates-consent').checked){$('#following-status').textContent='Enable in-app updates first.';return;}void refreshUpdates();};
-setInterval(()=>{if(location.hash==='#my-launches')void refreshUpdates();},60000);
+setInterval(()=>{if(location.hash==='#community')void refreshUpdates();},60000);
 const diagnosticsConsent=$('#diagnostics-consent'),diagnosticsStatus=$('#diagnostics-status');
 const diagnosticsConsentKey='funded.diagnostics.enabled',diagnosticsCountsKey='funded.diagnostics.counts';
 let diagnosticsStopped=false;
@@ -169,4 +169,4 @@ window.addEventListener('storage',event=>{
   if(event.key===null || event.key===diagnosticsCountsKey)renderDiagnostics();
 });
 renderDiagnostics();
-window.addEventListener('hashchange',()=>{diagnostic('navigation');if(location.hash==='#my-launches')void refreshUpdates();});
+window.addEventListener('hashchange',()=>{diagnostic('navigation');if(location.hash==='#community')void refreshUpdates();});
