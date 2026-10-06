@@ -3147,7 +3147,8 @@ function renderVerifiedReceiptEvidence(){
   const tape = document.querySelector('#payment-dialog-list');
   if (!list || !tape) return;
   list.replaceChildren();
-  for (const receipt of historyPayouts) {
+  tape.replaceChildren();
+  for (const [index, receipt] of historyPayouts.entries()) {
     const row = document.createElement('div');
     row.className = 'payment-row payment-history-row';
     const identity = document.createElement('span');
@@ -3203,13 +3204,16 @@ function renderVerifiedReceiptEvidence(){
     proof.title = 'View transaction on Solana Explorer';
     actions.append(amount, proof);
     row.append(identity, actions);
-    list.append(row);
+    if (index < 5) list.append(row.cloneNode(true));
+    tape.append(row);
   }
-  if (historyPayouts.length) tape.replaceChildren(...[...list.children].map(row => row.cloneNode(true)));
-  else tape.innerHTML = '<p class="empty-state">No finalized payout receipts are available yet.</p>';
+  if (!historyPayouts.length) {
+    list.innerHTML = '<p class="empty-state">No finalized payout receipts are available yet.</p>';
+    tape.innerHTML = '<p class="empty-state">No finalized payout receipts are available yet.</p>';
+  }
   const footnote = document.querySelector('#payment-history-footnote');
   if (footnote) footnote.textContent = historyPayouts.length
-    ? `${historyPayouts.length} finalized payment${historyPayouts.length === 1 ? '' : 's'} · transaction fee is paid by the listed fee payer${paymentHistoryEvidence.status === 'partial' ? ' · partial coverage' : ''}`
+    ? `Showing ${Math.min(5, historyPayouts.length)} of ${historyPayouts.length} recent finalized payments · transaction fee is paid by the listed fee payer${paymentHistoryEvidence.status === 'partial' ? ' · partial coverage' : ''}`
     : paymentHistoryEvidence?.status === 'partial' || !paymentHistoryEvidence ? 'Payout receipt verification is unavailable or incomplete.'
       : 'No finalized payout receipts are available.';
   renderExtendedAnalyticsDashboard();

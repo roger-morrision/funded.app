@@ -19,6 +19,7 @@ try {
         verifiedPayouts: [
           { to: '6XfCMmEJk5NTq2ANghqLh6oBfH3aKpR9eSzN', signature, amountLamports: 118812, actualReceivedLamports:118812, feeLamports:5000, feePayer:'7ngaVZdeipr6uZy2inh267PjZLLYFuAfsPoTRZixjJMk', blockTime:1791279900, source:'automatic-holder' },
           { to: '4J3yMC9wQs7UqPtyBHK4nD1fR6tEZv6A', signature: '2hRV9KyCNB1UKc8p9XjQm6oDkT3UQvL8S', amountLamports: 714, actualReceivedLamports:714, feeLamports:5000, feePayer:'7ngaVZdeipr6uZy2inh267PjZLLYFuAfsPoTRZixjJMk', blockTime:1791279800, source:'solana-keeper-referral-claim' },
+          ...Array.from({ length:4 }, (_, index) => ({ to:'4J3yMC9wQs7UqPtyBHK4nD1fR6tEZv6A', signature:String(index + 3).repeat(88), amountLamports:1000 + index, actualReceivedLamports:1000 + index, feeLamports:5000, feePayer:'7ngaVZdeipr6uZy2inh267PjZLLYFuAfsPoTRZixjJMk', blockTime:1791279700 - index, source:'automatic-operations' })),
         ],
         coverage: {},
       }),
@@ -35,7 +36,7 @@ try {
     await row.waitFor({ state: 'visible' });
     const rowCount = await rows.count();
     if (useLiveReceipts) assert(rowCount > 0, 'expected a verified payout receipt');
-    else assert.equal(rowCount, 2);
+    else assert.equal(rowCount, 5);
     assert.equal(await row.locator('.payment-history-identity strong').innerText(), 'Holder reward');
     if (!useLiveReceipts) {
       assert.equal(await row.locator('.payment-history-wallet').innerText(), '6XfCMmEJk5NTq2ANghqLh6oBfH3aKpR9eSzN');
@@ -63,8 +64,8 @@ try {
       return element.scrollWidth <= element.clientWidth && (identity.bottom <= actions.top + 1 || identity.right <= actions.left + 1);
     })), `payment rows overflow or overlap at ${width}px`);
     await page.locator('#open-tape').click();
-    assert.equal(await page.locator('#payment-dialog-list .payment-receipt-link').count(), rowCount);
-    assert.equal(await page.locator('#payment-dialog-list .payment-history-wallet').count(), rowCount);
+    assert.equal(await page.locator('#payment-dialog-list .payment-receipt-link').count(), useLiveReceipts ? rowCount : 6);
+    assert.equal(await page.locator('#payment-dialog-list .payment-history-wallet').count(), useLiveReceipts ? rowCount : 6);
     await context.close();
   }
   if (!useLiveReceipts) {
