@@ -50,6 +50,15 @@ export function archiveBoostPayment(pending, proof, storage = globalThis.localSt
   return resolution;
 }
 
+export function archiveVerifiedBoostFromHistory(pending, history, storage = globalThis.localStorage) {
+  if (!pending?.pendingSignature || !pending.quote || !Array.isArray(history)) return false;
+  const proof = history.find(row => row?.signature === pending.pendingSignature
+    && row.quoteId === pending.quote.id && row.mint === pending.quote.mint && row.status === 'finalized');
+  if (!proof) return false;
+  archiveBoostPayment(pending, proof, storage);
+  return true;
+}
+
 export async function saveSignedBoostPayment(record, storage = globalThis.localStorage, locks = globalThis.navigator?.locks) {
   const persist = () => {
     const current = readPendingBoost(record.quote.mint, storage);

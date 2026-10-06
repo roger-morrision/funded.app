@@ -1,7 +1,7 @@
 import { exactLamports } from './exact-lamports.js';
 import { formatReceiptSol } from './receipt-export.js';
 import { emitPilotSignal, pilotInterruptedSignal, verifiedPilotLaunchRegistration } from './pilot-event-signals.js';
-import { validateBoostQuote, boostPaymentResolution, readPendingBoost, archiveBoostPayment, saveSignedBoostPayment } from './boost-checkout-recovery.js';
+import { validateBoostQuote, boostPaymentResolution, readPendingBoost, archiveBoostPayment, archiveVerifiedBoostFromHistory, saveSignedBoostPayment } from './boost-checkout-recovery.js';
 import { readHiddenChatAuthors, hideChatAuthor, resetHiddenChatAuthors } from './token-chat-preferences.js';
 import { createRoutePoller } from './route-polling.js';
 import { Buffer } from 'buffer';
@@ -1038,6 +1038,17 @@ async function loadExploreBoostHistory(mint){
   const response = await apiRequest(`/api/boosts?mint=${encodeURIComponent(mint)}`).catch(() => ({ available:false }));
   if (!response.available || boostCheckout.mint !== mint) return;
   exploreBoostHistory = response.data.history || [];
+  if (boostCheckout.pendingSignature && !boostCheckout.busy) {
+    try {
+      if (archiveVerifiedBoostFromHistory(boostCheckout, exploreBoostHistory)) {
+        boostCheckout.pendingSignature = null;
+        boostCheckout.quote = null;
+        boostCheckout.message = 'Previous payment verified. Choose another boost pack or request a new quote.';
+      }
+    } catch (error) {
+      boostCheckout.recoveryError = error.message || 'Saved payment recovery could not be completed. Retry the original payment before paying again.';
+    }
+  }
   if (response.data.active?.[mint]) verifiedBoosts[mint] = response.data.active[mint];
   else delete verifiedBoosts[mint];
   for (const asset of assets) if (asset.address === mint) asset.postLaunchBoostMultiplier = activeBoostMultiplier(verifiedBoosts[mint]);

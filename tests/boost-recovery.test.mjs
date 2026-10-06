@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateBoostQuote, boostPaymentResolution, readPendingBoost, archiveBoostPayment, saveSignedBoostPayment } from '../boost-checkout-recovery.js';
+import { validateBoostQuote, boostPaymentResolution, readPendingBoost, archiveBoostPayment, archiveVerifiedBoostFromHistory, saveSignedBoostPayment } from '../boost-checkout-recovery.js';
 const mint = '1'.repeat(32), signature = '1'.repeat(88);
 const quote = { id: 'boost_123_0123456789abcdef', mint, payer: mint, recipient: mint, packageId: '10x', cluster: 'devnet', lamports: 990000000, usd: 99, solUsd: 100, expiresAt: '2030-01-01T00:00:00Z', memo: 'funded.vip:boost:devnet:boost_123_0123456789abcdef' };
 const pending = { pendingSignature: signature, quote };
@@ -33,6 +33,36 @@ test('a failed archive write preserves the original pending payment', () => {
   storage.setItem = () => { throw new Error('full'); };
   assert.throws(() => archiveBoostPayment(pending, proof, storage));
   assert.equal(readPendingBoost(mint, storage).signature, signature);
+});
+test('verified history releases the matching saved payment for a second boost', () => {
+  const storage = memory();
+  const receipt = { status:'finalized', signature, quoteId:quote.id, mint, cluster:'devnet', slot:101 };
+  assert.equal(archiveVerifiedBoostFromHistory(pending, [{ ...receipt, quoteId:'other' }], storage), false);
+  assert.equal(readPendingBoost(mint, storage).signature, signature);
+  assert.equal(archiveVerifiedBoostFromHistory(pending, [receipt], storage), true);
+  assert.equal(readPendingBoost(mint, storage), null);
+  assert.equal(JSON.parse(storage.getItem(`funded.boost.resolved.${mint}`)).proof.signature, signature);
+});
+test('loading verified history unlocks the package picker after server-side recovery', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const vm = await import('node:vm');
+  const source = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const functions = source.slice(source.indexOf('let exploreBoostHistory = [];'), source.indexOf('function renderExploreBoostDialog(){'));
+  const storage = memory();
+  const checkout = { mint, quote, pendingSignature:signature, busy:false, message:'' };
+  const receipt = { status:'finalized', signature, quoteId:quote.id, mint, cluster:'devnet', slot:101 };
+  const context = {
+    boostCheckout:checkout, apiRequest:async () => ({ available:true, data:{ history:[receipt], active:{} } }),
+    archiveVerifiedBoostFromHistory:(item, history) => archiveVerifiedBoostFromHistory(item, history, storage),
+    verifiedBoosts:{}, assets:[], activeBoostMultiplier:() => 0,
+    scheduleBoostExpiryRefresh(){}, renderExploreAssets(){}, renderRegistry(){}, renderCoinPromotionBadge(){}, renderExploreBoostDialog(){},
+  };
+  vm.runInNewContext(functions, context);
+  await context.loadExploreBoostHistory(mint);
+  assert.equal(checkout.pendingSignature, null);
+  assert.equal(checkout.quote, null);
+  assert.match(checkout.message, /Choose another boost pack/);
+  assert.equal(readPendingBoost(mint, storage), null);
 });
 test('quotes require matching identity, network, price, safe units, future expiry and exact memo', () => {
   assert.equal(validateBoostQuote(quote, quote), quote);
