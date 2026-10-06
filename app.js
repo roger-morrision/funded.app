@@ -7389,7 +7389,6 @@ document.querySelector('#close-menu').addEventListener('click', () => setMenuOpe
 document.querySelector('#menu-backdrop').addEventListener('click', () => setMenuOpen(false, true));
 document.addEventListener('keydown', event => { if (event.key === 'Escape' && document.querySelector('#sidebar').classList.contains('open')) setMenuOpen(false, true); });
 const pageRouteTargets = {
-  pilot: '#creator-pilot',
   launch: '#launch-route-shell',
   list: '#list',
   explore: '#explore',
@@ -7428,11 +7427,12 @@ function focusCurrentPageRoute(){
   heading.focus({ preventScroll: true });
 }
 function requestedPageRoute(){
-  if (/^\/pilot\/?$/.test(location.pathname) && !location.hash) return 'pilot';
+  if (/^\/pilot\/?$/.test(location.pathname) && !location.hash) return 'launch';
   if (/^\/funded\/?$/.test(location.pathname) && !location.hash) return 'paid';
   if (/^\/list\/?$/.test(location.pathname) && !location.hash) return 'list';
   if (/^\/explore\/?$/.test(location.pathname)) return 'explore';
   const hash = location.hash.replace(/^#/, '');
+  if (hash === 'pilot') return 'launch';
   if (hash === 'overview' || hash === '') return 'overview';
   if (hash.startsWith('coin/')) return 'overview';
   if (hash === 'referral-faq') return 'referrals';
@@ -7483,7 +7483,6 @@ function syncPageRoute(){
   });
   let copy = {
     overview: ['Overview', 'Verified activity and next steps'],
-    pilot: ['Creator pilot', 'Test a transparent fee allocation with your community'],
     explore: ['Explore', 'Verified launches and market signals'],
     list: ['Get listed', 'Listing status and token mint check'],
     payments: ['Rewards', 'Claims and payout receipts'],

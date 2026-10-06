@@ -12,7 +12,7 @@ const routes = [
   '/#overview', '/#explore', '/#launch', '/#my-launches', '/#payments',
   '/#analytics-detail', '/#referrals', '/#community', '/#leaderboard',
   '/#airdrops', '/#buybacks', '/#capital-flow', '/#docs', '/#profile',
-  '/#privacy', '/#paid', '/#list', '/#pilot', `/token/${mint}`,
+  '/#privacy', '/#paid', '/#list', '/#launch', `/token/${mint}`,
 ];
 const widths = [320, 390, 768, 1280];
 if (evidenceDir) await mkdir(evidenceDir, { recursive: true });

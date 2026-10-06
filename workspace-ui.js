@@ -871,8 +871,8 @@ function tokenPage() {
 
 let lastSyncedRoute = null;
 function syncRoute() {
-  const route=location.hash.slice(1)||(/^\/funded\/?$/.test(location.pathname)?'paid':/^\/list\/?$/.test(location.pathname)?'list':/^\/pilot\/?$/.test(location.pathname)?'pilot':/^\/explore\/?$/.test(location.pathname)?'explore':'overview');
-  const mergedRoutes={community:'my-launches','capital-flow':'analytics-detail',buybacks:'paid'};
+  const route=location.hash.slice(1)||(/^\/funded\/?$/.test(location.pathname)?'paid':/^\/list\/?$/.test(location.pathname)?'list':/^\/pilot\/?$/.test(location.pathname)?'launch':/^\/explore\/?$/.test(location.pathname)?'explore':'overview');
+  const mergedRoutes={pilot:'launch',community:'my-launches','capital-flow':'analytics-detail',buybacks:'paid'};
   const pageRoute=mergedRoutes[route]|| (route==='funded-holder-token-rewards'?'payments':route.startsWith('docs/')?'docs':route);
   const tokenOrWallet = /^\/(token|wallet|launch\/coin)\//.test(location.pathname) && !location.hash || route.startsWith('coin/');
   $$('[data-workspace-route]').forEach(element => { element.hidden = tokenOrWallet || element.dataset.workspaceRoute !== pageRoute; });

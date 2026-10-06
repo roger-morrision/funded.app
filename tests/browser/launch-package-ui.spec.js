@@ -24,3 +24,16 @@ for (const width of [1440, 390]) test(`launch package and X previews update at $
   await expect(page.locator('#launch-x-followup')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('Home opens the live launch form and old pilot links resolve there', async ({ page }) => {
+  await page.goto('/#overview');
+  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  const create = page.locator('.hero-actions a.primary-button');
+  await expect(create).toHaveAttribute('href', '#launch');
+  await expect(create).toHaveText(/Create a coin/);
+  await expect(page.locator('.home-hero-kicker')).not.toContainText(/pilot|devnet/i);
+  await create.click();
+  await expect(page.locator('#launch-route-shell')).toBeVisible();
+  await page.goto('/#pilot');
+  await expect(page.locator('#launch-route-shell')).toBeVisible();
+});
