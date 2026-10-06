@@ -1,4 +1,4 @@
-import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { ComputeBudgetProgram, PublicKey, SystemProgram } from '@solana/web3.js';
 import { BOOST_MEMO_PROGRAM, boostMemo } from '../boost-offer.js';
 
 function address(value) { return value?.toBase58?.() || String(value || ''); }
@@ -14,8 +14,11 @@ export function verifyBoostPayment(transaction, quote) {
   if (address(keys[0]?.pubkey || keys[0]) !== quote.payer || !keys[0]?.signer || keys.filter(key => key.signer).length !== 1)
     throw new Error('The quoted wallet must be the only transaction signer and fee payer.');
   const instructions = message?.instructions || [];
-  if (instructions.length !== 2) throw new Error('The payment must contain exactly one transfer and one boost memo.');
-  const [transfer, memo] = instructions;
+  const paymentStart = instructions.findIndex(instruction => address(instruction.programId) !== ComputeBudgetProgram.programId.toBase58());
+  if (paymentStart < 0 || instructions.slice(paymentStart).some(instruction => address(instruction.programId) === ComputeBudgetProgram.programId.toBase58())
+    || instructions.length - paymentStart !== 2)
+    throw new Error('The payment must contain exactly one transfer and one boost memo.');
+  const [transfer, memo] = instructions.slice(paymentStart);
   if (address(transfer.programId) !== SystemProgram.programId.toBase58() || transfer.parsed?.type !== 'transfer'
     || transfer.parsed?.info?.source !== quote.payer || transfer.parsed?.info?.destination !== quote.recipient
     || Number(transfer.parsed?.info?.lamports) !== quote.lamports)

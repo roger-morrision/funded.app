@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { ComputeBudgetProgram, PublicKey, SystemProgram } from '@solana/web3.js';
 import { BOOST_MEMO_PROGRAM, BOOST_PACKAGES, activeBoostMultiplier, activeBoostPackages, activeBoosts, boostLamports, boostMemo } from '../boost-offer.js';
 import { verifyBoostPayment } from '../server/boost-proof.mjs';
 import { filterMarketRecords } from '../market-intelligence.js';
@@ -24,6 +24,17 @@ test('package pricing uses safe integer lamports and refuses stale or invalid ra
 
 test('receipt requires exact payer, recipient, amount, memo, and finalized proof', () => {
   assert.deepEqual(verifyBoostPayment(receipt(), quote), { slot:123, startsAt:'2026-10-02T00:01:00.000Z', expiresAt:'2026-10-02T12:01:00.000Z' });
+  const walletPreamble = receipt();
+  walletPreamble.transaction.message.instructions.unshift(
+    { programId:ComputeBudgetProgram.programId, data:'setComputeUnitLimit' },
+    { programId:ComputeBudgetProgram.programId, data:'setComputeUnitPrice' },
+  );
+  assert.deepEqual(verifyBoostPayment(walletPreamble, quote), { slot:123, startsAt:'2026-10-02T00:01:00.000Z', expiresAt:'2026-10-02T12:01:00.000Z' });
+  walletPreamble.transaction.message.instructions.push({ programId:SystemProgram.programId, parsed:{ type:'transfer', info:{ source:payer, destination:recipient, lamports:1 } } });
+  assert.throws(() => verifyBoostPayment(walletPreamble, quote), /exactly one transfer/);
+  walletPreamble.transaction.message.instructions.pop();
+  walletPreamble.transaction.message.instructions.push({ programId:ComputeBudgetProgram.programId, data:'lateComputeBudget' });
+  assert.throws(() => verifyBoostPayment(walletPreamble, quote), /exactly one transfer/);
   const badAmount = receipt(); badAmount.transaction.message.instructions[0].parsed.info.lamports -= 1;
   assert.throws(() => verifyBoostPayment(badAmount, quote), /transfer/);
   const badMemo = receipt(); badMemo.transaction.message.instructions[1].parsed = 'other';
