@@ -813,3 +813,21 @@ main.wallet-view>#wallet-page{display:block!important}
   .coin-page .coin-chart-panel .coin-panel-head { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; }
   .coin-page .coin-chart-panel .coin-panel-head .data-badge { justify-self:start; }
 }
+
+.coin-page .coin-rewards-policy-link{box-sizing:border-box;display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px 8px;max-width:100%;min-height:28px;padding:5px 8px;border:1px solid #496256;border-radius:6px;background:#15251f;color:#d6f2dd;font:10px/1.35 'DM Mono',monospace;text-align:left;cursor:pointer}
+.coin-page .coin-rewards-policy-link[hidden],.coin-page .coin-rewards-policy[hidden]{display:none!important}
+.coin-page .coin-rewards-policy-link>span:first-child{color:#a7ccb3;text-transform:uppercase}
+.coin-page .coin-rewards-policy-link strong{color:#f0f8ef;font-weight:700;overflow-wrap:anywhere}
+.coin-page .coin-rewards-policy-link:hover,.coin-page .coin-rewards-policy-link:focus-visible{border-color:#a2d1ab;background:#1c3026;outline-offset:2px}
+.coin-page .coin-rewards-policy{scroll-margin-top:90px;margin:var(--coin-section-gap) 0 0;padding:18px 20px;border:1px solid #365b4b;border-radius:10px;background:#101e1b}
+.coin-page .coin-rewards-policy-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.coin-page .coin-rewards-policy-heading .eyebrow{margin:0;color:#a7ccb3}
+.coin-page .coin-rewards-policy-heading h2{margin:4px 0 0;color:#f0f8ef;font-size:19px}
+.coin-page .coin-rewards-policy-intro,.coin-page .coin-rewards-policy-note,.coin-page .coin-rewards-protocol-detail{margin:10px 0 0;color:#aec4b6;font-size:11px;line-height:1.5}
+.coin-page .coin-rewards-policy-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:15px 0 0}
+.coin-page .coin-rewards-policy-grid>div{min-width:0;padding:12px;border:1px solid #345044;border-radius:7px;background:#152720}
+.coin-page .coin-rewards-policy-grid dt{color:#accab7;font:10px/1.4 'DM Mono',monospace;overflow-wrap:anywhere}
+.coin-page .coin-rewards-policy-grid dd{margin:6px 0 0;color:#f1f8ef;font:700 19px/1.2 'DM Mono',monospace}
+.coin-page .coin-rewards-policy-note{padding-top:10px;border-top:1px solid #345044}
+@media(max-width:700px){.coin-page .coin-rewards-policy-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.coin-page .coin-rewards-policy{padding:15px}.coin-page .coin-rewards-policy-heading{flex-wrap:wrap}.coin-page .coin-rewards-policy-link{width:100%}}

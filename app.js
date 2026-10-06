@@ -51,6 +51,7 @@ import { exploreSocialLinks } from './explore-social-links.js';
 import { formatSolMetric, readCurveMetrics, readPumpSwapMetrics } from './explore-onchain-metrics.js';
 import { publishVerifiedCurves } from './verified-curve-state.js';
 import { buildTradePricePath, filterAndSortRecentTrades, selectObservedTradeWindow, summarizeTokenAccounts, verifiedRegistryLaunch } from './coin-detail-model.js';
+import { formatPolicyPercent, verifiedCoinRewardsPolicy } from './coin-rewards-policy.js';
 import { buildCoinSummary } from './coin-summary-model.js';
 import { canSignTransactions, connectWalletProvider, selectRememberedWalletProvider, walletAddress, walletLaunches } from './wallet-core.js';
 import { TOKEN_CHAT_MAX_LENGTH, normalizeTokenChatText } from './token-chat.js';
@@ -1292,6 +1293,7 @@ function renderCoinPromotionBadge(){
   packageElement.innerHTML = `<span class="coin-package-bag" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9h16l-1.3 11H5.3L4 9Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg><span>${symbol}</span></span><span class="coin-package-copy"><small>Launch package</small><strong>${presentation.label}</strong></span>`;
   holder.append(packageElement);
   renderCoinRegistryIdentity(mint);
+  renderCoinRewardsPolicy(verifiedLaunchPolicyForMint(mint), mint);
 }
 window.fundedRenderCoinPromotionBadge = renderCoinPromotionBadge;
 function renderCoinRegistryIdentity(mint){
@@ -7773,6 +7775,28 @@ function renderCoinCreatorHeader(address){
   link.href = `/wallet/${encodeURIComponent(address)}`;
   link.hidden = false;
 }
+function renderCoinRewardsPolicy(policy, mint = getCoinMintAddress()){
+  const trigger = document.querySelector('#coin-rewards-policy-link');
+  const panel = document.querySelector('#coin-rewards-policy');
+  if (!trigger || !panel) return;
+  const verified = verifiedCoinRewardsPolicy(policy, mint, EXPLORE_CLUSTER)
+    || verifiedCoinRewardsPolicy(coinSummaryLaunch, mint, EXPLORE_CLUSTER)
+    || verifiedCoinRewardsPolicy(verifiedLaunchPolicyForMint(mint), mint, EXPLORE_CLUSTER);
+  trigger.hidden = panel.hidden = !verified;
+  if (!verified) { trigger.onclick = null; return; }
+  document.querySelector('#coin-rewards-policy-compact').textContent = verified.compact;
+  document.querySelector('#coin-rewards-creator').textContent = formatPolicyPercent(verified.creator);
+  document.querySelector('#coin-rewards-holders').textContent = formatPolicyPercent(verified.holders);
+  document.querySelector('#coin-rewards-x').textContent = formatPolicyPercent(verified.x);
+  document.querySelector('#coin-rewards-x-label').textContent = verified.xAccount ? `X account ${verified.xAccount}` : 'X account';
+  document.querySelector('#coin-rewards-protocol').textContent = formatPolicyPercent(verified.protocol);
+  const programs = verified.protocolPrograms;
+  document.querySelector('#coin-rewards-protocol-detail').textContent = `Within the protocol share: operations ${formatPolicyPercent(programs.operations)} · referrals ${formatPolicyPercent(programs.referrals)} · community ${formatPolicyPercent(programs.community)} · buyback ${formatPolicyPercent(programs.buyback)} of collected creator fees.`;
+  trigger.onclick = () => {
+    panel.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    panel.querySelector('h2')?.focus({ preventScroll: true });
+  };
+}
 function compactCoinSocials(){
   const labels = {
     '#coin-explorer-link': ['external', 'Open token on Solana Explorer', 'Explorer unavailable'],
@@ -8720,6 +8744,7 @@ async function loadCoinOnChain(mintAddress){
       ? verifiedRegistryLaunch(launchesResult.value.data, mintAddress, EXPLORE_CLUSTER)
       : null;
     coinSummaryLaunch = registeredLaunch;
+    renderCoinRewardsPolicy(registeredLaunch, mintAddress);
     const symbol = metadata.symbol || registeredLaunch?.symbol || `${mintAddress.slice(0, 4)}…`;
     const name = metadata.name || registeredLaunch?.name || 'Unnamed on-chain token';
     coinTradeEstimate = { mint: mintAddress, symbol, curve, graduatedPool, decimals };
