@@ -4,6 +4,7 @@ import { verifiedCurveProgress } from './verified-curve-state.js';
 import { createTokenCardActions } from './token-card-controls.js';
 import { tokenCardData } from './token-card-data.js';
 import { airdropClaimState } from './airdrop-directory-model.js';
+import { validateSolClaimRecipient } from './sol-claim-policy.js';
 import './automatic-rewards.css';
 
 const panels = document.querySelectorAll('[data-automatic-rewards]');
@@ -171,7 +172,6 @@ function renderSimpleRewardCards(kind) {
   }
   for (const launch of launches) {
     const share = Number(launch.feeDistribution.creatorDirected.shares[shareKey]);
-    const cardData = tokenCardData({ mint: launch.mint, policy: launch, receipts: homePaidSummary });
     const card = document.createElement('article'); card.className = 'home-reward-token-card'; card.dataset.rewardMint = launch.mint;
     const head = document.createElement('div'); head.className = 'home-reward-token-head';
     const avatar = document.createElement('span'); avatar.className = 'home-reward-token-logo'; avatar.setAttribute('aria-hidden', 'true');
@@ -226,11 +226,18 @@ function renderSimpleRewardCards(kind) {
     } else {
       const handle = launch.feeDistribution.creatorDirected.recipients?.xAccount;
       detail.textContent = homeXRouteReady ? 'X claim after fee collection' : 'X payouts unavailable';
-      if (handle) { const line = document.createElement('span'); line.textContent = handle; snapshot.append(line); }
+      const recipient = validateSolClaimRecipient({ handle, percent: share });
+      if (recipient.valid && recipient.handle) {
+        const profile = document.createElement('a');
+        profile.href = `https://x.com/${encodeURIComponent(recipient.handle.slice(1))}`;
+        profile.target = '_blank';
+        profile.rel = 'noopener noreferrer';
+        profile.textContent = `${recipient.handle} ↗`;
+        profile.setAttribute('aria-label', `Open ${recipient.handle} on X in a new tab`);
+        snapshot.append(profile);
+      }
     }
     detail.hidden = !detail.textContent; snapshot.hidden = !snapshot.childElementCount;
-    const evidence = document.createElement('small'); evidence.className = 'token-card-evidence';
-    evidence.textContent = `Policy · receipts ${cardData.receiptState === 'indexed' ? 'indexed' : cardData.receiptState === 'partial' ? 'partial' : 'unavailable'}`;
     const timing = document.createElement('div'); timing.className = 'home-rewards-timing'; timing.hidden = true;
     const timingLabel = document.createElement('span'); timingLabel.className = 'home-reward-clock-label';
     const timingValue = document.createElement('b'); timingValue.className = 'home-reward-clock';
@@ -239,7 +246,7 @@ function renderSimpleRewardCards(kind) {
     const link = document.createElement('a'); link.className = 'home-reward-token-link';
     link.href = `/token/${encodeURIComponent(launch.mint)}`;
     link.setAttribute('aria-label', `Open ${launch.symbol || launch.name || 'token'} details`);
-    card.append(link, head, values, detail, evidence, snapshot, timing, createTokenCardActions({ mint:launch.mint, symbol:launch.symbol, name:launch.name, className:'home-reward-token-actions' }));
+    card.append(link, head, values, detail, snapshot, timing, createTokenCardActions({ mint:launch.mint, symbol:launch.symbol, name:launch.name, className:'home-reward-token-actions' }));
     track.append(card); loadFundedTokenLogo(avatar, launch);
   }
   if (track.querySelector('article:first-of-type')?.dataset.rewardMint === previousMint) track.scrollLeft = previousScroll;

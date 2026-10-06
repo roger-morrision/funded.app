@@ -126,6 +126,15 @@ try {
   assert.match(await xCard.textContent(), /X payouts unavailable/);
   assert.match(await xCard.textContent(), /Unclaimed0\.25 SOL/);
   assert.match(await xCard.textContent(), /Claimed0\.25 SOL/);
+  assert.doesNotMatch(await xCard.textContent(), /Policy · receipts/);
+  const xProfile = xCard.locator('.home-reward-snapshot a');
+  assert.equal(await xProfile.getAttribute('href'), 'https://x.com/qa_x');
+  assert.equal(await xProfile.getAttribute('target'), '_blank');
+  assert.match(await xProfile.getAttribute('rel'), /noopener noreferrer/);
+  assert(await xProfile.evaluate(link => {
+    const rect = link.getBoundingClientRect();
+    return document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2) === link;
+  }), 'The X profile link must be clickable above the card-wide token link');
   assert.doesNotMatch(await xCard.textContent(), /Paid wallets|SOL received/);
   assert.doesNotMatch(await xCard.textContent(), /Airdrop|SOL allocation/);
   const before = await first.locator('.home-reward-clock').textContent();

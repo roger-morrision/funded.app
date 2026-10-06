@@ -160,6 +160,9 @@ body.page-route-overview .home-rewards-grid .home-reward-token-proof {
 }
 .home-reward-snapshot { display:grid; gap:5px; margin:3px 0 8px; padding:8px 0; border-top:1px solid #355047; }
 .home-reward-snapshot span { color:#d6efe2; font:600 11px/1.4 'DM Mono',monospace; }
+.home-reward-snapshot a { position:relative; z-index:2; width:fit-content; max-width:100%; color:#d6efe2; font:600 11px/1.4 'DM Mono',monospace; text-decoration:none; overflow-wrap:anywhere; }
+.home-reward-snapshot a:hover { color:#f4a340; text-decoration:underline; }
+.home-reward-snapshot a:focus-visible { outline:2px solid #f4a340; outline-offset:3px; }
 body.page-route-overview .home-reward-token-proof[hidden],
 body.page-route-overview .home-reward-snapshot[hidden],
 body.page-route-overview .home-rewards-timing[hidden] { display:none; }
