@@ -10,9 +10,9 @@ const makePolicy = () => ({
     solClaimPercent:10, xRecipient:'@fundedvip' }),
 });
 
-test('verified token policy shows creator, holder, X, and protocol shares of collected fees', () => {
+test('verified token policy matches the short creator, holder, and X line on home cards', () => {
   const result = verifiedCoinRewardsPolicy(makePolicy(), mint, 'devnet');
-  assert.equal(result.compact, 'Creator 50% · Holders 20% · X 10% · Protocol 20%');
+  assert.equal(result.compact, 'Creator 50% · Holders 20% · @fundedvip 10%');
   assert.equal(result.xAccount, '@fundedvip');
   assert.deepEqual(result.protocolPrograms, { operations:14, referrals:3, community:2, buyback:1 });
 });
@@ -34,11 +34,14 @@ test('unverified, mismatched, or inconsistent policies cannot show a reward spli
   }
 });
 
-test('zero holder and X shares remain explicit in the breakdown without crowding the header', () => {
+test('zero shares are omitted from the compact line', () => {
   const policy = makePolicy();
   policy.feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent:80, holderAirdropPercent:0, solClaimPercent:0 });
   const result = verifiedCoinRewardsPolicy(policy, mint, 'devnet');
-  assert.equal(result.compact, 'Creator 80% · Protocol 20%');
+  assert.equal(result.compact, 'Creator 80%');
   assert.equal(result.holders, 0);
   assert.equal(result.x, 0);
+  policy.feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent:0, holderAirdropPercent:0,
+    solClaimPercent:80, xRecipient:'@fundedvip' });
+  assert.equal(verifiedCoinRewardsPolicy(policy, mint, 'devnet').compact, '@fundedvip 80%');
 });

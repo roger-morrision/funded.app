@@ -30,10 +30,9 @@ export function verifiedCoinRewardsPolicy(policy, mint, cluster) {
     || !matches(Object.values(protocolPrograms).reduce((sum, value) => sum + value, 0), protocol)) return null;
 
   const compact = [
-    `Creator ${formatPolicyPercent(creator)}`,
+    creator > 0 ? `Creator ${formatPolicyPercent(creator)}` : null,
     holders > 0 ? `Holders ${formatPolicyPercent(holders)}` : null,
-    x > 0 ? `X ${formatPolicyPercent(x)}` : null,
-    `Protocol ${formatPolicyPercent(protocol)}`,
+    x > 0 ? `${xAccount} ${formatPolicyPercent(x)}` : null,
   ].filter(Boolean).join(' · ');
   return { creator, holders, x, protocol, xAccount: x > 0 ? xAccount : null, protocolPrograms, compact };
 }
