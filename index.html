@@ -23,12 +23,17 @@
           const script = event.target;
           if (!(script instanceof HTMLScriptElement) || script.type !== 'module') return;
           const url = new URL(script.src, location.href);
-          if (url.origin !== location.origin || (url.pathname !== '/bootstrap.js' && !url.pathname.startsWith('/assets/'))) return;
+          if (url.origin !== location.origin || (!['/bootstrap-entry.js', '/bootstrap-gate.js', '/bootstrap.js'].includes(url.pathname) && !url.pathname.startsWith('/assets/'))) return;
           if (['ready', 'degraded'].includes(document.body?.dataset.bootstrapState)) return;
           document.documentElement.dataset.bootstrapEntryFailed = 'true';
           showStartupFailure();
         }, true);
         document.addEventListener('DOMContentLoaded', showStartupFailure, { once: true });
+        window.setTimeout(() => {
+          if (document.body?.dataset.bootstrapState !== 'loading') return;
+          document.documentElement.dataset.bootstrapEntryFailed = 'true';
+          showStartupFailure();
+        }, 10_000);
       })();
     </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

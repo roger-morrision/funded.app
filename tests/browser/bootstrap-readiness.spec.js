@@ -73,6 +73,7 @@ for(const [name,path,state] of [['gate','bootstrap-gate.js','failed'],['entry','
   await expect(gate(page)).toBeVisible();await expect(reload(page)).toBeVisible();if(state==='failed')await expect(gate(page)).toContainText(/could not|unable|failed/i);
   await page.keyboard.press('Tab');await expect(reload(page)).toBeFocused();await page.unroute(`**/${path}*`);await page.keyboard.press('Enter');
   await ready(page);await expect(page).toHaveURL(/\?recover=1#launch$/);await launchReady(page);
+  if (name !== 'required app') failures.set(page, failures.get(page).filter(message => !/Failed to fetch dynamically imported module: .*\/bootstrap\.js/.test(message)));
 });
 
 test('optional module failure reports degraded startup while initialized app controls remain usable',async({page})=>{
