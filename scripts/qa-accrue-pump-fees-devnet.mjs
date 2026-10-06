@@ -7,6 +7,7 @@ import { finalizedSend } from '../server/automatic-reward-chain.mjs';
 
 const mint = new PublicKey(process.argv[2] || 'FWmi66ecpuAYkcpjT86i2RsBKZhm2cJdnKXqcoreW8DH');
 const side = process.argv[4] || 'buy';
+const execute = process.argv.includes('--execute');
 if (!['buy', 'sell'].includes(side)) throw new Error('QA trade side must be buy or sell');
 const amount = Number(process.argv[3] || (side === 'buy' ? '0.5' : '16000000'));
 if (side === 'buy' && !(amount > 0 && amount <= 0.5)) throw new Error('QA buy limit is 0.5 Devnet SOL');
@@ -25,6 +26,13 @@ const tokens = async() => (await connection.getParsedTokenAccountsByOwner(trader
   .reduce((sum, row) => sum + BigInt(row.account.data.parsed.info.tokenAmount.amount), 0n);
 const before = await tokens();
 if (side === 'sell' && before < BigInt(Math.ceil(amount * 1_000_000))) throw new Error('QA trader has insufficient tokens for sell');
+const payerBalance = await connection.getBalance(trader.publicKey, 'finalized');
+if (side === 'buy' && payerBalance < Math.ceil((quote.maximumSpendSol + 0.02) * 1_000_000_000))
+  throw new Error('QA trader lacks SOL for the reviewed buy quote and fee buffer');
+console.log(JSON.stringify({ stage:'preflight', execute, cluster:'devnet', mint:mint.toBase58(),
+  trader:trader.publicKey.toBase58(), pool:pool.toBase58(), side, amount, quote,
+  payerBalanceLamports:payerBalance, traderTokenBeforeBaseUnits:String(before) }));
+if (!execute) process.exit(0);
 const solBefore = side === 'sell' ? await connection.getBalance(trader.publicKey, 'finalized') : null;
 const signature = await finalizedSend(connection, new Transaction().add(...trade.instructions), [trader]);
 const after = await tokens();
