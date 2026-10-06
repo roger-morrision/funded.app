@@ -3139,9 +3139,26 @@ function renderVerifiedReceiptEvidence(){
     const identity = document.createElement('span');
     identity.className = 'payment-history-identity';
     const name = document.createElement('strong');
-    name.textContent = 'SOL payout';
-    const recipient = document.createElement('small');
-    recipient.textContent = shortAddress(receipt.to);
+    name.textContent = receipt.source === 'solana-keeper-referral-claim' ? 'Referral reward' : receipt.source === 'mint-router-settle-mint' ? 'X account reward' : 'SOL payout';
+    const recipient = document.createElement('span');
+    recipient.className = 'payment-history-receiver';
+    const receiverLabel = document.createElement('small');
+    receiverLabel.textContent = 'Receiver';
+    const receiverWallet = document.createElement('a');
+    receiverWallet.className = 'payment-history-wallet';
+    receiverWallet.textContent = receipt.to;
+    receiverWallet.href = exploreExplorer(`address/${encodeURIComponent(receipt.to)}`);
+    receiverWallet.target = '_blank';
+    receiverWallet.rel = 'noopener noreferrer';
+    receiverWallet.title = `View receiver wallet ${receipt.to} on Solana Explorer`;
+    const copyReceiver = document.createElement('button');
+    copyReceiver.type = 'button';
+    copyReceiver.className = 'payment-copy-receiver';
+    copyReceiver.dataset.receiverWallet = receipt.to;
+    copyReceiver.setAttribute('aria-label', `Copy receiver wallet ${shortAddress(receipt.to)}`);
+    copyReceiver.title = 'Copy receiver wallet';
+    copyReceiver.innerHTML = icon('copy');
+    recipient.append(receiverLabel, receiverWallet, copyReceiver);
     identity.append(name, recipient);
     const actions = document.createElement('span');
     actions.className = 'payment-history-actions';
@@ -3170,6 +3187,12 @@ function renderVerifiedReceiptEvidence(){
         : 'No verified payout receipts are available.';
   renderExtendedAnalyticsDashboard();
 }
+document.addEventListener('click', async event => {
+  const copy = event.target.closest('.payment-copy-receiver');
+  if (!copy) return;
+  try { await navigator.clipboard.writeText(copy.dataset.receiverWallet); showToast('Receiver wallet copied'); }
+  catch { showToast('Could not copy receiver wallet'); }
+});
 function renderOnchainReportState(verified){
   // A direct detail URL can render analytics before the Explore registry has
   // completed its first check. An empty pre-fetch array is not a zero result.

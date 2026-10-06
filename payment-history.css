@@ -40,6 +40,35 @@
   font: 10px 'DM Mono', monospace;
 }
 
+.payment-history-receiver {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  color: #8fa0b7;
+  font: 10px 'DM Mono', monospace;
+}
+
+.payment-history-receiver small { flex: none; margin: 1px 0 0; }
+.payment-history-wallet {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #aebfff;
+  text-decoration: none;
+}
+.payment-history-wallet:hover { color: #fff; text-decoration: underline; }
+.payment-history-wallet:focus-visible { outline: 2px solid #a9bcff; outline-offset: 2px; }
+.payment-copy-receiver {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #aebfff;
+  cursor: pointer;
+}
+.payment-copy-receiver svg { width: 13px; height: 13px; }
+.payment-copy-receiver:focus-visible { outline: 2px solid #a9bcff; outline-offset: 2px; }
+
 .payment-history-actions {
   display: flex;
   align-items: center;
@@ -86,6 +115,8 @@
 @media (max-width: 390px) {
   .x-claim-activity .payment-history-row,
   #payment-dialog-list .payment-history-row { gap: 6px; }
+  .payment-history-receiver { flex-wrap: wrap; }
+  .payment-history-receiver small { width: 100%; }
   .payment-history-actions { gap: 6px; }
   .payment-history-actions .payment-amount { font-size: 10px; }
 }

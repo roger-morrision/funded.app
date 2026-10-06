@@ -43,7 +43,19 @@ export function mountReceiptHistory(container, id, cluster, isCurrent = () => tr
         const detail = document.createElement('small'); const paidAt = receiptPaidAtDate(receipt.paidAt);
         detail.textContent = `${cluster === 'devnet' ? 'Devnet' : 'Mainnet'} · Finalized · ${paidAt ? `Recorded payment time: ${paidAt.toLocaleString()}` : 'Recorded payment time unavailable'}`;
         const slot = document.createElement('small'); slot.textContent = `Slot ${receipt.slot.toLocaleString()}`;
-        article.append(amount, detail, slot, link); rows.append(article);
+        article.append(amount, detail, slot);
+        if (typeof receipt.recipient === 'string' && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(receipt.recipient)) {
+          const receiver = document.createElement('small');
+          receiver.className = 'receipt-history-receiver';
+          receiver.append('Receiver: ');
+          const wallet = document.createElement('a');
+          wallet.textContent = receipt.recipient;
+          wallet.href = `https://explorer.solana.com/address/${receipt.recipient}?cluster=${encodeURIComponent(cluster)}`;
+          wallet.target = '_blank'; wallet.rel = 'noopener noreferrer';
+          receiver.append(wallet);
+          article.append(receiver);
+        }
+        article.append(link); rows.append(article);
       }
       lastCursor = after; lastPage = number; pageNumber = number; cursor = typeof data.nextCursor === 'string' ? data.nextCursor : '';
       const incomplete = selected.omittedCount > 0 || !['onchain-indexed', 'no-records'].includes(data.status);

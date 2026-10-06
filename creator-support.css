@@ -47,6 +47,7 @@
 .support-history .creator-receipts{display:grid;gap:10px;margin-bottom:16px}
 .support-history .creator-card{display:flex;flex-direction:column;gap:8px}
 .support-history .creator-card a{min-height:28px;display:inline-flex;align-items:center}
+.support-history .receipt-history-receiver{overflow-wrap:anywhere}
 .launch-dialog .image-picker{position:relative;min-height:64px}
 .launch-dialog .image-picker input[type="file"]{display:block;position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0;padding:0}
 .launch-dialog .image-picker:focus-within{outline:3px solid #cbb8ff;outline-offset:3px}
