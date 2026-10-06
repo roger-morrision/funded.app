@@ -27,7 +27,10 @@ function transactionBalances(transaction, signature) {
     if (index < 0 || !Number.isSafeInteger(pre[index]) || !Number.isSafeInteger(post[index])) return null;
     return post[index] - pre[index];
   };
-  return { delta, slot: transaction.slot, blockTime: transaction.blockTime ?? null };
+  const feeLamports = transaction.meta?.fee;
+  return { delta, slot: transaction.slot, blockTime: transaction.blockTime ?? null,
+    feeLamports: Number.isSafeInteger(feeLamports) && feeLamports >= 0 ? feeLamports : null,
+    feePayer: keys[0] || null };
 }
 
 function validRecord(record) {
@@ -75,7 +78,12 @@ export function verifyPayoutReceipt(record, transaction) {
   const amount = payoutReceiptLamports(record);
   if (amount === null) return null;
   const balances = transactionBalances(transaction, record.signature);
-  if (!balances || balances.delta(record.to) !== amount || balances.delta(record.from) > -amount) return null;
+  const received = balances?.delta(record.to);
+  const expectedReceived = balances?.feePayer === record.to && balances.feeLamports != null
+    ? amount - balances.feeLamports : amount;
+  if (!balances || received !== expectedReceived || received <= 0 || balances.delta(record.from) > -amount) return null;
   return { signature: record.signature, claimId: record.claimId || null, source: record.source,
-    to: record.to, amountLamports: amount, slot: balances.slot, blockTime: balances.blockTime };
+    to: record.to, amountLamports: amount, actualReceivedLamports: received,
+    feeLamports: balances.feeLamports, feePayer: balances.feePayer,
+    slot: balances.slot, blockTime: balances.blockTime };
 }

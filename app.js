@@ -2333,7 +2333,6 @@ let exploreFeedAvailable = false;
 let exploreProviderStatus = 'On-chain only · loading';
 const exploreActivityCache = new Map();
 let exploreScannedCount = 0;
-const payments = [];
 
 function readWatchlist(){
   const raw = localStorage.getItem(WATCHLIST_KEY);
@@ -3030,6 +3029,7 @@ function renderHomeOnchainSnapshot(verified){
   renderHomeKpiDashboard(assets);
 }
 let receiptEvidence = null;
+let paymentHistoryEvidence = null;
 let homeFeeAllocations = null;
 let receiptEvidenceChecked = false;
 let analyticsSummary = null;
@@ -3142,17 +3142,20 @@ function renderVerifiedReceiptEvidence(){
     payoutCard.querySelector('span').textContent = 'Verified payouts';
     payoutCard.querySelector('small').innerHTML = `<b>COUNT</b>${!receiptEvidenceChecked ? 'Checking receipt evidence' : !receiptEvidence || receiptEvidence.status === 'unavailable' ? 'Receipt verification unavailable' : 'No verified payouts in the checked window'}`;
   }
+  const historyPayouts = Array.isArray(paymentHistoryEvidence?.verifiedPayouts) ? paymentHistoryEvidence.verifiedPayouts : [];
   const list = document.querySelector('#payment-list');
   const tape = document.querySelector('#payment-dialog-list');
   if (!list || !tape) return;
   list.replaceChildren();
-  for (const receipt of payouts) {
+  for (const receipt of historyPayouts) {
     const row = document.createElement('div');
     row.className = 'payment-row payment-history-row';
     const identity = document.createElement('span');
     identity.className = 'payment-history-identity';
     const name = document.createElement('strong');
-    name.textContent = receipt.source === 'solana-keeper-referral-claim' ? 'Referral reward' : receipt.source === 'mint-router-settle-mint' ? 'X account reward' : 'SOL payout';
+    name.textContent = ({ 'solana-keeper-referral-claim':'Referral reward', 'mint-router-settle-mint':'X account reward',
+      'automatic-creator':'Creator fee', 'automatic-holder':'Holder reward', 'automatic-operations':'Operations payout',
+      'automatic-community':'Community payout', 'automatic-x':'X account reward' })[receipt.source] || 'SOL payout';
     const recipient = document.createElement('span');
     recipient.className = 'payment-history-receiver';
     const receiverLabel = document.createElement('small');
@@ -3172,12 +3175,24 @@ function renderVerifiedReceiptEvidence(){
     copyReceiver.title = 'Copy receiver wallet';
     copyReceiver.innerHTML = icon('copy');
     recipient.append(receiverLabel, receiverWallet, copyReceiver);
-    identity.append(name, recipient);
+    const paid = document.createElement('small');
+    paid.className = 'payment-history-time';
+    paid.textContent = Number.isSafeInteger(receipt.blockTime) && receipt.blockTime > 0
+      ? `Paid ${new Date(receipt.blockTime * 1000).toLocaleString('en-US', { timeZone:'UTC', year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:false })} UTC`
+      : 'Payout time unavailable';
+    const gross = document.createElement('small');
+    gross.className = 'payment-history-gross';
+    gross.textContent = `Payout ${formatTokenBaseAmount(receipt.amountLamports, 9, 9)} SOL`;
+    const fee = document.createElement('small');
+    fee.className = 'payment-history-fee';
+    fee.textContent = receipt.feeLamports == null ? 'Transaction fee unavailable'
+      : `Transaction fee ${formatTokenBaseAmount(receipt.feeLamports, 9, 9)} SOL · paid by ${receipt.feePayer === receipt.to ? 'receiver' : shortAddress(receipt.feePayer)}`;
+    identity.append(name, recipient, paid, gross, fee);
     const actions = document.createElement('span');
     actions.className = 'payment-history-actions';
     const amount = document.createElement('span');
     amount.className = 'payment-amount';
-    amount.textContent = `${formatTokenBaseAmount(receipt.amountLamports, 9, 9)} SOL`;
+    amount.textContent = `Received ${formatTokenBaseAmount(receipt.actualReceivedLamports, 9, 9)} SOL`;
     const proof = document.createElement('a');
     proof.className = 'payment-receipt-link';
     proof.href = exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`);
@@ -3190,14 +3205,13 @@ function renderVerifiedReceiptEvidence(){
     row.append(identity, actions);
     list.append(row);
   }
-  if (payouts.length) tape.replaceChildren(...[...list.children].map(row => row.cloneNode(true)));
-  else tape.innerHTML = '<p class="empty-state">No verified payout receipts are available on Solana yet. The payment tape will populate only after on-chain receipts are indexed.</p>';
-  const footnote = document.querySelector('#payments .panel-footnote');
-  if (footnote) footnote.textContent = payouts.length
-    ? `${payouts.length} verified receipt${payouts.length === 1 ? '' : 's'} · checked window${receiptEvidence.status === 'partial' ? ' · partial coverage' : ''}`
-    : receiptEvidence?.status === 'unverified-records' ? 'Recorded payouts have no matching confirmed balance-delta proof.'
-      : receiptEvidence?.status === 'unavailable' || !receiptEvidence ? 'Payout receipt verification is unavailable.'
-        : 'No verified payout receipts are available.';
+  if (historyPayouts.length) tape.replaceChildren(...[...list.children].map(row => row.cloneNode(true)));
+  else tape.innerHTML = '<p class="empty-state">No finalized payout receipts are available yet.</p>';
+  const footnote = document.querySelector('#payment-history-footnote');
+  if (footnote) footnote.textContent = historyPayouts.length
+    ? `${historyPayouts.length} finalized payment${historyPayouts.length === 1 ? '' : 's'} · transaction fee is paid by the listed fee payer${paymentHistoryEvidence.status === 'partial' ? ' · partial coverage' : ''}`
+    : paymentHistoryEvidence?.status === 'partial' || !paymentHistoryEvidence ? 'Payout receipt verification is unavailable or incomplete.'
+      : 'No finalized payout receipts are available.';
   renderExtendedAnalyticsDashboard();
 }
 document.addEventListener('click', async event => {
@@ -4279,13 +4293,15 @@ async function loadReceiptEvidence(signal){
   if (receiptEvidenceLoading) return;
   receiptEvidenceLoading = true;
   try {
-    const [result, summary] = await Promise.all([
+    const [result, summary, history] = await Promise.all([
       apiRequest('/api/evidence/receipts', { signal }).catch(() => null),
       apiRequest('/api/analytics/summary', { signal }).catch(() => null),
+      apiRequest('/api/evidence/payment-history', { signal }).catch(() => null),
     ]);
     signal?.throwIfAborted();
     const data = result?.data;
     receiptEvidence = result?.available === true && data?.cluster === EXPLORE_CLUSTER ? data : null;
+    paymentHistoryEvidence = history?.available === true && history.data?.cluster === EXPLORE_CLUSTER ? history.data : null;
     receiptEvidenceChecked = true;
     analyticsSummary = summary?.available === true && summary.data?.homeFeeAllocations?.cluster === EXPLORE_CLUSTER
       ? summary.data : null;
@@ -4295,10 +4311,8 @@ async function loadReceiptEvidence(signal){
     renderHomeKpiDashboard(assets);
   } finally { receiptEvidenceLoading = false; }
 }
-document.querySelector('#payment-list').innerHTML = payments.map(p => `<div class="payment-row"><span class="payment-avatar">${p[0]}</span><span><strong>${p[1]}</strong><small>${p[2]}</small></span><span class="payment-amount">${p[3]}<small> sample</small></span></div>`).join('');
-document.querySelector('#payment-dialog-list').innerHTML = payments.length
-  ? document.querySelector('#payment-list').innerHTML
-  : '<p class="empty-state">No verified payout receipts are available on Solana yet. The payment tape will populate only after on-chain receipts are indexed.</p>';
+document.querySelector('#payment-list').innerHTML = '<p class="empty-state">Checking finalized payout receipts…</p>';
+document.querySelector('#payment-dialog-list').innerHTML = '<p class="empty-state">Checking finalized payout receipts…</p>';
 loadReceiptEvidence();
 createRoutePoller({ run: signal => loadReceiptEvidence(signal), active: () => coinRouteRequested() || ['overview', 'payments', 'analytics-detail', 'buybacks'].includes(requestedPageRoute()), intervalMs: 60_000 });
 renderWatchlist();

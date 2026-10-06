@@ -50,6 +50,7 @@ import { buildRewardCycle, validateRewardConfig } from '../reward-policy.js';
 import { analyzeLaunchActivity } from '../anti-sniper-policy.js';
 import { buildProductionReadiness, isKeeperEnabled } from '../production-readiness.js';
 import { createReceiptEvidenceReader } from './receipt-service.mjs';
+import { createPaymentHistoryReader } from './payment-history.mjs';
 import { assertObservedClaim } from './claim-state.mjs';
 import { receiptWorkerStatus } from './receipt-worker-status.mjs';
 import { buildTerminalSignal, creatorReputation, immutableLaunchReview, normalizeXIntake, quoteAssetCatalog } from '../stonk-features.js';
@@ -672,6 +673,9 @@ const readReceiptEvidence = createReceiptEvidenceReader({ store, cluster: solana
 const readFinalizedEvidence = createReceiptEvidenceReader({ store, cluster: solanaCluster, commitment:'finalized',
   connectionFactory: () => new Connection(solanaRpcUrl, 'finalized'),
   officialGenesis: () => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash() });
+const readPaymentHistory = createPaymentHistoryReader({ readEvidence:readFinalizedEvidence, rewardsStore:automaticRewardStore,
+  connectionFactory:() => new Connection(solanaRpcUrl, 'finalized'), cluster:solanaCluster,
+  officialGenesis:() => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash() });
 
 const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solanaCluster, getSession: xSession, readEvidence: readReceiptEvidence, readFinalizedEvidence,
   capabilities: async () => ({ version: CREATOR_SUPPORT_VERSION, build: process.env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
@@ -1705,6 +1709,7 @@ async function handle(req, res) {
     }
     if (req.method === 'GET' && url.pathname === '/api/state') return json(res, 200, publicState(await store.readPublicBuckets()));
     if (req.method === 'GET' && url.pathname === '/api/evidence/receipts') return json(res, 200, await readReceiptEvidence());
+    if (req.method === 'GET' && url.pathname === '/api/evidence/payment-history') return json(res, 200, await readPaymentHistory());
     if (req.method === 'GET' && url.pathname === '/api/analytics/summary') {
       const [state, evidence] = await Promise.all([store.read(), readFinalizedEvidence()]);
       const launches = Object.values(state.launches || {}).filter(row => row.cluster === solanaCluster && row.onchainVerified === true);

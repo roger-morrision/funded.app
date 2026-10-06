@@ -569,6 +569,7 @@ function rewards() {
       <button type="button" data-reward-open="holder"><span class="reward-action-icon" aria-hidden="true">◎</span><span><strong>Coin holder rewards</strong><small>Eligible coin wallets receive SOL automatically.</small></span><b aria-hidden="true">→</b></button>
       <button type="button" data-reward-open="funded"><span class="reward-action-icon" aria-hidden="true">ƒ</span><span><strong>$FUNDED holder airdrops</strong><small>Check token allocations and claim eligibility.</small></span><b aria-hidden="true">→</b></button>
       <button type="button" data-reward-open="creator"><span class="reward-action-icon" aria-hidden="true">✦</span><span><strong>Creator fees</strong><small>Check fees earned by coins you launched.</small></span><b aria-hidden="true">→</b></button>
+      <button type="button" data-reward-open="history"><span class="reward-action-icon" aria-hidden="true">⇢</span><span><strong>Payment history</strong><small>Finalized creator, holder, referral, X, and operations payouts.</small></span><b aria-hidden="true">→</b></button>
       <a href="#referrals"><span class="reward-action-icon" aria-hidden="true">↗</span><span><strong>Referral rewards</strong><small>Connect your wallet to check and claim.</small></span><b aria-hidden="true">→</b></a>
     </div><p class="reward-overview-rule">Ready to claim means an action is available. Processing means a payment is being verified. Paid means a finalized receipt exists.</p>`;
   const creator = node('div'); creator.id = 'rewards-creator';
@@ -585,8 +586,10 @@ function rewards() {
   if(fundedDirectory)funded.append(fundedDirectory);
   const holderIntro = automatic?.querySelector('.auto-rewards-intro');
   if(holderIntro)holderIntro.textContent = 'Check the next recorded coin holder SOL cycle and verified payouts.';
-  root.append(overview,creator,holder,funded,x);
-  const select = tabs(root,[{key:'overview',label:'My rewards',panel:overview},{key:'holder',label:'Coin holders',panel:holder},{key:'funded',label:'$FUNDED holders',panel:funded},{key:'creator',label:'Creator',panel:creator},{key:'x',label:'X claims',panel:x}],'Reward type');
+  const history = node('div'); history.id = 'rewards-history';
+  const historyPanel = $('.x-claim-activity', x); if (historyPanel) history.append(historyPanel);
+  root.append(overview,creator,holder,funded,x,history);
+  const select = tabs(root,[{key:'overview',label:'My rewards',panel:overview},{key:'holder',label:'Coin holders',panel:holder},{key:'funded',label:'$FUNDED holders',panel:funded},{key:'creator',label:'Creator',panel:creator},{key:'x',label:'X claims',panel:x},{key:'history',label:'Payments',panel:history}],'Reward type');
   root.prepend(overview.querySelector('.workspace-page-header'));
   $$('[data-reward-open]',root).forEach(button=>button.addEventListener('click',()=>select(button.dataset.rewardOpen,true)));
   $$('a[href="#payments"]',personal || creator).forEach(link=>link.addEventListener('click',()=>select('x',true)));

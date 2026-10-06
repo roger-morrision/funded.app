@@ -35,6 +35,8 @@
 }
 
 .payment-history-identity strong { color: #eff3fa; font-size: 12px; }
+.payment-history-time,
+.payment-history-fee { font-size: 10px; }
 .payment-history-identity small {
   color: #8fa0b7;
   font: 10px 'DM Mono', monospace;
@@ -111,6 +113,12 @@
 }
 
 .x-claim-activity .panel-footnote { margin-top: 5px; padding-top: 10px; }
+
+@media (max-width: 600px) {
+  .x-claim-activity .payment-history-row,
+  #payment-dialog-list .payment-history-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .payment-history-actions { justify-content: space-between; }
+}
 
 @media (max-width: 390px) {
   .x-claim-activity .payment-history-row,

@@ -4,7 +4,7 @@ import { payoutReceiptLamports } from './receipt-evidence.mjs';
 
 const canonical = value => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object'
   ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
-export const receiptFingerprint = (kind, record) => createHash('sha256').update(JSON.stringify(canonical({ version:1, kind, record }))).digest('hex');
+export const receiptFingerprint = (kind, record) => createHash('sha256').update(JSON.stringify(canonical({ version:2, kind, record }))).digest('hex');
 export function cachedReceiptProof(entry, kind, record) {
   const proof = entry?.proof;
   if (entry?.key !== receiptFingerprint(kind,record) || entry.cluster !== record.cluster || entry.commitment !== 'finalized'
@@ -13,7 +13,9 @@ export function cachedReceiptProof(entry, kind, record) {
   const amount = payoutReceiptLamports(record);
   if (amount === null) return null;
   return proof.claimId === (record.claimId || null) && proof.to === record.to && proof.source === record.source
-    && proof.amountLamports === amount ? proof : null;
+    && proof.amountLamports === amount && proof.actualReceivedLamports === (proof.feePayer === record.to && proof.feeLamports != null ? amount - proof.feeLamports : amount)
+    && (proof.feeLamports === null || Number.isSafeInteger(proof.feeLamports) && proof.feeLamports >= 0)
+    && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(proof.feePayer || '')) ? proof : null;
 }
 export function encodeReceiptCursor(key) { return Buffer.from(key,'utf8').toString('base64url'); }
 export function decodeReceiptCursor(cursor = '') {

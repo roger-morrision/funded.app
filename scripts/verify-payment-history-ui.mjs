@@ -10,16 +10,15 @@ try {
   for (const width of [390, 320]) {
     const context = await browser.newContext({ viewport: { width, height: 850 }, reducedMotion: 'reduce', permissions: ['clipboard-read', 'clipboard-write'] });
     await context.addInitScript(() => sessionStorage.setItem('funded.app.wallet.manual-disconnect', '1'));
-    if (!useLiveReceipts) await context.route('**/api/evidence/receipts', route => route.fulfill({
+    if (!useLiveReceipts) await context.route('**/api/evidence/payment-history', route => route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
         cluster: 'devnet',
         status: 'onchain-indexed',
-        verifiedCollections: [],
         verifiedPayouts: [
-          { to: '6XfCMmEJk5NTq2ANghqLh6oBfH3aKpR9eSzN', signature, amountLamports: 118812, source:'mint-router-settle-mint' },
-          { to: '4J3yMC9wQs7UqPtyBHK4nD1fR6tEZv6A', signature: '2hRV9KyCNB1UKc8p9XjQm6oDkT3UQvL8S', amountLamports: 714, source:'solana-keeper-referral-claim' },
+          { to: '6XfCMmEJk5NTq2ANghqLh6oBfH3aKpR9eSzN', signature, amountLamports: 118812, actualReceivedLamports:118812, feeLamports:5000, feePayer:'7ngaVZdeipr6uZy2inh267PjZLLYFuAfsPoTRZixjJMk', blockTime:1791279900, source:'automatic-holder' },
+          { to: '4J3yMC9wQs7UqPtyBHK4nD1fR6tEZv6A', signature: '2hRV9KyCNB1UKc8p9XjQm6oDkT3UQvL8S', amountLamports: 714, actualReceivedLamports:714, feeLamports:5000, feePayer:'7ngaVZdeipr6uZy2inh267PjZLLYFuAfsPoTRZixjJMk', blockTime:1791279800, source:'solana-keeper-referral-claim' },
         ],
         coverage: {},
       }),
@@ -29,18 +28,15 @@ try {
       : route.fulfill({ status: 403, contentType: 'application/json', body: '{}' }));
     const page = await context.newPage();
     await page.goto(`${base}/#payments`, { waitUntil: 'domcontentloaded' });
-    await page.locator('#rewards-x-tab').click();
+    await page.locator('#rewards-history-tab').click();
     const rows = page.locator('#payment-list .payment-history-row');
     const row = rows.first();
     await row.waitFor({ state: 'attached', timeout: 20000 });
-    // The X tab hides private reward activity until sign-in. This layout fixture
-    // only reveals the already mocked receipts; it does not authenticate a user.
-    await page.locator('#x-sign-in').evaluate(button => button.dataset.connected = 'true');
     await row.waitFor({ state: 'visible' });
     const rowCount = await rows.count();
     if (useLiveReceipts) assert(rowCount > 0, 'expected a verified payout receipt');
     else assert.equal(rowCount, 2);
-    assert(['X account reward', 'Referral reward', 'SOL payout'].includes(await row.locator('.payment-history-identity strong').innerText()));
+    assert.equal(await row.locator('.payment-history-identity strong').innerText(), 'Holder reward');
     if (!useLiveReceipts) {
       assert.equal(await row.locator('.payment-history-wallet').innerText(), '6XfCMmEJk5NTq2ANghqLh6oBfH3aKpR9eSzN');
       assert((await row.locator('.payment-history-wallet').getAttribute('href')).includes('address/6XfCMmEJk5NTq2ANghqLh6oBfH3aKpR9eSzN'));
@@ -51,7 +47,11 @@ try {
       await row.getByRole('button', { name: /Copy receiver wallet/ }).click();
       assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '6XfCMmEJk5NTq2ANghqLh6oBfH3aKpR9eSzN');
     }
-    if (!useLiveReceipts) assert.equal(await row.locator('.payment-amount').innerText(), '0.000118812 SOL');
+    if (!useLiveReceipts) {
+      assert.equal(await row.locator('.payment-amount').innerText(), 'Received 0.000118812 SOL');
+      assert.match(await row.locator('.payment-history-time').innerText(), /Paid .* UTC/);
+      assert.match(await row.locator('.payment-history-fee').innerText(), /Transaction fee 0.000005 SOL/);
+    }
     assert.equal(await row.getByText('Confirmed transaction').count(), 0);
     const link = row.getByRole('link', { name: /View confirmed payout transaction.*Solana Explorer/ });
     assert.equal(await link.count(), 1);
@@ -60,7 +60,7 @@ try {
     assert(await rows.evaluateAll(elements => elements.every(element => {
       const identity = element.querySelector('.payment-history-identity').getBoundingClientRect();
       const actions = element.querySelector('.payment-history-actions').getBoundingClientRect();
-      return element.scrollWidth <= element.clientWidth && identity.right <= actions.left + 1;
+      return element.scrollWidth <= element.clientWidth && (identity.bottom <= actions.top + 1 || identity.right <= actions.left + 1);
     })), `payment rows overflow or overlap at ${width}px`);
     await page.locator('#open-tape').click();
     assert.equal(await page.locator('#payment-dialog-list .payment-receipt-link').count(), rowCount);
