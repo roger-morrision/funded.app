@@ -265,7 +265,6 @@ function shortenPageCopy() {
     ['#airdrops .airdrop-wallet-gate p', 'Connect to check allocation after snapshot and proof verification.'],
     ['#airdrops .airdrop-trust > p', 'Claims need a finalized snapshot, published proof, and indexed receipts.'],
     ['#list .list-field-note', 'Verified Solana metadata supplies name and ticker. Mint and burn are rechecked before payment.'],
-    ['#list .list-recovery p', 'Retry verification with the same mint and wallet. Do not burn again.'],
     ['#profile .section-heading .panel-explainer', 'Check wallet and network before signing.'],
     ['#profile .source-note', 'Wallet connection identifies the signer, not launch, holding, or reward proof. Verify the Solana record.'],
   ];
