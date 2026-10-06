@@ -20,6 +20,7 @@ test('shared filters and current search survive reload without a wallet', async 
   await expect(page.locator('#explore-search')).toHaveValue('REVIEW');
   await expect(page.locator('.explore-saved-searches')).toHaveCount(0);
   await page.goto('/#explore');
+  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await page.locator('#explore-search').fill('UPDATED');
   await page.reload();
   await expect(page.locator('#explore-search')).toHaveValue('UPDATED');
