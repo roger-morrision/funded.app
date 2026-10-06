@@ -18,7 +18,8 @@ const reportPath=args.length===3?resolve(args[2]):null;
 const execute=promisify(execFile);
 const dockerEnv={...process.env};
 for(const key of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH'])delete dockerEnv[key];
-const docker=async(...args)=>(await execute('docker',['--host=unix:///var/run/docker.sock',...args],{env:dockerEnv,timeout:60_000,maxBuffer:4*1024*1024})).stdout.trim();
+const localDockerHost = process.platform === 'win32' ? 'npipe:////./pipe/docker_engine' : 'unix:///var/run/docker.sock';
+const docker=async(...args)=>(await execute('docker',[`--host=${localDockerHost}`,...args],{env:dockerEnv,timeout:60_000,maxBuffer:4*1024*1024})).stdout.trim();
 // These settings apply only inside this disposable verifier process.
 process.env.DATABASE_SSL='false';
 delete process.env.DATABASE_CA_CERT;
