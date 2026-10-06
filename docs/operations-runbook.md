@@ -43,7 +43,7 @@ Pause new financial writes and affected signers if network identity, program has
 
 ## Repeatable local contract bytecode checks
 
-The manual `Contract bytecode regression` GitHub Actions workflow builds and tests without deploying, loading signing credentials or contacting a Solana cluster. It pins Rust 1.89.0, Agave 4.1.2, SBF architecture v0 and platform-tools v1.54. The Agave Linux archive is checked against SHA-256 `5991d027a686eb419a709a479178b33eb83501e8a2bfbf599a81a286bfcbf770` before extraction. The build tool downloads its version-pinned platform tools. The workflow uploads only the tested `.so`, its hash and the canonical Git revision; local LiteSVM results are not chain-finalized receipts or an independent audit.
+The manual `Contract bytecode regression` GitHub Actions workflow builds and tests without deploying, loading signing credentials or contacting a Solana cluster. It pins Rust 1.97.1, Agave 4.1.2, SBF architecture v0 and platform-tools v1.54. The Agave Linux archive is checked against SHA-256 `5991d027a686eb419a709a479178b33eb83501e8a2bfbf599a81a286bfcbf770` before extraction. The build tool downloads its version-pinned platform tools. The workflow uploads only the tested `.so`, its hash and the canonical Git revision; local LiteSVM results are not chain-finalized receipts or an independent audit.
 
 To reproduce on Linux, download and checksum the archive from `https://github.com/anza-xyz/agave/releases/download/v4.1.2/solana-release-x86_64-unknown-linux-gnu.tar.bz2`, extract it in a temporary tools directory, then run from `contracts/funded-fee-router`:
 
@@ -53,4 +53,4 @@ cargo test --locked
 sha256sum target/deploy/funded_fee_router.so
 ```
 
-The contract's `rust-toolchain.toml` selects Rust 1.89.0 for host tests. A full test requires the bytecode build first because integration tests embed the `.so`. For policy-only checks without bytecode, run `cargo test --locked --lib`. Compare reviewed bytecode and deployed program-data evidence separately before any authorized upgrade; a successful local build does not update Devnet.
+The contract's `rust-toolchain.toml` selects Rust 1.97.1 for host tests. A full test requires the bytecode build first because integration tests embed the `.so`. For policy-only checks without bytecode, run `cargo test --locked --lib`. Compare reviewed bytecode and deployed program-data evidence separately before any authorized upgrade; a successful local build does not update Devnet.
