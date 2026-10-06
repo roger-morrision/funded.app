@@ -16,14 +16,24 @@ body.page-route.page-route-payments #payments #rewards-overview{grid-template-co
 .reward-action-grid strong{color:#f8f5ef;font-size:14px;line-height:1.3}
 .reward-action-grid small{color:#aebbd0;font-size:12px;line-height:1.45}
 .reward-action-grid b{margin-left:auto;color:#f3c273;font-size:16px;font-weight:400}
-.reward-overview-rule{margin:14px 0 0;padding:12px 15px;border-left:2px solid #b7884a;background:#192333;color:#c3d0df;font-size:12px;line-height:1.5}
+body.page-route-payments #payments .reward-action-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+body.page-route-payments #payments .reward-action-grid>a,body.page-route-payments #payments .reward-action-grid>button{min-height:78px;padding:14px 16px}
+body.page-route-payments #payments #reward-portfolio .reward-portfolio-destinations,body.page-route-payments #payments #reward-portfolio .reward-portfolio-note{display:none}
+body.page-route-payments #payments #reward-portfolio.reward-no-wallet{padding:0;border:0;background:transparent}
+body.page-route-payments #payments #reward-portfolio.reward-no-wallet>header{display:none}
+body.page-route-payments #payments #reward-portfolio.reward-no-wallet [data-reward-portfolio]{padding:0;border:0;background:transparent}
+body.page-route-payments #payments #reward-portfolio.reward-no-wallet .reward-portfolio-empty{padding:18px 20px;border-color:#34465f;background:#151f30}
+body.page-route-payments #payments #reward-portfolio.reward-no-wallet .reward-portfolio-empty-icon{display:none}
 #payments #rewards-holder .auto-rewards-grid{grid-template-columns:minmax(0,1fr)}
+#payments #rewards-holder [data-automatic-rewards]:has(.preview-chip[data-state="unavailable"]) :is(.preview-chip,.auto-rewards-grid,.auto-rewards-fineprint){display:none}
 #payments #rewards-funded .reward-section-intro{padding:21px;border:1px solid #35445a;border-radius:12px;background:#151e2e}
 #payments #rewards-funded .reward-section-intro .eyebrow{color:#f3bd72}
 #payments #rewards-funded .reward-section-intro p:last-child{max-width:700px;color:#b6c4d5;line-height:1.55}
-#payments #rewards-funded .funded-claim-link{display:inline-flex;align-items:center;width:max-content;max-width:100%;min-height:42px;margin:16px 0;text-decoration:none}
-#payments #rewards-funded .funded-holder-token-rewards{margin-top:19px;border-color:#394961;background:#151e2e}
-@media(max-width:760px){.reward-action-grid{grid-template-columns:1fr}.reward-action-grid>a,.reward-action-grid>button{min-height:76px;padding:13px 15px}}
+#payments #rewards-funded .funded-claim-link{display:inline-flex;align-items:center;width:max-content;max-width:100%;min-height:42px;margin:16px 0 0;text-decoration:none}
+#payments #rewards-funded .funded-holder-token-rewards{margin-top:14px;border-color:#394961;background:#151e2e}
+#payments #rewards-funded .funded-holder-token-rewards>small{display:none}
+@media(max-width:900px){body.page-route-payments #payments .reward-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){body.page-route-payments #payments .reward-action-grid{grid-template-columns:1fr}.reward-action-grid>a,.reward-action-grid>button{min-height:76px;padding:13px 15px}}
 @media(max-width:760px){body.page-route-payments #payments>.ui-tabs{display:flex!important;flex-wrap:nowrap!important;gap:5px;overflow-x:auto;scrollbar-width:thin}body.page-route-payments #payments>.ui-tabs button{flex:0 0 auto;min-height:42px;padding:9px 11px;font-size:11px!important}#payments #rewards-funded .reward-section-intro{padding:17px}}
 #payments .x-claim-panel{padding:28px!important;border-color:#46546e;border-radius:14px;background:linear-gradient(160deg,#171d30,#131a29 35%,#111925)}
 #payments .x-claim-heading{margin-bottom:22px}
@@ -76,6 +86,7 @@ body.page-route.page-route-payments #payments #rewards-overview{grid-template-co
 #payments #reward-portfolio .reward-portfolio-summary strong{font-size:14px}
 #payments .x-claim-activity{padding:22px!important;border-color:#303c50;border-radius:12px;background:#131b29}
 #payments .x-claim-activity .panel-heading p{margin:5px 0 0;color:#a7b7ca;font-size:12px;line-height:1.45}
+#payments #rewards-history .panel-footnote{color:#b8c6d8;font-size:12px;line-height:1.5}
 #payments #reward-discovery{margin:0;border-color:#303c50;border-radius:12px;background:#111925}
 #payments #reward-discovery>header p:not(.eyebrow){max-width:620px;color:#afbed0}
 #payments #reward-discovery>small{display:block;margin-top:16px;color:#aab9ca}

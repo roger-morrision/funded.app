@@ -113,8 +113,8 @@ function renderPortfolio(data, referralData, xData) {
   if (!wallet) {
     const empty = node('div', 'reward-portfolio-empty');
     const copy = node('div', 'reward-portfolio-empty-copy');
-    copy.append(node('span', 'reward-portfolio-empty-icon', '◈'), node('h3', '', 'Connect to see your wallet activity'),
-      node('p', '', 'Your verified payments and wallet claims appear here. X rewards are under the X claims tab.'));
+    copy.append(node('span', 'reward-portfolio-empty-icon', '◈'), node('h3', '', 'Check wallet rewards'),
+      node('p', '', 'Connect to see verified payments and claims linked to your wallet.'));
     const button = node('button', 'reward-portfolio-connect', 'Connect wallet');
     button.type = 'button';
     button.addEventListener('click', () => byId('connect-button')?.click());
