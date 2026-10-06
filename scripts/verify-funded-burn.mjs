@@ -59,7 +59,7 @@ const serverSource = readFileSync(new URL('../server/index.mjs', import.meta.url
 const composeSource = readFileSync(new URL('../compose.preview.yml', import.meta.url), 'utf8');
 assert.match(appSource, /createBurnCheckedInstruction/);
 assert.match(appSource, /waitForSignatureConfirmation/);
-assert.match(appSource, /Devnet RPC unavailable; \$FUNDED mint and balance could not be verified\./, 'Burn UI must explain RPC outages without exposing raw transport errors.');
+assert.match(appSource, /Solana RPC unavailable; \$FUNDED mint and balance could not be verified\./, 'Burn UI must explain RPC outages without exposing raw transport errors.');
 assert.match(serverSource, /verifyFundedBurn/);
 assert.match(serverSource, /process\.env\.FUNDED_TOKEN_MINT \|\| process\.env\.VITE_FUNDED_TOKEN_MINT/);
 assert.match(composeSource, /FUNDED_TOKEN_MINT: \$\{FUNDED_TOKEN_MINT:\?Missing Devnet FUNDED mint\}/);

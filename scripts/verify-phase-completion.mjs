@@ -26,7 +26,7 @@ assert.equal(notifications.length,2);assert.ok(notifications.some(n=>n.kind==='L
 assert.equal(notificationItems([],[]).length,0);
 const mint='5'.repeat(44),launch={mint,cluster:'devnet',onchainVerified:true,policySignature:'fixture',name:'Example <script>',symbol:'TEST',creatorWallet:'wallet'};
 const metadata={mint,creatorWallet:'wallet',name:launch.name,symbol:launch.symbol,tagline:'Purpose "quoted"',imageSha256:'fixture-image-digest'};
-const model=tokenSocialModel(launch,metadata,mint,'devnet','https://example.test');assert.equal(model.image,`https://example.test/devnet-images/${mint}`);assert.match(model.description,/no intended monetary value/);
+const model=tokenSocialModel(launch,metadata,mint,'devnet','https://example.test');assert.equal(model.image,`https://example.test/devnet-images/${mint}`);assert.match(model.description,/Not an endorsement/);assert.match(model.description,/Tokens can lose all value/);
 assert.equal(tokenSocialModel({...launch,onchainVerified:false},metadata,mint,'devnet').available,false);
 assert.equal(tokenSocialModel(launch,{...metadata,creatorWallet:'wrong'},mint,'devnet','https://example.test').image,null);
 assert.equal(tokenSocialModel(launch,metadata,mint,'devnet','https://user:password@example.test').canonical,null);

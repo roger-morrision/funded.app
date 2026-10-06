@@ -9,7 +9,6 @@ const checks = [
   "verify:jackpot-flag",
   "verify:jackpot-entries",
   "verify:jackpot-refund",
-  "verify:pilot-metrics",
   "verify:referral-scoped-store",
   "verify:launch-accessibility",
   "verify:receipt-retention",

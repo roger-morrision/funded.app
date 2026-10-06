@@ -31,7 +31,7 @@ assert.equal(receipt.traderWallet, trader);
 assert.equal(receipt.feeLamports, '50000');
 assert.equal(receipt.finalized, true);
 await assert.rejects(verifyJackpotTraderEntry({ ...input,
-  expectedGenesisHash:'wrong' }), /Trusted Devnet/);
+  expectedGenesisHash:'wrong' }), /Trusted Solana RPC/);
 await assert.rejects(verifyJackpotTraderEntry({ ...input,
   connection:{ ...rpc, getParsedTransaction:async () => ({ ...tx, blockTime:window.end }) } }), /outside/);
 await assert.rejects(verifyJackpotTraderEntry({ ...input,

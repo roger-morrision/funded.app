@@ -29,6 +29,6 @@ assert.ok(result.ata);
 assert.deepEqual(states, [
   'Preparing mint account and token account…',
   'Waiting for wallet approval…',
-  'Confirming on Solana Devnet…',
+  'Confirming on Solana…',
 ]);
 console.log('local launch flow verification passed');
