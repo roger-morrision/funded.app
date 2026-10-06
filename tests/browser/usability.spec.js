@@ -28,7 +28,7 @@ test('a stalled optional fee-status provider does not block the workspace', asyn
 });
 
 test('an unavailable optional module leaves navigation usable and explains reload recovery', async ({ page }) => {
-  await page.route('**/pilot-metrics.js*', route => route.abort('failed'));
+  await page.route('**/creator-support-ui.js*', route => route.abort('failed'));
   await open(page, 'explore');
   await expect(page.locator('#bootstrap-status')).toContainText('Reload');
   await expect(page.locator('#explore-search')).toBeVisible();

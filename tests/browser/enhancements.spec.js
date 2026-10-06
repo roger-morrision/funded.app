@@ -27,7 +27,7 @@ test('shared filters and current search survive reload without a wallet', async 
 
 test('global search carries its query into Explore', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/#pilot');
+  await page.goto('/#launch');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await page.locator('#header-search-trigger').click();
   await page.locator('#header-search-input').fill('FRESHQUERY');
