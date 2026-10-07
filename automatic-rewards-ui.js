@@ -2,7 +2,6 @@ import { distributionClock, countdownText, selectDisplaySchedule } from './autom
 import { EXPLORE_CLUSTER } from './app-config.js';
 import { verifiedCurveProgress } from './verified-curve-state.js';
 import { createTokenCardActions } from './token-card-controls.js';
-import { tokenCardData } from './token-card-data.js';
 import { airdropClaimState } from './airdrop-directory-model.js';
 import { validateSolClaimRecipient } from './sol-claim-policy.js';
 import './automatic-rewards.css';
@@ -83,7 +82,6 @@ function renderHomeRewardCards() {
   }
   for (const launch of launches) {
     const reserve = matched.get(launch.mint);
-    const cardData = tokenCardData({ mint: launch.mint, policy: launch, reserve });
     const active = reserve.status === 'drop-active'
       && Number.isSafeInteger(reserve.expiresAt) && reserve.expiresAt > (Date.now() + offset) / 1000;
     const card = document.createElement('article'); card.className = 'home-reward-token-card'; card.dataset.rewardMint = launch.mint;
@@ -121,10 +119,8 @@ function renderHomeRewardCards() {
       .title = 'Distinct wallets with verified on-chain token claims.';
     addValue('Tokens received', receivedTokens || '—').title = 'Tokens claimed from the verified airdrop vault; unclaimed allocation is excluded.';
     const proof = document.createElement('small'); proof.className = 'home-reward-token-proof';
-    proof.textContent = active ? 'Claims open' : reserve.status === 'drop-closed' ? 'Claims closed' : 'Vault funded';
+    proof.textContent = active ? 'Claims open' : reserve.status === 'drop-closed' ? 'Claims closed' : '';
     proof.hidden = !proof.textContent;
-    const evidence = document.createElement('small'); evidence.className = 'token-card-evidence';
-    evidence.textContent = `Policy recorded · ${cardData.reserveState === 'verified' ? 'vault verified' : 'vault unavailable'}`;
     const snapshot = document.createElement('div'); snapshot.className = 'home-reward-snapshot';
     const addSnapshot = value => { const line = document.createElement('span'); line.textContent = value; snapshot.append(line); };
     const migrationSlot = Number(reserve.migrationSlot);
@@ -146,7 +142,7 @@ function renderHomeRewardCards() {
     const link = document.createElement('a'); link.className = 'home-reward-token-link';
     link.href = `/token/${encodeURIComponent(launch.mint)}`;
     link.setAttribute('aria-label', `Open ${launch.symbol || launch.name || 'token'} token details`);
-    card.append(link, head, values, proof, evidence, snapshot, timing, createTokenCardActions({ mint: launch.mint, symbol: launch.symbol, name: launch.name, className: 'home-reward-token-actions' })); track.append(card);
+    card.append(link, head, values, proof, snapshot, timing, createTokenCardActions({ mint: launch.mint, symbol: launch.symbol, name: launch.name, className: 'home-reward-token-actions' })); track.append(card);
     loadFundedTokenLogo(avatar, launch);
   }
   if (track.querySelector('article:first-of-type')?.dataset.rewardMint === previousMint) track.scrollLeft = previousScroll;
