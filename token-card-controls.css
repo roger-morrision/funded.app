@@ -22,7 +22,7 @@
 .token-card-action-watch:focus-visible,
 .token-card-action-share:focus-visible { outline: 2px solid #ffd28a; outline-offset: 2px; }
 
-body.page-route-overview .home-launch-card-media > .token-card-action-watch {
+body:is(.page-route-overview,.page-route-explore) .home-launch-card-media > .token-card-action-watch {
   position: absolute;
   z-index: 4;
   top: 8px;
@@ -33,8 +33,8 @@ body.page-route-overview .home-launch-card-media > .token-card-action-watch {
   border-radius: 50%;
   background: #111b2ee8;
 }
-body.page-route-overview .home-launch-card-media:has(> .token-card-action-watch) .home-launch-media-stage { top: 42px; }
-body.page-route-overview .home-launch-card-actions > .token-card-action-share { margin-right: auto; }
+body:is(.page-route-overview,.page-route-explore) .home-launch-card-media:has(> .token-card-action-watch) .home-launch-media-stage { top: 42px; }
+body:is(.page-route-overview,.page-route-explore) .home-launch-card-actions > .token-card-action-share { margin-right: auto; }
 
 .portfolio-token-footer > div { flex-wrap: wrap; justify-content: flex-end; }
 .portfolio-token-footer > div > .token-card-action-watch { flex: 0 0 30px; padding: 5px; }

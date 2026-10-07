@@ -166,12 +166,12 @@ body.page-route-overview .home-flow-line-main::after { border-left-color: #f4a34
 body.page-route-overview .home-flow-router .home-flow-icon { color: #ffd28a; border-color: #a7743e; }
 body.page-route-overview .home-fee-bar i:first-child { background: #f4a340; }
 body.page-route-overview .home-launch-tabs button.active { background: #f4a340; color: #18151c; }
-body.page-route-overview .home-launch-card:hover { border-color: #a7743e; }
-body.page-route-overview .home-launch-progress i { background: linear-gradient(90deg, #8fb2f0, #f4a340); }
+body:is(.page-route-overview,.page-route-explore) .home-launch-card:hover { border-color: #a7743e; }
+body:is(.page-route-overview,.page-route-explore) .home-launch-progress i { background: linear-gradient(90deg, #8fb2f0, #f4a340); }
 body.page-route-overview .home-kpi-card-primary { background: radial-gradient(circle at 0 0, #f4a34024, transparent 52%), #121b2e; }
-body.page-route-overview .home-launch-card-media { background: radial-gradient(circle at 50% 40%, #344768, #111b2e 70%); }
-body.page-route-overview .home-launch-card-actions button { background: #202b42; border-color: #a7743e; }
-body.page-route-overview .home-launch-media-stage { background: #0b1020d9; border-color: #a7743e; color: #ffd28a; }
+body:is(.page-route-overview,.page-route-explore) .home-launch-card-media { background: radial-gradient(circle at 50% 40%, #344768, #111b2e 70%); }
+body:is(.page-route-overview,.page-route-explore) .home-launch-card-actions button { background: #202b42; border-color: #a7743e; }
+body:is(.page-route-overview,.page-route-explore) .home-launch-media-stage { background: #0b1020d9; border-color: #a7743e; color: #ffd28a; }
 body.page-route-overview .home-feed-settings-panel {
   width: min(430px, calc(100vw - 32px));
   border-color: #30405b; background: #121b2e;

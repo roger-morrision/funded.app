@@ -2715,7 +2715,11 @@ function renderExploreAssets({ force = false } = {}){
     }
   }
   if (!grid) return;
-  grid.innerHTML = visible.length ? visible.map(exploreAssetCardMarkup).join('') : loading
+  grid.innerHTML = visible.length ? visible.map(item => homeLaunchCardMarkup(item, {
+    volumeLabel: exploreWindow,
+    volumeValue: launchCardVolumeUsd(item, exploreWindow),
+    extraClass: ' explore-launch-card',
+  })).join('') : loading
     ? '<div class="empty-state onchain-empty"><strong>Loading verified launches…</strong><span>Checking the indexed launch feed and confirming current Solana state.</span></div>'
     : feedUnavailable || rpcUnavailable
       ? `<div class="empty-state onchain-empty"><strong>${escapeHtml(outage.title)}</strong><span>${escapeHtml(outage.detail)}</span></div>`
@@ -2724,10 +2728,8 @@ function renderExploreAssets({ force = false } = {}){
     const reason = exploreEmptyReason();
     if (reason) { grid.querySelector('.empty-state strong').textContent = reason[0]; grid.querySelector('.empty-state span').textContent = reason[1]; }
   }
-  for (const card of grid.querySelectorAll('.asset-card')) {
-    const asset = visible.find(item => item.address === card.dataset.mint);
-    if (asset) decorateExploreAssetCard(card, asset);
-  }
+  grid.querySelectorAll('.explore-launch-card').forEach((card, index) => decorateHomeLaunchCard(card, visible[index]?.address));
+  loadVerifiedTokenLogos(grid);
   if (!visible.length && !loading) {
     const action = document.createElement('button');
     action.type = 'button';
@@ -3686,6 +3688,7 @@ async function loadHomeHolderCounts(records){
   } finally {
     homeHolderCountLoading = false;
     renderHomeLaunchBoard();
+    if (document.body.classList.contains('page-route-explore')) renderExploreAssets();
   }
 }
 function renderHomeHolderRewardCoins(){
@@ -3735,6 +3738,81 @@ function homeLaunchFeeRouteMarkup(policy){
   const summary = recipients.join(' · ');
   return `<div class="home-launch-fee-route" title="${escapeHtml(summary)}" aria-label="${escapeHtml(summary)}"><span>${recipients.map(escapeHtml).join(' · ')}</span></div>`;
 }
+function launchCardVolumeUsd(item, window){
+  if (EXPLORE_CLUSTER === 'devnet') {
+    if (item.windowCoverage === 'complete' && item.windowTradeCount != null && Number(item.windowTradeCount) === 0) return 'No trades';
+    if (item.windowVolumeSol == null) return '$—';
+    return Number.isFinite(coinSolUsdPrice)
+      ? formatDashboardUsd(Number(item.windowVolumeSol) * coinSolUsdPrice, { partial: item.windowCoverage === 'partial' })
+      : `${Number(item.windowVolumeSol).toLocaleString(undefined, { maximumFractionDigits: 2 })} SOL`;
+  }
+  return window === '24h' && item.volume24hUsd != null ? formatDashboardUsd(item.volume24hUsd) : '$—';
+}
+function homeLaunchCardMarkup(item, { volumeLabel, volumeValue, extraClass = '' }){
+    const change = item.change || '—';
+    const changeValue = Number.parseFloat(change);
+    const changeClass = Number.isFinite(changeValue) ? (changeValue >= 0 ? 'is-positive' : 'is-negative') : '';
+    const progressValue = item.complete === true ? 100 : Number.isFinite(Number(item.curveProgressPercent)) ? Math.max(0, Math.min(100, Number(item.curveProgressPercent))) : 0;
+    const progressLabel = item.complete === true ? 'Migrated' : progressValue > 0 ? `${Math.round(progressValue)}% filled` : 'On curve';
+    const capSol = item.migrated === true ? item.poolMarketCapSol : item.curveCapSol;
+    const capLabel = item.migrated === true ? 'Market cap' : 'Curve cap';
+    const hasNoObservedTrades = item.windowCoverage === 'complete' && item.windowTradeCount != null && Number(item.windowTradeCount) === 0;
+    const shownVolume = volumeValue;
+    const value = EXPLORE_CLUSTER === 'devnet' ? formatCoinUsd(capSol) : item.marketCapUsd != null ? formatCompactUsd(item.marketCapUsd) : '—';
+    const providerHolders = item.holders == null || item.holders === '' ? NaN : Number(item.holders);
+    const accountHolders = item.holderWalletCount == null || item.holderWalletCount === '' ? NaN : Number(item.holderWalletCount);
+    const holderCount = Number.isFinite(providerHolders) && providerHolders >= 0
+      ? providerHolders.toLocaleString()
+      : Number.isFinite(accountHolders) && accountHolders >= 0 ? `${item.holderWalletCoverage === 'lower-bound' ? '≥' : ''}${accountHolders.toLocaleString()}` : '—';
+    const holderTitle = Number.isFinite(providerHolders)
+      ? 'Holder count from the indexed market provider'
+      : Number.isFinite(accountHolders) ? `${item.holderWalletCoverage === 'lower-bound' ? 'At least ' : ''}${accountHolders} distinct wallet owner${accountHolders === 1 ? '' : 's'} in confirmed non-vault token accounts${item.holderWalletCoverage === 'lower-bound' ? ' · largest-account sample only' : ''}` : 'Verified holder count unavailable';
+    const launchPolicy = verifiedLaunchPolicyForMint(item.address);
+    const cardData = tokenCardData({ mint: item.address, market: item, policy: launchPolicy });
+    const mintLabel = item.address ? `${item.address.slice(0, 5)}…${item.address.slice(-4)}` : 'Unavailable';
+    const creatorWallet = launchPolicy?.onchainVerified && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(launchPolicy.creatorWallet || '')
+      ? launchPolicy.creatorWallet : '';
+    const creatorLabel = creatorWallet ? `${creatorWallet.slice(0, 5)}…${creatorWallet.slice(-4)}` : '';
+    const feeRoute = homeLaunchFeeRouteMarkup(launchPolicy);
+    const boost = verifiedBoosts[item.address];
+    const boostMultiplier = activeBoostMultiplier(boost);
+    const activeBoost = boostMultiplier > 0;
+    const boostPaymentCount = activeBoostPackages(boost).length;
+    return `<article class="token-card-shell home-launch-card${extraClass}" data-mint="${escapeHtml(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}">
+      <a class="home-launch-card-link" href="/token/${encodeURIComponent(item.address || '')}" aria-label="Open ${escapeHtml(item.name || item.symbol || 'token')} token details"></a>
+      <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span>${exploreSocialLinksMarkup(item)}${tokenCardWatchMarkup(item.address, item.symbol)}<span class="home-launch-media-stage">${escapeHtml(exploreStageLabel(item))}</span><div class="home-launch-media-badges"><span class="home-launch-media-package"></span>${activeBoost ? `<span class="home-launch-media-boost" title="${escapeHtml(`${boostPaymentCount} verified boost payment${boostPaymentCount === 1 ? '' : 's'} · active until ${new Date(boost.expiresAt).toLocaleString()}`)}">${escapeHtml(String(boostMultiplier))}x · ${escapeHtml(String(boostPaymentCount))} paid${boostMultiplier >= 500 ? ' ★' : ''}</span>` : ''}</div></div>
+      <div class="home-launch-card-top">
+        <span class="home-token-identity"><strong class="${activeBoost && boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(item.symbol || 'TOKEN')}</strong>${exploreBoostAmountMarkup(item.address)}<small>${escapeHtml(item.name || 'Unnamed token')}</small></span>
+        <div class="home-launch-card-addresses"><span title="Token contract: ${escapeHtml(item.address || '')}"><small>CA</small><code>${escapeHtml(mintLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(item.address || '')}" data-copy-kind="token" aria-label="Copy full token address" title="Copy full token address">${icon('copy')}</button></span>${creatorWallet ? `<span title="Verified launch creator: ${escapeHtml(creatorWallet)}"><small>Creator</small><code>${escapeHtml(creatorLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(creatorWallet)}" data-copy-kind="creator" aria-label="Copy full creator wallet address" title="Copy full creator wallet address">${icon('copy')}</button></span>` : ''}</div>
+        ${feeRoute}
+      </div>
+      <div class="home-launch-card-stats">
+        <span><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small><strong>${escapeHtml(value)}</strong></span>
+        <span><small>${escapeHtml(volumeLabel)} volume</small><strong>${escapeHtml(shownVolume)}</strong></span>
+        <span title="${escapeHtml(holderTitle)}"><small>Holders</small><strong>${escapeHtml(holderCount)}</strong></span>
+        <span class="home-launch-change ${changeClass}"><small>24h change</small><strong>${escapeHtml(hasNoObservedTrades ? 'No trades' : change)}</strong></span>
+      </div>
+      <div class="home-launch-progress" aria-label="${escapeHtml(progressLabel)}"><i style="--launch-progress:${progressValue}%"></i></div>
+      <div class="home-launch-meta"><span>${escapeHtml(formatOnchainAge(Number(item.createdTimestamp || 0) * 1000))}</span><span>${escapeHtml(progressLabel)}</span></div>
+      <div class="token-card-evidence">${cardData.policyState === 'recorded' ? 'Policy recorded' : 'Policy unavailable'}</div>
+      <div class="home-launch-card-actions">${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" data-boost-mint="${escapeHtml(item.address || '')}">Boost</button></div>
+    </article>`;
+}
+function decorateHomeLaunchCard(card, mint){
+  const packageBadge = card.querySelector('.home-launch-media-package');
+  const promotion = promotionElement(mint, true);
+  if (promotion) {
+    const launchPromotion = promotionForMint(mint);
+    if (launchPromotion?.tier === 'boost') promotion.textContent = `Boost · ${launchPromotion.amountTokens.toLocaleString()} $FUNDED`;
+    packageBadge?.append(promotion);
+  } else if (verifiedLaunchPolicyForMint(mint)?.onchainVerified) {
+    const standard = document.createElement('span');
+    standard.className = 'home-launch-package-standard';
+    standard.textContent = 'Standard';
+    standard.title = 'Standard launch package · verified policy, no paid launch promotion';
+    packageBadge?.append(standard);
+  } else packageBadge?.remove();
+}
 function renderHomeLaunchBoard(){
   const grid = document.querySelector('#home-launch-grid');
   if (!grid) return;
@@ -3779,16 +3857,7 @@ function renderHomeLaunchBoard(){
     const value = observed == null || observed === '' ? NaN : Number(observed);
     return Number.isFinite(value) && value >= 0 ? value : -1;
   };
-  const volumeUsd = item => {
-    if (EXPLORE_CLUSTER === 'devnet') {
-      if (item.windowCoverage === 'complete' && item.windowTradeCount != null && Number(item.windowTradeCount) === 0) return 'No trades';
-      if (item.windowVolumeSol == null) return '$—';
-      return Number.isFinite(coinSolUsdPrice)
-        ? formatDashboardUsd(Number(item.windowVolumeSol) * coinSolUsdPrice, { partial: item.windowCoverage === 'partial' })
-        : `${Number(item.windowVolumeSol).toLocaleString(undefined, { maximumFractionDigits: 2 })} SOL`;
-    }
-    return homeLaunchWindow === '24h' && item.volume24hUsd != null ? formatDashboardUsd(item.volume24hUsd) : '$—';
-  };
+  const volumeUsd = item => launchCardVolumeUsd(item, homeLaunchWindow);
   const ticker = document.querySelector('#home-market-ticker-items');
   const tableVolumeHeading = document.querySelector('#home-table-volume-heading');
   const tableTxnsHeading = document.querySelector('#home-table-txns-heading');
@@ -3871,73 +3940,8 @@ function renderHomeLaunchBoard(){
     }).join('');
     loadVerifiedTokenLogos(tableBody);
   }
-  grid.innerHTML = visible.map(item => {
-    const change = item.change || '—';
-    const changeValue = Number.parseFloat(change);
-    const changeClass = Number.isFinite(changeValue) ? (changeValue >= 0 ? 'is-positive' : 'is-negative') : '';
-    const progressValue = item.complete === true ? 100 : Number.isFinite(Number(item.curveProgressPercent)) ? Math.max(0, Math.min(100, Number(item.curveProgressPercent))) : 0;
-    const progressLabel = item.complete === true ? 'Migrated' : progressValue > 0 ? `${Math.round(progressValue)}% filled` : 'On curve';
-    const capSol = item.migrated === true ? item.poolMarketCapSol : item.curveCapSol;
-    const capLabel = item.migrated === true ? 'Market cap' : 'Curve cap';
-    const hasNoObservedTrades = item.windowCoverage === 'complete' && item.windowTradeCount != null && Number(item.windowTradeCount) === 0;
-    const shownVolume = volumeUsd(item);
-    const value = EXPLORE_CLUSTER === 'devnet' ? formatCoinUsd(capSol) : item.marketCapUsd != null ? formatCompactUsd(item.marketCapUsd) : '—';
-    const providerHolders = item.holders == null || item.holders === '' ? NaN : Number(item.holders);
-    const accountHolders = item.holderWalletCount == null || item.holderWalletCount === '' ? NaN : Number(item.holderWalletCount);
-    const holderCount = Number.isFinite(providerHolders) && providerHolders >= 0
-      ? providerHolders.toLocaleString()
-      : Number.isFinite(accountHolders) && accountHolders >= 0 ? `${item.holderWalletCoverage === 'lower-bound' ? '≥' : ''}${accountHolders.toLocaleString()}` : '—';
-    const holderTitle = Number.isFinite(providerHolders)
-      ? 'Holder count from the indexed market provider'
-      : Number.isFinite(accountHolders) ? `${item.holderWalletCoverage === 'lower-bound' ? 'At least ' : ''}${accountHolders} distinct wallet owner${accountHolders === 1 ? '' : 's'} in confirmed non-vault token accounts${item.holderWalletCoverage === 'lower-bound' ? ' · largest-account sample only' : ''}` : 'Verified holder count unavailable';
-    const launchPolicy = verifiedLaunchPolicyForMint(item.address);
-    const cardData = tokenCardData({ mint: item.address, market: item, policy: launchPolicy });
-    const mintLabel = item.address ? `${item.address.slice(0, 5)}…${item.address.slice(-4)}` : 'Unavailable';
-    const creatorWallet = launchPolicy?.onchainVerified && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(launchPolicy.creatorWallet || '')
-      ? launchPolicy.creatorWallet : '';
-    const creatorLabel = creatorWallet ? `${creatorWallet.slice(0, 5)}…${creatorWallet.slice(-4)}` : '';
-    const feeRoute = homeLaunchFeeRouteMarkup(launchPolicy);
-    const boost = verifiedBoosts[item.address];
-    const boostMultiplier = activeBoostMultiplier(boost);
-    const activeBoost = boostMultiplier > 0;
-    const boostPaymentCount = activeBoostPackages(boost).length;
-    return `<article class="token-card-shell home-launch-card" data-mint="${escapeHtml(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}">
-      <a class="home-launch-card-link" href="/token/${encodeURIComponent(item.address || '')}" aria-label="Open ${escapeHtml(item.name || item.symbol || 'token')} token details"></a>
-      <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span>${exploreSocialLinksMarkup(item)}${tokenCardWatchMarkup(item.address, item.symbol)}<span class="home-launch-media-stage">${escapeHtml(exploreStageLabel(item))}</span><div class="home-launch-media-badges"><span class="home-launch-media-package"></span>${activeBoost ? `<span class="home-launch-media-boost" title="${escapeHtml(`${boostPaymentCount} verified boost payment${boostPaymentCount === 1 ? '' : 's'} · active until ${new Date(boost.expiresAt).toLocaleString()}`)}">${escapeHtml(String(boostMultiplier))}x · ${escapeHtml(String(boostPaymentCount))} paid${boostMultiplier >= 500 ? ' ★' : ''}</span>` : ''}</div></div>
-      <div class="home-launch-card-top">
-        <span class="home-token-identity"><strong class="${activeBoost && boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(item.symbol || 'TOKEN')}</strong>${exploreBoostAmountMarkup(item.address)}<small>${escapeHtml(item.name || 'Unnamed token')}</small></span>
-        <div class="home-launch-card-addresses"><span title="Token contract: ${escapeHtml(item.address || '')}"><small>CA</small><code>${escapeHtml(mintLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(item.address || '')}" data-copy-kind="token" aria-label="Copy full token address" title="Copy full token address">${icon('copy')}</button></span>${creatorWallet ? `<span title="Verified launch creator: ${escapeHtml(creatorWallet)}"><small>Creator</small><code>${escapeHtml(creatorLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(creatorWallet)}" data-copy-kind="creator" aria-label="Copy full creator wallet address" title="Copy full creator wallet address">${icon('copy')}</button></span>` : ''}</div>
-        ${feeRoute}
-      </div>
-      <div class="home-launch-card-stats">
-        <span><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small><strong>${escapeHtml(value)}</strong></span>
-        <span><small>${escapeHtml(homeLaunchWindow)} volume</small><strong>${escapeHtml(shownVolume)}</strong></span>
-        <span title="${escapeHtml(holderTitle)}"><small>Holders</small><strong>${escapeHtml(holderCount)}</strong></span>
-        <span class="home-launch-change ${changeClass}"><small>24h change</small><strong>${escapeHtml(hasNoObservedTrades ? 'No trades' : change)}</strong></span>
-      </div>
-      <div class="home-launch-progress" aria-label="${escapeHtml(progressLabel)}"><i style="--launch-progress:${progressValue}%"></i></div>
-      <div class="home-launch-meta"><span>${escapeHtml(formatOnchainAge(Number(item.createdTimestamp || 0) * 1000))}</span><span>${escapeHtml(progressLabel)}</span></div>
-      <div class="token-card-evidence">${cardData.policyState === 'recorded' ? 'Policy recorded' : 'Policy unavailable'}</div>
-      <div class="home-launch-card-actions">${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" data-boost-mint="${escapeHtml(item.address || '')}">Boost</button></div>
-    </article>`;
-  }).join('');
-  grid.querySelectorAll('.home-launch-card').forEach((card, index) => {
-    const mint = visible[index]?.address;
-    const packageBadge = card.querySelector('.home-launch-media-package');
-    const promotion = promotionElement(mint, true);
-    if (promotion) {
-      const launchPromotion = promotionForMint(mint);
-      if (launchPromotion?.tier === 'boost') promotion.textContent = `Boost · ${launchPromotion.amountTokens.toLocaleString()} $FUNDED`;
-      packageBadge?.append(promotion);
-    }
-    else if (verifiedLaunchPolicyForMint(mint)?.onchainVerified) {
-      const standard = document.createElement('span');
-      standard.className = 'home-launch-package-standard';
-      standard.textContent = 'Standard';
-      standard.title = 'Standard launch package · verified policy, no paid launch promotion';
-      packageBadge?.append(standard);
-    } else packageBadge?.remove();
-  });
+  grid.innerHTML = visible.map(item => homeLaunchCardMarkup(item, { volumeLabel: homeLaunchWindow, volumeValue: volumeUsd(item) })).join('');
+  grid.querySelectorAll('.home-launch-card').forEach((card, index) => decorateHomeLaunchCard(card, visible[index]?.address));
   loadVerifiedTokenLogos(grid);
 }
 document.querySelectorAll('[data-home-launch-tab]').forEach(button => button.addEventListener('click', () => {
@@ -7351,7 +7355,7 @@ document.querySelector('#home-launch-grid')?.addEventListener('click', async eve
   if (trade) openExploreTrade(trade.dataset.tradeMint);
 });
 document.addEventListener('click', async event => {
-  const copy = event.target.closest('.token-card-copy-address');
+  const copy = event.target.closest('.token-card-copy-address, .home-launch-copy-address');
   if (!copy) return;
   event.preventDefault();
   event.stopPropagation();
