@@ -40,7 +40,11 @@ try {
     await modal.waitFor({ state: 'hidden', timeout: 5000 });
     assert.equal(new URL(page.url()).hash, '#overview', `${route} must leave the closed dialog route`);
   }
-  console.log('Legal dialog names and Escape routes passed (mocked source-backed browser).');
+  await page.goto('http://127.0.0.1:5189/opt-out-action#opt-out');
+  await page.getByRole('dialog', { name:'Opt out' }).getByRole('button', { name:'Manage X account controls' }).evaluate(button => button.click());
+  assert.equal(new URL(page.url()).hash, '#creator-settings', 'Opt-out action must open the authenticated creator controls');
+  assert.equal(await page.getByRole('dialog', { name:'Opt out' }).isVisible(), false);
+  console.log('Legal dialog routes and opt-out settings action passed (mocked source-backed browser).');
 } finally {
   await browser.close();
 }

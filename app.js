@@ -3175,7 +3175,6 @@ function renderExtendedAnalyticsDashboard(){
 function renderVerifiedReceiptEvidence(){
   const verifiedStatus = ['onchain-indexed', 'partial'].includes(receiptEvidence?.status);
   const collections = verifiedStatus && Array.isArray(receiptEvidence.verifiedCollections) ? receiptEvidence.verifiedCollections : [];
-  const payouts = verifiedStatus && Array.isArray(receiptEvidence.verifiedPayouts) ? receiptEvidence.verifiedPayouts : [];
   const cards = document.querySelectorAll('.analytics-kpis article');
   const feeCard = document.querySelector('[data-analytics-metric="fees"]') || cards[0];
   const payoutCard = document.querySelector('[data-analytics-metric="payouts"]') || cards[2];
@@ -3204,16 +3203,12 @@ function renderVerifiedReceiptEvidence(){
       feeCard.querySelector('small').innerHTML = '<b>SOL</b>Collection total unavailable; inspect individual receipts';
     }
   }
-  if (payouts.length && payoutCard) {
-    payoutCard.querySelector('span').textContent = 'Confirmed payments';
-    payoutCard.querySelector('strong').textContent = String(payouts.length);
-    payoutCard.querySelector('small').innerHTML = '<b>COUNT</b>Payments in available history';
-  }
-  else if (payoutCard) {
-    payoutCard.querySelector('span').textContent = 'Confirmed payments';
-    payoutCard.querySelector('small').innerHTML = `<b>COUNT</b>${!receiptEvidenceChecked ? 'Checking payment history' : !receiptEvidence || receiptEvidence.status === 'unavailable' ? 'Payment history unavailable' : 'No confirmed payments in available history'}`;
-  }
   const historyPayouts = Array.isArray(paymentHistoryEvidence?.verifiedPayouts) ? paymentHistoryEvidence.verifiedPayouts : [];
+  if (payoutCard) {
+    payoutCard.querySelector('span').textContent = 'Recent finalized payments';
+    payoutCard.querySelector('strong').textContent = paymentHistoryEvidence ? String(historyPayouts.length) : '—';
+    payoutCard.querySelector('small').innerHTML = `<b>COUNT</b>${!receiptEvidenceChecked ? 'Checking payment history' : !paymentHistoryEvidence ? 'Payment history unavailable' : historyPayouts.length ? `Latest ${historyPayouts.length} receipts across payout sources` : 'No finalized payments in available history'}`;
+  }
   const list = document.querySelector('#payment-list');
   const tape = document.querySelector('#payment-dialog-list');
   if (!list || !tape) return;
@@ -3325,7 +3320,7 @@ function renderOnchainReportState(verified){
   const marketUnavailable = /rate limited|unavailable/i.test(exploreProviderStatus);
   if (feeCard) { feeCard.querySelector('span').textContent = 'Fees collected'; feeCard.querySelector('strong').textContent = '—'; feeCard.querySelector('small').innerHTML = '<b>SOL</b>Checking fee history'; }
   if (launchCard) { launchCard.querySelector('strong').textContent = launchCount ? String(launchCount) : '—'; launchCard.querySelector('small').innerHTML = `<b>COUNT</b>${indexedLaunches != null ? feedChecked && !marketUnavailable && verified.length === indexedLaunches ? 'Confirmed launches' : 'Some launch activity may be missing' : !feedChecked ? 'Checking launches' : marketUnavailable ? 'Launch activity unavailable' : verified.length ? 'Confirmed launches' : 'No confirmed launches'}`; }
-  if (payoutCard) { payoutCard.querySelector('span').textContent = 'Confirmed payments'; payoutCard.querySelector('strong').textContent = '—'; payoutCard.querySelector('small').innerHTML = '<b>COUNT</b>Checking payment history'; }
+  if (payoutCard) { payoutCard.querySelector('span').textContent = 'Recent finalized payments'; payoutCard.querySelector('strong').textContent = '—'; payoutCard.querySelector('small').innerHTML = '<b>COUNT</b>Checking payment history'; }
   const volumeSol = verified.reduce((sum, item) => sum + (Number.isFinite(Number(item.volume24hSol)) ? Number(item.volume24hSol) : 0), 0);
   const hasVolume = verified.some(item => item.volume24hSol != null && Number.isFinite(Number(item.volume24hSol)));
   const partialVolume = verified.some(item => item.volumeCoverage === 'partial' || item.volume24hSol == null);
@@ -5143,12 +5138,16 @@ const infoDialogRoutes = new Set(['terms', 'disclosures', 'opt-out']);
 function openInfoDialog(kind, { routeDriven = false } = {}){
   const content = {
     terms: ['Terms of Use', '<div class="legal-meta"><span>Effective 18 Sep 2026</span><span>Version 1.0</span><span>Applies to funded.vip</span></div><p>You are responsible for reviewing every transaction before signing and for complying with applicable rules.</p><h3>Contents</h3><ul class="legal-list"><li>Wallet connection and signatures</li><li>Token metadata and deployer responsibility</li><li>Network, fees, and transaction confirmation</li><li>Prohibited use and service limitations</li><li>Privacy, disclosures, and support</li></ul><p class="muted-note">This is product information, not legal advice.</p>'],
-    disclosures: ['Disclosures', '<div class="legal-meta"><span>Effective 23 Sep 2026</span><span>Version 1.5</span><span>Applies to funded.vip</span></div><p>The Pump launch flow creates the coin with the verified funded.vip router PDA written directly into Pump’s creator field. The paying wallet never receives creator-fee authority, and the app reads the bonding curve back before reporting success.</p><h3>Important limits</h3><ul class="legal-list"><li>The app indexes finalized receipts. Automatic creator and holder SOL delivery requires verified funding and an active healthy distribution worker; holder payouts also require complete finalized indexing. Check the live status on Home before relying on delivery. Referral rewards remain wallet-initiated claims.</li><li>X recipient verification and community-token distribution are not enabled.</li><li>Pump protocol administrators or a future Pump program upgrade remain outside funded.vip’s control.</li><li>funded.vip is not affiliated with X, Phantom, or Pump.fun.</li></ul><p class="muted-note">Verify the Pump creator address in the launch transaction and bonding-curve account on Solana Explorer.</p>'],
+    disclosures: ['Disclosures', '<div class="legal-meta"><span>Effective 7 Oct 2026</span><span>Version 1.6</span><span>Applies to funded.vip</span></div><p>The Pump launch flow creates the coin with the verified funded.vip router PDA written directly into Pump’s creator field. The paying wallet never receives creator-fee authority, and the app reads the bonding curve back before reporting success.</p><h3>Important limits</h3><ul class="legal-list"><li>The app indexes finalized receipts. Automatic creator and holder SOL delivery requires verified funding and an active healthy distribution worker; holder payouts also require complete finalized indexing. Check the live status on Home before relying on delivery. Referral rewards remain wallet-initiated claims.</li><li>X fee claims require verified X identity and a matching on-chain obligation. Community-token claims require a funded reserve, a verified migration snapshot, and an active claim window; availability varies by coin.</li><li>Pump protocol administrators or a future Pump program upgrade remain outside funded.vip’s control.</li><li>funded.vip is not affiliated with X, Phantom, or Pump.fun.</li></ul><p class="muted-note">Verify the Pump creator address in the launch transaction and bonding-curve account on Solana Explorer.</p>'],
     capital: ['Capital flow', '<p>This calculator illustrates the published allocation policy. Confirmed launch, collection, and payout records appear in the verified workspace pages when the receipt indexer has recorded them.</p>'],
-  'opt-out': ['Opt out', '<div class="legal-meta"><span>Account controls</span><span>Identity controls</span></div><p>The app indexes launch and reward activity, but account-level discovery exclusions require verified X identity and are not available yet.</p><div class="optout-steps"><div><b>1</b><span><strong>Sign in with X</strong><small>Verify control of the account you want to manage.</small></span></div><div><b>2</b><span><strong>Choose exclusions</strong><small>Request exclusion from future discovery and recipient selection.</small></span></div><div><b>3</b><span><strong>Review status</strong><small>Confirm the effective date; finalized receipts and existing entitlements remain on record.</small></span></div></div><button type="button" class="secondary-button info-action" disabled>Opt-out requests unavailable</button><p class="muted-note">X sign-in and indexed exclusion requests are not connected at this time.</p>'],
+  'opt-out': ['Opt out', '<div class="legal-meta"><span>Account controls</span><span>Verified X identity</span></div><p>Sign in with the X account named in a launch policy, then exclude its creator page and block new support launches.</p><div class="optout-steps"><div><b>1</b><span><strong>Sign in with X</strong><small>Verify control of the account you want to manage.</small></span></div><div><b>2</b><span><strong>Choose exclusion</strong><small>Select “Exclude my page and block new support launches” in creator settings, then save.</small></span></div><div><b>3</b><span><strong>Review status</strong><small>Reopen creator settings to confirm the saved choice and update time. Existing finalized receipts and entitlements remain on record.</small></span></div></div><button type="button" class="secondary-button info-action" data-open-creator-settings>Manage X account controls</button>'],
   }[kind] || ['Information', '<p>Explore the funded.vip workspace and review each transaction before signing.</p>'];
   document.querySelector('#info-title').textContent = content[0];
   document.querySelector('#info-content').innerHTML = content[1];
+  document.querySelector('#info-content [data-open-creator-settings]')?.addEventListener('click', () => {
+    closeInfoDialog();
+    location.hash = 'creator-settings';
+  });
   const dialog = document.querySelector('#info-dialog');
   dialog.dataset.infoKind = kind;
   dialog.dataset.routeDriven = routeDriven ? 'true' : 'false';
