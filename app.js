@@ -2611,6 +2611,14 @@ function renderExplorePayoutStats() {
     const group = ready ? stats[card.kind] : null;
     const available = ['verified', 'partial'].includes(group?.status);
     const leader = available && card.top ? group.top : null;
+    if (card.kind === 'fundedHolder') {
+      const value = available && leader ? `${leader.claimCount} token claim${leader.claimCount === 1 ? '' : 's'}` : '—';
+      const detail = group?.status === 'unavailable' ? group.reason || 'Finalized community claims unavailable'
+        : !available ? 'Checking finalized community claims'
+          : leader ? `${shortAddress(leader.recipient)} · ${leader.launchCount} launch${leader.launchCount === 1 ? '' : 'es'}`
+            : 'No finalized community claims yet';
+      return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></article>`;
+    }
     const amount = card.top ? leader?.paidLamports : group?.paidLamports;
     const count = card.top ? leader?.payoutCount : group?.payoutCount;
     const value = available && (group.status !== 'partial' || count > 0)

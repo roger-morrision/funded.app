@@ -13,6 +13,7 @@ import { createAutomaticRewardStore } from './automatic-reward-store.mjs';
 import { DEVNET_GENESIS_HASH, readProgramDataEvidence, createAutomaticRewardChain } from './automatic-reward-chain.mjs';
 import { readCommunityReserveStatus, verifiedCommunityClaimedWalletCount } from './community-reserve-status.mjs';
 import { createCommunityClaimService } from './community-claim-service.mjs';
+import { indexCommunityClaims } from './community-claim-index.mjs';
 import { randomBytes, createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
@@ -2325,3 +2326,23 @@ server.headersTimeout = 10_000;
 server.requestTimeout = 30_000;
 server.timeout = 120_000;
 server.listen(port, host, () => console.log(`funded.vip app listening on http://${host}:${port}`));
+if (solanaCluster === 'devnet' && fundedTokenMint && process.env.FUNDED_REWARD_AUTHORITY
+  && process.env.FUNDED_FEE_ROUTER_PROGRAM_ID && process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256) {
+  let indexing = false;
+  const refreshCommunityClaimIndex = async () => {
+    if (indexing) return;
+    indexing = true;
+    try {
+      const result = await indexCommunityClaims({ connection:new Connection(solanaRpcUrl, 'finalized'),
+        ledger:automaticRewardStore, programId:process.env.FUNDED_FEE_ROUTER_PROGRAM_ID,
+        authority:process.env.FUNDED_REWARD_AUTHORITY, eligibilityMint:fundedTokenMint,
+        expectedProgramDataSha256:process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
+      console.log(JSON.stringify({ event:'community_claim_indexed', drops:result.drops.length,
+        claims:result.payments.length, indexedAt:result.indexedAt }));
+    } catch (error) {
+      console.error(JSON.stringify({ event:'community_claim_index_failed', reason:String(error.message || error).slice(0, 180) }));
+    } finally { indexing = false; }
+  };
+  setTimeout(() => { void refreshCommunityClaimIndex(); }, 5_000).unref();
+  setInterval(() => { void refreshCommunityClaimIndex(); }, 3 * 60_000).unref();
+}

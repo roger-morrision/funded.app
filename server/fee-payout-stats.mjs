@@ -21,12 +21,37 @@ function empty(status) {
     top:null, status };
 }
 
+function communityHolderClaims(index, cluster, now = Date.now()) {
+  const unavailable = { status:'unavailable', asset:'launched tokens', claimCount:null, top:null,
+    reason:'Finalized community claims have not been indexed by recipient.' };
+  if (index?.cluster !== cluster || index.commitment !== 'finalized' || index.status !== 'verified'
+    || !Array.isArray(index.drops) || !Array.isArray(index.payments)) return unavailable;
+  const indexedAt = Date.parse(index.indexedAt);
+  if (!Number.isFinite(indexedAt) || indexedAt > now + 60_000 || now - indexedAt > 20 * 60_000)
+    return { ...unavailable, reason:'Community claim index is stale; waiting for a finalized Devnet rescan.' };
+  const opened = new Set(index.drops.map(row => row.mint));
+  const seen = new Set(), groups = new Map();
+  for (const payment of index.payments) {
+    if (!opened.has(payment.mint) || !ADDRESS.test(String(payment.recipient || ''))
+      || !ADDRESS.test(String(payment.payment || ''))
+      || !/^[1-9]\d*$/.test(String(payment.amountBaseUnits || '')) || seen.has(payment.payment)) return unavailable;
+    seen.add(payment.payment);
+    const group = groups.get(payment.recipient) || { recipient:payment.recipient, claimCount:0, mints:new Set() };
+    group.claimCount += 1;
+    group.mints.add(payment.mint);
+    groups.set(payment.recipient, group);
+  }
+  const leader = [...groups.values()].sort((a, b) => b.claimCount - a.claimCount || a.recipient.localeCompare(b.recipient))[0];
+  return { status:'verified', asset:'launched tokens', claimCount:index.payments.length,
+    dropCount:index.drops.length, indexedAt:index.indexedAt, reason:null,
+    top:leader ? { recipient:leader.recipient, claimCount:leader.claimCount, launchCount:leader.mints.size } : null };
+}
+
 // Fee totals require a finalized collection, a funded reward request, and a
 // finalized recipient payment. A paid flag or policy allocation alone is not a payout.
 export function feePayoutStats(state = {}, rewards = null, evidence = {}, cluster = 'devnet') {
   const unavailable = { cluster, commitment:'finalized', x:empty('unavailable'), creator:empty('unavailable'),
-    holder:empty('unavailable'), fundedHolder:{ ...empty('unavailable'), asset:'launched tokens',
-      reason:'Community token claims are not indexed globally by recipient.' } };
+    holder:empty('unavailable'), fundedHolder:communityHolderClaims(rewards?.communityClaimIndex, cluster) };
   if (!rewards?.schedules || evidence.cluster !== cluster || evidence.commitment !== 'finalized'
     || !['onchain-indexed', 'partial', 'no-records'].includes(evidence.status)) return unavailable;
 
