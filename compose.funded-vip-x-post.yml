@@ -1,0 +1,56 @@
+# Add to the funded.vip Devnet stack only after configuring the dedicated
+# @fundedvip user token and an explicit new-launch activation timestamp.
+services:
+  x-post-worker:
+    profiles: [x-posting]
+    image: ${FUNDED_APP_IMAGE:?Set the verified funded.vip image}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    command: [node, scripts/run-x-post-worker.mjs, --loop, --execute]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL_FILE: /run/secrets/database_url
+      DATABASE_SSL: 'false'
+      SOLANA_CLUSTER: devnet
+      SOLANA_RPC_URL_FILE: /run/secrets/solana_devnet_rpc_url
+      AUTOMATIC_REWARD_STORE_PATH: /app/data/automatic-rewards/ledger.json
+      FUNDED_TOKEN_MINT: ${FUNDED_TOKEN_MINT:-}
+      FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_FEE_ROUTER_PROGRAM_ID:-}
+      FUNDED_REWARD_AUTHORITY: ${FUNDED_REWARD_AUTHORITY:-}
+      FUNDED_TRADE_FEE_OWNER: ${FUNDED_TRADE_FEE_OWNER:-}
+      X_POST_ENABLED: ${X_POST_ENABLED:?Explicitly enable verified publication}
+      X_POST_ALLOW_DEVNET: ${X_POST_ALLOW_DEVNET:?Explicitly authorize public Devnet posts}
+      X_POST_EXPECTED_HANDLE: fundedvip
+      X_POST_ACCOUNT_ID: ${X_POST_ACCOUNT_ID:?Pin the verified fundedvip X user ID}
+      X_POST_API_KEY_FILE: /run/secrets/x_post_api_key
+      X_POST_API_SECRET_FILE: /run/secrets/x_post_api_secret
+      X_POST_ACCESS_TOKEN_FILE: /run/secrets/x_post_access_token
+      X_POST_ACCESS_TOKEN_SECRET_FILE: /run/secrets/x_post_access_token_secret
+      X_POST_PUBLIC_ORIGIN: https://funded.vip
+      X_POST_START_AT: ${X_POST_START_AT:?Pin the new-launch activation timestamp}
+      X_POST_INTERVAL_MS: '60000'
+      X_POST_MAX_PER_PASS: '1'
+      X_POST_MAX_HOURLY: '6'
+      X_POST_MAX_DAILY: '24'
+      X_POST_MIN_PROFIT_LAMPORTS: '1000000000'
+    secrets: [database_url, solana_devnet_rpc_url, x_post_api_key, x_post_api_secret, x_post_access_token, x_post_access_token_secret]
+    volumes:
+      - funded_reward_ledger:/app/data/automatic-rewards:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+secrets:
+  x_post_api_key:
+    file: ${X_POST_API_KEY_FILE:-./.secrets/x-post-api-key}
+  x_post_api_secret:
+    file: ${X_POST_API_SECRET_FILE:-./.secrets/x-post-api-secret}
+  x_post_access_token:
+    file: ${X_POST_ACCESS_TOKEN_FILE:-./.secrets/x-post-user-token}
+  x_post_access_token_secret:
+    file: ${X_POST_ACCESS_TOKEN_SECRET_FILE:-./.secrets/x-post-user-token-secret}
