@@ -5106,18 +5106,43 @@ function injectedWalletProviders(){
     { id: 'legacy', provider: window.solana },
   ].filter(entry => entry.provider);
 }
+function readWalletPreference(key){
+  try { const value = localStorage.getItem(key); if (value !== null) return value; } catch {}
+  try { return sessionStorage.getItem(key); } catch { return null; }
+}
+function saveWalletPreference(key, value){
+  try { localStorage.setItem(key, value); } catch {}
+  try { sessionStorage.setItem(key, value); } catch {}
+}
+function removeWalletPreference(key){
+  try { localStorage.removeItem(key); } catch {}
+  try { sessionStorage.removeItem(key); } catch {}
+}
 function rememberedWalletProviderId(){
-  try { return sessionStorage.getItem(WALLET_PROVIDER_KEY); } catch { return null; }
+  return readWalletPreference(WALLET_PROVIDER_KEY);
 }
 function getProvider(){
   return selectRememberedWalletProvider(injectedWalletProviders(), rememberedWalletProviderId());
 }
+function phantomProvider(){
+  if (window.phantom?.solana?.isPhantom) return window.phantom.solana;
+  return window.solana?.isPhantom ? window.solana : null;
+}
+async function waitForPhantomProvider(){
+  const provider = phantomProvider();
+  if (provider) return provider;
+  return new Promise(resolve => {
+    const check = () => { const injected = phantomProvider(); if (injected) finish(injected); };
+    const finish = injected => { clearInterval(interval); clearTimeout(timeout); resolve(injected); };
+    const interval = setInterval(check, 100);
+    const timeout = setTimeout(() => finish(null), 3000);
+  });
+}
 async function restoreTrustedPhantomWallet(){
-  const provider = window.phantom?.solana;
   const remembered = rememberedWalletProviderId();
-  const chosenPhantom = !remembered || remembered === 'phantom' || (remembered === 'legacy' && window.solana === provider)
-    || !injectedWalletProviders().some(entry => entry.id === remembered);
-  if (!provider?.isPhantom || !chosenPhantom || wasWalletManuallyDisconnected() || wallet) return false;
+  if ((remembered && remembered !== 'phantom' && remembered !== 'legacy') || wasWalletManuallyDisconnected() || wallet) return false;
+  const provider = await waitForPhantomProvider();
+  if (!provider || (remembered === 'legacy' && window.solana !== provider) || wasWalletManuallyDisconnected() || wallet) return false;
   observeWalletProvider(provider);
   const request = ++walletConnectRequest;
   let timeout;
@@ -5140,16 +5165,15 @@ function isWalletSessionCurrent(session){
     && wallet.isConnected !== false && connectedWalletAddress === session.address && walletAddress(wallet) === session.address);
 }
 function wasWalletManuallyDisconnected(){
-  try { return walletDisconnectRequested || sessionStorage.getItem(WALLET_MANUAL_DISCONNECT_KEY) === '1'; }
-  catch { return walletDisconnectRequested; }
+  return walletDisconnectRequested || readWalletPreference(WALLET_MANUAL_DISCONNECT_KEY) === '1';
 }
 function markWalletManuallyDisconnected(){
   walletDisconnectRequested = true;
-  try { sessionStorage.setItem(WALLET_MANUAL_DISCONNECT_KEY, '1'); } catch {}
+  saveWalletPreference(WALLET_MANUAL_DISCONNECT_KEY, '1');
 }
 function allowWalletReconnect(){
   walletDisconnectRequested = false;
-  try { sessionStorage.removeItem(WALLET_MANUAL_DISCONNECT_KEY); } catch {}
+  removeWalletPreference(WALLET_MANUAL_DISCONNECT_KEY);
 }
 function assertWalletSessionCurrent(session){
   if (!isWalletSessionCurrent(session)) throw new Error('Wallet account changed. Review and retry with the connected account.');
@@ -5219,7 +5243,7 @@ function activateWallet(provider, message = 'Wallet connected'){
   connectedWalletAddress = address;
   restoreCoinChatSession(address);
   const providerId = injectedWalletProviders().find(entry => entry.provider === provider)?.id;
-  if (providerId) { try { sessionStorage.setItem(WALLET_PROVIDER_KEY, providerId); } catch {} }
+  if (providerId) saveWalletPreference(WALLET_PROVIDER_KEY, providerId);
   observeWalletProvider(provider);
   setWalletState(message, address, true);
   void refreshPortfolioHoldings();
@@ -7632,9 +7656,11 @@ if (APP_MAINNET_READ_ONLY) {
   banner.textContent = 'Read-only workspace · wallet signing and financial actions disabled';
   document.body.prepend(banner);
 } else {
+  const phantomAvailableAtStartup = Boolean(phantomProvider());
   if (existingProvider?.isConnected && walletAddress(existingProvider) && !wasWalletManuallyDisconnected()) activateWallet(existingProvider);
-  if (!wallet) await restoreTrustedPhantomWallet();
+  if (!wallet && phantomAvailableAtStartup) await restoreTrustedPhantomWallet();
   if (!wallet) await restoreMobileWallet();
+  if (!wallet && !phantomAvailableAtStartup) void restoreTrustedPhantomWallet();
   if (!wallet) await connectDevWallet();
 }
 captureAppReferral();
