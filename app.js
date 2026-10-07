@@ -2895,6 +2895,31 @@ function renderHomeKpiDashboard(verified = assets){
       available ? partialAllocation ? 'partial' : lamports ? 'available' : 'empty' : 'unavailable');
   }
 
+  const rewardPaid = analyticsSummary?.rewardPaid;
+  const paidEvidenceReady = rewardPaid?.cluster === EXPLORE_CLUSTER && rewardPaid.commitment === 'finalized';
+  for (const [key, category, label] of [
+    ['holder-paid', 'holder', 'coin holder'],
+    ['x-paid', 'x', 'X account'],
+  ]) {
+    const payout = rewardPaid?.[category];
+    const amountText = payout?.paidLamports;
+    const paidLamports = typeof amountText === 'string' && /^(?:0|[1-9]\d*)$/.test(amountText) ? Number(amountText) : NaN;
+    const count = Number(payout?.payoutCount);
+    const evidenceAvailable = paidEvidenceReady && ['verified', 'partial'].includes(payout?.status)
+      && Number.isSafeInteger(paidLamports) && paidLamports >= 0
+      && Number.isSafeInteger(count) && count >= 0;
+    const partial = payout?.status === 'partial';
+    const priced = evidenceAvailable && solQuoteReady && (!partial || count > 0);
+    setHomeDashboardMetric(key,
+      priced ? formatSmallDashboardUsd(paidLamports / 1_000_000_000 * coinSolUsdPrice, { partial }) : '$—',
+      !evidenceAvailable ? 'Finalized payout data unavailable'
+        : !solQuoteReady ? 'Current SOL/USD quote unavailable'
+          : partial ? count ? `${count} verified ${label} payout${count === 1 ? '' : 's'} · more receipts pending` : 'Payout verification incomplete'
+            : count ? `${count} finalized ${label} payout${count === 1 ? '' : 's'} · current SOL/USD quote`
+              : `No finalized ${label} payouts yet`,
+      !evidenceAvailable ? 'unavailable' : partial ? 'partial' : !solQuoteReady ? 'unavailable' : count ? 'available' : 'empty');
+  }
+
   const burnSummaryReady = allocationReady
     && allocation.burnedTokens != null
     && Number.isFinite(Number(allocation.burnedTokens));

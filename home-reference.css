@@ -351,7 +351,7 @@ body.page-route-overview .home-kpi-heading p:not(.eyebrow) {
   clip-path: inset(50%);
   white-space: nowrap;
 }
-body.page-route-overview .home-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; padding: 0; border-top: 1px solid #29323a; background: transparent; }
+body.page-route-overview .home-kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding: 0; border-top: 1px solid #29323a; background: transparent; }
 body.page-route-overview .home-kpi-card,
 body.page-route-overview .home-kpi-card[data-state='unavailable'] { min-height: 108px; padding: 18px 15px; border: 0; border-right: 1px solid #29323a; border-bottom: 1px solid #29323a; border-radius: 0; background: transparent; box-shadow: none; }
 body.page-route-overview .home-kpi-card { display: none; }
@@ -360,15 +360,19 @@ body.page-route-overview #home-kpi-airdrop-card,
 body.page-route-overview #home-kpi-volume-card,
 body.page-route-overview #home-kpi-fees-card,
 body.page-route-overview #home-kpi-burn-card,
-body.page-route-overview #home-kpi-referrals-card { display: flex; }
+body.page-route-overview #home-kpi-referrals-card,
+body.page-route-overview #home-kpi-holder-paid-card,
+body.page-route-overview #home-kpi-x-paid-card { display: flex; }
 body.page-route-overview #home-kpi-launches-card { order: 1; }
-body.page-route-overview #home-kpi-airdrop-card { order: 7; }
-body.page-route-overview #home-kpi-volume-card { order: 3; }
-body.page-route-overview #home-kpi-fees-card { order: 4; }
-body.page-route-overview #home-kpi-burn-card { order: 5; }
-body.page-route-overview #home-kpi-referrals-card { order: 6; }
-body.page-route-overview #home-kpi-volume-card,
-body.page-route-overview #home-kpi-airdrop-card { border-right: 0; }
+body.page-route-overview #home-kpi-volume-card { order: 2; }
+body.page-route-overview #home-kpi-fees-card { order: 3; }
+body.page-route-overview #home-kpi-burn-card { order: 4; }
+body.page-route-overview #home-kpi-referrals-card { order: 5; }
+body.page-route-overview #home-kpi-airdrop-card { order: 6; }
+body.page-route-overview #home-kpi-holder-paid-card { order: 7; }
+body.page-route-overview #home-kpi-x-paid-card { order: 8; }
+body.page-route-overview #home-kpi-burn-card,
+body.page-route-overview #home-kpi-x-paid-card { border-right: 0; }
 body.page-route-overview .home-kpi-card .home-kpi-icon { width: 22px; height: 22px; border: 0; background: transparent; color: var(--home-green); }
 body.page-route-overview .home-kpi-card small { color: #8f9ba5; }
 body.page-route-overview .home-kpi-card strong,
@@ -378,6 +382,12 @@ body.page-route-overview .home-kpi-card-volume strong { color: #e8edf0; }
 body.page-route-overview .home-kpi-card em { display: none; }
 body.page-route-overview .home-kpi-footer { padding: 15px 0; border-color: #29323a; background: transparent; }
 body.page-route-overview .home-kpi-footer a { color: var(--home-green); }
+
+@media (max-width: 1200px) {
+  body.page-route-overview .home-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.page-route-overview #home-kpi-volume-card,
+  body.page-route-overview #home-kpi-airdrop-card { border-right: 0; }
+}
 
 body.page-route-overview .home-reference-faq { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(0, 1.4fr); gap: clamp(30px, 6vw, 110px); width: 100%; margin: 0 0 90px; }
 body.page-route-overview .home-reference-faq h2 { margin: 6px 0 14px; color: #f0f2f4; font-size: clamp(28px, 3vw, 46px); letter-spacing: -.055em; text-transform: uppercase; }

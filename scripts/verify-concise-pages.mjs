@@ -38,7 +38,10 @@ for (const [route, selector, expectedVisible] of checks) {
       const status = await spotlight.locator('[data-home-jackpot-status]').textContent();
       if (/inactive|unavailable|not funded/i.test(status)) assert.equal(await spotlight.isVisible(), false);
     }
-    assert.equal(await page.locator('.home-kpi-dashboard > .home-kpi-grid > .home-kpi-card').count(), 12);
+    assert.equal(await page.locator('.home-kpi-dashboard > .home-kpi-grid > .home-kpi-card').count(), 14);
+    assert.equal(await page.locator('.home-kpi-dashboard > .home-kpi-grid > .home-kpi-card:visible').count(), 8);
+    assert(await page.locator('#home-kpi-holder-paid-card').isVisible());
+    assert(await page.locator('#home-kpi-x-paid-card').isVisible());
   }
   if (route === 'payments') {
     const jackpot = page.locator('#payments > .jackpot-disclosure');

@@ -71,6 +71,7 @@ import { homeLaunchFeeIndex } from './home-launch-fee-index.mjs';
 import { buildMintCreatorFeeCollectionInstructions } from './pump-fee-collection.mjs';
 import { verifyWrappedSolRecoveryReceipt } from './wrapped-sol-recovery-receipt.mjs';
 import { rewardExperience } from './reward-experience.mjs';
+import { rewardPaidTotals } from './reward-paid-totals.mjs';
 import { jackpotPreview } from './jackpot-model.mjs';
 import { homeFeeAllocationSummary } from './home-dashboard-metrics.mjs';
 import { projectBurnBoard, walletBurnBoard } from './leaderboard-burn-board.mjs';
@@ -904,7 +905,7 @@ async function handle(req, res) {
         if (url.searchParams.has('wallet')) wallet = new PublicKey(url.searchParams.get('wallet')).toBase58();
         if (url.searchParams.has('mint')) mint = new PublicKey(url.searchParams.get('mint')).toBase58();
       } catch { return json(res, 400, { error:'A valid Solana wallet and mint are required.' }); }
-      const [state, rewards, evidence] = await Promise.all([store.read(), automaticRewardStore.read(), readFinalizedEvidence()]);
+      const [state, rewards, evidence] = await Promise.all([store.read(), automaticRewardStore.read().catch(() => null), readFinalizedEvidence()]);
       return json(res, 200, rewardExperience(state, rewards, evidence, solanaCluster, wallet, mint));
     }
     if (req.method === 'GET' && url.pathname === '/api/airdrops/reserves') {
@@ -1711,7 +1712,7 @@ async function handle(req, res) {
     if (req.method === 'GET' && url.pathname === '/api/evidence/receipts') return json(res, 200, await readReceiptEvidence());
     if (req.method === 'GET' && url.pathname === '/api/evidence/payment-history') return json(res, 200, await readPaymentHistory());
     if (req.method === 'GET' && url.pathname === '/api/analytics/summary') {
-      const [state, evidence] = await Promise.all([store.read(), readFinalizedEvidence()]);
+      const [state, rewards, evidence] = await Promise.all([store.read(), automaticRewardStore.read(), readFinalizedEvidence()]);
       const launches = Object.values(state.launches || {}).filter(row => row.cluster === solanaCluster && row.onchainVerified === true);
       const totals = analyticsReceiptTotals(state, evidence, solanaCluster);
       return json(res, 200, {
@@ -1722,6 +1723,7 @@ async function handle(req, res) {
         freshness: evidence.generatedAt || null,
         launches: launches.length,
         ...totals,
+        rewardPaid: rewardPaidTotals(state, rewards, evidence, solanaCluster),
         homeFeeAllocations: homeFeeAllocationSummary(state, evidence, solanaCluster),
         creatorProfiles: creatorReputation(launches).length,
       });
