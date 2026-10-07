@@ -46,10 +46,10 @@ function createPanels() {
   const rewardsOverview = byId('rewards-overview') || payments;
   if (payments && !byId('reward-portfolio')) {
     const section = node('section', 'reward-experience-panel', null); section.id = 'reward-portfolio';
-    section.innerHTML = `<header><div><p class="eyebrow">Connected wallet</p><h2>Your wallet activity</h2><p>Review verified payments and claims associated with this wallet.</p></div><div class="reward-portfolio-top-actions"><span data-reward-evidence>Checking evidence…</span><button type="button" data-reward-connect>Connect wallet</button></div></header><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><div class="reward-portfolio-destinations"><p class="reward-portfolio-label">Other reward programs</p><nav class="reward-portfolio-links" aria-label="Reward programs"><a href="#airdrops"><span><strong>$FUNDED airdrops</strong><small>Check snapshot and claim status</small></span><b aria-hidden="true">↗</b></a><a href="#referrals"><span><strong>Referral rewards</strong><small>Sign and claim earned SOL</small></span><b aria-hidden="true">↗</b></a><a href="#payments" data-x-reward-link><span><strong>X account rewards</strong><small>Use the matching X sign-in</small></span><b aria-hidden="true">↗</b></a></nav></div><small class="reward-portfolio-note">A published allocation is not your wallet balance. Holder payments are automatic after an eligible snapshot and verified payout.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Your connected wallet</p><h2>Your reward status</h2><p>Verified SOL payments and pending creator allocations for this wallet. X rewards need a matching X sign-in; launched coin tokens are checked per airdrop.</p></div><div class="reward-portfolio-top-actions"><span data-reward-evidence>Checking evidence…</span><button type="button" data-reward-connect>Connect wallet</button></div></header><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><div class="reward-portfolio-destinations"><p class="reward-portfolio-label">Other reward programs</p><nav class="reward-portfolio-links" aria-label="Reward programs"><a href="#airdrops"><span><strong>$FUNDED airdrops</strong><small>Check snapshot and claim status</small></span><b aria-hidden="true">↗</b></a><a href="#referrals"><span><strong>Referral rewards</strong><small>Sign and claim earned SOL</small></span><b aria-hidden="true">↗</b></a><a href="#payments" data-x-reward-link><span><strong>X account rewards</strong><small>Use the matching X sign-in</small></span><b aria-hidden="true">↗</b></a></nav></div><small class="reward-portfolio-note">A published allocation is not your wallet balance. Holder payments are automatic after an eligible snapshot and verified payout.</small>`;
     const publicHistory = payments.querySelector('.x-claim-activity');
     if (publicHistory && rewardsOverview === payments) payments.insertBefore(section, publicHistory);
-    else rewardsOverview.append(section);
+    else rewardsOverview.prepend(section);
     section.querySelector('[data-x-reward-link]')?.addEventListener('click', event => {
       const tab = byId('rewards-x-tab');
       if (!tab) return;
@@ -113,8 +113,8 @@ function renderPortfolio(data, referralData, xData) {
   if (!wallet) {
     const empty = node('div', 'reward-portfolio-empty');
     const copy = node('div', 'reward-portfolio-empty-copy');
-    copy.append(node('span', 'reward-portfolio-empty-icon', '◈'), node('h3', '', 'Check wallet rewards'),
-      node('p', '', 'Connect to see verified payments and claims linked to your wallet.'));
+    copy.append(node('span', 'reward-portfolio-empty-icon', '◈'), node('h3', '', 'Connect to see your SOL rewards'),
+      node('p', '', 'The connected wallet shows its verified payments and pending creator allocations. Use the X tab for X rewards and Airdrops for launched coin tokens.'));
     const button = node('button', 'reward-portfolio-connect', 'Connect wallet');
     button.type = 'button';
     button.addEventListener('click', () => byId('connect-button')?.click());
@@ -128,16 +128,30 @@ function renderPortfolio(data, referralData, xData) {
   const referralClaims = Array.isArray(referralData?.claims) ? referralData.claims.filter(row => row.asset === 'SOL') : null;
   const referralOpen = referralClaims?.filter(row => row.status !== 'paid' && row.status !== 'expired') || [];
   const xClaims = summarizeXClaims(xData?.claims);
+  const legend = node('div', 'reward-status-legend');
+  for (const [name, description] of [['Ready to claim', 'You must complete a claim'], ['Waiting', 'Allocated, not paid'], ['Received', 'Verified wallet payment']]) {
+    const item = node('span'); item.append(node('strong', '', name), node('small', '', description)); legend.append(item);
+  }
+  body.append(legend);
   const summary = node('div', 'reward-portfolio-summary');
   const creatorUnpaid = rows.reduce((sum, row) => sum + BigInt(row.creatorWithoutPayoutProofLamports || '0'), 0n);
-  for (const [label, value] of [['Creator fees allocated, not paid',sol(creatorUnpaid)],
-    ['Confirmed SOL paid',sol(paid.reduce((sum, row) => sum + BigInt(row.amountLamports), 0n))],
-    ['Open referral claims',referralClaims ? sol(referralOpen.reduce((sum, row) => sum + decimalLamports(row.amount), 0n)) : 'Unavailable'],
-    ['X rewards ready to claim',xClaims ? formatXClaimSol(xClaims.unclaimed) : document.querySelector('#x-sign-in')?.dataset.connected === 'true' ? 'Unavailable' : 'Sign in with X']]) {
-    const card = node('div'); card.append(node('small','',label), node('strong','',value)); summary.append(card);
+  const summaryRows = [
+    ['Waiting · creator SOL', sol(creatorUnpaid), 'Allocated, without a verified payout yet', 'creator'],
+    ['Received · SOL', sol(paid.reduce((sum, row) => sum + BigInt(row.amountLamports), 0n)), 'Finalized wallet payments in the indexed records', 'history'],
+    ['Referral SOL to review', referralClaims ? sol(referralOpen.reduce((sum, row) => sum + decimalLamports(row.amount), 0n)) : 'Unable to check', 'Connect the earning wallet, then sign and execute each claim', '#referrals'],
+    ['Ready to claim · X SOL', xClaims ? formatXClaimSol(xClaims.unclaimed) : document.querySelector('#x-sign-in')?.dataset.connected === 'true' ? 'Unable to check' : 'Sign in with X', 'Only rewards linked to the signed-in X account', 'x'],
+  ];
+  for (const [label, value, hint, destination] of summaryRows) {
+    const card = node('div'); card.append(node('small','',label), node('strong','',value), node('small','reward-summary-hint',hint));
+    const action = destination.startsWith('#') ? link('Review →', destination) : node('button', 'reward-summary-action', 'Review →');
+    if (destination !== '#referrals') { action.type = 'button'; action.addEventListener('click', () => byId(`rewards-${destination}-tab`)?.click()); }
+    card.append(action); summary.append(card);
   }
   body.append(summary);
-  if (!rows.length) { body.append(node('p','reward-empty','No verified creator or holder payments for this wallet yet. Published rewards do not establish wallet eligibility.')); return; }
+  const tokenNote = node('p', 'reward-token-claim-note');
+  tokenNote.append(node('strong', '', 'Launched coin tokens: '), document.createTextNode('eligibility, claimable amount, and claimed status are checked for each migration snapshot in '), link('Airdrops →', '#airdrops'));
+  body.append(tokenNote);
+  if (!rows.length) { body.append(node('p','reward-empty','No verified creator or holder payments for this wallet in the indexed records. A published policy does not establish personal eligibility.')); return; }
   const list = node('div', 'reward-portfolio-list');
   for (const row of rows) {
     const article = node('article');

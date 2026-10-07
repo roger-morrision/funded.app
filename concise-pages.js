@@ -228,7 +228,7 @@ function compactRecipients() {
 
 function shortenPageCopy() {
   const edits = [
-    ['#payments > .workspace-page-header > p:last-child', 'Choose the account or wallet that earned a reward, then check what is ready to claim.'],
+    ['#payments > .workspace-page-header > p:last-child', 'See what has arrived, what is waiting, and what you can claim. Wallet, X, and token airdrop eligibility are checked separately.'],
     ['#my-launches > .section-heading .panel-explainer', 'Your launches and saved tokens.'],
     ['#capital-flow > .section-heading .panel-explainer', 'See how collected creator fees are shared.'],
     ['#launch-route-shell > .page-lede', 'Add the coin details, choose a tier, and review the cost before connecting your wallet.'],

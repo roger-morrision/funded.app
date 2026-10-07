@@ -93,3 +93,29 @@ body.page-route-payments #payments #reward-portfolio.reward-no-wallet .reward-po
 @media(max-width:900px){#payments .x-claim-dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}#payments #reward-portfolio .reward-portfolio-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.payments-paths{grid-template-columns:1fr}.payments-path{align-items:center;padding:13px 15px}.payments-intro{flex-direction:column;gap:10px}.payments-intro .data-badge{margin:0}#payments .x-claim-panel{padding:20px!important}#payments .x-claim-steps{grid-template-columns:repeat(2,minmax(0,1fr))}#payments .x-claim-identity{align-items:stretch;flex-direction:column}#payments .x-claim-identity button{width:100%}}
 @media(max-width:500px){.page-route-payments #payments.x-claim-page{padding-top:20px}.payments-intro h1{font-size:1.8rem}#payments .x-claim-dashboard{gap:7px}#payments .x-claim-dashboard article{padding:12px}#payments .x-claim-dashboard article>strong,#payments .x-claim-dashboard article:first-child>strong{font-size:15px}#payments .x-claim-steps li{min-height:47px}#payments .x-claim-section{padding:15px}#payments .x-claim-reward{align-items:flex-start}#payments .x-claim-reward-copy{min-width:calc(100% - 111px)}#payments .x-claim-reward .secondary-button{width:100%}#payments #reward-portfolio .reward-portfolio-summary{grid-template-columns:1fr}}
+
+/* Personal status and upcoming eligibility belong ahead of the program directory. */
+#payments #reward-portfolio{margin:0}
+#payments #reward-portfolio .reward-status-legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 14px}
+#payments .reward-status-legend>span{display:grid;gap:3px;padding:10px 12px;border:1px solid #39465c;border-radius:7px;background:#101a2b}
+#payments .reward-status-legend strong{color:#f8f3e9;font-size:12px}
+#payments .reward-status-legend small{color:#aebdd0;font-size:11px}
+#payments #reward-portfolio .reward-portfolio-summary>div{gap:7px}
+#payments #reward-portfolio .reward-portfolio-summary .reward-summary-hint{color:#aebdd0;font-size:11px;line-height:1.45}
+#payments #reward-portfolio .reward-summary-action,#payments #reward-portfolio .reward-portfolio-summary a{width:max-content;max-width:100%;margin-top:auto;padding:4px 0;border:0;background:transparent;color:#ffd28a;font-size:12px;font-weight:700;text-decoration:none}
+#payments #reward-portfolio .reward-portfolio-summary a:hover,#payments #reward-portfolio .reward-summary-action:hover{text-decoration:underline}
+#payments #reward-portfolio .reward-token-claim-note{margin:0 0 15px;padding:12px 14px;border:1px solid #35435a;border-radius:8px;background:#172238;color:#b9c9dc;font-size:12px;line-height:1.5}
+#payments #reward-portfolio .reward-token-claim-note strong{color:#f7f1e5}
+#payments .reward-upcoming{min-width:0;padding:21px;border:1px solid #35445a;border-radius:12px;background:#141d2e}
+#payments .reward-upcoming>header .eyebrow{margin:0 0 6px;color:#f3bd72;font-size:11px}
+#payments .reward-upcoming h2{margin:0;color:#f9f5ed;font-size:clamp(21px,2.5vw,28px)}
+#payments .reward-upcoming>header>p:last-child{margin:7px 0 17px;color:#afbed1;font-size:13px;line-height:1.5}
+#payments .reward-upcoming-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#payments .reward-upcoming-grid article{display:flex;flex-direction:column;gap:8px;min-width:0;padding:17px;border:1px solid #40506a;border-radius:9px;background:#19263b}
+#payments .reward-upcoming-grid article>span{color:#f0bd72;font:700 10px 'DM Mono',monospace;letter-spacing:.08em}
+#payments .reward-upcoming-grid h3{margin:0;color:#fff4e7;font-size:17px}
+#payments .reward-upcoming-grid p{margin:0;color:#b5c5d7;font-size:13px;line-height:1.55}
+#payments .reward-upcoming-grid :is(a,button){width:max-content;max-width:100%;margin-top:auto;padding:10px 0 0;border:0;background:transparent;color:#ffd28a;font-size:12px;font-weight:700;text-align:left;text-decoration:none;cursor:pointer}
+#payments .reward-upcoming-grid :is(a,button):hover{text-decoration:underline}
+#payments .reward-upcoming-note{margin:13px 0 0;color:#aebed0;font-size:12px;line-height:1.5}
+@media(max-width:760px){#payments .reward-upcoming-grid{grid-template-columns:1fr}#payments #reward-portfolio .reward-status-legend{grid-template-columns:1fr}}
