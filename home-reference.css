@@ -381,16 +381,25 @@ body.page-route-overview .home-kpi-footer a { color: var(--home-green); }
 
 body.page-route-overview .home-reference-faq { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(0, 1.4fr); gap: clamp(30px, 6vw, 110px); width: 100%; margin: 0 0 90px; }
 body.page-route-overview .home-reference-faq h2 { margin: 6px 0 14px; color: #f0f2f4; font-size: clamp(28px, 3vw, 46px); letter-spacing: -.055em; text-transform: uppercase; }
-body.page-route-overview .home-reference-faq-intro > p:not(.eyebrow) { max-width: 340px; color: #94a0aa; font-size: 13px; line-height: 1.6; }
+body.page-route-overview .home-reference-faq-intro > p:not(.eyebrow) { max-width: 360px; color: #aab5be; font-size: 14px; line-height: 1.6; }
+body.page-route-overview .home-reference-reward-types { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; max-width: 390px; margin: 22px 0 19px; }
+body.page-route-overview .home-reference-reward-types > div { display: grid; align-content: start; gap: 7px; min-width: 0; padding: 13px; border: 1px solid #344047; background: #11191c; }
+body.page-route-overview .home-reference-reward-types strong { color: var(--home-green); font: 700 13px 'DM Mono', monospace; }
+body.page-route-overview .home-reference-reward-types span { color: #b0bbc3; font-size: 12px; line-height: 1.45; }
 body.page-route-overview .home-reference-faq-intro > a { color: var(--home-green); font: 700 11px 'DM Mono', monospace; text-decoration: none; text-transform: uppercase; }
 body.page-route-overview .home-reference-faq-art { display: block; width: 100%; height: auto; max-height: 270px; margin-top: 26px; border: 1px solid #2b353a; object-fit: cover; }
 body.page-route-overview .home-reference-faq-list { border-top: 1px solid #29323a; }
 body.page-route-overview .home-reference-faq details { border-bottom: 1px solid #29323a; }
-body.page-route-overview .home-reference-faq summary { position: relative; padding: 18px 30px 18px 0; color: #dce2e6; font-size: 13px; font-weight: 650; cursor: pointer; list-style: none; }
+body.page-route-overview .home-reference-faq summary { position: relative; padding: 18px 30px 18px 0; color: #dce2e6; font-size: 15px; font-weight: 650; cursor: pointer; list-style: none; }
 body.page-route-overview .home-reference-faq summary::-webkit-details-marker { display: none; }
 body.page-route-overview .home-reference-faq summary::after { content: '+'; position: absolute; right: 0; color: var(--home-green); font: 18px 'DM Mono', monospace; }
 body.page-route-overview .home-reference-faq details[open] summary::after { content: '−'; }
-body.page-route-overview .home-reference-faq details p { max-width: 680px; margin: -1px 0 18px; color: #9aa6b0; font-size: 12px; line-height: 1.7; }
+body.page-route-overview .home-reference-faq details p,
+body.page-route-overview .home-reference-faq-steps { max-width: 680px; margin: -1px 0 18px; color: #b0bbc3; font-size: 14px; line-height: 1.65; }
+body.page-route-overview .home-reference-faq details p strong,
+body.page-route-overview .home-reference-faq-steps strong { color: #ecf2f3; }
+body.page-route-overview .home-reference-faq-steps { padding-left: 20px; }
+body.page-route-overview .home-reference-faq-steps li + li { margin-top: 7px; }
 body.page-route-overview .home-reference-faq details a { color: var(--home-green); }
 body.page-route-overview .home-reference-footer { display: flex; justify-content: space-between; gap: 50px; width: 100%; padding: 42px 0 36px; border-top: 1px solid #29323a; }
 body.page-route-overview .home-reference-footer > div { max-width: 330px; }
