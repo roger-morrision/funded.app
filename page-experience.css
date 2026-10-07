@@ -2490,7 +2490,7 @@ body.page-route-launch .launch-page-flat .launch-preview-panel { display: none; 
   margin: 14px 0 12px;
   overflow-wrap: anywhere;
   color: #f7f8ff;
-  font: 600 clamp(23px, 2.2vw, 30px) 'DM Mono', monospace;
+  font: 600 clamp(20px, 1.85vw, 25px) 'DM Mono', monospace;
   line-height: 1.18;
   letter-spacing: -.055em;
 }

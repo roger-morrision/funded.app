@@ -45,6 +45,8 @@ function upgradeProjectsPage() {
   page.classList.add('projects-page');
   const heading = page.querySelector(':scope > .section-heading');
   if (heading) heading.innerHTML = `<div><p class="eyebrow">Your wallet</p><h1>Portfolio</h1><p class="projects-lede">See your coins, trades, and launches in one place.</p></div><a class="primary-button projects-launch-button" href="#launch">Launch token <span aria-hidden="true">↗</span></a>`;
+  const launchesLabel = page.querySelector('.portfolio-launches-heading .eyebrow');
+  if (launchesLabel) launchesLabel.textContent = 'Your launches';
   const creatorPanel = page.querySelector('.role-panel:not(.referral-growth-card)');
   if (!creatorPanel) return;
   creatorPanel.classList.add('projects-panel');
@@ -87,6 +89,8 @@ function upgradeAnalyticsDashboard() {
 }
 
 function clarifyDataStates() {
+  const tradeBadge = document.querySelector('#coin-page .coin-chart-panel .data-badge');
+  if (tradeBadge) tradeBadge.textContent = 'Recent trades';
   const payments = byId('payments');
   addOnce(payments?.querySelector('.payments-summary'), 'payments-source-note', `<p id="payments-source-note" class="source-note">Payment history appears after transactions are confirmed. A claim request may take time to show here.</p>`);
   const paymentActivity = byId('payment-list');
@@ -140,6 +144,11 @@ function clarifyReferrals() {
     if (heading) heading.textContent = 'How qualification works';
     if (badge) badge.textContent = 'Example journey';
     if (firstStep) firstStep.textContent = 'Invite link used';
+    const walletStep = panel.querySelector('.referral-progress-steps > div:nth-of-type(2)');
+    if (walletStep) {
+      walletStep.querySelector('strong').textContent = 'Creator wallet linked';
+      walletStep.querySelector('small').textContent = 'Invite confirmed';
+    }
   }
 }
 

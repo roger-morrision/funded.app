@@ -121,7 +121,7 @@
         </section>
 
         <section class="coin-page" id="coin-page" hidden aria-labelledby="coin-page-title">
-          <div class="coin-breadcrumb"><a href="#explore">← Back to explore</a><span>Solana / token detail</span></div>
+          <div class="coin-breadcrumb"><a href="#explore">← Back to explore</a><span>Token details</span></div>
           <div class="coin-hero-card">
     <div class="coin-identity"><div class="coin-avatar" id="coin-avatar">?</div><div><div class="coin-title-row"><span class="coin-symbol" id="coin-symbol">RPC</span><span class="coin-live-dot" id="coin-rpc-status" role="status">Checking RPC</span><button class="icon-button coin-watch" id="coin-watch" aria-label="Add token to watchlist" aria-pressed="false">☆</button></div><h1 id="coin-page-title">Loading token…</h1><p class="coin-address"><span id="coin-address">—</span><button class="copy-inline" id="coin-copy-address" aria-label="Copy token address">⧉</button></p><div class="coin-attribution"><a id="coin-creator-by" class="coin-creator-by" hidden>Fee owner —</a></div><p class="coin-description" id="coin-description">On-chain data loads from Solana RPC.</p><div class="coin-fact-ribbon" aria-label="Token facts"><div><span>Trading stage</span><strong id="coin-stage">Checking curve</strong></div><div><span>Creator fee owner</span><strong id="coin-fee-owner">Checking route</strong></div><div><span>Metadata</span><strong id="coin-metadata-status">Reading mint</strong></div></div><div class="coin-socials"><a href="#" id="coin-explorer-link" hidden target="_blank" rel="noopener noreferrer">View on Solana Explorer ↗</a><a id="coin-website-link" hidden target="_blank" rel="noopener noreferrer">Website ↗</a><a id="coin-x-link" hidden target="_blank" rel="noopener noreferrer">X ↗</a><a id="coin-telegram-link" hidden target="_blank" rel="noopener noreferrer">Telegram ↗</a><a id="coin-discord-link" hidden target="_blank" rel="noopener noreferrer">Discord ↗</a><a href="#" id="coin-share-link">Share ↗</a><button type="button" id="coin-boost">Boost ⚡</button><button type="button" id="coin-refresh" aria-label="Refresh token data">Refresh ↻</button></div></div></div>
           </div>
@@ -168,33 +168,33 @@
         </section>
 
         <section class="wallet-page" id="wallet-page" hidden aria-labelledby="wallet-page-title">
-          <div class="coin-breadcrumb"><a href="#explore">← Back to explore</a><span>Solana / wallet</span></div>
+          <div class="coin-breadcrumb"><a href="#explore">← Back to explore</a><span>Wallet activity</span></div>
           <header class="wallet-detail-hero">
             <div class="wallet-detail-primary">
               <div class="wallet-detail-avatar" aria-hidden="true">◈</div>
               <div class="wallet-detail-identity">
-                <p class="wallet-profile-kicker">SOLANA · WALLET PROFILE</p>
+                <p class="wallet-profile-kicker">WALLET ACTIVITY</p>
                 <div class="wallet-detail-title"><h1 id="wallet-page-title">Wallet</h1><span id="wallet-self-badge" hidden>You</span></div>
                 <div class="wallet-detail-actions"><button type="button" class="wallet-address-chip" id="wallet-copy-address"><span id="wallet-page-address">—</span><b aria-hidden="true">⧉</b></button><a id="wallet-explorer-link" href="#" target="_blank" rel="noopener noreferrer">Explorer ↗</a><a id="wallet-edit-profile" href="#profile" hidden>Edit profile</a></div>
               </div>
             </div>
             <aside class="wallet-detail-proof" aria-labelledby="wallet-proof-title">
-              <p class="eyebrow">DATA COVERAGE</p><h2 id="wallet-proof-title">Public wallet record</h2>
-              <p>Launches come from the verified registry. Trades cover only listed coins scanned by this app, not a wallet’s complete history.</p>
-              <div><span>Launch registry</span><strong id="wallet-registry-state">Checking</strong></div>
-              <div><span>Trade scan</span><strong id="wallet-trade-state">Checking</strong></div>
+              <p class="eyebrow">ABOUT THIS PAGE</p><h2 id="wallet-proof-title">Activity we can show</h2>
+              <p>We show confirmed launches and recent trades for coins listed here. Trading activity may be incomplete.</p>
+              <div><span>Launches</span><strong id="wallet-registry-state">Checking</strong></div>
+              <div><span>Recent trades</span><strong id="wallet-trade-state">Checking</strong></div>
             </aside>
             <div class="wallet-detail-stats" aria-label="Wallet summary">
             <div><span>SOL balance</span><strong id="wallet-stat-sol">—</strong><small id="wallet-stat-sol-note">Available for the connected wallet</small></div>
-            <div><span>Launches</span><strong id="wallet-stat-launches">—</strong><small>Local and verified records</small></div>
-            <div><span>Observed 24h trades</span><strong id="wallet-stat-trades">—</strong><small id="wallet-stat-trades-note">Scanned listed coins</small></div>
-            <div><span>Observed 24h volume</span><strong id="wallet-stat-volume">$—</strong><small id="wallet-stat-volume-note">Approx. USD from scanned trades</small></div>
-            <div><span>Burned $FUNDED</span><strong id="wallet-stat-burned">—</strong><small>Verified launch receipts</small></div>
-            <div><span>Last activity</span><strong id="wallet-stat-last">—</strong><small>From available records</small></div>
+            <div><span>Launches</span><strong id="wallet-stat-launches">—</strong><small>Confirmed launches</small></div>
+            <div><span>24h trades</span><strong id="wallet-stat-trades">—</strong><small id="wallet-stat-trades-note">On listed coins</small></div>
+            <div><span>24h volume</span><strong id="wallet-stat-volume">$—</strong><small id="wallet-stat-volume-note">Estimated USD on listed coins</small></div>
+            <div><span>Burned $FUNDED</span><strong id="wallet-stat-burned">—</strong><small>Confirmed launch burns</small></div>
+            <div><span>Last activity</span><strong id="wallet-stat-last">—</strong><small>From activity shown here</small></div>
             </div>
           </header>
           <div class="wallet-detail-tabs" role="tablist" aria-label="Wallet detail views"><button type="button" class="active" role="tab" aria-selected="true" tabindex="0" data-wallet-tab="activity">Activity</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-wallet-tab="balances">Balances</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-wallet-tab="created">Created</button></div>
-          <p class="wallet-detail-description" id="wallet-detail-description">Launches and trades found in the app’s available Solana records.</p>
+          <p class="wallet-detail-description" id="wallet-detail-description">Confirmed launches and recent trades on listed coins.</p>
           <div class="wallet-detail-filters" id="wallet-detail-filters" aria-label="Filter wallet activity"><button type="button" data-wallet-filter="all" aria-pressed="true">All</button><button type="button" data-wallet-filter="buy" aria-pressed="false">Buy</button><button type="button" data-wallet-filter="sell" aria-pressed="false">Sell</button><button type="button" data-wallet-filter="launch" aria-pressed="false">Launch</button><button type="button" data-wallet-filter="burn" aria-pressed="false">Burn</button></div>
           <div class="wallet-detail-content" id="wallet-detail-content" role="tabpanel"></div>
         </section>
@@ -449,9 +449,9 @@
               <div class="list-form-card">
                 <div class="list-form-head"><span>Listing fee</span><strong id="list-availability">Checking Solana</strong></div>
                 <div class="list-form-body">
-                  <label for="list-mint">Token mint address</label>
-                  <input id="list-mint" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste the token's mint address" aria-describedby="list-mint-help" />
-                  <p id="list-mint-help" role="status">Enter a Solana mint to check its address format.</p>
+                  <label for="list-mint">Solana token address</label>
+                  <input id="list-mint" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste the token address" aria-describedby="list-mint-help" />
+                  <p id="list-mint-help" role="status">Enter a Solana token address to check its format.</p>
                   <div class="list-token-preview" id="list-token-preview" role="status" aria-live="polite" hidden></div>
                   <div class="list-token-fields" hidden><label for="list-name">Token name<input id="list-name" type="text" maxlength="80" autocomplete="off" placeholder="Token name" readonly /></label><label for="list-symbol">Ticker<input id="list-symbol" type="text" maxlength="20" autocomplete="off" placeholder="TOKEN" readonly /></label></div>
                   <p class="list-field-note" hidden>Name and ticker come from verified Solana metadata. The mint and burn are checked again before payment.</p>
@@ -462,7 +462,7 @@
               </div>
               <div class="list-process-heading"><span aria-hidden="true">||||||||||||</span><span>How listing works</span></div>
               <ol class="list-steps">
-                <li><span>01</span><h2>Paste the mint</h2><p>Start with a Solana token mint address. The address is checked locally before any listing step.</p></li>
+                <li><span>01</span><h2>Enter your token</h2><p>Paste the Solana token address. We check its format before you continue.</p></li>
                 <li><span>02</span><h2>Burn $FUNDED</h2><p id="list-burn-step-copy">Approve a permanent burn of 25,000 $FUNDED. This burn is linked to the token you enter.</p></li>
                 <li><span>03</span><h2>Go live</h2><p>After the burn and token mint are verified on Solana, the token appears in Launch Directory. Market data appears only when available.</p></li>
               </ol>
@@ -525,7 +525,7 @@
     <details id="claim-technical-details" class="x-claim-technical"><summary>Technical claim details</summary><label>X account<input id="sol-claim-x-account" type="text" placeholder="Sign in with X" readonly /></label><label>Claim ID<input id="sol-claim-id" type="text" placeholder="Choose a reward above" readonly /></label></details>
     <button id="sol-claim-submit" type="button" class="primary-button x-claim-submit" disabled>Choose a reward to continue</button><p id="sol-claim-status" class="x-claim-status" role="status" aria-live="polite">Sign in with X to see your rewards.</p>
   </div></div>
-  <div class="panel x-claim-activity"><div class="panel-heading"><div><p class="eyebrow">Public receipts</p><h2>Payment history</h2><p>Recent finalized payouts to all recipients. Your own records appear under “My rewards.”</p></div><button class="text-button" id="open-tape" aria-label="View all payment receipts">View all →</button></div><div class="payment-list" id="payment-list"></div><div class="panel-footnote" id="payment-history-footnote">Payments appear after receipt verification.</div></div>
+  <div class="panel x-claim-activity"><div class="panel-heading"><div><p class="eyebrow">Confirmed payments</p><h2>Payment history</h2><p>Recent payments to all recipients. Your own records appear under “My rewards.”</p></div><button class="text-button" id="open-tape" aria-label="View all payments">View all →</button></div><div class="payment-list" id="payment-list"></div><div class="panel-footnote" id="payment-history-footnote">Payments appear after confirmation.</div></div>
 </section>
 
         <section class="capital-flow-section section-block" id="capital-flow" aria-labelledby="capital-flow-title">
@@ -583,8 +583,8 @@
 <div class="section-heading"><div><p class="eyebrow">Community rewards</p><h1>Airdrops</h1></div><span class="panel-count" id="claim-program-count">0 airdrops</span></div>
   <p class="airdrop-intro">Review each token’s policy allocation, verified vault balance, eligibility snapshot, and claim receipts before signing.</p>
   <div class="airdrop-kpis" id="airdrop-summary-kpis"></div>
-  <div class="claim-flow" aria-label="How community allocation works"><span><b>01</b><strong>Hold</strong><small>Hold $FUNDED to participate in a launch's community allocation. The verified claim policy determines eligibility.</small></span><i>→</i><span><b>02</b><strong>Keep holding</strong><small>A migration snapshot records eligible wallet balances; a published proof identifies each allocation.</small></span><i>→</i><span><b>03</b><strong>Claim</strong><small>Claims open only after the token vault, snapshot, and proof have been verified.</small></span></div>
-   <div class="airdrop-directory-head"><div><p class="eyebrow">Public directory</p><h2>All airdrops</h2></div><div class="airdrop-directory-tools"><input id="airdrop-search" type="search" aria-label="Search airdrops by name, ticker, or mint" placeholder="Search name, ticker, or mint" /></div></div>
+   <div class="claim-flow" aria-label="How airdrops work"><span><b>01</b><strong>Hold</strong><small>Hold $FUNDED to be considered for a launch's airdrop.</small></span><i>→</i><span><b>02</b><strong>Check eligibility</strong><small>Your balance is checked when the launch reaches its eligibility date.</small></span><i>→</i><span><b>03</b><strong>Claim</strong><small>Claims open after funding and eligibility are confirmed.</small></span></div>
+   <div class="airdrop-directory-head"><div><p class="eyebrow">Public directory</p><h2>All airdrops</h2></div><div class="airdrop-directory-tools"><input id="airdrop-search" type="search" aria-label="Search airdrops by name, ticker, or token address" placeholder="Search name, ticker, or address" /></div></div>
    <div class="airdrop-directory" id="airdrop-directory"></div>
    <nav class="airdrop-directory-pagination" id="airdrop-directory-pagination" aria-label="Launch airdrop pages" hidden><button type="button" data-airdrop-page="prev" disabled>‹ Prev</button><span id="airdrop-directory-range" role="status"></span><button type="button" data-airdrop-page="next" disabled>Next ›</button></nav>
   <article class="airdrop-analytics-card airdrop-program-detail" id="airdrop-selected-program" aria-labelledby="airdrop-selected-title" hidden><div class="panel-heading"><div><p class="eyebrow" id="airdrop-selected-eyebrow">Indexed launch policy · checking funding</p><h3 id="airdrop-selected-title">Program details</h3></div><button type="button" class="secondary-button" id="airdrop-detail-close">Close details</button></div><div class="airdrop-program-detail-stats" id="airdrop-selected-stats"></div><p class="field-help" id="airdrop-selected-status"></p><button type="button" class="secondary-button" id="airdrop-claim-unavailable" disabled title="Requires a funded vault, finalized snapshot, and verified claim proof">Claim unavailable</button></article>
@@ -704,7 +704,7 @@
                     <button type="button" class="creator-burn-card pro" data-burn-tier="pro" aria-pressed="false"><span>PRO · $100</span><strong id="pro-burn-amount">Checking price…</strong><small>Larger token page · one featured post</small><em id="pro-tier-progress">Connect wallet to check balance</em><b>Select Pro</b></button>
                     <button type="button" class="creator-burn-card premier" data-burn-tier="premier" aria-pressed="false"><span>PREMIER · $200</span><strong id="premier-burn-amount">Checking price…</strong><small>Largest token page · launch + follow-up posts</small><em id="premier-tier-progress">Connect wallet to check balance</em><b>Select Premier</b></button>
                   </div>
-                  <p class="launch-tier-quote-status">X posts publish only after launch verification and while the funded.vip publisher is active.</p>
+                  <p class="launch-tier-quote-status">X posts appear after a confirmed launch, when publishing is available.</p>
                   <div class="launch-tier-balance"><span>Your wallet: <strong id="launch-tier-wallet-balance">Connect wallet to check $FUNDED</strong></span><button type="button" id="launch-tier-refresh">Refresh price &amp; balance</button></div>
                   <p class="launch-tier-quote-status" id="launch-tier-quote-status" role="status" aria-live="polite">Checking the verified $FUNDED pool price…</p>
                 </section>

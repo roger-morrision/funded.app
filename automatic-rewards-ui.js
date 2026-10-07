@@ -299,7 +299,7 @@ async function refreshFundedHolderTokens() {
     renderHomeRewardCards();
     for (const panel of panels) {
       const directory = fundedDirectory(panel);
-      directory.querySelector('[data-funded-token-count]').textContent = `${tokens.length} published ${tokens.length === 1 ? 'allocation' : 'allocations'}`;
+      directory.querySelector('[data-funded-token-count]').textContent = `${tokens.length} planned ${tokens.length === 1 ? 'airdrop' : 'airdrops'}`;
       const list = directory.querySelector('[data-funded-token-list]');
       list.replaceChildren();
       if (!tokens.length) {
@@ -323,7 +323,7 @@ async function refreshFundedHolderTokens() {
         const name = document.createElement('strong');
         name.textContent = launch.name || launch.symbol || 'Unnamed token';
         const symbol = document.createElement('small');
-        symbol.textContent = `${launch.symbol || 'TOKEN'} · ${launch.communityAirdrop.snapshot?.status === 'pending-migration' ? 'Migration snapshot unverified' : 'Snapshot unverified'}`;
+        symbol.textContent = `${launch.symbol || 'TOKEN'} · Eligibility pending`;
         identity.append(name, symbol);
         const amount = document.createElement('span');
         amount.className = 'funded-token-amount';

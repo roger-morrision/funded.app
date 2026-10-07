@@ -14,7 +14,7 @@ function compactAirdrop() {
   const root = document.getElementById('airdrops');
   if (!root) return;
   const intro = root.querySelector('.airdrop-intro');
-  if (intro) intro.textContent = 'Hold $FUNDED to qualify. Each launch shows when claims open and how much you can claim.';
+  if (intro) intro.textContent = 'Hold $FUNDED to qualify. Check when claims open, then connect your wallet to see your amount.';
   const directory = root.querySelector('.airdrop-public-programs');
   const poster = root.querySelector('.airdrop-trust:has([data-infographic-poster="airdrops"])');
   if (directory && poster && directory.nextElementSibling !== poster) directory.after(poster);
@@ -256,9 +256,9 @@ function shortenPageCopy() {
     ['#buybacks .burn-token-card > p:not(.eyebrow):not(.funded-burn-status)', 'Choose a project if you want to link this burn to it, then approve in your wallet.'],
     ['#buybacks .burn-receipts-panel > .field-help', 'This history shows confirmed burns recorded by funded.vip. Total supply can include other burns.'],
     ['#reward-portfolio .reward-portfolio-note', 'Allocations are not balances. Holder SOL is automatic after a verified snapshot; X claims need matching sign-in.'],
-    ['#reward-discovery > small', 'Eligible wallets receive SOL automatically after a verified snapshot and sufficient fees. “0 paid wallets” means no verified holder payout.'],
-    ['#payments .auto-rewards-intro', 'Eligible coin wallets receive SOL automatically after a verified snapshot. No manual claim is needed.'],
-    ['#payments .auto-reward-card:nth-child(1) > p', 'Eligible wallets receive SOL after a verified daily snapshot.'],
+    ['#reward-discovery > small', 'Eligible wallets receive SOL automatically when funds are available. “0 paid wallets” means no holder payment is confirmed.'],
+    ['#payments .auto-rewards-intro', 'Eligible coin holders receive SOL automatically once funding and eligibility are confirmed. No manual claim is needed.'],
+    ['#payments .auto-reward-card:nth-child(1) > p', 'Eligible wallets receive SOL after the daily eligibility check and funding confirmation.'],
     ['#payments .auto-rewards-fineprint', 'Target time is not payment. Each cycle checks funding and eligibility.'],
     ['#funded-holder-token-rewards > small', 'Public policy only. Check Airdrops for funding and claim status.'],
     ['#airdrops .airdrop-wallet-gate p', 'Connect your wallet to see whether you can claim after each launch sets its eligibility date.'],

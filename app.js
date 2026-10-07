@@ -251,7 +251,7 @@ function renderFundedTokenLanding(){
     : 'Verified quote unavailable';
   set('funded-token-price', Number.isFinite(quote) ? '$' + quote.toLocaleString(undefined, { maximumSignificantDigits: 6 })
     : poolReady ? poolSpotSol.toPrecision(6) + ' SOL' : '$—');
-  set('funded-token-price-note', poolReady ? `Verified Solana pool · slot ${pool.slot}` : Number.isFinite(quote) ? 'Verified market snapshot' : poolUnavailableNote);
+  set('funded-token-price-note', poolReady ? 'Current Solana pool quote' : Number.isFinite(quote) ? 'Current market estimate' : poolUnavailableNote);
   const supplyReady = fundedBurnState.status === 'ready' && mintReady;
   const supplyTokens = supplyReady ? Number(fundedBurnState.supplyBaseUnits) / 10 ** fundedBurnState.decimals : null;
   const poolCapSol = poolReady && Number.isFinite(supplyTokens) ? poolSpotSol * supplyTokens : null;
@@ -266,7 +266,7 @@ function renderFundedTokenLanding(){
   set('funded-token-burned', Number.isFinite(burnedTokens) ? formatDashboardQuantity(burnedTokens) : '—');
   const burnedValue = document.getElementById('funded-token-burned');
   if (burnedValue) burnedValue.title = Number.isFinite(burnedTokens) ? `${burnedTokens.toLocaleString(undefined, { maximumFractionDigits: 2 })} $FUNDED from the on-chain supply delta` : '';
-  set('funded-token-burned-note', supplyReady ? 'On-chain supply delta from 1B mint' : fundedBurnState.status === 'error' ? 'Supply verification unavailable' : 'Checking on-chain supply');
+  set('funded-token-burned-note', supplyReady ? 'Confirmed supply reduction' : fundedBurnState.status === 'error' ? 'Supply total unavailable' : 'Checking supply');
   const tape = document.getElementById('funded-token-tape-items');
   if (tape) {
     const entries = [];
@@ -1318,7 +1318,7 @@ function renderCoinRegistryIdentity(mint){
   setCoinField('#coin-symbol', symbol || '—');
   setCoinField('#coin-artwork-symbol', symbol || '—');
   setCoinField('#coin-avatar', (symbol || name).slice(0, 1).toUpperCase());
-  setCoinField('#coin-description', 'Name and symbol come from the verified launch registry. Live mint, market, and holder facts are unavailable from Solana RPC.');
+  setCoinField('#coin-description', 'This coin’s name and symbol are confirmed. Current trading and holder details are unavailable.');
   setCoinFact('#coin-metadata-status', 'Verified launch registry', 'clear');
   if (isDevnetImageUri(launch.imageUri, mint)) {
     const avatar = document.querySelector('#coin-avatar');
@@ -1624,7 +1624,7 @@ function renderAirdropProgramDetail(program){
   const unavailableButton = document.querySelector('#airdrop-claim-unavailable');
   if (unavailableButton) unavailableButton.hidden = program.claimActive;
   const eyebrow = document.querySelector('#airdrop-selected-eyebrow');
-  if (eyebrow) eyebrow.textContent = program.vaultVerified ? 'Indexed launch policy · vault funded on Solana' : 'Indexed launch policy · funding unverified';
+  if (eyebrow) eyebrow.textContent = program.vaultVerified ? 'Airdrop funding confirmed' : 'Airdrop funding pending';
   document.querySelector('#airdrop-selected-title').textContent = `${program.name} (${program.symbol})`;
   document.querySelector('#airdrop-selected-stats').innerHTML = `<span><small>Policy reserve</small><strong>${formatTokenAmount(program.reservedTokens)} tokens · ${program.allocationPercent}% of supply</strong></span><span><small>Claimed</small><strong>${formatVerifiedAirdropAmount(program.claimedTokens)}</strong></span><span><small>Snapshot</small><strong>${escapeHtml(program.snapshot)}</strong></span><span><small>Snapshot hash</small><strong class="airdrop-proof-value">${escapeHtml(program.snapshotHash || 'Pending verified snapshot')}</strong></span><span><small>Proof root</small><strong class="airdrop-proof-value">${escapeHtml(program.merkleRoot || 'Pending published proof')}</strong></span><span><small>Eligible wallets</small><strong>${formatVerifiedAirdropAmount(program.eligibleWallets)}</strong></span><span><small>Vesting</small><strong>${program.claimPublished ? 'One full claim during the 90-day window; no staged vesting' : 'No claim schedule active'}</strong></span>`;
   const status = document.querySelector('#airdrop-selected-status');
@@ -1902,8 +1902,8 @@ function renderAirdropClaims(filter = activeAirdropFilter){
   if (state) state.textContent = connectedWalletAddress ? `Wallet ${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)} connected. Check an open claim for your verified allocation.` : 'Connect your wallet to check open Solana claims.';
   const count = document.querySelector('#claim-program-count');
   if (count) count.textContent = verifiedLaunchPoliciesStatus === 'ready'
-    ? `${programs.length} published ${programs.length === 1 ? 'allocation' : 'allocations'}`
-    : verifiedLaunchPoliciesStatus === 'loading' ? 'Checking allocations…' : 'Allocations unavailable';
+    ? `${programs.length} ${programs.length === 1 ? 'airdrop' : 'airdrops'}`
+    : verifiedLaunchPoliciesStatus === 'loading' ? 'Checking airdrops…' : 'Airdrops unavailable';
   renderAirdropSummary(programs);
   renderAirdropDirectory(programs);
   renderAirdropAnalytics();
@@ -3188,13 +3188,13 @@ function renderVerifiedReceiptEvidence(){
         if (ledgerLamports > 0n) ledgerAmount = `; ${formatReceiptSol(ledgerLamports)} SOL recorded in the ledger`;
       } catch { ledgerAmount = '; recorded amount unavailable'; }
     }
-    feeCard.querySelector('span').textContent = 'Verified fees collected';
+    feeCard.querySelector('span').textContent = 'Fees collected';
     feeCard.querySelector('small').innerHTML = receiptEvidence?.status === 'unverified-records' && recorded
       ? `<b>RECORDS ONLY</b>${recorded} claim${recorded === 1 ? '' : 's'} found${ledgerAmount}; confirmation unavailable`
       : `<b>SOL</b>${!receiptEvidenceChecked ? 'Checking fee history' : !receiptEvidence || receiptEvidence.status === 'unavailable' ? 'Fee history unavailable' : 'No confirmed fee claims in the selected period'}`;
   }
   if (collections.length && feeCard) {
-    feeCard.querySelector('span').textContent = 'Verified fees collected';
+    feeCard.querySelector('span').textContent = 'Fees collected';
     try {
       const lamports = collections.reduce((sum, item) => sum + exactLamports(item.collectedLamports), 0n);
       feeCard.querySelector('strong').textContent = `${formatReceiptSol(lamports)} SOL`;
@@ -3205,13 +3205,13 @@ function renderVerifiedReceiptEvidence(){
     }
   }
   if (payouts.length && payoutCard) {
-    payoutCard.querySelector('span').textContent = 'Verified payouts';
-    payoutCard.querySelector('strong').textContent = `${payouts.length} verified`;
-    payoutCard.querySelector('small').innerHTML = '<b>COUNT</b>Confirmed payments in the selected period';
+    payoutCard.querySelector('span').textContent = 'Confirmed payments';
+    payoutCard.querySelector('strong').textContent = String(payouts.length);
+    payoutCard.querySelector('small').innerHTML = '<b>COUNT</b>Payments in available history';
   }
   else if (payoutCard) {
-    payoutCard.querySelector('span').textContent = 'Verified payouts';
-    payoutCard.querySelector('small').innerHTML = `<b>COUNT</b>${!receiptEvidenceChecked ? 'Checking payment history' : !receiptEvidence || receiptEvidence.status === 'unavailable' ? 'Payment history unavailable' : 'No confirmed payments in the selected period'}`;
+    payoutCard.querySelector('span').textContent = 'Confirmed payments';
+    payoutCard.querySelector('small').innerHTML = `<b>COUNT</b>${!receiptEvidenceChecked ? 'Checking payment history' : !receiptEvidence || receiptEvidence.status === 'unavailable' ? 'Payment history unavailable' : 'No confirmed payments in available history'}`;
   }
   const historyPayouts = Array.isArray(paymentHistoryEvidence?.verifiedPayouts) ? paymentHistoryEvidence.verifiedPayouts : [];
   const list = document.querySelector('#payment-list');
@@ -3320,7 +3320,7 @@ function renderOnchainReportState(verified){
   const partialVolume = verified.some(item => item.volumeCoverage === 'partial' || item.volume24hSol == null);
   if (volumeCard) {
     volumeCard.querySelector('strong').textContent = hasVolume && (!partialVolume || volumeSol > 0) && Number.isFinite(coinSolUsdPrice) ? formatDashboardUsd(volumeSol * coinSolUsdPrice, { partial: partialVolume }) : '—';
-    volumeCard.querySelector('small').innerHTML = `<b>USD · 24H</b>${!feedChecked ? 'Checking confirmed trades' : hasVolume ? partialVolume && volumeSol === 0 ? 'Some trade history is unavailable' : volumeSol === 0 ? 'No trades in the past 24 hours' : `${partialVolume ? 'At least · ' : ''}confirmed trading activity` : marketUnavailable ? 'Market activity unavailable' : 'No confirmed trading volume'}`;
+    volumeCard.querySelector('small').innerHTML = `<b>USD · 24H</b>${!feedChecked ? 'Checking confirmed trades' : hasVolume ? partialVolume && volumeSol === 0 ? 'Some trade history is unavailable' : volumeSol === 0 ? 'No trades in the past 24 hours' : `Confirmed trades${partialVolume ? ' · some history may be missing' : ''}` : marketUnavailable ? 'Market activity unavailable' : 'No confirmed trading volume'}`;
   }
   const observedWallets = verified.reduce((sum, item) => sum + (Number.isFinite(Number(item.traderCount24h)) ? Number(item.traderCount24h) : 0), 0);
   const hasWallets = verified.some(item => item.traderCount24h != null && Number.isFinite(Number(item.traderCount24h)));
@@ -5591,7 +5591,7 @@ function updateLaunchPreview(){
   document.querySelector('#preview-symbol').textContent = symbol || 'TICKER';
   const description = document.querySelector('#token-description')?.value || '';
   const descriptionCounter = document.querySelector('#token-description-counter');
-  if (descriptionCounter) descriptionCounter.textContent = `${description.length}/280 · published with Solana metadata`;
+  if (descriptionCounter) descriptionCounter.textContent = `${description.length}/280 · shown on your coin page`;
   const tagline = document.querySelector('#token-tagline')?.value.trim() || '';
   const taglinePreview = document.querySelector('#preview-tagline');
   if (taglinePreview) taglinePreview.textContent = tagline || description.trim() || 'Your coin description appears here.';
@@ -8166,9 +8166,9 @@ function renderWalletDetail(){
   const registryReady = verifiedLaunchPoliciesStatus === 'ready';
   const tradeScanReady = exploreScannedCount > 0 && assets.length > 0;
   const tradeScanStale = exploreProviderStatus.includes('stale');
-  const scanNote = tradeScanReady ? `${tradeScanStale ? 'Last verified scan' : 'Scanned'} ${exploreScannedCount} of ${assets.length} listed coins` : 'Trade history unavailable';
-  setCoinField('#wallet-registry-state', registryReady ? 'Verified' : verifiedLaunchPoliciesStatus === 'loading' ? 'Checking' : 'Unavailable');
-  setCoinField('#wallet-trade-state', tradeScanReady ? `${tradeScanStale ? 'Last verified · ' : ''}${exploreScannedCount} / ${assets.length} coins` : exploreFeedAvailable ? 'No coin scans' : 'Unavailable');
+  const scanNote = tradeScanReady ? `Trades shown for ${exploreScannedCount} of ${assets.length} listed coins${tradeScanStale ? ' (last available update)' : ''}` : 'Recent trades are unavailable';
+  setCoinField('#wallet-registry-state', registryReady ? 'Confirmed' : verifiedLaunchPoliciesStatus === 'loading' ? 'Checking' : 'Unavailable');
+  setCoinField('#wallet-trade-state', tradeScanReady ? `${exploreScannedCount} of ${assets.length} coins${tradeScanStale ? ' · last update' : ''}` : exploreFeedAvailable ? 'No recent trades' : 'Unavailable');
   const launchTimes = launches.map(item => Date.parse(item.createdAt || '')).filter(Number.isFinite);
   const tradeTimes = trades.map(item => Number(item.blockTime) * 1000).filter(Number.isFinite);
   const lastActivity = Math.max(0, ...launchTimes, ...tradeTimes);
@@ -8190,7 +8190,7 @@ function renderWalletDetail(){
   setCoinField('#wallet-stat-trades-note', scanNote);
   const hasSolUsdQuote = Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0;
   setCoinField('#wallet-stat-volume', !tradeScanReady ? '$—' : !trades.length ? '$0.00' : hasSolUsdQuote ? formatDashboardUsd(volume * coinSolUsdPrice) : '$—');
-  setCoinField('#wallet-stat-volume-note', !tradeScanReady ? scanNote : !trades.length ? 'No trades observed in this scan' : hasSolUsdQuote ? 'Approx. USD · scanned trades at current SOL price' : 'Current SOL/USD quote unavailable');
+  setCoinField('#wallet-stat-volume-note', !tradeScanReady ? scanNote : !trades.length ? 'No recent trades found' : hasSolUsdQuote ? 'Estimated USD at the current SOL price' : 'SOL price unavailable');
   setCoinField('#wallet-stat-burned', !registryReady ? '—' : burned > 0 ? formatOnChainNumber(burned, 2) : launches.length ? '0' : '—');
   setCoinField('#wallet-stat-last', lastActivity ? formatOnchainAge(lastActivity) : '—');
   document.querySelectorAll('[data-wallet-tab]').forEach(button => { const active = button.dataset.walletTab === walletDetailTab; button.classList.toggle('active', active); button.setAttribute('aria-selected', String(active)); button.tabIndex = active ? 0 : -1; });
@@ -8203,7 +8203,7 @@ function renderWalletDetail(){
   }
   if (!content || !description) return;
   if (walletDetailTab === 'balances') {
-    description.textContent = 'Balances shown only when the app has a direct, current source.';
+    description.textContent = 'Balances are shown when current information is available.';
     const fundedBalance = isSelf && fundedBurnState.wallet === address && fundedBurnState.status === 'ready'
       ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6)
       : isSelf && fundedBurnState.wallet === address && fundedBurnState.status === 'loading' ? 'Checking Solana…' : 'Unavailable';
@@ -8212,12 +8212,12 @@ function renderWalletDetail(){
   }
   const launchRows = launches.map(launch => ({ type:'launch', time:Date.parse(launch.createdAt || '') || 0, mint:launch.mint, html:`<a class="wallet-activity-row" data-token-mint="${escapeHtml(launch.mint)}" href="/token/${encodeURIComponent(launch.mint)}"><span class="wallet-activity-icon">✦</span><span><strong>Created ${escapeHtml(launch.name || launch.symbol || 'token')}</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} · ${escapeHtml(shortAddress(launch.mint))}</small></span><b>Verified<small>${launch.createdAt ? escapeHtml(formatOnchainAge(Date.parse(launch.createdAt))) : 'Time unavailable'}</small></b></a>` }));
   if (walletDetailTab === 'created') {
-    description.textContent = registryReady ? 'Coins attributed to this wallet in the verified launch registry.' : 'Launch registry verification is unavailable.';
-    content.innerHTML = launchRows.map(row => row.html).join('') || (registryReady ? walletDetailEmpty('No created coins found', 'No verified launch is attributed to this wallet.') : walletDetailEmpty('Launch registry unavailable', 'Created coins cannot be checked right now.'));
+    description.textContent = registryReady ? 'Confirmed coins created by this wallet.' : 'Created coins are unavailable right now.';
+    content.innerHTML = launchRows.map(row => row.html).join('') || (registryReady ? walletDetailEmpty('No created coins found', 'No confirmed launch was found for this wallet.') : walletDetailEmpty('Created coins unavailable', 'Please check again later.'));
     loadWalletRowLogos(content, launches);
     return;
   }
-  description.textContent = `Verified launches and burns, plus observed trades from the last 24 hours on Solana. ${scanNote}.`;
+  description.textContent = `Confirmed launches and burns, plus recent trades from the last 24 hours. ${scanNote}.`;
   const tradeRows = trades.map(trade => ({ type:trade.side, time:Number(trade.blockTime) * 1000 || 0, html:`<a class="wallet-activity-row" data-token-mint="${escapeHtml(trade.mint)}" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(trade.signature)}`))}" target="_blank" rel="noopener noreferrer"><span class="wallet-activity-icon ${trade.side}">${trade.side === 'buy' ? '↗' : '↘'}</span><span><strong>${trade.side === 'buy' ? 'Bought' : 'Sold'} ${escapeHtml(trade.symbol || 'token')}</strong><small>${escapeHtml(shortAddress(trade.mint))}</small></span><b>${escapeHtml(formatOnChainNumber(trade.solAmount, 4))} SOL<small>${escapeHtml(formatOnchainAge(Number(trade.blockTime) * 1000))}</small></b></a>` }));
   const seenBurns = new Set();
   const burnRows = launches.flatMap(launch => {
@@ -8226,12 +8226,12 @@ function renderWalletDetail(){
     if (burn?.status !== 'verified' || !receipt?.signature || seenBurns.has(receipt.signature)) return [];
     seenBurns.add(receipt.signature);
     const amount = Number(receipt.amountTokens ?? burn.amountTokens);
-    return [{ type:'burn', time:Date.parse(launch.onchainVerifiedAt || launch.createdAt || '') || 0, html:`<a class="wallet-activity-row" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer"><span class="wallet-activity-icon burn">♨</span><span><strong>Burned $FUNDED</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} launch · verified receipt</small></span><b>${Number.isFinite(amount) ? escapeHtml(formatOnChainNumber(amount, 2)) : '—'} $FUNDED<small>View transaction ↗</small></b></a>` }];
+    return [{ type:'burn', time:Date.parse(launch.onchainVerifiedAt || launch.createdAt || '') || 0, html:`<a class="wallet-activity-row" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer"><span class="wallet-activity-icon burn">♨</span><span><strong>Burned $FUNDED</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} launch · confirmed</small></span><b>${Number.isFinite(amount) ? escapeHtml(formatOnChainNumber(amount, 2)) : '—'} $FUNDED<small>View transaction ↗</small></b></a>` }];
   });
   const rows = [...tradeRows, ...launchRows, ...burnRows].filter(row => walletDetailFilter === 'all' || row.type === walletDetailFilter).sort((a,b) => b.time - a.time);
   const coverageIncomplete = (['all', 'launch', 'burn'].includes(walletDetailFilter) && !registryReady)
     || (['all', 'buy', 'sell'].includes(walletDetailFilter) && !tradeScanReady);
-  content.innerHTML = rows.map(row => row.html).join('') || walletDetailEmpty(coverageIncomplete ? 'Activity coverage incomplete' : 'No matching activity', coverageIncomplete ? 'The launch registry or trade scan is unavailable. Check again when verification resumes.' : walletDetailFilter === 'all' ? 'No launch, verified burn, or scanned trade record is attributed to this wallet.' : `No ${walletDetailFilter} records are available for this wallet.`);
+  content.innerHTML = rows.map(row => row.html).join('') || walletDetailEmpty(coverageIncomplete ? 'Activity unavailable' : 'No matching activity', coverageIncomplete ? 'Some activity cannot be shown right now. Please check again later.' : walletDetailFilter === 'all' ? 'No confirmed launches, burns, or recent trades were found for this wallet.' : `No ${walletDetailFilter} activity was found for this wallet.`);
   loadWalletRowLogos(content, launches);
 }
 function formatOnChainNumber(value, digits = 4){
@@ -8764,7 +8764,7 @@ function resetCoinSurface(mintAddress){
   window.fundedSetCoinProfileMetadata?.({});
   ['#coin-website-link', '#coin-x-link', '#coin-telegram-link', '#coin-discord-link'].forEach(selector => { const link = document.querySelector(selector); if (link) { link.hidden = true; link.removeAttribute('href'); } });
   compactCoinSocials();
-  setCoinField('#coin-description', 'Reading the mint, metadata account, and Pump bonding curve from Solana RPC…');
+  setCoinField('#coin-description', 'Checking coin details on Solana…');
   setCoinField('#coin-market-cap-label', 'Estimated market cap'); setCoinField('#coin-market-cap-source', 'Reading confirmed Solana RPC state');
   setCoinField('#coin-liquidity-label', 'Reserve');
   const explorerLink = document.querySelector('#coin-explorer-link'); if (explorerLink) { explorerLink.href = exploreExplorer(`address/${encodeURIComponent(mintAddress)}`); explorerLink.hidden = !mintAddress; }
@@ -8797,7 +8797,7 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
     setCoinField('#coin-volume', 'Pool activity unavailable'); setCoinField('#coin-volume-source', poolScanNote);
     setCoinField('#coin-change', 'Pool change unavailable'); setCoinField('#coin-trade-count', 'Unavailable');
     setCoinField('#coin-trade-breakdown', hasPoolTradeCount ? 'No pool swaps observed' : 'Pool trades unavailable');
-    setCoinField('#coin-description', `On-chain mint and verified PumpSwap pool snapshot. ${poolScanNote}`);
+    setCoinField('#coin-description', 'Trading pool confirmed. Recent trade history is unavailable.');
     setCoinTabLabels(); renderCoinActivityTab(); renderCoinSummary();
     return;
   }
@@ -8831,7 +8831,7 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
   const volume = `${market.coverage === 'partial' ? '≥' : ''}${formatCoinUsd(Number(market.volume24hSol))}`;
   setCoinField('#coin-volume', noTrades ? 'No trades' : market.coverage === 'partial' ? `${volume} · partial` : volume);
   setCoinField('#coin-volume-source', noTrades ? 'Complete Pump curve scan · last 24h' : partial ? `Partial ${graduated ? 'curve + pool' : 'curve'} RPC scan` : `${graduated ? 'Pump curve + PumpSwap pool' : 'Pump curve'} RPC scan · 24h`);
-  if (graduated) setCoinField('#coin-description', `On-chain mint and verified PumpSwap pool snapshot. Confirmed curve and pool trade observations${partial ? ' from a partial RPC scan' : ''}.`);
+  if (graduated) setCoinField('#coin-description', `Trading pool confirmed. Recent trades are shown below${partial ? ', though some history may be missing' : ''}.`);
   const change = Number(market.priceChangePercent);
   const basis = market.priceChangeBasis;
   setCoinField('#coin-change', noTrades ? 'No 24h trades' : market.priceChangePercent != null && Number.isFinite(change) && basis
@@ -8843,7 +8843,7 @@ async function loadCoinOnChain(mintAddress){
   if (!mintAddress){ renderOnChainUnavailable('A mint address is required. Open a /token/{mint} route to load on-chain data.'); return; }
   void loadCoinChat(mintAddress, loadId);
   setCoinField('#coin-page-title', 'Loading token…'); setCoinField('#coin-symbol', 'RPC'); setCoinField('#coin-address', shortAddress(mintAddress));
-  setCoinField('#coin-description', 'Reading the mint, metadata account, and Pump bonding curve from Solana RPC…');
+  setCoinField('#coin-description', 'Checking coin details on Solana…');
   try {
     const { PublicKey, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await getSolana();
     const detailConnection = await getExploreConnection();
@@ -8912,10 +8912,10 @@ async function loadCoinOnChain(mintAddress){
     renderCoinFeeDashboard(coinSummaryLedgerMint ? ledger.data?.overview : { available:false });
     renderCoinAccountDistribution(fullHolderDistribution, decimals, symbol, graduatedPool ? 'PumpSwap pool vault' : 'Curve vault');
     setCoinTabLabels(); renderCoinActivityTab();
-    setCoinField('.coin-live-dot', graduatedPool ? 'Mint / pool confirmed' : curve ? 'Mint / curve confirmed' : 'Mint confirmed');
+    setCoinField('.coin-live-dot', graduatedPool ? 'Trading pool confirmed' : curve ? 'Trading route confirmed' : 'Token confirmed');
     setCoinField('#coin-avatar', symbol.slice(0, 1).toUpperCase()); setCoinField('#coin-symbol', symbol); setCoinField('#coin-artwork-symbol', symbol); setCoinField('#coin-page-title', name);
     setCoinField('#coin-address', shortAddress(mintAddress)); setCoinField('#coin-full-address', mintAddress);
-    setCoinField('#coin-description', graduatedPool ? 'On-chain mint and verified PumpSwap pool snapshot. Reading confirmed trade activity from RPC…' : 'On-chain mint and Pump bonding-curve snapshot. Signed Solana metadata is checked separately.');
+    setCoinField('#coin-description', graduatedPool ? 'Trading pool confirmed. Checking recent trades…' : 'Coin details confirmed on Solana. Checking recent trades…');
     setCoinFact('#coin-stage', graduatedPool ? 'Migrated · PumpSwap' : curve ? curve.complete ? 'Curve complete · pool unavailable' : 'On Pump curve' : 'Unverified', curve ? 'clear' : 'unknown');
     setCoinFact('#coin-fee-owner', linkedRouter ? 'App router address matched' : curve?.creator ? shortAddress(curve.creator) : 'Unavailable', linkedRouter ? 'clear' : 'unknown');
     setCoinFact('#coin-metadata-status', metadataInfo?.data && (metadata.name || metadata.symbol) ? 'On-chain name / symbol' : registeredLaunch ? 'Pump create event verified' : 'No verified name', metadataInfo?.data && (metadata.name || metadata.symbol) || registeredLaunch ? 'clear' : 'unknown');

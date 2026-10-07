@@ -584,7 +584,7 @@ function rewards() {
   const fundedDirectory = automatic?.querySelector('#funded-holder-token-rewards');
   fundedCard?.remove();
   if(fundedDirectory){
-    fundedDirectory.querySelector('header h3').textContent = 'Published token allocations';
+    fundedDirectory.querySelector('header h3').textContent = 'Planned token airdrops';
     fundedDirectory.querySelector('header p').textContent = 'Connect your wallet on Airdrops to check whether you qualify.';
     funded.append(fundedDirectory);
   }
@@ -662,7 +662,7 @@ function secondaryPages() {
   const leaderboard=$('#leaderboard');
   if(leaderboard){const note=node('p','source-note','Burn and creator rankings use confirmed activity. Trader rankings are not available yet.');note.id='leaderboard-source-note';$('.leaderboard-hero',leaderboard)?.after(note);}
   const walletPage=$('#wallet-page');
-  if(walletPage&&!$('.wallet-profile-kicker',walletPage))$('.wallet-detail-title',walletPage)?.before(node('p','wallet-profile-kicker','SOLANA · WALLET PROFILE'));
+  if(walletPage&&!$('.wallet-profile-kicker',walletPage))$('.wallet-detail-title',walletPage)?.before(node('p','wallet-profile-kicker','WALLET ACTIVITY'));
   const docs=$('#docs');
   if(docs) mountDocsReference(docs);
   const account=$('#profile');
