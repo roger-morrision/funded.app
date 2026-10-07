@@ -3231,10 +3231,10 @@ function renderVerifiedReceiptEvidence(){
     const recipient = document.createElement('span');
     recipient.className = 'payment-history-receiver';
     const receiverLabel = document.createElement('small');
-    receiverLabel.textContent = 'Receiver';
+    receiverLabel.textContent = 'To';
     const receiverWallet = document.createElement('a');
     receiverWallet.className = 'payment-history-wallet';
-    receiverWallet.textContent = receipt.to;
+    receiverWallet.textContent = shortAddress(receipt.to);
     receiverWallet.href = exploreExplorer(`address/${encodeURIComponent(receipt.to)}`);
     receiverWallet.target = '_blank';
     receiverWallet.rel = 'noopener noreferrer';
@@ -3254,17 +3254,28 @@ function renderVerifiedReceiptEvidence(){
       : 'Payout time unavailable';
     const gross = document.createElement('small');
     gross.className = 'payment-history-gross';
-    gross.textContent = `Payout ${formatTokenBaseAmount(receipt.amountLamports, 9, 9)} SOL`;
+    gross.textContent = `Gross payout ${formatTokenBaseAmount(receipt.amountLamports, 9, 9)} SOL`;
     const fee = document.createElement('small');
     fee.className = 'payment-history-fee';
     fee.textContent = receipt.feeLamports == null ? 'Transaction fee unavailable'
       : `Transaction fee ${formatTokenBaseAmount(receipt.feeLamports, 9, 9)} SOL · paid by ${receipt.feePayer === receipt.to ? 'receiver' : shortAddress(receipt.feePayer)}`;
-    identity.append(name, recipient, paid, gross, fee);
+    identity.append(name, recipient, paid);
+    const details = document.createElement('details');
+    details.className = 'payment-history-details';
+    const detailsSummary = document.createElement('summary');
+    detailsSummary.textContent = 'Details';
+    const fullReceiver = document.createElement('small');
+    fullReceiver.textContent = `Receiver ${receipt.to}`;
+    details.append(detailsSummary, fullReceiver, gross, fee);
     const actions = document.createElement('span');
     actions.className = 'payment-history-actions';
     const amount = document.createElement('span');
     amount.className = 'payment-amount';
-    amount.textContent = `Received ${formatTokenBaseAmount(receipt.actualReceivedLamports, 9, 9)} SOL`;
+    const amountValue = document.createElement('strong');
+    amountValue.textContent = formatTokenBaseAmount(receipt.actualReceivedLamports, 9, 9);
+    const amountUnit = document.createElement('small');
+    amountUnit.textContent = 'SOL received';
+    amount.append(amountValue, amountUnit);
     const proof = document.createElement('a');
     proof.className = 'payment-receipt-link';
     proof.href = exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`);
@@ -3274,7 +3285,7 @@ function renderVerifiedReceiptEvidence(){
     proof.setAttribute('aria-label', `View confirmed payout transaction ${shortAddress(receipt.signature)} on Solana Explorer`);
     proof.title = 'View transaction on Solana Explorer';
     actions.append(amount, proof);
-    row.append(identity, actions);
+    row.append(identity, actions, details);
     if (index < 5) list.append(row.cloneNode(true));
     tape.append(row);
   }
@@ -3284,7 +3295,7 @@ function renderVerifiedReceiptEvidence(){
   }
   const footnote = document.querySelector('#payment-history-footnote');
   if (footnote) footnote.textContent = historyPayouts.length
-    ? `Showing ${Math.min(5, historyPayouts.length)} of ${historyPayouts.length} recent finalized payments · transaction fee is paid by the listed fee payer${paymentHistoryEvidence.status === 'partial' ? ' · partial coverage' : ''}`
+    ? `Latest ${Math.min(5, historyPayouts.length)} of ${historyPayouts.length} finalized payouts · fees in details${paymentHistoryEvidence.status === 'partial' ? ' · partial coverage' : ''}`
     : paymentHistoryEvidence?.status === 'partial' || !paymentHistoryEvidence ? 'Payout receipt verification is unavailable or incomplete.'
       : 'No finalized payout receipts are available.';
   renderExtendedAnalyticsDashboard();

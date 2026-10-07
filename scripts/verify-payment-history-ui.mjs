@@ -7,7 +7,7 @@ const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const signature = '5En9wzM8veYo6ASv2QLpmSNcLYuYsP4fR3y2Y1WzcXNF';
 
 try {
-  for (const width of [390, 320]) {
+  for (const width of [1100, 742, 390, 320]) {
     const context = await browser.newContext({ viewport: { width, height: 850 }, reducedMotion: 'reduce', permissions: ['clipboard-read', 'clipboard-write'] });
     await context.addInitScript(() => sessionStorage.setItem('funded.app.wallet.manual-disconnect', '1'));
     if (!useLiveReceipts) await context.route('**/api/evidence/payment-history', route => route.fulfill({
@@ -30,16 +30,21 @@ try {
     const page = await context.newPage();
     await page.goto(`${base}/#payments`, { waitUntil: 'domcontentloaded' });
     await page.locator('#rewards-history-tab').click();
+    assert(await page.locator('#payments > .ui-tabs').evaluate(bar =>
+      bar.scrollWidth <= bar.clientWidth && [...bar.querySelectorAll('[role="tab"]')].every(tab =>
+        tab.getBoundingClientRect().right <= bar.getBoundingClientRect().right + 1)
+    ), `reward tabs overflow at ${width}px`);
     const rows = page.locator('#payment-list .payment-history-row');
     const row = rows.first();
     await row.waitFor({ state: 'attached', timeout: 20000 });
     await row.waitFor({ state: 'visible' });
+    if (process.env.UI_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.UI_SCREENSHOT_PREFIX}-${width}.png`, fullPage: true });
     const rowCount = await rows.count();
     if (useLiveReceipts) assert(rowCount > 0, 'expected a verified payout receipt');
     else assert.equal(rowCount, 5);
     assert.equal(await row.locator('.payment-history-identity strong').innerText(), 'Holder reward');
     if (!useLiveReceipts) {
-      assert.equal(await row.locator('.payment-history-wallet').innerText(), '6XfCMmEJk5NTq2ANghqLh6oBfH3aKpR9eSzN');
+      assert.match(await row.locator('.payment-history-wallet').innerText(), /^6XfCMm…R9eSzN$/);
       assert((await row.locator('.payment-history-wallet').getAttribute('href')).includes('address/6XfCMmEJk5NTq2ANghqLh6oBfH3aKpR9eSzN'));
       assert.equal(await rows.nth(1).locator('.payment-history-identity strong').innerText(), 'Referral reward');
     }
@@ -49,9 +54,12 @@ try {
       assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '6XfCMmEJk5NTq2ANghqLh6oBfH3aKpR9eSzN');
     }
     if (!useLiveReceipts) {
-      assert.equal(await row.locator('.payment-amount').innerText(), 'Received 0.000118812 SOL');
+      assert.match(await row.locator('.payment-amount').innerText(), /0\.000118812\s+SOL received/);
       assert.match(await row.locator('.payment-history-time').innerText(), /Paid .* UTC/);
+      assert.equal(await row.locator('.payment-history-fee').isVisible(), false);
+      await row.locator('.payment-history-details summary').click();
       assert.match(await row.locator('.payment-history-fee').innerText(), /Transaction fee 0.000005 SOL/);
+      assert.match(await row.locator('.payment-history-details').innerText(), /Receiver 6XfCMmEJk5NTq2ANghqLh6oBfH3aKpR9eSzN/);
     }
     assert.equal(await row.getByText('Confirmed transaction').count(), 0);
     const link = row.getByRole('link', { name: /View confirmed payout transaction.*Solana Explorer/ });
@@ -93,7 +101,7 @@ try {
     assert((await receiver.locator('a').getAttribute('href')).includes('/address/6XfCMmEJk5NTq2ANghqLh6oBfH3aKpR9eSzN'));
     await context.close();
   }
-  console.log(`Payment history receiver, receipt link, copy, and 390/320px layout passed (${useLiveReceipts ? 'live indexed receipts' : 'mocked receipts'}).`);
+  console.log(`Payment history receiver, receipt link, copy, and 1100/742/390/320px layout passed (${useLiveReceipts ? 'live indexed receipts' : 'mocked receipts'}).`);
 } finally {
   await browser.close();
 }

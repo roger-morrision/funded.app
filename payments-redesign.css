@@ -26,7 +26,32 @@ body.page-route-payments .rewards-page-header > p:last-child {
   line-height: 1.45;
 }
 body.page-route-payments #payments > .ui-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  overflow: visible;
   margin: 0 0 18px;
+  padding: 4px;
+  border: 1px solid #30405b;
+  border-radius: 10px;
+  background: #11192a;
+}
+body.page-route-payments #payments > .ui-tabs button {
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 5px;
+  border: 0;
+  border-radius: 7px;
+  font: 700 11px/1.25 'Manrope', sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+}
+body.page-route-payments #payments > .ui-tabs button[aria-selected="true"] {
+  border: 0;
+  background: #283751;
+  box-shadow: inset 0 -2px #f4a340;
+  color: #ffdda5;
 }
 body.page-route-payments #rewards-overview {
   display: grid;
@@ -226,6 +251,7 @@ body.page-route-payments #rewards-x:has(#x-sign-in:not([data-connected="true"]))
   background: #19263b;
 }
 @media (max-width: 900px) {
+  body.page-route-payments #payments > .ui-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   body.page-route-payments #rewards-overview { grid-template-columns: minmax(0, 1fr); }
   body.page-route-payments #rewards-overview > .reward-entry-grid,
   body.page-route-payments #rewards-overview > .page-cleanup-guide,
@@ -234,8 +260,8 @@ body.page-route-payments #rewards-x:has(#x-sign-in:not([data-connected="true"]))
 @media (max-width: 520px) {
   body.page-route-payments #payments { padding-top: 16px; }
   body.page-route-payments #payments > .rewards-page-header { margin-bottom: 12px; padding-bottom: 14px; }
-  body.page-route-payments #payments > .ui-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin-bottom: 14px; }
-  body.page-route-payments #payments > .ui-tabs button { min-width: 0; padding: 9px 3px; font-size: 9px; white-space: nowrap; }
+  body.page-route-payments #payments > .ui-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 14px; }
+  body.page-route-payments #payments > .ui-tabs button { padding: 8px 4px; font-size: 11px; }
   body.page-route-payments #rewards-overview > .reward-entry-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   body.page-route-payments #rewards-overview .reward-entry-grid > a { justify-content: center; padding: 8px; font-size: 12px; text-align: center; }
   body.page-route-payments #rewards-overview > .reward-experience-panel { padding: 14px; }

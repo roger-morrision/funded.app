@@ -34,7 +34,7 @@ body.page-route-payments #payments #reward-portfolio.reward-no-wallet .reward-po
 #payments #rewards-funded .funded-holder-token-rewards>small{display:none}
 @media(max-width:900px){body.page-route-payments #payments .reward-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){body.page-route-payments #payments .reward-action-grid{grid-template-columns:1fr}.reward-action-grid>a,.reward-action-grid>button{min-height:76px;padding:13px 15px}}
-@media(max-width:760px){body.page-route-payments #payments>.ui-tabs{display:flex!important;flex-wrap:nowrap!important;gap:5px;overflow-x:auto;scrollbar-width:thin}body.page-route-payments #payments>.ui-tabs button{flex:0 0 auto;min-height:42px;padding:9px 11px;font-size:11px!important}#payments #rewards-funded .reward-section-intro{padding:17px}}
+@media(max-width:760px){#payments #rewards-funded .reward-section-intro{padding:17px}}
 #payments .x-claim-panel{padding:28px!important;border-color:#46546e;border-radius:14px;background:linear-gradient(160deg,#171d30,#131a29 35%,#111925)}
 #payments .x-claim-heading{margin-bottom:22px}
 #payments .x-claim-heading .eyebrow{margin-bottom:7px;color:#f3bf71}
