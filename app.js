@@ -229,7 +229,7 @@ function renderFundedTokenLanding(){
     if (mintReady) { explorer.href = 'https://explorer.solana.com/address/' + encodeURIComponent(PROTOCOL_FUNDED_MINT) + APP_EXPLORER_QUERY; explorer.target = '_blank'; explorer.rel = 'noopener noreferrer'; explorer.textContent = 'VIEW ON SOLANA ↗'; }
   }
   const tierAmounts = currentLaunchTierAmounts();
-  for (const tier of LAUNCH_BURN_TIERS.filter(item => item.id !== 'standard'))
+  for (const tier of LAUNCH_BURN_TIERS.filter(item => SELECTABLE_LAUNCH_TIERS.has(item.id) && item.id !== 'standard'))
     set('funded-token-' + tier.id, Object.hasOwn(LAUNCH_TIER_USD, tier.id)
       ? tierAmounts?.[tier.id]?.toLocaleString() || '—' : tier.amountTokens.toLocaleString());
   const asset = mintReady && exploreUpdatedAt ? assets.find(item => item.address === PROTOCOL_FUNDED_MINT) : null;
@@ -242,7 +242,7 @@ function renderFundedTokenLanding(){
   const assetPriceUsd = Number(asset?.priceUsd) > 0 ? Number(asset.priceUsd)
     : Number(asset?.curvePriceSol) > 0 && solUsdReady ? Number(asset.curvePriceSol) * coinSolUsdPrice : null;
   const quote = poolReady ? poolPriceUsd : assetPriceUsd;
-  for (const tier of LAUNCH_BURN_TIERS.filter(item => item.id !== 'standard'))
+  for (const tier of LAUNCH_BURN_TIERS.filter(item => SELECTABLE_LAUNCH_TIERS.has(item.id) && item.id !== 'standard'))
     set('funded-token-' + tier.id + '-note', Object.hasOwn(LAUNCH_TIER_USD, tier.id)
       ? `$${LAUNCH_TIER_USD[tier.id]} target · ${tierAmounts?.[tier.id] ? 'current pool quote' : 'quote unavailable'}`
       : Number.isFinite(quote) && quote > 0 ? `≈ ${formatDashboardUsd(tier.amountTokens * quote)} at current spot` : '$FUNDED burn per launch');
@@ -3967,7 +3967,7 @@ function renderHomeLaunchBoard(){
   else if (homeLaunchTab === 'migrated') visible = visible.filter(item => item.migrated === true);
   else if (homeLaunchTab === 'watchlist') visible = visible.filter(item => getWatchlist().includes(item.address));
   else if (homeLaunchTab === 'promoted') visible = visible.filter(item => Boolean(promotionForMint(item.address) || verifiedBoosts[item.address]));
-  else if (homeLaunchTab === 'boost') visible = visible.filter(item => promotionForMint(item.address)?.tier === 'boost' || Boolean(verifiedBoosts[item.address]));
+  else if (homeLaunchTab === 'boost') visible = visible.filter(item => activeBoostMultiplier(verifiedBoosts[item.address]) > 0);
   else if (['standard', 'pro', 'premier'].includes(homeLaunchTab)) visible = visible.filter(item => (promotionForMint(item.address)?.tier || 'standard') === homeLaunchTab && !verifiedBoosts[item.address]);
   visible = visible.filter(item => matchesHomeLaunchFilters(item, homeLaunchFilters, { cluster: EXPLORE_CLUSTER, solUsdPrice: coinSolUsdPrice }));
   visible.sort((a, b) => (homeLaunchSort === 'market-cap' ? capUsd(b) - capUsd(a)
