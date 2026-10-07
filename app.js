@@ -3152,23 +3152,27 @@ function renderExtendedAnalyticsDashboard(){
 
   const recipients = document.querySelector('.recipients-panel');
   if (recipients) {
+    const recentPayouts = Array.isArray(paymentHistoryEvidence?.verifiedPayouts) ? paymentHistoryEvidence.verifiedPayouts : [];
     const count = recipients.querySelector('.panel-count');
-    if (count) count.textContent = verifiedPayouts.length ? `${verifiedPayouts.length} confirmed payment${verifiedPayouts.length === 1 ? '' : 's'}` : receiptEvidenceChecked && !receiptEvidence ? 'Payment history unavailable' : 'Checking payments';
+    if (count) count.textContent = recentPayouts.length ? `Latest ${Math.min(5, recentPayouts.length)} of ${recentPayouts.length} finalized payments` : receiptEvidenceChecked && !paymentHistoryEvidence ? 'Payment history unavailable' : 'Checking payments';
     const target = recipients.querySelector('.payment-list, .empty-state');
-    if (target && verifiedPayouts.length) {
+    if (target && recentPayouts.length) {
       target.className = 'payment-list';
       target.replaceChildren();
-      for (const payout of verifiedPayouts) {
+      for (const payout of recentPayouts.slice(0, 5)) {
         const row = document.createElement('div'); row.className = 'payment-row';
         const identity = document.createElement('span');
-        const name = document.createElement('strong'); name.textContent = payout.source === 'solana-keeper-referral-claim' ? `Referral · ${shortAddress(payout.to)}` : `Recipient · ${shortAddress(payout.to)}`;
+        const name = document.createElement('strong'); name.textContent = `${({ 'solana-keeper-referral-claim':'Referral', 'mint-router-settle-mint':'X account', 'automatic-creator':'Creator', 'automatic-holder':'Holder', 'automatic-operations':'Operations', 'automatic-community':'Community', 'automatic-x':'X account' })[payout.source] || 'Recipient'} · ${shortAddress(payout.to)}`;
         const proof = document.createElement('a'); proof.href = exploreExplorer(`tx/${encodeURIComponent(payout.signature)}`); proof.target = '_blank'; proof.rel = 'noopener noreferrer'; proof.textContent = 'Confirmed transaction ↗';
-        const amount = document.createElement('span'); amount.className = 'payment-amount'; amount.textContent = `${formatTokenBaseAmount(payout.amountLamports, 9, 9)} SOL`;
+        const amount = document.createElement('span'); amount.className = 'payment-amount'; amount.textContent = `${formatTokenBaseAmount(payout.actualReceivedLamports, 9, 9)} SOL received`;
         identity.append(name, proof); row.append(identity, amount); target.append(row);
       }
-    } else if (target && receiptEvidenceChecked && !receiptEvidence) {
+    } else if (target && receiptEvidenceChecked && !paymentHistoryEvidence) {
       target.className = 'empty-state';
       target.textContent = 'Payment history is temporarily unavailable.';
+    } else if (target && receiptEvidenceChecked) {
+      target.className = 'empty-state';
+      target.textContent = 'No finalized payout receipts are available yet.';
     }
   }
 }
