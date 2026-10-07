@@ -7812,6 +7812,7 @@ function renderCoinRewardsPolicy(policy, mint = getCoinMintAddress()){
     || verifiedCoinRewardsPolicy(coinSummaryLaunch, mint, EXPLORE_CLUSTER)
     || verifiedCoinRewardsPolicy(verifiedLaunchPolicyForMint(mint), mint, EXPLORE_CLUSTER);
   summary.hidden = !verified;
+  summary.parentElement?.classList.toggle('has-fee-allocation', Boolean(verified));
   value.textContent = verified?.compact || '';
 }
 function compactCoinSocials(){
