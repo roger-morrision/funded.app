@@ -72,6 +72,7 @@ import { buildMintCreatorFeeCollectionInstructions } from './pump-fee-collection
 import { verifyWrappedSolRecoveryReceipt } from './wrapped-sol-recovery-receipt.mjs';
 import { rewardExperience } from './reward-experience.mjs';
 import { rewardPaidTotals } from './reward-paid-totals.mjs';
+import { feePayoutStats } from './fee-payout-stats.mjs';
 import { jackpotPreview } from './jackpot-model.mjs';
 import { homeFeeAllocationSummary } from './home-dashboard-metrics.mjs';
 import { projectBurnBoard, walletBurnBoard } from './leaderboard-burn-board.mjs';
@@ -1724,6 +1725,7 @@ async function handle(req, res) {
         launches: launches.length,
         ...totals,
         rewardPaid: rewardPaidTotals(state, rewards, evidence, solanaCluster),
+        feePayoutStats: feePayoutStats(state, rewards, evidence, solanaCluster),
         homeFeeAllocations: homeFeeAllocationSummary(state, evidence, solanaCluster),
         creatorProfiles: creatorReputation(launches).length,
       });

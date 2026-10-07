@@ -2577,6 +2577,52 @@ function renderExploreBenefitLeaders(records){
     return `<button type="button" class="${definition.sort === exploreSort ? 'active' : ''}" data-explore-leader-sort="${definition.sort}" data-state="${leader ? 'ready' : hasVerifiedField ? 'empty' : 'unavailable'}" aria-pressed="${definition.sort === exploreSort}" ${leader ? '' : 'disabled'}><span>${escapeHtml(definition.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></button>`;
   }).join('');
 }
+function formatPayoutSol(value) {
+  if (typeof value !== 'string' || !/^(?:0|[1-9]\d*)$/.test(value)) return '—';
+  const units = BigInt(value);
+  const whole = units / 1_000_000_000n;
+  const fraction = String(units % 1_000_000_000n).padStart(9, '0').replace(/0+$/, '');
+  return `${whole.toLocaleString()}${fraction ? `.${fraction}` : ''} SOL`;
+}
+function renderExplorePayoutStats() {
+  const container = document.querySelector('#explore-payout-stats');
+  if (!container) return;
+  const stats = analyticsSummary?.feePayoutStats;
+  const ready = stats?.cluster === EXPLORE_CLUSTER && stats.commitment === 'finalized';
+  const cards = [
+    { label:'Total fee paid to X accounts', kind:'x' },
+    { label:'Total fee paid to creators', kind:'creator' },
+    { label:'Total fee paid to coin holders', kind:'holder' },
+    { label:'Top X account paid', kind:'x', top:true },
+    { label:'Top coin holder paid', kind:'holder', top:true },
+    { label:'Top $FUNDED holder paid', kind:'fundedHolder', top:true },
+    { label:'Top creator paid', kind:'creator', top:true },
+  ];
+  container.innerHTML = cards.map(card => {
+    const group = ready ? stats[card.kind] : null;
+    const available = ['verified', 'partial'].includes(group?.status);
+    const leader = available && card.top ? group.top : null;
+    const amount = card.top ? leader?.paidLamports : group?.paidLamports;
+    const count = card.top ? leader?.payoutCount : group?.payoutCount;
+    const value = available && (group.status !== 'partial' || count > 0)
+      ? `${group.status === 'partial' ? '≥' : ''}${formatPayoutSol(amount)}` : '—';
+    const name = leader ? card.kind === 'x'
+      ? leader.handle || `X ID ${leader.recipient}` : shortAddress(leader.recipient) : null;
+    const profile = card.kind === 'x' && /^@[A-Za-z0-9_]{1,15}$/.test(String(leader?.handle || ''))
+      ? `https://x.com/${leader.handle.slice(1)}` : null;
+    const detail = group?.status === 'unavailable'
+      ? group.reason || 'Finalized payout data unavailable'
+      : !available ? 'Checking finalized payout records'
+        : group.status === 'partial' && !count ? 'Payout verification incomplete'
+        : leader ? `${name} · ${leader.payoutCount} payment${leader.payoutCount === 1 ? '' : 's'}`
+          : card.top ? 'No verified fee payout yet'
+            : `${group.payoutCount} finalized payment${group.payoutCount === 1 ? '' : 's'}`;
+    const detailMarkup = profile
+      ? `<a href="${escapeHtml(profile)}" target="_blank" rel="noopener noreferrer">${escapeHtml(detail)} ↗</a>`
+      : `<small>${escapeHtml(detail)}</small>`;
+    return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong>${detailMarkup}${group?.status === 'partial' ? '<em>Partial coverage</em>' : ''}</article>`;
+  }).join('');
+}
 function exploreSocialLinksMarkup(record) {
   const links = exploreSocialLinks(record, verifiedLaunchPolicyForMint(record.address));
   if (!links.length) return '';
@@ -4340,6 +4386,7 @@ async function loadReceiptEvidence(signal){
       ? summary.data : null;
     homeFeeAllocations = summary?.available === true && summary.data?.homeFeeAllocations?.cluster === EXPLORE_CLUSTER
       ? summary.data.homeFeeAllocations : null;
+    renderExplorePayoutStats();
     renderOnchainReportState(assets);
     renderHomeKpiDashboard(assets);
   } finally { receiptEvidenceLoading = false; }
@@ -4347,7 +4394,7 @@ async function loadReceiptEvidence(signal){
 document.querySelector('#payment-list').innerHTML = '<p class="empty-state">Checking finalized payout receipts…</p>';
 document.querySelector('#payment-dialog-list').innerHTML = '<p class="empty-state">Checking finalized payout receipts…</p>';
 loadReceiptEvidence();
-createRoutePoller({ run: signal => loadReceiptEvidence(signal), active: () => coinRouteRequested() || ['overview', 'payments', 'analytics-detail', 'buybacks'].includes(requestedPageRoute()), intervalMs: 60_000 });
+createRoutePoller({ run: signal => loadReceiptEvidence(signal), active: () => coinRouteRequested() || ['overview', 'explore', 'payments', 'analytics-detail', 'buybacks'].includes(requestedPageRoute()), intervalMs: 60_000 });
 renderWatchlist();
 let registryLaunches = [];
 let registryPage = 1;
