@@ -562,12 +562,12 @@ function rewards() {
   const x = node('div'); x.id = 'rewards-x';
   while(root.firstChild) x.append(root.firstChild);
   const overview = node('div'); overview.id = 'rewards-overview';
-  overview.innerHTML = `<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Rewards · your status</p><h1>Find your rewards</h1><p>See what has arrived, what is waiting, and what you can claim. Wallet, X, and token airdrop eligibility are checked separately.</p></div>
-    <section class="reward-upcoming" aria-labelledby="reward-upcoming-title"><header><p class="eyebrow">Plan ahead</p><h2 id="reward-upcoming-title">When to join, when to wait</h2><p>Dates are shown only after a launch or payout cycle records them. A target date is not a confirmed payment.</p></header><div class="reward-upcoming-grid">
-      <article><span>SOL · COIN HOLDERS</span><h3>Hold before the daily snapshot</h3><p>Choose a coin with a holder fee share and hold it through its recorded cutoff. After eligible fees and the wallet snapshot are verified, SOL is sent automatically. Small pools can roll into a later cycle.</p><button type="button" data-reward-open="holder">See recorded cutoff and payout target →</button></article>
-      <article><span>LAUNCHED COIN TOKENS · $FUNDED HOLDERS</span><h3>Hold before that coin migrates</h3><p>Each launch takes its own $FUNDED holder snapshot at migration. There is no universal airdrop date. After the token vault and proof are verified, eligible wallets can claim during that launch's 90-day window.</p><a href="#airdrops">See upcoming airdrops and claim status →</a></article>
-    </div><p class="reward-upcoming-note">Creator SOL, X rewards, and referral claims depend on collected fees. X and referral recipients must complete their claim steps when a reward becomes ready.</p></section>
-    <div class="reward-overview-start"><p class="eyebrow">Reward types</p><h2>Choose how you earned</h2><p>Open a category for its eligibility rules, claim steps, and verified payments.</p></div>
+  overview.innerHTML = `<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Rewards</p><h1>Your rewards</h1><p>Check what you can claim, what is still waiting, and what has reached your wallet.</p></div>
+    <section class="reward-upcoming" aria-labelledby="reward-upcoming-title"><header><p class="eyebrow">Plan ahead</p><h2 id="reward-upcoming-title">When to join, when to wait</h2><p>Recorded cutoffs and targets appear per reward. A target is not a confirmed payment.</p></header><div class="reward-upcoming-grid">
+      <article><span>SOL · COIN HOLDERS</span><h3>Hold before the daily snapshot</h3><p>Choose a coin with a holder fee share and hold through its cutoff. Eligible funded cycles pay SOL automatically; small pools can roll forward.</p><button type="button" data-reward-open="holder">See cutoff and payout target →</button></article>
+      <article><span>LAUNCHED COIN TOKENS · $FUNDED HOLDERS</span><h3>Hold before that coin migrates</h3><p>Each coin snapshots $FUNDED holders at migration. After vault and proof checks, eligible wallets can claim that coin’s tokens within 90 days.</p><a href="#airdrops">See airdrops and claim status →</a></article>
+    </div><p class="reward-upcoming-note">Creator, X, and referral SOL depend on collected fees. X and referral rewards require a claim when ready.</p></section>
+    <div class="reward-overview-start"><p class="eyebrow">Explore rewards</p><h2>Reward programs</h2><p>Each program has its own eligibility and payment status.</p></div>
     <div class="reward-action-grid">
       <button type="button" data-reward-open="x"><span class="reward-action-icon" aria-hidden="true">𝕏</span><span><strong>X account rewards</strong><small>Sign in with X to see and claim your SOL.</small></span><b aria-hidden="true">→</b></button>
       <button type="button" data-reward-open="holder"><span class="reward-action-icon" aria-hidden="true">◎</span><span><strong>Coin holder rewards</strong><small>Eligible coin wallets receive SOL automatically.</small></span><b aria-hidden="true">→</b></button>
@@ -600,6 +600,7 @@ function rewards() {
   const historyPanel = $('.x-claim-activity', x); if (historyPanel) history.append(historyPanel);
   root.append(overview,creator,holder,funded,x,history);
   const select = tabs(root,[{key:'overview',label:'My rewards',panel:overview},{key:'holder',label:'Coin holders',panel:holder},{key:'funded',label:'$FUNDED holders',panel:funded},{key:'creator',label:'Creator',panel:creator},{key:'x',label:'X claims',panel:x},{key:'history',label:'Payments',panel:history}],'Reward type');
+  root.querySelector(':scope > .ui-tabs')?.after(node('p','reward-tab-hint','Swipe tabs for more reward types →'));
   root.prepend(overview.querySelector('.workspace-page-header'));
   $$('[data-reward-open]',root).forEach(button=>button.addEventListener('click',()=>select(button.dataset.rewardOpen,true)));
   $$('a[href="#payments"]',personal || creator).forEach(link=>link.addEventListener('click',()=>select('x',true)));
@@ -622,17 +623,17 @@ function secondaryPages() {
     heading?.before(back);
     const walletGate=node('section','airdrop-wallet-gate');
     walletGate.setAttribute('aria-label','Wallet eligibility');
-    walletGate.innerHTML='<div class="airdrop-wallet-gate-top"><span>WALLET</span><strong>Not connected</strong></div><div class="airdrop-wallet-gate-body"><span class="airdrop-wallet-art" aria-hidden="true">◈</span><h3>Connect your wallet</h3><p>See whether you qualify and how much you can claim when a launch opens its claims.</p><button type="button" class="primary-button">Connect wallet</button></div>';
+    walletGate.innerHTML='<div class="airdrop-wallet-gate-top"><span>Your airdrops</span><strong>Not connected</strong></div><div class="airdrop-wallet-gate-body"><span class="airdrop-wallet-art" aria-hidden="true">◈</span><h3>Check your airdrops</h3><p>Connect the wallet that held $FUNDED at a launch’s snapshot to see its eligibility and claim status.</p><button type="button" class="primary-button">Connect wallet</button></div>';
     walletGate.querySelector('button').addEventListener('click',()=>$('#connect-button')?.click());
     const heroLayout=node('div','airdrop-hero-layout');
     const heroArt=node('figure','airdrop-hero-art');
     heroArt.innerHTML=`<img src="${airdropWolfDropUrl}" alt="A black wolf watching a descending community supply parcel" loading="lazy" />`;
     intro?.after(heroLayout);
     heroLayout.append(walletGate,heroArt);
-    const syncAirdropWallet=()=>{const address=document.documentElement.dataset.connectedWallet;heroLayout.hidden=Boolean(address);walletGate.querySelector('.airdrop-wallet-gate-top strong').textContent=address?`${address.slice(0,4)}…${address.slice(-4)}`:'Not connected';};
+    const syncAirdropWallet=()=>{const address=document.documentElement.dataset.connectedWallet;walletGate.querySelector('.airdrop-wallet-gate-top strong').textContent=address?`${address.slice(0,4)}…${address.slice(-4)}`:'Not connected';walletGate.querySelector('h3').textContent=address?'Wallet connected':'Check your airdrops';walletGate.querySelector('p').textContent=address?'Select a launch below to check your allocation. A planned airdrop does not confirm personal eligibility.':'Connect the wallet that held $FUNDED at a launch’s snapshot to see its eligibility and claim status.';walletGate.querySelector('button').hidden=Boolean(address);};
     window.addEventListener('funded:reward-identity-change',syncAirdropWallet);syncAirdropWallet();
     const publicPrograms=node('section','airdrop-public-programs');
-    publicPrograms.innerHTML='<div class="airdrop-public-rule"><span>LAUNCH AIRDROPS</span></div><div class="airdrop-reference-tabs" role="tablist" aria-label="Launch airdrop status"><button type="button" role="tab" aria-selected="true" data-public-airdrop-tab="upcoming">Upcoming <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="claiming">Claims open <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="closed">Closed <span>—</span></button></div>';
+    publicPrograms.innerHTML='<div class="airdrop-reference-tabs" role="tablist" aria-label="Launch airdrop status"><button type="button" role="tab" aria-selected="true" data-public-airdrop-tab="upcoming">Upcoming <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="claiming">Claims open <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="closed">Closed <span>—</span></button></div><p class="airdrop-stage-help">Upcoming: waiting for migration and proof · Claims open: check your wallet · Closed: claim window ended</p>';
     for(const selector of ['.airdrop-directory-head','.airdrop-directory','#airdrop-directory-pagination','#airdrop-selected-program']){const item=$(selector,airdrops);if(item)publicPrograms.append(item);}
     heroLayout.after(publicPrograms);
     text('.airdrop-directory-head h2','Launch airdrops');

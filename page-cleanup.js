@@ -36,12 +36,12 @@ function foldVisualGuides() {
   }
 }
 
-function showAirdropsBeforeWalletGate() {
+function showWalletGateBeforeAirdrops() {
   const root = document.getElementById('airdrops');
   const directory = root?.querySelector(':scope > .airdrop-public-programs');
   const gate = root?.querySelector(':scope > .airdrop-hero-layout');
-  if (directory && gate && (directory.compareDocumentPosition(gate) & Node.DOCUMENT_POSITION_PRECEDING)) {
-    gate.before(directory);
+  if (directory && gate && gate.nextElementSibling !== directory) {
+    gate.after(directory);
   }
 }
 
@@ -119,7 +119,7 @@ function refreshPageCleanup() {
   requestAnimationFrame(() => {
     refreshQueued = false;
     foldVisualGuides();
-    showAirdropsBeforeWalletGate();
+    showWalletGateBeforeAirdrops();
     showExploreResultsBeforeExtras();
     setupHomeTierShortcuts();
     setupCoinAboutToggle();

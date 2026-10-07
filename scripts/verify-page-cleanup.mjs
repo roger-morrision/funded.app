@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import { preview } from 'vite';
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE || 'playwright');
-const server = await preview({ preview: { host: '127.0.0.1', port: 5219, strictPort: true } });
+const server = await preview({ configLoader: 'runner', preview: { host: '127.0.0.1', port: 5219, strictPort: true } });
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const context = await browser.newContext({ reducedMotion: 'reduce' });
 await context.addInitScript(() => sessionStorage.setItem('funded.app.wallet.manual-disconnect', '1'));
@@ -35,21 +35,23 @@ async function open(route, width) {
 
 try {
   await open('payments', 1280);
-  const rewardGuide = page.locator('#rewards-overview .page-cleanup-guide[data-guide="rewards"]');
+  assert((await page.locator('#reward-portfolio').boundingBox()).y < 500);
+  assert(await page.locator('#rewards-overview .reward-upcoming').isVisible());
+  await page.locator('#rewards-holder-tab').click();
+  const rewardGuide = page.locator('#rewards-holder .page-cleanup-guide[data-guide="holder"]');
   await rewardGuide.waitFor({ state: 'visible' });
   assert.equal(await rewardGuide.evaluate(element => element.open), false);
-  assert((await page.locator('#reward-portfolio').boundingBox()).y < 500);
   await rewardGuide.locator(':scope > summary').click();
   assert(await rewardGuide.locator('figure img').evaluate(image => image.getAttribute('src').endsWith('.webp')));
-  assert(await rewardGuide.locator('.infographic-poster-details').count());
+  assert.equal(await rewardGuide.evaluate(element => element.open), true);
 
   await open('airdrops', 1280);
   assert(await page.locator('#airdrops').evaluate(root => {
     const list = root.querySelector('.airdrop-public-programs');
     const gate = root.querySelector('.airdrop-hero-layout');
-    return Boolean(list && gate && (list.compareDocumentPosition(gate) & Node.DOCUMENT_POSITION_FOLLOWING));
+    return Boolean(list && gate && (gate.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING));
   }));
-  assert((await page.locator('.airdrop-public-programs').boundingBox()).y < 400);
+  assert((await page.locator('.airdrop-hero-layout').boundingBox()).y < 400);
 
   await open('explore', 1280);
   assert.equal(await page.locator('.explore-quick-filters').isVisible(), false);
