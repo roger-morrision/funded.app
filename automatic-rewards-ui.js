@@ -226,7 +226,7 @@ function renderSimpleRewardCards(kind) {
       detail.textContent = schedule?.status === 'paid' ? 'SOL paid' : allocated ? 'Payment pending' : '';
     } else {
       const handle = launch.feeDistribution.creatorDirected.recipients?.xAccount;
-      detail.textContent = homeXRouteReady ? 'X claim after fee collection' : 'X payouts unavailable';
+      detail.textContent = homeXRouteReady ? '' : 'X payouts unavailable';
       const recipient = validateSolClaimRecipient({ handle, percent: share });
       if (recipient.valid && recipient.handle) {
         const profile = document.createElement('a');
