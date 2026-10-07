@@ -451,26 +451,22 @@ async function referralCodeForShare(){
     return code;
   } catch (error) { showToast(error.message || 'Invite link is unavailable.'); return ''; }
 }
-let referralSessionWallet = '';
-let referralSessionApproval = null;
-async function ensureReferralSession(session){
-  if (!session?.address || typeof session.provider?.signMessage !== 'function') throw new Error('Connect a wallet that can approve referral dashboard access.');
-  if (referralSessionWallet === session.address) return;
-  if (referralSessionApproval) return referralSessionApproval;
-  referralSessionApproval = (async () => {
-    const current = await apiRequest('/api/referrals/session').catch(() => null);
-    if (current?.data?.authenticated && current.data.wallet === session.address) { referralSessionWallet = session.address; return; }
-    const prepared = await apiRequest('/api/referrals/session/prepare', { method:'POST', body:{ wallet:session.address } });
-    assertWalletSessionCurrent(session);
-    const signature = await session.provider.signMessage(new TextEncoder().encode(prepared.data.statement));
-    assertWalletSessionCurrent(session);
-    const verified = await apiRequest('/api/referrals/session/verify', { method:'POST', body:{ challengeId:prepared.data.challengeId, wallet:session.address, signature:bs58.encode(signature) } });
-    if (!verified.data?.authenticated || verified.data.wallet !== session.address) throw new Error('Referral dashboard approval failed.');
-    referralSessionWallet = session.address;
-  })();
-  try { await referralSessionApproval; } finally { referralSessionApproval = null; }
+async function ensureReferralSession(session, { interactive = false } = {}){
+  if (!session?.address) throw new Error('Connect a wallet to view your referral dashboard.');
+  const current = await apiRequest('/api/referrals/session').catch(() => null);
+  assertWalletSessionCurrent(session);
+  if (current?.data?.authenticated && current.data.wallet === session.address) return true;
+  if (!interactive) return false;
+  if (typeof session.provider?.signMessage !== 'function') throw new Error('Connect a wallet that can approve referral dashboard access.');
+  const prepared = await apiRequest('/api/referrals/session/prepare', { method:'POST', body:{ wallet:session.address } });
+  assertWalletSessionCurrent(session);
+  const signed = await session.provider.signMessage(new TextEncoder().encode(prepared.data.statement));
+  assertWalletSessionCurrent(session);
+  const verified = await apiRequest('/api/referrals/session/verify', { method:'POST', body:{ challengeId:prepared.data.challengeId, wallet:session.address, signature:bs58.encode(signed.signature || signed) } });
+  if (!verified.data?.authenticated || verified.data.wallet !== session.address) throw new Error('Referral dashboard approval failed.');
+  return true;
 }
-function renderReferralClaimPrompt(title = 'Connect wallet to check claimable referral rewards', note = 'Each available reward requires a wallet signature and a separate payout action.'){
+function renderReferralClaimPrompt(title = 'Connect wallet to check claimable referral rewards', note = 'Each available reward requires a wallet signature and a separate payout action.', approve = false){
   const panel = document.querySelector('#referral-claim-center');
   if (!panel) return;
   panel.replaceChildren();
@@ -479,6 +475,11 @@ function renderReferralClaimPrompt(title = 'Connect wallet to check claimable re
   const heading = document.createElement('strong'); heading.textContent = title;
   const detail = document.createElement('small'); detail.textContent = note;
   content.append(eyebrow, heading, detail); panel.append(content);
+  if (approve) {
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary-button'; button.textContent = 'Verify wallet to view';
+    button.addEventListener('click', async () => { button.disabled = true; try { await refreshReferralClaims({ interactive: true }); } finally { button.disabled = false; } });
+    panel.append(button);
+  }
 }
 function renderReferralLedgerEmpty(title, note){
   const ledger = document.querySelector('#referral-ledger-list');
@@ -496,12 +497,20 @@ function renderReferralActivityEmpty(title, note){
   const detail = empty.querySelector('small');
   if (heading && detail) { heading.textContent = title; detail.textContent = note; }
 }
-async function refreshReferralClaims(){
+async function refreshReferralClaims({ interactive = false } = {}){
   const session = captureWalletSession();
   const walletAddress = session?.address; const dashboard = document.querySelector('#referral-command-center');
   if (!session || !dashboard) return;
-  try { await ensureReferralSession(session); }
-  catch (error) { if (isWalletSessionCurrent(session)) { renderReferralClaimPrompt('Approve referral dashboard access', error.message || 'Wallet approval is required to load private referral activity.'); renderReferralActivityEmpty('Approval required', 'Approve dashboard access in your wallet to check referral activity.'); renderReferralLedgerEmpty('Approval required', 'Approve dashboard access in your wallet to check claim receipts.'); } return; }
+  try {
+    if (!await ensureReferralSession(session, { interactive })) {
+      if (isWalletSessionCurrent(session)) {
+        renderReferralClaimPrompt('Verify wallet to view referral rewards', 'Your private referral dashboard needs one wallet approval. Refreshing this page will not request a signature.', true);
+        renderReferralActivityEmpty('Wallet verification needed', 'Verify your wallet to check referral activity.');
+        renderReferralLedgerEmpty('Wallet verification needed', 'Verify your wallet to check claim receipts.');
+      }
+      return;
+    }
+  } catch (error) { if (isWalletSessionCurrent(session)) { renderReferralClaimPrompt('Referral dashboard unavailable', error.message || 'Try verifying your wallet again.', true); renderReferralActivityEmpty('Access unavailable', 'Verify your wallet to check referral activity.'); renderReferralLedgerEmpty('Access unavailable', 'Verify your wallet to check claim receipts.'); } return; }
   if (!isWalletSessionCurrent(session)) return;
   const [result, dashboardResult] = await Promise.all([
     apiRequest(`/api/referral-claims?wallet=${encodeURIComponent(walletAddress)}`).catch(() => ({ available: false })),
@@ -5339,7 +5348,6 @@ function activateWallet(provider, message = 'Wallet connected'){
 function clearWalletState(message = 'Wallet not connected', detail = 'Connect a wallet to continue'){
   walletConnectRequest++;
   walletVersion++;
-  referralSessionWallet = '';
   resetWalletDependentViews();
   try { sessionStorage.removeItem(COIN_CHAT_SESSION_KEY); } catch {}
   wallet = null;

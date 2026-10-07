@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => {
     '/devnet-images': { target: apiTarget, changeOrigin: false },
   } : undefined;
   return {
+    cacheDir: process.env.VITE_CACHE_DIR || undefined,
     plugins: [{ name: 'funded-build-settings',
       configResolved(config) { resolvedOutput = { root: config.root, outDir: config.build.outDir }; },
       async buildStart() { sourceDigest = await browserSourceDigest(resolvedOutput.root); },

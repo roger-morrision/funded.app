@@ -12,6 +12,10 @@ async function installPhantomFixture(page, { trusted = false, delayMs = 0 } = {}
         isConnected: false,
         publicKey: null,
         signTransaction: async transaction => transaction,
+        signMessage: async () => {
+          sessionStorage.setItem('qa.phantom.signatures', String(Number(sessionStorage.getItem('qa.phantom.signatures') || 0) + 1));
+          return { signature: new Uint8Array(64).fill(7) };
+        },
         on(event, callback) { listeners.set(event, [...(listeners.get(event) || []), callback]); },
         async connect(options = {}) {
           const calls = JSON.parse(sessionStorage.getItem('qa.phantom.calls') || '[]');
@@ -78,4 +82,45 @@ test('trusted Phantom is restored when the extension injects after app startup',
   await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state', 'ready');
   await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/, { timeout: 10000 });
   expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem('qa.phantom.calls')))).toEqual(['trusted']);
+});
+
+test('reloading a connected wallet never signs for referral access in the background', async ({ page }) => {
+  let authenticated = false;
+  await page.route('**/api/referrals/session**', async route => {
+    const url = new URL(route.request().url());
+    if (url.pathname === '/api/referrals/session' && route.request().method() === 'GET') {
+      return route.fulfill({ status: authenticated ? 200 : 401, contentType: 'application/json', body: JSON.stringify(authenticated ? { authenticated: true, wallet: address } : { error: 'Approval required' }) });
+    }
+    if (url.pathname.endsWith('/prepare')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ challengeId: 'fixture', statement: 'fixture referral access' }) });
+    if (url.pathname.endsWith('/verify')) {
+      authenticated = true;
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ authenticated: true, wallet: address }) });
+    }
+    return route.fallback();
+  });
+  await installPhantomFixture(page);
+  await page.goto('/#referrals');
+  await page.locator('#connect-button').click();
+  await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
+  await expect(page.locator('#referral-claim-center button')).toHaveText('Verify wallet to view');
+  expect(await page.evaluate(() => Number(sessionStorage.getItem('qa.phantom.signatures') || 0))).toBe(0);
+
+  await page.reload();
+  await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
+  await expect(page.locator('#referral-claim-center button')).toHaveText('Verify wallet to view');
+  expect(await page.evaluate(() => Number(sessionStorage.getItem('qa.phantom.signatures') || 0))).toBe(0);
+
+  await page.locator('#referral-claim-center button').click();
+  await expect.poll(() => page.evaluate(() => Number(sessionStorage.getItem('qa.phantom.signatures') || 0))).toBe(1);
+  await expect(page.locator('#referral-claim-center button')).toHaveCount(0);
+
+  await page.reload();
+  await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
+  await expect(page.locator('#referral-claim-center button')).toHaveCount(0);
+  expect(await page.evaluate(() => Number(sessionStorage.getItem('qa.phantom.signatures') || 0))).toBe(1);
+
+  authenticated = false;
+  await page.reload();
+  await expect(page.locator('#referral-claim-center button')).toHaveText('Verify wallet to view');
+  expect(await page.evaluate(() => Number(sessionStorage.getItem('qa.phantom.signatures') || 0))).toBe(1);
 });
