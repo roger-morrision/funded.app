@@ -130,4 +130,4 @@ body .service-status-checks{display:grid;grid-template-columns:repeat(2,minmax(0
   body.page-route .toast { bottom: calc(96px + env(safe-area-inset-bottom)); }
 }
 body .topbar .top-actions .workspace-network, body.page-route-paid .topbar .top-actions .workspace-network { display: inline-flex; align-items: center; justify-content: center; }
-@media (max-width: 480px) { body .topbar .top-actions .workspace-network { position: static; top: auto; right: auto; font-size: 10px; padding: 4px 6px; } body.page-route .topbar-context { display: none; } }
+@media (max-width: 480px) { body .topbar .top-actions .workspace-network { position: static; top: auto; right: auto; font-size: 10px; padding: 4px 6px; } body.page-route .topbar .topbar-context { display: none; } }

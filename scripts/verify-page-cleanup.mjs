@@ -111,7 +111,7 @@ try {
   await holderStatus.waitFor({ state:'visible' });
   await page.waitForFunction(() => document.querySelector('#rewards-holder [data-auto-status]')?.textContent.includes('Devnet RPC quota was exhausted'));
   assert.match(await holderStatus.innerText(), /Earliest worker retry:.*your time/);
-  assert((await holderStatus.boundingBox()).y < (await page.locator('#rewards-holder .auto-rewards-grid').boundingBox()).y);
+  assert.equal(await page.locator('#rewards-holder .auto-rewards-grid').isVisible(), false);
 
   const png = await stat(resolve('public/posters/fee-distribution-flow-v1.png'));
   const webp = await stat(resolve('public/posters/fee-distribution-flow-v1.webp'));
