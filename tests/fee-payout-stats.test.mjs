@@ -58,6 +58,7 @@ test('excludes payments without a matching finalized collection and signals part
   const totals = feePayoutStats(state, rewards, missingProof);
   assert.equal(totals.creator.paidLamports, '0');
   assert.equal(totals.creator.status, 'partial');
+  assert.match(totals.creator.reason, /1 finalized reward transfer not linked/);
   assert.equal(totals.creator.top, null);
   assert.equal(feePayoutStats(state, null, evidence).creator.status, 'unavailable');
 });

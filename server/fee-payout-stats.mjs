@@ -33,6 +33,7 @@ export function feePayoutStats(state = {}, rewards = null, evidence = {}, cluste
   const collections = new Map((evidence.verifiedCollections || []).map(proof => [proof.signature, proof]));
   const payoutProofs = new Map((evidence.verifiedPayouts || []).map(proof => [`${proof.signature}:${proof.to}`, proof]));
   const rows = new Map(), incomplete = { x:false, creator:false, holder:false };
+  const unlinkedPayments = { x:0, creator:0, holder:0 };
   const collectionVerified = (mint, signature) => {
     const record = state.collections?.[signature], proof = collections.get(signature);
     const launch = state.launches?.[mint], settlement = state.settlements?.[signature];
@@ -92,6 +93,8 @@ export function feePayoutStats(state = {}, rewards = null, evidence = {}, cluste
     const leaves = new Map((schedule.manifest?.leaves || []).map(leaf => [leaf.recipient, leaf]));
     for (const [wallet, payment] of Object.entries(schedule.payments || {})) {
       if (payment?.status !== 'paid') continue;
+      if (!sourceReady && payment.finalized === true && payment.balanceDeltaVerified === true)
+        unlinkedPayments[kind] += 1;
       const units = amount(payment.amount);
       if (!sourceReady || !ADDRESS.test(wallet) || !SIGNATURE.test(String(payment.signature || ''))
         || payment.finalized !== true || payment.balanceDeltaVerified !== true
@@ -148,6 +151,7 @@ export function feePayoutStats(state = {}, rewards = null, evidence = {}, cluste
       top:leader ? { recipient:leader.recipient, handle:leader.handle,
         paidLamports:leader.paidLamports.toString(), payoutCount:leader.payoutCount } : null,
       status:evidence.status === 'partial' || incomplete[kind] ? 'partial' : 'verified',
+      reason:unlinkedPayments[kind] ? `${unlinkedPayments[kind]} finalized reward transfer${unlinkedPayments[kind] === 1 ? '' : 's'} not linked to verified creator-fee funding` : null,
     };
   }
   result.fundedHolder = unavailable.fundedHolder;

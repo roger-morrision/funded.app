@@ -2613,14 +2613,14 @@ function renderExplorePayoutStats() {
     const detail = group?.status === 'unavailable'
       ? group.reason || 'Finalized payout data unavailable'
       : !available ? 'Checking finalized payout records'
-        : group.status === 'partial' && !count ? 'Payout verification incomplete'
+        : group.status === 'partial' && !count ? group.reason || 'Payout verification incomplete'
         : leader ? `${name} · ${leader.payoutCount} payment${leader.payoutCount === 1 ? '' : 's'}`
           : card.top ? 'No verified fee payout yet'
             : `${group.payoutCount} finalized payment${group.payoutCount === 1 ? '' : 's'}`;
     const detailMarkup = profile
       ? `<a href="${escapeHtml(profile)}" target="_blank" rel="noopener noreferrer">${escapeHtml(detail)} ↗</a>`
       : `<small>${escapeHtml(detail)}</small>`;
-    return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong>${detailMarkup}${group?.status === 'partial' ? '<em>Partial coverage</em>' : ''}</article>`;
+    return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong>${detailMarkup}${group?.status === 'partial' ? `<em${group.reason ? ` title="${escapeHtml(group.reason)}"` : ''}>Partial coverage</em>` : ''}</article>`;
   }).join('');
 }
 function exploreSocialLinksMarkup(record) {
