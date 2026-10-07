@@ -51,7 +51,7 @@ import { exploreSocialLinks } from './explore-social-links.js';
 import { formatSolMetric, readCurveMetrics, readPumpSwapMetrics } from './explore-onchain-metrics.js';
 import { publishVerifiedCurves } from './verified-curve-state.js';
 import { buildTradePricePath, filterAndSortRecentTrades, selectObservedTradeWindow, summarizeTokenAccounts, verifiedRegistryLaunch } from './coin-detail-model.js';
-import { verifiedCoinRewardsPolicy } from './coin-rewards-policy.js';
+import { formatPolicyPercent, verifiedCoinRewardsPolicy } from './coin-rewards-policy.js';
 import { buildCoinSummary } from './coin-summary-model.js';
 import { canSignTransactions, connectWalletProvider, selectRememberedWalletProvider, walletAddress, walletLaunches } from './wallet-core.js';
 import { TOKEN_CHAT_MAX_LENGTH, normalizeTokenChatText } from './token-chat.js';
@@ -7839,7 +7839,26 @@ function renderCoinRewardsPolicy(policy, mint = getCoinMintAddress()){
     || verifiedCoinRewardsPolicy(verifiedLaunchPolicyForMint(mint), mint, EXPLORE_CLUSTER);
   summary.hidden = !verified;
   summary.parentElement?.classList.toggle('has-fee-allocation', Boolean(verified));
-  value.textContent = verified?.compact || '';
+  value.replaceChildren();
+  if (!verified) return;
+  const shares = [];
+  if (verified.creator > 0) shares.push(document.createTextNode(`Creator ${formatPolicyPercent(verified.creator)}`));
+  if (verified.holders > 0) shares.push(document.createTextNode(`Holders ${formatPolicyPercent(verified.holders)}`));
+  if (verified.x > 0 && verified.xAccount) {
+    const xShare = document.createElement('span');
+    const xLink = document.createElement('a');
+    xLink.href = `https://x.com/${verified.xAccount.slice(1)}`;
+    xLink.target = '_blank';
+    xLink.rel = 'noopener noreferrer';
+    xLink.textContent = verified.xAccount;
+    xLink.setAttribute('aria-label', `Open ${verified.xAccount} on X (opens in a new tab)`);
+    xShare.append('X account ', xLink, ` ${formatPolicyPercent(verified.x)}`);
+    shares.push(xShare);
+  }
+  shares.forEach((share, index) => {
+    if (index) value.append(' · ');
+    value.append(share);
+  });
 }
 function compactCoinSocials(){
   const labels = {

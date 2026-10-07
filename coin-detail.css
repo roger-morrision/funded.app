@@ -820,4 +820,7 @@ main.wallet-view>#wallet-page{display:block!important}
 .coin-page .coin-stat-strip>.coin-fee-route{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;min-width:0;border-color:#705733;background:#282317}
 .coin-page .coin-stat-strip>.coin-fee-route .coin-fee-route-label{color:#ffd28a;font:700 9px/1.3 'DM Mono',monospace;letter-spacing:.04em;text-transform:uppercase}
 .coin-page .coin-stat-strip>.coin-fee-route #coin-fee-route-value{margin:0;color:#f0f6ef;font:700 13px/1.35 'DM Mono',monospace;letter-spacing:normal;text-transform:none;overflow-wrap:anywhere}
+.coin-page .coin-stat-strip>.coin-fee-route #coin-fee-route-value span{color:inherit;font:inherit;letter-spacing:inherit;text-transform:none}
+.coin-page .coin-stat-strip>.coin-fee-route #coin-fee-route-value a{color:#ffd28a;text-decoration:underline;text-underline-offset:2px}
+.coin-page .coin-stat-strip>.coin-fee-route #coin-fee-route-value a:hover{color:#ffe4b6}
 .coin-page .coin-fee-route[hidden]{display:none!important}
