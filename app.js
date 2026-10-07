@@ -7979,14 +7979,14 @@ function sanitizeCoinRpcLabels(){
     [/RPC SNAPSHOT/gi, 'LIVE SNAPSHOT'],
     [/RPC trade scan if available/gi, 'Trade scan if available'],
     [/RPC trade history unavailable/gi, 'Trade history unavailable'],
-    [/RPC only/gi, 'On-chain'],
+    [/RPC only/gi, 'Solana data'],
     [/Solana RPC/gi, 'Solana'],
     [/from the current RPC scan/gi, 'from the current scan'],
     [/partial RPC scan/gi, 'partial scan'],
     [/Complete RPC scan/gi, 'Complete scan'],
     [/RPC coverage/gi, 'data coverage'],
     [/from Solana RPC/gi, 'from Solana'],
-    [/\bRPC\b/gi, 'on-chain'],
+    [/\bRPC\b/gi, 'Solana data'],
   ];
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const nodes = [];
@@ -8353,13 +8353,13 @@ function renderCoinPricePath(){
   document.querySelectorAll('[data-coin-chart-period]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.coinChartPeriod === coinChartPeriod)));
   document.querySelectorAll('[data-coin-chart-metric]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.coinChartMetric === coinChartMetric)));
   document.querySelectorAll('[data-coin-chart-unit]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.coinChartUnit === coinChartUnit)));
-  const measure = coinChartMetric === 'price' ? 'Price' : 'MC';
+  const measure = coinChartMetric === 'price' ? 'Price' : 'Market cap';
   const unit = coinChartUnit.toUpperCase();
   setCoinField('#coin-chart-heading', `${document.querySelector('#coin-symbol')?.textContent?.trim() || 'Token'} · ${measure} in ${unit}`);
   const observedTrades = selectObservedTradeWindow(coinMarketActivity.trades, coinChartPeriod);
   const path = buildTradePricePath(observedTrades, coinMarketActivity.decimals);
   if (path.count < 2) {
-    panel.innerHTML = `<div class="empty-state coin-activity-empty"><strong>${path.count ? 'One observed price point' : 'No observed prices'} · ${escapeHtml(coinChartPeriod)}</strong><small>${path.count ? 'At least two confirmed trades are needed to draw a path.' : 'No confirmed trade observations fall in this selected range.'} The RPC scan is bounded; historical candles are not indexed.</small></div>`;
+    panel.innerHTML = `<div class="empty-state coin-activity-empty"><strong>${path.count ? 'One recent price' : 'No recent prices'} · ${escapeHtml(coinChartPeriod)}</strong><small>${path.count ? 'At least two confirmed trades are needed to draw a chart.' : 'No confirmed trades were found in this time range.'} Some trade history may be missing.</small></div>`;
     return;
   }
   const supply = coinSolUsdValues.supply;
@@ -8842,7 +8842,7 @@ async function loadCoinOnChain(mintAddress){
   const loadId = ++coinLoadId;
   if (!mintAddress){ renderOnChainUnavailable('A mint address is required. Open a /token/{mint} route to load on-chain data.'); return; }
   void loadCoinChat(mintAddress, loadId);
-  setCoinField('#coin-page-title', 'Loading token…'); setCoinField('#coin-symbol', 'RPC'); setCoinField('#coin-address', shortAddress(mintAddress));
+  setCoinField('#coin-page-title', 'Loading token…'); setCoinField('#coin-symbol', 'TOKEN'); setCoinField('#coin-address', shortAddress(mintAddress));
   setCoinField('#coin-description', 'Checking coin details on Solana…');
   try {
     const { PublicKey, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await getSolana();
@@ -8936,7 +8936,7 @@ async function loadCoinOnChain(mintAddress){
     setCoinAuthority('#coin-mint-authority', parsedMint.mintAuthority); setCoinAuthority('#coin-freeze-authority', parsedMint.freezeAuthority);
     setCoinField('#coin-supply', `${formatOnChainNumber(supply, 6)} ${symbol}`); setCoinCurveProgress(curve?.complete ? 100 : curve?.progressPercent);
     const curveProgress = document.querySelector('.coin-curve-track > span'); if (curveProgress) curveProgress.textContent = graduatedPool ? 'Migration complete' : 'Bonding curve progress';
-    setCoinField('#coin-chart-heading', `${symbol} · MC in USD`); setCoinField('#coin-full-address', mintAddress);
+    setCoinField('#coin-chart-heading', `${symbol} · market cap in USD`); setCoinField('#coin-full-address', mintAddress);
     const chartFooter = document.querySelector('.coin-chart-panel > .chart-footer'); if (chartFooter) chartFooter.innerHTML = `<span>Mint decimals <b>${decimals}</b></span><span>Supply <b>${formatOnChainNumber(supply, 6)}</b></span>`;
     const policyEyebrow = document.querySelector('.coin-policy-card .eyebrow'); if (policyEyebrow) policyEyebrow.textContent = 'On-chain account';
     const policyTitle = document.querySelector('.coin-policy-card h2'); if (policyTitle) policyTitle.textContent = graduatedPool ? 'Canonical PumpSwap pool' : curve ? 'Pump bonding curve' : 'Curve unavailable';
