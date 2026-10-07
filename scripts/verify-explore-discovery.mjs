@@ -16,10 +16,10 @@ assert.deepEqual(exploreSocialLinks({ website:'https://token.example', twitter:'
   ['Telegram', 'https://t.me/token'],
   ['Discord', 'https://discord.gg/token'],
 ], 'Explore shows available public links, rejects unsafe URLs, and uses verified launch links when needed.');
-assert.match(appSource, /!feedChecked \? 'Checking confirmed mints' : marketUnavailable \? 'Launch feed unavailable'/, 'Unavailable launch feeds must not be described as zero confirmed mints.');
-assert.match(appSource, /marketUnavailable \? '— <small>launch feed unavailable<\/small>'/, 'The analytics strip must distinguish unavailable registry data from a verified empty result.');
-assert.match(appSource, /verifiedLaunchPoliciesStatus === 'unavailable' \? 'Launch registry unavailable; allocations not verified'/, 'Analytics must not claim there are no community allocations when the launch registry is unavailable.');
-assert.match(appSource, /receiptEvidenceChecked && !receiptEvidence \? 'Receipt verification unavailable' : 'No verified referral payouts'/, 'Analytics must not claim there are no referral payouts when receipt verification is unavailable.');
+assert.match(appSource, /!feedChecked \? 'Checking launches' : marketUnavailable \? 'Launch activity unavailable'/, 'Unavailable launch feeds must not be described as zero confirmed launches.');
+assert.match(appSource, /marketUnavailable \? '— <small>launch activity unavailable<\/small>'/, 'The analytics strip must distinguish unavailable registry data from a verified empty result.');
+assert.match(appSource, /launchFeedUnavailable\s*\? 'Launch policies unavailable; allocation not verified'/, 'Analytics must not claim there are no community allocations when the launch registry is unavailable.');
+assert.match(appSource, /recordedPayouts \? 'Recorded payouts are awaiting receipt verification' : 'USD quote or payout evidence unavailable'/, 'Analytics must not claim there are no referral payouts when receipt verification is unavailable.');
 assert.match(appSource, /registryUnavailable \? outage\.title : `\$\{filtered\.length\} of \$\{registryLaunches\.length\} shown`/, 'Explore must explain the current outage instead of showing a verified zero result while its sources are unavailable.');
 assert.match(appSource, /if \(exploreLoadInFlight\) return exploreLoadInFlight;[\s\S]*?exploreLoadInFlight = load;[\s\S]*?exploreLoadInFlight = null;/, 'Overlapping Explore refreshes must share one load instead of racing their scan counter.');
 assert.match(appSource, /let scannedCount = 0;[\s\S]*?scannedCount \+= 1;[\s\S]*?exploreScannedCount = scannedCount;/, 'A completed Explore load must publish only its own scan count.');
@@ -58,7 +58,7 @@ assert.match(appSource, /toggle\.setAttribute\('aria-label', open \? 'Close laun
 assert.match(appSource, /const loading = exploreProviderStatus === 'On-chain only · loading' && !exploreLastVerifiedAt/, 'Explore must distinguish its initial loading state from a confirmed empty feed.');
 assert.match(appSource, /Loading verified launches…[\s\S]*?Checking the indexed launch feed and confirming current Solana state/, 'Explore must show truthful loading copy while verification is still in flight.');
 assert.match(appSource, /if \(!visible\.length && !loading\)/, 'Explore must not offer an empty-feed retry while the first verification is still loading.');
-assert.match(appSource, /const feedChecked = Boolean\(exploreUpdatedAt\)[\s\S]*?Checking confirmed mints[\s\S]*?Checking confirmed trades/, 'Analytics must not describe pre-fetch launch and trade arrays as confirmed zeroes.');
+assert.match(appSource, /const feedChecked = Boolean\(exploreUpdatedAt\)[\s\S]*?Checking launches[\s\S]*?Checking confirmed trades/, 'Analytics must not describe pre-fetch launch and trade arrays as confirmed zeroes.');
 assert.match(appSource, /const launchFeedUnavailable = verifiedLaunchPoliciesStatus !== 'ready'[\s\S]*?Launch feed unavailable; count not verified/, 'Home must not report zero verified launches when the launch registry is unreachable.');
 assert.match(appSource, /const burnSummaryReady = allocationReady[\s\S]*?allocation\.burnedTokens != null[\s\S]*?Number\.isFinite\(Number\(allocation\.burnedTokens\)\)[\s\S]*?burnSummaryReady \? formatDashboardQuantity\(burnedTokens\) : '—'[\s\S]*?Burn receipts unavailable; amount not verified/, 'Home must not report zero burns when receipts are unreachable.');
 assert.match(appSource, /function showCoinPage\(open = true\)[\s\S]*?if \(!exploreUpdatedAt && !coinExitExploreLoad\) \{[\s\S]*?loadOnchainExploreData\(\)/, 'Leaving a direct token URL must load Explore even if navigation precedes the token-detail render.');

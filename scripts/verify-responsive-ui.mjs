@@ -64,7 +64,8 @@ try {
         }
         if (route === '/#payments') {
           assert.equal(await page.locator('#rewards-overview .reward-entry-grid').isVisible(), false);
-          assert.equal(await page.locator('#reward-portfolio .reward-portfolio-links > a:visible').count(), 3);
+          assert(await page.getByRole('button', { name: /Coin holder rewards/ }).isVisible());
+          assert(await page.getByRole('button', { name: /Payment history/ }).isVisible());
         }
         if (route === '/#community') {
           assert(await page.locator('#community .section-heading h2').isVisible());

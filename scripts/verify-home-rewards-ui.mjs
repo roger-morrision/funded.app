@@ -4,7 +4,7 @@ import { mkdir } from 'node:fs/promises';
 import { preview } from 'vite';
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE || 'playwright');
-const server = await preview({ preview: { host: '127.0.0.1', port: 0 } });
+const server = await preview({ configLoader: 'runner', preview: { host: '127.0.0.1', port: 0 } });
 const previewOrigin = `http://127.0.0.1:${server.httpServer.address().port}`;
 const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: 'chrome' }), headless: true });
 const now = Math.floor(Date.now() / 1000);
