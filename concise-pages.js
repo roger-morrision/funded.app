@@ -14,7 +14,7 @@ function compactAirdrop() {
   const root = document.getElementById('airdrops');
   if (!root) return;
   const intro = root.querySelector('.airdrop-intro');
-  if (intro) intro.textContent = 'Hold $FUNDED to qualify. Check vault, snapshot, and proof before claiming.';
+  if (intro) intro.textContent = 'Hold $FUNDED to qualify. Each launch shows when claims open and how much you can claim.';
   const directory = root.querySelector('.airdrop-public-programs');
   const poster = root.querySelector('.airdrop-trust:has([data-infographic-poster="airdrops"])');
   if (directory && poster && directory.nextElementSibling !== poster) directory.after(poster);
@@ -61,7 +61,7 @@ function compactBuyback() {
       disclosure = document.createElement('details');
       disclosure.className = 'concise-buyback-queue';
       const summary = document.createElement('summary');
-      summary.textContent = 'View queue and verified buys';
+      summary.textContent = 'View pending and completed buys';
       disclosure.append(summary);
       queue.before(disclosure);
     }
@@ -116,7 +116,7 @@ function compactBuyback() {
 function compactTokenStory() {
   const story = document.querySelector('#paid .funded-token-story');
   if (!story || story.dataset.conciseStory === '2') return;
-  story.innerHTML = '<article><h2>Launch tiers</h2><p>Burn $FUNDED for a tier. Standard is free; tiers do not promise returns.</p></article><article><h2>Holder rewards</h2><p>Tokens follow vault funding and a verified snapshot. <a href="#airdrops">Check airdrops →</a></p></article><article><h2>Fee route</h2><p>Collected fees fund operations, referrals, community, and buybacks. <a href="#capital-flow">Follow the fees →</a></p></article>';
+  story.innerHTML = '<article><h2>Launch tiers</h2><p>Burn $FUNDED to choose a tier. Standard is free; tiers do not promise returns.</p></article><article><h2>Holder rewards</h2><p>Check each launch for eligibility and claim dates. <a href="#airdrops">View airdrops →</a></p></article><article><h2>How fees are shared</h2><p>Collected fees support creators, holders, referrals, community rewards, and buybacks. <a href="#capital-flow">View the fee split →</a></p></article>';
   story.dataset.conciseStory = '2';
 }
 
@@ -230,7 +230,7 @@ function shortenPageCopy() {
   const edits = [
     ['#payments > .workspace-page-header > p:last-child', 'Choose the account or wallet that earned a reward, then check what is ready to claim.'],
     ['#my-launches > .section-heading .panel-explainer', 'Your launches and saved tokens.'],
-    ['#capital-flow > .section-heading .panel-explainer', 'Preview the fee split. Live totals need verified receipts.'],
+    ['#capital-flow > .section-heading .panel-explainer', 'See how collected creator fees are shared.'],
     ['#launch-route-shell > .page-lede', 'Add the coin details, choose a tier, and review the cost before connecting your wallet.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
     ['#community .section-heading .panel-explainer', 'Save coins from Explore to watch them here.'],
@@ -243,29 +243,29 @@ function shortenPageCopy() {
     ['#capital-flow .route-timeline li:nth-child(3) small', 'Five allocations are recorded together.'],
     ['#capital-flow .route-timeline li:nth-child(4) small', 'Transfers reference the original claim.'],
     ['#capital-flow .route-timeline li:nth-child(5) small', 'Explorer links appear after verification.'],
-    ['#analytics-detail .split-detail', 'Published split, not live totals. Settlement needs confirmed claims and payouts.'],
+    ['#analytics-detail .split-detail', 'This shows the published fee split. Actual payments appear after confirmation.'],
     ['#token-image-help', 'PNG, JPG, WEBP · 12 MB max · square image recommended'],
     ['#launch-route-shell .launch-immutable-note', 'Token details publish at launch and cannot be edited here later.'],
     ['#referral-command-center .section-heading .panel-explainer', 'Track qualified creators and claimable rewards. Signups alone earn nothing.'],
     ['#referral-command-center .referral-share-panel .field-help', 'Use one link per campaign. Never promise returns.'],
-    ['#referral-faq .faq-grid details:nth-child(1) p', 'Rewards require finalized creator fees from the verified router. Signups alone earn nothing.'],
+    ['#referral-faq .faq-grid details:nth-child(1) p', 'Rewards become available after a referred creator earns fees and those fees are collected. Signups alone earn nothing.'],
     ['#referral-faq .faq-grid details:nth-child(2) p', 'Unfilled levels go to the community reserve; they are not reassigned.'],
     ['#referral-faq .faq-grid details:nth-child(3) p', 'Rates are policy, not promised income. Payouts depend on collected creator fees.'],
-    ['#referral-faq .faq-grid details:nth-child(4) p', 'Failed or unverified collections earn nothing. Claims open after indexing.'],
+    ['#referral-faq .faq-grid details:nth-child(4) p', 'A failed or unconfirmed fee collection earns nothing. A claim opens after payment is confirmed.'],
     ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Buy from the verified Solana pool. Check spend, then approve in your wallet.'],
-    ['#buybacks .burn-token-card > p:not(.eyebrow):not(.funded-burn-status)', 'Choose project attribution, then approve BurnChecked in your wallet.'],
-    ['#buybacks .burn-receipts-panel > .field-help', 'This ledger shows app-verified receipts; total supply includes other burns.'],
+    ['#buybacks .burn-token-card > p:not(.eyebrow):not(.funded-burn-status)', 'Choose a project if you want to link this burn to it, then approve in your wallet.'],
+    ['#buybacks .burn-receipts-panel > .field-help', 'This history shows confirmed burns recorded by funded.vip. Total supply can include other burns.'],
     ['#reward-portfolio .reward-portfolio-note', 'Allocations are not balances. Holder SOL is automatic after a verified snapshot; X claims need matching sign-in.'],
     ['#reward-discovery > small', 'Eligible wallets receive SOL automatically after a verified snapshot and sufficient fees. “0 paid wallets” means no verified holder payout.'],
     ['#payments .auto-rewards-intro', 'Eligible coin wallets receive SOL automatically after a verified snapshot. No manual claim is needed.'],
     ['#payments .auto-reward-card:nth-child(1) > p', 'Eligible wallets receive SOL after a verified daily snapshot.'],
     ['#payments .auto-rewards-fineprint', 'Target time is not payment. Each cycle checks funding and eligibility.'],
     ['#funded-holder-token-rewards > small', 'Public policy only. Check Airdrops for funding and claim status.'],
-    ['#airdrops .airdrop-wallet-gate p', 'Connect to check allocation after snapshot and proof verification.'],
-    ['#airdrops .airdrop-trust > p', 'Claims need a finalized snapshot, published proof, and indexed receipts.'],
+    ['#airdrops .airdrop-wallet-gate p', 'Connect your wallet to see whether you can claim after each launch sets its eligibility date.'],
+    ['#airdrops .airdrop-trust > p', 'Claims open after eligibility and funding have been confirmed.'],
     ['#list .list-field-note', 'Verified Solana metadata supplies name and ticker. Mint and burn are rechecked before payment.'],
     ['#profile .section-heading .panel-explainer', 'Check wallet and network before signing.'],
-    ['#profile .source-note', 'Wallet connection identifies the signer, not launch, holding, or reward proof. Verify the Solana record.'],
+    ['#profile .source-note', 'Connecting shows which wallet will sign. Check each transaction before approving.'],
   ];
   for (const [selector, copy] of edits) {
     const element = document.querySelector(selector);

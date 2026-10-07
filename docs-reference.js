@@ -2,18 +2,18 @@ const topics = [
   {
     group: 'Getting started',
     items: [
-      { id: 'overview', title: 'What is funded.vip?', body: '<p>funded.vip is a Solana launch and discovery workspace. It shows confirmed launches, the published fee policy, and on-chain data when that evidence is available.</p><p>Launch records, market estimates, reserved allocations, and paid receipts are different things. The app labels each so you can check what has actually happened.</p><ul><li>Launch a token through the verified Pump route.</li><li>Find funded.vip launches in Launch Directory and inspect each coin page.</li><li>Review reward policies and confirmed receipts before relying on a payout.</li></ul>', href: '#explore', link: 'Open Launch Directory' },
+      { id: 'overview', title: 'What is funded.vip?', body: '<p>funded.vip helps you launch and discover Solana tokens, follow fees, and check rewards.</p><p>Estimated values, planned rewards, and completed payments are shown separately so you can see what has happened.</p><ul><li>Create a token and review the cost before signing.</li><li>Explore launches and open a token for more detail.</li><li>Check confirmed payments before relying on a reward.</li></ul>', href: '#explore', link: 'Open Launch Directory' },
       { id: 'wallet', title: 'Connecting a wallet', body: '<p>Connect a Solana wallet to review actions that require your signature. The app never asks for a seed phrase or private key.</p><p>Check the network, token mint, spending amount, and fee owner in your wallet before approving. A connected wallet alone is not proof that a launch, trade, burn, or claim succeeded.</p>', href: '#privacy', link: 'Read wallet safety' },
-      { id: 'funded', title: 'The $FUNDED token', body: '<p>$FUNDED is the protocol token used by optional launch promotion tiers and the published buyback and burn policy.</p><p>Token burns reduce supply only when confirmed on-chain. A promotion badge requires the corresponding verified launch policy and burn receipt.</p>', href: '#paid', link: 'View $FUNDED and fee policy' },
+      { id: 'funded', title: 'The $FUNDED token', body: '<p>$FUNDED is used for optional launch tiers and the buyback and burn program.</p><p>A burn reduces supply after it is confirmed on Solana. A paid tier appears on a launch only after its burn is confirmed.</p>', href: '#paid', link: 'View $FUNDED and fee policy' },
     ],
   },
   {
     group: 'Launching a coin',
     items: [
-      { id: 'tiers', title: 'Launch tiers', body: '<p>Choose Standard or an optional $FUNDED burn tier before filling in coin details. The launch form shows the current configured burn amounts and benefits.</p><p>A paid-tier burn must fit in the creation transaction. If it cannot, the app blocks the launch before signing. A selected tier is a choice; it becomes a verified badge only after the required on-chain evidence exists.</p>', href: '#launch', link: 'Compare launch tiers' },
-      { id: 'tier-verification', title: 'Paid-tier verification', body: '<p>Boost, Pro, and Premier are optional $FUNDED burn tiers. The selected tier appears on a coin only when the launch policy and its burn receipt have been verified.</p><p>Check the burn amount, mint, and transaction signature before relying on a badge. A tier signals a confirmed commitment; it does not guarantee trading activity or an airdrop distribution.</p>', href: '#launch', link: 'Review the tier choices' },
+      { id: 'tiers', title: 'Launch tiers', body: '<p>Choose Standard or an optional paid tier. The launch form shows the current $FUNDED burn amount and what each tier includes.</p><p>The required burn is part of the launch transaction. If it cannot be included, the app stops before you sign. A paid badge appears only after the burn is confirmed.</p>', href: '#launch', link: 'Compare launch tiers' },
+      { id: 'tier-verification', title: 'How paid tiers appear', body: '<p>Boost, Pro, and Premier are optional tiers that burn $FUNDED. A tier appears on a token after the launch and its burn are confirmed.</p><p>Check the amount and transaction before relying on a badge. A tier does not guarantee trading activity or airdrop delivery.</p>', href: '#launch', link: 'Review the tier choices' },
       { id: 'launch', title: 'Launch a token', body: '<p>Choose a tier, enter the token name and ticker, add an image, then configure the community reserve and fee route. Any story entered in the form is published with the launch metadata, so review it before signing. The review step shows the estimated cost and the values you are about to sign.</p><p>Creating a token and observing its mint, fee owner, and policy on Solana are separate verification steps. The launch page reports the result after the transaction and account checks complete.</p>', href: '#launch', link: 'Open launch form' },
-      { id: 'airdrop-policy', title: 'Community airdrop', body: '<p>Each funded.vip launch reserves at least 3% of supply in its published policy. A policy allocation does not establish that a vault was funded.</p><p>Claims require a verified vault, a finalized migration snapshot, a published proof, and confirmed claim receipts. The airdrop page shows which of those records are available.</p>', href: '#airdrops', link: 'Review airdrop programs' },
+      { id: 'airdrop-policy', title: 'Community airdrop', body: '<p>Each funded.vip launch plans at least 3% of its tokens for community rewards. A planned amount does not mean tokens are ready to claim.</p><p>The Airdrops page shows funding, eligibility, and claim status for each launch. Connect your wallet there to check your amount.</p>', href: '#airdrops', link: 'Review airdrops' },
     ],
   },
   {
@@ -36,7 +36,7 @@ const topics = [
     group: 'Reference',
     items: [
       { id: 'fees', title: 'Fees and costs', body: '<p>The published creator-fee policy routes 80% of gross collected fees to creator-directed destinations and 20% to protocol programs. The protocol share includes operations, referrals, community, and $FUNDED burn policy allocations.</p><p>These rates describe policy. Actual payouts and burns require finalized, indexed receipts.</p>', href: '#capital-flow', link: 'Review fee flow' },
-      { id: 'verification', title: 'What is live?', body: '<p>Launch and trade availability depend on a verified router, Pump route, pool, and RPC response. Receipt totals depend on confirmed indexing.</p><p>Missing proof stays blank or unavailable. A rendered screen does not prove a launch or payout.</p>', href: '#docs', link: 'Review the evidence cards below' },
+      { id: 'verification', title: 'Current availability', body: '<p>Launches, trades, and payments appear when their Solana transactions can be confirmed. Some history may be temporarily unavailable.</p><p>A submitted transaction is still pending until it is confirmed. Check its status in the app or on Solana Explorer.</p>', href: '#docs', link: 'Check service status below' },
       { id: 'faq', title: 'FAQ', body: '<h3>Are the coins real?</h3><p>Confirmed launches create Solana tokens. Use the mint and transaction links on the coin page to inspect their on-chain records.</p><h3>Does connecting a wallet move funds?</h3><p>No. A wallet connection only provides an address. Transactions require a separate wallet approval.</p><h3>When can I claim an airdrop?</h3><p>After the token vault, eligibility snapshot, and claim proof have been verified. A policy reserve by itself is not a claimable balance.</p><h3>Where can I check a burn?</h3><p>Open the burn receipt from the tier badge or burn record and verify its transaction on Solana.</p>', href: '#airdrops', link: 'Check airdrop status' },
     ],
   },
@@ -99,7 +99,7 @@ export function mountDocsReference(root) {
   if (oldCards.length) {
     const more = document.createElement('details');
     more.className = 'docs-more';
-    more.innerHTML = '<summary>More policy and evidence guides</summary>';
+    more.innerHTML = '<summary>More guides and service details</summary>';
     const grid = document.createElement('div');
     grid.className = 'docs-more-grid';
     grid.append(...oldCards);

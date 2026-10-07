@@ -563,13 +563,13 @@ function rewards() {
   while(root.firstChild) x.append(root.firstChild);
   const overview = node('div'); overview.id = 'rewards-overview';
   overview.innerHTML = `<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Rewards · Solana Devnet</p><h1>Find your rewards</h1><p>Check rewards linked to your X account or wallet, then see what is ready to claim.</p></div>
-    <div class="reward-overview-start"><p class="eyebrow">Start here</p><h2>Choose how you earned</h2><p>Use the X account or wallet linked to the reward. Published allocations are not personal claims.</p></div>
+    <div class="reward-overview-start"><p class="eyebrow">Start here</p><h2>Choose how you earned</h2><p>Use the X account or wallet that earned the reward. Each section shows your current claim status.</p></div>
     <div class="reward-action-grid">
       <button type="button" data-reward-open="x"><span class="reward-action-icon" aria-hidden="true">𝕏</span><span><strong>X account rewards</strong><small>Sign in with X to see and claim your SOL.</small></span><b aria-hidden="true">→</b></button>
       <button type="button" data-reward-open="holder"><span class="reward-action-icon" aria-hidden="true">◎</span><span><strong>Coin holder rewards</strong><small>Eligible coin wallets receive SOL automatically.</small></span><b aria-hidden="true">→</b></button>
       <button type="button" data-reward-open="funded"><span class="reward-action-icon" aria-hidden="true">ƒ</span><span><strong>$FUNDED holder airdrops</strong><small>Check token allocations and claim eligibility.</small></span><b aria-hidden="true">→</b></button>
       <button type="button" data-reward-open="creator"><span class="reward-action-icon" aria-hidden="true">✦</span><span><strong>Creator fees</strong><small>Check fees earned by coins you launched.</small></span><b aria-hidden="true">→</b></button>
-      <button type="button" data-reward-open="history"><span class="reward-action-icon" aria-hidden="true">⇢</span><span><strong>Payment history</strong><small>Finalized creator, holder, referral, X, and operations payouts.</small></span><b aria-hidden="true">→</b></button>
+      <button type="button" data-reward-open="history"><span class="reward-action-icon" aria-hidden="true">⇢</span><span><strong>Payment history</strong><small>Confirmed payments for creators, holders, referrals, and X accounts.</small></span><b aria-hidden="true">→</b></button>
       <a href="#referrals"><span class="reward-action-icon" aria-hidden="true">↗</span><span><strong>Referral rewards</strong><small>Connect your wallet to check and claim.</small></span><b aria-hidden="true">→</b></a>
     </div>`;
   const creator = node('div'); creator.id = 'rewards-creator';
@@ -579,17 +579,17 @@ function rewards() {
   const holder = node('div'); holder.id = 'rewards-holder';
   const automatic = $('[data-automatic-rewards]'); if(automatic)holder.append(automatic);
   const funded = node('div'); funded.id = 'rewards-funded';
-  funded.innerHTML = '<div class="reward-section-intro"><p class="eyebrow">$FUNDED holders</p><h2>Token airdrops</h2><p>Hold $FUNDED at a launch’s migration snapshot. Once funding and proof are verified, connect that wallet to check your allocation and claim.</p><a class="primary-button funded-claim-link" href="#airdrops">Check eligibility and claim →</a></div>';
+  funded.innerHTML = '<div class="reward-section-intro"><p class="eyebrow">$FUNDED holders</p><h2>Token airdrops</h2><p>Hold $FUNDED when a launch sets its eligibility date. Connect that wallet to check your amount and claim status.</p><a class="primary-button funded-claim-link" href="#airdrops">Check eligibility and claim →</a></div>';
   const fundedCard = automatic?.querySelector('.auto-reward-card:nth-child(2)');
   const fundedDirectory = automatic?.querySelector('#funded-holder-token-rewards');
   fundedCard?.remove();
   if(fundedDirectory){
     fundedDirectory.querySelector('header h3').textContent = 'Published token allocations';
-    fundedDirectory.querySelector('header p').textContent = 'Public launch policies. Your wallet eligibility is checked on Airdrops.';
+    fundedDirectory.querySelector('header p').textContent = 'Connect your wallet on Airdrops to check whether you qualify.';
     funded.append(fundedDirectory);
   }
   const holderIntro = automatic?.querySelector('.auto-rewards-intro');
-  if(holderIntro)holderIntro.textContent = 'Eligible coin wallets receive SOL automatically after a verified snapshot. No manual claim is needed.';
+  if(holderIntro)holderIntro.textContent = 'Eligible coin holders receive SOL automatically when a payout is confirmed. No manual claim is needed.';
   const holderHeading = automatic?.querySelector('.auto-rewards-heading h2');
   if(holderHeading)holderHeading.textContent = 'Coin holder SOL rewards';
   const history = node('div'); history.id = 'rewards-history';
@@ -607,7 +607,7 @@ function secondaryPages() {
   text('#referral-command-title', 'Your referral activity');
   disclose($('.referral-toolkit'), 'Campaign links and sharing tools');
   const receipts=$('.burn-receipts-panel');
-  if(receipts)receipts.prepend(node('p','field-help','Supply reduction includes all on-chain burns; this ledger includes only verified receipts available to the app. Voluntary, promotion, and fee-funded burns are distinct.'));
+  if(receipts)receipts.prepend(node('p','field-help','This history shows confirmed burns available to funded.vip. Total supply can include other burns.'));
   disclose($('.burn-policy-preview'), 'Fee-funded buyback policy · example calculator');
   const airdrops=$('#airdrops');
   if(airdrops){
@@ -618,7 +618,7 @@ function secondaryPages() {
     heading?.before(back);
     const walletGate=node('section','airdrop-wallet-gate');
     walletGate.setAttribute('aria-label','Wallet eligibility');
-    walletGate.innerHTML='<div class="airdrop-wallet-gate-top"><span>WALLET</span><strong>Not connected</strong></div><div class="airdrop-wallet-gate-body"><span class="airdrop-wallet-art" aria-hidden="true">◈</span><h3>Connect your wallet first</h3><p>Allocations are checked against your address. Connect to see eligibility when a verified snapshot and claim proof are available.</p><button type="button" class="primary-button">Connect wallet</button></div>';
+    walletGate.innerHTML='<div class="airdrop-wallet-gate-top"><span>WALLET</span><strong>Not connected</strong></div><div class="airdrop-wallet-gate-body"><span class="airdrop-wallet-art" aria-hidden="true">◈</span><h3>Connect your wallet</h3><p>See whether you qualify and how much you can claim when a launch opens its claims.</p><button type="button" class="primary-button">Connect wallet</button></div>';
     walletGate.querySelector('button').addEventListener('click',()=>$('#connect-button')?.click());
     const heroLayout=node('div','airdrop-hero-layout');
     const heroArt=node('figure','airdrop-hero-art');
@@ -652,15 +652,15 @@ function secondaryPages() {
     publicPrograms.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key)||!event.target.matches('[data-public-airdrop-tab]'))return;event.preventDefault();const buttons=$$('[data-public-airdrop-tab]',publicPrograms);const next=buttons[(buttons.indexOf(event.target)+(event.key==='ArrowRight'?1:buttons.length-1))%buttons.length];selectPublicTab(next.dataset.publicAirdropTab);next.focus();});
     if(directory)new MutationObserver(syncPublicPrograms).observe(directory,{childList:true});
     syncPublicPrograms();
-    const evidence=node('details','airdrop-evidence');evidence.innerHTML='<summary>Allocation and verification status</summary>';
+    const evidence=node('details','airdrop-evidence');evidence.innerHTML='<summary>Airdrop details</summary>';
     for(const selector of ['#airdrop-summary-kpis','.community-airdrop-callout']){const item=$(selector,airdrops);if(item)evidence.append(item);}
     publicPrograms.after(evidence);
     const flow=$('.claim-flow',airdrops);
     if(flow){flow.classList.add('airdrop-reference-flow');const heading=node('div','airdrop-allocation-heading');heading.innerHTML='<p class="eyebrow">HOW ALLOCATION WORKS</p><h2>From holding to claiming</h2>';evidence.after(heading);heading.after(flow);}
-    group('Creator management and distribution evidence',['.airdrop-detail-grid','.airdrop-wallets-card','.airdrop-enhancement-grid']);
+    group('More airdrop details',['.airdrop-detail-grid','.airdrop-wallets-card','.airdrop-enhancement-grid']);
   }
   const leaderboard=$('#leaderboard');
-  if(leaderboard){const note=node('p','source-note','Burner and project boards use verified BurnChecked receipts. Creator ranks use confirmed launches. Trader ranking awaits a verified activity index.');note.id='leaderboard-source-note';$('.leaderboard-hero',leaderboard)?.after(note);}
+  if(leaderboard){const note=node('p','source-note','Burn and creator rankings use confirmed activity. Trader rankings are not available yet.');note.id='leaderboard-source-note';$('.leaderboard-hero',leaderboard)?.after(note);}
   const walletPage=$('#wallet-page');
   if(walletPage&&!$('.wallet-profile-kicker',walletPage))$('.wallet-detail-title',walletPage)?.before(node('p','wallet-profile-kicker','SOLANA · WALLET PROFILE'));
   const docs=$('#docs');

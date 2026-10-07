@@ -44,12 +44,12 @@ function upgradeProjectsPage() {
   if (!page) return;
   page.classList.add('projects-page');
   const heading = page.querySelector(':scope > .section-heading');
-  if (heading) heading.innerHTML = `<div><p class="eyebrow">Wallet portfolio · Solana</p><h1>Portfolio</h1><p class="projects-lede">Review token holdings, observed trade P&amp;L, transactions, and your launches.</p></div><a class="primary-button projects-launch-button" href="#launch">Launch token <span aria-hidden="true">↗</span></a>`;
+  if (heading) heading.innerHTML = `<div><p class="eyebrow">Your wallet</p><h1>Portfolio</h1><p class="projects-lede">See your coins, trades, and launches in one place.</p></div><a class="primary-button projects-launch-button" href="#launch">Launch token <span aria-hidden="true">↗</span></a>`;
   const creatorPanel = page.querySelector('.role-panel:not(.referral-growth-card)');
   if (!creatorPanel) return;
   creatorPanel.classList.add('projects-panel');
   const head = creatorPanel.querySelector('.role-panel-head');
-  if (head) head.innerHTML = `<span class="role-icon creator">◫</span><div><strong>Project portfolio</strong><small>Launches matched to the connected creator wallet.</small></div><span class="data-badge">Checking registry</span>`;
+  if (head) head.innerHTML = `<span class="role-icon creator">◫</span><div><strong>Your launches</strong><small>Coins created with your connected wallet.</small></div><span class="data-badge">Checking launches</span>`;
   const stats = creatorPanel.querySelectorAll('.role-stats > div');
   const labels = [['Total', '0'], ['Not migrated', '—'], ['Migrated', '—']];
   stats.forEach((stat, index) => {
@@ -71,24 +71,24 @@ function upgradeAnalyticsDashboard() {
   const heading = page.querySelector(':scope > .section-heading h2');
   const explanation = byId('analytics-range-status');
   if (heading) heading.textContent = 'Funded at a glance';
-  if (explanation) explanation.textContent = 'Checking Solana activity and receipt evidence…';
+  if (explanation) explanation.textContent = 'Checking confirmed activity…';
   dashboard.classList.add('analytics-kpis-complete');
   dashboard.setAttribute('aria-label', 'Funded protocol key figures');
   dashboard.innerHTML = `
-    <article data-analytics-metric="fees"><span>Total fees collected</span><strong>—</strong><small><b>SOL / USD</b>No verified router claims</small></article>
-    <article data-analytics-metric="launches"><span>Total launches</span><strong>—</strong><small><b>COUNT</b>Confirmed mints only</small></article>
-    <article data-analytics-metric="payouts"><span>Recipient payouts</span><strong>—</strong><small><b>SOL / COUNT</b>Confirmed transfers only</small></article>
-    <article data-analytics-metric="volume"><span>Trading volume</span><strong>—</strong><small><b>USD · 24H</b>Verified Pump events</small></article>
+    <article data-analytics-metric="fees"><span>Fees collected</span><strong>—</strong><small><b>SOL / USD</b>No confirmed fee claims</small></article>
+    <article data-analytics-metric="launches"><span>Total launches</span><strong>—</strong><small><b>COUNT</b>Confirmed launches only</small></article>
+    <article data-analytics-metric="payouts"><span>Confirmed payments</span><strong>—</strong><small><b>SOL / COUNT</b>Confirmed transfers only</small></article>
+    <article data-analytics-metric="volume"><span>Trading volume</span><strong>—</strong><small><b>USD · 24H</b>Confirmed trades</small></article>
     <article data-analytics-metric="airdrops"><span>Community airdrops</span><strong>—</strong><small><b>USD</b>Claimed distributions only</small></article>
-    <article data-analytics-metric="referrals"><span>Referral rewards</span><strong>—</strong><small><b>USD</b>Confirmed reward receipts</small></article>
-    <article data-analytics-metric="burned"><span>Launch-tier $FUNDED burns</span><strong>—</strong><small><b>$FUNDED</b>Verified launch burn receipts only</small></article>
-    <article data-analytics-metric="wallets"><span>Trading wallets</span><strong>—</strong><small><b>COUNT · 24H</b>Observed verified activity</small></article>`;
+    <article data-analytics-metric="referrals"><span>Referral rewards</span><strong>—</strong><small><b>USD</b>Confirmed payments</small></article>
+    <article data-analytics-metric="burned"><span>Launch-tier $FUNDED burns</span><strong>—</strong><small><b>$FUNDED</b>Confirmed launch burns</small></article>
+    <article data-analytics-metric="wallets"><span>Trading wallets</span><strong>—</strong><small><b>COUNT · 24H</b>Confirmed activity</small></article>`;
   document.dispatchEvent(new Event('funded:analytics-upgraded'));
 }
 
 function clarifyDataStates() {
   const payments = byId('payments');
-  addOnce(payments?.querySelector('.payments-summary'), 'payments-source-note', `<p id="payments-source-note" class="source-note">Payout balances and history are unavailable until verified claim and transfer receipts are indexed. The claim form below is separate from the receipt feed.</p>`);
+  addOnce(payments?.querySelector('.payments-summary'), 'payments-source-note', `<p id="payments-source-note" class="source-note">Payment history appears after transactions are confirmed. A claim request may take time to show here.</p>`);
   const paymentActivity = byId('payment-list');
   const syncTape = () => { if (byId('open-tape')) byId('open-tape').hidden = !paymentActivity?.children.length; };
   syncTape();
@@ -121,7 +121,7 @@ function clarifyDataStates() {
   if (actions && [...actions.querySelectorAll('button')].every(button => button.disabled)) actions.hidden = true;
   const buybackStatus = byId('buyback-preview-status');
   if (buybackStatus) {
-    buybackStatus.textContent = 'Enter an example amount to see the policy allocation. Claim recording and burn execution need verified receipts and remain unavailable.';
+    buybackStatus.textContent = 'Enter an example amount to preview the fee allocation. This example does not move funds.';
     buybackStatus.setAttribute('role', 'status');
   }
 }
@@ -138,8 +138,8 @@ function clarifyReferrals() {
     const badge = panel.querySelector('.data-badge');
     const firstStep = panel.querySelector('.referral-progress-steps small');
     if (heading) heading.textContent = 'How qualification works';
-    if (badge) badge.textContent = 'Example path · no events indexed';
-    if (firstStep) firstStep.textContent = 'Link click must be recorded';
+    if (badge) badge.textContent = 'Example journey';
+    if (firstStep) firstStep.textContent = 'Invite link used';
   }
 }
 

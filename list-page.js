@@ -66,10 +66,10 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     const disclosure = byId('list-burn-disclosure');
     const reviewCopy = byId('list-review-copy');
     const reviewPayment = byId('list-review-payment');
-    if (step) step.textContent = `Approve an irreversible ${label} $FUNDED BurnChecked transaction. The same transaction binds the payment to this mint.`;
+    if (step) step.textContent = `Approve a permanent burn of ${label} $FUNDED. This burn is linked to the token you enter.`;
     if (disclosure) disclosure.textContent = `Burns permanently reduce $FUNDED supply. The fee is ${label} ${burnTokenNoun()}, not a fixed USD value. A wallet approval and verified receipt are required before a listing appears.`;
-    if (reviewCopy) reviewCopy.textContent = `Burning ${label} $FUNDED is permanent. The transaction will bind this payment to the token mint below. The listing appears after the server verifies the finalized burn and token metadata.`;
-    if (reviewPayment) reviewPayment.textContent = `${label} $FUNDED · BurnChecked`;
+    if (reviewCopy) reviewCopy.textContent = `Burning ${label} $FUNDED is permanent. This burn is linked to the token below. Your listing appears after the transaction and token details are confirmed.`;
+    if (reviewPayment) reviewPayment.textContent = `${label} $FUNDED burn`;
   }
 
   function mintValue() {

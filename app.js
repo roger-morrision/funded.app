@@ -1578,9 +1578,9 @@ function renderAirdropSummary(programs){
   const fundedCount = programs.filter(item => item.vaultVerified).length;
   const activeCount = programs.filter(item => item.claimActive).length;
   const fundingNote = communityReserveStatus === 'ready'
-    ? `${fundedCount}/${programs.length} vaults verified · ${activeCount} claim window${activeCount === 1 ? '' : 's'} open`
-    : communityReserveStatus === 'loading' ? 'Checking finalized vault accounts' : 'Vault verification unavailable; funded count unknown';
-  node.innerHTML = `<article><span>Indexed launch policies</span><strong>${programs.length}</strong><small>${activeCount} active claim window${activeCount === 1 ? '' : 's'}</small></article><article><span>Policy allocation</span><strong>${formatTokenAmount(reserved)}</strong><small>${fundingNote}</small></article><article><span>Claimed so far</span><strong>${claimed == null ? '—' : `${claimPrograms.length < programs.length ? '≥' : ''}${formatVerifiedAirdropAmount(claimed)}`}</strong><small>${claimed == null ? 'No indexed active claim state' : `Indexed claim state for ${claimPrograms.length}/${programs.length} programs`}</small></article><article><span>Eligible wallets</span><strong>${eligible == null ? '—' : `${eligibilityPrograms.length < programs.length ? '≥' : ''}${formatVerifiedAirdropAmount(eligible)}`}</strong><small>${eligible == null ? 'No indexed eligibility snapshot' : `Published snapshots for ${eligibilityPrograms.length}/${programs.length} programs`}</small></article>`;
+    ? `${fundedCount} of ${programs.length} airdrops funded · ${activeCount} open for claims`
+    : communityReserveStatus === 'loading' ? 'Checking funding' : 'Funding status unavailable';
+  node.innerHTML = `<article><span>Published airdrops</span><strong>${programs.length}</strong><small>${activeCount} open for claims</small></article><article><span>Planned tokens</span><strong>${formatTokenAmount(reserved)}</strong><small>${fundingNote}</small></article><article><span>Claimed so far</span><strong>${claimed == null ? '—' : `${claimPrograms.length < programs.length ? '≥' : ''}${formatVerifiedAirdropAmount(claimed)}`}</strong><small>${claimed == null ? 'Claim history unavailable' : `History available for ${claimPrograms.length} of ${programs.length} airdrops`}</small></article><article><span>Eligible wallets</span><strong>${eligible == null ? '—' : `${eligibilityPrograms.length < programs.length ? '≥' : ''}${formatVerifiedAirdropAmount(eligible)}`}</strong><small>${eligible == null ? 'Eligibility details unavailable' : `Eligibility available for ${eligibilityPrograms.length} of ${programs.length} airdrops`}</small></article>`;
 }
 let airdropDirectoryPage = 1;
 let airdropDirectoryStatus = 'upcoming';
@@ -1604,11 +1604,11 @@ function renderAirdropDirectory(programs = getAirdropPrograms()){
     const cardData = tokenCardData({ mint: program.id, policy: verifiedLaunchPolicyForMint(program.id), reserve: { mint: program.id, verified: program.vaultVerified } });
     return `<article class="token-card-shell airdrop-directory-card" data-logo-mint="${safeMint}">
       <div class="directory-card-top"><span class="claim-token-mark" aria-hidden="true" title="Project artwork not published for this token">${escapeHtml(program.symbol.slice(0, 2).toUpperCase())}</span><div><span class="directory-token-identity"><strong>${safeSymbol}</strong>${exploreBoostAmountMarkup(program.id)}<a href="/token/${encodeURIComponent(program.id)}">${escapeHtml(program.name)}</a></span><span class="airdrop-status ${program.status}">${escapeHtml(program.statusLabel)}</span></div></div>
-      <div class="directory-stats"><span><small>Policy allocation</small><b>${formatPolicyTokenCount(program.reservedTokens)} $${safeSymbol}</b></span><span><small>Vault</small><b>${cardData.reserveState === 'verified' ? 'Verified funded' : communityReserveStatus === 'loading' ? 'Checking…' : communityReserveStatus === 'unavailable' ? 'Check unavailable' : 'Not verified'}</b></span><span><small>Snapshot</small><b>${snapshotReady ? `${formatPolicyTokenCount(program.eligibleWallets)} wallets` : 'Pending'}</b></span></div>
-      <div class="directory-footer"><span><small>Your allocation</small><b>${program.walletAllocation == null ? program.claimActive ? 'Connect to check' : 'Available after snapshot' : formatTokenAmount(program.walletAllocation)}</b></span><div class="token-card-actions">${tokenCardWatchMarkup(program.id, program.symbol)}${tokenCardShareMarkup(program.id, program.symbol, program.name)}<button type="button" class="secondary-button directory-claim" data-directory-mint="${safeMint}" aria-controls="airdrop-selected-program">View claim status</button></div></div>
-      <details class="token-card-more"><summary>Addresses and policy proof</summary>${tokenCardAddressesMarkup(program.id)}${exploreSocialLinksMarkup({ address: program.id, symbol: program.symbol })}<small>${escapeHtml(tokenCardEvidenceLabel(cardData))}</small></details>
+      <div class="directory-stats"><span><small>Planned airdrop</small><b>${formatPolicyTokenCount(program.reservedTokens)} $${safeSymbol}</b></span><span><small>Funding</small><b>${cardData.reserveState === 'verified' ? 'Confirmed' : communityReserveStatus === 'loading' ? 'Checking…' : communityReserveStatus === 'unavailable' ? 'Unavailable' : 'Not confirmed'}</b></span><span><small>Eligible wallets</small><b>${snapshotReady ? `${formatPolicyTokenCount(program.eligibleWallets)} wallets` : 'Pending'}</b></span></div>
+      <div class="directory-footer"><span><small>Your amount</small><b>${program.walletAllocation == null ? program.claimActive ? 'Connect to check' : 'Check when claims open' : formatTokenAmount(program.walletAllocation)}</b></span><div class="token-card-actions">${tokenCardWatchMarkup(program.id, program.symbol)}${tokenCardShareMarkup(program.id, program.symbol, program.name)}<button type="button" class="secondary-button directory-claim" data-directory-mint="${safeMint}" aria-controls="airdrop-selected-program">View claim status</button></div></div>
+      <details class="token-card-more"><summary>Addresses and verification</summary>${tokenCardAddressesMarkup(program.id)}${exploreSocialLinksMarkup({ address: program.id, symbol: program.symbol })}<small>${escapeHtml(tokenCardEvidenceLabel(cardData))}</small></details>
     </article>`;
-  }).join('') || `<div class="empty-state">${verifiedLaunchPoliciesStatus === 'loading' ? 'Checking published allocations…' : verifiedLaunchPoliciesStatus === 'unavailable' ? 'Launch registry unavailable; allocations cannot be verified.' : query ? 'No airdrops match your search.' : airdropDirectoryStatus === 'claiming' ? 'No open claim windows are indexed yet.' : airdropDirectoryStatus === 'closed' ? 'No closed claim windows are indexed yet.' : 'No upcoming allocations are indexed yet.'}</div>`;
+  }).join('') || `<div class="empty-state">${verifiedLaunchPoliciesStatus === 'loading' ? 'Checking airdrops…' : verifiedLaunchPoliciesStatus === 'unavailable' ? 'Airdrops are temporarily unavailable.' : query ? 'No airdrops match your search.' : airdropDirectoryStatus === 'claiming' ? 'No claims are open yet.' : airdropDirectoryStatus === 'closed' ? 'No closed airdrops yet.' : 'No upcoming airdrops yet.'}</div>`;
   loadVerifiedTokenLogos(list, { probeMissing: true });
   const pagination = document.querySelector('#airdrop-directory-pagination');
   if (pagination) {
@@ -1969,7 +1969,7 @@ async function loadFundedBurnState({ force = false } = {}){
   if (!force && fundedBurnState.status === 'loading') return;
   if (!force && fundedBurnState.status === 'ready' && fundedBurnState.wallet === address && Date.now() - (fundedBurnState.loadedAt || 0) < 30_000) return;
   const request = ++fundedBurnRequest;
-  fundedBurnState = { ...fundedBurnState, status: 'loading', wallet: address, message: 'Reading the $FUNDED mint, wallet balance, and indexed receipts from Solana…' };
+  fundedBurnState = { ...fundedBurnState, status: 'loading', wallet: address, message: 'Checking your $FUNDED balance and burn history…' };
   renderBuybackDashboard();
   renderWalletFundedBalance();
   try {
@@ -1998,7 +1998,7 @@ async function loadFundedBurnState({ force = false } = {}){
       supplyBaseUnits: mintState.supply, burnedBaseUnits: burnedSupplyBaseUnits(mintState.supply, mintState.decimals),
       tokenProgram, tokenAccounts, receipts: indexed.available && Array.isArray(indexed.data?.receipts) ? indexed.data.receipts : [],
       receiptIndexAvailable: indexed.available, loadedAt: Date.now(), message: address
-        ? (indexed.available ? 'Live Solana balance and server-verified receipts loaded.' : 'Live Solana balance loaded; the receipt index is unavailable.')
+        ? (indexed.available ? 'Your balance and burn history are ready.' : 'Your balance is ready; burn history is unavailable.')
         : 'Live Solana supply loaded. Connect a wallet to view its balance and burn receipts.',
     };
   } catch (error) {
@@ -2140,9 +2140,9 @@ function renderBuybackDashboard(message = ''){
   const burnedNote = document.querySelector('#buyback-burned')?.parentElement?.querySelector('em');
   const claimsNote = document.querySelector('#buyback-claims')?.parentElement?.querySelector('em');
   const balanceNote = document.querySelector('#buyback-pending')?.parentElement?.querySelector('em');
-  if (balanceNote) balanceNote.textContent = walletBalanceReady ? 'Live SPL token balance' : connectedWalletAddress && fundedBurnState.status === 'loading' ? 'Loading from Solana' : connectedWalletAddress ? 'Balance unavailable' : 'Connect wallet to check balance';
-  if (burnedNote) burnedNote.textContent = fundedBurnState.status === 'ready' ? 'On-chain supply delta from 1B mint' : 'Supply unavailable';
-  if (claimsNote) claimsNote.textContent = fundedBurnState.receiptIndexAvailable ? 'Server-verified BurnChecked receipts' : 'Receipt index unavailable';
+  if (balanceNote) balanceNote.textContent = walletBalanceReady ? 'Current wallet balance' : connectedWalletAddress && fundedBurnState.status === 'loading' ? 'Loading from Solana' : connectedWalletAddress ? 'Balance unavailable' : 'Connect wallet to check balance';
+  if (burnedNote) burnedNote.textContent = fundedBurnState.status === 'ready' ? 'Confirmed supply reduction' : 'Supply unavailable';
+  if (claimsNote) claimsNote.textContent = fundedBurnState.receiptIndexAvailable ? 'Confirmed burn transactions' : 'Burn history unavailable';
   const executedIds = new Set(state.receipts.flatMap(receipt => receipt.accrualIds || []));
   const events = [
     ...state.accruals.map(accrual => ({ type: 'accrual', at: accrual.claimedAt, data: accrual })),
@@ -2160,16 +2160,16 @@ function renderBuybackDashboard(message = ''){
   const launchRows = launchBurns.map(launch => {
     const burn = launch.creatorLaunchBurn; const receipt = burn.receipt;
     const signature = String(receipt.signature || '');
-    return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${formatBuybackAmount(receipt.amountTokens ?? burn.amountTokens, 2)} $FUNDED burned</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} launch promotion · ${escapeHtml(burn.label || burn.tier || 'verified tier')} · BurnChecked</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed transaction ↗</a></span><b>Supply ↓</b></div>`;
+    return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${formatBuybackAmount(receipt.amountTokens ?? burn.amountTokens, 2)} $FUNDED burned</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} launch promotion · ${escapeHtml(burn.label || burn.tier || 'verified tier')}</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed transaction ↗</a></span><b>Supply ↓</b></div>`;
   }).join('');
-  const standaloneRows = standaloneReceipts.filter(receipt => !launchBurns.some(launch => launch.creatorLaunchBurn.receipt.signature === receipt.signature)).map(receipt => `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${formatBuybackAmount(receipt.amountTokens, 6)} $FUNDED burned</strong><small>${escapeHtml(fundedReceiptProject(receipt))} · BurnChecked · server verified</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed transaction ↗</a></span><b>Supply ↓</b></div>`).join('');
+  const standaloneRows = standaloneReceipts.filter(receipt => !launchBurns.some(launch => launch.creatorLaunchBurn.receipt.signature === receipt.signature)).map(receipt => `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${formatBuybackAmount(receipt.amountTokens, 6)} $FUNDED burned</strong><small>${escapeHtml(fundedReceiptProject(receipt))} · confirmed</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed transaction ↗</a></span><b>Supply ↓</b></div>`).join('');
   const feeRows = feeReceipts.map(receipt => {
     const baseUnits = BigInt(receipt.boughtAndBurnedBaseUnits || '0');
     const amount = formatTokenBaseUnits(baseUnits, Number(receipt.tokenDecimals ?? 6), 6);
     const spentSol = (BigInt(receipt.settledLamports || '0') - BigInt(receipt.returnedLamports || '0'));
-    return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${escapeHtml(amount)} $FUNDED bought and burned</strong><small>${escapeHtml(formatTokenBaseUnits(spentSol, 9, 9))} SOL from verified creator fees · BurnChecked · unused SOL returned to router</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed buy and burn ↗</a></span><b>Supply ↓</b></div>`;
+    return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${escapeHtml(amount)} $FUNDED bought and burned</strong><small>${escapeHtml(formatTokenBaseUnits(spentSol, 9, 9))} SOL from collected creator fees · unused SOL returned</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed buy and burn ↗</a></span><b>Supply ↓</b></div>`;
   }).join('');
-  document.querySelector('#buyback-ledger').innerHTML = `${feeRows}${standaloneRows}${launchRows}${previewRows}` || (buybackNetworkState.status === 'unavailable' ? '<div class="empty-state">Solana buyback receipt index is unavailable. Try again shortly.</div>' : '<div class="empty-state">No verified $FUNDED burn receipts are indexed on Solana yet. Fee-funded buybacks and launch-promotion burns are tracked separately.</div>');
+  document.querySelector('#buyback-ledger').innerHTML = `${feeRows}${standaloneRows}${launchRows}${previewRows}` || (buybackNetworkState.status === 'unavailable' ? '<div class="empty-state">Burn history is temporarily unavailable. Try again shortly.</div>' : '<div class="empty-state">No confirmed $FUNDED burns yet. Fee-funded buybacks and launch promotions appear here separately.</div>');
   const runButton = document.querySelector('#buyback-run-preview');
   const addButton = document.querySelector('#buyback-add-claim');
   if (addButton) { addButton.disabled = true; addButton.title = 'Recording requires verified fee-claim receipts and a deployed buyback vault.'; }
@@ -2218,7 +2218,7 @@ async function submitFundedBurn(){
   const button = document.querySelector('#funded-burn-submit');
   const previousSupply = fundedBurnState.supplyBaseUnits;
   fundedBurnState.status = 'submitting';
-  fundedBurnState.message = 'Review and approve the irreversible BurnChecked transaction in your wallet.';
+  fundedBurnState.message = 'Review and approve the permanent burn in your wallet.';
   button.textContent = 'Awaiting approval…';
   renderBuybackDashboard();
   try {
@@ -2250,9 +2250,9 @@ async function submitFundedBurn(){
     }, 0n);
     if (accountDelta !== amount || previousSupply - mintAfter.supply !== amount) throw new Error(`Burn confirmed as ${signature}, but the expected balance and supply deltas were not observed.`);
     const indexed = await apiRequest('/api/burn-receipts', { method: 'POST', body: { signature, wallet: session.address, amountBaseUnits: amount.toString(), projectMint } });
-    fundedBurnState.message = indexed.available ? `Burn confirmed and indexed: ${signature}` : `Burn confirmed on Solana, but receipt indexing is unavailable: ${signature}`;
+    fundedBurnState.message = indexed.available ? `Burn confirmed: ${signature}` : `Burn confirmed on Solana. Burn history is temporarily unavailable: ${signature}`;
     input.value = '';
-    showToast('BurnChecked confirmed on Solana');
+    showToast('Burn confirmed on Solana');
     fundedBurnState.status = 'idle';
     await loadFundedBurnState({ force: true });
   } catch (error) {
@@ -2286,7 +2286,7 @@ function runBuybackPreview(){
   state.receipts.push(buildBuybackReceipt({ accrualIds: pendingAccruals.map(accrual => accrual.id), asset: 'SOL', inputAmount: decision.executionAmount, tokensBought, buySignature: `preview-buy-${stamp}`, burnSignature: `preview-burn-${stamp}`, supplyBefore, supplyAfter: supplyBefore - tokensBought, mode: 'local-preview' }));
   saveBuybackPreviewState(state);
   renderBuybackDashboard(`Protected preview bought and burned ${formatBuybackAmount(tokensBought, 2)} $FUNDED. No transaction was submitted.`);
-  showToast('Protected buyback and BurnChecked preview completed');
+  showToast('Buyback preview completed');
 }
 
 let assets = [];
@@ -2573,7 +2573,7 @@ function renderExploreBenefitLeaders(records){
       : hasVerifiedField && definition.policy ? '0%' : 'Unavailable';
     const detail = leader
       ? `${leader.symbol || shortAddress(leader.address)}${definition.suffix ? ` · ${definition.suffix}` : leader.windowCoverage === 'partial' ? ' · partial history' : ' · scanned'}`
-      : hasVerifiedField && definition.policy ? 'No verified positive share' : definition.policy ? 'No verified launch policy' : 'No scanned value';
+      : hasVerifiedField && definition.policy ? 'No matching launch yet' : definition.policy ? 'Details unavailable' : 'Activity unavailable';
     return `<button type="button" class="${definition.sort === exploreSort ? 'active' : ''}" data-explore-leader-sort="${definition.sort}" data-state="${leader ? 'ready' : hasVerifiedField ? 'empty' : 'unavailable'}" aria-pressed="${definition.sort === exploreSort}" ${leader ? '' : 'disabled'}><span>${escapeHtml(definition.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></button>`;
   }).join('');
 }
@@ -2633,7 +2633,6 @@ function exploreAssetCardMarkup(a){
   const mint = escapeHtml(a.address || '');
   const tokenUrl = `/token/${encodeURIComponent(a.address || '')}`;
   const age = a.createdTimestamp ? escapeHtml(formatOnchainAge(Number(a.createdTimestamp) * 1000)) : 'Age unavailable';
-  const cardData = tokenCardData({ mint: a.address, market: a, policy: verifiedLaunchPolicyForMint(a.address) });
   return `<article class="token-card-shell asset-card signal-${escapeHtml(a.riskLevel)}" data-search="${escapeHtml(a.symbol)} ${escapeHtml(a.name)} ${mint}" data-mint="${mint}">
     <div class="asset-artwork"><a class="asset-artwork-link" href="${tokenUrl}" aria-label="Open ${escapeHtml(a.name)} token"><i class="asset-icon">${escapeHtml(a.icon)}</i></a><span class="asset-artwork-stage">${escapeHtml(exploreStageLabel(a))}</span><span class="asset-artwork-age">${age}</span><button type="button" class="watch-button" data-mint="${mint}" aria-label="Save ${escapeHtml(a.symbol)} to watchlist" aria-pressed="false">${icon('star')}</button>${exploreSocialLinksMarkup(a)}</div>
     <div class="asset-top"><span class="asset-symbol${activeBoostMultiplier(verifiedBoosts[a.address]) >= 500 ? ' golden-ticker' : ''}">${escapeHtml(a.symbol)} ${exploreBoostAmountMarkup(a.address)}</span><p class="asset-name"><a class="asset-title-link" href="${tokenUrl}">${escapeHtml(a.name)}</a></p></div>
@@ -2641,7 +2640,6 @@ function exploreAssetCardMarkup(a){
     <div class="asset-signal-row"><span>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetVolumeLabel(a) : '24h volume'} <b>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetVolume(a) : formatSignal(a.volume24hUsd, ' USD')}</b></span><span>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetReserveLabel(a) : 'Liquidity'} <b>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetReserve(a) : formatSignal(a.liquidityUsd, ' USD')}</b></span></div>
     <div class="asset-bottom"><span class="asset-value" title="${verifiedPaidListingPayment(a) && a.complete == null ? 'Market cap unavailable without verified market data' : `Estimated market capitalization from the confirmed ${a.migrated === true ? 'PumpSwap pool' : 'Pump curve'} snapshot`}">${escapeHtml(exploreMarketCapLabel(a))} · ${escapeHtml(exploreMarketCapUsd(a))}</span><span class="asset-change">${escapeHtml(a.migrated === true ? 'Pool change unindexed' : a.change)}</span></div>
     ${tokenCardAddressesMarkup(a.address)}
-    <div class="asset-risk"><span>${escapeHtml(a.source || 'Solana RPC')} · ${escapeHtml(tokenCardEvidenceLabel(cardData))} · ${cardData.policyState === 'recorded' ? 'Policy recorded' : 'Policy unavailable'}</span></div>
     <div class="asset-actions"><button type="button" class="share-asset" data-share-symbol="${escapeHtml(a.symbol)}" data-share-name="${escapeHtml(a.name)}" data-share-mint="${mint}">Share</button><button type="button" class="explore-boost-button" data-boost-mint="${mint}" aria-label="Boost options for ${escapeHtml(a.name)}">Boost</button></div>
     ${activeBoostMultiplier(verifiedBoosts[a.address]) ? `<div class="asset-boost-row"><span>BOOST <b>${escapeHtml(exploreBoostStatus(a.address))}</b></span></div>` : ''}
   </article>`;
@@ -3114,8 +3112,8 @@ function renderExtendedAnalyticsDashboard(){
   if (burnCard) {
     burnCard.querySelector('strong').textContent = burnedTokens ? formatDashboardQuantity(burnedTokens) : '—';
     burnCard.querySelector('small').innerHTML = burnedTokens
-      ? `<b>$FUNDED</b>${burns.length} verified launch burn receipt${burns.length === 1 ? '' : 's'}`
-      : `<b>$FUNDED</b>${verifiedLaunchPoliciesStatus === 'unavailable' ? 'Launch registry unavailable; burn total not verified' : 'No verified launch-tier burn receipts; fee-funded and voluntary burns appear in the Burn ledger'}`;
+      ? `<b>$FUNDED</b>${burns.length} confirmed launch burn${burns.length === 1 ? '' : 's'}`
+      : `<b>$FUNDED</b>${verifiedLaunchPoliciesStatus === 'unavailable' ? 'Launch burn history unavailable' : 'No confirmed launch burns; other burns appear on the Burn page'}`;
   }
 
   const reserves = verifiedLaunchPolicies.filter(launch => launch?.onchainVerified && Number(launch?.communityAirdrop?.reservedTokens) > 0);
@@ -3132,11 +3130,11 @@ function renderExtendedAnalyticsDashboard(){
   const airdropCard = document.querySelector('[data-analytics-metric="airdrops"]');
   if (airdropCard) {
     const partial = pricedReserves > 0 && pricedReserves < reserves.length;
-    airdropCard.querySelector('span').textContent = 'Indicative policy allocation value';
+    airdropCard.querySelector('span').textContent = 'Estimated value of planned airdrops';
     airdropCard.querySelector('strong').textContent = pricedReserves ? formatDashboardUsd(reserveUsd, { partial }) : '—';
     airdropCard.querySelector('small').innerHTML = pricedReserves
-      ? `<b>USD</b>${pricedReserves}/${reserves.length} policy allocation${reserves.length === 1 ? '' : 's'} priced at spot · check vault funding per launch`
-      : `<b>USD</b>${verifiedLaunchPoliciesStatus === 'unavailable' ? 'Launch registry unavailable; allocations not verified' : reserves.length ? 'Policy allocations lack current pricing · check vault funding per launch' : 'No published community allocations'}`;
+      ? `<b>USD</b>Based on prices for ${pricedReserves} of ${reserves.length} airdrops · funding checked separately`
+      : `<b>USD</b>${verifiedLaunchPoliciesStatus === 'unavailable' ? 'Airdrop details unavailable' : reserves.length ? 'Current prices unavailable · funding checked separately' : 'No planned community airdrops'}`;
   }
 
   const verifiedPayouts = Array.isArray(receiptEvidence?.verifiedPayouts) ? receiptEvidence.verifiedPayouts : [];
@@ -3148,14 +3146,14 @@ function renderExtendedAnalyticsDashboard(){
       ? formatDashboardUsd(referralSol * coinSolUsdPrice)
       : referralPayouts.length ? `${referralSol.toFixed(6)} SOL` : '—';
     referralCard.querySelector('small').innerHTML = referralPayouts.length
-      ? `<b>${Number.isFinite(coinSolUsdPrice) ? 'USD' : 'SOL'}</b>${referralPayouts.length} verified manual referral payout${referralPayouts.length === 1 ? '' : 's'}`
-      : `<b>USD</b>${receiptEvidenceChecked && !receiptEvidence ? 'Receipt verification unavailable' : 'No verified referral payouts'}`;
+      ? `<b>${Number.isFinite(coinSolUsdPrice) ? 'USD' : 'SOL'}</b>${referralPayouts.length} confirmed referral payment${referralPayouts.length === 1 ? '' : 's'}`
+      : `<b>USD</b>${receiptEvidenceChecked && !receiptEvidence ? 'Referral payment history unavailable' : 'No confirmed referral payments'}`;
   }
 
   const recipients = document.querySelector('.recipients-panel');
   if (recipients) {
     const count = recipients.querySelector('.panel-count');
-    if (count) count.textContent = verifiedPayouts.length ? `${verifiedPayouts.length} verified receipt${verifiedPayouts.length === 1 ? '' : 's'}` : receiptEvidenceChecked && !receiptEvidence ? 'Receipt verification unavailable' : 'Awaiting verified receipts';
+    if (count) count.textContent = verifiedPayouts.length ? `${verifiedPayouts.length} confirmed payment${verifiedPayouts.length === 1 ? '' : 's'}` : receiptEvidenceChecked && !receiptEvidence ? 'Payment history unavailable' : 'Checking payments';
     const target = recipients.querySelector('.payment-list, .empty-state');
     if (target && verifiedPayouts.length) {
       target.className = 'payment-list';
@@ -3170,7 +3168,7 @@ function renderExtendedAnalyticsDashboard(){
       }
     } else if (target && receiptEvidenceChecked && !receiptEvidence) {
       target.className = 'empty-state';
-      target.textContent = 'Receipt verification unavailable; payout count not verified.';
+      target.textContent = 'Payment history is temporarily unavailable.';
     }
   }
 }
@@ -3192,15 +3190,15 @@ function renderVerifiedReceiptEvidence(){
     }
     feeCard.querySelector('span').textContent = 'Verified fees collected';
     feeCard.querySelector('small').innerHTML = receiptEvidence?.status === 'unverified-records' && recorded
-      ? `<b>LEDGER ONLY</b>${recorded} claim${recorded === 1 ? '' : 's'} in the checked window${ledgerAmount}; no matching on-chain proof`
-      : `<b>SOL</b>${!receiptEvidenceChecked ? 'Checking receipt evidence' : !receiptEvidence || receiptEvidence.status === 'unavailable' ? 'Receipt verification unavailable' : 'No verified fee claims in the checked window'}`;
+      ? `<b>RECORDS ONLY</b>${recorded} claim${recorded === 1 ? '' : 's'} found${ledgerAmount}; confirmation unavailable`
+      : `<b>SOL</b>${!receiptEvidenceChecked ? 'Checking fee history' : !receiptEvidence || receiptEvidence.status === 'unavailable' ? 'Fee history unavailable' : 'No confirmed fee claims in the selected period'}`;
   }
   if (collections.length && feeCard) {
     feeCard.querySelector('span').textContent = 'Verified fees collected';
     try {
       const lamports = collections.reduce((sum, item) => sum + exactLamports(item.collectedLamports), 0n);
       feeCard.querySelector('strong').textContent = `${formatReceiptSol(lamports)} SOL`;
-      feeCard.querySelector('small').innerHTML = `<b>SOL</b>${collections.length} confirmed fee claims · verified subset`;
+      feeCard.querySelector('small').innerHTML = `<b>SOL</b>${collections.length} confirmed fee claims · available history`;
     } catch {
       feeCard.querySelector('strong').textContent = '—';
       feeCard.querySelector('small').innerHTML = '<b>SOL</b>Collection total unavailable; inspect individual receipts';
@@ -3209,11 +3207,11 @@ function renderVerifiedReceiptEvidence(){
   if (payouts.length && payoutCard) {
     payoutCard.querySelector('span').textContent = 'Verified payouts';
     payoutCard.querySelector('strong').textContent = `${payouts.length} verified`;
-    payoutCard.querySelector('small').innerHTML = '<b>COUNT</b>Confirmed recipient balance deltas · checked window';
+    payoutCard.querySelector('small').innerHTML = '<b>COUNT</b>Confirmed payments in the selected period';
   }
   else if (payoutCard) {
     payoutCard.querySelector('span').textContent = 'Verified payouts';
-    payoutCard.querySelector('small').innerHTML = `<b>COUNT</b>${!receiptEvidenceChecked ? 'Checking receipt evidence' : !receiptEvidence || receiptEvidence.status === 'unavailable' ? 'Receipt verification unavailable' : 'No verified payouts in the checked window'}`;
+    payoutCard.querySelector('small').innerHTML = `<b>COUNT</b>${!receiptEvidenceChecked ? 'Checking payment history' : !receiptEvidence || receiptEvidence.status === 'unavailable' ? 'Payment history unavailable' : 'No confirmed payments in the selected period'}`;
   }
   const historyPayouts = Array.isArray(paymentHistoryEvidence?.verifiedPayouts) ? paymentHistoryEvidence.verifiedPayouts : [];
   const list = document.querySelector('#payment-list');
@@ -3314,35 +3312,35 @@ function renderOnchainReportState(verified){
   const indexedLaunches = verifiedLaunchPoliciesStatus === 'ready' ? verifiedLaunchPolicies.length : null;
   const launchCount = indexedLaunches ?? verified.length;
   const marketUnavailable = /rate limited|unavailable/i.test(exploreProviderStatus);
-  if (feeCard) { feeCard.querySelector('span').textContent = 'Verified fees collected'; feeCard.querySelector('strong').textContent = '—'; feeCard.querySelector('small').innerHTML = '<b>SOL</b>Checking receipt evidence'; }
-  if (launchCard) { launchCard.querySelector('strong').textContent = launchCount ? String(launchCount) : '—'; launchCard.querySelector('small').innerHTML = `<b>COUNT</b>${indexedLaunches != null ? feedChecked && !marketUnavailable && verified.length === indexedLaunches ? `Confirmed mints` : 'Saved verified launch records · live RPC scan incomplete' : !feedChecked ? 'Checking confirmed mints' : marketUnavailable ? 'Launch feed unavailable' : verified.length ? `Confirmed mints` : `No confirmed mints`}`; }
-  if (payoutCard) { payoutCard.querySelector('span').textContent = 'Verified payouts'; payoutCard.querySelector('strong').textContent = '—'; payoutCard.querySelector('small').innerHTML = '<b>COUNT</b>Checking receipt evidence'; }
+  if (feeCard) { feeCard.querySelector('span').textContent = 'Fees collected'; feeCard.querySelector('strong').textContent = '—'; feeCard.querySelector('small').innerHTML = '<b>SOL</b>Checking fee history'; }
+  if (launchCard) { launchCard.querySelector('strong').textContent = launchCount ? String(launchCount) : '—'; launchCard.querySelector('small').innerHTML = `<b>COUNT</b>${indexedLaunches != null ? feedChecked && !marketUnavailable && verified.length === indexedLaunches ? 'Confirmed launches' : 'Some launch activity may be missing' : !feedChecked ? 'Checking launches' : marketUnavailable ? 'Launch activity unavailable' : verified.length ? 'Confirmed launches' : 'No confirmed launches'}`; }
+  if (payoutCard) { payoutCard.querySelector('span').textContent = 'Confirmed payments'; payoutCard.querySelector('strong').textContent = '—'; payoutCard.querySelector('small').innerHTML = '<b>COUNT</b>Checking payment history'; }
   const volumeSol = verified.reduce((sum, item) => sum + (Number.isFinite(Number(item.volume24hSol)) ? Number(item.volume24hSol) : 0), 0);
   const hasVolume = verified.some(item => item.volume24hSol != null && Number.isFinite(Number(item.volume24hSol)));
   const partialVolume = verified.some(item => item.volumeCoverage === 'partial' || item.volume24hSol == null);
   if (volumeCard) {
     volumeCard.querySelector('strong').textContent = hasVolume && (!partialVolume || volumeSol > 0) && Number.isFinite(coinSolUsdPrice) ? formatDashboardUsd(volumeSol * coinSolUsdPrice, { partial: partialVolume }) : '—';
-    volumeCard.querySelector('small').innerHTML = `<b>USD · 24H</b>${!feedChecked ? 'Checking confirmed trades' : hasVolume ? partialVolume && volumeSol === 0 ? 'Partial scan · volume total unavailable' : volumeSol === 0 ? 'No trades in the checked 24h window' : `${partialVolume ? 'Partial ' : ''}verified Pump events` : marketUnavailable ? 'Market scan unavailable' : 'No verified trade volume'}`;
+    volumeCard.querySelector('small').innerHTML = `<b>USD · 24H</b>${!feedChecked ? 'Checking confirmed trades' : hasVolume ? partialVolume && volumeSol === 0 ? 'Some trade history is unavailable' : volumeSol === 0 ? 'No trades in the past 24 hours' : `${partialVolume ? 'At least · ' : ''}confirmed trading activity` : marketUnavailable ? 'Market activity unavailable' : 'No confirmed trading volume'}`;
   }
   const observedWallets = verified.reduce((sum, item) => sum + (Number.isFinite(Number(item.traderCount24h)) ? Number(item.traderCount24h) : 0), 0);
   const hasWallets = verified.some(item => item.traderCount24h != null && Number.isFinite(Number(item.traderCount24h)));
   const partialWallets = verified.some(item => item.traderCount24h == null);
   if (walletCard) {
     walletCard.querySelector('strong').textContent = hasWallets && (!partialWallets || observedWallets > 0) ? `${partialWallets ? '≥' : ''}${observedWallets.toLocaleString()}` : '—';
-    walletCard.querySelector('small').innerHTML = `<b>COUNT · 24H</b>${!feedChecked ? 'Checking confirmed trades' : hasWallets ? partialWallets && observedWallets === 0 ? 'Partial scan · wallet total unavailable' : observedWallets === 0 ? 'No trading wallets in the checked 24h window' : `${partialWallets ? 'Partial scan · ' : ''}sum of per-launch wallet counts` : marketUnavailable ? 'Market scan unavailable' : 'No verified wallet activity'}`;
+    walletCard.querySelector('small').innerHTML = `<b>COUNT · 24H</b>${!feedChecked ? 'Checking confirmed trades' : hasWallets ? partialWallets && observedWallets === 0 ? 'Some wallet activity is unavailable' : observedWallets === 0 ? 'No trading wallets in the past 24 hours' : `${partialWallets ? 'Partial history · ' : ''}wallet counts across launches` : marketUnavailable ? 'Market activity unavailable' : 'No confirmed wallet activity'}`;
   }
   const strip = document.querySelector('#analytics .strip-stat');
-  if (strip) strip.innerHTML = !feedChecked ? '— <small>checking confirmed mints</small>' : marketUnavailable ? '— <small>launch feed unavailable</small>' : verified.length ? `${verified.length} <small>confirmed mints</small>` : '— <small>no confirmed mints</small>';
+  if (strip) strip.innerHTML = !feedChecked ? '— <small>checking launches</small>' : marketUnavailable ? '— <small>launch activity unavailable</small>' : verified.length ? `${verified.length} <small>confirmed launches</small>` : '— <small>no confirmed launches</small>';
   const chart = document.querySelector('.analytics-chart .mini-chart');
-  if (chart) chart.innerHTML = '<div class="empty-state onchain-report-empty"><strong>No fee events to chart.</strong><span>Charts appear after confirmed router claim signatures are indexed.</span></div>';
+  if (chart) chart.innerHTML = '<div class="empty-state onchain-report-empty"><strong>No fee activity to chart yet.</strong><span>The chart appears when confirmed fee history is available.</span></div>';
   const chartBadge = document.querySelector('.analytics-chart .data-badge');
-  if (chartBadge) chartBadge.textContent = 'On-chain only';
+  if (chartBadge) chartBadge.textContent = 'Confirmed activity';
   const community = document.querySelectorAll('.community-section .signal-list>div b');
   if (community[0]) community[0].textContent = '—';
   if (community[1]) community[1].textContent = verified.length ? String(verified.length) : '—';
   if (community[2]) community[2].textContent = verified.length ? String(verified.filter(item => item.riskLevel === 'high').length) : '—';
   const communityBadge = document.querySelector('.community-section .data-badge');
-  if (communityBadge) communityBadge.textContent = 'RPC state';
+  if (communityBadge) communityBadge.textContent = 'Current activity';
   renderVerifiedReceiptEvidence();
   renderExtendedAnalyticsDashboard();
   const technical = document.querySelector('#analytics-technical-source');
@@ -3382,24 +3380,24 @@ function renderWalletBurnersBoard(){
   const board = burnersBoardState.status === 'unavailable' && verifiedLaunchPoliciesStatus === 'ready'
     ? { status:'partial', wallets:launchBurnersFallback() } : burnersBoardState;
   document.querySelector('#leaderboard-panel')?.setAttribute('aria-labelledby', 'leaderboard-burners-tab');
-  setCoinField('#leaderboard-table-kicker', board.status === 'partial' ? 'Verified launch burns · partial Solana index' : 'Verified $FUNDED burns · Solana');
+  setCoinField('#leaderboard-table-kicker', board.status === 'partial' ? 'Confirmed launch burns · limited history' : 'Confirmed $FUNDED burns');
   setCoinField('#leaderboard-table-title', 'Wallet burn leaderboard');
-  setCoinField('#leaderboard-hero-description', 'Wallets ranked by confirmed $FUNDED BurnChecked receipts on Solana.');
+  setCoinField('#leaderboard-hero-description', 'Wallets ranked by confirmed $FUNDED burns.');
   setCoinField('#leaderboard-source-note', board.status === 'partial'
-    ? 'Only verified atomic launch burns are available. Standalone burns require the receipt index.'
-    : 'Only confirmed BurnChecked receipts on this network count. Duplicate signatures are counted once.');
+    ? 'Only burns made during a launch are available right now. Other burns will appear when their history is ready.'
+    : 'Only confirmed burns on this network count. Each transaction is counted once.');
   const builders = document.querySelector('#leaderboard .leaderboard-grid')?.closest('details');
   if (builders) builders.hidden = true;
   table.setAttribute('aria-label', 'Solana wallet burn leaderboard');
   const header = '<div class="leaderboard-table-head" role="row"><span>Rank</span><span>Wallet</span><span>Burned</span><span>First burn</span><span>Proof</span></div>';
   if (!['ready','partial'].includes(board.status)) {
-    table.innerHTML = `${header}<div class="empty-state">${board.status === 'unavailable' ? 'Verified receipt index unavailable.' : 'Checking verified BurnChecked receipts…'}</div>`;
+    table.innerHTML = `${header}<div class="empty-state">${board.status === 'unavailable' ? 'Burn history is temporarily unavailable.' : 'Checking confirmed burns…'}</div>`;
     return;
   }
   if (!board.wallets.length) {
     const detail = board.status === 'partial'
-      ? 'No verified atomic launch burns appear in this feed. Standalone burns require the receipt index.'
-      : 'Wallets appear after a confirmed $FUNDED BurnChecked receipt is indexed.';
+      ? 'No launch burns are available in the current history.'
+      : 'Wallets appear after a confirmed $FUNDED burn.';
     table.innerHTML = `${header}<div class="empty-state"><strong>${board.status === 'partial' ? 'No launch burns in this feed.' : 'No verified wallet burns yet.'}</strong><span>${detail}</span></div>`;
     return;
   }
@@ -3446,27 +3444,27 @@ function renderProjectBurnBoard(){
   const note = document.querySelector('#leaderboard-source-note');
   const heroDescription = document.querySelector('#leaderboard-hero-description');
   const builders = document.querySelector('#leaderboard .leaderboard-grid')?.closest('details');
-  if (kicker) kicker.textContent = board.status === 'partial' ? 'Verified launch burns · partial Solana index' : 'Verified $FUNDED burns · Solana';
+  if (kicker) kicker.textContent = board.status === 'partial' ? 'Confirmed launch burns · limited history' : 'Confirmed $FUNDED burns';
   if (heading) heading.textContent = 'Project burn board';
   if (note) note.textContent = board.status === 'partial'
-    ? 'Showing verified atomic launch burns from the available launch feed. Project-attributed standalone burns require the updated receipt index.'
-    : 'Projects are ranked by BurnChecked receipts attributed to verified launches. Unattributed burns and unverified claims are excluded.';
+    ? 'Only burns made during a launch are available right now. Other project burns will appear when their history is ready.'
+    : 'Projects are ranked by confirmed burns linked to their launches.';
   if (heroDescription) heroDescription.textContent = 'Projects ranked by verified $FUNDED burns attributed to their launches.';
   if (builders) builders.hidden = true;
   table.setAttribute('aria-label', 'Solana project burn board');
   const header = '<div class="leaderboard-table-head" role="row"><span>Rank</span><span>Project</span><span>Burned</span><span>Last burn</span><span>Proof</span></div>';
   if (!['ready', 'partial'].includes(board.status)) {
     const message = board.status === 'unavailable'
-      ? 'Verified burn receipt index unavailable. Try again shortly.'
-      : 'Checking verified project burn receipts…';
+      ? 'Project burn history is temporarily unavailable. Try again shortly.'
+      : 'Checking confirmed project burns…';
     table.innerHTML = `${header}<div class="empty-state">${message}</div>`;
     return;
   }
   if (!projects.length) {
     const detail = board.status === 'partial'
-      ? 'No verified atomic launch burns appear in this feed. Other attributed burns need the updated receipt index.'
-      : 'This board fills when a verified launch or attributed burn has a confirmed $FUNDED BurnChecked receipt.';
-    table.innerHTML = `${header}<div class="empty-state"><strong>No project burns indexed yet.</strong><span>${detail}</span></div>`;
+      ? 'No launch burns are available in the current history.'
+      : 'Projects appear here after a confirmed $FUNDED burn is linked to a launch.';
+    table.innerHTML = `${header}<div class="empty-state"><strong>No project burns yet.</strong><span>${detail}</span></div>`;
     return;
   }
   table.innerHTML = `${header}${projects.slice(0, 50).map((item, index) => {
@@ -3814,7 +3812,6 @@ function homeLaunchCardMarkup(item, { volumeLabel, volumeValue, extraClass = '' 
       ? 'Holder count from the indexed market provider'
       : Number.isFinite(accountHolders) ? `${item.holderWalletCoverage === 'lower-bound' ? 'At least ' : ''}${accountHolders} distinct wallet owner${accountHolders === 1 ? '' : 's'} in confirmed non-vault token accounts${item.holderWalletCoverage === 'lower-bound' ? ' · largest-account sample only' : ''}` : 'Verified holder count unavailable';
     const launchPolicy = verifiedLaunchPolicyForMint(item.address);
-    const cardData = tokenCardData({ mint: item.address, market: item, policy: launchPolicy });
     const mintLabel = item.address ? `${item.address.slice(0, 5)}…${item.address.slice(-4)}` : 'Unavailable';
     const creatorWallet = launchPolicy?.onchainVerified && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(launchPolicy.creatorWallet || '')
       ? launchPolicy.creatorWallet : '';
@@ -3840,7 +3837,6 @@ function homeLaunchCardMarkup(item, { volumeLabel, volumeValue, extraClass = '' 
       </div>
       <div class="home-launch-progress" aria-label="${escapeHtml(progressLabel)}"><i style="--launch-progress:${progressValue}%"></i></div>
       <div class="home-launch-meta"><span>${escapeHtml(formatOnchainAge(Number(item.createdTimestamp || 0) * 1000))}</span><span>${escapeHtml(progressLabel)}</span></div>
-      <div class="token-card-evidence">${cardData.policyState === 'recorded' ? 'Policy recorded' : 'Policy unavailable'}</div>
       <div class="home-launch-card-actions">${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" data-boost-mint="${escapeHtml(item.address || '')}">Boost</button></div>
     </article>`;
 }
@@ -7606,16 +7602,16 @@ function requestedPageRoute(){
   return pageRouteTargets[hash] ? mergedPageRoutes[hash] || hash : 'overview';
 }
 const routeGuideCopy = {
-  payments: { group: 'Workspace', state: 'Verified receipts only', description: 'See what your wallet can claim and review confirmed SOL payout receipts. Anything not verified stays blank.', primary: ['View analytics', '#analytics-detail'], secondary: ['How claims work', '#docs'] },
-  'analytics-detail': { group: 'Workspace', state: 'Verified records only', description: 'Review launches, fees, payouts, trading volume, airdrops, referrals, and burns with a clear unit on every figure.', primary: ['See capital flow', '#capital-flow'], secondary: ['Explore launches', '#explore'] },
-  'my-launches': { group: 'Build', state: 'Project workspace', description: 'Review verified launches, market activity, and token actions in one portfolio.', primary: ['Launch a project', '#launch'], secondary: ['Launch guide', '#docs'] },
-  referrals: { group: 'Growth', state: 'Wallet claim required', description: 'Share one invite link and track qualified creator activity, reward status, and confirmed receipts.', primary: ['How rewards work', '#referral-faq'], secondary: ['Explore launches', '#explore'] },
-  community: { group: 'Growth', state: 'Saved locally', description: 'Save verified launches and compare them with the same market data used on Explore.', primary: ['Find launches', '#explore'], secondary: ['See airdrops', '#airdrops'] },
-  leaderboard: { group: 'Growth', state: 'Verified activity only', description: 'Compare verified creator contribution after launch and trading activity has been confirmed.', primary: ['Explore launches', '#explore'], secondary: ['View Solana status', '#docs'] },
-  airdrops: { group: 'Growth', state: 'Proof required', description: 'Review community reserves, wallet eligibility, claim progress, and confirmed distribution receipts.', primary: ['Explore launches', '#explore'], secondary: ['Claim guide', '#docs'] },
-  buybacks: { group: 'Protocol', state: 'Burn center', description: 'Buy or burn $FUNDED, attribute a burn to a project, and verify each confirmed supply reduction.', primary: ['View my projects', '#my-launches'], secondary: ['Protocol guide', '#docs'] },
+  payments: { group: 'Workspace', state: 'Confirmed payments', description: 'See rewards linked to your wallet and check what is ready to claim.', primary: ['View analytics', '#analytics-detail'], secondary: ['How claims work', '#docs'] },
+  'analytics-detail': { group: 'Workspace', state: 'Platform activity', description: 'Explore launches, fees, payments, trades, airdrops, referrals, and burns.', primary: ['See capital flow', '#capital-flow'], secondary: ['Explore launches', '#explore'] },
+  'my-launches': { group: 'Build', state: 'Your portfolio', description: 'See your launches, market activity, and token actions together.', primary: ['Launch a project', '#launch'], secondary: ['Launch guide', '#docs'] },
+  referrals: { group: 'Growth', state: 'Connect wallet to claim', description: 'Share your invite link and follow creator activity and rewards.', primary: ['How rewards work', '#referral-faq'], secondary: ['Explore launches', '#explore'] },
+  community: { group: 'Growth', state: 'Saved on this device', description: 'Save launches to compare their latest available market activity.', primary: ['Find launches', '#explore'], secondary: ['See airdrops', '#airdrops'] },
+  leaderboard: { group: 'Growth', state: 'Confirmed activity', description: 'Explore creator and $FUNDED burn rankings.', primary: ['Explore launches', '#explore'], secondary: ['View service status', '#docs'] },
+  airdrops: { group: 'Growth', state: 'Claim status', description: 'Check planned airdrops, eligibility, and claims for each launch.', primary: ['Explore launches', '#explore'], secondary: ['Claim guide', '#docs'] },
+  buybacks: { group: 'Protocol', state: 'Buy and burn', description: 'Buy or burn $FUNDED and check confirmed transactions.', primary: ['View my projects', '#my-launches'], secondary: ['Read the guide', '#docs'] },
   'capital-flow': { group: 'Protocol', state: 'Example calculator', description: 'Enter any creator-fee amount to see how every destination is calculated. This preview never moves funds.', primary: ['View payments', '#payments'], secondary: ['Read the policy', '#docs'] },
-  docs: { group: 'Protocol', state: 'Solana guide', description: 'Understand what is live, what needs a wallet signature, and which records count as verified proof.', primary: ['Open launch', '#launch'], secondary: ['See capital flow', '#capital-flow'] },
+  docs: { group: 'Protocol', state: 'Help and guides', description: 'Learn how launches, rewards, and wallet approvals work.', primary: ['Open launch', '#launch'], secondary: ['See capital flow', '#capital-flow'] },
   privacy: { group: 'Protocol', state: 'Information', description: 'Understand what the browser stores, what the wallet signs, and how to verify a transaction safely.', primary: ['Wallet profile', '#profile'], secondary: ['Back to overview', '#overview'] },
   paid: { group: 'Protocol', state: 'Policy preview', description: 'See how $FUNDED supports community rewards, referrals, operations, and permanent token burns.', primary: ['See buybacks', '#buybacks'], secondary: ['Read the docs', '#docs'] },
 };
