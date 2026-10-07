@@ -1,3 +1,5 @@
+import { boostHistoryRows } from './boost-history-view.js';
+import { productEvent } from './product-events.js';
 import { exactLamports } from './exact-lamports.js';
 import { formatReceiptSol } from './receipt-export.js';
 import { emitPilotSignal, pilotInterruptedSignal, verifiedPilotLaunchRegistration } from './pilot-event-signals.js';
@@ -1003,13 +1005,13 @@ function openExploreTierInfo(mint){
   if (!dialog.open) dialog.showModal();
 }
 function exploreAirdropMarkup(record){
-  if (record.communityAirdropPercent == null) return '<span class="scanner-airdrop scanner-airdrop--unavailable" title="No verified launch allocation is available"><strong>—</strong><small>Policy unavailable</small></span>';
+  if (record.communityAirdropPercent == null) return '<span class="scanner-airdrop scanner-airdrop--unavailable" title="No verified launch allocation is available"><strong>—</strong><small>Details unavailable</small></span>';
   const policy = verifiedLaunchPolicyForMint(record.address);
   const reserve = verifiedCommunityReserves.get(record.address);
   const funded = communityReserveStatus === 'ready' && reserve?.verified === true && ['funded', 'drop-active'].includes(reserve.status)
     && Number(reserve.reservedTokens) === Number(policy?.communityAirdrop?.reservedTokens);
   const active = funded && reserve.status === 'drop-active';
-  const detail = active ? 'Drop active' : funded ? 'Vault funded' : 'Funding unverified';
+  const detail = active ? 'Claims open' : funded ? 'Upcoming' : 'Checking availability';
   const percent = formatVerifiedPercent(record.communityAirdropPercent);
   const status = active ? 'Reserve vault funded and drop active; check wallet eligibility and claim proof separately.'
     : funded ? 'Reserve vault funding verified; eligibility and distribution remain pending.'
@@ -1035,25 +1037,32 @@ function openExploreBoost(mint){
     const pending = readPendingBoost(mint);
     if (pending?.quote?.mint === mint && pending?.signature && pending?.quote?.id) {
       boostCheckout = { ...boostCheckout, packageId:pending.quote.packageId, quote:pending.quote,
-        pendingSignature:pending.signature, message:'A submitted payment is awaiting proof. Retry verification before paying again.' };
+        pendingSignature:pending.signature, message:'Your previous payment is awaiting confirmation. Check it before paying again.' };
     }
   } catch (error) { boostCheckout.recoveryError = error.message || 'Saved payment details are unavailable. Check device storage before paying again.'; }
   exploreBoostHistory = [];
+  exploreBoostHistoryState = 'loading';
   renderExploreBoostDialog();
   if (!dialog.open) dialog.showModal();
   void loadExploreBoostHistory(mint);
+  productEvent('boost_open');
 }
 let exploreBoostHistory = [];
+let exploreBoostHistoryState = 'loading';
 async function loadExploreBoostHistory(mint){
   const response = await apiRequest(`/api/boosts?mint=${encodeURIComponent(mint)}`).catch(() => ({ available:false }));
-  if (!response.available || boostCheckout.mint !== mint) return;
-  exploreBoostHistory = response.data.history || [];
+  if (boostCheckout.mint !== mint) return;
+  if (!response.available || !Array.isArray(response.data?.history)) {
+    exploreBoostHistoryState = 'unavailable'; renderExploreBoostDialog(); return;
+  }
+  exploreBoostHistoryState = 'ready';
+  exploreBoostHistory = response.data.history;
   if (boostCheckout.pendingSignature && !boostCheckout.busy) {
     try {
       if (archiveVerifiedBoostFromHistory(boostCheckout, exploreBoostHistory)) {
         boostCheckout.pendingSignature = null;
         boostCheckout.quote = null;
-        boostCheckout.message = 'Previous payment verified. Choose another boost pack or request a new quote.';
+        boostCheckout.message = 'Payment confirmed. You can buy another boost.';
       }
     } catch (error) {
       boostCheckout.recoveryError = error.message || 'Saved payment recovery could not be completed. Retry the original payment before paying again.';
@@ -1073,28 +1082,24 @@ function renderExploreBoostDialog(){
   const asset = boostAssetForMint(mint);
   const details = document.querySelector('#explore-boost-details');
   if (!asset || !details) return;
-  const promotion = promotionForMint(mint);
   const name = escapeHtml(asset.name || asset.symbol || shortAddress(mint));
-  document.querySelector('#explore-boost-title').textContent = `Give ${asset.symbol || asset.name || 'token'} a ⚡ Boost`;
+  document.querySelector('#explore-boost-title').textContent = `Boost ${asset.symbol || asset.name || 'token'}`;
   const active = activeBoostMultiplier(verifiedBoosts[mint]) ? verifiedBoosts[mint] : null;
   const selected = boostPackage(packageId);
   const available = !recoveryError && ((EXPLORE_CLUSTER === 'devnet' && !APP_MAINNET_READ_ONLY && boostPurchasesEnabled) || Boolean(pendingSignature));
-  const boostTotal = verifiedBoostsAvailable && active ? Number(active.multiplier) : 0;
   const quotedAmount = quote && quote.mint === mint && quote.packageId === packageId && Date.parse(quote.expiresAt) > Date.now()
     ? (quote.lamports / 1e9).toFixed(9) : null;
-  details.innerHTML = `<p class="explore-boost-intro">Showcase your support for ${name} with a timed, clearly labelled paid boost. Active boosts can improve its position in the Boosted view; market cap and trading activity still come from observed data.</p>
-    <details class="explore-boost-how"><summary>How does it work?</summary><p>Choose a pack, request a fresh Devnet SOL quote, then review the payment in your wallet. The boost activates only after its payment is finalized and verified. Overlapping packs add together until each expires. A boost does not guarantee a ranking or trading activity.</p></details>
-    <h3 class="explore-boost-pack-heading">Choose a boost pack</h3>
-    <p class="explore-boost-payment-method"><span>Payment method</span><strong>SOL · Solana Devnet</strong><small>Estimated SOL amounts are shown below. Review the exact amount and recipient before signing.</small></p>
-    <div class="explore-boost-packages" role="group" aria-label="Boost packages">${BOOST_PACKAGES.map(item => `<button type="button" data-boost-package="${item.id}" aria-pressed="${item.id === packageId}" ${busy || pendingSignature ? 'disabled' : ''}><span class="boost-pack-bolt" aria-hidden="true">⚡</span><strong>${item.id}</strong><small>${item.hours} hours</small><b>${Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? `≈ ${(item.usd / coinSolUsdPrice).toFixed(4)} SOL` : 'Pay in SOL'}</b><small>$${item.usd.toLocaleString()} package · exact SOL quote at checkout</small></button>`).join('')}</div>
-    <div class="explore-boost-golden"><h3>Golden ticker unlocks at 500 active boosts</h3><div class="explore-boost-golden-preview"><span>Verified active boosts</span><strong class="${boostTotal >= 500 ? 'golden-ticker' : ''}">${escapeHtml(asset.symbol || 'TOKEN')}</strong><span>${boostTotal >= 500 ? 'Golden ticker active' : 'Golden ticker preview'}</span></div><p>Boosts active: <strong>${verifiedBoostsAvailable ? boostTotal.toLocaleString() : 'Unavailable'}</strong><span>Boosts needed: <strong>${verifiedBoostsAvailable ? Math.max(0, 500 - boostTotal).toLocaleString() : 'Unavailable'}</strong></span></p></div>
-    <div class="explore-boost-current"><span>Active paid boost</span><strong>${verifiedBoostsAvailable ? (active ? `${escapeHtml(active.multiplier)}x${active.golden ? ' · golden ticker' : ''}` : 'None') : 'Unavailable'}</strong><small>${active ? `${active.count} verified payment${active.count === 1 ? '' : 's'} · latest expiry ${escapeHtml(new Date(active.expiresAt).toLocaleString())}` : 'No active verified payment'} · Launch tier: ${escapeHtml(promotion?.label || 'Standard')}</small></div>
-    <p class="explore-boost-explainer">Fixed USD package price, paid in Devnet SOL at the fresh checkout rate. Devnet SOL has no intended monetary value. Network fee is additional. Boosting is paid visibility, not an endorsement or trade guarantee.</p>
-    ${quotedAmount ? `<div class="explore-boost-quote"><strong>Review exact SOL payment</strong><span>${quotedAmount} SOL</span><small>$${quote.usd} package at $${quote.solUsd}/SOL · network fee additional</small><small>Recipient ${escapeHtml(quote.recipient)} · Quote expires ${escapeHtml(new Date(quote.expiresAt).toLocaleTimeString())}</small></div>` : quote && !pendingSignature ? '<p class="explore-boost-quote-expired">The SOL quote expired. Request a fresh amount before paying.</p>' : ''}
-    ${pendingSignature ? `<a class="explore-boost-proof" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(pendingSignature)}`))}" target="_blank" rel="noopener noreferrer">View submitted transaction ↗</a>` : ''}
-    <button type="button" class="primary-button explore-boost-pay" ${!available || busy ? 'disabled' : ''}>${busy ? 'Checking payment…' : failureProof ? 'Start a new quote' : pendingSignature ? 'Retry payment verification' : quotedAmount ? `Pay ${quotedAmount} SOL · ${selected.id}` : `Get exact SOL quote · ${selected.id}`}</button>
-    <p class="explore-boost-message" role="status">${escapeHtml(recoveryError || message || (available ? 'Connect a Devnet wallet in a wallet-enabled browser to get the exact SOL quote.' : 'New boost purchases are currently unavailable.'))}</p>
-    <div class="explore-boost-history"><strong>Payment history</strong>${exploreBoostHistory.filter(row => row.mint === mint).slice(0, 5).map(row => `<p><span>${escapeHtml(row.packageId)} · ${escapeHtml(shortAddress(row.payer))} · ${escapeHtml(new Date(row.expiresAt).toLocaleString())}</span><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(row.signature)}`))}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></p>`).join('') || '<small>No verified boost payments yet.</small>'}</div>`;
+  const historyRows = boostHistoryRows(exploreBoostHistory, boostCheckout, mint);
+  const historyOpen = pendingSignature || details.querySelector('.explore-boost-history')?.open;
+  details.innerHTML = `<p class="explore-boost-intro">Give ${name} more visibility in the Boosted list. Packs add together while active.</p>
+    <div class="explore-boost-packages" role="group" aria-label="Boost packages">${BOOST_PACKAGES.map(item => `<button type="button" data-boost-package="${item.id}" aria-pressed="${item.id === packageId}" ${busy || pendingSignature ? 'disabled' : ''}><strong>${item.id}</strong><small>${item.hours} hours</small><b>$${item.usd.toLocaleString()}</b><small>${Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? `≈ ${(item.usd / coinSolUsdPrice).toFixed(4)} SOL` : 'Paid in SOL'}</small></button>`).join('')}</div>
+    <div class="explore-boost-current"><span>Active boosts</span><strong>${verifiedBoostsAvailable ? (active ? `${escapeHtml(active.multiplier)}x${active.golden ? ' · golden ticker' : ''}` : 'None') : 'Unavailable'}</strong>${active ? `<small>${active.count} purchase${active.count === 1 ? '' : 's'} · latest expiry ${escapeHtml(new Date(active.expiresAt).toLocaleString())}</small>` : ''}</div>
+    <p class="explore-boost-explainer">Pay in Solana Devnet test SOL. Network fee is additional. Test SOL has no monetary value.</p>
+    ${quotedAmount ? `<div class="explore-boost-quote"><strong>Review your payment</strong><span>${quotedAmount} SOL</span><small>$${quote.usd} package · $${quote.solUsd}/SOL</small><small>To ${escapeHtml(quote.recipient)}</small><small>Price valid until ${escapeHtml(new Date(quote.expiresAt).toLocaleTimeString())}</small></div>` : quote && !pendingSignature ? '<p class="explore-boost-quote-expired">This price expired. Get an updated price before paying.</p>' : ''}
+    <button type="button" class="primary-button explore-boost-pay" ${!available || busy ? 'disabled' : ''}>${busy ? 'Checking payment…' : failureProof ? 'Start a new purchase' : pendingSignature ? 'Check payment status' : quotedAmount ? `Pay ${quotedAmount} SOL · ${selected.id}` : `${active ? 'Buy another boost' : 'Continue'} · ${selected.id} · $${selected.usd.toLocaleString()}`}</button>
+    <p class="explore-boost-message" role="status">${escapeHtml(recoveryError || message || (available ? 'Review the exact SOL amount before approving in your wallet.' : 'New boost purchases are currently unavailable.'))}</p>
+    <details class="explore-boost-history" ${historyOpen ? 'open' : ''}><summary>Payment history${historyRows.length ? ` (${historyRows.length})` : ''}</summary>${historyRows.map(row => `<p><span><strong>${escapeHtml(row.packageId)} · ${escapeHtml(row.state)}</strong><small>${row.pending ? 'Check the original payment before buying again.' : row.expiresAt ? `Expires ${escapeHtml(new Date(row.expiresAt).toLocaleString())}` : 'View transaction for details'}</small></span><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(row.signature)}`))}" target="_blank" rel="noopener noreferrer">${row.pending ? 'View transaction' : 'View receipt'} ↗</a></p>`).join('') || `<small>${exploreBoostHistoryState === 'loading' ? 'Loading payment history…' : exploreBoostHistoryState === 'unavailable' ? 'Payment history is unavailable. Reopen this window to try again.' : 'No boost purchases yet.'}</small>`}</details>
+    <details class="explore-boost-how"><summary>How boosts work</summary><p>Packs last ${selected.hours} hours after payment is confirmed. Overlapping packs add together; 500 active boosts unlock the golden ticker. Boosts are paid visibility and do not guarantee trading activity or returns.</p></details>`;
 }
 async function handleExploreBoostPay(){
   if (boostCheckout.busy || !boostCheckout.mint || boostCheckout.recoveryError) return;
@@ -1153,7 +1158,7 @@ async function handleExploreBoostPay(){
       boostCheckout.quote = quote;
       const submitted = await rpc.sendRawTransaction(signedBytes, { skipPreflight:false, maxRetries:3 });
       if (submitted !== signature) throw new Error('RPC returned a different signature. Verify the originally signed payment before continuing.');
-      boostCheckout.message = 'Transaction submitted. Waiting for finalized Devnet proof.';
+      boostCheckout.message = 'Payment submitted. Waiting for confirmation.';
       await verifyExploreBoostPayment(true);
       return;
     }
@@ -1176,9 +1181,10 @@ async function verifyExploreBoostPayment(alreadyBusy = false){
       if (resolution === 'finalized') {
         const mint = boostCheckout.mint;
         archiveBoostPayment(boostCheckout, response.data);
+        productEvent('boost_confirmed');
         boostCheckout.pendingSignature = null;
         boostCheckout.quote = null;
-        boostCheckout.message = 'Boost activated from a finalized Solana payment. View the receipt below.';
+        boostCheckout.message = 'Your boost is active. You can buy another boost or view your receipt below.';
         await loadVerifiedBoosts();
         await loadExploreBoostHistory(mint);
         return;
@@ -2786,8 +2792,8 @@ function exploreOutageCopy(){
     detail: `${exploreProviderStatus}. Retry verification when RPC access recovers; unverified tokens remain hidden.`,
   };
   return {
-    title: 'Launch feed unavailable.',
-    detail: 'The launch API did not return a verified registry. Retry verification when the service recovers.',
+    title: 'Tokens are temporarily unavailable.',
+    detail: 'We couldn’t load tokens right now. Please try again.',
   };
 }
 function renderExploreAssets({ force = false } = {}){
@@ -2852,7 +2858,7 @@ function renderExploreAssets({ force = false } = {}){
     action.type = 'button';
     action.className = 'explore-empty-action';
     action.dataset.exploreEmptyAction = assets.length ? 'clear' : 'retry';
-    action.textContent = assets.length ? exploreTab === 'new' ? 'View all tokens' : 'Clear filters' : 'Retry verification';
+    action.textContent = assets.length ? exploreTab === 'new' ? 'View all tokens' : 'Clear filters' : 'Try again';
     grid.querySelector('.empty-state')?.append(action);
   }
   renderWatchlist();
@@ -2865,7 +2871,7 @@ document.addEventListener('click', async event => {
   button.textContent = 'Checking launches…';
   try { await loadOnchainExploreData(); }
   catch { showToast('Verification is unavailable. Please try again shortly.'); }
-  finally { button.disabled = false; button.textContent = 'Retry verification'; }
+  finally { button.disabled = false; button.textContent = 'Try again'; }
 });
 document.querySelector('#asset-grid')?.addEventListener('focusout', () => {
   queueMicrotask(() => {
@@ -3952,7 +3958,7 @@ function renderHomeLaunchBoard(){
     feedState.dataset.state = exploreFeedAvailable ? 'live' : exploreLastVerifiedAt ? 'snapshot' : 'unavailable';
   }
   const tickerLabel = document.querySelector('#home-market-ticker-label');
-  if (tickerLabel) tickerLabel.textContent = 'All verified launches';
+  if (tickerLabel) tickerLabel.textContent = 'Latest launches';
   const volumeFilterLabel = document.querySelector('#home-filter-volume-label');
   if (volumeFilterLabel?.firstChild) volumeFilterLabel.firstChild.textContent = `${homeLaunchWindow} Vol `;
   const tradesFilterLabel = document.querySelector('#home-filter-trades-label');
@@ -4040,10 +4046,10 @@ function renderHomeLaunchBoard(){
   if (!visible.length) {
     const feedUnavailable = (!exploreFeedAvailable && !exploreLastVerifiedAt)
       || /RPC (?:rate limited|unavailable)/i.test(exploreProviderStatus);
-    const title = feedUnavailable ? 'Launch feed unavailable.' : homeLaunchTab === 'watchlist' ? 'No watched launches yet.' : homeLaunchFilterCount(homeLaunchFilters) ? 'No launches match these filters.' : 'No verified launches in this view.';
+    const title = feedUnavailable ? 'Tokens are temporarily unavailable.' : homeLaunchTab === 'watchlist' ? 'No watched launches yet.' : homeLaunchFilterCount(homeLaunchFilters) ? 'No launches match these filters.' : 'No verified launches in this view.';
     const detail = feedUnavailable ? 'Current Solana mint and market checks could not finish. Recorded reward and airdrop policies remain visible in their own sections.' : homeLaunchTab === 'watchlist' ? 'Save a verified mint from Explore to see it here.' : 'Try another view or adjust the filters.';
-    grid.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${detail}</span>${feedUnavailable ? '<button type="button" class="secondary-button" data-verified-feed-retry>Retry verification</button>' : ''}</div>`;
-    if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="home-table-empty"><strong>${title}</strong><span>${detail}</span>${feedUnavailable ? '<button type="button" class="secondary-button" data-verified-feed-retry>Retry verification</button>' : ''}</td></tr>`;
+    grid.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${detail}</span>${feedUnavailable ? '<button type="button" class="secondary-button" data-verified-feed-retry>Try again</button>' : ''}</div>`;
+    if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="home-table-empty"><strong>${title}</strong><span>${detail}</span>${feedUnavailable ? '<button type="button" class="secondary-button" data-verified-feed-retry>Try again</button>' : ''}</td></tr>`;
     return;
   }
   if (tableBody) {
@@ -4559,7 +4565,7 @@ function renderRegistry(query = exploreQuery){
     list.innerHTML = registryLoading
       ? '<div class="empty-state">Checking the verified launch feed…</div>'
       : registryUnavailable
-      ? `<div class="empty-state"><strong>${escapeHtml(outage.title)}</strong><span>${escapeHtml(outage.detail)}</span><button type="button" class="secondary-button" data-verified-feed-retry>Retry verification</button><a class="explore-policy-link" href="#airdrops">Browse recorded airdrop policies →</a></div>`
+      ? `<div class="empty-state"><strong>${escapeHtml(outage.title)}</strong><span>${escapeHtml(outage.detail)}</span><button type="button" class="secondary-button" data-verified-feed-retry>Try again</button><a class="explore-policy-link" href="#airdrops">Browse recorded airdrop policies →</a></div>`
       : `<div class="empty-state">${escapeHtml(reason?.[0] || 'No verified launches match these filters.')} ${escapeHtml(reason?.[1] || 'Try All stages or clear the search.')}</div>`;
     return;
   }
@@ -5141,6 +5147,7 @@ async function verifyPendingTrade(activeConnection = null, targetSignature = nul
     if (button) button.hidden = pendingTradeVerifications.size === 0;
     setTradeReceiptStatus(`${pending.side === 'buy' ? 'Buy' : 'Sell'} finalized with verified balance change and indexed trade. App fee: ${(pending.feeLamports / 1_000_000_000).toFixed(6)} SOL.`, pending.signature);
     rememberRoundTripReceipt({ walletAddress:pending.walletAddress, mint:pending.mint, side:pending.side, signature:pending.signature, symbol:pending.symbol });
+      productEvent('trade_confirmed');
     renderRoundTripAction();
     const share = document.querySelector('#trade-share');
     if (share) {
@@ -6065,7 +6072,7 @@ function updateLaunchNavigation(){
   back.hidden = launchStep === 1;
   next.hidden = launchStep === 3;
   next.disabled = false;
-  next.textContent = launchStep === 2 ? 'Review settings' : 'Continue to settings';
+  next.textContent = launchStep === 2 ? 'Review launch' : 'Continue to rewards';
   if (retry) {
     retry.hidden = launchStep !== 3 || (feeRouterState.verified && (!wallet || (estimatedLaunchFeeLamports != null && freshLaunchReview(launchCostReview))));
     retry.disabled = feeRouterState.status === 'checking' || walletMetricsLoading;

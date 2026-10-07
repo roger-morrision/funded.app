@@ -130,7 +130,7 @@ function navigation() {
   const searchDialog = node('dialog', 'header-search-dialog');
   searchDialog.id = 'header-search-dialog';
   searchDialog.setAttribute('aria-label', 'Search launches');
-  searchDialog.innerHTML = `<form class="header-search-panel"><label for="header-search-input">Search launches</label><div class="header-search-field"><span aria-hidden="true">${icon('explore')}</span><input id="header-search-input" type="search" role="combobox" aria-autocomplete="list" aria-expanded="true" autocomplete="off" placeholder="Search name, ticker, or mint" aria-controls="header-search-results" /><button type="button" class="header-search-close" aria-label="Close search">${icon('close')}</button></div><div class="header-search-results-head"><strong id="header-search-results-title">TOP VERIFIED LAUNCHES</strong><span>NAME · $TICKER · MINT</span></div><div id="header-search-results" class="header-search-results" role="listbox" aria-label="Verified launch search results"></div><p id="header-search-help">↑↓ navigate · ↵ open · Esc close</p></form>`;
+  searchDialog.innerHTML = `<form class="header-search-panel"><label for="header-search-input">Search launches</label><div class="header-search-field"><span aria-hidden="true">${icon('explore')}</span><input id="header-search-input" type="search" role="combobox" aria-autocomplete="list" aria-expanded="true" autocomplete="off" placeholder="Search name, ticker, or mint" aria-controls="header-search-results" /><button type="button" class="header-search-close" aria-label="Close search">${icon('close')}</button></div><div class="header-search-results-head"><strong id="header-search-results-title">EXPLORE TOKENS</strong><span>NAME · SYMBOL · ADDRESS</span></div><div id="header-search-results" class="header-search-results" role="listbox" aria-label="Verified launch search results"></div><p id="header-search-help">↑↓ navigate · ↵ open · Esc close</p></form>`;
   document.body.append(searchDialog);
   const modalSearch = $('#header-search-input', searchDialog);
   const globalSearch = $('#global-search');
@@ -140,10 +140,10 @@ function navigation() {
   const renderSearchResults = () => {
     candidates = window.fundedVerifiedSearchCandidates?.(modalSearch.value) || [];
     activeCandidate = candidates.length ? 0 : -1;
-    $('#header-search-results-title', searchDialog).textContent = modalSearch.value.trim() ? 'MATCHING VERIFIED LAUNCHES' : 'TOP VERIFIED LAUNCHES';
+    $('#header-search-results-title', searchDialog).textContent = modalSearch.value.trim() ? 'SEARCH RESULTS' : 'EXPLORE TOKENS';
     searchResults.replaceChildren();
     if (!candidates.length) {
-      const empty = node('p', 'header-search-empty', modalSearch.value.trim() ? 'No verified launch matches this search. Press Enter to search Launch Directory.' : 'No verified launches in the current feed.');
+      const empty = node('p', 'header-search-empty', modalSearch.value.trim() ? 'No matching tokens. Press Enter to search Explore.' : 'No tokens available right now.');
       searchResults.append(empty);
     }
     candidates.forEach((candidate, index) => {
@@ -565,7 +565,7 @@ function rewards() {
   overview.innerHTML = `<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Rewards</p><h1>Your rewards</h1><p>Check what you can claim, what is still waiting, and what has reached your wallet.</p></div>
     <section class="reward-upcoming" aria-labelledby="reward-upcoming-title"><header><p class="eyebrow">Plan ahead</p><h2 id="reward-upcoming-title">When to join, when to wait</h2><p>Recorded cutoffs and targets appear per reward. A target is not a confirmed payment.</p></header><div class="reward-upcoming-grid">
       <article><span>SOL · COIN HOLDERS</span><h3>Hold before the daily snapshot</h3><p>Choose a coin with a holder fee share and hold through its cutoff. Eligible funded cycles pay SOL automatically; small pools can roll forward.</p><button type="button" data-reward-open="holder">See cutoff and payout target →</button></article>
-      <article><span>LAUNCHED COIN TOKENS · $FUNDED HOLDERS</span><h3>Hold before that coin migrates</h3><p>Each coin snapshots $FUNDED holders at migration. After vault and proof checks, eligible wallets can claim that coin’s tokens within 90 days.</p><a href="#airdrops">See airdrops and claim status →</a></article>
+      <article><span>LAUNCHED COIN TOKENS · $FUNDED HOLDERS</span><h3>Hold before that coin migrates</h3><p>Each coin snapshots $FUNDED holders at migration. Once claims open, eligible wallets have 90 days to claim.</p><a href="#airdrops">See airdrops and claim status →</a></article>
     </div><p class="reward-upcoming-note">Creator, X, and referral SOL depend on collected fees. X and referral rewards require a claim when ready.</p></section>
     <div class="reward-overview-start"><p class="eyebrow">Explore rewards</p><h2>Reward programs</h2><p>Each program has its own eligibility and payment status.</p></div>
     <div class="reward-action-grid">
@@ -780,7 +780,7 @@ function tokenPage() {
     const factRibbon=$('.coin-fact-ribbon',hero);
     if(factRibbon)aboutPanel.append(factRibbon);
     const updatesPanel=node('div','coin-profile-panel coin-profile-updates');
-    updatesPanel.append(node('strong','','No signed updates available'),node('p','','Project updates are not indexed for this token. Confirmed trades and on-chain records appear below.'));
+    updatesPanel.append(node('strong','','No updates yet'),node('p','','Updates from this project will appear here.'));
     const roadmapPanel=node('section','coin-profile-roadmap-section');roadmapPanel.id='coin-profile-roadmap-section';
     roadmapPanel.append(node('h3','','Project roadmap'));
     const roadmap=node('p','coin-profile-roadmap','No signed roadmap was provided for this token.');roadmap.id='coin-profile-roadmap';

@@ -1,4 +1,5 @@
 import { apiRequest } from './client.js';
+import { PRODUCT_EVENTS, productCounterExport } from './product-events.js';
 import { readLaunchJournal, recordLaunchEvent, policyMatchesJournal } from './launch-journal.js';
 import { notificationItems } from './notification-model.js';
 import { createFollowingFeed } from './following-feed.js';
@@ -54,7 +55,7 @@ async function reconcileRegisteredLaunches(){
 void reconcileRegisteredLaunches();
 
 const preferences=document.createElement('section');preferences.className='adoption-panel';preferences.id='community-preferences';
-preferences.innerHTML='<h2>Following & updates</h2><p>Following works without buying. Optionally save or restore your list using your signed-in X account.</p><div class="support-actions"><button id="save-following">Save following to my X account</button><button id="restore-following">Restore saved following</button></div><label><input id="updates-consent" type="checkbox">Show followed creator updates in this app (refresh at most once a minute while visible)</label><button id="updates-refresh">Refresh followed updates</button><p id="following-status" role="status"></p><div id="following-updates"></div><details><summary>Private product diagnostics</summary><label><input id="diagnostics-consent" type="checkbox" aria-describedby="diagnostics-status">Count my navigation on this device</label><p id="diagnostics-status" role="status" aria-live="polite"></p><p>No wallet addresses, text, handles or browsing URLs are collected. Nothing is sent to an analytics service. This does not measure unique users or retention.</p><pre id="diagnostics-summary"></pre><button id="diagnostics-clear">Clear local counters</button></details>';
+preferences.innerHTML='<h2>Following & updates</h2><p>Following works without buying. Optionally save or restore your list using your signed-in X account.</p><div class="support-actions"><button id="save-following">Save following to my X account</button><button id="restore-following">Restore saved following</button></div><label><input id="updates-consent" type="checkbox">Show followed creator updates in this app (refresh at most once a minute while visible)</label><button id="updates-refresh">Refresh followed updates</button><p id="following-status" role="status"></p><div id="following-updates"></div><details><summary>Private product diagnostics</summary><label><input id="diagnostics-consent" type="checkbox" aria-describedby="diagnostics-status">Count product steps on this device</label><p id="diagnostics-status" role="status" aria-live="polite"></p><p>No wallet addresses, text, handles or browsing URLs are collected. Nothing is sent to an analytics service. This does not measure unique users or retention.</p><pre id="diagnostics-summary"></pre><button id="diagnostics-clear">Clear local counters</button></details>';
 preferences.querySelector('details > summary').textContent = 'Privacy controls';
 $('#community').append(preferences);
 const feedControls=document.createElement('div');feedControls.className='support-actions';
@@ -133,24 +134,24 @@ diagnosticsConsent.onchange=()=>{
     localStorage.setItem(diagnosticsConsentKey,String(enabled));
     if(localStorage.getItem(diagnosticsConsentKey)!==String(enabled))throw new Error('Preference not saved');
     diagnosticsStopped=!enabled;diagnosticsConsent.checked=enabled;
-    diagnosticsStatus.textContent=enabled?'Navigation counting is on for this device. Nothing is uploaded.':'Navigation counting is off. Existing local counters were kept.';
+    diagnosticsStatus.textContent=enabled?'Product step counting is on for this device. Nothing is uploaded.':'Product step counting is off. Existing local counters were kept.';
   }catch{
     stopDiagnostics('Your diagnostics preference could not be saved. Counting stopped in this tab; the saved setting may be unchanged. Allow browser storage and reload to review it.');
   }
 };
 function diagnostic(event){
-  if(diagnosticsStopped || !diagnosticsConsent.checked || event!=='navigation')return;
+  if(diagnosticsStopped || !diagnosticsConsent.checked || !PRODUCT_EVENTS.has(event))return;
   try{
-    if(localStorage.getItem(diagnosticsConsentKey)!=='true'){stopDiagnostics('Navigation counting was turned off. Existing local counters were kept.');return;}
+    if(localStorage.getItem(diagnosticsConsentKey)!=='true'){stopDiagnostics('Product step counting was turned off. Existing local counters were kept.');return;}
     const today=new Date().toISOString().slice(0,10),rows=readDiagnostics();
     rows[today]??={};
     if(typeof rows[today]!=='object' || Array.isArray(rows[today]))throw new Error('Invalid counters');
     const count=rows[today][event]??0;
     if(!Number.isSafeInteger(count) || count<0 || count===Number.MAX_SAFE_INTEGER)throw new Error('Invalid count');
     rows[today][event]=count+1;
-    if(localStorage.getItem(diagnosticsConsentKey)!=='true'){stopDiagnostics('Navigation counting was turned off. Existing local counters were kept.');return;}
+    if(localStorage.getItem(diagnosticsConsentKey)!=='true'){stopDiagnostics('Product step counting was turned off. Existing local counters were kept.');return;}
     localStorage.setItem(diagnosticsCountsKey,JSON.stringify(Object.fromEntries(Object.entries(rows).slice(-30))));
-    if(localStorage.getItem(diagnosticsConsentKey)!=='true'){stopDiagnostics('Navigation counting was turned off. Existing local counters were kept.');return;}
+    if(localStorage.getItem(diagnosticsConsentKey)!=='true'){stopDiagnostics('Product step counting was turned off. Existing local counters were kept.');return;}
     renderDiagnostics();
   }catch{stopDiagnostics('Local counters could not be updated. Counting stopped in this tab. Allow browser storage and reload to review your saved setting.');}
 }
@@ -158,16 +159,28 @@ $('#diagnostics-clear').onclick=()=>{
   try{
     localStorage.removeItem(diagnosticsCountsKey);
     if(!renderDiagnostics())return;
-    diagnosticsStatus.textContent=`Local counters cleared. Navigation counting ${!diagnosticsStopped && diagnosticsConsent.checked?'remains on':'is off in this tab'}.`;
+    diagnosticsStatus.textContent=`Local counters cleared. Product step counting ${!diagnosticsStopped && diagnosticsConsent.checked?'remains on':'is off in this tab'}.`;
   }catch{stopDiagnostics('Local counters could not be cleared. Saved data may remain. Counting stopped in this tab; allow browser storage and try Clear local counters again.');}
 };
 window.addEventListener('storage',event=>{
   // Honor an off notification directly: another renderer's localStorage cache
   // can lag. A remote opt-in never reverses this tab's explicit/failure stop.
   if(event.key===null || event.key===diagnosticsConsentKey && event.newValue!=='true'){
-    stopDiagnostics(event.key===null?'Browser data was cleared in another tab. Navigation counting stopped.':'Navigation counting was turned off in another tab. Existing local counters were kept.');
+    stopDiagnostics(event.key===null?'Browser data was cleared in another tab. Product step counting stopped.':'Product step counting was turned off in another tab. Existing local counters were kept.');
   }
   if(event.key===null || event.key===diagnosticsCountsKey)renderDiagnostics();
 });
 renderDiagnostics();
+window.addEventListener('funded:product-event', event => diagnostic(event.detail?.name));
+const exportCounters = document.createElement('button');
+exportCounters.type = 'button'; exportCounters.textContent = 'Export local counters'; exportCounters.id = 'diagnostics-export';
+$('#diagnostics-clear').after(exportCounters);
+exportCounters.addEventListener('click', () => {
+  try {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(productCounterExport(readDiagnostics()), null, 2)], { type:'application/json' }));
+    const link = document.createElement('a'); link.href = url; link.download = 'funded-device-journeys.json'; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch { diagnosticsStatus.textContent = 'Could not export local counters. Try again after allowing downloads.'; }
+});
+diagnosticsConsent.parentElement.lastChild.textContent = ' Count product steps on this device';
 window.addEventListener('hashchange',()=>{diagnostic('navigation');if(location.hash==='#community')void refreshUpdates();});

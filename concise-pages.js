@@ -231,7 +231,7 @@ function shortenPageCopy() {
     ['#payments > .workspace-page-header > p:last-child', 'Check what you can claim, what is still waiting, and what has reached your wallet.'],
     ['#my-launches > .section-heading .panel-explainer', 'Your launches and saved tokens.'],
     ['#capital-flow > .section-heading .panel-explainer', 'See how collected creator fees are shared.'],
-    ['#launch-route-shell > .page-lede', 'Add the coin details, choose a tier, and review the cost before connecting your wallet.'],
+    ['#launch-route-shell > .page-lede', 'Add your token details, choose rewards, and review the total before signing.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
     ['#community .section-heading .panel-explainer', 'Save coins from Explore to watch them here.'],
     ['#reward-alerts > header p:not(.eyebrow)', 'Get alerts for verified activity on saved coins.'],

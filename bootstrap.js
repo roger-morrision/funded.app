@@ -18,6 +18,7 @@ await loadBootstrapModules([
   ...(APP_JACKPOT_ENABLED ? [{ name: 'Jackpot', load: () => import('./jackpot-ui.js') }] : []),
   { name: 'Saved preferences', load: () => import('./retention-ux.js') },
   { name: 'Service status', load: () => import('./service-status-ui.js') },
+  { name: 'Product experience', load: () => import('./product-experience.js') },
 ], ({ name, required, error }) => {
   console.error(`Could not initialize ${name}:`, error);
   if (required) appFailed();

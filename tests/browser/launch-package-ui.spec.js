@@ -15,6 +15,8 @@ for (const width of [1440, 390]) test(`launch package and X previews update at $
   await expect(page.locator('#preview-name')).toHaveText('Sample Coin');
   await expect(page.locator('#preview-symbol')).toHaveText('SAMPLE');
   await expect(page.locator('#launch-x-post-preview')).toContainText('Sample Coin');
+  await page.locator('#launch-next').click();
+  await page.locator('.product-details:has(#launch-package-example) > summary').click();
   await page.locator('.creator-burn-card[data-burn-tier="pro"]').click();
   await expect(page.locator('#launch-package-example')).toHaveAttribute('data-tier', 'pro');
   await expect(page.locator('#launch-x-post-preview')).toContainText('Pro launch');
@@ -28,9 +30,9 @@ for (const width of [1440, 390]) test(`launch package and X previews update at $
 test('Home opens the live launch form and old pilot links resolve there', async ({ page }) => {
   await page.goto('/#overview');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  const create = page.locator('.hero-actions a.primary-button');
+  const create = page.locator('.hero-actions a[href="#launch"]');
   await expect(create).toHaveAttribute('href', '#launch');
-  await expect(create).toHaveText(/Create a coin/);
+  await expect(create).toHaveText(/Launch a token/);
   await expect(page.locator('.home-hero-kicker')).not.toContainText(/pilot|devnet/i);
   await create.click();
   await expect(page.locator('#launch-route-shell')).toBeVisible();

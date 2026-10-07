@@ -48,7 +48,7 @@ test('migrated token renders verified pool swaps and marks partial coverage', as
   assert.equal(view.fields.get('#coin-trade-count'), '≥3');
   assert.equal(view.fields.get('#coin-volume'), '≥$50.39 · partial');
   assert.match(view.fields.get('#coin-volume-source'), /Partial curve \+ pool RPC scan/);
-  assert.match(view.fields.get('#coin-description'), /Confirmed curve and pool trade observations from a partial RPC scan/);
+  assert.match(view.fields.get('#coin-description'), /Recent trades are shown below, though some history may be missing/);
   assert.doesNotMatch(view.fields.get('#coin-description'), /pool trades excluded/);
 });
 

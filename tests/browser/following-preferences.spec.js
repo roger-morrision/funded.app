@@ -5,7 +5,7 @@ const errors=new WeakMap();
 async function configure(page,found){page.on('pageerror',error=>found.push(error.message));await page.route('**/api/**',route=>route.fulfill({status:503,contentType:'application/json',body:'{}'}));await page.route('https://**/*',route=>route.abort());}
 test.beforeEach(async({page})=>{const found=[];errors.set(page,found);await configure(page,found);});
 test.afterEach(async({page})=>expect(errors.get(page),'No uncaught browser errors').toEqual([]));
-async function open(page){await page.goto('/#community');await expect(page.locator('body')).toHaveClass(/workspace-ready/);await expect(page.locator('#community-preferences')).toBeVisible();}
+async function open(page){await page.goto('/#community');await expect(page.locator('body')).toHaveClass(/product-experience-ready/);await page.locator('.product-details:has(#community-preferences) > summary').click();await expect(page.locator('#community-preferences')).toBeVisible();}
 async function diagnostics(page){await open(page);await page.locator('#community-preferences summary').click();}
 async function raw(page,key){return page.evaluate(key=>(window.qaDiagnosticsGet||Storage.prototype.getItem).call(localStorage,key),key);}
 async function navigateHome(page){await page.getByRole('link',{name:'Home',exact:true}).first().click();await expect(page).toHaveURL(/#overview$/);}
