@@ -52,6 +52,28 @@ test('activation excludes older verified projects and malformed paid tiers', asy
   assert.deepEqual(result.events.map(event => event.payload.marketingTier), ['standard']);
 });
 
+test('activation excludes follow-ups for Premier launches before publisher activation', async () => {
+  const oldPremier = { ...launch, createdTimestamp: Date.parse('2026-10-03T23:00:00Z') / 1000,
+    creatorLaunchBurn: { ...launch.creatorLaunchBurn, tier: 'premier' } };
+  const result = await collectXPostEvents({ state: { launches: [oldPremier] }, enabledAt,
+    now: '2026-10-05T01:00:00Z', adapters: {
+      verifyLaunch: async () => assert.fail('A preactivation launch must not be verified for a follow-up'),
+      isPostedEvent: async () => assert.fail('A preactivation launch has no eligible original post'),
+    } });
+  assert.deepEqual(result.events, []);
+  assert.deepEqual(result.sourceGaps.filter(gap => gap.source === 'launch_followup'), []);
+  assert.deepEqual(result.cursor.streams.launch_followup.pending, []);
+  const oldId = `devnet:launch_followup:${createHash('sha256').update(`${oldPremier.mint}:${oldPremier.signature}`).digest('hex')}`;
+  const stale = structuredClone(result.cursor);
+  stale.streams.launch_followup.pending = [oldId];
+  const cleaned = await collectXPostEvents({ state: { launches: [oldPremier] }, enabledAt,
+    now: '2026-10-05T01:01:00Z', cursor: stale, adapters: {
+      verifyLaunch: async () => assert.fail('A preactivation follow-up must not reverify'),
+    } });
+  assert.deepEqual(cleaned.cursor.streams.launch_followup.pending, []);
+  assert.equal(cleaned.sourceGaps.filter(gap => gap.source === 'launch_followup').length, 1);
+});
+
 test('launch events require a separate finalized proof and skip historical announcements', async () => {
   const state = { launches: { [mint]: launch } };
   assert.equal((await collectXPostEvents({ state, enabledAt, now })).events.length, 0);

@@ -243,7 +243,7 @@ export async function collectXPostEvents({ state = {}, rewardState = null, enabl
       at: row => time(row.consentedAt), identity: row => `${row.wallet}:${row.mint}:${row.buySignature}:${row.sellSignature}` },
     { kind: 'daily_projects', daily: true, provider: adapters.verifiedDailyProjects },
     { kind: 'daily_rewards', daily: true, provider: adapters.verifiedDailyRewards },
-    { kind: 'launch_followup', rows: Object.values(state.launches || {}).filter(row => row?.onchainVerified === true && row.cluster === 'devnet' && marketingTier(row) === 'premier'), verifier: adapters.verifyLaunch,
+    { kind: 'launch_followup', rows: Object.values(state.launches || {}).filter(row => row?.onchainVerified === true && row.cluster === 'devnet' && marketingTier(row) === 'premier' && launchTime(row) >= baseline), verifier: adapters.verifyLaunch,
       at: row => launchTime(row) + DAY, identity: row => `${row.mint}:${row.signature}` },
   ];
   // Each kind gets first priority within six polls, even with a one-item budget.
