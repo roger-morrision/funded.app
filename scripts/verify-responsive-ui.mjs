@@ -40,6 +40,7 @@ try {
       try {
         await page.goto(`${base}${route}`, { waitUntil: 'domcontentloaded' });
         await page.waitForSelector('body.workspace-ready', { timeout: 20000 });
+        await page.waitForSelector('body.product-experience-ready', { timeout: 20000 });
         const state = await page.evaluate(() => {
           const visible = element => {
             const css = getComputedStyle(element);
@@ -71,7 +72,7 @@ try {
           assert(await page.locator('#community .section-heading h2').isVisible());
           assert.equal(await page.locator('#community .section-heading h2').innerText(), 'Saved launches');
           assert.equal(await page.locator('#my-launches > .portfolio-dashboard').isVisible(), false);
-          assert(await page.locator('#community-preferences').evaluate(element => element.parentElement?.id === 'community'));
+          assert(await page.locator('#community .product-details:has(#community-preferences) > summary').isVisible());
         }
         if (route === '/#capital-flow') {
           assert.equal(await page.locator('#route-guide').isVisible(), false);

@@ -36,7 +36,11 @@ async function open(route, width) {
 try {
   await open('payments', 1280);
   assert((await page.locator('#reward-portfolio').boundingBox()).y < 500);
-  assert(await page.locator('#rewards-overview .reward-upcoming').isVisible());
+  const upcomingGuide = page.locator('#rewards-overview details.product-details:has(.reward-upcoming)');
+  assert(await upcomingGuide.locator('summary').isVisible());
+  assert.equal(await upcomingGuide.evaluate(element => element.open), false);
+  await upcomingGuide.locator('summary').click();
+  assert(await upcomingGuide.locator('.reward-upcoming').isVisible());
   await page.locator('#rewards-holder-tab').click();
   const rewardGuide = page.locator('#rewards-holder .page-cleanup-guide[data-guide="holder"]');
   await rewardGuide.waitFor({ state: 'visible' });
@@ -87,13 +91,14 @@ try {
   }
 
   await open('explore', 390);
-  await page.waitForFunction(() => document.querySelector('#scanner-count')?.textContent === 'Launch feed unavailable.');
+  await page.waitForFunction(() => /unavailable/i.test(document.querySelector('#scanner-count')?.textContent || ''));
   const outageCopy = await page.evaluate(() => ({
     card:[document.querySelector('#asset-grid .empty-state strong')?.textContent, document.querySelector('#asset-grid .empty-state span')?.textContent],
     table:[document.querySelector('#launch-list .empty-state strong')?.textContent, document.querySelector('#launch-list .empty-state span')?.textContent],
   }));
   assert.deepEqual(outageCopy.card, outageCopy.table);
-  assert.match(outageCopy.card.join(' '), /launch API did not return a verified registry/i);
+  assert.equal(await page.locator('#scanner-count').innerText(), outageCopy.card[0]);
+  assert.match(outageCopy.card.join(' '), /temporarily unavailable|verification unavailable/i);
   assert.match(await page.locator('.explore-hero').evaluate(element => getComputedStyle(element).backgroundImage), /linear-gradient/);
 
   await open('launch', 390);
