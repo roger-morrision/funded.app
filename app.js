@@ -833,6 +833,7 @@ let communityReserveStatus = 'loading';
 let communityClaimPolicy = null;
 let communityFundingPreview = null;
 let communityClaimReview = null;
+const communityWalletAllocations = new Map();
 async function loadCommunityReserveStatuses(){
   const response = await apiRequest('/api/airdrops/reserves').catch(() => ({ available:false }));
   communityReserveStatus = response.available && response.data?.cluster === 'devnet' && Array.isArray(response.data.reserves) ? 'ready' : 'unavailable';
@@ -1594,6 +1595,24 @@ function renderAirdropSummary(programs){
 let airdropDirectoryPage = 1;
 let airdropDirectoryStatus = 'upcoming';
 const AIRDROP_DIRECTORY_PAGE_SIZE = 10;
+function directoryWalletAmount(program){
+  if (!program.claimActive) return program.status === 'closed' ? 'Claims closed' : 'Check when claims open';
+  if (!connectedWalletAddress) return 'Connect to check';
+  const allocation = communityWalletAllocations.get(program.id);
+  if (!allocation || allocation.wallet !== connectedWalletAddress || allocation.snapshotHash !== program.snapshotHash)
+    return 'Check allocation';
+  if (allocation.status === 'checking') return 'Checking…';
+  if (allocation.status === 'claimable') return `${allocation.amount} ${program.symbol}`;
+  if (allocation.status === 'claimed') return 'Already claimed';
+  if (allocation.status === 'ineligible') return 'No allocation';
+  return 'Proof unavailable';
+}
+function updateDirectoryWalletAmount(session, program, status, amount){
+  if (!isWalletSessionCurrent(session)) return false;
+  communityWalletAllocations.set(program.id, { wallet: session.address, snapshotHash: program.snapshotHash, status, amount });
+  renderAirdropDirectory();
+  return true;
+}
 function renderAirdropDirectory(programs = getAirdropPrograms()){
   const list = document.querySelector('#airdrop-directory');
   if (!list) return;
@@ -1609,12 +1628,14 @@ function renderAirdropDirectory(programs = getAirdropPrograms()){
   list.innerHTML = filtered.slice(first, first + AIRDROP_DIRECTORY_PAGE_SIZE).map(program => {
     const safeMint = escapeHtml(program.id);
     const safeSymbol = escapeHtml(program.symbol);
+    const walletCheck = communityWalletAllocations.get(program.id);
+    const checking = walletCheck?.status === 'checking' && walletCheck.wallet === connectedWalletAddress && walletCheck.snapshotHash === program.snapshotHash;
     const snapshotReady = program.eligibleWallets != null;
     const cardData = tokenCardData({ mint: program.id, policy: verifiedLaunchPolicyForMint(program.id), reserve: { mint: program.id, verified: program.vaultVerified } });
     return `<article class="token-card-shell airdrop-directory-card" data-logo-mint="${safeMint}">
       <div class="directory-card-top"><span class="claim-token-mark" aria-hidden="true" title="Project artwork not published for this token">${escapeHtml(program.symbol.slice(0, 2).toUpperCase())}</span><div><span class="directory-token-identity"><strong>${safeSymbol}</strong>${exploreBoostAmountMarkup(program.id)}<a href="/token/${encodeURIComponent(program.id)}">${escapeHtml(program.name)}</a></span><span class="airdrop-status ${program.status}">${escapeHtml(program.statusLabel)}</span></div></div>
       <div class="directory-stats"><span><small>Planned airdrop</small><b>${formatPolicyTokenCount(program.reservedTokens)} $${safeSymbol}</b></span><span><small>Funding</small><b>${cardData.reserveState === 'verified' ? 'Confirmed' : communityReserveStatus === 'loading' ? 'Checking…' : communityReserveStatus === 'unavailable' ? 'Unavailable' : 'Not confirmed'}</b></span><span><small>Eligible wallets</small><b>${snapshotReady ? `${formatPolicyTokenCount(program.eligibleWallets)} wallets` : 'Pending'}</b></span></div>
-      <div class="directory-footer"><span><small>Your amount</small><b>${program.walletAllocation == null ? program.claimActive ? 'Connect to check' : 'Check when claims open' : formatTokenAmount(program.walletAllocation)}</b></span><div class="token-card-actions">${tokenCardWatchMarkup(program.id, program.symbol)}${tokenCardShareMarkup(program.id, program.symbol, program.name)}<button type="button" class="secondary-button directory-claim" data-directory-mint="${safeMint}" aria-controls="airdrop-selected-program">View claim status</button></div></div>
+      <div class="directory-footer"><span><small>Your amount</small><b>${escapeHtml(directoryWalletAmount(program))}</b></span><div class="token-card-actions">${tokenCardWatchMarkup(program.id, program.symbol)}${tokenCardShareMarkup(program.id, program.symbol, program.name)}<button type="button" class="secondary-button directory-claim" data-directory-mint="${safeMint}" aria-controls="airdrop-selected-program" ${checking ? 'disabled' : ''}>${connectedWalletAddress && program.claimActive ? 'Check allocation' : 'View claim status'}</button></div></div>
       <details class="token-card-more"><summary>Addresses and verification</summary>${tokenCardAddressesMarkup(program.id)}${exploreSocialLinksMarkup({ address: program.id, symbol: program.symbol })}<small>${escapeHtml(tokenCardEvidenceLabel(cardData))}</small></details>
     </article>`;
   }).join('') || `<div class="empty-state">${verifiedLaunchPoliciesStatus === 'loading' ? 'Checking airdrops…' : verifiedLaunchPoliciesStatus === 'unavailable' ? 'Airdrops are temporarily unavailable.' : query ? 'No airdrops match your search.' : airdropDirectoryStatus === 'claiming' ? 'No claims are open yet.' : airdropDirectoryStatus === 'closed' ? 'No closed airdrops yet.' : 'No upcoming airdrops yet.'}</div>`;
@@ -1630,6 +1651,7 @@ function renderAirdropDirectory(programs = getAirdropPrograms()){
 function renderAirdropProgramDetail(program){
   const panel = document.querySelector('#airdrop-selected-program');
   if (!panel) return;
+  panel.dataset.mint = program.id;
   const unavailableButton = document.querySelector('#airdrop-claim-unavailable');
   if (unavailableButton) unavailableButton.hidden = program.claimActive;
   const eyebrow = document.querySelector('#airdrop-selected-eyebrow');
@@ -1678,21 +1700,53 @@ async function checkCommunityClaim(mintAddress){
   if (!session) { status.append(document.createTextNode(' Connect a Solana wallet to check this allocation.')); return; }
   const program = getAirdropPrograms().find(row => row.id === mintAddress);
   if (!program?.claimActive) { status.append(document.createTextNode(' Claims are not open for this token.')); return; }
-  const response = await apiRequest(`/api/airdrops/claims/proof?mint=${encodeURIComponent(mintAddress)}&wallet=${encodeURIComponent(session.address)}`);
-  const proof = response.data;
-  if (!response.available || !proof?.status) { status.append(document.createTextNode(` Claim proof unavailable: ${proof?.error || 'retry later'}.`)); return; }
-  if (proof.status === 'claimed') { status.append(document.createTextNode(' This wallet has already claimed its verified allocation.')); return; }
-  if (proof.status !== 'claimable') { status.append(document.createTextNode(` ${proof.reason || 'This wallet has no available allocation.'}`)); return; }
-  const { PublicKey } = await getSolana();
-  const mintInfo = await (await getTradePreviewConnection()).getAccountInfo(new PublicKey(mintAddress), 'finalized');
-  if (!mintInfo || mintInfo.data.length < 45) throw new Error('Claim mint is unavailable.');
-  const decimals = mintInfo.data[44];
-  communityClaimReview = { mint:mintAddress, wallet:session.address, amount:proof.amount, index:proof.index, at:Date.now() };
-  const button = document.createElement('button');
-  button.type = 'button'; button.className = 'primary-button'; button.dataset.claimCommunityMint = mintAddress;
-  button.textContent = `Review claim ${formatTokenBaseUnits(proof.amount, decimals, 4)} ${program.symbol}`;
-  status.append(document.createTextNode(' A wallet transaction is required. Your wallet pays network fees and token-account rent if needed.'),
-    document.createElement('br'), button);
+  const pending = communityWalletAllocations.get(mintAddress);
+  if (pending?.status === 'checking' && pending.wallet === session.address && pending.snapshotHash === program.snapshotHash) return;
+  updateDirectoryWalletAmount(session, program, 'checking');
+  try {
+    const response = await apiRequest(`/api/airdrops/claims/proof?mint=${encodeURIComponent(mintAddress)}&wallet=${encodeURIComponent(session.address)}`);
+    if (!isWalletSessionCurrent(session)) return;
+    const proof = response.data;
+    if (!response.available || !proof?.status) {
+      updateDirectoryWalletAmount(session, program, 'unavailable');
+      if (document.querySelector('#airdrop-selected-program')?.dataset.mint === mintAddress)
+        status.append(document.createTextNode(` Claim proof unavailable: ${proof?.error || 'retry later'}.`));
+      return;
+    }
+    if (proof.recipient && proof.recipient !== session.address) throw new Error('Claim proof belongs to another wallet.');
+    if (proof.status === 'claimed') {
+      updateDirectoryWalletAmount(session, program, 'claimed');
+      if (document.querySelector('#airdrop-selected-program')?.dataset.mint === mintAddress)
+        status.append(document.createTextNode(' This wallet has already claimed its verified allocation.'));
+      return;
+    }
+    if (proof.status !== 'claimable') {
+      updateDirectoryWalletAmount(session, program, proof.status === 'ineligible' ? 'ineligible' : 'unavailable');
+      if (document.querySelector('#airdrop-selected-program')?.dataset.mint === mintAddress)
+        status.append(document.createTextNode(` ${proof.reason || 'This wallet has no available allocation.'}`));
+      return;
+    }
+    if (proof.mint !== mintAddress || proof.snapshotHash !== program.snapshotHash || !/^\d+$/.test(String(proof.amount)))
+      throw new Error('Claim proof differs from the verified airdrop.');
+    const { PublicKey } = await getSolana();
+    const mintInfo = await (await getTradePreviewConnection()).getAccountInfo(new PublicKey(mintAddress), 'finalized');
+    if (!isWalletSessionCurrent(session)) return;
+    if (!mintInfo || mintInfo.data.length < 45) throw new Error('Claim mint is unavailable.');
+    const decimals = mintInfo.data[44];
+    const amount = formatTokenBaseUnits(proof.amount, decimals, 4);
+    updateDirectoryWalletAmount(session, program, 'claimable', amount);
+    if (document.querySelector('#airdrop-selected-program')?.dataset.mint !== mintAddress) return;
+    communityClaimReview = { mint:mintAddress, wallet:session.address, amount:proof.amount, index:proof.index, at:Date.now() };
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'primary-button'; button.dataset.claimCommunityMint = mintAddress;
+    button.textContent = `Review claim ${amount} ${program.symbol}`;
+    status.append(document.createTextNode(' A wallet transaction is required. Your wallet pays network fees and token-account rent if needed.'),
+      document.createElement('br'), button);
+  } catch (error) {
+    if (!isWalletSessionCurrent(session)) return;
+    updateDirectoryWalletAmount(session, program, 'unavailable');
+    throw error;
+  }
 }
 async function submitCommunityClaim(mintAddress){
   const session = captureWalletSession();
@@ -1765,6 +1819,8 @@ async function submitCommunityClaim(mintAddress){
     claimVerified = true;
     emitPilotSignal('claim-verified');
     await loadCommunityReserveStatuses();
+    const claimedProgram = getAirdropPrograms().find(row => row.id === mintAddress);
+    if (claimedProgram) updateDirectoryWalletAmount(session, claimedProgram, 'claimed');
     renderAirdropProgramDetail(getAirdropPrograms().find(row => row.id === mintAddress));
     showToast('Community tokens claimed and verified on Solana');
   } catch (error) {
@@ -5282,6 +5338,8 @@ function assertWalletSessionCurrent(session){
   if (!isWalletSessionCurrent(session)) throw new Error('Wallet account changed. Review and retry with the connected account.');
 }
 function resetWalletDependentViews(){
+  communityWalletAllocations.clear();
+  communityClaimReview = null;
   const previousChatToken = coinChatSession?.token;
   coinChatSession = null;
   coinChatSessionPromise = null;
@@ -6347,6 +6405,8 @@ function setWalletState(message, detail = '', connected = false){
   updateReferralLink();
   updateOnboardingProgress();
   renderAirdropClaims();
+  const selectedAirdropCheck = document.querySelector('#airdrop-selected-status [data-check-community-mint]');
+  if (selectedAirdropCheck) selectedAirdropCheck.textContent = connected ? 'Check my allocation' : 'Connect wallet to check allocation';
   updateLaunchButton();
   if (connected) { setWalletMetrics({ loading: true }); void refreshWalletBalance(); if (feeRouterState.status !== 'checking') refreshWalletInfo(); }
   else setWalletMetrics();
@@ -7480,6 +7540,8 @@ document.querySelector('#airdrop-directory')?.addEventListener('click', event =>
   const program = getAirdropPrograms().find(item => item.id === button.dataset.directoryMint);
   if (!program) return;
   renderAirdropProgramDetail(program);
+  if (connectedWalletAddress && program.claimActive)
+    void checkCommunityClaim(program.id).catch(error => showToast(String(error.message || error)));
   document.querySelector('#airdrop-selected-program')?.scrollIntoView({ block: 'start' });
 });
 document.querySelector('#airdrop-detail-close')?.addEventListener('click', () => { document.querySelector('#airdrop-selected-program').hidden = true; });
