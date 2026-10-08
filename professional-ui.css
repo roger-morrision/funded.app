@@ -9,14 +9,14 @@ html body.product-experience-ready {
 }
 
 /* Package colors have the same meaning in cards, tables, previews and details. */
-html body.product-experience-ready :is(.promotion-badge, .home-table-tier, .explore-tier-badge, .tier-badge, .coin-package-chip--promotion) {
+html body.product-experience-ready :is(.promotion-badge, .preview-promotion-badge, .home-table-tier, .explore-tier-badge, .tier-badge, .coin-package-chip--promotion) {
   color: var(--ui-neutral); background: var(--ui-neutral-bg); border-color: var(--ui-neutral-border);
   text-transform: none; letter-spacing: 0; font-size: 11px; line-height: 1.4; border-radius: 5px;
 }
-html body.product-experience-ready :is(.promotion-badge--pro, .home-table-tier[data-tier="pro"], .explore-tier-badge[data-tier="pro"], .tier-badge.pro, .coin-package-chip--promotion.is-pro, .creator-burn-card.pro > span) {
+html body.product-experience-ready :is(.promotion-badge--pro, .preview-promotion-badge.pro, .home-table-tier[data-tier="pro"], .explore-tier-badge[data-tier="pro"], .tier-badge.pro, .coin-package-chip--promotion.is-pro, .creator-burn-card.pro > span) {
   color: var(--ui-pro); background: var(--ui-pro-bg); border-color: var(--ui-pro-border);
 }
-html body.product-experience-ready :is(.promotion-badge--premier, .home-table-tier[data-tier="premier"], .explore-tier-badge[data-tier="premier"], .tier-badge.premier, .coin-package-chip--promotion.is-premier, .creator-burn-card.premier > span) {
+html body.product-experience-ready :is(.promotion-badge--premier, .preview-promotion-badge.premier, .home-table-tier[data-tier="premier"], .explore-tier-badge[data-tier="premier"], .tier-badge.premier, .coin-package-chip--promotion.is-premier, .creator-burn-card.premier > span) {
   color: var(--ui-premier); background: var(--ui-premier-bg); border-color: var(--ui-premier-border);
 }
 html body.product-experience-ready .creator-burn-card.pro.active { border-color: var(--ui-pro-border); background: var(--ui-pro-bg); }
@@ -35,7 +35,7 @@ html body.product-experience-ready :is(#airdrops .airdrop-status.upcoming,.rewar
 html body.product-experience-ready :is(.coin-package-copy small,.coin-package-copy strong) { font-family: Manrope,sans-serif; font-size: 11px !important; line-height: 1.4 !important; }
 
 /* Compact route headers and consistent readable controls. */
-html body.product-experience-ready :is(.route-guide h1,.workspace-page-header h1,.explore-hero h1,#leaderboard-title,#airdrops h1,#list-title,#launch-route-title,#capital-flow-title) {
+html body.product-experience-ready :is(.route-guide h1,.workspace-page-header h1,.explore-hero h1,#leaderboard-title,#airdrops h1,#list-title,#launch-route-title,#capital-flow-title,#favorites-title) {
   font-size: clamp(30px,3.2vw,42px); line-height: 1.15; letter-spacing: -.035em; text-transform: none;
 }
 html body.product-experience-ready .leaderboard-hero { min-height: 220px; padding: 30px; border-radius: 10px; }
@@ -61,7 +61,7 @@ html body.product-experience-ready .creator-burn-card :is(small,em) { font-size:
 html body.product-experience-ready :is(.reward-overview-start,.explore-pulse-head) { margin-top: 24px; }
 @media(max-width:700px) {
   html body.product-experience-ready .leaderboard-hero { min-height: 190px; padding: 22px 18px; }
-  html body.product-experience-ready :is(.route-guide h1,.workspace-page-header h1,.explore-hero h1,#leaderboard-title,#airdrops h1,#list-title,#launch-route-title,#capital-flow-title) { font-size: 30px; }
+  html body.product-experience-ready :is(.route-guide h1,.workspace-page-header h1,.explore-hero h1,#leaderboard-title,#airdrops h1,#list-title,#launch-route-title,#capital-flow-title,#favorites-title) { font-size: 30px; }
   html body.product-experience-ready .creator-burn-tiers { grid-template-columns: 1fr; }
   html body.product-experience-ready .explore-control-bar .product-sort { flex: 1 1 100%; margin-left: 0; justify-content: space-between; }
   html body.product-experience-ready :is(.explore-control-bar,.explore-filter-popover,.home-feed-settings-panel) :is(input,select) { font-size: 16px; }
@@ -167,3 +167,6 @@ body.page-route-coin .mobile-trade-open.is-unavailable {
   body.page-route-paid .paid-hero-mark { width: 72px; height: 72px; }
   body.page-route-payments #rewards-overview .workspace-page-header h1 { font-size: 34px; }
 }
+
+/* Keep longer package names readable inside the compact launch preview. */
+html body.product-experience-ready .preview-promotion-badge { max-width: none; white-space: nowrap; }

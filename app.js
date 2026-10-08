@@ -5886,7 +5886,7 @@ function updateLaunchPreview(){
   if (previewBurnTier) { previewBurnTier.textContent = launchBurn.label; previewBurnTier.className = `tier-badge ${launchBurn.tier}`; }
   const promotionBadge = document.querySelector('#preview-promotion-badge');
   if (promotionBadge) {
-    promotionBadge.textContent = launchBurn.requiresBurn ? `${launchBurn.label.toUpperCase()} PROMOTION` : 'STANDARD';
+    promotionBadge.textContent = launchBurn.label;
     promotionBadge.className = `preview-promotion-badge ${launchBurn.tier}`;
   }
   const previewBurnAmount = document.querySelector('#preview-burn-amount');
