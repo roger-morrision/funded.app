@@ -31,7 +31,7 @@ assert.match(app, /\[data-info\].*openInfoDialog\(link\.dataset\.info\)/);
 assert.match(app, /Automatic creator and holder SOL delivery requires verified funding and an active healthy distribution worker/, 'The Devnet disclosure must state the worker prerequisite.');
 assert.doesNotMatch(app, /can automatically settle configured creator and holder SOL rewards/, 'The Devnet disclosure must not imply payouts work while the worker is unhealthy.');
 assert.match(app, /for \(const \[index, receipt\] of historyPayouts\.entries\(\)\)[\s\S]*?tape\.append\(row\)/, 'The payment dialog must render finalized payout rows.');
-assert.match(app, /if \(!historyPayouts\.length\)[\s\S]*?tape\.innerHTML = '<p class="empty-state">No finalized payout receipts are available yet\.<\/p>'/, 'The payment dialog must explain when finalized receipts are absent.');
+assert.match(app, /if \(!historyPayouts\.length\)[\s\S]*?tape\.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet\.<\/p>'/, 'The payment dialog must explain when confirmed payments are absent.');
 assert.match(html, /id="leaderboard-panel" role="tabpanel" aria-labelledby="leaderboard-burners-tab"/, 'The active leaderboard panel must be associated with its selected tab.');
 assert.match(html, /id="notifications-button" aria-label="Notifications">♧<\/button>/);
 assert.match(html, /<h2>No verified notifications<\/h2>[\s\S]*?Notification feed unavailable/);
@@ -76,8 +76,8 @@ assert.match(app, /const freshness = tokenCardEvidenceLabel\(cardData\)/, 'Portf
 assert.match(app, /portfolio-token-stats/);
 assert.match(app, /const volume = market \? formatExploreUsd\(market\.volume24hSol/, 'Portfolio volume must come from the observed market feed.');
 assert.match(app, /\['24h volume', volume\]/, 'Migrated portfolio cards must show available observed volume.');
-assert.match(app, /source: 'Saved token · RPC verified'/, 'A verified market row must identify its RPC source.');
-assert.match(app, /source: 'Saved token · verified launch'/, 'A registry-only row must identify its launch source.');
+assert.match(app, /source: 'Saved token · market data checked'/, 'A verified market row must identify its checked market data.');
+assert.match(app, /source: 'Saved token · launch confirmed'/, 'A registry-only row must identify its confirmed launch source.');
 const watchlistRenderSource = app.match(/function renderWatchlist\(\)\{[\s\S]*?\n\}/)?.[0];
 assert.ok(watchlistRenderSource, 'Watchlist renderer must be present.');
 const watchlistNodes = {
@@ -95,7 +95,7 @@ const renderUnavailableWatchlist = renderWatchlistFixture(
 renderUnavailableWatchlist();
 assert.equal(watchlistNodes['#watch-count'].textContent, '1 saved');
 assert.equal(watchlistNodes['#watchlist-empty'].hidden, true);
-assert.match(watchlistNodes['#watchlist-items'].innerHTML, /Saved token · verification unavailable[\s\S]*?data-remove-watch="missing-mint"/, 'A saved mint without verified data must remain removable.');
+assert.match(watchlistNodes['#watchlist-items'].innerHTML, /Saved token · details unavailable[\s\S]*?data-remove-watch="missing-mint"/, 'A saved mint without checked data must remain removable.');
 const portfolioHolderSource = app.match(/function portfolioHolderCount\(asset\)\{[\s\S]*?\n\}/)?.[0];
 assert.ok(portfolioHolderSource, 'Watchlist and portfolio must format verified holder wallet counts.');
 const holderCache = new Map([['mint', { count: 1, coverage: 'complete-account-list', at: Date.now() }]]);

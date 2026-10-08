@@ -1488,7 +1488,7 @@ async function handle(req, res) {
       try { mint = new PublicKey(decodeURIComponent(tokenMarketMint)); }
       catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
       const address = mint.toBase58();
-      const hasTradeBreakdown = data => data && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
+      const hasTradeBreakdown = data => data && Object.hasOwn(data, 'poolHistoryCoverage') && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
         && data.activityWindows?.['6h'] && data.activityWindows?.['24h']
         && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h)));
       const cached = coinMarketCache.get(address);
