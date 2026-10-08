@@ -2908,8 +2908,8 @@ function renderStonkEnhancements(){
   const quoteLoad = apiRequest('/api/quote-assets').then(result => {
     const verified = result.data?.status === 'onchain-verified-catalog' && result.data?.cluster === EXPLORE_CLUSTER;
     const assets = verified && Array.isArray(result.data?.assets) ? result.data.assets : [];
-    if (quoteStatus) quoteStatus.textContent = verified ? 'RPC verified' : 'Unavailable';
-    if (quoteList) quoteList.innerHTML = assets.length ? assets.map(item => `<div class="quote-asset-row"><span class="asset-icon">${escapeHtml(item.symbol.slice(0, 1))}</span><span><strong>${escapeHtml(item.symbol)}</strong><small>${escapeHtml(item.name)} · ${escapeHtml(item.category)}</small></span><b>✓</b></div>`).join('') : '<div class="empty-state">No verified quote assets configured.</div>';
+    if (quoteStatus) quoteStatus.textContent = verified ? `${assets.length} available` : 'Unavailable';
+    if (quoteList) quoteList.innerHTML = assets.length ? assets.map(item => `<div class="quote-asset-row"><span class="asset-icon" aria-hidden="true">${escapeHtml(item.symbol.slice(0, 1))}</span><span><strong>${escapeHtml(item.symbol)}</strong><small>${escapeHtml(item.name)} · ${escapeHtml(item.category)}</small></span><b>✓</b></div>`).join('') : '<div class="empty-state">No verified trading currencies are available for this network.</div>';
   }).catch(() => { if (quoteStatus) quoteStatus.textContent = 'Unavailable'; if (quoteList) quoteList.innerHTML = '<div class="empty-state">Quote catalog unavailable; no unverified assets shown.</div>'; });
   return quoteLoad;
 }

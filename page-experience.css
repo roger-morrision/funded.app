@@ -608,6 +608,7 @@ input[type='search']:focus-visible {
 .explore-page .explore-ticker,
 .explore-page .explore-market-kpis { display: none !important; }
 .explore-page .stonk-enhancement-grid { grid-template-columns: minmax(0, 1fr); }
+.explore-page .quote-asset-row .asset-icon { flex: 0 0 30px; background: #31415c; color: #f1c873; }
 @media (max-width: 900px) {
   .page-route-overview .hero-section { margin-inline: -28px; padding-inline: 28px; }
   .page-route-overview .hero-section h1 { font-size: clamp(46px, 8vw, 72px); }
