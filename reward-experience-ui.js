@@ -114,7 +114,7 @@ function renderPortfolio(data, referralData, xData) {
     const empty = node('div', 'reward-portfolio-empty');
     const copy = node('div', 'reward-portfolio-empty-copy');
     copy.append(node('span', 'reward-portfolio-empty-icon', '◈'), node('h3', '', 'Connect to see your SOL rewards'),
-      node('p', '', 'See SOL received by this wallet and rewards still waiting. Use X claims for account rewards or Airdrops for launched coin tokens.'));
+      node('p', '', 'Connect your wallet to check balances and payments.'));
     const button = node('button', 'reward-portfolio-connect', 'Connect wallet');
     button.type = 'button';
     button.addEventListener('click', () => byId('connect-button')?.click());
@@ -153,12 +153,12 @@ function renderPortfolio(data, referralData, xData) {
   body.append(tokenNote);
   if (!rows.length) { body.append(node('p','reward-empty','No confirmed creator or holder payments were found for this wallet. Each reward program has its own eligibility requirements.')); return; }
   const list = node('div', 'reward-portfolio-list');
-  for (const row of rows) {
+  for (const row of rows.filter(row => BigInt(row.creatorWithoutPayoutProofLamports || '0') > 0n || row.payouts?.length)) {
     const article = node('article');
     const heading = node('div','reward-row-head'); heading.append(link(row.symbol || short(row.mint), tokenUrl(row.mint)));
     heading.append(node('span','',row.creator ? 'Creator' : row.payouts.some(item => item.kind === 'holder') ? 'Holder' : 'Reward recipient'));
     article.append(heading);
-    if (row.creator) article.append(node('p','',`${sol(row.creatorAllocatedLamports)} set aside for the creator · ${sol(row.creatorWithoutPayoutProofLamports)} with payment not yet confirmed`));
+    if (row.creator && BigInt(row.creatorWithoutPayoutProofLamports || '0') > 0n) article.append(node('p','',`${sol(row.creatorWithoutPayoutProofLamports)} awaiting payment`));
     for (const payment of row.payouts) {
       const line = node('p'); line.append(node('span','',`${payment.kind} · ${sol(payment.amountLamports)} paid · `),
         link('View payment ↗', explorer(payment.signature), true));

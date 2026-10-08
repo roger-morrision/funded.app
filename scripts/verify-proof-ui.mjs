@@ -31,7 +31,7 @@ assert.match(app, /\[data-info\].*openInfoDialog\(link\.dataset\.info\)/);
 assert.match(app, /Automatic creator and holder SOL delivery requires verified funding and an active healthy distribution worker/, 'The Devnet disclosure must state the worker prerequisite.');
 assert.doesNotMatch(app, /can automatically settle configured creator and holder SOL rewards/, 'The Devnet disclosure must not imply payouts work while the worker is unhealthy.');
 assert.match(app, /for \(const \[index, receipt\] of historyPayouts\.entries\(\)\)[\s\S]*?tape\.append\(row\)/, 'The payment dialog must render finalized payout rows.');
-assert.match(app, /if \(!historyPayouts\.length\)[\s\S]*?tape\.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet\.<\/p>'/, 'The payment dialog must explain when confirmed payments are absent.');
+assert.match(app, /if \(!historyPayouts\.length\)[\s\S]*?tape\.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet\.<\/p>'/, 'The payment dialog must explain when confirmed payment receipts are absent.');
 assert.match(html, /id="leaderboard-panel" role="tabpanel" aria-labelledby="leaderboard-burners-tab"/, 'The active leaderboard panel must be associated with its selected tab.');
 assert.match(html, /id="notifications-button" aria-label="Notifications">♧<\/button>/);
 assert.match(html, /<h2>No verified notifications<\/h2>[\s\S]*?Notification feed unavailable/);
@@ -95,7 +95,7 @@ const renderUnavailableWatchlist = renderWatchlistFixture(
 renderUnavailableWatchlist();
 assert.equal(watchlistNodes['#watch-count'].textContent, '1 saved');
 assert.equal(watchlistNodes['#watchlist-empty'].hidden, true);
-assert.match(watchlistNodes['#watchlist-items'].innerHTML, /Saved token · details unavailable[\s\S]*?data-remove-watch="missing-mint"/, 'A saved mint without checked data must remain removable.');
+assert.match(watchlistNodes['#watchlist-items'].innerHTML, /Saved token · details unavailable[\s\S]*?data-remove-watch="missing-mint"/, 'A saved mint without verified data must remain removable.');
 const portfolioHolderSource = app.match(/function portfolioHolderCount\(asset\)\{[\s\S]*?\n\}/)?.[0];
 assert.ok(portfolioHolderSource, 'Watchlist and portfolio must format verified holder wallet counts.');
 const holderCache = new Map([['mint', { count: 1, coverage: 'complete-account-list', at: Date.now() }]]);
@@ -134,7 +134,7 @@ assert.match(app, /if \(exportButton\) exportButton\.disabled = verifiedWallets\
 assert.match(app, /if \(!verifiedWallets\.length\) \{[\s\S]*?No verified eligibility snapshot or unclaimed wallets are available to export/, 'Direct export calls must fail closed without verified wallets.');
 assert.match(app, /profileConnect\.textContent = connected \? 'View wallet details' : 'Connect wallet'/, 'Connected profile action must describe wallet details, not reconnection.');
 assert.match(app, /#profile-connect'\)\?\.addEventListener\('click', \(\) => \{[\s\S]*?if \(connectedWalletAddress\) document\.querySelector\('#profile-dialog'\)\?\.showModal\(\)/, 'Connected profile action must open wallet details.');
-assert.match(app, /async function connectWallet\(\)\{[\s\S]*?if \(!provider\) \{[\s\S]*?allowWalletReconnect\(\);[\s\S]*?if \(await connectDevWallet\(\)\) return;/, 'An explicit reconnect must restore the disposable Dev Mode wallet after manual disconnect.');
+assert.match(app, /async function connectWallet\(\)\{[\s\S]*?if \(!getProvider\(\) && DEV_MODE && DEV_WALLET_AUTOCONNECT\) \{[\s\S]*?allowWalletReconnect\(\);[\s\S]*?if \(await connectDevWallet\(\)\) return;/, 'An explicit reconnect must restore the disposable Dev Mode wallet after manual disconnect.');
 assert.match(html, /id="trade-review-dialog"[\s\S]*?id="trade-review-confirm"/, 'Trade submission must have an explicit review dialog.');
 assert.match(app, /#trade-submit'\)\?\.addEventListener\('click', openTradeReview\)/, 'Review and sign must not immediately submit a trade.');
 assert.match(html, /id="launch-review-dialog"[\s\S]*?id="launch-review-confirm"/, 'Launch submission must have an explicit review dialog.');

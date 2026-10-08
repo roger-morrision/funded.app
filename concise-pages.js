@@ -228,7 +228,7 @@ function compactRecipients() {
 
 function shortenPageCopy() {
   const edits = [
-    ['#payments > .workspace-page-header > p:last-child', 'Check what you can claim, what is still waiting, and what has reached your wallet.'],
+    ['#payments > .workspace-page-header > p:last-child', 'Claim rewards and track your payments.'],
     ['#my-launches > .section-heading .panel-explainer', 'Your launches and saved tokens.'],
     ['#capital-flow > .section-heading .panel-explainer', 'See how collected creator fees are shared.'],
     ['#launch-route-shell > .page-lede', 'Add your token details, choose rewards, and review the total before signing.'],

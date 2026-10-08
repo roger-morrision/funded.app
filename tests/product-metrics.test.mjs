@@ -23,6 +23,15 @@ test('confirmed totals exclude pending, mismatched and duplicate boosts and pres
   assert.equal(JSON.stringify(report).includes(receipt.signature),false);
 });
 
+test('confirmed totals retain finalized Boost receipts after expired quotes are pruned',()=>{
+  const receipt={quoteId:'expired-quote',mint:'mint',payer:'payer',recipient:'recipient',packageId:'10x',
+    cluster:'devnet',lamports:200000003,signature:'4'.repeat(88),status:'finalized',slot:11};
+  const state={boostQuotes:{},boostReceipts:{one:receipt,duplicate:{...receipt},pending:{...receipt,status:'pending',signature:'5'.repeat(88)}}};
+  const report=confirmedProductTotals(state,{status:'unavailable'},'devnet');
+  assert.equal(report.boostPurchases,1);
+  assert.equal(report.boostPaidLamports,'200000003');
+});
+
 test('journey HTTP boundary enforces origin, consent, payload size, rate limit, and private reporting',async()=>{
   const recorded=[];let allowed=true;
   const metrics={enabled:true,record:async row=>recorded.push(row),report:async()=>({dailyEvents:[]})};

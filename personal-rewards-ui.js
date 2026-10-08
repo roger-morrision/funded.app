@@ -1,3 +1,4 @@
+import { creatorRewardRow, filterCreatorRewards } from './creator-reward-model.js';
 import { EXPLORE_CLUSTER } from './app-config.js';
 import { formatXClaimSol, summarizeXClaims } from './x-claim-summary.js';
 
@@ -11,11 +12,6 @@ function formatSol(lamports) {
   const whole = lamports / LAMPORTS;
   const fraction = (lamports % LAMPORTS).toString().padStart(9, '0').replace(/0+$/, '');
   return `${whole}${fraction ? `.${fraction}` : ''} SOL`;
-}
-
-function asLamports(value) {
-  if (!/^(0|[1-9]\d*)$/.test(String(value))) throw new Error('Invalid reward amount');
-  return BigInt(value);
 }
 
 async function getJson(path) {
@@ -37,37 +33,79 @@ async function refreshCreator(card, walletAddress, current) {
     const mine = launches.filter(launch => launch.onchainVerified === true && launch.cluster === EXPLORE_CLUSTER
       && launch.creatorWallet === walletAddress && launch.pumpFeeRoute?.scope === 'per-mint-v2' && launch.mint);
     if (!mine.length) {
-      if (current()) setCard(card, { unclaimed: '0 SOL', claimed: '0 SOL', note: 'No verified creator fee routes for this wallet.' });
+      if (current()) setCard(card, { unclaimed: '0 SOL', claimed: '0 SOL', note: 'No creator rewards yet. Launch a token to get started.' });
       return;
     }
     const activities = await Promise.all(mine.map(launch => getJson(`/api/tokens/${encodeURIComponent(launch.mint)}/fee-activity`)));
-    let unclaimed = 0n, claimed = 0n, readyToRequest = 0n;
-    const rows = [];
-    for (let index = 0; index < mine.length; index += 1) {
-      const overview = activities[index]?.overview;
-      if (!overview?.available || overview.creatorWallet !== walletAddress) throw new Error('Creator fee evidence unavailable');
-      const creator = overview.receivers?.find(row => row.id === 'creator' && row.recipient === walletAddress);
-      if (!creator || !overview.creatorClaim) throw new Error('Creator fee evidence incomplete');
-      unclaimed += asLamports(creator.withoutConfirmedPayoutLamports);
-      claimed += asLamports(creator.confirmedPaidLamports);
-      readyToRequest += asLamports(overview.creatorClaim.claimableLamports);
-      rows.push({mint:mine[index].mint,name:mine[index].symbol || mine[index].name || mine[index].mint.slice(0,8),unclaimed:formatSol(asLamports(creator.withoutConfirmedPayoutLamports)),available:formatSol(asLamports(overview.creatorClaim.claimableLamports)),paid:formatSol(asLamports(creator.confirmedPaidLamports))});
-    }
-    if (current()) setCard(card, {
-      unclaimed: formatSol(unclaimed), claimed: formatSol(claimed),
-      note: `${mine.length} verified ${mine.length === 1 ? 'coin' : 'coins'} · ${formatSol(readyToRequest)} available to request. Unclaimed includes amounts awaiting payout proof.`,
-    });
-    if(current()) {
-      const table=document.createElement('table');table.className='creator-reward-table';
-      const caption=table.createCaption();caption.textContent='Verified creator fees by token';
-      const heading=table.createTHead().insertRow();
-      for(const title of ['Token','Unclaimed','Available to request','Confirmed paid','Action']){const th=document.createElement('th');th.scope='col';th.textContent=title;heading.append(th);}
-      const body=table.createTBody();
-      for(const row of rows){const tr=body.insertRow();for(const value of [row.name,row.unclaimed,row.available,row.paid])tr.insertCell().textContent=value;const link=document.createElement('a');link.href=`/token/${encodeURIComponent(row.mint)}`;link.textContent='Manage';tr.insertCell().append(link);}
-      const wrapper=document.createElement('div');wrapper.className='creator-reward-records';wrapper.tabIndex=0;wrapper.setAttribute('role','region');wrapper.setAttribute('aria-label','Creator fee records');wrapper.append(table);card.append(wrapper);
-    }
+    const rows = mine.map((launch, index) => creatorRewardRow(launch, activities[index], walletAddress, EXPLORE_CLUSTER));
+    if (!current()) return;
+    const sum = key => rows.reduce((total, row) => total + row[key], 0n);
+    setCard(card, { unclaimed:formatSol(rows.filter(row => row.ready).reduce((total,row)=>total+row.available,0n)), claimed:formatSol(sum('paid')),
+      note:`${rows.length} ${rows.length === 1 ? 'token' : 'tokens'}` });
+    renderCreatorRows(card, rows);
+
   } catch {
     if (current()) setCard(card, { note: 'Creator fee records are unavailable. Refresh to try again.' });
+  }
+}
+
+const pendingClaims = new Set();
+const expandedMints = new Set();
+let creatorFilter = 'active', creatorQuery = '';
+function renderCreatorRows(card, rows) {
+  const wrapper = document.createElement('div'); wrapper.className = 'creator-reward-records';
+  const controls = document.createElement('div'); controls.className = 'creator-reward-controls';
+  const search = document.createElement('input'); search.type = 'search'; search.placeholder = 'Search your tokens'; search.setAttribute('aria-label','Search creator rewards'); search.value = creatorQuery;
+  const filter = document.createElement('select'); filter.setAttribute('aria-label','Filter creator rewards');
+  for (const [value,label] of [['active','Active rewards'],['all','All tokens']]) { const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option); }
+  filter.value = creatorFilter;
+  const count=document.createElement('p');count.className='field-help';count.setAttribute('role','status');
+  const list = document.createElement('div'); list.className = 'creator-claim-list';
+  const render = () => {
+    const visible=filterCreatorRewards(rows,{filter:creatorFilter,query:creatorQuery});
+    count.textContent=`${visible.length} of ${rows.length} tokens`;
+    renderCreatorCards(list,visible);
+    if(!visible.length) { const empty=document.createElement('p');empty.className='field-help';empty.textContent=creatorQuery?'No tokens match your search.':creatorFilter==='active'?'No rewards waiting. Choose All tokens to see past payments.':'No tokens found.';list.append(empty); }
+  };
+  search.addEventListener('input',()=>{creatorQuery=search.value;render();});
+  filter.addEventListener('change',()=>{creatorFilter=filter.value;render();});
+  controls.append(search,filter);wrapper.append(controls,count,list);card.append(wrapper);render();
+}
+function renderCreatorCards(list, rows) {
+  list.replaceChildren();
+  for (const row of rows) {
+    const article = document.createElement('article'); article.className = 'creator-claim-card';
+    const heading = document.createElement('div'); heading.className = 'creator-claim-heading';
+    const name = document.createElement('a'); name.href = `/token/${encodeURIComponent(row.mint)}`; name.textContent = row.name;
+    const state = document.createElement('span'); state.className = 'creator-claim-state'; state.textContent = row.status;
+    heading.append(name,state);
+    const fullName=document.createElement('p');fullName.className='creator-reward-name';fullName.textContent=row.fullName;
+    const amount = document.createElement('strong'); amount.className = 'creator-claim-amount'; amount.textContent = formatSol(row.available);
+    const label = document.createElement('small'); label.textContent = row.ready ? 'Available to claim' : 'Reward balance';
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'primary-button';
+    const signing = document.documentElement.dataset.creatorClaimSigning === 'true';
+    button.textContent = pendingClaims.has(row.mint) ? 'Requesting payout…' : 'Claim SOL';
+    button.disabled = !row.ready || !signing || pendingClaims.has(row.mint);
+    button.setAttribute('aria-label',`Claim SOL from ${row.name}`);
+    const note = document.createElement('p'); note.className = 'field-help';
+    note.textContent = !signing ? 'Open this app in your wallet to sign a claim.' : row.ready ? 'Approve a wallet message to request payment.'
+      : row.status === 'Payment processing' ? 'Waiting for payment confirmation.' : `Claim minimum: ${formatSol(row.minimum)}.`;
+    button.addEventListener('click', () => {
+      if (pendingClaims.has(row.mint)) return;
+      pendingClaims.add(row.mint); button.disabled = true;
+      window.dispatchEvent(new CustomEvent('funded:creator-claim', { detail:{ button, mint:row.mint, overview:row.overview,
+        complete:() => { pendingClaims.delete(row.mint); refreshPersonalRewards(); } } }));
+    });
+    const details = document.createElement('details'); details.className = 'advanced-details'; details.open = expandedMints.has(row.mint);
+    const summary = document.createElement('summary'); summary.textContent = 'Advanced details · verification';
+    const values = document.createElement('dl');
+    for (const [title,value] of [['Unpaid total',formatSol(row.unclaimed)],['Confirmed paid',formatSol(row.paid)],['Claim minimum',formatSol(row.minimum)],['Token address',row.mint]]) {
+      const dt=document.createElement('dt');dt.textContent=title;const dd=document.createElement('dd');dd.textContent=value;values.append(dt,dd);
+    }
+    const explanation = document.createElement('p'); explanation.textContent = 'Unpaid includes rewards awaiting payment confirmation. Only confirmed payments count as paid.';
+    details.append(summary,values,explanation);
+    details.addEventListener('toggle',()=>{if(details.open)expandedMints.add(row.mint);else expandedMints.delete(row.mint);});
+    article.append(heading,fullName,label,amount,button,note,details); list.append(article);
   }
 }
 
@@ -78,7 +116,7 @@ async function refreshX(card, current) {
     if (!summary) throw new Error('X claims unavailable');
     if (current()) setCard(card, {
       unclaimed: formatXClaimSol(summary.unclaimed), claimed: formatXClaimSol(summary.claimed),
-      note: `${summary.unclaimed.count} ready to claim · ${summary.claimed.count} verified paid · ${summary.pending.count} pending verification. Amounts come from the signed-in X account; confirm the destination wallet before claiming.`,
+      note: `${summary.unclaimed.count} ready · ${summary.claimed.count} paid · ${summary.pending.count} processing`,
     });
   } catch {
     if (current()) setCard(card, { note: 'X claim records are unavailable. Refresh to try again.' });
@@ -109,8 +147,12 @@ function refreshPersonalRewards() {
 }
 
 if (root) {
-  window.addEventListener('funded:reward-identity-change', refreshPersonalRewards);
+  creatorRewardCard.querySelector('[data-creator-unclaimed]').previousElementSibling.textContent = 'Ready to claim';
+  creatorRewardCard.querySelector('[data-creator-claimed]').previousElementSibling.textContent = 'Paid';
+  const refreshButton = document.createElement('button'); refreshButton.type='button'; refreshButton.className='text-button'; refreshButton.textContent='Refresh rewards';
+  refreshButton.addEventListener('click',refreshPersonalRewards); creatorRewardCard.append(refreshButton);
+  window.addEventListener('funded:reward-identity-change', () => { expandedMints.clear(); refreshPersonalRewards(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshPersonalRewards(); });
-  setInterval(() => { if (!document.hidden) refreshPersonalRewards(); }, 60000);
+  setInterval(() => { if (!document.hidden && !pendingClaims.size && !creatorRewardCard.contains(document.activeElement)) refreshPersonalRewards(); }, 60000);
   refreshPersonalRewards();
 }

@@ -129,7 +129,6 @@ function details() {
   if (about && layout) { about.classList.add('product-token-about'); layout.after(about); }
   setText('.coin-market-aside-title', 'Launch progress');
   setText('.header-search-results-head strong', 'Explore tokens');
-  setText('#sidebar-wallet-address', 'Connect to view your portfolio');
 }
 
 home(); explore(); launch(); portfolio(); details();

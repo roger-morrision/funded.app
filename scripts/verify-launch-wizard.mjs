@@ -43,7 +43,7 @@ assert.equal(launchSection('<section id="launch-dialog"><section>Incomplete</sec
 const launchPage = launchSection(html);
 assert.ok(launchPage, 'Dedicated launch page must exist');
 assert.doesNotMatch(html, /<dialog[^>]+id="launch-dialog"/, 'Launch workspace must not be a modal dialog.');
-assert.match(html, /class="launch-dialog launch-page launch-page-guided"/, 'Launch workspace must use the guided two-step form.');
+assert.match(html, /class="launch-dialog launch-page launch-page-guided"/, 'Launch workspace must show the guided form and a cost preview.');
 assert.match(app, /function mountLaunchPage\(\)/, 'Launch workspace must mount into its route shell.');
 assert.match(app, /shell\.append\(page\)/, 'Launch workspace must render inside the dedicated route.');
 assert.match(app, /for \(let previous = 1; previous < target; previous\+\+\)[\s\S]*?getLaunchStepState\(previous\)[\s\S]*?if \(!state.valid\)/, 'Forward jumps must validate every preceding step.');
@@ -146,8 +146,8 @@ assert.doesNotMatch(launchPage, /Creator-fee route|Your wallet pays and signs, b
 assert.match(app, /function setLaunchStep\(/);
 assert.match(app, /function setLaunchMode\(/);
 assert.match(app, /function getLaunchStepState\(/);
-assert.match(app, /function openBurnPageAfterLaunch\(launchPolicy\)[\s\S]*?projectSelect\.value = mint[\s\S]*?location\.hash = '#buybacks'/, 'A confirmed launch must open the Burn page with the new project selected.');
-assert.match(app, /showToast\(persistedLaunch\.available[\s\S]*?openBurnPageAfterLaunch\(launchPolicy\)/, 'The Burn-page transition must run only from the confirmed launch success path.');
+assert.match(app, /function openLaunchedCoinPage\(launchPolicy\)[\s\S]*?validateSolanaMint\(mint\)\.valid[\s\S]*?location\.assign\(`\/token\/\$\{encodeURIComponent\(mint\)\}`\)/, 'A confirmed launch must open the new coin page.');
+assert.match(app, /showToast\(persistedLaunch\.available[\s\S]*?openLaunchedCoinPage\(launchPolicy\)/, 'The coin-page transition must run only from the confirmed launch success path.');
 assert.match(app, /const needsRecovery=Boolean\(saved&&\(saved\.signature\|\|saved\.events\?\.some/, 'Launch recovery guidance must depend on a receipt or an on-chain-progress state.');
 assert.match(app, /No transaction was sent; correct the issue and retry\./, 'Pre-broadcast launch failures must clearly say that no transaction was sent.');
 assert.match(app, /const infoDialogRoutes = new Set\(\['terms', 'disclosures', 'opt-out'\]\)/, 'Legal deep links must resolve to their information dialogs.');
