@@ -21,7 +21,7 @@ import { extname, resolve, sep } from 'node:path';
 import { isIP } from 'node:net';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { Connection, Keypair, PublicKey, SystemProgram, Transaction, clusterApiUrl, sendAndConfirmTransaction } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey, SystemProgram, Transaction, VersionedTransaction, clusterApiUrl, sendAndConfirmTransaction } from '@solana/web3.js';
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { buildSolClaimPolicy } from '../sol-claim-policy.js';
 import { buildFeeDistributionPolicy, settleCreatorFeeClaim } from '../distribution-policy.js';
@@ -880,9 +880,12 @@ async function handle(req, res) {
       if (!wallet) return json(res, 503, { error: 'Local Solana wallet role is not configured.' });
       const input = await body(req);
       try {
-        const transaction = Transaction.from(Buffer.from(String(input.transaction || ''), 'base64'));
-        transaction.partialSign(wallet.keypair);
-        return json(res, 200, { transaction: transaction.serialize({ requireAllSignatures: false, verifySignatures: false }).toString('base64') });
+        const bytes = Buffer.from(String(input.transaction || ''), 'base64');
+        const decoded = VersionedTransaction.deserialize(bytes);
+        const transaction = decoded.version === 'legacy' ? Transaction.from(bytes) : decoded;
+        if (transaction instanceof VersionedTransaction) transaction.sign([wallet.keypair]);
+        else transaction.partialSign(wallet.keypair);
+        return json(res, 200, { transaction: Buffer.from(transaction.serialize({ requireAllSignatures: false, verifySignatures: false })).toString('base64') });
       } catch { return json(res, 400, { error: 'Invalid development transaction.' }); }
     }
     if (req.method === 'POST' && url.pathname === '/api/dev-wallet/sign-message') {
