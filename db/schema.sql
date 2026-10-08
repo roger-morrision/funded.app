@@ -205,6 +205,26 @@ CREATE TABLE IF NOT EXISTS product_trade_cursors (
   status TEXT NOT NULL,checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY(cluster,mint,route)
 );
+CREATE TABLE IF NOT EXISTS product_trade_gaps (
+  cluster TEXT NOT NULL CHECK (cluster='devnet'),mint TEXT NOT NULL,
+  route TEXT NOT NULL CHECK (route IN ('curve','pool')),
+  signature TEXT NOT NULL CHECK (signature ~ '^[1-9A-HJ-NP-Za-km-z]{64,88}$'),
+  slot BIGINT NOT NULL CHECK (slot>0),
+  reason TEXT NOT NULL CHECK (reason IN ('transaction-unavailable','logs-unavailable','logs-incomplete')),
+  attempts INTEGER NOT NULL DEFAULT 1 CHECK (attempts>0),
+  first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY(cluster,mint,route,signature)
+);
+CREATE INDEX IF NOT EXISTS product_trade_gap_retry_idx ON product_trade_gaps(cluster,checked_at,mint,route,signature);
+CREATE TABLE IF NOT EXISTS product_trade_nontrades (
+  cluster TEXT NOT NULL CHECK(cluster='devnet'),mint TEXT NOT NULL,
+  route TEXT NOT NULL CHECK(route IN ('curve','pool')),
+  signature TEXT NOT NULL CHECK(signature ~ '^[1-9A-HJ-NP-Za-km-z]{64,88}$'),
+  slot BIGINT NOT NULL CHECK(slot>0),
+  proof_kind TEXT NOT NULL CHECK(proof_kind='migration-v2-instructions-v1'),
+  verified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY(cluster,mint,route,signature)
+);
 CREATE INDEX IF NOT EXISTS receipt_candidates_idx ON state_entities
   (bucket, (payload->>'cluster'), (payload->>'status'),
    (COALESCE(NULLIF(payload->>'recordedAt',''),payload->>'paidAt','') COLLATE "C") DESC, entity_key COLLATE "C")

@@ -21,4 +21,4 @@
 
 ## Measurement boundary
 
-Counters are opt-in and local to one device. They are not an aggregate analytics service and cannot measure unique users, retention, or total on-chain volume. Growth targets require real traffic and verified production outcomes; this UI release does not establish or guarantee them.
+The initial UI release used opt-in device-only counters. The follow-up added a separate default-off choice for anonymous site-wide journey counts and private reports of confirmed activity; see [Product measurement](product-measurement.md) for current privacy, coverage, and operator instructions. Counts do not establish unique people or cross-day retention, and observed trading activity is not complete historical volume. Growth targets require real traffic and verified production outcomes; this UI release does not establish or guarantee them.
