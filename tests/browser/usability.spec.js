@@ -14,8 +14,8 @@ async function open(page, route) {
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
 }
 
-test('desktop Explore Filters can close from the same toggle', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 850 });
+for (const width of [1280, 390, 320]) test(`Explore Filters can close from the same toggle at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 850 });
   await open(page, 'explore');
   const toggle = page.locator('#explore-filter-toggle');
   const popover = page.locator('#explore-filter-popover');

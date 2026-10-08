@@ -124,6 +124,12 @@ body.page-route-explore .explore-filter-popover { background: #121b2e; border-co
     max-height: min(620px, calc(100dvh - 150px));
   }
 }
+@media (max-width: 620px) {
+  body.page-route-explore .explore-filter-toggle[aria-expanded='true'] {
+    position: relative;
+    z-index: 60;
+  }
+}
 body.page-route-explore .explore-filter-head button { background: #243149; color: #ffd28a; }
 body.page-route-explore .explore-filter-popover :is(select,input,.explore-stage-filter) {
   background: #0d1728; border-color: #30405b; color: #f6f2e9;

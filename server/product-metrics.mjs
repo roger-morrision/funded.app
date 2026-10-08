@@ -52,9 +52,11 @@ export function confirmedProductTotals(state, evidence, cluster) {
   let boostLamports = 0n;
   for (const row of Object.values(state.boostReceipts || {})) {
     const quote = state.boostQuotes?.[row.quoteId];
+    // Quotes are pruned after expiry; finalized receipts remain the stored payment proof.
     if (row.cluster !== cluster || row.status !== 'finalized' || !Number.isSafeInteger(row.slot) || row.slot < 1
       || !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(row.signature || '') || !Number.isSafeInteger(row.lamports) || row.lamports <= 0
-      || !quote || quote.id !== row.quoteId || ['mint','payer','recipient','packageId','cluster','lamports'].some(key => row[key] !== quote[key])
+      || ![row.quoteId,row.mint,row.payer,row.recipient,row.packageId].every(value => typeof value === 'string' && value.length > 0)
+      || (quote && (quote.id !== row.quoteId || ['mint','payer','recipient','packageId','cluster','lamports'].some(key => row[key] !== quote[key])))
       || signatures.has(row.signature) || quotes.has(row.quoteId)) continue;
     signatures.add(row.signature); quotes.add(row.quoteId); boostLamports += BigInt(row.lamports);
   }

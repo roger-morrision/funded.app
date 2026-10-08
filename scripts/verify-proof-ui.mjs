@@ -134,7 +134,7 @@ assert.match(app, /if \(exportButton\) exportButton\.disabled = verifiedWallets\
 assert.match(app, /if \(!verifiedWallets\.length\) \{[\s\S]*?No verified eligibility snapshot or unclaimed wallets are available to export/, 'Direct export calls must fail closed without verified wallets.');
 assert.match(app, /profileConnect\.textContent = connected \? 'View wallet details' : 'Connect wallet'/, 'Connected profile action must describe wallet details, not reconnection.');
 assert.match(app, /#profile-connect'\)\?\.addEventListener\('click', \(\) => \{[\s\S]*?if \(connectedWalletAddress\) document\.querySelector\('#profile-dialog'\)\?\.showModal\(\)/, 'Connected profile action must open wallet details.');
-assert.match(app, /async function connectWallet\(\)\{[\s\S]*?if \(!provider\) \{[\s\S]*?allowWalletReconnect\(\);[\s\S]*?if \(await connectDevWallet\(\)\) return;/, 'An explicit reconnect must restore the disposable Dev Mode wallet after manual disconnect.');
+assert.match(app, /async function connectWallet\(\)\{[\s\S]*?if \(!getProvider\(\) && DEV_MODE && DEV_WALLET_AUTOCONNECT\) \{[\s\S]*?allowWalletReconnect\(\);[\s\S]*?if \(await connectDevWallet\(\)\) return;/, 'An explicit reconnect must restore the disposable Dev Mode wallet after manual disconnect.');
 assert.match(html, /id="trade-review-dialog"[\s\S]*?id="trade-review-confirm"/, 'Trade submission must have an explicit review dialog.');
 assert.match(app, /#trade-submit'\)\?\.addEventListener\('click', openTradeReview\)/, 'Review and sign must not immediately submit a trade.');
 assert.match(html, /id="launch-review-dialog"[\s\S]*?id="launch-review-confirm"/, 'Launch submission must have an explicit review dialog.');
