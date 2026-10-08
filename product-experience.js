@@ -25,8 +25,6 @@ function home() {
     launch.className = 'hero-secondary-action'; launch.textContent = 'Launch a token';
     actions.prepend(explore);
   }
-  const kpis = $('.home-kpi-grid');
-  if (kpis) disclosure(kpis, 'Platform activity');
   const rewardGroups = $('.home-rewards-stack');
   const board = $('.home-launch-board');
   if (rewardGroups && board) {
