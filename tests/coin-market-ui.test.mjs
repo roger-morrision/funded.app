@@ -67,6 +67,30 @@ test('migrated token distinguishes an RPC outage from zero pool swaps', async ()
   assert.match(view.fields.get('#coin-volume-source'), /trade history is unavailable right now/);
 });
 
+test('complete pool history with no recent swaps displays zero activity', async () => {
+  const view = await renderActivity({ cluster:'devnet', coverage:'complete', poolHistoryCoverage:'complete',
+    poolTradeCount24h:0, tradeCount24h:0, volume24hSol:0, buyVolume24hSol:0, sellVolume24hSol:0,
+    buyCount24h:0, sellCount24h:0, recentTrades:[] });
+  assert.equal(view.state().status, 'ready');
+  assert.equal(view.state().graduated, true);
+  assert.equal(view.fields.get('#coin-trade-count'), '0');
+  assert.equal(view.fields.get('#coin-volume'), 'No trades');
+  assert.equal(view.fields.get('#coin-change'), 'No 24h trades');
+  assert.match(view.fields.get('#coin-description'), /No trades in the last 24 hours/);
+});
+
+test('zero pool trades do not imply a complete history when evidence is missing or partial', async () => {
+  for (const poolHistoryCoverage of [undefined, 'partial', 'unavailable']) {
+    const view = await renderActivity({ cluster:'devnet', coverage:'complete', poolHistoryCoverage,
+      poolTradeCount24h:0, tradeCount24h:0, volume24hSol:0, recentTrades:[] });
+    assert.equal(view.state().status, 'unavailable');
+    assert.equal(view.fields.get('#coin-trade-count'), 'Unavailable');
+  }
+  const missingVolume = await renderActivity({ cluster:'devnet', coverage:'complete', poolHistoryCoverage:'complete',
+    poolTradeCount24h:0, tradeCount24h:0, volume24hSol:null, recentTrades:[] });
+  assert.equal(missingVolume.state().status, 'unavailable');
+});
+
 test('chart separates loading and unavailable prices from a confirmed empty history', () => {
   const chartSource = appSource.match(/function renderCoinPricePath\(\)\{[\s\S]*?\n\}/)?.[0];
   assert.ok(chartSource);

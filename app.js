@@ -8729,7 +8729,7 @@ function renderCoinActivityTab(){
       const expanded = key === 'trader' ? '' : ` aria-expanded="${coinTradeOpenFilter === key}"`;
       return `<th scope="col" aria-sort="${direction === 'none' ? 'none' : direction === 'asc' ? 'ascending' : 'descending'}"><div class="coin-trade-column-head"><button type="button" class="coin-trade-sort" data-coin-trade-sort="${key}" aria-label="Sort ${label} ${active && direction === 'asc' ? 'descending' : 'ascending'}">${label}<span aria-hidden="true">${active ? direction === 'asc' ? '↑' : '↓' : '↕'}</span></button><button type="button" class="coin-trade-column-filter${filtered ? ' is-active' : ''}" data-coin-column-filter="${key}" aria-label="Filter ${label}"${expanded} aria-controls="${filterTarget}" title="Filter ${label}">⌕</button></div></th>`;
     }).join('');
-    const empty = !trades.length ? `<tr><td colspan="8" class="coin-trade-no-results">${coinMarketActivity.trades.length ? 'No trades match these filters.' : 'No confirmed trade was found in the scanned 24-hour window.'}${coinMarketActivity.coverage === 'partial' ? ' RPC coverage is partial.' : ''}</td></tr>` : '';
+    const empty = !trades.length ? `<tr><td colspan="8" class="coin-trade-no-results">${coinMarketActivity.trades.length ? 'No trades match these filters.' : 'No confirmed trades in the last 24 hours.'}${coinMarketActivity.coverage === 'partial' ? ' Some trade history is missing.' : ''}</td></tr>` : '';
     activity.innerHTML = `<div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(symbol)} transactions" tabindex="0"><table class="coin-transactions-table coin-trades-table"><thead><tr>${headers}</tr></thead><tbody>${rows || empty}</tbody></table></div>`;
     if (trades.length) loadVerifiedTokenLogos(activity);
     return;
@@ -8893,8 +8893,10 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
   if (loadId !== coinLoadId) return;
   const market = response.available && response.data?.cluster === EXPLORE_CLUSTER ? response.data : null;
   const hasPoolTradeCount = Number.isInteger(market?.poolTradeCount24h);
-  if (graduated && !(hasPoolTradeCount && market.poolTradeCount24h > 0
-    && ['complete', 'partial'].includes(market.coverage) && Number.isFinite(Number(market.volume24hSol)))) {
+  const completePoolHistory = market?.poolHistoryCoverage === 'complete' && market?.coverage === 'complete';
+  if (graduated && !(hasPoolTradeCount && market.poolTradeCount24h >= 0
+    && (market.poolTradeCount24h > 0 || completePoolHistory)
+    && ['complete', 'partial'].includes(market.coverage) && market.volume24hSol != null && Number.isFinite(Number(market.volume24hSol)))) {
     const poolScanNote = !market ? 'PumpSwap trade history is unavailable right now.'
       : !hasPoolTradeCount ? 'PumpSwap trades are missing from the available history.'
         : market.coverage === 'partial' ? 'No PumpSwap trades were found. Some history is missing.'
@@ -8938,7 +8940,7 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
   const volume = `${market.coverage === 'partial' ? '≥' : ''}${formatCoinUsd(Number(market.volume24hSol))}`;
   setCoinField('#coin-volume', noTrades ? 'No trades' : market.coverage === 'partial' ? `${volume} · partial` : volume);
   setCoinField('#coin-volume-source', noTrades ? 'No trades in the last 24h · history checked' : partial ? `Some ${graduated ? 'launch and pool' : 'launch'} trade history is missing · totals may be higher` : `${graduated ? 'Launch and pool trades' : 'Launch trades'} · last 24h`);
-  if (graduated) setCoinField('#coin-description', `Trading pool confirmed. Recent trades are shown below${partial ? ', though some history may be missing' : ''}.`);
+  if (graduated) setCoinField('#coin-description', noTrades ? 'Trading pool confirmed. No trades in the last 24 hours.' : `Trading pool confirmed. Recent trades are shown below${partial ? ', though some history may be missing' : ''}.`);
   const change = Number(market.priceChangePercent);
   const basis = market.priceChangeBasis;
   setCoinField('#coin-change', noTrades ? 'No 24h trades' : market.priceChangePercent != null && Number.isFinite(change) && basis
