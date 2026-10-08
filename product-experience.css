@@ -40,10 +40,10 @@ body.product-experience-ready .scanner-scroll { font-variant-numeric:tabular-num
 body.product-experience-ready .scanner-head { font-size:12px; text-transform:none; }
 body.product-experience-ready .launch-step-panel .creator-burn-section { margin:24px 0; }
 body.product-experience-ready .launch-step-panel[hidden] { display:none!important; }
-body.product-experience-ready .launch-steps { display:grid!important; grid-template-columns:repeat(3,minmax(0,1fr)); }
+body.product-experience-ready .launch-steps { display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr)); }
 body.product-experience-ready .wizard-actions { display:flex!important; }
 body.product-experience-ready .launch-profile-heading,body.product-experience-ready .launch-profile-grid { display:none; }
-body.product-experience-ready #launch-dialog:not([data-step="3"]) .launch-preview-submit { display:none; }
+body.product-experience-ready #launch-dialog:not([data-step="2"]) .launch-preview-submit { display:none; }
 body.product-experience-ready .launch-steps button { min-height:52px; font-size:14px; }
 body.product-experience-ready .launch-steps button span { font:600 13px/1.4 Manrope,system-ui,sans-serif!important; text-transform:none!important; }
 body.product-experience-ready :is(.home-launch-tabs button,.home-launch-toolbar button,.explore-tabs button,.explore-tabs a,.explore-view-switch button) { font:600 13px/1.4 Manrope,system-ui,sans-serif!important; text-transform:none!important; min-height:40px; }
