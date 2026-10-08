@@ -68,7 +68,7 @@ function createPanels() {
     const oldStatus = byId('community-alert-status');
     if (oldStatus) oldStatus.textContent = 'Optional in-app alerts for watched coins are available below.';
     const section = node('section', 'reward-experience-panel', null); section.id = 'community-reward-reserve';
-    section.innerHTML = `<header><div><p class="eyebrow">Protocol reserve</p><h2>Community programs reserve</h2><p>Collected SOL is set aside in the fee ledger for future community programs. No jackpot, leaderboard bonus, game, or airdrop payout is active yet.</p></div></header><div data-community-reserve>Checking verified allocations…</div><p class="reward-ideas">Each future program needs published rules and verified payout receipts before any spending is shown here.</p>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Community fund</p><h2>Funds for future programs</h2><p>A share of collected SOL is set aside for future community programs. No SOL rewards from this fund are available to claim yet.</p></div></header><div data-community-reserve>Checking funds set aside…</div><p class="reward-ideas">Program rules and confirmed payments will appear when a program becomes available.</p>`;
     community.append(section);
     const alerts = node('section', 'reward-experience-panel reward-alerts', null); alerts.id = 'reward-alerts';
     alerts.innerHTML = `<header><div><p class="eyebrow">Followed coins</p><h2>Reward alerts</h2><p>Get an in-app notice when a watched coin has a newly verified fee collection, holder payment, or buyback burn.</p></div><label><input type="checkbox" data-alert-toggle /> Enable</label></header><div data-alert-status role="status">Alerts are off.</div><div data-alert-list></div><small>Alerts work while this page is open and are saved on this device. They do not promise a payout or run in the background.</small>`;
@@ -97,7 +97,7 @@ function createPanels() {
   const buybacks = byId('buybacks');
   if (buybacks && !byId('verified-buyback-flow')) {
     const section = node('section', 'reward-experience-panel', null); section.id = 'verified-buyback-flow';
-    section.innerHTML = `<header><div><p class="eyebrow">Fee-funded $FUNDED burn</p><h2>Buyback execution</h2><p>Follow allocated fees through the queue to a verified buy and burn.</p></div></header><div data-buyback-flow role="status">Checking the Solana buyback queue…</div><small>Launch-tier burns are separate. A buyback does not guarantee a price change.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Fee-funded $FUNDED burn</p><h2>Buyback progress</h2><p>See fees waiting for a buyback and confirmed purchases that permanently remove $FUNDED from supply.</p></div></header><div data-buyback-flow role="status">Checking the Solana buyback queue…</div><small>Launch-tier burns are separate. A buyback does not guarantee a price change.</small>`;
     buybacks.prepend(section);
   }
 }
@@ -202,18 +202,18 @@ function renderDiscovery(data) {
 function renderCommunity(data) {
   const root = document.querySelector('[data-community-reserve]'); if (!root) return;
   root.replaceChildren();
-  if (!data || data.evidence.status === 'unavailable') { root.textContent = 'Finalized community allocation evidence is unavailable.'; return; }
+  if (!data || data.evidence.status === 'unavailable') { root.textContent = 'Community fund totals are unavailable right now.'; return; }
   const block = node('div','reward-community-total'); block.append(node('strong','',sol(data.community.allocatedLamports)),
-    node('span','','reserved from finalized, mint-attributed fee collections'));
+    node('span','','set aside from confirmed token fees'));
   root.append(block);
   if (data.community.baseAllocatedLamports != null && data.community.referralRolloverLamports != null) {
-    root.append(node('p','',`${sol(data.community.baseAllocatedLamports)} community base reserve · ${sol(data.community.referralRolloverLamports)} from unassigned referrals`));
+    root.append(node('p','',`${sol(data.community.baseAllocatedLamports)} community share · ${sol(data.community.referralRolloverLamports)} from unused referral shares`));
   }
   if (data.community.fundedLamports != null && BigInt(data.community.fundedLamports) > 0n) {
-    root.append(node('p','',`${sol(data.community.fundedLamports)} transferred to the dedicated on-chain program vault with verified funding receipts.`));
-    if (data.community.vaultAddress) root.append(link(`Reserve vault ${short(data.community.vaultAddress)} ↗`, explorer(data.community.vaultAddress), true));
-  } else root.append(node('p','', 'Vault funding is pending; the allocation remains in the fee ledger.'));
-  root.append(node('p','', 'No community SOL payout program is active. The live vault balance and future spending need separate verification.'));
+    root.append(node('p','',`${sol(data.community.fundedLamports)} transferred to the community fund account in confirmed transactions.`));
+    if (data.community.vaultAddress) root.append(link(`Fund account ${short(data.community.vaultAddress)} ↗`, explorer(data.community.vaultAddress), true));
+  } else root.append(node('p','', 'These funds are set aside, but a transfer to the community fund account has not been confirmed.'));
+  root.append(node('p','', 'No community SOL payments are available yet. Transfers shown here do not confirm the current balance or future spending.'));
 }
 function renderBuybacks(data) {
   const root = document.querySelector('[data-buyback-flow]'); if (!root) return;
@@ -223,12 +223,12 @@ function renderBuybacks(data) {
   const receipts = (data.receipts || []).filter(row => row.status === 'finalized' && row.refundVerified === true);
   const stats = node('div','reward-buyback-stats');
   for (const [label,value] of [['Queued funds',sol(pending.reduce((sum,row) => sum + BigInt(row.pendingLamports), 0n))],
-    ['Verified buy and burns',String(receipts.length)]]) { const item = node('div'); item.append(node('small','',label),node('strong','',value)); stats.append(item); }
+    ['Completed buybacks',String(receipts.length)]]) { const item = node('div'); item.append(node('small','',label),node('strong','',value)); stats.append(item); }
   root.append(stats);
   const list = node('div','reward-buyback-list');
   for (const row of pending.slice(0, 8)) {
     const article = node('p'); article.append(link(short(row.mint), tokenUrl(row.mint)),
-      node('span','',` · ${sol(row.pendingLamports)} queued · ${row.activeOrder ? 'execution in progress' : row.eligible ? 'eligible for next batch' : 'accumulating'}`));
+      node('span','',` · ${sol(row.pendingLamports)} queued · ${row.activeOrder ? 'in progress' : row.eligible ? 'ready for the next batch' : 'building up funds'}`));
     list.append(article);
   }
   for (const row of receipts.slice(0, 8)) {

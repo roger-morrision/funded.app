@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { buildTradePricePath, selectObservedTradeWindow } from '../coin-detail-model.js';
 
 const appSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
 const loaderSource = appSource.match(/async function loadCoinMarketActivity\(mintAddress, loadId, decimals, graduated\)\{[\s\S]*?\n\}/)?.[0];
@@ -64,4 +65,27 @@ test('migrated token distinguishes an RPC outage from zero pool swaps', async ()
   const view = await renderActivity(null);
   assert.equal(view.state().status, 'unavailable');
   assert.match(view.fields.get('#coin-volume-source'), /trade history is unavailable right now/);
+});
+
+test('chart separates loading and unavailable prices from a confirmed empty history', () => {
+  const chartSource = appSource.match(/function renderCoinPricePath\(\)\{[\s\S]*?\n\}/)?.[0];
+  assert.ok(chartSource);
+  const render = new Function('coinMarketActivity', 'buildTradePricePath', 'selectObservedTradeWindow', `
+    const panel = { innerHTML:'' };
+    const document = { querySelector:selector => selector === '#coin-price-path' ? panel : null, querySelectorAll:() => [] };
+    const coinChartPeriod = '24h', coinChartMetric = 'mcap', coinChartUnit = 'usd';
+    const setCoinField = () => {}, escapeHtml = value => value;
+    ${chartSource}
+    renderCoinPricePath();
+    return panel.innerHTML;
+  `);
+  const view = (status, coverage = null) => render({ status, coverage, trades:[], decimals:6 }, buildTradePricePath, selectObservedTradeWindow);
+  assert.match(view('loading'), /Loading chart/);
+  for (const status of ['unavailable', 'summary-only']) {
+    assert.match(view(status), /Chart unavailable/);
+    assert.doesNotMatch(view(status), /No recent prices|No confirmed trades were found/);
+  }
+  assert.match(view('ready', 'complete'), /No confirmed trades were found/);
+  assert.doesNotMatch(view('ready', 'complete'), /history may be missing/);
+  assert.match(view('ready', 'partial'), /history may be missing/);
 });

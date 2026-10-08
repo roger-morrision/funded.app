@@ -8455,10 +8455,18 @@ function renderCoinPricePath(){
   const measure = coinChartMetric === 'price' ? 'Price' : 'Market cap';
   const unit = coinChartUnit.toUpperCase();
   setCoinField('#coin-chart-heading', `${document.querySelector('#coin-symbol')?.textContent?.trim() || 'Token'} · ${measure} in ${unit}`);
+  if (coinMarketActivity.status === 'loading') {
+    panel.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Loading chart…</strong><small>Checking recent trades for this token.</small></div>';
+    return;
+  }
+  if (coinMarketActivity.status === 'unavailable' || coinMarketActivity.status === 'summary-only') {
+    panel.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Chart unavailable</strong><small>Recent trade prices could not be loaded. Try refreshing the token page.</small></div>';
+    return;
+  }
   const observedTrades = selectObservedTradeWindow(coinMarketActivity.trades, coinChartPeriod);
   const path = buildTradePricePath(observedTrades, coinMarketActivity.decimals);
   if (path.count < 2) {
-    panel.innerHTML = `<div class="empty-state coin-activity-empty"><strong>${path.count ? 'One recent price' : 'No recent prices'} · ${escapeHtml(coinChartPeriod)}</strong><small>${path.count ? 'At least two confirmed trades are needed to draw a chart.' : 'No confirmed trades were found in this time range.'} Some trade history may be missing.</small></div>`;
+    panel.innerHTML = `<div class="empty-state coin-activity-empty"><strong>${path.count ? 'One recent price' : 'No recent prices'} · ${escapeHtml(coinChartPeriod)}</strong><small>${path.count ? 'At least two confirmed trades are needed to draw a chart.' : 'No confirmed trades were found in this time range.'}${coinMarketActivity.coverage !== 'complete' ? ' Some trade history may be missing.' : ''}</small></div>`;
     return;
   }
   const supply = coinSolUsdValues.supply;
@@ -8807,7 +8815,7 @@ function renderOnChainUnavailable(message){
   setCoinField('#coin-chart-heading', 'Chart unavailable');
   setCoinField('#coin-market-cap-label', 'Estimated market cap'); setCoinField('#coin-market-cap-source', 'Confirmed Solana RPC snapshot');
   setCoinField('#coin-liquidity-label', 'Reserve');
-  const footer = document.querySelector('.chart-footer'); if (footer) footer.innerHTML = '<span>On-chain only</span><span>Historical candles not indexed</span>';
+  const footer = document.querySelector('.chart-footer'); if (footer) footer.innerHTML = '<span>Price history is unavailable</span>';
   const policyEyebrow = document.querySelector('.coin-policy-card .eyebrow'); if (policyEyebrow) policyEyebrow.textContent = 'On-chain account';
   const policyBadge = document.querySelector('.coin-policy-card .data-badge'); if (policyBadge) policyBadge.textContent = 'RPC only';
   const policyTitle = document.querySelector('.coin-policy-card h2'); if (policyTitle) policyTitle.textContent = 'Curve unavailable';
@@ -8871,7 +8879,7 @@ function resetCoinSurface(mintAddress){
   ['#coin-market-cap','#coin-change','#coin-strip-market-cap','#coin-volume','#coin-liquidity','#coin-holders','#coin-trade-count','#coin-holder-count','#coin-vault-share','#coin-largest-account-share','#coin-top-ten-share','#coin-supply'].forEach(selector => setCoinField(selector, 'Loading…'));
   setCoinField('#coin-volume-source', 'RPC trade scan if available'); setCoinField('#coin-trade-breakdown', 'Confirmed Pump events'); setCoinField('#coin-accounts-source', 'Largest-account sample, not holder count'); setCoinCurveProgress(null);
   setCoinField('#coin-chart-heading', 'Reading trade observations…');
-  const footer = document.querySelector('.chart-footer'); if (footer) footer.innerHTML = '<span>On-chain only</span><span>Historical candles not indexed</span>';
+  const footer = document.querySelector('.chart-footer'); if (footer) footer.innerHTML = '<span>Price history is unavailable</span>';
   const policyBadge = document.querySelector('.coin-policy-card .data-badge'); if (policyBadge) policyBadge.textContent = 'RPC only';
   const policyTitle = document.querySelector('.coin-policy-card h2'); if (policyTitle) policyTitle.textContent = 'Reading Pump curve…';
   renderCoinCreatorRoute('');
