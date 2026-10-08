@@ -1477,10 +1477,10 @@ function renderCreatorLaunches(){
     icon.setAttribute('aria-hidden', 'true');
     icon.textContent = state === 'ready' ? '◎' : '◫';
     const heading = document.createElement('h3');
-    heading.textContent = state === 'disconnected' ? 'Connect your creator wallet' : state === 'ready' ? 'No projects for this wallet' : state === 'unavailable' ? 'Project registry unavailable' : 'Checking your projects';
+    heading.textContent = state === 'disconnected' ? 'Connect your creator wallet' : state === 'ready' ? 'No projects for this wallet' : state === 'unavailable' ? 'Your tokens are unavailable right now' : 'Checking your projects';
     const explanation = document.createElement('p');
     explanation.textContent = state === 'disconnected'
-      ? 'Projects are matched to the wallet recorded as creator at launch.'
+      ? 'Connect the wallet you used to launch your tokens.'
       : state === 'ready'
         ? `No verified launches are associated with wallet ${shortAddress(connectedWalletAddress)}. Connect the wallet used to launch your coin to see its projects here.`
         : state === 'unavailable'
@@ -2556,16 +2556,16 @@ function renderExplorePulse(records){
 }
 function exploreEmptyReason(){
   if ((exploreMinVolumeUsd != null || exploreMinMarketCapUsd != null) && !(Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0)) return ['USD filters are waiting for a conversion quote.', 'SOL/USD is unavailable. Clear the USD minimums to browse verified tokens.'];
-  if (exploreQuery) return ['No verified launch matches this search.', 'Try a symbol, name, or full mint address from the current feed.'];
+  if (exploreQuery) return ['No token matches your search.', 'Try a token name, symbol, or full token address.'];
   if (explorePromotion !== 'all') return ['No launch matches this promotion filter.', 'Promoted includes verified launch burns and active finalized SOL boost payments.'];
-  if (exploreReward !== 'all') return ['No launch has this verified reward allocation.', 'Choose another route or clear filters. Zero-percent routes are not counted as rewards.'];
+  if (exploreReward !== 'all') return ['No token matches this reward type.', 'Choose another reward type or clear filters.'];
   if (exploreMinTraders != null) return ['No launch meets the trading-wallet minimum.', 'Lower the selected-window minimum or clear filters.'];
   if (exploreMinTrades != null || exploreMinVolumeUsd != null) return ['No launch meets these trade-activity minimums.', 'Lower the selected-window minimums or clear filters.'];
-  if (exploreMinMarketCapUsd != null || exploreMaxAgeHours != null) return ['No launch meets these advanced filters.', 'Broaden the curve-cap or age limit, or clear filters.'];
-  if (exploreAuthority !== 'all') return ['No verified mint matches this authority filter.', 'Choose Any authority or clear filters to see all verified launches.'];
+  if (exploreMinMarketCapUsd != null || exploreMaxAgeHours != null) return ['No launch meets these advanced filters.', 'Broaden the market cap or age limit, or clear filters.'];
+  if (exploreAuthority !== 'all') return ['No token matches these permissions.', 'Choose Any permissions or clear filters to see more tokens.'];
   if (exploreRisk === 'watchlist') return ['No watched launches in this feed.', 'Use the star on a verified token to save it here.'];
   if (exploreTab === 'new' && exploreNewLane === 'almost') return ['No launch is Almost Born yet.', 'This view requires an active Pump curve at least 80% filled.'];
-  if (exploreTab === 'new' && exploreNewLane === 'migrated') return ['No RPC-verified migrated pools in this feed.', 'A completed curve alone is not migration proof. A PumpSwap pool must also exist on this network.'];
+  if (exploreTab === 'new' && exploreNewLane === 'migrated') return ['No tokens trading on PumpSwap in this view.', 'Tokens appear here once their PumpSwap trading pool is confirmed.'];
   if (exploreTab === 'new') return ['No verified New Launch in the last 24 hours.', 'Older confirmed launches remain available under All tokens.'];
   if (exploreStage === 'near') return ['No launch is in the final stretch.', 'This lane requires a verified active Pump curve at least 80% filled.'];
   if (exploreStage === 'graduated') return ['No graduated launch in this feed.', 'A token appears here only after its Pump curve is confirmed complete.'];
@@ -2598,15 +2598,15 @@ function renderExploreControls(){
     || exploreMinTrades != null || exploreMinTraders != null;
   document.querySelector('#explore-filter-toggle')?.classList.toggle('has-filters', hasExploreFilters);
   for (const [selector, label] of [
-    ['#explore-sort option[value="market-cap"]', `Curve cap (${displayUnit})`],
-    ['#explore-sort option[value="volume"]', `${exploreWindow} traded (${displayUnit})`],
+    ['#explore-sort option[value="market-cap"]', `Estimated market cap (${displayUnit})`],
+    ['#explore-sort option[value="volume"]', `${exploreWindow} trading volume (${displayUnit})`],
     ['#explore-sort option[value="trades"]', `${exploreWindow} trades`],
-    ['#explore-sort option[value="liquidity"]', `Curve reserve (${displayUnit})`],
-    ['#explore-min-volume-label', `Minimum ${exploreWindow} traded · USD`],
+    ['#explore-sort option[value="liquidity"]', `SOL reserve (${displayUnit})`],
+    ['#explore-min-volume-label', `Minimum ${exploreWindow} volume · USD`],
     ['#explore-min-trades-label', `Minimum ${exploreWindow} trades`],
     ['#explore-min-traders-label', `Minimum ${exploreWindow} trading wallets`],
-    ['.scanner-head span:nth-child(4)', `Curve cap · ${displayUnit}`],
-    ['#scanner-volume-heading', `${exploreWindow} traded · ${displayUnit}`],
+    ['.scanner-head span:nth-child(4)', `Est. market cap · ${displayUnit}`],
+    ['#scanner-volume-heading', `${exploreWindow} volume · ${displayUnit}`],
     ['#scanner-trades-heading', `${exploreWindow} trades`],
   ]) { const node = document.querySelector(selector); if (node) node.textContent = label; }
   document.querySelectorAll('[data-explore-view]').forEach(button => {
@@ -2846,7 +2846,7 @@ function renderExploreAssets({ force = false } = {}){
     ? '<div class="empty-state onchain-empty"><strong>Loading verified launches…</strong><span>Checking the indexed launch feed and confirming current Solana state.</span></div>'
     : feedUnavailable || rpcUnavailable
       ? `<div class="empty-state onchain-empty"><strong>${escapeHtml(outage.title)}</strong><span>${escapeHtml(outage.detail)}</span></div>`
-        : `<div class="empty-state onchain-empty"><strong>${assets.length ? 'No verified launches match these filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'Indexed launches could not be verified.' : 'No Solana launches are indexed yet.'}</strong><span>${assets.length ? 'Broaden the search or clear the filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'The indexed mints did not pass current Solana verification. Retry when the RPC is available.' : 'Confirmed funded.vip launches will appear here after they are indexed.'}</span></div>`;
+        : `<div class="empty-state onchain-empty"><strong>${assets.length ? 'No verified launches match these filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'Token details could not be confirmed.' : 'No tokens to show yet.'}</strong><span>${assets.length ? 'Broaden the search or clear the filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'We could not confirm these tokens on Solana. Try again shortly.' : 'Confirmed launches will appear here when available.'}</span></div>`;
   if (!visible.length && assets.length && !feedUnavailable && !rpcUnavailable) {
     const reason = exploreEmptyReason();
     if (reason) { grid.querySelector('.empty-state strong').textContent = reason[0]; grid.querySelector('.empty-state span').textContent = reason[1]; }

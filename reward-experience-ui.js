@@ -59,7 +59,7 @@ function createPanels() {
   }
   if (payments && !byId('reward-discovery')) {
     const section = node('section', 'reward-experience-panel reward-discovery', null); section.id = 'reward-discovery';
-    section.innerHTML = `<header><div><p class="eyebrow">Public coin directory</p><h2>Explore holder rewards</h2><p>These are coin policies and total allocated fees. They do not show a personal claim or confirm your wallet's eligibility.</p></div><label>Show <select data-reward-filter><option value="all">All holder policies</option><option value="allocated">Fees allocated</option><option value="paid">Holders paid</option></select></label></header><div data-reward-discovery role="status">Checking verified launches…</div><small>Eligible holder wallets are paid automatically after a finalized snapshot and sufficient collected fees. “0 paid wallets” means no holder payout has been verified for that coin.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Reward programs</p><h2>Explore holder rewards</h2><p>Compare tokens that share fees with holders. Amounts shown are program totals, not rewards available to your wallet.</p></div><label>Show <select data-reward-filter><option value="all">All holder rewards</option><option value="allocated">Fees allocated</option><option value="paid">Holders paid</option></select></label></header><div data-reward-discovery role="status">Checking verified launches…</div><small>Eligible wallets receive SOL automatically after holdings and funding are confirmed. “0 paid wallets” means no holder payment is confirmed.</small>`;
     (byId('rewards-holder') || rewardsOverview).append(section);
     section.querySelector('[data-reward-filter]').addEventListener('change', () => renderDiscovery(latest));
   }
@@ -236,7 +236,7 @@ function renderBuybacks(data) {
       node('span','',` · ${row.boughtAndBurnedBaseUnits || row.burnedBaseUnits} $FUNDED base units burned · `),
       link('Proof ↗', explorer(row.signature), true)); list.append(article);
   }
-  if (!list.children.length) list.append(node('p','reward-empty','No queued fee-funded buyback or verified burn is indexed.'));
+  if (!list.children.length) list.append(node('p','reward-empty','No token buybacks are waiting, and no completed burns are available to show.'));
   root.append(list);
 }
 function renderAlerts() {
