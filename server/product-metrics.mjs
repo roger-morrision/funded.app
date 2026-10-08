@@ -4,6 +4,7 @@ import { pgPoolConfig } from './db-config.mjs';
 import { PRODUCT_EVENTS } from '../product-events.js';
 import { analyticsReceiptTotals } from './analytics-summary.mjs';
 import { readJsonBody } from './request-body.mjs';
+import { productTradeReport } from './product-trade-index.mjs';
 
 export function journeyEvent(input, cluster, now = new Date()) {
   if (!input || Object.keys(input).sort().join(',') !== 'consent,event,session' || input.consent !== true
@@ -26,6 +27,7 @@ export function createProductMetricsStore(databaseUrl, injectedPool) {
   retentionTimer?.unref();
   return {
     enabled:Boolean(pool),
+    async trades(cluster) { return productTradeReport(pool,cluster); },
     async record(row) {
       await prune();
       const result = await pool.query('INSERT INTO product_journey_events(cluster,day,session_hash,event) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING', [row.cluster,row.day,row.sessionHash,row.event]);

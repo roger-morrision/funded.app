@@ -703,7 +703,7 @@ const handleProductMetrics = createProductMetricsHandler({metrics:productMetrics
   charge:req => store.chargeRpcRate(`journey:${clientKey(req)}`,1,30,Math.floor(Date.now()/60000)*60000),
   confirmedTotals:async () => {
     const [state,evidence] = await Promise.all([store.read(),readFinalizedEvidence()]);
-    return confirmedProductTotals(state,evidence,solanaCluster);
+    return {...confirmedProductTotals(state,evidence,solanaCluster),tradingActivity:await productMetrics.trades(solanaCluster)};
   },
 });
 

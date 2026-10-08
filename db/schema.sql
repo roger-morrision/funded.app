@@ -187,6 +187,24 @@ CREATE TABLE IF NOT EXISTS product_journey_events (
   PRIMARY KEY (cluster, day, session_hash, event)
 );
 CREATE INDEX IF NOT EXISTS product_journey_retention_idx ON product_journey_events(day);
+CREATE TABLE IF NOT EXISTS product_trade_events (
+  cluster TEXT NOT NULL CHECK (cluster='devnet'),
+  signature TEXT NOT NULL CHECK (signature ~ '^[1-9A-HJ-NP-Za-km-z]{64,88}$'),
+  log_index INTEGER NOT NULL CHECK (log_index>=0),
+  mint TEXT NOT NULL, route TEXT NOT NULL CHECK (route IN ('curve','pool')),
+  slot BIGINT NOT NULL CHECK (slot>0), block_time BIGINT NOT NULL CHECK (block_time>=0),
+  side TEXT NOT NULL CHECK (side IN ('buy','sell')),
+  sol_lamports NUMERIC(20,0) NOT NULL CHECK (sol_lamports>0 AND sol_lamports<=18446744073709551615),
+  token_amount_raw NUMERIC(20,0) NOT NULL CHECK (token_amount_raw>0 AND token_amount_raw<=18446744073709551615),
+  PRIMARY KEY(cluster,signature,log_index)
+);
+CREATE INDEX IF NOT EXISTS product_trade_time_idx ON product_trade_events(cluster,block_time);
+CREATE TABLE IF NOT EXISTS product_trade_cursors (
+  cluster TEXT NOT NULL CHECK (cluster='devnet'),mint TEXT NOT NULL,
+  route TEXT NOT NULL CHECK (route IN ('curve','pool')),cursor JSONB NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL,checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY(cluster,mint,route)
+);
 CREATE INDEX IF NOT EXISTS receipt_candidates_idx ON state_entities
   (bucket, (payload->>'cluster'), (payload->>'status'),
    (COALESCE(NULLIF(payload->>'recordedAt',''),payload->>'paidAt','') COLLATE "C") DESC, entity_key COLLATE "C")
