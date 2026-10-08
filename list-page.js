@@ -127,7 +127,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     const ready = listingsAvailable && config?.enabled === true && config.cluster === 'devnet' && config.fundedMint === fundedMint
       && amountTokens != null && cluster === 'devnet' && !mainnetReadOnly;
     renderBurnCopy();
-    availability.textContent = ready ? `${burnLabel()} $FUNDED · Devnet` : 'Payment unavailable';
+    availability.textContent = ready ? `${burnLabel()} $FUNDED` : 'Payment unavailable';
     payButton.disabled = !ready || !verified || busy || Boolean(existing) || Boolean(pending) || Boolean(recoveryError);
     payButton.textContent = busy ? 'Processing…' : pending ? 'Resolve pending burn first' : existing ? 'Already listed' : ready ? `Review ${burnLabel()} $FUNDED burn` : 'Listing unavailable';
     if (recoveryError) setStatus(recoveryError, pending?.signature);
