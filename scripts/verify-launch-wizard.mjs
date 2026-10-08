@@ -42,7 +42,7 @@ assert.equal(launchSection('<section id="launch-dialog"><section>Incomplete</sec
 const launchPage = launchSection(html);
 assert.ok(launchPage, 'Dedicated launch page must exist');
 assert.doesNotMatch(html, /<dialog[^>]+id="launch-dialog"/, 'Launch workspace must not be a modal dialog.');
-assert.match(html, /class="launch-dialog launch-page launch-page-flat"/, 'Launch workspace must show one form and a cost preview.');
+assert.match(html, /class="launch-dialog launch-page launch-page-guided"/, 'Launch workspace must show the guided form and a cost preview.');
 assert.match(app, /function mountLaunchPage\(\)/, 'Launch workspace must mount into its route shell.');
 assert.match(app, /shell\.append\(page\)/, 'Launch workspace must render inside the dedicated route.');
 assert.match(pageStyles, /\.launch-page-flat \.launch-step-panel,\s*\.launch-page-flat \.launch-step-panel\[hidden\][\s\S]*?display: block !important/, 'Coin details and launch settings must share one page.');
