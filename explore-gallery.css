@@ -198,8 +198,12 @@ body.workspace-ready.page-route-explore .explore-ticker { display: block !import
 /* Keep the Explore toolbar as short as the token directory it controls. */
 body.workspace-ready.page-route-explore .explore-heading .heading-actions { display: none; }
 body.page-route-explore .explore-search-row { display: block; margin: 0 0 9px; }
+body.page-route-explore .explore-search-row { max-width: 520px; }
 body.page-route-explore .explore-search-label { width: 100%; min-height: 42px; border-radius: 999px; background: #1a1c1e; }
 body.page-route-explore .explore-search-label input { min-height: 40px; color: #f2f3f1; }
+body.page-route-explore .explore-market-note { margin: 0 0 14px; padding: 9px 12px; border-left: 2px solid #d6a629; background: #171923; color: #bfc6d6; font-size: 12px; line-height: 1.5; }
+body.page-route-explore .explore-benefit-leader-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+body.page-route-explore .explore-ranking-empty { grid-column: 1 / -1; margin: 0; color: #aeb8cb; font-size: 12px; }
 body.page-route-explore .explore-control-bar {
   display: flex;
   flex-direction: row;
