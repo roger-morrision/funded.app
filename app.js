@@ -5769,6 +5769,23 @@ function updateLaunchPreview(){
     '#preview-funded-share': `${FEE_DISTRIBUTION.fundedPercent}%`,
   };
   Object.entries(compactPreviewValues).forEach(([selector, value]) => { const node = document.querySelector(selector); if (node) node.textContent = value; });
+  const summaryName = document.querySelector('#launch-summary-name');
+  const summarySymbol = document.querySelector('#launch-summary-symbol');
+  if (summaryName) summaryName.textContent = name || 'Token name';
+  if (summarySymbol) summarySymbol.textContent = symbol || 'TICKER';
+  const summaryShares = {
+    creator: feeDistribution.creatorWalletPercent,
+    holders: feeDistribution.holderAirdropPercent,
+    x: feeDistribution.solClaimPercent,
+    protocol: FEE_DISTRIBUTION.fundedPercent,
+  };
+  for (const [key, share] of Object.entries(summaryShares)) {
+    const value = Number.isFinite(Number(share)) ? Number(share) : 0;
+    const label = document.querySelector(`#launch-summary-${key}`);
+    const bar = document.querySelector(`[data-summary-share="${key}"]`);
+    if (label) label.textContent = `${value}%`;
+    if (bar) bar.style.width = `${Math.max(0, Math.min(100, value))}%`;
+  }
   const previewBurnTier = document.querySelector('#preview-burn-tier');
   if (previewBurnTier) { previewBurnTier.textContent = launchBurn.label.toUpperCase(); previewBurnTier.className = `tier-badge ${launchBurn.tier}`; }
   const promotionBadge = document.querySelector('#preview-promotion-badge');
@@ -5902,7 +5919,7 @@ function updateLaunchButton(){
   const burnReady = !launchBurn.requiresBurn || launchBurnReadiness.ready;
   const xRouteReady = feeDistribution.shares.solClaimPercent === 0 || xFeeStatus.ready;
   const identityValid = getLaunchStepState(1).valid;
-  const policyValid = identityValid && feeDistribution.valid && xRouteReady && feeRouterState.verified && burnConfigured && burnReady && buyValid && communityValid;
+  const policyValid = identityValid && getLaunchStepState(2).valid && feeDistribution.valid && xRouteReady && feeRouterState.verified && burnConfigured && burnReady && buyValid && communityValid;
   const ready = Boolean(canSignTransactions(wallet) && !walletMetricsLoading && !balanceUnknown && !insufficient && policyValid && document.querySelector('#terms-agree')?.checked && document.querySelector('#fee-route-agree')?.checked && document.querySelector('#token-name').value.trim() && document.querySelector('#token-symbol').value.trim());
   const estimateRefreshReady = launchEstimateRefreshAvailable({
     policyValid,
@@ -5912,7 +5929,7 @@ function updateLaunchButton(){
     developerBuyBlocked: insufficientDeveloperBuy,
     estimateUnavailable: balanceUnknown,
   });
-  const connectReady = !wallet && !APP_MAINNET_READ_ONLY && identityValid && feeDistribution.valid && xRouteReady && burnConfigured && buyValid && communityValid;
+  const connectReady = !wallet && !APP_MAINNET_READ_ONLY && identityValid && getLaunchStepState(2).valid && feeDistribution.valid && xRouteReady && burnConfigured && buyValid && communityValid;
   button.disabled = !(ready || estimateRefreshReady || connectReady);
   button.dataset.launchAction = connectReady ? 'connect-wallet' : estimateRefreshReady ? 'refresh-estimate' : 'launch';
   button.textContent = !communityValid ? 'Airdrop must be 30M–500M' : !identityValid ? 'Fix coin details' : !feeDistribution.valid ? 'Fix fee distribution' : !xRouteReady ? 'X account rewards unavailable' : !feeRouterState.verified ? 'Fee router required' : overBuyLimit ? 'Reduce developer buy' : !buyValid ? 'Enter a valid developer buy' : !burnConfigured ? (PROTOCOL_FUNDED_MINT ? '$FUNDED price unavailable' : '$FUNDED mint required') : launchBurn.requiresBurn && !burnReady ? 'Verify $FUNDED balance' : !wallet ? 'Connect wallet to launch' : !canSignTransactions(wallet) ? 'Open in wallet to sign' : walletMetricsLoading ? 'Calculating launch cost' : walletBalanceLamports == null ? 'Refresh wallet balance' : insufficientDeveloperBuy ? 'Insufficient SOL for developer buy' : estimatedLaunchFeeLamports == null ? 'Refresh launch estimate' : insufficient ? 'Insufficient SOL for launch' : !document.querySelector('#fee-route-agree')?.checked ? 'Confirm the fee route' : !document.querySelector('#terms-agree')?.checked ? 'Agree to terms to launch' : !policyValid ? 'Complete launch policy' : ready ? (launchBurn.requiresBurn ? `Review launch · ${launchBurn.label}` : 'Review launch') : 'Add name and ticker';
@@ -5962,7 +5979,7 @@ function renderPendingLaunchReview(){
 async function openLaunchReview(){
   const reviewedCost = launchCostReview;
   const session = captureWalletSession();
-  if (!session || !freshLaunchReview(reviewedCost) || document.querySelector('#launch-button')?.disabled) {
+  if (launchStep !== 2 || !getLaunchStepState(1).valid || !getLaunchStepState(2).valid || !session || !freshLaunchReview(reviewedCost) || document.querySelector('#launch-button')?.disabled) {
     setLaunchStatus('Refresh the launch estimate and complete all checks before reviewing.', true);
     return;
   }
@@ -6078,7 +6095,9 @@ function getLaunchStepState(step){
     if (!burnValidation.valid) return { valid: false, message: 'The protocol $FUNDED mint must be configured before a paid burn tier can launch.' };
     return { valid: true, message: launchBurn.requiresBurn ? `${launchBurn.label} selected: ${formatLaunchBurnAmount(launchBurn.amountTokens)} $FUNDED burn; atomicity depends on transaction size.` : launchMode === 'quick' ? 'Recommended distribution selected.' : 'Custom distribution is balanced.' };
   }
-  if (step === 3) {
+  return { valid: true, message: 'Launch settings are ready.' };
+}
+function getLaunchSubmissionState(){
     if (!feeRouterState.verified) return { valid: false, message: feeRouterState.status === 'checking'
       ? 'Checking the Solana fee router…'
       : feeRouterState.status === 'router-verification-unavailable'
@@ -6090,7 +6109,7 @@ function getLaunchStepState(step){
     if (!canSignTransactions(wallet)) return { valid: false, message: 'Open this app inside your wallet to sign.' };
     if (walletMetricsLoading) return { valid: false, message: 'Wait while the launch cost is calculated.' };
     if (creatorBuyExceedsWalletBalance()) return { valid: false, message: 'Reduce the developer buy or add SOL before continuing.' };
-    if (developerBuyLimitReached()) return { valid: false, message: 'Developer buy exceeds 20% of supply. Select Adjust developer buy, then lower the SOL amount or set it to 0.' };
+    if (developerBuyLimitReached()) return { valid: false, message: 'Developer buy exceeds 20% of supply. Lower the SOL amount or set it to 0.' };
     if (!freshLaunchReview(launchCostReview)) return { valid:false, message:'Refresh the launch estimate before continuing; quotes expire after one minute.' };
     if (walletBalanceLamports == null || estimatedLaunchFeeLamports == null) return { valid: false, message: walletEstimateError ? `Launch estimate unavailable: ${walletEstimateError}` : 'Refresh the wallet balance and launch estimate.' };
     if (walletBalanceLamports < estimatedLaunchFeeLamports) return { valid: false, message: 'Add SOL before continuing.' };
@@ -6098,9 +6117,7 @@ function getLaunchStepState(step){
     if (launchBurn.requiresBurn && !launchBurnReadiness.ready) return { valid: false, message: launchBurnReadiness.message };
     if (!document.querySelector('#fee-route-agree').checked) return { valid: false, message: 'Confirm that the Pump creator-fee route belongs to funded.vip.' };
     if (!document.querySelector('#terms-agree').checked) return { valid: false, message: 'Accept the Terms and Disclosures to continue.' };
-    return { valid: true, message: 'Review complete. Continue to sign.' };
-  }
-  return { valid: true, message: 'Ready to sign and verify.' };
+    return { valid: true, message: 'Ready to review the transaction before signing.' };
 }
 function updateLaunchNavigation(){
   const next = document.querySelector('#launch-next');
@@ -6108,21 +6125,22 @@ function updateLaunchNavigation(){
   const retry = document.querySelector('#launch-review-retry');
   const hint = document.querySelector('#wizard-hint');
   if (!next || !back || !hint) return;
-  const state = getLaunchStepState(launchStep);
+  const stepState = getLaunchStepState(launchStep);
+  const state = launchStep === 2 && stepState.valid ? getLaunchSubmissionState() : stepState;
   back.hidden = launchStep === 1;
-  next.hidden = launchStep === 3;
+  next.hidden = launchStep === 2;
   next.disabled = false;
-  next.textContent = launchStep === 2 ? 'Review launch' : 'Continue to rewards';
+  next.textContent = 'Continue to rewards';
   if (retry) {
-    retry.hidden = launchStep !== 3 || (feeRouterState.verified && (!wallet || (estimatedLaunchFeeLamports != null && freshLaunchReview(launchCostReview))));
+    retry.hidden = launchStep !== 2 || (feeRouterState.verified && (!wallet || (estimatedLaunchFeeLamports != null && freshLaunchReview(launchCostReview))));
     retry.disabled = feeRouterState.status === 'checking' || walletMetricsLoading;
-    retry.textContent = retry.disabled ? 'Checking…' : developerBuyLimitReached() ? 'Adjust developer buy' : 'Retry checks';
+    retry.textContent = retry.disabled ? 'Checking…' : developerBuyLimitReached() ? 'Edit developer buy' : 'Retry checks';
   }
   hint.textContent = state.message;
   hint.classList.toggle('ready', state.valid);
 }
 function setLaunchStep(step){
-  const target = Math.min(3, Math.max(1, Number(step) || 1));
+  const target = Math.min(2, Math.max(1, Number(step) || 1));
   if (target > launchStep) {
     for (let previous = 1; previous < target; previous++) {
       const state = getLaunchStepState(previous);
@@ -6953,7 +6971,6 @@ document.querySelector('#launch-close').addEventListener('click', () => {
 document.querySelector('#airdrop-button').addEventListener('click', requestAirdrop);
 document.querySelector('#launch-review-retry')?.addEventListener('click', async () => {
   if (developerBuyLimitReached()) {
-    setLaunchStep(2);
     document.querySelector('#creator-buy-sol')?.focus();
     return;
   }

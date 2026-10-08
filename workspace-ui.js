@@ -461,7 +461,7 @@ function explore() {
 
 function launch() {
   $('#wizard-hint')?.setAttribute('tabindex','-1');
-  $$('[data-launch-step-target]').forEach(button=>button.setAttribute('aria-label',`Step ${button.dataset.launchStepTarget}: ${['Token details','Launch settings','Review'][Number(button.dataset.launchStepTarget)-1]}`));
+  $$('[data-launch-step-target]').forEach(button=>button.setAttribute('aria-label',`Step ${button.dataset.launchStepTarget}: ${['Token details','Rewards and launch'][Number(button.dataset.launchStepTarget)-1]}`));
   disclose($('.enhanced-token-page'), 'Optional story and roadmap');
   const tier = $('.creator-burn-section');
   const firstStep = $('[data-launch-step="1"]');
@@ -499,48 +499,7 @@ function launch() {
     guideDialog.querySelector('.launch-tier-guide-close').addEventListener('click', () => guideDialog.close());
     guideDialog.addEventListener('click', event => { if (event.target === guideDialog) guideDialog.close(); });
   }
-  const summary = $('#launch-review-summary');
   const page = $('#launch-dialog');
-  function updateReview() {
-    if (!summary) return;
-    for (const [target, source, fallback] of [
-      ['#review-token-name','#token-name','Token name'],
-      ['#review-token-symbol','#token-symbol','TICKER'],
-      ['#review-community','#preview-community','—'],
-      ['#review-creator-buy','#preview-creator-buy','None'],
-      ['#review-promotion','#preview-burn-tier','Standard'],
-      ['#review-network','#preview-network','Solana'],
-      ['#review-estimated-spend','#preview-launch-cost','Estimate unavailable'],
-    ]) {
-      const input = $(source);
-      const output = $(target, summary);
-      if (output) output.textContent = String(input?.value || input?.textContent || fallback).trim();
-    }
-    const estimate = $('#review-estimated-spend', summary);
-    const estimateReady = /\bSOL\b/.test(estimate?.textContent || '');
-    estimate?.classList.toggle('is-unavailable', !estimateReady);
-    const estimateDetail = $('#review-estimate-detail', summary);
-    if (estimateDetail) estimateDetail.textContent = estimateReady
-      ? 'Check the itemized cost and confirm the fee route in the payment panel before signing.'
-      : ($('#cost-note')?.textContent || 'Refresh the launch estimate before signing.');
-    for (const [key, inputId, outputId, fallback] of [
-      ['creator','#creator-wallet-share','#review-creator-share',80],
-      ['holders','#holder-airdrop-share','#review-holder-share',0],
-      ['x','#x-share','#review-x-share',0],
-      ['protocol',null,'#review-protocol-share',20],
-    ]) {
-      const raw = inputId ? Number($(inputId)?.value) : fallback;
-      const share = Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : fallback;
-      const output = $(outputId, summary);
-      if (output) output.textContent = `${share}%`;
-      const segment = $(`[data-review-share="${key}"]`, summary);
-      if (segment) segment.style.width = `${share}%`;
-    }
-  }
-  page?.addEventListener('input',updateReview);
-  window.addEventListener('funded:launch-step', updateReview);
-  const preview = $('.launch-preview-sticky');
-  if (preview) new MutationObserver(updateReview).observe(preview,{subtree:true,childList:true,characterData:true});
   const funding = $('#community-airdrop-help');
   const reserve = $('#community-airdrop-tokens');
   reserve?.addEventListener('input', () => {
@@ -553,7 +512,6 @@ function launch() {
   // The initial step is set by the application; align first paint before any interaction.
   page.dataset.step = '1';
   $$('[data-launch-step]',page).forEach(panel=>panel.hidden=panel.dataset.launchStep!=='1');
-  updateReview();
 }
 
 function rewards() {
