@@ -152,17 +152,36 @@ function renderPortfolio(data, referralData, xData) {
   tokenNote.append(node('strong', '', 'Token airdrops: '), document.createTextNode('check whether you qualify, how much you can claim, and past claims in '), link('Airdrops →', '#airdrops'));
   body.append(tokenNote);
   if (!rows.length) { body.append(node('p','reward-empty','No confirmed creator or holder payments were found for this wallet. Each reward program has its own eligibility requirements.')); return; }
+  const historyHeading = node('div', 'reward-history-heading');
+  historyHeading.append(node('h3', '', 'Payment history'), node('span', '', `${paid.length} confirmed payment${paid.length === 1 ? '' : 's'}`));
+  body.append(historyHeading);
   const list = node('div', 'reward-portfolio-list');
   for (const row of rows.filter(row => BigInt(row.creatorWithoutPayoutProofLamports || '0') > 0n || row.payouts?.length)) {
-    const article = node('article');
+    const article = node('article', 'reward-history-card');
     const heading = node('div','reward-row-head'); heading.append(link(row.symbol || short(row.mint), tokenUrl(row.mint)));
     heading.append(node('span','',row.creator ? 'Creator' : row.payouts.some(item => item.kind === 'holder') ? 'Holder' : 'Reward recipient'));
     article.append(heading);
-    if (row.creator && BigInt(row.creatorWithoutPayoutProofLamports || '0') > 0n) article.append(node('p','',`${sol(row.creatorWithoutPayoutProofLamports)} awaiting payment`));
+    if (row.creator && BigInt(row.creatorWithoutPayoutProofLamports || '0') > 0n) article.append(node('p','reward-history-pending',`${sol(row.creatorWithoutPayoutProofLamports)} allocated · awaiting payment`));
     for (const payment of row.payouts) {
-      const line = node('p'); line.append(node('span','',`${payment.kind} · ${sol(payment.amountLamports)} paid · `),
-        link('View payment ↗', explorer(payment.signature), true));
-      if (payment.feeSourceVerified && payment.sourceClaims?.length) line.append(node('span','', ' · paid from collected fees'));
+      const line = node('div', 'reward-history-payment');
+      const identity = node('div', 'reward-history-identity');
+      const kind = payment.kind === 'creator' ? 'Creator fee' : payment.kind === 'holder' ? 'Holder reward' : payment.kind === 'x' ? 'X account reward' : 'Referral reward';
+      identity.append(node('strong', '', kind));
+      const recipient = node('small', 'reward-history-recipient', `To ${short(payment.wallet || wallet.address)}`);
+      recipient.title = payment.wallet || wallet.address;
+      identity.append(recipient);
+      const paidAt = payment.paidAt ? new Date(payment.paidAt) : null;
+      if (paidAt && !Number.isNaN(paidAt.getTime())) identity.append(node('small', 'reward-history-time', `Paid ${paidAt.toLocaleString()}`));
+      if (payment.feeSourceVerified && payment.sourceClaims?.length) identity.append(node('small', 'reward-history-source', 'Paid from collected fees'));
+      const actions = node('div', 'reward-history-actions');
+      const amount = node('span', 'reward-history-amount');
+      amount.append(node('strong', '', sol(payment.amountLamports)), node('small', '', 'Received'));
+      const proof = link('↗', explorer(payment.signature), true);
+      proof.className = 'payment-receipt-link';
+      proof.title = 'View payment on Solana Explorer';
+      proof.setAttribute('aria-label', `View ${kind.toLowerCase()} payment on Solana Explorer`);
+      actions.append(amount, proof);
+      line.append(identity, actions);
       article.append(line);
     }
     if (validMint(row.mint)) article.append(createTokenCardActions({ mint: row.mint, symbol: row.symbol, name: row.name, className: 'reward-token-actions' }));
