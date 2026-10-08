@@ -1,28 +1,18 @@
-import { BOOST_PACKAGES, activeBoostPackages } from './boost-offer.js';
+import { activeBoostMultiplier, activeBoostPackages } from './boost-offer.js';
 
 const mintPattern = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 
 export function boostPackageBadgesMarkup(boost, now = Date.now()) {
-  const groups = new Map();
-  for (const pack of activeBoostPackages(boost, now)) {
-    const group = groups.get(pack.packageId) || { multiplier: pack.multiplier, count: 0, nextExpiry: pack.expiresAt };
-    group.count += 1;
-    if (Date.parse(pack.expiresAt) < Date.parse(group.nextExpiry)) group.nextExpiry = pack.expiresAt;
-    groups.set(pack.packageId, group);
-  }
-  // Older preview APIs return only an active aggregate. One payment has an
-  // unambiguous pack; stacked payments need receipt details to name each pack.
-  if (!Array.isArray(boost?.packages) && boost?.count === 1 && Date.parse(boost.expiresAt) > now) {
-    const pack = BOOST_PACKAGES.find(item => item.multiplier === boost.multiplier);
-    if (pack) groups.set(pack.id, { multiplier: pack.multiplier, count: 1, nextExpiry: boost.expiresAt });
-  }
-  if (!groups.size) return '';
-  return `<span class="boost-package-badges" aria-label="Active paid boost packages">${[...groups.values()].map(group => {
-    const label = `${group.multiplier}x`;
-    const title = `${group.count} verified active ${label} boost payment${group.count === 1 ? '' : 's'} · next expiry ${new Date(group.nextExpiry).toLocaleString()}`;
-    return `<span class="boost-package-badge" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}">⚡${label}${group.count > 1 ? `<small>×${group.count}</small>` : ''}</span>`;
-  }).join('')}</span>`;
+  const multiplier = activeBoostMultiplier(boost, now);
+  if (!multiplier) return '';
+  const packages = activeBoostPackages(boost, now);
+  const nextExpiry = packages.length
+    ? Math.min(...packages.map(pack => Date.parse(pack.expiresAt)))
+    : Date.parse(boost.nextExpiry || boost.expiresAt);
+  const label = `${multiplier}x`;
+  const title = `${label} total active boost · next expiry ${new Date(nextExpiry).toLocaleString()}`;
+  return `<span class="boost-package-badges" aria-label="Active boost: ${label}"><span class="boost-package-badge" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}">⚡${label}</span></span>`;
 }
 
 const extraCards = [
