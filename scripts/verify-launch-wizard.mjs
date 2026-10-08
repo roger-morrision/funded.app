@@ -145,8 +145,8 @@ assert.doesNotMatch(launchPage, /Creator-fee route|Your wallet pays and signs, b
 assert.match(app, /function setLaunchStep\(/);
 assert.match(app, /function setLaunchMode\(/);
 assert.match(app, /function getLaunchStepState\(/);
-assert.match(app, /function openBurnPageAfterLaunch\(launchPolicy\)[\s\S]*?projectSelect\.value = mint[\s\S]*?location\.hash = '#buybacks'/, 'A confirmed launch must open the Burn page with the new project selected.');
-assert.match(app, /showToast\(persistedLaunch\.available[\s\S]*?openBurnPageAfterLaunch\(launchPolicy\)/, 'The Burn-page transition must run only from the confirmed launch success path.');
+assert.match(app, /function openLaunchedCoinPage\(launchPolicy\)[\s\S]*?validateSolanaMint\(mint\)\.valid[\s\S]*?location\.assign\(`\/token\/\$\{encodeURIComponent\(mint\)\}`\)/, 'A confirmed launch must open the new coin page.');
+assert.match(app, /showToast\(persistedLaunch\.available[\s\S]*?openLaunchedCoinPage\(launchPolicy\)/, 'The coin-page transition must run only from the confirmed launch success path.');
 assert.match(app, /const needsRecovery=Boolean\(saved&&\(saved\.signature\|\|saved\.events\?\.some/, 'Launch recovery guidance must depend on a receipt or an on-chain-progress state.');
 assert.match(app, /No transaction was sent; correct the issue and retry\./, 'Pre-broadcast launch failures must clearly say that no transaction was sent.');
 assert.match(app, /const infoDialogRoutes = new Set\(\['terms', 'disclosures', 'opt-out'\]\)/, 'Legal deep links must resolve to their information dialogs.');

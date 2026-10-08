@@ -56,6 +56,8 @@ import { buildTradePricePath, filterAndSortRecentTrades, selectObservedTradeWind
 import { formatPolicyPercent, verifiedCoinRewardsPolicy } from './coin-rewards-policy.js';
 import { buildCoinSummary } from './coin-summary-model.js';
 import { canSignTransactions, connectWalletProvider, selectRememberedWalletProvider, walletAddress, walletLaunches } from './wallet-core.js';
+import { chooseWallet } from './wallet-onboarding.js';
+import { quoteCountdownMarkup, updateQuoteCountdowns } from './quote-countdown.js';
 import { TOKEN_CHAT_MAX_LENGTH, normalizeTokenChatText } from './token-chat.js';
 import { initShareComposer, openShareComposer, localShareActions } from './share-tools.js';
 import { verifiedTradeReceipt } from './trade-share-proof.js';
@@ -1091,15 +1093,16 @@ function renderExploreBoostDialog(){
     ? (quote.lamports / 1e9).toFixed(9) : null;
   const historyRows = boostHistoryRows(exploreBoostHistory, boostCheckout, mint);
   const historyOpen = pendingSignature || details.querySelector('.explore-boost-history')?.open;
+  const advancedOpen = details.querySelector('.explore-boost-how')?.open;
   details.innerHTML = `<p class="explore-boost-intro">Give ${name} more visibility in the Boosted list. Packs add together while active.</p>
     <div class="explore-boost-packages" role="group" aria-label="Boost packages">${BOOST_PACKAGES.map(item => `<button type="button" data-boost-package="${item.id}" aria-pressed="${item.id === packageId}" ${busy || pendingSignature ? 'disabled' : ''}><strong>${item.id}</strong><small>${item.hours} hours</small><b>$${item.usd.toLocaleString()}</b><small>${Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? `≈ ${(item.usd / coinSolUsdPrice).toFixed(4)} SOL` : 'Paid in SOL'}</small></button>`).join('')}</div>
     <div class="explore-boost-current"><span>Active boosts</span><strong>${verifiedBoostsAvailable ? (active ? `${escapeHtml(active.multiplier)}x${active.golden ? ' · golden ticker' : ''}` : 'None') : 'Unavailable'}</strong>${active ? `<small>${active.count} purchase${active.count === 1 ? '' : 's'} · latest expiry ${escapeHtml(new Date(active.expiresAt).toLocaleString())}</small>` : ''}</div>
     <p class="explore-boost-explainer">Pay in Solana Devnet test SOL. Network fee is additional. Test SOL has no monetary value.</p>
-    ${quotedAmount ? `<div class="explore-boost-quote"><strong>Review your payment</strong><span>${quotedAmount} SOL</span><small>$${quote.usd} package · $${quote.solUsd}/SOL</small><small>To ${escapeHtml(quote.recipient)}</small><small>Price valid until ${escapeHtml(new Date(quote.expiresAt).toLocaleTimeString())}</small></div>` : quote && !pendingSignature ? '<p class="explore-boost-quote-expired">This price expired. Get an updated price before paying.</p>' : ''}
-    <button type="button" class="primary-button explore-boost-pay" ${!available || busy ? 'disabled' : ''}>${busy ? 'Checking payment…' : failureProof ? 'Start a new purchase' : pendingSignature ? 'Check payment status' : quotedAmount ? `Pay ${quotedAmount} SOL · ${selected.id}` : `${active ? 'Buy another boost' : 'Continue'} · ${selected.id} · $${selected.usd.toLocaleString()}`}</button>
+    ${quotedAmount ? `<div class="explore-boost-quote"><strong>Review your payment</strong><span>${quotedAmount} SOL</span><small>$${quote.usd} package · $${quote.solUsd}/SOL</small><small>To ${escapeHtml(quote.recipient)}</small>${quoteCountdownMarkup(quote.expiresAt)}</div>` : quote && !pendingSignature ? '<p class="explore-boost-quote-expired">This price expired. Get an updated price before paying.</p>' : ''}
+    <button type="button" class="primary-button explore-boost-pay" ${!available || busy ? 'disabled' : ''}>${busy ? 'Checking payment…' : failureProof ? 'Start a new purchase' : pendingSignature ? 'Check payment status' : quotedAmount ? `Pay ${quotedAmount} SOL · ${selected.id}` : `${quote ? 'Refresh price' : active ? 'Buy another boost' : 'Continue'} · ${selected.id} · $${selected.usd.toLocaleString()}`}</button>
     <p class="explore-boost-message" role="status">${escapeHtml(recoveryError || message || (available ? 'Review the exact SOL amount before approving in your wallet.' : 'New boost purchases are currently unavailable.'))}</p>
     <details class="explore-boost-history" ${historyOpen ? 'open' : ''}><summary>Payment history${historyRows.length ? ` (${historyRows.length})` : ''}</summary>${historyRows.map(row => `<p><span><strong>${escapeHtml(row.packageId)} · ${escapeHtml(row.state)}</strong><small>${row.pending ? 'Check the original payment before buying again.' : row.expiresAt ? `Expires ${escapeHtml(new Date(row.expiresAt).toLocaleString())}` : 'View transaction for details'}</small></span><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(row.signature)}`))}" target="_blank" rel="noopener noreferrer">${row.pending ? 'View transaction' : 'View receipt'} ↗</a></p>`).join('') || `<small>${exploreBoostHistoryState === 'loading' ? 'Loading payment history…' : exploreBoostHistoryState === 'unavailable' ? 'Payment history is unavailable. Reopen this window to try again.' : 'No boost purchases yet.'}</small>`}</details>
-    <details class="explore-boost-how"><summary>How boosts work</summary><p>Packs last ${selected.hours} hours after payment is confirmed. Overlapping packs add together; 500 active boosts unlock the golden ticker. Boosts are paid visibility and do not guarantee trading activity or returns.</p></details>`;
+    <details class="explore-boost-how advanced-details" ${advancedOpen ? 'open' : ''}><summary>Advanced details · boosts</summary><p>Packs last ${selected.hours} hours after payment is confirmed. Overlapping packs add together; 500 active boosts unlock the golden ticker. Boosts are paid visibility and do not guarantee trading activity or returns.</p></details>`;
 }
 async function handleExploreBoostPay(){
   if (boostCheckout.busy || !boostCheckout.mint || boostCheckout.recoveryError) return;
@@ -1663,7 +1666,7 @@ function renderAirdropProgramDetail(program){
   const eyebrow = document.querySelector('#airdrop-selected-eyebrow');
   if (eyebrow) eyebrow.textContent = program.vaultVerified ? 'Airdrop funding confirmed' : 'Airdrop funding pending';
   document.querySelector('#airdrop-selected-title').textContent = `${program.name} (${program.symbol})`;
-  document.querySelector('#airdrop-selected-stats').innerHTML = `<span><small>Airdrop allocation</small><strong>${formatTokenAmount(program.reservedTokens)} tokens · ${program.allocationPercent}% of supply</strong></span><span><small>Claimed</small><strong>${formatVerifiedAirdropAmount(program.claimedTokens)}</strong></span><span><small>Eligible wallets</small><strong>${formatVerifiedAirdropAmount(program.eligibleWallets)}</strong></span><span><small>Claim window</small><strong>${program.claimPublished ? 'Claim your full allocation once within 90 days' : 'Not open yet'}</strong></span><details class="airdrop-verification-details"><summary>Verification details</summary><div class="airdrop-program-detail-stats"><span><small>Snapshot</small><strong>${escapeHtml(program.snapshot)}</strong></span><span><small>Snapshot hash</small><strong class="airdrop-proof-value">${escapeHtml(program.snapshotHash || 'Pending verified snapshot')}</strong></span><span><small>Proof root</small><strong class="airdrop-proof-value">${escapeHtml(program.merkleRoot || 'Pending published proof')}</strong></span></div></details>`;
+  document.querySelector('#airdrop-selected-stats').innerHTML = `<span><small>Airdrop allocation</small><strong>${formatTokenAmount(program.reservedTokens)} tokens · ${program.allocationPercent}% of supply</strong></span><span><small>Claimed</small><strong>${formatVerifiedAirdropAmount(program.claimedTokens)}</strong></span><span><small>Eligible wallets</small><strong>${formatVerifiedAirdropAmount(program.eligibleWallets)}</strong></span><span><small>Claim window</small><strong>${program.claimPublished ? 'Claim your full allocation once within 90 days' : 'Not open yet'}</strong></span><details class="airdrop-verification-details advanced-details"><summary>Advanced details · verification</summary><div class="airdrop-program-detail-stats"><span><small>Snapshot</small><strong>${escapeHtml(program.snapshot)}</strong></span><span><small>Snapshot hash</small><strong class="airdrop-proof-value">${escapeHtml(program.snapshotHash || 'Pending verified snapshot')}</strong></span><span><small>Proof root</small><strong class="airdrop-proof-value">${escapeHtml(program.merkleRoot || 'Pending published proof')}</strong></span></div></details>`;
   const status = document.querySelector('#airdrop-selected-status');
   status.textContent = program.claimActive
     ? `$FUNDED holders recorded when this token moved to its trading pool can check their allocation and claim by ${program.deadline}.`
@@ -2108,6 +2111,8 @@ function renderFundedBuyControl(message = null){
   button.textContent = fundedBuyBusy ? 'Waiting for Solana…' : fundedBuyPreview ? 'Confirm buy' : wallet ? 'Preview buy' : 'Connect wallet to preview';
   badge.textContent = ready ? 'Solana pool live' : fundedBuyRoute.status === 'checking' ? 'Checking' : 'Unavailable';
   badge.classList.toggle('unavailable', !ready);
+  const clock = document.querySelector('#funded-buy-countdown');
+  if (clock) clock.innerHTML = fundedBuyPreview && !fundedBuyBusy ? quoteCountdownMarkup(fundedBuyPreview.preparedAt + 15_000) : '';
   if (message != null) status.textContent = message;
   else if (!ready) status.textContent = fundedBuyRoute.reason;
 }
@@ -2165,7 +2170,7 @@ async function handleFundedBuy(){
       assertWalletSessionCurrent(session);
       const quote = describeTradeQuote(trade, 1);
       fundedBuyPreview = { trade, amount, wallet:session.address, preparedAt:Date.now() };
-      renderFundedBuyControl(`Estimated ${quote.expected.toLocaleString(undefined, { maximumFractionDigits:6 })} $FUNDED. Maximum pool spend ${quote.maximumSpendSol.toFixed(6)} SOL; app fee ${quote.appFeeSol.toFixed(6)} SOL, plus network costs. Quote expires in 15 seconds.`);
+      renderFundedBuyControl(`Estimated ${quote.expected.toLocaleString(undefined, { maximumFractionDigits:6 })} $FUNDED. Maximum pool spend ${quote.maximumSpendSol.toFixed(6)} SOL; app fee ${quote.appFeeSol.toFixed(6)} SOL, plus network costs.`);
       return;
     }
     const { PublicKey, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync } = await getSolana();
@@ -4950,6 +4955,7 @@ function invalidateTradePreview(){
   clearTimeout(tradeQuoteTimer);
   tradeQuoteTimer = null;
   tradePreview = null;
+  document.querySelector('#trade-live-countdown')?.replaceChildren();
   const reviewDialog = document.querySelector('#trade-review-dialog');
   if (reviewDialog?.open) reviewDialog.close();
   const quote = document.querySelector('#trade-quote');
@@ -4998,6 +5004,7 @@ async function prepareTradeQuote({ connectIfNeeded = false } = {}){
     const quote = describeTradeQuote(trade, slippagePercent);
     if (side === 'sell' && quote.minimumNetSol <= 0) throw new Error('The app fee would exceed the minimum SOL output. Increase the sell amount.');
     tradePreview = { trade, inputKey, preparedAt: Date.now() };
+    document.querySelector('#trade-live-countdown').innerHTML = quoteCountdownMarkup(tradePreview.preparedAt + 15_000);
     renderTradeBalances();
     const outputDigits = quote.outputSymbol === 'SOL' ? 9 : 6;
     const receiveText = `${quote.expected.toLocaleString('en-US', { maximumFractionDigits: outputDigits })} ${quote.outputSymbol}`;
@@ -5005,8 +5012,8 @@ async function prepareTradeQuote({ connectIfNeeded = false } = {}){
     estimateCard.querySelector('span').textContent = side === 'sell' ? 'Estimated SOL to wallet' : 'Estimated tokens received';
     document.querySelector('#trade-live-amount').textContent = `≈ ${side === 'sell' ? `${quote.expectedNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL` : receiveText}`;
     document.querySelector('#trade-live-detail').textContent = side === 'sell'
-      ? `After app fee · minimum after ${slippagePercent}% slippage: ${quote.minimumNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL · network fee additional · quote expires in 15 seconds.`
-      : `Minimum after ${slippagePercent}% slippage: ${quote.minimum.toLocaleString('en-US', { maximumFractionDigits:outputDigits })} ${quote.outputSymbol} · quote expires in 15 seconds.`;
+      ? `After app fee · minimum after ${slippagePercent}% slippage: ${quote.minimumNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL · network fee additional.`
+      : `Minimum after ${slippagePercent}% slippage: ${quote.minimum.toLocaleString('en-US', { maximumFractionDigits:outputDigits })} ${quote.outputSymbol}.`;
     estimateCard.classList.add('is-ready');
     const slippageText = quote.maximumSpendSol != null
       ? `Quoted receive: ${receiveText}. Maximum pool spend: ${quote.maximumSpendSol.toFixed(9)} SOL with ${slippagePercent}% slippage.`
@@ -5016,7 +5023,7 @@ async function prepareTradeQuote({ connectIfNeeded = false } = {}){
     const feeText = quote.maximumSpendSol != null
       ? `Maximum pool spend includes Pump pool fees. App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network/account costs.`
       : `App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network and Pump fees.`;
-    document.querySelector('#trade-quote').textContent = `${quote.route === 'graduated-pool' ? 'Graduated pool' : 'Pump curve'} · ${slippageText} ${feeText} Quote expires in 15 seconds.`;
+    document.querySelector('#trade-quote').textContent = `${quote.route === 'graduated-pool' ? 'Graduated pool' : 'Pump curve'} · ${slippageText} ${feeText}`;
     setTradeStatus('Review this quote and the transaction in your wallet before signing.');
     tradeQuoteTimer = setTimeout(() => refreshTradeQuoteWhenIdle(version), 12_000);
     return tradePreview;
@@ -5067,6 +5074,7 @@ async function openTradeReview(){
     for (const [selector, value] of Object.entries(fields)) document.querySelector(selector).textContent = value;
     document.querySelector('#trade-review-minimum-row').hidden = !review.minimumLabel;
     document.querySelector('#trade-review-dialog').dataset.side = side;
+    document.querySelector('#trade-review-countdown').innerHTML = quoteCountdownMarkup(prepared.preparedAt + 15_000);
     document.querySelector('#trade-review-dialog').showModal();
   } catch (error) { if (version === tradeQuoteVersion) setTradeStatus(tradePreviewFailureMessage(error, side), true); }
   finally { tradeActionBusy = false; updateTradeActionState(); }
@@ -5621,15 +5629,36 @@ function updateCostSummary(){
 function renderLaunchCostDetails(){
   let node=document.querySelector('#launch-cost-details');
   if(!node){node=document.createElement('div');node.id='launch-cost-details';node.className='adoption-panel';document.querySelector('#cost-note')?.after(node);}
+  const expanded = node.querySelector('details')?.open;
   node.innerHTML=launchReviewMarkup(launchCostReview);
+  if (expanded && node.querySelector('details')) node.querySelector('details').open = true;
+}
+function refreshQuoteClocks(){
+  if (document.hidden) return;
+  updateQuoteCountdowns();
+  if (document.querySelector('#explore-boost-dialog')?.open && !boostCheckout.busy && !boostCheckout.pendingSignature
+    && boostCheckout.quote && Date.parse(boostCheckout.quote.expiresAt) <= Date.now()
+    && document.querySelector('.explore-boost-quote')) {
+    boostCheckout.message = 'This price expired. Refresh it and review the new amount before paying.';
+    renderExploreBoostDialog();
+  }
+  if (document.querySelector('#trade-review-dialog')?.open && !currentTradePreview()) {
+    const confirm = document.querySelector('#trade-review-confirm');
+    if (confirm) confirm.textContent = 'Refresh quote';
+  }
+  if (fundedBuyPreview && !fundedBuyBusy && Date.now() - fundedBuyPreview.preparedAt >= 15_000) {
+    const button = document.querySelector('#funded-buy-submit');
+    if (button) button.textContent = 'Refresh quote';
+  }
 }
 setInterval(()=>{
+  refreshQuoteClocks();
   renderPendingLaunchReview();
   if(!launchCostReview)return;
   const launchPageActive=requestedPageRoute()==='launch';
   if(launchPageActive&&!document.hidden&&!walletMetricsLoading&&launchReviewNeedsRefresh(launchCostReview)){
     scheduleLaunchCostRefresh();
-  }else if(launchPageActive)renderLaunchCostDetails();
+  }
 },1000);
 function updatePreviewStatusDrawer(connected){
   const drawer = document.querySelector('.preview-status-drawer');
@@ -5926,9 +5955,13 @@ function renderPendingLaunchReview(){
   const current = launchReviewStillCurrent(pending, currentLaunchReviewState());
   const details = document.querySelector('#launch-review-details');
   const confirm = document.querySelector('#launch-review-confirm');
-  if (details) details.innerHTML = current
+  const renderKey = `${pending?.reviewedCost?.quotedAt}:${current}`;
+  if (details && details.dataset.reviewKey !== renderKey) {
+    details.dataset.reviewKey = renderKey;
+    details.innerHTML = current
     ? launchReviewMarkup(pending.reviewedCost)
     : '<p role="status">Launch estimate expired or changed. Go back, refresh the estimate, and review again; no transaction was sent.</p>';
+  }
   if (confirm) {
     confirm.disabled = !current;
     confirm.textContent = current ? 'Continue to wallet' : 'Estimate expired — go back';
@@ -6441,28 +6474,22 @@ async function connectWallet(){
     showToast('This workspace is read-only. Wallet actions are disabled.');
     return;
   }
-  const provider = getProvider();
-  if (!provider) {
-    if (DEV_MODE && DEV_WALLET_AUTOCONNECT) {
-      allowWalletReconnect();
-      if (await connectDevWallet()) return;
-    }
-    const message = 'Wallet not found. Open funded.vip in a browser with Phantom, Backpack, or Solflare installed.';
-    if (!wallet) setWalletState('Wallet unavailable', message);
-    setLaunchStatus('No Solana wallet was found in this browser.', true);
-    const header = document.querySelector('#connect-button');
-    if (header) { header.title = message; header.setAttribute('aria-label', message); }
-    void openMobileWalletDialog();
-    return;
+  if (!getProvider() && DEV_MODE && DEV_WALLET_AUTOCONNECT) {
+    allowWalletReconnect();
+    if (await connectDevWallet()) return;
   }
+  const choice = await chooseWallet(injectedWalletProviders(), { devnet:APP_CLUSTER === 'devnet', preferred:rememberedWalletProviderId() });
+  if (!choice) return;
+  if (choice.mobile) { await openMobileWalletDialog(); return; }
+  const provider = choice.provider;
   const request = ++walletConnectRequest;
   try { const connected = await connectWalletProvider(provider); if (request !== walletConnectRequest) return; allowWalletReconnect(); activateWallet(connected.provider); setLaunchStatus(`Ready to sign with ${connected.publicKey.toBase58()}`); }
   catch (error) {
     if (request !== walletConnectRequest) return;
     const message = `Connection failed: ${error.message}`;
+    showToast('Connection was not completed. Open your wallet and try Connect wallet again.');
     if (!wallet) setWalletState('Connection failed', 'Check your wallet and try again.');
     setLaunchStatus(message, true);
-    showToast(message);
   }
 }
 function syncXClaimFlow(){
@@ -7859,7 +7886,7 @@ updateCostSummary();
 updateLaunchButton();
 observeWalletProvider(getProvider());
 window.addEventListener('focus', reconcileWalletState);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { reconcileWalletState(); renderPendingLaunchReview(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { reconcileWalletState(); refreshQuoteClocks(); renderPendingLaunchReview(); } });
 const simulateButton = document.querySelector('#simulate-button');
 if (simulateButton && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') simulateButton.hidden = true;
 
