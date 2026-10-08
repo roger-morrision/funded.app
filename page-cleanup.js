@@ -9,12 +9,12 @@ const guideLabels = {
   profile: 'How wallet actions are verified',
   holder: 'How holder payouts are verified',
   wallet: 'How wallet activity is verified',
-  'docs-subtopic': 'View the visual evidence guide',
+  'docs-subtopic': 'View the illustrated guide',
   list: 'How a listing is verified',
   rewards: 'How rewards become payable',
   burn: 'How a burn is verified',
   fees: 'View the published fee split',
-  docs: 'View the visual evidence guide',
+  docs: 'View the illustrated guide',
   airdrops: 'How a claim is verified',
   referrals: 'How referral rewards qualify',
   privacy: 'How wallet signing works',
@@ -36,12 +36,12 @@ function foldVisualGuides() {
   }
 }
 
-function showAirdropsBeforeWalletGate() {
+function showWalletGateBeforeAirdrops() {
   const root = document.getElementById('airdrops');
   const directory = root?.querySelector(':scope > .airdrop-public-programs');
   const gate = root?.querySelector(':scope > .airdrop-hero-layout');
-  if (directory && gate && (directory.compareDocumentPosition(gate) & Node.DOCUMENT_POSITION_PRECEDING)) {
-    gate.before(directory);
+  if (directory && gate && gate.nextElementSibling !== directory) {
+    gate.after(directory);
   }
 }
 
@@ -119,7 +119,7 @@ function refreshPageCleanup() {
   requestAnimationFrame(() => {
     refreshQueued = false;
     foldVisualGuides();
-    showAirdropsBeforeWalletGate();
+    showWalletGateBeforeAirdrops();
     showExploreResultsBeforeExtras();
     setupHomeTierShortcuts();
     setupCoinAboutToggle();

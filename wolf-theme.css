@@ -117,11 +117,17 @@ body.page-route-explore .explore-filter-popover { background: #121b2e; border-co
 @media (min-width: 621px) {
   body.page-route-explore .explore-filter-popover {
     box-sizing: border-box;
-    position: fixed;
-    top: max(68px, calc((100dvh - 620px) / 2));
-    left: max(12px, calc(50vw - 470px));
-    right: auto;
-    max-height: min(620px, calc(100dvh - 96px));
+    position: absolute;
+    top: calc(100% + 8px);
+    left: auto;
+    right: 0;
+    max-height: min(620px, calc(100dvh - 150px));
+  }
+}
+@media (max-width: 620px) {
+  body.page-route-explore .explore-filter-toggle[aria-expanded='true'] {
+    position: relative;
+    z-index: 60;
   }
 }
 body.page-route-explore .explore-filter-head button { background: #243149; color: #ffd28a; }

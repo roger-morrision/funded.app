@@ -40,6 +40,7 @@ try {
       try {
         await page.goto(`${base}${route}`, { waitUntil: 'domcontentloaded' });
         await page.waitForSelector('body.workspace-ready', { timeout: 20000 });
+        await page.waitForSelector('body.product-experience-ready', { timeout: 20000 });
         const state = await page.evaluate(() => {
           const visible = element => {
             const css = getComputedStyle(element);

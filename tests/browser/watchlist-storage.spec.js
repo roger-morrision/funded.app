@@ -141,6 +141,42 @@ async function verifiedFeed(page) {
   await page.route('**/api/solana/rpc*', rpc); await page.route('https://api.devnet.solana.com/**', rpc);
 }
 
+for (const [width, view] of [[1440, 'grid'], [390, 'table']]) test(`Explore Following filters tokens in place at ${width}px with ${view} view`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 });
+  await seed(page, '[]'); await verifiedFeed(page); await page.goto('/#explore'); await ready(page);
+  await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
+  const watch = page.locator(`#asset-grid .watch-button[data-mint="${MINT}"]`);
+  await expect(watch).toHaveCount(1);
+  await page.locator('#explore-search').fill('WATCH');
+  await page.locator('#explore-sort').selectOption('recent-trade');
+  await page.locator('[data-explore-window="6h"]').click();
+  await page.locator(`button[data-explore-view="${view}"]`).click();
+  const url = page.url();
+  await page.evaluate(() => { window.qaExplorePage = document.querySelector('#explore'); });
+  const following = page.locator('button[data-explore-tab="following"]');
+  await following.click();
+  await expect(following).toHaveAttribute('aria-pressed', 'true');
+  await expect(watch).toHaveCount(0);
+  await expect(page).toHaveURL(url);
+  expect(await page.evaluate(() => window.qaExplorePage === document.querySelector('#explore'))).toBe(true);
+  await expect(page.locator('#explore')).toBeVisible();
+  await expect(page.locator('#explore-search')).toHaveValue('WATCH');
+  await expect(page.locator('#explore-sort')).toHaveValue('recent-trade');
+  await expect(page.locator('[data-explore-window="6h"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator(`button[data-explore-view="${view}"]`)).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('button[data-explore-tab="trending"]').click();
+  await expect(watch).toHaveCount(1);
+  await page.locator('button[data-explore-view="grid"]').click();
+  await watch.click();
+  await expect(watch).toHaveAttribute('aria-pressed', 'true');
+  await page.locator(`button[data-explore-view="${view}"]`).click();
+  await following.focus(); await page.keyboard.press('Enter');
+  await expect(following).toHaveAttribute('aria-pressed', 'true');
+  await expect(watch).toHaveCount(1);
+  await expect(page).toHaveURL(url);
+  await expect(page.locator('#explore-sort')).toHaveValue('recent-trade');
+});
+
 test('Explore native watch action does not announce success when saving fails', async ({ page }) => {
   await seed(page, '[]'); await verifiedFeed(page); await page.goto('/#explore'); await ready(page);
   await page.locator('button[data-explore-view="grid"]').click();

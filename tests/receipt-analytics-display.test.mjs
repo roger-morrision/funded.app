@@ -30,7 +30,7 @@ test('overflow ledger hints use exact strings while null without exact evidence 
   const evidence={status:'unverified-records',coverage:{recordedCollections:2}};
   const exact=render(evidence,{recordedCollectedLamports:null,precisionStatus:'overflow',exactLamports:{recordedCollectedLamports:'9007199254740993'}});
   assert.match(exact.small.innerHTML,/9007199\.254740993 SOL recorded in the ledger/);
-  assert.equal(exact.strong.textContent,'—');assert.match(exact.small.innerHTML,/no matching on-chain proof/);
+  assert.equal(exact.strong.textContent,'—');assert.match(exact.small.innerHTML,/confirmation unavailable/);
   const missing=render(evidence,{recordedCollectedLamports:null,precisionStatus:'overflow'});
   assert.match(missing.small.innerHTML,/recorded amount unavailable/);assert.doesNotMatch(missing.small.innerHTML,/; 0 SOL/);
 });

@@ -42,6 +42,8 @@ body.page-route-my-launches .home-launch-card-actions .token-card-action-trade {
 }
 .token-card-action-watch { width: 30px; padding: 5px; }
 .token-card-action-watch svg { display: block; width: 16px; height: 16px; }
+body :is(.share-asset, button[data-boost-mint]) { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+body :is(.share-asset, button[data-boost-mint]) > svg { display: block; flex: 0 0 16px; width: 16px; height: 16px; }
 .token-card-action-watch.active { border-color: #f4a340; color: #ffd28a; }
 .token-card-action-watch:hover,
 .token-card-action-share:hover { border-color: #f4a340; color: #ffd28a; }
@@ -83,6 +85,8 @@ body.page-route-overview .home-reward-token-actions {
 }
 .reward-token-actions { justify-content: flex-end; margin-top: 10px; padding-top: 9px; border-top: 1px solid #33423d; }
 @media (max-width: 600px) {
+  body:is(.page-route-overview,.page-route-explore) .home-launch-card-actions { flex-wrap: wrap; }
+  body:is(.page-route-overview,.page-route-explore) .home-launch-card-actions > button { flex: 1 0 auto; }
   .airdrop-directory-card .directory-footer .token-card-actions { justify-content: flex-start; }
   .claim-card .claim-token-actions { flex-wrap: wrap; }
   .claim-card .claim-token-actions .claim-action { flex-basis: 100%; }

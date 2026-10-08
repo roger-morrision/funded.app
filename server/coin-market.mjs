@@ -148,7 +148,7 @@ export async function readPumpMarketActivity({ connection, mint, nowSeconds = Ma
     ...route,
     signatures:await connection.getSignaturesForAddress(route.address, { limit:maxSignatures }, 'confirmed'),
   })));
-  if (scans.every(scan => !scan.signatures.length)) return { observedVolumeSol: null, observedTradeCount: null, observedCoverage: 'unavailable', volume24hSol: null, buyVolume24hSol: null, sellVolume24hSol: null, tradeCount24h: null, poolTradeCount24h: 0, buyCount24h: null, sellCount24h: null, recentTrades: [], activityWindows: null, priceChangePercent: null, priceChangeBasis: null, coverage: 'unavailable' };
+  if (scans.every(scan => !scan.signatures.length)) return { poolHistoryCoverage: 'unavailable', observedVolumeSol: null, observedTradeCount: null, observedCoverage: 'unavailable', volume24hSol: null, buyVolume24hSol: null, sellVolume24hSol: null, tradeCount24h: null, poolTradeCount24h: 0, buyCount24h: null, sellCount24h: null, recentTrades: [], activityWindows: null, priceChangePercent: null, priceChangeBasis: null, coverage: 'unavailable' };
   const firstOlder = scans.some(scan => scan.signatures.some(item => item.blockTime != null && item.blockTime < cutoffSeconds));
   const selectedBySignature = new Map();
   for (const scan of scans) {
@@ -184,6 +184,9 @@ export async function readPumpMarketActivity({ connection, mint, nowSeconds = Ma
     && (scan.signatures.length < maxSignatures || scan.signatures.some(item => item.blockTime < cutoffSeconds)));
   const observedComplete = !missingTransactions && scans.every(scan => scan.signatures.length < maxSignatures
     && scan.signatures.every(item => item.blockTime != null));
-  return summarizePumpTrades(records, { cutoffSeconds, complete, observedComplete,
-    sinceLaunch:!firstOlder && scans.every(scan => scan.signatures.length < maxSignatures) });
+  return {
+    ...summarizePumpTrades(records, { cutoffSeconds, complete, observedComplete,
+      sinceLaunch:!firstOlder && scans.every(scan => scan.signatures.length < maxSignatures) }),
+    poolHistoryCoverage: poolVerified ? (complete ? 'complete' : 'partial') : 'unavailable',
+  };
 }

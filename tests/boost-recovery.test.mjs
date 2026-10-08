@@ -61,7 +61,7 @@ test('loading verified history unlocks the package picker after server-side reco
   await context.loadExploreBoostHistory(mint);
   assert.equal(checkout.pendingSignature, null);
   assert.equal(checkout.quote, null);
-  assert.match(checkout.message, /Choose another boost pack/);
+  assert.match(checkout.message, /buy another boost/);
   assert.equal(readPendingBoost(mint, storage), null);
 });
 test('quotes require matching identity, network, price, safe units, future expiry and exact memo', () => {

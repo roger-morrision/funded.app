@@ -39,5 +39,5 @@ const appSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
 assert.doesNotMatch(appSource, /communityClaimWindow\.disabled = false/, 'The fixed claim window must not become editable.');
 assert.match(appSource, /Planned policy: unclaimed tokens go to app owner .* after 90 days\. Claim program not activated\./, 'The fixed claim window needs an explicit explanation.');
 assert.match(appSource, /BigInt\(reserve\.claimedBaseUnits\) \* BigInt\(reservedTokens\) \* 1_000_000n \/ BigInt\(reserve\.totalBaseUnits\)/, 'Claimed token display must retain six-decimal precision.');
-assert.match(appSource, /const claimPrograms = programs\.filter\(item => item\.claimPublished && item\.claimedTokens != null && item\.vaultVerified === true[\s\S]*?Indexed claim state for \$\{claimPrograms\.length\}\/\$\{programs\.length\} programs/, 'Airdrop summary must show partial indexed claim coverage instead of hiding all claims.');
+assert.match(appSource, /const claimPrograms = programs\.filter\(item => item\.claimPublished && item\.claimedTokens != null && item\.vaultVerified === true[\s\S]*?History available for \$\{claimPrograms\.length\} of \$\{programs\.length\} airdrops/, 'Airdrop summary must show partial indexed claim coverage instead of hiding all claims.');
 console.log('community airdrop policy checks passed');

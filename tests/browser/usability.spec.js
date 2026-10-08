@@ -14,6 +14,19 @@ async function open(page, route) {
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
 }
 
+for (const width of [1280, 390, 320]) test(`Explore Filters can close from the same toggle at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 850 });
+  await open(page, 'explore');
+  const toggle = page.locator('#explore-filter-toggle');
+  const popover = page.locator('#explore-filter-popover');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(popover).toBeVisible();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(popover).toBeHidden();
+});
+
 test('a stalled optional fee-status provider does not block the workspace', async ({ page }) => {
   let requested = false;
   let feeStatusFinished = false;
@@ -60,16 +73,17 @@ test('primary portfolio and rewards remain reachable on compact desktop Home', a
   for (const width of [901, 1024]) {
     await page.setViewportSize({ width, height: 900 });
     await open(page, 'overview');
+    await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
     const nav = page.getByRole('navigation', { name: 'Primary navigation' });
     for (const destination of ['my-launches', 'payments']) {
       await expect(nav.locator(`a[href="#${destination}"]`)).toHaveCount(1);
       await expect(nav.locator(`a[href="#${destination}"]`)).toBeVisible();
     }
     for (const control of await nav.locator('a[href="#my-launches"], a[href="#payments"], .nav-more > summary').all()) {
-      expect(await control.evaluate(element => {
+      await expect.poll(() => control.evaluate(element => {
         const box = element.getBoundingClientRect();
         return element.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
-      }), 'Primary navigation must not be covered by search, network or wallet controls').toBe(true);
+      }), { message: `Primary navigation must stay clickable at ${width}px` }).toBe(true);
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
@@ -79,9 +93,14 @@ test('mobile header actions do not overlap and touched controls have usable hit 
   await page.setViewportSize({ width: 390, height: 844 });
   for (const route of ['overview', 'launch']) {
     await open(page, route);
-    const label = await page.locator('#route-context').boundingBox();
+    await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state', 'ready');
+    await expect(page.locator('#open-menu')).toBeVisible();
+    await expect(page.locator('#connect-button')).toBeVisible();
+    const menu = await page.locator('#open-menu').boundingBox();
     const wallet = await page.locator('#connect-button').boundingBox();
-    expect(label.x + label.width).toBeLessThanOrEqual(wallet.x);
+    expect(menu.x + menu.width).toBeLessThanOrEqual(wallet.x);
+    expect(menu.height).toBeGreaterThanOrEqual(44);
+    expect(wallet.height).toBeGreaterThanOrEqual(44);
     const targets = route === 'overview' ? '.home-market-window button, #home-ticker-back, #home-ticker-forward' : '#launch-close';
     for (const target of await page.locator(targets).all()) {
       expect((await target.boundingBox()).height).toBeGreaterThanOrEqual(44);
@@ -95,10 +114,13 @@ test('unavailable feeds stay truthful and retry from Home and both Explore layou
     await expect(page.locator(`[data-home-reward-grid="${kind}"]`)).toContainText('Verified reward data is unavailable');
   }
   async function retry() {
-    const response = page.waitForResponse(response => response.url().includes('/api/pump/explore'));
-    await page.getByRole('button', { name: 'Retry verification', exact: true }).click();
-    await response;
-    await expect(page.getByRole('button', { name: 'Retry verification', exact: true })).toBeEnabled();
+    const button = page.locator('[data-verified-feed-retry]:visible, [data-explore-empty-action="retry"]:visible').first();
+    await expect(button).toBeVisible();
+    await Promise.all([
+      page.waitForResponse(response => response.url().includes('/api/pump/explore')),
+      button.click(),
+    ]);
+    await expect(page.locator('[data-verified-feed-retry]:visible, [data-explore-empty-action="retry"]:visible').first()).toBeEnabled();
   }
   await retry();
   await open(page, 'explore');

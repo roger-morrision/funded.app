@@ -14,7 +14,7 @@ function compactAirdrop() {
   const root = document.getElementById('airdrops');
   if (!root) return;
   const intro = root.querySelector('.airdrop-intro');
-  if (intro) intro.textContent = 'Hold $FUNDED to qualify. Check when claims open, then connect your wallet to see your amount.';
+  if (intro) intro.textContent = 'Browse launch airdrops, then check your wallet when a claim window opens.';
   const directory = root.querySelector('.airdrop-public-programs');
   const poster = root.querySelector('.airdrop-trust:has([data-infographic-poster="airdrops"])');
   if (directory && poster && directory.nextElementSibling !== poster) directory.after(poster);
@@ -217,10 +217,10 @@ function compactRecipients() {
 
 function shortenPageCopy() {
   const edits = [
-    ['#payments > .workspace-page-header > p:last-child', 'Choose the account or wallet that earned a reward, then check what is ready to claim.'],
+    ['#payments > .workspace-page-header > p:last-child', 'Claim rewards and track your payments.'],
     ['#my-launches > .section-heading .panel-explainer', 'Your launches and saved tokens.'],
     ['#capital-flow > .section-heading .panel-explainer', 'See how collected creator fees are shared.'],
-    ['#launch-route-shell > .page-lede', 'Add the coin details, choose a tier, and review the cost before connecting your wallet.'],
+    ['#launch-route-shell > .page-lede', 'Add your token details, choose rewards, and review the total before signing.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
     ['#community .section-heading .panel-explainer', 'Sign in with the same X account to see your favorites on any device.'],
     ['#capital-flow-title', 'Where every SOL goes'],
@@ -248,7 +248,6 @@ function shortenPageCopy() {
     ['#payments .auto-reward-card:nth-child(1) > p', 'Eligible wallets receive SOL after the daily eligibility check and funding confirmation.'],
     ['#payments .auto-rewards-fineprint', 'Target time is not payment. Each cycle checks funding and eligibility.'],
     ['#funded-holder-token-rewards > small', 'Public policy only. Check Airdrops for funding and claim status.'],
-    ['#airdrops .airdrop-wallet-gate p', 'Connect your wallet to see whether you can claim after each launch sets its eligibility date.'],
     ['#airdrops .airdrop-trust > p', 'Claims open after eligibility and funding have been confirmed.'],
     ['#list .list-field-note', 'Verified Solana metadata supplies name and ticker. Mint and burn are rechecked before payment.'],
     ['#profile .section-heading .panel-explainer', 'Check wallet and network before signing.'],

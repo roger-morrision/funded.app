@@ -130,7 +130,7 @@ function navigation() {
   const searchDialog = node('dialog', 'header-search-dialog');
   searchDialog.id = 'header-search-dialog';
   searchDialog.setAttribute('aria-label', 'Search launches');
-  searchDialog.innerHTML = `<form class="header-search-panel"><label for="header-search-input">Search launches</label><div class="header-search-field"><span aria-hidden="true">${icon('explore')}</span><input id="header-search-input" type="search" role="combobox" aria-autocomplete="list" aria-expanded="true" autocomplete="off" placeholder="Search name, ticker, or mint" aria-controls="header-search-results" /><button type="button" class="header-search-close" aria-label="Close search">${icon('close')}</button></div><div class="header-search-results-head"><strong id="header-search-results-title">TOP VERIFIED LAUNCHES</strong><span>NAME · $TICKER · MINT</span></div><div id="header-search-results" class="header-search-results" role="listbox" aria-label="Verified launch search results"></div><p id="header-search-help">↑↓ navigate · ↵ open · Esc close</p></form>`;
+  searchDialog.innerHTML = `<form class="header-search-panel"><label for="header-search-input">Search launches</label><div class="header-search-field"><span aria-hidden="true">${icon('explore')}</span><input id="header-search-input" type="search" role="combobox" aria-autocomplete="list" aria-expanded="true" autocomplete="off" placeholder="Search name, ticker, or mint" aria-controls="header-search-results" /><button type="button" class="header-search-close" aria-label="Close search">${icon('close')}</button></div><div class="header-search-results-head"><strong id="header-search-results-title">EXPLORE TOKENS</strong><span>NAME · SYMBOL · ADDRESS</span></div><div id="header-search-results" class="header-search-results" role="listbox" aria-label="Verified launch search results"></div><p id="header-search-help">↑↓ navigate · ↵ open · Esc close</p></form>`;
   document.body.append(searchDialog);
   const modalSearch = $('#header-search-input', searchDialog);
   const globalSearch = $('#global-search');
@@ -140,10 +140,10 @@ function navigation() {
   const renderSearchResults = () => {
     candidates = window.fundedVerifiedSearchCandidates?.(modalSearch.value) || [];
     activeCandidate = candidates.length ? 0 : -1;
-    $('#header-search-results-title', searchDialog).textContent = modalSearch.value.trim() ? 'MATCHING VERIFIED LAUNCHES' : 'TOP VERIFIED LAUNCHES';
+    $('#header-search-results-title', searchDialog).textContent = modalSearch.value.trim() ? 'SEARCH RESULTS' : 'EXPLORE TOKENS';
     searchResults.replaceChildren();
     if (!candidates.length) {
-      const empty = node('p', 'header-search-empty', modalSearch.value.trim() ? 'No verified launch matches this search. Press Enter to search Launch Directory.' : 'No verified launches in the current feed.');
+      const empty = node('p', 'header-search-empty', modalSearch.value.trim() ? 'No matching tokens. Press Enter to search Explore.' : 'No tokens available right now.');
       searchResults.append(empty);
     }
     candidates.forEach((candidate, index) => {
@@ -462,7 +462,7 @@ function explore() {
 
 function launch() {
   $('#wizard-hint')?.setAttribute('tabindex','-1');
-  $$('[data-launch-step-target]').forEach(button=>button.setAttribute('aria-label',`Step ${button.dataset.launchStepTarget}: ${['Token details','Launch settings','Review'][Number(button.dataset.launchStepTarget)-1]}`));
+  $$('[data-launch-step-target]').forEach(button=>button.setAttribute('aria-label',`Step ${button.dataset.launchStepTarget}: ${['Token details','Rewards and launch'][Number(button.dataset.launchStepTarget)-1]}`));
   disclose($('.enhanced-token-page'), 'Optional story and roadmap');
   const tier = $('.creator-burn-section');
   const firstStep = $('[data-launch-step="1"]');
@@ -500,48 +500,7 @@ function launch() {
     guideDialog.querySelector('.launch-tier-guide-close').addEventListener('click', () => guideDialog.close());
     guideDialog.addEventListener('click', event => { if (event.target === guideDialog) guideDialog.close(); });
   }
-  const summary = $('#launch-review-summary');
   const page = $('#launch-dialog');
-  function updateReview() {
-    if (!summary) return;
-    for (const [target, source, fallback] of [
-      ['#review-token-name','#token-name','Token name'],
-      ['#review-token-symbol','#token-symbol','TICKER'],
-      ['#review-community','#preview-community','—'],
-      ['#review-creator-buy','#preview-creator-buy','None'],
-      ['#review-promotion','#preview-burn-tier','Standard'],
-      ['#review-network','#preview-network','Solana'],
-      ['#review-estimated-spend','#preview-launch-cost','Estimate unavailable'],
-    ]) {
-      const input = $(source);
-      const output = $(target, summary);
-      if (output) output.textContent = String(input?.value || input?.textContent || fallback).trim();
-    }
-    const estimate = $('#review-estimated-spend', summary);
-    const estimateReady = /\bSOL\b/.test(estimate?.textContent || '');
-    estimate?.classList.toggle('is-unavailable', !estimateReady);
-    const estimateDetail = $('#review-estimate-detail', summary);
-    if (estimateDetail) estimateDetail.textContent = estimateReady
-      ? 'Check the itemized cost and confirm the fee route in the payment panel before signing.'
-      : ($('#cost-note')?.textContent || 'Refresh the launch estimate before signing.');
-    for (const [key, inputId, outputId, fallback] of [
-      ['creator','#creator-wallet-share','#review-creator-share',80],
-      ['holders','#holder-airdrop-share','#review-holder-share',0],
-      ['x','#x-share','#review-x-share',0],
-      ['protocol',null,'#review-protocol-share',20],
-    ]) {
-      const raw = inputId ? Number($(inputId)?.value) : fallback;
-      const share = Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : fallback;
-      const output = $(outputId, summary);
-      if (output) output.textContent = `${share}%`;
-      const segment = $(`[data-review-share="${key}"]`, summary);
-      if (segment) segment.style.width = `${share}%`;
-    }
-  }
-  page?.addEventListener('input',updateReview);
-  window.addEventListener('funded:launch-step', updateReview);
-  const preview = $('.launch-preview-sticky');
-  if (preview) new MutationObserver(updateReview).observe(preview,{subtree:true,childList:true,characterData:true});
   const funding = $('#community-airdrop-help');
   const reserve = $('#community-airdrop-tokens');
   reserve?.addEventListener('input', () => {
@@ -554,7 +513,6 @@ function launch() {
   // The initial step is set by the application; align first paint before any interaction.
   page.dataset.step = '1';
   $$('[data-launch-step]',page).forEach(panel=>panel.hidden=panel.dataset.launchStep!=='1');
-  updateReview();
 }
 
 function rewards() {
@@ -562,18 +520,22 @@ function rewards() {
   const x = node('div'); x.id = 'rewards-x';
   while(root.firstChild) x.append(root.firstChild);
   const overview = node('div'); overview.id = 'rewards-overview';
-  overview.innerHTML = `<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Rewards · Solana Devnet</p><h1>Find your rewards</h1><p>Check rewards linked to your X account or wallet, then see what is ready to claim.</p></div>
-    <div class="reward-overview-start"><p class="eyebrow">Start here</p><h2>Choose how you earned</h2><p>Use the X account or wallet that earned the reward. Each section shows your current claim status.</p></div>
+  overview.innerHTML = `<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Rewards</p><h1>Your rewards</h1><p>Claim rewards and track your payments.</p></div>
+    <section class="reward-upcoming" aria-labelledby="reward-upcoming-title"><header><p class="eyebrow">Plan ahead</p><h2 id="reward-upcoming-title">When to join, when to wait</h2><p>Recorded cutoffs and targets appear per reward. A target is not a confirmed payment.</p></header><div class="reward-upcoming-grid">
+      <article><span>SOL · COIN HOLDERS</span><h3>Hold before the daily snapshot</h3><p>Choose a coin with a holder fee share and hold through its cutoff. Eligible funded cycles pay SOL automatically; small pools can roll forward.</p><button type="button" data-reward-open="holder">See cutoff and payout target →</button></article>
+      <article><span>LAUNCHED COIN TOKENS · $FUNDED HOLDERS</span><h3>Hold before that coin migrates</h3><p>Each coin snapshots $FUNDED holders at migration. Once claims open, eligible wallets have 90 days to claim.</p><a href="#airdrops">See airdrops and claim status →</a></article>
+    </div><p class="reward-upcoming-note">Creator, X, and referral SOL depend on collected fees. X and referral rewards require a claim when ready.</p></section>
+    <div class="reward-overview-start"><p class="eyebrow">Explore rewards</p><h2>Reward programs</h2><p>Each program has its own eligibility and payment status.</p></div>
     <div class="reward-action-grid">
       <button type="button" data-reward-open="x"><span class="reward-action-icon" aria-hidden="true">𝕏</span><span><strong>X account rewards</strong><small>Sign in with X to see and claim your SOL.</small></span><b aria-hidden="true">→</b></button>
       <button type="button" data-reward-open="holder"><span class="reward-action-icon" aria-hidden="true">◎</span><span><strong>Coin holder rewards</strong><small>Eligible coin wallets receive SOL automatically.</small></span><b aria-hidden="true">→</b></button>
       <button type="button" data-reward-open="funded"><span class="reward-action-icon" aria-hidden="true">ƒ</span><span><strong>$FUNDED holder airdrops</strong><small>Check token allocations and claim eligibility.</small></span><b aria-hidden="true">→</b></button>
-      <button type="button" data-reward-open="creator"><span class="reward-action-icon" aria-hidden="true">✦</span><span><strong>Creator fees</strong><small>Check fees earned by coins you launched.</small></span><b aria-hidden="true">→</b></button>
-      <button type="button" data-reward-open="history"><span class="reward-action-icon" aria-hidden="true">⇢</span><span><strong>Payment history</strong><small>Confirmed payments for creators, holders, referrals, and X accounts.</small></span><b aria-hidden="true">→</b></button>
+      <button type="button" data-reward-open="creator"><span class="reward-action-icon" aria-hidden="true">✦</span><span><strong>Creator rewards</strong><small>Claim SOL earned by your launches.</small></span><b aria-hidden="true">→</b></button>
+      <button type="button" data-reward-open="history"><span class="reward-action-icon" aria-hidden="true">⇢</span><span><strong>Payment history</strong><small>View confirmed SOL payments.</small></span><b aria-hidden="true">→</b></button>
       <a href="#referrals"><span class="reward-action-icon" aria-hidden="true">↗</span><span><strong>Referral rewards</strong><small>Connect your wallet to check and claim.</small></span><b aria-hidden="true">→</b></a>
     </div>`;
   const creator = node('div'); creator.id = 'rewards-creator';
-  creator.innerHTML = '<div class="reward-section-intro"><p class="eyebrow">Your launches</p><h2>Creator fees</h2><p>Review collected fees and claimable amounts for tokens you launched.</p></div><div class="reward-creator-gate"><p class="reward-wallet-prompt">Connect your launch wallet to view creator rewards.</p><div class="reward-creator-actions"><button type="button" class="primary-button" data-reward-connect>Connect wallet</button><a class="secondary-button" href="#my-launches">Open Portfolio →</a></div></div>';
+  creator.innerHTML = '<div class="reward-section-intro"><p class="eyebrow">Your launches</p><h2>Creator rewards</h2><p>Claim SOL from your tokens below.</p></div><div class="reward-creator-gate"><p class="reward-wallet-prompt">Connect your launch wallet to view creator rewards.</p><div class="reward-creator-actions"><button type="button" class="primary-button" data-reward-connect>Connect wallet</button><a class="secondary-button" href="#my-launches">Open Portfolio →</a></div></div>';
   const personal = $('[data-personal-rewards]'); if(personal)creator.append(personal);
   const xSummary = $('[data-x-rewards]',personal || creator);if(xSummary)x.prepend(xSummary);
   const holder = node('div'); holder.id = 'rewards-holder';
@@ -589,13 +551,14 @@ function rewards() {
     funded.append(fundedDirectory);
   }
   const holderIntro = automatic?.querySelector('.auto-rewards-intro');
-  if(holderIntro)holderIntro.textContent = 'Eligible coin holders receive SOL automatically when a payout is confirmed. No manual claim is needed.';
+  if(holderIntro)holderIntro.textContent = 'Eligible holders receive SOL automatically. No claim needed.';
   const holderHeading = automatic?.querySelector('.auto-rewards-heading h2');
   if(holderHeading)holderHeading.textContent = 'Coin holder SOL rewards';
   const history = node('div'); history.id = 'rewards-history';
   const historyPanel = $('.x-claim-activity', x); if (historyPanel) history.append(historyPanel);
   root.append(overview,creator,holder,funded,x,history);
   const select = tabs(root,[{key:'overview',label:'My rewards',panel:overview},{key:'holder',label:'Coin holders',panel:holder},{key:'funded',label:'$FUNDED holders',panel:funded},{key:'creator',label:'Creator',panel:creator},{key:'x',label:'X claims',panel:x},{key:'history',label:'Payments',panel:history}],'Reward type');
+  root.querySelector(':scope > .ui-tabs')?.after(node('p','reward-tab-hint','Swipe tabs for more reward types →'));
   root.prepend(overview.querySelector('.workspace-page-header'));
   $$('[data-reward-open]',root).forEach(button=>button.addEventListener('click',()=>select(button.dataset.rewardOpen,true)));
   $$('a[href="#payments"]',personal || creator).forEach(link=>link.addEventListener('click',()=>select('x',true)));
@@ -618,17 +581,17 @@ function secondaryPages() {
     heading?.before(back);
     const walletGate=node('section','airdrop-wallet-gate');
     walletGate.setAttribute('aria-label','Wallet eligibility');
-    walletGate.innerHTML='<div class="airdrop-wallet-gate-top"><span>WALLET</span><strong>Not connected</strong></div><div class="airdrop-wallet-gate-body"><span class="airdrop-wallet-art" aria-hidden="true">◈</span><h3>Connect your wallet</h3><p>See whether you qualify and how much you can claim when a launch opens its claims.</p><button type="button" class="primary-button">Connect wallet</button></div>';
+    walletGate.innerHTML='<div class="airdrop-wallet-gate-top"><span>Your airdrops</span><strong>Not connected</strong></div><div class="airdrop-wallet-gate-body"><span class="airdrop-wallet-art" aria-hidden="true">◈</span><h3>Check your airdrops</h3><p>Connect the wallet that held $FUNDED at a launch’s snapshot to see its eligibility and claim status.</p><button type="button" class="primary-button">Connect wallet</button></div>';
     walletGate.querySelector('button').addEventListener('click',()=>$('#connect-button')?.click());
     const heroLayout=node('div','airdrop-hero-layout');
     const heroArt=node('figure','airdrop-hero-art');
     heroArt.innerHTML=`<img src="${airdropWolfDropUrl}" alt="A black wolf watching a descending community supply parcel" loading="lazy" />`;
     intro?.after(heroLayout);
     heroLayout.append(walletGate,heroArt);
-    const syncAirdropWallet=()=>{const address=document.documentElement.dataset.connectedWallet;heroLayout.hidden=Boolean(address);walletGate.querySelector('.airdrop-wallet-gate-top strong').textContent=address?`${address.slice(0,4)}…${address.slice(-4)}`:'Not connected';};
+    const syncAirdropWallet=()=>{const address=document.documentElement.dataset.connectedWallet;walletGate.querySelector('.airdrop-wallet-gate-top strong').textContent=address?`${address.slice(0,4)}…${address.slice(-4)}`:'Not connected';walletGate.querySelector('h3').textContent=address?'Wallet connected':'Check your airdrops';walletGate.querySelector('p').textContent=address?'Select a launch below to check your allocation. A planned airdrop does not confirm personal eligibility.':'Connect the wallet that held $FUNDED at a launch’s snapshot to see its eligibility and claim status.';walletGate.querySelector('button').hidden=Boolean(address);};
     window.addEventListener('funded:reward-identity-change',syncAirdropWallet);syncAirdropWallet();
     const publicPrograms=node('section','airdrop-public-programs');
-    publicPrograms.innerHTML='<div class="airdrop-public-rule"><span>LAUNCH AIRDROPS</span></div><div class="airdrop-reference-tabs" role="tablist" aria-label="Launch airdrop status"><button type="button" role="tab" aria-selected="true" data-public-airdrop-tab="upcoming">Upcoming <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="claiming">Claims open <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="closed">Closed <span>—</span></button></div>';
+    publicPrograms.innerHTML='<div class="airdrop-reference-tabs" role="tablist" aria-label="Launch airdrop status"><button type="button" role="tab" aria-selected="true" data-public-airdrop-tab="upcoming">Upcoming <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="claiming">Claims open <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="closed">Closed <span>—</span></button></div><p class="airdrop-stage-help">Upcoming: waiting for migration and proof · Claims open: check your wallet · Closed: claim window ended</p>';
     for(const selector of ['.airdrop-directory-head','.airdrop-directory','#airdrop-directory-pagination','#airdrop-selected-program']){const item=$(selector,airdrops);if(item)publicPrograms.append(item);}
     heroLayout.after(publicPrograms);
     text('.airdrop-directory-head h2','Launch airdrops');
@@ -652,7 +615,7 @@ function secondaryPages() {
     publicPrograms.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key)||!event.target.matches('[data-public-airdrop-tab]'))return;event.preventDefault();const buttons=$$('[data-public-airdrop-tab]',publicPrograms);const next=buttons[(buttons.indexOf(event.target)+(event.key==='ArrowRight'?1:buttons.length-1))%buttons.length];selectPublicTab(next.dataset.publicAirdropTab);next.focus();});
     if(directory)new MutationObserver(syncPublicPrograms).observe(directory,{childList:true});
     syncPublicPrograms();
-    const evidence=node('details','airdrop-evidence');evidence.innerHTML='<summary>Airdrop details</summary>';
+    const evidence=node('section','airdrop-evidence');evidence.innerHTML='<h2>Airdrop details</h2>';
     for(const selector of ['#airdrop-summary-kpis','.community-airdrop-callout']){const item=$(selector,airdrops);if(item)evidence.append(item);}
     publicPrograms.after(evidence);
     const flow=$('.claim-flow',airdrops);
@@ -677,7 +640,7 @@ function protocolPage() {
   hero.innerHTML = '<span class="paid-hero-mark" aria-hidden="true">ƒ</span><div><p class="eyebrow">$FUNDED · network token</p><h1>The token behind every launch</h1><p>$FUNDED connects launch tiers, community allocations, and the published burn policy. Verify holder rewards and burns through their receipts.</p><div class="paid-hero-actions"><a class="primary-button" href="#buybacks">Buy or burn $FUNDED ↗</a><a class="secondary-button" id="funded-token-chart" href="#explore" hidden>View on Solana ↗</a><a class="secondary-button" href="#explore">Explore launches</a><a class="secondary-button" href="#launch">Burn for a tier</a></div></div>';
   const facts = node('div', 'paid-reference-metrics');
   facts.setAttribute('aria-label', '$FUNDED token and tier metrics');
-  facts.innerHTML = '<div><span>PRICE</span><strong id="funded-token-price">$—</strong><small id="funded-token-price-note">Verified quote unavailable</small></div><div><span>MARKET CAP</span><strong id="funded-token-market-cap">$—</strong><small id="funded-token-market-cap-note">Verified market unavailable</small></div><div><span>$FUNDED BURNED</span><strong id="funded-token-burned">—</strong><small id="funded-token-burned-note">Checking on-chain supply</small></div><div><span>BOOST TIER</span><strong id="funded-token-boost">—</strong><small id="funded-token-boost-note">$FUNDED burn per launch</small></div><div><span>PRO TIER</span><strong id="funded-token-pro">—</strong><small id="funded-token-pro-note">$FUNDED burn per launch</small></div><div><span>PREMIER TIER</span><strong id="funded-token-premier">—</strong><small id="funded-token-premier-note">$FUNDED burn per launch</small></div>';
+  facts.innerHTML = '<div><span>PRICE</span><strong id="funded-token-price">$—</strong><small id="funded-token-price-note">Verified quote unavailable</small></div><div><span>MARKET CAP</span><strong id="funded-token-market-cap">$—</strong><small id="funded-token-market-cap-note">Verified market unavailable</small></div><div><span>$FUNDED BURNED</span><strong id="funded-token-burned">—</strong><small id="funded-token-burned-note">Checking on-chain supply</small></div><div><span>PRO TIER</span><strong id="funded-token-pro">—</strong><small id="funded-token-pro-note">$FUNDED burn per launch</small></div><div><span>PREMIER TIER</span><strong id="funded-token-premier">—</strong><small id="funded-token-premier-note">$FUNDED burn per launch</small></div>';
   const story = node('div', 'funded-token-story');
   story.innerHTML = '<article><h2>What it does here</h2><p>Teams can choose a paid launch tier by burning $FUNDED. The tier and amount are recorded with the launch, and the badge only appears after verification.</p><p>The burn receipt can be checked on-chain; a tier is a promotion signal, not a promise of liquidity or returns. The free Standard tier remains available.</p></article><article><h2>Why holding it matters</h2><p>Funded launches reserve community tokens for eligible $FUNDED holders. Eligibility, funding, and delivery are shown through their own records.</p><p>A policy allocation alone is not a completed airdrop. <a href="#airdrops">Review airdrops →</a></p></article><article><h2>The story</h2><p>Funded.vip links launches, creator fee routes, community rewards, and token burns in one place.</p><p>The published fee policy assigns a protocol share to operations, referrals, community, and a $FUNDED buyback and burn program. <a href="#capital-flow">Follow the fee route →</a></p></article>';
   const contract = node('div', 'funded-token-contract');
@@ -772,7 +735,7 @@ function tokenPage() {
     const factRibbon=$('.coin-fact-ribbon',hero);
     if(factRibbon)aboutPanel.append(factRibbon);
     const updatesPanel=node('div','coin-profile-panel coin-profile-updates');
-    updatesPanel.append(node('strong','','No signed updates available'),node('p','','Project updates are not indexed for this token. Confirmed trades and on-chain records appear below.'));
+    updatesPanel.append(node('strong','','No updates yet'),node('p','','Updates from this project will appear here.'));
     const roadmapPanel=node('section','coin-profile-roadmap-section');roadmapPanel.id='coin-profile-roadmap-section';
     roadmapPanel.append(node('h3','','Project roadmap'));
     const roadmap=node('p','coin-profile-roadmap','No signed roadmap was provided for this token.');roadmap.id='coin-profile-roadmap';
@@ -927,6 +890,7 @@ function syncRoute() {
 navigation(); home(); explore(); launch(); rewards(); secondaryPages(); protocolPage(); mergePurposePages(); tokenPage();
 document.body.classList.add('workspace-ready');
 window.addEventListener('funded:route-change',syncRoute);
+window.addEventListener('funded:layout-change',syncRoute);
 window.addEventListener('hashchange',syncRoute);
 matchMedia('(min-width:1180px)').addEventListener('change',syncRoute);
 syncRoute();

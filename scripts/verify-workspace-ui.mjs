@@ -324,6 +324,14 @@ try {
   });
   await page.screenshot({path:resolve(output,'leaderboard-burn-board.png'),timeout:12000});
   await open('airdrops');
+  await check('Airdrop dashboard stays visible without opening a disclosure',async()=>{
+    const dashboard=page.locator('#airdrops .airdrop-evidence');
+    assert.equal(await dashboard.evaluate(element=>element.tagName),'SECTION');
+    assert.equal(await dashboard.locator(':scope > h2').innerText(),'Airdrop details');
+    assert.equal(await dashboard.locator('#airdrop-summary-kpis article').count(),4);
+    assert(await dashboard.isVisible());
+    assert(await dashboard.locator('.community-airdrop-callout').isVisible());
+  });
   await check('Airdrops show one directory and holder guidance in order',async()=>{
     const blocks=await page.locator('#airdrops').evaluate(element=>[...element.children].map(child=>child.className));
     const positions=['airdrop-hero-layout','airdrop-public-programs','airdrop-allocation-heading','airdrop-reference-flow'].map(name=>blocks.findIndex(value=>value.includes(name)));
@@ -349,6 +357,9 @@ try {
   await check('Airdrop details open in the mobile viewport',async()=>{
     await page.setViewportSize({width:390,height:844});
     await open('airdrops');
+    const dashboard=page.locator('#airdrops .airdrop-evidence');
+    assert(await dashboard.isVisible());
+    assert.equal(await dashboard.locator('#airdrop-summary-kpis article').count(),4);
     const button=page.locator('[data-directory-mint]').first();
     await button.waitFor({state:'visible',timeout:15000});
     await button.click();
@@ -496,13 +507,14 @@ try {
     await page.locator('#token-name').fill('');
   });
   await check('Invalid identity blocks step advancement',async()=>{await page.locator('#token-name').fill('');await page.locator('#launch-next').click();assert.equal(await page.locator('#launch-dialog').getAttribute('data-step'),'1');});
-  await check('Launch settings then review; no signing',async()=>{
+  await check('Launch settings and live summary; no signing',async()=>{
     await page.locator('#token-name').fill('UI review draft');await page.locator('#token-symbol').fill('UITEST');await page.locator('#launch-next').click();
     assert.equal(await page.locator('#launch-dialog').getAttribute('data-step'),'2');assert(await page.locator('#community-airdrop-tokens').isVisible());assert(!await page.locator('#token-name').isVisible());
-    await page.locator('#community-airdrop-tokens').fill('1');await page.locator('#launch-next').click();assert.equal(await page.locator('#launch-dialog').getAttribute('data-step'),'2');
-    await page.locator('#community-airdrop-tokens').fill('30000000');await page.locator('#launch-next').click();assert.equal(await page.locator('#launch-dialog').getAttribute('data-step'),'3');
+    assert.equal(await page.locator('[data-launch-step="3"]').count(),0);
+    assert.equal((await page.locator('#launch-summary-name').textContent()).trim(),'UI review draft');
+    await page.locator('#community-airdrop-tokens').fill('1');assert.match(await page.locator('#wizard-hint').textContent(),/Community airdrop must be between/);
+    await page.locator('#community-airdrop-tokens').fill('30000000');assert.equal(await page.locator('#launch-dialog').getAttribute('data-step'),'2');
     assert(await page.locator('#terms-agree').isVisible());assert(await page.locator('#fee-route-agree').isVisible());assert(await page.locator('#launch-button').isDisabled());
-    await page.locator('#launch-back').click();assert.equal(await page.locator('#launch-dialog').getAttribute('data-step'),'2');
     await page.locator('#launch-back').click();assert.equal(await page.locator('#token-name').inputValue(),'UI review draft');
   });
   await page.screenshot({path:resolve(output,'launch-desktop.png'),timeout:12000});

@@ -1,3 +1,4 @@
+import { productEvent } from './product-events.js';
 export const JOURNAL_KEY = 'funded.launch.journal.v1';
 const states = new Set(['prepared','awaiting-approval','broadcasting','submitted','confirmed','verification-pending','registration-pending','completed','failed','cancelled','unknown']);
 const fields = ['state','step','mint','signature','payer','cluster','name','symbol','message','lastValidBlockHeight'];
@@ -22,6 +23,7 @@ export function recordLaunchEvent(id, event, storage = globalThis.localStorage) 
   try {storage.setItem(JOURNAL_KEY,JSON.stringify([...rows.filter(r=>r.id!==id),next].slice(-50)));}
   catch {throw new Error('Launch recovery could not be saved on this device. No further transaction will be sent.');}
   globalThis.dispatchEvent?.(new Event('funded:journal'));
+  if (prior.state !== event.state && ['completed', 'failed'].includes(event.state)) productEvent(`launch_${event.state}`);
   return next;
 }
 export function journalRecovery(row) {

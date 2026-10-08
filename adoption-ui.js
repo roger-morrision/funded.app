@@ -1,4 +1,5 @@
 import { apiRequest } from './client.js';
+import { PRODUCT_EVENTS, productCounterExport } from './product-events.js';
 import { readLaunchJournal, recordLaunchEvent, policyMatchesJournal } from './launch-journal.js';
 const $ = selector => document.querySelector(selector);
 

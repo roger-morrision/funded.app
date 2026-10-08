@@ -21,7 +21,7 @@ import { extname, resolve, sep } from 'node:path';
 import { isIP } from 'node:net';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { Connection, Keypair, PublicKey, SystemProgram, Transaction, clusterApiUrl, sendAndConfirmTransaction } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey, SystemProgram, Transaction, VersionedTransaction, clusterApiUrl, sendAndConfirmTransaction } from '@solana/web3.js';
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { buildSolClaimPolicy } from '../sol-claim-policy.js';
 import { buildFeeDistributionPolicy, settleCreatorFeeClaim } from '../distribution-policy.js';
@@ -34,6 +34,8 @@ import { OnlinePumpSdk, creatorVaultPda } from '@pump-fun/pump-sdk';
 import { createStore } from './store.mjs';
 import { rewardLedgerPath } from './reward-ledger-path.mjs';
 import { analyticsReceiptTotals } from './analytics-summary.mjs';
+import { createProductMetricsStore, createProductMetricsHandler, confirmedProductTotals } from './product-metrics.mjs';
+import { mapBounded } from './bounded-map.mjs';
 import { cleanShareSource, pruneShareVisits, recordShareVisit, summarizeShareVisits } from './share-visits.mjs';
 import { readPumpMarketActivity } from './coin-market.mjs';
 import { sortDevnetLaunches } from './explore-registry.mjs';
@@ -698,6 +700,16 @@ const publicTradeConsent = createPublicTradeConsent({ store, config: publicTrade
     appFeeRecipient: process.env.FUNDED_TRADE_FEE_OWNER || process.env.VITE_FUNDED_TRADE_FEE_OWNER || null,
   }) : async () => { throw new Error('Disabled'); } });
 
+const productMetrics = createProductMetricsStore(databaseUrl);
+const handleProductMetrics = createProductMetricsHandler({metrics:productMetrics, cluster:solanaCluster,
+  origin:process.env.PUBLIC_APP_URL || process.env.CORS_ORIGIN || '', authorized,
+  charge:req => store.chargeRpcRate(`journey:${clientKey(req)}`,1,30,Math.floor(Date.now()/60000)*60000),
+  confirmedTotals:async () => {
+    const [state,evidence] = await Promise.all([store.read(),readFinalizedEvidence()]);
+    return {...confirmedProductTotals(state,evidence,solanaCluster),tradingActivity:await productMetrics.trades(solanaCluster)};
+  },
+});
+
 async function handle(req, res) {
   const requestId = applyHttpPolicy(req, res);
   try {
@@ -708,6 +720,7 @@ async function handle(req, res) {
   const metadataHost = String(req.headers.host || '').split(':')[0].toLowerCase() === 'metadata.funded.vip';
   if (metadataHost && (req.method !== 'GET' || !/^\/(?:devnet-metadata|devnet-images)\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(url.pathname) && url.pathname !== '/default.svg')) return json(res, 404, { error: 'Not found.' });
   if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client, authorization, x-token-chat-session' }); return res.end(); }
+    if (await handleProductMetrics(req,res,url)) return;
     if (req.method === 'GET' && url.pathname === '/api/x-public-trade-shares/config') return json(res, 200, publicTradeConfig);
     if (req.method === 'POST' && ['/api/x-public-trade-shares/challenge', '/api/x-public-trade-shares/consent'].includes(url.pathname)) {
       if (!publicTradeConfig.enabled) return json(res, 404, { error: 'Public trade sharing is unavailable.' });
@@ -871,9 +884,12 @@ async function handle(req, res) {
       if (!wallet) return json(res, 503, { error: 'Local Solana wallet role is not configured.' });
       const input = await body(req);
       try {
-        const transaction = Transaction.from(Buffer.from(String(input.transaction || ''), 'base64'));
-        transaction.partialSign(wallet.keypair);
-        return json(res, 200, { transaction: transaction.serialize({ requireAllSignatures: false, verifySignatures: false }).toString('base64') });
+        const bytes = Buffer.from(String(input.transaction || ''), 'base64');
+        const decoded = VersionedTransaction.deserialize(bytes);
+        const transaction = decoded.version === 'legacy' ? Transaction.from(bytes) : decoded;
+        if (transaction instanceof VersionedTransaction) transaction.sign([wallet.keypair]);
+        else transaction.partialSign(wallet.keypair);
+        return json(res, 200, { transaction: Buffer.from(transaction.serialize({ requireAllSignatures: false, verifySignatures: false })).toString('base64') });
       } catch { return json(res, 400, { error: 'Invalid development transaction.' }); }
     }
     if (req.method === 'POST' && url.pathname === '/api/dev-wallet/sign-message') {
@@ -925,8 +941,7 @@ async function handle(req, res) {
         const claimLedger = await automaticRewardStore.read();
         const configuredReceipts = JSON.parse(process.env.FUNDED_COMMUNITY_RESERVE_RECEIPTS_JSON || '{}');
         const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified && row.cluster === 'devnet' && Number.isSafeInteger(Number(row.communityAirdrop?.reservedTokens)) && Number(row.communityAirdrop.reservedTokens) > 0).slice(0, 100);
-        const reserves = [];
-        for (const launch of launches) {
+        const reserves = await mapBounded(launches, 4, async launch => {
           const recorded = state.communityReserveReceipts?.[launch.mint]?.signature || configuredReceipts[launch.mint];
           const claim = claimLedger.communityDrops?.[launch.mint];
           const reserve = await readCommunityReserveStatus({ connection, programId, authority:process.env.FUNDED_REWARD_AUTHORITY,
@@ -939,11 +954,11 @@ async function handle(req, res) {
               drop:reserve.drop, claimedBaseUnits:reserve.claimedBaseUnits, leafCount:reserve.leafCount }); }
             catch { /* Keep the verified token total; do not guess a wallet count from incomplete payment accounts. */ }
           }
-          reserves.push({ ...reserve, creatorWallet:launch.creatorWallet,
+          return { ...reserve, creatorWallet:launch.creatorWallet,
             claimedWalletCount,
             fundingSignature:reserve.verified ? reserve.fundingSignature || recorded || null : null,
-            claimPreparation:claim ? claim.openingSignature ? 'opened' : 'prepared' : 'pending' });
-        }
+            claimPreparation:claim ? claim.openingSignature ? 'opened' : 'prepared' : 'pending' };
+        });
         const result = { cluster:'devnet', checkedAt:new Date().toISOString(), claimPolicy:{ windowDays:90,
           unclaimedRecipient:process.env.FUNDED_REWARD_AUTHORITY,
           status:reserves.some(row => row.status === 'drop-active') ? 'active' : 'not-activated' }, reserves };
@@ -1479,7 +1494,7 @@ async function handle(req, res) {
       try { mint = new PublicKey(decodeURIComponent(tokenMarketMint)); }
       catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
       const address = mint.toBase58();
-      const hasTradeBreakdown = data => data && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
+      const hasTradeBreakdown = data => data && Object.hasOwn(data, 'poolHistoryCoverage') && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
         && data.activityWindows?.['6h'] && data.activityWindows?.['24h']
         && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h)));
       const cached = coinMarketCache.get(address);

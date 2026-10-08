@@ -67,6 +67,7 @@ test('older trades remain in observed volume after the 24h window closes', async
   assert.equal(data.observedTradeCount, 2);
   assert.equal(data.observedVolumeSol, 0.018765431);
   assert.equal(data.observedCoverage, 'complete');
+  assert.equal(data.poolHistoryCoverage, 'complete');
 });
 
 test('bonding curve history stays in the merged feed after migration', async () => {
@@ -88,6 +89,24 @@ test('a capped pool signature page retains partial coverage', async () => {
     nowSeconds:Math.max(...fixture.cases.map(item => item.blockTime)) + 30 });
   assert.equal(data.tradeCount24h, 2);
   assert.equal(data.coverage, 'partial');
+  assert.equal(data.poolHistoryCoverage, 'partial');
+});
+
+test('missing transactions and unverified pools cannot establish complete pool history', async () => {
+  const missing = fakeConnection();
+  missing.getTransaction = async () => null;
+  const nowSeconds = Math.max(...fixture.cases.map(item => item.blockTime)) + 2 * 86_400;
+  const partial = await readPumpMarketActivity({ connection:missing, mint, nowSeconds });
+  assert.equal(partial.poolHistoryCoverage, 'partial');
+  const wrongOwner = fakeConnection({ includeCurve:true });
+  wrongOwner.getAccountInfo = async () => ({ owner:mint });
+  const unverified = await readPumpMarketActivity({ connection:wrongOwner, mint, nowSeconds });
+  assert.equal(unverified.poolHistoryCoverage, 'unavailable');
+  const empty = fakeConnection();
+  empty.getSignaturesForAddress = async () => [];
+  const noHistory = await readPumpMarketActivity({ connection:empty, mint, nowSeconds });
+  assert.equal(noHistory.poolHistoryCoverage, 'unavailable');
+  assert.equal(noHistory.volume24hSol, null);
 });
 
 test('market-cap change uses a priced trade before each selected window', () => {

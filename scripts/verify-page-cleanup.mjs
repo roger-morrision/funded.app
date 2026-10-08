@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import { preview } from 'vite';
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE || 'playwright');
-const server = await preview({ preview: { host: '127.0.0.1', port: 5219, strictPort: true } });
+const server = await preview({ configLoader: 'runner', preview: { host: '127.0.0.1', port: 5219, strictPort: true } });
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const context = await browser.newContext({ reducedMotion: 'reduce' });
 await context.addInitScript(() => sessionStorage.setItem('funded.app.wallet.manual-disconnect', '1'));
@@ -35,21 +35,27 @@ async function open(route, width) {
 
 try {
   await open('payments', 1280);
-  const rewardGuide = page.locator('#rewards-overview .page-cleanup-guide[data-guide="rewards"]');
+  assert((await page.locator('#reward-portfolio').boundingBox()).y < 500);
+  const upcomingGuide = page.locator('#rewards-overview details.product-details:has(.reward-upcoming)');
+  assert(await upcomingGuide.locator('summary').isVisible());
+  assert.equal(await upcomingGuide.evaluate(element => element.open), false);
+  await upcomingGuide.locator('summary').click();
+  assert(await upcomingGuide.locator('.reward-upcoming').isVisible());
+  await page.locator('#rewards-holder-tab').click();
+  const rewardGuide = page.locator('#rewards-holder .page-cleanup-guide[data-guide="holder"]');
   await rewardGuide.waitFor({ state: 'visible' });
   assert.equal(await rewardGuide.evaluate(element => element.open), false);
-  assert((await page.locator('#reward-portfolio').boundingBox()).y < 500);
   await rewardGuide.locator(':scope > summary').click();
   assert(await rewardGuide.locator('figure img').evaluate(image => image.getAttribute('src').endsWith('.webp')));
-  assert(await rewardGuide.locator('.infographic-poster-details').count());
+  assert.equal(await rewardGuide.evaluate(element => element.open), true);
 
   await open('airdrops', 1280);
   assert(await page.locator('#airdrops').evaluate(root => {
     const list = root.querySelector('.airdrop-public-programs');
     const gate = root.querySelector('.airdrop-hero-layout');
-    return Boolean(list && gate && (list.compareDocumentPosition(gate) & Node.DOCUMENT_POSITION_FOLLOWING));
+    return Boolean(list && gate && (gate.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING));
   }));
-  assert((await page.locator('.airdrop-public-programs').boundingBox()).y < 400);
+  assert((await page.locator('.airdrop-hero-layout').boundingBox()).y < 400);
 
   await open('explore', 1280);
   assert.equal(await page.locator('.explore-quick-filters').isVisible(), false);
@@ -85,13 +91,14 @@ try {
   }
 
   await open('explore', 390);
-  await page.waitForFunction(() => document.querySelector('#scanner-count')?.textContent === 'Launch feed unavailable.');
+  await page.waitForFunction(() => /unavailable/i.test(document.querySelector('#scanner-count')?.textContent || ''));
   const outageCopy = await page.evaluate(() => ({
     card:[document.querySelector('#asset-grid .empty-state strong')?.textContent, document.querySelector('#asset-grid .empty-state span')?.textContent],
     table:[document.querySelector('#launch-list .empty-state strong')?.textContent, document.querySelector('#launch-list .empty-state span')?.textContent],
   }));
   assert.deepEqual(outageCopy.card, outageCopy.table);
-  assert.match(outageCopy.card.join(' '), /launch API did not return a verified registry/i);
+  assert.equal(await page.locator('#scanner-count').innerText(), outageCopy.card[0]);
+  assert.match(outageCopy.card.join(' '), /temporarily unavailable|verification unavailable/i);
   assert.match(await page.locator('.explore-hero').evaluate(element => getComputedStyle(element).backgroundImage), /linear-gradient/);
 
   await open('launch', 390);
@@ -109,7 +116,7 @@ try {
   await holderStatus.waitFor({ state:'visible' });
   await page.waitForFunction(() => document.querySelector('#rewards-holder [data-auto-status]')?.textContent.includes('Devnet RPC quota was exhausted'));
   assert.match(await holderStatus.innerText(), /Earliest worker retry:.*your time/);
-  assert((await holderStatus.boundingBox()).y < (await page.locator('#rewards-holder .auto-rewards-grid').boundingBox()).y);
+  assert.equal(await page.locator('#rewards-holder .auto-rewards-grid').isVisible(), false);
 
   const png = await stat(resolve('public/posters/fee-distribution-flow-v1.png'));
   const webp = await stat(resolve('public/posters/fee-distribution-flow-v1.webp'));

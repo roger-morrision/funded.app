@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { Keypair, SystemProgram, Transaction } from '@solana/web3.js';
+import { Keypair, SystemProgram, Transaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
 
 const wallet = Keypair.generate();
 const directory = await mkdtemp(join(tmpdir(), 'funded-dev-wallet-http-'));
@@ -68,6 +68,20 @@ try {
   const signedTransaction = await post('/api/dev-wallet/sign-transaction', transactionInput, origin);
   assert.equal(signedTransaction.status, 200);
   assert.ok(Transaction.from(Buffer.from((await signedTransaction.json()).transaction, 'base64')).verifySignatures());
+  const cosigner = Keypair.generate();
+  const versioned = new VersionedTransaction(new TransactionMessage({ payerKey: wallet.publicKey,
+    recentBlockhash: Keypair.generate().publicKey.toBase58(), instructions: [
+      SystemProgram.transfer({ fromPubkey: wallet.publicKey, toPubkey: cosigner.publicKey, lamports: 1 }),
+      SystemProgram.transfer({ fromPubkey: cosigner.publicKey, toPubkey: wallet.publicKey, lamports: 1 }),
+    ] }).compileToV0Message());
+  versioned.sign([cosigner]);
+  const signedVersioned = await post('/api/dev-wallet/sign-transaction',
+    { transaction: Buffer.from(versioned.serialize()).toString('base64') }, origin);
+  assert.equal(signedVersioned.status, 200, 'Local test wallet must sign the versioned transactions used by launch');
+  const decoded = VersionedTransaction.deserialize(Buffer.from((await signedVersioned.json()).transaction, 'base64'));
+  assert.deepEqual(decoded.message.serialize(), versioned.message.serialize());
+  assert.deepEqual(decoded.signatures[1], versioned.signatures[1], 'Existing mint signatures must be preserved');
+  assert.ok(nacl.sign.detached.verify(decoded.message.serialize(), decoded.signatures[0], wallet.publicKey.toBytes()));
   const serverSource = await readFile('server/index.mjs', 'utf8');
   const localGate = serverSource.slice(serverSource.indexOf('function localDevWalletRequest'), serverSource.indexOf('function walletKey'));
   assert.doesNotMatch(localGate, /req\.socket\.remoteAddress\s*\)/, 'Docker bridge addresses must not block an otherwise localhost-only Dev wallet request.');

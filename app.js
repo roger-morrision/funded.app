@@ -1,4 +1,6 @@
 import { createWatchlistSync } from './watchlist-sync.js';
+import { boostHistoryRows } from './boost-history-view.js';
+import { productEvent } from './product-events.js';
 import { exactLamports } from './exact-lamports.js';
 import { formatReceiptSol } from './receipt-export.js';
 import { emitPilotSignal, pilotInterruptedSignal, verifiedPilotLaunchRegistration } from './pilot-event-signals.js';
@@ -55,6 +57,8 @@ import { buildTradePricePath, filterAndSortRecentTrades, selectObservedTradeWind
 import { formatPolicyPercent, verifiedCoinRewardsPolicy } from './coin-rewards-policy.js';
 import { buildCoinSummary } from './coin-summary-model.js';
 import { canSignTransactions, connectWalletProvider, selectRememberedWalletProvider, walletAddress, walletLaunches } from './wallet-core.js';
+import { chooseWallet } from './wallet-onboarding.js';
+import { quoteCountdownMarkup, updateQuoteCountdowns } from './quote-countdown.js';
 import { TOKEN_CHAT_MAX_LENGTH, normalizeTokenChatText } from './token-chat.js';
 import { initShareComposer, openShareComposer, localShareActions } from './share-tools.js';
 import { verifiedTradeReceipt } from './trade-share-proof.js';
@@ -229,7 +233,7 @@ function renderFundedTokenLanding(){
     if (mintReady) { explorer.href = 'https://explorer.solana.com/address/' + encodeURIComponent(PROTOCOL_FUNDED_MINT) + APP_EXPLORER_QUERY; explorer.target = '_blank'; explorer.rel = 'noopener noreferrer'; explorer.textContent = 'VIEW ON SOLANA ↗'; }
   }
   const tierAmounts = currentLaunchTierAmounts();
-  for (const tier of LAUNCH_BURN_TIERS.filter(item => item.id !== 'standard'))
+  for (const tier of LAUNCH_BURN_TIERS.filter(item => SELECTABLE_LAUNCH_TIERS.has(item.id) && item.id !== 'standard'))
     set('funded-token-' + tier.id, Object.hasOwn(LAUNCH_TIER_USD, tier.id)
       ? tierAmounts?.[tier.id]?.toLocaleString() || '—' : tier.amountTokens.toLocaleString());
   const asset = mintReady && exploreUpdatedAt ? assets.find(item => item.address === PROTOCOL_FUNDED_MINT) : null;
@@ -242,7 +246,7 @@ function renderFundedTokenLanding(){
   const assetPriceUsd = Number(asset?.priceUsd) > 0 ? Number(asset.priceUsd)
     : Number(asset?.curvePriceSol) > 0 && solUsdReady ? Number(asset.curvePriceSol) * coinSolUsdPrice : null;
   const quote = poolReady ? poolPriceUsd : assetPriceUsd;
-  for (const tier of LAUNCH_BURN_TIERS.filter(item => item.id !== 'standard'))
+  for (const tier of LAUNCH_BURN_TIERS.filter(item => SELECTABLE_LAUNCH_TIERS.has(item.id) && item.id !== 'standard'))
     set('funded-token-' + tier.id + '-note', Object.hasOwn(LAUNCH_TIER_USD, tier.id)
       ? `$${LAUNCH_TIER_USD[tier.id]} target · ${tierAmounts?.[tier.id] ? 'current pool quote' : 'quote unavailable'}`
       : Number.isFinite(quote) && quote > 0 ? `≈ ${formatDashboardUsd(tier.amountTokens * quote)} at current spot` : '$FUNDED burn per launch');
@@ -330,6 +334,10 @@ async function refreshLaunchTierPricing(){
 function getCreatorBuySol(){
   const value = Number(document.querySelector('#creator-buy-sol')?.value || 0);
   return Number.isFinite(value) ? value : 0;
+}
+function developerBuyLimitReached(error = walletEstimateError){
+  return (error === walletEstimateError && estimatedInitialBuyTokens > LAUNCH_TOKEN_SUPPLY * .2)
+    || /developer buy cannot exceed 20% of the token supply/i.test(String(error));
 }
 function creatorBuyExceedsWalletBalance(){
   const buySol = getCreatorBuySol();
@@ -833,6 +841,7 @@ let communityReserveStatus = 'loading';
 let communityClaimPolicy = null;
 let communityFundingPreview = null;
 let communityClaimReview = null;
+const communityWalletAllocations = new Map();
 async function loadCommunityReserveStatuses(){
   const response = await apiRequest('/api/airdrops/reserves').catch(() => ({ available:false }));
   communityReserveStatus = response.available && response.data?.cluster === 'devnet' && Array.isArray(response.data.reserves) ? 'ready' : 'unavailable';
@@ -1002,13 +1011,13 @@ function openExploreTierInfo(mint){
   if (!dialog.open) dialog.showModal();
 }
 function exploreAirdropMarkup(record){
-  if (record.communityAirdropPercent == null) return '<span class="scanner-airdrop scanner-airdrop--unavailable" title="No verified launch allocation is available"><strong>—</strong><small>Policy unavailable</small></span>';
+  if (record.communityAirdropPercent == null) return '<span class="scanner-airdrop scanner-airdrop--unavailable" title="No verified launch allocation is available"><strong>—</strong><small>Details unavailable</small></span>';
   const policy = verifiedLaunchPolicyForMint(record.address);
   const reserve = verifiedCommunityReserves.get(record.address);
   const funded = communityReserveStatus === 'ready' && reserve?.verified === true && ['funded', 'drop-active'].includes(reserve.status)
     && Number(reserve.reservedTokens) === Number(policy?.communityAirdrop?.reservedTokens);
   const active = funded && reserve.status === 'drop-active';
-  const detail = active ? 'Drop active' : funded ? 'Vault funded' : 'Funding unverified';
+  const detail = active ? 'Claims open' : funded ? 'Upcoming' : 'Checking availability';
   const percent = formatVerifiedPercent(record.communityAirdropPercent);
   const status = active ? 'Reserve vault funded and drop active; check wallet eligibility and claim proof separately.'
     : funded ? 'Reserve vault funding verified; eligibility and distribution remain pending.'
@@ -1034,25 +1043,32 @@ function openExploreBoost(mint){
     const pending = readPendingBoost(mint);
     if (pending?.quote?.mint === mint && pending?.signature && pending?.quote?.id) {
       boostCheckout = { ...boostCheckout, packageId:pending.quote.packageId, quote:pending.quote,
-        pendingSignature:pending.signature, message:'A submitted payment is awaiting proof. Retry verification before paying again.' };
+        pendingSignature:pending.signature, message:'Your previous payment is awaiting confirmation. Check it before paying again.' };
     }
   } catch (error) { boostCheckout.recoveryError = error.message || 'Saved payment details are unavailable. Check device storage before paying again.'; }
   exploreBoostHistory = [];
+  exploreBoostHistoryState = 'loading';
   renderExploreBoostDialog();
   if (!dialog.open) dialog.showModal();
   void loadExploreBoostHistory(mint);
+  productEvent('boost_open');
 }
 let exploreBoostHistory = [];
+let exploreBoostHistoryState = 'loading';
 async function loadExploreBoostHistory(mint){
   const response = await apiRequest(`/api/boosts?mint=${encodeURIComponent(mint)}`).catch(() => ({ available:false }));
-  if (!response.available || boostCheckout.mint !== mint) return;
-  exploreBoostHistory = response.data.history || [];
+  if (boostCheckout.mint !== mint) return;
+  if (!response.available || !Array.isArray(response.data?.history)) {
+    exploreBoostHistoryState = 'unavailable'; renderExploreBoostDialog(); return;
+  }
+  exploreBoostHistoryState = 'ready';
+  exploreBoostHistory = response.data.history;
   if (boostCheckout.pendingSignature && !boostCheckout.busy) {
     try {
       if (archiveVerifiedBoostFromHistory(boostCheckout, exploreBoostHistory)) {
         boostCheckout.pendingSignature = null;
         boostCheckout.quote = null;
-        boostCheckout.message = 'Previous payment verified. Choose another boost pack or request a new quote.';
+        boostCheckout.message = 'Payment confirmed. You can buy another boost.';
       }
     } catch (error) {
       boostCheckout.recoveryError = error.message || 'Saved payment recovery could not be completed. Retry the original payment before paying again.';
@@ -1072,28 +1088,25 @@ function renderExploreBoostDialog(){
   const asset = boostAssetForMint(mint);
   const details = document.querySelector('#explore-boost-details');
   if (!asset || !details) return;
-  const promotion = promotionForMint(mint);
   const name = escapeHtml(asset.name || asset.symbol || shortAddress(mint));
-  document.querySelector('#explore-boost-title').textContent = `Give ${asset.symbol || asset.name || 'token'} a ⚡ Boost`;
+  document.querySelector('#explore-boost-title').textContent = `Boost ${asset.symbol || asset.name || 'token'}`;
   const active = activeBoostMultiplier(verifiedBoosts[mint]) ? verifiedBoosts[mint] : null;
   const selected = boostPackage(packageId);
   const available = !recoveryError && ((EXPLORE_CLUSTER === 'devnet' && !APP_MAINNET_READ_ONLY && boostPurchasesEnabled) || Boolean(pendingSignature));
-  const boostTotal = verifiedBoostsAvailable && active ? Number(active.multiplier) : 0;
   const quotedAmount = quote && quote.mint === mint && quote.packageId === packageId && Date.parse(quote.expiresAt) > Date.now()
     ? (quote.lamports / 1e9).toFixed(9) : null;
-  details.innerHTML = `<p class="explore-boost-intro">Showcase your support for ${name} with a timed, clearly labelled paid boost. Active boosts can improve its position in the Boosted view; market cap and trading activity still come from observed data.</p>
-    <details class="explore-boost-how"><summary>How does it work?</summary><p>Choose a pack, request a fresh Devnet SOL quote, then review the payment in your wallet. The boost activates only after its payment is finalized and verified. Overlapping packs add together until each expires. A boost does not guarantee a ranking or trading activity.</p></details>
-    <h3 class="explore-boost-pack-heading">Choose a boost pack</h3>
-    <p class="explore-boost-payment-method"><span>Payment method</span><strong>SOL · Solana Devnet</strong><small>Estimated SOL amounts are shown below. Review the exact amount and recipient before signing.</small></p>
-    <div class="explore-boost-packages" role="group" aria-label="Boost packages">${BOOST_PACKAGES.map(item => `<button type="button" data-boost-package="${item.id}" aria-pressed="${item.id === packageId}" ${busy || pendingSignature ? 'disabled' : ''}><span class="boost-pack-bolt" aria-hidden="true">⚡</span><strong>${item.id}</strong><small>${item.hours} hours</small><b>${Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? `≈ ${(item.usd / coinSolUsdPrice).toFixed(4)} SOL` : 'Pay in SOL'}</b><small>$${item.usd.toLocaleString()} package · exact SOL quote at checkout</small></button>`).join('')}</div>
-    <div class="explore-boost-golden"><h3>Golden ticker unlocks at 500 active boosts</h3><div class="explore-boost-golden-preview"><span>Verified active boosts</span><strong class="${boostTotal >= 500 ? 'golden-ticker' : ''}">${escapeHtml(asset.symbol || 'TOKEN')}</strong><span>${boostTotal >= 500 ? 'Golden ticker active' : 'Golden ticker preview'}</span></div><p>Boosts active: <strong>${verifiedBoostsAvailable ? boostTotal.toLocaleString() : 'Unavailable'}</strong><span>Boosts needed: <strong>${verifiedBoostsAvailable ? Math.max(0, 500 - boostTotal).toLocaleString() : 'Unavailable'}</strong></span></p></div>
-    <div class="explore-boost-current"><span>Active paid boost</span><strong>${verifiedBoostsAvailable ? (active ? `${escapeHtml(active.multiplier)}x${active.golden ? ' · golden ticker' : ''}` : 'None') : 'Unavailable'}</strong><small>${active ? `${active.count} verified payment${active.count === 1 ? '' : 's'} · latest expiry ${escapeHtml(new Date(active.expiresAt).toLocaleString())}` : 'No active verified payment'} · Launch tier: ${escapeHtml(promotion?.label || 'Standard')}</small></div>
-    <p class="explore-boost-explainer">Fixed USD package price, paid in Devnet SOL at the fresh checkout rate. Devnet SOL has no intended monetary value. Network fee is additional. Boosting is paid visibility, not an endorsement or trade guarantee.</p>
-    ${quotedAmount ? `<div class="explore-boost-quote"><strong>Review exact SOL payment</strong><span>${quotedAmount} SOL</span><small>$${quote.usd} package at $${quote.solUsd}/SOL · network fee additional</small><small>Recipient ${escapeHtml(quote.recipient)} · Quote expires ${escapeHtml(new Date(quote.expiresAt).toLocaleTimeString())}</small></div>` : quote && !pendingSignature ? '<p class="explore-boost-quote-expired">The SOL quote expired. Request a fresh amount before paying.</p>' : ''}
-    ${pendingSignature ? `<a class="explore-boost-proof" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(pendingSignature)}`))}" target="_blank" rel="noopener noreferrer">View submitted transaction ↗</a>` : ''}
-    <button type="button" class="primary-button explore-boost-pay" ${!available || busy ? 'disabled' : ''}>${busy ? 'Checking payment…' : failureProof ? 'Start a new quote' : pendingSignature ? 'Retry payment verification' : quotedAmount ? `Pay ${quotedAmount} SOL · ${selected.id}` : `Get exact SOL quote · ${selected.id}`}</button>
-    <p class="explore-boost-message" role="status">${escapeHtml(recoveryError || message || (available ? 'Connect a Devnet wallet in a wallet-enabled browser to get the exact SOL quote.' : 'New boost purchases are currently unavailable.'))}</p>
-    <div class="explore-boost-history"><strong>Payment history</strong>${exploreBoostHistory.filter(row => row.mint === mint).slice(0, 5).map(row => `<p><span>${escapeHtml(row.packageId)} · ${escapeHtml(shortAddress(row.payer))} · ${escapeHtml(new Date(row.expiresAt).toLocaleString())}</span><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(row.signature)}`))}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></p>`).join('') || '<small>No verified boost payments yet.</small>'}</div>`;
+  const historyRows = boostHistoryRows(exploreBoostHistory, boostCheckout, mint);
+  const historyOpen = pendingSignature || details.querySelector('.explore-boost-history')?.open;
+  const advancedOpen = details.querySelector('.explore-boost-how')?.open;
+  details.innerHTML = `<p class="explore-boost-intro">Give ${name} more visibility in the Boosted list. Packs add together while active.</p>
+    <div class="explore-boost-packages" role="group" aria-label="Boost packages">${BOOST_PACKAGES.map(item => `<button type="button" data-boost-package="${item.id}" aria-pressed="${item.id === packageId}" ${busy || pendingSignature ? 'disabled' : ''}><strong>${item.id}</strong><small>${item.hours} hours</small><b>$${item.usd.toLocaleString()}</b><small>${Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? `≈ ${(item.usd / coinSolUsdPrice).toFixed(4)} SOL` : 'Paid in SOL'}</small></button>`).join('')}</div>
+    <div class="explore-boost-current"><span>Active boosts</span><strong>${verifiedBoostsAvailable ? (active ? `${escapeHtml(active.multiplier)}x${active.golden ? ' · golden ticker' : ''}` : 'None') : 'Unavailable'}</strong>${active ? `<small>${active.count} purchase${active.count === 1 ? '' : 's'} · latest expiry ${escapeHtml(new Date(active.expiresAt).toLocaleString())}</small>` : ''}</div>
+    <p class="explore-boost-explainer">Pay in Solana Devnet test SOL. Network fee is additional. Test SOL has no monetary value.</p>
+    ${quotedAmount ? `<div class="explore-boost-quote"><strong>Review your payment</strong><span>${quotedAmount} SOL</span><small>$${quote.usd} package · $${quote.solUsd}/SOL</small><small>To ${escapeHtml(quote.recipient)}</small>${quoteCountdownMarkup(quote.expiresAt)}</div>` : quote && !pendingSignature ? '<p class="explore-boost-quote-expired">This price expired. Get an updated price before paying.</p>' : ''}
+    <button type="button" class="primary-button explore-boost-pay" ${!available || busy ? 'disabled' : ''}>${busy ? 'Checking payment…' : failureProof ? 'Start a new purchase' : pendingSignature ? 'Check payment status' : quotedAmount ? `Pay ${quotedAmount} SOL · ${selected.id}` : `${quote ? 'Refresh price' : active ? 'Buy another boost' : 'Continue'} · ${selected.id} · $${selected.usd.toLocaleString()}`}</button>
+    <p class="explore-boost-message" role="status">${escapeHtml(recoveryError || message || (available ? 'Review the exact SOL amount before approving in your wallet.' : 'New boost purchases are currently unavailable.'))}</p>
+    <details class="explore-boost-history" ${historyOpen ? 'open' : ''}><summary>Payment history${historyRows.length ? ` (${historyRows.length})` : ''}</summary>${historyRows.map(row => `<p><span><strong>${escapeHtml(row.packageId)} · ${escapeHtml(row.state)}</strong><small>${row.pending ? 'Check the original payment before buying again.' : row.expiresAt ? `Expires ${escapeHtml(new Date(row.expiresAt).toLocaleString())}` : 'View transaction for details'}</small></span><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(row.signature)}`))}" target="_blank" rel="noopener noreferrer">${row.pending ? 'View transaction' : 'View receipt'} ↗</a></p>`).join('') || `<small>${exploreBoostHistoryState === 'loading' ? 'Loading payment history…' : exploreBoostHistoryState === 'unavailable' ? 'Payment history is unavailable. Reopen this window to try again.' : 'No boost purchases yet.'}</small>`}</details>
+    <details class="explore-boost-how advanced-details" ${advancedOpen ? 'open' : ''}><summary>Advanced details · boosts</summary><p>Packs last ${selected.hours} hours after payment is confirmed. Overlapping packs add together; 500 active boosts unlock the golden ticker. Boosts are paid visibility and do not guarantee trading activity or returns.</p></details>`;
 }
 async function handleExploreBoostPay(){
   if (boostCheckout.busy || !boostCheckout.mint || boostCheckout.recoveryError) return;
@@ -1136,6 +1149,13 @@ async function handleExploreBoostPay(){
       );
       transaction.feePayer = session.provider.publicKey;
       transaction.recentBlockhash = latest.blockhash;
+      const [balance, fee] = await Promise.all([
+        rpc.getBalance(session.provider.publicKey, 'confirmed'),
+        rpc.getFeeForMessage(transaction.compileMessage(), 'confirmed'),
+      ]);
+      assertWalletSessionCurrent(session);
+      if (!Number.isSafeInteger(balance) || !Number.isSafeInteger(fee?.value) || fee.value < 0) throw new Error('Unable to check your balance and network fee. Try again.');
+      if (balance < quote.lamports + fee.value) throw new Error(`Not enough SOL. You need ${((quote.lamports + fee.value) / 1e9).toFixed(9)} SOL including the network fee. No payment was sent.`);
       boostCheckout.message = 'Review the SOL transfer and boost memo in your wallet.';
       renderExploreBoostDialog();
       const signed = await session.provider.signTransaction(transaction);
@@ -1152,11 +1172,11 @@ async function handleExploreBoostPay(){
       boostCheckout.quote = quote;
       const submitted = await rpc.sendRawTransaction(signedBytes, { skipPreflight:false, maxRetries:3 });
       if (submitted !== signature) throw new Error('RPC returned a different signature. Verify the originally signed payment before continuing.');
-      boostCheckout.message = 'Transaction submitted. Waiting for finalized Devnet proof.';
+      boostCheckout.message = 'Payment submitted. Waiting for confirmation.';
       await verifyExploreBoostPayment(true);
       return;
     }
-  } catch (error) { boostCheckout.message = boostCheckout.pendingSignature ? `${error.message || 'Submission could not be confirmed.'} Use Retry payment verification for the signed transaction; do not send another payment.` : error.message || 'Boost checkout failed. No boost was activated.'; }
+  } catch (error) { boostCheckout.message = boostCheckout.pendingSignature ? 'Payment is not confirmed. Use Retry payment verification to check the original transaction before paying again.' : error.message || 'Boost checkout failed. No boost was activated.'; }
   finally { boostCheckout.busy = false; renderExploreBoostDialog(); }
 }
 async function verifyExploreBoostPayment(alreadyBusy = false){
@@ -1175,9 +1195,10 @@ async function verifyExploreBoostPayment(alreadyBusy = false){
       if (resolution === 'finalized') {
         const mint = boostCheckout.mint;
         archiveBoostPayment(boostCheckout, response.data);
+        productEvent('boost_confirmed');
         boostCheckout.pendingSignature = null;
         boostCheckout.quote = null;
-        boostCheckout.message = 'Boost activated from a finalized Solana payment. View the receipt below.';
+        boostCheckout.message = 'Your boost is active. You can buy another boost or view your receipt below.';
         await loadVerifiedBoosts();
         await loadExploreBoostHistory(mint);
         return;
@@ -1418,10 +1439,10 @@ function portfolioTokenCardMarkup({ mint, name, symbol, removable = false }){
 function renderCreatorLaunches(){
   const list = document.querySelector('#creator-launch-empty');
   if (!list) return;
-  const sourceLabel = document.querySelector('#my-launches .portfolio-launches-heading .section-state');
-  if (sourceLabel) sourceLabel.textContent = verifiedLaunchPoliciesStatus === 'ready' ? 'verified registry' : 'checking registry';
-  const sourceBadge = document.querySelector('#my-launches .data-badge');
-  if (sourceBadge) sourceBadge.textContent = !connectedWalletAddress ? 'Connect wallet' : verifiedLaunchPoliciesStatus === 'ready' ? 'Registry ready' : verifiedLaunchPoliciesStatus === 'unavailable' ? 'Registry unavailable' : 'Checking registry';
+  const sourceLabel = document.querySelector('.portfolio-launches-heading .section-state');
+  if (sourceLabel) sourceLabel.textContent = verifiedLaunchPoliciesStatus === 'ready' ? 'Up to date' : verifiedLaunchPoliciesStatus === 'unavailable' ? 'Updates unavailable' : 'Updating…';
+  const sourceBadge = list.closest('.role-panel')?.querySelector('.data-badge');
+  if (sourceBadge) sourceBadge.textContent = !connectedWalletAddress ? 'Connect wallet' : verifiedLaunchPoliciesStatus === 'ready' ? 'Up to date' : verifiedLaunchPoliciesStatus === 'unavailable' ? 'Unavailable' : 'Updating…';
   const launches = getWalletLaunchPolicies();
   const projectSelect = document.querySelector('#funded-burn-project');
   if (projectSelect) {
@@ -1462,10 +1483,10 @@ function renderCreatorLaunches(){
     icon.setAttribute('aria-hidden', 'true');
     icon.textContent = state === 'ready' ? '◎' : '◫';
     const heading = document.createElement('h3');
-    heading.textContent = state === 'disconnected' ? 'Connect your creator wallet' : state === 'ready' ? 'No projects for this wallet' : state === 'unavailable' ? 'Project registry unavailable' : 'Checking your projects';
+    heading.textContent = state === 'disconnected' ? 'Connect your creator wallet' : state === 'ready' ? 'No projects for this wallet' : state === 'unavailable' ? 'Your tokens are unavailable right now' : 'Checking your projects';
     const explanation = document.createElement('p');
     explanation.textContent = state === 'disconnected'
-      ? 'Projects are matched to the wallet recorded as creator at launch.'
+      ? 'Connect the wallet you used to launch your tokens.'
       : state === 'ready'
         ? `No verified launches are associated with wallet ${shortAddress(connectedWalletAddress)}. Connect the wallet used to launch your coin to see its projects here.`
         : state === 'unavailable'
@@ -1584,6 +1605,24 @@ function renderAirdropSummary(programs){
 let airdropDirectoryPage = 1;
 let airdropDirectoryStatus = 'upcoming';
 const AIRDROP_DIRECTORY_PAGE_SIZE = 10;
+function directoryWalletAmount(program){
+  if (!program.claimActive) return program.status === 'closed' ? 'Claims closed' : 'Check when claims open';
+  if (!connectedWalletAddress) return 'Connect to check';
+  const allocation = communityWalletAllocations.get(program.id);
+  if (!allocation || allocation.wallet !== connectedWalletAddress || allocation.snapshotHash !== program.snapshotHash)
+    return 'Check allocation';
+  if (allocation.status === 'checking') return 'Checking…';
+  if (allocation.status === 'claimable') return `${allocation.amount} ${program.symbol}`;
+  if (allocation.status === 'claimed') return 'Already claimed';
+  if (allocation.status === 'ineligible') return 'No allocation';
+  return 'Proof unavailable';
+}
+function updateDirectoryWalletAmount(session, program, status, amount){
+  if (!isWalletSessionCurrent(session)) return false;
+  communityWalletAllocations.set(program.id, { wallet: session.address, snapshotHash: program.snapshotHash, status, amount });
+  renderAirdropDirectory();
+  return true;
+}
 function renderAirdropDirectory(programs = getAirdropPrograms()){
   const list = document.querySelector('#airdrop-directory');
   if (!list) return;
@@ -1599,12 +1638,14 @@ function renderAirdropDirectory(programs = getAirdropPrograms()){
   list.innerHTML = filtered.slice(first, first + AIRDROP_DIRECTORY_PAGE_SIZE).map(program => {
     const safeMint = escapeHtml(program.id);
     const safeSymbol = escapeHtml(program.symbol);
+    const walletCheck = communityWalletAllocations.get(program.id);
+    const checking = walletCheck?.status === 'checking' && walletCheck.wallet === connectedWalletAddress && walletCheck.snapshotHash === program.snapshotHash;
     const snapshotReady = program.eligibleWallets != null;
     const cardData = tokenCardData({ mint: program.id, policy: verifiedLaunchPolicyForMint(program.id), reserve: { mint: program.id, verified: program.vaultVerified } });
     return `<article class="token-card-shell airdrop-directory-card" data-logo-mint="${safeMint}">
       <div class="directory-card-top"><span class="claim-token-mark" aria-hidden="true" title="Project artwork not published for this token">${escapeHtml(program.symbol.slice(0, 2).toUpperCase())}</span><div><span class="directory-token-identity"><strong>${safeSymbol}</strong>${exploreBoostAmountMarkup(program.id)}<a href="/token/${encodeURIComponent(program.id)}">${escapeHtml(program.name)}</a></span><span class="airdrop-status ${program.status}">${escapeHtml(program.statusLabel)}</span></div></div>
       <div class="directory-stats"><span><small>Planned airdrop</small><b>${formatPolicyTokenCount(program.reservedTokens)} $${safeSymbol}</b></span><span><small>Funding</small><b>${cardData.reserveState === 'verified' ? 'Confirmed' : communityReserveStatus === 'loading' ? 'Checking…' : communityReserveStatus === 'unavailable' ? 'Unavailable' : 'Not confirmed'}</b></span><span><small>Eligible wallets</small><b>${snapshotReady ? `${formatPolicyTokenCount(program.eligibleWallets)} wallets` : 'Pending'}</b></span></div>
-      <div class="directory-footer"><span><small>Your amount</small><b>${program.walletAllocation == null ? program.claimActive ? 'Connect to check' : 'Check when claims open' : formatTokenAmount(program.walletAllocation)}</b></span><div class="token-card-actions">${tokenCardWatchMarkup(program.id, program.symbol)}${tokenCardShareMarkup(program.id, program.symbol, program.name)}<button type="button" class="secondary-button directory-claim" data-directory-mint="${safeMint}" aria-controls="airdrop-selected-program">View claim status</button></div></div>
+      <div class="directory-footer"><span><small>Your amount</small><b>${escapeHtml(directoryWalletAmount(program))}</b></span><div class="token-card-actions">${tokenCardWatchMarkup(program.id, program.symbol)}${tokenCardShareMarkup(program.id, program.symbol, program.name)}<button type="button" class="secondary-button directory-claim" data-directory-mint="${safeMint}" aria-controls="airdrop-selected-program" ${checking ? 'disabled' : ''}>${connectedWalletAddress && program.claimActive ? 'Check allocation' : 'View claim status'}</button></div></div>
       <details class="token-card-more"><summary>Addresses and verification</summary>${tokenCardAddressesMarkup(program.id)}${exploreSocialLinksMarkup({ address: program.id, symbol: program.symbol })}<small>${escapeHtml(tokenCardEvidenceLabel(cardData))}</small></details>
     </article>`;
   }).join('') || `<div class="empty-state">${verifiedLaunchPoliciesStatus === 'loading' ? 'Checking airdrops…' : verifiedLaunchPoliciesStatus === 'unavailable' ? 'Airdrops are temporarily unavailable.' : query ? 'No airdrops match your search.' : airdropDirectoryStatus === 'claiming' ? 'No claims are open yet.' : airdropDirectoryStatus === 'closed' ? 'No closed airdrops yet.' : 'No upcoming airdrops yet.'}</div>`;
@@ -1620,20 +1661,21 @@ function renderAirdropDirectory(programs = getAirdropPrograms()){
 function renderAirdropProgramDetail(program){
   const panel = document.querySelector('#airdrop-selected-program');
   if (!panel) return;
+  panel.dataset.mint = program.id;
   const unavailableButton = document.querySelector('#airdrop-claim-unavailable');
   if (unavailableButton) unavailableButton.hidden = program.claimActive;
   const eyebrow = document.querySelector('#airdrop-selected-eyebrow');
   if (eyebrow) eyebrow.textContent = program.vaultVerified ? 'Airdrop funding confirmed' : 'Airdrop funding pending';
   document.querySelector('#airdrop-selected-title').textContent = `${program.name} (${program.symbol})`;
-  document.querySelector('#airdrop-selected-stats').innerHTML = `<span><small>Policy reserve</small><strong>${formatTokenAmount(program.reservedTokens)} tokens · ${program.allocationPercent}% of supply</strong></span><span><small>Claimed</small><strong>${formatVerifiedAirdropAmount(program.claimedTokens)}</strong></span><span><small>Snapshot</small><strong>${escapeHtml(program.snapshot)}</strong></span><span><small>Snapshot hash</small><strong class="airdrop-proof-value">${escapeHtml(program.snapshotHash || 'Pending verified snapshot')}</strong></span><span><small>Proof root</small><strong class="airdrop-proof-value">${escapeHtml(program.merkleRoot || 'Pending published proof')}</strong></span><span><small>Eligible wallets</small><strong>${formatVerifiedAirdropAmount(program.eligibleWallets)}</strong></span><span><small>Vesting</small><strong>${program.claimPublished ? 'One full claim during the 90-day window; no staged vesting' : 'No claim schedule active'}</strong></span>`;
+  document.querySelector('#airdrop-selected-stats').innerHTML = `<span><small>Airdrop allocation</small><strong>${formatTokenAmount(program.reservedTokens)} tokens · ${program.allocationPercent}% of supply</strong></span><span><small>Claimed</small><strong>${formatVerifiedAirdropAmount(program.claimedTokens)}</strong></span><span><small>Eligible wallets</small><strong>${formatVerifiedAirdropAmount(program.eligibleWallets)}</strong></span><span><small>Claim window</small><strong>${program.claimPublished ? 'Claim your full allocation once within 90 days' : 'Not open yet'}</strong></span><details class="airdrop-verification-details advanced-details"><summary>Advanced details · verification</summary><div class="airdrop-program-detail-stats"><span><small>Snapshot</small><strong>${escapeHtml(program.snapshot)}</strong></span><span><small>Snapshot hash</small><strong class="airdrop-proof-value">${escapeHtml(program.snapshotHash || 'Pending verified snapshot')}</strong></span><span><small>Proof root</small><strong class="airdrop-proof-value">${escapeHtml(program.merkleRoot || 'Pending published proof')}</strong></span></div></details>`;
   const status = document.querySelector('#airdrop-selected-status');
   status.textContent = program.claimActive
-    ? `The claim vault is verified. $FUNDED holders at migration slot ${program.migrationSlot} can check their allocation until ${program.deadline}.`
+    ? `$FUNDED holders recorded when this token moved to its trading pool can check their allocation and claim by ${program.deadline}.`
     : program.status === 'closed'
-    ? `The verified claim window ended ${program.deadline}. New claims are unavailable; the indexed claim total and published proof remain visible above.`
+    ? `The claim window ended ${program.deadline}. You can still review past claims and verification details.`
     : program.vaultVerified
-    ? `The ${formatTokenAmount(program.reservedTokens)} token reserve is verified in vault ${program.vaultAddress}. A migration-time $FUNDED snapshot and published claim proof are still required; claims are closed.`
-    : 'Policy allocation is indexed, but vault funding, a finalized eligibility snapshot, and a claim proof are not verified. No wallet claim or token transfer is available.';
+    ? `${formatTokenAmount(program.reservedTokens)} tokens are set aside. Claims will open after the token moves to its trading pool and the eligible wallet list is confirmed.`
+    : 'This airdrop is planned. Funding and wallet eligibility must be confirmed before claims can open.';
   if (program.claimActive) {
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'secondary-button'; button.dataset.checkCommunityMint = program.id;
@@ -1668,21 +1710,53 @@ async function checkCommunityClaim(mintAddress){
   if (!session) { status.append(document.createTextNode(' Connect a Solana wallet to check this allocation.')); return; }
   const program = getAirdropPrograms().find(row => row.id === mintAddress);
   if (!program?.claimActive) { status.append(document.createTextNode(' Claims are not open for this token.')); return; }
-  const response = await apiRequest(`/api/airdrops/claims/proof?mint=${encodeURIComponent(mintAddress)}&wallet=${encodeURIComponent(session.address)}`);
-  const proof = response.data;
-  if (!response.available || !proof?.status) { status.append(document.createTextNode(` Claim proof unavailable: ${proof?.error || 'retry later'}.`)); return; }
-  if (proof.status === 'claimed') { status.append(document.createTextNode(' This wallet has already claimed its verified allocation.')); return; }
-  if (proof.status !== 'claimable') { status.append(document.createTextNode(` ${proof.reason || 'This wallet has no available allocation.'}`)); return; }
-  const { PublicKey } = await getSolana();
-  const mintInfo = await (await getTradePreviewConnection()).getAccountInfo(new PublicKey(mintAddress), 'finalized');
-  if (!mintInfo || mintInfo.data.length < 45) throw new Error('Claim mint is unavailable.');
-  const decimals = mintInfo.data[44];
-  communityClaimReview = { mint:mintAddress, wallet:session.address, amount:proof.amount, index:proof.index, at:Date.now() };
-  const button = document.createElement('button');
-  button.type = 'button'; button.className = 'primary-button'; button.dataset.claimCommunityMint = mintAddress;
-  button.textContent = `Review claim ${formatTokenBaseUnits(proof.amount, decimals, 4)} ${program.symbol}`;
-  status.append(document.createTextNode(' A wallet transaction is required. Your wallet pays network fees and token-account rent if needed.'),
-    document.createElement('br'), button);
+  const pending = communityWalletAllocations.get(mintAddress);
+  if (pending?.status === 'checking' && pending.wallet === session.address && pending.snapshotHash === program.snapshotHash) return;
+  updateDirectoryWalletAmount(session, program, 'checking');
+  try {
+    const response = await apiRequest(`/api/airdrops/claims/proof?mint=${encodeURIComponent(mintAddress)}&wallet=${encodeURIComponent(session.address)}`);
+    if (!isWalletSessionCurrent(session)) return;
+    const proof = response.data;
+    if (!response.available || !proof?.status) {
+      updateDirectoryWalletAmount(session, program, 'unavailable');
+      if (document.querySelector('#airdrop-selected-program')?.dataset.mint === mintAddress)
+        status.append(document.createTextNode(` Claim proof unavailable: ${proof?.error || 'retry later'}.`));
+      return;
+    }
+    if (proof.recipient && proof.recipient !== session.address) throw new Error('Claim proof belongs to another wallet.');
+    if (proof.status === 'claimed') {
+      updateDirectoryWalletAmount(session, program, 'claimed');
+      if (document.querySelector('#airdrop-selected-program')?.dataset.mint === mintAddress)
+        status.append(document.createTextNode(' This wallet has already claimed its verified allocation.'));
+      return;
+    }
+    if (proof.status !== 'claimable') {
+      updateDirectoryWalletAmount(session, program, proof.status === 'ineligible' ? 'ineligible' : 'unavailable');
+      if (document.querySelector('#airdrop-selected-program')?.dataset.mint === mintAddress)
+        status.append(document.createTextNode(` ${proof.reason || 'This wallet has no available allocation.'}`));
+      return;
+    }
+    if (proof.mint !== mintAddress || proof.snapshotHash !== program.snapshotHash || !/^\d+$/.test(String(proof.amount)))
+      throw new Error('Claim proof differs from the verified airdrop.');
+    const { PublicKey } = await getSolana();
+    const mintInfo = await (await getTradePreviewConnection()).getAccountInfo(new PublicKey(mintAddress), 'finalized');
+    if (!isWalletSessionCurrent(session)) return;
+    if (!mintInfo || mintInfo.data.length < 45) throw new Error('Claim mint is unavailable.');
+    const decimals = mintInfo.data[44];
+    const amount = formatTokenBaseUnits(proof.amount, decimals, 4);
+    updateDirectoryWalletAmount(session, program, 'claimable', amount);
+    if (document.querySelector('#airdrop-selected-program')?.dataset.mint !== mintAddress) return;
+    communityClaimReview = { mint:mintAddress, wallet:session.address, amount:proof.amount, index:proof.index, at:Date.now() };
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'primary-button'; button.dataset.claimCommunityMint = mintAddress;
+    button.textContent = `Review claim ${amount} ${program.symbol}`;
+    status.append(document.createTextNode(' A wallet transaction is required. Your wallet pays network fees and token-account rent if needed.'),
+      document.createElement('br'), button);
+  } catch (error) {
+    if (!isWalletSessionCurrent(session)) return;
+    updateDirectoryWalletAmount(session, program, 'unavailable');
+    throw error;
+  }
 }
 async function submitCommunityClaim(mintAddress){
   const session = captureWalletSession();
@@ -1755,14 +1829,26 @@ async function submitCommunityClaim(mintAddress){
     claimVerified = true;
     emitPilotSignal('claim-verified');
     await loadCommunityReserveStatuses();
+    const claimedProgram = getAirdropPrograms().find(row => row.id === mintAddress);
+    if (claimedProgram) updateDirectoryWalletAmount(session, claimedProgram, 'claimed');
     renderAirdropProgramDetail(getAirdropPrograms().find(row => row.id === mintAddress));
     showToast('Community tokens claimed and verified on Solana');
   } catch (error) {
     if (!claimVerified) emitPilotSignal(pilotInterruptedSignal('claim', error, claimExecutionRequested));
-    status.append(document.createTextNode(submittedSignature
-      ? ` Claim ${submittedSignature} was submitted. Check its finalized Solana receipt before retrying: ${String(error.message || error)}`
-      : ` Claim stopped: ${String(error.message || error)}`));
-  } finally { if (button) button.disabled = false; }
+    if (!isWalletSessionCurrent(session)) return;
+    if (submittedSignature) appendPendingCommunityClaim(status, mintAddress, submittedSignature);
+    else status.append(document.createTextNode(` Claim stopped: ${String(error.message || error)}`));
+  } finally { if (button) button.disabled = Boolean(submittedSignature); }
+}
+function appendPendingCommunityClaim(status, mintAddress, signature){
+  const receipt = document.createElement('a');
+  receipt.href = `https://explorer.solana.com/tx/${encodeURIComponent(signature)}${APP_EXPLORER_QUERY}`;
+  receipt.target = '_blank'; receipt.rel = 'noopener noreferrer';
+  receipt.textContent = 'View claim transaction ↗';
+  const check = document.createElement('button');
+  check.type = 'button'; check.className = 'secondary-button';
+  check.dataset.checkCommunityMint = mintAddress; check.textContent = 'Check claim status';
+  status.append(document.createElement('br'), document.createTextNode('Your claim was submitted, but confirmation could not be loaded. Check its status before trying again. '), receipt, document.createTextNode(' '), check);
 }
 async function fundCommunityReserve(mintAddress){
   const session = captureWalletSession();
@@ -2026,6 +2112,8 @@ function renderFundedBuyControl(message = null){
   button.textContent = fundedBuyBusy ? 'Waiting for Solana…' : fundedBuyPreview ? 'Confirm buy' : wallet ? 'Preview buy' : 'Connect wallet to preview';
   badge.textContent = ready ? 'Solana pool live' : fundedBuyRoute.status === 'checking' ? 'Checking' : 'Unavailable';
   badge.classList.toggle('unavailable', !ready);
+  const clock = document.querySelector('#funded-buy-countdown');
+  if (clock) clock.innerHTML = fundedBuyPreview && !fundedBuyBusy ? quoteCountdownMarkup(fundedBuyPreview.preparedAt + 15_000) : '';
   if (message != null) status.textContent = message;
   else if (!ready) status.textContent = fundedBuyRoute.reason;
 }
@@ -2083,7 +2171,7 @@ async function handleFundedBuy(){
       assertWalletSessionCurrent(session);
       const quote = describeTradeQuote(trade, 1);
       fundedBuyPreview = { trade, amount, wallet:session.address, preparedAt:Date.now() };
-      renderFundedBuyControl(`Estimated ${quote.expected.toLocaleString(undefined, { maximumFractionDigits:6 })} $FUNDED. Maximum pool spend ${quote.maximumSpendSol.toFixed(6)} SOL; app fee ${quote.appFeeSol.toFixed(6)} SOL, plus network costs. Quote expires in 15 seconds.`);
+      renderFundedBuyControl(`Estimated ${quote.expected.toLocaleString(undefined, { maximumFractionDigits:6 })} $FUNDED. Maximum pool spend ${quote.maximumSpendSol.toFixed(6)} SOL; app fee ${quote.appFeeSol.toFixed(6)} SOL, plus network costs.`);
       return;
     }
     const { PublicKey, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync } = await getSolana();
@@ -2315,7 +2403,7 @@ let explorePromotion = 'all';
 let exploreReward = 'all';
 let exploreWindow = '24h';
 let exploreTab = 'trending';
-let exploreNewLane = 'launch';
+let exploreNewLane = 'all';
 const EXPLORE_VIEW_KEY = 'funded.explore-view';
 let exploreView = (() => { try { return localStorage.getItem(EXPLORE_VIEW_KEY) === 'table' ? 'table' : 'grid'; } catch { return 'grid'; } })();
 let exploreMaxAgeHours = null;
@@ -2398,7 +2486,7 @@ function renderWatchlist(){
     const policy = verifiedLaunchPolicyForMint(mint);
     return asset ? portfolioTokenCardMarkup({ mint: asset.address, name: asset.name, symbol: asset.symbol, source: 'Saved token · RPC verified', verified: true, removable: true })
       : policy?.onchainVerified ? portfolioTokenCardMarkup({ mint, name: policy.name, symbol: policy.symbol, source: 'Saved token · verified launch', verified: true, removable: true })
-        : `<div class="saved-token-row watchlist-unavailable"><div><strong>Token verification unavailable</strong><span class="watchlist-unavailable-mint" title="${escapeHtml(mint)}">${escapeHtml(shortAddress(mint))}</span><small>Your saved entry remains on this device.</small></div><div class="watchlist-unavailable-actions"><button type="button" class="secondary-button" data-watch-retry="${escapeHtml(mint)}">Retry check</button><button type="button" class="secondary-button token-card-copy-address" data-copy-address="${escapeHtml(mint)}" data-copy-kind="token" aria-label="Copy full token address">Copy mint</button><button type="button" class="secondary-button" data-remove-watch="${escapeHtml(mint)}" aria-label="Remove saved token">Remove</button></div></div>`;
+        : `<div class="saved-token-row watchlist-unavailable"><div><strong>Token details unavailable</strong><span class="watchlist-unavailable-mint" title="${escapeHtml(mint)}">${escapeHtml(shortAddress(mint))}</span><small>This token remains in your favorites.</small></div><div class="watchlist-unavailable-actions"><button type="button" class="secondary-button" data-watch-retry="${escapeHtml(mint)}">Retry check</button><button type="button" class="secondary-button token-card-copy-address" data-copy-address="${escapeHtml(mint)}" data-copy-kind="token" aria-label="Copy full token address">Copy mint</button><button type="button" class="secondary-button" data-remove-watch="${escapeHtml(mint)}" aria-label="Remove saved token">Remove</button></div></div>`;
   }).join('');
   loadVerifiedTokenLogos(items);
   document.querySelectorAll('.watch-button').forEach(button => setWatchButtonState(button, saved.includes(button.dataset.mint)));
@@ -2484,14 +2572,19 @@ function marketUsdFilterToSol(value){
   return Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? value / coinSolUsdPrice : Infinity;
 }
 function exploreFilterOptions(query = exploreQuery, sort = exploreSort){
-  const laneStage = exploreNewLane === 'almost' ? 'near' : exploreNewLane === 'migrated' ? 'migrated' : 'launch';
-  const maxAgeHours = exploreTab === 'new' && exploreNewLane === 'launch' ? Math.min(24, exploreMaxAgeHours ?? 24) : exploreMaxAgeHours;
+  const laneStage = exploreNewLane === 'almost' ? 'near' : exploreNewLane === 'migrated' ? 'migrated' : exploreNewLane === 'launch' ? 'launch' : 'all';
   return { query, sort, risk: exploreRisk, stage: exploreTab === 'new' ? laneStage : exploreStage, authority: exploreAuthority,
-    promotion: explorePromotion, reward: exploreReward, watchlist: getWatchlist(), maxAgeHours,
+    promotion: explorePromotion, reward: exploreReward, watchlist: getWatchlist(), maxAgeHours: exploreMaxAgeHours,
     minVolumeSol: EXPLORE_CLUSTER === 'devnet' ? marketUsdFilterToSol(exploreMinVolumeUsd) : null,
     minCurveCapSol: EXPLORE_CLUSTER === 'devnet' ? marketUsdFilterToSol(exploreMinMarketCapUsd) : null,
     minTrades: EXPLORE_CLUSTER === 'devnet' ? exploreMinTrades : null,
     minTraders: EXPLORE_CLUSTER === 'devnet' ? exploreMinTraders : null };
+}
+function filterExploreTabRecords(records, query = exploreQuery){
+  const filtered = filterMarketRecords(records, exploreFilterOptions(query));
+  if (exploreTab !== 'following') return filtered;
+  const saved = new Set(getWatchlist());
+  return filtered.filter(record => saved.has(record.address));
 }
 function formatExploreTradeCount(value, coverage){
   return value == null || !Number.isInteger(Number(value)) ? '—' : `${coverage === 'partial' ? '≥' : ''}${Number(value).toLocaleString()}`;
@@ -2527,9 +2620,10 @@ function exploreMarketCapUsd(record){
 function renderExplorePulse(records){
   const ready = Boolean(exploreLastVerifiedAt);
   const scope = document.querySelector('#explore-pulse-scope');
-  if (scope) scope.textContent = exploreProviderStatus.includes('stale') ? 'Counts reflect the last verified feed; live verification is paused.' : 'Counts reflect only mints confirmed in this feed.';
+  const pending = records.filter(item => item.complete == null).length;
+  if (scope) scope.textContent = exploreProviderStatus.includes('stale') ? 'Stage counts use the last verified feed.' : pending ? `${pending} launch stages await curve or pool verification.` : 'Stages confirmed on-chain.';
   const lanes = {
-    launch: filterMarketRecords(records, { stage: 'launch', maxAgeHours: 24, sort: 'newest' }),
+    launch: filterMarketRecords(records, { stage: 'launch', sort: 'newest' }),
     almost: filterMarketRecords(records, { stage: 'near', sort: 'newest' }),
     migrated: filterMarketRecords(records, { stage: 'migrated', sort: 'newest' }),
   };
@@ -2537,25 +2631,31 @@ function renderExplorePulse(records){
     const lane = button.dataset.exploreLane;
     const items = lanes[lane] || [];
     button.querySelector('strong').textContent = ready ? String(items.length).padStart(2, '0') : '—';
-    button.querySelector('small').textContent = !ready ? 'Waiting for verified feed' : items.length ? items.slice(0, 3).map(item => item.symbol).join(' · ') : lane === 'migrated' ? 'No RPC-verified migrated pool' : 'No verified launches in this stage';
+    button.querySelector('small').textContent = !ready ? 'Waiting for verified feed' : items.length ? items.slice(0, 3).map(item => item.symbol).join(' · ') : lane === 'migrated' ? 'No verified migrated pool' : 'No confirmed launches in this stage';
     const active = exploreTab === 'new' && lane === exploreNewLane;
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   }
 }
 function exploreEmptyReason(){
+  if (exploreTab === 'following') {
+    const saved = getWatchlist();
+    if (!saved.length) return ['No followed tokens yet.', 'Select the star on a token to save it here.'];
+    if (!assets.some(item => saved.includes(item.address))) return ['Saved tokens are unavailable in this feed.', 'Your saved list remains on this device. Try again when the verified launch feed is available.'];
+    return ['No followed tokens match this view.', 'Clear the search or filters to see your saved tokens.'];
+  }
   if ((exploreMinVolumeUsd != null || exploreMinMarketCapUsd != null) && !(Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0)) return ['USD filters are waiting for a conversion quote.', 'SOL/USD is unavailable. Clear the USD minimums to browse verified tokens.'];
-  if (exploreQuery) return ['No verified launch matches this search.', 'Try a symbol, name, or full mint address from the current feed.'];
+  if (exploreQuery) return ['No token matches your search.', 'Try a token name, symbol, or full token address.'];
   if (explorePromotion !== 'all') return ['No launch matches this promotion filter.', 'Promoted includes verified launch burns and active finalized SOL boost payments.'];
-  if (exploreReward !== 'all') return ['No launch has this verified reward allocation.', 'Choose another route or clear filters. Zero-percent routes are not counted as rewards.'];
+  if (exploreReward !== 'all') return ['No token matches this reward type.', 'Choose another reward type or clear filters.'];
   if (exploreMinTraders != null) return ['No launch meets the trading-wallet minimum.', 'Lower the selected-window minimum or clear filters.'];
   if (exploreMinTrades != null || exploreMinVolumeUsd != null) return ['No launch meets these trade-activity minimums.', 'Lower the selected-window minimums or clear filters.'];
-  if (exploreMinMarketCapUsd != null || exploreMaxAgeHours != null) return ['No launch meets these advanced filters.', 'Broaden the curve-cap or age limit, or clear filters.'];
-  if (exploreAuthority !== 'all') return ['No verified mint matches this authority filter.', 'Choose Any authority or clear filters to see all verified launches.'];
+  if (exploreMinMarketCapUsd != null || exploreMaxAgeHours != null) return ['No launch meets these advanced filters.', 'Broaden the market cap or age limit, or clear filters.'];
+  if (exploreAuthority !== 'all') return ['No token matches these permissions.', 'Choose Any permissions or clear filters to see more tokens.'];
   if (exploreRisk === 'watchlist') return ['No favorite tokens in this feed.', 'Use the star on a verified token to save it here.'];
   if (exploreTab === 'new' && exploreNewLane === 'almost') return ['No launch is Almost Born yet.', 'This view requires an active Pump curve at least 80% filled.'];
   if (exploreTab === 'new' && exploreNewLane === 'migrated') return ['No RPC-verified migrated pools in this feed.', 'A completed curve alone is not migration proof. A PumpSwap pool must also exist on this network.'];
-  if (exploreTab === 'new') return ['No verified New Launch in the last 24 hours.', 'Older confirmed launches remain available under All tokens.'];
+  if (exploreTab === 'new') return ['No launches match this view.', 'Check the stage or age filters, or view all tokens.'];
   if (exploreStage === 'near') return ['No launch is in the final stretch.', 'This lane requires a verified active Pump curve at least 80% filled.'];
   if (exploreStage === 'graduated') return ['No graduated launch in this feed.', 'A token appears here only after its Pump curve is confirmed complete.'];
   return null;
@@ -2587,15 +2687,15 @@ function renderExploreControls(){
     || exploreMinTrades != null || exploreMinTraders != null;
   document.querySelector('#explore-filter-toggle')?.classList.toggle('has-filters', hasExploreFilters);
   for (const [selector, label] of [
-    ['#explore-sort option[value="market-cap"]', `Curve cap (${displayUnit})`],
-    ['#explore-sort option[value="volume"]', `${exploreWindow} traded (${displayUnit})`],
+    ['#explore-sort option[value="market-cap"]', `Estimated market cap (${displayUnit})`],
+    ['#explore-sort option[value="volume"]', `${exploreWindow} trading volume (${displayUnit})`],
     ['#explore-sort option[value="trades"]', `${exploreWindow} trades`],
-    ['#explore-sort option[value="liquidity"]', `Curve reserve (${displayUnit})`],
-    ['#explore-min-volume-label', `Minimum ${exploreWindow} traded · USD`],
+    ['#explore-sort option[value="liquidity"]', `SOL reserve (${displayUnit})`],
+    ['#explore-min-volume-label', `Minimum ${exploreWindow} volume · USD`],
     ['#explore-min-trades-label', `Minimum ${exploreWindow} trades`],
     ['#explore-min-traders-label', `Minimum ${exploreWindow} trading wallets`],
-    ['.scanner-head span:nth-child(4)', `Curve cap · ${displayUnit}`],
-    ['#scanner-volume-heading', `${exploreWindow} traded · ${displayUnit}`],
+    ['.scanner-head span:nth-child(4)', `Est. market cap · ${displayUnit}`],
+    ['#scanner-volume-heading', `${exploreWindow} volume · ${displayUnit}`],
     ['#scanner-trades-heading', `${exploreWindow} trades`],
   ]) { const node = document.querySelector(selector); if (node) node.textContent = label; }
   document.querySelectorAll('[data-explore-view]').forEach(button => {
@@ -2620,7 +2720,7 @@ function renderExploreBenefitLeaders(records){
     { sort: 'holder-fee', label: 'Top fee to holders', field: 'holderFeePercent', policy: true, suffix: 'of creator fees' },
     { sort: 'x-fee', label: 'Top fee to X account', field: 'xFeePercent', policy: true, suffix: 'of creator fees' },
   ];
-  container.innerHTML = definitions.map(definition => {
+  const cards = definitions.map(definition => {
     const candidates = records.filter(record => definition.policy
       ? record.benefitPolicyVerified && record[definition.field] > 0
       : record[definition.field] != null && Number.isFinite(Number(record[definition.field])));
@@ -2628,6 +2728,7 @@ function renderExploreBenefitLeaders(records){
     const hasVerifiedField = records.some(record => definition.policy
       ? record.benefitPolicyVerified && record[definition.field] != null
       : record[definition.field] != null);
+    if (!leader && !hasVerifiedField) return '';
     const value = leader
       ? definition.policy ? formatVerifiedPercent(leader[definition.field]) : formatExploreUsd(leader[definition.field], { partial: leader.windowCoverage === 'partial' })
       : hasVerifiedField && definition.policy ? '0%' : 'Unavailable';
@@ -2635,7 +2736,8 @@ function renderExploreBenefitLeaders(records){
       ? `${leader.symbol || shortAddress(leader.address)}${definition.suffix ? ` · ${definition.suffix}` : leader.windowCoverage === 'partial' ? ' · partial history' : ' · scanned'}`
       : hasVerifiedField && definition.policy ? 'No matching launch yet' : definition.policy ? 'Details unavailable' : 'Activity unavailable';
     return `<button type="button" class="${definition.sort === exploreSort ? 'active' : ''}" data-explore-leader-sort="${definition.sort}" data-state="${leader ? 'ready' : hasVerifiedField ? 'empty' : 'unavailable'}" aria-pressed="${definition.sort === exploreSort}" ${leader ? '' : 'disabled'}><span>${escapeHtml(definition.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></button>`;
-  }).join('');
+  }).filter(Boolean);
+  container.innerHTML = cards.length ? cards.join('') : '<p class="explore-ranking-empty">No verified rankings match the current filters.</p>';
 }
 function formatPayoutSol(value) {
   if (typeof value !== 'string' || !/^(?:0|[1-9]\d*)$/.test(value)) return '—';
@@ -2708,7 +2810,7 @@ function exploreAssetCardMarkup(a){
     <div class="asset-signal-row"><span>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetVolumeLabel(a) : '24h volume'} <b>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetVolume(a) : formatSignal(a.volume24hUsd, ' USD')}</b></span><span>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetReserveLabel(a) : 'Liquidity'} <b>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetReserve(a) : formatSignal(a.liquidityUsd, ' USD')}</b></span></div>
     <div class="asset-bottom"><span class="asset-value" title="${verifiedPaidListingPayment(a) && a.complete == null ? 'Market cap unavailable without verified market data' : `Estimated market capitalization from the confirmed ${a.migrated === true ? 'PumpSwap pool' : 'Pump curve'} snapshot`}">${escapeHtml(exploreMarketCapLabel(a))} · ${escapeHtml(exploreMarketCapUsd(a))}</span><span class="asset-change">${escapeHtml(a.migrated === true ? 'Pool change unindexed' : a.change)}</span></div>
     ${tokenCardAddressesMarkup(a.address)}
-    <div class="asset-actions"><button type="button" class="share-asset" data-share-symbol="${escapeHtml(a.symbol)}" data-share-name="${escapeHtml(a.name)}" data-share-mint="${mint}">Share</button><button type="button" class="explore-boost-button" data-boost-mint="${mint}" aria-label="Boost options for ${escapeHtml(a.name)}">Boost</button></div>
+    <div class="asset-actions"><button type="button" class="share-asset" data-share-symbol="${escapeHtml(a.symbol)}" data-share-name="${escapeHtml(a.name)}" data-share-mint="${mint}">${icon('share')}<span>Share</span></button><button type="button" class="explore-boost-button" data-boost-mint="${mint}" aria-label="Boost options for ${escapeHtml(a.name)}">${icon('boost')}<span>Boost</span></button></div>
     ${activeBoostMultiplier(verifiedBoosts[a.address]) ? `<div class="asset-boost-row"><span>BOOST <b>${escapeHtml(exploreBoostStatus(a.address))}</b></span></div>` : ''}
   </article>`;
 }
@@ -2781,8 +2883,8 @@ function exploreOutageCopy(){
     detail: `${exploreProviderStatus}. Retry verification when RPC access recovers; unverified tokens remain hidden.`,
   };
   return {
-    title: 'Launch feed unavailable.',
-    detail: 'The launch API did not return a verified registry. Retry verification when the service recovers.',
+    title: 'Tokens are temporarily unavailable.',
+    detail: 'We couldn’t load tokens right now. Please try again.',
   };
 }
 function renderExploreAssets({ force = false } = {}){
@@ -2804,7 +2906,9 @@ function renderExploreAssets({ force = false } = {}){
   if (clusterLabel) clusterLabel.textContent = `${exploreProviderStatus.includes('Verified launch registry') ? 'Verified launch registry' : exploreProviderStatus.includes('stale') ? 'last verified snapshot' : exploreProviderStatus.includes('RPC verified') ? 'RPC verified' : exploreProviderStatus.includes('unavailable') ? 'data unavailable' : 'awaiting verification'}`;
   if (scope && EXPLORE_CLUSTER !== 'devnet') scope.textContent = 'Solana mainnet discovery · Pump.fun listings are shown only after mint verification. Missing market figures stay unavailable.';
   const records = assets.map(item => withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(item, exploreWindow) : enrichMarketRecord(item)));
-  const visible = filterMarketRecords(records, exploreFilterOptions());
+  const visible = filterExploreTabRecords(records);
+  const marketNote = document.querySelector('#explore-market-note');
+  if (marketNote) marketNote.hidden = !records.length || records.some(item => item.curveCapSol != null || item.poolMarketCapSol != null || item.windowVolumeSol != null || item.marketCapUsd != null || item.volume24hUsd != null);
   renderExploreControls();
   renderExplorePulse(records);
   renderExploreBenefitLeaders(visible);
@@ -2835,7 +2939,7 @@ function renderExploreAssets({ force = false } = {}){
     ? '<div class="empty-state onchain-empty"><strong>Loading verified launches…</strong><span>Checking the indexed launch feed and confirming current Solana state.</span></div>'
     : feedUnavailable || rpcUnavailable
       ? `<div class="empty-state onchain-empty"><strong>${escapeHtml(outage.title)}</strong><span>${escapeHtml(outage.detail)}</span></div>`
-        : `<div class="empty-state onchain-empty"><strong>${assets.length ? 'No verified launches match these filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'Indexed launches could not be verified.' : 'No Solana launches are indexed yet.'}</strong><span>${assets.length ? 'Broaden the search or clear the filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'The indexed mints did not pass current Solana verification. Retry when the RPC is available.' : 'Confirmed funded.vip launches will appear here after they are indexed.'}</span></div>`;
+        : `<div class="empty-state onchain-empty"><strong>${assets.length ? 'No verified launches match these filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'Token details could not be confirmed.' : 'No tokens to show yet.'}</strong><span>${assets.length ? 'Broaden the search or clear the filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'We could not confirm these tokens on Solana. Try again shortly.' : 'Confirmed launches will appear here when available.'}</span></div>`;
   if (!visible.length && assets.length && !feedUnavailable && !rpcUnavailable) {
     const reason = exploreEmptyReason();
     if (reason) { grid.querySelector('.empty-state strong').textContent = reason[0]; grid.querySelector('.empty-state span').textContent = reason[1]; }
@@ -2847,7 +2951,7 @@ function renderExploreAssets({ force = false } = {}){
     action.type = 'button';
     action.className = 'explore-empty-action';
     action.dataset.exploreEmptyAction = assets.length ? 'clear' : 'retry';
-    action.textContent = assets.length ? exploreTab === 'new' ? 'View all tokens' : 'Clear filters' : 'Retry verification';
+    action.textContent = assets.length ? ['new', 'following'].includes(exploreTab) ? 'View all tokens' : 'Clear filters' : 'Try again';
     grid.querySelector('.empty-state')?.append(action);
   }
   renderWatchlist();
@@ -2860,7 +2964,7 @@ document.addEventListener('click', async event => {
   button.textContent = 'Checking launches…';
   try { await loadOnchainExploreData(); }
   catch { showToast('Verification is unavailable. Please try again shortly.'); }
-  finally { button.disabled = false; button.textContent = 'Retry verification'; }
+  finally { button.disabled = false; button.textContent = 'Try again'; }
 });
 document.querySelector('#asset-grid')?.addEventListener('focusout', () => {
   queueMicrotask(() => {
@@ -2878,8 +2982,8 @@ function renderStonkEnhancements(){
   const quoteLoad = apiRequest('/api/quote-assets').then(result => {
     const verified = result.data?.status === 'onchain-verified-catalog' && result.data?.cluster === EXPLORE_CLUSTER;
     const assets = verified && Array.isArray(result.data?.assets) ? result.data.assets : [];
-    if (quoteStatus) quoteStatus.textContent = verified ? 'RPC verified' : 'Unavailable';
-    if (quoteList) quoteList.innerHTML = assets.length ? assets.map(item => `<div class="quote-asset-row"><span class="asset-icon">${escapeHtml(item.symbol.slice(0, 1))}</span><span><strong>${escapeHtml(item.symbol)}</strong><small>${escapeHtml(item.name)} · ${escapeHtml(item.category)}</small></span><b>✓</b></div>`).join('') : '<div class="empty-state">No verified quote assets configured.</div>';
+    if (quoteStatus) quoteStatus.textContent = verified ? `${assets.length} available` : 'Unavailable';
+    if (quoteList) quoteList.innerHTML = assets.length ? assets.map(item => `<div class="quote-asset-row"><span class="asset-icon" aria-hidden="true">${escapeHtml(item.symbol.slice(0, 1))}</span><span><strong>${escapeHtml(item.symbol)}</strong><small>${escapeHtml(item.name)} · ${escapeHtml(item.category)}</small></span><b>✓</b></div>`).join('') : '<div class="empty-state">No verified trading currencies are available for this network.</div>';
   }).catch(() => { if (quoteStatus) quoteStatus.textContent = 'Unavailable'; if (quoteList) quoteList.innerHTML = '<div class="empty-state">Quote catalog unavailable; no unverified assets shown.</div>'; });
   return quoteLoad;
 }
@@ -3357,14 +3461,14 @@ function renderVerifiedReceiptEvidence(){
     tape.append(row);
   }
   if (!historyPayouts.length) {
-    list.innerHTML = '<p class="empty-state">No finalized payout receipts are available yet.</p>';
-    tape.innerHTML = '<p class="empty-state">No finalized payout receipts are available yet.</p>';
+    list.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet.</p>';
+    tape.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet.</p>';
   }
   const footnote = document.querySelector('#payment-history-footnote');
   if (footnote) footnote.textContent = historyPayouts.length
-    ? `Latest ${Math.min(5, historyPayouts.length)} of ${historyPayouts.length} finalized payouts · fees in details${paymentHistoryEvidence.status === 'partial' ? ' · partial coverage' : ''}`
-    : paymentHistoryEvidence?.status === 'partial' || !paymentHistoryEvidence ? 'Payout receipt verification is unavailable or incomplete.'
-      : 'No finalized payout receipts are available.';
+    ? `Latest ${Math.min(5, historyPayouts.length)} of ${historyPayouts.length} confirmed payments · fees in details${paymentHistoryEvidence.status === 'partial' ? ' · some history is missing' : ''}`
+    : paymentHistoryEvidence?.status === 'partial' || !paymentHistoryEvidence ? 'Payment history could not be fully checked. Try again shortly.'
+      : 'No confirmed payments are available.';
   renderExtendedAnalyticsDashboard();
 }
 document.addEventListener('click', async event => {
@@ -3900,10 +4004,9 @@ function homeLaunchCardMarkup(item, { volumeLabel, volumeValue, extraClass = '',
     const boost = verifiedBoosts[item.address];
     const boostMultiplier = activeBoostMultiplier(boost);
     const activeBoost = boostMultiplier > 0;
-    const boostPaymentCount = activeBoostPackages(boost).length;
     return `<article class="token-card-shell home-launch-card${extraClass}" data-mint="${escapeHtml(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}">
       <a class="home-launch-card-link" href="/token/${encodeURIComponent(item.address || '')}" aria-label="Open ${escapeHtml(item.name || item.symbol || 'token')} token details"></a>
-      <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span>${exploreSocialLinksMarkup(item)}${tokenCardWatchMarkup(item.address, item.symbol)}<span class="home-launch-media-stage">${escapeHtml(stageLabel)}</span><div class="home-launch-media-badges"><span class="home-launch-media-package"></span>${activeBoost ? `<span class="home-launch-media-boost" title="${escapeHtml(`${boostPaymentCount} verified boost payment${boostPaymentCount === 1 ? '' : 's'} · active until ${new Date(boost.expiresAt).toLocaleString()}`)}">${escapeHtml(String(boostMultiplier))}x · ${escapeHtml(String(boostPaymentCount))} paid${boostMultiplier >= 500 ? ' ★' : ''}</span>` : ''}</div></div>
+      <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span>${exploreSocialLinksMarkup(item)}${tokenCardWatchMarkup(item.address, item.symbol)}<span class="home-launch-media-stage">${escapeHtml(stageLabel)}</span><div class="home-launch-media-badges"><span class="home-launch-media-package"></span></div></div>
       <div class="home-launch-card-top">
         <span class="home-token-identity"><strong class="${activeBoost && boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(item.symbol || 'TOKEN')}</strong>${exploreBoostAmountMarkup(item.address)}<small>${escapeHtml(item.name || 'Unnamed token')}</small></span>
         <div class="home-launch-card-addresses"><span title="Token contract: ${escapeHtml(item.address || '')}"><small>CA</small><code>${escapeHtml(mintLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(item.address || '')}" data-copy-kind="token" aria-label="Copy full token address" title="Copy full token address">${icon('copy')}</button></span>${creatorWallet ? `<span title="Verified launch creator: ${escapeHtml(creatorWallet)}"><small>Creator</small><code>${escapeHtml(creatorLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(creatorWallet)}" data-copy-kind="creator" aria-label="Copy full creator wallet address" title="Copy full creator wallet address">${icon('copy')}</button></span>` : ''}</div>
@@ -3950,7 +4053,7 @@ function renderHomeLaunchBoard(){
     feedState.dataset.state = exploreFeedAvailable ? 'live' : exploreLastVerifiedAt ? 'snapshot' : 'unavailable';
   }
   const tickerLabel = document.querySelector('#home-market-ticker-label');
-  if (tickerLabel) tickerLabel.textContent = 'All verified launches';
+  if (tickerLabel) tickerLabel.textContent = 'Latest launches';
   const volumeFilterLabel = document.querySelector('#home-filter-volume-label');
   if (volumeFilterLabel?.firstChild) volumeFilterLabel.firstChild.textContent = `${homeLaunchWindow} Vol `;
   const tradesFilterLabel = document.querySelector('#home-filter-trades-label');
@@ -4021,7 +4124,7 @@ function renderHomeLaunchBoard(){
   else if (homeLaunchTab === 'migrated') visible = visible.filter(item => item.migrated === true);
   else if (homeLaunchTab === 'watchlist') visible = visible.filter(item => getWatchlist().includes(item.address));
   else if (homeLaunchTab === 'promoted') visible = visible.filter(item => Boolean(promotionForMint(item.address) || verifiedBoosts[item.address]));
-  else if (homeLaunchTab === 'boost') visible = visible.filter(item => promotionForMint(item.address)?.tier === 'boost' || Boolean(verifiedBoosts[item.address]));
+  else if (homeLaunchTab === 'boost') visible = visible.filter(item => activeBoostMultiplier(verifiedBoosts[item.address]) > 0);
   else if (['standard', 'pro', 'premier'].includes(homeLaunchTab)) visible = visible.filter(item => (promotionForMint(item.address)?.tier || 'standard') === homeLaunchTab && !verifiedBoosts[item.address]);
   visible = visible.filter(item => matchesHomeLaunchFilters(item, homeLaunchFilters, { cluster: EXPLORE_CLUSTER, solUsdPrice: coinSolUsdPrice }));
   visible.sort((a, b) => (homeLaunchSort === 'market-cap' ? capUsd(b) - capUsd(a)
@@ -4038,10 +4141,10 @@ function renderHomeLaunchBoard(){
   if (!visible.length) {
     const feedUnavailable = (!exploreFeedAvailable && !exploreLastVerifiedAt)
       || /RPC (?:rate limited|unavailable)/i.test(exploreProviderStatus);
-    const title = feedUnavailable ? 'Launch feed unavailable.' : homeLaunchTab === 'watchlist' ? 'No favorite tokens yet.' : homeLaunchFilterCount(homeLaunchFilters) ? 'No launches match these filters.' : 'No verified launches in this view.';
+    const title = feedUnavailable ? 'Tokens are temporarily unavailable.' : homeLaunchTab === 'watchlist' ? 'No favorite tokens yet.' : homeLaunchFilterCount(homeLaunchFilters) ? 'No launches match these filters.' : 'No verified launches in this view.';
     const detail = feedUnavailable ? 'Current Solana mint and market checks could not finish. Recorded reward and airdrop policies remain visible in their own sections.' : homeLaunchTab === 'watchlist' ? 'Add a verified token from Explore to see it here.' : 'Try another view or adjust the filters.';
-    grid.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${detail}</span>${feedUnavailable ? '<button type="button" class="secondary-button" data-verified-feed-retry>Retry verification</button>' : ''}</div>`;
-    if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="home-table-empty"><strong>${title}</strong><span>${detail}</span>${feedUnavailable ? '<button type="button" class="secondary-button" data-verified-feed-retry>Retry verification</button>' : ''}</td></tr>`;
+    grid.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${detail}</span>${feedUnavailable ? '<button type="button" class="secondary-button" data-verified-feed-retry>Try again</button>' : ''}</div>`;
+    if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="home-table-empty"><strong>${title}</strong><span>${detail}</span>${feedUnavailable ? '<button type="button" class="secondary-button" data-verified-feed-retry>Try again</button>' : ''}</td></tr>`;
     return;
   }
   if (tableBody) {
@@ -4530,7 +4633,7 @@ function renderRegistry(query = exploreQuery){
     explorePromotion, exploreReward, exploreTab, exploreNewLane, exploreWindow, exploreMaxAgeHours,
     exploreMinVolumeUsd, exploreMinMarketCapUsd, exploreMinTrades, exploreMinTraders, getWatchlist()]);
   if (criteriaKey !== registryCriteriaKey) { registryPage = 1; registryCriteriaKey = criteriaKey; }
-  const filtered = filterMarketRecords(registryLaunches, exploreFilterOptions(query));
+  const filtered = filterExploreTabRecords(registryLaunches, query);
   const page = paginateExploreRows(filtered, registryPage);
   registryPage = page.page;
   const registryLoading = exploreProviderStatus === 'On-chain only · loading' && !exploreLastVerifiedAt;
@@ -4557,7 +4660,7 @@ function renderRegistry(query = exploreQuery){
     list.innerHTML = registryLoading
       ? '<div class="empty-state">Checking the verified launch feed…</div>'
       : registryUnavailable
-      ? `<div class="empty-state"><strong>${escapeHtml(outage.title)}</strong><span>${escapeHtml(outage.detail)}</span><button type="button" class="secondary-button" data-verified-feed-retry>Retry verification</button><a class="explore-policy-link" href="#airdrops">Browse recorded airdrop policies →</a></div>`
+      ? `<div class="empty-state"><strong>${escapeHtml(outage.title)}</strong><span>${escapeHtml(outage.detail)}</span><button type="button" class="secondary-button" data-verified-feed-retry>Try again</button><a class="explore-policy-link" href="#airdrops">Browse recorded airdrop policies →</a></div>`
       : `<div class="empty-state">${escapeHtml(reason?.[0] || 'No verified launches match these filters.')} ${escapeHtml(reason?.[1] || 'Try All stages or clear the search.')}</div>`;
     return;
   }
@@ -4571,14 +4674,14 @@ function renderRegistry(query = exploreQuery){
       <span class="scanner-rank" role="cell">${page.start + index + 1}</span>
       <div class="scanner-token" role="cell"><span class="asset-icon">${escapeHtml(item.icon)}</span><span><span class="scanner-token-heading"><a class="scanner-token-link" href="/token/${encodeURIComponent(item.address)}"><strong class="${activeBoostMultiplier(verifiedBoosts[item.address]) >= 500 ? 'golden-ticker' : ''}">${symbol} <small>${escapeHtml(item.name)}</small></strong></a>${explorePaidListingBagMarkup(item)}${exploreBoostAmountMarkup(item.address)}</span><span class="scanner-actions"><button type="button" class="copy-row scanner-contract" data-mint="${mint}" aria-label="Copy ${symbol} token contract address" title="Copy full contract address: ${mint}"><span>${escapeHtml(`${item.address.slice(0, 4)}…${item.address.slice(-4)}`)}</span>${icon('copy')}</button>${exploreSocialLinksMarkup(item)}<button type="button" class="watch-button scanner-watch" data-mint="${mint}" aria-label="Add ${symbol} to favorites" aria-pressed="false" title="Add to favorites">${icon('star')}</button></span></span></div>
       <div class="scanner-tier" role="cell">${exploreTierBadgeMarkup(item.address)}</div>
-      <span class="scanner-metric" role="cell">${escapeHtml(EXPLORE_CLUSTER === 'devnet' ? formatCoinUsd(item.curveCapSol) : formatCompactUsd(item.marketCapUsd))}</span>
+      <span class="scanner-metric" role="cell">${escapeHtml(exploreMarketCapUsd(item))}</span>
       <span class="scanner-age" role="cell">${age}</span>
       <span class="scanner-metric" role="cell" title="${item.windowCoverage === 'partial' ? 'Partial confirmed trade-history scan; shown as a lower bound' : 'Confirmed trade history'}">${formatExploreTradeCount(item.windowTradeCount, item.windowCoverage)}</span>
       <span class="scanner-metric" role="cell" title="${item.windowCoverage === 'partial' ? 'Partial confirmed trade-history scan; shown as a lower bound' : 'Confirmed trade history'}">${escapeHtml(EXPLORE_CLUSTER === 'devnet' ? formatExploreUsd(item.windowVolumeSol, { partial: item.windowCoverage === 'partial' }) : formatCompactUsd(item.volume24hUsd))}</span>
       <span class="scanner-metric ${Number(item.priceChange24hPercent) < 0 ? 'negative' : ''}" role="cell" title="Observed 24-hour price change when available">${change}</span>
       <div class="scanner-airdrop-cell" role="cell">${exploreAirdropMarkup(item)}</div>
       <div class="scanner-stage" role="cell"><strong>${stage}</strong><small>${item.complete === false && item.curveProgressPercent != null && Number.isFinite(Number(item.curveProgressPercent)) ? `${Number(item.curveProgressPercent).toFixed(0)}% curve` : ''}</small></div>
-      <div class="scanner-boost" role="cell">${activeBoostMultiplier(verifiedBoosts[item.address]) ? `<span class="scanner-boost-total">⚡ ${activeBoostMultiplier(verifiedBoosts[item.address]).toLocaleString()}x active</span>` : ''}<button type="button" class="explore-boost-button" data-boost-mint="${mint}" aria-label="Boost options for ${escapeHtml(item.name)}">Boost ↗</button></div>
+      <div class="scanner-boost" role="cell">${activeBoostMultiplier(verifiedBoosts[item.address]) ? `<span class="scanner-boost-total">⚡ ${activeBoostMultiplier(verifiedBoosts[item.address]).toLocaleString()}x active</span>` : ''}<button type="button" class="explore-boost-button" data-boost-mint="${mint}" aria-label="Boost options for ${escapeHtml(item.name)}">${icon('boost')}<span>Boost</span></button></div>
     </div>`;
   }).join('');
   loadVerifiedTokenLogos(list);
@@ -4932,6 +5035,7 @@ function invalidateTradePreview(){
   clearTimeout(tradeQuoteTimer);
   tradeQuoteTimer = null;
   tradePreview = null;
+  document.querySelector('#trade-live-countdown')?.replaceChildren();
   const reviewDialog = document.querySelector('#trade-review-dialog');
   if (reviewDialog?.open) reviewDialog.close();
   const quote = document.querySelector('#trade-quote');
@@ -4980,6 +5084,7 @@ async function prepareTradeQuote({ connectIfNeeded = false } = {}){
     const quote = describeTradeQuote(trade, slippagePercent);
     if (side === 'sell' && quote.minimumNetSol <= 0) throw new Error('The app fee would exceed the minimum SOL output. Increase the sell amount.');
     tradePreview = { trade, inputKey, preparedAt: Date.now() };
+    document.querySelector('#trade-live-countdown').innerHTML = quoteCountdownMarkup(tradePreview.preparedAt + 15_000);
     renderTradeBalances();
     const outputDigits = quote.outputSymbol === 'SOL' ? 9 : 6;
     const receiveText = `${quote.expected.toLocaleString('en-US', { maximumFractionDigits: outputDigits })} ${quote.outputSymbol}`;
@@ -4987,8 +5092,8 @@ async function prepareTradeQuote({ connectIfNeeded = false } = {}){
     estimateCard.querySelector('span').textContent = side === 'sell' ? 'Estimated SOL to wallet' : 'Estimated tokens received';
     document.querySelector('#trade-live-amount').textContent = `≈ ${side === 'sell' ? `${quote.expectedNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL` : receiveText}`;
     document.querySelector('#trade-live-detail').textContent = side === 'sell'
-      ? `After app fee · minimum after ${slippagePercent}% slippage: ${quote.minimumNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL · network fee additional · quote expires in 15 seconds.`
-      : `Minimum after ${slippagePercent}% slippage: ${quote.minimum.toLocaleString('en-US', { maximumFractionDigits:outputDigits })} ${quote.outputSymbol} · quote expires in 15 seconds.`;
+      ? `After app fee · minimum after ${slippagePercent}% slippage: ${quote.minimumNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL · network fee additional.`
+      : `Minimum after ${slippagePercent}% slippage: ${quote.minimum.toLocaleString('en-US', { maximumFractionDigits:outputDigits })} ${quote.outputSymbol}.`;
     estimateCard.classList.add('is-ready');
     const slippageText = quote.maximumSpendSol != null
       ? `Quoted receive: ${receiveText}. Maximum pool spend: ${quote.maximumSpendSol.toFixed(9)} SOL with ${slippagePercent}% slippage.`
@@ -4998,7 +5103,7 @@ async function prepareTradeQuote({ connectIfNeeded = false } = {}){
     const feeText = quote.maximumSpendSol != null
       ? `Maximum pool spend includes Pump pool fees. App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network/account costs.`
       : `App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network and Pump fees.`;
-    document.querySelector('#trade-quote').textContent = `${quote.route === 'graduated-pool' ? 'Graduated pool' : 'Pump curve'} · ${slippageText} ${feeText} Quote expires in 15 seconds.`;
+    document.querySelector('#trade-quote').textContent = `${quote.route === 'graduated-pool' ? 'Graduated pool' : 'Pump curve'} · ${slippageText} ${feeText}`;
     setTradeStatus('Review this quote and the transaction in your wallet before signing.');
     tradeQuoteTimer = setTimeout(() => refreshTradeQuoteWhenIdle(version), 12_000);
     return tradePreview;
@@ -5049,6 +5154,7 @@ async function openTradeReview(){
     for (const [selector, value] of Object.entries(fields)) document.querySelector(selector).textContent = value;
     document.querySelector('#trade-review-minimum-row').hidden = !review.minimumLabel;
     document.querySelector('#trade-review-dialog').dataset.side = side;
+    document.querySelector('#trade-review-countdown').innerHTML = quoteCountdownMarkup(prepared.preparedAt + 15_000);
     document.querySelector('#trade-review-dialog').showModal();
   } catch (error) { if (version === tradeQuoteVersion) setTradeStatus(tradePreviewFailureMessage(error, side), true); }
   finally { tradeActionBusy = false; updateTradeActionState(); }
@@ -5139,6 +5245,7 @@ async function verifyPendingTrade(activeConnection = null, targetSignature = nul
     if (button) button.hidden = pendingTradeVerifications.size === 0;
     setTradeReceiptStatus(`${pending.side === 'buy' ? 'Buy' : 'Sell'} finalized with verified balance change and indexed trade. App fee: ${(pending.feeLamports / 1_000_000_000).toFixed(6)} SOL.`, pending.signature);
     rememberRoundTripReceipt({ walletAddress:pending.walletAddress, mint:pending.mint, side:pending.side, signature:pending.signature, symbol:pending.symbol });
+      productEvent('trade_confirmed');
     renderRoundTripAction();
     const share = document.querySelector('#trade-share');
     if (share) {
@@ -5336,6 +5443,8 @@ function assertWalletSessionCurrent(session){
   if (!isWalletSessionCurrent(session)) throw new Error('Wallet account changed. Review and retry with the connected account.');
 }
 function resetWalletDependentViews(){
+  communityWalletAllocations.clear();
+  communityClaimReview = null;
   const previousChatToken = coinChatSession?.token;
   coinChatSession = null;
   coinChatSessionPromise = null;
@@ -5439,7 +5548,7 @@ async function connectDevWallet(){
   if (!DEV_MODE || !DEV_WALLET_AUTOCONNECT || wasWalletManuallyDisconnected() || (injectedProvider?.isConnected && injectedProvider.publicKey)) return false;
   try {
     const result = await apiRequest('/api/dev-wallet');
-    const { PublicKey, Transaction } = await getSolana();
+    const { PublicKey, Transaction, VersionedTransaction } = await getSolana();
     const publicKey = new PublicKey(result.data.publicKey);
     const devProvider = {
       devMode: true,
@@ -5447,7 +5556,9 @@ async function connectDevWallet(){
       isConnected: true,
       signTransaction: async transaction => {
         const signed = await apiRequest('/api/dev-wallet/sign-transaction', { method: 'POST', body: { transaction: bytesToBase64(transaction.serialize({ requireAllSignatures: false, verifySignatures: false })) } });
-        return Transaction.from(base64ToBytes(signed.data.transaction));
+        return transaction instanceof VersionedTransaction
+          ? VersionedTransaction.deserialize(base64ToBytes(signed.data.transaction))
+          : Transaction.from(base64ToBytes(signed.data.transaction));
       },
       signMessage: async message => {
         const signed = await apiRequest('/api/dev-wallet/sign-message', { method: 'POST', body: { message: bytesToBase64(message) } });
@@ -5579,9 +5690,11 @@ function updateCostSummary(){
       ? 'Connect a wallet to build and estimate the transaction.'
       : walletMetricsLoading
         ? 'Building and estimating the Solana transaction…'
-        : walletEstimateError
-          ? `Could not estimate the transaction: ${walletEstimateError} Refresh the estimate to try again.`
-          : 'The launch cost is not verified. Refresh the estimate before signing.';
+        : developerBuyLimitReached()
+          ? 'Developer buy exceeds 20% of the token supply. Return to Launch settings and lower the SOL amount or set it to 0. A new estimate will run after you change it.'
+          : walletEstimateError
+            ? `Could not estimate the transaction: ${walletEstimateError} Refresh the estimate to try again.`
+            : 'The launch cost is not verified. Refresh the estimate before signing.';
     return;
   }
   const launchCost = formatLaunchCost(estimatedLaunchFeeLamports);
@@ -5598,15 +5711,36 @@ function updateCostSummary(){
 function renderLaunchCostDetails(){
   let node=document.querySelector('#launch-cost-details');
   if(!node){node=document.createElement('div');node.id='launch-cost-details';node.className='adoption-panel';document.querySelector('#cost-note')?.after(node);}
+  const expanded = node.querySelector('details')?.open;
   node.innerHTML=launchReviewMarkup(launchCostReview);
+  if (expanded && node.querySelector('details')) node.querySelector('details').open = true;
+}
+function refreshQuoteClocks(){
+  if (document.hidden) return;
+  updateQuoteCountdowns();
+  if (document.querySelector('#explore-boost-dialog')?.open && !boostCheckout.busy && !boostCheckout.pendingSignature
+    && boostCheckout.quote && Date.parse(boostCheckout.quote.expiresAt) <= Date.now()
+    && document.querySelector('.explore-boost-quote')) {
+    boostCheckout.message = 'This price expired. Refresh it and review the new amount before paying.';
+    renderExploreBoostDialog();
+  }
+  if (document.querySelector('#trade-review-dialog')?.open && !currentTradePreview()) {
+    const confirm = document.querySelector('#trade-review-confirm');
+    if (confirm) confirm.textContent = 'Refresh quote';
+  }
+  if (fundedBuyPreview && !fundedBuyBusy && Date.now() - fundedBuyPreview.preparedAt >= 15_000) {
+    const button = document.querySelector('#funded-buy-submit');
+    if (button) button.textContent = 'Refresh quote';
+  }
 }
 setInterval(()=>{
+  refreshQuoteClocks();
   renderPendingLaunchReview();
   if(!launchCostReview)return;
   const launchPageActive=requestedPageRoute()==='launch';
   if(launchPageActive&&!document.hidden&&!walletMetricsLoading&&launchReviewNeedsRefresh(launchCostReview)){
     scheduleLaunchCostRefresh();
-  }else if(launchPageActive)renderLaunchCostDetails();
+  }
 },1000);
 function updatePreviewStatusDrawer(connected){
   const drawer = document.querySelector('.preview-status-drawer');
@@ -5644,6 +5778,7 @@ async function refreshWalletBalance({ force = false } = {}){
     walletBalanceFetchedAt = Date.now();
   } catch (error) {
     if (request !== walletBalanceRequest || !isWalletSessionCurrent(session)) return;
+    walletBalanceLamports = null;
     walletBalanceFetchedAt = 0;
     console.warn('SOL balance refresh failed:', error);
   }
@@ -5697,7 +5832,7 @@ function updateLaunchPreview(){
   }
   xLabel = xLabel.trim() || 'Token';
   const xPrefix = EXPLORE_CLUSTER === 'devnet' ? '[Devnet test] ' : '[Mainnet] ';
-  const xLink = 'https://funded.vip/token/{mint-after-launch}';
+  const xLink = 'funded.vip/token/your-token';
   const xLaunch = launchBurn.tier === 'standard'
     ? `New project on funded.vip: “${xLabel}”. Token creation finalized.`
     : `${launchBurn.tier === 'premier' ? 'Premier' : 'Pro'} launch: “${xLabel}”. Creation and $FUNDED tier burn finalized.`;
@@ -5737,6 +5872,23 @@ function updateLaunchPreview(){
     '#preview-funded-share': `${FEE_DISTRIBUTION.fundedPercent}%`,
   };
   Object.entries(compactPreviewValues).forEach(([selector, value]) => { const node = document.querySelector(selector); if (node) node.textContent = value; });
+  const summaryName = document.querySelector('#launch-summary-name');
+  const summarySymbol = document.querySelector('#launch-summary-symbol');
+  if (summaryName) summaryName.textContent = name || 'Token name';
+  if (summarySymbol) summarySymbol.textContent = symbol || 'TICKER';
+  const summaryShares = {
+    creator: feeDistribution.creatorWalletPercent,
+    holders: feeDistribution.holderAirdropPercent,
+    x: feeDistribution.solClaimPercent,
+    protocol: FEE_DISTRIBUTION.fundedPercent,
+  };
+  for (const [key, share] of Object.entries(summaryShares)) {
+    const value = Number.isFinite(Number(share)) ? Number(share) : 0;
+    const label = document.querySelector(`#launch-summary-${key}`);
+    const bar = document.querySelector(`[data-summary-share="${key}"]`);
+    if (label) label.textContent = `${value}%`;
+    if (bar) bar.style.width = `${Math.max(0, Math.min(100, value))}%`;
+  }
   const previewBurnTier = document.querySelector('#preview-burn-tier');
   if (previewBurnTier) { previewBurnTier.textContent = launchBurn.label.toUpperCase(); previewBurnTier.className = `tier-badge ${launchBurn.tier}`; }
   const promotionBadge = document.querySelector('#preview-promotion-badge');
@@ -5846,14 +5998,31 @@ function updateLaunchButton(){
   const feeDistribution = validateFeeDistribution(getFeeDistributionInputs());
   const launchBurn = getLaunchBurnPolicy();
   const creatorBuySol = getCreatorBuySol();
-  const buyValid = Number.isFinite(creatorBuySol) && creatorBuySol >= 0 && (estimatedInitialBuyTokens <= 0 || estimatedInitialBuyTokens <= LAUNCH_TOKEN_SUPPLY * .2);
+  const overBuyLimit = developerBuyLimitReached();
+  const buyValid = Number.isFinite(creatorBuySol) && creatorBuySol >= 0 && !overBuyLimit && (estimatedInitialBuyTokens <= 0 || estimatedInitialBuyTokens <= LAUNCH_TOKEN_SUPPLY * .2);
+  const buyHelp = document.querySelector('#creator-buy-help');
+  if (buyHelp) buyHelp.textContent = overBuyLimit
+    ? 'This SOL amount would buy over 20% of the supply. Lower it or set it to 0; the quote will update automatically.'
+    : 'Enter the SOL to buy from the fresh curve. Maximum 20% of supply.';
+  const buyInput = document.querySelector('#creator-buy-sol');
+  if (buyInput) {
+    if (overBuyLimit) {
+      buyInput.dataset.overLimit = 'true';
+      buyInput.setAttribute('aria-invalid', 'true');
+    } else if (buyInput.dataset.overLimit) {
+      delete buyInput.dataset.overLimit;
+      buyInput.removeAttribute('aria-invalid');
+    }
+  }
+  const buyTokens = document.querySelector('#creator-buy-token-amount');
+  if (buyTokens && overBuyLimit) buyTokens.textContent = 'Over 20% limit';
   const communityTokens = getCommunityAirdropTokens();
   const communityValid = Number.isSafeInteger(communityTokens) && communityTokens >= MIN_COMMUNITY_AIRDROP_TOKENS && communityTokens <= MAX_COMMUNITY_AIRDROP_TOKENS;
   const burnConfigured = validateLaunchBurnPolicy(launchBurn).valid;
   const burnReady = !launchBurn.requiresBurn || launchBurnReadiness.ready;
   const xRouteReady = feeDistribution.shares.solClaimPercent === 0 || xFeeStatus.ready;
   const identityValid = getLaunchStepState(1).valid;
-  const policyValid = identityValid && feeDistribution.valid && xRouteReady && feeRouterState.verified && burnConfigured && burnReady && buyValid && communityValid;
+  const policyValid = identityValid && getLaunchStepState(2).valid && feeDistribution.valid && xRouteReady && feeRouterState.verified && burnConfigured && burnReady && buyValid && communityValid;
   const ready = Boolean(canSignTransactions(wallet) && !walletMetricsLoading && !balanceUnknown && !insufficient && policyValid && document.querySelector('#terms-agree')?.checked && document.querySelector('#fee-route-agree')?.checked && document.querySelector('#token-name').value.trim() && document.querySelector('#token-symbol').value.trim());
   const estimateRefreshReady = launchEstimateRefreshAvailable({
     policyValid,
@@ -5863,10 +6032,10 @@ function updateLaunchButton(){
     developerBuyBlocked: insufficientDeveloperBuy,
     estimateUnavailable: balanceUnknown,
   });
-  const connectReady = !wallet && !APP_MAINNET_READ_ONLY && identityValid && feeDistribution.valid && xRouteReady && burnConfigured && buyValid && communityValid;
+  const connectReady = !wallet && !APP_MAINNET_READ_ONLY && identityValid && getLaunchStepState(2).valid && feeDistribution.valid && xRouteReady && burnConfigured && buyValid && communityValid;
   button.disabled = !(ready || estimateRefreshReady || connectReady);
   button.dataset.launchAction = connectReady ? 'connect-wallet' : estimateRefreshReady ? 'refresh-estimate' : 'launch';
-  button.textContent = !communityValid ? 'Airdrop must be 30M–500M' : !identityValid ? 'Fix coin details' : !feeDistribution.valid ? 'Fix fee distribution' : !xRouteReady ? 'X account rewards unavailable' : !feeRouterState.verified ? 'Fee router required' : !buyValid ? 'Enter a valid developer buy' : !burnConfigured ? (PROTOCOL_FUNDED_MINT ? '$FUNDED price unavailable' : '$FUNDED mint required') : launchBurn.requiresBurn && !burnReady ? 'Verify $FUNDED balance' : !wallet ? 'Connect wallet to launch' : !canSignTransactions(wallet) ? 'Open in wallet to sign' : walletMetricsLoading ? 'Calculating launch cost' : walletBalanceLamports == null ? 'Refresh wallet balance' : insufficientDeveloperBuy ? 'Insufficient SOL for developer buy' : estimatedLaunchFeeLamports == null ? 'Refresh launch estimate' : insufficient ? 'Insufficient SOL for launch' : !document.querySelector('#fee-route-agree')?.checked ? 'Confirm the fee route' : !document.querySelector('#terms-agree')?.checked ? 'Agree to terms to launch' : !policyValid ? 'Complete launch policy' : ready ? (launchBurn.requiresBurn ? `Review launch · ${launchBurn.label}` : 'Review launch') : 'Add name and ticker';
+  button.textContent = !communityValid ? 'Airdrop must be 30M–500M' : !identityValid ? 'Fix coin details' : !feeDistribution.valid ? 'Fix fee distribution' : !xRouteReady ? 'X account rewards unavailable' : !feeRouterState.verified ? 'Fee router required' : overBuyLimit ? 'Reduce developer buy' : !buyValid ? 'Enter a valid developer buy' : !burnConfigured ? (PROTOCOL_FUNDED_MINT ? '$FUNDED price unavailable' : '$FUNDED mint required') : launchBurn.requiresBurn && !burnReady ? 'Verify $FUNDED balance' : !wallet ? 'Connect wallet to launch' : !canSignTransactions(wallet) ? 'Open in wallet to sign' : walletMetricsLoading ? 'Calculating launch cost' : walletBalanceLamports == null ? 'Refresh wallet balance' : insufficientDeveloperBuy ? 'Insufficient SOL for developer buy' : estimatedLaunchFeeLamports == null ? 'Refresh launch estimate' : insufficient ? 'Insufficient SOL for launch' : !document.querySelector('#fee-route-agree')?.checked ? 'Confirm the fee route' : !document.querySelector('#terms-agree')?.checked ? 'Agree to terms to launch' : !policyValid ? 'Complete launch policy' : ready ? (launchBurn.requiresBurn ? `Review launch · ${launchBurn.label}` : 'Review launch') : 'Add name and ticker';
   if (connectReady) button.textContent = 'Connect wallet to create coin';
   updateLaunchNavigation();
 }
@@ -5902,18 +6071,22 @@ function renderPendingLaunchReview(){
   const current = launchReviewStillCurrent(pending, currentLaunchReviewState());
   const details = document.querySelector('#launch-review-details');
   const confirm = document.querySelector('#launch-review-confirm');
-  if (details) details.innerHTML = current
+  const renderKey = `${pending?.reviewedCost?.quotedAt}:${current}`;
+  if (details && details.dataset.reviewKey !== renderKey) {
+    details.dataset.reviewKey = renderKey;
+    details.innerHTML = current
     ? launchReviewMarkup(pending.reviewedCost)
     : '<p role="status">Launch estimate expired or changed. Go back, refresh the estimate, and review again; no transaction was sent.</p>';
+  }
   if (confirm) {
     confirm.disabled = !current;
-    confirm.textContent = current ? 'Continue to Phantom' : 'Estimate expired — go back';
+    confirm.textContent = current ? 'Continue to wallet' : 'Estimate expired — go back';
   }
 }
 async function openLaunchReview(){
   const reviewedCost = launchCostReview;
   const session = captureWalletSession();
-  if (!session || !freshLaunchReview(reviewedCost) || document.querySelector('#launch-button')?.disabled) {
+  if (launchStep !== 2 || !getLaunchStepState(1).valid || !getLaunchStepState(2).valid || !session || !freshLaunchReview(reviewedCost) || document.querySelector('#launch-button')?.disabled) {
     setLaunchStatus('Refresh the launch estimate and complete all checks before reviewing.', true);
     return;
   }
@@ -6017,6 +6190,7 @@ function getLaunchStepState(step){
     if (!Number.isSafeInteger(communityTokens) || communityTokens < MIN_COMMUNITY_AIRDROP_TOKENS || communityTokens > MAX_COMMUNITY_AIRDROP_TOKENS) return { valid: false, field: '#community-airdrop-tokens', message: 'Community airdrop must be between 30,000,000 and 500,000,000 tokens.' };
     const creatorBuySol = getCreatorBuySol();
     if (!Number.isFinite(creatorBuySol) || creatorBuySol < 0) return { valid: false, field: '#creator-buy-sol', message: 'Developer buy must be a valid SOL amount of zero or more.' };
+    if (developerBuyLimitReached()) return { valid: false, field: '#creator-buy-sol', message: 'Developer buy exceeds 20% of supply. Lower the SOL amount or set it to 0.' };
     if (!distribution.valid) {
       if (!distribution.sharesValid) return { valid: false, message: 'Each creator destination must be between 0% and 80%.' };
       if (!distribution.xRecipientValid) return { valid: false, message: 'Enter a valid X account for the SOL reward.' };
@@ -6026,9 +6200,11 @@ function getLaunchStepState(step){
     const launchBurn = getLaunchBurnPolicy();
     const burnValidation = validateLaunchBurnPolicy(launchBurn);
     if (!burnValidation.valid) return { valid: false, message: 'The protocol $FUNDED mint must be configured before a paid burn tier can launch.' };
-    return { valid: true, message: launchBurn.requiresBurn ? `${launchBurn.label} selected: ${formatLaunchBurnAmount(launchBurn.amountTokens)} $FUNDED burn; atomicity depends on transaction size.` : launchMode === 'quick' ? 'Recommended distribution selected.' : 'Custom distribution is balanced.' };
+    return { valid: true, message: launchBurn.requiresBurn ? `${launchBurn.label} selected: ${formatLaunchBurnAmount(launchBurn.amountTokens)} $FUNDED will be burned. Review the approval steps before signing.` : launchMode === 'quick' ? 'Recommended distribution selected.' : 'Custom distribution is balanced.' };
   }
-  if (step === 3) {
+  return { valid: true, message: 'Launch settings are ready.' };
+}
+function getLaunchSubmissionState(){
     if (!feeRouterState.verified) return { valid: false, message: feeRouterState.status === 'checking'
       ? 'Checking the Solana fee router…'
       : feeRouterState.status === 'router-verification-unavailable'
@@ -6040,6 +6216,7 @@ function getLaunchStepState(step){
     if (!canSignTransactions(wallet)) return { valid: false, message: 'Open this app inside your wallet to sign.' };
     if (walletMetricsLoading) return { valid: false, message: 'Wait while the launch cost is calculated.' };
     if (creatorBuyExceedsWalletBalance()) return { valid: false, message: 'Reduce the developer buy or add SOL before continuing.' };
+    if (developerBuyLimitReached()) return { valid: false, message: 'Developer buy exceeds 20% of supply. Lower the SOL amount or set it to 0.' };
     if (!freshLaunchReview(launchCostReview)) return { valid:false, message:'Refresh the launch estimate before continuing; quotes expire after one minute.' };
     if (walletBalanceLamports == null || estimatedLaunchFeeLamports == null) return { valid: false, message: walletEstimateError ? `Launch estimate unavailable: ${walletEstimateError}` : 'Refresh the wallet balance and launch estimate.' };
     if (walletBalanceLamports < estimatedLaunchFeeLamports) return { valid: false, message: 'Add SOL before continuing.' };
@@ -6047,9 +6224,7 @@ function getLaunchStepState(step){
     if (launchBurn.requiresBurn && !launchBurnReadiness.ready) return { valid: false, message: launchBurnReadiness.message };
     if (!document.querySelector('#fee-route-agree').checked) return { valid: false, message: 'Confirm that the Pump creator-fee route belongs to funded.vip.' };
     if (!document.querySelector('#terms-agree').checked) return { valid: false, message: 'Accept the Terms and Disclosures to continue.' };
-    return { valid: true, message: 'Review complete. Continue to sign.' };
-  }
-  return { valid: true, message: 'Ready to sign and verify.' };
+    return { valid: true, message: 'Ready to review the transaction before signing.' };
 }
 function updateLaunchNavigation(){
   const next = document.querySelector('#launch-next');
@@ -6057,21 +6232,22 @@ function updateLaunchNavigation(){
   const retry = document.querySelector('#launch-review-retry');
   const hint = document.querySelector('#wizard-hint');
   if (!next || !back || !hint) return;
-  const state = getLaunchStepState(launchStep);
+  const stepState = getLaunchStepState(launchStep);
+  const state = launchStep === 2 && stepState.valid ? getLaunchSubmissionState() : stepState;
   back.hidden = launchStep === 1;
-  next.hidden = launchStep === 3;
+  next.hidden = launchStep === 2;
   next.disabled = false;
-  next.textContent = launchStep === 2 ? 'Review settings' : 'Continue to settings';
+  next.textContent = 'Continue to rewards';
   if (retry) {
-    retry.hidden = launchStep !== 3 || (feeRouterState.verified && (!wallet || (estimatedLaunchFeeLamports != null && freshLaunchReview(launchCostReview))));
+    retry.hidden = launchStep !== 2 || (feeRouterState.verified && (!wallet || (estimatedLaunchFeeLamports != null && freshLaunchReview(launchCostReview))));
     retry.disabled = feeRouterState.status === 'checking' || walletMetricsLoading;
-    retry.textContent = retry.disabled ? 'Checking…' : 'Retry checks';
+    retry.textContent = retry.disabled ? 'Checking…' : developerBuyLimitReached() ? 'Edit developer buy' : 'Retry checks';
   }
   hint.textContent = state.message;
   hint.classList.toggle('ready', state.valid);
 }
 function setLaunchStep(step){
-  const target = Math.min(3, Math.max(1, Number(step) || 1));
+  const target = Math.min(2, Math.max(1, Number(step) || 1));
   if (target > launchStep) {
     for (let previous = 1; previous < target; previous++) {
       const state = getLaunchStepState(previous);
@@ -6283,7 +6459,7 @@ async function refreshWalletInfo({ rateLimitRetry = 0 } = {}){
         'Ticker must contain 1–10 letters or numbers.',
         'Initial supply must be a positive whole number.',
         'Decimals must be an integer from 0 to 9.',
-      ].includes(rawReason);
+      ].includes(rawReason) || developerBuyLimitReached(rawReason);
       if (!expectedInputError) console.warn('Launch cost estimate failed:', error);
       const reason = rateLimited
         ? 'Solana RPC is rate limited. Wait a moment, then refresh the estimate.'
@@ -6313,10 +6489,12 @@ function scheduleLaunchCostRefresh(){
 function setWalletState(message, detail = '', connected = false){
   connected = Boolean(connected && wallet && connectedWalletAddress === walletAddress(wallet));
   document.documentElement.dataset.connectedWallet = connected ? connectedWalletAddress : '';
+  document.documentElement.dataset.creatorClaimSigning = String(Boolean(connected && !wallet?.readOnly && typeof wallet?.signMessage === 'function'));
   window.dispatchEvent(new Event('funded:reward-identity-change'));
   const signingReady = connected && canSignTransactions(wallet);
   const header = document.querySelector('#connect-button');
   const walletPopover = document.querySelector('#wallet-popover');
+  const keepPopoverOpen = Boolean(connected && walletPopover && !walletPopover.hidden);
   header.classList.toggle('wallet-pill-connected', connected);
   if (connected) {
     const walletIcon = document.createElement('span'); walletIcon.className = 'header-wallet-icon'; walletIcon.setAttribute('aria-hidden', 'true');
@@ -6331,8 +6509,8 @@ function setWalletState(message, detail = '', connected = false){
     header.setAttribute('aria-label', 'Connect wallet');
   }
   header.removeAttribute('title');
-  header.setAttribute('aria-expanded', 'false');
-  if (walletPopover) walletPopover.hidden = true;
+  header.setAttribute('aria-expanded', String(keepPopoverOpen));
+  if (walletPopover && !keepPopoverOpen) walletPopover.hidden = true;
   header.onclick = connected ? event => {
     event.stopPropagation();
     if (!walletPopover) return;
@@ -6352,7 +6530,7 @@ function setWalletState(message, detail = '', connected = false){
   const sidebarAddress = document.querySelector('#sidebar-wallet-address');
   const sidebarAvatar = document.querySelector('#sidebar-wallet-avatar');
   if (sidebarName) sidebarName.textContent = connected ? 'Wallet connected' : 'Wallet not connected';
-  if (sidebarAddress) sidebarAddress.textContent = connected ? `${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)}` : 'Connect to review signing';
+  if (sidebarAddress) sidebarAddress.textContent = connected ? `${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)}` : 'Connect to view your portfolio';
   if (sidebarAvatar) sidebarAvatar.textContent = connected ? '✓' : '◎';
   const leaderboardBadge = document.querySelector('#leaderboard-wallet-badge');
   const leaderboardTitle = document.querySelector('#leaderboard-wallet-title');
@@ -6401,6 +6579,8 @@ function setWalletState(message, detail = '', connected = false){
   updateReferralLink();
   updateOnboardingProgress();
   renderAirdropClaims();
+  const selectedAirdropCheck = document.querySelector('#airdrop-selected-status [data-check-community-mint]');
+  if (selectedAirdropCheck) selectedAirdropCheck.textContent = connected ? 'Check my allocation' : 'Connect wallet to check allocation';
   updateLaunchButton();
   if (connected) { setWalletMetrics({ loading: true }); void refreshWalletBalance(); if (feeRouterState.status !== 'checking') refreshWalletInfo(); }
   else setWalletMetrics();
@@ -6415,28 +6595,22 @@ async function connectWallet(){
     showToast('This workspace is read-only. Wallet actions are disabled.');
     return;
   }
-  const provider = getProvider();
-  if (!provider) {
-    if (DEV_MODE && DEV_WALLET_AUTOCONNECT) {
-      allowWalletReconnect();
-      if (await connectDevWallet()) return;
-    }
-    const message = 'No injected wallet was found. Open funded.vip in Chrome or Edge with Phantom, Backpack, or Solflare installed.';
-    if (!wallet) setWalletState('Wallet unavailable', message);
-    setLaunchStatus('No injected Solana wallet was detected in this browser.', true);
-    const header = document.querySelector('#connect-button');
-    if (header) { header.title = message; header.setAttribute('aria-label', message); }
-    void openMobileWalletDialog();
-    return;
+  if (!getProvider() && DEV_MODE && DEV_WALLET_AUTOCONNECT) {
+    allowWalletReconnect();
+    if (await connectDevWallet()) return;
   }
+  const choice = await chooseWallet(injectedWalletProviders(), { devnet:APP_CLUSTER === 'devnet', preferred:rememberedWalletProviderId() });
+  if (!choice) return;
+  if (choice.mobile) { await openMobileWalletDialog(); return; }
+  const provider = choice.provider;
   const request = ++walletConnectRequest;
   try { const connected = await connectWalletProvider(provider); if (request !== walletConnectRequest) return; allowWalletReconnect(); activateWallet(connected.provider); setLaunchStatus(`Ready to sign with ${connected.publicKey.toBase58()}`); }
   catch (error) {
     if (request !== walletConnectRequest) return;
     const message = `Connection failed: ${error.message}`;
+    showToast('Connection was not completed. Open your wallet and try Connect wallet again.');
     if (!wallet) setWalletState('Connection failed', 'Check your wallet and try again.');
     setLaunchStatus(message, true);
-    showToast(message);
   }
 }
 function syncXClaimFlow(){
@@ -6586,25 +6760,10 @@ function openLaunchPage(event){
   if (location.hash !== '#launch') location.hash = '#launch'; else syncPageRoute();
   setLaunchStep(1);
 }
-function openBurnPageAfterLaunch(launchPolicy){
-  const projectSelect = document.querySelector('#funded-burn-project');
+function openLaunchedCoinPage(launchPolicy){
   const mint = launchPolicy?.mint || '';
-  if (projectSelect && mint && [...projectSelect.options].some(option => option.value === mint)) projectSelect.value = mint;
-  if (mint) {
-    const page = document.querySelector('#buybacks');
-    if (page) {
-      let prompt = page.querySelector('#launch-share-prompt');
-      if (!prompt) { prompt = document.createElement('div'); prompt.id = 'launch-share-prompt'; prompt.className = 'share-insights'; page.prepend(prompt); }
-      prompt.replaceChildren();
-      const title = document.createElement('strong'); title.textContent = `${launchPolicy.name || launchPolicy.symbol || 'Coin'} launched on Solana`;
-      const note = document.createElement('small'); note.textContent = 'Your confirmed coin has a link visitors can open and watch. Share it when ready.';
-      const button = document.createElement('button'); button.type = 'button'; button.className = 'primary-button'; button.textContent = 'Share launch';
-      button.addEventListener('click', () => openCoinShare(mint, launchPolicy.symbol, launchPolicy.name));
-      prompt.append(title, note, button);
-    }
-  }
-  if (location.hash !== '#buybacks') location.hash = '#buybacks';
-  else syncPageRoute();
+  if (!validateSolanaMint(mint).valid) return;
+  location.assign(`/token/${encodeURIComponent(mint)}`);
 }
 let airdropRequestInFlight = false;
 async function requestAirdrop(){
@@ -6835,7 +6994,7 @@ async function launchToken(){
     ];
     setLaunchLinks(`Launch verified ✓\n${result.name} (${result.symbol}) is confirmed on Solana.\nMint: ${result.mint.publicKey.toBase58()}\nLaunch tier: ${launchBurn.label}${burnSummary}\nPump creator-fee owner: funded.vip router\nYour wallet has no creator-fee authority.\nCommunity reserve funded: ${communityAllocation}% (${launchPolicy.communityAirdrop.reservedTokens.toLocaleString()} tokens)\nReward vault: ${result.reserveReceipt.vault}\nClaims open after a verified migration snapshot.\nSettlement policy: 80% creator-directed / 20% app protocol${feeDistributionInput.solClaimPercent > 0 ? `\nSOL claim recipient: ${xRecipient}` : ''}`, launchLinks);
     document.querySelector('#launch-status').classList.add('launch-complete');
-    showToast(persistedLaunch.available ? `${result.symbol} launched and listed in Explore` : `${result.symbol} launched on-chain; Explore listing is pending API verification`); renderAirdropClaims(); refreshWalletInfo(); openBurnPageAfterLaunch(launchPolicy);
+    showToast(persistedLaunch.available ? `${result.symbol} launched and listed in Explore` : `${result.symbol} launched on-chain; Explore listing is pending API verification`); renderAirdropClaims(); refreshWalletInfo(); openLaunchedCoinPage(launchPolicy);
   } catch (error) {
     let saved=readLaunchJournal().find(row=>row.id===journalId);
     if(journalId&&saved?.state==='prepared')saved=recordLaunchEvent(journalId,{state:'failed',message:error.message});
@@ -6899,6 +7058,10 @@ document.querySelector('#launch-close').addEventListener('click', () => {
 });
 document.querySelector('#airdrop-button').addEventListener('click', requestAirdrop);
 document.querySelector('#launch-review-retry')?.addEventListener('click', async () => {
+  if (developerBuyLimitReached()) {
+    document.querySelector('#creator-buy-sol')?.focus();
+    return;
+  }
   if (!feeRouterState.verified) await refreshFeeRouterConfig();
   else if (wallet) await refreshWalletInfo();
   updateLaunchNavigation();
@@ -6907,10 +7070,10 @@ document.querySelectorAll('#token-name, #token-symbol, #token-description, #toke
   if (input.matches('#token-name, #token-symbol')) { input.dataset.launchTouched = 'true'; updateLaunchIdentityWarnings(); }
   if (LAUNCH_SOCIAL_FIELDS.includes(input.id)) updateLaunchSocialValidity(input);
   if (input.matches('#community-airdrop-tokens')) syncCommunityAirdropPresets();
+  if (input.matches('#token-name, #token-symbol, #creator-buy-sol')) scheduleLaunchCostRefresh();
   updateLaunchPreview();
   updateCostSummary();
   updateLaunchButton();
-  if (input.matches('#token-name, #token-symbol, #creator-buy-sol')) scheduleLaunchCostRefresh();
 }));
 document.querySelectorAll('#token-name, #token-symbol').forEach(input => input.addEventListener('blur', () => {
   input.dataset.launchTouched = 'true';
@@ -7042,6 +7205,7 @@ document.querySelector('#wallet-popover')?.querySelectorAll('a').forEach(link =>
 document.addEventListener('click', event => {
   const popover = document.querySelector('#wallet-popover');
   const trigger = document.querySelector('#connect-button');
+  if (!event.isTrusted) return;
   if (!popover || popover.hidden || trigger?.contains(event.target) || popover.contains(event.target)) return;
   popover.hidden = true;
   trigger?.setAttribute('aria-expanded', 'false');
@@ -7233,7 +7397,7 @@ function clearExploreFilters(){
   exploreReward = 'all';
   exploreWindow = '24h';
   exploreTab = 'trending';
-  exploreNewLane = 'launch';
+  exploreNewLane = 'all';
   exploreMaxAgeHours = null;
   exploreMinVolumeUsd = null;
   exploreMinMarketCapUsd = null;
@@ -7387,14 +7551,16 @@ document.querySelector('#explore-benefit-leaders')?.addEventListener('click', ev
   refreshExploreFeedForSort();
 });
 document.querySelectorAll('[data-explore-stage]').forEach(button => button.addEventListener('click', () => { exploreStage = button.dataset.exploreStage; document.querySelectorAll('[data-explore-stage]').forEach(item => { const active = item === button; item.classList.toggle('active', active); item.setAttribute('aria-pressed', String(active)); }); updateExploreViews(); }));
-document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(button => button.addEventListener('click', () => {
+document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(button => button.addEventListener('click', event => {
+  event.preventDefault();
+  const previousTab = exploreTab;
   document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(item => { const active = item === button; item.classList.toggle('active', active); item.setAttribute('aria-pressed', String(active)); });
   const tab = button.dataset.exploreTab;
   exploreTab = tab;
-  if (tab === 'new') { exploreSort = 'newest'; document.querySelector('#explore-sort').value = 'newest'; }
-  else { exploreSort = document.querySelector('#explore-sort option[value="volume"]:not(:disabled)') ? 'volume' : 'recent-trade'; document.querySelector('#explore-sort').value = exploreSort; }
-  updateExploreViews();
-  refreshExploreFeedForSort();
+  if (tab === 'new') { exploreNewLane = 'all'; exploreSort = 'newest'; document.querySelector('#explore-sort').value = 'newest'; }
+  else if (tab === 'trending' && previousTab !== 'following') { exploreSort = document.querySelector('#explore-sort option[value="volume"]:not(:disabled)') ? 'volume' : 'recent-trade'; document.querySelector('#explore-sort').value = exploreSort; }
+  updateExploreViews(true);
+  if (tab !== 'following') refreshExploreFeedForSort();
 }));
 document.querySelector('#scanner-pagination')?.addEventListener('click', event => {
   const button = event.target.closest('[data-registry-page]');
@@ -7422,7 +7588,8 @@ async function toggleExploreWatch(mint, button){
   renderWatchlist();
   // Keep the current cards mounted so a follow-up action on the same card
   // cannot lose its click while the watchlist changes.
-  if (exploreRisk === 'watchlist') updateExploreViews();
+  if (exploreTab === 'following') updateExploreViews(true);
+  else if (exploreRisk === 'watchlist') updateExploreViews();
   else renderRegistry();
   if (homeLaunchTab === 'watchlist') renderHomeLaunchBoard();
   showToast(lastKnownWatchlist.includes(mint) ? `${symbol} added to favorites` : `${symbol} removed from favorites`);
@@ -7538,6 +7705,8 @@ document.querySelector('#airdrop-directory')?.addEventListener('click', event =>
   const program = getAirdropPrograms().find(item => item.id === button.dataset.directoryMint);
   if (!program) return;
   renderAirdropProgramDetail(program);
+  if (connectedWalletAddress && program.claimActive)
+    void checkCommunityClaim(program.id).catch(error => showToast(String(error.message || error)));
   document.querySelector('#airdrop-selected-program')?.scrollIntoView({ block: 'start' });
 });
 document.querySelector('#airdrop-detail-close')?.addEventListener('click', () => { document.querySelector('#airdrop-selected-program').hidden = true; });
@@ -7849,7 +8018,7 @@ updateCostSummary();
 updateLaunchButton();
 observeWalletProvider(getProvider());
 window.addEventListener('focus', reconcileWalletState);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { reconcileWalletState(); renderPendingLaunchReview(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { reconcileWalletState(); refreshQuoteClocks(); renderPendingLaunchReview(); } });
 const simulateButton = document.querySelector('#simulate-button');
 if (simulateButton && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') simulateButton.hidden = true;
 
@@ -7893,64 +8062,61 @@ function renderCoinFeeDashboard(overview = null) {
   currentCoinFeeOverview = overview;
   renderCoinSummary();
   const root = document.querySelector('#coin-fee-dashboard');
-  const badge = document.querySelector('#coin-fee-updated');
   if (!root) return;
-  if (overview == null) {
-    if (badge) badge.textContent = 'Checking';
-    root.innerHTML = '<p class="coin-fee-note">Reading this coin’s Pump vault and verified payout records…</p>';
-    return;
-  }
-  if (!overview?.available) {
-    if (badge) badge.textContent = 'Unavailable';
-    root.innerHTML = '<p class="coin-fee-note">A verified per coin fee route and its ledger are required to show fee amounts for this token.</p>';
-    return;
-  }
-  if (badge) badge.textContent = overview.pump?.status === 'confirmed' ? 'Live vault' : 'Ledger only';
-  const accrued = overview.pump?.status === 'confirmed' ? coinFeeSol(overview.pump.accruedLamports) : 'Unavailable';
-  const creator = overview.receivers?.find(row => row.id === 'creator');
-  const creatorWallet = overview.creatorWallet;
-  const walletLink = creatorWallet ? `<a href="/wallet/${encodeURIComponent(creatorWallet)}">${escapeHtml(shortAddress(creatorWallet))} ↗</a>` : 'unavailable';
-  const vaultLink = overview.pump?.vault ? `<a href="${escapeHtml(exploreExplorer(`address/${encodeURIComponent(overview.pump.vault)}`))}" target="_blank" rel="noopener noreferrer">Pump vault ↗</a>` : 'Pump vault unavailable';
-  const status = overview.pump?.status === 'confirmed' && BigInt(overview.pump.accruedLamports || '0') > 0n ? '<p class="coin-fee-stage">Fees are accruing in Pump. Keeper collection is needed before payout allocations can be created.</p>' : '';
-  root.innerHTML = `<div class="coin-fee-stats"><div><span>Still in Pump vault</span><strong>${escapeHtml(accrued)}</strong><small>${vaultLink}</small></div><div><span>Collected from Pump</span><strong>${escapeHtml(coinFeeSol(overview.collectedLamports))}</strong><small>${escapeHtml(overview.collectionCount)} verified collection${overview.collectionCount === 1 ? '' : 's'}</small></div><div><span>Allocated after collection</span><strong>${escapeHtml(coinFeeSol(overview.allocatedLamports))}</strong><small>${escapeHtml(coinFeeSol(overview.awaitingAllocationLamports))} awaiting allocation</small></div><div><span>Creator awaiting payout proof</span><strong>${escapeHtml(coinFeeSol(creator?.withoutConfirmedPayoutLamports || '0'))}</strong><small>For ${walletLink}</small></div></div>${status}<div class="coin-fee-how"></div>`;
+  const owned = Boolean(overview?.available && connectedWalletAddress && overview.creatorWallet === connectedWalletAddress);
+  root.hidden = !owned;
+  root.replaceChildren();
+  if (!owned) return;
   const claim = overview.creatorClaim;
   const claimable = BigInt(claim?.claimableLamports || '0');
   const minimum = BigInt(claim?.minimumLamports || '10000000');
-  const connected = connectedWalletAddress === creatorWallet;
-  const ready = Boolean(claim?.eligible && connected && wallet && typeof wallet.signMessage === 'function');
-  const note = claimable < minimum ? `Claiming opens at ${coinFeeSol(minimum)} of allocated creator fees.` : !connectedWalletAddress ? 'Connect the launch wallet to request a payout.' : !connected ? 'Switch to the launch wallet shown above to claim.' : 'Sign one message to request payment. The payout worker then sends SOL to the launch wallet.';
-  root.insertAdjacentHTML('afterbegin', `<section class="coin-creator-claim"><div><span>Creator available to claim</span><strong>${escapeHtml(coinFeeSol(claimable))}</strong><small>${escapeHtml(note)}</small></div><button type="button" id="coin-creator-claim-button" ${ready ? '' : 'disabled'}>Claim creator fees</button></section>`);
+  const ready = Boolean(claim?.eligible && claimable >= minimum && wallet && typeof wallet.signMessage === 'function');
+  const note = claimable < minimum
+    ? `You can claim once your creator rewards reach ${coinFeeSol(minimum)}.`
+    : claim?.eligible ? 'Approve a message in your wallet to request your SOL payout.'
+      : 'Your payout is being processed. Confirmed payments appear in Rewards.';
+  root.innerHTML = `<section class="coin-creator-claim"><div><span>Your creator rewards</span><strong>${escapeHtml(coinFeeSol(claimable))}</strong><small>${escapeHtml(note)}</small></div><button type="button" id="coin-creator-claim-button" ${ready ? '' : 'disabled'}>Claim creator fees</button></section>`;
   const claimButton = root.querySelector('#coin-creator-claim-button');
   if (claimButton && ready) claimButton.onclick = () => { void requestCreatorFeeClaim(claimButton); };
-  const stage = root.querySelector('.coin-fee-stage');
-  if (stage) stage.textContent = `Fees are accruing in Pump. The Solana collector checks the vault automatically and records allocations once at least ${coinFeeSol(minimum)} is available.`;
-  const how = root.querySelector('.coin-fee-how');
-  if (how) how.innerHTML = `<strong>How the coin creator receives fees</strong><ol><li>Pump accrues fees in this coin’s vault.</li><li>The Solana collector moves fees into this coin’s router and records the allocation automatically.</li><li>Once allocated creator fees reach ${escapeHtml(coinFeeSol(minimum))}, connect launch wallet ${walletLink} and select Claim creator fees. The payout worker sends SOL to that wallet; a paid receipt appears after confirmation.</li></ol><small>Only the verified launch wallet can request payment. Amounts still in Pump are estimates until collected and allocated.</small>`;
 }
-async function requestCreatorFeeClaim(button) {
-  const mint = getCoinMintAddress();
+const creatorClaimsInFlight = new Set();
+window.addEventListener('funded:creator-claim', event => {
+  const { button, mint, overview, complete } = event.detail || {};
+  if (!button || !mint) return;
+  void requestCreatorFeeClaim(button, mint, overview).finally(() => complete?.());
+});
+async function requestCreatorFeeClaim(button, mint = getCoinMintAddress(), overview = currentCoinFeeOverview) {
   const session = captureWalletSession();
-  if (!mint || !session || session.address !== currentCoinFeeOverview?.creatorWallet) return;
+  if (!mint || !session || !overview?.available || session.address !== overview.creatorWallet || creatorClaimsInFlight.has(mint)) return;
+  if (session.provider.readOnly || typeof session.provider.signMessage !== 'function') { showToast('Open your signing wallet to claim SOL.'); return; }
+  creatorClaimsInFlight.add(mint);
+  const originalLabel = button.textContent;
+  let requested = false;
   try {
     button.disabled = true;
     button.textContent = 'Waiting for wallet…';
     const path = `/api/tokens/${encodeURIComponent(mint)}/creator-claim`;
     const prepared = await apiRequest(`${path}/prepare`, { method:'POST', body:{} });
     assertWalletSessionCurrent(session);
+    if (!prepared.available || !prepared.data?.statement || !prepared.data?.challengeId) throw new Error('Unable to prepare this claim. Refresh and try again.');
     const signed = await session.provider.signMessage(new TextEncoder().encode(prepared.data.statement));
     assertWalletSessionCurrent(session);
     button.textContent = 'Requesting payout…';
-    await apiRequest(`${path}/request`, { method:'POST', body:{ challengeId:prepared.data.challengeId, signature:bs58.encode(signed.signature || signed) } });
-    showToast('Creator payout requested. Watch this panel for a confirmed payment receipt.');
+    const result = await apiRequest(`${path}/request`, { method:'POST', body:{ challengeId:prepared.data.challengeId, signature:bs58.encode(signed.signature || signed) } });
+    if (!result.available || result.data?.status !== 'payout-requested') throw new Error('Unable to confirm the request. Refresh to check its status.');
+    requested = true;
+    button.textContent = 'Payout requested';
+    showToast('Payout requested. Check Rewards for confirmation.');
     const updated = await apiRequest(`/api/tokens/${encodeURIComponent(mint)}/fee-activity`);
+    assertWalletSessionCurrent(session);
     if (getCoinMintAddress() === mint && updated.available && updated.data?.mint === mint) {
       coinSummaryLedgerMint = mint;
       renderCoinFeeDashboard(updated.data.overview);
     }
   } catch (error) {
     showToast(`Creator claim: ${error.message}`);
-    if (button.isConnected) { button.disabled = false; button.textContent = 'Claim creator fees'; }
-  }
+    if (button.isConnected && !requested) { button.disabled = false; button.textContent = originalLabel; }
+  } finally { creatorClaimsInFlight.delete(mint); }
 }
 let coinMarketActivity = { status: 'loading', trades: [], coverage: null, decimals: 6 };
 renderExploreAssets();
@@ -8417,7 +8583,7 @@ function renderCoinAccountDistribution(distribution, decimals = 6, symbol = 'Tok
   setCoinField('#coin-distribution-vault-name', vaultLabel);
   setCoinField('#coin-vault-fact-label', `${vaultLabel} balance`);
   setCoinField('#coin-distribution-other-name', `${distribution.walletCount} holder wallet${distribution.walletCount === 1 ? '' : 's'}`);
-  setCoinField('#coin-distribution-note', `All ${distribution.accountCount} non-zero token accounts reconcile to minted supply. Wallet balances are aggregated across accounts.`);
+  setCoinField('#coin-distribution-note', `Balances across all ${distribution.accountCount} funded token accounts match the total supply. Accounts owned by the same wallet are grouped together.`);
   const list = document.querySelector('#coin-distribution-wallets');
   if (list) {
     list.replaceChildren();
@@ -8452,10 +8618,18 @@ function renderCoinPricePath(){
   const measure = coinChartMetric === 'price' ? 'Price' : 'Market cap';
   const unit = coinChartUnit.toUpperCase();
   setCoinField('#coin-chart-heading', `${document.querySelector('#coin-symbol')?.textContent?.trim() || 'Token'} · ${measure} in ${unit}`);
+  if (coinMarketActivity.status === 'loading') {
+    panel.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Loading chart…</strong><small>Checking recent trades for this token.</small></div>';
+    return;
+  }
+  if (coinMarketActivity.status === 'unavailable' || coinMarketActivity.status === 'summary-only') {
+    panel.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Chart unavailable</strong><small>Recent trade prices could not be loaded. Try refreshing the token page.</small></div>';
+    return;
+  }
   const observedTrades = selectObservedTradeWindow(coinMarketActivity.trades, coinChartPeriod);
   const path = buildTradePricePath(observedTrades, coinMarketActivity.decimals);
   if (path.count < 2) {
-    panel.innerHTML = `<div class="empty-state coin-activity-empty"><strong>${path.count ? 'One recent price' : 'No recent prices'} · ${escapeHtml(coinChartPeriod)}</strong><small>${path.count ? 'At least two confirmed trades are needed to draw a chart.' : 'No confirmed trades were found in this time range.'} Some trade history may be missing.</small></div>`;
+    panel.innerHTML = `<div class="empty-state coin-activity-empty"><strong>${path.count ? 'One recent price' : 'No recent prices'} · ${escapeHtml(coinChartPeriod)}</strong><small>${path.count ? 'At least two confirmed trades are needed to draw a chart.' : 'No confirmed trades were found in this time range.'}${coinMarketActivity.coverage !== 'complete' ? ' Some trade history may be missing.' : ''}</small></div>`;
     return;
   }
   const supply = coinSolUsdValues.supply;
@@ -8517,7 +8691,7 @@ function renderCoinPulse(){
     if (buyBar) buyBar.style.width = '0%'; if (sellBar) sellBar.style.width = '0%';
     if (note) {
       note.hidden = false;
-      note.textContent = coinMarketActivity.status === 'loading' ? 'Reading confirmed Pump trades from Solana RPC…' : 'Activity windows unavailable from the current RPC scan.';
+      note.textContent = coinMarketActivity.status === 'loading' ? 'Loading confirmed trades…' : 'Trade totals for this time range are unavailable.';
     }
     return;
   }
@@ -8537,7 +8711,7 @@ function renderCoinPulse(){
   if (sellBar) sellBar.style.width = `${volume > 0 ? Number(pulse.sellVolumeSol) / volume * 100 : 0}%`;
   if (note) {
     note.hidden = !partial;
-    note.textContent = partial ? 'Partial scan · values are observed lower bounds.' : '';
+    note.textContent = partial ? 'Some trade history is missing. Actual totals may be higher.' : '';
   }
 }
 function coinAuthorityLabel(value){ return value === null ? 'Disabled' : value ? shortAddress(value) : 'Unavailable'; }
@@ -8685,7 +8859,7 @@ function renderCoinActivityTab(){
     return;
   }
   if (tab === 'trades' && coinMarketActivity.status === 'unavailable') {
-    activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Recent trades unavailable</strong><small>No confirmed Pump trade history was returned for this mint. Fee records and token accounts can still be inspected in the other tabs.</small></div>';
+    activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Recent trades unavailable</strong><small>We could not load confirmed trades for this token. You can still check fees, rewards, and holders in the other tabs.</small></div>';
     return;
   }
   if (tab === 'trades' && coinMarketActivity.status === 'summary-only') {
@@ -8718,7 +8892,7 @@ function renderCoinActivityTab(){
       const expanded = key === 'trader' ? '' : ` aria-expanded="${coinTradeOpenFilter === key}"`;
       return `<th scope="col" aria-sort="${direction === 'none' ? 'none' : direction === 'asc' ? 'ascending' : 'descending'}"><div class="coin-trade-column-head"><button type="button" class="coin-trade-sort" data-coin-trade-sort="${key}" aria-label="Sort ${label} ${active && direction === 'asc' ? 'descending' : 'ascending'}">${label}<span aria-hidden="true">${active ? direction === 'asc' ? '↑' : '↓' : '↕'}</span></button><button type="button" class="coin-trade-column-filter${filtered ? ' is-active' : ''}" data-coin-column-filter="${key}" aria-label="Filter ${label}"${expanded} aria-controls="${filterTarget}" title="Filter ${label}">⌕</button></div></th>`;
     }).join('');
-    const empty = !trades.length ? `<tr><td colspan="8" class="coin-trade-no-results">${coinMarketActivity.trades.length ? 'No trades match these filters.' : 'No confirmed trade was found in the scanned 24-hour window.'}${coinMarketActivity.coverage === 'partial' ? ' RPC coverage is partial.' : ''}</td></tr>` : '';
+    const empty = !trades.length ? `<tr><td colspan="8" class="coin-trade-no-results">${coinMarketActivity.trades.length ? 'No trades match these filters.' : 'No confirmed trades in the last 24 hours.'}${coinMarketActivity.coverage === 'partial' ? ' Some trade history is missing.' : ''}</td></tr>` : '';
     activity.innerHTML = `<div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(symbol)} transactions" tabindex="0"><table class="coin-transactions-table coin-trades-table"><thead><tr>${headers}</tr></thead><tbody>${rows || empty}</tbody></table></div>`;
     if (trades.length) loadVerifiedTokenLogos(activity);
     return;
@@ -8749,7 +8923,7 @@ function renderCoinActivityTab(){
     return;
   }
   if (!coinActivity.ledgerAvailable) {
-    activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Fee activity unavailable</strong><small>No mint-attributed claim or allocation count can be confirmed.</small></div>';
+    activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Fee activity unavailable</strong><small>We could not confirm fee collections or reward shares for this token.</small></div>';
     return;
   }
   const feeExplorerIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 4h14l-3 3H3z" fill="#78e7b4"/><path d="M4 10h14l3 3H7z" fill="#ab91ff"/><path d="M6 16h14l-3 3H3z" fill="#78e7b4"/></svg>';
@@ -8763,22 +8937,22 @@ function renderCoinActivityTab(){
     const rows = coinActivity.claims.map(item => {
       const gross = item.grossCreatorFees == null ? NaN : Number(item.grossCreatorFees);
       const status = String(item.status || 'recorded').replace(/[-_]/g, ' ');
-      const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+      const statusLabel = status === 'obligations created' ? 'Shares recorded' : status.charAt(0).toUpperCase() + status.slice(1);
       return `<tr><td>${feeDate(item.claimedAt)}</td><td><strong class="coin-fee-event">Fee split recorded</strong><small class="coin-fee-detail">Linked to collection ${escapeHtml(shortAddress(item.claimSignature || ''))}</small></td><td class="coin-fee-amount">${Number.isFinite(gross) ? `${escapeHtml(formatOnChainNumber(gross, 9))} ${escapeHtml(item.asset || 'SOL')}` : '—'}</td><td><span class="coin-fee-status">${escapeHtml(statusLabel)}</span></td><td class="coin-fee-action">${feeExplorer(item.claimSignature, 'View related fee collection on Solana Explorer')}</td></tr>`;
     }).join('');
-    activity.innerHTML = rows ? `<p class="coin-activity-scope">Recorded fee allocations from this coin’s collections. An allocation is an obligation, not proof of recipient payment.</p><div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(coinActivity.symbol)} fee allocations" tabindex="0"><table class="coin-transactions-table coin-fee-table coin-fee-allocations-table"><thead><tr><th scope="col">Date</th><th scope="col">Event</th><th scope="col">Gross fees</th><th scope="col">Status</th><th scope="col">Txn</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state coin-activity-empty"><strong>No allocation attributed to this mint</strong><small>Shared-router claims are excluded from per-coin totals.</small></div>';
+    activity.innerHTML = rows ? `<p class="coin-activity-scope">Fee shares set aside from this token. These amounts may not have been paid yet.</p><div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(coinActivity.symbol)} fee allocations" tabindex="0"><table class="coin-transactions-table coin-fee-table coin-fee-allocations-table"><thead><tr><th scope="col">Date</th><th scope="col">Event</th><th scope="col">Gross fees</th><th scope="col">Status</th><th scope="col">Txn</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state coin-activity-empty"><strong>No reward shares recorded for this token</strong><small>Fees that cannot be linked to this token are excluded.</small></div>';
     return;
   }
   const mintRows = coinActivity.collections.map(item => {
     const sol = item.collectedLamports == null ? NaN : Number(item.collectedLamports) / 1_000_000_000;
-    return `<tr><td>${feeDate(item.recordedAt)}</td><td><strong class="coin-fee-event">Creator fees collected</strong><small class="coin-fee-detail">Mint-attributed collection</small></td><td class="coin-fee-amount">${Number.isFinite(sol) ? `${escapeHtml(formatOnChainNumber(sol, 9))} SOL` : '—'}</td><td class="coin-fee-amount">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}</td><td class="coin-fee-action">${feeExplorer(item.signature)}</td></tr>`;
+    return `<tr><td>${feeDate(item.recordedAt)}</td><td><strong class="coin-fee-event">Creator fees collected</strong><small class="coin-fee-detail">Collected for this token</small></td><td class="coin-fee-amount">${Number.isFinite(sol) ? `${escapeHtml(formatOnChainNumber(sol, 9))} SOL` : '—'}</td><td class="coin-fee-amount">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}</td><td class="coin-fee-action">${feeExplorer(item.signature)}</td></tr>`;
   }).join('');
   const routerRows = (coinActivity.sharedRouterCollections || []).map(item => {
     const sol = Number(item.collectedLamports) / 1_000_000_000;
-    return `<tr><td>${feeDate(item.recordedAt)}</td><td><strong class="coin-fee-event">Shared-router collection</strong><small class="coin-fee-detail">Not attributable to this coin</small></td><td class="coin-fee-amount">${Number.isFinite(sol) ? `${escapeHtml(formatOnChainNumber(sol, 9))} SOL` : '—'}</td><td class="coin-fee-amount">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}</td><td class="coin-fee-action">${feeExplorer(item.signature)}</td></tr>`;
+    return `<tr><td>${feeDate(item.recordedAt)}</td><td><strong class="coin-fee-event">Combined fee collection</strong><small class="coin-fee-detail">Not linked to this token</small></td><td class="coin-fee-amount">${Number.isFinite(sol) ? `${escapeHtml(formatOnChainNumber(sol, 9))} SOL` : '—'}</td><td class="coin-fee-amount">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}</td><td class="coin-fee-action">${feeExplorer(item.signature)}</td></tr>`;
   }).join('');
   const table = (rows, label) => `<div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(label)}" tabindex="0"><table class="coin-transactions-table coin-fee-table coin-fee-collections-table"><thead><tr><th scope="col">Date</th><th scope="col">Event</th><th scope="col">Amount</th><th scope="col" title="At the current SOL/USD quote">USD est.</th><th scope="col">Txn</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  activity.innerHTML = (mintRows ? `<p class="coin-activity-scope">Creator fees collected for this mint. Collection does not confirm recipient payout.</p>${table(mintRows, `${coinActivity.symbol} fee collections`)}` : '<div class="empty-state coin-activity-empty"><strong>No fee claim attributed to this mint</strong><small>Only mint-verified collections appear in this ledger.</small></div>') + (routerRows ? `<div class="coin-activity-context"><strong>Shared-router collections</strong><span>These may include other coins and are excluded from this mint’s totals.</span></div>${table(routerRows, 'Shared-router fee collections')}` : '');
+  activity.innerHTML = (mintRows ? `<p class="coin-activity-scope">Fees collected for this token. Check Rewards for confirmed payments to recipients.</p>${table(mintRows, `${coinActivity.symbol} fee collections`)}` : '<div class="empty-state coin-activity-empty"><strong>No fee collections recorded for this token</strong><small>Only fees confirmed for this token appear here.</small></div>') + (routerRows ? `<div class="coin-activity-context"><strong>Combined fee collections</strong><span>These may include other tokens and are excluded from this token’s totals.</span></div>${table(routerRows, 'Combined fee collections')}` : '');
 }
 function renderOnChainUnavailable(message){
   const detail = String(message || '');
@@ -8804,7 +8978,7 @@ function renderOnChainUnavailable(message){
   setCoinField('#coin-chart-heading', 'Chart unavailable');
   setCoinField('#coin-market-cap-label', 'Estimated market cap'); setCoinField('#coin-market-cap-source', 'Confirmed Solana RPC snapshot');
   setCoinField('#coin-liquidity-label', 'Reserve');
-  const footer = document.querySelector('.chart-footer'); if (footer) footer.innerHTML = '<span>On-chain only</span><span>Historical candles not indexed</span>';
+  const footer = document.querySelector('.chart-footer'); if (footer) footer.innerHTML = '<span>Price history is unavailable</span>';
   const policyEyebrow = document.querySelector('.coin-policy-card .eyebrow'); if (policyEyebrow) policyEyebrow.textContent = 'On-chain account';
   const policyBadge = document.querySelector('.coin-policy-card .data-badge'); if (policyBadge) policyBadge.textContent = 'RPC only';
   const policyTitle = document.querySelector('.coin-policy-card h2'); if (policyTitle) policyTitle.textContent = 'Curve unavailable';
@@ -8868,7 +9042,7 @@ function resetCoinSurface(mintAddress){
   ['#coin-market-cap','#coin-change','#coin-strip-market-cap','#coin-volume','#coin-liquidity','#coin-holders','#coin-trade-count','#coin-holder-count','#coin-vault-share','#coin-largest-account-share','#coin-top-ten-share','#coin-supply'].forEach(selector => setCoinField(selector, 'Loading…'));
   setCoinField('#coin-volume-source', 'RPC trade scan if available'); setCoinField('#coin-trade-breakdown', 'Confirmed Pump events'); setCoinField('#coin-accounts-source', 'Largest-account sample, not holder count'); setCoinCurveProgress(null);
   setCoinField('#coin-chart-heading', 'Reading trade observations…');
-  const footer = document.querySelector('.chart-footer'); if (footer) footer.innerHTML = '<span>On-chain only</span><span>Historical candles not indexed</span>';
+  const footer = document.querySelector('.chart-footer'); if (footer) footer.innerHTML = '<span>Price history is unavailable</span>';
   const policyBadge = document.querySelector('.coin-policy-card .data-badge'); if (policyBadge) policyBadge.textContent = 'RPC only';
   const policyTitle = document.querySelector('.coin-policy-card h2'); if (policyTitle) policyTitle.textContent = 'Reading Pump curve…';
   renderCoinCreatorRoute('');
@@ -8882,12 +9056,14 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
   if (loadId !== coinLoadId) return;
   const market = response.available && response.data?.cluster === EXPLORE_CLUSTER ? response.data : null;
   const hasPoolTradeCount = Number.isInteger(market?.poolTradeCount24h);
-  if (graduated && !(hasPoolTradeCount && market.poolTradeCount24h > 0
-    && ['complete', 'partial'].includes(market.coverage) && Number.isFinite(Number(market.volume24hSol)))) {
-    const poolScanNote = !market ? 'PumpSwap trade history is unavailable from RPC.'
-      : !hasPoolTradeCount ? 'This API response does not include PumpSwap swaps.'
-        : market.coverage === 'partial' ? 'No pool swaps were found in this partial RPC scan.'
-          : 'No verified PumpSwap swaps were found in the last 24h.';
+  const completePoolHistory = market?.poolHistoryCoverage === 'complete' && market?.coverage === 'complete';
+  if (graduated && !(hasPoolTradeCount && market.poolTradeCount24h >= 0
+    && (market.poolTradeCount24h > 0 || completePoolHistory)
+    && ['complete', 'partial'].includes(market.coverage) && market.volume24hSol != null && Number.isFinite(Number(market.volume24hSol)))) {
+    const poolScanNote = !market ? 'PumpSwap trade history is unavailable right now.'
+      : !hasPoolTradeCount ? 'PumpSwap trades are missing from the available history.'
+        : market.coverage === 'partial' ? 'No PumpSwap trades were found. Some history is missing.'
+          : 'No confirmed PumpSwap trades were found in the last 24h.';
     coinMarketActivity = { status: 'unavailable', trades: [], coverage: market?.coverage || null, decimals, graduated: true };
     renderCoinPricePath(); renderCoinFlow(NaN, NaN); renderCoinPulse();
     setCoinField('#coin-volume', 'Pool activity unavailable'); setCoinField('#coin-volume-source', poolScanNote);
@@ -8900,8 +9076,8 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
   if (!market || market.volume24hSol == null || !Number.isFinite(Number(market.volume24hSol))) {
     coinMarketActivity = { status: 'unavailable', trades: [], coverage: null, decimals };
     renderCoinPricePath(); renderCoinFlow(NaN, NaN); renderCoinPulse();
-    setCoinField('#coin-volume', 'Unavailable'); setCoinField('#coin-volume-source', 'RPC trade history unavailable');
-    setCoinField('#coin-trade-count', 'Unavailable'); setCoinField('#coin-trade-breakdown', 'RPC trade history unavailable');
+    setCoinField('#coin-volume', 'Unavailable'); setCoinField('#coin-volume-source', 'Trade history is unavailable right now');
+    setCoinField('#coin-trade-count', 'Unavailable'); setCoinField('#coin-trade-breakdown', 'Trade history is unavailable right now');
     setCoinTabLabels(); renderCoinActivityTab();
     renderCoinSummary();
     return;
@@ -8926,8 +9102,8 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
   const noTrades = market.coverage === 'complete' && Number(market.tradeCount24h) === 0;
   const volume = `${market.coverage === 'partial' ? '≥' : ''}${formatCoinUsd(Number(market.volume24hSol))}`;
   setCoinField('#coin-volume', noTrades ? 'No trades' : market.coverage === 'partial' ? `${volume} · partial` : volume);
-  setCoinField('#coin-volume-source', noTrades ? 'Complete Pump curve scan · last 24h' : partial ? `Partial ${graduated ? 'curve + pool' : 'curve'} RPC scan` : `${graduated ? 'Pump curve + PumpSwap pool' : 'Pump curve'} RPC scan · 24h`);
-  if (graduated) setCoinField('#coin-description', `Trading pool confirmed. Recent trades are shown below${partial ? ', though some history may be missing' : ''}.`);
+  setCoinField('#coin-volume-source', noTrades ? 'No trades in the last 24h · history checked' : partial ? `Some ${graduated ? 'launch and pool' : 'launch'} trade history is missing · totals may be higher` : `${graduated ? 'Launch and pool trades' : 'Launch trades'} · last 24h`);
+  if (graduated) setCoinField('#coin-description', noTrades ? 'Trading pool confirmed. No trades in the last 24 hours.' : `Trading pool confirmed. Recent trades are shown below${partial ? ', though some history may be missing' : ''}.`);
   const change = Number(market.priceChangePercent);
   const basis = market.priceChangeBasis;
   setCoinField('#coin-change', noTrades ? 'No 24h trades' : market.priceChangePercent != null && Number.isFinite(change) && basis
@@ -8936,7 +9112,7 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
 }
 async function loadCoinOnChain(mintAddress){
   const loadId = ++coinLoadId;
-  if (!mintAddress){ renderOnChainUnavailable('A mint address is required. Open a /token/{mint} route to load on-chain data.'); return; }
+  if (!mintAddress){ renderOnChainUnavailable('Choose a token from Explore to see its details.'); return; }
   void loadCoinChat(mintAddress, loadId);
   setCoinField('#coin-page-title', 'Loading token…'); setCoinField('#coin-symbol', 'TOKEN'); setCoinField('#coin-address', shortAddress(mintAddress));
   setCoinField('#coin-description', 'Checking coin details on Solana…');
@@ -9033,7 +9209,7 @@ async function loadCoinOnChain(mintAddress){
     setCoinField('#coin-supply', `${formatOnChainNumber(supply, 6)} ${symbol}`); setCoinCurveProgress(curve?.complete ? 100 : curve?.progressPercent);
     const curveProgress = document.querySelector('.coin-curve-track > span'); if (curveProgress) curveProgress.textContent = graduatedPool ? 'Migration complete' : 'Bonding curve progress';
     setCoinField('#coin-chart-heading', `${symbol} · market cap in USD`); setCoinField('#coin-full-address', mintAddress);
-    const chartFooter = document.querySelector('.coin-chart-panel > .chart-footer'); if (chartFooter) chartFooter.innerHTML = `<span>Mint decimals <b>${decimals}</b></span><span>Supply <b>${formatOnChainNumber(supply, 6)}</b></span>`;
+    const chartFooter = document.querySelector('.coin-chart-panel > .chart-footer'); if (chartFooter) chartFooter.innerHTML = `<span>Total supply <b>${formatOnChainNumber(supply, 6)}</b></span>`;
     const policyEyebrow = document.querySelector('.coin-policy-card .eyebrow'); if (policyEyebrow) policyEyebrow.textContent = 'On-chain account';
     const policyTitle = document.querySelector('.coin-policy-card h2'); if (policyTitle) policyTitle.textContent = graduatedPool ? 'Canonical PumpSwap pool' : curve ? 'Pump bonding curve' : 'Curve unavailable';
     renderCoinCreatorRoute(curve?.creator || '');
@@ -9057,7 +9233,7 @@ async function loadCoinOnChain(mintAddress){
       const tagline = document.querySelector('#coin-profile-tagline');
       if (tagline) { tagline.textContent = details.tagline || ''; tagline.hidden = !details.tagline; }
       window.fundedSetCoinProfileMetadata?.(details);
-      setCoinFact('#coin-metadata-status', 'App name / symbol matched', 'clear');
+      setCoinFact('#coin-metadata-status', 'Name and symbol confirmed', 'clear');
       if (isDevnetImageUri(details.image, mintAddress)) {
         const avatar = document.querySelector('#coin-avatar');
         if (avatar) { avatar.textContent = ''; avatar.style.backgroundImage = `url("${details.image}")`; avatar.style.backgroundSize = 'cover'; avatar.style.backgroundPosition = 'center'; }
@@ -9479,7 +9655,7 @@ function renderXClaimSummary(claims){
     if(count)count.textContent=summary?labels[key](summary[key].count):'Sign in to view';
   }
   const note=document.querySelector('#x-claim-dashboard-note');
-  if(note)note.textContent=summary&&Object.values(summary).some(bucket=>!bucket.complete)?'One or more reward amounts are unavailable, so affected totals are hidden. Claimed amounts still require a verified Solana payment receipt.':'Totals use collected creator-fee rewards linked to your signed-in X account. Claimed amounts require a verified Solana payment receipt.';
+  if(note)note.textContent=summary&&Object.values(summary).some(bucket=>!bucket.complete)?'Some amounts are unavailable. Paid totals include confirmed payments only.':'Paid totals include confirmed SOL payments.';
 }
 async function loadXIdentity() {
   const button = document.querySelector('#x-sign-in');
@@ -9533,7 +9709,7 @@ async function refreshXClaims(){
       Number(b.canPrepare === true) - Number(a.canPrepare === true)
       || Number(a.receiptVerified === true) - Number(b.receiptVerified === true));
     for (const claim of claimsByAction) {
-      const row=document.createElement('div');row.className='x-claim-reward';row.dataset.claimId=claim.id;
+      const row=document.createElement('div');row.className=`x-claim-reward${claim.receiptVerified?' x-claim-reward-paid':''}`;row.dataset.claimId=claim.id;
       if(claim.id===selectedId&&claim.canPrepare===true)row.classList.add('selected');
       const state=document.createElement('span');state.className=`x-claim-reward-state ${claim.receiptVerified?'paid':claim.canPrepare?'ready':'pending'}`;state.textContent=claim.receiptVerified?'Paid':claim.canPrepare?'Ready to claim':String(claim.status).startsWith('automatic-')?'Processing payout':'Not ready yet';
       const copy=document.createElement('div');copy.className='x-claim-reward-copy';
@@ -9541,7 +9717,8 @@ async function refreshXClaims(){
       const coinLabel=launch?[launch.symbol,launch.name].filter(Boolean).join(' · '):`Coin ${String(claim.mint||'').slice(0,6)}…`;
       const coin=document.createElement('a');coin.className='x-claim-coin';coin.href=`/token/${encodeURIComponent(claim.mint)}`;coin.textContent=coinLabel;
       const amount=document.createElement('strong');amount.textContent=claim.amountSol==null?'Amount unavailable':`${claim.amountSol} SOL`;
-      const context=document.createElement('small');context.textContent=claim.receiptVerified?`Paid to ${claim.payoutWallet||'verified wallet'}`:claim.canPrepare?'Collected creator fees · ready for your wallet verification':claim.explanation||'Waiting for collected fees';
+      const context=document.createElement('small');context.textContent=claim.receiptVerified?`To ${claim.payoutWallet||'verified wallet'}`:claim.canPrepare?'Collected creator fees · ready for your wallet verification':claim.explanation||'Waiting for collected fees';
+      if(claim.receiptVerified&&claim.payoutWallet)context.title=claim.payoutWallet;
       copy.append(coin,amount,context);row.append(state,copy);
       row.dataset.claimSummary=`${amount.textContent} from ${coinLabel}`;
       if (claim.canPrepare === true) {
@@ -9550,7 +9727,7 @@ async function refreshXClaims(){
         choose.addEventListener('click', () => { document.querySelector('#sol-claim-id').value=claim.id;document.querySelector('#sol-claim-x-account').value=result.data.handle;document.querySelectorAll('#sol-claim-list .x-claim-reward').forEach(item=>item.classList.toggle('selected',item===row));const check=document.querySelector('#claim-binding-agree');if(check)check.checked=false;updateClaimBindingReview();resetSolClaimStatus(); });
         row.append(choose);
       }
-      if(claim.receiptVerified&&claim.payoutSignature){const receipt=document.createElement('a');receipt.href=`https://explorer.solana.com/tx/${encodeURIComponent(claim.payoutSignature)}?cluster=devnet`;receipt.textContent='Verify payment';receipt.target='_blank';receipt.rel='noopener noreferrer';row.append(receipt);}
+      if(claim.receiptVerified&&claim.payoutSignature){const receipt=document.createElement('a');receipt.className='payment-receipt-link';receipt.href=`https://explorer.solana.com/tx/${encodeURIComponent(claim.payoutSignature)}?cluster=devnet`;receipt.textContent='↗';receipt.setAttribute('aria-label','View X reward payment on Solana Explorer');receipt.title='View payment on Solana Explorer';receipt.target='_blank';receipt.rel='noopener noreferrer';row.append(receipt);}
       list.append(row);
     }
     syncXClaimFlow();

@@ -463,6 +463,11 @@ body.page-route-overview .main-content > footer { display: none; }
   body.page-route-overview .topbar .search-box { display: none; }
   body.page-route-overview .header-search-trigger { display: grid; }
 }
+@media (min-width: 901px) and (max-width: 1050px) {
+  body.page-route-overview .sidebar { gap: 6px; padding-inline: 20px; }
+  body.page-route-overview .sidebar .nav-item,
+  body.page-route-overview .sidebar .nav-more summary { padding-inline: 6px; }
+}
 @media (max-width: 1200px) {
   body.page-route-overview .home-launch-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   body.page-route-overview .hero-section h1 { font-size: clamp(52px, 7vw, 82px); }

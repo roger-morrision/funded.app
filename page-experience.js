@@ -18,14 +18,13 @@ function simplifyExplore() {
   document.querySelector('#explore .network-lock')?.remove();
   document.querySelector('#explore .live-label')?.remove();
   document.querySelector('#explore .explore-hero-stat')?.remove();
-  document.querySelector('#explore .quote-assets-panel')?.remove();
   byId('explore-market-kpis')?.remove();
   if (advanced && windowFilter && signalFilter) {
     advanced.prepend(signalFilter);
     advanced.prepend(windowFilter);
   }
   const label = byId('explore-search');
-  if (label) label.setAttribute('aria-label', 'Search verified launches by name, ticker, or mint address');
+  if (label) label.setAttribute('aria-label', 'Search tokens by name, symbol, or address');
   const status = byId('explore-data-status');
   if (status) status.setAttribute('role', 'status');
 }
@@ -33,9 +32,9 @@ function simplifyExplore() {
 function showLaunchPath() {
   const shell = byId('launch-route-shell');
   addOnce(shell, 'launch-path', `<div class="launch-path" id="launch-path" aria-label="Launch path">
-    <div><b>1</b><span><strong>Prepare</strong><small>Add token details and a 3%+ community reserve.</small></span></div>
-    <div><b>2</b><span><strong>Review</strong><small>Check the fee owner, policy, and Solana network.</small></span></div>
-    <div><b>3</b><span><strong>Sign & verify</strong><small>Approve in your wallet; only a confirmed signature creates a launch record.</small></span></div>
+    <div><b>1</b><span><strong>Prepare</strong><small>Add token details and set aside at least 3% for the community.</small></span></div>
+    <div><b>2</b><span><strong>Review</strong><small>Check costs, reward shares, and the Solana network.</small></span></div>
+    <div><b>3</b><span><strong>Confirm launch</strong><small>Approve in your wallet, then wait for your launch to be confirmed.</small></span></div>
   </div>`);
 }
 
@@ -94,7 +93,7 @@ function clarifyDataStates() {
   const payments = byId('payments');
   addOnce(payments?.querySelector('.payments-summary'), 'payments-source-note', `<p id="payments-source-note" class="source-note">Payment history appears after transactions are confirmed. A claim request may take time to show here.</p>`);
   const paymentActivity = byId('payment-list');
-  const syncTape = () => { if (byId('open-tape')) byId('open-tape').hidden = !paymentActivity?.children.length; };
+  const syncTape = () => { if (byId('open-tape')) byId('open-tape').hidden = !paymentActivity?.querySelector('.payment-history-row'); };
   syncTape();
   if (paymentActivity) new MutationObserver(syncTape).observe(paymentActivity, { childList: true });
   payments?.querySelectorAll('.payment-range, .balance-tabs').forEach(group => { if (group.querySelector('button[disabled]')) group.hidden = true; });
@@ -154,13 +153,13 @@ function clarifyReferrals() {
 
 function addContextPanels() {
   const docs = byId('docs');
-  addOnce(docs, 'docs-source-map', `<article class="support-card docs-source-map" id="docs-source-map"><p class="eyebrow">Evidence guide</p><h2>What each screen proves</h2><div class="source-map-grid"><div><strong>Launch & token</strong><small>Confirmed Solana mint and fee-owner checks when RPC data is available.</small></div><div><strong>Payments & analytics</strong><small>Claim and payout totals require indexed transaction receipts.</small></div><div><strong>Airdrops & buybacks</strong><small>Policy previews are not vault balances, claims, trades, or burns.</small></div></div></article>`, docs?.firstElementChild);
+  addOnce(docs, 'docs-source-map', `<article class="support-card docs-source-map" id="docs-source-map"><p class="eyebrow">Understanding the app</p><h2>What the numbers mean</h2><div class="source-map-grid"><div><strong>Launch & token</strong><small>Token details and fee recipients are checked against Solana records when available.</small></div><div><strong>Payments & analytics</strong><small>Payment totals include only confirmed transactions found in the available history.</small></div><div><strong>Airdrops & buybacks</strong><small>Planned rewards and burns are shown separately from completed payments and burns.</small></div></div></article>`, docs?.firstElementChild);
   const privacy = byId('privacy');
   addOnce(privacy, 'privacy-safety-steps', `<div class="safety-steps" id="privacy-safety-steps"><div><strong>Before signing</strong><small>Verify Solana, the exact amount, recipient, and program in the review. Standard wallets also show their own signing prompt.</small></div><div><strong>After signing</strong><small>Open the transaction on Solana Explorer and wait for confirmation. A submitted transaction is not a payout receipt.</small></div><div><strong>If something looks wrong</strong><small>Do not submit. Reject a standard-wallet signing prompt if one appears. Never enter a seed phrase or private key into this page.</small></div></div>`);
   const paid = byId('paid');
   addOnce(paid, 'paid-status', `<div class="source-note" id="paid-status"><strong>Current status · Solana preview</strong><span>Fee-route policy can be reviewed before signing. A user-initiated $FUNDED burn requires a configured Solana mint, an eligible wallet, and on-chain confirmation; check Buy & burn for current availability. Production settlement and automated recipient payouts are not live. Any figures below are allocation policy, not paid totals.</span></div>`, paid?.querySelector('.revenue-model'));
   const profile = byId('profile');
-  addOnce(profile, 'profile-source-note', `<p class="source-note" id="profile-source-note">Your wallet connection identifies the signer for this browser session. It does not prove a launch, holding, payout, or eligibility until the corresponding Solana record is verified.</p>`, profile?.querySelector('.profile-grid'));
+  addOnce(profile, 'profile-source-note', `<p class="source-note" id="profile-source-note">Connect your wallet to check your tokens and rewards. Balances, payments, and eligibility are shown once they can be confirmed on Solana.</p>`, profile?.querySelector('.profile-grid'));
   const wallet = byId('wallet-page');
   addOnce(wallet?.querySelector('.wallet-detail-card'), 'wallet-source-note', `<p class="source-note" id="wallet-source-note">This page verifies an address associated with a token record. Holdings, trades, and payouts for this wallet are not indexed here.</p>`);
 }
