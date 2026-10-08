@@ -22,7 +22,7 @@ export function buildTradeReview({ trade, side, amount, slippagePercent, mint, w
     slippage:`${slippagePercent}%`,
     fee:sol(fee),
     route:trade.route === 'graduated-pool' ? 'PumpSwap pool' : 'Pump bonding curve',
-    confirmLabel:`Approve ${side === 'buy' ? 'Buy' : 'Sell'} in Phantom`,
+    confirmLabel:`Approve ${side === 'buy' ? 'Buy' : 'Sell'} in wallet`,
   };
   if (side === 'buy') {
     const spend = BigInt(trade.quoteAmount.toString());
@@ -35,7 +35,7 @@ export function buildTradeReview({ trade, side, amount, slippagePercent, mint, w
       receiveLabel:'Estimated tokens to receive', receiveAmount:tokens(output, decimals, symbol),
       limitLabel:'Maximum trade + app fee', limitAmount:sol(maximumSpend + fee),
       minimumLabel:'Minimum tokens after slippage', minimumAmount:tokens(floor, decimals, symbol),
-      note:'Network and account costs are additional. Review Phantom’s transaction before signing.',
+      note:'Network and account costs are additional. Review the transaction in your wallet before signing.',
     };
   }
   const net = output - fee;
@@ -47,6 +47,6 @@ export function buildTradeReview({ trade, side, amount, slippagePercent, mint, w
     receiveLabel:'Estimated SOL to wallet', receiveAmount:sol(net),
     limitLabel:'Minimum SOL after slippage and app fee', limitAmount:sol(minimumNet),
     minimumLabel:'', minimumAmount:'',
-    note:'The app fee is deducted from SOL received. Network costs are additional. Review Phantom’s transaction before signing.',
+    note:'The app fee is deducted from SOL received. Network costs are additional. Review the transaction in your wallet before signing.',
   };
 }

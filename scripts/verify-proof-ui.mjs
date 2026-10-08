@@ -110,7 +110,7 @@ assert.match(app, /token-card-shell portfolio-token-card/);
 assert.match(app, /token-card-shell airdrop-directory-card/);
 assert.match(html, /id="airdrop-selected-program"[^>]+hidden/, 'Airdrop policy detail must be hidden until a program is selected.');
 assert.match(app, /const safeMint = escapeHtml\(program\.id\)[\s\S]*?data-directory-mint="\$\{safeMint\}"[\s\S]*?View claim status/, 'The airdrop details action must target a unique mint.');
-assert.match(app, /function renderAirdropProgramDetail\(program\)[\s\S]*?vault funding, a finalized eligibility snapshot, and a claim proof are not verified/, 'Airdrop details must disclose missing claim prerequisites.');
+assert.match(app, /function renderAirdropProgramDetail\(program\)[\s\S]*?Funding and wallet eligibility must be confirmed before claims can open/, 'Airdrop details must disclose missing claim prerequisites.');
 assert.match(app, /function resetSolClaimStatus\(\)[\s\S]*?Sign in with X to see your rewards\./, 'Editing a SOL claim must clear stale validation status.');
 assert.match(app, /getElementById\(id\)\?\.addEventListener\('input', \(\) => \{ updateClaimBindingReview\(\); resetSolClaimStatus\(\); \}\)/, 'Changing claim identity fields must reset stale validation.');
 assert.match(app, /event\.target\?\.id === 'claim-binding-agree'\) resetSolClaimStatus\(\)/, 'Changing claim wallet confirmation must reset stale validation.');
