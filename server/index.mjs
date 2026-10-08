@@ -34,6 +34,7 @@ import { OnlinePumpSdk, creatorVaultPda } from '@pump-fun/pump-sdk';
 import { createStore } from './store.mjs';
 import { rewardLedgerPath } from './reward-ledger-path.mjs';
 import { analyticsReceiptTotals } from './analytics-summary.mjs';
+import { createProductMetricsStore, createProductMetricsHandler, confirmedProductTotals } from './product-metrics.mjs';
 import { cleanShareSource, pruneShareVisits, recordShareVisit, summarizeShareVisits } from './share-visits.mjs';
 import { readPumpMarketActivity } from './coin-market.mjs';
 import { sortDevnetLaunches } from './explore-registry.mjs';
@@ -696,6 +697,16 @@ const publicTradeConsent = createPublicTradeConsent({ store, config: publicTrade
     appFeeRecipient: process.env.FUNDED_TRADE_FEE_OWNER || process.env.VITE_FUNDED_TRADE_FEE_OWNER || null,
   }) : async () => { throw new Error('Disabled'); } });
 
+const productMetrics = createProductMetricsStore(databaseUrl);
+const handleProductMetrics = createProductMetricsHandler({metrics:productMetrics, cluster:solanaCluster,
+  origin:process.env.PUBLIC_APP_URL || process.env.CORS_ORIGIN || '', authorized,
+  charge:req => store.chargeRpcRate(`journey:${clientKey(req)}`,1,30,Math.floor(Date.now()/60000)*60000),
+  confirmedTotals:async () => {
+    const [state,evidence] = await Promise.all([store.read(),readFinalizedEvidence()]);
+    return confirmedProductTotals(state,evidence,solanaCluster);
+  },
+});
+
 async function handle(req, res) {
   const requestId = applyHttpPolicy(req, res);
   try {
@@ -706,6 +717,7 @@ async function handle(req, res) {
   const metadataHost = String(req.headers.host || '').split(':')[0].toLowerCase() === 'metadata.funded.vip';
   if (metadataHost && (req.method !== 'GET' || !/^\/(?:devnet-metadata|devnet-images)\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(url.pathname) && url.pathname !== '/default.svg')) return json(res, 404, { error: 'Not found.' });
   if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client, authorization, x-token-chat-session' }); return res.end(); }
+    if (await handleProductMetrics(req,res,url)) return;
     if (req.method === 'GET' && url.pathname === '/api/x-public-trade-shares/config') return json(res, 200, publicTradeConfig);
     if (req.method === 'POST' && ['/api/x-public-trade-shares/challenge', '/api/x-public-trade-shares/consent'].includes(url.pathname)) {
       if (!publicTradeConfig.enabled) return json(res, 404, { error: 'Public trade sharing is unavailable.' });

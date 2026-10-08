@@ -178,6 +178,15 @@ CREATE INDEX IF NOT EXISTS payout_history_idx ON state_entities
   WHERE bucket='payouts' AND payload->>'status'='paid'
     AND jsonb_typeof(payload->'signature')='string' AND payload->>'signature'<>'';
 -- Bounded receipt payload reads; exact coverage counts come from receipt_counts.
+-- Consented browser steps only. Daily hashes cannot identify wallets or accounts.
+CREATE TABLE IF NOT EXISTS product_journey_events (
+  cluster TEXT NOT NULL CHECK (cluster IN ('devnet','mainnet-beta')),
+  day DATE NOT NULL,
+  session_hash TEXT NOT NULL CHECK (session_hash ~ '^[a-f0-9]{64}$'),
+  event TEXT NOT NULL CHECK (event IN ('navigation','explore_view','token_view','launch_details','launch_options','launch_review','launch_completed','launch_failed','boost_open','boost_confirmed','trade_confirmed','rewards_view','share_open')),
+  PRIMARY KEY (cluster, day, session_hash, event)
+);
+CREATE INDEX IF NOT EXISTS product_journey_retention_idx ON product_journey_events(day);
 CREATE INDEX IF NOT EXISTS receipt_candidates_idx ON state_entities
   (bucket, (payload->>'cluster'), (payload->>'status'),
    (COALESCE(NULLIF(payload->>'recordedAt',''),payload->>'paidAt','') COLLATE "C") DESC, entity_key COLLATE "C")
