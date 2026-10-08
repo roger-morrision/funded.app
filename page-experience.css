@@ -606,7 +606,6 @@ input[type='search']:focus-visible {
 .explore-page .live-label,
 .explore-page .explore-hero-stat,
 .explore-page .explore-ticker,
-.explore-page .quote-assets-panel,
 .explore-page .explore-market-kpis { display: none !important; }
 .explore-page .stonk-enhancement-grid { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 900px) {
