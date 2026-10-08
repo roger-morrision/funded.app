@@ -1663,15 +1663,15 @@ function renderAirdropProgramDetail(program){
   const eyebrow = document.querySelector('#airdrop-selected-eyebrow');
   if (eyebrow) eyebrow.textContent = program.vaultVerified ? 'Airdrop funding confirmed' : 'Airdrop funding pending';
   document.querySelector('#airdrop-selected-title').textContent = `${program.name} (${program.symbol})`;
-  document.querySelector('#airdrop-selected-stats').innerHTML = `<span><small>Policy reserve</small><strong>${formatTokenAmount(program.reservedTokens)} tokens · ${program.allocationPercent}% of supply</strong></span><span><small>Claimed</small><strong>${formatVerifiedAirdropAmount(program.claimedTokens)}</strong></span><span><small>Snapshot</small><strong>${escapeHtml(program.snapshot)}</strong></span><span><small>Snapshot hash</small><strong class="airdrop-proof-value">${escapeHtml(program.snapshotHash || 'Pending verified snapshot')}</strong></span><span><small>Proof root</small><strong class="airdrop-proof-value">${escapeHtml(program.merkleRoot || 'Pending published proof')}</strong></span><span><small>Eligible wallets</small><strong>${formatVerifiedAirdropAmount(program.eligibleWallets)}</strong></span><span><small>Vesting</small><strong>${program.claimPublished ? 'One full claim during the 90-day window; no staged vesting' : 'No claim schedule active'}</strong></span>`;
+  document.querySelector('#airdrop-selected-stats').innerHTML = `<span><small>Airdrop allocation</small><strong>${formatTokenAmount(program.reservedTokens)} tokens · ${program.allocationPercent}% of supply</strong></span><span><small>Claimed</small><strong>${formatVerifiedAirdropAmount(program.claimedTokens)}</strong></span><span><small>Eligible wallets</small><strong>${formatVerifiedAirdropAmount(program.eligibleWallets)}</strong></span><span><small>Claim window</small><strong>${program.claimPublished ? 'Claim your full allocation once within 90 days' : 'Not open yet'}</strong></span><details class="airdrop-verification-details"><summary>Verification details</summary><div class="airdrop-program-detail-stats"><span><small>Snapshot</small><strong>${escapeHtml(program.snapshot)}</strong></span><span><small>Snapshot hash</small><strong class="airdrop-proof-value">${escapeHtml(program.snapshotHash || 'Pending verified snapshot')}</strong></span><span><small>Proof root</small><strong class="airdrop-proof-value">${escapeHtml(program.merkleRoot || 'Pending published proof')}</strong></span></div></details>`;
   const status = document.querySelector('#airdrop-selected-status');
   status.textContent = program.claimActive
-    ? `The claim vault is verified. $FUNDED holders at migration slot ${program.migrationSlot} can check their allocation until ${program.deadline}.`
+    ? `$FUNDED holders recorded when this token moved to its trading pool can check their allocation and claim by ${program.deadline}.`
     : program.status === 'closed'
-    ? `The verified claim window ended ${program.deadline}. New claims are unavailable; the indexed claim total and published proof remain visible above.`
+    ? `The claim window ended ${program.deadline}. You can still review past claims and verification details.`
     : program.vaultVerified
-    ? `The ${formatTokenAmount(program.reservedTokens)} token reserve is verified in vault ${program.vaultAddress}. A migration-time $FUNDED snapshot and published claim proof are still required; claims are closed.`
-    : 'Policy allocation is indexed, but vault funding, a finalized eligibility snapshot, and a claim proof are not verified. No wallet claim or token transfer is available.';
+    ? `${formatTokenAmount(program.reservedTokens)} tokens are set aside. Claims will open after the token moves to its trading pool and the eligible wallet list is confirmed.`
+    : 'This airdrop is planned. Funding and wallet eligibility must be confirmed before claims can open.';
   if (program.claimActive) {
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'secondary-button'; button.dataset.checkCommunityMint = program.id;

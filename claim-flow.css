@@ -62,5 +62,7 @@
 @media(max-width:480px){.x-claim-heading .data-badge{display:none}.x-claim-reward{align-items:flex-start}.x-claim-reward-copy{min-width:calc(100% - 110px)}.x-claim-reward .secondary-button,.x-claim-reward a{margin-left:auto}}
 @media(max-width:380px){.x-claim-dashboard{grid-template-columns:minmax(0,1fr)}}
 .airdrop-proof-value { overflow-wrap: anywhere; }
+.airdrop-verification-details { grid-column: 1 / -1; min-width: 0; }
+.airdrop-verification-details > summary { cursor: pointer; padding: 10px 0; color: #9facbc; }
 .airdrop-status.claiming { color: #bde7d3; background: #1b3b31; }
 .airdrop-status.closed { color: #a7b2c8; background: #293143; }
