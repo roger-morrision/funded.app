@@ -1,4 +1,4 @@
-import { creatorRewardRow } from './creator-reward-model.js';
+import { creatorRewardRow, filterCreatorRewards } from './creator-reward-model.js';
 import { EXPLORE_CLUSTER } from './app-config.js';
 import { formatXClaimSol, summarizeXClaims } from './x-claim-summary.js';
 
@@ -51,14 +51,35 @@ async function refreshCreator(card, walletAddress, current) {
 
 const pendingClaims = new Set();
 const expandedMints = new Set();
+let creatorFilter = 'active', creatorQuery = '';
 function renderCreatorRows(card, rows) {
-  const list = document.createElement('div'); list.className = 'creator-reward-records creator-claim-list';
+  const wrapper = document.createElement('div'); wrapper.className = 'creator-reward-records';
+  const controls = document.createElement('div'); controls.className = 'creator-reward-controls';
+  const search = document.createElement('input'); search.type = 'search'; search.placeholder = 'Search your tokens'; search.setAttribute('aria-label','Search creator rewards'); search.value = creatorQuery;
+  const filter = document.createElement('select'); filter.setAttribute('aria-label','Filter creator rewards');
+  for (const [value,label] of [['active','Active rewards'],['all','All tokens']]) { const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option); }
+  filter.value = creatorFilter;
+  const count=document.createElement('p');count.className='field-help';count.setAttribute('role','status');
+  const list = document.createElement('div'); list.className = 'creator-claim-list';
+  const render = () => {
+    const visible=filterCreatorRewards(rows,{filter:creatorFilter,query:creatorQuery});
+    count.textContent=`${visible.length} of ${rows.length} tokens`;
+    renderCreatorCards(list,visible);
+    if(!visible.length) { const empty=document.createElement('p');empty.className='field-help';empty.textContent=creatorQuery?'No tokens match your search.':creatorFilter==='active'?'No rewards waiting. Choose All tokens to see past payments.':'No tokens found.';list.append(empty); }
+  };
+  search.addEventListener('input',()=>{creatorQuery=search.value;render();});
+  filter.addEventListener('change',()=>{creatorFilter=filter.value;render();});
+  controls.append(search,filter);wrapper.append(controls,count,list);card.append(wrapper);render();
+}
+function renderCreatorCards(list, rows) {
+  list.replaceChildren();
   for (const row of rows) {
     const article = document.createElement('article'); article.className = 'creator-claim-card';
     const heading = document.createElement('div'); heading.className = 'creator-claim-heading';
     const name = document.createElement('a'); name.href = `/token/${encodeURIComponent(row.mint)}`; name.textContent = row.name;
     const state = document.createElement('span'); state.className = 'creator-claim-state'; state.textContent = row.status;
     heading.append(name,state);
+    const fullName=document.createElement('p');fullName.className='creator-reward-name';fullName.textContent=row.fullName;
     const amount = document.createElement('strong'); amount.className = 'creator-claim-amount'; amount.textContent = formatSol(row.available);
     const label = document.createElement('small'); label.textContent = row.ready ? 'Available to claim' : 'Reward balance';
     const button = document.createElement('button'); button.type = 'button'; button.className = 'primary-button';
@@ -84,9 +105,8 @@ function renderCreatorRows(card, rows) {
     const explanation = document.createElement('p'); explanation.textContent = 'Unpaid includes rewards awaiting payment confirmation. Only confirmed payments count as paid.';
     details.append(summary,values,explanation);
     details.addEventListener('toggle',()=>{if(details.open)expandedMints.add(row.mint);else expandedMints.delete(row.mint);});
-    article.append(heading,label,amount,button,note,details); list.append(article);
+    article.append(heading,fullName,label,amount,button,note,details); list.append(article);
   }
-  card.append(list);
 }
 
 async function refreshX(card, current) {

@@ -2,9 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { creatorRewardRow } from '../creator-reward-model.js';
+import { creatorRewardRow, filterCreatorRewards } from '../creator-reward-model.js';
 
 const launch={mint:'mint-a',symbol:'ALPHA',creatorWallet:'creator',cluster:'devnet',onchainVerified:true};
+test('creator reward filters retain pending balances and search names, tickers and addresses',()=>{
+  const rows=[
+    {name:'OLD',fullName:'Past launch',mint:'mint-old',unclaimed:0n,available:0n,ready:false},
+    {name:'WAIT',fullName:'Pending launch',mint:'mint-wait',unclaimed:10n,available:0n,ready:false},
+    {name:'NEW',fullName:'Current launch',mint:'mint-new',unclaimed:20n,available:20n,ready:true},
+  ];
+  assert.deepEqual(filterCreatorRewards(rows).map(r=>r.name),['NEW','WAIT']);
+  assert.equal(filterCreatorRewards(rows,{filter:'all'}).length,3);
+  for(const query of [' past ', 'OLD', 'mint-old']) assert.equal(filterCreatorRewards(rows,{filter:'all',query})[0].name,'OLD');
+  assert.equal(filterCreatorRewards(rows,{query:'missing'}).length,0);
+  assert.equal(rows[0].name,'OLD','Sorting must not mutate the source');
+});
 function activity(available='10000000', unpaid=available, paid='0') {
   return {mint:launch.mint,cluster:'devnet',overview:{available:true,creatorWallet:'creator',
     receivers:[{id:'creator',recipient:'creator',withoutConfirmedPayoutLamports:unpaid,confirmedPaidLamports:paid}],

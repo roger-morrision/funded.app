@@ -138,3 +138,11 @@ html body #wallet-onboarding-dialog > .text-button { min-height:44px; width:100%
 @media(max-width:700px) { .creator-claim-list { grid-template-columns:1fr; } }
 
 #rewards-creator .personal-rewards { grid-template-columns:minmax(0,1fr); }
+
+.creator-reward-controls { display:flex; gap:12px; flex-wrap:wrap; margin:16px 0; }
+.creator-reward-controls input { flex:1 1 180px; min-width:0; }
+.creator-reward-controls select { flex:0 1 180px; }
+.creator-reward-controls :is(input,select) { min-height:44px; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--text); }
+.creator-claim-card .creator-reward-name { margin:0 0 14px; overflow-wrap:anywhere; }
+@media(max-width:420px) { .creator-reward-controls :is(input,select) { flex:1 1 100%; width:100%; } }
+@media(max-width:560px) { #rewards-creator .personal-reward-values { grid-template-columns:1fr; } }

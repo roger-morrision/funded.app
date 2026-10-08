@@ -20,8 +20,15 @@ export function creatorRewardRow(launch, activity, wallet, cluster) {
   const available = amount(claim.claimableLamports), minimum = amount(claim.minimumLamports);
   if (available > unclaimed || minimum <= 0n) throw new Error('Creator reward amounts inconsistent');
   const ready = claim.eligible === true && available >= minimum;
-  return { mint:launch.mint, name:launch.symbol || launch.name || launch.mint.slice(0,8), overview,
+  return { mint:launch.mint, name:launch.symbol || launch.name || launch.mint.slice(0,8), fullName:launch.name || launch.symbol || launch.mint, overview,
     unclaimed, paid, available, minimum, ready,
     status:ready ? 'Ready to claim' : unclaimed > available ? 'Payment processing'
       : available > 0n ? 'Below claim minimum' : 'No rewards ready' };
+}
+
+export function filterCreatorRewards(rows, { filter = 'active', query = '' } = {}) {
+  const search = query.trim().toLowerCase();
+  return rows.filter(row => (filter === 'all' || row.unclaimed > 0n)
+    && (!search || `${row.name} ${row.fullName} ${row.mint}`.toLowerCase().includes(search)))
+    .sort((a,b) => Number(b.ready) - Number(a.ready) || (a.available === b.available ? a.name.localeCompare(b.name) : a.available > b.available ? -1 : 1));
 }

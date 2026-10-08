@@ -1145,6 +1145,13 @@ async function handleExploreBoostPay(){
       );
       transaction.feePayer = session.provider.publicKey;
       transaction.recentBlockhash = latest.blockhash;
+      const [balance, fee] = await Promise.all([
+        rpc.getBalance(session.provider.publicKey, 'confirmed'),
+        rpc.getFeeForMessage(transaction.compileMessage(), 'confirmed'),
+      ]);
+      assertWalletSessionCurrent(session);
+      if (!Number.isSafeInteger(balance) || !Number.isSafeInteger(fee?.value) || fee.value < 0) throw new Error('Unable to check your balance and network fee. Try again.');
+      if (balance < quote.lamports + fee.value) throw new Error(`Not enough SOL. You need ${((quote.lamports + fee.value) / 1e9).toFixed(9)} SOL including the network fee. No payment was sent.`);
       boostCheckout.message = 'Review the SOL transfer and boost memo in your wallet.';
       renderExploreBoostDialog();
       const signed = await session.provider.signTransaction(transaction);
@@ -1165,7 +1172,7 @@ async function handleExploreBoostPay(){
       await verifyExploreBoostPayment(true);
       return;
     }
-  } catch (error) { boostCheckout.message = boostCheckout.pendingSignature ? `${error.message || 'Submission could not be confirmed.'} Use Retry payment verification for the signed transaction; do not send another payment.` : error.message || 'Boost checkout failed. No boost was activated.'; }
+  } catch (error) { boostCheckout.message = boostCheckout.pendingSignature ? 'Payment is not confirmed. Use Retry payment verification to check the original transaction before paying again.' : error.message || 'Boost checkout failed. No boost was activated.'; }
   finally { boostCheckout.busy = false; renderExploreBoostDialog(); }
 }
 async function verifyExploreBoostPayment(alreadyBusy = false){
@@ -7492,6 +7499,8 @@ document.querySelector('#watchlist-items').addEventListener('click', event => {
   updateExploreViews();
 });
 document.querySelector('#creator-launch-empty')?.addEventListener('click', event => {
+  const boost = event.target.closest('[data-boost-mint]');
+  if (boost) { openExploreBoost(boost.dataset.boostMint); return; }
   const watch = event.target.closest('.watch-button');
   if (watch) { toggleExploreWatch(watch.dataset.mint, watch); return; }
   const share = event.target.closest('.share-asset');
