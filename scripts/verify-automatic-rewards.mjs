@@ -260,7 +260,7 @@ try {
     creator:{ id:'creator', mint, asset:'SOL', kind:'creator', recipient:recipientA, amount:'5', status:'pending' },
     holders:{ id:'holders', mint, asset:'SOL', kind:'holder', recipient:null, amount:'10000000', status:'pending' },
   }; });
-  const fundingProcessor = createRewardFundingProcessor({ store:processorStore, chain:{ readiness:async()=>({ constrainedPayouts:true, reasons:[] }), fundSolVaultFromMintRouter:async request=>({ signature:`fund-${request.fundingId}`, claim:`claim-${request.fundingId}`, balanceDeltaVerified:true }) }, scheduler:processorScheduler });
+  const fundingProcessor = createRewardFundingProcessor({ store:processorStore, chain:{ readiness:async()=>({ constrainedPayouts:true, reasons:[] }), fundSolVaultFromMintRouter:async request=>({ signature:`fund-${request.fundingId}`, claim:`claim-${request.fundingId}`, amount:request.amount, balanceDeltaVerified:true }) }, scheduler:processorScheduler });
   assert.deepEqual(await fundingProcessor.processPending(), { status:'processed', pending:2, funded:2 });
   await processorStore.transaction(state => { assert.equal(state.fundingRequests.creator.status, 'funded'); assert.equal(state.fundingRequests.holders.status, 'funded'); assert.equal(state.rewardPools.holders.status, 'available'); assert.equal(state.schedules['direct:creator:creator'].status, 'prepared'); });
   await processorStore.transaction(state => { state.fundingRequests.community = {

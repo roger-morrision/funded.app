@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke, system_instruction};
 use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
+use anchor_spl::associated_token::get_associated_token_address_with_program_id;
 use solana_sha256_hasher::hashv;
 use crate::{constants::*, error::ErrorCode, state::{RewardCycle, RewardPayment, RewardReserve, RewardVault}};
 use super::rotate::assert_current_router_authority;
@@ -93,6 +94,7 @@ pub struct MigrateRewardCycleToken<'info> {
     pub cycle: UncheckedAccount<'info>,
     pub token_mint: InterfaceAccount<'info, Mint>,
     #[account(constraint = vault_token_account.owner == vault.key() && vault_token_account.mint == token_mint.key()
+        && vault_token_account.key() == get_associated_token_address_with_program_id(&vault.key(), &token_mint.key(), token_mint.to_account_info().owner)
         @ ErrorCode::InvalidRewardTokenAccount)]
     pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
     /// CHECK: Validated against the current router authority.
@@ -223,6 +225,7 @@ pub struct CreateRewardCycleToken<'info> {
     #[account(address = asset_mint)]
     pub token_mint: InterfaceAccount<'info, Mint>,
     #[account(constraint = vault_token_account.owner == vault.key() && vault_token_account.mint == token_mint.key()
+        && vault_token_account.key() == get_associated_token_address_with_program_id(&vault.key(), &token_mint.key(), token_mint.to_account_info().owner)
         @ ErrorCode::InvalidRewardTokenAccount)]
     pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
     /// CHECK: Validated against the current router authority.
@@ -369,9 +372,15 @@ pub struct PayoutRewardToken<'info> {
     pub recipient: UncheckedAccount<'info>,
     #[account(address = cycle.asset_mint)]
     pub asset_mint: InterfaceAccount<'info, Mint>,
-    #[account(mut, constraint = vault_token_account.owner == vault.key(), constraint = vault_token_account.mint == asset_mint.key())]
+    #[account(mut, constraint = vault_token_account.owner == vault.key()
+        && vault_token_account.mint == asset_mint.key()
+        && vault_token_account.key() == get_associated_token_address_with_program_id(&vault.key(), &asset_mint.key(), asset_mint.to_account_info().owner)
+        @ ErrorCode::InvalidRewardTokenAccount)]
     pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
-    #[account(mut, constraint = recipient_token_account.owner == recipient.key() @ ErrorCode::InvalidRewardTokenAccount, constraint = recipient_token_account.mint == asset_mint.key() @ ErrorCode::InvalidRewardTokenAccount)]
+    #[account(mut, constraint = recipient_token_account.owner == recipient.key()
+        && recipient_token_account.mint == asset_mint.key()
+        && recipient_token_account.key() == get_associated_token_address_with_program_id(&recipient.key(), &asset_mint.key(), asset_mint.to_account_info().owner)
+        @ ErrorCode::InvalidRewardTokenAccount)]
     pub recipient_token_account: InterfaceAccount<'info, TokenAccount>,
     #[account(
         init,

@@ -39,6 +39,16 @@ function hex32(value, label) {
   return Buffer.from(value, 'hex');
 }
 
+export function verifiedTokenFundingDeltas({ sourceBefore, sourceAfter, vaultBefore, vaultAfter, requestedAmount }) {
+  const gross = BigInt(requestedAmount);
+  const debit = BigInt(sourceBefore) - BigInt(sourceAfter);
+  const received = BigInt(vaultAfter) - BigInt(vaultBefore);
+  if (gross <= 0n || debit !== gross || received <= 0n || received > gross) {
+    throw new Error('Token vault funding lacks the expected gross debit and positive net receipt.');
+  }
+  return received.toString();
+}
+
 export function rewardAddresses({ programId, authority, mint, cycleId, recipient }) {
   const program = new PublicKey(programId), authorityKey = new PublicKey(authority), mintKey = new PublicKey(mint);
   const [vault] = PublicKey.findProgramAddressSync([VAULT_SEED, authorityKey.toBuffer(), mintKey.toBuffer()], program);
@@ -387,14 +397,19 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
   async function fundTokenVault({ mint, asset, amount, decimals }) {
     const vault = await ensureVault(mint), assetKey = new PublicKey(asset), assetInfo = await connection.getAccountInfo(assetKey, 'finalized');
     if (!assetInfo || (!assetInfo.owner.equals(TOKEN_PROGRAM_ID) && !assetInfo.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('Funding asset is not a supported SPL mint.');
+    const gross = BigInt(amount);
+    if (gross <= 0n || gross > 0xffffffffffffffffn) throw new Error('Invalid token vault funding amount.');
     const tokenProgram = assetInfo.owner;
     const source = getAssociatedTokenAddressSync(assetKey, authority.publicKey, false, tokenProgram), destination = getAssociatedTokenAddressSync(assetKey, vault, true, tokenProgram);
-    const transaction = new Transaction().add(createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, destination, vault, assetKey, tokenProgram), createTransferCheckedInstruction(source, assetKey, destination, authority.publicKey, BigInt(amount), decimals, [], tokenProgram));
-    const before = await connection.getTokenAccountBalance(destination, 'finalized').then(row => BigInt(row.value.amount)).catch(() => 0n);
+    const transaction = new Transaction().add(createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, destination, vault, assetKey, tokenProgram), createTransferCheckedInstruction(source, assetKey, destination, authority.publicKey, gross, decimals, [], tokenProgram));
+    const sourceBefore = BigInt((await connection.getTokenAccountBalance(source, 'finalized')).value.amount);
+    const vaultBefore = await connection.getTokenAccountBalance(destination, 'finalized').then(row => BigInt(row.value.amount)).catch(() => 0n);
     const signature = await finalizedSend(connection, transaction, [authority]);
-    const after = BigInt((await connection.getTokenAccountBalance(destination, 'finalized')).value.amount);
-    if (after - before !== BigInt(amount)) throw new Error('Token vault funding finalized without the exact expected balance delta.');
-    return { signature, vault: vault.toBase58(), tokenAccount: destination.toBase58(), amount: String(amount), balanceDeltaVerified: true };
+    const [sourceAfter, vaultAfter] = await Promise.all([source, destination].map(address =>
+      connection.getTokenAccountBalance(address, 'finalized').then(row => BigInt(row.value.amount))));
+    const netAmount = verifiedTokenFundingDeltas({ sourceBefore, sourceAfter, vaultBefore, vaultAfter, requestedAmount: gross });
+    return { signature, vault: vault.toBase58(), tokenAccount: destination.toBase58(), amount: netAmount,
+      grossAmount: gross.toString(), balanceDeltaVerified: true };
   }
 
   return { readiness, ensureVault, ensureCycle, submitLeaf, fundSolVault, fundSolVaultFromMintRouter,

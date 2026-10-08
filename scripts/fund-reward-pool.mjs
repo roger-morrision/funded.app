@@ -35,12 +35,13 @@ let funding;
 if (asset === 'SOL') funding = await chain.fundSolVaultFromMintRouter({ mint, amount, fundingId:sourceId });
 else funding = await chain.fundTokenVault({ mint, asset, amount, decimals:Number(process.env.REWARD_TOKEN_DECIMALS) });
 let scheduled;
+const fundedAmount = funding.amount;
 if (kind === 'holder') {
-  scheduled = await scheduler.recordFundedPool({ id:sourceId, mint, asset, amount, fundingSignature:funding.signature || `existing:${funding.claim}`, balanceDeltaVerified:funding.balanceDeltaVerified, fundedAt:Math.floor(Date.now()/1000) });
+  scheduled = await scheduler.recordFundedPool({ id:sourceId, mint, asset, amount:fundedAmount, fundingSignature:funding.signature || `existing:${funding.claim}`, balanceDeltaVerified:funding.balanceDeltaVerified, fundedAt:Math.floor(Date.now()/1000) });
   await scheduler.register({ mint, asset, excludedWallets:String(process.env.REWARD_EXCLUDED_WALLETS || '').split(',').map(row=>row.trim()).filter(Boolean) });
 } else if (kind === 'airdrop') {
-  scheduled = await scheduler.recordSnapshotAirdrop({ id:sourceId, mint, eligibilityMint, asset, amount, snapshot:eligibilitySnapshot, excludedWallets:String(process.env.REWARD_EXCLUDED_WALLETS || '').split(',').map(row=>row.trim()).filter(Boolean), fundingSignature:funding.signature || `existing:${funding.tokenAccount}`, balanceDeltaVerified:funding.balanceDeltaVerified, fundedAt:Math.floor(Date.now()/1000) });
+  scheduled = await scheduler.recordSnapshotAirdrop({ id:sourceId, mint, eligibilityMint, asset, amount:fundedAmount, snapshot:eligibilitySnapshot, excludedWallets:String(process.env.REWARD_EXCLUDED_WALLETS || '').split(',').map(row=>row.trim()).filter(Boolean), fundingSignature:funding.signature || `existing:${funding.tokenAccount}`, balanceDeltaVerified:funding.balanceDeltaVerified, fundedAt:Math.floor(Date.now()/1000) });
 } else {
-  scheduled = await scheduler.recordDirectFunded({ id:sourceId, mint, asset, kind, recipient:directRecipient, amount, fundingSignature:funding.signature || `existing:${funding.claim}`, balanceDeltaVerified:funding.balanceDeltaVerified, fundedAt:Math.floor(Date.now()/1000) });
+  scheduled = await scheduler.recordDirectFunded({ id:sourceId, mint, asset, kind, recipient:directRecipient, amount:fundedAmount, fundingSignature:funding.signature || `existing:${funding.claim}`, balanceDeltaVerified:funding.balanceDeltaVerified, fundedAt:Math.floor(Date.now()/1000) });
 }
 console.log(JSON.stringify({ status:'funded', kind, scheduled, funding:{ ...funding, signature:funding.signature || null }, cluster:'devnet' }, null, 2));

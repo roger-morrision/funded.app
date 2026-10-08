@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { PublicKey, Transaction, sendAndConfirmTransaction } from '@solana/web3.js';
+import { PublicKey, Transaction } from '@solana/web3.js';
 import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { buildTradeTransaction } from '../pump-trading.js';
+import { finalizedSend } from './automatic-reward-chain.mjs';
 
 export function validateBuyAndDistributePolicy(input = {}) {
   const slippagePercent = Number(input.slippagePercent ?? 1);
@@ -19,26 +20,6 @@ function orderId({ mint, budgetLamports, sourceId }) {
 export function estimateBuyPriceImpactPercent(trade, amountSol) {
   const reserveSol = Number(trade?.route === 'graduated-pool' ? trade?.snapshot?.swapQuoteReservesSol : trade?.snapshot?.virtualQuoteReservesSol);
   return Number.isFinite(reserveSol) && reserveSol > 0 ? Number(amountSol) / reserveSol * 100 : Infinity;
-}
-
-async function finalizedSend(connection, transaction, signer) {
-  let lastError;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const fresh = new Transaction().add(...transaction.instructions);
-    if (transaction.feePayer) fresh.feePayer = transaction.feePayer;
-    try {
-      const signature = await sendAndConfirmTransaction(connection, fresh, [signer], { commitment: 'finalized', preflightCommitment: 'confirmed' });
-      const status = await connection.getSignatureStatus(signature, { searchTransactionHistory: true });
-      if (!status?.value || status.value.err || status.value.confirmationStatus !== 'finalized') throw new Error('Buy transaction did not finalize successfully.');
-      return signature;
-    } catch (error) {
-      lastError = error;
-      const message = String(error?.message || error);
-      if (attempt === 2 || !/blockhash not found|429|too many requests/i.test(message)) throw error;
-      await new Promise(resolveWait => setTimeout(resolveWait, 500 * (attempt + 1)));
-    }
-  }
-  throw lastError;
 }
 
 export function createBuyAndDistributeExecutor({ connection, authority, feeOwner, feeBps, store, rewardChain, scheduler }) {
@@ -69,15 +50,14 @@ export function createBuyAndDistributeExecutor({ connection, authority, feeOwner
       const trade = await buildTradeTransaction({ connection, side: 'buy', mint, user: authority.publicKey, amount: amountSol, slippagePercent: policy.slippagePercent, feeOwner, feeBps });
       const estimatedImpact = estimateBuyPriceImpactPercent(trade, amountSol);
       if (!Number.isFinite(estimatedImpact) || estimatedImpact > policy.maxPriceImpactPercent) throw new Error(`Estimated price impact ${estimatedImpact.toFixed(2)}% exceeds policy.`);
-      const latest = await connection.getLatestBlockhash('finalized');
-      const transaction = new Transaction({ feePayer: authority.publicKey, recentBlockhash: latest.blockhash }).add(...trade.instructions);
-      const signature = await finalizedSend(connection, transaction, authority);
+      const transaction = new Transaction({ feePayer: authority.publicKey }).add(...trade.instructions);
+      const signature = await finalizedSend(connection, transaction, [authority]);
       const after = BigInt((await connection.getTokenAccountBalance(recipientToken, 'finalized')).value.amount), acquired = after - before;
       const minimum = BigInt(trade.minimumOutputAmount?.toString?.() || trade.outputAmount.toString());
       if (acquired <= 0n || acquired < minimum) throw new Error('Buy finalized without the minimum expected token balance delta.');
       await store.transaction(state => { state.buyOrders[id] = { ...state.buyOrders[id], status: 'bought', buySignature: signature, acquiredAmount: String(acquired), tokenAccount: recipientToken.toBase58(), balanceDeltaVerified: true, boughtAt: new Date().toISOString() }; });
       const funding = await rewardChain.fundTokenVault({ mint: mint.toBase58(), asset: mint.toBase58(), amount: String(acquired), decimals: trade.tokenDecimals });
-      const pool = await scheduler.recordFundedPool({ id: `buy:${id}`, mint: mint.toBase58(), asset: mint.toBase58(), amount: String(acquired), fundingSignature: funding.signature || signature, balanceDeltaVerified: funding.balanceDeltaVerified, fundedAt: Math.floor(Date.now() / 1000) });
+      const pool = await scheduler.recordFundedPool({ id: `buy:${id}`, mint: mint.toBase58(), asset: mint.toBase58(), amount: funding.amount, fundingSignature: funding.signature || signature, balanceDeltaVerified: funding.balanceDeltaVerified, fundedAt: Math.floor(Date.now() / 1000) });
       return store.transaction(state => {
         state.buyOrders[id] = { ...state.buyOrders[id], status: 'funded-for-distribution', fundingSignature: funding.signature, poolId: pool.id, fundedAt: new Date().toISOString() };
         return structuredClone(state.buyOrders[id]);
