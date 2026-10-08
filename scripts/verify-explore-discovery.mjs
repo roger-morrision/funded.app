@@ -23,9 +23,9 @@ assert.match(appSource, /recordedPayouts \? 'Recorded payouts are awaiting recei
 assert.match(appSource, /registryUnavailable \? outage\.title : `\$\{filtered\.length\} of \$\{registryLaunches\.length\} shown`/, 'Explore must explain the current outage instead of showing a verified zero result while its sources are unavailable.');
 assert.match(appSource, /if \(exploreLoadInFlight\) return exploreLoadInFlight;[\s\S]*?exploreLoadInFlight = load;[\s\S]*?exploreLoadInFlight = null;/, 'Overlapping Explore refreshes must share one load instead of racing their scan counter.');
 assert.match(appSource, /let scannedCount = 0;[\s\S]*?scannedCount \+= 1;[\s\S]*?exploreScannedCount = scannedCount;/, 'A completed Explore load must publish only its own scan count.');
-  assert.match(exploreMarkup, /Minimum market cap · USD\s*<input id="explore-min-cap-sol"/);
-assert.match(exploreMarkup, /Minimum 24h traded · USD<\/span><input id="explore-min-volume-sol"/);
-assert.match(exploreMarkup, /id="explore-promotion-filter"[\s\S]*?Any paid tier[\s\S]*?Premier/);
+assert.match(exploreMarkup, /Minimum market cap · USD\s*<input id="explore-min-cap-sol"/);
+assert.match(exploreMarkup, /Minimum 24h volume · USD<\/span><input id="explore-min-volume-sol"/);
+assert.match(exploreMarkup, /id="explore-promotion-filter"[\s\S]*?Any paid promotion[\s\S]*?Premier/);
 assert.match(exploreMarkup, /role="table" aria-label="Verified launch table"[\s\S]*?<span role="columnheader">#<\/span><span role="columnheader">Coin<\/span><span role="columnheader">Tier<\/span><span role="columnheader">MC<\/span><span role="columnheader">Age<\/span>/, 'The index shows ranked coins with separate tier, market cap, and age columns.');
 assert.match(appSource, /function refreshRegistryLaunches\(\)[\s\S]*?registryLaunches = assets\.filter[\s\S]*?\.map\(item => withVerifiedExploreBenefits\(/, 'Scanner filters use verified launch tier data.');
 assert.match(appSource, /function exploreAirdropMarkup\(record\)[\s\S]*?\['funded', 'drop-active'\]\.includes\(reserve\.status\)[\s\S]*?const detail = active \? 'Claims open' : funded \? 'Upcoming' : 'Checking availability'/, 'The Explore airdrop cell must not label a verified active drop as unfunded.');

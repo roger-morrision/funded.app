@@ -52,7 +52,7 @@ function explore() {
     label.firstChild.textContent = 'Sort';
     bar.append(label);
   }
-  const labels = { 'market-cap':'Market cap', volume:'Trading volume', boosted:'Active boosts', 'tier-burn':'Promotion spend', airdrop:'Airdrop allocation', 'holder-fee':'Holder reward share', 'x-fee':'X reward share', trades:'Trade count', turnover:'Volume / market cap', liquidity:'Available liquidity', 'recent-trade':'Recent activity', holders:'Holder count', change:'Market cap change', newest:'Newest' };
+  const labels = { boosted:'Active boosts', 'tier-burn':'Promotion spend', airdrop:'Airdrop allocation', 'holder-fee':'Holder reward share', 'x-fee':'X reward share', turnover:'Volume / market cap', 'recent-trade':'Recent activity', holders:'Holder count', change:'Market cap change', newest:'Newest' };
   for (const option of sort?.options || []) if (labels[option.value]) option.textContent = labels[option.value];
   const filters = $('#explore-filter-popover');
   filters?.setAttribute('role', 'dialog'); filters?.setAttribute('aria-label', 'Token filters');
@@ -133,6 +133,8 @@ function details() {
 }
 
 home(); explore(); launch(); portfolio(); details();
+// New route-scoped disclosures are created after the workspace's initial sync.
+window.dispatchEvent(new Event('funded:layout-change'));
 document.body.classList.add('product-experience-ready');
 function recordRoute() {
   if (location.pathname.startsWith('/token/') || location.hash.startsWith('#coin/')) productEvent('token_view');

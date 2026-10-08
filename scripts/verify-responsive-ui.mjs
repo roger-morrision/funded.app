@@ -70,7 +70,7 @@ try {
         }
         if (route === '/#community') {
           assert(await page.locator('#community .section-heading h2').isVisible());
-          assert.equal(await page.locator('#community .section-heading h2').innerText(), 'Saved launches');
+          assert.equal(await page.locator('#community .section-heading h2').innerText(), 'Saved tokens');
           assert.equal(await page.locator('#my-launches > .portfolio-dashboard').isVisible(), false);
           assert(await page.locator('#community .product-details:has(#community-preferences) > summary').isVisible());
         }

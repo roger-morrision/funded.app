@@ -892,6 +892,7 @@ function syncRoute() {
 navigation(); home(); explore(); launch(); rewards(); secondaryPages(); protocolPage(); mergePurposePages(); tokenPage();
 document.body.classList.add('workspace-ready');
 window.addEventListener('funded:route-change',syncRoute);
+window.addEventListener('funded:layout-change',syncRoute);
 window.addEventListener('hashchange',syncRoute);
 matchMedia('(min-width:1180px)').addEventListener('change',syncRoute);
 syncRoute();
