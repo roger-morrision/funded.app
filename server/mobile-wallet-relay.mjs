@@ -1,5 +1,6 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Transaction, VersionedTransaction } from '@solana/web3.js';
@@ -13,7 +14,7 @@ const SIGNATURE_B64 = /^[A-Za-z0-9+/]{86}==$/;
 const MAX_FLOWS = 256;
 const FLOW_TTL_MS = 5 * 60_000;
 const TRADE_RESULT_TTL_MS = 15 * 60_000;
-const WEB3_BROWSER_SCRIPT = readFileSync(new URL('../node_modules/@solana/web3.js/lib/index.iife.min.js', import.meta.url));
+const WEB3_BROWSER_SCRIPT = readFileSync(createRequire(import.meta.url).resolve('@solana/web3.js/lib/index.iife.min.js'));
 const parseTransaction = bytes => { const parsed = VersionedTransaction.deserialize(bytes); return parsed.version === 'legacy' ? Transaction.from(bytes) : parsed; };
 const payerOf = transaction => transaction instanceof VersionedTransaction ? transaction.message.staticAccountKeys[0]?.toBase58() : transaction.feePayer?.toBase58();
 const coSignatures = (transaction, payer) => transaction instanceof VersionedTransaction

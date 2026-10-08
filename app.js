@@ -2478,9 +2478,9 @@ function renderWatchlist(){
   if (items) items.innerHTML = saved.map(mint => {
     const asset = assets.find(item => item.address === mint);
     const policy = verifiedLaunchPolicyForMint(mint);
-    return asset ? portfolioTokenCardMarkup({ mint: asset.address, name: asset.name, symbol: asset.symbol, source: 'Saved token · RPC verified', verified: true, removable: true })
-      : policy?.onchainVerified ? portfolioTokenCardMarkup({ mint, name: policy.name, symbol: policy.symbol, source: 'Saved token · verified launch', verified: true, removable: true })
-        : `<div class="empty-state watchlist-unavailable"><strong>Saved token · verification unavailable</strong><span class="watchlist-unavailable-mint" title="${escapeHtml(mint)}">${escapeHtml(shortAddress(mint))}</span><span>No current market or recorded launch policy could be checked for this mint. Your saved entry remains on this device.</span><div class="watchlist-unavailable-actions"><button type="button" class="secondary-button" data-watch-retry="${escapeHtml(mint)}">Retry check</button><button type="button" class="secondary-button token-card-copy-address" data-copy-address="${escapeHtml(mint)}" data-copy-kind="token" aria-label="Copy full token address">Copy mint</button><button type="button" class="secondary-button" data-remove-watch="${escapeHtml(mint)}" aria-label="Remove saved token">Remove</button></div></div>`;
+    return asset ? portfolioTokenCardMarkup({ mint: asset.address, name: asset.name, symbol: asset.symbol, source: 'Saved token · market data checked', verified: true, removable: true })
+      : policy?.onchainVerified ? portfolioTokenCardMarkup({ mint, name: policy.name, symbol: policy.symbol, source: 'Saved token · launch confirmed', verified: true, removable: true })
+        : `<div class="empty-state watchlist-unavailable"><strong>Saved token · details unavailable</strong><span class="watchlist-unavailable-mint" title="${escapeHtml(mint)}">${escapeHtml(shortAddress(mint))}</span><span>We could not check this token right now. It is still saved on this device.</span><div class="watchlist-unavailable-actions"><button type="button" class="secondary-button" data-watch-retry="${escapeHtml(mint)}">Retry check</button><button type="button" class="secondary-button token-card-copy-address" data-copy-address="${escapeHtml(mint)}" data-copy-kind="token" aria-label="Copy full token address">Copy address</button><button type="button" class="secondary-button" data-remove-watch="${escapeHtml(mint)}" aria-label="Remove saved token">Remove</button></div></div>`;
   }).join('');
   items?.querySelectorAll('.watchlist-token-card').forEach(card => loadPortfolioLogo(card, verifiedLaunchPolicyForMint(card.dataset.mint)));
   document.querySelectorAll('.watch-button').forEach(button => setWatchButtonState(button, saved.includes(button.dataset.mint)));
@@ -4579,7 +4579,7 @@ function renderRegistry(query = exploreQuery){
       <span class="scanner-rank" role="cell">${page.start + index + 1}</span>
       <div class="scanner-token" role="cell"><span class="asset-icon">${escapeHtml(item.icon)}</span><span><span class="scanner-token-heading"><a class="scanner-token-link" href="/token/${encodeURIComponent(item.address)}"><strong class="${activeBoostMultiplier(verifiedBoosts[item.address]) >= 500 ? 'golden-ticker' : ''}">${symbol} <small>${escapeHtml(item.name)}</small></strong></a>${explorePaidListingBagMarkup(item)}${exploreBoostAmountMarkup(item.address)}</span><span class="scanner-actions"><button type="button" class="copy-row scanner-contract" data-mint="${mint}" aria-label="Copy ${symbol} token contract address" title="Copy full contract address: ${mint}"><span>${escapeHtml(`${item.address.slice(0, 4)}…${item.address.slice(-4)}`)}</span>${icon('copy')}</button>${exploreSocialLinksMarkup(item)}<button type="button" class="watch-button scanner-watch" data-mint="${mint}" aria-label="Save ${symbol} to watchlist" aria-pressed="false" title="Save to watchlist">${icon('star')}</button></span></span></div>
       <div class="scanner-tier" role="cell">${exploreTierBadgeMarkup(item.address)}</div>
-      <span class="scanner-metric" role="cell">${escapeHtml(EXPLORE_CLUSTER === 'devnet' ? formatCoinUsd(item.curveCapSol) : formatCompactUsd(item.marketCapUsd))}</span>
+      <span class="scanner-metric" role="cell">${escapeHtml(exploreMarketCapUsd(item))}</span>
       <span class="scanner-age" role="cell">${age}</span>
       <span class="scanner-metric" role="cell" title="${item.windowCoverage === 'partial' ? 'Partial confirmed trade-history scan; shown as a lower bound' : 'Confirmed trade history'}">${formatExploreTradeCount(item.windowTradeCount, item.windowCoverage)}</span>
       <span class="scanner-metric" role="cell" title="${item.windowCoverage === 'partial' ? 'Partial confirmed trade-history scan; shown as a lower bound' : 'Confirmed trade history'}">${escapeHtml(EXPLORE_CLUSTER === 'devnet' ? formatExploreUsd(item.windowVolumeSol, { partial: item.windowCoverage === 'partial' }) : formatCompactUsd(item.volume24hUsd))}</span>
@@ -5655,6 +5655,7 @@ async function refreshWalletBalance({ force = false } = {}){
     walletBalanceFetchedAt = Date.now();
   } catch (error) {
     if (request !== walletBalanceRequest || !isWalletSessionCurrent(session)) return;
+    walletBalanceLamports = null;
     walletBalanceFetchedAt = 0;
     console.warn('SOL balance refresh failed:', error);
   }
@@ -6037,7 +6038,7 @@ function getLaunchStepState(step){
     const launchBurn = getLaunchBurnPolicy();
     const burnValidation = validateLaunchBurnPolicy(launchBurn);
     if (!burnValidation.valid) return { valid: false, message: 'The protocol $FUNDED mint must be configured before a paid burn tier can launch.' };
-    return { valid: true, message: launchBurn.requiresBurn ? `${launchBurn.label} selected: ${formatLaunchBurnAmount(launchBurn.amountTokens)} $FUNDED burn; atomicity depends on transaction size.` : launchMode === 'quick' ? 'Recommended distribution selected.' : 'Custom distribution is balanced.' };
+    return { valid: true, message: launchBurn.requiresBurn ? `${launchBurn.label} selected: ${formatLaunchBurnAmount(launchBurn.amountTokens)} $FUNDED will be burned. Review the approval steps before signing.` : launchMode === 'quick' ? 'Recommended distribution selected.' : 'Custom distribution is balanced.' };
   }
   if (step === 3) {
     if (!feeRouterState.verified) return { valid: false, message: feeRouterState.status === 'checking'
@@ -6434,9 +6435,9 @@ async function connectWallet(){
       allowWalletReconnect();
       if (await connectDevWallet()) return;
     }
-    const message = 'No injected wallet was found. Open funded.vip in Chrome or Edge with Phantom, Backpack, or Solflare installed.';
+    const message = 'Wallet not found. Open funded.vip in a browser with Phantom, Backpack, or Solflare installed.';
     if (!wallet) setWalletState('Wallet unavailable', message);
-    setLaunchStatus('No injected Solana wallet was detected in this browser.', true);
+    setLaunchStatus('No Solana wallet was found in this browser.', true);
     const header = document.querySelector('#connect-button');
     if (header) { header.title = message; header.setAttribute('aria-label', message); }
     void openMobileWalletDialog();
@@ -8760,7 +8761,7 @@ function renderCoinActivityTab(){
     return;
   }
   if (!coinActivity.ledgerAvailable) {
-    activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Fee activity unavailable</strong><small>No mint-attributed claim or allocation count can be confirmed.</small></div>';
+    activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Fee activity unavailable</strong><small>We could not confirm fee collections or reward shares for this token.</small></div>';
     return;
   }
   const feeExplorerIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 4h14l-3 3H3z" fill="#78e7b4"/><path d="M4 10h14l3 3H7z" fill="#ab91ff"/><path d="M6 16h14l-3 3H3z" fill="#78e7b4"/></svg>';
@@ -8777,19 +8778,19 @@ function renderCoinActivityTab(){
       const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
       return `<tr><td>${feeDate(item.claimedAt)}</td><td><strong class="coin-fee-event">Fee split recorded</strong><small class="coin-fee-detail">Linked to collection ${escapeHtml(shortAddress(item.claimSignature || ''))}</small></td><td class="coin-fee-amount">${Number.isFinite(gross) ? `${escapeHtml(formatOnChainNumber(gross, 9))} ${escapeHtml(item.asset || 'SOL')}` : '—'}</td><td><span class="coin-fee-status">${escapeHtml(statusLabel)}</span></td><td class="coin-fee-action">${feeExplorer(item.claimSignature, 'View related fee collection on Solana Explorer')}</td></tr>`;
     }).join('');
-    activity.innerHTML = rows ? `<p class="coin-activity-scope">Recorded fee allocations from this coin’s collections. An allocation is an obligation, not proof of recipient payment.</p><div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(coinActivity.symbol)} fee allocations" tabindex="0"><table class="coin-transactions-table coin-fee-table coin-fee-allocations-table"><thead><tr><th scope="col">Date</th><th scope="col">Event</th><th scope="col">Gross fees</th><th scope="col">Status</th><th scope="col">Txn</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state coin-activity-empty"><strong>No allocation attributed to this mint</strong><small>Shared-router claims are excluded from per-coin totals.</small></div>';
+    activity.innerHTML = rows ? `<p class="coin-activity-scope">Fee shares set aside from this token. These amounts may not have been paid yet.</p><div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(coinActivity.symbol)} fee allocations" tabindex="0"><table class="coin-transactions-table coin-fee-table coin-fee-allocations-table"><thead><tr><th scope="col">Date</th><th scope="col">Event</th><th scope="col">Gross fees</th><th scope="col">Status</th><th scope="col">Txn</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state coin-activity-empty"><strong>No reward shares recorded for this token</strong><small>Fees that cannot be linked to this token are excluded.</small></div>';
     return;
   }
   const mintRows = coinActivity.collections.map(item => {
     const sol = item.collectedLamports == null ? NaN : Number(item.collectedLamports) / 1_000_000_000;
-    return `<tr><td>${feeDate(item.recordedAt)}</td><td><strong class="coin-fee-event">Creator fees collected</strong><small class="coin-fee-detail">Mint-attributed collection</small></td><td class="coin-fee-amount">${Number.isFinite(sol) ? `${escapeHtml(formatOnChainNumber(sol, 9))} SOL` : '—'}</td><td class="coin-fee-amount">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}</td><td class="coin-fee-action">${feeExplorer(item.signature)}</td></tr>`;
+    return `<tr><td>${feeDate(item.recordedAt)}</td><td><strong class="coin-fee-event">Creator fees collected</strong><small class="coin-fee-detail">Collected for this token</small></td><td class="coin-fee-amount">${Number.isFinite(sol) ? `${escapeHtml(formatOnChainNumber(sol, 9))} SOL` : '—'}</td><td class="coin-fee-amount">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}</td><td class="coin-fee-action">${feeExplorer(item.signature)}</td></tr>`;
   }).join('');
   const routerRows = (coinActivity.sharedRouterCollections || []).map(item => {
     const sol = Number(item.collectedLamports) / 1_000_000_000;
     return `<tr><td>${feeDate(item.recordedAt)}</td><td><strong class="coin-fee-event">Shared-router collection</strong><small class="coin-fee-detail">Not attributable to this coin</small></td><td class="coin-fee-amount">${Number.isFinite(sol) ? `${escapeHtml(formatOnChainNumber(sol, 9))} SOL` : '—'}</td><td class="coin-fee-amount">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}</td><td class="coin-fee-action">${feeExplorer(item.signature)}</td></tr>`;
   }).join('');
   const table = (rows, label) => `<div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(label)}" tabindex="0"><table class="coin-transactions-table coin-fee-table coin-fee-collections-table"><thead><tr><th scope="col">Date</th><th scope="col">Event</th><th scope="col">Amount</th><th scope="col" title="At the current SOL/USD quote">USD est.</th><th scope="col">Txn</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  activity.innerHTML = (mintRows ? `<p class="coin-activity-scope">Creator fees collected for this mint. Collection does not confirm recipient payout.</p>${table(mintRows, `${coinActivity.symbol} fee collections`)}` : '<div class="empty-state coin-activity-empty"><strong>No fee claim attributed to this mint</strong><small>Only mint-verified collections appear in this ledger.</small></div>') + (routerRows ? `<div class="coin-activity-context"><strong>Shared-router collections</strong><span>These may include other coins and are excluded from this mint’s totals.</span></div>${table(routerRows, 'Shared-router fee collections')}` : '');
+  activity.innerHTML = (mintRows ? `<p class="coin-activity-scope">Fees collected for this token. Check Rewards for confirmed payments to recipients.</p>${table(mintRows, `${coinActivity.symbol} fee collections`)}` : '<div class="empty-state coin-activity-empty"><strong>No fee collections recorded for this token</strong><small>Only fees confirmed for this token appear here.</small></div>') + (routerRows ? `<div class="coin-activity-context"><strong>Shared-router collections</strong><span>These may include other coins and are excluded from this mint’s totals.</span></div>${table(routerRows, 'Shared-router fee collections')}` : '');
 }
 function renderOnChainUnavailable(message){
   const detail = String(message || '');
