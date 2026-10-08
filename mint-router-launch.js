@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer';
 import { PublicKey, SystemProgram, Transaction, TransactionInstruction, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
-import { deriveFeeRouter, deriveMintFeeRouter } from './fee-router.js';
+import { deriveFeeRouter, deriveMintFeeRouter, deriveMintFeeLedger } from './fee-router.js';
 
 export const MAX_LAUNCH_TRANSACTION_BYTES = 1232;
 const INITIALIZE_MINT_DISCRIMINATOR = Buffer.from('d12ac3048155d12c', 'hex');
@@ -8,6 +8,7 @@ const INITIALIZE_MINT_DISCRIMINATOR = Buffer.from('d12ac3048155d12c', 'hex');
 export function buildMintRouterInitializeInstruction({ programId, mint, payer }) {
   const legacy = deriveFeeRouter(programId);
   const router = deriveMintFeeRouter(programId, mint);
+  const ledger = deriveMintFeeLedger(programId, mint);
   return {
     router,
     instruction: new TransactionInstruction({
@@ -17,6 +18,7 @@ export function buildMintRouterInitializeInstruction({ programId, mint, payer })
         { pubkey: router.mint, isSigner: true, isWritable: false },
         { pubkey: legacy.address, isSigner: false, isWritable: false },
         { pubkey: router.address, isSigner: false, isWritable: true },
+        { pubkey: ledger.address, isSigner: false, isWritable: true },
         { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       ],
       data: INITIALIZE_MINT_DISCRIMINATOR,

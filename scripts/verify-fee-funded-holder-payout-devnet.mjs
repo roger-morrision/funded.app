@@ -4,7 +4,7 @@ import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
 import { NATIVE_MINT } from '@solana/spl-token';
 import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
 import { DEVNET_GENESIS_HASH, rewardAddresses } from '../server/automatic-reward-chain.mjs';
-import { buildMintRouterSettlementInstruction, readMintClaimRecord } from '../server/mint-router-payout.mjs';
+import { deriveMintClaim, xClaimId, readMintClaimRecord } from '../server/mint-router-payout.mjs';
 import { deriveMintFeeRouter, verifyMintFeeRouterAccount } from '../fee-router.js';
 
 const [ledgerPath, mint, periodText, vaultBeforeText] = process.argv.slice(2);
@@ -36,11 +36,11 @@ const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID);
 const authority = new PublicKey(process.env.FUNDED_REWARD_AUTHORITY);
 const vault = rewardAddresses({programId,authority,mint}).vault;
 for (const { request } of sources) {
-  const claim = buildMintRouterSettlementInstruction({programId,mint,authority,recipient:vault,
-    amountLamports:request.amount,obligationId:`automatic-reward:${request.id}`});
-  assert.equal(claim.claim.toBase58(), request.fundingClaim, 'The funding claim PDA does not match the request.');
-  const claimAccount = await connection.getAccountInfo(claim.claim, 'finalized');
-  assert(readMintClaimRecord(claimAccount, {programId,mint,recipient:vault,amountLamports:request.amount,claimId:claim.claimId}),
+  const claimId = xClaimId(`automatic-reward:${request.id}`);
+  const claim = deriveMintClaim(programId,mint,claimId);
+  assert.equal(claim.toBase58(), request.fundingClaim, 'The funding claim PDA does not match the request.');
+  const claimAccount = await connection.getAccountInfo(claim, 'finalized');
+  assert(readMintClaimRecord(claimAccount, {programId,mint,recipient:vault,amountLamports:request.amount,claimId,share:0}),
     'The on-chain claim does not prove the exact reward-vault transfer.');
 }
 

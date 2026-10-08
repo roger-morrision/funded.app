@@ -119,7 +119,7 @@ export function createSolClaimsRoutes({
       const checked = await verifyMintFeeRouterAccount({ connection, programId: config.programId, mint: obligation.mint, expectedAuthority: authority.publicKey });
       if (!checked.verified || checked.address.toBase58() !== obligation.router) return json(res, 409, { error: 'The on-chain mint router does not match this payout obligation.' });
       const settlement = buildMintRouterSettlementInstruction({ programId: config.programId, mint: obligation.mint, authority: authority.publicKey, recipient: claim.publicKey, amountLamports: obligation.amountLamports, obligationId: obligation.id });
-      const recordMatches = account => readMintClaimRecord(account, { programId: config.programId, mint: obligation.mint, recipient: claim.publicKey, amountLamports: obligation.amountLamports, claimId: settlement.claimId });
+      const recordMatches = account => readMintClaimRecord(account, { programId: config.programId, mint: obligation.mint, recipient: claim.publicKey, amountLamports: obligation.amountLamports, claimId: settlement.claimId, share: settlement.share });
       const priorRecord = await connection.getAccountInfo(settlement.claim, 'confirmed');
       if (priorRecord && !recordMatches(priorRecord)) return json(res, 409, { error: 'The on-chain claim record conflicts with this obligation.' });
       const locked = await store.updateClaimState(executeId,current => {

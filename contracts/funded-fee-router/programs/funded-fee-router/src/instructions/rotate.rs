@@ -15,7 +15,7 @@ pub struct RotateAuthority<'info> {
     pub program_data: UncheckedAccount<'info>,
 }
 
-fn assert_upgrade_owner(program: &AccountInfo, program_data: &AccountInfo, app_owner: &Pubkey, program_id: &Pubkey) -> Result<()> {
+pub(crate) fn assert_upgrade_owner(program: &AccountInfo, program_data: &AccountInfo, app_owner: &Pubkey, program_id: &Pubkey) -> Result<()> {
     let loader = bpf_loader_upgradeable::id();
     require!(program.key == program_id && program.owner == &loader && program.executable, ErrorCode::InvalidRotationAuthority);
     require!(program_data.owner == &loader, ErrorCode::InvalidRotationAuthority);

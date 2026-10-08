@@ -18,10 +18,24 @@ pub struct MintClaimRecord {
     pub recipient: Pubkey,
     pub total_lamports: u64,
     pub created_at: i64,
+    pub share: u8,
 }
 
 impl MintClaimRecord {
-    pub const INIT_SPACE: usize = 32 + 32 + 32 + 8 + 8;
+    pub const INIT_SPACE: usize = 32 + 32 + 32 + 8 + 8 + 1;
+}
+
+#[account]
+pub struct MintFeeLedger {
+    pub mint: Pubkey,
+    pub creator: Pubkey,
+    pub creator_spent: u64,
+    pub protocol_spent: u64,
+    pub bump: u8,
+}
+
+impl MintFeeLedger {
+    pub const INIT_SPACE: usize = 32 + 32 + 8 + 8 + 1;
 }
 
 #[account]
@@ -29,6 +43,18 @@ pub struct RewardVault {
     pub authority: Pubkey,
     pub mint: Pubkey,
     pub bump: u8,
+}
+
+#[account]
+pub struct RewardReserve {
+    pub vault: Pubkey,
+    pub asset_mint: Pubkey,
+    pub outstanding: u64,
+    pub bump: u8,
+}
+
+impl RewardReserve {
+    pub const INIT_SPACE: usize = 32 + 32 + 8 + 1;
 }
 
 impl RewardVault {
@@ -47,10 +73,11 @@ pub struct RewardCycle {
     pub payout_at: i64,
     pub leaf_count: u32,
     pub bump: u8,
+    pub reserved: bool,
 }
 
 impl RewardCycle {
-    pub const INIT_SPACE: usize = 32 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 4 + 1;
+    pub const INIT_SPACE: usize = 32 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 4 + 1 + 1;
 }
 
 #[account]
@@ -60,10 +87,11 @@ pub struct RewardPayment {
     pub amount: u64,
     pub leaf_index: u32,
     pub paid_at: i64,
+    pub received_amount: u64,
 }
 
 impl RewardPayment {
-    pub const INIT_SPACE: usize = 32 + 32 + 8 + 4 + 8;
+    pub const INIT_SPACE: usize = 32 + 32 + 8 + 4 + 8 + 8;
 }
 
 #[account]
@@ -85,6 +113,26 @@ pub struct CommunityDrop {
     pub leaf_count: u32,
     pub closed: bool,
     pub bump: u8,
+}
+
+#[account]
+pub struct CommunitySnapshotApproval {
+    pub protocol_authority: Pubkey,
+    pub creator: Pubkey,
+    pub mint: Pubkey,
+    pub eligibility_mint: Pubkey,
+    pub merkle_root: [u8; 32],
+    pub snapshot_hash: [u8; 32],
+    pub migration_signature: [u8; 64],
+    pub migration_slot: u64,
+    pub migration_at: i64,
+    pub total_amount: u64,
+    pub leaf_count: u32,
+    pub bump: u8,
+}
+
+impl CommunitySnapshotApproval {
+    pub const INIT_SPACE: usize = 6 * 32 + 64 + 3 * 8 + 4 + 1;
 }
 
 impl CommunityDrop {

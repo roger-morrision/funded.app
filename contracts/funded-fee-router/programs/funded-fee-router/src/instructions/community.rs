@@ -1,9 +1,65 @@
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::associated_token::{get_associated_token_address_with_program_id, AssociatedToken};
 use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
 use solana_sha256_hasher::hashv;
-use crate::{constants::*, error::ErrorCode, state::{CommunityDrop, CommunityPayment, RewardVault}};
-use super::rotate::assert_current_router_authority;
+use crate::{constants::*, error::ErrorCode, state::{CommunityDrop, CommunityPayment, CommunitySnapshotApproval, RewardReserve, RewardVault}};
+use super::rotate::{assert_current_router_authority, assert_upgrade_owner};
+
+#[derive(Accounts)]
+pub struct ApproveCommunitySnapshot<'info> {
+    #[account(mut)]
+    pub app_owner: Signer<'info>,
+    /// CHECK: Bound to the approval PDA and checked as the current router authority when opening a drop.
+    pub protocol_authority: UncheckedAccount<'info>,
+    /// CHECK: Bound to the approved drop metadata.
+    pub creator: UncheckedAccount<'info>,
+    pub mint: InterfaceAccount<'info, Mint>,
+    pub eligibility_mint: InterfaceAccount<'info, Mint>,
+    #[account(init, payer = app_owner, space = 8 + CommunitySnapshotApproval::INIT_SPACE,
+        seeds = [SNAPSHOT_APPROVAL_SEED, protocol_authority.key().as_ref(), mint.key().as_ref()], bump)]
+    pub approval: Account<'info, CommunitySnapshotApproval>,
+    /// CHECK: Checked as this executable program by the upgrade-owner guard.
+    pub program: UncheckedAccount<'info>,
+    /// CHECK: Checked as this program's ProgramData and upgrade owner.
+    pub program_data: UncheckedAccount<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn approve_snapshot(ctx: Context<ApproveCommunitySnapshot>, merkle_root: [u8; 32], snapshot_hash: [u8; 32],
+    migration_signature: [u8; 64], migration_slot: u64, migration_at: i64, total_amount: u64, leaf_count: u32) -> Result<()> {
+    assert_upgrade_owner(&ctx.accounts.program.to_account_info(), &ctx.accounts.program_data.to_account_info(),
+        &ctx.accounts.app_owner.key(), ctx.program_id)?;
+    let now = Clock::get()?.unix_timestamp;
+    require!(merkle_root != [0; 32] && snapshot_hash != [0; 32] && migration_signature != [0; 64]
+        && migration_slot > 0 && migration_at > 0 && migration_at <= now
+        && now < migration_at.checked_add(COMMUNITY_WINDOW_SECONDS).ok_or(ErrorCode::AmountOverflow)?
+        && total_amount > 0 && leaf_count > 0, ErrorCode::InvalidCommunitySnapshot);
+    let approval = &mut ctx.accounts.approval;
+    approval.protocol_authority = ctx.accounts.protocol_authority.key();
+    approval.creator = ctx.accounts.creator.key();
+    approval.mint = ctx.accounts.mint.key();
+    approval.eligibility_mint = ctx.accounts.eligibility_mint.key();
+    approval.merkle_root = merkle_root;
+    approval.snapshot_hash = snapshot_hash;
+    approval.migration_signature = migration_signature;
+    approval.migration_slot = migration_slot;
+    approval.migration_at = migration_at;
+    approval.total_amount = total_amount;
+    approval.leaf_count = leaf_count;
+    approval.bump = ctx.bumps.approval;
+    Ok(())
+}
+
+fn assert_snapshot_approval(approval: &CommunitySnapshotApproval, drop: &CommunityDrop) -> Result<()> {
+    require!(approval.protocol_authority == drop.protocol_authority && approval.creator == drop.creator
+        && approval.mint == drop.mint && approval.eligibility_mint == drop.eligibility_mint
+        && approval.merkle_root == drop.merkle_root && approval.snapshot_hash == drop.snapshot_hash
+        && approval.migration_signature == drop.migration_signature && approval.migration_slot == drop.migration_slot
+        && approval.migration_at == drop.migration_at && approval.total_amount == drop.total_amount
+        && approval.leaf_count == drop.leaf_count, ErrorCode::CommunitySnapshotNotApproved);
+    Ok(())
+}
 
 #[derive(Accounts)]
 pub struct InitializeCommunityDrop<'info> {
@@ -13,6 +69,9 @@ pub struct InitializeCommunityDrop<'info> {
     pub creator: Signer<'info>,
     /// CHECK: Equality with the signing reward authority is enforced in the handler.
     pub app_owner: UncheckedAccount<'info>,
+    /// CHECK: Validated against the signing protocol authority before opening the drop.
+    #[account(seeds = [SEED], bump)]
+    pub legacy_router: UncheckedAccount<'info>,
     pub mint: InterfaceAccount<'info, Mint>,
     pub eligibility_mint: InterfaceAccount<'info, Mint>,
     #[account(
@@ -23,6 +82,8 @@ pub struct InitializeCommunityDrop<'info> {
         bump
     )]
     pub drop: Account<'info, CommunityDrop>,
+    #[account(seeds = [SNAPSHOT_APPROVAL_SEED, protocol_authority.key().as_ref(), mint.key().as_ref()], bump = snapshot_approval.bump)]
+    pub snapshot_approval: Account<'info, CommunitySnapshotApproval>,
     #[account(mut, constraint = creator_token_account.owner == creator.key() @ ErrorCode::InvalidRewardTokenAccount,
         constraint = creator_token_account.mint == mint.key() @ ErrorCode::InvalidRewardTokenAccount)]
     pub creator_token_account: InterfaceAccount<'info, TokenAccount>,
@@ -58,6 +119,9 @@ pub struct InitializeCommunityDropFromRewardVault<'info> {
         has_one = mint @ ErrorCode::InvalidRewardTokenAccount,
     )]
     pub reward_vault: Account<'info, RewardVault>,
+    /// CHECK: Validated as the reward reserve PDA and parsed before escrow transfer.
+    #[account(seeds = [REWARD_RESERVE_SEED, reward_vault.key().as_ref(), mint.key().as_ref()], bump)]
+    pub reward_reserve: UncheckedAccount<'info>,
     #[account(mut,
         associated_token::mint = mint,
         associated_token::authority = reward_vault,
@@ -71,6 +135,8 @@ pub struct InitializeCommunityDropFromRewardVault<'info> {
         bump
     )]
     pub drop: Account<'info, CommunityDrop>,
+    #[account(seeds = [SNAPSHOT_APPROVAL_SEED, protocol_authority.key().as_ref(), mint.key().as_ref()], bump = snapshot_approval.bump)]
+    pub snapshot_approval: Account<'info, CommunitySnapshotApproval>,
     #[account(
         init,
         payer = protocol_authority,
@@ -101,11 +167,21 @@ pub fn initialize_drop_from_reward_vault(
 ) -> Result<()> {
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.protocol_authority.key(), ctx.program_id)?;
     require!(ctx.accounts.reward_vault.authority == ctx.accounts.protocol_authority.key(), ErrorCode::InvalidRotationAuthority);
+    let reserve_info = ctx.accounts.reward_reserve.to_account_info();
+    if reserve_info.owner == ctx.program_id {
+        let data = reserve_info.try_borrow_data()?;
+        let reserve = RewardReserve::try_deserialize(&mut &data[..])?;
+        require!(reserve.vault == ctx.accounts.reward_vault.key() && reserve.asset_mint == ctx.accounts.mint.key()
+            && reserve.outstanding == 0, ErrorCode::RewardReserveExceeded);
+    } else {
+        require!(reserve_info.data_is_empty() && reserve_info.lamports() == 0, ErrorCode::RewardReserveExceeded);
+    }
     require!(ctx.accounts.reward_vault_token_account.amount == total_amount, ErrorCode::InvalidAmount);
     fill_drop(&mut ctx.accounts.drop, ctx.accounts.protocol_authority.key(), ctx.accounts.creator.key(),
         ctx.accounts.app_owner.key(), ctx.accounts.mint.key(), ctx.accounts.eligibility_mint.key(),
         merkle_root, snapshot_hash, migration_signature, migration_slot, snapshot_slot, migration_at,
         total_amount, leaf_count, ctx.bumps.drop)?;
+    assert_snapshot_approval(&ctx.accounts.snapshot_approval, &ctx.accounts.drop)?;
     let authority = ctx.accounts.reward_vault.authority;
     let mint = ctx.accounts.reward_vault.mint;
     let bump = [ctx.accounts.reward_vault.bump];
@@ -169,10 +245,12 @@ pub fn initialize_drop(
     total_amount: u64,
     leaf_count: u32,
 ) -> Result<()> {
+    assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.protocol_authority.key(), ctx.program_id)?;
     fill_drop(&mut ctx.accounts.drop, ctx.accounts.protocol_authority.key(), ctx.accounts.creator.key(),
         ctx.accounts.app_owner.key(), ctx.accounts.mint.key(), ctx.accounts.eligibility_mint.key(),
         merkle_root, snapshot_hash, migration_signature, migration_slot, snapshot_slot, migration_at,
         total_amount, leaf_count, ctx.bumps.drop)?;
+    assert_snapshot_approval(&ctx.accounts.snapshot_approval, &ctx.accounts.drop)?;
     token_interface::transfer_checked(
         CpiContext::new(
             ctx.accounts.token_program.key(),
@@ -241,6 +319,8 @@ pub fn claim(ctx: Context<ClaimCommunityDrop>, amount: u64, leaf_index: u32, pro
     require!(claim_window_open(now, drop), ErrorCode::CommunityClaimClosed);
     require!(amount > 0 && leaf_index < drop.leaf_count && proof.len() <= 32, ErrorCode::InvalidAmount);
     require!(proof_valid(leaf(drop.key(), ctx.accounts.recipient.key(), amount, leaf_index), &proof, &drop.merkle_root), ErrorCode::InvalidRewardProof);
+    let expected_vault = get_associated_token_address_with_program_id(&drop.key(), &ctx.accounts.mint.key(), &ctx.accounts.token_program.key());
+    require_keys_eq!(ctx.accounts.vault_token_account.key(), expected_vault, ErrorCode::InvalidRewardTokenAccount);
     let next = drop.claimed_amount.checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
     require!(next <= drop.total_amount, ErrorCode::RewardTotalExceeded);
     drop.claimed_amount = next;
@@ -258,12 +338,13 @@ pub fn claim(ctx: Context<ClaimCommunityDrop>, amount: u64, leaf_index: u32, pro
     ), amount, ctx.accounts.mint.decimals)?;
     ctx.accounts.vault_token_account.reload()?;
     ctx.accounts.recipient_token_account.reload()?;
+    let received_amount = ctx.accounts.recipient_token_account.amount.checked_sub(recipient_before).ok_or(ErrorCode::InvalidAmount)?;
     require!(vault_before.checked_sub(ctx.accounts.vault_token_account.amount) == Some(amount)
-        && ctx.accounts.recipient_token_account.amount.checked_sub(recipient_before) == Some(amount), ErrorCode::InvalidAmount);
+        && received_amount > 0 && received_amount <= amount, ErrorCode::InvalidAmount);
     let payment = &mut ctx.accounts.payment;
     payment.drop = drop.key(); payment.recipient = ctx.accounts.recipient.key();
     payment.amount = amount; payment.leaf_index = leaf_index; payment.paid_at = now;
-    emit!(CommunityDropClaimed { drop:drop.key(), recipient:payment.recipient, amount, leaf_index });
+    emit!(CommunityDropClaimed { drop:drop.key(), recipient:payment.recipient, amount, received_amount, leaf_index });
     Ok(())
 }
 
@@ -288,6 +369,8 @@ pub fn close(ctx: Context<CloseCommunityDrop>) -> Result<()> {
     require!(!drop.closed && now >= drop.expires_at, ErrorCode::CommunityClaimStillOpen);
     require!(close_eligible(now, drop), ErrorCode::InvalidCommunityRemainder);
     require!(ctx.accounts.remainder_token_account.owner == drop.app_owner, ErrorCode::InvalidRewardTokenAccount);
+    let expected_vault = get_associated_token_address_with_program_id(&drop.key(), &ctx.accounts.mint.key(), &ctx.accounts.token_program.key());
+    require_keys_eq!(ctx.accounts.vault_token_account.key(), expected_vault, ErrorCode::InvalidRewardTokenAccount);
     let remaining = drop.total_amount.checked_sub(drop.claimed_amount).ok_or(ErrorCode::AmountOverflow)?;
     require!(ctx.accounts.vault_token_account.amount >= remaining, ErrorCode::InsufficientRouterBalance);
     let amount = ctx.accounts.vault_token_account.amount;
@@ -304,7 +387,7 @@ pub fn close(ctx: Context<CloseCommunityDrop>) -> Result<()> {
             &[signer],
         ), amount, ctx.accounts.mint.decimals)?;
         ctx.accounts.remainder_token_account.reload()?;
-        require!(ctx.accounts.remainder_token_account.amount.checked_sub(recipient_before) == Some(amount), ErrorCode::InvalidAmount);
+        require!(ctx.accounts.remainder_token_account.amount.checked_sub(recipient_before).is_some_and(|received| received <= amount), ErrorCode::InvalidAmount);
     }
     ctx.accounts.vault_token_account.reload()?;
     require!(ctx.accounts.vault_token_account.amount == 0, ErrorCode::InvalidAmount);
@@ -333,6 +416,7 @@ pub struct CommunityDropClaimed {
     pub drop: Pubkey,
     pub recipient: Pubkey,
     pub amount: u64,
+    pub received_amount: u64,
     pub leaf_index: u32,
 }
 

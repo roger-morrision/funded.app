@@ -3,7 +3,7 @@ import { PublicKey } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { buildCommunityManifest, verifyCommunityProof } from '../community-merkle.js';
 import { DEVNET_GENESIS_HASH, readProgramDataEvidence, rewardAddresses } from './automatic-reward-chain.mjs';
-import { buildCommunityClaimInstruction, buildCommunityInitializeInstruction, communityAddresses } from './community-claim-chain.mjs';
+import { buildCommunityClaimInstruction, buildCommunityInitializeInstruction, buildCommunitySnapshotApprovalInstruction, communityAddresses } from './community-claim-chain.mjs';
 import { readCommunityReserveStatus } from './community-reserve-status.mjs';
 import { captureExactCommunitySnapshot } from './community-snapshot.mjs';
 
@@ -103,6 +103,21 @@ export function createCommunityClaimService({ connection, store, programId, auth
       manifest:record.manifest, sourceVaultBalance:source.value.amount });
   }
 
+  async function approvalInstruction({ mint, appOwner }) {
+    await assertReviewedProgram();
+    const record = await prepared(mint);
+    if (!record) throw new Error('A verified immutable community manifest must be prepared before approval.');
+    const evidence = await programEvidence(connection, program);
+    const programData = evidence.programData;
+    const ownerBytes = Buffer.from(programData?.data || []);
+    if (!evidence.programDataAddress || ownerBytes.length < 45 || ownerBytes[12] !== 1
+      || !new PublicKey(ownerBytes.subarray(13, 45)).equals(new PublicKey(appOwner)))
+      throw new Error('Snapshot approval must be signed by the current program upgrade owner.');
+    return buildCommunitySnapshotApprovalInstruction({programId:program,appOwner,
+      programData:evidence.programDataAddress,authority:issuer,creator:record.creator,mint:record.mint,
+      eligibilityMint:eligible,manifest:record.manifest});
+  }
+
   async function recordOpening({ mint, signature }) {
     await assertReviewedProgram();
     const record = await prepared(mint);
@@ -165,5 +180,5 @@ export function createCommunityClaimService({ connection, store, programId, auth
       tokenProgram:record.tokenProgram, manifest:record.manifest, recipient:wallet, payer:wallet });
   }
 
-  return { prepare, prepared, openingInstruction, recordOpening, recipientProof, claimInstruction };
+  return { prepare, prepared, approvalInstruction, openingInstruction, recordOpening, recipientProof, claimInstruction };
 }

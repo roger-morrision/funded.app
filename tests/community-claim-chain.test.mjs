@@ -5,7 +5,7 @@ import bs58 from 'bs58';
 import { Keypair } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { buildCommunityManifest } from '../community-merkle.js';
-import { buildCommunityClaimInstruction, buildCommunityInitializeInstruction, communityAddresses } from '../server/community-claim-chain.mjs';
+import { buildCommunityClaimInstruction, buildCommunityInitializeInstruction, buildCommunitySnapshotApprovalInstruction, communityAddresses } from '../server/community-claim-chain.mjs';
 
 const key = () => Keypair.generate().publicKey.toBase58();
 const programId = key(), authority = key(), creator = key(), mint = key(), eligibilityMint = key(), holder = key();
@@ -17,12 +17,17 @@ const manifest = buildCommunityManifest({ drop, launchMint:mint, eligibilityMint
   migrationBlockTime:1_800_000_000, snapshot, amountBaseUnits:'1000' });
 
 test('builds the escrow initialization instruction with exact on-chain account order', () => {
+  const approval = buildCommunitySnapshotApprovalInstruction({programId,appOwner:authority,programData:key(),
+    authority,creator,mint,eligibilityMint,manifest});
+  assert.equal(approval.keys.length, 9);
+  assert.equal(approval.keys[0].isSigner, true);
+  assert.equal(approval.keys[5].pubkey.toBase58(), communityAddresses({programId,authority,mint}).approval.toBase58());
   const { instruction, sourceToken, dropToken } = buildCommunityInitializeInstruction({ programId, authority, creator, mint,
     eligibilityMint, tokenProgram:TOKEN_PROGRAM_ID, manifest, sourceVaultBalance:'1000' });
-  assert.equal(instruction.keys.length, 13);
+  assert.equal(instruction.keys.length, 15);
   assert.deepEqual(instruction.keys.slice(0, 5).map(row => row.pubkey.toBase58()), [authority, creator, authority, mint, eligibilityMint]);
-  assert.equal(instruction.keys[6].pubkey.toBase58(), sourceToken);
-  assert.equal(instruction.keys[8].pubkey.toBase58(), dropToken);
+  assert.equal(instruction.keys[7].pubkey.toBase58(), sourceToken);
+  assert.equal(instruction.keys[10].pubkey.toBase58(), dropToken);
   assert.equal(instruction.data.subarray(0, 8).toString('hex'), createHash('sha256').update('global:initialize_community_drop_from_reward_vault').digest('hex').slice(0, 16));
   assert.equal(instruction.data.readBigUInt64LE(8 + 32 + 32 + 64), 12345n);
   assert.equal(instruction.data.readBigUInt64LE(8 + 32 + 32 + 64 + 8 + 8 + 8), 1000n);

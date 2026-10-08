@@ -115,6 +115,16 @@ export function createAirdropsRoutes({
           data:instruction.data.toString('base64') });
       } catch (error) { return json(res, 422, { error:`Community opening is unavailable: ${error.message}` }); }
     }
+    if (req.method === 'POST' && url.pathname === '/api/airdrops/claims/approval-instruction') {
+      if (!requireAuthorized(req, res)) return true;
+      const input = await body(req);
+      try {
+        const instruction = await communityClaimService().approvalInstruction({ mint:input.mint, appOwner:input.appOwner });
+        return json(res, 200, { programId:instruction.programId.toBase58(),
+          accounts:instruction.keys.map(row => ({ pubkey:row.pubkey.toBase58(), isSigner:row.isSigner, isWritable:row.isWritable })),
+          data:instruction.data.toString('base64') });
+      } catch (error) { return json(res, 422, { error:`Snapshot approval is unavailable: ${error.message}` }); }
+    }
     if (req.method === 'POST' && url.pathname === '/api/airdrops/claims/opening-receipt') {
       const input = await body(req);
       try {

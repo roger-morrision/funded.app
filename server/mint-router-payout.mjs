@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
-import { deriveMintFeeRouter } from '../fee-router.js';
+import { deriveFeeRouter, deriveMintFeeRouter, deriveMintFeeLedger } from '../fee-router.js';
 
 const SETTLE_MINT_DISCRIMINATOR = Buffer.from('c9a8a4e9aa522860', 'hex');
+const MIGRATE_MINT_LEDGER_DISCRIMINATOR = createHash('sha256').update('global:migrate_mint_fee_ledger').digest().subarray(0, 8);
 
 export function xClaimId(obligationId) {
   if (!String(obligationId || '').trim()) throw new Error('An X obligation ID is required.');
@@ -27,32 +28,66 @@ export function deriveMintClaim(programId, mint, claimId) {
   return address;
 }
 
-export function buildMintRouterSettlementInstruction({ programId, mint, authority, recipient, amountLamports, obligationId, claimDomain = 'x' }) {
+export function buildMintFeeLedgerMigrationInstruction({ programId, mint, authority, creator, appOwner, programData }) {
+  if (!creator || !appOwner || !programData) throw new Error('Creator, program upgrade owner, and verified ProgramData are required to migrate an existing mint.');
+  const program = new PublicKey(programId);
+  const mintKey = new PublicKey(mint);
+  const ledger = deriveMintFeeLedger(program, mintKey);
+  return new TransactionInstruction({
+    programId: program,
+    keys: [
+      { pubkey:new PublicKey(authority), isSigner:true, isWritable:true },
+      { pubkey:new PublicKey(creator), isSigner:true, isWritable:false },
+      { pubkey:new PublicKey(appOwner), isSigner:true, isWritable:false },
+      { pubkey:mintKey, isSigner:false, isWritable:false },
+      { pubkey:deriveFeeRouter(program).address, isSigner:false, isWritable:false },
+      { pubkey:deriveMintFeeRouter(program, mintKey).address, isSigner:false, isWritable:false },
+      { pubkey:ledger.address, isSigner:false, isWritable:true },
+      { pubkey:program, isSigner:false, isWritable:false },
+      { pubkey:new PublicKey(programData), isSigner:false, isWritable:false },
+      { pubkey:SystemProgram.programId, isSigner:false, isWritable:false },
+    ],
+    data:MIGRATE_MINT_LEDGER_DISCRIMINATOR,
+  });
+}
+
+export function buildMintRouterSettlementInstruction({ programId, mint, authority, creator, recipient, amountLamports, obligationId, claimDomain = 'x' }) {
+  if (!creator) throw new Error('Creator wallet signature is required for mint-router settlement.');
   const mintKey = new PublicKey(mint);
   const authorityKey = new PublicKey(authority);
+  const creatorKey = new PublicKey(creator);
   const recipientKey = new PublicKey(recipient);
   const amount = BigInt(amountLamports);
   if (amount <= 0n || amount > 0xffffffffffffffffn) throw new Error('Router settlement amount is outside the u64 range.');
   const router = deriveMintFeeRouter(programId, mintKey);
+  const ledger = deriveMintFeeLedger(programId, mintKey);
+  const legacyRouter = deriveFeeRouter(programId);
   if (!['x', 'buyback', 'community-reserve'].includes(claimDomain)) throw new Error('Unsupported router claim domain.');
   const claimId = claimDomain === 'buyback' ? buybackClaimId(obligationId)
     : claimDomain === 'community-reserve' ? communityReserveClaimId(obligationId) : xClaimId(obligationId);
   const claim = deriveMintClaim(programId, mintKey, claimId);
-  const data = Buffer.alloc(8 + 32 + 4 + 8);
+  const data = Buffer.alloc(8 + 32 + 4 + 8 + 1);
   SETTLE_MINT_DISCRIMINATOR.copy(data, 0);
   claimId.copy(data, 8);
   data.writeUInt32LE(1, 40);
   data.writeBigUInt64LE(amount, 44);
+  const share = claimDomain === 'x' ? 0 : 1;
+  data[52] = share;
   return {
     router: router.address,
     claim,
     claimId,
+    ledger: ledger.address,
+    share,
     instruction: new TransactionInstruction({
       programId: router.programId,
       keys: [
         { pubkey: authorityKey, isSigner: true, isWritable: true },
+        { pubkey: creatorKey, isSigner: true, isWritable: false },
         { pubkey: mintKey, isSigner: false, isWritable: false },
+        { pubkey: legacyRouter.address, isSigner: false, isWritable: false },
         { pubkey: router.address, isSigner: false, isWritable: true },
+        { pubkey: ledger.address, isSigner: false, isWritable: true },
         { pubkey: claim, isSigner: false, isWritable: true },
         { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
         { pubkey: recipientKey, isSigner: false, isWritable: true },
@@ -62,13 +97,15 @@ export function buildMintRouterSettlementInstruction({ programId, mint, authorit
   };
 }
 
-export function readMintClaimRecord(account, { programId, mint, recipient, amountLamports, claimId }) {
+export function readMintClaimRecord(account, { programId, mint, recipient, amountLamports, claimId, share }) {
+  if (share !== 0 && share !== 1) return false;
   if (!account || !account.owner.equals(new PublicKey(programId))) return false;
   const data = Buffer.from(account.data);
   const discriminator = createHash('sha256').update('account:MintClaimRecord').digest().subarray(0, 8);
-  if (data.length !== 120 || !data.subarray(0, 8).equals(discriminator)) return false;
+  if (data.length !== 121 || !data.subarray(0, 8).equals(discriminator)) return false;
   return data.subarray(8, 40).equals(claimId)
     && data.subarray(40, 72).equals(new PublicKey(mint).toBuffer())
     && data.subarray(72, 104).equals(new PublicKey(recipient).toBuffer())
-    && data.readBigUInt64LE(104) === BigInt(amountLamports);
+    && data.readBigUInt64LE(104) === BigInt(amountLamports)
+    && data[120] === share;
 }

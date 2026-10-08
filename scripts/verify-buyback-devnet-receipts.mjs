@@ -29,7 +29,7 @@ for (const receipt of receipts) {
   assert.ok(burn, 'Transaction must contain an SPL BurnChecked for the configured $FUNDED mint');
   assert.equal(burn.parsed.info.tokenAmount.amount, receipt.boughtAndBurnedBaseUnits);
   assert.equal(BigInt(receipt.supplyBefore) - BigInt(receipt.supplyAfter), BigInt(receipt.boughtAndBurnedBaseUnits));
-  assert.ok(readMintClaimRecord(claim, { programId:process.env.FUNDED_FEE_ROUTER_PROGRAM_ID, mint:receipt.mint, recipient:burn.parsed.info.authority, amountLamports:receipt.settledLamports, claimId:buybackClaimId(receipt.id) }), 'Onchain claim must bind the source mint, operator, and exact fee payout');
+  assert.ok(readMintClaimRecord(claim, { programId:process.env.FUNDED_FEE_ROUTER_PROGRAM_ID, mint:receipt.mint, recipient:burn.parsed.info.authority, amountLamports:receipt.settledLamports, claimId:buybackClaimId(receipt.id), share:1 }), 'Onchain claim must bind the source mint, operator, and exact fee payout');
   const keys = transaction.transaction.message.getAccountKeys({ accountKeysFromLookups:transaction.meta.loadedAddresses });
   const keyAt = key => Array.from({length:keys.length},(_,index)=>keys.get(index)).findIndex(item=>item.toBase58()===key);
   const routerIndex = keyAt(receipt.router);

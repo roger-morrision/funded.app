@@ -42,11 +42,16 @@ export function createFeeReadinessController(appState) {
     try {
       await appState.getSolana();
       const verified = await appState.withRpcRetry(() => appState.verifyFeeRouterAccount({ connection: appState.connection, programId: appState.FEE_ROUTER_PROGRAM_ID }), { attempts: 2, delaysMs: [700] });
-      appState.feeRouterState = { status: verified.reason, verified: verified.verified, address: verified.address.toBase58(), programId: verified.programId.toBase58(), bump: verified.bump };
+      const service = await appState.apiRequest('/api/mint-router/status');
+      const routeReady = service.available && service.data?.ready === true;
+      const routeReason = service.data?.reasons?.join('; ') || 'mint-router settlement service is unavailable';
+      appState.feeRouterState = { status: routeReady ? verified.reason : routeReason,
+        verified: verified.verified && routeReady, address: verified.address.toBase58(),
+        programId: verified.programId.toBase58(), bump: verified.bump };
       if (addressNode) addressNode.textContent = `${appState.feeRouterState.address.slice(0, 6)}…${appState.feeRouterState.address.slice(-6)}`;
       if (status) {
-        status.textContent = verified.verified ? 'Verified on Solana. This PDA can be assigned as Pump’s fee owner at creation.' : `Launch blocked: ${verified.reason.replaceAll('-', ' ')}.`;
-        status.className = `field-help ${verified.verified ? 'funded-mint-valid' : 'funded-mint-invalid'}`;
+        status.textContent = appState.feeRouterState.verified ? 'Verified on Solana. This PDA can be assigned as Pump’s fee owner at creation.' : `Launch blocked: ${appState.feeRouterState.status.replaceAll('-', ' ')}.`;
+        status.className = `field-help ${appState.feeRouterState.verified ? 'funded-mint-valid' : 'funded-mint-invalid'}`;
       }
     } catch (error) {
       appState.feeRouterState = { status: 'router-verification-unavailable', verified: false, address: null, programId: appState.FEE_ROUTER_PROGRAM_ID, bump: null };

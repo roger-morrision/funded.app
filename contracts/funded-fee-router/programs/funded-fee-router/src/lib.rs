@@ -23,12 +23,16 @@ pub mod funded_fee_router {
         initialize::mint_handler(ctx)
     }
 
+    pub fn migrate_mint_fee_ledger(ctx: Context<MigrateMintFeeLedger>) -> Result<()> {
+        initialize::migrate_mint_fee_ledger_handler(ctx)
+    }
+
     pub fn settle(ctx: Context<Settle>, claim_id: [u8; 32], amounts: Vec<u64>) -> Result<()> {
         settle::handler(ctx, claim_id, amounts)
     }
 
-    pub fn settle_mint(ctx: Context<SettleMint>, claim_id: [u8; 32], amounts: Vec<u64>) -> Result<()> {
-        settle::mint_handler(ctx, claim_id, amounts)
+    pub fn settle_mint(ctx: Context<SettleMint>, claim_id: [u8; 32], amounts: Vec<u64>, share: u8) -> Result<()> {
+        settle::mint_handler(ctx, claim_id, amounts, share)
     }
 
     pub fn recover_mint_wrapped_sol(ctx: Context<RecoverMintWrappedSol>) -> Result<()> {
@@ -47,6 +51,18 @@ pub mod funded_fee_router {
         reward::initialize_vault(ctx)
     }
 
+    pub fn initialize_reward_reserve(ctx: Context<InitializeRewardReserve>, asset_mint: Pubkey) -> Result<()> {
+        reward::initialize_reserve(ctx, asset_mint)
+    }
+
+    pub fn migrate_reward_cycle_sol(ctx: Context<MigrateRewardCycleSol>, cycle_id: [u8; 32]) -> Result<()> {
+        reward::migrate_cycle_sol(ctx, cycle_id)
+    }
+
+    pub fn migrate_reward_cycle_token(ctx: Context<MigrateRewardCycleToken>, cycle_id: [u8; 32]) -> Result<()> {
+        reward::migrate_cycle_token(ctx, cycle_id)
+    }
+
     pub fn create_reward_cycle(
         ctx: Context<CreateRewardCycle>,
         cycle_id: [u8; 32],
@@ -58,6 +74,19 @@ pub mod funded_fee_router {
         leaf_count: u32,
     ) -> Result<()> {
         reward::create_cycle(ctx, cycle_id, merkle_root, asset_mint, total_amount, cutoff_at, payout_at, leaf_count)
+    }
+
+    pub fn create_reward_cycle_token(
+        ctx: Context<CreateRewardCycleToken>,
+        cycle_id: [u8; 32],
+        merkle_root: [u8; 32],
+        asset_mint: Pubkey,
+        total_amount: u64,
+        cutoff_at: i64,
+        payout_at: i64,
+        leaf_count: u32,
+    ) -> Result<()> {
+        reward::create_cycle_token(ctx, cycle_id, merkle_root, asset_mint, total_amount, cutoff_at, payout_at, leaf_count)
     }
 
     pub fn payout_reward_sol(
@@ -90,6 +119,15 @@ pub mod funded_fee_router {
         leaf_count: u32,
     ) -> Result<()> {
         community::initialize_drop(ctx, merkle_root, snapshot_hash, migration_signature, migration_slot, snapshot_slot, migration_at, total_amount, leaf_count)
+    }
+
+    pub fn approve_community_snapshot(
+        ctx: Context<ApproveCommunitySnapshot>, merkle_root: [u8; 32], snapshot_hash: [u8; 32],
+        migration_signature: [u8; 64], migration_slot: u64, migration_at: i64,
+        total_amount: u64, leaf_count: u32,
+    ) -> Result<()> {
+        community::approve_snapshot(ctx, merkle_root, snapshot_hash, migration_signature,
+            migration_slot, migration_at, total_amount, leaf_count)
     }
 
     pub fn initialize_community_drop_from_reward_vault(

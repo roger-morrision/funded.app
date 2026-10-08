@@ -22,6 +22,9 @@ export function initializeHomeFeed(appState) {
   initializeAppState(appState, 'homeFeeIndexLoading', homeFeeIndexLoading);
   // app-source-end
 
+  const paidTableWrap = document.querySelector('#home-launch-table-wrap');
+  if (paidTableWrap && !document.querySelector('#home-paid-listing-table'))
+    paidTableWrap.insertAdjacentHTML('beforeend', "<table class=\"home-launch-table home-paid-listing-table\" id=\"home-paid-listing-table\" hidden><thead><tr><th scope=\"col\">Token</th><th scope=\"col\">Mint</th><th scope=\"col\">Listed</th><th scope=\"col\">Payment proof</th></tr></thead><tbody id=\"home-paid-listing-table-body\"></tbody></table>");
   // app-source: 492
   document.querySelectorAll('[data-home-launch-tab]').forEach(button => button.addEventListener('click', () => {
     appState.homeLaunchTab = button.dataset.homeLaunchTab || 'all';

@@ -48,7 +48,7 @@ for (const row of requests) {
   assert.equal(row.fundingClaim, claim.toBase58(), 'The reserve claim address differs from the on-chain PDA.');
   const record = await connection.getAccountInfo(claim, 'finalized');
   assert(readMintClaimRecord(record, { programId:program, mint:row.mint, recipient:vault,
-    amountLamports:row.amount, claimId }), 'The on-chain reserve claim record does not match the exact transfer.');
+    amountLamports:row.amount, claimId, share:1 }), 'The on-chain reserve claim record does not match the exact transfer.');
   if (row.fundingSignature) {
     const status = (await connection.getSignatureStatuses([row.fundingSignature], { searchTransactionHistory:true })).value?.[0];
     assert(status?.confirmationStatus === 'finalized' && !status.err, 'A reserve funding transaction is not finalized.');

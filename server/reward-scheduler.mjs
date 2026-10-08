@@ -220,7 +220,7 @@ export function createRewardScheduler({ store, indexer, chain }) {
         try {
           const result = await chain.submitLeaf(plan, leaf);
           if (!result.finalized || !result.balanceDeltaVerified) throw new Error('Payout lacks finalized state and balance-delta evidence.');
-          await store.transaction(state => { const row = state.schedules[plan.id]; row.payments[leaf.recipient] = { status: 'paid', amount: leaf.amount, index: leaf.index, signature: result.signature, payment: result.payment, finalized: true, balanceDeltaVerified: true, paidAt: new Date().toISOString() }; });
+          await store.transaction(state => { const row = state.schedules[plan.id]; row.payments[leaf.recipient] = { status: 'paid', amount: leaf.amount, amountReceived: result.amountReceived, index: leaf.index, signature: result.signature, payment: result.payment, finalized: true, balanceDeltaVerified: true, paidAt: new Date().toISOString() }; });
           submitted += result.alreadyPaid ? 0 : 1;
         } catch (error) {
           await store.transaction(state => { const row = state.schedules[plan.id]; row.payments[leaf.recipient] = { status: 'verification-pending', amount: leaf.amount, index: leaf.index, reason: String(error.message || error), checkedAt: new Date().toISOString() }; });

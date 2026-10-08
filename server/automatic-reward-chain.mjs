@@ -21,6 +21,7 @@ import { buildMintRouterSettlementInstruction, readMintClaimRecord } from './min
 export const DEVNET_GENESIS_HASH = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
 export const REWARD_PROGRAM_VERSION = 'reward-manifest-v1';
 const VAULT_SEED = Buffer.from('reward-vault-v1');
+const RESERVE_SEED = Buffer.from('reward-reserve-v1');
 const CYCLE_SEED = Buffer.from('reward-cycle-v1');
 const PAYMENT_SEED = Buffer.from('reward-payment-v1');
 const ROUTER_SEED = Buffer.from('funded-fee-router-v1');
@@ -50,14 +51,20 @@ export function rewardAddresses({ programId, authority, mint, cycleId, recipient
   return result;
 }
 
+export function rewardReserveAddress({ programId, vault, asset }) {
+  const [address] = PublicKey.findProgramAddressSync([RESERVE_SEED, new PublicKey(vault).toBuffer(),
+    new PublicKey(asset === 'SOL' ? SOL_ASSET_MINT : asset).toBuffer()], new PublicKey(programId));
+  return address;
+}
+
 export function communityProgramReserveAddress({ programId, authority }) {
   // The program ID is a reserved vault namespace, never a launched token mint.
   return rewardAddresses({ programId, authority, mint:programId }).vault;
 }
 
-function parseCycle(account) {
+function parseCycleFields(account) {
   const data = Buffer.from(account?.data || []);
-  if (data.length < 173 || !data.subarray(0, 8).equals(discriminator('account', 'RewardCycle'))) return null;
+  if (![173, 174].includes(data.length) || !data.subarray(0, 8).equals(discriminator('account', 'RewardCycle'))) return null;
   return {
     vault: new PublicKey(data.subarray(8, 40)).toBase58(),
     cycleId: data.subarray(40, 72).toString('hex'),
@@ -66,13 +73,29 @@ function parseCycle(account) {
     totalAmount: String(data.readBigUInt64LE(136)),
     distributedAmount: String(data.readBigUInt64LE(144)),
     cutoffAt: Number(data.readBigInt64LE(152)), payoutAt: Number(data.readBigInt64LE(160)), leafCount: data.readUInt32LE(168),
+    reserved:data.length === 174 && data[173] === 1,
   };
+}
+function parseCycle(account) {
+  const cycle = parseCycleFields(account);
+  return cycle?.reserved ? cycle : null;
+}
+function parseLegacyCycle(account) {
+  const cycle = parseCycleFields(account);
+  return cycle && !cycle.reserved && Buffer.from(account.data).length === 173 ? cycle : null;
+}
+
+function parseReserve(account) {
+  const data = Buffer.from(account?.data || []);
+  if (data.length !== 81 || !data.subarray(0, 8).equals(discriminator('account', 'RewardReserve'))) return null;
+  return { vault:new PublicKey(data.subarray(8, 40)).toBase58(), asset:new PublicKey(data.subarray(40, 72)).toBase58(),
+    outstanding:String(data.readBigUInt64LE(72)), bump:data[80] };
 }
 
 function parsePayment(account) {
   const data = Buffer.from(account?.data || []);
   if (data.length < 92 || !data.subarray(0, 8).equals(discriminator('account', 'RewardPayment'))) return null;
-  return { cycle: new PublicKey(data.subarray(8, 40)).toBase58(), recipient: new PublicKey(data.subarray(40, 72)).toBase58(), amount: String(data.readBigUInt64LE(72)), leafIndex: data.readUInt32LE(80), paidAt: Number(data.readBigInt64LE(84)) };
+  return { cycle: new PublicKey(data.subarray(8, 40)).toBase58(), recipient: new PublicKey(data.subarray(40, 72)).toBase58(), amount: String(data.readBigUInt64LE(72)), leafIndex: data.readUInt32LE(80), paidAt: Number(data.readBigInt64LE(84)), receivedAmount: data.length >= 100 ? String(data.readBigUInt64LE(92)) : null };
 }
 
 export async function finalizedSend(connection, transaction, signers, { pollMs = 1000, timeoutMs = 90_000 } = {}) {
@@ -170,25 +193,71 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     return vault;
   }
 
+  async function ensureReserve(vault, asset) {
+    const assetKey = new PublicKey(asset === 'SOL' ? SOL_ASSET_MINT : asset);
+    const reserve = rewardReserveAddress({ programId:program, vault, asset:assetKey });
+    const valid = account => {
+      const parsed = parseReserve(account);
+      return account?.owner?.equals(program) && parsed?.vault === vault.toBase58() && parsed.asset === assetKey.toBase58();
+    };
+    const existing = await connection.getAccountInfo(reserve, 'finalized');
+    if (existing) {
+      if (!valid(existing)) throw new Error('Reward reserve account failed program, vault, and asset verification.');
+      return reserve;
+    }
+    const instruction = new TransactionInstruction({programId:program, keys:[
+      {pubkey:authority.publicKey,isSigner:true,isWritable:true}, {pubkey:vault,isSigner:false,isWritable:false},
+      {pubkey:reserve,isSigner:false,isWritable:true}, {pubkey:legacyRouter,isSigner:false,isWritable:false},
+      {pubkey:SystemProgram.programId,isSigner:false,isWritable:false}],
+      data:Buffer.concat([discriminator('global','initialize_reward_reserve'),assetKey.toBuffer()])});
+    await finalizedSend(connection,new Transaction().add(instruction),[authority]);
+    if (!valid(await connection.getAccountInfo(reserve,'finalized'))) throw new Error('Reward reserve initialization lacks a verified finalized account.');
+    return reserve;
+  }
+
   async function ensureCycle(plan) {
     if (new PublicKey(plan.mint).equals(program)) throw new Error('Community program reserve payouts require a separate published program flow.');
     const ready = await readiness();
     if (!ready.constrainedPayouts) throw new Error(`Reward chain unavailable: ${ready.reasons.join(', ')}`);
     const vault = await ensureVault(plan.mint);
+    const reserve = await ensureReserve(vault, plan.manifest.asset);
     const { cycle } = rewardAddresses({ programId: program, authority: authority.publicKey, mint: plan.mint, cycleId: plan.manifest.cycleId });
-    const existing = parseCycle(await connection.getAccountInfo(cycle, 'finalized'));
+    const cycleAccount = await connection.getAccountInfo(cycle, 'finalized');
+    const existing = parseCycle(cycleAccount);
+    const legacy = parseLegacyCycle(cycleAccount);
+    if (cycleAccount && !existing && !legacy) throw new Error('Existing reward cycle has an unrecognized layout.');
     const expected = { vault: vault.toBase58(), cycleId: plan.manifest.cycleId, root: plan.manifest.root, asset: plan.manifest.asset, totalAmount: plan.manifest.totalAmount, cutoffAt: plan.cutoffAt, payoutAt: plan.payoutAt, leafCount: plan.manifest.leaves.length };
+    if (existing || legacy) {
+      for (const key of Object.keys(expected)) if (String((existing || legacy)[key]) !== String(expected[key])) throw new Error(`Existing reward cycle conflicts on ${key}.`);
+    }
     if (existing) {
-      for (const key of Object.keys(expected)) if (String(existing[key]) !== String(expected[key])) throw new Error(`Existing reward cycle conflicts on ${key}.`);
       return { address: cycle.toBase58(), created: false };
     }
     const asset = plan.manifest.asset === 'SOL' ? SOL_ASSET_MINT : plan.manifest.asset;
-    const data = Buffer.concat([discriminator('global', 'create_reward_cycle'), hex32(plan.manifest.cycleId, 'cycleId'), hex32(plan.manifest.root, 'root'), new PublicKey(asset).toBuffer(), u64(plan.manifest.totalAmount), i64(plan.cutoffAt), i64(plan.payoutAt), u32(plan.manifest.leaves.length)]);
-    const instruction = new TransactionInstruction({ programId: program, keys: [{ pubkey: authority.publicKey, isSigner: true, isWritable: true }, { pubkey: vault, isSigner: false, isWritable: false }, { pubkey: cycle, isSigner: false, isWritable: true }, { pubkey: legacyRouter, isSigner: false, isWritable: false }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }], data });
+    const isSol = plan.manifest.asset === 'SOL';
+    const reserveBefore = parseReserve(await connection.getAccountInfo(reserve, 'finalized'));
+    if (!reserveBefore) throw new Error('Reward reserve is not verified before cycle creation.');
+    const keys = [{ pubkey: authority.publicKey, isSigner: true, isWritable: true }, { pubkey: vault, isSigner: false, isWritable: false },
+      { pubkey: reserve, isSigner: false, isWritable: true }, { pubkey: cycle, isSigner: false, isWritable: true }];
+    if (!isSol) {
+      const mintInfo = await connection.getAccountInfo(new PublicKey(asset), 'finalized');
+      if (!mintInfo || (!mintInfo.owner.equals(TOKEN_PROGRAM_ID) && !mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('Reward asset is not a finalized supported SPL mint.');
+      keys.push({pubkey:new PublicKey(asset),isSigner:false,isWritable:false},
+        {pubkey:getAssociatedTokenAddressSync(new PublicKey(asset),vault,true,mintInfo.owner),isSigner:false,isWritable:false});
+    }
+    keys.push({ pubkey: legacyRouter, isSigner: false, isWritable: false }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
+    const data = legacy
+      ? Buffer.concat([discriminator('global', isSol ? 'migrate_reward_cycle_sol' : 'migrate_reward_cycle_token'), hex32(plan.manifest.cycleId, 'cycleId')])
+      : Buffer.concat([discriminator('global', isSol ? 'create_reward_cycle' : 'create_reward_cycle_token'), hex32(plan.manifest.cycleId, 'cycleId'), hex32(plan.manifest.root, 'root'), new PublicKey(asset).toBuffer(), u64(plan.manifest.totalAmount), i64(plan.cutoffAt), i64(plan.payoutAt), u32(plan.manifest.leaves.length)]);
+    const instruction = new TransactionInstruction({ programId: program, keys, data });
     const signature = await finalizedSend(connection, new Transaction().add(instruction), [authority]);
     const committed = parseCycle(await connection.getAccountInfo(cycle, 'finalized'));
     if (!committed || committed.root !== expected.root || committed.totalAmount !== expected.totalAmount) throw new Error('Reward cycle transaction finalized without the expected state delta.');
-    return { address: cycle.toBase58(), created: true, signature };
+    const reserveAfter = parseReserve(await connection.getAccountInfo(reserve, 'finalized'));
+    const newlyReserved = legacy ? BigInt(legacy.totalAmount) - BigInt(legacy.distributedAmount) : BigInt(plan.manifest.totalAmount);
+    if (!reserveAfter || BigInt(reserveAfter.outstanding) - BigInt(reserveBefore.outstanding) !== newlyReserved)
+      throw new Error('Reward cycle finalized without the expected reserved liability delta.');
+    return { address: cycle.toBase58(), created: !legacy, migrated: Boolean(legacy), signature };
   }
 
   async function submitLeaf(plan, leaf) {
@@ -197,14 +266,19 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     const prior = parsePayment(await connection.getAccountInfo(payment, 'finalized'));
     if (prior) {
       if (prior.cycle !== cycle.toBase58() || prior.recipient !== leaf.recipient || prior.amount !== leaf.amount || prior.leafIndex !== leaf.index) throw new Error('Existing reward payment conflicts with the manifest.');
-      return { signature: null, finalized: true, balanceDeltaVerified: true, payment: payment.toBase58(), alreadyPaid: true };
+      if (prior.receivedAmount === null || BigInt(prior.receivedAmount) <= 0n || BigInt(prior.receivedAmount) > BigInt(prior.amount)) throw new Error('Existing reward payment lacks verified net receipt data; reconcile its finalized transaction before marking paid.');
+      return { signature: null, finalized: true, balanceDeltaVerified: true, amountReceived: prior.receivedAmount, payment: payment.toBase58(), alreadyPaid: true };
     }
     const proof = Buffer.concat(leaf.proof.map(node => hex32(node, 'proof node')));
     const data = Buffer.concat([discriminator('global', plan.manifest.asset === 'SOL' ? 'payout_reward_sol' : 'payout_reward_token'), u64(leaf.amount), u32(leaf.index), u32(leaf.proof.length), proof]);
     const recipient = new PublicKey(leaf.recipient);
-    const keys = [{ pubkey: authority.publicKey, isSigner: true, isWritable: true }, { pubkey: vault, isSigner: false, isWritable: plan.manifest.asset === 'SOL' }, { pubkey: cycle, isSigner: false, isWritable: true }, { pubkey: recipient, isSigner: false, isWritable: plan.manifest.asset === 'SOL' }];
+    const reserve = rewardReserveAddress({programId:program,vault,asset:plan.manifest.asset});
+    const keys = [{ pubkey: authority.publicKey, isSigner: true, isWritable: true }, { pubkey: vault, isSigner: false, isWritable: plan.manifest.asset === 'SOL' },
+      { pubkey: reserve, isSigner: false, isWritable: true }, { pubkey: cycle, isSigner: false, isWritable: true },
+      { pubkey: recipient, isSigner: false, isWritable: plan.manifest.asset === 'SOL' }];
     const transaction = new Transaction();
     let before;
+    let vaultTokenAddress = null, vaultTokenBefore = null;
     if (plan.manifest.asset === 'SOL') {
       before = await connection.getBalance(recipient, 'finalized');
       keys.push({ pubkey: payment, isSigner: false, isWritable: true }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
@@ -214,17 +288,25 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       if (!mintAccount || (!mintAccount.owner.equals(TOKEN_PROGRAM_ID) && !mintAccount.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('Reward asset is not a finalized supported SPL mint.');
       const tokenProgram = mintAccount.owner;
       const vaultToken = getAssociatedTokenAddressSync(mint, vault, true, tokenProgram);
+      vaultTokenAddress = vaultToken;
       const recipientToken = getAssociatedTokenAddressSync(mint, recipient, false, tokenProgram);
       transaction.add(createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, recipientToken, recipient, mint, tokenProgram));
       try { before = BigInt((await connection.getTokenAccountBalance(recipientToken, 'finalized')).value.amount); } catch { before = 0n; }
+      vaultTokenBefore = BigInt((await connection.getTokenAccountBalance(vaultToken, 'finalized')).value.amount);
       keys.push({ pubkey: mint, isSigner: false, isWritable: false }, { pubkey: vaultToken, isSigner: false, isWritable: true }, { pubkey: recipientToken, isSigner: false, isWritable: true }, { pubkey: payment, isSigner: false, isWritable: true }, { pubkey: tokenProgram, isSigner: false, isWritable: false }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
     }
     transaction.add(new TransactionInstruction({ programId: program, keys, data }));
     const cycleBefore = parseCycle(await connection.getAccountInfo(cycle, 'finalized'));
+    const reserveBefore = parseReserve(await connection.getAccountInfo(reserve, 'finalized'));
+    if (!cycleBefore || !reserveBefore) throw new Error('Reward cycle or reserve account is not verified before payout.');
     const vaultBefore = plan.manifest.asset === 'SOL' ? await connection.getBalance(vault, 'finalized') : null;
     const signature = await finalizedSend(connection, transaction, [authority]);
     const record = parsePayment(await connection.getAccountInfo(payment, 'finalized'));
     if (!record || record.amount !== leaf.amount || record.recipient !== leaf.recipient || record.leafIndex !== leaf.index) throw new Error('Payout finalized without the expected payment record.');
+    if (record.receivedAmount === null || BigInt(record.receivedAmount) <= 0n || BigInt(record.receivedAmount) > BigInt(leaf.amount)) throw new Error('Payout record lacks a valid net received amount.');
+    const reserveAfter = parseReserve(await connection.getAccountInfo(reserve, 'finalized'));
+    if (!reserveAfter || BigInt(reserveBefore.outstanding) - BigInt(reserveAfter.outstanding) !== BigInt(leaf.amount))
+      throw new Error('Payout finalized without the exact reserved liability release.');
     let after;
     if (plan.manifest.asset === 'SOL') {
       after = await connection.getBalance(recipient, 'finalized');
@@ -247,9 +329,11 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     else {
       const mint = new PublicKey(plan.manifest.asset), mintAccount = await connection.getAccountInfo(mint, 'finalized'), recipientToken = getAssociatedTokenAddressSync(mint, recipient, false, mintAccount.owner);
       after = BigInt((await connection.getTokenAccountBalance(recipientToken, 'finalized')).value.amount);
-      if (BigInt(after) - BigInt(before) < BigInt(leaf.amount)) throw new Error('Payout record exists, but the expected recipient balance delta was not observed.');
+      const vaultTokenAfter = BigInt((await connection.getTokenAccountBalance(vaultTokenAddress, 'finalized')).value.amount);
+      if (vaultTokenBefore - vaultTokenAfter !== BigInt(leaf.amount)
+        || BigInt(after) - BigInt(before) < BigInt(record.receivedAmount)) throw new Error('Payout record exists, but the expected gross debit and net recipient balance delta were not observed.');
     }
-    return { signature, finalized: true, balanceDeltaVerified: true, payment: payment.toBase58(), vaultBalanceDeltaVerified: plan.manifest.asset === 'SOL' };
+    return { signature, finalized: true, balanceDeltaVerified: true, amountReceived: record.receivedAmount, payment: payment.toBase58(), vaultBalanceDeltaVerified: true };
   }
 
   async function fundSolVault({ mint, amount }) {
@@ -265,7 +349,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
   async function fundSolVaultFromMintRouter({ mint, amount, fundingId }) {
     const vault = await ensureVault(mint);
     const settlement = buildMintRouterSettlementInstruction({ programId: program, mint, authority: authority.publicKey, recipient: vault, amountLamports: String(amount), obligationId: `automatic-reward:${fundingId}` });
-    const expected = account => readMintClaimRecord(account, { programId: program, mint, recipient: vault, amountLamports: String(amount), claimId: settlement.claimId });
+    const expected = account => readMintClaimRecord(account, { programId: program, mint, recipient: vault, amountLamports: String(amount), claimId: settlement.claimId, share: settlement.share });
     const prior = await connection.getAccountInfo(settlement.claim, 'finalized');
     if (prior) {
       if (!expected(prior)) throw new Error('Existing mint-router funding claim conflicts with this reward pool.');
@@ -285,7 +369,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     const settlement = buildMintRouterSettlementInstruction({ programId:program, mint, authority:authority.publicKey,
       recipient:vault, amountLamports:String(amount), obligationId:fundingId, claimDomain:'community-reserve' });
     const expected = account => readMintClaimRecord(account, { programId:program, mint, recipient:vault,
-      amountLamports:String(amount), claimId:settlement.claimId });
+      amountLamports:String(amount), claimId:settlement.claimId, share:settlement.share });
     const prior = await connection.getAccountInfo(settlement.claim, 'finalized');
     if (prior) {
       if (!expected(prior)) throw new Error('Existing community reserve claim conflicts with this allocation.');

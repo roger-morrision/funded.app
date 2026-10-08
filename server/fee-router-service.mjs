@@ -47,6 +47,7 @@ export function createFeeRouterService({
   }
   async function mintRouterReadiness() {
     const reasons = [];
+    reasons.push('Creator wallet co-signing for on-chain 80/20 settlements is not yet available in the payout flow');
     if (solanaCluster !== 'devnet') reasons.push('Solana is required');
     if (env.FUNDED_MINT_FEE_ROUTER_ENABLED !== 'true') reasons.push('mint router route is disabled');
     if (!feeRouterConfig()) reasons.push('fee router is not configured');

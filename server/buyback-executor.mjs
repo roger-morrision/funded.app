@@ -146,7 +146,7 @@ export function createDevnetBuybackExecutor({ store, rpcUrl, programId, programD
       if (!signatureStatus?.value && !claim && order.signedTransaction && await connection.getBlockHeight('confirmed') < order.lastValidBlockHeight) await connection.sendRawTransaction(Buffer.from(order.signedTransaction, 'base64'), { skipPreflight:false, maxRetries:3 }).catch(() => {});
       return { ...order, status: 'submitted', reason: signatureStatus?.value?.err ? 'transaction-failed-requires-reconciliation' : 'awaiting-finality' };
     }
-    const matches = readMintClaimRecord(claim, { programId, mint: order.mint, recipient: operator.publicKey, amountLamports: order.settledLamports, claimId: Buffer.from(order.claimId, 'hex') });
+    const matches = readMintClaimRecord(claim, { programId, mint: order.mint, recipient: operator.publicKey, amountLamports: order.settledLamports, claimId: Buffer.from(order.claimId, 'hex'), share:1 });
     if (!matches) throw new Error('Finalized buyback transaction lacks its exact mint-router claim record.');
     const keys = tx.transaction.message.getAccountKeys({ accountKeysFromLookups: tx.meta.loadedAddresses });
     const routerIndex = Array.from({ length:keys.length }, (_, index) => keys.get(index)).findIndex(key => key.toBase58() === order.router);

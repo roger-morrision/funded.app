@@ -2,10 +2,11 @@ import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
-import { rewardAddresses } from './automatic-reward-chain.mjs';
+import { rewardAddresses, rewardReserveAddress } from './automatic-reward-chain.mjs';
 import { verifyCommunityProof } from '../community-merkle.js';
 
 const DROP_SEED = Buffer.from('community-drop-v1');
+const SNAPSHOT_APPROVAL_SEED = Buffer.from('snapshot-approval-v1');
 const PAYMENT_SEED = Buffer.from('community-pay-v1');
 const ROUTER_SEED = Buffer.from('funded-fee-router-v1');
 const digest = name => createHash('sha256').update(name).digest().subarray(0, 8);
@@ -21,9 +22,31 @@ const address = value => new PublicKey(value).toBase58();
 export function communityAddresses({ programId, authority, mint, recipient }) {
   const program = new PublicKey(programId), issuer = new PublicKey(authority), asset = new PublicKey(mint);
   const [drop] = PublicKey.findProgramAddressSync([DROP_SEED, issuer.toBuffer(), asset.toBuffer()], program);
-  const result = { drop };
+  const [approval] = PublicKey.findProgramAddressSync([SNAPSHOT_APPROVAL_SEED, issuer.toBuffer(), asset.toBuffer()], program);
+  const result = { drop, approval };
   if (recipient) [result.payment] = PublicKey.findProgramAddressSync([PAYMENT_SEED, drop.toBuffer(), new PublicKey(recipient).toBuffer()], program);
   return result;
+}
+
+export function buildCommunitySnapshotApprovalInstruction({programId,appOwner,programData,authority,creator,mint,eligibilityMint,manifest}) {
+  if (!appOwner || !programData) throw new Error('Program upgrade owner and verified ProgramData are required for snapshot approval.');
+  const program = new PublicKey(programId), {approval} = communityAddresses({programId,authority,mint});
+  const signature = bs58.decode(manifest.migrationSignature);
+  if (signature.length !== 64 || !Number.isSafeInteger(manifest.migrationSlot) || manifest.migrationSlot <= 0)
+    throw new Error('Snapshot approval requires a finalized migration identity.');
+  const data = Buffer.concat([digest('global:approve_community_snapshot'),hex32(manifest.root,'Merkle root'),
+    hex32(manifest.snapshotHash,'Snapshot hash'),signature,u64(manifest.migrationSlot),i64(manifest.migrationBlockTime),
+    u64(manifest.totalAmount),u32(manifest.leaves.length)]);
+  return new TransactionInstruction({programId:program,keys:[
+    {pubkey:new PublicKey(appOwner),isSigner:true,isWritable:true},
+    {pubkey:new PublicKey(authority),isSigner:false,isWritable:false},
+    {pubkey:new PublicKey(creator),isSigner:false,isWritable:false},
+    {pubkey:new PublicKey(mint),isSigner:false,isWritable:false},
+    {pubkey:new PublicKey(eligibilityMint),isSigner:false,isWritable:false},
+    {pubkey:approval,isSigner:false,isWritable:true},
+    {pubkey:program,isSigner:false,isWritable:false},
+    {pubkey:new PublicKey(programData),isSigner:false,isWritable:false},
+    {pubkey:SystemProgram.programId,isSigner:false,isWritable:false}],data});
 }
 
 export function buildCommunityInitializeInstruction({ programId, authority, creator, mint, eligibilityMint, tokenProgram,
@@ -31,8 +54,9 @@ export function buildCommunityInitializeInstruction({ programId, authority, crea
   const program = new PublicKey(programId), issuer = new PublicKey(authority), creatorKey = new PublicKey(creator), asset = new PublicKey(mint);
   const eligible = new PublicKey(eligibilityMint), token = new PublicKey(tokenProgram);
   if (!token.equals(TOKEN_PROGRAM_ID) && !token.equals(TOKEN_2022_PROGRAM_ID)) throw new Error('Unsupported claim token program.');
-  const { drop } = communityAddresses({ programId:program, authority:issuer, mint:asset });
+  const { drop, approval } = communityAddresses({ programId:program, authority:issuer, mint:asset });
   const { vault } = rewardAddresses({ programId:program, authority:issuer, mint:asset });
+  const reserve = rewardReserveAddress({programId:program,vault,asset});
   if (manifest.drop !== drop.toBase58() || manifest.launchMint !== asset.toBase58() || manifest.eligibilityMint !== eligible.toBase58()
     || manifest.migrationSlot !== manifest.snapshotSlot && manifest.snapshotSlot !== undefined
     || !Array.isArray(manifest.leaves) || manifest.leaves.length < 1 || manifest.leaves.length > 0xffffffff
@@ -65,8 +89,10 @@ export function buildCommunityInitializeInstruction({ programId, authority, crea
     { pubkey:asset, isSigner:false, isWritable:false },
     { pubkey:eligible, isSigner:false, isWritable:false },
     { pubkey:vault, isSigner:false, isWritable:false },
+    { pubkey:reserve, isSigner:false, isWritable:false },
     { pubkey:sourceToken, isSigner:false, isWritable:true },
     { pubkey:drop, isSigner:false, isWritable:true },
+    { pubkey:approval, isSigner:false, isWritable:false },
     { pubkey:dropToken, isSigner:false, isWritable:true },
     { pubkey:router, isSigner:false, isWritable:false },
     { pubkey:token, isSigner:false, isWritable:false },

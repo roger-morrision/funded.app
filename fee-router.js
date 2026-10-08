@@ -2,6 +2,7 @@ import { PublicKey } from '@solana/web3.js';
 
 export const FEE_ROUTER_SEED = 'funded-fee-router-v1';
 export const MINT_FEE_ROUTER_SEED = 'funded-mint-router-v2';
+export const MINT_FEE_LEDGER_SEED = 'mint-fee-ledger-v1';
 export const MINT_FEE_ROUTER_MAGIC = 'FUNDMNT2';
 export const MINT_FEE_ROUTER_VERSION = 2;
 export const MINT_FEE_ROUTER_DATA_LEN = 106;
@@ -31,6 +32,13 @@ export function deriveMintFeeRouter(programId, mint) {
   const mintAddress = new PublicKey(String(mint || '').trim());
   const [address, bump] = PublicKey.findProgramAddressSync([new TextEncoder().encode(MINT_FEE_ROUTER_SEED), mintAddress.toBuffer()], program);
   return { programId: program, mint: mintAddress, address, bump };
+}
+
+export function deriveMintFeeLedger(programId, mint) {
+  const program = new PublicKey(programId);
+  const mintAddress = new PublicKey(mint);
+  const [address, bump] = PublicKey.findProgramAddressSync([new TextEncoder().encode(MINT_FEE_LEDGER_SEED), mintAddress.toBuffer()], program);
+  return { address, bump };
 }
 
 export async function verifyMintFeeRouterAccount({ connection, programId, mint, expectedAuthority = null }) {
@@ -96,7 +104,8 @@ export function buildFeeRouterPolicy({ programId, address, bump, scope = 'shared
     settlement: {
       trigger: 'successful-fee-claim',
       idempotencyKey: 'claim-transaction-signature',
-      rule: 'allocate-100-percent-before-payout',
+      rule: 'on-chain-cumulative-80-percent-creator-20-percent-protocol-caps',
+      creatorSignatureRequired: true,
       retry: 'failed-payouts-remain-pending-to-original-recipient',
     },
   };

@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_instruction;
-use crate::{constants::*, error::ErrorCode};
+use crate::{constants::*, error::ErrorCode, state::MintFeeLedger};
+use super::rotate::{assert_upgrade_owner, assert_current_router_authority};
 
 // An empty system-owned PDA may already hold a third-party deposit. Funding it
 // must not prevent initialization, and those lamports must remain in the vault.
@@ -45,12 +46,19 @@ fn create_router_account<'info>(
 pub struct Initialize<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
+    pub app_owner: Signer<'info>,
     #[account(mut, seeds = [SEED], bump)]
     pub router: UncheckedAccount<'info>,
+    /// CHECK: Matched to this executable program by the upgrade-owner guard.
+    pub program: UncheckedAccount<'info>,
+    /// CHECK: Checked as this program's ProgramData and upgrade owner.
+    pub program_data: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
 pub fn handler(ctx: Context<Initialize>) -> Result<()> {
+    assert_upgrade_owner(&ctx.accounts.program.to_account_info(), &ctx.accounts.program_data.to_account_info(),
+        &ctx.accounts.app_owner.key(), ctx.program_id)?;
     let router = &ctx.accounts.router;
     let bump = ctx.bumps.router;
     create_router_account(
@@ -76,6 +84,9 @@ pub struct InitializeMint<'info> {
     pub legacy_router: UncheckedAccount<'info>,
     #[account(mut, seeds = [MINT_ROUTER_SEED, mint.key().as_ref()], bump)]
     pub router: UncheckedAccount<'info>,
+    #[account(init, payer = payer, space = 8 + MintFeeLedger::INIT_SPACE,
+        seeds = [MINT_LEDGER_SEED, mint.key().as_ref()], bump)]
+    pub ledger: Account<'info, MintFeeLedger>,
     pub system_program: Program<'info, System>,
 }
 
@@ -103,5 +114,54 @@ pub fn mint_handler(ctx: Context<InitializeMint>) -> Result<()> {
     data[41..73].copy_from_slice(&authority);
     data[73..105].copy_from_slice(mint_key.as_ref());
     data[105] = bump;
+    let ledger = &mut ctx.accounts.ledger;
+    ledger.mint = mint_key;
+    ledger.creator = ctx.accounts.payer.key();
+    ledger.creator_spent = 0;
+    ledger.protocol_spent = 0;
+    ledger.bump = ctx.bumps.ledger;
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct MigrateMintFeeLedger<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    pub creator: Signer<'info>,
+    pub app_owner: Signer<'info>,
+    pub mint: UncheckedAccount<'info>,
+    #[account(seeds = [SEED], bump)]
+    pub legacy_router: UncheckedAccount<'info>,
+    #[account(seeds = [MINT_ROUTER_SEED, mint.key().as_ref()], bump)]
+    pub router: UncheckedAccount<'info>,
+    #[account(init, payer = authority, space = 8 + MintFeeLedger::INIT_SPACE,
+        seeds = [MINT_LEDGER_SEED, mint.key().as_ref()], bump)]
+    pub ledger: Account<'info, MintFeeLedger>,
+    /// CHECK: Checked against this executable program by the upgrade-owner guard.
+    pub program: UncheckedAccount<'info>,
+    /// CHECK: Checked as this program's ProgramData and upgrade owner.
+    pub program_data: UncheckedAccount<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+pub fn migrate_mint_fee_ledger_handler(ctx: Context<MigrateMintFeeLedger>) -> Result<()> {
+    assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
+    assert_upgrade_owner(&ctx.accounts.program.to_account_info(), &ctx.accounts.program_data.to_account_info(),
+        &ctx.accounts.app_owner.key(), ctx.program_id)?;
+    let router = &ctx.accounts.router;
+    require!(router.owner == ctx.program_id, ErrorCode::InvalidMintRouter);
+    let data = router.try_borrow_data()?;
+    require!(data.len() == MINT_ROUTER_DATA_LEN && &data[0..8] == MINT_ROUTER_MAGIC
+        && data[8] == MINT_ROUTER_VERSION && data[9..41] == POLICY_HASH
+        && data[41..73] == ctx.accounts.authority.key().to_bytes()
+        && data[73..105] == ctx.accounts.mint.key().to_bytes()
+        && data[105] == ctx.bumps.router, ErrorCode::InvalidMintRouter);
+    require!(router.lamports() == Rent::get()?.minimum_balance(MINT_ROUTER_DATA_LEN), ErrorCode::InvalidMintFeeLedger);
+    let ledger = &mut ctx.accounts.ledger;
+    ledger.mint = ctx.accounts.mint.key();
+    ledger.creator = ctx.accounts.creator.key();
+    ledger.creator_spent = 0;
+    ledger.protocol_spent = 0;
+    ledger.bump = ctx.bumps.ledger;
     Ok(())
 }

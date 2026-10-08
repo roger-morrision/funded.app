@@ -8,6 +8,7 @@ use {
     solana_signer_lite::Signer,
     solana_transaction_lite::versioned::VersionedTransaction,
 };
+mod support;
 
 fn send(svm: &mut LiteSVM, payer: &Keypair, signers: &[&Keypair], instructions: &[Instruction]) -> bool {
     let message = Message::new_with_blockhash(instructions, Some(&payer.pubkey()), &svm.latest_blockhash());
@@ -25,7 +26,8 @@ fn recovers_only_the_mint_router_native_ata() {
     let other = Keypair::new();
     let mint = Keypair::new();
     let mut svm = LiteSVM::new();
-    svm.add_program(program_id, include_bytes!("../../../target/deploy/funded_fee_router.so")).unwrap();
+    svm.add_program(program_id, &support::program_bytes()).unwrap();
+    let program_data = support::set_upgrade_owner(&mut svm, program_id, authority.pubkey());
     let native_mint = spl_token::state::Mint { mint_authority:COption::None, supply:0,
         decimals:9, is_initialized:true, freeze_authority:COption::None };
     let mut native_mint_data = vec![0; spl_token::state::Mint::LEN];
@@ -36,11 +38,12 @@ fn recovers_only_the_mint_router_native_ata() {
     svm.airdrop(&other.pubkey(), 10_000_000).unwrap();
     let (legacy, _) = anchor_lang::prelude::Pubkey::find_program_address(&[b"funded-fee-router-v1"], &program_id);
     let (router, _) = anchor_lang::prelude::Pubkey::find_program_address(&[b"funded-mint-router-v2", mint.pubkey().as_ref()], &program_id);
+    let (ledger, _) = anchor_lang::prelude::Pubkey::find_program_address(&[b"mint-fee-ledger-v1", mint.pubkey().as_ref()], &program_id);
     let initialize = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::Initialize {}.data(),
-        funded_fee_router::accounts::Initialize { authority: authority.pubkey(), router:legacy, system_program:anchor_lang::system_program::ID }.to_account_metas(None));
+        funded_fee_router::accounts::Initialize { authority: authority.pubkey(), app_owner: authority.pubkey(), router:legacy, program:program_id, program_data, system_program:anchor_lang::system_program::ID }.to_account_metas(None));
     assert!(send(&mut svm, &authority, &[&authority], &[initialize]));
     let initialize_mint = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::InitializeMint {}.data(),
-        funded_fee_router::accounts::InitializeMint { payer:authority.pubkey(), mint:mint.pubkey(), legacy_router:legacy, router,
+        funded_fee_router::accounts::InitializeMint { payer:authority.pubkey(), mint:mint.pubkey(), legacy_router:legacy, router, ledger,
             system_program:anchor_lang::system_program::ID }.to_account_metas(None));
     assert!(send(&mut svm, &authority, &[&authority, &mint], &[initialize_mint]));
 

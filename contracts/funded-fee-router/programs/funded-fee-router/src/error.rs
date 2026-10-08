@@ -44,4 +44,16 @@ pub enum ErrorCode {
     InvalidRotationAuthority,
     #[msg("Wrapped SOL account is not the mint router's native mint ATA")]
     InvalidWrappedSolAccount,
+    #[msg("Mint fee ledger does not match the authorized creator and mint")]
+    InvalidMintFeeLedger,
+    #[msg("Settlement exceeds the on-chain 80/20 fee allocation")]
+    FeeShareExceeded,
+    #[msg("Settlement fee share must be creator or protocol")]
+    InvalidFeeShare,
+    #[msg("Legacy shared-router settlement is disabled until funds are migrated")]
+    LegacySettlementDisabled,
+    #[msg("Reward cycle commitments exceed the unreserved vault balance")]
+    RewardReserveExceeded,
+    #[msg("Community snapshot was not approved by the program upgrade owner")]
+    CommunitySnapshotNotApproved,
 }
