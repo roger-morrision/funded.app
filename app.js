@@ -5712,7 +5712,7 @@ function updateLaunchPreview(){
   }
   xLabel = xLabel.trim() || 'Token';
   const xPrefix = EXPLORE_CLUSTER === 'devnet' ? '[Devnet test] ' : '[Mainnet] ';
-  const xLink = 'https://funded.vip/token/{mint-after-launch}';
+  const xLink = 'funded.vip/token/your-token';
   const xLaunch = launchBurn.tier === 'standard'
     ? `New project on funded.vip: “${xLabel}”. Token creation finalized.`
     : `${launchBurn.tier === 'premier' ? 'Premier' : 'Pro'} launch: “${xLabel}”. Creation and $FUNDED tier burn finalized.`;
