@@ -14,14 +14,33 @@ async function open(page, route) {
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
 }
 
-for (const width of [1280, 390, 320]) test(`Explore Filters can close from the same toggle at ${width}px`, async ({ page }) => {
-  await page.setViewportSize({ width, height: 850 });
+for (const width of [1280, 900, 620, 390, 320]) test(`Explore Filters stay in view and close from the same toggle at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 750 });
   await open(page, 'explore');
   const toggle = page.locator('#explore-filter-toggle');
   const popover = page.locator('#explore-filter-popover');
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   await expect(popover).toBeVisible();
+  const assertInsideViewport = async () => {
+    const box = await popover.boundingBox();
+    const viewport = page.viewportSize();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+    expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+  };
+  await assertInsideViewport();
+  await page.locator('#explore-promotion-filter').selectOption('standard');
+  await page.locator('#explore-clear-filters').click();
+  await expect(page.locator('#explore-promotion-filter')).toHaveValue('all');
+  await assertInsideViewport();
+  await page.setViewportSize({ width, height: 600 });
+  await assertInsideViewport();
+  await page.keyboard.press('Escape');
+  await expect(popover).toBeHidden();
+  await expect(toggle).toBeFocused();
+  await toggle.click();
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await expect(popover).toBeHidden();

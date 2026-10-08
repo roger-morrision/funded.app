@@ -7443,6 +7443,35 @@ document.querySelector('#explore-min-traders')?.addEventListener('input', () => 
   updateExploreViews();
 });
 document.querySelector('#explore-clear-filters')?.addEventListener('click', () => clearExploreFilters());
+function positionExploreFilters(){
+  const popover = document.querySelector('#explore-filter-popover');
+  const toggle = document.querySelector('#explore-filter-toggle');
+  if (!popover || popover.hidden || !toggle) return;
+  const viewport = window.visualViewport;
+  const margin = 12, gap = 8;
+  const viewportLeft = viewport?.offsetLeft || 0;
+  const viewportTop = viewport?.offsetTop || 0;
+  const viewportWidth = Math.min(viewport?.width || innerWidth, document.documentElement.clientWidth);
+  const viewportBottom = viewportTop + (viewport?.height || innerHeight);
+  const header = document.querySelector('.topbar')?.getBoundingClientRect();
+  const navigation = document.querySelector('.mobile-workspace-nav')?.getBoundingClientRect();
+  const top = Math.max(viewportTop + margin, (header?.bottom || 0) + gap);
+  const bottom = Math.min(viewportBottom - margin,
+    navigation?.height && navigation.top > top ? navigation.top - gap : viewportBottom - margin);
+  const anchor = toggle.getBoundingClientRect();
+  const width = Math.min(440, viewportWidth - margin * 2);
+  const below = Math.max(0, bottom - anchor.bottom - gap);
+  const above = Math.max(0, anchor.top - gap - top);
+  const openBelow = below >= Math.min(320, popover.scrollHeight) || below >= above;
+  const maxHeight = Math.max(0, Math.min(620, bottom - top, openBelow ? below : above));
+  Object.assign(popover.style, {
+    position: 'fixed', right: 'auto', bottom: 'auto', width: `${width}px`,
+    maxHeight: `${maxHeight}px`,
+    left: `${Math.max(viewportLeft + margin, Math.min(anchor.left, viewportLeft + viewportWidth - width - margin))}px`,
+  });
+  const height = popover.getBoundingClientRect().height;
+  popover.style.top = `${Math.max(top, Math.min(openBelow ? anchor.bottom + gap : anchor.top - gap - height, bottom - height))}px`;
+}
 function setExploreFilterOpen(open){
   const popover = document.querySelector('#explore-filter-popover');
   const toggle = document.querySelector('#explore-filter-toggle');
@@ -7450,7 +7479,14 @@ function setExploreFilterOpen(open){
   popover.hidden = !open;
   toggle.setAttribute('aria-expanded', String(open));
   toggle.setAttribute('aria-label', open ? 'Close launch filters' : 'Open launch filters');
+  if (open) positionExploreFilters();
 }
+window.addEventListener('resize', positionExploreFilters);
+window.visualViewport?.addEventListener('resize', positionExploreFilters);
+window.visualViewport?.addEventListener('scroll', positionExploreFilters);
+document.addEventListener('scroll', event => {
+  if (!document.querySelector('#explore-filter-popover')?.contains(event.target)) positionExploreFilters();
+}, { capture: true, passive: true });
 document.querySelector('#explore-filter-toggle')?.addEventListener('click', event => {
   event.stopPropagation();
   const popover = document.querySelector('#explore-filter-popover');
