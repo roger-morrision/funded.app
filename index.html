@@ -654,7 +654,7 @@
         <p class="dialog-copy">Choose a tier, add your coin details, and review the cost before connecting your wallet.</p>
         <div class="launch-steps" aria-label="Launch progress">
           <button type="button" class="active" data-launch-step-target="1"><b>1</b><span>Token details</span></button>
-          <button type="button" data-launch-step-target="2"><b>2</b><span>Rewards &amp; options</span></button><button type="button" data-launch-step-target="3"><b>3</b><span>Review</span></button>
+          <button type="button" data-launch-step-target="2"><b>2</b><span>Rewards &amp; launch</span></button>
         </div>
           <div class="launch-layout">
             <div class="launch-fields">
@@ -730,38 +730,15 @@
                 </section></div></details>
               </section>
 
-              <section class="launch-step-panel launch-review-step" data-launch-step="3" hidden aria-labelledby="launch-final-title">
-                <div class="step-heading"><span>Final check</span><h3 id="launch-final-title">Review your launch</h3><p>Confirm the token, allocation, and fee policy before signing.</p></div>
-                <div id="launch-review-summary" class="launch-review-overview">
-                  <section class="launch-review-card launch-review-token" aria-labelledby="launch-review-token-heading">
-                    <div class="launch-review-card-heading"><span>01 / TOKEN</span><h4 id="launch-review-token-heading">Launch details</h4></div>
-                    <div class="launch-review-token-identity"><strong id="review-token-name">Token name</strong><span id="review-token-symbol">TICKER</span></div>
-                    <dl class="launch-review-facts">
-                      <div><dt>Community allocation</dt><dd id="review-community">—</dd></div>
-                      <div><dt>Developer buy</dt><dd id="review-creator-buy">—</dd></div>
-                      <div><dt>Promotion</dt><dd id="review-promotion">—</dd></div>
-                      <div><dt>Network</dt><dd id="review-network">Solana</dd></div>
-                    </dl>
-                  </section>
-                  <section class="launch-review-card launch-review-fees" aria-labelledby="launch-review-fees-heading">
-                    <div class="launch-review-card-heading"><span>02 / POLICY</span><h4 id="launch-review-fees-heading">Creator fee split</h4></div>
-                    <p>Percent of gross creator fees actually collected.</p>
-                    <div class="launch-review-fee-bar" aria-hidden="true"><span data-review-share="creator"></span><span data-review-share="holders"></span><span data-review-share="x"></span><span data-review-share="protocol"></span></div>
-                    <dl class="launch-review-facts">
-                      <div><dt>Creator wallet</dt><dd id="review-creator-share">80%</dd></div>
-                      <div><dt>Holder rewards</dt><dd id="review-holder-share">0%</dd></div>
-                      <div><dt>X account</dt><dd id="review-x-share">0%</dd></div>
-                      <div><dt>Protocol</dt><dd id="review-protocol-share">20%</dd></div>
-                    </dl>
-                  </section>
-                  <div class="launch-review-estimate"><div><span>Estimated spend</span><strong id="review-estimated-spend">Estimate unavailable</strong></div><p id="review-estimate-detail">Check the itemized cost and confirm the fee route in the payment panel before signing.</p></div>
-                </div>
-                <p class="launch-review-pending-note">A submitted transaction is pending until confirmed. The launch record may take longer to appear.</p>
-              </section>
               <div class="wizard-actions"><button type="button" class="secondary-button" id="launch-back" hidden>Back</button><span id="wizard-hint" role="status" aria-live="polite" aria-atomic="true">Enter the coin name and ticker to continue.</span><button type="button" class="secondary-button" id="launch-review-retry" hidden>Retry checks</button><button type="button" class="primary-button" id="launch-next" aria-describedby="wizard-hint">Continue</button></div>
             </div>
             <aside class="launch-preview" aria-label="Launch summary"><div class="launch-preview-sticky">
-              <section class="launch-preview-panel" aria-labelledby="launch-preview-title"><div class="launch-preview-heading"><strong id="launch-preview-title">Launch summary</strong></div><div class="launch-summary-specs"><div><span>Launchpad</span><strong id="preview-launchpad">Pump.fun</strong></div><div><span>Supply</span><strong id="preview-supply">1 billion</strong></div><div><span>Community reserve</span><strong id="preview-community">3%</strong></div><div><span>Developer buy</span><strong id="preview-creator-buy">Creation only</strong></div><div><span>Launch tier</span><strong id="preview-burn-tier" class="tier-badge standard">STANDARD</strong></div><div><span>Estimated total</span><strong id="preview-launch-cost">Connect wallet</strong></div></div></section>
+              <section class="launch-preview-panel" aria-labelledby="launch-preview-title">
+                <div class="launch-preview-heading"><strong id="launch-preview-title">Launch summary</strong></div>
+                <div class="launch-summary-identity"><strong id="launch-summary-name">Token name</strong><span id="launch-summary-symbol">TICKER</span></div>
+                <div class="launch-summary-specs"><div><span>Network</span><strong>Solana Devnet</strong></div><div><span>Launchpad</span><strong id="preview-launchpad">Pump.fun</strong></div><div><span>Supply</span><strong id="preview-supply">1 billion</strong></div><div><span>Community reserve</span><strong id="preview-community">3%</strong></div><div><span>Developer buy</span><strong id="preview-creator-buy">Creation only</strong></div><div><span>Launch tier</span><strong id="preview-burn-tier" class="tier-badge standard">STANDARD</strong></div><div><span>Estimated total</span><strong id="preview-launch-cost">Connect wallet</strong></div></div>
+                <div class="launch-summary-policy" aria-labelledby="launch-summary-policy-title"><strong id="launch-summary-policy-title">Creator fee split</strong><p>Percent of gross creator fees collected.</p><div class="launch-summary-fee-bar" aria-hidden="true"><span data-summary-share="creator"></span><span data-summary-share="holders"></span><span data-summary-share="x"></span><span data-summary-share="protocol"></span></div><dl><div><dt>Creator wallet</dt><dd id="launch-summary-creator">80%</dd></div><div><dt>Holder rewards</dt><dd id="launch-summary-holders">0%</dd></div><div><dt>X account</dt><dd id="launch-summary-x">0%</dd></div><div><dt>Protocol</dt><dd id="launch-summary-protocol">20%</dd></div></dl></div>
+              </section>
               <div class="cost-summary launch-pay-summary free-launch" id="cost-summary" aria-live="polite">
                 <div class="cost-summary-head"><span>You pay</span><strong id="cost-tier-label">Platform launch fee: 0</strong></div>
                   <div class="community-airdrop-highlight"><span>COMMUNITY RESERVE</span><strong><b id="cost-community-tokens">30,000,000</b> tokens</strong><p id="cost-community-detail"><b>3.00% of supply</b> · bought and locked in the reward vault when launch finalizes</p></div>

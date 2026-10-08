@@ -41,12 +41,16 @@ body.product-experience-ready .scanner-scroll { font-variant-numeric:tabular-num
 body.product-experience-ready .scanner-head { font-size:12px; text-transform:none; }
 body.product-experience-ready .launch-step-panel .creator-burn-section { margin:24px 0; }
 body.product-experience-ready .launch-step-panel[hidden] { display:none!important; }
-body.product-experience-ready .launch-steps { display:grid!important; grid-template-columns:repeat(3,minmax(0,1fr)); }
+body.product-experience-ready .launch-steps { display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr)); }
 body.product-experience-ready .wizard-actions { display:flex!important; }
 body.product-experience-ready .launch-profile-heading,body.product-experience-ready .launch-profile-grid { display:none; }
-body.product-experience-ready #launch-dialog:not([data-step="3"]) .launch-preview-submit { display:none; }
+body.product-experience-ready #launch-dialog:not([data-step="2"]) .launch-preview-submit { display:none; }
 body.product-experience-ready .launch-steps button { min-height:52px; font-size:14px; }
 body.product-experience-ready .launch-steps button span { font:600 13px/1.4 Manrope,system-ui,sans-serif!important; text-transform:none!important; }
+body.product-experience-ready .launch-package-preview-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+body.product-experience-ready .launch-package-example,
+body.product-experience-ready .launch-x-example { min-width:0; overflow:hidden; border:1px solid var(--line); border-radius:8px; background:var(--panel); }
+body.product-experience-ready .launch-package-example[data-tier="standard"] .launch-package-example-art { display:none; }
 body.product-experience-ready :is(.home-launch-tabs button,.home-launch-toolbar button,.explore-tabs button,.explore-tabs a,.explore-view-switch button) { font:600 13px/1.4 Manrope,system-ui,sans-serif!important; text-transform:none!important; min-height:40px; }
 body.product-experience-ready .home-launch-toolbar .home-feed-settings summary { min-height:40px; min-width:40px; }
 body.product-experience-ready .launch-step-panel > .step-heading { margin-bottom:20px; }
@@ -79,6 +83,7 @@ body.product-experience-ready .explore-boost-how { margin:14px 0 0; font-size:13
 body.product-experience-ready .explore-boost-how summary { min-height:44px; padding:10px 0; cursor:pointer; }
 html body.product-experience-ready .explore-boost-how summary { display:list-item; width:auto; background:transparent; color:var(--text); border:0; border-radius:0; font:600 13px/1.5 Manrope,system-ui,sans-serif; }
 @media(max-width:700px) {
+  body.product-experience-ready .launch-package-preview-grid { grid-template-columns:1fr; }
   body.product-experience-ready .hero-section { padding-top:24px!important; }
   body.product-experience-ready #launch-route-shell { padding:24px 0 10px!important; margin-bottom:0!important; }
   body.product-experience-ready #launch-dialog { padding-top:12px!important; }

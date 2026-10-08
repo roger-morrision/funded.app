@@ -496,13 +496,14 @@ try {
     await page.locator('#token-name').fill('');
   });
   await check('Invalid identity blocks step advancement',async()=>{await page.locator('#token-name').fill('');await page.locator('#launch-next').click();assert.equal(await page.locator('#launch-dialog').getAttribute('data-step'),'1');});
-  await check('Launch settings then review; no signing',async()=>{
+  await check('Launch settings and live summary; no signing',async()=>{
     await page.locator('#token-name').fill('UI review draft');await page.locator('#token-symbol').fill('UITEST');await page.locator('#launch-next').click();
     assert.equal(await page.locator('#launch-dialog').getAttribute('data-step'),'2');assert(await page.locator('#community-airdrop-tokens').isVisible());assert(!await page.locator('#token-name').isVisible());
-    await page.locator('#community-airdrop-tokens').fill('1');await page.locator('#launch-next').click();assert.equal(await page.locator('#launch-dialog').getAttribute('data-step'),'2');
-    await page.locator('#community-airdrop-tokens').fill('30000000');await page.locator('#launch-next').click();assert.equal(await page.locator('#launch-dialog').getAttribute('data-step'),'3');
+    assert.equal(await page.locator('[data-launch-step="3"]').count(),0);
+    assert.equal((await page.locator('#launch-summary-name').textContent()).trim(),'UI review draft');
+    await page.locator('#community-airdrop-tokens').fill('1');assert.match(await page.locator('#wizard-hint').textContent(),/Community airdrop must be between/);
+    await page.locator('#community-airdrop-tokens').fill('30000000');assert.equal(await page.locator('#launch-dialog').getAttribute('data-step'),'2');
     assert(await page.locator('#terms-agree').isVisible());assert(await page.locator('#fee-route-agree').isVisible());assert(await page.locator('#launch-button').isDisabled());
-    await page.locator('#launch-back').click();assert.equal(await page.locator('#launch-dialog').getAttribute('data-step'),'2');
     await page.locator('#launch-back').click();assert.equal(await page.locator('#token-name').inputValue(),'UI review draft');
   });
   await page.screenshot({path:resolve(output,'launch-desktop.png'),timeout:12000});

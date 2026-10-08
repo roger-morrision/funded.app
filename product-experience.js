@@ -83,10 +83,8 @@ function launch() {
   }
   const packagePreview = $('.launch-package-preview');
   if (options && packagePreview) { options.append(packagePreview); disclosure(packagePreview, 'Preview your token page and launch post'); }
-  setText('[data-launch-step-target="2"] span', 'Rewards & options');
-  $('[data-launch-step-target="2"]')?.setAttribute('aria-label', 'Step 2: Rewards and options');
-  setText('[data-launch-step-target="3"] span', 'Review & launch');
-  $('[data-launch-step-target="3"]')?.setAttribute('aria-label', 'Step 3: Review and launch');
+  setText('[data-launch-step-target="2"] span', 'Rewards & launch');
+  $('[data-launch-step-target="2"]')?.setAttribute('aria-label', 'Step 2: Rewards and launch');
   setText('#launch-route-title', 'Launch a token');
   setText('#launch-route-shell .page-lede', 'Add your token details, choose your rewards, and review the total before signing.');
   setText('.launch-preview-heading span', 'Preview');

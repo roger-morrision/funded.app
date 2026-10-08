@@ -5,7 +5,7 @@ import { BUYBACK_POLICY, buildBuybackAccrual, buildBuybackPolicy, buildBuybackRe
 const appSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
 const htmlSource = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const bootstrapSource = readFileSync(new URL('../bootstrap.js', import.meta.url), 'utf8');
-const receiptEmptyState = 'No verified $FUNDED burn receipts are indexed on Solana yet. Fee-funded buybacks and launch-promotion burns are tracked separately.';
+const receiptEmptyState = 'No confirmed $FUNDED burns yet. Fee-funded buybacks and launch promotions appear here separately.';
 assert.ok(appSource.includes(receiptEmptyState), 'rendered buyback ledger explains missing on-chain receipts');
 assert.ok(htmlSource.includes(receiptEmptyState), 'initial buyback ledger explains missing on-chain receipts');
 assert.doesNotMatch(bootstrapSource, /import\(['"]\.\/data-label-sanitizer\.js['"]\)/, 'the UI must not hide verification and empty-state explanations');

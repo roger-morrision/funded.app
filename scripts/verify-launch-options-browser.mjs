@@ -10,13 +10,16 @@ try {
   await page.goto(`${process.env.UI_BASE_URL || 'http://127.0.0.1:4177'}/#launch`);
   await page.waitForSelector('body.workspace-ready');
   assert(await page.locator('[data-launch-step="1"]').isVisible(), 'Coin details must be visible on the create page.');
-  assert(await page.locator('[data-launch-step="2"]').isVisible(), 'Launch settings must be visible on the same page.');
-  assert(!await page.locator('[data-launch-step="3"]').isVisible(), 'The old review panel must stay hidden.');
+  assert.equal(await page.locator('[data-launch-step-target]').count(), 2, 'Launch must have two steps.');
+  assert.equal(await page.locator('[data-launch-step="3"]').count(), 0, 'The old review panel must be removed.');
   await page.locator('#token-name').fill('Launch options QA');
   await page.locator('#token-symbol').fill('LOQA');
+  await page.locator('#launch-next').click();
+  assert(await page.locator('[data-launch-step="2"]').isVisible(), 'Launch settings must be visible after token details.');
+  assert(await page.locator('#launch-button').isVisible(), 'The launch action must be visible on Step 2.');
   assert.equal(await page.locator('#launch-button').getAttribute('data-launch-action'), 'connect-wallet');
 
-  const advanced = page.locator('#launch-advanced-options');
+  const advanced = page.locator('.launch-fee-options');
   assert.equal(await page.locator('.creator-burn-card[data-burn-tier]').count(), 3);
   assert.equal(await page.locator('.creator-burn-card[data-burn-tier="boost"]').count(), 0);
   for (const tier of ['standard', 'pro', 'premier']) {
@@ -40,14 +43,17 @@ try {
   assert.equal(await page.locator('#launch-mode-custom').getAttribute('aria-pressed'), 'true');
   await page.locator('#creator-wallet-share').fill('60');
   await page.locator('#holder-airdrop-share').fill('20');
+  assert.equal((await page.locator('#launch-summary-creator').textContent()).trim(), '60%');
+  assert.equal((await page.locator('#launch-summary-holders').textContent()).trim(), '20%');
   assert.equal(await page.locator('#launch-button').getAttribute('data-launch-action'), 'connect-wallet', 'Balanced policy must allow wallet connection.');
 
   await page.locator('#holder-airdrop-share').fill('10');
   await page.locator('#x-share').fill('10');
+  assert.equal((await page.locator('#launch-summary-x').textContent()).trim(), '10%');
   await page.locator('#x-recipient').fill('@fundedqa');
   assert(await page.locator('#launch-button').isDisabled(), 'Unavailable X rewards must block wallet connection.');
   assert.match(await page.locator('#launch-button').textContent(), /X account rewards unavailable/);
-  console.log('Launch options browser matrix: single-page form, 3 tiers, 3 allocations, developer buy, holder split, and X reward gate passed. Local-only; API mocked unavailable; no signing.');
+  console.log('Launch options browser matrix: two-step form, live summary, 3 tiers, 3 allocations, developer buy, holder split, and X reward gate passed. Local-only; API mocked unavailable; no signing.');
 } finally {
   await browser.close();
 }

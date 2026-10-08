@@ -21,7 +21,7 @@ for (const pattern of unsupportedUi) {
 }
 
 assert.doesNotMatch(html, /Solana only/);
-assert.match(html, /<p class="eyebrow">Create · Pump · Solana<\/p>/);
+assert.match(html, /<p class="eyebrow">Create on Solana<\/p>/);
 assert.match(html, /<span>Launchpad<\/span><strong id="preview-launchpad">Pump\.fun<\/strong>/);
 assert.match(html, /<span>Launch tier<\/span><strong id="preview-burn-tier"/);
 assert.match(app, /chain:\s*'solana'/);
