@@ -16,6 +16,8 @@
 }
 .token-card-action-watch { width: 30px; padding: 5px; }
 .token-card-action-watch svg { display: block; width: 16px; height: 16px; }
+body :is(.share-asset, button[data-boost-mint]) { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+body :is(.share-asset, button[data-boost-mint]) > svg { display: block; flex: 0 0 16px; width: 16px; height: 16px; }
 .token-card-action-watch.active { border-color: #f4a340; color: #ffd28a; }
 .token-card-action-watch:hover,
 .token-card-action-share:hover { border-color: #f4a340; color: #ffd28a; }

@@ -35,6 +35,7 @@ const paths = {
   telegram: '<path d="m21 3-3.7 17-5.2-3.8-2.6 2.5.5-4.2L21 3ZM21 3 3 10.2l6.5 4.3L21 3"/>',
   discord: '<path d="M7 6.5c3.2-1.5 6.8-1.5 10 0l2 3.2c.7 2.3.6 4.7-.3 7-1.3 1-2.7 1.7-4.3 2.1l-.8-1.2M7 6.5 5 9.7c-.7 2.3-.6 4.7.3 7 1.3 1 2.7 1.7 4.3 2.1l.8-1.2M8 16.8c2.6 1.5 5.4 1.5 8 0"/><circle cx="9" cy="12.5" r=".8" fill="currentColor" stroke="none"/><circle cx="15" cy="12.5" r=".8" fill="currentColor" stroke="none"/>',
   share: '<path d="M12 16V3M7 8l5-5 5 5M5 13v6h14v-6"/>',
+  boost: '<path d="m13 2-9 12h7l-1 8 10-13h-7l1-7Z"/>',
   refresh: '<path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9a7 7 0 0 1 12-2L20 12M4 12l2.5 5a7 7 0 0 0 12-2"/>',
 };
 

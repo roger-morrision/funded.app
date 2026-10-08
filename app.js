@@ -1409,7 +1409,7 @@ function tokenCardWatchMarkup(mint, symbol){
   return `<button type="button" class="watch-button token-card-action-watch${saved ? ' active' : ''}" data-mint="${escapeHtml(mint || '')}" aria-label="${saved ? 'Remove token from watchlist' : `Save ${escapeHtml(symbol || 'token')} to watchlist`}" aria-pressed="${saved}" title="${saved ? 'Remove from watchlist' : 'Save to watchlist'}">${icon(saved ? 'starFilled' : 'star')}</button>`;
 }
 function tokenCardShareMarkup(mint, symbol, name){
-  return `<button type="button" class="share-asset token-card-action-share" data-share-mint="${escapeHtml(mint || '')}" data-share-symbol="${escapeHtml(symbol || 'TOKEN')}" data-share-name="${escapeHtml(name || '')}">Share</button>`;
+  return `<button type="button" class="share-asset token-card-action-share" data-share-mint="${escapeHtml(mint || '')}" data-share-symbol="${escapeHtml(symbol || 'TOKEN')}" data-share-name="${escapeHtml(name || '')}">${icon('share')}<span>Share</span></button>`;
 }
 function portfolioTokenCardMarkup({ mint, name, symbol, source, allocationPercent, removable = false }){
   const market = assets.find(item => item.address === mint);
@@ -2759,7 +2759,7 @@ function exploreAssetCardMarkup(a){
     <div class="asset-signal-row"><span>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetVolumeLabel(a) : '24h volume'} <b>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetVolume(a) : formatSignal(a.volume24hUsd, ' USD')}</b></span><span>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetReserveLabel(a) : 'Liquidity'} <b>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetReserve(a) : formatSignal(a.liquidityUsd, ' USD')}</b></span></div>
     <div class="asset-bottom"><span class="asset-value" title="${verifiedPaidListingPayment(a) && a.complete == null ? 'Market cap unavailable without verified market data' : `Estimated market capitalization from the confirmed ${a.migrated === true ? 'PumpSwap pool' : 'Pump curve'} snapshot`}">${escapeHtml(exploreMarketCapLabel(a))} · ${escapeHtml(exploreMarketCapUsd(a))}</span><span class="asset-change">${escapeHtml(a.migrated === true ? 'Pool change unindexed' : a.change)}</span></div>
     ${tokenCardAddressesMarkup(a.address)}
-    <div class="asset-actions"><button type="button" class="share-asset" data-share-symbol="${escapeHtml(a.symbol)}" data-share-name="${escapeHtml(a.name)}" data-share-mint="${mint}">Share</button><button type="button" class="explore-boost-button" data-boost-mint="${mint}" aria-label="Boost options for ${escapeHtml(a.name)}">Boost</button></div>
+    <div class="asset-actions"><button type="button" class="share-asset" data-share-symbol="${escapeHtml(a.symbol)}" data-share-name="${escapeHtml(a.name)}" data-share-mint="${mint}">${icon('share')}<span>Share</span></button><button type="button" class="explore-boost-button" data-boost-mint="${mint}" aria-label="Boost options for ${escapeHtml(a.name)}">${icon('boost')}<span>Boost</span></button></div>
     ${activeBoostMultiplier(verifiedBoosts[a.address]) ? `<div class="asset-boost-row"><span>BOOST <b>${escapeHtml(exploreBoostStatus(a.address))}</b></span></div>` : ''}
   </article>`;
 }
@@ -3967,7 +3967,7 @@ function homeLaunchCardMarkup(item, { volumeLabel, volumeValue, extraClass = '' 
       </div>
       <div class="home-launch-progress" aria-label="${escapeHtml(progressLabel)}"><i style="--launch-progress:${progressValue}%"></i></div>
       <div class="home-launch-meta"><span>${escapeHtml(formatOnchainAge(Number(item.createdTimestamp || 0) * 1000))}</span><span>${escapeHtml(progressLabel)}</span></div>
-      <div class="home-launch-card-actions">${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" data-boost-mint="${escapeHtml(item.address || '')}">Boost</button></div>
+      <div class="home-launch-card-actions">${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" data-boost-mint="${escapeHtml(item.address || '')}">${icon('boost')}<span>Boost</span></button></div>
     </article>`;
 }
 function decorateHomeLaunchCard(card, mint){
@@ -4627,7 +4627,7 @@ function renderRegistry(query = exploreQuery){
       <span class="scanner-metric ${Number(item.priceChange24hPercent) < 0 ? 'negative' : ''}" role="cell" title="Observed 24-hour price change when available">${change}</span>
       <div class="scanner-airdrop-cell" role="cell">${exploreAirdropMarkup(item)}</div>
       <div class="scanner-stage" role="cell"><strong>${stage}</strong><small>${item.complete === false && item.curveProgressPercent != null && Number.isFinite(Number(item.curveProgressPercent)) ? `${Number(item.curveProgressPercent).toFixed(0)}% curve` : ''}</small></div>
-      <div class="scanner-boost" role="cell">${activeBoostMultiplier(verifiedBoosts[item.address]) ? `<span class="scanner-boost-total">⚡ ${activeBoostMultiplier(verifiedBoosts[item.address]).toLocaleString()}x active</span>` : ''}<button type="button" class="explore-boost-button" data-boost-mint="${mint}" aria-label="Boost options for ${escapeHtml(item.name)}">Boost ↗</button></div>
+      <div class="scanner-boost" role="cell">${activeBoostMultiplier(verifiedBoosts[item.address]) ? `<span class="scanner-boost-total">⚡ ${activeBoostMultiplier(verifiedBoosts[item.address]).toLocaleString()}x active</span>` : ''}<button type="button" class="explore-boost-button" data-boost-mint="${mint}" aria-label="Boost options for ${escapeHtml(item.name)}">${icon('boost')}<span>Boost</span></button></div>
     </div>`;
   }).join('');
   loadVerifiedTokenLogos(list);
