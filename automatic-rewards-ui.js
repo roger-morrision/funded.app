@@ -486,7 +486,7 @@ async function refreshSchedules({ retry = true } = {}) {
     renderHomeRewardCards();
     const retryCopy = rewardRetryCopy(data);
     for (const panel of panels) {
-      panel.querySelector('.preview-chip').textContent = data.status === 'active' ? 'Schedules live' : data.status === 'degraded' ? 'Schedules need attention' : 'Schedules unavailable';
+      panel.querySelector('.preview-chip').textContent = data.status === 'active' ? 'Schedule active' : data.status === 'degraded' ? 'Schedule needs attention' : 'Schedule unavailable';
       panel.querySelector('.preview-chip').dataset.state = data.status === 'active' ? 'active' : 'unavailable';
       const status = panel.querySelector('[data-auto-status]');
       status.hidden = data.status === 'active';

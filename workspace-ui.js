@@ -553,7 +553,12 @@ function rewards() {
   const holderIntro = automatic?.querySelector('.auto-rewards-intro');
   if(holderIntro)holderIntro.textContent = 'Eligible holders receive SOL automatically. No claim needed.';
   const holderHeading = automatic?.querySelector('.auto-rewards-heading h2');
-  if(holderHeading)holderHeading.textContent = 'Coin holder SOL rewards';
+  if(holderHeading)holderHeading.textContent = 'Coin holder rewards';
+  const holderSchedule = automatic?.querySelector('.auto-reward-card');
+  holderSchedule?.querySelector('.auto-reward-card-top')?.remove();
+  holderSchedule?.querySelector(':scope > p')?.remove();
+  const scheduleHeading = holderSchedule?.querySelector('h3');
+  if(scheduleHeading)scheduleHeading.textContent = 'Next reward cycle';
   const history = node('div'); history.id = 'rewards-history';
   const historyPanel = $('.x-claim-activity', x); if (historyPanel) history.append(historyPanel);
   root.append(overview,creator,holder,funded,x,history);

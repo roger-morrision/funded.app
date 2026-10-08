@@ -34,6 +34,22 @@ html body.product-experience-ready :is(#airdrops .airdrop-status.upcoming,.rewar
 }
 html body.product-experience-ready :is(.coin-package-copy small,.coin-package-copy strong) { font-family: Manrope,sans-serif; font-size: 11px !important; line-height: 1.4 !important; }
 
+/* Keep the holder schedule subordinate to the page title and reuse status colors. */
+html body.product-experience-ready #rewards-holder .auto-rewards-heading h2 { font-size: 24px; line-height: 1.25; }
+html body.product-experience-ready #rewards-holder .auto-reward-card { padding: 16px; }
+html body.product-experience-ready #rewards-holder .auto-reward-card h3 { margin-top: 0; font-size: 18px; }
+html body.product-experience-ready .auto-rewards-heading .preview-chip {
+  padding: 4px 8px; border: 1px solid var(--ui-neutral-border); border-radius: 5px;
+  color: var(--ui-neutral); background: var(--ui-neutral-bg); font: 600 11px/1.4 Manrope,sans-serif;
+  letter-spacing: 0; text-transform: none;
+}
+html body.product-experience-ready .auto-rewards-heading .preview-chip[data-state="active"] {
+  color: var(--ui-success); background: var(--ui-success-bg); border-color: var(--ui-success-border);
+}
+html body.product-experience-ready .auto-rewards-heading .preview-chip[data-state="unavailable"] {
+  color: var(--ui-pending); background: var(--ui-pending-bg); border-color: var(--ui-pending-border);
+}
+
 /* Compact route headers and consistent readable controls. */
 html body.product-experience-ready :is(.route-guide h1,.workspace-page-header h1,.explore-hero h1,#leaderboard-title,#airdrops h1,#list-title,#launch-route-title,#capital-flow-title,#favorites-title) {
   font-size: clamp(30px,3.2vw,42px); line-height: 1.15; letter-spacing: -.035em; text-transform: none;
