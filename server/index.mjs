@@ -40,6 +40,7 @@ import { sortDevnetLaunches } from './explore-registry.mjs';
 import { explorePagination } from './explore-pagination.mjs';
 import { isAppPagePath } from './page-routes.mjs';
 import { createCreatorSupportHandler } from './creator-support.mjs';
+import { createWatchlistHandler } from './watchlists.mjs';
 import { creatorPageHtml } from './creator-social.mjs';
 import { tokenPageHtml } from './token-social.mjs';
 import { automaticXClaimState, rewardView, renewClaimChallenge } from '../reward-discovery.js';
@@ -680,6 +681,7 @@ const readPaymentHistory = createPaymentHistoryReader({ readEvidence:readFinaliz
   connectionFactory:() => new Connection(solanaRpcUrl, 'finalized'), cluster:solanaCluster,
   officialGenesis:() => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash() });
 
+const handleWatchlist = createWatchlistHandler({ store, cluster: solanaCluster, getSession: xSession });
 const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solanaCluster, getSession: xSession, readEvidence: readReceiptEvidence, readFinalizedEvidence,
   capabilities: async () => ({ version: CREATOR_SUPPORT_VERSION, build: process.env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
     cluster: solanaCluster, creatorPages: true, creatorIdentity: Boolean(process.env.X_CLIENT_ID && process.env.X_CLIENT_SECRET),
@@ -719,6 +721,7 @@ async function handle(req, res) {
       const result = await publicTradeConsent.accept(input, origin);
       return json(res, result.created ? 201 : 200, result.share);
     }
+    if (await handleWatchlist(req, res, url)) return;
     if (await handleCreatorSupport(req, res, url)) return;
     if (req.method === 'POST' && url.pathname === '/api/mobile-wallet/relay') {
       if (!await store.chargeRpcRate(`mobile-wallet:${clientKey(req)}`, 1, 12, Math.floor(Date.now() / 60_000) * 60_000)) return json(res, 429, { error: 'Too many wallet connection requests; retry shortly.' });

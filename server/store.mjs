@@ -70,6 +70,16 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
   }
 
   return {
+    async readWatchlist(accountId, cluster) {
+      return structuredClone((await load()).accountWatchlists?.[`${cluster}:${accountId}`] || { mints: [], imports: [] });
+    },
+    async updateWatchlist(accountId, cluster, mutator) {
+      return this.update(current => {
+        current.accountWatchlists ||= {};
+        const key = `${cluster}:${accountId}`;
+        return current.accountWatchlists[key] = mutator(current.accountWatchlists[key] || { mints: [], imports: [] });
+      });
+    },
     ...createFileAuthStore(`${filePath}.auth.json`),
     async health() { await load(); return true; },
     async updateCoinChat(mint, mutator) {

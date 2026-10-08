@@ -1966,10 +1966,6 @@ body.page-route-launch .launch-page-flat .launch-preview-panel { display: none; 
 .page-route.page-route-my-launches .main-content > #route-guide:not([hidden]),
 .page-route.page-route-buybacks .main-content > #route-guide:not([hidden]) { display: none !important; }
 .page-route-my-launches #my-launches > .support-shortcuts { display: none !important; }
-.page-route-my-launches #my-launches > #community-preferences {
-  width: min(1120px, calc(100% - 48px));
-  margin: 24px auto 32px;
-}
 .page-route-my-launches #my-launches > #launch-recovery {
   width: min(1120px, calc(100% - 48px));
   margin: 24px auto 0;

@@ -302,7 +302,7 @@ function explore() {
   $('.explore-control-bar')?.after(count);
   const stage = $('.explore-stage-filter');
   if (stage) text('[data-explore-stage="near"]', 'Graduating');
-  const watch = node('a', 'workspace-watch-link', 'Watchlist'); watch.href = '#community'; $('.explore-tabs')?.append(watch);
+  const watch = node('a', 'workspace-watch-link', 'Favorites'); watch.href = '#community'; $('.explore-tabs')?.append(watch);
   const headingActions = $('.explore-heading .heading-actions', root);
   const tabs = $('.explore-tabs', root);
   if (tabs && headingActions) headingActions.prepend(tabs);
@@ -707,7 +707,7 @@ function protocolPage() {
 
 function mergePurposePages() {
   const groups = [
-    { host: '#my-launches', child: '#community', after: ':scope > .section-heading', childAtEnd: true, label: 'Portfolio sections', links: [['my-launches', 'Portfolio'], ['community', 'Watchlist']] },
+    { host: '#my-launches', child: '#community', after: ':scope > .section-heading', childAtEnd: true, label: 'Portfolio sections', links: [['my-launches', 'Portfolio'], ['community', 'Favorites']] },
     { host: '#analytics-detail', child: '#capital-flow', after: ':scope > .section-heading', childAtEnd: true, label: 'Analytics sections', links: [['analytics-detail', 'Activity'], ['capital-flow', 'Capital flow']] },
     { host: '#paid', child: '#buybacks', after: ':scope > .paid-reference-metrics', label: '$FUNDED sections', links: [['paid', 'Token overview'], ['buybacks', 'Buy & burn']] },
   ];
@@ -729,9 +729,6 @@ function mergePurposePages() {
     if (group.childAtEnd) host.append(child);
     else nav.after(child);
   }
-  const followingPreferences = $('#community-preferences');
-  const watchlist = $('#community');
-  if (followingPreferences && watchlist && !watchlist.contains(followingPreferences)) watchlist.append(followingPreferences);
 }
 
 function tokenPage() {

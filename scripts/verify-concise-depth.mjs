@@ -73,11 +73,7 @@ for(const width of [390,1440]){
   if(route==='community'){
    assert(await page.locator('#community').isVisible());
    assert.equal(await page.locator('#my-launches > .section-heading').first().isVisible(),false);
-   const reserve=page.locator('.concise-community-reserve');
-   await reserve.locator(':scope > summary').waitFor({ state:'visible', timeout:10000 });
-   await reserve.locator(':scope > summary').click();
-   assert(await page.locator('#community-reward-reserve').isVisible());
-   assert(await page.locator('#reward-alerts').isVisible());
+   assert.equal(await page.locator('.concise-community-reserve, #community-reward-reserve, #reward-alerts').count(),0);
   }
   if(route==='funded-holder-token-rewards'){
    const rows=page.locator('#funded-holder-token-rewards [data-funded-token-list] > li:has(.funded-token-row)');

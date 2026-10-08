@@ -1,3 +1,4 @@
+import { createWatchlistSync } from './watchlist-sync.js';
 import { exactLamports } from './exact-lamports.js';
 import { formatReceiptSol } from './receipt-export.js';
 import { emitPilotSignal, pilotInterruptedSignal, verifiedPilotLaunchRegistration } from './pilot-event-signals.js';
@@ -156,12 +157,11 @@ let fundedBurnState = { status: 'idle', wallet: null, decimals: 0, balanceBaseUn
 let fundedBuyRoute = { status:'checking', snapshot:null, reason:'Checking the verified Solana pool…' };
 let fundedBuyPreview = null;
 let fundedBuyBusy = false;
-const WATCHLIST_KEY = 'funded.app.community.watchlist';
+const FOLLOWED_WALLETS_KEY = 'funded.app.followed.wallets.v1';
+let lastKnownFollowedWallets = [];
 let lastKnownWatchlist = [];
 let watchlistUnavailable = false;
 let watchlistNotice = '';
-let watchlistReadWarning = false;
-let watchlistWriteUnconfirmed = false;
 const APP_REFERRAL_KEY = 'funded.app.referral.attribution';
 const REFERRAL_ANALYTICS_KEY = 'funded.app.referral.analytics';
 const REFERRAL_SERVER_KEY_PREFIX = 'funded.app.referral.server.';
@@ -1385,48 +1385,40 @@ function tokenCardAddressesMarkup(mint, creatorWallet = tokenCardCreatorWallet(m
 }
 function tokenCardWatchMarkup(mint, symbol){
   const saved = getWatchlist().includes(mint);
-  return `<button type="button" class="watch-button token-card-action-watch${saved ? ' active' : ''}" data-mint="${escapeHtml(mint || '')}" aria-label="${saved ? 'Remove token from watchlist' : `Save ${escapeHtml(symbol || 'token')} to watchlist`}" aria-pressed="${saved}" title="${saved ? 'Remove from watchlist' : 'Save to watchlist'}">${icon(saved ? 'starFilled' : 'star')}</button>`;
+  return `<button type="button" class="watch-button token-card-action-watch${saved ? ' active' : ''}" data-mint="${escapeHtml(mint || '')}" aria-label="${saved ? 'Remove token from favorites' : `Add ${escapeHtml(symbol || 'token')} to favorites`}" aria-pressed="${saved}" title="${saved ? 'Remove from favorites' : 'Add to favorites'}">${icon(saved ? 'starFilled' : 'star')}</button>`;
 }
 function tokenCardShareMarkup(mint, symbol, name){
-  return `<button type="button" class="share-asset token-card-action-share" data-share-mint="${escapeHtml(mint || '')}" data-share-symbol="${escapeHtml(symbol || 'TOKEN')}" data-share-name="${escapeHtml(name || '')}">Share</button>`;
+  return `<button type="button" class="share-asset token-card-action-share" data-share-mint="${escapeHtml(mint || '')}" data-share-symbol="${escapeHtml(symbol || 'TOKEN')}" data-share-name="${escapeHtml(name || '')}" aria-label="Share ${escapeHtml(symbol || 'token')}">${icon('share')}<span>Share</span></button>`;
 }
-function portfolioTokenCardMarkup({ mint, name, symbol, source, allocationPercent, removable = false }){
+function portfolioTokenCardMarkup({ mint, name, symbol, removable = false }){
   const market = assets.find(item => item.address === mint);
-  const cardData = tokenCardData({ mint, market, policy: verifiedLaunchPolicyForMint(mint) });
-  const tokenName = market?.name || name || cardData.name;
-  const tokenSymbol = market?.symbol || symbol || cardData.symbol;
-  const stage = market ? exploreStageLabel(market) : 'Verified launch';
-  const volume = market ? formatExploreUsd(market.volume24hSol, { partial: market.volumeCoverage === 'partial' }) : '—';
-  const holders = portfolioHolderCount(market);
-  const marketValue = market ? formatCoinUsd(market.migrated === true ? market.poolMarketCapSol : market.curveCapSol) : '—';
-  const reserve = Number.isFinite(Number(allocationPercent)) ? `${Number(allocationPercent).toFixed(2).replace(/\.00$/, '')}%` : '—';
-  const change = market?.change || '—';
+  const item = market && EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(market, '24h') : market;
+  const tokenName = item?.name || name || 'Unnamed token';
+  const tokenSymbol = item?.symbol || symbol || 'TOKEN';
+  const stage = item ? exploreStageLabel(item) : 'Verified launch';
+  const cap = item ? (EXPLORE_CLUSTER === 'devnet'
+    ? formatCoinUsd(item.migrated === true ? item.poolMarketCapSol : item.curveCapSol)
+    : item.marketCapUsd != null ? formatCompactUsd(item.marketCapUsd) : '—') : '—';
+  const volume = item ? launchCardVolumeUsd(item, '24h') : '$—';
+  const holders = portfolioHolderCount(item);
+  const change = item?.change || '—';
   const changeValue = Number.parseFloat(change);
   const changeClass = Number.isFinite(changeValue) ? (changeValue >= 0 ? 'is-positive' : 'is-negative') : '';
-  const icon = market?.icon || tokenSymbol.slice(0, 1);
-  const freshness = tokenCardEvidenceLabel(cardData);
-  const safeMint = escapeHtml(mint || '');
-  const socialLinks = exploreSocialLinksMarkup(market || { address: mint, symbol: tokenSymbol });
-  const facts = allocationPercent == null
-    ? [[market?.migrated === true ? 'Market cap' : 'Curve cap', marketValue], ['24h volume', volume], ['Holders', holders], ['24h change', change, changeClass]]
-    : [['Launch stage', stage], ['Community reserve', reserve], ['24h volume', volume], ['Holders', holders]];
-  return `<article class="token-card-shell portfolio-token-card${removable ? ' watchlist-token-card' : ' project-token-card'}" data-mint="${safeMint}">
-    <div class="portfolio-token-card-top">
-      <span class="portfolio-token-avatar">${escapeHtml(icon)}</span>
-      <span class="portfolio-token-identity"><strong>${escapeHtml(tokenSymbol)}</strong>${exploreBoostAmountMarkup(mint)}<small>${escapeHtml(tokenName)}</small></span>
-      <span class="portfolio-token-stage">${escapeHtml(stage)}</span>
-    </div>
-    <p class="portfolio-token-source">${escapeHtml(source || 'Solana')}</p>
-    ${tokenCardAddressesMarkup(mint)}
-    ${socialLinks ? `<div class="portfolio-token-social">${socialLinks}</div>` : ''}
-    <div class="portfolio-token-stats">${facts.map(([label, value, className = '']) => `<span class="${className}"><small>${escapeHtml(label)}</small><strong>${escapeHtml(value)}</strong></span>`).join('')}</div>
-    <div class="portfolio-token-footer"><span>${escapeHtml(freshness)}</span><div>${tokenCardWatchMarkup(mint, tokenSymbol)}${tokenCardShareMarkup(mint, tokenSymbol, tokenName)}<a href="/token/${encodeURIComponent(mint || '')}">View token ↗</a>${market ? `<button type="button" data-trade-mint="${safeMint}">Trade</button>` : ''}</div></div>
+  const safeMint = escapeHtml(mint);
+  const metrics = [
+    [item?.migrated === true || EXPLORE_CLUSTER !== 'devnet' ? 'Market cap' : 'Curve cap', cap],
+    ['24h volume', volume], ['Holders', holders], ['24h change', change, changeClass],
+  ];
+  return `<article class="saved-token-row${removable ? ' watchlist-token-card' : ''}" data-mint="${safeMint}" data-logo-mint="${safeMint}">
+    <div class="saved-token-main"><span class="portfolio-token-avatar">${escapeHtml(item?.icon || tokenSymbol.slice(0, 1))}</span><div class="saved-token-identity"><a href="/token/${encodeURIComponent(mint)}"><strong>${escapeHtml(tokenSymbol)}</strong><span>${escapeHtml(tokenName)}</span></a><small title="${safeMint}">${escapeHtml(shortAddress(mint))}</small></div>${exploreBoostAmountMarkup(mint)}<span class="portfolio-token-stage">${escapeHtml(stage)}</span></div>
+    <div class="saved-token-metrics">${metrics.map(([label, value, className = '']) => `<span class="${className}"><small>${escapeHtml(label)}</small><strong>${escapeHtml(value)}</strong></span>`).join('')}</div>
+    <div class="saved-token-actions">${tokenCardWatchMarkup(mint, tokenSymbol)}${tokenCardShareMarkup(mint, tokenSymbol, tokenName)}<button type="button" class="token-card-action-boost" data-boost-mint="${safeMint}" aria-label="Boost ${escapeHtml(tokenSymbol)}">${icon('boost')}<span>Boost</span></button>${market ? `<button type="button" class="token-card-action-trade" data-trade-mint="${safeMint}">Trade</button>` : ''}<a href="/token/${encodeURIComponent(mint)}" class="saved-token-view">View token <span aria-hidden="true">↗</span></a></div>
   </article>`;
 }
 function renderCreatorLaunches(){
   const list = document.querySelector('#creator-launch-empty');
   if (!list) return;
-  const sourceLabel = document.querySelector('#my-launches .section-state');
+  const sourceLabel = document.querySelector('#my-launches .portfolio-launches-heading .section-state');
   if (sourceLabel) sourceLabel.textContent = verifiedLaunchPoliciesStatus === 'ready' ? 'verified registry' : 'checking registry';
   const sourceBadge = document.querySelector('#my-launches .data-badge');
   if (sourceBadge) sourceBadge.textContent = !connectedWalletAddress ? 'Connect wallet' : verifiedLaunchPoliciesStatus === 'ready' ? 'Registry ready' : verifiedLaunchPoliciesStatus === 'unavailable' ? 'Registry unavailable' : 'Checking registry';
@@ -1508,18 +1500,16 @@ function renderCreatorLaunches(){
           change: '—',
           marketUnavailable: true,
         });
-    holder.innerHTML = exploreAssetCardMarkup(marketCard);
+    holder.innerHTML = homeLaunchCardMarkup(marketCard, {
+      volumeLabel: exploreWindow,
+      volumeValue: launchCardVolumeUsd(marketCard, exploreWindow),
+      extraClass: ' project-token-card',
+    });
     const card = holder.firstElementChild;
-    card.classList.add('project-token-card');
     list.append(card);
-    decorateExploreAssetCard(card, marketCard, launch);
+    decorateHomeLaunchCard(card, launch.mint);
+    loadPortfolioLogo(card, launch);
     setWatchButtonState(card.querySelector('.watch-button'), getWatchlist().includes(launch.mint));
-    if (marketCard.marketUnavailable) {
-      card.querySelector('.asset-meta').textContent = 'Verified launch · market data unavailable';
-      card.querySelector('.asset-status-badge').textContent = 'Registry verified';
-      const flow = card.querySelector('.asset-trade-flow');
-      if (flow) flow.innerHTML = '<span>24h trades <b>—</b></span><span>— traders</span>';
-    }
   }
 }
 window.addEventListener('funded:projects-view-ready', renderCreatorLaunches);
@@ -2343,12 +2333,31 @@ let exploreProviderStatus = 'On-chain only · loading';
 const exploreActivityCache = new Map();
 let exploreScannedCount = 0;
 
-function readWatchlist(){
-  const raw = localStorage.getItem(WATCHLIST_KEY);
-  const saved = raw === null ? [] : JSON.parse(raw);
-  if (!Array.isArray(saved) || saved.some(mint => typeof mint !== 'string' || mint !== mint.trim() || !validateSolanaMint(mint).valid)) throw new Error('Invalid saved watchlist');
-  return saved;
-}
+const watchlistSync = createWatchlistSync({
+  request: apiRequest,
+  storage: localStorage,
+  onChange(mints) {
+    lastKnownWatchlist = mints;
+    renderWatchlist();
+    if (homeLaunchTab === 'watchlist') renderHomeLaunchBoard();
+    if (exploreRisk === 'watchlist') updateExploreViews();
+    window.dispatchEvent(new Event('funded:watchlist-changed'));
+  },
+  onStatus(state, message) {
+    watchlistUnavailable = state === 'error';
+    const badge = document.querySelector('#community .section-state');
+    if (badge) badge.textContent = { synced: 'Synced to account', syncing: 'Syncing', checking: 'Checking sign-in', guest: 'Sign in to sync', error: 'Sync unavailable' }[state];
+    const signIn = document.querySelector('#watchlist-sign-in');
+    if (signIn) signIn.hidden = Boolean(watchlistSync.identity());
+    showWatchlistStatus(message);
+    renderWatchlist();
+  },
+});
+window.addEventListener('focus', () => { if (!document.hidden) void watchlistSync.refresh(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) void watchlistSync.refresh(); });
+setInterval(() => { if (!document.hidden) void watchlistSync.refresh(); }, 60000);
+document.querySelector('#watchlist-sign-in')?.addEventListener('click', () => document.querySelector('#x-sign-in')?.click());
+document.querySelector('#watchlist-sync-retry')?.addEventListener('click', () => { void loadXIdentity().then(() => watchlistSync.refresh()); });
 function showWatchlistStatus(message){
   watchlistNotice = message;
   for (const host of [document.querySelector('#watchlist-items')?.parentElement, document.querySelector('#coin-watch')?.closest('.coin-identity')]) {
@@ -2360,70 +2369,112 @@ function showWatchlistStatus(message){
   }
 }
 function getWatchlist(){
-  try {
-    lastKnownWatchlist = readWatchlist(); watchlistUnavailable = false;
-    if (watchlistReadWarning) { watchlistReadWarning = false; showWatchlistStatus('Saved watchlist is available again.'); }
-  }
-  catch {
-    watchlistUnavailable = true;
-    if (!watchlistWriteUnconfirmed) {
-      watchlistReadWarning = true;
-      showWatchlistStatus('Saved watchlist could not be read. Showing the last known selection, if available. Allow browser storage and try again.');
-    }
-  }
+  lastKnownWatchlist = watchlistSync.get();
   return [...lastKnownWatchlist];
 }
-function saveWatchlist(mint, { remove = false } = {}){
-  let wrote = false, read = false;
-  try {
-    if (typeof mint !== 'string' || mint !== mint.trim() || !validateSolanaMint(mint).valid) throw new Error('Invalid watchlist mint');
-    const prior = readWatchlist();
-    read = true;
-    lastKnownWatchlist = prior;
-    const saved = remove ? prior.filter(item => item !== mint) : prior.includes(mint) ? prior : [...prior, mint];
-    localStorage.setItem(WATCHLIST_KEY, JSON.stringify(saved));
-    wrote = true;
-    const confirmed = readWatchlist();
-    if (JSON.stringify(confirmed) !== JSON.stringify(saved)) throw new Error('Watchlist write was not confirmed');
-    lastKnownWatchlist = confirmed; watchlistUnavailable = false; watchlistReadWarning = false; watchlistWriteUnconfirmed = false;
-    showWatchlistStatus(saved.includes(mint) ? 'Token saved to your watchlist on this device.' : 'Token removed from your watchlist on this device.');
-    if (saved.some(item => !prior.includes(item))) window.dispatchEvent(new Event('funded:watchlist-added'));
-    return true;
-  } catch {
-    watchlistUnavailable = true; watchlistReadWarning = false;
-    watchlistWriteUnconfirmed = wrote || (!read && watchlistWriteUnconfirmed);
-    const message = watchlistWriteUnconfirmed
-      ? 'The watchlist update could not be verified. The saved selection may have changed. Allow browser storage and check again before relying on it.'
-      : 'Watchlist could not be updated. Your saved data was not replaced. Allow browser storage and try again.';
-    showWatchlistStatus(message); showToast(message);
-    return false;
-  }
+async function saveWatchlist(mint, { remove = false } = {}){
+  const saved = await watchlistSync.save(mint, remove);
+  if (saved && !remove) window.dispatchEvent(new Event('funded:watchlist-added'));
+  if (!saved) showToast('Favorites could not be saved. Check sign-in and retry.');
+  return saved;
 }
 function setWatchButtonState(button, active){
   if (!button) return;
   button.classList.toggle('active', active);
   button.innerHTML = icon(active ? 'starFilled' : 'star');
   button.setAttribute('aria-pressed', String(active));
-  button.setAttribute('aria-label', active ? 'Remove token from watchlist' : 'Save token to watchlist');
+  button.setAttribute('aria-label', active ? 'Remove token from favorites' : 'Add token to favorites');
+  button.setAttribute('title', active ? 'Remove from favorites' : 'Add to favorites');
 }
 function renderWatchlist(){
   const saved = getWatchlist();
   const count = document.querySelector('#watch-count');
   const empty = document.querySelector('#watchlist-empty');
   const items = document.querySelector('#watchlist-items');
-  if (count) count.textContent = watchlistUnavailable ? 'Saved list unavailable' : `${saved.length} saved`;
+  if (count) count.textContent = watchlistUnavailable ? 'Favorites unavailable' : `${saved.length} favorite${saved.length === 1 ? '' : 's'}`;
   if (empty) empty.hidden = saved.length > 0 || watchlistUnavailable;
   if (items) items.innerHTML = saved.map(mint => {
     const asset = assets.find(item => item.address === mint);
     const policy = verifiedLaunchPolicyForMint(mint);
     return asset ? portfolioTokenCardMarkup({ mint: asset.address, name: asset.name, symbol: asset.symbol, source: 'Saved token · RPC verified', verified: true, removable: true })
       : policy?.onchainVerified ? portfolioTokenCardMarkup({ mint, name: policy.name, symbol: policy.symbol, source: 'Saved token · verified launch', verified: true, removable: true })
-        : `<div class="empty-state watchlist-unavailable"><strong>Saved token · verification unavailable</strong><span class="watchlist-unavailable-mint" title="${escapeHtml(mint)}">${escapeHtml(shortAddress(mint))}</span><span>No current market or recorded launch policy could be checked for this mint. Your saved entry remains on this device.</span><div class="watchlist-unavailable-actions"><button type="button" class="secondary-button" data-watch-retry="${escapeHtml(mint)}">Retry check</button><button type="button" class="secondary-button token-card-copy-address" data-copy-address="${escapeHtml(mint)}" data-copy-kind="token" aria-label="Copy full token address">Copy mint</button><button type="button" class="secondary-button" data-remove-watch="${escapeHtml(mint)}" aria-label="Remove saved token">Remove</button></div></div>`;
+        : `<div class="saved-token-row watchlist-unavailable"><div><strong>Token verification unavailable</strong><span class="watchlist-unavailable-mint" title="${escapeHtml(mint)}">${escapeHtml(shortAddress(mint))}</span><small>Your saved entry remains on this device.</small></div><div class="watchlist-unavailable-actions"><button type="button" class="secondary-button" data-watch-retry="${escapeHtml(mint)}">Retry check</button><button type="button" class="secondary-button token-card-copy-address" data-copy-address="${escapeHtml(mint)}" data-copy-kind="token" aria-label="Copy full token address">Copy mint</button><button type="button" class="secondary-button" data-remove-watch="${escapeHtml(mint)}" aria-label="Remove saved token">Remove</button></div></div>`;
   }).join('');
-  items?.querySelectorAll('.watchlist-token-card').forEach(card => loadPortfolioLogo(card, verifiedLaunchPolicyForMint(card.dataset.mint)));
+  loadVerifiedTokenLogos(items);
   document.querySelectorAll('.watch-button').forEach(button => setWatchButtonState(button, saved.includes(button.dataset.mint)));
   showWatchlistStatus(watchlistNotice);
+  renderFollowedWallets();
 }
+function readFollowedWallets(){
+  const rows = JSON.parse(localStorage.getItem(FOLLOWED_WALLETS_KEY) || '[]');
+  if (!Array.isArray(rows) || rows.length > 200 || rows.some(row =>
+    !row || typeof row.address !== 'string' || row.address !== row.address.trim() || !validateSolanaMint(row.address).valid
+    || !Array.isArray(row.roles) || row.roles.some(role => !['creator', 'trader'].includes(role)))) throw new Error('Invalid followed wallets');
+  if (new Set(rows.map(row => row.address)).size !== rows.length) throw new Error('Duplicate followed wallets');
+  return rows;
+}
+function getFollowedWallets(){
+  try { lastKnownFollowedWallets = readFollowedWallets(); }
+  catch { /* Preserve the last verified list when browser storage is unavailable. */ }
+  return [...lastKnownFollowedWallets];
+}
+function walletRoles(address){
+  return [walletDetailLaunches(address).length ? 'creator' : '', walletDetailTrades(address).length ? 'trader' : ''].filter(Boolean);
+}
+function saveFollowedWallet(address, { remove = false, roles = [] } = {}){
+  try {
+    if (typeof address !== 'string' || address !== address.trim() || !validateSolanaMint(address).valid) throw new Error('Invalid wallet address');
+    const prior = readFollowedWallets();
+    const next = remove ? prior.filter(row => row.address !== address)
+      : prior.some(row => row.address === address) ? prior
+        : [...prior, { address, roles: [...new Set(roles.filter(role => ['creator', 'trader'].includes(role)))] }];
+    if (next.length > 200) throw new Error('Followed wallet limit reached');
+    localStorage.setItem(FOLLOWED_WALLETS_KEY, JSON.stringify(next));
+    if (JSON.stringify(readFollowedWallets()) !== JSON.stringify(next)) throw new Error('Followed wallets could not be verified');
+    lastKnownFollowedWallets = next;
+    renderFollowedWallets();
+    if (!document.querySelector('#wallet-page')?.hidden) renderWalletDetail();
+    showToast(remove ? 'Wallet unfollowed on this device' : 'Wallet followed on this device');
+    return true;
+  } catch {
+    showToast('Wallet follow could not be saved. Allow browser storage and try again.');
+    renderFollowedWallets();
+    return false;
+  }
+}
+function renderFollowedWallets(){
+  const community = document.querySelector('#community');
+  if (!community) return;
+  let section = document.querySelector('#followed-wallets');
+  if (!section) {
+    section = document.createElement('section');
+    section.id = 'followed-wallets';
+    section.className = 'followed-wallets panel';
+    section.setAttribute('aria-labelledby', 'followed-wallets-title');
+    section.innerHTML = '<div class="followed-wallets-heading"><div><h3 id="followed-wallets-title">Followed wallets</h3><p>Creator and trader wallets you follow on this device. Recent activity covers listed coins and may be incomplete.</p></div><span id="followed-wallet-count"></span></div><div id="followed-wallet-rows"></div><p id="followed-wallet-status" role="status" aria-live="polite"></p>';
+    community.append(section);
+  }
+  let rows;
+  try { rows = readFollowedWallets(); lastKnownFollowedWallets = rows; document.querySelector('#followed-wallet-status').textContent = ''; }
+  catch { rows = lastKnownFollowedWallets; document.querySelector('#followed-wallet-status').textContent = 'Saved wallets could not be read. Check browser storage before changing this list.'; }
+  const creators = new Set(verifiedLaunchPolicies.map(launch => launch.creatorWallet).filter(Boolean));
+  const traders = new Set(collectRecentTrades(assets, { limit: 1000, since: Math.floor(Date.now() / 1000) - 86400 }).map(trade => trade.trader).filter(Boolean));
+  document.querySelector('#followed-wallet-count').textContent = `${rows.length} followed`;
+  document.querySelector('#followed-wallet-rows').innerHTML = rows.map(row => {
+    const roles = [...new Set([...row.roles, creators.has(row.address) ? 'creator' : '', traders.has(row.address) ? 'trader' : ''].filter(Boolean))];
+    const address = escapeHtml(row.address);
+    return `<article class="followed-wallet-row"><a href="/wallet/${encodeURIComponent(row.address)}" title="${address}"><strong>${escapeHtml(shortAddress(row.address))}</strong><small>${address}</small></a><span class="followed-wallet-roles">${roles.map(role => `<span>${role === 'creator' ? 'Creator' : 'Trader'}</span>`).join('') || '<span>Wallet</span>'}</span><button type="button" data-unfollow-wallet="${address}" aria-label="Unfollow wallet ${address}">Unfollow</button></article>`;
+  }).join('') || '<p class="followed-wallet-empty">No followed wallets yet. Open a creator or trader wallet from a token page, then choose Follow wallet.</p>';
+}
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-unfollow-wallet]');
+  if (button) saveFollowedWallet(button.dataset.unfollowWallet, { remove: true });
+});
+window.addEventListener('storage', event => {
+  if (event.key !== FOLLOWED_WALLETS_KEY && event.key !== null) return;
+  renderFollowedWallets();
+  if (!document.querySelector('#wallet-page')?.hidden) renderWalletDetail();
+});
 function formatFeedAge(timestamp){
   const ms = Date.parse(String(timestamp || ''));
   return Number.isFinite(ms) ? formatOnchainAge(ms) : 'freshness unavailable';
@@ -2501,7 +2552,7 @@ function exploreEmptyReason(){
   if (exploreMinTrades != null || exploreMinVolumeUsd != null) return ['No launch meets these trade-activity minimums.', 'Lower the selected-window minimums or clear filters.'];
   if (exploreMinMarketCapUsd != null || exploreMaxAgeHours != null) return ['No launch meets these advanced filters.', 'Broaden the curve-cap or age limit, or clear filters.'];
   if (exploreAuthority !== 'all') return ['No verified mint matches this authority filter.', 'Choose Any authority or clear filters to see all verified launches.'];
-  if (exploreRisk === 'watchlist') return ['No watched launches in this feed.', 'Use the star on a verified token to save it here.'];
+  if (exploreRisk === 'watchlist') return ['No favorite tokens in this feed.', 'Use the star on a verified token to save it here.'];
   if (exploreTab === 'new' && exploreNewLane === 'almost') return ['No launch is Almost Born yet.', 'This view requires an active Pump curve at least 80% filled.'];
   if (exploreTab === 'new' && exploreNewLane === 'migrated') return ['No RPC-verified migrated pools in this feed.', 'A completed curve alone is not migration proof. A PumpSwap pool must also exist on this network.'];
   if (exploreTab === 'new') return ['No verified New Launch in the last 24 hours.', 'Older confirmed launches remain available under All tokens.'];
@@ -2651,7 +2702,7 @@ function exploreAssetCardMarkup(a){
   const tokenUrl = `/token/${encodeURIComponent(a.address || '')}`;
   const age = a.createdTimestamp ? escapeHtml(formatOnchainAge(Number(a.createdTimestamp) * 1000)) : 'Age unavailable';
   return `<article class="token-card-shell asset-card signal-${escapeHtml(a.riskLevel)}" data-search="${escapeHtml(a.symbol)} ${escapeHtml(a.name)} ${mint}" data-mint="${mint}">
-    <div class="asset-artwork"><a class="asset-artwork-link" href="${tokenUrl}" aria-label="Open ${escapeHtml(a.name)} token"><i class="asset-icon">${escapeHtml(a.icon)}</i></a><span class="asset-artwork-stage">${escapeHtml(exploreStageLabel(a))}</span><span class="asset-artwork-age">${age}</span><button type="button" class="watch-button" data-mint="${mint}" aria-label="Save ${escapeHtml(a.symbol)} to watchlist" aria-pressed="false">${icon('star')}</button>${exploreSocialLinksMarkup(a)}</div>
+    <div class="asset-artwork"><a class="asset-artwork-link" href="${tokenUrl}" aria-label="Open ${escapeHtml(a.name)} token"><i class="asset-icon">${escapeHtml(a.icon)}</i></a><span class="asset-artwork-stage">${escapeHtml(exploreStageLabel(a))}</span><span class="asset-artwork-age">${age}</span><button type="button" class="watch-button" data-mint="${mint}" aria-label="Add ${escapeHtml(a.symbol)} to favorites" aria-pressed="false">${icon('star')}</button>${exploreSocialLinksMarkup(a)}</div>
     <div class="asset-top"><span class="asset-symbol${activeBoostMultiplier(verifiedBoosts[a.address]) >= 500 ? ' golden-ticker' : ''}">${escapeHtml(a.symbol)} ${exploreBoostAmountMarkup(a.address)}</span><p class="asset-name"><a class="asset-title-link" href="${tokenUrl}">${escapeHtml(a.name)}</a></p></div>
     <div class="asset-status"><span class="asset-status-badge">${verifiedPaidListingPayment(a) ? 'Paid listing' : a.promotionTier === 'standard' ? 'Standard launch' : a.promotionTier ? 'Promoted launch' : 'Tier unavailable'}</span>${explorePaidListingBagMarkup(a)}<span class="asset-meta">${escapeHtml(exploreStageLabel(a))} · ${age}</span></div>
     <div class="asset-signal-row"><span>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetVolumeLabel(a) : '24h volume'} <b>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetVolume(a) : formatSignal(a.volume24hUsd, ' USD')}</b></span><span>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetReserveLabel(a) : 'Liquidity'} <b>${EXPLORE_CLUSTER === 'devnet' ? exploreDevnetReserve(a) : formatSignal(a.liquidityUsd, ' USD')}</b></span></div>
@@ -3819,12 +3870,14 @@ function launchCardVolumeUsd(item, window){
   }
   return window === '24h' && item.volume24hUsd != null ? formatDashboardUsd(item.volume24hUsd) : '$—';
 }
-function homeLaunchCardMarkup(item, { volumeLabel, volumeValue, extraClass = '' }){
+function homeLaunchCardMarkup(item, { volumeLabel, volumeValue, extraClass = '', extraActions = '', footerNote = '' }){
     const change = item.change || '—';
     const changeValue = Number.parseFloat(change);
     const changeClass = Number.isFinite(changeValue) ? (changeValue >= 0 ? 'is-positive' : 'is-negative') : '';
     const progressValue = item.complete === true ? 100 : Number.isFinite(Number(item.curveProgressPercent)) ? Math.max(0, Math.min(100, Number(item.curveProgressPercent))) : 0;
     const progressLabel = item.complete === true ? 'Migrated' : progressValue > 0 ? `${Math.round(progressValue)}% filled` : 'On curve';
+    const stageLabel = item.marketUnavailable ? 'Market unavailable' : exploreStageLabel(item);
+    const ageLabel = item.createdTimestamp ? formatOnchainAge(Number(item.createdTimestamp) * 1000) : 'Age unavailable';
     const capSol = item.migrated === true ? item.poolMarketCapSol : item.curveCapSol;
     const capLabel = item.migrated === true ? 'Market cap' : 'Curve cap';
     const hasNoObservedTrades = item.windowCoverage === 'complete' && item.windowTradeCount != null && Number(item.windowTradeCount) === 0;
@@ -3850,7 +3903,7 @@ function homeLaunchCardMarkup(item, { volumeLabel, volumeValue, extraClass = '' 
     const boostPaymentCount = activeBoostPackages(boost).length;
     return `<article class="token-card-shell home-launch-card${extraClass}" data-mint="${escapeHtml(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}">
       <a class="home-launch-card-link" href="/token/${encodeURIComponent(item.address || '')}" aria-label="Open ${escapeHtml(item.name || item.symbol || 'token')} token details"></a>
-      <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span>${exploreSocialLinksMarkup(item)}${tokenCardWatchMarkup(item.address, item.symbol)}<span class="home-launch-media-stage">${escapeHtml(exploreStageLabel(item))}</span><div class="home-launch-media-badges"><span class="home-launch-media-package"></span>${activeBoost ? `<span class="home-launch-media-boost" title="${escapeHtml(`${boostPaymentCount} verified boost payment${boostPaymentCount === 1 ? '' : 's'} · active until ${new Date(boost.expiresAt).toLocaleString()}`)}">${escapeHtml(String(boostMultiplier))}x · ${escapeHtml(String(boostPaymentCount))} paid${boostMultiplier >= 500 ? ' ★' : ''}</span>` : ''}</div></div>
+      <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span>${exploreSocialLinksMarkup(item)}${tokenCardWatchMarkup(item.address, item.symbol)}<span class="home-launch-media-stage">${escapeHtml(stageLabel)}</span><div class="home-launch-media-badges"><span class="home-launch-media-package"></span>${activeBoost ? `<span class="home-launch-media-boost" title="${escapeHtml(`${boostPaymentCount} verified boost payment${boostPaymentCount === 1 ? '' : 's'} · active until ${new Date(boost.expiresAt).toLocaleString()}`)}">${escapeHtml(String(boostMultiplier))}x · ${escapeHtml(String(boostPaymentCount))} paid${boostMultiplier >= 500 ? ' ★' : ''}</span>` : ''}</div></div>
       <div class="home-launch-card-top">
         <span class="home-token-identity"><strong class="${activeBoost && boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(item.symbol || 'TOKEN')}</strong>${exploreBoostAmountMarkup(item.address)}<small>${escapeHtml(item.name || 'Unnamed token')}</small></span>
         <div class="home-launch-card-addresses"><span title="Token contract: ${escapeHtml(item.address || '')}"><small>CA</small><code>${escapeHtml(mintLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(item.address || '')}" data-copy-kind="token" aria-label="Copy full token address" title="Copy full token address">${icon('copy')}</button></span>${creatorWallet ? `<span title="Verified launch creator: ${escapeHtml(creatorWallet)}"><small>Creator</small><code>${escapeHtml(creatorLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(creatorWallet)}" data-copy-kind="creator" aria-label="Copy full creator wallet address" title="Copy full creator wallet address">${icon('copy')}</button></span>` : ''}</div>
@@ -3863,8 +3916,9 @@ function homeLaunchCardMarkup(item, { volumeLabel, volumeValue, extraClass = '' 
         <span class="home-launch-change ${changeClass}"><small>24h change</small><strong>${escapeHtml(hasNoObservedTrades ? 'No trades' : change)}</strong></span>
       </div>
       <div class="home-launch-progress" aria-label="${escapeHtml(progressLabel)}"><i style="--launch-progress:${progressValue}%"></i></div>
-      <div class="home-launch-meta"><span>${escapeHtml(formatOnchainAge(Number(item.createdTimestamp || 0) * 1000))}</span><span>${escapeHtml(progressLabel)}</span></div>
-      <div class="home-launch-card-actions">${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" data-boost-mint="${escapeHtml(item.address || '')}">Boost</button></div>
+      <div class="home-launch-meta"><span>${escapeHtml(ageLabel)}</span><span>${escapeHtml(progressLabel)}</span></div>
+      ${footerNote ? `<small class="home-launch-evidence">${escapeHtml(footerNote)}</small>` : ''}
+      <div class="home-launch-card-actions">${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
     </article>`;
 }
 function decorateHomeLaunchCard(card, mint){
@@ -3984,8 +4038,8 @@ function renderHomeLaunchBoard(){
   if (!visible.length) {
     const feedUnavailable = (!exploreFeedAvailable && !exploreLastVerifiedAt)
       || /RPC (?:rate limited|unavailable)/i.test(exploreProviderStatus);
-    const title = feedUnavailable ? 'Launch feed unavailable.' : homeLaunchTab === 'watchlist' ? 'No watched launches yet.' : homeLaunchFilterCount(homeLaunchFilters) ? 'No launches match these filters.' : 'No verified launches in this view.';
-    const detail = feedUnavailable ? 'Current Solana mint and market checks could not finish. Recorded reward and airdrop policies remain visible in their own sections.' : homeLaunchTab === 'watchlist' ? 'Save a verified mint from Explore to see it here.' : 'Try another view or adjust the filters.';
+    const title = feedUnavailable ? 'Launch feed unavailable.' : homeLaunchTab === 'watchlist' ? 'No favorite tokens yet.' : homeLaunchFilterCount(homeLaunchFilters) ? 'No launches match these filters.' : 'No verified launches in this view.';
+    const detail = feedUnavailable ? 'Current Solana mint and market checks could not finish. Recorded reward and airdrop policies remain visible in their own sections.' : homeLaunchTab === 'watchlist' ? 'Add a verified token from Explore to see it here.' : 'Try another view or adjust the filters.';
     grid.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${detail}</span>${feedUnavailable ? '<button type="button" class="secondary-button" data-verified-feed-retry>Retry verification</button>' : ''}</div>`;
     if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="home-table-empty"><strong>${title}</strong><span>${detail}</span>${feedUnavailable ? '<button type="button" class="secondary-button" data-verified-feed-retry>Retry verification</button>' : ''}</td></tr>`;
     return;
@@ -4515,7 +4569,7 @@ function renderRegistry(query = exploreQuery){
     const change = item.priceChange24hPercent == null ? '—' : `${item.priceChange24hPercent >= 0 ? '+' : ''}${Number(item.priceChange24hPercent).toFixed(2)}%`;
     return `<div class="scanner-row" role="row" data-logo-mint="${mint}">
       <span class="scanner-rank" role="cell">${page.start + index + 1}</span>
-      <div class="scanner-token" role="cell"><span class="asset-icon">${escapeHtml(item.icon)}</span><span><span class="scanner-token-heading"><a class="scanner-token-link" href="/token/${encodeURIComponent(item.address)}"><strong class="${activeBoostMultiplier(verifiedBoosts[item.address]) >= 500 ? 'golden-ticker' : ''}">${symbol} <small>${escapeHtml(item.name)}</small></strong></a>${explorePaidListingBagMarkup(item)}${exploreBoostAmountMarkup(item.address)}</span><span class="scanner-actions"><button type="button" class="copy-row scanner-contract" data-mint="${mint}" aria-label="Copy ${symbol} token contract address" title="Copy full contract address: ${mint}"><span>${escapeHtml(`${item.address.slice(0, 4)}…${item.address.slice(-4)}`)}</span>${icon('copy')}</button>${exploreSocialLinksMarkup(item)}<button type="button" class="watch-button scanner-watch" data-mint="${mint}" aria-label="Save ${symbol} to watchlist" aria-pressed="false" title="Save to watchlist">${icon('star')}</button></span></span></div>
+      <div class="scanner-token" role="cell"><span class="asset-icon">${escapeHtml(item.icon)}</span><span><span class="scanner-token-heading"><a class="scanner-token-link" href="/token/${encodeURIComponent(item.address)}"><strong class="${activeBoostMultiplier(verifiedBoosts[item.address]) >= 500 ? 'golden-ticker' : ''}">${symbol} <small>${escapeHtml(item.name)}</small></strong></a>${explorePaidListingBagMarkup(item)}${exploreBoostAmountMarkup(item.address)}</span><span class="scanner-actions"><button type="button" class="copy-row scanner-contract" data-mint="${mint}" aria-label="Copy ${symbol} token contract address" title="Copy full contract address: ${mint}"><span>${escapeHtml(`${item.address.slice(0, 4)}…${item.address.slice(-4)}`)}</span>${icon('copy')}</button>${exploreSocialLinksMarkup(item)}<button type="button" class="watch-button scanner-watch" data-mint="${mint}" aria-label="Add ${symbol} to favorites" aria-pressed="false" title="Add to favorites">${icon('star')}</button></span></span></div>
       <div class="scanner-tier" role="cell">${exploreTierBadgeMarkup(item.address)}</div>
       <span class="scanner-metric" role="cell">${escapeHtml(EXPLORE_CLUSTER === 'devnet' ? formatCoinUsd(item.curveCapSol) : formatCompactUsd(item.marketCapUsd))}</span>
       <span class="scanner-age" role="cell">${age}</span>
@@ -7361,17 +7415,17 @@ document.querySelector('#asset-grid').addEventListener('click', async event => {
  if (!button) return;
   toggleExploreWatch(button.dataset.mint, button);
 });
-function toggleExploreWatch(mint, button){
+async function toggleExploreWatch(mint, button){
   const asset = assets.find(item => item.address === mint);
   const symbol = asset?.symbol || verifiedLaunchPolicyForMint(mint)?.symbol || 'TOKEN';
-  if (!saveWatchlist(mint, { remove: button?.getAttribute('aria-pressed') === 'true' })) return;
+  if (!await saveWatchlist(mint, { remove: button?.getAttribute('aria-pressed') === 'true' })) return;
   renderWatchlist();
   // Keep the current cards mounted so a follow-up action on the same card
   // cannot lose its click while the watchlist changes.
   if (exploreRisk === 'watchlist') updateExploreViews();
   else renderRegistry();
   if (homeLaunchTab === 'watchlist') renderHomeLaunchBoard();
-  showToast(lastKnownWatchlist.includes(mint) ? `${symbol} saved to your watchlist` : `${symbol} removed from your watchlist`);
+  showToast(lastKnownWatchlist.includes(mint) ? `${symbol} added to favorites` : `${symbol} removed from favorites`);
 }
 document.addEventListener('click', event => {
   const watch = event.target.closest('.token-card-action-watch');
@@ -7388,17 +7442,21 @@ document.addEventListener('click', event => {
     openCoinShare(share.dataset.shareMint || '', share.dataset.shareSymbol || 'Coin', share.dataset.shareName || '');
   }
 }, true);
-document.querySelector('#watchlist-items').addEventListener('click', event => {
+document.querySelector('#watchlist-items').addEventListener('click', async event => {
+  const boost = event.target.closest('[data-boost-mint]');
+  if (boost) { openExploreBoost(boost.dataset.boostMint); return; }
   const trade = event.target.closest('[data-trade-mint]');
   if (trade) { openExploreTrade(trade.dataset.tradeMint); return; }
   const retry = event.target.closest('[data-watch-retry]');
   if (retry) { retry.disabled = true; void Promise.allSettled([loadVerifiedLaunchPolicies(), loadOnchainExploreData()]).then(() => renderWatchlist()); return; }
   const button = event.target.closest('[data-remove-watch]');
   if (!button) return;
-  if (!saveWatchlist(button.dataset.removeWatch, { remove: true })) return;
+  if (!await saveWatchlist(button.dataset.removeWatch, { remove: true })) return;
   updateExploreViews();
 });
 document.querySelector('#creator-launch-empty')?.addEventListener('click', event => {
+  const boost = event.target.closest('[data-boost-mint]');
+  if (boost) { openExploreBoost(boost.dataset.boostMint); return; }
   const watch = event.target.closest('.watch-button');
   if (watch) { toggleExploreWatch(watch.dataset.mint, watch); return; }
   const share = event.target.closest('.share-asset');
@@ -7406,7 +7464,7 @@ document.querySelector('#creator-launch-empty')?.addEventListener('click', event
   const trade = event.target.closest('[data-trade-mint]');
   if (trade) { openExploreTrade(trade.dataset.tradeMint); return; }
   if (event.target.closest('button, a')) return;
-  const mint = event.target.closest('.asset-card')?.dataset.mint;
+  const mint = event.target.closest('.home-launch-card')?.dataset.mint;
   if (mint) location.href = `/token/${encodeURIComponent(mint)}`;
 });
 document.querySelector('#home-launch-grid')?.addEventListener('click', async event => {
@@ -7510,7 +7568,6 @@ document.querySelector('#referral-example-input').addEventListener('input', even
   });
 });
 document.querySelector('#fee-flow-input')?.addEventListener('input', renderFeeFlowCalculator);
-document.querySelector('#manage-alerts').addEventListener('click', () => showToast('Alerts are ready for the indexed-data phase.'));
 document.querySelector('#launch-list').addEventListener('click', async event => {
   const tierInfo = event.target.closest('[data-tier-info-mint]');
   if (tierInfo) { openExploreTierInfo(tierInfo.dataset.tierInfoMint); return; }
@@ -7636,7 +7693,7 @@ const routeGuideCopy = {
   'analytics-detail': { group: 'Workspace', state: 'Platform activity', description: 'Explore launches, fees, payments, trades, airdrops, referrals, and burns.', primary: ['See capital flow', '#capital-flow'], secondary: ['Explore launches', '#explore'] },
   'my-launches': { group: 'Build', state: 'Your portfolio', description: 'See your launches, market activity, and token actions together.', primary: ['Launch a project', '#launch'], secondary: ['Launch guide', '#docs'] },
   referrals: { group: 'Growth', state: 'Connect wallet to claim', description: 'Share your invite link and follow creator activity and rewards.', primary: ['How rewards work', '#referral-faq'], secondary: ['Explore launches', '#explore'] },
-  community: { group: 'Growth', state: 'Saved on this device', description: 'Save launches to compare their latest available market activity.', primary: ['Find launches', '#explore'], secondary: ['See airdrops', '#airdrops'] },
+  community: { group: 'Growth', state: 'Account favorites', description: 'Sign in with the same X account to sync favorite tokens across devices.', primary: ['Find launches', '#explore'], secondary: ['See airdrops', '#airdrops'] },
   leaderboard: { group: 'Growth', state: 'Confirmed activity', description: 'Explore creator and $FUNDED burn rankings.', primary: ['Explore launches', '#explore'], secondary: ['View service status', '#docs'] },
   airdrops: { group: 'Growth', state: 'Claim status', description: 'Check planned airdrops, eligibility, and claims for each launch.', primary: ['Explore launches', '#explore'], secondary: ['Claim guide', '#docs'] },
   buybacks: { group: 'Protocol', state: 'Buy and burn', description: 'Buy or burn $FUNDED and check confirmed transactions.', primary: ['View my projects', '#my-launches'], secondary: ['Read the guide', '#docs'] },
@@ -7679,9 +7736,9 @@ function syncPageRoute(){
     payments: ['Rewards', 'Claims and payout receipts'],
     'analytics-detail': ['Analytics', 'Protocol flow and indexed activity'],
     launch: ['Create a coin', 'Create and review a Devnet coin'],
-    'my-launches': ['Portfolio', 'Launches and saved tokens'],
+    'my-launches': ['Portfolio', 'Launches, favorites and followed wallets'],
     referrals: ['Referrals', 'Track qualified growth'],
-    community: ['Watchlist', 'Watchlist and verified signals'],
+    community: ['Favorites', 'Favorites and verified signals'],
     leaderboard: ['Leaderboard', 'Ranked community contribution'],
     airdrops: ['Airdrops', 'Eligibility and claim records'],
     buybacks: ['Burn $FUNDED', 'Supply reduction and burn receipts'],
@@ -7693,7 +7750,7 @@ function syncPageRoute(){
   }[route] || ['Overview', 'Verified activity and next steps'];
   if (coinRouteRequested()) copy = ['Token', 'Market activity and trade'];
   if (walletRouteRequested()) copy = ['Wallet', 'Balances and confirmed activity'];
-  if (requestedHash === 'community') copy = ['Watchlist', 'Saved launches and updates'];
+  if (requestedHash === 'community') copy = ['Favorites', 'Favorite tokens and followed wallets'];
   if (requestedHash === 'capital-flow') copy = ['Capital flow', 'Published fee allocation'];
   if (requestedHash === 'buybacks') copy = ['Buy & burn', '$FUNDED actions and receipts'];
   const routeContext = document.querySelector('#route-context');
@@ -8207,10 +8264,19 @@ function renderWalletDetail(){
   const addressNode = document.querySelector('#wallet-page-address');
   const selfBadge = document.querySelector('#wallet-self-badge');
   const edit = document.querySelector('#wallet-edit-profile');
+  const follow = document.querySelector('#wallet-follow');
   if (title) title.textContent = isSelf ? 'Your wallet' : address ? shortAddress(address) : 'Wallet';
   if (addressNode) addressNode.textContent = address || 'Wallet address unavailable';
   if (selfBadge) selfBadge.hidden = !isSelf;
   if (edit) edit.hidden = !isSelf;
+  if (follow) {
+    const valid = validateSolanaMint(address).valid;
+    const active = valid && getFollowedWallets().some(row => row.address === address);
+    follow.hidden = !valid;
+    follow.textContent = active ? 'Following ✓' : 'Follow wallet';
+    follow.setAttribute('aria-pressed', String(active));
+    follow.setAttribute('aria-label', `${active ? 'Unfollow' : 'Follow'} ${escapeHtml(address || 'wallet')} on this device`);
+  }
   const statSol = document.querySelector('#wallet-stat-sol');
   const statSolNote = document.querySelector('#wallet-stat-sol-note');
   if (statSol) statSol.textContent = isSelf && walletBalanceLamports != null ? formatSol(walletBalanceLamports) : '—';
@@ -9059,15 +9125,15 @@ function showCoinPage(open = true){
     if (callout) {
       callout.replaceChildren();
       const title = document.createElement('strong'); title.textContent = 'Opened a shared coin link';
-      const detail = document.createElement('small'); detail.textContent = 'Save this coin to your watchlist on this device so you can find it again. Check the live data before acting.';
-      const save = document.createElement('button'); save.type = 'button'; save.className = 'secondary-button'; save.textContent = getWatchlist().includes(mintAddress) ? 'Saved to watchlist' : 'Save to watchlist';
+      const detail = document.createElement('small'); detail.textContent = 'Add this coin to favorites on this device so you can find it again. Check the live data before acting.';
+      const save = document.createElement('button'); save.type = 'button'; save.className = 'secondary-button'; save.textContent = getWatchlist().includes(mintAddress) ? 'In favorites' : 'Add to favorites';
       save.setAttribute('aria-pressed', String(lastKnownWatchlist.includes(mintAddress)));
-      save.addEventListener('click', () => {
-        if (!saveWatchlist(mintAddress, { remove: save.getAttribute('aria-pressed') === 'true' })) return;
+      save.addEventListener('click', async () => {
+        if (!await saveWatchlist(mintAddress, { remove: save.getAttribute('aria-pressed') === 'true' })) return;
         renderWatchlist();
         setWatchButtonState(watch, lastKnownWatchlist.includes(mintAddress));
         save.setAttribute('aria-pressed', String(lastKnownWatchlist.includes(mintAddress)));
-        save.textContent = lastKnownWatchlist.includes(mintAddress) ? 'Saved to watchlist' : 'Save to watchlist';
+        save.textContent = lastKnownWatchlist.includes(mintAddress) ? 'In favorites' : 'Add to favorites';
       });
       callout.append(title, detail, save);
       if (sharedTradeReceipts && validateSolanaMint(mintAddress).valid) {
@@ -9158,7 +9224,7 @@ document.querySelector('#coin-page')?.addEventListener('click', async event => {
   const refresh = event.target.closest('#coin-refresh');
   if (refresh){ const mint = getCoinMintAddress(); resetCoinSurface(mint); loadCoinOnChain(mint); return; }
   const watch = event.target.closest('#coin-watch');
-  if (watch){ const mint = getCoinMintAddress(); if (!mint || !saveWatchlist(mint, { remove: watch.getAttribute('aria-pressed') === 'true' })) return; renderWatchlist(); setWatchButtonState(watch, lastKnownWatchlist.includes(mint)); return; }
+  if (watch){ const mint = getCoinMintAddress(); if (!mint || !await saveWatchlist(mint, { remove: watch.getAttribute('aria-pressed') === 'true' })) return; renderWatchlist(); setWatchButtonState(watch, lastKnownWatchlist.includes(mint)); return; }
   const share = event.target.closest('#coin-share-link');
    if (share){ event.preventDefault(); openCoinShare(getCoinMintAddress(), document.querySelector('#coin-symbol')?.textContent?.trim() || 'Coin', document.querySelector('#coin-page-title')?.textContent?.trim() || ''); return; }
   const boost = event.target.closest('#coin-boost');
@@ -9179,6 +9245,12 @@ document.querySelector('#coin-page')?.addEventListener('click', async event => {
   if (tab){ document.querySelectorAll('[data-coin-tab]').forEach(item => item.classList.toggle('active', item === tab)); setCoinTabLabels(); renderCoinActivityTab(); }
 });
 document.querySelector('#wallet-page')?.addEventListener('click', async event => {
+  const follow = event.target.closest('#wallet-follow');
+  if (follow) {
+    const address = getWalletDetailAddress();
+    saveFollowedWallet(address, { remove: follow.getAttribute('aria-pressed') === 'true', roles: walletRoles(address) });
+    return;
+  }
   const filter = event.target.closest('[data-wallet-filter]');
   if (filter) { walletDetailFilter = filter.dataset.walletFilter; renderWalletDetail(); return; }
   const tab = event.target.closest('[data-wallet-tab]');
@@ -9415,10 +9487,11 @@ async function loadXIdentity() {
   if (!button || !status) return;
   try {
     const result = await apiRequest('/api/x/me');
-    if (!result.available) { status.textContent = 'X sign-in is temporarily unavailable. Please try again later.'; button.disabled = true; button.dataset.connected = 'false'; renderXClaimSummary(null);syncXClaimFlow(); return; }
+    if (!result.available) { void watchlistSync.setIdentity(undefined); status.textContent = 'X sign-in is temporarily unavailable. Please try again later.'; button.disabled = true; button.dataset.connected = 'false'; renderXClaimSummary(null);syncXClaimFlow(); return; }
     if (result.data?.authenticated) {
       button.disabled = false;
       const user = result.data.user;
+      void watchlistSync.setIdentity(String(user.id));
       status.textContent = `Connected as @${user.username}`;
       button.textContent = 'Sign out of X';
       button.dataset.connected = 'true';
@@ -9431,6 +9504,7 @@ async function loadXIdentity() {
       status.textContent = configured ? 'Sign in to see rewards linked to your X account.' : 'X sign-in is temporarily unavailable.';
       button.textContent = 'Sign in with X';
       button.dataset.connected = 'false';
+      void watchlistSync.setIdentity(null);
       button.disabled = !configured;
       const claimId=document.querySelector('#sol-claim-id');if(claimId)claimId.value='';
       const check=document.querySelector('#claim-binding-agree');if(check)check.checked=false;
@@ -9439,7 +9513,7 @@ async function loadXIdentity() {
       renderXClaimSummary(null);
       resetSolClaimStatus();
     }
-  } catch (error) { status.textContent = error.message || 'X identity status is unavailable.'; renderXClaimSummary(null);syncXClaimFlow(); }
+  } catch (error) { void watchlistSync.setIdentity(undefined); status.textContent = error.message || 'X identity status is unavailable.'; renderXClaimSummary(null);syncXClaimFlow(); }
 }
 async function refreshXClaims(){
   const list = document.querySelector('#sol-claim-list');
