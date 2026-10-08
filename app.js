@@ -6615,9 +6615,7 @@ function openLaunchPage(event){
 function openLaunchedCoinPage(launchPolicy){
   const mint = launchPolicy?.mint || '';
   if (!validateSolanaMint(mint).valid) return;
-  const route = `#coin/${encodeURIComponent(mint)}`;
-  if (location.hash !== route) location.hash = route;
-  else syncPageRoute();
+  location.assign(`/token/${encodeURIComponent(mint)}`);
 }
 let airdropRequestInFlight = false;
 async function requestAirdrop(){
@@ -7905,39 +7903,22 @@ function renderCoinFeeDashboard(overview = null) {
   currentCoinFeeOverview = overview;
   renderCoinSummary();
   const root = document.querySelector('#coin-fee-dashboard');
-  const badge = document.querySelector('#coin-fee-updated');
   if (!root) return;
-  if (overview == null) {
-    if (badge) badge.textContent = 'Checking';
-    root.innerHTML = '<p class="coin-fee-note">Reading this coin’s Pump vault and verified payout records…</p>';
-    return;
-  }
-  if (!overview?.available) {
-    if (badge) badge.textContent = 'Unavailable';
-    root.innerHTML = '<p class="coin-fee-note">A verified per coin fee route and its ledger are required to show fee amounts for this token.</p>';
-    return;
-  }
-  if (badge) badge.textContent = overview.pump?.status === 'confirmed' ? 'Live vault' : 'Ledger only';
-  const accrued = overview.pump?.status === 'confirmed' ? coinFeeSol(overview.pump.accruedLamports) : 'Unavailable';
-  const creator = overview.receivers?.find(row => row.id === 'creator');
-  const creatorWallet = overview.creatorWallet;
-  const walletLink = creatorWallet ? `<a href="/wallet/${encodeURIComponent(creatorWallet)}">${escapeHtml(shortAddress(creatorWallet))} ↗</a>` : 'unavailable';
-  const vaultLink = overview.pump?.vault ? `<a href="${escapeHtml(exploreExplorer(`address/${encodeURIComponent(overview.pump.vault)}`))}" target="_blank" rel="noopener noreferrer">Pump vault ↗</a>` : 'Pump vault unavailable';
-  const status = overview.pump?.status === 'confirmed' && BigInt(overview.pump.accruedLamports || '0') > 0n ? '<p class="coin-fee-stage">Fees are accruing in Pump. Keeper collection is needed before payout allocations can be created.</p>' : '';
-  root.innerHTML = `<div class="coin-fee-stats"><div><span>Still in Pump vault</span><strong>${escapeHtml(accrued)}</strong><small>${vaultLink}</small></div><div><span>Collected from Pump</span><strong>${escapeHtml(coinFeeSol(overview.collectedLamports))}</strong><small>${escapeHtml(overview.collectionCount)} verified collection${overview.collectionCount === 1 ? '' : 's'}</small></div><div><span>Allocated after collection</span><strong>${escapeHtml(coinFeeSol(overview.allocatedLamports))}</strong><small>${escapeHtml(coinFeeSol(overview.awaitingAllocationLamports))} awaiting allocation</small></div><div><span>Creator awaiting payout proof</span><strong>${escapeHtml(coinFeeSol(creator?.withoutConfirmedPayoutLamports || '0'))}</strong><small>For ${walletLink}</small></div></div>${status}<div class="coin-fee-how"></div>`;
+  const owned = Boolean(overview?.available && connectedWalletAddress && overview.creatorWallet === connectedWalletAddress);
+  root.hidden = !owned;
+  root.replaceChildren();
+  if (!owned) return;
   const claim = overview.creatorClaim;
   const claimable = BigInt(claim?.claimableLamports || '0');
   const minimum = BigInt(claim?.minimumLamports || '10000000');
-  const connected = connectedWalletAddress === creatorWallet;
-  const ready = Boolean(claim?.eligible && connected && wallet && typeof wallet.signMessage === 'function');
-  const note = claimable < minimum ? `Claiming opens at ${coinFeeSol(minimum)} of allocated creator fees.` : !connectedWalletAddress ? 'Connect the launch wallet to request a payout.' : !connected ? 'Switch to the launch wallet shown above to claim.' : 'Sign one message to request payment. The payout worker then sends SOL to the launch wallet.';
-  root.insertAdjacentHTML('afterbegin', `<section class="coin-creator-claim"><div><span>Creator available to claim</span><strong>${escapeHtml(coinFeeSol(claimable))}</strong><small>${escapeHtml(note)}</small></div><button type="button" id="coin-creator-claim-button" ${ready ? '' : 'disabled'}>Claim creator fees</button></section>`);
+  const ready = Boolean(claim?.eligible && claimable >= minimum && wallet && typeof wallet.signMessage === 'function');
+  const note = claimable < minimum
+    ? `You can claim once your creator rewards reach ${coinFeeSol(minimum)}.`
+    : claim?.eligible ? 'Approve a message in your wallet to request your SOL payout.'
+      : 'Your payout is being processed. Confirmed payments appear in Rewards.';
+  root.innerHTML = `<section class="coin-creator-claim"><div><span>Your creator rewards</span><strong>${escapeHtml(coinFeeSol(claimable))}</strong><small>${escapeHtml(note)}</small></div><button type="button" id="coin-creator-claim-button" ${ready ? '' : 'disabled'}>Claim creator fees</button></section>`;
   const claimButton = root.querySelector('#coin-creator-claim-button');
   if (claimButton && ready) claimButton.onclick = () => { void requestCreatorFeeClaim(claimButton); };
-  const stage = root.querySelector('.coin-fee-stage');
-  if (stage) stage.textContent = `Fees are accruing in Pump. The Solana collector checks the vault automatically and records allocations once at least ${coinFeeSol(minimum)} is available.`;
-  const how = root.querySelector('.coin-fee-how');
-  if (how) how.innerHTML = `<strong>How the coin creator receives fees</strong><ol><li>Pump accrues fees in this coin’s vault.</li><li>The Solana collector moves fees into this coin’s router and records the allocation automatically.</li><li>Once allocated creator fees reach ${escapeHtml(coinFeeSol(minimum))}, connect launch wallet ${walletLink} and select Claim creator fees. The payout worker sends SOL to that wallet; a paid receipt appears after confirmation.</li></ol><small>Only the verified launch wallet can request payment. Amounts still in Pump are estimates until collected and allocated.</small>`;
 }
 async function requestCreatorFeeClaim(button) {
   const mint = getCoinMintAddress();

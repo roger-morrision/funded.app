@@ -32,17 +32,43 @@ test('an uncertain submitted claim offers a receipt and a status check without a
 });
 
 test('successful launch opens its token, while invalid launch data cannot navigate', () => {
-  let refreshes = 0;
+  const visits = [];
   const context = {
-    location: { hash: '#launch' },
+    location: { assign: path => visits.push(path) },
     validateSolanaMint: mint => ({ valid: mint === 'verified-mint' }),
-    syncPageRoute: () => { refreshes++; },
   };
   vm.runInNewContext(section('function openLaunchedCoinPage(', 'let airdropRequestInFlight'), context);
   context.openLaunchedCoinPage({ mint: 'verified-mint' });
-  assert.equal(context.location.hash, '#coin/verified-mint');
-  context.openLaunchedCoinPage({ mint: 'verified-mint' });
-  assert.equal(refreshes, 1);
+  assert.deepEqual(visits, ['/token/verified-mint']);
   context.openLaunchedCoinPage({ mint: 'invalid' });
-  assert.equal(context.location.hash, '#coin/verified-mint');
+  assert.deepEqual(visits, ['/token/verified-mint']);
+});
+
+test('creator claim panel exists and only enables the verified owner above the claim minimum', () => {
+  const html = readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const button = {};
+  const root = { hidden:true, innerHTML:'', replaceChildren() { this.innerHTML=''; button.onclick=null; }, querySelector: () => button };
+  let requested = 0;
+  const context = {
+    document: { querySelector: () => root },
+    connectedWalletAddress:'creator', wallet:{ signMessage() {} },
+    renderCoinSummary() {}, coinFeeSol: amount => `${amount} lamports`, escapeHtml: value => value,
+    requestCreatorFeeClaim: () => { requested++; },
+  };
+  vm.runInNewContext(section('function renderCoinFeeDashboard(', 'async function requestCreatorFeeClaim('), context);
+  const overview = { available:true, creatorWallet:'creator', creatorClaim:{ eligible:true, claimableLamports:'10000000', minimumLamports:'10000000' } };
+  context.renderCoinFeeDashboard(overview);
+  assert.equal(root.hidden, false);
+  assert.doesNotMatch(root.innerHTML, /disabled/);
+  button.onclick();
+  assert.equal(requested, 1);
+  context.renderCoinFeeDashboard({...overview, creatorClaim:{...overview.creatorClaim, claimableLamports:'20792'}});
+  assert.match(root.innerHTML, /disabled/);
+  assert.match(root.innerHTML, /once your creator rewards reach/);
+  assert.equal(button.onclick, null);
+  context.connectedWalletAddress='other-wallet';
+  context.renderCoinFeeDashboard(overview);
+  assert.equal(root.hidden, true);
+  assert.equal(root.innerHTML, '');
+  return html.then(source => assert.match(source, /id="coin-fee-dashboard"/));
 });
