@@ -52,6 +52,7 @@ import { explorePageNumbers, paginateExploreRows } from './explore-pagination.js
 import { exploreSocialLinks } from './explore-social-links.js';
 import { formatSolMetric, readCurveMetrics, readPumpSwapMetrics } from './explore-onchain-metrics.js';
 import { publishVerifiedCurves } from './verified-curve-state.js';
+import { publishTokenListMarkets } from './token-list-market-state.js';
 import { buildTradePricePath, filterAndSortRecentTrades, selectObservedTradeWindow, summarizeTokenAccounts, verifiedRegistryLaunch } from './coin-detail-model.js';
 import { formatPolicyPercent, verifiedCoinRewardsPolicy } from './coin-rewards-policy.js';
 import { buildCoinSummary } from './coin-summary-model.js';
@@ -4398,6 +4399,7 @@ async function loadOnchainExploreDataOnce(signal, requestedSort){
     else if (!exploreVerificationFailed) exploreBackoffUntil = 0;
     if ((exploreVerificationFailed || !pumpFeed.available) && assets.length && exploreLastVerifiedAt) {
       publishVerifiedCurves([]);
+      publishTokenListMarkets([], EXPLORE_CLUSTER, coinSolUsdPrice);
       exploreUpdatedAt = new Date().toISOString();
       const cause = exploreVerificationFailed ? `Solana RPC ${exploreRateLimited ? 'rate limited' : 'unavailable'}` : 'Launch feed unavailable';
       exploreProviderStatus = `${cause} · last verified ${formatFeedAge(exploreLastVerifiedAt)} · stale`;
@@ -4458,6 +4460,7 @@ async function loadOnchainExploreDataOnce(signal, requestedSort){
     if (marketScanRateLimited) exploreBackoffUntil = Date.now() + 60_000;
   assets = includeVerifiedRegistryLaunches(Array.from(new Map(verified.map(item => [item.address, item])).values()), records);
     publishVerifiedCurves(assets);
+    publishTokenListMarkets(assets, EXPLORE_CLUSTER, coinSolUsdPrice);
     document.dispatchEvent(new Event('funded:verified-search-index'));
     exploreUpdatedAt = new Date().toISOString();
     if (!exploreVerificationFailed && pumpFeed.available && records.length) exploreLastVerifiedAt = exploreUpdatedAt;
@@ -4491,7 +4494,7 @@ if (exploreInitialLoadStarted) loadOnchainExploreData().catch(error => {
   if (status) status.textContent = 'Solana RPC · unavailable';
   if (note) note.textContent = 'Unable to verify live data';
 });
-createRoutePoller({ run: signal => loadOnchainExploreData(signal), active: () => !coinRouteRequested() && ['overview', 'explore', 'community', 'leaderboard'].includes(requestedPageRoute()) && exploreAutoRefresh && Date.now() >= exploreBackoffUntil, intervalMs: 30_000 });
+createRoutePoller({ run: signal => loadOnchainExploreData(signal), active: () => !coinRouteRequested() && ['overview', 'explore', 'community', 'leaderboard', 'payments'].includes(requestedPageRoute()) && exploreAutoRefresh && Date.now() >= exploreBackoffUntil, intervalMs: 30_000 });
 createRoutePoller({ run: () => renderStonkEnhancements(), active: () => !coinRouteRequested() && requestedPageRoute() === 'explore' && exploreAutoRefresh, intervalMs: 30_000 });
 let receiptEvidenceLoading = false;
 async function loadReceiptEvidence(signal){
@@ -8470,6 +8473,7 @@ async function loadSolUsdQuote(){
   const quote = Number(response.data?.priceUsd);
   if (!response.available || !Number.isFinite(quote) || quote <= 0) return;
   coinSolUsdPrice = quote;
+  publishTokenListMarkets(assets, EXPLORE_CLUSTER, coinSolUsdPrice);
   renderFundedTokenLanding();
   setCoinField('#coin-market-cap', formatCoinUsd(coinSolUsdValues.marketCap));
   setCoinField('#coin-strip-market-cap', formatCoinUsd(coinSolUsdValues.marketCap));

@@ -1,6 +1,8 @@
 import './reward-experience.css';
 import { summarizeXClaims, formatXClaimSol } from './x-claim-summary.js';
 import { createTokenCardActions } from './token-card-controls.js';
+import { tokenListMarket, tokenAge } from './token-list-market-state.js';
+import { devnetImageUri } from './devnet-metadata.js';
 
 const LAMPORTS = 1_000_000_000n;
 const ALERT_KEY = 'funded.vip.reward-alerts.v1';
@@ -202,12 +204,31 @@ function renderDiscovery(data) {
     const article = node('article');
     const title = node('div','reward-row-head');
     const identity = node('div','reward-token-identity');
-    if (row.imageUri) {
-      const logo = node('img'); logo.src = `/devnet-images/${encodeURIComponent(row.mint)}`;
-      logo.alt = ''; logo.loading = 'lazy'; logo.addEventListener('error', () => logo.remove(), { once:true });
-      identity.append(logo);
-    }
-    identity.append(link(`${row.symbol || short(row.mint)} · ${row.name}`, tokenUrl(row.mint)));
+    const avatar = node('span', 'reward-token-avatar', String(row.symbol || row.name || '?').slice(0, 2));
+    avatar.setAttribute('aria-hidden', 'true');
+    const logo = node('img'); logo.src = `/devnet-images/${encodeURIComponent(row.mint)}`;
+    logo.alt = ''; logo.loading = 'lazy';
+    let triedFallback = false;
+    logo.addEventListener('error', () => {
+      if (!triedFallback) { triedFallback = true; logo.src = devnetImageUri(row.mint); }
+      else logo.remove();
+    });
+    avatar.append(logo);
+    const info = node('div', 'reward-token-info');
+    info.append(link(`${row.symbol || short(row.mint)} · ${row.name}`, tokenUrl(row.mint)));
+    const market = tokenListMarket(row.mint);
+    const age = tokenAge(market?.createdTimestamp || row.createdAt);
+    const metadata = node('div', 'reward-token-metadata');
+    const ageField = node('span', '', 'Age ');
+    const time = node('time', '', age.label);
+    if (age.timestamp) { time.dateTime = age.timestamp; time.title = `Launched ${new Date(age.timestamp).toLocaleString()}`; }
+    ageField.append(time);
+    const cap = node('span', '', 'MC ');
+    cap.title = 'Market capitalization';
+    cap.append(node('strong', '', market?.marketCap || 'Unavailable'));
+    metadata.append(ageField, cap);
+    info.append(metadata);
+    identity.append(avatar, info);
     title.append(identity);
     title.append(node('span','',row.status === 'holders-paid' ? 'Holders paid' : row.status === 'holder-fees-allocated' ? 'Rewards set aside' : 'Rewards announced'));
     article.append(title);
@@ -332,6 +353,9 @@ async function refresh() {
 
 createPanels();
 renderAlerts();
+document.addEventListener('funded:token-list-markets', () => {
+  if (!location.pathname.startsWith('/token/')) renderDiscovery(latest);
+});
 window.addEventListener('funded:reward-identity-change', refresh);
 window.addEventListener('popstate', refresh);
 window.addEventListener('hashchange', () => { if (!document.hidden) void refresh(); });
