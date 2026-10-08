@@ -1,4 +1,7 @@
 import { boostHistoryRows } from './boost-history-view.js';
+import { paginateHistory } from './history-pagination.js';
+import { portfolioTokenIdentity } from './token-identity.js';
+import { referralStatusLabel, referralClaimStatusLabel } from './referral-status.js';
 import { productEvent } from './product-events.js';
 import { exactLamports } from './exact-lamports.js';
 import { formatReceiptSol } from './receipt-export.js';
@@ -470,6 +473,12 @@ async function ensureReferralSession(session, { interactive = false } = {}){
   if (!verified.data?.authenticated || verified.data.wallet !== session.address) throw new Error('Referral dashboard approval failed.');
   return true;
 }
+function updateReferralStatus(state, claimable = 0){
+  const label = referralStatusLabel(state, claimable);
+  document.documentElement.dataset.referralStatus = label;
+  document.querySelectorAll('#referral-command-center .section-state, #referral-total-claimable + small').forEach(node => { node.textContent = label; });
+  if (document.body.classList.contains('page-route-referrals')) { const node = document.querySelector('#route-guide-state'); if (node) node.textContent = label; }
+}
 function renderReferralClaimPrompt(title = 'Connect wallet to check claimable referral rewards', note = 'Each available reward requires a wallet signature and a separate payout action.', approve = false){
   const panel = document.querySelector('#referral-claim-center');
   if (!panel) return;
@@ -492,6 +501,7 @@ function renderReferralLedgerEmpty(title, note){
   const heading = document.createElement('strong'); heading.textContent = title;
   const detail = document.createElement('small'); detail.textContent = note;
   empty.append(heading, detail); ledger.replaceChildren(empty);
+  paginateHistory(ledger, {label:'Referral history', selector:'.referral-ledger-row', key:connectedWalletAddress});
 }
 function renderReferralActivityEmpty(title, note){
   const empty = document.querySelector('#referral-activity-list .empty-state');
@@ -505,16 +515,18 @@ async function refreshReferralClaims({ interactive = false } = {}){
   const session = captureWalletSession();
   const walletAddress = session?.address; const dashboard = document.querySelector('#referral-command-center');
   if (!session || !dashboard) return;
+  updateReferralStatus('checking');
   try {
     if (!await ensureReferralSession(session, { interactive })) {
       if (isWalletSessionCurrent(session)) {
+        updateReferralStatus('verification');
         renderReferralClaimPrompt('Verify wallet to view referral rewards', 'Your private referral dashboard needs one wallet approval. Refreshing this page will not request a signature.', true);
         renderReferralActivityEmpty('Wallet verification needed', 'Verify your wallet to check referral activity.');
         renderReferralLedgerEmpty('Wallet verification needed', 'Verify your wallet to check claim receipts.');
       }
       return;
     }
-  } catch (error) { if (isWalletSessionCurrent(session)) { renderReferralClaimPrompt('Referral dashboard unavailable', error.message || 'Try verifying your wallet again.', true); renderReferralActivityEmpty('Access unavailable', 'Verify your wallet to check referral activity.'); renderReferralLedgerEmpty('Access unavailable', 'Verify your wallet to check claim receipts.'); } return; }
+  } catch (error) { if (isWalletSessionCurrent(session)) { updateReferralStatus('unavailable'); renderReferralClaimPrompt('Referral dashboard unavailable', error.message || 'Try verifying your wallet again.', true); renderReferralActivityEmpty('Access unavailable', 'Verify your wallet to check referral activity.'); renderReferralLedgerEmpty('Access unavailable', 'Verify your wallet to check claim receipts.'); } return; }
   if (!isWalletSessionCurrent(session)) return;
   const [result, dashboardResult] = await Promise.all([
     apiRequest(`/api/referral-claims?wallet=${encodeURIComponent(walletAddress)}`).catch(() => ({ available: false })),
@@ -528,23 +540,25 @@ async function refreshReferralClaims({ interactive = false } = {}){
       ? `${creators} network creator${creators === 1 ? '' : 's'} reported. Individual activity is not available in this view.`
       : 'Qualified activity appears after verified fee collection is indexed.');
   } else renderReferralActivityEmpty('Activity unavailable', 'The referral dashboard could not be loaded. Try again later.');
-  if (!result.available) { renderReferralClaimPrompt('Referral claim service unavailable', 'No reward action is available until the claim service can be verified.'); renderReferralLedgerEmpty('Receipts unavailable', 'The claim service could not be verified. Try again later.'); return; }
+  if (!result.available) { updateReferralStatus('unavailable'); renderReferralClaimPrompt('Referral claim service unavailable', 'No reward action is available until the claim service can be verified.'); renderReferralLedgerEmpty('Receipts unavailable', 'The claim service could not be verified. Try again later.'); return; }
   if (dashboardResult.available) { const active = document.querySelector('#referral-active-creators'); if (active) active.textContent = String(dashboardResult.data.networkCreators ?? '—'); const conversion = document.querySelector('#referral-conversion-rate'); if (conversion) conversion.textContent = dashboardResult.data.conversionRate == null ? '—' : `${dashboardResult.data.conversionRate}%`; }
   const claims = Array.isArray(result.data.claims) ? result.data.claims : [];
   const claimable = claims.filter(claim => ['awaiting-wallet-signature', 'wallet-verified'].includes(claim.status)).reduce((sum, claim) => sum + Number(claim.amount || 0), 0);
+  updateReferralStatus('ready', claimable);
   const paid = claims.filter(claim => claim.status === 'paid').reduce((sum, claim) => sum + Number(claim.amount || 0), 0);
   const claimableNode = document.querySelector('#referral-total-claimable'); if (claimableNode) claimableNode.textContent = `${claimable.toFixed(4)} SOL`;
   const paidNode = document.querySelector('#referral-paid-total'); if (paidNode) paidNode.textContent = `${paid.toFixed(4)} SOL`;
   const ledger = document.querySelector('#referral-ledger-list');
-  if (ledger) { ledger.replaceChildren(); if (!claims.length) renderReferralLedgerEmpty('No receipts yet', 'Finalized referral claims will appear here.'); else claims.slice().reverse().forEach(claim => { const row = document.createElement('div'); row.className = 'referral-ledger-row'; const label = document.createElement('strong'); label.textContent = `Level ${claim.level}`; const status = document.createElement('small'); status.textContent = claim.status; const amount = document.createElement('b'); amount.textContent = `${Number(claim.amount || 0).toFixed(4)} ${claim.asset}`; row.append(label, status, amount); ledger.append(row); }); }
+  if (ledger) { ledger.replaceChildren(); if (!claims.length) renderReferralLedgerEmpty('No receipts yet', 'Finalized referral claims will appear here.'); else claims.slice().reverse().forEach(claim => { const row = document.createElement('div'); row.className = 'referral-ledger-row'; const label = document.createElement('strong'); label.textContent = `Level ${claim.level}`; const status = document.createElement('small'); status.textContent = referralClaimStatusLabel(claim.status); const amount = document.createElement('b'); amount.textContent = `${Number(claim.amount || 0).toFixed(4)} ${claim.asset}`; row.append(label, status, amount); ledger.append(row); }); }
+  paginateHistory(ledger, {label:'Referral history', selector:'.referral-ledger-row', key:walletAddress});
   let panel = document.querySelector('#referral-claim-center');
   if (!panel) { panel = document.createElement('div'); panel.id = 'referral-claim-center'; panel.className = 'referral-dashboard'; panel.setAttribute('aria-live', 'polite'); dashboard.querySelector('.referral-kpi-grid')?.after(panel); }
   panel.replaceChildren();
   const heading = document.createElement('div'); const title = document.createElement('strong'); title.textContent = 'Referral claim center'; const note = document.createElement('small'); note.textContent = claims.length ? 'Rewards require your wallet signature and a separate payout action.' : 'No claimable referral rewards yet.'; heading.append(title, note); panel.append(heading);
   for (const claim of result.data.claims) {
-    const row = document.createElement('div'); row.className = 'referral-claim-row'; const label = document.createElement('span'); label.textContent = `Level ${claim.level} · ${claim.amount} ${claim.asset} · ${claim.status}`; row.append(label);
+    const row = document.createElement('div'); row.className = 'referral-claim-row'; const label = document.createElement('span'); label.textContent = `Level ${claim.level} · ${claim.amount} ${claim.asset} · ${referralClaimStatusLabel(claim.status)}`; row.append(label);
     if (claim.status === 'awaiting-wallet-signature' && session.provider.signMessage) { const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary-button'; button.textContent = 'Sign claim'; button.onclick = async () => { button.disabled = true; try { assertWalletSessionCurrent(session); const signature = await session.provider.signMessage(new TextEncoder().encode(claim.statement)); assertWalletSessionCurrent(session); await apiRequest(`/api/referral-claims/${encodeURIComponent(claim.id)}/verify`, { method: 'POST', body: { publicKey: walletAddress, signature: bs58.encode(signature) } }); if (isWalletSessionCurrent(session)) await refreshReferralClaims(); } catch (error) { if (isWalletSessionCurrent(session)) { showToast(error.message); button.disabled = false; } } }; row.append(button); }
-    if (claim.status === 'wallet-verified') { const button = document.createElement('button'); button.type = 'button'; button.className = 'primary-button'; button.textContent = 'Execute payout'; button.onclick = async () => { button.disabled = true; try { assertWalletSessionCurrent(session); await apiRequest(`/api/referral-claims/${encodeURIComponent(claim.id)}/execute`, { method: 'POST' }); if (isWalletSessionCurrent(session)) { showToast('Referral reward paid'); await refreshReferralClaims(); } } catch (error) { if (isWalletSessionCurrent(session)) { showToast(error.message); button.disabled = false; } } }; row.append(button); }
+    if (claim.status === 'wallet-verified') { const button = document.createElement('button'); button.type = 'button'; button.className = 'primary-button'; button.textContent = 'Receive SOL'; button.onclick = async () => { button.disabled = true; try { assertWalletSessionCurrent(session); await apiRequest(`/api/referral-claims/${encodeURIComponent(claim.id)}/execute`, { method: 'POST' }); if (isWalletSessionCurrent(session)) { showToast('Referral reward paid'); await refreshReferralClaims(); } } catch (error) { if (isWalletSessionCurrent(session)) { showToast(error.message); button.disabled = false; } } }; row.append(button); }
     if (claim.status === 'paid' && claim.payoutSignature) {
       const receipt = document.createElement('small'); receipt.textContent = `Paid · ${claim.payoutSignature}`; row.append(receipt);
       if (claim.asset === 'SOL' && Number(claim.amount) > 0) {
@@ -588,7 +602,7 @@ function updateReferralLink(){
   document.querySelectorAll('[data-referral-link]').forEach(node => { node.textContent = value; });
   let registered = null;
   try { registered = JSON.parse(localStorage.getItem(`${REFERRAL_SERVER_KEY_PREFIX}${connectedWalletAddress}`) || 'null'); } catch {}
-  const status = document.querySelector('#referral-link-status'); if (status) status.textContent = !code ? 'Connect wallet' : registered?.code === code ? 'Ready to share' : 'Verify to share';
+  const status = document.querySelector('#referral-link-status'); if (status) status.textContent = !code ? 'Connect wallet' : registered?.code === code ? 'Ready to share' : 'Activate link when sharing';
 }
 function buildReferralUrl(code, source = ''){
   const url = new URL('/', window.location.origin);
@@ -1479,6 +1493,7 @@ function renderCreatorLaunches(){
   list.classList.toggle('compact-empty', !launches.length);
   list.classList.toggle('creator-launch-list', launches.length > 0);
   if (!launches.length) {
+    paginateHistory(list, {label:'Created tokens', selector:'.project-token-card', key:connectedWalletAddress});
     const state = !connectedWalletAddress ? 'disconnected' : verifiedLaunchPoliciesStatus;
     const empty = document.createElement('div');
     empty.className = 'projects-empty-content';
@@ -1538,6 +1553,7 @@ function renderCreatorLaunches(){
       if (flow) flow.innerHTML = '<span>24h trades <b>—</b></span><span>— traders</span>';
     }
   }
+  paginateHistory(list, {label:'Created tokens', selector:'.project-token-card', key:connectedWalletAddress});
 }
 window.addEventListener('funded:projects-view-ready', renderCreatorLaunches);
 function formatTokenAmount(value){ return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 }); }
@@ -3393,6 +3409,7 @@ function renderVerifiedReceiptEvidence(){
     list.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet.</p>';
     tape.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet.</p>';
   }
+  paginateHistory(tape, {label:'Payment history', selector:'.payment-history-row'});
   const footnote = document.querySelector('#payment-history-footnote');
   if (footnote) footnote.textContent = historyPayouts.length
     ? `Latest ${Math.min(5, historyPayouts.length)} of ${historyPayouts.length} confirmed payments · fees in details${paymentHistoryEvidence.status === 'partial' ? ' · some history is missing' : ''}`
@@ -6463,6 +6480,7 @@ function setWalletState(message, detail = '', connected = false){
   if (selectedProgram && programNote) programNote.textContent = signingReady ? 'Wallet connected. Review the fee route and launch cost before signing.' : connected ? 'Address linked. Open inside your wallet before signing.' : 'Enter the name and ticker first. Connect only when you are ready to sign.';
   updatePreviewStatusDrawer(connected);
   if (connected) { bindAppReferralToWallet(); void refreshReferralClaims().catch(() => {}); }
+  else updateReferralStatus('disconnected');
   updateReferralLink();
   updateOnboardingProgress();
   renderAirdropClaims();
@@ -7812,7 +7830,7 @@ function syncPageRoute(){
   routeGuide.hidden = !guide;
   if (guide) {
     document.querySelector('#route-guide-group').textContent = guide.group;
-    document.querySelector('#route-guide-state').textContent = guide.state;
+    document.querySelector('#route-guide-state').textContent = route === 'referrals' ? document.documentElement.dataset.referralStatus || (connectedWalletAddress ? 'Verify wallet' : 'Connect wallet') : guide.state;
     document.querySelector('#route-guide-title').textContent = copy[0];
     document.querySelector('#route-guide-description').textContent = guide.description;
     for (const [id, action] of [['#route-guide-primary', guide.primary], ['#route-guide-secondary', guide.secondary]]) {
@@ -8228,8 +8246,8 @@ function renderPortfolio(){
     const unitUsd = portfolioUnitPriceUsd(asset);
     const holdingValue = unitUsd == null ? null : holding.quantity * unitUsd;
     if (holdingValue != null) { pricedCount += 1; total += holdingValue; }
-    const label = asset?.symbol || shortAddress(holding.mint);
-    return `<a class="portfolio-holding-row" href="/token/${encodeURIComponent(holding.mint)}"><span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(asset?.name || shortAddress(holding.mint))}</small></span><span>${escapeHtml(formatOnChainNumber(holding.quantity, 6))}</span><span>${holdingValue == null ? '—' : escapeHtml(formatDashboardUsd(holdingValue))}</span><span title="Complete cost basis unavailable">—</span></a>`;
+    const identity = portfolioTokenIdentity(holding.mint, {asset, launch:verifiedLaunchPolicyForMint(holding.mint), fundedMint:PROTOCOL_FUNDED_MINT});
+    return `<a class="portfolio-holding-row" href="/token/${encodeURIComponent(holding.mint)}"><span><strong>${escapeHtml(identity.label)}</strong><small>${escapeHtml(identity.description)}</small><small class="portfolio-token-address" title="${escapeHtml(holding.mint)}">${escapeHtml(identity.address)}</small></span><span>${escapeHtml(formatOnChainNumber(holding.quantity, 6))}</span><span>${holdingValue == null ? '—' : escapeHtml(formatDashboardUsd(holdingValue))}</span><span title="Complete cost basis unavailable">—</span></a>`;
   }).join('') || `<div class="empty-state">${!address ? 'Connect a wallet to see token holdings.' : portfolioHoldings.status === 'loading' ? 'Checking live Solana balances…' : portfolioHoldings.status === 'unavailable' ? 'Token balances are unavailable from Solana RPC.' : 'No SPL token holdings in this wallet.'}</div>`;
   status.textContent = !address ? 'Connect wallet' : current ? `${holdings.length} tokens · ${portfolioHoldings.coverage}${pricedCount < holdings.length ? ' · some values unavailable' : ''}` : portfolioHoldings.status === 'loading' ? 'Checking Solana balances' : 'Balance lookup unavailable';
   value.textContent = pricedCount ? `${pricedCount < holdings.length ? '≥' : ''}${formatDashboardUsd(total)}` : holdings.length ? '—' : current ? '$0.00' : '—';
@@ -8247,6 +8265,8 @@ function renderPortfolio(){
     return `<tr class="portfolio-trade-row"><td><time datetime="${escapeHtml(new Date(timestamp).toISOString())}" title="${escapeHtml(new Date(timestamp).toLocaleString())}">${escapeHtml(formatOnchainAge(timestamp))}</time></td><td><span class="portfolio-trade-side ${trade.side}">${trade.side === 'buy' ? 'Buy' : 'Sell'}</span></td><td><a href="/token/${encodeURIComponent(trade.mint)}">${escapeHtml(trade.symbol || shortAddress(trade.mint))}</a></td><td class="numeric">${escapeHtml(tokenAmount)}</td><td class="numeric">${escapeHtml(formatOnChainNumber(trade.solAmount, 5))}</td><td><a href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener noreferrer" aria-label="View transaction ${escapeHtml(shortAddress(trade.signature))} on Solana Explorer">${escapeHtml(shortAddress(trade.signature))} ↗</a></td></tr>`;
   }).join('') || `<tr><td class="portfolio-trade-empty" colspan="6"><span>${!address ? 'Connect a wallet to see trade transactions.' : 'No trades found in the available 24-hour coin scan.'}</span></td></tr>`;
   txNote.textContent = !address ? 'Connect a wallet for Solana trade history.' : `Last 24 hours · ${exploreScannedCount} of ${assets.length} listed coins scanned · up to 20 trades per coin, 100 wallet rows. Older or unscanned transactions may be missing.`;
+  paginateHistory(rows, {label:'Holdings', selector:'.portfolio-holding-row', key:address});
+  paginateHistory(txRows, {label:'Trade history', selector:'.portfolio-trade-row', key:address, anchor:txRows.closest('table')?.parentElement || txRows});
 }
 function activatePortfolioTab(name, focus = false){
   const tabs = document.querySelectorAll('[data-portfolio-tab]');

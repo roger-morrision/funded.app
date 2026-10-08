@@ -1,4 +1,5 @@
 import './reward-experience.css';
+import { paginateHistory } from './history-pagination.js';
 import { summarizeXClaims, formatXClaimSol } from './x-claim-summary.js';
 import { createTokenCardActions } from './token-card-controls.js';
 
@@ -169,6 +170,7 @@ function renderPortfolio(data, referralData, xData) {
     list.append(article);
   }
   body.append(list);
+  paginateHistory(list, {label:'Reward history', selector:':scope > article'});
 }
 function renderDiscovery(data) {
   const root = document.querySelector('[data-reward-discovery]'); if (!root) return;

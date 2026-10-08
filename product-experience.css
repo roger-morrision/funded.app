@@ -146,3 +146,11 @@ html body #wallet-onboarding-dialog > .text-button { min-height:44px; width:100%
 .creator-claim-card .creator-reward-name { margin:0 0 14px; overflow-wrap:anywhere; }
 @media(max-width:420px) { .creator-reward-controls :is(input,select) { flex:1 1 100%; width:100%; } }
 @media(max-width:560px) { #rewards-creator .personal-reward-values { grid-template-columns:1fr; } }
+.history-pagination { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px; margin:20px 0; grid-column:1/-1; }
+.history-pagination[hidden], .history-paged-item[hidden] { display:none!important; }
+.history-pagination button { min-height:44px; padding:10px 16px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--text); cursor:pointer; }
+.history-pagination button:disabled { opacity:.45; cursor:default; }
+.history-pagination button:focus-visible { outline:2px solid var(--accent,#f5ae00); outline-offset:3px; }
+.history-pagination [role=status] { font-size:12px; color:var(--muted); }
+.portfolio-token-address { font-family:monospace; opacity:.8; }
+@media(max-width:420px) { .history-pagination { gap:8px; } .history-pagination [role=status] { order:-1; flex-basis:100%; text-align:center; } }

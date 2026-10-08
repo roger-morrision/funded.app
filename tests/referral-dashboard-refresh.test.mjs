@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+import { referralStatusLabel } from '../referral-status.js';
 
 const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
 function section(start, end) {
@@ -33,6 +34,8 @@ function fixture() {
   const session = { address: 'wallet', provider: { async signMessage() { signatures++; return { signature: new Uint8Array(64).fill(7) }; } } };
   const context = {
     TextEncoder,
+    referralStatusLabel,
+    paginateHistory: () => {},
     bs58: { encode(bytes) { assert.equal(bytes.length, 64); return 'fixture-signature'; } },
     captureWalletSession: () => session,
     assertWalletSessionCurrent: () => {},
@@ -41,6 +44,9 @@ function fixture() {
     renderReferralLedgerEmpty: () => {},
     renderShareInsights: () => {},
     document: {
+      documentElement: {dataset:{}},
+      body: {classList:{contains:()=>false}},
+      querySelectorAll: () => [],
       querySelector(selector) { return selector === '#referral-claim-center' ? panel : selector === '#referral-command-center' ? dashboard : null; },
       createElement: element,
     },
@@ -65,6 +71,7 @@ function fixture() {
     refresh: () => context.refreshReferralClaims(),
     panel,
     calls,
+    get status() { return context.document.documentElement.dataset.referralStatus; },
     get signatures() { return signatures; },
     expire() { authenticated = false; },
     mismatch() { authenticated = true; authenticatedWallet = 'another-wallet'; },
@@ -76,12 +83,14 @@ test('wallet refresh checks the session without requesting a signature', async (
   await f.refresh();
   assert.deepEqual(f.calls, ['/api/referrals/session']);
   assert.equal(f.signatures, 0);
+  assert.equal(f.status, 'Verify wallet');
   const button = f.panel.children.find(child => child.textContent === 'Verify wallet to view');
   assert(button, 'An explicit approval action is available when the session is absent');
 
   await button.click();
   assert.equal(f.signatures, 1);
   assert(f.calls.includes('/api/referrals/session/verify'));
+  assert.equal(f.status, 'Rewards unavailable');
 
   f.calls.length = 0;
   await f.refresh();
@@ -93,6 +102,7 @@ test('wallet refresh checks the session without requesting a signature', async (
   await f.refresh();
   assert.deepEqual(f.calls, ['/api/referrals/session']);
   assert.equal(f.signatures, 1, 'An expired session does not sign during refresh');
+  assert.equal(f.status, 'Verify wallet');
 });
 
 test('a session belonging to another wallet never exposes private claims', async () => {
