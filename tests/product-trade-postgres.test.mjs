@@ -12,7 +12,7 @@ test('trade checkpoint and exact events are atomic, replay-safe, and survive a d
   try{
     const schema=await readFile(new URL('../db/schema.sql',import.meta.url),'utf8');
     await client.query(schema);
-    await client.query('TRUNCATE product_trade_events,product_trade_cursors,product_trade_gaps');
+    await client.query('TRUNCATE product_trade_events,product_trade_cursors,product_trade_gaps,product_trade_nontrades');
     const row={signature:'2'.repeat(88),logIndex:3,mint:'mint',route:'curve',slot:10,blockTime:100,side:'buy',solLamports:'9007199254740993',tokenAmountRaw:'1'};
     const page={records:[row],cursor:{before:'cursor'},status:'backfilling'};
     await persistTradePage(client,'devnet','mint','curve',page);
@@ -50,5 +50,15 @@ test('trade checkpoint and exact events are atomic, replay-safe, and survive a d
     assert.equal(retry.gapsRetried,1);assert.equal(retry.gapsResolved,1);assert.equal(retry.blocked,0);
     assert.equal((await productTradeReport(client,'devnet')).unresolvedProofs,0);
     assert.equal((await client.query('SELECT cursor FROM product_trade_cursors WHERE mint=$1 AND route=$2',[fixture.mint,'pool'])).rows[0].cursor.head,item.signature);
+    const migration={signature:'4'.repeat(88),slot:12,reason:'logs-incomplete'};
+    await persistTradePage(client,'devnet','mint','pool',{records:[],gaps:[migration]});
+    const beforeMigration=await productTradeReport(client,'devnet');
+    const proof={records:[],nontrades:[migration],resolved:[migration.signature]};
+    await persistTradePage(client,'devnet','mint','pool',proof);
+    await persistTradePage(client,'devnet','mint','pool',proof);
+    report=await productTradeReport(client,'devnet');
+    assert.equal(report.excludedMigrations,1);assert.equal(report.unresolvedProofs,0);
+    assert.equal(report.trades,beforeMigration.trades);assert.equal(report.observedVolumeLamports,beforeMigration.observedVolumeLamports);
+    await assert.rejects(()=>persistTradePage(client,'devnet','mint','pool',{...proof,nontrades:[{...migration,slot:13}]}),/migration proof conflicts/);
   }finally{client.release();await pool.end();}
 });

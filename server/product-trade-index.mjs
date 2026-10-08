@@ -4,6 +4,7 @@ import { NATIVE_MINT } from '@solana/spl-token';
 import { PublicKey } from '@solana/web3.js';
 import { decodePumpTrades, decodePumpSwapTrades } from './coin-market.mjs';
 import { GENESIS_HASHES } from './service-status.mjs';
+import { migrationOnlyProof } from './product-migration-proof.mjs';
 
 class TradeHistoryGap extends Error {
   constructor(reason) { super(reason); this.reason=reason; }
@@ -63,6 +64,9 @@ async function readTradeProof(connection,reference,mint,route,decoder) {
     return {records:finalizedTradeRows(transaction,reference,mint,route==='pool'?canonicalPumpPoolPda(mint,NATIVE_MINT):null,decoder),resolved:[reference.signature],gaps:[]};
   } catch(error) {
     if (!(error instanceof TradeHistoryGap)) throw error;
+    // Only finalizedTradeRows' log checks can reach this fallback with a
+    // non-null transaction; its signature, slot, success and time were checked.
+    if(transaction&&migrationOnlyProof(transaction,mint))return {records:[],resolved:[reference.signature],gaps:[],nontrades:[{signature:reference.signature,slot:reference.slot}]};
     return {records:[],resolved:[],gaps:[{signature:reference.signature,slot:reference.slot,reason:error.reason}]};
   }
 }
@@ -77,7 +81,7 @@ export async function scanTradePage({connection,mint,route,cursor={},pageSize=25
   if (!Array.isArray(list) || list.length>pageSize || new Set(list.map(r=>r.signature)).size!==list.length) throw new Error('Invalid signature page.');
   const anchor=list.findIndex(row=>row.signature===cursor.head);
   const selected=anchor<0?list:list.slice(0,anchor);
-  const records=[],gaps=[],resolved=[];
+  const records=[],gaps=[],resolved=[],nontrades=[];
   const eventCoder=decodePoolEvent ? null : getPumpAmmProgram(connection).coder.events;
   const decoder=decodePoolEvent || eventCoder.decode.bind(eventCoder);
   for (const reference of selected) {
@@ -85,12 +89,13 @@ export async function scanTradePage({connection,mint,route,cursor={},pageSize=25
     if (reference.err != null) continue;
     const proof=await readTradeProof(connection,reference,key,route,decoder);
     records.push(...proof.records);gaps.push(...proof.gaps);resolved.push(...proof.resolved);
+    nontrades.push(...(proof.nontrades||[]));
   }
   const finished=anchor>=0 || list.length<pageSize;
   const candidateHead=cursor.candidateHead || list[0]?.signature || cursor.head || null;
   const before=finished?null:list.at(-1)?.signature;
   if (!finished && (!before || before===cursor.before)) throw new Error('History cursor did not advance.');
-  return {records,gaps,resolved, cursor:finished?{head:candidateHead,before:null,candidateHead:null}:{...cursor,before,candidateHead},
+  return {records,gaps,resolved,nontrades, cursor:finished?{head:candidateHead,before:null,candidateHead:null}:{...cursor,before,candidateHead},
     status:finished ? cursor.head && anchor<0 ? 'anchor-missing' : 'provider-history-scanned' : 'backfilling', examined:selected.length};
 }
 
@@ -111,6 +116,11 @@ export async function persistTradePage(client,cluster,mint,route,page) {
         ON CONFLICT(cluster,mint,route,signature) DO UPDATE SET reason=EXCLUDED.reason,checked_at=NOW(),attempts=product_trade_gaps.attempts+1
         WHERE product_trade_gaps.slot=EXCLUDED.slot RETURNING signature`,[cluster,mint,route,gap.signature,gap.slot,gap.reason]);
       if(result.rowCount!==1) throw new Error('Stored gap slot conflicts with finalized history.');
+    }
+    for(const proof of page.nontrades||[]) {
+      const saved=await client.query(`INSERT INTO product_trade_nontrades(cluster,mint,route,signature,slot,proof_kind) VALUES($1,$2,$3,$4,$5,'migration-v2-instructions-v1')
+        ON CONFLICT(cluster,mint,route,signature) DO UPDATE SET signature=EXCLUDED.signature WHERE product_trade_nontrades.slot=EXCLUDED.slot RETURNING signature`,[cluster,mint,route,proof.signature,proof.slot]);
+      if(saved.rowCount!==1)throw new Error('Stored migration proof conflicts with finalized history.');
     }
     for (const signature of page.resolved || []) await client.query('DELETE FROM product_trade_gaps WHERE cluster=$1 AND mint=$2 AND route=$3 AND signature=$4',[cluster,mint,route,signature]);
     if (page.cursor) await client.query(`INSERT INTO product_trade_cursors(cluster,mint,route,cursor,status,checked_at) VALUES($1,$2,$3,$4,$5,NOW())
@@ -176,10 +186,11 @@ export async function productTradeReport(pool,cluster) {
   const scans=await pool.query('SELECT status,count(*)::int AS routes,min(checked_at) AS oldest_check,max(checked_at) AS latest_check FROM product_trade_cursors WHERE cluster=$1 GROUP BY status ORDER BY status',[cluster]);
   const gaps=(await pool.query(`SELECT reason,count(*)::int AS proofs,count(DISTINCT signature)::int AS transactions,
     min(first_seen_at) AS first_seen,max(checked_at) AS latest_check FROM product_trade_gaps WHERE cluster=$1 GROUP BY reason ORDER BY reason`,[cluster])).rows;
+  const excluded=(await pool.query('SELECT count(DISTINCT signature)::int AS migrations FROM product_trade_nontrades WHERE cluster=$1',[cluster])).rows[0];
   return {...totals,observedVolumeLamports:scans.rows.length?totals.observedVolumeLamports:null,
     status:!scans.rows.length?'not-indexed':scans.rows.some(row=>row.status==='blocked')?'partial-with-blockers':gaps.length?'partial-with-gaps':'partial',
     scope:'registered-mints-pump-curves-and-canonical-sol-pools',commitment:'finalized',coverage:'observed-only',
     volumeBasis:'curve-event-SOL; pool-buyer-total-SOL-in-and-seller-net-SOL-out; excludes-network-fees',
-    appOriginAttribution:false, historicalCompletenessVerified:false, scans:scans.rows,unresolvedProofs:gaps.reduce((sum,row)=>sum+row.proofs,0),gaps,
+    appOriginAttribution:false, historicalCompletenessVerified:false, scans:scans.rows,unresolvedProofs:gaps.reduce((sum,row)=>sum+row.proofs,0),gaps,excludedMigrations:excluded.migrations,
     guidance:'Trade activity on registered tokens can originate outside funded.vip. Provider history exhaustion does not prove archival completeness. Refresh and backfill are bounded operator runs.'};
 }
