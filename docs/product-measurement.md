@@ -25,7 +25,7 @@ Set `FUNDED_API_TOKEN` or `FUNDED_API_TOKEN_FILE` outside source control. The sc
 - `confirmed.registeredLaunches`: current verified registry count.
 - `confirmed.boostPurchases` and `boostPaidLamports`: deduplicated stored finalized payments matching their original quotes, including expired packs.
 - Fee collection and payout totals use the existing finalized receipt reader. Its coverage, freshness, and partial/unavailable states are retained. Unknown totals remain null.
-- Total trading volume remains null because the app does not have a complete historical trade index. Boost spend and fee collections must never be substituted for trade volume.
+- Total trading volume remains null until historical completeness is established. `confirmed.tradingActivity` separately reports exact finalized trade volume observed by the durable index, its time range, scan status, and freshness. Boost spend and fee collections are never substituted for trade volume.
 
 Devnet amounts have no monetary value. This report supports measuring the product; it does not establish millions of users, revenue, or trading volume. Consented event counts are subject to opt-in bias, blocked requests, bots, and multiple browser sessions.
 
@@ -34,3 +34,15 @@ Devnet amounts have no monetary value. This report supports measuring the produc
 The additive `product_journey_events` table is created by the normal PostgreSQL schema migration. Its composite primary key deduplicates concurrent submissions atomically. It is separate from payment and reward ledgers; no transaction data is rewritten. File-store installations return an unavailable configuration instead of pretending to persist site-wide metrics.
 
 Regression coverage includes consent and schema rejection, origin and authorization gates, bounded bodies, request limits, quote-bound payment totals, concurrent PostgreSQL inserts, cluster isolation, retention, browser opt-out, legacy local-only consent, and storage/upload failures. Test traffic uses an isolated database and browser fixtures; it is not mixed into live product counts.
+
+## Finalized trade history
+
+Run `node scripts/index-product-trades.mjs 4` in the operator container to process up to four route pages. It reads `DATABASE_URL[_FILE]` and `SOLANA_DEVNET_RPC_URL[_FILE]` (or `SOLANA_RPC_URL[_FILE]`), never wallet keys. It checks Devnet identity, uses finalized RPC reads, disables automatic rate-limit retries, and spaces requests. No trade or transfer is submitted.
+
+The worker visits least-recently checked registered mint/route pairs first, stores a historical cursor per curve or canonical SOL pool, and checkpoints each page atomically. After reaching provider history's end it refreshes from the newest signature back to the previous head. Missing or conflicting transactions leave that page's cursor unchanged. Signature and log position deduplicate events, including overlapping scans and restarts. A database advisory lock prevents concurrent index passes.
+
+Only events from successful Pump/PumpSwap invocations and successful ancestors count. Failed transactions, caught failed inner calls, mismatched signatures/slots, unsupported networks, truncated logs, and wrong pool owners do not become volume. Exact integer amounts are stored without floating-point rounding. No trader-wallet column is added.
+
+Coverage is deliberately `observed-only`. RPC history can be pruned; unsupported event layouts and noncanonical or non-SOL pools are not covered. Tokens registered in funded.vip may be traded through other apps, so these totals are token activity, not app-originated trading volume. Pool amounts use the buyer's total quote input and seller's net quote output; curve amounts use the trade event's SOL amount. Network fees are excluded. Scan status and time range must accompany any reported figure.
+
+The index is currently run on demand, not as a scheduled worker. Page limits bound RPC work; repeat a pass to continue history. Source references: [Solana signature pagination](https://solana.com/docs/rpc/http/getsignaturesforaddress) and [transaction retrieval](https://solana.com/docs/rpc/http/gettransaction).
