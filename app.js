@@ -3379,6 +3379,10 @@ function renderVerifiedReceiptEvidence(){
   const list = document.querySelector('#payment-list');
   const tape = document.querySelector('#payment-dialog-list');
   if (!list || !tape) return;
+  // Live receipt refreshes must not interrupt an expanded fee breakdown.
+  const openDetails = container => new Set(Array.from(container.querySelectorAll('details[open]'), details => details.dataset.receiptKey));
+  const listOpenDetails = openDetails(list);
+  const tapeOpenDetails = openDetails(tape);
   list.replaceChildren();
   tape.replaceChildren();
   for (const [index, receipt] of historyPayouts.entries()) {
@@ -3424,6 +3428,8 @@ function renderVerifiedReceiptEvidence(){
     identity.append(name, recipient, paid);
     const details = document.createElement('details');
     details.className = 'payment-history-details';
+    const receiptKey = `${receipt.signature}:${receipt.to}:${receipt.source}`;
+    details.dataset.receiptKey = receiptKey;
     const detailsSummary = document.createElement('summary');
     detailsSummary.textContent = 'Details';
     const fullReceiver = document.createElement('small');
@@ -3448,7 +3454,12 @@ function renderVerifiedReceiptEvidence(){
     proof.title = 'View transaction on Solana Explorer';
     actions.append(amount, proof);
     row.append(identity, actions, details);
-    if (index < 5) list.append(row.cloneNode(true));
+    if (index < 5) {
+      const previewRow = row.cloneNode(true);
+      previewRow.querySelector('details').open = listOpenDetails.has(receiptKey);
+      list.append(previewRow);
+    }
+    details.open = tapeOpenDetails.has(receiptKey);
     tape.append(row);
   }
   if (!historyPayouts.length) {
