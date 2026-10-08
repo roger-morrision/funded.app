@@ -47,6 +47,7 @@ import { metadataStatement, devnetMetadataUri, devnetImageUri, isDevnetImageUri 
 import { canonicalLaunchSocialUrl, normalizeXProfileInput } from './launch-social-url.js';
 import { claimerRate, sortClaimers, claimantWalletLabel } from './airdrop-claimers-model.js';
 import { airdropClaimState } from './airdrop-directory-model.js';
+import { communityClaimSummary, communityClaimUnit } from './community-claim-summary.js';
 import { collectRecentTrades, enrichMarketRecord, filterMarketRecords, formatSignal, sortMarketRecords, summarizeMarkets, withMarketWindow } from './market-intelligence.js';
 import { emptyHomeLaunchFilters, homeLaunchFilterCount, matchesHomeLaunchFilters, normalizeHomeLaunchFilters, HOME_FILTER_RANGES } from './home-launch-filters.js';
 import { explorePageNumbers, paginateExploreRows } from './explore-pagination.js';
@@ -849,6 +850,7 @@ async function loadCommunityReserveStatuses(){
   verifiedCommunityReserves = communityReserveStatus === 'ready'
     ? new Map(response.data.reserves.filter(row => row?.mint).map(row => [row.mint, row])) : new Map();
   communityClaimPolicy = communityReserveStatus === 'ready' ? response.data.claimPolicy || null : null;
+  renderHomeKpiDashboard(assets);
   renderAirdropClaims();
   renderRegistry();
 }
@@ -1583,6 +1585,11 @@ function getAirdropPrograms(){
   });
 }
 function airdropClaimRate(program){ return program.claimedTokens != null && program.vaultVerified === true && program.reservedTokens ? program.claimedTokens / program.reservedTokens : null; }
+function currentCommunityClaimSummary(){
+  return communityClaimSummary(verifiedLaunchPolicies, verifiedCommunityReserves, {
+    launchesReady: verifiedLaunchPoliciesStatus === 'ready', reservesReady: communityReserveStatus === 'ready',
+  });
+}
 function renderAirdropSummary(programs){
   const node = document.querySelector('#airdrop-summary-kpis');
   if (!node) return;
@@ -1592,16 +1599,15 @@ function renderAirdropSummary(programs){
     return;
   }
   const reserved = programs.reduce((sum, item) => sum + item.reservedTokens, 0);
-  const claimPrograms = programs.filter(item => item.claimPublished && item.claimedTokens != null && item.vaultVerified === true);
+  const claimSummary = currentCommunityClaimSummary();
   const eligibilityPrograms = programs.filter(item => item.claimPublished && item.eligibleWallets != null);
-  const claimed = claimPrograms.length ? claimPrograms.reduce((sum, item) => sum + item.claimedTokens, 0) : null;
   const eligible = eligibilityPrograms.length ? eligibilityPrograms.reduce((sum, item) => sum + item.eligibleWallets, 0) : null;
   const fundedCount = programs.filter(item => item.vaultVerified).length;
   const activeCount = programs.filter(item => item.claimActive).length;
   const fundingNote = communityReserveStatus === 'ready'
     ? `${fundedCount} of ${programs.length} airdrops funded · ${activeCount} open for claims`
     : communityReserveStatus === 'loading' ? 'Checking funding' : 'Funding status unavailable';
-  node.innerHTML = `<article><span>Published airdrops</span><strong>${programs.length}</strong><small>${activeCount} open for claims</small></article><article><span>Planned tokens</span><strong>${formatTokenAmount(reserved)}</strong><small>${fundingNote}</small></article><article><span>Claimed so far</span><strong>${claimed == null ? '—' : `${claimPrograms.length < programs.length ? '≥' : ''}${formatVerifiedAirdropAmount(claimed)}`}</strong><small>${claimed == null ? 'Claim history unavailable' : `History available for ${claimPrograms.length} of ${programs.length} airdrops`}</small></article><article><span>Eligible wallets</span><strong>${eligible == null ? '—' : `${eligibilityPrograms.length < programs.length ? '≥' : ''}${formatVerifiedAirdropAmount(eligible)}`}</strong><small>${eligible == null ? 'Eligibility details unavailable' : `Eligibility available for ${eligibilityPrograms.length} of ${programs.length} airdrops`}</small></article>`;
+  node.innerHTML = `<article><span>Published airdrops</span><strong>${programs.length}</strong><small>${activeCount} open for claims</small></article><article><span>Planned tokens</span><strong>${formatTokenAmount(reserved)}</strong><small>${fundingNote}</small></article><article data-community-claimed><span>Community airdrops claimed</span><strong>${claimSummary.amount}</strong><span>${communityClaimUnit(claimSummary)}</span><small>${claimSummary.note}</small></article><article><span>Eligible wallets</span><strong>${eligible == null ? '—' : `${eligibilityPrograms.length < programs.length ? '≥' : ''}${formatVerifiedAirdropAmount(eligible)}`}</strong><small>${eligible == null ? 'Eligibility details unavailable' : `Eligibility available for ${eligibilityPrograms.length} of ${programs.length} airdrops`}</small></article>`;
 }
 let airdropDirectoryPage = 1;
 let airdropDirectoryStatus = 'upcoming';
@@ -3159,26 +3165,11 @@ function renderHomeKpiDashboard(verified = assets){
       : Number.isFinite(fundedUsdPrice) ? `${burnCount} confirmed burn receipt${burnCount === 1 ? '' : 's'} · current $FUNDED quote` : 'Current $FUNDED/USD quote unavailable',
     burnUsdAvailable ? burnedTokens ? 'available' : 'empty' : 'unavailable');
 
-  const reservePrograms = verifiedLaunchPolicies.filter(launch => launch?.onchainVerified && Number(launch?.communityAirdrop?.reservedTokens) > 0);
-  let pricedPrograms = 0;
-  const airdropUsd = reservePrograms.reduce((sum, launch) => {
-    const asset = records.find(item => item.address === launch.mint);
-    const tokenUsd = Number(asset?.priceUsd) > 0
-      ? Number(asset.priceUsd)
-      : Number(asset?.curvePriceSol) > 0 && solQuoteReady ? Number(asset.curvePriceSol) * coinSolUsdPrice : null;
-    if (!Number.isFinite(tokenUsd)) return sum;
-    pricedPrograms += 1;
-    return sum + Number(launch.communityAirdrop.reservedTokens) * tokenUsd;
-  }, 0);
-  const airdropAvailable = reservePrograms.length > 0 && pricedPrograms > 0;
-  const partialAirdrop = airdropAvailable && pricedPrograms < reservePrograms.length;
+  const airdropClaims = currentCommunityClaimSummary();
   const airdropUnit = document.querySelector('#home-kpi-airdrop-unit');
-  if (airdropUnit) airdropUnit.textContent = airdropAvailable ? 'USD' : 'ALLOCATIONS';
-  setHomeDashboardMetric('airdrop', airdropAvailable ? formatDashboardUsd(airdropUsd, { partial: partialAirdrop }) : launchFeedUnavailable ? '—' : String(reservePrograms.length), launchFeedUnavailable
-    ? 'Launch policies unavailable; allocation not verified'
-    : airdropAvailable
-    ? `${pricedPrograms}/${reservePrograms.length} policy allocation${reservePrograms.length === 1 ? '' : 's'} valued at spot · check vault funding per launch`
-    : reservePrograms.length ? `${reservePrograms.length} policy allocation${reservePrograms.length === 1 ? '' : 's'} · USD pricing unavailable · check vault funding per launch` : 'No published community allocations', partialAirdrop ? 'partial' : airdropAvailable ? 'available' : launchFeedUnavailable ? 'unavailable' : 'empty');
+  if (airdropUnit) airdropUnit.textContent = communityClaimUnit(airdropClaims);
+  setHomeDashboardMetric('airdrop', airdropClaims.amount, airdropClaims.note, airdropClaims.state);
+  document.querySelector('#home-kpi-airdrop-card')?.setAttribute('title', airdropClaims.note);
 
   const payoutEvidenceReady = Boolean(receiptEvidence) && Array.isArray(receiptEvidence?.verifiedPayouts);
   const referralPayouts = payoutEvidenceReady ? receiptEvidence.verifiedPayouts.filter(item => item.source === 'solana-keeper-referral-claim') : [];

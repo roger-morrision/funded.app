@@ -377,6 +377,12 @@ body.page-route-overview #home-kpi-fees-card { order: 3; }
 body.page-route-overview #home-kpi-burn-card { order: 4; }
 body.page-route-overview #home-kpi-referrals-card { order: 5; }
 body.page-route-overview #home-kpi-airdrop-card { order: 6; }
+body #home-kpi-airdrop-card .home-kpi-value { flex-wrap: wrap; gap: 4px 8px; }
+body #home-kpi-airdrop-unit { flex: 0 1 auto; max-width: 100%; border: 0; padding: 0; background: transparent; font-size: 12px; text-transform: none; letter-spacing: 0; white-space: normal; }
+body #home-kpi-airdrop { overflow-wrap: anywhere; white-space: normal; }
+@media (max-width: 620px) {
+  body.page-route-overview #home-kpi-airdrop-card { grid-column: 1 / -1; }
+}
 body.page-route-overview #home-kpi-holder-paid-card { order: 7; }
 body.page-route-overview #home-kpi-x-paid-card { order: 8; }
 body.page-route-overview #home-kpi-burn-card,
