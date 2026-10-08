@@ -192,7 +192,7 @@ function renderDiscovery(data) {
     const info = node('div', 'reward-token-info');
     info.append(link(`${row.symbol || short(row.mint)} · ${row.name}`, tokenUrl(row.mint)));
     const market = tokenListMarket(row.mint);
-    const age = tokenAge(market?.createdTimestamp || row.createdAt);
+    const age = tokenAge(row.createdTimestamp || market?.createdTimestamp || row.createdAt);
     const metadata = node('div', 'reward-token-metadata');
     const ageField = node('span', '', 'Age ');
     const time = node('time', '', age.label);

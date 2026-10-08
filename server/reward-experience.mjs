@@ -136,6 +136,7 @@ export function rewardExperience(state = {}, rewards = {}, evidence = {}, cluste
     const token = { mint, name:launch.name || launch.symbol || mint, symbol:launch.symbol || '',
       imageUri:launch.imageUri || null, creatorWallet:launch.creatorWallet || null,
       createdAt:launch.createdAt || null,
+      createdTimestamp:launch.createdTimestamp || launch.blockTime || null,
       holderSharePercent:Number(launch.feeDistribution?.creatorDirected?.shares?.holderAirdropPercent || 0),
       totals:Object.fromEntries(Object.entries(totals).map(([key, value]) => [key, value.toString()])),
       collectionCount:collections.length, holderPaidWallets:holderWallets.size,

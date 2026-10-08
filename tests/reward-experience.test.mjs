@@ -10,7 +10,7 @@ const claim = 'E'.repeat(64);
 const payment = 'F'.repeat(64);
 const burn = 'G'.repeat(64);
 const launch = { mint, cluster:'devnet', onchainVerified:true, creator:router, creatorWallet:wallet,
-  name:'Example', symbol:'EX', pumpFeeRoute:{ scope:'per-mint-v2', router },
+  name:'Example', symbol:'EX', createdTimestamp:1790812800, pumpFeeRoute:{ scope:'per-mint-v2', router },
   feeDistribution:{ creatorDirected:{ shares:{ holderAirdropPercent:20 } } } };
 const state = { launches:{ [mint]:launch }, collections:{ [claim]:{ mint, cluster:'devnet', status:'collected',
   onchainVerified:true, attribution:'mint-verified', signature:claim, collectedLamports:100_000_000, recordedAt:'2026-10-01T00:00:00Z' } },
@@ -28,6 +28,7 @@ const evidence = { cluster:'devnet', commitment:'finalized', status:'onchain-ind
 test('verified collection, allocation, holder payment, and burn stay distinct', () => {
   const result = rewardExperience(state, rewards, evidence, 'devnet', holder);
   assert.equal(result.tokens.length, 1);
+  assert.equal(result.tokens[0].createdTimestamp, 1790812800);
   assert.equal(result.tokens[0].totals.collected, '100000000');
   assert.equal(result.tokens[0].totals.holder, '20000000');
   assert.equal(result.tokens[0].holderPaidWallets, 1);
