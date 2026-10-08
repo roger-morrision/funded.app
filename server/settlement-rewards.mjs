@@ -46,7 +46,7 @@ export function createSettlementRewards({
     if (!claim?.publicKey || !claim?.xAttestation || claim.xAttestation.subject !== claim.xUserId) return;
     return automaticRewardStore.transaction(state => {
       state.fundingRequests ||= {};
-      for (const request of Object.values(state.fundingRequests)) if (request.kind === 'x' && request.obligationId === claim.obligationId && request.status === 'awaiting-verified-recipient') { request.recipient = claim.publicKey; request.status = 'pending'; request.enrolledAt = new Date().toISOString(); }
+      for (const request of Object.values(state.fundingRequests)) if (request.kind === 'x' && request.obligationId === claim.obligationId && ['awaiting-verified-recipient','pending'].includes(request.status)) { request.recipient = claim.publicKey; request.status = 'awaiting-creator-signature'; request.enrolledAt = new Date().toISOString(); }
       return Object.values(state.fundingRequests).find(request => request.kind === 'x' && request.obligationId === claim.obligationId && request.recipient === claim.publicKey)?.status || null;
     });
   }

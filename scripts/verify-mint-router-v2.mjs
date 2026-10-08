@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { Keypair, PublicKey, TransactionInstruction } from '@solana/web3.js';
 import { PUMP_SDK } from '@pump-fun/pump-sdk';
-import { deriveMintFeeRouter, FEE_ROUTER_POLICY_HASH_HEX, MINT_FEE_ROUTER_MAGIC, MINT_FEE_ROUTER_SEED, verifyMintFeeRouterAccount, buildFeeRouterPolicy } from '../fee-router.js';
+import { deriveMintFeeRouter, deriveMintFeeLedger, FEE_ROUTER_POLICY_HASH_HEX, MINT_FEE_ROUTER_MAGIC, MINT_FEE_ROUTER_SEED, verifyMintFeeRouterAccount, verifyMintFeeLedgerAccount, buildFeeRouterPolicy } from '../fee-router.js';
 import { buildMintRouterInitializeInstruction, buildPumpLaunchPlan } from '../mint-router-launch.js';
 import { buildMintRouterSettlementInstruction, buildMintFeeLedgerMigrationInstruction, readMintClaimRecord } from '../server/mint-router-payout.mjs';
 import { communityProgramReserveAddress, rewardAddresses } from '../server/automatic-reward-chain.mjs';
@@ -23,6 +23,15 @@ header[105] = router.bump;
 const verified = await verifyMintFeeRouterAccount({ connection: { getAccountInfo: async () => ({ owner: program, data: header }) }, programId: program, mint: mint.publicKey, expectedAuthority: authority });
 assert.equal(verified.verified, true);
 assert.equal((await verifyMintFeeRouterAccount({ connection: { getAccountInfo: async () => ({ owner: program, data: header }) }, programId: program, mint: mint.publicKey, expectedAuthority: payer })).verified, false);
+const ledgerAddress = deriveMintFeeLedger(program, mint.publicKey);
+const ledgerData = Buffer.alloc(89);
+createHash('sha256').update('account:MintFeeLedger').digest().copy(ledgerData, 0, 0, 8);
+mint.publicKey.toBuffer().copy(ledgerData, 8);
+payer.toBuffer().copy(ledgerData, 40);
+ledgerData[88] = ledgerAddress.bump;
+const ledgerConnection = { getAccountInfo: async () => ({ owner:program, data:ledgerData }) };
+assert.equal((await verifyMintFeeLedgerAccount({ connection:ledgerConnection, programId:program, mint:mint.publicKey, creator:payer })).verified, true);
+assert.equal((await verifyMintFeeLedgerAccount({ connection:ledgerConnection, programId:program, mint:mint.publicKey, creator:recipient })).verified, false);
 assert.equal(buildFeeRouterPolicy({ ...router, scope: 'per-mint-v2' }).router.seed, MINT_FEE_ROUTER_SEED);
 
 const initialize = buildMintRouterInitializeInstruction({ programId: program, mint: mint.publicKey, payer });
@@ -39,9 +48,15 @@ const oversized = new TransactionInstruction({ programId: program, keys: [], dat
 assert.throws(() => buildPumpLaunchPlan({ payer, mint, blockhash, launchInstructions: [create], burnInstruction: oversized, mintRouterInstruction: initialize.instruction }), /size limit/);
 
 const obligationId = `${mint.publicKey}:claim:x`;
-const migration = buildMintFeeLedgerMigrationInstruction({programId:program,mint:mint.publicKey,authority,creator:payer,appOwner:payer,programData:Keypair.generate().publicKey});
+const migration = buildMintFeeLedgerMigrationInstruction({programId:program,mint:mint.publicKey,authority,creator:payer,appOwner:payer,
+  programData:Keypair.generate().publicKey,historicalCreatorSpent:'60000000',historicalProtocolSpent:'20000000',expectedAvailableLamports:'20000000'});
 assert.equal(migration.keys[1].isSigner, true);
 assert.equal(migration.keys[2].isSigner, true);
+assert.equal(migration.data.readBigUInt64LE(8), 60000000n);
+assert.equal(migration.data.readBigUInt64LE(16), 20000000n);
+assert.equal(migration.data.readBigUInt64LE(24), 20000000n);
+assert.throws(() => buildMintFeeLedgerMigrationInstruction({programId:program,mint:mint.publicKey,authority,creator:payer,
+  appOwner:payer,programData:Keypair.generate().publicKey}), /historical fee snapshot/);
 const settlement = buildMintRouterSettlementInstruction({ programId: program, mint: mint.publicKey, authority, creator:payer, recipient, amountLamports: '12345678', obligationId });
 assert.equal(settlement.router.toBase58(), router.address.toBase58());
 assert.equal(settlement.instruction.keys[8].pubkey.toBase58(), recipient.toBase58());

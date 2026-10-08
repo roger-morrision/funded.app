@@ -28,11 +28,21 @@ export function deriveMintClaim(programId, mint, claimId) {
   return address;
 }
 
-export function buildMintFeeLedgerMigrationInstruction({ programId, mint, authority, creator, appOwner, programData }) {
+export function buildMintFeeLedgerMigrationInstruction({ programId, mint, authority, creator, appOwner, programData,
+  historicalCreatorSpent, historicalProtocolSpent, expectedAvailableLamports }) {
   if (!creator || !appOwner || !programData) throw new Error('Creator, program upgrade owner, and verified ProgramData are required to migrate an existing mint.');
+  const values = [historicalCreatorSpent, historicalProtocolSpent, expectedAvailableLamports].map(value => {
+    if (value === undefined || value === null || !/^\d+$/.test(String(value))) throw new Error('An exact nonnegative historical fee snapshot is required.');
+    const amount = BigInt(value);
+    if (amount > 0xffffffffffffffffn) throw new Error('Historical fee snapshot amount exceeds u64.');
+    return amount;
+  });
   const program = new PublicKey(programId);
   const mintKey = new PublicKey(mint);
   const ledger = deriveMintFeeLedger(program, mintKey);
+  const data = Buffer.alloc(32);
+  MIGRATE_MINT_LEDGER_DISCRIMINATOR.copy(data, 0);
+  values.forEach((value, index) => data.writeBigUInt64LE(value, 8 + index * 8));
   return new TransactionInstruction({
     programId: program,
     keys: [
@@ -47,7 +57,7 @@ export function buildMintFeeLedgerMigrationInstruction({ programId, mint, author
       { pubkey:new PublicKey(programData), isSigner:false, isWritable:false },
       { pubkey:SystemProgram.programId, isSigner:false, isWritable:false },
     ],
-    data:MIGRATE_MINT_LEDGER_DISCRIMINATOR,
+    data,
   });
 }
 

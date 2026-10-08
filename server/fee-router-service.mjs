@@ -45,9 +45,9 @@ export function createFeeRouterService({
     if (!encoded) return null;
     return Keypair.fromSecretKey(bs58.decode(encoded));
   }
-  async function mintRouterReadiness() {
+  async function mintRouterReadiness({ creatorSigned = false } = {}) {
     const reasons = [];
-    reasons.push('Creator wallet co-signing for on-chain 80/20 settlements is not yet available in the payout flow');
+    if (!creatorSigned) reasons.push('Creator wallet co-signing for on-chain 80/20 settlements is not yet available in the payout flow');
     if (solanaCluster !== 'devnet') reasons.push('Solana is required');
     if (env.FUNDED_MINT_FEE_ROUTER_ENABLED !== 'true') reasons.push('mint router route is disabled');
     if (!feeRouterConfig()) reasons.push('fee router is not configured');
@@ -90,8 +90,8 @@ export function createFeeRouterService({
     }
     return { ready: reasons.length === 0, reasons };
   }
-  async function xFeeReadiness({ includeLookupHealth = true } = {}) {
-    const base = await mintRouterReadiness();
+  async function xFeeReadiness({ includeLookupHealth = true, creatorSigned = false } = {}) {
+    const base = await mintRouterReadiness({ creatorSigned });
     const reasons = [...base.reasons];
     if (!xConfig().clientId || !xConfig().clientSecret) reasons.push('X OAuth is not configured');
     if (!String(env.X_BEARER_TOKEN || '').trim()) reasons.push('X user lookup is not configured');

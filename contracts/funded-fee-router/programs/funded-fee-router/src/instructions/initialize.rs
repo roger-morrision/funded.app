@@ -144,7 +144,8 @@ pub struct MigrateMintFeeLedger<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn migrate_mint_fee_ledger_handler(ctx: Context<MigrateMintFeeLedger>) -> Result<()> {
+pub fn migrate_mint_fee_ledger_handler(ctx: Context<MigrateMintFeeLedger>, historical_creator_spent: u64,
+    historical_protocol_spent: u64, expected_available_lamports: u64) -> Result<()> {
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
     assert_upgrade_owner(&ctx.accounts.program.to_account_info(), &ctx.accounts.program_data.to_account_info(),
         &ctx.accounts.app_owner.key(), ctx.program_id)?;
@@ -156,12 +157,22 @@ pub fn migrate_mint_fee_ledger_handler(ctx: Context<MigrateMintFeeLedger>) -> Re
         && data[41..73] == ctx.accounts.authority.key().to_bytes()
         && data[73..105] == ctx.accounts.mint.key().to_bytes()
         && data[105] == ctx.bumps.router, ErrorCode::InvalidMintRouter);
-    require!(router.lamports() == Rent::get()?.minimum_balance(MINT_ROUTER_DATA_LEN), ErrorCode::InvalidMintFeeLedger);
+    let minimum = Rent::get()?.minimum_balance(MINT_ROUTER_DATA_LEN);
+    let available = router.lamports().checked_sub(minimum).ok_or(ErrorCode::InvalidMintFeeLedger)?;
+    require!(available == expected_available_lamports, ErrorCode::InvalidMintFeeLedger);
+    let gross = u128::from(available)
+        .checked_add(u128::from(historical_creator_spent))
+        .and_then(|value| value.checked_add(u128::from(historical_protocol_spent)))
+        .ok_or(ErrorCode::AmountOverflow)?;
+    let creator_limit = gross.checked_mul(80).ok_or(ErrorCode::AmountOverflow)? / 100;
+    require!(u128::from(historical_creator_spent) <= creator_limit
+        && u128::from(historical_protocol_spent) <= gross - creator_limit,
+        ErrorCode::FeeShareExceeded);
     let ledger = &mut ctx.accounts.ledger;
     ledger.mint = ctx.accounts.mint.key();
     ledger.creator = ctx.accounts.creator.key();
-    ledger.creator_spent = 0;
-    ledger.protocol_spent = 0;
+    ledger.creator_spent = historical_creator_spent;
+    ledger.protocol_spent = historical_protocol_spent;
     ledger.bump = ctx.bumps.ledger;
     Ok(())
 }

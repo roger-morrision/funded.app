@@ -19,6 +19,10 @@ export async function verifyClaimState(store,other=store,concurrent=false) {
   const observed=(await store.readClaimState('scope-a')).claims['scope-a'];
   assert.throws(()=>assertObservedClaim({...observed,nonce:'renewed'},observed));
   assert.throws(()=>assertObservedClaim({...observed,expiresAt:'2000-01-01'},observed));
+  const expired={...observed,expiresAt:'2000-01-01'};
+  assert.throws(()=>assertObservedClaim(expired,expired),/expired/);
+  assert.doesNotThrow(()=>assertObservedClaim(expired,expired,{allowExpired:true}));
+  assert.throws(()=>assertObservedClaim({...expired,nonce:'renewed'},expired,{allowExpired:true}),/changed/);
   if(concurrent){let entered,release;const started=new Promise(r=>{entered=r;}),gate=new Promise(r=>{release=r;});let timer;
     const first=store.updateClaimState('scope-a',async s=>{entered();await gate;s.claims['scope-a'].counter++;});
     try{await started;await Promise.race([other.updateClaimState('scope-b',s=>{s.claims['scope-b'].counter++;}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Unrelated claim blocked.')),5000);})]);}

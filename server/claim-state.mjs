@@ -30,7 +30,7 @@ export async function mutateClaimState(state,id,mutator) {
   if(before.payouts[payoutKey]&&JSON.stringify(before.payouts[payoutKey])!==JSON.stringify(payout))throw new Error('Recorded payouts are immutable.');
   return output;
 }
-export function assertObservedClaim(current,observed) {
+export function assertObservedClaim(current,observed,{ allowExpired = false } = {}) {
   if(!current||['id','nonce','xUserId','obligationId','recipient','expiresAt'].some(key=>current[key]!==observed[key]))throw new Error('Claim changed. Refresh it before signing again.');
-  if(current.expiresAt&&Date.parse(current.expiresAt)<Date.now())throw new Error('Claim has expired.');
+  if(!allowExpired&&current.expiresAt&&Date.parse(current.expiresAt)<Date.now())throw new Error('Claim has expired.');
 }

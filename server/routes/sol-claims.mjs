@@ -2,9 +2,12 @@ import { validateInput, invalidRequest } from '../http-policy.mjs';
 import { deriveXFeeObligation } from '../x-fee-guard.mjs';
 import { renewClaimChallenge } from '../../reward-discovery.js';
 import { randomBytes } from 'node:crypto';
-import { PublicKey, Connection, Transaction, sendAndConfirmTransaction } from '@solana/web3.js';
+import { PublicKey, Connection } from '@solana/web3.js';
+import bs58 from 'bs58';
+import { prepareCreatorSettlement, verifyCreatorSettlement, submitCreatorSettlement,
+  verifyFinalizedSettlementDelta, creatorSettlementRetryState } from '../creator-settlement-transaction.mjs';
 import { assertObservedClaim } from '../claim-state.mjs';
-import { verifyMintFeeRouterAccount } from '../../fee-router.js';
+import { verifyMintFeeRouterAccount, verifyMintFeeLedgerAccount } from '../../fee-router.js';
 import { buildMintRouterSettlementInstruction, readMintClaimRecord } from '../mint-router-payout.mjs';
 import nacl from 'tweetnacl';
 
@@ -94,22 +97,22 @@ export function createSolClaimsRoutes({
       return json(res, 200, updated);
     }
 
-    const executeId = decodeURIComponent(route(url.pathname, req.method, /^\/api\/sol-claims\/([^/]+)\/execute$/) || '');
+    const executeId = decodeURIComponent(req.method === 'POST' ? route(url.pathname, req.method, /^\/api\/sol-claims\/([^/]+)\/execute$/) || '' : '');
     if (executeId) {
+      const input = await body(req);
       const state = await store.readClaimState(executeId); const claim = state.claims[executeId]; if (!claim) return json(res, 404, { error: 'Claim not found.' });
-      const existing = Object.values(state.payouts).find(item => item.claimId === executeId);
-      if (existing) return json(res, 200, existing);
-      if (claim.expiresAt && Date.parse(claim.expiresAt) < Date.now()) return json(res, 409, { error: 'Claim has expired.' });
       if (!claim.xAttestation || claim.xAttestation.subject !== claim.xUserId) return json(res, 409, { error: 'The original X user ID must be attested before payout.' });
       if (!claim.publicKey) return json(res, 409, { error: 'A verified recipient wallet is required before payout.' });
+      const existing = Object.values(state.payouts).find(item => item.claimId === executeId);
+      if (existing) return json(res, 200, existing);
       const obligation = state.obligations[claim.obligationId];
       if (!obligation || obligation.source !== 'verified-per-mint-router-collection') return json(res, 409, { error: 'A verified router-funded X fee obligation is required.' });
       const automaticRequest = Object.values((await automaticRewardStore.read()).fundingRequests || {}).find(item => item.kind === 'x' && item.obligationId === obligation.id);
-      if (automaticRequest && automaticRequest.status !== 'awaiting-verified-recipient') return json(res, 409, { error: 'This verified X reward is enrolled for automatic delivery.', automaticStatus: automaticRequest.status });
+      if (automaticRequest && !['awaiting-verified-recipient','awaiting-creator-signature','paid-via-creator-settlement'].includes(automaticRequest.status)) return json(res, 409, { error: 'This verified X reward has another delivery in progress.', automaticStatus: automaticRequest.status });
       const recalculated = deriveXFeeObligation(state, { mint: obligation.mint, claimSignature: obligation.claimSignature });
       if (recalculated.id !== obligation.id || recalculated.amountLamports !== obligation.amountLamports || recalculated.router !== obligation.router || recalculated.recipient !== obligation.recipient || recalculated.xUserId !== obligation.xUserId || claim.xUserId !== obligation.xUserId) return json(res, 409, { error: 'Stored X fee amount or user ID does not match the verified launch policy and collection.' });
-      const readiness = await xFeeReadiness();
-      if (!readiness.ready) return json(res, 503, { error: 'Mint-router payout is not active on Solana.', reasons: readiness.reasons });
+      const readiness = await xFeeReadiness({ creatorSigned:true });
+      if (!readiness.ready) return json(res, 503, { error: 'Mint-router payout is not active on Devnet.', reasons: readiness.reasons });
       const config = feeRouterConfig();
       const authority = routerAuthorityKeypair();
       const connection = new Connection(solanaRpcUrl, 'confirmed');
@@ -118,32 +121,78 @@ export function createSolClaimsRoutes({
       if (!launch?.onchainVerified || launch.pumpFeeRoute?.scope !== 'per-mint-v2' || launch.creator !== obligation.router || collection?.mint !== obligation.mint || collection?.router !== obligation.router || !collection.onchainVerified || collection.status !== 'collected' || obligation.recipient !== claim.recipient || claim.obligationId !== obligation.id) return json(res, 409, { error: 'Mint-specific launch, collection, and claim records do not match.' });
       const checked = await verifyMintFeeRouterAccount({ connection, programId: config.programId, mint: obligation.mint, expectedAuthority: authority.publicKey });
       if (!checked.verified || checked.address.toBase58() !== obligation.router) return json(res, 409, { error: 'The on-chain mint router does not match this payout obligation.' });
-      const settlement = buildMintRouterSettlementInstruction({ programId: config.programId, mint: obligation.mint, authority: authority.publicKey, recipient: claim.publicKey, amountLamports: obligation.amountLamports, obligationId: obligation.id });
+      if (!launch.creatorWallet) return json(res, 409, { error:'The original launch creator wallet is unavailable for payout approval.' });
+      const creatorWallet = new PublicKey(launch.creatorWallet).toBase58();
+      const verifiedLedger = await verifyMintFeeLedgerAccount({ connection, programId:config.programId,
+        mint:obligation.mint, creator:creatorWallet });
+      if (!verifiedLedger.verified) return json(res, 409, { error:'The launch creator fee ledger is not verified on Devnet.' });
+      const settlement = buildMintRouterSettlementInstruction({ programId: config.programId, mint: obligation.mint,
+        authority: authority.publicKey, creator:creatorWallet, recipient: claim.publicKey,
+        amountLamports: obligation.amountLamports, obligationId: obligation.id });
       const recordMatches = account => readMintClaimRecord(account, { programId: config.programId, mint: obligation.mint, recipient: claim.publicKey, amountLamports: obligation.amountLamports, claimId: settlement.claimId, share: settlement.share });
-      const priorRecord = await connection.getAccountInfo(settlement.claim, 'confirmed');
+      const priorRecord = await connection.getAccountInfo(settlement.claim, 'finalized');
       if (priorRecord && !recordMatches(priorRecord)) return json(res, 409, { error: 'The on-chain claim record conflicts with this obligation.' });
+      if (!priorRecord && claim.expiresAt && Date.parse(claim.expiresAt) < Date.now()) return json(res, 409, { error: 'Claim has expired.' });
+      let recoveryAllowed = false;
+      if (!priorRecord && ['executing','verification-pending'].includes(claim.status)) {
+        const retry = await creatorSettlementRetryState({ connection,
+          signatures:[...(claim.pendingPayoutSignatures || []), claim.pendingPayoutSignature].filter(Boolean),
+          blockhash:claim.pendingPayoutBlockhash });
+        if (!retry.retry) return json(res, 409, { error:retry.reason });
+        recoveryAllowed = true;
+      }
+      let creatorTransaction = null;
+      let expectedSignature = null;
+      if (!priorRecord) {
+        if (!input.creatorSignedTransaction) {
+          const latest = await connection.getLatestBlockhash('finalized');
+          return json(res, 202, { status:'awaiting-creator-signature', creatorWallet,
+            transaction:prepareCreatorSettlement({ instruction:settlement.instruction,
+              authority:authority.publicKey, blockhash:latest.blockhash }),
+            lastValidBlockHeight:latest.lastValidBlockHeight, claimId:executeId,
+            recipient:claim.publicKey, amountLamports:obligation.amountLamports });
+        }
+        creatorTransaction = verifyCreatorSettlement({ signedTransaction:input.creatorSignedTransaction,
+          instruction:settlement.instruction, authority:authority.publicKey, creator:creatorWallet });
+        creatorTransaction.partialSign(authority);
+        expectedSignature = bs58.encode(creatorTransaction.signature);
+      }
       const locked = await store.updateClaimState(executeId,current => {
         const currentClaim = current.claims[executeId];
-        assertObservedClaim(currentClaim,claim);
+        assertObservedClaim(currentClaim,claim,{ allowExpired:Boolean(priorRecord) });
         const currentObligation=deriveXFeeObligation(current,{mint:obligation.mint,claimSignature:obligation.claimSignature});
         if(currentObligation.amountLamports!==obligation.amountLamports||currentObligation.router!==obligation.router||currentObligation.xUserId!==claim.xUserId)throw new Error('Entitlement changed before execution.');
-        if (currentClaim.status === 'paid' || currentClaim.status === 'executing') return false;
+        if (currentClaim.status === 'paid' || (currentClaim.status === 'executing' && !priorRecord && !recoveryAllowed)
+          || (currentClaim.status === 'verification-pending' && !priorRecord && !recoveryAllowed)) return false;
+        if (recoveryAllowed && (currentClaim.pendingPayoutBlockhash !== claim.pendingPayoutBlockhash
+          || JSON.stringify(currentClaim.pendingPayoutSignatures) !== JSON.stringify(claim.pendingPayoutSignatures))) return false;
         if (!currentClaim.xAttestation || !currentClaim.publicKey || currentClaim.publicKey !== claim.publicKey) return false;
-        currentClaim.status = 'executing'; currentClaim.executionStartedAt = new Date().toISOString(); return true;
+        currentClaim.status = 'executing'; currentClaim.executionStartedAt = new Date().toISOString();
+        if (expectedSignature) {
+          currentClaim.pendingPayoutSignature = expectedSignature;
+          currentClaim.pendingPayoutSignatures = [...new Set([...(currentClaim.pendingPayoutSignatures || []), expectedSignature])];
+          currentClaim.pendingPayoutBlockhash = creatorTransaction.recentBlockhash;
+        }
+        return true;
       });
       if (!locked) return json(res, 409, { error: 'This claim is already executing or has been paid. Refresh its status.' });
       let signature = null;
       try {
         if (priorRecord) {
-          const signatures = await connection.getSignaturesForAddress(settlement.claim, { limit: 1 }, 'confirmed');
-          signature = signatures[0]?.signature || null;
+          const candidates = [...new Set([...(claim.pendingPayoutSignatures || []), claim.pendingPayoutSignature].filter(Boolean))];
+          if (!candidates.length) throw new Error('On-chain claim record exists without a saved settlement signature; manual reconciliation is required.');
+          const receipts = (await connection.getSignatureStatuses(candidates, { searchTransactionHistory:true })).value || [];
+          signature = candidates.find((candidate,index) => receipts[index]?.confirmationStatus === 'finalized' && !receipts[index]?.err) || null;
+          if (!signature) throw new Error('Saved settlement signatures have no verified finalized receipt; reconcile before retrying.');
         } else {
-          const transaction = new Transaction().add(settlement.instruction);
-          signature = await sendAndConfirmTransaction(connection, transaction, [authority], { commitment: 'confirmed' });
+          signature = await submitCreatorSettlement({ connection, transaction:creatorTransaction, authority });
+          if (signature !== expectedSignature) throw new Error('Finalized signature differs from the exact creator-approved transaction.');
         }
-        const onchainRecord = await connection.getAccountInfo(settlement.claim, 'confirmed');
-        if (!recordMatches(onchainRecord)) throw new Error('Settlement submitted, but the matching on-chain claim record is not confirmed yet.');
+        const onchainRecord = await connection.getAccountInfo(settlement.claim, 'finalized');
+        if (!recordMatches(onchainRecord)) throw new Error('Settlement submitted, but the matching on-chain claim record is not finalized yet.');
         if (!signature) throw new Error('On-chain claim record exists, but its transaction signature is not indexed yet.');
+        await verifyFinalizedSettlementDelta({ connection, signature, router:settlement.router,
+          recipient:claim.publicKey, amountLamports:obligation.amountLamports });
         const paidAt = new Date().toISOString();
         const payout = await store.updateClaimState(executeId,current => {
           const payoutId = `x:${executeId}`;
@@ -152,12 +201,21 @@ export function createSolClaimsRoutes({
           current.claims[executeId] = { ...current.claims[executeId], status: 'paid', payoutId, payoutSignature: signature, paidAt };
           return record;
         });
+        if (automaticRequest) await automaticRewardStore.transaction(current => {
+          const request = current.fundingRequests?.[automaticRequest.id];
+          if (request && request.obligationId === obligation.id
+            && ['awaiting-verified-recipient','awaiting-creator-signature'].includes(request.status)) {
+            request.status = 'paid-via-creator-settlement'; request.fundingSignature = signature;
+            request.fundedAt = new Date().toISOString();
+          }
+        });
         return json(res, 200, payout);
       } catch (error) {
         await store.updateClaimState(executeId,current => { if (current.claims[executeId]?.status === 'executing') current.claims[executeId] = { ...current.claims[executeId], status: 'verification-pending', failureReason: String(error.message || error), lastAttemptAt: new Date().toISOString() }; });
         throw error;
       }
     }
+
     return false;
   };
 }

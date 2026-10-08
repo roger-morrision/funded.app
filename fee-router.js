@@ -41,6 +41,22 @@ export function deriveMintFeeLedger(programId, mint) {
   return { address, bump };
 }
 
+export async function verifyMintFeeLedgerAccount({ connection, programId, mint, creator }) {
+  const program = new PublicKey(programId);
+  const mintKey = new PublicKey(mint);
+  const expectedCreator = new PublicKey(creator);
+  const ledger = deriveMintFeeLedger(program, mintKey);
+  const account = await connection.getAccountInfo(ledger.address, 'finalized');
+  const data = Uint8Array.from(account?.data || []);
+  const discriminator = Uint8Array.from([0xba, 0x58, 0x17, 0x91, 0x68, 0x76, 0x19, 0x66]);
+  const verified = account?.owner?.equals(program) && data.length === 89
+    && discriminator.every((byte, index) => data[index] === byte)
+    && mintKey.toBytes().every((byte, index) => data[8 + index] === byte)
+    && expectedCreator.toBytes().every((byte, index) => data[40 + index] === byte)
+    && data[88] === ledger.bump;
+  return { ...ledger, verified:Boolean(verified), reason:verified ? 'verified' : 'mint-fee-ledger-missing-or-mismatched' };
+}
+
 export async function verifyMintFeeRouterAccount({ connection, programId, mint, expectedAuthority = null }) {
   const router = deriveMintFeeRouter(programId, mint);
   const account = await connection.getAccountInfo(router.address, 'confirmed');

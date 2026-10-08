@@ -196,10 +196,13 @@ fn existing_mint_ledger_migration_requires_creator_and_upgrade_owner() {
     let router_rent = anchor_lang::prelude::Rent::default().minimum_balance(106);
     svm.set_account(router, Account {lamports:router_rent,data,
         owner:program_id,executable:false,rent_epoch:0}).unwrap();
-    let migrate = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::MigrateMintFeeLedger {}.data(),
+    let migration = |historical_creator_spent, historical_protocol_spent, expected_available_lamports| Instruction::new_with_bytes(
+        program_id, &funded_fee_router::instruction::MigrateMintFeeLedger {
+            historical_creator_spent, historical_protocol_spent, expected_available_lamports }.data(),
         funded_fee_router::accounts::MigrateMintFeeLedger {authority:authority.pubkey(),creator:creator.pubkey(),
             app_owner:app_owner.pubkey(),mint,legacy_router,router,ledger,program:program_id,program_data,
             system_program:anchor_lang::system_program::ID}.to_account_metas(None));
+    let migrate = migration(60_000_000, 20_000_000, 20_000_000);
     let mut unauthorized = migrate.clone();
     unauthorized.accounts[2].pubkey = attacker.pubkey();
     let msg = Message::new_with_blockhash(&[unauthorized], Some(&authority.pubkey()), &svm.latest_blockhash());
@@ -209,14 +212,18 @@ fn existing_mint_ledger_migration_requires_creator_and_upgrade_owner() {
     let msg = Message::new_with_blockhash(&[migrate.clone()], Some(&authority.pubkey()), &svm.latest_blockhash());
     assert!(VersionedTransaction::try_new(VersionedMessage::Legacy(msg.clone()), &[&authority,&app_owner]).is_err());
     let mut funded_router = svm.get_account(&router).unwrap();
-    funded_router.lamports += 1;
+    funded_router.lamports += 20_000_000;
     svm.set_account(router, funded_router).unwrap();
-    let funded_tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg.clone()), &[&authority,&creator,&app_owner]).unwrap();
-    assert!(svm.send_transaction(funded_tx).is_err());
+    let mismatch = migration(60_000_000, 20_000_000, 0);
+    let mismatch_msg = Message::new_with_blockhash(&[mismatch], Some(&authority.pubkey()), &svm.latest_blockhash());
+    let mismatch_tx = VersionedTransaction::try_new(VersionedMessage::Legacy(mismatch_msg), &[&authority,&creator,&app_owner]).unwrap();
+    assert!(svm.send_transaction(mismatch_tx).is_err());
     assert!(svm.get_account(&ledger).is_none());
-    let mut empty_router = svm.get_account(&router).unwrap();
-    empty_router.lamports = router_rent;
-    svm.set_account(router, empty_router).unwrap();
+    let excessive = migration(85_000_000, 0, 20_000_000);
+    let excessive_msg = Message::new_with_blockhash(&[excessive], Some(&authority.pubkey()), &svm.latest_blockhash());
+    let excessive_tx = VersionedTransaction::try_new(VersionedMessage::Legacy(excessive_msg), &[&authority,&creator,&app_owner]).unwrap();
+    assert!(svm.send_transaction(excessive_tx).is_err());
+    assert!(svm.get_account(&ledger).is_none());
     svm.expire_blockhash();
     let valid_msg = Message::new_with_blockhash(&[migrate], Some(&authority.pubkey()), &svm.latest_blockhash());
     let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(valid_msg), &[&authority,&creator,&app_owner]).unwrap();
@@ -224,6 +231,8 @@ fn existing_mint_ledger_migration_requires_creator_and_upgrade_owner() {
     let ledger_data = svm.get_account(&ledger).unwrap().data;
     assert_eq!(&ledger_data[8..40], mint.as_ref());
     assert_eq!(&ledger_data[40..72], creator.pubkey().as_ref());
+    assert_eq!(u64::from_le_bytes(ledger_data[72..80].try_into().unwrap()), 60_000_000);
+    assert_eq!(u64::from_le_bytes(ledger_data[80..88].try_into().unwrap()), 20_000_000);
 }
 
 #[test]

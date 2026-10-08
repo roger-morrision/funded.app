@@ -23,8 +23,10 @@ pub mod funded_fee_router {
         initialize::mint_handler(ctx)
     }
 
-    pub fn migrate_mint_fee_ledger(ctx: Context<MigrateMintFeeLedger>) -> Result<()> {
-        initialize::migrate_mint_fee_ledger_handler(ctx)
+    pub fn migrate_mint_fee_ledger(ctx: Context<MigrateMintFeeLedger>, historical_creator_spent: u64,
+        historical_protocol_spent: u64, expected_available_lamports: u64) -> Result<()> {
+        initialize::migrate_mint_fee_ledger_handler(ctx, historical_creator_spent,
+            historical_protocol_spent, expected_available_lamports)
     }
 
     pub fn settle(ctx: Context<Settle>, claim_id: [u8; 32], amounts: Vec<u64>) -> Result<()> {

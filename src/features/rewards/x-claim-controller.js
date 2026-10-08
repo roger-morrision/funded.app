@@ -64,6 +64,12 @@ export async function submitSolClaim({
     claimExecutionRequested = true;
     const paid = await apiRequest(`/api/sol-claims/${encodeURIComponent(claimId)}/execute`, { method: 'POST' });
     if (!isWalletSessionCurrent(session)) return { verified, paid };
+    if (paid.data?.status === 'awaiting-creator-signature') {
+      if (status) status.textContent = `Claim verified. Share claim ID ${claimId} with the launch creator so they can approve the payout from their wallet profile.`;
+      emitPilotSignal('claim-pending');
+      await refreshXClaims();
+      return { verified, paid };
+    }
     if(!paid.available||!paid.data?.signature)throw new Error('Payout outcome is uncertain. Refresh rewards; do not submit another payout.');
     const checked=await apiRequest('/api/x-fee/claims').catch(()=>null);
     if(!isWalletSessionCurrent(session))return {verified,paid};
