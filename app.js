@@ -3368,14 +3368,14 @@ function renderVerifiedReceiptEvidence(){
     tape.append(row);
   }
   if (!historyPayouts.length) {
-    list.innerHTML = '<p class="empty-state">No finalized payout receipts are available yet.</p>';
-    tape.innerHTML = '<p class="empty-state">No finalized payout receipts are available yet.</p>';
+    list.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet.</p>';
+    tape.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet.</p>';
   }
   const footnote = document.querySelector('#payment-history-footnote');
   if (footnote) footnote.textContent = historyPayouts.length
-    ? `Latest ${Math.min(5, historyPayouts.length)} of ${historyPayouts.length} finalized payouts · fees in details${paymentHistoryEvidence.status === 'partial' ? ' · partial coverage' : ''}`
-    : paymentHistoryEvidence?.status === 'partial' || !paymentHistoryEvidence ? 'Payout receipt verification is unavailable or incomplete.'
-      : 'No finalized payout receipts are available.';
+    ? `Latest ${Math.min(5, historyPayouts.length)} of ${historyPayouts.length} confirmed payments · fees in details${paymentHistoryEvidence.status === 'partial' ? ' · some history is missing' : ''}`
+    : paymentHistoryEvidence?.status === 'partial' || !paymentHistoryEvidence ? 'Payment history could not be fully checked. Try again shortly.'
+      : 'No confirmed payments are available.';
   renderExtendedAnalyticsDashboard();
 }
 document.addEventListener('click', async event => {
@@ -8420,7 +8420,7 @@ function renderCoinAccountDistribution(distribution, decimals = 6, symbol = 'Tok
   setCoinField('#coin-distribution-vault-name', vaultLabel);
   setCoinField('#coin-vault-fact-label', `${vaultLabel} balance`);
   setCoinField('#coin-distribution-other-name', `${distribution.walletCount} holder wallet${distribution.walletCount === 1 ? '' : 's'}`);
-  setCoinField('#coin-distribution-note', `All ${distribution.accountCount} non-zero token accounts reconcile to minted supply. Wallet balances are aggregated across accounts.`);
+  setCoinField('#coin-distribution-note', `Balances across all ${distribution.accountCount} funded token accounts match the total supply. Accounts owned by the same wallet are grouped together.`);
   const list = document.querySelector('#coin-distribution-wallets');
   if (list) {
     list.replaceChildren();
@@ -8520,7 +8520,7 @@ function renderCoinPulse(){
     if (buyBar) buyBar.style.width = '0%'; if (sellBar) sellBar.style.width = '0%';
     if (note) {
       note.hidden = false;
-      note.textContent = coinMarketActivity.status === 'loading' ? 'Reading confirmed Pump trades from Solana RPC…' : 'Activity windows unavailable from the current RPC scan.';
+      note.textContent = coinMarketActivity.status === 'loading' ? 'Loading confirmed trades…' : 'Trade totals for this time range are unavailable.';
     }
     return;
   }
@@ -8540,7 +8540,7 @@ function renderCoinPulse(){
   if (sellBar) sellBar.style.width = `${volume > 0 ? Number(pulse.sellVolumeSol) / volume * 100 : 0}%`;
   if (note) {
     note.hidden = !partial;
-    note.textContent = partial ? 'Partial scan · values are observed lower bounds.' : '';
+    note.textContent = partial ? 'Some trade history is missing. Actual totals may be higher.' : '';
   }
 }
 function coinAuthorityLabel(value){ return value === null ? 'Disabled' : value ? shortAddress(value) : 'Unavailable'; }
@@ -8688,7 +8688,7 @@ function renderCoinActivityTab(){
     return;
   }
   if (tab === 'trades' && coinMarketActivity.status === 'unavailable') {
-    activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Recent trades unavailable</strong><small>No confirmed Pump trade history was returned for this mint. Fee records and token accounts can still be inspected in the other tabs.</small></div>';
+    activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Recent trades unavailable</strong><small>We could not load confirmed trades for this token. You can still check fees, rewards, and holders in the other tabs.</small></div>';
     return;
   }
   if (tab === 'trades' && coinMarketActivity.status === 'summary-only') {
@@ -8887,10 +8887,10 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
   const hasPoolTradeCount = Number.isInteger(market?.poolTradeCount24h);
   if (graduated && !(hasPoolTradeCount && market.poolTradeCount24h > 0
     && ['complete', 'partial'].includes(market.coverage) && Number.isFinite(Number(market.volume24hSol)))) {
-    const poolScanNote = !market ? 'PumpSwap trade history is unavailable from RPC.'
-      : !hasPoolTradeCount ? 'This API response does not include PumpSwap swaps.'
-        : market.coverage === 'partial' ? 'No pool swaps were found in this partial RPC scan.'
-          : 'No verified PumpSwap swaps were found in the last 24h.';
+    const poolScanNote = !market ? 'PumpSwap trade history is unavailable right now.'
+      : !hasPoolTradeCount ? 'PumpSwap trades are missing from the available history.'
+        : market.coverage === 'partial' ? 'No PumpSwap trades were found. Some history is missing.'
+          : 'No confirmed PumpSwap trades were found in the last 24h.';
     coinMarketActivity = { status: 'unavailable', trades: [], coverage: market?.coverage || null, decimals, graduated: true };
     renderCoinPricePath(); renderCoinFlow(NaN, NaN); renderCoinPulse();
     setCoinField('#coin-volume', 'Pool activity unavailable'); setCoinField('#coin-volume-source', poolScanNote);
@@ -8903,8 +8903,8 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
   if (!market || market.volume24hSol == null || !Number.isFinite(Number(market.volume24hSol))) {
     coinMarketActivity = { status: 'unavailable', trades: [], coverage: null, decimals };
     renderCoinPricePath(); renderCoinFlow(NaN, NaN); renderCoinPulse();
-    setCoinField('#coin-volume', 'Unavailable'); setCoinField('#coin-volume-source', 'RPC trade history unavailable');
-    setCoinField('#coin-trade-count', 'Unavailable'); setCoinField('#coin-trade-breakdown', 'RPC trade history unavailable');
+    setCoinField('#coin-volume', 'Unavailable'); setCoinField('#coin-volume-source', 'Trade history is unavailable right now');
+    setCoinField('#coin-trade-count', 'Unavailable'); setCoinField('#coin-trade-breakdown', 'Trade history is unavailable right now');
     setCoinTabLabels(); renderCoinActivityTab();
     renderCoinSummary();
     return;
@@ -8929,7 +8929,7 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
   const noTrades = market.coverage === 'complete' && Number(market.tradeCount24h) === 0;
   const volume = `${market.coverage === 'partial' ? '≥' : ''}${formatCoinUsd(Number(market.volume24hSol))}`;
   setCoinField('#coin-volume', noTrades ? 'No trades' : market.coverage === 'partial' ? `${volume} · partial` : volume);
-  setCoinField('#coin-volume-source', noTrades ? 'Complete Pump curve scan · last 24h' : partial ? `Partial ${graduated ? 'curve + pool' : 'curve'} RPC scan` : `${graduated ? 'Pump curve + PumpSwap pool' : 'Pump curve'} RPC scan · 24h`);
+  setCoinField('#coin-volume-source', noTrades ? 'No trades in the last 24h · history checked' : partial ? `Some ${graduated ? 'launch and pool' : 'launch'} trade history is missing · totals may be higher` : `${graduated ? 'Launch and pool trades' : 'Launch trades'} · last 24h`);
   if (graduated) setCoinField('#coin-description', `Trading pool confirmed. Recent trades are shown below${partial ? ', though some history may be missing' : ''}.`);
   const change = Number(market.priceChangePercent);
   const basis = market.priceChangeBasis;
@@ -8939,7 +8939,7 @@ async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
 }
 async function loadCoinOnChain(mintAddress){
   const loadId = ++coinLoadId;
-  if (!mintAddress){ renderOnChainUnavailable('A mint address is required. Open a /token/{mint} route to load on-chain data.'); return; }
+  if (!mintAddress){ renderOnChainUnavailable('Choose a token from Explore to see its details.'); return; }
   void loadCoinChat(mintAddress, loadId);
   setCoinField('#coin-page-title', 'Loading token…'); setCoinField('#coin-symbol', 'TOKEN'); setCoinField('#coin-address', shortAddress(mintAddress));
   setCoinField('#coin-description', 'Checking coin details on Solana…');
@@ -9036,7 +9036,7 @@ async function loadCoinOnChain(mintAddress){
     setCoinField('#coin-supply', `${formatOnChainNumber(supply, 6)} ${symbol}`); setCoinCurveProgress(curve?.complete ? 100 : curve?.progressPercent);
     const curveProgress = document.querySelector('.coin-curve-track > span'); if (curveProgress) curveProgress.textContent = graduatedPool ? 'Migration complete' : 'Bonding curve progress';
     setCoinField('#coin-chart-heading', `${symbol} · market cap in USD`); setCoinField('#coin-full-address', mintAddress);
-    const chartFooter = document.querySelector('.coin-chart-panel > .chart-footer'); if (chartFooter) chartFooter.innerHTML = `<span>Mint decimals <b>${decimals}</b></span><span>Supply <b>${formatOnChainNumber(supply, 6)}</b></span>`;
+    const chartFooter = document.querySelector('.coin-chart-panel > .chart-footer'); if (chartFooter) chartFooter.innerHTML = `<span>Total supply <b>${formatOnChainNumber(supply, 6)}</b></span>`;
     const policyEyebrow = document.querySelector('.coin-policy-card .eyebrow'); if (policyEyebrow) policyEyebrow.textContent = 'On-chain account';
     const policyTitle = document.querySelector('.coin-policy-card h2'); if (policyTitle) policyTitle.textContent = graduatedPool ? 'Canonical PumpSwap pool' : curve ? 'Pump bonding curve' : 'Curve unavailable';
     renderCoinCreatorRoute(curve?.creator || '');
@@ -9060,7 +9060,7 @@ async function loadCoinOnChain(mintAddress){
       const tagline = document.querySelector('#coin-profile-tagline');
       if (tagline) { tagline.textContent = details.tagline || ''; tagline.hidden = !details.tagline; }
       window.fundedSetCoinProfileMetadata?.(details);
-      setCoinFact('#coin-metadata-status', 'App name / symbol matched', 'clear');
+      setCoinFact('#coin-metadata-status', 'Name and symbol confirmed', 'clear');
       if (isDevnetImageUri(details.image, mintAddress)) {
         const avatar = document.querySelector('#coin-avatar');
         if (avatar) { avatar.textContent = ''; avatar.style.backgroundImage = `url("${details.image}")`; avatar.style.backgroundSize = 'cover'; avatar.style.backgroundPosition = 'center'; }

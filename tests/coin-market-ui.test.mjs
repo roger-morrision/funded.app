@@ -47,7 +47,7 @@ test('migrated token renders verified pool swaps and marks partial coverage', as
   assert.equal(view.state().poolTradeCount24h, 2);
   assert.equal(view.fields.get('#coin-trade-count'), '≥3');
   assert.equal(view.fields.get('#coin-volume'), '≥$50.39 · partial');
-  assert.match(view.fields.get('#coin-volume-source'), /Partial curve \+ pool RPC scan/);
+  assert.match(view.fields.get('#coin-volume-source'), /Some launch and pool trade history is missing · totals may be higher/);
   assert.match(view.fields.get('#coin-description'), /Recent trades are shown below, though some history may be missing/);
   assert.doesNotMatch(view.fields.get('#coin-description'), /pool trades excluded/);
 });
@@ -57,11 +57,11 @@ test('migrated token keeps the unavailable fallback without verified pool swaps'
   assert.equal(view.state().status, 'unavailable');
   assert.equal(view.fields.get('#coin-volume'), 'Pool activity unavailable');
   assert.equal(view.fields.get('#coin-trade-count'), 'Unavailable');
-  assert.match(view.fields.get('#coin-volume-source'), /does not include PumpSwap swaps/);
+  assert.match(view.fields.get('#coin-volume-source'), /PumpSwap trades are missing from the available history/);
 });
 
 test('migrated token distinguishes an RPC outage from zero pool swaps', async () => {
   const view = await renderActivity(null);
   assert.equal(view.state().status, 'unavailable');
-  assert.match(view.fields.get('#coin-volume-source'), /unavailable from RPC/);
+  assert.match(view.fields.get('#coin-volume-source'), /trade history is unavailable right now/);
 });

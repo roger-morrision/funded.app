@@ -59,7 +59,7 @@ function createPanels() {
   }
   if (payments && !byId('reward-discovery')) {
     const section = node('section', 'reward-experience-panel reward-discovery', null); section.id = 'reward-discovery';
-    section.innerHTML = `<header><div><p class="eyebrow">Reward programs</p><h2>Explore holder rewards</h2><p>Compare tokens that share fees with holders. Amounts shown are program totals, not rewards available to your wallet.</p></div><label>Show <select data-reward-filter><option value="all">All holder rewards</option><option value="allocated">Fees allocated</option><option value="paid">Holders paid</option></select></label></header><div data-reward-discovery role="status">Checking verified launches…</div><small>Eligible wallets receive SOL automatically after holdings and funding are confirmed. “0 paid wallets” means no holder payment is confirmed.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Reward programs</p><h2>Explore holder rewards</h2><p>Compare tokens that share fees with holders. Amounts shown are program totals, not rewards available to your wallet.</p></div><label>Show <select data-reward-filter><option value="all">All holder rewards</option><option value="allocated">Rewards set aside</option><option value="paid">Holders paid</option></select></label></header><div data-reward-discovery role="status">Checking verified launches…</div><small>Eligible wallets receive SOL automatically after holdings and funding are confirmed. “0 paid wallets” means no holder payment is confirmed.</small>`;
     (byId('rewards-holder') || rewardsOverview).append(section);
     section.querySelector('[data-reward-filter]').addEventListener('change', () => renderDiscovery(latest));
   }
@@ -122,23 +122,23 @@ function renderPortfolio(data, referralData, xData) {
     body.append(empty);
     return;
   }
-  if (data.evidence.status === 'unavailable') { body.textContent = 'Finalized receipt coverage is unavailable. Your balances are not shown until it recovers.'; return; }
+  if (data.evidence.status === 'unavailable') { body.textContent = 'We cannot check reward payments right now. Try again shortly to see your totals.'; return; }
   const rows = wallet.rows || [];
   const paid = rows.flatMap(row => row.payouts || []);
   const referralClaims = Array.isArray(referralData?.claims) ? referralData.claims.filter(row => row.asset === 'SOL') : null;
   const referralOpen = referralClaims?.filter(row => row.status !== 'paid' && row.status !== 'expired') || [];
   const xClaims = summarizeXClaims(xData?.claims);
   const legend = node('div', 'reward-status-legend');
-  for (const [name, description] of [['Ready to claim', 'You must complete a claim'], ['Waiting', 'Allocated, not paid'], ['Received', 'Verified wallet payment']]) {
+  for (const [name, description] of [['Ready to claim', 'Review and claim your reward'], ['Waiting', 'Set aside; payment not confirmed'], ['Received', 'Payment confirmed in your wallet']]) {
     const item = node('span'); item.append(node('strong', '', name), node('small', '', description)); legend.append(item);
   }
   body.append(legend);
   const summary = node('div', 'reward-portfolio-summary');
   const creatorUnpaid = rows.reduce((sum, row) => sum + BigInt(row.creatorWithoutPayoutProofLamports || '0'), 0n);
   const summaryRows = [
-    ['Waiting · creator SOL', sol(creatorUnpaid), 'Allocated, without a verified payout yet', 'creator'],
-    ['Received · SOL', sol(paid.reduce((sum, row) => sum + BigInt(row.amountLamports), 0n)), 'Finalized wallet payments in the indexed records', 'history'],
-    ['Referral SOL to review', referralClaims ? sol(referralOpen.reduce((sum, row) => sum + decimalLamports(row.amount), 0n)) : 'Unable to check', 'Connect the earning wallet, then sign and execute each claim', '#referrals'],
+    ['Waiting · creator SOL', sol(creatorUnpaid), 'Set aside for you; payment is not confirmed yet', 'creator'],
+    ['Received · SOL', sol(paid.reduce((sum, row) => sum + BigInt(row.amountLamports), 0n)), 'Confirmed payments found in your reward history', 'history'],
+    ['Referral SOL to review', referralClaims ? sol(referralOpen.reduce((sum, row) => sum + decimalLamports(row.amount), 0n)) : 'Unable to check', 'Connect the wallet that earned these rewards, then review each claim', '#referrals'],
     ['Ready to claim · X SOL', xClaims ? formatXClaimSol(xClaims.unclaimed) : document.querySelector('#x-sign-in')?.dataset.connected === 'true' ? 'Unable to check' : 'Sign in with X', 'Only rewards linked to the signed-in X account', 'x'],
   ];
   for (const [label, value, hint, destination] of summaryRows) {
@@ -149,20 +149,20 @@ function renderPortfolio(data, referralData, xData) {
   }
   body.append(summary);
   const tokenNote = node('p', 'reward-token-claim-note');
-  tokenNote.append(node('strong', '', 'Launched coin tokens: '), document.createTextNode('eligibility, claimable amount, and claimed status are checked for each migration snapshot in '), link('Airdrops →', '#airdrops'));
+  tokenNote.append(node('strong', '', 'Token airdrops: '), document.createTextNode('check whether you qualify, how much you can claim, and past claims in '), link('Airdrops →', '#airdrops'));
   body.append(tokenNote);
-  if (!rows.length) { body.append(node('p','reward-empty','No verified creator or holder payments for this wallet in the indexed records. A published policy does not establish personal eligibility.')); return; }
+  if (!rows.length) { body.append(node('p','reward-empty','No confirmed creator or holder payments were found for this wallet. Each reward program has its own eligibility requirements.')); return; }
   const list = node('div', 'reward-portfolio-list');
   for (const row of rows) {
     const article = node('article');
     const heading = node('div','reward-row-head'); heading.append(link(row.symbol || short(row.mint), tokenUrl(row.mint)));
     heading.append(node('span','',row.creator ? 'Creator' : row.payouts.some(item => item.kind === 'holder') ? 'Holder' : 'Reward recipient'));
     article.append(heading);
-    if (row.creator) article.append(node('p','',`${sol(row.creatorAllocatedLamports)} creator allocation · ${sol(row.creatorWithoutPayoutProofLamports)} without payout proof`));
+    if (row.creator) article.append(node('p','',`${sol(row.creatorAllocatedLamports)} set aside for the creator · ${sol(row.creatorWithoutPayoutProofLamports)} with payment not yet confirmed`));
     for (const payment of row.payouts) {
       const line = node('p'); line.append(node('span','',`${payment.kind} · ${sol(payment.amountLamports)} paid · `),
-        link('Finalized receipt ↗', explorer(payment.signature), true));
-      if (payment.feeSourceVerified && payment.sourceClaims?.length) line.append(node('span','', ' · fee collection linked'));
+        link('View payment ↗', explorer(payment.signature), true));
+      if (payment.feeSourceVerified && payment.sourceClaims?.length) line.append(node('span','', ' · paid from collected fees'));
       article.append(line);
     }
     if (validMint(row.mint)) article.append(createTokenCardActions({ mint: row.mint, symbol: row.symbol, name: row.name, className: 'reward-token-actions' }));
@@ -173,11 +173,11 @@ function renderPortfolio(data, referralData, xData) {
 function renderDiscovery(data) {
   const root = document.querySelector('[data-reward-discovery]'); if (!root) return;
   root.replaceChildren();
-  if (data?.evidence.status === 'unavailable') { root.textContent = 'Finalized reward discovery is unavailable. Try again shortly.'; return; }
+  if (data?.evidence.status === 'unavailable') { root.textContent = 'Reward programs are unavailable right now. Try again shortly.'; return; }
   const filter = document.querySelector('[data-reward-filter]')?.value || 'all';
   const tokens = (data?.tokens || []).filter(row => row.holderSharePercent > 0 &&
     (filter === 'all' || filter === 'allocated' && BigInt(row.totals.holder) > 0n || filter === 'paid' && row.holderPaidWallets > 0));
-  if (!tokens.length) { root.textContent = data ? 'No coins match this verified reward state yet.' : 'Reward discovery is unavailable.'; return; }
+  if (!tokens.length) { root.textContent = data ? 'No tokens match this reward filter yet.' : 'Reward programs are unavailable right now.'; return; }
   const list = node('div', 'reward-discovery-list');
   for (const row of tokens.slice(0, 30)) {
     const article = node('article');
@@ -190,9 +190,9 @@ function renderDiscovery(data) {
     }
     identity.append(link(`${row.symbol || short(row.mint)} · ${row.name}`, tokenUrl(row.mint)));
     title.append(identity);
-    title.append(node('span','',row.status === 'holders-paid' ? 'Holders paid' : row.status === 'holder-fees-allocated' ? 'Fees allocated' : 'Policy published'));
+    title.append(node('span','',row.status === 'holders-paid' ? 'Holders paid' : row.status === 'holder-fees-allocated' ? 'Rewards set aside' : 'Rewards announced'));
     article.append(title);
-    article.append(node('p','',`${row.holderSharePercent}% fee share · ${sol(row.totals.holder)} allocated · ${row.holderPaidWallets} paid wallet${row.holderPaidWallets === 1 ? '' : 's'}`));
+    article.append(node('p','',`${row.holderSharePercent}% fee share · ${sol(row.totals.holder)} set aside · ${row.holderPaidWallets} paid wallet${row.holderPaidWallets === 1 ? '' : 's'}`));
     if (row.lastHolderPayout) article.append(node('small','',`Latest recorded holder payment ${new Date(row.lastHolderPayout).toLocaleString()}`));
     if (validMint(row.mint)) article.append(createTokenCardActions({ mint: row.mint, symbol: row.symbol, name: row.name, className: 'reward-token-actions' }));
     list.append(article);
@@ -303,7 +303,7 @@ async function refresh() {
   ]);
   if (current !== refreshToken) return;
   latest = experience.status === 'fulfilled' ? experience.value : null;
-  document.querySelectorAll('[data-reward-evidence]').forEach(element => { element.textContent = latest?.evidence?.status === 'onchain-indexed' ? 'Finalized receipts' : latest?.evidence?.status === 'partial' ? 'Partial receipt coverage' : latest?.evidence?.status === 'no-records' ? 'No finalized receipts yet' : 'Evidence unavailable'; });
+  document.querySelectorAll('[data-reward-evidence]').forEach(element => { element.textContent = latest?.evidence?.status === 'onchain-indexed' ? 'Payments checked' : latest?.evidence?.status === 'partial' ? 'Some payment history is missing' : latest?.evidence?.status === 'no-records' ? 'No confirmed payments yet' : 'Unable to check payments'; });
   renderPortfolio(latest, referrals.status === 'fulfilled' ? referrals.value : null, xClaims.status === 'fulfilled' ? xClaims.value : null);
   renderDiscovery(scoped ? null : latest);
   renderCommunity(scoped ? null : latest);
