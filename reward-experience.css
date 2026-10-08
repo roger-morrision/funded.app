@@ -44,6 +44,27 @@ body.page-route #reward-portfolio .reward-portfolio-connect:hover{background:#ff
 .reward-token-identity img{width:34px;height:34px;border-radius:9px;object-fit:cover;flex:none}
 .reward-row-head>span{color:#ffd28a;font-size:.79rem;white-space:nowrap}
 .reward-portfolio-list p,.reward-discovery-list p{margin:8px 0 0;color:#a7b7aa;font-size:.88rem}
+.reward-history-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:22px 0 10px}
+.reward-history-heading h3{margin:0;color:#f3f6fa;font-size:1.05rem}
+.reward-history-heading span{color:#91a2b9;font-size:.76rem}
+.reward-portfolio-list article.reward-history-card{padding:0 16px;border-color:#344158;border-radius:10px;background:#182139}
+.reward-history-card>.reward-row-head{padding:14px 0;border-bottom:1px solid #344158}
+.reward-history-card>.reward-row-head>a{color:#f8c46e}
+.reward-history-card>.reward-row-head>span{color:#aebddd}
+.reward-portfolio-list .reward-history-pending{margin:0;padding:12px 0;color:#e9c989;font-size:.8rem}
+.reward-history-payment{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid #344158}
+.reward-history-identity{display:grid;gap:4px;min-width:0}
+.reward-history-identity strong{color:#f3f6fa;font-size:.85rem}
+.reward-history-identity small{color:#9daec4;font-size:.72rem;line-height:1.4}
+.reward-history-identity .reward-history-recipient{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'DM Mono',monospace}
+.reward-history-identity .reward-history-source{color:#bdd8bc}
+.reward-history-actions{display:flex;align-items:center;gap:12px;min-width:0}
+.reward-history-amount{display:grid;gap:2px;text-align:right;white-space:nowrap}
+.reward-history-amount strong{color:#f4f6fa;font:600 .85rem 'DM Mono',monospace}
+.reward-history-amount small{color:#91a2b9;font-size:.7rem}
+.reward-history-actions .payment-receipt-link{color:#aebfff;font-size:1.05rem;font-weight:700}
+.reward-history-card>.reward-token-actions{margin:0;padding:10px 0}
+@media(max-width:560px){.reward-history-payment{grid-template-columns:minmax(0,1fr);gap:9px}.reward-history-actions{justify-content:space-between}.reward-history-amount{text-align:left}.reward-history-heading{align-items:flex-start;flex-direction:column;gap:4px}}
 .reward-empty{color:#9faea3;margin:8px 0}
 .reward-proof-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;list-style:none;padding:0;margin:0 0 16px}
 .reward-proof-steps li{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid #344139;border-radius:2px;background:#111b2e}

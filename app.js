@@ -9635,7 +9635,7 @@ async function refreshXClaims(){
       Number(b.canPrepare === true) - Number(a.canPrepare === true)
       || Number(a.receiptVerified === true) - Number(b.receiptVerified === true));
     for (const claim of claimsByAction) {
-      const row=document.createElement('div');row.className='x-claim-reward';row.dataset.claimId=claim.id;
+      const row=document.createElement('div');row.className=`x-claim-reward${claim.receiptVerified?' x-claim-reward-paid':''}`;row.dataset.claimId=claim.id;
       if(claim.id===selectedId&&claim.canPrepare===true)row.classList.add('selected');
       const state=document.createElement('span');state.className=`x-claim-reward-state ${claim.receiptVerified?'paid':claim.canPrepare?'ready':'pending'}`;state.textContent=claim.receiptVerified?'Paid':claim.canPrepare?'Ready to claim':String(claim.status).startsWith('automatic-')?'Processing payout':'Not ready yet';
       const copy=document.createElement('div');copy.className='x-claim-reward-copy';
@@ -9643,7 +9643,8 @@ async function refreshXClaims(){
       const coinLabel=launch?[launch.symbol,launch.name].filter(Boolean).join(' · '):`Coin ${String(claim.mint||'').slice(0,6)}…`;
       const coin=document.createElement('a');coin.className='x-claim-coin';coin.href=`/token/${encodeURIComponent(claim.mint)}`;coin.textContent=coinLabel;
       const amount=document.createElement('strong');amount.textContent=claim.amountSol==null?'Amount unavailable':`${claim.amountSol} SOL`;
-      const context=document.createElement('small');context.textContent=claim.receiptVerified?`Paid to ${claim.payoutWallet||'verified wallet'}`:claim.canPrepare?'Collected creator fees · ready for your wallet verification':claim.explanation||'Waiting for collected fees';
+      const context=document.createElement('small');context.textContent=claim.receiptVerified?`To ${claim.payoutWallet||'verified wallet'}`:claim.canPrepare?'Collected creator fees · ready for your wallet verification':claim.explanation||'Waiting for collected fees';
+      if(claim.receiptVerified&&claim.payoutWallet)context.title=claim.payoutWallet;
       copy.append(coin,amount,context);row.append(state,copy);
       row.dataset.claimSummary=`${amount.textContent} from ${coinLabel}`;
       if (claim.canPrepare === true) {
@@ -9652,7 +9653,7 @@ async function refreshXClaims(){
         choose.addEventListener('click', () => { document.querySelector('#sol-claim-id').value=claim.id;document.querySelector('#sol-claim-x-account').value=result.data.handle;document.querySelectorAll('#sol-claim-list .x-claim-reward').forEach(item=>item.classList.toggle('selected',item===row));const check=document.querySelector('#claim-binding-agree');if(check)check.checked=false;updateClaimBindingReview();resetSolClaimStatus(); });
         row.append(choose);
       }
-      if(claim.receiptVerified&&claim.payoutSignature){const receipt=document.createElement('a');receipt.href=`https://explorer.solana.com/tx/${encodeURIComponent(claim.payoutSignature)}?cluster=devnet`;receipt.textContent='Verify payment';receipt.target='_blank';receipt.rel='noopener noreferrer';row.append(receipt);}
+      if(claim.receiptVerified&&claim.payoutSignature){const receipt=document.createElement('a');receipt.className='payment-receipt-link';receipt.href=`https://explorer.solana.com/tx/${encodeURIComponent(claim.payoutSignature)}?cluster=devnet`;receipt.textContent='↗';receipt.setAttribute('aria-label','View X reward payment on Solana Explorer');receipt.title='View payment on Solana Explorer';receipt.target='_blank';receipt.rel='noopener noreferrer';row.append(receipt);}
       list.append(row);
     }
     syncXClaimFlow();
