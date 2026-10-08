@@ -16,7 +16,7 @@ async function seed(page){await page.addInitScript(({key,rows})=>localStorage.se
 for(const width of [1440,390])test(`Community preferences and diagnostics are wallet-free and keyboard reachable at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});const writes=[];page.on('request',request=>{if(!['GET','HEAD','OPTIONS'].includes(request.method()) && new URL(request.url()).pathname !== '/api/solana/rpc')writes.push(request.url());});
   await open(page);const panel=page.locator('#community-preferences');
-  await expect(panel.getByRole('heading',{name:'Following & updates'})).toBeVisible();
+  await expect(panel.getByRole('heading',{name:'Creators you follow'})).toBeVisible();
   await expect(page.locator('#updates-consent')).toBeVisible();await expect(page.locator('#updates-consent')).not.toBeChecked();
   const summary=panel.locator('summary');await summary.focus();await page.keyboard.press('Enter');
   const consent=page.locator('#diagnostics-consent');await expect(consent).toBeVisible();await expect(consent).not.toBeChecked();expect(await raw(page,COUNTS)).toBeNull();

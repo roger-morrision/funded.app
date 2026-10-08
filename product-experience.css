@@ -16,6 +16,7 @@ body.product-experience-ready :is(.asset-card,.token-card,.panel,.role-panel,.cr
 .product-details { margin:18px 0; border:1px solid var(--line); border-radius:10px; background:#111522; }
 .product-details > summary { padding:14px 18px; cursor:pointer; font:600 14px/1.5 Manrope,sans-serif; color:var(--text); }
 .product-details > :not(summary) { margin:0!important; padding:18px; }
+#community-preferences [hidden] { display:none!important; }
 body.product-experience-ready .hero-section { min-height:0!important; padding-top:38px!important; padding-bottom:32px!important; }
 body.product-experience-ready .hero-section h1 { max-width:700px; font-size:clamp(32px,4.5vw,56px)!important; line-height:1.08!important; }
 body.product-experience-ready .hero-copy { max-width:580px; font-size:16px; }

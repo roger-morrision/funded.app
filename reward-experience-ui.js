@@ -248,7 +248,7 @@ function renderAlerts() {
     const article = node('p'); article.append(link(short(notice.mint), tokenUrl(notice.mint)),
       node('span','',` · ${notice.label} · `), link('Proof ↗', explorer(notice.signature), true)); list.append(article);
   }
-  if (!list.children.length) list.append(node('p','reward-empty','No new watched reward events since alerts were enabled.'));
+  if (!list.children.length) list.append(node('p','reward-empty',prefs.enabled ? 'No new reward activity from your saved tokens.' : 'Turn on alerts to see new reward activity from saved tokens.'));
   const dialog = byId('notification-dialog');
   const feed = dialog?.querySelector('.notice-list');
   if (feed && prefs.enabled && prefs.notices.length) {

@@ -135,6 +135,8 @@ function details() {
 }
 
 home(); explore(); launch(); portfolio(); details();
+// New route-scoped disclosures are created after the workspace's initial sync.
+window.dispatchEvent(new Event('funded:layout-change'));
 document.body.classList.add('product-experience-ready');
 function recordRoute() {
   if (location.pathname.startsWith('/token/') || location.hash.startsWith('#coin/')) productEvent('token_view');

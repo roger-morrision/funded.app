@@ -125,7 +125,7 @@ assert.match(pageExperience, /Funded at a glance/);
 assert.match(pageExperience, /A user-initiated \$FUNDED burn requires a configured Solana mint[\s\S]*?check Buy & burn for current availability/, 'The $FUNDED status must not claim a burn is available when its mint is unconfigured.');
 assert.match(app, /creatorRankingUnavailable = verifiedLaunchPoliciesStatus !== 'ready' \|\| !exploreFeedAvailable/, 'Creator leaderboard must treat an unavailable registry or market feed as unavailable, not empty.');
 assert.match(pageExperience, /data-analytics-metric="burned"/);
-assert.match(html, /<h2>Saved launches<\/h2>/);
+assert.match(html, /<h2>Saved tokens<\/h2>/);
 assert.match(html, /<h2>All airdrops<\/h2>/);
 assert.match(app, /Vault verification unavailable; funded count unknown[\s\S]*?<span>Policy allocation<\/span>/, 'Indexed policy allocations must not imply verified vault funding.');
 assert.match(html, /id="airdrop-export-csv" disabled title="Requires an indexed, verified list of unclaimed wallets"/, 'Airdrop CSV export must be gated on verified wallet rows, not a snapshot count alone.');

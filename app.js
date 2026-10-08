@@ -1433,10 +1433,10 @@ function portfolioTokenCardMarkup({ mint, name, symbol, source, allocationPercen
 function renderCreatorLaunches(){
   const list = document.querySelector('#creator-launch-empty');
   if (!list) return;
-  const sourceLabel = document.querySelector('#my-launches .section-state');
-  if (sourceLabel) sourceLabel.textContent = verifiedLaunchPoliciesStatus === 'ready' ? 'verified registry' : 'checking registry';
-  const sourceBadge = document.querySelector('#my-launches .data-badge');
-  if (sourceBadge) sourceBadge.textContent = !connectedWalletAddress ? 'Connect wallet' : verifiedLaunchPoliciesStatus === 'ready' ? 'Registry ready' : verifiedLaunchPoliciesStatus === 'unavailable' ? 'Registry unavailable' : 'Checking registry';
+  const sourceLabel = document.querySelector('.portfolio-launches-heading .section-state');
+  if (sourceLabel) sourceLabel.textContent = verifiedLaunchPoliciesStatus === 'ready' ? 'Up to date' : verifiedLaunchPoliciesStatus === 'unavailable' ? 'Updates unavailable' : 'Updating…';
+  const sourceBadge = list.closest('.role-panel')?.querySelector('.data-badge');
+  if (sourceBadge) sourceBadge.textContent = !connectedWalletAddress ? 'Connect wallet' : verifiedLaunchPoliciesStatus === 'ready' ? 'Up to date' : verifiedLaunchPoliciesStatus === 'unavailable' ? 'Unavailable' : 'Updating…';
   const launches = getWalletLaunchPolicies();
   const projectSelect = document.querySelector('#funded-burn-project');
   if (projectSelect) {
