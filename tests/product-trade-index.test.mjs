@@ -29,7 +29,7 @@ test('events from rolled-back ancestors, failed inner calls, or incomplete logs 
   assert.throws(()=>successfulEventLogs(['Log truncated']));
 });
 
-test('backfill pages resume then stop at the prior head; unavailable transactions never advance a cursor',async()=>{
+test('backfill pages resume then stop at the prior head; unavailable proofs remain explicit gaps',async()=>{
   const items=[...fixture.cases].reverse();
   const calls=[];
   const connection={getSignaturesForAddress:async(_,options,commitment)=>{assert.equal(commitment,'finalized');calls.push(options);return options.before?[]:items.map(reference);},getTransaction:async(sig,options)=>{assert.equal(options.commitment,'finalized');return transaction(items.find(row=>row.signature===sig));}};
@@ -40,8 +40,27 @@ test('backfill pages resume then stop at the prior head; unavailable transaction
   const refresh=await scanTradePage({connection,mint:fixture.mint,route:'pool',cursor:last.cursor,pageSize:2,decodePoolEvent});
   assert.equal(refresh.examined,0);assert.equal(refresh.status,'provider-history-scanned');
   connection.getTransaction=async()=>null;
-  await assert.rejects(()=>scanTradePage({connection,mint:fixture.mint,route:'pool',pageSize:2,decodePoolEvent}),/proof/);
+  const missing=await scanTradePage({connection,mint:fixture.mint,route:'pool',pageSize:2,decodePoolEvent});
+  assert.equal(missing.records.length,0);assert.equal(missing.gaps.length,2);
+  assert.equal(missing.gaps[0].reason,'transaction-unavailable');assert.deepEqual(missing.resolved,[]);
   assert.equal(calls[1].before,items[1].signature);
+});
+
+test('incomplete history does not discard adjacent proven trades; mismatches and transport failures still reject the page',async()=>{
+  const items=fixture.cases;
+  const connection={getSignaturesForAddress:async()=>items.map(reference),getTransaction:async sig=>{
+    const tx=transaction(items.find(row=>row.signature===sig));
+    if(sig===items[0].signature)tx.meta.logMessages=['Log truncated'];
+    return tx;
+  }};
+  const page=await scanTradePage({connection,mint:fixture.mint,route:'pool',pageSize:25,decodePoolEvent});
+  assert.equal(page.records.length,1);assert.equal(page.gaps.length,1);
+  assert.equal(page.gaps[0].signature,items[0].signature);assert.equal(page.gaps[0].reason,'logs-incomplete');
+  assert.deepEqual(page.resolved,[items[1].signature]);assert.equal(page.status,'provider-history-scanned');
+  connection.getTransaction=async()=>({...transaction(items[0]),slot:1});
+  await assert.rejects(()=>scanTradePage({connection,mint:fixture.mint,route:'pool',decodePoolEvent}),/proof/);
+  connection.getTransaction=async()=>{throw new Error('RPC unavailable');};
+  await assert.rejects(()=>scanTradePage({connection,mint:fixture.mint,route:'pool',decodePoolEvent}),/RPC unavailable/);
 });
 
 test('wrong-network runs stop before acquiring a database connection',async()=>{
