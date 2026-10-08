@@ -54,7 +54,7 @@ import { explorePageNumbers, paginateExploreRows } from './explore-pagination.js
 import { exploreSocialLinks } from './explore-social-links.js';
 import { formatSolMetric, readCurveMetrics, readPumpSwapMetrics } from './explore-onchain-metrics.js';
 import { publishVerifiedCurves } from './verified-curve-state.js';
-import { publishTokenListMarkets } from './token-list-market-state.js';
+import { publishTokenListMarkets, tokenAge } from './token-list-market-state.js';
 import { buildTradePricePath, filterAndSortRecentTrades, selectObservedTradeWindow, summarizeTokenAccounts, verifiedRegistryLaunch } from './coin-detail-model.js';
 import { formatPolicyPercent, verifiedCoinRewardsPolicy } from './coin-rewards-policy.js';
 import { buildCoinSummary } from './coin-summary-model.js';
@@ -8437,6 +8437,10 @@ function loadWalletRowLogos(content, launches){
     loadPortfolioLogo(row, verifiedLaunchPolicyForMint(mint) || launches.find(launch => launch.mint === mint));
   }
 }
+function walletLaunchTimestamp(launch){
+  const age = tokenAge(launch.createdTimestamp ?? launch.createdAt);
+  return age.timestamp ? Date.parse(age.timestamp) : 0;
+}
 function renderWalletDetail(){
   const page = document.querySelector('#wallet-page');
   if (!page) return;
@@ -8451,7 +8455,7 @@ function renderWalletDetail(){
   const scanNote = tradeScanReady ? `Trades shown for ${exploreScannedCount} of ${assets.length} listed coins${tradeScanStale ? ' (last available update)' : ''}` : 'Recent trades are unavailable';
   setCoinField('#wallet-registry-state', registryReady ? 'Confirmed' : verifiedLaunchPoliciesStatus === 'loading' ? 'Checking' : 'Unavailable');
   setCoinField('#wallet-trade-state', tradeScanReady ? `${exploreScannedCount} of ${assets.length} coins${tradeScanStale ? ' · last update' : ''}` : exploreFeedAvailable ? 'No recent trades' : 'Unavailable');
-  const launchTimes = launches.map(item => Date.parse(item.createdAt || '')).filter(Number.isFinite);
+  const launchTimes = launches.map(walletLaunchTimestamp).filter(time => time > 0);
   const tradeTimes = trades.map(item => Number(item.blockTime) * 1000).filter(Number.isFinite);
   const lastActivity = Math.max(0, ...launchTimes, ...tradeTimes);
   const volume = trades.reduce((sum, trade) => sum + Number(trade.solAmount || 0), 0);
@@ -8501,7 +8505,7 @@ function renderWalletDetail(){
     content.innerHTML = `<div class="wallet-balance-grid"><article><span class="header-solana-mark" aria-hidden="true"></span><div><strong>${escapeHtml(isSelf && walletBalanceLamports != null ? formatSol(walletBalanceLamports) : 'Unavailable')}</strong><small>Native SOL</small></div></article><article><span class="wallet-funded-mark" aria-hidden="true">f</span><div><strong>${escapeHtml(fundedBalance)}</strong><small>$FUNDED token balance${fundedBalance !== 'Unavailable' && fundedBalance !== 'Checking Solana…' ? ' · live' : ''}</small></div></article></div>`;
     return;
   }
-  const launchRows = launches.map(launch => ({ type:'launch', time:Date.parse(launch.createdAt || '') || 0, mint:launch.mint, html:`<a class="wallet-activity-row" data-token-mint="${escapeHtml(launch.mint)}" href="/token/${encodeURIComponent(launch.mint)}"><span class="wallet-activity-icon">✦</span><span><strong>Created ${escapeHtml(launch.name || launch.symbol || 'token')}</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} · ${escapeHtml(shortAddress(launch.mint))}</small></span><b>Verified<small>${launch.createdAt ? escapeHtml(formatOnchainAge(Date.parse(launch.createdAt))) : 'Time unavailable'}</small></b></a>` }));
+  const launchRows = launches.map(launch => ({ type:'launch', time:walletLaunchTimestamp(launch), mint:launch.mint, html:`<a class="wallet-activity-row" data-token-mint="${escapeHtml(launch.mint)}" href="/token/${encodeURIComponent(launch.mint)}"><span class="wallet-activity-icon">✦</span><span><strong>Created ${escapeHtml(launch.name || launch.symbol || 'token')}</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} · ${escapeHtml(shortAddress(launch.mint))}</small></span><b>Verified<small>${walletLaunchTimestamp(launch) ? escapeHtml(formatOnchainAge(walletLaunchTimestamp(launch))) : 'Time unavailable'}</small></b></a>` }));
   if (walletDetailTab === 'created') {
     description.textContent = registryReady ? 'Confirmed coins created by this wallet.' : 'Created coins are unavailable right now.';
     content.innerHTML = launchRows.map(row => row.html).join('') || (registryReady ? walletDetailEmpty('No created coins found', 'No confirmed launch was found for this wallet.') : walletDetailEmpty('Created coins unavailable', 'Please check again later.'));
