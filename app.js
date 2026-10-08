@@ -1831,10 +1831,20 @@ async function submitCommunityClaim(mintAddress){
     showToast('Community tokens claimed and verified on Solana');
   } catch (error) {
     if (!claimVerified) emitPilotSignal(pilotInterruptedSignal('claim', error, claimExecutionRequested));
-    status.append(document.createTextNode(submittedSignature
-      ? ` Claim ${submittedSignature} was submitted. Check its finalized Solana receipt before retrying: ${String(error.message || error)}`
-      : ` Claim stopped: ${String(error.message || error)}`));
-  } finally { if (button) button.disabled = false; }
+    if (!isWalletSessionCurrent(session)) return;
+    if (submittedSignature) appendPendingCommunityClaim(status, mintAddress, submittedSignature);
+    else status.append(document.createTextNode(` Claim stopped: ${String(error.message || error)}`));
+  } finally { if (button) button.disabled = Boolean(submittedSignature); }
+}
+function appendPendingCommunityClaim(status, mintAddress, signature){
+  const receipt = document.createElement('a');
+  receipt.href = `https://explorer.solana.com/tx/${encodeURIComponent(signature)}${APP_EXPLORER_QUERY}`;
+  receipt.target = '_blank'; receipt.rel = 'noopener noreferrer';
+  receipt.textContent = 'View claim transaction ↗';
+  const check = document.createElement('button');
+  check.type = 'button'; check.className = 'secondary-button';
+  check.dataset.checkCommunityMint = mintAddress; check.textContent = 'Check claim status';
+  status.append(document.createElement('br'), document.createTextNode('Your claim was submitted, but confirmation could not be loaded. Check its status before trying again. '), receipt, document.createTextNode(' '), check);
 }
 async function fundCommunityReserve(mintAddress){
   const session = captureWalletSession();
@@ -5921,7 +5931,7 @@ function renderPendingLaunchReview(){
     : '<p role="status">Launch estimate expired or changed. Go back, refresh the estimate, and review again; no transaction was sent.</p>';
   if (confirm) {
     confirm.disabled = !current;
-    confirm.textContent = current ? 'Continue to Phantom' : 'Estimate expired — go back';
+    confirm.textContent = current ? 'Continue to wallet' : 'Estimate expired — go back';
   }
 }
 async function openLaunchReview(){
@@ -6366,7 +6376,7 @@ function setWalletState(message, detail = '', connected = false){
   const sidebarAddress = document.querySelector('#sidebar-wallet-address');
   const sidebarAvatar = document.querySelector('#sidebar-wallet-avatar');
   if (sidebarName) sidebarName.textContent = connected ? 'Wallet connected' : 'Wallet not connected';
-  if (sidebarAddress) sidebarAddress.textContent = connected ? `${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)}` : 'Connect to review signing';
+  if (sidebarAddress) sidebarAddress.textContent = connected ? `${connectedWalletAddress.slice(0, 4)}…${connectedWalletAddress.slice(-4)}` : 'Connect to view your portfolio';
   if (sidebarAvatar) sidebarAvatar.textContent = connected ? '✓' : '◎';
   const leaderboardBadge = document.querySelector('#leaderboard-wallet-badge');
   const leaderboardTitle = document.querySelector('#leaderboard-wallet-title');
@@ -6602,24 +6612,11 @@ function openLaunchPage(event){
   if (location.hash !== '#launch') location.hash = '#launch'; else syncPageRoute();
   setLaunchStep(1);
 }
-function openBurnPageAfterLaunch(launchPolicy){
-  const projectSelect = document.querySelector('#funded-burn-project');
+function openLaunchedCoinPage(launchPolicy){
   const mint = launchPolicy?.mint || '';
-  if (projectSelect && mint && [...projectSelect.options].some(option => option.value === mint)) projectSelect.value = mint;
-  if (mint) {
-    const page = document.querySelector('#buybacks');
-    if (page) {
-      let prompt = page.querySelector('#launch-share-prompt');
-      if (!prompt) { prompt = document.createElement('div'); prompt.id = 'launch-share-prompt'; prompt.className = 'share-insights'; page.prepend(prompt); }
-      prompt.replaceChildren();
-      const title = document.createElement('strong'); title.textContent = `${launchPolicy.name || launchPolicy.symbol || 'Coin'} launched on Solana`;
-      const note = document.createElement('small'); note.textContent = 'Your confirmed coin has a link visitors can open and watch. Share it when ready.';
-      const button = document.createElement('button'); button.type = 'button'; button.className = 'primary-button'; button.textContent = 'Share launch';
-      button.addEventListener('click', () => openCoinShare(mint, launchPolicy.symbol, launchPolicy.name));
-      prompt.append(title, note, button);
-    }
-  }
-  if (location.hash !== '#buybacks') location.hash = '#buybacks';
+  if (!validateSolanaMint(mint).valid) return;
+  const route = `#coin/${encodeURIComponent(mint)}`;
+  if (location.hash !== route) location.hash = route;
   else syncPageRoute();
 }
 let airdropRequestInFlight = false;
@@ -6851,7 +6848,7 @@ async function launchToken(){
     ];
     setLaunchLinks(`Launch verified ✓\n${result.name} (${result.symbol}) is confirmed on Solana.\nMint: ${result.mint.publicKey.toBase58()}\nLaunch tier: ${launchBurn.label}${burnSummary}\nPump creator-fee owner: funded.vip router\nYour wallet has no creator-fee authority.\nCommunity reserve funded: ${communityAllocation}% (${launchPolicy.communityAirdrop.reservedTokens.toLocaleString()} tokens)\nReward vault: ${result.reserveReceipt.vault}\nClaims open after a verified migration snapshot.\nSettlement policy: 80% creator-directed / 20% app protocol${feeDistributionInput.solClaimPercent > 0 ? `\nSOL claim recipient: ${xRecipient}` : ''}`, launchLinks);
     document.querySelector('#launch-status').classList.add('launch-complete');
-    showToast(persistedLaunch.available ? `${result.symbol} launched and listed in Explore` : `${result.symbol} launched on-chain; Explore listing is pending API verification`); renderAirdropClaims(); refreshWalletInfo(); openBurnPageAfterLaunch(launchPolicy);
+    showToast(persistedLaunch.available ? `${result.symbol} launched and listed in Explore` : `${result.symbol} launched on-chain; Explore listing is pending API verification`); renderAirdropClaims(); refreshWalletInfo(); openLaunchedCoinPage(launchPolicy);
   } catch (error) {
     let saved=readLaunchJournal().find(row=>row.id===journalId);
     if(journalId&&saved?.state==='prepared')saved=recordLaunchEvent(journalId,{state:'failed',message:error.message});
