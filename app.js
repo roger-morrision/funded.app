@@ -5469,7 +5469,7 @@ async function connectDevWallet(){
   if (!DEV_MODE || !DEV_WALLET_AUTOCONNECT || wasWalletManuallyDisconnected() || (injectedProvider?.isConnected && injectedProvider.publicKey)) return false;
   try {
     const result = await apiRequest('/api/dev-wallet');
-    const { PublicKey, Transaction } = await getSolana();
+    const { PublicKey, Transaction, VersionedTransaction } = await getSolana();
     const publicKey = new PublicKey(result.data.publicKey);
     const devProvider = {
       devMode: true,
@@ -5477,7 +5477,9 @@ async function connectDevWallet(){
       isConnected: true,
       signTransaction: async transaction => {
         const signed = await apiRequest('/api/dev-wallet/sign-transaction', { method: 'POST', body: { transaction: bytesToBase64(transaction.serialize({ requireAllSignatures: false, verifySignatures: false })) } });
-        return Transaction.from(base64ToBytes(signed.data.transaction));
+        return transaction instanceof VersionedTransaction
+          ? VersionedTransaction.deserialize(base64ToBytes(signed.data.transaction))
+          : Transaction.from(base64ToBytes(signed.data.transaction));
       },
       signMessage: async message => {
         const signed = await apiRequest('/api/dev-wallet/sign-message', { method: 'POST', body: { message: bytesToBase64(message) } });
