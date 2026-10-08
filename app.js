@@ -6370,6 +6370,7 @@ function scheduleLaunchCostRefresh(){
 function setWalletState(message, detail = '', connected = false){
   connected = Boolean(connected && wallet && connectedWalletAddress === walletAddress(wallet));
   document.documentElement.dataset.connectedWallet = connected ? connectedWalletAddress : '';
+  document.documentElement.dataset.creatorClaimSigning = String(Boolean(connected && !wallet?.readOnly && typeof wallet?.signMessage === 'function'));
   window.dispatchEvent(new Event('funded:reward-identity-change'));
   const signingReady = connected && canSignTransactions(wallet);
   const header = document.querySelector('#connect-button');
@@ -7947,30 +7948,44 @@ function renderCoinFeeDashboard(overview = null) {
   const claimButton = root.querySelector('#coin-creator-claim-button');
   if (claimButton && ready) claimButton.onclick = () => { void requestCreatorFeeClaim(claimButton); };
 }
-async function requestCreatorFeeClaim(button) {
-  const mint = getCoinMintAddress();
+const creatorClaimsInFlight = new Set();
+window.addEventListener('funded:creator-claim', event => {
+  const { button, mint, overview, complete } = event.detail || {};
+  if (!button || !mint) return;
+  void requestCreatorFeeClaim(button, mint, overview).finally(() => complete?.());
+});
+async function requestCreatorFeeClaim(button, mint = getCoinMintAddress(), overview = currentCoinFeeOverview) {
   const session = captureWalletSession();
-  if (!mint || !session || session.address !== currentCoinFeeOverview?.creatorWallet) return;
+  if (!mint || !session || !overview?.available || session.address !== overview.creatorWallet || creatorClaimsInFlight.has(mint)) return;
+  if (session.provider.readOnly || typeof session.provider.signMessage !== 'function') { showToast('Open your signing wallet to claim SOL.'); return; }
+  creatorClaimsInFlight.add(mint);
+  const originalLabel = button.textContent;
+  let requested = false;
   try {
     button.disabled = true;
     button.textContent = 'Waiting for wallet…';
     const path = `/api/tokens/${encodeURIComponent(mint)}/creator-claim`;
     const prepared = await apiRequest(`${path}/prepare`, { method:'POST', body:{} });
     assertWalletSessionCurrent(session);
+    if (!prepared.available || !prepared.data?.statement || !prepared.data?.challengeId) throw new Error('Unable to prepare this claim. Refresh and try again.');
     const signed = await session.provider.signMessage(new TextEncoder().encode(prepared.data.statement));
     assertWalletSessionCurrent(session);
     button.textContent = 'Requesting payout…';
-    await apiRequest(`${path}/request`, { method:'POST', body:{ challengeId:prepared.data.challengeId, signature:bs58.encode(signed.signature || signed) } });
-    showToast('Creator payout requested. Watch this panel for a confirmed payment receipt.');
+    const result = await apiRequest(`${path}/request`, { method:'POST', body:{ challengeId:prepared.data.challengeId, signature:bs58.encode(signed.signature || signed) } });
+    if (!result.available || result.data?.status !== 'payout-requested') throw new Error('Unable to confirm the request. Refresh to check its status.');
+    requested = true;
+    button.textContent = 'Payout requested';
+    showToast('Payout requested. Check Rewards for confirmation.');
     const updated = await apiRequest(`/api/tokens/${encodeURIComponent(mint)}/fee-activity`);
+    assertWalletSessionCurrent(session);
     if (getCoinMintAddress() === mint && updated.available && updated.data?.mint === mint) {
       coinSummaryLedgerMint = mint;
       renderCoinFeeDashboard(updated.data.overview);
     }
   } catch (error) {
     showToast(`Creator claim: ${error.message}`);
-    if (button.isConnected) { button.disabled = false; button.textContent = 'Claim creator fees'; }
-  }
+    if (button.isConnected && !requested) { button.disabled = false; button.textContent = originalLabel; }
+  } finally { creatorClaimsInFlight.delete(mint); }
 }
 let coinMarketActivity = { status: 'loading', trades: [], coverage: null, decimals: 6 };
 renderExploreAssets();
@@ -9494,7 +9509,7 @@ function renderXClaimSummary(claims){
     if(count)count.textContent=summary?labels[key](summary[key].count):'Sign in to view';
   }
   const note=document.querySelector('#x-claim-dashboard-note');
-  if(note)note.textContent=summary&&Object.values(summary).some(bucket=>!bucket.complete)?'One or more reward amounts are unavailable, so affected totals are hidden. Claimed amounts still require a verified Solana payment receipt.':'Totals use collected creator-fee rewards linked to your signed-in X account. Claimed amounts require a verified Solana payment receipt.';
+  if(note)note.textContent=summary&&Object.values(summary).some(bucket=>!bucket.complete)?'Some amounts are unavailable. Paid totals include confirmed payments only.':'Paid totals include confirmed SOL payments.';
 }
 async function loadXIdentity() {
   const button = document.querySelector('#x-sign-in');

@@ -124,3 +124,17 @@ html body .wallet-onboarding-option:focus-visible { outline:2px solid var(--yell
 html body .wallet-onboarding-option small { color:var(--muted); font-size:12px; }
 html body #wallet-onboarding-dialog > .text-button { min-height:44px; width:100%; margin-top:8px; }
 @media(max-width:520px) { html body #wallet-onboarding-dialog { padding:20px; } }
+.creator-claim-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; overflow:visible; }
+.creator-claim-card { min-width:0; padding:18px; border:1px solid var(--line); border-radius:12px; background:var(--panel); }
+.creator-claim-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+.creator-claim-heading a { font-weight:700; color:var(--text); overflow-wrap:anywhere; }
+.creator-claim-state { color:var(--muted); font-size:12px; }
+.creator-claim-card > small { display:block; color:var(--muted); }
+.creator-claim-amount { display:block; margin:4px 0 16px; font-size:24px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.creator-claim-card > button { width:100%; min-height:44px; }
+.creator-claim-card dl { display:grid; gap:4px; margin:0; }
+.creator-claim-card dt { margin-top:8px; color:var(--muted); }
+.creator-claim-card dd { margin:0; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+@media(max-width:700px) { .creator-claim-list { grid-template-columns:1fr; } }
+
+#rewards-creator .personal-rewards { grid-template-columns:minmax(0,1fr); }

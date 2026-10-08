@@ -55,7 +55,7 @@ test('creator claim panel exists and only enables the verified owner above the c
     renderCoinSummary() {}, coinFeeSol: amount => `${amount} lamports`, escapeHtml: value => value,
     requestCreatorFeeClaim: () => { requested++; },
   };
-  vm.runInNewContext(section('function renderCoinFeeDashboard(', 'async function requestCreatorFeeClaim('), context);
+  vm.runInNewContext(section('function renderCoinFeeDashboard(', 'const creatorClaimsInFlight ='), context);
   const overview = { available:true, creatorWallet:'creator', creatorClaim:{ eligible:true, claimableLamports:'10000000', minimumLamports:'10000000' } };
   context.renderCoinFeeDashboard(overview);
   assert.equal(root.hidden, false);
