@@ -70,9 +70,10 @@ try {
         }
         if (route === '/#community') {
           assert(await page.locator('#community .section-heading h2').isVisible());
-          assert.equal(await page.locator('#community .section-heading h2').innerText(), 'Saved tokens');
+          assert.equal(await page.locator('#community .section-heading h2').innerText(), 'Favorite tokens');
           assert.equal(await page.locator('#my-launches > .portfolio-dashboard').isVisible(), false);
-          assert(await page.locator('#community .product-details:has(#community-preferences) > summary').isVisible());
+          assert.equal(await page.locator('#community-preferences').count(), 0);
+          assert(await page.locator('#followed-wallets').isVisible());
         }
         if (route === '/#capital-flow') {
           assert.equal(await page.locator('#route-guide').isVisible(), false);

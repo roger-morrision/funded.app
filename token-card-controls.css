@@ -14,6 +14,32 @@
   cursor: pointer;
   font: 700 10px 'DM Mono', monospace;
 }
+.token-card-action-share,
+.token-card-action-boost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.token-card-action-share svg,
+.token-card-action-boost svg { display: block; flex: none; width: 15px; height: 15px; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-actions .token-card-action-share,
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-actions .token-card-action-boost {
+  min-height: 36px;
+  padding: 7px 10px;
+}
+body.page-route-my-launches .home-launch-card-actions { flex-wrap: wrap; }
+body.page-route-my-launches .home-launch-evidence {
+  display: block;
+  margin: 5px 10px 8px;
+  color: #87939f;
+  font: 9px 'DM Mono', monospace;
+}
+body.page-route-my-launches .home-launch-card-actions .token-card-action-trade {
+  min-height: 36px;
+  padding: 7px 10px;
+}
 .token-card-action-watch { width: 30px; padding: 5px; }
 .token-card-action-watch svg { display: block; width: 16px; height: 16px; }
 body :is(.share-asset, button[data-boost-mint]) { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
@@ -24,7 +50,7 @@ body :is(.share-asset, button[data-boost-mint]) > svg { display: block; flex: 0 
 .token-card-action-watch:focus-visible,
 .token-card-action-share:focus-visible { outline: 2px solid #ffd28a; outline-offset: 2px; }
 
-body:is(.page-route-overview,.page-route-explore) .home-launch-card-media > .token-card-action-watch {
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media > .token-card-action-watch {
   position: absolute;
   z-index: 4;
   top: 8px;
@@ -35,8 +61,8 @@ body:is(.page-route-overview,.page-route-explore) .home-launch-card-media > .tok
   border-radius: 50%;
   background: #111b2ee8;
 }
-body:is(.page-route-overview,.page-route-explore) .home-launch-card-media:has(> .token-card-action-watch) .home-launch-media-stage { top: 42px; }
-body:is(.page-route-overview,.page-route-explore) .home-launch-card-actions > .token-card-action-share { margin-right: auto; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media:has(> .token-card-action-watch) .home-launch-media-stage { top: 42px; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-actions > .token-card-action-share { margin-right: auto; }
 
 .portfolio-token-footer > div { flex-wrap: wrap; justify-content: flex-end; }
 .portfolio-token-footer > div > .token-card-action-watch { flex: 0 0 30px; padding: 5px; }

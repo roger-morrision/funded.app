@@ -13,6 +13,13 @@ CREATE TABLE IF NOT EXISTS state_meta (
   last_indexed_at TIMESTAMPTZ
 );
 
+CREATE TABLE IF NOT EXISTS account_watchlists (
+  account_id TEXT NOT NULL,
+  cluster TEXT NOT NULL,
+  payload JSONB NOT NULL DEFAULT '{"mints":[],"imports":[]}'::jsonb,
+  PRIMARY KEY (account_id, cluster)
+);
+
 CREATE TABLE IF NOT EXISTS state_entities (
   bucket TEXT NOT NULL,
   entity_key TEXT NOT NULL,

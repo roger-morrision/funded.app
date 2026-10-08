@@ -171,6 +171,25 @@ export function createPostgresStore(databaseUrl) {
   let marketWrites = 0;
   const ensureReady = async () => { ready ||= migrate(pool).catch(error => { ready = undefined; throw error; }); await ready; };
   return {
+    async readWatchlist(accountId, cluster) {
+      await ensureReady();
+      const result = await pool.query('SELECT payload FROM account_watchlists WHERE account_id=$1 AND cluster=$2', [accountId, cluster]);
+      return result.rows[0]?.payload || { mints: [], imports: [] };
+    },
+    async updateWatchlist(accountId, cluster, mutator) {
+      await ensureReady();
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query('INSERT INTO account_watchlists(account_id,cluster) VALUES($1,$2) ON CONFLICT DO NOTHING', [accountId, cluster]);
+        const result = await client.query('SELECT payload FROM account_watchlists WHERE account_id=$1 AND cluster=$2 FOR UPDATE', [accountId, cluster]);
+        const row = mutator(result.rows[0].payload);
+        await client.query('UPDATE account_watchlists SET payload=$3::jsonb WHERE account_id=$1 AND cluster=$2', [accountId, cluster, JSON.stringify(row)]);
+        await client.query('COMMIT');
+        return row;
+      } catch (error) { await client.query('ROLLBACK'); throw error; }
+      finally { client.release(); }
+    },
     async health() { await ensureReady(); await pool.query({ text: 'SELECT 1', query_timeout: 3000 }); return true; },
     async readFollowingUpdates(cluster,ids,after='') {
       const {selected}=followingWindow(ids,after);await ensureReady();
