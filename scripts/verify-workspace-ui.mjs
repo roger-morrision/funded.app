@@ -324,6 +324,14 @@ try {
   });
   await page.screenshot({path:resolve(output,'leaderboard-burn-board.png'),timeout:12000});
   await open('airdrops');
+  await check('Airdrop dashboard stays visible without opening a disclosure',async()=>{
+    const dashboard=page.locator('#airdrops .airdrop-evidence');
+    assert.equal(await dashboard.evaluate(element=>element.tagName),'SECTION');
+    assert.equal(await dashboard.locator(':scope > h2').innerText(),'Airdrop details');
+    assert.equal(await dashboard.locator('#airdrop-summary-kpis article').count(),4);
+    assert(await dashboard.isVisible());
+    assert(await dashboard.locator('.community-airdrop-callout').isVisible());
+  });
   await check('Airdrops show one directory and holder guidance in order',async()=>{
     const blocks=await page.locator('#airdrops').evaluate(element=>[...element.children].map(child=>child.className));
     const positions=['airdrop-hero-layout','airdrop-public-programs','airdrop-allocation-heading','airdrop-reference-flow'].map(name=>blocks.findIndex(value=>value.includes(name)));
@@ -349,6 +357,9 @@ try {
   await check('Airdrop details open in the mobile viewport',async()=>{
     await page.setViewportSize({width:390,height:844});
     await open('airdrops');
+    const dashboard=page.locator('#airdrops .airdrop-evidence');
+    assert(await dashboard.isVisible());
+    assert.equal(await dashboard.locator('#airdrop-summary-kpis article').count(),4);
     const button=page.locator('[data-directory-mint]').first();
     await button.waitFor({state:'visible',timeout:15000});
     await button.click();

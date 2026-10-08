@@ -336,7 +336,8 @@ function getCreatorBuySol(){
   return Number.isFinite(value) ? value : 0;
 }
 function developerBuyLimitReached(error = walletEstimateError){
-  return String(error).startsWith('Developer buy cannot exceed 20% of the token supply.');
+  return (error === walletEstimateError && estimatedInitialBuyTokens > LAUNCH_TOKEN_SUPPLY * .2)
+    || /developer buy cannot exceed 20% of the token supply/i.test(String(error));
 }
 function creatorBuyExceedsWalletBalance(){
   const buySol = getCreatorBuySol();
@@ -7497,14 +7498,16 @@ document.querySelector('#explore-benefit-leaders')?.addEventListener('click', ev
   refreshExploreFeedForSort();
 });
 document.querySelectorAll('[data-explore-stage]').forEach(button => button.addEventListener('click', () => { exploreStage = button.dataset.exploreStage; document.querySelectorAll('[data-explore-stage]').forEach(item => { const active = item === button; item.classList.toggle('active', active); item.setAttribute('aria-pressed', String(active)); }); updateExploreViews(); }));
-document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(button => button.addEventListener('click', () => {
+document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(button => button.addEventListener('click', event => {
+  event.preventDefault();
+  const previousTab = exploreTab;
   document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(item => { const active = item === button; item.classList.toggle('active', active); item.setAttribute('aria-pressed', String(active)); });
   const tab = button.dataset.exploreTab;
   exploreTab = tab;
-  if (tab === 'new' || tab === 'following') { exploreNewLane = 'all'; exploreSort = 'newest'; document.querySelector('#explore-sort').value = 'newest'; }
-  else { exploreSort = document.querySelector('#explore-sort option[value="volume"]:not(:disabled)') ? 'volume' : 'recent-trade'; document.querySelector('#explore-sort').value = exploreSort; }
-  updateExploreViews();
-  refreshExploreFeedForSort();
+  if (tab === 'new') { exploreNewLane = 'all'; exploreSort = 'newest'; document.querySelector('#explore-sort').value = 'newest'; }
+  else if (tab === 'trending' && previousTab !== 'following') { exploreSort = document.querySelector('#explore-sort option[value="volume"]:not(:disabled)') ? 'volume' : 'recent-trade'; document.querySelector('#explore-sort').value = exploreSort; }
+  updateExploreViews(true);
+  if (tab !== 'following') refreshExploreFeedForSort();
 }));
 document.querySelector('#scanner-pagination')?.addEventListener('click', event => {
   const button = event.target.closest('[data-registry-page]');

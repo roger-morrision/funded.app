@@ -43,9 +43,10 @@ assert.equal(launchSection('<section id="launch-dialog"><section>Incomplete</sec
 const launchPage = launchSection(html);
 assert.ok(launchPage, 'Dedicated launch page must exist');
 assert.doesNotMatch(html, /<dialog[^>]+id="launch-dialog"/, 'Launch workspace must not be a modal dialog.');
-assert.match(html, /class="launch-dialog launch-page launch-page-guided"/, 'Launch workspace must show the guided form and a cost preview.');
+assert.match(html, /class="launch-dialog launch-page launch-page-guided"/, 'Launch workspace must use the guided two-step form.');
 assert.match(app, /function mountLaunchPage\(\)/, 'Launch workspace must mount into its route shell.');
 assert.match(app, /shell\.append\(page\)/, 'Launch workspace must render inside the dedicated route.');
+assert.match(app, /const target = Math\.min\(2, Math\.max\(1, Number\(step\) \|\| 1\)\)/, 'Launch navigation must stop at Step 2.');
 assert.match(app, /for \(let previous = 1; previous < target; previous\+\+\)[\s\S]*?getLaunchStepState\(previous\)[\s\S]*?if \(!state.valid\)/, 'Forward jumps must validate every preceding step.');
 assert.doesNotMatch(launchPage, /class="launch-platform-grid"|Solana Devnet bonding curve|Fixed supply · 6 decimals/, 'The redundant launch platform and token supply cards must stay removed.');
 assert.match(launchPage, /id="launch-preview-title">Launch summary[\s\S]*?id="preview-community"[\s\S]*?id="preview-creator-buy"[\s\S]*?id="preview-launch-cost"/, 'The sticky summary must expose the live community reserve, developer buy, and total.');

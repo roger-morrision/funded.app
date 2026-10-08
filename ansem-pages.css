@@ -485,7 +485,7 @@ body.page-route-airdrops .airdrop-directory-pagination button:disabled { opacity
 body.page-route-airdrops .airdrop-public-empty { padding: 26px; border: 1px solid var(--line); color: #92a0a8; text-align: center; }
 body.page-route-airdrops .airdrop-public-empty[hidden] { display: none; }
 body.page-route-airdrops .airdrop-evidence { margin-top: 18px; border: 1px solid var(--line); background: #101318; }
-body.page-route-airdrops .airdrop-evidence > summary { padding: 14px 18px; color: #aeb9bd; cursor: pointer; font: 700 11px 'DM Mono',monospace; letter-spacing: .06em; text-transform: uppercase; }
+body.page-route-airdrops .airdrop-evidence > h2 { margin: 0; padding: 14px 18px; color: #aeb9bd; font: 700 11px 'DM Mono',monospace; letter-spacing: .06em; text-transform: uppercase; }
 body.page-route-airdrops .airdrop-evidence > .airdrop-kpis,
 body.page-route-airdrops .airdrop-evidence > .community-airdrop-callout { margin: 12px 18px 18px; }
 body.page-route-airdrops .airdrop-workspace.ui-disclosure { margin: 16px 0; }
