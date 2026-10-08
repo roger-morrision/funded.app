@@ -114,7 +114,7 @@ function renderPortfolio(data, referralData, xData) {
     const empty = node('div', 'reward-portfolio-empty');
     const copy = node('div', 'reward-portfolio-empty-copy');
     copy.append(node('span', 'reward-portfolio-empty-icon', '◈'), node('h3', '', 'Connect to see your SOL rewards'),
-      node('p', '', 'See SOL received by this wallet and rewards still waiting. Use X claims for account rewards or Airdrops for launched coin tokens.'));
+      node('p', '', 'Connect your wallet to check balances and payments.'));
     const button = node('button', 'reward-portfolio-connect', 'Connect wallet');
     button.type = 'button';
     button.addEventListener('click', () => byId('connect-button')?.click());
