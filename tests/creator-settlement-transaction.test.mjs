@@ -3,7 +3,7 @@ import test from 'node:test';
 import bs58 from 'bs58';
 import { Keypair, Transaction } from '@solana/web3.js';
 import { buildMintRouterSettlementInstruction } from '../server/mint-router-payout.mjs';
-import { prepareCreatorSettlement, verifyCreatorSettlement, submitCreatorSettlement } from '../server/creator-settlement-transaction.mjs';
+import { prepareCreatorSettlement, verifyCreatorSettlement, submitCreatorSettlement, verifyFinalizedSettlementDelta } from '../server/creator-settlement-transaction.mjs';
 
 const programId = Keypair.generate().publicKey;
 const mint = Keypair.generate().publicKey;
@@ -73,4 +73,21 @@ test('ambiguous broadcast and transient receipt errors do not create a second tr
     bs58.encode(transaction.signature));
   assert.equal(sends, 1);
   assert.equal(polls, 2);
+});
+
+test('finalized settlement proves exact router debit and recipient credit', async () => {
+  const router = Keypair.generate().publicKey;
+  const signature = bs58.encode(Keypair.generate().publicKey.toBytes());
+  const row = {
+    transaction:{ signatures:[signature], message:{ accountKeys:[router,recipient] } },
+    meta:{ err:null, preBalances:[2_000_000,1_000_000], postBalances:[1_000_000,2_000_000] },
+  };
+  const connection = { getTransaction:async()=>row };
+  assert.equal(await verifyFinalizedSettlementDelta({ connection, signature, router, recipient,
+    amountLamports:'1000000' }), true);
+  await assert.rejects(verifyFinalizedSettlementDelta({ connection, signature, router, recipient,
+    amountLamports:'1000001' }), /exact router debit/);
+  row.meta.err = { InstructionError:[0,'Custom'] };
+  await assert.rejects(verifyFinalizedSettlementDelta({ connection, signature, router, recipient,
+    amountLamports:'1000000' }), /unavailable or failed/);
 });

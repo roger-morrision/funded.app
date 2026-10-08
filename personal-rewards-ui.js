@@ -41,8 +41,8 @@ async function refreshCreator(card, walletAddress, current) {
     const rows = mine.map((launch, index) => creatorRewardRow(launch, activities[index], walletAddress, EXPLORE_CLUSTER));
     if (!current()) return;
     const sum = key => rows.reduce((total, row) => total + row[key], 0n);
-    setCard(card, { unclaimed:formatSol(rows.filter(row => row.ready).reduce((total,row)=>total+row.available,0n)), claimed:formatSol(sum('paid')),
-      note:`${rows.length} ${rows.length === 1 ? 'token' : 'tokens'}` });
+    setCard(card, { unclaimed:formatSol(sum('unclaimed')), claimed:formatSol(sum('paid')),
+      note:`${rows.length} ${rows.length === 1 ? 'token' : 'tokens'} · Unclaimed includes amounts awaiting finalized payout proof.` });
     renderCreatorRows(card, rows);
 
   } catch {
@@ -82,15 +82,15 @@ function renderCreatorCards(list, rows) {
     const state = document.createElement('span'); state.className = 'creator-claim-state'; state.textContent = row.status;
     heading.append(name,state);
     const fullName=document.createElement('p');fullName.className='creator-reward-name';fullName.textContent=row.fullName;
-    const amount = document.createElement('strong'); amount.className = 'creator-claim-amount'; amount.textContent = formatSol(row.available);
+    const amount = document.createElement('strong'); amount.className = 'creator-claim-amount'; amount.textContent = formatSol(row.available + row.pending);
     const label = document.createElement('small'); label.textContent = row.ready ? 'Available to claim' : 'Reward balance';
     const button = document.createElement('button'); button.type = 'button'; button.className = 'primary-button';
     const signing = document.documentElement.dataset.creatorClaimSigning === 'true';
-    button.textContent = pendingClaims.has(row.mint) ? 'Requesting payout…' : 'Claim SOL';
+    button.textContent = pendingClaims.has(row.mint) ? 'Approving payout…' : 'Approve payouts';
     button.disabled = !row.ready || !signing || pendingClaims.has(row.mint);
     button.setAttribute('aria-label',`Claim SOL from ${row.name}`);
     const note = document.createElement('p'); note.className = 'field-help';
-    note.textContent = !signing ? 'Open this app in your wallet to sign a claim.' : row.ready ? 'Approve a wallet message to request payment.'
+    note.textContent = !signing ? 'Open this app in your wallet to sign payouts.' : row.ready ? 'Approve a claim message and each exact payout transaction.'
       : row.status === 'Payment processing' ? 'Waiting for payment confirmation.' : `Claim minimum: ${formatSol(row.minimum)}.`;
     button.addEventListener('click', () => {
       if (pendingClaims.has(row.mint)) return;

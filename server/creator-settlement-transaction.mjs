@@ -55,3 +55,27 @@ export async function submitCreatorSettlement({ connection, transaction, authori
   }
   throw new Error(`Creator-approved settlement ${signature} has no verified finalized receipt; reconcile before retrying.`);
 }
+
+export async function verifyFinalizedSettlementDelta({ connection, signature, router, recipient, amountLamports }) {
+  const row = await connection.getTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
+  if (!row || row.meta?.err || !row.transaction?.signatures?.includes(signature)) {
+    throw new Error('Finalized settlement transaction evidence is unavailable or failed.');
+  }
+  const keys = row.transaction.message.accountKeys;
+  if (!Array.isArray(keys) || !Array.isArray(row.meta?.preBalances) || !Array.isArray(row.meta?.postBalances)) {
+    throw new Error('Finalized settlement balance evidence is incomplete.');
+  }
+  const address = key => typeof key === 'string' ? key : key?.toBase58?.();
+  const routerIndex = keys.findIndex(key => address(key) === new PublicKey(router).toBase58());
+  const recipientIndex = keys.findIndex(key => address(key) === new PublicKey(recipient).toBase58());
+  if (routerIndex < 0 || recipientIndex < 0 || routerIndex === recipientIndex) throw new Error('Settlement accounts are missing from finalized evidence.');
+  const balances = [row.meta.preBalances[routerIndex], row.meta.postBalances[routerIndex],
+    row.meta.preBalances[recipientIndex], row.meta.postBalances[recipientIndex]];
+  if (!balances.every(Number.isSafeInteger)) throw new Error('Finalized settlement balances exceed exact JavaScript integer range.');
+  const amount = BigInt(amountLamports);
+  if (BigInt(row.meta.preBalances[routerIndex]) - BigInt(row.meta.postBalances[routerIndex]) !== amount
+    || BigInt(row.meta.postBalances[recipientIndex]) - BigInt(row.meta.preBalances[recipientIndex]) !== amount) {
+    throw new Error('Finalized settlement lacks the exact router debit and recipient credit.');
+  }
+  return true;
+}

@@ -60,6 +60,10 @@ assert.throws(() => buildMintFeeLedgerMigrationInstruction({programId:program,mi
 const settlement = buildMintRouterSettlementInstruction({ programId: program, mint: mint.publicKey, authority, creator:payer, recipient, amountLamports: '12345678', obligationId });
 assert.equal(settlement.router.toBase58(), router.address.toBase58());
 assert.equal(settlement.instruction.keys[8].pubkey.toBase58(), recipient.toBase58());
+const creatorSettlement = buildMintRouterSettlementInstruction({ programId:program, mint:mint.publicKey, authority,
+  creator:payer, recipient:payer, amountLamports:'12345678', obligationId:'collection:creator', claimDomain:'creator' });
+assert.equal(creatorSettlement.share, 0);
+assert.notDeepEqual(creatorSettlement.claimId, settlement.claimId);
 assert.equal(settlement.instruction.keys[1].isSigner, true);
 assert.equal(settlement.instruction.data[52], 0);
 assert.equal(settlement.instruction.data.readBigUInt64LE(44), 12345678n);

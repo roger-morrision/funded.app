@@ -37,6 +37,15 @@ assert.equal(after.receivers.find(row => row.id === 'operations').confirmedPaidL
 assert.deepEqual(after.receivers.find(row => row.id === 'operations').payoutSignatures, ['paid-operations']);
 assert.equal(after.receivers.find(row => row.id === 'community').allocatedLamports, '30000000');
 assert.equal(after.receivers.find(row => row.id === 'referral-1').withoutConfirmedPayoutLamports, '20000000');
+const signedCreatorRequest = { id:'claim-a:creator', mint, asset:'SOL', kind:'creator', recipient:'creator-wallet',
+  amount:'800000000', status:'paid-via-creator-settlement', finalized:true, balanceDeltaVerified:true, fundingSignature:'signed-creator' };
+const signedCreator = coinFeeOverview({ ...base, collections:{ a:collection }, settlements:{ 'claim-a':settlement },
+  rewardState:{ fundingRequests:{ 'claim-a:creator':signedCreatorRequest } } });
+assert.equal(signedCreator.receivers.find(row => row.id === 'creator').confirmedPaidLamports, '800000000');
+assert.deepEqual(signedCreator.receivers.find(row => row.id === 'creator').payoutSignatures, ['signed-creator']);
+const changedCreator = coinFeeOverview({ ...base, collections:{ a:collection }, settlements:{ 'claim-a':settlement },
+  rewardState:{ fundingRequests:{ 'claim-a:creator':{ ...signedCreatorRequest, amount:'800000001' } } } });
+assert.equal(changedCreator.receivers.find(row => row.id === 'creator').confirmedPaidLamports, '0');
 const paid = coinFeeOverview({ ...base, collections:{ a:collection }, settlements:{ 'claim-a':settlement }, rewardState, referralClaims:{ r:{ settlementSignature:'claim-a', level:1, recipientWallet:'referrer-a', status:'paid', payoutSignature:'ref-paid' } }, verifiedPayoutSignatures:['ref-paid'] });
 assert.equal(paid.receivers.find(row => row.id === 'referral-1').confirmedPaidLamports, '20000000');
 const unverified = coinFeeOverview({ ...base, collections:{ a:collection }, settlements:{ 'claim-a':settlement }, rewardState, referralClaims:{ r:{ settlementSignature:'claim-a', level:1, recipientWallet:'referrer-a', status:'paid', payoutSignature:'ref-paid' } } });

@@ -60,6 +60,14 @@ export function coinFeeOverview({ mint, cluster, launch, collections = {}, settl
       const request = rewardState.fundingRequests?.[`${collection.signature}:${kind}`];
       if (!request) continue;
       byId[kind].statuses.add(request.status || 'pending');
+      if (kind === 'creator' && request.status === 'paid-via-creator-settlement' && request.finalized === true
+        && request.balanceDeltaVerified === true && request.fundingSignature && request.mint === mint
+        && request.asset === 'SOL' && request.recipient === launch.creatorWallet
+        && integerUnits(request.amount) === units(settlement.creatorDestinations?.creatorWallet)) {
+        byId.creator.paid += integerUnits(request.amount);
+        byId.creator.signatures.add(request.fundingSignature);
+        continue;
+      }
       const schedule = rewardState.schedules?.[request.scheduleId];
       if (kind === 'holders') continue; // Individual recipients exist only after a finalized snapshot.
       const payment = schedule?.payments?.[request.recipient];

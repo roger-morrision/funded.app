@@ -17,12 +17,12 @@ export function creatorRewardRow(launch, activity, wallet, cluster) {
   }
   if (!receiver || !claim) throw new Error('Creator reward verification incomplete');
   const unclaimed = amount(receiver.withoutConfirmedPayoutLamports), paid = amount(receiver.confirmedPaidLamports);
-  const available = amount(claim.claimableLamports), minimum = amount(claim.minimumLamports);
-  if (available > unclaimed || minimum <= 0n) throw new Error('Creator reward amounts inconsistent');
-  const ready = claim.eligible === true && available >= minimum;
+  const available = amount(claim.claimableLamports), pending = amount(claim.pendingLamports || '0'), minimum = amount(claim.minimumLamports);
+  if (available + pending > unclaimed || minimum <= 0n) throw new Error('Creator reward amounts inconsistent');
+  const ready = (claim.eligible === true && available >= minimum) || Number(claim.pendingCount || 0) > 0;
   return { mint:launch.mint, name:launch.symbol || launch.name || launch.mint.slice(0,8), fullName:launch.name || launch.symbol || launch.mint, overview,
-    unclaimed, paid, available, minimum, ready,
-    status:ready ? 'Ready to claim' : unclaimed > available ? 'Payment processing'
+    unclaimed, paid, available, pending, minimum, ready,
+    status:ready ? 'Ready to approve' : unclaimed > available ? 'Payment processing'
       : available > 0n ? 'Below claim minimum' : 'No rewards ready' };
 }
 

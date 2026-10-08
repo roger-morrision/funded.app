@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Keypair } from '@solana/web3.js';
-import { claimableCreatorRequests, creatorClaimStatus, createCreatorFeeChallenges } from '../server/creator-fee-claim.mjs';
+import { claimableCreatorRequests, creatorClaimStatus, creatorClaimBatch, createCreatorFeeChallenges } from '../server/creator-fee-claim.mjs';
 
 const wallet = Keypair.generate();
 const other = Keypair.generate();
@@ -22,6 +22,7 @@ assert.equal(claimableCreatorRequests(input).length, 2);
 const status = creatorClaimStatus(input);
 assert.equal(status.claimableLamports, '11000000');
 assert.equal(status.eligible, true);
+assert.deepEqual(creatorClaimBatch(input).requestIds, ['a:creator','b:creator']);
 assert.equal(creatorClaimStatus({ ...input, wallet:other.publicKey.toBase58() }).eligible, false);
 const challenges = createCreatorFeeChallenges();
 const challenge = challenges.prepare({ mint, wallet:address, status, origin:'https://funded.vip' });
@@ -34,4 +35,8 @@ assert.equal(challenges.verify({ challengeId:challenge.challengeId, signature:si
 assert.equal(challenges.verify({ challengeId:challenge.challengeId, signature:signed, origin:'https://funded.vip', status }), null);
 rewardState.fundingRequests['b:creator'].status = 'pending';
 assert.equal(creatorClaimStatus(input).eligible, false);
+rewardState.fundingRequests['b:creator'].status = 'awaiting-creator-signature';
+assert.equal(creatorClaimStatus(input).pendingCount, 1);
+assert.equal(creatorClaimStatus(input).pendingLamports, '5000000');
+assert.deepEqual(creatorClaimBatch(input).requestIds, ['b:creator']);
 console.log('creator fee claim: verified launch, minimum, wallet signature, exact amount and replay checks');

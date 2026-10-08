@@ -5,7 +5,7 @@ export function createWalletConnectController(appState) {
   function setWalletState(message, detail = '', connected = false){
     connected = Boolean(connected && appState.wallet && appState.connectedWalletAddress === appState.walletAddress(appState.wallet));
     document.documentElement.dataset.connectedWallet = connected ? appState.connectedWalletAddress : '';
-    document.documentElement.dataset.creatorClaimSigning = String(Boolean(connected && !appState.wallet?.readOnly && typeof appState.wallet?.signMessage === 'function'));
+    document.documentElement.dataset.creatorClaimSigning = String(Boolean(connected && !appState.wallet?.readOnly && typeof appState.wallet?.signMessage === 'function' && typeof appState.wallet?.signTransaction === 'function'));
     window.dispatchEvent(new Event('funded:reward-identity-change'));
     const signingReady = connected && appState.canSignTransactions(appState.wallet);
     const header = document.querySelector('#connect-button');

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { Connection, Keypair, clusterApiUrl } from '@solana/web3.js';
+import { Connection, Keypair, Transaction, clusterApiUrl } from '@solana/web3.js';
 
 const mint = process.argv[2];
 const collectionSignature = process.argv[3];
@@ -78,32 +78,37 @@ const challenge = await request(`/api/tokens/${mint}/creator-claim/prepare`, {})
 const requested = await request(`/api/tokens/${mint}/creator-claim/request`, {
   challengeId:challenge.challengeId, signature:sign(challenge.statement, creator),
 });
-assert.equal(requested.status, 'payout-requested');
+assert.equal(requested.status, 'awaiting-creator-signature');
 assert.equal(requested.wallet, creator.publicKey.toBase58());
 const amount = BigInt(requested.amountLamports);
-let creatorPaid = null;
-for (let attempt = 0; attempt < 30; attempt += 1) {
-  const next = await request(activityPath);
-  const row = next.overview.receivers.find(item => item.id === 'creator');
-  if (BigInt(row.confirmedPaidLamports) >= previouslyPaid + amount
-    && row.payoutSignatures.some(signature => !previousSignatures.has(signature))) {
-    creatorPaid = row;
-    break;
-  }
-  await new Promise(resolve => setTimeout(resolve, 10_000));
-}
-assert(creatorPaid, 'Creator payout was not finalized within five minutes.');
 const creatorPayouts = [];
-for (const signature of creatorPaid.payoutSignatures.filter(signature => !previousSignatures.has(signature))) {
-  const tx = await connection.getTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:1 });
+for (const requestId of requested.requestIds) {
+  const review = await request(`/api/tokens/${mint}/creator-claim/settle`, { requestId });
+  let paid = review;
+  if (review.status !== 'paid') {
+    assert.equal(review.status, 'awaiting-creator-signature');
+    assert.equal(review.creatorWallet, creator.publicKey.toBase58());
+    const transaction = Transaction.from(Buffer.from(review.transaction, 'base64'));
+    transaction.partialSign(creator);
+    paid = await request(`/api/tokens/${mint}/creator-claim/settle`, { requestId,
+      creatorSignedTransaction:transaction.serialize({ requireAllSignatures:false, verifySignatures:false }).toString('base64') });
+  }
+  assert.equal(paid.status, 'paid');
+  const chain = await connection.getSignatureStatus(paid.signature, { searchTransactionHistory:true });
+  assert.equal(chain.value?.confirmationStatus, 'finalized');
+  assert.equal(chain.value?.err, null);
+  const tx = await connection.getTransaction(paid.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
   assert(tx && tx.meta?.err == null, 'Creator payout transaction is not finalized.');
-  const keys = tx.transaction.message.staticAccountKeys || tx.transaction.message.accountKeys;
+  const keys = tx.transaction.message.accountKeys;
   const index = keys.findIndex(key => key.toBase58() === creator.publicKey.toBase58());
   assert(index >= 0, 'Creator is missing from payout transaction.');
   const delta = BigInt(tx.meta.postBalances[index] - tx.meta.preBalances[index]);
-  assert(delta > 0n, 'Creator did not receive SOL in payout transaction.');
-  creatorPayouts.push({ signature, recipientDeltaLamports:String(delta) });
+  assert.equal(delta, BigInt(paid.amountLamports), 'Creator recipient delta differs from signed payout.');
+  creatorPayouts.push({ signature:paid.signature, recipientDeltaLamports:String(delta) });
 }
 assert.equal(creatorPayouts.reduce((sum, row) => sum + BigInt(row.recipientDeltaLamports), 0n), amount,
   'New creator payout signatures do not total the requested amount.');
+const creatorPaid = (await request(activityPath)).overview.receivers.find(item => item.id === 'creator');
+assert(BigInt(creatorPaid.confirmedPaidLamports) >= previouslyPaid + amount, 'Confirmed creator payout total did not increase.');
+assert(creatorPaid.payoutSignatures.some(signature => !previousSignatures.has(signature)), 'New creator payout proof was not recorded.');
 console.log(JSON.stringify({ cluster:'devnet', mint, collectionSignature, referrals, creator:{ wallet:creator.publicKey.toBase58(), requestedLamports:String(amount), payouts:creatorPayouts } }, null, 2));

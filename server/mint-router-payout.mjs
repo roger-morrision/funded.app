@@ -17,6 +17,11 @@ export function xClaimId(obligationId) {
   return createHash('sha256').update(`funded.x.claim.v2:${obligationId}`).digest();
 }
 
+export function creatorFeeClaimId(requestId) {
+  if (!String(requestId || '').trim()) throw new Error('A creator fee request ID is required.');
+  return createHash('sha256').update(`funded.creator.claim.v1:${requestId}`).digest();
+}
+
 export function buybackClaimId(collectionSignature) {
   if (!String(collectionSignature || '').trim()) throw new Error('A verified collection signature is required.');
   return createHash('sha256').update(`funded.buyback.claim.v1:${collectionSignature}`).digest();
@@ -79,16 +84,17 @@ export function buildMintRouterSettlementInstruction({ programId, mint, authorit
   const router = deriveMintFeeRouter(programId, mintKey);
   const ledger = deriveMintFeeLedger(programId, mintKey);
   const legacyRouter = deriveFeeRouter(programId);
-  if (!['x', 'buyback', 'community-reserve'].includes(claimDomain)) throw new Error('Unsupported router claim domain.');
+  if (!['x', 'creator', 'buyback', 'community-reserve'].includes(claimDomain)) throw new Error('Unsupported router claim domain.');
   const claimId = claimDomain === 'buyback' ? buybackClaimId(obligationId)
-    : claimDomain === 'community-reserve' ? communityReserveClaimId(obligationId) : xClaimId(obligationId);
+    : claimDomain === 'community-reserve' ? communityReserveClaimId(obligationId)
+      : claimDomain === 'creator' ? creatorFeeClaimId(obligationId) : xClaimId(obligationId);
   const claim = deriveMintClaim(programId, mintKey, claimId);
   const data = Buffer.alloc(8 + 32 + 4 + 8 + 1);
   SETTLE_MINT_DISCRIMINATOR.copy(data, 0);
   claimId.copy(data, 8);
   data.writeUInt32LE(1, 40);
   data.writeBigUInt64LE(amount, 44);
-  const share = claimDomain === 'x' ? 0 : 1;
+  const share = ['x','creator'].includes(claimDomain) ? 0 : 1;
   data[52] = share;
   return {
     router: router.address,
