@@ -205,7 +205,7 @@ function renderDiscovery(data) {
     info.append(metadata);
     identity.append(avatar, info);
     title.append(identity);
-    title.append(node('span','',row.status === 'holders-paid' ? 'Holders paid' : row.status === 'holder-fees-allocated' ? 'Rewards set aside' : 'Rewards announced'));
+    title.append(node('span',`reward-program-status ${row.status === 'holders-paid' ? 'is-paid' : 'is-pending'}`,row.status === 'holders-paid' ? 'Holders paid' : row.status === 'holder-fees-allocated' ? 'Rewards set aside' : 'Rewards announced'));
     article.append(title);
     article.append(node('p','',`${row.holderSharePercent}% fee share · ${sol(row.totals.holder)} set aside · ${row.holderPaidWallets} paid wallet${row.holderPaidWallets === 1 ? '' : 's'}`));
     if (row.lastHolderPayout) article.append(node('small','',`Latest recorded holder payment ${new Date(row.lastHolderPayout).toLocaleString()}`));

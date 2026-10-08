@@ -50,7 +50,7 @@ function explore() {
     label.firstChild.textContent = 'Sort';
     bar.append(label);
   }
-  const labels = { boosted:'Active boosts', 'tier-burn':'Promotion spend', airdrop:'Airdrop allocation', 'holder-fee':'Holder reward share', 'x-fee':'X reward share', turnover:'Volume / market cap', 'recent-trade':'Recent activity', holders:'Holder count', change:'Market cap change', newest:'Newest' };
+  const labels = { boosted:'Active boosts', 'tier-burn':'Promotion spend', airdrop:'Airdrop allocation', 'holder-fee':'Holder reward share', 'x-fee':'X reward share', turnover:'Volume / market cap', 'recent-trade':'Recent activity', holders:'Holder count', change:'24h change', newest:'Newest' };
   for (const option of sort?.options || []) if (labels[option.value]) option.textContent = labels[option.value];
   const filters = $('#explore-filter-popover');
   filters?.setAttribute('role', 'dialog'); filters?.setAttribute('aria-label', 'Token filters');
@@ -117,6 +117,7 @@ function portfolio() {
 function details() {
   setText('#rewards-history-tab', 'History');
   setText('#rewards-overview .reward-overview-start h2', 'Explore rewards');
+  $('#rewards-overview .reward-overview-start .eyebrow')?.remove();
   disclosure($('.reward-upcoming'), 'How to qualify for upcoming rewards');
   setText('.coin-profile-updates > strong', 'No updates yet');
   setText('.coin-profile-updates > p', 'Updates from this project will appear here.');

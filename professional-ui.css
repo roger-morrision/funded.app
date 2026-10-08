@@ -1,4 +1,79 @@
 /* Shared editorial pass: readable type, quieter surfaces, and one clear task per route. */
+html body.product-experience-ready {
+  --ui-surface: #16182a;
+  --ui-neutral: #c1cbdf; --ui-neutral-bg: #22273a; --ui-neutral-border: #465068;
+  --ui-pro: #dfcaff; --ui-pro-bg: #2c2140; --ui-pro-border: #80639e;
+  --ui-premier: #ffe1a0; --ui-premier-bg: #342b19; --ui-premier-border: #9c7e3f;
+  --ui-success: #afe4c2; --ui-success-bg: #19362c; --ui-success-border: #416f59;
+  --ui-pending: #f2d394; --ui-pending-bg: #332c1e; --ui-pending-border: #79663e;
+}
+
+/* Package colors have the same meaning in cards, tables, previews and details. */
+html body.product-experience-ready :is(.promotion-badge, .home-table-tier, .explore-tier-badge, .tier-badge, .coin-package-chip--promotion) {
+  color: var(--ui-neutral); background: var(--ui-neutral-bg); border-color: var(--ui-neutral-border);
+  text-transform: none; letter-spacing: 0; font-size: 11px; line-height: 1.4; border-radius: 5px;
+}
+html body.product-experience-ready :is(.promotion-badge--pro, .home-table-tier[data-tier="pro"], .explore-tier-badge[data-tier="pro"], .tier-badge.pro, .coin-package-chip--promotion.is-pro, .creator-burn-card.pro > span) {
+  color: var(--ui-pro); background: var(--ui-pro-bg); border-color: var(--ui-pro-border);
+}
+html body.product-experience-ready :is(.promotion-badge--premier, .home-table-tier[data-tier="premier"], .explore-tier-badge[data-tier="premier"], .tier-badge.premier, .coin-package-chip--promotion.is-premier, .creator-burn-card.premier > span) {
+  color: var(--ui-premier); background: var(--ui-premier-bg); border-color: var(--ui-premier-border);
+}
+html body.product-experience-ready .creator-burn-card.pro.active { border-color: var(--ui-pro-border); background: var(--ui-pro-bg); }
+html body.product-experience-ready .creator-burn-card.premier.active { border-color: var(--ui-premier-border); background: var(--ui-premier-bg); }
+html body.product-experience-ready .coin-package-chip--promotion:is(.is-standard,.is-unknown) { cursor: default; }
+html body.product-experience-ready :is(#airdrops .airdrop-status,.reward-program-status) {
+  display: inline-flex; width: fit-content; padding: 4px 8px; border: 1px solid var(--ui-neutral-border); border-radius: 5px;
+  color: var(--ui-neutral); background: var(--ui-neutral-bg); font: 600 11px/1.4 Manrope,sans-serif; letter-spacing: 0; text-transform: none;
+}
+html body.product-experience-ready :is(#airdrops .airdrop-status.claiming,.reward-program-status.is-paid) {
+  color: var(--ui-success); background: var(--ui-success-bg); border-color: var(--ui-success-border);
+}
+html body.product-experience-ready :is(#airdrops .airdrop-status.upcoming,.reward-program-status.is-pending) {
+  color: var(--ui-pending); background: var(--ui-pending-bg); border-color: var(--ui-pending-border);
+}
+html body.product-experience-ready :is(.coin-package-copy small,.coin-package-copy strong) { font-family: Manrope,sans-serif; font-size: 11px !important; line-height: 1.4 !important; }
+
+/* Compact route headers and consistent readable controls. */
+html body.product-experience-ready :is(.route-guide h1,.workspace-page-header h1,.explore-hero h1,#leaderboard-title,#airdrops h1,#list-title,#launch-route-title,#capital-flow-title) {
+  font-size: clamp(30px,3.2vw,42px); line-height: 1.15; letter-spacing: -.035em; text-transform: none;
+}
+html body.product-experience-ready .leaderboard-hero { min-height: 220px; padding: 30px; border-radius: 10px; }
+html body.product-experience-ready .paid-reference-hero { min-height: 0; padding-block: 30px; }
+html body.product-experience-ready .paid-reference-hero h1 { font-size: clamp(32px,3.6vw,46px); }
+html body.product-experience-ready :is(.route-guide-state,.explore-pulse-head > div > .eyebrow,.quote-assets-panel .eyebrow) { display: none; }
+html body.product-experience-ready :is(.purpose-page-nav,.ui-tabs,.portfolio-view-tabs,.leaderboard-tabs) :is(a,button) {
+  font: 600 13px/1.4 Manrope,sans-serif; letter-spacing: 0; text-transform: none; min-height: 44px;
+}
+html body.product-experience-ready .sidebar .primary-nav > a.active { color: var(--yellow,#f4b400); background: transparent; box-shadow: none; border-left-color: transparent; }
+html body.product-experience-ready :is(.explore-control-bar,.explore-filter-popover,.home-feed-settings-panel) :is(input,select) {
+  color: var(--text); background: var(--ui-surface); border: 1px solid var(--line); border-radius: 6px; font-size: 13px;
+}
+html body.product-experience-ready #explore-sort { width: 180px; max-width: 100%; }
+html body.product-experience-ready .explore-stage-filter { flex-wrap: wrap; }
+html body.product-experience-ready .explore-stage-filter button { white-space: normal; min-height: 40px; }
+html body.product-experience-ready :is(.scanner-head,.scanner-row) { grid-template-columns: 28px minmax(260px,1.7fr) 100px 100px 70px 65px 100px 75px 95px 100px 80px; }
+html body.product-experience-ready .scanner-head { color: var(--muted); font-size: 11px; line-height: 1.4; letter-spacing: 0; }
+html body.product-experience-ready .quote-assets-panel .panel-explainer { max-width: 65ch; }
+html body.product-experience-ready .creator-burn-tiers { grid-template-columns: repeat(3,minmax(0,1fr)); }
+html body.product-experience-ready .creator-burn-card { min-width: 0; padding: 14px; }
+html body.product-experience-ready .creator-burn-card :is(small,em) { font-size: 12px; line-height: 1.5; }
+html body.product-experience-ready :is(.reward-overview-start,.explore-pulse-head) { margin-top: 24px; }
+@media(max-width:700px) {
+  html body.product-experience-ready .leaderboard-hero { min-height: 190px; padding: 22px 18px; }
+  html body.product-experience-ready :is(.route-guide h1,.workspace-page-header h1,.explore-hero h1,#leaderboard-title,#airdrops h1,#list-title,#launch-route-title,#capital-flow-title) { font-size: 30px; }
+  html body.product-experience-ready .creator-burn-tiers { grid-template-columns: 1fr; }
+  html body.product-experience-ready .explore-control-bar .product-sort { flex: 1 1 100%; margin-left: 0; justify-content: space-between; }
+  html body.product-experience-ready :is(.explore-control-bar,.explore-filter-popover,.home-feed-settings-panel) :is(input,select) { font-size: 16px; }
+}
+/* The sidebar occupies 220px on tablets; leave room for the wallet control. */
+@media(min-width:701px) and (max-width:900px) {
+  html body.product-experience-ready .topbar .create-coin-button { display: none !important; }
+  html body.product-experience-ready .topbar { gap: 8px; }
+  html body.product-experience-ready .top-actions { gap: 8px; min-width: 0; }
+  html body.product-experience-ready .topbar .connect-button { padding-inline: 10px; }
+  html body.product-experience-ready .creator-burn-tiers { grid-template-columns: 1fr; }
+}
 body.page-route .main-content :is(.panel, .role-panel, .support-card, .airdrop-analytics-card, .airdrop-wallets-card, .reward-experience-panel) {
   border-radius: 10px !important;
 }

@@ -301,7 +301,7 @@ function explore() {
   const count = node('p', 'workspace-filter-summary'); count.id = 'workspace-filter-summary'; count.setAttribute('role','status');
   $('.explore-control-bar')?.after(count);
   const stage = $('.explore-stage-filter');
-  if (stage) text('[data-explore-stage="near"]', 'Graduating');
+  if (stage) text('[data-explore-stage="near"]', 'Near migration');
   const watch = node('a', 'workspace-watch-link', 'Favorites'); watch.href = '#community'; $('.explore-tabs')?.append(watch);
   const headingActions = $('.explore-heading .heading-actions', root);
   const tabs = $('.explore-tabs', root);

@@ -987,7 +987,7 @@ function exploreBoostAmountMarkup(mint){
 function exploreTierBadgeMarkup(mint){
   const promotion = promotionForMint(mint);
   const info = `<button type="button" class="explore-tier-info" data-tier-info-mint="${escapeHtml(mint)}" aria-label="Explain launch tier for ${escapeHtml(shortAddress(mint))}" title="Explain this launch tier">${icon('info')}</button>`;
-  if (promotion) return `<span class="scanner-tier-wrap"><a class="explore-tier-badge" data-tier="${escapeHtml(promotion.tier)}" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(promotion.signature)}`))}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(`${promotion.amountTokens.toLocaleString()} $FUNDED burned with the verified launch · view receipt`)}">${escapeHtml(promotion.tier)}</a>${info}</span>`;
+  if (promotion) return `<span class="scanner-tier-wrap"><a class="explore-tier-badge" data-tier="${escapeHtml(promotion.tier)}" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(promotion.signature)}`))}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(`${promotion.amountTokens.toLocaleString()} $FUNDED burned with the verified launch · view receipt`)}">${escapeHtml(promotion.tier.charAt(0).toUpperCase() + promotion.tier.slice(1))}</a>${info}</span>`;
   const verified = Boolean(verifiedLaunchPolicyForMint(mint));
   return `<span class="scanner-tier-wrap"><span class="explore-tier-badge" data-tier="${verified ? 'standard' : 'unavailable'}" title="${verified ? 'Verified launch policy · no paid promotion burn' : 'Launch tier unavailable without a verified policy'}">${verified ? 'Standard' : 'Unavailable'}</span>${info}</span>`;
 }
@@ -1005,7 +1005,7 @@ function openExploreTierInfo(mint){
   } else {
     const allocation = verifiedPolicyPercent(policy.communityAirdrop?.allocationPercent);
     const airdrop = allocation == null ? 'Unavailable' : formatVerifiedPercent(allocation);
-    const tier = promotion ? promotion.tier : 'Standard';
+    const tier = promotion ? promotion.tier.charAt(0).toUpperCase() + promotion.tier.slice(1) : 'Standard';
     details.innerHTML = `<div class="explore-tier-fact"><span>Verified launch tier</span><strong>${escapeHtml(tier)}</strong><small>${promotion ? `${escapeHtml(Number(promotion.amountTokens).toLocaleString())} $FUNDED burned in the confirmed launch transaction` : 'No verified paid promotion burn'}</small></div>
       <div class="explore-tier-fact"><span>Community allocation</span><strong>${escapeHtml(airdrop)}</strong><small>Share of token supply in the launch policy; vault funding and distribution require separate verification.</small></div>
       ${promotion ? `<a class="explore-tier-detail-link" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(promotion.signature)}`))}" target="_blank" rel="noopener noreferrer">View burn receipt ↗</a>` : ''}
@@ -1323,7 +1323,7 @@ function renderCoinPromotionBadge(){
     artworkLabel.textContent = badge ? `${presentation.label} launch · ${Number(badge.amountTokens).toLocaleString()} $FUNDED burned` : '';
   }
   const packageElement = document.createElement(badge ? 'a' : 'span');
-  packageElement.className = `coin-package-chip coin-package-chip--promotion${badge ? ` is-${badge.tier}` : ''}`;
+  packageElement.className = `coin-package-chip coin-package-chip--promotion is-${presentation.tier}`;
   if (badge) {
     packageElement.href = exploreExplorer(`tx/${encodeURIComponent(badge.signature)}`);
     packageElement.target = '_blank';
@@ -2611,7 +2611,7 @@ function explorePaidListingBagMarkup(record){
 }
 function exploreStageLabel(record){
   if (verifiedPaidListingPayment(record) && record.complete == null) return 'Paid listing · mint verified';
-  return record.migrated === true ? 'Migrated · PumpSwap' : record.complete === true ? 'Curve complete · pool unverified' : record.complete === false ? 'Pump curve' : 'Stage unverified';
+  return record.migrated === true ? 'Migrated' : record.complete === true ? 'Curve complete' : record.complete === false ? 'On curve' : 'Stage unverified';
 }
 function exploreDevnetVolumeLabel(record){ return verifiedPaidListingPayment(record) && record.complete == null ? 'Trade activity' : record.migrated === true ? 'Pool activity' : '24h traded'; }
 function exploreDevnetVolume(record){ return record.migrated === true ? 'Unindexed' : formatExploreUsd(record.volume24hSol, { partial: record.volumeCoverage === 'partial' }); }
@@ -2660,16 +2660,15 @@ function exploreEmptyReason(){
   if (exploreMinMarketCapUsd != null || exploreMaxAgeHours != null) return ['No launch meets these advanced filters.', 'Broaden the market cap or age limit, or clear filters.'];
   if (exploreAuthority !== 'all') return ['No token matches these permissions.', 'Choose Any permissions or clear filters to see more tokens.'];
   if (exploreRisk === 'watchlist') return ['No favorite tokens in this feed.', 'Use the star on a verified token to save it here.'];
-  if (exploreTab === 'new' && exploreNewLane === 'almost') return ['No launch is Almost Born yet.', 'This view requires an active Pump curve at least 80% filled.'];
+  if (exploreTab === 'new' && exploreNewLane === 'almost') return ['No tokens near migration.', 'This view shows active curves at least 80% filled.'];
   if (exploreTab === 'new' && exploreNewLane === 'migrated') return ['No RPC-verified migrated pools in this feed.', 'A completed curve alone is not migration proof. A PumpSwap pool must also exist on this network.'];
   if (exploreTab === 'new') return ['No launches match this view.', 'Check the stage or age filters, or view all tokens.'];
   if (exploreStage === 'near') return ['No launch is in the final stretch.', 'This lane requires a verified active Pump curve at least 80% filled.'];
-  if (exploreStage === 'graduated') return ['No graduated launch in this feed.', 'A token appears here only after its Pump curve is confirmed complete.'];
+  if (exploreStage === 'graduated') return ['No completed curves in this view.', 'Tokens appear here once their launch curve is complete.'];
   return null;
 }
 function renderExploreControls(){
   const page = document.querySelector('#explore');
-  const displayUnit = 'USD';
   if (page) { page.dataset.exploreView = exploreView; page.dataset.cluster = EXPLORE_CLUSTER; page.dataset.exploreTab = exploreTab; }
   document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(button => { const active = button.dataset.exploreTab === exploreTab; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
   document.querySelectorAll('[data-explore-window]').forEach(button => {
@@ -2694,15 +2693,15 @@ function renderExploreControls(){
     || exploreMinTrades != null || exploreMinTraders != null;
   document.querySelector('#explore-filter-toggle')?.classList.toggle('has-filters', hasExploreFilters);
   for (const [selector, label] of [
-    ['#explore-sort option[value="market-cap"]', `Estimated market cap (${displayUnit})`],
-    ['#explore-sort option[value="volume"]', `${exploreWindow} trading volume (${displayUnit})`],
+    ['#explore-sort option[value="market-cap"]', 'Market cap'],
+    ['#explore-sort option[value="volume"]', `${exploreWindow} volume`],
     ['#explore-sort option[value="trades"]', `${exploreWindow} trades`],
-    ['#explore-sort option[value="liquidity"]', `SOL reserve (${displayUnit})`],
+    ['#explore-sort option[value="liquidity"]', 'SOL reserve'],
     ['#explore-min-volume-label', `Minimum ${exploreWindow} volume · USD`],
     ['#explore-min-trades-label', `Minimum ${exploreWindow} trades`],
     ['#explore-min-traders-label', `Minimum ${exploreWindow} trading wallets`],
-    ['.scanner-head span:nth-child(4)', `Est. market cap · ${displayUnit}`],
-    ['#scanner-volume-heading', `${exploreWindow} volume · ${displayUnit}`],
+    ['.scanner-head span:nth-child(4)', 'Market cap'],
+    ['#scanner-volume-heading', `${exploreWindow} volume`],
     ['#scanner-trades-heading', `${exploreWindow} trades`],
   ]) { const node = document.querySelector(selector); if (node) node.textContent = label; }
   document.querySelectorAll('[data-explore-view]').forEach(button => {
@@ -4047,9 +4046,9 @@ function renderHomeLaunchBoard(){
   const tickerLabel = document.querySelector('#home-market-ticker-label');
   if (tickerLabel) tickerLabel.textContent = 'Latest launches';
   const volumeFilterLabel = document.querySelector('#home-filter-volume-label');
-  if (volumeFilterLabel?.firstChild) volumeFilterLabel.firstChild.textContent = `${homeLaunchWindow} Vol `;
+  if (volumeFilterLabel?.firstChild) volumeFilterLabel.firstChild.textContent = `${homeLaunchWindow} volume `;
   const tradesFilterLabel = document.querySelector('#home-filter-trades-label');
-  if (tradesFilterLabel) tradesFilterLabel.textContent = `${homeLaunchWindow} TXs`;
+  if (tradesFilterLabel) tradesFilterLabel.textContent = `${homeLaunchWindow} trades`;
   if (EXPLORE_CLUSTER !== 'devnet') document.querySelectorAll('[data-home-window]').forEach(button => {
     button.disabled = button.dataset.homeWindow !== '24h';
     if (button.disabled) button.title = 'Shorter indexed volume windows are unavailable on this feed';
@@ -4102,7 +4101,7 @@ function renderHomeLaunchBoard(){
       const marketCap = currentCap >= 0 ? formatCompactUsd(currentCap) : '$—';
       const changeValue = EXPLORE_CLUSTER === 'devnet' ? item.windowPriceChangePercent : item.priceChange24hPercent;
       const hasChange = changeValue != null && Number.isFinite(Number(changeValue));
-      const change = hasChange ? `${Number(changeValue) >= 0 ? '+' : ''}${Number(changeValue).toFixed(2)}%` : '—%';
+      const change = hasChange ? `${Number(changeValue) >= 0 ? '+' : ''}${Number(changeValue).toFixed(2)}%` : '—';
       const trendClass = hasChange ? Number(changeValue) >= 0 ? 'is-positive' : 'is-negative' : '';
       const symbol = item.symbol || 'TOKEN';
       const boostPacks = activeBoostPackages(verifiedBoosts[item.address]).map(pack => pack.packageId);
@@ -4151,10 +4150,10 @@ function renderHomeLaunchBoard(){
       const trades = observedTrades != null && Number.isInteger(Number(observedTrades)) && Number(observedTrades) >= 0
         ? `${EXPLORE_CLUSTER === 'devnet' && item.windowCoverage === 'partial' ? '≥' : ''}${Number(observedTrades).toLocaleString()}` : '—';
       const progress = item.curveProgressPercent == null ? NaN : Number(item.curveProgressPercent);
-      const curve = item.migrated === true ? 'Migrated' : item.complete === true ? 'Graduated'
+      const curve = item.migrated === true ? 'Migrated' : item.complete === true ? 'Curve complete'
         : Number.isFinite(progress) ? `${Math.round(Math.max(0, Math.min(100, progress)))}%` : '—';
       const shownChange = change;
-      return `<tr><td><a class="home-table-coin" data-logo-mint="${escapeHtml(item.address || '')}" href="/token/${encodeURIComponent(item.address || '')}"><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span><span><strong>${escapeHtml(item.symbol || 'TOKEN')}</strong>${exploreBoostAmountMarkup(item.address)}<small>${escapeHtml(item.name || 'Unnamed token')}</small></span></a></td><td><span class="home-table-tier" data-tier="${tier}">${escapeHtml(tier)}</span></td><td>${escapeHtml(cap)}</td><td>${escapeHtml(volumeUsd(item))}</td><td>${escapeHtml(trades)}</td><td class="${trendClass}">${escapeHtml(shownChange)}</td><td><span class="home-table-curve">${escapeHtml(curve)}</span></td></tr>`;
+      return `<tr><td><a class="home-table-coin" data-logo-mint="${escapeHtml(item.address || '')}" href="/token/${encodeURIComponent(item.address || '')}"><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span><span><strong>${escapeHtml(item.symbol || 'TOKEN')}</strong>${exploreBoostAmountMarkup(item.address)}<small>${escapeHtml(item.name || 'Unnamed token')}</small></span></a></td><td><span class="home-table-tier" data-tier="${tier}">${escapeHtml(tier.charAt(0).toUpperCase() + tier.slice(1))}</span></td><td>${escapeHtml(cap)}</td><td>${escapeHtml(volumeUsd(item))}</td><td>${escapeHtml(trades)}</td><td class="${trendClass}">${escapeHtml(shownChange)}</td><td><span class="home-table-curve">${escapeHtml(curve)}</span></td></tr>`;
     }).join('');
     loadVerifiedTokenLogos(tableBody);
   }
@@ -5884,7 +5883,7 @@ function updateLaunchPreview(){
     if (bar) bar.style.width = `${Math.max(0, Math.min(100, value))}%`;
   }
   const previewBurnTier = document.querySelector('#preview-burn-tier');
-  if (previewBurnTier) { previewBurnTier.textContent = launchBurn.label.toUpperCase(); previewBurnTier.className = `tier-badge ${launchBurn.tier}`; }
+  if (previewBurnTier) { previewBurnTier.textContent = launchBurn.label; previewBurnTier.className = `tier-badge ${launchBurn.tier}`; }
   const promotionBadge = document.querySelector('#preview-promotion-badge');
   if (promotionBadge) {
     promotionBadge.textContent = launchBurn.requiresBurn ? `${launchBurn.label.toUpperCase()} PROMOTION` : 'STANDARD';
