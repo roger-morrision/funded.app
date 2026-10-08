@@ -165,6 +165,13 @@ test('ephemeral creator signs an exact payout and local RPC verifies finalized b
       creatorSignedTransaction:transaction.serialize({ requireAllSignatures:false, verifySignatures:false }).toString('base64') });
     assert.equal(settled.status,200,JSON.stringify(settled.data));
     assert.equal(settled.data.status,'paid');
+    const interrupted = JSON.parse(await readFile(rewardsPath,'utf8'));
+    Object.assign(interrupted.fundingRequests[requestId], { status:'verification-pending', finalized:false,
+      balanceDeltaVerified:false, fundingSignature:null });
+    await writeFile(rewardsPath,JSON.stringify(interrupted));
+    const recovered = await post(`${path}/settle`,{ requestId });
+    assert.equal(recovered.status,200,JSON.stringify(recovered.data));
+    assert.equal(recovered.data.signature,settled.data.signature);
     const replay = await post(`${path}/settle`,{ requestId });
     assert.equal(replay.status,200);
     assert.equal(replay.data.signature,settled.data.signature);

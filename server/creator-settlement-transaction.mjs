@@ -79,3 +79,15 @@ export async function verifyFinalizedSettlementDelta({ connection, signature, ro
   }
   return true;
 }
+
+export async function creatorSettlementRetryState({ connection, signatures, blockhash }) {
+  const candidates = [...new Set((signatures || []).filter(Boolean))];
+  if (!candidates.length || !blockhash) return { retry:false, reason:'Saved payout signature or blockhash is missing; manual reconciliation is required.' };
+  const receipts = (await connection.getSignatureStatuses(candidates, { searchTransactionHistory:true })).value || [];
+  if (receipts.some(receipt => receipt && !receipt.err)) return { retry:false, reason:'A prior payout transaction is on chain; wait for finalized claim evidence.' };
+  if (receipts.length !== candidates.length) return { retry:false, reason:'Payout receipt evidence is incomplete.' };
+  if (receipts.every(receipt => receipt?.err)) return { retry:true, reason:'Every saved payout transaction failed.' };
+  const validity = await connection.isBlockhashValid(blockhash, 'confirmed');
+  return validity.value ? { retry:false, reason:'A prior payout transaction can still land; wait before signing again.' }
+    : { retry:true, reason:'Prior payout blockhash expired without a recorded transaction.' };
+}

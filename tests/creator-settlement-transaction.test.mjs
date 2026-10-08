@@ -3,7 +3,8 @@ import test from 'node:test';
 import bs58 from 'bs58';
 import { Keypair, Transaction } from '@solana/web3.js';
 import { buildMintRouterSettlementInstruction } from '../server/mint-router-payout.mjs';
-import { prepareCreatorSettlement, verifyCreatorSettlement, submitCreatorSettlement, verifyFinalizedSettlementDelta } from '../server/creator-settlement-transaction.mjs';
+import { prepareCreatorSettlement, verifyCreatorSettlement, submitCreatorSettlement, verifyFinalizedSettlementDelta,
+  creatorSettlementRetryState } from '../server/creator-settlement-transaction.mjs';
 
 const programId = Keypair.generate().publicKey;
 const mint = Keypair.generate().publicKey;
@@ -90,4 +91,21 @@ test('finalized settlement proves exact router debit and recipient credit', asyn
   row.meta.err = { InstructionError:[0,'Custom'] };
   await assert.rejects(verifyFinalizedSettlementDelta({ connection, signature, router, recipient,
     amountLamports:'1000000' }), /unavailable or failed/);
+});
+
+test('pending payout retry waits for possible landing and permits expired or failed attempts', async () => {
+  let status = null, valid = true;
+  const connection = {
+    getSignatureStatuses:async()=>({ value:[status] }),
+    isBlockhashValid:async()=>({ value:valid }),
+  };
+  const input = { connection, signatures:['saved-signature'], blockhash:'saved-blockhash' };
+  assert.equal((await creatorSettlementRetryState(input)).retry,false);
+  valid = false;
+  assert.equal((await creatorSettlementRetryState(input)).retry,true);
+  status = { err:null, confirmationStatus:'confirmed' };
+  assert.equal((await creatorSettlementRetryState(input)).retry,false);
+  status = { err:{ InstructionError:[0,'Custom'] }, confirmationStatus:'finalized' };
+  assert.equal((await creatorSettlementRetryState(input)).retry,true);
+  assert.equal((await creatorSettlementRetryState({ connection, signatures:[], blockhash:'saved-blockhash' })).retry,false);
 });
