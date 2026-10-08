@@ -2506,6 +2506,12 @@ function exploreFilterOptions(query = exploreQuery, sort = exploreSort){
     minTrades: EXPLORE_CLUSTER === 'devnet' ? exploreMinTrades : null,
     minTraders: EXPLORE_CLUSTER === 'devnet' ? exploreMinTraders : null };
 }
+function filterExploreTabRecords(records, query = exploreQuery){
+  const filtered = filterMarketRecords(records, exploreFilterOptions(query));
+  if (exploreTab !== 'following') return filtered;
+  const saved = new Set(getWatchlist());
+  return filtered.filter(record => saved.has(record.address));
+}
 function formatExploreTradeCount(value, coverage){
   return value == null || !Number.isInteger(Number(value)) ? '—' : `${coverage === 'partial' ? '≥' : ''}${Number(value).toLocaleString()}`;
 }
@@ -2558,6 +2564,12 @@ function renderExplorePulse(records){
   }
 }
 function exploreEmptyReason(){
+  if (exploreTab === 'following') {
+    const saved = getWatchlist();
+    if (!saved.length) return ['No followed tokens yet.', 'Select the star on a token to save it here.'];
+    if (!assets.some(item => saved.includes(item.address))) return ['Saved tokens are unavailable in this feed.', 'Your saved list remains on this device. Try again when the verified launch feed is available.'];
+    return ['No followed tokens match this view.', 'Clear the search or filters to see your saved tokens.'];
+  }
   if ((exploreMinVolumeUsd != null || exploreMinMarketCapUsd != null) && !(Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0)) return ['USD filters are waiting for a conversion quote.', 'SOL/USD is unavailable. Clear the USD minimums to browse verified tokens.'];
   if (exploreQuery) return ['No verified launch matches this search.', 'Try a symbol, name, or full mint address from the current feed.'];
   if (explorePromotion !== 'all') return ['No launch matches this promotion filter.', 'Promoted includes verified launch burns and active finalized SOL boost payments.'];
@@ -2820,7 +2832,7 @@ function renderExploreAssets({ force = false } = {}){
   if (clusterLabel) clusterLabel.textContent = `${exploreProviderStatus.includes('Verified launch registry') ? 'Verified launch registry' : exploreProviderStatus.includes('stale') ? 'last verified snapshot' : exploreProviderStatus.includes('RPC verified') ? 'RPC verified' : exploreProviderStatus.includes('unavailable') ? 'data unavailable' : 'awaiting verification'}`;
   if (scope && EXPLORE_CLUSTER !== 'devnet') scope.textContent = 'Solana mainnet discovery · Pump.fun listings are shown only after mint verification. Missing market figures stay unavailable.';
   const records = assets.map(item => withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(item, exploreWindow) : enrichMarketRecord(item)));
-  const visible = filterMarketRecords(records, exploreFilterOptions());
+  const visible = filterExploreTabRecords(records);
   const marketNote = document.querySelector('#explore-market-note');
   if (marketNote) marketNote.hidden = !records.length || records.some(item => item.curveCapSol != null || item.poolMarketCapSol != null || item.windowVolumeSol != null || item.marketCapUsd != null || item.volume24hUsd != null);
   renderExploreControls();
@@ -2865,7 +2877,7 @@ function renderExploreAssets({ force = false } = {}){
     action.type = 'button';
     action.className = 'explore-empty-action';
     action.dataset.exploreEmptyAction = assets.length ? 'clear' : 'retry';
-    action.textContent = assets.length ? exploreTab === 'new' ? 'View all tokens' : 'Clear filters' : 'Try again';
+    action.textContent = assets.length ? ['new', 'following'].includes(exploreTab) ? 'View all tokens' : 'Clear filters' : 'Try again';
     grid.querySelector('.empty-state')?.append(action);
   }
   renderWatchlist();
@@ -4545,7 +4557,7 @@ function renderRegistry(query = exploreQuery){
     explorePromotion, exploreReward, exploreTab, exploreNewLane, exploreWindow, exploreMaxAgeHours,
     exploreMinVolumeUsd, exploreMinMarketCapUsd, exploreMinTrades, exploreMinTraders, getWatchlist()]);
   if (criteriaKey !== registryCriteriaKey) { registryPage = 1; registryCriteriaKey = criteriaKey; }
-  const filtered = filterMarketRecords(registryLaunches, exploreFilterOptions(query));
+  const filtered = filterExploreTabRecords(registryLaunches, query);
   const page = paginateExploreRows(filtered, registryPage);
   registryPage = page.page;
   const registryLoading = exploreProviderStatus === 'On-chain only · loading' && !exploreLastVerifiedAt;
@@ -7437,7 +7449,7 @@ document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(button => 
   document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(item => { const active = item === button; item.classList.toggle('active', active); item.setAttribute('aria-pressed', String(active)); });
   const tab = button.dataset.exploreTab;
   exploreTab = tab;
-  if (tab === 'new') { exploreNewLane = 'all'; exploreSort = 'newest'; document.querySelector('#explore-sort').value = 'newest'; }
+  if (tab === 'new' || tab === 'following') { exploreNewLane = 'all'; exploreSort = 'newest'; document.querySelector('#explore-sort').value = 'newest'; }
   else { exploreSort = document.querySelector('#explore-sort option[value="volume"]:not(:disabled)') ? 'volume' : 'recent-trade'; document.querySelector('#explore-sort').value = exploreSort; }
   updateExploreViews();
   refreshExploreFeedForSort();
@@ -7468,7 +7480,8 @@ function toggleExploreWatch(mint, button){
   renderWatchlist();
   // Keep the current cards mounted so a follow-up action on the same card
   // cannot lose its click while the watchlist changes.
-  if (exploreRisk === 'watchlist') updateExploreViews();
+  if (exploreTab === 'following') updateExploreViews(true);
+  else if (exploreRisk === 'watchlist') updateExploreViews();
   else renderRegistry();
   if (homeLaunchTab === 'watchlist') renderHomeLaunchBoard();
   showToast(lastKnownWatchlist.includes(mint) ? `${symbol} saved to your watchlist` : `${symbol} removed from your watchlist`);
