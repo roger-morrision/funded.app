@@ -41,7 +41,10 @@ export function createRewardFundingProcessor({ store, chain, scheduler }) {
           fundedAmount, grossAmount:funding.grossAmount || request.amount, balanceDeltaVerified:true, fundedAt:new Date().toISOString() }; });
         funded += 1;
       } catch (error) {
-        await store.transaction(state => { state.fundingRequests[request.id] = { ...state.fundingRequests[request.id], status:'verification-pending', reason:String(error.message || error), lastAttemptAt:new Date().toISOString() }; });
+        const reason = String(error.message || error);
+        await store.transaction(state => { state.fundingRequests[request.id] = { ...state.fundingRequests[request.id],
+          status:error.code === 'CREATOR_SIGNATURE_REQUIRED' ? 'awaiting-creator-signature' : 'verification-pending',
+          reason, lastAttemptAt:new Date().toISOString() }; });
       }
     }
     return { status:'processed', pending:requests.length, funded };

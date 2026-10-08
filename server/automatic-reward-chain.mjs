@@ -14,7 +14,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import { SOL_ASSET_MINT, verifyRewardProof } from '../reward-merkle.js';
-import { buildMintRouterSettlementInstruction, readMintClaimRecord } from './mint-router-payout.mjs';
+import { buildMintRouterSettlementInstruction, readMintClaimRecord, CreatorSignatureRequiredError } from './mint-router-payout.mjs';
 
 // Solana may be reset. Keep this value aligned with the current official
 // Solana RPC evidence and fail closed when the configured endpoint differs.
@@ -357,6 +357,9 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
   }
 
   async function fundSolVaultFromMintRouter({ mint, amount, fundingId }) {
+    // Pending automatic funding cannot spend the creator share until this path
+    // accepts an exact transaction signed by the launch creator.
+    throw new CreatorSignatureRequiredError();
     const vault = await ensureVault(mint);
     const settlement = buildMintRouterSettlementInstruction({ programId: program, mint, authority: authority.publicKey, recipient: vault, amountLamports: String(amount), obligationId: `automatic-reward:${fundingId}` });
     const expected = account => readMintClaimRecord(account, { programId: program, mint, recipient: vault, amountLamports: String(amount), claimId: settlement.claimId, share: settlement.share });
@@ -373,6 +376,8 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
   }
 
   async function fundCommunitySolVaultFromMintRouter({ mint, amount, fundingId }) {
+    // Keep protocol share funding parked until creator co-signing is wired here.
+    throw new CreatorSignatureRequiredError();
     const ready = await readiness();
     if (!ready.constrainedPayouts) throw new Error(`Community reserve vault unavailable: ${ready.reasons.join(', ')}`);
     const vault = await ensureVault(program);

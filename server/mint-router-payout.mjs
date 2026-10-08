@@ -5,6 +5,13 @@ import { deriveFeeRouter, deriveMintFeeRouter, deriveMintFeeLedger } from '../fe
 const SETTLE_MINT_DISCRIMINATOR = Buffer.from('c9a8a4e9aa522860', 'hex');
 const MIGRATE_MINT_LEDGER_DISCRIMINATOR = createHash('sha256').update('global:migrate_mint_fee_ledger').digest().subarray(0, 8);
 
+export class CreatorSignatureRequiredError extends Error {
+  constructor() {
+    super('Creator wallet signature is required for mint-router settlement.');
+    this.code = 'CREATOR_SIGNATURE_REQUIRED';
+  }
+}
+
 export function xClaimId(obligationId) {
   if (!String(obligationId || '').trim()) throw new Error('An X obligation ID is required.');
   return createHash('sha256').update(`funded.x.claim.v2:${obligationId}`).digest();
@@ -62,7 +69,7 @@ export function buildMintFeeLedgerMigrationInstruction({ programId, mint, author
 }
 
 export function buildMintRouterSettlementInstruction({ programId, mint, authority, creator, recipient, amountLamports, obligationId, claimDomain = 'x' }) {
-  if (!creator) throw new Error('Creator wallet signature is required for mint-router settlement.');
+  if (!creator) throw new CreatorSignatureRequiredError();
   const mintKey = new PublicKey(mint);
   const authorityKey = new PublicKey(authority);
   const creatorKey = new PublicKey(creator);

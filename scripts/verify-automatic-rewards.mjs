@@ -12,6 +12,7 @@ import { createRewardScheduler } from '../server/reward-scheduler.mjs';
 import { estimateBuyPriceImpactPercent, validateBuyAndDistributePolicy } from '../server/buy-and-distribute.mjs';
 import { createRewardFundingProcessor } from '../server/reward-funding-processor.mjs';
 import { createAutomaticRewardChain } from '../server/automatic-reward-chain.mjs';
+import { CreatorSignatureRequiredError } from '../server/mint-router-payout.mjs';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { NATIVE_MINT } from '@solana/spl-token';
@@ -20,6 +21,10 @@ import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
 const reserveProgram = Keypair.generate().publicKey;
 const guardedChain = createAutomaticRewardChain({ connection:{}, programId:reserveProgram, authority:Keypair.generate() });
 await assert.rejects(guardedChain.ensureCycle({ mint:reserveProgram }), /Community program reserve payouts require a separate published program flow/);
+await assert.rejects(guardedChain.fundSolVaultFromMintRouter({ mint:reserveProgram, amount:'1', fundingId:'fixture' }),
+  error => error.code === 'CREATOR_SIGNATURE_REQUIRED');
+await assert.rejects(guardedChain.fundCommunitySolVaultFromMintRouter({ mint:reserveProgram, amount:'1', fundingId:'fixture' }),
+  error => error.code === 'CREATOR_SIGNATURE_REQUIRED');
 
 const snapshots = [
   { at: 0, accounts: [{ account:'a1', wallet:'a', balance:'50' }, { account:'a2', wallet:'a', balance:'50' }, { account:'vault', wallet:'pool', balance:'999999' }] },
@@ -278,5 +283,15 @@ try {
     assert.equal(state.fundingRequests.community.vault, 'community-vault');
     assert.equal(state.schedules['direct:community:community'], undefined);
   });
+  await processorStore.transaction(state => { state.fundingRequests.unsigned = {
+    id:'unsigned', mint, asset:'SOL', kind:'holder', recipient:null, amount:'1000000', status:'pending',
+  }; });
+  const unsignedProcessor = createRewardFundingProcessor({ store:processorStore, chain:{
+    readiness:async()=>({ constrainedPayouts:true, reasons:[] }),
+    fundSolVaultFromMintRouter:async()=>{ throw new CreatorSignatureRequiredError(); },
+  }, scheduler:processorScheduler });
+  assert.deepEqual(await unsignedProcessor.processPending(), { status:'processed', pending:1, funded:0 });
+  await processorStore.transaction(state => assert.equal(state.fundingRequests.unsigned.status, 'awaiting-creator-signature'));
+  assert.deepEqual(await unsignedProcessor.processPending(), { status:'processed', pending:0, funded:0 });
 } finally { await rm(dir, { recursive:true, force:true }); }
 console.log('Automatic reward allocation, Merkle proofs, sampled holder history, durable scheduling, manual referral exclusion, buy policy and finalized-delta gates passed (mocked chain).');
