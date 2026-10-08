@@ -23,6 +23,7 @@ async function setup(page, local) {
   });
   if (local !== null) await page.addInitScript(({ key, local }) => localStorage.setItem(key, local), { key: KEY, local });
   await page.goto('/#community'); await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  await page.locator('.product-details:has(#community-preferences) > summary').click();
   await expect(page.locator('#save-following')).toBeVisible(); return state;
 }
 const status = page => page.locator('#following-status');
