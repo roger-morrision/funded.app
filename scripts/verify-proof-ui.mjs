@@ -13,15 +13,15 @@ const tradeReviewModel = await readFile(new URL('../trade-review-model.js', impo
 const coinSummaryModel = await readFile(new URL('../coin-summary-model.js', import.meta.url), 'utf8');
 
 assert.match(html, /id="capital-flow"/);
-assert.match(app, /setCoinField\('\.coin-live-dot', graduatedPool \? 'Mint \/ pool confirmed' : curve \? 'Mint \/ curve confirmed' : 'Mint confirmed'\)/, 'The token badge must scope confirmation to mint and market accounts, not unavailable trade or fee data.');
+assert.match(app, /setCoinField\('\.coin-live-dot', graduatedPool \? 'Trading pool confirmed' : curve \? 'Trading route confirmed' : 'Token confirmed'\)/, 'The token badge must scope confirmation to mint and market accounts, not unavailable trade or fee data.');
 assert.match(html, /id="referral-ledger-list"><div class="empty-state referral-empty-state"><strong>No receipts to show<\/strong><small>Connect your wallet to check finalized referral claims\.<\/small><\/div>/, 'Disconnected referral history must not imply verified absence of claims.');
 assert.match(html, /id="fee-flow-input"/);
 assert.match(html, /Enter a gross fee amount to preview the policy split\. This example does not move funds\./, 'Capital-flow preview copy must distinguish a policy example from live activity.');
 assert.match(html, /class="home-kpi-footer"[\s\S]*?<a href="#analytics-detail">Open analytics →<\/a>/, 'The home dashboard must link to the routed analytics page.');
 assert.match(html, /Community airdrop allocations/, 'The home KPI must identify allocations without presenting them as a funded reserve.');
 assert.match(app, /policy allocation\$\{reservePrograms\.length === 1 \? '' : 's'\} valued at spot · check vault funding per launch/, 'The home KPI must direct users to per-launch vault status without falsely marking every vault unverified.');
-assert.match(app, /Indicative policy allocation value/, 'Analytics must not present policy allocations as funded reserves.');
-assert.match(coinSummaryModel, /check vault funding on Airdrops/, 'Token summaries must not call a separately verified airdrop vault unverified.');
+assert.match(app, /airdropUnit\.textContent = airdropAvailable \? 'USD' : 'ALLOCATIONS'/, 'The dashboard must identify unpriced community reserves as policy allocations rather than funded USD value.');
+assert.match(coinSummaryModel, /check funding on Airdrops/, 'Token summaries must direct users to per-launch vault evidence instead of assuming the vault state.');
 assert.doesNotMatch(coinSummaryModel, /vault funding unverified/, 'Token summaries do not own the per-launch vault verification state.');
 const docsLinks = html.match(/<article class="support-card docs-index">[\s\S]*?<\/article>/)?.[0] || '';
 assert.match(docsLinks, /href="#privacy">Wallet safety/);
@@ -30,7 +30,8 @@ assert.match(docsLinks, /href="#disclosures" data-info="disclosures">Disclosures
 assert.match(app, /\[data-info\].*openInfoDialog\(link\.dataset\.info\)/);
 assert.match(app, /Automatic creator and holder SOL delivery requires verified funding and an active healthy distribution worker/, 'The Devnet disclosure must state the worker prerequisite.');
 assert.doesNotMatch(app, /can automatically settle configured creator and holder SOL rewards/, 'The Devnet disclosure must not imply payouts work while the worker is unhealthy.');
-assert.match(app, /payment-dialog-list'\)\.innerHTML = payments\.length[\s\S]*?No verified payout receipts are available on Solana yet/);
+assert.match(app, /for \(const \[index, receipt\] of historyPayouts\.entries\(\)\)[\s\S]*?tape\.append\(row\)/, 'The payment dialog must render finalized payout rows.');
+assert.match(app, /if \(!historyPayouts\.length\)[\s\S]*?tape\.innerHTML = '<p class="empty-state">No finalized payout receipts are available yet\.<\/p>'/, 'The payment dialog must explain when finalized receipts are absent.');
 assert.match(html, /id="leaderboard-panel" role="tabpanel" aria-labelledby="leaderboard-burners-tab"/, 'The active leaderboard panel must be associated with its selected tab.');
 assert.match(html, /id="notifications-button" aria-label="Notifications">♧<\/button>/);
 assert.match(html, /<h2>No verified notifications<\/h2>[\s\S]*?Notification feed unavailable/);
@@ -54,8 +55,7 @@ assert.match(html, /disabled title="Rankings use all available verified activity
 assert.match(html, /Verified \$FUNDED burns/);
 assert.match(app, /Ranked from confirmed launch policies and available market caps/, 'Creator ranking must describe its verified inputs and market-cap order.');
 assert.match(app, /View Solana status →/);
-assert.match(app, /secondary: \['View Solana status', '#docs'\]/);
-assert.match(app, /Compare verified creator contribution after launch and trading activity has been confirmed/);
+assert.match(app, /leaderboardLink\.href = connected \? '#docs' : '#profile'/, 'The leaderboard status action must route connected wallets to status and disconnected wallets to setup.');
 assert.doesNotMatch(app, /Awaiting verified indexer/, 'Verified analytics must not be overwritten after the initial RPC load resolves.');
 assert.match(app, /function normalizeDirectPagePathForHashRoute\(\)/);
 assert.match(app, /history\.replaceState\(\{\}, '', `\/\$\{location\.search\}\$\{location\.hash\}`\)/, 'Hash navigation from token and wallet detail pages must return to the canonical app path.');
@@ -118,7 +118,7 @@ assert.match(app, /const program = getAirdropPrograms\(\)\.find\(item => item\.i
 assert.doesNotMatch(app, /selected — checking eligibility for your connected wallet/, 'Selecting an airdrop must not imply a wallet check that did not run.');
 assert.match(pageCss, /One professional card surface is shared by Home, Explore, portfolios, watchlists, and rewards/);
 assert.match(pageCss, /\.analytics-kpis\.analytics-kpis-complete/);
-assert.match(app, /Review launches, fees, payouts, trading volume, airdrops, referrals, and burns/);
+assert.match(app, /Explore launches, fees, payments, trades, airdrops, referrals, and burns/);
 assert.match(app, /This preview never moves funds/);
 assert.match(pageExperience, /function upgradeAnalyticsDashboard\(/);
 assert.match(pageExperience, /Funded at a glance/);
@@ -127,7 +127,7 @@ assert.match(app, /creatorRankingUnavailable = verifiedLaunchPoliciesStatus !== 
 assert.match(pageExperience, /data-analytics-metric="burned"/);
 assert.match(html, /<h2>Saved tokens<\/h2>/);
 assert.match(html, /<h2>All airdrops<\/h2>/);
-assert.match(app, /Vault verification unavailable; funded count unknown[\s\S]*?<span>Policy allocation<\/span>/, 'Indexed policy allocations must not imply verified vault funding.');
+assert.match(app, /communityReserveStatus === 'ready'[\s\S]*?Funding status unavailable[\s\S]*?<span>Planned tokens<\/span>/, 'Indexed policy allocations must report funded counts only when reserve evidence is ready.');
 assert.match(html, /id="airdrop-export-csv" disabled title="Requires an indexed, verified list of unclaimed wallets"/, 'Airdrop CSV export must be gated on verified wallet rows, not a snapshot count alone.');
 assert.match(app, /getVerifiedUnclaimedWallets\(\)\{[\s\S]*?snapshotVerified === true/, 'Only verified snapshot wallets can enter the export.');
 assert.match(app, /if \(exportButton\) exportButton\.disabled = verifiedWallets\.length === 0/, 'Export control must follow verified wallet availability.');
