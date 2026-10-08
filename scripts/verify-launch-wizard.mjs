@@ -42,11 +42,9 @@ assert.equal(launchSection('<section id="launch-dialog"><section>Incomplete</sec
 const launchPage = launchSection(html);
 assert.ok(launchPage, 'Dedicated launch page must exist');
 assert.doesNotMatch(html, /<dialog[^>]+id="launch-dialog"/, 'Launch workspace must not be a modal dialog.');
-assert.match(html, /class="launch-dialog launch-page launch-page-flat"/, 'Launch workspace must show one form and a cost preview.');
+assert.match(html, /class="launch-dialog launch-page launch-page-guided"/, 'Launch workspace must use the guided form and review step.');
 assert.match(app, /function mountLaunchPage\(\)/, 'Launch workspace must mount into its route shell.');
 assert.match(app, /shell\.append\(page\)/, 'Launch workspace must render inside the dedicated route.');
-assert.match(pageStyles, /\.launch-page-flat \.launch-step-panel,\s*\.launch-page-flat \.launch-step-panel\[hidden\][\s\S]*?display: block !important/, 'Coin details and launch settings must share one page.');
-assert.match(pageStyles, /\.launch-page-flat \.launch-review-step,\s*\.launch-page-flat \.launch-review-step\[hidden\] \{ display: none !important; \}/, 'The old review panel must stay hidden.');
 assert.match(app, /for \(let previous = 1; previous < target; previous\+\+\)[\s\S]*?getLaunchStepState\(previous\)[\s\S]*?if \(!state.valid\)/, 'Forward jumps must validate every preceding step.');
 assert.doesNotMatch(launchPage, /class="launch-platform-grid"|Solana Devnet bonding curve|Fixed supply · 6 decimals/, 'The redundant launch platform and token supply cards must stay removed.');
 assert.match(launchPage, /id="launch-preview-title">Launch summary[\s\S]*?id="preview-community"[\s\S]*?id="preview-creator-buy"[\s\S]*?id="preview-launch-cost"/, 'The sticky summary must expose the live community reserve, developer buy, and total.');
@@ -184,10 +182,10 @@ assert.doesNotMatch(app, /#wallet-metrics|#wallet-balance|#launch-fee|#refresh-w
 assert.match(app, /'connect-button', 'profile-connect'[^\]]*?'sol-claim-submit'/, 'The generic connect-wallet handler must not duplicate profile connections or override SOL-claim prerequisite validation.');
 const costSummarySource = app.match(/function updateCostSummary\(\)\{[\s\S]*?\r?\n\}(?=\r?\nfunction renderLaunchCostDetails)/)?.[0];
 assert.ok(costSummarySource, 'Launch cost summary function must remain testable.');
-const renderCostSummary = new Function('document', 'getLaunchBurnPolicy', 'getCreatorBuySummary', 'getCommunityAirdropTokens', 'getCommunityAllocationPercent', 'formatLaunchBurnAmount', 'formatLaunchCost', 'wallet', 'walletMetricsLoading', 'walletEstimateError', 'estimatedLaunchFeeLamports', 'launchCostReview', `const renderLaunchCostDetails=()=>{};${costSummarySource}\nupdateCostSummary();`);
+const renderCostSummary = new Function('document', 'getLaunchBurnPolicy', 'getCreatorBuySummary', 'getCommunityAirdropTokens', 'getCommunityAllocationPercent', 'formatLaunchBurnAmount', 'formatLaunchCost', 'wallet', 'walletMetricsLoading', 'walletEstimateError', 'developerBuyLimitReached', 'estimatedLaunchFeeLamports', 'launchCostReview', `const renderLaunchCostDetails=()=>{};${costSummarySource}\nupdateCostSummary();`);
 function costSummaryFor({ connected = false, loading = false, fee = null, error = '' } = {}) {
   const nodes = Object.fromEntries(['cost-launch', 'cost-total-enabled', 'cost-total', 'cost-note', 'preview-launch-cost', 'cost-burn', 'cost-community-tokens', 'cost-community-detail', 'cost-creator-buy'].map(id => [`#${id}`, { textContent: '', innerHTML: '' }]));
-  renderCostSummary({ querySelector: selector => nodes[selector] || null }, () => ({ requiresBurn: false }), () => ({ sol: 0, tokens: 0, percent: 0 }), () => 30_000_000, () => 3, String, lamports => `${(Number(lamports) / 1_000_000_000).toFixed(6)} SOL`, connected ? { publicKey: true } : null, loading, error, fee, null);
+  renderCostSummary({ querySelector: selector => nodes[selector] || null }, () => ({ requiresBurn: false }), () => ({ sol: 0, tokens: 0, percent: 0 }), () => 30_000_000, () => 3, String, lamports => `${(Number(lamports) / 1_000_000_000).toFixed(6)} SOL`, connected ? { publicKey: true } : null, loading, error, () => error.startsWith('Developer buy cannot exceed 20% of the token supply.'), fee, null);
   return nodes;
 }
 assert.equal(costSummaryFor()['#cost-launch'].textContent, 'Connect wallet to estimate');
@@ -197,6 +195,12 @@ const connectedWithoutEstimate = costSummaryFor({ connected: true, error: 'RPC u
 assert.equal(connectedWithoutEstimate['#cost-launch'].textContent, 'Estimate unavailable');
 assert.doesNotMatch(connectedWithoutEstimate['#cost-note'].textContent, /Connect (a |Phantom|your )?wallet/i);
 assert.match(connectedWithoutEstimate['#cost-note'].textContent, /RPC unavailable/);
+const overLimit = costSummaryFor({ connected: true, error: 'Developer buy cannot exceed 20% of the token supply.' });
+assert.match(overLimit['#cost-note'].textContent, /lower the SOL amount or set it to 0/i);
+assert.doesNotMatch(overLimit['#cost-note'].textContent, /Refresh the estimate to try again/i);
+assert.match(app, /developerBuyLimitReached\(\)\) return \{ valid: false, field: '#creator-buy-sol'/);
+assert.match(app, /developerBuyLimitReached\(\) \? 'Adjust developer buy' : 'Retry checks'/);
+assert.match(html, /A launch is complete only after Solana confirms the transaction/);
 assert.equal(costSummaryFor({ connected: true, fee: 10_000_000 })['#cost-launch'].textContent, '0.010000 SOL');
 assert.match(app, /ready \? \(launchBurn\.requiresBurn \? `Review launch · \$\{launchBurn\.label\}` : 'Review launch'\)/, 'The ready action must explicitly lead to transaction review.');
 assert.match(pageStyles, /\.launch-token-preview-image \{[^}]*aspect-ratio: 1 \/ 1/, 'The token preview must retain a square image area.');

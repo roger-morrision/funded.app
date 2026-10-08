@@ -34,6 +34,8 @@ for (const width of [1440, 390]) test(`launch preview stays readable when option
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await page.locator('#token-name').fill('Sample Coin');
   await page.locator('#token-symbol').fill('SAMPLE');
+  await page.locator('#launch-next').click();
+  await page.locator('.product-details:has(#launch-package-example) > summary').click();
   const preview = page.locator('.launch-package-preview');
   const boxes = await preview.evaluate(node => {
     const token = node.querySelector('.launch-package-example').getBoundingClientRect();

@@ -333,6 +333,9 @@ function getCreatorBuySol(){
   const value = Number(document.querySelector('#creator-buy-sol')?.value || 0);
   return Number.isFinite(value) ? value : 0;
 }
+function developerBuyLimitReached(error = walletEstimateError){
+  return String(error).startsWith('Developer buy cannot exceed 20% of the token supply.');
+}
 function creatorBuyExceedsWalletBalance(){
   const buySol = getCreatorBuySol();
   return walletBalanceLamports != null && buySol > 0 && Math.ceil(buySol * 1_000_000_000) >= walletBalanceLamports;
@@ -5594,9 +5597,11 @@ function updateCostSummary(){
       ? 'Connect a wallet to build and estimate the transaction.'
       : walletMetricsLoading
         ? 'Building and estimating the Solana transaction…'
-        : walletEstimateError
-          ? `Could not estimate the transaction: ${walletEstimateError} Refresh the estimate to try again.`
-          : 'The launch cost is not verified. Refresh the estimate before signing.';
+        : developerBuyLimitReached()
+          ? 'Developer buy exceeds 20% of the token supply. Return to Launch settings and lower the SOL amount or set it to 0. A new estimate will run after you change it.'
+          : walletEstimateError
+            ? `Could not estimate the transaction: ${walletEstimateError} Refresh the estimate to try again.`
+            : 'The launch cost is not verified. Refresh the estimate before signing.';
     return;
   }
   const launchCost = formatLaunchCost(estimatedLaunchFeeLamports);
@@ -5861,7 +5866,24 @@ function updateLaunchButton(){
   const feeDistribution = validateFeeDistribution(getFeeDistributionInputs());
   const launchBurn = getLaunchBurnPolicy();
   const creatorBuySol = getCreatorBuySol();
-  const buyValid = Number.isFinite(creatorBuySol) && creatorBuySol >= 0 && (estimatedInitialBuyTokens <= 0 || estimatedInitialBuyTokens <= LAUNCH_TOKEN_SUPPLY * .2);
+  const overBuyLimit = developerBuyLimitReached();
+  const buyValid = Number.isFinite(creatorBuySol) && creatorBuySol >= 0 && !overBuyLimit && (estimatedInitialBuyTokens <= 0 || estimatedInitialBuyTokens <= LAUNCH_TOKEN_SUPPLY * .2);
+  const buyHelp = document.querySelector('#creator-buy-help');
+  if (buyHelp) buyHelp.textContent = overBuyLimit
+    ? 'This SOL amount would buy over 20% of the supply. Lower it or set it to 0; the quote will update automatically.'
+    : 'Enter the SOL to buy from the fresh curve. Maximum 20% of supply.';
+  const buyInput = document.querySelector('#creator-buy-sol');
+  if (buyInput) {
+    if (overBuyLimit) {
+      buyInput.dataset.overLimit = 'true';
+      buyInput.setAttribute('aria-invalid', 'true');
+    } else if (buyInput.dataset.overLimit) {
+      delete buyInput.dataset.overLimit;
+      buyInput.removeAttribute('aria-invalid');
+    }
+  }
+  const buyTokens = document.querySelector('#creator-buy-token-amount');
+  if (buyTokens && overBuyLimit) buyTokens.textContent = 'Over 20% limit';
   const communityTokens = getCommunityAirdropTokens();
   const communityValid = Number.isSafeInteger(communityTokens) && communityTokens >= MIN_COMMUNITY_AIRDROP_TOKENS && communityTokens <= MAX_COMMUNITY_AIRDROP_TOKENS;
   const burnConfigured = validateLaunchBurnPolicy(launchBurn).valid;
@@ -5881,7 +5903,7 @@ function updateLaunchButton(){
   const connectReady = !wallet && !APP_MAINNET_READ_ONLY && identityValid && feeDistribution.valid && xRouteReady && burnConfigured && buyValid && communityValid;
   button.disabled = !(ready || estimateRefreshReady || connectReady);
   button.dataset.launchAction = connectReady ? 'connect-wallet' : estimateRefreshReady ? 'refresh-estimate' : 'launch';
-  button.textContent = !communityValid ? 'Airdrop must be 30M–500M' : !identityValid ? 'Fix coin details' : !feeDistribution.valid ? 'Fix fee distribution' : !xRouteReady ? 'X account rewards unavailable' : !feeRouterState.verified ? 'Fee router required' : !buyValid ? 'Enter a valid developer buy' : !burnConfigured ? (PROTOCOL_FUNDED_MINT ? '$FUNDED price unavailable' : '$FUNDED mint required') : launchBurn.requiresBurn && !burnReady ? 'Verify $FUNDED balance' : !wallet ? 'Connect wallet to launch' : !canSignTransactions(wallet) ? 'Open in wallet to sign' : walletMetricsLoading ? 'Calculating launch cost' : walletBalanceLamports == null ? 'Refresh wallet balance' : insufficientDeveloperBuy ? 'Insufficient SOL for developer buy' : estimatedLaunchFeeLamports == null ? 'Refresh launch estimate' : insufficient ? 'Insufficient SOL for launch' : !document.querySelector('#fee-route-agree')?.checked ? 'Confirm the fee route' : !document.querySelector('#terms-agree')?.checked ? 'Agree to terms to launch' : !policyValid ? 'Complete launch policy' : ready ? (launchBurn.requiresBurn ? `Review launch · ${launchBurn.label}` : 'Review launch') : 'Add name and ticker';
+  button.textContent = !communityValid ? 'Airdrop must be 30M–500M' : !identityValid ? 'Fix coin details' : !feeDistribution.valid ? 'Fix fee distribution' : !xRouteReady ? 'X account rewards unavailable' : !feeRouterState.verified ? 'Fee router required' : overBuyLimit ? 'Reduce developer buy' : !buyValid ? 'Enter a valid developer buy' : !burnConfigured ? (PROTOCOL_FUNDED_MINT ? '$FUNDED price unavailable' : '$FUNDED mint required') : launchBurn.requiresBurn && !burnReady ? 'Verify $FUNDED balance' : !wallet ? 'Connect wallet to launch' : !canSignTransactions(wallet) ? 'Open in wallet to sign' : walletMetricsLoading ? 'Calculating launch cost' : walletBalanceLamports == null ? 'Refresh wallet balance' : insufficientDeveloperBuy ? 'Insufficient SOL for developer buy' : estimatedLaunchFeeLamports == null ? 'Refresh launch estimate' : insufficient ? 'Insufficient SOL for launch' : !document.querySelector('#fee-route-agree')?.checked ? 'Confirm the fee route' : !document.querySelector('#terms-agree')?.checked ? 'Agree to terms to launch' : !policyValid ? 'Complete launch policy' : ready ? (launchBurn.requiresBurn ? `Review launch · ${launchBurn.label}` : 'Review launch') : 'Add name and ticker';
   if (connectReady) button.textContent = 'Connect wallet to create coin';
   updateLaunchNavigation();
 }
@@ -6032,6 +6054,7 @@ function getLaunchStepState(step){
     if (!Number.isSafeInteger(communityTokens) || communityTokens < MIN_COMMUNITY_AIRDROP_TOKENS || communityTokens > MAX_COMMUNITY_AIRDROP_TOKENS) return { valid: false, field: '#community-airdrop-tokens', message: 'Community airdrop must be between 30,000,000 and 500,000,000 tokens.' };
     const creatorBuySol = getCreatorBuySol();
     if (!Number.isFinite(creatorBuySol) || creatorBuySol < 0) return { valid: false, field: '#creator-buy-sol', message: 'Developer buy must be a valid SOL amount of zero or more.' };
+    if (developerBuyLimitReached()) return { valid: false, field: '#creator-buy-sol', message: 'Developer buy exceeds 20% of supply. Lower the SOL amount or set it to 0.' };
     if (!distribution.valid) {
       if (!distribution.sharesValid) return { valid: false, message: 'Each creator destination must be between 0% and 80%.' };
       if (!distribution.xRecipientValid) return { valid: false, message: 'Enter a valid X account for the SOL reward.' };
@@ -6055,6 +6078,7 @@ function getLaunchStepState(step){
     if (!canSignTransactions(wallet)) return { valid: false, message: 'Open this app inside your wallet to sign.' };
     if (walletMetricsLoading) return { valid: false, message: 'Wait while the launch cost is calculated.' };
     if (creatorBuyExceedsWalletBalance()) return { valid: false, message: 'Reduce the developer buy or add SOL before continuing.' };
+    if (developerBuyLimitReached()) return { valid: false, message: 'Developer buy exceeds 20% of supply. Select Adjust developer buy, then lower the SOL amount or set it to 0.' };
     if (!freshLaunchReview(launchCostReview)) return { valid:false, message:'Refresh the launch estimate before continuing; quotes expire after one minute.' };
     if (walletBalanceLamports == null || estimatedLaunchFeeLamports == null) return { valid: false, message: walletEstimateError ? `Launch estimate unavailable: ${walletEstimateError}` : 'Refresh the wallet balance and launch estimate.' };
     if (walletBalanceLamports < estimatedLaunchFeeLamports) return { valid: false, message: 'Add SOL before continuing.' };
@@ -6080,7 +6104,7 @@ function updateLaunchNavigation(){
   if (retry) {
     retry.hidden = launchStep !== 3 || (feeRouterState.verified && (!wallet || (estimatedLaunchFeeLamports != null && freshLaunchReview(launchCostReview))));
     retry.disabled = feeRouterState.status === 'checking' || walletMetricsLoading;
-    retry.textContent = retry.disabled ? 'Checking…' : 'Retry checks';
+    retry.textContent = retry.disabled ? 'Checking…' : developerBuyLimitReached() ? 'Adjust developer buy' : 'Retry checks';
   }
   hint.textContent = state.message;
   hint.classList.toggle('ready', state.valid);
@@ -6298,7 +6322,7 @@ async function refreshWalletInfo({ rateLimitRetry = 0 } = {}){
         'Ticker must contain 1–10 letters or numbers.',
         'Initial supply must be a positive whole number.',
         'Decimals must be an integer from 0 to 9.',
-      ].includes(rawReason);
+      ].includes(rawReason) || developerBuyLimitReached(rawReason);
       if (!expectedInputError) console.warn('Launch cost estimate failed:', error);
       const reason = rateLimited
         ? 'Solana RPC is rate limited. Wait a moment, then refresh the estimate.'
@@ -6916,6 +6940,11 @@ document.querySelector('#launch-close').addEventListener('click', () => {
 });
 document.querySelector('#airdrop-button').addEventListener('click', requestAirdrop);
 document.querySelector('#launch-review-retry')?.addEventListener('click', async () => {
+  if (developerBuyLimitReached()) {
+    setLaunchStep(2);
+    document.querySelector('#creator-buy-sol')?.focus();
+    return;
+  }
   if (!feeRouterState.verified) await refreshFeeRouterConfig();
   else if (wallet) await refreshWalletInfo();
   updateLaunchNavigation();
@@ -6924,10 +6953,10 @@ document.querySelectorAll('#token-name, #token-symbol, #token-description, #toke
   if (input.matches('#token-name, #token-symbol')) { input.dataset.launchTouched = 'true'; updateLaunchIdentityWarnings(); }
   if (LAUNCH_SOCIAL_FIELDS.includes(input.id)) updateLaunchSocialValidity(input);
   if (input.matches('#community-airdrop-tokens')) syncCommunityAirdropPresets();
+  if (input.matches('#token-name, #token-symbol, #creator-buy-sol')) scheduleLaunchCostRefresh();
   updateLaunchPreview();
   updateCostSummary();
   updateLaunchButton();
-  if (input.matches('#token-name, #token-symbol, #creator-buy-sol')) scheduleLaunchCostRefresh();
 }));
 document.querySelectorAll('#token-name, #token-symbol').forEach(input => input.addEventListener('blur', () => {
   input.dataset.launchTouched = 'true';
