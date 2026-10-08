@@ -614,7 +614,7 @@ function secondaryPages() {
     publicPrograms.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key)||!event.target.matches('[data-public-airdrop-tab]'))return;event.preventDefault();const buttons=$$('[data-public-airdrop-tab]',publicPrograms);const next=buttons[(buttons.indexOf(event.target)+(event.key==='ArrowRight'?1:buttons.length-1))%buttons.length];selectPublicTab(next.dataset.publicAirdropTab);next.focus();});
     if(directory)new MutationObserver(syncPublicPrograms).observe(directory,{childList:true});
     syncPublicPrograms();
-    const evidence=node('details','airdrop-evidence');evidence.innerHTML='<summary>Airdrop details</summary>';
+    const evidence=node('section','airdrop-evidence');evidence.innerHTML='<h2>Airdrop details</h2>';
     for(const selector of ['#airdrop-summary-kpis','.community-airdrop-callout']){const item=$(selector,airdrops);if(item)evidence.append(item);}
     publicPrograms.after(evidence);
     const flow=$('.claim-flow',airdrops);
