@@ -136,6 +136,7 @@ body.page-route-capital-flow #capital-flow-title,
 body.page-route-community #community-title { font-size: clamp(32px, 3.7vw, 44px); line-height: 1.1; letter-spacing: -.045em; }
 
 /* Keep marketing headings expressive without overwhelming the task below. */
+html body.page-route-overview .hero-section { width: 100%; max-width: 100%; }
 html body.page-route-overview .hero-section h1 {
   max-width: 730px;
   font-size: clamp(44px, 5.6vw, 72px) !important;
