@@ -2741,7 +2741,8 @@ function renderExploreBenefitLeaders(records){
     const detail = leader
       ? `${leader.symbol || shortAddress(leader.address)}${definition.suffix ? ` · ${definition.suffix}` : leader.windowCoverage === 'partial' ? ' · partial history' : ' · scanned'}`
       : hasVerifiedField && definition.policy ? 'No matching launch yet' : definition.policy ? 'Details unavailable' : 'Activity unavailable';
-    return `<button type="button" class="${definition.sort === exploreSort ? 'active' : ''}" data-explore-leader-sort="${definition.sort}" data-state="${leader ? 'ready' : hasVerifiedField ? 'empty' : 'unavailable'}" aria-pressed="${definition.sort === exploreSort}" ${leader ? '' : 'disabled'}><span>${escapeHtml(definition.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></button>`;
+    const canRank = leader && !document.querySelector(`#explore-sort option[value="${definition.sort}"]`)?.disabled;
+    return `<button type="button" class="${definition.sort === exploreSort ? 'active' : ''}" data-explore-leader-sort="${definition.sort}" data-state="${leader ? 'ready' : hasVerifiedField ? 'empty' : 'unavailable'}" aria-pressed="${definition.sort === exploreSort}" ${canRank ? '' : 'disabled'} ${leader && !canRank ? 'title="Ranking needs more verified data"' : ''}><span>${escapeHtml(definition.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></button>`;
   }).filter(Boolean);
   container.innerHTML = cards.length ? cards.join('') : '<p class="explore-ranking-empty">No verified rankings match the current filters.</p>';
 }
@@ -4614,8 +4615,9 @@ function updateExploreSortAvailability(){
     change: assets.some(item => item.priceChange24hPercent != null),
     newest: true,
   };
-  document.querySelectorAll('[data-explore-sort]').forEach(button => {
-    const available = supported[button.dataset.exploreSort] !== false;
+  document.querySelectorAll('[data-explore-sort], [data-explore-leader-sort]').forEach(button => {
+    const available = supported[button.dataset.exploreSort || button.dataset.exploreLeaderSort] !== false
+      && (!button.dataset.exploreLeaderSort || button.dataset.state === 'ready');
     button.disabled = !available;
     button.title = available ? '' : 'This sort needs more verified data';
   });
