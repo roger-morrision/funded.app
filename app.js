@@ -335,13 +335,13 @@ function getCreatorBuySol(){
   const value = Number(document.querySelector('#creator-buy-sol')?.value || 0);
   return Number.isFinite(value) ? value : 0;
 }
+function developerBuyLimitReached(error = walletEstimateError){
+  return (error === walletEstimateError && estimatedInitialBuyTokens > LAUNCH_TOKEN_SUPPLY * .2)
+    || /developer buy cannot exceed 20% of the token supply/i.test(String(error));
+}
 function creatorBuyExceedsWalletBalance(){
   const buySol = getCreatorBuySol();
   return walletBalanceLamports != null && buySol > 0 && Math.ceil(buySol * 1_000_000_000) >= walletBalanceLamports;
-}
-function developerBuyLimitReached(){
-  return estimatedInitialBuyTokens > LAUNCH_TOKEN_SUPPLY * .2
-    || /developer buy cannot exceed 20% of the token supply/i.test(walletEstimateError);
 }
 function getCreatorBuySummary(){
   const sol = getCreatorBuySol();
@@ -2413,7 +2413,7 @@ let explorePromotion = 'all';
 let exploreReward = 'all';
 let exploreWindow = '24h';
 let exploreTab = 'trending';
-let exploreNewLane = 'launch';
+let exploreNewLane = 'all';
 const EXPLORE_VIEW_KEY = 'funded.explore-view';
 let exploreView = (() => { try { return localStorage.getItem(EXPLORE_VIEW_KEY) === 'table' ? 'table' : 'grid'; } catch { return 'grid'; } })();
 let exploreMaxAgeHours = null;
@@ -2521,14 +2521,19 @@ function marketUsdFilterToSol(value){
   return Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? value / coinSolUsdPrice : Infinity;
 }
 function exploreFilterOptions(query = exploreQuery, sort = exploreSort){
-  const laneStage = exploreNewLane === 'almost' ? 'near' : exploreNewLane === 'migrated' ? 'migrated' : 'launch';
-  const maxAgeHours = exploreTab === 'new' && exploreNewLane === 'launch' ? Math.min(24, exploreMaxAgeHours ?? 24) : exploreMaxAgeHours;
+  const laneStage = exploreNewLane === 'almost' ? 'near' : exploreNewLane === 'migrated' ? 'migrated' : exploreNewLane === 'launch' ? 'launch' : 'all';
   return { query, sort, risk: exploreRisk, stage: exploreTab === 'new' ? laneStage : exploreStage, authority: exploreAuthority,
-    promotion: explorePromotion, reward: exploreReward, watchlist: getWatchlist(), maxAgeHours,
+    promotion: explorePromotion, reward: exploreReward, watchlist: getWatchlist(), maxAgeHours: exploreMaxAgeHours,
     minVolumeSol: EXPLORE_CLUSTER === 'devnet' ? marketUsdFilterToSol(exploreMinVolumeUsd) : null,
     minCurveCapSol: EXPLORE_CLUSTER === 'devnet' ? marketUsdFilterToSol(exploreMinMarketCapUsd) : null,
     minTrades: EXPLORE_CLUSTER === 'devnet' ? exploreMinTrades : null,
     minTraders: EXPLORE_CLUSTER === 'devnet' ? exploreMinTraders : null };
+}
+function filterExploreTabRecords(records, query = exploreQuery){
+  const filtered = filterMarketRecords(records, exploreFilterOptions(query));
+  if (exploreTab !== 'following') return filtered;
+  const saved = new Set(getWatchlist());
+  return filtered.filter(record => saved.has(record.address));
 }
 function formatExploreTradeCount(value, coverage){
   return value == null || !Number.isInteger(Number(value)) ? '—' : `${coverage === 'partial' ? '≥' : ''}${Number(value).toLocaleString()}`;
@@ -2564,9 +2569,10 @@ function exploreMarketCapUsd(record){
 function renderExplorePulse(records){
   const ready = Boolean(exploreLastVerifiedAt);
   const scope = document.querySelector('#explore-pulse-scope');
-  if (scope) scope.textContent = exploreProviderStatus.includes('stale') ? 'Counts reflect the last verified feed; live verification is paused.' : 'Counts reflect only mints confirmed in this feed.';
+  const pending = records.filter(item => item.complete == null).length;
+  if (scope) scope.textContent = exploreProviderStatus.includes('stale') ? 'Stage counts use the last verified feed.' : pending ? `${pending} launch stages await curve or pool verification.` : 'Stages confirmed on-chain.';
   const lanes = {
-    launch: filterMarketRecords(records, { stage: 'launch', maxAgeHours: 24, sort: 'newest' }),
+    launch: filterMarketRecords(records, { stage: 'launch', sort: 'newest' }),
     almost: filterMarketRecords(records, { stage: 'near', sort: 'newest' }),
     migrated: filterMarketRecords(records, { stage: 'migrated', sort: 'newest' }),
   };
@@ -2574,13 +2580,19 @@ function renderExplorePulse(records){
     const lane = button.dataset.exploreLane;
     const items = lanes[lane] || [];
     button.querySelector('strong').textContent = ready ? String(items.length).padStart(2, '0') : '—';
-    button.querySelector('small').textContent = !ready ? 'Waiting for verified feed' : items.length ? items.slice(0, 3).map(item => item.symbol).join(' · ') : lane === 'migrated' ? 'No RPC-verified migrated pool' : 'No verified launches in this stage';
+    button.querySelector('small').textContent = !ready ? 'Waiting for verified feed' : items.length ? items.slice(0, 3).map(item => item.symbol).join(' · ') : lane === 'migrated' ? 'No verified migrated pool' : 'No confirmed launches in this stage';
     const active = exploreTab === 'new' && lane === exploreNewLane;
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   }
 }
 function exploreEmptyReason(){
+  if (exploreTab === 'following') {
+    const saved = getWatchlist();
+    if (!saved.length) return ['No followed tokens yet.', 'Select the star on a token to save it here.'];
+    if (!assets.some(item => saved.includes(item.address))) return ['Saved tokens are unavailable in this feed.', 'Your saved list remains on this device. Try again when the verified launch feed is available.'];
+    return ['No followed tokens match this view.', 'Clear the search or filters to see your saved tokens.'];
+  }
   if ((exploreMinVolumeUsd != null || exploreMinMarketCapUsd != null) && !(Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0)) return ['USD filters are waiting for a conversion quote.', 'SOL/USD is unavailable. Clear the USD minimums to browse verified tokens.'];
   if (exploreQuery) return ['No token matches your search.', 'Try a token name, symbol, or full token address.'];
   if (explorePromotion !== 'all') return ['No launch matches this promotion filter.', 'Promoted includes verified launch burns and active finalized SOL boost payments.'];
@@ -2591,8 +2603,8 @@ function exploreEmptyReason(){
   if (exploreAuthority !== 'all') return ['No token matches these permissions.', 'Choose Any permissions or clear filters to see more tokens.'];
   if (exploreRisk === 'watchlist') return ['No watched launches in this feed.', 'Use the star on a verified token to save it here.'];
   if (exploreTab === 'new' && exploreNewLane === 'almost') return ['No launch is Almost Born yet.', 'This view requires an active Pump curve at least 80% filled.'];
-  if (exploreTab === 'new' && exploreNewLane === 'migrated') return ['No tokens trading on PumpSwap in this view.', 'Tokens appear here once their PumpSwap trading pool is confirmed.'];
-  if (exploreTab === 'new') return ['No verified New Launch in the last 24 hours.', 'Older confirmed launches remain available under All tokens.'];
+  if (exploreTab === 'new' && exploreNewLane === 'migrated') return ['No RPC-verified migrated pools in this feed.', 'A completed curve alone is not migration proof. A PumpSwap pool must also exist on this network.'];
+  if (exploreTab === 'new') return ['No launches match this view.', 'Check the stage or age filters, or view all tokens.'];
   if (exploreStage === 'near') return ['No launch is in the final stretch.', 'This lane requires a verified active Pump curve at least 80% filled.'];
   if (exploreStage === 'graduated') return ['No graduated launch in this feed.', 'A token appears here only after its Pump curve is confirmed complete.'];
   return null;
@@ -2657,7 +2669,7 @@ function renderExploreBenefitLeaders(records){
     { sort: 'holder-fee', label: 'Top fee to holders', field: 'holderFeePercent', policy: true, suffix: 'of creator fees' },
     { sort: 'x-fee', label: 'Top fee to X account', field: 'xFeePercent', policy: true, suffix: 'of creator fees' },
   ];
-  container.innerHTML = definitions.map(definition => {
+  const cards = definitions.map(definition => {
     const candidates = records.filter(record => definition.policy
       ? record.benefitPolicyVerified && record[definition.field] > 0
       : record[definition.field] != null && Number.isFinite(Number(record[definition.field])));
@@ -2665,6 +2677,7 @@ function renderExploreBenefitLeaders(records){
     const hasVerifiedField = records.some(record => definition.policy
       ? record.benefitPolicyVerified && record[definition.field] != null
       : record[definition.field] != null);
+    if (!leader && !hasVerifiedField) return '';
     const value = leader
       ? definition.policy ? formatVerifiedPercent(leader[definition.field]) : formatExploreUsd(leader[definition.field], { partial: leader.windowCoverage === 'partial' })
       : hasVerifiedField && definition.policy ? '0%' : 'Unavailable';
@@ -2672,7 +2685,8 @@ function renderExploreBenefitLeaders(records){
       ? `${leader.symbol || shortAddress(leader.address)}${definition.suffix ? ` · ${definition.suffix}` : leader.windowCoverage === 'partial' ? ' · partial history' : ' · scanned'}`
       : hasVerifiedField && definition.policy ? 'No matching launch yet' : definition.policy ? 'Details unavailable' : 'Activity unavailable';
     return `<button type="button" class="${definition.sort === exploreSort ? 'active' : ''}" data-explore-leader-sort="${definition.sort}" data-state="${leader ? 'ready' : hasVerifiedField ? 'empty' : 'unavailable'}" aria-pressed="${definition.sort === exploreSort}" ${leader ? '' : 'disabled'}><span>${escapeHtml(definition.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></button>`;
-  }).join('');
+  }).filter(Boolean);
+  container.innerHTML = cards.length ? cards.join('') : '<p class="explore-ranking-empty">No verified rankings match the current filters.</p>';
 }
 function formatPayoutSol(value) {
   if (typeof value !== 'string' || !/^(?:0|[1-9]\d*)$/.test(value)) return '—';
@@ -2841,7 +2855,9 @@ function renderExploreAssets({ force = false } = {}){
   if (clusterLabel) clusterLabel.textContent = `${exploreProviderStatus.includes('Verified launch registry') ? 'Verified launch registry' : exploreProviderStatus.includes('stale') ? 'last verified snapshot' : exploreProviderStatus.includes('RPC verified') ? 'RPC verified' : exploreProviderStatus.includes('unavailable') ? 'data unavailable' : 'awaiting verification'}`;
   if (scope && EXPLORE_CLUSTER !== 'devnet') scope.textContent = 'Solana mainnet discovery · Pump.fun listings are shown only after mint verification. Missing market figures stay unavailable.';
   const records = assets.map(item => withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(item, exploreWindow) : enrichMarketRecord(item)));
-  const visible = filterMarketRecords(records, exploreFilterOptions());
+  const visible = filterExploreTabRecords(records);
+  const marketNote = document.querySelector('#explore-market-note');
+  if (marketNote) marketNote.hidden = !records.length || records.some(item => item.curveCapSol != null || item.poolMarketCapSol != null || item.windowVolumeSol != null || item.marketCapUsd != null || item.volume24hUsd != null);
   renderExploreControls();
   renderExplorePulse(records);
   renderExploreBenefitLeaders(visible);
@@ -2884,7 +2900,7 @@ function renderExploreAssets({ force = false } = {}){
     action.type = 'button';
     action.className = 'explore-empty-action';
     action.dataset.exploreEmptyAction = assets.length ? 'clear' : 'retry';
-    action.textContent = assets.length ? exploreTab === 'new' ? 'View all tokens' : 'Clear filters' : 'Try again';
+    action.textContent = assets.length ? ['new', 'following'].includes(exploreTab) ? 'View all tokens' : 'Clear filters' : 'Try again';
     grid.querySelector('.empty-state')?.append(action);
   }
   renderWatchlist();
@@ -2915,8 +2931,8 @@ function renderStonkEnhancements(){
   const quoteLoad = apiRequest('/api/quote-assets').then(result => {
     const verified = result.data?.status === 'onchain-verified-catalog' && result.data?.cluster === EXPLORE_CLUSTER;
     const assets = verified && Array.isArray(result.data?.assets) ? result.data.assets : [];
-    if (quoteStatus) quoteStatus.textContent = verified ? 'RPC verified' : 'Unavailable';
-    if (quoteList) quoteList.innerHTML = assets.length ? assets.map(item => `<div class="quote-asset-row"><span class="asset-icon">${escapeHtml(item.symbol.slice(0, 1))}</span><span><strong>${escapeHtml(item.symbol)}</strong><small>${escapeHtml(item.name)} · ${escapeHtml(item.category)}</small></span><b>✓</b></div>`).join('') : '<div class="empty-state">No verified quote assets configured.</div>';
+    if (quoteStatus) quoteStatus.textContent = verified ? `${assets.length} available` : 'Unavailable';
+    if (quoteList) quoteList.innerHTML = assets.length ? assets.map(item => `<div class="quote-asset-row"><span class="asset-icon" aria-hidden="true">${escapeHtml(item.symbol.slice(0, 1))}</span><span><strong>${escapeHtml(item.symbol)}</strong><small>${escapeHtml(item.name)} · ${escapeHtml(item.category)}</small></span><b>✓</b></div>`).join('') : '<div class="empty-state">No verified trading currencies are available for this network.</div>';
   }).catch(() => { if (quoteStatus) quoteStatus.textContent = 'Unavailable'; if (quoteList) quoteList.innerHTML = '<div class="empty-state">Quote catalog unavailable; no unverified assets shown.</div>'; });
   return quoteLoad;
 }
@@ -4564,7 +4580,7 @@ function renderRegistry(query = exploreQuery){
     explorePromotion, exploreReward, exploreTab, exploreNewLane, exploreWindow, exploreMaxAgeHours,
     exploreMinVolumeUsd, exploreMinMarketCapUsd, exploreMinTrades, exploreMinTraders, getWatchlist()]);
   if (criteriaKey !== registryCriteriaKey) { registryPage = 1; registryCriteriaKey = criteriaKey; }
-  const filtered = filterMarketRecords(registryLaunches, exploreFilterOptions(query));
+  const filtered = filterExploreTabRecords(registryLaunches, query);
   const page = paginateExploreRows(filtered, registryPage);
   registryPage = page.page;
   const registryLoading = exploreProviderStatus === 'On-chain only · loading' && !exploreLastVerifiedAt;
@@ -5621,11 +5637,11 @@ function updateCostSummary(){
       ? 'Connect a wallet to build and estimate the transaction.'
       : walletMetricsLoading
         ? 'Building and estimating the Solana transaction…'
-        : walletEstimateError
-          ? developerBuyLimitReached()
-            ? 'Developer buy cannot exceed 20% of the token supply. Lower the SOL amount or set it to 0.'
-            : `Could not estimate the transaction: ${walletEstimateError} Refresh the estimate to try again.`
-          : 'The launch cost is not verified. Refresh the estimate before signing.';
+        : developerBuyLimitReached()
+          ? 'Developer buy exceeds 20% of the token supply. Return to Launch settings and lower the SOL amount or set it to 0. A new estimate will run after you change it.'
+          : walletEstimateError
+            ? `Could not estimate the transaction: ${walletEstimateError} Refresh the estimate to try again.`
+            : 'The launch cost is not verified. Refresh the estimate before signing.';
     return;
   }
   const launchCost = formatLaunchCost(estimatedLaunchFeeLamports);
@@ -5763,7 +5779,7 @@ function updateLaunchPreview(){
   }
   xLabel = xLabel.trim() || 'Token';
   const xPrefix = EXPLORE_CLUSTER === 'devnet' ? '[Devnet test] ' : '[Mainnet] ';
-  const xLink = 'Token page link added after launch.';
+  const xLink = 'funded.vip/token/your-token';
   const xLaunch = launchBurn.tier === 'standard'
     ? `New project on funded.vip: “${xLabel}”. Token creation finalized.`
     : `${launchBurn.tier === 'premier' ? 'Premier' : 'Pro'} launch: “${xLabel}”. Creation and $FUNDED tier burn finalized.`;
@@ -5929,7 +5945,24 @@ function updateLaunchButton(){
   const feeDistribution = validateFeeDistribution(getFeeDistributionInputs());
   const launchBurn = getLaunchBurnPolicy();
   const creatorBuySol = getCreatorBuySol();
-  const buyValid = Number.isFinite(creatorBuySol) && creatorBuySol >= 0 && (estimatedInitialBuyTokens <= 0 || estimatedInitialBuyTokens <= LAUNCH_TOKEN_SUPPLY * .2);
+  const overBuyLimit = developerBuyLimitReached();
+  const buyValid = Number.isFinite(creatorBuySol) && creatorBuySol >= 0 && !overBuyLimit && (estimatedInitialBuyTokens <= 0 || estimatedInitialBuyTokens <= LAUNCH_TOKEN_SUPPLY * .2);
+  const buyHelp = document.querySelector('#creator-buy-help');
+  if (buyHelp) buyHelp.textContent = overBuyLimit
+    ? 'This SOL amount would buy over 20% of the supply. Lower it or set it to 0; the quote will update automatically.'
+    : 'Enter the SOL to buy from the fresh curve. Maximum 20% of supply.';
+  const buyInput = document.querySelector('#creator-buy-sol');
+  if (buyInput) {
+    if (overBuyLimit) {
+      buyInput.dataset.overLimit = 'true';
+      buyInput.setAttribute('aria-invalid', 'true');
+    } else if (buyInput.dataset.overLimit) {
+      delete buyInput.dataset.overLimit;
+      buyInput.removeAttribute('aria-invalid');
+    }
+  }
+  const buyTokens = document.querySelector('#creator-buy-token-amount');
+  if (buyTokens && overBuyLimit) buyTokens.textContent = 'Over 20% limit';
   const communityTokens = getCommunityAirdropTokens();
   const communityValid = Number.isSafeInteger(communityTokens) && communityTokens >= MIN_COMMUNITY_AIRDROP_TOKENS && communityTokens <= MAX_COMMUNITY_AIRDROP_TOKENS;
   const burnConfigured = validateLaunchBurnPolicy(launchBurn).valid;
@@ -5949,7 +5982,7 @@ function updateLaunchButton(){
   const connectReady = !wallet && !APP_MAINNET_READ_ONLY && identityValid && getLaunchStepState(2).valid && feeDistribution.valid && xRouteReady && burnConfigured && buyValid && communityValid;
   button.disabled = !(ready || estimateRefreshReady || connectReady);
   button.dataset.launchAction = connectReady ? 'connect-wallet' : estimateRefreshReady ? 'refresh-estimate' : 'launch';
-  button.textContent = !communityValid ? 'Airdrop must be 30M–500M' : !identityValid ? 'Fix coin details' : !feeDistribution.valid ? 'Fix fee distribution' : !xRouteReady ? 'X account rewards unavailable' : !feeRouterState.verified ? 'Fee router required' : !buyValid ? 'Enter a valid developer buy' : !burnConfigured ? (PROTOCOL_FUNDED_MINT ? '$FUNDED price unavailable' : '$FUNDED mint required') : launchBurn.requiresBurn && !burnReady ? 'Verify $FUNDED balance' : !wallet ? 'Connect wallet to launch' : !canSignTransactions(wallet) ? 'Open in wallet to sign' : walletMetricsLoading ? 'Calculating launch cost' : walletBalanceLamports == null ? 'Refresh wallet balance' : insufficientDeveloperBuy ? 'Insufficient SOL for developer buy' : estimatedLaunchFeeLamports == null ? 'Refresh launch estimate' : insufficient ? 'Insufficient SOL for launch' : !document.querySelector('#fee-route-agree')?.checked ? 'Confirm the fee route' : !document.querySelector('#terms-agree')?.checked ? 'Agree to terms to launch' : !policyValid ? 'Complete launch policy' : ready ? (launchBurn.requiresBurn ? `Review launch · ${launchBurn.label}` : 'Review launch') : 'Add name and ticker';
+  button.textContent = !communityValid ? 'Airdrop must be 30M–500M' : !identityValid ? 'Fix coin details' : !feeDistribution.valid ? 'Fix fee distribution' : !xRouteReady ? 'X account rewards unavailable' : !feeRouterState.verified ? 'Fee router required' : overBuyLimit ? 'Reduce developer buy' : !buyValid ? 'Enter a valid developer buy' : !burnConfigured ? (PROTOCOL_FUNDED_MINT ? '$FUNDED price unavailable' : '$FUNDED mint required') : launchBurn.requiresBurn && !burnReady ? 'Verify $FUNDED balance' : !wallet ? 'Connect wallet to launch' : !canSignTransactions(wallet) ? 'Open in wallet to sign' : walletMetricsLoading ? 'Calculating launch cost' : walletBalanceLamports == null ? 'Refresh wallet balance' : insufficientDeveloperBuy ? 'Insufficient SOL for developer buy' : estimatedLaunchFeeLamports == null ? 'Refresh launch estimate' : insufficient ? 'Insufficient SOL for launch' : !document.querySelector('#fee-route-agree')?.checked ? 'Confirm the fee route' : !document.querySelector('#terms-agree')?.checked ? 'Agree to terms to launch' : !policyValid ? 'Complete launch policy' : ready ? (launchBurn.requiresBurn ? `Review launch · ${launchBurn.label}` : 'Review launch') : 'Add name and ticker';
   if (connectReady) button.textContent = 'Connect wallet to create coin';
   updateLaunchNavigation();
 }
@@ -6373,7 +6406,7 @@ async function refreshWalletInfo({ rateLimitRetry = 0 } = {}){
         'Ticker must contain 1–10 letters or numbers.',
         'Initial supply must be a positive whole number.',
         'Decimals must be an integer from 0 to 9.',
-      ].includes(rawReason);
+      ].includes(rawReason) || developerBuyLimitReached(rawReason);
       if (!expectedInputError) console.warn('Launch cost estimate failed:', error);
       const reason = rateLimited
         ? 'Solana RPC is rate limited. Wait a moment, then refresh the estimate.'
@@ -6408,6 +6441,7 @@ function setWalletState(message, detail = '', connected = false){
   const signingReady = connected && canSignTransactions(wallet);
   const header = document.querySelector('#connect-button');
   const walletPopover = document.querySelector('#wallet-popover');
+  const keepPopoverOpen = Boolean(connected && walletPopover && !walletPopover.hidden);
   header.classList.toggle('wallet-pill-connected', connected);
   if (connected) {
     const walletIcon = document.createElement('span'); walletIcon.className = 'header-wallet-icon'; walletIcon.setAttribute('aria-hidden', 'true');
@@ -6422,8 +6456,8 @@ function setWalletState(message, detail = '', connected = false){
     header.setAttribute('aria-label', 'Connect wallet');
   }
   header.removeAttribute('title');
-  header.setAttribute('aria-expanded', 'false');
-  if (walletPopover) walletPopover.hidden = true;
+  header.setAttribute('aria-expanded', String(keepPopoverOpen));
+  if (walletPopover && !keepPopoverOpen) walletPopover.hidden = true;
   header.onclick = connected ? event => {
     event.stopPropagation();
     if (!walletPopover) return;
@@ -6983,10 +7017,10 @@ document.querySelectorAll('#token-name, #token-symbol, #token-description, #toke
   if (input.matches('#token-name, #token-symbol')) { input.dataset.launchTouched = 'true'; updateLaunchIdentityWarnings(); }
   if (LAUNCH_SOCIAL_FIELDS.includes(input.id)) updateLaunchSocialValidity(input);
   if (input.matches('#community-airdrop-tokens')) syncCommunityAirdropPresets();
+  if (input.matches('#token-name, #token-symbol, #creator-buy-sol')) scheduleLaunchCostRefresh();
   updateLaunchPreview();
   updateCostSummary();
   updateLaunchButton();
-  if (input.matches('#token-name, #token-symbol, #creator-buy-sol')) scheduleLaunchCostRefresh();
 }));
 document.querySelectorAll('#token-name, #token-symbol').forEach(input => input.addEventListener('blur', () => {
   input.dataset.launchTouched = 'true';
@@ -7118,6 +7152,7 @@ document.querySelector('#wallet-popover')?.querySelectorAll('a').forEach(link =>
 document.addEventListener('click', event => {
   const popover = document.querySelector('#wallet-popover');
   const trigger = document.querySelector('#connect-button');
+  if (!event.isTrusted) return;
   if (!popover || popover.hidden || trigger?.contains(event.target) || popover.contains(event.target)) return;
   popover.hidden = true;
   trigger?.setAttribute('aria-expanded', 'false');
@@ -7309,7 +7344,7 @@ function clearExploreFilters(){
   exploreReward = 'all';
   exploreWindow = '24h';
   exploreTab = 'trending';
-  exploreNewLane = 'launch';
+  exploreNewLane = 'all';
   exploreMaxAgeHours = null;
   exploreMinVolumeUsd = null;
   exploreMinMarketCapUsd = null;
@@ -7467,7 +7502,7 @@ document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(button => 
   document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(item => { const active = item === button; item.classList.toggle('active', active); item.setAttribute('aria-pressed', String(active)); });
   const tab = button.dataset.exploreTab;
   exploreTab = tab;
-  if (tab === 'new') { exploreSort = 'newest'; document.querySelector('#explore-sort').value = 'newest'; }
+  if (tab === 'new' || tab === 'following') { exploreNewLane = 'all'; exploreSort = 'newest'; document.querySelector('#explore-sort').value = 'newest'; }
   else { exploreSort = document.querySelector('#explore-sort option[value="volume"]:not(:disabled)') ? 'volume' : 'recent-trade'; document.querySelector('#explore-sort').value = exploreSort; }
   updateExploreViews();
   refreshExploreFeedForSort();
@@ -7498,7 +7533,8 @@ function toggleExploreWatch(mint, button){
   renderWatchlist();
   // Keep the current cards mounted so a follow-up action on the same card
   // cannot lose its click while the watchlist changes.
-  if (exploreRisk === 'watchlist') updateExploreViews();
+  if (exploreTab === 'following') updateExploreViews(true);
+  else if (exploreRisk === 'watchlist') updateExploreViews();
   else renderRegistry();
   if (homeLaunchTab === 'watchlist') renderHomeLaunchBoard();
   showToast(lastKnownWatchlist.includes(mint) ? `${symbol} saved to your watchlist` : `${symbol} removed from your watchlist`);

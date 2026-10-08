@@ -302,7 +302,6 @@ function explore() {
   $('.explore-control-bar')?.after(count);
   const stage = $('.explore-stage-filter');
   if (stage) text('[data-explore-stage="near"]', 'Graduating');
-  const watch = node('a', 'workspace-watch-link', 'Watchlist'); watch.href = '#community'; $('.explore-tabs')?.append(watch);
   const headingActions = $('.explore-heading .heading-actions', root);
   const tabs = $('.explore-tabs', root);
   if (tabs && headingActions) headingActions.prepend(tabs);

@@ -201,7 +201,7 @@ test('analytics preserves exact large totals and keeps missing collection amount
   await page.goto('/#analytics-detail');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   const card=page.locator('[data-analytics-metric="fees"]');
   await expect(card.locator('small')).toContainText('9007199.254740993 SOL recorded in the ledger');
-  await expect(card.locator('small')).toContainText('no matching on-chain proof');
+  await expect(card.locator('small')).toContainText('confirmation unavailable');
   evidence={...evidence,status:'onchain-indexed',verifiedCollections:[{collectedLamports:Number.MAX_SAFE_INTEGER},{collectedLamports:2}]};
   await page.reload();await expect(card.locator('strong')).toHaveText('9007199.254740993 SOL');
   await expect(card.locator('small')).toContainText('available history');

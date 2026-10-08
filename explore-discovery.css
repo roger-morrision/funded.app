@@ -31,7 +31,7 @@
 .explore-pulse button small { overflow:hidden; color:#8395ad; font:10px Manrope,sans-serif; text-overflow:ellipsis; white-space:nowrap; }
 .explore-pulse button.active small { color:#b8d9cf; }
 .explore-pulse button:focus-visible { outline:2px solid #a9c3ff; outline-offset:2px; }
-.explore-page[data-explore-tab="trending"] .explore-pulse-head,.explore-page[data-explore-tab="trending"] .explore-pulse { display:none; }
+.explore-page:is([data-explore-tab="trending"],[data-explore-tab="following"]) .explore-pulse-head,.explore-page:is([data-explore-tab="trending"],[data-explore-tab="following"]) .explore-pulse { display:none; }
 .explore-page[data-explore-tab="new"] .explore-stage-filter { display:none; }
 .explore-empty-action { margin-top:12px; }
 .explore-benefit-leaders { margin:4px 0 22px; }

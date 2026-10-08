@@ -18,7 +18,6 @@ function simplifyExplore() {
   document.querySelector('#explore .network-lock')?.remove();
   document.querySelector('#explore .live-label')?.remove();
   document.querySelector('#explore .explore-hero-stat')?.remove();
-  document.querySelector('#explore .quote-assets-panel')?.remove();
   byId('explore-market-kpis')?.remove();
   if (advanced && windowFilter && signalFilter) {
     advanced.prepend(signalFilter);

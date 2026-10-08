@@ -76,6 +76,20 @@ test('Phantom stays connected after reload and explicit disconnect stays disconn
   expect(await page.evaluate(() => localStorage.getItem('funded.app.wallet.manual-disconnect'))).toBeNull();
 });
 
+test('wallet menu stays open when a trusted connect event refreshes the same wallet', async ({ page }) => {
+  await installPhantomFixture(page, { trusted: true });
+  await page.goto('/#payments');
+  await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state', 'ready');
+  await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
+  await page.locator('#connect-button').click();
+  await expect(page.locator('#wallet-popover-disconnect')).toBeVisible();
+  await page.evaluate(() => window.phantom.solana.connect({ onlyIfTrusted: true }));
+  await expect(page.locator('#connect-button')).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('#wallet-popover-disconnect')).toBeVisible();
+  await page.locator('#wallet-popover-disconnect').click();
+  await expect(page.locator('#connect-button')).not.toHaveClass(/wallet-pill-connected/);
+});
+
 test('trusted Phantom is restored when the extension injects after app startup', async ({ page }) => {
   await installPhantomFixture(page, { trusted: true, delayMs: 2000 });
   await page.goto('/#payments');
