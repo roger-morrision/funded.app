@@ -82,7 +82,7 @@ body.page-route :is(.primary-button, .hero-secondary-action, .create-coin-button
 @media (max-width: 700px) {
   body.page-route .topbar { display: grid !important; height: auto !important; min-height: 112px; padding-top: 8px; padding-bottom: 8px; grid-template-rows: 44px 44px; }
 }
-@media (min-width: 901px) and (max-width: 1399px) {
+@media (min-width: 701px) and (max-width: 1399px) {
   body.page-route-overview .topbar .top-actions .create-coin-button,
   body.page-route-overview .topbar .search-box { display: none !important; }
   body.page-route-overview .topbar .header-search-trigger { display: grid !important; }

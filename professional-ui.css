@@ -87,6 +87,8 @@ html body.product-experience-ready :is(.reward-overview-start,.explore-pulse-hea
   html body.product-experience-ready .topbar .create-coin-button { display: none !important; }
   html body.product-experience-ready .topbar { gap: 8px; }
   html body.product-experience-ready .top-actions { gap: 8px; min-width: 0; }
+  html body.product-experience-ready .topbar-context { min-width: 0; flex: 1 1 0; overflow: hidden; }
+  html body.product-experience-ready .topbar-context > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   html body.product-experience-ready .topbar .connect-button { padding-inline: 10px; }
   html body.product-experience-ready .creator-burn-tiers { grid-template-columns: 1fr; }
 }
@@ -186,3 +188,16 @@ body.page-route-coin .mobile-trade-open.is-unavailable {
 
 /* Keep longer package names readable inside the compact launch preview. */
 html body.product-experience-ready #launch-dialog .preview-promotion-badge { max-width: none; white-space: nowrap; }
+
+/* On narrow phones, keep the wallet on row one and network beside search. */
+@media (min-width: 701px) and (max-width: 800px) {
+  html body.product-experience-ready .topbar-context { display: none; }
+}
+@media (max-width: 400px) {
+  html body.product-experience-ready .topbar { grid-template-columns: 44px minmax(0,1fr) !important; }
+  html body.product-experience-ready .topbar .top-actions { grid-column: 2; min-width: 0; }
+  html body.product-experience-ready .topbar .top-actions .workspace-network {
+    position: absolute; top: calc(100% + 18px); right: 0;
+  }
+  html body.product-experience-ready .topbar .header-search-trigger { grid-row: 2; grid-column: 1 / -1; }
+}
