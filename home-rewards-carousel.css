@@ -1,4 +1,4 @@
-body.page-route-overview .main-content > .home-rewards-stack { display:grid; order:2; gap:12px; width:100%; min-width:0; margin-bottom:18px; }
+body.page-route-overview .home-rewards-stack { display:grid; order:2; gap:12px; width:100%; min-width:0; margin-bottom:18px; }
 body.page-route-overview .home-rewards-spotlight {
   box-sizing:border-box;
   width:100%;
@@ -44,7 +44,7 @@ body.page-route-overview .home-rewards-grid .home-reward-token-card {
   background: #101e23;
 }
 @media (min-width: 1200px) {
-  body.page-route-overview .main-content > .home-rewards-stack {
+  body.page-route-overview .home-rewards-stack {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: stretch;
     gap: 12px;
@@ -62,7 +62,7 @@ body.page-route-overview .home-rewards-grid .home-reward-token-card {
     align-items: stretch;
     margin-top: 9px;
   }
-  html body.page-route-overview .main-content > .home-rewards-stack .home-rewards-grid .home-reward-token-card {
+  html body.page-route-overview .home-rewards-stack .home-rewards-grid .home-reward-token-card {
     flex-basis: calc((100% - 10px) / 2);
     min-height: 235px;
     padding: 10px;
@@ -77,7 +77,7 @@ body.page-route-overview .home-rewards-grid .home-reward-token-card {
   body.page-route-overview .home-reward-snapshot span { font-size: 9px; overflow-wrap: anywhere; }
 }
 @media (min-width: 1760px) {
-  html body.page-route-overview .main-content > .home-rewards-stack .home-rewards-grid .home-reward-token-card {
+  html body.page-route-overview .home-rewards-stack .home-rewards-grid .home-reward-token-card {
     flex-basis: calc((100% - 20px) / 3);
   }
 }

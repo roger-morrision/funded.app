@@ -64,6 +64,16 @@ const fixture = async (context, evidenceStatus = 'onchain-indexed') => {
     body: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="16" fill="#86efac"/></svg>'
   }));
 };
+const openHomeRewards = async page => {
+  await page.waitForFunction(() => document.body.classList.contains('product-experience-ready'));
+  const disclosure = page.locator('.product-details:has(.home-rewards-stack)');
+  const summary = disclosure.locator(':scope > summary');
+  assert(await summary.isVisible(), 'Community rewards disclosure must be visible');
+  assert.equal(await disclosure.getAttribute('open'), null, 'Community rewards start collapsed');
+  await summary.click();
+  assert(await disclosure.evaluate(element => element.open), 'Community rewards must open');
+  assert(await page.locator('[data-home-reward-section="funded"]').isVisible(), 'Reward cards must be visible when opened');
+};
 await mkdir('.tmp-ui-evidence', { recursive: true });
 try {
   const desktop = await browser.newContext({ viewport: { width: 1440, height: 800 }, reducedMotion: 'reduce' });
@@ -75,6 +85,7 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('.home-reward-token-card').length === 8);
   await page.waitForFunction(() => document.querySelector('[data-home-reward-grid="funded"]')?.textContent.includes('~2 wallets'));
   await page.waitForFunction(() => document.querySelector('[data-home-reward-grid="coin"]')?.textContent.includes('1.23 SOL'));
+  await openHomeRewards(page);
   assert.deepEqual(await page.locator('.home-rewards-heading h2').allInnerTexts(), ['$FUNDED holders', 'Coin holders', 'X accounts']);
   const fundedGroup = page.locator('[data-home-reward-grid="funded"]');
   const coinGroup = page.locator('[data-home-reward-grid="coin"]');
@@ -131,6 +142,7 @@ try {
   assert.equal(await xProfile.getAttribute('href'), 'https://x.com/qa_x');
   assert.equal(await xProfile.getAttribute('target'), '_blank');
   assert.match(await xProfile.getAttribute('rel'), /noopener noreferrer/);
+  await xProfile.scrollIntoViewIfNeeded();
   assert(await xProfile.evaluate(link => {
     const rect = link.getBoundingClientRect();
     return document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2) === link;
@@ -156,6 +168,7 @@ try {
   const partialPage = await partial.newPage();
   await partialPage.goto(`${previewOrigin}/#overview`, { waitUntil: 'domcontentloaded' });
   await partialPage.waitForFunction(() => document.querySelector('[data-home-reward-grid="x"]')?.textContent.includes('≥0.25 SOL'));
+  await openHomeRewards(partialPage);
   const partialX = await partialPage.locator('[data-home-reward-grid="x"] .home-reward-token-card').innerText();
   assert.match(partialX, /Unclaimed\s*—/);
   assert.match(partialX, /Claimed\s*≥0\.25 SOL/);
@@ -166,6 +179,7 @@ try {
   const widePage = await wide.newPage();
   await widePage.goto(`${previewOrigin}/#overview`, { waitUntil: 'domcontentloaded' });
   await widePage.waitForFunction(() => document.querySelectorAll('.home-reward-token-card').length === 8);
+  await openHomeRewards(widePage);
   const wideVisible = await widePage.locator('[data-home-reward-grid="coin"]').evaluate(track =>
     track.clientWidth / track.querySelector('article').getBoundingClientRect().width);
   assert(wideVisible >= 3 && wideVisible < 3.4, 'Wide desktop should show three cards per section');
@@ -175,6 +189,7 @@ try {
   await fixture(moving);
   const movingPage = await moving.newPage();
   await movingPage.goto(`${previewOrigin}/#overview`, { waitUntil: 'domcontentloaded' });
+  await openHomeRewards(movingPage);
   await movingPage.waitForFunction(() => document.querySelector('[data-home-reward-grid="coin"]')?.scrollLeft > 5,
     null, { timeout: 10000 });
   assert.equal(await movingPage.locator('[data-home-reward-grid="x"]').evaluate(track => track.scrollLeft), 0,
@@ -186,6 +201,7 @@ try {
   const mobilePage = await mobile.newPage();
   await mobilePage.goto(`${previewOrigin}/#overview`, { waitUntil: 'domcontentloaded' });
   await mobilePage.waitForFunction(() => document.querySelectorAll('.home-reward-token-card').length === 8);
+  await openHomeRewards(mobilePage);
   const mobileTrack = mobilePage.locator('[data-home-reward-grid="coin"]');
   assert(await mobileTrack.evaluate(element => element.scrollWidth > element.clientWidth));
   await mobileTrack.evaluate(element => { element.scrollLeft = element.scrollWidth; });
