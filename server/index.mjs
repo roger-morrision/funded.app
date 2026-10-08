@@ -35,6 +35,7 @@ import { createStore } from './store.mjs';
 import { rewardLedgerPath } from './reward-ledger-path.mjs';
 import { analyticsReceiptTotals } from './analytics-summary.mjs';
 import { createProductMetricsStore, createProductMetricsHandler, confirmedProductTotals } from './product-metrics.mjs';
+import { mapBounded } from './bounded-map.mjs';
 import { cleanShareSource, pruneShareVisits, recordShareVisit, summarizeShareVisits } from './share-visits.mjs';
 import { readPumpMarketActivity } from './coin-market.mjs';
 import { sortDevnetLaunches } from './explore-registry.mjs';
@@ -937,8 +938,7 @@ async function handle(req, res) {
         const claimLedger = await automaticRewardStore.read();
         const configuredReceipts = JSON.parse(process.env.FUNDED_COMMUNITY_RESERVE_RECEIPTS_JSON || '{}');
         const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified && row.cluster === 'devnet' && Number.isSafeInteger(Number(row.communityAirdrop?.reservedTokens)) && Number(row.communityAirdrop.reservedTokens) > 0).slice(0, 100);
-        const reserves = [];
-        for (const launch of launches) {
+        const reserves = await mapBounded(launches, 4, async launch => {
           const recorded = state.communityReserveReceipts?.[launch.mint]?.signature || configuredReceipts[launch.mint];
           const claim = claimLedger.communityDrops?.[launch.mint];
           const reserve = await readCommunityReserveStatus({ connection, programId, authority:process.env.FUNDED_REWARD_AUTHORITY,
@@ -951,11 +951,11 @@ async function handle(req, res) {
               drop:reserve.drop, claimedBaseUnits:reserve.claimedBaseUnits, leafCount:reserve.leafCount }); }
             catch { /* Keep the verified token total; do not guess a wallet count from incomplete payment accounts. */ }
           }
-          reserves.push({ ...reserve, creatorWallet:launch.creatorWallet,
+          return { ...reserve, creatorWallet:launch.creatorWallet,
             claimedWalletCount,
             fundingSignature:reserve.verified ? reserve.fundingSignature || recorded || null : null,
-            claimPreparation:claim ? claim.openingSignature ? 'opened' : 'prepared' : 'pending' });
-        }
+            claimPreparation:claim ? claim.openingSignature ? 'opened' : 'prepared' : 'pending' };
+        });
         const result = { cluster:'devnet', checkedAt:new Date().toISOString(), claimPolicy:{ windowDays:90,
           unclaimedRecipient:process.env.FUNDED_REWARD_AUTHORITY,
           status:reserves.some(row => row.status === 'drop-active') ? 'active' : 'not-activated' }, reserves };
