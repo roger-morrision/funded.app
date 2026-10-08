@@ -6386,6 +6386,7 @@ function setWalletState(message, detail = '', connected = false){
   const signingReady = connected && canSignTransactions(wallet);
   const header = document.querySelector('#connect-button');
   const walletPopover = document.querySelector('#wallet-popover');
+  const keepPopoverOpen = Boolean(connected && walletPopover && !walletPopover.hidden);
   header.classList.toggle('wallet-pill-connected', connected);
   if (connected) {
     const walletIcon = document.createElement('span'); walletIcon.className = 'header-wallet-icon'; walletIcon.setAttribute('aria-hidden', 'true');
@@ -6400,8 +6401,8 @@ function setWalletState(message, detail = '', connected = false){
     header.setAttribute('aria-label', 'Connect wallet');
   }
   header.removeAttribute('title');
-  header.setAttribute('aria-expanded', 'false');
-  if (walletPopover) walletPopover.hidden = true;
+  header.setAttribute('aria-expanded', String(keepPopoverOpen));
+  if (walletPopover && !keepPopoverOpen) walletPopover.hidden = true;
   header.onclick = connected ? event => {
     event.stopPropagation();
     if (!walletPopover) return;
@@ -7117,6 +7118,7 @@ document.querySelector('#wallet-popover')?.querySelectorAll('a').forEach(link =>
 document.addEventListener('click', event => {
   const popover = document.querySelector('#wallet-popover');
   const trigger = document.querySelector('#connect-button');
+  if (!event.isTrusted) return;
   if (!popover || popover.hidden || trigger?.contains(event.target) || popover.contains(event.target)) return;
   popover.hidden = true;
   trigger?.setAttribute('aria-expanded', 'false');

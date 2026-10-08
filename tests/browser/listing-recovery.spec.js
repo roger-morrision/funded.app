@@ -41,9 +41,8 @@ async function component(page, mode = 'send-unknown') {
     // The isolated component starts after the app gate; financial controls retain
     // their original hidden/disabled attributes and are enabled only by initPaidListing.
     const dialog = document.querySelector('#list-review'); dialog.inert = false; dialog.removeAttribute('data-bootstrap-inert');
-    const { default: buffer } = await import('/node_modules/.vite/deps/buffer.js'); const { Buffer } = buffer; window.Buffer = Buffer;
-    const { Keypair, PublicKey, Transaction } = await import('/node_modules/.vite/deps/@solana_web3__js.js');
-    const { default: bs58 } = await import('/node_modules/.vite/deps/bs58.js');
+    const { Buffer, Keypair, PublicKey, Transaction, bs58 } = await import('/tests/browser/listing-fixture-deps.js');
+    window.Buffer = Buffer;
     const { initPaidListing } = await import('/list-page.js');
     // Deterministic, in-memory cryptographic fixture. No connection object or
     // external signing service is created; every RPC below is a local function.
