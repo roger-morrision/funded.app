@@ -23,6 +23,7 @@ export function createTokenCardActions({ mint, symbol = 'TOKEN', name = '', clas
   share.dataset.shareMint = mint;
   share.dataset.shareSymbol = symbol;
   share.dataset.shareName = name;
+  share.setAttribute('aria-label', `Share ${symbol}`);
   share.innerHTML = `${icon('share')}<span>Share</span>`;
   actions.append(watch, share);
   return actions;

@@ -159,17 +159,6 @@ function compactRewardDirectory() {
   button.setAttribute('aria-expanded', String(root.classList.contains('concise-expanded')));
 }
 
-function compactCommunityReserve() {
-  const reserve = document.getElementById('community-reward-reserve');
-  if (!reserve || reserve.parentElement?.classList.contains('concise-community-reserve')) return;
-  const disclosure = document.createElement('details');
-  disclosure.className = 'concise-community-reserve';
-  const summary = document.createElement('summary');
-  summary.textContent = 'Community reserve';
-  reserve.before(disclosure);
-  disclosure.append(summary, reserve);
-}
-
 function compactHolderDirectory() {
   const section = document.getElementById('funded-holder-token-rewards');
   const list = section?.querySelector('[data-funded-token-list]');
@@ -233,9 +222,7 @@ function shortenPageCopy() {
     ['#capital-flow > .section-heading .panel-explainer', 'See how collected creator fees are shared.'],
     ['#launch-route-shell > .page-lede', 'Add your token details, choose rewards, and review the total before signing.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
-    ['#community .section-heading .panel-explainer', 'Save coins from Explore to watch them here.'],
-    ['#reward-alerts > header p:not(.eyebrow)', 'Get alerts for verified activity on saved coins.'],
-    ['#reward-alerts > small', 'Alerts work while this page is open. No payout is guaranteed.'],
+    ['#community .section-heading .panel-explainer', 'Sign in with the same X account to see your favorites on any device.'],
     ['#capital-flow-title', 'Where every SOL goes'],
     ['#capital-flow .route-timeline-panel h2', 'From fee to receipt'],
     ['#capital-flow .route-timeline li:nth-child(1) small', 'Pump trading accrues creator fees.'],
@@ -357,7 +344,6 @@ function refreshConcisePages() {
     compactTokenStory();
     compactRewardsSpotlight();
     compactRewardDirectory();
-    compactCommunityReserve();
     compactHolderDirectory();
     compactRecipients();
     shortenPageCopy();

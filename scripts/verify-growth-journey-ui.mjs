@@ -66,11 +66,7 @@ try {
 
   await page.goto('http://127.0.0.1:5198/#community', { waitUntil:'domcontentloaded' });
   await page.locator('body.workspace-ready').waitFor();
-  await page.locator('#manage-alerts').click();
-  assert.equal(await page.locator('[data-community-target="alerts"]').getAttribute('aria-pressed'), 'true');
-  assert.equal(await page.locator('[data-alert-toggle]').evaluate(element => document.activeElement === element), true);
-  await page.locator('[data-community-target="watchlist"]').click();
-  assert.equal(await page.locator('[data-community-target="watchlist"]').getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.locator('#manage-alerts, [data-alert-toggle], #reward-alerts, #community-reward-reserve').count(), 0);
 
   const mint = 'So11111111111111111111111111111111111111112';
   await page.goto(`http://127.0.0.1:5198/token/${mint}`, { waitUntil:'domcontentloaded' });

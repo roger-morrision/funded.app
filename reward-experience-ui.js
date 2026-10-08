@@ -30,13 +30,19 @@ function link(label, href, external = false) {
   if (external) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
   return a;
 }
+let lastAlertPrefs = { seen: [], notices: [] };
+let alertStorageUnavailable = false;
 function alertPrefs() {
+  if (alertStorageUnavailable) return lastAlertPrefs;
   try { const row = JSON.parse(localStorage.getItem(ALERT_KEY) || '{}'); return {
-    enabled:row.enabled === true, seen:Array.isArray(row.seen) ? row.seen.slice(-150) : [],
+    seen:Array.isArray(row.seen) ? row.seen.slice(-150) : [],
     notices:Array.isArray(row.notices) ? row.notices.slice(-30) : [],
-  }; } catch { return { enabled:false, seen:[], notices:[] }; }
+  }; } catch { return lastAlertPrefs; }
 }
-function saveAlertPrefs(prefs) { localStorage.setItem(ALERT_KEY, JSON.stringify(prefs)); }
+function saveAlertPrefs(prefs) {
+  lastAlertPrefs = prefs;
+  try { localStorage.setItem(ALERT_KEY, JSON.stringify(prefs)); } catch { alertStorageUnavailable = true; }
+}
 function watchedMints() {
   try { return new Set(JSON.parse(localStorage.getItem(WATCH_KEY) || '[]').filter(validMint)); }
   catch { return new Set(); }
@@ -62,37 +68,6 @@ function createPanels() {
     section.innerHTML = `<header><div><p class="eyebrow">Reward programs</p><h2>Explore holder rewards</h2><p>Compare tokens that share fees with holders. Amounts shown are program totals, not rewards available to your wallet.</p></div><label>Show <select data-reward-filter><option value="all">All holder rewards</option><option value="allocated">Rewards set aside</option><option value="paid">Holders paid</option></select></label></header><div data-reward-discovery role="status">Checking verified launches…</div><small>Eligible wallets receive SOL automatically after holdings and funding are confirmed. “0 paid wallets” means no holder payment is confirmed.</small>`;
     (byId('rewards-holder') || rewardsOverview).append(section);
     section.querySelector('[data-reward-filter]').addEventListener('change', () => renderDiscovery(latest));
-  }
-  const community = byId('community');
-  if (community && !byId('community-reward-reserve')) {
-    const oldStatus = byId('community-alert-status');
-    if (oldStatus) oldStatus.textContent = 'Optional in-app alerts for watched coins are available below.';
-    const section = node('section', 'reward-experience-panel', null); section.id = 'community-reward-reserve';
-    section.innerHTML = `<header><div><p class="eyebrow">Community fund</p><h2>Funds for future programs</h2><p>A share of collected SOL is set aside for future community programs. No SOL rewards from this fund are available to claim yet.</p></div></header><div data-community-reserve>Checking funds set aside…</div><p class="reward-ideas">Program rules and confirmed payments will appear when a program becomes available.</p>`;
-    community.append(section);
-    const alerts = node('section', 'reward-experience-panel reward-alerts', null); alerts.id = 'reward-alerts';
-    alerts.innerHTML = `<header><div><p class="eyebrow">Followed coins</p><h2>Reward alerts</h2><p>Get an in-app notice when a watched coin has a newly verified fee collection, holder payment, or buyback burn.</p></div><label><input type="checkbox" data-alert-toggle /> Enable</label></header><div data-alert-status role="status">Alerts are off.</div><div data-alert-list></div><small>Alerts work while this page is open and are saved on this device. They do not promise a payout or run in the background.</small>`;
-    community.append(alerts);
-    const navigateCommunity = (target, focusToggle = false) => {
-      const destination = target === 'alerts' ? alerts : community.querySelector('.community-grid');
-      if (!destination) return;
-      community.querySelectorAll('[data-community-target]').forEach(button => {
-        const active = button.dataset.communityTarget === target;
-        button.classList.toggle('active', active);
-        button.setAttribute('aria-pressed', String(active));
-      });
-      destination.scrollIntoView({ behavior:'smooth', block:'start' });
-      if (focusToggle) alerts.querySelector('[data-alert-toggle]')?.focus({ preventScroll:true });
-    };
-    community.querySelectorAll('[data-community-target]').forEach(button => button.addEventListener('click', () =>
-      navigateCommunity(button.dataset.communityTarget)));
-    byId('manage-alerts')?.addEventListener('click', () => navigateCommunity('alerts', true));
-    alerts.querySelector('[data-alert-toggle]').checked = alertPrefs().enabled;
-    alerts.querySelector('[data-alert-toggle]').addEventListener('change', event => {
-      const prefs = alertPrefs(); prefs.enabled = event.target.checked;
-      if (prefs.enabled) prefs.seen = (latest?.events || []).map(item => `${item.kind}:${item.signature}`).slice(0, 150);
-      saveAlertPrefs(prefs); renderAlerts();
-    });
   }
   const buybacks = byId('buybacks');
   if (buybacks && !byId('verified-buyback-flow')) {
@@ -218,22 +193,6 @@ function renderDiscovery(data) {
   }
   root.append(list);
 }
-function renderCommunity(data) {
-  const root = document.querySelector('[data-community-reserve]'); if (!root) return;
-  root.replaceChildren();
-  if (!data || data.evidence.status === 'unavailable') { root.textContent = 'Community fund totals are unavailable right now.'; return; }
-  const block = node('div','reward-community-total'); block.append(node('strong','',sol(data.community.allocatedLamports)),
-    node('span','','set aside from confirmed token fees'));
-  root.append(block);
-  if (data.community.baseAllocatedLamports != null && data.community.referralRolloverLamports != null) {
-    root.append(node('p','',`${sol(data.community.baseAllocatedLamports)} community share · ${sol(data.community.referralRolloverLamports)} from unused referral shares`));
-  }
-  if (data.community.fundedLamports != null && BigInt(data.community.fundedLamports) > 0n) {
-    root.append(node('p','',`${sol(data.community.fundedLamports)} transferred to the community fund account in confirmed transactions.`));
-    if (data.community.vaultAddress) root.append(link(`Fund account ${short(data.community.vaultAddress)} ↗`, explorer(data.community.vaultAddress), true));
-  } else root.append(node('p','', 'These funds are set aside, but a transfer to the community fund account has not been confirmed.'));
-  root.append(node('p','', 'No community SOL payments are available yet. Transfers shown here do not confirm the current balance or future spending.'));
-}
 function renderBuybacks(data) {
   const root = document.querySelector('[data-buyback-flow]'); if (!root) return;
   root.replaceChildren();
@@ -258,31 +217,30 @@ function renderBuybacks(data) {
   if (!list.children.length) list.append(node('p','reward-empty','No token buybacks are waiting, and no completed burns are available to show.'));
   root.append(list);
 }
+function alertsEnabled() {
+  return validMint(document.documentElement.dataset.connectedWallet)
+    || document.querySelector('#x-sign-in')?.dataset.connected === 'true';
+}
 function renderAlerts() {
-  const prefs = alertPrefs(); const status = document.querySelector('[data-alert-status]');
-  const list = document.querySelector('[data-alert-list]'); if (!status || !list) return;
-  status.textContent = prefs.enabled ? `Watching ${watchedMints().size} saved coin${watchedMints().size === 1 ? '' : 's'} while this page is open.` : 'Alerts are off.';
-  list.replaceChildren();
-  for (const notice of prefs.notices.slice(-10).reverse()) {
-    const article = node('p'); article.append(link(short(notice.mint), tokenUrl(notice.mint)),
-      node('span','',` · ${notice.label} · `), link('Proof ↗', explorer(notice.signature), true)); list.append(article);
-  }
-  if (!list.children.length) list.append(node('p','reward-empty',prefs.enabled ? 'No new reward activity from your saved tokens.' : 'Turn on alerts to see new reward activity from saved tokens.'));
   const dialog = byId('notification-dialog');
   const feed = dialog?.querySelector('.notice-list');
-  if (feed && prefs.enabled && prefs.notices.length) {
-    feed.replaceChildren();
-    for (const notice of prefs.notices.slice(-10).reverse()) {
-      const article = node('div'); article.append(node('strong','',notice.label), link(`${short(notice.mint)} · transaction ↗`, explorer(notice.signature), true)); feed.append(article);
-    }
-    const title = dialog.querySelector('h2'); if (title) title.textContent = 'Watched reward events';
-  } else if (feed && dialog?.querySelector('h2')?.textContent === 'Watched reward events') {
-    feed.replaceChildren(node('p','', 'No active watched reward notices.'));
-    dialog.querySelector('h2').textContent = 'No verified notifications';
+  if (!feed) return;
+  const watched = watchedMints();
+  const notices = alertsEnabled() ? alertPrefs().notices.filter(row => watched.has(row.mint)).slice(-10).reverse() : [];
+  feed.replaceChildren();
+  const title = dialog.querySelector('h2');
+  if (title) title.textContent = 'Reward notifications';
+  for (const notice of notices) {
+    const article = node('div');
+    article.append(node('strong', '', notice.label), link(`${short(notice.mint)} · transaction ↗`, explorer(notice.signature), true));
+    feed.append(article);
   }
+  if (!notices.length) feed.append(node('p', '', alertsEnabled()
+    ? 'No new reward activity for your favorite tokens.'
+    : 'Sign in to receive reward notifications.'));
 }
 function captureAlerts(data) {
-  const prefs = alertPrefs(); if (!prefs.enabled || !data || data.evidence.status === 'unavailable') return;
+  const prefs = alertPrefs(); if (!alertsEnabled() || !data || data.evidence?.status === 'unavailable') return;
   const watched = watchedMints(); const seen = new Set(prefs.seen);
   const activeKinds = new Set(['holder-paid', 'buyback-burned']);
   const dailyNotices = new Set(prefs.notices.map(row => `${row.mint}:${row.kind}:${String(row.at || '').slice(0, 10)}`));
@@ -307,6 +265,7 @@ async function fetchJson(path) {
 let refreshToken = 0;
 async function refresh() {
   const current = ++refreshToken;
+  renderAlerts();
   const wallet = document.documentElement.dataset.connectedWallet || '';
   const mint = location.pathname.match(/^\/token\/([^/]+)$/)?.[1] || '';
   const params = new URLSearchParams();
@@ -314,26 +273,30 @@ async function refresh() {
   if (validMint(mint)) params.set('mint', mint);
   const scoped = validMint(mint);
   const xConnected = document.querySelector('#x-sign-in')?.dataset.connected === 'true';
-  const [experience, buybacks, referrals, xClaims] = await Promise.allSettled([
+  const [experience, buybacks, referrals, xClaims, alertEvents] = await Promise.allSettled([
     fetchJson(`/api/rewards/experience${params.size ? '?' + params : ''}`),
     fetchJson('/api/buyback/status'),
     validMint(wallet) ? fetchJson(`/api/referral-claims?wallet=${encodeURIComponent(wallet)}`) : Promise.resolve(null),
     xConnected ? fetchJson('/api/x-fee/claims') : Promise.resolve(null),
+    scoped && alertsEnabled() ? fetchJson('/api/rewards/experience') : Promise.resolve(null),
   ]);
   if (current !== refreshToken) return;
   latest = experience.status === 'fulfilled' ? experience.value : null;
   document.querySelectorAll('[data-reward-evidence]').forEach(element => { element.textContent = latest?.evidence?.status === 'onchain-indexed' ? 'Payments checked' : latest?.evidence?.status === 'partial' ? 'Some payment history is missing' : latest?.evidence?.status === 'no-records' ? 'No confirmed payments yet' : 'Unable to check payments'; });
   renderPortfolio(latest, referrals.status === 'fulfilled' ? referrals.value : null, xClaims.status === 'fulfilled' ? xClaims.value : null);
   renderDiscovery(scoped ? null : latest);
-  renderCommunity(scoped ? null : latest);
   renderBuybacks(buybacks.status === 'fulfilled' ? buybacks.value : null);
-  if (!scoped) captureAlerts(latest);
+  captureAlerts(scoped ? (alertEvents.status === 'fulfilled' ? alertEvents.value : null) : latest);
 }
 
 createPanels();
 renderAlerts();
 window.addEventListener('funded:reward-identity-change', refresh);
 window.addEventListener('popstate', refresh);
+window.addEventListener('funded:watchlist-changed', () => { renderAlerts(); captureAlerts(latest); });
+window.addEventListener('storage', event => {
+  if (event.key === WATCH_KEY || event.key === ALERT_KEY || event.key === null) renderAlerts();
+});
 window.addEventListener('hashchange', () => { if (!document.hidden) void refresh(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) void refresh(); });
 setInterval(() => { if (!document.hidden) void refresh(); }, 60000);
