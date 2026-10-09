@@ -18,20 +18,23 @@ assert.equal(called, false, 'Mainnet launch touched a wallet or RPC before rejec
 
 const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
 const server = await readFile(new URL('../server/index.mjs', import.meta.url), 'utf8');
+const keeperRoutes = await readFile(new URL('../server/routes/keeper-collection.mjs', import.meta.url), 'utf8');
+const launchRoutes = await readFile(new URL('../server/routes/launch-registration.mjs', import.meta.url), 'utf8');
+const marketRoutes = await readFile(new URL('../server/routes/token-market.mjs', import.meta.url), 'utf8');
 const launchHandler = app.slice(app.indexOf('async function launchToken(){'), app.indexOf('async function launchToken(){') + 500);
 assert.match(launchHandler, /if\s*\(APP_CLUSTER\s*!==\s*'devnet'\)\s*\{[\s\S]*?return;/,
   'The browser launch handler must reject Mainnet before wallet use.');
 
-function routeGuard(route, guard) {
-  const at = server.indexOf(route);
+function routeGuard(route, guard, source = server) {
+  const at = source.indexOf(route);
   assert.ok(at >= 0, `Missing server route: ${route}`);
-  assert.match(server.slice(at, at + 400), guard, `Missing Devnet guard near ${route}`);
+  assert.match(source.slice(at, at + 400), guard, `Missing Devnet guard near ${route}`);
 }
 routeGuard("url.pathname === '/api/devnet-metadata'", /solanaCluster\s*!==\s*'devnet'/);
-routeGuard("url.pathname === '/api/keeper/collect'", /solanaCluster\s*!==\s*'devnet'/);
-routeGuard("req.method === 'POST' && url.pathname === '/api/launches'", /solanaCluster\s*!==\s*'devnet'/);
+routeGuard("url.pathname === '/api/keeper/collect'", /solanaCluster\s*!==\s*'devnet'/, keeperRoutes);
+routeGuard("req.method === 'POST' && url.pathname === '/api/launches'", /solanaCluster\s*!==\s*'devnet'/, launchRoutes);
 routeGuard('if (creatorClaimMatch) {', /solanaCluster\s*!==\s*'devnet'/);
-routeGuard('if (tokenMarketMint) {', /solanaCluster\s*!==\s*'devnet'/);
+routeGuard('if (tokenMarketMint) {', /solanaCluster\s*!==\s*'devnet'/, marketRoutes);
 
 const mainnetFixture = {
   VITE_SOLANA_CLUSTER:'mainnet-beta', SOLANA_CLUSTER:'mainnet-beta', VITE_ALLOW_MAINNET:'false',

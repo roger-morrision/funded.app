@@ -56,11 +56,12 @@ assert.throws(() => readVerifiedBurnChecked(transaction, { fundedMint: mint, wal
 
 const appSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
 const serverSource = readFileSync(new URL('../server/index.mjs', import.meta.url), 'utf8');
+const listingSource = readFileSync(new URL('../server/routes/listing-payments.mjs', import.meta.url), 'utf8');
 const composeSource = readFileSync(new URL('../compose.preview.yml', import.meta.url), 'utf8');
 assert.match(appSource, /createBurnCheckedInstruction/);
 assert.match(appSource, /waitForSignatureConfirmation/);
 assert.match(appSource, /Solana RPC unavailable; \$FUNDED mint and balance could not be verified\./, 'Burn UI must explain RPC outages without exposing raw transport errors.');
-assert.match(serverSource, /verifyFundedBurn/);
+assert.match(listingSource, /verifyFundedBurn/);
 assert.match(serverSource, /process\.env\.FUNDED_TOKEN_MINT \|\| process\.env\.VITE_FUNDED_TOKEN_MINT/);
 assert.match(composeSource, /FUNDED_TOKEN_MINT: \$\{FUNDED_TOKEN_MINT:\?Missing Devnet FUNDED mint\}/);
 

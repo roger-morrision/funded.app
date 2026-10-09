@@ -1,3 +1,7 @@
+import { createKeeperCollectionRoutes } from './routes/keeper-collection.mjs';
+import { createListingPaymentsRoutes } from './routes/listing-payments.mjs';
+import { createLaunchRegistrationRoutes } from './routes/launch-registration.mjs';
+import { createSettlementRoutes } from './routes/settlement.mjs';
 import { createPublicReportsRoutes } from './routes/public-reports.mjs';
 import { createQuoteAssetsRoutes } from './routes/quote-assets.mjs';
 import { createDirectoryRoutes } from './routes/directory.mjs';
@@ -18,8 +22,8 @@ import { LAUNCH_TIER_USD, launchTierAmounts } from '../launch-tier-quote.js';
 import { createServer } from 'node:http';
 import { automaticRewardStatus } from './automatic-rewards.mjs';
 import { createAutomaticRewardStore } from './automatic-reward-store.mjs';
-import { DEVNET_GENESIS_HASH, readProgramDataEvidence, createAutomaticRewardChain } from './automatic-reward-chain.mjs';
-import { readCommunityReserveStatus } from './community-reserve-status.mjs';
+import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from './automatic-reward-chain.mjs';
+
 import { createCommunityClaimService } from './community-claim-service.mjs';
 import { indexCommunityClaims } from './community-claim-index.mjs';
 import { randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
@@ -31,11 +35,11 @@ import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction, VersionedTransaction, clusterApiUrl, sendAndConfirmTransaction } from '@solana/web3.js';
 
-import { buildSolClaimPolicy } from '../sol-claim-policy.js';
-import { buildFeeDistributionPolicy, settleCreatorFeeClaim } from '../distribution-policy.js';
-import { buildCommunityAirdropPolicy, fundedCommunityAirdropPolicy } from '../airdrop-policy.js';
-import { canonicalLaunchPolicy, launchPolicyStatement } from '../launch-policy-auth.js';
-import { verifyLaunchRouterReadiness } from './launch-router-readiness.mjs';
+
+
+
+
+
 import { createReferralCode, normalizeReferralCode, resolveReferralNetwork, resolveReferralUpline } from '../referral-program.js';
 import { deriveFeeRouter, deriveMintFeeRouter, verifyFeeRouterAccount, verifyMintFeeRouterAccount } from '../fee-router.js';
 import { OnlinePumpSdk, creatorVaultPda } from '@pump-fun/pump-sdk';
@@ -67,12 +71,12 @@ import { assertObservedClaim } from './claim-state.mjs';
 import { receiptWorkerStatus } from './receipt-worker-status.mjs';
 import { immutableLaunchReview, normalizeXIntake } from '../stonk-features.js';
 import { verifyPumpLaunch } from './launch-verification.mjs';
-import { verifyFundedBurn } from './burn-verification.mjs';
-import { readVerifiedListingMint } from './token-metadata.mjs';
-import { LISTING_BURN_TOKENS, listingBurnBaseUnits, listingMemo } from '../listing-policy.js';
-import { projectBurnMemo } from '../funded-burn.js';
-import { createLaunchBurnTiers } from '../launch-burn-policy.js';
-import { deriveXFeeObligation, reconcileXFeeObligation } from './x-fee-guard.mjs';
+
+
+import { LISTING_BURN_TOKENS } from '../listing-policy.js';
+
+
+import { deriveXFeeObligation } from './x-fee-guard.mjs';
 import { buildMintRouterSettlementInstruction, readMintClaimRecord } from './mint-router-payout.mjs';
 import { buybackQueue } from './buyback-executor.mjs';
 import { parseSignedMetadata, publicMetadata, metadataRecordOrigin } from './devnet-metadata.mjs';
@@ -81,7 +85,7 @@ import { devnetMetadataUri, normalizeDevnetMetadataOrigin, LEGACY_DEVNET_METADAT
 import { coinFeeOverview } from './coin-fee-overview.mjs';
 import { homeLaunchFeeIndex } from './home-launch-fee-index.mjs';
 import { buildMintCreatorFeeCollectionInstructions } from './pump-fee-collection.mjs';
-import { verifyWrappedSolRecoveryReceipt } from './wrapped-sol-recovery-receipt.mjs';
+
 import { rewardExperience } from './reward-experience.mjs';
 
 
@@ -744,6 +748,19 @@ const handleTokenMarketRoutes = createTokenMarketRoutes({
   route, store, clientKey, solanaRpcUrl, solanaCluster, respond: json,
 });
 
+const handleKeeperCollectionRoutes = createKeeperCollectionRoutes({
+  requireAuthorized, body, fetchPump, normalizePumpToken, store, automaticRewardStore, solToLamports, solanaCluster, collectPumpCreatorFees, feeRouterConfig, solanaRpcUrl, respond: json,
+});
+const handleListingPaymentsRoutes = createListingPaymentsRoutes({
+  body, fundedTokenMint, walletKey, store, solanaCluster, solanaRpcUrl, listingBurnAlreadyUsed, listingBurnTokens, respond: json,
+});
+const handleLaunchRegistrationRoutes = createLaunchRegistrationRoutes({
+  solanaCluster, body, store, xFeeReadiness, resolveXUser, fundedTokenMint, solanaRpcUrl, feeRouterConfig, walletSignature, routerAuthorityKeypair, id, invalidateReserveCache, registerAutomaticLaunch, respond: json,
+});
+const handleSettlementRoutes = createSettlementRoutes({
+  body, store, solanaCluster, walletKey, referralUplineForWallet, queueAutomaticSettlementRewards, respond: json,
+});
+
 async function handle(req, res) {
   const requestId = applyHttpPolicy(req, res);
   try {
@@ -1141,114 +1158,7 @@ async function handle(req, res) {
       return requested ? json(res, 202, requested) : json(res, 409, { error:'Claim state changed. Refresh and try again.' });
     }
     if (await handleTokenMarketRoutes(req, res, url, requestId)) return;
-    if (req.method === 'POST' && url.pathname === '/api/indexer/sync') {
-      if (!requireAuthorized(req, res)) return;
-      const input = await body(req); const mint = String(input.mint || '').trim();
-      if (!mint) return json(res, 400, { error: 'mint is required.' });
-      const items = await fetchPump('/coins', { offset: '0', limit: '100', sort: 'created_timestamp', order: 'DESC', includeNsfw: 'false' });
-      const token = items.map(normalizePumpToken).find(item => item?.mint === mint);
-      if (!token) return json(res, 404, { error: 'Mint was not returned by the Pump indexer provider.' });
-      const record = { ...token, chain: 'solana', source: 'pump.fun', indexedAt: new Date().toISOString() };
-      await store.update(state => { state.launches[mint] = { ...(state.launches[mint] || {}), ...record }; state.lastIndexedAt = record.indexedAt; return record; });
-      return json(res, 200, record);
-    }
-    if (req.method === 'GET' && url.pathname === '/api/keeper/collection-candidates') {
-      if (!requireAuthorized(req, res)) return;
-      const state = await store.read();
-      const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified && row.cluster === 'devnet' && row.pumpFeeRoute?.scope === 'per-mint-v2' && row.pumpFeeRoute.router === row.creator);
-      const rewards = await automaticRewardStore.read();
-      const pendingSettlements = Object.values(state.collections || {}).filter(row => {
-        if (row.status !== 'collected' || row.onchainVerified !== true || row.attribution !== 'mint-verified' || row.cluster !== 'devnet') return false;
-        const settlement = state.settlements?.[row.signature];
-        if (!settlement) return true;
-        return [
-          ['creator', settlement.creatorDestinations?.creatorWallet],
-          ['holders', settlement.creatorDestinations?.holderAirdrop],
-          ['x', settlement.creatorDestinations?.solClaim],
-          ['operations', settlement.fundedApp?.operations],
-          ['community', settlement.fundedApp?.community],
-        ].some(([kind, amount]) => BigInt(solToLamports(amount)) > 0n && !rewards.fundingRequests?.[`${row.signature}:${kind}`]);
-      }).map(row => row.signature);
-      return json(res, 200, { cluster:solanaCluster, minimumCollectionLamports:'10000000', mints:launches.map(row => ({ mint:row.mint, collectionStatus:state.alerts?.[`fee-collect:${row.mint}`]?.status || null })), pendingSettlements });
-    }
-    if (req.method === 'POST' && url.pathname === '/api/keeper/collect') {
-      if (!requireAuthorized(req, res)) return;
-      const input = await body(req); const mint = String(input.mint || '').trim();
-      if (!mint) return json(res, 400, { error: 'mint is required.' });
-      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Automatic fee collection is Solana only.' });
-      let mintKey;
-      try { mintKey = new PublicKey(mint).toBase58(); } catch { return json(res, 400, { error:'A valid mint is required.' }); }
-      const started = await store.update(state => {
-        const key = `fee-collect:${mintKey}`;
-        if (state.alerts?.[key] && !['complete','nothing-to-collect','no-fees'].includes(state.alerts[key].status)) return false;
-        state.alerts ||= {};
-        state.alerts[key] = { mint:mintKey, status:'executing', startedAt:new Date().toISOString() };
-        return true;
-      });
-      if (!started) return json(res, 409, { error:'A previous fee collection needs operator reconciliation before retry.' });
-      let result;
-      try { result = await collectPumpCreatorFees({ requestedMint: mintKey }); }
-      catch (error) {
-        await store.update(state => { state.alerts[`fee-collect:${mintKey}`] = { ...state.alerts[`fee-collect:${mintKey}`], status:'review-required', reason:String(error.message || error).slice(0, 240) }; });
-        throw error;
-      }
-      await store.update(state => {
-        const recordedAt = new Date().toISOString();
-        if (result.signature) state.collections[result.signature] = { id: result.signature, ...result, recordedAt };
-        state.alerts[`fee-collect:${mintKey}`] = { ...state.alerts[`fee-collect:${mintKey}`], status:result.onchainVerified && result.status === 'collected' ? 'complete' : result.status === 'nothing-to-collect' || result.status === 'no-fees' ? result.status : 'review-required', signature:result.signature || null, recordedAt };
-        if (result.onchainVerified && result.status === 'collected') {
-          Object.assign(result, reconcileXFeeObligation(state, { mint:result.mint, claimSignature:result.signature, createdAt:recordedAt }));
-          state.collections[result.signature] = { ...state.collections[result.signature],
-            ...(result.obligationStatus ? { obligationStatus:result.obligationStatus } : {}),
-            ...(result.obligationError ? { obligationError:result.obligationError } : {}) };
-        }
-        return result;
-      });
-      return json(res, 200, result);
-    }
-    if (req.method === 'POST' && url.pathname === '/api/keeper/reconcile-wrapped-sol') {
-      if (!requireAuthorized(req, res)) return;
-      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Wrapped SOL reconciliation is Solana only.' });
-      const input = await body(req);
-      let mint;
-      try { mint = new PublicKey(String(input.mint || '')).toBase58(); }
-      catch { return json(res, 400, { error:'A valid mint is required.' }); }
-      const signature = String(input.signature || '');
-      if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature)) return json(res, 400, { error:'A valid recovery signature is required.' });
-      const config = feeRouterConfig();
-      const launch = await store.readLaunch(mint);
-      if (!config || !launch?.onchainVerified || launch.cluster !== solanaCluster || launch.pumpFeeRoute?.scope !== 'per-mint-v2')
-        return json(res, 409, { error:'A verified mint-router launch is required.' });
-      const connection = new Connection(solanaRpcUrl, 'finalized');
-      if (await connection.getGenesisHash() !== 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')
-        return json(res, 409, { error:'Configured RPC failed verification.' });
-      const router = deriveMintFeeRouter(config.programId, new PublicKey(mint));
-      if (launch.creator !== router.address.toBase58()) return json(res, 409, { error:'Launch router mismatch.' });
-      const tx = await connection.getTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
-      const proof = verifyWrappedSolRecoveryReceipt({ transaction:tx, signature, mint,
-        router:router.address.toBase58(), programId:config.programId.toBase58() });
-      if (!proof) return json(res, 409, { error:'Finalized mint-router wrapped SOL recovery proof is missing or invalid.' });
-      const recorded = await store.update(state => {
-        if (state.collections[signature]) return null;
-        const recordedAt = new Date().toISOString();
-        const collection = { id:signature, signature, requestedMint:mint, mint, attribution:'mint-verified',
-          onchainVerified:true, router:router.address.toBase58(), programId:config.programId.toBase58(),
-          collectionMethod:'wrapped-sol-recovery', wrappedSolAccount:proof.wrappedSolAccount,
-          collectedLamports:proof.collectedLamports, rentRefundLamports:proof.rentRefundLamports,
-          cluster:solanaCluster, status:'collected', recordedAt };
-        state.collections[signature] = collection;
-        try {
-          const obligation = deriveXFeeObligation(state, { mint, claimSignature:signature });
-          state.obligations[obligation.id] ||= { ...obligation, createdAt:recordedAt };
-        } catch (error) {
-          collection.obligationStatus = 'reconciliation-required';
-          collection.obligationError = String(error.message || error);
-        }
-        return collection;
-      });
-      if (!recorded) return json(res, 409, { error:'Recovery signature was already reconciled.' });
-      return json(res, 200, { ...recorded, proof });
-    }
+    if (await handleKeeperCollectionRoutes(req, res, url, requestId)) return;
     if (await handleReferralIdentityRoutes(req, res, url, requestId)) return;
     if (req.method === 'POST' && url.pathname === '/api/shares/visit') {
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Visit origin is not allowed.' });
@@ -1309,232 +1219,9 @@ async function handle(req, res) {
       return json(res, 201, record);
     }
 
-    if (req.method === 'POST' && url.pathname === '/api/burn-receipts') {
-      const input = await body(req);
-      const configuredMint = fundedTokenMint;
-      if (!configuredMint) return json(res, 503, { error: 'The protocol $FUNDED mint is not configured.' });
-      let burnWallet;
-      try { burnWallet = walletKey(input.wallet); } catch { return json(res, 400, { error: 'A valid burn wallet is required.' }); }
-      const signature = String(input.signature || '').trim();
-      const projectMint = String(input.projectMint || '').trim() || null;
-      const state = await store.read();
-      const existing = state.burnReceipts?.[signature];
-      if (existing) {
-        if (existing.wallet !== burnWallet || existing.projectMint !== projectMint) return json(res, 409, { error: 'This burn signature is already indexed with different attribution.' });
-        return json(res, 200, existing);
-      }
-      if (projectMint) {
-        try { new PublicKey(projectMint); } catch { return json(res, 400, { error: 'The selected project mint is invalid.' }); }
-        const project = state.launches?.[projectMint];
-        if (!project?.onchainVerified || project.cluster !== solanaCluster) return json(res, 409, { error: 'Project attribution requires a verified launch on this cluster.' });
-        if (project.creatorWallet !== burnWallet) return json(res, 403, { error: 'Only the verified project creator can attribute this burn.' });
-      }
-      let proof;
-      try {
-        proof = await verifyFundedBurn({ connection: new Connection(solanaRpcUrl, 'confirmed'), signature, fundedMint: configuredMint, wallet: burnWallet,
-          amountBaseUnits: input.amountBaseUnits, expectedMemo: projectMint ? projectBurnMemo(projectMint) : null });
-      } catch (error) { return json(res, 409, { error: error.message || 'The burn transaction could not be verified.' }); }
-      const receipt = {
-        id: `burn:${signature}`, signature, cluster: solanaCluster, wallet: burnWallet,
-        fundedMint: configuredMint, projectMint, instruction: 'BurnChecked', tokenProgram: proof.tokenProgram,
-        tokenAccount: proof.tokenAccount, amountBaseUnits: proof.amountBaseUnits, decimals: proof.decimals,
-        amountTokens: Number(proof.amountBaseUnits) / (10 ** proof.decimals), supplyAfterBaseUnits: proof.supplyAfterBaseUnits,
-        slot: proof.slot, blockTime: proof.blockTime, status: 'verified', onchainVerified: true, verifiedAt: proof.verifiedAt,
-      };
-      const saved = await store.update(current => {
-        current.burnReceipts ||= {};
-        const prior = current.burnReceipts[signature];
-        if (prior && (prior.wallet !== burnWallet || prior.projectMint !== projectMint)) throw invalidRequest('This burn signature already has different attribution.');
-        current.burnReceipts[signature] ||= receipt;
-        return current.burnReceipts[signature];
-      });
-      return json(res, 201, saved);
-    }
-
-    if (req.method === 'POST' && url.pathname === '/api/listings') {
-      if (solanaCluster !== 'devnet' || !fundedTokenMint) return json(res, 503, { error: 'Paid listings require a configured Solana $FUNDED mint.' });
-      const input = await body(req);
-      let mint, burnWallet;
-      try { mint = new PublicKey(String(input.mint || '')).toBase58(); burnWallet = walletKey(input.wallet); }
-      catch { return json(res, 400, { error: 'A valid token mint and paying wallet are required.' }); }
-      const signature = String(input.signature || '').trim();
-      if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature)) return json(res, 400, { error: 'A confirmed burn signature is required.' });
-      const priorState = await store.read();
-      const existing = priorState.listings?.[mint];
-      if (existing) return existing.signature === signature && existing.wallet === burnWallet
-        ? json(res, 200, existing) : json(res, 409, { error: 'This mint has already been listed with another payment.' });
-      if (listingBurnAlreadyUsed(priorState, signature))
-        return json(res, 409, { error: 'This burn signature has already been used.' });
-      const rpc = new Connection(solanaRpcUrl, 'finalized');
-      let proof, listingMetadata;
-      try {
-        if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH)
-          return json(res, 503, { error: 'Listing payments require a Solana RPC.' });
-        const [trustedLaunch, signedMetadata] = await Promise.all([store.readLaunch(mint), store.readMetadata(mint)]);
-        listingMetadata = await readVerifiedListingMint(rpc, mint, { trustedLaunch, signedMetadata });
-        const fundedSupply = await rpc.getTokenSupply(new PublicKey(fundedTokenMint), 'finalized');
-        const amountBaseUnits = listingBurnBaseUnits(fundedSupply.value.decimals, listingBurnTokens);
-        proof = await verifyFundedBurn({ connection: rpc, signature, fundedMint: fundedTokenMint, wallet: burnWallet,
-          amountBaseUnits: amountBaseUnits.toString(), expectedMemo: listingMemo(mint) });
-      } catch (error) { return json(res, 409, { error: error.message || 'The listing payment could not be verified on Solana.' }); }
-      const record = { mint, name:listingMetadata.name, symbol:listingMetadata.symbol, wallet: burnWallet, cluster: 'devnet', signature,
-        fundedMint: fundedTokenMint, amountBaseUnits: proof.amountBaseUnits, amountTokens: listingBurnTokens,
-        slot: proof.slot, status: 'listed', onchainVerified: true, metadataSource:listingMetadata.source,
-        metadataAddress:listingMetadata.address, listedAt: proof.verifiedAt };
-      try {
-        const saved = await store.update(state => {
-          state.listings ||= {};
-          const prior = state.listings[mint];
-          if (prior) {
-            if (prior.signature !== signature || prior.wallet !== burnWallet) throw new Error('This mint has already been listed.');
-            return prior;
-          }
-          if (listingBurnAlreadyUsed(state, signature))
-            throw new Error('This burn signature has already been used.');
-          state.listings[mint] = record;
-          return record;
-        });
-        return json(res, saved === record ? 201 : 200, saved);
-      } catch (error) { return json(res, 409, { error: error.message || 'This listing could not be indexed.' }); }
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/launch-reserve-config') {
-      if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE)
-        return json(res, 503, { error:'Atomic Solana community reserve is not configured.' });
-      return json(res, 200, { cluster:'devnet', authority:process.env.FUNDED_REWARD_AUTHORITY,
-        programId:process.env.FUNDED_FEE_ROUTER_PROGRAM_ID,
-        lookupTable:process.env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE });
-    }
-    if (req.method === 'POST' && url.pathname === '/api/launches') {
-      if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Coin launching is unavailable for this configuration. No launch policy was registered.' });
-      const input = await body(req); if (!input.mint || input.chain !== 'solana' || input.cluster !== solanaCluster) return json(res, 400, { error: 'A Solana launch on the configured cluster is required.' });
-      const policy = validateInput(() => canonicalLaunchPolicy(input));
-      const existingLaunch = await store.readLaunch(policy.mint);
-      if (!existingLaunch && policy.xUserId && (await store.read()).creatorProfiles?.[policy.xUserId]?.optedOut) return json(res, 409, { error: 'This creator has opted out of new support launches. Existing entitlements are unchanged.' });
-      const xLinked = policy.solClaimPercent > 0;
-      const perMint = input.pumpFeeRoute?.scope === 'per-mint-v2';
-      if (!existingLaunch && !perMint) return json(res, 409, { error: 'New launches require a mint-specific fee router for attributable automatic rewards.' });
-      if (xLinked && !(await xFeeReadiness()).ready) return json(res, 503, { error: 'X fee claims are not operational on Solana yet.' });
-      if (xLinked && (await resolveXUser(policy.xRecipient)).id !== policy.xUserId) return json(res, 409, { error: 'The X account ID changed since launch preparation; registration is blocked.' });
-      const promotionClaim = input.creatorLaunchBurn || null;
-      const paidClaim = promotionClaim && promotionClaim.tier !== 'standard';
-      const promotionQuote = paidClaim && promotionClaim.quoteId
-        ? (await store.read()).launchTierQuotes?.[String(promotionClaim.quoteId)] : null;
-      if (paidClaim && !existingLaunch && (!promotionQuote
-        || promotionQuote.tier !== promotionClaim.tier || promotionQuote.payer !== policy.creatorWallet
-        || promotionQuote.fundedMint !== fundedTokenMint || promotionQuote.amountTokens !== promotionClaim.amountTokens))
-        return json(res, 409, { error:'A saved $FUNDED launch quote matching this wallet and burn is required.' });
-      const promotionTiers = createLaunchBurnTiers({
-        boostAmount:Number(process.env.VITE_FUNDED_BOOST_BURN_AMOUNT || 25_000),
-        proAmount:Number(process.env.VITE_FUNDED_PRO_BURN_AMOUNT || 100_000),
-        premierAmount:Number(process.env.VITE_FUNDED_PREMIER_BURN_AMOUNT || 250_000),
-      });
-      const proof = await verifyPumpLaunch({ connection: new Connection(solanaRpcUrl, 'confirmed'), mint: input.mint, signature: input.signature || input.pumpFeeRoute?.transaction,
-        promotionClaim, promotionQuote, fundedMint: fundedTokenMint, promotionTiers });
-      const preparedMetadata = await store.readMetadata(proof.mint);
-      const preparedMetadataUri = devnetMetadataUri(proof.mint, metadataRecordOrigin(preparedMetadata));
-      if (input.metadataUri && input.metadataUri !== preparedMetadataUri) return json(res, 409, { error: 'Launch metadata URL does not match the mint.' });
-      if (input.metadataUri && !preparedMetadata) return json(res, 409, { error: 'Signed Devnet metadata is missing.' });
-      if (preparedMetadata && (preparedMetadata.creatorWallet !== proof.feePayer || preparedMetadata.name !== proof.name || preparedMetadata.symbol !== proof.symbol || (proof.uri && proof.uri !== preparedMetadataUri))) return json(res, 409, { error: 'Signed metadata does not match the confirmed Pump launch.' });
-      const routerConfig = feeRouterConfig();
-      const routeReadiness = await verifyLaunchRouterReadiness({ connection: new Connection(solanaRpcUrl, 'confirmed'), routerConfig, mint: proof.mint, perMint });
-      if (!routeReadiness.ready) return json(res, routeReadiness.status, { error: routeReadiness.error });
-      const configuredRouter = routeReadiness.configuredRouter;
-      if (policy.creatorWallet !== proof.feePayer || policy.feeRouter !== proof.creator || policy.feeRouter !== configuredRouter) return json(res, 409, { error: 'Launch payer or Pump fee owner does not match the signed router policy.' });
-      const signature = walletSignature(input.policySignature);
-      if (!nacl.sign.detached.verify(new TextEncoder().encode(launchPolicyStatement(input)), signature, new PublicKey(policy.creatorWallet).toBytes())) return json(res, 401, { error: 'Creator wallet signature for this launch policy is invalid.' });
-      let verifiedReserve = null;
-      if (!existingLaunch) {
-        const authority = routerAuthorityKeypair();
-        const requiredAuthority = String(process.env.FUNDED_REWARD_AUTHORITY || '');
-        if (!authority || authority.publicKey.toBase58() !== requiredAuthority || !process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256)
-          return json(res, 503, { error:'Community vault authority is unavailable. The coin cannot be registered as a funded airdrop.' });
-        const reserveConnection = new Connection(solanaRpcUrl, 'finalized');
-        const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID);
-        const [genesis, programEvidence] = await Promise.all([reserveConnection.getGenesisHash(), readProgramDataEvidence(reserveConnection, programId)]);
-        if (genesis !== DEVNET_GENESIS_HASH || !programEvidence.account?.executable
-          || programEvidence.sha256 !== process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256.toLowerCase())
-          return json(res, 503, { error:'The approved Solana reward program could not be verified.' });
-        const chain = createAutomaticRewardChain({ connection:reserveConnection, programId, authority,
-          expectedProgramDataSha256:process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
-        await chain.ensureVault(proof.mint);
-        const allocation = buildCommunityAirdropPolicy({ allocationPercent:policy.communityAllocation, supply:1_000_000_000 });
-        verifiedReserve = await readCommunityReserveStatus({ connection:reserveConnection, programId,
-          authority:requiredAuthority, fundingAuthority:proof.feePayer, mint:proof.mint,
-          reservedTokens:allocation.reservedTokens, fundingSignature:proof.signature });
-        if (!verifiedReserve.verified || verifiedReserve.status !== 'funded' || verifiedReserve.fundingSignature !== proof.signature)
-          return json(res, 422, { error:'Launch transaction did not fund the exact community reserve in the reward vault.', reserve:verifiedReserve });
-      }
-      const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent: policy.creatorWalletPercent, holderAirdropPercent: policy.holderAirdropPercent, solClaimPercent: policy.solClaimPercent, xRecipient: policy.xRecipient, feeRouterAddress: configuredRouter });
-      const record = {
-        ...proof, cluster: solanaCluster, creatorWallet: proof.feePayer,
-        ...(preparedMetadata ? { metadataUri: preparedMetadataUri, description: preparedMetadata.description, imageUri: publicMetadata(preparedMetadata).image, website: preparedMetadata.website, twitter: preparedMetadata.x, telegram: preparedMetadata.telegram, discord: preparedMetadata.discord } : {}),
-        communityAllocation: policy.communityAllocation,
-        ...(xLinked ? { xUserId: policy.xUserId } : {}),
-        communityAirdrop: verifiedReserve
-          ? fundedCommunityAirdropPolicy({ allocationPercent:policy.communityAllocation, supply:1_000_000_000,
-            receipt:{ atomic:true, signature:proof.signature, vault:verifiedReserve.vault, fundedTokens:Number(verifiedReserve.fundedTokens) } })
-          : buildCommunityAirdropPolicy({ allocationPercent: policy.communityAllocation, supply: 1_000_000_000 }),
-        ...(verifiedReserve ? { communityReserve:{ vault:verifiedReserve.vault, tokenAccount:verifiedReserve.tokenAccount,
-          fundingSignature:proof.signature, fundedTokens:verifiedReserve.fundedTokens, verified:true, atomicWithPumpLaunch:true } } : {}),
-        feeDistribution,
-        solClaim: { ...buildSolClaimPolicy({ handle: policy.xRecipient, percent: policy.solClaimPercent, feeRouterAddress: configuredRouter }), forwardingStatus: xLinked ? 'awaiting-mint-verified-collection' : 'not-selected' },
-        pumpFeeRoute: { percent: 100, router: proof.creator, scope: perMint ? 'per-mint-v2' : 'shared-legacy', verified: true, transaction: proof.signature },
-        policyStatement: launchPolicyStatement(input), policySignature: String(input.policySignature),
-        id: id('launch'), updatedAt: new Date().toISOString(),
-      };
-      const saved = await store.update(state => {
-        const existing = state.launches[record.mint];
-        if (existing) {
-          if (existing.policyStatement !== record.policyStatement) throw invalidRequest('An immutable launch policy already exists for this mint.');
-          return existing;
-        }
-        if (record.xUserId && state.creatorProfiles?.[record.xUserId]?.optedOut) throw invalidRequest('This creator opted out during verification. Registration is blocked.');
-        state.launches[record.mint] = record;
-        if (verifiedReserve) {
-          state.communityReserveReceipts ||= {};
-          state.communityReserveReceipts[record.mint] = { signature:proof.signature,
-            creatorWallet:proof.feePayer, recordedAt:new Date().toISOString() };
-        }
-        return record;
-      });
-      invalidateReserveCache();
-      let automaticRewards = { status:'registered' };
-      try { await registerAutomaticLaunch(saved); }
-      catch (error) { automaticRewards = { status:'unavailable', reason:String(error.message || error) }; }
-      return json(res, 201, { ...saved, automaticRewards });
-    }
-
-    if (req.method === 'POST' && url.pathname === '/api/settlements/claims') {
-      const input = await body(req); const signature = String(input.claimSignature || '').trim(); if (!signature) return json(res, 400, { error: 'claimSignature is required.' });
-      const result = await store.update(state => {
-        if (state.settlements[signature]) return state.settlements[signature];
-        const collection = state.collections?.[signature];
-        if (!collection || collection.signature !== signature || collection.status !== 'collected' || collection.attribution !== 'mint-verified'
-          || collection.cluster !== solanaCluster || !collection.mint || !Number.isSafeInteger(Number(collection.collectedLamports))
-          || Number(collection.collectedLamports) <= 0) throw invalidRequest('A positive, mint-verified collection on the configured cluster is required.');
-        const launch = state.launches?.[collection.mint];
-        const shares = launch?.feeDistribution?.creatorDirected?.shares;
-        if (!launch?.onchainVerified || launch.cluster !== solanaCluster || !launch.creatorWallet || !shares) throw invalidRequest('A verified launch with an immutable fee policy is required.');
-        const creatorWallet = walletKey(launch.creatorWallet);
-        const policy = { ...shares, xRecipient: launch.feeDistribution.creatorDirected.recipients?.xAccount || null };
-        const grossCreatorFees = Number(collection.collectedLamports) / 1_000_000_000;
-        const referralRecipients = referralUplineForWallet(state, creatorWallet);
-        const settlement = settleCreatorFeeClaim({ claimSignature: signature, grossCreatorFees, asset: 'SOL', claimedAt: collection.recordedAt }, policy, { referralRecipients, fixedFunded: launch.feeDistribution.fixedFunded });
-        settlement.creatorWallet = creatorWallet;
-        settlement.referralResolution = { source: 'server-referral-graph', directInviter: referralRecipients[0] || null, depth: referralRecipients.length };
-        state.settlements[signature] = settlement;
-        settlement.fundedApp.referralClaims = settlement.fundedApp.referralLevels
-          .filter(level => level.recipient && level.status === 'claimable')
-          .map(level => ({ level: level.level, recipient: level.recipient, amount: level.amount, status: 'claimable' }));
-        return settlement;
-      });
-      let automaticRewards = { status:'queued' };
-      try { await queueAutomaticSettlementRewards(result); }
-      catch (error) { automaticRewards = { status:'queue-failed', reason:String(error.message || error) }; }
-      return json(res, 201, { ...result, automaticRewards });
-    }
-
+    if (await handleListingPaymentsRoutes(req, res, url, requestId)) return;
+    if (await handleLaunchRegistrationRoutes(req, res, url, requestId)) return;
+    if (await handleSettlementRoutes(req, res, url, requestId)) return;
     if (req.method === 'POST' && url.pathname === '/api/referral-claims/prepare') {
       const input = await body(req);
       const settlementSignature = String(input.settlementSignature || '').trim();

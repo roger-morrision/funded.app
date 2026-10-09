@@ -9,8 +9,9 @@ assert.throws(() => listingBurnBaseUnits(6, LISTING_BURN_TOKENS + 1n), /Unsuppor
 assert.equal(listingMemo('Mint'), 'funded.vip:list:Mint');
 const client = await readFile(new URL('../list-page.js', import.meta.url), 'utf8');
 const server = await readFile(new URL('../server/index.mjs', import.meta.url), 'utf8');
+const listingRoutes = await readFile(new URL('../server/routes/listing-payments.mjs', import.meta.url), 'utf8');
 assert.match(client, /configuredBurnTokens/);
 assert.match(client, /listingBurnBaseUnits\(funded\.decimals, amountTokens\)/);
 assert.match(server, /devnetTestMode.*configuredQaListingBurn/s);
-assert.match(server, /listingBurnBaseUnits\(fundedSupply\.value\.decimals, listingBurnTokens\)/);
+assert.match(listingRoutes, /listingBurnBaseUnits\(fundedSupply\.value\.decimals, listingBurnTokens\)/);
 console.log('listing policy checks passed');

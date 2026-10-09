@@ -48,6 +48,10 @@ wallet credentials, fetch data, or submit transactions.
 | `server/routes/directory.mjs` | Launch pagination, creator profiles, listings, and burn leaderboards |
 | `server/routes/quote-assets.mjs` | Verified quote asset catalog and its own cache |
 | `server/routes/token-market.mjs` | Token accounts and trade history with per-router caches, concurrency, and rate limits |
+| `server/routes/launch-registration.mjs` | Signed launch policy, router proof, community reserve verification, and reward registration |
+| `server/routes/listing-payments.mjs` | Burn receipt attribution and paid listing verification with replay protection |
+| `server/routes/keeper-collection.mjs` | Authorized indexing, fee collection locks, and wrapped SOL reconciliation |
+| `server/routes/settlement.mjs` | Evidence-derived fee allocation and automatic reward queue handoff |
 | `server/postgres/` | Ledger migration/projections and domain repositories for claims, receipts, creators, accounts, and assets |
 
 The root `page-experience.css`, `ansem-pages.css`, `styles.css`, `coin-detail.css`,
@@ -210,3 +214,19 @@ wallet-change checks intact when extracting controllers.
 - The three legacy file exceptions and the existing browser bundle-size warning
   remain; further controller and HTML template extraction is still needed.
 - The launch package browser regression passes at 320, 390, 768, and 1440px with mocked APIs, using the current description and preview disclosures and two-step form.
+
+## Write route extraction — October 9, 2026
+
+- Extracted four write route families; the server entry file shrank from 1,797
+  to 1,484 lines (145,236 to 118,748 normalized bytes).
+- Kept transaction locks, immutable policy checks, receipt attribution, and
+  post-write reward handoffs together inside their owning route modules.
+- All nine moved route statements match their original syntax trees, except
+  authorization denials now return the dispatcher handled signal after responding.
+- All 26 focused module tests pass, including blocked replay after an uncertain
+  collection, burn/listing receipt attribution, launch gates, evidence-derived
+  settlement amounts, queue failure recovery, and settlement replay.
+- The isolated referral HTTP integration passes with ephemeral keys and disabled
+  payout execution. The critical verification suite and source size checks pass.
+- These checks do not execute on-chain transactions. The three legacy size
+  exceptions remain; new runtime modules retain the 500-line / 40-KiB limit.
