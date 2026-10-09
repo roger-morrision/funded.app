@@ -51,6 +51,7 @@ test('connected wallet can check its airdrop card without a misleading connect p
   const card = page.locator('.airdrop-directory-card');
   await expect(card).toContainText('Connect to check');
   await page.locator('#connect-button').click();
+  await page.locator('[data-wallet-choice="phantom"]').click();
   await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
   await expect(card).toContainText('Check allocation');
   expect(proofRequests).toBe(0);

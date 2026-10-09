@@ -54,6 +54,7 @@ test('Phantom stays connected after reload and explicit disconnect stays disconn
   await page.goto('/#payments');
   await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state', 'ready');
   await page.locator('#connect-button').click();
+  await page.locator('[data-wallet-choice="phantom"]').click();
   await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
   await expect.poll(() => page.evaluate(() => JSON.parse(sessionStorage.getItem('qa.phantom.calls') || '[]')))
     .toEqual(['trusted', 'prompt']);
@@ -72,6 +73,7 @@ test('Phantom stays connected after reload and explicit disconnect stays disconn
   expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem('qa.phantom.calls')))).toEqual(['trusted', 'prompt', 'trusted']);
 
   await page.locator('#connect-button').click();
+  await page.locator('[data-wallet-choice="phantom"]').click();
   await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
   expect(await page.evaluate(() => localStorage.getItem('funded.app.wallet.manual-disconnect'))).toBeNull();
 });
@@ -115,6 +117,7 @@ test('reloading a connected wallet never signs for referral access in the backgr
   await installPhantomFixture(page);
   await page.goto('/#referrals');
   await page.locator('#connect-button').click();
+  await page.locator('[data-wallet-choice="phantom"]').click();
   await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
   await expect(page.locator('#referral-claim-center button')).toHaveText('Verify wallet to view');
   expect(await page.evaluate(() => Number(sessionStorage.getItem('qa.phantom.signatures') || 0))).toBe(0);

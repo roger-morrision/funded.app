@@ -76,8 +76,10 @@ test('wallet cancellation retries and account/network changes clear launch conse
   await page.goto('/#launch');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await page.locator('#connect-button').click();
+  await page.locator('[data-wallet-choice="phantom"]').click();
   await expect(page.locator('#launch-status')).toContainText('User rejected');
   await page.locator('#connect-button').click();
+  await page.locator('[data-wallet-choice="phantom"]').click();
   await expect(page.locator('#launch-status')).toContainText('Ready to sign');
   await expect(page.locator('#header-wallet-balance')).toBeVisible();
   for (const event of ['chainChanged', 'accountChanged']) {
