@@ -1,0 +1,16 @@
+
+/* Paid launch promotion: displayed only for server-verified atomic burn receipts. */
+.promotion-badge{display:inline-flex;align-items:center;justify-content:center;flex:none;gap:4px;padding:4px 8px;border:1px solid;border-radius:6px;font:700 9px 'DM Mono',monospace;letter-spacing:.25px;line-height:1.25;text-decoration:none;white-space:nowrap}
+.promotion-badge--boost{color:#9de7ef;border-color:#317c89;background:#103239}
+.promotion-badge--pro{color:#d6b5ff;border-color:#7952aa;background:#2c1b46}
+.promotion-badge--premier{color:#ffe1a0;border-color:#ac8236;background:linear-gradient(130deg,#493018,#352919)}
+.promotion-badge:is(a):hover,.promotion-badge:is(a):focus-visible{filter:brightness(1.22);text-decoration:underline}
+.asset-status:has(.promotion-badge){flex-wrap:wrap;justify-content:flex-start}
+.asset-status .promotion-badge{margin-left:auto}
+.home-launch-card-top:has(.promotion-badge){flex-wrap:wrap}
+.creator-launch-link .promotion-badge{align-self:center}
+.coin-title-row{flex-wrap:wrap}
+#coin-promotion-badge[hidden]{display:none}
+.unavailable-note{margin:3px 0 12px;color:#9ba9bc;font-size:11px;line-height:1.5}
+.segmented button:disabled,.text-button:disabled{opacity:.48;cursor:not-allowed}
+.segmented button:disabled:hover,.text-button:disabled:hover{background:inherit;color:inherit}

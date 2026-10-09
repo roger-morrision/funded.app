@@ -1,0 +1,61 @@
+
+/* Market-intelligence controls and signal cards */
+.filter-select{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:6px;background:#11161e;color:#788394;padding:5px 8px;font:10px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.4px}
+.filter-select select{border:0;outline:0;background:transparent;color:#c7cfdd;font:11px 'Manrope';cursor:pointer}
+.filter-select option{background:#11161e;color:#f3f6fa}
+.explore-market-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:-3px 0 15px}
+.explore-market-kpis span{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:7px;background:#10151d}
+.explore-market-kpis small{color:#758092;font-size:10px}.explore-market-kpis strong{font:500 12px 'DM Mono',monospace;color:var(--mint)}
+.asset-signal-row{display:flex;justify-content:space-between;color:#6f7b8d;font:9px 'DM Mono',monospace;margin-bottom:10px}.asset-signal-row b{color:#adb8c8;font-weight:500}.asset-status{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px}.asset-status .asset-meta{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.asset-status-badge{flex:none;padding:4px 6px;border:1px solid #9a6d36;border-radius:5px;background:#111b2e;color:#e9e1cf;font:8px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.25px}.asset-card .asset-name{min-height:34px;margin:18px 0 17px;line-height:1.45}.asset-card .asset-value{max-width:100%;font-size:15px;letter-spacing:-.2px}.asset-card .asset-change{color:#e9e1cf}.asset-card .asset-risk{padding-top:11px;border-top:1px solid #273142}.asset-card .asset-risk>span{max-width:calc(100% - 48px);line-height:1.35}
+.asset-risk{display:flex;justify-content:space-between;align-items:center;margin-top:10px;color:#758092;font-size:9px}.asset-risk button{border:0;background:none;color:#8da1ef;font:600 10px 'Manrope';cursor:pointer;padding:0}.asset-card.signal-high{border-color:#6d3f4b}.asset-card.signal-watch{border-color:#665a38}.asset-card.signal-normal{border-color:#273b3b}
+@media(max-width:700px){.explore-market-kpis{grid-template-columns:1fr}.filter-select{min-height:38px;white-space:nowrap}}
+.stonk-enhancement-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}.quote-asset-list,.terminal-signal-list{display:grid;gap:8px}.quote-asset-row,.terminal-signal-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line,#e6e8ed)}.quote-asset-row:first-child,.terminal-signal-row:first-child{border-top:0}.quote-asset-row>span:nth-child(2),.terminal-signal-row>span{display:grid;gap:3px;flex:1}.quote-asset-row small,.terminal-signal-row small{color:var(--muted,#737b88);font-size:.76rem}.terminal-signal-row>b{font-variant-numeric:tabular-nums;color:var(--accent,#176bff)}
+@media (max-width:760px){.stonk-enhancement-grid{grid-template-columns:1fr}}
+.launch-dialog .benefit-grid,.launch-dialog .preview-claim-split{grid-template-columns:repeat(2,minmax(0,1fr))}
+.onchain-report-empty{display:grid;place-items:center;min-height:115px;margin:0;border:0;background:transparent;text-align:center}.onchain-report-empty strong,.onchain-report-empty span{display:block}.onchain-report-empty strong{color:#aebbd0;font-size:10px}.onchain-report-empty span{margin-top:5px;color:#718096;font-size:8px;line-height:1.4}
+
+/* Keep dense controls readable across browsers and narrow viewports. */
+.trade-grid>div,.curve-monitor,.panel-heading>div{min-width:0}
+.trading-panel select,.trade-card select{appearance:none;color-scheme:dark;background-color:#171c25;color:var(--text);border:1px solid #35415a;border-radius:8px;padding:11px 36px 11px 12px;font:13px 'Manrope';line-height:1.2;background-image:linear-gradient(45deg,transparent 50%,#8795aa 50%),linear-gradient(135deg,#8795aa 50%,transparent 50%);background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.trading-panel select:focus,.trade-card select:focus{outline:0;border-color:#617bce;box-shadow:0 0 0 3px #8fb2f016}
+.curve-stats b,.curve-monitor small,.preview-status-drawer small{overflow-wrap:anywhere}
+.preview-status-drawer{max-width:calc(100vw - 32px);pointer-events:none}
+.preview-status-drawer a{pointer-events:auto}
+.preview-status-drawer>span:nth-child(2){min-width:0}
+.preview-status-drawer small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+button{font-family:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #8ea3ff;outline-offset:2px}
+.segmented button,.chart-tools button,.coin-tabs button,.trade-toggle button,.launch-steps button,.launch-tier-filters button{transition:background-color .18s ease,border-color .18s ease,color .18s ease}
+.segmented button:hover,.chart-tools button:hover,.coin-tabs button:hover,.trade-toggle button:hover,.launch-steps button:hover{background:#1c2740;color:#dce5ff}
+.launch-tier-filters button:hover{border-color:#637ac5;background:#1a2540;color:#dce5ff}
+button:disabled{cursor:not-allowed}
+@media(max-width:700px){.main-content{padding-bottom:92px}.trading-panel select,.trade-card select{min-height:44px}.curve-stats{gap:10px}.curve-stats b{font-size:13px}}
+
+.profile-dialog-row{align-items:flex-start;gap:18px}
+.profile-address-value{display:flex;align-items:flex-start;justify-content:flex-end;gap:8px;min-width:0;max-width:78%}
+.profile-address-value strong{overflow-wrap:anywhere;text-align:right}
+.copy-icon-button{flex:none;width:28px;height:28px;padding:0;border:1px solid #334158;border-radius:6px;background:#172033;color:#aebeff;font:16px 'Manrope';line-height:1;cursor:pointer}
+.copy-icon-button:hover{border-color:#6178bd;background:#202d48;color:#dce5ff}
+.profile-actions{display:flex;justify-content:flex-end;margin-top:12px}
+.payments-summary .payment-balance-head{gap:16px}
+.payments-summary .payment-balance-head>div{min-width:0}
+.payments-summary .payment-balance-head h2{line-height:1.2}
+.payments-summary .data-badge{flex:none}
+.payments-summary .panel-explainer{max-width:620px;margin:8px 0 18px;line-height:1.5}
+.payments-summary .balance-tabs{margin-top:0}
+.payments-summary .balance-facts{margin-top:18px}
+.onboarding-panel .section-heading{align-items:flex-start;gap:18px}
+.onboarding-panel .section-heading>div{min-width:0}
+.onboarding-panel .section-heading h2{margin-bottom:8px}
+.onboarding-panel .section-heading .panel-explainer{max-width:700px;margin:0;line-height:1.45}
+.onboarding-panel #onboarding-progress{flex:none;margin-top:1px;white-space:nowrap}
+@media(max-width:700px){.onboarding-panel .section-heading{display:block}.onboarding-panel #onboarding-progress{display:inline-block;margin-top:14px}}
+.stonk-enhancement-grid .panel-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:14px;margin-bottom:15px}
+.stonk-enhancement-grid .panel-heading>div{min-width:0}
+.stonk-enhancement-grid .panel-heading h2{line-height:1.2}
+.stonk-enhancement-grid .data-badge{max-width:145px;line-height:1.35;white-space:normal}
+.explore-page .asset-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 8px;align-items:start}
+.explore-page .asset-symbol{min-width:0}
+.explore-page .asset-meta{grid-column:1;grid-row:2;min-width:0;overflow-wrap:anywhere;line-height:1.35}
+.explore-page .watch-button{grid-column:2;grid-row:1 / span 2;align-self:start}
+@media(max-width:1100px) and (min-width:701px){.explore-page .asset-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}

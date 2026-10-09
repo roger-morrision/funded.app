@@ -1,0 +1,39 @@
+/* The index keeps the verified scanner as the dense, column based comparison view. */
+body.page-route-explore #explore { padding-top: 16px; }
+body.page-route-explore .explore-hero { min-height: 320px; margin: 28px 0 14px; padding: 38px; border: 1px solid var(--line); border-radius: 2px; background: linear-gradient(90deg,#0b1020f5 0%,#0b1020e0 31%,#0b102047 61%,#0b102018 100%),url('../../index-wolf-network.webp') center right / cover no-repeat; }
+body.page-route-explore .explore-hero h1 { font-size: clamp(46px,4.6vw,66px); line-height: .95; font-weight: 900; letter-spacing: -.065em; }
+body.page-route-explore .explore-hero > div:first-child { max-width: 560px; }
+body.page-route-explore .explore-hero .explore-lede { max-width: 510px; font-size: 13px; line-height: 1.7; }
+body.page-route-explore .explore-hero-disclosure { max-width: 510px; color: #a9b6af; line-height: 1.6; }
+@media (min-width: 701px) { body.page-route-explore .explore-hero-actions { display: none; } }
+body.page-route-explore #explore-ticker { display: none !important; }
+body.page-route-explore #explore-ticker .explore-ticker-heading { flex: 0 0 auto; margin: 0; }
+body.page-route-explore #explore-ticker .explore-ticker-window { flex: 1; min-width: 0; }
+body.page-route-explore #explore-ticker .explore-ticker-token { min-height: 44px; padding: 3px 8px; }
+body.page-route-explore .explore-hero .explore-lede { max-width: 620px; color: #aeb6bd; }
+body.page-route-explore .explore-hero-actions strong { color: #e8ecef; font: 500 22px 'DM Mono',monospace; }
+body.page-route-explore .explore-heading { margin: 0 0 6px; border-bottom: 1px solid var(--line); padding-bottom: 0; }
+body.page-route-explore .explore-heading h2 { font-size: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: -.04em; }
+body.page-route-explore .explore-heading .heading-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+body.page-route-explore .explore-heading .segmented { background: transparent; border: 1px solid var(--line); border-radius: 2px; }
+body.page-route-explore .explore-heading .segmented button,
+body.page-route-explore .explore-heading .workspace-watch-link { min-height: 36px; border-radius: 0; font: 700 10px 'DM Mono',monospace; letter-spacing: .06em; text-transform: uppercase; }
+body.page-route-explore .explore-heading .segmented button.active { background: #f4a340; color: #111b2e; }
+body.page-route-explore .explore-quick-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin: 8px 0; }
+body.page-route-explore .explore-quick-filters .explore-index-filters,
+body.page-route-explore .explore-quick-filters .explore-tier-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin: 0; }
+body.page-route-explore .explore-index-filters { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; margin: 8px 0 6px; }
+body.page-route-explore .index-filter { min-height: 37px; padding: 8px 12px; border: 1px solid #293238; border-radius: 2px; color: #8c99a3; background: #0d1115; cursor: pointer; font: 700 10px 'DM Mono',monospace; letter-spacing: .07em; text-transform: uppercase; }
+body.page-route-explore .index-filter:hover { color: #e6f4e8; border-color: #9a6d36; }
+body.page-route-explore .index-filter.active { color: #111b2e; background: #f4a340; border-color: #f4a340; }
+body.page-route-explore .explore-control-bar { margin-bottom: 0; padding: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+body.page-route-explore .explore-timeframe button.active,
+body.page-route-explore .explore-sort-buttons button.active { color: #f4a340; border-color: #9a6d36; background: #111b2e; }
+body.page-route-explore .explore-search-row input { border-radius: 2px; }
+body.page-route-explore .explore-pulse { gap: 1px; border: 1px solid var(--line); background: var(--line); border-radius: 2px; overflow: hidden; }
+body.page-route-explore .explore-pulse button { border: 0; border-radius: 0; background: #101419; }
+body.page-route-explore .explore-pulse button.active { border-color: #f4a340; background: #111b2e; }
+body.page-route-explore .asset-card,
+body.page-route-explore .explore-scanner { border-radius: 2px; background: #101419; border-color: var(--line); }
+body.page-route-explore .scanner-head { color: #7d8b95; background: #0d1115; font: 700 10px 'DM Mono',monospace; text-transform: uppercase; letter-spacing: .06em; }
+body.page-route-explore .launch-list > * { border-bottom: 1px solid var(--line); }

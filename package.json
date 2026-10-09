@@ -116,7 +116,7 @@
     "db:migrate": "node scripts/migrate-postgres.mjs",
     "db:import-legacy-collections": "node --env-file=.env.local scripts/import-legacy-collections.mjs",
     "deploy:init": "node scripts/init-local-deploy.mjs",
-    "check": "node scripts/check-source.mjs",
+    "check": "node scripts/check-source.mjs && npm run check:structure",
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
     "test:browser": "playwright test",
     "release:manifest": "node scripts/release-manifest.mjs",
@@ -128,7 +128,8 @@
     "verify:x-post-outbox": "node scripts/verify-x-post-outbox.mjs",
     "verify:x-post-cycle": "node scripts/verify-x-post-cycle.mjs",
     "verify:x-post-draft": "node scripts/verify-x-post-draft.mjs",
-    "verify:x-post-recovery": "node scripts/verify-x-post-recovery.mjs --run"
+    "verify:x-post-recovery": "node scripts/verify-x-post-recovery.mjs --run",
+    "check:structure": "node scripts/check-source-size.mjs"
   },
   "dependencies": {
     "@pump-fun/pump-sdk": "^2.0.0",

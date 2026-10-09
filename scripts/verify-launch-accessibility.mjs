@@ -1,3 +1,4 @@
+import { readStylesheet } from './read-stylesheet.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {focusLaunchStep} from '../launch-accessibility.js';
@@ -14,7 +15,7 @@ assert.match(html,/id="wizard-hint" role="status" aria-live="polite" aria-atomic
 assert.match(html,/id="launch-next" aria-describedby="wizard-hint"/);
 const app=await readFile(new URL('../app.js',import.meta.url),'utf8');
 const creatorSupportCss=await readFile(new URL('../creator-support.css',import.meta.url),'utf8');
-const styles=await readFile(new URL('../styles.css',import.meta.url),'utf8');
+const styles=await readStylesheet(new URL('../styles.css',import.meta.url));
 assert.match(app,/Fee-router verification is unavailable\. Check your connection before trying again\. Signing stays blocked until verification succeeds\./);
 assert.doesNotMatch(app,/status\.textContent = `Launch blocked: \$\{error\.message\}`/);
 assert.match(app,/function focusCurrentPageRoute\(\)/);

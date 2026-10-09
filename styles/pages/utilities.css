@@ -1,0 +1,31 @@
+/* Utility controls and evidence cards share the same neutral surfaces and green focus state. */
+body.page-route:not(.page-route-leaderboard) .source-note { border-color: #26354d; border-radius: 3px; background: #111b2e; color: #a7b9aa; }
+body.page-route:not(.page-route-leaderboard) .source-note strong { color: #e8f3e9; }
+body.page-route-privacy .safety-steps > div,
+body.page-route-docs .source-map-grid > div { border-color: #26354d; border-radius: 3px; background: #111b2e; }
+body.page-route-privacy .safety-steps strong,
+body.page-route-docs .source-map-grid strong { color: #e8f3e9; }
+body.page-route-privacy .safety-steps small,
+body.page-route-docs .source-map-grid small { color: #a7b9aa; }
+body.page-route-explore .scanner-token > .asset-icon { border-radius: 3px; background: #26354d; color: #b9e9c4; }
+body.page-route-explore .scanner-actions :is(.scanner-watch,.copy-row) { border-color: #26354d; border-radius: 2px; background: #111b2e; color: #bdeac7; }
+body.page-route-explore .scanner-actions :is(.scanner-watch,.copy-row):hover { border-color: #ffd28a; background: #26354d; color: #effff1; }
+body.page-route-explore .explore-social-links { display: inline-flex; align-items: center; gap: 4px; }
+body.page-route-explore .explore-social-link { display: grid; flex: 0 0 auto; place-items: center; width: 22px; height: 22px; min-height: 22px; padding: 3px; border: 1px solid #364660; border-radius: 2px; background: #111b2e; color: #bdeac7; text-decoration: none; }
+body.page-route-explore .explore-social-link svg { display: block; width: 13px; height: 13px; }
+body.page-route-explore .explore-social-link:hover { border-color: #ffd28a; background: #26354d; color: #fff0cd; }
+body.page-route-explore .explore-social-link:focus-visible { outline: 2px solid #ffd28a; outline-offset: 2px; }
+body.page-route-explore .asset-actions { flex-wrap: wrap; }
+body.page-route-explore .asset-actions .explore-social-links { flex: 1 0 100%; }
+body.page-route-explore .asset-actions .explore-social-link { flex: 0 0 26px; width: 26px; height: 26px; min-height: 26px; padding: 5px; }
+body.page-route-explore .asset-actions .explore-social-link svg { width: 14px; height: 14px; }
+body.page-route-launch .launch-steps button b { background: #111b2e; color: #adbcaf; }
+body.page-route-launch .launch-steps button.active b { background: #ffd28a; color: #111b2e; }
+body.page-route-launch .launch-steps button.complete b { background: #26354d; color: #b4e9c1; }
+body.page-route-launch .launch-dialog .image-picker:focus-within,
+body.page-route-launch .launch-dialog .image-picker-actions button:focus-visible { outline-color: #ffd28a; }
+body.page-route-launch .launch-dialog .image-picker-actions button { border-color: #26354d; border-radius: 3px; background: #111b2e; color: #c9ebd0; }
+body.page-route-launch .launch-dialog .image-picker-actions button:hover { border-color: #ffd28a; background: #26354d; color: #fff; }
+body.page-route-analytics-detail .recipients-panel .payment-row a { border-color: #26354d; border-radius: 3px; background: #111b2e; color: #bdeac7; }
+body.page-route-analytics-detail .recipients-panel .payment-row a:hover { border-color: #ffd28a; background: #26354d; color: #effff1; }
+body.page-route-analytics-detail .recipients-panel .payment-row a:focus-visible { outline-color: #ffd28a; }

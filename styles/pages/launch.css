@@ -1,0 +1,19 @@
+/* Keep the creation form and its live preview visible together on desktop. */
+@media (min-width: 1220px) {
+  body.page-route-launch #launch-route-shell { position: relative; padding-top: 22px; }
+  body.page-route-launch #launch-route-shell > h1 { font-size: clamp(44px,4.2vw,60px); line-height: .96; margin-bottom: 10px; }
+  body.page-route-launch #launch-route-shell > .page-lede { line-height: 1.55; }
+  body.page-route-launch #launch-route-shell .route-shell-actions { margin-top: 7px; }
+  body.page-route-launch #launch-dialog { margin-top: 7px; }
+  body.page-route-launch #launch-dialog .launch-page-back { position: static; margin-bottom: 18px; }
+  body.page-route-launch #launch-dialog .launch-steps { position: static; width: 100%; gap: 1px; margin: 0 0 16px; border: 1px solid var(--line); background: var(--line); }
+  body.page-route-launch #launch-dialog .launch-steps button { min-height: 34px; padding: 6px 12px; border: 0; border-radius: 0; background: #101419; font: 700 11px 'DM Mono',monospace; text-transform: uppercase; }
+  body.page-route-launch #launch-dialog .launch-steps button.active { background: #111b2e; box-shadow: inset 0 -2px #f4a340; }
+  body.page-route-launch #launch-dialog .launch-layout { gap: 16px; }
+  body.page-route-launch #launch-dialog .launch-tier-first { margin-bottom: 16px; padding-bottom: 16px; }
+  body.page-route-launch #launch-dialog .launch-tier-first .creator-burn-intro { margin-bottom: 12px; }
+  body.page-route-launch #launch-dialog .launch-tier-first .creator-burn-tiers { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  body.page-route-launch #launch-dialog .launch-tier-first .creator-burn-card { min-height: 112px; padding: 13px 10px; }
+  body.page-route-launch #launch-dialog .launch-tier-first .creator-burn-card strong { font-size: 12px; }
+  body.page-route-launch #launch-dialog .launch-tier-first .creator-burn-card small { font-size: 10px; }
+}

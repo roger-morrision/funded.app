@@ -3,6 +3,10 @@
 ## Current state
 This repository is already a substantial application with a Vite frontend, a Node API, PostgreSQL, Docker deployment, and multiple blockchain-oriented workflows. The major opportunity is not new features; it is reducing complexity while increasing security, observability, and production rigor.
 
+See [Code structure and file-size limits](code-structure.md) for implemented
+feature boundaries, ordered stylesheet modules, verification, and the remaining
+legacy files. The size check runs in `npm run check`.
+
 ## Target structure
 A safer modern layout should look like this:
 

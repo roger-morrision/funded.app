@@ -1,14 +1,16 @@
+import { readStylesheet } from './read-stylesheet.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [html, app, css, pageCss, pageExperience, creatorSupport] = await Promise.all([
+const [html, appEntry, css, pageCss, pageExperience, creatorSupport] = await Promise.all([
   readFile(new URL('../index.html', import.meta.url), 'utf8'),
   readFile(new URL('../app.js', import.meta.url), 'utf8'),
-  readFile(new URL('../styles.css', import.meta.url), 'utf8'),
-  readFile(new URL('../page-experience.css', import.meta.url), 'utf8'),
+  readStylesheet(new URL('../styles.css', import.meta.url)),
+  readStylesheet(new URL('../page-experience.css', import.meta.url)),
   readFile(new URL('../page-experience.js', import.meta.url), 'utf8'),
   readFile(new URL('../creator-support-ui.js', import.meta.url), 'utf8'),
 ]);
+const app = appEntry + (await Promise.all(['home/kpi-view.js', 'home/onchain-view.js', 'rewards/airdrop-view.js'].map(path => readFile(new URL(`../src/features/${path}`, import.meta.url), 'utf8')))).join('\n');
 const tradeReviewModel = await readFile(new URL('../trade-review-model.js', import.meta.url), 'utf8');
 const coinSummaryModel = await readFile(new URL('../coin-summary-model.js', import.meta.url), 'utf8');
 

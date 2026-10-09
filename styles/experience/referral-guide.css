@@ -1,0 +1,125 @@
+/* Home referral guide: explain the published three-level benefit and expose the live invite link. */
+.page-route-overview .home-referral-guide {
+  width: min(100%, 1180px);
+  margin: 0 auto 14px;
+  padding: clamp(22px, 3vw, 32px);
+  overflow: hidden;
+  border: 1px solid #34415a;
+  border-radius: 14px;
+  background: radial-gradient(circle at 100% 0, #5946c42b, transparent 35%), linear-gradient(145deg, #131b2a, #0f1621 68%);
+}
+.home-referral-guide-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+.home-referral-guide-head > div { max-width: 720px; }
+.home-referral-guide-head h2 {
+  margin: 6px 0 9px;
+  color: #f2f4fa;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.08;
+  letter-spacing: -1.25px;
+}
+.home-referral-guide-head > div > p:last-child {
+  margin: 0;
+  color: #98a6ba;
+  font-size: 11px;
+  line-height: 1.65;
+}
+.home-referral-guide-head .data-badge { flex: none; color: #e9e1cf; border-color: #9a6d36; background: #111b2e; }
+.home-referral-guide-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(270px, .75fr);
+  gap: 12px;
+}
+.home-referral-levels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+.home-referral-levels article {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+  padding: 16px 14px;
+  border: 1px solid #2e3b52;
+  border-radius: 10px;
+  background: #121b29;
+}
+.home-referral-levels article::after {
+  content: '';
+  position: absolute;
+  inset: auto 14px 0;
+  height: 2px;
+  border-radius: 99px;
+  background: #ffd28a;
+}
+.home-referral-levels article:nth-child(2)::after { background: #a998ff; }
+.home-referral-levels article:nth-child(3)::after { background: #70a6df; }
+.home-referral-level-number {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #4c5f7c;
+  border-radius: 50%;
+  color: #a9b6ca;
+  font: 500 8px 'DM Mono', monospace;
+}
+.home-referral-levels small,
+.home-referral-levels strong,
+.home-referral-levels em { display: block; }
+.home-referral-levels small { color: #94a2b7; font: 500 8px 'DM Mono', monospace; text-transform: uppercase; }
+.home-referral-levels strong { margin-top: 9px; color: #e9e5ff; font: 500 25px 'DM Mono', monospace; }
+.home-referral-levels p { min-height: 30px; margin: 7px 0 10px; color: #d6dce8; font-size: 10px; line-height: 1.45; }
+.home-referral-levels em { color: #718096; font-size: 8px; font-style: normal; line-height: 1.4; }
+.home-referral-link-panel {
+  display: flex;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #524879;
+  border-radius: 10px;
+  background: linear-gradient(150deg, #211d3c, #151b2b);
+  flex-direction: column;
+}
+.home-referral-link-panel h3 { margin: 6px 0 14px; color: #f0edff; font-size: 17px; line-height: 1.25; }
+.home-referral-link-box { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; }
+.home-referral-link-box strong {
+  min-width: 0;
+  overflow: hidden;
+  padding: 11px 12px;
+  border: 1px solid #414d69;
+  border-radius: 7px;
+  color: #aeb9ca;
+  background: #0f1622;
+  font: 500 9px 'DM Mono', monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-referral-link-box .primary-button { min-height: 38px; padding: 9px 13px; white-space: nowrap; }
+.home-referral-link-panel .text-button { align-self: flex-start; margin-top: 14px; }
+.home-referral-link-panel > small { display: block; margin-top: auto; padding-top: 15px; color: #77869b; font-size: 8px; line-height: 1.5; }
+
+@media (max-width: 1120px) {
+  .home-referral-guide-layout { grid-template-columns: minmax(0, 1fr); }
+  .home-referral-link-panel > small { margin-top: 4px; }
+}
+
+@media (max-width: 680px) {
+  .home-referral-guide-head { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .home-referral-levels { grid-template-columns: minmax(0, 1fr); }
+  .home-referral-levels p { min-height: 0; }
+  .home-referral-link-box { grid-template-columns: minmax(0, 1fr); }
+  .home-referral-link-box .primary-button { width: 100%; }
+}
+
+.topbar .top-actions .workspace-network { display: inline-flex; align-items: center; justify-content: center; flex: none; border: 1px solid #705f3d; border-radius: 6px; padding: 4px 8px; color: #efca83; font: 500 11px/1.5 'DM Mono', monospace; white-space: nowrap; }
+@media (max-width: 480px) { .topbar .top-actions .workspace-network { position: static; padding: 4px 6px; font-size: 10px; } }
+
+body.page-route-paid .topbar .top-actions .workspace-network { display: inline-flex !important; }
+@media (max-width: 480px) { body.page-route .topbar .topbar-context { display: none; } }

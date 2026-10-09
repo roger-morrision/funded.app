@@ -1,0 +1,148 @@
+/* Compact connected-wallet pill inspired by trading terminals. */
+.top-actions { position: relative; }
+.connect-button.wallet-pill-connected {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: auto;
+  min-width: 0;
+  min-height: 36px;
+  max-width: none;
+  padding: 7px 10px;
+  overflow: visible;
+  border: 1px solid #2b2f36;
+  border-radius: 7px;
+  background: #191b1f;
+  color: #f3f5f8;
+  box-shadow: none;
+  font: 700 12px 'DM Mono', monospace;
+  white-space: nowrap;
+}
+.connect-button.wallet-pill-connected:hover {
+  border-color: #3b414b;
+  background: #22252a;
+}
+.header-wallet-icon {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 14px;
+  height: 11px;
+  border: 1.5px solid #d7dce4;
+  border-radius: 2px;
+}
+.header-wallet-icon::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 2px;
+  width: 8px;
+  height: 3px;
+  border: 1.5px solid #d7dce4;
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
+}
+.header-wallet-icon::after {
+  content: '';
+  position: absolute;
+  right: 2px;
+  top: 3px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #d7dce4;
+}
+.header-solana-mark {
+  display: inline-block;
+  flex: none;
+  width: 14px;
+  height: 12px;
+  transform: skewX(-18deg);
+  background:
+    linear-gradient(90deg, #a968ff, #ffd28a) 0 0 / 100% 3px no-repeat,
+    linear-gradient(90deg, #ffd28a, #8f61ff) 0 50% / 100% 3px no-repeat,
+    linear-gradient(90deg, #a968ff, #ffd28a) 0 100% / 100% 3px no-repeat;
+}
+.connect-button.wallet-pill-connected .header-wallet-balance {
+  margin: 0;
+  color: #f3f5f8;
+  font: 700 12px 'DM Mono', monospace;
+  line-height: 1;
+}
+.header-wallet-chevron {
+  margin-left: 1px;
+  color: #777f8a;
+  font: 12px/1 Manrope, sans-serif;
+  transform: translateY(-1px);
+  transition: transform .16s ease;
+}
+.connect-button.wallet-pill-connected[aria-expanded="true"] .header-wallet-chevron { transform: rotate(180deg) translateY(1px); }
+
+.wallet-popover[hidden] { display: none !important; }
+.wallet-popover {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 9px);
+  right: 0;
+  width: min(304px, calc(100vw - 24px));
+  overflow: hidden;
+  border: 1px solid #303a4b;
+  border-radius: 10px;
+  background: #10151e;
+  color: #dfe6f1;
+  box-shadow: 0 22px 60px #000b;
+}
+.wallet-popover a { color: inherit; text-decoration: none; }
+.wallet-popover-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 68px;
+  padding: 13px 15px;
+  border-bottom: 1px solid #273141;
+}
+.wallet-popover-account:hover,
+.wallet-popover nav a:hover,
+.wallet-popover > button:hover { background: #171e2a; }
+.wallet-popover-account span { display: grid; gap: 5px; min-width: 0; }
+.wallet-popover-account strong { color: #f0f3f8; font: 700 13px Manrope, sans-serif; }
+.wallet-popover-account small { color: #78869a; font: 10px 'DM Mono', monospace; }
+.wallet-popover-account b { color: #7d8ba1; font-size: 21px; font-weight: 400; }
+.wallet-popover-balances { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-bottom: 1px solid #273141; }
+.wallet-popover-balances > div { min-width: 0; padding: 15px; }
+.wallet-popover-balances > div + div { border-left: 1px solid #273141; }
+.wallet-popover-balance { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.wallet-popover-balance .header-solana-mark { width: 13px; height: 11px; }
+.wallet-popover-balance strong { color: #f4a340; font: 700 14px 'DM Mono', monospace; }
+.wallet-popover-balance small { color: #7c899c; font: 9px 'DM Mono', monospace; }
+.wallet-popover-balances em { display: block; margin-top: 7px; color: #697589; font: normal 9px 'DM Mono', monospace; }
+.wallet-funded-mark { display: grid; place-items: center; flex: none; width: 16px; height: 16px; border-radius: 5px; background: #765be8; color: white; font: 800 10px Manrope, sans-serif; }
+.wallet-popover nav { display: grid; }
+.wallet-popover nav a,
+.wallet-popover > button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 15px;
+  border: 0;
+  border-bottom: 1px solid #273141;
+  background: transparent;
+  color: #cbd4e1;
+  font: 600 11px 'DM Mono', monospace;
+  letter-spacing: .4px;
+  text-align: left;
+  cursor: pointer;
+}
+.wallet-popover > button { border-bottom: 0; color: #8f9bad; }
+.wallet-popover > button::before { content: '↪'; margin-right: 10px; color: #647086; }
+
+@media (max-width: 480px) {
+  .connect-button.wallet-pill-connected {
+    min-height: 34px;
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  .wallet-popover { right: -1px; }
+}

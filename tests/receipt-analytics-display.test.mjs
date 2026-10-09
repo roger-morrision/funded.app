@@ -1,17 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { runInNewContext } from 'node:vm';
-import { exactLamports } from '../exact-lamports.js';
-import { formatReceiptSol } from '../receipt-export.js';
-const app=await readFile(new URL('../app.js',import.meta.url),'utf8');
-const renderer=app.slice(app.indexOf('function renderVerifiedReceiptEvidence(){'),app.indexOf('function renderOnchainReportState('));
+import { renderVerifiedReceiptEvidence } from '../src/features/payments/receipt-view.js';
 function render(evidence,summary=null){
   const fields={span:{textContent:''},strong:{textContent:'—'},small:{innerHTML:''}};
   const card={querySelector:key=>fields[key]};
-  const context={receiptEvidence:evidence,paymentHistoryEvidence:null,analyticsSummary:summary,receiptEvidenceChecked:true,exactLamports,formatReceiptSol,
-    document:{querySelectorAll:()=>[],querySelector:key=>key==='[data-analytics-metric="fees"]'?card:null,addEventListener:()=>{}}};
-  runInNewContext(renderer,context);context.renderVerifiedReceiptEvidence();return fields;
+  const document={querySelectorAll:()=>[],querySelector:key=>key==='[data-analytics-metric="fees"]'?card:null};
+  renderVerifiedReceiptEvidence({receiptEvidence:evidence,paymentHistoryEvidence:null,analyticsSummary:summary,receiptEvidenceChecked:true}, { document });
+  return fields;
 }
 test('verified collection total preserves lamports when safe individual amounts exceed safe aggregate precision',()=>{
   const result=render({status:'onchain-indexed',verifiedCollections:[{collectedLamports:Number.MAX_SAFE_INTEGER},{collectedLamports:2}]});

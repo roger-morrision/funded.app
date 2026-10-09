@@ -1,0 +1,149 @@
+/* Shared professional token cards for portfolio, watchlist, and reward directories. */
+.projects-list.creator-launch-list,
+.watchlist-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.watchlist-items:not(:empty) { margin-top: 14px; }
+.portfolio-token-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #2b374a;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #121a27, #0f151f);
+  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+.portfolio-token-card:hover {
+  transform: translateY(-2px);
+  border-color: #51477d;
+  background: linear-gradient(145deg, #161f30, #111823);
+}
+.portfolio-token-card-top {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 15px 15px 12px;
+}
+.portfolio-token-avatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+  border: 1px solid #40506b;
+  border-radius: 11px;
+  background: linear-gradient(145deg, #5d4db1, #25395d);
+  color: #fff;
+  font: 800 13px 'DM Mono', monospace;
+}
+.portfolio-token-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.portfolio-token-identity { min-width: 0; }
+.portfolio-token-identity strong,
+.portfolio-token-identity small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.portfolio-token-identity strong { color: #f2f4f8; font-size: 13px; }
+.portfolio-token-identity small { margin-top: 4px; color: #8794a8; font-size: 9px; }
+.portfolio-token-stage {
+  max-width: 112px;
+  overflow: hidden;
+  padding: 5px 7px;
+  border: 1px solid #3c5064;
+  border-radius: 999px;
+  color: #e9e1cf;
+  background: #142a29;
+  font: 700 8px 'DM Mono', monospace;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.portfolio-token-card .promotion-badge { grid-column: 1 / -1; justify-self: start; margin: -2px 0 0 53px; }
+.portfolio-token-source {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  padding: 0 15px 12px;
+  color: #6f7d91;
+  font-size: 8px;
+}
+.portfolio-token-source span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.portfolio-token-source code { flex: none; color: #8190a5; font: 8px 'DM Mono', monospace; }
+.portfolio-token-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0 15px;
+  overflow: hidden;
+  border: 1px solid #283347;
+  border-radius: 7px;
+  background: #283347;
+}
+.portfolio-token-stats > span { min-width: 0; padding: 10px; background: #0e1621; }
+.portfolio-token-stats small,
+.portfolio-token-stats strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.portfolio-token-stats small { margin-bottom: 5px; color: #6d7b90; font-size: 7px; letter-spacing: .04em; text-transform: uppercase; }
+.portfolio-token-stats strong { color: #eef2f7; font: 600 11px 'DM Mono', monospace; }
+.portfolio-token-stats .is-positive strong { color: #ffd28a; }
+.portfolio-token-stats .is-negative strong { color: #ed858d; }
+.portfolio-token-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 13px;
+  padding: 12px 15px;
+  border-top: 1px solid #263145;
+  color: #68768b;
+  font: 8px 'DM Mono', monospace;
+}
+.portfolio-token-footer > div { display: flex; align-items: center; gap: 7px; }
+.portfolio-token-footer a,
+.portfolio-token-footer button {
+  min-height: 30px;
+  padding: 7px 10px;
+  border: 1px solid #3d4266;
+  border-radius: 6px;
+  color: #c6c0ff;
+  background: #211d3e;
+  font: 700 8px 'DM Mono', monospace;
+  text-decoration: none;
+  cursor: pointer;
+}
+.portfolio-token-footer button[data-trade-mint] { border-color: #9a6d36; color: #e9e1cf; background: #111b2e; }
+.portfolio-token-footer .portfolio-remove { border-color: transparent; color: #7f8ba0; background: transparent; }
+.portfolio-token-footer a:hover,
+.portfolio-token-footer button:hover { filter: brightness(1.18); }
+
+/* Airdrop cards use the same identity, metric, and action rhythm as token cards. */
+.airdrop-directory-card { padding: 0; overflow: hidden; background: linear-gradient(145deg, #121a27, #0f151f); }
+.airdrop-directory-card .directory-card-top { padding: 15px; border-bottom: 1px solid #273246; }
+.airdrop-directory-card .claim-token-mark { width: 42px; height: 42px; border: 1px solid #40506b; border-radius: 11px; background: linear-gradient(145deg, #5d4db1, #25395d); color: #fff; }
+.airdrop-directory-card .directory-card-top strong { color: #f2f4f8; font-size: 13px; }
+.airdrop-directory-card .directory-stats { gap: 1px; margin: 0; background: #283347; }
+.airdrop-directory-card .directory-stats > span { min-width: 0; padding: 11px 13px; background: #0e1621; }
+.airdrop-directory-card .directory-stats b { overflow: hidden; color: #eef2f7; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.airdrop-directory-card .directory-progress { margin: 13px 15px 0; }
+.airdrop-directory-card .directory-footer { margin-top: 12px; padding: 0 15px 15px; }
+.airdrop-program-detail { margin-top: 16px; padding: 18px; }
+.airdrop-program-detail[hidden] { display: none; }
+.airdrop-program-detail-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+.airdrop-program-detail-stats span { display: grid; gap: 4px; padding: 12px; border: 1px solid #273246; border-radius: 8px; background: #0e1621; }
+.airdrop-program-detail-stats small { color: #9facbc; }
+.airdrop-program-detail-stats strong { overflow-wrap: anywhere; }
+
+@media (max-width: 760px) {
+  .airdrop-program-detail-stats { grid-template-columns: minmax(0, 1fr); }
+  .analytics-kpis.analytics-kpis-complete { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .projects-list.creator-launch-list,
+  .watchlist-items { grid-template-columns: minmax(0, 1fr); }
+  .portfolio-token-footer { align-items: flex-start; flex-direction: column; }
+  .portfolio-token-footer > div { width: 100%; }
+  .portfolio-token-footer a,
+  .portfolio-token-footer button { flex: 1; text-align: center; }
+}
+
+@media (max-width: 420px) {
+  .analytics-kpis.analytics-kpis-complete { grid-template-columns: minmax(0, 1fr); }
+}

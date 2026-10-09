@@ -1,0 +1,25 @@
+/* The reference leaderboard leads with artwork and gives the verified table priority. */
+body.page-route-leaderboard .leaderboard-hero {
+  min-height: 360px;
+  background: linear-gradient(90deg,#0b1020ed 0%,#0b1020b8 33%,#0b102029 65%,#0b102012 100%),url('../../leaderboard-wolf-peak.webp') center right / cover no-repeat;
+}
+body.page-route-leaderboard .leaderboard-hero h1 { font-size: clamp(38px,4.5vw,58px); }
+body.page-route-leaderboard .source-note { margin: 0; padding: 14px 0 2px; border: 0; background: transparent; font-size: 11px; }
+body.page-route-leaderboard .leaderboard-toolbar { margin-top: 12px; }
+body.page-route-leaderboard .leaderboard-tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: #85919b; }
+body.page-route-leaderboard .leaderboard-tabs button.active { border-color: #f4a340; background: transparent; color: #f4a340; }
+body.page-route-leaderboard .leaderboard-table-panel { padding: 0; border: 1px solid var(--line); background: #101318; }
+body.page-route-leaderboard .main-content .leaderboard-table-panel.panel { border-radius: 2px; border-color: var(--line); background: #101318; }
+body.page-route-leaderboard .leaderboard-table-panel .panel-heading { padding: 18px 20px 8px; }
+body.page-route-leaderboard #leaderboard > .ui-disclosure { margin-top: 16px; border: 1px solid var(--line); background: #101318; }
+body.page-route-leaderboard #leaderboard > .ui-disclosure > summary { padding: 16px 20px; color: #c7d1d3; font: 700 11px 'DM Mono',monospace; letter-spacing: .07em; text-transform: uppercase; }
+body.page-route-leaderboard #leaderboard > .ui-disclosure[hidden] { display: none !important; }
+body.page-route-leaderboard .leaderboard-row .leader-identity a { color: #e8efe9; text-decoration: none; }
+body.page-route-leaderboard .leaderboard-row .leader-identity a:hover,
+body.page-route-leaderboard .leaderboard-proof:hover { color: #ffd28a; }
+body.page-route-leaderboard .leaderboard-proof { color: #ffd28a; font: 700 10px 'DM Mono',monospace; text-decoration: none; white-space: nowrap; }
+body.page-route-leaderboard .leaderboard-row > span:nth-child(3) { min-width: 0; }
+body.page-route-leaderboard .leaderboard-table > .empty-state { min-height: 92px; padding: 25px 20px; color: #a4b3aa; font-size: 12px; line-height: 1.55; }
+body.page-route-leaderboard .leaderboard-table > .empty-state strong,
+body.page-route-leaderboard .leaderboard-table > .empty-state span { display: block; }
+body.page-route-leaderboard .leaderboard-table > .empty-state strong { margin-bottom: 5px; color: #e0eae1; }

@@ -22,6 +22,8 @@ export async function browserSourceDigest(root) {
   }
   await collect('public');
   await collect('config');
+  await collect('src');
+  await collect('styles');
   for (const file of ['scripts/browser-source-digest.mjs', 'scripts/prune-build-sources.mjs']) {
     try { await readFile(join(root, file)); paths.push(file); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }

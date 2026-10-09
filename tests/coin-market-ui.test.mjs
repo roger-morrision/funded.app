@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { buildTradePricePath, selectObservedTradeWindow } from '../coin-detail-model.js';
+import { renderCoinPricePath } from '../src/features/coin/chart-view.js';
 
 const appSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
 const loaderSource = appSource.match(/async function loadCoinMarketActivity\(mintAddress, loadId, decimals, graduated\)\{[\s\S]*?\n\}/)?.[0];
@@ -92,18 +92,12 @@ test('zero pool trades do not imply a complete history when evidence is missing 
 });
 
 test('chart separates loading and unavailable prices from a confirmed empty history', () => {
-  const chartSource = appSource.match(/function renderCoinPricePath\(\)\{[\s\S]*?\n\}/)?.[0];
-  assert.ok(chartSource);
-  const render = new Function('coinMarketActivity', 'buildTradePricePath', 'selectObservedTradeWindow', `
+  const view = (status, coverage = null) => {
     const panel = { innerHTML:'' };
     const document = { querySelector:selector => selector === '#coin-price-path' ? panel : null, querySelectorAll:() => [] };
-    const coinChartPeriod = '24h', coinChartMetric = 'mcap', coinChartUnit = 'usd';
-    const setCoinField = () => {}, escapeHtml = value => value;
-    ${chartSource}
-    renderCoinPricePath();
+    renderCoinPricePath({coinMarketActivity:{status, coverage, trades:[], decimals:6}, coinChartPeriod:'24h', coinChartMetric:'mcap', coinChartUnit:'usd'}, { document });
     return panel.innerHTML;
-  `);
-  const view = (status, coverage = null) => render({ status, coverage, trades:[], decimals:6 }, buildTradePricePath, selectObservedTradeWindow);
+  };
   assert.match(view('loading'), /Loading chart/);
   for (const status of ['unavailable', 'summary-only']) {
     assert.match(view(status), /Chart unavailable/);
@@ -112,4 +106,26 @@ test('chart separates loading and unavailable prices from a confirmed empty hist
   assert.match(view('ready', 'complete'), /No confirmed trades were found/);
   assert.doesNotMatch(view('ready', 'complete'), /history may be missing/);
   assert.match(view('ready', 'partial'), /history may be missing/);
+});
+
+test('chart renders fresh supply and currency state without requiring a global document', () => {
+  const panel = { innerHTML: '' };
+  const heading = { textContent: '' };
+  const document = { querySelector: selector => selector === '#coin-price-path' ? panel : selector === '#coin-chart-heading' ? heading : null, querySelectorAll: () => [] };
+  const now = Math.floor(Date.now() / 1000);
+  const state = { coinMarketActivity: { status: 'ready', coverage: 'complete', decimals: 6,
+    trades: [{ priceRatio: 2, blockTime: now - 10 }, { priceRatio: 1, blockTime: now - 20 }] },
+    coinChartPeriod: '24h', coinChartMetric: 'mcap', coinChartUnit: 'usd', coinSolUsdValues: { supply: 1000 }, coinSolUsdPrice: 100 };
+  const render = () => renderCoinPricePath(state, { document, formatCoinSnapshotUsd: value => `$${value * state.coinSolUsdPrice}` });
+  render();
+  assert.match(panel.innerHTML, /Estimated market cap · USD/);
+  assert.match(panel.innerHTML, /\$200/);
+  state.coinSolUsdPrice = null;
+  render();
+  assert.match(panel.innerHTML, /current SOL\/USD quote is required/);
+  state.coinChartUnit = 'sol';
+  state.coinChartMetric = 'price';
+  render();
+  assert.equal(heading.textContent, 'Token · Price in SOL');
+  assert.match(panel.innerHTML, /0\.002 SOL/);
 });

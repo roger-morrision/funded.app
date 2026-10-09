@@ -1,0 +1,10 @@
+/* Launch tier explanations follow the reference's short, inspectable popups. */
+.launch-tier-guide-links { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; }
+.launch-tier-guide-links button { padding: 3px 0; border: 0; background: transparent; color: #ffd28a; font: 700 10px 'DM Mono', monospace; cursor: pointer; }
+.launch-tier-guide-links button:hover { text-decoration: underline; }
+.launch-tier-guide-dialog { width: min(440px, calc(100vw - 32px)); padding: 26px; border: 1px solid #26354d; border-radius: 4px; background: #111b2e; color: #dce8de; box-shadow: 0 24px 70px #000c; }
+.launch-tier-guide-dialog::backdrop { background: #000b; }
+.launch-tier-guide-dialog h3 { margin: 8px 0 12px; color: #f1f6f2; font-size: 23px; }
+.launch-tier-guide-dialog p:not(.eyebrow) { color: #a6b8ab; line-height: 1.6; }
+.launch-tier-guide-dialog a { color: #ffd28a; font: 700 11px 'DM Mono', monospace; text-decoration: none; }
+.launch-tier-guide-close { position: absolute; top: 12px; right: 14px; border: 0; background: transparent; color: #dce8de; font-size: 23px; cursor: pointer; }

@@ -1,0 +1,153 @@
+/* Clean workspace pages: one compact intro, quieter surfaces, and denser content. */
+.page-route:not(.page-route-overview):not(.page-route-launch):not(.page-route-my-launches):not(.page-route-buybacks) .route-guide {
+  align-items: center;
+  gap: 18px;
+  margin: 18px 0 22px;
+  padding: 18px 0 20px;
+  border: 0;
+  border-bottom: 1px solid #293346;
+  border-radius: 0;
+  background: transparent;
+}
+.page-route:not(.page-route-overview):not(.page-route-launch) .route-guide .eyebrow { margin-bottom: 7px; }
+.page-route:not(.page-route-overview):not(.page-route-launch) .route-guide h1 {
+  margin-bottom: 6px;
+  font-size: clamp(27px, 3vw, 36px);
+  letter-spacing: -1.2px;
+}
+.page-route:not(.page-route-overview):not(.page-route-launch) .route-guide p:last-child {
+  max-width: 590px;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.page-route:not(.page-route-overview):not(.page-route-launch) .route-guide-actions { gap: 12px; }
+.page-route:not(.page-route-overview):not(.page-route-launch) .route-guide-actions .primary-button {
+  min-height: 36px;
+  padding: 9px 14px;
+}
+.page-route:not(.page-route-overview):not(.page-route-launch) .route-guide-secondary { font-size: 10px; }
+
+.page-route:not(.page-route-overview):not(.page-route-launch) :is(.panel, .role-panel, .community-card, .support-card, .airdrop-analytics-card, .airdrop-wallets-card) {
+  border-radius: 10px;
+  box-shadow: none;
+}
+.page-route:not(.page-route-overview):not(.page-route-launch) :is(.section-heading, .panel-heading) h2 {
+  letter-spacing: -.55px;
+}
+.page-route:not(.page-route-overview):not(.page-route-launch) .section-heading { margin-bottom: 16px; }
+.page-route:not(.page-route-overview):not(.page-route-launch) .panel-explainer { max-width: 680px; }
+
+/* Sparse states should use the page instead of leaving an empty second column. */
+.page-route-community #community { max-width: 900px; }
+.page-route-community .community-grid { grid-template-columns: minmax(0, 1fr); }
+.page-route-community .community-card:only-child,
+.page-route-community .community-card:first-child:nth-last-child(2):has(+ .community-card[hidden]) { max-width: none; }
+.page-route-community .watchlist-empty { min-height: 180px; }
+
+/* Keep secondary heroes informative without competing with the page title. */
+.page-route-leaderboard .leaderboard-hero {
+  min-height: 0;
+  margin: 0 0 14px;
+  padding: 24px 26px;
+  border-radius: 10px;
+  background: linear-gradient(125deg, #172036, #111722 72%);
+}
+.page-route-leaderboard .leaderboard-hero h1 {
+  max-width: 560px;
+  margin: 5px 0 7px;
+  font-size: clamp(29px, 3.4vw, 40px);
+  letter-spacing: -1.8px;
+}
+.page-route-leaderboard .leaderboard-hero-mark strong { font-size: 54px; letter-spacing: -5px; }
+.page-route-leaderboard .podium { min-height: 190px; }
+
+.page-route-airdrops #airdrops { padding: 22px 24px; border-radius: 10px; }
+.page-route-airdrops .community-airdrop-callout { margin-bottom: 18px; }
+.page-route-airdrops .airdrop-intro { max-width: 720px; }
+.page-route-airdrops .airdrop-kpis { gap: 8px; }
+.page-route-airdrops .claim-flow { margin-top: 18px; }
+
+.page-route-payments #payments,
+.page-route-analytics-detail #analytics-detail,
+.page-route-capital-flow #capital-flow,
+.page-route-docs #docs { margin-top: 0; }
+.page-route-payments #payments { gap: 12px; }
+.page-route-payments .payments-summary,
+.page-route-payments #payments > .panel { padding: 20px; }
+.page-route-analytics-detail .analytics-kpis { gap: 9px; }
+.page-route-analytics-detail .analytics-kpis article { padding: 17px; }
+.page-route-capital-flow .capital-flow-layout { gap: 12px; }
+.page-route-docs #docs { gap: 12px; }
+.page-route-docs .support-card { padding: 20px; }
+
+@media (max-width: 700px) {
+  .page-route:not(.page-route-overview):not(.page-route-launch) .route-guide {
+    align-items: stretch;
+    gap: 14px;
+    margin-top: 10px;
+    padding: 15px 0 18px;
+  }
+  .page-route:not(.page-route-overview):not(.page-route-launch) .route-guide-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .page-route:not(.page-route-overview):not(.page-route-launch) .route-guide-actions a,
+  .page-route:not(.page-route-overview):not(.page-route-launch) .route-guide-actions .primary-button { width: auto; }
+  .page-route-leaderboard .leaderboard-hero { padding: 20px; }
+  .page-route-leaderboard .leaderboard-hero-mark { display: none; }
+  .page-route-airdrops #airdrops { padding: 18px 16px; }
+}
+
+/* One professional card surface is shared by Home, Explore, portfolios, watchlists, and rewards. */
+.token-card-shell {
+  min-width: 0;
+  overflow: hidden;
+  border-color: #2b374a;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #121a27, #0f151f);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .018);
+  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+.token-card-shell:hover,
+.token-card-shell:focus-within {
+  transform: translateY(-2px);
+  border-color: #51477d;
+  background: linear-gradient(145deg, #161f30, #111823);
+}
+.token-card-shell :is(a, button):focus-visible {
+  outline: 2px solid #9e8cff;
+  outline-offset: 2px;
+}
+
+/* Complete protocol dashboard: every metric declares its unit and evidence state. */
+.analytics-kpis.analytics-kpis-complete {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+.analytics-kpis-complete article {
+  min-height: 126px;
+  padding: 17px;
+  border: 1px solid #293548;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #121a27, #0f151f);
+}
+.analytics-kpis-complete article > span {
+  color: #8e9aab;
+  font-size: 10px;
+}
+.analytics-kpis-complete article > strong {
+  margin: 13px 0 10px;
+  color: #f0f3f8;
+  font-size: 22px;
+}
+.analytics-kpis-complete article > small {
+  color: #68768b;
+  line-height: 1.45;
+}
+.analytics-kpis-complete article > small b {
+  display: block;
+  margin-bottom: 5px;
+  color: #8e84d7;
+  font: 700 8px 'DM Mono', monospace;
+  letter-spacing: .08em;
+}

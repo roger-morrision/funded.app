@@ -1,0 +1,32 @@
+/* Rankings and airdrops share the compact list treatment from the reference. */
+body.page-route-leaderboard .leaderboard-hero { align-items: center; min-height: 360px; margin-top: 28px; padding: 48px 38px; background: linear-gradient(90deg,#0b1020ed 0%,#0b1020b8 33%,#0b102029 65%,#0b102012 100%),url('../../leaderboard-wolf-peak.webp') center right / cover no-repeat; border: 1px solid var(--line); border-radius: 2px; }
+body.page-route-leaderboard .leaderboard-hero h1 { font-size: clamp(40px,5vw,66px); font-weight: 900; letter-spacing: -.06em; }
+body.page-route-leaderboard .leaderboard-hero > div:first-child { max-width: 570px; }
+body.page-route-leaderboard .leaderboard-hero p:last-child { max-width: 480px; font-size: 13px; line-height: 1.7; }
+body.page-route-leaderboard .leaderboard-hero p:last-child { color: var(--muted); margin: 8px 0 0; }
+body.page-route-leaderboard .leaderboard-hero-mark { display: none; }
+body.page-route-leaderboard .leaderboard-toolbar { margin: 18px 0; padding: 10px 0; border-block: 1px solid var(--line); }
+body.page-route-leaderboard .leaderboard-tabs { background: transparent; border: 0; gap: 8px; }
+body.page-route-leaderboard .leaderboard-tabs button { min-height: 38px; padding: 8px 15px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: #8b979b; font: 700 10px 'DM Mono',monospace; letter-spacing: .06em; text-transform: uppercase; }
+body.page-route-leaderboard .leaderboard-tabs button.active { background: transparent; border-color: #f4a340; color: #f4a340; }
+body.page-route-leaderboard .leaderboard-filters { display: none; }
+body.page-route-leaderboard .leaderboard-table-panel { margin-top: 0; }
+body.page-route-leaderboard .leaderboard-table-head { background: #0d1115; color: #7d8b95; font: 700 10px 'DM Mono',monospace; letter-spacing: .07em; text-transform: uppercase; }
+body.page-route-leaderboard #leaderboard-table[data-view="creators"] :is(.leaderboard-table-head,.leaderboard-row) { grid-template-columns: 64px minmax(220px,1.8fr) minmax(120px,.8fr) minmax(120px,.8fr); }
+body.page-route-leaderboard .leaderboard-grid { margin-top: 18px; }
+body.page-route-leaderboard .leaderboard-podium-panel { padding: 18px 24px; }
+body.page-route-leaderboard .source-note { color: #8a969f; }
+
+body.page-route-airdrops .airdrop-section { background: transparent; border: 0; border-radius: 0; padding: 16px 0; }
+body.page-route-airdrops .airdrop-section > .section-heading h1 { font-size: clamp(32px,4vw,52px); font-weight: 900; letter-spacing: -.055em; }
+body.page-route-airdrops .community-airdrop-callout { background: #111b2e; border: 1px solid #26354d; border-radius: 2px; }
+body.page-route-airdrops .airdrop-kpis { gap: 1px; border: 1px solid var(--line); background: var(--line); border-radius: 2px; overflow: hidden; }
+body.page-route-airdrops .airdrop-kpis article { border: 0; border-radius: 0; background: #101419; }
+body.page-route-airdrops .airdrop-workspace.ui-disclosure { margin: 18px 0; }
+body.page-route-airdrops .airdrop-workspace.ui-disclosure > summary { color: #f4a340; border-bottom: 1px solid var(--line); font: 700 11px 'DM Mono',monospace; letter-spacing: .08em; text-transform: uppercase; }
+body.page-route-airdrops .airdrop-directory-head { padding: 6px 0 14px; }
+body.page-route-airdrops .airdrop-directory-card,
+body.page-route-airdrops .airdrop-analytics-card,
+body.page-route-airdrops .claim-toolbar { border-radius: 2px; background: #101419; border-color: var(--line); }
+body.page-route-airdrops .directory-progress { background: #253028; }
+body.page-route-airdrops .directory-progress i { background: #f4a340; }

@@ -11,7 +11,7 @@ async function collect(directory, recursive = true) {
   }
 }
 await collect('.', false);
-for (const directory of ['server', 'scripts', 'tests']) await collect(directory);
+for (const directory of ['src', 'server', 'scripts', 'tests']) await collect(directory);
 for (const file of files) {
   const result = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' });
   if (result.status !== 0) { process.stderr.write(result.stderr); process.exit(1); }

@@ -1,0 +1,55 @@
+
+
+/* Keep the token header readable when the sidebar narrows the content area. */
+.coin-page{container:coin-detail / inline-size}
+.coin-page .coin-identity{flex:1;min-width:0;align-items:flex-start}
+.coin-page .coin-identity>div:last-child{flex:1;min-width:0}
+.coin-page .coin-title-row{flex-wrap:nowrap;min-width:0}
+.coin-page .coin-title-row .coin-watch{margin-left:auto;flex:none}
+.coin-page .coin-identity h1{overflow-wrap:break-word;line-height:1.18}
+.coin-page .coin-address{display:flex;align-items:center;gap:5px;min-width:0}
+.coin-page .coin-address span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.coin-page .coin-attribution{display:flex;flex-wrap:wrap;gap:4px 12px;margin:5px 0 10px}
+.coin-page .coin-attribution a,.coin-page .coin-creator-by{margin-left:0;color:#9cb6c1;font:10px 'DM Mono',monospace;text-decoration:none;overflow-wrap:anywhere}
+.coin-page .coin-attribution #coin-launched-by{display:inline;margin:0;color:#9cb6c1;font:10px 'DM Mono',monospace}
+.coin-page .coin-attribution a:hover{color:#d7eee9;text-decoration:underline}
+.coin-page .coin-socials.is-compact{gap:6px;margin-top:9px}
+.coin-page .coin-hero-stat b{color:#93a6b2;font-size:10px;font-weight:400;line-height:1.4}
+
+/* Stack the chart, trade, and discussion when the app sidebar narrows the page. */
+@container coin-detail (max-width:800px){
+  .coin-page .coin-layout{grid-template-columns:minmax(0,1fr);grid-template-areas:none}
+  .coin-page .coin-main-column,.coin-page .coin-side-column{display:grid;grid-template-columns:minmax(0,1fr)}
+  .coin-page .coin-chart-panel,.coin-page .coin-tabs-panel,.coin-page .token-trading-panel,.coin-page .coin-policy-card,.coin-page .coin-community-panel{grid-area:auto}
+  .coin-page .token-trading-panel{position:static}
+  .coin-page .coin-community-feed{max-height:420px}
+}
+.coin-page .token-trading-panel .trade-live-estimate strong{overflow-wrap:anywhere;font-size:clamp(16px,3.5cqi,23px);line-height:1.3}
+.coin-page .token-trading-panel .trade-quote{color:#a2b0c2;font-size:12px;line-height:1.5}
+.coin-page .token-trading-panel .trade-actions button{min-height:46px;line-height:1.35}
+.coin-page .token-trading-panel .trade-actions button:disabled{background:#303b55;color:#a5afc0;cursor:not-allowed}
+.coin-page .coin-quick-amounts button{white-space:nowrap}
+
+@container coin-detail (max-width:520px){
+  .coin-page .token-trading-panel .trade-actions{display:grid;grid-template-columns:minmax(0,1fr)}
+  .coin-page .coin-quick-amounts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .coin-page .coin-quick-amounts button{min-width:0;font-size:9px}
+}
+
+@container coin-detail (max-width:760px){
+  .coin-page .coin-snapshot-three{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .coin-page .coin-snapshot-three>div:first-child{grid-column:1/-1}
+  .coin-page .coin-hero-card{flex-direction:column;align-items:stretch;gap:14px;padding:18px}
+  .coin-page .coin-identity{width:100%;gap:12px}
+  .coin-page .coin-identity h1{font-size:clamp(19px,5cqi,24px)}
+  .coin-page .coin-hero-stat{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 12px;width:100%;min-width:0;padding:13px 0 0;border-top:1px solid #2c4650;border-left:0}
+  .coin-page .coin-hero-stat span{grid-column:1;min-width:0;line-height:1.4}
+  .coin-page .coin-hero-stat strong{grid-column:2;grid-row:1;margin:0;font-size:19px;text-align:right}
+  .coin-page .coin-hero-stat b{grid-column:1/-1}
+  .coin-page .coin-hero-stat small{grid-column:1/-1;margin:0}
+  .coin-page .coin-stat-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .coin-page .coin-stat-strip>div{padding:11px 12px}
+  .coin-page .coin-stat-strip>div:first-child{grid-column:1/-1}
+  .coin-page .coin-stat-strip>div:last-child{grid-column:auto}
+  .coin-page .coin-stat-strip strong{font-size:13px;line-height:1.35}
+}

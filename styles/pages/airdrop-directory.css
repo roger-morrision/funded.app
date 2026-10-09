@@ -1,0 +1,73 @@
+/* Airdrop discovery keeps public policy records separate from wallet eligibility. */
+body.page-route-airdrops .airdrop-back { display: inline-block; margin: 8px 0 22px; color: #aab7bd; font: 700 10px 'DM Mono',monospace; letter-spacing: .08em; text-decoration: none; text-transform: uppercase; }
+body.page-route-airdrops .airdrop-back:hover { color: #ffd28a; }
+body.page-route-airdrops .airdrop-section > .section-heading { margin-bottom: 4px; }
+body.page-route-airdrops .airdrop-section > .airdrop-intro { max-width: 760px; margin-bottom: 22px; font-size: 13px; }
+body.page-route-airdrops .airdrop-hero-layout { display: grid; grid-template-columns: minmax(0,1.45fr) minmax(280px,.95fr); gap: 28px; align-items: stretch; }
+body.page-route-airdrops .airdrop-hero-layout[hidden] { display: none; }
+body.page-route-airdrops .airdrop-hero-art { position: relative; min-height: 360px; max-height: 470px; margin: 0; overflow: hidden; border: 1px solid var(--line); background: #0b1113; }
+body.page-route-airdrops .airdrop-hero-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 54%; }
+body.page-route-airdrops .airdrop-hero-art::after { position: absolute; inset: 0; border: 1px solid #ffffff0a; background: linear-gradient(180deg,transparent 72%,#080d1099); content: ''; pointer-events: none; }
+body.page-route-airdrops .airdrop-wallet-gate { border: 1px solid var(--line); background: #101318; }
+body.page-route-airdrops .airdrop-wallet-gate[hidden] { display: none; }
+body.page-route-airdrops .airdrop-wallet-gate-top { display: flex; justify-content: space-between; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); color: #82909a; font: 700 10px 'DM Mono',monospace; letter-spacing: .08em; text-transform: uppercase; }
+body.page-route-airdrops .airdrop-wallet-gate-top strong { color: #b4bec4; font-weight: 500; letter-spacing: 0; text-transform: none; }
+body.page-route-airdrops .airdrop-wallet-gate-body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 290px; padding: 32px 20px; text-align: center; }
+body.page-route-airdrops .airdrop-wallet-art { display: grid; place-items: center; width: 56px; height: 48px; margin-bottom: 16px; transform: rotate(-9deg); border: 3px solid #ffd28a; border-radius: 9px; background: #26354d; box-shadow: 5px 5px 0 #111b2e,0 0 26px #f4a34040; color: #e9e1cf; font-size: 26px; }
+body.page-route-airdrops .airdrop-wallet-gate h3 { margin: 0; font-size: clamp(22px,2.8vw,31px); font-weight: 800; letter-spacing: -.045em; text-transform: uppercase; }
+body.page-route-airdrops .airdrop-wallet-gate p { max-width: 580px; margin: 12px 0 20px; color: #9aa6af; font-size: 13px; line-height: 1.55; }
+body.page-route-airdrops .airdrop-wallet-gate button { min-height: 42px; padding: 10px 24px; text-transform: uppercase; }
+body.page-route-airdrops .airdrop-public-programs { margin-top: 28px; }
+body.page-route-airdrops .airdrop-public-rule { display: flex; align-items: center; gap: 14px; margin-bottom: 15px; color: #65737e; font: 700 10px 'DM Mono',monospace; letter-spacing: .13em; }
+body.page-route-airdrops .airdrop-public-rule::before { content: ''; flex: 1; height: 1px; background: var(--line); }
+body.page-route-airdrops .airdrop-reference-tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--line); }
+body.page-route-airdrops .airdrop-reference-tabs button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 2px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #82909a; cursor: pointer; font: 700 11px 'DM Mono',monospace; letter-spacing: .04em; text-transform: uppercase; }
+body.page-route-airdrops .airdrop-reference-tabs button[aria-selected=true] { border-color: #f4a340; color: #f4a340; }
+body.page-route-airdrops .airdrop-reference-tabs span { color: #a4afb3; }
+body.page-route-airdrops .airdrop-public-programs .airdrop-directory-head { display: flex; align-items: end; justify-content: space-between; gap: 18px; padding: 22px 0 12px; }
+body.page-route-airdrops .airdrop-public-programs .airdrop-directory-head h2 { font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
+body.page-route-airdrops .airdrop-public-programs .airdrop-directory-tools input { width: min(290px,35vw); }
+body.page-route-airdrops .airdrop-public-programs .airdrop-directory { display: block; }
+body.page-route-airdrops .airdrop-public-programs .airdrop-directory-card { display: grid; grid-template-columns: minmax(220px,1.25fr) minmax(350px,1.6fr) minmax(130px,.7fr); align-items: center; gap: 14px; margin: 0; padding: 13px 16px; border: 1px solid var(--line); border-bottom: 0; border-radius: 0; background: #101318; }
+body.page-route-airdrops .airdrop-public-programs .airdrop-directory-card:last-child { border-bottom: 1px solid var(--line); }
+body.page-route-airdrops .airdrop-public-programs .airdrop-directory-card[hidden] { display: none; }
+body.page-route-airdrops .airdrop-public-programs .directory-card-top { gap: 12px; padding: 0; border: 0; }
+body.page-route-airdrops .airdrop-public-programs .claim-token-mark { display: grid; place-items: center; width: 56px; height: 56px; border: 2px solid #f4a340; border-radius: 50%; background: radial-gradient(circle at 32% 24%,#9a6d36,#26354d 58%,#111b2e); box-shadow: 0 0 0 3px #111b2e,inset 0 0 12px #111b2e; color: #e2ffea; font: 800 17px Manrope,sans-serif; letter-spacing: -.05em; }
+body.page-route-airdrops .airdrop-public-programs .claim-token-mark img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+body.page-route-airdrops .airdrop-public-programs .directory-card-top strong { font-size: 14px; line-height: 1.3; }
+body.page-route-airdrops .airdrop-public-programs .directory-card-top strong a { color: #e8eee9; text-decoration: none; }
+body.page-route-airdrops .airdrop-public-programs .directory-card-top strong a:hover { color: #ffd28a; }
+body.page-route-airdrops .airdrop-public-programs .directory-card-top .airdrop-status { display: inline-block; margin-top: 7px; padding: 4px 6px; border: 1px solid #645b31; border-radius: 0; background: #302b1a; color: #d2bf79; font: 700 9px 'DM Mono',monospace; }
+body.page-route-airdrops .airdrop-public-programs .directory-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin: 0; background: transparent; }
+body.page-route-airdrops .airdrop-public-programs .directory-stats > span { padding: 0; background: transparent; }
+body.page-route-airdrops .airdrop-public-programs .directory-stats small,
+body.page-route-airdrops .airdrop-public-programs .directory-footer small { display: block; margin-bottom: 5px; color: #718087; font: 700 9px 'DM Mono',monospace; letter-spacing: .05em; text-transform: uppercase; }
+body.page-route-airdrops .airdrop-public-programs .directory-stats b,
+body.page-route-airdrops .airdrop-public-programs .directory-footer b { color: #cbd5ce; font: 700 10px 'DM Mono',monospace; }
+body.page-route-airdrops .airdrop-public-programs .directory-progress { display: none; }
+body.page-route-airdrops .airdrop-public-programs .directory-footer { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; margin: 0; padding: 0; text-align: right; }
+body.page-route-airdrops .airdrop-public-programs .directory-footer button { min-height: 30px; white-space: nowrap; }
+body.page-route-airdrops .airdrop-directory-pagination { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 4px; color: #84939b; font: 700 10px 'DM Mono',monospace; letter-spacing: .03em; }
+body.page-route-airdrops .airdrop-directory-pagination[hidden] { display: none; }
+body.page-route-airdrops .airdrop-directory-pagination button { min-height: 32px; padding: 6px 12px; border: 1px solid var(--line); background: #101318; color: #d6e1db; cursor: pointer; font: inherit; }
+body.page-route-airdrops .airdrop-directory-pagination button:hover:not(:disabled) { border-color: #f4a340; color: #ffd28a; }
+body.page-route-airdrops .airdrop-directory-pagination button:disabled { opacity: .42; cursor: default; }
+body.page-route-airdrops .airdrop-public-empty { padding: 26px; border: 1px solid var(--line); color: #92a0a8; text-align: center; }
+body.page-route-airdrops .airdrop-public-empty[hidden] { display: none; }
+body.page-route-airdrops .airdrop-evidence { margin-top: 18px; border: 1px solid var(--line); background: #101318; }
+body.page-route-airdrops .airdrop-evidence > h2 { margin: 0; padding: 14px 18px; color: #aeb9bd; font: 700 11px 'DM Mono',monospace; letter-spacing: .06em; text-transform: uppercase; }
+body.page-route-airdrops .airdrop-evidence > .airdrop-kpis,
+body.page-route-airdrops .airdrop-evidence > .community-airdrop-callout { margin: 12px 18px 18px; }
+body.page-route-airdrops .airdrop-workspace.ui-disclosure { margin: 16px 0; }
+body.page-route-airdrops .airdrop-onchain-disclosure { margin-top: 28px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+body.page-route-airdrops .airdrop-onchain-disclosure > summary { padding: 17px 0; color: #7b8c94; font: 700 10px 'DM Mono',monospace; letter-spacing: .1em; text-transform: uppercase; }
+body.page-route-airdrops .airdrop-onchain-disclosure > .airdrop-workspace { padding-bottom: 20px; }
+body.page-route-airdrops .airdrop-allocation-heading { margin: 48px 0 15px; }
+body.page-route-airdrops .airdrop-allocation-heading .eyebrow { margin-bottom: 9px; color: #74858e; font: 700 10px 'DM Mono',monospace; letter-spacing: .11em; }
+body.page-route-airdrops .airdrop-allocation-heading h2 { margin: 0; color: #e5e9e7; font-size: clamp(23px,2.6vw,32px); letter-spacing: -.05em; text-transform: uppercase; }
+body.page-route-airdrops .airdrop-reference-flow { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1px; margin: 0 0 36px; border: 1px solid var(--line); background: var(--line); }
+body.page-route-airdrops .airdrop-reference-flow > span { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; min-height: 176px; padding: 24px; border: 0; border-radius: 0; background: #101318; }
+body.page-route-airdrops .airdrop-reference-flow > span b { display: block; width: auto; height: auto; border-radius: 0; background: none; color: #ffd28a; font: 700 13px 'DM Mono',monospace; }
+body.page-route-airdrops .airdrop-reference-flow > span strong { color: #e7ece9; font-size: 16px; text-transform: uppercase; }
+body.page-route-airdrops .airdrop-reference-flow > span small { max-width: 36ch; color: #95a3a7; font-size: 12px; line-height: 1.55; }
+body.page-route-airdrops .airdrop-reference-flow > i { display: none; }

@@ -1,8 +1,36 @@
+import { createMobileWalletController } from './src/features/wallet/mobile-controller.js';
+import { renderPortfolio as renderPortfolioView } from './src/features/portfolio/holdings-view.js';
+import { renderCreatorLaunches as renderCreatorLaunchesView } from './src/features/portfolio/creator-launches-view.js';
+import { renderWalletDetail as renderWalletDetailView } from './src/features/portfolio/wallet-detail-view.js';
+import { renderFundedTokenLanding as renderFundedTokenLandingView } from './src/features/funded/landing-view.js';
+import { renderBuybackDashboard as renderBuybackDashboardView } from './src/features/funded/buyback-view.js';
+import { renderCoinPromotionBadge as renderCoinPromotionBadgeView } from './src/features/coin/promotion-view.js';
+import { renderCoinRewardsPolicy as renderCoinRewardsPolicyView } from './src/features/coin/promotion-view.js';
+import { renderAirdropProgramDetail as renderAirdropProgramDetailView } from './src/features/rewards/airdrop-view.js';
+import { renderAirdropAnalytics as renderAirdropAnalyticsView } from './src/features/rewards/airdrop-view.js';
+import { renderExploreControls as renderExploreControlsView } from './src/features/explore/controls-view.js';
+import { renderExploreBenefitLeaders as renderExploreBenefitLeadersView } from './src/features/explore/controls-view.js';
+import { renderExplorePayoutStats as renderExplorePayoutStatsView } from './src/features/explore/controls-view.js';
+import { renderExploreAssets as renderExploreAssetsView } from './src/features/explore/assets-view.js';
+import { renderHomeOnchainSnapshot as renderHomeOnchainSnapshotView } from './src/features/home/onchain-view.js';
+import { renderOnchainReportState as renderOnchainReportStateView } from './src/features/home/onchain-view.js';
+import { renderWalletBurnersBoard as renderWalletBurnersBoardView } from './src/features/leaderboard/board-view.js';
+import { renderProjectBurnBoard as renderProjectBurnBoardView } from './src/features/leaderboard/board-view.js';
+import { renderLeaderboard as renderLeaderboardView } from './src/features/leaderboard/board-view.js';
+import { renderLaunchBurnSelection as renderLaunchBurnSelectionView } from './src/features/launch/burn-selection-view.js';
+import { renderCoinActivityTab as renderCoinActivityTabView } from './src/features/coin/activity-view.js';
+import { renderHomeKpiDashboard as renderHomeKpiDashboardView } from './src/features/home/kpi-view.js';
+import { escapeHtml, shortAddress, formatOnChainNumber, formatUsd, formatCompactUsd, formatDashboardUsd, formatSmallDashboardUsd, formatDashboardQuantity, setCoinField, setCoinFact } from './src/features/shared/display.js';
+import { renderVerifiedReceiptEvidence as renderVerifiedReceiptEvidenceView } from './src/features/payments/receipt-view.js';
+import { renderExtendedAnalyticsDashboard as renderExtendedAnalyticsDashboardView } from './src/features/analytics/dashboard-view.js';
+import { renderCoinPricePath as renderCoinPricePathView } from './src/features/coin/chart-view.js';
+import { renderCoinPulse as renderCoinPulseView } from './src/features/coin/pulse-view.js';
+import { renderCoinAccountDistribution } from './src/features/coin/holder-distribution-view.js';
+import { createFeeFlowView } from './src/features/fees/fee-flow-view.js';
+import { initProgramPicker } from './src/features/home/program-picker.js';
 import { createWatchlistSync } from './watchlist-sync.js';
 import { boostHistoryRows } from './boost-history-view.js';
 import { productEvent } from './product-events.js';
-import { exactLamports } from './exact-lamports.js';
-import { formatReceiptSol } from './receipt-export.js';
 import { emitPilotSignal, pilotInterruptedSignal, verifiedPilotLaunchRegistration } from './pilot-event-signals.js';
 import { validateBoostQuote, boostPaymentResolution, readPendingBoost, archiveBoostPayment, archiveVerifiedBoostFromHistory, saveSignedBoostPayment } from './boost-checkout-recovery.js';
 import { readHiddenChatAuthors, hideChatAuthor, resetHiddenChatAuthors } from './token-chat-preferences.js';
@@ -23,7 +51,7 @@ import { buildBuybackAccrual, buildBuybackPolicy, buildBuybackReceipt, evaluateB
 import { buildFeeRouterPolicy, deriveMintFeeRouter, verifyFeeRouterAccount } from './fee-router.js';
 import { buildMintRouterInitializeInstruction, buildPumpLaunchPlan } from './mint-router-launch.js';
 import { launchReserveInstructions, quoteAtomicReserveBuy } from './launch-community-reserve.js';
-import { buildLaunchBurnPolicy, createLaunchBurnTiers, tokensToBaseUnits, validateLaunchBurnPolicy } from './launch-burn-policy.js';
+import { buildLaunchBurnPolicy, createLaunchBurnTiers, validateLaunchBurnPolicy } from './launch-burn-policy.js';
 import { LAUNCH_TIER_USD, launchTierQuoteCurrent } from './launch-tier-quote.js';
 import { burnedSupplyBaseUnits, formatTokenBaseUnits, parseTokenAmount, planTokenAccountBurns, projectBurnMemo, waitForSignatureConfirmation } from './funded-burn.js';
 import { bindReferralAttribution, captureFirstTouch, createReferralCode, normalizeReferralCode } from './referral-program.js';
@@ -31,32 +59,32 @@ import { bindReferralAttribution, captureFirstTouch, createReferralCode, normali
 import { buildTradeTransaction, buildVerifiedPoolTradeTransaction, describeTradeQuote, estimateBuyTokenAmountFromSnapshot, fetchBondingCurveSnapshot, fetchGraduatedPoolSnapshot, fetchVerifiedPoolSnapshot, submitTrade } from './pump-trading.js';
 import { PUMP_PROGRAM_ID, PUMP_SDK, bondingCurvePda } from '@pump-fun/pump-sdk';
 import { PUMP_AMM_PROGRAM_ID, PUMP_AMM_SDK, canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
-import { APP_CLUSTER, APP_ENVIRONMENT_LABEL, APP_EXPLORER_QUERY, APP_MAINNET_READ_ONLY, APP_RPC_URL, DEV_MODE, DEV_WALLET_AUTOCONNECT, DEV_WALLET_ROLE, EXPLORE_CLUSTER, EXPLORE_RPC_URL, TRADE_FEE_BPS, TRADE_FEE_OWNER } from './app-config.js';
+import { APP_CLUSTER, APP_EXPLORER_QUERY, APP_MAINNET_READ_ONLY, APP_RPC_URL, DEV_MODE, DEV_WALLET_AUTOCONNECT, DEV_WALLET_ROLE, EXPLORE_CLUSTER, EXPLORE_RPC_URL, TRADE_FEE_BPS, TRADE_FEE_OWNER } from './app-config.js';
 import { apiRequest, persistLaunchPolicy } from './client.js';
 import { recordLaunchEvent, readLaunchJournal, policyMatchesJournal } from './launch-journal.js';
 import { launchReview, freshLaunchReview, launchReviewMarkup, launchReviewNeedsRefresh, initialCurvePremiumBps } from './launch-review.js';
 import { launchReviewStillCurrent } from './launch-review-gate.js';
 import { confirmedClaimResult } from './reward-discovery.js';
-import {focusLaunchStep} from './launch-accessibility.js';
+import './launch-accessibility.js';
 import { withRpcRetry } from './rpc-retry.js';
 import { getPreparedImage, prepareLaunchImage, assertImageReady } from './launch-image.js';
 import { launchPolicyStatement } from './launch-policy-auth.js';
-import { coinDetailPackage, verifiedPromotionBadge } from './promotion-badge.js';
+import { verifiedPromotionBadge } from './promotion-badge.js';
 import { initPaidListing } from './list-page.js';
 import { metadataStatement, devnetMetadataUri, devnetImageUri, isDevnetImageUri } from './devnet-metadata.js';
 import { canonicalLaunchSocialUrl, normalizeXProfileInput } from './launch-social-url.js';
-import { claimerRate, sortClaimers, claimantWalletLabel } from './airdrop-claimers-model.js';
+import './airdrop-claimers-model.js';
 import { airdropClaimState } from './airdrop-directory-model.js';
 import { communityClaimSummary, communityClaimUnit } from './community-claim-summary.js';
-import { collectRecentTrades, enrichMarketRecord, filterMarketRecords, formatSignal, sortMarketRecords, summarizeMarkets, withMarketWindow } from './market-intelligence.js';
+import { collectRecentTrades, enrichMarketRecord, filterMarketRecords, formatSignal, withMarketWindow } from './market-intelligence.js';
 import { emptyHomeLaunchFilters, homeLaunchFilterCount, matchesHomeLaunchFilters, normalizeHomeLaunchFilters, HOME_FILTER_RANGES } from './home-launch-filters.js';
 import { explorePageNumbers, paginateExploreRows } from './explore-pagination.js';
 import { exploreSocialLinks } from './explore-social-links.js';
-import { formatSolMetric, readCurveMetrics, readPumpSwapMetrics } from './explore-onchain-metrics.js';
+import { readCurveMetrics, readPumpSwapMetrics } from './explore-onchain-metrics.js';
 import { publishVerifiedCurves } from './verified-curve-state.js';
 import { publishTokenListMarkets, tokenAge } from './token-list-market-state.js';
-import { buildTradePricePath, filterAndSortRecentTrades, selectObservedTradeWindow, summarizeTokenAccounts, verifiedRegistryLaunch } from './coin-detail-model.js';
-import { formatPolicyPercent, verifiedCoinRewardsPolicy } from './coin-rewards-policy.js';
+import { summarizeTokenAccounts, verifiedRegistryLaunch } from './coin-detail-model.js';
+import './coin-rewards-policy.js';
 import { buildCoinSummary } from './coin-summary-model.js';
 import { canSignTransactions, connectWalletProvider, selectRememberedWalletProvider, walletAddress, walletLaunches } from './wallet-core.js';
 import { chooseWallet } from './wallet-onboarding.js';
@@ -66,7 +94,7 @@ import { initShareComposer, openShareComposer, localShareActions } from './share
 import { verifiedTradeReceipt } from './trade-share-proof.js';
 import { assessTradeCompletion } from './trade-completion.js';
 import { hasBuyBalance } from './trade-spend-guard.js';
-import { aggregateTokenAccounts, matchedTradePnl } from './portfolio-model.js';
+import { aggregateTokenAccounts } from './portfolio-model.js';
 import { tokenCardData, tokenCardEvidenceLabel, formatPolicyTokenCount } from './token-card-data.js';
 
 globalThis.Buffer ??= Buffer;
@@ -122,11 +150,8 @@ const observedWalletProviders = new WeakSet();
 const disconnectingWalletProviders = new WeakSet();
 const WALLET_MANUAL_DISCONNECT_KEY = 'funded.app.wallet.manual-disconnect';
 const WALLET_PROVIDER_KEY = 'funded.app.wallet.provider';
-const MOBILE_WALLET_SESSION_KEY = 'funded.app.phantom.mobile.session';
 const COIN_CHAT_SESSION_KEY = 'funded.app.token-chat.session.v1';
 let walletDisconnectRequested = false;
-let mobileWalletRequestVersion = 0;
-let mobileWalletLink = '';
 let metricsRequest = 0;
 let launchCostRefreshTimer = null;
 let walletBalanceLamports = null;
@@ -203,6 +228,7 @@ const APP_ECONOMICS = Object.freeze({
   buybackRateOfFundedRevenue: FEE_DISTRIBUTION.buybackRateOfFundedRevenue,
   buybackEffectivePercent: FEE_DISTRIBUTION.buybackEffectivePercent,
 });
+const { renderPublishedFeeRates, renderFeeFlowCalculator } = createFeeFlowView(APP_ECONOMICS);
 
 function getFundedMintAddress(){ return PROTOCOL_FUNDED_MINT; }
 function currentLaunchTierQuote(){
@@ -224,82 +250,7 @@ function getLaunchBurnPolicy(){
     ? { ...policy, quoteId:quote?.id || null, usdTarget:LAUNCH_TIER_USD[policy.tier] } : policy;
 }
 function renderFundedTokenLanding(){
-  const set = (id, value) => { const element = document.getElementById(id); if (element) element.textContent = value; };
-  const mintReady = validateSolanaMint(PROTOCOL_FUNDED_MINT).valid === true;
-  set('funded-token-mint', mintReady ? PROTOCOL_FUNDED_MINT : 'Mint not configured');
-  const copy = document.getElementById('funded-token-copy');
-  if (copy) { copy.disabled = !mintReady; copy.dataset.mint = mintReady ? PROTOCOL_FUNDED_MINT : ''; }
-  const explorer = document.getElementById('funded-token-chart');
-  if (explorer) {
-    explorer.hidden = !mintReady;
-    if (mintReady) { explorer.href = 'https://explorer.solana.com/address/' + encodeURIComponent(PROTOCOL_FUNDED_MINT) + APP_EXPLORER_QUERY; explorer.target = '_blank'; explorer.rel = 'noopener noreferrer'; explorer.textContent = 'VIEW ON SOLANA ↗'; }
-  }
-  const tierAmounts = currentLaunchTierAmounts();
-  for (const tier of LAUNCH_BURN_TIERS.filter(item => SELECTABLE_LAUNCH_TIERS.has(item.id) && item.id !== 'standard'))
-    set('funded-token-' + tier.id, Object.hasOwn(LAUNCH_TIER_USD, tier.id)
-      ? tierAmounts?.[tier.id]?.toLocaleString() || '—' : tier.amountTokens.toLocaleString());
-  const asset = mintReady && exploreUpdatedAt ? assets.find(item => item.address === PROTOCOL_FUNDED_MINT) : null;
-  const pool = fundedBuyRoute.status === 'ready' && fundedBuyRoute.snapshot?.mint === PROTOCOL_FUNDED_MINT
-    ? fundedBuyRoute.snapshot : null;
-  const solUsdReady = Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0;
-  const poolSpotSol = Number(pool?.spotPriceSol);
-  const poolReady = pool && Number.isFinite(poolSpotSol) && poolSpotSol > 0;
-  const poolPriceUsd = poolReady && solUsdReady ? poolSpotSol * coinSolUsdPrice : null;
-  const assetPriceUsd = Number(asset?.priceUsd) > 0 ? Number(asset.priceUsd)
-    : Number(asset?.curvePriceSol) > 0 && solUsdReady ? Number(asset.curvePriceSol) * coinSolUsdPrice : null;
-  const quote = poolReady ? poolPriceUsd : assetPriceUsd;
-  for (const tier of LAUNCH_BURN_TIERS.filter(item => SELECTABLE_LAUNCH_TIERS.has(item.id) && item.id !== 'standard'))
-    set('funded-token-' + tier.id + '-note', Object.hasOwn(LAUNCH_TIER_USD, tier.id)
-      ? `$${LAUNCH_TIER_USD[tier.id]} target · ${tierAmounts?.[tier.id] ? 'current pool quote' : 'quote unavailable'}`
-      : Number.isFinite(quote) && quote > 0 ? `≈ ${formatDashboardUsd(tier.amountTokens * quote)} at current spot` : '$FUNDED burn per launch');
-  const poolUnavailableNote = fundedBuyRoute.status === 'unavailable'
-    ? /rate limit/i.test(fundedBuyRoute.reason || '') ? 'Solana RPC rate limited' : 'Verified Solana pool unavailable'
-    : 'Verified quote unavailable';
-  set('funded-token-price', Number.isFinite(quote) ? '$' + quote.toLocaleString(undefined, { maximumSignificantDigits: 6 })
-    : poolReady ? poolSpotSol.toPrecision(6) + ' SOL' : '$—');
-  set('funded-token-price-note', poolReady ? 'Current Solana pool quote' : Number.isFinite(quote) ? 'Current market estimate' : poolUnavailableNote);
-  const supplyReady = fundedBurnState.status === 'ready' && mintReady;
-  const supplyTokens = supplyReady ? Number(fundedBurnState.supplyBaseUnits) / 10 ** fundedBurnState.decimals : null;
-  const poolCapSol = poolReady && Number.isFinite(supplyTokens) ? poolSpotSol * supplyTokens : null;
-  const marketCap = Number.isFinite(poolCapSol) && solUsdReady ? formatCompactUsd(poolCapSol * coinSolUsdPrice)
-    : Number.isFinite(poolCapSol) ? poolCapSol.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' SOL'
-      : asset ? exploreMarketCapUsd(asset) : '$—';
-  set('funded-token-market-cap', marketCap);
-  const capValue = document.getElementById('funded-token-market-cap');
-  if (capValue) capValue.title = Number.isFinite(poolCapSol) && solUsdReady ? `${formatDashboardUsd(poolCapSol * coinSolUsdPrice)} estimated from the verified pool spot price and live mint supply` : '';
-  set('funded-token-market-cap-note', Number.isFinite(poolCapSol) ? 'Pool spot × live mint supply · estimate' : marketCap === '$—' ? poolUnavailableNote : 'Verified market snapshot');
-  const burnedTokens = supplyReady ? Number(formatTokenBaseUnits(fundedBurnState.burnedBaseUnits, fundedBurnState.decimals, 2)) : null;
-  set('funded-token-burned', Number.isFinite(burnedTokens) ? formatDashboardQuantity(burnedTokens) : '—');
-  const burnedValue = document.getElementById('funded-token-burned');
-  if (burnedValue) burnedValue.title = Number.isFinite(burnedTokens) ? `${burnedTokens.toLocaleString(undefined, { maximumFractionDigits: 2 })} $FUNDED from the on-chain supply delta` : '';
-  set('funded-token-burned-note', supplyReady ? 'Confirmed supply reduction' : fundedBurnState.status === 'error' ? 'Supply total unavailable' : 'Checking supply');
-  const tape = document.getElementById('funded-token-tape-items');
-  if (tape) {
-    const entries = [];
-    if (poolReady) entries.push(['$FUNDED', Number.isFinite(quote) ? '$' + quote.toLocaleString(undefined, { maximumSignificantDigits: 4 }) : poolSpotSol.toPrecision(4) + ' SOL', '/funded']);
-    if (Number.isFinite(poolCapSol)) entries.push(['FUNDED MC', marketCap, '/funded']);
-    if (Number.isFinite(burnedTokens)) entries.push(['BURNED', burnedTokens.toLocaleString(undefined, { maximumFractionDigits: 0 }), '/funded']);
-    if (exploreLastVerifiedAt && !exploreProviderStatus.includes('stale')) {
-      for (const item of assets) {
-        const cap = exploreMarketCapUsd(item);
-        if (!item.address || cap === '$—') continue;
-        entries.push([`$${item.symbol || 'TOKEN'}`, cap, `/token/${encodeURIComponent(item.address)}`]);
-        if (entries.length >= 8) break;
-      }
-    }
-    tape.replaceChildren();
-    if (!entries.length) tape.textContent = 'Waiting for verified Solana market data';
-    for (const [label, value, href] of entries) {
-      const link = document.createElement('a');
-      link.href = href;
-      const name = document.createElement('span');
-      name.textContent = label;
-      const figure = document.createElement('strong');
-      figure.textContent = value;
-      link.append(name, figure);
-      tape.append(link);
-    }
-  }
+  return renderFundedTokenLandingView({ PROTOCOL_FUNDED_MINT, LAUNCH_BURN_TIERS, SELECTABLE_LAUNCH_TIERS, exploreUpdatedAt, assets, fundedBuyRoute, coinSolUsdPrice, fundedBurnState, exploreLastVerifiedAt, exploreProviderStatus, APP_EXPLORER_QUERY }, { validateSolanaMint, currentLaunchTierAmounts, exploreMarketCapUsd });
 }
 window.addEventListener('funded:token-page-ready', renderFundedTokenLanding);
 let launchTierPriceRequest = 0;
@@ -768,73 +719,10 @@ const previewAirdrop = Object.freeze({
   status: 'preview-open',
 });
 let activeAirdropFilter = 'all';
-function escapeHtml(value){ return String(value ?? '').replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]); }
-function formatFlowAmount(value){
-  const amount = Number(value || 0);
-  if (amount > 0 && amount < 0.000000001) return '<0.000000001 SOL';
-  return `${amount.toLocaleString(undefined, { minimumFractionDigits: amount > 0 && amount < 1 ? 3 : 0, maximumFractionDigits: 9 })} SOL`;
-}
-function renderPublishedFeeRates(){
-  const effective = [APP_ECONOMICS.operationsEffectivePercent, APP_ECONOMICS.appReferralEffectivePercent, APP_ECONOMICS.communityEffectivePercent, APP_ECONOMICS.buybackEffectivePercent];
-  const levels = APP_ECONOMICS.appReferralLevels;
-  const percent = value => `${value}%`;
-  const set = (selector, value) => { const node = document.querySelector(selector); if (node) node.textContent = value; };
-  const setAll = (selector, values) => document.querySelectorAll(selector).forEach((node, index) => { if (index < values.length) node.textContent = values[index]; });
-  const setWidths = (selector, values) => document.querySelectorAll(selector).forEach((node, index) => { if (index < values.length) node.style.width = percent(values[index]); });
-  const levelGross = levels.map(level => level.effectivePercentOfCreatorFees);
-  setWidths('.home-receipt-card .receipt-bars span', [80, ...effective]);
-  setWidths('.fee-route-bar i', [80, ...effective]);
-  setAll('.home-receipt-card .receipt-rows span', [
-    '80 SOL Creator-directed', `${effective[0]} SOL Operations`, `${effective[1]} SOL Referral network`,
-    `${effective[2]} SOL Community reserve`, `${effective[3]} SOL $FUNDED burn`,
-  ]);
-  setAll('.audience-referrer li', levelGross.map((rate, index) => `${percent(rate)} ${['direct', 'second', 'third'][index]} level`));
-  setAll('.home-referral-levels article strong', levelGross.map(percent));
-  setAll('.referral-tier-strip > span b', levelGross.map(percent));
-  setAll('.app-revenue-grid > span b', [APP_ECONOMICS.operationsRateOfFundedRevenue, APP_ECONOMICS.appReferralRateOfFundedRevenue, APP_ECONOMICS.communityRateOfFundedRevenue, APP_ECONOMICS.buybackRateOfFundedRevenue].map(percent));
-  setAll('.allocation-chips span b', effective.map(percent));
-  setAll('.app-revenue-grid > span small', [
-    `${percent(effective[0])} of gross fees`, levels.map(level => `L${level.level} ${percent(level.percentOfFundedRevenue)}`).join(' · '),
-    `${percent(effective[2])} of gross fees`, `${percent(effective[3])} of gross fees`,
-  ]);
-  setAll('.fee-output-grid > div small', [
-    '80% of gross', `${percent(effective[0])} of gross`,
-    `L1 ${percent(levelGross[0])} · L2 ${percent(levelGross[1])} · L3 ${percent(levelGross[2])}`,
-    `${percent(effective[2])} of gross`, `${percent(effective[3])} of gross`,
-  ]);
-  setAll('.referral-level-results span small', levelGross.map((rate, index) => `Level ${index + 1} · ${percent(rate)} of gross`));
-  set('.referral-growth-hero p', `A direct creator can earn you ${percent(levelGross[0])} of their gross creator fees, with additional rewards from the next two levels.`);
-  set('#referrals .referral-calculator + .field-help', `Example only: the three levels total ${percent(APP_ECONOMICS.appReferralEffectivePercent)} of gross collected fees when all levels qualify. Rewards require collected fees.`);
-  set('.home-referral-guide .data-badge', `${percent(APP_ECONOMICS.appReferralEffectivePercent)} total policy`);
-  set('#paid .revenue-model > .field-help', `Levels 1–3 receive ${levelGross.map(percent).join(', ')} of gross creator fees. Missing upline levels move to the community reserve. Existing coins keep their recorded split.`);
-}
-function renderFeeFlowCalculator(){
-  const input = document.querySelector('#fee-flow-input');
-  if (!input) return;
-  const note = document.querySelector('#fee-flow-note');
-  const gross = Number(input.value);
-  if (input.value.trim() === '' || !Number.isFinite(gross) || gross < 0) {
-    ['creator', 'operations', 'referrals', 'community', 'buyback'].forEach(key => {
-      const node = document.querySelector(`#fee-output-${key}`);
-      if (node) node.textContent = '—';
-    });
-    if (note) note.textContent = 'Enter a non-negative gross creator-fee amount to preview the policy split.';
-    return;
-  }
-  const allocations = {
-    creator: gross * APP_ECONOMICS.creatorSharePercent / 100,
-    operations: gross * APP_ECONOMICS.operationsEffectivePercent / 100,
-    referrals: gross * APP_ECONOMICS.appReferralEffectivePercent / 100,
-    community: gross * APP_ECONOMICS.communityEffectivePercent / 100,
-    buyback: gross * APP_ECONOMICS.buybackEffectivePercent / 100,
-  };
-  Object.entries(allocations).forEach(([key, amount]) => {
-    const node = document.querySelector(`#fee-output-${key}`);
-    if (node) node.textContent = formatFlowAmount(amount);
-  });
-  const allocated = Object.values(allocations).reduce((sum, amount) => sum + amount, 0);
-  if (note) note.textContent = `A ${formatFlowAmount(gross)} claim allocates exactly ${formatFlowAmount(allocated)} under the published policy.`;
-}
+
+
+
+
 function getPreviewClaims(){ try { return JSON.parse(localStorage.getItem(AIRDROP_PREVIEW_CLAIM_KEY) || '{}'); } catch { return {}; } }
 let verifiedLaunchPolicies = [];
 let verifiedLaunchPoliciesStatus = 'loading';
@@ -1252,92 +1140,7 @@ function promotionElement(mint, withProof = false){
   return element;
 }
 function renderCoinPromotionBadge(){
-  const identity = document.querySelector('#coin-page .coin-identity');
-  if (!identity) return;
-  const main = identity.querySelector(':scope > div:last-of-type');
-  main?.classList.add('coin-identity-main');
-  let rail = identity.querySelector('.coin-package-rail');
-  if (!rail) {
-    rail = document.createElement('aside');
-    rail.className = 'coin-package-rail';
-    rail.setAttribute('aria-label', 'Favorite, boost and launch package');
-    const watch = document.querySelector('#coin-watch');
-    const boost = document.querySelector('#coin-boost');
-    if (watch) rail.append(watch);
-    if (boost) {
-      boost.className = 'coin-package-chip coin-package-chip--boost';
-      boost.innerHTML = `<span class="coin-package-bag" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9h16l-1.3 11H5.3L4 9Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg><span>⚡</span></span><span class="coin-package-copy"><small>Paid boost</small><strong id="coin-boost-total">—</strong></span>`;
-      rail.append(boost);
-    }
-    identity.append(rail);
-  }
-  const mint = getCoinMintAddress();
-  const active = verifiedBoosts[mint];
-  const activeMultiplier = activeBoostMultiplier(active);
-  let packageBadges = identity.querySelector('#coin-boost-packages');
-  if (!packageBadges) {
-    packageBadges = document.createElement('span');
-    packageBadges.id = 'coin-boost-packages';
-    identity.querySelector('#coin-symbol')?.after(packageBadges);
-  }
-  packageBadges.innerHTML = exploreBoostAmountMarkup(mint);
-  document.querySelector('#coin-page-title')?.classList.toggle('golden-ticker', verifiedBoostsAvailable && activeMultiplier >= 500);
-  const boostTotal = rail.querySelector('#coin-boost-total');
-  if (boostTotal) boostTotal.textContent = verifiedBoostsAvailable
-    ? (activeMultiplier ? `${activeMultiplier.toLocaleString()}x total` : 'No active boost')
-    : 'Status unavailable';
-  const boostButton = rail.querySelector('#coin-boost');
-  if (boostButton) {
-    boostButton.classList.toggle('is-active', verifiedBoostsAvailable && Boolean(activeMultiplier));
-    boostButton.title = verifiedBoostsAvailable
-      ? (activeMultiplier ? `${activeBoostPackages(active).length} verified boost payment${activeBoostPackages(active).length === 1 ? '' : 's'} · active total ${activeMultiplier}x` : 'No active verified boost · view packages')
-      : 'Boost status unavailable · view packages';
-    boostButton.setAttribute('aria-label', `View boost packages · ${boostTotal?.textContent || 'status unavailable'}`);
-  }
-  let holder = document.querySelector('#coin-promotion-badge');
-  if (!holder) {
-    holder = document.createElement('span');
-    holder.id = 'coin-promotion-badge';
-    rail.append(holder);
-  }
-  holder.replaceChildren();
-  const presentation = coinDetailPackage(verifiedLaunchPolicyForMint(mint));
-  const badge = presentation.badge;
-  const hero = document.querySelector('#coin-page .coin-hero-card');
-  if (hero) hero.dataset.launchTier = presentation.tier;
-  const profile = document.querySelector('#coin-profile');
-  const heroAside = hero?.querySelector('.coin-hero-aside');
-  const side = document.querySelector('#coin-page .coin-side-column');
-  if (profile && heroAside && side) {
-    if (presentation.tier === 'standard' || presentation.tier === 'unknown') {
-      const market = side.querySelector('.coin-market-aside');
-      if (market) market.after(profile);
-      else side.append(profile);
-    } else {
-      heroAside.prepend(profile);
-    }
-  }
-  const artworkLabel = document.querySelector('#coin-artwork-package');
-  if (artworkLabel) {
-    artworkLabel.hidden = !badge;
-    artworkLabel.textContent = badge ? `${presentation.label} launch · ${Number(badge.amountTokens).toLocaleString()} $FUNDED burned` : '';
-  }
-  const packageElement = document.createElement(badge ? 'a' : 'span');
-  packageElement.className = `coin-package-chip coin-package-chip--promotion is-${presentation.tier}`;
-  if (badge) {
-    packageElement.href = exploreExplorer(`tx/${encodeURIComponent(badge.signature)}`);
-    packageElement.target = '_blank';
-    packageElement.rel = 'noopener noreferrer';
-    packageElement.title = `${badge.amountTokens.toLocaleString()} $FUNDED burned in the verified launch · view receipt`;
-    packageElement.setAttribute('aria-label', `${badge.tier} launch promotion · view verified burn receipt`);
-  } else {
-    packageElement.title = presentation.tier === 'standard' ? 'Verified standard launch; no paid promotion burn' : 'Launch package cannot be verified yet';
-  }
-  const symbol = badge?.tier === 'premier' ? '★' : badge?.tier === 'pro' ? '◆' : '✦';
-  packageElement.innerHTML = `<span class="coin-package-bag" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9h16l-1.3 11H5.3L4 9Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg><span>${symbol}</span></span><span class="coin-package-copy"><small>Launch package</small><strong>${presentation.label}</strong></span>`;
-  holder.append(packageElement);
-  renderCoinRegistryIdentity(mint);
-  renderCoinRewardsPolicy(verifiedLaunchPolicyForMint(mint), mint);
+  return renderCoinPromotionBadgeView({ verifiedBoosts, verifiedBoostsAvailable }, { getCoinMintAddress, exploreBoostAmountMarkup, verifiedLaunchPolicyForMint, renderCoinRegistryIdentity, renderCoinRewardsPolicy, exploreExplorer });
 }
 window.fundedRenderCoinPromotionBadge = renderCoinPromotionBadge;
 function renderCoinRegistryIdentity(mint){
@@ -1440,101 +1243,7 @@ function portfolioTokenCardMarkup({ mint, name, symbol, removable = false }){
   </article>`;
 }
 function renderCreatorLaunches(){
-  const list = document.querySelector('#creator-launch-empty');
-  if (!list) return;
-  const sourceLabel = document.querySelector('.portfolio-launches-heading .section-state');
-  if (sourceLabel) sourceLabel.textContent = verifiedLaunchPoliciesStatus === 'ready' ? 'Up to date' : verifiedLaunchPoliciesStatus === 'unavailable' ? 'Updates unavailable' : 'Updating…';
-  const sourceBadge = list.closest('.role-panel')?.querySelector('.data-badge');
-  if (sourceBadge) sourceBadge.textContent = !connectedWalletAddress ? 'Connect wallet' : verifiedLaunchPoliciesStatus === 'ready' ? 'Up to date' : verifiedLaunchPoliciesStatus === 'unavailable' ? 'Unavailable' : 'Updating…';
-  const launches = getWalletLaunchPolicies();
-  const projectSelect = document.querySelector('#funded-burn-project');
-  if (projectSelect) {
-    const selectedMint = projectSelect.value;
-    projectSelect.replaceChildren(new Option('No project selected', ''));
-    for (const launch of launches) projectSelect.add(new Option(`${launch.name || 'Solana coin'} (${launch.symbol || 'TOKEN'})`, launch.mint));
-    projectSelect.value = launches.some(launch => launch.mint === selectedMint) ? selectedMint : '';
-  }
-  const stats = document.querySelector('#my-launches .projects-panel .role-stats');
-  if (stats) {
-    stats.hidden = !launches.length;
-    const marketByMint = new Map(assets.map(asset => [asset.address, asset]));
-    const stages = launches.map(launch => {
-      const market = marketByMint.get(launch.mint);
-      return market?.migrated === true ? 'migrated'
-        : market?.complete === false || market?.migrated === false ? 'not-migrated'
-          : 'unknown';
-    });
-    const statusKnown = stages.every(stage => stage !== 'unknown');
-    const values = [
-      launches.length,
-      statusKnown ? stages.filter(stage => stage === 'not-migrated').length : '—',
-      statusKnown ? stages.filter(stage => stage === 'migrated').length : '—',
-    ];
-    stats.querySelectorAll('b').forEach((value, index) => { value.textContent = String(values[index] ?? '—'); });
-    stats.title = statusKnown ? 'Migration status verified on Solana' : 'Migration status awaiting on-chain verification';
-  }
-  list.replaceChildren();
-  list.classList.toggle('empty-state', !launches.length);
-  list.classList.toggle('compact-empty', !launches.length);
-  list.classList.toggle('creator-launch-list', launches.length > 0);
-  if (!launches.length) {
-    const state = !connectedWalletAddress ? 'disconnected' : verifiedLaunchPoliciesStatus;
-    const empty = document.createElement('div');
-    empty.className = 'projects-empty-content';
-    const icon = document.createElement('span');
-    icon.className = 'projects-empty-icon';
-    icon.setAttribute('aria-hidden', 'true');
-    icon.textContent = state === 'ready' ? '◎' : '◫';
-    const heading = document.createElement('h3');
-    heading.textContent = state === 'disconnected' ? 'Connect your creator wallet' : state === 'ready' ? 'No projects for this wallet' : state === 'unavailable' ? 'Your tokens are unavailable right now' : 'Checking your projects';
-    const explanation = document.createElement('p');
-    explanation.textContent = state === 'disconnected'
-      ? 'Connect the wallet you used to launch your tokens.'
-      : state === 'ready'
-        ? `No verified launches are associated with wallet ${shortAddress(connectedWalletAddress)}. Connect the wallet used to launch your coin to see its projects here.`
-        : state === 'unavailable'
-          ? `Verified launches for ${shortAddress(connectedWalletAddress)} cannot be checked right now.`
-          : `Checking verified launches for ${shortAddress(connectedWalletAddress)}…`;
-    const actions = document.createElement('div');
-    actions.className = 'projects-empty-actions';
-    const walletLink = document.createElement('a');
-    walletLink.href = '#profile';
-    walletLink.className = 'primary-button';
-    walletLink.textContent = connectedWalletAddress ? 'Manage wallet' : 'Connect wallet';
-    const exploreLink = document.createElement('a');
-    exploreLink.href = '#explore';
-    exploreLink.className = 'text-button';
-    exploreLink.textContent = 'Explore launches →';
-    actions.append(walletLink, exploreLink);
-    empty.append(icon, heading, explanation, actions);
-    list.append(empty);
-    return;
-  }
-  for (const launch of launches) {
-    const holder = document.createElement('div');
-    const market = assets.find(item => item.address === launch.mint);
-    const marketCard = market
-      ? withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(market, exploreWindow) : enrichMarketRecord(market))
-      : withVerifiedExploreBenefits({
-          address: launch.mint,
-          name: launch.name || 'Solana coin',
-          symbol: launch.symbol || 'TOKEN',
-          icon: (launch.symbol || 'T').slice(0, 1).toUpperCase(),
-          riskLevel: 'watch',
-          change: '—',
-          marketUnavailable: true,
-        });
-    holder.innerHTML = homeLaunchCardMarkup(marketCard, {
-      volumeLabel: exploreWindow,
-      volumeValue: launchCardVolumeUsd(marketCard, exploreWindow),
-      extraClass: ' project-token-card',
-    });
-    const card = holder.firstElementChild;
-    list.append(card);
-    decorateHomeLaunchCard(card, launch.mint);
-    loadPortfolioLogo(card, launch);
-    setWatchButtonState(card.querySelector('.watch-button'), getWatchlist().includes(launch.mint));
-  }
+  return renderCreatorLaunchesView({ verifiedLaunchPoliciesStatus, connectedWalletAddress, assets, exploreWindow, EXPLORE_CLUSTER }, { getWalletLaunchPolicies, withVerifiedExploreBenefits, homeLaunchCardMarkup, launchCardVolumeUsd, decorateHomeLaunchCard, loadPortfolioLogo, setWatchButtonState, getWatchlist });
 }
 window.addEventListener('funded:projects-view-ready', renderCreatorLaunches);
 function formatTokenAmount(value){ return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 }); }
@@ -1666,49 +1375,7 @@ function renderAirdropDirectory(programs = getAirdropPrograms()){
   }
 }
 function renderAirdropProgramDetail(program){
-  const panel = document.querySelector('#airdrop-selected-program');
-  if (!panel) return;
-  panel.dataset.mint = program.id;
-  const unavailableButton = document.querySelector('#airdrop-claim-unavailable');
-  if (unavailableButton) unavailableButton.hidden = program.claimActive;
-  const eyebrow = document.querySelector('#airdrop-selected-eyebrow');
-  if (eyebrow) eyebrow.textContent = program.vaultVerified ? 'Airdrop funding confirmed' : 'Airdrop funding pending';
-  document.querySelector('#airdrop-selected-title').textContent = `${program.name} (${program.symbol})`;
-  document.querySelector('#airdrop-selected-stats').innerHTML = `<span><small>Airdrop allocation</small><strong>${formatTokenAmount(program.reservedTokens)} tokens · ${program.allocationPercent}% of supply</strong></span><span><small>Claimed</small><strong>${formatVerifiedAirdropAmount(program.claimedTokens)}</strong></span><span><small>Eligible wallets</small><strong>${formatVerifiedAirdropAmount(program.eligibleWallets)}</strong></span><span><small>Claim window</small><strong>${program.claimPublished ? 'Claim your full allocation once within 90 days' : 'Not open yet'}</strong></span><details class="airdrop-verification-details advanced-details"><summary>Advanced details · verification</summary><div class="airdrop-program-detail-stats"><span><small>Snapshot</small><strong>${escapeHtml(program.snapshot)}</strong></span><span><small>Snapshot hash</small><strong class="airdrop-proof-value">${escapeHtml(program.snapshotHash || 'Pending verified snapshot')}</strong></span><span><small>Proof root</small><strong class="airdrop-proof-value">${escapeHtml(program.merkleRoot || 'Pending published proof')}</strong></span></div></details>`;
-  const status = document.querySelector('#airdrop-selected-status');
-  status.textContent = program.claimActive
-    ? `$FUNDED holders recorded when this token moved to its trading pool can check their allocation and claim by ${program.deadline}.`
-    : program.status === 'closed'
-    ? `The claim window ended ${program.deadline}. You can still review past claims and verification details.`
-    : program.vaultVerified
-    ? `${formatTokenAmount(program.reservedTokens)} tokens are set aside. Claims will open after the token moves to its trading pool and the eligible wallet list is confirmed.`
-    : 'This airdrop is planned. Funding and wallet eligibility must be confirmed before claims can open.';
-  if (program.claimActive) {
-    const button = document.createElement('button');
-    button.type = 'button'; button.className = 'secondary-button'; button.dataset.checkCommunityMint = program.id;
-    button.textContent = connectedWalletAddress ? 'Check my allocation' : 'Connect wallet to check allocation';
-    status.append(document.createElement('br'), button);
-  }
-  if (communityClaimPolicy?.windowDays === 90 && communityClaimPolicy.unclaimedRecipient && communityClaimPolicy.status === 'not-activated') {
-    status.append(document.createTextNode(` Planned policy: unclaimed tokens go to app owner ${communityClaimPolicy.unclaimedRecipient} after 90 days. Claim program not activated.`));
-  }
-  if (program.vaultVerified && /^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(program.fundingSignature || '')) {
-    const receipt = document.createElement('a');
-    receipt.href = `https://explorer.solana.com/tx/${program.fundingSignature}${APP_EXPLORER_QUERY}`;
-    receipt.target = '_blank'; receipt.rel = 'noopener noreferrer';
-    receipt.textContent = ' Verify funding transaction ↗';
-    status.append(receipt);
-  }
-  if (!program.claimActive && !program.vaultVerified && program.vaultInitialized && program.creatorWallet === connectedWalletAddress && canSignTransactions(wallet)) {
-    const button = document.createElement('button');
-    button.type = 'button'; button.className = 'secondary-button'; button.dataset.fundCommunityMint = program.id;
-    button.textContent = `Review funding ${formatTokenAmount(program.reservedTokens)} ${program.symbol}`;
-    status.append(document.createElement('br'), button);
-  } else if (!program.vaultVerified && program.creatorWallet === connectedWalletAddress && !program.vaultInitialized) {
-    status.append(document.createTextNode(' The reward vault must be initialized before your wallet can fund it.'));
-  }
-  panel.hidden = false;
-  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  return renderAirdropProgramDetailView(program, { connectedWalletAddress, communityClaimPolicy, wallet, APP_EXPLORER_QUERY }, { formatTokenAmount, formatVerifiedAirdropAmount });
 }
 async function checkCommunityClaim(mintAddress){
   const status = document.querySelector('#airdrop-selected-status');
@@ -1919,34 +1586,7 @@ async function fundCommunityReserve(mintAddress){
   } finally { button.disabled = false; }
 }
 function renderAirdropAnalytics(){
-  const claimers = document.querySelector('#airdrop-top-claimers');
-  const programs = document.querySelector('#airdrop-top-programs');
-  const wallets = document.querySelector('#unclaimed-wallets');
-  const leaderboardSort = document.querySelector('#leaderboard-sort')?.value || 'amount';
-  const privateMode = document.querySelector('#leaderboard-private')?.checked ?? true;
-  const sortControl = document.querySelector('#leaderboard-sort');
-  const privacyControl = document.querySelector('#leaderboard-private');
-  if (sortControl) sortControl.disabled = indexedClaimers.length === 0;
-  if (privacyControl) privacyControl.disabled = indexedClaimers.length === 0;
-  const sortedClaimers = sortClaimers(indexedClaimers, leaderboardSort);
-  if (claimers) claimers.innerHTML = sortedClaimers.map((item, index) => `<div class="leader-row"><b>${index + 1}</b><span><strong>${escapeHtml(claimantWalletLabel(item.wallet, privateMode))}</strong><small>${escapeHtml(item.symbol)} claimed${claimerRate(item) == null ? '' : ` · ${(claimerRate(item) * 100).toFixed(1)}% of allocation`}</small></span><em>${formatTokenAmount(item.amount)}</em></div>`).join('') || '<div class="empty-state">Verified claimant receipts are not indexed yet. Ranking and privacy controls will appear when verified rows are available.</div>';
-  if (programs) programs.innerHTML = getAirdropPrograms().sort((a, b) => b.reservedTokens - a.reservedTokens).slice(0, 5).map((item, index) => {
-    const rate = airdropClaimRate(item);
-    const claimLabel = rate == null ? 'Snapshot pending' : rate > 0 && rate * 100 < 0.05 ? '<0.1% claimed' : `${(rate * 100).toFixed(1)}% claimed`;
-    return `<div class="leader-row" data-logo-mint="${escapeHtml(item.id)}"><b>${index + 1}</b><i class="leader-token-logo" aria-hidden="true">${escapeHtml(String(item.symbol || "T").slice(0, 1))}</i><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.symbol)} · ${escapeHtml(claimLabel)}</small></span><em>${formatTokenAmount(item.reservedTokens)}</em></div>`;
-  }).join('');
-  loadVerifiedTokenLogos(programs);
-  const verifiedWallets = getVerifiedUnclaimedWallets();
-  if (wallets) wallets.innerHTML = verifiedWallets.map(item => `<tr><td><strong>${item.wallet}</strong></td><td>${item.program}</td><td>${formatTokenAmount(item.eligible)}</td><td>${formatTokenAmount(item.claimed)}</td><td>${formatTokenAmount(item.eligible - item.claimed)}</td><td><span class="wallet-claim-status">${item.status}</span></td></tr>`).join('');
-  const count = document.querySelector('#unclaimed-wallet-count');
-  if (count) count.textContent = verifiedWallets.length ? `${verifiedWallets.length} verified wallets`
-    : getAirdropPrograms().some(item => item.claimActive) ? 'Unclaimed wallet list unavailable' : 'Eligibility snapshot pending';
-  const exportButton = document.querySelector('#airdrop-export-csv');
-  if (exportButton) exportButton.disabled = verifiedWallets.length === 0;
-  const notificationNode = document.querySelector('#airdrop-notifications');
-  if (notificationNode) notificationNode.innerHTML = demoAirdropNotifications.map(item => `<div class="notification-row ${item.tone}"><b>${item.icon}</b><span><strong>${item.title}</strong><small>${item.detail}</small></span></div>`).join('');
-  const historyNode = document.querySelector('#airdrop-history');
-  if (historyNode) historyNode.innerHTML = `<p class="history-label">Recent activity</p>${demoAirdropHistory.map(item => `<div class="history-row"><span><strong>${item.token} · ${item.event}</strong><small>${item.date} · ${item.status}</small></span><em>${item.amount}</em></div>`).join('')}`;
+  return renderAirdropAnalyticsView({ indexedClaimers, demoAirdropNotifications, demoAirdropHistory }, { formatTokenAmount, getAirdropPrograms, airdropClaimRate, loadVerifiedTokenLogos, getVerifiedUnclaimedWallets });
 }
 function getVerifiedUnclaimedWallets(){
   return demoUnclaimedWallets.filter(item => item.snapshotVerified === true && Number(item.eligible) > Number(item.claimed));
@@ -2212,88 +1852,7 @@ async function handleFundedBuy(){
   }
 }
 function renderBuybackDashboard(message = ''){
-  const state = getBuybackPreviewState();
-  const summary = summarizeBuybackLedger(state.accruals, state.receipts);
-  const pendingSol = summary.pendingByAsset.SOL || 0;
-  const walletBalanceReady = Boolean(connectedWalletAddress && fundedBurnState.wallet === connectedWalletAddress && fundedBurnState.status === 'ready');
-  const launchBurns = verifiedLaunchPolicies.filter(launch => launch?.creatorLaunchBurn?.status === 'verified'
-    && launch.creatorLaunchBurn.receipt && Number(launch.creatorLaunchBurn.receipt.amountTokens ?? launch.creatorLaunchBurn.amountTokens) > 0);
-  const walletLaunchBurns = launchBurns.filter(launch => launch.creatorWallet === connectedWalletAddress);
-  const standaloneReceipts = fundedBurnState.wallet === connectedWalletAddress ? fundedBurnState.receipts : [];
-  const receiptSignatures = new Set([...walletLaunchBurns.map(launch => launch.creatorLaunchBurn.receipt.signature), ...standaloneReceipts.map(receipt => receipt.signature)].filter(Boolean));
-  document.querySelector('#buyback-pending').textContent = walletBalanceReady ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : '—';
-  document.querySelector('#buyback-burned').textContent = fundedBurnState.status === 'ready' ? formatTokenBaseUnits(fundedBurnState.burnedBaseUnits, fundedBurnState.decimals, 6) : '—';
-  document.querySelector('#buyback-claims').textContent = connectedWalletAddress && fundedBurnState.status === 'ready' ? String(receiptSignatures.size) : '—';
-  const feeReceipts = buybackNetworkState.receipts;
-  const totalReceiptCount = feeReceipts.length + launchBurns.length + standaloneReceipts.filter(receipt => !launchBurns.some(launch => launch.creatorLaunchBurn.receipt.signature === receipt.signature)).length;
-  document.querySelector('#buyback-execution-count').textContent = totalReceiptCount
-    ? `${totalReceiptCount} verified receipt${totalReceiptCount === 1 ? '' : 's'}`
-    : buybackNetworkState.status === 'unavailable' && verifiedLaunchPoliciesStatus !== 'ready' && !fundedBurnState.receiptIndexAvailable
-      ? 'Receipt index unavailable'
-      : '0 verified receipts';
-  const burnedNote = document.querySelector('#buyback-burned')?.parentElement?.querySelector('em');
-  const claimsNote = document.querySelector('#buyback-claims')?.parentElement?.querySelector('em');
-  const balanceNote = document.querySelector('#buyback-pending')?.parentElement?.querySelector('em');
-  if (balanceNote) balanceNote.textContent = walletBalanceReady ? 'Current wallet balance' : connectedWalletAddress && fundedBurnState.status === 'loading' ? 'Loading from Solana' : connectedWalletAddress ? 'Balance unavailable' : 'Connect wallet to check balance';
-  if (burnedNote) burnedNote.textContent = fundedBurnState.status === 'ready' ? 'Confirmed supply reduction' : 'Supply unavailable';
-  if (claimsNote) claimsNote.textContent = fundedBurnState.receiptIndexAvailable ? 'Confirmed burn transactions' : 'Burn history unavailable';
-  const executedIds = new Set(state.receipts.flatMap(receipt => receipt.accrualIds || []));
-  const events = [
-    ...state.accruals.map(accrual => ({ type: 'accrual', at: accrual.claimedAt, data: accrual })),
-    ...state.receipts.map(receipt => ({ type: 'receipt', at: receipt.executedAt, data: receipt })),
-  ].sort((a, b) => String(b.at).localeCompare(String(a.at)));
-  const previewRows = events.map(event => {
-    if (event.type === 'receipt') {
-      const receipt = event.data;
-      return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${formatBuybackAmount(receipt.tokensBurned, 2)} $FUNDED burned</strong><small>${formatBuybackAmount(receipt.inputAmount)} ${escapeHtml(receipt.asset)} · ${escapeHtml(receipt.burnInstruction)} · local preview</small></span><b>Supply ↓</b></div>`;
-    }
-    const accrual = event.data;
-    const executed = executedIds.has(accrual.id);
-    return `<div class="buyback-ledger-row"><span class="buyback-ledger-icon">↗</span><span><strong>${formatBuybackAmount(accrual.buybackAmount)} ${escapeHtml(accrual.asset)} allocated</strong><small>${formatBuybackAmount(accrual.grossCreatorFees)} ${escapeHtml(accrual.asset)} gross fees · claim ${escapeHtml(accrual.claimSignature.slice(-8))}</small></span><b>${executed ? 'Burned' : 'Pending'}</b></div>`;
-  }).join('');
-  const launchRows = launchBurns.map(launch => {
-    const burn = launch.creatorLaunchBurn; const receipt = burn.receipt;
-    const signature = String(receipt.signature || '');
-    return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${formatBuybackAmount(receipt.amountTokens ?? burn.amountTokens, 2)} $FUNDED burned</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} launch promotion · ${escapeHtml(burn.label || burn.tier || 'verified tier')}</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed transaction ↗</a></span><b>Supply ↓</b></div>`;
-  }).join('');
-  const standaloneRows = standaloneReceipts.filter(receipt => !launchBurns.some(launch => launch.creatorLaunchBurn.receipt.signature === receipt.signature)).map(receipt => `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${formatBuybackAmount(receipt.amountTokens, 6)} $FUNDED burned</strong><small>${escapeHtml(fundedReceiptProject(receipt))} · confirmed</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed transaction ↗</a></span><b>Supply ↓</b></div>`).join('');
-  const feeRows = feeReceipts.map(receipt => {
-    const baseUnits = BigInt(receipt.boughtAndBurnedBaseUnits || '0');
-    const amount = formatTokenBaseUnits(baseUnits, Number(receipt.tokenDecimals ?? 6), 6);
-    const spentSol = (BigInt(receipt.settledLamports || '0') - BigInt(receipt.returnedLamports || '0'));
-    return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${escapeHtml(amount)} $FUNDED bought and burned</strong><small>${escapeHtml(formatTokenBaseUnits(spentSol, 9, 9))} SOL from collected creator fees · unused SOL returned</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed buy and burn ↗</a></span><b>Supply ↓</b></div>`;
-  }).join('');
-  document.querySelector('#buyback-ledger').innerHTML = `${feeRows}${standaloneRows}${launchRows}${previewRows}` || (buybackNetworkState.status === 'unavailable' ? '<div class="empty-state">Burn history is temporarily unavailable. Try again shortly.</div>' : '<div class="empty-state">No confirmed $FUNDED burns yet. Fee-funded buybacks and launch promotions appear here separately.</div>');
-  const runButton = document.querySelector('#buyback-run-preview');
-  const addButton = document.querySelector('#buyback-add-claim');
-  if (addButton) { addButton.disabled = true; addButton.title = 'Recording requires verified fee-claim receipts and a deployed buyback vault.'; }
-  if (runButton) { runButton.disabled = true; runButton.title = 'Buybacks execute automatically from verified fee accruals. Manual execution is unavailable.'; }
-  renderBuybackExample();
-  const burnCard = document.querySelector('.burn-token-card');
-  const burnBadge = burnCard?.querySelector('.burn-status');
-  const burnStatus = document.querySelector('#funded-burn-status');
-  const signingReady = fundedBurnState.status === 'ready' && Boolean(wallet && canSignTransactions(wallet)) && fundedBurnState.balanceBaseUnits > 0n;
-  if (burnBadge) { burnBadge.textContent = fundedBurnState.status === 'loading' ? 'Loading' : signingReady ? 'Ready' : fundedBurnState.status === 'ready' ? 'View only' : 'Unavailable'; burnBadge.className = `burn-status ${signingReady ? 'available' : fundedBurnState.status === 'loading' ? 'loading' : 'unavailable'}`; }
-  if (burnStatus) burnStatus.textContent = fundedBurnState.message;
-  const tierCard = document.querySelector('.burn-tier-card');
-  if (tierCard) {
-    const paidTiers = LAUNCH_BURN_TIERS.filter(tier => SELECTABLE_LAUNCH_TIERS.has(tier.id) && tier.amountTokens > 0);
-    const maximum = paidTiers.at(-1)?.amountTokens || 1;
-    paidTiers.forEach(tier => {
-      const row = tierCard.querySelector(`[data-burn-tier="${tier.id}"]`);
-      if (!row) return;
-      row.querySelector('b').textContent = `${tier.amountTokens.toLocaleString('en-US')} $FUNDED`;
-      row.querySelector('em').style.width = `${Math.max(8, tier.amountTokens / maximum * 100)}%`;
-    });
-  }
-  updateFundedBurnButton();
-  const status = document.querySelector('#buyback-preview-status');
-  if (message) status.textContent = message;
-  else if (pendingSol >= 0.25) status.textContent = `${formatBuybackAmount(pendingSol)} SOL is ready for a protected batch preview.`;
-  else if (pendingSol > 0) status.textContent = `${formatBuybackAmount(pendingSol)} SOL is safely accumulating toward the 0.25 SOL threshold.`;
-  else status.textContent = feeReceipts.length > 0
-    ? `${feeReceipts.length} verified fee-funded Solana buyback${feeReceipts.length === 1 ? '' : 's'} completed. New batches run automatically from collected fees; this example cannot create a claim.`
-    : 'Local calculation only. Live Solana buybacks run automatically from verified fee collections; this example cannot create a claim.';
+  return renderBuybackDashboardView(message, { connectedWalletAddress, fundedBurnState, verifiedLaunchPolicies, buybackNetworkState, verifiedLaunchPoliciesStatus, wallet, LAUNCH_BURN_TIERS, SELECTABLE_LAUNCH_TIERS }, { getBuybackPreviewState, formatBuybackAmount, fundedReceiptProject, renderBuybackExample, updateFundedBurnButton, exploreExplorer });
 }
 async function submitFundedBurn(){
   if (!wallet) { await connectWallet(); if (!wallet) return; }
@@ -2668,49 +2227,7 @@ function exploreEmptyReason(){
   return null;
 }
 function renderExploreControls(){
-  const page = document.querySelector('#explore');
-  if (page) { page.dataset.exploreView = exploreView; page.dataset.cluster = EXPLORE_CLUSTER; page.dataset.exploreTab = exploreTab; }
-  document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(button => { const active = button.dataset.exploreTab === exploreTab; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
-  document.querySelectorAll('[data-explore-window]').forEach(button => {
-    const active = button.dataset.exploreWindow === exploreWindow;
-    button.classList.toggle('active', active);
-    button.setAttribute('aria-pressed', String(active));
-  });
-  document.querySelectorAll('[data-explore-sort]').forEach(button => {
-    const active = button.dataset.exploreSort === exploreSort;
-    button.classList.toggle('active', active);
-    button.setAttribute('aria-pressed', String(active));
-  });
-  const boostCount = document.querySelector('#explore-boost-sort-count');
-  if (boostCount) boostCount.textContent = verifiedBoostsAvailable
-    ? String(assets.filter(item => activeBoostMultiplier(verifiedBoosts[item.address]) > 0).length)
-    : '—';
-  const volumeSortButton = document.querySelector('[data-explore-sort="volume"]');
-  if (volumeSortButton) volumeSortButton.textContent = `${exploreWindow} volume`;
-  const hasExploreFilters = exploreRisk !== 'all' || exploreStage !== 'all' || exploreAuthority !== 'all'
-    || explorePromotion !== 'all' || exploreReward !== 'all'
-    || exploreMaxAgeHours != null || exploreMinVolumeUsd != null || exploreMinMarketCapUsd != null
-    || exploreMinTrades != null || exploreMinTraders != null;
-  document.querySelector('#explore-filter-toggle')?.classList.toggle('has-filters', hasExploreFilters);
-  for (const [selector, label] of [
-    ['#explore-sort option[value="market-cap"]', 'Market cap'],
-    ['#explore-sort option[value="volume"]', `${exploreWindow} volume`],
-    ['#explore-sort option[value="trades"]', `${exploreWindow} trades`],
-    ['#explore-sort option[value="liquidity"]', 'SOL reserve'],
-    ['#explore-min-volume-label', `Minimum ${exploreWindow} volume · USD`],
-    ['#explore-min-trades-label', `Minimum ${exploreWindow} trades`],
-    ['#explore-min-traders-label', `Minimum ${exploreWindow} trading wallets`],
-    ['.scanner-head span:nth-child(4)', 'Market cap'],
-    ['#scanner-volume-heading', `${exploreWindow} volume`],
-    ['#scanner-trades-heading', `${exploreWindow} trades`],
-  ]) { const node = document.querySelector(selector); if (node) node.textContent = label; }
-  document.querySelectorAll('[data-explore-view]').forEach(button => {
-    const active = button.dataset.exploreView === exploreView;
-    button.classList.toggle('active', active);
-    button.setAttribute('aria-pressed', String(active));
-  });
-  const checked = document.querySelector('#explore-last-updated');
-  if (checked) checked.textContent = exploreUpdatedAt ? `Checked ${new Date(exploreUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Waiting for first check';
+  return renderExploreControlsView({ exploreView, exploreTab, exploreWindow, exploreSort, verifiedBoostsAvailable, assets, verifiedBoosts, exploreRisk, exploreStage, exploreAuthority, explorePromotion, exploreReward, exploreMaxAgeHours, exploreMinVolumeUsd, exploreMinMarketCapUsd, exploreMinTrades, exploreMinTraders, exploreUpdatedAt, EXPLORE_CLUSTER }, {  });
 }
 function formatVerifiedPercent(value){
   const number = Number(value);
@@ -2718,33 +2235,7 @@ function formatVerifiedPercent(value){
   return `${number.toLocaleString(undefined, { maximumFractionDigits: 2 })}%`;
 }
 function renderExploreBenefitLeaders(records){
-  const container = document.querySelector('#explore-benefit-leaders');
-  if (!container) return;
-  const definitions = [
-    { sort: 'volume', label: `Top ${exploreWindow} volume`, field: 'windowVolumeSol', policy: false },
-    { sort: 'airdrop', label: 'Top token airdrop', field: 'communityAirdropPercent', policy: true, suffix: 'of supply' },
-    { sort: 'holder-fee', label: 'Top fee to holders', field: 'holderFeePercent', policy: true, suffix: 'of creator fees' },
-    { sort: 'x-fee', label: 'Top fee to X account', field: 'xFeePercent', policy: true, suffix: 'of creator fees' },
-  ];
-  const cards = definitions.map(definition => {
-    const candidates = records.filter(record => definition.policy
-      ? record.benefitPolicyVerified && record[definition.field] > 0
-      : record[definition.field] != null && Number.isFinite(Number(record[definition.field])));
-    const leader = candidates.length ? sortMarketRecords(candidates, definition.sort)[0] : null;
-    const hasVerifiedField = records.some(record => definition.policy
-      ? record.benefitPolicyVerified && record[definition.field] != null
-      : record[definition.field] != null);
-    if (!leader && !hasVerifiedField) return '';
-    const value = leader
-      ? definition.policy ? formatVerifiedPercent(leader[definition.field]) : formatExploreUsd(leader[definition.field], { partial: leader.windowCoverage === 'partial' })
-      : hasVerifiedField && definition.policy ? '0%' : 'Unavailable';
-    const detail = leader
-      ? `${leader.symbol || shortAddress(leader.address)}${definition.suffix ? ` · ${definition.suffix}` : leader.windowCoverage === 'partial' ? ' · partial history' : ' · scanned'}`
-      : hasVerifiedField && definition.policy ? 'No matching launch yet' : definition.policy ? 'Details unavailable' : 'Activity unavailable';
-    const canRank = leader && !document.querySelector(`#explore-sort option[value="${definition.sort}"]`)?.disabled;
-    return `<button type="button" class="${definition.sort === exploreSort ? 'active' : ''}" data-explore-leader-sort="${definition.sort}" data-state="${leader ? 'ready' : hasVerifiedField ? 'empty' : 'unavailable'}" aria-pressed="${definition.sort === exploreSort}" ${canRank ? '' : 'disabled'} ${leader && !canRank ? 'title="Ranking needs more verified data"' : ''}><span>${escapeHtml(definition.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></button>`;
-  }).filter(Boolean);
-  container.innerHTML = cards.length ? cards.join('') : '<p class="explore-ranking-empty">No verified rankings match the current filters.</p>';
+  return renderExploreBenefitLeadersView(records, { exploreWindow, exploreSort }, { formatVerifiedPercent, formatExploreUsd });
 }
 function formatPayoutSol(value) {
   if (typeof value !== 'string' || !/^(?:0|[1-9]\d*)$/.test(value)) return '—';
@@ -2753,52 +2244,8 @@ function formatPayoutSol(value) {
   const fraction = String(units % 1_000_000_000n).padStart(9, '0').replace(/0+$/, '');
   return `${whole.toLocaleString()}${fraction ? `.${fraction}` : ''} SOL`;
 }
-function renderExplorePayoutStats() {
-  const container = document.querySelector('#explore-payout-stats');
-  if (!container) return;
-  const stats = analyticsSummary?.feePayoutStats;
-  const ready = stats?.cluster === EXPLORE_CLUSTER && stats.commitment === 'finalized';
-  const cards = [
-    { label:'Total fee paid to X accounts', kind:'x' },
-    { label:'Total fee paid to creators', kind:'creator' },
-    { label:'Total fee paid to coin holders', kind:'holder' },
-    { label:'Top X account paid', kind:'x', top:true },
-    { label:'Top coin holder paid', kind:'holder', top:true },
-    { label:'Top $FUNDED holder paid', kind:'fundedHolder', top:true },
-    { label:'Top creator paid', kind:'creator', top:true },
-  ];
-  container.innerHTML = cards.map(card => {
-    const group = ready ? stats[card.kind] : null;
-    const available = ['verified', 'partial'].includes(group?.status);
-    const leader = available && card.top ? group.top : null;
-    if (card.kind === 'fundedHolder') {
-      const value = available && leader ? `${leader.claimCount} token claim${leader.claimCount === 1 ? '' : 's'}` : '—';
-      const detail = group?.status === 'unavailable' ? group.reason || 'Finalized community claims unavailable'
-        : !available ? 'Checking finalized community claims'
-          : leader ? `${shortAddress(leader.recipient)} · ${leader.launchCount} launch${leader.launchCount === 1 ? '' : 'es'}`
-            : 'No finalized community claims yet';
-      return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></article>`;
-    }
-    const amount = card.top ? leader?.paidLamports : group?.paidLamports;
-    const count = card.top ? leader?.payoutCount : group?.payoutCount;
-    const value = available && (group.status !== 'partial' || count > 0)
-      ? `${group.status === 'partial' ? '≥' : ''}${formatPayoutSol(amount)}` : '—';
-    const name = leader ? card.kind === 'x'
-      ? leader.handle || `X ID ${leader.recipient}` : shortAddress(leader.recipient) : null;
-    const profile = card.kind === 'x' && /^@[A-Za-z0-9_]{1,15}$/.test(String(leader?.handle || ''))
-      ? `https://x.com/${leader.handle.slice(1)}` : null;
-    const detail = group?.status === 'unavailable'
-      ? group.reason || 'Finalized payout data unavailable'
-      : !available ? 'Checking finalized payout records'
-        : group.status === 'partial' && !count ? group.reason || 'Payout verification incomplete'
-        : leader ? `${name} · ${leader.payoutCount} payment${leader.payoutCount === 1 ? '' : 's'}`
-          : card.top ? 'No verified fee payout yet'
-            : `${group.payoutCount} finalized payment${group.payoutCount === 1 ? '' : 's'}`;
-    const detailMarkup = profile
-      ? `<a href="${escapeHtml(profile)}" target="_blank" rel="noopener noreferrer">${escapeHtml(detail)} ↗</a>`
-      : `<small>${escapeHtml(detail)}</small>`;
-    return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong>${detailMarkup}${group?.status === 'partial' ? `<em${group.reason ? ` title="${escapeHtml(group.reason)}"` : ''}>Partial coverage</em>` : ''}</article>`;
-  }).join('');
+function renderExplorePayoutStats(){
+  return renderExplorePayoutStatsView({ analyticsSummary, EXPLORE_CLUSTER }, { formatPayoutSol });
 }
 function exploreSocialLinksMarkup(record) {
   const links = exploreSocialLinks(record, verifiedLaunchPolicyForMint(record.address));
@@ -2895,74 +2342,7 @@ function exploreOutageCopy(){
   };
 }
 function renderExploreAssets({ force = false } = {}){
-  const grid = document.querySelector('#asset-grid');
-  // Preserve the focused action through background market refreshes.
-  if (!force && grid?.contains(document.activeElement)) {
-    grid.dataset.refreshPending = 'true';
-    return;
-  }
-  if (grid) delete grid.dataset.refreshPending;
-  const status = document.querySelector('#explore-data-status');
-  const ticker = document.querySelector('#explore-ticker');
-  const clusterLabel = document.querySelector('#explore-cluster-label');
-  const scope = document.querySelector('.explore-hero-disclosure');
-  const loading = exploreProviderStatus === 'On-chain only · loading' && !exploreLastVerifiedAt;
-  const feedUnavailable = !exploreFeedAvailable && !exploreLastVerifiedAt;
-  const rpcUnavailable = /RPC (?:rate limited|unavailable)/.test(exploreProviderStatus);
-  const outage = exploreOutageCopy();
-  if (clusterLabel) clusterLabel.textContent = `${exploreProviderStatus.includes('Verified launch registry') ? 'Verified launch registry' : exploreProviderStatus.includes('stale') ? 'last verified snapshot' : exploreProviderStatus.includes('RPC verified') ? 'RPC verified' : exploreProviderStatus.includes('unavailable') ? 'data unavailable' : 'awaiting verification'}`;
-  if (scope && EXPLORE_CLUSTER !== 'devnet') scope.textContent = 'Solana mainnet discovery · Pump.fun listings are shown only after mint verification. Missing market figures stay unavailable.';
-  const records = assets.map(item => withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(item, exploreWindow) : enrichMarketRecord(item)));
-  const visible = filterExploreTabRecords(records);
-  const marketNote = document.querySelector('#explore-market-note');
-  if (marketNote) marketNote.hidden = !records.length || records.some(item => item.curveCapSol != null || item.poolMarketCapSol != null || item.windowVolumeSol != null || item.marketCapUsd != null || item.volume24hUsd != null);
-  renderExploreControls();
-  renderExplorePulse(records);
-  renderExploreBenefitLeaders(visible);
-  const summary = summarizeMarkets(records);
-  if (status) status.textContent = exploreProviderStatus === 'On-chain only · loading' ? exploreProviderStatus : `${exploreProviderStatus}${assets.length ? ` · ${visible.length} shown` : ''}`;
-  const kpis = document.querySelector('#explore-market-kpis');
-  if (kpis) kpis.innerHTML = EXPLORE_CLUSTER === 'devnet'
-    ? `<span><small>${exploreWindow} curve traded · scanned</small><strong>${formatExploreUsd(records.some(item => item.windowVolumeSol != null) ? records.reduce((sum, item) => sum + (item.windowVolumeSol || 0), 0) : null, { partial: exploreScannedCount < records.length || records.some(item => item.windowCoverage === 'partial') })}</strong></span><span><small>On-chain reserves</small><strong>${formatExploreUsd(records.some(item => (item.migrated === true ? item.poolReserveSol : item.curveReserveSol) != null) ? records.reduce((sum, item) => sum + (item.migrated === true ? item.poolReserveSol : item.curveReserveSol || 0), 0) : null)}</strong></span><span><small>Curve histories scanned</small><strong>${exploreScannedCount} / ${records.length}</strong></span>`
-    : `<span><small>24h volume</small><strong>${formatSignal(summary.volume24hUsd, ' USD')}</strong></span><span><small>Liquidity indexed</small><strong>${formatSignal(summary.liquidityUsd, ' USD')}</strong></span><span><small>High-risk signals</small><strong>${summary.highRisk}</strong></span>`;
-  if (ticker) {
-    const trending = sortMarketRecords(records.filter(asset => EXPLORE_CLUSTER === 'devnet'
-      ? asset.windowVolumeSol != null && Number.isFinite(Number(asset.windowVolumeSol))
-      : asset.volume24hUsd != null && Number.isFinite(Number(asset.volume24hUsd))), 'volume').slice(0, 8);
-    if (trending.length) {
-      const tickerItems = trending.map(asset => `<a class="explore-ticker-token" data-logo-mint="${escapeHtml(asset.address || '')}" href="/token/${encodeURIComponent(asset.address || '')}"><i>${escapeHtml(String(asset.symbol || 'T').slice(0, 1))}</i><span><span class="explore-ticker-primary"><strong class="${activeBoostMultiplier(verifiedBoosts[asset.address]) >= 500 ? 'golden-ticker' : ''}">${escapeHtml(asset.symbol || 'TOKEN')}</strong>${exploreBoostAmountMarkup(asset.address)}</span><small>${escapeHtml(asset.name || asset.symbol)} · ${escapeHtml(exploreStageLabel(asset))}</small></span><b>${escapeHtml(EXPLORE_CLUSTER === 'devnet' ? formatExploreUsd(asset.windowVolumeSol, { partial: asset.windowCoverage === 'partial' }) : formatSignal(asset.volume24hUsd, ' USD'))}</b></a>`).join('');
-      ticker.innerHTML = `<div class="explore-ticker-heading"><span class="ticker-label"><i></i> Trending</span><button type="button" class="explore-ticker-view-all">View all</button></div><div class="explore-ticker-window" aria-label="Tokens ranked by verified ${escapeHtml(exploreWindow)} traded volume"><div class="explore-ticker-track"><div class="explore-ticker-set">${tickerItems}</div></div></div>`;
-      loadVerifiedTokenLogos(ticker);
-    } else {
-      ticker.innerHTML = `<div class="explore-ticker-heading"><span class="ticker-label"><i></i> Trending</span><button type="button" class="explore-ticker-view-all">View all</button></div><span id="explore-ticker-status">${loading ? 'Loading verified launches…' : feedUnavailable || rpcUnavailable ? escapeHtml(outage.title) : 'No scanned volume yet'}</span>`;
-    }
-  }
-  if (!grid) return;
-  grid.innerHTML = visible.length ? visible.map(item => homeLaunchCardMarkup(item, {
-    volumeLabel: exploreWindow,
-    volumeValue: launchCardVolumeUsd(item, exploreWindow),
-    extraClass: ' explore-launch-card',
-  })).join('') : loading
-    ? '<div class="empty-state onchain-empty"><strong>Loading verified launches…</strong><span>Checking the indexed launch feed and confirming current Solana state.</span></div>'
-    : feedUnavailable || rpcUnavailable
-      ? `<div class="empty-state onchain-empty"><strong>${escapeHtml(outage.title)}</strong><span>${escapeHtml(outage.detail)}</span></div>`
-        : `<div class="empty-state onchain-empty"><strong>${assets.length ? 'No verified launches match these filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'Token details could not be confirmed.' : 'No tokens to show yet.'}</strong><span>${assets.length ? 'Broaden the search or clear the filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'We could not confirm these tokens on Solana. Try again shortly.' : 'Confirmed launches will appear here when available.'}</span></div>`;
-  if (!visible.length && assets.length && !feedUnavailable && !rpcUnavailable) {
-    const reason = exploreEmptyReason();
-    if (reason) { grid.querySelector('.empty-state strong').textContent = reason[0]; grid.querySelector('.empty-state span').textContent = reason[1]; }
-  }
-  grid.querySelectorAll('.explore-launch-card').forEach((card, index) => decorateHomeLaunchCard(card, visible[index]?.address));
-  loadVerifiedTokenLogos(grid);
-  if (!visible.length && !loading) {
-    const action = document.createElement('button');
-    action.type = 'button';
-    action.className = 'explore-empty-action';
-    action.dataset.exploreEmptyAction = assets.length ? 'clear' : 'retry';
-    action.textContent = assets.length ? ['new', 'following'].includes(exploreTab) ? 'View all tokens' : 'Clear filters' : 'Try again';
-    grid.querySelector('.empty-state')?.append(action);
-  }
-  renderWatchlist();
-  renderWalletDetail();
+  return renderExploreAssetsView({ force }, { exploreProviderStatus, exploreLastVerifiedAt, exploreFeedAvailable, assets, exploreWindow, exploreScannedCount, verifiedBoosts, exploreTab, EXPLORE_CLUSTER }, { exploreOutageCopy, withVerifiedExploreBenefits, filterExploreTabRecords, renderExploreControls, renderExplorePulse, renderExploreBenefitLeaders, formatExploreUsd, exploreBoostAmountMarkup, exploreStageLabel, loadVerifiedTokenLogos, homeLaunchCardMarkup, launchCardVolumeUsd, exploreEmptyReason, decorateHomeLaunchCard, renderWatchlist, renderWalletDetail });
 }
 document.addEventListener('click', async event => {
   const button = event.target.closest('[data-verified-feed-retry]');
@@ -3003,43 +2383,11 @@ function formatOnchainAge(timestamp){
   const hours = Math.floor(minutes / 60);
   return hours < 24 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
 }
-function formatUsd(value){
-  const amount = Number(value);
-  if (value == null || value === '' || !Number.isFinite(amount)) return '—';
-  if (amount === 0) return '$0.00';
-  if (amount > 0 && amount < 0.01) return '< $0.01';
-  if (amount >= 1) return `$${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-  if (amount >= 0.01) return `$${amount.toFixed(4)}`;
-  const digits = Math.min(12, Math.max(4, Math.ceil(-Math.log10(amount)) + 4));
-  return `$${amount.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '')}`;
-}
-function formatCompactUsd(value){
-  const amount = Number(value);
-  if (!Number.isFinite(amount) || amount <= 0) return '—';
-  return `$${Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 2 }).format(amount)}`;
-}
-function formatDashboardUsd(value, { partial = false } = {}){
-  const amount = Number(value);
-  if (!Number.isFinite(amount) || amount < 0) return '$—';
-  if (amount > 0 && amount < 0.01) return `${partial ? '≥' : ''}<$0.01`;
-  const formatted = amount >= 1_000_000
-    ? Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 2 }).format(amount)
-    : amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `${partial ? '≥' : ''}$${formatted}`;
-}
-function formatSmallDashboardUsd(value, { partial = false } = {}){
-  const amount = Number(value);
-  if (!Number.isFinite(amount) || amount < 0) return '$—';
-  if (amount === 0) return `${partial ? '≥' : ''}$0.00`;
-  return `${partial ? '≥' : ''}${amount > 0 && amount < 0.01 ? formatUsd(amount) : formatDashboardUsd(amount)}`;
-}
-function formatDashboardQuantity(value){
-  const amount = Number(value);
-  if (!Number.isFinite(amount) || amount < 0) return '—';
-  return amount >= 1_000_000
-    ? Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 2 }).format(amount)
-    : amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
-}
+
+
+
+
+
 function setHomeDashboardMetric(key, value, note, state = 'available'){
   const card = document.querySelector(`#home-kpi-${key}-card`);
   const valueNode = document.querySelector(`#home-kpi-${key}`);
@@ -3054,214 +2402,10 @@ function verifiedLaunchBurns(){
     .filter(burn => burn?.status === 'verified' && burn.receipt && Number(burn.receipt.amountTokens ?? burn.amountTokens) > 0);
 }
 function renderHomeKpiDashboard(verified = assets){
-  // A direct token URL does not load the Explore index until the visitor
-  // returns to a workspace route. Keep the HTML loading state in that case;
-  // an empty pre-fetch array is not evidence that there are zero launches.
-  if (!exploreUpdatedAt) return;
-  const records = Array.isArray(verified) ? verified : [];
-  const fundedLaunchRecords = records.filter(item => {
-    const policy = verifiedLaunchPolicyForMint(item.address);
-    return policy?.onchainVerified && (policy.creatorWallet || policy.feePayer);
-  });
-  const solQuoteReady = Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0;
-  const launchFeedUnavailable = verifiedLaunchPoliciesStatus !== 'ready';
-  const launchCard = document.querySelector('#home-kpi-launches-card');
-  const launchValue = document.querySelector('#home-pulse-launches');
-  const launchNote = document.querySelector('#home-pulse-launches-note');
-  if (launchCard) launchCard.dataset.state = launchFeedUnavailable ? 'unavailable' : fundedLaunchRecords.length ? 'available' : 'empty';
-  if (launchValue) launchValue.textContent = launchFeedUnavailable ? '—' : fundedLaunchRecords.length.toLocaleString();
-  if (launchNote) launchNote.textContent = launchFeedUnavailable ? 'Launch feed unavailable; count not verified' : fundedLaunchRecords.length ? `Funded policy and mint confirmed on Solana` : 'No funded launch policies confirmed';
-
-  const finalizedReady = analyticsSummary?.cluster === EXPLORE_CLUSTER
-    && analyticsSummary.receiptCommitment === 'finalized'
-    && ['indexed', 'partial', 'no-records'].includes(analyticsSummary.status);
-  const finalizedCollectionLamports = Number(analyticsSummary?.collectedLamports);
-  const feesFromFinalized = finalizedReady && Number.isSafeInteger(finalizedCollectionLamports)
-    && finalizedCollectionLamports >= 0;
-  const evidenceReady = ['onchain-indexed', 'partial'].includes(receiptEvidence?.status);
-  const collections = evidenceReady && Array.isArray(receiptEvidence?.verifiedCollections) ? receiptEvidence.verifiedCollections : [];
-  const collectionSol = feesFromFinalized
-    ? finalizedCollectionLamports / 1_000_000_000
-    : collections.reduce((sum, item) => sum + Number(item.collectedLamports || 0) / 1_000_000_000, 0);
-  const feeCount = feesFromFinalized ? Number(analyticsSummary.collections || 0) : collections.length;
-  const recordedCollections = Number(analyticsSummary?.recordedCollections ?? receiptEvidence?.coverage?.recordedCollections ?? 0);
-  const feeAvailable = solQuoteReady && (feesFromFinalized || evidenceReady);
-  const partialFees = feesFromFinalized
-    ? analyticsSummary.status === 'partial' || feeCount < recordedCollections
-    : receiptEvidence?.status === 'partial' || feeCount < recordedCollections;
-  setHomeDashboardMetric('fees', feeAvailable ? formatDashboardUsd(collectionSol * coinSolUsdPrice, { partial:partialFees }) : '$—',
-    feeAvailable ? `${feeCount} verified collection receipt${feeCount === 1 ? '' : 's'}${partialFees ? ' · partial coverage' : ''}`
-      : recordedCollections ? `${recordedCollections} recorded claim${recordedCollections === 1 ? '' : 's'} awaiting receipt verification` : 'USD quote or verified receipts unavailable',
-    feeAvailable ? partialFees ? 'partial' : 'available' : 'unavailable');
-
-  const allocation = homeFeeAllocations;
-  const allocationReady = ['verified', 'partial'].includes(allocation?.status);
-  const partialAllocation = allocation?.status === 'partial';
-  const appRevenueLamports = allocationReady ? Number(allocation.appRevenueLamports) : NaN;
-  const appRevenueAvailable = allocationReady && solQuoteReady && Number.isSafeInteger(appRevenueLamports) && appRevenueLamports >= 0;
-  setHomeDashboardMetric('app-revenue', appRevenueAvailable
-    ? formatSmallDashboardUsd(appRevenueLamports / 1_000_000_000 * coinSolUsdPrice, { partial:partialAllocation }) : '$—',
-    appRevenueAvailable
-      ? `20% protocol share of collected fees · ${allocation.settledCollections} verified settlement${allocation.settledCollections === 1 ? '' : 's'}${partialAllocation ? ' · partial coverage' : ''} · includes earmarked rewards and reserves`
-      : allocationReady ? 'Current SOL/USD quote unavailable' : 'Verified protocol fee allocations unavailable',
-    appRevenueAvailable ? partialAllocation ? 'partial' : appRevenueLamports ? 'available' : 'empty' : 'unavailable');
-  const allocationMetrics = [
-    ['holders', 'holderLamports', 'Holder reward allocation; payment requires a verified receipt'],
-    ['x', 'xLamports', 'X reward allocation; payment requires a verified receipt'],
-    ['buyback', 'buybackLamports', 'Fee allocation for buyback; separate from confirmed burns'],
-    ['community', 'communityLamports', 'Community fee reserve, including redirected referral shares'],
-  ];
-  for (const [key, field, description] of allocationMetrics) {
-    const lamports = allocationReady ? Number(allocation[field]) : NaN;
-    const available = allocationReady && solQuoteReady && Number.isSafeInteger(lamports) && lamports >= 0;
-    setHomeDashboardMetric(key, available ? formatSmallDashboardUsd(lamports / 1_000_000_000 * coinSolUsdPrice, { partial:partialAllocation }) : '$—',
-      available ? `${description} · ${allocation.settledCollections} verified settlement${allocation.settledCollections === 1 ? '' : 's'}${partialAllocation ? ' · partial coverage' : ''}`
-        : allocationReady ? 'Current SOL/USD quote unavailable' : 'Verified fee allocation receipts unavailable',
-      available ? partialAllocation ? 'partial' : lamports ? 'available' : 'empty' : 'unavailable');
-  }
-
-  const rewardPaid = analyticsSummary?.rewardPaid;
-  const paidEvidenceReady = rewardPaid?.cluster === EXPLORE_CLUSTER && rewardPaid.commitment === 'finalized';
-  for (const [key, category, label] of [
-    ['holder-paid', 'holder', 'coin holder'],
-    ['x-paid', 'x', 'X account'],
-  ]) {
-    const payout = rewardPaid?.[category];
-    const amountText = payout?.paidLamports;
-    const paidLamports = typeof amountText === 'string' && /^(?:0|[1-9]\d*)$/.test(amountText) ? Number(amountText) : NaN;
-    const count = Number(payout?.payoutCount);
-    const evidenceAvailable = paidEvidenceReady && ['verified', 'partial'].includes(payout?.status)
-      && Number.isSafeInteger(paidLamports) && paidLamports >= 0
-      && Number.isSafeInteger(count) && count >= 0;
-    const partial = payout?.status === 'partial';
-    const priced = evidenceAvailable && solQuoteReady && (!partial || count > 0);
-    setHomeDashboardMetric(key,
-      priced ? formatSmallDashboardUsd(paidLamports / 1_000_000_000 * coinSolUsdPrice, { partial }) : '$—',
-      !evidenceAvailable ? 'Finalized payout data unavailable'
-        : !solQuoteReady ? 'Current SOL/USD quote unavailable'
-          : partial ? count ? `${count} verified ${label} payout${count === 1 ? '' : 's'} · more receipts pending` : 'Payout verification incomplete'
-            : count ? `${count} finalized ${label} payout${count === 1 ? '' : 's'} · current SOL/USD quote`
-              : `No finalized ${label} payouts yet`,
-      !evidenceAvailable ? 'unavailable' : partial ? 'partial' : !solQuoteReady ? 'unavailable' : count ? 'available' : 'empty');
-  }
-
-  const burnSummaryReady = allocationReady
-    && allocation.burnedTokens != null
-    && Number.isFinite(Number(allocation.burnedTokens));
-  const burnedTokens = burnSummaryReady ? Number(allocation.burnedTokens) : NaN;
-  const burnCount = burnSummaryReady ? Number(allocation.verifiedBurnCount || 0) : 0;
-  const fundedAsset = records.find(item => item.address === PROTOCOL_FUNDED_MINT);
-  const fundedUsdPrice = Number(fundedAsset?.priceUsd) > 0
-    ? Number(fundedAsset.priceUsd)
-    : Number(fundedAsset?.curvePriceSol) > 0 && solQuoteReady ? Number(fundedAsset.curvePriceSol) * coinSolUsdPrice : null;
-  const burnUsdAvailable = burnSummaryReady && (burnedTokens === 0 || Number.isFinite(fundedUsdPrice));
-  setHomeDashboardMetric('burn', burnSummaryReady ? formatDashboardQuantity(burnedTokens) : '—', !burnSummaryReady
-    ? 'Burn receipts unavailable; amount not verified'
-    : burnedTokens === 0 ? '$0.00 USD value · no verified burn receipts yet'
-    : Number.isFinite(fundedUsdPrice) ? `${formatDashboardUsd(burnedTokens * fundedUsdPrice)} spot value · ${burnCount} verified receipt${burnCount === 1 ? '' : 's'}` : `${burnCount} verified receipt${burnCount === 1 ? '' : 's'} · USD quote unavailable`, !burnSummaryReady ? 'unavailable' : burnedTokens === 0 ? 'empty' : burnUsdAvailable ? 'available' : 'partial');
-  setHomeDashboardMetric('burn-value', burnUsdAvailable ? formatDashboardUsd(burnedTokens * (fundedUsdPrice || 0)) : '$—',
-    !burnSummaryReady ? 'Verified burn receipts unavailable'
-      : burnedTokens === 0 ? 'No indexed confirmed $FUNDED burns'
-      : Number.isFinite(fundedUsdPrice) ? `${burnCount} confirmed burn receipt${burnCount === 1 ? '' : 's'} · current $FUNDED quote` : 'Current $FUNDED/USD quote unavailable',
-    burnUsdAvailable ? burnedTokens ? 'available' : 'empty' : 'unavailable');
-
-  const airdropClaims = currentCommunityClaimSummary();
-  const airdropUnit = document.querySelector('#home-kpi-airdrop-unit');
-  if (airdropUnit) airdropUnit.textContent = communityClaimUnit(airdropClaims);
-  setHomeDashboardMetric('airdrop', airdropClaims.amount, airdropClaims.note, airdropClaims.state);
-  document.querySelector('#home-kpi-airdrop-card')?.setAttribute('title', airdropClaims.note);
-
-  const payoutEvidenceReady = Boolean(receiptEvidence) && Array.isArray(receiptEvidence?.verifiedPayouts);
-  const referralPayouts = payoutEvidenceReady ? receiptEvidence.verifiedPayouts.filter(item => item.source === 'solana-keeper-referral-claim') : [];
-  const finalizedReferralLamports = Number(analyticsSummary?.referralPaidLamports);
-  const referralsFromFinalized = finalizedReady && Number.isSafeInteger(finalizedReferralLamports)
-    && finalizedReferralLamports >= 0 && Number.isSafeInteger(Number(analyticsSummary.referralPayoutCount));
-  const referralCount = referralsFromFinalized ? Number(analyticsSummary.referralPayoutCount) : referralPayouts.length;
-  const referralSol = referralsFromFinalized ? finalizedReferralLamports / 1_000_000_000
-    : referralPayouts.reduce((sum, item) => sum + Number(item.amountLamports || 0) / 1_000_000_000, 0);
-  const recordedPayouts = Number(analyticsSummary?.recordedPayouts ?? receiptEvidence?.coverage?.recordedPayouts ?? 0);
-  const referralAvailable = solQuoteReady && (referralsFromFinalized || payoutEvidenceReady)
-    && (referralCount > 0 || recordedPayouts === 0);
-  const partialReferrals = referralsFromFinalized ? analyticsSummary.status === 'partial' : receiptEvidence?.status === 'partial';
-  setHomeDashboardMetric('referrals', referralAvailable ? formatDashboardUsd(referralSol * coinSolUsdPrice, { partial:partialReferrals }) : '$—',
-    referralAvailable ? referralCount ? `${referralCount} verified referral payout${referralCount === 1 ? '' : 's'}${partialReferrals ? ' · partial coverage' : ''}` : 'No verified referral payouts yet'
-      : recordedPayouts ? 'Recorded payouts are awaiting receipt verification' : 'USD quote or payout evidence unavailable',
-    referralAvailable ? partialReferrals ? 'partial' : referralCount ? 'available' : 'empty' : 'unavailable');
-
-  const volumeRecords = fundedLaunchRecords.filter(item => item.observedVolumeSol != null
-    && Number.isFinite(Number(item.observedVolumeSol)) && Number(item.observedVolumeSol) >= 0);
-  const totalVolumeSol = volumeRecords.reduce((sum, item) => sum + Number(item.observedVolumeSol), 0);
-  const partialVolume = volumeRecords.length < fundedLaunchRecords.length
-    || volumeRecords.some(item => item.observedCoverage === 'partial');
-  const volumeAvailable = volumeRecords.length > 0 && solQuoteReady;
-  const volumeCard = document.querySelector('#home-kpi-volume-card');
-  const volumeValue = document.querySelector('#home-pulse-volume');
-  const volumeNote = document.querySelector('#home-pulse-volume-note');
-  if (volumeCard) volumeCard.dataset.state = volumeAvailable ? (partialVolume ? 'partial' : 'available') : 'unavailable';
-  if (volumeValue) volumeValue.textContent = volumeAvailable ? formatDashboardUsd(totalVolumeSol * coinSolUsdPrice, { partial:partialVolume }) : '$—';
-  if (volumeNote) volumeNote.textContent = volumeAvailable
-    ? `${volumeRecords.length}/${fundedLaunchRecords.length} launches scanned across available trade history${partialVolume ? ' · partial coverage' : ''}`
-    : 'Observed trade history or USD quote unavailable';
-
-  const heroLaunches = document.querySelector('#home-hero-launches');
-  const heroAirdrop = document.querySelector('#home-hero-airdrop');
-  const heroVolume = document.querySelector('#home-hero-volume');
-  if (heroLaunches) heroLaunches.textContent = launchValue?.textContent || '—';
-  if (heroAirdrop) heroAirdrop.textContent = document.querySelector('#home-kpi-airdrop')?.textContent || '$—';
-  if (heroVolume) heroVolume.textContent = volumeValue?.textContent || '$—';
-
-  const status = document.querySelector('#home-dashboard-status');
-  const updated = document.querySelector('#home-dashboard-updated');
-  if (status) {
-    status.hidden = !launchFeedUnavailable && !fundedLaunchRecords.length;
-    if (!status.hidden) status.innerHTML = `<i></i> ${launchFeedUnavailable ? `Launch feed unavailable` : `Verified funded launches`}`;
-  }
-  if (updated) updated.textContent = exploreUpdatedAt ? `Checked ${new Date(exploreUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Waiting for first check';
-  renderFundedTokenLanding();
+  return renderHomeKpiDashboardView(verified, { assets, exploreUpdatedAt, coinSolUsdPrice, verifiedLaunchPoliciesStatus, analyticsSummary, EXPLORE_CLUSTER, receiptEvidence, PROTOCOL_FUNDED_MINT }, { verifiedLaunchPolicyForMint, setHomeDashboardMetric, homeFeeAllocations, currentCommunityClaimSummary, renderFundedTokenLanding });
 }
 function renderHomeOnchainSnapshot(verified){
-  verified = verified.filter(item => {
-    const policy = verifiedLaunchPolicyForMint(item.address);
-    return policy?.onchainVerified && (policy.creatorWallet || policy.feePayer);
-  });
-  const status = document.querySelector('#home-live-status');
-  const count = document.querySelector('#home-verified-launches');
-  const countNote = document.querySelector('#home-verified-launches-note');
-  const policyUpdated = document.querySelector('#home-policy-updated');
-  const registeredLaunches = verifiedLaunchPolicies.length;
-  status.textContent = verified.length ? 'Solana RPC · confirmed' : 'Verified launch registry';
-  if (count) count.textContent = String(registeredLaunches);
-  if (countNote) countNote.textContent = registeredLaunches ? 'Verified launch records' : 'No confirmed launches found';
-  const pulseStatus = document.querySelector('#home-pulse-status');
-  const pulseNetwork = document.querySelector('#home-pulse-network');
-  const pulseLaunches = document.querySelector('#home-pulse-launches');
-  const pulseLaunchesNote = document.querySelector('#home-pulse-launches-note');
-  const pulseTrades = document.querySelector('#home-pulse-trades');
-  const pulseTradesNote = document.querySelector('#home-pulse-trades-note');
-  const pulseVolume = document.querySelector('#home-pulse-volume');
-  const pulseVolumeNote = document.querySelector('#home-pulse-volume-note');
-  const pulseGraduated = document.querySelector('#home-pulse-graduated');
-  const pulseGraduatedNote = document.querySelector('#home-pulse-graduated-note');
-  const windowed = verified.map(item => withMarketWindow(item, '24h'));
-  const tradeRecords = windowed.filter(item => item.windowTradeCount != null);
-  const volumeRecords = windowed.filter(item => item.windowVolumeSol != null);
-  const totalTrades = tradeRecords.length ? tradeRecords.reduce((sum, item) => sum + Number(item.windowTradeCount || 0), 0) : null;
-  const totalVolume = volumeRecords.length ? volumeRecords.reduce((sum, item) => sum + Number(item.windowVolumeSol || 0), 0) : null;
-  const partialTrades = tradeRecords.some(item => item.windowCoverage === 'partial') || tradeRecords.length < verified.length;
-  const partialVolume = volumeRecords.some(item => item.windowCoverage === 'partial') || volumeRecords.length < verified.length;
-  if (pulseStatus) pulseStatus.textContent = `Solana RPC · confirmed`;
-  if (pulseNetwork) pulseNetwork.textContent = `Solana`;
-  if (pulseLaunches) pulseLaunches.textContent = registeredLaunches ? String(registeredLaunches) : '—';
-  if (pulseLaunchesNote) pulseLaunchesNote.textContent = registeredLaunches ? 'Verified launch records' : 'No confirmed launches';
-  if (pulseTrades) pulseTrades.textContent = totalTrades == null ? '—' : formatExploreTradeCount(totalTrades, partialTrades ? 'partial' : 'complete');
-  if (pulseTradesNote) pulseTradesNote.textContent = totalTrades == null ? 'Not available from current feed' : `${partialTrades ? 'Partial scan · ' : ''}confirmed Pump events`;
-  if (pulseVolume) pulseVolume.textContent = totalVolume == null ? '—' : formatExploreUsd(totalVolume, { partial: partialVolume });
-  if (pulseVolumeNote) pulseVolumeNote.textContent = totalVolume == null ? 'Not available from current feed' : `${partialVolume ? 'Partial scan · ' : ''}${Number.isFinite(coinSolUsdPrice) ? 'USD equivalent · ' : ''}SOL volume`;
-  const graduated = verified.filter(item => item.migrated === true).length;
-  if (pulseGraduated) pulseGraduated.textContent = graduated ? String(graduated) : verified.length ? '0' : '—';
-  if (pulseGraduatedNote) pulseGraduatedNote.textContent = verified.length ? 'Verified PumpSwap stage' : 'Waiting for verified mints';
-  if (policyUpdated) policyUpdated.textContent = `RPC checked ${new Date().toLocaleTimeString()}`;
-  renderHomeKpiDashboard(assets);
+  return renderHomeOnchainSnapshotView(verified, { verifiedLaunchPolicies, coinSolUsdPrice, assets }, { verifiedLaunchPolicyForMint, formatExploreTradeCount, formatExploreUsd, renderHomeKpiDashboard });
 }
 let receiptEvidence = null;
 let paymentHistoryEvidence = null;
@@ -3269,210 +2413,10 @@ let homeFeeAllocations = null;
 let receiptEvidenceChecked = false;
 let analyticsSummary = null;
 function renderExtendedAnalyticsDashboard(){
-  const records = Array.isArray(assets) ? assets : [];
-  const burns = verifiedLaunchBurns();
-  const burnedTokens = burns.reduce((sum, burn) => sum + Number(burn.receipt.amountTokens ?? burn.amountTokens ?? 0), 0);
-  const burnCard = document.querySelector('[data-analytics-metric="burned"]');
-  if (burnCard) {
-    burnCard.querySelector('strong').textContent = burnedTokens ? formatDashboardQuantity(burnedTokens) : '—';
-    burnCard.querySelector('small').innerHTML = burnedTokens
-      ? `<b>$FUNDED</b>${burns.length} confirmed launch burn${burns.length === 1 ? '' : 's'}`
-      : `<b>$FUNDED</b>${verifiedLaunchPoliciesStatus === 'unavailable' ? 'Launch burn history unavailable' : 'No confirmed launch burns; other burns appear on the Burn page'}`;
-  }
-
-  const reserves = verifiedLaunchPolicies.filter(launch => launch?.onchainVerified && Number(launch?.communityAirdrop?.reservedTokens) > 0);
-  let pricedReserves = 0;
-  const reserveUsd = reserves.reduce((sum, launch) => {
-    const asset = records.find(item => item.address === launch.mint);
-    const tokenUsd = Number(asset?.priceUsd) > 0
-      ? Number(asset.priceUsd)
-      : Number(asset?.curvePriceSol) > 0 && Number.isFinite(coinSolUsdPrice) ? Number(asset.curvePriceSol) * coinSolUsdPrice : null;
-    if (!Number.isFinite(tokenUsd)) return sum;
-    pricedReserves += 1;
-    return sum + Number(launch.communityAirdrop.reservedTokens) * tokenUsd;
-  }, 0);
-  const airdropCard = document.querySelector('[data-analytics-metric="airdrops"]');
-  if (airdropCard) {
-    const partial = pricedReserves > 0 && pricedReserves < reserves.length;
-    airdropCard.querySelector('span').textContent = 'Estimated value of planned airdrops';
-    airdropCard.querySelector('strong').textContent = pricedReserves ? formatDashboardUsd(reserveUsd, { partial }) : '—';
-    airdropCard.querySelector('small').innerHTML = pricedReserves
-      ? `<b>USD</b>Based on prices for ${pricedReserves} of ${reserves.length} airdrops · funding checked separately`
-      : `<b>USD</b>${verifiedLaunchPoliciesStatus === 'unavailable' ? 'Airdrop details unavailable' : reserves.length ? 'Current prices unavailable · funding checked separately' : 'No planned community airdrops'}`;
-  }
-
-  const verifiedPayouts = Array.isArray(receiptEvidence?.verifiedPayouts) ? receiptEvidence.verifiedPayouts : [];
-  const referralPayouts = verifiedPayouts.filter(item => item.source === 'solana-keeper-referral-claim');
-  const referralSol = referralPayouts.reduce((sum, item) => sum + Number(item.amountLamports || 0) / 1_000_000_000, 0);
-  const referralCard = document.querySelector('[data-analytics-metric="referrals"]');
-  if (referralCard) {
-    referralCard.querySelector('strong').textContent = referralPayouts.length && Number.isFinite(coinSolUsdPrice)
-      ? formatDashboardUsd(referralSol * coinSolUsdPrice)
-      : referralPayouts.length ? `${referralSol.toFixed(6)} SOL` : '—';
-    referralCard.querySelector('small').innerHTML = referralPayouts.length
-      ? `<b>${Number.isFinite(coinSolUsdPrice) ? 'USD' : 'SOL'}</b>${referralPayouts.length} confirmed referral payment${referralPayouts.length === 1 ? '' : 's'}`
-      : `<b>USD</b>${receiptEvidenceChecked && !receiptEvidence ? 'Referral payment history unavailable' : 'No confirmed referral payments'}`;
-  }
-
-  const recipients = document.querySelector('.recipients-panel');
-  if (recipients) {
-    const recentPayouts = Array.isArray(paymentHistoryEvidence?.verifiedPayouts) ? paymentHistoryEvidence.verifiedPayouts : [];
-    const count = recipients.querySelector('.panel-count');
-    if (count) count.textContent = recentPayouts.length ? `Latest ${Math.min(5, recentPayouts.length)} of ${recentPayouts.length} finalized payments` : receiptEvidenceChecked && !paymentHistoryEvidence ? 'Payment history unavailable' : 'Checking payments';
-    const target = recipients.querySelector('.payment-list, .empty-state');
-    if (target && recentPayouts.length) {
-      target.className = 'payment-list';
-      target.replaceChildren();
-      for (const payout of recentPayouts.slice(0, 5)) {
-        const row = document.createElement('div'); row.className = 'payment-row';
-        const identity = document.createElement('span');
-        const name = document.createElement('strong'); name.textContent = `${({ 'solana-keeper-referral-claim':'Referral', 'mint-router-settle-mint':'X account', 'automatic-creator':'Creator', 'automatic-holder':'Holder', 'automatic-operations':'Protocol', 'automatic-community':'Community', 'automatic-x':'X account' })[payout.source] || 'Recipient'} · ${shortAddress(payout.to)}`;
-        const proof = document.createElement('a'); proof.href = exploreExplorer(`tx/${encodeURIComponent(payout.signature)}`); proof.target = '_blank'; proof.rel = 'noopener noreferrer'; proof.textContent = 'Confirmed transaction ↗';
-        const amount = document.createElement('span'); amount.className = 'payment-amount'; amount.textContent = `${formatTokenBaseAmount(payout.actualReceivedLamports, 9, 9)} SOL received`;
-        identity.append(name, proof); row.append(identity, amount); target.append(row);
-      }
-    } else if (target && receiptEvidenceChecked && !paymentHistoryEvidence) {
-      target.className = 'empty-state';
-      target.textContent = 'Payment history is temporarily unavailable.';
-    } else if (target && receiptEvidenceChecked) {
-      target.className = 'empty-state';
-      target.textContent = 'No finalized payout receipts are available yet.';
-    }
-  }
+  return renderExtendedAnalyticsDashboardView({ assets, verifiedLaunchPolicies, verifiedLaunchPoliciesStatus, coinSolUsdPrice, receiptEvidence, receiptEvidenceChecked, paymentHistoryEvidence }, { verifiedLaunchBurns, exploreExplorer });
 }
 function renderVerifiedReceiptEvidence(){
-  const verifiedStatus = ['onchain-indexed', 'partial'].includes(receiptEvidence?.status);
-  const collections = verifiedStatus && Array.isArray(receiptEvidence.verifiedCollections) ? receiptEvidence.verifiedCollections : [];
-  const cards = document.querySelectorAll('.analytics-kpis article');
-  const feeCard = document.querySelector('[data-analytics-metric="fees"]') || cards[0];
-  const payoutCard = document.querySelector('[data-analytics-metric="payouts"]') || cards[2];
-  if (feeCard && !collections.length) {
-    const recorded = Number(receiptEvidence?.coverage?.recordedCollections || 0);
-    let ledgerAmount = '';
-    if (analyticsSummary && Object.hasOwn(analyticsSummary, 'recordedCollectedLamports')) {
-      try {
-        const ledgerLamports = exactLamports(analyticsSummary.exactLamports?.recordedCollectedLamports ?? analyticsSummary.recordedCollectedLamports);
-        if (ledgerLamports > 0n) ledgerAmount = `; ${formatReceiptSol(ledgerLamports)} SOL recorded in the ledger`;
-      } catch { ledgerAmount = '; recorded amount unavailable'; }
-    }
-    feeCard.querySelector('span').textContent = 'Fees collected';
-    feeCard.querySelector('small').innerHTML = receiptEvidence?.status === 'unverified-records' && recorded
-      ? `<b>RECORDS ONLY</b>${recorded} claim${recorded === 1 ? '' : 's'} found${ledgerAmount}; confirmation unavailable`
-      : `<b>SOL</b>${!receiptEvidenceChecked ? 'Checking fee history' : !receiptEvidence || receiptEvidence.status === 'unavailable' ? 'Fee history unavailable' : 'No confirmed fee claims in the selected period'}`;
-  }
-  if (collections.length && feeCard) {
-    feeCard.querySelector('span').textContent = 'Fees collected';
-    try {
-      const lamports = collections.reduce((sum, item) => sum + exactLamports(item.collectedLamports), 0n);
-      feeCard.querySelector('strong').textContent = `${formatReceiptSol(lamports)} SOL`;
-      feeCard.querySelector('small').innerHTML = `<b>SOL</b>${collections.length} confirmed fee claims · available history`;
-    } catch {
-      feeCard.querySelector('strong').textContent = '—';
-      feeCard.querySelector('small').innerHTML = '<b>SOL</b>Collection total unavailable; inspect individual receipts';
-    }
-  }
-  const historyPayouts = Array.isArray(paymentHistoryEvidence?.verifiedPayouts) ? paymentHistoryEvidence.verifiedPayouts : [];
-  if (payoutCard) {
-    payoutCard.querySelector('span').textContent = 'Recent finalized payments';
-    payoutCard.querySelector('strong').textContent = paymentHistoryEvidence ? String(historyPayouts.length) : '—';
-    payoutCard.querySelector('small').innerHTML = `<b>COUNT</b>${!receiptEvidenceChecked ? 'Checking payment history' : !paymentHistoryEvidence ? 'Payment history unavailable' : historyPayouts.length ? `Latest ${historyPayouts.length} receipts across payout sources` : 'No finalized payments in available history'}`;
-  }
-  const list = document.querySelector('#payment-list');
-  const tape = document.querySelector('#payment-dialog-list');
-  if (!list || !tape) return;
-  // Live receipt refreshes must not interrupt an expanded fee breakdown.
-  const openDetails = container => new Set(Array.from(container.querySelectorAll('details[open]'), details => details.dataset.receiptKey));
-  const listOpenDetails = openDetails(list);
-  const tapeOpenDetails = openDetails(tape);
-  list.replaceChildren();
-  tape.replaceChildren();
-  for (const [index, receipt] of historyPayouts.entries()) {
-    const row = document.createElement('div');
-    row.className = 'payment-row payment-history-row';
-    const identity = document.createElement('span');
-    identity.className = 'payment-history-identity';
-    const name = document.createElement('strong');
-    name.textContent = ({ 'solana-keeper-referral-claim':'Referral reward', 'mint-router-settle-mint':'X account reward',
-      'automatic-creator':'Creator fee', 'automatic-holder':'Holder reward', 'automatic-operations':'Protocol payout',
-      'automatic-community':'Community payout', 'automatic-x':'X account reward' })[receipt.source] || 'SOL payout';
-    const recipient = document.createElement('span');
-    recipient.className = 'payment-history-receiver';
-    const receiverLabel = document.createElement('small');
-    receiverLabel.textContent = 'To';
-    const receiverWallet = document.createElement('a');
-    receiverWallet.className = 'payment-history-wallet';
-    receiverWallet.textContent = shortAddress(receipt.to);
-    receiverWallet.href = exploreExplorer(`address/${encodeURIComponent(receipt.to)}`);
-    receiverWallet.target = '_blank';
-    receiverWallet.rel = 'noopener noreferrer';
-    receiverWallet.title = `View receiver wallet ${receipt.to} on Solana Explorer`;
-    const copyReceiver = document.createElement('button');
-    copyReceiver.type = 'button';
-    copyReceiver.className = 'payment-copy-receiver';
-    copyReceiver.dataset.receiverWallet = receipt.to;
-    copyReceiver.setAttribute('aria-label', `Copy receiver wallet ${shortAddress(receipt.to)}`);
-    copyReceiver.title = 'Copy receiver wallet';
-    copyReceiver.innerHTML = icon('copy');
-    recipient.append(receiverLabel, receiverWallet, copyReceiver);
-    const paid = document.createElement('small');
-    paid.className = 'payment-history-time';
-    paid.textContent = Number.isSafeInteger(receipt.blockTime) && receipt.blockTime > 0
-      ? `Paid ${new Date(receipt.blockTime * 1000).toLocaleString('en-US', { timeZone:'UTC', year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:false })} UTC`
-      : 'Payout time unavailable';
-    const gross = document.createElement('small');
-    gross.className = 'payment-history-gross';
-    gross.textContent = `Gross payout ${formatTokenBaseAmount(receipt.amountLamports, 9, 9)} SOL`;
-    const fee = document.createElement('small');
-    fee.className = 'payment-history-fee';
-    fee.textContent = receipt.feeLamports == null ? 'Transaction fee unavailable'
-      : `Transaction fee ${formatTokenBaseAmount(receipt.feeLamports, 9, 9)} SOL · paid by ${receipt.feePayer === receipt.to ? 'receiver' : shortAddress(receipt.feePayer)}`;
-    identity.append(name, recipient, paid);
-    const details = document.createElement('details');
-    details.className = 'payment-history-details';
-    const receiptKey = `${receipt.signature}:${receipt.to}:${receipt.source}`;
-    details.dataset.receiptKey = receiptKey;
-    const detailsSummary = document.createElement('summary');
-    detailsSummary.textContent = 'Details';
-    const fullReceiver = document.createElement('small');
-    fullReceiver.textContent = `Receiver ${receipt.to}`;
-    details.append(detailsSummary, fullReceiver, gross, fee);
-    const actions = document.createElement('span');
-    actions.className = 'payment-history-actions';
-    const amount = document.createElement('span');
-    amount.className = 'payment-amount';
-    const amountValue = document.createElement('strong');
-    amountValue.textContent = formatTokenBaseAmount(receipt.actualReceivedLamports, 9, 9);
-    const amountUnit = document.createElement('small');
-    amountUnit.textContent = 'SOL received';
-    amount.append(amountValue, amountUnit);
-    const proof = document.createElement('a');
-    proof.className = 'payment-receipt-link';
-    proof.href = exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`);
-    proof.target = '_blank';
-    proof.rel = 'noopener noreferrer';
-    proof.innerHTML = icon('external');
-    proof.setAttribute('aria-label', `View confirmed payout transaction ${shortAddress(receipt.signature)} on Solana Explorer`);
-    proof.title = 'View transaction on Solana Explorer';
-    actions.append(amount, proof);
-    row.append(identity, actions, details);
-    if (index < 5) {
-      const previewRow = row.cloneNode(true);
-      previewRow.querySelector('details').open = listOpenDetails.has(receiptKey);
-      list.append(previewRow);
-    }
-    details.open = tapeOpenDetails.has(receiptKey);
-    tape.append(row);
-  }
-  if (!historyPayouts.length) {
-    list.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet.</p>';
-    tape.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet.</p>';
-  }
-  const footnote = document.querySelector('#payment-history-footnote');
-  if (footnote) footnote.textContent = historyPayouts.length
-    ? `Latest ${Math.min(5, historyPayouts.length)} of ${historyPayouts.length} confirmed payments · fees in details${paymentHistoryEvidence.status === 'partial' ? ' · some history is missing' : ''}`
-    : paymentHistoryEvidence?.status === 'partial' || !paymentHistoryEvidence ? 'Payment history could not be fully checked. Try again shortly.'
-      : 'No confirmed payments are available.';
-  renderExtendedAnalyticsDashboard();
+  return renderVerifiedReceiptEvidenceView({ receiptEvidence, analyticsSummary, receiptEvidenceChecked, paymentHistoryEvidence }, { exploreExplorer, renderExtendedAnalyticsDashboard });
 }
 document.addEventListener('click', async event => {
   const copy = event.target.closest('.payment-copy-receiver');
@@ -3481,55 +2425,7 @@ document.addEventListener('click', async event => {
   catch { showToast('Could not copy receiver wallet'); }
 });
 function renderOnchainReportState(verified){
-  // A direct detail URL can render analytics before the Explore registry has
-  // completed its first check. An empty pre-fetch array is not a zero result.
-  const feedChecked = Boolean(exploreUpdatedAt);
-  verified = verified.filter(item => {
-    const policy = verifiedLaunchPolicyForMint(item.address);
-    return policy?.onchainVerified && (policy.creatorWallet || policy.feePayer);
-  });
-  const cards = document.querySelectorAll('.analytics-kpis article');
-  const feeCard = document.querySelector('[data-analytics-metric="fees"]') || cards[0];
-  const launchCard = document.querySelector('[data-analytics-metric="launches"]') || cards[1];
-  const payoutCard = document.querySelector('[data-analytics-metric="payouts"]') || cards[2];
-  const volumeCard = document.querySelector('[data-analytics-metric="volume"]');
-  const walletCard = document.querySelector('[data-analytics-metric="wallets"]');
-  const indexedLaunches = verifiedLaunchPoliciesStatus === 'ready' ? verifiedLaunchPolicies.length : null;
-  const launchCount = indexedLaunches ?? verified.length;
-  const marketUnavailable = /rate limited|unavailable/i.test(exploreProviderStatus);
-  if (feeCard) { feeCard.querySelector('span').textContent = 'Fees collected'; feeCard.querySelector('strong').textContent = '—'; feeCard.querySelector('small').innerHTML = '<b>SOL</b>Checking fee history'; }
-  if (launchCard) { launchCard.querySelector('strong').textContent = launchCount ? String(launchCount) : '—'; launchCard.querySelector('small').innerHTML = `<b>COUNT</b>${indexedLaunches != null ? feedChecked && !marketUnavailable && verified.length === indexedLaunches ? 'Confirmed launches' : 'Some launch activity may be missing' : !feedChecked ? 'Checking launches' : marketUnavailable ? 'Launch activity unavailable' : verified.length ? 'Confirmed launches' : 'No confirmed launches'}`; }
-  if (payoutCard) { payoutCard.querySelector('span').textContent = 'Recent finalized payments'; payoutCard.querySelector('strong').textContent = '—'; payoutCard.querySelector('small').innerHTML = '<b>COUNT</b>Checking payment history'; }
-  const volumeSol = verified.reduce((sum, item) => sum + (Number.isFinite(Number(item.volume24hSol)) ? Number(item.volume24hSol) : 0), 0);
-  const hasVolume = verified.some(item => item.volume24hSol != null && Number.isFinite(Number(item.volume24hSol)));
-  const partialVolume = verified.some(item => item.volumeCoverage === 'partial' || item.volume24hSol == null);
-  if (volumeCard) {
-    volumeCard.querySelector('strong').textContent = hasVolume && (!partialVolume || volumeSol > 0) && Number.isFinite(coinSolUsdPrice) ? formatDashboardUsd(volumeSol * coinSolUsdPrice, { partial: partialVolume }) : '—';
-    volumeCard.querySelector('small').innerHTML = `<b>USD · 24H</b>${!feedChecked ? 'Checking confirmed trades' : hasVolume ? partialVolume && volumeSol === 0 ? 'Some trade history is unavailable' : volumeSol === 0 ? 'No trades in the past 24 hours' : `Confirmed trades${partialVolume ? ' · some history may be missing' : ''}` : marketUnavailable ? 'Market activity unavailable' : 'No confirmed trading volume'}`;
-  }
-  const observedWallets = verified.reduce((sum, item) => sum + (Number.isFinite(Number(item.traderCount24h)) ? Number(item.traderCount24h) : 0), 0);
-  const hasWallets = verified.some(item => item.traderCount24h != null && Number.isFinite(Number(item.traderCount24h)));
-  const partialWallets = verified.some(item => item.traderCount24h == null);
-  if (walletCard) {
-    walletCard.querySelector('strong').textContent = hasWallets && (!partialWallets || observedWallets > 0) ? `${partialWallets ? '≥' : ''}${observedWallets.toLocaleString()}` : '—';
-    walletCard.querySelector('small').innerHTML = `<b>COUNT · 24H</b>${!feedChecked ? 'Checking confirmed trades' : hasWallets ? partialWallets && observedWallets === 0 ? 'Some wallet activity is unavailable' : observedWallets === 0 ? 'No trading wallets in the past 24 hours' : `${partialWallets ? 'Partial history · ' : ''}wallet counts across launches` : marketUnavailable ? 'Market activity unavailable' : 'No confirmed wallet activity'}`;
-  }
-  const strip = document.querySelector('#analytics .strip-stat');
-  if (strip) strip.innerHTML = !feedChecked ? '— <small>checking launches</small>' : marketUnavailable ? '— <small>launch activity unavailable</small>' : verified.length ? `${verified.length} <small>confirmed launches</small>` : '— <small>no confirmed launches</small>';
-  const chart = document.querySelector('.analytics-chart .mini-chart');
-  if (chart) chart.innerHTML = '<div class="empty-state onchain-report-empty"><strong>No fee activity to chart yet.</strong><span>The chart appears when confirmed fee history is available.</span></div>';
-  const chartBadge = document.querySelector('.analytics-chart .data-badge');
-  if (chartBadge) chartBadge.textContent = 'Confirmed activity';
-  const community = document.querySelectorAll('.community-section .signal-list>div b');
-  if (community[0]) community[0].textContent = '—';
-  if (community[1]) community[1].textContent = verified.length ? String(verified.length) : '—';
-  if (community[2]) community[2].textContent = verified.length ? String(verified.filter(item => item.riskLevel === 'high').length) : '—';
-  const communityBadge = document.querySelector('.community-section .data-badge');
-  if (communityBadge) communityBadge.textContent = 'Current activity';
-  renderVerifiedReceiptEvidence();
-  renderExtendedAnalyticsDashboard();
-  const technical = document.querySelector('#analytics-technical-source');
-  if (technical) technical.textContent = analyticsSummary ? `Build: ${analyticsSummary.build || 'unavailable'} · Source: ${analyticsSummary.source || 'unavailable'}` : 'Source details unavailable.';
+  return renderOnchainReportStateView(verified, { exploreUpdatedAt, verifiedLaunchPoliciesStatus, verifiedLaunchPolicies, exploreProviderStatus, coinSolUsdPrice, analyticsSummary }, { verifiedLaunchPolicyForMint, renderVerifiedReceiptEvidence, renderExtendedAnalyticsDashboard });
 }
 document.addEventListener('funded:analytics-upgraded', () => renderOnchainReportState(assets));
 let leaderboardView = 'burners';
@@ -3560,38 +2456,7 @@ function launchBurnersFallback(){
 }
 
 function renderWalletBurnersBoard(){
-  const table = document.querySelector('#leaderboard-table');
-  if (!table) return;
-  const board = burnersBoardState.status === 'unavailable' && verifiedLaunchPoliciesStatus === 'ready'
-    ? { status:'partial', wallets:launchBurnersFallback() } : burnersBoardState;
-  document.querySelector('#leaderboard-panel')?.setAttribute('aria-labelledby', 'leaderboard-burners-tab');
-  setCoinField('#leaderboard-table-kicker', board.status === 'partial' ? 'Confirmed launch burns · limited history' : 'Confirmed $FUNDED burns');
-  setCoinField('#leaderboard-table-title', 'Wallet burn leaderboard');
-  setCoinField('#leaderboard-hero-description', 'Wallets ranked by confirmed $FUNDED burns.');
-  setCoinField('#leaderboard-source-note', board.status === 'partial'
-    ? 'Only burns made during a launch are available right now. Other burns will appear when their history is ready.'
-    : 'Only confirmed burns on this network count. Each transaction is counted once.');
-  const builders = document.querySelector('#leaderboard .leaderboard-grid')?.closest('details');
-  if (builders) builders.hidden = true;
-  table.setAttribute('aria-label', 'Solana wallet burn leaderboard');
-  const header = '<div class="leaderboard-table-head" role="row"><span>Rank</span><span>Wallet</span><span>Burned</span><span>First burn</span><span>Proof</span></div>';
-  if (!['ready','partial'].includes(board.status)) {
-    table.innerHTML = `${header}<div class="empty-state">${board.status === 'unavailable' ? 'Burn history is temporarily unavailable.' : 'Checking confirmed burns…'}</div>`;
-    return;
-  }
-  if (!board.wallets.length) {
-    const detail = board.status === 'partial'
-      ? 'No launch burns are available in the current history.'
-      : 'Wallets appear after a confirmed $FUNDED burn.';
-    table.innerHTML = `${header}<div class="empty-state"><strong>${board.status === 'partial' ? 'No launch burns in this feed.' : 'No verified wallet burns yet.'}</strong><span>${detail}</span></div>`;
-    return;
-  }
-  table.innerHTML = `${header}${board.wallets.slice(0,50).map((item,index) => {
-    const amount = Number(item.burnedTokens).toLocaleString(undefined,{maximumFractionDigits:6});
-    const firstBurn = item.firstBurnAt ? formatOnchainAge(Date.parse(item.firstBurnAt)) : 'Time unavailable';
-    const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
-    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span class="rank-number">${String(index+1).padStart(2,'0')}</span><span class="leader-identity"><span class="leader-avatar">${escapeHtml(String(item.wallet || '').slice(0,2).toUpperCase())}</span><span><a href="/wallet/${encodeURIComponent(item.wallet)}"><strong>${escapeHtml(shortAddress(item.wallet))}</strong></a><small>${item.receiptCount} verified receipt${item.receiptCount === 1 ? '' : 's'}</small></span></span><span><b>${escapeHtml(amount)}</b><small>$FUNDED</small></span><span class="leader-value">${escapeHtml(firstBurn)}</span><span><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
-  }).join('')}`;
+  return renderWalletBurnersBoardView({ burnersBoardState, verifiedLaunchPoliciesStatus }, { launchBurnersFallback, formatOnchainAge, exploreExplorer });
 }
 
 async function loadWalletBurnBoard(){
@@ -3618,47 +2483,7 @@ function launchBurnBoardFallback(){
 }
 
 function renderProjectBurnBoard(){
-  const table = document.querySelector('#leaderboard-table');
-  if (!table) return;
-  const board = burnBoardState.status === 'unavailable' && verifiedLaunchPoliciesStatus === 'ready'
-    ? { status: 'partial', projects: launchBurnBoardFallback() } : burnBoardState;
-  const projects = board.projects;
-  document.querySelector('#leaderboard-panel')?.setAttribute('aria-labelledby', 'leaderboard-burn-board-tab');
-  const kicker = document.querySelector('#leaderboard-table-kicker');
-  const heading = document.querySelector('#leaderboard-table-title');
-  const note = document.querySelector('#leaderboard-source-note');
-  const heroDescription = document.querySelector('#leaderboard-hero-description');
-  const builders = document.querySelector('#leaderboard .leaderboard-grid')?.closest('details');
-  if (kicker) kicker.textContent = board.status === 'partial' ? 'Confirmed launch burns · limited history' : 'Confirmed $FUNDED burns';
-  if (heading) heading.textContent = 'Project burn board';
-  if (note) note.textContent = board.status === 'partial'
-    ? 'Only burns made during a launch are available right now. Other project burns will appear when their history is ready.'
-    : 'Projects are ranked by confirmed burns linked to their launches.';
-  if (heroDescription) heroDescription.textContent = 'Projects ranked by verified $FUNDED burns attributed to their launches.';
-  if (builders) builders.hidden = true;
-  table.setAttribute('aria-label', 'Solana project burn board');
-  const header = '<div class="leaderboard-table-head" role="row"><span>Rank</span><span>Project</span><span>Burned</span><span>Last burn</span><span>Proof</span></div>';
-  if (!['ready', 'partial'].includes(board.status)) {
-    const message = board.status === 'unavailable'
-      ? 'Project burn history is temporarily unavailable. Try again shortly.'
-      : 'Checking confirmed project burns…';
-    table.innerHTML = `${header}<div class="empty-state">${message}</div>`;
-    return;
-  }
-  if (!projects.length) {
-    const detail = board.status === 'partial'
-      ? 'No launch burns are available in the current history.'
-      : 'Projects appear here after a confirmed $FUNDED burn is linked to a launch.';
-    table.innerHTML = `${header}<div class="empty-state"><strong>No project burns yet.</strong><span>${detail}</span></div>`;
-    return;
-  }
-  table.innerHTML = `${header}${projects.slice(0, 50).map((item, index) => {
-    const lastBurn = item.lastBurnAt ? formatOnchainAge(Date.parse(item.lastBurnAt)) : 'Time unavailable';
-    const amount = Number(item.burnedTokens).toLocaleString(undefined, { maximumFractionDigits: 6 });
-    const tokenHref = `/token/${encodeURIComponent(item.mint)}`;
-    const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
-    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span class="rank-number">${String(index + 1).padStart(2, '0')}</span><span class="leader-identity"><span class="leader-avatar mint">${escapeHtml(String(item.symbol || 'T').slice(0, 2))}</span><span><a href="${escapeHtml(tokenHref)}"><strong>${escapeHtml(item.name)}</strong></a><small>${escapeHtml(item.symbol)} · ${item.burnerCount} verified burner${item.burnerCount === 1 ? '' : 's'}</small></span></span><span><b>${escapeHtml(amount)}</b><small>$FUNDED</small></span><span class="leader-value">${escapeHtml(lastBurn)}</span><span><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
-  }).join('')}`;
+  return renderProjectBurnBoardView({ burnBoardState, verifiedLaunchPoliciesStatus }, { launchBurnBoardFallback, formatOnchainAge, exploreExplorer });
 }
 
 async function loadProjectBurnBoard(){
@@ -3700,79 +2525,7 @@ document.querySelector('.leaderboard-tabs')?.addEventListener('keydown', event =
 });
 
 function renderLeaderboard(){
-  const title = document.querySelector('#leaderboard-status-title');
-  const note = document.querySelector('#leaderboard-status-note');
-  const badge = document.querySelector('#leaderboard-status-badge');
-  const table = document.querySelector('#leaderboard-table');
-  if (!table) return;
-  table.dataset.view = leaderboardView;
-  if (leaderboardView === 'burners') {
-    if (burnersBoardState.status === 'idle') void loadWalletBurnBoard();
-    renderWalletBurnersBoard();
-    return;
-  }
-  if (leaderboardView === 'burn-board') { renderProjectBurnBoard(); return; }
-  if (leaderboardView === 'traders') {
-    document.querySelector('#leaderboard-panel')?.setAttribute('aria-labelledby', 'leaderboard-traders-tab');
-    setCoinField('#leaderboard-table-kicker', 'Confirmed wallet trading · Solana');
-    setCoinField('#leaderboard-table-title', 'Trader leaderboard');
-    setCoinField('#leaderboard-hero-description', 'Trader rankings require wallet-attributed, confirmed trade history.');
-    setCoinField('#leaderboard-source-note', 'Unavailable: the verified wallet activity index is not running. Token trade observations cannot establish a wallet ranking.');
-    setCoinField('#leaderboard-status-title', 'Trader ranking unavailable');
-    setCoinField('#leaderboard-status-note', 'A wallet-attributed trade index is required before ranks can be shown.');
-    setCoinField('#leaderboard-status-badge', 'Unavailable');
-    table.setAttribute('aria-label', 'Solana trader leaderboard unavailable');
-    table.innerHTML = '<div class="leaderboard-table-head" role="row"><span>Rank</span><span>Wallet</span><span>Trades</span><span>Volume</span><span>Proof</span></div><div class="empty-state"><strong>Trader ranking unavailable</strong><span>Confirmed token trades alone do not prove each trader’s wallet activity. Rankings will appear after that activity is indexed and verified.</span></div>';
-    return;
-  }
-  document.querySelector('#leaderboard-panel')?.setAttribute('aria-labelledby', 'leaderboard-creators-tab');
-  const kicker = document.querySelector('#leaderboard-table-kicker');
-  const heading = document.querySelector('#leaderboard-table-title');
-  const sourceNote = document.querySelector('#leaderboard-source-note');
-  const heroDescription = document.querySelector('#leaderboard-hero-description');
-  const builders = document.querySelector('#leaderboard .leaderboard-grid')?.closest('details');
-  if (kicker) kicker.textContent = 'Verified launches · Solana';
-  if (heading) heading.textContent = 'Creator launches';
-  if (sourceNote) sourceNote.textContent = 'Only confirmed Solana launches are shown. Market cap uses the verified curve or pool value and an available SOL/USD rate.';
-  if (heroDescription) heroDescription.textContent = 'Creators behind confirmed launches, ranked by available market cap.';
-  if (builders) builders.hidden = true;
-  table.dataset.view = 'creators';
-  table.setAttribute('aria-label', 'Solana creator launch leaderboard');
-  const launchByMint = new Map((Array.isArray(verifiedLaunchPolicies) ? verifiedLaunchPolicies : []).map(item => [item.mint, item]));
-  const verified = EXPLORE_CLUSTER === 'devnet'
-    ? assets.flatMap(item => {
-      const policy = launchByMint.get(item.address);
-      const creator = policy?.onchainVerified ? policy.creatorWallet || policy.feePayer : null;
-      return item.address && creator ? [{ ...item, creator }] : [];
-    })
-    : [];
-  const marketCapUsd = item => {
-    const capSol = item.migrated === true ? item.poolMarketCapSol : item.curveCapSol;
-    if (capSol == null || capSol === '' || !Number.isFinite(coinSolUsdPrice)) return null;
-    const cap = Number(capSol) * coinSolUsdPrice;
-    return Number.isFinite(cap) && cap >= 0 ? cap : null;
-  };
-  const ranked = verified.map(item => ({ ...item, capUsd: marketCapUsd(item) }))
-    .sort((a, b) => (b.capUsd ?? -1) - (a.capUsd ?? -1)
-      || Number(b.createdTimestamp || 0) - Number(a.createdTimestamp || 0)
-      || a.address.localeCompare(b.address)).slice(0, 25);
-  const header = '<div class="leaderboard-table-head" role="row"><span>Rank</span><span>Creator</span><span>Market cap</span><span>Launched</span></div>';
-  const creatorRankingUnavailable = verifiedLaunchPoliciesStatus !== 'ready' || !exploreFeedAvailable;
-  const empty = creatorRankingUnavailable
-    ? '<div class="empty-state"><strong>Creator ranking unavailable.</strong><span>The verified launch registry or market feed could not be loaded; an empty ranking is not evidence of zero launches.</span></div>'
-    : '<div class="empty-state"><strong>No verified creator launches yet.</strong><span>Launches appear after their policy and mint are confirmed on Solana.</span></div>';
-  if (!ranked.length) {
-    if (title) title.textContent = creatorRankingUnavailable ? 'Creator ranking unavailable' : EXPLORE_CLUSTER === 'devnet' ? 'No verified Solana launches yet' : 'Leaderboard unavailable on this cluster';
-    if (note) note.textContent = creatorRankingUnavailable ? 'Launch registry or market feed unavailable; creator count not verified.' : 'No confirmed creator launches are available to rank.';
-    if (badge) badge.textContent = 'Unavailable';
-    table.innerHTML = `${header}${empty}`;
-    return;
-  }
-  if (title) title.textContent = `${ranked.length} verified launch${ranked.length === 1 ? '' : 'es'} on Solana`;
-  if (note) note.textContent = 'Ranked from confirmed launch policies and available market caps. Missing market data is shown as unavailable.';
-  if (badge) badge.textContent = 'RPC verified';
-  const avatarClass = index => ['mint', 'lavender', 'coral', 'blue'][index % 4];
-  table.innerHTML = `${header}${ranked.map((item, index) => `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span class="rank-number">${String(index + 1).padStart(2, '0')}</span><span class="leader-identity"><span class="leader-avatar ${avatarClass(index)}">${escapeHtml(String(item.symbol || 'T').slice(0, 2))}</span><span><a href="/wallet/${encodeURIComponent(item.creator)}"><strong>${escapeHtml(shortAddress(item.creator))}</strong></a><small>· <a href="/token/${encodeURIComponent(item.address)}">${escapeHtml(item.name || item.symbol || 'Verified launch')}</a></small></span></span><span><b>${item.capUsd == null ? '$—' : escapeHtml(formatDashboardUsd(item.capUsd))}</b><small>${item.capUsd == null ? 'Market data unavailable' : item.migrated === true ? 'Pool MC' : 'Curve MC'}</small></span><span class="leader-value">${item.createdTimestamp ? escapeHtml(formatOnchainAge(Number(item.createdTimestamp) * 1000)) : 'Time unavailable'}</span></div>`).join('')}`;
+  return renderLeaderboardView({ leaderboardView, burnersBoardState, verifiedLaunchPolicies, assets, coinSolUsdPrice, verifiedLaunchPoliciesStatus, exploreFeedAvailable, EXPLORE_CLUSTER }, { loadWalletBurnBoard, renderWalletBurnersBoard, renderProjectBurnBoard, formatOnchainAge });
 }
 let homeLaunchTab = 'all';
 let homeLaunchWindow = '24h';
@@ -4708,147 +3461,10 @@ function showToast(message){
     }, 300);
   }, 2600);
 }
-function mobileWalletHex(bytes){ return Array.from(crypto.getRandomValues(new Uint8Array(bytes)), byte => byte.toString(16).padStart(2, '0')).join(''); }
-async function registerMobileWalletFlow(signRequest = null, transactionRequest = null){
-  const id = mobileWalletHex(24), pollToken = mobileWalletHex(32);
-  const result = await apiRequest('/api/mobile-wallet/relay', { method:'POST', body:{ id, pollToken, ...(signRequest ? { signRequest } : {}), ...(transactionRequest ? { transactionRequest } : {}) } });
-  if (!result.available) throw new Error('Wallet connection API is unavailable in this browser build.');
-  if (!result.data?.callbackUrl || new URL(result.data.callbackUrl).origin !== window.location.origin) throw new Error('Wallet callback is unavailable on this app origin.');
-  return { id, pollToken, callbackUrl:result.data.callbackUrl, expiresAt:Date.now() + 5 * 60_000 };
-}
-function showMobileWalletRequest(link, phase, qrLink = link){
-  const dialog = document.querySelector('#mobile-wallet-dialog');
-  const message = document.querySelector('#mobile-wallet-message');
-  const qr = document.querySelector('#mobile-wallet-qr');
-  const qrLabel = document.querySelector('#mobile-wallet-qr-label');
-  const alternate = document.querySelector('#mobile-wallet-alternate');
-  if (alternate) alternate.hidden = phase !== 'sign';
-  dialog.querySelector('h2').textContent = phase === 'connect' ? 'Connect Phantom to this desktop' : phase === 'sign-fallback' ? 'Approve the message in Phantom' : phase === 'transaction' ? 'Review the Solana trade in Phantom' : 'Approve the claim in Phantom';
-  const steps = dialog.querySelectorAll('.mobile-wallet-steps span');
-  if (steps.length === 3) {
-    steps[0].textContent = 'Scan this QR with Phantom on your phone';
-    steps[1].textContent = phase === 'connect' ? 'Approve the Solana wallet connection' : phase === 'sign-fallback' ? 'Tap Connect and sign the message' : phase === 'transaction' ? 'Tap Connect and review, then approve the transaction' : 'Approve the claim message in Phantom';
-    steps[2].textContent = phase === 'connect' ? 'Continue on this desktop; scan again when a claim needs signing' : phase === 'transaction' ? 'Return here for Solana confirmation' : 'Return to this desktop for payout verification';
-  }
-  mobileWalletLink = link;
-  message.textContent = phase === 'connect' ? 'Scan with Phantom and approve this Solana wallet connection. The address will appear in this desktop tab.' : phase === 'sign-fallback' ? 'Scan with Phantom, then tap Connect and sign on the funded.vip signer page. The signature returns to this desktop tab.' : phase === 'transaction' ? 'This QR opens a small funded.vip signer inside Phantom. Review the amount, fee, and token there before approving. Your desktop wallet stays connected and submits the signed transaction.' : 'Scan with Phantom and approve the claim message. The signature will return to this desktop tab.';
-  qr.src = `https://quickchart.io/qr?size=320&margin=2&text=${encodeURIComponent(qrLink)}`;
-  qr.alt = phase === 'connect' ? 'Scan to connect Phantom mobile wallet to this desktop' : phase === 'sign-fallback' ? 'Scan to open funded.vip signer in Phantom' : phase === 'transaction' ? 'Scan to sign the Solana trade transaction with Phantom mobile wallet' : 'Scan to sign claim message with Phantom mobile wallet';
-  qr.hidden = false;
-  qrLabel.textContent = 'Waiting for approval in Phantom · expires in 5 minutes';
-  if (!dialog.open) { if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', ''); }
-}
-async function waitForMobileWalletFlow(flow, version){
-  let temporaryFailures = 0;
-  while (Date.now() < flow.expiresAt) {
-    if (version !== mobileWalletRequestVersion || !document.querySelector('#mobile-wallet-dialog')?.open) throw new Error('Wallet request cancelled on desktop.');
-    let response;
-    try {
-      response = await apiRequest(`/api/mobile-wallet/relay/${flow.id}`, { headers:{ 'x-mobile-wallet-token':flow.pollToken }, cache:'no-store' });
-      temporaryFailures = 0;
-    } catch (error) {
-      if (/API request failed \((?:502|503|504)\)|Failed to fetch|API service unavailable/i.test(String(error.message))) {
-        if (++temporaryFailures <= 5) { await new Promise(resolve => setTimeout(resolve, 1200)); continue; }
-        throw new Error('Connection interrupted. Close this QR and start the wallet request again.');
-      }
-      if (/API request failed \(404\)/.test(String(error.message))) throw new Error('Wallet request expired. Close this QR and start the wallet request again.');
-      throw error;
-    }
-    if (response.data?.status === 'complete') return response.data.result;
-    await new Promise(resolve => setTimeout(resolve, 1200));
-  }
-  throw new Error('Phantom approval expired. Start a new wallet request.');
-}
-async function createMobileWalletProvider(session){
-  const { verifyPhantomMobileSession, verifyPhantomMobileSignature, verifyPhantomMobileTransaction } = await import('./phantom-mobile-crypto.js');
-  verifyPhantomMobileSession(session, window.location.origin);
-  const { PublicKey } = await getSolana();
-  let pendingTradeFlow = null;
-  const provider = {
-    publicKey:new PublicKey(session.publicKey), isConnected:true, remoteMobile:true,
-    async signTransaction(transaction){
-      if (!provider.isConnected) throw new Error('Reconnect the mobile wallet before trading.');
-      const transactionRequest = { publicKey:session.publicKey, transaction:Buffer.from('message' in transaction ? transaction.serialize() : transaction.serialize({ requireAllSignatures:false, verifySignatures:false })).toString('base64'), ...(Number.isSafeInteger(transaction.fundedLastValidBlockHeight) ? { lastValidBlockHeight:transaction.fundedLastValidBlockHeight } : {}), ...(transaction.fundedTradeSummary ? { summary:transaction.fundedTradeSummary } : {}), ...(transaction.fundedLaunchSummary ? { summary:transaction.fundedLaunchSummary } : {}) };
-      const flow = await registerMobileWalletFlow(null, transactionRequest);
-      pendingTradeFlow = flow;
-      const version = ++mobileWalletRequestVersion;
-      const signerUrl = `${window.location.origin}/api/mobile-wallet/trade/${flow.id}`;
-      const browseLink = `https://phantom.app/ul/browse/${encodeURIComponent(signerUrl)}?ref=${encodeURIComponent(window.location.origin)}`;
-      showMobileWalletRequest(browseLink, 'transaction');
-      try {
-        const result = await waitForMobileWalletFlow(flow, version);
-        if (!Number.isSafeInteger(result.lastValidBlockHeight) || result.lastValidBlockHeight <= 0) throw new Error('Phantom returned a trade without a verified Solana expiry. Nothing was submitted.');
-        const signed = verifyPhantomMobileTransaction(transaction, result.transaction, session.publicKey, result.blockhash);
-        signed.fundedLastValidBlockHeight = result.lastValidBlockHeight;
-        closeDialog('mobile-wallet-dialog');
-        return signed;
-      } catch (error) {
-        const label = document.querySelector('#mobile-wallet-qr-label');
-        if (label) label.textContent = error.message;
-        throw error;
-      }
-    },
-    async reportTradeSubmission(signature){
-      if (!pendingTradeFlow) return;
-      const flow = pendingTradeFlow;
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        try {
-          const response = await fetch(`/api/mobile-wallet/trade-status/${flow.id}`, { method:'POST', headers:{ 'content-type':'application/json', 'x-mobile-wallet-token':flow.pollToken }, body:JSON.stringify({ signature }) });
-          if (response.ok) return;
-        } catch { /* Retry a transient relay failure. */ }
-        if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500));
-      }
-      throw new Error('Could not update the phone with the Solana transaction signature.');
-    },
-    async signMessage(message){
-      if (!provider.isConnected) throw new Error('Reconnect the mobile wallet before signing.');
-      const bytes = message instanceof Uint8Array ? message : new Uint8Array(message);
-      const statement = new TextDecoder('utf-8', { fatal:true }).decode(bytes);
-      const flow = await registerMobileWalletFlow({ message:statement, publicKey:session.publicKey });
-      const version = ++mobileWalletRequestVersion;
-      const signerUrl = `${window.location.origin}/api/mobile-wallet/sign/${flow.id}`;
-      const browseLink = `https://phantom.app/ul/browse/${encodeURIComponent(signerUrl)}?ref=${encodeURIComponent(window.location.origin)}`;
-      showMobileWalletRequest(browseLink, 'sign-fallback');
-      try {
-        const signed = await waitForMobileWalletFlow(flow, version);
-        const signature = verifyPhantomMobileSignature(bytes, signed.signature, session.publicKey);
-        closeDialog('mobile-wallet-dialog');
-        return { signature };
-      } catch (error) { document.querySelector('#mobile-wallet-qr-label').textContent = error.message; throw error; }
-    },
-    async disconnect(){ provider.isConnected = false; sessionStorage.removeItem(MOBILE_WALLET_SESSION_KEY); },
-  };
-  return provider;
-}
-async function openMobileWalletDialog(){
-  if (window.location.protocol !== 'https:') { showToast('Use the hosted HTTPS site to connect Phantom on your phone.'); return; }
-  try {
-    const [{ default: nacl }, { decryptPhantomMobileResult, verifyPhantomMobileSession }] = await Promise.all([import('tweetnacl'), import('./phantom-mobile-crypto.js')]);
-    const flow = await registerMobileWalletFlow();
-    const version = ++mobileWalletRequestVersion;
-    const keyPair = nacl.box.keyPair();
-    const link = new URL('https://phantom.app/ul/v1/connect');
-    link.search = new URLSearchParams({ app_url:window.location.origin, dapp_encryption_public_key:bs58.encode(keyPair.publicKey), redirect_link:flow.callbackUrl, cluster:'devnet' }).toString();
-    showMobileWalletRequest(link.toString(), 'connect');
-    const result = await waitForMobileWalletFlow(flow, version);
-    if (result.errorCode) throw new Error(result.errorMessage || 'Phantom connection was cancelled.');
-    if (!result.phantom_encryption_public_key || bs58.decode(result.phantom_encryption_public_key).length !== 32) throw new Error('Phantom did not return an encryption key.');
-    const sharedSecret = nacl.box.before(bs58.decode(result.phantom_encryption_public_key), keyPair.secretKey);
-    const approved = decryptPhantomMobileResult(result, sharedSecret);
-    const session = verifyPhantomMobileSession({ publicKey:approved.public_key, session:approved.session, secretKey:bs58.encode(keyPair.secretKey), phantomPublicKey:result.phantom_encryption_public_key }, window.location.origin);
-    const provider = await createMobileWalletProvider(session);
-    sessionStorage.setItem(MOBILE_WALLET_SESSION_KEY, JSON.stringify(session));
-    allowWalletReconnect();
-    activateWallet(provider, 'Phantom mobile wallet connected');
-    closeDialog('mobile-wallet-dialog');
-    showToast('Phantom wallet connected on desktop');
-  } catch (error) { const label=document.querySelector('#mobile-wallet-qr-label'); if(label?.closest('dialog')?.open)label.textContent=error.message; showToast(error.message || 'Phantom connection failed.'); }
-}
-async function restoreMobileWallet(){
-  if (wallet || wasWalletManuallyDisconnected()) return false;
-  try { const stored=JSON.parse(sessionStorage.getItem(MOBILE_WALLET_SESSION_KEY)||'null'); if(!stored)return false; activateWallet(await createMobileWalletProvider(stored), 'Phantom mobile wallet restored'); return true; }
-  catch { try { sessionStorage.removeItem(MOBILE_WALLET_SESSION_KEY); } catch { /* Storage may also prevent cleanup; no session was restored. */ } return false; }
-}
+const mobileWallet = createMobileWalletController({
+  apiRequest, getSolana, getWallet: () => wallet, activateWallet,
+  allowWalletReconnect, wasWalletManuallyDisconnected, closeDialog, showToast,
+});
 function setTradeStatus(message, error = false){ const node = document.querySelector('#trade-status'); if (node) { node.textContent = message; node.className = `field-help ${error ? 'funded-mint-invalid' : ''}`; } }
 function setTradeReceiptStatus(message, signature, error = false) {
   const node = document.querySelector('#trade-receipt-status');
@@ -5595,51 +4211,7 @@ function formatSol(lamports){ return `${(Number(lamports) / 1_000_000_000).toFix
 function formatLaunchCost(lamports){ return `${(Number(lamports) / 1_000_000_000).toFixed(6)} SOL`; }
 function formatLaunchBurnAmount(amount){ return Number(amount || 0).toLocaleString(); }
 function renderLaunchBurnSelection(){
-  const policy = getLaunchBurnPolicy();
-  const tierSection = document.querySelector('.creator-burn-section');
-  if (tierSection) tierSection.dataset.selectedTier = policy.tier;
-  const amounts = currentLaunchTierAmounts();
-  const walletReady = Boolean(connectedWalletAddress && fundedBurnState.wallet === connectedWalletAddress && fundedBurnState.status === 'ready');
-  const walletBalance = walletReady ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : null;
-  const walletNode = document.querySelector('#launch-tier-wallet-balance');
-  if (walletNode) walletNode.textContent = walletReady ? `${walletBalance} $FUNDED available`
-    : !connectedWalletAddress ? 'Connect wallet to check $FUNDED'
-      : fundedBurnState.status === 'loading' ? 'Checking Devnet balance…' : 'Balance unavailable';
-  const selectionNote = document.querySelector('.launch-tier-selection-note');
-  if (selectionNote) selectionNote.textContent = `${policy.label} launch is selected. Your 80% creator-directed fee share goes to your wallet unless you choose a custom split.`;
-  document.querySelectorAll('.creator-burn-card[data-burn-tier]').forEach(button => {
-    const active = button.dataset.burnTier === policy.tier;
-    button.classList.toggle('active', active);
-    button.setAttribute('aria-pressed', String(active));
-    const tier = LAUNCH_BURN_TIERS.find(item => item.id === button.dataset.burnTier);
-    const action = button.querySelector('b');
-    if (action && tier) action.textContent = active ? 'Selected' : tier.id === 'standard' ? 'Included' : `Select ${tier.label}`;
-  });
-  for (const tier of ['pro', 'premier']) {
-    const amount = policy.tier === tier && currentLaunchTierQuote() ? policy.amountTokens : amounts?.[tier];
-    const count = document.querySelector(`#${tier}-burn-amount`);
-    const progress = document.querySelector(`#${tier}-tier-progress`);
-    if (count) count.textContent = amount ? `${formatLaunchBurnAmount(amount)} $FUNDED` : 'Quote unavailable';
-    if (progress) {
-      progress.textContent = amount && walletReady ? `${walletBalance} / ${formatLaunchBurnAmount(amount)} $FUNDED`
-        : amount ? 'Connect wallet to check balance' : 'Waiting for verified price';
-      progress.classList.toggle('short', Boolean(amount && walletReady && fundedBurnState.balanceBaseUnits < tokensToBaseUnits(amount, fundedBurnState.decimals)));
-    }
-  }
-  const quoteStatus = document.querySelector('#launch-tier-quote-status');
-  if (quoteStatus) quoteStatus.textContent = amounts
-    ? `1 $FUNDED ≈ $${Number(launchTierPricing.tokenPriceUsd).toLocaleString(undefined, { maximumSignificantDigits:6 })} · verified pool slot ${launchTierPricing.slot} · exact burn locked at review`
-    : currentLaunchTierQuote() ? `Your ${policy.label} quote is locked until ${new Date(launchTierQuote.expiresAt).toLocaleTimeString()}.`
-      : 'Verified $FUNDED/USD pool price unavailable. Paid tiers cannot be launched until it refreshes.';
-  const status = document.querySelector('#creator-burn-status');
-  if (status) {
-    const configured = validateLaunchBurnPolicy(policy).valid;
-    const ready = !policy.requiresBurn || (configured && launchBurnReadiness.ready);
-    status.className = `creator-burn-status ${ready ? 'ready' : 'blocked'}`;
-    status.innerHTML = ready
-      ? `<span>✓</span><p><strong>${policy.label} selected.</strong> ${policy.requiresBurn ? launchBurnReadiness.message : 'No creator-funded burn is required.'}</p>`
-      : `<span>!</span><p><strong>${policy.label} cannot launch yet.</strong> ${configured ? launchBurnReadiness.message : PROTOCOL_FUNDED_MINT ? 'The verified $FUNDED price is unavailable.' : 'The protocol $FUNDED mint is not configured.'}</p>`;
-  }
+  return renderLaunchBurnSelectionView({ connectedWalletAddress, fundedBurnState, LAUNCH_BURN_TIERS, launchTierPricing, launchTierQuote, launchBurnReadiness, PROTOCOL_FUNDED_MINT }, { getLaunchBurnPolicy, currentLaunchTierAmounts, currentLaunchTierQuote, formatLaunchBurnAmount });
 }
 function setLaunchBurnTier(tierId){
   launchBurnTier = SELECTABLE_LAUNCH_TIERS.has(tierId) ? tierId : 'standard';
@@ -6607,7 +5179,7 @@ async function connectWallet(){
   }
   const choice = await chooseWallet(injectedWalletProviders(), { devnet:APP_CLUSTER === 'devnet', preferred:rememberedWalletProviderId() });
   if (!choice) return;
-  if (choice.mobile) { await openMobileWalletDialog(); return; }
+  if (choice.mobile) { await mobileWallet.open(); return; }
   const provider = choice.provider;
   const request = ++walletConnectRequest;
   try { const connected = await connectWalletProvider(provider); if (request !== walletConnectRequest) return; allowWalletReconnect(); activateWallet(connected.provider); setLaunchStatus(`Ready to sign with ${connected.publicKey.toBase58()}`); }
@@ -7055,8 +5627,8 @@ document.addEventListener('click', event => {
   event.preventDefault();
   connectWallet();
 });
-document.querySelector('#mobile-wallet-close')?.addEventListener('click', () => { mobileWalletRequestVersion++; closeDialog('mobile-wallet-dialog'); });
-document.querySelector('#mobile-wallet-copy')?.addEventListener('click', async () => { if (!mobileWalletLink) return; try { await navigator.clipboard.writeText(mobileWalletLink); showToast('Phantom request link copied'); } catch { showToast('Could not copy the Phantom request link.'); } });
+document.querySelector('#mobile-wallet-close')?.addEventListener('click', mobileWallet.cancel);
+document.querySelector('#mobile-wallet-copy')?.addEventListener('click', mobileWallet.copyLink);
 document.querySelector('#launch-close').addEventListener('click', () => {
   requestPageRouteFocus();
   location.hash = '#overview';
@@ -8029,7 +6601,7 @@ if (APP_MAINNET_READ_ONLY) {
   const phantomAvailableAtStartup = Boolean(phantomProvider());
   if (existingProvider?.isConnected && walletAddress(existingProvider) && !wasWalletManuallyDisconnected()) activateWallet(existingProvider);
   if (!wallet && phantomAvailableAtStartup) await restoreTrustedPhantomWallet();
-  if (!wallet) await restoreMobileWallet();
+  if (!wallet) await mobileWallet.restore();
   if (!wallet && !phantomAvailableAtStartup) void restoreTrustedPhantomWallet();
   if (!wallet) await connectDevWallet();
 }
@@ -8181,7 +6753,7 @@ function getCoinMintAddress(){
   const hashValue = hashMatch?.[1] ? decodeURIComponent(hashMatch[1]) : '';
   return hashValue.length > 20 ? hashValue : '';
 }
-function shortAddress(address){ return address ? `${address.slice(0, 6)}…${address.slice(-6)}` : '—'; }
+
 function renderCoinCreatorRoute(address){
   const route = document.querySelector('#coin-creator-route');
   if (!route) return;
@@ -8198,34 +6770,7 @@ function renderCoinCreatorHeader(address){
   link.hidden = false;
 }
 function renderCoinRewardsPolicy(policy, mint = getCoinMintAddress()){
-  const summary = document.querySelector('#coin-fee-route');
-  const value = document.querySelector('#coin-fee-route-value');
-  if (!summary || !value) return;
-  const verified = verifiedCoinRewardsPolicy(policy, mint, EXPLORE_CLUSTER)
-    || verifiedCoinRewardsPolicy(coinSummaryLaunch, mint, EXPLORE_CLUSTER)
-    || verifiedCoinRewardsPolicy(verifiedLaunchPolicyForMint(mint), mint, EXPLORE_CLUSTER);
-  summary.hidden = !verified;
-  summary.parentElement?.classList.toggle('has-fee-allocation', Boolean(verified));
-  value.replaceChildren();
-  if (!verified) return;
-  const shares = [];
-  if (verified.creator > 0) shares.push(document.createTextNode(`Creator ${formatPolicyPercent(verified.creator)}`));
-  if (verified.holders > 0) shares.push(document.createTextNode(`Holders ${formatPolicyPercent(verified.holders)}`));
-  if (verified.x > 0 && verified.xAccount) {
-    const xShare = document.createElement('span');
-    const xLink = document.createElement('a');
-    xLink.href = `https://x.com/${verified.xAccount.slice(1)}`;
-    xLink.target = '_blank';
-    xLink.rel = 'noopener noreferrer';
-    xLink.textContent = verified.xAccount;
-    xLink.setAttribute('aria-label', `Open ${verified.xAccount} on X (opens in a new tab)`);
-    xShare.append('X account ', xLink, ` ${formatPolicyPercent(verified.x)}`);
-    shares.push(xShare);
-  }
-  shares.forEach((share, index) => {
-    if (index) value.append(' · ');
-    value.append(share);
-  });
+  return renderCoinRewardsPolicyView(policy, mint, { coinSummaryLaunch, EXPLORE_CLUSTER }, { getCoinMintAddress, verifiedLaunchPolicyForMint });
 }
 function compactCoinSocials(){
   const labels = {
@@ -8372,45 +6917,7 @@ function portfolioUnitPriceUsd(asset){
   return null;
 }
 function renderPortfolio(){
-  const status = document.querySelector('#portfolio-holdings-status');
-  const rows = document.querySelector('#portfolio-holding-rows');
-  const value = document.querySelector('#portfolio-total-value');
-  const pnl = document.querySelector('#portfolio-observed-pnl');
-  const txRows = document.querySelector('#portfolio-trade-rows');
-  const txNote = document.querySelector('#portfolio-trade-note');
-  if (!status || !rows || !value || !pnl || !txRows || !txNote) return;
-  const address = connectedWalletAddress;
-  const current = portfolioHoldings.wallet === address && portfolioHoldings.status === 'ready';
-  const holdings = current ? portfolioHoldings.accounts : [];
-  const assetByMint = new Map(assets.map(asset => [asset.address, asset]));
-  const decimalsByMint = new Map(assets.filter(asset => Number.isInteger(asset.mintDecimals)).map(asset => [asset.address, asset.mintDecimals]));
-  for (const holding of holdings) decimalsByMint.set(holding.mint, holding.decimals);
-  let pricedCount = 0;
-  let total = 0;
-  rows.innerHTML = holdings.map(holding => {
-    const asset = assetByMint.get(holding.mint);
-    const unitUsd = portfolioUnitPriceUsd(asset);
-    const holdingValue = unitUsd == null ? null : holding.quantity * unitUsd;
-    if (holdingValue != null) { pricedCount += 1; total += holdingValue; }
-    const label = asset?.symbol || shortAddress(holding.mint);
-    return `<a class="portfolio-holding-row" href="/token/${encodeURIComponent(holding.mint)}"><span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(asset?.name || shortAddress(holding.mint))}</small></span><span>${escapeHtml(formatOnChainNumber(holding.quantity, 6))}</span><span>${holdingValue == null ? '—' : escapeHtml(formatDashboardUsd(holdingValue))}</span><span title="Complete cost basis unavailable">—</span></a>`;
-  }).join('') || `<div class="empty-state">${!address ? 'Connect a wallet to see token holdings.' : portfolioHoldings.status === 'loading' ? 'Checking live Solana balances…' : portfolioHoldings.status === 'unavailable' ? 'Token balances are unavailable from Solana RPC.' : 'No SPL token holdings in this wallet.'}</div>`;
-  status.textContent = !address ? 'Connect wallet' : current ? `${holdings.length} tokens · ${portfolioHoldings.coverage}${pricedCount < holdings.length ? ' · some values unavailable' : ''}` : portfolioHoldings.status === 'loading' ? 'Checking Solana balances' : 'Balance lookup unavailable';
-  value.textContent = pricedCount ? `${pricedCount < holdings.length ? '≥' : ''}${formatDashboardUsd(total)}` : holdings.length ? '—' : current ? '$0.00' : '—';
-  const trades = address ? walletDetailTrades(address) : [];
-  const observed = matchedTradePnl(trades, decimalsByMint);
-  pnl.textContent = observed.matchedSales ? `${observed.pnlSol >= 0 ? '+' : ''}${formatOnChainNumber(observed.pnlSol, 5)} SOL` : '—';
-  pnl.title = observed.matchedSales ? `${observed.matchedSales} sale${observed.matchedSales === 1 ? '' : 's'} matched to buys observed in the last 24 hours. Excludes fees, unmatched trades and open positions.` : 'Cost basis is unavailable for older holdings and unmatched trades.';
-  txRows.innerHTML = trades.map(trade => {
-    const timestamp = Number(trade.blockTime) * 1000;
-    const decimals = decimalsByMint.get(trade.mint);
-    const raw = String(trade.tokenAmountRaw ?? '');
-    const quantity = Number.isInteger(decimals) && /^\d+$/.test(raw) ? Number(raw) / 10 ** decimals : NaN;
-    const tokenAmount = Number.isFinite(quantity) ? formatOnChainNumber(quantity, 6) : '—';
-    const receiptUrl = exploreExplorer(`tx/${encodeURIComponent(trade.signature)}`);
-    return `<tr class="portfolio-trade-row"><td><time datetime="${escapeHtml(new Date(timestamp).toISOString())}" title="${escapeHtml(new Date(timestamp).toLocaleString())}">${escapeHtml(formatOnchainAge(timestamp))}</time></td><td><span class="portfolio-trade-side ${trade.side}">${trade.side === 'buy' ? 'Buy' : 'Sell'}</span></td><td><a href="/token/${encodeURIComponent(trade.mint)}">${escapeHtml(trade.symbol || shortAddress(trade.mint))}</a></td><td class="numeric">${escapeHtml(tokenAmount)}</td><td class="numeric">${escapeHtml(formatOnChainNumber(trade.solAmount, 5))}</td><td><a href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener noreferrer" aria-label="View transaction ${escapeHtml(shortAddress(trade.signature))} on Solana Explorer">${escapeHtml(shortAddress(trade.signature))} ↗</a></td></tr>`;
-  }).join('') || `<tr><td class="portfolio-trade-empty" colspan="6"><span>${!address ? 'Connect a wallet to see trade transactions.' : 'No trades found in the available 24-hour coin scan.'}</span></td></tr>`;
-  txNote.textContent = !address ? 'Connect a wallet for Solana trade history.' : `Last 24 hours · ${exploreScannedCount} of ${assets.length} listed coins scanned · up to 20 trades per coin, 100 wallet rows. Older or unscanned transactions may be missing.`;
+  return renderPortfolioView({ connectedWalletAddress, portfolioHoldings, assets, exploreScannedCount }, { portfolioUnitPriceUsd, walletDetailTrades, formatOnchainAge, exploreExplorer });
 }
 function activatePortfolioTab(name, focus = false){
   const tabs = document.querySelectorAll('[data-portfolio-tab]');
@@ -8455,105 +6962,10 @@ function walletLaunchTimestamp(launch){
   return age.timestamp ? Date.parse(age.timestamp) : 0;
 }
 function renderWalletDetail(){
-  const page = document.querySelector('#wallet-page');
-  if (!page) return;
-  const address = getWalletDetailAddress();
-  const isSelf = Boolean(address && address === connectedWalletAddress);
-  const launches = walletDetailLaunches(address);
-  const trades = walletDetailTrades(address);
-  const burned = walletDetailBurned(launches);
-  const registryReady = verifiedLaunchPoliciesStatus === 'ready';
-  const tradeScanReady = exploreScannedCount > 0 && assets.length > 0;
-  const tradeScanStale = exploreProviderStatus.includes('stale');
-  const scanNote = tradeScanReady ? `Trades shown for ${exploreScannedCount} of ${assets.length} listed coins${tradeScanStale ? ' (last available update)' : ''}` : 'Recent trades are unavailable';
-  setCoinField('#wallet-registry-state', registryReady ? 'Confirmed' : verifiedLaunchPoliciesStatus === 'loading' ? 'Checking' : 'Unavailable');
-  setCoinField('#wallet-trade-state', tradeScanReady ? `${exploreScannedCount} of ${assets.length} coins${tradeScanStale ? ' · last update' : ''}` : exploreFeedAvailable ? 'No recent trades' : 'Unavailable');
-  const launchTimes = launches.map(walletLaunchTimestamp).filter(time => time > 0);
-  const tradeTimes = trades.map(item => Number(item.blockTime) * 1000).filter(Number.isFinite);
-  const lastActivity = Math.max(0, ...launchTimes, ...tradeTimes);
-  const volume = trades.reduce((sum, trade) => sum + Number(trade.solAmount || 0), 0);
-  const title = document.querySelector('#wallet-page-title');
-  const addressNode = document.querySelector('#wallet-page-address');
-  const selfBadge = document.querySelector('#wallet-self-badge');
-  const edit = document.querySelector('#wallet-edit-profile');
-  const follow = document.querySelector('#wallet-follow');
-  if (title) title.textContent = isSelf ? 'Your wallet' : address ? shortAddress(address) : 'Wallet';
-  if (addressNode) addressNode.textContent = address || 'Wallet address unavailable';
-  if (selfBadge) selfBadge.hidden = !isSelf;
-  if (edit) edit.hidden = !isSelf;
-  if (follow) {
-    const valid = validateSolanaMint(address).valid;
-    const active = valid && getFollowedWallets().some(row => row.address === address);
-    follow.hidden = !valid;
-    follow.textContent = active ? 'Following ✓' : 'Follow wallet';
-    follow.setAttribute('aria-pressed', String(active));
-    follow.setAttribute('aria-label', `${active ? 'Unfollow' : 'Follow'} ${escapeHtml(address || 'wallet')} on this device`);
-  }
-  const statSol = document.querySelector('#wallet-stat-sol');
-  const statSolNote = document.querySelector('#wallet-stat-sol-note');
-  if (statSol) statSol.textContent = isSelf && walletBalanceLamports != null ? formatSol(walletBalanceLamports) : '—';
-  if (statSolNote) statSolNote.textContent = isSelf ? (walletBalanceLamports == null ? 'Balance currently unavailable' : 'Connected wallet balance') : 'Connect this wallet to view balance';
-  setCoinField('#wallet-stat-launches', registryReady ? String(launches.length) : '—');
-  setCoinField('#wallet-stat-trades', tradeScanReady ? String(trades.length) : '—');
-  setCoinField('#wallet-stat-trades-note', scanNote);
-  const hasSolUsdQuote = Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0;
-  setCoinField('#wallet-stat-volume', !tradeScanReady ? '$—' : !trades.length ? '$0.00' : hasSolUsdQuote ? formatDashboardUsd(volume * coinSolUsdPrice) : '$—');
-  setCoinField('#wallet-stat-volume-note', !tradeScanReady ? scanNote : !trades.length ? 'No recent trades found' : hasSolUsdQuote ? 'Estimated USD at the current SOL price' : 'SOL price unavailable');
-  setCoinField('#wallet-stat-burned', !registryReady ? '—' : burned > 0 ? formatOnChainNumber(burned, 2) : launches.length ? '0' : '—');
-  setCoinField('#wallet-stat-last', lastActivity ? formatOnchainAge(lastActivity) : '—');
-  document.querySelectorAll('[data-wallet-tab]').forEach(button => { const active = button.dataset.walletTab === walletDetailTab; button.classList.toggle('active', active); button.setAttribute('aria-selected', String(active)); button.tabIndex = active ? 0 : -1; });
-  const description = document.querySelector('#wallet-detail-description');
-  const content = document.querySelector('#wallet-detail-content');
-  const filters = document.querySelector('#wallet-detail-filters');
-  if (filters) {
-    filters.hidden = walletDetailTab !== 'activity';
-    filters.querySelectorAll('[data-wallet-filter]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.walletFilter === walletDetailFilter)));
-  }
-  if (!content || !description) return;
-  if (walletDetailTab === 'balances') {
-    description.textContent = 'Balances are shown when current information is available.';
-    const fundedBalance = isSelf && fundedBurnState.wallet === address && fundedBurnState.status === 'ready'
-      ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6)
-      : isSelf && fundedBurnState.wallet === address && fundedBurnState.status === 'loading' ? 'Checking Solana…' : 'Unavailable';
-    content.innerHTML = `<div class="wallet-balance-grid"><article><span class="header-solana-mark" aria-hidden="true"></span><div><strong>${escapeHtml(isSelf && walletBalanceLamports != null ? formatSol(walletBalanceLamports) : 'Unavailable')}</strong><small>Native SOL</small></div></article><article><span class="wallet-funded-mark" aria-hidden="true">f</span><div><strong>${escapeHtml(fundedBalance)}</strong><small>$FUNDED token balance${fundedBalance !== 'Unavailable' && fundedBalance !== 'Checking Solana…' ? ' · live' : ''}</small></div></article></div>`;
-    return;
-  }
-  const launchRows = launches.map(launch => ({ type:'launch', time:walletLaunchTimestamp(launch), mint:launch.mint, html:`<a class="wallet-activity-row" data-token-mint="${escapeHtml(launch.mint)}" href="/token/${encodeURIComponent(launch.mint)}"><span class="wallet-activity-icon">✦</span><span><strong>Created ${escapeHtml(launch.name || launch.symbol || 'token')}</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} · ${escapeHtml(shortAddress(launch.mint))}</small></span><b>Verified<small>${walletLaunchTimestamp(launch) ? escapeHtml(formatOnchainAge(walletLaunchTimestamp(launch))) : 'Time unavailable'}</small></b></a>` }));
-  if (walletDetailTab === 'created') {
-    description.textContent = registryReady ? 'Confirmed coins created by this wallet.' : 'Created coins are unavailable right now.';
-    content.innerHTML = launchRows.map(row => row.html).join('') || (registryReady ? walletDetailEmpty('No created coins found', 'No confirmed launch was found for this wallet.') : walletDetailEmpty('Created coins unavailable', 'Please check again later.'));
-    loadWalletRowLogos(content, launches);
-    return;
-  }
-  description.textContent = `Confirmed launches and burns, plus recent trades from the last 24 hours. ${scanNote}.`;
-  const tradeRows = trades.map(trade => ({ type:trade.side, time:Number(trade.blockTime) * 1000 || 0, html:`<a class="wallet-activity-row" data-token-mint="${escapeHtml(trade.mint)}" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(trade.signature)}`))}" target="_blank" rel="noopener noreferrer"><span class="wallet-activity-icon ${trade.side}">${trade.side === 'buy' ? '↗' : '↘'}</span><span><strong>${trade.side === 'buy' ? 'Bought' : 'Sold'} ${escapeHtml(trade.symbol || 'token')}</strong><small>${escapeHtml(shortAddress(trade.mint))}</small></span><b>${escapeHtml(formatOnChainNumber(trade.solAmount, 4))} SOL<small>${escapeHtml(formatOnchainAge(Number(trade.blockTime) * 1000))}</small></b></a>` }));
-  const seenBurns = new Set();
-  const burnRows = launches.flatMap(launch => {
-    const burn = launch.creatorLaunchBurn;
-    const receipt = burn?.receipt;
-    if (burn?.status !== 'verified' || !receipt?.signature || seenBurns.has(receipt.signature)) return [];
-    seenBurns.add(receipt.signature);
-    const amount = Number(receipt.amountTokens ?? burn.amountTokens);
-    return [{ type:'burn', time:Date.parse(launch.onchainVerifiedAt || launch.createdAt || '') || 0, html:`<a class="wallet-activity-row" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer"><span class="wallet-activity-icon burn">♨</span><span><strong>Burned $FUNDED</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} launch · confirmed</small></span><b>${Number.isFinite(amount) ? escapeHtml(formatOnChainNumber(amount, 2)) : '—'} $FUNDED<small>View transaction ↗</small></b></a>` }];
-  });
-  const rows = [...tradeRows, ...launchRows, ...burnRows].filter(row => walletDetailFilter === 'all' || row.type === walletDetailFilter).sort((a,b) => b.time - a.time);
-  const coverageIncomplete = (['all', 'launch', 'burn'].includes(walletDetailFilter) && !registryReady)
-    || (['all', 'buy', 'sell'].includes(walletDetailFilter) && !tradeScanReady);
-  content.innerHTML = rows.map(row => row.html).join('') || walletDetailEmpty(coverageIncomplete ? 'Activity unavailable' : 'No matching activity', coverageIncomplete ? 'Some activity cannot be shown right now. Please check again later.' : walletDetailFilter === 'all' ? 'No confirmed launches, burns, or recent trades were found for this wallet.' : `No ${walletDetailFilter} activity was found for this wallet.`);
-  loadWalletRowLogos(content, launches);
+  return renderWalletDetailView({ connectedWalletAddress, verifiedLaunchPoliciesStatus, exploreScannedCount, assets, exploreProviderStatus, exploreFeedAvailable, walletBalanceLamports, coinSolUsdPrice, walletDetailTab, walletDetailFilter, fundedBurnState }, { getWalletDetailAddress, walletDetailLaunches, walletDetailTrades, walletDetailBurned, walletLaunchTimestamp, validateSolanaMint, getFollowedWallets, formatSol, formatOnchainAge, walletDetailEmpty, loadWalletRowLogos, exploreExplorer });
 }
-function formatOnChainNumber(value, digits = 4){
-  if (!Number.isFinite(value)) return '—';
-  return value.toLocaleString(undefined, { maximumFractionDigits: digits });
-}
-function formatCoinSpot(value){
-  if (!Number.isFinite(value)) return 'Unavailable';
-  if (value !== 0 && Math.abs(value) < 0.000001) {
-    const fixed = value.toFixed(15).replace(/0+$/, '').replace(/\.$/, '');
-    return `${fixed} SOL`;
-  }
-  return `${formatOnChainNumber(value, 9)} SOL`;
-}
+
+
 function formatCoinUsd(solValue){
   if (solValue == null) return '$—';
   const sol = Number(solValue);
@@ -8606,49 +7018,9 @@ function parseOnChainMetadata(data){
   const symbol = readMetadataString(data, offset);
   return { name: name.value, symbol: symbol.value };
 }
-function setCoinField(selector, value){ const node = document.querySelector(selector); if (node) node.textContent = value; }
-function setCoinFact(selector, value, state = 'unknown'){
-  const node = document.querySelector(selector);
-  if (node) { node.textContent = value; node.dataset.state = state; }
-}
-function renderCoinAccountDistribution(distribution, decimals = 6, symbol = 'Token', vaultLabel = 'Curve vault'){
-  const panel = document.querySelector('#coin-account-distribution');
-  if (!panel) return;
-  panel.hidden = !distribution;
-  const status = document.querySelector('#coin-holder-distribution-status');
-  if (status) {
-    status.hidden = Boolean(distribution);
-    if (!distribution) status.textContent = 'Full holder distribution unavailable: token-account owners and balances could not be reconciled to minted supply.';
-  }
-  if (!distribution) return;
-  const vaultBar = document.querySelector('#coin-distribution-vault');
-  const otherBar = document.querySelector('#coin-distribution-other');
-  if (vaultBar) vaultBar.style.width = `${Math.max(0, Math.min(100, distribution.vaultShare))}%`;
-  if (otherBar) otherBar.style.width = `${Math.max(0, Math.min(100 - distribution.vaultShare, distribution.holderShare))}%`;
-  setCoinField('#coin-distribution-vault-label', `${formatOnChainNumber(distribution.vaultShare, 2)}%`);
-  setCoinField('#coin-distribution-other-label', `${formatOnChainNumber(distribution.holderShare, 2)}%`);
-  setCoinField('#coin-distribution-vault-name', vaultLabel);
-  setCoinField('#coin-vault-fact-label', `${vaultLabel} balance`);
-  setCoinField('#coin-distribution-other-name', `${distribution.walletCount} holder wallet${distribution.walletCount === 1 ? '' : 's'}`);
-  setCoinField('#coin-distribution-note', `Balances across all ${distribution.accountCount} funded token accounts match the total supply. Accounts owned by the same wallet are grouped together.`);
-  const list = document.querySelector('#coin-distribution-wallets');
-  if (list) {
-    list.replaceChildren();
-    for (const holder of distribution.holders.slice(0, 3)) {
-      const row = document.createElement('li');
-      const link = document.createElement('a');
-      link.href = `/wallet/${encodeURIComponent(holder.wallet)}`;
-      link.title = holder.wallet;
-      link.textContent = shortAddress(holder.wallet);
-      const amount = document.createElement('span');
-      amount.textContent = `${formatTradeAmountInput(formatTokenBaseAmount(holder.amountRaw, decimals, Math.min(decimals, 6)))} ${symbol}`;
-      const share = document.createElement('b');
-      share.textContent = `${formatOnChainNumber(holder.share, 2)}%`;
-      row.append(link, amount, share);
-      list.append(row);
-    }
-  }
-}
+
+
+
 function setCoinCurveProgress(progress){
   const value = Number(progress);
   const valid = progress != null && Number.isFinite(value);
@@ -8657,39 +7029,7 @@ function setCoinCurveProgress(progress){
   if (fill) fill.style.width = `${valid ? Math.max(0, Math.min(100, value)) : 0}%`;
 }
 function renderCoinPricePath(){
-  const panel = document.querySelector('#coin-price-path');
-  if (!panel) return;
-  document.querySelectorAll('[data-coin-chart-period]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.coinChartPeriod === coinChartPeriod)));
-  document.querySelectorAll('[data-coin-chart-metric]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.coinChartMetric === coinChartMetric)));
-  document.querySelectorAll('[data-coin-chart-unit]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.coinChartUnit === coinChartUnit)));
-  const measure = coinChartMetric === 'price' ? 'Price' : 'Market cap';
-  const unit = coinChartUnit.toUpperCase();
-  setCoinField('#coin-chart-heading', `${document.querySelector('#coin-symbol')?.textContent?.trim() || 'Token'} · ${measure} in ${unit}`);
-  if (coinMarketActivity.status === 'loading') {
-    panel.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Loading chart…</strong><small>Checking recent trades for this token.</small></div>';
-    return;
-  }
-  if (coinMarketActivity.status === 'unavailable' || coinMarketActivity.status === 'summary-only') {
-    panel.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Chart unavailable</strong><small>Recent trade prices could not be loaded. Try refreshing the token page.</small></div>';
-    return;
-  }
-  const observedTrades = selectObservedTradeWindow(coinMarketActivity.trades, coinChartPeriod);
-  const path = buildTradePricePath(observedTrades, coinMarketActivity.decimals);
-  if (path.count < 2) {
-    panel.innerHTML = `<div class="empty-state coin-activity-empty"><strong>${path.count ? 'One recent price' : 'No recent prices'} · ${escapeHtml(coinChartPeriod)}</strong><small>${path.count ? 'At least two confirmed trades are needed to draw a chart.' : 'No confirmed trades were found in this time range.'}${coinMarketActivity.coverage !== 'complete' ? ' Some trade history may be missing.' : ''}</small></div>`;
-    return;
-  }
-  const supply = coinSolUsdValues.supply;
-  if ((coinChartMetric === 'mcap' && (!Number.isFinite(supply) || supply <= 0)) || (coinChartUnit === 'usd' && (!Number.isFinite(coinSolUsdPrice) || coinSolUsdPrice <= 0))) {
-    panel.innerHTML = `<div class="empty-state"><strong>${escapeHtml(measure)} in ${escapeHtml(unit)} unavailable</strong><small>${coinChartMetric === 'mcap' && (!Number.isFinite(supply) || supply <= 0) ? 'A verified token supply is required.' : 'A current SOL/USD quote is required. Select SOL to view the on-chain price.'}</small></div>`;
-    return;
-  }
-  const timeLabel = value => Number.isFinite(Number(value)) ? new Date(Number(value) * 1000).toLocaleString() : 'Time unavailable';
-  const scale = coinChartMetric === 'mcap' ? supply : 1;
-  const formatChartValue = value => coinChartUnit === 'usd' ? formatCoinSnapshotUsd(value * scale) : formatCoinSpot(value * scale);
-  const label = coinChartMetric === 'mcap' ? 'Estimated market cap' : 'Estimated token price';
-  const observations = path.points.map(point => `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="2.6"/>`).join('');
-  panel.innerHTML = `<div class="coin-price-path-head"><span>${label} · ${unit} · observed ${escapeHtml(coinChartPeriod)}</span><strong>${escapeHtml(formatChartValue(path.latest))}</strong></div><svg viewBox="0 0 600 190" role="img" aria-label="${label} in ${unit} from ${path.count} confirmed on-chain trade observations in the last ${coinChartPeriod}" preserveAspectRatio="none"><path class="coin-path-area" d="${path.area}"/><path class="coin-path-line" d="${path.line}"/><g class="coin-path-observations">${observations}</g><circle cx="${path.lastPoint.x.toFixed(1)}" cy="${path.lastPoint.y.toFixed(1)}" r="4"/></svg><div class="coin-price-path-range"><span>Low <b>${escapeHtml(formatChartValue(path.low))}</b></span><span>High <b>${escapeHtml(formatChartValue(path.high))}</b></span></div><div class="coin-price-path-times"><span>${escapeHtml(timeLabel(path.firstBlockTime))}</span><span>${escapeHtml(timeLabel(path.lastBlockTime))}</span></div>`;
+  return renderCoinPricePathView({ coinChartPeriod, coinChartMetric, coinChartUnit, coinMarketActivity, coinSolUsdValues, coinSolUsdPrice }, { formatCoinSnapshotUsd });
 }
 function renderCoinFlow(buy, sell, partial = false){
   const buyBar = document.querySelector('#coin-flow-buy');
@@ -8704,62 +7044,9 @@ function renderCoinFlow(buy, sell, partial = false){
   setCoinField('#coin-flow-sell-label', valid ? `Sell ${formatExploreUsd(sell, { partial })}` : 'Sell —');
   if (note) note.textContent = valid ? total ? `${partial ? 'Partial' : 'Confirmed'} ${coinMarketActivity.graduated ? 'curve and pool' : 'curve'} trade scan` : 'No observed trade volume' : 'Buy/sell volume unavailable';
 }
-function observedFiveMinutePulse(trades){
-  const cutoff = Math.floor(Date.now() / 1000) - 5 * 60;
-  const recent = trades.filter(item => Number(item.blockTime) >= cutoff);
-  const buys = recent.filter(item => item.side === 'buy');
-  const sells = recent.filter(item => item.side === 'sell');
-  const volume = rows => rows.reduce((sum, item) => sum + Number(item.solLamports || 0) / 1_000_000_000, 0);
-  return {
-    tradeCount: recent.length, buyCount: buys.length, sellCount: sells.length,
-    volumeSol: volume(recent), buyVolumeSol: volume(buys), sellVolumeSol: volume(sells),
-    traderCount: new Set(recent.map(item => item.trader).filter(Boolean)).size,
-    largestTradeSol: Math.max(0, ...recent.map(item => Number(item.solLamports || 0) / 1_000_000_000)),
-    coverage: 'partial',
-  };
-}
+
 function renderCoinPulse(){
-  setCoinField('.coin-pulse-grid > div:nth-child(3) > span', coinMarketActivity.graduated ? 'Trade volume' : 'Curve volume');
-  document.querySelectorAll('[data-coin-pulse-period]').forEach(button => {
-    const active = button.dataset.coinPulsePeriod === coinPulsePeriod;
-    button.classList.toggle('active', active);
-    button.setAttribute('aria-pressed', String(active));
-  });
-  const pulse = coinMarketActivity.activityWindows?.[coinPulsePeriod]
-    || (coinPulsePeriod === '5m' && coinMarketActivity.status === 'ready' && Array.isArray(coinMarketActivity.trades)
-      ? observedFiveMinutePulse(coinMarketActivity.trades) : null);
-  const note = document.querySelector('#coin-pulse-note');
-  const buyBar = document.querySelector('#coin-pulse-buy-bar');
-  const sellBar = document.querySelector('#coin-pulse-sell-bar');
-  if (!pulse) {
-    const label = coinMarketActivity.status === 'loading' ? 'Loading…' : 'Unavailable';
-    ['#coin-pulse-trades','#coin-pulse-traders','#coin-pulse-volume','#coin-pulse-buy-volume','#coin-pulse-sell-volume','#coin-pulse-largest'].forEach(selector => setCoinField(selector, label));
-    setCoinField('#coin-pulse-buy-count', 'Buys —'); setCoinField('#coin-pulse-sell-count', 'Sells —');
-    if (buyBar) buyBar.style.width = '0%'; if (sellBar) sellBar.style.width = '0%';
-    if (note) {
-      note.hidden = false;
-      note.textContent = coinMarketActivity.status === 'loading' ? 'Loading confirmed trades…' : 'Trade totals for this time range are unavailable.';
-    }
-    return;
-  }
-  const partial = pulse.coverage === 'partial';
-  const count = value => `${partial && value > 0 ? '≥' : ''}${formatOnChainNumber(value, 0)}`;
-  const usd = value => formatExploreUsd(value, { partial: partial && Number(value) > 0 });
-  setCoinField('#coin-pulse-trades', count(pulse.tradeCount));
-  setCoinField('#coin-pulse-traders', count(pulse.traderCount));
-  setCoinField('#coin-pulse-volume', usd(pulse.volumeSol));
-  setCoinField('#coin-pulse-buy-volume', usd(pulse.buyVolumeSol));
-  setCoinField('#coin-pulse-sell-volume', usd(pulse.sellVolumeSol));
-  setCoinField('#coin-pulse-largest', usd(pulse.largestTradeSol));
-  setCoinField('#coin-pulse-buy-count', `Buys ${count(pulse.buyCount)}`);
-  setCoinField('#coin-pulse-sell-count', `Sells ${count(pulse.sellCount)}`);
-  const volume = Number(pulse.buyVolumeSol) + Number(pulse.sellVolumeSol);
-  if (buyBar) buyBar.style.width = `${volume > 0 ? Number(pulse.buyVolumeSol) / volume * 100 : 0}%`;
-  if (sellBar) sellBar.style.width = `${volume > 0 ? Number(pulse.sellVolumeSol) / volume * 100 : 0}%`;
-  if (note) {
-    note.hidden = !partial;
-    note.textContent = partial ? 'Some trade history is missing. Actual totals may be higher.' : '';
-  }
+  return renderCoinPulseView({ coinMarketActivity, coinPulsePeriod }, { formatExploreUsd });
 }
 function coinAuthorityLabel(value){ return value === null ? 'Disabled' : value ? shortAddress(value) : 'Unavailable'; }
 function setCoinAuthority(selector, value){ setCoinFact(selector, coinAuthorityLabel(value), value === null ? 'clear' : value ? 'caution' : 'unknown'); }
@@ -8893,113 +7180,7 @@ function updateCoinTradeFilterPanel(){
   if (title) title.textContent = `Filter ${COIN_TRADE_COLUMNS.find(([key]) => key === coinTradeOpenFilter)?.[1] || 'trades'}`;
 }
 function renderCoinActivityTab(){
-  const activity = document.querySelector('#coin-activity-list');
-  if (!activity) return;
-  const tab = document.querySelector('[data-coin-tab].active')?.dataset.coinTab || 'trades';
-  const tradeToolbar = document.querySelector('#coin-trade-toolbar');
-  if (tradeToolbar) tradeToolbar.hidden = tab !== 'trades';
-  if (tab === 'trades') updateCoinTradeFilterPanel();
-  else { const tradeRefine = document.querySelector('#coin-trade-refine'); if (tradeRefine) tradeRefine.hidden = true; }
-  if (tab === 'chat') { renderCoinChat(activity); return; }
-  if (tab === 'trades' && coinMarketActivity.status === 'loading') {
-    activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Reading confirmed Pump trades…</strong><small>The 24-hour activity feed is loading from Solana RPC.</small></div>';
-    return;
-  }
-  if (tab === 'trades' && coinMarketActivity.status === 'unavailable') {
-    activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Recent trades unavailable</strong><small>We could not load confirmed trades for this token. You can still check fees, rewards, and holders in the other tabs.</small></div>';
-    return;
-  }
-  if (tab === 'trades' && coinMarketActivity.status === 'summary-only') {
-    activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Trade rows not indexed</strong><small>The 24-hour summary is available, but this cached response has no individual trade records. Refresh after the cache expires.</small></div>';
-    return;
-  }
-  if (tab === 'trades') {
-    const filters = coinTradeFilterValues();
-    const trades = filterAndSortRecentTrades(coinMarketActivity.trades, filters);
-    const mint = getCoinMintAddress();
-    const symbol = coinActivity.symbol || 'TOKEN';
-    const explorerIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 4h14l-3 3H3z" fill="#78e7b4"/><path d="M4 10h14l3 3H7z" fill="#ab91ff"/><path d="M6 16h14l-3 3H3z" fill="#78e7b4"/></svg>';
-    const rows = trades.map(item => {
-      const timestamp = Number(item.blockTime) * 1000;
-      const validTime = Number.isFinite(timestamp) && timestamp > 0 && timestamp < 8.64e15;
-      const time = validTime ? new Date(timestamp).toLocaleString() : 'Time unavailable';
-      const sol = Number(item.solLamports) / 1_000_000_000;
-      const tokens = Number(item.tokenAmountRaw) / (10 ** coinMarketActivity.decimals);
-      const side = item.side === 'buy' ? 'Buy' : 'Sell';
-      const tokenQuantity = Number.isFinite(tokens) ? formatOnChainNumber(tokens, tokens >= 1 ? 2 : 6) : '—';
-      const price = Number.isFinite(sol) && Number.isFinite(tokens) && tokens > 0 ? formatCoinSnapshotUsd(sol / tokens) : '$—';
-      return `<tr class="coin-transaction-row ${item.side === 'buy' ? 'is-buy' : 'is-sell'}" data-logo-mint="${escapeHtml(mint)}"><td><time datetime="${validTime ? new Date(timestamp).toISOString() : ''}" title="${escapeHtml(time)}">${validTime ? escapeHtml(formatOnchainAge(timestamp)) : '—'}</time></td><td><span class="coin-transaction-side"><i aria-hidden="true">${item.side === 'buy' ? '↑' : '↓'}</i>${side}</span></td><td class="coin-transaction-number">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}</td><td><span class="coin-transaction-token"><span class="coin-trade-token-avatar" aria-hidden="true">${escapeHtml(symbol.slice(0, 1).toUpperCase())}</span><span>${escapeHtml(tokenQuantity)} <small>${escapeHtml(symbol)}</small></span></span></td><td class="coin-transaction-number">${Number.isFinite(sol) ? escapeHtml(formatOnChainNumber(sol, 6)) : '—'}</td><td class="coin-transaction-number">${escapeHtml(price)}</td><td><a class="coin-transaction-trader" href="/wallet/${encodeURIComponent(item.trader)}" aria-label="View wallet profile for ${escapeHtml(item.trader)}">${escapeHtml(shortAddress(item.trader))}</a></td><td><a class="coin-trade-explorer" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(item.signature)}`))}" target="_blank" rel="noopener noreferrer" aria-label="View ${side} ${escapeHtml(symbol)} transaction on Solana Explorer" title="View transaction on Solana Explorer">${explorerIcon}</a></td></tr>`;
-    }).join('');
-    const headers = COIN_TRADE_COLUMNS.map(([key, label]) => {
-      const active = coinTradeSort.key === key;
-      const direction = active ? coinTradeSort.direction : 'none';
-      const fieldNames = { date: ['dateFrom', 'dateTo'], type: ['side'], usd: ['minUsd', 'maxUsd'], token: ['minToken', 'maxToken'], sol: ['minSol', 'maxSol'], price: ['minPrice', 'maxPrice'], trader: ['wallet'], txn: ['signature'] };
-      const filtered = key === 'type' ? coinTradeFilter !== 'all' : fieldNames[key].some(name => filters[name] !== '' && filters[name] != null);
-      const filterTarget = key === 'trader' ? 'coin-trade-wallet' : 'coin-trade-refine';
-      const expanded = key === 'trader' ? '' : ` aria-expanded="${coinTradeOpenFilter === key}"`;
-      return `<th scope="col" aria-sort="${direction === 'none' ? 'none' : direction === 'asc' ? 'ascending' : 'descending'}"><div class="coin-trade-column-head"><button type="button" class="coin-trade-sort" data-coin-trade-sort="${key}" aria-label="Sort ${label} ${active && direction === 'asc' ? 'descending' : 'ascending'}">${label}<span aria-hidden="true">${active ? direction === 'asc' ? '↑' : '↓' : '↕'}</span></button><button type="button" class="coin-trade-column-filter${filtered ? ' is-active' : ''}" data-coin-column-filter="${key}" aria-label="Filter ${label}"${expanded} aria-controls="${filterTarget}" title="Filter ${label}">⌕</button></div></th>`;
-    }).join('');
-    const empty = !trades.length ? `<tr><td colspan="8" class="coin-trade-no-results">${coinMarketActivity.trades.length ? 'No trades match these filters.' : 'No confirmed trades in the last 24 hours.'}${coinMarketActivity.coverage === 'partial' ? ' Some trade history is missing.' : ''}</td></tr>` : '';
-    activity.innerHTML = `<div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(symbol)} transactions" tabindex="0"><table class="coin-transactions-table coin-trades-table"><thead><tr>${headers}</tr></thead><tbody>${rows || empty}</tbody></table></div>`;
-    if (trades.length) loadVerifiedTokenLogos(activity);
-    return;
-  }
-  if (coinActivity.status === 'loading') {
-    activity.innerHTML = '<div class="coin-activity-row"><span class="activity-icon">◎</span><span><strong>Reading token records</strong><small>Confirmed Solana RPC request in progress</small></span><b class="activity-amount">—</b><span class="activity-time">RPC</span></div>';
-    return;
-  }
-  if (coinActivity.status === 'unavailable') {
-    activity.innerHTML = `<div class="coin-activity-row"><span class="activity-icon">!</span><span><strong>Token data unavailable</strong><small>${escapeHtml(coinActivity.message || 'Solana RPC could not load this mint.')}</small></span><b class="activity-amount">—</b><span class="activity-time">RPC</span></div>`;
-    return;
-  }
-  if (tab === 'holders') {
-    if (!coinActivity.holderDistribution) { activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Full holder list unavailable</strong><small>Verified wallet owners and token-account balances must reconcile to the minted supply before holders are shown.</small></div>'; return; }
-    const holderAccounts = coinActivity.holderDistribution.holders;
-    const explorerIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 4h14l-3 3H3z" fill="#78e7b4"/><path d="M4 10h14l3 3H7z" fill="#ab91ff"/><path d="M6 16h14l-3 3H3z" fill="#78e7b4"/></svg>';
-    const rows = holderAccounts.map((item, index) => {
-      const share = Number.isFinite(item.share) ? Math.max(0, Math.min(100, item.share)) : null;
-      const wallet = item.wallet;
-      const balance = Number(item.amountRaw) / (10 ** coinActivity.tokenDecimals);
-      const value = Number.isFinite(balance) && Number.isFinite(coinSolUsdValues.spot) && coinSolUsdValues.spot > 0 && Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? formatUsd(balance * coinSolUsdValues.spot * coinSolUsdPrice) : '$—';
-      const profile = `/wallet/${encodeURIComponent(wallet)}`;
-      const tradeAction = `<button type="button" class="coin-holder-trades" data-coin-holder-trades="${escapeHtml(wallet)}" aria-label="Show recent trades by ${escapeHtml(wallet)}" title="Filter recent trades by this wallet">⌕</button>`;
-      const amount = formatTradeAmountInput(formatTokenBaseAmount(item.amountRaw, coinActivity.tokenDecimals, Math.min(coinActivity.tokenDecimals, 6)));
-      return `<tr><td class="coin-holder-rank">#${index + 1}</td><td><a class="coin-holder-address" href="${escapeHtml(profile)}" title="${escapeHtml(wallet)}">${escapeHtml(shortAddress(wallet))}</a></td><td class="coin-holder-percent">${escapeHtml(formatOnChainNumber(share, 2))}%</td><td><div class="coin-holder-amount"><strong>${escapeHtml(amount)} <small>${escapeHtml(coinActivity.symbol)}</small></strong><span class="coin-holder-bar" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, share))}%"></i></span></div></td><td class="coin-holder-value">${escapeHtml(value)}</td><td class="coin-holder-action">${tradeAction}</td><td class="coin-holder-action"><a class="coin-trade-explorer" href="${escapeHtml(exploreExplorer(`address/${encodeURIComponent(wallet)}`))}" target="_blank" rel="noopener noreferrer" aria-label="View wallet ${escapeHtml(wallet)} on Solana Explorer" title="View wallet on Solana Explorer">${explorerIcon}</a></td></tr>`;
-    }).join('');
-    activity.innerHTML = rows ? `<div class="coin-transactions-scroll coin-holders-scroll" role="region" aria-label="${escapeHtml(coinActivity.symbol)} complete holder wallets" tabindex="0"><table class="coin-transactions-table coin-holders-table"><thead><tr><th scope="col">Rank</th><th scope="col">Wallet</th><th scope="col">% supply</th><th scope="col">Amount</th><th scope="col" title="Spot token price at the current SOL/USD quote">Value est.</th><th scope="col">Txns</th><th scope="col">Explore</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state coin-activity-empty"><strong>No holder wallets</strong><small>The reconciled token supply is entirely in the protocol vault.</small></div>';
-    return;
-  }
-  if (!coinActivity.ledgerAvailable) {
-    activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Fee activity unavailable</strong><small>We could not confirm fee collections or reward shares for this token.</small></div>';
-    return;
-  }
-  const feeExplorerIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 4h14l-3 3H3z" fill="#78e7b4"/><path d="M4 10h14l3 3H7z" fill="#ab91ff"/><path d="M6 16h14l-3 3H3z" fill="#78e7b4"/></svg>';
-  const feeDate = value => {
-    const timestamp = Date.parse(value || '');
-    return Number.isFinite(timestamp) ? `<time datetime="${new Date(timestamp).toISOString()}" title="${escapeHtml(new Date(timestamp).toLocaleString())}">${escapeHtml(formatOnchainAge(timestamp))}</time>` : '—';
-  };
-  const feeExplorer = (signature, label = 'View collection transaction on Solana Explorer') => /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature || '')
-    ? `<a class="coin-trade-explorer" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(signature)}`))}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${feeExplorerIcon}</a>` : '—';
-  if (tab === 'claims') {
-    const rows = coinActivity.claims.map(item => {
-      const gross = item.grossCreatorFees == null ? NaN : Number(item.grossCreatorFees);
-      const status = String(item.status || 'recorded').replace(/[-_]/g, ' ');
-      const statusLabel = status === 'obligations created' ? 'Shares recorded' : status.charAt(0).toUpperCase() + status.slice(1);
-      return `<tr><td>${feeDate(item.claimedAt)}</td><td><strong class="coin-fee-event">Fee split recorded</strong><small class="coin-fee-detail">Linked to collection ${escapeHtml(shortAddress(item.claimSignature || ''))}</small></td><td class="coin-fee-amount">${Number.isFinite(gross) ? `${escapeHtml(formatOnChainNumber(gross, 9))} ${escapeHtml(item.asset || 'SOL')}` : '—'}</td><td><span class="coin-fee-status">${escapeHtml(statusLabel)}</span></td><td class="coin-fee-action">${feeExplorer(item.claimSignature, 'View related fee collection on Solana Explorer')}</td></tr>`;
-    }).join('');
-    activity.innerHTML = rows ? `<p class="coin-activity-scope">Fee shares set aside from this token. These amounts may not have been paid yet.</p><div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(coinActivity.symbol)} fee allocations" tabindex="0"><table class="coin-transactions-table coin-fee-table coin-fee-allocations-table"><thead><tr><th scope="col">Date</th><th scope="col">Event</th><th scope="col">Gross fees</th><th scope="col">Status</th><th scope="col">Txn</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state coin-activity-empty"><strong>No reward shares recorded for this token</strong><small>Fees that cannot be linked to this token are excluded.</small></div>';
-    return;
-  }
-  const mintRows = coinActivity.collections.map(item => {
-    const sol = item.collectedLamports == null ? NaN : Number(item.collectedLamports) / 1_000_000_000;
-    return `<tr><td>${feeDate(item.recordedAt)}</td><td><strong class="coin-fee-event">Creator fees collected</strong><small class="coin-fee-detail">Collected for this token</small></td><td class="coin-fee-amount">${Number.isFinite(sol) ? `${escapeHtml(formatOnChainNumber(sol, 9))} SOL` : '—'}</td><td class="coin-fee-amount">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}</td><td class="coin-fee-action">${feeExplorer(item.signature)}</td></tr>`;
-  }).join('');
-  const routerRows = (coinActivity.sharedRouterCollections || []).map(item => {
-    const sol = Number(item.collectedLamports) / 1_000_000_000;
-    return `<tr><td>${feeDate(item.recordedAt)}</td><td><strong class="coin-fee-event">Combined fee collection</strong><small class="coin-fee-detail">Not linked to this token</small></td><td class="coin-fee-amount">${Number.isFinite(sol) ? `${escapeHtml(formatOnChainNumber(sol, 9))} SOL` : '—'}</td><td class="coin-fee-amount">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}</td><td class="coin-fee-action">${feeExplorer(item.signature)}</td></tr>`;
-  }).join('');
-  const table = (rows, label) => `<div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(label)}" tabindex="0"><table class="coin-transactions-table coin-fee-table coin-fee-collections-table"><thead><tr><th scope="col">Date</th><th scope="col">Event</th><th scope="col">Amount</th><th scope="col" title="At the current SOL/USD quote">USD est.</th><th scope="col">Txn</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  activity.innerHTML = (mintRows ? `<p class="coin-activity-scope">Fees collected for this token. Check Rewards for confirmed payments to recipients.</p>${table(mintRows, `${coinActivity.symbol} fee collections`)}` : '<div class="empty-state coin-activity-empty"><strong>No fee collections recorded for this token</strong><small>Only fees confirmed for this token appear here.</small></div>') + (routerRows ? `<div class="coin-activity-context"><strong>Combined fee collections</strong><span>These may include other tokens and are excluded from this token’s totals.</span></div>${table(routerRows, 'Combined fee collections')}` : '');
+  return renderCoinActivityTabView({ coinMarketActivity, coinActivity, COIN_TRADE_COLUMNS, coinTradeSort, coinTradeFilter, coinTradeOpenFilter, coinSolUsdValues, coinSolUsdPrice }, { updateCoinTradeFilterPanel, renderCoinChat, coinTradeFilterValues, getCoinMintAddress, formatCoinSnapshotUsd, formatOnchainAge, formatCoinUsd, exploreExplorer, loadVerifiedTokenLogos });
 }
 function renderOnChainUnavailable(message){
   const detail = String(message || '');
@@ -9612,84 +7793,7 @@ document.querySelector('.coin-tabs')?.addEventListener('keydown', event => {
   tabs[next].focus(); tabs[next].click();
 });
 
-const programPreviewData = {
-  standard: { name: 'Standard launch', subtitle: 'A calm, accountable first step', progress: '1 of 3 complete', width: '33%', note: 'Connect a wallet to begin your launch review.' },
-  pro: { name: 'Pro launch', subtitle: 'For teams ready to move with intent', progress: '2 of 3 complete', width: '78%', note: 'Priority review is available after the published route is confirmed.' },
-  premier: { name: 'Premier launch', subtitle: 'Largest project showcase', progress: '2 of 3 complete', width: '88%', note: 'Spotlight review is available after the published route is confirmed.' },
-  airdrop: { name: 'Airdrop reserve', subtitle: 'See who is eligible before you claim', progress: '2 of 3 complete', width: '66%', note: 'Review the allocation policy and claim status before connecting.' },
-  explore: { name: 'Browse Launch Directory', subtitle: 'Find launches with a visible signal', progress: '1 of 3 complete', width: '33%', note: 'Open the explorer to inspect route, tier, and receipt history.' },
-  receipts: { name: 'Receipt center', subtitle: 'Follow value after the launch', progress: '3 of 3 complete', width: '100%', note: 'Every verified event stays linked to its on-chain source.' },
-};
-function programNote(data, tier){
-  return tier === 'standard' && canSignTransactions(wallet) ? 'Wallet connected. Review the fee route and launch cost before signing.' : data.note;
-}
-const programViews = {
-  creator: {
-    copy: 'Pick a route, understand the rules, then move into the workspace with the same information in view.',
-    cta: 'Open creator launch',
-    href: '#launch',
-    cards: [
-      ['standard', 'STANDARD', 'Start here', 'Launch without the guesswork', 'Core Pump launch, public fee route, and a basic funded.vip X announcement when publishing is active.', '0 $FUNDED', 'Basic X post'],
-      ['pro', 'PRO', 'For serious launches', 'Give the launch a stronger signal', 'Pro badge, public burn receipt, and a featured funded.vip X launch post after verification when publishing is active.', '$100 in $FUNDED', 'Featured X post'],
-      ['premier', 'PREMIER', 'Largest showcase', 'Put your launch in the spotlight', 'Premier badge, public burn receipt, one funded.vip X launch post and a follow-up after 24 hours when publishing is active.', '$200 in $FUNDED', 'Two X posts'],
-    ],
-  },
-  community: {
-    copy: 'Follow the parts of a launch that matter after the mint: allocations, discovery signals, and verified receipts.',
-    cta: 'Open community hub',
-    href: '#airdrops',
-    cards: [
-      ['airdrop', 'AIRDROP', 'Claim with context', 'See your community allocation', 'Check eligibility, reserve size, and claim status before signing anything.', '3% MINIMUM', 'Wallet eligibility'],
-      ['explore', 'DIRECTORY', 'Discover with signal', 'Find launches worth a closer look', 'Inspect verified routes, launch tiers, and visible commitment signals.', 'LIVE FEED', 'Route + tier'],
-      ['receipts', 'RECEIPTS', 'Track what happened', 'Follow every value movement', 'Review the public record from launch through claims, burns, and payouts.', 'ON-CHAIN', 'Source linked'],
-    ],
-  },
-};
-function renderProgramView(view = 'creator') {
-  const config = programViews[view] || programViews.creator;
-  const list = document.querySelector('#program-option-list');
-  const copy = document.querySelector('#program-market-copy');
-  const cta = document.querySelector('#program-preview-cta');
-  if (!list) return;
-  list.innerHTML = config.cards.map(([key, label, hint, title, description, stat, meta], index) => `<button type="button" class="program-option${index === 0 ? ' active' : ''}" data-program-tier="${key}" aria-pressed="${index === 0 ? 'true' : 'false'}"><span class="program-option-top"><b>${label}</b><span>${hint}</span></span><strong>${title}</strong><small>${description}</small><span class="program-option-meta"><i>${stat}</i><i>${meta}</i><em>→</em></span></button>`).join('');
-  if (copy) copy.textContent = config.copy;
-  if (cta) { cta.textContent = `${config.cta} ↗`; cta.href = config.href; }
-  const first = config.cards[0]?.[0];
-  const data = programPreviewData[first] || programPreviewData.standard;
-  const name = document.querySelector('#program-preview-name');
-  const subtitle = document.querySelector('#program-preview-subtitle');
-  const progress = document.querySelector('#program-progress-label');
-  const bar = document.querySelector('#program-progress-bar');
-  const note = document.querySelector('#program-progress-note');
-  if (name) name.textContent = data.name;
-  if (subtitle) subtitle.textContent = data.subtitle;
-  if (progress) progress.textContent = data.progress;
-  if (bar) bar.style.width = data.width;
-  if (note) note.textContent = programNote(data, first);
-}
-document.querySelector('.program-market-panel')?.addEventListener('click', event => {
-  const tierButton = event.target.closest('[data-program-tier]');
-  if (tierButton) {
-    const tier = tierButton.dataset.programTier;
-    const data = programPreviewData[tier] || programPreviewData.standard;
-    document.querySelectorAll('[data-program-tier]').forEach(item => { item.classList.toggle('active', item === tierButton); item.setAttribute('aria-pressed', String(item === tierButton)); });
-    const name = document.querySelector('#program-preview-name');
-    const subtitle = document.querySelector('#program-preview-subtitle');
-    const progress = document.querySelector('#program-progress-label');
-    const bar = document.querySelector('#program-progress-bar');
-    const note = document.querySelector('#program-progress-note');
-    if (name) name.textContent = data.name;
-    if (subtitle) subtitle.textContent = data.subtitle;
-    if (progress) progress.textContent = data.progress;
-    if (bar) bar.style.width = data.width;
-    if (note) note.textContent = programNote(data, tier);
-  }
-  const viewButton = event.target.closest('[data-program-view]');
-  if (viewButton) {
-    document.querySelectorAll('[data-program-view]').forEach(item => { const active = item === viewButton; item.classList.toggle('active', active); item.setAttribute('aria-selected', String(active)); });
-    renderProgramView(viewButton.dataset.programView);
-  }
-});
+initProgramPicker({ isWalletConnected: () => canSignTransactions(wallet) });
 
 function renderXClaimSummary(claims){
   const summary=summarizeXClaims(claims);

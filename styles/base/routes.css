@@ -1,0 +1,63 @@
+
+
+/* Each sidebar destination is an isolated app view; the landing view stays intentionally short. */
+.page-route-overview #explore,
+.home-live-section{margin:0 0 28px;padding:22px;border:1px solid #2b3a50;border-radius:14px;background:radial-gradient(circle at 100% 0,#26365a55,transparent 38%),linear-gradient(145deg,#121b29,#10161f)}
+.home-live-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:16px}
+.home-live-heading h2{margin:5px 0 7px;color:#edf2fb;font-size:23px;letter-spacing:-.8px}
+.home-live-heading p:not(.eyebrow){max-width:600px;margin:0;color:#8d9caf;font-size:11px;line-height:1.55}
+.home-live-layout{display:block}
+.home-live-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.home-live-metrics article{min-width:0;padding:15px;border:1px solid #29384c;border-radius:9px;background:#101720}
+.home-live-metrics span,.home-live-metrics strong,.home-live-metrics small{display:block}
+.home-live-metrics span{color:#7e8b9e;font-size:9px}
+.home-live-metrics strong{margin:8px 0 4px;color:#eef3fb;font:18px 'DM Mono',monospace}
+.home-live-metrics small{color:#769985;font-size:8px;line-height:1.35}
+.home-live-footnote{display:block;margin-top:12px;color:#68788e;font-size:8px}
+@media(max-width:820px){.home-live-heading{display:block}.home-live-heading .data-badge{display:inline-block;margin-top:12px}.home-live-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.home-live-section{padding:17px 15px}.home-live-metrics{grid-template-columns:1fr 1fr}.home-live-heading h2{font-size:20px}}
+.page-route:not(.page-route-overview) .main-content>section,
+.page-route:not(.page-route-overview) .main-content>footer,
+.page-route:not(.page-route-overview) .mobile-growth-cta,
+.page-route:not(.page-route-overview) .preview-status-drawer{display:none!important}
+.page-route-explore #explore{display:block!important;min-height:calc(100vh - 76px)}
+.page-route-list #list{display:block!important;min-height:calc(100vh - 76px)}
+.page-route-launch #launch-route-shell{display:block!important;min-height:calc(100vh - 76px);padding-top:72px}
+.page-route-payments #payments{display:grid!important}
+.page-route-analytics-detail #analytics-detail,
+.page-route-my-launches #my-launches,
+.page-route-referrals #my-launches,
+.page-route-community #community,
+.page-route-airdrops #airdrops,
+.page-route-buybacks #buybacks,
+.page-route-capital-flow #capital-flow,
+.page-route-privacy #privacy,
+.page-route-paid #paid{display:block!important}
+.page-route-docs #docs{display:grid!important}
+.page-route-profile #profile{display:block!important;min-height:calc(100vh - 76px)}
+.page-route-overview .referral-command-center,
+.page-route-overview .referral-toolkit{display:none!important}
+.page-route-overview #payments,
+.page-route-overview #capital-flow,
+.page-route-overview #analytics-detail,
+.page-route-overview #my-launches,
+.page-route-overview #launch-route-shell,
+.page-route-overview #profile,
+.page-route-overview #privacy,
+.page-route-overview #paid,
+.page-route-overview #community,
+.page-route-overview #airdrops,
+.page-route-overview #buybacks,
+.page-route-overview #referral-faq,
+.page-route-overview #docs{display:none!important}
+.page-route-overview #explore{display:none!important}
+.page-route-overview #list{display:none!important}
+.page-route-my-launches #my-launches .referral-growth-card{display:none!important}
+.page-route-referrals #my-launches{display:none!important}
+.page-route-referrals #my-launches> .section-heading{display:none!important}
+.page-route-referrals #my-launches .role-grid{grid-template-columns:1fr}
+.page-route-referrals #my-launches .role-panel:not(.referral-growth-card){display:none!important}
+.page-route-referrals .referral-command-center,
+.page-route-referrals .referral-toolkit{display:block!important}
+.page-route-referrals .main-content>section.referral-command-center,
+.page-route-referrals .main-content>section.referral-toolkit{display:block!important}

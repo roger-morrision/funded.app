@@ -1,3 +1,4 @@
+import { readStylesheet } from './read-stylesheet.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { canSignTransactions, connectWalletProvider, selectRememberedWalletProvider, selectWalletProvider, walletAddress, walletLaunches } from '../wallet-core.js';
@@ -68,8 +69,9 @@ assert.equal(signed, true);
 assert.equal(sent, false);
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
-const coinDetailCss = await readFile(new URL('../coin-detail.css', import.meta.url), 'utf8');
+const app = (await Promise.all(['../app.js', '../src/features/portfolio/wallet-detail-view.js']
+  .map(path => readFile(new URL(path, import.meta.url), 'utf8')))).join('\n');
+const coinDetailCss = await readStylesheet(new URL('../coin-detail.css', import.meta.url));
 const dockerfile = await readFile(new URL('../Dockerfile', import.meta.url), 'utf8');
 const previewCompose = await readFile(new URL('../compose.preview.yml', import.meta.url), 'utf8');
 assert.match(html, /aria-selected="true" tabindex="0" data-wallet-tab="activity"/);

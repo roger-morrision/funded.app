@@ -7,8 +7,9 @@ import { formatSolMetric, readCurveMetrics, readPumpSwapMetrics } from '../explo
 import { sortDevnetLaunches } from '../server/explore-registry.mjs';
 
 const exploreMarkup = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const appSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
-const workspaceSource = readFileSync(new URL('../workspace-ui.js', import.meta.url), 'utf8');
+const appSource = ['../app.js', '../src/features/home/onchain-view.js', '../src/features/home/kpi-view.js', '../src/features/explore/assets-view.js', '../src/features/explore/controls-view.js']
+  .map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
+const workspaceSource = readFileSync(new URL('../src/features/workspace/explore.js', import.meta.url), 'utf8');
 assert.deepEqual(exploreSocialLinks({}, {}), [], 'Tokens without social links leave the icon group empty.');
 assert.deepEqual(exploreSocialLinks({ website:'https://token.example', twitter:'javascript:alert(1)', telegram:'https://t.me/token' }, { x:'https://x.com/token', discord:'https://discord.gg/token' }).map(link => [link.label, link.href]), [
   ['Website', 'https://token.example/'],

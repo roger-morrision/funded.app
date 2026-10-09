@@ -1,3 +1,4 @@
+import { readStylesheet } from './read-stylesheet.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { launchReviewStillCurrent } from '../launch-review-gate.js';
@@ -5,8 +6,8 @@ import { launchReviewStillCurrent } from '../launch-review-gate.js';
 const [html, app, styles, pageStyles, workspaceStyles] = await Promise.all([
   readFile(new URL('../index.html', import.meta.url), 'utf8'),
   readFile(new URL('../app.js', import.meta.url), 'utf8'),
-  readFile(new URL('../styles.css', import.meta.url), 'utf8'),
-  readFile(new URL('../page-experience.css', import.meta.url), 'utf8'),
+  readStylesheet(new URL('../styles.css', import.meta.url)),
+  readStylesheet(new URL('../page-experience.css', import.meta.url)),
   readFile(new URL('../workspace-ui.css', import.meta.url), 'utf8'),
 ]);
 

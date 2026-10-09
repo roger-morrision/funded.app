@@ -1,0 +1,48 @@
+
+/* Launch-page identity and community allocation callouts. */
+.launch-page-details{margin-top:13px;padding:12px 0;border-top:1px solid #252c38;border-bottom:1px solid #252c38}.launch-page-details summary{color:#aebbe0;font-size:10px;font-weight:700;cursor:pointer}.launch-page-details summary span{margin-left:5px;color:#68778f;font:8px 'DM Mono',monospace;font-weight:400}.launch-page-fields{display:grid;gap:10px;margin-top:12px}.launch-page-fields input,.launch-page-fields textarea{font-size:11px;padding:9px 10px}.launch-page-checks{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}.launch-page-checks span{padding:5px 7px;border:1px solid #26354d;border-radius:5px;background:#111b2e;color:#f4a340;font:8px 'DM Mono',monospace}.launch-page-checks i{margin-right:4px;color:#e9e1cf;font-style:normal}.community-airdrop-callout{display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:12px;border:1px solid #26354d;border-radius:9px;background:linear-gradient(135deg,#111b2e,#111b2e)}.community-airdrop-icon{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:8px;background:#26354d;color:#e9e1cf;font-size:16px}.community-airdrop-callout div{flex:1;min-width:0}.community-airdrop-callout strong,.community-airdrop-callout small{display:block}.community-airdrop-callout strong{color:#c5ecdb;font-size:10px}.community-airdrop-callout small{margin-top:4px;color:#7d9d91;font-size:8px;line-height:1.45}.community-airdrop-callout>b{color:#e9e1cf;font:9px 'DM Mono',monospace;white-space:nowrap}.preview-page-card{margin:0 3px 12px;padding:10px;border:1px solid #3d4650;border-radius:8px;background:linear-gradient(145deg,#252525,#1b1d20)}.preview-page-card span,.preview-page-card strong,.preview-page-card small{display:block}.preview-page-card span{color:#e9e1cf;font:8px 'DM Mono',monospace;letter-spacing:.5px}.preview-page-card strong{margin:6px 0 4px;color:#e2e2e2;font-size:11px;line-height:1.35}.preview-page-card small{color:#858585;font-size:8px;line-height:1.4}.preview-onchain-checks{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:10px 3px 0}.preview-onchain-checks span{padding:6px 5px;border:1px solid #26354d;border-radius:5px;background:#111b2e;color:#82ad9c;font:7px 'DM Mono',monospace}.preview-onchain-checks i{margin-right:4px;color:#e9e1cf;font-style:normal}@media(max-width:820px){.preview-page-card{margin-bottom:8px}.preview-onchain-checks{display:none}}@media(max-width:520px){.community-airdrop-callout{align-items:flex-start}.community-airdrop-callout>b{font-size:8px}.launch-page-checks span{flex:1;text-align:center}}
+/* Readable launch preview and form guidance. */
+input::placeholder,textarea::placeholder,.search-box input::placeholder{color:#aab6c8;opacity:1}
+dialog.launch-dialog input:not([type=checkbox]):not([type=file]),dialog.launch-dialog textarea{font-size:14px;line-height:1.45}
+dialog.launch-dialog .field-help,dialog.launch-dialog .field-counter{color:#aab6c8;font-size:12px;line-height:1.5}
+dialog.launch-dialog .wizard-actions span{color:#aab6c8;font-size:12px;line-height:1.45}
+dialog.launch-dialog .step-heading p{color:#acb9ca;font-size:13px}
+dialog.launch-dialog .launch-note p{color:#d9c486;font-size:12px}
+dialog.launch-dialog .launch-page-details summary,dialog.launch-dialog .social-section summary{font-size:12px}
+dialog.launch-dialog .launch-page-details summary span,dialog.launch-dialog .social-section summary span{font-size:11px}
+dialog.launch-dialog .launch-page-checks span{font-size:11px}
+.launch-preview .preview-route small{font-size:11px}
+.launch-preview .preview-title strong{font-size:15px}
+.launch-preview .preview-title span{font-size:12px;color:#b3bdca}
+.launch-preview .preview-page-card span{font-size:11px}
+.launch-preview .preview-page-card strong{font-size:13px}
+.launch-preview .preview-page-card small{font-size:12px;color:#b8c3d0;line-height:1.5}
+.launch-preview .preview-quality{margin:0 3px 12px;padding:10px;border:1px solid #3d4650;border-radius:8px;background:#1a2026}
+.launch-preview .preview-quality>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.launch-preview .preview-quality>div:first-child span{color:#b8c3d0;font:11px 'DM Mono',monospace}
+.launch-preview .preview-quality>div:first-child strong{color:#e2e9f3;font-size:12px;white-space:nowrap}
+.launch-preview .preview-quality-bar{height:6px;margin:9px 0;border-radius:99px;background:#343e4b;overflow:hidden}
+.launch-preview .preview-quality-bar i{display:block;height:100%;border-radius:inherit;background:#e9e1cf}
+.launch-preview .preview-quality-items{display:flex;flex-wrap:wrap;gap:6px 10px}
+.launch-preview .preview-quality-items span{color:#aeb9c8;font-size:11px;line-height:1.4}
+.launch-preview .preview-quality-items span.ready{color:#e9e1cf}
+.launch-preview .preview-outcome strong{font-size:12px}
+.launch-preview .preview-outcome small{font-size:11px;color:#a5c9b9}
+.launch-preview .preview-route strong{font-size:12px}
+.launch-preview .preview-row,.launch-preview .preview-row strong{font-size:12px}
+.launch-preview .preview-row{color:#b8c3d0}
+.launch-preview .preview-row strong{max-width:150px}
+.launch-preview .preview-economics{color:#c1cad7;font-size:13px}
+.launch-preview .preview-economics-head strong{font-size:14px}
+.launch-preview .preview-economics-head span{font-size:11px}
+.launch-preview .preview-economics b{font-size:13px;overflow-wrap:anywhere;text-align:right}
+.launch-preview .preview-claim-split{gap:8px}
+.launch-preview .preview-claim-split span{min-width:0;padding:10px}
+.launch-preview .preview-claim-split small{color:#b8c3d0;font-size:12px;line-height:1.35}
+.launch-preview .preview-claim-split b{margin-top:5px;font-size:14px}
+.launch-preview .preview-onchain-checks span{padding:8px;color:#b8d5c7;font-size:11px;line-height:1.35}
+.launch-preview .preview-lock{padding:12px}
+.launch-preview .preview-lock p{color:#e0cc90;font-size:12px;line-height:1.5}
+.launch-preview .preview-caption{color:#b8c3d0;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+@media(min-width:821px){dialog.launch-dialog .launch-layout{grid-template-columns:minmax(0,1fr) minmax(280px,310px)}}
+@media(max-width:820px){dialog.launch-dialog input:not([type=checkbox]):not([type=file]),dialog.launch-dialog textarea{font-size:16px}}

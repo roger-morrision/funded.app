@@ -1,0 +1,80 @@
+/* The Index table follows the reference column order while retaining verified Solana data. */
+body.page-route-explore .scanner-head,
+body.page-route-explore .scanner-row {
+  grid-template-columns: 28px minmax(220px,1.7fr) 78px 78px 70px 54px 78px 65px 95px 86px 80px;
+  gap: 7px;
+  min-width: 1100px;
+}
+body.page-route-explore .scanner-row { min-height: 76px; }
+body.page-route-explore .scanner-rank { color: #82919a; font: 500 11px 'DM Mono',monospace; }
+body.page-route-explore .scanner-age { color: #aeb9bc; font: 500 10px 'DM Mono',monospace; white-space: nowrap; }
+body.page-route-explore .scanner-token > span:last-child { display: grid; gap: 2px; }
+body.page-route-explore .scanner-token strong small { display: inline; }
+body.page-route-explore .scanner-token-heading { display: flex; align-items: center; gap: 6px; min-width: 0; }
+body.page-route-explore .scanner-token-heading .scanner-token-link { flex: 0 1 auto; overflow: hidden; }
+body.page-route-explore .explore-paid-listing-bag { display: inline-grid; flex: none; place-items: center; width: 20px; height: 20px; min-height: 20px; border: 1px solid #a9782d; border-radius: 3px; background: #372913; color: #ffd28a; text-decoration: none; }
+body.page-route-explore .explore-paid-listing-bag svg { display: block; width: 14px; height: 14px; }
+body.page-route-explore .explore-paid-listing-bag:hover { border-color: #ffd28a; background: #4a3514; color: #fff0cd; }
+body.page-route-explore .explore-paid-listing-bag:focus-visible { outline: 2px solid #ffd28a; outline-offset: 2px; }
+body.page-route-explore .explore-benefit-leaders { margin: 24px 0; padding: 20px 22px 22px; border: 1px solid #35425d; border-radius: 2px; background: #10151d; }
+body.page-route-explore .explore-boost-amount { flex: none; color: #ffce64; font: 700 10px 'DM Mono', monospace; white-space: nowrap; }
+body.page-route-explore .scanner-token .scanner-actions { display: flex; gap: 4px; margin-top: 3px; }
+body.page-route-explore .scanner-token .scanner-actions button { min-height: 20px; padding: 2px 5px; font-size: 9px; }
+body.page-route-explore .scanner-token .scanner-actions .scanner-watch { font-size: 12px; }
+body.page-route-explore .scanner-airdrop-cell { min-width: 0; }
+body.page-route-explore .scanner-stage strong { color: #d4ded8; }
+body.page-route-explore .scanner-boost span { display: none; }
+body.page-route-explore .scanner-boost .explore-boost-button { min-width: 68px; }
+@media (max-width: 700px) {
+  body.page-route-explore .explore-hero { min-height: 320px; margin-top: 14px; padding: 28px 18px; background-image: linear-gradient(90deg,#0b1020f5 0%,#0b1020df 60%,#0b1020bb 100%),url('../../index-wolf-network.webp'); background-position: center,70% center; }
+  body.page-route-explore .explore-hero h1 { font-size: 46px; }
+  body.page-route-explore .explore-heading .heading-actions { width: 100%; }
+  body.page-route-explore .explore-index-filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; padding-bottom: 6px; }
+  body.page-route-explore .explore-quick-filters { display: grid; gap: 8px; }
+  body.page-route-explore .index-filter { flex: 0 0 auto; }
+  body.page-route-leaderboard .leaderboard-hero { min-height: 300px; padding: 28px 18px; background-position: 58% center; }
+body.page-route-airdrops .airdrop-section > .section-heading h1 { font-size: 34px; }
+  body.page-route-docs .workspace-shortcuts { grid-template-columns: 1fr; }
+  body.page-route-docs .docs-guide-layout { grid-template-columns: 1fr; gap: 14px; }
+  body.page-route-docs .docs-guide-nav { max-height: 190px; overflow-y: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  body.page-route-docs .docs-guide-article { padding: 8px 0 28px; }
+  body.page-route-docs .docs-more-grid { grid-template-columns: 1fr; }
+  body.page-route-paid .paid-section > h2 { font-size: 32px; }
+  body.page-route-paid .paid-reference-metrics > div { padding: 13px 10px; }
+  body.page-route-paid .paid-reference-metrics strong { font-size: 21px; }
+}
+@media (max-width: 1050px) {
+  body.page-route-airdrops .airdrop-hero-layout { gap: 16px; grid-template-columns: minmax(0,1.15fr) minmax(230px,.85fr); }
+  body.page-route-airdrops .airdrop-public-programs .airdrop-directory-card { grid-template-columns: 1fr; }
+  body.page-route-airdrops .airdrop-public-programs .directory-footer { flex-direction: row; align-items: center; justify-content: space-between; text-align: left; }
+}
+@media (max-width: 700px) {
+  body.page-route-leaderboard .leaderboard-hero { min-height: 245px; background-position: 62% center; }
+  body.page-route-leaderboard .leaderboard-hero h1 { font-size: 38px; }
+  body.page-route-airdrops .airdrop-hero-layout { grid-template-columns: 1fr; }
+  body.page-route-airdrops .airdrop-hero-art { min-height: 210px; max-height: 260px; }
+  body.page-route-airdrops .airdrop-hero-art img { object-position: center 48%; }
+  body.page-route-airdrops .airdrop-wallet-gate-body { min-height: 250px; }
+  body.page-route-airdrops .airdrop-public-programs .airdrop-directory-head { align-items: stretch; flex-direction: column; }
+  body.page-route-airdrops .airdrop-public-programs .airdrop-directory-tools input { width: 100%; }
+  body.page-route-airdrops .airdrop-public-programs .airdrop-directory-card { grid-template-columns: 1fr; gap: 12px; }
+  body.page-route-airdrops .airdrop-public-programs .directory-stats { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin: 0; padding-top: 12px; border-top: 1px solid var(--line); }
+  body.page-route-airdrops .airdrop-public-programs .directory-stats b { white-space: normal; overflow-wrap: anywhere; }
+  body.page-route-airdrops .airdrop-public-programs .directory-footer { flex-direction: row; align-items: end; justify-content: space-between; gap: 12px; margin: 0; padding-top: 12px; border-top: 1px solid var(--line); text-align: left; }
+  body.page-route-airdrops .airdrop-public-programs .directory-footer button { width: auto; min-width: 112px; min-height: 40px; }
+  body.page-route-airdrops .airdrop-reference-flow { grid-template-columns: 1fr; }
+  body.page-route-airdrops .airdrop-reference-flow > span { min-height: 0; padding: 20px; }
+  body.page-route-wallet .wallet-page { padding-top: 18px; }
+  body.page-route-wallet .wallet-detail-hero { grid-template-columns: 1fr; }
+  body.page-route-wallet .wallet-detail-primary { min-height: 170px; padding: 20px; }
+  body.page-route-wallet .wallet-detail-proof { padding: 18px 20px; border-top: 1px solid #26354d; border-left: 0; }
+  body.page-route-wallet .wallet-detail-avatar { width: 56px; height: 56px; }
+  body.page-route-wallet .wallet-detail-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  body.page-route-wallet .wallet-detail-stats > div { min-height: 92px; padding: 13px; }
+  body.page-route-wallet .wallet-detail-stats strong { font-size: 16px; }
+}
+@media (max-width: 440px) {
+  body.page-route-airdrops .airdrop-public-programs .directory-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  body.page-route-airdrops .airdrop-public-programs .directory-footer { align-items: stretch; flex-direction: column; }
+  body.page-route-airdrops .airdrop-public-programs .directory-footer button { width: 100%; }
+}

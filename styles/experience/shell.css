@@ -1,0 +1,212 @@
+/* Keep every page and nested overflow surface on the same dark scrollbar system. */
+html {
+  scrollbar-gutter: stable;
+  scrollbar-color: #647592 #0d131c;
+  scrollbar-width: thin;
+}
+* {
+  scrollbar-color: #647592 #0d131c;
+  scrollbar-width: thin;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #0d131c;
+  box-shadow: inset 0 0 0 1px #202b3a;
+}
+*::-webkit-scrollbar-thumb {
+  min-width: 38px;
+  min-height: 38px;
+  border: 2px solid #0d131c;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #4c5d78, #7183a2);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, #64799d, #91a3c3);
+}
+*::-webkit-scrollbar-thumb:active {
+  background: #9aabd0;
+}
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+*::-webkit-scrollbar-corner { background: #0d131c; }
+
+/* Search fields use one surface and one focus ring across every route. */
+input[type='search'] {
+  appearance: none;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 13px;
+  border: 1px solid #3a4960;
+  border-radius: 10px;
+  background: #101824;
+  color: #edf2fb;
+  caret-color: #9fb1ff;
+  font: 13px 'Manrope', sans-serif;
+  box-shadow: none;
+  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+input[type='search']::placeholder { color: #7f8da4; opacity: 1; }
+input[type='search']:hover { border-color: #52647f; background: #121c2a; }
+input[type='search']:focus,
+input[type='search']:focus-visible {
+  border-color: #8299df;
+  outline: 0;
+  box-shadow: 0 0 0 3px #8198e026;
+}
+.page-route .main-content input[type='search']:not(#global-search):not(#explore-search) {
+  min-height: 44px;
+  padding: 0 13px;
+  border: 1px solid #3a4960;
+  border-radius: 10px;
+  background: #101824;
+  color: #edf2fb;
+  font: 13px 'Manrope', sans-serif;
+}
+.page-route .main-content input[type='search']:not(#global-search):not(#explore-search):focus,
+.page-route .main-content input[type='search']:not(#global-search):not(#explore-search):focus-visible {
+  border-color: #8299df;
+  outline: 0;
+  box-shadow: 0 0 0 3px #8198e026;
+}
+
+:is(.search-box, .explore-search-label) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 13px;
+  border: 1px solid #3a4960;
+  border-radius: 10px;
+  background: #101824;
+  color: #91a6dc;
+  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+:is(.search-box, .explore-search-label):hover {
+  border-color: #52647f;
+  background: #121c2a;
+}
+:is(.search-box, .explore-search-label):focus-within {
+  border-color: #8299df;
+  background: #121c2a;
+  box-shadow: 0 0 0 3px #8198e026;
+}
+:is(.search-box, .explore-search-label) > input[type='search'],
+:is(.search-box, .explore-search-label) > input[type='search']:hover,
+:is(.search-box, .explore-search-label) > input[type='search']:focus,
+:is(.search-box, .explore-search-label) > input[type='search']:focus-visible {
+  flex: 1;
+  width: 100%;
+  height: 42px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+}
+:is(.search-box, .explore-search-label) > span { flex: none; line-height: 1; }
+.search-box kbd { flex: none; }
+.page-route .main-content :is(.search-box, .explore-search-label) > input[type='search']:focus-visible {
+  outline: 0;
+}
+
+/* A single, actionable page intro sits above (never inside) each workspace grid. */
+.page-route .main-content > #route-guide:not([hidden]) {
+  display: flex !important;
+}
+.route-guide[hidden], .menu-backdrop[hidden] { display: none !important; }
+.route-guide {
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 28px 0 26px;
+  padding: 24px 26px;
+  border: 1px solid #34445c;
+  border-radius: 14px;
+  background: linear-gradient(115deg, #19263a, #111a27 60%, #10161f);
+}
+.route-guide-copy { min-width: 0; }
+.route-guide .eyebrow { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 11px; }
+.route-guide-state {
+  padding: 5px 8px;
+  border: 1px solid #3b5b65;
+  border-radius: 99px;
+  color: #a8dfd0;
+  background: #111b2e;
+  font: 500 9px 'DM Mono', monospace;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.route-guide h1 { margin: 0 0 9px; font-size: clamp(30px, 3.5vw, 44px); line-height: 1.1; letter-spacing: -1.6px; }
+.route-guide p:last-child { max-width: 650px; margin: 0; color: #aebbd0; font-size: 12px; line-height: 1.6; }
+.route-guide-actions { display: flex; flex: none; align-items: center; gap: 15px; }
+.route-guide-actions a { white-space: nowrap; text-decoration: none; }
+.route-guide-actions .primary-button { min-height: 40px; }
+.route-guide-secondary { color: #b1c3fb; font-size: 11px; font-weight: 700; }
+.route-guide-secondary:hover { color: #e3eaff; }
+
+/* Keep page content readable when a route has a wide data panel. */
+.page-route .main-content > section { min-width: 0; }
+.page-route-payments #payments { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.page-route-docs #docs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.page-route .section-heading, .page-route .panel-heading { gap: 14px; }
+.page-route .section-heading > *, .page-route .panel-heading > * { min-width: 0; }
+.page-route .panel-explainer { line-height: 1.6; }
+
+/* Keep the complete navigation visible and grouped instead of hiding routes in an overflow disclosure. */
+.sidebar .brand-row { padding-bottom: 18px; }
+.sidebar .primary-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 2px 10px 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #30394a transparent;
+}
+.sidebar .primary-nav::-webkit-scrollbar { width: 4px; }
+.sidebar .primary-nav::-webkit-scrollbar-thumb { border-radius: 99px; background: #30394a; }
+.sidebar .nav-label {
+  margin: 0 10px 5px;
+  color: #59667a;
+  font-size: 8px;
+  letter-spacing: .13em;
+}
+.sidebar .nav-label-spaced { margin-top: 13px; }
+.sidebar .nav-item {
+  min-height: 31px;
+  margin: 1px 0;
+  padding: 7px 10px;
+  font-size: 12px;
+}
+.sidebar .nav-icon { font-size: 14px; }
+.sidebar-footer {
+  flex: none;
+  padding-top: 10px;
+  border-top: 1px solid #252e3b;
+}
+.platform-x-topbar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #354052;
+  border-radius: 8px;
+  color: #c9d6e8;
+  font: 700 16px Arial, sans-serif;
+  text-decoration: none;
+}
+.platform-x-topbar:hover,
+.platform-x-topbar:focus-visible { border-color: #79a8ee; color: #fff; }

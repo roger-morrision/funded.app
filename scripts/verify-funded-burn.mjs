@@ -4,7 +4,7 @@ import { PublicKey } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { burnedSupplyBaseUnits, formatTokenBaseUnits, parseTokenAmount, planTokenAccountBurns, projectBurnMemo, waitForSignatureConfirmation } from '../funded-burn.js';
 import { readVerifiedBurnChecked } from '../server/burn-verification.mjs';
-const burnDashboardSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
+const burnDashboardSource = readFileSync(new URL('../src/features/funded/buyback-view.js', import.meta.url), 'utf8');
 assert.match(burnDashboardSource, /buybackNetworkState\.status === 'unavailable' && verifiedLaunchPoliciesStatus !== 'ready' && !fundedBurnState\.receiptIndexAvailable[\s\S]*?\? 'Receipt index unavailable'/, 'The burn ledger must not display a verified zero when all receipt sources are unavailable.');
 
 assert.equal(parseTokenAmount('1', 6), 1_000_000n);

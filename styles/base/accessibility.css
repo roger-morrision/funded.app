@@ -1,0 +1,41 @@
+
+
+/* Shared route shell and accessibility primitives. */
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.topbar-context{display:none;min-width:0;margin-right:auto;padding-right:20px}
+.topbar-context span,.topbar-context small{display:block}
+.topbar-context span{font-size:13px;font-weight:700;color:#edf2fb}
+.topbar-context small{margin-top:3px;color:#728096;font-size:9px}
+.page-lede{max-width:560px;color:#9aa5b5;font-size:14px;line-height:1.7}
+.route-shell-actions{display:flex;align-items:center;gap:18px;margin-top:28px}
+.route-shell-actions .text-button{padding:10px 0;text-decoration:none}
+.route-page-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:0 0 24px;padding:28px 0 20px;border-bottom:1px solid var(--line)}
+.route-page-heading .eyebrow{margin:0}
+.route-page-heading h1{margin:0;font-size:clamp(30px,4vw,46px);letter-spacing:-2px}
+.profile-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.profile-wallet-card{display:flex;align-items:center;gap:12px;min-width:0}
+.profile-wallet-card .avatar{flex:none;width:42px;height:42px}
+.profile-wallet-card strong,.profile-wallet-card small{display:block}
+.profile-wallet-card strong{font-size:13px}
+.profile-wallet-card small{margin-top:4px;color:#7e8b9d;font:10px 'DM Mono',monospace;overflow-wrap:anywhere}
+.profile-wallet-card .secondary-button{margin-left:auto;white-space:nowrap}
+.profile-safety-card h2{margin-bottom:12px;font-size:16px}
+.profile-safety-card .sign-checklist{margin:0 0 14px;padding:0;list-style:none}
+.profile-safety-card .sign-checklist li{display:flex;gap:8px;margin:8px 0;color:#9aa7b9;font-size:11px}
+.profile-safety-card .sign-checklist i{color:var(--mint);font-style:normal}
+@media(min-width:1001px){.topbar-context{display:block}}
+@media(max-width:820px){.profile-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.topbar-context{display:block;flex:1;padding-right:0}.topbar-context small{display:none}.route-shell-actions{align-items:stretch;flex-direction:column;gap:8px}.route-shell-actions .primary-button{justify-content:center;width:100%}.page-route-launch #launch-route-shell{padding-top:42px}.route-page-heading{display:block;padding:22px 0 16px}.route-page-heading h1{margin-top:6px;font-size:32px}.profile-wallet-card{align-items:flex-start;flex-wrap:wrap}.profile-wallet-card .secondary-button{width:100%;margin-left:54px}}
+
+/* Preserve native disclosure behavior when component label styles set display explicitly. */
+details:not([open])>:not(summary){display:none!important}
+#mainnet-readonly-banner {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  padding: 10px 18px;
+  background: #6c3ee5;
+  color: #fff;
+  text-align: center;
+  font: 700 13px/1.4 Manrope, sans-serif;
+}

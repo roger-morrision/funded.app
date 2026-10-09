@@ -8,7 +8,7 @@ import { publicError } from '../server/http-policy.mjs';
 // Token normalization is irrelevant to pagination; fixture rows are already normalized.
 const source = await readFile(new URL('../server/index.mjs', import.meta.url), 'utf8');
 const start = source.indexOf("    if (req.method === 'GET' && url.pathname === '/api/birdeye/explore') {");
-const end = source.indexOf('    const tokenChatSessionAction', start);
+const end = source.indexOf('    if (await handleTokenChatRoutes(', start);
 assert(start >= 0 && end > start, 'Explore route boundaries must exist.');
 const route = new Function('context', `return (async () => {
   const { req, res, url, solanaCluster, store, fetchPump, fetchBirdeye, Connection, explorePagination } = context;

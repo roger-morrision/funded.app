@@ -1,0 +1,225 @@
+/* Referrals route: keep the hero copy readable and give KPI cards a clearer rhythm. */
+.referral-command-center > .section-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.referral-command-center > .section-heading > div { min-width: 0; }
+.referral-command-center > .section-heading h2 {
+  max-width: 760px;
+  margin: 0;
+  font-size: clamp(26px, 3vw, 34px);
+  line-height: 1.16;
+  letter-spacing: -1.2px;
+  text-wrap: balance;
+}
+.referral-command-center > .section-heading .panel-explainer {
+  max-width: 720px;
+  margin: 10px 0 0;
+  color: #8e9bb0;
+  font-size: 12px;
+  line-height: 1.65;
+}
+.referral-command-center > .section-heading .data-badge {
+  flex: none;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+.referral-command-center > .referral-kpi-grid {
+  gap: 10px;
+  margin: 0 0 20px;
+}
+.referral-command-center > .referral-kpi-grid article {
+  display: flex;
+  min-height: 116px;
+  flex-direction: column;
+  justify-content: center;
+  padding: 18px;
+  border-color: #30405a;
+  border-radius: 12px;
+}
+.referral-command-center > .referral-kpi-grid span { font-size: 9px; }
+.referral-command-center > .referral-kpi-grid strong {
+  margin: 10px 0 6px;
+  font-size: 21px;
+  line-height: 1.1;
+}
+.referral-command-center > .referral-kpi-grid small {
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+@media (max-width: 820px) {
+  .referral-command-center > .section-heading {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .referral-command-center > .section-heading .data-badge {
+    justify-self: start;
+    margin-top: 0;
+  }
+  .referral-command-center > .referral-kpi-grid article {
+    min-height: 108px;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .referral-command-center > .section-heading h2 { font-size: 25px; }
+  .referral-command-center > .section-heading .panel-explainer { font-size: 11px; }
+  .referral-command-center > .referral-kpi-grid { gap: 9px; }
+  .referral-command-center > .referral-kpi-grid article {
+    min-height: 104px;
+    padding: 14px;
+  }
+  .referral-command-center > .referral-kpi-grid strong { font-size: 19px; }
+}
+
+/* Referral toolkit: compact hierarchy without heading or body-copy collisions. */
+.referral-toolkit > .section-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+.referral-toolkit > .section-heading > div { min-width: 0; }
+.referral-toolkit > .section-heading h2 {
+  margin: 0;
+  font-size: clamp(26px, 3vw, 34px);
+  line-height: 1.16;
+  letter-spacing: -1.2px;
+  text-wrap: balance;
+}
+.referral-toolkit > .section-heading .panel-explainer {
+  max-width: 720px;
+  margin: 10px 0 0;
+  color: #8e9bb0;
+  font-size: 12px;
+  line-height: 1.65;
+}
+.referral-toolkit > .section-heading .data-badge {
+  margin-top: 3px;
+  white-space: nowrap;
+}
+.referral-toolkit > .referral-toolkit-grid { gap: 12px; }
+.referral-toolkit .campaign-links-panel,
+.referral-toolkit .referral-rules-panel {
+  padding: 20px;
+  border-color: #30405a;
+  border-radius: 12px;
+}
+.referral-toolkit .panel-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.referral-toolkit .panel-heading .eyebrow { margin-bottom: 8px; }
+.referral-toolkit .panel-heading h3 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -.5px;
+}
+.referral-toolkit .campaign-link-list { gap: 8px; }
+.referral-toolkit .campaign-link-list > div {
+  min-height: 70px;
+  gap: 12px;
+  padding: 13px;
+  border-color: #30405a;
+  border-radius: 10px;
+}
+.referral-toolkit .campaign-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+.referral-toolkit .campaign-link-list strong { font-size: 10px; }
+.referral-toolkit .campaign-link-list small {
+  margin-top: 4px;
+  font-size: 9px;
+  line-height: 1.4;
+}
+.referral-toolkit .campaign-link-list .secondary-button {
+  min-width: 70px;
+  padding: 10px 12px;
+}
+
+@media (max-width: 820px) {
+  .referral-toolkit > .section-heading {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .referral-toolkit > .section-heading .data-badge {
+    justify-self: start;
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .referral-toolkit > .section-heading h2 { font-size: 25px; }
+  .referral-toolkit > .section-heading .panel-explainer { font-size: 11px; }
+  .referral-toolkit .campaign-links-panel,
+  .referral-toolkit .referral-rules-panel { padding: 17px 14px; }
+  .referral-toolkit .campaign-link-list > div { padding: 12px; }
+}
+.docs-process { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 18px 30px; }
+.docs-process p:not(.eyebrow) { margin: 10px 0 0; color: #aebbd0; font-size: 12px; line-height: 1.65; }
+.docs-process ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.docs-process li { display: flex; gap: 9px; min-width: 0; }
+.docs-process li b { display: grid; place-items: center; flex: none; width: 25px; height: 25px; border-radius: 7px; background: #27395c; color: #c3d2ff; font: 500 11px 'DM Mono', monospace; }
+.docs-process li strong, .docs-process li small { display: block; }
+.docs-process li strong { color: #eaf0fa; font-size: 12px; }
+.docs-process li small { margin-top: 3px; color: #91a0b5; font-size: 10px; line-height: 1.5; }
+.docs-process-links { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 18px; padding-top: 12px; border-top: 1px solid #34445c; }
+.docs-process-links a { color: #b7c7fc; font-size: 11px; font-weight: 700; text-decoration: none; }
+.docs-process-links a:hover { color: #f2f5ff; }
+
+.menu-backdrop { display: none; }
+.nav-item:focus-visible, .profile-row:focus-visible, .route-guide a:focus-visible,
+.topbar button:focus-visible, .topbar input:focus-visible, .sidebar button:focus-visible {
+  outline: 2px solid #a9c3ff;
+  outline-offset: 3px;
+}
+
+@media (max-width: 1100px) {
+  .route-guide { align-items: start; flex-direction: column; }
+}
+@media (max-width: 900px) {
+  .page-route-payments #payments, .page-route-docs #docs { grid-template-columns: minmax(0, 1fr); }
+  .docs-process { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) { .docs-process ol { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 700px) {
+  .menu-backdrop:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 19; width: 100%; border: 0; background: #0009; cursor: pointer; }
+  .sidebar.open { z-index: 20; }
+  body.menu-open { overflow: hidden; }
+  .topbar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 7px 10px; height: auto; min-height: 98px; padding: 8px 0 10px; }
+  .topbar .mobile-menu { grid-column: 1; grid-row: 1; min-width: 38px; min-height: 38px; }
+  .topbar-context { grid-column: 2; grid-row: 1; overflow: hidden; }
+  .topbar-context span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .top-actions { grid-column: 3; grid-row: 1; }
+  .topbar .search-box { grid-column: 1 / -1; grid-row: 2; width: 100%; min-height: 36px; padding: 0 12px; border: 1px solid #303d50; border-radius: 8px; background: #121b29; }
+  .route-guide { gap: 18px; margin: 18px 0 22px; padding: 20px 18px; }
+  .route-guide h1 { font-size: 31px; }
+  .route-guide-actions { width: 100%; flex-wrap: wrap; gap: 11px; }
+  .route-guide-actions .primary-button { justify-content: center; flex: 1 1 160px; }
+  .route-guide-secondary { flex: 1 1 120px; text-align: center; }
+}
+@media (max-width: 480px) {
+  .topbar .create-coin-button { display: none; }
+  .topbar .connect-button { max-width: 122px; }
+  .topbar .top-actions .workspace-network { position: absolute; top: 53px; right: 0; }
+  .route-guide-actions { flex-direction: column; align-items: stretch; }
+  .route-guide-actions a, .route-guide-actions .primary-button { flex: none; width: 100%; }
+  .route-guide-secondary { padding: 7px 0; }
+}
+@media (max-width: 360px) {
+  body.page-route .topbar .topbar-context::before { display: none; }
+}

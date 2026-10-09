@@ -1,0 +1,145 @@
+/* Clean Explore: one title, one control surface, and cards that scan quickly. */
+.support-capability-note,
+.page-route-explore #explore > .support-shortcuts,
+.page-route-explore .explore-hero { display: none !important; }
+
+.page-route-explore .explore-page { padding-top: 22px; }
+.page-route-explore .explore-heading {
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 14px;
+  padding-top: 0;
+}
+.page-route-explore .explore-heading .eyebrow { margin-bottom: 7px; }
+.page-route-explore .explore-heading h2 {
+  font-size: clamp(26px, 3.2vw, 36px);
+  line-height: 1.05;
+  letter-spacing: -1.4px;
+}
+.page-route-explore .explore-heading .heading-actions { gap: 8px; }
+.page-route-explore .explore-heading .segmented {
+  min-height: 38px;
+  padding: 3px;
+  border-color: #2d394d;
+  background: #0e151f;
+}
+.page-route-explore .explore-heading .segmented button { padding: 7px 12px; }
+
+.page-route-explore .explore-search-row { margin-bottom: 10px; }
+.page-route-explore .explore-search-label { min-height: 44px; }
+.page-route-explore .filter-row {
+  align-items: stretch;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 0;
+  border: 0;
+}
+.page-route-explore .filter-select {
+  width: 168px;
+  min-height: 42px;
+  padding: 5px 10px;
+  border-color: #2d394d;
+  border-radius: 9px;
+  background: #111925;
+}
+.page-route-explore .filter-select select { min-width: 0; width: 100%; }
+.page-route-explore .explore-stage-filter {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  align-items: center;
+  border-color: #2d394d;
+  border-radius: 9px;
+  background: #0e151f;
+}
+.page-route-explore .explore-stage-filter button { flex: 1; padding: 7px 6px; }
+.page-route-explore .explore-refine-row {
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 0 0 13px;
+  border-bottom: 1px solid #263143;
+}
+.page-route-explore .explore-auto-refresh,
+.page-route-explore .explore-checked { display: none !important; }
+.page-route-explore .explore-advanced summary,
+.page-route-explore .explore-clear { min-height: 34px; border-color: #2d394d; background: #121b28; }
+
+.page-route-explore .asset-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.page-route-explore .asset-card {
+  min-height: 0;
+  padding: 16px;
+  border-color: #293649;
+  border-radius: 12px;
+  background: #111925;
+  box-shadow: none;
+}
+.page-route-explore .asset-card:hover { transform: none; box-shadow: none; }
+.page-route-explore .asset-top { display: flex; align-items: center; gap: 9px; }
+.page-route-explore .asset-symbol { flex: 1; min-width: 0; }
+.page-route-explore .asset-top .watch-button { margin-left: auto; }
+.page-route-explore .asset-authorities,
+.page-route-explore .asset-risk,
+.page-route-explore .asset-proof-link,
+.page-route-explore .asset-flow-buy,
+.page-route-explore .asset-flow-sell { display: none !important; }
+.page-route-explore .asset-status { margin-top: 11px; }
+.page-route-explore .asset-card .asset-name {
+  min-height: 0;
+  margin: 8px 0 16px;
+  color: #9aa8bc;
+  font-size: 11px;
+}
+.page-route-explore .asset-signal-row {
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 11px 0;
+  border-top: 1px solid #263143;
+  border-bottom: 1px solid #263143;
+}
+.page-route-explore .asset-signal-row span { display: grid; gap: 4px; min-width: 0; }
+.page-route-explore .asset-signal-row b { color: #d9e3f2; font-size: 11px; }
+.page-route-explore .asset-trade-flow { justify-content: space-between; margin-bottom: 12px; }
+.page-route-explore .asset-buy-pressure,
+.page-route-explore .asset-curve-progress { margin-bottom: 13px; }
+.page-route-explore .asset-bottom {
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 0;
+  padding-top: 13px;
+}
+.page-route-explore .asset-card .asset-value { font-size: 17px; line-height: 1.25; }
+.page-route-explore .asset-actions { gap: 8px; margin-top: 14px; }
+.page-route-explore .asset-actions a,
+.page-route-explore .asset-actions button { min-height: 38px; border-radius: 8px; }
+
+@media (max-width: 1100px) {
+  .page-route-explore .explore-heading { display: block; }
+  .page-route-explore .explore-heading .heading-actions { justify-content: flex-start; margin-top: 12px; }
+  .page-route-explore .asset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 620px) {
+  .page-route-explore .explore-page { padding-top: 16px; }
+  .page-route-explore .explore-heading h2 { font-size: 30px; }
+  .page-route-explore .explore-heading .heading-actions { display: block; }
+  .page-route-explore .explore-heading .segmented { width: 100%; }
+  .page-route-explore .explore-heading .segmented button { flex: 1; }
+  .page-route-explore .explore-view-switch { display: none; }
+  .page-route-explore .explore-search-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .page-route-explore .filter-row { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .page-route-explore .filter-select { width: 100%; }
+  .page-route-explore .explore-stage-filter {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+  .page-route-explore .explore-stage-filter button { min-width: 0; white-space: normal; }
+  .page-route-explore .explore-refine-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .page-route-explore .explore-refine-row .explore-advanced { width: auto; }
+  .page-route-explore .explore-refine-row .explore-advanced summary { width: 100%; }
+  .page-route-explore .explore-refine-row .explore-advanced[open] { grid-column: 1 / -1; }
+  .page-route-explore .asset-grid { grid-template-columns: minmax(0, 1fr); }
+}

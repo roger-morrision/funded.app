@@ -1,0 +1,24 @@
+
+
+/* Put the live market figure above the chart and use the profile pane for verified facts. */
+.coin-page .coin-chart-panel>.coin-hero-stat{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:2px 14px;
+  min-width:0;margin:-2px 0 16px;padding:0 0 15px;border:0;border-bottom:1px solid #26354d
+}
+.coin-page .coin-chart-panel>.coin-hero-stat span{grid-column:1/-1;color:#9bc4aa;font:700 10px 'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase}
+.coin-page .coin-chart-panel>.coin-hero-stat strong{grid-column:1;grid-row:2;margin:0;color:#f4fff5;font-size:clamp(30px,3.7vw,48px);font-weight:800;letter-spacing:-.05em;line-height:1.05}
+.coin-page .coin-chart-panel>.coin-hero-stat b{grid-column:2;grid-row:2;align-self:center;color:#a3d9b2;font:700 11px 'DM Mono',monospace;text-align:right}
+.coin-page .coin-chart-panel>.coin-hero-stat small{grid-column:1/-1;margin:3px 0 0;color:#779186;font-size:10px}
+.coin-page .coin-hero-about .coin-fact-ribbon{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:18px 0 0}
+.coin-page .coin-hero-about .coin-fact-ribbon>div{min-width:0;padding:10px 11px;border-color:#26354d;border-radius:6px;background:#111b2e}
+.coin-page .coin-hero-about .coin-fact-ribbon span{color:#91baa0;font-size:9px}
+.coin-page .coin-hero-about .coin-fact-ribbon strong{color:#e0f5e3;font-size:11px}
+@container coin-detail (max-width:760px){
+  .coin-page .coin-chart-panel>.coin-hero-stat strong{font-size:30px}
+  .coin-page .coin-hero-about .coin-fact-ribbon{margin-top:13px}
+}
+@container coin-detail (max-width:420px){
+  .coin-page .coin-chart-panel>.coin-hero-stat{grid-template-columns:1fr}
+  .coin-page .coin-chart-panel>.coin-hero-stat b{grid-column:1;grid-row:3;text-align:left}
+  .coin-page .coin-hero-about .coin-fact-ribbon{grid-template-columns:1fr}
+}

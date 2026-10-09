@@ -1,0 +1,94 @@
+/* $FUNDED token profile follows the reference page's hero, metric strip, and story cards. */
+body.page-route-paid #paid { max-width: 1188px; margin: 0 auto; padding: 34px 0 70px; }
+body.page-route-paid .paid-reference-hero { grid-template-columns: 130px minmax(0,1fr); gap: 26px; min-height: 350px; padding: 36px 0 24px; }
+body.page-route-paid .paid-hero-mark { width: 110px; height: 110px; margin-left: 18px; border: 0; border-radius: 0; background: none; font-size: 100px; text-shadow: 0 0 36px #f4a34080; box-shadow: none; }
+body.page-route-paid .paid-reference-hero h1 { max-width: 900px; font-size: clamp(44px,5.9vw,78px); line-height: .93; }
+body.page-route-paid .paid-reference-hero p:not(.eyebrow) { max-width: 710px; font-size: 15px; line-height: 1.7; }
+body.page-route-paid .paid-hero-actions { margin-top: 24px; }
+body.page-route-paid .paid-hero-actions a { display: inline-flex; align-items: center; min-height: 42px; padding: 10px 16px; border-radius: 2px; }
+body.page-route-paid .paid-hero-actions a[hidden] { display: none; }
+body.page-route-paid .paid-reference-metrics { grid-template-columns: repeat(5,minmax(0,1fr)); gap: 1px; margin: 0 0 34px; padding: 1px; background: var(--line); }
+body.page-route-paid .paid-reference-metrics > div { min-height: 110px; gap: 7px; padding: 15px 18px; border: 0; background: #101419; }
+body.page-route-paid .paid-reference-metrics strong { font-size: clamp(24px,2.5vw,34px); line-height: 1.15; }
+body.page-route-paid .paid-reference-metrics > div:nth-child(-n+3) strong { min-width: 0; white-space: nowrap; font-size: clamp(16px,1.42vw,20px); font-variant-numeric: tabular-nums; }
+body.page-route-paid .paid-reference-metrics small { font-size: 12px; line-height: 1.45; }
+body.page-route-paid .funded-token-story { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; }
+body.page-route-paid .funded-token-story article { display: flex; flex-direction: column; min-height: 252px; padding: 20px 22px; border: 1px solid var(--line); background: #101419; }
+body.page-route-paid .funded-token-story h2 { margin: 0 0 12px; color: #e6e9ed; font-size: 19px; line-height: 1.2; }
+body.page-route-paid .funded-token-story p { margin: 0; max-width: 560px; color: #a2acb5; font-size: 13.5px; line-height: 1.68; }
+body.page-route-paid .funded-token-story p + p { margin-top: 12px; }
+body.page-route-paid .funded-token-story a { color: #ffd28a; }
+body.page-route-paid .funded-token-contract { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 24px 0 0; border: 0; background: none; }
+body.page-route-paid .funded-token-contract > span { color: #7f8b95; font: 700 10px 'DM Mono',monospace; letter-spacing: .1em; }
+body.page-route-paid .funded-token-contract code { min-width: 0; max-width: 100%; overflow-x: auto; padding: 12px 14px; border: 1px solid var(--line); background: #101419; color: #dce4df; font: 500 11px 'DM Mono',monospace; white-space: nowrap; }
+body.page-route-paid .funded-token-contract button { min-height: 34px; padding: 8px 10px; border: 0; background: transparent; color: #e6ece6; font: 700 11px 'DM Mono',monospace; }
+body.page-route-paid .funded-policy-details { margin: 12px 0 52px; border: 0; background: transparent; }
+body.page-route-paid .funded-policy-details > summary { width: fit-content; padding: 3px 0; color: #899a90; cursor: pointer; font: 700 10px 'DM Mono',monospace; letter-spacing: .08em; text-transform: uppercase; }
+body.page-route-paid .funded-policy-details > summary:hover { color: #ffd28a; }
+body.page-route-paid .funded-policy-details[open] { padding: 0 22px 22px; border: 1px solid var(--line); background: #101419; }
+body.page-route-paid .funded-policy-details[open] > summary { width: auto; margin: 0 -22px 22px; padding: 18px 22px; border-bottom: 1px solid var(--line); }
+body.page-route-paid .funded-policy-details > h2 { margin: 8px 0 12px; font-size: clamp(26px,3vw,38px); letter-spacing: -.05em; }
+body.page-route-paid .funded-token-footer { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 50px; padding: 42px 0 10px; border-top: 1px solid var(--line); }
+body.page-route-paid .main-content > footer { display: none; }
+body.page-route-paid .funded-token-footer-brand { display: inline-flex; align-items: center; gap: 8px; color: #e9ede9; font-size: 20px; font-weight: 800; text-decoration: none; }
+body.page-route-paid .funded-token-footer-brand span { color: #ffd28a; font: italic 900 30px Georgia,serif; }
+body.page-route-paid .funded-token-footer p { max-width: 330px; color: #8c98a1; font-size: 14px; line-height: 1.6; }
+body.page-route-paid .funded-token-footer nav { display: grid; gap: 12px; justify-items: start; }
+body.page-route-paid .funded-token-footer nav strong,
+body.page-route-paid .funded-token-footer small { color: #6f7c86; font: 700 10px 'DM Mono',monospace; letter-spacing: .1em; }
+body.page-route-paid .funded-token-footer nav a { color: #abb6be; font-size: 13px; text-decoration: none; }
+body.page-route-paid .funded-token-footer nav a:hover { color: #ffd28a; }
+body.page-route-paid .funded-token-footer small { grid-column: 1 / -1; padding-top: 22px; border-top: 1px solid var(--line); }
+.funded-token-tape { display: none; }
+body.page-route-paid .funded-token-tape { position: fixed; inset: auto 0 0; z-index: 24; display: flex; align-items: center; height: 32px; border-top: 1px solid #293139; background: #0a0d11f5; color: #aab4b9; font: 700 10px 'DM Mono',monospace; letter-spacing: .02em; }
+body.page-route-paid #funded-token-tape-items { display: flex; align-items: center; gap: 24px; flex: 1; min-width: 0; height: 100%; overflow-x: auto; scrollbar-width: none; white-space: nowrap; }
+body.page-route-paid #funded-token-tape-items::-webkit-scrollbar { display: none; }
+body.page-route-paid #funded-token-tape-items > a { display: inline-flex; align-items: center; gap: 7px; flex: none; color: #aab4b9; text-decoration: none; }
+body.page-route-paid #funded-token-tape-items > a:first-child { margin-left: 28px; }
+body.page-route-paid #funded-token-tape-items > a:hover { color: #eaf2ea; }
+body.page-route-paid #funded-token-tape-items strong { color: #ffd28a; font: inherit; }
+body.page-route-paid .funded-token-tape-network { display: grid; place-items: center; align-self: stretch; flex: none; padding: 0 20px; border-left: 1px solid #293139; color: #77868e; }
+@media (max-width: 1049px) {
+  body.page-route-paid .funded-token-story { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (min-width: 901px) and (max-width: 1199px) {
+  body.page-route-paid .paid-reference-metrics { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+@media (max-width: 900px) {
+  body.page-route-paid .paid-reference-hero { grid-template-columns: 110px minmax(0,1fr); gap: 24px; }
+  body.page-route-paid .paid-hero-mark { width: 90px; height: 90px; font-size: 82px; }
+  body.page-route-paid .paid-reference-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  body.page-route-paid .paid-reference-metrics > div { border: 0; }
+}
+@media (max-width: 700px) {
+  body.page-route-paid .main-content { padding-right: 20px; padding-left: 20px; }
+  body.page-route-paid .topbar { display: flex; height: 65px; min-height: 65px; padding: 0; }
+  body.page-route-paid .topbar .workspace-network { display: none; }
+  body.page-route-paid .topbar .connect-button { max-width: none; border-color: #303940; border-radius: 0; background: #0a0d11; color: #e6e9ed; font: 700 10px 'DM Mono',monospace; text-transform: uppercase; }
+  body.page-route-paid .funded-token-tape { bottom: calc(64px + env(safe-area-inset-bottom)); }
+  body.page-route-paid .funded-token-tape-network { display: none; }
+  body.page-route-paid #paid { padding: 12px 0 68px; }
+  body.page-route-paid .paid-reference-hero { grid-template-columns: 1fr; gap: 31px; min-height: 0; padding: 54px 0 34px; }
+  body.page-route-paid .paid-hero-mark { width: 132px; height: 132px; margin-left: 0; font-size: 124px; }
+  body.page-route-paid .paid-reference-hero .eyebrow { margin-bottom: 3px; }
+  body.page-route-paid .paid-reference-hero h1 { max-width: 300px; font-size: 38px; line-height: .86; }
+  body.page-route-paid .paid-reference-hero p:not(.eyebrow) { max-width: 335px; font-size: 14.5px; line-height: 1.57; }
+  body.page-route-paid .paid-hero-actions { margin-top: 20px; }
+  body.page-route-paid .paid-hero-actions a { min-height: 32px; padding: 6px 12px; }
+  body.page-route-paid .paid-reference-metrics > div { min-height: 112px; padding: 15px; }
+  body.page-route-paid .paid-reference-metrics strong { font-size: 25px; }
+  body.page-route-paid .funded-token-story { gap: 12px; }
+  body.page-route-paid .funded-token-story article { min-height: 0; padding: 22px; }
+  body.page-route-paid .funded-token-footer { grid-template-columns: 1fr; }
+  body.page-route-paid .funded-token-footer small { grid-column: 1; }
+}
+@media (max-width: 639px) {
+  body.page-route-paid .funded-token-story { grid-template-columns: 1fr; }
+}
+body .coin-page .coin-hero-card,
+body .coin-page .coin-chart-panel,
+body .coin-page .coin-trade-panel,
+body .coin-page .coin-stat-strip > * { border-radius: 2px; }
+body .coin-page .coin-section-nav { border-bottom: 1px solid var(--line); }
+body .coin-page .coin-section-nav button.active { color: #f4a340; border-color: #f4a340; }
+body.page-route-coin .main-content.coin-view > #coin-page:not([hidden]) { display: block !important; }

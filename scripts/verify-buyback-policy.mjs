@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { BUYBACK_POLICY, buildBuybackAccrual, buildBuybackPolicy, buildBuybackReceipt, evaluateBuybackBatch, summarizeBuybackLedger } from '../buyback-policy.js';
 
-const appSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
+const appSource = ['../app.js', '../src/features/funded/buyback-view.js']
+  .map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
 const htmlSource = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const bootstrapSource = readFileSync(new URL('../bootstrap.js', import.meta.url), 'utf8');
 const receiptEmptyState = 'No confirmed $FUNDED burns yet. Fee-funded buybacks and launch promotions appear here separately.';

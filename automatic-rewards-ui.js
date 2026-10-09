@@ -1,9 +1,10 @@
+import { renderHomeRewardCards as renderHomeRewardCardsView } from './src/features/rewards/airdrop-cards-view.js';
+import { renderSimpleRewardCards as renderSimpleRewardCardsView } from './src/features/rewards/sol-cards-view.js';
+import { formatTokens, utcMoment } from './src/features/rewards/card-format.js';
 import { distributionClock, countdownText, selectDisplaySchedule } from './automatic-rewards.js';
 import { EXPLORE_CLUSTER } from './app-config.js';
 import { verifiedCurveProgress } from './verified-curve-state.js';
-import { createTokenCardActions } from './token-card-controls.js';
-import { airdropClaimState } from './airdrop-directory-model.js';
-import { validateSolClaimRecipient } from './sol-claim-policy.js';
+
 import './automatic-rewards.css';
 
 const panels = document.querySelectorAll('[data-automatic-rewards]');
@@ -24,229 +25,12 @@ let homeReserves = null;
 let homeReceiverEstimate = null;
 let homeXRouteReady = false;
 let homePaidSummary = null;
-const formatTokens = value => Number(value).toLocaleString(undefined, { maximumFractionDigits:0 });
-const safeLamports = value => /^(?:0|[1-9]\d*)$/.test(String(value));
-const solAmount = value => {
-  const amount = BigInt(value);
-  return `${amount / 1_000_000_000n}.${String(amount % 1_000_000_000n).padStart(9, '0').replace(/0+$/, '') || '0'} SOL`;
-};
-const claimedTokenAmount = (reserve, launch) => {
-  if (!safeLamports(reserve.claimedBaseUnits) || !safeLamports(reserve.totalBaseUnits)) return null;
-  const planned = BigInt(launch.communityAirdrop.reservedTokens);
-  const total = BigInt(reserve.totalBaseUnits), claimed = BigInt(reserve.claimedBaseUnits);
-  if (planned <= 0n || total <= 0n || total % planned !== 0n || claimed > total) return null;
-  const scale = total / planned;
-  if (scale > 1_000_000_000n || !/^10*$/.test(String(scale))) return null;
-  const whole = (claimed / scale).toLocaleString();
-  const fraction = scale === 1n ? '' : String(claimed % scale).padStart(String(scale).length - 1, '0').replace(/0+$/, '');
-  return `${whole}${fraction ? '.' + fraction : ''} ${launch.symbol || 'tokens'}`;
-};
-const airdropFinished = (reserve, nowSeconds) => {
-  if (airdropClaimState(reserve, nowSeconds).status === 'closed') return true;
-  return reserve?.status === 'drop-active'
-    && safeLamports(reserve.totalBaseUnits) && safeLamports(reserve.claimedBaseUnits)
-    && BigInt(reserve.totalBaseUnits) > 0n
-    && BigInt(reserve.claimedBaseUnits) === BigInt(reserve.totalBaseUnits);
-};
+
 function renderHomeRewardCards() {
-  if (!homeSpotlight) return;
-  const track = homeSpotlight.querySelector('[data-home-reward-grid="funded"]');
-  const previousMint = track.querySelector('article:first-of-type')?.dataset.rewardMint;
-  const previousScroll = track.scrollLeft;
-  const fundedMints = new Set(homeFundedTokens.map(launch => launch.mint));
-  const reservesAvailable = Array.isArray(homeReserves?.reserves) && homeReserves.cluster === EXPLORE_CLUSTER;
-  const matched = reservesAvailable
-    ? new Map(homeReserves.reserves.filter(row => row?.mint).map(row => [row.mint, row])) : new Map();
-  const launches = homeVerifiedLaunches.filter(launch => fundedMints.has(launch.mint))
-    .filter(launch => {
-      const reserve = matched.get(launch.mint);
-      return reserve?.verified === true
-        && Number(reserve.reservedTokens) === Number(launch.communityAirdrop.reservedTokens)
-        && ['funded', 'drop-active'].includes(reserve.status)
-        && !airdropFinished(reserve, Math.floor((Date.now() + offset) / 1000));
-    })
-    .sort((a, b) => Number(b.createdTimestamp || 0) - Number(a.createdTimestamp || 0));
-  track.replaceChildren();
-  if (!launches.length) {
-    const empty = document.createElement('p'); empty.className = 'home-rewards-empty';
-    empty.textContent = homeLaunchPolicyStatus === 'unavailable' ? 'Verified reward data is unavailable.'
-      : homeLaunchPolicyStatus === 'loading' ? 'Checking verified reward policies…'
-      : !homeFundedTokens.length ? 'No $FUNDED holder airdrops are available.'
-      : homeReserves === null ? 'Checking funded vaults…'
-      : !reservesAvailable ? 'Vault verification is unavailable.'
-      : `${homeFundedTokens.length} published ${homeFundedTokens.length === 1 ? 'allocation' : 'allocations'}; no verified funded vaults yet.`;
-    track.append(empty);
-    renderSimpleRewardCards('coin');
-    renderSimpleRewardCards('x');
-    return;
-  }
-  for (const launch of launches) {
-    const reserve = matched.get(launch.mint);
-    const active = reserve.status === 'drop-active'
-      && Number.isSafeInteger(reserve.expiresAt) && reserve.expiresAt > (Date.now() + offset) / 1000;
-    const card = document.createElement('article'); card.className = 'home-reward-token-card'; card.dataset.rewardMint = launch.mint;
-    const head = document.createElement('div'); head.className = 'home-reward-token-head';
-    const avatar = document.createElement('span'); avatar.className = 'home-reward-token-logo'; avatar.setAttribute('aria-hidden', 'true');
-    avatar.textContent = String(launch.symbol || launch.name || 'T').slice(0, 1).toUpperCase();
-    const identity = document.createElement('span'); identity.className = 'home-reward-token-identity';
-    const symbol = document.createElement('strong'); symbol.textContent = launch.symbol || 'TOKEN';
-    const name = document.createElement('small'); name.textContent = launch.name || 'Verified launch';
-    identity.append(symbol, name);
-    head.append(avatar, identity);
-    const values = document.createElement('div'); values.className = 'home-reward-token-values';
-    const addValue = (label, value) => {
-      const item = document.createElement('span'); const caption = document.createElement('small'); caption.textContent = label;
-      const amount = document.createElement('strong'); amount.textContent = value;
-      item.append(caption, amount); values.append(item);
-      return item;
-    };
-    addValue('Airdrop', `${formatTokens(launch.communityAirdrop.reservedTokens)} ${launch.symbol || 'tokens'}`);
-    const finalizedRecipients = Number(reserve.leafCount);
-    if (['drop-active', 'drop-closed'].includes(reserve.status) && Number.isSafeInteger(finalizedRecipients) && finalizedRecipients > 0) {
-      addValue('Recipients', `${finalizedRecipients.toLocaleString()} wallets`).title = 'Finalized recipient count from the migration snapshot.';
-    } else if (homeReceiverEstimate?.wallets) {
-      const excluded = new Set([homeReserves.claimPolicy?.unclaimedRecipient, reserve.vault, reserve.drop].filter(Boolean));
-      const count = [...homeReceiverEstimate.wallets].filter(wallet => !excluded.has(wallet)).length;
-      addValue('Est. receivers', `~${count.toLocaleString()} wallets`).title = 'Current distinct $FUNDED wallets with a positive balance, excluding known protocol addresses. The final count is determined at migration.';
-    } else {
-      addValue('Est. receivers', homeReceiverEstimate === null ? 'Checking…' : 'Unavailable').title = 'A complete current $FUNDED wallet list is required for this estimate.';
-    }
-    const dropOpened = ['drop-active', 'drop-closed'].includes(reserve.status);
-    const claimedWallets = dropOpened ? reserve.claimedWalletCount : 0;
-    const receivedTokens = dropOpened ? claimedTokenAmount(reserve, launch) : `0 ${launch.symbol || 'tokens'}`;
-    addValue('Paid wallets', Number.isSafeInteger(claimedWallets) && claimedWallets >= 0
-      ? `${claimedWallets.toLocaleString()} ${claimedWallets === 1 ? 'wallet' : 'wallets'}` : '—')
-      .title = 'Distinct wallets with verified on-chain token claims.';
-    addValue('Tokens received', receivedTokens || '—').title = 'Tokens claimed from the verified airdrop vault; unclaimed allocation is excluded.';
-    const proof = document.createElement('small'); proof.className = 'home-reward-token-proof';
-    proof.textContent = active ? 'Claims open' : reserve.status === 'drop-closed' ? 'Claims closed' : '';
-    proof.hidden = !proof.textContent;
-    const snapshot = document.createElement('div'); snapshot.className = 'home-reward-snapshot';
-    const addSnapshot = value => { const line = document.createElement('span'); line.textContent = value; snapshot.append(line); };
-    const migrationSlot = Number(reserve.migrationSlot);
-    const migrationAt = Number(reserve.migrationAt);
-    const when = Number.isSafeInteger(migrationSlot) && migrationSlot > 0
-      ? `$FUNDED snapshot · ${Number.isSafeInteger(migrationAt) && migrationAt > 0 ? `${utcMoment(migrationAt * 1000)} · ` : ''}slot ${migrationSlot.toLocaleString()}`
-      : '$FUNDED snapshot · at migration';
-    addSnapshot(when);
-    snapshot.hidden = !snapshot.childElementCount;
-    const timing = document.createElement('div'); timing.className = 'home-rewards-timing';
-    const timingLabel = document.createElement('span'); timingLabel.className = 'home-reward-clock-label';
-    const timingValue = document.createElement('b'); timingValue.className = 'home-reward-clock';
-    const progressTrack = document.createElement('span'); progressTrack.className = 'home-reward-curve-track'; progressTrack.hidden = true;
-    const progressFill = document.createElement('i'); progressTrack.append(progressFill);
-    card.dataset.hasAirdropPolicy = 'true';
-    if (reserve?.status) card.dataset.airdropStatus = reserve.status;
-    if (active) card.dataset.claimExpiresAt = String(reserve.expiresAt * 1000);
-    timing.append(timingLabel, timingValue, progressTrack);
-    const link = document.createElement('a'); link.className = 'home-reward-token-link';
-    link.href = `/token/${encodeURIComponent(launch.mint)}`;
-    link.setAttribute('aria-label', `Open ${launch.symbol || launch.name || 'token'} token details`);
-    card.append(link, head, values, proof, snapshot, timing, createTokenCardActions({ mint: launch.mint, symbol: launch.symbol, name: launch.name, className: 'home-reward-token-actions' })); track.append(card);
-    loadFundedTokenLogo(avatar, launch);
-  }
-  if (track.querySelector('article:first-of-type')?.dataset.rewardMint === previousMint) track.scrollLeft = previousScroll;
-  renderSimpleRewardCards('coin');
-  renderSimpleRewardCards('x');
-  renderHomeClocks();
+  return renderHomeRewardCardsView({ homeSpotlight, homeFundedTokens, homeReserves, homeVerifiedLaunches, offset, homeLaunchPolicyStatus, homeReceiverEstimate, EXPLORE_CLUSTER }, { renderSimpleRewardCards, loadFundedTokenLogo, renderHomeClocks });
 }
 function renderSimpleRewardCards(kind) {
-  if (!homeSpotlight) return;
-  const track = homeSpotlight.querySelector(`[data-home-reward-grid="${kind}"]`);
-  const previousMint = track.querySelector('article:first-of-type')?.dataset.rewardMint;
-  const previousScroll = track.scrollLeft;
-  const shareKey = kind === 'coin' ? 'holderAirdropPercent' : 'solClaimPercent';
-  const launches = homeVerifiedLaunches.filter(launch => Number(launch.feeDistribution?.creatorDirected?.shares?.[shareKey] || 0) > 0)
-    .sort((a, b) => Number(b.createdTimestamp || 0) - Number(a.createdTimestamp || 0));
-  track.replaceChildren();
-  if (!launches.length) {
-    const empty = document.createElement('p'); empty.className = 'home-rewards-empty';
-    empty.textContent = homeLaunchPolicyStatus === 'unavailable' ? 'Verified reward data is unavailable.'
-      : homeLaunchPolicyStatus === 'loading' ? 'Checking verified reward policies…'
-      : kind === 'coin' ? 'No verified coin holder reward policies.' : 'No verified X account reward policies.';
-    track.append(empty);
-    return;
-  }
-  for (const launch of launches) {
-    const share = Number(launch.feeDistribution.creatorDirected.shares[shareKey]);
-    const card = document.createElement('article'); card.className = 'home-reward-token-card'; card.dataset.rewardMint = launch.mint;
-    const head = document.createElement('div'); head.className = 'home-reward-token-head';
-    const avatar = document.createElement('span'); avatar.className = 'home-reward-token-logo'; avatar.setAttribute('aria-hidden', 'true');
-    avatar.textContent = String(launch.symbol || launch.name || 'T').slice(0, 1).toUpperCase();
-    const identity = document.createElement('span'); identity.className = 'home-reward-token-identity';
-    const symbol = document.createElement('strong'); symbol.textContent = launch.symbol || 'TOKEN';
-    const name = document.createElement('small'); name.textContent = launch.name || 'Verified launch';
-    identity.append(symbol, name); head.append(avatar, identity);
-    const values = document.createElement('div'); values.className = 'home-reward-token-values';
-    const addValue = (label, value) => {
-      const row = document.createElement('span'), caption = document.createElement('small'), amount = document.createElement('strong');
-      caption.textContent = label; amount.textContent = value; row.append(caption, amount); values.append(row);
-      return row;
-    };
-    addValue('Creator fee share', `${share.toLocaleString(undefined, { maximumFractionDigits:1 })}%`);
-    const paid = homePaidSummary?.tokens.get(launch.mint);
-    const paidWallets = kind === 'coin' ? paid?.holderPaidWallets : paid?.xPaidWallets;
-    const paidLamports = kind === 'coin' ? paid?.holderPaidLamports : paid?.xPaidLamports;
-    const verifiedPaid = safeLamports(paidLamports)
-      && (kind !== 'coin' || Number.isSafeInteger(paidWallets) && paidWallets >= 0);
-    const partial = homePaidSummary?.status === 'partial';
-    const amount = verifiedPaid ? `${partial ? '≥' : ''}${BigInt(paidLamports) === 0n ? '0 SOL' : solAmount(paidLamports)}`
-      : homePaidSummary === null ? 'Checking…' : '—';
-    if (kind === 'coin') {
-      const count = verifiedPaid ? `${partial ? '≥' : ''}${paidWallets.toLocaleString()} ${paidWallets === 1 ? 'wallet' : 'wallets'}`
-        : homePaidSummary === null ? 'Checking…' : '—';
-      addValue('Paid wallets', count).title = 'Distinct wallets with finalized, verified SOL payments in the indexed receipt window.';
-      addValue('SOL received', amount).title = 'Finalized, verified SOL payments in the indexed receipt window; unpaid fee allocations are excluded.';
-    } else {
-      const allocated = paid?.totals?.x;
-      const exact = ['onchain-indexed', 'no-records'].includes(homePaidSummary?.status);
-      const unclaimed = exact && safeLamports(allocated) && verifiedPaid
-        && BigInt(allocated) >= BigInt(paidLamports)
-        ? BigInt(allocated) - BigInt(paidLamports) : null;
-      addValue('Unclaimed', unclaimed === null ? homePaidSummary === null ? 'Checking…' : '—'
-        : unclaimed === 0n ? '0 SOL' : solAmount(unclaimed))
-        .title = 'Verified X fee allocation not yet paid. X identity and wallet verification may still be required.';
-      addValue('Claimed', amount).title = 'SOL paid to the X recipient with finalized, verified transaction evidence.';
-    }
-    const detail = document.createElement('small'); detail.className = 'home-reward-token-proof';
-    const snapshot = document.createElement('div'); snapshot.className = 'home-reward-snapshot';
-    if (kind === 'coin') {
-      const schedule = selectDisplaySchedule(scheduleRows.filter(row => row?.mint === launch.mint && row.asset === 'SOL'), launch.mint, Date.now() + offset);
-      const allocated = schedule && ['calculating', 'prepared', 'distributing'].includes(schedule.status)
-        && safeLamports(schedule.totalAmount) && BigInt(schedule.totalAmount) > 0n;
-      if (allocated) addValue('SOL allocated', solAmount(schedule.totalAmount));
-      if (schedule) {
-        const line = document.createElement('span'); line.textContent = `Holder cutoff · ${utcMoment(schedule.cutoffAt)}`; snapshot.append(line);
-        card.dataset.scheduleMint = launch.mint;
-      }
-      detail.textContent = schedule?.status === 'paid' ? 'SOL paid' : allocated ? 'Payment pending' : '';
-    } else {
-      const handle = launch.feeDistribution.creatorDirected.recipients?.xAccount;
-      detail.textContent = homeXRouteReady ? '' : 'X payouts unavailable';
-      const recipient = validateSolClaimRecipient({ handle, percent: share });
-      if (recipient.valid && recipient.handle) {
-        const profile = document.createElement('a');
-        profile.href = `https://x.com/${encodeURIComponent(recipient.handle.slice(1))}`;
-        profile.target = '_blank';
-        profile.rel = 'noopener noreferrer';
-        profile.textContent = `${recipient.handle} ↗`;
-        profile.setAttribute('aria-label', `Open ${recipient.handle} on X in a new tab`);
-        snapshot.append(profile);
-      }
-    }
-    detail.hidden = !detail.textContent; snapshot.hidden = !snapshot.childElementCount;
-    const timing = document.createElement('div'); timing.className = 'home-rewards-timing'; timing.hidden = true;
-    const timingLabel = document.createElement('span'); timingLabel.className = 'home-reward-clock-label';
-    const timingValue = document.createElement('b'); timingValue.className = 'home-reward-clock';
-    const progressTrack = document.createElement('span'); progressTrack.className = 'home-reward-curve-track'; progressTrack.hidden = true;
-    progressTrack.append(document.createElement('i')); timing.append(timingLabel, timingValue, progressTrack);
-    const link = document.createElement('a'); link.className = 'home-reward-token-link';
-    link.href = `/token/${encodeURIComponent(launch.mint)}`;
-    link.setAttribute('aria-label', `Open ${launch.symbol || launch.name || 'token'} details`);
-    card.append(link, head, values, detail, snapshot, timing, createTokenCardActions({ mint:launch.mint, symbol:launch.symbol, name:launch.name, className:'home-reward-token-actions' }));
-    track.append(card); loadFundedTokenLogo(avatar, launch);
-  }
-  if (track.querySelector('article:first-of-type')?.dataset.rewardMint === previousMint) track.scrollLeft = previousScroll;
+  return renderSimpleRewardCardsView(kind, { homeSpotlight, homeVerifiedLaunches, homeLaunchPolicyStatus, homePaidSummary, scheduleRows, offset, homeXRouteReady }, { loadFundedTokenLogo });
 }
 let launchNames = new Map();
 function loadFundedTokenLogo(avatar, launch) {
@@ -394,12 +178,7 @@ function selectPublishedSchedule() {
   const mint = location.pathname.match(/^\/token\/([^/]+)$/)?.[1];
   return selectDisplaySchedule(scheduleRows.filter(row => launchNames.has(row?.mint)), mint, Date.now() + offset);
 }
-const utcMoment = value => {
-  const date = new Date(value);
-  return Number.isFinite(date.getTime())
-    ? `${new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(date)} UTC`
-    : '—';
-};
+
 function renderHomeClocks() {
   if (!homeSpotlight) return;
   const now = Date.now() + offset;

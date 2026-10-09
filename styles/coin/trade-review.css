@@ -1,0 +1,78 @@
+
+
+/* Compact trade ticket: amount, presets, live quote, and approval in one scan. */
+.coin-page .token-trading-panel{border-color:#333646;background:#171922}
+.coin-page .token-trading-panel .panel-heading{margin-bottom:15px}
+.coin-page .token-trading-panel .trade-grid{gap:0}
+.coin-page .coin-side-toggle{gap:0;margin:0 0 16px;padding:0;overflow:hidden;border-color:#343541;background:#272832}
+.coin-page .coin-side-toggle button{min-height:46px;border-radius:0;color:#c7c8d2;font-size:15px}
+.coin-page .coin-side-toggle button span{display:inline-grid;place-items:center;width:20px;height:20px;margin-right:7px;border-radius:50%;background:#ffd28a;color:#26354d;font-weight:800}
+.coin-page .coin-side-toggle button[data-coin-trade-side="sell"] span{background:#e94d70;color:#35101d}
+.coin-page .coin-side-toggle button.active[data-coin-trade-side="buy"]{background:#26354d;color:#eef6d2}
+.coin-page .coin-side-toggle button.active[data-coin-trade-side="sell"]{background:#582637;color:#ffe5ea}
+.coin-page .coin-trade-balance{display:flex;justify-content:space-between;gap:12px;margin:0 2px 8px;color:#8990a3;font-size:12px}
+.coin-page .coin-trade-balance strong{min-width:0;overflow:hidden;color:#d7dae5;font-weight:600;text-align:right;text-overflow:ellipsis;white-space:nowrap}
+.coin-page .coin-trade-amount-card,.coin-page .coin-trade-slippage{overflow:hidden;border:1px solid #404354;border-radius:11px;background:#12141d}
+.coin-page .coin-trade-amount-card>label{margin:0!important;padding:9px 12px 0;color:#969cad;font-size:11px}
+.coin-page .coin-trade-amount-main{display:flex;align-items:center;gap:10px;padding:0 12px 10px}
+.coin-page .coin-trade-amount-main>span{max-width:44%;overflow:hidden;color:#f4f4f8;font-size:15px;font-weight:800;text-overflow:ellipsis;white-space:nowrap}
+.coin-page .coin-trade-amount-main input{flex:1;min-width:0;width:100%;padding:5px 0;border:0;outline:0;background:transparent;color:#f3f3f7;font-size:22px;font-weight:700;text-align:right;box-shadow:none}
+.coin-page .coin-trade-amount-main input:focus{border:0;outline:0;box-shadow:none}
+.coin-page .coin-quick-amounts,.coin-page .coin-quick-amounts:not([hidden]){display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;margin:0;border-top:1px solid #333542;background:#1d1e28}
+.coin-page .coin-quick-amounts button{min-width:0;padding:8px 2px;border:0;border-right:1px solid #333542;border-radius:0;background:transparent;color:#b0b4c2;font:600 11px Manrope,sans-serif}
+.coin-page .coin-quick-amounts button:last-child{border-right:0}
+.coin-page .coin-quick-amounts button:hover,.coin-page .coin-slippage-presets button:hover{background:#343746;color:#fff}
+.coin-page .coin-quick-amounts button:disabled{opacity:.45}
+.coin-page .coin-trade-balance-warning{margin:8px 2px 0;color:#f07890;font-size:12px}
+.coin-page .coin-trade-slippage{display:grid;grid-template-columns:1fr 72px;align-items:center;margin-top:13px}
+.coin-page .coin-trade-slippage label{margin:0;padding:11px 12px;color:#d8dae4;font-size:13px}
+.coin-page .coin-trade-slippage input{width:100%;padding:9px 12px;border:0;background:transparent;color:#f3f3f7;font-size:17px;font-weight:700;text-align:right;box-shadow:none}
+.coin-page .coin-slippage-presets{display:grid;grid-column:1/-1;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid #333542;background:#1d1e28}
+.coin-page .coin-slippage-presets button{padding:8px 2px;border:0;border-right:1px solid #333542;background:transparent;color:#adb2c0;font:600 11px Manrope,sans-serif;cursor:pointer}
+.coin-page .coin-slippage-presets button:last-child{border-right:0}
+.coin-page .coin-slippage-presets button.active{background:#343746;color:#fff}
+.coin-page .token-trading-panel .trade-live-estimate{gap:3px;margin:13px 0 0;padding:11px 12px;border-color:#353b4a;background:#1c202b}
+.coin-page .token-trading-panel .trade-live-estimate span{font:600 11px Manrope,sans-serif;letter-spacing:0;text-transform:none}
+.coin-page .token-trading-panel .trade-live-estimate strong{font:700 17px Manrope,sans-serif;letter-spacing:0}
+.coin-page .token-trading-panel .trade-live-estimate small{font-size:11px}
+.coin-page .token-trading-panel .trade-actions{margin-top:13px}
+.coin-page .token-trading-panel .trade-actions button{min-height:46px;border-radius:8px;background:#ffd28a;color:#111b2e;font-size:14px;font-weight:800}
+.coin-page .token-trading-panel[data-side="sell"] .trade-actions button{background:#b93c5b;color:#fff}
+.coin-page .token-trading-panel .trade-actions button:disabled,.coin-page .token-trading-panel[data-side="sell"] .trade-actions button:disabled{background:#343743;color:#9ca1af}
+.coin-page .coin-trade-quote-details{margin-top:13px;color:#a4acbf;font-size:11px}
+.coin-page .coin-trade-quote-details summary{cursor:pointer}
+.coin-page .coin-trade-quote-details .trade-quote{margin-top:7px;padding:10px 12px;border:1px solid #343b4c;border-radius:8px;background:#11151e;font-size:11px}
+.coin-page .token-trading-panel #trade-status{margin:10px 0 0;color:#9ca7bb;font-size:11px;line-height:1.45}
+.coin-page .token-trading-panel #trade-status.funded-mint-invalid{color:#f07890}
+
+/* Clear, direction-aware transaction review before wallet signing. */
+.info-dialog.trade-review-dialog{width:min(520px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;padding:25px;border-color:#3c4356;background:#141723}
+.trade-review-dialog .dialog-kicker{margin-bottom:12px}
+.info-dialog.trade-review-dialog h2{margin:0;color:#f5f6fb;font-size:25px;line-height:1.2}
+.info-dialog.trade-review-dialog .trade-review-token-name{margin:5px 0 19px;color:#aab3c5;font-size:13px;line-height:1.4}
+.trade-review-flow{display:grid;gap:7px}
+.trade-review-flow-card{display:grid;gap:6px;padding:14px 16px;border:1px solid #394254;border-radius:11px;background:#1d2230}
+.trade-review-flow-card.receive{border-color:#26354d;background:#111b2e}
+.trade-review-dialog[data-side="sell"] .trade-review-flow-card.receive{border-color:#684253;background:#2a1e2a}
+.trade-review-flow-card span{color:#a6afc1;font-size:12px}
+.trade-review-flow-card strong{color:#f4f6fb;font-size:clamp(18px,4vw,25px);line-height:1.25;overflow-wrap:anywhere}
+.trade-review-flow-card.receive strong{color:#bdebd3}
+.trade-review-dialog[data-side="sell"] .trade-review-flow-card.receive strong{color:#ffd4df}
+.trade-review-flow-arrow{height:18px;color:#93a3b8;font-size:20px;line-height:18px;text-align:center}
+.trade-review-limits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.trade-review-limits>div{display:grid;gap:6px;min-width:0;padding:11px 12px;border:1px solid #363e50;border-radius:9px;background:#191e2b}
+.trade-review-limits>div[hidden]{display:none}
+.trade-review-limits span{color:#9ca8bc;font-size:11px;line-height:1.35}
+.trade-review-limits strong{color:#eef2fa;font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+.trade-review-meta{display:grid;gap:0;margin:17px 0 0}
+.trade-review-meta>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;padding:9px 0;border-bottom:1px solid #2c3443}
+.trade-review-meta dt{color:#8996aa;font-size:11px}
+.trade-review-meta dd{margin:0;color:#e4e9f3;font-size:11px;font-weight:700;text-align:right}
+.trade-review-meta .trade-review-address{font:10px ui-monospace,monospace;overflow-wrap:anywhere}
+.info-dialog.trade-review-dialog .trade-review-note{margin:16px 0 0;color:#c4cedc;font-size:12px;line-height:1.5}
+.info-dialog.trade-review-dialog .trade-review-expiry{margin:8px 0 0;color:#9dacba;font-size:11px;line-height:1.4}
+.trade-review-actions{display:grid;grid-template-columns:120px minmax(0,1fr);gap:9px;margin-top:20px}
+.trade-review-actions button{min-height:46px;margin:0;border-radius:8px;font-weight:800}
+.trade-review-dialog[data-side="buy"] .trade-review-actions .primary-button{background:#ffd28a;color:#111b2e}
+.trade-review-dialog[data-side="sell"] .trade-review-actions .primary-button{background:#c44766;color:#fff}
+@media(max-width:520px){.info-dialog.trade-review-dialog{padding:20px 16px}.trade-review-limits{grid-template-columns:1fr}.trade-review-meta>div{grid-template-columns:90px minmax(0,1fr)}.trade-review-actions{grid-template-columns:1fr 1.6fr}}

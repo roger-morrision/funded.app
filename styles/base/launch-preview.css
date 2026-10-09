@@ -1,0 +1,226 @@
+
+
+/* The launch preview keeps its layout even if optional page styling fails to load. */
+#launch-dialog .launch-package-preview {
+  min-width: 0;
+  margin: 20px 0 6px;
+  padding: 20px;
+  border: 1px solid #354a60;
+  border-radius: 14px;
+  background: linear-gradient(150deg, #101d2a, #0a141f);
+  box-sizing: border-box;
+}
+#launch-dialog .launch-package-preview-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 16px;
+}
+#launch-dialog .launch-package-preview-heading span {
+  color: #82c7d5;
+  font: 700 10px 'DM Mono', monospace;
+  letter-spacing: .08em;
+}
+#launch-dialog .launch-package-preview-heading h3 {
+  margin: 5px 0 0;
+  color: #f1f5f6;
+  font-size: 18px;
+  line-height: 1.3;
+}
+#launch-dialog .launch-package-preview-heading p {
+  max-width: 300px;
+  margin: 0;
+  color: #a7bac7;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: right;
+}
+#launch-dialog .launch-package-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+#launch-dialog .launch-package-example,
+#launch-dialog .launch-x-example {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #385267;
+  border-radius: 10px;
+  background: #0d1723;
+  box-sizing: border-box;
+}
+#launch-dialog .launch-package-example {
+  --preview-accent: #90a7bc;
+  display: flex;
+  flex-direction: column;
+  border-color: var(--preview-accent);
+}
+#launch-dialog .launch-package-example[data-tier="pro"] { --preview-accent: #e0b66a; }
+#launch-dialog .launch-package-example[data-tier="premier"] { --preview-accent: #a5a9f3; }
+#launch-dialog .launch-package-example-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  border-bottom: 1px solid #293c4d;
+  color: #a9c3cf;
+  font: 700 10px 'DM Mono', monospace;
+  text-transform: uppercase;
+}
+#launch-dialog .launch-package-example-top strong { color: var(--preview-accent); }
+#launch-dialog .launch-package-example-art {
+  position: relative;
+  display: grid;
+  height: 130px;
+  place-items: center;
+  overflow: hidden;
+  border-bottom: 2px solid var(--preview-accent);
+  background: radial-gradient(circle at center, #31414e, #142027 72%);
+  background-position: center;
+  background-size: cover;
+  color: #a8b8c5;
+  font: 700 10px 'DM Mono', monospace;
+  text-transform: uppercase;
+}
+#launch-dialog .launch-package-example-art.has-image > span { display: none; }
+#launch-dialog .launch-package-example-art b {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 6px 9px;
+  border: 1px solid var(--preview-accent);
+  border-radius: 5px;
+  background: #08111de8;
+  color: var(--preview-accent);
+  font: 700 9px 'DM Mono', monospace;
+}
+#launch-dialog .launch-package-example[data-tier="standard"] .launch-package-example-art { display: none; }
+#launch-dialog .launch-package-example[data-tier="premier"] .launch-package-example-art { height: 170px; }
+#launch-dialog .launch-package-example-identity {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 82px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--preview-accent);
+}
+#launch-dialog .launch-package-example-identity .launch-token-preview-image {
+  display: grid;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid #4b6878;
+  border-radius: 7px;
+  background: linear-gradient(140deg, #1a3443, #0a1822);
+  background-position: center;
+  background-size: cover;
+  color: #8bc9d9;
+  font-size: 22px;
+}
+#launch-dialog .launch-package-example-title {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  padding-right: 84px;
+}
+#launch-dialog .launch-package-example-title strong,
+#launch-dialog .launch-package-example-title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#launch-dialog .launch-package-example-title strong { color: #f2f6f8; font-size: 14px; }
+#launch-dialog .launch-package-example-title span { color: #a5b8c5; font: 700 10px 'DM Mono', monospace; }
+#launch-dialog .launch-package-example-identity .preview-promotion-badge {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  max-width: 78px;
+  padding: 5px 7px;
+  border: 1px solid #4e657b;
+  border-radius: 5px;
+  background: #1b2939;
+  color: #dce9f1;
+  font: 700 9px 'DM Mono', monospace;
+  white-space: normal;
+  text-align: center;
+}
+#launch-dialog .launch-package-example > p {
+  flex: 1;
+  min-height: 48px;
+  margin: 0;
+  padding: 2px 14px 14px;
+  color: #b4c4cd;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+#launch-dialog .launch-package-example-tabs {
+  display: flex;
+  gap: 18px;
+  margin-top: auto;
+  padding: 11px 14px;
+  border-top: 1px solid #293c4d;
+  color: #91a8b5;
+  font: 700 10px 'DM Mono', monospace;
+}
+#launch-dialog .launch-package-example-tabs span:first-child { color: var(--preview-accent); }
+#launch-dialog .launch-x-example { display: flex; flex-direction: column; padding: 14px; }
+#launch-dialog .launch-x-example-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #293c4d;
+  color: #f2f5f7;
+  font-size: 13px;
+  font-weight: 800;
+}
+#launch-dialog .launch-x-example-heading strong { color: #9bd2e2; font: 700 10px 'DM Mono', monospace; }
+#launch-dialog .launch-x-example-account { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+#launch-dialog .launch-x-example-account > span {
+  display: grid;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f2c65b;
+  color: #111827;
+  font-weight: 900;
+}
+#launch-dialog .launch-x-example-account > div { display: grid; gap: 2px; }
+#launch-dialog .launch-x-example-account strong { color: #f0f5f7; font-size: 12px; }
+#launch-dialog .launch-x-example-account small { color: #9aafbd; font-size: 10px; }
+#launch-dialog .launch-x-example > p,
+#launch-dialog .launch-x-example-followup p {
+  margin: 14px 0;
+  color: #dce8ed;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+#launch-dialog .launch-x-example-followup { padding-top: 12px; border-top: 1px solid #293c4d; }
+#launch-dialog .launch-x-example-followup[hidden] { display: none; }
+#launch-dialog .launch-x-example-followup strong { color: #b9c5f8; font-size: 11px; }
+#launch-dialog .launch-x-example > small {
+  display: block;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #293c4d;
+  color: #9cb1bd;
+  font-size: 10px;
+  line-height: 1.45;
+}
+@media (max-width: 760px) {
+  #launch-dialog .launch-package-preview { padding: 15px; }
+  #launch-dialog .launch-package-preview-heading { display: block; }
+  #launch-dialog .launch-package-preview-heading p { max-width: none; margin-top: 8px; text-align: left; }
+  #launch-dialog .launch-package-preview-grid { grid-template-columns: minmax(0, 1fr); }
+}

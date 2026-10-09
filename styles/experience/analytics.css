@@ -1,0 +1,98 @@
+/* Analytics needs to respond to its content area, which is narrower beside the sidebar. */
+.page-route-analytics-detail #analytics-detail { container: analytics / inline-size; }
+.page-route-analytics-detail .analytics-kpis.analytics-kpis-complete {
+  gap: 12px;
+  margin: 20px 0 24px;
+}
+.page-route-analytics-detail .analytics-kpis-complete article {
+  display: flex;
+  min-width: 0;
+  min-height: 162px;
+  flex-direction: column;
+  padding: 20px;
+  border-color: #34415a;
+  border-radius: 12px;
+  background: linear-gradient(155deg, #171e30, #111622);
+}
+.page-route-analytics-detail .analytics-kpis-complete article > span {
+  color: #aebbd0;
+  font: 600 12px Manrope, sans-serif;
+  line-height: 1.4;
+}
+.page-route-analytics-detail .analytics-kpis-complete article > strong {
+  margin: 14px 0 12px;
+  overflow-wrap: anywhere;
+  color: #f7f8ff;
+  font: 600 clamp(20px, 1.85vw, 25px) 'DM Mono', monospace;
+  line-height: 1.18;
+  letter-spacing: -.055em;
+}
+.page-route-analytics-detail .analytics-kpis-complete article > small {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #2a3549;
+  color: #9baac2;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.page-route-analytics-detail .analytics-kpis-complete article > small b {
+  display: inline-block;
+  margin: 0 8px 0 0;
+  padding: 3px 6px;
+  border: 1px solid #574da0;
+  border-radius: 4px;
+  color: #c7bcff;
+  background: #29234b;
+  font-size: 9px;
+  vertical-align: 1px;
+}
+.page-route-analytics-detail .recipients-panel { padding: 24px 28px; }
+.page-route-analytics-detail .recipients-panel .payment-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  min-height: 70px;
+  padding: 14px 0;
+}
+.page-route-analytics-detail .recipients-panel .payment-row > span:first-child {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+.page-route-analytics-detail .recipients-panel .payment-row strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #eef2fc;
+  font-size: 12px;
+}
+.page-route-analytics-detail .recipients-panel .payment-row a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 1px solid #514782;
+  border-radius: 6px;
+  color: #c5b8ff;
+  background: #241f3b;
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.page-route-analytics-detail .recipients-panel .payment-row a:hover { border-color: #8d7ee9; color: #fff; }
+.page-route-analytics-detail .recipients-panel .payment-row a:focus-visible { outline: 2px solid #a995ff; outline-offset: 2px; }
+.page-route-analytics-detail .recipients-panel .payment-amount {
+  color: #eef3ff;
+  font: 600 12px 'DM Mono', monospace;
+  white-space: nowrap;
+}
+@container analytics (max-width: 1050px) {
+  .page-route-analytics-detail .analytics-kpis.analytics-kpis-complete { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container analytics (max-width: 560px) {
+  .page-route-analytics-detail .analytics-kpis.analytics-kpis-complete { grid-template-columns: minmax(0, 1fr); }
+  .page-route-analytics-detail .analytics-kpis-complete article { min-height: 138px; }
+  .page-route-analytics-detail .recipients-panel { padding: 18px; }
+  .page-route-analytics-detail .recipients-panel .payment-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+}

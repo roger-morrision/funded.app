@@ -1,0 +1,21 @@
+/* Subroutes start with their own content, while retaining the parent page tabs. */
+body.page-route-community #my-launches > .role-grid,
+body.page-route-capital-flow #analytics-detail > :is(.section-heading,.analytics-kpis,.analytics-grid,.recipients-panel,.ui-disclosure),
+body.page-route-buybacks #paid > :is(.paid-reference-hero,.paid-reference-metrics) { display: none !important; }
+body.page-route:is(.page-route-community,.page-route-capital-flow,.page-route-buybacks) :is(#my-launches > #community,#analytics-detail > #capital-flow,#paid > #buybacks) { margin-top: 12px; padding-top: 0; border-top: 0; }
+body.page-route-community #community .section-heading .panel-explainer { margin-top: 8px; }
+body.page-route-buybacks #buybacks { display: flex !important; flex-direction: column; }
+body.page-route-buybacks #buybacks > .burn-center-hero { order: -1; }
+/* Workspace pages use one title scale and one panel shape. */
+body.page-route-payments .workspace-page-header h1,
+body.page-route-my-launches #my-launches > .section-heading h1,
+body.page-route-profile #profile > .section-heading h1 { font-size: 48px; font-weight: 900; line-height: 1.06; letter-spacing: -.055em; }
+body.page-route:is(.page-route-my-launches,.page-route-analytics-detail,.page-route-referrals,.page-route-profile,.page-route-paid) .main-content .panel { border-radius: 2px; border-color: var(--line); background: #101419; box-shadow: none; }
+@media (max-width: 700px) {
+  body.page-route:is(.page-route-analytics-detail,.page-route-referrals,.page-route-privacy) .main-content > #route-guide:not([hidden]) { align-items: flex-start; margin-top: 16px !important; padding-bottom: 20px !important; }
+  body.page-route:is(.page-route-analytics-detail,.page-route-referrals,.page-route-privacy) #route-guide .route-guide-actions { flex-wrap: wrap; }
+  body.page-route .topbar .top-actions .connect-button { min-height: 40px; }
+  body.page-route-payments .workspace-page-header h1,
+  body.page-route-my-launches #my-launches > .section-heading h1,
+  body.page-route-profile #profile > .section-heading h1 { font-size: 34px; }
+}
