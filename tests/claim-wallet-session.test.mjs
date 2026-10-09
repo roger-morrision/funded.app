@@ -1,13 +1,14 @@
+import { readAppSource } from '../scripts/read-app-source.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import bs58 from 'bs58';
-import { confirmedClaimResult } from '../reward-discovery.js';
+import { submitSolClaim } from '../src/features/rewards/x-claim-controller.js';
 
 // Run the real handler and real session identity/version checks. Provider and
 // HTTP methods are fixtures: no keys, cryptographic signing or chain requests.
-const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const app = await readAppSource();
 function section(start, end) {
   const from = app.indexOf(start), to = app.indexOf(end, from);
   assert(from >= 0 && to > from);
@@ -16,13 +17,12 @@ function section(start, end) {
 const source = [
   section('function captureWalletSession(){', 'function wasWalletManuallyDisconnected(){'),
   section('function assertWalletSessionCurrent(session){', 'function resetWalletDependentViews(){'),
-  section('async function submitSolClaim(){', 'async function disconnectWallet(){'),
 ].join('\n');
 const claimId = 'synthetic-claim';
 const receipt = bs58.encode(new Uint8Array(64).fill(7));
 const stages = ['identity', 'prepare', 'attest', 'signature', 'verify', 'execute', 'receipt'];
 
-function fixture({ changeAt, change = 'switch', cancelSignature = false, receiptAvailable = true, connected = true, automatic = false } = {}) {
+function fixture({ changeAt, change = 'switch', cancelSignature = false, receiptAvailable = true, connected = true, connectSuccess = false, automatic = false } = {}) {
   const calls = [], ui = [], signals = [];
   let changedUiAt = null;
   const key = address => ({ toBase58: () => address });
@@ -35,15 +35,14 @@ function fixture({ changeAt, change = 'switch', cancelSignature = false, receipt
     '#sol-claim-status': { set textContent(text) { ui.push(text); } },
   };
   const context = {
-    TextEncoder, bs58, confirmedClaimResult,
     wallet: connected ? provider : null, connectedWalletAddress: connected ? 'original-wallet' : '', walletVersion: 1,
     walletAddress: wallet => wallet?.publicKey?.toBase58() || '',
-    document: { querySelector: selector => nodes[selector] }, normalizeXHandle: value => value,
+    document: { querySelector: selector => nodes[selector] },
     updateClaimBindingReview() {}, emitPilotSignal: value => signals.push(value),
     pilotInterruptedSignal: (_kind, _error, requested) => requested ? 'claim-pending' : 'claim-cancelled',
     showToast: message => ui.push(message),
     syncXClaimFlow: () => { nodes['#sol-claim-submit'].disabled = false; },
-    connectWallet: async () => { calls.push('connect'); },
+    connectWallet: async () => { calls.push('connect'); if (connectSuccess) { context.wallet = provider; context.connectedWalletAddress = 'original-wallet'; } },
     refreshXClaims: async () => { calls.push('refresh'); },
   };
   function complete(stage, value) {
@@ -84,7 +83,7 @@ function fixture({ changeAt, change = 'switch', cancelSignature = false, receipt
     assert.fail(`Unexpected fixture request ${path}`);
   };
   vm.runInNewContext(source, context);
-  return { run: () => context.submitSolClaim(), calls, ui, signals, nodes, get changedUiAt() { return changedUiAt; } };
+  return { run: () => submitSolClaim({ ...context, getWallet: () => context.wallet }), calls, ui, signals, nodes, get changedUiAt() { return changedUiAt; } };
 }
 
 for (const change of ['switch', 'disconnect', 'reconnect']) {
@@ -112,6 +111,13 @@ test('cancelled wallet connection performs no claim requests or signing', async 
   await f.run();
   assert.deepEqual(f.calls, ['connect']);
   assert.deepEqual(f.signals, []);
+});
+
+test('a wallet connected during the claim is read from current state before signing', async () => {
+  const f = fixture({ connected: false, connectSuccess: true });
+  await f.run();
+  assert.deepEqual(f.calls, ['connect', ...stages, 'refresh']);
+  assert.deepEqual(f.signals, ['claim-started', 'claim-verified']);
 });
 
 test('cancelled signing never verifies or executes a payment and releases processing state', async () => {

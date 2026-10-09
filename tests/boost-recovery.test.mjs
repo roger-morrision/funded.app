@@ -1,3 +1,4 @@
+import { readAppSource } from '../scripts/read-app-source.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateBoostQuote, boostPaymentResolution, readPendingBoost, archiveBoostPayment, archiveVerifiedBoostFromHistory, saveSignedBoostPayment } from '../boost-checkout-recovery.js';
@@ -46,7 +47,7 @@ test('verified history releases the matching saved payment for a second boost', 
 test('loading verified history unlocks the package picker after server-side recovery', async () => {
   const { readFile } = await import('node:fs/promises');
   const vm = await import('node:vm');
-  const source = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const source = await readAppSource();
   const functions = source.slice(source.indexOf('let exploreBoostHistory = [];'), source.indexOf('function renderExploreBoostDialog(){'));
   const storage = memory();
   const checkout = { mint, quote, pendingSignature:signature, busy:false, message:'' };
@@ -74,7 +75,7 @@ test('quotes require matching identity, network, price, safe units, future expir
 test('checkout exposes an explicit new-quote action only after finalized failure and preserves unknown payments', async () => {
   const { readFile } = await import('node:fs/promises');
   const vm = await import('node:vm');
-  const source = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const source = await readAppSource();
   const functions = source.slice(source.indexOf('async function handleExploreBoostPay(){'), source.indexOf('function verifiedLaunchPolicyForMint('));
   const storage = memory();
   const checkout = { mint, quote, pendingSignature: signature, busy: false };

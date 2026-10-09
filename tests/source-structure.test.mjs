@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { browserSourceDigest } from '../scripts/browser-source-digest.mjs';
 import { readStylesheet } from '../scripts/read-stylesheet.mjs';
-import { exceedsSourceBudget, sourceSize } from '../scripts/check-source-size.mjs';
+import { checkSourceSizes, exceedsSourceBudget, sourceSize } from '../scripts/check-source-size.mjs';
 
 async function fixture(run) {
   const root = await mkdtemp(join(tmpdir(), 'funded-structure-'));
@@ -52,4 +52,39 @@ test('size guard covers compressed files and grandfathered files cannot grow', (
   assert.deepEqual(exceedsSourceBudget(sourceSize('x\n'.repeat(501))), ['lines']);
   assert.deepEqual(exceedsSourceBudget({ lines: 799, bytes: 60000 }, { lines: 800, bytes: 60000 }), []);
   assert.deepEqual(exceedsSourceBudget({ lines: 801, bytes: 60001 }, { lines: 800, bytes: 60000 }), ['lines', 'bytes']);
+  assert.deepEqual(exceedsSourceBudget({ lines: 1001, bytes: 4000 }, { lines: 9000 }), ['lines'], 'Legacy exceptions cannot bypass the hard maximum');
 });
+
+test('size guard covers nested scripts, tests and contracts while excluding generated dependencies', () => fixture(async root => {
+  const files = ['scripts/nested/check.mjs', 'tests/example.test.mjs', 'contracts/program/src/lib.rs', 'new-feature/worker.ts'];
+  await mkdir(join(root, 'config'), { recursive: true });
+  await writeFile(join(root, 'config/source-size-baseline.json'), JSON.stringify({ files: {} }));
+  for (const file of [...files, 'contracts/target/generated.rs', 'scripts/node_modules/dependency/index.js']) {
+    await mkdir(join(root, file, '..'), { recursive: true });
+    await writeFile(join(root, file), '// line\n'.repeat(1001));
+  }
+  const result = await checkSourceSizes(root);
+  assert.equal(result.files, files.length);
+  assert.equal(result.failures.length, files.length);
+  for (const file of files) assert.ok(result.failures.some(message => message.startsWith(`${file}: 1001 lines`)));
+  await writeFile(join(root, files[0]), '// line\n'.repeat(1000));
+  assert.equal((await checkSourceSizes(root)).failures.length, files.length - 1);
+}));
+
+test('size guard includes build configuration and does not hide source folders named like outputs', () => fixture(async root => {
+  const files = ['scripts/build/check.MJS', 'src/target/view.TSX', 'src/build/render.mts',
+    '.github/workflows/ci.yml', 'deploy/service.yaml', 'contracts/example/Cargo.toml',
+    'Dockerfile', 'deploy/worker.Dockerfile', 'deploy/Dockerfile.preview'];
+  await mkdir(join(root, 'config'), { recursive: true });
+  await writeFile(join(root, 'config/source-size-baseline.json'), JSON.stringify({ files: {} }));
+  const generated = ['dist/bundle.js', 'build/output.js', 'tmp/snapshot.js',
+    'contracts/example/target/generated.rs', 'scripts/node_modules/package/index.js'];
+  for (const file of [...files, ...generated]) {
+    await mkdir(join(root, file, '..'), { recursive: true });
+    await writeFile(join(root, file), '// line\n'.repeat(1001));
+  }
+  const result = await checkSourceSizes(root);
+  assert.equal(result.files, files.length);
+  assert.equal(result.failures.length, files.length);
+  for (const file of files) assert.ok(result.failures.some(message => message.startsWith(`${file}: 1001 lines`)), file);
+}));

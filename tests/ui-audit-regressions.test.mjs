@@ -1,10 +1,11 @@
+import { readAppSourceSync } from '../scripts/read-app-source.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Keypair, PublicKey, SystemProgram, Transaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
 import nacl from 'tweetnacl';
 
-const source = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
+const source = readAppSourceSync();
 
 test('in-app test wallet preserves versioned and legacy transaction types and signatures', async () => {
   const helper = source.match(/async function connectDevWallet\(\)\{[\s\S]*?\n\}/)?.[0];
@@ -45,7 +46,7 @@ test('Explore table uses the same migrated market-cap value as token cards', () 
   assert.equal(format({ migrated:true, poolMarketCapSol:27, curveCapSol:99 }), '$2700');
   assert.equal(format({ migrated:false, curveCapSol:4 }), '$400');
   assert.equal(format({ migrated:true, curveCapSol:99 }), '$—');
-  const registry = source.match(/function renderRegistry\(query = exploreQuery\)\{[\s\S]*?\n\}/)?.[0];
+  const registry = readFileSync(new URL('../src/features/explore/registry-view.js', import.meta.url), 'utf8');
   assert.match(registry, /escapeHtml\(exploreMarketCapUsd\(item\)\)/);
 });
 

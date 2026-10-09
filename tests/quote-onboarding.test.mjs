@@ -1,3 +1,4 @@
+import { readAppSource } from '../scripts/read-app-source.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { quoteCountdown, quoteCountdownMarkup, updateQuoteCountdowns } from '../quote-countdown.js';
@@ -48,7 +49,7 @@ test('launch amounts stay outside advanced details and countdown uses the review
 });
 
 test('expired checkout actions refresh prices, while a submitted boost stays in recovery', async () => {
-  const app=await readFile(new URL('../app.js',import.meta.url),'utf8');
+  const app=await readAppSource();
   const start=app.indexOf('function refreshQuoteClocks(){');
   const end=app.indexOf('setInterval(()=>{',start);
   const tradeButton={},buyButton={};let renders=0;

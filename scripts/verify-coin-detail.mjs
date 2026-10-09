@@ -1,3 +1,4 @@
+import { readAppSource } from './read-app-source.mjs';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -12,7 +13,10 @@ import { readPumpMarketActivity, summarizePumpTrades } from '../server/coin-mark
 import { routerFeeActivity } from '../server/fee-activity.mjs';
 import { normalizeLargestTokenAccounts } from '../server/token-accounts.mjs';
 
-const appSource = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const appSource = [await readAppSource(), ...await Promise.all([
+  '../src/features/coin/activity-view.js', '../src/features/coin/chart-view.js',
+  '../src/features/trade/amount-view.js',
+].map(path => readFile(new URL(path, import.meta.url), 'utf8')))].join('\n');
 assert.match(appSource, /summarizeFullHolderDistribution\(largestAccounts, curveVaultAddress, parsedMint\.supply\)/);
 assert.match(appSource, /Full holder list unavailable/);
 assert.match(appSource, /estimateBuyTokenAmountFromSnapshot/);

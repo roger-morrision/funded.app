@@ -1,3 +1,4 @@
+import { readAppSource } from './read-app-source.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { submitPumpDevnetLaunch } from '../launch-flow.js';
@@ -16,11 +17,12 @@ await assert.rejects(
 );
 assert.equal(called, false, 'Mainnet launch touched a wallet or RPC before rejection.');
 
-const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const app = await readAppSource();
 const server = await readFile(new URL('../server/index.mjs', import.meta.url), 'utf8');
 const keeperRoutes = await readFile(new URL('../server/routes/keeper-collection.mjs', import.meta.url), 'utf8');
 const launchRoutes = await readFile(new URL('../server/routes/launch-registration.mjs', import.meta.url), 'utf8');
 const marketRoutes = await readFile(new URL('../server/routes/token-market.mjs', import.meta.url), 'utf8');
+const creatorRoutes = await readFile(new URL('../server/routes/creator-fees.mjs', import.meta.url), 'utf8');
 const launchHandler = app.slice(app.indexOf('async function launchToken(){'), app.indexOf('async function launchToken(){') + 500);
 assert.match(launchHandler, /if\s*\(APP_CLUSTER\s*!==\s*'devnet'\)\s*\{[\s\S]*?return;/,
   'The browser launch handler must reject Mainnet before wallet use.');
@@ -33,7 +35,7 @@ function routeGuard(route, guard, source = server) {
 routeGuard("url.pathname === '/api/devnet-metadata'", /solanaCluster\s*!==\s*'devnet'/);
 routeGuard("url.pathname === '/api/keeper/collect'", /solanaCluster\s*!==\s*'devnet'/, keeperRoutes);
 routeGuard("req.method === 'POST' && url.pathname === '/api/launches'", /solanaCluster\s*!==\s*'devnet'/, launchRoutes);
-routeGuard('if (creatorClaimMatch) {', /solanaCluster\s*!==\s*'devnet'/);
+routeGuard('if (creatorClaimMatch) {', /solanaCluster\s*!==\s*'devnet'/, creatorRoutes);
 routeGuard('if (tokenMarketMint) {', /solanaCluster\s*!==\s*'devnet'/, marketRoutes);
 
 const mainnetFixture = {

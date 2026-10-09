@@ -1,9 +1,10 @@
+import { readAppSourceSync } from '../scripts/read-app-source.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { renderCoinPricePath } from '../src/features/coin/chart-view.js';
 
-const appSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
+const appSource = readAppSourceSync();
 const loaderSource = appSource.match(/async function loadCoinMarketActivity\(mintAddress, loadId, decimals, graduated\)\{[\s\S]*?\n\}/)?.[0];
 assert.ok(loaderSource, 'Token activity loader must exist.');
 

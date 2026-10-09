@@ -1,3 +1,4 @@
+import { readAppSourceSync } from './read-app-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { buildCommunityAirdropPolicy, buildLaunchReservePlan, calculateProRataClaim, COMMUNITY_AIRDROP, validateCommunityAllocation, fundedCommunityAirdropPolicy } from '../airdrop-policy.js';
@@ -36,7 +37,7 @@ assert.equal(calculateProRataClaim({ walletBalance: 250, totalEligibleBalance: 1
 assert.equal(calculateProRataClaim({ walletBalance: 0, totalEligibleBalance: 10_000, reservedTokens: 30_000_000 }), 0);
 assert.equal(calculateProRataClaim({ walletBalance: 10, totalEligibleBalance: 0, reservedTokens: 30_000_000 }), 0);
 const appSource = ['../app.js', '../src/features/rewards/airdrop-view.js']
-  .map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
+  .map(path => path === '../app.js' ? readAppSourceSync() : readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
 assert.doesNotMatch(appSource, /communityClaimWindow\.disabled = false/, 'The fixed claim window must not become editable.');
 assert.match(appSource, /Planned policy: unclaimed tokens go to app owner .* after 90 days\. Claim program not activated\./, 'The fixed claim window needs an explicit explanation.');
 assert.match(appSource, /BigInt\(reserve\.claimedBaseUnits\) \* BigInt\(reservedTokens\) \* 1_000_000n \/ BigInt\(reserve\.totalBaseUnits\)/, 'Claimed token display must retain six-decimal precision.');

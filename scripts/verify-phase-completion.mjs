@@ -1,3 +1,4 @@
+import { readAppSource } from './read-app-source.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { launchReview, freshLaunchReview, initialCurvePremiumBps, launchReviewMarkup, formatReviewSol, launchReviewNeedsRefresh } from '../launch-review.js';
@@ -36,5 +37,5 @@ assert.match(tokenPageHtml('<head><title>App</title></head>',null,null,mint,'dev
 const state={creatorProfiles:{'123':{id:'123'},'456':{id:'456'}},launches:{mine:{xUserId:'123',cluster:'devnet'},wrong:{xUserId:'456',cluster:'devnet'},main:{xUserId:'123',cluster:'mainnet-beta'}},obligations:{a:{xUserId:'123',claimSignature:'source'},b:{xUserId:'456'}},claims:{mine:{xUserId:'123'},other:{xUserId:'456'}},collections:{source:{amount:1},other:{amount:9}},payouts:{mine:{obligationId:'a'},other:{obligationId:'b'}},secret:'not-public'};
 const scoped=scopedCreatorState(state,'123','devnet');assert.deepEqual(Object.keys(scoped.launches),['mine']);assert.deepEqual(Object.keys(scoped.payouts),['mine']);assert.deepEqual(Object.keys(scoped.collections),['source']);assert.equal(scoped.secret,undefined);
 assert.deepEqual(scopedCreatorState(state,'123','devnet',{financial:false}).claims,{});
-const source=await readFile(new URL('../app.js',import.meta.url),'utf8');assert.match(source,/if\(transactionFee.value==null\)/);assert.match(source,/maxInitialBuyLamports:reviewedCost.buyMaximum/);assert.doesNotMatch(source,/showToast\('X creator fee claim paid'\)/);
+const source=await readAppSource();assert.match(source,/if\(transactionFee.value==null\)/);assert.match(source,/maxInitialBuyLamports:reviewedCost.buyMaximum/);assert.doesNotMatch(source,/showToast\('X creator fee claim paid'\)/);
 console.log('Phase continuation: integer cost budget/expiry/impact, receipt-gated claim result, notification deduplication, safe token social metadata and scoped creator reads passed (local-only).');

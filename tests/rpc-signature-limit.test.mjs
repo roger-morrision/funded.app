@@ -1,23 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { createSolanaRpcProxy } from '../server/rpc-proxy.mjs';
 
 // Run the actual proxy function with local fakes, without opening sockets or
 // contacting Solana. Keep one proxy instance to test its real cache behavior.
-const source = await readFile(new URL('../server/index.mjs', import.meta.url), 'utf8');
-const start = source.indexOf('async function proxySolanaRpc(req, res) {');
-const end = source.indexOf('\nfunction publicState(', start);
-assert(start >= 0 && end > start, 'The RPC proxy function must exist.');
-const makeProxy = new Function('context', `
-  const { fetch, store } = context;
-  const body = async req => structuredClone(req.body);
-  const rpcMethods = new Set(['getSignaturesForAddress', 'getSlot']);
-  const authorized = () => false, clientKey = () => 'fixture', solanaRpcUrl = 'http://unused.invalid';
-  const rpcCache = new Map(); let rpcInflight = 0;
-  const json = (_res, status, body) => ({ status, body });
-  ${source.slice(start, end)}
-  return proxySolanaRpc;
-`);
+const makeProxy = context => createSolanaRpcProxy({
+  ...context,
+  body: async req => structuredClone(req.body),
+  rpcMethods: new Set(['getSignaturesForAddress', 'getSlot']),
+  authorized: () => false,
+  clientKey: () => 'fixture',
+  solanaRpcUrl: 'http://unused.invalid',
+  json: (_res, status, body) => ({ status, body }),
+}).proxySolanaRpc;
 const address = '11111111111111111111111111111111';
 
 function fixture() {

@@ -1,3 +1,4 @@
+import { readAppSource } from './read-app-source.mjs';
 import { readStylesheet } from './read-stylesheet.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -13,7 +14,7 @@ dialog.open=true;panel.hidden=true;focusLaunchStep(dialog,2);assert.equal(focuse
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
 assert.match(html,/id="wizard-hint" role="status" aria-live="polite" aria-atomic="true"/);
 assert.match(html,/id="launch-next" aria-describedby="wizard-hint"/);
-const app=await readFile(new URL('../app.js',import.meta.url),'utf8');
+const app=await readAppSource();
 const creatorSupportCss=await readFile(new URL('../creator-support.css',import.meta.url),'utf8');
 const styles=await readStylesheet(new URL('../styles.css',import.meta.url));
 assert.match(app,/Fee-router verification is unavailable\. Check your connection before trying again\. Signing stays blocked until verification succeeds\./);

@@ -1,3 +1,4 @@
+import { readAppSource } from './read-app-source.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -5,7 +6,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const app = await readAppSource();
 const dialogMarkup = html.split('\n').find(line => line.includes('id="info-dialog"'));
 const dialogStart = app.indexOf('const infoDialogRoutes = new Set(');
 const dialogEnd = app.indexOf('function openFilterDialog(', dialogStart);

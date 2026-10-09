@@ -1,3 +1,4 @@
+import { readAppSource } from '../scripts/read-app-source.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -6,7 +7,7 @@ import bs58 from 'bs58';
 
 // Execute the actual UI handler with synthetic dependencies, not a copied implementation.
 // These are offline control-flow tests, not native wallet or on-chain acceptance tests.
-const app=await readFile(new URL('../app.js',import.meta.url),'utf8');
+const app=await readAppSource();
 const start=app.indexOf('async function requestAirdrop(){');
 assert.ok(start>0);
 const source=app.slice(app.lastIndexOf('\n}',start)+2,app.indexOf('async function launchToken(){',start));

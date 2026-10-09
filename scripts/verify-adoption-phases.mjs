@@ -1,3 +1,4 @@
+import { readAppSource } from './read-app-source.mjs';
 import assert from 'node:assert/strict';
 import { Keypair,Transaction,SystemProgram } from '@solana/web3.js';
 import bs58 from 'bs58';
@@ -10,7 +11,7 @@ import { inflateSync } from 'node:zlib';
 import { createReadCache } from '../server/read-cache.mjs';
 import { readFile } from 'node:fs/promises';
 
-const [uiHtml,uiApp]=await Promise.all([readFile(new URL('../index.html',import.meta.url),'utf8'),readFile(new URL('../app.js',import.meta.url),'utf8')]);
+const [uiHtml,uiApp]=await Promise.all([readFile(new URL('../index.html',import.meta.url),'utf8'),readAppSource()]);
 assert.match(uiHtml,/id="referral-claim-center"[\s\S]*?Connect wallet to check claimable referral rewards/);
 assert.match(uiApp,/const dashboard = document\.querySelector\('#referral-command-center'\)/, 'Manual referral claims must mount on the visible Referrals page.');
 assert.match(uiApp,/renderReferralClaimPrompt\('Referral claim service unavailable'/, 'The visible claim center must explain an unavailable claim API.');

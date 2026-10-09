@@ -1,15 +1,20 @@
+import { readAppSource } from './read-app-source.mjs';
 import { readStylesheet } from './read-stylesheet.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { updateCostSummary } from '../src/features/launch/cost-view.js';
 import { launchReviewStillCurrent } from '../launch-review-gate.js';
 
-const [html, app, styles, pageStyles, workspaceStyles, preview] = await Promise.all([
+const [html, app, styles, pageStyles, workspaceStyles, preview, actions, costs, validation] = await Promise.all([
   readFile(new URL('../index.html', import.meta.url), 'utf8'),
-  readFile(new URL('../app.js', import.meta.url), 'utf8'),
+  readAppSource(),
   readStylesheet(new URL('../styles.css', import.meta.url)),
   readStylesheet(new URL('../page-experience.css', import.meta.url)),
   readFile(new URL('../workspace-ui.css', import.meta.url), 'utf8'),
   readFile(new URL('../src/features/launch/preview-view.js', import.meta.url), 'utf8'),
+  readFile(new URL('../src/features/launch/action-view.js', import.meta.url), 'utf8'),
+  readFile(new URL('../src/features/launch/cost-view.js', import.meta.url), 'utf8'),
+  readFile(new URL('../src/features/launch/form-validation.js', import.meta.url), 'utf8'),
 ]);
 
 for (const step of [1, 2]) {
@@ -68,8 +73,8 @@ assert.match(preview, /'#preview-community': Number\.isFinite\(allocation\) \? f
 assert.match(app, /initialBuySol: getCreatorBuySol\(\)/, 'The developer SOL amount must feed the live Pump quote.');
 assert.match(app, /estimatedInitialBuyTokens=Number\(developerBuy\.amountTokens\);\s*updateLaunchPreview\(\);/, 'The live Pump quote must refresh the visible developer-buy token estimate.');
 assert.match(preview, /creatorBuy\.sol > 0 \? wallet \? 'Calculating…' : 'Connect wallet to estimate' : 'None'/, 'An unconnected developer buy must ask for a wallet instead of remaining stuck on Calculating.');
-assert.match(app, /wallet \? ' · quote pending' : ' · connect wallet to quote'/, 'The launch cost summary must label an unconnected developer-buy quote truthfully.');
-assert.match(app, /!feeDistribution\.valid \? 'Fix fee distribution'/, 'Invalid fee shares must be explained before the disconnected-wallet prompt.');
+assert.match(costs, /wallet \? ' · quote pending' : ' · connect wallet to quote'/, 'The launch cost summary must label an unconnected developer-buy quote truthfully.');
+assert.match(actions, /!feeDistribution\.valid \? 'Fix fee distribution'/, 'Invalid fee shares must be explained before the disconnected-wallet prompt.');
 assert.match(launchPage, /id="preview-promotion-badge"/, 'The launch preview must show the selected promotion badge.');
 assert.match(launchPage, /class="cost-summary launch-pay-summary free-launch"[\s\S]*?id="cost-tier-label">Platform launch fee: 0[\s\S]*?id="cost-burn-row" hidden[\s\S]*?id="cost-burn"/, 'Zero platform fee must remain distinct from paid promotion burns and network costs.');
 assert.match(launchPage, /class="community-airdrop-highlight"[\s\S]*?30,000,000[\s\S]*?3\.00% of supply[\s\S]*?bought and locked in the reward vault when launch finalizes/, 'The You pay panel must describe atomic reserve funding.');
@@ -87,13 +92,13 @@ for (const label of ['Project website URL', 'Project X profile URL', 'Project Te
 assert.match(app, /canonicalLaunchSocialUrl\(preview\.x, 'x'\)/, 'The X link must meet metadata API rules before wallet message signing.');
 assert.match(app, /function invalidLaunchSocial\(\)[\s\S]*?updateLaunchSocialValidity\(field\)[\s\S]*?validPublicUrl\(launchSocialValue\(field\), field\.id\)/, 'Optional social links must meet the API rules before review.');
 assert.match(app, /function openLaunchReview\(\)[\s\S]*?normalizeLaunchSocialField\(document\.querySelector\('#token-x'\)\)/, 'The X profile link must be normalized before review state is captured.');
-assert.match(app, /const identityValid = getLaunchStepState\(1\)\.valid/, 'Invalid social links must disable launch review.');
-assert.match(app, /!identityValid \? 'Fix coin details'/, 'The primary launch action must surface invalid coin details before asking for a wallet.');
+assert.match(actions, /const identityValid = getLaunchStepState\(1\)\.valid/, 'Invalid social links must disable launch review.');
+assert.match(actions, /!identityValid \? 'Fix coin details'/, 'The primary launch action must surface invalid coin details before asking for a wallet.');
 assert.match(launchPage, /class="launch-submit-row launch-preview-submit"[\s\S]*?id="launch-button"/, 'The essential launch action must sit directly below the You pay panel.');
 assert.doesNotMatch(launchPage, /launch-button-review/, 'The summary must not duplicate the signing action.');
 assert.match(launchPage, /<aside class="launch-preview"[\s\S]*?id="launch-summary-name"[\s\S]*?id="launch-summary-policy-title"[\s\S]*?id="launch-summary-creator"[\s\S]*?id="cost-total-enabled"[\s\S]*?id="launch-button"/, 'The right summary must show token identity, fee split, cost, and the launch action.');
 assert.match(app, /const target = Math\.min\(2, Math\.max\(1, Number\(step\) \|\| 1\)\)/, 'Wizard navigation must stop at the second step.');
-assert.match(app, /next\.hidden = launchStep === 2/, 'The second step must not offer another page transition.');
+assert.match(actions, /next\.hidden = launchStep === 2/, 'The second step must not offer another page transition.');
 assert.match(launchPage, /id="preview-launchpad">Pump\.fun<\/strong>/, 'Launchpad summary should always have a visible fallback.');
 assert.match(launchPage, /id="launch-package-example" data-tier="standard"/, 'The selected token page package should have a visible Standard fallback.');
 assert.match(launchPage, /id="preview-supply">1 billion<\/strong>/, 'Supply summary should always have a visible fallback.');
@@ -102,8 +107,8 @@ assert.match(pageStyles, /\.launch-pay-summary \.cost-row > b \{[^}]*white-space
 assert.doesNotMatch(launchPage, /id="wallet-status"|id="dialog-connect"/, 'The duplicated connected-wallet card must not return to You pay.');
 assert.doesNotMatch(launchPage, /id="wallet-metrics"|id="wallet-balance"|id="launch-fee"|id="refresh-wallet"|id="fee-note"/, 'The duplicated wallet-balance and launch-estimate card must not return to You pay.');
 assert.match(launchPage, /class="cost-summary launch-pay-summary[\s\S]*?class="launch-pay-approval"[\s\S]*?id="fee-route-agree"[\s\S]*?id="terms-agree"[\s\S]*?id="airdrop-button"/, 'Consent and test-fund controls must remain inside You pay after wallet-metrics removal.');
-assert.match(app, /const estimateRefreshReady = launchEstimateRefreshAvailable\([\s\S]*?estimateUnavailable: balanceUnknown,[\s\S]*?button\.disabled = !\(ready \|\| estimateRefreshReady \|\| connectReady\)/, 'A valid disconnected form and expired connected estimate must keep the action available.');
-assert.match(app, /button\.dataset\.launchAction = connectReady \? 'connect-wallet' : estimateRefreshReady \? 'refresh-estimate' : 'launch'/, 'The launch action must distinguish wallet connection, refresh, and signing.');
+assert.match(actions, /const estimateRefreshReady = launchEstimateRefreshAvailable\([\s\S]*?estimateUnavailable: balanceUnknown,[\s\S]*?button\.disabled = !\(ready \|\| estimateRefreshReady \|\| connectReady\)/, 'A valid disconnected form and expired connected estimate must keep the action available.');
+assert.match(actions, /button\.dataset\.launchAction = connectReady \? 'connect-wallet' : estimateRefreshReady \? 'refresh-estimate' : 'launch'/, 'The launch action must distinguish wallet connection, refresh, and signing.');
 assert.match(app, /function handleLaunchAction\(event\)[\s\S]*?dataset\.launchAction === 'connect-wallet'[\s\S]*?connectWallet\(\)[\s\S]*?dataset\.launchAction === 'refresh-estimate'[\s\S]*?refreshWalletInfo\(\)[\s\S]*?openLaunchReview\(\)/, 'A valid disconnected form must connect a wallet, while an expired quote refreshes and a ready launch opens review.');
 assert.match(app, /#launch-button'\)\.addEventListener\('click', handleLaunchAction\)/, 'The single visible launch action must use the refresh-aware handler.');
 assert.doesNotMatch(app, /launch-button-review|reviewButton|#review-(?:coin|community|creator-share|holder-share|x-share|burn-tier|burn-amount|creator-buy|wallet-intro)/, 'Removed final-review controls must have no stale script references.');
@@ -122,7 +127,7 @@ handleLaunchAction({ currentTarget: { dataset: { launchAction: 'connect-wallet' 
 handleLaunchAction({ currentTarget: { dataset: { launchAction: 'refresh-estimate' } } });
 handleLaunchAction({ currentTarget: { dataset: { launchAction: 'launch' } } });
 assert.deepEqual(launchActionCalls, ['connect', 'refresh', 'review'], 'The one-page action must connect, refresh, or open review at the appropriate stage.');
-assert.match(app, /function renderPendingLaunchReview\(\)[\s\S]*?launchReviewStillCurrent\(pending, currentLaunchReviewState\(\)\)/);
+assert.match(actions, /function renderPendingLaunchReview\([\s\S]*?launchReviewStillCurrent\(pending, currentLaunchReviewState\(\)\)/);
 assert.match(app, /function confirmLaunchReview\(\)[\s\S]*?launchReviewStillCurrent\(pending, currentLaunchReviewState\(\)\)/);
 const reviewedCost = { quotedAt: 100, expiresAt: 200 };
 const image = {};
@@ -186,12 +191,16 @@ for (const id of ['profile-wallet-address', 'launch-path-wallet', 'sol-claim-sub
 assert.doesNotMatch(app, /#dialog-connect|['"]dialog-connect['"]|#wallet-status/, 'Removed launch wallet-card controls must have no stale script references.');
 assert.doesNotMatch(app, /#wallet-metrics|#wallet-balance|#launch-fee|#refresh-wallet|#fee-note/, 'Removed wallet-metrics controls must have no stale script references.');
 assert.match(app, /'connect-button', 'profile-connect'[^\]]*?'sol-claim-submit'/, 'The generic connect-wallet handler must not duplicate profile connections or override SOL-claim prerequisite validation.');
-const costSummarySource = app.match(/function updateCostSummary\(\)\{[\s\S]*?\r?\n\}(?=\r?\nfunction renderLaunchCostDetails)/)?.[0];
-assert.ok(costSummarySource, 'Launch cost summary function must remain testable.');
-const renderCostSummary = new Function('document', 'getLaunchBurnPolicy', 'getCreatorBuySummary', 'getCommunityAirdropTokens', 'getCommunityAllocationPercent', 'formatLaunchBurnAmount', 'formatLaunchCost', 'wallet', 'walletMetricsLoading', 'walletEstimateError', 'developerBuyLimitReached', 'estimatedLaunchFeeLamports', 'launchCostReview', `const renderLaunchCostDetails=()=>{};${costSummarySource}\nupdateCostSummary();`);
 function costSummaryFor({ connected = false, loading = false, fee = null, error = '' } = {}) {
   const nodes = Object.fromEntries(['cost-launch', 'cost-total-enabled', 'cost-total', 'cost-note', 'preview-launch-cost', 'cost-burn', 'cost-community-tokens', 'cost-community-detail', 'cost-creator-buy'].map(id => [`#${id}`, { textContent: '', innerHTML: '' }]));
-  renderCostSummary({ querySelector: selector => nodes[selector] || null }, () => ({ requiresBurn: false }), () => ({ sol: 0, tokens: 0, percent: 0 }), () => 30_000_000, () => 3, String, lamports => `${(Number(lamports) / 1_000_000_000).toFixed(6)} SOL`, connected ? { publicKey: true } : null, loading, error, () => error.startsWith('Developer buy cannot exceed 20% of the token supply.'), fee, null);
+  updateCostSummary({ wallet: connected ? { publicKey: true } : null, walletMetricsLoading: loading,
+    walletEstimateError: error, estimatedLaunchFeeLamports: fee, launchCostReview: null }, {
+    document: { querySelector: selector => nodes[selector] || null }, renderLaunchCostDetails() {},
+    getLaunchBurnPolicy: () => ({ requiresBurn: false }), getCreatorBuySummary: () => ({ sol: 0, tokens: 0, percent: 0 }),
+    getCommunityAirdropTokens: () => 30_000_000, getCommunityAllocationPercent: () => 3,
+    formatLaunchBurnAmount: String, formatLaunchCost: lamports => (Number(lamports) / 1_000_000_000).toFixed(6) + ' SOL',
+    developerBuyLimitReached: () => error.startsWith('Developer buy cannot exceed 20% of the token supply.'),
+  });
   return nodes;
 }
 assert.equal(costSummaryFor()['#cost-launch'].textContent, 'Connect wallet to estimate');
@@ -204,11 +213,11 @@ assert.match(connectedWithoutEstimate['#cost-note'].textContent, /RPC unavailabl
 const overLimit = costSummaryFor({ connected: true, error: 'Developer buy cannot exceed 20% of the token supply.' });
 assert.match(overLimit['#cost-note'].textContent, /lower the SOL amount or set it to 0/i);
 assert.doesNotMatch(overLimit['#cost-note'].textContent, /Refresh the estimate to try again/i);
-assert.match(app, /developerBuyLimitReached\(\)\) return \{ valid: false, field: '#creator-buy-sol'/);
-assert.match(app, /developerBuyLimitReached\(\) \? 'Edit developer buy' : 'Retry checks'/);
+assert.match(validation, /developerBuyLimitReached\(\)\) return \{ valid: false, field: '#creator-buy-sol'/);
+assert.match(actions, /developerBuyLimitReached\(\) \? 'Edit developer buy' : 'Retry checks'/);
 assert.doesNotMatch(launchPage, /A submitted transaction is pending until confirmed/, 'The form must not imply a transaction was sent before signing.');
 assert.equal(costSummaryFor({ connected: true, fee: 10_000_000 })['#cost-launch'].textContent, '0.010000 SOL');
-assert.match(app, /ready \? \(launchBurn\.requiresBurn \? `Review launch · \$\{launchBurn\.label\}` : 'Review launch'\)/, 'The ready action must explicitly lead to transaction review.');
+assert.match(actions, /ready \? \(launchBurn\.requiresBurn \? `Review launch · \$\{launchBurn\.label\}` : 'Review launch'\)/, 'The ready action must explicitly lead to transaction review.');
 assert.match(pageStyles, /\.launch-token-preview-image \{[^}]*aspect-ratio: 1 \/ 1/, 'The token preview must retain a square image area.');
 assert.match(pageStyles, /\.preview-promotion-badge\.premier/, 'The preview badge must support the Premier promotion tier.');
 assert.match(pageStyles, /\.launch-enhanced-preview/, 'The enhanced token-page preview must remain styled.');

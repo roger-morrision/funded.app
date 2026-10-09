@@ -1,16 +1,19 @@
+import { readAppSource } from './read-app-source.mjs';
 import { readStylesheet } from './read-stylesheet.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const [html, appEntry, css, pageCss, pageExperience, creatorSupport] = await Promise.all([
   readFile(new URL('../index.html', import.meta.url), 'utf8'),
-  readFile(new URL('../app.js', import.meta.url), 'utf8'),
+  readAppSource(),
   readStylesheet(new URL('../styles.css', import.meta.url)),
   readStylesheet(new URL('../page-experience.css', import.meta.url)),
   readFile(new URL('../page-experience.js', import.meta.url), 'utf8'),
   readFile(new URL('../creator-support-ui.js', import.meta.url), 'utf8'),
 ]);
 const app = appEntry + (await Promise.all(['home/kpi-view.js', 'home/onchain-view.js', 'rewards/airdrop-view.js'].map(path => readFile(new URL(`../src/features/${path}`, import.meta.url), 'utf8')))).join('\n');
+const xClaimView = await readFile(new URL('../src/features/rewards/x-claim-view.js', import.meta.url), 'utf8');
+const homeLaunchBoard = await readFile(new URL('../src/features/home/launch-board-view.js', import.meta.url), 'utf8');
 const tradeReviewModel = await readFile(new URL('../trade-review-model.js', import.meta.url), 'utf8');
 const coinSummaryModel = await readFile(new URL('../coin-summary-model.js', import.meta.url), 'utf8');
 
@@ -46,7 +49,7 @@ assert.doesNotMatch(app, /creator: launchByMint\.get\(item\.address\)\?\.creator
 assert.match(app, /verified = verified\.filter\(item => \{[\s\S]*?return policy\?\.onchainVerified && \(policy\.creatorWallet \|\| policy\.feePayer\)/, 'Analytics must count only creator-attributed, policy-backed funded launches.');
 assert.match(app, /const fundedLaunchRecords = records\.filter\(item => \{[\s\S]*?return policy\?\.onchainVerified && \(policy\.creatorWallet \|\| policy\.feePayer\)/, 'Overview must not count unregistered mints as funded launches.');
 assert.match(app, /verifiedLaunchPolicies = response\.data\.filter\(launch => launch\.onchainVerified[\s\S]*?&& \(launch\.creatorWallet \|\| launch\.feePayer\)\)/, 'Explore benefit badges must require a creator-attributed funded policy.');
-assert.match(app, /function renderHomeLaunchBoard\(\)\{[\s\S]*?const verified = assets\.filter\(item => verifiedLaunchPolicyForMint\(item\.address\)\)[\s\S]*?let visible = \[\.\.\.verified\]/, 'The Home launch board must exclude mints without a funded policy.');
+assert.match(homeLaunchBoard, /function renderHomeLaunchBoard\([\s\S]*?const verified = assets\.filter\(item => verifiedLaunchPolicyForMint\(item\.address\)\)[\s\S]*?let visible = \[\.\.\.verified\]/, 'The Home launch board must exclude mints without a funded policy.');
 assert.match(html, /<p class="eyebrow">Confirmed activity<\/p><h1 id="leaderboard-title">LEADERBOARDS<\/h1>/, 'The leaderboard must label its evidence scope.');
 assert.match(html, /id="leaderboard-burners-tab"[^>]*aria-selected="true"[^>]*>Burners<\/button>/, 'Verified wallet burn leaderboard tab should be selected.');
 assert.doesNotMatch(app, /escapeHtml\(initials\(item\.wallet\)\)/, 'Wallet burn rows must not call an undefined avatar helper.');
@@ -113,7 +116,7 @@ assert.match(app, /token-card-shell airdrop-directory-card/);
 assert.match(html, /id="airdrop-selected-program"[^>]+hidden/, 'Airdrop policy detail must be hidden until a program is selected.');
 assert.match(app, /const safeMint = escapeHtml\(program\.id\)[\s\S]*?data-directory-mint="\$\{safeMint\}"[\s\S]*?View claim status/, 'The airdrop details action must target a unique mint.');
 assert.match(app, /function renderAirdropProgramDetail\(program\)[\s\S]*?Funding and wallet eligibility must be confirmed before claims can open/, 'Airdrop details must disclose missing claim prerequisites.');
-assert.match(app, /function resetSolClaimStatus\(\)[\s\S]*?Sign in with X to see your rewards\./, 'Editing a SOL claim must clear stale validation status.');
+assert.match(xClaimView, /function resetSolClaimStatus\(\{[\s\S]*?Sign in with X to see your rewards\./, 'Editing a SOL claim must clear stale validation status.');
 assert.match(app, /getElementById\(id\)\?\.addEventListener\('input', \(\) => \{ updateClaimBindingReview\(\); resetSolClaimStatus\(\); \}\)/, 'Changing claim identity fields must reset stale validation.');
 assert.match(app, /event\.target\?\.id === 'claim-binding-agree'\) resetSolClaimStatus\(\)/, 'Changing claim wallet confirmation must reset stale validation.');
 assert.match(app, /const program = getAirdropPrograms\(\)\.find\(item => item\.id === button\.dataset\.directoryMint\);[\s\S]*?renderAirdropProgramDetail\(program\)/, 'The details action must render program details, not only filter the directory.');

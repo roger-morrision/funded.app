@@ -1,24 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { explorePagination } from '../server/explore-pagination.mjs';
+import { createDiscoveryRoutes } from '../server/routes/discovery.mjs';
 import { publicError } from '../server/http-policy.mjs';
 
-// Exercise the actual API branches without starting a server or calling providers.
-// Token normalization is irrelevant to pagination; fixture rows are already normalized.
-const source = await readFile(new URL('../server/index.mjs', import.meta.url), 'utf8');
-const start = source.indexOf("    if (req.method === 'GET' && url.pathname === '/api/birdeye/explore') {");
-const end = source.indexOf('    if (await handleTokenChatRoutes(', start);
-assert(start >= 0 && end > start, 'Explore route boundaries must exist.');
-const route = new Function('context', `return (async () => {
-  const { req, res, url, solanaCluster, store, fetchPump, fetchBirdeye, Connection, explorePagination } = context;
-  let devnetVerificationActive = 0;
-  const solanaRpcUrl = 'http://unused.invalid', birdeyeChain = 'solana';
-  const normalizePumpToken = item => item, normalizeBirdeyeToken = item => item;
-  const sortDevnetLaunches = items => items;
-  const json = (_res, status, body) => ({ status, body });
-  ${source.slice(start, end)}
-})();`);
+// Exercise the actual route module without starting a server or calling providers.
 const cases = [
   ['/api/pump/explore', 'devnet'], ['/api/pump/explore', 'mainnet-beta'],
   ['/api/birdeye/explore', 'devnet'], ['/api/birdeye/explore', 'mainnet-beta'],
@@ -26,9 +11,9 @@ const cases = [
 
 async function request(path, cluster, query = '') {
   const calls = { connections: 0, reads: 0, providers: [] };
-  const rows = Array.from({ length: 6 }, (_, index) => ({ mint: `fixture-${index}`, chain: 'solana', cluster: 'devnet', onchainVerified: true }));
+  const rows = Array.from({ length: 6 }, (_, index) => ({ mint: `fixture-${index}`, chain: 'solana', cluster: 'devnet', onchainVerified: true, createdTimestamp: 6 - index }));
   const context = {
-    req: { method: 'GET' }, res: {}, url: new URL(path + query, 'http://fixture.invalid'), solanaCluster: cluster, explorePagination,
+    req: { method: 'GET' }, res: {}, url: new URL(path + query, 'http://fixture.invalid'), solanaCluster: cluster, solanaRpcUrl: 'http://unused.invalid', birdeyeChain: 'solana',
     Connection: class { constructor() { calls.connections++; } },
     store: {
       readLaunches: async () => { calls.reads++; return rows; },
@@ -38,7 +23,10 @@ async function request(path, cluster, query = '') {
     fetchBirdeye: async (endpoint, params) => { calls.providers.push({ endpoint, params }); return { configured: true, data: { items: rows } }; },
   };
   let response;
-  try { response = await route(context); }
+  try {
+    const route = createDiscoveryRoutes({ ...context, respond: (_res, status, body) => { response = { status, body }; } });
+    await route(context.req, context.res, context.url);
+  }
   catch (error) { response = publicError(error, 'pagination-fixture-request'); }
   return { ...response, calls };
 }

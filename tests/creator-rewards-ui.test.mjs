@@ -1,3 +1,4 @@
+import { readAppSource } from '../scripts/read-app-source.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -40,7 +41,7 @@ test('creator rewards fail closed for another wallet, token, network or malforme
   assert.throws(()=>creatorRewardRow({...launch,onchainVerified:false},activity(),'creator','devnet'));
 });
 
-const source=await readFile(new URL('../app.js',import.meta.url),'utf8');
+const source=await readAppSource();
 const from=source.indexOf('async function requestCreatorFeeClaim('),to=source.indexOf('let coinMarketActivity',from);
 function flow({switchAfterSign=false,reject=false,prepareUnavailable=false}={}) {
   const calls=[],messages=[];

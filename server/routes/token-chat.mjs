@@ -1,13 +1,41 @@
+import bs58 from 'bs58';
+import nacl from 'tweetnacl';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 import { PublicKey } from '@solana/web3.js';
 import { validateInput } from '../http-policy.mjs';
 import { validateTokenChatText, tokenChatPostStatement, tokenChatDeleteStatement } from '../../token-chat.js';
 import { randomBytes, createHash } from 'node:crypto';
 
+const tokenChatSignatureWindowMs = 5 * 60 * 1000;
+
+function tokenChatPublicMessage(message) {
+  return {
+    id: message.id,
+    mint: message.mint,
+    author: message.author,
+    text: message.text,
+    createdAt: message.createdAt,
+  };
+}
+function validTokenChatEnvelope(input) {
+  const nonce = String(input?.nonce || '').trim();
+  const issuedAt = String(input?.issuedAt || '').trim();
+  const issued = Date.parse(issuedAt);
+  if (!/^[A-Za-z0-9_-]{16,100}$/.test(nonce)) throw Object.assign(new Error('A valid one-time message nonce is required.'), { statusCode: 400 });
+  if (!Number.isFinite(issued) || issued < Date.now() - tokenChatSignatureWindowMs || issued > Date.now() + 60_000) throw Object.assign(new Error('The wallet signature request has expired. Try again.'), { statusCode: 400 });
+  return { nonce, issuedAt: new Date(issued).toISOString() };
+}
+function verifyTokenChatSignature(statement, signatureValue, publicKey) {
+  try {
+    if (typeof signatureValue !== 'string' || signatureValue.length > 100) return false;
+    const signature = bs58.decode(String(signatureValue || ''));
+    return signature.length === nacl.sign.signatureLength && nacl.sign.detached.verify(new TextEncoder().encode(statement), signature, publicKey.toBytes());
+  } catch { return false; }
+}
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
 export function createTokenChatRoutes({
-  body, walletKey, store, clientKey, tokenChatSessions, tokenChatPublicMessage, validTokenChatEnvelope, verifyTokenChatSignature, requireAuthorized,
+  body, walletKey, store, clientKey, tokenChatSessions, requireAuthorized,
   respond,
 }) {
 

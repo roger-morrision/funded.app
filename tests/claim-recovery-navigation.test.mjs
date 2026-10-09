@@ -1,9 +1,10 @@
+import { readAppSource } from '../scripts/read-app-source.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 
-const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const app = await readAppSource();
 function section(start, end) {
   const from = app.indexOf(start), to = app.indexOf(end, from);
   assert(from >= 0 && to > from);

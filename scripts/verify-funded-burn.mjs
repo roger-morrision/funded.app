@@ -1,3 +1,4 @@
+import { readAppSourceSync } from './read-app-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { PublicKey } from '@solana/web3.js';
@@ -54,7 +55,7 @@ assert.throws(() => readVerifiedBurnChecked(transaction, { fundedMint: mint, wal
 assert.throws(() => readVerifiedBurnChecked(transaction, { fundedMint: mint, wallet: PublicKey.unique().toBase58() }), /fee payer/);
 assert.throws(() => readVerifiedBurnChecked(transaction, { fundedMint: mint, wallet, expectedMemo:projectBurnMemo(PublicKey.unique().toBase58()) }), /not bound/);
 
-const appSource = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
+const appSource = readAppSourceSync();
 const serverSource = readFileSync(new URL('../server/index.mjs', import.meta.url), 'utf8');
 const listingSource = readFileSync(new URL('../server/routes/listing-payments.mjs', import.meta.url), 'utf8');
 const composeSource = readFileSync(new URL('../compose.preview.yml', import.meta.url), 'utf8');

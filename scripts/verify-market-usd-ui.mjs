@@ -1,10 +1,11 @@
+import { readAppSource } from './read-app-source.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { formatUsd } from '../src/features/shared/display.js';
 const require=createRequire(import.meta.url);
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
-const source=await readFile(new URL('../app.js',import.meta.url),'utf8');
+const source=await readAppSource();
 const functions=[formatUsd.toString(), ...['formatCoinUsd','formatCoinSnapshotUsd','renderCoinSnapshotUsd'].map(name=>source.match(new RegExp(`function ${name}\\([^)]*\\)\\{[\\s\\S]*?\\r?\\n\\}`))[0])].join('\n');
 const now=Math.floor(Date.now()/1000);
 const activity={status:'ready',decimals:6,coverage:'complete',trades:[{priceRatio:2,blockTime:now-10},{priceRatio:1,blockTime:now-20}]};

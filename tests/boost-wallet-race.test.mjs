@@ -1,10 +1,11 @@
+import { readAppSource } from '../scripts/read-app-source.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import bs58 from 'bs58';
 import { validateBoostQuote, archiveBoostPayment } from '../boost-checkout-recovery.js';
-const source = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const source = await readAppSource();
 const handler = source.slice(source.indexOf('async function handleExploreBoostPay(){'), source.indexOf('async function verifyExploreBoostPayment('));
 test('wallet change during boost broadcast preserves the signed quote for payment verification', async () => {
   const quote = { id: 'boost_123_0123456789abcdef', cluster: 'devnet', mint: 'mint', packageId: '10x', payer: 'payer', expiresAt: new Date(Date.now() + 60_000).toISOString(), recipient: '1'.repeat(32), lamports: 10, usd: 99, solUsd: 100, memo: 'funded.vip:boost:devnet:boost_123_0123456789abcdef' };
