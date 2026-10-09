@@ -69,8 +69,8 @@ try {
           assert(await page.getByRole('button', { name: /Payment history/ }).isVisible());
         }
         if (route === '/#community') {
-          assert(await page.locator('#community .section-heading h2').isVisible());
-          assert.equal(await page.locator('#community .section-heading h2').innerText(), 'Favorite tokens');
+          assert(await page.locator('#favorites-title').isVisible());
+          assert.equal(await page.locator('#favorites-title').innerText(), 'Favorite tokens');
           assert.equal(await page.locator('#my-launches > .portfolio-dashboard').isVisible(), false);
           assert.equal(await page.locator('#community-preferences').count(), 0);
           assert(await page.locator('#followed-wallets').isVisible());

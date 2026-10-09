@@ -26,7 +26,7 @@ try {
     const choice = page.locator(`button[data-burn-tier="${tier}"]`);
     await choice.click();
     assert.equal(await choice.getAttribute('aria-pressed'), 'true', `${tier} choice did not select`);
-    assert.equal((await page.locator('#preview-burn-tier').textContent()).trim(), tier.toUpperCase());
+    assert.equal((await page.locator('#preview-burn-tier').textContent()).trim(), tier[0].toUpperCase() + tier.slice(1));
     assert.equal(await page.locator('#cost-burn-row').isVisible(), tier !== 'standard');
   }
   await page.locator('button[data-burn-tier="standard"]').click();

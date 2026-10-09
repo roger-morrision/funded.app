@@ -150,8 +150,11 @@ try {
   assert.doesNotMatch(await xCard.textContent(), /Paid wallets|SOL received/);
   assert.doesNotMatch(await xCard.textContent(), /Airdrop|SOL allocation/);
   const before = await first.locator('.home-reward-clock').textContent();
-  await page.waitForTimeout(1200);
-  assert.notEqual(await first.locator('.home-reward-clock').textContent(), before);
+  await page.waitForFunction(({ previous, mint }) => {
+    const clock = document.querySelector(`[data-home-reward-grid="funded"] [data-reward-mint="${mint}"] .home-reward-clock`);
+    return clock && clock.textContent !== previous;
+  }, { previous: before, mint: mints[0] }, { timeout: 5000, polling: 100 });
+  assert.deepEqual(errors, [], 'Reward countdown should update without page errors');
   const track = coinGroup;
   assert(await track.evaluate(element => element.scrollWidth > element.clientWidth));
   await track.evaluate(element => { element.scrollLeft = element.scrollWidth; });
