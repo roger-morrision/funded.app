@@ -12,6 +12,7 @@ try {
   await page.waitForFunction(() => document.body.classList.contains('workspace-ready') && !!document.querySelector('#launch-package-example'), { timeout: 30_000 });
   await page.locator('#token-name').fill('Orbit Fox');
   await page.locator('#token-symbol').fill('FOX');
+  await page.getByText('Description · optional', { exact: true }).click();
   await page.locator('#token-description').fill('A community coin for explorers.');
   assert.equal(await page.locator('#preview-name').textContent(), 'Orbit Fox');
   assert.equal(await page.locator('#preview-symbol').textContent(), 'FOX');
@@ -27,6 +28,8 @@ try {
   await page.locator('#token-image').setInputFiles({ name: 'preview.png', mimeType: 'image/png', buffer: Buffer.from(artwork, 'base64') });
   await page.locator('#launch-package-example-art.has-image').waitFor({ state: 'attached' });
   assert.equal(await page.locator('#preview-token-image.has-image').count(), 1);
+  await page.getByRole('button', { name: 'Continue to rewards', exact: true }).click();
+  await page.getByText('Preview your token page and launch post', { exact: true }).click();
 
   for (const [tier, postCount, text, artVisible] of [
     ['standard', '1 post', 'New project on funded.vip', false],
@@ -47,7 +50,7 @@ try {
   await feeOptions.locator('summary').click();
   assert.notEqual(await feeOptions.getAttribute('open'), null);
   assert.equal(await page.locator('#launch-mode-custom').isVisible(), true);
-  assert.equal(await page.locator('.launch-preview-panel').isVisible(), false);
+  assert.equal(await page.locator('.launch-preview-panel').isVisible(), true);
   const logoWidth = await page.locator('#preview-token-image').evaluate(node => node.getBoundingClientRect().width);
   assert(logoWidth <= 50, 'Preview logo should stay compact');
 

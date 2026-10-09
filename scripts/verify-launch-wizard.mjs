@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { launchReviewStillCurrent } from '../launch-review-gate.js';
 
-const [html, app, styles, pageStyles, workspaceStyles] = await Promise.all([
+const [html, app, styles, pageStyles, workspaceStyles, preview] = await Promise.all([
   readFile(new URL('../index.html', import.meta.url), 'utf8'),
   readFile(new URL('../app.js', import.meta.url), 'utf8'),
   readStylesheet(new URL('../styles.css', import.meta.url)),
   readStylesheet(new URL('../page-experience.css', import.meta.url)),
   readFile(new URL('../workspace-ui.css', import.meta.url), 'utf8'),
+  readFile(new URL('../src/features/launch/preview-view.js', import.meta.url), 'utf8'),
 ]);
 
 for (const step of [1, 2]) {
@@ -63,10 +64,10 @@ assert.match(launchPage, /id="community-airdrop-tokens"[\s\S]*?min="30000000"[\s
 assert.match(launchPage, /data-airdrop-tokens="30000000"[\s\S]*?data-airdrop-tokens="50000000"/, 'The launch form must offer 30M and 50M airdrop presets.');
 assert.match(launchPage, /id="creator-buy-sol"[\s\S]*?min="0"[\s\S]*?step="0\.01"/, 'The launch form must accept an optional developer buy in SOL.');
 assert.match(app, /function getCommunityAllocationPercent\(\)[\s\S]*?getCommunityAirdropTokens\(\) \/ LAUNCH_TOKEN_SUPPLY \* 100/, 'The airdrop policy percentage must derive from the entered token amount.');
-assert.match(app, /'#preview-community': Number\.isFinite\(allocation\) \? formatVerifiedPercent\(allocation\) : '—'/, 'The launch summary must format fractional reserve percentages without floating-point scientific notation.');
+assert.match(preview, /'#preview-community': Number\.isFinite\(allocation\) \? formatVerifiedPercent\(allocation\) : '—'/, 'The launch summary must format fractional reserve percentages without floating-point scientific notation.');
 assert.match(app, /initialBuySol: getCreatorBuySol\(\)/, 'The developer SOL amount must feed the live Pump quote.');
 assert.match(app, /estimatedInitialBuyTokens=Number\(developerBuy\.amountTokens\);\s*updateLaunchPreview\(\);/, 'The live Pump quote must refresh the visible developer-buy token estimate.');
-assert.match(app, /creatorBuy\.sol > 0 \? wallet \? 'Calculating…' : 'Connect wallet to estimate' : 'None'/, 'An unconnected developer buy must ask for a wallet instead of remaining stuck on Calculating.');
+assert.match(preview, /creatorBuy\.sol > 0 \? wallet \? 'Calculating…' : 'Connect wallet to estimate' : 'None'/, 'An unconnected developer buy must ask for a wallet instead of remaining stuck on Calculating.');
 assert.match(app, /wallet \? ' · quote pending' : ' · connect wallet to quote'/, 'The launch cost summary must label an unconnected developer-buy quote truthfully.');
 assert.match(app, /!feeDistribution\.valid \? 'Fix fee distribution'/, 'Invalid fee shares must be explained before the disconnected-wallet prompt.');
 assert.match(launchPage, /id="preview-promotion-badge"/, 'The launch preview must show the selected promotion badge.');

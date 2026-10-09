@@ -13,6 +13,9 @@ wallet credentials, fetch data, or submit transactions.
 | `src/features/payments/receipt-view.js` | Receipt totals, recipient rows, fees, payment timestamps, expanded details |
 | `src/features/analytics/dashboard-view.js` | Analytics cards and recent recipients |
 | `src/features/home/kpi-view.js` | Home metrics and evidence states |
+| `src/features/home/launch-card-view.js` | Shared launch cards, fee route labels, volume formatting, promotion decoration |
+| `src/features/trade/amount-view.js` | Trade balance, estimate, buy/sell labels, and round-trip share visibility |
+| `src/features/launch/preview-view.js` | Launch package and X post previews, identity, fee allocation, and developer-buy summaries |
 | `src/features/home/program-picker.js` | Program picker events and shared preview rendering |
 | `src/features/coin/chart-view.js` | Price / market-cap chart and currency states |
 | `src/features/coin/activity-view.js` | Trade, holder, collection, and allocation tables |
@@ -41,6 +44,10 @@ wallet credentials, fetch data, or submit transactions.
 | `server/routes/airdrops.mjs` | Community reserves, proofs, and claim instructions |
 | `server/routes/token-chat.mjs` | Wallet sessions, discussion, reports, and moderation |
 | `server/routes/referral-identity.mjs` | Referral authentication, profiles, and share links |
+| `server/routes/public-reports.mjs` | Sanitized state, receipt history, and analytics summaries |
+| `server/routes/directory.mjs` | Launch pagination, creator profiles, listings, and burn leaderboards |
+| `server/routes/quote-assets.mjs` | Verified quote asset catalog and its own cache |
+| `server/routes/token-market.mjs` | Token accounts and trade history with per-router caches, concurrency, and rate limits |
 | `server/postgres/` | Ledger migration/projections and domain repositories for claims, receipts, creators, accounts, and assets |
 
 The root `page-experience.css`, `ansem-pages.css`, `styles.css`, `coin-detail.css`,
@@ -182,3 +189,24 @@ wallet-change checks intact when extracting controllers.
 - Docker dependency pruning restores the exact pre-build lockfile after the
   offline prune, preventing a source fingerprint mismatch while retaining locked
   dependency resolution. Disabling lockfile use forces uncached registry lookups.
+
+## Further extraction — October 9, 2026
+
+- Moved 12 presentation functions into five feature modules; `app.js` shrank
+  from 7,898 to 7,538 lines (568,717 to 537,881 normalized bytes).
+- Moved four public data route families out of `server/index.mjs`, reducing it
+  from 1,957 to 1,797 lines (158,098 to 145,236 normalized bytes).
+- Market and quote caches live in their route factories, retain the same lifetime
+  across requests, and are isolated between independently constructed routers.
+  Shared policy, authorization, and rate gates remain in their original order.
+- All 12 moved view bodies and 23 moved route statements were compared against
+  the previous release syntax trees and are unchanged.
+- Nineteen focused tests pass, including pagination validation, public-state
+  sanitization, market cache isolation, stale market evidence, wallet changes,
+  fee/slippage balance warnings, and receipt-gated sharing. These are mocked
+  contract checks; they do not execute transactions.
+- Source/size checks, the launch wizard check, build, and critical suite pass.
+  The launch wizard now checks preview assertions in the actual feature module.
+- The three legacy file exceptions and the existing browser bundle-size warning
+  remain; further controller and HTML template extraction is still needed.
+- The launch package browser regression passes at 320, 390, 768, and 1440px with mocked APIs, using the current description and preview disclosures and two-step form.

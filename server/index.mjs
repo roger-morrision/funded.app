@@ -1,3 +1,7 @@
+import { createPublicReportsRoutes } from './routes/public-reports.mjs';
+import { createQuoteAssetsRoutes } from './routes/quote-assets.mjs';
+import { createDirectoryRoutes } from './routes/directory.mjs';
+import { createTokenMarketRoutes } from './routes/token-market.mjs';
 import { createBoostRoutes } from './routes/boost.mjs';
 import { createAirdropsRoutes } from './routes/airdrops.mjs';
 import { createTokenChatRoutes } from './routes/token-chat.mjs';
@@ -26,7 +30,7 @@ import { isIP } from 'node:net';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction, VersionedTransaction, clusterApiUrl, sendAndConfirmTransaction } from '@solana/web3.js';
-import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+
 import { buildSolClaimPolicy } from '../sol-claim-policy.js';
 import { buildFeeDistributionPolicy, settleCreatorFeeClaim } from '../distribution-policy.js';
 import { buildCommunityAirdropPolicy, fundedCommunityAirdropPolicy } from '../airdrop-policy.js';
@@ -37,11 +41,11 @@ import { deriveFeeRouter, deriveMintFeeRouter, verifyFeeRouterAccount, verifyMin
 import { OnlinePumpSdk, creatorVaultPda } from '@pump-fun/pump-sdk';
 import { createStore } from './store.mjs';
 import { rewardLedgerPath } from './reward-ledger-path.mjs';
-import { analyticsReceiptTotals } from './analytics-summary.mjs';
+
 import { createProductMetricsStore, createProductMetricsHandler, confirmedProductTotals } from './product-metrics.mjs';
 
 import { cleanShareSource, pruneShareVisits, recordShareVisit, summarizeShareVisits } from './share-visits.mjs';
-import { readPumpMarketActivity } from './coin-market.mjs';
+
 import { sortDevnetLaunches } from './explore-registry.mjs';
 import { explorePagination } from './explore-pagination.mjs';
 import { isAppPagePath } from './page-routes.mjs';
@@ -61,7 +65,7 @@ import { createReceiptEvidenceReader } from './receipt-service.mjs';
 import { createPaymentHistoryReader } from './payment-history.mjs';
 import { assertObservedClaim } from './claim-state.mjs';
 import { receiptWorkerStatus } from './receipt-worker-status.mjs';
-import { buildTerminalSignal, creatorReputation, immutableLaunchReview, normalizeXIntake, quoteAssetCatalog } from '../stonk-features.js';
+import { immutableLaunchReview, normalizeXIntake } from '../stonk-features.js';
 import { verifyPumpLaunch } from './launch-verification.mjs';
 import { verifyFundedBurn } from './burn-verification.mjs';
 import { readVerifiedListingMint } from './token-metadata.mjs';
@@ -73,17 +77,17 @@ import { buildMintRouterSettlementInstruction, readMintClaimRecord } from './min
 import { buybackQueue } from './buyback-executor.mjs';
 import { parseSignedMetadata, publicMetadata, metadataRecordOrigin } from './devnet-metadata.mjs';
 import { devnetMetadataUri, normalizeDevnetMetadataOrigin, LEGACY_DEVNET_METADATA_ORIGIN } from '../devnet-metadata.js';
-import { attachVerifiedTokenAccountWallets, normalizeAllTokenAccounts, normalizeLargestTokenAccounts } from './token-accounts.mjs';
+
 import { coinFeeOverview } from './coin-fee-overview.mjs';
 import { homeLaunchFeeIndex } from './home-launch-fee-index.mjs';
 import { buildMintCreatorFeeCollectionInstructions } from './pump-fee-collection.mjs';
 import { verifyWrappedSolRecoveryReceipt } from './wrapped-sol-recovery-receipt.mjs';
 import { rewardExperience } from './reward-experience.mjs';
-import { rewardPaidTotals } from './reward-paid-totals.mjs';
-import { feePayoutStats } from './fee-payout-stats.mjs';
+
+
 import { jackpotPreview } from './jackpot-model.mjs';
-import { homeFeeAllocationSummary } from './home-dashboard-metrics.mjs';
-import { projectBurnBoard, walletBurnBoard } from './leaderboard-burn-board.mjs';
+
+
 import { createCreatorFeeChallenges, creatorClaimStatus } from './creator-fee-claim.mjs';
 import { createTokenChatSessions } from './token-chat-session.mjs';
 import { createXUserResolver, xLookupHttpError } from './x-user-lookup.mjs';
@@ -200,7 +204,7 @@ publicPostPaths.add('/api/boosts/confirm');
 publicPostPaths.add('/api/launch-tier-quote');
 publicPostPaths.add('/api/x-public-trade-shares/challenge');
 publicPostPaths.add('/api/x-public-trade-shares/consent');
-let verifiedQuoteAssetsCache = null;
+
 const solanaCluster = String(process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER || 'devnet').trim();
 const boostPurchasesEnabled = solanaCluster === 'devnet' && String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
 function communityClaimService() {
@@ -236,10 +240,10 @@ const mobileWalletRelay = createMobileWalletRelay({
 });
 const referralClaimExpiryMs = 14 * 24 * 60 * 60 * 1000;
 const maxReferralPayoutSol = Number(process.env.MAX_REFERRAL_PAYOUT_SOL || 10);
-const coinMarketCache = new Map();
-const tokenAccountsCache = new Map();
-const coinMarketInflight = new Map();
-let coinMarketActive = 0;
+
+
+
+
 let devnetVerificationActive = 0;
 const readProviderSolUsdQuote = createSolUsdQuoteReader();
 let configuredQuoteAssets = [];
@@ -727,6 +731,19 @@ const handleReferralIdentityRoutes = createReferralIdentityRoutes({
   referralSession, body, walletKey, referralAuth, requestCookieUrl, store, id, referralChallengeStatement, walletSignature, referralCodeFromBytes, respond: json,
 });
 
+const handlePublicReportsRoutes = createPublicReportsRoutes({
+  publicState, store, readReceiptEvidence, readPaymentHistory, automaticRewardStore, readFinalizedEvidence, solanaCluster, databaseUrl, respond: json,
+});
+const handleQuoteAssetsRoutes = createQuoteAssetsRoutes({
+  configuredQuoteAssets, solanaRpcUrl, solanaCluster, respond: json,
+});
+const handleDirectoryRoutes = createDirectoryRoutes({
+  store, solanaCluster, route, fundedTokenMint, listingBurnTokens, solanaRpcUrl, walletKey, respond: json,
+});
+const handleTokenMarketRoutes = createTokenMarketRoutes({
+  route, store, clientKey, solanaRpcUrl, solanaCluster, respond: json,
+});
+
 async function handle(req, res) {
   const requestId = applyHttpPolicy(req, res);
   try {
@@ -1123,78 +1140,7 @@ async function handle(req, res) {
       });
       return requested ? json(res, 202, requested) : json(res, 409, { error:'Claim state changed. Refresh and try again.' });
     }
-    const tokenAccountsMint = req.method === 'GET' ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/token-accounts$/) : null;
-    if (tokenAccountsMint) {
-      let mint;
-      try { mint = new PublicKey(decodeURIComponent(tokenAccountsMint)); }
-      catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
-      const address = mint.toBase58();
-      const cached = tokenAccountsCache.get(address);
-      if (cached && Date.now() - cached.at < 60_000) return json(res, 200, cached.data);
-      const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
-      if (!await store.chargeRpcRate(`token-accounts:${clientKey(req)}`, 2, 30, windowStart)) return json(res, 429, { error: 'Token-account refresh limit reached; retry shortly.' });
-      try {
-        const connection = new Connection(solanaRpcUrl, 'confirmed');
-        const sample = normalizeLargestTokenAccounts(await connection.getTokenLargestAccounts(mint, 'confirmed'));
-        const infos = sample.accounts.length
-          ? await connection.getMultipleAccountsInfo(sample.accounts.map(account => new PublicKey(account.address)), 'confirmed').catch(() => [])
-          : [];
-        let verifiedSample = attachVerifiedTokenAccountWallets(sample, infos, mint);
-        if (sample.coverage === 'lower-bound') {
-          try {
-            const mintInfo = await connection.getAccountInfo(mint, 'confirmed');
-            if (mintInfo && (mintInfo.owner.equals(TOKEN_PROGRAM_ID) || mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID))) {
-              const rows = await connection.getProgramAccounts(mintInfo.owner, {
-                commitment: 'confirmed', filters: [{ memcmp: { offset: 0, bytes: address } }],
-              });
-              verifiedSample = normalizeAllTokenAccounts(rows, mint, mintInfo.owner);
-            }
-          } catch { /* Retain the bounded, owner-verified sample when full scanning is unavailable. */ }
-        }
-        const data = { mint: address, cluster: solanaCluster, observedAt: new Date().toISOString(), ...verifiedSample };
-        if (tokenAccountsCache.size >= 500) tokenAccountsCache.delete(tokenAccountsCache.keys().next().value);
-        tokenAccountsCache.set(address, { at: Date.now(), data });
-        return json(res, 200, data);
-      } catch { return json(res, 502, { error: 'Token-account provider is unavailable.' }); }
-    }
-    const tokenMarketMint = req.method === 'GET' ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/market-activity$/) : null;
-    if (tokenMarketMint) {
-      if (solanaCluster !== 'devnet') return json(res, 503, { error: 'Pump trade scanning is currently available for Solana only.' });
-      let mint;
-      try { mint = new PublicKey(decodeURIComponent(tokenMarketMint)); }
-      catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
-      const address = mint.toBase58();
-      const hasTradeBreakdown = data => data && Object.hasOwn(data, 'poolHistoryCoverage') && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
-        && data.activityWindows?.['6h'] && data.activityWindows?.['24h']
-        && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h)));
-      const cached = coinMarketCache.get(address);
-      if (cached && Date.now() - cached.at < 60_000 && hasTradeBreakdown(cached.data)) return json(res, 200, cached.data);
-      const persisted = await store.readMarketActivity(address, solanaCluster);
-      if (persisted && Date.now() - Date.parse(persisted.observedAt) < 60_000 && hasTradeBreakdown(persisted)) {
-        coinMarketCache.set(address, { at: Date.parse(persisted.observedAt), data: persisted });
-        return json(res, 200, persisted);
-      }
-      const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
-      if (!await store.chargeRpcRate(`market:${clientKey(req)}`, 10, 60, windowStart)) return json(res, 429, { error: 'Market activity refresh limit reached; retry shortly.' });
-      let pending = coinMarketInflight.get(address);
-      if (!pending) {
-        if (coinMarketActive >= 4) return json(res, 429, { error: 'Market activity refresh is busy; retry shortly.' });
-        coinMarketActive += 1;
-        pending = (async () => {
-          try {
-            const metrics = await readPumpMarketActivity({ connection: new Connection(solanaRpcUrl, 'confirmed'), mint });
-            const data = { mint: address, cluster: solanaCluster, source: 'confirmed-pump-trade-events', observedAt: new Date().toISOString(), ...metrics };
-            await store.writeMarketActivity(address, solanaCluster, data);
-            if (coinMarketCache.size >= 500) coinMarketCache.delete(coinMarketCache.keys().next().value);
-            coinMarketCache.set(address, { at: Date.now(), data });
-            return data;
-          } finally { coinMarketActive -= 1; coinMarketInflight.delete(address); }
-        })();
-        coinMarketInflight.set(address, pending);
-      }
-      try { return json(res, 200, await pending); }
-      catch { return json(res, 502, { error: 'Market activity provider is unavailable.' }); }
-    }
+    if (await handleTokenMarketRoutes(req, res, url, requestId)) return;
     if (req.method === 'POST' && url.pathname === '/api/indexer/sync') {
       if (!requireAuthorized(req, res)) return;
       const input = await body(req); const mint = String(input.mint || '').trim();
@@ -1319,115 +1265,9 @@ async function handle(req, res) {
       });
       return recorded ? json(res, 202, { recorded:true, scope:'consented-browser-day' }) : json(res, 404, { error:'Referral code is not registered.' });
     }
-    if (req.method === 'GET' && url.pathname === '/api/state') return json(res, 200, publicState(await store.readPublicBuckets()));
-    if (req.method === 'GET' && url.pathname === '/api/evidence/receipts') return json(res, 200, await readReceiptEvidence());
-    if (req.method === 'GET' && url.pathname === '/api/evidence/payment-history') return json(res, 200, await readPaymentHistory());
-    if (req.method === 'GET' && url.pathname === '/api/analytics/summary') {
-      const [state, rewards, evidence] = await Promise.all([store.read(), automaticRewardStore.read(), readFinalizedEvidence()]);
-      const launches = Object.values(state.launches || {}).filter(row => row.cluster === solanaCluster && row.onchainVerified === true);
-      const totals = analyticsReceiptTotals(state, evidence, solanaCluster);
-      return json(res, 200, {
-        cluster: solanaCluster,
-        build: process.env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
-        source: databaseUrl ? 'funded.app-postgresql' : 'funded.app-file-ledger',
-        generatedAt: new Date().toISOString(),
-        freshness: evidence.generatedAt || null,
-        launches: launches.length,
-        ...totals,
-        rewardPaid: rewardPaidTotals(state, rewards, evidence, solanaCluster),
-        feePayoutStats: feePayoutStats(state, rewards, evidence, solanaCluster),
-        homeFeeAllocations: homeFeeAllocationSummary(state, evidence, solanaCluster),
-        creatorProfiles: creatorReputation(launches).length,
-      });
-    }
-    if (req.method === 'GET' && url.pathname === '/api/quote-assets') {
-      if (verifiedQuoteAssetsCache?.expiresAt > Date.now()) return json(res, 200, verifiedQuoteAssetsCache.data);
-      const catalog = quoteAssetCatalog(configuredQuoteAssets);
-      const rpc = new Connection(solanaRpcUrl, 'confirmed');
-      const checked = await Promise.all(catalog.map(async item => {
-        if (item.id === 'sol' && item.category === 'native') return { ...item, source: 'Solana native asset', cluster: solanaCluster };
-        try {
-          const mint = await rpc.getParsedAccountInfo(new PublicKey(item.mint), 'confirmed');
-          const validOwner = mint.value?.owner?.equals(TOKEN_PROGRAM_ID) || mint.value?.owner?.equals(TOKEN_2022_PROGRAM_ID);
-          return validOwner && mint.value?.data?.parsed?.type === 'mint' ? { ...item, source: 'Solana RPC mint', cluster: solanaCluster } : null;
-        } catch { return null; }
-      }));
-      const data = { chain: 'solana', cluster: solanaCluster, assets: checked.filter(Boolean), status: 'onchain-verified-catalog' };
-      verifiedQuoteAssetsCache = { data, expiresAt: Date.now() + 60_000 };
-      return json(res, 200, data);
-    }
-    if (req.method === 'GET' && url.pathname === '/api/terminal/signals') {
-      const launches = (await store.readLaunches()).filter(item => item.onchainVerified && item.cluster === solanaCluster).map(item => ({ ...item, ...buildTerminalSignal(item) }));
-      return json(res, 200, { source: 'verified-Solana-launch-registry', cluster: solanaCluster, generatedAt: new Date().toISOString(), items: launches, status: launches.length ? 'ready' : 'waiting-for-indexer' });
-    }
-    const creatorProfileWallet = route(url.pathname, req.method, /^\/api\/creators\/([^/]+)$/);
-    if (creatorProfileWallet) {
-      const state = await store.read();
-      const wallet = decodeURIComponent(creatorProfileWallet);
-      const profile = creatorReputation(state.launches, state.settlements).find(item => item.wallet === wallet);
-      return profile ? json(res, 200, profile) : json(res, 404, { error: 'Creator profile not found.' });
-    }
-    if (req.method === 'GET' && url.pathname === '/api/launch-reviews') {
-      const state = await store.read();
-      return json(res, 200, Object.values(state.launchReviews || {}).map(item => ({ ...item, policy: undefined })));
-    }
-    if (req.method === 'GET' && url.pathname === '/api/alerts') {
-      const wallet = String(url.searchParams.get('wallet') || '').trim();
-      const state = await store.read();
-      return json(res, 200, Object.values(state.alerts || {}).filter(item => !wallet || item.wallet === wallet));
-    }
-    if (req.method === 'GET' && url.pathname === '/api/indexer/status') {
-      const state = await store.read();
-      return json(res, 200, { provider: 'pump.fun', configured: true, indexedLaunches: Object.keys(state.launches).length, lastIndexedAt: state.lastIndexedAt || null, status: state.lastIndexedAt ? 'ready' : 'waiting-for-sync' });
-    }
-    if (req.method === 'GET' && url.pathname === '/api/launches') {
-      const requestedLimit = url.searchParams.get('limit');
-      const requestedOffset = url.searchParams.get('offset');
-      if ((requestedLimit != null && !/^\d+$/.test(requestedLimit)) || (requestedOffset != null && !/^\d+$/.test(requestedOffset))) return json(res, 400, { error: 'limit and offset must be non-negative integers.' });
-      const limit = requestedLimit == null ? null : Math.min(100, Number(requestedLimit));
-      const offset = requestedOffset == null ? 0 : Math.min(100_000, Number(requestedOffset));
-      return json(res, 200, await store.readLaunches({ limit, offset }));
-    }
-    if (req.method === 'GET' && url.pathname === '/api/listings/config') {
-      return json(res, 200, { cluster: solanaCluster, enabled: solanaCluster === 'devnet' && Boolean(fundedTokenMint),
-        fundedMint: fundedTokenMint || null, burnTokens: listingBurnTokens, paymentMethod: 'BurnChecked',
-        status: solanaCluster === 'devnet' && fundedTokenMint ? 'ready' : 'unavailable' });
-    }
-    const listingMintMatch = req.method === 'GET' ? /^\/api\/listings\/mint\/([^/]+)$/.exec(url.pathname) : null;
-    if (listingMintMatch) {
-      if (solanaCluster !== 'devnet') return json(res, 503, { error:'Listing mint checks require Solana.' });
-      let listingMint;
-      try { listingMint = new PublicKey(listingMintMatch[1]).toBase58(); }
-      catch { return json(res, 400, { error:'A valid token mint is required.' }); }
-      try {
-        const rpc = new Connection(solanaRpcUrl, 'finalized');
-        if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'Listing mint checks require a Solana RPC.' });
-        const [trustedLaunch, signedMetadata] = await Promise.all([store.readLaunch(listingMint), store.readMetadata(listingMint)]);
-        return json(res, 200, { cluster:'devnet', ...(await readVerifiedListingMint(rpc, listingMint, { trustedLaunch, signedMetadata })) });
-      } catch (error) { return json(res, 409, { error:error.message || 'Verified token metadata is unavailable.' }); }
-    }
-    if (req.method === 'GET' && url.pathname === '/api/listings') {
-      const state = await store.read();
-      return json(res, 200, { cluster: solanaCluster, listings: Object.values(state.listings || {})
-        .filter(item => item.cluster === solanaCluster && item.onchainVerified === true)
-        .sort((a, b) => String(b.listedAt).localeCompare(String(a.listedAt))) });
-    }
-    if (req.method === 'GET' && url.pathname === '/api/leaderboard/burn-board') {
-      const state = await store.read();
-      return json(res, 200, { cluster: solanaCluster, source: 'verified-burn-receipts', projects: projectBurnBoard(state, solanaCluster) });
-    }
-    if (req.method === 'GET' && url.pathname === '/api/leaderboard/burners') {
-      const state = await store.read();
-      return json(res, 200, { cluster: solanaCluster, source: 'verified-burn-receipts', wallets: walletBurnBoard(state, solanaCluster) });
-    }
-    if (req.method === 'GET' && url.pathname === '/api/burn-receipts') {
-      let wallet;
-      try { wallet = walletKey(url.searchParams.get('wallet')); } catch { return json(res, 400, { error: 'A valid wallet query parameter is required.' }); }
-      const state = await store.read();
-      const receipts = Object.values(state.burnReceipts || {}).filter(item => item.wallet === wallet)
-        .sort((a, b) => String(b.verifiedAt).localeCompare(String(a.verifiedAt)));
-      return json(res, 200, { wallet, cluster: solanaCluster, receipts });
-    }
+    if (await handlePublicReportsRoutes(req, res, url, requestId)) return;
+    if (await handleQuoteAssetsRoutes(req, res, url, requestId)) return;
+    if (await handleDirectoryRoutes(req, res, url, requestId)) return;
     if (req.method === 'GET' && url.pathname === '/api/referral-claims') {
       let wallet;
       try { wallet = walletKey(url.searchParams.get('wallet')); } catch { return json(res, 400, { error: 'A valid wallet query parameter is required.' }); }

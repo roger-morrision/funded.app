@@ -2,16 +2,16 @@
   "description": "Legacy runtime files may shrink but must not grow. New modules: at most 500 lines and 40 KiB. Reduce these ceilings when extracting code.",
   "files": {
     "app.js": {
-      "lines": 7898,
-      "bytes": 568717
+      "lines": 7538,
+      "bytes": 537881
     },
     "index.html": {
       "lines": 855,
       "bytes": 172803
     },
     "server/index.mjs": {
-      "lines": 1957,
-      "bytes": 158098
+      "lines": 1797,
+      "bytes": 145236
     }
   }
 }
