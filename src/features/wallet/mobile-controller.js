@@ -8,8 +8,11 @@ export function createMobileWalletController({
   apiRequest, getSolana, getWallet, activateWallet, allowWalletReconnect,
   wasWalletManuallyDisconnected, closeDialog, showToast,
   window = globalThis.window, document = globalThis.document,
-  sessionStorage = globalThis.sessionStorage, navigator = globalThis.navigator,
+  sessionStorage, navigator = globalThis.navigator,
 }) {
+  // Access can throw in privacy-restricted browsers. Resolve it only inside
+  // the guarded mobile operations, so ordinary navigation can still start.
+  const storage = () => sessionStorage ?? globalThis.sessionStorage;
   let mobileWalletRequestVersion = 0;
   let mobileWalletLink = '';
 
@@ -123,7 +126,7 @@ export function createMobileWalletController({
           return { signature };
         } catch (error) { document.querySelector('#mobile-wallet-qr-label').textContent = error.message; throw error; }
       },
-      async disconnect(){ provider.isConnected = false; sessionStorage.removeItem(MOBILE_WALLET_SESSION_KEY); },
+      async disconnect(){ provider.isConnected = false; storage().removeItem(MOBILE_WALLET_SESSION_KEY); },
     };
     return provider;
   }
@@ -144,7 +147,7 @@ export function createMobileWalletController({
       const approved = decryptPhantomMobileResult(result, sharedSecret);
       const session = verifyPhantomMobileSession({ publicKey:approved.public_key, session:approved.session, secretKey:bs58.encode(keyPair.secretKey), phantomPublicKey:result.phantom_encryption_public_key }, window.location.origin);
       const provider = await createMobileWalletProvider(session);
-      sessionStorage.setItem(MOBILE_WALLET_SESSION_KEY, JSON.stringify(session));
+      storage().setItem(MOBILE_WALLET_SESSION_KEY, JSON.stringify(session));
       allowWalletReconnect();
       activateWallet(provider, 'Phantom mobile wallet connected');
       closeDialog('mobile-wallet-dialog');
@@ -153,8 +156,8 @@ export function createMobileWalletController({
   }
   async function restoreMobileWallet(){
     if (getWallet() || wasWalletManuallyDisconnected()) return false;
-    try { const stored=JSON.parse(sessionStorage.getItem(MOBILE_WALLET_SESSION_KEY)||'null'); if(!stored)return false; activateWallet(await createMobileWalletProvider(stored), 'Phantom mobile wallet restored'); return true; }
-    catch { try { sessionStorage.removeItem(MOBILE_WALLET_SESSION_KEY); } catch { /* Storage may also prevent cleanup; no session was restored. */ } return false; }
+    try { const stored=JSON.parse(storage().getItem(MOBILE_WALLET_SESSION_KEY)||'null'); if(!stored)return false; activateWallet(await createMobileWalletProvider(stored), 'Phantom mobile wallet restored'); return true; }
+    catch { try { storage().removeItem(MOBILE_WALLET_SESSION_KEY); } catch { /* Storage may also prevent cleanup; no session was restored. */ } return false; }
   }
   function cancel() {
     mobileWalletRequestVersion++;

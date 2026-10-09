@@ -5,6 +5,7 @@ test.beforeEach(async({page})=>{
   const found=[];failures.set(page,found);page.on('pageerror',error=>found.push(error.message));
   await page.route('**/api/**',route=>route.fulfill({status:503,contentType:'application/json',body:'{}'}));
   await page.route('https://**/*',route=>route.abort());
+  await page.route('**/api/x/me',route=>route.fulfill({json:{authenticated:false,configured:true}}));
 });
 test.afterEach(async({page})=>expect(failures.get(page),'No uncaught browser exceptions').toEqual([]));
 const gate=page=>page.locator('#bootstrap-status');

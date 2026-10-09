@@ -57,6 +57,8 @@ export function createFollowingController(appState) {
     }).join('');
     appState.loadVerifiedTokenLogos(items);
     document.querySelectorAll('.watch-button').forEach(button => appState.setWatchButtonState(button, saved.includes(button.dataset.mint)));
+    const coinWatch = document.querySelector('#coin-watch');
+    if (coinWatch) appState.setWatchButtonState(coinWatch, saved.includes(appState.getCoinMintAddress()));
     appState.showWatchlistStatus(appState.watchlistNotice);
     appState.renderFollowedWallets();
   }

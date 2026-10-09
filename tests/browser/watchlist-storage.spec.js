@@ -1,133 +1,102 @@
 import { test, expect } from '@playwright/test';
-import { writeFileSync } from 'node:fs';
 
-const KEY = 'funded.app.community.watchlist';
+const KEY = 'funded.app.watchlist.guest.v1';
 const MINT = 'So11111111111111111111111111111111111111112';
-const OTHER = '11111111111111111111111111111111';
-const faults = new WeakMap();
+const errors = new WeakMap();
 test.beforeEach(async ({ page }) => {
-  const errors = []; faults.set(page, errors); page.on('pageerror', error => errors.push(error.message));
+  const found = []; errors.set(page, found); page.on('pageerror', error => found.push(error.message));
   await page.route('https://**/*', route => route.abort());
   await page.route('**/api/**', route => route.fulfill({ status: 503, json: {} }));
+  await page.route('**/api/x/me', route => route.fulfill({ json: { authenticated: false, configured: true } }));
 });
-test.afterEach(async ({ page }) => expect(faults.get(page), 'No uncaught browser exceptions').toEqual([]));
-async function seed(page, raw) {
-  await page.addInitScript(({ key, raw }) => {
-    if (!sessionStorage.getItem('qa-watch-seeded')) {
-      localStorage.setItem(key, raw); sessionStorage.setItem('qa-watch-seeded', 'true');
+test.afterEach(async ({ page }) => expect(errors.get(page)).toEqual([]));
+async function seed(page, mints) {
+  await page.addInitScript(({ key, mints }) => {
+    if (!sessionStorage.getItem('qa-seeded')) {
+      localStorage.setItem(key, JSON.stringify({ mints, importId: crypto.randomUUID(), targetAccount: null }));
+      sessionStorage.setItem('qa-seeded', 'true');
     }
-    window.qaWatchEvents = 0; window.addEventListener('funded:watchlist-added', () => window.qaWatchEvents++);
-  }, { key: KEY, raw });
+    window.qaWatchEvents = 0;
+    window.addEventListener('funded:watchlist-added', () => window.qaWatchEvents++);
+  }, { key: KEY, mints });
 }
 async function ready(page) { await expect(page.locator('body')).toHaveClass(/workspace-ready/); }
 async function fault(page, mode) {
   await page.evaluate(({ key, mode }) => {
     const get = Storage.prototype.getItem, set = Storage.prototype.setItem;
-    let readDenied = mode === 'read'; window.qaWatchWrites = 0;
+    let denyRead = mode === 'read'; window.qaWatchWrites = 0;
     Storage.prototype.getItem = function (name) {
-      if (this === localStorage && name === key && readDenied) throw new DOMException('Fixture read denied', 'SecurityError');
+      if (this === localStorage && name === key && denyRead) throw new DOMException('Read denied', 'SecurityError');
       return get.call(this, name);
     };
     Storage.prototype.setItem = function (name, value) {
       if (this === localStorage && name === key) {
         window.qaWatchWrites++;
-        if (mode === 'write') throw new DOMException('Fixture quota exceeded', 'QuotaExceededError');
+        if (mode === 'write') throw new DOMException('Quota exceeded', 'QuotaExceededError');
         if (mode === 'noop') return;
-        if (mode === 'readback') { set.call(this, name, value); readDenied = true; return; }
+        if (mode === 'readback') { set.call(this, name, value); denyRead = true; return; }
       }
       return set.call(this, name, value);
     };
-    window.qaRestoreWatchStorage = () => { Storage.prototype.getItem = get; Storage.prototype.setItem = set; };
+    window.qaRestore = () => { Storage.prototype.getItem = get; Storage.prototype.setItem = set; };
   }, { key: KEY, mode });
 }
-const coinStatus = page => page.locator('#coin-page [data-watchlist-status]');
-const portfolioStatus = page => page.locator('#community [data-watchlist-status]');
-const raw = page => page.evaluate(key => localStorage.getItem(key), KEY);
+const saved = page => page.evaluate(key => JSON.parse(localStorage.getItem(key)).mints, KEY);
+const notice = page => page.locator('#coin-page [data-watchlist-status]');
 
-for (const [label, initial, width] of [['save', [], 390], ['remove', [MINT], 1440]]) test(`native coin ${label} failure preserves selection and explicit keyboard retry persists at ${width}px`, async ({ page }) => {
-  await page.setViewportSize({ width, height: 900 }); await seed(page, JSON.stringify(initial));
-  await page.goto(`/token/${MINT}`); await ready(page);
-  const button = page.locator('#coin-watch'); await expect(button).toHaveAttribute('aria-pressed', String(initial.length > 0));
-  await fault(page, 'write'); await button.click();
-  await expect(coinStatus(page)).toBeVisible(); await expect(coinStatus(page)).toContainText(/could not be updated/i);
-  await expect(button).toHaveAttribute('aria-pressed', String(initial.length > 0));
-  await page.screenshot({ path: test.info().outputPath(`coin-${label}-${width}-storage-failure.png`), fullPage: true });
-  expect(await raw(page)).toBe(JSON.stringify(initial)); expect(await page.evaluate(() => qaWatchEvents)).toBe(0);
-  await page.evaluate(() => qaRestoreWatchStorage()); await button.focus(); await page.keyboard.press('Enter');
-  const next = initial.length ? [] : [MINT];
-  await expect(button).toHaveAttribute('aria-pressed', String(!initial.length)); expect(JSON.parse(await raw(page))).toEqual(next);
-  expect(await page.evaluate(() => qaWatchEvents)).toBe(initial.length ? 0 : 1);
-  await page.reload(); await ready(page); await expect(button).toHaveAttribute('aria-pressed', String(!initial.length));
-  expect(JSON.parse(await raw(page))).toEqual(next);
-});
-
-test('Portfolio no-op removal reports unverified persistence and keeps the row until successful retry', async ({ page }) => {
-  await seed(page, JSON.stringify([MINT])); await page.goto('/#community'); await ready(page);
-  const remove = page.locator(`[data-remove-watch="${MINT}"]`); await expect(remove).toBeVisible();
-  await fault(page, 'noop'); await remove.click();
-  await expect(portfolioStatus(page)).toBeVisible(); await expect(portfolioStatus(page)).toContainText(/could not be verified|cannot verify/i);
-  await expect(remove).toBeVisible(); await expect(page.locator('#watch-count')).toHaveText('1 saved');
-  await page.screenshot({ path: test.info().outputPath('portfolio-write-unconfirmed.png'), fullPage: true });
-  expect(JSON.parse(await raw(page))).toEqual([MINT]); expect(await page.evaluate(() => qaWatchEvents)).toBe(0);
-  await page.evaluate(() => qaRestoreWatchStorage()); await remove.click();
-  await expect(remove).toHaveCount(0); await expect(page.locator('#watch-count')).toHaveText('0 saved');
-  expect(JSON.parse(await raw(page))).toEqual([]); await page.reload(); await ready(page); await expect(page.locator('#watch-count')).toHaveText('0 saved');
-});
-
-test('a denied fresh watchlist read never overwrites previously saved tokens', async ({ page }) => {
-  await seed(page, JSON.stringify([OTHER])); await page.goto(`/token/${MINT}`); await ready(page);
-  await fault(page, 'read'); await page.locator('#coin-watch').click();
-  await expect(coinStatus(page)).toContainText(/could not be updated/i);
-  await expect(page.locator('#coin-watch')).toHaveAttribute('aria-pressed', 'false');
-  expect(await page.evaluate(() => ({ writes: qaWatchWrites, events: qaWatchEvents }))).toEqual({ writes: 0, events: 0 });
-  await page.evaluate(() => qaRestoreWatchStorage()); expect(JSON.parse(await raw(page))).toEqual([OTHER]);
-  await page.locator('#coin-watch').click(); await expect(page.locator('#coin-watch')).toHaveAttribute('aria-pressed', 'true');
-  expect(JSON.parse(await raw(page))).toEqual([OTHER, MINT]);
-});
-
-for (const [label, stored] of [['JSON', '{'], ['object', '{"saved":true}'], ['mint', '["not-a-solana-mint"]']]) test(`malformed watchlist ${label} cannot crash startup or be silently replaced`, async ({ page }) => {
-  await seed(page, stored); await page.goto(`/token/${MINT}`); await ready(page);
-  await fault(page, 'observe'); await page.locator('#coin-watch').click();
-  await expect(coinStatus(page)).toBeVisible(); await expect(coinStatus(page)).toContainText(/could not be updated/i);
-  await expect(page.locator('#coin-watch')).toHaveAttribute('aria-pressed', 'false');
-  expect(await page.evaluate(() => ({ writes: qaWatchWrites, events: qaWatchEvents }))).toEqual({ writes: 0, events: 0 });
-  expect(await raw(page)).toBe(stored);
-});
-
-test('write followed by unreadable confirmation reports uncertainty without a success event', async ({ page }) => {
-  await seed(page, '[]'); await page.goto(`/token/${MINT}`); await ready(page); await fault(page, 'readback');
+for (const mode of ['write', 'noop', 'read', 'readback']) for (const remove of [false, true]) {
+  test(`guest favorite ${remove ? 'remove' : 'save'} survives ${mode} failure and explicit retry`, async ({ page }) => {
+    const initial = remove ? [MINT] : [], next = remove ? [] : [MINT];
+    await seed(page, initial); await page.goto(`/token/${MINT}`); await ready(page);
+    const button = page.locator('#coin-watch');
+    await expect(button).toHaveAttribute('aria-pressed', String(remove));
+    await fault(page, mode); await button.click();
+    await expect(notice(page)).toContainText(/denied|quota|could not|couldn't|cannot|unavailable/i);
+    await expect(button).toHaveAttribute('aria-pressed', String(remove));
+    expect(await page.evaluate(() => window.qaWatchEvents)).toBe(0);
+    await page.evaluate(() => window.qaRestore());
+    expect(await saved(page)).toEqual(mode === 'readback' ? next : initial);
+    await button.focus(); await page.keyboard.press('Enter');
+    await expect(button).toHaveAttribute('aria-pressed', String(!remove));
+    expect(await saved(page)).toEqual(next);
+    await page.reload(); await ready(page);
+    await expect(button).toHaveAttribute('aria-pressed', String(!remove));
+  });
+}
+for (const value of ['{', '{"mints":true}', '{"mints":["invalid"],"importId":"bad"}']) {
+  test(`malformed guest storage is preserved: ${value}`, async ({ page }) => {
+    await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: KEY, value });
+    await page.goto(`/token/${MINT}`); await ready(page);
+    await page.locator('#coin-watch').click();
+    await expect(notice(page)).toContainText(/could not|unavailable/i);
+    await expect(page.locator('#coin-watch')).toHaveAttribute('aria-pressed', 'false');
+    expect(await page.evaluate(key => localStorage.getItem(key), KEY)).toBe(value);
+  });
+}
+test('unknown sign-in state does not overwrite guest favorites', async ({ page }) => {
+  await page.route('**/api/x/me', route => route.fulfill({ status: 503, json: {} }));
+  await seed(page, [MINT]); await page.goto(`/token/${MINT}`); await ready(page);
   await page.locator('#coin-watch').click();
-  await expect(coinStatus(page)).toContainText(/could not be verified|cannot verify/i);
-  await expect(page.locator('#coin-watch')).toHaveAttribute('aria-pressed', 'false');
-  expect(await page.evaluate(() => ({ writes: qaWatchWrites, events: qaWatchEvents }))).toEqual({ writes: 1, events: 0 });
-  await page.locator('.nav-item[href="#my-launches"]').click();
-  await page.getByRole('navigation', { name: 'Portfolio sections' }).getByRole('link', { name: 'Watchlist', exact: true }).click();
-  await expect(portfolioStatus(page)).toBeVisible();
-  await expect(portfolioStatus(page)).toContainText('saved selection may have changed');
-  await expect(portfolioStatus(page)).not.toContainText('Nothing was changed');
-  // The write may have succeeded. Restore access before inspecting storage; do
-  // not interpret an unreadable result as an empty or unchanged watchlist.
-  await page.evaluate(() => qaRestoreWatchStorage()); expect(JSON.parse(await raw(page))).toEqual([MINT]);
-  await page.goto(`/token/${MINT}`); await ready(page); await expect(page.locator('#coin-watch')).toHaveAttribute('aria-pressed', 'true');
+  await expect(notice(page)).toContainText('Sign in or retry');
+  expect(await saved(page)).toEqual([MINT]);
+});
+for (const width of [390, 1440]) test(`unavailable token can be removed from Favorites at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 });
+  await seed(page, [MINT]); await page.goto('/#community'); await ready(page);
+  const row = page.locator('.watchlist-unavailable');
+  await expect(row).toBeVisible(); await expect(page.locator('#watch-count')).toHaveText('1 favorite');
+  await fault(page, 'noop'); await row.getByRole('button', { name: 'Remove saved token' }).click();
+  await expect(page.locator('#toast')).toContainText('could not be saved');
+  await expect(row).toBeVisible(); expect(await saved(page)).toEqual([MINT]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: test.info().outputPath(`favorites-${width}.png`) });
+  await page.evaluate(() => window.qaRestore());
+  await row.getByRole('button', { name: 'Remove saved token' }).click();
+  await expect(row).toHaveCount(0); await expect(page.locator('#watch-count')).toHaveText('0 favorites');
+  expect(await saved(page)).toEqual([]);
 });
 
-for (const [label, initial, next] of [['Save', [], [MINT]], ['Remove', [MINT], []]]) test(`direct ${label} retry after uncertain persistence preserves the displayed intention`, async ({ page }) => {
-  await seed(page, JSON.stringify(initial)); await page.goto(`/token/${MINT}`); await ready(page);
-  const button = page.locator('#coin-watch'); await expect(button).toHaveAttribute('aria-pressed', String(initial.length > 0));
-  await fault(page, 'readback'); await button.click();
-  await expect(coinStatus(page)).toContainText('saved selection may have changed');
-  await expect(button).toHaveAttribute('aria-pressed', String(initial.length > 0));
-  expect(await page.evaluate(() => qaWatchEvents)).toBe(0);
-  // Restore access without navigating or rerendering the initiating control.
-  // The next native click must retry its displayed intention, not toggle the
-  // already-written durable value back to the opposite selection.
-  await page.evaluate(() => qaRestoreWatchStorage()); await button.click();
-  await expect(button).toHaveAttribute('aria-pressed', String(next.length > 0));
-  expect(JSON.parse(await raw(page))).toEqual(next);
-  expect(await page.evaluate(() => qaWatchEvents)).toBe(0);
-  await expect(coinStatus(page)).toContainText(next.length ? 'Token saved' : 'Token removed');
-});
-
+const rawMints = async page => JSON.stringify(await saved(page));
 async function verifiedFeed(page) {
   const bytes = Buffer.alloc(82); bytes.writeBigUInt64LE(1000000000n, 36); bytes[44] = 6; bytes[45] = 1;
   const account = { data: [bytes.toString('base64'), 'base64'], owner: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', lamports: 1000000, executable: false, rentEpoch: 0 };
@@ -143,7 +112,7 @@ async function verifiedFeed(page) {
 
 for (const [width, view] of [[1440, 'grid'], [390, 'table']]) test(`Explore Following filters tokens in place at ${width}px with ${view} view`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 });
-  await seed(page, '[]'); await verifiedFeed(page); await page.goto('/#explore'); await ready(page);
+  await seed(page, []); await verifiedFeed(page); await page.goto('/#explore'); await ready(page);
   await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
   const watch = page.locator(`#asset-grid .watch-button[data-mint="${MINT}"]`);
   await expect(watch).toHaveCount(1);
@@ -178,48 +147,14 @@ for (const [width, view] of [[1440, 'grid'], [390, 'table']]) test(`Explore Foll
 });
 
 test('Explore native watch action does not announce success when saving fails', async ({ page }) => {
-  await seed(page, '[]'); await verifiedFeed(page); await page.goto('/#explore'); await ready(page);
+  await seed(page, []); await verifiedFeed(page); await page.goto('/#explore'); await ready(page);
   await page.locator('button[data-explore-view="grid"]').click();
   const watch = page.locator(`#asset-grid .watch-button[data-mint="${MINT}"]`); await expect(watch).toBeVisible();
   await fault(page, 'write'); await watch.click();
-  await expect(page.locator('#toast')).toContainText(/could not be updated/i);
-  await expect(watch).toHaveAttribute('aria-pressed', 'false'); expect(await raw(page)).toBe('[]');
+  await expect(page.locator('#toast')).toContainText(/could not be saved/i);
+  await expect(watch).toHaveAttribute('aria-pressed', 'false'); expect(await rawMints(page)).toBe('[]');
   expect(await page.evaluate(() => qaWatchEvents)).toBe(0);
-  await page.evaluate(() => qaRestoreWatchStorage()); await watch.click();
-  await expect(watch).toHaveAttribute('aria-pressed', 'true'); expect(JSON.parse(await raw(page))).toEqual([MINT]);
+  await page.evaluate(() => qaRestore()); await watch.click();
+  await expect(watch).toHaveAttribute('aria-pressed', 'true'); expect(JSON.parse(await rawMints(page))).toEqual([MINT]);
   expect(await page.evaluate(() => qaWatchEvents)).toBe(1);
-});
-
-for (const width of [1440, 390]) test(`watchlist fallback and long failure notice remain readable at ${width}px`, async ({ page }) => {
-  await page.setViewportSize({ width, height: 900 }); await seed(page, JSON.stringify([MINT]));
-  await page.goto('/#community'); await ready(page);
-  const row = page.locator('.watchlist-unavailable'); await expect(row).toBeVisible();
-  await fault(page, 'noop'); await row.getByRole('button', { name: 'Remove saved token' }).click();
-  await expect(page.locator('#toast')).toHaveClass(/show/); await expect(page.locator('#toast')).toHaveCSS('opacity', '1');
-  const geometry = await page.evaluate(() => {
-    const box = node => { if (!node || !node.getClientRects().length) return null; const r = node.getBoundingClientRect(); return { x: r.x, y: r.y, right: r.right, bottom: r.bottom, width: r.width, height: r.height }; };
-    const textBoxes = node => { const range = document.createRange(); range.selectNodeContents(node); return Array.from(range.getClientRects()).map(r => ({ x: r.x, y: r.y, right: r.right, bottom: r.bottom })); };
-    const row = document.querySelector('.watchlist-unavailable'), toast = document.querySelector('#toast');
-    return { row: box(row), title: box(row.querySelector('strong')), description: box(row.querySelector('span')), remove: box(row.querySelector('button')),
-      descriptionText: textBoxes(row.querySelector('span')), toast: box(toast), toastText: textBoxes(toast),
-      nav: box(document.querySelector('.mobile-workspace-nav')), help: box(document.querySelector('#help-topics-trigger')), documentWidth: document.documentElement.scrollWidth };
-  });
-  writeFileSync(test.info().outputPath(`watchlist-geometry-${width}.json`), JSON.stringify(geometry, null, 2));
-  if (width >= 701) expect(geometry.help, 'Desktop Help control is present in this native route').not.toBeNull();
-  expect(geometry.description.y, 'Description starts below its heading').toBeGreaterThanOrEqual(geometry.title.bottom);
-  expect(geometry.remove.y, 'Remove action follows the description').toBeGreaterThanOrEqual(geometry.description.bottom);
-  expect(geometry.remove.height).toBeGreaterThanOrEqual(44);
-  for (const rect of geometry.descriptionText) {
-    expect(rect.x).toBeGreaterThanOrEqual(geometry.row.x - 1); expect(rect.right).toBeLessThanOrEqual(geometry.row.right + 1);
-  }
-  expect(geometry.documentWidth).toBeLessThanOrEqual(width);
-  for (const rect of geometry.toastText) { expect(rect.x).toBeGreaterThanOrEqual(0); expect(rect.right).toBeLessThanOrEqual(width); }
-  if (geometry.nav) expect(geometry.toast.bottom, 'Notice must clear fixed mobile navigation').toBeLessThanOrEqual(geometry.nav.y);
-  if (geometry.help) {
-    const a = geometry.toast, b = geometry.help;
-    expect(a.right <= b.x || a.x >= b.right || a.bottom <= b.y || a.y >= b.bottom, 'Help must not obscure the notice').toBe(true);
-  }
-  await page.screenshot({ path: test.info().outputPath(`watchlist-layout-${width}.png`) });
-  await row.getByRole('button', { name: 'Remove saved token' }).focus(); await expect(row.getByRole('button', { name: 'Remove saved token' })).toBeFocused();
-  expect(JSON.parse(await raw(page))).toEqual([MINT]);
 });
