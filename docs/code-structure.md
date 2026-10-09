@@ -179,5 +179,6 @@ wallet-change checks intact when extracting controllers.
   counts, retention, and leased backfill. The live application database was not used.
 - `verify:home-rewards-ui` passed with the retained disclosure fix: token amounts,
   logos, evidence states, countdowns, overflow motion, and mobile scrolling.
-- Docker dependency pruning preserves the committed lockfile with
-  `--package-lock=false`, preventing a source fingerprint mismatch after build.
+- Docker dependency pruning restores the exact pre-build lockfile after the
+  offline prune, preventing a source fingerprint mismatch while retaining locked
+  dependency resolution. Disabling lockfile use forces uncached registry lookups.
