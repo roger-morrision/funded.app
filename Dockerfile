@@ -42,7 +42,7 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
     VITE_FUNDED_PREMIER_BURN_AMOUNT=$VITE_FUNDED_PREMIER_BURN_AMOUNT
 RUN if [ "$VITE_SOLANA_CLUSTER" = "devnet" ] && [ -z "$VITE_API_BASE_URL" ]; then \
       echo "VITE_API_BASE_URL is required for the Devnet browser build" >&2; exit 1; \
-    fi && npm run build && npm prune --omit=dev --ignore-scripts --offline --no-audit --no-fund \
+    fi && npm run build && npm prune --omit=dev --package-lock=false --ignore-scripts --offline --no-audit --no-fund \
     && chmod -R a+rX /app
 
 FROM ${NODE_IMAGE}
