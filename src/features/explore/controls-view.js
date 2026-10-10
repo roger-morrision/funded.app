@@ -71,6 +71,7 @@ export function renderExploreControls(
     button.setAttribute('aria-pressed', String(active));
   });
   const checked = document.querySelector('#explore-last-updated');
+  if (checked) checked.hidden = Boolean(exploreUpdatedAt);
   if (checked) checked.textContent = exploreUpdatedAt ? `Checked ${new Date(exploreUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Waiting for first check';
 }
 
@@ -129,6 +130,7 @@ export function renderExplorePayoutStats(
   if (!container) return;
   const stats = analyticsSummary?.feePayoutStats;
   const ready = stats?.cluster === EXPLORE_CLUSTER && stats.commitment === 'finalized';
+  const loading = analyticsSummary == null;
   const cards = [
     { label:'Total fee paid to X accounts', kind:'x' },
     { label:'Total fee paid to creators', kind:'creator' },
@@ -139,7 +141,7 @@ export function renderExplorePayoutStats(
     { label:'Top creator paid', kind:'creator', top:true },
   ];
   container.innerHTML = cards.map(card => {
-    const group = ready ? stats[card.kind] : null;
+    const group = ready && stats[card.kind] ? stats[card.kind] : loading ? null : { status: 'unavailable' };
     const available = ['verified', 'partial'].includes(group?.status);
     const leader = available && card.top ? group.top : null;
     if (card.kind === 'fundedHolder') {
