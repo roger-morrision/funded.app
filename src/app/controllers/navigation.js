@@ -133,7 +133,7 @@ export function createNavigationController(appState) {
     routeGuide.hidden = !guide;
     if (guide) {
       document.querySelector('#route-guide-group').textContent = guide.group;
-      document.querySelector('#route-guide-state').textContent = guide.state;
+      document.querySelector('#route-guide-state').textContent = route === 'referrals' ? document.documentElement.dataset.referralStatus || (appState.connectedWalletAddress ? 'Verify wallet' : 'Connect wallet') : guide.state;
       document.querySelector('#route-guide-title').textContent = copy[0];
       document.querySelector('#route-guide-description').textContent = guide.description;
       for (const [id, action] of [['#route-guide-primary', guide.primary], ['#route-guide-secondary', guide.secondary]]) {

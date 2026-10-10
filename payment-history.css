@@ -131,6 +131,32 @@
 }
 
 .payment-receipt-link svg { width: 17px; height: 17px; }
+.recipients-panel .payment-row a.solana-explorer-link {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  flex: 0 0 44px;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  border-radius: 8px;
+}
+.recipients-panel .solana-explorer-link svg { width: 20px; height: 20px; }
+.recipients-panel .payment-row > .recent-recipient-identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+.recipients-panel .recent-payout-time {
+  display: block;
+  flex-basis: 100%;
+  color: var(--muted, #8b95a5);
+  font-size: 12px;
+  line-height: 1.5;
+}
 .payment-receipt-link:hover {
   border-color: #89a6ec;
   background: #223151;

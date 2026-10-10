@@ -1,3 +1,4 @@
+import { paginateHistory } from '../../../history-pagination.js';
 import { exactLamports } from '../../../exact-lamports.js';
 import { formatReceiptSol } from '../../../receipt-export.js';
 import { formatTokenBaseAmount } from '../../../trade-panel-balance.js';
@@ -132,6 +133,7 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     list.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet.</p>';
     tape.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet.</p>';
   }
+  paginateHistory(tape, {label:'Payment history', selector:'.payment-history-row'});
   const footnote = document.querySelector('#payment-history-footnote');
   if (footnote) footnote.textContent = historyPayouts.length
     ? `Latest ${Math.min(5, historyPayouts.length)} of ${historyPayouts.length} confirmed payments · fees in details${paymentHistoryEvidence.status === 'partial' ? ' · some history is missing' : ''}`

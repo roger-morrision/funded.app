@@ -16,6 +16,7 @@ function documentFixture() {
     setAttribute(name, value) { this.attributes[name] = value; },
     addEventListener(name, callback) { this.events[name] = callback; },
     focus() { document.activeElement = this; }, scrollIntoView() {},
+    after() {}, closest() { return null; }, querySelectorAll() { return this.children; },
   });
   return { document, fields, add(selector) { const element = document.createElement('div'); fields.set(selector, element); return element; } };
 }

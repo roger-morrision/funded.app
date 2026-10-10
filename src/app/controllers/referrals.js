@@ -1,3 +1,5 @@
+import { paginateHistory } from '../../../history-pagination.js';
+import { referralStatusLabel, referralClaimStatusLabel } from '../../../referral-status.js';
 // Dependencies and mutable application state are read live through appState.
 export function createReferralsController(appState) {
   // app-source: 232
@@ -117,6 +119,14 @@ export function createReferralsController(appState) {
   // app-source-end
 
   // app-source: 239
+function updateReferralStatus(state, claimable = 0){
+  const label = referralStatusLabel(state, claimable);
+  document.documentElement.dataset.referralStatus = label;
+  document.querySelectorAll('#referral-command-center .section-state, #referral-total-claimable + small').forEach(node => { node.textContent = label; });
+  if (document.body.classList.contains('page-route-referrals')) { const node = document.querySelector('#route-guide-state'); if (node) node.textContent = label; }
+}
+
+
   function renderReferralClaimPrompt(title = 'Connect wallet to check claimable referral rewards', note = 'Each available reward requires a wallet signature and a separate payout action.', approve = false){
     const panel = document.querySelector('#referral-claim-center');
     if (!panel) return;
@@ -142,6 +152,7 @@ export function createReferralsController(appState) {
     const heading = document.createElement('strong'); heading.textContent = title;
     const detail = document.createElement('small'); detail.textContent = note;
     empty.append(heading, detail); ledger.replaceChildren(empty);
+    paginateHistory(ledger, {label:'Referral history', selector:'.referral-ledger-row', key:appState.connectedWalletAddress});
   }
   // app-source-end
 
@@ -161,16 +172,18 @@ export function createReferralsController(appState) {
     const session = appState.captureWalletSession();
     const walletAddress = session?.address; const dashboard = document.querySelector('#referral-command-center');
     if (!session || !dashboard) return;
+    updateReferralStatus('checking');
     try {
       if (!await appState.ensureReferralSession(session, { interactive })) {
         if (appState.isWalletSessionCurrent(session)) {
+          updateReferralStatus('verification');
           appState.renderReferralClaimPrompt('Verify wallet to view referral rewards', 'Your private referral dashboard needs one wallet approval. Refreshing this page will not request a signature.', true);
           appState.renderReferralActivityEmpty('Wallet verification needed', 'Verify your wallet to check referral activity.');
           appState.renderReferralLedgerEmpty('Wallet verification needed', 'Verify your wallet to check claim receipts.');
         }
         return;
       }
-    } catch (error) { if (appState.isWalletSessionCurrent(session)) { appState.renderReferralClaimPrompt('Referral dashboard unavailable', error.message || 'Try verifying your wallet again.', true); appState.renderReferralActivityEmpty('Access unavailable', 'Verify your wallet to check referral activity.'); appState.renderReferralLedgerEmpty('Access unavailable', 'Verify your wallet to check claim receipts.'); } return; }
+    } catch (error) { if (appState.isWalletSessionCurrent(session)) { updateReferralStatus('unavailable'); appState.renderReferralClaimPrompt('Referral dashboard unavailable', error.message || 'Try verifying your wallet again.', true); appState.renderReferralActivityEmpty('Access unavailable', 'Verify your wallet to check referral activity.'); appState.renderReferralLedgerEmpty('Access unavailable', 'Verify your wallet to check claim receipts.'); } return; }
     if (!appState.isWalletSessionCurrent(session)) return;
     const [result, dashboardResult] = await Promise.all([
       appState.apiRequest(`/api/referral-claims?wallet=${encodeURIComponent(walletAddress)}`).catch(() => ({ available: false })),
@@ -184,23 +197,25 @@ export function createReferralsController(appState) {
         ? `${creators} network creator${creators === 1 ? '' : 's'} reported. Individual activity is not available in this view.`
         : 'Qualified activity appears after verified fee collection is indexed.');
     } else appState.renderReferralActivityEmpty('Activity unavailable', 'The referral dashboard could not be loaded. Try again later.');
-    if (!result.available) { appState.renderReferralClaimPrompt('Referral claim service unavailable', 'No reward action is available until the claim service can be verified.'); appState.renderReferralLedgerEmpty('Receipts unavailable', 'The claim service could not be verified. Try again later.'); return; }
+    if (!result.available) { updateReferralStatus('unavailable'); appState.renderReferralClaimPrompt('Referral claim service unavailable', 'No reward action is available until the claim service can be verified.'); appState.renderReferralLedgerEmpty('Receipts unavailable', 'The claim service could not be verified. Try again later.'); return; }
     if (dashboardResult.available) { const active = document.querySelector('#referral-active-creators'); if (active) active.textContent = String(dashboardResult.data.networkCreators ?? '—'); const conversion = document.querySelector('#referral-conversion-rate'); if (conversion) conversion.textContent = dashboardResult.data.conversionRate == null ? '—' : `${dashboardResult.data.conversionRate}%`; }
     const claims = Array.isArray(result.data.claims) ? result.data.claims : [];
     const claimable = claims.filter(claim => ['awaiting-wallet-signature', 'wallet-verified'].includes(claim.status)).reduce((sum, claim) => sum + Number(claim.amount || 0), 0);
+    updateReferralStatus('ready', claimable);
     const paid = claims.filter(claim => claim.status === 'paid').reduce((sum, claim) => sum + Number(claim.amount || 0), 0);
     const claimableNode = document.querySelector('#referral-total-claimable'); if (claimableNode) claimableNode.textContent = `${claimable.toFixed(4)} SOL`;
     const paidNode = document.querySelector('#referral-paid-total'); if (paidNode) paidNode.textContent = `${paid.toFixed(4)} SOL`;
     const ledger = document.querySelector('#referral-ledger-list');
-    if (ledger) { ledger.replaceChildren(); if (!claims.length) appState.renderReferralLedgerEmpty('No receipts yet', 'Finalized referral claims will appear here.'); else claims.slice().reverse().forEach(claim => { const row = document.createElement('div'); row.className = 'referral-ledger-row'; const label = document.createElement('strong'); label.textContent = `Level ${claim.level}`; const status = document.createElement('small'); status.textContent = claim.status; const amount = document.createElement('b'); amount.textContent = `${Number(claim.amount || 0).toFixed(4)} ${claim.asset}`; row.append(label, status, amount); ledger.append(row); }); }
+    if (ledger) { ledger.replaceChildren(); if (!claims.length) appState.renderReferralLedgerEmpty('No receipts yet', 'Finalized referral claims will appear here.'); else claims.slice().reverse().forEach(claim => { const row = document.createElement('div'); row.className = 'referral-ledger-row'; const label = document.createElement('strong'); label.textContent = `Level ${claim.level}`; const status = document.createElement('small'); status.textContent = referralClaimStatusLabel(claim.status); const amount = document.createElement('b'); amount.textContent = `${Number(claim.amount || 0).toFixed(4)} ${claim.asset}`; row.append(label, status, amount); ledger.append(row); }); }
+    paginateHistory(ledger, {label:'Referral history', selector:'.referral-ledger-row', key:walletAddress});
     let panel = document.querySelector('#referral-claim-center');
     if (!panel) { panel = document.createElement('div'); panel.id = 'referral-claim-center'; panel.className = 'referral-dashboard'; panel.setAttribute('aria-live', 'polite'); dashboard.querySelector('.referral-kpi-grid')?.after(panel); }
     panel.replaceChildren();
     const heading = document.createElement('div'); const title = document.createElement('strong'); title.textContent = 'Referral claim center'; const note = document.createElement('small'); note.textContent = claims.length ? 'Rewards require your wallet signature and a separate payout action.' : 'No claimable referral rewards yet.'; heading.append(title, note); panel.append(heading);
     for (const claim of result.data.claims) {
-      const row = document.createElement('div'); row.className = 'referral-claim-row'; const label = document.createElement('span'); label.textContent = `Level ${claim.level} · ${claim.amount} ${claim.asset} · ${claim.status}`; row.append(label);
+      const row = document.createElement('div'); row.className = 'referral-claim-row'; const label = document.createElement('span'); label.textContent = `Level ${claim.level} · ${claim.amount} ${claim.asset} · ${referralClaimStatusLabel(claim.status)}`; row.append(label);
       if (claim.status === 'awaiting-wallet-signature' && session.provider.signMessage) { const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary-button'; button.textContent = 'Sign claim'; button.onclick = async () => { button.disabled = true; try { appState.assertWalletSessionCurrent(session); const signature = await session.provider.signMessage(new TextEncoder().encode(claim.statement)); appState.assertWalletSessionCurrent(session); await appState.apiRequest(`/api/referral-claims/${encodeURIComponent(claim.id)}/verify`, { method: 'POST', body: { publicKey: walletAddress, signature: appState.bs58.encode(signature) } }); if (appState.isWalletSessionCurrent(session)) await appState.refreshReferralClaims(); } catch (error) { if (appState.isWalletSessionCurrent(session)) { appState.showToast(error.message); button.disabled = false; } } }; row.append(button); }
-      if (claim.status === 'wallet-verified') { const button = document.createElement('button'); button.type = 'button'; button.className = 'primary-button'; button.textContent = 'Execute payout'; button.onclick = async () => { button.disabled = true; try { appState.assertWalletSessionCurrent(session); await appState.apiRequest(`/api/referral-claims/${encodeURIComponent(claim.id)}/execute`, { method: 'POST' }); if (appState.isWalletSessionCurrent(session)) { appState.showToast('Referral reward paid'); await appState.refreshReferralClaims(); } } catch (error) { if (appState.isWalletSessionCurrent(session)) { appState.showToast(error.message); button.disabled = false; } } }; row.append(button); }
+      if (claim.status === 'wallet-verified') { const button = document.createElement('button'); button.type = 'button'; button.className = 'primary-button'; button.textContent = 'Receive SOL'; button.onclick = async () => { button.disabled = true; try { appState.assertWalletSessionCurrent(session); await appState.apiRequest(`/api/referral-claims/${encodeURIComponent(claim.id)}/execute`, { method: 'POST' }); if (appState.isWalletSessionCurrent(session)) { appState.showToast('Referral reward paid'); await appState.refreshReferralClaims(); } } catch (error) { if (appState.isWalletSessionCurrent(session)) { appState.showToast(error.message); button.disabled = false; } } }; row.append(button); }
       if (claim.status === 'paid' && claim.payoutSignature) {
         const receipt = document.createElement('small'); receipt.textContent = `Paid · ${claim.payoutSignature}`; row.append(receipt);
         if (claim.asset === 'SOL' && Number(claim.amount) > 0) {
@@ -250,7 +265,7 @@ export function createReferralsController(appState) {
     document.querySelectorAll('[data-referral-link]').forEach(node => { node.textContent = value; });
     let registered = null;
     try { registered = JSON.parse(localStorage.getItem(`${appState.REFERRAL_SERVER_KEY_PREFIX}${appState.connectedWalletAddress}`) || 'null'); } catch {}
-    const status = document.querySelector('#referral-link-status'); if (status) status.textContent = !code ? 'Connect wallet' : registered?.code === code ? 'Ready to share' : 'Verify to share';
+    const status = document.querySelector('#referral-link-status'); if (status) status.textContent = !code ? 'Connect wallet' : registered?.code === code ? 'Ready to share' : 'Activate link when sharing';
   }
   // app-source-end
 
@@ -287,5 +302,5 @@ export function createReferralsController(appState) {
   }
   // app-source-end
 
-  return { getAppReferralAttribution, trackReferralEvent, captureAppReferral, bindAppReferralToWallet, syncServerReferralState, referralCodeForShare, ensureReferralSession, renderReferralClaimPrompt, renderReferralLedgerEmpty, renderReferralActivityEmpty, refreshReferralClaims, getReferralCode, updateReferralLink, buildReferralUrl, registeredShareCode, openCoinShare };
+  return { updateReferralStatus, getAppReferralAttribution, trackReferralEvent, captureAppReferral, bindAppReferralToWallet, syncServerReferralState, referralCodeForShare, ensureReferralSession, renderReferralClaimPrompt, renderReferralLedgerEmpty, renderReferralActivityEmpty, refreshReferralClaims, getReferralCode, updateReferralLink, buildReferralUrl, registeredShareCode, openCoinShare };
 }

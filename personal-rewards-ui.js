@@ -1,4 +1,5 @@
 import { creatorRewardRow, filterCreatorRewards } from './creator-reward-model.js';
+import { paginateHistory } from './history-pagination.js';
 import { EXPLORE_CLUSTER } from './app-config.js';
 import { formatXClaimSol, summarizeXClaims } from './x-claim-summary.js';
 
@@ -65,6 +66,7 @@ function renderCreatorRows(card, rows) {
     const visible=filterCreatorRewards(rows,{filter:creatorFilter,query:creatorQuery});
     count.textContent=`${visible.length} of ${rows.length} tokens`;
     renderCreatorCards(list,visible);
+    paginateHistory(list, {label:'Creator rewards', selector:'.creator-claim-card', key:`${creatorFilter}:${creatorQuery}`});
     if(!visible.length) { const empty=document.createElement('p');empty.className='field-help';empty.textContent=creatorQuery?'No tokens match your search.':creatorFilter==='active'?'No rewards waiting. Choose All tokens to see past payments.':'No tokens found.';list.append(empty); }
   };
   search.addEventListener('input',()=>{creatorQuery=search.value;render();});

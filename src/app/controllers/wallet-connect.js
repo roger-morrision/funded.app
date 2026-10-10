@@ -91,7 +91,8 @@ export function createWalletConnectController(appState) {
     if (selectedProgram && programNote) programNote.textContent = signingReady ? 'Wallet connected. Review the fee route and launch cost before signing.' : connected ? 'Address linked. Open inside your wallet before signing.' : 'Enter the name and ticker first. Connect only when you are ready to sign.';
     appState.updatePreviewStatusDrawer(connected);
     if (connected) { appState.bindAppReferralToWallet(); void appState.refreshReferralClaims().catch(() => {}); }
-    appState.updateReferralLink();
+    if (!connected) appState.updateReferralStatus('disconnected');
+  appState.updateReferralLink();
     appState.updateOnboardingProgress();
     appState.renderAirdropClaims();
     const selectedAirdropCheck = document.querySelector('#airdrop-selected-status [data-check-community-mint]');
