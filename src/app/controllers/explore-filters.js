@@ -184,21 +184,6 @@ export function createExploreFiltersController(appState) {
   }
   // app-source-end
 
-  // app-source: 434
-  function renderStonkEnhancements(){
-    const quoteList = document.querySelector('#quote-asset-list');
-    const quoteStatus = document.querySelector('#quote-assets-status');
-    if (!quoteList) return;
-    const quoteLoad = appState.apiRequest('/api/quote-assets').then(result => {
-      const verified = result.data?.status === 'onchain-verified-catalog' && result.data?.cluster === appState.EXPLORE_CLUSTER;
-      const assets = verified && Array.isArray(result.data?.assets) ? result.data.assets : [];
-      if (quoteStatus) quoteStatus.textContent = verified ? `${assets.length} available` : 'Unavailable';
-      if (quoteList) quoteList.innerHTML = assets.length ? assets.map(item => `<div class="quote-asset-row"><span class="asset-icon" aria-hidden="true">${appState.escapeHtml(item.symbol.slice(0, 1))}</span><span><strong>${appState.escapeHtml(item.symbol)}</strong><small>${appState.escapeHtml(item.name)} · ${appState.escapeHtml(item.category)}</small></span><b>✓</b></div>`).join('') : '<div class="empty-state">No verified trading currencies are available for this network.</div>';
-    }).catch(() => { if (quoteStatus) quoteStatus.textContent = 'Unavailable'; if (quoteList) quoteList.innerHTML = '<div class="empty-state">Quote catalog unavailable; no unverified assets shown.</div>'; });
-    return quoteLoad;
-  }
-  // app-source-end
-
   // app-source: 435
   function formatOnchainAge(timestamp){
     if (!timestamp) return 'confirmed on-chain';
@@ -211,5 +196,5 @@ export function createExploreFiltersController(appState) {
   }
   // app-source-end
 
-  return { formatFeedAge, marketUsdFilterToSol, exploreFilterOptions, filterExploreTabRecords, formatExploreTradeCount, verifiedPaidListingPayment, explorePaidListingBagMarkup, exploreStageLabel, exploreDevnetVolumeLabel, exploreDevnetVolume, exploreDevnetReserveLabel, exploreDevnetReserve, exploreMarketCapLabel, exploreMarketCapUsd, renderExplorePulse, exploreEmptyReason, renderExploreControls, formatVerifiedPercent, renderExploreBenefitLeaders, formatPayoutSol, renderExplorePayoutStats, exploreSocialLinksMarkup, exploreAssetCardMarkup, decorateExploreAssetCard, exploreOutageCopy, renderExploreAssets, renderStonkEnhancements, formatOnchainAge };
+  return { formatFeedAge, marketUsdFilterToSol, exploreFilterOptions, filterExploreTabRecords, formatExploreTradeCount, verifiedPaidListingPayment, explorePaidListingBagMarkup, exploreStageLabel, exploreDevnetVolumeLabel, exploreDevnetVolume, exploreDevnetReserveLabel, exploreDevnetReserve, exploreMarketCapLabel, exploreMarketCapUsd, renderExplorePulse, exploreEmptyReason, renderExploreControls, formatVerifiedPercent, renderExploreBenefitLeaders, formatPayoutSol, renderExplorePayoutStats, exploreSocialLinksMarkup, exploreAssetCardMarkup, decorateExploreAssetCard, exploreOutageCopy, renderExploreAssets, formatOnchainAge };
 }

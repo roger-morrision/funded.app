@@ -39,10 +39,6 @@ export function initializeCreatorFees(appState) {
   appState.renderExploreAssets();
   // app-source-end
 
-  // app-source: 912
-  appState.renderStonkEnhancements();
-  // app-source-end
-
   // app-source: 913
   let coinSolUsdValues = { spot: NaN, marketCap: NaN, reserve: NaN, virtualQuote: NaN, supply: NaN };
   initializeAppState(appState, 'coinSolUsdValues', coinSolUsdValues);

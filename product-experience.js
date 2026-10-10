@@ -62,7 +62,6 @@ function explore() {
     if (!filters?.hidden) filters.querySelector('button,select,input')?.focus();
   });
   disclosure($('.explore-benefit-leaders'), 'Explore reward programs');
-  disclosure($('.stonk-enhancement-grid'), 'Trading currencies');
 }
 
 function launch() {

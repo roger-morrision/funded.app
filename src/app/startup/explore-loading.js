@@ -24,10 +24,6 @@ export function initializeExploreLoading(appState) {
   appState.createRoutePoller({ run: signal => appState.loadOnchainExploreData(signal), active: () => !appState.coinRouteRequested() && ['overview', 'explore', 'community', 'leaderboard', 'payments'].includes(appState.requestedPageRoute()) && appState.exploreAutoRefresh && Date.now() >= appState.exploreBackoffUntil, intervalMs: 30_000 });
   // app-source-end
 
-  // app-source: 528
-  appState.createRoutePoller({ run: () => appState.renderStonkEnhancements(), active: () => !appState.coinRouteRequested() && appState.requestedPageRoute() === 'explore' && appState.exploreAutoRefresh, intervalMs: 30_000 });
-  // app-source-end
-
   // app-source: 529
   let receiptEvidenceLoading = false;
   initializeAppState(appState, 'receiptEvidenceLoading', receiptEvidenceLoading);
