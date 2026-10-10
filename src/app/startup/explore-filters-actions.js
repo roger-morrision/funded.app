@@ -208,14 +208,6 @@ export function initializeExploreFiltersActions(appState) {
   });
   // app-source-end
 
-  // app-source: 836
-  document.querySelectorAll('.quick-card, .text-button').forEach(el => el.addEventListener('click', () => { if (el.classList.contains('text-button')) appState.showToast('View updated.'); }));
-  // app-source-end
-
-  // app-source: 837
-  document.querySelectorAll('.segmented button:not(.explore-tabs button):not(.registry-order button):not(.explore-timeframe button):not(.explore-view-switch button)').forEach(button => button.addEventListener('click', () => { button.parentElement.querySelector('.active')?.classList.remove('active'); button.classList.add('active'); appState.showToast(`${button.textContent} view selected`); }));
-  // app-source-end
-
   // app-source: 838
   document.querySelectorAll('.filter').forEach(button => button.addEventListener('click', () => appState.openFilterDialog(button)));
   // app-source-end
