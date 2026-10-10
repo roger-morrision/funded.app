@@ -16,6 +16,7 @@ for (const width of [1440, 390]) test(`launch package and X previews update at $
   await expect(page.locator('#preview-symbol')).toHaveText('SAMPLE');
   await expect(page.locator('#launch-x-post-preview')).toContainText('Sample Coin');
   await page.locator('#launch-next').click();
+  await expect(page.locator('#launch-package-example')).toBeVisible();
   await page.locator('.creator-burn-card[data-burn-tier="pro"]').click();
   await expect(page.locator('.launch-package-preview')).toBeVisible();
   await expect(page.locator('#launch-package-example')).toHaveAttribute('data-tier', 'pro');
@@ -35,6 +36,7 @@ for (const width of [1440, 390]) test(`launch preview stays readable when option
   await page.locator('#token-name').fill('Sample Coin');
   await page.locator('#token-symbol').fill('SAMPLE');
   await page.locator('#launch-next').click();
+  await expect(page.locator('#launch-package-example')).toBeVisible();
   const preview = page.locator('.launch-package-preview');
   await expect(preview).toBeVisible();
   const boxes = await preview.evaluate(node => {
