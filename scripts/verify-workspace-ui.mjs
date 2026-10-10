@@ -406,7 +406,7 @@ try {
     assert.equal(await page.locator('#list-name').inputValue(),'Verified Fixture');
     assert.equal(await page.locator('#list-name').getAttribute('readonly'),'');
     assert(await page.locator('#list-pay').isVisible());
-    assert.equal(await page.locator('#list-pay').isEnabled(),(await page.locator('#list-availability').innerText()).includes('25,000 $FUNDED'));
+    assert.equal(await page.locator('#list-pay').isEnabled(),(await page.locator('#list-availability').innerText()).includes('$200 in $FUNDED'));
     await mint.fill('11111111111111111111111111111111');
     assert(!(await details.isVisible()));
     assert(await page.locator('#list-pay').isDisabled());

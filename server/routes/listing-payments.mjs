@@ -4,7 +4,8 @@ import { projectBurnMemo } from '../../funded-burn.js';
 import { invalidRequest } from '../http-policy.mjs';
 import { DEVNET_GENESIS_HASH } from '../automatic-reward-chain.mjs';
 import { readVerifiedListingMint } from '../token-metadata.mjs';
-import { listingBurnBaseUnits, listingMemo } from '../../listing-policy.js';
+import { LISTING_PRICE_USD, listingBurnBaseUnitsForUsd, listingMemo, listingQuoteCurrent } from '../../listing-policy.js';
+import { allowedAuthOrigin } from '../x-auth.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -16,11 +17,53 @@ export function createListingPaymentsRoutes({
   solanaCluster,
   solanaRpcUrl,
   listingBurnAlreadyUsed,
-  listingBurnTokens,
+  currentLaunchTierPricing,
+  clientKey,
+  id,
+  readFundedDecimals,
+  connectionFactory = (url, commitment) => new Connection(url, commitment),
+  verifyListingBurn = verifyFundedBurn,
+  readListingMint = readVerifiedListingMint,
   respond,
 }) {
   const json = (...args) => { respond(...args); return true; };
   return async function handleListingPaymentsRoutes(req, res, url) {
+    if (req.method === 'POST' && url.pathname === '/api/listings/quote') {
+      if (solanaCluster !== 'devnet' || !fundedTokenMint) return json(res, 503, { error:'Paid listings are unavailable on this network.' });
+      if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Request a listing quote from funded.vip.' });
+      if (!await store.chargeRpcRate(`listing-quote:${clientKey(req)}`, 1, 8, Math.floor(Date.now() / 60_000) * 60_000))
+        return json(res, 429, { error:'Too many listing quotes; retry shortly.' });
+      const input = await body(req);
+      let mint, payer;
+      try { mint = new PublicKey(String(input.mint || '')).toBase58(); payer = walletKey(input.payer); }
+      catch { return json(res, 400, { error:'A valid listing mint and paying wallet are required.' }); }
+      const state = await store.read();
+      if (state.listings?.[mint]) return json(res, 409, { error:'This token is already listed.' });
+      let pricing;
+      try { pricing = await currentLaunchTierPricing(); }
+      catch (error) { return json(res, 503, { error:error.message || 'A verified $FUNDED price is unavailable.' }); }
+      let decimals;
+      try {
+        decimals = readFundedDecimals ? await readFundedDecimals() :
+          (await new Connection(solanaRpcUrl, 'confirmed').getTokenSupply(new PublicKey(fundedTokenMint), 'confirmed')).value.decimals;
+      } catch { return json(res, 503, { error:'The $FUNDED mint precision is unavailable. No payment was requested.' }); }
+      let amountBaseUnits;
+      try { amountBaseUnits = listingBurnBaseUnitsForUsd(pricing.tokenPriceUsd, decimals); }
+      catch (error) { return json(res, 503, { error:error.message }); }
+      const now = Date.now();
+      const quote = { id:id('listing'), mint, payer, fundedMint:fundedTokenMint, usd:LISTING_PRICE_USD,
+        decimals, amountBaseUnits:amountBaseUnits.toString(), amountTokens:Number(amountBaseUnits) / (10 ** decimals),
+        tokenPriceUsd:pricing.tokenPriceUsd,
+        pool:pricing.pool, slot:pricing.slot, source:pricing.source,
+        createdAt:new Date(now).toISOString(), expiresAt:new Date(now + 10 * 60_000).toISOString() };
+      await store.update(current => {
+        current.listingQuotes ||= {};
+        for (const [key, old] of Object.entries(current.listingQuotes))
+          if (Date.parse(old.expiresAt) < now - 30 * 86_400_000) delete current.listingQuotes[key];
+        current.listingQuotes[quote.id] = quote;
+      });
+      return json(res, 201, quote);
+    }
     if (req.method === 'POST' && url.pathname === '/api/burn-receipts') {
       const input = await body(req);
       const configuredMint = fundedTokenMint;
@@ -70,6 +113,7 @@ export function createListingPaymentsRoutes({
       try { mint = new PublicKey(String(input.mint || '')).toBase58(); burnWallet = walletKey(input.wallet); }
       catch { return json(res, 400, { error: 'A valid token mint and paying wallet are required.' }); }
       const signature = String(input.signature || '').trim();
+      const quoteId = String(input.quoteId || '').trim();
       if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature)) return json(res, 400, { error: 'A confirmed burn signature is required.' });
       const priorState = await store.read();
       const existing = priorState.listings?.[mint];
@@ -77,20 +121,30 @@ export function createListingPaymentsRoutes({
         ? json(res, 200, existing) : json(res, 409, { error: 'This mint has already been listed with another payment.' });
       if (listingBurnAlreadyUsed(priorState, signature))
         return json(res, 409, { error: 'This burn signature has already been used.' });
-      const rpc = new Connection(solanaRpcUrl, 'finalized');
+      const quote = priorState.listingQuotes?.[quoteId];
+      if (!listingQuoteCurrent(quote, { mint, payer:burnWallet, fundedMint:fundedTokenMint, now:Date.parse(quote?.createdAt) }))
+        return json(res, 409, { error:'A matching $200 listing quote is required. Recover the original signed quote or request a new quote before paying.' });
+      const rpc = connectionFactory(solanaRpcUrl, 'finalized');
       let proof, listingMetadata;
       try {
         if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH)
           return json(res, 503, { error: 'Listing payments require a Solana RPC.' });
         const [trustedLaunch, signedMetadata] = await Promise.all([store.readLaunch(mint), store.readMetadata(mint)]);
-        listingMetadata = await readVerifiedListingMint(rpc, mint, { trustedLaunch, signedMetadata });
+        listingMetadata = await readListingMint(rpc, mint, { trustedLaunch, signedMetadata });
         const fundedSupply = await rpc.getTokenSupply(new PublicKey(fundedTokenMint), 'finalized');
-        const amountBaseUnits = listingBurnBaseUnits(fundedSupply.value.decimals, listingBurnTokens);
-        proof = await verifyFundedBurn({ connection: rpc, signature, fundedMint: fundedTokenMint, wallet: burnWallet,
-          amountBaseUnits: amountBaseUnits.toString(), expectedMemo: listingMemo(mint) });
+        if (fundedSupply.value.decimals !== quote.decimals ||
+          listingBurnBaseUnitsForUsd(quote.tokenPriceUsd, quote.decimals).toString() !== quote.amountBaseUnits)
+          throw new Error('The listing quote no longer matches the $FUNDED mint.');
+        proof = await verifyListingBurn({ connection: rpc, signature, fundedMint: fundedTokenMint, wallet: burnWallet,
+          amountBaseUnits: quote.amountBaseUnits, expectedMemo: listingMemo(mint) });
+        const confirmedAt = Number(proof.blockTime) * 1000;
+        if (!Number.isFinite(confirmedAt) || confirmedAt < Date.parse(quote.createdAt) - 30_000
+          || confirmedAt > Date.parse(quote.expiresAt) + 30_000)
+          throw new Error('The $200 listing quote was not current when the burn finalized. Keep the original receipt for review.');
       } catch (error) { return json(res, 409, { error: error.message || 'The listing payment could not be verified on Solana.' }); }
       const record = { mint, name:listingMetadata.name, symbol:listingMetadata.symbol, wallet: burnWallet, cluster: 'devnet', signature,
-        fundedMint: fundedTokenMint, amountBaseUnits: proof.amountBaseUnits, amountTokens: listingBurnTokens,
+        fundedMint: fundedTokenMint, quoteId, usd:LISTING_PRICE_USD, tokenPriceUsd:quote.tokenPriceUsd,
+        amountBaseUnits: proof.amountBaseUnits, amountTokens: quote.amountTokens, decimals:quote.decimals,
         slot: proof.slot, status: 'listed', onchainVerified: true, metadataSource:listingMetadata.source,
         metadataAddress:listingMetadata.address, listedAt: proof.verifiedAt };
       try {

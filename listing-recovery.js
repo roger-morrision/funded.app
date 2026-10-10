@@ -8,12 +8,14 @@ function encodedBytes(value, bytes) {
 export function validatePendingListing(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)
     || !encodedBytes(value.mint, 32) || !encodedBytes(value.wallet, 32) || !encodedBytes(value.signature, 64)
+    || (value.quoteId != null && !/^listing_\d+_[0-9a-f]{16}$/.test(String(value.quoteId)))
     || (value.cluster != null && value.cluster !== 'devnet')
     || typeof value.name !== 'string' || !value.name.trim() || value.name.length > 256
     || typeof value.symbol !== 'string' || !value.symbol.trim() || value.symbol.length > 64) {
     throw new Error('Saved listing recovery details are invalid. Keep this tab and its data; do not submit another burn.');
   }
-  return { mint: value.mint, name: value.name, symbol: value.symbol, wallet: value.wallet, signature: value.signature, cluster: 'devnet' };
+  return { mint: value.mint, name: value.name, symbol: value.symbol, wallet: value.wallet,
+    signature: value.signature, ...(value.quoteId ? { quoteId:value.quoteId } : {}), cluster: 'devnet' };
 }
 export function readPendingListing(storage) {
   let raw;

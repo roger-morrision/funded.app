@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import bs58 from 'bs58';
 import { Connection, Keypair, PublicKey, Transaction, TransactionInstruction, clusterApiUrl, sendAndConfirmTransaction } from '@solana/web3.js';
 import { createBurnCheckedInstruction, getAccount, getAssociatedTokenAddressSync, getMint, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { listingBurnBaseUnits, listingMemo } from '../listing-policy.js';
+import { listingBurnBaseUnitsForUsd, listingMemo, listingQuoteCurrent } from '../listing-policy.js';
 
 assert.equal(process.env.VITE_SOLANA_CLUSTER, 'devnet'); assert.equal(process.env.VITE_ALLOW_MAINNET, 'false');
 const mint = new PublicKey(String(process.argv[2] || ''));
@@ -18,7 +18,15 @@ const config = await configResponse.json(), metadata = await metadataResponse.js
 assert.equal(configResponse.status, 200); assert.equal(config.cluster, 'devnet'); assert.equal(config.enabled, true);
 assert.equal(metadataResponse.status, 200, JSON.stringify(metadata)); assert.equal(metadata.mint, mint.toBase58());
 const fundedMint = new PublicKey(config.fundedMint), fundedState = await getMint(connection, fundedMint);
-const amount = listingBurnBaseUnits(fundedState.decimals, config.burnTokens);
+const quoteResponse = await fetch(`${apiBase}/api/listings/quote`, { method:'POST',
+  headers:{ 'content-type':'application/json', origin:process.env.FUNDED_QA_ORIGIN || 'https://funded.vip' },
+  body:JSON.stringify({ mint:mint.toBase58(), payer:payer.publicKey.toBase58() }), signal:AbortSignal.timeout(15_000) });
+const quote = await quoteResponse.json();
+assert.equal(quoteResponse.status, 201, JSON.stringify(quote));
+assert(listingQuoteCurrent(quote, { mint:mint.toBase58(), payer:payer.publicKey.toBase58(), fundedMint:fundedMint.toBase58(), now:Date.now() + 60_000 }));
+assert.equal(quote.decimals, fundedState.decimals);
+assert.equal(quote.amountBaseUnits, listingBurnBaseUnitsForUsd(quote.tokenPriceUsd, fundedState.decimals).toString());
+const amount = BigInt(quote.amountBaseUnits);
 const ata = getAssociatedTokenAddressSync(fundedMint, payer.publicKey), before = await getAccount(connection, ata);
 assert(before.amount >= amount, 'Claimant QA budget is insufficient for the listing burn.');
 const transaction = new Transaction().add(
@@ -29,8 +37,8 @@ const signature = await sendAndConfirmTransaction(connection, transaction, [paye
 const status = await connection.getSignatureStatus(signature, { searchTransactionHistory:true }); assert.equal(status.value?.confirmationStatus, 'finalized'); assert.equal(status.value?.err, null);
 const [after, mintAfter] = await Promise.all([getAccount(connection, ata), getMint(connection, fundedMint)]);
 assert.equal(before.amount - after.amount, amount); assert.equal(fundedState.supply - mintAfter.supply, amount);
-const payload = { mint:mint.toBase58(), wallet:payer.publicKey.toBase58(), signature };
+const payload = { mint:mint.toBase58(), wallet:payer.publicKey.toBase58(), signature, quoteId:quote.id };
 const indexedResponse = await fetch(`${apiBase}/api/listings`, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(payload), signal:AbortSignal.timeout(60_000) });
 const indexed = await indexedResponse.json(); assert.equal(indexedResponse.status, 201, JSON.stringify(indexed)); assert.equal(indexed.onchainVerified, true);
 const replay = await fetch(`${apiBase}/api/listings`, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(payload), signal:AbortSignal.timeout(60_000) }); assert.equal(replay.status, 200);
-console.log(JSON.stringify({ status:'verified', cluster:'devnet', mint:mint.toBase58(), wallet:payer.publicKey.toBase58(), signature, amountTokens:config.burnTokens, amountBaseUnits:String(amount), replayStatus:replay.status }));
+console.log(JSON.stringify({ status:'verified', cluster:'devnet', mint:mint.toBase58(), wallet:payer.publicKey.toBase58(), signature, usd:200, amountTokens:quote.amountTokens, amountBaseUnits:String(amount), replayStatus:replay.status }));

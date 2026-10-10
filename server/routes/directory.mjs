@@ -3,11 +3,12 @@ import { PublicKey, Connection } from '@solana/web3.js';
 import { DEVNET_GENESIS_HASH } from '../automatic-reward-chain.mjs';
 import { readVerifiedListingMint } from '../token-metadata.mjs';
 import { projectBurnBoard, walletBurnBoard } from '../leaderboard-burn-board.mjs';
+import { LISTING_PRICE_USD, listingBurnTokens } from '../../listing-policy.js';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
 export function createDirectoryRoutes({
-  store, solanaCluster, route, fundedTokenMint, listingBurnTokens, solanaRpcUrl, walletKey,
+  store, solanaCluster, route, fundedTokenMint, currentLaunchTierPricing, solanaRpcUrl, walletKey,
   respond,
 }) {
 
@@ -46,9 +47,13 @@ export function createDirectoryRoutes({
       return json(res, 200, await store.readLaunches({ limit, offset }));
     }
     if (req.method === 'GET' && url.pathname === '/api/listings/config') {
-      return json(res, 200, { cluster: solanaCluster, enabled: solanaCluster === 'devnet' && Boolean(fundedTokenMint),
-        fundedMint: fundedTokenMint || null, burnTokens: listingBurnTokens, paymentMethod: 'BurnChecked',
-        status: solanaCluster === 'devnet' && fundedTokenMint ? 'ready' : 'unavailable' });
+      let pricing = null;
+      try { pricing = await currentLaunchTierPricing(); } catch { /* A listing cannot be paid without a verified price. */ }
+      const enabled = solanaCluster === 'devnet' && Boolean(fundedTokenMint) && Boolean(pricing);
+      return json(res, 200, { cluster: solanaCluster, enabled, fundedMint: fundedTokenMint || null,
+        usd: LISTING_PRICE_USD, burnTokens: enabled ? listingBurnTokens(pricing.tokenPriceUsd) : null,
+        tokenPriceUsd: enabled ? pricing.tokenPriceUsd : null, observedAt: enabled ? pricing.observedAt : null,
+        paymentMethod: 'BurnChecked', status: enabled ? 'ready' : 'price-unavailable' });
     }
     const listingMintMatch = req.method === 'GET' ? /^\/api\/listings\/mint\/([^/]+)$/.exec(url.pathname) : null;
     if (listingMintMatch) {

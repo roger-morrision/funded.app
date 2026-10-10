@@ -73,6 +73,7 @@ function fixture({ send = 'timeout', storageFailure, confirmation = { value: { e
     setStatus: (message, proof) => messages.push({ message, proof }),
     Transaction: class { add() { return this; } static from(bytes) { return SolanaTransaction.from(bytes); } },
     TransactionInstruction: class {}, createBurnCheckedInstruction: () => ({}), MEMO_PROGRAM: 'synthetic', listingMemo: () => 'synthetic memo',
+    listingQuoteCurrent: () => true, fundedMint:mint,
     waitForSignatureConfirmation: async () => { calls.push('confirm'); if (changeAt === 'confirm') current = false; return confirmation; },
     getAccount: async () => ({ amount: 90n }), getMint: async () => ({ supply: 90n }),
     claimPending: async value => { calls.push('index'); clearPendingListing(value, storage); context.retainedPending = null; },
@@ -92,7 +93,8 @@ function fixture({ send = 'timeout', storageFailure, confirmation = { value: { e
         return send === 'mismatch' ? bs58.encode(new Uint8Array(64).fill(4)) : signature;
       },
     },
-    source: { address: 'synthetic', amount: 100n }, fundedKey: 'synthetic', tokenProgram: 'synthetic', amount: 10n, amountTokens: 25000, decimals: 6, supplyBefore: 100n,
+    source: { address: 'synthetic', amount: 100n }, fundedKey: 'synthetic', tokenProgram: 'synthetic', amount: 10n, amountTokens: 1, decimals: 6, supplyBefore: 100n,
+    quote:{ id:'listing_1000_0123456789abcdef', expiresAt:new Date(Date.now() + 600_000).toISOString() },
   };
   vm.runInNewContext(helpers + submit, context);
   return { context, storage, messages, calls, run: () => context.submitPayment() };

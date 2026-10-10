@@ -19,11 +19,17 @@ async function api(page) {
   const state = { verified: false, posts: [] };
   await page.route('**/api/listings**', async route => {
     const url = new URL(route.request().url()); let body;
-    if (route.request().method() === 'POST') {
+    if (url.pathname.endsWith('/quote')) {
+      const input = route.request().postDataJSON();
+      const now = Date.now();
+      body = { id:`listing_${now}_0123456789abcdef`, mint:input.mint, payer:input.payer,
+        fundedMint:FUNDED, usd:200, amountTokens:1, amountBaseUnits:'1000000', decimals:6, tokenPriceUsd:200,
+        createdAt:new Date(now).toISOString(), expiresAt:new Date(now + 600_000).toISOString() };
+    } else if (route.request().method() === 'POST') {
       const receipt = route.request().postDataJSON(); state.posts.push(receipt);
       if (!state.verified) return route.fulfill({ status: 503, json: { error: 'Fixture verifier unavailable' } });
       body = { ...receipt, onchainVerified: true, cluster: 'devnet' };
-    } else if (url.pathname.endsWith('/config')) body = { enabled: true, cluster: 'devnet', fundedMint: FUNDED, burnTokens: 1 };
+    } else if (url.pathname.endsWith('/config')) body = { enabled: true, cluster: 'devnet', fundedMint: FUNDED, usd:200, burnTokens: 1, tokenPriceUsd:200 };
     else if (url.pathname.includes('/mint/')) body = { cluster: 'devnet', mint: MINT, name: 'Fixture token', symbol: 'FIX' };
     else body = { cluster: 'devnet', listings: [] };
     await route.fulfill({ json: body });

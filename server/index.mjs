@@ -62,7 +62,6 @@ import { createPaymentHistoryReader } from './payment-history.mjs';
 
 import { verifyPumpLaunch } from './launch-verification.mjs';
 
-import { LISTING_BURN_TOKENS } from '../listing-policy.js';
 
 import { parseSignedMetadata, publicMetadata, metadataRecordOrigin } from './devnet-metadata.mjs';
 import { devnetMetadataUri, normalizeDevnetMetadataOrigin, LEGACY_DEVNET_METADATA_ORIGIN } from '../devnet-metadata.js';
@@ -107,6 +106,7 @@ publicPostPaths.add('/api/shares/visit');
 publicPostPaths.add('/api/boosts/quote');
 publicPostPaths.add('/api/boosts/confirm');
 publicPostPaths.add('/api/launch-tier-quote');
+publicPostPaths.add('/api/listings/quote');
 publicPostPaths.add('/api/x-public-trade-shares/challenge');
 publicPostPaths.add('/api/x-public-trade-shares/consent');
 
@@ -121,9 +121,6 @@ function communityClaimService() {
     expectedCommunityProgramDataSha256:process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
 }
 const devnetTestMode = solanaCluster === 'devnet' && process.env.DEVNET_TEST_MODE === 'true';
-const configuredQaListingBurn = Number(process.env.FUNDED_QA_LISTING_BURN_TOKENS || Number(LISTING_BURN_TOKENS));
-const listingBurnTokens = devnetTestMode && Number.isSafeInteger(configuredQaListingBurn) && configuredQaListingBurn > 0
-  && configuredQaListingBurn <= Number(LISTING_BURN_TOKENS) ? configuredQaListingBurn : Number(LISTING_BURN_TOKENS);
 const devMode = process.env.NODE_ENV !== 'production' && solanaCluster === 'devnet' && String(process.env.DEV_MODE || '').toLowerCase() === 'true';
 const devWalletRoles = { creator: 'SOLANA_DEVNET_CREATOR_SECRET_KEY', referrer: 'SOLANA_DEVNET_REFERRER_SECRET_KEY', claimant: 'SOLANA_DEVNET_CLAIMANT_SECRET_KEY' };
 function devWalletKeypair() {
@@ -310,7 +307,7 @@ const handleQuoteAssetsRoutes = createQuoteAssetsRoutes({
   configuredQuoteAssets, solanaRpcUrl, solanaCluster, respond: json,
 });
 const handleDirectoryRoutes = createDirectoryRoutes({
-  store, solanaCluster, route, fundedTokenMint, listingBurnTokens, solanaRpcUrl, walletKey, respond: json,
+  store, solanaCluster, route, fundedTokenMint, currentLaunchTierPricing: () => currentLaunchTierPricing(), solanaRpcUrl, walletKey, respond: json,
 });
 const handleTokenMarketRoutes = createTokenMarketRoutes({
   route, store, clientKey, solanaRpcUrl, solanaCluster, respond: json,
@@ -325,7 +322,8 @@ const handleKeeperCollectionRoutes = createKeeperCollectionRoutes({
   requireAuthorized, body, fetchPump, normalizePumpToken, store, automaticRewardStore, solToLamports, solanaCluster, collectPumpCreatorFees, feeRouterConfig, solanaRpcUrl, respond: json,
 });
 const handleListingPaymentsRoutes = createListingPaymentsRoutes({
-  body, fundedTokenMint, walletKey, store, solanaCluster, solanaRpcUrl, listingBurnAlreadyUsed, listingBurnTokens, respond: json,
+  body, fundedTokenMint, walletKey, store, solanaCluster, solanaRpcUrl, listingBurnAlreadyUsed,
+  currentLaunchTierPricing, clientKey, id, respond: json,
 });
 const handleLaunchRegistrationRoutes = createLaunchRegistrationRoutes({
   solanaCluster, body, store, xFeeReadiness, resolveXUser, fundedTokenMint, solanaRpcUrl, feeRouterConfig, walletSignature, routerAuthorityKeypair, id, invalidateReserveCache, registerAutomaticLaunch, respond: json,

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { listingBurnBaseUnits, listingMemo } from '../listing-policy.js';
+import { LISTING_PRICE_USD, listingBurnBaseUnits, listingBurnBaseUnitsForUsd, listingBurnTokens, listingMemo, listingQuoteCurrent } from '../listing-policy.js';
 import { readVerifiedBurnChecked } from '../server/burn-verification.mjs';
 import { isAppPagePath } from '../server/page-routes.mjs';
 import bs58 from 'bs58';
@@ -8,7 +8,7 @@ import bs58 from 'bs58';
 const wallet = '11111111111111111111111111111111';
 const mint = 'So11111111111111111111111111111111111111112';
 const fundedMint = 'FUNDEDmint';
-const amount = listingBurnBaseUnits(6);
+const amount = listingBurnBaseUnits(6, listingBurnTokens(0.01));
 
 function transaction({ memo = listingMemo(mint), burnAmount = amount, failed = false, payer = wallet } = {}) {
   return {
@@ -24,9 +24,24 @@ function transaction({ memo = listingMemo(mint), burnAmount = amount, failed = f
   };
 }
 
-test('listing fee is exactly 25,000 tokens at the mint precision', () => {
-  assert.equal(amount, 25_000_000_000n);
+test('listing fee is $200 converted from the verified token price', () => {
+  assert.equal(LISTING_PRICE_USD, 200);
+  assert.equal(amount, 20_000_000_000n);
+  assert.equal(listingBurnTokens(0.02), 10_000);
+  assert.equal(listingBurnTokens(0.005), 40_000);
+  assert.equal(listingBurnBaseUnitsForUsd(0.03, 6), 6_666_666_667n);
+  assert.throws(() => listingBurnTokens(0));
   assert.throws(() => listingBurnBaseUnits(-1));
+});
+
+test('listing quote binds the mint, payer, fee and expiry', () => {
+  const quote = { id:'listing_1000_0123456789abcdef', mint, payer:wallet, fundedMint,
+    usd:200, amountTokens:20_000, amountBaseUnits:'20000000000', decimals:6,
+    createdAt:new Date(1000).toISOString(), expiresAt:new Date(601_000).toISOString() };
+  assert.equal(listingQuoteCurrent(quote, { mint, payer:wallet, fundedMint, now:10_000 }), true);
+  assert.equal(listingQuoteCurrent(quote, { mint:wallet, payer:wallet, fundedMint, now:10_000 }), false);
+  assert.equal(listingQuoteCurrent(quote, { mint, payer:wallet, fundedMint, now:602_000 }), false);
+  assert.equal(listingQuoteCurrent({ ...quote, usd:199 }, { now:10_000 }), false);
 });
 
 test('a confirmed burn is bound to one listing mint', () => {

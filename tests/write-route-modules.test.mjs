@@ -92,6 +92,64 @@ test('burn and listing receipt replay preserves attribution and never repeats ve
   assert.equal(f.responses[2].data, listing);
 });
 
+test('listing quote binds $200 token amount to mint and payer before any burn', async () => {
+  const state = { listings:{}, listingQuotes:{} };
+  const responses = [];
+  const handle = createListingPaymentsRoutes({ solanaCluster:'devnet', fundedTokenMint:mint,
+    body:async req => req.input, walletKey, clientKey:() => 'fixture', id:() => 'listing_1000_0123456789abcdef',
+    readFundedDecimals:async () => 6,
+    currentLaunchTierPricing:async () => ({ tokenPriceUsd:0.03, pool:mint, slot:123, source:'verified-pump-swap-pool' }),
+    store:{ chargeRpcRate:async () => true, read:async () => state, update:async fn => fn(state) },
+    listingBurnAlreadyUsed:() => false,
+    respond:(_res, status, data) => responses.push({ status, data }) });
+  const request = (path, input) => handle({ method:'POST', input,
+    headers:{ origin:'https://funded.vip', host:'funded.vip' }, socket:{ encrypted:true } }, {}, new URL(path, 'https://funded.vip'));
+  await request('/api/listings/quote', { mint, payer:mint });
+  assert.equal(responses[0].status, 201);
+  assert.equal(responses[0].data.usd, 200);
+  assert.equal(responses[0].data.amountTokens, 6_666.666667);
+  assert.equal(responses[0].data.amountBaseUnits, '6666666667');
+  assert.equal(state.listingQuotes[responses[0].data.id].payer, mint);
+  await request('/api/listings', { mint, wallet:mint, signature:'1'.repeat(64), quoteId:'missing' });
+  assert.equal(responses[1].status, 409);
+  assert.match(responses[1].data.error, /matching \$200 listing quote/);
+});
+
+test('listing registration verifies the quoted base units and finalized quote window', async () => {
+  const now = Date.now();
+  const quote = { id:'listing_1000_0123456789abcdef', mint, payer:mint, fundedMint:mint,
+    usd:200, amountTokens:6_666.666667, amountBaseUnits:'6666666667', decimals:6, tokenPriceUsd:0.03,
+    createdAt:new Date(now - 60_000).toISOString(), expiresAt:new Date(now + 540_000).toISOString() };
+  const state = { listings:{}, listingQuotes:{ [quote.id]:quote } };
+  const responses = [];
+  let confirmedAt = Math.floor(now / 1000);
+  const handle = createListingPaymentsRoutes({ solanaCluster:'devnet', fundedTokenMint:mint,
+    body:async req => req.input, walletKey, store:{ read:async () => state, readLaunch:async () => null,
+      readMetadata:async () => null, update:async fn => fn(state) }, listingBurnAlreadyUsed:() => false,
+    connectionFactory:() => ({ getGenesisHash:async () => 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG',
+      getTokenSupply:async () => ({ value:{ decimals:6 } }) }),
+    readListingMint:async () => ({ name:'Fixture', symbol:'FIX', source:'fixture', address:mint }),
+    verifyListingBurn:async input => {
+      assert.equal(input.amountBaseUnits, '6666666667');
+      assert.equal(input.wallet, mint);
+      return { amountBaseUnits:input.amountBaseUnits, blockTime:confirmedAt, slot:123,
+        verifiedAt:new Date(confirmedAt * 1000).toISOString() };
+    },
+    respond:(_res, status, data) => responses.push({ status, data }) });
+  const request = signature => handle({ method:'POST', input:{ mint, wallet:mint, signature, quoteId:quote.id } },
+    {}, new URL('/api/listings', 'https://funded.vip'));
+  confirmedAt = Math.floor(Date.parse(quote.expiresAt) / 1000) + 60;
+  await request('1'.repeat(64));
+  assert.equal(responses[0].status, 409);
+  assert.deepEqual(state.listings, {});
+  confirmedAt = Math.floor(now / 1000);
+  await request('2'.repeat(64));
+  assert.equal(responses[1].status, 201);
+  assert.equal(state.listings[mint].amountBaseUnits, quote.amountBaseUnits);
+  assert.equal(state.listings[mint].quoteId, quote.id);
+  assert.equal(state.listings[mint].usd, 200);
+});
+
 test('settlements use stored fee evidence, survive queue failure, and replay the same allocation', async () => {
   const signature = 'write-route-settlement';
   const state = { settlements: {}, collections: { [signature]: {
