@@ -80,7 +80,7 @@ function launch() {
     disclosure(description, 'Description · optional');
   }
   const packagePreview = $('.launch-package-preview');
-  if (options && packagePreview) { options.append(packagePreview); disclosure(packagePreview, 'Preview your token page and launch post'); }
+  if (options && packagePreview) options.append(packagePreview);
   setText('[data-launch-step-target="2"] span', 'Rewards & launch');
   $('[data-launch-step-target="2"]')?.setAttribute('aria-label', 'Step 2: Rewards and launch');
   setText('#launch-route-title', 'Launch a token');

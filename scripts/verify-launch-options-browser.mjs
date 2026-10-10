@@ -38,7 +38,8 @@ try {
   }
   await page.locator('#creator-buy-sol').fill('0.01');
   assert.match(await page.locator('#preview-creator-buy').textContent(), /0\.01 SOL/);
-  await advanced.locator(':scope > summary').click();
+  assert.equal(await advanced.locator(':scope > summary').count(), 0, 'Fee sharing must not be collapsible.');
+  assert(await page.locator('#launch-mode-custom').isVisible(), 'Fee sharing controls must be visible by default.');
   await page.locator('#launch-mode-custom').click();
   assert.equal(await page.locator('#launch-mode-custom').getAttribute('aria-pressed'), 'true');
   await page.locator('#creator-wallet-share').fill('60');

@@ -136,11 +136,10 @@ body.page-route-launch .launch-page-flat .launch-tier-first .creator-burn-card >
 .launch-page-flat .creator-burn-section[data-selected-tier="standard"] .launch-tier-balance,
 .launch-page-flat .creator-burn-section[data-selected-tier="standard"] #launch-tier-quote-status { display: none; }
 .launch-page-flat .launch-fee-options { margin: 18px 0 0; border: 1px solid #2d4650; border-radius: 8px; background: #10242a; }
-.launch-page-flat .launch-fee-options > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px; color: #edf4f4; font-size: 13px; font-weight: 800; cursor: pointer; }
-.launch-page-flat .launch-fee-options > summary::marker { content: ''; }
-.launch-page-flat .launch-fee-options > summary::after { content: '⌄'; color: #8bcddd; font-size: 18px; }
-.launch-page-flat .launch-fee-options[open] > summary::after { content: '⌃'; }
-.launch-page-flat .launch-fee-options > summary span { flex: 1; color: #91aab3; font-size: 11px; font-weight: 500; text-align: right; }
+.launch-fee-options > h3 { margin: 0 0 12px; color: var(--text); font-size: 16px; font-weight: 600; }
+.launch-fee-options > h3 span { color: var(--muted); font-size: 13px; font-weight: 400; }
+.launch-page-flat .launch-fee-options > h3 { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; padding: 15px; color: #edf4f4; font-size: 13px; font-weight: 800; }
+.launch-page-flat .launch-fee-options > h3 span { flex: 1; color: #91aab3; font-size: 11px; font-weight: 500; text-align: right; }
 .launch-page-flat .launch-fee-options-body { padding: 0 15px 15px; border-top: 1px solid #2d4650; }
 .launch-page-flat .launch-fee-options .benefit-grid { margin: 14px 0; }
 .launch-page-flat .launch-mode-grid { margin: 16px 0 10px; }
@@ -232,8 +231,8 @@ body.page-route-launch .launch-page-flat .launch-preview-panel { display: none; 
   .launch-page-flat .launch-step-panel,
   .launch-page-flat .launch-step-panel[hidden] { padding: 17px 14px; }
   .launch-funding-grid { grid-template-columns: 1fr; }
-  .launch-page-flat .launch-fee-options > summary { flex-wrap: wrap; }
-  .launch-page-flat .launch-fee-options > summary span { flex-basis: 100%; order: 2; text-align: left; }
+  .launch-page-flat .launch-fee-options > h3 { flex-wrap: wrap; }
+  .launch-page-flat .launch-fee-options > h3 span { flex-basis: 100%; order: 2; text-align: left; }
   .launch-page-flat .launch-submit-row .primary-button { width: 100%; }
   .launch-summary-specs > div, .launch-pay-summary .cost-row { grid-template-columns: minmax(0, 1fr) minmax(76px, auto); gap: 8px; }
   .community-airdrop-highlight { padding: 12px; }

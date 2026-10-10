@@ -29,7 +29,7 @@ try {
   await page.locator('#launch-package-example-art.has-image').waitFor({ state: 'attached' });
   assert.equal(await page.locator('#preview-token-image.has-image').count(), 1);
   await page.getByRole('button', { name: 'Continue to rewards', exact: true }).click();
-  await page.getByText('Preview your token page and launch post', { exact: true }).click();
+  assert.equal(await page.locator('.launch-package-preview').evaluate(node => Boolean(node.closest('details'))), false, 'Package preview must not be collapsible.');
 
   for (const [tier, postCount, text, artVisible] of [
     ['standard', '1 post', 'New project on funded.vip', false],
@@ -46,9 +46,8 @@ try {
   }
 
   const feeOptions = page.locator('.launch-fee-options');
-  assert.equal(await feeOptions.getAttribute('open'), null);
-  await feeOptions.locator('summary').click();
-  assert.notEqual(await feeOptions.getAttribute('open'), null);
+  assert.equal(await feeOptions.evaluate(node => node.tagName), 'SECTION');
+  assert.equal(await feeOptions.locator('summary').count(), 0);
   assert.equal(await page.locator('#launch-mode-custom').isVisible(), true);
   assert.equal(await page.locator('.launch-preview-panel').isVisible(), true);
   const logoWidth = await page.locator('#preview-token-image').evaluate(node => node.getBoundingClientRect().width);
@@ -61,7 +60,7 @@ try {
     assert.equal(await page.locator('#launch-x-post-preview').isVisible(), true);
   }
   if (process.env.SCREENSHOT_PATH) await page.screenshot({ path: process.env.SCREENSHOT_PATH, fullPage: true });
-  console.log('Launch package preview: tier layouts, X drafts, input updates, fee disclosure and responsive widths passed (mocked API; local-only).');
+  console.log('Launch package preview: tier layouts, X drafts, input updates, expanded fee sharing and responsive widths passed (mocked API; local-only).');
 } finally {
   await browser.close();
 }

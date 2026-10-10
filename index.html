@@ -715,7 +715,7 @@
                   <p class="launch-tier-quote-status" id="launch-tier-quote-status" role="status" aria-live="polite">Checking the verified $FUNDED pool price…</p>
                 </section>
 
-                <details class="launch-fee-options"><summary>Fee sharing <span>Optional · 80% goes to your wallet by default</span></summary><div class="launch-fee-options-body"><div class="launch-mode-grid" role="group" aria-label="Distribution mode">
+                <section class="launch-fee-options" aria-labelledby="launch-fee-options-title"><h3 id="launch-fee-options-title">Fee sharing <span>Optional · 80% goes to your wallet by default</span></h3><div class="launch-fee-options-body"><div class="launch-mode-grid" role="group" aria-label="Distribution mode">
                   <button type="button" class="launch-mode-card active" id="launch-mode-quick" aria-pressed="true"><span>RECOMMENDED</span><strong>Simple fee route</strong><small>Allocate all 80% to your wallet. Coin-holder and X-partner fee shares are 0%.</small></button>
                   <button type="button" class="launch-mode-card" id="launch-mode-custom" aria-pressed="false"><span>ADVANCED</span><strong>Custom distribution</strong><small>Split your 80% between your wallet, holder rewards, and a verified X account's linked wallet. X rewards require the mint-specific router to be active.</small></button>
                 </div>
@@ -732,7 +732,7 @@
                     <label class="full-span">Rewarded X account <span class="optional">required above 0%</span><input id="x-recipient" name="xRecipient" placeholder="@account" disabled /></label>
                   </div>
                   <p class="field-help" id="fee-distribution-status" role="status"></p>
-                </section></div></details>
+                </section></div></section>
               </section>
 
               <div class="wizard-actions"><button type="button" class="secondary-button" id="launch-back" hidden>Back</button><span id="wizard-hint" role="status" aria-live="polite" aria-atomic="true">Enter the coin name and ticker to continue.</span><button type="button" class="secondary-button" id="launch-review-retry" hidden>Retry checks</button><button type="button" class="primary-button" id="launch-next" aria-describedby="wizard-hint">Continue</button></div>

@@ -99,7 +99,7 @@ export function createLaunchFormController(appState) {
       const story = document.querySelector('.launch-optional-story');
       if (story) story.open = true;
       const advanced = document.querySelector('#launch-advanced-options, .launch-fee-options');
-      if (advanced) advanced.open = true;
+      if (advanced?.matches('details')) advanced.open = true;
     }
     const hint = document.querySelector('#wizard-hint');
     if (hint && appState.launchStep === 1 && !document.querySelector('#token-name')?.value.trim()) {
