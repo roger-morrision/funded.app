@@ -68,7 +68,7 @@ export function getLaunchStepState(
     if (!distribution.valid) {
       if (!distribution.sharesValid) return { valid: false, message: 'Each creator destination must be between 0% and 80%.' };
       if (!distribution.xRecipientValid) return { valid: false, message: 'Enter a valid X account for the SOL reward.' };
-      return { valid: false, message: 'Creator wallet, holder rewards, and X account reward must total exactly 80%.' };
+      return { valid: false, field: '#creator-wallet-share', messageTarget: '#fee-distribution-status', message: 'Creator wallet, holder rewards, and X account reward must total exactly 80%.' };
     }
     if (distribution.shares.solClaimPercent > 0 && !xFeeStatus.ready) return { valid: false, message: `X account rewards unavailable: ${xFeeFailureDetail()}.` };
     const launchBurn = getLaunchBurnPolicy();

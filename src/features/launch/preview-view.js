@@ -136,9 +136,15 @@ export function updateLaunchPreview(
         ? 'Each creator destination must be between 0% and 80%.'
         : !validation.xRecipientValid
           ? 'Enter a valid X account for the SOL reward.'
-          : `Creator-directed allocation totals ${validation.total.toFixed(1)}%; it must equal 80%.`;
+          : 'Creator wallet, holder rewards, and X account reward must total exactly 80%.';
     feeStatus.className = `field-help ${validation.valid && (feeDistribution.solClaimPercent === 0 || xFeeStatus.ready) ? 'funded-mint-valid' : 'funded-mint-invalid'}`;
     feeStatus.style.display = feeStatus.textContent ? '' : 'none';
+    const invalidShares = !validation.sharesValid || Math.abs(validation.total - FEE_DISTRIBUTION.creatorPercent) >= 0.001;
+    for (const id of ['creator-wallet-share', 'holder-airdrop-share', 'x-share']) {
+      const input = document.getElementById(id);
+      if (invalidShares) input?.setAttribute('aria-invalid', 'true');
+      else input?.removeAttribute('aria-invalid');
+    }
   }
   renderLaunchBurnSelection();
   updateLaunchNavigation();
