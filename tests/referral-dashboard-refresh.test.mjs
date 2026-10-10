@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { referralStatusLabel } from '../referral-status.js';
+import { createWalletSignIn } from '../wallet-signin.js';
 
 const app = await readAppSource();
 function section(start, end) {
@@ -44,6 +45,7 @@ function fixture() {
     renderReferralActivityEmpty: () => {},
     renderReferralLedgerEmpty: () => {},
     renderShareInsights: () => {},
+    updateTokenChatComposerState: () => {},
     document: {
       documentElement: {dataset:{}},
       body: {classList:{contains:()=>false}},
@@ -67,6 +69,7 @@ function fixture() {
       assert.fail(`Unexpected request: ${path}`);
     },
   };
+  context.walletSignIn = createWalletSignIn({ request: context.apiRequest, assertCurrent: context.assertWalletSessionCurrent, encodeSignature: context.bs58.encode });
   vm.runInNewContext(source, context);
   return {
     refresh: () => context.refreshReferralClaims(),
@@ -74,7 +77,7 @@ function fixture() {
     calls,
     get status() { return context.document.documentElement.dataset.referralStatus; },
     get signatures() { return signatures; },
-    expire() { authenticated = false; },
+    expire() { authenticated = false; context.walletSignIn.clear(); },
     mismatch() { authenticated = true; authenticatedWallet = 'another-wallet'; },
   };
 }
@@ -85,7 +88,7 @@ test('wallet refresh checks the session without requesting a signature', async (
   assert.deepEqual(f.calls, ['/api/referrals/session']);
   assert.equal(f.signatures, 0);
   assert.equal(f.status, 'Verify wallet');
-  const button = f.panel.children.find(child => child.textContent === 'Verify wallet to view');
+  const button = f.panel.children.find(child => child.textContent === 'Sign in with wallet');
   assert(button, 'An explicit approval action is available when the session is absent');
 
   await button.click();
@@ -112,5 +115,5 @@ test('a session belonging to another wallet never exposes private claims', async
   await f.refresh();
   assert.deepEqual(f.calls, ['/api/referrals/session']);
   assert.equal(f.signatures, 0);
-  assert(f.panel.children.some(child => child.textContent === 'Verify wallet to view'));
+  assert(f.panel.children.some(child => child.textContent === 'Sign in with wallet'));
 });

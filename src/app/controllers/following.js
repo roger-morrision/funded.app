@@ -7,9 +7,8 @@ export function createFollowingController(appState) {
       if (!host) continue;
       let status = host.querySelector('[data-watchlist-status]');
       if (!status) { status = document.createElement('p'); status.className = 'field-help'; status.dataset.watchlistStatus = ''; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); host.append(status); }
-      const visibleMessage = host.closest('.coin-identity') && appState.watchlistSync.identity() === null ? '' : message;
-      if (status.textContent !== visibleMessage) status.textContent = visibleMessage;
-      status.hidden = !visibleMessage;
+      if (status.textContent !== message) status.textContent = message;
+      status.hidden = !message;
     }
   }
   // app-source-end
@@ -49,7 +48,12 @@ export function createFollowingController(appState) {
   async function saveWatchlist(mint, { remove = false } = {}){
     const saved = await appState.watchlistSync.save(mint, remove);
     if (saved && !remove) window.dispatchEvent(new Event('funded:watchlist-added'));
-    if (!saved) appState.showToast('Favorites could not be saved. Check sign-in and retry.');
+    if (!saved) {
+      const message = appState.watchlistUnavailable && appState.watchlistNotice
+        ? appState.watchlistNotice : 'Favorites could not be saved. Check sign-in and retry.';
+      appState.showWatchlistStatus(message);
+      appState.showToast('Favorites could not be saved. Check sign-in and retry.');
+    } else appState.showWatchlistStatus('');
     return saved;
   }
   // app-source-end

@@ -44,6 +44,7 @@ import { createCoinLoadingController } from './controllers/coin-loading.js';
 import { createCoinNavigationController } from './controllers/coin-navigation.js';
 import { createCoinChatController } from './controllers/coin-chat.js';
 import { createRewardIdentityController } from './controllers/reward-identity.js';
+import { createWalletSignIn } from '../../wallet-signin.js';
 
 export function registerAppControllers(appState) {
   Object.assign(appState, createConnectionsController(appState));
@@ -92,4 +93,9 @@ export function registerAppControllers(appState) {
   Object.assign(appState, createCoinNavigationController(appState));
   Object.assign(appState, createCoinChatController(appState));
   Object.assign(appState, createRewardIdentityController(appState));
+  appState.walletSignIn = createWalletSignIn({
+    request: appState.apiRequest,
+    assertCurrent: session => appState.assertWalletSessionCurrent(session),
+    encodeSignature: bytes => appState.bs58.encode(bytes),
+  });
 }

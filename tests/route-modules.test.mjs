@@ -60,3 +60,67 @@ test('referral session response keeps its no-store header and authentication sta
   assert.equal(headers['cache-control'], 'no-store');
   assert.deepEqual(responses, [{ status: 200, payload: { authenticated: true, wallet: 'test-wallet' } }]);
 });
+
+test('registration reuses only a same-origin session for the challenge wallet', async () => {
+  const wallet = '11111111111111111111111111111111';
+  const state = { referrals: { challenges: {}, wallets: {}, codes: {} } };
+  const responses = [];
+  let sessionWallet = null;
+  const handle = createReferralIdentityRoutes({
+    body: async req => req.payload,
+    walletKey: value => value,
+    referralSession: async () => sessionWallet && { wallet: sessionWallet },
+    referralChallengeStatement: () => 'fixture challenge',
+    referralCodeFromBytes: () => 'ABCDEF',
+    id: () => 'challenge-1',
+    store: { read: async () => state, update: async mutate => mutate(state) },
+    respond: (_res, status, payload) => responses.push({ status, payload }),
+  });
+  const request = (pathname, payload, origin = 'https://funded.vip') => handle({
+    method: 'POST', payload, headers: { host: 'funded.vip', origin }, socket: { encrypted: true },
+  }, {}, url(pathname));
+  await request('/api/referrals/registration/prepare', { wallet });
+  const proof = { challengeId: 'challenge-1', wallet, useWalletSession: true };
+  await request('/api/referrals/registration/verify', proof);
+  assert.equal(responses.at(-1).status, 401);
+  sessionWallet = wallet;
+  await request('/api/referrals/registration/verify', proof, 'https://other.example');
+  assert.equal(responses.at(-1).status, 403);
+  await request('/api/referrals/registration/verify', proof);
+  assert.equal(responses.at(-1).status, 200);
+  assert.equal(state.referrals.wallets[wallet].code, 'ABCDEF');
+  assert.equal(state.referrals.challenges['challenge-1'].status, 'verified');
+});
+
+test('chat accepts the shared wallet session only for its author and app origin', async () => {
+  const wallet = '11111111111111111111111111111111';
+  const mint = 'So11111111111111111111111111111111111111112';
+  const messages = [], responses = [];
+  let sessionWallet = null;
+  const handle = createTokenChatRoutes({
+    body: async req => req.payload,
+    walletKey: value => value,
+    referralSession: async () => sessionWallet && { wallet: sessionWallet },
+    tokenChatSessions: { address: async () => assert.fail('Legacy session lookup must not run') },
+    store: {
+      chargeRpcRate: async () => true,
+      updateCoinChat: async (_mint, mutate) => mutate(messages),
+    },
+    respond: (_res, status, payload) => responses.push({ status, payload }),
+  });
+  const request = (origin, author = wallet) => handle({ method: 'POST',
+    headers: { host: 'funded.vip', origin, 'x-token-chat-session': 'wallet' },
+    socket: { encrypted: true }, payload: { author, text: 'A test discussion message' },
+  }, {}, url(`/api/tokens/${mint}/chat`));
+  await request('https://funded.vip');
+  assert.equal(responses.at(-1).status, 401);
+  sessionWallet = wallet;
+  await request('https://other.example');
+  assert.equal(responses.at(-1).status, 403);
+  await request('https://funded.vip', mint);
+  assert.equal(responses.at(-1).status, 401);
+  await request('https://funded.vip');
+  assert.equal(responses.at(-1).status, 201);
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].author, wallet);
+});

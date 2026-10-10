@@ -14,7 +14,8 @@ const auth=createReferralAuth(store,{verifyMessage:(statement,signature,address)
 
 const first=await auth.start(wallet);
 assert.match(first.challengeId,/^[A-Za-z0-9_-]{43}$/);
-assert.match(first.statement,/funded\.app referral dashboard/);
+assert.match(first.statement,/Sign in to funded\.vip/);
+assert.match(first.statement,/Use referrals and token discussions with one session/);
 assert.equal((await auth.verify(first.challengeId,wallet,'wrong')),null);
 assert.equal((await auth.verify(first.challengeId,wallet,'synthetic-approved')),null,'A failed approval consumes its challenge.');
 

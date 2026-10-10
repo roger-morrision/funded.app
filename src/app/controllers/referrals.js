@@ -54,6 +54,7 @@ export function createReferralsController(appState) {
     const walletAddress = session?.address;
     if (!session || session.provider.remoteMobile || typeof session.provider.signMessage !== 'function') return;
     try {
+      await appState.ensureReferralSession(session, { interactive: true });
       const registrationKey = `${appState.REFERRAL_SERVER_KEY_PREFIX}${walletAddress}`;
       let registered = null;
       try { registered = JSON.parse(localStorage.getItem(registrationKey) || 'null'); } catch {}
@@ -61,9 +62,7 @@ export function createReferralsController(appState) {
         const prepared = await appState.apiRequest('/api/referrals/registration/prepare', { method: 'POST', body: { wallet: walletAddress } });
         if (!prepared.available) return;
         appState.assertWalletSessionCurrent(session);
-        const signature = await session.provider.signMessage(new TextEncoder().encode(prepared.data.statement));
-        appState.assertWalletSessionCurrent(session);
-        const verified = await appState.apiRequest('/api/referrals/registration/verify', { method: 'POST', body: { challengeId: prepared.data.challengeId, wallet: walletAddress, signature: appState.bs58.encode(signature) } });
+        const verified = await appState.apiRequest('/api/referrals/registration/verify', { method: 'POST', body: { challengeId: prepared.data.challengeId, wallet: walletAddress, useWalletSession: true } });
         appState.assertWalletSessionCurrent(session);
         if (verified.data?.code) { registered = verified.data; localStorage.setItem(registrationKey, JSON.stringify(registered)); localStorage.setItem(`funded.app.referral.code.${walletAddress}`, registered.code); }
       }
@@ -72,9 +71,7 @@ export function createReferralsController(appState) {
         const prepared = await appState.apiRequest('/api/referrals/attribution/prepare', { method: 'POST', body: { wallet: walletAddress, code: attribution.code, source:attribution.source || 'direct' } });
         if (!prepared.available) return;
         appState.assertWalletSessionCurrent(session);
-        const signature = await session.provider.signMessage(new TextEncoder().encode(prepared.data.statement));
-        appState.assertWalletSessionCurrent(session);
-        await appState.apiRequest('/api/referrals/attribution/verify', { method: 'POST', body: { challengeId: prepared.data.challengeId, wallet: walletAddress, signature: appState.bs58.encode(signature) } });
+        await appState.apiRequest('/api/referrals/attribution/verify', { method: 'POST', body: { challengeId: prepared.data.challengeId, wallet: walletAddress, useWalletSession: true } });
         appState.assertWalletSessionCurrent(session);
         localStorage.setItem(appState.APP_REFERRAL_KEY, JSON.stringify({ ...attribution, serverVerified: true }));
         appState.trackReferralEvent('server_attribution_verified');
@@ -103,18 +100,10 @@ export function createReferralsController(appState) {
   // app-source: 238
   async function ensureReferralSession(session, { interactive = false } = {}){
     if (!session?.address) throw new Error('Connect a wallet to view your referral dashboard.');
-    const current = await appState.apiRequest('/api/referrals/session').catch(() => null);
+    const ready = await appState.walletSignIn.ensure(session, { interactive });
     appState.assertWalletSessionCurrent(session);
-    if (current?.data?.authenticated && current.data.wallet === session.address) return true;
-    if (!interactive) return false;
-    if (typeof session.provider?.signMessage !== 'function') throw new Error('Connect a wallet that can approve referral dashboard access.');
-    const prepared = await appState.apiRequest('/api/referrals/session/prepare', { method:'POST', body:{ wallet:session.address } });
-    appState.assertWalletSessionCurrent(session);
-    const signed = await session.provider.signMessage(new TextEncoder().encode(prepared.data.statement));
-    appState.assertWalletSessionCurrent(session);
-    const verified = await appState.apiRequest('/api/referrals/session/verify', { method:'POST', body:{ challengeId:prepared.data.challengeId, wallet:session.address, signature:appState.bs58.encode(signed.signature || signed) } });
-    if (!verified.data?.authenticated || verified.data.wallet !== session.address) throw new Error('Referral dashboard approval failed.');
-    return true;
+    appState.updateTokenChatComposerState();
+    return ready;
   }
   // app-source-end
 
@@ -137,7 +126,7 @@ function updateReferralStatus(state, claimable = 0){
     const detail = document.createElement('small'); detail.textContent = note;
     content.append(eyebrow, heading, detail); panel.append(content);
     if (approve) {
-      const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary-button'; button.textContent = 'Verify wallet to view';
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary-button'; button.textContent = 'Sign in with wallet';
       button.addEventListener('click', async () => { button.disabled = true; try { await appState.refreshReferralClaims({ interactive: true }); } finally { button.disabled = false; } });
       panel.append(button);
     }
@@ -177,7 +166,7 @@ function updateReferralStatus(state, claimable = 0){
       if (!await appState.ensureReferralSession(session, { interactive })) {
         if (appState.isWalletSessionCurrent(session)) {
           updateReferralStatus('verification');
-          appState.renderReferralClaimPrompt('Verify wallet to view referral rewards', 'Your private referral dashboard needs one wallet approval. Refreshing this page will not request a signature.', true);
+          appState.renderReferralClaimPrompt('Sign in with wallet to view referral rewards', 'Approve one free sign-in message. Your session works across referrals and token discussions for one hour.', true);
           appState.renderReferralActivityEmpty('Wallet verification needed', 'Verify your wallet to check referral activity.');
           appState.renderReferralLedgerEmpty('Wallet verification needed', 'Verify your wallet to check claim receipts.');
         }

@@ -149,7 +149,7 @@ export function createMobileWalletController({
       const provider = await createMobileWalletProvider(session);
       storage().setItem(MOBILE_WALLET_SESSION_KEY, JSON.stringify(session));
       allowWalletReconnect();
-      activateWallet(provider, 'Phantom mobile wallet connected');
+      activateWallet(provider, 'Phantom mobile wallet connected', { interactiveSignIn: true });
       closeDialog('mobile-wallet-dialog');
       showToast('Phantom wallet connected on desktop');
     } catch (error) { const label=document.querySelector('#mobile-wallet-qr-label'); if(label?.closest('dialog')?.open)label.textContent=error.message; showToast(error.message || 'Phantom connection failed.'); }

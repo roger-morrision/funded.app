@@ -294,7 +294,7 @@ const { handle: handleAirdropsRoutes, invalidateReserveCache } = createAirdropsR
   solanaCluster, solanaRpcUrl, store, automaticRewardStore, fundedTokenMint, clientKey, body, requireAuthorized, communityClaimService, respond: json,
 });
 const handleTokenChatRoutes = createTokenChatRoutes({
-  body, walletKey, store, clientKey, tokenChatSessions, requireAuthorized, respond: json,
+  body, walletKey, store, clientKey, tokenChatSessions, referralSession, requireAuthorized, respond: json,
 });
 const handleReferralIdentityRoutes = createReferralIdentityRoutes({
   referralSession, body, walletKey, referralAuth, requestCookieUrl, store, id, referralChallengeStatement, walletSignature, referralCodeFromBytes, respond: json,

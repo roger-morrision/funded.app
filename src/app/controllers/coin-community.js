@@ -40,8 +40,8 @@ export function createCoinCommunityController(appState) {
     if (!appState.coinChatState.enabled) return '';
     const connected = Boolean(appState.connectedWalletAddress);
     const ready = appState.tokenChatSessionReady();
-    const buttonLabel = !connected ? 'Connect wallet' : ready ? 'Post' : 'Verify once & post';
-    const note = !connected ? 'Connect a Solana wallet to post' : ready ? `Posting as ${appState.escapeHtml(appState.shortAddress(appState.connectedWalletAddress))} · no approval needed for each post` : `Posting as ${appState.escapeHtml(appState.shortAddress(appState.connectedWalletAddress))} · one wallet approval starts a 30-minute chat session`;
+    const buttonLabel = !connected ? 'Connect wallet' : ready ? 'Post' : 'Sign in & post';
+    const note = !connected ? 'Connect a Solana wallet to post' : ready ? `Posting as ${appState.escapeHtml(appState.shortAddress(appState.connectedWalletAddress))} · no approval needed for each post` : `Posting as ${appState.escapeHtml(appState.shortAddress(appState.connectedWalletAddress))} · sign in once to use token discussions`;
     const hidden = appState.readHiddenChatAuthors(appState.EXPLORE_CLUSTER);
     const unhide = hidden.size ? `<button type="button" data-chat-unhide>Show ${hidden.size} hidden wallet${hidden.size === 1 ? '' : 's'}</button>` : '';
     return `<form class="coin-chat-form coin-community-form" id="${prefix}-form"><label><span class="sr-only">Message</span><input id="${prefix}-input" maxlength="${appState.TOKEN_CHAT_MAX_LENGTH}" autocomplete="off" placeholder="Share a useful observation…" required /></label><button class="primary-button" type="submit">${buttonLabel}</button></form><small class="coin-chat-note">${note}. Wallet verification confirms authorship, not trust. ${unhide}</small>`;

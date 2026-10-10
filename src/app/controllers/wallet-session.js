@@ -184,6 +184,7 @@ export function createWalletSessionController(appState) {
 
   // app-source: 594
   function resetWalletDependentViews(){
+    appState.walletSignIn.clear();
     appState.communityWalletAllocations.clear();
     appState.communityClaimReview = null;
     const previousChatToken = appState.coinChatSession?.token;
@@ -245,11 +246,18 @@ export function createWalletSessionController(appState) {
   // app-source-end
 
   // app-source: 596
-  function activateWallet(provider, message = 'Wallet connected'){
+  function activateWallet(provider, message = 'Wallet connected', { interactiveSignIn = false } = {}){
     if (appState.APP_MAINNET_READ_ONLY) return;
     const address = appState.walletAddress(provider);
     if (!address) throw new Error('Wallet did not provide an account address.');
-    if (appState.wallet === provider && appState.connectedWalletAddress === address) return;
+    const signIn = () => {
+      const session = appState.captureWalletSession();
+      void appState.ensureReferralSession(session, { interactive: true })
+        .then(() => { if (appState.isWalletSessionCurrent(session)) void appState.refreshReferralClaims(); })
+        .catch(error => { if (appState.isWalletSessionCurrent(session)) appState.showToast(error?.code === 4001 ? 'Sign-in cancelled. Your wallet remains connected.' : error.message || 'Wallet sign-in is unavailable.'); });
+    };
+    if (appState.wallet === provider && appState.connectedWalletAddress === address) { if (interactiveSignIn) signIn(); return; }
+    if (appState.connectedWalletAddress && appState.connectedWalletAddress !== address) void appState.walletSignIn.logout().catch(() => {});
     appState.walletConnectRequest++;
     appState.walletVersion++;
     appState.resetWalletDependentViews();
@@ -260,6 +268,7 @@ export function createWalletSessionController(appState) {
     if (providerId) appState.saveWalletPreference(appState.WALLET_PROVIDER_KEY, providerId);
     appState.observeWalletProvider(provider);
     appState.setWalletState(message, address, true);
+    if (interactiveSignIn) signIn();
     if (appState.watchlistSync.identity()?.startsWith('wallet:')) void appState.watchlistSync.setIdentity(null);
     void appState.restoreWalletFavorites();
     void appState.refreshPortfolioHoldings();
@@ -276,6 +285,7 @@ export function createWalletSessionController(appState) {
     try { sessionStorage.removeItem(appState.COIN_CHAT_SESSION_KEY); } catch {}
     appState.wallet = null;
     appState.connectedWalletAddress = null;
+    void appState.walletSignIn.logout().catch(() => {});
     appState.launchTierQuote = null;
     void appState.refreshPortfolioHoldings();
     appState.renderTradeBalances();

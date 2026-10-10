@@ -123,7 +123,15 @@ export function createWalletConnectController(appState) {
     if (choice.mobile) { await appState.mobileWallet.open(); return; }
     const provider = choice.provider;
     const request = ++appState.walletConnectRequest;
-    try { const connected = await appState.connectWalletProvider(provider); if (request !== appState.walletConnectRequest) return; appState.allowWalletReconnect(); appState.activateWallet(connected.provider); appState.setLaunchStatus(`Ready to sign with ${connected.publicKey.toBase58()}`); }
+    try {
+      const connected = await appState.connectWalletProvider(provider);
+      const connectedAddress = connected.publicKey.toBase58();
+      const activatedByEvent = appState.wallet === connected.provider && appState.connectedWalletAddress === connectedAddress;
+      if (request !== appState.walletConnectRequest && !activatedByEvent) return;
+      appState.allowWalletReconnect();
+      appState.activateWallet(connected.provider, 'Wallet connected', { interactiveSignIn: true });
+      appState.setLaunchStatus(`Ready to sign with ${connectedAddress}`);
+    }
     catch (error) {
       if (request !== appState.walletConnectRequest) return;
       const message = `Connection failed: ${error.message}`;
@@ -169,7 +177,7 @@ export function createWalletConnectController(appState) {
     const address = publicKey?.toBase58?.();
     if (!address || address !== appState.walletAddress(provider)) { appState.clearWalletState('Wallet account changed', 'Reconnect your wallet to continue safely.'); return; }
     if (address === appState.connectedWalletAddress) return;
-    appState.activateWallet(provider);
+    appState.activateWallet(provider, 'Wallet connected', { interactiveSignIn: true });
     appState.setLaunchStatus(`Wallet changed. Ready to sign with ${address}`);
   }
   // app-source-end

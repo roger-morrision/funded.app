@@ -100,7 +100,7 @@ test('trusted Phantom is restored when the extension injects after app startup',
   expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem('qa.phantom.calls')))).toEqual(['trusted']);
 });
 
-test('reloading a connected wallet never signs for referral access in the background', async ({ page }) => {
+test('explicit wallet connection signs in once and reload never requests another signature', async ({ page }) => {
   let authenticated = false;
   await page.route('**/api/referrals/session**', async route => {
     const url = new URL(route.request().url());
@@ -119,15 +119,6 @@ test('reloading a connected wallet never signs for referral access in the backgr
   await page.locator('#connect-button').click();
   await page.locator('[data-wallet-choice="phantom"]').click();
   await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
-  await expect(page.locator('#referral-claim-center button')).toHaveText('Verify wallet to view');
-  expect(await page.evaluate(() => Number(sessionStorage.getItem('qa.phantom.signatures') || 0))).toBe(0);
-
-  await page.reload();
-  await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
-  await expect(page.locator('#referral-claim-center button')).toHaveText('Verify wallet to view');
-  expect(await page.evaluate(() => Number(sessionStorage.getItem('qa.phantom.signatures') || 0))).toBe(0);
-
-  await page.locator('#referral-claim-center button').click();
   await expect.poll(() => page.evaluate(() => Number(sessionStorage.getItem('qa.phantom.signatures') || 0))).toBe(1);
   await expect(page.locator('#referral-claim-center button')).toHaveCount(0);
 
@@ -138,6 +129,8 @@ test('reloading a connected wallet never signs for referral access in the backgr
 
   authenticated = false;
   await page.reload();
-  await expect(page.locator('#referral-claim-center button')).toHaveText('Verify wallet to view');
+  await expect(page.locator('#referral-claim-center button')).toHaveText('Sign in with wallet');
   expect(await page.evaluate(() => Number(sessionStorage.getItem('qa.phantom.signatures') || 0))).toBe(1);
+  await page.locator('#referral-claim-center button').click();
+  await expect.poll(() => page.evaluate(() => Number(sessionStorage.getItem('qa.phantom.signatures') || 0))).toBe(2);
 });

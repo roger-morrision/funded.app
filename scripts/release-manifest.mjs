@@ -26,7 +26,7 @@ async function scan(directory, exclude = () => false) {
     if (entry.isDirectory()) rows.push(...await scan(path, exclude));
     else if (entry.isFile()) {
       const bytes = await readFile(path);
-      rows.push({ path, bytes: bytes.length, sha256: sha256(bytes) });
+      rows.push({ path: path.replaceAll('\\', '/'), bytes: bytes.length, sha256: sha256(bytes) });
     }
   }
   return rows.sort((a, b) => a.path.localeCompare(b.path));

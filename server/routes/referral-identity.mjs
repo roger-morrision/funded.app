@@ -19,7 +19,9 @@ export function createReferralIdentityRoutes({
     if (req.method === 'GET' && url.pathname === '/api/referrals/session') {
       const session = await referralSession(req);
       res.setHeader('cache-control', 'no-store');
-      return session?.wallet ? json(res, 200, { authenticated:true, wallet:session.wallet }) : json(res, 401, { error:'Approve referral dashboard access with your wallet.' });
+      const expiresAt = Number.isFinite(session?.expiresAt) ? session.expiresAt
+        : Number.isFinite(session?.createdAt) ? session.createdAt + REFERRAL_SESSION_SECONDS * 1000 : undefined;
+      return session?.wallet ? json(res, 200, { authenticated:true, wallet:session.wallet, ...(expiresAt ? { expiresAt } : {}) }) : json(res, 401, { error:'Sign in with your connected wallet.' });
     }
     if (req.method === 'POST' && url.pathname === '/api/referrals/session/prepare') {
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Start referral access from the app origin.' });
@@ -40,7 +42,7 @@ export function createReferralIdentityRoutes({
       const verified = await referralAuth.verify(input.challengeId, input.wallet, input.signature);
       if (!verified) return json(res, 401, { error:'Referral access approval is invalid or expired.' });
       res.setHeader('set-cookie', authCookie('funded_referral_session', verified.token, REFERRAL_SESSION_SECONDS, cookieUrl));
-      return json(res, 200, { authenticated:true, wallet:verified.wallet });
+      return json(res, 200, { authenticated:true, wallet:verified.wallet, expiresAt:verified.expiresAt });
     }
     if (req.method === 'POST' && url.pathname === '/api/referrals/session/logout') {
       let cookieUrl;
@@ -61,8 +63,14 @@ export function createReferralIdentityRoutes({
       const input = await body(req); const state = await store.read(); const challenge = state.referrals.challenges[String(input.challengeId || '')];
       if (!challenge || challenge.action !== 'registration' || challenge.status !== 'awaiting-signature' || Date.parse(challenge.expiresAt) < Date.now()) return json(res, 409, { error: 'Referral registration challenge is invalid or expired.' });
       const publicKey = new PublicKey(walletKey(input.wallet)); if (publicKey.toBase58() !== challenge.wallet) return json(res, 401, { error: 'Wallet does not match the registration challenge.' });
-      const signature = walletSignature(input.signature); const message = new TextEncoder().encode(referralChallengeStatement(challenge));
-      if (!nacl.sign.detached.verify(message, signature, publicKey.toBytes())) return json(res, 401, { error: 'Wallet signature is invalid.' });
+      if (input.useWalletSession === true) {
+        if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Use wallet sign-in from the app origin.' });
+        const session = await referralSession(req);
+        if (session?.wallet !== challenge.wallet) return json(res, 401, { error:'Sign in with this wallet before continuing.' });
+      } else {
+        const signature = walletSignature(input.signature); const message = new TextEncoder().encode(referralChallengeStatement(challenge));
+        if (!nacl.sign.detached.verify(message, signature, publicKey.toBytes())) return json(res, 401, { error: 'Wallet signature is invalid.' });
+      }
       const result = await store.update(current => {
         const existing = current.referrals.wallets[challenge.wallet]; if (existing) return existing;
         let code = referralCodeFromBytes(); while (current.referrals.codes[code]) code = referralCodeFromBytes();
@@ -86,8 +94,14 @@ export function createReferralIdentityRoutes({
       const input = await body(req); const state = await store.read(); const challenge = state.referrals.challenges[String(input.challengeId || '')];
       if (!challenge || challenge.action !== 'attribution' || challenge.status !== 'awaiting-signature' || Date.parse(challenge.expiresAt) < Date.now()) return json(res, 409, { error: 'Referral attribution challenge is invalid or expired.' });
       const publicKey = new PublicKey(walletKey(input.wallet)); if (publicKey.toBase58() !== challenge.wallet) return json(res, 401, { error: 'Wallet does not match the attribution challenge.' });
-      const signature = walletSignature(input.signature); const message = new TextEncoder().encode(referralChallengeStatement(challenge));
-      if (!nacl.sign.detached.verify(message, signature, publicKey.toBytes())) return json(res, 401, { error: 'Wallet signature is invalid.' });
+      if (input.useWalletSession === true) {
+        if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Use wallet sign-in from the app origin.' });
+        const session = await referralSession(req);
+        if (session?.wallet !== challenge.wallet) return json(res, 401, { error:'Sign in with this wallet before continuing.' });
+      } else {
+        const signature = walletSignature(input.signature); const message = new TextEncoder().encode(referralChallengeStatement(challenge));
+        if (!nacl.sign.detached.verify(message, signature, publicKey.toBytes())) return json(res, 401, { error: 'Wallet signature is invalid.' });
+      }
       const attribution = await store.update(current => {
         const existing = current.referrals.attributions[challenge.wallet];
         if (existing) return existing;

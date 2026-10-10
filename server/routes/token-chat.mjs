@@ -35,7 +35,7 @@ function verifyTokenChatSignature(statement, signatureValue, publicKey) {
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
 export function createTokenChatRoutes({
-  body, walletKey, store, clientKey, tokenChatSessions, requireAuthorized,
+  body, walletKey, store, clientKey, tokenChatSessions, referralSession, requireAuthorized,
   respond,
 }) {
 
@@ -75,7 +75,8 @@ export function createTokenChatRoutes({
       }
       const sessionToken = req.headers['x-token-chat-session'];
       if (sessionToken && !allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error: 'Chat session origin is not allowed.' });
-      const sessionAddress = sessionToken ? await tokenChatSessions.address(sessionToken, String(req.headers.origin)) : null;
+      const sessionAddress = sessionToken === 'wallet' ? (await referralSession(req))?.wallet
+        : sessionToken ? await tokenChatSessions.address(sessionToken, String(req.headers.origin)) : null;
       if (sessionToken && !sessionAddress) return json(res, 401, { error: 'Chat verification expired. Verify your wallet again.' });
       const input = await body(req);
       if (action === 'report') {
