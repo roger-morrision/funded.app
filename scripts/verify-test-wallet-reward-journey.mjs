@@ -431,9 +431,11 @@ try {
     .reduce((sum, pool) => sum + BigInt(pool.amount), 0n);
   const automaticMinimum = 10_000_000n;
   let automaticTopUp = null;
+  let qaTopUpLamports = 0n;
   if (availableHolderFunding < automaticMinimum) {
     stage = 'topping-up-automatic-holder-pool';
     const amount = automaticMinimum - availableHolderFunding;
+    qaTopUpLamports = amount;
     automaticTopUp = await chain.fundSolVault({ mint: mint.publicKey.toBase58(), amount: String(amount) });
     await scheduler.recordFundedPool({
       id: `test-wallet-top-up:${launchSignature}`,
@@ -513,6 +515,8 @@ try {
       scheduleId: holderSchedule.id,
       snapshotSlots: holderSchedule.snapshotSlots,
       sourceFundingLamports: availableHolderFunding.toString(),
+      qaTopUpLamports: qaTopUpLamports.toString(),
+      feeFundedWithoutQaTopUp: availableHolderFunding > 0n && qaTopUpLamports === 0n,
       topUpSignature: automaticTopUp?.signature || null,
       payoutSignature: holderPayment.signature,
       paymentAccount: holderPayment.payment,
