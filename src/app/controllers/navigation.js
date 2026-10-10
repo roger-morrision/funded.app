@@ -142,7 +142,7 @@ export function createNavigationController(appState) {
         link.firstChild.textContent = action[0] + ' ';
       }
     }
-    if (route === 'buybacks' || route === 'paid') void appState.loadFundedBurnState();
+    if (route === 'buybacks' || route === 'paid' || (route === 'airdrops' && appState.connectedWalletAddress)) void appState.loadFundedBurnState();
     if (location.hash === '#referral-faq') requestAnimationFrame(() => {
       const faq = document.querySelector('#referral-faq');
       if (faq) faq.tabIndex = -1;

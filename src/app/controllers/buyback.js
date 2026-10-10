@@ -68,11 +68,17 @@ export function createBuybackController(appState) {
   // app-source: 349
   function renderWalletFundedBalance(){
     const balance = document.querySelector('#wallet-popover-funded');
-    if (!balance) return;
-    const note = balance.closest('.wallet-popover-balance')?.parentElement?.querySelector('em');
+    const note = balance?.closest('.wallet-popover-balance')?.parentElement?.querySelector('em');
     const currentWallet = Boolean(appState.connectedWalletAddress && appState.fundedBurnState.wallet === appState.connectedWalletAddress);
     const ready = currentWallet && appState.fundedBurnState.status === 'ready';
-    balance.textContent = ready ? appState.formatTokenBaseUnits(appState.fundedBurnState.balanceBaseUnits, appState.fundedBurnState.decimals, 6) : '—';
+    const amount = ready ? appState.formatTokenBaseUnits(appState.fundedBurnState.balanceBaseUnits, appState.fundedBurnState.decimals, 6) : null;
+    if (balance) balance.textContent = amount ?? '—';
+    const airdropBalance = document.querySelector('#airdrop-funded-balance');
+    if (airdropBalance) {
+      airdropBalance.hidden = !appState.connectedWalletAddress;
+      airdropBalance.querySelector('strong').textContent = ready ? `${amount} $FUNDED`
+        : currentWallet && appState.fundedBurnState.status === 'error' ? 'Balance unavailable' : 'Checking balance…';
+    }
     if (note) note.textContent = ready ? 'Live SPL token balance' : currentWallet && appState.fundedBurnState.status === 'loading' ? 'Loading from Devnet' : 'Balance unavailable';
     appState.renderLaunchBurnSelection();
   }
