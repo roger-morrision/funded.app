@@ -3279,14 +3279,24 @@ function renderExtendedAnalyticsDashboard(){
       for (const payout of recentPayouts.slice(0, 5)) {
         const row = document.createElement('div'); row.className = 'payment-row';
         const identity = document.createElement('span');
+        identity.className = 'recent-recipient-identity';
         const name = document.createElement('strong'); name.textContent = `${({ 'solana-keeper-referral-claim':'Referral', 'mint-router-settle-mint':'X account', 'automatic-creator':'Creator', 'automatic-holder':'Holder', 'automatic-operations':'Operations', 'automatic-community':'Community', 'automatic-x':'X account' })[payout.source] || 'Recipient'} · ${shortAddress(payout.to)}`;
         const proof = document.createElement('a'); proof.href = exploreExplorer(`tx/${encodeURIComponent(payout.signature)}`); proof.target = '_blank'; proof.rel = 'noopener noreferrer';
         proof.className = 'payment-receipt-link solana-explorer-link';
         proof.innerHTML = icon('solana');
         proof.title = 'View transaction on Solana Explorer';
         proof.setAttribute('aria-label', `View transaction ${shortAddress(payout.signature)} on Solana Explorer (opens in a new tab)`);
+        const paid = document.createElement('time'); paid.className = 'recent-payout-time';
+        const payoutDate = Number.isSafeInteger(payout.blockTime) && payout.blockTime > 0
+          ? new Date(payout.blockTime * 1000) : null;
+        if (payoutDate && Number.isFinite(payoutDate.getTime())) {
+          paid.dateTime = payoutDate.toISOString();
+          paid.textContent = `Paid ${payoutDate.toLocaleString('en-US', { timeZone:'UTC', year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:false })} UTC`;
+        } else {
+          paid.textContent = 'Payout time unavailable';
+        }
         const amount = document.createElement('span'); amount.className = 'payment-amount'; amount.textContent = `${formatTokenBaseAmount(payout.actualReceivedLamports, 9, 9)} SOL received`;
-        identity.append(name, proof); row.append(identity, amount); target.append(row);
+        identity.append(name, proof, paid); row.append(identity, amount); target.append(row);
       }
     } else if (target && receiptEvidenceChecked && !paymentHistoryEvidence) {
       target.className = 'empty-state';
