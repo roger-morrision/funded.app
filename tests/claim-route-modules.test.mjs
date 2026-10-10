@@ -106,6 +106,37 @@ function referralFixture(transfer, reconcile = () => assert.fail('Unexpected rec
   return { ...f, state, signer, address };
 }
 
+test('expired unsigned referral claims renew without opening paid or pending entitlements', async () => {
+  const recipient = Keypair.generate().publicKey.toBase58();
+  const old = { id: 'old', settlementSignature: 'collection', level: 1, recipientWallet: recipient,
+    amount: 0.01, asset: 'SOL', nonce: 'old-nonce', status: 'wallet-verified', publicKey: recipient,
+    expiresAt: new Date(Date.now() - 60_000).toISOString() };
+  const state = { settlements: { collection: { asset: 'SOL', fundedApp: { referralLevels: [
+    { level: 1, recipient, amount: 0.01, status: 'claimable' },
+  ] } } }, referralClaims: { old }, payouts: {} };
+  let nextId = 0;
+  const f = fixture(createReferralClaimsRoutes, { walletKey: value => value, id: () => `new-${++nextId}`,
+    referralClaimExpiryMs: 60_000, store: { update: async fn => fn(state),
+      readReferralClaimState: async () => structuredClone(state) } });
+  const input = { settlementSignature: 'collection', recipientWallet: recipient, level: 1 };
+  await f.request('/api/referral-claims/prepare', input);
+  const renewed = f.responses.at(-1).data;
+  assert.equal(renewed.id, 'new-1');
+  assert.notEqual(renewed.nonce, old.nonce);
+  assert.equal(state.referralClaims.old.status, 'wallet-verified');
+  await f.request('/api/referral-claims/prepare', input);
+  assert.equal(f.responses.at(-1).data.id, renewed.id);
+  await f.request('/api/referral-claims/old/verify');
+  assert.equal(f.responses.at(-1).status, 409);
+  state.referralClaims[renewed.id].status = 'verification-pending';
+  await f.request('/api/referral-claims/prepare', input);
+  assert.equal(f.responses.at(-1).data.id, renewed.id);
+  state.referralClaims[renewed.id].status = 'paid';
+  await f.request('/api/referral-claims/prepare', input);
+  assert.equal(f.responses.at(-1).data.id, renewed.id);
+  assert.equal(nextId, 1);
+});
+
 test('referral execution locks out concurrent requests and paid receipt replay', async () => {
   let release, submitted;
   const started = new Promise(resolve => { submitted = resolve; });

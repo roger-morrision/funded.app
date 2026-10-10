@@ -48,20 +48,27 @@ export function createReferralClaimsRoutes({
         const settlement = state.settlements[settlementSignature];
         const level = settlement?.fundedApp?.referralLevels?.find(item => item.level === levelNumber && item.recipient === recipientWallet && item.status === 'claimable');
         if (!level) throw invalidRequest('No claimable referral reward matches this wallet.');
-        const existing = Object.values(state.referralClaims || {}).find(item => item.settlementSignature === settlementSignature && item.level === levelNumber && item.recipientWallet === recipientWallet);
+        const matching = Object.values(state.referralClaims || {}).filter(item => item.settlementSignature === settlementSignature && item.level === levelNumber && item.recipientWallet === recipientWallet);
+        // A signed transfer or paid claim owns this entitlement even after its
+        // challenge expires. Only an expired, unexecuted challenge may renew.
+        const existing = matching.find(item => ['paid', 'executing', 'verification-pending', 'failed'].includes(item.status))
+          || matching.find(item => !['awaiting-wallet-signature', 'wallet-verified'].includes(item.status)
+            || !Number.isFinite(Date.parse(item.expiresAt)) || Date.parse(item.expiresAt) >= Date.now());
         if (existing) return existing;
         const createdAt = new Date().toISOString(); const created = { id: id('referral_claim'), settlementSignature, level: levelNumber, recipientWallet, amount: level.amount, asset: settlement.asset, nonce: randomBytes(24).toString('hex'), status: 'awaiting-wallet-signature', createdAt, expiresAt: new Date(Date.now() + referralClaimExpiryMs).toISOString() };
         state.referralClaims[created.id] = created;
         return created;
       });
-      return json(res, 200, { ...claim, statement: `funded.app referral reward claim ${claim.id} nonce ${claim.nonce}`, expiresInMinutes: 14 * 24 * 60 });
+      return json(res, 200, { ...claim, statement: `funded.app referral reward claim ${claim.id} nonce ${claim.nonce}`,
+        expiresInMinutes: Math.max(0, Math.ceil((Date.parse(claim.expiresAt) - Date.now()) / 60_000)) });
     }
 
     const referralClaimId = route(url.pathname, req.method, /^\/api\/referral-claims\/([^/]+)\/verify$/);
     if (referralClaimId) {
       const input = await body(req); const state = await store.readReferralClaimState(referralClaimId); const claim = state.referralClaims?.[referralClaimId]; if (!claim) return json(res, 404, { error: 'Referral claim not found.' });
-      if (claim.status === 'wallet-verified' || claim.status === 'paid') return json(res, 200, claim);
+      if (claim.status === 'paid') return json(res, 200, claim);
       if (['executing','verification-pending','failed'].includes(claim.status) || (claim.expiresAt && Date.parse(claim.expiresAt) < Date.now())) return json(res, 409, { error: 'Referral claim is no longer available. Previous attempts need reconciliation.' });
+      if (claim.status === 'wallet-verified') return json(res, 200, claim);
       const publicKey = new PublicKey(walletKey(input.publicKey)); if (publicKey.toBase58() !== claim.recipientWallet) return json(res, 401, { error: 'The claiming wallet must match the referral recipient.' });
       const message = new TextEncoder().encode(`funded.app referral reward claim ${referralClaimId} nonce ${claim.nonce}`); const signature = walletSignature(input.signature);
       if (!nacl.sign.detached.verify(message, signature, publicKey.toBytes())) return json(res, 401, { error: 'Wallet signature is invalid.' });
