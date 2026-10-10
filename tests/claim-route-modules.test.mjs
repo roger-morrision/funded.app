@@ -91,7 +91,7 @@ test('paid X claim replay returns its recorded receipt without invoking a payout
   assert.equal(f.responses[0].data, receipt);
 });
 
-function referralFixture(transfer) {
+function referralFixture(transfer, reconcile = () => assert.fail('Unexpected reconciliation')) {
   const signer = Keypair.generate(), address = signer.publicKey.toBase58();
   const state = { referralClaims: { claim: { id: 'claim', recipientWallet: address, publicKey: address,
     nonce: 'nonce', amount: 0.01, asset: 'SOL', status: 'wallet-verified',
@@ -101,7 +101,7 @@ function referralFixture(transfer) {
       updateReferralClaimState: async (_id, fn) => fn(state) },
     referralSession: async () => ({ wallet: address }), maxReferralPayoutSol: 1,
     devnetTestMode: true, referralPayoutKeypair: () => ({ fixture: true }),
-    executeSolPayout: transfer,
+    executeSolPayout: transfer, reconcileSolPayout: reconcile,
   });
   return { ...f, state, signer, address };
 }
@@ -110,10 +110,12 @@ test('referral execution locks out concurrent requests and paid receipt replay',
   let release, submitted;
   const started = new Promise(resolve => { submitted = resolve; });
   let calls = 0;
-  const f = referralFixture(async ({ recipientWallet }) => {
+  const f = referralFixture(async ({ recipientWallet, onSigned }) => {
     calls++; submitted();
     await new Promise(resolve => { release = resolve; });
-    return { signature: 'mock-transfer', to: recipientWallet };
+    await onSigned({ signature: 'mock-transfer' });
+    return { signature: 'mock-transfer', to: recipientWallet, amountLamports: 10_000_000,
+      recipientDeltaLamports: 10_000_000, finalized: true };
   });
   const pending = f.request('/api/referral-claims/claim/execute');
   await started;
@@ -121,6 +123,7 @@ test('referral execution locks out concurrent requests and paid receipt replay',
   assert.equal(f.responses[0].status, 409);
   release(); await pending;
   assert.equal(f.state.referralClaims.claim.status, 'paid');
+  assert.equal(f.state.referralClaims.claim.pendingSignature, 'mock-transfer');
   await f.request('/api/referral-claims/claim/execute');
   assert.equal(f.responses.at(-1).data.signature, 'mock-transfer');
   assert.equal(calls, 1);
@@ -134,6 +137,32 @@ test('uncertain referral transfer retains a pending state and rejects replay', a
   await f.request('/api/referral-claims/claim/execute');
   assert.equal(f.responses.at(-1).status, 409);
   assert.equal(calls, 1);
+});
+
+test('pending signed referral reconciles to one paid receipt without resending', async () => {
+  let checks = 0;
+  const f = referralFixture(() => assert.fail('Reconciliation must not resend'),
+    async ({ recipientWallet, signature }) => {
+      checks++;
+      return { signature, to: recipientWallet, amountLamports: 10_000_000,
+        recipientDeltaLamports: 10_000_000, finalized: true };
+    });
+  f.state.referralClaims.claim.status = 'verification-pending';
+  f.state.referralClaims.claim.pendingSignature = 'signed-transfer';
+  await f.request('/api/referral-claims/claim/execute');
+  assert.equal(f.responses.at(-1).status, 200);
+  assert.equal(f.state.referralClaims.claim.status, 'paid');
+  await f.request('/api/referral-claims/claim/execute');
+  assert.equal(checks, 1);
+});
+
+test('referral preflight failure keeps the wallet-verified claim retryable', async () => {
+  const f = referralFixture(async () => { const error = new Error('Fund the recipient wallet first.'); error.safeToRetry = true; throw error; });
+  await f.request('/api/referral-claims/claim/execute');
+  assert.equal(f.responses.at(-1).status, 409);
+  assert.match(f.responses.at(-1).data.error, /Fund the recipient wallet/);
+  assert.equal(f.state.referralClaims.claim.status, 'wallet-verified');
+  assert.equal(f.state.referralClaims.claim.pendingSignature, undefined);
 });
 
 test('referral wallet verification checks the signature before changing status', async () => {

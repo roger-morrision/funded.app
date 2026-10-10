@@ -256,6 +256,7 @@ const {
   feeRouterConfig,
   launchPolicyConfig,
   executeSolPayout,
+  reconcileSolPayout,
   collectPumpCreatorFees,
 } = createFeeRouterService({ store, solanaCluster, solanaRpcUrl, fundedTokenMint, devnetTestMode, xConfig, resolveXUser });
 
@@ -339,7 +340,7 @@ const handleCreatorFeesRoutes = createCreatorFeesRoutes({
   store, solanaCluster, route, solanaRpcUrl, readFinalizedEvidence, automaticRewardStore, feeRouterConfig, databaseUrl, body, creatorFeeChallenges, respond: json,
 });
 const handleReferralClaimsRoutes = createReferralClaimsRoutes({
-  body, walletKey, store, id, referralClaimExpiryMs, route, walletSignature, referralSession, maxReferralPayoutSol, devnetTestMode, referralPayoutKeypair, executeSolPayout, respond: json,
+  body, walletKey, store, id, referralClaimExpiryMs, route, walletSignature, referralSession, maxReferralPayoutSol, devnetTestMode, referralPayoutKeypair, executeSolPayout, reconcileSolPayout, respond: json,
 });
 const handleSolClaimsRoutes = createSolClaimsRoutes({
   requireAuthorized, body, store, route, xSession, walletKey, walletSignature, enrollAutomaticXReward, verifyHmacAttestation, automaticRewardStore, xFeeReadiness, feeRouterConfig, routerAuthorityKeypair, solanaRpcUrl, solanaCluster, respond: json,

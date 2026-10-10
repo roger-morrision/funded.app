@@ -16,22 +16,28 @@ export async function mutateReferralClaimState(state,id,mutator) {
   if(!prior||!claim||claim.id!==id)throw new Error('Referral transitions cannot create, delete or rename claims.');
   if(['id','settlementSignature','level','recipientWallet','amount','asset','nonce','expiresAt','createdAt'].some(key=>claim[key]!==prior[key]))throw new Error('Original referral entitlement cannot change.');
   if(prior.publicKey&&claim.publicKey!==prior.publicKey)throw new Error('Original referral wallet cannot change.');
+  if(prior.pendingSignature&&claim.pendingSignature!==prior.pendingSignature)throw new Error('Signed referral transfer cannot change.');
   if(claim.publicKey&&claim.publicKey!==claim.recipientWallet)throw new Error('Referral destination must match the entitled wallet.');
   if(['wallet-verified','executing','paid'].includes(claim.status)&&!claim.publicKey)throw new Error('Referral wallet verification is required.');
   const transitions={
     'awaiting-wallet-signature':['awaiting-wallet-signature','wallet-verified'],
     'wallet-verified':['wallet-verified','executing'],
-    executing:['executing','paid','verification-pending'],
-    'verification-pending':['verification-pending'],failed:['failed'],paid:['paid'],
+    executing:['executing','wallet-verified','paid','verification-pending'],
+    'verification-pending':['verification-pending','paid'],failed:['failed'],paid:['paid'],
   };
   if(!transitions[prior.status]?.includes(claim.status))throw new Error('Referral transition requires reconciliation.');
   if(prior.status==='paid'&&JSON.stringify(prior)!==JSON.stringify(claim))throw new Error('Paid referral claims are immutable.');
+  if(prior.status==='executing'&&claim.status==='wallet-verified'&&(prior.pendingSignature||claim.pendingSignature))
+    throw new Error('A signed referral transfer requires reconciliation.');
   for(const [key,row] of Object.entries(before.payouts))if(JSON.stringify(state.payouts[key])!==JSON.stringify(row))throw new Error('Recorded referral payouts are immutable.');
   for(const [key,row] of Object.entries(state.payouts))if(!Object.hasOwn(before.payouts,key)){
     if(key!==canonical||row.id!==canonical||row.claimId!==id||row.status!=='paid'||claim.status!=='paid'
       ||claim.payoutId!==canonical||claim.payoutSignature!==row.signature||typeof row.signature!=='string'||!row.signature
       ||row.to!==claim.recipientWallet||!Number.isFinite(Number(row.amountSol))||Number(row.amountSol)<=0
-      ||Number(row.amountSol)!==Number(claim.amount)||claim.asset!=='SOL'||row.paidAt!==claim.paidAt)throw new Error('Referral payout must exactly match its paid claim.');
+      ||Number(row.amountSol)!==Number(claim.amount)||claim.asset!=='SOL'||row.paidAt!==claim.paidAt
+      ||claim.pendingSignature!==row.signature||row.finalized!==true
+      ||row.amountLamports!==Math.round(Number(claim.amount)*1_000_000_000)
+      ||row.recipientDeltaLamports!==row.amountLamports)throw new Error('Referral payout must exactly match its paid claim.');
   }
   if(prior.status!=='paid'&&claim.status==='paid'&&(!state.payouts[canonical]||Object.keys(before.payouts).length))throw new Error('Paid referral status needs a new atomic payout and no previous payout.');
   if(claim.status!=='paid'&&(claim.payoutId!==prior.payoutId||claim.payoutSignature!==prior.payoutSignature))throw new Error('Unpaid referral claims cannot acquire payout receipts.');
@@ -50,5 +56,6 @@ export function verifyReferralClaim(current,observed,publicKey,now=Date.now()) {
 export function pendingReferralClaim(current,error,now=Date.now()) {
   if(current?.status!=='executing')return current;
   // A send/confirmation error does not prove that a direct SOL transfer failed.
-  return {...current,status:'verification-pending',failureReason:String(error.message||error),lastAttemptAt:new Date(now).toISOString()};
+  return {...current,status:'verification-pending',pendingSignature:current.pendingSignature||error?.pendingSignature,
+    failureReason:String(error.message||error),lastAttemptAt:new Date(now).toISOString()};
 }

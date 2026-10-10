@@ -4,6 +4,7 @@ import { PublicKey } from '@solana/web3.js';
 import { verifyReferralClaim, pendingReferralClaim } from '../referral-claim-state.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 import nacl from 'tweetnacl';
+import { solToLamports } from '../referral-sol-transfer.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -20,9 +21,21 @@ export function createReferralClaimsRoutes({
   devnetTestMode,
   referralPayoutKeypair,
   executeSolPayout,
+  reconcileSolPayout,
   respond,
 }) {
   const json = (...args) => { respond(...args); return true; };
+  const recordPaid = (claimId, amountSol, transfer) => store.updateReferralClaimState(claimId, current => {
+    const currentClaim = current.referralClaims[claimId];
+    if (!['executing', 'verification-pending'].includes(currentClaim?.status)
+      || currentClaim.pendingSignature !== transfer.signature) throw new Error('Referral claim changed during reconciliation.');
+    const record = { id: `referral:${claimId}`, claimId, amountSol, ...transfer, status: 'paid',
+      paidAt: new Date().toISOString(), source: 'solana-keeper-referral-claim' };
+    current.payouts[record.id] = record;
+    current.referralClaims[claimId] = { ...currentClaim, status: 'paid', payoutId: record.id,
+      payoutSignature: transfer.signature, paidAt: record.paidAt };
+    return record;
+  });
   return async function handleReferralClaimsRoutes(req, res, url) {
     if (req.method === 'POST' && url.pathname === '/api/referral-claims/prepare') {
       const input = await body(req);
@@ -61,6 +74,16 @@ export function createReferralClaimsRoutes({
       const session = await referralSession(req);
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN) || session?.wallet !== claim.recipientWallet) return json(res, 403, { error:'Execute this referral payout from its approved wallet session.' });
       if (claim.status === 'paid') return json(res, 200, state.payouts[claim.payoutId]);
+      if (['executing', 'verification-pending'].includes(claim.status) && claim.pendingSignature) {
+        try {
+          const transfer = await reconcileSolPayout({ recipientWallet: claim.recipientWallet,
+            amountSol: Number(claim.amount), signature: claim.pendingSignature });
+          return json(res, 200, await recordPaid(referralExecuteId, Number(claim.amount), transfer));
+        } catch {
+          return json(res, 409, { error: 'The signed referral transfer still needs finalized reconciliation.',
+            signature: claim.pendingSignature });
+        }
+      }
       if (claim.status !== 'wallet-verified') return json(res, 409, { error: 'The referral claim must be wallet-signed before execution.' });
       if (claim.expiresAt && Date.parse(claim.expiresAt) < Date.now()) return json(res, 409, { error: 'Referral claim has expired.' });
       if (claim.asset !== 'SOL') return json(res, 409, { error: 'Only SOL referral claims are executable by this payout wallet.' });
@@ -74,15 +97,32 @@ export function createReferralClaimsRoutes({
       });
       if (!locked) return json(res, 409, { error: 'Referral claim is already being executed.' });
       try {
-        const transfer = await executeSolPayout({ recipientWallet: claim.recipientWallet, amountSol });
-        const payout = await store.updateReferralClaimState(referralExecuteId,current => {
-          const record = { id: `referral:${referralExecuteId}`, claimId: referralExecuteId, amountSol, ...transfer, status: 'paid', paidAt: new Date().toISOString(), source: 'solana-keeper-referral-claim' };
-          if(current.referralClaims[referralExecuteId]?.status!=='executing')throw new Error('Referral claim changed during execution; reconcile the submitted transfer.');
-          current.payouts[record.id] = record; current.referralClaims[referralExecuteId] = { ...current.referralClaims[referralExecuteId], status: 'paid', payoutId: record.id, payoutSignature: transfer.signature, paidAt: record.paidAt }; return record;
+        const transfer = await executeSolPayout({ recipientWallet: claim.recipientWallet, amountSol,
+          onSigned: async ({ signature }) => {
+            await store.updateReferralClaimState(referralExecuteId, current => {
+              const currentClaim = current.referralClaims[referralExecuteId];
+              if (currentClaim?.status !== 'executing' || currentClaim.pendingSignature) throw new Error('Referral signature journal is unavailable.');
+              currentClaim.pendingSignature = signature;
+              currentClaim.signedAt = new Date().toISOString();
+              return currentClaim;
+            });
+          },
         });
+        if (!transfer.finalized || transfer.amountLamports !== solToLamports(amountSol)
+          || transfer.recipientDeltaLamports !== transfer.amountLamports
+          || transfer.to !== claim.recipientWallet) throw new Error('Referral payout has no exact finalized recipient proof.');
+        const payout = await recordPaid(referralExecuteId, amountSol, transfer);
         return json(res, 200, payout);
       } catch (error) {
-        await store.updateReferralClaimState(referralExecuteId,current => { current.referralClaims[referralExecuteId] = pendingReferralClaim(current.referralClaims[referralExecuteId],error); return current.referralClaims[referralExecuteId]; });
+        await store.updateReferralClaimState(referralExecuteId,current => {
+          const existing = current.referralClaims[referralExecuteId];
+          if (error.safeToRetry && existing?.status === 'executing' && !existing.pendingSignature) {
+            current.referralClaims[referralExecuteId] = { ...existing, status: 'wallet-verified',
+              lastAttemptError: String(error.message || error), lastAttemptAt: new Date().toISOString() };
+          } else current.referralClaims[referralExecuteId] = pendingReferralClaim(existing,error);
+          return current.referralClaims[referralExecuteId];
+        });
+        if (error.safeToRetry) return json(res, 409, { error: error.message });
         throw error;
       }
     }

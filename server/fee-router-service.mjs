@@ -7,12 +7,14 @@ import { deriveFeeRouter, deriveMintFeeRouter, verifyFeeRouterAccount as verifyR
 import { readProgramDataEvidence as readProgramEvidence } from './automatic-reward-chain.mjs';
 import { buildMintCreatorFeeCollectionInstructions as buildMintInstructions } from './pump-fee-collection.mjs';
 import { LAUNCH_TIER_USD } from '../launch-tier-quote.js';
+import { sendFinalizedSolPayout as sendFinalizedReferral, reconcileFinalizedSolPayout as reconcileFinalizedReferral, solToLamports } from './referral-sol-transfer.mjs';
 
 // One service per API instance. Inject RPC/signing dependencies for isolated tests.
 export function createFeeRouterService({
   store, solanaCluster, solanaRpcUrl, fundedTokenMint, devnetTestMode, xConfig, resolveXUser,
   env = process.env, Connection = RpcConnection, OnlinePumpSdk = PumpSdk,
-  sendAndConfirmTransaction = sendTransaction, verifyFeeRouterAccount = verifyRouter,
+  sendAndConfirmTransaction = sendTransaction, sendFinalizedSolPayout = sendFinalizedReferral,
+  reconcileFinalizedSolPayout = reconcileFinalizedReferral, verifyFeeRouterAccount = verifyRouter,
   verifyMintFeeRouterAccount = verifyMintRouter, readProgramDataEvidence = readProgramEvidence,
   buildMintCreatorFeeCollectionInstructions = buildMintInstructions,
 }) {
@@ -110,16 +112,23 @@ export function createFeeRouterService({
     };
   }
 
-  async function executeSolPayout({ recipientWallet, amountSol }) {
+  async function executeSolPayout({ recipientWallet, amountSol, onSigned }) {
     const payer = referralPayoutKeypair();
     if (!payer || (env.SOLANA_REFERRAL_PAYOUT_CONFIGURED !== 'true' && !devnetTestMode)) throw new Error('Dedicated referral payout wallet is not configured.');
     const recipient = new PublicKey(recipientWallet);
-    const lamports = Math.floor(Number(amountSol) * 1_000_000_000);
-    if (!Number.isSafeInteger(lamports) || lamports <= 0) throw new Error('Payout amount must be a positive SOL value.');
+    const lamports = solToLamports(amountSol);
     const connection = new Connection(solanaRpcUrl, 'confirmed');
-    const transaction = new Transaction().add(SystemProgram.transfer({ fromPubkey: payer.publicKey, toPubkey: recipient, lamports }));
-    const signature = await sendAndConfirmTransaction(connection, transaction, [payer], { commitment: 'confirmed' });
-    return { signature, from: payer.publicKey.toBase58(), to: recipient.toBase58(), amountSol: Number(amountSol), cluster: solanaCluster };
+    const proof = await sendFinalizedSolPayout({ connection, payer, recipient, lamports, onSigned });
+    return { ...proof, amountSol: Number(amountSol), cluster: solanaCluster };
+  }
+  async function reconcileSolPayout({ recipientWallet, amountSol, signature }) {
+    const payer = referralPayoutKeypair();
+    if (!payer || (env.SOLANA_REFERRAL_PAYOUT_CONFIGURED !== 'true' && !devnetTestMode)) throw new Error('Dedicated referral payout wallet is not configured.');
+    const recipient = new PublicKey(recipientWallet);
+    const lamports = solToLamports(amountSol);
+    const connection = new Connection(solanaRpcUrl, 'confirmed');
+    const proof = await reconcileFinalizedSolPayout({ connection, payer, recipient, lamports, signature });
+    return { ...proof, amountSol: Number(amountSol), cluster: solanaCluster };
   }
   async function collectPumpCreatorFees({ requestedMint }) {
     const keeper = keeperKeypair();
@@ -163,5 +172,5 @@ export function createFeeRouterService({
     return { requestedMint: mintKey.toBase58(), mint: perMint ? mintKey.toBase58() : null, attribution: perMint ? 'mint-verified' : 'router', onchainVerified: perMint && collectedLamports > 0, router: router.address.toBase58(), signature, beforeLamports, afterLamports, collectedLamports, cluster: solanaCluster, status: collectedLamports > 0 ? 'collected' : 'no-fees' };
   }
 
-  return { keeperKeypair, referralPayoutKeypair, routerAuthorityKeypair, mintRouterReadiness, xFeeReadiness, feeRouterConfig, launchPolicyConfig, executeSolPayout, collectPumpCreatorFees };
+  return { keeperKeypair, referralPayoutKeypair, routerAuthorityKeypair, mintRouterReadiness, xFeeReadiness, feeRouterConfig, launchPolicyConfig, executeSolPayout, reconcileSolPayout, collectPumpCreatorFees };
 }

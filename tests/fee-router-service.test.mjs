@@ -48,6 +48,12 @@ function fixture(overrides = {}) {
     readProgramDataEvidence: async () => { state.verificationReads++; return { account: { executable: state.executable }, sha256: state.programHash }; },
     buildMintCreatorFeeCollectionInstructions: async () => ({ instructions: state.instructions }),
     sendAndConfirmTransaction: async (_connection, transaction, signers) => { state.sends++; state.transaction = transaction; state.signers = signers; return 'fixture-signature'; },
+    sendFinalizedSolPayout: async ({ payer, recipient, lamports, onSigned }) => {
+      state.sends++; state.signers = [payer]; state.lamports = lamports;
+      await onSigned?.({ signature: 'fixture-signature' });
+      return { signature: 'fixture-signature', from: payer.publicKey.toBase58(), to: recipient.toBase58(),
+        amountLamports: lamports, recipientDeltaLamports: lamports, finalized: true };
+    },
     ...overrides,
   });
   return { service, env, state, keeper, authority, payout, revenue, legacy, router, mint: mint.publicKey.toBase58() };
@@ -102,7 +108,9 @@ test('payout passes the dedicated signer and exact lamports to the injected send
   assert.equal(result.from, f.payout.publicKey.toBase58());
   assert.equal(result.to, f.mint);
   assert.equal(f.state.signers[0].publicKey.toBase58(), result.from);
-  assert.equal(f.state.transaction.instructions[0].data.readBigUInt64LE(4), 1_000_000n);
+  assert.equal(f.state.lamports, 1_000_000);
+  assert.equal(result.finalized, true);
+  assert.equal(result.recipientDeltaLamports, 1_000_000);
   assert.equal(f.state.sends, 1);
 });
 
