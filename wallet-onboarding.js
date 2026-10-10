@@ -17,7 +17,7 @@ export function chooseWallet(entries, { devnet = false, preferred = '' } = {}) {
   dialog.querySelector('#wallet-onboarding-network').textContent = devnet
     ? 'Solana Devnet · use test SOL, which has no monetary value.' : 'Solana · transactions require SOL for network fees.';
   const choices = availableWalletChoices(entries);
-  status.textContent = choices.length ? 'Choose a wallet, then approve the connection in its window.'
+  status.textContent = choices.length ? 'Choose a wallet, approve the connection, then sign the free sign-in message.'
     : 'No browser wallet detected. Use Phantom on your phone, or open this site in a browser with a Solana wallet installed.';
   for (const entry of choices) {
     const button = document.createElement('button');

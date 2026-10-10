@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { referralStatusLabel, isReferralSignInCancelled } from '../referral-status.js';
+import { createWalletSignIn } from '../wallet-signin.js';
 
 const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
 function section(start, end) {
@@ -47,6 +48,7 @@ function fixture() {
     renderReferralActivityEmpty: () => {},
     renderReferralLedgerEmpty: () => {},
     renderShareInsights: () => {},
+    updateTokenChatComposerState: () => {},
     document: {
       documentElement: {dataset:{}},
       body: {classList:{contains:()=>false}},
@@ -70,6 +72,7 @@ function fixture() {
       assert.fail(`Unexpected request: ${path}`);
     },
   };
+  context.walletSignIn = createWalletSignIn({ request:context.apiRequest, assertCurrent:context.assertWalletSessionCurrent, encodeSignature:context.bs58.encode });
   vm.runInNewContext(source, context);
   return {
     refresh: () => context.refreshReferralClaims(),
@@ -78,7 +81,7 @@ function fixture() {
     calls,
     get status() { return context.document.documentElement.dataset.referralStatus; },
     get signatures() { return signatures; },
-    expire() { authenticated = false; },
+    expire() { authenticated = false; context.walletSignIn.clear(); },
     mismatch() { authenticated = true; authenticatedWallet = 'another-wallet'; },
     rejectSigning() { signError = Object.assign(new Error('User rejected the request.'), { code:4001 }); },
     allowSigning() { signError = null; },

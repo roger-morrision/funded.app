@@ -31,7 +31,7 @@ export function createReferralAuth(store, { verifyMessage = verifyWalletMessage 
       const canonical = canonicalWallet(wallet);
       const challengeId = opaque();
       const nonce = randomBytes(24).toString('hex');
-      const statement = `funded.app referral dashboard ${canonical} nonce ${nonce}`;
+      const statement = `Sign in to funded.vip\nWallet: ${canonical}\nUse referrals and token discussions with one session.\nNo transaction or network fee.\nNonce: ${nonce}`;
       await store.authPut('referral-challenge', digest(challengeId), { wallet: canonical, statement }, Date.now() + CHALLENGE_SECONDS * 1000);
       return { challengeId, wallet: canonical, statement, expiresInSeconds: CHALLENGE_SECONDS };
     },
@@ -43,8 +43,10 @@ export function createReferralAuth(store, { verifyMessage = verifyWalletMessage 
       try { canonical = canonicalWallet(wallet); } catch { return null; }
       if (canonical !== challenge.wallet || !verifyMessage(challenge.statement, signature, canonical)) return null;
       const token = opaque();
-      await store.authPut('referral-session', digest(token), { wallet: canonical, createdAt: Date.now() }, Date.now() + REFERRAL_SESSION_SECONDS * 1000);
-      return { token, wallet: canonical };
+      const createdAt = Date.now();
+      const expiresAt = createdAt + REFERRAL_SESSION_SECONDS * 1000;
+      await store.authPut('referral-session', digest(token), { wallet: canonical, createdAt, expiresAt }, expiresAt);
+      return { token, wallet: canonical, expiresAt };
     },
     session(token) {
       return validToken(token) ? store.authRead('referral-session', digest(token)) : null;

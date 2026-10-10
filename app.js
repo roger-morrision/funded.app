@@ -1,3 +1,4 @@
+import { createWalletSignIn } from './wallet-signin.js';
 import { boostHistoryRows } from './boost-history-view.js';
 import { paginateHistory } from './history-pagination.js';
 import { portfolioTokenIdentity } from './token-identity.js';
@@ -115,6 +116,7 @@ const exploreExplorer = (path) => `https://explorer.solana.com/${path}${EXPLORE_
 let wallet = null;
 let connectedWalletAddress = null;
 let walletVersion = 0;
+const walletSignIn = createWalletSignIn({ request:apiRequest, assertCurrent:assertWalletSessionCurrent, encodeSignature:bytes => bs58.encode(bytes) });
 let coinChatSession = null;
 let coinChatSessionPromise = null;
 let walletConnectRequest = 0;
@@ -417,6 +419,7 @@ async function syncServerReferralState({ register = true } = {}){
   const walletAddress = session?.address;
   if (!session || session.provider.remoteMobile || typeof session.provider.signMessage !== 'function') return;
   try {
+    await ensureReferralSession(session, { interactive:true });
     const registrationKey = `${REFERRAL_SERVER_KEY_PREFIX}${walletAddress}`;
     let registered = null;
     try { registered = JSON.parse(localStorage.getItem(registrationKey) || 'null'); } catch {}
@@ -424,9 +427,7 @@ async function syncServerReferralState({ register = true } = {}){
       const prepared = await apiRequest('/api/referrals/registration/prepare', { method: 'POST', body: { wallet: walletAddress } });
       if (!prepared.available) return;
       assertWalletSessionCurrent(session);
-      const signature = await session.provider.signMessage(new TextEncoder().encode(prepared.data.statement));
-      assertWalletSessionCurrent(session);
-      const verified = await apiRequest('/api/referrals/registration/verify', { method: 'POST', body: { challengeId: prepared.data.challengeId, wallet: walletAddress, signature: bs58.encode(signature) } });
+      const verified = await apiRequest('/api/referrals/registration/verify', { method: 'POST', body: { challengeId: prepared.data.challengeId, wallet: walletAddress, useWalletSession:true } });
       assertWalletSessionCurrent(session);
       if (verified.data?.code) { registered = verified.data; localStorage.setItem(registrationKey, JSON.stringify(registered)); localStorage.setItem(`funded.app.referral.code.${walletAddress}`, registered.code); }
     }
@@ -435,9 +436,7 @@ async function syncServerReferralState({ register = true } = {}){
       const prepared = await apiRequest('/api/referrals/attribution/prepare', { method: 'POST', body: { wallet: walletAddress, code: attribution.code, source:attribution.source || 'direct' } });
       if (!prepared.available) return;
       assertWalletSessionCurrent(session);
-      const signature = await session.provider.signMessage(new TextEncoder().encode(prepared.data.statement));
-      assertWalletSessionCurrent(session);
-      await apiRequest('/api/referrals/attribution/verify', { method: 'POST', body: { challengeId: prepared.data.challengeId, wallet: walletAddress, signature: bs58.encode(signature) } });
+      await apiRequest('/api/referrals/attribution/verify', { method: 'POST', body: { challengeId: prepared.data.challengeId, wallet: walletAddress, useWalletSession:true } });
       assertWalletSessionCurrent(session);
       localStorage.setItem(APP_REFERRAL_KEY, JSON.stringify({ ...attribution, serverVerified: true }));
       trackReferralEvent('server_attribution_verified');
@@ -458,22 +457,11 @@ async function referralCodeForShare(){
     return code;
   } catch (error) { showToast(error.message || 'Invite link is unavailable.'); return ''; }
 }
-async function ensureReferralSession(session, { interactive = false } = {}){
-  if (!session?.address) throw new Error('Connect a wallet to view your referral dashboard.');
-  const current = await apiRequest('/api/referrals/session').catch(() => null);
+async function ensureReferralSession(session, options = {}){
+  const ready = await walletSignIn.ensure(session, options);
   assertWalletSessionCurrent(session);
-  if (current?.data?.authenticated && current.data.wallet === session.address) return true;
-  if (!interactive) return false;
-  if (typeof session.provider?.signMessage !== 'function') throw new Error('Connect a wallet that can approve referral dashboard access.');
-  const prepared = await apiRequest('/api/referrals/session/prepare', { method:'POST', body:{ wallet:session.address } });
-  assertWalletSessionCurrent(session);
-  if (!prepared.available || !prepared.data?.statement || !prepared.data?.challengeId) throw new Error('Wallet sign-in is temporarily unavailable. Please try again.');
-  const signed = await session.provider.signMessage(new TextEncoder().encode(prepared.data.statement));
-  assertWalletSessionCurrent(session);
-  const verified = await apiRequest('/api/referrals/session/verify', { method:'POST', body:{ challengeId:prepared.data.challengeId, wallet:session.address, signature:bs58.encode(signed.signature || signed) } });
-  assertWalletSessionCurrent(session);
-  if (!verified.data?.authenticated || verified.data.wallet !== session.address) throw new Error('Referral dashboard approval failed.');
-  return true;
+  updateTokenChatComposerState();
+  return ready;
 }
 function updateReferralStatus(state, claimable = 0){
   const label = referralStatusLabel(state, claimable);
@@ -516,13 +504,13 @@ function renderReferralActivityEmpty(title, note){
 async function refreshReferralClaims({ interactive = false } = {}){
   const session = captureWalletSession();
   const walletAddress = session?.address; const dashboard = document.querySelector('#referral-command-center');
-  if (!session || !dashboard) return;
+  if (!session) return;
   updateReferralStatus('checking');
   try {
     if (!await ensureReferralSession(session, { interactive })) {
       if (isWalletSessionCurrent(session)) {
         updateReferralStatus('verification');
-        renderReferralClaimPrompt('Wallet connected · sign in to see rewards', 'Sign a free message to confirm you own this wallet. No transaction or network fee. Your sign-in lasts one hour.', true);
+        renderReferralClaimPrompt('Wallet connected · sign in to see rewards', 'Complete the free sign-in requested when connecting your wallet. One sign-in works across the app for one hour.', true);
         renderReferralActivityEmpty('Sign in to see activity', 'Your wallet is connected. Sign in to view your private referral activity.');
         renderReferralLedgerEmpty('Sign in to see receipts', 'Your wallet is connected. Sign in to view your reward history.');
       }
@@ -540,6 +528,7 @@ async function refreshReferralClaims({ interactive = false } = {}){
     return;
   }
   if (!isWalletSessionCurrent(session)) return;
+  if (!dashboard) return;
   const [result, dashboardResult] = await Promise.all([
     apiRequest(`/api/referral-claims?wallet=${encodeURIComponent(walletAddress)}`).catch(() => ({ available: false })),
     apiRequest(`/api/referrals/dashboard?wallet=${encodeURIComponent(walletAddress)}`).catch(() => ({ available: false })),
@@ -5413,6 +5402,7 @@ function assertWalletSessionCurrent(session){
   if (!isWalletSessionCurrent(session)) throw new Error('Wallet account changed. Review and retry with the connected account.');
 }
 function resetWalletDependentViews(){
+  walletSignIn.clear();
   communityWalletAllocations.clear();
   communityClaimReview = null;
   const previousChatToken = coinChatSession?.token;
@@ -5482,6 +5472,8 @@ function activateWallet(provider, message = 'Wallet connected'){
   if (providerId) saveWalletPreference(WALLET_PROVIDER_KEY, providerId);
   observeWalletProvider(provider);
   setWalletState(message, address, true);
+  // Connection owns the sign-in prompt; navigation reuses the session.
+  void refreshReferralClaims({ interactive:true }).catch(() => {});
   void refreshPortfolioHoldings();
   void refreshTradeBalances();
   queueTradeQuote();
@@ -5493,6 +5485,7 @@ function clearWalletState(message = 'Wallet not connected', detail = 'Connect a 
   try { sessionStorage.removeItem(COIN_CHAT_SESSION_KEY); } catch {}
   wallet = null;
   connectedWalletAddress = null;
+  void walletSignIn.logout().catch(() => {});
   launchTierQuote = null;
   void refreshPortfolioHoldings();
   renderTradeBalances();
@@ -6425,6 +6418,8 @@ function setWalletState(message, detail = '', connected = false){
   const signingReady = connected && canSignTransactions(wallet);
   const header = document.querySelector('#connect-button');
   const walletPopover = document.querySelector('#wallet-popover');
+  const keepWalletMenuOpen = connected && header.dataset.walletAddress === connectedWalletAddress && walletPopover && !walletPopover.hidden;
+  header.dataset.walletAddress = connected ? connectedWalletAddress : '';
   header.classList.toggle('wallet-pill-connected', connected);
   if (connected) {
     const walletIcon = document.createElement('span'); walletIcon.className = 'header-wallet-icon'; walletIcon.setAttribute('aria-hidden', 'true');
@@ -6439,8 +6434,8 @@ function setWalletState(message, detail = '', connected = false){
     header.setAttribute('aria-label', 'Connect wallet');
   }
   header.removeAttribute('title');
-  header.setAttribute('aria-expanded', 'false');
-  if (walletPopover) walletPopover.hidden = true;
+  header.setAttribute('aria-expanded', String(Boolean(keepWalletMenuOpen)));
+  if (walletPopover) walletPopover.hidden = !keepWalletMenuOpen;
   header.onclick = connected ? event => {
     event.stopPropagation();
     if (!walletPopover) return;
@@ -8669,8 +8664,8 @@ function tokenChatComposerMarkup(prefix = 'coin-community'){
   if (!coinChatState.enabled) return '';
   const connected = Boolean(connectedWalletAddress);
   const ready = tokenChatSessionReady();
-  const buttonLabel = !connected ? 'Connect wallet' : ready ? 'Post' : 'Verify once & post';
-  const note = !connected ? 'Connect a Solana wallet to post' : ready ? `Posting as ${escapeHtml(shortAddress(connectedWalletAddress))} · no approval needed for each post` : `Posting as ${escapeHtml(shortAddress(connectedWalletAddress))} · one wallet approval starts a 30-minute chat session`;
+  const buttonLabel = !connected ? 'Connect wallet' : ready ? 'Post' : 'Sign in & post';
+  const note = !connected ? 'Connect a Solana wallet to post' : ready ? `Posting as ${escapeHtml(shortAddress(connectedWalletAddress))} · no approval needed for each post` : `Posting as ${escapeHtml(shortAddress(connectedWalletAddress))} · your wallet sign-in works across token discussions`;
   const hidden = readHiddenChatAuthors(EXPLORE_CLUSTER);
   const unhide = hidden.size ? `<button type="button" data-chat-unhide>Show ${hidden.size} hidden wallet${hidden.size === 1 ? '' : 's'}</button>` : '';
   return `<form class="coin-chat-form coin-community-form" id="${prefix}-form"><label><span class="sr-only">Message</span><input id="${prefix}-input" maxlength="${TOKEN_CHAT_MAX_LENGTH}" autocomplete="off" placeholder="Share a useful observation…" required /></label><button class="primary-button" type="submit">${buttonLabel}</button></form><small class="coin-chat-note">${note}. Wallet verification confirms authorship, not trust. ${unhide}</small>`;
@@ -9373,43 +9368,25 @@ function restoreCoinChatSession(address){
   } catch { try { sessionStorage.removeItem(COIN_CHAT_SESSION_KEY); } catch {} }
 }
 function tokenChatSessionReady(){
-  return Boolean(coinChatSession && coinChatSession.address === connectedWalletAddress && coinChatSession.version === walletVersion && coinChatSession.expiresAtMs > Date.now() + 5_000);
+  return walletSignIn.ready(captureWalletSession());
 }
 function updateTokenChatComposerState(){
   const connected = Boolean(connectedWalletAddress);
   const ready = tokenChatSessionReady();
   document.querySelectorAll('#coin-chat-form, #coin-community-form').forEach(form => {
     const button = form.querySelector('button[type="submit"]');
-    if (button) button.textContent = !connected ? 'Connect wallet' : ready ? 'Post' : 'Verify once & post';
+    if (button) button.textContent = !connected ? 'Connect wallet' : ready ? 'Post' : 'Sign in & post';
     const note = form.nextElementSibling;
     if (note?.classList.contains('coin-chat-note')) note.textContent = !connected
       ? 'Connect a Solana wallet to post. A wallet address does not prove project affiliation.'
       : ready ? `Posting as ${shortAddress(connectedWalletAddress)} · wallet control does not prove project affiliation. Report impersonation.`
-        : `Posting as ${shortAddress(connectedWalletAddress)} · one wallet approval starts a 30-minute chat session. This does not verify project affiliation.`;
+        : `Posting as ${shortAddress(connectedWalletAddress)} · complete wallet sign-in to post across token discussions. This does not verify project affiliation.`;
   });
 }
 async function ensureTokenChatSession(session){
+  await ensureReferralSession(session, { interactive:true });
   assertWalletSessionCurrent(session);
-  if (tokenChatSessionReady()) return coinChatSession.token;
-  if (coinChatSessionPromise) return coinChatSessionPromise;
-  const pending = (async () => {
-    if (typeof session.provider.signMessage !== 'function') throw new Error('Connect a wallet that supports message signing.');
-    const prepared = await apiRequest('/api/token-chat/session/prepare', { method: 'POST', body: { address: session.address } });
-    if (!prepared.available || !prepared.data?.statement) throw new Error('Chat verification is unavailable.');
-    assertWalletSessionCurrent(session);
-    const signed = await session.provider.signMessage(new TextEncoder().encode(prepared.data.statement));
-    assertWalletSessionCurrent(session);
-    const verified = await apiRequest('/api/token-chat/session/verify', { method: 'POST', body: { challengeId: prepared.data.challengeId, signature: bs58.encode(signed.signature || signed) } });
-    assertWalletSessionCurrent(session);
-    if (!verified.available || verified.data?.address !== session.address || !verified.data?.token) throw new Error('Wallet verification could not be completed.');
-    coinChatSession = { address: session.address, version: session.version, token: verified.data.token, expiresAtMs: Date.parse(verified.data.expiresAt) };
-    try { sessionStorage.setItem(COIN_CHAT_SESSION_KEY, JSON.stringify({ address: session.address, token: coinChatSession.token, expiresAtMs: coinChatSession.expiresAtMs })); } catch {}
-    updateTokenChatComposerState();
-    return coinChatSession.token;
-  })();
-  coinChatSessionPromise = pending;
-  try { return await pending; }
-  finally { if (coinChatSessionPromise === pending) coinChatSessionPromise = null; }
+  return 'wallet';
 }
 async function tokenChatRequest(action, payload){
   if (!wallet) await connectWallet();
@@ -9425,6 +9402,7 @@ async function tokenChatRequest(action, payload){
       return await apiRequest(`/api/tokens/${encodeURIComponent(mint)}/chat${action === 'post' ? '' : `/${action}`}`, { method: 'POST', headers: { 'x-token-chat-session': token }, body: { ...payload, ...identityField } });
     } catch (error) {
       if (attempt || !String(error.message).includes('Chat verification expired')) throw error;
+      walletSignIn.clear();
       coinChatSession = null;
       try { sessionStorage.removeItem(COIN_CHAT_SESSION_KEY); } catch {}
       updateTokenChatComposerState();
