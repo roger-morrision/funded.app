@@ -116,7 +116,9 @@ export function updateLaunchNavigation(
     retry.disabled = feeRouterState.status === 'checking' || walletMetricsLoading;
     retry.textContent = retry.disabled ? 'Checking…' : developerBuyLimitReached() ? 'Edit developer buy' : 'Retry checks';
   }
-  hint.textContent = state.message;
+  const inlineWarning = state.messageTarget && document.querySelector(state.messageTarget);
+  hint.hidden = Boolean(inlineWarning?.getClientRects().length);
+  hint.textContent = hint.hidden ? '' : state.message;
   hint.classList.toggle('ready', state.valid);
 }
 
