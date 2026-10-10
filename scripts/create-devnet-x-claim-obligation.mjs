@@ -15,6 +15,9 @@ import { submitPumpDevnetLaunch } from '../launch-flow.js';
 // to the consenting X account that will receive the test claim.
 const handle = String(process.env.X_TEST_HANDLE || '').trim();
 assert.match(handle, /^@[A-Za-z0-9_]{1,15}$/, 'Set X_TEST_HANDLE to a valid recipient such as @example.');
+const existingMint = process.argv.find(arg => arg.startsWith('--settle-existing-mint='))?.slice(23);
+const existingSignature = process.argv.find(arg => arg.startsWith('--settle-existing-signature='))?.slice(28);
+assert.equal(Boolean(existingMint), Boolean(existingSignature), 'Pass both existing mint and collection signature to resume allocation.');
 const appUrl = 'https://funded.vip';
 const localApiUrl = 'http://127.0.0.1:8788';
 const cluster = process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER;
@@ -39,6 +42,26 @@ async function jsonRequest(base, path, options = {}) {
   return data;
 }
 
+async function allocateVerifiedCollection(mintAddress, signature, apiToken = null) {
+  const token = apiToken || (await readFile('.secrets/funded-api-token', 'utf8')).trim();
+  assert(token, 'Local keeper API token is unavailable.');
+  const settlement = await jsonRequest(localApiUrl, '/api/settlements/claims', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify({ claimSignature: signature }),
+  });
+  assert.equal(settlement.claimSignature, signature);
+  assert.equal(settlement.automaticRewards?.status, 'queued', 'X reward allocation was not queued.');
+  const xAllocatedLamports = Math.round(Number(settlement.creatorDestinations?.solClaim) * 1_000_000_000);
+  assert(Number.isSafeInteger(xAllocatedLamports) && xAllocatedLamports > 0, 'The verified collection has no X allocation.');
+  const activity = await jsonRequest(appUrl, `/api/tokens/${mintAddress}/fee-activity`);
+  assert(activity.collections?.some(row => row.signature === signature && Number(row.collectedLamports) > 0), 'The public collection does not match the reviewed signature.');
+  const xReward = activity.overview?.receivers?.find(row => row.id === 'x');
+  assert.equal(xReward?.recipient?.toLowerCase(), handle.toLowerCase());
+  assert.equal(xReward?.allocatedLamports, String(xAllocatedLamports), 'The public payment page has not indexed the X allocation.');
+  return { xAllocatedLamports, xPaidLamports: xReward.confirmedPaidLamports };
+}
+
 async function finalizedTransaction(instructions, signers) {
   const block = await connection.getLatestBlockhash('finalized');
   const transaction = new Transaction({ recentBlockhash: block.blockhash, feePayer: signers[0].publicKey }).add(...instructions);
@@ -52,6 +75,16 @@ async function finalizedTransaction(instructions, signers) {
   assert.equal(status.value?.err, null, `Devnet transaction finalized with an error: ${signature}`);
   delete evidence.pendingSignature;
   return signature;
+}
+
+if (existingMint) {
+  assert.equal(await connection.getGenesisHash(), await official.getGenesisHash(), 'RPC does not point to Solana Devnet.');
+  const mintAddress = new PublicKey(existingMint).toBase58();
+  assert.match(existingSignature, /^[1-9A-HJ-NP-Za-km-z]{64,88}$/, 'Pass a Solana collection signature.');
+  const allocation = await allocateVerifiedCollection(mintAddress, existingSignature);
+  console.log(JSON.stringify({ status:'allocation-verified', cluster, mint:mintAddress, handle,
+    collectionSignature:existingSignature, ...allocation }));
+  process.exit(0);
 }
 
 try {
@@ -203,6 +236,8 @@ try {
   const routerBalance = await connection.getBalance(router, 'finalized');
   evidence.routerBalanceLamports = routerBalance;
   assert(routerBalance > 0, 'Mint router has no finalized balance.');
+  stage = 'allocate-verified-collection';
+  Object.assign(evidence, await allocateVerifiedCollection(mint.toBase58(), collected.signature, keeperToken));
   console.log(JSON.stringify({ status: 'claim-obligation-created', ...evidence }));
 } catch (error) {
   console.error(JSON.stringify({ status: 'blocked', stage, error: String(error.message || error), ...evidence }));
@@ -225,4 +260,6 @@ try {
         error:String(error.message || error), pendingSignature:evidence.pendingSignature || null }));
     }
   }
+  // web3.js confirmation subscriptions can keep this one-shot QA process open.
+  setTimeout(() => process.exit(process.exitCode || 0), 1000);
 }

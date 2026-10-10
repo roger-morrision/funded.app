@@ -5,6 +5,7 @@ import { NATIVE_MINT } from '@solana/spl-token';
 import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
 import { DEVNET_GENESIS_HASH, rewardAddresses } from '../server/automatic-reward-chain.mjs';
 import { buildMintRouterSettlementInstruction, readMintClaimRecord } from '../server/mint-router-payout.mjs';
+import { deriveMintFeeRouter, verifyMintFeeRouterAccount } from '../fee-router.js';
 
 const [ledgerPath, mint, periodText, vaultBeforeText] = process.argv.slice(2);
 if (!ledgerPath || !mint || !/^\d+$/.test(periodText || '') || !/^\d+$/.test(vaultBeforeText || '')) {
@@ -47,9 +48,30 @@ const receiptResponse = await fetch('https://funded.vip/api/evidence/receipts', 
 assert.equal(receiptResponse.status, 200, 'Public verified collection evidence is unavailable.');
 const evidence = await receiptResponse.json();
 assert.equal(evidence.cluster, 'devnet');
+const mintRouter = deriveMintFeeRouter(programId, mint).address;
+assert.equal((await verifyMintFeeRouterAccount({ connection, programId, mint })).verified, true,
+  'The source mint router is not a verified per-mint account.');
+let archivedCollectionsVerifiedOnChain = 0;
 for (const { request } of sources) {
   const collection = evidence.verifiedCollections?.find(row => row.signature === request.sourceSignature && row.mint === mint);
-  assert(collection && BigInt(collection.collectedLamports) >= BigInt(request.amount), 'A source Pump collection is not verified.');
+  if (collection) {
+    assert(BigInt(collection.collectedLamports) >= BigInt(request.amount), 'The public collection is smaller than its holder allocation.');
+    continue;
+  }
+  // The public evidence index can be rotated; the finalized transfer into the
+  // verified mint router remains independently checkable on-chain.
+  const source = await connection.getTransaction(request.sourceSignature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
+  assert(source?.meta?.err === null, 'The archived Pump collection is unavailable or failed on-chain.');
+  const keys = [
+    ...(source.transaction.message.staticAccountKeys || source.transaction.message.accountKeys),
+    ...(source.meta.loadedAddresses?.writable || []),
+    ...(source.meta.loadedAddresses?.readonly || []),
+  ];
+  const routerIndex = keys.findIndex(key => new PublicKey(key).equals(mintRouter));
+  assert(routerIndex >= 0, 'The archived collection did not involve the verified mint router.');
+  const routerCredit = BigInt(source.meta.postBalances[routerIndex]) - BigInt(source.meta.preBalances[routerIndex]);
+  assert(routerCredit >= BigInt(request.amount), 'The archived collection did not fund the holder allocation.');
+  archivedCollectionsVerifiedOnChain++;
 }
 
 const payments = Object.entries(schedule.payments || {});
@@ -78,11 +100,29 @@ for (const [index,[wallet,row]] of payments.entries()) {
   assert.equal(row.finalized, true);
   assert.equal(row.balanceDeltaVerified, true);
 }
-const vaultAfter = await connection.getBalance(vault, 'finalized');
-assert.equal(BigInt(vaultBeforeText) - BigInt(vaultAfter), total, 'Reward vault debit does not equal finalized holder payments.');
+const historicalDebits = [];
+for (const [, row] of payments) {
+  const paymentTx = await connection.getTransaction(row.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
+  assert(paymentTx?.meta?.err === null, 'A holder payment transaction is unavailable or failed on-chain.');
+  const keys = [
+    ...(paymentTx.transaction.message.staticAccountKeys || paymentTx.transaction.message.accountKeys),
+    ...(paymentTx.meta.loadedAddresses?.writable || []),
+    ...(paymentTx.meta.loadedAddresses?.readonly || []),
+  ];
+  const vaultIndex = keys.findIndex(key => new PublicKey(key).equals(vault));
+  assert(vaultIndex >= 0, 'A holder payment did not debit the reward vault.');
+  const before = BigInt(paymentTx.meta.preBalances[vaultIndex]);
+  const after = BigInt(paymentTx.meta.postBalances[vaultIndex]);
+  assert.equal(before - after, BigInt(row.amount), 'A holder payment vault debit differs from its verified payment amount.');
+  historicalDebits.push({ slot:paymentTx.slot, before, after });
+}
+historicalDebits.sort((left, right) => left.slot - right.slot);
+const vaultAfter = historicalDebits.at(-1).after;
+assert.equal(historicalDebits[0].before, BigInt(vaultBeforeText), 'The first payout vault balance differs from the recorded baseline.');
+assert.equal(BigInt(vaultBeforeText) - vaultAfter, total, 'Historical reward vault debits do not equal finalized holder payments.');
 console.log(JSON.stringify({verified:true,cluster:'devnet',mint,sources:sources.map(({ request }) => ({
   collection:request.sourceSignature,fundingSignature:request.fundingSignature,fundingClaim:request.fundingClaim,
   amountLamports:request.amount })),
   periodStart:schedule.periodStart,cycle:schedule.cycle,recipientCount:payments.length,
-  amountPaidLamports:String(total),roundingDustLamports:String(funded-total),vaultBeforeLamports:vaultBeforeText,vaultAfterLamports:vaultAfter,
-  poolExcluded:true,paymentSignatures:payments.map(([,row]) => row.signature)}));
+  amountPaidLamports:String(total),roundingDustLamports:String(funded-total),vaultBeforeLamports:vaultBeforeText,vaultAfterLamports:String(vaultAfter),
+  poolExcluded:true,archivedCollectionsVerifiedOnChain,paymentSignatures:payments.map(([,row]) => row.signature)}));
