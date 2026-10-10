@@ -111,11 +111,21 @@ export function rewardExperience(state = {}, rewards = {}, evidence = {}, cluste
       const payoutMint = payout.mint || state.collections?.[state.referralClaims?.[payout.claimId]?.settlementSignature]?.mint;
       if (payoutMint !== mint || !proof || proof.to !== payout.to || proof.source !== payout.source
         || expectedAmount === null || !Number.isSafeInteger(proof.amountLamports) || proof.amountLamports !== expectedAmount) continue;
+      const referral = payout.source === 'solana-keeper-referral-claim' ? state.referralClaims?.[payout.claimId] : null;
+      const sourceCollection = referral && collections.find(row => row.signature === referral.settlementSignature);
+      const settlement = sourceCollection && state.settlements?.[sourceCollection.signature];
+      const level = settlement?.fundedApp?.referralLevels?.find(row => row.level === referral.level);
+      const feeSourceVerified = Boolean(referral?.status === 'paid' && referral.asset === 'SOL'
+        && referral.payoutId === payout.id && referral.payoutSignature === payout.signature
+        && referral.recipientWallet === payout.to && amount(referral.amount) === BigInt(expectedAmount)
+        && sourceCollection && settlement?.claimSignature === sourceCollection.signature && settlement.asset === 'SOL'
+        && amount(settlement.grossCreatorFees) === integer(sourceCollection.collectedLamports)
+        && level?.status === 'claimable' && level.recipient === payout.to
+        && amount(level.amount) === BigInt(expectedAmount));
       recordedPayouts.push({ kind:payout.source === 'mint-router-settle-mint' ? 'x' : 'referral', wallet:payout.to,
         signature:payout.signature, amountLamports:String(proof.amountLamports), paidAt:payout.paidAt || null,
-        // A matching payment delta proves delivery, not its original fee funding
-        // or entitlement. This path does not perform those provenance joins.
-        source:'finalized-matching-balance-delta', feeSourceVerified:false, sourceClaims:[] });
+        source:'finalized-matching-balance-delta', feeSourceVerified,
+        sourceClaims:feeSourceVerified ? [sourceCollection.signature] : [] });
     }
     const payouts = [...new Map(recordedPayouts.map(row => [`${row.kind}:${row.wallet}:${row.signature}`, row])).values()];
     for (const row of payouts) events.push({ mint, kind:`${row.kind}-paid`, signature:row.signature,

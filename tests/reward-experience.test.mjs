@@ -82,6 +82,39 @@ test('direct finalized X and referral payments retain delivery proof without cla
   }
 });
 
+test('paid referral shows verified fee provenance only when collection, entitlement, and payout match', () => {
+  const referralId = 'referral-claim-1';
+  const payoutId = `referral:${referralId}`;
+  const amountLamports = 2_000_000;
+  const linked = structuredClone(state);
+  linked.settlements[claim].fundedApp.referralLevels = [
+    { level:1, recipient:holder, amount:0.002, status:'claimable' },
+  ];
+  linked.referralClaims = { [referralId]:{ id:referralId, settlementSignature:claim, level:1,
+    recipientWallet:holder, amount:0.002, asset:'SOL', status:'paid', payoutId, payoutSignature:payment } };
+  linked.payouts = { [payoutId]:{ id:payoutId, mint, claimId:referralId, source:'solana-keeper-referral-claim',
+    to:holder, signature:payment, amountLamports } };
+  const receipt = { ...evidence, verifiedPayouts:[{ signature:payment, source:'solana-keeper-referral-claim',
+    to:holder, amountLamports }] };
+  const paid = rewardExperience(linked, {}, receipt, 'devnet', holder).wallet.rows[0].payouts[0];
+  assert.equal(paid.feeSourceVerified, true);
+  assert.deepEqual(paid.sourceClaims, [claim]);
+  for (const change of [
+    item => { item.referralClaims[referralId].settlementSignature = 'Z'.repeat(64); },
+    item => { item.referralClaims[referralId].payoutSignature = 'Z'.repeat(64); },
+    item => { item.referralClaims[referralId].amount = 0.003; },
+    item => { item.settlements[claim].fundedApp.referralLevels[0].recipient = wallet; },
+  ]) {
+    const mismatched = structuredClone(linked);
+    change(mismatched);
+    const result = rewardExperience(mismatched, {}, receipt, 'devnet', holder).wallet.rows[0].payouts[0];
+    assert.equal(result.feeSourceVerified, false);
+    assert.deepEqual(result.sourceClaims, []);
+  }
+  const unverified = rewardExperience(linked, {}, { ...receipt, verifiedCollections:[] }, 'devnet', holder);
+  assert.equal(unverified.wallet.rows[0].payouts[0].feeSourceVerified, false);
+});
+
 test('direct payment display uses the same exact 15-lamport legacy SOL conversion as receipt verification', () => {
   const payout = { mint, cluster:'devnet', source:'mint-router-settle-mint', status:'paid', from:router, to:wallet,
     signature:payment, amountSol:1.5e-8 };
