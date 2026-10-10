@@ -14,7 +14,7 @@ function compactAirdrop() {
   const root = document.getElementById('airdrops');
   if (!root) return;
   const intro = root.querySelector('.airdrop-intro');
-  if (intro) intro.textContent = 'Hold $FUNDED at a launch’s migration snapshot to be eligible for its airdrop.';
+  if (intro) intro.textContent = 'Every token launch reserves at least 3% of its supply for an airdrop to $FUNDED holders. Hold $FUNDED at the migration snapshot to qualify.';
   const directory = root.querySelector('.airdrop-public-programs');
   const poster = root.querySelector('.airdrop-trust:has([data-infographic-poster="airdrops"])');
   if (directory && poster && directory.nextElementSibling !== poster) directory.after(poster);
