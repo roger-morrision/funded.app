@@ -2,6 +2,8 @@ const CACHE = 'funded.app.community.watchlist';
 const OWNER = 'funded.app.watchlist.cache-owner.v1';
 const GUEST = 'funded.app.watchlist.guest.v1';
 const validList = list => Array.isArray(list) && list.length <= 200 && list.every(mint => typeof mint === 'string' && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint));
+const validAccount = value => /^\d{1,24}$/.test(value) || /^wallet:[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value);
+const guestMessage = 'Verify a wallet or sign in with X to sync favorites across devices.';
 
 export function createWatchlistSync({ request, storage, onChange = () => {}, onStatus = () => {} }) {
   let accountId, mints = [], csrf = '', ready = false, epoch = 0;
@@ -43,7 +45,7 @@ export function createWatchlistSync({ request, storage, onChange = () => {}, onS
     return operation;
   }
   async function api(options, expected) {
-    const response = await request('/api/watchlist', { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(18000), ...options });
+    const response = await request(`/api/watchlist?accountId=${encodeURIComponent(expected)}`, { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(18000), ...options });
     if (!response.available || !validList(response.data?.mints)) throw new Error('Favorites sync is unavailable. Try again.');
     if (response.data.accountId !== expected) throw new Error('Your account changed. Sign in again to load its favorites.');
     return response.data;
@@ -82,7 +84,7 @@ export function createWatchlistSync({ request, storage, onChange = () => {}, onS
     get() { return [...mints]; },
     identity() { return accountId; },
     setIdentity(next) {
-      if (next !== null && next !== undefined && !/^\d{1,24}$/.test(next)) next = undefined;
+      if (next !== null && next !== undefined && !validAccount(next)) next = undefined;
       if (next === accountId && ready) return Promise.resolve(true);
       accountId = next; csrf = ''; ready = false; mints = [];
       const generation = ++epoch;
@@ -90,7 +92,7 @@ export function createWatchlistSync({ request, storage, onChange = () => {}, onS
         try { mints = readGuest().mints; ready = true; }
         catch (error) { onStatus('error', error.message); publish(); return Promise.resolve(false); }
         publish();
-        onStatus('guest', 'Sign in with X to save favorites across devices.');
+        onStatus('guest', guestMessage);
         return Promise.resolve(true);
       }
       publish();
@@ -128,7 +130,7 @@ export function createWatchlistSync({ request, storage, onChange = () => {}, onS
             mints = data.mints;
           }
           publish();
-          onStatus(expected ? 'synced' : 'guest', expected ? 'Favorites synced to your account.' : 'Sign in with X to save favorites across devices.');
+          onStatus(expected ? 'synced' : 'guest', expected ? 'Favorites synced to your account.' : guestMessage);
           return true;
         } catch (error) {
           if (generation === epoch) onStatus('error', error.message);

@@ -177,7 +177,9 @@ export function initializeBuybackPreview(appState) {
       const badge = document.querySelector('#community .section-state');
       if (badge) badge.textContent = { synced: 'Synced to account', syncing: 'Syncing', checking: 'Checking sign-in', guest: 'Sign in to sync', error: 'Sync unavailable' }[state];
       const signIn = document.querySelector('#watchlist-sign-in');
-      if (signIn) signIn.hidden = Boolean(appState.watchlistSync.identity());
+      if (signIn) signIn.hidden = /^\d{1,24}$/.test(appState.watchlistSync.identity() || '');
+      const walletSync = document.querySelector('#watchlist-wallet-sync');
+      if (walletSync) walletSync.hidden = state === 'synced' && Boolean(appState.watchlistSync.identity()?.startsWith('wallet:'));
       appState.showWatchlistStatus(message);
       appState.renderWatchlist();
     },
@@ -198,11 +200,23 @@ export function initializeBuybackPreview(appState) {
   // app-source-end
 
   // app-source: 391
-  document.querySelector('#watchlist-sign-in')?.addEventListener('click', () => document.querySelector('#x-sign-in')?.click());
+  document.querySelector('#watchlist-sign-in')?.addEventListener('click', () => {
+    if (document.querySelector('#x-sign-in')?.dataset.connected === 'true') void appState.loadXIdentity();
+    else document.querySelector('#x-sign-in')?.click();
+  });
+  document.querySelector('#watchlist-wallet-sync')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try { await appState.verifyWalletFavorites(); }
+    finally { button.disabled = false; }
+  });
   // app-source-end
 
   // app-source: 392
-  document.querySelector('#watchlist-sync-retry')?.addEventListener('click', () => { void appState.loadXIdentity().then(() => appState.watchlistSync.refresh()); });
+  document.querySelector('#watchlist-sync-retry')?.addEventListener('click', () => {
+    void (appState.watchlistSync.identity()?.startsWith('wallet:') ? appState.restoreWalletFavorites({ force: true }) : appState.loadXIdentity())
+      .then(() => appState.watchlistSync.refresh());
+  });
   // app-source-end
 
 }

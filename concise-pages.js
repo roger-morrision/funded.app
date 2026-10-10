@@ -222,7 +222,7 @@ function shortenPageCopy() {
     ['#capital-flow > .section-heading .panel-explainer', 'See how collected creator fees are shared.'],
     ['#launch-route-shell > .page-lede', 'Add your token details, choose rewards, and review the total before signing.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
-    ['#community .section-heading .panel-explainer', 'Sign in with the same X account to see your favorites on any device.'],
+    ['#community .section-heading .panel-explainer', 'Use the same verified wallet or X account to access favorites on another device.'],
     ['#capital-flow-title', 'Where every SOL goes'],
     ['#capital-flow .route-timeline-panel h2', 'From fee to receipt'],
     ['#capital-flow .route-timeline li:nth-child(1) small', 'Pump trading accrues creator fees.'],

@@ -84,6 +84,7 @@ export async function loadXIdentity({
   refreshXClaims,
   resetSolClaimStatus,
   watchlistSync,
+  restoreWalletFavorites,
   apiRequest,
   document = globalThis.document,
 }) {
@@ -92,7 +93,7 @@ export async function loadXIdentity({
   if (!button || !status) return;
   try {
     const result = await apiRequest('/api/x/me');
-    if (!result.available) { void watchlistSync.setIdentity(undefined); status.textContent = 'X sign-in is temporarily unavailable. Please try again later.'; button.disabled = true; button.dataset.connected = 'false'; renderXClaimSummary(null);syncXClaimFlow(); return; }
+    if (!result.available) { void restoreWalletFavorites({ force: true }).then(restored => { if (!restored) void watchlistSync.setIdentity(undefined); }); status.textContent = 'X sign-in is temporarily unavailable. Please try again later.'; button.disabled = true; button.dataset.connected = 'false'; renderXClaimSummary(null);syncXClaimFlow(); return; }
     if (result.data?.authenticated) {
       button.disabled = false;
       const user = result.data.user;
@@ -109,7 +110,7 @@ export async function loadXIdentity({
       status.textContent = configured ? 'Sign in to see rewards linked to your X account.' : 'X sign-in is temporarily unavailable.';
       button.textContent = 'Sign in with X';
       button.dataset.connected = 'false';
-      void watchlistSync.setIdentity(null);
+      void restoreWalletFavorites({ force: true }).then(restored => { if (!restored) void watchlistSync.setIdentity(null); });
       button.disabled = !configured;
       const claimId=document.querySelector('#sol-claim-id');if(claimId)claimId.value='';
       const check=document.querySelector('#claim-binding-agree');if(check)check.checked=false;
@@ -118,7 +119,7 @@ export async function loadXIdentity({
       renderXClaimSummary(null);
       resetSolClaimStatus();
     }
-  } catch (error) { void watchlistSync.setIdentity(undefined); status.textContent = error.message || 'X identity status is unavailable.'; renderXClaimSummary(null);syncXClaimFlow(); }
+  } catch (error) { void restoreWalletFavorites({ force: true }).then(restored => { if (!restored) void watchlistSync.setIdentity(undefined); }); status.textContent = error.message || 'X identity status is unavailable.'; renderXClaimSummary(null);syncXClaimFlow(); }
 }
 
 export async function refreshXClaims({

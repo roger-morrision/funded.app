@@ -8,7 +8,7 @@ export function createRewardIdentityController(appState) {
 
   // app-source: 1005
   async function loadXIdentity() {
-    return appState.loadXIdentityFeature({ renderXClaimSummary: appState.renderXClaimSummary, syncXClaimFlow: appState.syncXClaimFlow, refreshXClaims: appState.refreshXClaims, resetSolClaimStatus: appState.resetSolClaimStatus, watchlistSync: appState.watchlistSync, apiRequest: appState.apiRequest });
+    return appState.loadXIdentityFeature({ renderXClaimSummary: appState.renderXClaimSummary, syncXClaimFlow: appState.syncXClaimFlow, refreshXClaims: appState.refreshXClaims, resetSolClaimStatus: appState.resetSolClaimStatus, watchlistSync: appState.watchlistSync, restoreWalletFavorites: appState.restoreWalletFavorites, apiRequest: appState.apiRequest });
   }
   // app-source-end
 

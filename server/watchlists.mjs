@@ -1,6 +1,8 @@
 import { PublicKey } from '@solana/web3.js';
 import { allowedAuthOrigin } from './x-auth.mjs';
 import { readJsonBody } from './request-body.mjs';
+import { createHash } from 'node:crypto';
+import { cookieValue } from './x-auth.mjs';
 
 const invalid = message => Object.assign(new Error(message), { statusCode: 400 });
 export function updateWatchlist(prior, input) {
@@ -22,19 +24,30 @@ export function updateWatchlist(prior, input) {
   return row;
 }
 
-export function createWatchlistHandler({ store, cluster, getSession, origin = process.env.CORS_ORIGIN }) {
+export function createWatchlistHandler({ store, cluster, getSession, getWalletSession = async () => null, origin = process.env.CORS_ORIGIN }) {
   return async (req, res, url) => {
     if (url.pathname !== '/api/watchlist') return false;
     const reply = (status, data) => { res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'private, no-store' }); res.end(JSON.stringify(data)); return true; };
-    const session = await getSession(req);
-    const accountId = String(session?.user?.id || '');
-    if (!/^\d{1,24}$/.test(accountId)) return reply(401, { error: 'Sign in with X to sync favorites across devices.' });
+    const requested = url.searchParams.get('accountId');
+    let accountId, csrf;
+    if (requested?.startsWith('wallet:')) {
+      const session = await getWalletSession(req);
+      const wallet = String(session?.wallet || '');
+      if (`wallet:${wallet}` !== requested || !wallet) return reply(401, { error: 'Verify this wallet to sync favorites.' });
+      accountId = requested;
+      csrf = createHash('sha256').update('funded-watchlist:').update(cookieValue(req, 'funded_referral_session')).digest('hex');
+    } else {
+      const session = await getSession(req);
+      accountId = String(session?.user?.id || '');
+      csrf = session?.creatorCsrf;
+      if (!/^\d{1,24}$/.test(accountId) || (requested && requested !== accountId)) return reply(401, { error: 'Sign in with X to sync favorites.' });
+    }
     if (req.method === 'GET') {
       const row = await store.readWatchlist(accountId, cluster);
-      return reply(200, { accountId, csrf: session.creatorCsrf, mints: row.mints });
+      return reply(200, { accountId, csrf, mints: row.mints });
     }
     if (req.method !== 'POST') return reply(405, { error: 'Method not allowed.' });
-    if (!allowedAuthOrigin(req, origin) || !session.creatorCsrf || req.headers['x-watchlist-csrf'] !== session.creatorCsrf) return reply(403, { error: 'Refresh your sign-in before changing favorites.' });
+    if (!allowedAuthOrigin(req, origin) || !csrf || req.headers['x-watchlist-csrf'] !== csrf) return reply(403, { error: 'Refresh your sign-in before changing favorites.' });
     if (!await store.chargeRpcRate(`watchlist:${accountId}`, 1, 120, Math.floor(Date.now() / 60000) * 60000)) return reply(429, { error: 'Please wait before updating favorites again.' });
     try {
       const input = await readJsonBody(req, { maxBytes: 16000 });

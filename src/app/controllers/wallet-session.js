@@ -259,6 +259,8 @@ export function createWalletSessionController(appState) {
     if (providerId) appState.saveWalletPreference(appState.WALLET_PROVIDER_KEY, providerId);
     appState.observeWalletProvider(provider);
     appState.setWalletState(message, address, true);
+    if (appState.watchlistSync.identity()?.startsWith('wallet:')) void appState.watchlistSync.setIdentity(null);
+    void appState.restoreWalletFavorites();
     void appState.refreshPortfolioHoldings();
     void appState.refreshTradeBalances();
     appState.queueTradeQuote();
@@ -277,6 +279,7 @@ export function createWalletSessionController(appState) {
     void appState.refreshPortfolioHoldings();
     appState.renderTradeBalances();
     appState.setWalletState(message, detail);
+    if (appState.watchlistSync.identity()?.startsWith('wallet:')) void appState.loadXIdentity();
     appState.setLaunchStatus('');
   }
   // app-source-end

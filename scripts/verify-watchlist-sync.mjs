@@ -6,6 +6,10 @@ import { createPostgresStore } from '../server/postgres-store.mjs';
 import { createXAuth, cookieValue } from '../server/x-auth.mjs';
 import { createWatchlistHandler } from '../server/watchlists.mjs';
 import { createWatchlistSync } from '../watchlist-sync.js';
+import { createReferralAuth } from '../server/referral-auth.mjs';
+import { Keypair } from '@solana/web3.js';
+import nacl from 'tweetnacl';
+import bs58 from 'bs58';
 
 // Local test database only. Never load deployment credentials.
 const db = new URL(process.env.WATCHLIST_TEST_DATABASE_URL || 'postgresql://funded:funded-test@127.0.0.1:15432/funded_test');
@@ -22,19 +26,21 @@ try {
   store = createPostgresStore(db.href);
   await store.health();
   const auth = createXAuth(store);
+  const referralAuth = createReferralAuth(store);
   const tokenA = await auth.issue({ id: '123', username: 'watchtest' });
   const tokenA2 = await auth.issue({ id: '123', username: 'watchtest' });
   const tokenB = await auth.issue({ id: '456', username: 'otheruser' });
-  const handler = createWatchlistHandler({ store, cluster: 'devnet', origin: '', getSession: req => auth.session(cookieValue(req, 'funded_x_session')) });
+  const handler = createWatchlistHandler({ store, cluster: 'devnet', origin: '', getSession: req => auth.session(cookieValue(req, 'funded_x_session')), getWalletSession: req => referralAuth.session(cookieValue(req, 'funded_referral_session')) });
   server = createServer(async (req, res) => {
     try { if (!await handler(req, res, new URL(req.url, 'http://localhost'))) { res.writeHead(404); res.end(); } }
     catch { res.writeHead(500); res.end(JSON.stringify({ error: 'Test server failure' })); }
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
-  const raw = (token, options = {}) => fetch(`${base}/api/watchlist`, { ...options, headers: { cookie: `funded_x_session=${token}`, origin: base, 'content-type': 'application/json', ...options.headers }, body: options.body ? JSON.stringify(options.body) : undefined });
-  const request = token => async (_path, options = {}) => {
-    const response = await raw(token, options);
+  const raw = (token, options = {}, path = '/api/watchlist') => fetch(`${base}${path}`, { ...options, headers: { cookie: `funded_x_session=${token}`, origin: base, 'content-type': 'application/json', ...options.headers }, body: options.body ? JSON.stringify(options.body) : undefined });
+  const rawWallet = (token, wallet, options = {}) => fetch(`${base}/api/watchlist?accountId=${encodeURIComponent(`wallet:${wallet}`)}`, { ...options, headers: { cookie: `funded_referral_session=${token}`, origin: base, 'content-type': 'application/json', ...options.headers }, body: options.body ? JSON.stringify(options.body) : undefined });
+  const request = (token, wallet) => async (path, options = {}) => {
+    const response = wallet ? await rawWallet(token, wallet, options) : await raw(token, options, path);
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);
     return { available: true, data };
@@ -75,6 +81,32 @@ try {
   const reopened = createPostgresStore(db.href);
   assert.deepEqual((await reopened.readWatchlist('123', 'devnet')).mints, [mintB], 'Data survives reopening the database store.');
   await reopened.close();
+
+  const walletKeypair = Keypair.generate();
+  const wallet = walletKeypair.publicKey.toBase58();
+  const walletLogin = async keypair => {
+    const challenge = await referralAuth.start(keypair.publicKey.toBase58());
+    const signature = bs58.encode(nacl.sign.detached(new TextEncoder().encode(challenge.statement), keypair.secretKey));
+    return (await referralAuth.verify(challenge.challengeId, keypair.publicKey.toBase58(), signature)).token;
+  };
+  const walletTokenA = await walletLogin(walletKeypair);
+  const walletTokenB = await walletLogin(walletKeypair);
+  const walletIdentity = `wallet:${wallet}`;
+  assert.equal((await rawWallet('', wallet)).status, 401, 'A connected address without signed session cannot read favorites.');
+  assert.equal((await rawWallet(walletTokenA, Keypair.generate().publicKey.toBase58())).status, 401, 'One wallet session cannot read another wallet.');
+  const walletInitial = await (await rawWallet(walletTokenA, wallet)).json();
+  assert.equal((await rawWallet(walletTokenA, wallet, { method: 'POST', body: { action: 'add', mint: mintA, accountId: walletIdentity } })).status, 403, 'A signed wallet still needs the session CSRF token.');
+  const walletDeviceA = createWatchlistSync({ storage: storage(), request: request(walletTokenA, wallet) });
+  const walletDeviceB = createWatchlistSync({ storage: storage(), request: request(walletTokenB, wallet) });
+  assert.equal(await walletDeviceA.setIdentity(walletIdentity), true);
+  assert.equal(await walletDeviceA.save(mintA, false), true);
+  assert.equal(await walletDeviceB.setIdentity(walletIdentity), true);
+  assert.deepEqual(walletDeviceB.get(), [mintA], 'The same verified wallet loads favorites on another device.');
+  assert.equal((await rawWallet(walletTokenA, wallet, { method: 'POST', headers: { 'x-watchlist-csrf': walletInitial.csrf }, body: { action: 'add', mint: mintB, accountId: '123' } })).status, 409, 'Wallet sessions cannot modify X favorites.');
+  assert.deepEqual((await store.readWatchlist('123', 'devnet')).mints, [mintB], 'Wallet favorites stay separate from X favorites.');
+  const otherWallet = Keypair.generate();
+  const otherWalletToken = await walletLogin(otherWallet);
+  assert.deepEqual((await (await rawWallet(otherWalletToken, otherWallet.publicKey.toBase58())).json()).mints, [], 'Different wallets stay isolated.');
 
   if (process.env.UI_BASE_URL) {
     const { chromium } = await import('playwright');

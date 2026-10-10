@@ -7,8 +7,9 @@ export function createFollowingController(appState) {
       if (!host) continue;
       let status = host.querySelector('[data-watchlist-status]');
       if (!status) { status = document.createElement('p'); status.className = 'field-help'; status.dataset.watchlistStatus = ''; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); host.append(status); }
-      if (status.textContent !== message) status.textContent = message;
-      status.hidden = !message;
+      const visibleMessage = host.closest('.coin-identity') && appState.watchlistSync.identity() === null ? '' : message;
+      if (status.textContent !== visibleMessage) status.textContent = visibleMessage;
+      status.hidden = !visibleMessage;
     }
   }
   // app-source-end
@@ -17,6 +18,30 @@ export function createFollowingController(appState) {
   function getWatchlist(){
     appState.lastKnownWatchlist = appState.watchlistSync.get();
     return [...appState.lastKnownWatchlist];
+  }
+  async function restoreWalletFavorites({ force = false } = {}){
+    const session = appState.captureWalletSession();
+    if (!session) return false;
+    try {
+      const response = await appState.apiRequest('/api/referrals/session');
+      if (!appState.isWalletSessionCurrent(session) || response.data?.wallet !== session.address || !response.data.authenticated) return false;
+      const current = appState.watchlistSync.identity();
+      if (!force && current && !current.startsWith('wallet:')) return false;
+      return appState.watchlistSync.setIdentity(`wallet:${session.address}`);
+    } catch { return false; }
+  }
+  async function verifyWalletFavorites(){
+    if (!appState.captureWalletSession()) await appState.connectWallet();
+    const session = appState.captureWalletSession();
+    if (!session) return false;
+    try {
+      await appState.ensureReferralSession(session, { interactive: true });
+      appState.assertWalletSessionCurrent(session);
+      return appState.watchlistSync.setIdentity(`wallet:${session.address}`);
+    } catch (error) {
+      appState.showWatchlistStatus(error.message || 'Wallet verification failed. Try again.');
+      return false;
+    }
   }
   // app-source-end
 
@@ -140,5 +165,5 @@ export function createFollowingController(appState) {
   }
   // app-source-end
 
-  return { showWatchlistStatus, getWatchlist, saveWatchlist, setWatchButtonState, renderWatchlist, readFollowedWallets, getFollowedWallets, walletRoles, saveFollowedWallet, renderFollowedWallets };
+  return { showWatchlistStatus, getWatchlist, restoreWalletFavorites, verifyWalletFavorites, saveWatchlist, setWatchButtonState, renderWatchlist, readFollowedWallets, getFollowedWallets, walletRoles, saveFollowedWallet, renderFollowedWallets };
 }
