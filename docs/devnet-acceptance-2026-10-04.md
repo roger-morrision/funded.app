@@ -56,9 +56,13 @@ node --test tests/devnet-acceptance.test.mjs
 
 # Only when the faucet and required services are available:
 NODE_USE_ENV_PROXY=1 node scripts/devnet-acceptance.mjs --execute
+
+# If the faucet is unavailable, keep a disposable payer in process memory for
+# up to 15 minutes and transfer at least 0.1 Devnet SOL to the printed address:
+NODE_USE_ENV_PROXY=1 node scripts/devnet-acceptance.mjs --execute --manual-funding-wait-seconds=900
 ```
 
-The acceptance harness checks a hard-coded Devnet genesis before funding and before every transaction, never loads saved wallet secrets, limits faucet attempts to two, uses public HTTP polling for finalized receipts, and journals the signed signature before submission so an ambiguous response cannot trigger a newly signed replacement. An isolated low-level Pump launch/buy/sell/fee-collection path is available after faucet funding, but was **not executed** in this run. That path uses disposable test metadata and is explicitly not the app's atomic-reserve launch flow. Its fee recipient is funded above rent exemption before trades. All on-chain signing code remains unvalidated live here because funding failed.
+The acceptance harness checks a hard-coded Devnet genesis before funding and before every transaction, never loads saved wallet secrets, limits faucet requests to one as of 2026-10-10, uses public HTTP polling for finalized receipts, and journals the signed signature before submission so an ambiguous response cannot trigger a newly signed replacement. Manual funding mode skips the faucet and keeps the ephemeral key only while the process waits. An isolated low-level Pump launch/buy/sell/fee-collection path is available after funding, but was **not executed** in the original 2026-10-04 run. That path uses disposable test metadata and is explicitly not the app's atomic-reserve launch flow. Its fee recipient is funded above rent exemption before trades. All on-chain signing code remained unvalidated live in that original run because funding failed.
 
 The focused tests cover network rejection before any wallet/faucet action, rejection of incomplete/failed finality, and acceptance of the expected Devnet genesis. They do not stand in for successful Devnet transactions.
 

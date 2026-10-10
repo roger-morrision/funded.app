@@ -26,8 +26,9 @@ export function createAirdropsRoutes({
         const configuredReceipts = JSON.parse(process.env.FUNDED_COMMUNITY_RESERVE_RECEIPTS_JSON || '{}');
         const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified && row.cluster === 'devnet' && Number.isSafeInteger(Number(row.communityAirdrop?.reservedTokens)) && Number(row.communityAirdrop.reservedTokens) > 0).slice(0, 100);
         const reserves = await mapBounded(launches, 4, async launch => {
-          const recorded = state.communityReserveReceipts?.[launch.mint]?.signature || configuredReceipts[launch.mint];
           const claim = claimLedger.communityDrops?.[launch.mint];
+          const recorded = state.communityReserveReceipts?.[launch.mint]?.signature
+            || configuredReceipts[launch.mint] || claim?.fundingSignature;
           const reserve = await readCommunityReserveStatus({ connection, programId, authority:process.env.FUNDED_REWARD_AUTHORITY,
             fundingAuthority:launch.creatorWallet, mint:launch.mint, reservedTokens:Number(launch.communityAirdrop.reservedTokens),
             fundingSignature:typeof recorded === 'string' ? recorded : null,

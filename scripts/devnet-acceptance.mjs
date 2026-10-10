@@ -42,8 +42,10 @@ export async function prepareAcceptancePayer({ connection, walletFile = null, re
 }
 
 
-export async function runAcceptance({ execute = false, output, rpcUrl = 'https://api.devnet.solana.com', appOrigin = 'https://funded.vip', programId = DEFAULT_PROGRAM, walletFile = null, feeRecipientAddress = null } = {}) {
+export async function runAcceptance({ execute = false, output, rpcUrl = 'https://api.devnet.solana.com', appOrigin = 'https://funded.vip', programId = DEFAULT_PROGRAM, walletFile = null, feeRecipientAddress = null, manualFundingWaitSeconds = 0 } = {}) {
   assert(!walletFile || execute, '--wallet is permitted only with --execute.');
+  assert(Number.isSafeInteger(manualFundingWaitSeconds) && manualFundingWaitSeconds >= 0 && manualFundingWaitSeconds <= 900, 'Manual funding wait must be between 0 and 900 seconds.');
+  assert(!manualFundingWaitSeconds || execute && !walletFile, 'Manual funding wait requires --execute with an ephemeral payer.');
   const evidence = { schemaVersion: 1, startedAt: new Date().toISOString(), mode: execute ? 'execute' : 'read-only', network: 'devnet', rpcOrigin: new URL(rpcUrl).origin, appOrigin: new URL(appOrigin).origin, checks: [], transactions: [], blockers: [], coverage: { fullApplicationJourney: false, mainnetReadiness: false } };
   const record = (name, status, details = {}) => {
     const check = { name, status, at: new Date().toISOString(), ...details };
@@ -133,7 +135,7 @@ export async function runAcceptance({ execute = false, output, rpcUrl = 'https:/
       record('live-transactions', 'not-run', { reason: 'Pass --execute to create ephemeral wallets and request faucet SOL.' });
       return evidence;
     }
-    stage = walletFile ? 'prefunded-test-payer' : 'ephemeral-faucet';
+    stage = walletFile ? 'prefunded-test-payer' : manualFundingWaitSeconds ? 'manual-funding' : 'ephemeral-faucet';
     const preparedPayer = await prepareAcceptancePayer({ connection, walletFile });
     const { payer } = preparedPayer;
     const mint = Keypair.generate();
@@ -142,28 +144,38 @@ export async function runAcceptance({ execute = false, output, rpcUrl = 'https:/
     evidence.wallets = { payer: payer.publicKey.toBase58(), mint: mint.publicKey.toBase58(), feeRecipient: feeRecipient.toBase58(), payerSource: preparedPayer.source, privateKeyPersistence: walletFile ? 'payer loaded from explicit test keyfile; mint process memory only' : 'none; process memory only' };
     let funded = preparedPayer.prefunded;
     if (funded) record(stage, 'passed', { payer: payer.publicKey.toBase58(), balanceLamports: preparedPayer.balanceLamports, faucetRequested: false });
-    for (let attempt = 1; !funded && attempt <= 2; attempt += 1) {
+    if (!funded && manualFundingWaitSeconds) {
+      record(stage, 'awaiting-manual-funding', { payer: payer.publicKey.toBase58(), minimumLamports: 100_000_000, waitSeconds: manualFundingWaitSeconds, privateKeyPersistence: 'none' });
+      const deadline = Date.now() + manualFundingWaitSeconds * 1_000;
+      while (!funded && Date.now() < deadline) {
+        await delay(Math.min(5_000, deadline - Date.now()));
+        assertDevnet(await connection.getGenesisHash());
+        funded = await connection.getBalance(payer.publicKey, 'finalized') >= 100_000_000;
+      }
+      if (funded) record(stage, 'passed', { payer: payer.publicKey.toBase58(), balanceLamports: await connection.getBalance(payer.publicKey, 'finalized'), faucetRequested: false });
+    }
+    if (!funded && !manualFundingWaitSeconds) {
       assertDevnet(await connection.getGenesisHash());
-      const response = await fetch(rpcUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: attempt, method: 'requestAirdrop', params: [payer.publicKey.toBase58(), 1_000_000_000] }), signal: AbortSignal.timeout(25_000) });
+      const response = await fetch(rpcUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'requestAirdrop', params: [payer.publicKey.toBase58(), 1_000_000_000] }), signal: AbortSignal.timeout(25_000) });
       const payload = await response.json();
       if (!response.ok || payload.error) {
-        record(stage, 'blocked', { attempt, httpStatus: response.status, rpcCode: payload.error?.code ?? null, reason: String(payload.error?.message || 'Faucet rejected request').slice(0, 500) });
-        if (attempt === 1) await delay(5_000);
-        continue;
+        record(stage, 'blocked', { httpStatus: response.status, rpcCode: payload.error?.code ?? null, reason: String(payload.error?.message || 'Faucet rejected request').slice(0, 500) });
+      } else {
+        assert.equal(typeof payload.result, 'string', 'Faucet did not return a signature.');
+        evidence.transactions.push({ name: 'airdrop', signature: payload.result, finalized: false });
+        await persist();
+        const status = await finalized(payload.result);
+        Object.assign(evidence.transactions.at(-1), { finalized: true, slot: status.slot });
+        const balance = await connection.getBalance(payer.publicKey, 'finalized');
+        assert(balance >= 100_000_000, 'Ephemeral payer has insufficient finalized funding.');
+        record(stage, 'passed', { signature: payload.result, balanceLamports: balance });
+        funded = true;
       }
-      assert.equal(typeof payload.result, 'string', 'Faucet did not return a signature.');
-      evidence.transactions.push({ name: 'airdrop', signature: payload.result, finalized: false });
-      await persist();
-      const status = await finalized(payload.result);
-      Object.assign(evidence.transactions.at(-1), { finalized: true, slot: status.slot });
-      const balance = await connection.getBalance(payer.publicKey, 'finalized');
-      assert(balance >= 100_000_000, 'Ephemeral payer has insufficient finalized funding.');
-      record(stage, 'passed', { signature: payload.result, balanceLamports: balance });
-      funded = true;
-      break;
     }
     if (!funded) {
-      evidence.blockers.push('Official Devnet faucet rejected both bounded attempts; ephemeral payer has no SOL. No launch, trade, collection or payout was submitted.');
+      evidence.blockers.push(manualFundingWaitSeconds
+        ? 'Ephemeral payer did not receive 0.1 finalized Devnet SOL before the manual funding window closed. No launch, trade, collection or payout was submitted.'
+        : 'Official Devnet faucet rejected its single bounded request; ephemeral payer has no SOL. No launch, trade, collection or payout was submitted. Use --manual-funding-wait-seconds with an external Devnet top-up.');
       return evidence;
     }
     // This isolated SDK path tests chain adapters. Public registration and the app's atomic
@@ -227,13 +239,16 @@ export async function runAcceptance({ execute = false, output, rpcUrl = 'https:/
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const flags = process.argv.slice(2);
   assert(flags.includes('--execute') !== flags.includes('--read-only'), 'Pass exactly one of --execute or --read-only.');
-  assert(flags.every(flag => flag === '--execute' || flag === '--read-only' || flag.startsWith('--output=') || flag.startsWith('--wallet=') || flag.startsWith('--fee-recipient=')), 'Unknown argument.');
+  assert(flags.every(flag => flag === '--execute' || flag === '--read-only' || flag.startsWith('--output=') || flag.startsWith('--wallet=') || flag.startsWith('--fee-recipient=') || flag.startsWith('--manual-funding-wait-seconds=')), 'Unknown argument.');
   const walletFlag = flags.find(flag => flag.startsWith('--wallet='));
   assert(!walletFlag || walletFlag.slice(9).trim(), '--wallet requires an explicit test keyfile path.');
   assert(flags.filter(flag => flag.startsWith('--wallet=')).length <= 1, 'Pass --wallet only once.');
   const feeRecipientFlag = flags.find(flag => flag.startsWith('--fee-recipient='));
   assert(!feeRecipientFlag || feeRecipientFlag.slice(16).trim(), '--fee-recipient requires a public address.');
   assert(flags.filter(flag => flag.startsWith('--fee-recipient=')).length <= 1, 'Pass --fee-recipient only once.');
-  const result = await runAcceptance({ feeRecipientAddress: feeRecipientFlag?.slice(16) || null, walletFile: walletFlag?.slice(9) || null, execute: flags.includes('--execute'), output: flags.find(flag => flag.startsWith('--output='))?.slice(9) || 'docs/audit/devnet-2026-10-04/live-acceptance.json' });
+  const manualFundingFlag = flags.find(flag => flag.startsWith('--manual-funding-wait-seconds='));
+  assert(flags.filter(flag => flag.startsWith('--manual-funding-wait-seconds=')).length <= 1, 'Pass manual funding wait only once.');
+  assert(!manualFundingFlag || /^[1-9]\d{0,2}$/.test(manualFundingFlag.slice(30)), 'Manual funding wait requires whole seconds from 1 to 900.');
+  const result = await runAcceptance({ feeRecipientAddress: feeRecipientFlag?.slice(16) || null, walletFile: walletFlag?.slice(9) || null, manualFundingWaitSeconds: manualFundingFlag ? Number(manualFundingFlag.slice(30)) : 0, execute: flags.includes('--execute'), output: flags.find(flag => flag.startsWith('--output='))?.slice(9) || 'docs/audit/devnet-2026-10-04/live-acceptance.json' });
   process.exitCode = result.status === 'passed' ? 0 : 2;
 }

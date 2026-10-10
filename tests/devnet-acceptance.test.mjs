@@ -83,3 +83,9 @@ test('malformed keyfile errors do not expose secret contents', async () => {
 test('read-only acceptance refuses an explicit wallet', async () => {
   await assert.rejects(runAcceptance({ execute: false, walletFile: '/test/creator.json' }), /only with --execute/);
 });
+
+test('manual funding mode only accepts an in-memory execution wallet', async () => {
+  await assert.rejects(runAcceptance({ execute: false, manualFundingWaitSeconds: 1 }), /requires --execute with an ephemeral payer/);
+  await assert.rejects(runAcceptance({ execute: true, walletFile: '/test/creator.json', manualFundingWaitSeconds: 1 }), /requires --execute with an ephemeral payer/);
+  await assert.rejects(runAcceptance({ execute: true, manualFundingWaitSeconds: 901 }), /between 0 and 900 seconds/);
+});
