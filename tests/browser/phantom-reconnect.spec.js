@@ -102,12 +102,12 @@ test('reloading a connected wallet never signs for referral access in the backgr
   await page.goto('/#referrals');
   await page.locator('#connect-button').click();
   await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
-  await expect(page.locator('#referral-claim-center button')).toHaveText('Verify wallet to view');
+  await expect(page.locator('#referral-claim-center button')).toHaveText('Sign in with wallet');
   expect(await page.evaluate(() => Number(sessionStorage.getItem('qa.phantom.signatures') || 0))).toBe(0);
 
   await page.reload();
   await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
-  await expect(page.locator('#referral-claim-center button')).toHaveText('Verify wallet to view');
+  await expect(page.locator('#referral-claim-center button')).toHaveText('Sign in with wallet');
   expect(await page.evaluate(() => Number(sessionStorage.getItem('qa.phantom.signatures') || 0))).toBe(0);
 
   await page.locator('#referral-claim-center button').click();
@@ -121,6 +121,6 @@ test('reloading a connected wallet never signs for referral access in the backgr
 
   authenticated = false;
   await page.reload();
-  await expect(page.locator('#referral-claim-center button')).toHaveText('Verify wallet to view');
+  await expect(page.locator('#referral-claim-center button')).toHaveText('Sign in with wallet');
   expect(await page.evaluate(() => Number(sessionStorage.getItem('qa.phantom.signatures') || 0))).toBe(1);
 });

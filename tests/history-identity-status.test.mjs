@@ -20,7 +20,7 @@ test('token labels resolve the configured mint and launch registry without inven
 });
 test('referral status differentiates wallet approval, empty rewards, and outages',()=>{
   assert.equal(referralStatusLabel('disconnected'),'Connect wallet');
-  assert.equal(referralStatusLabel('verification'),'Verify wallet');
+  assert.equal(referralStatusLabel('verification'),'Sign in to view');
   assert.equal(referralStatusLabel('checking'),'Checking rewards…');
   assert.equal(referralStatusLabel('ready',0),'No rewards ready');
   assert.equal(referralStatusLabel('ready',0.001),'Ready to claim');
