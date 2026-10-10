@@ -1,10 +1,14 @@
 import bs58 from 'bs58';
+import { readFileSync } from 'node:fs';
 import { clusterApiUrl, Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { createMint, getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token';
 import { createAutomaticRewardChain, DEVNET_GENESIS_HASH, finalizedSend } from '../server/automatic-reward-chain.mjs';
 import { buildRewardManifest, createRewardCycleId } from '../reward-merkle.js';
 
-const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || clusterApiUrl('devnet'), 'finalized');
+const rpcFile = String(process.env.SOLANA_DEVNET_RPC_URL_FILE || '').trim();
+const rpcUrl = (rpcFile ? readFileSync(rpcFile, 'utf8').trim() : '')
+  || process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || clusterApiUrl('devnet');
+const connection = new Connection(rpcUrl, { commitment:'finalized', disableRetryOnRateLimit:true });
 const configuredAuthority = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
 const authority = configuredAuthority ? Keypair.fromSecretKey(bs58.decode(configuredAuthority)) : Keypair.generate();
 const recipient = Keypair.generate(), launchMint = Keypair.generate().publicKey;
@@ -88,5 +92,8 @@ if (!readiness.constrainedPayouts) {
   const tokenPlan = { mint:launchMint.toBase58(), cutoffAt:now - 60, payoutAt:now - 30, manifest:tokenManifest };
   const tokenCycle = await chain.ensureCycle(tokenPlan), tokenPayout = await chain.submitLeaf(tokenPlan, tokenManifest.leaves[0]);
   if (!tokenFunding.balanceDeltaVerified || !tokenPayout.finalized || !tokenPayout.balanceDeltaVerified) throw new Error('Devnet token reward E2E lacks required finalized token-account deltas.');
-  console.log(JSON.stringify({ status:'passed', verification:'devnet-end-to-end', program:readiness.program, authority:authority.publicKey.toBase58(), recipient:recipient.publicKey.toBase58(), launchMint:launchMint.toBase58(), fundingSource, testWalletFundingSignature, sol:{ vaultFundingSignature:funding.signature, cycleSignature:cycle.signature, payoutSignature:payout.signature, payment:payout.payment }, token:{ mint:tokenMint.toBase58(), mintToSignature:mintToSignature, vaultFundingSignature:tokenFunding.signature, cycleSignature:tokenCycle.signature, payoutSignature:tokenPayout.signature, payment:tokenPayout.payment }, signer:configuredAuthority ? 'configured-devnet-router' : 'in-memory-ephemeral', privateKeyPersistedByTest:false }, null, 2));
+  const result = JSON.stringify({ status:'passed', verification:'devnet-end-to-end', program:readiness.program, authority:authority.publicKey.toBase58(), recipient:recipient.publicKey.toBase58(), launchMint:launchMint.toBase58(), fundingSource, testWalletFundingSignature, sol:{ vaultFundingSignature:funding.signature, cycleSignature:cycle.signature, payoutSignature:payout.signature, payment:payout.payment }, token:{ mint:tokenMint.toBase58(), mintToSignature:mintToSignature, vaultFundingSignature:tokenFunding.signature, cycleSignature:tokenCycle.signature, payoutSignature:tokenPayout.signature, payment:tokenPayout.payment }, signer:configuredAuthority ? 'configured-devnet-router' : 'in-memory-ephemeral', privateKeyPersistedByTest:false }, null, 2);
+  await new Promise((resolve, reject) => process.stdout.write(`${result}\n`, error => error ? reject(error) : resolve()));
+  // web3.js can keep its confirmation socket open after every payout is finalized.
+  process.exit(0);
 }
