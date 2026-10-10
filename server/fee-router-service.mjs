@@ -121,9 +121,9 @@ export function createFeeRouterService({
     const proof = await sendFinalizedSolPayout({ connection, payer, recipient, lamports, onSigned });
     return { ...proof, amountSol: Number(amountSol), cluster: solanaCluster };
   }
-  async function reconcileSolPayout({ recipientWallet, amountSol, signature }) {
-    const payer = referralPayoutKeypair();
-    if (!payer || (env.SOLANA_REFERRAL_PAYOUT_CONFIGURED !== 'true' && !devnetTestMode)) throw new Error('Dedicated referral payout wallet is not configured.');
+  async function reconcileSolPayout({ recipientWallet, amountSol, signature, from }) {
+    const payer = from ? new PublicKey(from) : referralPayoutKeypair()?.publicKey;
+    if (!payer) throw new Error('Original referral payout wallet is unavailable for reconciliation.');
     const recipient = new PublicKey(recipientWallet);
     const lamports = solToLamports(amountSol);
     const connection = new Connection(solanaRpcUrl, 'confirmed');

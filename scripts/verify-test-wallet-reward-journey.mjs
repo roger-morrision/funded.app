@@ -13,11 +13,13 @@ import {
   PublicKey,
   SystemProgram,
   Transaction,
+  VersionedTransaction,
   clusterApiUrl,
 } from '@solana/web3.js';
-import { OnlinePumpSdk, PUMP_SDK } from '@pump-fun/pump-sdk';
+import { OnlinePumpSdk } from '@pump-fun/pump-sdk';
 import { buildTradeTransaction } from '../pump-trading.js';
-import { buildMintRouterInitializeInstruction } from '../mint-router-launch.js';
+import { submitPumpDevnetLaunch } from '../launch-flow.js';
+import { quoteAtomicReserveBuy } from '../launch-community-reserve.js';
 import { deriveFeeRouter, verifyMintFeeRouterAccount } from '../fee-router.js';
 import { buildFeeDistributionPolicy } from '../distribution-policy.js';
 import { launchPolicyStatement } from '../launch-policy-auth.js';
@@ -71,6 +73,19 @@ assert(expectedProgramDataSha256, 'FUNDED_REWARD_PROGRAM_DATA_SHA256 is required
 const legacyRouter = await connection.getAccountInfo(deriveFeeRouter(programId).address, 'finalized');
 assert(legacyRouter?.data?.length === 74 && new PublicKey(legacyRouter.data.subarray(41, 73)).equals(authority.publicKey),
   'The configured router authority does not match the on-chain Devnet router; no test transaction was sent.');
+if (process.argv.includes('--preflight')) {
+  const wallets = Object.fromEntries([
+    ['creator', creator], ['holder', holder], ...referralWallets.map((wallet, index) => [`referral${index + 1}`, wallet]),
+    ['keeper', keeper], ['authority', authority], ['payout', payout],
+  ].map(([role, wallet]) => [role, wallet.publicKey.toBase58()]));
+  const roles = Object.keys(wallets);
+  const accounts = await connection.getMultipleAccountsInfo(roles.map(role => new PublicKey(wallets[role])), 'finalized');
+  const balancesLamports = Object.fromEntries(roles.map((role, index) => [role, accounts[index]?.lamports || 0]));
+  console.log(JSON.stringify({ status: 'preflight', cluster, wallets, balancesLamports,
+    minimumsLamports: { payout: 10_000_000, creator: 70_000_000, holder: 20_000_000, authority: 50_000_000 },
+    programId: programId.toBase58(), routerAuthorityVerified: true, transactionsSent: 0 }, null, 2));
+  process.exit(0);
+}
 
 async function finalizedTransaction(instructions, signers) {
   // Use a finalized blockhash so every backend behind an RPC load balancer has
@@ -101,6 +116,22 @@ async function ensureCreatorFunding() {
   const after = await connection.getBalance(creator.publicKey, 'finalized');
   assert.equal(after - creatorBalance, amount, 'Creator test-wallet top-up did not produce the exact finalized balance delta.');
   return { signature, amount, before: creatorBalance, after };
+}
+
+async function ensureAuthorityFunding() {
+  const target = 50_000_000;
+  const before = await connection.getBalance(authority.publicKey, 'finalized');
+  if (before >= target) return { signature: null, amount: 0, before, after: before };
+  const amount = target - before;
+  assert(amount <= 50_000_000, 'Reward authority QA top-up exceeds the 0.05 SOL cap.');
+  const sourceBalance = await connection.getBalance(referrer.publicKey, 'finalized');
+  assert(sourceBalance > amount + 100_000_000, 'The QA funding wallet cannot safely top up the reward authority.');
+  const signature = await finalizedTransaction([
+    SystemProgram.transfer({ fromPubkey: referrer.publicKey, toPubkey: authority.publicKey, lamports: amount }),
+  ], [referrer]);
+  const after = await connection.getBalance(authority.publicKey, 'finalized');
+  assert.equal(after - before, amount, 'Reward authority top-up lacks the exact finalized balance delta.');
+  return { signature, amount, before, after };
 }
 
 async function waitForServer(base, child) {
@@ -211,6 +242,8 @@ try {
     `Mint-specific collection is not ready: ${(routeStatus.reasons || []).join('; ')}`);
   stage = 'funding-creator-test-wallet';
   const topUp = await ensureCreatorFunding();
+  stage = 'funding-reward-authority-test-wallet';
+  const authorityTopUp = await ensureAuthorityFunding();
 
   stage = 'registering-referral';
   let inviterCode = null;
@@ -240,28 +273,38 @@ try {
   });
   assert.equal(attributed.inviterWallet, referrer.publicKey.toBase58(), 'Creator referral attribution does not match the test referrer.');
 
-  stage = 'initializing-mint-router';
-  const mint = Keypair.generate();
-  const initialized = buildMintRouterInitializeInstruction({ programId, mint: mint.publicKey, payer: creator.publicKey });
-  const mintRouterSignature = await finalizedTransaction([initialized.instruction], [creator, mint]);
-  const checkedRouter = await verifyMintFeeRouterAccount({ connection, programId, mint: mint.publicKey, expectedAuthority: authority.publicKey });
-  assert(checkedRouter.verified, `Mint router verification failed: ${checkedRouter.reason}`);
-  const router = checkedRouter.address;
-
-  stage = 'creating-pump-coin';
+  stage = 'preflighting-atomic-reserve-launch';
   const launchName = `Funded Journey ${Date.now().toString(36).slice(-6)}`;
   const launchSymbol = 'FJNY';
-  const launchInstruction = await PUMP_SDK.createV2Instruction({
-    mint: mint.publicKey,
-    name: launchName,
-    symbol: launchSymbol,
-    uri: `https://funded.vip/devnet-metadata/${mint.publicKey.toBase58()}`,
-    creator: router,
-    user: creator.publicKey,
-    mayhemMode: false,
-    holderReward: false,
+  const reserveResponse = await fetch(`${base}/api/launch-reserve-config`);
+  const reserveConfig = await reserveResponse.json();
+  assert(reserveResponse.ok && reserveConfig.programId === programId.toBase58()
+    && reserveConfig.authority === authority.publicKey.toBase58(), 'Atomic reserve configuration does not match the Devnet QA program.');
+  const reserveQuote = await quoteAtomicReserveBuy({ connection, supply: 1_000_000_000, decimals: 6,
+    reserveTokens: 30_000_000, developerBaseUnits: 0n });
+  assert(reserveQuote.maxSolAmountLamports <= 100_000_000n, 'Community reserve launch exceeds the 0.1 SOL QA cap.');
+  stage = 'creating-pump-coin-with-community-reserve';
+  const launch = await submitPumpDevnetLaunch({
+    connection,
+    provider: { signTransaction: async transaction => {
+      if (transaction instanceof VersionedTransaction) transaction.sign([creator]);
+      else transaction.partialSign(creator);
+      return transaction;
+    } },
+    payer: creator.publicKey,
+    input: { name: launchName, symbol: launchSymbol, supply: 1_000_000_000, decimals: 6,
+      initialBuyPercent: 0, reserveTokens: 30_000_000,
+      maxInitialBuyLamports: reserveQuote.maxSolAmountLamports },
+    feeRouterProgramId: programId, useMintRouter: true, reserveConfig,
+    onJournal: event => { if (event.signature) console.log(JSON.stringify({ stage: 'launch-transaction', ...event })); },
   });
-  const launchSignature = await finalizedTransaction([launchInstruction], [creator, mint]);
+  const mint = launch.mint;
+  const mintRouterSignature = launch.mintRouterSignature;
+  const launchSignature = launch.signature;
+  const router = launch.feeRouter;
+  assert.equal(launch.reserveReceipt?.atomic, true, 'The community reserve was not funded with the Pump launch.');
+  const checkedRouter = await verifyMintFeeRouterAccount({ connection, programId, mint: mint.publicKey, expectedAuthority: authority.publicKey });
+  assert(checkedRouter.verified, `Mint router verification failed: ${checkedRouter.reason}`);
   const curve = await new OnlinePumpSdk(connection).fetchBondingCurve(mint.publicKey);
   assert(curve.creator.equals(router), 'Pump creator-fee authority does not match the mint router.');
 
@@ -481,6 +524,7 @@ try {
       minimumLamports: creatorMinimum.minimumLamports,
     },
     creatorTopUp: topUp,
+    authorityTopUp,
   };
   console.log(JSON.stringify(result, null, 2));
 } catch (error) {
@@ -488,4 +532,6 @@ try {
   process.exitCode = 1;
 } finally {
   server.kill('SIGTERM');
+  // Some RPC clients keep idle HTTP sockets open on Windows after the child API exits.
+  setTimeout(() => process.exit(process.exitCode || 0), 1000);
 }

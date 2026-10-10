@@ -114,6 +114,22 @@ test('payout passes the dedicated signer and exact lamports to the injected send
   assert.equal(f.state.sends, 1);
 });
 
+test('reconciliation uses the original public payer after the configured secret rotates', async () => {
+  let observed;
+  const f = fixture({ reconcileFinalizedSolPayout: async input => { observed = input; return {
+    signature: input.signature, from: input.payer.toBase58(), to: input.recipient.toBase58(),
+    amountLamports: input.lamports, recipientDeltaLamports: input.lamports, finalized: true,
+  }; } });
+  const original = f.payout.publicKey.toBase58();
+  f.env.SOLANA_REFERRAL_PAYOUT_SECRET_KEY = '';
+  f.env.SOLANA_REFERRAL_PAYOUT_CONFIGURED = 'false';
+  const proof = await f.service.reconcileSolPayout({ recipientWallet: f.mint, amountSol: 0.001,
+    signature: 'signed-before-rotation', from: original });
+  assert.equal(observed.payer.toBase58(), original);
+  assert.equal(proof.from, original);
+  assert.equal(f.state.sends, 0);
+});
+
 test('collection rejects unverified launches and mismatched Pump creators before sending', async () => {
   const f = fixture();
   f.state.launch.onchainVerified = false;

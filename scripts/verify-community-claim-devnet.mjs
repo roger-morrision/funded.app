@@ -99,3 +99,4 @@ assert.equal(postProof.status, 'claimed');
 console.log(JSON.stringify({ stage:'claim-finalized', cluster:'devnet', mint:mint.toBase58(), signature,
   wallet:wallet.publicKey.toBase58(), amountBaseUnits:proof.amount,
   recipientDeltaBaseUnits:String(after - before), payment:payment.toBase58(), apiStatus:postProof.status }));
+process.exit(0);

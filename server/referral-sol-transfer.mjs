@@ -21,11 +21,11 @@ function finalizedProof({ receipt, signature, payer, recipient, lamports }) {
   const payerKey = keys[0]?.toBase58?.() || String(keys[0] || '');
   const index = keys.findIndex(key => (key?.toBase58?.() || String(key)) === recipient.toBase58());
   const before = receipt?.meta?.preBalances?.[index], after = receipt?.meta?.postBalances?.[index];
-  if (receipt?.meta?.err || payerKey !== payer.publicKey.toBase58() || index < 0
+  if (receipt?.meta?.err || payerKey !== payer.toBase58() || index < 0
     || !Number.isSafeInteger(before) || !Number.isSafeInteger(after) || after - before !== lamports) {
     throw uncertain('Finalized referral transfer has no exact payer and recipient proof.', signature);
   }
-  return { signature, from: payer.publicKey.toBase58(), to: recipient.toBase58(), amountLamports: lamports,
+  return { signature, from: payer.toBase58(), to: recipient.toBase58(), amountLamports: lamports,
     recipientDeltaLamports: after - before, finalized: true };
 }
 
@@ -39,19 +39,23 @@ export async function reconcileFinalizedSolPayout({ connection, payer, recipient
 // ambiguous RPC result: a direct SOL transfer has no on-chain idempotency key.
 export async function sendFinalizedSolPayout({ connection, payer, recipient, lamports, onSigned = async () => {},
   maxPolls = 75, pollDelayMs = 1000 }) {
-  // A new SOL account must receive enough lamports to remain rent exempt.
-  if (!await connection.getAccountInfo(recipient, 'confirmed')) {
-    const minimum = await connection.getMinimumBalanceForRentExemption(0, 'confirmed');
-    if (lamports < minimum) {
-      const error = new Error('This referral reward is below the minimum needed to create a new SOL wallet. Fund the recipient wallet first, then retry.');
-      error.safeToRetry = true; // No transaction was signed or broadcast.
-      throw error;
+  let latest, transaction;
+  try {
+    // A new SOL account must receive enough lamports to remain rent exempt.
+    if (!await connection.getAccountInfo(recipient, 'confirmed')) {
+      const minimum = await connection.getMinimumBalanceForRentExemption(0, 'confirmed');
+      if (lamports < minimum) {
+        throw new Error('This referral reward is below the minimum needed to create a new SOL wallet. Fund the recipient wallet first, then retry.');
+      }
     }
+    latest = await connection.getLatestBlockhash('finalized');
+    transaction = new Transaction({ feePayer: payer.publicKey, recentBlockhash: latest.blockhash })
+      .add(SystemProgram.transfer({ fromPubkey: payer.publicKey, toPubkey: recipient, lamports }));
+    transaction.sign(payer);
+  } catch (error) {
+    error.safeToRetry = true; // No signature was journaled or transaction broadcast.
+    throw error;
   }
-  const latest = await connection.getLatestBlockhash('finalized');
-  const transaction = new Transaction({ feePayer: payer.publicKey, recentBlockhash: latest.blockhash })
-    .add(SystemProgram.transfer({ fromPubkey: payer.publicKey, toPubkey: recipient, lamports }));
-  transaction.sign(payer);
   const signature = bs58.encode(transaction.signature);
   await onSigned({ signature, from: payer.publicKey.toBase58(), to: recipient.toBase58(), lamports });
   let sendError;
@@ -66,7 +70,7 @@ export async function sendFinalizedSolPayout({ connection, payer, recipient, lam
       if (status?.err) throw uncertain('Referral transfer failed on chain; reconcile the signed signature.', signature);
       if (status?.confirmationStatus === 'finalized') {
         const receipt = await connection.getTransaction(signature, { commitment: 'finalized', maxSupportedTransactionVersion: 0 });
-        if (receipt) return finalizedProof({ receipt, signature, payer, recipient, lamports });
+        if (receipt) return finalizedProof({ receipt, signature, payer: payer.publicKey, recipient, lamports });
       }
       if (status?.confirmationStatus !== 'finalized' && latest.lastValidBlockHeight
         && await connection.getBlockHeight('confirmed') > latest.lastValidBlockHeight) break;

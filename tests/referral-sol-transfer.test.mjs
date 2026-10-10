@@ -58,6 +58,33 @@ test('new wallet below rent minimum fails before signing or broadcast', async ()
   assert.equal(sent, 0);
 });
 
+test('RPC failure before signature journaling leaves the claim safe to retry', async () => {
+  const payer = Keypair.generate(), recipient = Keypair.generate().publicKey;
+  let signed = 0, sent = 0;
+  const connection = {
+    getAccountInfo: async () => ({ lamports: 1 }),
+    getLatestBlockhash: async () => { throw Error('Blockhash RPC unavailable'); },
+    sendRawTransaction: async () => { sent++; },
+  };
+  await assert.rejects(sendFinalizedSolPayout({ connection, payer, recipient, lamports: 15,
+    onSigned: async () => { signed++; } }), error => error.safeToRetry === true && !error.pendingSignature);
+  assert.equal(signed, 0);
+  assert.equal(sent, 0);
+});
+
+test('a journaled signer public key reconciles after signer rotation', async () => {
+  const original = Keypair.generate(), replacement = Keypair.generate(), recipient = Keypair.generate().publicKey;
+  const connection = { getTransaction: async () => ({
+    transaction: { message: { accountKeys: [original.publicKey, recipient] } },
+    meta: { err: null, preBalances: [2_000_000, 100], postBalances: [1_989_995, 10_100] },
+  }) };
+  const proof = await reconcileFinalizedSolPayout({ connection, payer: original.publicKey, recipient,
+    lamports: 10_000, signature: 'journaled-signature' });
+  assert.equal(proof.from, original.publicKey.toBase58());
+  await assert.rejects(reconcileFinalizedSolPayout({ connection, payer: replacement.publicKey, recipient,
+    lamports: 10_000, signature: 'journaled-signature' }), /exact payer and recipient proof/);
+});
+
 test('local validator pays a disposable referral wallet exactly once', { skip: !process.env.LOCAL_SOLANA_RPC_URL },
   async () => {
     const connection = new Connection(process.env.LOCAL_SOLANA_RPC_URL, 'confirmed');
@@ -73,7 +100,7 @@ test('local validator pays a disposable referral wallet exactly once', { skip: !
     assert.equal(result.signature, journaled);
     assert.equal(result.recipientDeltaLamports, 10_000_000);
     assert.equal(await connection.getBalance(recipient, 'finalized'), 10_000_000);
-    const reconciled = await reconcileFinalizedSolPayout({ connection, payer, recipient,
+    const reconciled = await reconcileFinalizedSolPayout({ connection, payer: payer.publicKey, recipient,
       lamports: 10_000_000, signature: journaled });
     assert.equal(reconciled.signature, journaled);
     assert.equal(reconciled.recipientDeltaLamports, 10_000_000);

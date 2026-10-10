@@ -77,7 +77,7 @@ export function createReferralClaimsRoutes({
       if (['executing', 'verification-pending'].includes(claim.status) && claim.pendingSignature) {
         try {
           const transfer = await reconcileSolPayout({ recipientWallet: claim.recipientWallet,
-            amountSol: Number(claim.amount), signature: claim.pendingSignature });
+            amountSol: Number(claim.amount), signature: claim.pendingSignature, from: claim.pendingFrom });
           return json(res, 200, await recordPaid(referralExecuteId, Number(claim.amount), transfer));
         } catch {
           return json(res, 409, { error: 'The signed referral transfer still needs finalized reconciliation.',
@@ -98,11 +98,12 @@ export function createReferralClaimsRoutes({
       if (!locked) return json(res, 409, { error: 'Referral claim is already being executed.' });
       try {
         const transfer = await executeSolPayout({ recipientWallet: claim.recipientWallet, amountSol,
-          onSigned: async ({ signature }) => {
+          onSigned: async ({ signature, from }) => {
             await store.updateReferralClaimState(referralExecuteId, current => {
               const currentClaim = current.referralClaims[referralExecuteId];
               if (currentClaim?.status !== 'executing' || currentClaim.pendingSignature) throw new Error('Referral signature journal is unavailable.');
               currentClaim.pendingSignature = signature;
+              currentClaim.pendingFrom = from;
               currentClaim.signedAt = new Date().toISOString();
               return currentClaim;
             });

@@ -17,6 +17,7 @@ export async function mutateReferralClaimState(state,id,mutator) {
   if(['id','settlementSignature','level','recipientWallet','amount','asset','nonce','expiresAt','createdAt'].some(key=>claim[key]!==prior[key]))throw new Error('Original referral entitlement cannot change.');
   if(prior.publicKey&&claim.publicKey!==prior.publicKey)throw new Error('Original referral wallet cannot change.');
   if(prior.pendingSignature&&claim.pendingSignature!==prior.pendingSignature)throw new Error('Signed referral transfer cannot change.');
+  if(prior.pendingFrom&&claim.pendingFrom!==prior.pendingFrom)throw new Error('Signed referral payer cannot change.');
   if(claim.publicKey&&claim.publicKey!==claim.recipientWallet)throw new Error('Referral destination must match the entitled wallet.');
   if(['wallet-verified','executing','paid'].includes(claim.status)&&!claim.publicKey)throw new Error('Referral wallet verification is required.');
   const transitions={
@@ -35,7 +36,7 @@ export async function mutateReferralClaimState(state,id,mutator) {
       ||claim.payoutId!==canonical||claim.payoutSignature!==row.signature||typeof row.signature!=='string'||!row.signature
       ||row.to!==claim.recipientWallet||!Number.isFinite(Number(row.amountSol))||Number(row.amountSol)<=0
       ||Number(row.amountSol)!==Number(claim.amount)||claim.asset!=='SOL'||row.paidAt!==claim.paidAt
-      ||claim.pendingSignature!==row.signature||row.finalized!==true
+      ||claim.pendingSignature!==row.signature||(claim.pendingFrom&&row.from!==claim.pendingFrom)||row.finalized!==true
       ||row.amountLamports!==Math.round(Number(claim.amount)*1_000_000_000)
       ||row.recipientDeltaLamports!==row.amountLamports)throw new Error('Referral payout must exactly match its paid claim.');
   }

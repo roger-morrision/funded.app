@@ -113,9 +113,9 @@ test('referral execution locks out concurrent requests and paid receipt replay',
   const f = referralFixture(async ({ recipientWallet, onSigned }) => {
     calls++; submitted();
     await new Promise(resolve => { release = resolve; });
-    await onSigned({ signature: 'mock-transfer' });
+    await onSigned({ signature: 'mock-transfer', from: f.signer.publicKey.toBase58() });
     return { signature: 'mock-transfer', to: recipientWallet, amountLamports: 10_000_000,
-      recipientDeltaLamports: 10_000_000, finalized: true };
+      recipientDeltaLamports: 10_000_000, from: f.signer.publicKey.toBase58(), finalized: true };
   });
   const pending = f.request('/api/referral-claims/claim/execute');
   await started;
@@ -124,6 +124,7 @@ test('referral execution locks out concurrent requests and paid receipt replay',
   release(); await pending;
   assert.equal(f.state.referralClaims.claim.status, 'paid');
   assert.equal(f.state.referralClaims.claim.pendingSignature, 'mock-transfer');
+  assert.equal(f.state.referralClaims.claim.pendingFrom, f.signer.publicKey.toBase58());
   await f.request('/api/referral-claims/claim/execute');
   assert.equal(f.responses.at(-1).data.signature, 'mock-transfer');
   assert.equal(calls, 1);
@@ -142,13 +143,15 @@ test('uncertain referral transfer retains a pending state and rejects replay', a
 test('pending signed referral reconciles to one paid receipt without resending', async () => {
   let checks = 0;
   const f = referralFixture(() => assert.fail('Reconciliation must not resend'),
-    async ({ recipientWallet, signature }) => {
+    async ({ recipientWallet, signature, from }) => {
       checks++;
-      return { signature, to: recipientWallet, amountLamports: 10_000_000,
+      assert.equal(from, f.signer.publicKey.toBase58());
+      return { signature, from, to: recipientWallet, amountLamports: 10_000_000,
         recipientDeltaLamports: 10_000_000, finalized: true };
     });
   f.state.referralClaims.claim.status = 'verification-pending';
   f.state.referralClaims.claim.pendingSignature = 'signed-transfer';
+  f.state.referralClaims.claim.pendingFrom = f.signer.publicKey.toBase58();
   await f.request('/api/referral-claims/claim/execute');
   assert.equal(f.responses.at(-1).status, 200);
   assert.equal(f.state.referralClaims.claim.status, 'paid');
