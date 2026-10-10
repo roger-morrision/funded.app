@@ -119,6 +119,7 @@ export function renderLeaderboard(
     renderWalletBurnersBoard,
     renderProjectBurnBoard,
     formatOnchainAge,
+    loadVerifiedTokenLogos,
     document = globalThis.document,
   } = {}
 ) {
@@ -179,7 +180,7 @@ export function renderLeaderboard(
     .sort((a, b) => (b.capUsd ?? -1) - (a.capUsd ?? -1)
       || Number(b.createdTimestamp || 0) - Number(a.createdTimestamp || 0)
       || a.address.localeCompare(b.address)).slice(0, 25);
-  const header = '<div class="leaderboard-table-head" role="row"><span>Rank</span><span>Creator</span><span>Market cap</span><span>Launched</span></div>';
+  const header = '<div class="leaderboard-table-head" role="row"><span>Rank</span><span>Token</span><span>Creator</span><span>Market cap</span><span>Launched</span></div>';
   const creatorRankingUnavailable = verifiedLaunchPoliciesStatus !== 'ready' || !exploreFeedAvailable;
   const empty = creatorRankingUnavailable
     ? '<div class="empty-state"><strong>Creator ranking unavailable.</strong><span>The verified launch registry or market feed could not be loaded; an empty ranking is not evidence of zero launches.</span></div>'
@@ -195,5 +196,10 @@ export function renderLeaderboard(
   if (note) note.textContent = 'Ranked from confirmed launch policies and available market caps. Missing market data is shown as unavailable.';
   if (badge) badge.textContent = 'RPC verified';
   const avatarClass = index => ['mint', 'lavender', 'coral', 'blue'][index % 4];
-  table.innerHTML = `${header}${ranked.map((item, index) => `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span class="rank-number">${String(index + 1).padStart(2, '0')}</span><span class="leader-identity"><span class="leader-avatar ${avatarClass(index)}">${escapeHtml(String(item.symbol || 'T').slice(0, 2))}</span><span><a href="/wallet/${encodeURIComponent(item.creator)}"><strong>${escapeHtml(shortAddress(item.creator))}</strong></a><small>· <a href="/token/${encodeURIComponent(item.address)}">${escapeHtml(item.name || item.symbol || 'Verified launch')}</a></small></span></span><span><b>${item.capUsd == null ? '$—' : escapeHtml(formatDashboardUsd(item.capUsd))}</b><small>${item.capUsd == null ? 'Market data unavailable' : item.migrated === true ? 'Pool MC' : 'Curve MC'}</small></span><span class="leader-value">${item.createdTimestamp ? escapeHtml(formatOnchainAge(Number(item.createdTimestamp) * 1000)) : 'Time unavailable'}</span></div>`).join('')}`;
+  table.innerHTML = `${header}${ranked.map((item, index) => {
+    const symbol = String(item.symbol || 'TOKEN').trim() || 'TOKEN';
+    const name = String(item.name || symbol).trim() || symbol;
+    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span class="rank-number">${String(index + 1).padStart(2, '0')}</span><span class="leaderboard-token-cell" data-logo-mint="${escapeHtml(item.address)}"><span class="leader-avatar leader-token-logo ${avatarClass(index)}" aria-hidden="true">${escapeHtml(symbol.slice(0, 2).toUpperCase())}</span><span class="leaderboard-token-label"><a href="/token/${encodeURIComponent(item.address)}"><strong>${escapeHtml(symbol)}</strong></a><small title="${escapeHtml(name)}">${escapeHtml(name)}</small></span></span><span class="leader-identity leaderboard-creator-cell"><span><a href="/wallet/${encodeURIComponent(item.creator)}"><strong>${escapeHtml(shortAddress(item.creator))}</strong></a><small>Creator wallet</small></span></span><span><b>${item.capUsd == null ? '$—' : escapeHtml(formatDashboardUsd(item.capUsd))}</b><small>${item.capUsd == null ? 'Market data unavailable' : item.migrated === true ? 'Pool MC' : 'Curve MC'}</small></span><span class="leader-value">${item.createdTimestamp ? escapeHtml(formatOnchainAge(Number(item.createdTimestamp) * 1000)) : 'Time unavailable'}</span></div>`;
+  }).join('')}`;
+  loadVerifiedTokenLogos?.(table, { probeMissing: true });
 }

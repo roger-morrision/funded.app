@@ -94,7 +94,7 @@ export function createLeaderboardsController(appState) {
 
   // app-source: 462
   function renderLeaderboard(){
-    return appState.renderLeaderboardView({ leaderboardView: appState.leaderboardView, burnersBoardState: appState.burnersBoardState, verifiedLaunchPolicies: appState.verifiedLaunchPolicies, assets: appState.assets, coinSolUsdPrice: appState.coinSolUsdPrice, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus, exploreFeedAvailable: appState.exploreFeedAvailable, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER }, { loadWalletBurnBoard: appState.loadWalletBurnBoard, renderWalletBurnersBoard: appState.renderWalletBurnersBoard, renderProjectBurnBoard: appState.renderProjectBurnBoard, formatOnchainAge: appState.formatOnchainAge });
+    return appState.renderLeaderboardView({ leaderboardView: appState.leaderboardView, burnersBoardState: appState.burnersBoardState, verifiedLaunchPolicies: appState.verifiedLaunchPolicies, assets: appState.assets, coinSolUsdPrice: appState.coinSolUsdPrice, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus, exploreFeedAvailable: appState.exploreFeedAvailable, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER }, { loadWalletBurnBoard: appState.loadWalletBurnBoard, renderWalletBurnersBoard: appState.renderWalletBurnersBoard, renderProjectBurnBoard: appState.renderProjectBurnBoard, formatOnchainAge: appState.formatOnchainAge, loadVerifiedTokenLogos: appState.loadVerifiedTokenLogos });
   }
   // app-source-end
 
