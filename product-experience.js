@@ -61,7 +61,6 @@ function explore() {
   $('#explore-filter-toggle')?.addEventListener('click', () => {
     if (!filters?.hidden) filters.querySelector('button,select,input')?.focus();
   });
-  disclosure($('.explore-benefit-leaders'), 'Explore reward programs');
 }
 
 function launch() {
