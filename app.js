@@ -2586,9 +2586,10 @@ function exploreMarketCapUsd(record){
   return Number.isFinite(usd) && usd >= 0 ? formatDashboardUsd(usd) : '$—';
 }
 function renderExplorePulse(records){
-  const ready = Boolean(exploreLastVerifiedAt);
+  const ready = Boolean(exploreLastVerifiedAt || (exploreUpdatedAt && exploreFeedAvailable && !/unavailable|rate limited/i.test(exploreProviderStatus)));
+  const loading = !exploreUpdatedAt && exploreProviderStatus === 'On-chain only · loading';
   const scope = document.querySelector('#explore-pulse-scope');
-  if (scope) scope.textContent = exploreProviderStatus.includes('stale') ? 'Counts reflect the last verified feed; live verification is paused.' : 'Counts reflect only mints confirmed in this feed.';
+  if (scope) scope.textContent = !ready ? loading ? 'Checking launch stages…' : 'Launch stages unavailable.' : exploreProviderStatus.includes('stale') ? 'Counts reflect the last verified feed; live verification is paused.' : 'Counts reflect only mints confirmed in this feed.';
   const lanes = {
     launch: filterMarketRecords(records, { stage: 'launch', maxAgeHours: 24, sort: 'newest' }),
     almost: filterMarketRecords(records, { stage: 'near', sort: 'newest' }),
@@ -2598,7 +2599,7 @@ function renderExplorePulse(records){
     const lane = button.dataset.exploreLane;
     const items = lanes[lane] || [];
     button.querySelector('strong').textContent = ready ? String(items.length).padStart(2, '0') : '—';
-    button.querySelector('small').textContent = !ready ? 'Waiting for verified feed' : items.length ? items.slice(0, 3).map(item => item.symbol).join(' · ') : lane === 'migrated' ? 'No RPC-verified migrated pool' : 'No verified launches in this stage';
+    button.querySelector('small').textContent = !ready ? loading ? 'Waiting for verified feed' : 'Verified feed unavailable' : items.length ? items.slice(0, 3).map(item => item.symbol).join(' · ') : lane === 'migrated' ? 'No RPC-verified migrated pool' : 'No verified launches in this stage';
     const active = exploreTab === 'new' && lane === exploreNewLane;
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
@@ -2665,6 +2666,7 @@ function renderExploreControls(){
     button.setAttribute('aria-pressed', String(active));
   });
   const checked = document.querySelector('#explore-last-updated');
+  if (checked) checked.hidden = Boolean(exploreUpdatedAt);
   if (checked) checked.textContent = exploreUpdatedAt ? `Checked ${new Date(exploreUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Waiting for first check';
 }
 function formatVerifiedPercent(value){
@@ -2710,6 +2712,7 @@ function renderExplorePayoutStats() {
   if (!container) return;
   const stats = analyticsSummary?.feePayoutStats;
   const ready = stats?.cluster === EXPLORE_CLUSTER && stats.commitment === 'finalized';
+  const loading = analyticsSummary == null && !receiptEvidenceChecked;
   const cards = [
     { label:'Total fee paid to X accounts', kind:'x' },
     { label:'Total fee paid to creators', kind:'creator' },
@@ -2720,7 +2723,7 @@ function renderExplorePayoutStats() {
     { label:'Top creator paid', kind:'creator', top:true },
   ];
   container.innerHTML = cards.map(card => {
-    const group = ready ? stats[card.kind] : null;
+    const group = ready && stats[card.kind] ? stats[card.kind] : loading ? null : { status: 'unavailable' };
     const available = ['verified', 'partial'].includes(group?.status);
     const leader = available && card.top ? group.top : null;
     if (card.kind === 'fundedHolder') {
@@ -2862,6 +2865,13 @@ function renderExploreAssets({ force = false } = {}){
   const feedUnavailable = !exploreFeedAvailable && !exploreLastVerifiedAt;
   const rpcUnavailable = /RPC (?:rate limited|unavailable)/.test(exploreProviderStatus);
   const outage = exploreOutageCopy();
+  const loaded = !loading && exploreFeedAvailable && !rpcUnavailable && !/stale|unavailable|rate limited/i.test(exploreProviderStatus);
+  if (clusterLabel) clusterLabel.hidden = loaded;
+  if (status) {
+    status.hidden = loaded;
+    const badge = status.closest('.live-label');
+    if (badge) badge.hidden = loaded;
+  }
   if (clusterLabel) clusterLabel.textContent = `${exploreProviderStatus.includes('Verified launch registry') ? 'Verified launch registry' : exploreProviderStatus.includes('stale') ? 'last verified snapshot' : exploreProviderStatus.includes('RPC verified') ? 'RPC verified' : exploreProviderStatus.includes('unavailable') ? 'data unavailable' : 'awaiting verification'}`;
   if (scope && EXPLORE_CLUSTER !== 'devnet') scope.textContent = 'Solana mainnet discovery · Pump.fun listings are shown only after mint verification. Missing market figures stay unavailable.';
   const records = assets.map(item => withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(item, exploreWindow) : enrichMarketRecord(item)));
@@ -3178,9 +3188,10 @@ function renderHomeKpiDashboard(verified = assets){
   const status = document.querySelector('#home-dashboard-status');
   const updated = document.querySelector('#home-dashboard-updated');
   if (status) {
-    status.hidden = !launchFeedUnavailable && !fundedLaunchRecords.length;
+    status.hidden = !launchFeedUnavailable;
     if (!status.hidden) status.innerHTML = `<i></i> ${launchFeedUnavailable ? `Launch feed unavailable` : `Verified funded launches`}`;
   }
+  if (updated) updated.hidden = !launchFeedUnavailable;
   if (updated) updated.textContent = exploreUpdatedAt ? `Checked ${new Date(exploreUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Waiting for first check';
   renderFundedTokenLanding();
 }
@@ -4018,6 +4029,7 @@ function renderHomeLaunchBoard(){
   if (tableWrap) tableWrap.hidden = homeLaunchView !== 'table';
   const feedState = document.querySelector('#home-feed-state');
   if (feedState) {
+    feedState.hidden = exploreFeedAvailable;
     feedState.textContent = exploreFeedAvailable ? `Feed available`
       : exploreLastVerifiedAt ? 'Last verified snapshot' : 'Feed unavailable';
     feedState.dataset.state = exploreFeedAvailable ? 'live' : exploreLastVerifiedAt ? 'snapshot' : 'unavailable';
@@ -4086,7 +4098,7 @@ function renderHomeLaunchBoard(){
       const boostPacks = activeBoostPackages(verifiedBoosts[item.address]).map(pack => pack.packageId);
       const detail = `${symbol}${boostPacks.length ? ` · active boost packs ${boostPacks.join(', ')}` : ''} · ${homeLaunchWindow} market-cap change ${change} · ${item.migrated === true ? 'pool' : 'curve'} MC ${marketCap}`;
       return `<a href="/token/${encodeURIComponent(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}" aria-label="${escapeHtml(detail)}" title="${escapeHtml(detail)}"><span class="home-ticker-rank" aria-hidden="true">${index + 1}</span><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon || String(symbol).slice(0, 1))}</span><strong class="${activeBoostMultiplier(verifiedBoosts[item.address]) >= 500 ? 'golden-ticker' : ''}">${escapeHtml(symbol)}</strong>${exploreBoostAmountMarkup(item.address)}<span class="home-ticker-change ${trendClass}" title="${escapeHtml(homeLaunchWindow)} market-cap change">${escapeHtml(change)}</span><small class="home-ticker-mc">MC ${escapeHtml(marketCap)}</small></a>`;
-    }).join('') : `<span class="home-ticker-empty">${exploreFeedAvailable ? `No verified ${escapeHtml(homeLaunchWindow)} trades in this feed` : 'Checking verified market activity'}</span>`;
+    }).join('') : `<span class="home-ticker-empty">${exploreFeedAvailable ? `No verified ${escapeHtml(homeLaunchWindow)} trades in this feed` : exploreProviderStatus === 'On-chain only · loading' ? 'Checking verified market activity' : 'Market activity unavailable'}</span>`;
     setupHomeTicker(ticker, tickerMarkup, ranked.length);
   }
   let visible = [...verified];
@@ -4487,7 +4499,7 @@ async function loadOnchainExploreDataOnce(signal, requestedSort){
     if (!exploreVerificationFailed && pumpFeed.available && records.length) exploreLastVerifiedAt = exploreUpdatedAt;
     exploreProviderStatus = EXPLORE_CLUSTER === 'devnet' && assets.length && verified.length < assets.length
       ? `Verified launch registry · ${verified.length ? `${verified.length}/${assets.length} live mint checks` : 'live mint checks unavailable'}`
-      : exploreVerificationFailed ? `Solana RPC ${exploreRateLimited ? 'rate limited · retry shortly' : 'unavailable'}` : !pumpFeed.available ? 'Launch feed unavailable' : !records.length ? 'No indexed launches · awaiting RPC verification' : !verified.length ? 'Indexed launches · none passed RPC verification' : EXPLORE_CLUSTER === 'devnet' ? `Solana registry · RPC verified${marketScanRateLimited ? ' · trade history rate limited' : ''}` : !birdeyeFeed.available ? `Pump.fun · Birdeye unavailable · RPC verified` : 'Pump.fun + Birdeye · RPC verified';
+      : exploreVerificationFailed ? `Solana RPC ${exploreRateLimited ? 'rate limited · retry shortly' : 'unavailable'}` : !pumpFeed.available ? 'Launch feed unavailable' : !records.length ? 'No indexed launches' : !verified.length ? 'Indexed launches · none passed RPC verification' : EXPLORE_CLUSTER === 'devnet' ? `Solana registry · RPC verified${marketScanRateLimited ? ' · trade history rate limited' : ''}` : !birdeyeFeed.available ? `Pump.fun · Birdeye unavailable · RPC verified` : 'Pump.fun + Birdeye · RPC verified';
     const feedStatus = document.querySelector('#explore-data-status');
     renderExploreAssets();
     renderHomeLaunchBoard();
