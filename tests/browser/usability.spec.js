@@ -88,6 +88,19 @@ test('desktop primary destinations are unique and More closes with keyboard focu
   await expect(summary).toBeFocused();
 });
 
+test('navigation links and leaderboard tabs change views without generic success toasts', async ({ page }) => {
+  await open(page, 'launch');
+  await page.getByRole('link', { name: 'Read the launch guide →' }).click();
+  await expect(page).toHaveURL(/#docs$/);
+  await expect(page.locator('#toast')).not.toContainText('View updated.');
+
+  await open(page, 'leaderboard');
+  const burnBoard = page.locator('#leaderboard-burn-board-tab');
+  await burnBoard.click();
+  await expect(burnBoard).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#toast')).not.toContainText('Burn board view selected');
+});
+
 test('primary portfolio and rewards remain reachable on compact desktop Home', async ({ page }) => {
   for (const width of [901, 1024]) {
     await page.setViewportSize({ width, height: 900 });
