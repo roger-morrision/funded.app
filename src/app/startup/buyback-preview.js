@@ -204,7 +204,13 @@ export function initializeBuybackPreview(appState) {
     if (document.querySelector('#x-sign-in')?.dataset.connected === 'true') void appState.loadXIdentity();
     else document.querySelector('#x-sign-in')?.click();
   });
-  document.querySelector('#watchlist-wallet-sync')?.addEventListener('click', async event => {
+  const walletSyncButton = document.createElement('button');
+  walletSyncButton.type = 'button';
+  walletSyncButton.className = 'text-button';
+  walletSyncButton.id = 'watchlist-wallet-sync';
+  walletSyncButton.textContent = 'Verify wallet';
+  document.querySelector('#watchlist-sign-in')?.before(walletSyncButton);
+  walletSyncButton.addEventListener('click', async event => {
     const button = event.currentTarget;
     button.disabled = true;
     try { await appState.verifyWalletFavorites(); }
