@@ -156,6 +156,60 @@ export function collectRecentTrades(records, { limit = 10, since = null } = {}) 
   return trades.sort((a, b) => b.blockTime - a.blockTime).slice(0, Math.max(0, limit));
 }
 
+// The market feed retains only a bounded sample of confirmed Pump events.
+// Rank that sample, never imply complete trading history or realized profit.
+export function rankObservedTraders(records, verifiedLaunchPolicies, { nowSeconds = Math.floor(Date.now() / 1000) } = {}) {
+  const verifiedMints = new Set((verifiedLaunchPolicies || [])
+    .filter(policy => policy?.onchainVerified === true && policy.cluster === 'devnet')
+    .map(policy => policy.mint));
+  const walletPattern = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+  const signaturePattern = /^[1-9A-HJ-NP-Za-km-z]{80,90}$/;
+  const seen = new Set();
+  const wallets = new Map();
+  let scannedTokens = 0;
+  for (const record of records || []) {
+    if (!verifiedMints.has(record?.address) || !Array.isArray(record.recentTrades)) continue;
+    scannedTokens++;
+    for (const trade of record.recentTrades) {
+      const wallet = String(trade?.trader || '');
+      const signature = String(trade?.signature || '');
+      const blockTime = Number(trade?.blockTime);
+      const lamports = String(trade?.solLamports ?? '');
+      if (!walletPattern.test(wallet) || !signaturePattern.test(signature)
+        || !['buy', 'sell'].includes(trade?.side) || !/^\d+$/.test(lamports)
+        || !Number.isSafeInteger(blockTime) || blockTime < nowSeconds - 86400 || blockTime > nowSeconds + 60) continue;
+      const amount = BigInt(lamports);
+      if (amount <= 0n) continue;
+      const eventKey = `${record.address}:${signature}:${wallet}:${trade.side}:${lamports}`;
+      if (seen.has(eventKey)) continue;
+      seen.add(eventKey);
+      const row = wallets.get(wallet) || { wallet, tradeCount: 0, buyCount: 0, sellCount: 0, volumeLamports: 0n, tokenMints: new Set(), latestSignature: '', latestBlockTime: 0 };
+      row.tradeCount++;
+      row[trade.side === 'buy' ? 'buyCount' : 'sellCount']++;
+      row.volumeLamports += amount;
+      row.tokenMints.add(record.address);
+      if (blockTime > row.latestBlockTime) {
+        row.latestBlockTime = blockTime;
+        row.latestSignature = signature;
+      }
+      wallets.set(wallet, row);
+    }
+  }
+  const traders = [...wallets.values()].sort((a, b) =>
+    a.volumeLamports === b.volumeLamports ? b.tradeCount - a.tradeCount || a.wallet.localeCompare(b.wallet)
+      : a.volumeLamports > b.volumeLamports ? -1 : 1).map(row => ({
+    wallet: row.wallet,
+    tradeCount: row.tradeCount,
+    buyCount: row.buyCount,
+    sellCount: row.sellCount,
+    volumeSol: Number(row.volumeLamports) / 1_000_000_000,
+    tokenCount: row.tokenMints.size,
+    latestSignature: row.latestSignature,
+    latestBlockTime: row.latestBlockTime,
+  }));
+  return { scannedTokens, traders };
+}
+
 export function summarizeMarkets(records) {
   const values = records.map(enrichMarketRecord);
   const recordedVolume = values.filter(item => item.volume24hUsd != null);

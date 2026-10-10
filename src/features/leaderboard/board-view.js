@@ -118,6 +118,8 @@ export function renderLeaderboard(
     loadWalletBurnBoard,
     renderWalletBurnersBoard,
     renderProjectBurnBoard,
+    rankObservedTraders,
+    exploreExplorer,
     formatOnchainAge,
     loadVerifiedTokenLogos,
     document = globalThis.document,
@@ -138,15 +140,33 @@ export function renderLeaderboard(
   if (leaderboardView === 'burn-board') { renderProjectBurnBoard(); return; }
   if (leaderboardView === 'traders') {
     document.querySelector('#leaderboard-panel')?.setAttribute('aria-labelledby', 'leaderboard-traders-tab');
-    setCoinField('#leaderboard-table-kicker', 'Confirmed wallet trading · Solana');
+    document.querySelector('#leaderboard .leaderboard-grid')?.closest('details')?.setAttribute('hidden', '');
+    setCoinField('#leaderboard-table-kicker', 'Observed Pump trades · last 24 hours');
     setCoinField('#leaderboard-table-title', 'Trader leaderboard');
-    setCoinField('#leaderboard-hero-description', 'Trader rankings require wallet-attributed, confirmed trade history.');
-    setCoinField('#leaderboard-source-note', 'Unavailable: the verified wallet activity index is not running. Token trade observations cannot establish a wallet ranking.');
-    setCoinField('#leaderboard-status-title', 'Trader ranking unavailable');
-    setCoinField('#leaderboard-status-note', 'A wallet-attributed trade index is required before ranks can be shown.');
-    setCoinField('#leaderboard-status-badge', 'Unavailable');
-    table.setAttribute('aria-label', 'Solana trader leaderboard unavailable');
-    table.innerHTML = '<div class="leaderboard-table-head" role="row"><span>Rank</span><span>Wallet</span><span>Trades</span><span>Volume</span><span>Proof</span></div><div class="empty-state"><strong>Trader ranking unavailable</strong><span>Confirmed token trades alone do not prove each trader’s wallet activity. Rankings will appear after that activity is indexed and verified.</span></div>';
+    setCoinField('#leaderboard-hero-description', 'Wallets ranked by SOL traded in the recent, confirmed Pump activity we can observe.');
+    const { scannedTokens, traders } = rankObservedTraders?.(assets, verifiedLaunchPolicies) || { scannedTokens: 0, traders: [] };
+    const unavailable = EXPLORE_CLUSTER !== 'devnet' || verifiedLaunchPoliciesStatus !== 'ready' || !exploreFeedAvailable;
+    setCoinField('#leaderboard-source-note', unavailable
+      ? 'The verified launch registry or trade feed is unavailable.'
+      : `24-hour sample from ${scannedTokens} verified token${scannedTokens === 1 ? '' : 's'}. The feed keeps up to 20 recent trades per token and scans a limited set of tokens; ranks do not represent all trading.`);
+    setCoinField('#leaderboard-status-title', unavailable ? 'Trader ranking unavailable' : traders.length ? `${traders.length} observed trading wallet${traders.length === 1 ? '' : 's'}` : 'No observed traders yet');
+    setCoinField('#leaderboard-status-note', unavailable ? 'Verified trade activity could not be loaded.' : 'Ranked by observed SOL volume in the last 24 hours.');
+    setCoinField('#leaderboard-status-badge', unavailable ? 'Unavailable' : 'Partial history');
+    table.setAttribute('aria-label', 'Observed Solana trader leaderboard for the last 24 hours');
+    const header = '<div class="leaderboard-table-head" role="row"><span>Rank</span><span>Wallet</span><span>Trades</span><span>SOL volume</span><span>Proof</span></div>';
+    if (unavailable || !scannedTokens || !traders.length) {
+      const heading = unavailable ? 'Trader ranking unavailable' : !scannedTokens ? 'Waiting for trade scans' : 'No trades in this sample';
+      const detail = unavailable ? 'Try again when the verified launch registry and trade feed are available.' : !scannedTokens
+        ? 'The leaderboard will populate after verified tokens have been scanned.'
+        : 'No wallet-attributed Pump trades were found in the recent scanned activity.';
+      table.innerHTML = `${header}<div class="empty-state"><strong>${heading}</strong><span>${detail}</span></div>`;
+      return;
+    }
+    table.innerHTML = `${header}${traders.slice(0, 50).map((item, index) => {
+      const amount = item.volumeSol > 0 && item.volumeSol < 0.000001 ? '<0.000001' : item.volumeSol.toLocaleString(undefined, { maximumFractionDigits: 6 });
+      const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
+      return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span class="rank-number">${String(index + 1).padStart(2, '0')}</span><span class="leader-identity"><span class="leader-avatar blue" aria-hidden="true">${escapeHtml(item.wallet.slice(0, 2).toUpperCase())}</span><span><a href="/wallet/${encodeURIComponent(item.wallet)}"><strong>${escapeHtml(shortAddress(item.wallet))}</strong></a><small>${item.tokenCount} token${item.tokenCount === 1 ? '' : 's'} observed</small></span></span><span><b>${item.tradeCount}</b><small>${item.buyCount} buy · ${item.sellCount} sell</small></span><span class="leader-value">${escapeHtml(amount)} SOL</span><span><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer" aria-label="View recent transaction for ${escapeHtml(shortAddress(item.wallet))} on Solana Explorer">Trade ↗</a></span></div>`;
+    }).join('')}`;
     return;
   }
   document.querySelector('#leaderboard-panel')?.setAttribute('aria-labelledby', 'leaderboard-creators-tab');

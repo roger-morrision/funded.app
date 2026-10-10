@@ -109,7 +109,7 @@ import { canonicalLaunchSocialUrl, normalizeXProfileInput } from '../../launch-s
 import '../../airdrop-claimers-model.js';
 import { airdropClaimState } from '../../airdrop-directory-model.js';
 import { communityClaimSummary, communityClaimUnit } from '../../community-claim-summary.js';
-import { collectRecentTrades, enrichMarketRecord, filterMarketRecords, withMarketWindow } from '../../market-intelligence.js';
+import { collectRecentTrades, rankObservedTraders, enrichMarketRecord, filterMarketRecords, withMarketWindow } from '../../market-intelligence.js';
 import { emptyHomeLaunchFilters, homeLaunchFilterCount, normalizeHomeLaunchFilters, HOME_FILTER_RANGES } from '../../home-launch-filters.js';
 import { exploreSocialLinks } from '../../explore-social-links.js';
 import { readCurveMetrics, readPumpSwapMetrics } from '../../explore-onchain-metrics.js';
@@ -320,6 +320,7 @@ export const appDependencies = {
   communityClaimSummary,
   communityClaimUnit,
   collectRecentTrades,
+  rankObservedTraders,
   enrichMarketRecord,
   filterMarketRecords,
   withMarketWindow,

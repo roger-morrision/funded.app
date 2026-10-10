@@ -61,7 +61,7 @@ export function secondaryPages() {
     group('More airdrop details',['.airdrop-detail-grid','.airdrop-wallets-card','.airdrop-enhancement-grid']);
   }
   const leaderboard=$('#leaderboard');
-  if(leaderboard){const note=node('p','source-note','Burn and creator rankings use confirmed activity. Trader rankings are not available yet.');note.id='leaderboard-source-note';$('.leaderboard-hero',leaderboard)?.after(note);}
+  if(leaderboard){const note=node('p','source-note','Rankings use confirmed activity available in the current feed.');note.id='leaderboard-source-note';$('.leaderboard-hero',leaderboard)?.after(note);}
   const walletPage=$('#wallet-page');
   if(walletPage&&!$('.wallet-profile-kicker',walletPage))$('.wallet-detail-title',walletPage)?.before(node('p','wallet-profile-kicker','WALLET ACTIVITY'));
   const docs=$('#docs');
