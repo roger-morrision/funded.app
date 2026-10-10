@@ -2075,11 +2075,17 @@ function updateFundedBurnButton(){
 }
 function renderWalletFundedBalance(){
   const balance = document.querySelector('#wallet-popover-funded');
-  if (!balance) return;
-  const note = balance.closest('.wallet-popover-balance')?.parentElement?.querySelector('em');
+  const note = balance?.closest('.wallet-popover-balance')?.parentElement?.querySelector('em');
   const currentWallet = Boolean(connectedWalletAddress && fundedBurnState.wallet === connectedWalletAddress);
   const ready = currentWallet && fundedBurnState.status === 'ready';
-  balance.textContent = ready ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : '—';
+  const amount = ready ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : null;
+  if (balance) balance.textContent = amount ?? '—';
+  const airdropBalance = document.querySelector('#airdrop-funded-balance');
+  if (airdropBalance) {
+    airdropBalance.hidden = !connectedWalletAddress;
+    airdropBalance.querySelector('strong').textContent = ready ? `${amount} $FUNDED`
+      : currentWallet && fundedBurnState.status === 'error' ? 'Balance unavailable' : 'Checking balance…';
+  }
   if (note) note.textContent = ready ? 'Live SPL token balance' : currentWallet && fundedBurnState.status === 'loading' ? 'Loading from Devnet' : 'Balance unavailable';
   renderLaunchBurnSelection();
 }
@@ -7865,7 +7871,7 @@ function syncPageRoute(){
       link.firstChild.textContent = action[0] + ' ';
     }
   }
-  if (route === 'buybacks' || route === 'paid') void loadFundedBurnState();
+  if (route === 'buybacks' || route === 'paid' || (route === 'airdrops' && connectedWalletAddress)) void loadFundedBurnState();
   if (location.hash === '#referral-faq') requestAnimationFrame(() => {
     const faq = document.querySelector('#referral-faq');
     if (faq) faq.tabIndex = -1;
