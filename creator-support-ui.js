@@ -6,7 +6,7 @@ import { mountReceiptHistory } from './receipt-history-ui.js';
 
 const $ = selector => document.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const displayCluster = cluster => cluster === 'devnet' ? 'Solana' : cluster;
+const displayCluster = cluster => cluster === 'devnet' ? 'Solana Devnet' : cluster === 'mainnet-beta' ? 'Solana Mainnet' : cluster;
 const sol = amount => `${(Number(amount || 0) / 1e9).toLocaleString(undefined,{maximumFractionDigits:9})} SOL`;
 const main = $('.main-content');
 let capabilities = null, routeGeneration = 0, directoryGeneration = 0;

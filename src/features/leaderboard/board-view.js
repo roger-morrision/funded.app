@@ -142,8 +142,8 @@ export function renderLeaderboard(
     document.querySelector('#leaderboard-panel')?.setAttribute('aria-labelledby', 'leaderboard-traders-tab');
     document.querySelector('#leaderboard .leaderboard-grid')?.closest('details')?.setAttribute('hidden', '');
     setCoinField('#leaderboard-table-kicker', 'Observed Pump trades · last 24 hours');
-    setCoinField('#leaderboard-table-title', 'Trader leaderboard');
-    setCoinField('#leaderboard-hero-description', 'Wallets ranked by SOL traded in the recent, confirmed Pump activity we can observe.');
+    setCoinField('#leaderboard-table-title', 'Observed trader leaderboard');
+    setCoinField('#leaderboard-hero-description', 'A partial ranking of wallet SOL volume from recent, confirmed Pump trades across sampled verified tokens.');
     const { scannedTokens, traders } = rankObservedTraders?.(assets, verifiedLaunchPolicies) || { scannedTokens: 0, traders: [] };
     const unavailable = EXPLORE_CLUSTER !== 'devnet' || verifiedLaunchPoliciesStatus !== 'ready' || !exploreFeedAvailable;
     setCoinField('#leaderboard-source-note', unavailable

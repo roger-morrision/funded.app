@@ -169,6 +169,7 @@ body.page-route-airdrops #airdrops .airdrop-public-programs{margin-top:0}
 body.page-route-airdrops #airdrops .airdrop-reference-tabs{gap:24px;border-color:#344057}
 body.page-route-airdrops #airdrops .airdrop-reference-tabs button{min-height:43px;color:#a9b8c9;font:700 11px Manrope,sans-serif;letter-spacing:0;text-transform:none}
 body.page-route-airdrops #airdrops .airdrop-reference-tabs button[aria-selected=true]{border-color:#e8aa49;color:#ffd28a}
+@media(max-width:480px){body.page-route-airdrops #airdrops .airdrop-reference-tabs{gap:10px;overflow-x:auto}body.page-route-airdrops #airdrops .airdrop-reference-tabs button{flex:none;white-space:nowrap}}
 body.page-route-airdrops #airdrops .airdrop-stage-help{margin:10px 0 0;color:#a5b4c6;font-size:11px;line-height:1.5}
 body.page-route-airdrops #airdrops .airdrop-public-programs .airdrop-directory-head{padding:20px 0 12px}
 body.page-route-airdrops #airdrops .airdrop-public-programs .airdrop-directory-head h2{font-size:18px}

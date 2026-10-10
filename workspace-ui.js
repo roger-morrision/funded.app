@@ -27,9 +27,13 @@ function syncRoute() {
   const mergedRoutes={pilot:'launch',community:'my-launches','capital-flow':'analytics-detail',buybacks:'paid'};
   const pageRoute=mergedRoutes[route]|| (route==='funded-holder-token-rewards'?'payments':route.startsWith('docs/')?'docs':route);
   const tokenOrWallet = /^\/(token|wallet|launch\/coin)\//.test(location.pathname) && !location.hash || route.startsWith('coin/');
+  const creatorSupportRoute = route==='creators'||/^creator\/\d{1,24}$/.test(route)
+    || (!location.hash&&/^\/creator\/x\/\d{1,24}\/?$/.test(location.pathname));
   $$('[data-workspace-route]').forEach(element => { element.hidden = tokenOrWallet || element.dataset.workspaceRoute !== pageRoute; });
   const mobileRoute = tokenOrWallet
     ? (/^\/wallet\//.test(location.pathname) ? 'my-launches' : /^\/launch\/coin\//.test(location.pathname) ? 'launch' : 'explore')
+    : creatorSupportRoute ? 'explore'
+    : route==='creator-settings' ? 'my-launches'
     : ({ community: 'my-launches', leaderboard: 'explore', airdrops: 'payments', referrals: 'payments', profile: 'my-launches', list: 'launch', paid: 'payments' }[pageRoute] || pageRoute);
   $$('.mobile-workspace-nav a').forEach(link=>{if(link.hash===`#${mobileRoute}`)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
   $$('[data-purpose-route]').forEach(link=>{const active=link.dataset.purposeRoute===route||(!location.hash&&link.dataset.purposeRoute===pageRoute);if(active)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');});

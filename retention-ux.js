@@ -55,7 +55,6 @@ if (checklist) {
 }
 const signal = document.querySelector('.home-signal-stat small');
 if (signal && signal.textContent.trim() === 'Ready') signal.textContent = 'Verify before signing';
-document.querySelector('#leaderboard-traders-tab')?.remove();
 const cost = document.querySelector('#cost-summary');
 if (cost && !cost.querySelector('.launch-total-cost-note')) {
   const note = document.createElement('small');

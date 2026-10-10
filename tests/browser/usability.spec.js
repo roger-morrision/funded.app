@@ -148,3 +148,32 @@ test('unavailable feeds stay truthful and retry from Home and both Explore layou
     await retry();
   }
 });
+
+test('Traders remain visible on a narrow phone and explain unavailable sample data', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 750 });
+  await open(page, 'leaderboard');
+  const tab = page.getByRole('tab', { name: 'Traders' });
+  await expect(tab).toBeVisible();
+  await tab.click();
+  await expect(tab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#leaderboard-panel')).toHaveAttribute('aria-labelledby', 'leaderboard-traders-tab');
+  await expect(page.locator('#leaderboard-table-title')).toHaveText('Observed trader leaderboard');
+  await expect(page.locator('#leaderboard-table')).toContainText('Trader ranking unavailable');
+});
+
+test('creator, token, and wallet details keep the correct parent navigation', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 750 });
+  for (const [path, parent] of [
+    ['/#creators', 'explore'],
+    ['/#creator-settings', 'my-launches'],
+    ['/creator/x/1816694905915506688', 'explore'],
+    ['/token/CfYFJqMB5Fd4jVzWauXqaBoHbenLcqRawz69hBF9wb3o', 'explore'],
+    ['/wallet/ej8gdawG6NrZw942uMbBN1qjJYWgtrUgPX6ewesYwsx', 'my-launches'],
+  ]) {
+    await page.goto(path);
+    await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+    await expect(page.locator(`.mobile-workspace-nav a[href="#${parent}"]`)).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator(`.nav-item[href="#${parent}"]`)).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('.nav-item[href="#overview"]')).not.toHaveAttribute('aria-current', 'page');
+  }
+});

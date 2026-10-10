@@ -92,10 +92,14 @@ export function createNavigationController(appState) {
     if (appState.walletRouteRequested()) { document.body.classList.remove('page-route-overview'); document.body.classList.add('page-route-wallet'); }
     if (route === 'explore') document.body.classList.add('explore-route');
     else document.body.classList.remove('explore-route');
+    const creatorSupportRoute = requestedHash === 'creators' || /^creator\/\d{1,24}$/.test(requestedHash)
+      || (!requestedHash && /^\/creator\/x\/\d{1,24}\/?$/.test(location.pathname));
+    const navRoute = appState.coinRouteRequested() || creatorSupportRoute ? 'explore'
+      : appState.walletRouteRequested() || requestedHash === 'creator-settings' ? 'my-launches' : route;
     document.querySelectorAll('.nav-item').forEach(item => {
       const hrefRoute = item.getAttribute('href') === '/funded' ? 'paid' : item.getAttribute('href')?.replace(/^#/, '');
-      item.classList.toggle('active', hrefRoute === route || (route === 'referrals' && hrefRoute === 'referrals'));
-      if (hrefRoute === route) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
+      item.classList.toggle('active', hrefRoute === navRoute);
+      if (hrefRoute === navRoute) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
     });
     let copy = {
       overview: ['Overview', 'Verified activity and next steps'],
