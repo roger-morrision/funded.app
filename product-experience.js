@@ -113,9 +113,6 @@ function portfolio() {
 }
 
 function details() {
-  setText('#rewards-history-tab', 'History');
-  setText('#rewards-overview .reward-overview-start h2', 'Explore rewards');
-  $('#rewards-overview .reward-overview-start .eyebrow')?.remove();
   disclosure($('.reward-upcoming'), 'How to qualify for upcoming rewards');
   setText('.coin-profile-updates > strong', 'No updates yet');
   setText('.coin-profile-updates > p', 'Updates from this project will appear here.');

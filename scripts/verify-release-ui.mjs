@@ -30,6 +30,7 @@ async function check(name, callback) {
 async function open(route) {
   await page.goto(`${base}/#${route}`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => document.body.classList.contains('workspace-ready'));
+  await page.waitForFunction(() => document.body.classList.contains('product-experience-ready'));
 }
 async function fit() {
   const size = await page.evaluate(() => ({ viewport: innerWidth, content: document.documentElement.scrollWidth }));
@@ -51,21 +52,20 @@ try {
       const summaries = page.locator('main details:visible > summary');
       for (let i = 0; i < await summaries.count(); i++) {
         await check(`${route} ${width}px disclosure ${i}`, async () => {
-          // Opening a parent can reveal nested summaries and change nth(i).
-          // Keep the clicked node anchored for the before/after assertion.
-          const summary = await summaries.nth(i).elementHandle();
-          const detail = await summary.evaluateHandle(node => node.parentElement);
+          // Live data can replace a disclosure while its click settles. Locators
+          // re-resolve the current node; element handles stay attached to the old one.
+          const summary = summaries.nth(i);
+          const detail = summary.locator('..');
           const before = await detail.evaluate(n => n.open);
           await summary.click({ timeout: 3000 });
           assert.equal(await detail.evaluate(n => n.open), !before);
           await fit();
           if (!before) {
-            const nested = await detail.$$('details > summary');
-            for (let nestedIndex = 0; nestedIndex < nested.length; nestedIndex++) {
-              const child = nested[nestedIndex];
-              if (!await child.isVisible()) continue;
+            const nested = detail.locator('details > summary:visible');
+            for (let nestedIndex = 0; nestedIndex < await nested.count(); nestedIndex++) {
+              const child = nested.nth(nestedIndex);
               await check(`${route} ${width}px disclosure ${i} nested ${nestedIndex}`, async () => {
-                const childDetail = await child.evaluateHandle(node => node.parentElement);
+                const childDetail = child.locator('..');
                 const childBefore = await childDetail.evaluate(node => node.open);
                 await child.click({ timeout: 3000 });
                 assert.equal(await childDetail.evaluate(node => node.open), !childBefore);
@@ -74,7 +74,7 @@ try {
               });
             }
           }
-          if (await detail.$('#home-filter-close')) await page.locator('#home-filter-close').click();
+          if (await detail.locator('#home-filter-close').count()) await page.locator('#home-filter-close').click();
           else await summary.click({ timeout: 3000 });
         });
       }
