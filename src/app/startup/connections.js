@@ -80,6 +80,8 @@ export function initializeConnections(appState) {
   // app-source: 155
   let launchCostRefreshTimer = null;
   initializeAppState(appState, 'launchCostRefreshTimer', launchCostRefreshTimer);
+  initializeAppState(appState, 'launchEstimateRetry', null);
+  initializeAppState(appState, 'launchSubmitting', false);
   // app-source-end
 
   // app-source: 156

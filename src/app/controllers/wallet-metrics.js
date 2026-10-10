@@ -1,19 +1,28 @@
+import { launchEstimateRetry } from '../../features/launch/estimate-refresh.js';
 // Dependencies and mutable application state are read live through appState.
 export function createWalletMetricsController(appState) {
   // app-source: 645
-  async function refreshWalletInfo({ rateLimitRetry = 0 } = {}){
+  async function refreshWalletInfo(){
+    if (appState.launchSubmitting || appState.pendingLaunchReview) return;
     clearTimeout(appState.launchCostRefreshTimer);
     appState.launchCostRefreshTimer = null;
     if (!appState.wallet) { appState.setWalletMetrics(); return; }
     const session = appState.captureWalletSession();
     if (!session) { appState.setWalletMetrics(); return; }
+    if (appState.launchEstimateRetry?.wallet !== session.address) appState.launchEstimateRetry = null;
+    if (appState.launchEstimateRetry?.retryable && Date.now() < appState.launchEstimateRetry.nextAt) {
+      appState.setWalletMetrics({ balance: appState.walletBalanceLamports, error: appState.launchEstimateRetry.reason });
+      return;
+    }
     const payer = session.provider.publicKey;
     const request = ++appState.metricsRequest;
     const quoteStartedAt=Date.now();
+    let fetchedBalance = null;
     appState.setWalletMetrics({ loading: true });
     try {
       await appState.getSolana();
       const balance = await appState.connection.getBalance(payer, 'confirmed');
+      fetchedBalance = balance;
       if (request !== appState.metricsRequest || !appState.isWalletSessionCurrent(session)) return;
       appState.walletBalanceLamports = balance;
       appState.walletBalanceFetchedAt = Date.now();
@@ -99,6 +108,7 @@ export function createWalletMetricsController(appState) {
       const review=appState.launchReview({balance,simulatedSpend:estimatedSpend,networkFee:fee,buyQuote:initialBuy.solAmountLamports,buyMaximum:initialBuy.maxSolAmountLamports,transactionCount:plan.steps.length,curvePremiumBps:initialBuy.curvePremiumBps,now:quoteStartedAt});
       if(!appState.freshLaunchReview(review))throw new Error('Estimate took too long and expired. Refresh before signing.');
       appState.launchCostReview=review;
+      appState.launchEstimateRetry = null;
       appState.estimatedInitialBuyLamports=Number(initialBuy.solAmountLamports);
       appState.estimatedInitialBuyTokens=Number(developerBuy.amountTokens);
       appState.updateLaunchPreview();
@@ -107,11 +117,6 @@ export function createWalletMetricsController(appState) {
       if (request === appState.metricsRequest && appState.isWalletSessionCurrent(session)) {
         const rawReason = String(error?.message || 'The exact Solana launch cost could not be verified.');
         const rateLimited = /\b429\b|rate limit|too many requests/i.test(rawReason);
-        if (rateLimited && rateLimitRetry < 2) {
-          await new Promise(resolve => setTimeout(resolve, (rateLimitRetry + 1) * 2_000));
-          if (request === appState.metricsRequest && appState.isWalletSessionCurrent(session)) return appState.refreshWalletInfo({ rateLimitRetry: rateLimitRetry + 1 });
-          return;
-        }
         // Invalid form input is an expected validation state, not a runtime failure.
         const expectedInputError = [
           'Token name must be 1–32 characters.',
@@ -121,20 +126,15 @@ export function createWalletMetricsController(appState) {
         ].includes(rawReason) || appState.developerBuyLimitReached(rawReason);
         if (!expectedInputError) console.warn('Launch cost estimate failed:', error);
         const reason = rateLimited
-          ? 'Solana RPC is rate limited. Wait a moment, then refresh the estimate.'
+          ? 'Solana RPC is rate limited.'
           : rawReason.slice(0, 180);
+        appState.launchEstimateRetry = { ...launchEstimateRetry(error, appState.launchEstimateRetry || {}), wallet: session.address, reason };
         const launchBurn = appState.getLaunchBurnPolicy();
         if (launchBurn.requiresBurn) {
           appState.launchBurnReadiness = { ready: false, message: error?.message || 'The $FUNDED burn could not be prepared.' };
           appState.renderLaunchBurnSelection();
         }
-        try {
-          await appState.getSolana();
-          const balance = await appState.connection.getBalance(payer, 'confirmed');
-          if (request === appState.metricsRequest && appState.isWalletSessionCurrent(session)) appState.setWalletMetrics({ balance, fee: null, error: reason });
-        } catch {
-          if (request === appState.metricsRequest && appState.isWalletSessionCurrent(session)) appState.setWalletMetrics({ balance: null, fee: null, error: reason });
-        }
+        appState.setWalletMetrics({ balance: fetchedBalance, fee: null, error: reason });
       }
     }
   }
@@ -142,7 +142,7 @@ export function createWalletMetricsController(appState) {
 
   // app-source: 646
   function scheduleLaunchCostRefresh(){
-    if (!appState.wallet) return;
+    if (!appState.wallet || appState.launchSubmitting || appState.pendingLaunchReview) return;
     appState.metricsRequest += 1;
     clearTimeout(appState.launchCostRefreshTimer);
     appState.setWalletMetrics({ loading: true });

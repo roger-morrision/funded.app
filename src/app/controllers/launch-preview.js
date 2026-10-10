@@ -58,13 +58,13 @@ export function createLaunchPreviewController(appState) {
 
   // app-source: 609
   function updateCostSummary(){
-    return appState.updateCostSummaryView({ wallet: appState.wallet, estimatedLaunchFeeLamports: appState.estimatedLaunchFeeLamports, walletMetricsLoading: appState.walletMetricsLoading, walletEstimateError: appState.walletEstimateError, launchCostReview: appState.launchCostReview }, { renderLaunchCostDetails: appState.renderLaunchCostDetails, getLaunchBurnPolicy: appState.getLaunchBurnPolicy, getCreatorBuySummary: appState.getCreatorBuySummary, getCommunityAirdropTokens: appState.getCommunityAirdropTokens, getCommunityAllocationPercent: appState.getCommunityAllocationPercent, formatLaunchBurnAmount: appState.formatLaunchBurnAmount, creatorBuyExceedsWalletBalance: appState.creatorBuyExceedsWalletBalance, developerBuyLimitReached: appState.developerBuyLimitReached, formatLaunchCost: appState.formatLaunchCost });
+    return appState.updateCostSummaryView({ wallet: appState.wallet, estimatedLaunchFeeLamports: appState.estimatedLaunchFeeLamports, walletMetricsLoading: appState.walletMetricsLoading, walletEstimateError: appState.walletEstimateError, launchCostReview: appState.launchCostReview, launchEstimateRetry: appState.launchEstimateRetry }, { renderLaunchCostDetails: appState.renderLaunchCostDetails, getLaunchBurnPolicy: appState.getLaunchBurnPolicy, getCreatorBuySummary: appState.getCreatorBuySummary, getCommunityAirdropTokens: appState.getCommunityAirdropTokens, getCommunityAllocationPercent: appState.getCommunityAllocationPercent, formatLaunchBurnAmount: appState.formatLaunchBurnAmount, creatorBuyExceedsWalletBalance: appState.creatorBuyExceedsWalletBalance, developerBuyLimitReached: appState.developerBuyLimitReached, formatLaunchCost: appState.formatLaunchCost });
   }
   // app-source-end
 
   // app-source: 610
   function renderLaunchCostDetails(){
-    return appState.renderLaunchCostDetailsView({ launchCostReview: appState.launchCostReview }, {  });
+    return appState.renderLaunchCostDetailsView({ launchCostReview: appState.launchCostReview, wallet: appState.wallet, walletMetricsLoading: appState.walletMetricsLoading, launchEstimateRetry: appState.launchEstimateRetry }, {  });
   }
   // app-source-end
 

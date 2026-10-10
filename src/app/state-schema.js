@@ -21,6 +21,8 @@ export const appStateSchema = {
   walletDisconnectRequested: 'let',
   metricsRequest: 'let',
   launchCostRefreshTimer: 'let',
+  launchEstimateRetry: 'let',
+  launchSubmitting: 'let',
   walletBalanceLamports: 'let',
   walletBalanceRequest: 'let',
   walletBalanceFetchedAt: 'let',

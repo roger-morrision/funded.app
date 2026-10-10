@@ -176,7 +176,7 @@ assert.doesNotMatch(app.split('const fee = estimates.reduce')[1]?.split('if (req
 assert.match(app, /function formatLaunchCost\(lamports\).*toFixed\(6\)/, 'Launch cost must show enough SOL precision for rent and transaction fees.');
 assert.match(app, /if \(wallet\) refreshWalletInfo\(\);/, 'Switching back to Standard must refresh the estimate.');
 assert.match(app, /if \(input\.matches\('#token-name, #token-symbol, #creator-buy-sol'\)\) scheduleLaunchCostRefresh\(\)/, 'Editing launch metadata or the developer buy must invalidate and refresh the estimate.');
-assert.match(app, /launchPageActive&&!document\.hidden&&!walletMetricsLoading&&launchReviewNeedsRefresh\(launchCostReview\)[\s\S]*?scheduleLaunchCostRefresh\(\)/, 'A visible connected launch page must refresh its estimate before expiry without user action.');
+assert.match(app, /shouldAutoRefreshLaunchEstimate\([\s\S]*?scheduleLaunchCostRefresh\(\)/, 'A visible connected launch page must refresh expired or transiently failed estimates without user action.');
 assert.doesNotMatch(app, /Launch estimate unavailable: \$\{walletEstimateError\} Refresh the estimate before launching\./, 'The removed launch-estimate sentence must not return.');
 assert.match(html, /X account reward %/);
 assert.doesNotMatch(html, /An X handle cannot receive SOL directly/);

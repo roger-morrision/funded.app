@@ -199,6 +199,7 @@ export function createWalletSessionController(appState) {
     appState.renderWalletFundedBalance();
     clearTimeout(appState.launchCostRefreshTimer);
     appState.launchCostRefreshTimer = null;
+    appState.launchEstimateRetry = null;
     appState.walletBalanceLamports = null;
     appState.walletBalanceRequest++;
     appState.walletBalanceFetchedAt = 0;

@@ -39,6 +39,7 @@ export function createLaunchSubmitController(appState) {
     if (appState.walletBalanceLamports == null || appState.estimatedLaunchFeeLamports == null) { appState.setLaunchStatus('Wallet balance and launch cost could not be verified. Refresh the estimate before signing.', true); return; }
     if (appState.walletBalanceLamports != null && appState.estimatedLaunchFeeLamports != null && appState.walletBalanceLamports < appState.estimatedLaunchFeeLamports) { appState.setLaunchStatus('Insufficient SOL for this launch. Fund the wallet, then refresh the balance and fee estimate before signing.', true); return; }
     document.querySelector('#launch-button').disabled = true;
+    appState.launchSubmitting = true;
     let journalId, pilotLaunchVerified = false;
     try {
       const [{ submitPumpDevnetLaunch }, { devnetExplorer }] = await Promise.all([import('../../../launch-flow.js'), import('../../../launch-core.js')]);
@@ -171,7 +172,7 @@ export function createLaunchSubmitController(appState) {
       ];
       appState.setLaunchLinks(`Launch verified ✓\n${result.name} (${result.symbol}) is confirmed on Solana.\nMint: ${result.mint.publicKey.toBase58()}\nLaunch tier: ${launchBurn.label}${burnSummary}\nPump creator-fee owner: funded.vip router\nYour wallet has no creator-fee authority.\nCommunity reserve funded: ${communityAllocation}% (${launchPolicy.communityAirdrop.reservedTokens.toLocaleString()} tokens)\nReward vault: ${result.reserveReceipt.vault}\nClaims open after a verified migration snapshot.\nSettlement policy: 80% creator-directed / 20% app protocol${feeDistributionInput.solClaimPercent > 0 ? `\nSOL claim recipient: ${xRecipient}` : ''}`, launchLinks);
       document.querySelector('#launch-status').classList.add('launch-complete');
-      appState.showToast(persistedLaunch.available ? `${result.symbol} launched and listed in Explore` : `${result.symbol} launched on-chain; Explore listing is pending API verification`); appState.renderAirdropClaims(); appState.refreshWalletInfo(); appState.openLaunchedCoinPage(launchPolicy);
+      appState.showToast(persistedLaunch.available ? `${result.symbol} launched and listed in Explore` : `${result.symbol} launched on-chain; Explore listing is pending API verification`); appState.renderAirdropClaims(); appState.refreshWalletBalance(); appState.openLaunchedCoinPage(launchPolicy);
     } catch (error) {
       let saved=appState.readLaunchJournal().find(row=>row.id===journalId);
       if(journalId&&saved?.state==='prepared')saved=appState.recordLaunchEvent(journalId,{state:'failed',message:error.message});
@@ -183,7 +184,7 @@ export function createLaunchSubmitController(appState) {
           appState.setLaunchLinks(message, [{ label: 'Check transaction on Solana Explorer ↗', href: appState.exploreExplorer(`tx/${encodeURIComponent(saved.signature)}`) }], true);
         } else appState.setLaunchStatus(message, true);
       }
-    } finally { appState.updateLaunchButton(); }
+    } finally { appState.launchSubmitting = false; appState.updateLaunchButton(); }
   }
   // app-source-end
 

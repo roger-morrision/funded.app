@@ -1,4 +1,5 @@
 import { launchReviewMarkup } from '../../../launch-review.js';
+import { launchEstimateRefreshMessage } from './estimate-refresh.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function updateCostSummary(
@@ -8,6 +9,7 @@ export function updateCostSummary(
     walletMetricsLoading,
     walletEstimateError,
     launchCostReview,
+    launchEstimateRetry,
   },
   {
     renderLaunchCostDetails,
@@ -64,7 +66,7 @@ export function updateCostSummary(
         : developerBuyLimitReached()
           ? 'Developer buy exceeds 20% of the token supply. Return to Launch settings and lower the SOL amount or set it to 0. A new estimate will run after you change it.'
           : walletEstimateError
-            ? `Could not estimate the transaction: ${walletEstimateError} Refresh the estimate to try again.`
+            ? `Could not estimate the transaction: ${walletEstimateError} ${launchEstimateRetry?.retryable ? launchEstimateRefreshMessage({ wallet, retry: launchEstimateRetry }) : 'Correct the issue, then retry the estimate.'}`
             : 'The launch cost is not verified. Refresh the estimate before signing.';
     return;
   }
@@ -83,6 +85,9 @@ export function updateCostSummary(
 export function renderLaunchCostDetails(
   {
     launchCostReview,
+    wallet,
+    walletMetricsLoading,
+    launchEstimateRetry,
   },
   {
     document = globalThis.document,
@@ -91,6 +96,8 @@ export function renderLaunchCostDetails(
   let node=document.querySelector('#launch-cost-details');
   if(!node){node=document.createElement('div');node.id='launch-cost-details';node.className='adoption-panel';document.querySelector('#cost-note')?.after(node);}
   const expanded = node.querySelector('details')?.open;
-  node.innerHTML=launchReviewMarkup(launchCostReview);
+  const refreshMessage = launchEstimateRefreshMessage({ wallet, loading: walletMetricsLoading, retry: launchEstimateRetry });
+  if (!launchCostReview && refreshMessage) node.textContent = refreshMessage;
+  else node.innerHTML=launchReviewMarkup(launchCostReview);
   if (expanded && node.querySelector('details')) node.querySelector('details').open = true;
 }
