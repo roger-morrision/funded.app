@@ -51,6 +51,13 @@ export function renderExploreAssets(
   const feedUnavailable = !exploreFeedAvailable && !exploreLastVerifiedAt;
   const rpcUnavailable = /RPC (?:rate limited|unavailable)/.test(exploreProviderStatus);
   const outage = exploreOutageCopy();
+  const loaded = !loading && exploreFeedAvailable && !rpcUnavailable && !/stale|unavailable|rate limited/i.test(exploreProviderStatus);
+  if (clusterLabel) clusterLabel.hidden = loaded;
+  if (status) {
+    status.hidden = loaded;
+    const badge = status.closest('.live-label');
+    if (badge) badge.hidden = loaded;
+  }
   if (clusterLabel) clusterLabel.textContent = `${exploreProviderStatus.includes('Verified launch registry') ? 'Verified launch registry' : exploreProviderStatus.includes('stale') ? 'last verified snapshot' : exploreProviderStatus.includes('RPC verified') ? 'RPC verified' : exploreProviderStatus.includes('unavailable') ? 'data unavailable' : 'awaiting verification'}`;
   if (scope && EXPLORE_CLUSTER !== 'devnet') scope.textContent = 'Solana mainnet discovery · Pump.fun listings are shown only after mint verification. Missing market figures stay unavailable.';
   const records = assets.map(item => withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(item, exploreWindow) : enrichMarketRecord(item)));

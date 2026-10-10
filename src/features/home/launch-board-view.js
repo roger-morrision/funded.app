@@ -42,6 +42,7 @@ export function renderHomeLaunchBoard(state, {
   if (tableWrap) tableWrap.hidden = homeLaunchView !== 'table';
   const feedState = document.querySelector('#home-feed-state');
   if (feedState) {
+    feedState.hidden = exploreFeedAvailable;
     feedState.textContent = exploreFeedAvailable ? `Feed available`
       : exploreLastVerifiedAt ? 'Last verified snapshot' : 'Feed unavailable';
     feedState.dataset.state = exploreFeedAvailable ? 'live' : exploreLastVerifiedAt ? 'snapshot' : 'unavailable';
@@ -110,7 +111,7 @@ export function renderHomeLaunchBoard(state, {
       const boostPacks = activeBoostPackages(verifiedBoosts[item.address]).map(pack => pack.packageId);
       const detail = `${symbol}${boostPacks.length ? ` · active boost packs ${boostPacks.join(', ')}` : ''} · ${homeLaunchWindow} market-cap change ${change} · ${item.migrated === true ? 'pool' : 'curve'} MC ${marketCap}`;
       return `<a href="/token/${encodeURIComponent(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}" aria-label="${escapeHtml(detail)}" title="${escapeHtml(detail)}"><span class="home-ticker-rank" aria-hidden="true">${index + 1}</span><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon || String(symbol).slice(0, 1))}</span><strong class="${activeBoostMultiplier(verifiedBoosts[item.address]) >= 500 ? 'golden-ticker' : ''}">${escapeHtml(symbol)}</strong>${exploreBoostAmountMarkup(item.address)}<span class="home-ticker-change ${trendClass}" title="${escapeHtml(homeLaunchWindow)} market-cap change">${escapeHtml(change)}</span><small class="home-ticker-mc">MC ${escapeHtml(marketCap)}</small></a>`;
-    }).join('') : `<span class="home-ticker-empty">${exploreFeedAvailable ? `No verified ${escapeHtml(homeLaunchWindow)} trades in this feed` : 'Checking verified market activity'}</span>`;
+    }).join('') : `<span class="home-ticker-empty">${exploreFeedAvailable ? `No verified ${escapeHtml(homeLaunchWindow)} trades in this feed` : exploreProviderStatus === 'On-chain only · loading' ? 'Checking verified market activity' : 'Market activity unavailable'}</span>`;
     setupHomeTicker(ticker, tickerMarkup, ranked.length);
   }
   let visible = [...verified];

@@ -162,9 +162,10 @@ export function renderHomeKpiDashboard(verified = assets, { assets, exploreUpdat
   const status = document.querySelector('#home-dashboard-status');
   const updated = document.querySelector('#home-dashboard-updated');
   if (status) {
-    status.hidden = !launchFeedUnavailable && !fundedLaunchRecords.length;
+    status.hidden = !launchFeedUnavailable;
     if (!status.hidden) status.innerHTML = `<i></i> ${launchFeedUnavailable ? `Launch feed unavailable` : `Verified funded launches`}`;
   }
+  if (updated) updated.hidden = !launchFeedUnavailable;
   if (updated) updated.textContent = exploreUpdatedAt ? `Checked ${new Date(exploreUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Waiting for first check';
   renderFundedTokenLanding();
 }

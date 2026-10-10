@@ -98,7 +98,7 @@ export function createExploreFiltersController(appState) {
 
   // app-source: 419
   function renderExplorePulse(records){
-    return appState.renderExplorePulseView(records, { exploreLastVerifiedAt: appState.exploreLastVerifiedAt, exploreProviderStatus: appState.exploreProviderStatus, exploreTab: appState.exploreTab, exploreNewLane: appState.exploreNewLane }, {  });
+    return appState.renderExplorePulseView(records, { exploreLastVerifiedAt: appState.exploreLastVerifiedAt, exploreUpdatedAt: appState.exploreUpdatedAt, exploreFeedAvailable: appState.exploreFeedAvailable, exploreProviderStatus: appState.exploreProviderStatus, exploreTab: appState.exploreTab, exploreNewLane: appState.exploreNewLane }, {  });
   }
   // app-source-end
 

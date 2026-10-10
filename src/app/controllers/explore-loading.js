@@ -186,7 +186,7 @@ export function createExploreLoadingController(appState) {
       if (!exploreVerificationFailed && pumpFeed.available && records.length) appState.exploreLastVerifiedAt = appState.exploreUpdatedAt;
       appState.exploreProviderStatus = appState.EXPLORE_CLUSTER === 'devnet' && appState.assets.length && verified.length < appState.assets.length
         ? `Verified launch registry · ${verified.length ? `${verified.length}/${appState.assets.length} live mint checks` : 'live mint checks unavailable'}`
-        : exploreVerificationFailed ? `Solana RPC ${exploreRateLimited ? 'rate limited · retry shortly' : 'unavailable'}` : !pumpFeed.available ? 'Launch feed unavailable' : !records.length ? 'No indexed launches · awaiting RPC verification' : !verified.length ? 'Indexed launches · none passed RPC verification' : appState.EXPLORE_CLUSTER === 'devnet' ? `Solana registry · RPC verified${marketScanRateLimited ? ' · trade history rate limited' : ''}` : !birdeyeFeed.available ? `Pump.fun · Birdeye unavailable · RPC verified` : 'Pump.fun + Birdeye · RPC verified';
+        : exploreVerificationFailed ? `Solana RPC ${exploreRateLimited ? 'rate limited · retry shortly' : 'unavailable'}` : !pumpFeed.available ? 'Launch feed unavailable' : !records.length ? 'No indexed launches' : !verified.length ? 'Indexed launches · none passed RPC verification' : appState.EXPLORE_CLUSTER === 'devnet' ? `Solana registry · RPC verified${marketScanRateLimited ? ' · trade history rate limited' : ''}` : !birdeyeFeed.available ? `Pump.fun · Birdeye unavailable · RPC verified` : 'Pump.fun + Birdeye · RPC verified';
       const feedStatus = document.querySelector('#explore-data-status');
       appState.renderExploreAssets();
       appState.renderHomeLaunchBoard();

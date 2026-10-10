@@ -5,6 +5,8 @@ export function renderExplorePulse(
   records,
   {
     exploreLastVerifiedAt,
+    exploreUpdatedAt,
+    exploreFeedAvailable,
     exploreProviderStatus,
     exploreTab,
     exploreNewLane,
@@ -13,10 +15,11 @@ export function renderExplorePulse(
     document = globalThis.document,
   } = {}
 ) {
-  const ready = Boolean(exploreLastVerifiedAt);
+  const ready = Boolean(exploreLastVerifiedAt || (exploreUpdatedAt && exploreFeedAvailable && !/unavailable|rate limited/i.test(exploreProviderStatus)));
+  const loading = !exploreUpdatedAt && exploreProviderStatus === 'On-chain only · loading';
   const scope = document.querySelector('#explore-pulse-scope');
   const pending = records.filter(item => item.complete == null).length;
-  if (scope) scope.textContent = exploreProviderStatus.includes('stale') ? 'Stage counts use the last verified feed.' : pending ? `${pending} launch stages await curve or pool verification.` : 'Stages confirmed on-chain.';
+  if (scope) scope.textContent = !ready ? loading ? 'Checking launch stages…' : 'Launch stages unavailable.' : exploreProviderStatus.includes('stale') ? 'Stage counts use the last verified feed.' : pending ? `${pending} launch stages await curve or pool verification.` : 'Stages confirmed on-chain.';
   const lanes = {
     launch: filterMarketRecords(records, { stage: 'launch', sort: 'newest' }),
     almost: filterMarketRecords(records, { stage: 'near', sort: 'newest' }),
@@ -26,7 +29,7 @@ export function renderExplorePulse(
     const lane = button.dataset.exploreLane;
     const items = lanes[lane] || [];
     button.querySelector('strong').textContent = ready ? String(items.length).padStart(2, '0') : '—';
-    button.querySelector('small').textContent = !ready ? 'Waiting for verified feed' : items.length ? items.slice(0, 3).map(item => item.symbol).join(' · ') : lane === 'migrated' ? 'No verified migrated pool' : 'No confirmed launches in this stage';
+    button.querySelector('small').textContent = !ready ? loading ? 'Waiting for verified feed' : 'Verified feed unavailable' : items.length ? items.slice(0, 3).map(item => item.symbol).join(' · ') : lane === 'migrated' ? 'No verified migrated pool' : 'No confirmed launches in this stage';
     const active = exploreTab === 'new' && lane === exploreNewLane;
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
