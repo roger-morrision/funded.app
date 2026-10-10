@@ -41,5 +41,6 @@ const appSource = ['../app.js', '../src/features/rewards/airdrop-view.js']
 assert.doesNotMatch(appSource, /communityClaimWindow\.disabled = false/, 'The fixed claim window must not become editable.');
 assert.match(appSource, /Planned policy: unclaimed tokens go to app owner .* after 90 days\. Claim program not activated\./, 'The fixed claim window needs an explicit explanation.');
 assert.match(appSource, /BigInt\(reserve\.claimedBaseUnits\) \* BigInt\(reservedTokens\) \* 1_000_000n \/ BigInt\(reserve\.totalBaseUnits\)/, 'Claimed token display must retain six-decimal precision.');
-assert.match(appSource, /const claimPrograms = programs\.filter\(item => item\.claimPublished && item\.claimedTokens != null && item\.vaultVerified === true[\s\S]*?History available for \$\{claimPrograms\.length\} of \$\{programs\.length\} airdrops/, 'Airdrop summary must show partial indexed claim coverage instead of hiding all claims.');
+assert.match(appSource, /const claimSummary = currentCommunityClaimSummary\(\)/, 'Airdrop summary must use verified claim totals.');
+assert.match(appSource, /data-community-claimed[\s\S]*?\$\{claimSummary\.amount\}[\s\S]*?\$\{claimSummary\.note\}/, 'Airdrop summary must show claim coverage and partial totals.');
 console.log('community airdrop policy checks passed');

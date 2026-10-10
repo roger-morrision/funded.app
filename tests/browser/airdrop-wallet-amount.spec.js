@@ -47,12 +47,17 @@ test('connected wallet can check its airdrop card without a misleading connect p
 
   await page.goto('/#airdrops');
   await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state', 'ready');
+  const fundedBalance = page.locator('#airdrop-funded-balance');
+  await expect(fundedBalance).toBeHidden();
   await page.locator('[data-public-airdrop-tab="claiming"]').click();
   const card = page.locator('.airdrop-directory-card');
   await expect(card).toContainText('Connect to check');
   await page.locator('#connect-button').click();
   await page.locator('[data-wallet-choice="phantom"]').click();
   await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
+  await expect(fundedBalance).toBeVisible();
+  await expect(fundedBalance).toContainText('Current $FUNDED balance');
+  await expect(fundedBalance).toContainText('Balance unavailable');
   await expect(card).toContainText('Check allocation');
   expect(proofRequests).toBe(0);
   await card.locator('.directory-claim').click();
@@ -60,5 +65,6 @@ test('connected wallet can check its airdrop card without a misleading connect p
   expect(proofRequests).toBe(1);
   await page.locator('#connect-button').click();
   await page.locator('#wallet-popover-disconnect').click();
+  await expect(fundedBalance).toBeHidden();
   await expect(card).toContainText('Connect to check');
 });

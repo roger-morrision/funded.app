@@ -51,12 +51,30 @@ try {
       const summaries = page.locator('main details:visible > summary');
       for (let i = 0; i < await summaries.count(); i++) {
         await check(`${route} ${width}px disclosure ${i}`, async () => {
-          const summary = summaries.nth(i), detail = summary.locator('..');
+          // Opening a parent can reveal nested summaries and change nth(i).
+          // Keep the clicked node anchored for the before/after assertion.
+          const summary = await summaries.nth(i).elementHandle();
+          const detail = await summary.evaluateHandle(node => node.parentElement);
           const before = await detail.evaluate(n => n.open);
           await summary.click({ timeout: 3000 });
           assert.equal(await detail.evaluate(n => n.open), !before);
           await fit();
-          if (await detail.locator('#home-filter-close').count()) await page.locator('#home-filter-close').click();
+          if (!before) {
+            const nested = await detail.$$('details > summary');
+            for (let nestedIndex = 0; nestedIndex < nested.length; nestedIndex++) {
+              const child = nested[nestedIndex];
+              if (!await child.isVisible()) continue;
+              await check(`${route} ${width}px disclosure ${i} nested ${nestedIndex}`, async () => {
+                const childDetail = await child.evaluateHandle(node => node.parentElement);
+                const childBefore = await childDetail.evaluate(node => node.open);
+                await child.click({ timeout: 3000 });
+                assert.equal(await childDetail.evaluate(node => node.open), !childBefore);
+                await fit();
+                await child.click({ timeout: 3000 });
+              });
+            }
+          }
+          if (await detail.$('#home-filter-close')) await page.locator('#home-filter-close').click();
           else await summary.click({ timeout: 3000 });
         });
       }
