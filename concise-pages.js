@@ -69,7 +69,7 @@ function compactBuyback() {
   }
 
   for (const [selector, label, className] of [
-    ['.burn-policy-preview', 'Preview the 1% allocation', 'concise-policy-preview'],
+    ['.burn-policy-preview', 'Preview the 5% allocation', 'concise-policy-preview'],
     ['.burn-tier-card', 'Launch tier burn amounts', 'concise-tier-preview'],
   ]) {
     const panel = root.querySelector(selector);
@@ -285,13 +285,13 @@ const moneyFlowPosters = [
     selector: '[data-page-infographic="capital"]', image: 'fee-distribution-flow-v1.webp',
     key: 'distribution', title: 'CLAIMED FEE SPLIT', metric: '80% / 20%',
     metricLabel: 'creator-directed / protocol',
-    steps: ['14% Ops', '3% Referrals', '2% Community', '1% Buyback/burn'],
+    steps: ['10% Ops', '3% Referrals', '2% Community', '5% Buyback/burn'],
   },
   {
     selector: '[data-infographic-poster="fees"]', image: 'fee-distribution-flow-v1.webp',
     key: 'distribution', title: 'CLAIMED FEE SPLIT', metric: '80% / 20%',
     metricLabel: 'creator-directed / protocol',
-    steps: ['14% Ops', '3% Referrals', '2% Community', '1% Buyback/burn'],
+    steps: ['10% Ops', '3% Referrals', '2% Community', '5% Buyback/burn'],
   },
   {
     selector: '[data-infographic-poster="rewards"]', image: 'holder-rewards-flow-v1.webp',

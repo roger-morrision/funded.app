@@ -9,8 +9,8 @@ await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const checks = [
   { route: '#analytics-detail', selector: '[data-page-infographic="analytics"]', flow: 'collection', labels: ['FEE COLLECTION', '100%', 'claimed creator fees routed', 'Verified claim'] },
-  { route: '#capital-flow', selector: '[data-page-infographic="capital"]', flow: 'distribution', labels: ['80% / 20%', 'creator-directed / protocol', '14% Ops', '3% Referrals', '2% Community', '1% Buyback/burn'] },
-  { route: '#paid', selector: '[data-infographic-poster="fees"]', flow: 'distribution', labels: ['80% / 20%', 'creator-directed / protocol', '14% Ops', '3% Referrals', '2% Community', '1% Buyback/burn'] },
+  { route: '#capital-flow', selector: '[data-page-infographic="capital"]', flow: 'distribution', labels: ['80% / 20%', 'creator-directed / protocol', '10% Ops', '3% Referrals', '2% Community', '5% Buyback/burn'] },
+  { route: '#paid', selector: '[data-infographic-poster="fees"]', flow: 'distribution', labels: ['80% / 20%', 'creator-directed / protocol', '10% Ops', '3% Referrals', '2% Community', '5% Buyback/burn'] },
   { route: '#payments', selector: '[data-infographic-poster="rewards"]', flow: 'rewards', labels: ['REWARD DISTRIBUTION', '80%', 'creator-directed fee pool', 'Holder + X per token'] },
   { route: '#funded-holder-token-rewards', selector: '[data-page-infographic="holder"]', flow: 'rewards', labels: ['HOLDER SOL PAYOUTS', '0–80%', 'holder share set per token', '≥0.01 SOL payout'] },
 ];

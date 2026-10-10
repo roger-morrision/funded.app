@@ -841,7 +841,7 @@ function renderFeeFlowCalculator(){
     if (node) node.textContent = formatFlowAmount(amount);
   });
   const allocated = Object.values(allocations).reduce((sum, amount) => sum + amount, 0);
-  if (note) note.textContent = `A ${formatFlowAmount(gross)} claim allocates exactly ${formatFlowAmount(allocated)} under the published policy.`;
+  if (note) note.textContent = `A ${formatFlowAmount(gross)} claim allocates exactly ${formatFlowAmount(allocated)} under the current policy for new launches. Existing coins keep their recorded split.`;
 }
 function getPreviewClaims(){ try { return JSON.parse(localStorage.getItem(AIRDROP_PREVIEW_CLAIM_KEY) || '{}'); } catch { return {}; } }
 let verifiedLaunchPolicies = [];
@@ -2037,8 +2037,8 @@ function renderBuybackExample(){
   if (!help) return;
   const fees = Number(input.value);
   help.textContent = input.value.trim() && Number.isFinite(fees) && fees > 0
-    ? `${formatBuybackAmount(fees, 9)} SOL in gross fees would allocate ${formatBuybackAmount(fees * 0.01, 9)} SOL (1%) to buybacks. Local calculation only; no claim recorded.`
-    : 'Enter gross creator fees above zero to preview the 1% buyback allocation.';
+    ? `${formatBuybackAmount(fees, 9)} SOL in gross fees would allocate ${formatBuybackAmount(fees * APP_ECONOMICS.buybackEffectivePercent / 100, 9)} SOL (${APP_ECONOMICS.buybackEffectivePercent}%) to buybacks. Local calculation only; no claim recorded.`
+    : `Enter gross creator fees above zero to preview the ${APP_ECONOMICS.buybackEffectivePercent}% buyback allocation.`;
 }
 function fundedReceiptProject(receipt){
   if (!receipt?.projectMint) return 'No project attribution';
@@ -2377,7 +2377,7 @@ function recordBuybackPreviewClaim(){
   const signature = `preview-claim-${Date.now()}-${state.accruals.length + 1}`;
   state.accruals.push(buildBuybackAccrual({ claimSignature: signature, grossCreatorFees: fees, asset: 'SOL' }));
   saveBuybackPreviewState(state);
-  renderBuybackDashboard(`${formatBuybackAmount(fees)} SOL claim recorded. Exactly ${formatBuybackAmount(fees * 0.01)} SOL was reserved for buyback.`);
+  renderBuybackDashboard(`${formatBuybackAmount(fees)} SOL claim recorded. Exactly ${formatBuybackAmount(fees * APP_ECONOMICS.buybackEffectivePercent / 100)} SOL was reserved for buyback.`);
   showToast('Example fee claim allocated to the buyback vault');
 }
 function runBuybackPreview(){
