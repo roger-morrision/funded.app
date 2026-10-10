@@ -4,9 +4,14 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const base = process.env.UI_BASE_URL || 'http://127.0.0.1:5173';
+const targetHandle = process.env.X_TEST_HANDLE || '@fixture';
+const targetWallet = process.env.X_TEST_WALLET || 'fixture-wallet';
+const targetMint = process.env.X_TEST_MINT || '11111111111111111111111111111111';
+const targetPaidSol = Number(process.env.X_TEST_PAID_LAMPORTS || 100000000) / 1e9;
+const targetReceipt = process.env.X_TEST_PAYOUT_SIGNATURE || 'synthetic-receipt';
 const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: 'chrome' }), headless: true });
 const claims = [
-  { id: 'paid-fixture', mint: '11111111111111111111111111111111', amountSol: 0.1, receiptVerified: true, payoutWallet: 'fixture-wallet', payoutSignature: 'synthetic-receipt', canPrepare: false },
+  { id: 'paid-fixture', mint: targetMint, amountSol: targetPaidSol, receiptVerified: true, payoutWallet: targetWallet, payoutSignature: targetReceipt, canPrepare: false },
   { id: 'pending-fixture', mint: '11111111111111111111111111111111', amountSol: 0.2, status: 'automatic-pending', canPrepare: false },
   { id: 'ready-fixture', mint: '11111111111111111111111111111111', amountSol: 0.3, canPrepare: true },
 ];
@@ -21,10 +26,10 @@ try {
       if (path.startsWith('/api/sol-claims/')) claimWrites.push(path);
       return route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Mocked unavailable API"}' });
     });
-    await context.route('**/api/x/me', route => route.fulfill(json({ configured: true, authenticated: signedIn, user: signedIn ? { id: 'synthetic-x', username: 'fixture' } : null })));
+    await context.route('**/api/x/me', route => route.fulfill(json({ configured: true, authenticated: signedIn, user: signedIn ? { id: 'synthetic-x', username: targetHandle.slice(1) } : null })));
     await context.route('**/api/x-fee/claims', route => mode === 'unavailable'
       ? route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Synthetic rewards outage"}' })
-      : route.fulfill(json({ handle: '@fixture', claims: mode === 'paid' ? [claims[0]] : mode === 'empty' ? [] : claims })));
+      : route.fulfill(json({ handle: targetHandle, claims: mode === 'paid' ? [claims[0]] : mode === 'empty' ? [] : claims })));
     await context.route('**/api/x/logout', route => { signedIn = false; return route.fulfill(json({ ok: true })); });
     const page = await context.newPage();
     page.on('pageerror', error => errors.push(error.message));
@@ -39,7 +44,7 @@ try {
     await page.locator('#sol-claim-list [data-claim-id="ready-fixture"]').waitFor();
     assert.equal(await page.locator('#x-claim-unclaimed-value').textContent(), '0.3 SOL');
     assert.equal(await page.locator('#x-claim-pending-value').textContent(), '0.2 SOL');
-    assert.equal(await page.locator('#x-claim-claimed-value').textContent(), '0.1 SOL');
+    assert.equal(await page.locator('#x-claim-claimed-value').textContent(), `${targetPaidSol} SOL`);
     assert.deepEqual(await page.locator('#sol-claim-list [data-claim-id]').evaluateAll(rows => rows.map(row => row.dataset.claimId)), ['ready-fixture', 'pending-fixture', 'paid-fixture']);
     await page.getByRole('button', { name: 'Select reward', exact: true }).click();
     assert.equal(await page.locator('#sol-claim-id').inputValue(), 'ready-fixture');
@@ -58,6 +63,7 @@ try {
         await page.locator('#sol-claim-list [data-claim-id="paid-fixture"]').waitFor();
         assert.equal(await page.locator('#sol-claim-list button').count(), 0);
         assert.equal(await page.locator('#sol-claim-list .payment-receipt-link').count(), 1);
+        assert.match(await page.locator('#sol-claim-list [data-claim-id="paid-fixture"]').textContent(), new RegExp(targetWallet));
       } else {
         await page.waitForFunction(() => /No collected creator fees|Synthetic rewards outage/.test(document.querySelector('#sol-claim-list')?.textContent));
         assert.match(await page.locator('#sol-claim-list').textContent(), mode === 'empty' ? /No collected creator fees/ : /Synthetic rewards outage/);

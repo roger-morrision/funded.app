@@ -110,6 +110,8 @@
     "verify:sol-claim": "node scripts/verify-sol-claim.mjs",
     "verify:x-fee-server": "node --env-file=.env.local scripts/verify-x-fee-server.mjs",
     "verify:x-payout": "node scripts/verify-x-payout.mjs",
+    "verify:x-claim-target-devnet": "node --env-file-if-exists=.env.x-claim-qa.local scripts/verify-x-claim-target-devnet.mjs",
+    "verify:x-claim-ui-devnet": "node --env-file-if-exists=.env.x-claim-qa.local scripts/verify-x-claim-ui.mjs",
     "verify:production-policies": "node scripts/verify-production-policies.mjs",
     "verify:stonk-features": "node scripts/verify-stonk-features.mjs",
     "verify:explore-discovery": "node scripts/verify-explore-discovery.mjs",

@@ -97,11 +97,11 @@ export function createSolClaimsRoutes({
     const executeId = decodeURIComponent(route(url.pathname, req.method, /^\/api\/sol-claims\/([^/]+)\/execute$/) || '');
     if (executeId) {
       const state = await store.readClaimState(executeId); const claim = state.claims[executeId]; if (!claim) return json(res, 404, { error: 'Claim not found.' });
+      const existing = Object.values(state.payouts).find(item => item.claimId === executeId);
+      if (existing) return json(res, 200, existing);
       if (claim.expiresAt && Date.parse(claim.expiresAt) < Date.now()) return json(res, 409, { error: 'Claim has expired.' });
       if (!claim.xAttestation || claim.xAttestation.subject !== claim.xUserId) return json(res, 409, { error: 'The original X user ID must be attested before payout.' });
       if (!claim.publicKey) return json(res, 409, { error: 'A verified recipient wallet is required before payout.' });
-      const existing = Object.values(state.payouts).find(item => item.claimId === executeId);
-      if (existing) return json(res, 200, existing);
       const obligation = state.obligations[claim.obligationId];
       if (!obligation || obligation.source !== 'verified-per-mint-router-collection') return json(res, 409, { error: 'A verified router-funded X fee obligation is required.' });
       const automaticRequest = Object.values((await automaticRewardStore.read()).fundingRequests || {}).find(item => item.kind === 'x' && item.obligationId === obligation.id);

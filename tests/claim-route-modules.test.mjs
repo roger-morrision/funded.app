@@ -84,7 +84,7 @@ test('X claim preparation and wallet binding require the original signed-in iden
 test('paid X claim replay returns its recorded receipt without invoking a payout service', async () => {
   const receipt = { claimId: 'claim', signature: 'confirmed-receipt', status: 'paid' };
   const f = fixture(createSolClaimsRoutes, { store: { readClaimState: async () => ({
-    claims: { claim: { xUserId: 'original', xAttestation: { subject: 'original' }, publicKey: 'wallet' } },
+    claims: { claim: { xUserId: 'original', xAttestation: { subject: 'original' }, publicKey: 'wallet', expiresAt: new Date(0).toISOString() } },
     payouts: { receipt },
   }) }, xFeeReadiness: () => assert.fail('Paid receipt replay must not start payout') });
   assert.equal(await f.request('/api/sol-claims/claim/execute'), true);
