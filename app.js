@@ -3280,7 +3280,11 @@ function renderExtendedAnalyticsDashboard(){
         const row = document.createElement('div'); row.className = 'payment-row';
         const identity = document.createElement('span');
         const name = document.createElement('strong'); name.textContent = `${({ 'solana-keeper-referral-claim':'Referral', 'mint-router-settle-mint':'X account', 'automatic-creator':'Creator', 'automatic-holder':'Holder', 'automatic-operations':'Operations', 'automatic-community':'Community', 'automatic-x':'X account' })[payout.source] || 'Recipient'} · ${shortAddress(payout.to)}`;
-        const proof = document.createElement('a'); proof.href = exploreExplorer(`tx/${encodeURIComponent(payout.signature)}`); proof.target = '_blank'; proof.rel = 'noopener noreferrer'; proof.textContent = 'Confirmed transaction ↗';
+        const proof = document.createElement('a'); proof.href = exploreExplorer(`tx/${encodeURIComponent(payout.signature)}`); proof.target = '_blank'; proof.rel = 'noopener noreferrer';
+        proof.className = 'payment-receipt-link solana-explorer-link';
+        proof.innerHTML = icon('solana');
+        proof.title = 'View transaction on Solana Explorer';
+        proof.setAttribute('aria-label', `View transaction ${shortAddress(payout.signature)} on Solana Explorer (opens in a new tab)`);
         const amount = document.createElement('span'); amount.className = 'payment-amount'; amount.textContent = `${formatTokenBaseAmount(payout.actualReceivedLamports, 9, 9)} SOL received`;
         identity.append(name, proof); row.append(identity, amount); target.append(row);
       }

@@ -131,6 +131,18 @@
 }
 
 .payment-receipt-link svg { width: 17px; height: 17px; }
+.recipients-panel .payment-row a.solana-explorer-link {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  flex: 0 0 44px;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  border-radius: 8px;
+}
+.recipients-panel .solana-explorer-link svg { width: 20px; height: 20px; }
 .payment-receipt-link:hover {
   border-color: #89a6ec;
   background: #223151;
