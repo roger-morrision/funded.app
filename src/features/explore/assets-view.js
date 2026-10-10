@@ -62,8 +62,6 @@ export function renderExploreAssets(
   if (scope && EXPLORE_CLUSTER !== 'devnet') scope.textContent = 'Solana mainnet discovery · Pump.fun listings are shown only after mint verification. Missing market figures stay unavailable.';
   const records = assets.map(item => withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(item, exploreWindow) : enrichMarketRecord(item)));
   const visible = filterExploreTabRecords(records);
-  const marketNote = document.querySelector('#explore-market-note');
-  if (marketNote) marketNote.hidden = !records.length || records.some(item => item.curveCapSol != null || item.poolMarketCapSol != null || item.windowVolumeSol != null || item.marketCapUsd != null || item.volume24hUsd != null);
   renderExploreControls();
   renderExplorePulse(records);
   renderExploreBenefitLeaders(visible);
