@@ -29,10 +29,11 @@
           showStartupFailure();
         }, true);
         document.addEventListener('DOMContentLoaded', showStartupFailure, { once: true });
+        document.addEventListener('funded:bootstrap-failed', showStartupFailure);
         window.setTimeout(() => {
           if (document.body?.dataset.bootstrapState !== 'loading') return;
-          document.documentElement.dataset.bootstrapEntryFailed = 'true';
-          showStartupFailure();
+          const message = document.querySelector('[data-bootstrap-message]');
+          if (message) message.textContent = 'Still loading. You can wait or reload to try again.';
         }, 10_000);
       })();
     </script>

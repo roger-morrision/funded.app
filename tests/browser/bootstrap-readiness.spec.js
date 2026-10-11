@@ -67,6 +67,23 @@ test('a held required app import cannot accept launch input or keyboard focus be
   expect(await page.evaluate(()=>Boolean(document.activeElement.closest('[hidden],[inert]')))).toBe(false);await launchReady(page);
 });
 
+test('slow successful startup unlocks after the loading reminder without requiring a reload',async({page})=>{
+  let held;
+  await page.clock.install();
+  await page.route('**/app.js*',route=>{held=route;});
+  await page.goto('/#launch',{waitUntil:'commit'});
+  await expect.poll(()=>Boolean(held)).toBe(true);
+  await locked(page);
+  await page.clock.fastForward(10_001);
+  await expect(gate(page)).toContainText('Still loading');
+  await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state','loading');
+  await expect(page.locator('.app-shell')).toHaveAttribute('inert','');
+  await held.continue();
+  await ready(page);
+  await launchReady(page);
+  await expect(page).toHaveURL(/#launch$/);
+});
+
 for(const [name,path,state] of [['gate','bootstrap-gate.js','failed'],['entry','bootstrap.js','failed'],['required app','app.js','failed']])test(`${name} import failure leaves an accessible recovery action and reload restores the requested route`,async({page})=>{
   let failed=false;await page.route(`**/${path}*`,route=>{failed=true;return route.abort('failed');});
   await page.goto('/?recover=1#launch',{waitUntil:'domcontentloaded'});await expect.poll(()=>failed).toBe(true);

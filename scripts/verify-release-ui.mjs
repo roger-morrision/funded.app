@@ -29,6 +29,8 @@ async function check(name, callback) {
 }
 async function open(route) {
   await page.goto(`${base}/#${route}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => document.body.dataset.bootstrapState === 'ready', null, { timeout: 60000 });
+  assert.equal(await page.locator('#bootstrap-status').isVisible(), false, 'Startup failure or loading banner remains visible');
   await page.waitForFunction(() => document.body.classList.contains('workspace-ready'));
   await page.waitForFunction(() => document.body.classList.contains('product-experience-ready'));
 }

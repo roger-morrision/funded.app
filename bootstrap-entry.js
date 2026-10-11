@@ -4,4 +4,10 @@ import { Buffer } from 'buffer';
 globalThis.Buffer ??= Buffer;
 globalThis.global ??= globalThis;
 
-await import('./bootstrap.js');
+try {
+  await import('./bootstrap.js');
+} catch (error) {
+  document.documentElement.dataset.bootstrapEntryFailed = 'true';
+  document.dispatchEvent(new Event('funded:bootstrap-failed'));
+  throw error;
+}
