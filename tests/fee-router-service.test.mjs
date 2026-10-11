@@ -130,14 +130,20 @@ test('reconciliation uses the original public payer after the configured secret 
   assert.equal(f.state.sends, 0);
 });
 
-test('per-mint collection stays disabled until every payout path supports creator approval', async () => {
+test('per-mint collection does not require the later creator payout signature', async () => {
   const f = fixture();
   assert.equal((await f.service.mintRouterReadiness()).ready, false);
+  assert.equal((await f.service.mintRouterReadiness({ collectionOnly:true })).ready, true);
+  const result = await f.service.collectPumpCreatorFees({ requestedMint:f.mint });
+  assert.equal(result.status, 'collected');
+  assert.equal(result.onchainVerified, true);
+  assert.equal(f.state.sends, 1);
+  f.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 = 'b'.repeat(64);
   await assert.rejects(f.service.collectPumpCreatorFees({ requestedMint:f.mint }), /Mint-specific collection is not activated/);
-  assert.equal(f.state.sends, 0);
+  assert.equal(f.state.sends, 1);
 });
 
-test.skip('collection rejects unverified launches and mismatched Pump creators before sending (after activation)', async () => {
+test('collection rejects unverified launches and mismatched Pump creators before sending', async () => {
   const f = fixture();
   f.state.launch.onchainVerified = false;
   await assert.rejects(f.service.collectPumpCreatorFees({ requestedMint: f.mint }), /verified launch/);
@@ -147,7 +153,7 @@ test.skip('collection rejects unverified launches and mismatched Pump creators b
   assert.equal(f.state.sends, 0);
 });
 
-test.skip('collection uses transaction balance proof and leaves missing proof pending (after activation)', async () => {
+test('collection uses transaction balance proof and leaves missing proof pending', async () => {
   const f = fixture();
   const result = await f.service.collectPumpCreatorFees({ requestedMint: f.mint });
   assert.equal(result.collectedLamports, 30);
@@ -165,7 +171,7 @@ test.skip('collection uses transaction balance proof and leaves missing proof pe
   assert.equal(f.state.sends, 2, 'Empty instruction sets must not broadcast');
 });
 
-test.skip('collection propagates uncertain broadcast outcomes without retrying (after activation)', async () => {
+test('collection propagates uncertain broadcast outcomes without retrying', async () => {
   let attempts = 0;
   const f = fixture({ sendAndConfirmTransaction: async () => { attempts++; throw new Error('RPC response timed out'); } });
   await assert.rejects(f.service.collectPumpCreatorFees({ requestedMint: f.mint }), /RPC response timed out/);

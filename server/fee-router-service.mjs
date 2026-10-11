@@ -45,9 +45,9 @@ export function createFeeRouterService({
     if (!encoded) return null;
     return Keypair.fromSecretKey(bs58.decode(encoded));
   }
-  async function mintRouterReadiness({ creatorSigned = false } = {}) {
+  async function mintRouterReadiness({ creatorSigned = false, collectionOnly = false } = {}) {
     const reasons = [];
-    if (!creatorSigned) reasons.push('Creator wallet co-signing for on-chain 80/20 settlements is not yet available in the payout flow');
+    if (!creatorSigned && !collectionOnly) reasons.push('Creator wallet co-signing for on-chain 80/20 settlements is not yet available in the payout flow');
     if (solanaCluster !== 'devnet') reasons.push('Solana is required');
     if (env.FUNDED_MINT_FEE_ROUTER_ENABLED !== 'true') reasons.push('mint router route is disabled');
     if (!feeRouterConfig()) reasons.push('fee router is not configured');
@@ -144,7 +144,8 @@ export function createFeeRouterService({
     const perMint = launch.pumpFeeRoute?.scope === 'per-mint-v2';
     const router = perMint ? deriveMintFeeRouter(config.programId, mintKey) : config;
     if (perMint) {
-      if (!(await mintRouterReadiness()).ready) throw new Error('Mint-specific collection is not activated.');
+      // Collection is keeper signed. Creator approval is checked when a payout is prepared.
+      if (!(await mintRouterReadiness({ collectionOnly: true })).ready) throw new Error('Mint-specific collection is not activated.');
       const legacy = await connection.getAccountInfo(config.address, 'confirmed');
       const checked = await verifyMintFeeRouterAccount({ connection, programId: config.programId, mint: mintKey, expectedAuthority: new PublicKey(legacy.data.subarray(41, 73)) });
       if (!checked.verified) throw new Error(`Mint router verification failed: ${checked.reason}.`);
