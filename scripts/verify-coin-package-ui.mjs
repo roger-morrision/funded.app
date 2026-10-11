@@ -6,11 +6,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const base = process.env.UI_BASE_URL || 'http://127.0.0.1:5173';
 const mint = '9Dp8MYwvFTAwoMtxaXvAZjZyjsWUbuXGp15z8EkZzu1B';
 const packages = [
-  { tier: 'standard', amount: 0, artwork: false, profileParent: 'coin-side-column' },
+  { tier: 'standard', amount: 0, artwork: false, profileParent: 'coin-hero-aside' },
   { tier: 'boost', amount: 25_000, artwork: true, profileParent: 'coin-hero-aside' },
   { tier: 'pro', amount: 100_000, artwork: true, profileParent: 'coin-hero-aside' },
   { tier: 'premier', amount: 250_000, artwork: true, profileParent: 'coin-hero-aside' },
-  { tier: 'unknown', claimTier: 'pro', amount: 100_000, artwork: false, profileParent: 'coin-side-column' },
+  { tier: 'unknown', claimTier: 'pro', amount: 100_000, artwork: false, profileParent: 'coin-hero-aside' },
 ];
 
 const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: 'chrome' }), headless: true });
@@ -31,16 +31,20 @@ try {
       await context.route('**/api/launches', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([launch]) }));
       const page = await context.newPage();
       await page.goto(`${base}/token/${mint}`, { waitUntil: 'domcontentloaded' });
-      await page.waitForFunction(expected => document.body.classList.contains('workspace-ready')
+      await page.waitForFunction(expected => document.body.classList.contains('product-experience-ready')
         && document.querySelector('.coin-hero-card')?.dataset.launchTier === expected, tier, { timeout: 30_000 });
       const desktop = await page.evaluate(() => {
         const hero = document.querySelector('.coin-hero-card');
         const image = hero.querySelector('.coin-artwork');
         const profile = document.querySelector('#coin-profile');
+        const identityBox = hero.querySelector('.coin-identity').getBoundingClientRect();
+        const profileBox = profile.getBoundingClientRect();
         return {
           artworkDisplay: getComputedStyle(image).display,
           artworkHeight: image.offsetHeight,
           profileParent: profile.parentElement.className,
+          profileBesideIdentity: profileBox.left >= identityBox.right - 1
+            && profileBox.top < identityBox.bottom && profileBox.bottom > identityBox.top,
           packageText: document.querySelector('#coin-promotion-badge')?.textContent || '',
           proof: document.querySelector('#coin-promotion-badge a')?.getAttribute('href') || '',
           overflow: document.documentElement.scrollWidth > innerWidth,
@@ -48,6 +52,10 @@ try {
       });
       assert.equal(desktop.artworkDisplay !== 'none', artwork, `${tier} desktop artwork`);
       assert.equal(desktop.profileParent, profileParent, `${tier} profile placement`);
+      assert(desktop.profileBesideIdentity, `${tier} About and Updates must sit to the right of the token header`);
+      await page.locator('#coin-profile').getByRole('tab', { name: 'Updates' }).click();
+      assert(await page.locator('#coin-profile .coin-profile-updates').isVisible(), `${tier} Updates tab opens`);
+      await page.locator('#coin-profile').getByRole('tab', { name: 'About' }).click();
       assert(desktop.packageText.toLowerCase().includes(tier === 'unknown' ? 'unverified' : tier), `${tier} package label`);
       assert.equal(Boolean(desktop.proof), artwork, `${tier} burn proof link`);
       assert.equal(desktop.overflow, false, `${tier} desktop overflow`);
@@ -56,16 +64,20 @@ try {
       const mobile = await page.evaluate(() => {
         const hero = document.querySelector('.coin-hero-card');
         const image = hero.querySelector('.coin-artwork');
+        const identityBox = hero.querySelector('.coin-identity').getBoundingClientRect();
+        const profileBox = document.querySelector('#coin-profile').getBoundingClientRect();
         return {
           artworkDisplay: getComputedStyle(image).display,
           artworkHeight: image.offsetHeight,
           imageRight: image.getBoundingClientRect().right,
           heroRight: hero.getBoundingClientRect().right,
           overflow: document.documentElement.scrollWidth > innerWidth,
+          profileBelowIdentity: profileBox.top >= identityBox.bottom - 1,
         };
       });
       assert.equal(mobile.artworkDisplay !== 'none', artwork, `${tier} mobile artwork`);
       assert.equal(mobile.overflow, false, `${tier} mobile overflow`);
+      assert(mobile.profileBelowIdentity, `${tier} mobile profile follows the token header`);
       if (artwork) assert(mobile.imageRight <= mobile.heroRight + 1, `${tier} artwork is clipped by the hero`);
       if (tier === 'pro') assert(mobile.artworkHeight > 150, 'Pro banner should be taller than Boost');
       if (tier === 'premier') assert(mobile.artworkHeight > 180, 'Premier banner should be taller than Pro');

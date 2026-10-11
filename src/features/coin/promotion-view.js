@@ -73,16 +73,7 @@ export function renderCoinPromotionBadge(
   if (hero) hero.dataset.launchTier = presentation.tier;
   const profile = document.querySelector('#coin-profile');
   const heroAside = hero?.querySelector('.coin-hero-aside');
-  const side = document.querySelector('#coin-page .coin-side-column');
-  if (profile && heroAside && side) {
-    if (presentation.tier === 'standard' || presentation.tier === 'unknown') {
-      const market = side.querySelector('.coin-market-aside');
-      if (market) market.after(profile);
-      else side.append(profile);
-    } else {
-      heroAside.prepend(profile);
-    }
-  }
+  if (profile && heroAside) heroAside.prepend(profile);
   const artworkLabel = document.querySelector('#coin-artwork-package');
   if (artworkLabel) {
     artworkLabel.hidden = !badge;

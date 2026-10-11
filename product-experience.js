@@ -117,10 +117,9 @@ function details() {
   setText('.coin-profile-updates > strong', 'No updates yet');
   setText('.coin-profile-updates > p', 'Updates from this project will appear here.');
   setText('.coin-profile-links-note', 'Links provided by the project.');
-  // The chart and trade panel remain above the longer project description.
   const about = $('.coin-hero-about');
-  const layout = $('.coin-layout');
-  if (about && layout) { about.classList.add('product-token-about'); layout.after(about); }
+  const headerAside = $('#coin-page .coin-hero-aside');
+  if (about && headerAside) { about.classList.add('product-token-about'); headerAside.prepend(about); }
   setText('.coin-market-aside-title', 'Launch progress');
   setText('.header-search-results-head strong', 'Explore tokens');
 }

@@ -94,23 +94,6 @@ function setupHomeTierShortcuts() {
   update();
 }
 
-function setupCoinAboutToggle() {
-  const hero = document.querySelector('#coin-page .coin-hero-card');
-  const aside = hero?.querySelector(':scope > .coin-hero-aside');
-  if (!hero || !aside || hero.querySelector(':scope > .page-cleanup-about-toggle')) return;
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'page-cleanup-about-toggle';
-  button.textContent = 'About this coin and its project';
-  button.setAttribute('aria-expanded', 'false');
-  button.addEventListener('click', () => {
-    const expanded = hero.classList.toggle('page-cleanup-about-expanded');
-    button.setAttribute('aria-expanded', String(expanded));
-    button.textContent = expanded ? 'Hide project details' : 'About this coin and its project';
-  });
-  aside.before(button);
-}
-
 let refreshQueued = false;
 function refreshPageCleanup() {
   if (refreshQueued) return;
@@ -121,7 +104,6 @@ function refreshPageCleanup() {
     showWalletGateBeforeAirdrops();
     showExploreResultsBeforeExtras();
     setupHomeTierShortcuts();
-    setupCoinAboutToggle();
   });
 }
 

@@ -65,7 +65,7 @@ body.product-experience-ready .launch-preview-heading span { letter-spacing:0; }
 body.product-experience-ready .portfolio-view-tabs { display:flex; gap:6px; flex-wrap:wrap; }
 body.product-experience-ready .portfolio-view-tabs button { min-height:44px; padding:10px 15px; }
 body.product-experience-ready #portfolio-created-panel .role-grid { grid-template-columns:1fr; }
-body.product-experience-ready .product-token-about { margin:24px 0; padding:22px; border:1px solid var(--line); border-radius:12px; background:var(--panel); }
+body.product-experience-ready .coin-hero-aside > .product-token-about { width:100%; box-sizing:border-box; margin:0; padding:0; border:0; border-radius:0; background:transparent; }
 body.product-experience-ready .coin-artwork { max-height:190px; }
 body.product-experience-ready #explore-boost-dialog { width:min(700px,calc(100vw - 24px)); max-width:700px; max-height:calc(100dvh - 32px); padding:26px; overflow:auto; border-radius:14px; }
 body.product-experience-ready #explore-boost-title { padding-right:28px; font-size:24px; margin:8px 0 12px; }

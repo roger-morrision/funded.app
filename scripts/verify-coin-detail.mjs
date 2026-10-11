@@ -62,7 +62,7 @@ const filterSource=appSource.match(/function marketUsdFilterToSol\(value\)\{[\s\
 const usdFilter=new Function('coinSolUsdPrice',`${filterSource};return marketUsdFilterToSol;`);
 assert.equal(usdFilter(100)(250),2.5);
 assert.equal(usdFilter(null)(250),Infinity,'Missing quote must not silently drop a USD filter.');
-assert.match(appSource, /function setWatchButtonState[\s\S]*?Remove token from watchlist[\s\S]*?Save token to watchlist/, 'Watch buttons must expose the action that matches their current state.');
+assert.match(appSource, /function setWatchButtonState[\s\S]*?Remove token from favorites[\s\S]*?Add token to favorites/, 'Favorite buttons must expose the action that matches their current state.');
 
 const legacyVerifiedLaunch = { mint: 'verified-mint', cluster: 'devnet', onchainVerified: true, policySignature: 'signed-policy', name: 'Verified name', symbol: 'VERIFY' };
 assert.equal(verifiedRegistryLaunch([legacyVerifiedLaunch], 'verified-mint', 'devnet'), legacyVerifiedLaunch, 'Verified legacy records do not require a metadata URI to retain their signed registry name.');
