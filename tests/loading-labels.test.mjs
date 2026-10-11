@@ -4,18 +4,26 @@ import { renderExplorePulse } from '../src/features/explore/status-view.js';
 import { renderExplorePayoutStats } from '../src/features/explore/controls-view.js';
 
 test('Explore loading resolves for a successful empty feed and preserves outage messages', () => {
-  const count = {textContent:''}, detail = {textContent:''};
-  const lane = {dataset:{exploreLane:'launch'},querySelector: selector => selector === 'strong' ? count : detail,
-    classList:{toggle(){}},setAttribute(){}};
-  const document = {querySelector:()=>null,querySelectorAll:()=>[lane]};
+  const scope = {textContent:''};
+  const selected = new Map();
+  const lanes = ['all', 'launch', 'almost', 'migrated'].map(exploreLane => ({
+    dataset:{exploreLane},
+    classList:{toggle(name, active){ if (name === 'active') selected.set(exploreLane, active); }},
+    setAttribute(name, value){ if (name === 'aria-pressed') selected.set(`${exploreLane}:pressed`, value); },
+  }));
+  const document = {querySelector:()=>scope,querySelectorAll:()=>lanes};
   const state = {exploreLastVerifiedAt:null,exploreUpdatedAt:null,exploreFeedAvailable:false,
-    exploreProviderStatus:'On-chain only · loading',exploreTab:'new',exploreNewLane:'launch'};
+    exploreProviderStatus:'On-chain only · loading',exploreTab:'new',exploreNewLane:'all'};
   const render = () => renderExplorePulse([],state,{document});
-  render(); assert.match(detail.textContent,/Waiting/);
+  render(); assert.match(scope.textContent,/Checking/);
+  assert.equal(selected.get('all:pressed'),'true');
   Object.assign(state,{exploreUpdatedAt:'2026-10-10T00:00:00Z',exploreFeedAvailable:true,exploreProviderStatus:'No indexed launches'});
-  render(); assert.equal(count.textContent,'00'); assert.equal(detail.textContent,'No confirmed launches in this stage');
+  state.exploreNewLane = 'migrated';
+  render(); assert.equal(scope.textContent,'Stages confirmed on-chain.');
+  assert.equal(selected.get('migrated:pressed'),'true');
+  assert.equal(selected.get('all:pressed'),'false');
   Object.assign(state,{exploreFeedAvailable:false,exploreProviderStatus:'Launch feed unavailable'});
-  render(); assert.equal(detail.textContent,'Verified feed unavailable'); assert.equal(count.textContent,'—');
+  render(); assert.equal(scope.textContent,'Launch stages unavailable.');
 });
 
 test('Payout summary completion never leaves absent groups in the loading state', () => {

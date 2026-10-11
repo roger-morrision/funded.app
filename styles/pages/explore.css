@@ -30,9 +30,9 @@ body.page-route-explore .explore-control-bar { margin-bottom: 0; padding: 0; bor
 body.page-route-explore .explore-timeframe button.active,
 body.page-route-explore .explore-sort-buttons button.active { color: #f4a340; border-color: #9a6d36; background: #111b2e; }
 body.page-route-explore .explore-search-row input { border-radius: 2px; }
-body.page-route-explore .explore-pulse { gap: 1px; border: 1px solid var(--line); background: var(--line); border-radius: 2px; overflow: hidden; }
-body.page-route-explore .explore-pulse button { border: 0; border-radius: 0; background: #101419; }
-body.page-route-explore .explore-pulse button.active { border-color: #f4a340; background: #111b2e; }
+body.page-route-explore .explore-pulse { gap: 0; border: 0; border-bottom: 1px solid var(--line); background: none; border-radius: 0; overflow-x: auto; }
+body.page-route-explore .explore-pulse button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; }
+body.page-route-explore .explore-pulse button.active { border-bottom-color: #f4a340; color: #f4a340; background: none; }
 body.page-route-explore .asset-card,
 body.page-route-explore .explore-scanner { border-radius: 2px; background: #101419; border-color: var(--line); }
 body.page-route-explore .scanner-head { color: #7d8b95; background: #0d1115; font: 700 10px 'DM Mono',monospace; text-transform: uppercase; letter-spacing: .06em; }
