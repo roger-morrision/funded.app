@@ -6,21 +6,28 @@ export function createLaunchReviewController(appState) {
     if (typeof session.provider.signMessage !== 'function') throw new Error('This wallet must sign a metadata message before the Solana transaction.');
     const preview = appState.getLaunchMetadataPreview();
     appState.assertImageReady();
+    if (appState.getLaunchBurnPolicy().requiresBurn) appState.assertBannerReady();
     const image = appState.getPreparedImage();
+    const banner = appState.getLaunchBurnPolicy().requiresBurn ? appState.getPreparedBanner() : null;
     if (image && (!['image/png', 'image/jpeg', 'image/webp'].includes(image.type) || image.size > 600_000)) throw new Error('Choose a PNG, JPG, or WEBP image under 600 KB.');
     const imageBytes = image ? new Uint8Array(await image.arrayBuffer()) : null;
     const imageSha256 = imageBytes ? Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', imageBytes)), byte => byte.toString(16).padStart(2, '0')).join('') : '';
     const imageBase64 = imageBytes ? appState.Buffer.from(imageBytes).toString('base64') : '';
+    if (banner && (!['image/png', 'image/jpeg', 'image/webp'].includes(banner.type) || banner.size > 600_000)) throw new Error('Choose a PNG, JPG, or WEBP banner under 600 KB.');
+    const bannerBytes = banner ? new Uint8Array(await banner.arrayBuffer()) : null;
+    const bannerSha256 = bannerBytes ? Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bannerBytes)), byte => byte.toString(16).padStart(2, '0')).join('') : '';
+    const bannerBase64 = bannerBytes ? appState.Buffer.from(bannerBytes).toString('base64') : '';
     const record = {
       mint, creatorWallet: session.address, name, symbol,
       description: preview.description, tagline: preview.tagline, roadmap: preview.roadmap,
       website: appState.canonicalLaunchSocialUrl(preview.website, 'website'), x: appState.canonicalLaunchSocialUrl(preview.x, 'x'),
       telegram: appState.canonicalLaunchSocialUrl(preview.telegram, 'telegram'), discord: appState.canonicalLaunchSocialUrl(preview.discord, 'discord'), imageSha256,
+      ...(bannerSha256 ? { bannerSha256 } : {}),
     };
     appState.assertWalletSessionCurrent(session);
     const signed = await session.provider.signMessage(new TextEncoder().encode(appState.metadataStatement(record)));
     appState.assertWalletSessionCurrent(session);
-    const response = await appState.apiRequest('/api/devnet-metadata', { method: 'POST', body: { ...record, imageBase64, imageType: image?.type || '', signature: appState.bs58.encode(signed.signature || signed) } });
+    const response = await appState.apiRequest('/api/devnet-metadata', { method: 'POST', body: { ...record, imageBase64, imageType: image?.type || '', bannerBase64, bannerType: banner?.type || '', signature: appState.bs58.encode(signed.signature || signed) } });
     appState.assertWalletSessionCurrent(session);
     if (!response.available || response.data?.uri !== appState.devnetMetadataUri(mint)) throw new Error('Solana metadata could not be published. No token transaction was sent.');
     return response.data.uri;

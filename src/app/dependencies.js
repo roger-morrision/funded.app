@@ -101,10 +101,11 @@ import { launchReviewStillCurrent } from '../../launch-review-gate.js';
 import '../../launch-accessibility.js';
 import { withRpcRetry } from '../../rpc-retry.js';
 import { getPreparedImage, prepareLaunchImage, assertImageReady } from '../../launch-image.js';
+import { getPreparedBanner, getBannerPreviewUrl, prepareLaunchBanner, assertBannerReady } from '../../launch-banner.js';
 import { launchPolicyStatement } from '../../launch-policy-auth.js';
 import { verifiedPromotionBadge } from '../../promotion-badge.js';
 import { initPaidListing } from '../../list-page.js';
-import { metadataStatement, devnetMetadataUri, devnetImageUri, isDevnetImageUri } from '../../devnet-metadata.js';
+import { metadataStatement, devnetMetadataUri, devnetImageUri, isDevnetImageUri, isDevnetBannerUri } from '../../devnet-metadata.js';
 import { canonicalLaunchSocialUrl, normalizeXProfileInput } from '../../launch-social-url.js';
 import '../../airdrop-claimers-model.js';
 import { airdropClaimState } from '../../airdrop-directory-model.js';
@@ -307,6 +308,10 @@ export const appDependencies = {
   getPreparedImage,
   prepareLaunchImage,
   assertImageReady,
+  getPreparedBanner,
+  getBannerPreviewUrl,
+  prepareLaunchBanner,
+  assertBannerReady,
   launchPolicyStatement,
   verifiedPromotionBadge,
   initPaidListing,
@@ -314,6 +319,7 @@ export const appDependencies = {
   devnetMetadataUri,
   devnetImageUri,
   isDevnetImageUri,
+  isDevnetBannerUri,
   canonicalLaunchSocialUrl,
   normalizeXProfileInput,
   airdropClaimState,

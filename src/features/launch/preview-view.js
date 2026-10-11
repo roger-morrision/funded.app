@@ -14,6 +14,7 @@ export function updateLaunchPreview(
     getCommunityAirdropTokens,
     getFeeDistributionInputs,
     getLaunchBurnPolicy,
+    getBannerPreviewUrl,
     getCreatorBuySummary,
     creatorBuyExceedsWalletBalance,
     formatVerifiedPercent,
@@ -41,6 +42,13 @@ export function updateLaunchPreview(
   if (taglinePreview) taglinePreview.textContent = tagline || description.trim() || 'Your coin description appears here.';
   const packageExample = document.querySelector('#launch-package-example');
   if (packageExample) packageExample.dataset.tier = launchBurn.tier;
+  const packageArtwork = document.querySelector('#launch-package-example-art');
+  if (packageArtwork) {
+    const bannerUrl = launchBurn.requiresBurn ? getBannerPreviewUrl?.() : null;
+    const tokenImageUrl = getPreparedImage() ? document.querySelector('#preview-token-image')?.style.backgroundImage : '';
+    packageArtwork.style.backgroundImage = bannerUrl ? `url("${bannerUrl}")` : tokenImageUrl || '';
+    packageArtwork.classList.toggle('has-image', Boolean(bannerUrl || tokenImageUrl));
+  }
   const packageLabel = document.querySelector('#launch-package-label');
   if (packageLabel) packageLabel.textContent = launchBurn.label;
   const packageArtBadge = document.querySelector('#launch-package-art-badge');

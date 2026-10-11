@@ -43,7 +43,27 @@ try {
     assert((await page.locator('#launch-x-post-preview').textContent()).includes('Orbit Fox'));
     assert.equal(await page.locator('#launch-package-example-art').isVisible(), artVisible);
     assert.equal(await page.locator('#launch-x-followup').isVisible(), tier === 'premier');
+    assert.equal(await page.locator('#launch-banner-upload').isVisible(), tier !== 'standard');
   }
+
+  const bannerArtwork = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 900; canvas.height = 300;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#356c82'; context.fillRect(0, 0, 900, 300);
+    context.fillStyle = '#f1d17a'; context.fillRect(150, 80, 600, 140);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.locator('#token-banner').setInputFiles({ name:'banner.png', mimeType:'image/png', buffer:Buffer.from(bannerArtwork, 'base64') });
+  await page.locator('#token-banner-preview').waitFor({ state:'visible' });
+  assert.match(await page.locator('#launch-package-example-art').evaluate(node => node.style.backgroundImage), /^url\("blob:/);
+  await page.locator('.creator-burn-card[data-burn-tier="standard"]').click();
+  assert.equal(await page.locator('#launch-banner-upload').isVisible(), false);
+  await page.locator('.creator-burn-card[data-burn-tier="pro"]').click();
+  assert.equal(await page.locator('#launch-banner-upload').isVisible(), true);
+  await page.locator('#token-banner-remove').click();
+  assert.equal(await page.locator('#token-banner-preview').isVisible(), false);
+  assert.equal(await page.locator('#token-banner-status').textContent(), 'No banner selected.');
 
   const feeOptions = page.locator('.launch-fee-options');
   assert.equal(await feeOptions.evaluate(node => node.tagName), 'SECTION');

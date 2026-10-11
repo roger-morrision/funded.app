@@ -23,11 +23,20 @@ export function devnetImageUri(mint, origin = DEVNET_METADATA_ORIGIN) {
   return `${normalizeDevnetMetadataOrigin(origin)}/devnet-images/${mint}`;
 }
 
+export function devnetBannerUri(mint, origin = DEVNET_METADATA_ORIGIN) {
+  return `${normalizeDevnetMetadataOrigin(origin)}/devnet-banners/${mint}`;
+}
+
+export function isDevnetBannerUri(uri, mint) {
+  return uri === devnetBannerUri(mint) || uri === devnetBannerUri(mint, LEGACY_DEVNET_METADATA_ORIGIN);
+}
+
 export function isDevnetImageUri(uri, mint) {
   return uri === devnetImageUri(mint) || uri === devnetImageUri(mint, LEGACY_DEVNET_METADATA_ORIGIN);
 }
 
 export function metadataStatement(record) {
   const fields = ['mint', 'creatorWallet', 'name', 'symbol', 'description', 'tagline', 'roadmap', 'website', 'x', 'telegram', 'discord', 'imageSha256'];
-  return `funded.vip Devnet metadata v1\n${JSON.stringify(Object.fromEntries(fields.map(key => [key, record[key] || ''])))}`;
+  if (record.bannerSha256) fields.push('bannerSha256');
+  return `funded.vip Devnet metadata v${record.bannerSha256 ? '2' : '1'}\n${JSON.stringify(Object.fromEntries(fields.map(key => [key, record[key] || ''])))}`;
 }

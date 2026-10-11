@@ -98,6 +98,16 @@
 }
 #launch-dialog .launch-package-example[data-tier="standard"] .launch-package-example-art { display: none; }
 #launch-dialog .launch-package-example[data-tier="premier"] .launch-package-example-art { height: 170px; }
+#launch-dialog .launch-banner-upload { margin: 16px 0; padding: 16px; border: 1px solid #385267; border-radius: 10px; background: #0d1723; }
+#launch-dialog .launch-banner-upload[hidden], #launch-dialog .launch-banner-preview[hidden] { display: none; }
+#launch-dialog .launch-banner-upload label { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; color: #f1f5f6; font-size: 14px; }
+#launch-dialog .launch-banner-upload label span:not(.optional) { color: #a7bac7; font-size: 12px; font-weight: 400; }
+#launch-dialog .launch-banner-upload input { display: block; width: 100%; margin: 12px 0 4px; color: #d5e5ef; font: inherit; }
+#launch-dialog .launch-banner-upload input::file-selector-button { margin-right: 12px; padding: 8px 12px; border: 1px solid #688998; border-radius: 6px; background: #172b37; color: #f1f5f6; cursor: pointer; }
+#launch-dialog .launch-banner-upload small, #launch-dialog .launch-banner-actions { color: #a7bac7; font-size: 11px; }
+#launch-dialog .launch-banner-preview { width: 100%; aspect-ratio: 3 / 1; margin-top: 12px; border: 1px solid #688998; border-radius: 7px; background-size: cover; background-position: center; }
+#launch-dialog .launch-banner-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+#launch-dialog .launch-banner-actions button { border: 0; background: transparent; color: #ffd28a; text-decoration: underline; cursor: pointer; }
 #launch-dialog .launch-package-example-identity {
   position: relative;
   display: flex;

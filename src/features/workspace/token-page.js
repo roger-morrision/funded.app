@@ -22,7 +22,7 @@ export function tokenPage() {
     const avatar=$('#coin-avatar',hero);
     const syncArtwork=()=>{
       artworkSymbol.textContent=symbolLabel?.textContent?.trim()||'TOKEN';
-      const image=avatar?.style.backgroundImage;
+      const image=artwork.dataset.bannerUrl ? `url("${artwork.dataset.bannerUrl}")` : avatar?.style.backgroundImage;
       if(image&&image!=='none'){
         artwork.style.backgroundImage=`linear-gradient(0deg, #07130dc9, #07130d66), ${image}`;
         artwork.classList.add('has-image');
@@ -34,6 +34,7 @@ export function tokenPage() {
     syncArtwork();
     if(symbolLabel)new MutationObserver(syncArtwork).observe(symbolLabel,{childList:true,characterData:true,subtree:true});
     if(avatar)new MutationObserver(syncArtwork).observe(avatar,{attributes:true,attributeFilter:['style']});
+    new MutationObserver(syncArtwork).observe(artwork,{attributes:true,attributeFilter:['data-banner-url']});
     const about=node('div','coin-hero-about');about.id='coin-profile';
     const aboutPanel=node('div','coin-profile-panel');
     const tagline=node('p','coin-profile-tagline');tagline.id='coin-profile-tagline';tagline.hidden=true;

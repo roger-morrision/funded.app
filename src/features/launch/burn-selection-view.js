@@ -23,6 +23,8 @@ export function renderLaunchBurnSelection(
   const policy = getLaunchBurnPolicy();
   const tierSection = document.querySelector('.creator-burn-section');
   if (tierSection) tierSection.dataset.selectedTier = policy.tier;
+  const bannerUpload = document.querySelector('#launch-banner-upload');
+  if (bannerUpload) bannerUpload.hidden = !policy.requiresBurn;
   const amounts = currentLaunchTierAmounts();
   const walletReady = Boolean(connectedWalletAddress && fundedBurnState.wallet === connectedWalletAddress && fundedBurnState.status === 'ready');
   const walletBalance = walletReady ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : null;

@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS devnet_metadata (
   image_mime TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE devnet_metadata ADD COLUMN IF NOT EXISTS banner BYTEA;
+ALTER TABLE devnet_metadata ADD COLUMN IF NOT EXISTS banner_mime TEXT;
 
 CREATE TABLE IF NOT EXISTS rpc_rate_limits (
   client_key TEXT NOT NULL,

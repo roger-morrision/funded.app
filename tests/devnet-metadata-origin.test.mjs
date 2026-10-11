@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { normalizeDevnetMetadataOrigin, devnetMetadataUri, devnetImageUri, isDevnetImageUri, metadataStatement } from '../devnet-metadata.js';
+import { normalizeDevnetMetadataOrigin, devnetMetadataUri, devnetImageUri, devnetBannerUri, isDevnetImageUri, isDevnetBannerUri, metadataStatement } from '../devnet-metadata.js';
 import { metadataRecordOrigin, publicMetadata } from '../server/devnet-metadata.mjs';
 import { createStore } from '../server/store.mjs';
 
@@ -16,14 +16,18 @@ test('metadata origin accepts only HTTPS origins or explicit loopback HTTP', () 
   assert.equal(devnetMetadataUri(mint, origin), `${origin}/devnet-metadata/${mint}`);
   assert.equal(devnetImageUri(mint, origin), `${origin}/devnet-images/${mint}`);
   assert.equal(isDevnetImageUri(`https://attacker.example/devnet-images/${mint}`, mint), false);
+  assert.equal(devnetBannerUri(mint, origin), `${origin}/devnet-banners/${mint}`);
+  assert.equal(isDevnetBannerUri(`https://attacker.example/devnet-banners/${mint}`, mint), false);
 });
 test('public metadata resolves new and legacy record origins independently of current config', () => {
   const record = { mint, name:'Token', symbol:'TKN', metadataOrigin:origin };
   assert.equal(publicMetadata(record).image, `${origin}/default.svg`);
   assert.equal(publicMetadata({ ...record, imageSha256:'hash' }).image, `${origin}/devnet-images/${mint}`);
+  assert.equal(publicMetadata({ ...record, bannerSha256:'hash' }).banner, `${origin}/devnet-banners/${mint}`);
   assert.equal(metadataRecordOrigin({ mint }), 'https://metadata.funded.vip');
   assert.equal(publicMetadata({ mint }).image, 'https://metadata.funded.vip/default.svg');
   assert.equal(metadataStatement(record), metadataStatement({ ...record, metadataOrigin:'https://new.example' }), 'Origin is server-owned and must not change the wallet signature contract.');
+  assert.match(metadataStatement({ ...record, bannerSha256:'hash' }), /metadata v2/);
 });
 test('file metadata preserves first origin through deployment changes and rejects changed signed data', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'funded-origin-'));
@@ -49,4 +53,6 @@ test('browser build consumes configured metadata origin while allowing only curr
   assert.equal(browser.isDevnetImageUri(`${origin}/devnet-images/${mint}`, mint), true);
   assert.equal(browser.isDevnetImageUri(`https://metadata.funded.vip/devnet-images/${mint}`, mint), true);
   assert.equal(browser.isDevnetImageUri(`https://attacker.example/devnet-images/${mint}`, mint), false);
+  assert.equal(browser.isDevnetBannerUri(`${origin}/devnet-banners/${mint}`, mint), true);
+  assert.equal(browser.isDevnetBannerUri(`https://attacker.example/devnet-banners/${mint}`, mint), false);
 });

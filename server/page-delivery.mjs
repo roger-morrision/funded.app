@@ -31,7 +31,13 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, feeRouter
       res.writeHead(200, { 'content-type': 'image/svg+xml', 'cache-control': 'public, max-age=86400', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'" });
       return end(res, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" rx="48" fill="#111827"/><circle cx="128" cy="128" r="68" fill="#d7b65d"/><text x="128" y="148" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="70" fill="#111827">F</text></svg>');
     }
-    const publicMint = req.method === 'GET' ? url.pathname.match(/^\/devnet-(?:metadata|images)\/([1-9A-HJ-NP-Za-km-z]{32,44})$/)?.[1] : null;
+    const publicMint = req.method === 'GET' ? url.pathname.match(/^\/devnet-(?:metadata|images|banners)\/([1-9A-HJ-NP-Za-km-z]{32,44})$/)?.[1] : null;
+    if (publicMint && url.pathname.startsWith('/devnet-banners/')) {
+      const banner = await store.readMetadataBanner(publicMint);
+      if (!banner) return json(res, 404, { error: 'Banner not found.' });
+      res.writeHead(200, { 'content-type': banner.mime, 'content-length': banner.bytes.length, 'cache-control': 'public, max-age=86400, immutable', 'x-content-type-options': 'nosniff', 'access-control-allow-origin': '*' });
+      return end(res, banner.bytes);
+    }
     if (publicMint && url.pathname.startsWith('/devnet-images/')) {
       const image = await store.readMetadataImage(publicMint);
       if (!image) return json(res, 404, { error: 'Image not found.' });

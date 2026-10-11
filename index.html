@@ -710,6 +710,13 @@
                     <button type="button" class="creator-burn-card premier" data-burn-tier="premier" aria-pressed="false"><span>PREMIER · $200</span><strong id="premier-burn-amount">Checking price…</strong><small>Largest token page · launch + follow-up posts</small><em id="premier-tier-progress">Connect wallet to check balance</em><b>Select Premier</b></button>
                   </div>
                   <p class="launch-tier-quote-status">X posts appear after a confirmed launch, when publishing is available.</p>
+                  <div class="launch-banner-upload" id="launch-banner-upload" hidden>
+                    <label for="token-banner"><strong>Token page banner <span class="optional">optional</span></strong><span>Shown at the top of your token page after a verified Pro or Premier launch.</span></label>
+                    <input id="token-banner" name="tokenBanner" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="token-banner-help token-banner-status" />
+                    <small id="token-banner-help">PNG, JPG or WebP · up to 12 MB · centered to a wide 3:1 banner before upload.</small>
+                    <div id="token-banner-preview" class="launch-banner-preview" hidden aria-label="Banner preview"></div>
+                    <div class="launch-banner-actions"><span id="token-banner-status" role="status" aria-live="polite">No banner selected.</span><button type="button" id="token-banner-remove" hidden>Remove banner</button></div>
+                  </div>
                   <div class="launch-tier-balance"><span>Your wallet: <strong id="launch-tier-wallet-balance">Connect wallet to check $FUNDED</strong></span><button type="button" id="launch-tier-refresh">Refresh price &amp; balance</button></div>
                   <p class="launch-tier-quote-status" id="launch-tier-quote-status" role="status" aria-live="polite">Checking the verified $FUNDED pool price…</p>
                 </section>

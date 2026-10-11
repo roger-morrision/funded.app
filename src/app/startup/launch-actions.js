@@ -131,6 +131,38 @@ export function initializeLaunchActions(appState) {
     catch(error){if(revision!==appState.imagePreparationRevision||file!==event.target.files?.[0])return;await appState.prepareLaunchImage(null);event.target.value='';if(removeButton)removeButton.disabled=true;if(status)status.textContent=error.message;preview.textContent='!';}
     appState.updateLaunchPreview();appState.updateLaunchButton();
   });
+  let bannerPreparationRevision = 0;
+  document.querySelector('#token-banner')?.addEventListener('change', async event => {
+    const revision = ++bannerPreparationRevision;
+    const file = event.target.files?.[0];
+    const preview = document.querySelector('#token-banner-preview');
+    const status = document.querySelector('#token-banner-status');
+    const remove = document.querySelector('#token-banner-remove');
+    if (preview) { preview.hidden = true; preview.style.backgroundImage = ''; }
+    if (status) status.textContent = file ? 'Preparing banner…' : 'No banner selected.';
+    if (remove) remove.hidden = !file;
+    try {
+      const banner = await appState.prepareLaunchBanner(file);
+      if (revision !== bannerPreparationRevision || file !== event.target.files?.[0]) return;
+      if (banner) {
+        if (preview) { preview.style.backgroundImage = `url("${banner.url}")`; preview.hidden = false; }
+        if (status) status.textContent = `Ready: ${banner.width} × ${banner.height}, ${Math.ceil(banner.file.size / 1000)} KB. Review before signing.`;
+      }
+    } catch (error) {
+      if (revision !== bannerPreparationRevision || file !== event.target.files?.[0]) return;
+      await appState.prepareLaunchBanner(null);
+      event.target.value = '';
+      if (remove) remove.hidden = true;
+      if (status) status.textContent = error.message;
+    }
+    appState.updateLaunchPreview(); appState.updateLaunchButton();
+  });
+  document.querySelector('#token-banner-remove')?.addEventListener('click', () => {
+    const input = document.querySelector('#token-banner');
+    if (!input) return;
+    input.value = '';
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
   // app-source-end
 
   // app-source: 679

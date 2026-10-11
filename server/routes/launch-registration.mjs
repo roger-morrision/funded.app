@@ -3,7 +3,8 @@ import { canonicalLaunchPolicy, launchPolicyStatement } from '../../launch-polic
 import { createLaunchBurnTiers } from '../../launch-burn-policy.js';
 import { verifyPumpLaunch } from '../launch-verification.mjs';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { devnetMetadataUri } from '../../devnet-metadata.js';
+import { devnetMetadataUri, devnetBannerUri } from '../../devnet-metadata.js';
+import { verifiedPromotionBadge } from '../../promotion-badge.js';
 import { metadataRecordOrigin, publicMetadata } from '../devnet-metadata.mjs';
 import { verifyLaunchRouterReadiness } from '../launch-router-readiness.mjs';
 import { readProgramDataEvidence, DEVNET_GENESIS_HASH, createAutomaticRewardChain } from '../automatic-reward-chain.mjs';
@@ -104,6 +105,7 @@ export function createLaunchRegistrationRoutes({
       const record = {
         ...proof, cluster: solanaCluster, creatorWallet: proof.feePayer,
         ...(preparedMetadata ? { metadataUri: preparedMetadataUri, description: preparedMetadata.description, imageUri: publicMetadata(preparedMetadata).image, website: preparedMetadata.website, twitter: preparedMetadata.x, telegram: preparedMetadata.telegram, discord: preparedMetadata.discord } : {}),
+        ...(preparedMetadata?.bannerSha256 && verifiedPromotionBadge(proof) ? { bannerUri: devnetBannerUri(proof.mint, metadataRecordOrigin(preparedMetadata)) } : {}),
         communityAllocation: policy.communityAllocation,
         ...(xLinked ? { xUserId: policy.xUserId } : {}),
         communityAirdrop: verifiedReserve

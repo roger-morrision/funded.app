@@ -164,7 +164,7 @@ function clientKey(req) {
   return remote;
 }
 async function body(req) {
-  return readJsonBody(req, { maxBytes: maxBodyBytes });
+  return readJsonBody(req, { maxBytes: req.url === '/api/devnet-metadata' ? 2_000_000 : maxBodyBytes });
 }
 function route(path, method, pattern) { const match = path.match(pattern); return match && match[1] && method ? match[1] : null; }
 
@@ -380,7 +380,7 @@ async function handle(req, res) {
   try { url = new URL(req.url, 'http://localhost'); }
   catch { throw invalidRequest('Invalid request URL.'); }
   const metadataHost = String(req.headers.host || '').split(':')[0].toLowerCase() === 'metadata.funded.vip';
-  if (metadataHost && (req.method !== 'GET' || !/^\/(?:devnet-metadata|devnet-images)\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(url.pathname) && url.pathname !== '/default.svg')) return json(res, 404, { error: 'Not found.' });
+  if (metadataHost && (req.method !== 'GET' || !/^\/(?:devnet-metadata|devnet-images|devnet-banners)\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(url.pathname) && url.pathname !== '/default.svg')) return json(res, 404, { error: 'Not found.' });
   if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client, authorization, x-token-chat-session' }); return res.end(); }
     if (await handleProductMetrics(req,res,url)) return;
     if (await handlePublicTradeSharing(req, res, url)) return;
@@ -405,8 +405,8 @@ async function handle(req, res) {
     if (req.method === 'POST' && url.pathname === '/api/devnet-metadata') {
       if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Metadata publishing is Devnet-only.' });
       const input = await body(req);
-      const { record, image, imageType } = validateInput(() => parseSignedMetadata(input));
-      const saved = await store.writeMetadata({ ...record, metadataOrigin: devnetMetadataOrigin }, image, imageType);
+      const { record, image, imageType, banner, bannerType } = validateInput(() => parseSignedMetadata(input));
+      const saved = await store.writeMetadata({ ...record, metadataOrigin: devnetMetadataOrigin }, image, imageType, banner, bannerType);
       return json(res, 201, { uri: devnetMetadataUri(saved.mint, metadataRecordOrigin(saved)), image: publicMetadata(saved).image, mint: saved.mint });
     }
     if (req.method === 'GET' && url.pathname === '/api/dev-wallet') {

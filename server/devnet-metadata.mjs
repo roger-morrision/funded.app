@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { devnetImageUri, metadataStatement, LEGACY_DEVNET_METADATA_ORIGIN, normalizeDevnetMetadataOrigin } from '../devnet-metadata.js';
+import { devnetImageUri, devnetBannerUri, metadataStatement, LEGACY_DEVNET_METADATA_ORIGIN, normalizeDevnetMetadataOrigin } from '../devnet-metadata.js';
 import { canonicalLaunchSocialUrl } from '../launch-social-url.js';
 
 export const MAX_METADATA_IMAGE_BYTES = 600_000;
@@ -32,6 +32,13 @@ export function parseSignedMetadata(input) {
   const imageType = image ? imageMime(image, input.imageType) : null;
   const imageSha256 = image ? createHash('sha256').update(image).digest('hex') : '';
   if (String(input.imageSha256 || '') !== imageSha256) throw new Error('Image checksum does not match the signed metadata.');
+  const bannerBase64 = input.bannerBase64 || '';
+  if (typeof bannerBase64 !== 'string' || bannerBase64.length > Math.ceil(MAX_METADATA_IMAGE_BYTES / 3) * 4 || (bannerBase64 && !/^[A-Za-z0-9+/]+={0,2}$/.test(bannerBase64))) throw new Error('Banner must be a PNG, JPG, or WEBP under 600 KB.');
+  const banner = bannerBase64 ? Buffer.from(bannerBase64, 'base64') : null;
+  if (banner && (banner.length > MAX_METADATA_IMAGE_BYTES || banner.toString('base64') !== bannerBase64)) throw new Error('Banner encoding is invalid or too large.');
+  const bannerType = banner ? imageMime(banner, input.bannerType) : null;
+  const bannerSha256 = banner ? createHash('sha256').update(banner).digest('hex') : '';
+  if (String(input.bannerSha256 || '') !== bannerSha256) throw new Error('Banner checksum does not match the signed metadata.');
   const record = {
     mint, creatorWallet, name, symbol,
     description: text(input.description || '', 280, 'Description'),
@@ -42,11 +49,12 @@ export function parseSignedMetadata(input) {
     telegram: canonicalLaunchSocialUrl(input.telegram || '', 'telegram'),
     discord: canonicalLaunchSocialUrl(input.discord || '', 'discord'),
     imageSha256,
+    ...(bannerSha256 ? { bannerSha256 } : {}),
   };
   let signature;
   try { signature = bs58.decode(String(input.signature || '')); } catch { throw new Error('Metadata wallet signature is invalid.'); }
   if (!nacl.sign.detached.verify(new TextEncoder().encode(metadataStatement(record)), signature, new PublicKey(creatorWallet).toBytes())) throw new Error('Metadata wallet signature is invalid.');
-  return { record, image, imageType };
+  return { record, image, imageType, banner, bannerType };
 }
 
 // Missing origin identifies records created before configurable hosting. Their
@@ -62,6 +70,7 @@ export function publicMetadata(record, origin = metadataRecordOrigin(record)) {
     symbol: record.symbol,
     description: record.description || 'Devnet test token launched on funded.vip. Devnet assets have no intended monetary value.',
     image: record.imageSha256 ? devnetImageUri(record.mint, origin) : `${origin}/default.svg`,
+    ...(record.bannerSha256 ? { banner: devnetBannerUri(record.mint, origin) } : {}),
     ...(record.website ? { external_url: record.website, website: record.website } : {}),
     ...(record.x ? { twitter: record.x } : {}),
     ...(record.telegram ? { telegram: record.telegram } : {}),

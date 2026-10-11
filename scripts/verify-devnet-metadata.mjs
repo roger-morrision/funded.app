@@ -9,7 +9,7 @@ import { request } from 'node:http';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Keypair } from '@solana/web3.js';
-import { metadataStatement, devnetMetadataUri } from '../devnet-metadata.js';
+import { metadataStatement, devnetMetadataUri, devnetBannerUri } from '../devnet-metadata.js';
 import { canonicalLaunchSocialUrl, normalizeXProfileInput } from '../launch-social-url.js';
 import { parseSignedMetadata, publicMetadata } from '../server/devnet-metadata.mjs';
 import { createStore } from '../server/store.mjs';
@@ -55,16 +55,27 @@ assert.throws(() => parseSignedMetadata({ ...input, imageBase64: Buffer.from('no
 assert.throws(() => parseSignedMetadata({ ...input, x: 'javascript:alert(1)' }), /HTTPS/);
 assert.throws(() => parseSignedMetadata({ ...input, x: 'https://elsewhere.example/example' }), /HTTPS/);
 assert.throws(() => parseSignedMetadata({ ...input, website: 'https://user:pass@example.com' }), /HTTPS/);
+const bannerRecord = { ...record, mint: Keypair.generate().publicKey.toBase58(), bannerSha256: createHash('sha256').update(png).digest('hex') };
+const bannerInput = { ...bannerRecord, imageBase64: png.toString('base64'), imageType: 'image/png', bannerBase64: png.toString('base64'), bannerType: 'image/png', signature: bs58.encode(nacl.sign.detached(new TextEncoder().encode(metadataStatement(bannerRecord)), creator.secretKey)) };
+const preparedBanner = parseSignedMetadata(bannerInput);
+assert.equal(preparedBanner.record.bannerSha256, bannerRecord.bannerSha256);
+assert.equal(publicMetadata(preparedBanner.record).banner, devnetBannerUri(bannerRecord.mint));
+assert.throws(() => parseSignedMetadata({ ...bannerInput, bannerSha256: '0'.repeat(64) }), /Banner checksum/);
+assert.throws(() => parseSignedMetadata({ ...bannerInput, bannerBase64: Buffer.from('invalid').toString('base64') }), /Image bytes/);
+assert.throws(() => parseSignedMetadata({ ...bannerInput, bannerBase64: '' }), /Banner checksum/);
 
 const directory = await mkdtemp(join(tmpdir(), 'funded-devnet-metadata-'));
 try {
   const path = join(directory, 'state.json');
   const store = createStore(path, '');
   await store.writeMetadata(prepared.record, prepared.image, prepared.imageType);
+  await store.writeMetadata(preparedBanner.record, preparedBanner.image, preparedBanner.imageType, preparedBanner.banner, preparedBanner.bannerType);
   await store.writeMetadata(prepared.record, prepared.image, prepared.imageType);
   const reopened = createStore(path, '');
   assert.deepEqual(await reopened.readMetadata(mint), prepared.record);
   assert.deepEqual((await reopened.readMetadataImage(mint)).bytes, png);
+  assert.deepEqual((await reopened.readMetadataBanner(bannerRecord.mint)).bytes, png);
+  assert.equal(await reopened.readMetadataBanner(mint), null);
   await assert.rejects(reopened.writeMetadata({ ...prepared.record, description: 'Changed' }, prepared.image, prepared.imageType), /Immutable/);
   const port = await new Promise((resolve, reject) => { const socket = createServer(); socket.once('error', reject); socket.listen(0, '127.0.0.1', () => { const chosen = socket.address().port; socket.close(() => resolve(chosen)); }); });
   const child = spawn(process.execPath, ['server/index.mjs'], { cwd: process.cwd(), env: { ...process.env, FUNDED_STORE_PATH: path, DATABASE_URL: '', HOST: '127.0.0.1', PORT: String(port), NODE_ENV: 'test', VITE_SOLANA_CLUSTER: 'devnet', FUNDED_SKIP_LOCAL_ENV: 'true', DEVNET_METADATA_ORIGIN: 'https://funded-preview.onrender.com', SOLANA_RPC_URL: 'http://127.0.0.1:9' }, stdio: 'ignore' });
@@ -83,6 +94,11 @@ try {
     assert.equal(imageResponse.status, 200);
     assert.equal(imageResponse.headers['content-type'], 'image/png');
     assert.deepEqual(imageResponse.body, png);
+    const bannerResponse = await hostedRequest(port, `/devnet-banners/${bannerRecord.mint}`);
+    assert.equal(bannerResponse.status, 200);
+    assert.equal(bannerResponse.headers['content-type'], 'image/png');
+    assert.deepEqual(bannerResponse.body, png);
+    assert.equal((await hostedRequest(port, `/devnet-banners/${mint}`)).status, 404);
     const postMetadata = async data => {
       const response = await fetch(`http://127.0.0.1:${port}/api/devnet-metadata`, { method:'POST', headers:{'content-type':'application/json', Host:'untrusted.example'}, body:JSON.stringify(data) });
       assert.equal(response.status, 201, await response.clone().text());

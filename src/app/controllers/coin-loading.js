@@ -1,3 +1,5 @@
+import { verifiedTokenBannerUri } from '../../features/coin/token-banner.js';
+
 // Dependencies and mutable application state are read live through appState.
 export function createCoinLoadingController(appState) {
   // app-source: 981
@@ -42,6 +44,9 @@ export function createCoinLoadingController(appState) {
         ? appState.verifiedRegistryLaunch(launchesResult.value.data, mintAddress, appState.EXPLORE_CLUSTER)
         : null;
       appState.coinSummaryLaunch = registeredLaunch;
+      const promotedBanner = verifiedTokenBannerUri(registeredLaunch, mintAddress);
+      const artwork = document.querySelector('.coin-artwork');
+      if (artwork) artwork.dataset.bannerUrl = promotedBanner;
       appState.renderCoinRewardsPolicy(registeredLaunch, mintAddress);
       const symbol = metadata.symbol || registeredLaunch?.symbol || `${mintAddress.slice(0, 4)}…`;
       const name = metadata.name || registeredLaunch?.name || 'Unnamed on-chain token';
@@ -128,8 +133,6 @@ export function createCoinLoadingController(appState) {
         if (appState.isDevnetImageUri(details.image, mintAddress)) {
           const avatar = document.querySelector('#coin-avatar');
           if (avatar) { avatar.textContent = ''; avatar.style.backgroundImage = `url("${details.image}")`; avatar.style.backgroundSize = 'cover'; avatar.style.backgroundPosition = 'center'; }
-          const artwork = document.querySelector('.coin-artwork');
-          if (artwork) { artwork.style.backgroundImage = `linear-gradient(0deg, #07130dc9, #07130d66), url("${details.image}")`; artwork.classList.add('has-image'); }
         }
         for (const [selector, href] of [['#coin-website-link', details.website], ['#coin-x-link', details.twitter], ['#coin-telegram-link', details.telegram], ['#coin-discord-link', details.discord]]) {
           const link = document.querySelector(selector); if (link && typeof href === 'string' && href.startsWith('https://')) { link.href = href; link.hidden = false; }

@@ -43,7 +43,7 @@ export function createCoinStateController(appState) {
     appState.setCoinFact('#coin-stage', 'Checking curve'); appState.setCoinFact('#coin-fee-owner', 'Checking route'); appState.setCoinFact('#coin-metadata-status', 'Reading mint');
     appState.setCoinFact('#coin-mint-authority', 'Checking…'); appState.setCoinFact('#coin-freeze-authority', 'Checking…');
     const avatar = document.querySelector('#coin-avatar'); if (avatar) avatar.style.backgroundImage = '';
-    const artwork = document.querySelector('.coin-artwork'); if (artwork) { artwork.style.backgroundImage = ''; artwork.classList.remove('has-image'); }
+    const artwork = document.querySelector('.coin-artwork'); if (artwork) { delete artwork.dataset.bannerUrl; artwork.style.backgroundImage = ''; artwork.classList.remove('has-image'); }
     const tagline = document.querySelector('#coin-profile-tagline'); if (tagline) { tagline.textContent = ''; tagline.hidden = true; }
     window.fundedSetCoinProfileMetadata?.({});
     ['#coin-website-link', '#coin-x-link', '#coin-telegram-link', '#coin-discord-link'].forEach(selector => { const link = document.querySelector(selector); if (link) { link.hidden = true; link.removeAttribute('href'); } });

@@ -153,10 +153,10 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     async read() { return structuredClone(await load()); },
     async readLaunches({ limit = null, offset = 0 } = {}) { const items = Object.values((await load()).launches || {}); return limit == null ? items : items.slice(offset, offset + limit); },
     async readLaunch(mint) { return (await load()).launches?.[mint] || null; },
-    async writeMetadata(record, image, imageType) {
+    async writeMetadata(record, image, imageType, banner = null, bannerType = null) {
       const metadataPath = `${filePath}.metadata.${record.mint}.json`;
       await mkdir(dirname(metadataPath), { recursive: true });
-      try { await writeFile(metadataPath, JSON.stringify({ record, image: image?.toString('base64') || '', imageType }), { encoding: 'utf8', flag: 'wx' }); }
+      try { await writeFile(metadataPath, JSON.stringify({ record, image: image?.toString('base64') || '', imageType, banner: banner?.toString('base64') || '', bannerType }), { encoding: 'utf8', flag: 'wx' }); }
       catch (error) { if (error.code !== 'EEXIST') throw error; }
       const existing = JSON.parse(await readFile(metadataPath, 'utf8'));
       if (metadataStatement(existing.record) !== metadataStatement(record)) throw new Error('Immutable Devnet metadata already exists for this mint.');
@@ -168,6 +168,10 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     },
     async readMetadataImage(mint) {
       try { const entry = JSON.parse(await readFile(`${filePath}.metadata.${mint}.json`, 'utf8')); return entry.image ? { bytes: Buffer.from(entry.image, 'base64'), mime: entry.imageType } : null; }
+      catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+    },
+    async readMetadataBanner(mint) {
+      try { const entry = JSON.parse(await readFile(`${filePath}.metadata.${mint}.json`, 'utf8')); return entry.banner ? { bytes: Buffer.from(entry.banner, 'base64'), mime: entry.bannerType } : null; }
       catch (error) { if (error.code === 'ENOENT') return null; throw error; }
     },
     async readPublicBuckets() { return structuredClone(await load()); },
