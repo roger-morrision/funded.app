@@ -73,7 +73,29 @@ export async function getInitialBuyQuote({ connection, input }) {
     }).toString());
     const supplyBaseUnits = BigInt(launchInput.supply) * (10n ** BigInt(launchInput.decimals));
     if (amountBaseUnits <= 0n) throw new Error('Developer buy is too small to receive tokens.');
-    if (amountBaseUnits * 100n > supplyBaseUnits * 20n) throw new Error('Developer buy cannot exceed 20% of the token supply.');
+    if (amountBaseUnits * 100n > supplyBaseUnits * 20n) {
+      const limitBaseUnits = supplyBaseUnits / 5n;
+      let low = 0n;
+      let high = BigInt(getBuySolAmountFromTokenAmount({
+        global, feeConfig: null, mintSupply: null, bondingCurve: null,
+        amount: new BN(limitBaseUnits.toString()), quoteMint: NATIVE_MINT,
+      }).toString());
+      const tokensAt = lamports => BigInt(getBuyTokenAmountFromSolAmount({
+        global, feeConfig: null, mintSupply: null, bondingCurve: null,
+        amount: new BN(lamports.toString()), quoteMint: NATIVE_MINT,
+      }).toString());
+      if (tokensAt(high) > limitBaseUnits) {
+        while (low + 1n < high) {
+          const midpoint = (low + high) / 2n;
+          if (tokensAt(midpoint) <= limitBaseUnits) low = midpoint;
+          else high = midpoint;
+        }
+      } else low = high;
+      const safeSixDecimalLamports = low / 1000n * 1000n;
+      const maxSol = `${safeSixDecimalLamports / 1_000_000_000n}.${String(safeSixDecimalLamports % 1_000_000_000n).padStart(9, '0').slice(0, 6)}`.replace(/\.?0+$/, '');
+      const estimatedPercent = Number(amountBaseUnits * 10_000n / supplyBaseUnits) / 100;
+      throw new Error(`Developer buy cannot exceed 20% of the token supply. ${requestedSol} SOL would buy about ${estimatedPercent.toFixed(1)}%; enter ${maxSol} SOL or less at the current Devnet quote.`);
+    }
     const tokenDivisor = 10 ** launchInput.decimals;
     const amountTokens = Number(amountBaseUnits) / tokenDivisor;
     const percent = amountTokens / launchInput.supply * 100;

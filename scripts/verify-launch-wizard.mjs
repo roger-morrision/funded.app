@@ -67,7 +67,7 @@ assert.doesNotMatch(launchPage, /creator-buy-warning|Buying is optional and mark
 assert.doesNotMatch(launchPage, /creator-burn-status|creator-burn-disclosure|Burns are irreversible|Featured-review eligibility never guarantees placement/, 'The removed launch-tier status and disclosure must not return.');
 assert.match(launchPage, /id="community-airdrop-tokens"[\s\S]*?min="30000000"[\s\S]*?max="500000000"/, 'The launch form must accept a 30M–500M community airdrop amount.');
 assert.match(launchPage, /data-airdrop-tokens="30000000"[\s\S]*?data-airdrop-tokens="50000000"/, 'The launch form must offer 30M and 50M airdrop presets.');
-assert.match(launchPage, /id="creator-buy-sol"[\s\S]*?min="0"[\s\S]*?step="0\.01"/, 'The launch form must accept an optional developer buy in SOL.');
+assert.match(launchPage, /id="creator-buy-sol"[\s\S]*?min="0"[\s\S]*?step="0\.000001"/, 'The launch form must accept a precise optional developer buy in SOL.');
 assert.match(app, /function getCommunityAllocationPercent\(\)[\s\S]*?getCommunityAirdropTokens\(\) \/ LAUNCH_TOKEN_SUPPLY \* 100/, 'The airdrop policy percentage must derive from the entered token amount.');
 assert.match(preview, /'#preview-community': Number\.isFinite\(allocation\) \? formatVerifiedPercent\(allocation\) : '—'/, 'The launch summary must format fractional reserve percentages without floating-point scientific notation.');
 assert.match(app, /initialBuySol: getCreatorBuySol\(\)/, 'The developer SOL amount must feed the live Pump quote.');

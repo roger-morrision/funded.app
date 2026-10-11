@@ -19,6 +19,7 @@ export function updateLaunchButton(
     xFeeStatus,
     feeRouterState,
     walletMetricsLoading,
+    walletEstimateError,
     PROTOCOL_FUNDED_MINT,
     APP_MAINNET_READ_ONLY,
   },
@@ -46,7 +47,9 @@ export function updateLaunchButton(
   const buyValid = Number.isFinite(creatorBuySol) && creatorBuySol >= 0 && !overBuyLimit && (estimatedInitialBuyTokens <= 0 || estimatedInitialBuyTokens <= LAUNCH_TOKEN_SUPPLY * .2);
   const buyHelp = document.querySelector('#creator-buy-help');
   if (buyHelp) buyHelp.textContent = overBuyLimit
-    ? 'This SOL amount would buy over 20% of the supply. Lower it or set it to 0; the quote will update automatically.'
+    ? /^Developer buy cannot exceed 20% of the token supply\./.test(walletEstimateError || '')
+      ? walletEstimateError
+      : 'This SOL amount would buy over 20% of the supply. Lower it or set it to 0; the quote will update automatically.'
     : 'Enter the SOL to buy from the fresh curve. Maximum 20% of supply.';
   const buyInput = document.querySelector('#creator-buy-sol');
   if (buyInput) {
