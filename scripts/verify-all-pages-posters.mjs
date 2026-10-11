@@ -14,14 +14,14 @@ const routes = [
   ['/#airdrops', 'airdrops'], ['/#buybacks', 'burn'], ['/#capital-flow', 'capital'],
   ['/#docs', 'docs'], ['/#docs/launch', 'docs-subtopic'], ['/#docs/wallet', 'docs-subtopic'],
   ['/#profile', 'profile'], ['/#privacy', 'privacy'], ['/#paid', 'fees'],
-  ['/#funded-holder-token-rewards', 'holder'],
+  ['/#payments', 'holder'], ['/#funded-holder-token-rewards', 'funded-deep-link'],
   ['/token/11111111111111111111111111111111', 'coin'],
   ['/wallet/11111111111111111111111111111111', 'wallet'],
 ].filter(([path]) => !process.env.PUBLIC_UI_ONLY || (!path.startsWith('/token/') && !path.startsWith('/wallet/')));
 const flowAssets = {
   coin: 'fee-collection-flow-v1.webp',
   capital: 'fee-distribution-flow-v1.webp', fees: 'fee-distribution-flow-v1.webp',
-  rewards: 'holder-rewards-flow-v1.webp', holder: 'holder-rewards-flow-v1.webp',
+  holder: 'holder-rewards-flow-v1.webp',
 };
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
@@ -41,6 +41,24 @@ try {
       page.on('pageerror', error => errors.push(error.message));
       await page.goto(`${base}${path}`, { waitUntil: 'domcontentloaded' });
       await page.waitForSelector('body.workspace-ready');
+      if (key === 'funded-deep-link') {
+        await page.locator('#funded-holder-token-rewards').waitFor({ state: 'visible', timeout: 15000 });
+        results.push({ path, key, width, sectionVisible: true });
+        await page.close();
+        continue;
+      }
+      if (key === 'holder') await page.locator('#rewards-holder-tab').click();
+      if (key === 'rewards') {
+        const explanation = page.locator('#rewards-overview details.product-details:has(.reward-upcoming)');
+        await explanation.waitFor({ state: 'visible', timeout: 15000 });
+        assert.equal(await explanation.evaluate(element => element.open), false);
+        assert.equal(await page.locator('.page-cleanup-guide[data-guide="rewards"]').count(), 0);
+        const layout = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
+        assert(layout.document <= layout.viewport + 1, `${path}: ${width}px overflow ${JSON.stringify(layout)}`);
+        results.push({ path, key, width, textOnly: true });
+        await page.close();
+        continue;
+      }
       if (key === 'analytics') {
         const explanation = page.locator('#analytics-detail .analytics-fee-explainer');
         await explanation.waitFor({ state: 'visible', timeout: 15000 });
@@ -89,7 +107,7 @@ try {
     const launch = await context.newPage();
     await launch.setViewportSize({ width, height: 900 });
     await launch.goto(`${base}/#launch`, { waitUntil: 'commit' });
-    await launch.waitForSelector('.launch-optional-story');
+    await launch.waitForSelector('#launch-dialog #token-name');
     assert.equal(await launch.locator('[data-page-infographic="launch"]').count(), 0, 'Launch poster should be removed');
     await launch.close();
   }

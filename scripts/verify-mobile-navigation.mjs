@@ -14,7 +14,7 @@ const routes = {
   overview: 'Home', explore: 'Explore', launch: 'Launch', 'my-launches': 'Portfolio', payments: 'Rewards',
   community: 'Portfolio', leaderboard: 'Explore', airdrops: 'Rewards', referrals: 'Rewards',
   profile: 'Portfolio', list: 'Launch', paid: 'Rewards', buybacks: 'Rewards',
-  'capital-flow': null, 'analytics-detail': null, docs: null, privacy: null, pilot: null,
+  'capital-flow': null, 'analytics-detail': null, docs: null, privacy: null, pilot: 'Launch',
 };
 const labels = ['Home', 'Explore', 'Launch', 'Portfolio', 'Rewards'];
 
@@ -25,7 +25,8 @@ try {
     await page.waitForFunction(() => document.body.classList.contains('workspace-ready'));
     for (const [route, active] of Object.entries(routes)) {
       await page.evaluate(next => { location.hash = `#${next}`; }, route);
-      await page.waitForFunction(next => location.hash === `#${next}` && document.body.classList.contains(`page-route-${next}`), route);
+      await page.waitForFunction(next => location.hash === `#${next}` && document.body.classList.contains(`page-route-${next === 'pilot' ? 'launch' : next}`), route)
+        .catch(error => { throw new Error(`${route} at ${width}px: ${error.message}`); });
       const state = await page.locator('.mobile-workspace-nav').evaluate(nav => {
         const box = nav.getBoundingClientRect();
         return {
