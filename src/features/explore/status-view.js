@@ -59,11 +59,12 @@ export function exploreEmptyReason(
     document = globalThis.document,
   } = {}
 ) {
-  if (exploreTab === 'following') {
+  if (['following', 'favorites'].includes(exploreTab)) {
+    const label = exploreTab === 'favorites' ? 'favorite' : 'followed';
     const saved = getWatchlist();
-    if (!saved.length) return ['No followed tokens yet.', 'Select the star on a token to save it here.'];
-    if (!assets.some(item => saved.includes(item.address))) return ['Saved tokens are unavailable in this feed.', 'Your saved list remains on this device. Try again when the verified launch feed is available.'];
-    return ['No followed tokens match this view.', 'Clear the search or filters to see your saved tokens.'];
+    if (!saved.length) return [`No ${label} tokens yet.`, 'Select the star on a token to save it here.'];
+    if (!assets.some(item => saved.includes(item.address))) return ['Saved tokens are unavailable in this feed.', 'Your favorites remain saved. Try again when the verified launch feed is available.'];
+    return [`No ${label} tokens match this view.`, 'Clear the search or filters to see your saved tokens.'];
   }
   if ((exploreMinVolumeUsd != null || exploreMinMarketCapUsd != null) && !(Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0)) return ['USD filters are waiting for a conversion quote.', 'SOL/USD is unavailable. Clear the USD minimums to browse verified tokens.'];
   if (exploreQuery) return ['No token matches your search.', 'Try a token name, symbol, or full token address.'];

@@ -110,9 +110,9 @@ async function verifiedFeed(page) {
   await page.route('**/api/solana/rpc*', rpc); await page.route('https://api.devnet.solana.com/**', rpc);
 }
 
-for (const [width, view] of [[1440, 'grid'], [390, 'table']]) test(`Explore Following filters tokens in place at ${width}px with ${view} view`, async ({ page }) => {
+for (const [tab, route] of [['following', 'explore'], ['favorites', 'explore']]) for (const [width, view] of [[1440, 'grid'], [390, 'table']]) test(`Explore ${tab} filters tokens in place on ${route} at ${width}px with ${view} view`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 });
-  await seed(page, []); await verifiedFeed(page); await page.goto('/#explore'); await ready(page);
+  await seed(page, []); await verifiedFeed(page); await page.goto(`/#${route}`); await ready(page);
   await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
   const watch = page.locator(`#asset-grid .watch-button[data-mint="${MINT}"]`);
   await expect(watch).toHaveCount(1);
@@ -122,7 +122,7 @@ for (const [width, view] of [[1440, 'grid'], [390, 'table']]) test(`Explore Foll
   await page.locator(`button[data-explore-view="${view}"]`).click();
   const url = page.url();
   await page.evaluate(() => { window.qaExplorePage = document.querySelector('#explore'); });
-  const following = page.locator('button[data-explore-tab="following"]');
+  const following = page.locator(`button[data-explore-tab="${tab}"]`);
   await following.click();
   await expect(following).toHaveAttribute('aria-pressed', 'true');
   await expect(watch).toHaveCount(0);
@@ -144,6 +144,17 @@ for (const [width, view] of [[1440, 'grid'], [390, 'table']]) test(`Explore Foll
   await expect(watch).toHaveCount(1);
   await expect(page).toHaveURL(url);
   await expect(page.locator('#explore-sort')).toHaveValue('recent-trade');
+  if (tab === 'favorites') {
+    await page.reload(); await ready(page);
+    await expect(following).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator(`button[data-explore-view="${view}"]`)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page).toHaveURL(url);
+    const visibleWatch = view === 'grid' ? watch : page.locator(`.scanner-watch[data-mint="${MINT}"]`);
+    await visibleWatch.click();
+    await expect(watch).toHaveCount(0);
+    await expect(page.locator('#asset-grid')).toContainText('No favorite tokens yet.');
+    await expect(page).toHaveURL(url);
+  }
 });
 
 test('Explore native watch action does not announce success when saving fails', async ({ page }) => {

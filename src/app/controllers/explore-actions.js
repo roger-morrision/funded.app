@@ -118,7 +118,7 @@ export function createExploreActionsController(appState) {
     appState.renderWatchlist();
     // Keep the current cards mounted so a follow-up action on the same card
     // cannot lose its click while the watchlist changes.
-    if (appState.exploreTab === 'following') appState.updateExploreViews(true);
+    if (['following', 'favorites'].includes(appState.exploreTab)) appState.updateExploreViews(true);
     else if (appState.exploreRisk === 'watchlist') appState.updateExploreViews();
     else appState.renderRegistry();
     if (appState.homeLaunchTab === 'watchlist') appState.renderHomeLaunchBoard();

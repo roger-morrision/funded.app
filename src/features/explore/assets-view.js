@@ -104,7 +104,7 @@ export function renderExploreAssets(
     action.type = 'button';
     action.className = 'explore-empty-action';
     action.dataset.exploreEmptyAction = assets.length ? 'clear' : 'retry';
-    action.textContent = assets.length ? ['new', 'following'].includes(exploreTab) ? 'View all tokens' : 'Clear filters' : 'Try again';
+    action.textContent = assets.length ? ['new', 'following', 'favorites'].includes(exploreTab) ? 'View all tokens' : 'Clear filters' : 'Try again';
     grid.querySelector('.empty-state')?.append(action);
   }
   renderWatchlist();

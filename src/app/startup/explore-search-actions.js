@@ -208,9 +208,9 @@ export function initializeExploreSearchActions(appState) {
     const tab = button.dataset.exploreTab;
     appState.exploreTab = tab;
     if (tab === 'new') { appState.exploreNewLane = 'all'; appState.exploreSort = 'newest'; document.querySelector('#explore-sort').value = 'newest'; }
-    else if (tab === 'trending' && previousTab !== 'following') { appState.exploreSort = document.querySelector('#explore-sort option[value="volume"]:not(:disabled)') ? 'volume' : 'recent-trade'; document.querySelector('#explore-sort').value = appState.exploreSort; }
+    else if (tab === 'trending' && !['following', 'favorites'].includes(previousTab)) { appState.exploreSort = document.querySelector('#explore-sort option[value="volume"]:not(:disabled)') ? 'volume' : 'recent-trade'; document.querySelector('#explore-sort').value = appState.exploreSort; }
     appState.updateExploreViews(true);
-    if (tab !== 'following') appState.refreshExploreFeedForSort();
+    if (!['following', 'favorites'].includes(tab)) appState.refreshExploreFeedForSort();
   }));
   // app-source-end
 

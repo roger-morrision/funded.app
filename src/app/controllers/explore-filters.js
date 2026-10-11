@@ -29,7 +29,7 @@ export function createExploreFiltersController(appState) {
   // app-source: 408
   function filterExploreTabRecords(records, query = appState.exploreQuery){
     const filtered = appState.filterMarketRecords(records, appState.exploreFilterOptions(query));
-    if (appState.exploreTab !== 'following') return filtered;
+    if (!['following', 'favorites'].includes(appState.exploreTab)) return filtered;
     const saved = new Set(appState.getWatchlist());
     return filtered.filter(record => saved.has(record.address));
   }
