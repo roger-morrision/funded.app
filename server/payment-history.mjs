@@ -1,4 +1,6 @@
 import { createReadCache } from './read-cache.mjs';
+import { verifyPayoutReceipt } from './receipt-evidence.mjs';
+import { cachedReceiptProof, receiptFingerprint } from './receipt-history.mjs';
 
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
@@ -50,29 +52,64 @@ export function verifyAutomaticPayment(schedule, recipient, payment, transaction
 
 export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, connectionFactory, officialGenesis, cluster }) {
   const cache = createReadCache({ ttlMs:30_000, maxEntries:1 });
+  const verifiedAutomatic = new Map();
   return () => cache('recent', async () => {
     const [evidence, ledger, state] = await Promise.all([readEvidence(), rewardsStore.read(), store?.read?.() ?? {}]);
     const verified = evidence.cluster === cluster && evidence.commitment === 'finalized'
       ? evidence.verifiedPayouts || [] : [];
+    const recorded = Object.values(state.payouts || {}).filter(row => row?.cluster === cluster && row.status === 'paid'
+      && ['solana-keeper-referral-claim', 'mint-router-settle-mint'].includes(row.source));
+    const recentKeys = new Set(verified.map(row => `${row.signature}:${row.to}`));
+    const older = recorded.filter(row => !recentKeys.has(`${row.signature}:${row.to}`));
     const candidates = Object.values(ledger.schedules || {}).flatMap(schedule => {
       if (!KINDS.has(schedule.kind) || schedule.asset !== 'SOL') return [];
       return Object.entries(schedule.payments || {}).map(([recipient, payment]) => ({ schedule, recipient, payment }));
     }).filter(({ schedule, recipient, payment }) => KINDS.has(schedule.kind) && ADDRESS.test(recipient)
       && payment?.status === 'paid' && payment.finalized === true && payment.balanceDeltaVerified === true
       && SIGNATURE.test(String(payment.signature || '')))
-      .sort((a, b) => String(b.payment.paidAt || '').localeCompare(String(a.payment.paidAt || '')))
-      .slice(0, 24);
+      .sort((a, b) => String(b.payment.paidAt || '').localeCompare(String(a.payment.paidAt || '')));
     const automatic = [];
+    const olderProofs = [];
     let unavailable = 0;
-    if (candidates.length) {
+    if (candidates.length || older.length) {
       try {
         const connection = connectionFactory();
         if (await connection.getGenesisHash() !== await officialGenesis()) throw new Error('Wrong Solana network');
+        let indexed = new Map();
+        try {
+          indexed = new Map((await store?.readReceiptProofs?.(older.map(row => receiptFingerprint('payouts', row))) || [])
+            .map(entry => [entry.key, entry]));
+        } catch { /* RPC verification below remains available. */ }
+        const additions = [];
+        for (let i = 0; i < older.length; i += 4) {
+          await Promise.all(older.slice(i, i + 4).map(async row => {
+            const key = receiptFingerprint('payouts', row);
+            let proof = cachedReceiptProof(indexed.get(key), 'payouts', row);
+            if (!proof) {
+              try {
+                const tx = await connection.getTransaction(row.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
+                proof = verifyPayoutReceipt(row, tx);
+                if (proof) additions.push({ key, cluster, commitment:'finalized', proof, verifiedAt:new Date().toISOString() });
+              } catch { /* Count unavailable below. */ }
+            }
+            if (proof) olderProofs.push(proof);
+            else unavailable += 1;
+          }));
+        }
+        if (additions.length) {
+          try { await store?.writeReceiptProofs?.(additions); }
+          catch { /* Verified rows can still be shown for this request. */ }
+        }
         for (let i = 0; i < candidates.length; i += 4) {
           await Promise.all(candidates.slice(i, i + 4).map(async ({ schedule, recipient, payment }) => {
             try {
-              const tx = await connection.getTransaction(payment.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
-              const proof = verifyAutomaticPayment(schedule, recipient, payment, tx);
+              const key = `${schedule.kind}:${payment.signature}:${recipient}:${payment.amount}`;
+              let proof = verifiedAutomatic.get(key);
+              if (!proof) {
+                const tx = await connection.getTransaction(payment.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
+                proof = verifyAutomaticPayment(schedule, recipient, payment, tx);
+                if (proof) verifiedAutomatic.set(key, proof);
+              }
               if (proof) {
                 const request = schedule.kind === 'x' ? ledger.fundingRequests?.[schedule.sourceId] : null;
                 const xHandle = request?.kind === 'x' && request.mint === schedule.mint
@@ -83,12 +120,12 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
             } catch { unavailable += 1; }
           }));
         }
-      } catch { unavailable += candidates.length; }
+      } catch { unavailable += candidates.length + older.length; }
     }
     const recordedX = new Map(Object.values(state.payouts || {})
       .filter(row => row?.source === 'mint-router-settle-mint' && row.status === 'paid' && row.cluster === cluster)
       .map(row => [`${row.signature}:${row.to}`, row]));
-    const attributed = verified.map(proof => {
+    const attributed = [...verified, ...olderProofs].map(proof => {
       if (proof.source !== 'mint-router-settle-mint') return proof;
       const record = recordedX.get(`${proof.signature}:${proof.to}`);
       const xHandle = record && Number(record.amountLamports) === proof.amountLamports
@@ -101,9 +138,9 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
       && (row.feeLamports === null || Number.isSafeInteger(row.feeLamports) && row.feeLamports >= 0)
       && ADDRESS.test(String(row.feePayer || '')))
       .map(row => [`${row.signature}:${row.to}`, row])).values()]
-      .sort((a, b) => Number(b.blockTime || 0) - Number(a.blockTime || 0) || b.slot - a.slot).slice(0, 30);
-    return { cluster, commitment:'finalized', status:unavailable || evidence.status === 'partial' || evidence.status === 'unavailable' ? 'partial' : 'onchain-indexed',
-      verifiedPayouts:rows, checkedAutomatic:candidates.length, unavailableAutomatic:unavailable,
+      .sort((a, b) => Number(b.blockTime || 0) - Number(a.blockTime || 0) || b.slot - a.slot);
+    return { cluster, commitment:'finalized', status:unavailable || evidence.status === 'unavailable' ? 'partial' : 'onchain-indexed',
+      verifiedPayouts:rows, checkedAutomatic:candidates.length, unavailablePayouts:unavailable,
       note:'Network transaction fees are paid by the transaction fee payer; received amounts are verified recipient balance increases.' };
   });
 }

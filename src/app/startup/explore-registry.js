@@ -7,7 +7,6 @@ export function initializeExploreRegistry(appState) {
   // app-source-end
 
   // app-source: 532
-  document.querySelector('#payment-dialog-list').innerHTML = '<p class="empty-state">Checking finalized payout receipts…</p>';
   // app-source-end
 
   // app-source: 533

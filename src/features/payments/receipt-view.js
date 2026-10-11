@@ -5,6 +5,22 @@ import { formatTokenBaseAmount } from '../../../trade-panel-balance.js';
 import { icon } from '../../../ui-icons.js';
 import { shortAddress } from '../shared/display.js';
 
+export function payoutType(source) {
+  return ({ 'solana-keeper-referral-claim':'referral', 'mint-router-settle-mint':'x',
+    'automatic-creator':'creator', 'automatic-holder':'holder', 'automatic-operations':'operations',
+    'automatic-community':'community', 'automatic-x':'x' })[source] || 'other';
+}
+
+export function filterPaymentHistory(rows, { type = 'all', from = '', to = '' } = {}) {
+  return rows.filter(row => {
+    if (type !== 'all' && payoutType(row.source) !== type) return false;
+    if (!from && !to) return true;
+    if (!Number.isSafeInteger(row.blockTime) || row.blockTime <= 0) return false;
+    const day = new Date(row.blockTime * 1000).toISOString().slice(0, 10);
+    return (!from || day >= from) && (!to || day <= to);
+  });
+}
+
 // Presentation only: callers own state, requests, and transaction lifecycles.
 export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummary, receiptEvidenceChecked, paymentHistoryEvidence }, { exploreExplorer, renderExtendedAnalyticsDashboard, document = globalThis.document } = {}){
   const verifiedStatus = ['onchain-indexed', 'partial'].includes(receiptEvidence?.status);
@@ -39,20 +55,23 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
   }
   const historyPayouts = Array.isArray(paymentHistoryEvidence?.verifiedPayouts) ? paymentHistoryEvidence.verifiedPayouts : [];
   if (payoutCard) {
-    payoutCard.querySelector('span').textContent = 'Recent finalized payments';
+    payoutCard.querySelector('span').textContent = 'Finalized payments';
     payoutCard.querySelector('strong').textContent = paymentHistoryEvidence ? String(historyPayouts.length) : '—';
-    payoutCard.querySelector('small').innerHTML = `<b>COUNT</b>${!receiptEvidenceChecked ? 'Checking payment history' : !paymentHistoryEvidence ? 'Payment history unavailable' : historyPayouts.length ? `Latest ${historyPayouts.length} receipts across payout sources` : 'No finalized payments in available history'}`;
+    payoutCard.querySelector('small').innerHTML = `<b>COUNT</b>${!receiptEvidenceChecked ? 'Checking payment history' : !paymentHistoryEvidence ? 'Payment history unavailable' : historyPayouts.length ? `${historyPayouts.length} confirmed payouts across all types` : 'No finalized payments in available history'}`;
   }
   const list = document.querySelector('#payment-list');
-  const tape = document.querySelector('#payment-dialog-list');
-  if (!list || !tape) return;
+  if (!list) return;
+  const filters = {
+    type:document.querySelector('#payment-history-type')?.value || 'all',
+    from:document.querySelector('#payment-history-from')?.value || '',
+    to:document.querySelector('#payment-history-to')?.value || '',
+  };
+  const filtered = filterPaymentHistory(historyPayouts, filters);
   // Live receipt refreshes must not interrupt an expanded fee breakdown.
   const openDetails = container => new Set(Array.from(container.querySelectorAll('details[open]'), details => details.dataset.receiptKey));
   const listOpenDetails = openDetails(list);
-  const tapeOpenDetails = openDetails(tape);
   list.replaceChildren();
-  tape.replaceChildren();
-  for (const [index, receipt] of historyPayouts.entries()) {
+  for (const receipt of filtered) {
     const row = document.createElement('div');
     row.className = 'payment-row payment-history-row';
     const identity = document.createElement('span');
@@ -123,22 +142,16 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     proof.title = 'View transaction on Solana Explorer';
     actions.append(amount, proof);
     row.append(identity, actions, details);
-    if (index < 5) {
-      const previewRow = row.cloneNode(true);
-      previewRow.querySelector('details').open = listOpenDetails.has(receiptKey);
-      list.append(previewRow);
-    }
-    details.open = tapeOpenDetails.has(receiptKey);
-    tape.append(row);
+    details.open = listOpenDetails.has(receiptKey);
+    list.append(row);
   }
-  if (!historyPayouts.length) {
-    list.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet.</p>';
-    tape.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet.</p>';
+  if (!filtered.length) {
+    list.innerHTML = `<p class="empty-state">${historyPayouts.length ? 'No confirmed payments match these filters.' : 'No confirmed payments are available to show yet.'}</p>`;
   }
-  paginateHistory(tape, {label:'Payment history', selector:'.payment-history-row'});
+  paginateHistory(list, {label:'Payment history', selector:'.payment-history-row', key:JSON.stringify(filters), pageSize:10});
   const footnote = document.querySelector('#payment-history-footnote');
   if (footnote) footnote.textContent = historyPayouts.length
-    ? `Latest ${Math.min(5, historyPayouts.length)} of ${historyPayouts.length} confirmed payments · fees in details${paymentHistoryEvidence.status === 'partial' ? ' · some history is missing' : ''}`
+    ? `${filtered.length} of ${historyPayouts.length} confirmed payments${filters.from || filters.to ? ' · dates in UTC' : ''} · fees in details${paymentHistoryEvidence.status === 'partial' ? ' · some history is missing' : ''}`
     : paymentHistoryEvidence?.status === 'partial' || !paymentHistoryEvidence ? 'Payment history could not be fully checked. Try again shortly.'
       : 'No confirmed payments are available.';
   renderExtendedAnalyticsDashboard();

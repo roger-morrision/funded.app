@@ -1,17 +1,25 @@
-/* Compact verified payout rows, shared by the Payments card and receipt dialog. */
+/* Verified payout rows and filters on the Rewards history page. */
 .x-claim-activity .panel-heading {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 8px;
 }
 
 .x-claim-activity .panel-heading h2 { margin-bottom: 0; }
-.x-claim-activity #open-tape { white-space: nowrap; }
+.payment-history-filters { display:flex; align-items:end; flex-wrap:wrap; gap:10px; padding:16px 0; border-top:1px solid #293248; }
+.payment-history-filters label { display:grid; gap:6px; color:#aebdd5; font-size:12px; font-weight:600; }
+.payment-history-filters select, .payment-history-filters input, .payment-history-filters button {
+  min-height:42px; border:1px solid #39445e; border-radius:7px; padding:8px 11px;
+  background:#141a2d; color:#eff3fa; font:600 12px 'Manrope',sans-serif;
+}
+.payment-history-filters select { min-width:175px; }
+.payment-history-filters input { color-scheme:dark; }
+.payment-history-filters button { cursor:pointer; }
+.payment-history-filters :is(select,input,button):focus-visible { outline:2px solid #a9bcff; outline-offset:2px; }
+.payment-history-filters button:hover { border-color:#89a6ec; }
 
-.x-claim-activity .payment-history-row,
-#payment-dialog-list .payment-history-row {
+.x-claim-activity .payment-history-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -172,14 +180,14 @@
 .x-claim-activity .panel-footnote { margin-top: 5px; padding-top: 10px; }
 
 @media (max-width: 600px) {
-  .x-claim-activity .payment-history-row,
-  #payment-dialog-list .payment-history-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .x-claim-activity .payment-history-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .payment-history-filters label { flex: 1 1 135px; }
+  .payment-history-filters select, .payment-history-filters input { width: 100%; }
   .payment-history-actions { justify-content: space-between; }
 }
 
 @media (max-width: 390px) {
-  .x-claim-activity .payment-history-row,
-  #payment-dialog-list .payment-history-row { gap: 6px; }
+  .x-claim-activity .payment-history-row { gap: 6px; }
   .payment-history-actions { gap: 6px; }
   .payment-history-actions .payment-amount strong { font-size: 12px; }
 }

@@ -294,7 +294,14 @@ export function initializeLaunchActions(appState) {
   // app-source-end
 
   // app-source: 705
-  document.querySelector('#open-tape').addEventListener('click', () => document.querySelector('#payment-dialog').showModal());
+  document.querySelector('#payment-history-filters')?.addEventListener('change', () => appState.renderVerifiedReceiptEvidence());
+  document.querySelector('#payment-history-clear')?.addEventListener('click', () => {
+    for (const selector of ['#payment-history-type', '#payment-history-from', '#payment-history-to']) {
+      const input = document.querySelector(selector);
+      if (input) input.value = selector === '#payment-history-type' ? 'all' : '';
+    }
+    appState.renderVerifiedReceiptEvidence();
+  });
   // app-source-end
 
   // app-source: 706

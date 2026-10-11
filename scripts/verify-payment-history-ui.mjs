@@ -19,7 +19,7 @@ try {
         verifiedPayouts: [
           { to: '6XfCMmEJk5NTq2ANghqLh6oBfH3aKpR9eSzN', signature, amountLamports: 118812, actualReceivedLamports:118812, feeLamports:5000, feePayer:'7ngaVZdeipr6uZy2inh267PjZLLYFuAfsPoTRZixjJMk', blockTime:1791279900, source:'automatic-holder' },
           { to: '4J3yMC9wQs7UqPtyBHK4nD1fR6tEZv6A', signature: '2hRV9KyCNB1UKc8p9XjQm6oDkT3UQvL8S', amountLamports: 714, actualReceivedLamports:714, feeLamports:5000, feePayer:'7ngaVZdeipr6uZy2inh267PjZLLYFuAfsPoTRZixjJMk', blockTime:1791279800, source:'solana-keeper-referral-claim' },
-          ...Array.from({ length:4 }, (_, index) => ({ to:'4J3yMC9wQs7UqPtyBHK4nD1fR6tEZv6A', signature:String(index + 3).repeat(88), amountLamports:1000 + index, actualReceivedLamports:1000 + index, feeLamports:5000, feePayer:'7ngaVZdeipr6uZy2inh267PjZLLYFuAfsPoTRZixjJMk', blockTime:1791279700 - index, source:'automatic-operations' })),
+          ...Array.from({ length:11 }, (_, index) => ({ to:'4J3yMC9wQs7UqPtyBHK4nD1fR6tEZv6A', signature:String(index + 3).repeat(88), amountLamports:1000 + index, actualReceivedLamports:1000 + index, feeLamports:5000, feePayer:'7ngaVZdeipr6uZy2inh267PjZLLYFuAfsPoTRZixjJMk', blockTime:1791279700 - index, source:'automatic-operations' })),
         ],
         coverage: {},
       }),
@@ -34,6 +34,12 @@ try {
     await page.locator('[data-reward-open="history"]').click();
     assert(await page.locator('#rewards-history').isVisible(), 'Payment history panel must open');
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `reward page overflows at ${width}px`);
+    assert(await page.locator('#payments > .ui-tabs').evaluate(bar => {
+      const active = bar.querySelector('[role="tab"][aria-selected="true"]');
+      const bounds = bar.getBoundingClientRect();
+      const tab = active?.getBoundingClientRect();
+      return Boolean(tab && tab.left >= bounds.left - 1 && tab.right <= bounds.right + 1);
+    }), `active reward tab is not visible at ${width}px`);
     const rows = page.locator('#payment-list .payment-history-row');
     const row = rows.first();
     await row.waitFor({ state: 'attached', timeout: 20000 });
@@ -41,7 +47,7 @@ try {
     if (process.env.UI_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.UI_SCREENSHOT_PREFIX}-${width}.png`, fullPage: true });
     const rowCount = await rows.count();
     if (useLiveReceipts) assert(rowCount > 0, 'expected a verified payout receipt');
-    else assert.equal(rowCount, 5);
+    else assert.equal(rowCount, 13);
     if (!useLiveReceipts) assert.equal(await row.locator('.payment-history-identity strong').innerText(), 'Holder reward');
     else assert((await row.locator('.payment-history-identity strong').innerText()).trim(), 'Receipt type is missing');
     if (!useLiveReceipts) {
@@ -72,11 +78,20 @@ try {
       const actions = element.querySelector('.payment-history-actions').getBoundingClientRect();
       return element.scrollWidth <= element.clientWidth && (identity.bottom <= actions.top + 1 || identity.right <= actions.left + 1);
     })), `payment rows overflow or overlap at ${width}px`);
-    await page.locator('#open-tape').click();
-    const fullCount = await page.locator('#payment-dialog-list .payment-receipt-link').count();
-    if (useLiveReceipts) assert(fullCount >= rowCount, 'Full history must include the visible receipts');
-    else assert.equal(fullCount, 6);
-    assert.equal(await page.locator('#payment-dialog-list .payment-history-wallet').count(), fullCount);
+    assert.equal(await page.locator('#open-tape').count(), 0);
+    if (!useLiveReceipts) {
+      assert.equal(await rows.filter({ visible:true }).count(), 10);
+      await page.getByRole('button', { name:'Next payment history page' }).click();
+      assert.equal(await rows.filter({ visible:true }).count(), 3);
+      await page.locator('#payment-history-type').selectOption('referral');
+      assert.equal(await rows.count(), 1);
+      assert.equal(await rows.first().locator('.payment-history-identity strong').innerText(), 'Referral reward');
+      await page.locator('#payment-history-from').fill('2026-10-07');
+      assert.match(await page.locator('#payment-list .empty-state').innerText(), /No confirmed payments match/);
+      await page.locator('#payment-history-clear').click();
+      assert.equal(await rows.count(), 13);
+      assert.equal(await rows.filter({ visible:true }).count(), 10);
+    }
     console.log(`Payment history checked at ${width}px`);
     await context.close();
   }
