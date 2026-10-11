@@ -266,7 +266,7 @@ const readReceiptEvidence = createReceiptEvidenceReader({ store, cluster: solana
 const readFinalizedEvidence = createReceiptEvidenceReader({ store, cluster: solanaCluster, commitment:'finalized',
   connectionFactory: () => new Connection(solanaRpcUrl, 'finalized'),
   officialGenesis: () => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash() });
-const readPaymentHistory = createPaymentHistoryReader({ readEvidence:readFinalizedEvidence, rewardsStore:automaticRewardStore,
+const readPaymentHistory = createPaymentHistoryReader({ readEvidence:readFinalizedEvidence, rewardsStore:automaticRewardStore, store,
   connectionFactory:() => new Connection(solanaRpcUrl, 'finalized'), cluster:solanaCluster,
   officialGenesis:() => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash() });
 

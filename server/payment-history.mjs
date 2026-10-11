@@ -2,7 +2,21 @@ import { createReadCache } from './read-cache.mjs';
 
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
+const X_HANDLE = /^@?[A-Za-z0-9_]{1,15}$/;
 const KINDS = new Set(['creator', 'holder', 'operations', 'x', 'community']);
+
+function verifiedXHandle(state, cluster, mint, obligationId, wallet) {
+  const launch = state.launches?.[mint];
+  const obligation = state.obligations?.[obligationId];
+  const handle = launch?.feeDistribution?.creatorDirected?.recipients?.xAccount;
+  if (launch?.onchainVerified !== true || launch.cluster !== cluster || obligation?.mint !== mint
+    || !obligation.xUserId || String(launch.xUserId) !== String(obligation.xUserId)
+    || !X_HANDLE.test(String(handle || ''))) return null;
+  const claim = Object.values(state.claims || {}).find(item => item.obligationId === obligationId
+    && item.publicKey === wallet && String(item.xUserId) === String(obligation.xUserId)
+    && String(item.xAttestation?.subject) === String(obligation.xUserId));
+  return claim ? `@${String(handle).replace(/^@/, '')}` : null;
+}
 
 function addressOf(key) {
   if (typeof key === 'string') return key;
@@ -34,10 +48,10 @@ export function verifyAutomaticPayment(schedule, recipient, payment, transaction
     slot:transaction.slot, blockTime:transaction.blockTime ?? null };
 }
 
-export function createPaymentHistoryReader({ readEvidence, rewardsStore, connectionFactory, officialGenesis, cluster }) {
+export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, connectionFactory, officialGenesis, cluster }) {
   const cache = createReadCache({ ttlMs:30_000, maxEntries:1 });
   return () => cache('recent', async () => {
-    const [evidence, ledger] = await Promise.all([readEvidence(), rewardsStore.read()]);
+    const [evidence, ledger, state] = await Promise.all([readEvidence(), rewardsStore.read(), store?.read?.() ?? {}]);
     const verified = evidence.cluster === cluster && evidence.commitment === 'finalized'
       ? evidence.verifiedPayouts || [] : [];
     const candidates = Object.values(ledger.schedules || {}).flatMap(schedule => {
@@ -59,13 +73,29 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, connect
             try {
               const tx = await connection.getTransaction(payment.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
               const proof = verifyAutomaticPayment(schedule, recipient, payment, tx);
-              if (proof) automatic.push(proof); else unavailable += 1;
+              if (proof) {
+                const request = schedule.kind === 'x' ? ledger.fundingRequests?.[schedule.sourceId] : null;
+                const xHandle = request?.kind === 'x' && request.mint === schedule.mint
+                  && request.recipient === recipient
+                  ? verifiedXHandle(state, cluster, schedule.mint, request.obligationId, recipient) : null;
+                automatic.push(xHandle ? { ...proof, xHandle } : proof);
+              } else unavailable += 1;
             } catch { unavailable += 1; }
           }));
         }
       } catch { unavailable += candidates.length; }
     }
-    const rows = [...new Map([...verified, ...automatic].filter(row =>
+    const recordedX = new Map(Object.values(state.payouts || {})
+      .filter(row => row?.source === 'mint-router-settle-mint' && row.status === 'paid' && row.cluster === cluster)
+      .map(row => [`${row.signature}:${row.to}`, row]));
+    const attributed = verified.map(proof => {
+      if (proof.source !== 'mint-router-settle-mint') return proof;
+      const record = recordedX.get(`${proof.signature}:${proof.to}`);
+      const xHandle = record && Number(record.amountLamports) === proof.amountLamports
+        ? verifiedXHandle(state, cluster, record.mint, record.obligationId, proof.to) : null;
+      return xHandle ? { ...proof, xHandle } : proof;
+    });
+    const rows = [...new Map([...attributed, ...automatic].filter(row =>
       ADDRESS.test(String(row.to || '')) && SIGNATURE.test(String(row.signature || ''))
       && Number.isSafeInteger(row.actualReceivedLamports) && row.actualReceivedLamports > 0
       && (row.feeLamports === null || Number.isSafeInteger(row.feeLamports) && row.feeLamports >= 0)

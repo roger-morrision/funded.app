@@ -61,6 +61,8 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     name.textContent = ({ 'solana-keeper-referral-claim':'Referral reward', 'mint-router-settle-mint':'X account reward',
       'automatic-creator':'Creator fee', 'automatic-holder':'Holder reward', 'automatic-operations':'Protocol payout',
       'automatic-community':'Community payout', 'automatic-x':'X account reward' })[receipt.source] || 'SOL payout';
+    if (['mint-router-settle-mint', 'automatic-x'].includes(receipt.source)
+      && /^@[A-Za-z0-9_]{1,15}$/.test(receipt.xHandle || '')) name.textContent += ` · ${receipt.xHandle}`;
     const recipient = document.createElement('span');
     recipient.className = 'payment-history-receiver';
     const receiverLabel = document.createElement('small');

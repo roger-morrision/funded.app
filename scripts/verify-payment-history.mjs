@@ -33,4 +33,27 @@ const wrongChain = createPaymentHistoryReader({ cluster:'devnet', officialGenesi
   connectionFactory:()=>({ getGenesisHash:async()=>'devnet-test' }) });
 assert.equal((await wrongChain()).status,'partial');
 assert.equal((await wrongChain()).verifiedPayouts.length,0);
-console.log('Payment history verified payout time, fee payer, recipient delta, failed receipt rejection, and network guard (mocked RPC).');
+
+const mint = '5'.repeat(44), obligationId = 'x-obligation', sourceId = 'x-funding';
+const xState = { launches:{ [mint]:{ mint, cluster:'devnet', onchainVerified:true, xUserId:'123',
+  feeDistribution:{ creatorDirected:{ recipients:{ xAccount:'@JohnTrand83' } } } } },
+  obligations:{ [obligationId]:{ mint, xUserId:'123' } },
+  claims:{ claim:{ obligationId, publicKey:receiver, xUserId:'123', xAttestation:{ subject:'123' } } } };
+const xLedger = { fundingRequests:{ [sourceId]:{ kind:'x', mint, recipient:receiver, obligationId } },
+  schedules:{ x:{ kind:'x', asset:'SOL', mint, sourceId, payments:{ [receiver]:payment } } } };
+const xReader = (state, evidence = []) => createPaymentHistoryReader({ cluster:'devnet',
+  officialGenesis:async()=>'devnet-test', readEvidence:async()=>({ cluster:'devnet', commitment:'finalized',
+    status:'onchain-indexed', verifiedPayouts:evidence }), rewardsStore:{ read:async()=>xLedger },
+  store:{ read:async()=>state }, connectionFactory:()=>({ getGenesisHash:async()=>'devnet-test',
+    getTransaction:async()=>transaction }) });
+assert.equal((await xReader(xState)()).verifiedPayouts[0].xHandle,'@JohnTrand83');
+assert.equal((await xReader({ ...xState, claims:{} })()).verifiedPayouts[0].xHandle,undefined);
+assert.equal((await xReader({ ...xState, obligations:{ [obligationId]:{ mint, xUserId:'456' } } })()).verifiedPayouts[0].xHandle,undefined);
+const legacy = { ...proof, source:'mint-router-settle-mint' };
+const legacyState = { ...xState, payouts:{ claim:{ source:'mint-router-settle-mint', status:'paid',
+  cluster:'devnet', mint, obligationId, signature, to:receiver, amountLamports:118812 } } };
+const legacyReader = createPaymentHistoryReader({ cluster:'devnet', officialGenesis:async()=>'devnet-test',
+  readEvidence:async()=>({ cluster:'devnet', commitment:'finalized', status:'onchain-indexed', verifiedPayouts:[legacy] }),
+  rewardsStore:{ read:async()=>({ schedules:{} }) }, store:{ read:async()=>legacyState }, connectionFactory:()=>({}) });
+assert.equal((await legacyReader()).verifiedPayouts[0].xHandle,'@JohnTrand83');
+console.log('Payment history verified payout deltas, network guard, and X handle attribution (mocked RPC).');

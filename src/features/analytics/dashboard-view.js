@@ -61,7 +61,10 @@ export function renderExtendedAnalyticsDashboard({ assets, verifiedLaunchPolicie
       for (const payout of recentPayouts.slice(0, 5)) {
         const row = document.createElement('div'); row.className = 'payment-row';
         const identity = document.createElement('span');
-        const name = document.createElement('strong'); name.textContent = `${({ 'solana-keeper-referral-claim':'Referral', 'mint-router-settle-mint':'X account', 'automatic-creator':'Creator', 'automatic-holder':'Holder', 'automatic-operations':'Protocol', 'automatic-community':'Community', 'automatic-x':'X account' })[payout.source] || 'Recipient'} · ${shortAddress(payout.to)}`;
+        const name = document.createElement('strong');
+        const xHandle = ['mint-router-settle-mint', 'automatic-x'].includes(payout.source)
+          && /^@[A-Za-z0-9_]{1,15}$/.test(payout.xHandle || '') ? payout.xHandle : null;
+        name.textContent = `${({ 'solana-keeper-referral-claim':'Referral', 'mint-router-settle-mint':'X account', 'automatic-creator':'Creator', 'automatic-holder':'Holder', 'automatic-operations':'Protocol', 'automatic-community':'Community', 'automatic-x':'X account' })[payout.source] || 'Recipient'} · ${xHandle || shortAddress(payout.to)}`;
         const proof = document.createElement('a'); proof.href = exploreExplorer(`tx/${encodeURIComponent(payout.signature)}`); proof.target = '_blank'; proof.rel = 'noopener noreferrer';
         proof.className = 'payment-receipt-link solana-explorer-link';
         proof.innerHTML = icon('solana');
