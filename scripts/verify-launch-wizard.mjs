@@ -73,7 +73,7 @@ assert.match(preview, /'#preview-community': Number\.isFinite\(allocation\) \? f
 assert.match(app, /initialBuySol: getCreatorBuySol\(\)/, 'The developer SOL amount must feed the live Pump quote.');
 assert.match(app, /estimatedInitialBuyTokens=Number\(developerBuy\.amountTokens\);\s*updateLaunchPreview\(\);/, 'The live Pump quote must refresh the visible developer-buy token estimate.');
 assert.match(preview, /creatorBuy\.sol > 0 \? wallet \? 'Calculating…' : 'Connect wallet to estimate' : 'None'/, 'An unconnected developer buy must ask for a wallet instead of remaining stuck on Calculating.');
-assert.match(costs, /wallet \? ' · quote pending' : ' · connect wallet to quote'/, 'The launch cost summary must label an unconnected developer-buy quote truthfully.');
+assert.match(costs, /wallet \? 'calculating…' : 'connect wallet to quote'/, 'The launch cost summary must label an unconnected developer-buy quote truthfully.');
 assert.match(actions, /!feeDistribution\.valid \? 'Fix fee distribution'/, 'Invalid fee shares must be explained before the disconnected-wallet prompt.');
 assert.match(launchPage, /id="preview-promotion-badge"/, 'The launch preview must show the selected promotion badge.');
 assert.match(launchPage, /class="cost-summary launch-pay-summary free-launch"[\s\S]*?id="cost-tier-label">Platform launch fee: 0[\s\S]*?id="cost-burn-row" hidden[\s\S]*?id="cost-burn"/, 'Zero platform fee must remain distinct from paid promotion burns and network costs.');
@@ -191,14 +191,15 @@ for (const id of ['profile-wallet-address', 'launch-path-wallet', 'sol-claim-sub
 assert.doesNotMatch(app, /#dialog-connect|['"]dialog-connect['"]|#wallet-status/, 'Removed launch wallet-card controls must have no stale script references.');
 assert.doesNotMatch(app, /#wallet-metrics|#wallet-balance|#launch-fee|#refresh-wallet|#fee-note/, 'Removed wallet-metrics controls must have no stale script references.');
 assert.match(app, /'connect-button', 'profile-connect'[^\]]*?'sol-claim-submit'/, 'The generic connect-wallet handler must not duplicate profile connections or override SOL-claim prerequisite validation.');
-function costSummaryFor({ connected = false, loading = false, fee = null, error = '' } = {}) {
+function costSummaryFor({ connected = false, loading = false, fee = null, error = '', buySol = 0, retry = null } = {}) {
   const nodes = Object.fromEntries(['cost-launch', 'cost-total-enabled', 'cost-total', 'cost-note', 'preview-launch-cost', 'cost-burn', 'cost-community-tokens', 'cost-community-detail', 'cost-creator-buy'].map(id => [`#${id}`, { textContent: '', innerHTML: '' }]));
   updateCostSummary({ wallet: connected ? { publicKey: true } : null, walletMetricsLoading: loading,
-    walletEstimateError: error, estimatedLaunchFeeLamports: fee, launchCostReview: null }, {
+    walletEstimateError: error, launchEstimateRetry: retry, estimatedLaunchFeeLamports: fee, launchCostReview: null }, {
     document: { querySelector: selector => nodes[selector] || null }, renderLaunchCostDetails() {},
-    getLaunchBurnPolicy: () => ({ requiresBurn: false }), getCreatorBuySummary: () => ({ sol: 0, tokens: 0, percent: 0 }),
+    getLaunchBurnPolicy: () => ({ requiresBurn: false }), getCreatorBuySummary: () => ({ sol: buySol, tokens: 0, percent: 0 }),
     getCommunityAirdropTokens: () => 30_000_000, getCommunityAllocationPercent: () => 3,
     formatLaunchBurnAmount: String, formatLaunchCost: lamports => (Number(lamports) / 1_000_000_000).toFixed(6) + ' SOL',
+    creatorBuyExceedsWalletBalance: () => false,
     developerBuyLimitReached: () => error.startsWith('Developer buy cannot exceed 20% of the token supply.'),
   });
   return nodes;
@@ -210,9 +211,15 @@ const connectedWithoutEstimate = costSummaryFor({ connected: true, error: 'RPC u
 assert.equal(connectedWithoutEstimate['#cost-launch'].textContent, 'Estimate unavailable');
 assert.doesNotMatch(connectedWithoutEstimate['#cost-note'].textContent, /Connect (a |Phantom|your )?wallet/i);
 assert.match(connectedWithoutEstimate['#cost-note'].textContent, /RPC unavailable/);
+assert.equal(costSummaryFor({ connected: true, error: 'RPC unavailable.', buySol: 1 })['#cost-creator-buy'].textContent, '1 SOL · estimate unavailable');
+const retrying = costSummaryFor({ connected: true, error: 'Solana RPC is rate limited.', buySol: 1,
+  retry: { retryable: true, nextAt: Date.now() + 15_000 } });
+assert.match(retrying['#cost-launch'].textContent, /^Retrying in \d+s$/);
+assert.match(retrying['#cost-creator-buy'].textContent, /^1 SOL · retrying in \d+s$/);
 const overLimit = costSummaryFor({ connected: true, error: 'Developer buy cannot exceed 20% of the token supply.' });
 assert.match(overLimit['#cost-note'].textContent, /lower the SOL amount or set it to 0/i);
 assert.doesNotMatch(overLimit['#cost-note'].textContent, /Refresh the estimate to try again/i);
+assert.equal(costSummaryFor({ connected: true, error: 'Developer buy cannot exceed 20% of the token supply.', buySol: 1 })['#cost-creator-buy'].textContent, '1 SOL · over 20% limit');
 assert.match(validation, /developerBuyLimitReached\(\)\) return \{ valid: false, field: '#creator-buy-sol'/);
 assert.match(actions, /developerBuyLimitReached\(\) \? 'Edit developer buy' : 'Retry checks'/);
 assert.doesNotMatch(launchPage, /A submitted transaction is pending until confirmed/, 'The form must not imply a transaction was sent before signing.');

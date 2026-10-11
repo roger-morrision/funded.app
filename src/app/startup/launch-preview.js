@@ -10,7 +10,9 @@ export function initializeLaunchPreview(appState, { document = globalThis.docume
     if (shouldAutoRefreshLaunchEstimate({ active: launchPageActive, visible: !document.hidden, online: navigator.onLine !== false,
       wallet: appState.wallet, loading: appState.walletMetricsLoading, reviewing: appState.pendingLaunchReview,
       submitting: appState.launchSubmitting, review: appState.launchCostReview, error: appState.walletEstimateError,
-      retry: appState.launchEstimateRetry, validForm: launchPageActive && appState.getLaunchStepState(1).valid && appState.getLaunchStepState(2).valid })) {
+      // The estimate uses placeholder token identity and does not need an uploaded logo.
+      // Keep quote refresh available while the creator is still completing coin details.
+      retry: appState.launchEstimateRetry, validForm: launchPageActive && appState.feeRouterState?.verified && appState.getLaunchStepState(2).valid })) {
       appState.scheduleLaunchCostRefresh();
     }
   },1000);

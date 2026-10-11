@@ -38,6 +38,8 @@ export function updateCostSummary(
   const summaryNode = document.querySelector('#cost-summary');
   const burnPolicy = getLaunchBurnPolicy();
   const creatorBuy = getCreatorBuySummary();
+  const retrySeconds = launchEstimateRetry?.retryable
+    ? Math.max(0, Math.ceil((launchEstimateRetry.nextAt - Date.now()) / 1000)) : null;
   const communityTokens = getCommunityAirdropTokens();
   const communityPercent = getCommunityAllocationPercent();
   if (communityTokensNode) communityTokensNode.textContent = Number.isFinite(communityTokens) ? communityTokens.toLocaleString() : '—';
@@ -50,12 +52,19 @@ export function updateCostSummary(
   if (burnRow) burnRow.hidden = !burnPolicy.requiresBurn;
   if (tierLabelNode) tierLabelNode.textContent = burnPolicy.requiresBurn ? burnPolicy.label.toUpperCase() : 'Platform launch fee: 0';
   if (summaryNode) summaryNode.classList.toggle('free-launch', !burnPolicy.requiresBurn);
-  if (creatorBuyNode) creatorBuyNode.textContent = creatorBuy.sol > 0
-    ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL${creatorBuyExceedsWalletBalance() ? ' · insufficient SOL' : creatorBuy.tokens > 0 ? ` · ${Math.round(creatorBuy.tokens).toLocaleString()} tokens` : wallet ? ' · quote pending' : ' · connect wallet to quote'}`
-    : 'None';
+  if (creatorBuyNode && creatorBuy.sol > 0) {
+    const buyStatus = creatorBuyExceedsWalletBalance() ? 'insufficient SOL'
+      : developerBuyLimitReached() ? 'over 20% limit'
+        : walletEstimateError ? retrySeconds == null ? 'estimate unavailable' : `retrying in ${retrySeconds}s`
+          : walletMetricsLoading ? 'calculating…'
+            : creatorBuy.tokens > 0 ? `${Math.round(creatorBuy.tokens).toLocaleString()} tokens`
+              : wallet ? 'calculating…' : 'connect wallet to quote';
+    creatorBuyNode.textContent = `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL · ${buyStatus}`;
+  } else if (creatorBuyNode) creatorBuyNode.textContent = 'None';
   if (!launchNode || !totalNode || !noteNode) return;
   if (estimatedLaunchFeeLamports == null) {
-    const pending = !wallet ? 'Connect wallet to estimate' : walletMetricsLoading ? 'Calculating…' : 'Estimate unavailable';
+    const pending = !wallet ? 'Connect wallet to estimate' : walletMetricsLoading ? 'Calculating…'
+      : retrySeconds == null ? 'Estimate unavailable' : `Retrying in ${retrySeconds}s`;
     launchNode.textContent = pending;
     totalNode.textContent = '—';
     if (previewLaunchNode) previewLaunchNode.textContent = !wallet ? 'Connect wallet' : pending;

@@ -31,7 +31,7 @@ test('automatic refresh pauses for inactive pages, offline state, review, signin
 test('startup retries a failed null estimate, avoids duplicates, and refreshes again before quote expiry', t => {
   let now = 1000, tick, requests = 0;
   t.mock.method(Date, 'now', () => now);
-  const state = { wallet: {}, launchCostReview: null, walletEstimateError: '429', launchEstimateRetry: launchEstimateRetry('429', {}, now),
+  const state = { wallet: {}, feeRouterState: { verified: true }, launchCostReview: null, walletEstimateError: '429', launchEstimateRetry: launchEstimateRetry('429', {}, now),
     requestedPageRoute: () => 'launch', getLaunchStepState: () => ({ valid: true }),
     refreshQuoteClocks() {}, renderPendingLaunchReview() {}, updateCostSummary() {},
     scheduleLaunchCostRefresh() { requests++; state.walletMetricsLoading = true; } };
@@ -44,6 +44,22 @@ test('startup retries a failed null estimate, avoids duplicates, and refreshes a
   tick(); assert.equal(requests, 1);
   now += 55000; document.hidden = true; tick(); assert.equal(requests, 1);
   document.hidden = false; tick(); assert.equal(requests, 2);
+});
+
+test('automatic estimate starts before optional coin details and pauses for invalid funding', () => {
+  let tick, requests = 0, fundingValid = true;
+  const state = { wallet: {}, feeRouterState: { verified: true }, launchCostReview: null, walletEstimateError: '',
+    requestedPageRoute: () => 'launch', getLaunchStepState: step => ({ valid: step === 2 && fundingValid }),
+    refreshQuoteClocks() {}, renderPendingLaunchReview() {}, updateCostSummary() {},
+    scheduleLaunchCostRefresh() { requests++; state.walletMetricsLoading = true; } };
+  initializeLaunchPreview(state, { document: { hidden: false }, navigator: { onLine: true }, setInterval: fn => { tick = fn; } });
+  tick(); assert.equal(requests, 1, 'Missing logo or token identity must not prevent an estimate.');
+  state.walletMetricsLoading = false;
+  state.feeRouterState.verified = false;
+  tick(); assert.equal(requests, 1);
+  state.feeRouterState.verified = true;
+  fundingValid = false;
+  tick(); assert.equal(requests, 1);
 });
 
 test('RPC failure records an auto retry without extra RPC calls or rapid manual retries', async t => {
