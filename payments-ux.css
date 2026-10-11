@@ -124,7 +124,7 @@ body.page-route-payments #payments #reward-portfolio.reward-no-wallet .reward-po
 body.page-route-payments #payments.x-claim-page{max-width:1160px}
 body.page-route-payments #payments>.rewards-page-header{margin-bottom:8px;padding-bottom:18px}
 body.page-route-payments #payments.x-claim-page>.ui-tabs{display:flex;gap:20px;overflow-x:auto;margin-bottom:22px;padding:0;border:0;border-bottom:1px solid #344057;border-radius:0;background:transparent;scrollbar-width:thin}
-body.page-route-payments #payments.x-claim-page>.ui-tabs button{flex:none;min-height:46px;padding:10px 1px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:#aab8cb;font:700 12px/1.3 Manrope,sans-serif;white-space:nowrap}
+body.page-route-payments #payments.x-claim-page>.ui-tabs button{flex:none;min-height:46px;padding:10px 1px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:#aab8cb;font:700 12px/1.3 Manrope,sans-serif;white-space:nowrap;cursor:pointer}
 body.page-route-payments #payments.x-claim-page>.ui-tabs button[aria-selected=true]{border-bottom-color:#e8aa49;background:transparent;box-shadow:none;color:#ffcf83}
 body.page-route-payments #payments.x-claim-page>.ui-tabs button:focus-visible{outline:2px solid #f3bd72;outline-offset:-3px}
 body.page-route-payments #payments .reward-tab-hint{display:none}
