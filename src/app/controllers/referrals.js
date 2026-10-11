@@ -1,5 +1,5 @@
 import { paginateHistory } from '../../../history-pagination.js';
-import { referralStatusLabel, referralClaimStatusLabel } from '../../../referral-status.js';
+import { referralStatusLabel, referralClaimStatusLabel, isReferralSignInCancelled } from '../../../referral-status.js';
 // Dependencies and mutable application state are read live through appState.
 export function createReferralsController(appState) {
   // app-source: 232
@@ -172,7 +172,17 @@ function updateReferralStatus(state, claimable = 0){
         }
         return;
       }
-    } catch (error) { if (appState.isWalletSessionCurrent(session)) { updateReferralStatus('unavailable'); appState.renderReferralClaimPrompt('Referral dashboard unavailable', error.message || 'Try verifying your wallet again.', true); appState.renderReferralActivityEmpty('Access unavailable', 'Verify your wallet to check referral activity.'); appState.renderReferralLedgerEmpty('Access unavailable', 'Verify your wallet to check claim receipts.'); } return; }
+    } catch (error) {
+      if (appState.isWalletSessionCurrent(session)) {
+        const cancelled = isReferralSignInCancelled(error);
+        updateReferralStatus(cancelled ? 'cancelled' : 'unavailable');
+        appState.renderReferralClaimPrompt(cancelled ? 'Wallet connected · sign-in cancelled' : 'Wallet connected · sign-in unavailable',
+          cancelled ? 'The message was not signed. You can try again when ready. Signing in is free and does not move funds.' : 'We could not complete sign-in. Please try again shortly.', true);
+        appState.renderReferralActivityEmpty('Sign in to see activity', 'Your wallet is connected. Sign in to view your private referral activity.');
+        appState.renderReferralLedgerEmpty('Sign in to see receipts', 'Your wallet is connected. Sign in to view your reward history.');
+      }
+      return;
+    }
     if (!appState.isWalletSessionCurrent(session)) return;
     const [result, dashboardResult] = await Promise.all([
       appState.apiRequest(`/api/referral-claims?wallet=${encodeURIComponent(walletAddress)}`).catch(() => ({ available: false })),

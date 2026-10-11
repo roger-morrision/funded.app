@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { referralStatusLabel } from '../referral-status.js';
+import { referralStatusLabel, isReferralSignInCancelled } from '../referral-status.js';
 import { createWalletSignIn } from '../wallet-signin.js';
 
 const app = await readAppSource();
@@ -33,10 +33,11 @@ function fixture() {
   let authenticated = false;
   let authenticatedWallet = 'wallet';
   let signatures = 0;
-  const session = { address: 'wallet', provider: { async signMessage() { signatures++; return { signature: new Uint8Array(64).fill(7) }; } } };
+  let signError = null;
+  const session = { address: 'wallet', provider: { async signMessage() { signatures++; if (signError) throw signError; return { signature: new Uint8Array(64).fill(7) }; } } };
   const context = {
     TextEncoder,
-    referralStatusLabel,
+    referralStatusLabel, isReferralSignInCancelled,
     paginateHistory: () => {},
     bs58: { encode(bytes) { assert.equal(bytes.length, 64); return 'fixture-signature'; } },
     captureWalletSession: () => session,
@@ -77,6 +78,8 @@ function fixture() {
     calls,
     get status() { return context.document.documentElement.dataset.referralStatus; },
     get signatures() { return signatures; },
+    rejectSigning() { signError = Object.assign(new Error('User rejected the request.'), {code:4001}); },
+    allowSigning() { signError = null; },
     expire() { authenticated = false; context.walletSignIn.clear(); },
     mismatch() { authenticated = true; authenticatedWallet = 'another-wallet'; },
   };
@@ -87,7 +90,7 @@ test('wallet refresh checks the session without requesting a signature', async (
   await f.refresh();
   assert.deepEqual(f.calls, ['/api/referrals/session']);
   assert.equal(f.signatures, 0);
-  assert.equal(f.status, 'Verify wallet');
+  assert.equal(f.status, 'Sign in to view');
   const button = f.panel.children.find(child => child.textContent === 'Sign in with wallet');
   assert(button, 'An explicit approval action is available when the session is absent');
 
@@ -106,7 +109,7 @@ test('wallet refresh checks the session without requesting a signature', async (
   await f.refresh();
   assert.deepEqual(f.calls, ['/api/referrals/session']);
   assert.equal(f.signatures, 1, 'An expired session does not sign during refresh');
-  assert.equal(f.status, 'Verify wallet');
+  assert.equal(f.status, 'Sign in to view');
 });
 
 test('a session belonging to another wallet never exposes private claims', async () => {
@@ -116,4 +119,20 @@ test('a session belonging to another wallet never exposes private claims', async
   assert.deepEqual(f.calls, ['/api/referrals/session']);
   assert.equal(f.signatures, 0);
   assert(f.panel.children.some(child => child.textContent === 'Sign in with wallet'));
+});
+
+test('declined wallet sign-in gives a truthful retry without loading private rewards', async () => {
+  const f = fixture();
+  await f.refresh();
+  f.rejectSigning();
+  await f.panel.children.find(child => child.textContent === 'Sign in with wallet').click();
+  assert.equal(f.status, 'Sign-in cancelled');
+  assert.equal(f.signatures, 1);
+  assert(!f.calls.includes('/api/referrals/session/verify'));
+  assert(!f.calls.some(path => path.startsWith('/api/referral-claims?')));
+  assert.equal(f.panel.children[0].children[1].textContent, 'Wallet connected · sign-in cancelled');
+  f.allowSigning();
+  await f.panel.children.find(child => child.textContent === 'Sign in with wallet').click();
+  assert.equal(f.signatures, 2);
+  assert(f.calls.includes('/api/referrals/session/verify'));
 });
