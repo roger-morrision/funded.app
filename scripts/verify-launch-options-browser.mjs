@@ -28,7 +28,23 @@ try {
     assert.equal(await choice.getAttribute('aria-pressed'), 'true', `${tier} choice did not select`);
     assert.equal((await page.locator('#preview-burn-tier').textContent()).trim(), tier[0].toUpperCase() + tier.slice(1));
     assert.equal(await page.locator('#cost-burn-row').isVisible(), tier !== 'standard');
+    assert.equal(await page.locator('.launch-tier-buy-link').isVisible(), tier !== 'standard');
   }
+  await page.locator('.creator-burn-card[data-burn-tier="pro"]').click();
+  assert.equal(await page.locator('.launch-tier-buy-link').getAttribute('href'), '#buybacks');
+  await page.locator('.launch-tier-buy-link').click();
+  await page.waitForURL('**/#buybacks');
+  assert(await page.locator('#buybacks .burn-buy-card').isVisible(), 'The button must open the existing $FUNDED buy form.');
+  await page.goBack();
+  await page.waitForURL('**/#launch');
+  assert.equal(await page.locator('#token-name').inputValue(), 'Launch options QA', 'Returning from the buy form must keep the launch draft.');
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.locator('.creator-burn-card[data-burn-tier="pro"]').click();
+    assert.equal(await page.locator('.launch-tier-buy-link').isVisible(), true);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, `${width}px launch overflow`);
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.locator('button[data-burn-tier="standard"]').click();
   for (const [tokens, percent] of [['30000000', '3%'], ['50000000', '5%'], ['500000000', '50%']]) {
     if (tokens === '500000000') await page.locator('#community-airdrop-tokens').fill(tokens);

@@ -31,10 +31,16 @@ body.page-route-launch .launch-tier-first .creator-burn-card > em { display: blo
 body.page-route-launch .launch-tier-first .creator-burn-card > em.short { color: #f0a989; }
 body.page-route-launch .launch-tier-balance { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 12px 0 5px; color: #a7b4c7; font-size: 12px; }
 body.page-route-launch .launch-tier-balance strong { color: #f0f4ff; }
+body.page-route-launch .creator-burn-section[data-selected-tier="standard"] .launch-tier-balance,
+body.page-route-launch .creator-burn-section[data-selected-tier="standard"] #launch-tier-quote-status { display: none; }
+body.page-route-launch .launch-tier-balance-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+body.page-route-launch .launch-tier-buy-link { display: inline-flex; align-items: center; gap: 5px; min-height: 34px; padding: 7px 11px; border: 1px solid #dca21a; border-radius: 2px; background: #eaae11; color: #10151d; font-size: 12px; font-weight: 700; text-decoration: none; }
+body.page-route-launch .launch-tier-buy-link:hover, body.page-route-launch .launch-tier-buy-link:focus-visible { background: #ffd04a; border-color: #ffd04a; }
 body.page-route-launch .launch-tier-balance button { padding: 7px 10px; border: 1px solid var(--line); border-radius: 2px; background: #111b2e; color: #c1d2eb; cursor: pointer; }
 body.page-route-launch .launch-tier-quote-status { margin: 4px 0 0; color: #8795a9; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
 @media (max-width: 700px) {
   body.page-route-launch .launch-tier-first .creator-burn-tiers { grid-template-columns: 1fr; }
+  body.page-route-launch .launch-tier-balance-actions { width: 100%; justify-content: flex-start; }
 }
 body.page-route-buybacks .burn-center-hero { padding: 28px 0 24px; border-bottom: 1px solid var(--line); }
 body.page-route-buybacks .burn-center-hero h1 { font-size: clamp(42px,5vw,70px); font-weight: 900; letter-spacing: -.065em; }
