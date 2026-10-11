@@ -103,18 +103,26 @@ export function renderHomeLaunchBoard(state, {
     const tickerMarkup = ranked.length ? ranked.map((item, index) => {
       const currentCap = capUsd(item);
       const marketCap = currentCap >= 0 ? formatCompactUsd(currentCap) : '$—';
-      const changeValue = EXPLORE_CLUSTER === 'devnet' ? item.windowPriceChangePercent : item.priceChange24hPercent;
+      const windowActivity = item.activityWindows?.[homeLaunchWindow];
+      const sinceFirstTrade = EXPLORE_CLUSTER === 'devnet' && windowActivity?.coverage === 'complete'
+        && windowActivity.priceChangeBasis === 'since-first-trade';
+      const changeValue = EXPLORE_CLUSTER === 'devnet'
+        ? item.windowPriceChangePercent ?? (sinceFirstTrade ? windowActivity.priceChangePercent : null)
+        : item.priceChange24hPercent;
       const hasChange = changeValue != null && Number.isFinite(Number(changeValue));
       const change = hasChange ? `${Number(changeValue) >= 0 ? '+' : ''}${Number(changeValue).toFixed(2)}%` : '—';
       const trendClass = hasChange ? Number(changeValue) >= 0 ? 'is-positive' : 'is-negative' : '';
+      const changeLabel = sinceFirstTrade && item.windowPriceChangePercent == null
+        ? 'Market cap change since first recorded trade'
+        : `${homeLaunchWindow} market cap change`;
       const symbol = item.symbol || 'TOKEN';
       const boost = verifiedBoosts[item.address];
       const boostMultiplier = activeBoostMultiplier(boost);
       const boostPacks = activeBoostPackages(boost);
       const boostQuantity = boostMultiplier ? boostPacks.length || Math.max(1, Number(boost?.count) || 0) : 0;
       const boostDetail = boostQuantity ? `${boostQuantity} active boost${boostQuantity === 1 ? '' : 's'} · ${boostMultiplier.toLocaleString()}x total` : '';
-      const detail = `${symbol}${boostDetail ? ` · ${boostDetail}` : ''} · ${homeLaunchWindow} market-cap change ${change} · ${item.migrated === true ? 'pool' : 'curve'} MC ${marketCap}`;
-      return `<a href="/token/${encodeURIComponent(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}" aria-label="${escapeHtml(detail)}" title="${escapeHtml(detail)}"><span class="home-ticker-rank" aria-hidden="true">${index + 1}</span><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon || String(symbol).slice(0, 1))}</span><strong class="${boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(symbol)}</strong>${boostQuantity ? `<span class="home-ticker-boost" title="${escapeHtml(boostDetail)}" aria-label="${escapeHtml(boostDetail)}">⚡${boostQuantity} · ${boostMultiplier.toLocaleString()}x</span>` : ''}<span class="home-ticker-change ${trendClass}" title="${escapeHtml(homeLaunchWindow)} market-cap change">${escapeHtml(change)}</span><small class="home-ticker-mc">MC ${escapeHtml(marketCap)}</small></a>`;
+      const detail = `${symbol}${boostDetail ? ` · ${boostDetail}` : ''} · ${changeLabel} ${change} · ${item.migrated === true ? 'pool' : 'curve'} MC ${marketCap}`;
+      return `<a href="/token/${encodeURIComponent(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}" aria-label="${escapeHtml(detail)}" title="${escapeHtml(detail)}"><span class="home-ticker-rank" aria-hidden="true">${index + 1}</span><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon || String(symbol).slice(0, 1))}</span><strong class="${boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(symbol)}</strong>${boostQuantity ? `<span class="home-ticker-boost" title="${escapeHtml(boostDetail)}" aria-label="${escapeHtml(boostDetail)}">⚡${boostQuantity} · ${boostMultiplier.toLocaleString()}x</span>` : ''}<span class="home-ticker-change ${trendClass}" title="${escapeHtml(hasChange ? changeLabel : 'Market cap change unavailable')}">${escapeHtml(change)}</span><small class="home-ticker-mc">MC ${escapeHtml(marketCap)}</small></a>`;
     }).join('') : `<span class="home-ticker-empty">${exploreFeedAvailable ? `No verified ${escapeHtml(homeLaunchWindow)} trades in this feed` : exploreProviderStatus === 'On-chain only · loading' ? 'Checking verified market activity' : 'Market activity unavailable'}</span>`;
     setupHomeTicker(ticker, tickerMarkup, ranked.length);
   }
