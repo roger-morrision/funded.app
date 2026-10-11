@@ -41,8 +41,11 @@ try {
     assert.equal(await page.locator('#launch-x-post-count').textContent(), postCount);
     assert((await page.locator('#launch-x-post-preview').textContent()).includes(text));
     assert((await page.locator('#launch-x-post-preview').textContent()).includes('Orbit Fox'));
+    assert.doesNotMatch(await page.locator('#launch-x-post-preview').textContent(), /\[(?:Devnet|Mainnet)/);
+    assert.doesNotMatch(await page.locator('.launch-x-example').textContent(), /Sample copy|The final link is added after a verified launch|posting also requires an active publisher/);
     assert.equal(await page.locator('#launch-package-example-art').isVisible(), artVisible);
     assert.equal(await page.locator('#launch-x-followup').isVisible(), tier === 'premier');
+    if (tier === 'premier') assert.doesNotMatch(await page.locator('#launch-x-followup-preview').textContent(), /\[(?:Devnet|Mainnet)/);
     assert.equal(await page.locator('#launch-banner-upload').isVisible(), tier !== 'standard');
   }
 

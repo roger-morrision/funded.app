@@ -7,7 +7,6 @@ export function updateLaunchPreview(
     wallet,
     feeRouterState,
     xFeeStatus,
-    EXPLORE_CLUSTER,
   },
   {
     getCommunityAllocationPercent,
@@ -64,19 +63,18 @@ export function updateLaunchPreview(
     xLabelWeight += weight;
   }
   xLabel = xLabel.trim() || 'Token';
-  const xPrefix = EXPLORE_CLUSTER === 'devnet' ? '[Devnet test] ' : '[Mainnet] ';
   const xLink = 'funded.vip/token/your-token';
   const xLaunch = launchBurn.tier === 'standard'
     ? `New project on funded.vip: “${xLabel}”. Token creation finalized.`
     : `${launchBurn.tier === 'premier' ? 'Premier' : 'Pro'} launch: “${xLabel}”. Creation and $FUNDED tier burn finalized.`;
   const xPost = document.querySelector('#launch-x-post-preview');
-  if (xPost) xPost.textContent = `${xPrefix}${xLaunch}\n${xLink}`;
+  if (xPost) xPost.textContent = `${xLaunch}\n${xLink}`;
   const xPostCount = document.querySelector('#launch-x-post-count');
   if (xPostCount) xPostCount.textContent = launchBurn.tier === 'premier' ? '2 posts' : '1 post';
   const xFollowup = document.querySelector('#launch-x-followup');
   if (xFollowup) xFollowup.hidden = launchBurn.tier !== 'premier';
   const xFollowupText = document.querySelector('#launch-x-followup-preview');
-  if (xFollowupText) xFollowupText.textContent = `${xPrefix}Premier project follow-up: “${xLabel}”. Explore the verified launch and public token page.\n${xLink}`;
+  if (xFollowupText) xFollowupText.textContent = `Premier project follow-up: “${xLabel}”. Explore the verified launch and public token page.\n${xLink}`;
   const buyLabel = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL${creatorBuy.tokens > 0 ? ` · ${Math.round(creatorBuy.tokens).toLocaleString()} tokens` : ''}` : 'Creation only';
   const previewBuy = document.querySelector('#preview-creator-buy');
   if (previewBuy) previewBuy.textContent = buyLabel;
