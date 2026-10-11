@@ -5,6 +5,11 @@
 .page-route-capital-flow .capital-flow-layout { grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr); }
 .page-route-capital-flow .route-timeline-panel { grid-column: 2; grid-row: 1 / span 2; }
 .page-route-capital-flow .capital-flow-layout > * { min-width: 0; }
+.page-route-capital-flow .route-timeline li { grid-template-columns: 32px minmax(0, 1fr) auto; gap: 12px; padding: 12px; }
+.page-route-capital-flow .route-timeline li > b { width: 32px; height: 32px; font-size: 11px; }
+.page-route-capital-flow .route-timeline strong { font-size: 12px; line-height: 1.4; }
+.page-route-capital-flow .route-timeline small { color: #a9b8cc; font-size: 11px; line-height: 1.5; }
+.page-route-capital-flow .route-timeline li > span { font-size: 9px; }
 .source-note { margin: 14px 0 0; padding: 12px 14px; border: 1px solid #34445c; border-radius: 9px; background: #151f2c; color: #b5c4d7; font-size: 11px; line-height: 1.6; }
 .source-note strong, .source-note span { display: block; }
 .source-note strong { margin-bottom: 3px; color: #ecf2fa; }
@@ -57,6 +62,7 @@
   .page-route-capital-flow .route-timeline-panel { grid-column: auto; grid-row: auto; }
 }
 @media (max-width: 700px) {
+  .page-route-capital-flow .route-timeline li { grid-template-columns: 32px minmax(0, 1fr); }
   .sidebar:not(.open) { box-shadow: none; }
   .launch-path, .source-map-grid, .safety-steps { grid-template-columns: minmax(0, 1fr); }
   .explore-advanced-fields { position: static; width: min(100%, 340px); min-width: 0; margin-top: 8px; box-shadow: none; }

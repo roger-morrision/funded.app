@@ -551,8 +551,14 @@
               <p class="fee-flow-note" id="fee-flow-note">A 100 SOL claim allocates exactly 100 SOL under the published policy.</p>
             </article>
             <article class="panel route-timeline-panel">
-              <div class="panel-heading"><div><p class="eyebrow">Receipt chain</p><h2>One event, five proofs</h2></div><span class="data-badge">Solana</span></div>
-              <ol class="route-timeline"><li><b>1</b><div><strong>Pump accrues creator fees</strong><small>The coin trades and fees accumulate on Pump.</small></div><span>Source</span></li><li><b>2</b><div><strong>funded.vip claims once</strong><small>The claim signature becomes the idempotency key.</small></div><span>Claim</span></li><li><b>3</b><div><strong>The locked split is recorded</strong><small>Creator, operations, referral, community, and burn obligations are created together.</small></div><span>Ledger</span></li><li><b>4</b><div><strong>Destinations settle</strong><small>Each transfer keeps a reference to the originating claim.</small></div><span>Settle</span></li><li><b>5</b><div><strong>Receipts become public</strong><small>Explorer links and status changes appear only after verification.</small></div><span>Verify</span></li></ol>
+              <div class="panel-heading"><div><p class="eyebrow">How fees move</p><h2>From trading fees to payments</h2></div><span class="data-badge">Solana</span></div>
+              <ol class="route-timeline">
+                <li><b>1</b><div><strong>Trades create fees</strong><small>Each trade adds creator fees on Pump.</small></div><span>Trades</span></li>
+                <li><b>2</b><div><strong>funded.vip collects the fees</strong><small>A Solana transaction records each collection.</small></div><span>Collect</span></li>
+                <li><b>3</b><div><strong>The fees are divided</strong><small>The published policy assigns shares to creator rewards and funded.vip programs.</small></div><span>Split</span></li>
+                <li><b>4</b><div><strong>Payments are sent</strong><small>Eligible recipients receive SOL linked to that collection.</small></div><span>Pay</span></li>
+                <li><b>5</b><div><strong>You can check each payment</strong><small>After confirmation, open its Solana Explorer link to see the transfer.</small></div><span>Check</span></li>
+              </ol>
             </article>
           </div>
         </section>
