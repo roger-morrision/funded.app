@@ -431,7 +431,6 @@ body.page-route-explore .scanner-airdrop--unavailable strong { color: #798587; }
 .explore-boost-sort[aria-pressed="true"] { background: #72e920; border-color: #72e920; color: #0a1807; }
 .explore-boost-sort[aria-pressed="true"] span { color: inherit; }
 .explore-boost-sort:focus-visible { outline: 2px solid #b9ff73; outline-offset: 2px; }
-body.page-route-explore .scanner-boost .scanner-boost-total { display: inline; color: #bbf975; font: 700 10px 'DM Mono', monospace; white-space: nowrap; }
 .golden-ticker { color: #ffc629 !important; text-shadow: 0 0 16px #ffbb354d; }
 .explore-boost-dialog { width: min(900px, calc(100vw - 24px)); padding: 28px; background: #211e22; }
 .explore-boost-dialog #explore-boost-title { margin: 5px 0 6px; color: #fff; font-size: clamp(24px, 4vw, 38px); }

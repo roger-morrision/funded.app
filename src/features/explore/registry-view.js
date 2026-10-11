@@ -98,7 +98,7 @@ export function renderRegistry(query, state, {
       <span class="scanner-metric ${Number(item.priceChange24hPercent) < 0 ? 'negative' : ''}" role="cell" title="Observed 24-hour price change when available">${change}</span>
       <div class="scanner-airdrop-cell" role="cell">${exploreAirdropMarkup(item)}</div>
       <div class="scanner-stage" role="cell"><strong>${stage}</strong><small>${item.complete === false && item.curveProgressPercent != null && Number.isFinite(Number(item.curveProgressPercent)) ? `${Number(item.curveProgressPercent).toFixed(0)}% curve` : ''}</small></div>
-      <div class="scanner-boost" role="cell">${activeBoostMultiplier(verifiedBoosts[item.address]) ? `<span class="scanner-boost-total">⚡ ${activeBoostMultiplier(verifiedBoosts[item.address]).toLocaleString()}x active</span>` : ''}<button type="button" class="explore-boost-button" data-boost-mint="${mint}" aria-label="Boost options for ${escapeHtml(item.name)}">${icon('boost')}<span>Boost</span></button></div>
+      <div class="scanner-boost" role="cell"><button type="button" class="explore-boost-button" data-boost-mint="${mint}" aria-label="Boost options for ${escapeHtml(item.name)}">${icon('boost')}<span>Boost</span></button></div>
     </div>`;
   }).join('');
   loadVerifiedTokenLogos(list);
