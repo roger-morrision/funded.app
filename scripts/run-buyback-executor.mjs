@@ -16,7 +16,9 @@ const mintIndex = args.indexOf('--mint');
 const selectedMint = mintIndex >= 0 ? args[mintIndex + 1] : null;
 const qaCreatorStdin = args.includes('--qa-creator-stdin');
 const simulateOnly = args.includes('--simulate-only');
+const reconcileOnly = args.includes('--reconcile-only');
 if (mintIndex >= 0 && !selectedMint) throw new Error('--mint requires a Devnet launch mint.');
+if (reconcileOnly && (watch || simulateOnly || qaCreatorStdin || !selectedMint)) throw new Error('Reconciliation requires one exact mint and no execution mode.');
 if (qaCreatorStdin && (watch || !selectedMint || process.env.SOLANA_CLUSTER !== 'devnet'
   || process.env.FUNDED_QA_BUYBACK_MINT !== selectedMint)) throw new Error('Creator-approved QA buyback requires one exact Devnet mint and a one-shot command.');
 if (simulateOnly && !qaCreatorStdin) throw new Error('Buyback simulation requires an explicit creator-approved Devnet QA run.');
@@ -70,7 +72,7 @@ async function tick() {
     }
   }
   const refreshed = await executor.status();
-  const selected = refreshed.pending.filter(row => (!selectedMint || row.mint === selectedMint) && (row.eligible || row.activeOrder));
+  const selected = reconcileOnly ? [] : refreshed.pending.filter(row => (!selectedMint || row.mint === selectedMint) && (row.eligible || row.activeOrder));
   for (const row of selected) {
     try {
       const result = await executor.execute(row.mint);
@@ -81,7 +83,11 @@ async function tick() {
       if (!watch) process.exitCode = 1;
     }
   }
-  if (!selected.length && !watch) console.log(JSON.stringify({ status: 'no-eligible-buybacks', pending: refreshed.pending.map(row => ({ mint: row.mint, pendingLamports: row.pendingLamports, reason: row.reason })) }));
+  if (reconcileOnly) {
+    const activeOrder = refreshed.pending.find(row => row.mint === selectedMint)?.activeOrder || null;
+    console.log(JSON.stringify({ mint: selectedMint, status: activeOrder ? 'reconciliation-pending' : 'reconciliation-complete', activeOrder }));
+  }
+  else if (!selected.length && !watch) console.log(JSON.stringify({ status: 'no-eligible-buybacks', pending: refreshed.pending.map(row => ({ mint: row.mint, pendingLamports: row.pendingLamports, reason: row.reason })) }));
 }
 
 await tick();

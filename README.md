@@ -164,6 +164,8 @@ npm.cmd run buyback:initialize-devnet
 $env:FUNDED_QA_BUYBACK_MINT='<mint>'
 $env:FUNDED_QA_BUYBACK_WAIT_SECONDS='60'
 npm.cmd run buyback:execute
+# Reconcile a finalized burn's pending refund without starting another batch.
+npm.cmd run buyback:execute -- --mint <mint> --reconcile-only
 npm.cmd run verify:buyback-devnet-receipts
 ```
 
