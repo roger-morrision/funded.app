@@ -48,6 +48,7 @@
 .x-claim-reward-paid .x-claim-coin{grid-column:1;margin-left:0;overflow:hidden;text-overflow:ellipsis}
 .x-claim-reward-paid .x-claim-reward-copy strong{grid-column:2;grid-row:1 / 3;align-self:center;text-align:right;white-space:nowrap}
 .x-claim-reward-paid .x-claim-reward-copy small{grid-column:1;min-width:0;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.x-claim-reward-paid .x-claim-paid-time{grid-column:1;color:#aab8ca;font-size:11px;line-height:1.45}
 .x-claim-reward-paid .payment-receipt-link{grid-column:2;grid-row:1 / 3;justify-self:end;color:#aebfff;font-size:18px;line-height:1}
 @media(max-width:600px){.x-claim-reward-paid .x-claim-reward-copy{grid-template-columns:minmax(0,1fr)}.x-claim-reward-paid .x-claim-reward-copy strong{grid-column:1;grid-row:auto;text-align:left}.x-claim-reward-paid .x-claim-reward-copy small{grid-column:1}}
 .x-claim-review p,.x-claim-wallet p{margin:7px 0 0;color:#d9e4f1;font-size:13px;line-height:1.5;overflow-wrap:anywhere}

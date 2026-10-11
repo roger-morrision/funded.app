@@ -18,7 +18,8 @@ export function automaticXClaimState(obligation, claim, rewards = {}) {
     && payment?.status === 'paid' && payment.finalized === true && payment.balanceDeltaVerified === true
     && String(payment.amount) === String(obligation.amountLamports)
     && typeof payment.signature === 'string' && payment.signature.length > 0;
-  return { status:request.status, recipient:claim.publicKey, payoutSignature:paid ? payment.signature : null, paid };
+  return { status:request.status, recipient:claim.publicKey, payoutSignature:paid ? payment.signature : null,
+    paidAt:paid ? payment.paidAt || schedule.paidAt || null : null, paid };
 }
 
 export function rewardView(obligation,claim,proofs=[],automatic=null) {
@@ -28,7 +29,9 @@ export function rewardView(obligation,claim,proofs=[],automatic=null) {
   const pending=Boolean(automatic)||['paid','executing','verification-pending'].includes(status);
   const lamports=Number(obligation.amountLamports);
   const amountSol=Number.isSafeInteger(lamports)&&lamports>=0?lamports/1e9:null;
-  return {id:obligation.id,mint:obligation.mint,amountSol,status:automatic?.paid?'paid':automatic?`automatic-${automatic.status}`:status,group:paid?'Paid':pending?'Pending verification':'Available to prepare',receiptVerified:paid,payoutSignature:paid?(automatic?.payoutSignature||receipt?.signature):null,payoutWallet:paid?(automatic?.recipient||claim?.publicKey):null,canPrepare:!pending,explanation:paid?'Confirmed recipient balance delta.':automatic?'Automatic delivery is in progress. No further claim action is needed.':pending?'Do not submit another payout. The existing attempt needs receipt verification.':'Verify your X account and bind the intended wallet. Network/service readiness still applies.'};
+  const receiptTime=Number.isSafeInteger(receipt?.blockTime)&&receipt.blockTime>0?new Date(receipt.blockTime*1000).toISOString():null;
+  const paidAt=paid?(automatic?.paid?automatic.paidAt||null:receiptTime||claim?.paidAt||null):null;
+  return {id:obligation.id,mint:obligation.mint,amountSol,status:automatic?.paid?'paid':automatic?`automatic-${automatic.status}`:status,group:paid?'Paid':pending?'Pending verification':'Available to prepare',receiptVerified:paid,payoutSignature:paid?(automatic?.payoutSignature||receipt?.signature):null,payoutWallet:paid?(automatic?.recipient||claim?.publicKey):null,paidAt,canPrepare:!pending,explanation:paid?'Confirmed recipient balance delta.':automatic?'Automatic delivery is in progress. No further claim action is needed.':pending?'Do not submit another payout. The existing attempt needs receipt verification.':'Verify your X account and bind the intended wallet. Network/service readiness still applies.'};
 }
 export function renewClaimChallenge(claim,nonce,now=Date.now()) {
   if(!claim.expiresAt||Date.parse(claim.expiresAt)>=now||['paid','executing','verification-pending'].includes(claim.status))return claim;

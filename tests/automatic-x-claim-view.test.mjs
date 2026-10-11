@@ -13,15 +13,25 @@ const rewards = { fundingRequests:{ [requestId]:{ id:requestId, kind:'x', asset:
   obligationId:obligation.id, recipient:wallet, amount:'187844', status:'funded', balanceDeltaVerified:true,
   fundingSignature:'funding-signature', scheduleId } }, schedules:{ [scheduleId]:{ sourceId:requestId, mint, kind:'x', asset:'SOL',
   fundingSignature:'funding-signature', balanceDeltaVerified:true, manifest:{ totalAmount:'187844', leaves:[{ recipient:wallet, amount:'187844' }] },
-  payments:{ [wallet]:{ status:'paid', amount:'187844', signature:'payout-signature', finalized:true, balanceDeltaVerified:true } } } } };
+  payments:{ [wallet]:{ status:'paid', amount:'187844', signature:'payout-signature', finalized:true, balanceDeltaVerified:true,
+    paidAt:'2026-10-11T03:41:23.330Z' } } } } };
 
 test('finalized automatic X payout is shown as paid to the verified wallet with its receipt', () => {
   const automatic = automaticXClaimState(obligation, claim, rewards);
   assert.equal(automatic.paid, true);
   assert.deepEqual(rewardView(obligation, claim, [], automatic), {
     id:obligation.id, mint, amountSol:0.000187844, status:'paid', group:'Paid', receiptVerified:true,
-    payoutSignature:'payout-signature', payoutWallet:wallet, canPrepare:false,
+    payoutSignature:'payout-signature', payoutWallet:wallet, paidAt:'2026-10-11T03:41:23.330Z', canPrepare:false,
     explanation:'Confirmed recipient balance delta.' });
+});
+
+test('manual X payout uses the verified transaction block time', () => {
+  const paidClaim = { ...claim, status:'paid', payoutSignature:'manual-signature', paidAt:'2026-10-11T03:42:00.000Z' };
+  const proof = { claimId:obligation.id, signature:'manual-signature', to:wallet,
+    amountLamports:'187844', source:'mint-router-settle-mint', blockTime:1791689983 };
+  const view = rewardView(obligation, paidClaim, [proof]);
+  assert.equal(view.receiptVerified, true);
+  assert.equal(view.paidAt, '2026-10-11T03:39:43.000Z');
 });
 
 test('enrolled payout in progress cannot be manually claimed twice', () => {

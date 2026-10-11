@@ -158,7 +158,17 @@ export async function refreshXClaims({
       const amount=document.createElement('strong');amount.textContent=claim.amountSol==null?'Amount unavailable':`${claim.amountSol} SOL`;
       const context=document.createElement('small');context.textContent=claim.receiptVerified?`To ${claim.payoutWallet||'verified wallet'}`:claim.canPrepare?'Collected creator fees · ready for your wallet verification':claim.explanation||'Waiting for collected fees';
       if(claim.receiptVerified&&claim.payoutWallet)context.title=claim.payoutWallet;
-      copy.append(coin,amount,context);row.append(state,copy);
+      copy.append(coin,amount,context);
+      if (claim.receiptVerified) {
+        const paidTime=document.createElement('time');paidTime.className='x-claim-paid-time';
+        const paidDate=claim.paidAt?new Date(claim.paidAt):null;
+        if (paidDate && Number.isFinite(paidDate.getTime())) {
+          paidTime.dateTime=paidDate.toISOString();
+          paidTime.textContent=`Paid ${paidDate.toLocaleString(undefined,{year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'})}`;
+        } else paidTime.textContent='Paid time unavailable';
+        copy.append(paidTime);
+      }
+      row.append(state,copy);
       row.dataset.claimSummary=`${amount.textContent} from ${coinLabel}`;
       if (claim.canPrepare === true) {
         const choose = document.createElement('button');
