@@ -43,30 +43,53 @@ test('creator rewards fail closed for another wallet, token, network or malforme
 
 const source=await readAppSource();
 const from=source.indexOf('async function requestCreatorFeeClaim('),to=source.indexOf('let coinMarketActivity',from);
-function flow({switchAfterSign=false,reject=false,prepareUnavailable=false}={}) {
+function flow({switchAfterSign=false,reject=false,prepareUnavailable=false,rejectTransaction=false}={}) {
   const calls=[],messages=[];
   let changed=false;
-  const session={address:'creator',provider:{async signMessage(){ if(reject)throw new Error('Rejected'); changed=switchAfterSign;return new Uint8Array(64); }}};
+  const transaction={serialize:()=>new Uint8Array([1,2,3])};
+  const session={address:'creator',provider:{
+    async signMessage(){ if(reject)throw new Error('Rejected'); changed=switchAfterSign;return new Uint8Array(64); },
+    async signTransaction(){ if(rejectTransaction)throw new Error('Rejected transaction'); return transaction; },
+  }};
   const context={TextEncoder,creatorClaimsInFlight:new Set(),captureWalletSession:()=>session,
     assertWalletSessionCurrent:()=>{if(changed)throw new Error('Wallet changed');},
     getCoinMintAddress:()=> 'different-open-token',showToast:m=>messages.push(m),bs58:{encode:()=> 'signature'},
-    apiRequest:async path=>{calls.push(path);return path.endsWith('/prepare')?{available:!prepareUnavailable,data:{statement:'review',challengeId:'challenge'}}
-      :path.endsWith('/request')?{available:true,data:{status:'payout-requested'}}:{available:true,data:{mint:'mint-a',overview:activity().overview}};},
+    getSolana:async()=>({Transaction:{from:()=>transaction}}),base64ToBytes:()=>new Uint8Array([1]),
+    bytesToBase64:()=> 'signed-transaction',
+    apiRequest:async(path,options)=>{calls.push(path);
+      if(path.endsWith('/creator-settlement-status'))return {available:true,data:{ready:true}};
+      if(path.endsWith('/prepare'))return {available:!prepareUnavailable,data:{statement:'review',challengeId:'challenge'}};
+      if(path.endsWith('/request'))return {available:true,data:{status:'awaiting-creator-signature',requestIds:['request-1']}};
+      if(path.endsWith('/settle'))return options.body.creatorSignedTransaction
+        ? {available:true,data:{status:'paid',signature:'finalized-signature'}}
+        : {available:true,data:{status:'awaiting-creator-signature',creatorWallet:'creator',transaction:'prepared-transaction'}};
+      return {available:true,data:{mint:'mint-a',overview:activity().overview}};
+    },
     renderCoinFeeDashboard:()=>assert.fail('Must not render another open token')};
   vm.runInNewContext(source.slice(from,to),context);
-  return {context,calls,messages,button:{isConnected:true,disabled:false,textContent:'Claim SOL'}};
+  return {context,calls,messages,button:{isConnected:true,disabled:false,textContent:'Approve payouts'}};
 }
-test('Rewards claim uses the selected mint even when a different token page is open',async()=>{
+test('Rewards claim signs the selected mint payout even when a different token page is open',async()=>{
   const f=flow();await f.context.requestCreatorFeeClaim(f.button,'mint-a',activity().overview);
-  assert.deepEqual(f.calls,['/api/tokens/mint-a/creator-claim/prepare','/api/tokens/mint-a/creator-claim/request','/api/tokens/mint-a/fee-activity']);
-  assert.equal(f.button.textContent,'Payout requested');assert.equal(f.button.disabled,true);
+  assert.deepEqual(f.calls,['/api/mint-router/creator-settlement-status',
+    '/api/tokens/mint-a/creator-claim/prepare','/api/tokens/mint-a/creator-claim/request',
+    '/api/tokens/mint-a/creator-claim/settle','/api/tokens/mint-a/creator-claim/settle',
+    '/api/tokens/mint-a/fee-activity']);
+  assert.equal(f.button.disabled,true);
+  assert.match(f.messages.at(-1),/finalized on Devnet/);
   assert.equal(f.context.creatorClaimsInFlight.size,0);
 });
 test('wallet changes, rejection and unavailable preparation never submit a payout request',async()=>{
-  for(const options of [{switchAfterSign:true},{reject:true},{prepareUnavailable:true}]) {
+  for(const [options,expected] of [[{switchAfterSign:true},2],[{reject:true},2],[{prepareUnavailable:true},2]]) {
     const f=flow(options);await f.context.requestCreatorFeeClaim(f.button,'mint-a',activity().overview);
-    assert.equal(f.calls.length,1);assert.equal(f.context.creatorClaimsInFlight.size,0);
+    assert.equal(f.calls.length,expected);assert.equal(f.context.creatorClaimsInFlight.size,0);
+    assert.equal(f.calls.some(path=>path.endsWith('/request')),false);
   }
+});
+test('transaction rejection never submits a signed payout',async()=>{
+  const f=flow({rejectTransaction:true});await f.context.requestCreatorFeeClaim(f.button,'mint-a',activity().overview);
+  assert.equal(f.calls.filter(path=>path.endsWith('/settle')).length,1);
+  assert.equal(f.context.creatorClaimsInFlight.size,0);
 });
 test('duplicate requests and non-owner wallets cannot start a claim',async()=>{
   const f=flow();f.context.creatorClaimsInFlight.add('mint-a');

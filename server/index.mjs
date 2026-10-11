@@ -184,7 +184,7 @@ function authorized(req) {
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 function requireAuthorized(req, res) { if (authorized(req)) return true; json(res, 401, { error: 'Keeper/indexer API authorization is required.' }); return false; }
-function publicPost(path) { return publicPostPaths.has(path) || /^\/api\/sol-claims\/[^/]+\/(?:prepare|verify|attest|execute)$/.test(path) || /^\/api\/referral-claims\/[^/]+\/(?:verify|execute)$/.test(path) || /^\/api\/tokens\/[^/]+\/creator-claim\/(?:prepare|request)$/.test(path); }
+function publicPost(path) { return publicPostPaths.has(path) || /^\/api\/sol-claims\/[^/]+\/(?:prepare|verify|attest|execute)$/.test(path) || /^\/api\/referral-claims\/[^/]+\/(?:verify|execute)$/.test(path) || /^\/api\/tokens\/[^/]+\/creator-claim\/(?:prepare|request|settle)$/.test(path); }
 function localDevWalletRequest(req, path) {
   if (!devMode || !/^\/api\/dev-wallet\/sign-(?:transaction|message)$/.test(path)) return false;
   try {
@@ -276,7 +276,7 @@ const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solan
     cluster: solanaCluster, creatorPages: true, creatorIdentity: Boolean(process.env.X_CLIENT_ID && process.env.X_CLIENT_SECRET),
     sessions: { storage: databaseUrl ? 'postgresql' : 'local-file-single-process', absoluteLifetimeSeconds: SESSION_SECONDS },
     creatorDirectory: { storage: databaseUrl ? 'postgresql-projection' : 'local-file', cursorPagination: true },
-    xPayouts: await xFeeReadiness(), gifts: { enabled: false, reason: 'No approved gifting provider or delivery-receipt integration is configured.' } }) });
+    xPayouts: await xFeeReadiness({ creatorSigned:true }), gifts: { enabled: false, reason: 'No approved gifting provider or delivery-receipt integration is configured.' } }) });
 
 const productMetrics = createProductMetricsStore(databaseUrl);
 const handleProductMetrics = createProductMetricsHandler({metrics:productMetrics, cluster:solanaCluster,
@@ -337,7 +337,8 @@ const handleXIdentityRoutes = createXIdentityRoutes({
   xConfig, store, clientKey, xOAuthConfigured, xCallbackUrl, xAuth, html, xSession, xFeeReadiness, resolveXUser, mintRouterReadiness, solanaCluster, readReceiptEvidence, automaticRewardStore, respond: json,
 });
 const handleCreatorFeesRoutes = createCreatorFeesRoutes({
-  store, solanaCluster, route, solanaRpcUrl, readFinalizedEvidence, automaticRewardStore, feeRouterConfig, databaseUrl, body, creatorFeeChallenges, respond: json,
+  store, solanaCluster, route, solanaRpcUrl, readFinalizedEvidence, automaticRewardStore, feeRouterConfig,
+  mintRouterReadiness, routerAuthorityKeypair, databaseUrl, body, creatorFeeChallenges, respond: json,
 });
 const handleReferralClaimsRoutes = createReferralClaimsRoutes({
   body, walletKey, store, id, referralClaimExpiryMs, route, walletSignature, referralSession, maxReferralPayoutSol, devnetTestMode, referralPayoutKeypair, executeSolPayout, reconcileSolPayout, respond: json,

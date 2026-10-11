@@ -71,7 +71,7 @@ export function createXIdentityRoutes({
     }
     if (req.method === 'GET' && url.pathname === '/api/x/resolve') {
       // A prior provider failure must not block a fresh lookup after X recovers.
-      const readiness = await xFeeReadiness({ includeLookupHealth: false });
+      const readiness = await xFeeReadiness({ includeLookupHealth: false, creatorSigned:true });
       if (!readiness.ready) return json(res, 503, { error: 'X fee claims are not operational on Solana yet.', reasons: readiness.reasons });
       if (!await store.chargeRpcRate(`x-resolve:${clientKey(req)}`, 1, 10, Math.floor(Date.now() / 60_000) * 60_000)) return json(res, 429, { error: 'X account lookup limit reached; retry shortly.' });
       let resolved;
@@ -84,8 +84,9 @@ export function createXIdentityRoutes({
       if ((await store.read()).creatorProfiles?.[resolved.id]?.optedOut) return json(res, 409, { error: 'This creator has opted out of new support launches.' });
       return json(res, 200, resolved);
     }
-    if (req.method === 'GET' && url.pathname === '/api/mint-router/status') return json(res, 200, await mintRouterReadiness());
-    if (req.method === 'GET' && url.pathname === '/api/x-fee/status') return json(res, 200, await xFeeReadiness());
+    if (req.method === 'GET' && url.pathname === '/api/mint-router/status') return json(res, 200, await mintRouterReadiness({ creatorSigned:true }));
+    if (req.method === 'GET' && url.pathname === '/api/mint-router/creator-settlement-status') return json(res, 200, await mintRouterReadiness({ creatorSigned:true }));
+    if (req.method === 'GET' && url.pathname === '/api/x-fee/status') return json(res, 200, await xFeeReadiness({ creatorSigned:true }));
     if (req.method === 'GET' && url.pathname === '/api/x-fee/claims') {
       const session = await xSession(req);
       res.setHeader('cache-control', 'no-store');

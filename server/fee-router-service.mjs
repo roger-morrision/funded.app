@@ -144,7 +144,7 @@ export function createFeeRouterService({
     const perMint = launch.pumpFeeRoute?.scope === 'per-mint-v2';
     const router = perMint ? deriveMintFeeRouter(config.programId, mintKey) : config;
     if (perMint) {
-      if (!(await mintRouterReadiness()).ready) throw new Error('Mint-specific collection is not activated.');
+      if (!(await mintRouterReadiness({ creatorSigned:true })).ready) throw new Error('Mint-specific collection is not activated.');
       const legacy = await connection.getAccountInfo(config.address, 'confirmed');
       const checked = await verifyMintFeeRouterAccount({ connection, programId: config.programId, mint: mintKey, expectedAuthority: new PublicKey(legacy.data.subarray(41, 73)) });
       if (!checked.verified) throw new Error(`Mint router verification failed: ${checked.reason}.`);
