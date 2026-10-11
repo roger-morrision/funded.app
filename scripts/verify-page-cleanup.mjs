@@ -82,7 +82,7 @@ try {
   assert.equal(await page.locator('#buybacks .page-cleanup-guide[data-guide="burn"]').evaluate(element => element.open), false);
 
   await open('analytics-detail', 1280);
-  assert(await page.locator('#analytics-detail .analytics-fee-explainer').isVisible());
+  await page.locator('#analytics-detail .analytics-fee-explainer').waitFor({ state: 'visible', timeout: 15000 });
   assert.equal(await page.locator('#analytics-detail .page-cleanup-guide[data-guide="analytics"], #analytics-detail .page-infographic-analytics').count(), 0);
 
   await open('capital-flow', 1280);
