@@ -12,7 +12,7 @@ const connection = new Connection(rpcUrl, { commitment:'finalized', disableRetry
 const configuredAuthority = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
 const authority = configuredAuthority ? Keypair.fromSecretKey(bs58.decode(configuredAuthority)) : Keypair.generate();
 const recipient = Keypair.generate(), launchMint = Keypair.generate().publicKey;
-const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || '2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik');
+const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || '61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa');
 const chain = createAutomaticRewardChain({ connection, programId, authority, expectedProgramDataSha256: process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
 async function getOrCreateFinalizedTokenAccount(mint, owner) {
   let lastError;

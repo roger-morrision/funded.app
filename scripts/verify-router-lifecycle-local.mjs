@@ -15,7 +15,7 @@ assert(['127.0.0.1', 'localhost'].includes(rpc.hostname), 'Only a loopback valid
 const connection = new Connection(rpc.toString(), 'confirmed');
 const genesis = await connection.getGenesisHash();
 assert(!['EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG', '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'].includes(genesis), 'A fresh local ledger is required.');
-const programId = new PublicKey('2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik');
+const programId = new PublicKey('61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa');
 const binary = await readFile(new URL('../contracts/funded-fee-router/target/deploy/funded_fee_router.so', import.meta.url));
 const executable = await connection.getAccountInfo(programId);
 assert(executable?.executable && executable.data.readUInt32LE(0) === 2, 'Use --upgradeable-program with a disposable local owner.');

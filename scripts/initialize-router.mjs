@@ -10,7 +10,7 @@ else {
   for await (const chunk of process.stdin) input += chunk;
   payer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(input.trim())));
 }
-const programId = new PublicKey(process.env.FUNDED_ROUTER_PROGRAM_ID || process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || '2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik');
+const programId = new PublicKey(process.env.FUNDED_ROUTER_PROGRAM_ID || process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || '61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa');
 const appOwnerSecret = String(process.env.FUNDED_APP_OWNER_SECRET_KEY || '').trim();
 if (!appOwnerSecret) throw new Error('The program upgrade owner signer is required to initialize the router.');
 const appOwner = Keypair.fromSecretKey(bs58.decode(appOwnerSecret));

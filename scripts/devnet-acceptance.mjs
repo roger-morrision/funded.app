@@ -13,7 +13,7 @@ import { buildMintRouterInitializeInstruction } from '../mint-router-launch.js';
 import { verifyFeeRouterAccount, verifyMintFeeRouterAccount } from '../fee-router.js';
 
 export const DEVNET_GENESIS = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
-const DEFAULT_PROGRAM = '2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik';
+const DEFAULT_PROGRAM = '61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa';
 export function assertDevnet(genesis) {
   assert.equal(genesis, DEVNET_GENESIS, 'RPC genesis is not Solana Devnet; no faucet or transaction is permitted.');
 }

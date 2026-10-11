@@ -11,7 +11,7 @@ import { rewardAddresses } from '../server/automatic-reward-chain.mjs';
 const rpcUrl = new URL(process.env.LOCAL_SOLANA_RPC_URL || 'http://127.0.0.1:18899');
 if (!['127.0.0.1', 'localhost'].includes(rpcUrl.hostname)) throw new Error('Only a loopback local validator is permitted.');
 const connection = new Connection(rpcUrl.toString(), 'confirmed');
-const programId = new PublicKey('2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik');
+const programId = new PublicKey('61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa');
 const digest = name => createHash('sha256').update(name).digest().subarray(0, 8);
 const authority = Keypair.generate(), creator = Keypair.generate(), recipient = Keypair.generate();
 const send = (instruction, signers = [authority]) => sendAndConfirmTransaction(connection,

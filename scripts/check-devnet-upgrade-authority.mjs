@@ -13,7 +13,7 @@ function keypairFromText(text) {
   try { return Keypair.fromSecretKey(bs58.decode(trimmed)); } catch { return null; }
 }
 
-const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || '2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik');
+const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || '61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa');
 const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || clusterApiUrl('devnet'), 'finalized');
 const program = await connection.getAccountInfo(programId, 'finalized');
 if (!program?.executable || program.data.length < 36 || program.data.readUInt32LE(0) !== 2) throw new Error('Expected an executable upgradeable Devnet program.');

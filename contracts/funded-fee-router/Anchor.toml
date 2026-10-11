@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-funded_fee_router = "2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik"
+funded_fee_router = "61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa"
 
 [programs.devnet]
-funded_fee_router = "2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik"
+funded_fee_router = "61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa"
 
 [provider]
 cluster = "devnet"

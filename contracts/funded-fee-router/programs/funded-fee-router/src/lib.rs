@@ -9,7 +9,7 @@ pub use constants::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik");
+declare_id!("61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa");
 
 #[program]
 pub mod funded_fee_router {

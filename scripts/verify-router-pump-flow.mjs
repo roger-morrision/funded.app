@@ -19,7 +19,7 @@ const [rpcGenesis, devnetGenesis] = await Promise.all([
   new Connection(clusterApiUrl('devnet'), 'confirmed').getGenesisHash(),
 ]);
 assert.equal(rpcGenesis, devnetGenesis, 'The configured RPC endpoint is not Solana Devnet.');
-const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || '2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik');
+const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || '61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa');
 const sharedRouter = deriveFeeRouter(programId).address;
 const sharedRouterProof = await verifyFeeRouterAccount({ connection, programId });
 assert.ok(sharedRouterProof.verified, `Verified legacy router is required before any Devnet transaction: ${sharedRouterProof.reason}`);
