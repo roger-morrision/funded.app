@@ -69,12 +69,13 @@ export function initializeExploreFiltersActions(appState) {
 
   // app-source: 815
   document.addEventListener('funded:airdrop-directory-status', event => {
-    if (!['upcoming','claiming','closed'].includes(event.detail?.status)) return;
+    if (!['all','curve','claiming'].includes(event.detail?.status)) return;
     appState.airdropDirectoryStatus = event.detail.status;
     appState.airdropDirectoryPage = 1;
     document.querySelector('#airdrop-selected-program').hidden = true;
     appState.renderAirdropDirectory();
   });
+  document.addEventListener('funded:token-list-markets', () => appState.renderAirdropDirectory());
   // app-source-end
 
   // app-source: 816

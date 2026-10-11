@@ -1,3 +1,4 @@
+import { renderHolderAirdropDirectory } from './src/features/rewards/holder-airdrop-directory.js';
 import './reward-experience.css';
 import { paginateHistory } from './history-pagination.js';
 import { summarizeXClaims, formatXClaimSol } from './x-claim-summary.js';
@@ -169,6 +170,7 @@ function renderPortfolio(data, referralData, xData) {
   paginateHistory(list, {label:'Reward history', selector:':scope > article'});
 }
 function renderDiscovery(data) {
+  renderHolderAirdropDirectory(data);
   const root = document.querySelector('[data-reward-discovery]'); if (!root) return;
   root.replaceChildren();
   if (data?.evidence.status === 'unavailable') { root.textContent = 'Reward programs are unavailable right now. Try again shortly.'; return; }

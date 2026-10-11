@@ -8,7 +8,7 @@ export function initializeAirdropDirectory(appState) {
   // app-source-end
 
   // app-source: 327
-  let airdropDirectoryStatus = 'upcoming';
+  let airdropDirectoryStatus = 'all';
   initializeAppState(appState, 'airdropDirectoryStatus', airdropDirectoryStatus);
   // app-source-end
 

@@ -1,0 +1,58 @@
+/* Shared discovery controls for the two independently filtered reward programs. */
+body.page-route-airdrops #airdrops .airdrop-public-programs { margin: 26px 0; min-width: 0; }
+body.page-route-airdrops #airdrops .airdrop-directory-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:0 0 14px; padding:0; border:0; }
+body.page-route-airdrops #airdrops .airdrop-directory-heading h2 { margin:4px 0; font-size:20px; letter-spacing:-.025em; }
+body.page-route-airdrops #airdrops .airdrop-directory-heading p:not(.eyebrow) { margin:6px 0 0; color:#9caabd; font-size:12px; }
+body.page-route-airdrops #airdrops .airdrop-asset-label { flex:none; border:1px solid #364357; border-radius:5px; padding:6px 9px; color:#c2cedd; font:10px 'DM Mono',monospace; }
+body.page-route-airdrops #airdrops .airdrop-discovery-toolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:10px 0; border-top:1px solid #30394b; border-bottom:1px solid #30394b; }
+body.page-route-airdrops #airdrops .airdrop-reference-tabs { display:flex; gap:4px; border:0; }
+body.page-route-airdrops #airdrops .airdrop-reference-tabs button { min-height:38px; padding:8px 12px; border:1px solid transparent; border-radius:5px; font:600 12px Manrope,sans-serif; color:#afbbce; text-transform:none; white-space:nowrap; }
+body.page-route-airdrops #airdrops .airdrop-reference-tabs button[aria-selected=true] { color:#ffdc79; background:#e9ac1719; border-color:#bd8a20; }
+body.page-route-airdrops #airdrops .airdrop-reference-tabs span { color:inherit; opacity:.75; font:10px 'DM Mono',monospace; }
+body.page-route-airdrops #airdrops .airdrop-discovery-toolbar input { width:260px; max-width:100%; min-height:38px; margin:0; padding:8px 12px; border:1px solid #364357; border-radius:6px; background:#0c111b; color:#e3eaf5; font:12px Manrope,sans-serif; }
+body.page-route-airdrops #airdrops .airdrop-stage-help { margin:10px 0; color:#98a8bc; font-size:11px; line-height:1.5; }
+body.page-route-airdrops #airdrops .airdrop-public-programs .airdrop-directory-card { grid-template-columns:minmax(260px,1.5fr) minmax(150px,.7fr) minmax(250px,1fr); gap:14px; padding:14px 16px; background:#10151f; }
+body.page-route-airdrops #airdrops .directory-project-info { min-width:0; }
+body.page-route-airdrops #airdrops .directory-allocation-line { margin:5px 0 2px; color:#a8b8cb; font:11px/1.5 'DM Mono',monospace; }
+body.page-route-airdrops #airdrops .directory-wallet-allocation small,
+body.page-route-airdrops #airdrops .directory-funding-line { display:block; color:#94a5b9; font:10px/1.5 'DM Mono',monospace; }
+body.page-route-airdrops #airdrops .directory-wallet-allocation b { display:block; margin-top:5px; color:#e3ebf8; font:11px/1.5 'DM Mono',monospace; }
+body.page-route-airdrops #airdrops .airdrop-public-programs .directory-card-top { padding:0; border:0; min-width:0; }
+body.page-route-airdrops #airdrops .airdrop-public-programs .directory-token-identity { display:flex; align-items:baseline; justify-content:flex-start; flex-wrap:wrap; gap:4px 8px; }
+body.page-route-airdrops #airdrops .airdrop-public-programs .directory-token-identity a { text-align:left; max-width:24ch; }
+body.page-route-airdrops #airdrops .airdrop-public-programs .airdrop-status { display:inline-block; margin-top:6px; padding:4px 6px; border-radius:4px; font-size:9px; line-height:1.4; }
+body.page-route-airdrops #airdrops .airdrop-status.claiming { color:#75e0ac; background:#19372b; }
+body.page-route-airdrops #airdrops .airdrop-public-programs .token-card-more { margin:0; padding:5px 0 0; border-top:0; font-size:10px; }
+body.page-route-airdrops #airdrops .airdrop-public-programs .directory-footer .token-card-actions { gap:5px; }
+body.page-route-airdrops #airdrops .airdrop-public-programs .directory-footer button { font-size:11px; min-height:32px; }
+body.page-route-airdrops #airdrops .airdrop-directory-pagination { justify-content:center; padding:14px 0; }
+body.page-route-airdrops #airdrops .holder-airdrop-row { display:grid; grid-template-columns:minmax(230px,1fr) minmax(150px,.6fr) 130px 110px; align-items:center; gap:18px; padding:18px 16px; border:1px solid #30394b; border-bottom:0; background:#10151f; }
+body.page-route-airdrops #airdrops .holder-airdrop-row:last-child { border-bottom:1px solid #30394b; }
+body.page-route-airdrops #airdrops .holder-airdrop-identity { display:flex; align-items:center; gap:12px; min-width:0; }
+body.page-route-airdrops #airdrops .holder-airdrop-identity .claim-token-mark { position:relative; flex:none; overflow:hidden; }
+body.page-route-airdrops #airdrops .holder-airdrop-identity .claim-token-mark img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+body.page-route-airdrops #airdrops .holder-airdrop-info { min-width:0; }
+body.page-route-airdrops #airdrops .holder-airdrop-info a { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#e5edf8; font-size:13px; font-weight:700; text-decoration:none; }
+body.page-route-airdrops #airdrops .holder-airdrop-row small { display:block; margin-top:5px; color:#97a7bb; font:10px/1.5 'DM Mono',monospace; }
+body.page-route-airdrops #airdrops .holder-airdrop-amount strong { display:block; color:#e2eaf5; font:12px/1.6 'DM Mono',monospace; }
+body.page-route-airdrops #airdrops .holder-airdrop-link { color:#ffdc79; font-size:11px; text-align:right; text-decoration:none; }
+body.page-route-airdrops #airdrops .airdrop-public-programs :is(button,input,a):focus-visible { outline:2px solid #ffdc79; outline-offset:3px; }
+@media(max-width:1000px) {
+  body.page-route-airdrops #airdrops .airdrop-public-programs .airdrop-directory-card { grid-template-columns:1fr 1fr; }
+  body.page-route-airdrops #airdrops .airdrop-public-programs .directory-footer { grid-column:1 / -1; flex-direction:row; align-items:center; }
+  body.page-route-airdrops #airdrops .holder-airdrop-row { grid-template-columns:minmax(0,1fr) minmax(120px,.6fr); gap:12px; }
+}
+@media(max-width:600px) {
+  body.page-route-airdrops #airdrops .airdrop-directory-heading h2 { font-size:18px; }
+  body.page-route-airdrops #airdrops .airdrop-asset-label { display:none; }
+  body.page-route-airdrops #airdrops .airdrop-discovery-toolbar { align-items:stretch; }
+  body.page-route-airdrops #airdrops .airdrop-directory-tools,
+  body.page-route-airdrops #airdrops .airdrop-discovery-toolbar input { width:100%; }
+  body.page-route-airdrops #airdrops .airdrop-reference-tabs { width:100%; }
+  body.page-route-airdrops #airdrops .airdrop-reference-tabs button { flex:1; padding:8px; }
+  body.page-route-airdrops #airdrops .airdrop-public-programs .airdrop-directory-card { grid-template-columns:minmax(0,1fr); padding:14px; }
+  body.page-route-airdrops #airdrops .airdrop-public-programs .directory-footer { flex-direction:column; align-items:flex-start; text-align:left; }
+  body.page-route-airdrops #airdrops .airdrop-public-programs .directory-footer .token-card-actions { justify-content:flex-start; }
+  body.page-route-airdrops #airdrops .holder-airdrop-row { padding:14px; grid-template-columns:minmax(0,1fr) 110px; }
+  body.page-route-airdrops #airdrops .airdrop-directory-pagination { gap:8px; font-size:9px; }
+}

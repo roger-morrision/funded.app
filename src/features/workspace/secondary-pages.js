@@ -1,3 +1,5 @@
+import { mountHolderAirdropDirectory } from '../rewards/holder-airdrop-directory.js';
+import './airdrop-discovery.css';
 import { text, $, node, $$, disclose } from './dom.js';
 import airdropWolfDropUrl from '../../../airdrop-wolf-drop.webp';
 import { mountDocsReference } from '../../../docs-reference.js';
@@ -29,22 +31,28 @@ export function secondaryPages() {
     const syncAirdropWallet=()=>{const address=document.documentElement.dataset.connectedWallet;walletGate.querySelector('.airdrop-wallet-gate-top strong').textContent=address?`${address.slice(0,4)}…${address.slice(-4)}`:'Not connected';walletGate.querySelector('h3').textContent=address?'Wallet connected':'Check your airdrops';walletGate.querySelector('p').textContent=address?'Select a launch below to check your allocation based on your $FUNDED balance at its snapshot.':'Connect the wallet that held $FUNDED at a launch’s snapshot to see its eligibility and claim status.';walletGate.querySelector('button').hidden=Boolean(address);};
     window.addEventListener('funded:reward-identity-change',syncAirdropWallet);syncAirdropWallet();
     const publicPrograms=node('section','airdrop-public-programs');
-    publicPrograms.innerHTML='<div class="airdrop-reference-tabs" role="tablist" aria-label="Launch airdrop status"><button type="button" role="tab" aria-selected="true" data-public-airdrop-tab="upcoming">Upcoming <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="claiming">Claims open <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="closed">Closed <span>—</span></button></div><p class="airdrop-stage-help">Upcoming: waiting for migration and proof · Claims open: check your wallet · Closed: claim window ended</p>';
+    publicPrograms.innerHTML='<div class="airdrop-reference-tabs" role="tablist" aria-label="Launch airdrop status"><button type="button" role="tab" aria-selected="true" data-public-airdrop-tab="all">All <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="claiming">Claims open <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="curve">On curve <span>—</span></button></div><p class="airdrop-stage-help">Token allocations for eligible $FUNDED wallets. Claims open after a verified migration snapshot.</p>';
     for(const selector of ['.airdrop-directory-head','.airdrop-directory','#airdrop-directory-pagination','#airdrop-selected-program']){const item=$(selector,airdrops);if(item)publicPrograms.append(item);}
     heroLayout.after(publicPrograms);
-    text('.airdrop-directory-head h2','Launch airdrops');
+    text('.airdrop-directory-head h2','Airdrop for $FUNDED holders');
+    const directoryHead=$('.airdrop-directory-head',publicPrograms);
+    directoryHead?.classList.add('airdrop-directory-heading');
+    const toolbar=node('div','airdrop-discovery-toolbar');
+    toolbar.append($('.airdrop-reference-tabs',publicPrograms),$('.airdrop-directory-tools',publicPrograms));
+    publicPrograms.prepend(directoryHead,toolbar);
+    mountHolderAirdropDirectory(publicPrograms);
     const directory=$('#airdrop-directory',publicPrograms);
     directory?.setAttribute('role','tabpanel');
     for(const button of $$('[data-public-airdrop-tab]',publicPrograms)){button.id=`airdrop-${button.dataset.publicAirdropTab}-tab`;button.setAttribute('aria-controls','airdrop-directory');}
-    let selectedPublicTab='upcoming';
+    let selectedPublicTab='all';
     const syncPublicPrograms=()=>{
-      const pending=Number(directory?.dataset.upcomingCount||0);
+      const all=Number(directory?.dataset.allCount||0);
       const claiming=Number(directory?.dataset.claimingCount||0);
-      const closed=Number(directory?.dataset.closedCount||0);
+      const curve=Number(directory?.dataset.curveCount||0);
       for(const button of $$('[data-public-airdrop-tab]',publicPrograms)){
         const active=button.dataset.publicAirdropTab===selectedPublicTab;
         button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;
-        button.querySelector('span').textContent=directory?.dataset.indexStatus==='ready'?String(button.dataset.publicAirdropTab==='upcoming'?pending:button.dataset.publicAirdropTab==='claiming'?claiming:closed):'—';
+        button.querySelector('span').textContent=directory?.dataset.indexStatus==='ready'?String(button.dataset.publicAirdropTab==='all'?all:button.dataset.publicAirdropTab==='claiming'?claiming:curve):'—';
       }
       directory?.setAttribute('aria-labelledby',`airdrop-${selectedPublicTab}-tab`);
     };
@@ -55,7 +63,7 @@ export function secondaryPages() {
     syncPublicPrograms();
     const evidence=node('section','airdrop-evidence');evidence.innerHTML='<h2>Airdrop details</h2>';
     for(const selector of ['#airdrop-summary-kpis','.community-airdrop-callout']){const item=$(selector,airdrops);if(item)evidence.append(item);}
-    publicPrograms.after(evidence);
+    ($('#holder-airdrop-programs') || publicPrograms).after(evidence);
     const flow=$('.claim-flow',airdrops);
     if(flow){flow.classList.add('airdrop-reference-flow');const heading=node('div','airdrop-allocation-heading');heading.innerHTML='<p class="eyebrow">HOW ALLOCATION WORKS</p><h2>From holding to claiming</h2>';evidence.after(heading);heading.after(flow);}
     group('More airdrop details',['.airdrop-detail-grid','.airdrop-wallets-card','.airdrop-enhancement-grid']);
