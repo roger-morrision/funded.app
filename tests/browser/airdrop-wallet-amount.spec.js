@@ -58,11 +58,11 @@ test('connected wallet can check its airdrop card without a misleading connect p
   await expect(fundedBalance).toBeVisible();
   await expect(fundedBalance).toContainText('Current $FUNDED balance');
   await expect(fundedBalance).toContainText('Balance unavailable');
-  await expect(card).toContainText('Check allocation');
-  expect(proofRequests).toBe(0);
-  await card.locator('.directory-claim').click();
   await expect(card).toContainText('No allocation');
   expect(proofRequests).toBe(1);
+  await card.locator('.directory-claim').click();
+  await expect(card).toContainText('No allocation');
+  expect(proofRequests).toBe(2);
   await page.locator('#connect-button').click();
   await page.locator('#wallet-popover-disconnect').click();
   await expect(fundedBalance).toBeHidden();

@@ -1,15 +1,16 @@
 // Dependencies and mutable application state are read live through appState.
 export function createCommunityClaimsController(appState) {
   // app-source: 333
-  async function checkCommunityClaim(mintAddress){
+  async function checkCommunityClaim(mintAddress, { silent = false } = {}){
     const status = document.querySelector('#airdrop-selected-status');
-    if (!appState.wallet) await appState.connectWallet();
+    if (!appState.wallet && !silent) await appState.connectWallet();
     const session = appState.captureWalletSession();
-    if (!session) { status.append(document.createTextNode(' Connect a Solana wallet to check this allocation.')); return; }
+    if (!session) { if (!silent) status.append(document.createTextNode(' Connect a Solana wallet to check this allocation.')); return; }
     const program = appState.getAirdropPrograms().find(row => row.id === mintAddress);
-    if (!program?.claimActive) { status.append(document.createTextNode(' Claims are not open for this token.')); return; }
+    if (!program?.claimActive) { if (!silent) status.append(document.createTextNode(' Claims are not open for this token.')); return; }
     const pending = appState.communityWalletAllocations.get(mintAddress);
-    if (pending?.status === 'checking' && pending.wallet === session.address && pending.snapshotHash === program.snapshotHash) return;
+    if (pending && pending.wallet === session.address && pending.snapshotHash === program.snapshotHash
+      && (pending.status === 'checking' || silent)) return;
     appState.updateDirectoryWalletAmount(session, program, 'checking');
     try {
       const response = await appState.apiRequest(`/api/airdrops/claims/proof?mint=${encodeURIComponent(mintAddress)}&wallet=${encodeURIComponent(session.address)}`);
@@ -17,33 +18,31 @@ export function createCommunityClaimsController(appState) {
       const proof = response.data;
       if (!response.available || !proof?.status) {
         appState.updateDirectoryWalletAmount(session, program, 'unavailable');
-        if (document.querySelector('#airdrop-selected-program')?.dataset.mint === mintAddress)
+        if (!silent && document.querySelector('#airdrop-selected-program')?.dataset.mint === mintAddress)
           status.append(document.createTextNode(` Claim proof unavailable: ${proof?.error || 'retry later'}.`));
         return;
       }
       if (proof.recipient && proof.recipient !== session.address) throw new Error('Claim proof belongs to another wallet.');
       if (proof.status === 'claimed') {
-        appState.updateDirectoryWalletAmount(session, program, 'claimed');
-        if (document.querySelector('#airdrop-selected-program')?.dataset.mint === mintAddress)
+        const amount = /^\d+$/.test(String(proof.amount))
+          ? await appState.formatCommunityProofAmount(mintAddress, proof.amount, session) : null;
+        appState.updateDirectoryWalletAmount(session, program, 'claimed', amount);
+        if (!silent && document.querySelector('#airdrop-selected-program')?.dataset.mint === mintAddress)
           status.append(document.createTextNode(' This wallet has already claimed its verified allocation.'));
         return;
       }
       if (proof.status !== 'claimable') {
         appState.updateDirectoryWalletAmount(session, program, proof.status === 'ineligible' ? 'ineligible' : 'unavailable');
-        if (document.querySelector('#airdrop-selected-program')?.dataset.mint === mintAddress)
+        if (!silent && document.querySelector('#airdrop-selected-program')?.dataset.mint === mintAddress)
           status.append(document.createTextNode(` ${proof.reason || 'This wallet has no available allocation.'}`));
         return;
       }
       if (proof.mint !== mintAddress || proof.snapshotHash !== program.snapshotHash || !/^\d+$/.test(String(proof.amount)))
         throw new Error('Claim proof differs from the verified airdrop.');
-      const { PublicKey } = await appState.getSolana();
-      const mintInfo = await (await appState.getTradePreviewConnection()).getAccountInfo(new PublicKey(mintAddress), 'finalized');
+      const amount = await appState.formatCommunityProofAmount(mintAddress, proof.amount, session);
       if (!appState.isWalletSessionCurrent(session)) return;
-      if (!mintInfo || mintInfo.data.length < 45) throw new Error('Claim mint is unavailable.');
-      const decimals = mintInfo.data[44];
-      const amount = appState.formatTokenBaseUnits(proof.amount, decimals, 4);
       appState.updateDirectoryWalletAmount(session, program, 'claimable', amount);
-      if (document.querySelector('#airdrop-selected-program')?.dataset.mint !== mintAddress) return;
+      if (silent || document.querySelector('#airdrop-selected-program')?.dataset.mint !== mintAddress) return;
       appState.communityClaimReview = { mint:mintAddress, wallet:session.address, amount:proof.amount, index:proof.index, at:Date.now() };
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'primary-button'; button.dataset.claimCommunityMint = mintAddress;
@@ -57,6 +56,14 @@ export function createCommunityClaimsController(appState) {
     }
   }
   // app-source-end
+
+  async function formatCommunityProofAmount(mintAddress, amount, session){
+    const { PublicKey } = await appState.getSolana();
+    const mintInfo = await (await appState.getTradePreviewConnection()).getAccountInfo(new PublicKey(mintAddress), 'finalized');
+    if (!appState.isWalletSessionCurrent(session)) throw new Error('Wallet changed while checking the claim.');
+    if (!mintInfo || mintInfo.data.length < 45) throw new Error('Claim mint is unavailable.');
+    return appState.formatTokenBaseUnits(amount, mintInfo.data[44], 4);
+  }
 
   // app-source: 334
   async function submitCommunityClaim(mintAddress){
@@ -220,5 +227,5 @@ export function createCommunityClaimsController(appState) {
   }
   // app-source-end
 
-  return { checkCommunityClaim, submitCommunityClaim, appendPendingCommunityClaim, fundCommunityReserve };
+  return { checkCommunityClaim, formatCommunityProofAmount, submitCommunityClaim, appendPendingCommunityClaim, fundCommunityReserve };
 }

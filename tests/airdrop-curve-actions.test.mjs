@@ -27,8 +27,10 @@ test('On curve omits claim action and funding line while Claims open keeps them'
     assert.doesNotMatch(list.innerHTML, /Funding:|View claim status|directory-claim/);
 
     state.airdropDirectoryStatus = 'claiming';
-    controller.renderAirdropDirectory([{ ...program, status: 'claiming', claimActive: true }]);
-    assert.match(list.innerHTML, /Funding: Confirmed/);
+    controller.renderAirdropDirectory([{ ...program, status: 'claiming', claimActive: true,
+      claimPublished: true, migrationAt: 1_760_000_000 }]);
+    assert.doesNotMatch(list.innerHTML, /Funding:/);
+    assert.match(list.innerHTML, /Migrated .* UTC/);
     assert.match(list.innerHTML, /View claim status/);
   } finally { globalThis.document = previousDocument; }
 });

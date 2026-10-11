@@ -1,4 +1,5 @@
 import { isOnCurveAirdrop } from '../../features/rewards/airdrop-discovery-model.js';
+import { utcMoment } from '../../features/rewards/card-format.js';
 // Dependencies and mutable application state are read live through appState.
 export function createAirdropDirectoryController(appState) {
   // app-source: 322
@@ -32,6 +33,8 @@ export function createAirdropDirectoryController(appState) {
         claimPublished: claimState.published,
         claimActive,
         migrationSlot: claimState.published ? reserve.migrationSlot : null,
+        migrationAt: claimState.published && Number.isSafeInteger(Number(reserve.migrationAt)) && Number(reserve.migrationAt) > 0
+          ? Number(reserve.migrationAt) : null,
         status: claimState.status,
         statusLabel: claimState.label,
         merkleRoot: claimState.published ? reserve.merkleRoot : null,
@@ -88,7 +91,7 @@ export function createAirdropDirectoryController(appState) {
       return 'Check allocation';
     if (allocation.status === 'checking') return 'Checking…';
     if (allocation.status === 'claimable') return `${allocation.amount} ${program.symbol}`;
-    if (allocation.status === 'claimed') return 'Already claimed';
+    if (allocation.status === 'claimed') return allocation.amount ? `${allocation.amount} ${program.symbol} · claimed` : 'Already claimed';
     if (allocation.status === 'ineligible') return 'No allocation';
     return 'Proof unavailable';
   }
@@ -131,13 +134,22 @@ export function createAirdropDirectoryController(appState) {
       return `<article class="token-card-shell airdrop-directory-card" data-logo-mint="${safeMint}">
         <div class="directory-card-top"><span class="claim-token-mark" aria-hidden="true" title="Project artwork not published for this token">${appState.escapeHtml(program.symbol.slice(0, 2).toUpperCase())}</span><div class="directory-project-info"><span class="directory-token-identity"><strong>${safeSymbol}</strong>${appState.exploreBoostAmountMarkup(program.id)}<a href="/token/${encodeURIComponent(program.id)}">${appState.escapeHtml(program.name)}</a></span>
         <p class="directory-allocation-line">${appState.formatPolicyTokenCount(program.reservedTokens)} $${safeSymbol} · ${snapshotReady ? `${appState.formatPolicyTokenCount(program.eligibleWallets)} wallets` : 'Snapshot pending'}</p>
-        ${curveTab ? '' : `<small class="directory-funding-line">Funding: ${cardData.reserveState === 'verified' ? 'Confirmed' : appState.communityReserveStatus === 'loading' ? 'Checking…' : appState.communityReserveStatus === 'unavailable' ? 'Unavailable' : 'Not confirmed'}</small>`}
-        <details class="token-card-more"><summary>Details & links</summary>${appState.tokenCardAddressesMarkup(program.id)}${appState.exploreSocialLinksMarkup({ address: program.id, symbol: program.symbol })}<small>${appState.escapeHtml(program.statusLabel)} · ${appState.escapeHtml(appState.tokenCardEvidenceLabel(cardData))}</small></details></div></div>
+        ${curveTab || appState.airdropDirectoryStatus === 'claiming' ? '' : `<small class="directory-funding-line">Funding: ${cardData.reserveState === 'verified' ? 'Confirmed' : appState.communityReserveStatus === 'loading' ? 'Checking…' : appState.communityReserveStatus === 'unavailable' ? 'Unavailable' : 'Not confirmed'}</small>`}
+        <details class="token-card-more"><summary>Details & links</summary>${program.claimPublished ? `<small class="directory-migration-time">${program.migrationAt ? `Migrated ${utcMoment(program.migrationAt * 1000)}` : 'Migration time unavailable'}</small>` : ''}${appState.tokenCardAddressesMarkup(program.id)}${appState.exploreSocialLinksMarkup({ address: program.id, symbol: program.symbol })}<small>${appState.escapeHtml(program.statusLabel)} · ${appState.escapeHtml(appState.tokenCardEvidenceLabel(cardData))}</small></details></div></div>
         <div class="directory-wallet-allocation"><small>Your allocation</small><b>${appState.escapeHtml(appState.directoryWalletAmount(program))}</b></div>
         <div class="directory-footer"><span class="airdrop-status ${program.status}">${program.claimActive ? 'Claims open' : program.status === 'closed' ? 'Claims closed' : program.onCurve ? 'On curve · opens after migration' : 'Awaiting verified snapshot'}</span><div class="token-card-actions">${appState.tokenCardWatchMarkup(program.id, program.symbol)}${appState.tokenCardShareMarkup(program.id, program.symbol, program.name)}${curveTab ? '' : `<button type="button" class="secondary-button directory-claim" data-directory-mint="${safeMint}" aria-controls="airdrop-selected-program" ${checking ? 'disabled' : ''}>${appState.connectedWalletAddress && program.claimActive ? 'Check allocation' : 'View claim status'}</button>`}</div></div>
       </article>`;
     }).join('') || `<div class="empty-state">${appState.verifiedLaunchPoliciesStatus === 'loading' ? 'Checking airdrops…' : appState.verifiedLaunchPoliciesStatus === 'unavailable' ? 'Airdrops are temporarily unavailable.' : query ? 'No airdrops match your search.' : appState.airdropDirectoryStatus === 'claiming' ? 'No claims are open yet.' : appState.airdropDirectoryStatus === 'closed' ? 'No closed airdrops yet.' : appState.airdropDirectoryStatus === 'curve' ? 'No verified on-curve airdrops yet.' : 'No airdrops yet.'}</div>`;
     appState.loadVerifiedTokenLogos(list, { probeMissing: true });
+    if (appState.airdropDirectoryStatus === 'claiming' && appState.connectedWalletAddress
+      && appState.requestedPageRoute?.() === 'airdrops' && !document.hidden) {
+      for (const program of filtered.slice(first, first + appState.AIRDROP_DIRECTORY_PAGE_SIZE)) {
+        if (!program.claimActive) continue;
+        const cached = appState.communityWalletAllocations.get(program.id);
+        if (cached?.wallet === appState.connectedWalletAddress && cached.snapshotHash === program.snapshotHash) continue;
+        void appState.checkCommunityClaim(program.id, { silent: true }).catch(() => {});
+      }
+    }
     const pagination = document.querySelector('#airdrop-directory-pagination');
     if (pagination) {
       pagination.hidden = false;
