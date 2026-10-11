@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { buybackQueue, verifiedBuybackAccruals } from '../server/buyback-executor.mjs';
+import { Keypair } from '@solana/web3.js';
+import { buybackQueue, verifiedBuybackAccruals, verifyQaBuybackCreator } from '../server/buyback-executor.mjs';
 
 const signature = 'verified-collection';
 const mint = 'example-mint';
@@ -10,6 +11,14 @@ const state = {
   settlements: { [signature]: { claimSignature: signature, claimedAt: at, fundedApp: { buyback: 1.25 } } },
   buybackOrders: {},
 };
+const qaCreator = Keypair.generate();
+const qaLaunch = { ...state.launches[mint], mint, creatorWallet:qaCreator.publicKey.toBase58() };
+const qaRow = { mint, router:'router', pendingLamports:'895404' };
+const qaEnv = { SOLANA_CLUSTER:'devnet', FUNDED_QA_BUYBACK_MINT:mint };
+assert.equal(verifyQaBuybackCreator({ creator:qaCreator, launch:qaLaunch, mint, row:qaRow, env:qaEnv }), qaCreator);
+assert.throws(() => verifyQaBuybackCreator({ creator:qaCreator, launch:{ ...qaLaunch, creatorWallet:Keypair.generate().publicKey.toBase58() }, mint, row:qaRow, env:qaEnv }), /QA creator/);
+assert.throws(() => verifyQaBuybackCreator({ creator:qaCreator, launch:qaLaunch, mint, row:qaRow, env:{ ...qaEnv, SOLANA_CLUSTER:'mainnet-beta' } }), /QA creator/);
+assert.throws(() => verifyQaBuybackCreator({ creator:qaCreator, launch:qaLaunch, mint, row:{ ...qaRow, pendingLamports:'5000001' }, env:qaEnv }), /bounded Devnet amount/);
 assert.equal(verifiedBuybackAccruals(state)[0].lamports, '1250000000');
 state.settlements[signature].fundedApp.buyback = 0.25;
 assert.equal(verifiedBuybackAccruals(state).length, 0, 'a stale one-percent allocation cannot pass the signed five-percent policy');

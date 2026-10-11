@@ -63,7 +63,18 @@ function tradeAmountLamports(pending) {
   return pending * 10_000n / (10_000n + BigInt(BUYBACK_POLICY.maximumSlippageBps) + 100n);
 }
 
-export function createDevnetBuybackExecutor({ store, rpcUrl, programId, programDataSha256, fundedMint, poolAddress, authority, operator, lookupTableAddress, feeOwner, feeBps = 50, enabled = false }) {
+export function verifyQaBuybackCreator({ creator, launch, mint, row, env = process.env }) {
+  if (env.SOLANA_CLUSTER !== 'devnet' || env.FUNDED_QA_BUYBACK_MINT !== mint
+    || !creator?.publicKey || !launch?.onchainVerified || launch.cluster !== 'devnet'
+    || launch.mint !== mint || launch.creatorWallet !== creator.publicKey.toBase58()
+    || launch.pumpFeeRoute?.scope !== 'per-mint-v2' || launch.pumpFeeRoute.router !== row.router
+    || launch.creator !== row.router) throw new Error('QA creator does not match the verified Devnet buyback launch.');
+  if (BigInt(row.pendingLamports) > 5_000_000n) throw new Error('QA creator-approved buyback exceeds the bounded Devnet amount.');
+  return creator;
+}
+
+export function createDevnetBuybackExecutor({ store, rpcUrl, programId, programDataSha256, fundedMint, poolAddress, authority, operator, lookupTableAddress, feeOwner, feeBps = 50, enabled = false, qaCreator = null, simulateOnly = false }) {
+  if (simulateOnly && !qaCreator) throw new Error('Buyback simulation requires an explicit creator-approved Devnet QA run.');
   const connection = new Connection(rpcUrl, 'confirmed');
 
   async function refundUnspent(order) {
@@ -157,7 +168,7 @@ export function createDevnetBuybackExecutor({ store, rpcUrl, programId, programD
     const beforeSupply = BigInt(order.supplyBefore);
     const burned = BigInt(order.burnedBaseUnits);
     if (beforeSupply - afterSupply !== burned) throw new Error('Finalized buyback lacks the exact $FUNDED supply reduction; retain for manual reconciliation.');
-    const receipt = { id: order.id, status: 'burn-finalized-refund-pending', signature: order.signature, mint: order.mint, accrualIds: order.accrualIds, router: order.router, claim: order.claim, settledLamports: order.settledLamports, boughtAndBurnedBaseUnits: order.burnedBaseUnits, tokenDecimals:order.tokenDecimals, fundedMint, poolAddress, supplyBefore: order.supplyBefore, supplyAfter: String(afterSupply), burnFinalizedAt: new Date().toISOString(), mode: 'devnet-atomic' };
+    const receipt = { id: order.id, status: 'burn-finalized-refund-pending', signature: order.signature, mint: order.mint, accrualIds: order.accrualIds, router: order.router, claim: order.claim, settledLamports: order.settledLamports, boughtAndBurnedBaseUnits: order.burnedBaseUnits, tokenDecimals:order.tokenDecimals, fundedMint, poolAddress, supplyBefore: order.supplyBefore, supplyAfter: String(afterSupply), burnFinalizedAt: new Date().toISOString(), mode: order.creatorApproved ? 'devnet-atomic-creator-approved' : 'devnet-atomic' };
     const recorded = await store.update(state => {
       const current = state.buybackOrders?.[order.id];
       if (!current || current.signature !== order.signature) throw new Error('Buyback order changed during finalization.');
@@ -177,11 +188,14 @@ export function createDevnetBuybackExecutor({ store, rpcUrl, programId, programD
     if (!programEvidence.account?.executable || !programDataSha256 || programEvidence.sha256 !== String(programDataSha256).toLowerCase()) throw new Error('Mint-router program bytes do not match the approved Solana deployment.');
     const state = await store.read();
     const existing = Object.values(state.buybackOrders || {}).find(row => row.mint === mint && ['submitted','burn-finalized-refund-pending'].includes(row.status));
+    if (existing && simulateOnly) throw new Error('Simulation cannot reconcile an active buyback order.');
     if (existing) return existing.status === 'submitted' ? reconcile(existing) : refundUnspent(existing);
     const row = buybackQueue(state).find(item => item.mint === mint);
     if (!row || !row.eligible || BigInt(row.pendingLamports) < 2n) throw new Error('No eligible, verified buyback accrual is available for this mint.');
+    if (qaCreator) verifyQaBuybackCreator({ creator:qaCreator, launch:state.launches?.[mint], mint, row });
     const id = orderId(row);
     const prior = state.buybackOrders?.[id];
+    if (prior && simulateOnly) throw new Error('Simulation cannot reconcile an existing buyback claim.');
     if (prior) return prior.status === 'submitted' ? reconcile(prior) : prior.status === 'burn-finalized-refund-pending' ? refundUnspent(prior) : prior;
     const router = await verifyMintFeeRouterAccount({ connection, programId, mint, expectedAuthority: authority.publicKey });
     if (!router.verified || router.address.toBase58() !== row.router) throw new Error('Buyback accrual router does not match the verified onchain mint router.');
@@ -203,7 +217,8 @@ export function createDevnetBuybackExecutor({ store, rpcUrl, programId, programD
     const routerInfo = await connection.getAccountInfo(router.address, 'finalized');
     const rent = BigInt(await connection.getMinimumBalanceForRentExemption(routerInfo.data.length));
     if (routerBalance - rent < settled) throw new Error('Verified fee router lacks spendable buyback funds.');
-    const settle = buildMintRouterSettlementInstruction({ programId, mint, authority: authority.publicKey, recipient: operator.publicKey, amountLamports: settled, obligationId: id, claimDomain: 'buyback' });
+    const settle = buildMintRouterSettlementInstruction({ programId, mint, authority: authority.publicKey,
+      creator:qaCreator?.publicKey, recipient: operator.publicKey, amountLamports: settled, obligationId: id, claimDomain: 'buyback' });
     if (await connection.getAccountInfo(settle.claim, 'finalized')) throw new Error('Buyback claim already exists and requires reconciliation.');
     const ata = getAssociatedTokenAddressSync(mintKey, operator.publicKey, false, mintInfo.owner);
     const burn = createBurnCheckedInstruction(ata, mintKey, operator.publicKey, BigInt(trade.outputAmount.toString()), trade.tokenDecimals, [], mintInfo.owner);
@@ -213,14 +228,16 @@ export function createDevnetBuybackExecutor({ store, rpcUrl, programId, programD
     const blockhash = await connection.getLatestBlockhash('finalized');
     const message = new TransactionMessage({ payerKey:operator.publicKey, recentBlockhash:blockhash.blockhash, instructions:[settle.instruction, ...trade.instructions, burn] }).compileToV0Message([lookup.value]);
     const transaction = new VersionedTransaction(message);
-    transaction.sign([operator, authority]);
+    transaction.sign(qaCreator ? [operator, authority, qaCreator] : [operator, authority]);
     const signed = transaction.serialize();
     if (signed.length > MAX_TRANSACTION_BYTES) throw new Error('Atomic buyback transaction exceeds Solana size limit.');
     const simulation = await connection.simulateTransaction(transaction, { sigVerify: true, commitment: 'confirmed' });
     if (simulation.value.err) throw new Error(`Atomic buyback simulation failed: ${JSON.stringify(simulation.value.err)}`);
+    if (simulateOnly) return { id, mint, status:'simulated-not-submitted', settledLamports:String(settled),
+      boughtAndBurnedBaseUnits:trade.outputAmount.toString(), creatorApproved:true };
     const supplyBefore = BigInt((await connection.getTokenSupply(mintKey, 'finalized')).value.amount);
     const signature = bs58.encode(transaction.signatures[0]);
-    const order = { id, mint, router: row.router, accrualIds: row.accrualIds, status: 'submitted', signature, claim: settle.claim.toBase58(), claimId: settle.claimId.toString('hex'), settledLamports: String(settled), quoteInputLamports: String(desiredInput), burnedBaseUnits: trade.outputAmount.toString(), tokenDecimals:trade.tokenDecimals, supplyBefore: String(supplyBefore), signedTransaction: signed.toString('base64'), lastValidBlockHeight: blockhash.lastValidBlockHeight, createdAt: new Date().toISOString() };
+    const order = { id, mint, router: row.router, accrualIds: row.accrualIds, status: 'submitted', signature, claim: settle.claim.toBase58(), claimId: settle.claimId.toString('hex'), settledLamports: String(settled), quoteInputLamports: String(desiredInput), burnedBaseUnits: trade.outputAmount.toString(), tokenDecimals:trade.tokenDecimals, supplyBefore: String(supplyBefore), signedTransaction: signed.toString('base64'), lastValidBlockHeight: blockhash.lastValidBlockHeight, creatorApproved: Boolean(qaCreator), createdAt: new Date().toISOString() };
     // A signed transaction is durable before broadcast; an uncertain send can be reconciled by its claim PDA.
     const claimed = await store.update(current => {
       current.buybackOrders ||= {};

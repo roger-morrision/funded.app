@@ -14,7 +14,17 @@ const args = process.argv.slice(2);
 const watch = args.includes('--watch');
 const mintIndex = args.indexOf('--mint');
 const selectedMint = mintIndex >= 0 ? args[mintIndex + 1] : null;
+const qaCreatorStdin = args.includes('--qa-creator-stdin');
+const simulateOnly = args.includes('--simulate-only');
 if (mintIndex >= 0 && !selectedMint) throw new Error('--mint requires a Devnet launch mint.');
+if (qaCreatorStdin && (watch || !selectedMint || process.env.SOLANA_CLUSTER !== 'devnet'
+  || process.env.FUNDED_QA_BUYBACK_MINT !== selectedMint)) throw new Error('Creator-approved QA buyback requires one exact Devnet mint and a one-shot command.');
+if (simulateOnly && !qaCreatorStdin) throw new Error('Buyback simulation requires an explicit creator-approved Devnet QA run.');
+let qaCreator = null;
+if (qaCreatorStdin) {
+  try { qaCreator = Keypair.fromSecretKey(bs58.decode(readFileSync(0, 'utf8').trim())); }
+  catch { throw new Error('The one-shot QA creator key could not be read from standard input.'); }
+}
 const resolved = resolveDevnetBuybackConfig(process.env);
 const authoritySecret = resolved.authoritySecret;
 const authority = authoritySecret ? Keypair.fromSecretKey(bs58.decode(authoritySecret)) : null;
@@ -40,12 +50,16 @@ const executor = createDevnetBuybackExecutor({
   feeOwner: config('FUNDED_TRADE_FEE_OWNER'),
   feeBps: Number(config('FUNDED_TRADE_FEE_BPS') || '50'),
   enabled: resolved.enabled,
+  qaCreator,
+  simulateOnly,
 });
 
 async function tick() {
   const status = await executor.status();
   if (!status.enabled) throw new Error('Devnet buyback executor is disabled.');
-  const refundPending = Object.values((await store.read()).buybackOrders || {}).filter(row => ['burn-finalized-refund-pending','finalized'].includes(row.status) && !row.refundVerified);
+  const refundPending = simulateOnly ? [] : Object.values((await store.read()).buybackOrders || {})
+    .filter(row => (!qaCreatorStdin || row.mint === selectedMint)
+      && ['burn-finalized-refund-pending','finalized'].includes(row.status) && !row.refundVerified);
   for (const order of refundPending) {
     try {
       const result = await executor.refundUnspent(order);
@@ -60,7 +74,8 @@ async function tick() {
   for (const row of selected) {
     try {
       const result = await executor.execute(row.mint);
-      console.log(JSON.stringify({ mint: row.mint, id: result.id, status: result.status, signature: result.signature, reason: result.reason || null }));
+      console.log(JSON.stringify({ mint: row.mint, id: result.id, status: result.status, signature: result.signature || null,
+        settledLamports: result.settledLamports || null, reason: result.reason || null }));
     } catch (error) {
       console.error(JSON.stringify({ mint: row.mint, status: 'blocked', reason: String(error.message || error).slice(0, 300) }));
       if (!watch) process.exitCode = 1;
