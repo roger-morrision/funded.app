@@ -50,7 +50,7 @@ export function createLaunchRegistrationRoutes({
       const xLinked = policy.solClaimPercent > 0;
       const perMint = input.pumpFeeRoute?.scope === 'per-mint-v2';
       if (!existingLaunch && !perMint) return json(res, 409, { error: 'New launches require a mint-specific fee router for attributable automatic rewards.' });
-      if (xLinked && !(await xFeeReadiness({ creatorSigned:true })).ready) return json(res, 503, { error: 'X fee claims are not operational on Solana yet.' });
+      if (xLinked && !(await xFeeReadiness()).ready) return json(res, 503, { error: 'X fee claims are not operational on Solana yet.' });
       if (xLinked && (await resolveXUser(policy.xRecipient)).id !== policy.xUserId) return json(res, 409, { error: 'The X account ID changed since launch preparation; registration is blocked.' });
       const promotionClaim = input.creatorLaunchBurn || null;
       const paidClaim = promotionClaim && promotionClaim.tier !== 'standard';

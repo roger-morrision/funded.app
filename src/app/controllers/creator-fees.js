@@ -33,7 +33,7 @@ export function createCreatorFeesController(appState) {
     const pending = BigInt(claim?.pendingLamports || '0');
     const minimum = BigInt(claim?.minimumLamports || '10000000');
     const hasPending = Number(claim?.pendingCount || 0) > 0;
-    const ready = Boolean((claim?.eligible || hasPending) && appState.wallet && !appState.wallet.readOnly
+    const ready = Boolean(((claim?.eligible && claimable >= minimum) || hasPending) && appState.wallet && !appState.wallet.readOnly
       && typeof appState.wallet.signMessage === 'function' && typeof appState.wallet.signTransaction === 'function');
     const note = claimable < minimum && !hasPending
       ? `Claims open at ${appState.coinFeeSol(minimum)} of allocated creator fees.`

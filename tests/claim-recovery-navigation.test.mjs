@@ -52,7 +52,7 @@ test('creator claim panel exists and only enables the verified owner above the c
   let requested = 0;
   const context = {
     document: { querySelector: () => root },
-    connectedWalletAddress:'creator', wallet:{ signMessage() {} },
+    connectedWalletAddress:'creator', wallet:{ signMessage() {}, signTransaction() {} },
     renderCoinSummary() {}, coinFeeSol: amount => `${amount} lamports`, escapeHtml: value => value,
     requestCreatorFeeClaim: () => { requested++; },
   };
@@ -65,7 +65,7 @@ test('creator claim panel exists and only enables the verified owner above the c
   assert.equal(requested, 1);
   context.renderCoinFeeDashboard({...overview, creatorClaim:{...overview.creatorClaim, claimableLamports:'20792'}});
   assert.match(root.innerHTML, /disabled/);
-  assert.match(root.innerHTML, /once your creator rewards reach/);
+  assert.match(root.innerHTML, /Claims open at/);
   assert.equal(button.onclick, null);
   context.connectedWalletAddress='other-wallet';
   context.renderCoinFeeDashboard(overview);

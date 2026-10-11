@@ -7,7 +7,7 @@ import { emptyHomeLaunchFilters } from '../home-launch-filters.js';
 function dom() {
   const fields = new Map();
   const element = () => ({ hidden: false, dataset: {}, attributes: {}, textContent: '', innerHTML: '',
-    setAttribute(key, value) { this.attributes[key] = value; },
+    setAttribute(key, value) { this.attributes[key] = value; }, closest: () => null,
     querySelector: selector => fields.get(selector) || null, querySelectorAll: () => [],
   });
   return { fields, document: { querySelector: selector => fields.get(selector) || null, querySelectorAll: () => [] },

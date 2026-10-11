@@ -175,7 +175,7 @@ test('X reward enrollment requires matching attestation and cannot replace the r
   await api.enrollAutomaticXReward(claim);
   assert.equal(api.snapshot().fundingRequests['receipt:x'].status, 'awaiting-verified-recipient');
   claim.xAttestation.subject = 'account';
-  assert.equal(await api.enrollAutomaticXReward(claim), 'pending');
+  assert.equal(await api.enrollAutomaticXReward(claim), 'awaiting-creator-signature');
   await api.enrollAutomaticXReward({ ...claim, publicKey: 'other-wallet' });
   assert.equal(api.snapshot().fundingRequests['receipt:x'].recipient, 'wallet');
 });

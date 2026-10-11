@@ -13,8 +13,8 @@ export function createRewardStatusRoutes({
   return async function handleRewardStatusRoutes(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/rewards/automatic') {
       const status = automaticRewardStatus(new Date(), await automaticRewardStore.read());
-      const x = await xFeeReadiness({ creatorSigned:true });
-      status.modes.x = x.ready ? 'creator-approved-after-verified-X-wallet' : 'unavailable';
+      const x = await xFeeReadiness();
+      status.modes.x = x.ready ? 'automatic-after-verified-X-wallet' : 'unavailable';
       const buybackState = await store.read();
       const verifiedBurns = Object.values(buybackState.buybackOrders || {}).filter(row => row.status === 'finalized' && row.refundVerified).length;
       status.modes.buyback = solanaCluster === 'devnet' && verifiedBurns > 0 ? 'verified-devnet-atomic-buy-and-burn' : 'accrual-only-execution-unavailable';
