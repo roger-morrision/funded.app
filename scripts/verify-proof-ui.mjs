@@ -11,9 +11,12 @@ const [html, appEntry, css, pageCss, pageExperience, creatorSupport] = await Pro
   readFile(new URL('../page-experience.js', import.meta.url), 'utf8'),
   readFile(new URL('../creator-support-ui.js', import.meta.url), 'utf8'),
 ]);
-const app = appEntry + (await Promise.all(['home/kpi-view.js', 'home/onchain-view.js', 'rewards/airdrop-view.js'].map(path => readFile(new URL(`../src/features/${path}`, import.meta.url), 'utf8')))).join('\n');
+const app = appEntry + (await Promise.all(['home/kpi-view.js', 'home/onchain-view.js', 'home/launch-card-view.js', 'explore/asset-card-view.js', 'rewards/airdrop-view.js', 'leaderboard/board-view.js', 'fees/fee-flow-view.js'].map(path => readFile(new URL(`../src/features/${path}`, import.meta.url), 'utf8')))).join('\n');
 const xClaimView = await readFile(new URL('../src/features/rewards/x-claim-view.js', import.meta.url), 'utf8');
 const homeLaunchBoard = await readFile(new URL('../src/features/home/launch-board-view.js', import.meta.url), 'utf8');
+const paymentReceiptView = await readFile(new URL('../src/features/payments/receipt-view.js', import.meta.url), 'utf8');
+const portfolioCardView = await readFile(new URL('../src/features/portfolio/token-card-view.js', import.meta.url), 'utf8');
+const launchReviewMarkup = await readFile(new URL('../launch-review-markup.js', import.meta.url), 'utf8');
 const tradeReviewModel = await readFile(new URL('../trade-review-model.js', import.meta.url), 'utf8');
 const coinSummaryModel = await readFile(new URL('../coin-summary-model.js', import.meta.url), 'utf8');
 
@@ -23,9 +26,9 @@ assert.match(html, /id="referral-ledger-list"><div class="empty-state referral-e
 assert.match(html, /id="fee-flow-input"/);
 assert.match(html, /Enter a gross fee amount to preview the policy split\. This example does not move funds\./, 'Capital-flow preview copy must distinguish a policy example from live activity.');
 assert.match(html, /class="home-kpi-footer"[\s\S]*?<a href="#analytics-detail">Open analytics →<\/a>/, 'The home dashboard must link to the routed analytics page.');
-assert.match(html, /Community airdrop allocations/, 'The home KPI must identify allocations without presenting them as a funded reserve.');
-assert.match(app, /policy allocation\$\{reservePrograms\.length === 1 \? '' : 's'\} valued at spot · check vault funding per launch/, 'The home KPI must direct users to per-launch vault status without falsely marking every vault unverified.');
-assert.match(app, /airdropUnit\.textContent = airdropAvailable \? 'USD' : 'ALLOCATIONS'/, 'The dashboard must identify unpriced community reserves as policy allocations rather than funded USD value.');
+assert.match(html, /Community airdrops claimed/, 'The home KPI must label confirmed token claims rather than unclaimed allocations.');
+assert.match(app, /const airdropClaims = currentCommunityClaimSummary\(\)/, 'The home KPI must read the verified community claim summary.');
+assert.match(app, /setHomeDashboardMetric\('airdrop', airdropClaims\.amount, airdropClaims\.note, airdropClaims\.state\)/, 'The home KPI must use claim evidence for its amount, note, and state.');
 assert.match(coinSummaryModel, /check funding on Airdrops/, 'Token summaries must direct users to per-launch vault evidence instead of assuming the vault state.');
 assert.doesNotMatch(coinSummaryModel, /vault funding unverified/, 'Token summaries do not own the per-launch vault verification state.');
 const docsLinks = html.match(/<article class="support-card docs-index">[\s\S]*?<\/article>/)?.[0] || '';
@@ -35,8 +38,8 @@ assert.match(docsLinks, /href="#disclosures" data-info="disclosures">Disclosures
 assert.match(app, /\[data-info\].*openInfoDialog\(link\.dataset\.info\)/);
 assert.match(app, /Automatic creator and holder SOL delivery requires verified funding and an active healthy distribution worker/, 'The Devnet disclosure must state the worker prerequisite.');
 assert.doesNotMatch(app, /can automatically settle configured creator and holder SOL rewards/, 'The Devnet disclosure must not imply payouts work while the worker is unhealthy.');
-assert.match(app, /for \(const \[index, receipt\] of historyPayouts\.entries\(\)\)[\s\S]*?tape\.append\(row\)/, 'The payment dialog must render finalized payout rows.');
-assert.match(app, /if \(!historyPayouts\.length\)[\s\S]*?tape\.innerHTML = '<p class="empty-state">No confirmed payments are available to show yet\.<\/p>'/, 'The payment dialog must explain when confirmed payment receipts are absent.');
+assert.match(paymentReceiptView, /const filtered = filterPaymentHistory\(historyPayouts, filters\);[\s\S]*?for \(const receipt of filtered\)[\s\S]*?list\.append\(row\)/, 'Payment history must render filtered finalized payout rows.');
+assert.match(paymentReceiptView, /if \(!filtered\.length\)[\s\S]*?No confirmed payments are available to show yet\./, 'Payment history must explain when confirmed payment receipts are absent.');
 assert.match(html, /id="leaderboard-panel" role="tabpanel" aria-labelledby="leaderboard-burners-tab"/, 'The active leaderboard panel must be associated with its selected tab.');
 assert.match(html, /id="notifications-button" aria-label="Notifications">♧<\/button>/);
 assert.match(html, /<h2>No verified notifications<\/h2>[\s\S]*?Notification feed unavailable/);
@@ -50,12 +53,13 @@ assert.match(app, /verified = verified\.filter\(item => \{[\s\S]*?return policy\
 assert.match(app, /const fundedLaunchRecords = records\.filter\(item => \{[\s\S]*?return policy\?\.onchainVerified && \(policy\.creatorWallet \|\| policy\.feePayer\)/, 'Overview must not count unregistered mints as funded launches.');
 assert.match(app, /verifiedLaunchPolicies = response\.data\.filter\(launch => launch\.onchainVerified[\s\S]*?&& \(launch\.creatorWallet \|\| launch\.feePayer\)\)/, 'Explore benefit badges must require a creator-attributed funded policy.');
 assert.match(homeLaunchBoard, /function renderHomeLaunchBoard\([\s\S]*?const verified = assets\.filter\(item => verifiedLaunchPolicyForMint\(item\.address\)\)[\s\S]*?let visible = \[\.\.\.verified\]/, 'The Home launch board must exclude mints without a funded policy.');
-assert.match(html, /<p class="eyebrow">Confirmed activity<\/p><h1 id="leaderboard-title">LEADERBOARDS<\/h1>/, 'The leaderboard must label its evidence scope.');
+assert.match(html, /<p class="eyebrow">Confirmed activity<\/p><h1 id="leaderboard-title">Leaderboard<\/h1>/, 'The leaderboard must label its evidence scope.');
 assert.match(html, /id="leaderboard-burners-tab"[^>]*aria-selected="true"[^>]*>Burners<\/button>/, 'Verified wallet burn leaderboard tab should be selected.');
 assert.doesNotMatch(app, /escapeHtml\(initials\(item\.wallet\)\)/, 'Wallet burn rows must not call an undefined avatar helper.');
 assert.match(html, /id="leaderboard-creators-tab"[^>]*>Creators<\/button>/, 'Verified creator leaderboard tab should be available.');
 assert.match(html, /id="leaderboard-traders-tab"[^>]*>Traders<\/button>/, 'The trader tab must expose its unavailable state.');
-assert.match(app, /Unavailable: the verified wallet activity index is not running/, 'Trader ranking must explain its missing index.');
+assert.match(app, /const unavailable = EXPLORE_CLUSTER !== 'devnet' \|\| verifiedLaunchPoliciesStatus !== 'ready' \|\| !exploreFeedAvailable/, 'Trader ranking must require the verified launch registry and trade feed.');
+assert.match(app, /Verified trade activity could not be loaded\./, 'Trader ranking must explain when its evidence is unavailable.');
 assert.match(html, /disabled title="Rankings use all available verified activity\."/);
 assert.match(html, /Verified \$FUNDED burns/);
 assert.match(app, /Ranked from confirmed launch policies and available market caps/, 'Creator ranking must describe its verified inputs and market-cap order.');
@@ -77,12 +81,9 @@ assert.match(css, /\.fee-output-grid/);
 assert.match(pageCss, /Clean workspace pages: one compact intro/);
 assert.match(pageCss, /\.page-route-community \.community-grid \{ grid-template-columns: minmax\(0, 1fr\); \}/);
 assert.match(app, /function portfolioTokenCardMarkup\(/);
-assert.match(app, /const freshness = tokenCardEvidenceLabel\(cardData\)/, 'Portfolio cards must label data evidence separately from launch age.');
-assert.match(app, /portfolio-token-stats/);
-assert.match(app, /const volume = market \? formatExploreUsd\(market\.volume24hSol/, 'Portfolio volume must come from the observed market feed.');
-assert.match(app, /\['24h volume', volume\]/, 'Migrated portfolio cards must show available observed volume.');
-assert.match(app, /source: 'Saved token · market data checked'/, 'A verified market row must identify its checked market data.');
-assert.match(app, /source: 'Saved token · launch confirmed'/, 'A registry-only row must identify its confirmed launch source.');
+assert.match(portfolioCardView, /const volume = item \? launchCardVolumeUsd\(item, '24h'\) : '\$—'/, 'Portfolio volume must come from an observed market row.');
+assert.match(portfolioCardView, /\['24h volume', volume\]/, 'Portfolio cards must label observed volume.');
+assert.match(portfolioCardView, /portfolioHolderCount\(item\)/, 'Portfolio cards must show a verified holder count or an unavailable value.');
 const watchlistRenderSource = app.match(/function renderWatchlist\(\)\{[\s\S]*?\n\}/)?.[0];
 assert.ok(watchlistRenderSource, 'Watchlist renderer must be present.');
 const watchlistNodes = {
@@ -90,17 +91,17 @@ const watchlistNodes = {
   '#watchlist-empty': { hidden: false },
   '#watchlist-items': { innerHTML: '', querySelectorAll: () => [] },
 };
-const renderWatchlistFixture = new Function('document', 'getWatchlist', 'assets', 'verifiedLaunchPolicyForMint', 'portfolioTokenCardMarkup', 'escapeHtml', 'shortAddress', 'loadPortfolioLogo', 'setWatchButtonState', 'watchlistUnavailable', 'watchlistNotice', 'showWatchlistStatus',
+const renderWatchlistFixture = new Function('document', 'getWatchlist', 'assets', 'verifiedLaunchPolicyForMint', 'portfolioTokenCardMarkup', 'escapeHtml', 'shortAddress', 'loadVerifiedTokenLogos', 'setWatchButtonState', 'watchlistUnavailable', 'watchlistNotice', 'showWatchlistStatus', 'getCoinMintAddress', 'renderFollowedWallets',
   `${watchlistRenderSource}; return renderWatchlist;`);
 const renderUnavailableWatchlist = renderWatchlistFixture(
   { querySelector: selector => watchlistNodes[selector], querySelectorAll: () => [] },
   () => ['missing-mint'], [], () => null, () => 'VERIFIED CARD', value => String(value), value => String(value).slice(0, 5), () => {}, () => {},
-  false, '', () => {},
+  false, '', () => {}, () => '', () => {},
 );
 renderUnavailableWatchlist();
-assert.equal(watchlistNodes['#watch-count'].textContent, '1 saved');
+assert.equal(watchlistNodes['#watch-count'].textContent, '1 favorite');
 assert.equal(watchlistNodes['#watchlist-empty'].hidden, true);
-assert.match(watchlistNodes['#watchlist-items'].innerHTML, /Saved token · details unavailable[\s\S]*?data-remove-watch="missing-mint"/, 'A saved mint without verified data must remain removable.');
+assert.match(watchlistNodes['#watchlist-items'].innerHTML, /Token details unavailable[\s\S]*?data-remove-watch="missing-mint"/, 'A saved mint without verified data must remain removable.');
 const portfolioHolderSource = app.match(/function portfolioHolderCount\(asset\)\{[\s\S]*?\n\}/)?.[0];
 assert.ok(portfolioHolderSource, 'Watchlist and portfolio must format verified holder wallet counts.');
 const holderCache = new Map([['mint', { count: 1, coverage: 'complete-account-list', at: Date.now() }]]);
@@ -111,7 +112,7 @@ holderCache.set('mint', { count: 1, coverage: 'complete-account-list', at: Date.
 assert.equal(portfolioHolderCount({ address: 'mint' }), '—', 'Expired wallet samples must not be presented as fresh.');
 assert.match(app, /token-card-shell home-launch-card/);
 assert.match(app, /token-card-shell asset-card/);
-assert.match(app, /token-card-shell portfolio-token-card/);
+assert.match(portfolioCardView, /class="saved-token-row/, 'Portfolio and Favorites entries must share the current saved-token row.');
 assert.match(app, /token-card-shell airdrop-directory-card/);
 assert.match(html, /id="airdrop-selected-program"[^>]+hidden/, 'Airdrop policy detail must be hidden until a program is selected.');
 assert.match(app, /const safeMint = escapeHtml\(program\.id\)[\s\S]*?data-directory-mint="\$\{safeMint\}"[\s\S]*?View claim status/, 'The airdrop details action must target a unique mint.');
@@ -130,7 +131,7 @@ assert.match(pageExperience, /Funded at a glance/);
 assert.match(pageExperience, /A user-initiated \$FUNDED burn requires a configured Solana mint[\s\S]*?check Buy & burn for current availability/, 'The $FUNDED status must not claim a burn is available when its mint is unconfigured.');
 assert.match(app, /creatorRankingUnavailable = verifiedLaunchPoliciesStatus !== 'ready' \|\| !exploreFeedAvailable/, 'Creator leaderboard must treat an unavailable registry or market feed as unavailable, not empty.');
 assert.match(pageExperience, /data-analytics-metric="burned"/);
-assert.match(html, /<h2>Saved tokens<\/h2>/);
+assert.match(html, /<h1 id="favorites-title">Favorite tokens<\/h1>/);
 assert.match(html, /<h2>All airdrops<\/h2>/);
 assert.match(app, /communityReserveStatus === 'ready'[\s\S]*?Funding status unavailable[\s\S]*?<span>Planned tokens<\/span>/, 'Indexed policy allocations must report funded counts only when reserve evidence is ready.');
 assert.match(html, /id="airdrop-export-csv" disabled title="Requires an indexed, verified list of unclaimed wallets"/, 'Airdrop CSV export must be gated on verified wallet rows, not a snapshot count alone.');
@@ -142,7 +143,7 @@ assert.match(app, /#profile-connect'\)\?\.addEventListener\('click', \(\) => \{[
 assert.match(app, /async function connectWallet\(\)\{[\s\S]*?if \(!getProvider\(\) && DEV_MODE && DEV_WALLET_AUTOCONNECT\) \{[\s\S]*?allowWalletReconnect\(\);[\s\S]*?if \(await connectDevWallet\(\)\) return;/, 'An explicit reconnect must restore the disposable Dev Mode wallet after manual disconnect.');
 assert.match(html, /id="trade-review-dialog"[\s\S]*?id="trade-review-confirm"/, 'Trade submission must have an explicit review dialog.');
 assert.match(app, /#trade-submit'\)\?\.addEventListener\('click', openTradeReview\)/, 'Review and sign must not immediately submit a trade.');
-assert.match(html, /id="launch-review-dialog"[\s\S]*?id="launch-review-confirm"/, 'Launch submission must have an explicit review dialog.');
+assert.match(launchReviewMarkup, /id="launch-review-dialog"[\s\S]*?id="launch-review-confirm"/, 'Launch submission must have an explicit review dialog.');
 assert.match(app, /function handleLaunchAction\(event\)[\s\S]*?openLaunchReview\(\);/, 'The launch action must open review before submitting.');
 assert.match(app, /function confirmLaunchReview\(\)[\s\S]*?launchReviewStillCurrent\(pending, currentLaunchReviewState\(\)\)[\s\S]*?void launchToken\(\)/, 'Only a fresh, unchanged launch review can start signing.');
 assert.match(app, /function openTradeReview\(\)[\s\S]*?Date\.now\(\) - tradePreview\.preparedAt > 15_000/, 'Trade review must reject expired quotes.');

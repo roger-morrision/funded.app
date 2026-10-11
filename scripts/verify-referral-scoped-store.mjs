@@ -25,8 +25,9 @@ export async function verifyReferralScopedStore(store,other=store,concurrent=fal
   }
   const attempts=await Promise.all([store,other].map(db=>db.updateReferralClaimState(a,s=>{if(s.referralClaims[a].status!=='wallet-verified')return false;s.referralClaims[a].status='executing';return true;})));
   assert.equal(attempts.filter(Boolean).length,1,'Only one contender can lock execution.');
-  const paid=(s,overrides={})=>{const payoutId=`referral:${a}`,paidAt=new Date().toISOString();s.referralClaims[a]={...s.referralClaims[a],status:'paid',payoutId,payoutSignature:'synthetic-signature',paidAt};s.payouts[payoutId]={id:payoutId,claimId:a,to:'synthetic-wallet',signature:'synthetic-signature',amountSol:0.01,status:'paid',cluster:'devnet',paidAt,...overrides};};
-  for(const overrides of [{to:'other'},{claimId:b},{amountSol:999},{signature:'wrong'},{status:'submitted'},{paidAt:'wrong'}])await assert.rejects(store.updateReferralClaimState(a,s=>paid(s,overrides)));
+  await store.updateReferralClaimState(a,s=>{s.referralClaims[a].pendingSignature='synthetic-signature';s.referralClaims[a].pendingFrom='synthetic-payer';});
+  const paid=(s,overrides={})=>{const payoutId=`referral:${a}`,paidAt=new Date().toISOString();s.referralClaims[a]={...s.referralClaims[a],status:'paid',payoutId,payoutSignature:'synthetic-signature',paidAt};s.payouts[payoutId]={id:payoutId,claimId:a,to:'synthetic-wallet',from:'synthetic-payer',signature:'synthetic-signature',amountSol:0.01,amountLamports:10_000_000,recipientDeltaLamports:10_000_000,finalized:true,status:'paid',cluster:'devnet',paidAt,...overrides};};
+  for(const overrides of [{to:'other'},{from:'other'},{claimId:b},{amountSol:999},{amountLamports:9_000_000},{recipientDeltaLamports:9_000_000},{finalized:false},{signature:'wrong'},{status:'submitted'},{paidAt:'wrong'}])await assert.rejects(store.updateReferralClaimState(a,s=>paid(s,overrides)));
   assert.equal((await other.readReferralClaimState(a)).referralClaims[a].status,'executing');
   await store.updateReferralClaimState(a,paid);
   await assert.rejects(store.updateReferralClaimState(a,s=>{s.referralClaims[a].status='wallet-verified';}));

@@ -8,9 +8,10 @@ import { formatSolMetric, readCurveMetrics, readPumpSwapMetrics } from '../explo
 import { sortDevnetLaunches } from '../server/explore-registry.mjs';
 
 const exploreMarkup = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const appSource = ['../app.js', '../src/features/home/onchain-view.js', '../src/features/home/kpi-view.js', '../src/features/home/launch-board-view.js', '../src/features/explore/assets-view.js', '../src/features/explore/controls-view.js', '../src/features/explore/registry-view.js']
+const appSource = ['../app.js', '../src/features/home/onchain-view.js', '../src/features/home/kpi-view.js', '../src/features/home/launch-board-view.js', '../src/features/home/launch-card-view.js', '../src/features/explore/assets-view.js', '../src/features/explore/asset-card-view.js', '../src/features/explore/controls-view.js', '../src/features/explore/registry-view.js']
   .map(path => path === '../app.js' ? readAppSourceSync() : readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
 const workspaceSource = readFileSync(new URL('../src/features/workspace/explore.js', import.meta.url), 'utf8');
+const exploreStartupSource = readFileSync(new URL('../src/app/startup/explore-filters.js', import.meta.url), 'utf8');
 assert.deepEqual(exploreSocialLinks({}, {}), [], 'Tokens without social links leave the icon group empty.');
 assert.deepEqual(exploreSocialLinks({ website:'https://token.example', twitter:'javascript:alert(1)', telegram:'https://t.me/token' }, { x:'https://x.com/token', discord:'https://discord.gg/token' }).map(link => [link.label, link.href]), [
   ['Website', 'https://token.example/'],
@@ -20,7 +21,7 @@ assert.deepEqual(exploreSocialLinks({ website:'https://token.example', twitter:'
 ], 'Explore shows available public links, rejects unsafe URLs, and uses verified launch links when needed.');
 assert.match(appSource, /!feedChecked \? 'Checking launches' : marketUnavailable \? 'Launch activity unavailable'/, 'Unavailable launch feeds must not be described as zero confirmed launches.');
 assert.match(appSource, /marketUnavailable \? '— <small>launch activity unavailable<\/small>'/, 'The analytics strip must distinguish unavailable registry data from a verified empty result.');
-assert.match(appSource, /launchFeedUnavailable\s*\? 'Launch policies unavailable; allocation not verified'/, 'Analytics must not claim there are no community allocations when the launch registry is unavailable.');
+assert.match(appSource, /launchFeedUnavailable \? 'Launch feed unavailable; count not verified'/, 'Analytics must not claim there are no verified launches when the launch registry is unavailable.');
 assert.match(appSource, /recordedPayouts \? 'Recorded payouts are awaiting receipt verification' : 'USD quote or payout evidence unavailable'/, 'Analytics must not claim there are no referral payouts when receipt verification is unavailable.');
 assert.match(appSource, /registryUnavailable \? outage\.title : `\$\{filtered\.length\} of \$\{registryLaunches\.length\} shown`/, 'Explore must explain the current outage instead of showing a verified zero result while its sources are unavailable.');
 assert.match(appSource, /if \(exploreLoadInFlight\) return exploreLoadInFlight;[\s\S]*?exploreLoadInFlight = load;[\s\S]*?exploreLoadInFlight = null;/, 'Overlapping Explore refreshes must share one load instead of racing their scan counter.');
@@ -48,7 +49,8 @@ assert.match(exploreMarkup, /id="explore-reward-filter"[\s\S]*?Community token a
 assert.match(exploreMarkup, /<option value="airdrop">[\s\S]*?<option value="holder-fee">[\s\S]*?<option value="x-fee">/, 'Advanced reward sorts remain available inside Filters.');
 assert.match(exploreMarkup, /data-explore-sort="volume"[\s\S]*?data-explore-sort="market-cap"[\s\S]*?data-explore-sort="recent-trade"/, 'The visible sort bar should stay compact.');
 assert.match(appSource, /sortMarketRecords\(records\.filter\(asset =>[\s\S]*?asset\.windowVolumeSol != null[\s\S]*?asset\.volume24hUsd != null[\s\S]*?, 'volume'\)\.slice\(0, 8\)/, 'Trending must rank scanned volume independently of the current search and sort.');
-assert.match(appSource, /class="explore-ticker-view-all"[\s\S]*?scrollIntoView\(\{ block: 'start', behavior: 'smooth' \}\)/, 'View all must scroll within Explore instead of replacing its route hash.');
+assert.match(appSource, /class="explore-ticker-view-all"/, 'The trending ticker must offer an in-page View all action.');
+assert.match(exploreStartupSource, /if \(event\.target\.closest\('\.explore-ticker-view-all'\)\) document\.querySelector\('\.explore-heading'\)\?\.scrollIntoView\(\{ block: 'start', behavior: 'smooth' \}\)/, 'View all must scroll within Explore instead of replacing its route hash.');
 assert.match(appSource, /tokenCardAddressesMarkup\(a\.address\)/, 'Gallery addresses must use the verified card mint.');
 assert.match(appSource, /class="token-card-copy-address" data-copy-address="\$\{escapeHtml\(value\)\}"/, 'Copy controls must retain the full escaped address.');
 assert.match(appSource, /navigator\.clipboard\.writeText\(copy\.dataset\.copyAddress\)/, 'The shared copy action must copy the full address rather than its abbreviated label.');
