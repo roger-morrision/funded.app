@@ -73,6 +73,8 @@ test('readiness rejects missing configuration and shared wallet roles before net
 test('readiness requires approved program evidence and respects current X lookup health', async () => {
   const f = fixture();
   assert.equal((await f.service.mintRouterReadiness({ creatorSigned:true })).ready, true);
+  assert.match((await f.service.xFeeReadiness()).reasons.join(' '), /Creator wallet co-signing/);
+  assert.equal((await f.service.xFeeReadiness({ creatorSigned:true })).ready, true);
   f.state.programHash = 'b'.repeat(64);
   assert.match((await f.service.mintRouterReadiness({ creatorSigned:true })).reasons.join(' '), /bytecode is not approved/);
   f.state.programHash = 'a'.repeat(64);

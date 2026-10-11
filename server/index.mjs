@@ -276,7 +276,7 @@ const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solan
     cluster: solanaCluster, creatorPages: true, creatorIdentity: Boolean(process.env.X_CLIENT_ID && process.env.X_CLIENT_SECRET),
     sessions: { storage: databaseUrl ? 'postgresql' : 'local-file-single-process', absoluteLifetimeSeconds: SESSION_SECONDS },
     creatorDirectory: { storage: databaseUrl ? 'postgresql-projection' : 'local-file', cursorPagination: true },
-    xPayouts: await xFeeReadiness(), gifts: { enabled: false, reason: 'No approved gifting provider or delivery-receipt integration is configured.' } }) });
+    xPayouts: await xFeeReadiness({ creatorSigned:true }), gifts: { enabled: false, reason: 'No approved gifting provider or delivery-receipt integration is configured.' } }) });
 
 const productMetrics = createProductMetricsStore(databaseUrl);
 const handleProductMetrics = createProductMetricsHandler({metrics:productMetrics, cluster:solanaCluster,
