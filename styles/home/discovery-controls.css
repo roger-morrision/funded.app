@@ -30,6 +30,9 @@ body.page-route-overview .home-market-ticker-items .home-token-avatar { display:
 body.page-route-overview .home-market-ticker-items .home-token-avatar img { width: 100%; height: 100%; object-fit: cover; }
 body.page-route-overview .home-market-ticker-items .home-ticker-rank { color: #687684; font-weight: 500; }
 body.page-route-overview .home-market-ticker-items strong { overflow: hidden; text-overflow: ellipsis; }
+body.page-route-overview .home-market-ticker-items a:has(.home-ticker-boost) { width: max-content; max-width: none; }
+body.page-route-overview .home-market-ticker-items a:has(.home-ticker-boost) > strong { max-width: 100px; }
+body.page-route-overview .home-market-ticker-items .home-ticker-boost { flex: none; color: #ffd34f; font: 700 10px 'DM Mono', monospace; white-space: nowrap; }
 body.page-route-overview .home-market-ticker-items .home-ticker-change { flex: none; color: #8794a2; }
 body.page-route-overview .home-market-ticker-items .is-positive { color: #55d990; }
 body.page-route-overview .home-market-ticker-items .is-negative { color: #eb6c7a; }
