@@ -79,6 +79,7 @@
     "verify:devnet-role-config": "node scripts/verify-devnet-role-config.mjs",
     "verify:rpc-retry": "node scripts/verify-rpc-retry.mjs",
     "verify:listing-policy": "node scripts/verify-listing-policy.mjs",
+    "verify:listing-rpc": "node scripts/verify-listing-rpc.mjs",
     "buyback:execute": "node --env-file=.env.local --env-file=.env.deploy --env-file-if-exists=.env.devnet-app-roles.local scripts/run-buyback-executor.mjs",
     "buyback:initialize-devnet": "node --env-file=.env.local --env-file=.env.deploy --env-file-if-exists=.env.devnet-app-roles.local scripts/initialize-buyback-executor-devnet.mjs",
     "qa:fund-burn-wallets": "node --env-file=.env.local --env-file-if-exists=.env.devnet-app-roles.local scripts/provision-funded-qa-budget.mjs",
