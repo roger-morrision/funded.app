@@ -69,16 +69,6 @@ const posterDefinitions = [
       ['03', 'Opt out', 'Uncheck to stop future measurement.'],
     ],
   },
-  {
-    selector: '#referral-command-center .panel-explainer', key: 'referrals',
-    eyebrow: 'Referral journey', title: 'An invite is only the start',
-    summary: 'Read the full referral explanation',
-    items: [
-      ['01', 'Invite', 'Share a trackable link.'],
-      ['02', 'Qualify', 'Creator-fee activity is verified.'],
-      ['03', 'Claim', 'Approve an available reward.'],
-    ],
-  },
 ];
 
 function addPoster(definition) {

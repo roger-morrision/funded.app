@@ -15,7 +15,6 @@ const guideLabels = {
   fees: 'View the published fee split',
   docs: 'View the illustrated guide',
   airdrops: 'How a claim is verified',
-  referrals: 'How referral rewards qualify',
   privacy: 'How wallet signing works',
   visits: 'How optional visit tracking works',
 };

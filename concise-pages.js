@@ -227,7 +227,7 @@ function shortenPageCopy() {
     ['#analytics-detail .split-detail', 'This shows the published fee split. Actual payments appear after confirmation.'],
     ['#token-image-help', 'PNG, JPG, WEBP · 12 MB max · square image recommended'],
     ['#launch-route-shell .launch-immutable-note', 'Token details publish at launch and cannot be edited here later.'],
-    ['#referral-command-center .section-heading .panel-explainer', 'Track qualified creators and claimable rewards. Signups alone earn nothing.'],
+    ['#referral-command-center .section-heading .panel-explainer', 'Share your link. Rewards come from collected creator fees, not signups.'],
     ['#referral-command-center .referral-share-panel .field-help', 'Use one link per campaign. Never promise returns.'],
     ['#referral-faq .faq-grid details:nth-child(1) p', 'Rewards become available after a referred creator earns fees and those fees are collected. Signups alone earn nothing.'],
     ['#referral-faq .faq-grid details:nth-child(2) p', 'Unfilled levels go to the community reserve; they are not reassigned.'],

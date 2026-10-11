@@ -41,6 +41,17 @@ try {
       page.on('pageerror', error => errors.push(error.message));
       await page.goto(`${base}${path}`, { waitUntil: 'domcontentloaded' });
       await page.waitForSelector('body.workspace-ready');
+      if (key === 'referrals') {
+        const steps = page.locator('#referral-command-center .referral-quick-steps li');
+        await steps.first().waitFor({ state: 'visible' });
+        assert.equal(await steps.count(), 3, 'Referral explanation should have three short steps');
+        assert.equal(await page.locator('[data-infographic-poster="referrals"]').count(), 0, 'Referral banner should be removed');
+        assert((await steps.allInnerTexts()).join(' ').includes('collected'), 'Referral explanation should state when fees qualify');
+        assert((await page.evaluate(() => document.documentElement.scrollWidth)) <= width + 1, `${path}: ${width}px overflow`);
+        results.push({ path, key, width, textOnly: true });
+        await page.close();
+        continue;
+      }
       if (key === 'funded-deep-link') {
         await page.locator('#funded-holder-token-rewards').waitFor({ state: 'visible', timeout: 15000 });
         results.push({ path, key, width, sectionVisible: true });
