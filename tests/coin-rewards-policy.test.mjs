@@ -14,7 +14,7 @@ test('verified token policy matches the short creator, holder, and X line on hom
   const result = verifiedCoinRewardsPolicy(makePolicy(), mint, 'devnet');
   assert.equal(result.compact, 'Creator 50% · Holders 20% · @fundedvip 10%');
   assert.equal(result.xAccount, '@fundedvip');
-  assert.deepEqual(result.protocolPrograms, { operations:14, referrals:3, community:2, buyback:1 });
+  assert.deepEqual(result.protocolPrograms, { operations:10, referrals:3, community:2, buyback:5 });
 });
 
 test('unverified, mismatched, or inconsistent policies cannot show a reward split', () => {

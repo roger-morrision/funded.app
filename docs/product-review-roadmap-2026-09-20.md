@@ -218,7 +218,7 @@ The gates below are proposed acceptance targets, not measured conversion rates o
 
 ## Economics and benefits: be explicit about the tradeoffs
 
-The current policy sends 80% of collected creator fees to configured creator-directed destinations and 20% to app programs. Within the gross creator-fee amount, that is 14% operations, 3% referrals, 2% community, 1% buyback. Separately, the app's trade-fee default is 50 basis points in `pump-trading.js`; actual configuration and upstream protocol fees must be quoted at execution.
+At the time of this September 20 review, the policy sent 80% of collected creator fees to configured creator-directed destinations and 20% to app programs. Within the gross creator-fee amount, that was 14% operations, 3% referrals, 2% community, and 1% buyback. This is a historical snapshot; see [the current fee split](protocol-fee-split-config.md) for new launches. Separately, the app's trade-fee default is 50 basis points in `pump-trading.js`; actual configuration and upstream protocol fees must be quoted at execution.
 
 These are different fee bases. A 20% creator-fee share does **not** mean a 20% tax on every trade. Conversely, the added trading fee must not disappear behind the 80/20 explanation. Show all-in cost before signing and evaluate whether users receive enough service to justify both revenue streams. Do not double-count program allocations as additional income.
 

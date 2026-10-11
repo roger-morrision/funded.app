@@ -32,9 +32,10 @@ export function createBuybackController(appState) {
     const help = input?.parentElement?.querySelector('.field-help');
     if (!help) return;
     const fees = Number(input.value);
+    const buybackPercent = appState.FEE_DISTRIBUTION.buybackEffectivePercent;
     help.textContent = input.value.trim() && Number.isFinite(fees) && fees > 0
-      ? `${appState.formatBuybackAmount(fees, 9)} SOL in gross fees would allocate ${appState.formatBuybackAmount(fees * 0.01, 9)} SOL (1%) to buybacks. Local calculation only; no claim recorded.`
-      : 'Enter gross creator fees above zero to preview the 1% buyback allocation.';
+      ? `${appState.formatBuybackAmount(fees, 9)} SOL in gross fees would allocate ${appState.formatBuybackAmount(fees * buybackPercent / 100, 9)} SOL (${buybackPercent}%) to buybacks. Local calculation only; no claim recorded.`
+      : `Enter gross creator fees above zero to preview the ${buybackPercent}% buyback allocation.`;
   }
   // app-source-end
 

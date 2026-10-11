@@ -3,8 +3,8 @@
 // launches after the app and API are rebuilt/restarted. Existing launch policy
 // snapshots and settlements retain their original percentages.
 export const PROTOCOL_FEE_SPLIT = Object.freeze({
-  operationsPercent: 70,
+  operationsPercent: 50,
   referralLevelPercents: Object.freeze([10, 3, 2]),
   communityPercent: 10,
-  buybackPercent: 5,
+  buybackPercent: 25,
 });

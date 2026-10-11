@@ -25,6 +25,10 @@ const flowAssets = {
 };
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
+if (process.env.PUBLIC_UI_ONLY) {
+  await context.route('https://fonts.googleapis.com/**', route => route.abort());
+  await context.route('https://fonts.gstatic.com/**', route => route.abort());
+}
 await context.addInitScript(() => sessionStorage.setItem('funded.app.wallet.manual-disconnect', '1'));
 await context.route('**/api/**', route => process.env.PUBLIC_UI_ONLY
   ? route.fulfill({ status: 503, contentType: 'application/json', body: '{}' })

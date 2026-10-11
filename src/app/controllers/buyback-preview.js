@@ -6,10 +6,11 @@ export function createBuybackPreviewController(appState) {
     if (!Number.isFinite(fees) || fees <= 0) { appState.renderBuybackDashboard('Enter a gross creator-fee amount above zero.'); return; }
     const state = appState.getBuybackPreviewState();
     const signature = `preview-claim-${Date.now()}-${state.accruals.length + 1}`;
-    state.accruals.push(appState.buildBuybackAccrual({ claimSignature: signature, grossCreatorFees: fees, asset: 'SOL' }));
+    const accrual = appState.buildBuybackAccrual({ claimSignature: signature, grossCreatorFees: fees, asset: 'SOL' });
+    state.accruals.push(accrual);
     appState.saveBuybackPreviewState(state);
-    appState.renderBuybackDashboard(`${appState.formatBuybackAmount(fees)} SOL claim recorded. Exactly ${appState.formatBuybackAmount(fees * 0.01)} SOL was reserved for buyback.`);
-    appState.showToast('Example fee claim allocated to the buyback vault');
+    appState.renderBuybackDashboard(`${appState.formatBuybackAmount(fees)} SOL example claim recorded. Exactly ${appState.formatBuybackAmount(accrual.buybackAmount)} SOL would be reserved for buyback.`);
+    appState.showToast('Example buyback allocation saved locally');
   }
   // app-source-end
 

@@ -66,4 +66,7 @@ assert.equal(mixedOverview.receivers.find(row => row.id === 'holders').confirmed
 const customPolicy = buildFeeDistributionPolicy({ creatorWalletPercent:80 }, { fundedSplit:{ operationsPercent:50, referralLevelPercents:[12,5,3], communityPercent:20, buybackPercent:10 } });
 const customOverview = coinFeeOverview({ ...base, launch:{ ...launch, feeDistribution:customPolicy } });
 assert.deepEqual(customOverview.receivers.filter(row => row.id === 'operations' || row.id.startsWith('referral-') || row.id === 'community' || row.id === 'buyback').map(row => row.percent), [10, 2.4, 1, 0.6, 4, 2]);
+const currentPolicy = buildFeeDistributionPolicy({ creatorWalletPercent:80 });
+const currentOverview = coinFeeOverview({ ...base, launch:{ ...launch, feeDistribution:currentPolicy } });
+assert.deepEqual(currentOverview.receivers.filter(row => row.id === 'operations' || row.id.startsWith('referral-') || row.id === 'community' || row.id === 'buyback').map(row => row.percent), [10, 2, 0.6, 0.4, 2, 5]);
 console.log('coin fee overview: verified collection isolation, allocation, and confirmed payment totals');
