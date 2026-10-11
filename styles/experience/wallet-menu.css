@@ -57,11 +57,7 @@
   flex: none;
   width: 14px;
   height: 12px;
-  transform: skewX(-18deg);
-  background:
-    linear-gradient(90deg, #a968ff, #ffd28a) 0 0 / 100% 3px no-repeat,
-    linear-gradient(90deg, #ffd28a, #8f61ff) 0 50% / 100% 3px no-repeat,
-    linear-gradient(90deg, #a968ff, #ffd28a) 0 100% / 100% 3px no-repeat;
+  background: url('/solana-logomark.svg') center / contain no-repeat;
 }
 .connect-button.wallet-pill-connected .header-wallet-balance {
   margin: 0;

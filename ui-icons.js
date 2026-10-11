@@ -1,6 +1,5 @@
 // One stroke icon language for navigation and small controls across the workspace.
 const paths = {
-  solana: '<g stroke="none"><path fill="#14f195" d="M6 4h16l-4 4H2z"/><path fill="#80a3e8" d="M2 10h16l4 4H6z"/><path fill="#9945ff" d="M6 16h16l-4 4H2z"/></g>',
   home: '<path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/>',
   explore: '<circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/>',
   launch: '<path d="M12 4v16M4 12h16"/>',
@@ -41,5 +40,6 @@ const paths = {
 };
 
 export function icon(name) {
+  if (name === 'solana') return '<img src="/solana-logomark.svg" alt="" aria-hidden="true" />';
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name] || paths.explore}</svg>`;
 }

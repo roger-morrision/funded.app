@@ -131,6 +131,7 @@
 }
 
 .payment-receipt-link svg { width: 17px; height: 17px; }
+.payment-receipt-link img { display: block; width: 17px; height: 17px; object-fit: contain; }
 .recipients-panel .payment-row a.solana-explorer-link {
   display: inline-flex;
   width: 44px;
@@ -143,6 +144,7 @@
   border-radius: 8px;
 }
 .recipients-panel .solana-explorer-link svg { width: 20px; height: 20px; }
+.recipients-panel .solana-explorer-link img { width: 20px; height: 20px; }
 .recipients-panel .payment-row > .recent-recipient-identity {
   display: flex;
   min-width: 0;

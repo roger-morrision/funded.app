@@ -128,7 +128,10 @@ export function updateTradeAmountLabel(
   const label = document.querySelector('#trade-amount-heading');
   if (label) label.textContent = side === 'sell' ? 'Tokens to sell' : 'SOL to spend';
   const asset = document.querySelector('#trade-asset-symbol');
-  if (asset) asset.textContent = side === 'sell' ? coinTradeEstimate?.symbol || document.querySelector('#coin-symbol')?.textContent?.trim() || 'Token' : '◎ SOL';
+  if (asset) {
+    if (side === 'sell') asset.textContent = coinTradeEstimate?.symbol || document.querySelector('#coin-symbol')?.textContent?.trim() || 'Token';
+    else asset.innerHTML = '<img src="/solana-logomark.svg" alt="" aria-hidden="true" /> SOL';
+  }
   const amount = document.querySelector('#trade-amount');
   if (amount) amount.placeholder = side === 'sell' ? '1,000' : '0.10';
   const presets = document.querySelector('#coin-quick-amounts');
