@@ -7,8 +7,11 @@ const response = await fetch(api, { signal:AbortSignal.timeout(10_000) });
 assert.equal(response.ok, true, 'Devnet buyback receipt index must be available');
 const status = await response.json();
 assert.equal(status.cluster, 'devnet');
-const receipts = status.receipts || [];
-assert.ok(receipts.length > 0, 'At least one finalized fee-funded buyback receipt is required');
+const targetMint = String(process.env.BUYBACK_VERIFY_MINT || '').trim();
+const receipts = (status.receipts || []).filter(receipt => !targetMint || receipt.mint === targetMint);
+assert.ok(receipts.length > 0, targetMint
+  ? 'No finalized buyback receipt exists for the requested mint.'
+  : 'At least one finalized fee-funded buyback receipt is required');
 const connection = new Connection(process.env.SOLANA_RPC_URL, 'confirmed');
 const fundedMint = process.env.FUNDED_TOKEN_MINT;
 const pool = process.env.FUNDED_SWAP_POOL;
@@ -23,6 +26,8 @@ for (const receipt of receipts) {
     connection.getTransaction(receipt.refundSignature, { commitment:'finalized', maxSupportedTransactionVersion:0 }),
   ]);
   assert.ok(transaction && parsed && refund, 'Buy, burn, and refund must all be finalized');
+  assert.equal(claim?.owner.toBase58(), process.env.FUNDED_FEE_ROUTER_PROGRAM_ID,
+    'Buyback claim belongs to a different router program; choose a current-program mint rather than a retired test account.');
   assert.equal(transaction.meta.err, null);
   assert.equal(refund.meta.err, null);
   const burn = parsed.transaction.message.instructions.find(instruction => instruction.program === 'spl-token' && instruction.parsed?.type === 'burnChecked' && instruction.parsed.info.mint === fundedMint);

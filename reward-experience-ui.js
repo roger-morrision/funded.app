@@ -288,16 +288,22 @@ async function fetchJson(path) {
   return response.json();
 }
 let refreshToken = 0;
-async function refresh() {
-  const current = ++refreshToken;
+let lastRefreshKey = '';
+let lastRefreshAt = 0;
+async function refresh({ force = false } = {}) {
   renderAlerts();
   const wallet = document.documentElement.dataset.connectedWallet || '';
   const mint = location.pathname.match(/^\/token\/([^/]+)$/)?.[1] || '';
+  const xConnected = document.querySelector('#x-sign-in')?.dataset.connected === 'true';
+  const refreshKey = JSON.stringify([wallet, mint, xConnected, alertsEnabled()]);
+  if (!force && refreshKey === lastRefreshKey && Date.now() - lastRefreshAt < 15_000) return;
+  lastRefreshKey = refreshKey;
+  lastRefreshAt = Date.now();
+  const current = ++refreshToken;
   const params = new URLSearchParams();
   if (validMint(wallet)) params.set('wallet', wallet);
   if (validMint(mint)) params.set('mint', mint);
   const scoped = validMint(mint);
-  const xConnected = document.querySelector('#x-sign-in')?.dataset.connected === 'true';
   const [experience, buybacks, referrals, xClaims, alertEvents] = await Promise.allSettled([
     fetchJson(`/api/rewards/experience${params.size ? '?' + params : ''}`),
     fetchJson('/api/buyback/status'),
@@ -319,8 +325,8 @@ renderAlerts();
 document.addEventListener('funded:token-list-markets', () => {
   if (!location.pathname.startsWith('/token/')) renderDiscovery(latest);
 });
-window.addEventListener('funded:reward-identity-change', refresh);
-window.addEventListener('popstate', refresh);
+window.addEventListener('funded:reward-identity-change', () => { void refresh({ force:true }); });
+window.addEventListener('popstate', () => { void refresh(); });
 window.addEventListener('funded:watchlist-changed', () => { renderAlerts(); captureAlerts(latest); });
 window.addEventListener('storage', event => {
   if (event.key === WATCH_KEY || event.key === ALERT_KEY || event.key === null) renderAlerts();

@@ -14,6 +14,10 @@ try {
   await page.waitForFunction(() => [...document.querySelectorAll('.home-rewards-spotlight .home-rewards-grid')].length === 3
     && [...document.querySelectorAll('.home-rewards-spotlight .home-rewards-grid')]
       .every(track => track.dataset.carouselReady === '1'), null, { timeout:10000 });
+  const rewardsDisclosure = page.locator('details.product-details:has(.home-rewards-stack)');
+  if (await rewardsDisclosure.count() && await rewardsDisclosure.getAttribute('open') === null) {
+    await rewardsDisclosure.locator('summary').click();
+  }
   const [launches, reserves, experience] = await Promise.all([
     page.evaluate(() => fetch('/api/launches').then(response => response.json())),
     page.evaluate(() => fetch('/api/airdrops/reserves').then(response => response.json())),
