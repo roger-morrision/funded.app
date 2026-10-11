@@ -2,12 +2,12 @@ use {
     anchor_lang::{prelude::{Clock, Rent}, solana_program::{instruction::Instruction, program_pack::Pack, system_instruction}, Discriminator, InstructionData, ToAccountMetas},
     anchor_spl::{associated_token::{get_associated_token_address, spl_associated_token_account}, token::spl_token},
     litesvm::LiteSVM,
-    solana_keypair::Keypair,
+    solana_keypair_lite::Keypair,
     solana_account::Account,
-    solana_message::{Message, VersionedMessage},
-    solana_signer::Signer,
+    solana_message_lite::{Message, VersionedMessage},
+    solana_signer_lite::Signer,
     solana_sha256_hasher::hashv,
-    solana_transaction::versioned::VersionedTransaction,
+    solana_transaction_lite::versioned::VersionedTransaction,
 };
 mod support;
 

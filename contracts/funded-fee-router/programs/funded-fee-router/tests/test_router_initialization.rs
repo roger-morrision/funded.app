@@ -5,6 +5,7 @@ use solana_keypair_lite::Keypair;
 use solana_message_lite::{Message, VersionedMessage};
 use solana_signer_lite::Signer;
 use solana_transaction_lite::versioned::VersionedTransaction;
+mod support;
 
 fn send(svm: &mut LiteSVM, payer: &Keypair, signers: &[&Keypair], instruction: Instruction) -> bool {
     let message = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &svm.latest_blockhash());
@@ -20,16 +21,18 @@ fn prefunded_router_initialization_preserves_deposits_and_rejects_reinitializati
         let mut svm = LiteSVM::new();
         svm.add_program(program, include_bytes!("../../../target/deploy/funded_fee_router.so")).unwrap();
         let payer = Keypair::new();
+        let program_data = support::set_upgrade_owner(&mut svm, program, payer.pubkey());
         let mint = Keypair::new();
         svm.airdrop(&payer.pubkey(), 1_000_000_000).unwrap();
         let (legacy_router, legacy_bump) = Pubkey::find_program_address(&[b"funded-fee-router-v1"], &program);
         let (router, mint_bump) = Pubkey::find_program_address(&[b"funded-mint-router-v2", mint.pubkey().as_ref()], &program);
+        let (ledger, _) = Pubkey::find_program_address(&[b"mint-fee-ledger-v1", mint.pubkey().as_ref()], &program);
         for address in [legacy_router, router] {
             assert!(send(&mut svm, &payer, &[&payer], system_instruction::transfer(&payer.pubkey(), &address, prefunding)));
         }
         let initialize = Instruction::new_with_bytes(program, &funded_fee_router::instruction::Initialize {}.data(),
-            funded_fee_router::accounts::Initialize { authority: payer.pubkey(), router: legacy_router,
-                system_program: anchor_lang::system_program::ID }.to_account_metas(None));
+            funded_fee_router::accounts::Initialize { authority: payer.pubkey(), app_owner:payer.pubkey(), router: legacy_router,
+                program, program_data, system_program: anchor_lang::system_program::ID }.to_account_metas(None));
         assert!(send(&mut svm, &payer, &[&payer], initialize.clone()), "prefunded global router must initialize");
         let account = svm.get_account(&legacy_router).unwrap();
         assert_eq!(account.owner, program);
@@ -37,7 +40,7 @@ fn prefunded_router_initialization_preserves_deposits_and_rejects_reinitializati
         assert_eq!(account.data.len(), ROUTER_DATA_LEN);
         assert_eq!(account.data[73], legacy_bump);
         let initialize_mint = Instruction::new_with_bytes(program, &funded_fee_router::instruction::InitializeMint {}.data(),
-            funded_fee_router::accounts::InitializeMint { payer: payer.pubkey(), mint: mint.pubkey(), legacy_router, router,
+            funded_fee_router::accounts::InitializeMint { payer: payer.pubkey(), mint: mint.pubkey(), legacy_router, router, ledger,
                 system_program: anchor_lang::system_program::ID }.to_account_metas(None));
         assert!(send(&mut svm, &payer, &[&payer, &mint], initialize_mint.clone()), "prefunded mint router must initialize");
         let mint_account = svm.get_account(&router).unwrap();

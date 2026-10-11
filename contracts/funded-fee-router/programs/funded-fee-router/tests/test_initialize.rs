@@ -2,11 +2,11 @@
 use {
     anchor_lang::{solana_program::{instruction::{AccountMeta, Instruction}, system_instruction}, InstructionData, ToAccountMetas},
     litesvm::LiteSVM,
-    solana_message::{Message, VersionedMessage},
-    solana_signer::Signer,
-    solana_keypair::Keypair,
+    solana_message_lite::{Message, VersionedMessage},
+    solana_signer_lite::Signer,
+    solana_keypair_lite::Keypair,
     solana_account::Account,
-    solana_transaction::versioned::VersionedTransaction,
+    solana_transaction_lite::versioned::VersionedTransaction,
 };
 mod support;
 
@@ -273,7 +273,7 @@ fn legacy_settlement_rejects_empty_self_and_invalid_destinations() {
         assert!(svm.get_account(&claim).is_none());
         assert_eq!(svm.get_account(&router).unwrap().lamports, 200_000_000);
     }
-    // Legacy callers may legitimately pay the authority; preserve that supported path.
+    // Even a formerly valid legacy destination must fail after settlement is disabled.
     let claim_id = [9; 32];
     let claim = Pubkey::find_program_address(&[b"claim", &claim_id], &program_id).0;
     let mut metas = funded_fee_router::accounts::Settle { authority: authority.pubkey(), router, claim,
@@ -283,7 +283,7 @@ fn legacy_settlement_rejects_empty_self_and_invalid_destinations() {
         &funded_fee_router::instruction::Settle { claim_id, amounts: vec![1_000_000] }.data(), metas);
     let message = Message::new_with_blockhash(&[instruction], Some(&authority.pubkey()), &svm.latest_blockhash());
     let transaction = VersionedTransaction::try_new(VersionedMessage::Legacy(message), &[&authority]).unwrap();
-    svm.send_transaction(transaction).unwrap();
-    assert!(svm.get_account(&claim).is_some());
-    assert_eq!(svm.get_account(&router).unwrap().lamports, 199_000_000);
+    assert!(svm.send_transaction(transaction).is_err());
+    assert!(svm.get_account(&claim).is_none());
+    assert_eq!(svm.get_account(&router).unwrap().lamports, 200_000_000);
 }

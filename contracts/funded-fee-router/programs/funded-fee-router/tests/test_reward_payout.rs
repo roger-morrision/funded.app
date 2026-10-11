@@ -3,7 +3,7 @@ use anchor_lang::{
     solana_program::instruction::Instruction,
     AccountSerialize, InstructionData, ToAccountMetas,
 };
-use funded_fee_router::{RewardCycle, RewardVault};
+use funded_fee_router::{RewardCycle, RewardVault, RewardReserve};
 use litesvm::LiteSVM;
 use solana_account::Account;
 use solana_keypair_lite::Keypair;
@@ -40,12 +40,14 @@ fn sol_reward_rejects_wrong_proof_early_payment_replay_and_self_payment() {
     let payment = Pubkey::find_program_address(&[b"reward-payment-v1", cycle.as_ref(), recipient.as_ref()], &program_id).0;
     let root = hashv(&[b"funded-reward-leaf-v1", &cycle_id, recipient.as_ref(), Pubkey::default().as_ref(), &amount.to_le_bytes(), &0u32.to_le_bytes()]).to_bytes();
     store(&mut svm, vault, &RewardVault { authority: payer.pubkey(), mint, bump: vault_bump }, 100_000_000);
+    let (reserve, reserve_bump) = Pubkey::find_program_address(&[b"reward-reserve-v1", vault.as_ref(), Pubkey::default().as_ref()], &program_id);
+    store(&mut svm, reserve, &RewardReserve { vault, asset_mint:Pubkey::default(), outstanding:amount, bump:reserve_bump }, 10_000_000);
     let mut cycle_data = RewardCycle { vault, cycle_id, merkle_root: root, asset_mint: Pubkey::default(), total_amount: amount,
-        distributed_amount: 0, cutoff_at: 100, payout_at: 200, leaf_count: 1, bump: cycle_bump };
+        distributed_amount: 0, cutoff_at: 100, payout_at: 200, leaf_count: 1, bump: cycle_bump, reserved:true };
     store(&mut svm, cycle, &cycle_data, 10_000_000);
     let make_instruction = |recipient, payment, value| Instruction::new_with_bytes(program_id,
         &funded_fee_router::instruction::PayoutRewardSol { amount: value, leaf_index: 0, proof: vec![] }.data(),
-        funded_fee_router::accounts::PayoutRewardSol { payer: payer.pubkey(), vault, cycle, recipient, payment,
+        funded_fee_router::accounts::PayoutRewardSol { payer: payer.pubkey(), vault, reserve, cycle, recipient, payment,
             system_program: anchor_lang::system_program::ID }.to_account_metas(None));
     let mut clock = svm.get_sysvar::<Clock>();
     clock.unix_timestamp = 199;
@@ -67,6 +69,7 @@ fn sol_reward_rejects_wrong_proof_early_payment_replay_and_self_payment() {
     // Even an operator-committed root cannot count an internal self-transfer as paid.
     cycle_data.merkle_root = hashv(&[b"funded-reward-leaf-v1", &cycle_id, vault.as_ref(), Pubkey::default().as_ref(), &amount.to_le_bytes(), &0u32.to_le_bytes()]).to_bytes();
     store(&mut svm, cycle, &cycle_data, 10_000_000);
+    store(&mut svm, reserve, &RewardReserve { vault, asset_mint:Pubkey::default(), outstanding:amount, bump:reserve_bump }, 10_000_000);
     let self_payment = Pubkey::find_program_address(&[b"reward-payment-v1", cycle.as_ref(), vault.as_ref()], &program_id).0;
     assert!(!send(&mut svm, &payer, make_instruction(vault, self_payment, amount)));
     assert!(svm.get_account(&self_payment).is_none());
@@ -109,14 +112,16 @@ fn token_2022_reward_rejects_withheld_fee_and_rolls_back_obligation() {
         let (cycle, bump) = Pubkey::find_program_address(&[b"reward-cycle-v1", vault.as_ref(), &cycle_id], &program_id);
         let root = hashv(&[b"funded-reward-leaf-v1", &cycle_id, recipient.as_ref(), mint.pubkey().as_ref(), &amount.to_le_bytes(), &0u32.to_le_bytes()]).to_bytes();
         store(&mut svm, cycle, &RewardCycle { vault, cycle_id, merkle_root: root, asset_mint: mint.pubkey(), total_amount: amount,
-            distributed_amount: 0, cutoff_at: 1, payout_at: 2, leaf_count: 1, bump }, 10_000_000);
+            distributed_amount: 0, cutoff_at: 1, payout_at: 2, leaf_count: 1, bump, reserved:true }, 10_000_000);
+        let (reserve, reserve_bump) = Pubkey::find_program_address(&[b"reward-reserve-v1", vault.as_ref(), mint.pubkey().as_ref()], &program_id);
+        store(&mut svm, reserve, &RewardReserve { vault, asset_mint:mint.pubkey(), outstanding:amount, bump:reserve_bump }, 10_000_000);
         let mut clock = svm.get_sysvar::<Clock>();
         clock.unix_timestamp = 200;
         svm.set_sysvar(&clock);
         let payment = Pubkey::find_program_address(&[b"reward-payment-v1", cycle.as_ref(), recipient.as_ref()], &program_id).0;
         let payout = Instruction::new_with_bytes(program_id,
             &funded_fee_router::instruction::PayoutRewardToken { amount, leaf_index: 0, proof: vec![] }.data(),
-            funded_fee_router::accounts::PayoutRewardToken { payer: payer.pubkey(), vault, cycle, recipient,
+            funded_fee_router::accounts::PayoutRewardToken { payer: payer.pubkey(), vault, reserve, cycle, recipient,
                 asset_mint: mint.pubkey(), vault_token_account: source, recipient_token_account: destination,
                 payment, token_program, system_program: anchor_lang::system_program::ID }.to_account_metas(None));
         let cycle_before = svm.get_account(&cycle).unwrap().data;
