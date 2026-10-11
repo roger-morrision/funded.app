@@ -1,5 +1,11 @@
 /* Analytics needs to respond to its content area, which is narrower beside the sidebar. */
 .page-route-analytics-detail #analytics-detail { container: analytics / inline-size; }
+.page-route-analytics-detail .analytics-fee-explainer {
+  max-width: 75ch;
+  margin: 4px 0 20px;
+  color: #b7c4d4;
+  font: 500 13px/1.6 Manrope, sans-serif;
+}
 .page-route-analytics-detail .analytics-kpis.analytics-kpis-complete {
   gap: 12px;
   margin: 20px 0 24px;

@@ -262,12 +262,6 @@ function shortenPageCopy() {
 // remain selectable, accessible, and exact even when the artwork is resized.
 const moneyFlowPosters = [
   {
-    selector: '[data-page-infographic="analytics"]', image: 'fee-collection-flow-v1.webp',
-    key: 'collection', title: 'FEE COLLECTION', metric: '100%',
-    metricLabel: 'claimed creator fees routed',
-    steps: ['Accrue', 'Verified claim', 'Router receipt'],
-  },
-  {
     selector: '[data-page-infographic="capital"]', image: 'fee-distribution-flow-v1.webp',
     key: 'distribution', title: 'CLAIMED FEE SPLIT', metric: '80% / 20%',
     metricLabel: 'creator-directed / protocol',

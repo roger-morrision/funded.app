@@ -19,7 +19,7 @@ const routes = [
   ['/wallet/11111111111111111111111111111111', 'wallet'],
 ].filter(([path]) => !process.env.PUBLIC_UI_ONLY || (!path.startsWith('/token/') && !path.startsWith('/wallet/')));
 const flowAssets = {
-  analytics: 'fee-collection-flow-v1.webp', coin: 'fee-collection-flow-v1.webp',
+  coin: 'fee-collection-flow-v1.webp',
   capital: 'fee-distribution-flow-v1.webp', fees: 'fee-distribution-flow-v1.webp',
   rewards: 'holder-rewards-flow-v1.webp', holder: 'holder-rewards-flow-v1.webp',
 };
@@ -41,6 +41,17 @@ try {
       page.on('pageerror', error => errors.push(error.message));
       await page.goto(`${base}${path}`, { waitUntil: 'domcontentloaded' });
       await page.waitForSelector('body.workspace-ready');
+      if (key === 'analytics') {
+        const explanation = page.locator('#analytics-detail .analytics-fee-explainer');
+        await explanation.waitFor({ state: 'visible', timeout: 15000 });
+        assert.match(await explanation.innerText(), /successful Solana claim confirms the fee router received the expected SOL/);
+        assert.equal(await page.locator('#analytics-detail .page-infographic-analytics, #analytics-detail .page-cleanup-guide[data-guide="analytics"]').count(), 0);
+        const layout = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
+        assert(layout.document <= layout.viewport + 1, `${path}: ${width}px overflow ${JSON.stringify(layout)}`);
+        results.push({ path, key, width, textOnly: true });
+        await page.close();
+        continue;
+      }
       const guide = page.locator(key === 'docs-subtopic'
         ? '.page-cleanup-guide[data-guide="docs-subtopic"]:visible, .page-cleanup-guide[data-guide="docs"]:visible'
         : `.page-cleanup-guide[data-guide="${key}"]`).first();

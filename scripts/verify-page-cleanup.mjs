@@ -81,8 +81,11 @@ try {
   assert((await page.locator('#buybacks .burn-center-layout').boundingBox()).y < 650);
   assert.equal(await page.locator('#buybacks .page-cleanup-guide[data-guide="burn"]').evaluate(element => element.open), false);
 
+  await open('analytics-detail', 1280);
+  assert(await page.locator('#analytics-detail .analytics-fee-explainer').isVisible());
+  assert.equal(await page.locator('#analytics-detail .page-cleanup-guide[data-guide="analytics"], #analytics-detail .page-infographic-analytics').count(), 0);
+
   await open('capital-flow', 1280);
-  assert.equal(await page.locator('#analytics-detail > .page-cleanup-guide[data-guide="analytics"]').isVisible(), false);
   assert(await page.locator('#capital-flow .page-cleanup-guide[data-guide="capital"]').isVisible());
 
   for (const route of ['overview', 'explore', 'airdrops', 'payments', 'buybacks', 'my-launches', 'community', 'docs']) {

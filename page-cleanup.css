@@ -24,7 +24,6 @@ body.page-route .page-cleanup-guide > :is(.page-infographic,.infographic-poster)
   box-shadow: none;
 }
 body.page-route-docs:not(.docs-subtopic-without-poster) .page-cleanup-guide[data-guide="docs-subtopic"] { display: none; }
-body.page-route-capital-flow #analytics-detail > .page-cleanup-guide[data-guide="analytics"],
 body.page-route-buybacks #paid > .page-cleanup-guide[data-guide="fees"] { display: none; }
 
 /* One global create action is enough; the page itself has the form. */

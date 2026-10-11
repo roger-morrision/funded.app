@@ -65,7 +65,6 @@ body.page-route .page-infographic-copy img {
   object-fit: contain;
 }
 body.page-route-list .page-infographic-list,
-body.page-route-analytics-detail:not(.page-route-capital-flow) .page-infographic-analytics,
 body.page-route-community .page-infographic-community,
 body.page-route-capital-flow .page-infographic-capital,
 body.page-route-profile .page-infographic-profile,

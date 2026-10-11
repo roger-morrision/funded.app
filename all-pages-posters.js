@@ -1,7 +1,6 @@
 // One concise, image-led guide for each public page that lacks the existing poster.
 const pagePosterDefinitions = [
   { key: 'list', anchor: '#list h1', title: 'Get listed with proof', note: 'Submit the project, pass the checks, then appear in the directory.', steps: ['Apply', 'Check', 'Publish'] },
-  { key: 'analytics', anchor: '#analytics-detail .purpose-page-nav', title: 'Follow verified data', note: 'Read the activity, its units, and the receipts behind it.', steps: ['Activity', 'Units', 'Receipts'] },
   { key: 'community', anchor: '#community .section-heading', title: 'Save and compare', note: 'Keep a watchlist and compare available market evidence.', steps: ['Explore', 'Watch', 'Compare'] },
   { key: 'capital', anchor: '#capital-flow .section-heading', title: 'See where fees go', note: 'Preview the policy split, then check confirmed destination receipts.', steps: ['Claim', 'Split', 'Receipt'] },
   { key: 'profile', anchor: '#profile .section-heading', title: 'Sign with context', note: 'Connect the wallet, review the action, and confirm the result.', steps: ['Connect', 'Review', 'Verify'] },

@@ -3,7 +3,6 @@ import './professional-ui.css';
 
 // Keep the primary task visible before optional illustrations and supporting data.
 const guideLabels = {
-  analytics: 'How fee collection is verified',
   capital: 'How claimed fees are allocated',
   community: 'How the watchlist works',
   profile: 'How wallet actions are verified',
