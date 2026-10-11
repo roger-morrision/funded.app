@@ -13,10 +13,16 @@ function section(start, end) {
   assert(from >= 0 && to > from);
   return app.slice(from, to);
 }
+const claimsController = await readFile(new URL('../src/app/controllers/community-claims.js', import.meta.url), 'utf8');
 const source = [
-  section('function directoryWalletAmount(program){', 'function renderAirdropDirectory('),
-  section('async function checkCommunityClaim(mintAddress){', 'async function submitCommunityClaim('),
   section('function captureWalletSession(){', 'function wasWalletManuallyDisconnected(){'),
+  section('function directoryWalletAmount(program){', 'function renderAirdropDirectory('),
+  claimsController.replace('export function', 'function'),
+  `const claims = createCommunityClaimsController(globalThis);
+   Object.assign(globalThis, {
+     checkCommunityClaim: claims.checkCommunityClaim,
+     formatCommunityProofAmount: claims.formatCommunityProofAmount,
+   });`,
 ].join('\n');
 
 function fixture(proofResponse) {
