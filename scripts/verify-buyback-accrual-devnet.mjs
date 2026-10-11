@@ -34,6 +34,11 @@ const collectionStatus = await connection.getSignatureStatus(collection.signatur
 assert.equal(collectionStatus.value?.confirmationStatus, 'finalized'); assert.equal(collectionStatus.value?.err, null);
 const settlement = await post('/api/settlements/claims', { claimSignature:collection.signature });
 const allocatedLamports = Math.round(Number(settlement.fundedApp?.buyback) * 1_000_000_000);
-assert(allocatedLamports > 0); assert(Math.abs(allocatedLamports - Math.round(Number(collection.collectedLamports) / 100)) <= 1);
+assert(allocatedLamports > 0);
+const launches = await (await fetch(`${apiBase}/api/launches`, { signal:AbortSignal.timeout(90_000) })).json();
+const launch = launches.find(row => row.mint === mint.toBase58());
+const effectivePercent = Number(launch?.feeDistribution?.fixedFunded?.fundedBuyback?.effectivePercentOfCreatorFees);
+assert(effectivePercent > 0 && effectivePercent <= 20, 'A verified launch buyback policy is required.');
+assert(Math.abs(allocatedLamports - Math.round(Number(collection.collectedLamports) * effectivePercent / 100)) <= 1);
 console.log(JSON.stringify({ status:'verified', cluster:'devnet', mint:mint.toBase58(), trader:trader.publicKey.toBase58(), tradeSignature,
   tokenDeltaBaseUnits:String(after-before), collectionSignature:collection.signature, collectedLamports:String(collection.collectedLamports), buybackLamports:allocatedLamports }));

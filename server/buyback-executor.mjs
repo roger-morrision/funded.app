@@ -20,9 +20,11 @@ export function verifiedBuybackAccruals(state) {
       || launch.pumpFeeRoute?.scope !== 'per-mint-v2' || launch.pumpFeeRoute?.router !== launch.creator) return [];
     const gross = Number(collection.collectedLamports);
     const allocation = Number(settlement.fundedApp?.buyback);
-    if (!Number.isSafeInteger(gross) || gross <= 0 || !Number.isFinite(allocation) || allocation <= 0) return [];
+    const rate = Number(launch.feeDistribution?.fixedFunded?.fundedBuyback?.effectivePercentOfCreatorFees);
+    if (!Number.isSafeInteger(gross) || gross <= 0 || !Number.isFinite(allocation) || allocation <= 0
+      || !Number.isFinite(rate) || rate <= 0 || rate > 20) return [];
     const lamports = Math.round(allocation * 1_000_000_000);
-    if (!Number.isSafeInteger(lamports) || Math.abs(lamports - Math.round(gross / 100)) > 1) return [];
+    if (!Number.isSafeInteger(lamports) || Math.abs(lamports - Math.round(gross * rate / 100)) > 1) return [];
     return [{ id: settlement.claimSignature, mint: collection.mint, router: launch.creator, lamports: String(lamports), claimedAt: settlement.claimedAt || collection.recordedAt }];
   });
 }

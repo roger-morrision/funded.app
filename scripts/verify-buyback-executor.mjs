@@ -5,15 +5,21 @@ const signature = 'verified-collection';
 const mint = 'example-mint';
 const at = '2026-09-18T00:00:00.000Z';
 const state = {
-  launches: { [mint]: { cluster: 'devnet', onchainVerified: true, creator: 'router', pumpFeeRoute: { scope: 'per-mint-v2', router: 'router' } } },
+  launches: { [mint]: { cluster: 'devnet', onchainVerified: true, creator: 'router', pumpFeeRoute: { scope: 'per-mint-v2', router: 'router' }, feeDistribution: { fixedFunded: { fundedBuyback: { effectivePercentOfCreatorFees: 5 } } } } },
   collections: { [signature]: { signature, mint, cluster: 'devnet', status: 'collected', attribution: 'mint-verified', collectedLamports: 25_000_000_000, recordedAt: at } },
-  settlements: { [signature]: { claimSignature: signature, claimedAt: at, fundedApp: { buyback: 0.25 } } },
+  settlements: { [signature]: { claimSignature: signature, claimedAt: at, fundedApp: { buyback: 1.25 } } },
   buybackOrders: {},
 };
-assert.equal(verifiedBuybackAccruals(state)[0].lamports, '250000000');
+assert.equal(verifiedBuybackAccruals(state)[0].lamports, '1250000000');
+state.settlements[signature].fundedApp.buyback = 0.25;
+assert.equal(verifiedBuybackAccruals(state).length, 0, 'a stale one-percent allocation cannot pass the signed five-percent policy');
+state.launches[mint].feeDistribution.fixedFunded.fundedBuyback.effectivePercentOfCreatorFees = 1;
+assert.equal(verifiedBuybackAccruals(state)[0].lamports, '250000000', 'historical one-percent launch snapshots remain eligible');
+state.launches[mint].feeDistribution.fixedFunded.fundedBuyback.effectivePercentOfCreatorFees = 5;
+state.settlements[signature].fundedApp.buyback = 1.25;
 let queue = buybackQueue(state, new Date('2026-09-18T01:00:00.000Z'));
 assert.equal(queue[0].eligible, true, 'threshold permits execution');
-state.settlements[signature].fundedApp.buyback = 0.000001;
+state.settlements[signature].fundedApp.buyback = 0.000005;
 state.collections[signature].collectedLamports = 100000;
 const priorCluster = process.env.SOLANA_CLUSTER, priorMint = process.env.FUNDED_QA_BUYBACK_MINT, priorWait = process.env.FUNDED_QA_BUYBACK_WAIT_SECONDS;
 process.env.SOLANA_CLUSTER = 'devnet'; process.env.FUNDED_QA_BUYBACK_MINT = mint; process.env.FUNDED_QA_BUYBACK_WAIT_SECONDS = '60';
@@ -25,11 +31,11 @@ for (const [key, value] of [['SOLANA_CLUSTER', priorCluster], ['FUNDED_QA_BUYBAC
 }
 queue = buybackQueue(state, new Date('2026-09-18T07:00:00.000Z'));
 assert.equal(queue[0].eligible, true, 'first accrual becomes eligible after six hours without a prior execution');
-state.buybackOrders.existing = { id: 'existing', mint, status: 'submitted', settledLamports: '900' };
+state.buybackOrders.existing = { id: 'existing', mint, status: 'submitted', settledLamports: '4900' };
 queue = buybackQueue(state, new Date('2026-09-18T07:00:00.000Z'));
 assert.equal(queue[0].pendingLamports, '100');
 assert.equal(queue[0].activeOrder, 'existing');
-state.buybackOrders.existing = { id:'existing', mint, status:'finalized', settledLamports:'900', returnedLamports:'10', refundVerified:true };
+state.buybackOrders.existing = { id:'existing', mint, status:'finalized', settledLamports:'4900', returnedLamports:'10', refundVerified:true };
 queue = buybackQueue(state, new Date('2026-09-18T07:00:00.000Z'));
 assert.equal(queue[0].pendingLamports, '110', 'verified refund remains in source router accrual');
 assert.equal(queue[0].eligible, false, 'tiny post-execution residue waits for the next accrual');
