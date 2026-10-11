@@ -498,6 +498,7 @@ main.wallet-view>#wallet-page{display:block!important}
 .coin-page .coin-trade-amount-card>label{margin:0!important;padding:9px 12px 0;color:#969cad;font-size:11px}
 .coin-page .coin-trade-amount-main{display:flex;align-items:center;gap:10px;padding:0 12px 10px}
 .coin-page .coin-trade-amount-main>span{max-width:44%;overflow:hidden;color:#f4f4f8;font-size:15px;font-weight:800;text-overflow:ellipsis;white-space:nowrap}
+.coin-page #trade-asset-symbol img{display:inline-block;width:16px;height:14px;margin-right:4px;vertical-align:-2px;object-fit:contain}
 .coin-page .coin-trade-amount-main input{flex:1;min-width:0;width:100%;padding:5px 0;border:0;outline:0;background:transparent;color:#f3f3f7;font-size:22px;font-weight:700;text-align:right;box-shadow:none}
 .coin-page .coin-trade-amount-main input:focus{border:0;outline:0;box-shadow:none}
 .coin-page .coin-quick-amounts,.coin-page .coin-quick-amounts:not([hidden]){display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;margin:0;border-top:1px solid #333542;background:#1d1e28}
