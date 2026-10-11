@@ -1,5 +1,28 @@
+import { verifiedPaidListings } from '../../features/home/paid-listings.js';
+
 // Dependencies and mutable application state are read live through appState.
 export function createHomeFeedController(appState) {
+  let paidListings = [];
+  let paidListingsStatus = 'idle';
+  let paidListingsRequest = 0;
+
+  async function loadHomePaidListings() {
+    const request = ++paidListingsRequest;
+    paidListingsStatus = 'loading';
+    if (appState.homeLaunchTab === 'paid-listing') appState.renderHomeLaunchBoard();
+    try {
+      const result = await appState.apiRequest('/api/listings', { signal: AbortSignal.timeout(8000) });
+      if (!result.available || result.data?.cluster !== appState.EXPLORE_CLUSTER || !Array.isArray(result.data.listings))
+        throw new Error('Verified paid listings are unavailable.');
+      if (request !== paidListingsRequest) return;
+      paidListings = verifiedPaidListings(result.data.listings, appState.EXPLORE_CLUSTER);
+      paidListingsStatus = 'ready';
+    } catch {
+      if (request !== paidListingsRequest) return;
+      paidListingsStatus = 'unavailable';
+    }
+    if (appState.homeLaunchTab === 'paid-listing') appState.renderHomeLaunchBoard();
+  }
   // app-source: 476
   function setHomeLaunchPaused(paused) {
     appState.homeLaunchPaused = paused;
@@ -190,6 +213,8 @@ export function createHomeFeedController(appState) {
       homeLaunchSort: appState.homeLaunchSort,
       verifiedBoosts: appState.verifiedBoosts,
       homeLaunchTab: appState.homeLaunchTab,
+      paidListings,
+      paidListingsStatus,
       homeLaunchFilters: appState.homeLaunchFilters,
       homeLaunchPaused: appState.homeLaunchPaused,
       exploreProviderStatus: appState.exploreProviderStatus,
@@ -200,5 +225,5 @@ export function createHomeFeedController(appState) {
   }
   // app-source-end
 
-  return { setHomeLaunchPaused, syncHomeTickerArrows, animateHomeTicker, setupHomeTicker, loadHomeFeeIndex, loadHomeHolderCounts, renderHomeHolderRewardCoins, homeLaunchFeeRouteMarkup, launchCardVolumeUsd, homeLaunchCardMarkup, decorateHomeLaunchCard, renderHomeLaunchBoard };
+  return { setHomeLaunchPaused, syncHomeTickerArrows, animateHomeTicker, setupHomeTicker, loadHomeFeeIndex, loadHomePaidListings, loadHomeHolderCounts, renderHomeHolderRewardCoins, homeLaunchFeeRouteMarkup, launchCardVolumeUsd, homeLaunchCardMarkup, decorateHomeLaunchCard, renderHomeLaunchBoard };
 }

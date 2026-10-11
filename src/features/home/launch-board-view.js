@@ -2,6 +2,7 @@ import { withMarketWindow } from '../../../market-intelligence.js';
 import { formatCompactUsd, escapeHtml } from '../shared/display.js';
 import { activeBoostPackages, activeBoostMultiplier } from '../../../boost-offer.js';
 import { matchesHomeLaunchFilters, homeLaunchFilterCount } from '../../../home-launch-filters.js';
+import { paidListingCardMarkup, paidListingTableMarkup } from './paid-listing-view.js';
 
 // Render current data; the application owns pagination and paused-order state.
 export function renderHomeLaunchBoard(state, {
@@ -29,6 +30,8 @@ export function renderHomeLaunchBoard(state, {
     homeLaunchSort,
     verifiedBoosts,
     homeLaunchTab,
+    paidListings,
+    paidListingsStatus,
     homeLaunchFilters,
     homeLaunchPaused,
     exploreProviderStatus,
@@ -38,14 +41,32 @@ export function renderHomeLaunchBoard(state, {
   if (!grid) return;
   const tableWrap = document.querySelector('#home-launch-table-wrap');
   const tableBody = document.querySelector('#home-launch-table-body');
+  const paidListingView = homeLaunchTab === 'paid-listing';
+  const paidTable = document.querySelector('#home-paid-listing-table');
+  const paidTableBody = document.querySelector('#home-paid-listing-table-body');
   grid.hidden = homeLaunchView === 'table';
   if (tableWrap) tableWrap.hidden = homeLaunchView !== 'table';
+  if (tableBody?.closest('table')) tableBody.closest('table').hidden = paidListingView;
+  if (paidTable) paidTable.hidden = !paidListingView;
+  const boardTitle = document.querySelector('#home-launch-board-title');
+  if (boardTitle) boardTitle.textContent = paidListingView ? 'Paid listings' : 'Live launches';
+  const footerLink = document.querySelector('.home-board-footer .home-launch-all');
+  if (footerLink) {
+    footerLink.href = paidListingView ? '/list' : '#explore';
+    footerLink.textContent = paidListingView ? 'Get listed →' : 'Explore all launches →';
+  }
+  for (const selector of ['.home-board-sort', '#home-feed-pause', '.home-feed-settings']) {
+    const control = document.querySelector(selector);
+    if (control) control.hidden = paidListingView;
+  }
   const feedState = document.querySelector('#home-feed-state');
   if (feedState) {
-    feedState.hidden = exploreFeedAvailable;
-    feedState.textContent = exploreFeedAvailable ? `Feed available`
+    feedState.hidden = paidListingView ? paidListingsStatus === 'ready' : exploreFeedAvailable;
+    feedState.textContent = paidListingView ? paidListingsStatus === 'unavailable' ? 'Paid listings unavailable' : 'Loading paid listings'
+      : exploreFeedAvailable ? `Feed available`
       : exploreLastVerifiedAt ? 'Last verified snapshot' : 'Feed unavailable';
-    feedState.dataset.state = exploreFeedAvailable ? 'live' : exploreLastVerifiedAt ? 'snapshot' : 'unavailable';
+    feedState.dataset.state = paidListingView ? paidListingsStatus === 'ready' ? 'live' : paidListingsStatus === 'unavailable' ? 'unavailable' : 'loading'
+      : exploreFeedAvailable ? 'live' : exploreLastVerifiedAt ? 'snapshot' : 'unavailable';
   }
   const tickerLabel = document.querySelector('#home-market-ticker-label');
   if (tickerLabel) tickerLabel.textContent = 'Latest launches';
@@ -125,6 +146,27 @@ export function renderHomeLaunchBoard(state, {
       return `<a href="/token/${encodeURIComponent(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}" aria-label="${escapeHtml(detail)}" title="${escapeHtml(detail)}"><span class="home-ticker-rank" aria-hidden="true">${index + 1}</span><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon || String(symbol).slice(0, 1))}</span><strong class="${boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(symbol)}</strong>${boostQuantity ? `<span class="home-ticker-boost" title="${escapeHtml(boostDetail)}" aria-label="${escapeHtml(boostDetail)}">⚡${boostMultiplier.toLocaleString()}</span>` : ''}<span class="home-ticker-change ${trendClass}" title="${escapeHtml(hasChange ? changeLabel : 'Market cap change unavailable')}">${escapeHtml(change)}</span><small class="home-ticker-mc">MC ${escapeHtml(marketCap)}</small></a>`;
     }).join('') : `<span class="home-ticker-empty">${exploreFeedAvailable ? `No verified ${escapeHtml(homeLaunchWindow)} trades in this feed` : exploreProviderStatus === 'On-chain only · loading' ? 'Checking verified market activity' : 'Market activity unavailable'}</span>`;
     setupHomeTicker(ticker, tickerMarkup, ranked.length);
+  }
+  if (paidListingView) {
+    const listings = Array.isArray(paidListings) ? paidListings : [];
+    const boardCount = document.querySelector('#home-board-count');
+    if (boardCount) boardCount.textContent = paidListingsStatus === 'ready'
+      ? `Showing ${listings.length} verified paid listing${listings.length === 1 ? '' : 's'}` : '';
+    if (paidListingsStatus !== 'ready' || !listings.length) {
+      const title = paidListingsStatus === 'unavailable' ? 'Paid listings are temporarily unavailable.'
+        : paidListingsStatus === 'ready' ? 'No verified paid listings yet.' : 'Loading verified paid listings…';
+      const detail = paidListingsStatus === 'unavailable' ? 'Try again to load on-chain verified listing receipts.'
+        : paidListingsStatus === 'ready' ? 'Listings appear here after a verified $FUNDED burn.' : 'Checking the paid listing index.';
+      const retry = paidListingsStatus === 'unavailable' ? '<button type="button" class="secondary-button" data-paid-listing-retry>Try again</button>' : '';
+      grid.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${detail}</span>${retry}</div>`;
+      if (paidTableBody) paidTableBody.innerHTML = `<tr><td colspan="4" class="home-table-empty"><strong>${title}</strong><span>${detail}</span>${retry}</td></tr>`;
+      return;
+    }
+    grid.innerHTML = listings.map(paidListingCardMarkup).join('');
+    if (paidTableBody) paidTableBody.innerHTML = listings.map(paidListingTableMarkup).join('');
+    loadVerifiedTokenLogos(grid);
+    if (paidTableBody) loadVerifiedTokenLogos(paidTableBody);
+    return;
   }
   let visible = [...verified];
   if (homeLaunchTab === 'curve') visible = visible.filter(item => item.migrated !== true && item.complete === false);

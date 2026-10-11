@@ -28,7 +28,17 @@ export function initializeHomeFeed(appState) {
     appState.homeFrozenOrder = null;
     document.querySelectorAll('[data-home-launch-tab]').forEach(item => { const active = item === button; item.classList.toggle('active', active); item.setAttribute('aria-selected', String(active)); });
     appState.renderHomeLaunchBoard();
+    if (appState.homeLaunchTab === 'paid-listing') void appState.loadHomePaidListings();
   }));
+  document.querySelector('#home-launch-table-wrap')?.addEventListener('click', event => {
+    if (event.target.closest('[data-paid-listing-retry]')) void appState.loadHomePaidListings();
+  });
+  document.querySelector('#home-launch-grid')?.addEventListener('click', event => {
+    if (event.target.closest('[data-paid-listing-retry]')) void appState.loadHomePaidListings();
+  });
+  window.addEventListener('funded:listing-verified', () => {
+    if (appState.homeLaunchTab === 'paid-listing') void appState.loadHomePaidListings();
+  });
   // app-source-end
 
   // app-source: 493

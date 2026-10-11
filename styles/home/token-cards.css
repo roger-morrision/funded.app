@@ -29,6 +29,19 @@ body.page-route-overview .home-board-footer .home-launch-all { color: var(--home
 body.page-route-overview .home-launch-grid > .empty-state { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; grid-column: 1 / -1; min-height: 150px; gap: 7px; padding: 26px; border: 1px solid var(--home-line); background: #101419; }
 body.page-route-overview .home-launch-grid > .empty-state strong { color: #e7eceb; font-size: 16px; }
 body.page-route-overview .home-launch-grid > .empty-state span { color: #98a6a3; font-size: 12px; }
+body.page-route-overview :is(.home-board-sort, #home-feed-pause, .home-feed-settings, .home-launch-table)[hidden] { display: none !important; }
+body.page-route-overview .paid-listing-card .home-launch-card-addresses { grid-template-columns: minmax(0, 1fr); }
+body.page-route-overview .paid-listing-card .home-launch-card-addresses span:last-child,
+body.page-route-overview .paid-listing-card .home-launch-card-addresses span:last-child code { text-align: left; }
+body.page-route-overview .paid-listing-verification { display: grid; gap: 5px; margin: 4px 10px 14px; padding-top: 10px; border-top: 1px solid #263039; }
+body.page-route-overview .paid-listing-verification strong { color: #ffd28a; font: 700 11px 'DM Mono', monospace; }
+body.page-route-overview .paid-listing-verification span { color: #98a6a3; font: 10px 'DM Mono', monospace; }
+body.page-route-overview .paid-listing-proof { color: #ffd28a; font: 700 10px 'DM Mono', monospace; text-decoration: none; }
+body.page-route-overview .paid-listing-proof:hover { text-decoration: underline; }
+body.page-route-overview .paid-listing-proof:focus-visible { outline: 2px solid #ffd28a; outline-offset: 2px; }
+@media (max-width: 700px) {
+  body.page-route-overview .home-launch-grid > .paid-listing-card { grid-column: 1 / -1; }
+}
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card { --home-green: #f4a340; min-width: 0; position: relative; display: flex; flex-direction: column; min-height: 0; padding: 0 0 12px; border: 1px solid #283039; border-radius: 0; background: linear-gradient(180deg, #111820, #0b0e12); cursor: pointer; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card:hover { border-color: #f4a340; background: #111820; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-link { position: absolute; z-index: 1; inset: 0; }
