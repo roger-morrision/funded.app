@@ -1,15 +1,17 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { Keypair } from '@solana/web3.js';
+import { Keypair, TransactionInstruction } from '@solana/web3.js';
 import { buildMintRouterV3InitializeInstruction, buildMintRouterV3SettlementInstruction,
   buildMintRouterV3DisbursementInstruction, deriveCommunityRewardVaultV3,
   deriveMintClaimV3, deriveMintWithdrawalV3, deriveMintRouterV3, deriveMintVaultsV3, protocolGrossUnits,
   verifyMintRouterV3Account, verifyMintPolicyV3Account, verifyMintWithdrawalV3Account,
   verifyMintClaimV3Account } from '../mint-router-v3.js';
 import { FEE_ROUTER_POLICY_HASH_HEX } from '../fee-router.js';
+import { buildPumpLaunchPlan } from '../mint-router-launch.js';
 
 const programId = Keypair.generate().publicKey;
-const mint = Keypair.generate().publicKey;
+const mintSigner = Keypair.generate();
+const mint = mintSigner.publicKey;
 const authority = Keypair.generate().publicKey;
 const creator = Keypair.generate().publicKey;
 const claimId = createHash('sha256').update('verified-collection-v3').digest();
@@ -22,6 +24,14 @@ assert.equal(initial.instruction.keys[2].isSigner, true);
 assert.equal(initial.instruction.keys[0].isSigner, false);
 assert.equal(initial.instruction.keys[4].pubkey.toBase58(), deriveMintRouterV3(programId, mint).address.toBase58());
 assert.equal(initial.instruction.data.readUInt32LE(28), 500_000);
+const launchPlan = buildPumpLaunchPlan({ payer:creator, mint:mintSigner,
+  blockhash:Keypair.generate().publicKey.toBase58(),
+  launchInstructions:[new TransactionInstruction({ programId:Keypair.generate().publicKey,
+    keys:[{ pubkey:initial.router.address, isSigner:false, isWritable:false }], data:Buffer.alloc(8) })],
+  mintRouterInstruction:initial.instruction });
+assert.equal(launchPlan.steps.length, 1);
+assert.deepEqual(launchPlan.steps[0].transaction.signatures.map(row => row.publicKey.toBase58()).sort(),
+  [creator.toBase58(), mint.toBase58()].sort());
 
 const changed = protocolGrossUnits({ operationsPercent:40, referralLevelPercents:[10,3,2], communityPercent:20, buybackPercent:25 });
 assert.deepEqual(changed, [800_000, 200_000, 60_000, 40_000, 400_000, 500_000]);
