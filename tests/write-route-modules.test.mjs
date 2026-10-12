@@ -38,10 +38,11 @@ test('keeper authorization denials terminate dispatch before reading or collecti
   });
   for (const [path, method] of [['indexer/sync', 'POST'], ['keeper/collection-candidates', 'GET'],
     ['keeper/collect', 'POST'], ['keeper/reconcile-v3-collection', 'POST'],
+    ['keeper/reconcile-v3-settlement', 'POST'],
     ['keeper/reconcile-wrapped-sol', 'POST']]) {
     assert.equal(await f.request(`/api/${path}`, {}, method), true);
   }
-  assert.equal(denied, 5);
+  assert.equal(denied, 6);
   assert.deepEqual(f.responses, [], 'The authorization helper already sent the response');
 });
 
@@ -118,6 +119,49 @@ test('V3 collection recovery requires the recorded signature and exact finalized
   await f.request(path, { mint, signature });
   assert.equal(f.responses.at(-1).status, 200);
   assert.equal(state.collections[signature].collectedLamports, 30);
+});
+
+test('V3 settlement reconciliation records only the matching finalized category claim', async () => {
+  const collectionSignature = '1'.repeat(64);
+  const settlementSignature = '2'.repeat(64);
+  const programId = mint;
+  const router = deriveMintRouterV3(programId, mint).address.toBase58();
+  const claimId = Buffer.alloc(32, 4);
+  const state = { collections:{ [collectionSignature]:{
+    signature:collectionSignature, mint, scope:'per-mint-v3', cluster:'devnet',
+    status:'collected', attribution:'mint-verified', onchainVerified:true,
+    programId, router, collectedLamports:30, claimId:claimId.toString('hex'),
+  } }, launches:{ [mint]:{ mint, creatorWallet:mint,
+    pumpFeeRoute:{ scope:'per-mint-v3', programId, router, initialAuthority:mint } } },
+  v3Settlements:{}, settlements:{}, obligations:{} };
+  let settlementProof = { signature:settlementSignature, mint, router,
+    claimId:claimId.toString('hex'), expectedLamports:'29', slot:42,
+    categoryLamports:['24','3','1','1','0','1','0'] };
+  const f = fixture(createKeeperCollectionRoutes, {
+    requireAuthorized:() => true, store:{ read:async () => state, update:async fn => fn(state) },
+    env:{ FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId, FUNDED_V3_PROGRAM_DATA_SHA256:'a'.repeat(64) },
+    connectionFactory:() => ({}),
+    verifyV3LaunchRouterReadiness:async () => ({ ready:true, configuredRouter:router }),
+    loadFinalizedV3PumpCollection:async () => ({ signature:collectionSignature,
+      router, expectedLamports:30n, claimId }),
+    loadFinalizedV3Settlement:async () => settlementProof,
+  });
+  const path = '/api/keeper/reconcile-v3-settlement';
+  const input = { collectionSignature, settlementSignature };
+  await f.request(path, input);
+  assert.equal(f.responses.at(-1).status, 409);
+  assert.deepEqual(state.v3Settlements, {});
+  settlementProof = { ...settlementProof, expectedLamports:'30' };
+  await f.request(path, input);
+  assert.equal(f.responses.at(-1).status, 200);
+  assert.equal(state.v3Settlements[collectionSignature].status, 'finalized');
+  assert.equal(state.v3Settlements[collectionSignature].settlementSignature, settlementSignature);
+  assert.deepEqual(state.settlements, {});
+  assert.deepEqual(state.obligations, {});
+  await f.request(path, input);
+  assert.equal(f.responses.at(-1).status, 200);
+  await f.request(path, { collectionSignature, settlementSignature:'3'.repeat(64) });
+  assert.equal(f.responses.at(-1).status, 409);
 });
 
 test('keeper lists V3 candidates only when enabled and excludes them from V2 settlements', async () => {

@@ -6,6 +6,7 @@ import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import { deriveMintRouterV3 } from '../../mint-router-v3.js';
 import { verifyV3LaunchRouterReadiness as verifyV3Readiness } from '../v3-launch-readiness.mjs';
 import { loadFinalizedV3PumpCollection as loadV3Collection } from '../v3-finalized-collection.mjs';
+import { loadFinalizedV3Settlement as loadV3Settlement } from '../v3-settlement-proof.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -26,6 +27,7 @@ export function createKeeperCollectionRoutes({
   connectionFactory = url => new Connection(url, 'finalized'),
   verifyV3LaunchRouterReadiness = verifyV3Readiness,
   loadFinalizedV3PumpCollection = loadV3Collection,
+  loadFinalizedV3Settlement = loadV3Settlement,
 }) {
   const json = (...args) => { respond(...args); return true; };
   return async function handleKeeperCollectionRoutes(req, res, url) {
@@ -172,6 +174,77 @@ export function createKeeperCollectionRoutes({
         return next;
       });
       if (!recorded) return json(res, 409, { error:'The collection changed during reconciliation.' });
+      return json(res, 200, recorded);
+    }
+    if (req.method === 'POST' && url.pathname === '/api/keeper/reconcile-v3-settlement') {
+      if (!requireAuthorized(req, res)) return true;
+      if (solanaCluster !== 'devnet') return json(res, 403, { error:'V3 settlement reconciliation requires Devnet.' });
+      const input = await body(req);
+      const collectionSignature = String(input.collectionSignature || '').trim();
+      const settlementSignature = String(input.settlementSignature || '').trim();
+      if (![collectionSignature, settlementSignature].every(value => /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(value))) {
+        return json(res, 400, { error:'Valid collection and settlement signatures are required.' });
+      }
+      const programId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
+      const approvedHash = String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || '').trim();
+      if (!programId || !/^[a-f0-9]{64}$/i.test(approvedHash)) {
+        return json(res, 503, { error:'The approved V3 Devnet program is not configured.' });
+      }
+      const state = await store.read();
+      const collection = state.collections?.[collectionSignature];
+      const launch = state.launches?.[collection?.mint];
+      const prior = state.v3Settlements?.[collectionSignature];
+      if (!collection || collection.signature !== collectionSignature
+        || collection.scope !== 'per-mint-v3' || collection.cluster !== 'devnet'
+        || collection.status !== 'collected' || collection.onchainVerified !== true
+        || collection.attribution !== 'mint-verified' || collection.programId !== programId
+        || !Number.isSafeInteger(collection.collectedLamports) || collection.collectedLamports <= 0
+        || !/^[a-f0-9]{64}$/.test(String(collection.claimId || ''))
+        || launch?.pumpFeeRoute?.scope !== 'per-mint-v3'
+        || launch.pumpFeeRoute.programId !== programId
+        || prior && prior.settlementSignature !== settlementSignature) {
+        return json(res, 409, { error:'A matching verified V3 collection and settlement attempt are required.' });
+      }
+      const connection = connectionFactory(solanaRpcUrl);
+      const readiness = await verifyV3LaunchRouterReadiness({ connection, programId,
+        expectedProgramDataSha256:approvedHash, mint:collection.mint,
+        creatorWallet:launch.creatorWallet, initialAuthority:launch.pumpFeeRoute.initialAuthority,
+        split:PROTOCOL_FEE_SPLIT });
+      if (!readiness.ready || readiness.configuredRouter !== collection.router
+        || launch.pumpFeeRoute.router !== collection.router) {
+        return json(res, 409, { error:'The approved V3 program and mint policy are not verified.' });
+      }
+      const collectionProof = await loadFinalizedV3PumpCollection({ connection,
+        signature:collectionSignature, programId, mint:collection.mint, launch });
+      if (!collectionProof || collectionProof.signature !== collectionSignature
+        || collectionProof.router !== collection.router
+        || collectionProof.expectedLamports !== BigInt(collection.collectedLamports)
+        || collectionProof.claimId.toString('hex') !== collection.claimId) {
+        return json(res, 409, { error:'The finalized source collection no longer matches its record.' });
+      }
+      const proof = await loadFinalizedV3Settlement({ connection, signature:settlementSignature,
+        programId, mint:collection.mint, authority:launch.pumpFeeRoute.initialAuthority,
+        creator:launch.creatorWallet, claimId:collectionProof.claimId,
+        expectedLamports:collectionProof.expectedLamports, split:PROTOCOL_FEE_SPLIT });
+      if (!proof || proof.signature !== settlementSignature || proof.mint !== collection.mint
+        || proof.router !== collection.router || proof.claimId !== collection.claimId
+        || proof.expectedLamports !== String(collection.collectedLamports)) {
+        return json(res, 409, { error:'The finalized V3 category settlement proof is missing or mismatched.' });
+      }
+      const recorded = await store.update(current => {
+        const row = current.collections?.[collectionSignature];
+        const existing = current.v3Settlements?.[collectionSignature];
+        if (!row || row.signature !== collectionSignature || row.mint !== collection.mint
+          || row.claimId !== collection.claimId || row.collectedLamports !== collection.collectedLamports
+          || row.status !== 'collected' || row.onchainVerified !== true
+          || existing && existing.settlementSignature !== settlementSignature) return null;
+        current.v3Settlements ||= {};
+        return current.v3Settlements[collectionSignature] = existing?.status === 'finalized'
+          ? existing : { ...proof, collectionSignature, settlementSignature,
+            status:'finalized', cluster:'devnet',
+            finalizedAt:new Date().toISOString() };
+      });
+      if (!recorded) return json(res, 409, { error:'The collection changed during settlement reconciliation.' });
       return json(res, 200, recorded);
     }
     if (req.method === 'POST' && url.pathname === '/api/keeper/reconcile-wrapped-sol') {
