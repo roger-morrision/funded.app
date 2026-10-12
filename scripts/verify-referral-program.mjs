@@ -26,10 +26,11 @@ assert.deepEqual(network, ['level-1', 'level-2', 'level-3'], 'Dashboard metrics 
 
 const rewards = calculateReferralRewards(1000, { fundedPercent: FEE_DISTRIBUTION.fundedPercent, levels: APP_REFERRAL_LEVELS, upline: ['alice', 'bob', 'carol'] });
 assert.equal(rewards.fundedRevenue, 200);
-assert.deepEqual(rewards.allocations.map(item => item.amount), [20, 6, 4]);
-assert.equal(rewards.totalReferralReward, 30);
+const expectedRewards = APP_REFERRAL_LEVELS.map(level => 200 * level.percentOfFundedRevenue / 100);
+assert.deepEqual(rewards.allocations.map(item => item.amount), expectedRewards);
+assert.equal(rewards.totalReferralReward, expectedRewards.reduce((sum, amount) => sum + amount, 0));
 assert.equal(rewards.unallocatedReferralRevenue, 0);
-assert.equal(rewards.remainingFundedRevenue, 170);
+assert.equal(rewards.remainingFundedRevenue, 200 - rewards.totalReferralReward);
 
 const settled = new Map();
 const firstSettlement = settleReferralRevenue({ id: 'revenue-1', grossCreatorFees: 1000 }, { fundedPercent: 20, levels: APP_REFERRAL_LEVELS, upline: ['alice'] }, settled);

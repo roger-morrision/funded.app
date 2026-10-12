@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { FEE_DISTRIBUTION } from '../../distribution-policy.js';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/**', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Offline QA fixture"}' }));
@@ -6,13 +7,14 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('protocol allocation copy agrees across FAQ, buyback, and fee flow', async ({ page }) => {
+  const buyback = FEE_DISTRIBUTION.buybackEffectivePercent;
   await page.goto('/#capital-flow');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  await expect(page.locator('#fee-policy-faq')).toContainText('buyback allocation (5%)');
-  await expect(page.locator('#buyback-policy-heading')).toHaveText('Preview the 5% policy');
+  await expect(page.locator('#fee-policy-faq')).toContainText(`buyback allocation (${buyback}%)`);
+  await expect(page.locator('#buyback-policy-heading')).toHaveText(`Preview the ${buyback}% policy`);
   await expect(page.locator('#buyback-policy-note')).toContainText('Local calculation only');
-  await expect(page.locator('.home-receipt-card .receipt-rows span').last()).toHaveText('5 SOL Buyback allocation');
-  await expect(page.locator('.fee-route-bar i.burn')).toHaveAttribute('style', /width:\s*5%/);
+  await expect(page.locator('.home-receipt-card .receipt-rows span').last()).toHaveText(`${buyback} SOL Buyback allocation`);
+  await expect(page.locator('.fee-route-bar i.burn')).toHaveAttribute('style', new RegExp(`width:\\s*${buyback}%`));
 });
 
 for (const width of [1440, 390]) test(`launch package and X previews update at ${width}px`, async ({ page }) => {

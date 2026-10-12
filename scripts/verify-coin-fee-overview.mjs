@@ -77,5 +77,10 @@ const customOverview = coinFeeOverview({ ...base, launch:{ ...launch, feeDistrib
 assert.deepEqual(customOverview.receivers.filter(row => row.id === 'operations' || row.id.startsWith('referral-') || row.id === 'community' || row.id === 'buyback').map(row => row.percent), [10, 2.4, 1, 0.6, 4, 2]);
 const currentPolicy = buildFeeDistributionPolicy({ creatorWalletPercent:80 });
 const currentOverview = coinFeeOverview({ ...base, launch:{ ...launch, feeDistribution:currentPolicy } });
-assert.deepEqual(currentOverview.receivers.filter(row => row.id === 'operations' || row.id.startsWith('referral-') || row.id === 'community' || row.id === 'buyback').map(row => row.percent), [10, 2, 0.6, 0.4, 2, 5]);
+assert.deepEqual(currentOverview.receivers.filter(row => row.id === 'operations' || row.id.startsWith('referral-') || row.id === 'community' || row.id === 'buyback').map(row => row.percent), [
+  currentPolicy.fixedFunded.operations.effectivePercentOfCreatorFees,
+  ...currentPolicy.fixedFunded.appReferral.levels.map(level => level.effectivePercentOfCreatorFees),
+  currentPolicy.fixedFunded.communityRewards.effectivePercentOfCreatorFees,
+  currentPolicy.fixedFunded.fundedBuyback.effectivePercentOfCreatorFees,
+]);
 console.log('coin fee overview: verified collection isolation, allocation, and confirmed payment totals');

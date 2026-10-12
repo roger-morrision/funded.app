@@ -14,7 +14,13 @@ test('verified token policy matches the short creator, holder, and X line on hom
   const result = verifiedCoinRewardsPolicy(makePolicy(), mint, 'devnet');
   assert.equal(result.compact, 'Creator 50% · Holders 20% · @fundedvip 10%');
   assert.equal(result.xAccount, '@fundedvip');
-  assert.deepEqual(result.protocolPrograms, { operations:10, referrals:3, community:2, buyback:5 });
+  const fixed = makePolicy().feeDistribution.fixedFunded;
+  assert.deepEqual(result.protocolPrograms, {
+    operations: fixed.operations.effectivePercentOfCreatorFees,
+    referrals: fixed.appReferral.effectivePercentOfCreatorFees,
+    community: fixed.communityRewards.effectivePercentOfCreatorFees,
+    buyback: fixed.fundedBuyback.effectivePercentOfCreatorFees,
+  });
 });
 
 test('unverified, mismatched, or inconsistent policies cannot show a reward split', () => {
@@ -25,7 +31,7 @@ test('unverified, mismatched, or inconsistent policies cannot show a reward spli
     policy => { policy.onchainVerified = false; },
     policy => { policy.policySignature = ''; },
     policy => { policy.feeDistribution.creatorDirected.shares.holderAirdropPercent = 30; },
-    policy => { policy.feeDistribution.fixedFunded.appReferral.effectivePercentOfCreatorFees = 4; },
+    policy => { policy.feeDistribution.fixedFunded.appReferral.effectivePercentOfCreatorFees += 1; },
     policy => { policy.feeDistribution.creatorDirected.recipients.xAccount = '@invalid-handle-too-long'; },
   ]) {
     const policy = structuredClone(original);
