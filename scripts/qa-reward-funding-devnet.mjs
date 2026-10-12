@@ -84,7 +84,6 @@ for (const row of expected) {
     .add(instruction);
   assert(transaction.serializeMessage().equals(exact.serializeMessage()), 'Prepared transaction differs from the capped allocation.');
   assert.equal(await connection.getAccountInfo(instruction.claim, 'finalized'), null, 'Allocation claim already exists.');
-  const destinationBefore = await connection.getBalance(recipient, 'finalized');
   transaction.partialSign(creator);
   const settled = await request(`${path}/settle`, { requestId:row.id,
     creatorSignedTransaction:transaction.serialize({ requireAllSignatures:false, verifySignatures:false }).toString('base64') });
@@ -96,14 +95,13 @@ for (const row of expected) {
   assert(readMintClaimRecord(await connection.getAccountInfo(instruction.claim, 'finalized'), {
     programId, mint, recipient, amountLamports:row.amount, claimId:instruction.claimId, share:instruction.share }),
   'Finalized on-chain claim does not match the allocation.');
+  // Transaction meta proves this transfer's exact debit and credit. A worker
+  // may make another finalized payout before a later account-balance read.
   await verifyFinalizedSettlementDelta({ connection, signature:settled.signature, router, recipient, amountLamports:row.amount });
-  const destinationAfter = await connection.getBalance(recipient, 'finalized');
-  assert.equal(destinationAfter - destinationBefore, Number(row.amount), 'Finalized vault balance delta differs.');
   console.log(JSON.stringify({ stage:'finalized', kind:row.kind, requestId:row.id, signature:settled.signature,
     claim:settled.claim, recipient:settled.recipient, amountLamports:row.amount,
-    destinationBefore, destinationAfter, exactBalanceDeltaVerified:true }));
+    exactTransactionBalanceDeltaVerified:true }));
 }
 const routerAfter = await connection.getBalance(router, 'finalized');
-assert.equal(routerBefore - routerAfter, total, 'Router balance did not decrease by exactly the approved total.');
 console.log(JSON.stringify({ stage:'complete', cluster:'devnet', mint, routerBefore, routerAfter, total,
-  finalizedAllocations:expected.length, privateKeyPersistedByTest:false }));
+  finalizedAllocations:expected.length, exactTransactionDeltasVerified:true, privateKeyPersistedByTest:false }));
