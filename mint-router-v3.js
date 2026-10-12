@@ -113,6 +113,27 @@ export async function verifyMintWithdrawalV3Account({ connection, programId, min
     createdAt:valid ? data.readBigInt64LE(113) : null };
 }
 
+export async function verifyMintClaimV3Account({ connection, programId, mint, claimId,
+  expectedLamports }) {
+  const address = deriveMintClaimV3(programId, mint, claimId);
+  const account = await connection.getAccountInfo(address, 'finalized');
+  if (!account?.owner?.equals(key(programId))) return { address, verified:false, reason:'v3-claim-owner-or-account-mismatch' };
+  const data = Buffer.from(account.data);
+  const accountDiscriminator = createHash('sha256').update('account:MintClaimRecordV3').digest().subarray(0, 8);
+  if (data.length !== 144 || !data.subarray(0, 8).equals(accountDiscriminator)
+    || !data.subarray(8, 40).equals(Buffer.from(claimId))
+    || !data.subarray(40, 72).equals(key(mint).toBuffer())
+    || data.readBigUInt64LE(72) !== BigInt(expectedLamports)) {
+    return { address, verified:false, reason:'v3-claim-record-mismatch' };
+  }
+  const categoryLamports = Array.from({ length:7 }, (_, index) => data.readBigUInt64LE(80 + index * 8));
+  if (categoryLamports.reduce((sum, amount) => sum + amount, 0n) !== BigInt(expectedLamports)) {
+    return { address, verified:false, reason:'v3-claim-allocation-mismatch' };
+  }
+  return { address, verified:true, reason:'verified', categoryLamports,
+    createdAt:data.readBigInt64LE(136) };
+}
+
 export function buildMintRouterV3InitializeInstruction({ programId, mint, authority, creator, split = PROTOCOL_FEE_SPLIT }) {
   const router = deriveMintRouterV3(programId, mint);
   const policy = deriveMintPolicyV3(programId, mint);
@@ -136,13 +157,24 @@ export function buildMintRouterV3InitializeInstruction({ programId, mint, author
   }) };
 }
 
-export function buildMintRouterV3SettlementInstruction({ programId, mint, authority, creator, claimId }) {
+export function buildMintRouterV3SettlementInstruction({ programId, mint, authority, creator, claimId,
+  expectedLamports }) {
+  if (typeof expectedLamports === 'number' && !Number.isSafeInteger(expectedLamports)) {
+    throw new Error('V3 expected collection amount must be a safe integer, bigint, or decimal string.');
+  }
+  const expected = BigInt(expectedLamports);
+  if (expected <= 0n || expected > 0xffff_ffff_ffff_ffffn) {
+    throw new Error('V3 expected collection amount is invalid.');
+  }
   const router = deriveMintRouterV3(programId, mint);
   const policy = deriveMintPolicyV3(programId, mint);
   const claim = deriveMintClaimV3(programId, mint, claimId);
   const vaults = deriveMintVaultsV3(programId, mint);
   const legacy = deriveFeeRouter(programId);
-  const data = Buffer.concat([discriminator('settle_mint_v3'), Buffer.from(claimId)]);
+  const data = Buffer.alloc(8 + 32 + 8);
+  discriminator('settle_mint_v3').copy(data);
+  Buffer.from(claimId).copy(data, 8);
+  data.writeBigUInt64LE(expected, 40);
   return { router, policy, claim, vaults, instruction: new TransactionInstruction({
     programId: router.programId,
     keys: [

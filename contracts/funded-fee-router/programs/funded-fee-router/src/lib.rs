@@ -27,8 +27,8 @@ pub mod funded_fee_router {
         policy_v3::initialize_mint_v3_handler(ctx, protocol_units)
     }
 
-    pub fn settle_mint_v3(ctx: Context<SettleMintV3>, claim_id: [u8; 32]) -> Result<()> {
-        policy_v3::settle_mint_v3_handler(ctx, claim_id)
+    pub fn settle_mint_v3(ctx: Context<SettleMintV3>, claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
+        policy_v3::settle_mint_v3_handler(ctx, claim_id, expected_lamports)
     }
 
     pub fn disburse_mint_v3(ctx: Context<DisburseMintV3>, withdrawal_id: [u8; 32], category: u8, amount: u64) -> Result<()> {

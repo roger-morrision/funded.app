@@ -95,7 +95,7 @@ pub struct SettleMintV3<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn settle_mint_v3_handler(ctx: Context<SettleMintV3>, claim_id: [u8; 32]) -> Result<()> {
+pub fn settle_mint_v3_handler(ctx: Context<SettleMintV3>, claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
     let router = &ctx.accounts.router;
     require!(router.owner == ctx.program_id, ErrorCode::InvalidMintRouter);
@@ -120,6 +120,7 @@ pub fn settle_mint_v3_handler(ctx: Context<SettleMintV3>, claim_id: [u8; 32]) ->
     let minimum = Rent::get()?.minimum_balance(MINT_ROUTER_DATA_LEN);
     let amount = router.lamports().checked_sub(minimum).ok_or(ErrorCode::InsufficientRouterBalance)?;
     require!(amount > 0, ErrorCode::InvalidAmount);
+    require!(amount == expected_lamports, ErrorCode::MintClaimAmountMismatchV3);
     let policy = &mut ctx.accounts.policy;
     let new_total = policy.settled_lamports.checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
     let targets = category_targets(new_total, policy.protocol_units)?;

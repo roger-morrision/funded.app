@@ -29,13 +29,13 @@ fn initialize_v3_ix(program: Pubkey, authority: Pubkey, creator: Pubkey, mint: P
 
 fn settle_v3_ix(program: Pubkey, authority: Pubkey, creator: Pubkey, mint: Pubkey,
     legacy_router: Pubkey, router: Pubkey, policy: Pubkey, claim_id: [u8; 32],
-    destinations: [Pubkey; 7]) -> Instruction {
+    destinations: [Pubkey; 7], expected_lamports: u64) -> Instruction {
     let (claim, _) = Pubkey::find_program_address(&[b"mint-fee-claim-v3", mint.as_ref(), &claim_id], &program);
     let mut metas = funded_fee_router::accounts::SettleMintV3 { authority, creator, mint,
         legacy_router, router, policy, claim, system_program: anchor_lang::system_program::ID }.to_account_metas(None);
     metas.extend(destinations.map(|pubkey| AccountMeta::new(pubkey, false)));
     Instruction::new_with_bytes(program,
-        &funded_fee_router::instruction::SettleMintV3 { claim_id }.data(), metas)
+        &funded_fee_router::instruction::SettleMintV3 { claim_id, expected_lamports }.data(), metas)
 }
 
 fn disburse_v3_ix(program: Pubkey, authority: Pubkey, creator: Pubkey, mint: Pubkey,
@@ -94,13 +94,18 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
     destinations[6] = Keypair::new().pubkey();
     let claim_id = [7u8; 32];
     assert!(!send(&mut svm, &authority, &[&authority, &creator], settle_v3_ix(program,
-        authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, claim_id, destinations)));
+        authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, claim_id, destinations, amount)));
     assert!(!send(&mut svm, &authority, &[&authority, &creator], settle_v3_ix(program,
-        authority.pubkey(), creator.pubkey(), Keypair::new().pubkey(), legacy_router, router, policy, claim_id, original)));
+        authority.pubkey(), creator.pubkey(), Keypair::new().pubkey(), legacy_router, router, policy, claim_id, original, amount)));
+    assert_eq!(svm.get_account(&router).unwrap().lamports, rent + amount);
+    svm.expire_blockhash();
+    assert!(!send(&mut svm, &authority, &[&authority, &creator], settle_v3_ix(program,
+        authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy,
+        claim_id, original, amount - 1)));
     assert_eq!(svm.get_account(&router).unwrap().lamports, rent + amount);
     svm.expire_blockhash();
     assert!(send(&mut svm, &authority, &[&authority, &creator], settle_v3_ix(program,
-        authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, claim_id, original)));
+        authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, claim_id, original, amount)));
     let expected = [80_000_000_000u64, 10_000_000_000, 2_000_000_000, 600_000_000,
         400_000_000, 2_000_000_000, 5_000_000_000];
     for (address, balance) in original.iter().zip(expected) {
@@ -162,7 +167,7 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
     assert!(send(&mut svm, &authority, &[&authority], system_instruction::transfer(&authority.pubkey(), &router, 1)));
     svm.expire_blockhash();
     assert!(!send(&mut svm, &authority, &[&authority, &creator], settle_v3_ix(program,
-        authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, claim_id, original)));
+        authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, claim_id, original, 1)));
     assert_eq!(svm.get_account(&router).unwrap().lamports, rent + 1);
     let rotate = Instruction::new_with_bytes(program, &funded_fee_router::instruction::RotateAuthority {}.data(),
         funded_fee_router::accounts::RotateAuthority { old_authority:authority.pubkey(),
@@ -172,10 +177,10 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
     assert!(send(&mut svm, &authority, &[&authority, &next_authority, &app_owner], rotate));
     svm.expire_blockhash();
     assert!(!send(&mut svm, &authority, &[&authority, &creator], settle_v3_ix(program,
-        authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, [8u8; 32], original)));
+        authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, [8u8; 32], original, 1)));
     svm.expire_blockhash();
     assert!(send(&mut svm, &next_authority, &[&next_authority, &creator], settle_v3_ix(program,
-        next_authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, [8u8; 32], original)));
+        next_authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, [8u8; 32], original, 1)));
     // Cumulative rounding accounts exactly for one-lamport dust.
     let final_policy = svm.get_account(&policy).unwrap();
     let final_policy = MintFeePolicyV3::try_deserialize(&mut &final_policy.data[..]).unwrap();
@@ -231,7 +236,7 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
     svm.expire_blockhash();
     assert!(send(&mut svm, &next_authority, &[&next_authority, &creator], settle_v3_ix(program,
         next_authority.pubkey(), creator.pubkey(), second_mint.pubkey(), legacy_router,
-        second_router, second_policy, [9u8; 32], vaults(second_mint.pubkey(), program))));
+        second_router, second_policy, [9u8; 32], vaults(second_mint.pubkey(), program), 10_000_000_000)));
     let second = svm.get_account(&second_policy).unwrap();
     let second = MintFeePolicyV3::try_deserialize(&mut &second.data[..]).unwrap();
     assert_eq!(second.protocol_units, alternate_rates);

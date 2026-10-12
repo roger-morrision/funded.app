@@ -65,6 +65,7 @@
     "verify:fee-router": "node scripts/verify-fee-router.mjs",
     "verify:mint-router-v2": "node scripts/verify-mint-router-v2.mjs",
     "verify:mint-router-v3": "node scripts/verify-mint-router-v3.mjs",
+    "verify:v3-collection-proof": "node scripts/verify-v3-collection-proof.mjs",
     "verify:referral-program": "node scripts/verify-referral-program.mjs",
     "verify:referral-auth": "node scripts/verify-referral-auth.mjs",
     "verify:referral-privacy-http": "node scripts/verify-referral-privacy-http.mjs",

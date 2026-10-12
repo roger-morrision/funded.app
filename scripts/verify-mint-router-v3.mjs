@@ -4,7 +4,8 @@ import { Keypair } from '@solana/web3.js';
 import { buildMintRouterV3InitializeInstruction, buildMintRouterV3SettlementInstruction,
   buildMintRouterV3DisbursementInstruction, deriveCommunityRewardVaultV3,
   deriveMintClaimV3, deriveMintWithdrawalV3, deriveMintRouterV3, deriveMintVaultsV3, protocolGrossUnits,
-  verifyMintRouterV3Account, verifyMintPolicyV3Account, verifyMintWithdrawalV3Account } from '../mint-router-v3.js';
+  verifyMintRouterV3Account, verifyMintPolicyV3Account, verifyMintWithdrawalV3Account,
+  verifyMintClaimV3Account } from '../mint-router-v3.js';
 import { FEE_ROUTER_POLICY_HASH_HEX } from '../fee-router.js';
 
 const programId = Keypair.generate().publicKey;
@@ -29,8 +30,10 @@ assert.deepEqual(protocolGrossUnits({ operationsPercent:75, referralLevelPercent
   [1_500_000, 200_000, 60_000, 40_000, 200_000, 0]);
 assert.throws(() => protocolGrossUnits({ operationsPercent:99, referralLevelPercents:[10,3,2], communityPercent:10, buybackPercent:25 }), /totaling 100%/);
 
-const settlement = buildMintRouterV3SettlementInstruction({ programId, mint, authority, creator, claimId });
-assert.equal(settlement.instruction.data.length, 40);
+const settlement = buildMintRouterV3SettlementInstruction({ programId, mint, authority, creator, claimId,
+  expectedLamports:'100000000000' });
+assert.equal(settlement.instruction.data.length, 48);
+assert.equal(settlement.instruction.data.readBigUInt64LE(40), 100_000_000_000n);
 assert.equal(settlement.instruction.data.toString('hex').slice(0, 16),
   createHash('sha256').update('global:settle_mint_v3').digest('hex').slice(0, 16));
 assert.equal(settlement.claim.toBase58(), deriveMintClaimV3(programId, mint, claimId).toBase58());
@@ -39,6 +42,8 @@ assert.deepEqual(settlement.vaults.map(key => key.toBase58()), deriveMintVaultsV
 assert.equal(settlement.instruction.keys[14].pubkey.toBase58(), settlement.vaults[6].toBase58());
 assert.ok(settlement.instruction.keys.slice(8).every(meta => meta.isWritable));
 assert.throws(() => deriveMintClaimV3(programId, mint, Buffer.alloc(31)), /32 bytes/);
+assert.throws(() => buildMintRouterV3SettlementInstruction({ programId, mint, authority, creator,
+  claimId, expectedLamports:Number.MAX_SAFE_INTEGER + 1 }), /safe integer/);
 
 const withdrawalId = createHash('sha256').update('creator-payout-v3').digest();
 const disbursement = buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
@@ -73,6 +78,17 @@ authority.toBuffer().copy(routerHeader, 41);
 mint.toBuffer().copy(routerHeader, 73);
 routerHeader[105] = initial.router.bump;
 const accountAt = data => ({ getAccountInfo:async () => ({ owner:programId, data }) });
+const claimData = Buffer.alloc(144);
+createHash('sha256').update('account:MintClaimRecordV3').digest().copy(claimData, 0, 0, 8);
+claimId.copy(claimData, 8);
+mint.toBuffer().copy(claimData, 40);
+claimData.writeBigUInt64LE(100n, 72);
+[80n, 10n, 2n, 1n, 0n, 2n, 5n].forEach((amount, index) => claimData.writeBigUInt64LE(amount, 80 + index * 8));
+const claimCheck = { connection:accountAt(claimData), programId, mint, claimId, expectedLamports:100n };
+assert.equal((await verifyMintClaimV3Account(claimCheck)).verified, true);
+assert.equal((await verifyMintClaimV3Account({ ...claimCheck, expectedLamports:99n })).verified, false);
+claimData.writeBigUInt64LE(4n, 128);
+assert.equal((await verifyMintClaimV3Account(claimCheck)).verified, false);
 const withdrawalData = Buffer.alloc(121);
 createHash('sha256').update('account:MintWithdrawalV3').digest().copy(withdrawalData, 0, 0, 8);
 withdrawalId.copy(withdrawalData, 8);
