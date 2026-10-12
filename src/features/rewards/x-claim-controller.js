@@ -57,6 +57,8 @@ export async function submitSolClaim({
       emitPilotSignal(claimVerified ? 'claim-verified' : 'claim-pending');
       if (status) status.textContent = claimVerified
         ? `Verified payment of ${paidClaim.amountSol} SOL to ${publicKey}. Transaction: ${paidClaim.payoutSignature}`
+        : verified.data.automaticStatus === 'awaiting-creator-signature'
+        ? `Wallet verified for ${publicKey}. Awaiting launch creator approval. Claim ID: ${claimId}. No SOL has been paid.`
         : 'Wallet verified. Automatic SOL delivery is in progress; check this reward for its payment receipt.';
       return { verified };
     }
@@ -156,7 +158,9 @@ export async function refreshXClaims({
     for (const claim of claimsByAction) {
       const row=document.createElement('div');row.className=`x-claim-reward${claim.receiptVerified?' x-claim-reward-paid':''}`;row.dataset.claimId=claim.id;
       if(claim.id===selectedId&&claim.canPrepare===true)row.classList.add('selected');
-      const state=document.createElement('span');state.className=`x-claim-reward-state ${claim.receiptVerified?'paid':claim.canPrepare?'ready':'pending'}`;state.textContent=claim.receiptVerified?'Paid':claim.canPrepare?'Ready to claim':String(claim.status).startsWith('automatic-')?'Processing payout':'Not ready yet';
+      const awaitingCreator=claim.status==='automatic-awaiting-creator-signature';
+      row.dataset.claimStatus=claim.status;
+      const state=document.createElement('span');state.className=`x-claim-reward-state ${claim.receiptVerified?'paid':claim.canPrepare?'ready':'pending'}`;state.textContent=claim.receiptVerified?'Paid':claim.canPrepare?'Ready to claim':awaitingCreator?'Awaiting creator approval':String(claim.status).startsWith('automatic-')?'Processing payout':'Not ready yet';
       const copy=document.createElement('div');copy.className='x-claim-reward-copy';
       const launch=verifiedLaunchPolicyForMint(claim.mint);
       const coinLabel=launch?[launch.symbol,launch.name].filter(Boolean).join(' · '):`Coin ${String(claim.mint||'').slice(0,6)}…`;

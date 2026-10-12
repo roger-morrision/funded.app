@@ -5,7 +5,7 @@ export function automaticXClaimState(obligation, claim, rewards = {}) {
   if (!request || request.kind !== 'x' || request.asset !== 'SOL' || request.mint !== obligation.mint
     || request.sourceSignature !== obligation.claimSignature || request.obligationId !== obligation.id
     || request.recipient !== claim.publicKey || String(request.amount) !== String(obligation.amountLamports)
-    || !['pending', 'funding', 'funded', 'verification-pending'].includes(request.status)) return null;
+    || !['awaiting-creator-signature', 'pending', 'funding', 'funded', 'verification-pending'].includes(request.status)) return null;
   const schedule = rewards.schedules?.[request.scheduleId];
   const leaf = schedule?.manifest?.leaves?.find(row => row.recipient === claim.publicKey);
   const payment = schedule?.payments?.[claim.publicKey];
@@ -27,11 +27,12 @@ export function rewardView(obligation,claim,proofs=[],automatic=null) {
   const receipt=proofs.find(p=>p.claimId===obligation.id&&p.signature===claim?.payoutSignature&&p.to===claim?.publicKey&&String(p.amountLamports)===String(obligation.amountLamports)&&p.source==='mint-router-settle-mint');
   const paid=status==='paid'&&Boolean(receipt)||automatic?.paid===true;
   const pending=Boolean(automatic)||['paid','executing','verification-pending'].includes(status);
+  const awaitingCreator=automatic?.status==='awaiting-creator-signature';
   const lamports=Number(obligation.amountLamports);
   const amountSol=Number.isSafeInteger(lamports)&&lamports>=0?lamports/1e9:null;
   const receiptTime=Number.isSafeInteger(receipt?.blockTime)&&receipt.blockTime>0?new Date(receipt.blockTime*1000).toISOString():null;
   const paidAt=paid?(automatic?.paid?automatic.paidAt||null:receiptTime||claim?.paidAt||null):null;
-  return {id:obligation.id,mint:obligation.mint,amountSol,status:automatic?.paid?'paid':automatic?`automatic-${automatic.status}`:status,group:paid?'Paid':pending?'Pending verification':'Available to prepare',receiptVerified:paid,payoutSignature:paid?(automatic?.payoutSignature||receipt?.signature):null,payoutWallet:paid?(automatic?.recipient||claim?.publicKey):null,paidAt,canPrepare:!pending,explanation:paid?'Confirmed recipient balance delta.':automatic?'Automatic delivery is in progress. No further claim action is needed.':pending?'Do not submit another payout. The existing attempt needs receipt verification.':'Verify your X account and bind the intended wallet. Network/service readiness still applies.'};
+  return {id:obligation.id,mint:obligation.mint,amountSol,status:automatic?.paid?'paid':automatic?`automatic-${automatic.status}`:status,group:paid?'Paid':pending?'Pending verification':'Available to prepare',receiptVerified:paid,payoutSignature:paid?(automatic?.payoutSignature||receipt?.signature):null,payoutWallet:paid?(automatic?.recipient||claim?.publicKey):null,paidAt,canPrepare:!pending,explanation:paid?'Confirmed recipient balance delta.':awaitingCreator?`Wallet verified. Launch creator approval is required for claim ${obligation.id}. No SOL has been paid.`:automatic?'Automatic delivery is in progress. No further claim action is needed.':pending?'Do not submit another payout. The existing attempt needs receipt verification.':'Verify your X account and bind the intended wallet. Network/service readiness still applies.'};
 }
 export function renewClaimChallenge(claim,nonce,now=Date.now()) {
   if(!claim.expiresAt||Date.parse(claim.expiresAt)>=now||['paid','executing','verification-pending'].includes(claim.status))return claim;

@@ -22,7 +22,7 @@ const claimId = 'synthetic-claim';
 const receipt = bs58.encode(new Uint8Array(64).fill(7));
 const stages = ['identity', 'prepare', 'attest', 'signature', 'verify', 'execute', 'receipt'];
 
-function fixture({ changeAt, change = 'switch', cancelSignature = false, receiptAvailable = true, connected = true, connectSuccess = false, automatic = false } = {}) {
+function fixture({ changeAt, change = 'switch', cancelSignature = false, receiptAvailable = true, connected = true, connectSuccess = false, automatic = null } = {}) {
   const calls = [], ui = [], signals = [];
   let changedUiAt = null;
   const key = address => ({ toBase58: () => address });
@@ -72,7 +72,7 @@ function fixture({ changeAt, change = 'switch', cancelSignature = false, receipt
     if (path.endsWith('/attest')) return complete('attest', { available: true, data: { status: 'x-attested-awaiting-wallet' } });
     if (path.endsWith('/verify')) {
       assert.equal(options.body.publicKey, 'original-wallet');
-      return complete('verify', { available: true, data: { status: 'ready-to-execute', automaticStatus: automatic ? 'pending' : null } });
+      return complete('verify', { available: true, data: { status: 'ready-to-execute', automaticStatus: automatic } });
     }
     if (path.endsWith('/execute')) return complete('execute', { available: true, data: { signature: receipt } });
     if (path === '/api/x-fee/claims') {
@@ -139,9 +139,18 @@ test('unavailable receipt remains pending after one execute without retry or ver
 });
 
 test('automatic enrollment reports pending delivery without calling manual execute', async () => {
-  const f = fixture({ automatic:true });
+  const f = fixture({ automatic:'pending' });
   await f.run();
   assert.deepEqual(f.calls, [...stages.slice(0, 5), 'refresh']);
   assert(f.ui.some(message => message.includes('Automatic SOL delivery is in progress')));
+  assert.deepEqual(f.signals, ['claim-started', 'claim-pending']);
+});
+
+test('verified wallet awaiting creator approval receives the claim ID without a second signature or payout claim', async () => {
+  const f = fixture({ automatic:'awaiting-creator-signature' });
+  await f.run();
+  assert.deepEqual(f.calls, [...stages.slice(0, 5), 'refresh']);
+  assert(f.ui.some(message => message.includes(`Awaiting launch creator approval. Claim ID: ${claimId}`)));
+  assert(f.ui.some(message => message.includes('No SOL has been paid')));
   assert.deepEqual(f.signals, ['claim-started', 'claim-pending']);
 });

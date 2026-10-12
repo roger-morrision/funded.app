@@ -11,6 +11,7 @@ export function syncXClaimFlow({
   const agreed=Boolean(document.querySelector('#claim-binding-agree')?.checked);
   const readyCount=document.querySelectorAll('#sol-claim-list .x-claim-reward-state.ready').length;
   const paidCount=document.querySelectorAll('#sol-claim-list .x-claim-reward-state.paid').length;
+  const awaitingCreator=xConnected&&Boolean(document.querySelector('#sol-claim-list [data-claim-status="automatic-awaiting-creator-signature"]'));
   const button=document.querySelector('#sol-claim-submit');
   const review=document.querySelector('#selected-claim-review');
   const walletReview=document.querySelector('#claim-binding-review');
@@ -27,7 +28,7 @@ export function syncXClaimFlow({
     button.textContent=!xConnected?'Sign in with X first':!claimId?(readyCount?'Choose a reward to continue':'No rewards ready to claim'):!address?'Connect wallet to continue':!agreed?'Confirm wallet above':'Verify wallet and claim SOL';
   }
   const paidOnly=xConnected&&paidCount>0&&readyCount===0&&!claimId;
-  const stepState={x:xConnected,choose:xConnected&&(Boolean(claimId)||paidOnly),wallet:xConnected&&((Boolean(claimId)&&Boolean(address&&agreed))||paidOnly),paid:paidOnly};
+  const stepState={x:xConnected,choose:xConnected&&(Boolean(claimId)||paidOnly||awaitingCreator),wallet:xConnected&&((Boolean(claimId)&&Boolean(address&&agreed))||paidOnly||awaitingCreator),paid:paidOnly};
   let foundCurrent=false;
   for(const step of document.querySelectorAll('#x-claim-steps [data-claim-step]')){
     const done=stepState[step.dataset.claimStep]===true;
@@ -84,7 +85,8 @@ export function resetSolClaimStatus({
     const agreed=document.querySelector('#claim-binding-agree')?.checked;
     const readyCount=document.querySelectorAll('#sol-claim-list .x-claim-reward-state.ready').length;
     const paidCount=document.querySelectorAll('#sol-claim-list .x-claim-reward-state.paid').length;
-    status.textContent=!connected?'Sign in with X to see your rewards.':!chosen?(readyCount?'Choose an available reward above.':paidCount?'Your listed reward has been paid. No other rewards are ready to claim.':'No rewards are ready to claim yet. Check back after creator fees are collected.'):!address?'Connect the wallet that should receive this payment.':!agreed?'Confirm the receiving wallet above.':'Ready to verify. Phantom will ask you to approve a message; signing does not spend SOL.';
+    const awaitingCreator=document.querySelector('#sol-claim-list [data-claim-status="automatic-awaiting-creator-signature"]');
+    status.textContent=!connected?'Sign in with X to see your rewards.':!chosen?(readyCount?'Choose an available reward above.':awaitingCreator?`Wallet verified. Awaiting launch creator approval for claim ${awaitingCreator.dataset.claimId}. No SOL has been paid.`:paidCount?'Your listed reward has been paid. No other rewards are ready to claim.':'No rewards are ready to claim yet. Check back after creator fees are collected.'):!address?'Connect the wallet that should receive this payment.':!agreed?'Confirm the receiving wallet above.':'Ready to verify. Phantom will ask you to approve a message; signing does not spend SOL.';
   }
   syncXClaimFlow();
 }

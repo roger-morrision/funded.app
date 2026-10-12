@@ -14,6 +14,8 @@ const claims = [
   { id: 'paid-fixture', mint: targetMint, amountSol: targetPaidSol, receiptVerified: true, payoutWallet: targetWallet, payoutSignature: targetReceipt, canPrepare: false },
   { id: 'pending-fixture', mint: '11111111111111111111111111111111', amountSol: 0.2, status: 'automatic-pending', canPrepare: false },
   { id: 'ready-fixture', mint: '11111111111111111111111111111111', amountSol: 0.3, canPrepare: true },
+  { id: 'creator-fixture', mint: targetMint, amountSol: 0.05, status: 'automatic-awaiting-creator-signature', canPrepare: false,
+    explanation: 'Wallet verified. Launch creator approval is required for claim creator-fixture. No SOL has been paid.' },
 ];
 const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify(data) });
 try {
@@ -29,7 +31,7 @@ try {
     await context.route('**/api/x/me', route => route.fulfill(json({ configured: true, authenticated: signedIn, user: signedIn ? { id: 'synthetic-x', username: targetHandle.slice(1) } : null })));
     await context.route('**/api/x-fee/claims', route => mode === 'unavailable'
       ? route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Synthetic rewards outage"}' })
-      : route.fulfill(json({ handle: targetHandle, claims: mode === 'paid' ? [claims[0]] : mode === 'empty' ? [] : claims })));
+      : route.fulfill(json({ handle: targetHandle, claims: mode === 'paid' ? [claims[0]] : mode === 'creator' ? [claims[3]] : mode === 'empty' ? [] : claims })));
     await context.route('**/api/x/logout', route => { signedIn = false; return route.fulfill(json({ ok: true })); });
     const page = await context.newPage();
     page.on('pageerror', error => errors.push(error.message));
@@ -43,9 +45,9 @@ try {
     await openClaims();
     await page.locator('#sol-claim-list [data-claim-id="ready-fixture"]').waitFor();
     assert.equal(await page.locator('#x-claim-unclaimed-value').textContent(), '0.3 SOL');
-    assert.equal(await page.locator('#x-claim-pending-value').textContent(), '0.2 SOL');
+    assert.equal(await page.locator('#x-claim-pending-value').textContent(), '0.25 SOL');
     assert.equal(await page.locator('#x-claim-claimed-value').textContent(), `${targetPaidSol} SOL`);
-    assert.deepEqual(await page.locator('#sol-claim-list [data-claim-id]').evaluateAll(rows => rows.map(row => row.dataset.claimId)), ['ready-fixture', 'pending-fixture', 'paid-fixture']);
+    assert.deepEqual(await page.locator('#sol-claim-list [data-claim-id]').evaluateAll(rows => rows.map(row => row.dataset.claimId)), ['ready-fixture', 'pending-fixture', 'creator-fixture', 'paid-fixture']);
     await page.getByRole('button', { name: 'Select reward', exact: true }).click();
     assert.equal(await page.locator('#sol-claim-id').inputValue(), 'ready-fixture');
     assert.equal(await page.locator('#sol-claim-submit').textContent(), 'Connect wallet to continue');
@@ -57,9 +59,17 @@ try {
     assert(await page.locator('#sol-claim-submit').isHidden());
     assert.equal(await page.locator('#x-claim-claimed-value').textContent(), '—');
     signedIn = true;
-    for (mode of ['paid', 'empty', 'unavailable']) {
+    for (mode of ['creator', 'paid', 'empty', 'unavailable']) {
       await openClaims();
-      if (mode === 'paid') {
+      if (mode === 'creator') {
+        const row=page.locator('#sol-claim-list [data-claim-id="creator-fixture"]');
+        await row.waitFor();
+        assert.match(await row.textContent(), /Awaiting creator approval/);
+        assert.match(await row.textContent(), /No SOL has been paid/);
+        assert.equal(await row.locator('button').count(), 0);
+        assert.match(await page.locator('#sol-claim-status').textContent(), /Awaiting launch creator approval for claim creator-fixture/);
+        assert.equal(await page.locator('#x-claim-steps [data-claim-step="paid"]').getAttribute('aria-current'), 'step');
+      } else if (mode === 'paid') {
         await page.locator('#sol-claim-list [data-claim-id="paid-fixture"]').waitFor();
         assert.equal(await page.locator('#sol-claim-list button').count(), 0);
         assert.equal(await page.locator('#sol-claim-list .payment-receipt-link').count(), 1);
@@ -73,6 +83,6 @@ try {
     assert.deepEqual(claimWrites, [], 'Review and sign-out must never send a claim transaction');
     assert.deepEqual(errors, [], 'No uncaught browser errors');
     await context.close();
-    console.log(`X rewards UI passed at ${width}px: totals, selection, wallet gate, sign-out, paid/empty/unavailable states (mocked APIs, no signing).`);
+    console.log(`X rewards UI passed at ${width}px: totals, creator approval, selection, wallet gate, sign-out, paid/empty/unavailable states (mocked APIs, no signing).`);
   }
 } finally { await browser.close(); }

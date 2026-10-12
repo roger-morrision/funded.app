@@ -44,6 +44,19 @@ test('enrolled payout in progress cannot be manually claimed twice', () => {
   assert.equal(view.status, 'automatic-pending');
 });
 
+test('verified X wallet awaiting creator approval is pending and shows the claim ID', () => {
+  const awaiting = structuredClone(rewards);
+  awaiting.fundingRequests[requestId].status = 'awaiting-creator-signature';
+  delete awaiting.schedules[scheduleId];
+  const view = rewardView(obligation, claim, [], automaticXClaimState(obligation, claim, awaiting));
+  assert.equal(view.status, 'automatic-awaiting-creator-signature');
+  assert.equal(view.canPrepare, false);
+  assert.equal(view.receiptVerified, false);
+  assert.match(view.explanation, /Launch creator approval is required/);
+  assert.match(view.explanation, new RegExp(obligation.id));
+  assert.match(view.explanation, /No SOL has been paid/);
+});
+
 test('mismatched identity, recipient, amount, funding or incomplete receipt cannot mark a payout paid', () => {
   for (const change of [
     state => { state.claim.xAttestation.subject = 'another-user'; },
