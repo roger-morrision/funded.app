@@ -112,6 +112,14 @@ html body.product-experience-ready .explore-boost-how summary { display:list-ite
 @media(max-width:700px) {
   body.product-experience-ready .launch-package-preview-grid { grid-template-columns:1fr; }
   body.product-experience-ready .hero-section { padding-top:24px!important; }
+  body.product-experience-ready.page-route-overview .hero-section { padding-bottom:20px!important; }
+  body.product-experience-ready.page-route-overview .hero-section h1 { font-size:clamp(29px,7.7vw,32px)!important; }
+  body.product-experience-ready.page-route-overview .home-hero-kicker { font-size:14px; }
+  body.product-experience-ready.page-route-overview .hero-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:16px; }
+  body.product-experience-ready.page-route-overview .hero-actions a { min-width:0; min-height:44px; padding:0 8px; font-size:12px; letter-spacing:0; }
+  body.product-experience-ready.page-route-overview .home-simple-flow { gap:5px; margin-top:14px; }
+  body.product-experience-ready.page-route-overview .home-simple-flow span:not([aria-hidden]) { padding:5px 8px; line-height:1.35; }
+  body.product-experience-ready.page-route-overview .home-flow-proof { margin-top:9px; }
   body.product-experience-ready #launch-route-shell { padding:24px 0 10px!important; margin-bottom:0!important; }
   body.product-experience-ready #launch-dialog { padding-top:12px!important; }
   body.product-experience-ready .launch-title-row { margin:0 0 14px; }

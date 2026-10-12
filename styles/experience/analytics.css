@@ -38,7 +38,7 @@
   padding-top: 10px;
   border-top: 1px solid #2a3549;
   color: #9baac2;
-  font-size: 11px;
+  font-size: 12px !important;
   line-height: 1.5;
 }
 .page-route-analytics-detail .analytics-kpis-complete article > small b {
@@ -49,7 +49,7 @@
   border-radius: 4px;
   color: #c7bcff;
   background: #29234b;
-  font-size: 9px;
+  font-size: 10px;
   vertical-align: 1px;
 }
 .page-route-analytics-detail .recipients-panel { padding: 24px 28px; }
