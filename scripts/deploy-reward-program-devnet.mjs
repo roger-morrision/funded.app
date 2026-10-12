@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -31,6 +31,11 @@ if (!binaryArg || !programKeypairArg) throw new Error('Usage: node scripts/deplo
 
 const binary = resolve(binaryArg);
 const programKeypairPath = resolve(programKeypairArg);
+const maxLengthInput = String(process.env.FUNDED_ROUTER_PROGRAM_MAX_LEN || '').trim();
+const maxLength = maxLengthInput ? Number(maxLengthInput) : null;
+if (maxLength !== null && (!Number.isSafeInteger(maxLength) || maxLength < statSync(binary).size)) {
+  throw new Error('FUNDED_ROUTER_PROGRAM_MAX_LEN must be an integer at least as large as the program binary.');
+}
 const expectedProgram = String(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || '').trim();
 if (!expectedProgram) throw new Error('FUNDED_FEE_ROUTER_PROGRAM_ID is required.');
 const keypairProgram = run('solana-keygen', ['pubkey', programKeypairPath]).stdout.trim();
@@ -52,6 +57,7 @@ try {
   run('solana', [
     'program', 'deploy', binary,
     '--program-id', programKeypairPath,
+    ...(maxLength === null ? [] : ['--max-len', String(maxLength)]),
     '--keypair', payerPath,
     '--upgrade-authority', payerPath,
     '--url', rpcUrl,

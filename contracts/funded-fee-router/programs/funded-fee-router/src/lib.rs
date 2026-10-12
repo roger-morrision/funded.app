@@ -9,7 +9,10 @@ pub use constants::*;
 pub use instructions::*;
 pub use state::*;
 
+#[cfg(not(feature = "devnet-v3-program"))]
 declare_id!("61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa");
+#[cfg(feature = "devnet-v3-program")]
+declare_id!("9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm");
 
 #[program]
 pub mod funded_fee_router {
