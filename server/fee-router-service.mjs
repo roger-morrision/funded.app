@@ -4,6 +4,10 @@ import bs58 from 'bs58';
 import { Connection as RpcConnection, Keypair, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction as sendTransaction } from '@solana/web3.js';
 import { OnlinePumpSdk as PumpSdk } from '@pump-fun/pump-sdk';
 import { deriveFeeRouter, deriveMintFeeRouter, verifyFeeRouterAccount as verifyRouter, verifyMintFeeRouterAccount as verifyMintRouter } from '../fee-router.js';
+import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
+import { deriveMintRouterV3, protocolGrossUnits } from '../mint-router-v3.js';
+import { verifyV3LaunchRouterReadiness as verifyV3Readiness } from './v3-launch-readiness.mjs';
+import { loadFinalizedV3PumpCollection as loadV3Collection } from './v3-finalized-collection.mjs';
 import { readProgramDataEvidence as readProgramEvidence } from './automatic-reward-chain.mjs';
 import { buildMintCreatorFeeCollectionInstructions as buildMintInstructions } from './pump-fee-collection.mjs';
 import { LAUNCH_TIER_USD } from '../launch-tier-quote.js';
@@ -17,6 +21,8 @@ export function createFeeRouterService({
   reconcileFinalizedSolPayout = reconcileFinalizedReferral, verifyFeeRouterAccount = verifyRouter,
   verifyMintFeeRouterAccount = verifyMintRouter, readProgramDataEvidence = readProgramEvidence,
   buildMintCreatorFeeCollectionInstructions = buildMintInstructions,
+  verifyV3LaunchRouterReadiness = verifyV3Readiness,
+  loadFinalizedV3PumpCollection = loadV3Collection,
 }) {
   function keeperKeypair() {
     const filePath = String(env.SOLANA_KEEPER_KEYPAIR_PATH || '').trim();
@@ -142,7 +148,30 @@ export function createFeeRouterService({
     const launch = await store.readLaunch(mintKey.toBase58());
     if (!launch?.onchainVerified || launch.cluster !== solanaCluster) throw new Error('A verified launch for this mint is required before collection.');
     const perMint = launch.pumpFeeRoute?.scope === 'per-mint-v2';
-    const router = perMint ? deriveMintFeeRouter(config.programId, mintKey) : config;
+    const perMintV3 = launch.pumpFeeRoute?.scope === 'per-mint-v3';
+    const mintSpecific = perMint || perMintV3;
+    const v3ProgramId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
+    let router = perMint ? deriveMintFeeRouter(config.programId, mintKey) : config;
+    if (perMintV3) {
+      if (env.FUNDED_V3_COLLECTION_ENABLED !== 'true' || !v3ProgramId
+        || launch.pumpFeeRoute.programId !== v3ProgramId
+        || protocolGrossUnits(launch.pumpFeeRoute.protocolSplit).some((units, index) => units !== protocolGrossUnits(PROTOCOL_FEE_SPLIT)[index])) {
+        throw new Error('V3 collection is not activated for this immutable launch policy.');
+      }
+      router = deriveMintRouterV3(v3ProgramId, mintKey);
+      const main = await store.read();
+      if (Object.values(main.collections || {}).some(row => row.mint === mintKey.toBase58()
+        && row.scope === 'per-mint-v3' && !main.v3Settlements?.[row.signature])) {
+        throw new Error('A prior V3 collection needs finalized settlement before another collection.');
+      }
+      const readiness = await verifyV3LaunchRouterReadiness({ connection, programId:v3ProgramId,
+        expectedProgramDataSha256:env.FUNDED_V3_PROGRAM_DATA_SHA256,
+        mint:mintKey, creatorWallet:launch.creatorWallet,
+        initialAuthority:launch.pumpFeeRoute.initialAuthority, split:PROTOCOL_FEE_SPLIT });
+      if (!readiness.ready || readiness.configuredRouter !== router.address.toBase58()) {
+        throw new Error(`V3 collection program and mint policy are not verified: ${readiness.error || 'router mismatch'}.`);
+      }
+    }
     if (perMint) {
       // Collection is keeper signed. Creator approval is checked when a payout is prepared.
       if (!(await mintRouterReadiness({ collectionOnly: true })).ready) throw new Error('Mint-specific collection is not activated.');
@@ -154,15 +183,34 @@ export function createFeeRouterService({
     const curve = await online.fetchBondingCurve(mintKey);
     if (!curve?.creator?.equals(router.address) || launch.creator !== router.address.toBase58()) throw new Error('The on-chain Pump fee owner does not match this launch router.');
     const beforeLamports = await connection.getBalance(router.address, 'confirmed');
-    const instructions = perMint
+    const instructions = mintSpecific
       ? (await buildMintCreatorFeeCollectionInstructions({ connection, router:router.address, keeper:keeper.publicKey })).instructions
       : await online.collectCoinCreatorFeeInstructions(router.address, keeper.publicKey);
-    if (!instructions.length) return { requestedMint: mintKey.toBase58(), mint: perMint ? mintKey.toBase58() : null, attribution: perMint ? 'mint-verified' : 'router', router: router.address.toBase58(), status: 'nothing-to-collect', beforeLamports, afterLamports: beforeLamports };
+    if (!instructions.length) return { requestedMint: mintKey.toBase58(), mint: mintSpecific ? mintKey.toBase58() : null, attribution: mintSpecific ? 'mint-verified' : 'router', router: router.address.toBase58(), status: 'nothing-to-collect', beforeLamports, afterLamports: beforeLamports };
     const latest = await connection.getLatestBlockhash('confirmed');
     const transaction = new Transaction().add(...instructions);
     transaction.recentBlockhash = latest.blockhash; transaction.feePayer = keeper.publicKey;
     const signature = await sendAndConfirmTransaction(connection, transaction, [keeper], { commitment: 'confirmed' });
     const afterLamports = await connection.getBalance(router.address, 'confirmed').catch(() => null);
+    if (perMintV3) {
+      let proof = null;
+      try { proof = await loadFinalizedV3PumpCollection({ connection, signature,
+        programId:v3ProgramId, mint:mintKey, launch }); } catch {}
+      if (!proof || proof.signature !== signature || proof.mint !== mintKey.toBase58()
+        || proof.router !== router.address.toBase58() || proof.expectedLamports <= 0n
+        || proof.expectedLamports > BigInt(Number.MAX_SAFE_INTEGER)) {
+        return { requestedMint:mintKey.toBase58(), mint:mintKey.toBase58(), scope:'per-mint-v3',
+          attribution:'unverified', onchainVerified:false, router:router.address.toBase58(),
+          programId:v3ProgramId, signature, beforeLamports, afterLamports,
+          cluster:solanaCluster, status:'verification-pending',
+          reason:'The finalized V3 Pump collection and exact router credit need reconciliation.' };
+      }
+      return { requestedMint:mintKey.toBase58(), mint:mintKey.toBase58(), scope:'per-mint-v3',
+        attribution:'mint-verified', onchainVerified:true, router:router.address.toBase58(),
+        programId:v3ProgramId, signature, beforeLamports, afterLamports,
+        collectedLamports:Number(proof.expectedLamports), claimId:proof.claimId.toString('hex'),
+        slot:proof.slot, cluster:solanaCluster, status:'collected' };
+    }
     let confirmed = null;
     try { confirmed = await connection.getTransaction(signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 }); } catch {}
     const accountKeys = confirmed?.transaction?.message?.accountKeys || [];

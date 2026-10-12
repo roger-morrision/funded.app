@@ -35,9 +35,14 @@ export function createKeeperCollectionRoutes({
     if (req.method === 'GET' && url.pathname === '/api/keeper/collection-candidates') {
       if (!requireAuthorized(req, res)) return true;
       const state = await store.read();
-      const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified && row.cluster === 'devnet' && row.pumpFeeRoute?.scope === 'per-mint-v2' && row.pumpFeeRoute.router === row.creator);
+      const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified
+        && row.cluster === 'devnet' && row.pumpFeeRoute?.router
+        && row.pumpFeeRoute.router === row.creator
+        && (row.pumpFeeRoute.scope === 'per-mint-v2'
+          || (process.env.FUNDED_V3_COLLECTION_ENABLED === 'true' && row.pumpFeeRoute.scope === 'per-mint-v3')));
       const rewards = await automaticRewardStore.read();
       const pendingSettlements = Object.values(state.collections || {}).filter(row => {
+        if (row.scope === 'per-mint-v3') return false;
         if (row.status !== 'collected' || row.onchainVerified !== true || row.attribution !== 'mint-verified' || row.cluster !== 'devnet') return false;
         const settlement = state.settlements?.[row.signature];
         if (!settlement) return true;
@@ -49,7 +54,8 @@ export function createKeeperCollectionRoutes({
           ['community', settlement.fundedApp?.community],
         ].some(([kind, amount]) => BigInt(solToLamports(amount)) > 0n && !rewards.fundingRequests?.[`${row.signature}:${kind}`]);
       }).map(row => row.signature);
-      return json(res, 200, { cluster:solanaCluster, minimumCollectionLamports:'10000000', mints:launches.map(row => ({ mint:row.mint, collectionStatus:state.alerts?.[`fee-collect:${row.mint}`]?.status || null })), pendingSettlements });
+      return json(res, 200, { cluster:solanaCluster, minimumCollectionLamports:'10000000', mints:launches.map(row => ({ mint:row.mint,
+        scope:row.pumpFeeRoute.scope, collectionStatus:state.alerts?.[`fee-collect:${row.mint}`]?.status || null })), pendingSettlements });
     }
     if (req.method === 'POST' && url.pathname === '/api/keeper/collect') {
       if (!requireAuthorized(req, res)) return true;
@@ -76,7 +82,7 @@ export function createKeeperCollectionRoutes({
         const recordedAt = new Date().toISOString();
         if (result.signature) state.collections[result.signature] = { id: result.signature, ...result, recordedAt };
         state.alerts[`fee-collect:${mintKey}`] = { ...state.alerts[`fee-collect:${mintKey}`], status:result.onchainVerified && result.status === 'collected' ? 'complete' : result.status === 'nothing-to-collect' || result.status === 'no-fees' ? result.status : 'review-required', signature:result.signature || null, recordedAt };
-        if (result.onchainVerified && result.status === 'collected') {
+        if (result.onchainVerified && result.status === 'collected' && result.scope !== 'per-mint-v3') {
           Object.assign(result, reconcileXFeeObligation(state, { mint:result.mint, claimSignature:result.signature, createdAt:recordedAt }));
           state.collections[result.signature] = { ...state.collections[result.signature],
             ...(result.obligationStatus ? { obligationStatus:result.obligationStatus } : {}),

@@ -57,6 +57,49 @@ test('failed collection keeps its reconciliation lock and blocks replay', async 
   assert.equal(collections, 1);
 });
 
+test('V3 collection stays separate from V2 obligations and bookkeeping settlements', async () => {
+  const state = { alerts:{}, collections:{}, obligations:{} };
+  const signature = 'v3-finalized-fixture';
+  const f = fixture(createKeeperCollectionRoutes, {
+    requireAuthorized:() => true, store:{ update:async fn => fn(state) },
+    collectPumpCreatorFees:async () => ({ signature, mint, requestedMint:mint,
+      scope:'per-mint-v3', status:'collected', onchainVerified:true,
+      attribution:'mint-verified', collectedLamports:30, cluster:'devnet' }),
+  });
+  await f.request('/api/keeper/collect', { mint });
+  assert.equal(f.responses[0].status, 200);
+  assert.equal(state.collections[signature].scope, 'per-mint-v3');
+  assert.deepEqual(state.obligations, {});
+});
+
+test('keeper lists V3 candidates only when enabled and excludes them from V2 settlements', async () => {
+  const v3Mint = new PublicKey(new Uint8Array(32).fill(4)).toBase58();
+  const state = { launches:{
+    [mint]:{ mint, creator:mint, onchainVerified:true, cluster:'devnet',
+      pumpFeeRoute:{ scope:'per-mint-v2', router:mint } },
+    [v3Mint]:{ mint:v3Mint, creator:v3Mint, onchainVerified:true, cluster:'devnet',
+      pumpFeeRoute:{ scope:'per-mint-v3', router:v3Mint } },
+  }, collections:{ v3proof:{ signature:'v3proof', mint:v3Mint, scope:'per-mint-v3',
+    status:'collected', onchainVerified:true, attribution:'mint-verified', cluster:'devnet' } },
+  settlements:{}, alerts:{} };
+  const f = fixture(createKeeperCollectionRoutes, { requireAuthorized:() => true,
+    store:{ read:async () => state }, automaticRewardStore:{ read:async () => ({ fundingRequests:{} }) },
+    solToLamports:() => 0 });
+  const previous = process.env.FUNDED_V3_COLLECTION_ENABLED;
+  try {
+    delete process.env.FUNDED_V3_COLLECTION_ENABLED;
+    await f.request('/api/keeper/collection-candidates', {}, 'GET');
+    assert.deepEqual(f.responses[0].data.mints.map(row => row.mint), [mint]);
+    assert.deepEqual(f.responses[0].data.pendingSettlements, []);
+    process.env.FUNDED_V3_COLLECTION_ENABLED = 'true';
+    await f.request('/api/keeper/collection-candidates', {}, 'GET');
+    assert.deepEqual(f.responses[1].data.mints.map(row => row.mint), [mint, v3Mint]);
+  } finally {
+    if (previous === undefined) delete process.env.FUNDED_V3_COLLECTION_ENABLED;
+    else process.env.FUNDED_V3_COLLECTION_ENABLED = previous;
+  }
+});
+
 test('launch registration rejects unsupported networks and missing router or promotion proof', async () => {
   const disabled = fixture(createLaunchRegistrationRoutes, { solanaCluster: 'mainnet-beta',
     body: () => assert.fail('Disabled launch must not be read') });

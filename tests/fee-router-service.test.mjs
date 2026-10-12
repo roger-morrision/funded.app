@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import bs58 from 'bs58';
 import { Keypair, SystemProgram } from '@solana/web3.js';
 import { deriveFeeRouter, deriveMintFeeRouter } from '../fee-router.js';
+import { deriveMintRouterV3 } from '../mint-router-v3.js';
 import { createFeeRouterService } from '../server/fee-router-service.mjs';
 
 // Synthetic keys are never funded, persisted, or sent to a network.
@@ -25,6 +26,7 @@ function fixture(overrides = {}) {
     launch: { onchainVerified: true, cluster: 'devnet', creator: router.address.toBase58(), pumpFeeRoute: { scope: 'per-mint-v2' } },
     curveCreator: router.address, instructions: [SystemProgram.transfer({ fromPubkey: keeper.publicKey, toPubkey: router.address, lamports: 0 })],
     proof: { transaction: { message: { accountKeys: [router.address] } }, meta: { preBalances: [100], postBalances: [130], err: null } },
+    main: { collections:{}, v3Settlements:{} },
     executable: true, routerVerified: true, programHash: 'a'.repeat(64), lookupHealth: null,
   };
   class Connection {
@@ -40,7 +42,7 @@ function fixture(overrides = {}) {
   }
   const service = createFeeRouterService({
     env, solanaCluster: 'devnet', solanaRpcUrl: 'http://unused.invalid', fundedTokenMint: mint.publicKey.toBase58(), devnetTestMode: false,
-    store: { readLaunch: async () => state.launch }, Connection,
+    store: { readLaunch: async () => state.launch, read:async () => state.main }, Connection,
     xConfig: () => ({ clientId: 'fixture', clientSecret: 'fixture' }), resolveXUser: { health: () => state.lookupHealth },
     OnlinePumpSdk: class { async fetchBondingCurve() { return { creator: state.curveCreator }; } },
     verifyFeeRouterAccount: async () => ({ verified: state.routerVerified, reason: 'fixture' }),
@@ -178,4 +180,49 @@ test('collection propagates uncertain broadcast outcomes without retrying', asyn
   const f = fixture({ sendAndConfirmTransaction: async () => { attempts++; throw new Error('RPC response timed out'); } });
   await assert.rejects(f.service.collectPumpCreatorFees({ requestedMint: f.mint }), /RPC response timed out/);
   assert.equal(attempts, 1);
+});
+
+test('V3 collection needs its separate gate, immutable policy, and finalized Pump proof', async () => {
+  const v3Program = key(7).publicKey;
+  const v3Router = deriveMintRouterV3(v3Program, key(6).publicKey).address;
+  let finalizedProof = null;
+  let readinessCalls = 0;
+  const f = fixture({
+    verifyV3LaunchRouterReadiness:async input => {
+      readinessCalls++;
+      assert.equal(input.programId, v3Program.toBase58());
+      assert.equal(input.initialAuthority, key(2).publicKey.toBase58());
+      return { ready:true, configuredRouter:v3Router.toBase58() };
+    },
+    loadFinalizedV3PumpCollection:async () => finalizedProof,
+  });
+  f.state.launch = { onchainVerified:true, cluster:'devnet', mint:f.mint,
+    creator:v3Router.toBase58(), creatorWallet:f.authority.publicKey.toBase58(),
+    pumpFeeRoute:{ scope:'per-mint-v3', router:v3Router.toBase58(),
+      programId:v3Program.toBase58(), initialAuthority:f.authority.publicKey.toBase58(),
+      protocolSplit:{ operationsPercent:50, referralLevelPercents:[10,3,2],
+        communityPercent:10, buybackPercent:25 } } };
+  f.state.curveCreator = v3Router;
+  f.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID = v3Program.toBase58();
+  f.env.FUNDED_V3_PROGRAM_DATA_SHA256 = 'b'.repeat(64);
+  await assert.rejects(f.service.collectPumpCreatorFees({ requestedMint:f.mint }), /V3 collection is not activated/);
+  assert.equal(f.state.sends, 0);
+  f.env.FUNDED_V3_COLLECTION_ENABLED = 'true';
+  finalizedProof = { signature:'fixture-signature', mint:f.mint, router:v3Router.toBase58(),
+    expectedLamports:30n, claimId:Buffer.alloc(32, 1), slot:42 };
+  const collected = await f.service.collectPumpCreatorFees({ requestedMint:f.mint });
+  assert.equal(collected.scope, 'per-mint-v3');
+  assert.equal(collected.status, 'collected');
+  assert.equal(collected.collectedLamports, 30);
+  assert.equal(collected.claimId, '01'.repeat(32));
+  assert.equal(readinessCalls, 1);
+  f.state.main.collections[collected.signature] = collected;
+  await assert.rejects(f.service.collectPumpCreatorFees({ requestedMint:f.mint }), /prior V3 collection needs finalized settlement/);
+  assert.equal(f.state.sends, 1);
+  f.state.main.v3Settlements[collected.signature] = { status:'finalized' };
+  finalizedProof = null;
+  const pending = await f.service.collectPumpCreatorFees({ requestedMint:f.mint });
+  assert.equal(pending.status, 'verification-pending');
+  assert.equal(pending.onchainVerified, false);
+  assert.equal(f.state.sends, 2);
 });
