@@ -158,7 +158,10 @@ const readiness = {
   programId, expectedProgramDataSha256:approvedHash, mint,
   creatorWallet:creator, initialAuthority:authority, split:protocolSplit,
   readEvidence:async () => ({ account:{ executable:true }, sha256:approvedHash }),
-  verifyGlobal:async () => ({ verified:true }),
+  verifyGlobal:async ({ commitment }) => {
+    assert.equal(commitment, 'finalized');
+    return { verified:true };
+  },
   verifyRouter:async () => ({ verified:true, address:router }),
   verifyPolicy:async ({ split }) => ({ verified:split === protocolSplit }),
 };

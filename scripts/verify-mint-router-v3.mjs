@@ -8,6 +8,7 @@ import { buildMintRouterV3InitializeInstruction, buildMintRouterV3SettlementInst
   verifyMintClaimV3Account } from '../mint-router-v3.js';
 import { FEE_ROUTER_POLICY_HASH_HEX } from '../fee-router.js';
 import { buildPumpLaunchPlan } from '../mint-router-launch.js';
+import { buildLaunchMintRouter } from '../launch-flow.js';
 
 const programId = Keypair.generate().publicKey;
 const mintSigner = Keypair.generate();
@@ -16,6 +17,15 @@ const authority = Keypair.generate().publicKey;
 const creator = Keypair.generate().publicKey;
 const claimId = createHash('sha256').update('verified-collection-v3').digest();
 const initial = buildMintRouterV3InitializeInstruction({ programId, mint, authority, creator });
+const launchRouter = buildLaunchMintRouter({ feeRouterProgramId:Keypair.generate().publicKey,
+  mint, payer:creator, v3FeeRouter:{ programId, initialAuthority:authority,
+    split:{ operationsPercent:50, referralLevelPercents:[10,3,2], communityPercent:10, buybackPercent:25 } } });
+assert.equal(launchRouter.scope, 'per-mint-v3');
+assert.equal(launchRouter.router.address.toBase58(), initial.router.address.toBase58());
+assert.equal(launchRouter.instruction.keys[0].isSigner, false);
+assert.equal(launchRouter.instruction.keys[1].isSigner, true);
+assert.throws(() => buildLaunchMintRouter({ mint, payer:creator,
+  v3FeeRouter:{ programId, initialAuthority:authority } }), /protocol split/);
 assert.deepEqual(initial.protocolUnits, [1_000_000, 200_000, 60_000, 40_000, 200_000, 500_000]);
 assert.equal(initial.instruction.data.toString('hex').slice(0, 16),
   createHash('sha256').update('global:initialize_mint_v3').digest('hex').slice(0, 16));

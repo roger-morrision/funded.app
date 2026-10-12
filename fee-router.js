@@ -78,9 +78,9 @@ export async function verifyMintFeeRouterAccount({ connection, programId, mint, 
   return { ...router, authority, verified: true, reason: 'verified' };
 }
 
-export async function verifyFeeRouterAccount({ connection, programId }) {
+export async function verifyFeeRouterAccount({ connection, programId, commitment = 'confirmed' }) {
   const router = deriveFeeRouter(programId);
-  const account = await connection.getAccountInfo(router.address, 'confirmed');
+  const account = await connection.getAccountInfo(router.address, commitment);
   if (!account) return { ...router, verified: false, reason: 'router-account-not-deployed' };
   if (!account.owner.equals(router.programId)) return { ...router, verified: false, reason: 'router-owner-mismatch' };
   const data = Uint8Array.from(account.data || []);

@@ -21,7 +21,7 @@ export async function verifyV3LaunchRouterReadiness({ connection, programId, exp
     const authority = new PublicKey(initialAuthority).toBase58();
     const [genesis, evidence, global] = await Promise.all([
       connection.getGenesisHash(), readEvidence(connection, program),
-      verifyGlobal({ connection, programId:program }),
+      verifyGlobal({ connection, programId:program, commitment:'finalized' }),
     ]);
     if (genesis !== DEVNET_GENESIS_HASH || !evidence.account?.executable
       || evidence.sha256 !== expectedProgramDataSha256.toLowerCase() || !global.verified) {

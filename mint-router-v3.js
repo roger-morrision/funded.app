@@ -1,5 +1,4 @@
-import { createHash } from 'node:crypto';
-import { Buffer } from 'node:buffer';
+import { Buffer } from 'buffer';
 import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
 import { PROTOCOL_FEE_SPLIT } from './config/protocol-fee-split.js';
 import { validateProtocolFeeSplit } from './distribution-policy.js';
@@ -11,7 +10,21 @@ const MINT_VAULT_V3_SEED = Buffer.from('mint-fee-vault-v3');
 const MINT_CLAIM_V3_SEED = Buffer.from('mint-fee-claim-v3');
 const MINT_WITHDRAWAL_V3_SEED = Buffer.from('mint-withdraw-v3');
 const REWARD_VAULT_SEED = Buffer.from('reward-vault-v1');
-const discriminator = name => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
+// Anchor's first eight SHA-256 bytes for each V3 instruction/account. Keep
+// these constants checked against Node's crypto implementation in the verifier
+// so the browser never needs a Node crypto polyfill to construct a launch.
+const GLOBAL_DISCRIMINATORS = Object.freeze({
+  initialize_mint_v3:'81b9d41bdc1b9cec',
+  settle_mint_v3:'a44b0102a9594346',
+  disburse_mint_v3:'68aef12e59187f1b',
+});
+const ACCOUNT_DISCRIMINATORS = Object.freeze({
+  MintFeePolicyV3:'25d0c7eca736c38f',
+  MintWithdrawalV3:'66d5a507606b85ce',
+  MintClaimRecordV3:'90c82e2a7a966b02',
+});
+const discriminator = name => Buffer.from(GLOBAL_DISCRIMINATORS[name], 'hex');
+const accountDiscriminator = name => Buffer.from(ACCOUNT_DISCRIMINATORS[name], 'hex');
 const key = value => new PublicKey(value);
 
 export function protocolGrossUnits(split = PROTOCOL_FEE_SPLIT) {
@@ -77,8 +90,8 @@ export async function verifyMintPolicyV3Account({ connection, programId, mint, c
   const account = await connection.getAccountInfo(address.address, 'finalized');
   if (!account?.owner?.equals(key(programId))) return { ...address, verified:false, reason:'v3-policy-owner-or-account-mismatch' };
   const data = Buffer.from(account.data);
-  const accountDiscriminator = createHash('sha256').update('account:MintFeePolicyV3').digest().subarray(0, 8);
-  if (data.length !== 249 || !data.subarray(0, 8).equals(accountDiscriminator)
+  const expectedDiscriminator = accountDiscriminator('MintFeePolicyV3');
+  if (data.length !== 249 || !data.subarray(0, 8).equals(expectedDiscriminator)
     || !data.subarray(8, 40).equals(key(mint).toBuffer())
     || !data.subarray(40, 72).equals(key(creator).toBuffer())
     || !data.subarray(72, 104).equals(key(initialAuthority).toBuffer()) || data[248] !== address.bump) {
@@ -106,8 +119,8 @@ export async function verifyMintWithdrawalV3Account({ connection, programId, min
   const account = await connection.getAccountInfo(address, 'finalized');
   if (!account?.owner?.equals(key(programId))) return { address, verified:false, reason:'v3-withdrawal-owner-or-account-mismatch' };
   const data = Buffer.from(account.data);
-  const accountDiscriminator = createHash('sha256').update('account:MintWithdrawalV3').digest().subarray(0, 8);
-  const valid = data.length === 121 && data.subarray(0, 8).equals(accountDiscriminator)
+  const expectedDiscriminator = accountDiscriminator('MintWithdrawalV3');
+  const valid = data.length === 121 && data.subarray(0, 8).equals(expectedDiscriminator)
     && data.subarray(8, 40).equals(Buffer.from(withdrawalId))
     && data.subarray(40, 72).equals(key(mint).toBuffer())
     && data[72] === category && data.subarray(73, 105).equals(key(recipient).toBuffer())
@@ -122,8 +135,8 @@ export async function verifyMintClaimV3Account({ connection, programId, mint, cl
   const account = await connection.getAccountInfo(address, 'finalized');
   if (!account?.owner?.equals(key(programId))) return { address, verified:false, reason:'v3-claim-owner-or-account-mismatch' };
   const data = Buffer.from(account.data);
-  const accountDiscriminator = createHash('sha256').update('account:MintClaimRecordV3').digest().subarray(0, 8);
-  if (data.length !== 144 || !data.subarray(0, 8).equals(accountDiscriminator)
+  const expectedDiscriminator = accountDiscriminator('MintClaimRecordV3');
+  if (data.length !== 144 || !data.subarray(0, 8).equals(expectedDiscriminator)
     || !data.subarray(8, 40).equals(Buffer.from(claimId))
     || !data.subarray(40, 72).equals(key(mint).toBuffer())
     || data.readBigUInt64LE(72) !== BigInt(expectedLamports)) {
