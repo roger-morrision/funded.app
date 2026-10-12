@@ -112,8 +112,9 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
         authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, claim_id, original, amount)));
     let expected = [80_000_000_000u64, 10_000_000_000, 2_000_000_000, 600_000_000,
         400_000_000, 2_000_000_000, 5_000_000_000];
+    let vault_reserve = svm.minimum_balance_for_rent_exemption(0);
     for (address, balance) in original.iter().zip(expected) {
-        assert_eq!(svm.get_account(address).unwrap().lamports, balance);
+        assert_eq!(svm.get_account(address).unwrap().lamports, balance + vault_reserve);
     }
     assert_eq!(svm.get_account(&router).unwrap().lamports, rent);
     let (claim, _) = Pubkey::find_program_address(&[b"mint-fee-claim-v3", mint.pubkey().as_ref(), &claim_id], &program);
@@ -133,12 +134,12 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
     assert!(!send(&mut svm, &authority, &[&authority, &creator], disburse_v3_ix(program,
         authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, policy,
         0, original[1], creator.pubkey(), payout_id, 3_000_000_000)));
-    assert_eq!(svm.get_account(&original[0]).unwrap().lamports, expected[0]);
+    assert_eq!(svm.get_account(&original[0]).unwrap().lamports, expected[0] + vault_reserve);
     svm.expire_blockhash();
     assert!(send(&mut svm, &authority, &[&authority, &creator], disburse_v3_ix(program,
         authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, policy,
         0, original[0], creator.pubkey(), payout_id, 3_000_000_000)));
-    assert_eq!(svm.get_account(&original[0]).unwrap().lamports, expected[0] - 3_000_000_000);
+    assert_eq!(svm.get_account(&original[0]).unwrap().lamports, expected[0] - 3_000_000_000 + vault_reserve);
     assert_eq!(svm.get_account(&creator.pubkey()).unwrap().lamports, creator_before + 3_000_000_000);
     let (payout, _) = Pubkey::find_program_address(
         &[b"mint-withdraw-v3", mint.pubkey().as_ref(), &payout_id], &program);
@@ -151,7 +152,7 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
     assert!(!send(&mut svm, &authority, &[&authority, &creator], disburse_v3_ix(program,
         authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, policy,
         0, original[0], creator.pubkey(), payout_id, 1)));
-    assert_eq!(svm.get_account(&original[0]).unwrap().lamports, expected[0] - 3_000_000_000);
+    assert_eq!(svm.get_account(&original[0]).unwrap().lamports, expected[0] - 3_000_000_000 + vault_reserve);
 
     // An operations/referral payout cannot be directed to another category
     // vault. Community funds cannot go straight to an arbitrary wallet.
@@ -164,7 +165,7 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
     assert!(!send(&mut svm, &authority, &[&authority, &creator], disburse_v3_ix(program,
         authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, policy,
         5, original[5], recipient.pubkey(), [12u8; 32], 1_000_000)));
-    assert_eq!(svm.get_account(&original[6]).unwrap().lamports, expected[6]);
+    assert_eq!(svm.get_account(&original[6]).unwrap().lamports, expected[6] + vault_reserve);
 
     // The consumed claim cannot sweep a later deposit. Global authority
     // rotation must not strand the immutable v3 policy or mint router.
@@ -204,7 +205,7 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
         next_authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, policy,
         2, original[2], recipient.pubkey(), [13u8; 32], 1_000_000)));
     assert_eq!(svm.get_account(&recipient.pubkey()).unwrap().lamports, recipient_before + 1_000_000);
-    assert_eq!(svm.get_account(&original[2]).unwrap().lamports, expected[2] - 1_000_000);
+    assert_eq!(svm.get_account(&original[2]).unwrap().lamports, expected[2] - 1_000_000 + vault_reserve);
 
     let (reward_vault, _) = Pubkey::find_program_address(
         &[b"reward-vault-v1", next_authority.pubkey().as_ref(), mint.pubkey().as_ref()], &program);
@@ -221,7 +222,7 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
         next_authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, policy,
         5, original[5], reward_vault, [14u8; 32], 1_000_000_000)));
     assert_eq!(svm.get_account(&reward_vault).unwrap().lamports, reward_before + 1_000_000_000);
-    assert_eq!(svm.get_account(&original[5]).unwrap().lamports, expected[5] - 1_000_000_000);
+    assert_eq!(svm.get_account(&original[5]).unwrap().lamports, expected[5] - 1_000_000_000 + vault_reserve);
 
     // A new mint may choose a different split of only the protocol 20%,
     // including a zero buyback allocation, without changing creator 80%.
@@ -246,4 +247,43 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
     assert_eq!(second.protocol_units, alternate_rates);
     assert_eq!(second.paid_lamports, [8_000_000_000, 1_500_000_000, 200_000_000,
         60_000_000, 40_000_000, 200_000_000, 0]);
+    assert!(svm.get_account(&vaults(second_mint.pubkey(), program)[6]).is_none());
+
+    // Small live-sized fees must create rent-safe vaults without mixing the
+    // authority's rent subsidy into the creator or protocol fee budgets.
+    let qa_mint = Keypair::new();
+    let (qa_router, _) = Pubkey::find_program_address(&[b"funded-mint-router-v3", qa_mint.pubkey().as_ref()], &program);
+    let (qa_policy, _) = Pubkey::find_program_address(&[b"mint-fee-policy-v3", qa_mint.pubkey().as_ref()], &program);
+    svm.expire_blockhash();
+    assert!(send(&mut svm, &creator, &[&creator, &qa_mint], initialize_v3_ix(program,
+        next_authority.pubkey(), creator.pubkey(), qa_mint.pubkey(), legacy_router,
+        qa_router, qa_policy, rates)));
+    svm.expire_blockhash();
+    assert!(send(&mut svm, &next_authority, &[&next_authority], system_instruction::transfer(
+        &next_authority.pubkey(), &qa_router, 10_000_000)));
+    let qa_vaults = vaults(qa_mint.pubkey(), program);
+    svm.expire_blockhash();
+    assert!(send(&mut svm, &next_authority, &[&next_authority, &creator], settle_v3_ix(program,
+        next_authority.pubkey(), creator.pubkey(), qa_mint.pubkey(), legacy_router,
+        qa_router, qa_policy, [20u8; 32], qa_vaults, 10_000_000)));
+    let qa_allocations = [8_000_000, 1_000_000, 200_000, 60_000, 40_000, 200_000, 500_000];
+    for (vault, allocation) in qa_vaults.iter().zip(qa_allocations) {
+        assert_eq!(svm.get_account(vault).unwrap().lamports, allocation + vault_reserve);
+    }
+    svm.expire_blockhash();
+    assert!(send(&mut svm, &next_authority, &[&next_authority, &creator], disburse_v3_ix(program,
+        next_authority.pubkey(), creator.pubkey(), qa_mint.pubkey(), legacy_router, qa_policy,
+        0, qa_vaults[0], creator.pubkey(), [21u8; 32], 8_000_000)));
+    assert_eq!(svm.get_account(&qa_vaults[0]).unwrap().lamports, vault_reserve);
+    let qa_saved = svm.get_account(&qa_policy).unwrap();
+    let qa_saved = MintFeePolicyV3::try_deserialize(&mut &qa_saved.data[..]).unwrap();
+    assert_eq!(qa_saved.withdrawn_lamports[0], qa_saved.paid_lamports[0]);
+    // Even an external top-up cannot turn rent or donations into fee budget.
+    svm.expire_blockhash();
+    assert!(send(&mut svm, &next_authority, &[&next_authority], system_instruction::transfer(
+        &next_authority.pubkey(), &qa_vaults[0], 1_000_000)));
+    svm.expire_blockhash();
+    assert!(!send(&mut svm, &next_authority, &[&next_authority, &creator], disburse_v3_ix(program,
+        next_authority.pubkey(), creator.pubkey(), qa_mint.pubkey(), legacy_router, qa_policy,
+        0, qa_vaults[0], creator.pubkey(), [22u8; 32], 1)));
 }

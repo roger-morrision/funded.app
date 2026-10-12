@@ -66,6 +66,8 @@ pub enum ErrorCode {
     InvalidMintWithdrawalV3,
     #[msg("The v3 category vault lacks the requested amount")]
     InsufficientMintVaultV3,
+    #[msg("The v3 withdrawal exceeds this category's settled fee budget")]
+    MintWithdrawalBudgetExceededV3,
     #[msg("The v3 router balance does not match the verified collection amount")]
     MintClaimAmountMismatchV3,
 }

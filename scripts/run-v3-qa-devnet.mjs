@@ -96,6 +96,7 @@ if (!global.verified || !global.authority.equals(QA_AUTHORITY)) {
 
 const creator = Keypair.generate();
 const mint = Keypair.generate();
+console.error(JSON.stringify({ qaMint: mint.publicKey.toBase58(), qaCreator: creator.publicKey.toBase58() }));
 const operationsRecipient = Keypair.generate().publicKey;
 const fundCreatorSignature = await send([SystemProgram.transfer({
   fromPubkey: QA_AUTHORITY, toPubkey: creator.publicKey, lamports: CREATOR_FUNDING_LAMPORTS,
@@ -106,6 +107,8 @@ const initialized = buildMintRouterV3InitializeInstruction({
 if (initialized.protocolUnits.join(',') !== EXPECTED_PROTOCOL_UNITS.join(','))
   throw new Error('The launch split does not match the bounded QA fixture.');
 const initializeSignature = await send([initialized.instruction], [authority, creator, mint]);
+console.error(JSON.stringify({ step: 'initialize-finalized', signature: initializeSignature,
+  router: initialized.router.address.toBase58(), policy: initialized.policy.address.toBase58() }));
 const routerProof = await verifyMintRouterV3Account({ connection, programId: PROGRAM_ID,
   mint: mint.publicKey, initialAuthority: QA_AUTHORITY });
 const policyProof = await verifyMintPolicyV3Account({ connection, programId: PROGRAM_ID,
@@ -114,22 +117,28 @@ if (!routerProof.verified || !policyProof.verified) throw new Error('Finalized V
 
 const vaults = deriveMintVaultsV3(PROGRAM_ID, mint.publicKey);
 const before = await Promise.all(vaults.map(finalizedBalance));
+const vaultReserve = await connection.getMinimumBalanceForRentExemption(0, 'finalized');
 const creditSignature = await send([SystemProgram.transfer({
   fromPubkey: QA_AUTHORITY, toPubkey: initialized.router.address, lamports: CLAIM_LAMPORTS,
 })], [authority]);
+console.error(JSON.stringify({ step: 'synthetic-credit-finalized', signature: creditSignature,
+  lamports: CLAIM_LAMPORTS }));
 const claimId = randomBytes(32);
 const settlement = buildMintRouterV3SettlementInstruction({
   programId: PROGRAM_ID, mint: mint.publicKey, authority: QA_AUTHORITY, creator: creator.publicKey,
   claimId, expectedLamports: CLAIM_LAMPORTS,
 });
 const settlementSignature = await send([settlement.instruction], [authority, creator]);
+console.error(JSON.stringify({ step: 'settlement-finalized', signature: settlementSignature,
+  claim: settlement.claim.toBase58() }));
 const claimProof = await verifyMintClaimV3Account({ connection, programId: PROGRAM_ID,
   mint: mint.publicKey, claimId, expectedLamports: CLAIM_LAMPORTS });
 if (!claimProof.verified) throw new Error('Finalized V3 settlement claim failed verification.');
 const after = await Promise.all(vaults.map(finalizedBalance));
 const deltas = after.map((balance, index) => balance - before[index]);
 for (let index = 0; index < deltas.length; index++) {
-  requireEqual(deltas[index], EXPECTED_ALLOCATION[index], `category ${index} vault delta`);
+  requireEqual(deltas[index], EXPECTED_ALLOCATION[index] + (before[index] < vaultReserve ? vaultReserve - before[index] : 0),
+    `category ${index} vault delta including rent reserve`);
   requireEqual(Number(claimProof.categoryLamports[index]), EXPECTED_ALLOCATION[index],
     `category ${index} claim allocation`);
 }
@@ -159,13 +168,20 @@ for (const [id, category, amount, recipient] of [
     mint: mint.publicKey, withdrawalId: id, category, amount, recipient });
   if (!proof.verified) throw new Error(`Finalized V3 withdrawal receipt ${category} failed verification.`);
 }
-requireEqual(await finalizedBalance(vaults[6]), EXPECTED_ALLOCATION[6], 'locked buyback vault');
+requireEqual(await finalizedBalance(vaults[6]), EXPECTED_ALLOCATION[6] + vaultReserve, 'locked buyback vault');
+const finalPolicy = await verifyMintPolicyV3Account({ connection, programId: PROGRAM_ID,
+  mint: mint.publicKey, creator: creator.publicKey, initialAuthority: QA_AUTHORITY });
+if (!finalPolicy.verified || finalPolicy.withdrawnLamports[0] !== BigInt(EXPECTED_ALLOCATION[0])
+  || finalPolicy.withdrawnLamports[1] !== BigInt(EXPECTED_ALLOCATION[1])) {
+  throw new Error('Finalized V3 policy withdrawal ledger does not match payouts.');
+}
 console.log(JSON.stringify({ status: 'finalized-synthetic-v3-qa', program: PROGRAM_ID.toBase58(),
   binarySha256: createHash('sha256').update(binary).digest('hex'),
   mint: mint.publicKey.toBase58(), creator: creator.publicKey.toBase58(),
   router: initialized.router.address.toBase58(), policy: initialized.policy.address.toBase58(),
   claim: settlement.claim.toBase58(), operationsRecipient: operationsRecipient.toBase58(),
-  categoryLamports: deltas, signatures: { globalSignature, fundCreatorSignature,
+  categoryLamports: EXPECTED_ALLOCATION, vaultRentReserveLamports: vaultReserve,
+  vaultLamportDeltas: deltas, signatures: { globalSignature, fundCreatorSignature,
     initializeSignature, creditSignature, settlementSignature, creatorPayoutSignature,
     operationsPayoutSignature },
   limits: { syntheticFunding: true, pumpCollectionVerified: false, buybackBurnVerified: false,

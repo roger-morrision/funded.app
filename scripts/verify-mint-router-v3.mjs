@@ -115,14 +115,17 @@ assert.equal((await verifyMintWithdrawalV3Account({ ...withdrawalCheck, amount:1
 assert.equal((await verifyMintRouterV3Account({ connection:accountAt(routerHeader), programId, mint, initialAuthority:authority })).verified, true);
 assert.equal((await verifyMintRouterV3Account({ connection:accountAt(routerHeader), programId, mint, initialAuthority:creator })).verified, false);
 
-const policyData = Buffer.alloc(193);
+const policyData = Buffer.alloc(249);
 createHash('sha256').update('account:MintFeePolicyV3').digest().copy(policyData, 0, 0, 8);
 mint.toBuffer().copy(policyData, 8);
 creator.toBuffer().copy(policyData, 40);
 authority.toBuffer().copy(policyData, 72);
 initial.protocolUnits.forEach((rate, index) => policyData.writeUInt32LE(rate, 104 + index * 4));
-policyData[192] = initial.policy.bump;
+policyData[248] = initial.policy.bump;
 assert.equal((await verifyMintPolicyV3Account({ connection:accountAt(policyData), programId, mint, creator, initialAuthority:authority })).verified, true);
+policyData.writeBigUInt64LE(1n, 192);
+assert.equal((await verifyMintPolicyV3Account({ connection:accountAt(policyData), programId, mint, creator, initialAuthority:authority })).verified, false);
+policyData.writeBigUInt64LE(0n, 192);
 assert.equal((await verifyMintPolicyV3Account({ connection:accountAt(policyData), programId, mint, creator:authority, initialAuthority:authority })).verified, false);
 assert.equal((await verifyMintPolicyV3Account({ connection:accountAt(policyData), programId, mint, creator, initialAuthority:authority,
   split:{ operationsPercent:40, referralLevelPercents:[10,3,2], communityPercent:20, buybackPercent:25 } })).verified, false);

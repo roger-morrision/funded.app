@@ -78,10 +78,10 @@ export async function verifyMintPolicyV3Account({ connection, programId, mint, c
   if (!account?.owner?.equals(key(programId))) return { ...address, verified:false, reason:'v3-policy-owner-or-account-mismatch' };
   const data = Buffer.from(account.data);
   const accountDiscriminator = createHash('sha256').update('account:MintFeePolicyV3').digest().subarray(0, 8);
-  if (data.length !== 193 || !data.subarray(0, 8).equals(accountDiscriminator)
+  if (data.length !== 249 || !data.subarray(0, 8).equals(accountDiscriminator)
     || !data.subarray(8, 40).equals(key(mint).toBuffer())
     || !data.subarray(40, 72).equals(key(creator).toBuffer())
-    || !data.subarray(72, 104).equals(key(initialAuthority).toBuffer()) || data[192] !== address.bump) {
+    || !data.subarray(72, 104).equals(key(initialAuthority).toBuffer()) || data[248] !== address.bump) {
     return { ...address, verified:false, reason:'v3-policy-layout-or-identity-mismatch' };
   }
   const protocolUnits = Array.from({ length:6 }, (_, index) => data.readUInt32LE(104 + index * 4));
@@ -91,10 +91,13 @@ export async function verifyMintPolicyV3Account({ connection, programId, mint, c
   }
   const settledLamports = data.readBigUInt64LE(128);
   const paidLamports = Array.from({ length:7 }, (_, index) => data.readBigUInt64LE(136 + index * 8));
-  if (paidLamports.reduce((sum, amount) => sum + amount, 0n) !== settledLamports) {
+  const withdrawnLamports = Array.from({ length:7 }, (_, index) => data.readBigUInt64LE(192 + index * 8));
+  if (paidLamports.reduce((sum, amount) => sum + amount, 0n) !== settledLamports
+    || withdrawnLamports.some((amount, index) => amount > paidLamports[index])) {
     return { ...address, verified:false, reason:'v3-policy-ledger-mismatch' };
   }
-  return { ...address, verified:true, reason:'verified', protocolUnits, settledLamports, paidLamports };
+  return { ...address, verified:true, reason:'verified', protocolUnits, settledLamports,
+    paidLamports, withdrawnLamports };
 }
 
 export async function verifyMintWithdrawalV3Account({ connection, programId, mint, withdrawalId,

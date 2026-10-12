@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
+use anchor_lang::solana_program::{program::{invoke, invoke_signed}, system_instruction};
 use crate::{constants::*, error::ErrorCode, state::{MintClaimRecordV3, MintFeePolicyV3, MintWithdrawalV3, RewardVault}};
 use super::{initialize::create_router_account, rotate::assert_current_router_authority};
 
@@ -69,6 +69,7 @@ pub fn initialize_mint_v3_handler(ctx: Context<InitializeMintV3>, protocol_units
     policy.protocol_units = protocol_units;
     policy.settled_lamports = 0;
     policy.paid_lamports = [0; VAULT_COUNT];
+    policy.withdrawn_lamports = [0; VAULT_COUNT];
     policy.bump = ctx.bumps.policy;
     Ok(())
 }
@@ -94,7 +95,8 @@ pub struct SettleMintV3<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn settle_mint_v3_handler(ctx: Context<SettleMintV3>, claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
+pub fn settle_mint_v3_handler<'info>(ctx: Context<'info, SettleMintV3<'info>>,
+    claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
     let router = &ctx.accounts.router;
     require!(router.owner == ctx.program_id, ErrorCode::InvalidMintRouter);
@@ -124,9 +126,18 @@ pub fn settle_mint_v3_handler(ctx: Context<SettleMintV3>, claim_id: [u8; 32], ex
     let new_total = policy.settled_lamports.checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
     let targets = category_targets(new_total, policy.protocol_units)?;
     let mut paid = [0u64; VAULT_COUNT];
+    let vault_reserve = Rent::get()?.minimum_balance(0);
     for (index, vault) in vaults.iter().enumerate() {
         let allocation = targets[index].checked_sub(policy.paid_lamports[index]).ok_or(ErrorCode::AmountOverflow)?;
         if allocation > 0 {
+            // A new system-owned PDA with a small allocation can fail the
+            // transaction-wide rent check. Keep rent separate from fee funds.
+            if vault.lamports() < vault_reserve {
+                invoke(&system_instruction::transfer(&ctx.accounts.authority.key(), &vault.key(),
+                    vault_reserve - vault.lamports()),
+                    &[ctx.accounts.authority.to_account_info(), vault.to_account_info(),
+                        ctx.accounts.system_program.to_account_info()])?;
+            }
             let router_balance = router.lamports().checked_sub(allocation).ok_or(ErrorCode::AmountOverflow)?;
             let vault_balance = vault.lamports().checked_add(allocation).ok_or(ErrorCode::AmountOverflow)?;
             **router.try_borrow_mut_lamports()? = router_balance;
@@ -167,7 +178,7 @@ pub struct DisburseMintV3<'info> {
     pub mint: UncheckedAccount<'info>,
     #[account(seeds = [SEED], bump)]
     pub legacy_router: UncheckedAccount<'info>,
-    #[account(seeds = [MINT_POLICY_V3_SEED, mint.key().as_ref()], bump = policy.bump,
+    #[account(mut, seeds = [MINT_POLICY_V3_SEED, mint.key().as_ref()], bump = policy.bump,
         constraint = policy.mint == mint.key() && policy.creator == creator.key()
             @ ErrorCode::InvalidMintFeePolicyV3)]
     pub policy: Account<'info, MintFeePolicyV3>,
@@ -188,7 +199,13 @@ pub fn disburse_mint_v3_handler(ctx: Context<DisburseMintV3>, withdrawal_id: [u8
     require!(amount > 0, ErrorCode::InvalidAmount);
     let vault = &ctx.accounts.vault;
     require!(vault.owner == &System::id() && vault.data_is_empty(), ErrorCode::InvalidMintFeeVaultV3);
-    require!(vault.lamports() >= amount, ErrorCode::InsufficientMintVaultV3);
+    let policy = &mut ctx.accounts.policy;
+    let category_index = usize::from(category);
+    let new_withdrawn = policy.withdrawn_lamports[category_index]
+        .checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
+    require!(new_withdrawn <= policy.paid_lamports[category_index], ErrorCode::MintWithdrawalBudgetExceededV3);
+    let vault_reserve = Rent::get()?.minimum_balance(0);
+    require!(vault.lamports().saturating_sub(vault_reserve) >= amount, ErrorCode::InsufficientMintVaultV3);
     let recipient = &ctx.accounts.recipient;
     let mint = ctx.accounts.mint.key();
     let recipient_key = recipient.key();
@@ -222,6 +239,7 @@ pub fn disburse_mint_v3_handler(ctx: Context<DisburseMintV3>, withdrawal_id: [u8
     invoke_signed(&system_instruction::transfer(&vault.key(), &recipient_key, amount),
         &[vault.to_account_info(), recipient.to_account_info(), ctx.accounts.system_program.to_account_info()],
         &[signer])?;
+    policy.withdrawn_lamports[category_index] = new_withdrawn;
     let receipt = &mut ctx.accounts.withdrawal;
     receipt.withdrawal_id = withdrawal_id;
     receipt.mint = mint;

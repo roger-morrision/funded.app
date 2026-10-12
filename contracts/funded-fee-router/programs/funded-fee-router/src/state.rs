@@ -49,11 +49,12 @@ pub struct MintFeePolicyV3 {
     pub protocol_units: [u32; 6],
     pub settled_lamports: u64,
     pub paid_lamports: [u64; 7],
+    pub withdrawn_lamports: [u64; 7],
     pub bump: u8,
 }
 
 impl MintFeePolicyV3 {
-    pub const INIT_SPACE: usize = 32 * 3 + 4 * 6 + 8 + 8 * 7 + 1;
+    pub const INIT_SPACE: usize = 32 * 3 + 4 * 6 + 8 + 8 * 7 + 8 * 7 + 1;
 }
 
 #[account]

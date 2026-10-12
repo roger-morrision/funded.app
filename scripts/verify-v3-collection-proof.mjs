@@ -106,7 +106,7 @@ Buffer.from(FEE_ROUTER_POLICY_HASH_HEX, 'hex').copy(routerData, 9);
 authority.toBuffer().copy(routerData, 41);
 mint.toBuffer().copy(routerData, 73);
 routerData[105] = deriveMintRouterV3(programId, mint).bump;
-const policyData = Buffer.alloc(193);
+const policyData = Buffer.alloc(249);
 createHash('sha256').update('account:MintFeePolicyV3').digest().copy(policyData, 0, 0, 8);
 mint.toBuffer().copy(policyData, 8);
 creator.toBuffer().copy(policyData, 40);
@@ -114,7 +114,7 @@ authority.toBuffer().copy(policyData, 72);
 const protocolSplit = { operationsPercent:50, referralLevelPercents:[10, 3, 2],
   communityPercent:10, buybackPercent:25 };
 protocolGrossUnits(protocolSplit).forEach((rate, index) => policyData.writeUInt32LE(rate, 104 + index * 4));
-policyData[192] = deriveMintPolicyV3(programId, mint).bump;
+policyData[248] = deriveMintPolicyV3(programId, mint).bump;
 const launchSignature = bs58.encode(Buffer.alloc(64, 6));
 const launch = { onchainVerified:true, cluster:'devnet', mint:mint.toBase58(),
   creator:router.toBase58(), creatorWallet:creator.toBase58(),
