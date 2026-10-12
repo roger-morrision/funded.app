@@ -1,12 +1,11 @@
 import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
 import { NATIVE_MINT, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { PUMP_PROGRAM_ID, PUMP_AMM_PROGRAM_ID, creatorVaultPda } from '@pump-fun/pump-sdk';
+import { PUMP_PROGRAM_ID, PUMP_AMM_PROGRAM_ID, creatorVaultPda, getPumpProgram } from '@pump-fun/pump-sdk';
 import { PUMP_AMM_SDK } from '@pump-fun/pump-swap-sdk';
 import { ComputeBudgetProgram, PublicKey } from '@solana/web3.js';
 import { deriveMintRouterV3 } from '../mint-router-v3.js';
 
-const collectV2 = createHash('sha256').update('global:collect_creator_fee_v2').digest().subarray(0, 8);
 const address = value => typeof value === 'string' ? value : value?.pubkey ? address(value.pubkey) : value?.toBase58?.() || '';
 
 // The caller must fetch `transaction` from RPC with commitment: 'finalized'.
@@ -18,6 +17,9 @@ export async function verifyV3PumpCollection({ transaction, signature, programId
     if (!transaction || transaction.meta?.err !== null || !Number.isSafeInteger(transaction.slot)
       || transaction.slot <= 0 || !transaction.transaction?.signatures?.includes(signature)) return null;
     const router = deriveMintRouterV3(programId, mint).address;
+    const expectedCollect = await getPumpProgram(null).methods.collectCreatorFeeV2()
+      .accountsPartial({ creator:router, quoteMint:NATIVE_MINT, quoteTokenProgram:TOKEN_PROGRAM_ID,
+        creatorVault:creatorVaultPda(router) }).instruction();
     const message = transaction.transaction.message;
     const keys = [ ...(message.accountKeys || message.staticAccountKeys || []),
       ...(transaction.meta.loadedAddresses?.writable || []),
@@ -55,9 +57,9 @@ export async function verifyV3PumpCollection({ transaction, signature, programId
         ammTransferCount++;
         continue;
       }
-      if (!Buffer.from(data).subarray(0, 8).equals(collectV2)
-        || accounts[0] !== routerIndex || accounts[2] !== vaultIndex
-        || accounts[4] !== nativeIndex || accounts[5] !== tokenProgramIndex) return null;
+      if (!Buffer.from(data).equals(expectedCollect.data)
+        || accounts.length !== expectedCollect.keys.length
+        || expectedCollect.keys.some((key, index) => keys[accounts[index]] !== key.pubkey.toBase58())) return null;
       collectCount++;
     }
     if (collectCount !== 1) return null;

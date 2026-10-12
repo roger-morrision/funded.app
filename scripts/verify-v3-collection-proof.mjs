@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
 import { NATIVE_MINT, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { PUMP_PROGRAM_ID, creatorVaultPda } from '@pump-fun/pump-sdk';
+import { creatorVaultPda, getPumpProgram } from '@pump-fun/pump-sdk';
 import { PUMP_AMM_SDK } from '@pump-fun/pump-swap-sdk';
 import { Keypair, SystemProgram } from '@solana/web3.js';
 import { deriveMintRouterV3, deriveMintPolicyV3, protocolGrossUnits,
@@ -18,19 +18,23 @@ const creator = Keypair.generate().publicKey;
 const router = deriveMintRouterV3(programId, mint).address;
 const vault = creatorVaultPda(router);
 const signature = bs58.encode(Buffer.alloc(64, 8));
-const keys = [authority, router, vault, NATIVE_MINT, TOKEN_PROGRAM_ID, PUMP_PROGRAM_ID,
-  SystemProgram.programId];
+const canonicalCollect = await getPumpProgram(null).methods.collectCreatorFeeV2()
+  .accountsPartial({ creator:router, quoteMint:NATIVE_MINT,
+    quoteTokenProgram:TOKEN_PROGRAM_ID, creatorVault:vault }).instruction();
+const keys = [authority, ...canonicalCollect.keys.map(item => item.pubkey),
+  canonicalCollect.programId].filter((key, index, all) => all.findIndex(item => item.equals(key)) === index);
+const keyIndex = value => keys.findIndex(key => key.equals(value));
 const collection = {
-  programIdIndex:5,
-  accounts:[1, 0, 2, 0, 3, 4],
-  data:bs58.encode(createHash('sha256').update('global:collect_creator_fee_v2').digest().subarray(0, 8)),
+  programIdIndex:keyIndex(canonicalCollect.programId),
+  accounts:canonicalCollect.keys.map(item => keyIndex(item.pubkey)),
+  data:bs58.encode(canonicalCollect.data),
 };
 const transaction = {
   slot:42,
   transaction:{ signatures:[signature], message:{ accountKeys:keys, instructions:[collection] } },
   meta:{ err:null, loadedAddresses:{ writable:[], readonly:[] },
-    preBalances:[10_000_000, 1_000_000, 0, 0, 0, 0, 0],
-    postBalances:[9_995_000, 3_000_000, 0, 0, 0, 0, 0] },
+    preBalances:keys.map(key => key.equals(authority) ? 10_000_000 : key.equals(router) ? 1_000_000 : 0),
+    postBalances:keys.map(key => key.equals(authority) ? 9_995_000 : key.equals(router) ? 3_000_000 : 0) },
 };
 const params = { transaction, signature, programId, mint, expectedLamports:2_000_000 };
 const proof = await verifyV3PumpCollection(params);
@@ -52,14 +56,23 @@ const wrongVault = altered(transaction);
 wrongVault.transaction.message.instructions[0].accounts[2] = 0;
 assert.equal(await verifyV3PumpCollection({ ...params, transaction:wrongVault }), null);
 const wrongSource = altered(transaction);
-wrongSource.transaction.message.instructions[0].programIdIndex = 6;
+wrongSource.transaction.message.instructions[0].programIdIndex = keyIndex(SystemProgram.programId);
 assert.equal(await verifyV3PumpCollection({ ...params, transaction:wrongSource }), null);
 const unrelatedTransfer = altered(transaction);
-unrelatedTransfer.transaction.message.instructions.push({ programIdIndex:6, accounts:[0, 1], data:'' });
+unrelatedTransfer.transaction.message.instructions.push({ programIdIndex:keyIndex(SystemProgram.programId), accounts:[0, 1], data:'' });
 assert.equal(await verifyV3PumpCollection({ ...params, transaction:unrelatedTransfer }), null);
 const noCredit = altered(transaction);
-noCredit.meta.postBalances[1] = noCredit.meta.preBalances[1];
+noCredit.meta.postBalances[keyIndex(router)] = noCredit.meta.preBalances[keyIndex(router)];
 assert.equal(await verifyV3PumpCollection({ ...params, transaction:noCredit }), null);
+const wrongAta = altered(transaction);
+wrongAta.transaction.message.instructions[0].accounts[1] = keyIndex(authority);
+assert.equal(await verifyV3PumpCollection({ ...params, transaction:wrongAta }), null);
+const missingEventAuthority = altered(transaction);
+missingEventAuthority.transaction.message.instructions[0].accounts.splice(8, 1);
+assert.equal(await verifyV3PumpCollection({ ...params, transaction:missingEventAuthority }), null);
+const extraAccount = altered(transaction);
+extraAccount.transaction.message.instructions[0].accounts.push(keyIndex(authority));
+assert.equal(await verifyV3PumpCollection({ ...params, transaction:extraAccount }), null);
 const ammTransfer = await PUMP_AMM_SDK.transferCreatorFeesToPumpV2Instruction({
   payer:authority, coinCreator:router, quoteMint:NATIVE_MINT, quoteTokenProgram:TOKEN_PROGRAM_ID,
 });
