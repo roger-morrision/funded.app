@@ -23,6 +23,9 @@ export function createSettlementRoutes({
           || collection.cluster !== solanaCluster || !collection.mint || !Number.isSafeInteger(Number(collection.collectedLamports))
           || Number(collection.collectedLamports) <= 0) throw invalidRequest('A positive, mint-verified collection on the configured cluster is required.');
         const launch = state.launches?.[collection.mint];
+        if (launch?.pumpFeeRoute?.scope === 'per-mint-v3') {
+          throw invalidRequest('V3 fees require a finalized on-chain category claim before settlement can be recorded.');
+        }
         const shares = launch?.feeDistribution?.creatorDirected?.shares;
         if (!launch?.onchainVerified || launch.cluster !== solanaCluster || !launch.creatorWallet || !shares) throw invalidRequest('A verified launch with an immutable fee policy is required.');
         const creatorWallet = walletKey(launch.creatorWallet);

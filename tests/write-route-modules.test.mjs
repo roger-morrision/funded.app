@@ -185,3 +185,19 @@ test('settlements reject missing, zero, or wrong-network collections without que
     assert.deepEqual(state.settlements, {});
   }
 });
+
+test('V3 fees cannot be recorded or queued by the legacy bookkeeping route', async () => {
+  const signature = 'v3-unsettled-collection';
+  const state = { settlements: {}, collections: { [signature]: {
+    signature, status:'collected', attribution:'mint-verified', cluster:'devnet', mint,
+    collectedLamports:'10000000', recordedAt:'2026-10-12T00:00:00Z',
+  } }, launches: { [mint]: { onchainVerified:true, cluster:'devnet', creatorWallet:mint,
+    pumpFeeRoute:{ scope:'per-mint-v3' },
+    feeDistribution:buildFeeDistributionPolicy({ creatorWalletPercent:80 }),
+  } } };
+  const f = fixture(createSettlementRoutes, { store:{ update:async fn => fn(state) },
+    queueAutomaticSettlementRewards:() => assert.fail('Unsettled V3 fees queued') });
+  await assert.rejects(f.request('/api/settlements/claims', { claimSignature:signature }),
+    /finalized on-chain category claim/);
+  assert.deepEqual(state.settlements, {});
+});
