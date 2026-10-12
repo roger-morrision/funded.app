@@ -170,10 +170,11 @@ test('keeper lists V3 candidates only when enabled and excludes them from V2 set
     [mint]:{ mint, creator:mint, onchainVerified:true, cluster:'devnet',
       pumpFeeRoute:{ scope:'per-mint-v2', router:mint } },
     [v3Mint]:{ mint:v3Mint, creator:v3Mint, onchainVerified:true, cluster:'devnet',
-      pumpFeeRoute:{ scope:'per-mint-v3', router:v3Mint } },
+      pumpFeeRoute:{ scope:'per-mint-v3', router:v3Mint, programId:mint } },
   }, collections:{ v3proof:{ signature:'v3proof', mint:v3Mint, scope:'per-mint-v3',
-    status:'collected', onchainVerified:true, attribution:'mint-verified', cluster:'devnet' } },
-  settlements:{}, alerts:{} };
+    status:'collected', onchainVerified:true, attribution:'mint-verified', cluster:'devnet',
+    programId:mint, collectedLamports:30, claimId:'01'.repeat(32) } },
+  settlements:{}, v3Settlements:{}, alerts:{} };
   const f = fixture(createKeeperCollectionRoutes, { requireAuthorized:() => true,
     store:{ read:async () => state }, automaticRewardStore:{ read:async () => ({ fundingRequests:{} }) },
     solToLamports:() => 0 });
@@ -183,9 +184,16 @@ test('keeper lists V3 candidates only when enabled and excludes them from V2 set
     await f.request('/api/keeper/collection-candidates', {}, 'GET');
     assert.deepEqual(f.responses[0].data.mints.map(row => row.mint), [mint]);
     assert.deepEqual(f.responses[0].data.pendingSettlements, []);
+    assert.equal(f.responses[0].data.pendingV3Settlements[0].collectionSignature, 'v3proof');
     process.env.FUNDED_V3_COLLECTION_ENABLED = 'true';
     await f.request('/api/keeper/collection-candidates', {}, 'GET');
     assert.deepEqual(f.responses[1].data.mints.map(row => row.mint), [mint, v3Mint]);
+    state.v3Settlements.v3proof = { status:'verification-pending' };
+    await f.request('/api/keeper/collection-candidates', {}, 'GET');
+    assert.equal(f.responses[2].data.pendingV3Settlements[0].status, 'verification-pending');
+    state.v3Settlements.v3proof = { status:'finalized' };
+    await f.request('/api/keeper/collection-candidates', {}, 'GET');
+    assert.deepEqual(f.responses[3].data.pendingV3Settlements, []);
   } finally {
     if (previous === undefined) delete process.env.FUNDED_V3_COLLECTION_ENABLED;
     else process.env.FUNDED_V3_COLLECTION_ENABLED = previous;

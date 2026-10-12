@@ -64,8 +64,21 @@ export function createKeeperCollectionRoutes({
           ['community', settlement.fundedApp?.community],
         ].some(([kind, amount]) => BigInt(solToLamports(amount)) > 0n && !rewards.fundingRequests?.[`${row.signature}:${kind}`]);
       }).map(row => row.signature);
+      const pendingV3Settlements = Object.values(state.collections || {}).filter(row =>
+        row.scope === 'per-mint-v3' && row.status === 'collected'
+        && row.onchainVerified === true && row.attribution === 'mint-verified'
+        && row.cluster === 'devnet' && Number.isSafeInteger(row.collectedLamports)
+        && row.collectedLamports > 0 && /^[a-f0-9]{64}$/.test(String(row.claimId || ''))
+        && state.launches?.[row.mint]?.onchainVerified === true
+        && state.launches[row.mint].pumpFeeRoute?.scope === 'per-mint-v3'
+        && state.launches[row.mint].pumpFeeRoute?.programId === row.programId
+        && state.v3Settlements?.[row.signature]?.status !== 'finalized')
+        .map(row => ({ mint:row.mint, collectionSignature:row.signature,
+          claimId:row.claimId, amountLamports:String(row.collectedLamports),
+          status:state.v3Settlements?.[row.signature]?.status || 'awaiting-creator-signature' }));
       return json(res, 200, { cluster:solanaCluster, minimumCollectionLamports:'10000000', mints:launches.map(row => ({ mint:row.mint,
-        scope:row.pumpFeeRoute.scope, collectionStatus:state.alerts?.[`fee-collect:${row.mint}`]?.status || null })), pendingSettlements });
+        scope:row.pumpFeeRoute.scope, collectionStatus:state.alerts?.[`fee-collect:${row.mint}`]?.status || null })),
+        pendingSettlements, pendingV3Settlements });
     }
     if (req.method === 'POST' && url.pathname === '/api/keeper/collect') {
       if (!requireAuthorized(req, res)) return true;
