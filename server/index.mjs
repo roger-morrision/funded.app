@@ -15,6 +15,7 @@ import { createSettlementRewards, solToLamports } from './settlement-rewards.mjs
 import { createLaunchTierPricing } from './launch-tier-pricing.mjs';
 import { createXIdentityRoutes } from './routes/x-identity.mjs';
 import { createCreatorFeesRoutes } from './routes/creator-fees.mjs';
+import { createV3CreatorSettlementRoutes } from './routes/v3-creator-settlement.mjs';
 import { createRewardFundingRoutes } from './routes/reward-funding.mjs';
 import { createReferralClaimsRoutes } from './routes/referral-claims.mjs';
 import { createSolClaimsRoutes } from './routes/sol-claims.mjs';
@@ -252,6 +253,7 @@ const {
   keeperKeypair,
   referralPayoutKeypair,
   routerAuthorityKeypair,
+  v3AuthorityKeypair,
   mintRouterReadiness,
   xFeeReadiness,
   feeRouterConfig,
@@ -340,6 +342,9 @@ const handleXIdentityRoutes = createXIdentityRoutes({
 const handleCreatorFeesRoutes = createCreatorFeesRoutes({
   store, solanaCluster, route, solanaRpcUrl, readFinalizedEvidence, automaticRewardStore, feeRouterConfig,
   mintRouterReadiness, routerAuthorityKeypair, databaseUrl, body, creatorFeeChallenges, respond: json,
+});
+const handleV3CreatorSettlementRoutes = createV3CreatorSettlementRoutes({
+  body, store, solanaCluster, solanaRpcUrl, v3AuthorityKeypair, respond:json,
 });
 const handleRewardFundingRoutes = createRewardFundingRoutes({
   store, automaticRewardStore, solanaCluster, solanaRpcUrl, feeRouterConfig,
@@ -452,6 +457,7 @@ async function handle(req, res) {
     if (await handleDiscoveryRoutes(req, res, url)) return;
     if (await handleTokenChatRoutes(req, res, url, requestId)) return;
     if (await handleCreatorFeesRoutes(req, res, url, requestId)) return;
+    if (await handleV3CreatorSettlementRoutes(req, res, url, requestId)) return;
     if (await handleRewardFundingRoutes(req, res, url, requestId)) return;
     if (await handleTokenMarketRoutes(req, res, url, requestId)) return;
     if (await handleKeeperCollectionRoutes(req, res, url, requestId)) return;
