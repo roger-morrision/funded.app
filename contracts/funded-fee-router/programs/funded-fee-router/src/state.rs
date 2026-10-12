@@ -70,6 +70,20 @@ impl MintClaimRecordV3 {
 }
 
 #[account]
+pub struct MintWithdrawalV3 {
+    pub withdrawal_id: [u8; 32],
+    pub mint: Pubkey,
+    pub category: u8,
+    pub recipient: Pubkey,
+    pub amount: u64,
+    pub created_at: i64,
+}
+
+impl MintWithdrawalV3 {
+    pub const INIT_SPACE: usize = 32 + 32 + 1 + 32 + 8 + 8;
+}
+
+#[account]
 pub struct RewardVault {
     pub authority: Pubkey,
     pub mint: Pubkey,

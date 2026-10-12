@@ -9,6 +9,8 @@ const MINT_ROUTER_V3_SEED = Buffer.from('funded-mint-router-v3');
 const MINT_POLICY_V3_SEED = Buffer.from('mint-fee-policy-v3');
 const MINT_VAULT_V3_SEED = Buffer.from('mint-fee-vault-v3');
 const MINT_CLAIM_V3_SEED = Buffer.from('mint-fee-claim-v3');
+const MINT_WITHDRAWAL_V3_SEED = Buffer.from('mint-withdraw-v3');
+const REWARD_VAULT_SEED = Buffer.from('reward-vault-v1');
 const discriminator = name => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
 const key = value => new PublicKey(value);
 
@@ -48,6 +50,16 @@ export function deriveMintClaimV3(programId, mint, claimId) {
   return PublicKey.findProgramAddressSync([MINT_CLAIM_V3_SEED, key(mint).toBuffer(), bytes], key(programId))[0];
 }
 
+export function deriveMintWithdrawalV3(programId, mint, withdrawalId) {
+  const bytes = Buffer.from(withdrawalId);
+  if (bytes.length !== 32) throw new Error('V3 withdrawal ID must be 32 bytes.');
+  return PublicKey.findProgramAddressSync([MINT_WITHDRAWAL_V3_SEED, key(mint).toBuffer(), bytes], key(programId))[0];
+}
+
+export function deriveCommunityRewardVaultV3(programId, mint, authority) {
+  return PublicKey.findProgramAddressSync([REWARD_VAULT_SEED, key(authority).toBuffer(), key(mint).toBuffer()], key(programId))[0];
+}
+
 export async function verifyMintRouterV3Account({ connection, programId, mint, initialAuthority }) {
   const router = deriveMintRouterV3(programId, mint);
   const account = await connection.getAccountInfo(router.address, 'finalized');
@@ -83,6 +95,22 @@ export async function verifyMintPolicyV3Account({ connection, programId, mint, c
     return { ...address, verified:false, reason:'v3-policy-ledger-mismatch' };
   }
   return { ...address, verified:true, reason:'verified', protocolUnits, settledLamports, paidLamports };
+}
+
+export async function verifyMintWithdrawalV3Account({ connection, programId, mint, withdrawalId,
+  category, recipient, amount }) {
+  const address = deriveMintWithdrawalV3(programId, mint, withdrawalId);
+  const account = await connection.getAccountInfo(address, 'finalized');
+  if (!account?.owner?.equals(key(programId))) return { address, verified:false, reason:'v3-withdrawal-owner-or-account-mismatch' };
+  const data = Buffer.from(account.data);
+  const accountDiscriminator = createHash('sha256').update('account:MintWithdrawalV3').digest().subarray(0, 8);
+  const valid = data.length === 121 && data.subarray(0, 8).equals(accountDiscriminator)
+    && data.subarray(8, 40).equals(Buffer.from(withdrawalId))
+    && data.subarray(40, 72).equals(key(mint).toBuffer())
+    && data[72] === category && data.subarray(73, 105).equals(key(recipient).toBuffer())
+    && data.readBigUInt64LE(105) === BigInt(amount);
+  return { address, verified:valid, reason:valid ? 'verified' : 'v3-withdrawal-receipt-mismatch',
+    createdAt:valid ? data.readBigInt64LE(113) : null };
 }
 
 export function buildMintRouterV3InitializeInstruction({ programId, mint, authority, creator, split = PROTOCOL_FEE_SPLIT }) {
@@ -127,6 +155,51 @@ export function buildMintRouterV3SettlementInstruction({ programId, mint, author
       { pubkey:claim, isSigner:false, isWritable:true },
       { pubkey:SystemProgram.programId, isSigner:false, isWritable:false },
       ...vaults.map(pubkey => ({ pubkey, isSigner:false, isWritable:true })),
+    ],
+    data,
+  }) };
+}
+
+export function buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
+  withdrawalId, category, amount, recipient }) {
+  if (!Number.isInteger(category) || category < 0 || category > 5) {
+    throw new Error('V3 disbursement category must be 0 through 5; buyback is locked.');
+  }
+  if (typeof amount === 'number' && !Number.isSafeInteger(amount)) {
+    throw new Error('V3 disbursement amount must be a safe integer, bigint, or decimal string.');
+  }
+  const lamports = BigInt(amount);
+  if (lamports <= 0n || lamports > 0xffff_ffff_ffff_ffffn) throw new Error('V3 disbursement amount is invalid.');
+  const destination = key(recipient);
+  if (category === 0 && !destination.equals(key(creator))) throw new Error('Creator budget must pay the creator.');
+  if (category === 5 && !destination.equals(deriveCommunityRewardVaultV3(programId, mint, authority))) {
+    throw new Error('Community budget must enter its proof-gated reward vault.');
+  }
+  const router = deriveMintRouterV3(programId, mint);
+  const vaults = deriveMintVaultsV3(programId, mint);
+  if (destination.equals(router.address) || vaults.some(vault => destination.equals(vault))) {
+    throw new Error('V3 category budgets cannot be reclassified through a router or vault.');
+  }
+  const policy = deriveMintPolicyV3(programId, mint);
+  const withdrawal = deriveMintWithdrawalV3(programId, mint, withdrawalId);
+  const legacy = deriveFeeRouter(programId);
+  const data = Buffer.alloc(8 + 32 + 1 + 8);
+  discriminator('disburse_mint_v3').copy(data);
+  Buffer.from(withdrawalId).copy(data, 8);
+  data[40] = category;
+  data.writeBigUInt64LE(lamports, 41);
+  return { policy, vault:vaults[category], withdrawal, recipient:destination, instruction:new TransactionInstruction({
+    programId:key(programId),
+    keys:[
+      { pubkey:key(authority), isSigner:true, isWritable:true },
+      { pubkey:key(creator), isSigner:true, isWritable:false },
+      { pubkey:key(mint), isSigner:false, isWritable:false },
+      { pubkey:legacy.address, isSigner:false, isWritable:false },
+      { pubkey:policy.address, isSigner:false, isWritable:false },
+      { pubkey:vaults[category], isSigner:false, isWritable:true },
+      { pubkey:destination, isSigner:false, isWritable:true },
+      { pubkey:withdrawal, isSigner:false, isWritable:true },
+      { pubkey:SystemProgram.programId, isSigner:false, isWritable:false },
     ],
     data,
   }) };

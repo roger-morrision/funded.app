@@ -9,6 +9,7 @@ pub const MINT_ROUTER_V3_SEED: &[u8] = b"funded-mint-router-v3";
 pub const MINT_POLICY_V3_SEED: &[u8] = b"mint-fee-policy-v3";
 pub const MINT_VAULT_V3_SEED: &[u8] = b"mint-fee-vault-v3";
 pub const MINT_CLAIM_V3_SEED: &[u8] = b"mint-fee-claim-v3";
+pub const MINT_WITHDRAWAL_V3_SEED: &[u8] = b"mint-withdraw-v3";
 pub const MINT_ROUTER_V3_MAGIC: &[u8; 8] = b"FUNDMNT3";
 pub const MINT_ROUTER_V3_VERSION: u8 = 3;
 pub const MAGIC: &[u8; 8] = b"FUNDFEE1";

@@ -62,4 +62,8 @@ pub enum ErrorCode {
     InvalidMintFeePolicyV3,
     #[msg("The v3 settlement must include the seven category vaults in order")]
     InvalidMintFeeVaultV3,
+    #[msg("The v3 withdrawal category or recipient is not permitted")]
+    InvalidMintWithdrawalV3,
+    #[msg("The v3 category vault lacks the requested amount")]
+    InsufficientMintVaultV3,
 }

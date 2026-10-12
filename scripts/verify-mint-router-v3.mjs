@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { Keypair } from '@solana/web3.js';
 import { buildMintRouterV3InitializeInstruction, buildMintRouterV3SettlementInstruction,
-  deriveMintClaimV3, deriveMintRouterV3, deriveMintVaultsV3, protocolGrossUnits,
-  verifyMintRouterV3Account, verifyMintPolicyV3Account } from '../mint-router-v3.js';
+  buildMintRouterV3DisbursementInstruction, deriveCommunityRewardVaultV3,
+  deriveMintClaimV3, deriveMintWithdrawalV3, deriveMintRouterV3, deriveMintVaultsV3, protocolGrossUnits,
+  verifyMintRouterV3Account, verifyMintPolicyV3Account, verifyMintWithdrawalV3Account } from '../mint-router-v3.js';
 import { FEE_ROUTER_POLICY_HASH_HEX } from '../fee-router.js';
 
 const programId = Keypair.generate().publicKey;
@@ -39,6 +40,31 @@ assert.equal(settlement.instruction.keys[14].pubkey.toBase58(), settlement.vault
 assert.ok(settlement.instruction.keys.slice(8).every(meta => meta.isWritable));
 assert.throws(() => deriveMintClaimV3(programId, mint, Buffer.alloc(31)), /32 bytes/);
 
+const withdrawalId = createHash('sha256').update('creator-payout-v3').digest();
+const disbursement = buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
+  withdrawalId, category:0, amount:123n, recipient:creator });
+assert.equal(disbursement.instruction.data.length, 49);
+assert.equal(disbursement.instruction.data.toString('hex').slice(0, 16),
+  createHash('sha256').update('global:disburse_mint_v3').digest('hex').slice(0, 16));
+assert.equal(disbursement.instruction.data.readBigUInt64LE(41), 123n);
+assert.equal(disbursement.instruction.keys[5].pubkey.toBase58(), settlement.vaults[0].toBase58());
+assert.equal(disbursement.instruction.keys[7].pubkey.toBase58(),
+  deriveMintWithdrawalV3(programId, mint, withdrawalId).toBase58());
+assert.throws(() => buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
+  withdrawalId, category:6, amount:1, recipient:creator }), /buyback is locked/);
+assert.throws(() => buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
+  withdrawalId, category:0, amount:Number.MAX_SAFE_INTEGER + 1, recipient:creator }), /safe integer/);
+assert.throws(() => buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
+  withdrawalId, category:0, amount:1, recipient:authority }), /pay the creator/);
+assert.throws(() => buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
+  withdrawalId, category:1, amount:1, recipient:settlement.vaults[6] }), /cannot be reclassified/);
+assert.throws(() => buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
+  withdrawalId, category:5, amount:1, recipient:creator }), /proof-gated reward vault/);
+const community = deriveCommunityRewardVaultV3(programId, mint, authority);
+assert.equal(buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
+  withdrawalId, category:5, amount:1, recipient:community }).recipient.toBase58(), community.toBase58());
+assert.throws(() => deriveMintWithdrawalV3(programId, mint, Buffer.alloc(31)), /32 bytes/);
+
 const routerHeader = Buffer.alloc(106);
 routerHeader.write('FUNDMNT3', 0, 'ascii');
 routerHeader[8] = 3;
@@ -47,6 +73,18 @@ authority.toBuffer().copy(routerHeader, 41);
 mint.toBuffer().copy(routerHeader, 73);
 routerHeader[105] = initial.router.bump;
 const accountAt = data => ({ getAccountInfo:async () => ({ owner:programId, data }) });
+const withdrawalData = Buffer.alloc(121);
+createHash('sha256').update('account:MintWithdrawalV3').digest().copy(withdrawalData, 0, 0, 8);
+withdrawalId.copy(withdrawalData, 8);
+mint.toBuffer().copy(withdrawalData, 40);
+withdrawalData[72] = 0;
+creator.toBuffer().copy(withdrawalData, 73);
+withdrawalData.writeBigUInt64LE(123n, 105);
+withdrawalData.writeBigInt64LE(1728000000n, 113);
+const withdrawalCheck = { connection:accountAt(withdrawalData), programId, mint, withdrawalId,
+  category:0, recipient:creator, amount:123n };
+assert.equal((await verifyMintWithdrawalV3Account(withdrawalCheck)).verified, true);
+assert.equal((await verifyMintWithdrawalV3Account({ ...withdrawalCheck, amount:124n })).verified, false);
 assert.equal((await verifyMintRouterV3Account({ connection:accountAt(routerHeader), programId, mint, initialAuthority:authority })).verified, true);
 assert.equal((await verifyMintRouterV3Account({ connection:accountAt(routerHeader), programId, mint, initialAuthority:creator })).verified, false);
 

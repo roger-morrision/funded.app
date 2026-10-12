@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
-use crate::{constants::*, error::ErrorCode, state::{MintClaimRecordV3, MintFeePolicyV3}};
+use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
+use crate::{constants::*, error::ErrorCode, state::{MintClaimRecordV3, MintFeePolicyV3, MintWithdrawalV3, RewardVault}};
 use super::{initialize::create_router_account, rotate::assert_current_router_authority};
 
 const CREATOR_UNITS: u32 = 8_000_000;
@@ -151,4 +152,92 @@ pub struct SettlementV3Event {
     pub claim_id: [u8; 32],
     pub total_lamports: u64,
     pub category_lamports: [u64; VAULT_COUNT],
+}
+
+/// Releases one category budget. A creator payout is bound to the creator's
+/// wallet; community funds can only enter the existing proof-gated reward
+/// vault. Operations and referral recipients require both signers. Buyback
+/// has no disbursement path here.
+#[derive(Accounts)]
+#[instruction(withdrawal_id: [u8; 32], category: u8)]
+pub struct DisburseMintV3<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    pub creator: Signer<'info>,
+    pub mint: UncheckedAccount<'info>,
+    #[account(seeds = [SEED], bump)]
+    pub legacy_router: UncheckedAccount<'info>,
+    #[account(seeds = [MINT_POLICY_V3_SEED, mint.key().as_ref()], bump = policy.bump,
+        constraint = policy.mint == mint.key() && policy.creator == creator.key()
+            @ ErrorCode::InvalidMintFeePolicyV3)]
+    pub policy: Account<'info, MintFeePolicyV3>,
+    #[account(mut, seeds = [MINT_VAULT_V3_SEED, mint.key().as_ref(), &[category]], bump)]
+    pub vault: UncheckedAccount<'info>,
+    #[account(mut)]
+    pub recipient: UncheckedAccount<'info>,
+    #[account(init, payer = authority, space = 8 + MintWithdrawalV3::INIT_SPACE,
+        seeds = [MINT_WITHDRAWAL_V3_SEED, mint.key().as_ref(), withdrawal_id.as_ref()], bump)]
+    pub withdrawal: Account<'info, MintWithdrawalV3>,
+    pub system_program: Program<'info, System>,
+}
+
+pub fn disburse_mint_v3_handler(ctx: Context<DisburseMintV3>, withdrawal_id: [u8; 32],
+    category: u8, amount: u64) -> Result<()> {
+    assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
+    require!(category < 6, ErrorCode::InvalidMintWithdrawalV3);
+    require!(amount > 0, ErrorCode::InvalidAmount);
+    let vault = &ctx.accounts.vault;
+    require!(vault.owner == &System::id() && vault.data_is_empty(), ErrorCode::InvalidMintFeeVaultV3);
+    require!(vault.lamports() >= amount, ErrorCode::InsufficientMintVaultV3);
+    let recipient = &ctx.accounts.recipient;
+    let mint = ctx.accounts.mint.key();
+    let recipient_key = recipient.key();
+    if category == 0 {
+        require!(recipient_key == ctx.accounts.creator.key(), ErrorCode::InvalidMintWithdrawalV3);
+    } else if category == 5 {
+        let (expected, bump) = Pubkey::find_program_address(
+            &[REWARD_VAULT_SEED, ctx.accounts.authority.key.as_ref(), mint.as_ref()], ctx.program_id);
+        require!(recipient_key == expected && recipient.owner == ctx.program_id,
+            ErrorCode::InvalidMintWithdrawalV3);
+        let reward = RewardVault::try_deserialize(&mut &recipient.try_borrow_data()?[..])?;
+        require!(reward.authority == ctx.accounts.authority.key() && reward.mint == mint && reward.bump == bump,
+            ErrorCode::InvalidMintWithdrawalV3);
+    }
+    if category < 5 {
+        require!(recipient.owner == &System::id() && recipient.data_is_empty(),
+            ErrorCode::InvalidMintWithdrawalV3);
+    }
+    // No category may be used as the destination of another category. Also
+    // prohibit returning funds to the v3 router to reclassify on settlement.
+    let (router, _) = Pubkey::find_program_address(&[MINT_ROUTER_V3_SEED, mint.as_ref()], ctx.program_id);
+    require!(recipient_key != router, ErrorCode::InvalidMintWithdrawalV3);
+    for index in 0..VAULT_COUNT {
+        let (other_vault, _) = Pubkey::find_program_address(
+            &[MINT_VAULT_V3_SEED, mint.as_ref(), &[index as u8]], ctx.program_id);
+        require!(recipient_key != other_vault, ErrorCode::InvalidMintWithdrawalV3);
+    }
+    let category_seed = [category];
+    let bump_seed = [ctx.bumps.vault];
+    let signer: &[&[u8]] = &[MINT_VAULT_V3_SEED, mint.as_ref(), &category_seed, &bump_seed];
+    invoke_signed(&system_instruction::transfer(&vault.key(), &recipient_key, amount),
+        &[vault.to_account_info(), recipient.to_account_info(), ctx.accounts.system_program.to_account_info()],
+        &[signer])?;
+    let receipt = &mut ctx.accounts.withdrawal;
+    receipt.withdrawal_id = withdrawal_id;
+    receipt.mint = mint;
+    receipt.category = category;
+    receipt.recipient = recipient_key;
+    receipt.amount = amount;
+    receipt.created_at = Clock::get()?.unix_timestamp;
+    emit!(DisbursementV3Event { mint, withdrawal_id, category, recipient: recipient_key, amount });
+    Ok(())
+}
+
+#[event]
+pub struct DisbursementV3Event {
+    pub mint: Pubkey,
+    pub withdrawal_id: [u8; 32],
+    pub category: u8,
+    pub recipient: Pubkey,
+    pub amount: u64,
 }
