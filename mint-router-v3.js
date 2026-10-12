@@ -230,7 +230,7 @@ export function buildMintRouterV3DisbursementInstruction({ programId, mint, auth
       { pubkey:key(creator), isSigner:true, isWritable:false },
       { pubkey:key(mint), isSigner:false, isWritable:false },
       { pubkey:legacy.address, isSigner:false, isWritable:false },
-      { pubkey:policy.address, isSigner:false, isWritable:false },
+      { pubkey:policy.address, isSigner:false, isWritable:true },
       { pubkey:vaults[category], isSigner:false, isWritable:true },
       { pubkey:destination, isSigner:false, isWritable:true },
       { pubkey:withdrawal, isSigner:false, isWritable:true },

@@ -64,6 +64,8 @@ assert.equal(disbursement.instruction.data.toString('hex').slice(0, 16),
   createHash('sha256').update('global:disburse_mint_v3').digest('hex').slice(0, 16));
 assert.equal(disbursement.instruction.data.readBigUInt64LE(41), 123n);
 assert.equal(disbursement.instruction.keys[5].pubkey.toBase58(), settlement.vaults[0].toBase58());
+assert.equal(disbursement.instruction.keys[4].pubkey.toBase58(), disbursement.policy.address.toBase58());
+assert.equal(disbursement.instruction.keys[4].isWritable, true);
 assert.equal(disbursement.instruction.keys[7].pubkey.toBase58(),
   deriveMintWithdrawalV3(programId, mint, withdrawalId).toBase58());
 assert.throws(() => buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
