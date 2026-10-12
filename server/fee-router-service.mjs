@@ -51,6 +51,12 @@ export function createFeeRouterService({
     if (!encoded) return null;
     return Keypair.fromSecretKey(bs58.decode(encoded));
   }
+  function v3AuthorityKeypair() {
+    const filePath = String(env.FUNDED_V3_ROUTER_AUTHORITY_KEYPAIR_PATH || '').trim();
+    if (filePath) return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(filePath), 'utf8'))));
+    const encoded = String(env.FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
+    return encoded ? Keypair.fromSecretKey(bs58.decode(encoded)) : null;
+  }
   async function mintRouterReadiness({ creatorSigned = false, collectionOnly = false } = {}) {
     const reasons = [];
     if (!creatorSigned && !collectionOnly) reasons.push('Creator wallet co-signing for on-chain 80/20 settlements is not yet available in the payout flow');
@@ -158,6 +164,12 @@ export function createFeeRouterService({
         || protocolGrossUnits(launch.pumpFeeRoute.protocolSplit).some((units, index) => units !== protocolGrossUnits(PROTOCOL_FEE_SPLIT)[index])) {
         throw new Error('V3 collection is not activated for this immutable launch policy.');
       }
+      let v3Authority;
+      try { v3Authority = v3AuthorityKeypair(); } catch {}
+      if (!v3Authority || v3Authority.publicKey.toBase58() !== launch.pumpFeeRoute.initialAuthority
+        || v3Authority.publicKey.equals(keeper.publicKey)) {
+        throw new Error('A separate signer matching the V3 settlement authority is required before collection.');
+      }
       router = deriveMintRouterV3(v3ProgramId, mintKey);
       const main = await store.read();
       if (Object.values(main.collections || {}).some(row => row.mint === mintKey.toBase58()
@@ -222,5 +234,7 @@ export function createFeeRouterService({
     return { requestedMint: mintKey.toBase58(), mint: perMint ? mintKey.toBase58() : null, attribution: perMint ? 'mint-verified' : 'router', onchainVerified: perMint && collectedLamports > 0, router: router.address.toBase58(), signature, beforeLamports, afterLamports, collectedLamports, cluster: solanaCluster, status: collectedLamports > 0 ? 'collected' : 'no-fees' };
   }
 
-  return { keeperKeypair, referralPayoutKeypair, routerAuthorityKeypair, mintRouterReadiness, xFeeReadiness, feeRouterConfig, launchPolicyConfig, executeSolPayout, reconcileSolPayout, collectPumpCreatorFees };
+  return { keeperKeypair, referralPayoutKeypair, routerAuthorityKeypair,
+    v3AuthorityKeypair, mintRouterReadiness, xFeeReadiness, feeRouterConfig,
+    launchPolicyConfig, executeSolPayout, reconcileSolPayout, collectPumpCreatorFees };
 }

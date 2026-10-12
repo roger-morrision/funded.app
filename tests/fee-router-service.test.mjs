@@ -208,6 +208,9 @@ test('V3 collection needs its separate gate, immutable policy, and finalized Pum
   await assert.rejects(f.service.collectPumpCreatorFees({ requestedMint:f.mint }), /V3 collection is not activated/);
   assert.equal(f.state.sends, 0);
   f.env.FUNDED_V3_COLLECTION_ENABLED = 'true';
+  await assert.rejects(f.service.collectPumpCreatorFees({ requestedMint:f.mint }), /separate signer matching the V3 settlement authority/);
+  assert.equal(f.state.sends, 0);
+  f.env.FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY = bs58.encode(f.authority.secretKey);
   finalizedProof = { signature:'fixture-signature', mint:f.mint, router:v3Router.toBase58(),
     expectedLamports:30n, claimId:Buffer.alloc(32, 1), slot:42 };
   const collected = await f.service.collectPumpCreatorFees({ requestedMint:f.mint });
