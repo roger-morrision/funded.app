@@ -3,11 +3,12 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import bs58 from 'bs58';
-import { clusterApiUrl, Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
+import { clusterApiUrl, Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { deriveMintFeeRouter } from '../fee-router.js';
 import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from '../server/automatic-reward-chain.mjs';
-import { buildMintRouterSettlementInstruction, readMintClaimRecord } from '../server/mint-router-payout.mjs';
+import { readMintClaimRecord } from '../server/mint-router-payout.mjs';
 import { verifyFinalizedSettlementDelta } from '../server/creator-settlement-transaction.mjs';
+import { verifyPreparedRewardFundingTransaction } from './qa-reward-funding-transaction.mjs';
 
 const mint = 'ZYNCP99vqtdQmiFUG7uvYTBPi66UGKJjRo2zNVLnQAL';
 const source = '5hAsYG6cZZpsiANfb2rLdxvKkp12VgLJuHnTV2pLhx875Bu8JpC3ctQEqUeyqWRcXpRiAeyqCSCRtqLQHW3K8F6r';
@@ -76,13 +77,10 @@ for (const row of expected) {
   assert.equal(prepared.amountLamports, row.amount);
   assert.equal(prepared.kind, row.kind);
   const recipient = new PublicKey(prepared.recipient);
-  const instruction = buildMintRouterSettlementInstruction({ programId, mint, authority:authorityAddress,
-    creator:creatorAddress, recipient, amountLamports:row.amount, obligationId:row.id, claimDomain:row.domain });
-  const transaction = Transaction.from(Buffer.from(prepared.transaction, 'base64'));
-  assert.equal(transaction.feePayer.toBase58(), authorityAddress);
-  const exact = new Transaction({ feePayer:new PublicKey(authorityAddress), recentBlockhash:transaction.recentBlockhash })
-    .add(instruction);
-  assert(transaction.serializeMessage().equals(exact.serializeMessage()), 'Prepared transaction differs from the capped allocation.');
+  const { transaction, settlement:instruction } = verifyPreparedRewardFundingTransaction({
+    serializedTransaction:prepared.transaction, programId, mint, authority:authorityAddress,
+    creator:creatorAddress, recipient, amountLamports:row.amount, requestId:row.id,
+    claimDomain:row.domain });
   assert.equal(await connection.getAccountInfo(instruction.claim, 'finalized'), null, 'Allocation claim already exists.');
   transaction.partialSign(creator);
   const settled = await request(`${path}/settle`, { requestId:row.id,
