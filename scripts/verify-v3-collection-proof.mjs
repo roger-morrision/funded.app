@@ -5,8 +5,11 @@ import { NATIVE_MINT, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { PUMP_PROGRAM_ID, creatorVaultPda } from '@pump-fun/pump-sdk';
 import { PUMP_AMM_SDK } from '@pump-fun/pump-swap-sdk';
 import { Keypair, SystemProgram } from '@solana/web3.js';
-import { deriveMintRouterV3, buildMintRouterV3SettlementInstruction } from '../mint-router-v3.js';
+import { deriveMintRouterV3, deriveMintPolicyV3, protocolGrossUnits,
+  buildMintRouterV3SettlementInstruction } from '../mint-router-v3.js';
+import { FEE_ROUTER_POLICY_HASH_HEX } from '../fee-router.js';
 import { verifyV3PumpCollection } from '../server/v3-collection-proof.mjs';
+import { loadFinalizedV3PumpCollection } from '../server/v3-finalized-collection.mjs';
 
 const programId = Keypair.generate().publicKey;
 const mint = Keypair.generate().publicKey;
@@ -81,4 +84,56 @@ assert.equal(await verifyV3PumpCollection({ ...params, transaction:unrelatedAmm 
 const wrongAmmCreator = altered(withAmm);
 wrongAmmCreator.transaction.message.instructions[0].accounts[5] = 0;
 assert.equal(await verifyV3PumpCollection({ ...params, transaction:wrongAmmCreator }), null);
-console.log('v3 finalized Pump collection proof checks passed (synthetic transaction only)');
+
+const policy = deriveMintPolicyV3(programId, mint).address;
+const routerData = Buffer.alloc(106);
+routerData.write('FUNDMNT3', 0, 'ascii');
+routerData[8] = 3;
+Buffer.from(FEE_ROUTER_POLICY_HASH_HEX, 'hex').copy(routerData, 9);
+authority.toBuffer().copy(routerData, 41);
+mint.toBuffer().copy(routerData, 73);
+routerData[105] = deriveMintRouterV3(programId, mint).bump;
+const policyData = Buffer.alloc(193);
+createHash('sha256').update('account:MintFeePolicyV3').digest().copy(policyData, 0, 0, 8);
+mint.toBuffer().copy(policyData, 8);
+creator.toBuffer().copy(policyData, 40);
+authority.toBuffer().copy(policyData, 72);
+const protocolSplit = { operationsPercent:50, referralLevelPercents:[10, 3, 2],
+  communityPercent:10, buybackPercent:25 };
+protocolGrossUnits(protocolSplit).forEach((rate, index) => policyData.writeUInt32LE(rate, 104 + index * 4));
+policyData[192] = deriveMintPolicyV3(programId, mint).bump;
+const launchSignature = bs58.encode(Buffer.alloc(64, 6));
+const launch = { onchainVerified:true, cluster:'devnet', mint:mint.toBase58(),
+  creator:router.toBase58(), creatorWallet:creator.toBase58(),
+  pumpFeeRoute:{ scope:'per-mint-v3', router:router.toBase58(), programId:programId.toBase58(),
+    transaction:launchSignature, initialAuthority:authority.toBase58(), protocolSplit } };
+const rpcCalls = [];
+const connection = {
+  getAccountInfo: async (key, commitment) => {
+    rpcCalls.push(['account', key.toBase58(), commitment]);
+    return key.equals(router) ? { owner:programId, data:routerData }
+      : key.equals(policy) ? { owner:programId, data:policyData } : null;
+  },
+  getTransaction: async (value, options) => {
+    rpcCalls.push(['transaction', value, options.commitment]);
+    return value === signature ? transaction : null;
+  },
+};
+const verifyLaunch = async ({ mint:checkedMint, signature:checkedSignature, commitment }) => {
+  assert.equal(checkedMint, mint.toBase58());
+  assert.equal(checkedSignature, launchSignature);
+  assert.equal(commitment, 'finalized');
+  return { onchainVerified:true, creator:router.toBase58(), feePayer:creator.toBase58(),
+    signature:launchSignature };
+};
+const request = { connection, signature, programId, mint, launch, verifyLaunch };
+assert.equal((await loadFinalizedV3PumpCollection(request))?.expectedLamports, 2_000_000n);
+assert(rpcCalls.some(call => call[0] === 'transaction' && call[2] === 'finalized'));
+assert(rpcCalls.filter(call => call[0] === 'account').every(call => call[2] === 'finalized'));
+assert.equal(await loadFinalizedV3PumpCollection({ ...request,
+  launch:{ ...launch, creator:creator.toBase58() } }), null);
+assert.equal(await loadFinalizedV3PumpCollection({ ...request,
+  verifyLaunch:async () => ({ onchainVerified:true, creator:creator.toBase58() }) }), null);
+policyData.writeUInt32LE(1, 104);
+assert.equal(await loadFinalizedV3PumpCollection(request), null);
+console.log('v3 finalized Pump collection proof checks passed (synthetic RPC and launch fixtures only)');
