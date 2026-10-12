@@ -5,7 +5,7 @@ use super::rotate::{assert_upgrade_owner, assert_current_router_authority};
 
 // An empty system-owned PDA may already hold a third-party deposit. Funding it
 // must not prevent initialization, and those lamports must remain in the vault.
-fn create_router_account<'info>(
+pub(super) fn create_router_account<'info>(
     payer: AccountInfo<'info>,
     router: AccountInfo<'info>,
     system_program: AccountInfo<'info>,

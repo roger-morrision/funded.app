@@ -23,6 +23,14 @@ pub mod funded_fee_router {
         initialize::mint_handler(ctx)
     }
 
+    pub fn initialize_mint_v3(ctx: Context<InitializeMintV3>, protocol_units: [u32; 6]) -> Result<()> {
+        policy_v3::initialize_mint_v3_handler(ctx, protocol_units)
+    }
+
+    pub fn settle_mint_v3(ctx: Context<SettleMintV3>, claim_id: [u8; 32]) -> Result<()> {
+        policy_v3::settle_mint_v3_handler(ctx, claim_id)
+    }
+
     pub fn migrate_mint_fee_ledger(ctx: Context<MigrateMintFeeLedger>, historical_creator_spent: u64,
         historical_protocol_spent: u64, expected_available_lamports: u64) -> Result<()> {
         initialize::migrate_mint_fee_ledger_handler(ctx, historical_creator_spent,

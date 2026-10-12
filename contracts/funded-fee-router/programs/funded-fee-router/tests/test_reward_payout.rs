@@ -11,6 +11,7 @@ use solana_message_lite::{Message, VersionedMessage};
 use solana_sha256_hasher::hashv;
 use solana_signer_lite::Signer;
 use solana_transaction_lite::versioned::VersionedTransaction;
+mod support;
 
 fn send(svm: &mut LiteSVM, payer: &Keypair, instruction: Instruction) -> bool {
     let message = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &svm.latest_blockhash());
@@ -28,7 +29,7 @@ fn store(svm: &mut LiteSVM, key: Pubkey, value: &impl AccountSerialize, lamports
 fn sol_reward_rejects_wrong_proof_early_payment_replay_and_self_payment() {
     let program_id = funded_fee_router::id();
     let mut svm = LiteSVM::new();
-    svm.add_program(program_id, include_bytes!("../../../target/deploy/funded_fee_router.so")).unwrap();
+    svm.add_program(program_id, &support::program_bytes()).unwrap();
     let payer = Keypair::new();
     svm.airdrop(&payer.pubkey(), 1_000_000_000).unwrap();
     let mint = Pubkey::new_unique();
@@ -84,7 +85,7 @@ fn token_2022_reward_rejects_withheld_fee_and_rolls_back_obligation() {
     for fee_bps in [0, 100] {
         let program_id = funded_fee_router::id();
         let mut svm = LiteSVM::new();
-        svm.add_program(program_id, include_bytes!("../../../target/deploy/funded_fee_router.so")).unwrap();
+        svm.add_program(program_id, &support::program_bytes()).unwrap();
         let payer = Keypair::new();
         let mint = Keypair::new();
         let recipient = Pubkey::new_unique();

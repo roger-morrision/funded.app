@@ -244,7 +244,7 @@ fn legacy_settlement_rejects_empty_self_and_invalid_destinations() {
     let authority = Keypair::new();
     let recipient = Pubkey::new_unique();
     let mut svm = LiteSVM::new();
-    svm.add_program(program_id, include_bytes!("../../../target/deploy/funded_fee_router.so")).unwrap();
+    svm.add_program(program_id, &support::program_bytes()).unwrap();
     svm.airdrop(&authority.pubkey(), 1_000_000_000).unwrap();
     let (router, bump) = Pubkey::find_program_address(&[SEED], &program_id);
     let mut data = vec![0; ROUTER_DATA_LEN];

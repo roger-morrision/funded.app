@@ -38,6 +38,37 @@ impl MintFeeLedger {
     pub const INIT_SPACE: usize = 32 + 32 + 8 + 8 + 1;
 }
 
+/// Immutable rates for a v3 mint. The creator receives exactly 8,000,000 of
+/// 10,000,000 rate units over the lifetime of the router. The six protocol
+/// entries are operations, three referral levels, community, and buyback.
+#[account]
+pub struct MintFeePolicyV3 {
+    pub mint: Pubkey,
+    pub creator: Pubkey,
+    pub authority: Pubkey, // Initial authority; the global router controls rotations.
+    pub protocol_units: [u32; 6],
+    pub settled_lamports: u64,
+    pub paid_lamports: [u64; 7],
+    pub bump: u8,
+}
+
+impl MintFeePolicyV3 {
+    pub const INIT_SPACE: usize = 32 * 3 + 4 * 6 + 8 + 8 * 7 + 1;
+}
+
+#[account]
+pub struct MintClaimRecordV3 {
+    pub claim_id: [u8; 32],
+    pub mint: Pubkey,
+    pub total_lamports: u64,
+    pub category_lamports: [u64; 7],
+    pub created_at: i64,
+}
+
+impl MintClaimRecordV3 {
+    pub const INIT_SPACE: usize = 32 + 32 + 8 + 8 * 7 + 8;
+}
+
 #[account]
 pub struct RewardVault {
     pub authority: Pubkey,

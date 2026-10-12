@@ -19,7 +19,7 @@ fn prefunded_router_initialization_preserves_deposits_and_rejects_reinitializati
     // Exercise both rent top-up and a deposit larger than required rent.
     for prefunding in [1_000_000, 10_000_000] {
         let mut svm = LiteSVM::new();
-        svm.add_program(program, include_bytes!("../../../target/deploy/funded_fee_router.so")).unwrap();
+        svm.add_program(program, &support::program_bytes()).unwrap();
         let payer = Keypair::new();
         let program_data = support::set_upgrade_owner(&mut svm, program, payer.pubkey());
         let mint = Keypair::new();
@@ -61,7 +61,7 @@ fn prefunded_router_initialization_preserves_deposits_and_rejects_reinitializati
 fn header_repair_requires_stored_authority_and_preserves_balance() {
     let program = funded_fee_router::id();
     let mut svm = LiteSVM::new();
-    svm.add_program(program, include_bytes!("../../../target/deploy/funded_fee_router.so")).unwrap();
+    svm.add_program(program, &support::program_bytes()).unwrap();
     let authority = Keypair::new();
     let stranger = Keypair::new();
     svm.airdrop(&authority.pubkey(), 100_000_000).unwrap();

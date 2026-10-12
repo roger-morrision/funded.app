@@ -56,4 +56,10 @@ pub enum ErrorCode {
     RewardReserveExceeded,
     #[msg("Community snapshot was not approved by the program upgrade owner")]
     CommunitySnapshotNotApproved,
+    #[msg("The v3 protocol rates must total exactly 2,000,000 of 10,000,000 units")]
+    InvalidProtocolFeeRates,
+    #[msg("The v3 policy does not match this mint, creator, or authority")]
+    InvalidMintFeePolicyV3,
+    #[msg("The v3 settlement must include the seven category vaults in order")]
+    InvalidMintFeeVaultV3,
 }

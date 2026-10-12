@@ -7,6 +7,7 @@ pub mod reward;
 pub mod community;
 pub mod rotate;
 pub mod recover_wrapped_sol;
+pub mod policy_v3;
 
 pub use initialize::*;
 pub use settle::*;
@@ -15,3 +16,4 @@ pub use reward::*;
 pub use community::*;
 pub use rotate::*;
 pub use recover_wrapped_sol::*;
+pub use policy_v3::*;
