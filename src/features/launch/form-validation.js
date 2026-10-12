@@ -103,6 +103,8 @@ export function getLaunchSubmissionState(
         ? 'Fee-router verification could not reach Solana. Retry checks before signing.'
         : feeRouterState.status === 'program-id-not-configured'
           ? 'The fee-router program is not configured for this site.'
+          : /co-signing for on-chain 80\/20 settlements/i.test(feeRouterState.status || '')
+            ? 'Launch paused: creator wallet co-signing for 80/20 fee settlements is not available yet. Signing remains disabled until the service is ready.'
           : 'The fee-router policy is not verified on Solana. Retry checks before signing.' };
     if (!wallet) return { valid: false, message: 'Connect a wallet to continue to signing.' };
     if (!canSignTransactions(wallet)) return { valid: false, message: 'Open this app inside your wallet to sign.' };

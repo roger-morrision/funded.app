@@ -17,6 +17,7 @@ function disclosure(target, label) {
 function home() {
   setText('#home-hero-title', 'Launch a Solana coin. Follow its creator fees.');
   setText('.hero-copy', 'Publish a fixed 80/20 creator-fee policy, choose where your 80% goes, and track confirmed collections and payments. Every launch also reserves at least 3% of its tokens for eligible $FUNDED holders.');
+  setText('.home-hero-kicker', 'Solana launchpad · published fee route');
   const actions = $('.hero-actions');
   const explore = actions?.querySelector('[href="#explore"]');
   const launch = actions?.querySelector('[href="#launch"]');
@@ -25,11 +26,31 @@ function home() {
     launch.className = 'hero-secondary-action'; launch.textContent = 'Launch a token';
     actions.prepend(explore);
   }
+  if (actions && !$('#home-simple-flow')) actions.insertAdjacentHTML('afterend', `
+    <div class="home-simple-flow" id="home-simple-flow" aria-label="How a launch works">
+      <span><b>1</b> Create on Solana</span><span aria-hidden="true">→</span>
+      <span><b>2</b> Trades generate creator fees</span><span aria-hidden="true">→</span>
+      <span><b>3</b> Confirmed collections follow the published split</span>
+    </div>
+    <p class="home-flow-proof">A policy allocation is not a payment. Open a coin to check its collection and payout receipts. <a href="#capital-flow">See the fee route</a></p>`);
   const rewardGroups = $('.home-rewards-stack');
   const board = $('.home-launch-board');
   if (rewardGroups && board) {
     board.after(rewardGroups);
     disclosure(rewardGroups, 'Community rewards');
+  }
+  if (board && !board.querySelector('.product-devnet-note') && $('.workspace-network')?.textContent?.includes('Devnet')) {
+    const note = document.createElement('p');
+    note.className = 'product-devnet-note';
+    note.textContent = 'Devnet test launches · test SOL has no monetary value. Market figures appear only when verified observations are available.';
+    board.querySelector('.home-launch-board-title')?.after(note);
+    setText('.home-launch-board-title', 'Devnet launches');
+  }
+  if (board && !board.querySelector('.product-follow-note')) {
+    const note = document.createElement('p');
+    note.className = 'product-follow-note';
+    note.innerHTML = 'Want to revisit a coin? Use its star, then open <a href="#explore">Explore</a> and choose Following.';
+    (board.querySelector('.product-devnet-note') || board.querySelector('.home-launch-board-title'))?.after(note);
   }
   // Pause distracting continuous movement by default. The existing control can resume it.
   const pause = $('#home-feed-pause');
@@ -39,6 +60,13 @@ function home() {
 function explore() {
   setText('.explore-hero h1', 'Explore tokens');
   setText('.explore-lede', 'Find a token, compare its activity, and explore its community.');
+  const lede = $('.explore-lede');
+  if (lede && !$('.explore-hero .product-devnet-note') && $('.workspace-network')?.textContent?.includes('Devnet')) {
+    const note = document.createElement('p');
+    note.className = 'product-devnet-note';
+    note.textContent = 'This board contains Devnet test launches. Missing market observations remain unavailable; they are not zero volume.';
+    lede.after(note);
+  }
   setText('button[data-explore-tab="trending"]', 'Trending');
   setText('.workspace-watch-link', 'Following');
   $('#explore-search')?.setAttribute('placeholder', 'Search tokens or paste an address');
@@ -68,7 +96,7 @@ function launch() {
   const packages = $('.creator-burn-section');
   if (options && packages) {
     packages.classList.remove('launch-tier-first');
-    options.querySelector('.launch-funding-section')?.after(packages);
+    options.querySelector('.launch-fee-options')?.after(packages);
   }
   const first = $('[data-launch-step="1"]');
   const description = first?.querySelector('label:has(#token-description)');
@@ -82,7 +110,21 @@ function launch() {
   setText('[data-launch-step-target="2"] span', 'Rewards & launch');
   $('[data-launch-step-target="2"]')?.setAttribute('aria-label', 'Step 2: Rewards and launch');
   setText('#launch-route-title', 'Launch a token');
-  setText('#launch-route-shell .page-lede', 'Add your token details, choose your rewards, and review the total before signing.');
+  setText('#launch-route-shell .page-lede', 'Name your coin, review the recommended 80/20 fee route and 3% community token reserve, then check the exact cost before signing.');
+  setText('#benefits-step-title', 'Choose your fee route');
+  setText('[data-launch-step="2"] > .step-heading p', 'The recommended setup directs 80% of collected creator fees to your wallet. Airdrop size, developer buy, and promotion are separate choices.');
+  const funding = $('.launch-funding-section');
+  if (funding && !funding.querySelector('.product-airdrop-note')) {
+    const note = document.createElement('p');
+    note.className = 'product-airdrop-note';
+    note.textContent = 'The airdrop uses tokens of your new coin. Creator-fee rewards use collected SOL. Eligibility and payment require separate verified steps.';
+    funding.querySelector('.section-label-row')?.after(note);
+  }
+  const fees = $('.launch-fee-options');
+  if (fees && !fees.querySelector('.product-fee-example')) fees.querySelector('.benefit-grid')?.after(Object.assign(document.createElement('p'), {
+    className: 'product-fee-example',
+    textContent: 'Example: if 1 SOL of creator fees is collected, the policy allocates 0.8 SOL to your chosen creator destinations and 0.2 SOL to funded.vip programs. Allocation does not mean a payment has completed.'
+  }));
   setText('.launch-preview-heading span', 'Preview');
   setText('#launch-mode-quick strong', 'Keep your creator share');
   setText('#launch-mode-quick small', 'Receive your 80% share in your wallet.');
@@ -113,6 +155,14 @@ function portfolio() {
 }
 
 function details() {
+  const summary = $('#coin-summary-title');
+  if (summary && !$('#coin-fee-status-guide')) {
+    const guide = document.createElement('p');
+    guide.id = 'coin-fee-status-guide';
+    guide.className = 'coin-fee-status-guide';
+    guide.textContent = 'Read this coin in order: launch and policy verified on Solana → creator fees collected → split allocated → payment confirmed by receipt. Each step needs its own evidence; an allocation is not a completed payout.';
+    summary.closest('.coin-summary-heading')?.after(guide);
+  }
   disclosure($('.reward-upcoming'), 'How to qualify for upcoming rewards');
   setText('.coin-profile-updates > strong', 'No updates yet');
   setText('.coin-profile-updates > p', 'Updates from this project will appear here.');
@@ -122,6 +172,14 @@ function details() {
   if (about && headerAside) { about.classList.add('product-token-about'); headerAside.prepend(about); }
   setText('.coin-market-aside-title', 'Launch progress');
   setText('.header-search-results-head strong', 'Explore tokens');
+  const trade = $('#trade-panel');
+  const quote = trade?.querySelector('.coin-trade-quote-details');
+  const submit = trade?.querySelector('.trade-actions');
+  if (quote && submit) {
+    submit.before(quote);
+    quote.open = true;
+    setText('.coin-trade-quote-details > summary', 'Quote, maximum spend, and fees');
+  }
 }
 
 home(); explore(); launch(); portfolio(); details();

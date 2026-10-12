@@ -62,6 +62,7 @@ export function createTradeExecutionController(appState) {
         : `App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network and Pump fees.`;
       document.querySelector('#trade-quote').textContent = `${quote.route === 'graduated-pool' ? 'Graduated pool' : 'Pump curve'} · ${slippageText} ${feeText}`;
       appState.setTradeStatus('Review this quote and the transaction in your wallet before signing.');
+      appState.productEvent('trade_quote_ready');
       appState.tradeQuoteTimer = setTimeout(() => appState.refreshTradeQuoteWhenIdle(version), 12_000);
       return appState.tradePreview;
     })();
@@ -116,6 +117,7 @@ export function createTradeExecutionController(appState) {
       document.querySelector('#trade-review-dialog').dataset.side = side;
       document.querySelector('#trade-review-countdown').innerHTML = appState.quoteCountdownMarkup(prepared.preparedAt + 15_000);
       document.querySelector('#trade-review-dialog').showModal();
+      appState.productEvent('trade_review');
     } catch (error) { if (version === appState.tradeQuoteVersion) appState.setTradeStatus(appState.tradePreviewFailureMessage(error, side), true); }
     finally { appState.tradeActionBusy = false; appState.updateTradeActionState(); }
   }

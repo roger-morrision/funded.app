@@ -64,6 +64,19 @@ test('launch action follows wallet connection, quote expiry, signing readiness a
   assert.match(button.textContent, /Agree to terms/);
 });
 
+test('unverified fee router blocks both wallet connection and launch signing', () => {
+  const f = fixture(), button = f.nodes.get('#launch-button');
+  f.state.feeRouterState = { verified: false, status: 'co-signing for on-chain 80/20 settlements is unavailable' };
+  f.render();
+  assert.equal(button.disabled, true);
+  assert.equal(button.dataset.launchAction, 'launch');
+  assert.match(button.textContent, /Launch paused/);
+  assert.match(getLaunchSubmissionState(f.state, f.services).message, /co-signing.*not available yet/);
+  f.state.wallet = signingWallet();
+  f.render();
+  assert.equal(button.disabled, true);
+});
+
 test('over-limit developer buy blocks launch and clears its invalid marker after correction', () => {
   const f = fixture(), input = f.nodes.get('#creator-buy-sol');
   let exceeded = true;
