@@ -1,7 +1,7 @@
 import bs58 from 'bs58';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { verifyMintFeeLedgerAccount, verifyMintFeeRouterAccount } from '../../fee-router.js';
-import { createAutomaticRewardChain } from '../automatic-reward-chain.mjs';
+import { createAutomaticRewardChain, rewardAddresses } from '../automatic-reward-chain.mjs';
 import { buildMintRouterSettlementInstruction, readMintClaimRecord } from '../mint-router-payout.mjs';
 import { verifiedRewardFundingRequests } from '../reward-funding-claim.mjs';
 import { prepareCreatorSettlement, verifyCreatorSettlement, submitCreatorSettlement,
@@ -63,7 +63,9 @@ export function createRewardFundingRoutes({ store, automaticRewardStore, solanaC
       expectedProgramDataSha256:process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
     const rewardReady = await chain.readiness();
     if (!rewardReady.constrainedPayouts) return json(res, 503, { error:'Reward vault program is unavailable.', reasons:rewardReady.reasons });
-    const vault = await chain.ensureVault(request.kind === 'community-reserve' ? config.programId : mint);
+    const vaultMint = request.kind === 'community-reserve' ? config.programId : mint;
+    const vault = rewardAddresses({ programId:config.programId, authority:authority.publicKey,
+      mint:vaultMint }).vault;
     const claimDomain = request.kind === 'holder' ? 'holder-funding'
       : request.kind === 'operations' ? 'operations-funding' : 'community-reserve';
     const settlement = buildMintRouterSettlementInstruction({ programId:config.programId, mint,
@@ -91,6 +93,10 @@ export function createRewardFundingRoutes({ store, automaticRewardStore, solanaC
       }
       transaction = verifyCreatorSettlement({ signedTransaction:input.creatorSignedTransaction,
         instruction:settlement.instruction, authority:authority.publicKey, creator:wallet });
+      if (!(await connection.isBlockhashValid(transaction.recentBlockhash, 'confirmed')).value)
+        return json(res, 409, { error:'Creator approval expired. Prepare and sign a fresh transaction.' });
+      const initializedVault = await chain.ensureVault(vaultMint);
+      if (!initializedVault.equals(vault)) throw new Error('Initialized reward vault differs from the approved recipient.');
       transaction.partialSign(authority);
       expectedSignature = bs58.encode(transaction.signature);
     }

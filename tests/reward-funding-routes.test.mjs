@@ -6,6 +6,7 @@ import { Keypair, Transaction } from '@solana/web3.js';
 import { deriveMintFeeLedger, deriveMintFeeRouter, FEE_ROUTER_POLICY_HASH_HEX,
   MINT_FEE_ROUTER_MAGIC, MINT_FEE_ROUTER_VERSION } from '../fee-router.js';
 import { buildMintRouterSettlementInstruction } from '../server/mint-router-payout.mjs';
+import { rewardAddresses } from '../server/automatic-reward-chain.mjs';
 import { createRewardFundingRoutes } from '../server/routes/reward-funding.mjs';
 
 for (const scenario of [
@@ -17,7 +18,9 @@ for (const scenario of [
     settlement:{ fundedApp:{ community:0.000358162 } } },
 ]) test(`creator approves exact ${scenario.kind} funding and the route records finalized vault evidence`, async () => {
   const programId = Keypair.generate().publicKey, mint = Keypair.generate().publicKey;
-  const creator = Keypair.generate(), authority = Keypair.generate(), vault = Keypair.generate().publicKey;
+  const creator = Keypair.generate(), authority = Keypair.generate();
+  const vaultMint = scenario.kind === 'community-reserve' ? programId : mint;
+  const vault = rewardAddresses({ programId, authority:authority.publicKey, mint:vaultMint }).vault;
   const operationsRecipient = Keypair.generate().publicKey;
   const router = deriveMintFeeRouter(programId, mint).address, ledger = deriveMintFeeLedger(programId, mint).address;
   const routerData = Buffer.alloc(106);
@@ -45,11 +48,11 @@ for (const scenario of [
   const rewards = { fundingRequests:{ [requestId]:{ id:requestId, sourceSignature, mint:mint.toBase58(),
     asset:'SOL', kind:scenario.kind, amount:scenario.amount,
     recipient:scenario.kind === 'operations' ? operationsRecipient.toBase58() : null, status:'pending' } } };
-  let finalizedSignature = null;
+  let finalizedSignature = null, ensureVaultCalls = 0, blockhashValid = true;
   const connection = {
     getAccountInfo:async key => account.get(key.toBase58()) || null,
     getLatestBlockhash:async () => ({ blockhash:Keypair.generate().publicKey.toBase58(), lastValidBlockHeight:100 }),
-    isBlockhashValid:async () => ({ value:true }),
+    isBlockhashValid:async () => ({ value:blockhashValid }),
     sendRawTransaction:async bytes => {
       const transaction = Transaction.from(bytes);
       assert.equal(transaction.verifySignatures(), true);
@@ -84,7 +87,11 @@ for (const scenario of [
       feeRouterConfig:()=>({ programId }), mintRouterReadiness:async()=>({ ready:true }),
       routerAuthorityKeypair:()=>authority, body:async req=>req.input,
       respond:(_res,status,data)=>responses.push({ status,data }), connectionFactory:()=>connection,
-      chainFactory:()=>({ readiness:async()=>({ constrainedPayouts:true }), ensureVault:async()=>vault }) });
+      chainFactory:()=>({ readiness:async()=>({ constrainedPayouts:true }), ensureVault:async requestedMint=>{
+        assert.equal(String(requestedMint), vaultMint.toBase58());
+        ensureVaultCalls += 1;
+        return vault;
+      } }) });
     const request = async (suffix, input = {}, method = 'POST') => {
       const origin = process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== '*' ? process.env.CORS_ORIGIN : 'https://funded.vip';
       return handle({ method, input, headers:{ origin, host:'funded.vip' }, socket:{ encrypted:true } }, {},
@@ -100,11 +107,22 @@ for (const scenario of [
     assert.equal(review.data.recipient, vault.toBase58());
     assert.equal(review.data.kind, scenario.kind);
     assert.equal(review.data.amountLamports, scenario.amount);
+    assert.equal(ensureVaultCalls, 0, 'Unsigned preparation must not initialize a Devnet vault.');
+    await assert.rejects(() => request('settle', { requestId,
+      creatorSignedTransaction:review.data.transaction }), /launch creator has not signed/);
+    assert.equal(ensureVaultCalls, 0, 'An unsigned transaction must not initialize a Devnet vault.');
     const transaction = Transaction.from(Buffer.from(review.data.transaction, 'base64'));
     transaction.partialSign(creator);
-    await request('settle', { requestId, creatorSignedTransaction:transaction.serialize({
-      requireAllSignatures:false, verifySignatures:false }).toString('base64') });
+    const creatorSignedTransaction = transaction.serialize({
+      requireAllSignatures:false, verifySignatures:false }).toString('base64');
+    blockhashValid = false;
+    await request('settle', { requestId, creatorSignedTransaction });
+    assert.equal(responses.at(-1).status, 409);
+    assert.equal(ensureVaultCalls, 0, 'Expired approval must not initialize a Devnet vault.');
+    blockhashValid = true;
+    await request('settle', { requestId, creatorSignedTransaction });
     assert.equal(responses.at(-1).data.status, 'vault-funded');
+    assert.equal(ensureVaultCalls, 1, 'Only a valid signed request may initialize its reward vault.');
     assert.equal(responses.at(-1).data.signature, finalizedSignature);
     assert.equal(rewards.fundingRequests[requestId].status, 'funding');
     assert.equal(rewards.fundingRequests[requestId].approvedCreator, creator.publicKey.toBase58());
