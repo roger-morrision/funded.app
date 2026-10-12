@@ -71,9 +71,13 @@ test('launch registration rejects unsupported networks and missing router or pro
   await f.request('/api/launches', input);
   await f.request('/api/launches', { ...input, pumpFeeRoute: { router: mint, scope: 'per-mint-v2' },
     creatorLaunchBurn: { tier: 'pro', fundedMint: mint, amountTokens: 100_000, quoteId: 'missing' } });
-  assert.deepEqual(f.responses.map(row => row.status), [400, 409, 409]);
+  await f.request('/api/launches', { ...input, pumpFeeRoute: { router: mint, scope: 'per-mint-v3',
+    programId:mint, initialAuthority:mint, protocolSplit:{ operationsPercent:50,
+      referralLevelPercents:[10,3,2], communityPercent:10, buybackPercent:25 } } });
+  assert.deepEqual(f.responses.map(row => row.status), [400, 409, 409, 503]);
   assert.match(f.responses[1].data.error, /mint-specific fee router/);
   assert.match(f.responses[2].data.error, /saved.*launch quote/);
+  assert.match(f.responses[3].data.error, /V3 launches are not activated/);
 });
 
 test('burn and listing receipt replay preserves attribution and never repeats verification', async () => {

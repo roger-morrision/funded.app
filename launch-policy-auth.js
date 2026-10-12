@@ -1,6 +1,6 @@
 import { PublicKey } from '@solana/web3.js';
 import { validateCommunityAllocation } from './airdrop-policy.js';
-import { validateFeeDistribution } from './distribution-policy.js';
+import { validateFeeDistribution, validateProtocolFeeSplit } from './distribution-policy.js';
 
 export function canonicalLaunchPolicy(input = {}) {
   const communityAllocation = Number(input.communityAllocation);
@@ -18,12 +18,19 @@ export function canonicalLaunchPolicy(input = {}) {
     fundedMint: new PublicKey(String(burn.fundedMint || '')).toBase58(),
     ...(burn.quoteId ? { quoteId:String(burn.quoteId) } : {}),
   } : null;
+  const v3 = input.pumpFeeRoute?.scope === 'per-mint-v3' ? {
+    feeRouterScope:'per-mint-v3',
+    feeRouterProgramId:new PublicKey(String(input.pumpFeeRoute.programId || '')).toBase58(),
+    feeRouterInitialAuthority:new PublicKey(String(input.pumpFeeRoute.initialAuthority || '')).toBase58(),
+    protocolSplit:validateProtocolFeeSplit(input.pumpFeeRoute.protocolSplit),
+  } : {};
   return {
     mint: new PublicKey(String(input.mint || '')).toBase58(),
     creatorWallet: new PublicKey(String(input.creatorWallet || '')).toBase58(),
     cluster: String(input.cluster || ''),
     transaction: String(input.signature || input.pumpFeeRoute?.transaction || '').trim(),
     feeRouter: new PublicKey(String(input.pumpFeeRoute?.router || '')).toBase58(),
+    ...v3,
     communityAllocation,
     creatorWalletPercent: distribution.shares.creatorWalletPercent,
     holderAirdropPercent: distribution.shares.holderAirdropPercent,

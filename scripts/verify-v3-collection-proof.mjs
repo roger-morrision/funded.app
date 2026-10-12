@@ -10,6 +10,9 @@ import { deriveMintRouterV3, deriveMintPolicyV3, protocolGrossUnits,
 import { FEE_ROUTER_POLICY_HASH_HEX } from '../fee-router.js';
 import { verifyV3PumpCollection } from '../server/v3-collection-proof.mjs';
 import { loadFinalizedV3PumpCollection } from '../server/v3-finalized-collection.mjs';
+import { verifyV3LaunchRouterReadiness } from '../server/v3-launch-readiness.mjs';
+import { DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
+import { launchPolicyStatement } from '../launch-policy-auth.js';
 
 const programId = Keypair.generate().publicKey;
 const mint = Keypair.generate().publicKey;
@@ -149,4 +152,35 @@ assert.equal(await loadFinalizedV3PumpCollection({ ...request,
   verifyLaunch:async () => ({ onchainVerified:true, creator:creator.toBase58() }) }), null);
 policyData.writeUInt32LE(1, 104);
 assert.equal(await loadFinalizedV3PumpCollection(request), null);
+const approvedHash = 'ab'.repeat(32);
+const readiness = {
+  connection:{ getGenesisHash:async () => DEVNET_GENESIS_HASH },
+  programId, expectedProgramDataSha256:approvedHash, mint,
+  creatorWallet:creator, initialAuthority:authority, split:protocolSplit,
+  readEvidence:async () => ({ account:{ executable:true }, sha256:approvedHash }),
+  verifyGlobal:async () => ({ verified:true }),
+  verifyRouter:async () => ({ verified:true, address:router }),
+  verifyPolicy:async ({ split }) => ({ verified:split === protocolSplit }),
+};
+assert.equal((await verifyV3LaunchRouterReadiness(readiness)).configuredRouter, router.toBase58());
+assert.equal((await verifyV3LaunchRouterReadiness({ ...readiness, expectedProgramDataSha256:null })).status, 503);
+assert.equal((await verifyV3LaunchRouterReadiness({ ...readiness,
+  readEvidence:async () => ({ account:{ executable:true }, sha256:'cd'.repeat(32) }) })).ready, false);
+assert.equal((await verifyV3LaunchRouterReadiness({ ...readiness,
+  connection:{ getGenesisHash:async () => 'wrong-cluster' } })).ready, false);
+assert.equal((await verifyV3LaunchRouterReadiness({ ...readiness,
+  verifyGlobal:async () => ({ verified:false }) })).ready, false);
+assert.equal((await verifyV3LaunchRouterReadiness({ ...readiness,
+  verifyPolicy:async () => ({ verified:false }) })).status, 409);
+const signedV3Launch = { mint:mint.toBase58(), creatorWallet:creator.toBase58(),
+  cluster:'devnet', signature:launchSignature, communityAllocation:3,
+  feeDistribution:{ creatorDirected:{ shares:{ creatorWalletPercent:80,
+    holderAirdropPercent:0, solClaimPercent:0 } } },
+  pumpFeeRoute:{ ...launch.pumpFeeRoute } };
+const v3Statement = launchPolicyStatement(signedV3Launch);
+assert(v3Statement.includes('"feeRouterScope":"per-mint-v3"'));
+assert(v3Statement.includes('"feeRouterProgramId":"' + programId.toBase58() + '"'));
+assert.notEqual(v3Statement, launchPolicyStatement({ ...signedV3Launch,
+  pumpFeeRoute:{ ...signedV3Launch.pumpFeeRoute,
+    protocolSplit:{ ...protocolSplit, operationsPercent:40, communityPercent:20 } } }));
 console.log('v3 finalized Pump collection proof checks passed (synthetic RPC and launch fixtures only)');

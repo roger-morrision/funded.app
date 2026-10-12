@@ -12,6 +12,9 @@ import { buildCommunityAirdropPolicy, fundedCommunityAirdropPolicy } from '../..
 import { readCommunityReserveStatus } from '../community-reserve-status.mjs';
 import { buildFeeDistributionPolicy } from '../../distribution-policy.js';
 import { buildSolClaimPolicy } from '../../sol-claim-policy.js';
+import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
+import { protocolGrossUnits } from '../../mint-router-v3.js';
+import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
 import nacl from 'tweetnacl';
 
 // Called after the shared request policy, rate limit, and authorization checks.
@@ -49,7 +52,9 @@ export function createLaunchRegistrationRoutes({
       if (!existingLaunch && policy.xUserId && (await store.read()).creatorProfiles?.[policy.xUserId]?.optedOut) return json(res, 409, { error: 'This creator has opted out of new support launches. Existing entitlements are unchanged.' });
       const xLinked = policy.solClaimPercent > 0;
       const perMint = input.pumpFeeRoute?.scope === 'per-mint-v2';
-      if (!existingLaunch && !perMint) return json(res, 409, { error: 'New launches require a mint-specific fee router for attributable automatic rewards.' });
+      const perMintV3 = input.pumpFeeRoute?.scope === 'per-mint-v3';
+      if (!existingLaunch && !perMint && !perMintV3) return json(res, 409, { error: 'New launches require a mint-specific fee router for attributable automatic rewards.' });
+      if (perMintV3 && process.env.FUNDED_V3_LAUNCH_ENABLED !== 'true') return json(res, 503, { error:'V3 launches are not activated on this Devnet deployment.' });
       if (xLinked && !(await xFeeReadiness({ creatorSigned:true })).ready) return json(res, 503, { error: 'Creator-approved X fee claims are not operational on Solana yet.' });
       if (xLinked && (await resolveXUser(policy.xRecipient)).id !== policy.xUserId) return json(res, 409, { error: 'The X account ID changed since launch preparation; registration is blocked.' });
       const promotionClaim = input.creatorLaunchBurn || null;
@@ -65,15 +70,28 @@ export function createLaunchRegistrationRoutes({
         proAmount:Number(process.env.VITE_FUNDED_PRO_BURN_AMOUNT || 100_000),
         premierAmount:Number(process.env.VITE_FUNDED_PREMIER_BURN_AMOUNT || 250_000),
       });
-      const proof = await verifyPumpLaunch({ connection: new Connection(solanaRpcUrl, 'confirmed'), mint: input.mint, signature: input.signature || input.pumpFeeRoute?.transaction,
-        promotionClaim, promotionQuote, fundedMint: fundedTokenMint, promotionTiers });
+      const proof = await verifyPumpLaunch({ connection: new Connection(solanaRpcUrl, perMintV3 ? 'finalized' : 'confirmed'), mint: input.mint, signature: input.signature || input.pumpFeeRoute?.transaction,
+        promotionClaim, promotionQuote, fundedMint: fundedTokenMint, promotionTiers,
+        commitment:perMintV3 ? 'finalized' : 'confirmed' });
       const preparedMetadata = await store.readMetadata(proof.mint);
       const preparedMetadataUri = devnetMetadataUri(proof.mint, metadataRecordOrigin(preparedMetadata));
       if (input.metadataUri && input.metadataUri !== preparedMetadataUri) return json(res, 409, { error: 'Launch metadata URL does not match the mint.' });
       if (input.metadataUri && !preparedMetadata) return json(res, 409, { error: 'Signed Devnet metadata is missing.' });
       if (preparedMetadata && (preparedMetadata.creatorWallet !== proof.feePayer || preparedMetadata.name !== proof.name || preparedMetadata.symbol !== proof.symbol || (proof.uri && proof.uri !== preparedMetadataUri))) return json(res, 409, { error: 'Signed metadata does not match the confirmed Pump launch.' });
       const routerConfig = feeRouterConfig();
-      const routeReadiness = await verifyLaunchRouterReadiness({ connection: new Connection(solanaRpcUrl, 'confirmed'), routerConfig, mint: proof.mint, perMint });
+      if (!routerConfig) return json(res, 503, { error:'The community reserve program is not configured.' });
+      const configuredV3Program = String(process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
+      const configuredV3Units = perMintV3 ? protocolGrossUnits(PROTOCOL_FEE_SPLIT) : null;
+      if (perMintV3 && (!configuredV3Program || policy.feeRouterProgramId !== configuredV3Program
+        || protocolGrossUnits(policy.protocolSplit).some((units, index) => units !== configuredV3Units[index]))) {
+        return json(res, 409, { error:'The signed V3 program or protocol split does not match this deployment.' });
+      }
+      const routeReadiness = perMintV3
+        ? await verifyV3LaunchRouterReadiness({ connection:new Connection(solanaRpcUrl, 'finalized'),
+          programId:configuredV3Program, expectedProgramDataSha256:process.env.FUNDED_V3_PROGRAM_DATA_SHA256,
+          mint:proof.mint, creatorWallet:proof.feePayer,
+          initialAuthority:policy.feeRouterInitialAuthority, split:PROTOCOL_FEE_SPLIT })
+        : await verifyLaunchRouterReadiness({ connection: new Connection(solanaRpcUrl, 'confirmed'), routerConfig, mint: proof.mint, perMint });
       if (!routeReadiness.ready) return json(res, routeReadiness.status, { error: routeReadiness.error });
       const configuredRouter = routeReadiness.configuredRouter;
       if (policy.creatorWallet !== proof.feePayer || policy.feeRouter !== proof.creator || policy.feeRouter !== configuredRouter) return json(res, 409, { error: 'Launch payer or Pump fee owner does not match the signed router policy.' });
@@ -116,7 +134,10 @@ export function createLaunchRegistrationRoutes({
           fundingSignature:proof.signature, fundedTokens:verifiedReserve.fundedTokens, verified:true, atomicWithPumpLaunch:true } } : {}),
         feeDistribution,
         solClaim: { ...buildSolClaimPolicy({ handle: policy.xRecipient, percent: policy.solClaimPercent, feeRouterAddress: configuredRouter }), forwardingStatus: xLinked ? 'awaiting-mint-verified-collection' : 'not-selected' },
-        pumpFeeRoute: { percent: 100, router: proof.creator, scope: perMint ? 'per-mint-v2' : 'shared-legacy', verified: true, transaction: proof.signature },
+        pumpFeeRoute: { percent: 100, router: proof.creator, scope: perMintV3 ? 'per-mint-v3' : perMint ? 'per-mint-v2' : 'shared-legacy',
+          verified: true, transaction: proof.signature,
+          ...(perMintV3 ? { programId:configuredV3Program,
+            initialAuthority:policy.feeRouterInitialAuthority, protocolSplit:PROTOCOL_FEE_SPLIT } : {}) },
         policyStatement: launchPolicyStatement(input), policySignature: String(input.policySignature),
         id: id('launch'), updatedAt: new Date().toISOString(),
       };
@@ -137,7 +158,10 @@ export function createLaunchRegistrationRoutes({
       });
       invalidateReserveCache();
       let automaticRewards = { status:'registered' };
-      try { await registerAutomaticLaunch(saved); }
+      try {
+        if (perMintV3) automaticRewards = { status:'v3-collection-routing-pending' };
+        else await registerAutomaticLaunch(saved);
+      }
       catch (error) { automaticRewards = { status:'unavailable', reason:String(error.message || error) }; }
       return json(res, 201, { ...saved, automaticRewards });
     }
