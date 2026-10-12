@@ -6,6 +6,7 @@ import { createLaunchRegistrationRoutes } from '../server/routes/launch-registra
 import { createListingPaymentsRoutes } from '../server/routes/listing-payments.mjs';
 import { createSettlementRoutes } from '../server/routes/settlement.mjs';
 import { buildFeeDistributionPolicy } from '../distribution-policy.js';
+import { deriveMintRouterV3 } from '../mint-router-v3.js';
 
 const mint = 'So11111111111111111111111111111111111111112';
 const walletKey = value => new PublicKey(value).toBase58();
@@ -36,10 +37,11 @@ test('keeper authorization denials terminate dispatch before reading or collecti
     collectPumpCreatorFees: () => assert.fail('Unauthorized collection'),
   });
   for (const [path, method] of [['indexer/sync', 'POST'], ['keeper/collection-candidates', 'GET'],
-    ['keeper/collect', 'POST'], ['keeper/reconcile-wrapped-sol', 'POST']]) {
+    ['keeper/collect', 'POST'], ['keeper/reconcile-v3-collection', 'POST'],
+    ['keeper/reconcile-wrapped-sol', 'POST']]) {
     assert.equal(await f.request(`/api/${path}`, {}, method), true);
   }
-  assert.equal(denied, 4);
+  assert.equal(denied, 5);
   assert.deepEqual(f.responses, [], 'The authorization helper already sent the response');
 });
 
@@ -70,6 +72,52 @@ test('V3 collection stays separate from V2 obligations and bookkeeping settlemen
   assert.equal(f.responses[0].status, 200);
   assert.equal(state.collections[signature].scope, 'per-mint-v3');
   assert.deepEqual(state.obligations, {});
+});
+
+test('V3 collection recovery requires the recorded signature and exact finalized proof', async () => {
+  const signature = '1'.repeat(64);
+  const programId = mint;
+  const router = deriveMintRouterV3(programId, mint).address.toBase58();
+  const claimId = Buffer.alloc(32, 3);
+  const collection = { signature, mint, scope:'per-mint-v3', status:'verification-pending',
+    attribution:'unverified', onchainVerified:false, cluster:'devnet', programId, router };
+  const state = { alerts:{ [`fee-collect:${mint}`]:{ status:'review-required' } },
+    collections:{ [signature]:collection }, launches:{ [mint]:{
+      mint, creatorWallet:mint, pumpFeeRoute:{ scope:'per-mint-v3', programId, router,
+        initialAuthority:mint } } }, obligations:{} };
+  let proof = { signature, mint, router, claimId, expectedLamports:30n, slot:123 };
+  let proofReads = 0;
+  const f = fixture(createKeeperCollectionRoutes, {
+    requireAuthorized:() => true, store:{ read:async () => state, update:async fn => fn(state) },
+    env:{ FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId, FUNDED_V3_PROGRAM_DATA_SHA256:'a'.repeat(64) },
+    connectionFactory:() => ({}),
+    verifyV3LaunchRouterReadiness:async () => ({ ready:true, configuredRouter:router }),
+    loadFinalizedV3PumpCollection:async () => { proofReads++; return proof; },
+  });
+  const path = '/api/keeper/reconcile-v3-collection';
+  await f.request(path, { mint, signature:'2'.repeat(64) });
+  assert.equal(f.responses.at(-1).status, 409);
+  assert.equal(proofReads, 0);
+  proof = { ...proof, expectedLamports:undefined };
+  await f.request(path, { mint, signature });
+  assert.equal(f.responses.at(-1).status, 409);
+  assert.equal(state.collections[signature].status, 'verification-pending');
+  proof = { ...proof, expectedLamports:29n };
+  state.collections[signature].collectedLamports = 30;
+  await f.request(path, { mint, signature });
+  assert.equal(f.responses.at(-1).status, 409);
+  assert.equal(state.collections[signature].status, 'verification-pending');
+  proof = { ...proof, expectedLamports:30n };
+  await f.request(path, { mint, signature });
+  assert.equal(f.responses.at(-1).status, 200);
+  assert.equal(state.collections[signature].status, 'collected');
+  assert.equal(state.collections[signature].claimId, claimId.toString('hex'));
+  assert.equal(state.collections[signature].collectedLamports, 30);
+  assert.equal(state.alerts[`fee-collect:${mint}`].status, 'complete');
+  assert.deepEqual(state.obligations, {}, 'V3 collection cannot create V2 reward obligations');
+  await f.request(path, { mint, signature });
+  assert.equal(f.responses.at(-1).status, 200);
+  assert.equal(state.collections[signature].collectedLamports, 30);
 });
 
 test('keeper lists V3 candidates only when enabled and excludes them from V2 settlements', async () => {

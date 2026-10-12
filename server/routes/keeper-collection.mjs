@@ -2,6 +2,10 @@ import { PublicKey, Connection } from '@solana/web3.js';
 import { reconcileXFeeObligation, deriveXFeeObligation } from '../x-fee-guard.mjs';
 import { deriveMintFeeRouter } from '../../fee-router.js';
 import { verifyWrappedSolRecoveryReceipt } from '../wrapped-sol-recovery-receipt.mjs';
+import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
+import { deriveMintRouterV3 } from '../../mint-router-v3.js';
+import { verifyV3LaunchRouterReadiness as verifyV3Readiness } from '../v3-launch-readiness.mjs';
+import { loadFinalizedV3PumpCollection as loadV3Collection } from '../v3-finalized-collection.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -18,6 +22,10 @@ export function createKeeperCollectionRoutes({
   feeRouterConfig,
   solanaRpcUrl,
   respond,
+  env = process.env,
+  connectionFactory = url => new Connection(url, 'finalized'),
+  verifyV3LaunchRouterReadiness = verifyV3Readiness,
+  loadFinalizedV3PumpCollection = loadV3Collection,
 }) {
   const json = (...args) => { respond(...args); return true; };
   return async function handleKeeperCollectionRoutes(req, res, url) {
@@ -91,6 +99,80 @@ export function createKeeperCollectionRoutes({
         return result;
       });
       return json(res, 200, result);
+    }
+    if (req.method === 'POST' && url.pathname === '/api/keeper/reconcile-v3-collection') {
+      if (!requireAuthorized(req, res)) return true;
+      if (solanaCluster !== 'devnet') return json(res, 403, { error:'V3 collection reconciliation requires Devnet.' });
+      const input = await body(req);
+      let mint;
+      try { mint = new PublicKey(String(input.mint || '')).toBase58(); }
+      catch { return json(res, 400, { error:'A valid mint is required.' }); }
+      const signature = String(input.signature || '').trim();
+      if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature)) {
+        return json(res, 400, { error:'A valid collection signature is required.' });
+      }
+      const programId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
+      const approvedHash = String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || '').trim();
+      if (!programId || !/^[a-f0-9]{64}$/i.test(approvedHash)) {
+        return json(res, 503, { error:'The approved V3 Devnet program is not configured.' });
+      }
+      let router;
+      try { router = deriveMintRouterV3(programId, mint).address.toBase58(); }
+      catch { return json(res, 503, { error:'The configured V3 program ID is invalid.' }); }
+      const state = await store.read();
+      const collection = state.collections?.[signature];
+      const launch = state.launches?.[mint];
+      if (!collection || collection.signature !== signature || collection.mint !== mint
+        || collection.scope !== 'per-mint-v3' || collection.cluster !== 'devnet'
+        || collection.programId !== programId || collection.router !== router
+        || !['verification-pending', 'collected'].includes(collection.status)
+        || launch?.pumpFeeRoute?.scope !== 'per-mint-v3'
+        || launch.pumpFeeRoute.programId !== programId || launch.pumpFeeRoute.router !== router) {
+        return json(res, 409, { error:'A matching recorded V3 collection and launch are required.' });
+      }
+      const connection = connectionFactory(solanaRpcUrl);
+      const readiness = await verifyV3LaunchRouterReadiness({ connection, programId,
+        expectedProgramDataSha256:approvedHash, mint, creatorWallet:launch.creatorWallet,
+        initialAuthority:launch.pumpFeeRoute.initialAuthority, split:PROTOCOL_FEE_SPLIT });
+      if (!readiness.ready || readiness.configuredRouter !== router) {
+        return json(res, 409, { error:'The approved V3 program and mint policy are not verified.' });
+      }
+      const proof = await loadFinalizedV3PumpCollection({ connection, signature,
+        programId, mint, launch });
+      if (!proof || proof.signature !== signature || proof.mint !== mint || proof.router !== router
+        || typeof proof.expectedLamports !== 'bigint' || proof.expectedLamports <= 0n
+        || proof.expectedLamports > BigInt(Number.MAX_SAFE_INTEGER)
+        || !Buffer.isBuffer(proof.claimId) || proof.claimId.length !== 32
+        || !Number.isSafeInteger(proof.slot) || proof.slot <= 0
+        || collection.collectedLamports != null && !/^\d+$/.test(String(collection.collectedLamports))
+        || collection.claimId && collection.claimId !== proof.claimId.toString('hex')
+        || collection.collectedLamports != null
+          && BigInt(collection.collectedLamports) !== proof.expectedLamports) {
+        return json(res, 409, { error:'A matching finalized V3 Pump collection proof is required.' });
+      }
+      const recorded = await store.update(current => {
+        const prior = current.collections?.[signature];
+        if (!prior || prior.signature !== signature || prior.mint !== mint
+          || prior.scope !== 'per-mint-v3' || prior.programId !== programId
+          || prior.router !== router || !['verification-pending', 'collected'].includes(prior.status)) {
+          return null;
+        }
+        if (prior.claimId && prior.claimId !== proof.claimId.toString('hex')) return null;
+        if (prior.collectedLamports != null && !/^\d+$/.test(String(prior.collectedLamports))) return null;
+        if (prior.collectedLamports != null
+          && BigInt(prior.collectedLamports) !== proof.expectedLamports) return null;
+        const next = { ...prior, status:'collected', attribution:'mint-verified',
+          onchainVerified:true, collectedLamports:Number(proof.expectedLamports),
+          claimId:proof.claimId.toString('hex'), slot:proof.slot,
+          reconciledAt:new Date().toISOString() };
+        current.collections[signature] = next;
+        current.alerts ||= {};
+        current.alerts[`fee-collect:${mint}`] = { ...current.alerts[`fee-collect:${mint}`],
+          mint, status:'complete', signature };
+        return next;
+      });
+      if (!recorded) return json(res, 409, { error:'The collection changed during reconciliation.' });
+      return json(res, 200, recorded);
     }
     if (req.method === 'POST' && url.pathname === '/api/keeper/reconcile-wrapped-sol') {
       if (!requireAuthorized(req, res)) return true;
