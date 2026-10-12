@@ -48,13 +48,16 @@ test('successful launch opens its token, while invalid launch data cannot naviga
 test('creator claim panel exists and only enables the verified owner above the claim minimum', () => {
   const html = readFile(new URL('../index.html', import.meta.url), 'utf8');
   const button = {};
-  const root = { hidden:true, innerHTML:'', replaceChildren() { this.innerHTML=''; button.onclick=null; }, querySelector: () => button };
-  let requested = 0;
+  const root = { hidden:true, innerHTML:'', children:[], replaceChildren() { this.innerHTML=''; this.children=[]; button.onclick=null; },
+    querySelector: () => button, append(child) { this.children.push(child); } };
+  let requested = 0, fundingRequested = 0;
+  const element = () => ({ children:[], append(...children) { this.children.push(...children); } });
   const context = {
-    document: { querySelector: () => root },
+    document: { querySelector: () => root, createElement:element },
     connectedWalletAddress:'creator', wallet:{ signMessage() {}, signTransaction() {} },
     renderCoinSummary() {}, coinFeeSol: amount => `${amount} lamports`, escapeHtml: value => value,
     requestCreatorFeeClaim: () => { requested++; },
+    requestRewardFunding: () => { fundingRequested++; },
   };
   vm.runInNewContext(section('function renderCoinFeeDashboard(', 'const creatorClaimsInFlight ='), context);
   const overview = { available:true, creatorWallet:'creator', creatorClaim:{ eligible:true, claimableLamports:'10000000', minimumLamports:'10000000' } };
@@ -67,6 +70,13 @@ test('creator claim panel exists and only enables the verified owner above the c
   assert.match(root.innerHTML, /disabled/);
   assert.match(root.innerHTML, /Claims open at/);
   assert.equal(button.onclick, null);
+  context.renderCoinFeeDashboard({...overview, rewardFunding:[{ id:'collection:holders', kind:'holder',
+    amountLamports:'1790808', status:'awaiting-creator-signature' }]});
+  assert.equal(root.children.length, 1);
+  const fundingButton = root.children[0].children[1];
+  assert.equal(fundingButton.disabled, false);
+  fundingButton.onclick();
+  assert.equal(fundingRequested, 1);
   context.connectedWalletAddress='other-wallet';
   context.renderCoinFeeDashboard(overview);
   assert.equal(root.hidden, true);

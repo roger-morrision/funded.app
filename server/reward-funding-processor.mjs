@@ -1,7 +1,6 @@
 export function createRewardFundingProcessor({ store, chain, scheduler }) {
   const retryable = row => row.status === 'pending'
-    || (row.asset === 'SOL' && row.status === 'funding')
-    || (row.kind === 'community-reserve' && row.status === 'verification-pending');
+    || (row.asset === 'SOL' && row.status === 'funding' && Boolean(row.fundingSignature));
   async function processPending() {
     const readiness = await chain.readiness();
     if (!readiness.constrainedPayouts) return { status:'unavailable', reasons:readiness.reasons || [], pending:0, funded:0 };
@@ -17,7 +16,8 @@ export function createRewardFundingProcessor({ store, chain, scheduler }) {
       try {
         if (request.kind === 'community-reserve') {
           if (request.asset !== 'SOL' || request.recipient) throw new Error('Community reserve requests must hold SOL without a payout recipient.');
-          const funding = await chain.fundCommunitySolVaultFromMintRouter({ mint:request.mint, amount:request.amount, fundingId:request.id });
+          const funding = await chain.fundCommunitySolVaultFromMintRouter({ mint:request.mint, amount:request.amount,
+            fundingId:request.id, creator:request.approvedCreator, fundingSignature:request.fundingSignature });
           if (funding.balanceDeltaVerified !== true || !funding.claim || !funding.vault) throw new Error('Community reserve requires a verified vault funding claim.');
           await store.transaction(state => { state.fundingRequests[request.id] = { ...state.fundingRequests[request.id],
             status:'funded', fundingSignature:funding.signature || null, fundingClaim:funding.claim,
@@ -26,7 +26,9 @@ export function createRewardFundingProcessor({ store, chain, scheduler }) {
           continue;
         }
         const funding = request.asset === 'SOL'
-          ? await chain.fundSolVaultFromMintRouter({ mint:request.mint, amount:request.amount, fundingId:request.id })
+          ? await chain.fundSolVaultFromMintRouter({ mint:request.mint, amount:request.amount,
+            fundingId:request.id, kind:request.kind, creator:request.approvedCreator,
+            fundingSignature:request.fundingSignature })
           : await chain.fundTokenVault({ mint:request.mint, asset:request.asset, amount:request.amount, decimals:request.decimals });
         const received = BigInt(funding.amount);
         const requested = BigInt(request.amount);

@@ -32,6 +32,16 @@ export function communityReserveClaimId(fundingId) {
   return createHash('sha256').update(`funded.community.reserve.v1:${fundingId}`).digest();
 }
 
+export function holderFundingClaimId(fundingId) {
+  if (!String(fundingId || '').trim()) throw new Error('A holder funding ID is required.');
+  return createHash('sha256').update(`funded.holder.funding.v1:${fundingId}`).digest();
+}
+
+export function operationsFundingClaimId(fundingId) {
+  if (!String(fundingId || '').trim()) throw new Error('An operations funding ID is required.');
+  return createHash('sha256').update(`funded.operations.funding.v1:${fundingId}`).digest();
+}
+
 export function deriveMintClaim(programId, mint, claimId) {
   const program = new PublicKey(programId);
   const mintKey = new PublicKey(mint);
@@ -84,17 +94,19 @@ export function buildMintRouterSettlementInstruction({ programId, mint, authorit
   const router = deriveMintFeeRouter(programId, mintKey);
   const ledger = deriveMintFeeLedger(programId, mintKey);
   const legacyRouter = deriveFeeRouter(programId);
-  if (!['x', 'creator', 'buyback', 'community-reserve'].includes(claimDomain)) throw new Error('Unsupported router claim domain.');
+  if (!['x', 'creator', 'holder-funding', 'operations-funding', 'buyback', 'community-reserve'].includes(claimDomain)) throw new Error('Unsupported router claim domain.');
   const claimId = claimDomain === 'buyback' ? buybackClaimId(obligationId)
     : claimDomain === 'community-reserve' ? communityReserveClaimId(obligationId)
-      : claimDomain === 'creator' ? creatorFeeClaimId(obligationId) : xClaimId(obligationId);
+      : claimDomain === 'holder-funding' ? holderFundingClaimId(obligationId)
+        : claimDomain === 'operations-funding' ? operationsFundingClaimId(obligationId)
+          : claimDomain === 'creator' ? creatorFeeClaimId(obligationId) : xClaimId(obligationId);
   const claim = deriveMintClaim(programId, mintKey, claimId);
   const data = Buffer.alloc(8 + 32 + 4 + 8 + 1);
   SETTLE_MINT_DISCRIMINATOR.copy(data, 0);
   claimId.copy(data, 8);
   data.writeUInt32LE(1, 40);
   data.writeBigUInt64LE(amount, 44);
-  const share = ['x','creator'].includes(claimDomain) ? 0 : 1;
+  const share = ['x','creator','holder-funding'].includes(claimDomain) ? 0 : 1;
   data[52] = share;
   return {
     router: router.address,

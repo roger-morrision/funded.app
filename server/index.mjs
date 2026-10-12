@@ -15,6 +15,7 @@ import { createSettlementRewards, solToLamports } from './settlement-rewards.mjs
 import { createLaunchTierPricing } from './launch-tier-pricing.mjs';
 import { createXIdentityRoutes } from './routes/x-identity.mjs';
 import { createCreatorFeesRoutes } from './routes/creator-fees.mjs';
+import { createRewardFundingRoutes } from './routes/reward-funding.mjs';
 import { createReferralClaimsRoutes } from './routes/referral-claims.mjs';
 import { createSolClaimsRoutes } from './routes/sol-claims.mjs';
 import { createKeeperCollectionRoutes } from './routes/keeper-collection.mjs';
@@ -184,7 +185,7 @@ function authorized(req) {
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 function requireAuthorized(req, res) { if (authorized(req)) return true; json(res, 401, { error: 'Keeper/indexer API authorization is required.' }); return false; }
-function publicPost(path) { return publicPostPaths.has(path) || /^\/api\/sol-claims\/[^/]+\/(?:prepare|verify|attest|execute)$/.test(path) || /^\/api\/referral-claims\/[^/]+\/(?:verify|execute)$/.test(path) || /^\/api\/tokens\/[^/]+\/creator-claim\/(?:prepare|request|settle)$/.test(path); }
+function publicPost(path) { return publicPostPaths.has(path) || /^\/api\/sol-claims\/[^/]+\/(?:prepare|verify|attest|execute)$/.test(path) || /^\/api\/referral-claims\/[^/]+\/(?:verify|execute)$/.test(path) || /^\/api\/tokens\/[^/]+\/creator-claim\/(?:prepare|request|settle)$/.test(path) || /^\/api\/tokens\/[^/]+\/reward-funding\/settle$/.test(path); }
 function localDevWalletRequest(req, path) {
   if (!devMode || !/^\/api\/dev-wallet\/sign-(?:transaction|message)$/.test(path)) return false;
   try {
@@ -340,6 +341,10 @@ const handleCreatorFeesRoutes = createCreatorFeesRoutes({
   store, solanaCluster, route, solanaRpcUrl, readFinalizedEvidence, automaticRewardStore, feeRouterConfig,
   mintRouterReadiness, routerAuthorityKeypair, databaseUrl, body, creatorFeeChallenges, respond: json,
 });
+const handleRewardFundingRoutes = createRewardFundingRoutes({
+  store, automaticRewardStore, solanaCluster, solanaRpcUrl, feeRouterConfig,
+  mintRouterReadiness, routerAuthorityKeypair, body, respond: json,
+});
 const handleReferralClaimsRoutes = createReferralClaimsRoutes({
   body, walletKey, store, id, referralClaimExpiryMs, route, walletSignature, referralSession, maxReferralPayoutSol, devnetTestMode, referralPayoutKeypair, executeSolPayout, reconcileSolPayout, respond: json,
 });
@@ -447,6 +452,7 @@ async function handle(req, res) {
     if (await handleDiscoveryRoutes(req, res, url)) return;
     if (await handleTokenChatRoutes(req, res, url, requestId)) return;
     if (await handleCreatorFeesRoutes(req, res, url, requestId)) return;
+    if (await handleRewardFundingRoutes(req, res, url, requestId)) return;
     if (await handleTokenMarketRoutes(req, res, url, requestId)) return;
     if (await handleKeeperCollectionRoutes(req, res, url, requestId)) return;
     if (await handleReferralIdentityRoutes(req, res, url, requestId)) return;

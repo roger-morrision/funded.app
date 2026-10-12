@@ -3,6 +3,7 @@ import { PublicKey, Connection } from '@solana/web3.js';
 import { creatorVaultPda, OnlinePumpSdk } from '@pump-fun/pump-sdk';
 import { coinFeeOverview } from '../coin-fee-overview.mjs';
 import { creatorClaimStatus, creatorClaimBatch, verifiedCreatorRequests } from '../creator-fee-claim.mjs';
+import { verifiedRewardFundingRequests } from '../reward-funding-claim.mjs';
 import { verifyMintFeeRouterAccount, verifyMintFeeLedgerAccount } from '../../fee-router.js';
 import { buildMintRouterSettlementInstruction, readMintClaimRecord } from '../mint-router-payout.mjs';
 import { prepareCreatorSettlement, verifyCreatorSettlement, submitCreatorSettlement,
@@ -70,6 +71,10 @@ export function createCreatorFeesRoutes({
         rewardState, referralClaims:state.referralClaims, payouts:state.payouts, verifiedPayoutSignatures,
         operationsRecipient:process.env.FUNDED_PUMP_REVENUE_WALLET, ...pump });
       overview.creatorClaim = creatorClaimStatus({ mint, wallet:launch?.creatorWallet, launch, collections:state.collections, settlements:state.settlements, rewardState });
+      overview.rewardFunding = verifiedRewardFundingRequests({ mint, wallet:launch?.creatorWallet, launch,
+        collections:state.collections, settlements:state.settlements, rewardState,
+        operationsRecipient:process.env.FUNDED_PUMP_REVENUE_WALLET }).map(({ id, kind, amount, status, recipient }) => ({
+        id, kind, amountLamports:amount, status, recipient:recipient || null }));
       const router = feeRouterConfig()?.address?.toBase58();
       const sharedRouter = router ? { address: router, scope: 'shared-creator-account', collections: await store.readRouterFeeActivity(router, solanaCluster) } : null;
       return json(res, 200, { mint, cluster: solanaCluster, source: databaseUrl ? 'funded.app-postgresql' : 'funded.app-file-ledger', coverage: 'mint-verified-fee-claims-only', ...activity, overview, sharedRouter });

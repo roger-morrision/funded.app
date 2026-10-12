@@ -15,6 +15,7 @@ import {
 } from '@solana/spl-token';
 import { SOL_ASSET_MINT, verifyRewardProof } from '../reward-merkle.js';
 import { buildMintRouterSettlementInstruction, readMintClaimRecord, CreatorSignatureRequiredError } from './mint-router-payout.mjs';
+import { verifyFinalizedSettlementDelta } from './creator-settlement-transaction.mjs';
 
 // Solana may be reset. Keep this value aligned with the current official
 // Solana RPC evidence and fail closed when the configured endpoint differs.
@@ -356,46 +357,36 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     return { signature, vault: vault.toBase58(), amount: String(lamports), balanceDeltaVerified: true };
   }
 
-  async function fundSolVaultFromMintRouter({ mint, amount, fundingId }) {
-    // Pending automatic funding cannot spend the creator share until this path
-    // accepts an exact transaction signed by the launch creator.
-    throw new CreatorSignatureRequiredError();
+  async function fundSolVaultFromMintRouter({ mint, amount, fundingId, kind, creator, fundingSignature }) {
+    if (!creator || !fundingSignature) throw new CreatorSignatureRequiredError();
+    if (!['holder','operations'].includes(kind)) throw new Error('Unsupported automatic SOL funding kind.');
     const vault = await ensureVault(mint);
-    const settlement = buildMintRouterSettlementInstruction({ programId: program, mint, authority: authority.publicKey, recipient: vault, amountLamports: String(amount), obligationId: `automatic-reward:${fundingId}` });
+    const settlement = buildMintRouterSettlementInstruction({ programId: program, mint, authority: authority.publicKey,
+      creator, recipient: vault, amountLamports: String(amount), obligationId: fundingId,
+      claimDomain:kind === 'holder' ? 'holder-funding' : 'operations-funding' });
     const expected = account => readMintClaimRecord(account, { programId: program, mint, recipient: vault, amountLamports: String(amount), claimId: settlement.claimId, share: settlement.share });
-    const prior = await connection.getAccountInfo(settlement.claim, 'finalized');
-    if (prior) {
-      if (!expected(prior)) throw new Error('Existing mint-router funding claim conflicts with this reward pool.');
-      return { signature: null, vault: vault.toBase58(), amount: String(amount), balanceDeltaVerified: true, alreadyFunded: true, claim: settlement.claim.toBase58() };
-    }
-    const before = await connection.getBalance(vault, 'finalized');
-    const signature = await finalizedSend(connection, new Transaction().add(settlement.instruction), [authority]);
-    const [after, claim] = await Promise.all([connection.getBalance(vault, 'finalized'), connection.getAccountInfo(settlement.claim, 'finalized')]);
-    if (BigInt(after - before) !== BigInt(amount) || !expected(claim)) throw new Error('Mint-router reward funding finalized without the exact expected vault and claim-record deltas.');
-    return { signature, vault: vault.toBase58(), amount: String(amount), balanceDeltaVerified: true, claim: settlement.claim.toBase58() };
+    const claim = await connection.getAccountInfo(settlement.claim, 'finalized');
+    if (!expected(claim)) throw new Error('Creator-approved reward funding claim is not finalized or conflicts with this allocation.');
+    await verifyFinalizedSettlementDelta({ connection, signature:fundingSignature, router:settlement.router,
+      recipient:vault, amountLamports:String(amount) });
+    return { signature:fundingSignature, vault:vault.toBase58(), amount:String(amount), balanceDeltaVerified:true,
+      alreadyFunded:true, claim:settlement.claim.toBase58() };
   }
 
-  async function fundCommunitySolVaultFromMintRouter({ mint, amount, fundingId }) {
-    // Keep protocol share funding parked until creator co-signing is wired here.
-    throw new CreatorSignatureRequiredError();
+  async function fundCommunitySolVaultFromMintRouter({ mint, amount, fundingId, creator, fundingSignature }) {
+    if (!creator || !fundingSignature) throw new CreatorSignatureRequiredError();
     const ready = await readiness();
     if (!ready.constrainedPayouts) throw new Error(`Community reserve vault unavailable: ${ready.reasons.join(', ')}`);
     const vault = await ensureVault(program);
     const settlement = buildMintRouterSettlementInstruction({ programId:program, mint, authority:authority.publicKey,
-      recipient:vault, amountLamports:String(amount), obligationId:fundingId, claimDomain:'community-reserve' });
+      creator, recipient:vault, amountLamports:String(amount), obligationId:fundingId, claimDomain:'community-reserve' });
     const expected = account => readMintClaimRecord(account, { programId:program, mint, recipient:vault,
       amountLamports:String(amount), claimId:settlement.claimId, share:settlement.share });
-    const prior = await connection.getAccountInfo(settlement.claim, 'finalized');
-    if (prior) {
-      if (!expected(prior)) throw new Error('Existing community reserve claim conflicts with this allocation.');
-      return { signature:null, vault:vault.toBase58(), amount:String(amount), balanceDeltaVerified:true,
-        alreadyFunded:true, claim:settlement.claim.toBase58() };
-    }
-    const before = await connection.getBalance(vault, 'finalized');
-    const signature = await finalizedSend(connection, new Transaction().add(settlement.instruction), [authority]);
-    const [after, claim] = await Promise.all([connection.getBalance(vault, 'finalized'), connection.getAccountInfo(settlement.claim, 'finalized')]);
-    if (BigInt(after - before) !== BigInt(amount) || !expected(claim)) throw new Error('Community reserve funding lacks the exact finalized vault and claim-record deltas.');
-    return { signature, vault:vault.toBase58(), amount:String(amount), balanceDeltaVerified:true,
+    const claim = await connection.getAccountInfo(settlement.claim, 'finalized');
+    if (!expected(claim)) throw new Error('Creator-approved community reserve claim is not finalized or conflicts with this allocation.');
+    await verifyFinalizedSettlementDelta({ connection, signature:fundingSignature, router:settlement.router,
+      recipient:vault, amountLamports:String(amount) });
+    return { signature:fundingSignature, vault:vault.toBase58(), amount:String(amount), balanceDeltaVerified:true,
       claim:settlement.claim.toBase58() };
   }
 

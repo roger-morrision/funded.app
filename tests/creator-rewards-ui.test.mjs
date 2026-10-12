@@ -97,3 +97,40 @@ test('duplicate requests and non-owner wallets cannot start a claim',async()=>{
   await f.context.requestCreatorFeeClaim(f.button,'mint-b',{...activity().overview,creatorWallet:'other'});
   assert.equal(f.calls.length,0);
 });
+
+const fundingStart = source.indexOf('async function requestRewardFunding(');
+const fundingClose = /\r?\n}\r?\n/.exec(source.slice(fundingStart));
+const fundingEnd = fundingClose ? fundingStart + fundingClose.index + fundingClose[0].length : -1;
+test('reward funding UI signs each exact request and stops if the wallet changes', async () => {
+  assert(fundingStart > 0 && fundingEnd > fundingStart);
+  for (const changeWallet of [false,true]) {
+    const calls = [], messages = [];
+    let changed = false;
+    const requestId = 'collection:holders';
+    const context = {
+      getCoinMintAddress:()=> 'mint-a', currentCoinFeeOverview:{ creatorWallet:'creator' },
+      creatorClaimsInFlight:new Set(), captureWalletSession:()=>({ address:'creator', provider:{
+        readOnly:false, async signTransaction(){ changed = changeWallet; return { serialize:()=>new Uint8Array([1]) }; },
+      } }),
+      assertWalletSessionCurrent:()=>{ if (changed) throw new Error('Wallet changed'); },
+      getSolana:async()=>({ Transaction:{ from:()=>({}) } }), base64ToBytes:()=>new Uint8Array([1]),
+      bytesToBase64:()=> 'signed-transaction', coinFeeSol:()=> '0.001 SOL',
+      showToast:message=>messages.push(message), renderCoinFeeDashboard:()=>{},
+      apiRequest:async (path, options={})=>{
+        calls.push({ path, signed:Boolean(options.body?.creatorSignedTransaction) });
+        if (path.endsWith('/pending')) return { available:true, data:{ creatorWallet:'creator', requests:[
+          { id:requestId, kind:'holder', amountLamports:'1000000', status:'awaiting-creator-signature' }] } };
+        if (path.endsWith('/settle')) return { available:true, data:options.body.creatorSignedTransaction
+          ? { status:'vault-funded', signature:'finalized-signature' }
+          : { status:'awaiting-creator-signature', creatorWallet:'creator', requestId,
+            kind:'holder', amountLamports:'1000000', recipient:'reward-vault', transaction:'prepared' } };
+        return { available:true, data:{ mint:'mint-a', overview:{ creatorWallet:'creator' } } };
+      },
+    };
+    vm.runInNewContext(source.slice(fundingStart,fundingEnd), context);
+    await context.requestRewardFunding({ isConnected:true, disabled:false, textContent:'Review reward funding' });
+    assert.equal(calls.filter(row=>row.path.endsWith('/settle') && row.signed).length,changeWallet ? 0 : 1);
+    assert.equal(context.creatorClaimsInFlight.size,0);
+    assert.match(messages.at(-1),changeWallet ? /Wallet changed/ : /funded on Devnet/);
+  }
+});
