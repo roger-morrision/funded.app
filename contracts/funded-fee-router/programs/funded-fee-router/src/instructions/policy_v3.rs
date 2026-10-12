@@ -30,8 +30,7 @@ pub fn category_targets(total: u64, protocol_units: [u32; 6]) -> Result<[u64; VA
 
 #[derive(Accounts)]
 pub struct InitializeMintV3<'info> {
-    #[account(mut)]
-    pub authority: Signer<'info>,
+    pub authority: UncheckedAccount<'info>,
     #[account(mut)]
     pub creator: Signer<'info>,
     pub mint: Signer<'info>,

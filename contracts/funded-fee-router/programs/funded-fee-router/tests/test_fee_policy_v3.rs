@@ -75,11 +75,15 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
     // Gross-fee units from the configurable protocol 20%.
     let rates = [1_000_000, 200_000, 60_000, 40_000, 200_000, 500_000];
     let bad_rates = [1_000_000, 200_000, 60_000, 40_000, 200_000, 499_999];
-    assert!(!send(&mut svm, &authority, &[&authority, &creator, &mint], initialize_v3_ix(program,
+    assert!(!send(&mut svm, &creator, &[&creator, &mint], initialize_v3_ix(program,
         authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, bad_rates)));
     assert!(svm.get_account(&policy).is_none());
     svm.expire_blockhash();
-    assert!(send(&mut svm, &authority, &[&authority, &creator, &mint], initialize_v3_ix(program,
+    assert!(!send(&mut svm, &creator, &[&creator, &mint], initialize_v3_ix(program,
+        Keypair::new().pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, rates)));
+    assert!(svm.get_account(&policy).is_none());
+    svm.expire_blockhash();
+    assert!(send(&mut svm, &creator, &[&creator, &mint], initialize_v3_ix(program,
         authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, rates)));
     let policy_account = svm.get_account(&policy).unwrap();
     let saved = MintFeePolicyV3::try_deserialize(&mut &policy_account.data[..]).unwrap();
@@ -227,7 +231,7 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
     let alternate_rates = [1_500_000, 200_000, 60_000, 40_000, 200_000, 0];
     svm.airdrop(&next_authority.pubkey(), 20_000_000_000).unwrap();
     svm.expire_blockhash();
-    assert!(send(&mut svm, &next_authority, &[&next_authority, &creator, &second_mint], initialize_v3_ix(program,
+    assert!(send(&mut svm, &creator, &[&creator, &second_mint], initialize_v3_ix(program,
         next_authority.pubkey(), creator.pubkey(), second_mint.pubkey(), legacy_router,
         second_router, second_policy, alternate_rates)));
     svm.expire_blockhash();

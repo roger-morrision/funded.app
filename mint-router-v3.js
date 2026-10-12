@@ -145,7 +145,7 @@ export function buildMintRouterV3InitializeInstruction({ programId, mint, author
   return { router, policy, protocolUnits: units, instruction: new TransactionInstruction({
     programId: router.programId,
     keys: [
-      { pubkey:key(authority), isSigner:true, isWritable:true },
+      { pubkey:key(authority), isSigner:false, isWritable:false },
       { pubkey:key(creator), isSigner:true, isWritable:true },
       { pubkey:router.mint, isSigner:true, isWritable:false },
       { pubkey:legacy.address, isSigner:false, isWritable:false },

@@ -19,6 +19,7 @@ assert.equal(initial.instruction.data.toString('hex').slice(0, 16),
   createHash('sha256').update('global:initialize_mint_v3').digest('hex').slice(0, 16));
 assert.equal(initial.instruction.keys[1].isSigner, true);
 assert.equal(initial.instruction.keys[2].isSigner, true);
+assert.equal(initial.instruction.keys[0].isSigner, false);
 assert.equal(initial.instruction.keys[4].pubkey.toBase58(), deriveMintRouterV3(programId, mint).address.toBase58());
 assert.equal(initial.instruction.data.readUInt32LE(28), 500_000);
 
