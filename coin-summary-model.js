@@ -40,12 +40,12 @@ export function buildCoinSummary({ mint, cluster, launch, ledgerMint, overview, 
   const holders = receivers.get('holders');
   const x = receivers.get('x');
   if (Number(shares.holderAirdropPercent) > 0 || Number(holders?.allocatedLamports) > 0) {
-    cards.push(feeCard('holders', 'Set aside for holders', '◉', holders?.allocatedLamports, 'Allocated, not yet paid'));
+    cards.push(feeCard('holders', 'Allocated to holders', '◉', holders?.allocatedLamports, 'Total fee allocation; check payment history'));
   }
   if (Number(shares.solClaimPercent) > 0 || Number(x?.allocatedLamports) > 0) {
-    cards.push(feeCard('x', 'Set aside for X rewards', '𝕏', x?.allocatedLamports, 'Allocated, not yet paid'));
+    cards.push(feeCard('x', 'Allocated to X rewards', '𝕏', x?.allocatedLamports, 'Total fee allocation; check payment history'));
   }
-  cards.push(feeCard('buyback', 'Set aside for buybacks', '↺', receivers.get('buyback')?.allocatedLamports, 'Allocated, not yet burned'));
+  cards.push(feeCard('buyback', 'Allocated to buybacks', '↺', receivers.get('buyback')?.allocatedLamports, 'Total fee allocation; see Buy & burn receipts'));
   cards.push(feeCard('community', 'Community fund', '✧', receivers.get('community')?.allocatedLamports, 'Includes unused referral shares'));
 
   const referralRows = ['referral-1', 'referral-2', 'referral-3'].map(id => receivers.get(id)).filter(Boolean);

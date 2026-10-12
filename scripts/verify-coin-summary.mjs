@@ -30,9 +30,13 @@ assert.equal(cards.fees.amount, 100);
 assert.equal(cards.holders.amount, 20);
 assert.equal(cards.x.amount, 10);
 assert.equal(cards.buyback.amount, 1);
+assert.match(cards.buyback.note, /^Total fee allocation; see Buy & burn receipts /);
+assert.doesNotMatch(cards.buyback.note, /not yet burned/);
+assert.match(cards.holders.note, /^Total fee allocation; check payment history /);
+assert.match(cards.x.note, /^Total fee allocation; check payment history /);
 assert.equal(cards.community.amount, 3);
 assert.equal(cards.referrals.amount, 0.5);
-assert.match(cards.referrals.note, /^1 verified payout receipt /);
+assert.match(cards.referrals.note, /^1 confirmed payment /);
 assert.equal(cards.airdrop.amount, 3_000);
 assert.equal(cards.airdrop.state, 'partial');
 assert.equal(cards.burn.amount, 25_000);
@@ -42,7 +46,7 @@ const migratedWithPoolTrades = buildCoinSummary({ ...input, market:{ coverage:'p
 const migratedVolume = migratedWithPoolTrades.cards.find(card => card.id === 'volume');
 assert.equal(migratedVolume.amount, 50.3913943);
 assert.equal(migratedVolume.state, 'partial');
-assert.match(migratedVolume.note, /curve and pool trades · partial RPC scan/);
+assert.match(migratedVolume.note, /Confirmed trades · some history may be missing/);
 assert.equal(buildCoinSummary({ ...input, market:{ coverage:'complete', graduated:true, poolTradeCount24h:0, volume24hSol:0.5 } }).cards.find(card => card.id === 'volume').amount, null);
 
 assert.deepEqual(buildCoinSummary({ ...input, launch:{ ...launch, onchainVerified:false } }), { visible:false, cards:[] });

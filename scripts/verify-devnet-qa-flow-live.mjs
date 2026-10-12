@@ -73,11 +73,15 @@ console.log(JSON.stringify({
   router: router.address.toBase58(),
   collections,
   payouts,
-  unpaid: (activity.overview?.receivers || []).filter(row => BigInt(row.allocatedLamports || '0')
+  unpaid: (activity.overview?.receivers || []).filter(row => row.id !== 'buyback' && BigInt(row.allocatedLamports || '0')
     > BigInt(row.confirmedPaidLamports || '0')).map(row => ({
       id: row.id,
       allocatedLamports: row.allocatedLamports,
       confirmedPaidLamports: row.confirmedPaidLamports,
     })),
-  buyback: { pendingLamports: pending?.pendingLamports || '0', receiptCount: receipts.length },
+  buyback: {
+    allocatedLamports: (activity.overview?.receivers || []).find(row => row.id === 'buyback')?.allocatedLamports || '0',
+    pendingLamports: pending?.pendingLamports || '0',
+    indexedReceiptCount: receipts.length,
+  },
 }));
