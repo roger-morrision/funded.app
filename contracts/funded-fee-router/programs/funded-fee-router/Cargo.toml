@@ -31,7 +31,7 @@ solana-message = "5.0.0"
 solana-transaction = "5.0.0"
 solana-signer = "4.0.0"
 solana-keypair = "4.0.0"
-solana-account = "4.7.0"
+solana-account = "5.0.0"
 # LiteSVM 0.17 accepts Solana 4/3 transaction, message, and signer types.
 solana-message-lite = { package = "solana-message", version = "4.6.0" }
 solana-transaction-lite = { package = "solana-transaction", version = "4.3.0", features = ["wincode"] }
