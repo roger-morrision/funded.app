@@ -161,7 +161,7 @@ export function createFeeRouterService({
       router = deriveMintRouterV3(v3ProgramId, mintKey);
       const main = await store.read();
       if (Object.values(main.collections || {}).some(row => row.mint === mintKey.toBase58()
-        && row.scope === 'per-mint-v3' && !main.v3Settlements?.[row.signature])) {
+        && row.scope === 'per-mint-v3' && main.v3Settlements?.[row.signature]?.status !== 'finalized')) {
         throw new Error('A prior V3 collection needs finalized settlement before another collection.');
       }
       const readiness = await verifyV3LaunchRouterReadiness({ connection, programId:v3ProgramId,

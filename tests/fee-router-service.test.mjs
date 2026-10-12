@@ -219,6 +219,9 @@ test('V3 collection needs its separate gate, immutable policy, and finalized Pum
   f.state.main.collections[collected.signature] = collected;
   await assert.rejects(f.service.collectPumpCreatorFees({ requestedMint:f.mint }), /prior V3 collection needs finalized settlement/);
   assert.equal(f.state.sends, 1);
+  f.state.main.v3Settlements[collected.signature] = { status:'verification-pending' };
+  await assert.rejects(f.service.collectPumpCreatorFees({ requestedMint:f.mint }), /prior V3 collection needs finalized settlement/);
+  assert.equal(f.state.sends, 1);
   f.state.main.v3Settlements[collected.signature] = { status:'finalized' };
   finalizedProof = null;
   const pending = await f.service.collectPumpCreatorFees({ requestedMint:f.mint });

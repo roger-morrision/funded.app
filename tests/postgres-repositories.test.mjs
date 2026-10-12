@@ -68,6 +68,19 @@ test('legacy ledger changes keep entity and projection writes in one transaction
   assert.equal(statements.at(-1), 'release');
 });
 
+test('V3 settlement state is stored separately from legacy settlement projections', async () => {
+  const db = database();
+  await createLedgerRepository(db).update(state => {
+    state.v3Settlements['collection-signature'] = { status:'verification-pending',
+      collectionSignature:'collection-signature' };
+  });
+  const row = db.calls.find(call => call.sql.startsWith('INSERT INTO state_entities')
+    && call.args[0] === 'v3Settlements');
+  assert.equal(row.args[1], 'collection-signature');
+  assert.equal(JSON.parse(row.args[2]).status, 'verification-pending');
+  assert.ok(!db.calls.some(call => call.sql.startsWith('INSERT INTO settlements')));
+});
+
 test('chat append still delegates through the composed repository and bounds retained messages', async () => {
   const messages = [{ id: 1 }, { id: 2 }];
   const db = database(sql => ({ rows: sql.startsWith('SELECT payload FROM state_entities') ? [{ payload: messages }] : [], rowCount: 0 }));
