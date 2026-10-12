@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
 import { NATIVE_MINT, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { PUMP_PROGRAM_ID, PUMP_AMM_PROGRAM_ID, creatorVaultPda } from '@pump-fun/pump-sdk';
+import { PUMP_AMM_SDK } from '@pump-fun/pump-swap-sdk';
 import { ComputeBudgetProgram, PublicKey } from '@solana/web3.js';
 import { deriveMintRouterV3 } from '../mint-router-v3.js';
 
@@ -12,7 +13,7 @@ const address = value => typeof value === 'string' ? value : value?.pubkey ? add
 // The launch verifier must independently bind the mint's Pump creator to this
 // router. This proof excludes other outer programs and checks the exact router
 // delta; it cannot turn an arbitrary ledger row into an on-chain claim.
-export function verifyV3PumpCollection({ transaction, signature, programId, mint, expectedLamports = null }) {
+export async function verifyV3PumpCollection({ transaction, signature, programId, mint, expectedLamports = null }) {
   try {
     if (!transaction || transaction.meta?.err !== null || !Number.isSafeInteger(transaction.slot)
       || transaction.slot <= 0 || !transaction.transaction?.signatures?.includes(signature)) return null;
@@ -35,13 +36,25 @@ export function verifyV3PumpCollection({ transaction, signature, programId, mint
       || (expectedLamports != null && BigInt(expectedLamports) !== BigInt(lamports))) return null;
     const instructions = message.instructions || message.compiledInstructions || [];
     let collectCount = 0;
+    let ammTransferCount = 0;
     for (const instruction of instructions) {
       const program = keys[instruction.programIdIndex];
       if (program !== PUMP_PROGRAM_ID.toBase58() && program !== PUMP_AMM_PROGRAM_ID.toBase58()
         && program !== ComputeBudgetProgram.programId.toBase58()) return null;
-      if (program !== PUMP_PROGRAM_ID.toBase58()) continue;
       const data = typeof instruction.data === 'string' ? bs58.decode(instruction.data) : Buffer.from(instruction.data || []);
       const accounts = instruction.accounts || instruction.accountKeyIndexes || [];
+      if (program === ComputeBudgetProgram.programId.toBase58()) continue;
+      if (program === PUMP_AMM_PROGRAM_ID.toBase58()) {
+        if (ammTransferCount || collectCount || accounts.length === 0 || !keys[accounts[0]]) return null;
+        const expected = await PUMP_AMM_SDK.transferCreatorFeesToPumpV2Instruction({
+          payer:new PublicKey(keys[accounts[0]]), coinCreator:router,
+          quoteMint:NATIVE_MINT, quoteTokenProgram:TOKEN_PROGRAM_ID,
+        });
+        if (!Buffer.from(data).equals(expected.data) || accounts.length !== expected.keys.length
+          || expected.keys.some((key, index) => keys[accounts[index]] !== key.pubkey.toBase58())) return null;
+        ammTransferCount++;
+        continue;
+      }
       if (!Buffer.from(data).subarray(0, 8).equals(collectV2)
         || accounts[0] !== routerIndex || accounts[2] !== vaultIndex
         || accounts[4] !== nativeIndex || accounts[5] !== tokenProgramIndex) return null;
