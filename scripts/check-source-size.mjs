@@ -1,5 +1,6 @@
-import { readdir, readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { basename, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export const SOURCE_LIMITS = Object.freeze({ lines: 500, bytes: 40 * 1024 });
@@ -34,6 +35,21 @@ export function exceedsSourceBudget(size, legacy = {}) {
 }
 
 export async function runtimeSourceFiles(root) {
+  // Git knows about checkout-specific ignored overlays and generated files.
+  // Keep the directory walk below for standalone source-structure fixtures.
+  try {
+    const listed = execFileSync('git', ['-C', root, 'ls-files', '--cached', '--others',
+      '--exclude-standard', '-z'], { stdio:['ignore', 'pipe', 'ignore'] }).toString('utf8');
+    const candidates = [...new Set(listed.split('\0').filter(Boolean))]
+      .filter(file => maintainedCodeFile(basename(file)));
+    const present = await Promise.all(candidates.map(async file => {
+      try { return (await stat(resolve(root, file))).isFile() ? file : null; }
+      catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+    }));
+    return present.filter(Boolean).sort();
+  } catch (error) {
+    if (error.code !== 'ENOENT' && error.status !== 128) throw error;
+  }
   const files = [];
   async function collect(relative) {
     let entries;

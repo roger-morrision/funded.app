@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -87,4 +88,21 @@ test('size guard includes build configuration and does not hide source folders n
   assert.equal(result.files, files.length);
   assert.equal(result.failures.length, files.length);
   for (const file of files) assert.ok(result.failures.some(message => message.startsWith(`${file}: 1001 lines`)), file);
+}));
+
+test('size guard checks Git source while excluding ignored local overlays', () => fixture(async root => {
+  execFileSync('git', ['-C', root, 'init', '-q']);
+  await writeFile(join(root, '.gitignore'), '/.codex-remote-overlay/\n');
+  await mkdir(join(root, 'config'), { recursive:true });
+  await writeFile(join(root, 'config/source-size-baseline.json'), JSON.stringify({ files:{} }));
+  await mkdir(join(root, 'src'), { recursive:true });
+  await writeFile(join(root, 'src/tracked.js'), 'export const ready = true;\n');
+  await writeFile(join(root, 'src/untracked.js'), '// large\n'.repeat(1001));
+  await mkdir(join(root, '.codex-remote-overlay'), { recursive:true });
+  await writeFile(join(root, '.codex-remote-overlay/app.js'), '// old copy\n'.repeat(1001));
+  execFileSync('git', ['-C', root, 'add', '--', 'src/tracked.js']);
+  const result = await checkSourceSizes(root);
+  assert.equal(result.files, 2);
+  assert.equal(result.failures.length, 1);
+  assert.match(result.failures[0], /^src\/untracked\.js:/);
 }));
