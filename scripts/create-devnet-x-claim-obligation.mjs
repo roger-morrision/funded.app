@@ -29,7 +29,8 @@ const connection = new Connection(rpcUrl, 'finalized');
 const official = new Connection(clusterApiUrl('devnet'), 'finalized');
 const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID);
 const feeOwner = new PublicKey(process.env.VITE_FUNDED_TRADE_FEE_OWNER || deriveFeeRouter(programId).address);
-const payer = Keypair.generate();
+const durableCreator = process.env.X_TEST_QA_CREATOR_PAYER === 'true';
+let payer = Keypair.generate();
 let mint;
 let qaFunder = null;
 const evidence = { cluster: 'devnet', payer: payer.publicKey.toBase58(), mint: null, handle, signatures: {} };
@@ -89,6 +90,15 @@ if (existingMint) {
 
 try {
   assert.equal(await connection.getGenesisHash(), await official.getGenesisHash(), 'RPC does not point to Solana Devnet.');
+  if (durableCreator) {
+    const manifest = JSON.parse(await readFile('.secrets/devnet-qa-wallets-20260930/public.json', 'utf8'));
+    const encoded = (await readFile('.secrets/solana-devnet-creator-secret-key', 'utf8')).trim();
+    payer = Keypair.fromSecretKey(bs58.decode(encoded));
+    assert.equal(payer.publicKey.toBase58(), manifest.find(row => row.role === 'creator' && row.cluster === 'devnet')?.address,
+      'The creator signer must match its dedicated Devnet QA manifest.');
+    evidence.payer = payer.publicKey.toBase58();
+    evidence.creatorSigner = 'dedicated-devnet-qa-creator';
+  }
   const readiness = await jsonRequest(appUrl, '/api/x-fee/status');
   assert.equal(readiness.ready, true, `X fee route is not ready: ${readiness.reasons?.join(', ')}`);
   const xUser = await jsonRequest(appUrl, `/api/x/resolve?handle=${encodeURIComponent(handle)}`);
@@ -105,7 +115,11 @@ try {
   evidence.reserveMaxSol = Number(reserveQuote.maxSolAmountLamports) / 1_000_000_000;
 
   stage = 'faucet';
-  if (process.env.X_TEST_QA_FUNDING === 'true') {
+  if (durableCreator) {
+    const sourceBalance = await connection.getBalance(payer.publicKey, 'finalized');
+    assert(sourceBalance >= 1_250_000_000, 'Keep at least 1 Devnet SOL in the dedicated QA creator wallet.');
+    evidence.fundingSource = 'dedicated-devnet-qa-creator';
+  } else if (process.env.X_TEST_QA_FUNDING === 'true') {
     const manifest = JSON.parse(await readFile('.secrets/devnet-qa-wallets-20260930/public.json', 'utf8'));
     const fundingRole = process.env.X_TEST_QA_FUNDING_ROLE || 'creator';
     assert(['creator', 'referrer'].includes(fundingRole), 'Choose a dedicated Devnet QA creator or referrer funding source.');
