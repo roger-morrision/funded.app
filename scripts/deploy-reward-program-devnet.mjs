@@ -19,10 +19,11 @@ function decodeBase58(value) {
   return Buffer.concat([Buffer.alloc(leadingZeroes), Buffer.from(hex, 'hex')]);
 }
 
-function run(command, args, { inherit = false, allowFailure = false } = {}) {
-  const result = spawnSync(command, args, { encoding: 'utf8', stdio: inherit ? 'inherit' : 'pipe' });
+function run(command, args, { allowFailure = false } = {}) {
+  const result = spawnSync(command, args, { encoding: 'utf8', stdio: 'pipe' });
   if (result.error) throw result.error;
-  if (!allowFailure && result.status !== 0) throw new Error(`${command} exited with status ${result.status}: ${String(result.stderr || '').trim()}`);
+  // CLI errors may contain credential-bearing RPC URLs. Keep them out of logs.
+  if (!allowFailure && result.status !== 0) throw new Error(`${command} exited with status ${result.status}.`);
   return result;
 }
 
@@ -47,7 +48,12 @@ const payerBytes = decodeBase58(encodedPayer);
 if (payerBytes.length !== 64) throw new Error(`Deployment secret decoded to ${payerBytes.length} bytes; expected 64.`);
 const rpcUrl = process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
 if (run('solana', ['genesis-hash', '--url', rpcUrl]).stdout.trim() !== DEVNET_GENESIS_HASH) throw new Error('Refusing to deploy: configured RPC is not Solana Devnet.');
-if (run('solana', ['account', expectedProgram, '--url', rpcUrl], { allowFailure: true }).status === 0) throw new Error('Refusing a new deployment because the target program address already exists.');
+const existingProgram = run('solana', ['account', expectedProgram, '--url', rpcUrl], { allowFailure: true });
+if (existingProgram.status === 0) throw new Error('Refusing a new deployment because the target program address already exists.');
+const accountError = `${existingProgram.stdout || ''}\n${existingProgram.stderr || ''}`;
+if (!accountError.includes(`AccountNotFound: pubkey=${expectedProgram}`) || /429|Too Many Requests/i.test(accountError)) {
+  throw new Error('Could not verify that the program address is unused. Check Devnet RPC and retry later.');
+}
 
 const secretDirectory = mkdtempSync(join(tmpdir(), 'funded-devnet-deploy-'));
 const payerPath = join(secretDirectory, 'payer.json');
@@ -62,7 +68,7 @@ try {
     '--upgrade-authority', payerPath,
     '--url', rpcUrl,
     '--commitment', 'finalized',
-  ], { inherit: true });
+  ]);
   const deployed = JSON.parse(run('solana', ['program', 'show', expectedProgram, '--keypair', payerPath, '--url', rpcUrl, '--output', 'json']).stdout);
   console.log(JSON.stringify({
     status: 'deployed',
