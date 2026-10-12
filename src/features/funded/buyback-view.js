@@ -81,7 +81,7 @@ export function renderBuybackDashboard(
   const runButton = document.querySelector('#buyback-run-preview');
   const addButton = document.querySelector('#buyback-add-claim');
   if (addButton) { addButton.disabled = true; addButton.title = 'Recording requires verified fee-claim receipts and a deployed buyback vault.'; }
-  if (runButton) { runButton.disabled = true; runButton.title = 'Buybacks execute automatically from verified fee accruals. Manual execution is unavailable.'; }
+  if (runButton) { runButton.disabled = true; runButton.title = 'This calculator cannot execute a buyback. Devnet V2 batches require a protected quote and creator approval.'; }
   renderBuybackExample();
   const burnCard = document.querySelector('.burn-token-card');
   const burnBadge = burnCard?.querySelector('.burn-status');
@@ -106,6 +106,6 @@ export function renderBuybackDashboard(
   else if (pendingSol >= 0.25) status.textContent = `${formatBuybackAmount(pendingSol)} SOL is ready for a protected batch preview.`;
   else if (pendingSol > 0) status.textContent = `${formatBuybackAmount(pendingSol)} SOL is safely accumulating toward the 0.25 SOL threshold.`;
   else status.textContent = feeReceipts.length > 0
-    ? `${feeReceipts.length} verified fee-funded Solana buyback${feeReceipts.length === 1 ? '' : 's'} completed. New batches run automatically from collected fees; this example cannot create a claim.`
-    : 'Local calculation only. Live Solana buybacks run automatically from verified fee collections; this example cannot create a claim.';
+    ? `${feeReceipts.length} verified fee-funded Solana buyback${feeReceipts.length === 1 ? '' : 's'} completed. New Devnet V2 batches require a protected quote and creator approval.`
+    : 'Local calculation only. Devnet V2 buybacks require verified fee collections, a protected quote, and creator approval.';
 }

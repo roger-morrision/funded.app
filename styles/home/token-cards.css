@@ -104,9 +104,16 @@ body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-actions button { border-color: #f4a340; border-radius: 0; background: #26354d; color: var(--home-green); }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-actions button[data-boost-mint] { margin-left: auto; }
 
-body.page-route-explore #asset-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-@media (max-width: 1250px) { body.page-route-explore #asset-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 900px) { body.page-route-explore #asset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+body.page-route-explore #asset-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+body.page-route-explore .home-token-identity { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+body.page-route-explore .home-token-identity strong { font-size: 15px; }
+body.page-route-explore .home-token-identity small { font-size: 12px !important; text-align: left; }
+body.page-route-explore .home-launch-card-addresses,
+body.page-route-explore .home-launch-card-addresses small { font-size: 10px !important; }
+body.page-route-explore .home-launch-card-stats small { font-size: 10px !important; }
+body.page-route-explore .home-launch-card-stats strong { font-size: 12px; }
+@media (max-width: 1100px) { body.page-route-explore #asset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { body.page-route-explore #asset-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 440px) {
   body.page-route-explore #asset-grid { gap: 6px; }
   body.page-route-explore .home-launch-card-stats { grid-template-columns: 1fr; }
