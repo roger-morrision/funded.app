@@ -14,11 +14,11 @@ export function createFeeFlowView(APP_ECONOMICS) {
     const setAll = (selector, values) => document.querySelectorAll(selector).forEach((node, index) => { if (index < values.length) node.textContent = values[index]; });
     const setWidths = (selector, values) => document.querySelectorAll(selector).forEach((node, index) => { if (index < values.length) node.style.width = percent(values[index]); });
     const levelGross = levels.map(level => level.effectivePercentOfCreatorFees);
-    setWidths('.home-receipt-card .receipt-bars span', [80, ...effective]);
-    setWidths('.fee-route-bar i', [80, ...effective]);
+    setWidths('.home-receipt-card .receipt-bars span', [APP_ECONOMICS.creatorSharePercent, ...effective]);
+    setWidths('.fee-route-bar i', [APP_ECONOMICS.creatorSharePercent, ...effective]);
     setAll('.home-receipt-card .receipt-rows span', [
-      '80 SOL Creator-directed', `${effective[0]} SOL Operations`, `${effective[1]} SOL Referral network`,
-      `${effective[2]} SOL Community reserve`, `${effective[3]} SOL $FUNDED burn`,
+      `${APP_ECONOMICS.creatorSharePercent} SOL Creator-directed`, `${effective[0]} SOL Operations`, `${effective[1]} SOL Referral network`,
+      `${effective[2]} SOL Community reserve`, `${effective[3]} SOL Buyback allocation`,
     ]);
     setAll('.audience-referrer li', levelGross.map((rate, index) => `${percent(rate)} ${['direct', 'second', 'third'][index]} level`));
     setAll('.home-referral-levels article strong', levelGross.map(percent));
@@ -30,7 +30,7 @@ export function createFeeFlowView(APP_ECONOMICS) {
       `${percent(effective[2])} of gross fees`, `${percent(effective[3])} of gross fees`,
     ]);
     setAll('.fee-output-grid > div small', [
-      '80% of gross', `${percent(effective[0])} of gross`,
+      `${percent(APP_ECONOMICS.creatorSharePercent)} of gross`, `${percent(effective[0])} of gross`,
       `L1 ${percent(levelGross[0])} · L2 ${percent(levelGross[1])} · L3 ${percent(levelGross[2])}`,
       `${percent(effective[2])} of gross`, `${percent(effective[3])} of gross`,
     ]);
@@ -39,6 +39,9 @@ export function createFeeFlowView(APP_ECONOMICS) {
     set('#referrals .referral-calculator + .field-help', `Example only: the three levels total ${percent(APP_ECONOMICS.appReferralEffectivePercent)} of gross collected fees when all levels qualify. Rewards require collected fees.`);
     set('.home-referral-guide .data-badge', `${percent(APP_ECONOMICS.appReferralEffectivePercent)} total policy`);
     set('#paid .revenue-model > .field-help', `Levels 1–3 receive ${levelGross.map(percent).join(', ')} of gross creator fees. Missing upline levels move to the community reserve. Existing coins keep their recorded split.`);
+    set('#fee-policy-faq', `For each finalized collection, ${percent(APP_ECONOMICS.creatorSharePercent)} follows the creator's launch-time split between their wallet, coin holders, and an eligible X account. The other ${percent(APP_ECONOMICS.fundedSharePercent)} funds operations (${percent(effective[0])}), referrals (${percent(effective[1])}), community (${percent(effective[2])}), and the $FUNDED buyback allocation (${percent(effective[3])}). These are shares of collected fees, not promised earnings. Existing coins keep their saved policy.`);
+    set('#buyback-policy-heading', `Preview the ${percent(effective[3])} policy`);
+    set('#buyback-policy-note', `A 5 SOL claim allocates ${formatFlowAmount(5 * effective[3] / 100)} to the buyback allocation. Local calculation only; no claim recorded.`);
   }
 
   function renderFeeFlowCalculator(){
