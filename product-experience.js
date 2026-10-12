@@ -15,8 +15,8 @@ function disclosure(target, label) {
 }
 
 function home() {
-  setText('#home-hero-title', 'Launch a token. Grow your community.');
-  setText('.hero-copy', 'Discover Solana tokens, launch your own, and share rewards with your community.');
+  setText('#home-hero-title', 'Launch a Solana coin. Follow its creator fees.');
+  setText('.hero-copy', 'Publish a fixed 80/20 creator-fee policy, choose where your 80% goes, and track confirmed collections and payments. Every launch also reserves at least 3% of its tokens for eligible $FUNDED holders.');
   const actions = $('.hero-actions');
   const explore = actions?.querySelector('[href="#explore"]');
   const launch = actions?.querySelector('[href="#launch"]');
