@@ -8,9 +8,17 @@ import { deriveMintFeeLedger, deriveMintFeeRouter, FEE_ROUTER_POLICY_HASH_HEX,
 import { buildMintRouterSettlementInstruction } from '../server/mint-router-payout.mjs';
 import { createRewardFundingRoutes } from '../server/routes/reward-funding.mjs';
 
-test('creator approves exact holder funding and the route records finalized vault evidence', async () => {
+for (const scenario of [
+  { kind:'holder', suffix:'holders', domain:'holder-funding', amount:'1790808', share:0,
+    settlement:{ creatorDestinations:{ holderAirdrop:0.001790808 } } },
+  { kind:'operations', suffix:'operations', domain:'operations-funding', amount:'1790808', share:1,
+    settlement:{ fundedApp:{ operations:0.001790808 } } },
+  { kind:'community-reserve', suffix:'community', domain:'community-reserve', amount:'358162', share:1,
+    settlement:{ fundedApp:{ community:0.000358162 } } },
+]) test(`creator approves exact ${scenario.kind} funding and the route records finalized vault evidence`, async () => {
   const programId = Keypair.generate().publicKey, mint = Keypair.generate().publicKey;
   const creator = Keypair.generate(), authority = Keypair.generate(), vault = Keypair.generate().publicKey;
+  const operationsRecipient = Keypair.generate().publicKey;
   const router = deriveMintFeeRouter(programId, mint).address, ledger = deriveMintFeeLedger(programId, mint).address;
   const routerData = Buffer.alloc(106);
   routerData.write(MINT_FEE_ROUTER_MAGIC, 0);
@@ -27,15 +35,16 @@ test('creator approves exact holder funding and the route records finalized vaul
   const account = new Map([[router.toBase58(), { owner:programId, data:routerData }],
     [ledger.toBase58(), { owner:programId, data:ledgerData }]]);
   const sourceSignature = 'finalized-collection';
-  const requestId = `${sourceSignature}:holders`;
+  const requestId = `${sourceSignature}:${scenario.suffix}`;
   const main = { launches:{ [mint.toBase58()]:{ mint:mint.toBase58(), creatorWallet:creator.publicKey.toBase58(),
     creator:router.toBase58(), onchainVerified:true, cluster:'devnet',
     pumpFeeRoute:{ scope:'per-mint-v2', router:router.toBase58() } } },
   collections:{ [sourceSignature]:{ mint:mint.toBase58(), router:router.toBase58(), cluster:'devnet',
     status:'collected', attribution:'mint-verified', onchainVerified:true } },
-  settlements:{ [sourceSignature]:{ creatorDestinations:{ holderAirdrop:0.001790808 } } } };
+  settlements:{ [sourceSignature]:scenario.settlement } };
   const rewards = { fundingRequests:{ [requestId]:{ id:requestId, sourceSignature, mint:mint.toBase58(),
-    asset:'SOL', kind:'holder', amount:'1790808', recipient:null, status:'pending' } } };
+    asset:'SOL', kind:scenario.kind, amount:scenario.amount,
+    recipient:scenario.kind === 'operations' ? operationsRecipient.toBase58() : null, status:'pending' } } };
   let finalizedSignature = null;
   const connection = {
     getAccountInfo:async key => account.get(key.toBase58()) || null,
@@ -46,25 +55,28 @@ test('creator approves exact holder funding and the route records finalized vaul
       assert.equal(transaction.verifySignatures(), true);
       finalizedSignature = bs58.encode(transaction.signature);
       const settlement = buildMintRouterSettlementInstruction({ programId, mint, authority:authority.publicKey,
-        creator:creator.publicKey, recipient:vault, amountLamports:'1790808', obligationId:requestId,
-        claimDomain:'holder-funding' });
+        creator:creator.publicKey, recipient:vault, amountLamports:scenario.amount, obligationId:requestId,
+        claimDomain:scenario.domain });
       const data = Buffer.alloc(121);
       createHash('sha256').update('account:MintClaimRecord').digest().copy(data, 0, 0, 8);
       settlement.claimId.copy(data, 8);
       mint.toBuffer().copy(data, 40);
       vault.toBuffer().copy(data, 72);
-      data.writeBigUInt64LE(1790808n, 104);
-      data[120] = 0;
+      data.writeBigUInt64LE(BigInt(scenario.amount), 104);
+      data[120] = scenario.share;
       account.set(settlement.claim.toBase58(), { owner:programId, data });
       return finalizedSignature;
     },
     getSignatureStatuses:async () => ({ value:[{ err:null, confirmationStatus:'finalized' }] }),
     getTransaction:async signature => ({ transaction:{ signatures:[signature], message:{ accountKeys:[router,vault] } },
-      meta:{ err:null, preBalances:[3000000,1000000], postBalances:[1209192,2790808] } }),
+      meta:{ err:null, preBalances:[3000000,1000000],
+        postBalances:[3000000-Number(scenario.amount),1000000+Number(scenario.amount)] } }),
   };
   const responses = [];
   const priorAuthority = process.env.FUNDED_REWARD_AUTHORITY;
+  const priorOperationsRecipient = process.env.FUNDED_PUMP_REVENUE_WALLET;
   process.env.FUNDED_REWARD_AUTHORITY = authority.publicKey.toBase58();
+  if (scenario.kind === 'operations') process.env.FUNDED_PUMP_REVENUE_WALLET = operationsRecipient.toBase58();
   try {
     const handle = createRewardFundingRoutes({ store:{ read:async()=>structuredClone(main) },
       automaticRewardStore:{ read:async()=>structuredClone(rewards), transaction:async update=>update(rewards) },
@@ -86,6 +98,8 @@ test('creator approves exact holder funding and the route records finalized vaul
     assert.equal(review.status, 202);
     assert.equal(review.data.status, 'awaiting-creator-signature');
     assert.equal(review.data.recipient, vault.toBase58());
+    assert.equal(review.data.kind, scenario.kind);
+    assert.equal(review.data.amountLamports, scenario.amount);
     const transaction = Transaction.from(Buffer.from(review.data.transaction, 'base64'));
     transaction.partialSign(creator);
     await request('settle', { requestId, creatorSignedTransaction:transaction.serialize({
@@ -100,5 +114,7 @@ test('creator approves exact holder funding and the route records finalized vaul
   } finally {
     if (priorAuthority === undefined) delete process.env.FUNDED_REWARD_AUTHORITY;
     else process.env.FUNDED_REWARD_AUTHORITY = priorAuthority;
+    if (priorOperationsRecipient === undefined) delete process.env.FUNDED_PUMP_REVENUE_WALLET;
+    else process.env.FUNDED_PUMP_REVENUE_WALLET = priorOperationsRecipient;
   }
 });
