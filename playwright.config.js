@@ -11,6 +11,7 @@ export default defineConfig({
   use: { baseURL, headless: true,
     launchOptions: process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {},
     trace: 'retain-on-failure' },
-  webServer: { command: `npm run dev -- --host 127.0.0.1 --port ${port} --strictPort --configLoader runner`, url: baseURL, reuseExistingServer: false,
+  webServer: { command: `npm run dev -- --host 127.0.0.1 --port ${port} --strictPort --configLoader runner`, url: baseURL,
+    reuseExistingServer: false, timeout:180_000,
     env: { VITE_API_BASE_URL: '/', VITE_SOLANA_CLUSTER: 'devnet', VITE_DEV_AUTOCONNECT: 'false', VITE_CACHE_DIR: 'tmp/playwright-vite-cache' } },
 });
