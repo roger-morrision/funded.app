@@ -39,6 +39,7 @@ import { createAutomaticRewardStore } from './automatic-reward-store.mjs';
 import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
 
 import { createCommunityClaimService } from './community-claim-service.mjs';
+import { communityProgramForLaunch } from './community-program-config.mjs';
 import { randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
 import { resolve } from 'node:path';
 import { isIP } from 'node:net';
@@ -114,13 +115,13 @@ publicPostPaths.add('/api/x-public-trade-shares/consent');
 
 const solanaCluster = String(process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER || 'devnet').trim();
 const boostPurchasesEnabled = solanaCluster === 'devnet' && String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
-function communityClaimService() {
-  if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_FEE_ROUTER_PROGRAM_ID
-    || !fundedTokenMint) throw new Error('Solana community claim configuration is unavailable.');
+async function communityClaimService(mint) {
+  if (solanaCluster !== 'devnet' || !fundedTokenMint) throw new Error('Solana community claim configuration is unavailable.');
+  const config = communityProgramForLaunch(await store.readLaunch(mint), process.env, v3AuthorityKeypair);
   return createCommunityClaimService({ connection:new Connection(solanaRpcUrl, 'finalized'), store:automaticRewardStore,
-    programId:process.env.FUNDED_FEE_ROUTER_PROGRAM_ID, authority:process.env.FUNDED_REWARD_AUTHORITY,
+    programId:config.programId, authority:config.authority,
     eligibilityMint:fundedTokenMint, cluster:solanaCluster,
-    expectedCommunityProgramDataSha256:process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
+    expectedCommunityProgramDataSha256:config.expectedHash });
 }
 const devnetTestMode = solanaCluster === 'devnet' && process.env.DEVNET_TEST_MODE === 'true';
 const devMode = process.env.NODE_ENV !== 'production' && solanaCluster === 'devnet' && String(process.env.DEV_MODE || '').toLowerCase() === 'true';
@@ -295,7 +296,8 @@ const handleBoostRoutes = createBoostRoutes({
   store, solanaCluster, boostPurchasesEnabled, clientKey, body, readSolUsdQuote, id, solanaRpcUrl, respond: json,
 });
 const { handle: handleAirdropsRoutes, invalidateReserveCache } = createAirdropsRoutes({
-  solanaCluster, solanaRpcUrl, store, automaticRewardStore, fundedTokenMint, clientKey, body, requireAuthorized, communityClaimService, respond: json,
+  solanaCluster, solanaRpcUrl, store, automaticRewardStore, fundedTokenMint, clientKey, body,
+  requireAuthorized, communityClaimService, v3AuthorityKeypair, respond: json,
 });
 const handleTokenChatRoutes = createTokenChatRoutes({
   body, walletKey, store, clientKey, tokenChatSessions, referralSession, requireAuthorized, respond: json,

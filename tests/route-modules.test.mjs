@@ -44,6 +44,20 @@ test('airdrop proof rate limits reject before requesting chain evidence', async 
   assert.deepEqual(responses, [429]);
 });
 
+test('community claim routes select the service for the requested mint', async () => {
+  const responses = [];
+  const handle = airdropHandler({
+    respond: (_res, status, payload) => responses.push({ status, payload }),
+    requireAuthorized: () => true,
+    communityClaimService: async mint => {
+      assert.equal(mint, 'requested-mint');
+      return { prepared: async () => null };
+    },
+  });
+  assert.equal(await handle({ method:'GET' }, {}, url('/api/airdrops/claims/status?mint=requested-mint')), true);
+  assert.deepEqual(responses, [{ status:200, payload:{ status:'unprepared', mint:'requested-mint' } }]);
+});
+
 test('boost input validation handles bad mints without RPC access', async () => {
   const responses = [];
   const handle = createBoostRoutes({ store: { read: async () => ({ boostReceipts: {} }) },

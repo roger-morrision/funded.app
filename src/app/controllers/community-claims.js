@@ -89,7 +89,17 @@ export function createCommunityClaimsController(appState) {
       const { PublicKey, Transaction, TransactionInstruction, getAssociatedTokenAddressSync,
         createAssociatedTokenAccountIdempotentInstruction, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await appState.getSolana();
       const rpc = await appState.getTradePreviewConnection();
-      const program = new PublicKey(appState.FEE_ROUTER_PROGRAM_ID), mint = new PublicKey(mintAddress);
+      const reserve = appState.verifiedCommunityReserves.get(mintAddress);
+      const launch = appState.verifiedLaunchPolicies.find(row => row.mint === mintAddress);
+      const expectedProgramId = launch?.pumpFeeRoute?.scope === 'per-mint-v3'
+        ? launch.pumpFeeRoute.programId : appState.FEE_ROUTER_PROGRAM_ID;
+      if (!reserve?.verified || !launch?.onchainVerified || launch.cluster !== 'devnet' || !expectedProgramId
+        || (launch.pumpFeeRoute?.scope === 'per-mint-v3' && launch.pumpFeeRoute.verified !== true)
+        || reserve.programId !== expectedProgramId || claim.programId !== expectedProgramId
+        || reserve.scope !== launch.pumpFeeRoute?.scope) {
+        throw new Error('Claim program differs from the verified launch and reserve.');
+      }
+      const program = new PublicKey(expectedProgramId), mint = new PublicKey(mintAddress);
       const recipient = new PublicKey(session.address);
       const { accounts } = claim;
       if (claim.programId !== program.toBase58() || accounts.length !== 9
