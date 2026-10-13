@@ -66,3 +66,19 @@ test('a direct X payout cannot replay its ID against different finalized funding
   await assert.rejects(scheduler.recordDirectFunded({ ...input,
     fundingSignature:'finalized-b' }), /different immutable data/);
 });
+
+test('a prepared holder manifest containing the configured reward vault is blocked before any payout', async () => {
+  const vault = '2RmwjWSpj8dsgjPgpHFnHYsGz3PMjKiysJjz6Jz2ZTrd';
+  const state = { programs:{ [mint]:{ excludedWallets:[vault] } },
+    schedules:{ qa:{ id:'qa', mint, kind:'holder', asset:'SOL', payoutAt:1,
+      status:'prepared', manifest:{ leaves:[{ recipient:vault, amount:'7387' }] },
+      payments:{} } } };
+  const scheduler = createRewardScheduler({
+    store:{ transaction:async callback => callback(state) }, indexer:{},
+    chain:{ readiness:async () => ({ constrainedPayouts:true }),
+      ensureCycle:async () => assert.fail('Invalid manifest must never reach the chain') } });
+  const result = await scheduler.execute(2);
+  assert.equal(result.submitted, 0);
+  assert.equal(state.schedules.qa.status, 'blocked');
+  assert.match(state.schedules.qa.reason, /protocol-owned vault/);
+});

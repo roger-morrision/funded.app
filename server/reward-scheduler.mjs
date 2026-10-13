@@ -217,9 +217,13 @@ export function createRewardScheduler({ store, indexer, chain }) {
       && (selected === null || selected.has(row.id)))));
     let submitted = 0;
     for (const plan of plans) {
-      if (plan.kind === 'holder' && plan.manifest.leaves.some(leaf => excludedHolderWallets(plan.mint, []).includes(leaf.recipient))) {
-        await store.transaction(state => { const row = state.schedules[plan.id]; row.status = 'blocked'; row.reason = 'Holder manifest contains the PumpSwap liquidity pool; reconcile before payout.'; });
-        continue;
+      if (plan.kind === 'holder') {
+        const configured = await store.transaction(state => state.programs?.[plan.mint]?.excludedWallets || []);
+        const excluded = new Set(excludedHolderWallets(plan.mint, configured));
+        if (plan.manifest.leaves.some(leaf => excluded.has(leaf.recipient))) {
+          await store.transaction(state => { const row = state.schedules[plan.id]; row.status = 'blocked'; row.reason = 'Holder manifest contains a protocol-owned vault or PumpSwap liquidity pool; reconcile before payout.'; });
+          continue;
+        }
       }
       const cycle = await chain.ensureCycle(plan);
       await store.transaction(state => { const row = state.schedules[plan.id]; row.cycle = cycle.address; row.cycleSignature ||= cycle.signature || null; row.status = 'distributing'; });

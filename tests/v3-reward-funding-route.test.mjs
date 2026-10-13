@@ -132,6 +132,8 @@ test('V3 creator-directed holder and X funds use category zero and their exact c
   assert.equal(f.state.v3CreatorRewardFunding[collectionSignature].amount, '20');
   assert.equal(f.state.v3CreatorRewardFunding[collectionSignature].status, 'finalized');
   assert.equal(f.holderPools.get(`v3:${collectionSignature}`).amount, '15');
+  assert.deepEqual(f.registrations[0].excludedWallets, [deriveCommunityRewardVaultV3(
+    program.publicKey, mint.publicKey, authority.publicKey).toBase58()]);
   await f.request({});
   assert.equal(f.holderPools.size, 1);
 });
@@ -148,6 +150,8 @@ test('the selected Devnet QA holder mint can re-enroll a funded daily pool into 
   assert.equal(f.registrations[0].sampleIntervalSeconds, 300);
   assert.equal(f.registrations[0].payoutDelaySeconds, 0);
   assert.equal(f.registrations[0].firstPeriodStart % 300, 0);
+  assert.deepEqual(f.registrations[0].excludedWallets, [deriveCommunityRewardVaultV3(
+    program.publicKey, mint.publicKey, authority.publicKey).toBase58()]);
   assert.equal(f.holderPools.get(`v3:${collectionSignature}`).amount, '15');
   await f.request({});
   assert.equal(f.registrations.length, 1);

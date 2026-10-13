@@ -149,11 +149,18 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       if (qaShort && existingProgram && ![300, AUTOMATIC_REWARDS.periodSeconds]
         .includes(existingProgram.periodSeconds))
         throw new Error('The QA holder schedule conflicts with an existing reward period.');
-      if (!existingProgram || qaShort && existingProgram.periodSeconds !== 300) {
+      const excludedWallets = [...new Set([
+        ...(existingProgram?.excludedWallets || []), recipient.toBase58()])];
+      if (!existingProgram || qaShort && existingProgram.periodSeconds !== 300
+        || !existingProgram.excludedWallets?.includes(recipient.toBase58())) {
         const firstPeriodStart = qaShort
           ? Math.ceil(Math.max(activatedAt, fundedAt, Math.floor(Date.now() / 1000)) / 300) * 300
-          : undefined;
+          : existingProgram?.firstPeriodStart;
         await scheduler.register({ mint, asset:'SOL', activatedAt,
+          excludedWallets,
+          ...(existingProgram ? { periodSeconds:existingProgram.periodSeconds,
+            sampleIntervalSeconds:existingProgram.sampleIntervalSeconds,
+            payoutDelaySeconds:existingProgram.payoutDelaySeconds } : {}),
           ...(qaShort ? { periodSeconds:300, sampleIntervalSeconds:300,
             payoutDelaySeconds:0, firstPeriodStart } : {}) });
       }
