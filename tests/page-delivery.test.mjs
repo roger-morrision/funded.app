@@ -17,7 +17,6 @@ async function fixture(run) {
   await writeFile(join(root, 'outside.txt'), 'Must never be served');
   const records = { launch: null, metadata: null, image: null, creatorReads: [] };
   const delivery = createPageDelivery({ staticRoot, solanaCluster: 'devnet',
-    feeRouterConfig: () => ({ address: { toBase58: () => 'router' } }),
     store: { readLaunch: async () => records.launch, readMetadata: async () => records.metadata,
       readMetadataImage: async () => records.image,
       readCreatorState: async (...args) => { records.creatorReads.push(args); return {}; } },
@@ -86,16 +85,20 @@ test('public metadata handles default artwork, images and metadata-host misses e
   assert.equal((await request(`/devnet-metadata/${mint}`, { publicMetadata: true })).handled, false);
 }));
 
-test('prepared metadata takes precedence and launch metadata fallback requires a verified router', () => fixture(async ({ request, records }) => {
+test('prepared metadata takes precedence and launch metadata fallback requires a verified V3 router', () => fixture(async ({ request, records }) => {
   records.metadata = { mint, name: 'Prepared coin', symbol: 'PREP', metadataOrigin: 'https://metadata.funded.vip' };
   const prepared = await request(`/devnet-metadata/${mint}`, { publicMetadata: true });
   assert.equal(JSON.parse(prepared.content).name, 'Prepared coin');
   assert.equal(prepared.handled, true);
   assert.equal((await request(`/devnet-metadata/${mint}`)).status, 404);
-  records.launch = { mint, name: 'Coin', symbol: 'COIN', cluster: 'devnet', creator: 'other', onchainVerified: true };
+  records.launch = { mint, name: 'Coin', symbol: 'COIN', cluster: 'devnet', creator: 'other', onchainVerified: true,
+    pumpFeeRoute: { scope: 'per-mint-v3', verified: true, programId: 'v3-program', router: 'router' } };
   assert.equal((await request(`/devnet-metadata/${mint}`)).status, 404);
   records.launch.creator = 'router';
   assert.equal((await request(`/devnet-metadata/${mint}`)).status, 200);
+  records.launch.pumpFeeRoute.scope = 'per-mint-v2';
+  assert.equal((await request(`/devnet-metadata/${mint}`)).status, 404);
+  records.launch.pumpFeeRoute.scope = 'per-mint-v3';
   records.launch.onchainVerified = false;
   assert.equal((await request(`/devnet-metadata/${mint}`)).status, 404);
 }));

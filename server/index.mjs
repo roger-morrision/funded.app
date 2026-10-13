@@ -334,7 +334,7 @@ const handleRewardStatusRoutes = createRewardStatusRoutes({
 });
 
 const { handlePublicMetadata, handlePages } = createPageDelivery({
-  staticRoot, store, solanaCluster, feeRouterConfig, respond: json,
+  staticRoot, store, solanaCluster, respond: json,
 });
 
 const { handleShareVisit, handleReferralActivity } = createReferralActivityRoutes({

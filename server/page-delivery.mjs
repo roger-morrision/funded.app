@@ -7,7 +7,7 @@ import { tokenPageHtml } from './token-social.mjs';
 import { publicMetadata } from './devnet-metadata.mjs';
 
 // Keep the public metadata lookup before API dispatch and page fallbacks after it.
-export function createPageDelivery({ staticRoot, store, solanaCluster, feeRouterConfig, respond }) {
+export function createPageDelivery({ staticRoot, store, solanaCluster, respond }) {
   const json = (...args) => { respond(...args); return true; };
   const end = (res, content) => { res.end(content); return true; };
   async function serveStatic(pathname, res) {
@@ -56,8 +56,10 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, feeRouter
     const metadataMint = req.method === 'GET' ? url.pathname.match(/^\/devnet-metadata\/([1-9A-HJ-NP-Za-km-z]{32,44})$/)?.[1] : null;
     if (metadataMint) {
       const launch = await store.readLaunch(metadataMint);
-      const routerAddress = feeRouterConfig()?.address.toBase58();
-      if (!launch || launch.cluster !== 'devnet' || !launch.onchainVerified || launch.creator !== routerAddress || !launch.name || !launch.symbol) return json(res, 404, { error: 'Verified Solana launch metadata is not available.' });
+      if (!launch || launch.cluster !== 'devnet' || !launch.onchainVerified
+        || launch.pumpFeeRoute?.scope !== 'per-mint-v3' || launch.pumpFeeRoute.verified !== true
+        || launch.pumpFeeRoute.router !== launch.creator || !launch.pumpFeeRoute.programId
+        || !launch.name || !launch.symbol) return json(res, 404, { error: 'Verified V3 launch metadata is not available.' });
       return json(res, 200, { name: launch.name, symbol: launch.symbol, description: 'Token launched on funded.vip.', image: 'https://funded.vip/favicon.svg' });
     }
     if (req.method === 'GET' && /^\/creator\/x\/\d{1,24}\/?$/.test(url.pathname)) {

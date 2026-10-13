@@ -114,7 +114,7 @@ export function createHomeFeedController(appState) {
     try {
       const response = await appState.apiRequest('/api/home/launch-filter-fees', { signal: AbortSignal.timeout(8000) });
       if (!response.available || response.data?.cluster !== appState.EXPLORE_CLUSTER
-        || response.data?.coverage !== 'mint-verified-collected-creator-fees-only' || !Array.isArray(response.data.items)) return;
+        || response.data?.coverage !== 'verified-v3-collected-creator-fees-only' || !Array.isArray(response.data.items)) return;
       const amounts = new Map(response.data.items.map(row => [row.mint, String(row.collectedLamports ?? '')]));
       appState.homeFeeAmounts = amounts;
       for (const item of appState.assets) {
