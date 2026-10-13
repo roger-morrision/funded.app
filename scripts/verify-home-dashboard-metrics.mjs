@@ -4,20 +4,24 @@ import { homeFeeAllocationSummary } from '../server/home-dashboard-metrics.mjs';
 const mint = 'verified-mint';
 const collection = {
   signature:'verified-claim', mint, cluster:'devnet', status:'collected',
-  attribution:'mint-verified', onchainVerified:true, collectedLamports:1_000_000_000,
+  scope:'per-mint-v3', onchainVerified:true, collectedLamports:1_000_000_000,
 };
 const state = {
   launches:{ [mint]:{ mint, cluster:'devnet', onchainVerified:true, creator:'router',
-    pumpFeeRoute:{ scope:'per-mint-v2', router:'router' },
+    pumpFeeRoute:{ scope:'per-mint-v3', router:'router' },
     creatorLaunchBurn:{ status:'verified', receipt:{ signature:'burn-one', amountTokens:10 } } } },
   collections:{ 'verified-claim':collection, 'unverified-claim':{ ...collection, signature:'unverified-claim' } },
-  settlements:{
-    'verified-claim':{ claimSignature:'verified-claim', asset:'SOL',
-      creatorDestinations:{ holderAirdrop:0.2, solClaim:0.1 },
-      fundedApp:{ total:0.2, buyback:0.01, community:0.03 } },
-    'unverified-claim':{ claimSignature:'unverified-claim', asset:'SOL',
-      creatorDestinations:{ holderAirdrop:5, solClaim:5 },
-      fundedApp:{ total:10, buyback:5, community:5 } },
+  v3Settlements:{
+    'verified-claim':{ status:'finalized', mint, allocationPlan:{
+      status:'allocated-not-funded', grossLamports:'1000000000',
+      creatorDirected:{ holderLamports:'200000000', xLamports:'100000000' },
+      protocol:{ operationsLamports:'160000000', referralLamports:['0','0','0'],
+        buybackLamports:'10000000', communityLamports:'30000000' } } },
+    'unverified-claim':{ status:'finalized', mint, allocationPlan:{
+      status:'allocated-not-funded', grossLamports:'1000000000',
+      creatorDirected:{ holderLamports:'500000000', xLamports:'500000000' },
+      protocol:{ operationsLamports:'0', referralLamports:[],
+        buybackLamports:'0', communityLamports:'0' } } },
   },
   burnReceipts:{
     one:{ signature:'burn-one', cluster:'devnet', status:'verified', onchainVerified:true, amountTokens:10 },

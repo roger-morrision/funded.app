@@ -72,9 +72,9 @@ export async function migrate(pool) {
       await client.query('INSERT INTO state_meta (id, version, last_indexed_at) VALUES (1, $1, $2)', [state.version, state.lastIndexedAt || null]);
     }
     const directoryVersion = await client.query("SELECT version FROM read_model_versions WHERE name = 'creator-directory'");
-    if (!directoryVersion.rowCount || directoryVersion.rows[0].version < 2) {
+    if (!directoryVersion.rowCount || directoryVersion.rows[0].version < 3) {
       await projectCreatorDirectory(client, await readState(client));
-      await client.query("INSERT INTO read_model_versions (name, version) VALUES ('creator-directory', 2) ON CONFLICT(name) DO UPDATE SET version=2");
+      await client.query("INSERT INTO read_model_versions (name, version) VALUES ('creator-directory', 3) ON CONFLICT(name) DO UPDATE SET version=3");
     }
     const receiptCountVersion=await client.query("SELECT version FROM read_model_versions WHERE name='receipt-counts'");
     if(!receiptCountVersion.rowCount) {

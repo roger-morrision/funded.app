@@ -31,13 +31,12 @@ test('claim route modules pass unrelated paths to the next handler', async () =>
   }
 });
 
-test('stale V2 launch clients receive a closed router readiness response', async () => {
+test('stale launch clients receive a retired router response', async () => {
   const f = fixture(createXIdentityRoutes, { mintRouterReadiness:async () =>
     assert.fail('New V2 launch preflight must not call legacy readiness') });
   assert.equal(await f.request('/api/mint-router/status', {}, 'GET'), true);
-  assert.equal(f.responses[0].status, 200);
-  assert.equal(f.responses[0].data.ready, false);
-  assert.match(f.responses[0].data.reasons.join('; '), /V2 launches are retired/);
+  assert.equal(f.responses[0].status, 410);
+  assert.match(f.responses[0].data.error, /legacy route is retired/);
 });
 
 test('X launch readiness follows the verified V3 gate and OAuth prerequisites', async () => {
@@ -283,9 +282,9 @@ test('referral wallet verification checks the signature before changing status',
   assert.equal(f.state.referralClaims.claim.status, 'wallet-verified');
 });
 
-test('creator claim routes reject unsupported networks before accessing ledger or body', async () => {
+test('retired creator claim execution is absent from the active fee handler', async () => {
   const f = fixture(createCreatorFeesRoutes, { solanaCluster: 'mainnet-beta',
     body: () => assert.fail('Unavailable claim body read'), store: { read: () => assert.fail('Unavailable ledger read') } });
-  assert.equal(await f.request('/api/tokens/mint/creator-claim/prepare'), true);
-  assert.equal(f.responses[0].status, 403);
+  assert.equal(await f.request('/api/tokens/mint/creator-claim/prepare'), false);
+  assert.deepEqual(f.responses, []);
 });

@@ -1,10 +1,5 @@
-const SOL_LAMPORTS = 1_000_000_000n;
-
-function solLamports(value) {
-  if (typeof value !== 'number' && typeof value !== 'string') return 0n;
-  const amount = Number(value);
-  if (!Number.isFinite(amount) || amount < 0 || !Number.isSafeInteger(Math.round(amount * Number(SOL_LAMPORTS)))) return 0n;
-  return BigInt(Math.round(amount * Number(SOL_LAMPORTS)));
+function lamports(value) {
+  return /^(0|[1-9]\d*)$/.test(String(value)) ? BigInt(value) : 0n;
 }
 
 export function homeFeeAllocationSummary(state, evidence, cluster) {
@@ -19,17 +14,22 @@ export function homeFeeAllocationSummary(state, evidence, cluster) {
   for (const collection of Object.values(state.collections || {})) {
     const proof = verified.get(collection.signature);
     const launch = state.launches?.[collection.mint];
-    const settlement = state.settlements?.[collection.signature];
+    const settlement = state.v3Settlements?.[collection.signature];
+    const plan = settlement?.allocationPlan;
     if (!proof || proof.mint !== collection.mint || proof.collectedLamports !== collection.collectedLamports
       || collection.cluster !== cluster || collection.status !== 'collected' || collection.onchainVerified !== true
-      || collection.attribution !== 'mint-verified' || !launch?.onchainVerified || launch.cluster !== cluster
-      || launch.pumpFeeRoute?.scope !== 'per-mint-v2' || launch.pumpFeeRoute.router !== launch.creator
-      || settlement?.claimSignature !== collection.signature || settlement.asset !== 'SOL') continue;
-    totals.appRevenueLamports += solLamports(settlement.fundedApp?.total);
-    totals.holderLamports += solLamports(settlement.creatorDestinations?.holderAirdrop);
-    totals.xLamports += solLamports(settlement.creatorDestinations?.solClaim);
-    totals.buybackLamports += solLamports(settlement.fundedApp?.buyback);
-    totals.communityLamports += solLamports(settlement.fundedApp?.community);
+      || collection.scope !== 'per-mint-v3' || !launch?.onchainVerified || launch.cluster !== cluster
+      || launch.pumpFeeRoute?.scope !== 'per-mint-v3' || launch.pumpFeeRoute.router !== launch.creator
+      || settlement?.status !== 'finalized' || settlement.mint !== collection.mint
+      || plan?.status !== 'allocated-not-funded'
+      || lamports(plan.grossLamports) !== lamports(collection.collectedLamports)) continue;
+    totals.appRevenueLamports += lamports(plan.protocol?.operationsLamports)
+      + (plan.protocol?.referralLamports || []).reduce((sum, row) => sum + lamports(row), 0n)
+      + lamports(plan.protocol?.communityLamports) + lamports(plan.protocol?.buybackLamports);
+    totals.holderLamports += lamports(plan.creatorDirected?.holderLamports);
+    totals.xLamports += lamports(plan.creatorDirected?.xLamports);
+    totals.buybackLamports += lamports(plan.protocol?.buybackLamports);
+    totals.communityLamports += lamports(plan.protocol?.communityLamports);
     settledCollections += 1;
   }
 

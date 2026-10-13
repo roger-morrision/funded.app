@@ -23,7 +23,8 @@ test('extracted routes leave unmatched requests untouched', async () => {
 });
 
 test('discovery bounds concurrent verification and releases slots after failed proof', async () => {
-  const launches = Array.from({ length: 5 }, (_, i) => ({ mint: `coin-${i}`, chain: 'solana', cluster: 'devnet' }));
+  const launches = Array.from({ length: 5 }, (_, i) => ({ mint: `coin-${i}`, chain: 'solana',
+    cluster: 'devnet', pumpFeeRoute:{scope:'per-mint-v3'} }));
   const completions = [];
   let updates = 0;
   const f = fixture(createDiscoveryRoutes, {
@@ -103,7 +104,7 @@ test('price provider failures remain unavailable and never persist a quote', asy
   assert.equal(f.responses[1].status, 503);
 });
 
-test('V3 buyback status excludes legacy pending orders and keeps verified V2 receipts in history', async () => {
+test('V3 buyback status excludes legacy orders and receipts', async () => {
   const f = fixture(createRewardStatusRoutes, { store: { read: async () => ({ buybackOrders: {
     paid: { id: 'paid', status: 'finalized', refundVerified: true, signedTransaction: 'private', refundTransaction: 'private' },
     pending: { id: 'pending', status: 'submitted', refundVerified: true },
@@ -114,8 +115,7 @@ test('V3 buyback status excludes legacy pending orders and keeps verified V2 rec
   assert.deepEqual(f.responses[0].data.receipts, []);
   assert.deepEqual(f.responses[0].data.pending, [{ mint:'mint', sourceCollectionSignature:'source',
     amountLamports:'123', status:'awaiting-v3-buyback-executor' }]);
-  assert.deepEqual(f.responses[0].data.historicalV2Receipts,
-    [{ id: 'paid', status: 'finalized', refundVerified: true }]);
+  assert.equal('historicalV2Receipts' in f.responses[0].data, false);
   assert.equal(f.responses[0].data.executionReady, false);
   assert.equal(f.responses[0].data.mainnetReady, false);
 });

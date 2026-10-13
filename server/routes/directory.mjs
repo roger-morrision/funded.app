@@ -1,4 +1,4 @@
-import { buildTerminalSignal, creatorReputation } from '../../stonk-features.js';
+import { buildTerminalSignal } from '../../stonk-features.js';
 import { PublicKey, Connection } from '@solana/web3.js';
 import { DEVNET_GENESIS_HASH } from '../automatic-reward-chain.mjs';
 import { readVerifiedListingMint } from '../token-metadata.mjs';
@@ -15,15 +15,14 @@ export function createDirectoryRoutes({
   const json = (...args) => { respond(...args); return true; };
   return async function handleDirectoryRoutes(req, res, url, requestId) {
     if (req.method === 'GET' && url.pathname === '/api/terminal/signals') {
-      const launches = (await store.readLaunches()).filter(item => item.onchainVerified && item.cluster === solanaCluster).map(item => ({ ...item, ...buildTerminalSignal(item) }));
+      const launches = (await store.readLaunches()).filter(item => item.onchainVerified
+        && item.cluster === solanaCluster && item.pumpFeeRoute?.scope === 'per-mint-v3')
+        .map(item => ({ ...item, ...buildTerminalSignal(item) }));
       return json(res, 200, { source: 'verified-Solana-launch-registry', cluster: solanaCluster, generatedAt: new Date().toISOString(), items: launches, status: launches.length ? 'ready' : 'waiting-for-indexer' });
     }
     const creatorProfileWallet = route(url.pathname, req.method, /^\/api\/creators\/([^/]+)$/);
     if (creatorProfileWallet) {
-      const state = await store.read();
-      const wallet = decodeURIComponent(creatorProfileWallet);
-      const profile = creatorReputation(state.launches, state.settlements).find(item => item.wallet === wallet);
-      return profile ? json(res, 200, profile) : json(res, 404, { error: 'Creator profile not found.' });
+      return json(res, 410, { error:'Legacy wallet creator profiles are retired. Use V3 X creator profiles.' });
     }
     if (req.method === 'GET' && url.pathname === '/api/launch-reviews') {
       const state = await store.read();
@@ -36,7 +35,9 @@ export function createDirectoryRoutes({
     }
     if (req.method === 'GET' && url.pathname === '/api/indexer/status') {
       const state = await store.read();
-      return json(res, 200, { provider: 'pump.fun', configured: true, indexedLaunches: Object.keys(state.launches).length, lastIndexedAt: state.lastIndexedAt || null, status: state.lastIndexedAt ? 'ready' : 'waiting-for-sync' });
+      return json(res, 200, { provider: 'pump.fun', configured: true,
+        indexedLaunches:Object.values(state.launches || {}).filter(item => item.pumpFeeRoute?.scope === 'per-mint-v3').length,
+        lastIndexedAt: state.lastIndexedAt || null, status: state.lastIndexedAt ? 'ready' : 'waiting-for-sync' });
     }
     if (req.method === 'GET' && url.pathname === '/api/launches') {
       const requestedLimit = url.searchParams.get('limit');
@@ -44,7 +45,8 @@ export function createDirectoryRoutes({
       if ((requestedLimit != null && !/^\d+$/.test(requestedLimit)) || (requestedOffset != null && !/^\d+$/.test(requestedOffset))) return json(res, 400, { error: 'limit and offset must be non-negative integers.' });
       const limit = requestedLimit == null ? null : Math.min(100, Number(requestedLimit));
       const offset = requestedOffset == null ? 0 : Math.min(100_000, Number(requestedOffset));
-      return json(res, 200, await store.readLaunches({ limit, offset }));
+      const launches = (await store.readLaunches()).filter(item => item.pumpFeeRoute?.scope === 'per-mint-v3');
+      return json(res, 200, limit == null ? launches : launches.slice(offset, offset + limit));
     }
     if (req.method === 'GET' && url.pathname === '/api/listings/config') {
       let pricing = null;

@@ -67,7 +67,6 @@ import { verifyPumpLaunch } from './launch-verification.mjs';
 import { parseSignedMetadata, publicMetadata, metadataRecordOrigin } from './devnet-metadata.mjs';
 import { devnetMetadataUri, normalizeDevnetMetadataOrigin, LEGACY_DEVNET_METADATA_ORIGIN } from '../devnet-metadata.js';
 
-import { createCreatorFeeChallenges } from './creator-fee-claim.mjs';
 import { createTokenChatSessions } from './token-chat-session.mjs';
 import { createXUserResolver } from './x-user-lookup.mjs';
 
@@ -80,7 +79,6 @@ const host = String(process.env.HOST || '127.0.0.1');
 const staticRoot = resolve(process.cwd(), 'dist');
 const storePath = process.env.FUNDED_STORE_PATH || resolve(process.cwd(), 'data', 'funded-store.json');
 const automaticRewardStore = createAutomaticRewardStore(rewardLedgerPath());
-const creatorFeeChallenges = createCreatorFeeChallenges();
 
 // Explicit test/worker store paths must take precedence over the local database
 // profile so isolated fixtures cannot accidentally write to the shared database.
@@ -169,9 +167,14 @@ function route(path, method, pattern) { const match = path.match(pattern); retur
 function publicState(state) {
   return {
     version: state.version,
-    launches: Object.values(state.launches),
-    settlements: Object.values(state.settlements).map(item => ({ claimSignature: item.claimSignature, claimedAt: item.claimedAt, asset: item.asset, grossCreatorFees: item.grossCreatorFees, totalAllocated: item.totalAllocated, status: item.status, fundedApp: { total: item.fundedApp?.total, referralPayout: item.fundedApp?.referralPayout, community: item.fundedApp?.community, buyback: item.fundedApp?.buyback, referralLevels: (item.fundedApp?.referralLevels || []).map(level => ({ level: level.level, amount: level.amount, status: level.status })) } })),
-    collections: Object.values(state.collections || {}).map(item => ({ id: item.id, mint: item.mint, signature: item.signature, status: item.status, collectedLamports: item.collectedLamports, recordedAt: item.recordedAt })),
+    launches: Object.values(state.launches || {}).filter(item => item.pumpFeeRoute?.scope === 'per-mint-v3'),
+    settlements: Object.values(state.v3Settlements || {}).map(item => ({
+      collectionSignature:item.collectionSignature, settlementSignature:item.settlementSignature,
+      mint:item.mint, status:item.status, allocationPlan:item.allocationPlan || null })),
+    collections: Object.values(state.collections || {}).filter(item => item.scope === 'per-mint-v3')
+      .map(item => ({ id:item.id, mint:item.mint, signature:item.signature,
+        status:item.status, collectedLamports:item.collectedLamports,
+        recordedAt:item.recordedAt })),
   };
 }
 function authorized(req) {
@@ -184,7 +187,10 @@ function authorized(req) {
 function requireAuthorized(req, res) { if (authorized(req)) return true; json(res, 401, { error: 'Keeper/indexer API authorization is required.' }); return false; }
 // Retired public claim paths reach the V3 router's 410 guard without an auth
 // challenge; no legacy write handler is registered below it.
-function publicPost(path) { return publicPostPaths.has(path) || publicWalletSignedV3Post(path) || /^\/api\/tokens\/[^/]+\/v3-(?:x-claim\/[^/]+\/(?:prepare|verify|execute)|buyback\/[^/]+)$/.test(path) || /^\/api\/sol-claims\/[^/]+\/(?:prepare|verify|attest|execute)$/.test(path) || /^\/api\/referral-claims\/[^/]+\/(?:verify|execute)$/.test(path) || /^\/api\/tokens\/[^/]+\/creator-claim\/(?:prepare|request|settle)$/.test(path) || /^\/api\/tokens\/[^/]+\/reward-funding\/settle$/.test(path); }
+function publicPost(path) { return publicPostPaths.has(path) || publicWalletSignedV3Post(path) || /^\/api\/tokens\/[^/]+\/v3-(?:x-claim\/[^/]+\/(?:prepare|verify|execute)|buyback\/[^/]+)$/.test(path)
+  || /^\/api\/sol-claims\/[^/]+\/(?:prepare|verify|attest|execute)$/.test(path)
+  || /^\/api\/referral-claims\/[^/]+\/(?:verify|execute)$/.test(path)
+  || /^\/api\/tokens\/[^/]+\/(?:creator-claim\/(?:prepare|request|settle)|reward-funding\/settle)$/.test(path); }
 function localDevWalletRequest(req, path) {
   if (!devMode || !/^\/api\/dev-wallet\/sign-(?:transaction|message)$/.test(path)) return false;
   try {
@@ -236,11 +242,8 @@ function xOAuthConfigured(req) {
 function html(res, status, title, message) { res.writeHead(status, { 'content-type': 'text/html; charset=utf-8' }); res.end(`<!doctype html><title>${title}</title><p>${message}</p>`); }
 const {
   keeperKeypair,
-  routerAuthorityKeypair,
   v3AuthorityKeypair,
-  mintRouterReadiness,
   xFeeReadiness,
-  feeRouterConfig,
   v3RouterConfig,
   launchPolicyConfig,
   collectPumpCreatorFees,
@@ -254,7 +257,7 @@ const readFinalizedEvidence = createReceiptEvidenceReader({ store, cluster: sola
   officialGenesis: () => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash() });
 const readPaymentHistory = createPaymentHistoryReader({ readEvidence:readFinalizedEvidence, rewardsStore:automaticRewardStore, store,
   connectionFactory:() => new Connection(solanaRpcUrl, 'finalized'), cluster:solanaCluster,
-  officialGenesis:() => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash() });
+  officialGenesis:() => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash(), v3Only:true });
 
 const handleWatchlist = createWatchlistHandler({ store, cluster: solanaCluster, getSession: xSession, getWalletSession: referralSession });
 const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solanaCluster, getSession: xSession, readEvidence: readReceiptEvidence, readFinalizedEvidence,
@@ -320,11 +323,10 @@ const handleLaunchRegistrationRoutes = createLaunchRegistrationRoutes({
 });
 
 const handleXIdentityRoutes = createXIdentityRoutes({
-  xConfig, store, clientKey, xOAuthConfigured, xCallbackUrl, xAuth, html, xSession, resolveXUser, solanaCluster, readReceiptEvidence, automaticRewardStore, v3LaunchConfig, respond: json,
+  xConfig, store, clientKey, xOAuthConfigured, xCallbackUrl, xAuth, html, xSession, resolveXUser, solanaCluster, v3LaunchConfig, respond: json,
 });
 const handleCreatorFeesRoutes = createCreatorFeesRoutes({
-  store, solanaCluster, route, solanaRpcUrl, readFinalizedEvidence, automaticRewardStore, feeRouterConfig,
-  mintRouterReadiness, routerAuthorityKeypair, databaseUrl, body, creatorFeeChallenges, respond: json,
+  store, solanaCluster, route, solanaRpcUrl, databaseUrl, respond: json,
 });
 const handleV3Routes = createV3Routes({
   body, store, rewardStore:automaticRewardStore, xSession, walletSignature,

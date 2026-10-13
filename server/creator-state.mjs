@@ -1,13 +1,18 @@
 export function scopedCreatorState(state, id, cluster, { financial=true }={}) {
-  const result={creatorProfiles:{},launches:{},obligations:{},claims:{},collections:{},payouts:{}};
+  const result={creatorProfiles:{},launches:{},collections:{},v3Settlements:{},
+    v3CreatorRewardFunding:{},v3XClaims:{}};
   if(state.creatorProfiles?.[id])result.creatorProfiles[id]=state.creatorProfiles[id];
   for(const [key,row] of Object.entries(state.launches||{}))if(String(row.xUserId)===id&&row.cluster===cluster)result.launches[key]=row;
   if(!financial)return structuredClone(result);
-  for(const [key,row] of Object.entries(state.obligations||{}))if(String(row.xUserId)===id)result.obligations[key]=row;
-  for(const [key,row] of Object.entries(state.claims||{}))if(String(row.xUserId)===id)result.claims[key]=row;
-  const signatures=new Set(Object.values(result.obligations).map(row=>row.claimSignature));
-  for(const [key,row] of Object.entries(state.collections||{}))if(signatures.has(key))result.collections[key]=row;
-  for(const [key,row] of Object.entries(state.payouts||{}))if(Object.hasOwn(result.obligations,row.obligationId))result.payouts[key]=row;
+  const mints=new Set(Object.keys(result.launches));
+  for(const [key,row] of Object.entries(state.collections||{}))if(mints.has(row.mint)
+    && row.scope==='per-mint-v3')result.collections[key]=row;
+  for(const key of Object.keys(result.collections)) {
+    if(state.v3Settlements?.[key])result.v3Settlements[key]=state.v3Settlements[key];
+    if(state.v3CreatorRewardFunding?.[key])result.v3CreatorRewardFunding[key]=state.v3CreatorRewardFunding[key];
+    if(state.v3XClaims?.[key]&&String(state.v3XClaims[key].xUserId)===id)
+      result.v3XClaims[key]=state.v3XClaims[key];
+  }
   return structuredClone(result);
 }
 

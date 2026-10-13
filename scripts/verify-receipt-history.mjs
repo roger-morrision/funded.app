@@ -6,7 +6,7 @@ import { createServer } from 'node:http';
 import { createStore } from '../server/store.mjs';
 import { creatorReceiptPage,decodeReceiptCursor,receiptFingerprint } from '../server/receipt-history.mjs';
 import { createReceiptEvidenceReader } from '../server/receipt-service.mjs';
-import { buildCreatorSupport,createCreatorSupportHandler } from '../server/creator-support.mjs';
+import { createCreatorSupportHandler } from '../server/creator-support.mjs';
 import { receiptHistoryFixture } from './fixtures/receipt-history-data.mjs';
 
 const fixture=receiptHistoryFixture(),dir=await mkdtemp(join(tmpdir(),'funded-history-'));let server;
@@ -18,9 +18,9 @@ try {
   do {
     const page=await store.readCreatorReceiptPage(fixture.id,'devnet',decodeReceiptCursor(cursor));
     assert.deepEqual(page,creatorReceiptPage(fixture.state,fixture.id,'devnet',decodeReceiptCursor(cursor)));
-    const evidence=await reader(page.state),creator=buildCreatorSupport(page.state,fixture.id,evidence,'devnet');
-    assert.ok(creator.receipts.length<=12);
-    for(const receipt of creator.receipts){assert.ok(!signatures.has(receipt.signature));signatures.add(receipt.signature);}
+    const evidence=await reader(page.state);
+    assert.ok(evidence.verifiedPayouts.length<=12);
+    for(const receipt of evidence.verifiedPayouts){assert.ok(!signatures.has(receipt.signature));signatures.add(receipt.signature);}
     cursor=page.nextCursor;pages++;
   }while(cursor);
   assert.equal(pages,3);assert.equal(signatures.size,29);assert.equal(calls,58);
@@ -40,13 +40,7 @@ try {
   const handler=createCreatorSupportHandler({store,cluster:'devnet',getSession:async()=>null,readEvidence:reader,readFinalizedEvidence:historyReader,capabilities:async()=>({})});
   server=createServer(async(req,res)=>{try{if(!await handler(req,res,new URL(req.url,'http://localhost'))){res.writeHead(404);res.end();}}catch(error){res.writeHead(500);res.end(error.message);}});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base=`http://127.0.0.1:${server.address().port}`;
-  const response=await fetch(`${base}/api/creators/123/receipts`);assert.equal(response.status,200);
-  const body=await response.json();assert.equal(body.receipts.length,12);assert.equal(body.commitment,'finalized');assert.ok(body.nextCursor);
-  const second=await(await fetch(`${base}/api/creators/123/receipts?after=${body.nextCursor}`)).json();assert.equal(second.receipts.length,12);assert.notEqual(second.receipts[0].signature,body.receipts[0].signature);
-  assert.equal((await fetch(`${base}/api/creators/123/receipts?after=***`)).status,400);
-  editDuringRead=true;assert.equal((await fetch(`${base}/api/creators/123/receipts`)).status,503,'Changed records during proof reads must not reuse earlier evidence.');editDuringRead=false;
-  optOutDuringRead=true;
-  assert.equal((await fetch(`${base}/api/creators/123/receipts`)).status,404,'Opt-out during a proof read must not leak a successful page.');
-  assert.equal((await fetch(`${base}/api/creators/123/receipts`)).status,404,'Opt-out applies even with persisted proofs.');
-  console.log('Finalized history: 29 synthetic payouts across 3 pages, exact entitlement joins, persisted proof reuse across restart, payload invalidation, cursor/identity/cluster guards and HTTP privacy passed (mocked RPC).');
+  const response=await fetch(`${base}/api/creators/123/receipts`);
+  assert.equal(response.status,410,'Legacy V2 receipt history must stay retired.');
+  console.log('Historical receipt archive: 29 synthetic payout proofs across 3 pages, persisted proof reuse, payload invalidation, cursor and cluster guards passed; public V2 history returns 410 (mocked RPC).');
 }finally{if(server){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}await rm(dir,{recursive:true,force:true});}

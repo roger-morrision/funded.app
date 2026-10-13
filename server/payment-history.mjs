@@ -50,21 +50,32 @@ export function verifyAutomaticPayment(schedule, recipient, payment, transaction
     slot:transaction.slot, blockTime:transaction.blockTime ?? null };
 }
 
-export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, connectionFactory, officialGenesis, cluster }) {
+export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, connectionFactory, officialGenesis, cluster, v3Only = false }) {
   const cache = createReadCache({ ttlMs:30_000, maxEntries:1 });
   const verifiedAutomatic = new Map();
   return () => cache('recent', async () => {
     const [evidence, ledger, state] = await Promise.all([readEvidence(), rewardsStore.read(), store?.read?.() ?? {}]);
-    const verified = evidence.cluster === cluster && evidence.commitment === 'finalized'
+    const verified = !v3Only && evidence.cluster === cluster && evidence.commitment === 'finalized'
       ? evidence.verifiedPayouts || [] : [];
-    const recorded = Object.values(state.payouts || {}).filter(row => row?.cluster === cluster && row.status === 'paid'
+    const recorded = (v3Only ? [] : Object.values(state.payouts || {})).filter(row => row?.cluster === cluster && row.status === 'paid'
       && ['solana-keeper-referral-claim', 'mint-router-settle-mint'].includes(row.source));
     const recentKeys = new Set(verified.map(row => `${row.signature}:${row.to}`));
     const older = recorded.filter(row => !recentKeys.has(`${row.signature}:${row.to}`));
     const candidates = Object.values(ledger.schedules || {}).flatMap(schedule => {
       if (!KINDS.has(schedule.kind) || schedule.asset !== 'SOL') return [];
       return Object.entries(schedule.payments || {}).map(([recipient, payment]) => ({ schedule, recipient, payment }));
-    }).filter(({ schedule, recipient, payment }) => KINDS.has(schedule.kind) && ADDRESS.test(recipient)
+    }).filter(({ schedule, recipient, payment }) => (!v3Only || schedule.kind === 'holder'
+      && (schedule.poolIds || []).some(id => id.startsWith('v3:')
+        && state.v3CreatorRewardFunding?.[id.slice(3)]?.status === 'finalized'
+        && state.v3CreatorRewardFunding[id.slice(3)].balanceDeltaVerified === true
+        && ledger.rewardPools?.[id]?.fundingSignature === state.v3CreatorRewardFunding[id.slice(3)].signature)
+      || v3Only && schedule.kind === 'x'
+        && state.v3XClaims?.[schedule.sourceId]?.status === 'paid'
+        && state.v3XClaims[schedule.sourceId].wallet === recipient
+        && state.v3XClaims[schedule.sourceId].payment?.signature === payment.signature
+        && state.v3XClaims[schedule.sourceId].payment?.finalized === true
+        && state.v3XClaims[schedule.sourceId].payment?.balanceDeltaVerified === true)
+      && KINDS.has(schedule.kind) && ADDRESS.test(recipient)
       && payment?.status === 'paid' && payment.finalized === true && payment.balanceDeltaVerified === true
       && SIGNATURE.test(String(payment.signature || '')))
       .sort((a, b) => String(b.payment.paidAt || '').localeCompare(String(a.payment.paidAt || '')));
@@ -112,9 +123,14 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
               }
               if (proof) {
                 const request = schedule.kind === 'x' ? ledger.fundingRequests?.[schedule.sourceId] : null;
-                const xHandle = request?.kind === 'x' && request.mint === schedule.mint
-                  && request.recipient === recipient
-                  ? verifiedXHandle(state, cluster, schedule.mint, request.obligationId, recipient) : null;
+                const v3Claim = v3Only ? state.v3XClaims?.[schedule.sourceId] : null;
+                const v3Launch = v3Claim && state.launches?.[schedule.mint];
+                const xHandle = v3Only ? v3Launch?.pumpFeeRoute?.scope === 'per-mint-v3'
+                  && String(v3Launch.xUserId) === String(v3Claim.xUserId)
+                  ? v3Launch.feeDistribution?.creatorDirected?.recipients?.xAccount : null
+                  : request?.kind === 'x' && request.mint === schedule.mint
+                    && request.recipient === recipient
+                    ? verifiedXHandle(state, cluster, schedule.mint, request.obligationId, recipient) : null;
                 automatic.push(xHandle ? { ...proof, xHandle } : proof);
               } else unavailable += 1;
             } catch { unavailable += 1; }
@@ -122,7 +138,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
         }
       } catch { unavailable += candidates.length + older.length; }
     }
-    const recordedX = new Map(Object.values(state.payouts || {})
+    const recordedX = new Map((v3Only ? [] : Object.values(state.payouts || {}))
       .filter(row => row?.source === 'mint-router-settle-mint' && row.status === 'paid' && row.cluster === cluster)
       .map(row => [`${row.signature}:${row.to}`, row]));
     const attributed = [...verified, ...olderProofs].map(proof => {
@@ -139,7 +155,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
       && ADDRESS.test(String(row.feePayer || '')))
       .map(row => [`${row.signature}:${row.to}`, row])).values()]
       .sort((a, b) => Number(b.blockTime || 0) - Number(a.blockTime || 0) || b.slot - a.slot);
-    return { cluster, commitment:'finalized', status:unavailable || evidence.status === 'unavailable' ? 'partial' : 'onchain-indexed',
+    return { cluster, commitment:'finalized', status:unavailable || !v3Only && evidence.status === 'unavailable' ? 'partial' : 'onchain-indexed',
       verifiedPayouts:rows, checkedAutomatic:candidates.length, unavailablePayouts:unavailable,
       note:'Network transaction fees are paid by the transaction fee payer; received amounts are verified recipient balance increases.' };
   });

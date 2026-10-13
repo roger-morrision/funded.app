@@ -4,16 +4,16 @@ import { creatorCardPng } from './share-card.mjs';
 import { createReadCache } from './read-cache.mjs';
 import { eligibleSupportLaunches } from './creator-directory.mjs';
 import { allowedAuthOrigin } from './x-auth.mjs';
-import { decodeReceiptCursor, receiptFingerprint } from './receipt-history.mjs';
+import { receiptFingerprint } from './receipt-history.mjs';
 import { followingWindow } from './following-updates.mjs';
 import { readJsonBody } from './request-body.mjs';
 import { validateInput } from './http-policy.mjs';
 export { eligibleSupportLaunches } from './creator-directory.mjs';
-const financialInputs=state=>Object.fromEntries(['launches','obligations','claims','collections','payouts'].map(bucket=>[bucket,state[bucket]||{}]));
+const financialInputs=state=>Object.fromEntries(['launches','collections','v3Settlements','v3CreatorRewardFunding','v3XClaims'].map(bucket=>[bucket,state[bucket]||{}]));
 const sameFinancialInputs=(before,after)=>receiptFingerprint('creator-inputs',financialInputs(before))===receiptFingerprint('creator-inputs',financialInputs(after));
 
-// Public totals join chain-verified receipts to the original immutable entitlement.
-// A ledger's paid flag alone is never accepted, and duplicate signatures count once.
+// Public totals require a finalized V3 funding record and a finalized payment delta.
+// A claim's paid flag alone is never accepted, and duplicate signatures count once.
 export function buildCreatorSupport(state, id, evidence, cluster) {
   if (!validXId(id)) return null;
   const profile = state.creatorProfiles?.[id];
@@ -25,27 +25,35 @@ export function buildCreatorSupport(state, id, evidence, cluster) {
   try { handle = normalizeCreatorHandle(rawHandle); } catch { return null; }
   const receipts = [];
   const seen = new Set();
-  for (const proof of evidence?.cluster === cluster ? evidence.verifiedPayouts || [] : []) {
-    if (seen.has(proof.signature)) continue;
-    const payout = Object.values(state.payouts || {}).find(row => row.signature === proof.signature && row.claimId === proof.claimId);
-    const obligation = state.obligations?.[payout?.obligationId];
-    const claim = state.claims?.[payout?.claimId];
-    const launch = launches.find(row => row.mint === obligation?.mint);
-    const collection = state.collections?.[obligation?.claimSignature];
-    const collectionProof = evidence.verifiedCollections?.find(row => row.signature === obligation?.claimSignature && row.mint === launch?.mint);
-    if (!launch || !payout || !claim || !collectionProof || obligation?.source !== 'verified-per-mint-router-collection'
-      || String(obligation.xUserId) !== id || claim.xUserId !== id || claim.obligationId !== obligation.id
-      || claim.publicKey !== proof.to || payout.to !== proof.to || payout.from !== launch.pumpFeeRoute.router
-      || payout.mint !== launch.mint || payout.cluster !== cluster || payout.source !== 'mint-router-settle-mint'
-      || proof.source !== 'mint-router-settle-mint' || collection?.router !== launch.pumpFeeRoute.router
-      || !Number.isSafeInteger(proof.amountLamports) || proof.amountLamports <= 0) continue;
-    const bps = Math.round(Number(launch.feeDistribution.creatorDirected.shares.solClaimPercent) * 100);
-    if (!Number.isSafeInteger(collectionProof.collectedLamports) || collectionProof.collectedLamports <= 0 || bps <= 0 || bps > 8000) continue;
-    const expected = BigInt(collectionProof.collectedLamports) * BigInt(bps) / 10000n;
-    if (String(obligation.amountLamports) !== expected.toString() || BigInt(proof.amountLamports) !== expected) continue;
-    seen.add(proof.signature);
-    receipts.push({ signature: proof.signature, mint: launch.mint, amountLamports: expected.toString(), paidAt: payout.paidAt, slot: proof.slot,
-      recipient: proof.to, sourceCollectionSignature: obligation.claimSignature, obligationId: obligation.id });
+  for (const [source, claim] of Object.entries(state.v3XClaims || {})) {
+    const launch = launches.find(row => row.mint === claim.mint);
+    const collection = state.collections?.[source];
+    const settlement = state.v3Settlements?.[source];
+    const funding = state.v3CreatorRewardFunding?.[source];
+    const payment = claim.payment;
+    if (!launch || !collection || collection.mint !== launch.mint
+      || collection.scope !== 'per-mint-v3' || collection.status !== 'collected'
+      || collection.onchainVerified !== true || settlement?.status !== 'finalized'
+      || settlement.mint !== launch.mint || settlement.allocationPlan?.status !== 'allocated-not-funded'
+      || funding?.status !== 'finalized' || funding.balanceDeltaVerified !== true
+      || funding.mint !== launch.mint || claim.status !== 'paid'
+      || String(claim.xUserId) !== id || claim.amountLamports !== settlement.allocationPlan.creatorDirected?.xLamports
+      || claim.fundingSignature !== funding.signature
+      || !/^\d+$/.test(String(settlement.allocationPlan.creatorDirected?.holderLamports || ''))
+      || !/^[1-9]\d*$/.test(String(settlement.allocationPlan.creatorDirected?.xLamports || ''))
+      || String(funding.amount) !== String(BigInt(settlement.allocationPlan.creatorDirected?.xLamports || '0')
+        + BigInt(settlement.allocationPlan.creatorDirected?.holderLamports || '0'))
+      || !/^[1-9]\d*$/.test(String(claim.amountLamports || ''))
+      || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(claim.wallet || ''))
+      || payment?.finalized !== true || payment.balanceDeltaVerified !== true
+      || String(payment.amount) !== String(claim.amountLamports)
+      || !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(String(payment.signature || ''))
+      || seen.has(payment.signature)) continue;
+    seen.add(payment.signature);
+    receipts.push({ signature:payment.signature, mint:launch.mint,
+      amountLamports:claim.amountLamports, paidAt:claim.paidAt || payment.paidAt || null,
+      slot:payment.slot || null, recipient:claim.wallet,
+      sourceCollectionSignature:source, obligationId:source });
   }
   const paidLamports = receipts.reduce((sum, receipt) => sum + BigInt(receipt.amountLamports), 0n).toString();
   return { id, handle, name: profile?.name || handle, cluster,
@@ -56,8 +64,8 @@ export function buildCreatorSupport(state, id, evidence, cluster) {
       authorization: creatorAuthorization(profile, launch.mint) })),
     updates: profile?.identityVerified ? (profile.updates || []).slice(-20).reverse() : [],
     receipts, paidLamports,
-    evidenceStatus: evidence?.status || 'unavailable',
-    coverage: 'Bounded recent verified receipts; not an all-time earnings total.',
+    evidenceStatus:'recorded-finalized-v3',
+    coverage:'Finalized V3 X claim records; independent RPC recheck is not included.',
     milestone: creatorMilestone(paidLamports) };
 }
 
@@ -140,21 +148,7 @@ export function createCreatorSupportHandler({ store, cluster, getSession, readEv
     }
     const historyId=url.pathname.match(/^\/api\/creators\/(\d{1,24})\/receipts$/)?.[1];
     if(req.method==='GET'&&historyId) {
-      let after;try{after=decodeReceiptCursor(url.searchParams.get('after')||'');}catch(error){return respond(res,400,{error:error.message});}
-      const visible=await store.readCreatorState(historyId,cluster,{financial:false});
-      if(!buildCreatorSupport(visible,historyId,null,cluster))return respond(res,404,{error:'Creator unavailable.'});
-      if(!readFinalizedEvidence)return respond(res,503,{error:'Finalized receipt history is unavailable.'});
-      const history=await store.readCreatorReceiptPage(historyId,cluster,after);
-      const evidence=await readFinalizedEvidence(history.state).catch(()=>({status:'unavailable'}));
-      // Opt-out can occur while RPC is pending. Recheck privacy before publishing.
-      const refreshed=await store.readCreatorReceiptPage(historyId,cluster,after);
-      const latest=await store.readCreatorState(historyId,cluster,{financial:false});
-      if(!buildCreatorSupport(latest,historyId,null,cluster))return respond(res,404,{error:'Creator unavailable.'});
-      if(!sameFinancialInputs(history.state,refreshed.state))return respond(res,503,{error:'Receipt records changed during verification. Retry this page; no payout was submitted.'});
-      const creator=buildCreatorSupport({...refreshed.state,creatorProfiles:latest.creatorProfiles},historyId,evidence,cluster);
-      return respond(res,200,{cluster,receipts:evidence.commitment==='finalized'?creator?.receipts||[]:[],nextCursor:history.nextCursor,
-        checkedPayouts:history.checkedPayouts,status:evidence.status,commitment:'finalized',indexedRecords:evidence.indexedRecords||0,
-        coverage:'This page verifies recorded payouts and their source collections. Missing or unmatched records are excluded; this is not lifetime earnings or a complete chain index.'});
+      return respond(res,410,{error:'Legacy receipt history is retired. Use the V3 creator profile.'});
     }
     const cardId=url.pathname.match(/^\/api\/creators\/(\d{1,24})\/card\.png$/)?.[1];
     if(req.method==='GET'&&cardId){

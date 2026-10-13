@@ -40,17 +40,20 @@ export function createCreatorsRepository({ pool, ensureReady }) {
     async readCreatorState(id, cluster, {financial=true}={}) {
       await ensureReady();
       const client=await pool.connect();
-      const state={creatorProfiles:{},launches:{},obligations:{},claims:{},collections:{},payouts:{}};
+      const state={creatorProfiles:{},launches:{},collections:{},v3Settlements:{},
+        v3CreatorRewardFunding:{},v3XClaims:{}};
       const keyed=rows=>Object.fromEntries(rows.map(row=>[row.entity_key,row.payload]));
       try {
         await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
         state.creatorProfiles=keyed((await client.query("SELECT entity_key,payload FROM state_entities WHERE bucket='creatorProfiles' AND entity_key=$1",[id])).rows);
         state.launches=keyed((await client.query("SELECT mint AS entity_key,payload FROM launches WHERE payload->>'xUserId'=$1 AND payload->>'cluster'=$2",[id,cluster])).rows);
         if(financial){
-          state.obligations=keyed((await client.query("SELECT entity_key,payload FROM state_entities WHERE bucket='obligations' AND payload->>'xUserId'=$1",[id])).rows);
-          state.claims=keyed((await client.query("SELECT entity_key,payload FROM state_entities WHERE bucket='claims' AND payload->>'xUserId'=$1",[id])).rows);
-          state.collections=keyed((await client.query("SELECT entity_key,payload FROM state_entities WHERE bucket='collections' AND entity_key=ANY($1::text[])",[Object.values(state.obligations).map(row=>row.claimSignature).filter(Boolean)])).rows);
-          state.payouts=keyed((await client.query("SELECT entity_key,payload FROM state_entities WHERE bucket='payouts' AND payload->>'obligationId'=ANY($1::text[])",[Object.keys(state.obligations)])).rows);
+          state.collections=keyed((await client.query("SELECT entity_key,payload FROM state_entities WHERE bucket='collections' AND payload->>'mint'=ANY($1::text[]) AND payload->>'scope'='per-mint-v3'",[Object.keys(state.launches)])).rows);
+          const sources=Object.keys(state.collections);
+          for(const bucket of ['v3Settlements','v3CreatorRewardFunding','v3XClaims'])
+            state[bucket]=keyed((await client.query('SELECT entity_key,payload FROM state_entities WHERE bucket=$1 AND entity_key=ANY($2::text[])',[bucket,sources])).rows);
+          state.v3XClaims=Object.fromEntries(Object.entries(state.v3XClaims)
+            .filter(([,row])=>String(row.xUserId)===id));
         }
         await client.query('COMMIT');return state;
       }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}

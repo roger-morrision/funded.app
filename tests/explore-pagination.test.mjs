@@ -11,7 +11,9 @@ const cases = [
 
 async function request(path, cluster, query = '') {
   const calls = { connections: 0, reads: 0, providers: [] };
-  const rows = Array.from({ length: 6 }, (_, index) => ({ mint: `fixture-${index}`, chain: 'solana', cluster: 'devnet', onchainVerified: true, createdTimestamp: 6 - index }));
+  const rows = Array.from({ length: 6 }, (_, index) => ({ mint: `fixture-${index}`,
+    chain:'solana', cluster:'devnet', onchainVerified:true, createdTimestamp:6 - index,
+    pumpFeeRoute:{scope:'per-mint-v3'} }));
   const context = {
     req: { method: 'GET' }, res: {}, url: new URL(path + query, 'http://fixture.invalid'), solanaCluster: cluster, solanaRpcUrl: 'http://unused.invalid', birdeyeChain: 'solana',
     Connection: class { constructor() { calls.connections++; } },

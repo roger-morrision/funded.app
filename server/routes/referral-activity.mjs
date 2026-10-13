@@ -34,15 +34,18 @@ export function createReferralActivityRoutes({ store, body, clientKey, walletKey
       try { wallet = walletKey(url.searchParams.get('wallet')); } catch { return json(res, 400, { error: 'A valid wallet query parameter is required.' }); }
       const session = await referralSession(req);
       if (session?.wallet !== wallet) return json(res, 401, { error:'Approve referral dashboard access with this wallet.' });
-      const claims = (await store.readReferralClaimsForWallet(wallet)).map(item => ({ id: item.id, level: item.level, amount: item.amount, asset: item.asset, status: item.status, createdAt: item.createdAt, expiresAt: item.expiresAt, statement: `funded.app referral reward claim ${item.id} nonce ${item.nonce}`, payoutSignature: item.payoutSignature }));
-      return json(res, 200, { wallet, claims });
+      return json(res, 200, { wallet, claims:[], status:'v3-referral-payout-pending' });
     }
     if (req.method === 'GET' && url.pathname === '/api/referrals/dashboard') {
       let wallet;
       try { wallet = walletKey(url.searchParams.get('wallet')); } catch { return json(res, 400, { error: 'A valid wallet query parameter is required.' }); }
       const session = await referralSession(req);
       if (session?.wallet !== wallet) return json(res, 401, { error:'Approve referral dashboard access with this wallet.' });
-      const state = await store.read(); const network = referralNetworkForWallet(state, wallet); const qualified = new Set(Object.values(state.settlements).filter(item => network.includes(item.creatorWallet)).map(item => item.creatorWallet));
+      const state = await store.read(); const network = referralNetworkForWallet(state, wallet);
+      const qualified = new Set(Object.values(state.v3Settlements || {})
+        .filter(item => item.status === 'finalized')
+        .map(item => state.launches?.[item.mint]?.creatorWallet)
+        .filter(creator => network.includes(creator)));
       const code = state.referrals.wallets[wallet]?.code;
       const direct = Object.values(state.referrals.attributions).filter(item => item.inviterWallet === wallet);
       const directCreatorsBySource = {};

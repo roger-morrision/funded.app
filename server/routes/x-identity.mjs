@@ -1,6 +1,5 @@
 import { authCookie, OAUTH_SECONDS, cookieValue, SESSION_SECONDS, allowedAuthOrigin } from '../x-auth.mjs';
 import { xLookupHttpError } from '../x-user-lookup.mjs';
-import { rewardView, automaticXClaimState } from '../../reward-discovery.js';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -15,8 +14,6 @@ export function createXIdentityRoutes({
   xSession,
   resolveXUser,
   solanaCluster,
-  readReceiptEvidence,
-  automaticRewardStore,
   v3LaunchConfig,
   env = process.env,
   respond,
@@ -83,10 +80,10 @@ export function createXIdentityRoutes({
       return json(res, 200, resolved);
     }
     if (req.method === 'GET' && url.pathname === '/api/mint-router/status') {
-      return json(res, 200, { ready:false, reasons:['New V2 launches are retired; use the verified V3 launch flow.'] });
+      return json(res, 410, { error:'This legacy route is retired. Use /api/v3-launch-config.' });
     }
     if (req.method === 'GET' && url.pathname === '/api/mint-router/creator-settlement-status')
-      return json(res, 200, { ready:false, reasons:['V2 creator settlement is retired. Use a verified V3 collection.'] });
+      return json(res, 410, { error:'This legacy route is retired. Use V3 collection status.' });
     if (req.method === 'GET' && url.pathname === '/api/x-fee/status') {
       const reasons = [];
       const oauth = xConfig?.();
@@ -111,13 +108,6 @@ export function createXIdentityRoutes({
       res.setHeader('cache-control', 'no-store');
       if (!session?.user?.username) return json(res, 401, { error: 'Sign in with X to view claims.' });
       const handle = `@${session.user.username}`.toLowerCase();
-      const state = await store.readCreatorState(String(session.user.id), solanaCluster);
-      const evidence=await readReceiptEvidence(state);
-      const rewards = await automaticRewardStore.read();
-      const claims = Object.values(state.obligations || {}).filter(item => item.source === 'verified-per-mint-router-collection' && item.xUserId === String(session.user.id)).map(item => {
-        const claim = state.claims?.[item.id];
-        return rewardView(item, claim, evidence.verifiedPayouts, automaticXClaimState(item, claim, rewards));
-      });
       const v3 = [];
       if (solanaCluster === 'devnet' && process.env.FUNDED_V3_X_CLAIMS_ENABLED === 'true') {
         const ledger = await store.read();
@@ -152,7 +142,7 @@ export function createXIdentityRoutes({
             payoutSignature:paid ? payment.signature : null, paidAt:paid ? claim.paidAt : null });
         }
       }
-      return json(res, 200, { handle, claims:[...v3, ...claims.map(claim => ({ ...claim, canPrepare:false }))] });
+      return json(res, 200, { handle, claims:v3 });
     }
     if (req.method === 'POST' && url.pathname === '/api/x/logout') {
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error: 'Sign out from the app origin.' });

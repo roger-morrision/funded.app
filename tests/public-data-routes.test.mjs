@@ -26,15 +26,20 @@ test('public data routes leave other methods and paths to the shared router', as
   }
 });
 
-test('launch pagination keeps the unbounded default and rejects malformed limits before reading', async () => {
+test('launch pagination filters retired launches before paging and rejects malformed limits', async () => {
   const reads = [];
-  const f = fixture(createDirectoryRoutes, { store: { readLaunches: async options => { reads.push(options); return [{ mint }]; } } });
+  const f = fixture(createDirectoryRoutes, { store: { readLaunches: async options => {
+    reads.push(options); return [{ mint:'legacy', pumpFeeRoute:{scope:'per-mint-v2'} },
+      { mint, pumpFeeRoute:{scope:'per-mint-v3'} }]; } } });
   assert.equal(await f.request('/api/launches'), true);
   await f.request('/api/launches?limit=999&offset=100001');
   await f.request('/api/launches?limit=0&offset=0');
   for (const query of ['limit=-1', 'limit=1.2', 'offset=no', 'limit=']) await f.request(`/api/launches?${query}`);
-  assert.deepEqual(reads, [{ limit: null, offset: 0 }, { limit: 100, offset: 100000 }, { limit: 0, offset: 0 }]);
+  assert.deepEqual(reads, [undefined, undefined, undefined]);
   assert.deepEqual(f.responses.map(r => r.status), [200, 200, 200, 400, 400, 400, 400]);
+  assert.deepEqual(f.responses[0].data.map(row => row.mint), [mint]);
+  assert.deepEqual(f.responses[1].data, []);
+  assert.deepEqual(f.responses[2].data, []);
 });
 
 test('public state uses sanitized buckets and payment history keeps coverage metadata', async () => {

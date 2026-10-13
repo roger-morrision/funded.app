@@ -69,6 +69,21 @@ const fullReader = createPaymentHistoryReader({ cluster:'devnet', officialGenesi
   readEvidence:async()=>({ cluster:'devnet', commitment:'finalized', status:'onchain-indexed', verifiedPayouts:allEvidence }),
   rewardsStore:{ read:async()=>({ schedules:{} }) }, store:{ read:async()=>({}) }, connectionFactory:()=>({}) });
 assert.equal((await fullReader()).verifiedPayouts.length,35);
+const v3Source='3'.repeat(64);
+const v3OnlyReader=createPaymentHistoryReader({ cluster:'devnet', v3Only:true,
+  officialGenesis:async()=>'devnet-test',
+  readEvidence:async()=>({ cluster:'devnet', commitment:'finalized', status:'onchain-indexed',
+    verifiedPayouts:[legacy] }),
+  rewardsStore:{ read:async()=>({ rewardPools:{['v3:'+v3Source]:{fundingSignature:v3Source}},
+    schedules:{ legacy:{...schedule,payments:{[receiver]:payment}},
+      current:{...schedule, poolIds:['v3:'+v3Source], payments:{[receiver]:payment}} } }) },
+  store:{ read:async()=>({ ...legacyState,
+    v3CreatorRewardFunding:{[v3Source]:{status:'finalized',signature:v3Source,
+      balanceDeltaVerified:true}} }) },
+  connectionFactory:()=>({ getGenesisHash:async()=>'devnet-test',getTransaction:async()=>transaction }) });
+const v3OnlyResult=await v3OnlyReader();
+assert.equal(v3OnlyResult.verifiedPayouts.length,1);
+assert.equal(v3OnlyResult.verifiedPayouts[0].source,'automatic-holder');
 assert.equal(filterPaymentHistory([
   { source:'automatic-holder', blockTime:Date.parse('2026-10-06T23:59:59Z') / 1000 },
   { source:'automatic-holder', blockTime:Date.parse('2026-10-07T00:00:00Z') / 1000 },

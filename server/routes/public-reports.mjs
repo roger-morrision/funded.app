@@ -1,9 +1,7 @@
-import { analyticsReceiptTotals } from '../analytics-summary.mjs';
 import { CREATOR_SUPPORT_VERSION } from '../../creator-support-model.js';
-import { rewardPaidTotals } from '../reward-paid-totals.mjs';
-import { feePayoutStats } from '../fee-payout-stats.mjs';
 import { homeFeeAllocationSummary } from '../home-dashboard-metrics.mjs';
 import { creatorReputation } from '../../stonk-features.js';
+import { v3PublicMetrics, v3ReceiptEvidence } from '../v3-public-metrics.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -15,12 +13,16 @@ export function createPublicReportsRoutes({
   const json = (...args) => { respond(...args); return true; };
   return async function handlePublicReportsRoutes(req, res, url, requestId) {
     if (req.method === 'GET' && url.pathname === '/api/state') return json(res, 200, publicState(await store.readPublicBuckets()));
-    if (req.method === 'GET' && url.pathname === '/api/evidence/receipts') return json(res, 200, await readReceiptEvidence());
+    if (req.method === 'GET' && url.pathname === '/api/evidence/receipts') {
+      const [state, evidence] = await Promise.all([store.read(), readFinalizedEvidence()]);
+      return json(res, 200, v3ReceiptEvidence(state, evidence, solanaCluster));
+    }
     if (req.method === 'GET' && url.pathname === '/api/evidence/payment-history') return json(res, 200, await readPaymentHistory());
     if (req.method === 'GET' && url.pathname === '/api/analytics/summary') {
-      const [state, rewards, evidence] = await Promise.all([store.read(), automaticRewardStore.read(), readFinalizedEvidence()]);
-      const launches = Object.values(state.launches || {}).filter(row => row.cluster === solanaCluster && row.onchainVerified === true);
-      const totals = analyticsReceiptTotals(state, evidence, solanaCluster);
+      const [state, rewards, evidence, history] = await Promise.all([store.read(), automaticRewardStore.read(), readFinalizedEvidence(), readPaymentHistory()]);
+      const launches = Object.values(state.launches || {}).filter(row => row.cluster === solanaCluster
+        && row.onchainVerified === true && row.pumpFeeRoute?.scope === 'per-mint-v3');
+      const { v3Evidence, ...totals } = v3PublicMetrics(state, evidence, history, rewards, solanaCluster);
       return json(res, 200, {
         cluster: solanaCluster,
         build: process.env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
@@ -29,9 +31,7 @@ export function createPublicReportsRoutes({
         freshness: evidence.generatedAt || null,
         launches: launches.length,
         ...totals,
-        rewardPaid: rewardPaidTotals(state, rewards, evidence, solanaCluster),
-        feePayoutStats: feePayoutStats(state, rewards, evidence, solanaCluster),
-        homeFeeAllocations: homeFeeAllocationSummary(state, evidence, solanaCluster),
+        homeFeeAllocations: homeFeeAllocationSummary(state, v3Evidence, solanaCluster),
         creatorProfiles: creatorReputation(launches).length,
       });
     }

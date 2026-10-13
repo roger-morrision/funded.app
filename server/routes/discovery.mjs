@@ -25,7 +25,9 @@ export function createDiscoveryRoutes({
       const sort = ['market_cap', 'created_timestamp', 'last_trade_timestamp'].includes(url.searchParams.get('sort')) ? url.searchParams.get('sort') : 'market_cap';
       if (solanaCluster === 'devnet') {
         const connection = new Connection(solanaRpcUrl, 'confirmed');
-        const candidates = (await store.readLaunches()).filter(item => item?.mint && item?.chain === 'solana' && (item.cluster || 'devnet') === 'devnet');
+        const candidates = (await store.readLaunches()).filter(item => item?.mint
+          && item?.chain === 'solana' && (item.cluster || 'devnet') === 'devnet'
+          && item.pumpFeeRoute?.scope === 'per-mint-v3');
         const alreadyVerified = candidates.filter(item => item.onchainVerified);
         const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
         const mayVerify = candidates.some(item => !item.onchainVerified) && await store.chargeRpcRate(`explore:${clientKey(req)}`, 1, 10, windowStart);
@@ -40,8 +42,9 @@ export function createDiscoveryRoutes({
           } catch { return null; }
           finally { devnetVerificationActive -= 1; }
         }));
+        const v3Mints = new Set(candidates.map(item => item.mint));
         const paidListings = Object.values((await store.read()).listings || {})
-          .filter(item => item.cluster === 'devnet' && item.onchainVerified === true)
+          .filter(item => v3Mints.has(item.mint) && item.cluster === 'devnet' && item.onchainVerified === true)
           .map(item => ({ mint: item.mint, name: item.name || 'Paid listing', symbol: item.symbol || 'TOKEN',
             createdTimestamp: Math.floor(Date.parse(item.listedAt) / 1000), listingPayment: { signature: item.signature, amountTokens: item.amountTokens, verified: true } }));
         const launchItems = [...alreadyVerified, ...newlyVerified.filter(Boolean)].map(normalizePumpToken).filter(Boolean);
