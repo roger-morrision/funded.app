@@ -16,6 +16,7 @@ import { createLaunchTierPricing } from './launch-tier-pricing.mjs';
 import { createXIdentityRoutes } from './routes/x-identity.mjs';
 import { createCreatorFeesRoutes } from './routes/creator-fees.mjs';
 import { createV3Routes } from './routes/v3-routes.mjs';
+import { publicWalletSignedV3Post } from './v3-public-post-paths.mjs';
 import { createKeeperCollectionRoutes } from './routes/keeper-collection.mjs';
 import { createListingPaymentsRoutes } from './routes/listing-payments.mjs';
 import { createLaunchRegistrationRoutes } from './routes/launch-registration.mjs';
@@ -182,7 +183,7 @@ function authorized(req) {
 function requireAuthorized(req, res) { if (authorized(req)) return true; json(res, 401, { error: 'Keeper/indexer API authorization is required.' }); return false; }
 // Retired public claim paths reach the V3 router's 410 guard without an auth
 // challenge; no legacy write handler is registered below it.
-function publicPost(path) { return publicPostPaths.has(path) || /^\/api\/tokens\/[^/]+\/v3-(?:x-claim\/[^/]+\/(?:prepare|verify|execute)|buyback\/[^/]+)$/.test(path) || /^\/api\/sol-claims\/[^/]+\/(?:prepare|verify|attest|execute)$/.test(path) || /^\/api\/referral-claims\/[^/]+\/(?:verify|execute)$/.test(path) || /^\/api\/tokens\/[^/]+\/creator-claim\/(?:prepare|request|settle)$/.test(path) || /^\/api\/tokens\/[^/]+\/reward-funding\/settle$/.test(path); }
+function publicPost(path) { return publicPostPaths.has(path) || publicWalletSignedV3Post(path) || /^\/api\/tokens\/[^/]+\/v3-(?:x-claim\/[^/]+\/(?:prepare|verify|execute)|buyback\/[^/]+)$/.test(path) || /^\/api\/sol-claims\/[^/]+\/(?:prepare|verify|attest|execute)$/.test(path) || /^\/api\/referral-claims\/[^/]+\/(?:verify|execute)$/.test(path) || /^\/api\/tokens\/[^/]+\/creator-claim\/(?:prepare|request|settle)$/.test(path) || /^\/api\/tokens\/[^/]+\/reward-funding\/settle$/.test(path); }
 function localDevWalletRequest(req, path) {
   if (!devMode || !/^\/api\/dev-wallet\/sign-(?:transaction|message)$/.test(path)) return false;
   try {
