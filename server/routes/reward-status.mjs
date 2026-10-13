@@ -1,5 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
-import { automaticRewardStatus } from '../automatic-rewards.mjs';
+import { v3AutomaticRewardStatus } from '../v3-automatic-status.mjs';
 import { jackpotPreview } from '../jackpot-model.mjs';
 import { v3RewardExperience } from '../v3-reward-experience.mjs';
 
@@ -41,10 +41,10 @@ export function createRewardStatusRoutes({
       && row.approvedHash === env.FUNDED_V3_PROGRAM_DATA_SHA256.toLowerCase()) : [];
   return async function handleRewardStatusRoutes(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/rewards/automatic') {
-      const status = automaticRewardStatus(new Date(), await automaticRewardStore.read());
+      const [buybackState, rewards] = await Promise.all([store.read(), automaticRewardStore.read()]);
+      const status = v3AutomaticRewardStatus(buybackState, rewards);
       const x = { ready:false, reasons:['V3 X payout and claim require a finalized Devnet payment.'] };
       status.modes.x = 'unavailable';
-      const buybackState = await store.read();
       const recordedBurns = verifiedV3Burns(buybackState);
       const currentBurns = currentDevnetBurns(buybackState);
       const buybackReady = currentBurns.length > 0;

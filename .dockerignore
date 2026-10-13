@@ -29,3 +29,10 @@ tmp/
 /test-results
 /playwright-report
 /deploy
+
+# Retired V2 HTTP handlers are retained for source-history tests only. They are
+# not part of the V3-only public runtime image.
+/server/routes/sol-claims.mjs
+/server/routes/referral-claims.mjs
+/server/routes/reward-funding.mjs
+/server/routes/settlement.mjs
