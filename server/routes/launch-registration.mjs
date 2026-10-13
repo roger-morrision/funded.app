@@ -52,7 +52,7 @@ export function createLaunchRegistrationRoutes({
       ]) if (env[name] !== 'true') reasons.push(`${label} is disabled`);
       // Configuration cannot activate missing instructions or workers. Remove
       // these blockers only after finalized V3 payout and burn regressions.
-      reasons.push('V3 reward funding and claims are not implemented');
+      reasons.push('V3 creator-directed reward funding and claims are incomplete');
       reasons.push('V3 buyback purchase and burn are not implemented');
       if (!programId || !/^[a-f0-9]{64}$/.test(approvedHash)) reasons.push('Approved V3 program is not configured');
       let authority = null;
