@@ -11,6 +11,8 @@ import { createRewardFundingProcessor } from '../server/reward-funding-processor
 import { rewardWorkerFailureStatus } from '../server/worker-readiness.mjs';
 import { rpcQuotaExhausted, rpcWorkerWaitMs } from '../rpc-retry.js';
 
+throw new Error('Retired V2 reward scheduler: V3 holder and X payouts require verified entitlement and payout paths.');
+
 for (const [name, filePath] of Object.entries(process.env)) {
   if (!name.endsWith('_FILE') || !filePath || process.env[name.slice(0, -5)] != null) continue;
   process.env[name.slice(0, -5)] = readFileSync(filePath, 'utf8').trim();

@@ -2,6 +2,7 @@ import { createV3CreatorSettlementRoutes } from './v3-creator-settlement.mjs';
 import { createV3RewardFundingRoutes } from './v3-reward-funding.mjs';
 
 const retiredV2Path = path => path === '/api/settlements/claims'
+  || path === '/api/payout-obligations/sol'
   || path === '/api/x-fee/obligations'
   || path === '/api/referral-claims/prepare'
   || path === '/api/keeper/reconcile-wrapped-sol'

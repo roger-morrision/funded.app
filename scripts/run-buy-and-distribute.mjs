@@ -8,6 +8,8 @@ import { createAutomaticRewardChain } from '../server/automatic-reward-chain.mjs
 import { createRewardScheduler } from '../server/reward-scheduler.mjs';
 import { createBuyAndDistributeExecutor } from '../server/buy-and-distribute.mjs';
 
+throw new Error('Retired V2 reward program command: use a verified V3 funding and payout path.');
+
 function signer() {
   const cluster = String(process.env.SOLANA_CLUSTER || process.env.VITE_SOLANA_CLUSTER || 'devnet');
   const encoded = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim(), path = String(process.env.FUNDED_ROUTER_AUTHORITY_KEYPAIR_PATH || '').trim();

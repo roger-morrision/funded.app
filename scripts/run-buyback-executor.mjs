@@ -5,6 +5,8 @@ import { createStore } from '../server/store.mjs';
 import { createDevnetBuybackExecutor } from '../server/buyback-executor.mjs';
 import { resolveDevnetBuybackConfig } from './devnet-role-config.mjs';
 
+throw new Error('Retired V2 buyback executor: V3 category 6 remains locked until a verified replacement is deployed.');
+
 function config(name) {
   const path = process.env[`${name}_FILE`];
   return String(process.env[name] || (path ? readFileSync(path, 'utf8') : '')).trim();

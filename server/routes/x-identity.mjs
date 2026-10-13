@@ -13,9 +13,7 @@ export function createXIdentityRoutes({
   xAuth,
   html: respondHtml,
   xSession,
-  xFeeReadiness,
   resolveXUser,
-  mintRouterReadiness,
   solanaCluster,
   readReceiptEvidence,
   automaticRewardStore,
@@ -71,8 +69,6 @@ export function createXIdentityRoutes({
     }
     if (req.method === 'GET' && url.pathname === '/api/x/resolve') {
       // A prior provider failure must not block a fresh lookup after X recovers.
-      const readiness = await xFeeReadiness({ includeLookupHealth: false, creatorSigned:true });
-      if (!readiness.ready) return json(res, 503, { error: 'X fee claims are not operational on Solana yet.', reasons: readiness.reasons });
       if (!await store.chargeRpcRate(`x-resolve:${clientKey(req)}`, 1, 10, Math.floor(Date.now() / 60_000) * 60_000)) return json(res, 429, { error: 'X account lookup limit reached; retry shortly.' });
       let resolved;
       try { resolved = await resolveXUser(url.searchParams.get('handle')); }

@@ -14,12 +14,11 @@ services:
       X_CALLBACK_URL: ${X_CALLBACK_URL:-}
       X_CLIENT_ID: ${X_CLIENT_ID:-}
       X_CLIENT_SECRET_FILE: /run/secrets/x_client_secret
-      FUNDED_BUILD_ID: ${FUNDED_BUILD_ID:-automatic-rewards-v11-20260923d}
+      FUNDED_BUILD_ID: ${FUNDED_RELEASE_SHA:?Set the tested exact source SHA}
       SOLANA_RPC_URL_FILE: /run/secrets/solana_rpc_url
       SOLANA_DEVNET_RPC_URL_FILE: /run/secrets/solana_devnet_rpc_url
       SOLANA_KEEPER_CONFIGURED: "true"
-      FUNDED_MINT_FEE_ROUTER_ENABLED: "true"
-      FUNDED_REWARD_PROGRAM_DATA_SHA256: ${FUNDED_REWARD_PROGRAM_DATA_SHA256:?Missing approved reward program-data hash}
+      FUNDED_MINT_FEE_ROUTER_ENABLED: "false"
       FUNDED_ROUTER_AUTHORITY_SECRET_KEY_FILE: /run/secrets/funded_router_authority_secret_key
       SOLANA_DEVNET_CREATOR_SECRET_KEY_FILE: /run/secrets/solana_devnet_creator_secret_key
       SOLANA_ALLOW_KEEPER_TRANSFER: "false"

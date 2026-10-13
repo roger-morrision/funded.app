@@ -1,7 +1,4 @@
 import { PublicKey, Connection } from '@solana/web3.js';
-import { reconcileXFeeObligation, deriveXFeeObligation } from '../x-fee-guard.mjs';
-import { deriveMintFeeRouter } from '../../fee-router.js';
-import { verifyWrappedSolRecoveryReceipt } from '../wrapped-sol-recovery-receipt.mjs';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import { deriveMintRouterV3 } from '../../mint-router-v3.js';
 import { verifyV3LaunchRouterReadiness as verifyV3Readiness } from '../v3-launch-readiness.mjs';
@@ -17,11 +14,8 @@ export function createKeeperCollectionRoutes({
   fetchPump,
   normalizePumpToken,
   store,
-  automaticRewardStore,
-  solToLamports,
   solanaCluster,
   collectPumpCreatorFees,
-  feeRouterConfig,
   solanaRpcUrl,
   respond,
   env = process.env,
@@ -244,49 +238,6 @@ export function createKeeperCollectionRoutes({
       });
       if (!recorded) return json(res, 409, { error:'The collection changed during settlement reconciliation.' });
       return json(res, 200, recorded);
-    }
-    if (req.method === 'POST' && url.pathname === '/api/keeper/reconcile-wrapped-sol') {
-      if (!requireAuthorized(req, res)) return true;
-      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Wrapped SOL reconciliation is Solana only.' });
-      const input = await body(req);
-      let mint;
-      try { mint = new PublicKey(String(input.mint || '')).toBase58(); }
-      catch { return json(res, 400, { error:'A valid mint is required.' }); }
-      const signature = String(input.signature || '');
-      if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature)) return json(res, 400, { error:'A valid recovery signature is required.' });
-      const config = feeRouterConfig();
-      const launch = await store.readLaunch(mint);
-      if (!config || !launch?.onchainVerified || launch.cluster !== solanaCluster || launch.pumpFeeRoute?.scope !== 'per-mint-v2')
-        return json(res, 409, { error:'A verified mint-router launch is required.' });
-      const connection = new Connection(solanaRpcUrl, 'finalized');
-      if (await connection.getGenesisHash() !== 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')
-        return json(res, 409, { error:'Configured RPC failed verification.' });
-      const router = deriveMintFeeRouter(config.programId, new PublicKey(mint));
-      if (launch.creator !== router.address.toBase58()) return json(res, 409, { error:'Launch router mismatch.' });
-      const tx = await connection.getTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
-      const proof = verifyWrappedSolRecoveryReceipt({ transaction:tx, signature, mint,
-        router:router.address.toBase58(), programId:config.programId.toBase58() });
-      if (!proof) return json(res, 409, { error:'Finalized mint-router wrapped SOL recovery proof is missing or invalid.' });
-      const recorded = await store.update(state => {
-        if (state.collections[signature]) return null;
-        const recordedAt = new Date().toISOString();
-        const collection = { id:signature, signature, requestedMint:mint, mint, attribution:'mint-verified',
-          onchainVerified:true, router:router.address.toBase58(), programId:config.programId.toBase58(),
-          collectionMethod:'wrapped-sol-recovery', wrappedSolAccount:proof.wrappedSolAccount,
-          collectedLamports:proof.collectedLamports, rentRefundLamports:proof.rentRefundLamports,
-          cluster:solanaCluster, status:'collected', recordedAt };
-        state.collections[signature] = collection;
-        try {
-          const obligation = deriveXFeeObligation(state, { mint, claimSignature:signature });
-          state.obligations[obligation.id] ||= { ...obligation, createdAt:recordedAt };
-        } catch (error) {
-          collection.obligationStatus = 'reconciliation-required';
-          collection.obligationError = String(error.message || error);
-        }
-        return collection;
-      });
-      if (!recorded) return json(res, 409, { error:'Recovery signature was already reconciled.' });
-      return json(res, 200, { ...recorded, proof });
     }
     return false;
   };

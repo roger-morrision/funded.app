@@ -3,7 +3,7 @@
 # X secrets remain in mounted .secrets files. Local Vite settings are untouched.
 services:
   app:
-    image: ${FUNDED_APP_IMAGE:-fundedapp-app:automatic-rewards-v11-20260923h}
+    image: ${FUNDED_RELEASE_IMAGE:?Set the tested exact-SHA V3 image}
     build:
       args:
         VITE_DEV_MODE: "false"
@@ -12,13 +12,12 @@ services:
       NODE_ENV: production
       DEV_MODE: "false"
       DEVNET_TEST_MODE: "false"
-      # Devnet InitializeMint and SettleMint were finalized with exact claim/recipient deltas.
-      FUNDED_MINT_FEE_ROUTER_ENABLED: "true"
+      FUNDED_MINT_FEE_ROUTER_ENABLED: "false"
       FUNDED_BOOST_ENABLED: "true"
       PUBLIC_APP_URL: https://funded.vip
       CORS_ORIGIN: https://funded.vip
       X_CALLBACK_URL: https://funded.vip/api/x/oauth/callback
-      FUNDED_BUILD_ID: ${FUNDED_BUILD_ID:-automatic-rewards-v11-20260923h}
+      FUNDED_BUILD_ID: ${FUNDED_RELEASE_SHA:?Set the tested exact source SHA}
 
 # Keep the public app on the active Devnet reward-worker ledger across UI releases.
 volumes:

@@ -6,6 +6,8 @@ import { buildVerifiedPoolTradeTransaction } from '../pump-trading.js';
 import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from '../server/automatic-reward-chain.mjs';
 import { resolveDevnetBuybackConfig } from './devnet-role-config.mjs';
 
+throw new Error('Retired V2 buyback initialization: deploy the audited V3 buyback path instead.');
+
 const path = '.secrets/funded-buyback-operator-secret-key';
 const lookupPath = '.secrets/funded-buyback-lookup-table-address';
 const resolved = resolveDevnetBuybackConfig(process.env);

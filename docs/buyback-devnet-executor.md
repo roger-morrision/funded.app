@@ -1,5 +1,7 @@
 # Fee-funded buyback executor: Devnet evidence
 
+> **Retired V2 procedure.** The worker and its Compose overlay have been removed. This page is historical evidence only. V3 category 6 remains locked until a verified purchase and burn path is deployed.
+
 The Devnet worker selects only settled, mint-verified creator-fee collections under an onchain-verified launch policy. It checks the pinned mint-router bytecode, source router header and spendable balance, the configured $FUNDED mint, and the verified SOL PumpSwap pool. The fee-router payout, protected buy, and SPL `BurnChecked` are signed by separate authority/operator wallets in one versioned Solana transaction. It persists the signed transaction and deterministic claim ID before broadcast. A completed receipt requires a finalized claim record, exact router debit, exact $FUNDED supply reduction, and an independently verified refund of unused swap input to the source router.
 
 The worker is enabled only by `compose.buyback-worker.yml` with `SOLANA_CLUSTER=devnet`. Its dedicated Devnet operator key is mounted from an ignored local secret file. The address lookup table is configured in ignored `.env.deploy`. The public receipt index is `/api/buyback/status`; the buyback page reads that index, not browser-local preview records.

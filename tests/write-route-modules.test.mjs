@@ -56,11 +56,12 @@ test('keeper authorization denials terminate dispatch before reading or collecti
   });
   for (const [path, method] of [['indexer/sync', 'POST'], ['keeper/collection-candidates', 'GET'],
     ['keeper/collect', 'POST'], ['keeper/reconcile-v3-collection', 'POST'],
-    ['keeper/reconcile-v3-settlement', 'POST'],
-    ['keeper/reconcile-wrapped-sol', 'POST']]) {
+    ['keeper/reconcile-v3-settlement', 'POST']]) {
     assert.equal(await f.request(`/api/${path}`, {}, method), true);
   }
-  assert.equal(denied, 6);
+  assert.equal(await f.request('/api/keeper/reconcile-wrapped-sol', {}, 'POST'), false,
+    'The keeper module does not contain a V2 recovery handler');
+  assert.equal(denied, 5);
   assert.deepEqual(f.responses, [], 'The authorization helper already sent the response');
 });
 

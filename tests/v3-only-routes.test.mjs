@@ -6,8 +6,12 @@ test('retired V2 fee writes cannot reach their old handlers', async () => {
   const responses = [];
   const handle = createV3Routes({ respond:(_res, status, body) => responses.push({ status, body }) });
   const paths = [
-    '/api/settlements/claims', '/api/x-fee/obligations',
-    '/api/sol-claims/claim/execute', '/api/referral-claims/claim/execute',
+    '/api/settlements/claims', '/api/payout-obligations/sol', '/api/x-fee/obligations',
+    '/api/sol-claims/claim/prepare', '/api/sol-claims/claim/verify',
+    '/api/sol-claims/claim/attest', '/api/sol-claims/claim/execute',
+    '/api/referral-claims/prepare', '/api/referral-claims/claim/verify',
+    '/api/referral-claims/claim/execute', '/api/keeper/reconcile-wrapped-sol',
+    '/api/tokens/mint/creator-claim/prepare', '/api/tokens/mint/creator-claim/request',
     '/api/tokens/mint/creator-claim/settle', '/api/tokens/mint/reward-funding/settle',
   ];
   for (const path of paths)

@@ -1,8 +1,17 @@
 import { PublicKey } from '@solana/web3.js';
 import { automaticRewardStatus } from '../automatic-rewards.mjs';
-import { buybackQueue } from '../buyback-executor.mjs';
 import { jackpotPreview } from '../jackpot-model.mjs';
 import { rewardExperience } from '../reward-experience.mjs';
+
+function pendingV3Buybacks(state) {
+  return Object.values(state.v3Settlements || {}).flatMap(row => {
+    const lamports = String(row.allocationPlan?.protocol?.buybackLamports || '0');
+    if (row.status !== 'finalized' || !/^[1-9]\d*$/.test(lamports)
+      || row.allocationPlan?.status !== 'allocated-not-funded') return [];
+    return [{ mint:row.mint, sourceCollectionSignature:row.collectionSignature,
+      amountLamports:lamports, status:'awaiting-v3-buyback-executor' }];
+  });
+}
 
 // Dispatch after shared authorization and rate checks; preserve caller route order.
 export function createRewardStatusRoutes({
@@ -16,14 +25,17 @@ export function createRewardStatusRoutes({
       const x = { ready:false, reasons:['V3 X payout and claim verification are pending activation.'] };
       status.modes.x = 'unavailable';
       const buybackState = await store.read();
-      const verifiedBurns = Object.values(buybackState.buybackOrders || {}).filter(row => row.status === 'finalized' && row.refundVerified).length;
-      status.modes.buyback = solanaCluster === 'devnet' && verifiedBurns > 0 ? 'verified-devnet-atomic-buy-and-burn' : 'accrual-only-execution-unavailable';
-      status.routeReadiness = { x, community:{ ready:status.modes.community === 'verified-token-airdrop-cycle', reason:status.modes.community === 'verified-token-airdrop-cycle' ? null : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:false, devnetExecutorVerified:solanaCluster === 'devnet' && verifiedBurns > 0, verifiedBurns, pending:buybackQueue(buybackState), reason:verifiedBurns > 0 ? 'Buy-and-burn receipts are verified; dedicated custody and audit checks are still pending.' : 'No finalized fee-funded buy-and-burn receipt is indexed.' } };
+      status.modes.buyback = 'accrual-only-execution-unavailable';
+      status.routeReadiness = { x, community:{ ready:status.modes.community === 'verified-token-airdrop-cycle', reason:status.modes.community === 'verified-token-airdrop-cycle' ? null : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:false, devnetExecutorVerified:false, verifiedV3Burns:0, pending:pendingV3Buybacks(buybackState), reason:'V3 category 6 is locked until an audited purchase and burn path is deployed.' } };
       return json(res, 200, status);
     }
     if (req.method === 'GET' && url.pathname === '/api/buyback/status') {
       const state = await store.read();
-      return json(res, 200, { cluster:solanaCluster, custody:'per-mint-fee-router-pda', mainnetReady:false, pending:buybackQueue(state), receipts:Object.values(state.buybackOrders || {}).filter(row => row.status === 'finalized' && row.refundVerified).map(({ signedTransaction, refundTransaction, ...row }) => row) });
+      return json(res, 200, { cluster:solanaCluster, custody:'v3-mint-category-vault',
+        executionReady:false, mainnetReady:false, pending:pendingV3Buybacks(state),
+        receipts:[], historicalV2Receipts:Object.values(state.buybackOrders || {})
+          .filter(row => row.status === 'finalized' && row.refundVerified)
+          .map(({ signedTransaction, refundTransaction, ...row }) => row) });
     }
     if (req.method === 'GET' && url.pathname === '/api/jackpots/status') {
       if (solanaCluster !== 'devnet' || String(process.env.VITE_JACKPOT_ENABLED || '').toLowerCase() !== 'true')

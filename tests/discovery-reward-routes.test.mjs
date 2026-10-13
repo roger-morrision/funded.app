@@ -103,14 +103,20 @@ test('price provider failures remain unavailable and never persist a quote', asy
   assert.equal(f.responses[1].status, 503);
 });
 
-test('buyback status exposes only finalized verified receipts and strips transaction payloads', async () => {
+test('V3 buyback status excludes legacy pending orders and keeps verified V2 receipts in history', async () => {
   const f = fixture(createRewardStatusRoutes, { store: { read: async () => ({ buybackOrders: {
     paid: { id: 'paid', status: 'finalized', refundVerified: true, signedTransaction: 'private', refundTransaction: 'private' },
     pending: { id: 'pending', status: 'submitted', refundVerified: true },
     unverified: { id: 'unverified', status: 'finalized', refundVerified: false },
-  } }) } });
+  }, v3Settlements:{ source:{ mint:'mint', collectionSignature:'source', status:'finalized',
+    allocationPlan:{ status:'allocated-not-funded', protocol:{ buybackLamports:'123' } } } } }) } });
   await f.request('/api/buyback/status');
-  assert.deepEqual(f.responses[0].data.receipts, [{ id: 'paid', status: 'finalized', refundVerified: true }]);
+  assert.deepEqual(f.responses[0].data.receipts, []);
+  assert.deepEqual(f.responses[0].data.pending, [{ mint:'mint', sourceCollectionSignature:'source',
+    amountLamports:'123', status:'awaiting-v3-buyback-executor' }]);
+  assert.deepEqual(f.responses[0].data.historicalV2Receipts,
+    [{ id: 'paid', status: 'finalized', refundVerified: true }]);
+  assert.equal(f.responses[0].data.executionReady, false);
   assert.equal(f.responses[0].data.mainnetReady, false);
 });
 

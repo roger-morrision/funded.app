@@ -11,18 +11,13 @@ import { createLaunchQuoteRoutes } from './routes/launch-quotes.mjs';
 import { createRewardStatusRoutes } from './routes/reward-status.mjs';
 import { createSolanaRpcProxy } from './rpc-proxy.mjs';
 import { createMarketProviders, normalizePumpToken } from './market-providers.mjs';
-import { createSettlementRewards, solToLamports } from './settlement-rewards.mjs';
 import { createLaunchTierPricing } from './launch-tier-pricing.mjs';
 import { createXIdentityRoutes } from './routes/x-identity.mjs';
 import { createCreatorFeesRoutes } from './routes/creator-fees.mjs';
 import { createV3Routes } from './routes/v3-routes.mjs';
-import { createRewardFundingRoutes } from './routes/reward-funding.mjs';
-import { createReferralClaimsRoutes } from './routes/referral-claims.mjs';
-import { createSolClaimsRoutes } from './routes/sol-claims.mjs';
 import { createKeeperCollectionRoutes } from './routes/keeper-collection.mjs';
 import { createListingPaymentsRoutes } from './routes/listing-payments.mjs';
 import { createLaunchRegistrationRoutes } from './routes/launch-registration.mjs';
-import { createSettlementRoutes } from './routes/settlement.mjs';
 import { createPublicReportsRoutes } from './routes/public-reports.mjs';
 import { createQuoteAssetsRoutes } from './routes/quote-assets.mjs';
 import { createDirectoryRoutes } from './routes/directory.mjs';
@@ -40,14 +35,14 @@ import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
 
 import { createCommunityClaimService } from './community-claim-service.mjs';
 import { communityProgramForLaunch } from './community-program-config.mjs';
-import { randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { resolve } from 'node:path';
 import { isIP } from 'node:net';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Connection, Keypair, PublicKey, Transaction, VersionedTransaction, clusterApiUrl } from '@solana/web3.js';
 
-import { createReferralCode, resolveReferralUpline } from '../referral-program.js';
+import { createReferralCode } from '../referral-program.js';
 import { createStore } from './store.mjs';
 import { rewardLedgerPath } from './reward-ledger-path.mjs';
 
@@ -135,7 +130,6 @@ function devWalletKeypair() {
 }
 if (process.env.RPC_ALLOW_EXPENSIVE_METHODS === 'true') rpcMethods.add('getProgramAccounts');
 if (devnetTestMode && process.env.RPC_ALLOW_AIRDROP === 'true') rpcMethods.add('requestAirdrop');
-const xAttestationSecret = String(process.env.X_ATTESTATION_SECRET || '').trim();
 const xAuth = createXAuth(store);
 const referralAuth = createReferralAuth(store);
 const mobileWalletRelay = createMobileWalletRelay({
@@ -143,8 +137,6 @@ const mobileWalletRelay = createMobileWalletRelay({
   getLatestBlockhash: () => new Connection(solanaRpcUrl, 'confirmed').getLatestBlockhash('confirmed'),
   getFinalizedTransaction: signature => new Connection(solanaRpcUrl, 'finalized').getParsedTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 }),
 });
-const referralClaimExpiryMs = 14 * 24 * 60 * 60 * 1000;
-const maxReferralPayoutSol = Number(process.env.MAX_REFERRAL_PAYOUT_SOL || 10);
 
 const readProviderSolUsdQuote = createSolUsdQuoteReader();
 let configuredQuoteAssets = [];
@@ -187,6 +179,8 @@ function authorized(req) {
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 function requireAuthorized(req, res) { if (authorized(req)) return true; json(res, 401, { error: 'Keeper/indexer API authorization is required.' }); return false; }
+// Retired public claim paths reach the V3 router's 410 guard without an auth
+// challenge; no legacy write handler is registered below it.
 function publicPost(path) { return publicPostPaths.has(path) || /^\/api\/sol-claims\/[^/]+\/(?:prepare|verify|attest|execute)$/.test(path) || /^\/api\/referral-claims\/[^/]+\/(?:verify|execute)$/.test(path) || /^\/api\/tokens\/[^/]+\/creator-claim\/(?:prepare|request|settle)$/.test(path) || /^\/api\/tokens\/[^/]+\/reward-funding\/settle$/.test(path); }
 function localDevWalletRequest(req, path) {
   if (!devMode || !/^\/api\/dev-wallet\/sign-(?:transaction|message)$/.test(path)) return false;
@@ -213,12 +207,6 @@ function walletSignature(value) {
   } catch { throw invalidRequest('A valid wallet signature is required.'); }
 }
 function referralCodeFromBytes() { return createReferralCode(Uint8Array.from(randomBytes(6))); }
-function referralUplineForWallet(state, wallet) {
-  const direct = state.referrals.attributions[wallet]?.inviterWallet || null;
-  if (!direct) return [];
-  const graph = Object.fromEntries(Object.values(state.referrals.attributions).map(item => [item.wallet, item.inviterWallet]).filter(([key]) => key));
-  return resolveReferralUpline(direct, graph, 3);
-}
 function referralChallengeStatement(challenge) { return `funded.app referral ${challenge.action} ${challenge.wallet} nonce ${challenge.nonce}`; }
 
 function listingBurnAlreadyUsed(state, signature) {
@@ -227,13 +215,6 @@ function listingBurnAlreadyUsed(state, signature) {
     || Object.values(state.launches || {}).some(item => item.creatorLaunchBurn?.receipt?.signature === signature));
 }
 
-function verifyHmacAttestation({ handle, subject, issuedAt, signature }) {
-  if (!xAttestationSecret) return false;
-  const payload = `${handle}|${subject}|${issuedAt}`;
-  const expected = createHmac('sha256', xAttestationSecret).update(payload).digest('hex');
-  const actual = String(signature || '').trim();
-  return actual.length === expected.length && timingSafeEqual(Buffer.from(actual), Buffer.from(expected)) && Math.abs(Date.now() - Number(issuedAt)) < 10 * 60 * 1000;
-}
 function xConfig() { return { clientId: String(process.env.X_CLIENT_ID || '').trim(), clientSecret: String(process.env.X_CLIENT_SECRET || '').trim(), callbackUrl: String(process.env.X_CALLBACK_URL || '').trim() }; }
 const resolveXUser = createXUserResolver({ getBearerToken: () => process.env.X_BEARER_TOKEN });
 async function xSession(req) { return xAuth.session(cookieValue(req, 'funded_x_session')); }
@@ -252,15 +233,12 @@ function xOAuthConfigured(req) {
 function html(res, status, title, message) { res.writeHead(status, { 'content-type': 'text/html; charset=utf-8' }); res.end(`<!doctype html><title>${title}</title><p>${message}</p>`); }
 const {
   keeperKeypair,
-  referralPayoutKeypair,
   routerAuthorityKeypair,
   v3AuthorityKeypair,
   mintRouterReadiness,
   xFeeReadiness,
   feeRouterConfig,
   launchPolicyConfig,
-  executeSolPayout,
-  reconcileSolPayout,
   collectPumpCreatorFees,
 } = createFeeRouterService({ store, solanaCluster, solanaRpcUrl, fundedTokenMint, devnetTestMode, xConfig, resolveXUser });
 
@@ -321,25 +299,21 @@ const handleTokenMarketRoutes = createTokenMarketRoutes({
 
 const { proxySolanaRpc } = createSolanaRpcProxy({ store, solanaRpcUrl, body, authorized, clientKey, json, rpcMethods });
 const { fetchBirdeye, fetchPump } = createMarketProviders({ birdeyeApiKey, birdeyeBaseUrl, birdeyeChain, birdeyeTimeoutMs, pumpApiUrl });
-const { registerAutomaticLaunch, queueAutomaticSettlementRewards, enrollAutomaticXReward } = createSettlementRewards({ store, automaticRewardStore });
 const { currentLaunchTierPricing } = createLaunchTierPricing({ solanaCluster, fundedTokenMint, fundedSwapPool, solanaRpcUrl, readSolUsdQuote });
 
 const handleKeeperCollectionRoutes = createKeeperCollectionRoutes({
-  requireAuthorized, body, fetchPump, normalizePumpToken, store, automaticRewardStore, solToLamports, solanaCluster, collectPumpCreatorFees, feeRouterConfig, solanaRpcUrl, respond: json,
+  requireAuthorized, body, fetchPump, normalizePumpToken, store, solanaCluster, collectPumpCreatorFees, solanaRpcUrl, respond: json,
 });
 const handleListingPaymentsRoutes = createListingPaymentsRoutes({
   body, fundedTokenMint, walletKey, store, solanaCluster, solanaRpcUrl, listingBurnAlreadyUsed,
   currentLaunchTierPricing, clientKey, id, respond: json,
 });
 const handleLaunchRegistrationRoutes = createLaunchRegistrationRoutes({
-  solanaCluster, body, store, xFeeReadiness, resolveXUser, fundedTokenMint, solanaRpcUrl, feeRouterConfig, walletSignature, routerAuthorityKeypair, v3AuthorityKeypair, id, invalidateReserveCache, registerAutomaticLaunch, respond: json,
-});
-const handleSettlementRoutes = createSettlementRoutes({
-  body, store, solanaCluster, walletKey, referralUplineForWallet, queueAutomaticSettlementRewards, respond: json,
+  solanaCluster, body, store, resolveXUser, fundedTokenMint, solanaRpcUrl, walletSignature, v3AuthorityKeypair, id, invalidateReserveCache, respond: json,
 });
 
 const handleXIdentityRoutes = createXIdentityRoutes({
-  xConfig, store, clientKey, xOAuthConfigured, xCallbackUrl, xAuth, html, xSession, xFeeReadiness, resolveXUser, mintRouterReadiness, solanaCluster, readReceiptEvidence, automaticRewardStore, respond: json,
+  xConfig, store, clientKey, xOAuthConfigured, xCallbackUrl, xAuth, html, xSession, resolveXUser, solanaCluster, readReceiptEvidence, automaticRewardStore, respond: json,
 });
 const handleCreatorFeesRoutes = createCreatorFeesRoutes({
   store, solanaCluster, route, solanaRpcUrl, readFinalizedEvidence, automaticRewardStore, feeRouterConfig,
@@ -347,16 +321,6 @@ const handleCreatorFeesRoutes = createCreatorFeesRoutes({
 });
 const handleV3Routes = createV3Routes({
   body, store, solanaCluster, solanaRpcUrl, v3AuthorityKeypair, respond:json,
-});
-const handleRewardFundingRoutes = createRewardFundingRoutes({
-  store, automaticRewardStore, solanaCluster, solanaRpcUrl, feeRouterConfig,
-  mintRouterReadiness, routerAuthorityKeypair, body, respond: json,
-});
-const handleReferralClaimsRoutes = createReferralClaimsRoutes({
-  body, walletKey, store, id, referralClaimExpiryMs, route, walletSignature, referralSession, maxReferralPayoutSol, devnetTestMode, referralPayoutKeypair, executeSolPayout, reconcileSolPayout, respond: json,
-});
-const handleSolClaimsRoutes = createSolClaimsRoutes({
-  requireAuthorized, body, store, route, xSession, walletKey, walletSignature, enrollAutomaticXReward, verifyHmacAttestation, automaticRewardStore, xFeeReadiness, feeRouterConfig, routerAuthorityKeypair, solanaRpcUrl, solanaCluster, respond: json,
 });
 
 const handleDiscoveryRoutes = createDiscoveryRoutes({
@@ -460,7 +424,6 @@ async function handle(req, res) {
     if (await handleTokenChatRoutes(req, res, url, requestId)) return;
     if (await handleV3Routes(req, res, url, requestId)) return;
     if (await handleCreatorFeesRoutes(req, res, url, requestId)) return;
-    if (await handleRewardFundingRoutes(req, res, url, requestId)) return;
     if (await handleTokenMarketRoutes(req, res, url, requestId)) return;
     if (await handleKeeperCollectionRoutes(req, res, url, requestId)) return;
     if (await handleReferralIdentityRoutes(req, res, url, requestId)) return;
@@ -472,9 +435,6 @@ async function handle(req, res) {
     if (await handleLaunchSupport(req, res, url)) return;
     if (await handleListingPaymentsRoutes(req, res, url, requestId)) return;
     if (await handleLaunchRegistrationRoutes(req, res, url, requestId)) return;
-    if (await handleSettlementRoutes(req, res, url, requestId)) return;
-    if (await handleReferralClaimsRoutes(req, res, url, requestId)) return;
-    if (await handleSolClaimsRoutes(req, res, url, requestId)) return;
     if (await handlePages(req, res, url)) return;
     return json(res, 404, { error: 'Not found.' });
   } catch (error) {

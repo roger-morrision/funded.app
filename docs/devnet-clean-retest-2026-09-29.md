@@ -1,5 +1,7 @@
 # Clean Devnet end-to-end retest
 
+> **Retired V2 procedure.** The September retest overlay has been removed. Use the exact-SHA V3 release overlay only after all V3 gates pass.
+
 The public `funded.vip` deployment is a Devnet app. The retest cut over to a new
 PostgreSQL database (`funded_app_retest_20260929`) and a new reward ledger volume
 (`fundedapp_funded_reward_ledger_retest_20260929`). Previous application records

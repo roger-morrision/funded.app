@@ -18,12 +18,7 @@ function call(create, dependencies, path, method = 'GET') {
 }
 
 test('public X payout status stays unavailable while handle lookup remains usable', async () => {
-  const calls = [];
-  const xFeeReadiness = async options => {
-    calls.push(options);
-    return { ready: options?.creatorSigned === true, reasons: options?.creatorSigned ? [] : ['unsigned payout unavailable'] };
-  };
-  const dependencies = { xFeeReadiness, clientKey: () => 'fixture',
+  const dependencies = { xFeeReadiness:async () => assert.fail('V2 payout readiness must not gate X identity lookup'), clientKey: () => 'fixture',
     store: { chargeRpcRate: async () => true, read: async () => ({ creatorProfiles: {} }) },
     resolveXUser: async () => ({ id: '123', handle: '@fixture' }) };
   const status = await call(createXIdentityRoutes, dependencies, '/api/x-fee/status');
@@ -33,7 +28,6 @@ test('public X payout status stays unavailable while handle lookup remains usabl
   const lookup = await call(createXIdentityRoutes, dependencies, '/api/x/resolve?handle=%40fixture');
   assert.equal(lookup.status, 200);
   assert.equal(lookup.data.id, '123');
-  assert.deepEqual(calls, [{ includeLookupHealth:false, creatorSigned:true }]);
 });
 
 test('reward status does not claim V3 X payout readiness from V2 configuration', async () => {

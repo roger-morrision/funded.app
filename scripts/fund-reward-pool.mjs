@@ -8,6 +8,8 @@ import { createAutomaticRewardChain } from '../server/automatic-reward-chain.mjs
 import { createRewardScheduler } from '../server/reward-scheduler.mjs';
 import { createHolderHistoryIndexer } from '../server/holder-history-indexer.mjs';
 
+throw new Error('Retired V2 reward pool funding command: use a verified V3 funding and payout path.');
+
 function signer() {
   const encoded = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim(), path = String(process.env.FUNDED_ROUTER_AUTHORITY_KEYPAIR_PATH || '').trim();
   if (encoded) return Keypair.fromSecretKey(bs58.decode(encoded));

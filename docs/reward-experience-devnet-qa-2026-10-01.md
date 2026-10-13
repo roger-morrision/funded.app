@@ -1,5 +1,7 @@
 # Reward experience Devnet QA — 2026-10-01
 
+> **Retired V2 procedure.** The release script below has been removed because it pinned old images and V2 workers. This page records historical QA only.
+
 ## Deployed build
 
 - Source commit: `de08b07` (`Add verified reward experience and proof views`).
