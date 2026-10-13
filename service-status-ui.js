@@ -13,7 +13,7 @@ const checked = section.querySelector('.service-status-checked');
 button.onclick = async () => {
   button.disabled = true; section.setAttribute('aria-busy', 'true'); status.textContent = 'Checking service status…';
   try {
-    const result = await apiRequest('/api/status', { signal: AbortSignal.timeout(8000) });
+    const result = await apiRequest('/api/status', { signal: AbortSignal.timeout(35000) });
     if (!result.available || !Array.isArray(result.data?.checks)) throw new Error('Unavailable');
     const data = result.data;
     const network = data.cluster === 'devnet' ? 'Solana Devnet' : data.cluster === 'mainnet-beta' ? 'Solana Mainnet' : 'Solana';
