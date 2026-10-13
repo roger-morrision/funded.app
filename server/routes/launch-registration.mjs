@@ -46,7 +46,7 @@ export function createLaunchRegistrationRoutes({
     ]) if (env[name] !== 'true') reasons.push(`${label} is disabled`);
     // Configuration cannot activate missing instructions or workers. Remove
     // these blockers only after finalized V3 payout and burn regressions.
-    reasons.push('V3 holder indexing and OAuth-bound X claim require end-to-end verification');
+    reasons.push('V3 holder worker and OAuth-bound X claim require deployed app verification');
     reasons.push('V3 public buyback route requires deployed app verification');
     if (!programId || !/^[a-f0-9]{64}$/.test(approvedHash)) reasons.push('Approved V3 program is not configured');
     let authority = null;
