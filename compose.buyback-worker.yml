@@ -1,7 +1,8 @@
 # Opt-in Devnet executor. Keep Mainnet gated until dedicated buyback PDA custody is audited.
 services:
+  # This executor withdraws from V2 mint routers. V3 buyback remains locked.
   buyback-worker:
-    profiles: ["buyback-devnet"]
+    profiles: ["retired-v2"]
     image: ${FUNDED_APP_IMAGE:?Set the deployed funded.app image}
     restart: unless-stopped
     command: ["node", "scripts/run-buyback-executor.mjs", "--watch"]

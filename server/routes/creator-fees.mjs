@@ -42,7 +42,9 @@ export function createCreatorFeesRoutes({
       const state = await store.read();
       const launch = state.launches?.[mint];
       const readPump = async () => {
-        if (!launch?.onchainVerified || launch.cluster !== solanaCluster || launch.pumpFeeRoute?.scope !== 'per-mint-v2' || launch.pumpFeeRoute.router !== launch.creator) return {};
+        if (!launch?.onchainVerified || launch.cluster !== solanaCluster
+          || !['per-mint-v2', 'per-mint-v3'].includes(launch.pumpFeeRoute?.scope)
+          || launch.pumpFeeRoute.router !== launch.creator) return {};
         let pumpVault = null;
         try {
           const owner = new PublicKey(launch.creator);
@@ -67,9 +69,37 @@ export function createCreatorFeesRoutes({
         } catch { return []; }
       };
       const [pump, verifiedPayoutSignatures, rewardState] = await Promise.all([readPump(), readPayouts(), automaticRewardStore.read()]);
-      const overview = coinFeeOverview({ mint, cluster:solanaCluster, launch, collections:state.collections, settlements:state.settlements,
+      const overview = launch?.pumpFeeRoute?.scope === 'per-mint-v3' ? null : coinFeeOverview({ mint, cluster:solanaCluster, launch, collections:state.collections, settlements:state.settlements,
         rewardState, referralClaims:state.referralClaims, payouts:state.payouts, verifiedPayoutSignatures,
         operationsRecipient:process.env.FUNDED_PUMP_REVENUE_WALLET, ...pump });
+      if (launch?.onchainVerified && launch.cluster === 'devnet'
+        && launch.pumpFeeRoute?.scope === 'per-mint-v3'
+        && launch.pumpFeeRoute.router === launch.creator
+        && launch.pumpFeeRoute.programId === process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID) {
+        const v3Collections = Object.values(state.collections || {}).filter(row => row.mint === mint
+          && row.scope === 'per-mint-v3' && row.status === 'collected' && row.onchainVerified === true
+          && row.programId === launch.pumpFeeRoute.programId && row.router === launch.pumpFeeRoute.router)
+          .map(row => ({ signature:row.signature, amountLamports:String(row.collectedLamports),
+            settlement:state.v3Settlements?.[row.signature]?.status || 'pending',
+            allocationPlan:state.v3Settlements?.[row.signature]?.status === 'finalized'
+              ? state.v3Settlements[row.signature].allocationPlan : null,
+            communityFunding:state.v3CommunityFunding?.[row.signature]?.status || 'pending',
+            creatorRewardFunding:state.v3CreatorRewardFunding?.[row.signature]?.status || 'pending',
+            creatorWalletPayout:state.v3CreatorWalletPayout?.[row.signature]?.status || 'pending' }));
+        return json(res, 200, { mint, cluster:solanaCluster,
+          source:databaseUrl ? 'funded.app-postgresql' : 'funded.app-file-ledger',
+          coverage:'verified-v3-collections', ...activity,
+          overview:{ available:true, scope:'per-mint-v3', creatorWallet:launch.creatorWallet,
+            pump:{ vault:pump.pumpVault || null,
+              accruedLamports:pump.pumpAccruedLamports == null ? null : String(pump.pumpAccruedLamports),
+              status:pump.pumpError || pump.pumpAccruedLamports == null ? 'unavailable' : 'confirmed',
+              error:pump.pumpError || null },
+            collections:v3Collections, gates:{ settlement:process.env.FUNDED_V3_SETTLEMENT_ENABLED === 'true',
+              communityFunding:process.env.FUNDED_V3_COMMUNITY_FUNDING_ENABLED === 'true',
+              creatorRewardFunding:process.env.FUNDED_V3_CREATOR_REWARD_FUNDING_ENABLED === 'true',
+              creatorWalletPayout:process.env.FUNDED_V3_CREATOR_WALLET_PAYOUT_ENABLED === 'true' } },
+          sharedRouter:null });
+      }
       overview.creatorClaim = creatorClaimStatus({ mint, wallet:launch?.creatorWallet, launch, collections:state.collections, settlements:state.settlements, rewardState });
       overview.rewardFunding = verifiedRewardFundingRequests({ mint, wallet:launch?.creatorWallet, launch,
         collections:state.collections, settlements:state.settlements, rewardState,

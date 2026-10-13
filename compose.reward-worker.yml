@@ -20,8 +20,10 @@ services:
       reward-volume-init:
         condition: service_completed_successfully
 
+  # The V2 payout scheduler is excluded from the V3 preview profile until its
+  # holder and X payouts have V3 entitlement and finalized-payment proof.
   reward-worker:
-    profiles: ["automatic-rewards"]
+    profiles: ["retired-v2"]
     image: ${FUNDED_APP_IMAGE:-fundedapp-app:automatic-rewards-v11-20260923h}
     restart: unless-stopped
     command: ["node", "scripts/run-reward-scheduler.mjs"]

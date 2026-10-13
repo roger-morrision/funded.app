@@ -49,22 +49,8 @@ export function createKeeperCollectionRoutes({
       const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified
         && row.cluster === 'devnet' && row.pumpFeeRoute?.router
         && row.pumpFeeRoute.router === row.creator
-        && (row.pumpFeeRoute.scope === 'per-mint-v2'
-          || (process.env.FUNDED_V3_COLLECTION_ENABLED === 'true' && row.pumpFeeRoute.scope === 'per-mint-v3')));
-      const rewards = await automaticRewardStore.read();
-      const pendingSettlements = Object.values(state.collections || {}).filter(row => {
-        if (row.scope === 'per-mint-v3') return false;
-        if (row.status !== 'collected' || row.onchainVerified !== true || row.attribution !== 'mint-verified' || row.cluster !== 'devnet') return false;
-        const settlement = state.settlements?.[row.signature];
-        if (!settlement) return true;
-        return [
-          ['creator', settlement.creatorDestinations?.creatorWallet],
-          ['holders', settlement.creatorDestinations?.holderAirdrop],
-          ['x', settlement.creatorDestinations?.solClaim],
-          ['operations', settlement.fundedApp?.operations],
-          ['community', settlement.fundedApp?.community],
-        ].some(([kind, amount]) => BigInt(solToLamports(amount)) > 0n && !rewards.fundingRequests?.[`${row.signature}:${kind}`]);
-      }).map(row => row.signature);
+        && process.env.FUNDED_V3_COLLECTION_ENABLED === 'true'
+        && row.pumpFeeRoute.scope === 'per-mint-v3');
       const pendingV3Settlements = Object.values(state.collections || {}).filter(row =>
         row.scope === 'per-mint-v3' && row.status === 'collected'
         && row.onchainVerified === true && row.attribution === 'mint-verified'
@@ -79,7 +65,7 @@ export function createKeeperCollectionRoutes({
           status:state.v3Settlements?.[row.signature]?.status || 'awaiting-creator-signature' }));
       return json(res, 200, { cluster:solanaCluster, minimumCollectionLamports:'10000000', mints:launches.map(row => ({ mint:row.mint,
         scope:row.pumpFeeRoute.scope, collectionStatus:state.alerts?.[`fee-collect:${row.mint}`]?.status || null })),
-        pendingSettlements, pendingV3Settlements });
+        pendingSettlements:[], pendingV3Settlements });
     }
     if (req.method === 'POST' && url.pathname === '/api/keeper/collect') {
       if (!requireAuthorized(req, res)) return true;
@@ -106,12 +92,6 @@ export function createKeeperCollectionRoutes({
         const recordedAt = new Date().toISOString();
         if (result.signature) state.collections[result.signature] = { id: result.signature, ...result, recordedAt };
         state.alerts[`fee-collect:${mintKey}`] = { ...state.alerts[`fee-collect:${mintKey}`], status:result.onchainVerified && result.status === 'collected' ? 'complete' : result.status === 'nothing-to-collect' || result.status === 'no-fees' ? result.status : 'review-required', signature:result.signature || null, recordedAt };
-        if (result.onchainVerified && result.status === 'collected' && result.scope !== 'per-mint-v3') {
-          Object.assign(result, reconcileXFeeObligation(state, { mint:result.mint, claimSignature:result.signature, createdAt:recordedAt }));
-          state.collections[result.signature] = { ...state.collections[result.signature],
-            ...(result.obligationStatus ? { obligationStatus:result.obligationStatus } : {}),
-            ...(result.obligationError ? { obligationError:result.obligationError } : {}) };
-        }
         return result;
       });
       return json(res, 200, result);

@@ -168,15 +168,17 @@ test('holder reward list excludes unverified routes and escapes token metadata',
   const list = element(), count = element();
   const launch = { mint: 'example', creator: 'router', symbol: 'EX', name: '<img onerror=bad>',
     feeDistribution: { creatorDirected: { shares: { holderAirdropPercent: 10 } } },
-    pumpFeeRoute: { scope: 'per-mint-v2', verified: true, router: 'router' } };
+    pumpFeeRoute: { scope: 'per-mint-v3', verified: true, router: 'router' } };
   const state = { verifiedLaunchPoliciesStatus: 'ready', verifiedLaunchPolicies: [launch,
-    { ...launch, mint: 'unverified', pumpFeeRoute: { ...launch.pumpFeeRoute, verified: false } }] };
+    { ...launch, mint: 'unverified', pumpFeeRoute: { ...launch.pumpFeeRoute, verified: false } },
+    { ...launch, mint: 'old-v2', pumpFeeRoute: { ...launch.pumpFeeRoute, scope:'per-mint-v2' } }] };
   const services = { document: { querySelector: key => key === '#home-holder-rewards-list' ? list : count },
     verifiedPolicyPercent: Number, loadVerifiedTokenLogos() {} };
   renderHomeHolderRewardCoins(state, services);
-  assert.equal(count.textContent, '1 verified coin');
+  assert.equal(count.textContent, '1 verified V3 coin');
+  assert.match(list.innerHTML, /payout pending/);
   assert.match(list.innerHTML, /&lt;img/);
-  assert.doesNotMatch(list.innerHTML, /\/token\/unverified|<img onerror/);
+  assert.doesNotMatch(list.innerHTML, /\/token\/(unverified|old-v2)|<img onerror/);
   state.verifiedLaunchPoliciesStatus = 'unavailable';
   renderHomeHolderRewardCoins(state, services);
   assert.equal(count.textContent, 'Unavailable');

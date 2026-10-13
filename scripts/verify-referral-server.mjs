@@ -34,7 +34,7 @@ try {
   const keeperResponse = await fetch(`${base}/api/keeper/collect`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mint: '11111111111111111111111111111111' }) });
   assert.equal(keeperResponse.status, 401);
   const rejectedSettlement = await fetch(`${base}/api/settlements/claims`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer referral-test-token' }, body: JSON.stringify({ claimSignature: 'zero-fees', grossCreatorFees: 1_000_000 }) });
-  assert.equal(rejectedSettlement.status, 400, 'No-fee collections must not create obligations.');
+  assert.equal(rejectedSettlement.status, 410, 'The V2 settlement route must be retired.');
   const registration = await post('/api/referrals/registration/prepare', { wallet: inviter.publicKey.toBase58() });
   // web3 Keypair does not expose signMessage; use nacl-compatible signing through the secret key.
   const nacl = (await import('tweetnacl')).default;
@@ -46,34 +46,12 @@ try {
   const signedAttribution = bs58.encode(nacl.sign.detached(new TextEncoder().encode(attribution.statement), creator.secretKey));
   await post('/api/referrals/attribution/verify', { challengeId: attribution.challengeId, wallet: creator.publicKey.toBase58(), signature: signedAttribution });
 
-  const settlement = await post('/api/settlements/claims', {
-    claimSignature: 'server-referral-test', creatorWallet: inviter.publicKey.toBase58(), grossCreatorFees: 1_000_000,
-    policy: { creatorWalletPercent: 0, holderAirdropPercent: 80, xPercent: 0 },
-  });
-  assert.equal(settlement.grossCreatorFees, 100);
-  assert.equal(settlement.creatorWallet, creator.publicKey.toBase58());
-  assert.equal(settlement.creatorDestinations.creatorWallet, 80);
-  assert.equal(settlement.fundedApp.referralLevels[0].recipient, inviter.publicKey.toBase58());
-  assert.equal(settlement.fundedApp.referralLevels[0].status, 'claimable');
-
-  const claim = await post('/api/referral-claims/prepare', { settlementSignature: 'server-referral-test', recipientWallet: inviter.publicKey.toBase58(), level: 1 });
-  assert.equal(claim.status, 'awaiting-wallet-signature');
-  assert.equal(claim.recipientWallet, inviter.publicKey.toBase58());
-  const signedClaim=bs58.encode(nacl.sign.detached(new TextEncoder().encode(claim.statement),inviter.secretKey));
-  const verified=await post(`/api/referral-claims/${claim.id}/verify`,{publicKey:inviter.publicKey.toBase58(),signature:signedClaim});
-  assert.equal(verified.status,'wallet-verified');
+  const retiredSettlement=await fetch(`${base}/api/settlements/claims`,{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer referral-test-token'},body:JSON.stringify({claimSignature:'server-referral-test'})});
+  assert.equal(retiredSettlement.status,410);
+  const retiredPayout=await fetch(`${base}/api/referral-claims/retired/execute`,{method:'POST',headers:{origin:base,'content-type':'application/json'},body:'{}'});
+  assert.equal(retiredPayout.status,410);
   assert.equal((await fetch(`${base}/api/referral-claims?wallet=${inviter.publicKey.toBase58()}`)).status,401);
-  assert.equal((await fetch(`${base}/api/referral-claims/${claim.id}/execute`,{method:'POST',headers:{origin:base,'content-type':'application/json'},body:'{}'})).status,403);
-  const sessionPrepareResponse=await fetch(`${base}/api/referrals/session/prepare`,{method:'POST',headers:{origin:base,'content-type':'application/json'},body:JSON.stringify({wallet:inviter.publicKey.toBase58()})});
-  assert.equal(sessionPrepareResponse.status,200);const sessionPrepare=await sessionPrepareResponse.json();
-  const sessionSignature=bs58.encode(nacl.sign.detached(new TextEncoder().encode(sessionPrepare.statement),inviter.secretKey));
-  const sessionResponse=await fetch(`${base}/api/referrals/session/verify`,{method:'POST',headers:{origin:base,'content-type':'application/json'},body:JSON.stringify({challengeId:sessionPrepare.challengeId,wallet:inviter.publicKey.toBase58(),signature:sessionSignature})});
-  assert.equal(sessionResponse.status,200);const cookie=sessionResponse.headers.getSetCookie().find(row=>row.startsWith('funded_referral_session=')).split(';')[0];
-  const disabled=await fetch(`${base}/api/referral-claims/${claim.id}/execute`,{method:'POST',headers:{cookie,origin:base,'content-type':'application/json'},body:'{}'});
-  assert.equal(disabled.status,503);
-  const after=await (await fetch(`${base}/api/referral-claims?wallet=${inviter.publicKey.toBase58()}`,{headers:{cookie}})).json();
-  assert.equal(after.claims.find(row=>row.id===claim.id).status,'wallet-verified','Disabled keeper must not strand a verified claim.');
-  console.log('Referral HTTP: scoped signature verification and disabled-execution preservation passed with ephemeral keys, no transfer.');
+  console.log('Referral HTTP: signed registration and attribution remain available; V2 settlement and payout are retired. No transfer.');
 } finally {
   server.kill();
   await rm(directory, { recursive: true, force: true });

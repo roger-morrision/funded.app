@@ -5,6 +5,7 @@ import { createKeeperCollectionRoutes } from '../server/routes/keeper-collection
 import { createLaunchRegistrationRoutes } from '../server/routes/launch-registration.mjs';
 import { createListingPaymentsRoutes } from '../server/routes/listing-payments.mjs';
 import { createSettlementRoutes } from '../server/routes/settlement.mjs';
+import { createCreatorFeesRoutes } from '../server/routes/creator-fees.mjs';
 import { buildFeeDistributionPolicy } from '../distribution-policy.js';
 import { deriveMintRouterV3 } from '../mint-router-v3.js';
 
@@ -204,12 +205,12 @@ test('keeper lists V3 candidates only when enabled and excludes them from V2 set
   try {
     delete process.env.FUNDED_V3_COLLECTION_ENABLED;
     await f.request('/api/keeper/collection-candidates', {}, 'GET');
-    assert.deepEqual(f.responses[0].data.mints.map(row => row.mint), [mint]);
+    assert.deepEqual(f.responses[0].data.mints.map(row => row.mint), []);
     assert.deepEqual(f.responses[0].data.pendingSettlements, []);
     assert.equal(f.responses[0].data.pendingV3Settlements[0].collectionSignature, 'v3proof');
     process.env.FUNDED_V3_COLLECTION_ENABLED = 'true';
     await f.request('/api/keeper/collection-candidates', {}, 'GET');
-    assert.deepEqual(f.responses[1].data.mints.map(row => row.mint), [mint, v3Mint]);
+    assert.deepEqual(f.responses[1].data.mints.map(row => row.mint), [v3Mint]);
     state.v3Settlements.v3proof = { status:'verification-pending' };
     await f.request('/api/keeper/collection-candidates', {}, 'GET');
     assert.equal(f.responses[2].data.pendingV3Settlements[0].status, 'verification-pending');
@@ -219,6 +220,35 @@ test('keeper lists V3 candidates only when enabled and excludes them from V2 set
   } finally {
     if (previous === undefined) delete process.env.FUNDED_V3_COLLECTION_ENABLED;
     else process.env.FUNDED_V3_COLLECTION_ENABLED = previous;
+  }
+});
+
+test('fee activity exposes only verified V3 collections and their signing gates', async () => {
+  const prior = process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID;
+  process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID = mint;
+  const v3Mint = new PublicKey(new Uint8Array(32).fill(7)).toBase58();
+  const router = new PublicKey(new Uint8Array(32).fill(8)).toBase58();
+  const state = { launches:{ [v3Mint]:{ mint:v3Mint, cluster:'devnet', onchainVerified:true,
+    creator:router, creatorWallet:router, pumpFeeRoute:{ scope:'per-mint-v3', router, programId:mint } } },
+  collections:{ good:{ signature:'good', mint:v3Mint, scope:'per-mint-v3', router,
+    programId:mint, status:'collected', onchainVerified:true, collectedLamports:100 },
+    old:{ signature:'old', mint:v3Mint, scope:'per-mint-v2', router,
+      programId:mint, status:'collected', onchainVerified:true, collectedLamports:100 } },
+  v3Settlements:{ good:{ status:'finalized', allocationPlan:{ status:'allocated-not-funded' } } } };
+  try {
+    const f = fixture(createCreatorFeesRoutes, { solanaRpcUrl:'invalid-rpc-url',
+      route:(path, method, pattern) => method ? path.match(pattern)?.[1] : null,
+      store:{ read:async () => state, readCoinFeeActivity:async () => ({ collections:[] }) },
+      automaticRewardStore:{ read:async () => ({}) },
+      feeRouterConfig:() => assert.fail('V3 overview must not read V2 router configuration') });
+    await f.request(`/api/tokens/${v3Mint}/fee-activity`, {}, 'GET');
+    assert.equal(f.responses[0].status, 200);
+    assert.equal(f.responses[0].data.overview.scope, 'per-mint-v3');
+    assert.deepEqual(f.responses[0].data.overview.collections.map(row => row.signature), ['good']);
+    assert.equal(f.responses[0].data.overview.collections[0].settlement, 'finalized');
+  } finally {
+    if (prior === undefined) delete process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID;
+    else process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID = prior;
   }
 });
 
@@ -239,9 +269,9 @@ test('launch registration rejects unsupported networks, new V2 launches, and unr
   await f.request('/api/launches', { ...input, pumpFeeRoute: { router: mint, scope: 'per-mint-v3',
     programId:mint, initialAuthority:mint, protocolSplit:{ operationsPercent:50,
       referralLevelPercents:[10,3,2], communityPercent:10, buybackPercent:25 } } });
-  assert.deepEqual(f.responses.map(row => row.status), [400, 409, 409, 503]);
-  assert.match(f.responses[1].data.error, /mint-specific fee router/);
-  assert.match(f.responses[2].data.error, /New V2 launches are retired/);
+  assert.deepEqual(f.responses.map(row => row.status), [400, 410, 410, 503]);
+  assert.match(f.responses[1].data.error, /V2 launch registration is retired/);
+  assert.match(f.responses[2].data.error, /V2 launch registration is retired/);
   assert.match(f.responses[3].data.error, /V3 normal flows are not ready/);
 });
 

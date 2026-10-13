@@ -1,4 +1,3 @@
-import { mountCreatorSettlementApprovalTool } from '../../features/rewards/creator-settlement-approval.js';
 // Dependencies and mutable application state are read live through appState.
 export function createWalletConnectController(appState) {
   // app-source: 647
@@ -72,14 +71,11 @@ export function createWalletConnectController(appState) {
     }
     const profileDisconnect = document.querySelector('#profile-disconnect');
     if (profileDisconnect) profileDisconnect.disabled = !connected;
-    mountCreatorSettlementApprovalTool(appState, connected);
     document.querySelector('#profile-status').textContent = connected ? appState.wallet.remoteMobile ? 'Phantom mobile wallet connected. Scan a new QR to approve each claim or trade on your phone.' : appState.wallet.readOnly ? 'Address linked for viewing. Open this app inside Phantom to sign transactions.' : appState.wallet.devMode ? 'Local signing wallet connected. The local API signs; private keys do not enter this browser app.' : 'Connected locally. Your wallet remains the signer; private keys do not enter this app.' : 'This profile is local to the demo workspace.';
     const launchPathWallet = document.querySelector('#launch-path-wallet');
     if (launchPathWallet) { launchPathWallet.querySelector('strong').textContent = connected ? 'Wallet connected' : 'Connect wallet'; launchPathWallet.querySelector('small').textContent = signingReady ? 'Ready for Solana review.' : connected ? 'Review before signing.' : 'Connect to review signing.'; launchPathWallet.classList.toggle('complete', signingReady); }
     const onboardingWallet = document.querySelector('[data-onboarding-step="creator"]');
     if (onboardingWallet) { onboardingWallet.querySelector('strong').textContent = connected ? 'Wallet connected' : 'Connect your wallet'; onboardingWallet.querySelector('small').textContent = signingReady ? 'Ready to review a launch.' : connected ? 'Review before signing.' : 'Connect to unlock your workspace.'; }
-    const claimButton = document.querySelector('#sol-claim-submit');
-    if (claimButton) claimButton.textContent = connected && typeof appState.wallet.signMessage === 'function' && !appState.wallet.readOnly ? 'Verify linked wallet' : connected ? 'Open in wallet to verify' : 'Connect wallet to verify';
     appState.updateClaimBindingReview();
     const referralActivity = document.querySelector('#referral-activity-list .empty-state');
     if (referralActivity) {
@@ -156,12 +152,6 @@ export function createWalletConnectController(appState) {
   }
   // app-source-end
 
-  // app-source: 651
-  async function submitSolClaim() {
-    return appState.submitSolClaimFeature({ connectWallet: appState.connectWallet, captureWalletSession: appState.captureWalletSession, updateClaimBindingReview: appState.updateClaimBindingReview, assertWalletSessionCurrent: appState.assertWalletSessionCurrent, isWalletSessionCurrent: appState.isWalletSessionCurrent, refreshXClaims: appState.refreshXClaims, showToast: appState.showToast, syncXClaimFlow: appState.syncXClaimFlow, getWallet: () => appState.wallet, emitPilotSignal: appState.emitPilotSignal, apiRequest: appState.apiRequest, pilotInterruptedSignal: appState.pilotInterruptedSignal });
-  }
-  // app-source-end
-
   // app-source: 652
   async function disconnectWallet(){
     const provider = appState.wallet;
@@ -196,5 +186,5 @@ export function createWalletConnectController(appState) {
   }
   // app-source-end
 
-  return { setWalletState, connectWallet, syncXClaimFlow, updateClaimBindingReview, submitSolClaim, disconnectWallet, handleAccountChanged, reconcileWalletState };
+  return { setWalletState, connectWallet, syncXClaimFlow, updateClaimBindingReview, disconnectWallet, handleAccountChanged, reconcileWalletState };
 }

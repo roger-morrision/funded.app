@@ -22,14 +22,6 @@ export function initializeCreatorFees(appState) {
   initializeAppState(appState, 'creatorClaimsInFlight', creatorClaimsInFlight);
   // app-source-end
 
-  // app-source: 908
-  window.addEventListener('funded:creator-claim', event => {
-    const { button, mint, overview, complete } = event.detail || {};
-    if (!button || !mint) return;
-    void appState.requestCreatorFeeClaim(button, mint, overview).finally(() => complete?.());
-  });
-  // app-source-end
-
   // app-source: 910
   let coinMarketActivity = { status: 'loading', trades: [], coverage: null, decimals: 6 };
   initializeAppState(appState, 'coinMarketActivity', coinMarketActivity);

@@ -8,21 +8,16 @@ services:
       dockerfile: Dockerfile
       args:
         FUNDED_SOURCE_REVISION: ${FUNDED_RELEASE_SHA:?Set the exact source SHA}
-        VITE_FUNDED_FEE_ROUTER_PROGRAM_ID: 61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa
+        VITE_FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_V3_FEE_ROUTER_PROGRAM_ID:?Set the approved V3 program ID}
     environment:
       FUNDED_BUILD_ID: ${FUNDED_RELEASE_SHA:?Set the exact source SHA}
-      FUNDED_FEE_ROUTER_PROGRAM_ID: 61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa
-      FUNDED_REWARD_PROGRAM_DATA_SHA256: 65993e0b50fcf6650ecaa6e8e4b23c1ff345547e55c2d7b07ead4ba81333c77d
+      FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_V3_FEE_ROUTER_PROGRAM_ID:?Set the approved V3 program ID}
+      FUNDED_V3_FEE_ROUTER_PROGRAM_ID: ${FUNDED_V3_FEE_ROUTER_PROGRAM_ID:?Set the approved V3 program ID}
+      FUNDED_V3_PROGRAM_DATA_SHA256: ${FUNDED_V3_PROGRAM_DATA_SHA256:?Set the tested V3 ProgramData hash}
   reward-volume-init:
     image: ${FUNDED_RELEASE_IMAGE:?Set the exact-SHA image}
     environment:
       FUNDED_BUILD_ID: ${FUNDED_RELEASE_SHA:?Set the exact source SHA}
-  reward-worker:
-    image: ${FUNDED_RELEASE_IMAGE:?Set the exact-SHA image}
-    environment:
-      FUNDED_BUILD_ID: ${FUNDED_RELEASE_SHA:?Set the exact source SHA}
-      FUNDED_FEE_ROUTER_PROGRAM_ID: 61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa
-      FUNDED_REWARD_PROGRAM_DATA_SHA256: 65993e0b50fcf6650ecaa6e8e4b23c1ff345547e55c2d7b07ead4ba81333c77d
   fee-collector:
     image: ${FUNDED_RELEASE_IMAGE:?Set the exact-SHA image}
     environment:
@@ -31,15 +26,9 @@ services:
     image: ${FUNDED_RELEASE_IMAGE:?Set the exact-SHA image}
     environment:
       FUNDED_BUILD_ID: ${FUNDED_RELEASE_SHA:?Set the exact source SHA}
-  buyback-worker:
-    image: ${FUNDED_RELEASE_IMAGE:?Set the exact-SHA image}
-    environment:
-      FUNDED_BUILD_ID: ${FUNDED_RELEASE_SHA:?Set the exact source SHA}
-      FUNDED_FEE_ROUTER_PROGRAM_ID: 61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa
-      FUNDED_REWARD_PROGRAM_DATA_SHA256: 65993e0b50fcf6650ecaa6e8e4b23c1ff345547e55c2d7b07ead4ba81333c77d
   community-claim-worker:
     image: ${FUNDED_RELEASE_IMAGE:?Set the exact-SHA image}
     environment:
       FUNDED_BUILD_ID: ${FUNDED_RELEASE_SHA:?Set the exact source SHA}
-      FUNDED_FEE_ROUTER_PROGRAM_ID: 61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa
-      FUNDED_REWARD_PROGRAM_DATA_SHA256: 65993e0b50fcf6650ecaa6e8e4b23c1ff345547e55c2d7b07ead4ba81333c77d
+      FUNDED_V3_FEE_ROUTER_PROGRAM_ID: ${FUNDED_V3_FEE_ROUTER_PROGRAM_ID:?Set the approved V3 program ID}
+      FUNDED_V3_PROGRAM_DATA_SHA256: ${FUNDED_V3_PROGRAM_DATA_SHA256:?Set the tested V3 ProgramData hash}

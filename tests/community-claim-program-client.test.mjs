@@ -49,9 +49,9 @@ test('browser refuses a V3 claim instruction bound to V2', async () => {
   assert.equal(result.signatures, 0);
 });
 
-test('historical V2 program passes identity guard before instruction validation', async () => {
+test('browser refuses a historical V2 claim before instruction validation', async () => {
   const result = await attemptClaim({ scope:'per-mint-v2', routeProgram:V2,
     reserveProgram:V2, instructionProgram:V2 });
-  assert.match(result.messages.join(' '), /Claim instruction does not match/);
+  assert.match(result.messages.join(' '), /Claim program differs/);
   assert.equal(result.signatures, 0);
 });

@@ -10,11 +10,10 @@ const env = { FUNDED_FEE_ROUTER_PROGRAM_ID:V2, FUNDED_REWARD_AUTHORITY:AUTHORITY
   FUNDED_V3_PROGRAM_DATA_SHA256:'b'.repeat(64) };
 const signer = () => ({ publicKey:{ toBase58:() => AUTHORITY } });
 
-test('historical V2 community claims retain the pinned V2 program', () => {
+test('V2 community claims cannot fall back to the retired program', () => {
   const launch = { onchainVerified:true, pumpFeeRoute:{ scope:'per-mint-v2', verified:true } };
-  assert.deepEqual(communityProgramForLaunch(launch, env, signer), {
-    programId:V2, authority:AUTHORITY, expectedHash:'a'.repeat(64), scope:'per-mint-v2',
-  });
+  assert.throws(() => communityProgramForLaunch(launch, env, signer), /require a verified V3 launch/);
+  assert.throws(() => communityProgramForLaunch(null, env, signer), /require a verified V3 launch/);
 });
 
 test('V3 community claims require the immutable launch program and configured authority', () => {

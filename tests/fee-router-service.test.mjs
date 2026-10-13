@@ -61,6 +61,33 @@ function fixture(overrides = {}) {
   return { service, env, state, keeper, authority, payout, revenue, legacy, router, mint: mint.publicKey.toBase58() };
 }
 
+function v3Fixture(overrides = {}) {
+  const v3Program = key(7).publicKey;
+  const v3Router = deriveMintRouterV3(v3Program, key(6).publicKey).address;
+  let state;
+  const f = fixture({
+    verifyV3LaunchRouterReadiness:async () => ({ ready:true, configuredRouter:v3Router.toBase58() }),
+    loadFinalizedV3PumpCollection:async () => state.finalizedProof,
+    ...overrides,
+  });
+  state = f.state;
+  state.launch = { onchainVerified:true, cluster:'devnet', mint:f.mint,
+    creator:v3Router.toBase58(), creatorWallet:f.authority.publicKey.toBase58(),
+    pumpFeeRoute:{ scope:'per-mint-v3', router:v3Router.toBase58(),
+      programId:v3Program.toBase58(), initialAuthority:f.authority.publicKey.toBase58(),
+      protocolSplit:{ operationsPercent:50, referralLevelPercents:[10,3,2],
+        communityPercent:10, buybackPercent:25 } } };
+  state.curveCreator = v3Router;
+  state.finalizedProof = { signature:'fixture-signature', mint:f.mint,
+    router:v3Router.toBase58(), expectedLamports:30n,
+    claimId:Buffer.alloc(32, 1), slot:42 };
+  f.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID = v3Program.toBase58();
+  f.env.FUNDED_V3_PROGRAM_DATA_SHA256 = 'b'.repeat(64);
+  f.env.FUNDED_V3_COLLECTION_ENABLED = 'true';
+  f.env.FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY = bs58.encode(f.authority.secretKey);
+  return f;
+}
+
 test('readiness rejects missing configuration and shared wallet roles before network reads', async () => {
   const f = fixture();
   f.env.FUNDED_MINT_FEE_ROUTER_ENABLED = 'false';
@@ -134,21 +161,21 @@ test('reconciliation uses the original public payer after the configured secret 
   assert.equal(f.state.sends, 0);
 });
 
-test('per-mint collection does not require the later creator payout signature', async () => {
-  const f = fixture();
-  assert.equal((await f.service.mintRouterReadiness()).ready, false);
-  assert.equal((await f.service.mintRouterReadiness({ collectionOnly:true })).ready, true);
+test('V2 collection is retired and V3 collection does not depend on V2 configuration', async () => {
+  const old = fixture();
+  await assert.rejects(old.service.collectPumpCreatorFees({ requestedMint:old.mint }), /requires a verified V3 mint router/);
+  assert.equal(old.state.sends, 0);
+  const f = v3Fixture();
+  f.env.FUNDED_FEE_ROUTER_PROGRAM_ID = '';
+  f.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 = '';
   const result = await f.service.collectPumpCreatorFees({ requestedMint:f.mint });
+  assert.equal(result.scope, 'per-mint-v3');
   assert.equal(result.status, 'collected');
-  assert.equal(result.onchainVerified, true);
-  assert.equal(f.state.sends, 1);
-  f.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 = 'b'.repeat(64);
-  await assert.rejects(f.service.collectPumpCreatorFees({ requestedMint:f.mint }), /Mint-specific collection is not activated/);
   assert.equal(f.state.sends, 1);
 });
 
 test('collection rejects unverified launches and mismatched Pump creators before sending', async () => {
-  const f = fixture();
+  const f = v3Fixture();
   f.state.launch.onchainVerified = false;
   await assert.rejects(f.service.collectPumpCreatorFees({ requestedMint: f.mint }), /verified launch/);
   f.state.launch.onchainVerified = true;
@@ -158,13 +185,13 @@ test('collection rejects unverified launches and mismatched Pump creators before
 });
 
 test('collection uses transaction balance proof and leaves missing proof pending', async () => {
-  const f = fixture();
+  const f = v3Fixture();
   const result = await f.service.collectPumpCreatorFees({ requestedMint: f.mint });
   assert.equal(result.collectedLamports, 30);
   assert.equal(result.onchainVerified, true);
   assert.equal(result.attribution, 'mint-verified');
   assert.equal(f.state.signers[0].publicKey.toBase58(), f.keeper.publicKey.toBase58());
-  f.state.proof = null;
+  f.state.finalizedProof = null;
   const pending = await f.service.collectPumpCreatorFees({ requestedMint: f.mint });
   assert.equal(pending.status, 'verification-pending');
   assert.equal(pending.onchainVerified, false);
@@ -177,7 +204,7 @@ test('collection uses transaction balance proof and leaves missing proof pending
 
 test('collection propagates uncertain broadcast outcomes without retrying', async () => {
   let attempts = 0;
-  const f = fixture({ sendAndConfirmTransaction: async () => { attempts++; throw new Error('RPC response timed out'); } });
+  const f = v3Fixture({ sendAndConfirmTransaction: async () => { attempts++; throw new Error('RPC response timed out'); } });
   await assert.rejects(f.service.collectPumpCreatorFees({ requestedMint: f.mint }), /RPC response timed out/);
   assert.equal(attempts, 1);
 });

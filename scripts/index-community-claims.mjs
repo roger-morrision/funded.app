@@ -11,10 +11,10 @@ if (!rpcUrl) throw new Error('A Devnet RPC URL is required.');
 const result = await indexCommunityClaims({
   connection:new Connection(rpcUrl, 'finalized'),
   ledger:createAutomaticRewardStore(rewardLedgerPath()),
-  programId:process.env.FUNDED_FEE_ROUTER_PROGRAM_ID,
-  authority:process.env.FUNDED_REWARD_AUTHORITY,
+  programId:process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,
+  authority:process.env.FUNDED_V3_ROUTER_AUTHORITY,
   eligibilityMint:process.env.FUNDED_TOKEN_MINT,
-  expectedProgramDataSha256:process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256,
+  expectedProgramDataSha256:process.env.FUNDED_V3_PROGRAM_DATA_SHA256,
   persist:!process.argv.includes('--dry-run'),
 });
 console.log(JSON.stringify({ status:result.status, commitment:result.commitment,

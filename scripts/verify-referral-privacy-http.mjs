@@ -21,8 +21,8 @@ try{
   assert.equal(Object.hasOwn(publicState,'referralClaims'),false);
   assert.equal((await fetch(`${base}/api/referral-claims?wallet=${wallet}`)).status,401);
   assert.equal((await fetch(`${base}/api/referrals/dashboard?wallet=${wallet}`)).status,401);
-  assert.equal((await fetch(`${base}/api/referral-claims/${claim.id}/execute`,{method:'POST',headers:{origin:base,'content-type':'application/json'},body:'{}'})).status,403);
-  console.log('Referral privacy HTTP: public state redaction, wallet-scoped claim/dashboard reads and authenticated execution gate passed. No signing, secret, worker, RPC or payout used.');
+  assert.equal((await fetch(`${base}/api/referral-claims/${claim.id}/execute`,{method:'POST',headers:{origin:base,'content-type':'application/json'},body:'{}'})).status,410);
+  console.log('Referral privacy HTTP: public state redaction, wallet-scoped reads and retired V2 payout guard passed. No signing, secret, worker, RPC or payout used.');
 }finally{
   if(child.exitCode===null){const exited=once(child,'exit');child.kill();await exited;}
   await rm(directory,{recursive:true,force:true});

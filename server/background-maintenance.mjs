@@ -17,21 +17,25 @@ export async function startShareVisitCleanup({ store, scheduleInterval = setInte
 
 export function startCommunityClaimIndex({
   solanaCluster, solanaRpcUrl, fundedTokenMint, automaticRewardStore,
+  v3AuthorityKeypair,
   env = process.env, scheduleTimeout = setTimeout, scheduleInterval = setInterval,
   createConnection = url => new Connection(url, 'finalized'),
   indexClaims = indexCommunityClaims, logger = console,
 }) {
-  if (solanaCluster !== 'devnet' || !fundedTokenMint || !env.FUNDED_REWARD_AUTHORITY
-    || !env.FUNDED_FEE_ROUTER_PROGRAM_ID || !env.FUNDED_REWARD_PROGRAM_DATA_SHA256) return;
+  let authority;
+  try { authority = v3AuthorityKeypair?.()?.publicKey?.toBase58(); } catch { return; }
+  if (solanaCluster !== 'devnet' || !fundedTokenMint || !authority
+    || !env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID
+    || !/^[a-f0-9]{64}$/i.test(String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || ''))) return;
   let indexing = false;
   const refreshCommunityClaimIndex = async () => {
     if (indexing) return;
     indexing = true;
     try {
       const result = await indexClaims({ connection: createConnection(solanaRpcUrl),
-        ledger: automaticRewardStore, programId: env.FUNDED_FEE_ROUTER_PROGRAM_ID,
-        authority: env.FUNDED_REWARD_AUTHORITY, eligibilityMint: fundedTokenMint,
-        expectedProgramDataSha256: env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
+        ledger: automaticRewardStore, programId: env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,
+        authority, eligibilityMint: fundedTokenMint,
+        expectedProgramDataSha256: env.FUNDED_V3_PROGRAM_DATA_SHA256 });
       logger.log(JSON.stringify({ event: 'community_claim_indexed', drops: result.drops.length,
         claims: result.payments.length, indexedAt: result.indexedAt }));
     } catch (error) {

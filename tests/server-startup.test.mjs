@@ -87,12 +87,14 @@ test('share cleanup avoids empty writes, propagates initial failure, and logs la
 const indexConfig = {
   solanaCluster: 'devnet', solanaRpcUrl: 'https://rpc.example.invalid', fundedTokenMint: 'mint',
   automaticRewardStore: {}, env: {
-    FUNDED_REWARD_AUTHORITY: 'authority', FUNDED_FEE_ROUTER_PROGRAM_ID: 'program', FUNDED_REWARD_PROGRAM_DATA_SHA256: 'hash',
+    FUNDED_V3_FEE_ROUTER_PROGRAM_ID: 'program', FUNDED_V3_PROGRAM_DATA_SHA256: 'ab'.repeat(32),
   },
+  v3AuthorityKeypair:() => ({ publicKey:{ toBase58:() => 'authority' } }),
 };
 
 test('community indexing starts only with the complete supported configuration', () => {
   const disabled = [{ solanaCluster: 'mainnet-beta' }, { fundedTokenMint: '' },
+    { v3AuthorityKeypair:() => null },
     ...Object.keys(indexConfig.env).map(key => ({ env: { ...indexConfig.env, [key]: '' } }))];
   for (const config of disabled) {
     startCommunityClaimIndex({ ...indexConfig, ...config,
@@ -118,7 +120,8 @@ test('community indexing retains timing, prevents overlap, and recovers after fa
   clock.calls[1].callback();
   assert.equal(requests.length, 1);
   assert.deepEqual(requests[0], { connection: { url: indexConfig.solanaRpcUrl }, ledger: indexConfig.automaticRewardStore,
-    programId: 'program', authority: 'authority', eligibilityMint: 'mint', expectedProgramDataSha256: 'hash' });
+    programId: 'program', authority: 'authority', eligibilityMint: 'mint',
+    expectedProgramDataSha256: 'ab'.repeat(32) });
   complete.reject(new Error('x'.repeat(200)));
   await settle();
   assert.equal(errors[0].event, 'community_claim_index_failed');

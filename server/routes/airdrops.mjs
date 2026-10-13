@@ -24,7 +24,10 @@ export function createAirdropsRoutes({
         const state = await store.read();
         const claimLedger = await automaticRewardStore.read();
         const configuredReceipts = JSON.parse(process.env.FUNDED_COMMUNITY_RESERVE_RECEIPTS_JSON || '{}');
-        const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified && row.cluster === 'devnet' && Number.isSafeInteger(Number(row.communityAirdrop?.reservedTokens)) && Number(row.communityAirdrop.reservedTokens) > 0).slice(0, 100);
+        const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified && row.cluster === 'devnet'
+          && row.pumpFeeRoute?.scope === 'per-mint-v3'
+          && Number.isSafeInteger(Number(row.communityAirdrop?.reservedTokens))
+          && Number(row.communityAirdrop.reservedTokens) > 0).slice(0, 100);
         const programChecks = new Map();
         const reserves = await mapBounded(launches, 4, async launch => {
           try {
@@ -73,7 +76,10 @@ export function createAirdropsRoutes({
       const mint = String(input.mint || '').trim(), signature = String(input.signature || '').trim();
       if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) || !/^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(signature)) return json(res, 400, { error:'A valid launch mint and finalized funding signature are required.' });
       const launch = await store.readLaunch(mint);
-      if (!launch?.onchainVerified || launch.cluster !== 'devnet' || !Number.isSafeInteger(Number(launch.communityAirdrop?.reservedTokens)) || Number(launch.communityAirdrop.reservedTokens) <= 0) return json(res, 404, { error:'Verified Solana community allocation not found.' });
+      if (!launch?.onchainVerified || launch.cluster !== 'devnet' || launch.pumpFeeRoute?.scope !== 'per-mint-v3'
+        || !Number.isSafeInteger(Number(launch.communityAirdrop?.reservedTokens))
+        || Number(launch.communityAirdrop.reservedTokens) <= 0)
+        return json(res, 404, { error:'Verified V3 community allocation not found.' });
       try {
         const connection = new Connection(solanaRpcUrl, 'finalized');
         const config = communityProgramForLaunch(launch, process.env, v3AuthorityKeypair);

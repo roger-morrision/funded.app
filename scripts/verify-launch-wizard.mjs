@@ -77,7 +77,7 @@ assert.match(costs, /wallet \? 'calculating…' : 'connect wallet to quote'/, 'T
 assert.match(actions, /!feeDistribution\.valid \? 'Fix fee distribution'/, 'Invalid fee shares must be explained before the disconnected-wallet prompt.');
 assert.match(launchPage, /id="preview-promotion-badge"/, 'The launch preview must show the selected promotion badge.');
 assert.match(launchPage, /class="cost-summary launch-pay-summary free-launch"[\s\S]*?id="cost-tier-label">Platform launch fee: 0[\s\S]*?id="cost-burn-row" hidden[\s\S]*?id="cost-burn"/, 'Zero platform fee must remain distinct from paid promotion burns and network costs.');
-assert.match(launchPage, /class="community-airdrop-highlight"[\s\S]*?30,000,000[\s\S]*?3\.00% of supply[\s\S]*?bought and locked in the reward vault when launch finalizes/, 'The You pay panel must describe atomic reserve funding.');
+assert.match(launchPage, /class="community-airdrop-highlight"[\s\S]*?30,000,000[\s\S]*?3\.00% of supply[\s\S]*?bought and locked at launch/, 'The You pay panel must describe atomic reserve funding.');
 assert.doesNotMatch(launchPage, /delivery requires vault funding and a verified active distribution cycle/, 'The removed delivery sentence must not return to the launch panel.');
 assert.doesNotMatch(launchPage, /claimable at migration/, 'Migration alone must not promise a claimable payout.');
 assert.match(launchPage, /class="enhanced-token-page"[\s\S]*?id="token-tagline"[\s\S]*?id="token-roadmap"/, 'The project story editor must retain thesis and roadmap fields.');
@@ -184,13 +184,14 @@ assert.doesNotMatch(app, /Creator-directed policy totals 80%\. This coin gets it
 assert.match(app, /if \(feeDistributionInput\.solClaimPercent > 0 && !xFeeStatus\.ready\)/);
 assert.match(app, /X account rewards unavailable/);
 assert.match(app, /if \(wallet\) scheduleLaunchCostRefresh\(\);/, 'Tier changes must invalidate and recalculate the connected wallet estimate.');
-for (const id of ['profile-wallet-address', 'launch-path-wallet', 'sol-claim-submit']) {
+for (const id of ['profile-wallet-address', 'launch-path-wallet']) {
   assert.match(html, new RegExp(`id="${id}"`));
   assert.match(app, new RegExp(`#${id}`));
 }
+assert.match(html, /id="sol-claim-submit"/);
+assert.doesNotMatch(app, /submitSolClaim/, 'Retired V2 X claim signing must not be wired into the app.');
 assert.doesNotMatch(app, /#dialog-connect|['"]dialog-connect['"]|#wallet-status/, 'Removed launch wallet-card controls must have no stale script references.');
 assert.doesNotMatch(app, /#wallet-metrics|#wallet-balance|#launch-fee|#refresh-wallet|#fee-note/, 'Removed wallet-metrics controls must have no stale script references.');
-assert.match(app, /'connect-button', 'profile-connect'[^\]]*?'sol-claim-submit'/, 'The generic connect-wallet handler must not duplicate profile connections or override SOL-claim prerequisite validation.');
 function costSummaryFor({ connected = false, loading = false, fee = null, error = '', buySol = 0, retry = null } = {}) {
   const nodes = Object.fromEntries(['cost-launch', 'cost-total-enabled', 'cost-total', 'cost-note', 'preview-launch-cost', 'cost-burn', 'cost-community-tokens', 'cost-community-detail', 'cost-creator-buy'].map(id => [`#${id}`, { textContent: '', innerHTML: '' }]));
   updateCostSummary({ wallet: connected ? { publicKey: true } : null, walletMetricsLoading: loading,

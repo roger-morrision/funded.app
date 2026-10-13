@@ -15,7 +15,7 @@ async function freePort() {
   return port;
 }
 
-test('creator claim cannot accept requests until the signed Devnet router is verified', async () => {
+test('retired V2 creator claim cannot change a pending funding request', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'funded-creator-claim-paused-'));
   const storePath = join(directory, 'store.json');
   const rewardsPath = `${storePath}.automatic-rewards.json`;
@@ -53,8 +53,8 @@ test('creator claim cannot accept requests until the signed Devnet router is ver
       const response = await fetch(`${base}/api/tokens/${mint}/creator-claim/${action}`, {
         method:'POST', headers:{ origin:base, 'content-type':'application/json' }, body:'{}',
       });
-      assert.equal(response.status, 503);
-      assert.ok((await response.json()).reasons?.length > 0);
+      assert.equal(response.status, 410);
+      assert.match((await response.json()).error, /V2 fee route is retired/);
     }
     const rewards = JSON.parse(await readFile(rewardsPath, 'utf8'));
     assert.equal(rewards.fundingRequests[requestId].status, 'claimable');

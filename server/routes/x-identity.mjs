@@ -87,8 +87,10 @@ export function createXIdentityRoutes({
     if (req.method === 'GET' && url.pathname === '/api/mint-router/status') {
       return json(res, 200, { ready:false, reasons:['New V2 launches are retired; use the verified V3 launch flow.'] });
     }
-    if (req.method === 'GET' && url.pathname === '/api/mint-router/creator-settlement-status') return json(res, 200, await mintRouterReadiness({ creatorSigned:true }));
-    if (req.method === 'GET' && url.pathname === '/api/x-fee/status') return json(res, 200, await xFeeReadiness({ creatorSigned:true }));
+    if (req.method === 'GET' && url.pathname === '/api/mint-router/creator-settlement-status')
+      return json(res, 200, { ready:false, reasons:['V2 creator settlement is retired. Use a verified V3 collection.'] });
+    if (req.method === 'GET' && url.pathname === '/api/x-fee/status')
+      return json(res, 200, { ready:false, reasons:['V3 X payout and claim verification are not activated.'] });
     if (req.method === 'GET' && url.pathname === '/api/x-fee/claims') {
       const session = await xSession(req);
       res.setHeader('cache-control', 'no-store');
@@ -101,7 +103,7 @@ export function createXIdentityRoutes({
         const claim = state.claims?.[item.id];
         return rewardView(item, claim, evidence.verifiedPayouts, automaticXClaimState(item, claim, rewards));
       });
-      return json(res, 200, { handle, claims });
+      return json(res, 200, { handle, claims:claims.map(claim => ({ ...claim, canPrepare:false })) });
     }
     if (req.method === 'POST' && url.pathname === '/api/x/logout') {
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error: 'Sign out from the app origin.' });

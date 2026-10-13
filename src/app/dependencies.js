@@ -4,7 +4,6 @@ import { syncXClaimFlow as syncXClaimFlowFeature } from '../../src/features/rewa
 import { updateClaimBindingReview as updateClaimBindingReviewFeature } from '../../src/features/rewards/x-claim-view.js';
 import { renderXClaimSummary as renderXClaimSummaryFeature } from '../../src/features/rewards/x-claim-view.js';
 import { resetSolClaimStatus as resetSolClaimStatusFeature } from '../../src/features/rewards/x-claim-view.js';
-import { submitSolClaim as submitSolClaimFeature } from '../../src/features/rewards/x-claim-controller.js';
 import { loadXIdentity as loadXIdentityFeature } from '../../src/features/rewards/x-claim-controller.js';
 import { refreshXClaims as refreshXClaimsFeature } from '../../src/features/rewards/x-claim-controller.js';
 import { getLaunchMetadataPreview as getLaunchMetadataPreviewView } from '../../src/features/launch/form-validation.js';
@@ -136,7 +135,6 @@ export const appDependencies = {
   updateClaimBindingReviewFeature,
   renderXClaimSummaryFeature,
   resetSolClaimStatusFeature,
-  submitSolClaimFeature,
   loadXIdentityFeature,
   refreshXClaimsFeature,
   getLaunchMetadataPreviewView,

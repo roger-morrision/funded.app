@@ -14,7 +14,7 @@ const configuredInterval = Number(process.env.FUNDED_COMMUNITY_CLAIM_TICK_MS || 
 if (!Number.isFinite(configuredInterval) || configuredInterval <= 0) throw new Error('Community worker interval must be a finite positive number.');
 const intervalMs = Math.max(15_000, configuredInterval);
 const api = String(process.env.FUNDED_COMMUNITY_CLAIM_API || 'http://app:8787').replace(/\/$/, '');
-const expectedHash = String(process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 || '').toLowerCase();
+const expectedHash = String(process.env.FUNDED_V3_PROGRAM_DATA_SHA256 || '').toLowerCase();
 if (process.argv.includes('--check')) {
   let status = null;
   try { status = JSON.parse(await readFile(heartbeat, 'utf8')); } catch { /* Missing or partial status is unavailable. */ }
@@ -26,9 +26,9 @@ if (process.argv.includes('--check')) {
   if (process.env.SOLANA_CLUSTER !== 'devnet' || !/^[a-f0-9]{64}$/.test(expectedHash))
     throw new Error('Pinned Devnet program identity is required for automatic community claims.');
   const token = (await readFile(process.env.FUNDED_API_TOKEN_FILE, 'utf8')).trim();
-  const authority = Keypair.fromSecretKey(bs58.decode((await readFile(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY_FILE, 'utf8')).trim()));
-  const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID);
-  if (!token || authority.publicKey.toBase58() !== process.env.FUNDED_REWARD_AUTHORITY)
+  const authority = Keypair.fromSecretKey(bs58.decode((await readFile(process.env.FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY_FILE, 'utf8')).trim()));
+  const programId = new PublicKey(process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID);
+  if (!token || authority.publicKey.toBase58() !== process.env.FUNDED_V3_ROUTER_AUTHORITY)
     throw new Error('Community worker API token or reward authority identity is invalid.');
   const rpcUrl = (await readFile(process.env.SOLANA_RPC_URL_FILE, 'utf8')).trim();
   const connection = new Connection(rpcUrl, 'finalized');

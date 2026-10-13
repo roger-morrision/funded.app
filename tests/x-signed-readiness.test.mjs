@@ -17,7 +17,7 @@ function call(create, dependencies, path, method = 'GET') {
     .then(() => responses.at(-1));
 }
 
-test('public X status and handle lookup use the creator-approved payout route', async () => {
+test('public X payout status stays unavailable while handle lookup remains usable', async () => {
   const calls = [];
   const xFeeReadiness = async options => {
     calls.push(options);
@@ -28,25 +28,26 @@ test('public X status and handle lookup use the creator-approved payout route', 
     resolveXUser: async () => ({ id: '123', handle: '@fixture' }) };
   const status = await call(createXIdentityRoutes, dependencies, '/api/x-fee/status');
   assert.equal(status.status, 200);
-  assert.equal(status.data.ready, true);
+  assert.equal(status.data.ready, false);
+  assert.match(status.data.reasons[0], /V3 X payout/);
   const lookup = await call(createXIdentityRoutes, dependencies, '/api/x/resolve?handle=%40fixture');
   assert.equal(lookup.status, 200);
   assert.equal(lookup.data.id, '123');
-  assert.deepEqual(calls, [{ creatorSigned:true }, { includeLookupHealth:false, creatorSigned:true }]);
+  assert.deepEqual(calls, [{ includeLookupHealth:false, creatorSigned:true }]);
 });
 
-test('reward status describes the signed X path without promising automatic payout', async () => {
+test('reward status does not claim V3 X payout readiness from V2 configuration', async () => {
   const response = await call(createRewardStatusRoutes, {
     xFeeReadiness: async options => ({ ready: options?.creatorSigned === true, reasons: [] }),
     automaticRewardStore: { read: async () => ({}) }, store: { read: async () => ({ buybackOrders: {} }) },
     solanaCluster: 'devnet',
   }, '/api/rewards/automatic');
   assert.equal(response.status, 200);
-  assert.equal(response.data.routeReadiness.x.ready, true);
-  assert.equal(response.data.modes.x, 'creator-approved-after-verified-X-wallet');
+  assert.equal(response.data.routeReadiness.x.ready, false);
+  assert.equal(response.data.modes.x, 'unavailable');
 });
 
-test('X-linked launch registration advances through signed readiness before lookup', async () => {
+test('X-linked V2 launch is retired before signed readiness or lookup', async () => {
   const creator = Keypair.generate();
   const router = Keypair.generate().publicKey.toBase58();
   const policy = {
@@ -58,14 +59,14 @@ test('X-linked launch registration advances through signed readiness before look
       solClaimPercent:10, xRecipient:'@fixture', feeRouterAddress:router }),
   };
   policy.policySignature = bs58.encode(nacl.sign.detached(new TextEncoder().encode(launchPolicyStatement(policy)), creator.secretKey));
-  let checkedSigned = false;
-  const stopAfterLookup = new Error('X lookup reached');
+  let checkedSigned = false, lookedUp = false;
   const handle = createLaunchRegistrationRoutes({ solanaCluster:'devnet', body:async () => policy,
     store:{ readLaunch:async () => null, read:async () => ({ creatorProfiles:{} }) },
     xFeeReadiness:async options => { checkedSigned = options?.creatorSigned === true; return { ready:checkedSigned }; },
-    resolveXUser:async () => { throw stopAfterLookup; },
-    respond:() => assert.fail('Signed readiness must advance to X lookup.'),
+    resolveXUser:async () => { lookedUp = true; },
+    respond:(_res, status, data) => { assert.equal(status, 410); assert.match(data.error, /V2 launch registration is retired/); },
   });
-  await assert.rejects(handle({ method:'POST' }, {}, new URL('/api/launches', 'https://funded.vip')), stopAfterLookup);
-  assert.equal(checkedSigned, true);
+  await handle({ method:'POST' }, {}, new URL('/api/launches', 'https://funded.vip'));
+  assert.equal(checkedSigned, false);
+  assert.equal(lookedUp, false);
 });

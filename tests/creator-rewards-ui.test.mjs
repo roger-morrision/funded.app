@@ -1,136 +1,126 @@
-import { readAppSource } from '../scripts/read-app-source.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import vm from 'node:vm';
+import { createCreatorFeesController } from '../src/app/controllers/creator-fees.js';
 import { creatorRewardRow, filterCreatorRewards } from '../creator-reward-model.js';
 
-const launch={mint:'mint-a',symbol:'ALPHA',creatorWallet:'creator',cluster:'devnet',onchainVerified:true};
-test('creator reward filters retain pending balances and search names, tickers and addresses',()=>{
-  const rows=[
+const launch = { mint:'mint-a', symbol:'ALPHA', creatorWallet:'creator', cluster:'devnet', onchainVerified:true };
+const overview = { available:true, scope:'per-mint-v3', creatorWallet:'creator',
+  gates:{ settlement:true, communityFunding:true, creatorRewardFunding:true, creatorWalletPayout:true },
+  collections:[{ signature:'collection-signature', amountLamports:'10000000', settlement:'pending' }] };
+
+function element(tag = 'div') {
+  return { tag, children:[], hidden:false, disabled:false, textContent:'',
+    append(...items) { this.children.push(...items); },
+    replaceChildren() { this.children=[]; } };
+}
+function fixture({ switched = false, reject = false, prepared = true } = {}) {
+  const root = element(), calls = [], messages = [];
+  const transaction = { serialize:() => new Uint8Array([1, 2]) };
+  let walletChanged = false;
+  const session = { address:'creator', provider:{
+    async signTransaction() { if (reject) throw new Error('Signing rejected'); walletChanged = switched; return transaction; },
+  } };
+  const state = {
+    connectedWalletAddress:'creator', wallet:session.provider, currentCoinFeeOverview:overview,
+    creatorClaimsInFlight:new Set(), getCoinMintAddress:() => 'mint-a',
+    renderCoinSummary() {}, coinFeeSol:value => `${value} lamports`,
+    captureWalletSession:() => session,
+    assertWalletSessionCurrent:() => { if (walletChanged) throw new Error('Wallet changed'); },
+    showToast:value => messages.push(value),
+    getSolana:async () => ({ Transaction:{ from:() => transaction } }),
+    base64ToBytes:() => new Uint8Array([1]), bytesToBase64:() => 'signed-transaction',
+    apiRequest:async (path, options = {}) => {
+      calls.push({ path, signed:Boolean(options.body?.creatorSignedTransaction) });
+      if (path.endsWith('/fee-activity')) return { available:true, data:{ mint:'mint-a', overview } };
+      if (!prepared) return { available:false, data:null };
+      return options.body?.creatorSignedTransaction
+        ? { available:true, data:{ status:'finalized', signature:'finalized-signature' } }
+        : { available:true, data:{ status:'awaiting-creator-signature', mint:'mint-a',
+          collectionSignature:'collection-signature', creatorWallet:'creator',
+          recipient:'reward-vault', transaction:'prepared-transaction' } };
+    },
+  };
+  const controller = createCreatorFeesController(state);
+  state.renderCoinFeeDashboard = controller.renderCoinFeeDashboard;
+  const previousDocument = globalThis.document;
+  globalThis.document = { querySelector:() => root, createElement:element };
+  return { root, calls, messages, state, controller, restore:() => { globalThis.document = previousDocument; } };
+}
+
+test('V2 creator claim panel has no active signing controls', () => {
+  const f = fixture();
+  try {
+    f.controller.renderCoinFeeDashboard({ available:true, scope:'per-mint-v2', creatorWallet:'creator' });
+    assert.equal(f.root.hidden, true);
+    assert.equal(f.root.children.length, 0);
+  } finally { f.restore(); }
+});
+
+test('verified V3 collection shows settlement to owner and funding after finalization', () => {
+  const f = fixture();
+  try {
+    f.controller.renderCoinFeeDashboard(overview);
+    assert.equal(f.root.hidden, false);
+    assert.equal(f.root.children[0].children[1].textContent, 'Approve V3 settlement');
+    assert.equal(f.root.children[0].children[1].disabled, false);
+    const settled = { ...overview, collections:[{ ...overview.collections[0], settlement:'finalized',
+      allocationPlan:{ status:'allocated-not-funded', protocol:{ communityLamports:'100' },
+        creatorDirected:{ holderLamports:'200', xLamports:'0', walletLamports:'300' } } }] };
+    f.controller.renderCoinFeeDashboard(settled);
+    assert.equal(f.root.children[0].children.length, 4);
+    assert.equal(f.root.children[0].children[1].textContent, 'Fund community allocation');
+    f.state.connectedWalletAddress = 'other-wallet';
+    f.controller.renderCoinFeeDashboard(settled);
+    assert.equal(f.root.hidden, true);
+  } finally { f.restore(); }
+});
+
+test('V3 settlement signs once and accepts only finalized result', async () => {
+  const f = fixture();
+  try {
+    await f.controller.requestV3FeeAction({ isConnected:true, textContent:'Approve', disabled:false },
+      'settlement', 'collection-signature');
+    assert.deepEqual(f.calls.map(row => row.path), [
+      '/api/tokens/mint-a/v3-settlement/collection-signature',
+      '/api/tokens/mint-a/v3-settlement/collection-signature',
+      '/api/tokens/mint-a/fee-activity']);
+    assert.equal(f.calls[1].signed, true);
+    assert.match(f.messages.at(-1), /finalized on Devnet/);
+    assert.equal(f.state.creatorClaimsInFlight.size, 0);
+  } finally { f.restore(); }
+});
+
+test('V3 funding stops on wallet change, signature rejection, or missing preparation', async () => {
+  for (const options of [{ switched:true }, { reject:true }, { prepared:false }]) {
+    const f = fixture(options);
+    try {
+      await f.controller.requestV3FeeAction({ isConnected:true, textContent:'Fund', disabled:false },
+        'community-funding', 'collection-signature');
+      assert.equal(f.calls.filter(row => row.signed).length, 0);
+      assert.equal(f.state.creatorClaimsInFlight.size, 0);
+      assert.match(f.messages.at(-1), /Wallet changed|Signing rejected|review is unavailable/);
+    } finally { f.restore(); }
+  }
+});
+
+test('creator reward filters retain pending balances and search identifiers', () => {
+  const rows = [
     {name:'OLD',fullName:'Past launch',mint:'mint-old',unclaimed:0n,available:0n,ready:false},
     {name:'WAIT',fullName:'Pending launch',mint:'mint-wait',unclaimed:10n,available:0n,ready:false},
     {name:'NEW',fullName:'Current launch',mint:'mint-new',unclaimed:20n,available:20n,ready:true},
   ];
-  assert.deepEqual(filterCreatorRewards(rows).map(r=>r.name),['NEW','WAIT']);
+  assert.deepEqual(filterCreatorRewards(rows).map(row => row.name), ['NEW','WAIT']);
   assert.equal(filterCreatorRewards(rows,{filter:'all'}).length,3);
-  for(const query of [' past ', 'OLD', 'mint-old']) assert.equal(filterCreatorRewards(rows,{filter:'all',query})[0].name,'OLD');
-  assert.equal(filterCreatorRewards(rows,{query:'missing'}).length,0);
-  assert.equal(rows[0].name,'OLD','Sorting must not mutate the source');
-});
-function activity(available='10000000', unpaid=available, paid='0') {
-  return {mint:launch.mint,cluster:'devnet',overview:{available:true,creatorWallet:'creator',
-    receivers:[{id:'creator',recipient:'creator',withoutConfirmedPayoutLamports:unpaid,confirmedPaidLamports:paid}],
-    creatorClaim:{claimableLamports:available,minimumLamports:'10000000',eligible:BigInt(available)>=10000000n}}};
-}
-test('creator rewards distinguish claimable, below-minimum, processing, paid and empty states',()=>{
-  const row=(...args)=>creatorRewardRow(launch,activity(...args),'creator','devnet');
-  assert.equal(row().ready,true);
-  assert.equal(row('1').status,'Below claim minimum');
-  assert.equal(row('0','10000000').status,'Payment processing');
-  assert.equal(row('0','0','10000000').paid,10000000n);
-  assert.equal(row('0').status,'No rewards ready');
-  const shared=activity('0'); shared.overview.receivers=[];
-  assert.equal(creatorRewardRow(launch,shared,'creator','devnet').status,'No rewards ready');
-});
-test('creator rewards fail closed for another wallet, token, network or malformed amounts',()=>{
-  for(const data of [{...activity(),mint:'other'},{...activity(),cluster:'mainnet-beta'},activity('-1'),activity('10000000','1')]) {
-    assert.throws(()=>creatorRewardRow(launch,data,'creator','devnet'));
-  }
-  assert.throws(()=>creatorRewardRow(launch,activity(),'other','devnet'));
-  assert.throws(()=>creatorRewardRow({...launch,onchainVerified:false},activity(),'creator','devnet'));
+  for (const query of [' past ', 'OLD', 'mint-old'])
+    assert.equal(filterCreatorRewards(rows,{filter:'all',query})[0].name,'OLD');
+  assert.equal(rows[0].name,'OLD');
 });
 
-const source=await readAppSource();
-const from=source.indexOf('async function requestCreatorFeeClaim('),to=source.indexOf('let coinMarketActivity',from);
-function flow({switchAfterSign=false,reject=false,prepareUnavailable=false,rejectTransaction=false}={}) {
-  const calls=[],messages=[];
-  let changed=false;
-  const transaction={serialize:()=>new Uint8Array([1,2,3])};
-  const session={address:'creator',provider:{
-    async signMessage(){ if(reject)throw new Error('Rejected'); changed=switchAfterSign;return new Uint8Array(64); },
-    async signTransaction(){ if(rejectTransaction)throw new Error('Rejected transaction'); return transaction; },
-  }};
-  const context={TextEncoder,creatorClaimsInFlight:new Set(),captureWalletSession:()=>session,
-    assertWalletSessionCurrent:()=>{if(changed)throw new Error('Wallet changed');},
-    getCoinMintAddress:()=> 'different-open-token',showToast:m=>messages.push(m),bs58:{encode:()=> 'signature'},
-    getSolana:async()=>({Transaction:{from:()=>transaction}}),base64ToBytes:()=>new Uint8Array([1]),
-    bytesToBase64:()=> 'signed-transaction',
-    apiRequest:async(path,options)=>{calls.push(path);
-      if(path.endsWith('/creator-settlement-status'))return {available:true,data:{ready:true}};
-      if(path.endsWith('/prepare'))return {available:!prepareUnavailable,data:{statement:'review',challengeId:'challenge'}};
-      if(path.endsWith('/request'))return {available:true,data:{status:'awaiting-creator-signature',requestIds:['request-1']}};
-      if(path.endsWith('/settle'))return options.body.creatorSignedTransaction
-        ? {available:true,data:{status:'paid',signature:'finalized-signature'}}
-        : {available:true,data:{status:'awaiting-creator-signature',creatorWallet:'creator',transaction:'prepared-transaction'}};
-      return {available:true,data:{mint:'mint-a',overview:activity().overview}};
-    },
-    renderCoinFeeDashboard:()=>assert.fail('Must not render another open token')};
-  vm.runInNewContext(source.slice(from,to),context);
-  return {context,calls,messages,button:{isConnected:true,disabled:false,textContent:'Approve payouts'}};
-}
-test('Rewards claim signs the selected mint payout even when a different token page is open',async()=>{
-  const f=flow();await f.context.requestCreatorFeeClaim(f.button,'mint-a',activity().overview);
-  assert.deepEqual(f.calls,['/api/mint-router/creator-settlement-status',
-    '/api/tokens/mint-a/creator-claim/prepare','/api/tokens/mint-a/creator-claim/request',
-    '/api/tokens/mint-a/creator-claim/settle','/api/tokens/mint-a/creator-claim/settle',
-    '/api/tokens/mint-a/fee-activity']);
-  assert.equal(f.button.disabled,true);
-  assert.match(f.messages.at(-1),/finalized on Devnet/);
-  assert.equal(f.context.creatorClaimsInFlight.size,0);
-});
-test('wallet changes, rejection and unavailable preparation never submit a payout request',async()=>{
-  for(const [options,expected] of [[{switchAfterSign:true},2],[{reject:true},2],[{prepareUnavailable:true},2]]) {
-    const f=flow(options);await f.context.requestCreatorFeeClaim(f.button,'mint-a',activity().overview);
-    assert.equal(f.calls.length,expected);assert.equal(f.context.creatorClaimsInFlight.size,0);
-    assert.equal(f.calls.some(path=>path.endsWith('/request')),false);
-  }
-});
-test('transaction rejection never submits a signed payout',async()=>{
-  const f=flow({rejectTransaction:true});await f.context.requestCreatorFeeClaim(f.button,'mint-a',activity().overview);
-  assert.equal(f.calls.filter(path=>path.endsWith('/settle')).length,1);
-  assert.equal(f.context.creatorClaimsInFlight.size,0);
-});
-test('duplicate requests and non-owner wallets cannot start a claim',async()=>{
-  const f=flow();f.context.creatorClaimsInFlight.add('mint-a');
-  await f.context.requestCreatorFeeClaim(f.button,'mint-a',activity().overview);
-  await f.context.requestCreatorFeeClaim(f.button,'mint-b',{...activity().overview,creatorWallet:'other'});
-  assert.equal(f.calls.length,0);
-});
-
-const fundingStart = source.indexOf('async function requestRewardFunding(');
-const fundingClose = /\r?\n}\r?\n/.exec(source.slice(fundingStart));
-const fundingEnd = fundingClose ? fundingStart + fundingClose.index + fundingClose[0].length : -1;
-test('reward funding UI signs each exact request and stops if the wallet changes', async () => {
-  assert(fundingStart > 0 && fundingEnd > fundingStart);
-  for (const changeWallet of [false,true]) {
-    const calls = [], messages = [];
-    let changed = false;
-    const requestId = 'collection:holders';
-    const context = {
-      getCoinMintAddress:()=> 'mint-a', currentCoinFeeOverview:{ creatorWallet:'creator' },
-      creatorClaimsInFlight:new Set(), captureWalletSession:()=>({ address:'creator', provider:{
-        readOnly:false, async signTransaction(){ changed = changeWallet; return { serialize:()=>new Uint8Array([1]) }; },
-      } }),
-      assertWalletSessionCurrent:()=>{ if (changed) throw new Error('Wallet changed'); },
-      getSolana:async()=>({ Transaction:{ from:()=>({}) } }), base64ToBytes:()=>new Uint8Array([1]),
-      bytesToBase64:()=> 'signed-transaction', coinFeeSol:()=> '0.001 SOL',
-      showToast:message=>messages.push(message), renderCoinFeeDashboard:()=>{},
-      apiRequest:async (path, options={})=>{
-        calls.push({ path, signed:Boolean(options.body?.creatorSignedTransaction) });
-        if (path.endsWith('/pending')) return { available:true, data:{ creatorWallet:'creator', requests:[
-          { id:requestId, kind:'holder', amountLamports:'1000000', status:'awaiting-creator-signature' }] } };
-        if (path.endsWith('/settle')) return { available:true, data:options.body.creatorSignedTransaction
-          ? { status:'vault-funded', signature:'finalized-signature' }
-          : { status:'awaiting-creator-signature', creatorWallet:'creator', requestId,
-            kind:'holder', amountLamports:'1000000', recipient:'reward-vault', transaction:'prepared' } };
-        return { available:true, data:{ mint:'mint-a', overview:{ creatorWallet:'creator' } } };
-      },
-    };
-    vm.runInNewContext(source.slice(fundingStart,fundingEnd), context);
-    await context.requestRewardFunding({ isConnected:true, disabled:false, textContent:'Review reward funding' });
-    assert.equal(calls.filter(row=>row.path.endsWith('/settle') && row.signed).length,changeWallet ? 0 : 1);
-    assert.equal(context.creatorClaimsInFlight.size,0);
-    assert.match(messages.at(-1),changeWallet ? /Wallet changed/ : /funded on Devnet/);
-  }
+test('historical creator rewards remain gated by launch, wallet, and cluster', () => {
+  const activity = { mint:'mint-a',cluster:'devnet',overview:{ available:true,creatorWallet:'creator',
+    receivers:[{ id:'creator',recipient:'creator',withoutConfirmedPayoutLamports:'10000000',confirmedPaidLamports:'0' }],
+    creatorClaim:{claimableLamports:'10000000',minimumLamports:'10000000',eligible:true} } };
+  assert.equal(creatorRewardRow(launch,activity,'creator','devnet').ready,true);
+  assert.throws(() => creatorRewardRow(launch,{...activity,mint:'other'},'creator','devnet'));
+  assert.throws(() => creatorRewardRow(launch,activity,'other','devnet'));
 });

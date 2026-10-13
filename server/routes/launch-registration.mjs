@@ -95,6 +95,7 @@ export function createLaunchRegistrationRoutes({
       const xLinked = policy.solClaimPercent > 0;
       const perMint = input.pumpFeeRoute?.scope === 'per-mint-v2';
       const perMintV3 = input.pumpFeeRoute?.scope === 'per-mint-v3';
+      if (!perMintV3) return json(res, 410, { error:'V2 launch registration is retired. Submit a verified V3 launch.' });
       const v3Config = perMintV3 ? await v3LaunchConfig() : null;
       if (!existingLaunch && !perMint && !perMintV3) return json(res, 409, { error: 'New launches require a mint-specific fee router for attributable automatic rewards.' });
       if (!existingLaunch && perMint) return json(res, 409, { error:'New V2 launches are retired. Refresh funded.vip and use the verified V3 launch flow.' });

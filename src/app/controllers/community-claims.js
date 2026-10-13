@@ -92,9 +92,9 @@ export function createCommunityClaimsController(appState) {
       const reserve = appState.verifiedCommunityReserves.get(mintAddress);
       const launch = appState.verifiedLaunchPolicies.find(row => row.mint === mintAddress);
       const expectedProgramId = launch?.pumpFeeRoute?.scope === 'per-mint-v3'
-        ? launch.pumpFeeRoute.programId : appState.FEE_ROUTER_PROGRAM_ID;
+        ? launch.pumpFeeRoute.programId : null;
       if (!reserve?.verified || !launch?.onchainVerified || launch.cluster !== 'devnet' || !expectedProgramId
-        || (launch.pumpFeeRoute?.scope === 'per-mint-v3' && launch.pumpFeeRoute.verified !== true)
+        || launch.pumpFeeRoute.verified !== true
         || reserve.programId !== expectedProgramId || claim.programId !== expectedProgramId
         || reserve.scope !== launch.pumpFeeRoute?.scope) {
         throw new Error('Claim program differs from the verified launch and reserve.');

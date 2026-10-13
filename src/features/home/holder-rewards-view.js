@@ -23,10 +23,10 @@ export function renderHomeHolderRewardCoins(
   const coins = verifiedLaunchPolicies
     .map(launch => ({ launch, share:verifiedPolicyPercent(launch.feeDistribution?.creatorDirected?.shares?.holderAirdropPercent) }))
     .filter(({ launch, share }) => share > 0 && share <= 80 && launch.mint
-      && launch.pumpFeeRoute?.scope === 'per-mint-v2' && launch.pumpFeeRoute?.verified === true
+      && launch.pumpFeeRoute?.scope === 'per-mint-v3' && launch.pumpFeeRoute?.verified === true
       && launch.pumpFeeRoute.router === launch.creator)
     .sort((a, b) => Number(b.launch.createdTimestamp || 0) - Number(a.launch.createdTimestamp || 0));
-  count.textContent = `${coins.length} verified coin${coins.length === 1 ? '' : 's'}`;
+  count.textContent = `${coins.length} verified V3 coin${coins.length === 1 ? '' : 's'}`;
   if (!coins.length) {
     list.innerHTML = '<li class="home-holder-rewards-empty">No verified coins currently allocate creator fees to coin holders.</li>';
     return;
@@ -35,7 +35,7 @@ export function renderHomeHolderRewardCoins(
     <a class="home-holder-reward-coin" data-logo-mint="${escapeHtml(launch.mint)}" href="/token/${encodeURIComponent(launch.mint)}">
       <span class="home-holder-reward-avatar" aria-hidden="true">${escapeHtml(String(launch.symbol || launch.name || 'C').slice(0, 1).toUpperCase())}</span>
       <span class="home-holder-reward-identity"><strong>${escapeHtml(launch.name || launch.symbol || 'Unnamed coin')}</strong><small>${escapeHtml(launch.symbol || 'TOKEN')}</small></span>
-      <span class="home-holder-reward-share"><strong>${escapeHtml(share.toLocaleString(undefined, { maximumFractionDigits: 2 }))}%</strong><small>of collected creator fees</small></span>
+      <span class="home-holder-reward-share"><strong>${escapeHtml(share.toLocaleString(undefined, { maximumFractionDigits: 2 }))}%</strong><small>policy allocation · payout pending</small></span>
       <span class="home-holder-reward-link">View coin →</span>
     </a>
   </li>`).join('');

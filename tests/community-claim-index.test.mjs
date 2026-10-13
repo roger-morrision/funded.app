@@ -67,6 +67,7 @@ function fixture() {
 test('indexes finalized community payments by recipient across launches', async () => {
   const f = fixture();
   f.addDrop(key()); f.addDrop(key());
+  f.state.communityDrops[key()] = { programId:key(), openingSignature:signature };
   const result = await f.run();
   assert.equal(result.drops.length, 2);
   assert.equal(result.payments.length, 2);

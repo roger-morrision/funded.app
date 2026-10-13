@@ -5,9 +5,6 @@ import { once } from 'node:events';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import nacl from 'tweetnacl';
-import bs58 from 'bs58';
-import { createStore } from '../server/store.mjs';
 
 const probe=createServer();await new Promise(resolve=>probe.listen(0,'127.0.0.1',resolve));const port=probe.address().port;await new Promise(resolve=>probe.close(resolve));
 const base=`http://127.0.0.1:${port}`,directory=await mkdtemp(join(tmpdir(),'funded-oauth-http-')),statePath=join(directory,'state.json');
@@ -43,29 +40,12 @@ try {
   const claims=await get('/api/x-fee/claims',session);assert.equal(claims.status,200);assert.deepEqual((await claims.json()).claims,[]);
   const receipts=await(await get('/api/evidence/receipts')).json();assert.equal(receipts.status,'no-records');assert.equal(receipts.scope,'global-recent');
   const readiness=await(await get('/api/readiness')).json();assert.equal(readiness.ready,false);assert.equal(readiness.scope,'configuration-only');
-  // Add only synthetic entitlement data while the API is stopped. Signing keys stay in memory.
-  await stop();
-  const fixtureStore=createStore(statePath,'');
-  await fixtureStore.update(state=>{
-    state.obligations['http-claim']={id:'http-claim',recipient:'@fixture',xUserId:'9000001',amountLamports:'1000000',source:'verified-per-mint-router-collection',cluster:'devnet'};
-    state.claims['http-claim']={id:'http-claim',recipient:'@fixture',xUserId:'9000001',obligationId:'http-claim',nonce:'expired-nonce',status:'awaiting-wallet-signature',expiresAt:new Date(0).toISOString()};
-  });
-  await start();
+  await stop();await start();
   const postClaim=(action,input={})=>fetch(`${base}/api/sol-claims/http-claim/${action}`,{method:'POST',headers:{cookie:session,origin:base,'content-type':'application/json'},body:JSON.stringify({xHandle:'@fixture',...input})});
-  const prepare=await postClaim('prepare');assert.equal(prepare.status,200);const challenge=await prepare.json();
-  assert.ok(!challenge.statement.includes('expired-nonce'));
-  const wallet=nacl.sign.keyPair(),otherWallet=nacl.sign.keyPair();
-  const signed=(key,statement=challenge.statement)=>({publicKey:bs58.encode(key.publicKey),signature:bs58.encode(nacl.sign.detached(new TextEncoder().encode(statement),key.secretKey))});
-  assert.equal((await postClaim('verify',signed(wallet,'funded.app SOL claim http-claim for @fixture nonce expired-nonce'))).status,401);
-  const verified=await postClaim('verify',signed(wallet));assert.equal(verified.status,200);assert.equal((await verified.json()).status,'wallet-verified');
-  assert.equal((await postClaim('verify',signed(otherWallet))).status,409,'Original wallet cannot be replaced.');
-  const attested=await postClaim('attest');assert.equal(attested.status,200);assert.equal((await attested.json()).status,'ready-to-execute');
-  assert.equal((await(await postClaim('prepare')).json()).boundWallet,bs58.encode(wallet.publicKey));
-  await stop();
-  await createStore(statePath,'').updateClaimState('http-claim',state=>{state.claims['http-claim'].status='verification-pending';});
-  await start();
-  assert.equal((await(await postClaim('verify',signed(wallet))).json()).status,'verification-pending','Reverification cannot rearm uncertain execution.');
-  assert.equal((await(await postClaim('attest')).json()).status,'verification-pending');
+  for(const action of ['prepare','verify','attest','execute']){
+    const retired=await postClaim(action);
+    assert.equal(retired.status,410,`V2 ${action} must remain retired`);
+  }
   await stop();await start();
   assert.equal((await(await get('/api/creator-support/me',session)).json()).csrf,settings.csrf);
   const preferences=await fetch(`${base}/api/creator-support/preferences`,{method:'POST',headers:{cookie:session,origin:base,'content-type':'application/json','x-creator-csrf':settings.csrf},body:JSON.stringify({following:['123']})});assert.equal(preferences.status,200);
@@ -95,5 +75,5 @@ try {
   assert.equal((await(await get('/api/x/me')).json()).configured,false);
   assert.equal((await get('/api/x/oauth/start')).status,503);
   const persisted=await readFile(`${statePath}.auth.json`,'utf8');assert.ok(!persisted.includes('synthetic-token-not-persisted'));
-  console.log('X auth HTTP: restart-safe OAuth/CSRF, scoped claim renewal, old-signature rejection, original-wallet binding, attestation and uncertainty preservation passed with mocked X provider and ephemeral signing keys. No payout or real OAuth.');
+  console.log('X auth HTTP: restart-safe OAuth/CSRF and V2 payout retirement passed with a mocked X provider. No payout or real OAuth.');
 } finally {await stop();await rm(directory,{recursive:true,force:true});}

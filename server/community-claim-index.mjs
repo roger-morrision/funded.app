@@ -49,8 +49,8 @@ export async function indexCommunityClaims({ connection, ledger, programId, auth
 
   const drops = [], payments = [];
   for (const record of Object.values(ledgerState.communityDrops || {})) {
-    if (!record?.openingSignature) continue;
-    if (record.programId !== program.toBase58() || record.authority !== issuer.toBase58()
+    if (!record?.openingSignature || record.programId !== program.toBase58()) continue;
+    if (record.authority !== issuer.toBase58()
       || record.eligibilityMint !== eligible.toBase58()
       || !Array.isArray(record.manifest?.leaves) || !positive(record.reservedBaseUnits))
       throw new Error('Opened community manifest has an invalid program or eligibility identity.');

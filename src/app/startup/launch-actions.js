@@ -419,10 +419,6 @@ export function initializeLaunchActions(appState) {
   });
   // app-source-end
 
-  // app-source: 725
-  document.querySelector('#sol-claim-submit')?.addEventListener('click', appState.submitSolClaim);
-  // app-source-end
-
   // app-source: 727
   for (const id of ['sol-claim-x-account', 'sol-claim-id']) {
     document.getElementById(id)?.addEventListener('input', () => { appState.updateClaimBindingReview(); appState.resetSolClaimStatus(); });

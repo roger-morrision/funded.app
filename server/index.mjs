@@ -458,8 +458,8 @@ async function handle(req, res) {
     if (await handleKeeperStatus(req, res, url)) return;
     if (await handleDiscoveryRoutes(req, res, url)) return;
     if (await handleTokenChatRoutes(req, res, url, requestId)) return;
-    if (await handleCreatorFeesRoutes(req, res, url, requestId)) return;
     if (await handleV3Routes(req, res, url, requestId)) return;
+    if (await handleCreatorFeesRoutes(req, res, url, requestId)) return;
     if (await handleRewardFundingRoutes(req, res, url, requestId)) return;
     if (await handleTokenMarketRoutes(req, res, url, requestId)) return;
     if (await handleKeeperCollectionRoutes(req, res, url, requestId)) return;
@@ -497,4 +497,4 @@ server.headersTimeout = 10_000;
 server.requestTimeout = 30_000;
 server.timeout = 120_000;
 server.listen(port, host, () => console.log(`funded.vip app listening on http://${host}:${port}`));
-startCommunityClaimIndex({ solanaCluster, solanaRpcUrl, fundedTokenMint, automaticRewardStore });
+startCommunityClaimIndex({ solanaCluster, solanaRpcUrl, fundedTokenMint, automaticRewardStore, v3AuthorityKeypair });

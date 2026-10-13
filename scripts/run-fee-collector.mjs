@@ -21,12 +21,7 @@ if (process.argv.includes('--check')) {
   async function tick() {
     const candidates = await request('/api/keeper/collection-candidates');
     if (candidates.cluster !== 'devnet') throw new Error('API cluster is not Devnet.');
-    let settled = 0, collected = 0;
-    for (const signature of candidates.pendingSettlements || []) {
-      const result = await request('/api/settlements/claims', { claimSignature:signature });
-      if (result.automaticRewards?.status !== 'queued') throw new Error(`Reward queue unavailable for ${signature}.`);
-      settled += 1;
-    }
+    let collected = 0;
     for (const candidate of candidates.mints || []) {
       if (candidate.collectionStatus && !['complete','nothing-to-collect','no-fees'].includes(candidate.collectionStatus)) continue;
       const activity = await request(`/api/tokens/${encodeURIComponent(candidate.mint)}/fee-activity`);
@@ -35,14 +30,11 @@ if (process.argv.includes('--check')) {
       if (BigInt(pump.accruedLamports) < minimum) continue;
       // A failed or timed-out collect is uncertain. The server locks that mint for review.
       const result = await request('/api/keeper/collect', { mint:candidate.mint });
-      if (result.status === 'collected' && result.onchainVerified === true && result.signature) {
-        collected += 1;
-        const settlement = await request('/api/settlements/claims', { claimSignature:result.signature });
-        if (settlement.automaticRewards?.status !== 'queued') throw new Error(`Reward queue unavailable for ${result.signature}.`);
-        settled += 1;
-      }
+      if (result.scope === 'per-mint-v3' && result.status === 'collected'
+        && result.onchainVerified === true && result.signature) collected += 1;
     }
-    const status = { status:'ready', at:new Date().toISOString(), checked:(candidates.mints || []).length, collected, settled };
+    const status = { status:'ready', at:new Date().toISOString(), checked:(candidates.mints || []).length,
+      collected, awaitingCreatorSettlement:(candidates.pendingV3Settlements || []).length };
     await writeFile(heartbeat, JSON.stringify(status));
     console.log(JSON.stringify(status));
   }

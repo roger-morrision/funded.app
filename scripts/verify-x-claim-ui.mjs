@@ -47,12 +47,10 @@ try {
     assert.equal(await page.locator('#x-claim-unclaimed-value').textContent(), '0.3 SOL');
     assert.equal(await page.locator('#x-claim-pending-value').textContent(), '0.25 SOL');
     assert.equal(await page.locator('#x-claim-claimed-value').textContent(), `${targetPaidSol} SOL`);
-    assert.deepEqual(await page.locator('#sol-claim-list [data-claim-id]').evaluateAll(rows => rows.map(row => row.dataset.claimId)), ['ready-fixture', 'pending-fixture', 'creator-fixture', 'paid-fixture']);
-    await page.getByRole('button', { name: 'Select reward', exact: true }).click();
-    assert.equal(await page.locator('#sol-claim-id').inputValue(), 'ready-fixture');
-    assert.equal(await page.locator('#sol-claim-submit').textContent(), 'Connect wallet to continue');
-    assert(await page.locator('#claim-binding-agree').isDisabled());
-    assert.match(await page.locator('#selected-claim-summary').textContent(), /0.3 SOL/);
+    assert.deepEqual(await page.locator('#sol-claim-list [data-claim-id]').evaluateAll(rows => rows.map(row => row.dataset.claimId)), ['pending-fixture', 'ready-fixture', 'creator-fixture', 'paid-fixture']);
+    assert.equal(await page.locator('#sol-claim-list button').count(), 0);
+    assert(await page.locator('#sol-claim-submit').isHidden());
+    assert.match(await page.locator('#sol-claim-status').textContent(), /V3 X claims are pending activation/);
     await page.getByRole('button', { name: 'Sign out of X', exact: true }).click();
     await page.waitForFunction(() => document.querySelector('#x-sign-in')?.dataset.connected === 'false');
     assert.equal(await page.locator('#sol-claim-id').inputValue(), '');
@@ -64,25 +62,24 @@ try {
       if (mode === 'creator') {
         const row=page.locator('#sol-claim-list [data-claim-id="creator-fixture"]');
         await row.waitFor();
-        assert.match(await row.textContent(), /Awaiting creator approval/);
-        assert.match(await row.textContent(), /No SOL has been paid/);
+        assert.match(await row.textContent(), /V2 claim retired/);
+        assert.match(await row.textContent(), /V3 X claims are pending activation/);
         assert.equal(await row.locator('button').count(), 0);
-        assert.match(await page.locator('#sol-claim-status').textContent(), /Awaiting launch creator approval for claim creator-fixture/);
-        assert.equal(await page.locator('#x-claim-steps [data-claim-step="paid"]').getAttribute('aria-current'), 'step');
+        assert.match(await page.locator('#sol-claim-status').textContent(), /V3 X claims are pending activation/);
       } else if (mode === 'paid') {
         await page.locator('#sol-claim-list [data-claim-id="paid-fixture"]').waitFor();
         assert.equal(await page.locator('#sol-claim-list button').count(), 0);
         assert.equal(await page.locator('#sol-claim-list .payment-receipt-link').count(), 1);
         assert.match(await page.locator('#sol-claim-list [data-claim-id="paid-fixture"]').textContent(), new RegExp(targetWallet));
       } else {
-        await page.waitForFunction(() => /No collected creator fees|Synthetic rewards outage/.test(document.querySelector('#sol-claim-list')?.textContent));
-        assert.match(await page.locator('#sol-claim-list').textContent(), mode === 'empty' ? /No collected creator fees/ : /Synthetic rewards outage/);
+        await page.waitForFunction(() => /No historical X rewards|Synthetic rewards outage/.test(document.querySelector('#sol-claim-list')?.textContent));
+        assert.match(await page.locator('#sol-claim-list').textContent(), mode === 'empty' ? /No historical X rewards/ : /Synthetic rewards outage/);
       }
       assert(await page.locator('#sol-claim-submit').isHidden());
     }
     assert.deepEqual(claimWrites, [], 'Review and sign-out must never send a claim transaction');
     assert.deepEqual(errors, [], 'No uncaught browser errors');
     await context.close();
-    console.log(`X rewards UI passed at ${width}px: totals, creator approval, selection, wallet gate, sign-out, paid/empty/unavailable states (mocked APIs, no signing).`);
+    console.log(`X rewards UI passed at ${width}px: historical totals, retired V2 controls, sign-out, paid/empty/unavailable states (mocked APIs, no signing).`);
   }
 } finally { await browser.close(); }
