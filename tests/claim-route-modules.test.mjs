@@ -40,6 +40,36 @@ test('stale V2 launch clients receive a closed router readiness response', async
   assert.match(f.responses[0].data.reasons.join('; '), /V2 launches are retired/);
 });
 
+test('X launch readiness follows the verified V3 gate and OAuth prerequisites', async () => {
+  let checks = 0;
+  const env = { FUNDED_V3_X_CLAIMS_ENABLED:'false', X_BEARER_TOKEN:'test-only' };
+  const f = fixture(createXIdentityRoutes, {
+    env, xConfig:() => ({ clientId:'test', clientSecret:'test-only' }),
+    xOAuthConfigured:() => true,
+    resolveXUser:{ health:() => null },
+    v3LaunchConfig:async () => { checks++; return { ready:true, reasons:[] }; },
+  });
+  await f.request('/api/x-fee/status', {}, 'GET');
+  assert.equal(f.responses.at(-1).data.ready, false);
+  assert.match(f.responses.at(-1).data.reasons.join(' '), /disabled/);
+  env.FUNDED_V3_X_CLAIMS_ENABLED = 'true';
+  await f.request('/api/x-fee/status', {}, 'GET');
+  assert.equal(f.responses.at(-1).data.ready, true);
+  assert.equal(f.responses.at(-1).data.scope, 'per-mint-v3');
+  assert.equal(checks, 2);
+  f.responses.length = 0;
+  f.res.ended = false;
+  const closed = fixture(createXIdentityRoutes, {
+    env, xConfig:() => ({ clientId:'test', clientSecret:'test-only' }),
+    xOAuthConfigured:() => true,
+    resolveXUser:{ health:() => null },
+    v3LaunchConfig:async () => ({ ready:false, reasons:['V3 program is unavailable'] }),
+  });
+  await closed.request('/api/x-fee/status', {}, 'GET');
+  assert.equal(closed.responses.at(-1).data.ready, false);
+  assert.deepEqual(closed.responses.at(-1).data.reasons, ['V3 program is unavailable']);
+});
+
 test('OAuth redirects and HTML failures stop dispatch exactly once', async () => {
   const pages = [];
   const f = fixture(createXIdentityRoutes, {

@@ -17,14 +17,15 @@ function call(create, dependencies, path, method = 'GET') {
     .then(() => responses.at(-1));
 }
 
-test('public X payout status stays unavailable while handle lookup remains usable', async () => {
+test('public X launch status stays closed without the V3 claim gate while handle lookup remains usable', async () => {
   const dependencies = { xFeeReadiness:async () => assert.fail('V2 payout readiness must not gate X identity lookup'), clientKey: () => 'fixture',
+    solanaCluster:'devnet', env:{ FUNDED_V3_X_CLAIMS_ENABLED:'false' },
     store: { chargeRpcRate: async () => true, read: async () => ({ creatorProfiles: {} }) },
     resolveXUser: async () => ({ id: '123', handle: '@fixture' }) };
   const status = await call(createXIdentityRoutes, dependencies, '/api/x-fee/status');
   assert.equal(status.status, 200);
   assert.equal(status.data.ready, false);
-  assert.match(status.data.reasons[0], /V3 X payout/);
+  assert.match(status.data.reasons[0], /V3 X claims are disabled/);
   const lookup = await call(createXIdentityRoutes, dependencies, '/api/x/resolve?handle=%40fixture');
   assert.equal(lookup.status, 200);
   assert.equal(lookup.data.id, '123');

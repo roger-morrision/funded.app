@@ -20,6 +20,7 @@ import { publicWalletSignedV3Post } from './v3-public-post-paths.mjs';
 import { createKeeperCollectionRoutes } from './routes/keeper-collection.mjs';
 import { createListingPaymentsRoutes } from './routes/listing-payments.mjs';
 import { createLaunchRegistrationRoutes } from './routes/launch-registration.mjs';
+import { createV3LaunchConfig } from './v3-launch-config.mjs';
 import { createPublicReportsRoutes } from './routes/public-reports.mjs';
 import { createQuoteAssetsRoutes } from './routes/quote-assets.mjs';
 import { createDirectoryRoutes } from './routes/directory.mjs';
@@ -311,12 +312,15 @@ const handleListingPaymentsRoutes = createListingPaymentsRoutes({
   body, fundedTokenMint, walletKey, store, solanaCluster, solanaRpcUrl, listingBurnAlreadyUsed,
   currentLaunchTierPricing, clientKey, id, respond: json,
 });
+const v3LaunchConfig = createV3LaunchConfig({ solanaCluster, solanaRpcUrl,
+  automaticRewardStore, v3AuthorityKeypair });
 const handleLaunchRegistrationRoutes = createLaunchRegistrationRoutes({
   solanaCluster, body, store, automaticRewardStore, resolveXUser, fundedTokenMint, solanaRpcUrl, walletSignature, v3AuthorityKeypair, id, invalidateReserveCache, respond: json,
+  v3LaunchConfig,
 });
 
 const handleXIdentityRoutes = createXIdentityRoutes({
-  xConfig, store, clientKey, xOAuthConfigured, xCallbackUrl, xAuth, html, xSession, resolveXUser, solanaCluster, readReceiptEvidence, automaticRewardStore, respond: json,
+  xConfig, store, clientKey, xOAuthConfigured, xCallbackUrl, xAuth, html, xSession, resolveXUser, solanaCluster, readReceiptEvidence, automaticRewardStore, v3LaunchConfig, respond: json,
 });
 const handleCreatorFeesRoutes = createCreatorFeesRoutes({
   store, solanaCluster, route, solanaRpcUrl, readFinalizedEvidence, automaticRewardStore, feeRouterConfig,

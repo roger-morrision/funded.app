@@ -17,6 +17,8 @@ export function createXIdentityRoutes({
   solanaCluster,
   readReceiptEvidence,
   automaticRewardStore,
+  v3LaunchConfig,
+  env = process.env,
   respond,
 }) {
   const json = (...args) => { respond(...args); return true; };
@@ -85,8 +87,25 @@ export function createXIdentityRoutes({
     }
     if (req.method === 'GET' && url.pathname === '/api/mint-router/creator-settlement-status')
       return json(res, 200, { ready:false, reasons:['V2 creator settlement is retired. Use a verified V3 collection.'] });
-    if (req.method === 'GET' && url.pathname === '/api/x-fee/status')
-      return json(res, 200, { ready:false, reasons:['V3 X payout and claim verification are not activated.'] });
+    if (req.method === 'GET' && url.pathname === '/api/x-fee/status') {
+      const reasons = [];
+      const oauth = xConfig?.();
+      if (solanaCluster !== 'devnet') reasons.push('V3 X claims require Devnet.');
+      if (env.FUNDED_V3_X_CLAIMS_ENABLED !== 'true') reasons.push('V3 X claims are disabled.');
+      if (!oauth?.clientId || !oauth?.clientSecret || !xOAuthConfigured?.(req))
+        reasons.push('X OAuth is unavailable for this app origin.');
+      if (!String(env.X_BEARER_TOKEN || '').trim() || resolveXUser?.health?.())
+        reasons.push('X account lookup is unavailable.');
+      if (!v3LaunchConfig) reasons.push('V3 launch readiness is unavailable.');
+      else {
+        try {
+          const launch = await v3LaunchConfig();
+          if (!launch.ready) reasons.push(...(launch.reasons || ['V3 launch readiness is unavailable.']));
+        } catch { reasons.push('V3 launch readiness is unavailable.'); }
+      }
+      return json(res, 200, { ready:reasons.length === 0, reasons,
+        scope:'per-mint-v3', cluster:solanaCluster });
+    }
     if (req.method === 'GET' && url.pathname === '/api/x-fee/claims') {
       const session = await xSession(req);
       res.setHeader('cache-control', 'no-store');
