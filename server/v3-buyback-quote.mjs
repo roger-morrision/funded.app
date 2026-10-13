@@ -6,8 +6,8 @@ import { V3_DEVNET_FUNDED_MINT, V3_DEVNET_FUNDED_POOL } from './v3-buyback-instr
 
 export async function quoteV3Buyback({ connection, vault, budgetLamports }) {
   const budget=BigInt(budgetLamports);
-  if (budget<100_000n || budget>BigInt(Number.MAX_SAFE_INTEGER))
-    throw new Error('V3 buyback budget is outside the bounded Devnet range.');
+  if (budget<10_000n || budget>BigInt(Number.MAX_SAFE_INTEGER))
+    throw Object.assign(new Error('V3 buyback budget must be at least 10,000 lamports and within the bounded Devnet range.'), { statusCode:409 });
   const quote=budget;
   const [state,mintInfo]=await Promise.all([
     new OnlinePumpAmmSdk(connection).swapSolanaState(V3_DEVNET_FUNDED_POOL,vault),
