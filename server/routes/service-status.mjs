@@ -4,13 +4,16 @@ import { buildProductionReadiness, isKeeperEnabled } from '../../production-read
 import { receiptWorkerStatus } from '../receipt-worker-status.mjs';
 import { CREATOR_SUPPORT_VERSION } from '../../creator-support-model.js';
 import { createReadCache } from '../read-cache.mjs';
+import { Connection } from '@solana/web3.js';
+import { verifyRecordedV3Settlements } from '../v3-settlement-status.mjs';
 
 export function createServiceStatusRoutes({
   store, solanaCluster, solanaRpcUrl, automaticRewardStore, launchPolicyConfig,
   keeperKeypair, v3RouterConfig, birdeyeApiKey, pumpApiUrl, xOAuthConfigured,
-  readSolUsdQuote, requireAuthorized, respond,
+  readSolUsdQuote, requireAuthorized, respond, env = process.env,
+  readSettlementEvidence, connectionFactory = url => new Connection(url, 'finalized'),
 }) {
-  const statusCache = createReadCache({ ttlMs: 15_000, maxEntries: 1 });
+  const statusCache = createReadCache({ ttlMs: 60_000, maxEntries: 1 });
   const json = (...args) => { respond(...args); return true; };
   async function handleServiceStatus(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/status') {
@@ -24,6 +27,15 @@ export function createServiceStatusRoutes({
           if (!response.ok || data.error || typeof data.result !== 'string') throw new Error('RPC unavailable');
           return data.result;
         },
+        settlement: readSettlementEvidence || (async () => {
+          if (solanaCluster !== 'devnet' || env.FUNDED_V3_SETTLEMENT_ENABLED !== 'true')
+            return { verified:false, scope:'all-recorded-v3-collections', recorded:0,
+              checked:0, reason:'v3-settlement-disabled' };
+          return verifyRecordedV3Settlements({ state:await store.read(),
+            connection:connectionFactory(solanaRpcUrl),
+            programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,
+            approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256 });
+        }),
       }));
       return json(res, 200, report);
     }

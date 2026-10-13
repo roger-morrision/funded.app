@@ -91,3 +91,15 @@ test('service-status cache belongs to each server instance and retains network v
   assert.equal(rpcReads, 2);
   assert.equal(databaseReads, 2);
 });
+test('status route exposes verified V3 settlement evidence after a finalized proof', async t => {
+  t.mock.method(globalThis, 'fetch', async () => ({ ok:true,
+    json:async () => ({ result:GENESIS_HASHES.devnet }) }));
+  const report = await fixture({ store:{ health:async () => true },
+    readSettlementEvidence:async () => ({ verified:true,
+      scope:'all-recorded-v3-collections', recorded:2, checked:2 }) })(
+    'handleServiceStatus', '/api/status');
+  assert.equal(report.status, 200);
+  assert.equal(report.data.settlementVerified, true);
+  assert.equal(report.data.settlementEvidence.checked, 2);
+  assert.equal(report.data.mainnetActivationAuthorized, false);
+});

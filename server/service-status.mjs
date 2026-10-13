@@ -13,13 +13,21 @@ async function probe(check, timeoutMs) {
   } finally { clearTimeout(timer); }
 }
 
-export async function serviceStatus({ cluster, build, database, rpc, timeoutMs = 6000 }) {
-  const [storage, network] = await Promise.allSettled([probe(database, timeoutMs), probe(rpc, timeoutMs)]);
+export async function serviceStatus({ cluster, build, database, rpc, settlement,
+  timeoutMs = 6000, settlementTimeoutMs = 30000 }) {
+  const [storage, network, proof] = await Promise.allSettled([
+    probe(database, timeoutMs), probe(rpc, timeoutMs),
+    settlement ? probe(settlement, settlementTimeoutMs) : Promise.resolve(null),
+  ]);
   const checks = [
     { id: 'storage', status: storage.status === 'fulfilled' && storage.value === true ? 'operational' : 'unavailable' },
     { id: 'network', status: network.status === 'fulfilled' && network.value === GENESIS_HASHES[cluster] && Boolean(GENESIS_HASHES[cluster]) ? 'operational' : network.status === 'fulfilled' ? 'wrong-network' : 'unavailable' },
   ];
+  const evidence = proof.status === 'fulfilled' && proof.value?.scope === 'all-recorded-v3-collections'
+    ? proof.value : { verified:false, scope:'all-recorded-v3-collections', recorded:0,
+      checked:0, reason:'finalized-evidence-unavailable' };
   return { cluster, build, status: checks.every(check => check.status === 'operational') ? 'operational' : 'degraded',
-    checks, observedAt: new Date().toISOString(), scope: 'storage-and-network-only',
-    settlementVerified: false, mainnetActivationAuthorized: false };
+    checks, observedAt: new Date().toISOString(), scope: 'storage-network-and-v3-settlement-evidence',
+    settlementVerified: evidence.verified === true, settlementEvidence:evidence,
+    mainnetActivationAuthorized: false };
 }
