@@ -330,7 +330,7 @@ const handleListingPaymentsRoutes = createListingPaymentsRoutes({
   currentLaunchTierPricing, clientKey, id, respond: json,
 });
 const handleLaunchRegistrationRoutes = createLaunchRegistrationRoutes({
-  solanaCluster, body, store, xFeeReadiness, resolveXUser, fundedTokenMint, solanaRpcUrl, feeRouterConfig, walletSignature, routerAuthorityKeypair, id, invalidateReserveCache, registerAutomaticLaunch, respond: json,
+  solanaCluster, body, store, xFeeReadiness, resolveXUser, fundedTokenMint, solanaRpcUrl, feeRouterConfig, walletSignature, routerAuthorityKeypair, v3AuthorityKeypair, id, invalidateReserveCache, registerAutomaticLaunch, respond: json,
 });
 const handleSettlementRoutes = createSettlementRoutes({
   body, store, solanaCluster, walletKey, referralUplineForWallet, queueAutomaticSettlementRewards, respond: json,

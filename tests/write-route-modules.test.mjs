@@ -28,6 +28,20 @@ test('write route families leave unrelated requests to the shared dispatcher', a
   }
 });
 
+test('V3-only launch configuration cannot be enabled by flags before payouts and buyback exist', async () => {
+  const f = fixture(createLaunchRegistrationRoutes, { env:{
+    FUNDED_V3_LAUNCH_ENABLED:'true', FUNDED_V3_COLLECTION_ENABLED:'true',
+    FUNDED_V3_SETTLEMENT_ENABLED:'true', FUNDED_V3_REWARDS_ENABLED:'true',
+    FUNDED_V3_BUYBACK_ENABLED:'true', FUNDED_V3_FEE_ROUTER_PROGRAM_ID:mint,
+    FUNDED_V3_PROGRAM_DATA_SHA256:'a'.repeat(64),
+  }, v3AuthorityKeypair:() => ({ publicKey:new PublicKey(mint) }) });
+  assert.equal(await f.request('/api/v3-launch-config', {}, 'GET'), true);
+  assert.equal(f.responses[0].status, 200);
+  assert.equal(f.responses[0].data.ready, false);
+  assert.match(f.responses[0].data.reasons.join('; '), /V3 reward funding and claims are not implemented/);
+  assert.match(f.responses[0].data.reasons.join('; '), /V3 buyback purchase and burn are not implemented/);
+});
+
 test('keeper authorization denials terminate dispatch before reading or collecting', async () => {
   let denied = 0;
   const f = fixture(createKeeperCollectionRoutes, {

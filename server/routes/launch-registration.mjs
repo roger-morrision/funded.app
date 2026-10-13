@@ -15,6 +15,7 @@ import { buildSolClaimPolicy } from '../../sol-claim-policy.js';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import { protocolGrossUnits } from '../../mint-router-v3.js';
 import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
+import { verifyFeeRouterAccount } from '../../fee-router.js';
 import nacl from 'tweetnacl';
 
 // Called after the shared request policy, rate limit, and authorization checks.
@@ -30,6 +31,8 @@ export function createLaunchRegistrationRoutes({
   feeRouterConfig,
   walletSignature,
   routerAuthorityKeypair,
+  v3AuthorityKeypair,
+  env = process.env,
   id,
   invalidateReserveCache,
   registerAutomaticLaunch,
@@ -37,6 +40,40 @@ export function createLaunchRegistrationRoutes({
 }) {
   const json = (...args) => { respond(...args); return true; };
   return async function handleLaunchRegistrationRoutes(req, res, url) {
+    if (req.method === 'GET' && url.pathname === '/api/v3-launch-config') {
+      const reasons = [];
+      const programId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
+      const approvedHash = String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || '').trim().toLowerCase();
+      if (solanaCluster !== 'devnet') reasons.push('V3 launches require Devnet');
+      for (const [name, label] of [
+        ['FUNDED_V3_LAUNCH_ENABLED', 'V3 launch registration'],
+        ['FUNDED_V3_COLLECTION_ENABLED', 'V3 fee collection'],
+        ['FUNDED_V3_SETTLEMENT_ENABLED', 'V3 settlement'],
+      ]) if (env[name] !== 'true') reasons.push(`${label} is disabled`);
+      // Configuration cannot activate missing instructions or workers. Remove
+      // these blockers only after finalized V3 payout and burn regressions.
+      reasons.push('V3 reward funding and claims are not implemented');
+      reasons.push('V3 buyback purchase and burn are not implemented');
+      if (!programId || !/^[a-f0-9]{64}$/.test(approvedHash)) reasons.push('Approved V3 program is not configured');
+      let authority = null;
+      try { authority = v3AuthorityKeypair?.(); } catch { reasons.push('V3 authority signer is invalid'); }
+      if (!authority?.publicKey) reasons.push('V3 authority signer is unavailable');
+      if (!reasons.length) {
+        try {
+          const connection = new Connection(solanaRpcUrl, 'finalized');
+          const [genesis, evidence, router] = await Promise.all([
+            connection.getGenesisHash(), readProgramDataEvidence(connection, programId),
+            verifyFeeRouterAccount({ connection, programId, commitment:'finalized' }),
+          ]);
+          if (genesis !== DEVNET_GENESIS_HASH || !evidence.account?.executable
+            || evidence.sha256 !== approvedHash || !router.verified
+            || !router.authority.equals(authority.publicKey)) reasons.push('Approved V3 program or authority is not verified on Devnet');
+        } catch { reasons.push('V3 program verification is unavailable'); }
+      }
+      return json(res, 200, { ready:reasons.length === 0, cluster:solanaCluster,
+        programId:programId || null, initialAuthority:authority?.publicKey.toBase58() || null,
+        protocolSplit:PROTOCOL_FEE_SPLIT, reasons });
+    }
     if (req.method === 'GET' && url.pathname === '/api/launch-reserve-config') {
       if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE)
         return json(res, 503, { error:'Atomic Solana community reserve is not configured.' });
