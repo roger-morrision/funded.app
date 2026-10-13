@@ -4,9 +4,14 @@ import { resolve } from 'node:path';
 import bs58 from 'bs58';
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction,
   sendAndConfirmTransaction } from '@solana/web3.js';
+import { NATIVE_MINT, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { OnlinePumpSdk, PUMP_SDK } from '@pump-fun/pump-sdk';
+import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
 import { deriveFeeRouter, verifyFeeRouterAccount } from '../fee-router.js';
+import { buildTradeTransaction } from '../pump-trading.js';
 import { createAutomaticRewardChain } from '../server/automatic-reward-chain.mjs';
 import { buildRewardManifest, createRewardCycleId } from '../reward-merkle.js';
+import { loadFinalizedV3PumpCollection } from '../server/v3-finalized-collection.mjs';
 import { buildMintRouterV3InitializeInstruction, buildMintRouterV3SettlementInstruction,
   buildMintRouterV3DisbursementInstruction, deriveMintVaultsV3, protocolGrossUnits,
   verifyMintRouterV3Account, verifyMintPolicyV3Account, verifyMintClaimV3Account,
@@ -22,8 +27,8 @@ const EXPECTED_PROTOCOL_UNITS = [1_000_000, 200_000, 60_000, 40_000, 200_000, 50
 const EXPECTED_ALLOCATION = [8_000_000, 1_000_000, 200_000, 60_000, 40_000, 200_000, 500_000];
 
 const [mode, binaryArg] = process.argv.slice(2);
-if (!['--preflight', '--execute', '--execute-rewards'].includes(mode) || !binaryArg) {
-  throw new Error('Usage: node scripts/run-v3-qa-devnet.mjs --preflight|--execute|--execute-rewards <exact-tested-program.so>');
+if (!['--preflight', '--execute', '--execute-rewards', '--execute-pump'].includes(mode) || !binaryArg) {
+  throw new Error('Usage: node scripts/run-v3-qa-devnet.mjs --preflight|--execute|--execute-rewards|--execute-pump <exact-tested-program.so>');
 }
 const authoritySecret = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
 if (!authoritySecret) throw new Error('The dedicated QA authority secret is required.');
@@ -101,7 +106,8 @@ const mint = Keypair.generate();
 console.error(JSON.stringify({ qaMint: mint.publicKey.toBase58(), qaCreator: creator.publicKey.toBase58() }));
 const operationsRecipient = Keypair.generate().publicKey;
 const fundCreatorSignature = await send([SystemProgram.transfer({
-  fromPubkey: QA_AUTHORITY, toPubkey: creator.publicKey, lamports: CREATOR_FUNDING_LAMPORTS,
+  fromPubkey: QA_AUTHORITY, toPubkey: creator.publicKey,
+  lamports: mode === '--execute-pump' ? 50_000_000 : CREATOR_FUNDING_LAMPORTS,
 })], [authority]);
 const initialized = buildMintRouterV3InitializeInstruction({
   programId: PROGRAM_ID, mint: mint.publicKey, authority: QA_AUTHORITY, creator: creator.publicKey,
@@ -116,6 +122,93 @@ const routerProof = await verifyMintRouterV3Account({ connection, programId: PRO
 const policyProof = await verifyMintPolicyV3Account({ connection, programId: PROGRAM_ID,
   mint: mint.publicKey, creator: creator.publicKey, initialAuthority: QA_AUTHORITY });
 if (!routerProof.verified || !policyProof.verified) throw new Error('Finalized V3 mint router or policy failed verification.');
+
+if (mode === '--execute-pump') {
+  const sdk = new OnlinePumpSdk(connection);
+  const router = initialized.router.address;
+  const before = await finalizedBalance(router);
+  const launchInstruction = await PUMP_SDK.createV2Instruction({
+    mint:mint.publicKey, name:`Funded V3 QA ${Date.now().toString(36)}`,
+    symbol:'FV3QA', uri:`https://funded.vip/devnet-metadata/${mint.publicKey.toBase58()}`,
+    creator:router, user:creator.publicKey, mayhemMode:false, holderReward:false,
+  });
+  const launchSignature = await send([launchInstruction], [creator, mint]);
+  console.error(JSON.stringify({ step:'pump-launch-finalized', mint:mint.publicKey.toBase58(), signature:launchSignature }));
+  const curve = await sdk.fetchBondingCurve(mint.publicKey);
+  if (!curve.creator.equals(router)) throw new Error('Pump bonding curve creator is not the verified V3 router.');
+  const tradeSol = Number(process.env.FUNDED_V3_QA_TRADE_SOL || '0.1');
+  if (!Number.isFinite(tradeSol) || tradeSol < 0.01 || tradeSol > 0.2) {
+    throw new Error('The V3 QA trade must be between 0.01 and 0.2 Devnet SOL.');
+  }
+  const trade = await buildTradeTransaction({ connection, side:'buy', mint:mint.publicKey,
+    user:QA_AUTHORITY, amount:tradeSol, slippagePercent:2,
+    feeOwner:creator.publicKey });
+  const tradeSignature = await send(trade.instructions, [authority]);
+  console.error(JSON.stringify({ step:'pump-buy-finalized', signature:tradeSignature, sol:tradeSol }));
+  const collectionInstructions = await sdk.collectCoinCreatorFeeV2Instructions(
+    router, NATIVE_MINT, TOKEN_PROGRAM_ID, QA_AUTHORITY);
+  if (!collectionInstructions.length) throw new Error('Pump returned no mint-specific creator-fee collection instruction.');
+  const collectionSignature = await send(collectionInstructions, [authority]);
+  console.error(JSON.stringify({ step:'pump-collection-finalized', signature:collectionSignature }));
+  const proof = await loadFinalizedV3PumpCollection({ connection,
+    signature:collectionSignature, programId:PROGRAM_ID, mint:mint.publicKey,
+    launch:{ onchainVerified:true, cluster:'devnet', mint:mint.publicKey.toBase58(),
+      creator:router.toBase58(), creatorWallet:creator.publicKey.toBase58(),
+      pumpFeeRoute:{ scope:'per-mint-v3', router:router.toBase58(),
+        programId:PROGRAM_ID.toBase58(), transaction:launchSignature,
+        initialAuthority:QA_AUTHORITY.toBase58(), protocolSplit:PROTOCOL_FEE_SPLIT } } });
+  if (!proof || proof.router !== router.toBase58()
+    || BigInt((await finalizedBalance(router)) - before) !== proof.expectedLamports) {
+    throw new Error('Finalized Pump collection lacks an exact V3 router balance and instruction proof.');
+  }
+  const claim = buildMintRouterV3SettlementInstruction({ programId:PROGRAM_ID,
+    mint:mint.publicKey, authority:QA_AUTHORITY, creator:creator.publicKey,
+    claimId:proof.claimId, expectedLamports:proof.expectedLamports });
+  const vaults = deriveMintVaultsV3(PROGRAM_ID, mint.publicKey);
+  const vaultBefore = await Promise.all(vaults.map(finalizedBalance));
+  const settlementSignature = await send([claim.instruction], [authority, creator]);
+  console.error(JSON.stringify({ step:'v3-pump-settlement-finalized', signature:settlementSignature }));
+  const claimProof = await verifyMintClaimV3Account({ connection, programId:PROGRAM_ID,
+    mint:mint.publicKey, claimId:proof.claimId, expectedLamports:proof.expectedLamports });
+  const finalPolicy = await verifyMintPolicyV3Account({ connection, programId:PROGRAM_ID,
+    mint:mint.publicKey, creator:creator.publicKey, initialAuthority:QA_AUTHORITY });
+  if (!claimProof.verified || !finalPolicy.verified
+    || finalPolicy.settledLamports !== proof.expectedLamports) {
+    throw new Error('Finalized V3 Pump settlement lacks claim and policy state evidence.');
+  }
+  let cumulative = 8_000_000n;
+  let previous = proof.expectedLamports * cumulative / 10_000_000n;
+  const expectedAllocations = [previous];
+  for (const units of EXPECTED_PROTOCOL_UNITS) {
+    cumulative += BigInt(units);
+    const boundary = proof.expectedLamports * cumulative / 10_000_000n;
+    expectedAllocations.push(boundary - previous);
+    previous = boundary;
+  }
+  if (cumulative !== 10_000_000n || expectedAllocations.some((amount, index) =>
+    amount !== claimProof.categoryLamports[index])) {
+    throw new Error('Finalized Pump fees were not allocated by the configured 80/20 policy.');
+  }
+  const vaultAfter = await Promise.all(vaults.map(finalizedBalance));
+  const rentReserve = await connection.getMinimumBalanceForRentExemption(0, 'finalized');
+  for (let index = 0; index < vaults.length; index++) {
+    const expected = claimProof.categoryLamports[index]
+      + BigInt(vaultBefore[index] < rentReserve ? rentReserve - vaultBefore[index] : 0);
+    if (BigInt(vaultAfter[index] - vaultBefore[index]) !== expected) {
+      throw new Error(`V3 Pump settlement category ${index} lacks its exact vault delta.`);
+    }
+  }
+  console.log(JSON.stringify({ status:'finalized-pump-funded-v3-settlement',
+    program:PROGRAM_ID.toBase58(), binarySha256:createHash('sha256').update(binary).digest('hex'),
+    mint:mint.publicKey.toBase58(), router:router.toBase58(), creator:creator.publicKey.toBase58(),
+    collectedLamports:String(proof.expectedLamports),
+    categoryLamports:claimProof.categoryLamports.map(String),
+    signatures:{ fundCreatorSignature, initializeSignature, launchSignature, tradeSignature,
+      collectionSignature, settlementSignature },
+    limits:{ holderEligibilityVerified:false, xIdentityVerified:false,
+      buybackBurnVerified:false, appPayoutVerified:false } }, null, 2));
+  process.exit(0);
+}
 
 const vaults = deriveMintVaultsV3(PROGRAM_ID, mint.publicKey);
 const before = await Promise.all(vaults.map(finalizedBalance));
