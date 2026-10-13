@@ -19,7 +19,12 @@ services:
       X_CALLBACK_URL: https://funded.vip/api/x/oauth/callback
       FUNDED_BUILD_ID: ${FUNDED_RELEASE_SHA:?Set the tested exact source SHA}
 
-# Keep the public app on the active Devnet reward-worker ledger across UI releases.
+# Keep the public app on the currently mounted, cleared Devnet data stores.
+# These names were verified against the running fundedapp app and db containers.
 volumes:
   funded_reward_ledger:
-    name: fundedapp_funded_reward_ledger_retest_20260929
+    name: fundedapp_funded_reward_ledger_handoff_20261012
+
+secrets:
+  database_url:
+    file: ./.secrets/database-url-retest-20260929
