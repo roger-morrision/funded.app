@@ -68,7 +68,8 @@ test('failed collection keeps its reconciliation lock and blocks replay', async 
   const state = { alerts: {}, collections: {} };
   let collections = 0;
   const f = fixture(createKeeperCollectionRoutes, {
-    requireAuthorized: () => true, store: { update: async fn => fn(state) },
+    requireAuthorized: () => true, store: { readLaunch:async () => ({ pumpFeeRoute:{ scope:'per-mint-v3' } }),
+      update: async fn => fn(state) },
     collectPumpCreatorFees: async () => { collections++; throw Error('RPC outcome uncertain'); },
   });
   await assert.rejects(f.request('/api/keeper/collect', { mint }), /RPC outcome uncertain/);
@@ -78,11 +79,26 @@ test('failed collection keeps its reconciliation lock and blocks replay', async 
   assert.equal(collections, 1);
 });
 
+test('retired V2 collection does not create a keeper lock or send a transaction', async () => {
+  let updated = false, collected = false;
+  const f = fixture(createKeeperCollectionRoutes, {
+    requireAuthorized:() => true,
+    store:{ readLaunch:async () => ({ pumpFeeRoute:{ scope:'per-mint-v2' } }),
+      update:async () => { updated = true; } },
+    collectPumpCreatorFees:async () => { collected = true; },
+  });
+  await f.request('/api/keeper/collect', { mint });
+  assert.equal(f.responses[0].status, 410);
+  assert.equal(updated, false);
+  assert.equal(collected, false);
+});
+
 test('V3 collection stays separate from V2 obligations and bookkeeping settlements', async () => {
   const state = { alerts:{}, collections:{}, obligations:{} };
   const signature = 'v3-finalized-fixture';
   const f = fixture(createKeeperCollectionRoutes, {
-    requireAuthorized:() => true, store:{ update:async fn => fn(state) },
+    requireAuthorized:() => true, store:{ readLaunch:async () => ({ pumpFeeRoute:{ scope:'per-mint-v3' } }),
+      update:async fn => fn(state) },
     collectPumpCreatorFees:async () => ({ signature, mint, requestedMint:mint,
       scope:'per-mint-v3', status:'collected', onchainVerified:true,
       attribution:'mint-verified', collectedLamports:30, cluster:'devnet' }),

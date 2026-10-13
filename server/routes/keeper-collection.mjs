@@ -74,6 +74,9 @@ export function createKeeperCollectionRoutes({
       if (solanaCluster !== 'devnet') return json(res, 403, { error:'Automatic fee collection is Solana only.' });
       let mintKey;
       try { mintKey = new PublicKey(mint).toBase58(); } catch { return json(res, 400, { error:'A valid mint is required.' }); }
+      const launch = await store.readLaunch(mintKey);
+      if (launch?.pumpFeeRoute?.scope !== 'per-mint-v3')
+        return json(res, 410, { error:'V2 fee collection is retired. A verified V3 launch is required.' });
       const started = await store.update(state => {
         const key = `fee-collect:${mintKey}`;
         if (state.alerts?.[key] && !['complete','nothing-to-collect','no-fees'].includes(state.alerts[key].status)) return false;
