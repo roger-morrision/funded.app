@@ -22,6 +22,7 @@ pub mod funded_fee_router {
         initialize::handler(ctx)
     }
 
+    #[cfg(not(feature = "devnet-v3-program"))]
     pub fn initialize_mint(ctx: Context<InitializeMint>) -> Result<()> {
         initialize::mint_handler(ctx)
     }
@@ -39,24 +40,29 @@ pub mod funded_fee_router {
         policy_v3::disburse_mint_v3_handler(ctx, withdrawal_id, category, amount)
     }
 
+    #[cfg(not(feature = "devnet-v3-program"))]
     pub fn migrate_mint_fee_ledger(ctx: Context<MigrateMintFeeLedger>, historical_creator_spent: u64,
         historical_protocol_spent: u64, expected_available_lamports: u64) -> Result<()> {
         initialize::migrate_mint_fee_ledger_handler(ctx, historical_creator_spent,
             historical_protocol_spent, expected_available_lamports)
     }
 
+    #[cfg(not(feature = "devnet-v3-program"))]
     pub fn settle(ctx: Context<Settle>, claim_id: [u8; 32], amounts: Vec<u64>) -> Result<()> {
         settle::handler(ctx, claim_id, amounts)
     }
 
+    #[cfg(not(feature = "devnet-v3-program"))]
     pub fn settle_mint(ctx: Context<SettleMint>, claim_id: [u8; 32], amounts: Vec<u64>, share: u8) -> Result<()> {
         settle::mint_handler(ctx, claim_id, amounts, share)
     }
 
+    #[cfg(not(feature = "devnet-v3-program"))]
     pub fn recover_mint_wrapped_sol(ctx: Context<RecoverMintWrappedSol>) -> Result<()> {
         recover_wrapped_sol::handler(ctx)
     }
 
+    #[cfg(not(feature = "devnet-v3-program"))]
     pub fn repair_header(ctx: Context<RepairHeader>) -> Result<()> {
         repair::handler(ctx)
     }
@@ -73,10 +79,12 @@ pub mod funded_fee_router {
         reward::initialize_reserve(ctx, asset_mint)
     }
 
+    #[cfg(not(feature = "devnet-v3-program"))]
     pub fn migrate_reward_cycle_sol(ctx: Context<MigrateRewardCycleSol>, cycle_id: [u8; 32]) -> Result<()> {
         reward::migrate_cycle_sol(ctx, cycle_id)
     }
 
+    #[cfg(not(feature = "devnet-v3-program"))]
     pub fn migrate_reward_cycle_token(ctx: Context<MigrateRewardCycleToken>, cycle_id: [u8; 32]) -> Result<()> {
         reward::migrate_cycle_token(ctx, cycle_id)
     }
