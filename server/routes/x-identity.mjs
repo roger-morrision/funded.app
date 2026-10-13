@@ -84,7 +84,9 @@ export function createXIdentityRoutes({
       if ((await store.read()).creatorProfiles?.[resolved.id]?.optedOut) return json(res, 409, { error: 'This creator has opted out of new support launches.' });
       return json(res, 200, resolved);
     }
-    if (req.method === 'GET' && url.pathname === '/api/mint-router/status') return json(res, 200, await mintRouterReadiness());
+    if (req.method === 'GET' && url.pathname === '/api/mint-router/status') {
+      return json(res, 200, { ready:false, reasons:['New V2 launches are retired; use the verified V3 launch flow.'] });
+    }
     if (req.method === 'GET' && url.pathname === '/api/mint-router/creator-settlement-status') return json(res, 200, await mintRouterReadiness({ creatorSigned:true }));
     if (req.method === 'GET' && url.pathname === '/api/x-fee/status') return json(res, 200, await xFeeReadiness({ creatorSigned:true }));
     if (req.method === 'GET' && url.pathname === '/api/x-fee/claims') {

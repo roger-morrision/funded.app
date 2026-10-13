@@ -39,47 +39,52 @@ export function createLaunchRegistrationRoutes({
   respond,
 }) {
   const json = (...args) => { respond(...args); return true; };
+  const v3LaunchConfig = async () => {
+    const reasons = [];
+    const programId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
+    const approvedHash = String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || '').trim().toLowerCase();
+    if (solanaCluster !== 'devnet') reasons.push('V3 launches require Devnet');
+    for (const [name, label] of [
+      ['FUNDED_V3_LAUNCH_ENABLED', 'V3 launch registration'],
+      ['FUNDED_V3_COLLECTION_ENABLED', 'V3 fee collection'],
+      ['FUNDED_V3_SETTLEMENT_ENABLED', 'V3 settlement'],
+    ]) if (env[name] !== 'true') reasons.push(`${label} is disabled`);
+    // Configuration cannot activate missing instructions or workers. Remove
+    // these blockers only after finalized V3 payout and burn regressions.
+    reasons.push('V3 creator-directed reward funding and claims are incomplete');
+    reasons.push('V3 buyback purchase and burn are not implemented');
+    if (!programId || !/^[a-f0-9]{64}$/.test(approvedHash)) reasons.push('Approved V3 program is not configured');
+    let authority = null;
+    try { authority = v3AuthorityKeypair?.(); } catch { reasons.push('V3 authority signer is invalid'); }
+    if (!authority?.publicKey) reasons.push('V3 authority signer is unavailable');
+    if (!reasons.length) {
+      try {
+        const connection = new Connection(solanaRpcUrl, 'finalized');
+        const [genesis, evidence, router] = await Promise.all([
+          connection.getGenesisHash(), readProgramDataEvidence(connection, programId),
+          verifyFeeRouterAccount({ connection, programId, commitment:'finalized' }),
+        ]);
+        if (genesis !== DEVNET_GENESIS_HASH || !evidence.account?.executable
+          || evidence.sha256 !== approvedHash || !router.verified
+          || !router.authority.equals(authority.publicKey)) reasons.push('Approved V3 program or authority is not verified on Devnet');
+      } catch { reasons.push('V3 program verification is unavailable'); }
+    }
+    return { ready:reasons.length === 0, cluster:solanaCluster,
+      programId:programId || null, initialAuthority:authority?.publicKey.toBase58() || null,
+      protocolSplit:PROTOCOL_FEE_SPLIT, reasons };
+  };
   return async function handleLaunchRegistrationRoutes(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/v3-launch-config') {
-      const reasons = [];
-      const programId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
-      const approvedHash = String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || '').trim().toLowerCase();
-      if (solanaCluster !== 'devnet') reasons.push('V3 launches require Devnet');
-      for (const [name, label] of [
-        ['FUNDED_V3_LAUNCH_ENABLED', 'V3 launch registration'],
-        ['FUNDED_V3_COLLECTION_ENABLED', 'V3 fee collection'],
-        ['FUNDED_V3_SETTLEMENT_ENABLED', 'V3 settlement'],
-      ]) if (env[name] !== 'true') reasons.push(`${label} is disabled`);
-      // Configuration cannot activate missing instructions or workers. Remove
-      // these blockers only after finalized V3 payout and burn regressions.
-      reasons.push('V3 creator-directed reward funding and claims are incomplete');
-      reasons.push('V3 buyback purchase and burn are not implemented');
-      if (!programId || !/^[a-f0-9]{64}$/.test(approvedHash)) reasons.push('Approved V3 program is not configured');
-      let authority = null;
-      try { authority = v3AuthorityKeypair?.(); } catch { reasons.push('V3 authority signer is invalid'); }
-      if (!authority?.publicKey) reasons.push('V3 authority signer is unavailable');
-      if (!reasons.length) {
-        try {
-          const connection = new Connection(solanaRpcUrl, 'finalized');
-          const [genesis, evidence, router] = await Promise.all([
-            connection.getGenesisHash(), readProgramDataEvidence(connection, programId),
-            verifyFeeRouterAccount({ connection, programId, commitment:'finalized' }),
-          ]);
-          if (genesis !== DEVNET_GENESIS_HASH || !evidence.account?.executable
-            || evidence.sha256 !== approvedHash || !router.verified
-            || !router.authority.equals(authority.publicKey)) reasons.push('Approved V3 program or authority is not verified on Devnet');
-        } catch { reasons.push('V3 program verification is unavailable'); }
-      }
-      return json(res, 200, { ready:reasons.length === 0, cluster:solanaCluster,
-        programId:programId || null, initialAuthority:authority?.publicKey.toBase58() || null,
-        protocolSplit:PROTOCOL_FEE_SPLIT, reasons });
+      return json(res, 200, await v3LaunchConfig());
     }
     if (req.method === 'GET' && url.pathname === '/api/launch-reserve-config') {
-      if (solanaCluster !== 'devnet' || !process.env.FUNDED_REWARD_AUTHORITY || !process.env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE)
-        return json(res, 503, { error:'Atomic Solana community reserve is not configured.' });
-      return json(res, 200, { cluster:'devnet', authority:process.env.FUNDED_REWARD_AUTHORITY,
-        programId:process.env.FUNDED_FEE_ROUTER_PROGRAM_ID,
-        lookupTable:process.env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE });
+      const config = await v3LaunchConfig();
+      if (!config.ready || !env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE) {
+        return json(res, 503, { error:'The V3 atomic community reserve is not ready.',
+          reasons:config.reasons });
+      }
+      return json(res, 200, { cluster:'devnet', authority:config.initialAuthority,
+        programId:config.programId, lookupTable:env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE });
     }
     if (req.method === 'POST' && url.pathname === '/api/launches') {
       if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Coin launching is unavailable for this configuration. No launch policy was registered.' });
@@ -90,8 +95,10 @@ export function createLaunchRegistrationRoutes({
       const xLinked = policy.solClaimPercent > 0;
       const perMint = input.pumpFeeRoute?.scope === 'per-mint-v2';
       const perMintV3 = input.pumpFeeRoute?.scope === 'per-mint-v3';
+      const v3Config = perMintV3 ? await v3LaunchConfig() : null;
       if (!existingLaunch && !perMint && !perMintV3) return json(res, 409, { error: 'New launches require a mint-specific fee router for attributable automatic rewards.' });
-      if (perMintV3 && process.env.FUNDED_V3_LAUNCH_ENABLED !== 'true') return json(res, 503, { error:'V3 launches are not activated on this Devnet deployment.' });
+      if (!existingLaunch && perMint) return json(res, 409, { error:'New V2 launches are retired. Refresh funded.vip and use the verified V3 launch flow.' });
+      if (perMintV3 && !v3Config.ready) return json(res, 503, { error:'V3 normal flows are not ready to accept a new launch.' });
       if (xLinked && !(await xFeeReadiness({ creatorSigned:true })).ready) return json(res, 503, { error: 'Creator-approved X fee claims are not operational on Solana yet.' });
       if (xLinked && (await resolveXUser(policy.xRecipient)).id !== policy.xUserId) return json(res, 409, { error: 'The X account ID changed since launch preparation; registration is blocked.' });
       const promotionClaim = input.creatorLaunchBurn || null;
@@ -115,17 +122,18 @@ export function createLaunchRegistrationRoutes({
       if (input.metadataUri && input.metadataUri !== preparedMetadataUri) return json(res, 409, { error: 'Launch metadata URL does not match the mint.' });
       if (input.metadataUri && !preparedMetadata) return json(res, 409, { error: 'Signed Devnet metadata is missing.' });
       if (preparedMetadata && (preparedMetadata.creatorWallet !== proof.feePayer || preparedMetadata.name !== proof.name || preparedMetadata.symbol !== proof.symbol || (proof.uri && proof.uri !== preparedMetadataUri))) return json(res, 409, { error: 'Signed metadata does not match the confirmed Pump launch.' });
-      const routerConfig = feeRouterConfig();
-      if (!routerConfig) return json(res, 503, { error:'The community reserve program is not configured.' });
-      const configuredV3Program = String(process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
+      const routerConfig = perMintV3 ? null : feeRouterConfig();
+      if (!perMintV3 && !routerConfig) return json(res, 503, { error:'The community reserve program is not configured.' });
+      const configuredV3Program = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
       const configuredV3Units = perMintV3 ? protocolGrossUnits(PROTOCOL_FEE_SPLIT) : null;
       if (perMintV3 && (!configuredV3Program || policy.feeRouterProgramId !== configuredV3Program
+        || policy.feeRouterInitialAuthority !== v3Config.initialAuthority
         || protocolGrossUnits(policy.protocolSplit).some((units, index) => units !== configuredV3Units[index]))) {
         return json(res, 409, { error:'The signed V3 program or protocol split does not match this deployment.' });
       }
       const routeReadiness = perMintV3
         ? await verifyV3LaunchRouterReadiness({ connection:new Connection(solanaRpcUrl, 'finalized'),
-          programId:configuredV3Program, expectedProgramDataSha256:process.env.FUNDED_V3_PROGRAM_DATA_SHA256,
+          programId:configuredV3Program, expectedProgramDataSha256:env.FUNDED_V3_PROGRAM_DATA_SHA256,
           mint:proof.mint, creatorWallet:proof.feePayer,
           initialAuthority:policy.feeRouterInitialAuthority, split:PROTOCOL_FEE_SPLIT })
         : await verifyLaunchRouterReadiness({ connection: new Connection(solanaRpcUrl, 'confirmed'), routerConfig, mint: proof.mint, perMint });
@@ -136,18 +144,21 @@ export function createLaunchRegistrationRoutes({
       if (!nacl.sign.detached.verify(new TextEncoder().encode(launchPolicyStatement(input)), signature, new PublicKey(policy.creatorWallet).toBytes())) return json(res, 401, { error: 'Creator wallet signature for this launch policy is invalid.' });
       let verifiedReserve = null;
       if (!existingLaunch) {
-        const authority = routerAuthorityKeypair();
-        const requiredAuthority = String(process.env.FUNDED_REWARD_AUTHORITY || '');
-        if (!authority || authority.publicKey.toBase58() !== requiredAuthority || !process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256)
+        const authority = perMintV3 ? v3AuthorityKeypair() : routerAuthorityKeypair();
+        const requiredAuthority = perMintV3 ? v3Config.initialAuthority
+          : String(env.FUNDED_REWARD_AUTHORITY || '');
+        const rewardProgramHash = perMintV3 ? env.FUNDED_V3_PROGRAM_DATA_SHA256
+          : env.FUNDED_REWARD_PROGRAM_DATA_SHA256;
+        if (!authority || authority.publicKey.toBase58() !== requiredAuthority || !rewardProgramHash)
           return json(res, 503, { error:'Community vault authority is unavailable. The coin cannot be registered as a funded airdrop.' });
         const reserveConnection = new Connection(solanaRpcUrl, 'finalized');
-        const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID);
+        const programId = new PublicKey(perMintV3 ? configuredV3Program : env.FUNDED_FEE_ROUTER_PROGRAM_ID);
         const [genesis, programEvidence] = await Promise.all([reserveConnection.getGenesisHash(), readProgramDataEvidence(reserveConnection, programId)]);
         if (genesis !== DEVNET_GENESIS_HASH || !programEvidence.account?.executable
-          || programEvidence.sha256 !== process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256.toLowerCase())
+          || programEvidence.sha256 !== rewardProgramHash.toLowerCase())
           return json(res, 503, { error:'The approved Solana reward program could not be verified.' });
         const chain = createAutomaticRewardChain({ connection:reserveConnection, programId, authority,
-          expectedProgramDataSha256:process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
+          expectedProgramDataSha256:rewardProgramHash });
         await chain.ensureVault(proof.mint);
         const allocation = buildCommunityAirdropPolicy({ allocationPercent:policy.communityAllocation, supply:1_000_000_000 });
         verifiedReserve = await readCommunityReserveStatus({ connection:reserveConnection, programId,

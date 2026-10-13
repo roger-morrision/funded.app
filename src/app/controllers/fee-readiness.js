@@ -29,36 +29,35 @@ export function createFeeReadinessController(appState) {
   async function checkFeeRouterConfig(){
     const status = document.querySelector('#fee-router-status');
     const addressNode = document.querySelector('#fee-router-address');
-    appState.feeRouterState = { status: 'checking', verified: false, address: null, programId: appState.FEE_ROUTER_PROGRAM_ID || null, bump: null };
-    if (status) { status.textContent = 'Checking the funded.vip router program…'; status.className = 'field-help'; }
-    if (!appState.FEE_ROUTER_PROGRAM_ID) {
-      appState.feeRouterState.status = 'program-id-not-configured';
-      if (status) { status.textContent = 'Launch blocked: VITE_FUNDED_FEE_ROUTER_PROGRAM_ID is not configured.'; status.className = 'field-help funded-mint-invalid'; }
-      if (addressNode) addressNode.textContent = 'Not configured';
-      appState.updateLaunchPreview();
-      appState.updateLaunchButton();
-      return;
-    }
+    appState.feeRouterState = { status:'checking', verified:false, address:null,
+      programId:null, scope:'per-mint-v3', v3FeeRouter:null };
+    if (status) { status.textContent = 'Checking V3 launch readiness…'; status.className = 'field-help'; }
     try {
-      await appState.getSolana();
-      const verified = await appState.withRpcRetry(() => appState.verifyFeeRouterAccount({ connection: appState.connection, programId: appState.FEE_ROUTER_PROGRAM_ID }), { attempts: 2, delaysMs: [700] });
-      const service = await appState.apiRequest('/api/mint-router/status');
-      const routeReady = service.available && service.data?.ready === true;
-      const routeReason = service.data?.reasons?.join('; ') || 'mint-router settlement service is unavailable';
-      const routeBlockedByCosign = /co-signing for on-chain 80\/20 settlements/i.test(routeReason);
-      appState.feeRouterState = { status: routeReady ? verified.reason : routeReason,
-        verified: verified.verified && routeReady, address: verified.address.toBase58(),
-        programId: verified.programId.toBase58(), bump: verified.bump };
-      if (addressNode) addressNode.textContent = `${appState.feeRouterState.address.slice(0, 6)}…${appState.feeRouterState.address.slice(-6)}`;
-      if (status) {
-        status.textContent = appState.feeRouterState.verified ? 'Verified on Solana. This PDA can be assigned as Pump’s fee owner at creation.'
-          : routeBlockedByCosign ? 'Launch paused: creator wallet co-signing for 80/20 fee settlements is not available yet. No launch transaction can be signed.'
-          : `Launch blocked: ${appState.feeRouterState.status.replaceAll('-', ' ')}.`;
-        status.className = `field-help ${appState.feeRouterState.verified ? 'funded-mint-valid' : 'funded-mint-invalid'}`;
+      const service = await appState.apiRequest('/api/v3-launch-config');
+      const config = service.available ? service.data : null;
+      if (config?.ready !== true || config.cluster !== 'devnet'
+        || !config.programId || !config.initialAuthority || !config.protocolSplit) {
+        throw new Error(config?.reasons?.join('; ') || 'V3 launch service is unavailable');
       }
+      await appState.getSolana();
+      const verified = await appState.withRpcRetry(() => appState.verifyFeeRouterAccount({
+        connection:appState.connection, programId:config.programId, commitment:'finalized',
+      }), { attempts:2, delaysMs:[700] });
+      if (!verified.verified || verified.authority.toBase58() !== config.initialAuthority) {
+        throw new Error('V3 program authority differs from the verified Devnet configuration');
+      }
+      appState.feeRouterState = { status:'verified', verified:true,
+        address:verified.address.toBase58(), programId:config.programId,
+        scope:'per-mint-v3', v3FeeRouter:{ programId:config.programId,
+          initialAuthority:config.initialAuthority, split:config.protocolSplit } };
+      if (addressNode) addressNode.textContent = 'Derived for each new mint';
+      if (status) { status.textContent = 'V3 policy verified. Pump fee ownership uses a new mint-specific router at launch.';
+        status.className = 'field-help funded-mint-valid'; }
     } catch (error) {
-      appState.feeRouterState = { status: 'router-verification-unavailable', verified: false, address: null, programId: appState.FEE_ROUTER_PROGRAM_ID, bump: null };
-      if (status) { status.textContent = 'Fee-router verification is unavailable. Check your connection before trying again. Signing stays blocked until verification succeeds.'; status.className = 'field-help funded-mint-invalid'; }
+      appState.feeRouterState = { status:String(error?.message || 'V3 launch verification unavailable'),
+        verified:false, address:null, programId:null, scope:'per-mint-v3', v3FeeRouter:null };
+      if (status) { status.textContent = `Launch blocked: ${appState.feeRouterState.status}.`;
+        status.className = 'field-help funded-mint-invalid'; }
       if (addressNode) addressNode.textContent = 'Not verified';
     }
     appState.updateLaunchPreview();

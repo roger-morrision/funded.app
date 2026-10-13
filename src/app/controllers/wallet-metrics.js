@@ -27,12 +27,15 @@ export function createWalletMetricsController(appState) {
       appState.walletBalanceLamports = balance;
       appState.walletBalanceFetchedAt = Date.now();
       appState.renderWalletBalance();
-      if (!appState.feeRouterState.verified || !appState.feeRouterState.address) throw new Error(appState.feeRouterState.status === 'router-verification-unavailable'
-        ? 'Fee-router check could not reach Solana. Retry checks.'
-        : 'Fee-router policy is not verified on Solana.');
+      if (!appState.feeRouterState.verified || !appState.feeRouterState.v3FeeRouter)
+        throw new Error(`V3 launch is blocked: ${appState.feeRouterState.status}.`);
       const creatorBuySol = appState.getCreatorBuySol();
       if (creatorBuySol > 0 && Math.ceil(creatorBuySol * 1_000_000_000) >= balance) throw new Error('Insufficient SOL for the developer buy and network costs. Reduce the buy amount or add SOL.');
-      const [{ PUMP_SDK, OnlinePumpSdk }, { normalizeLaunchInput }, { getInitialBuyQuote, prepareFundedLaunchBurn }] = await Promise.all([import('@pump-fun/pump-sdk'), import('../../../launch-core.js'), import('../../../launch-flow.js')]);
+      const [{ PUMP_SDK, OnlinePumpSdk }, { normalizeLaunchInput },
+        { getInitialBuyQuote, prepareFundedLaunchBurn },
+        { buildMintRouterV3InitializeInstruction }] = await Promise.all([
+        import('@pump-fun/pump-sdk'), import('../../../launch-core.js'),
+        import('../../../launch-flow.js'), import('../../../mint-router-v3.js')]);
       const { Keypair, PublicKey } = await appState.getSolana();
       const name = document.querySelector('#token-name').value.trim() || 'Solana Coin';
       const symbol = document.querySelector('#token-symbol').value.trim().toUpperCase() || 'COIN';
@@ -45,7 +48,10 @@ export function createWalletMetricsController(appState) {
       const mint = Keypair.generate();
       const xLinked = appState.getFeeDistributionInputs().solClaimPercent > 0;
       if (xLinked && !appState.xFeeStatus.ready) throw new Error('Mint-specific X fee claims are not ready on Solana.');
-      const mintRouter = appState.buildMintRouterInitializeInstruction({ programId: appState.FEE_ROUTER_PROGRAM_ID, mint: mint.publicKey, payer });
+      const v3 = appState.feeRouterState.v3FeeRouter;
+      if (!v3 || appState.feeRouterState.scope !== 'per-mint-v3') throw new Error('V3 launch configuration is not verified.');
+      const mintRouter = buildMintRouterV3InitializeInstruction({ programId:v3.programId,
+        mint:mint.publicKey, authority:v3.initialAuthority, creator:payer, split:v3.split });
       const router = mintRouter.router.address;
       const launchInstructions = initialBuy.amountBaseUnits > 0n
         ? await PUMP_SDK.createV2AndBuyInstructions({ global:initialBuy.global, mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://funded.vip/devnet-metadata/${mint.publicKey.toBase58()}`, creator: router, user: payer, amount: new (await import('bn.js')).default(initialBuy.amountBaseUnits.toString()), solAmount: new (await import('bn.js')).default(initialBuy.solAmountLamports.toString()), mayhemMode: false, cashback: false, holderReward: false })
@@ -55,7 +61,7 @@ export function createWalletMetricsController(appState) {
         ? await prepareFundedLaunchBurn({ connection: appState.connection, payer, fundedMint: launchBurn.fundedMint, amountTokens: launchBurn.amountTokens })
         : null;
       const lookupTable = (await appState.connection.getAddressLookupTable(new PublicKey(reserveConfig.lookupTable), { commitment:'finalized' })).value;
-      const reserve = appState.launchReserveInstructions({ mint:mint.publicKey, payer, programId:appState.FEE_ROUTER_PROGRAM_ID,
+      const reserve = appState.launchReserveInstructions({ mint:mint.publicKey, payer, programId:reserveConfig.programId,
         authority:reserveConfig.authority, reserveTokens:appState.getCommunityAirdropTokens(), decimals:input.decimals });
       let plan;
       let estimates;

@@ -6,6 +6,19 @@ test.beforeEach(async ({ page }) => {
   await page.route('https://**/*', route => route.abort());
 });
 
+test('launch stays blocked when V3 readiness is unavailable', async ({ page }) => {
+  const requests = [];
+  page.on('request', request => {
+    if (request.url().includes('/api/')) requests.push(new URL(request.url()).pathname);
+  });
+  await page.goto('/#launch');
+  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  await expect(page.locator('#fee-router-status')).toContainText('Launch blocked:');
+  await expect(page.locator('#preview-fee-router')).toHaveText('Launch blocked');
+  expect(requests).toContain('/api/v3-launch-config');
+  expect(requests).not.toContain('/api/mint-router/status');
+});
+
 test('protocol allocation copy agrees across FAQ, buyback, and fee flow', async ({ page }) => {
   const buyback = FEE_DISTRIBUTION.buybackEffectivePercent;
   await page.goto('/#capital-flow');

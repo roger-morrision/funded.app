@@ -359,7 +359,8 @@ export function initializeConnections(appState) {
   // app-source-end
 
   // app-source: 210
-  let feeRouterState = { status: 'checking', verified: false, address: null, programId: appState.FEE_ROUTER_PROGRAM_ID || null, bump: null };
+  let feeRouterState = { status:'checking', verified:false, address:null,
+    programId:null, scope:'per-mint-v3', v3FeeRouter:null };
   initializeAppState(appState, 'feeRouterState', feeRouterState);
   // app-source-end
 

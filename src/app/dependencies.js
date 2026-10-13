@@ -82,8 +82,8 @@ import bs58 from 'bs58';
 import { APP_REFERRAL_LEVELS, buildFeeDistributionPolicy, FEE_DISTRIBUTION, validateFeeDistribution } from '../../distribution-policy.js';
 import { buildLaunchReservePlan, fundedCommunityAirdropPolicy } from '../../airdrop-policy.js';
 import { buildBuybackAccrual, buildBuybackPolicy, buildBuybackReceipt, evaluateBuybackBatch, summarizeBuybackLedger } from '../../buyback-policy.js';
-import { buildFeeRouterPolicy, deriveMintFeeRouter, verifyFeeRouterAccount } from '../../fee-router.js';
-import { buildMintRouterInitializeInstruction, buildPumpLaunchPlan } from '../../mint-router-launch.js';
+import { buildFeeRouterPolicy, verifyFeeRouterAccount } from '../../fee-router.js';
+import { buildPumpLaunchPlan } from '../../mint-router-launch.js';
 import { launchReserveInstructions, quoteAtomicReserveBuy } from '../../launch-community-reserve.js';
 import { buildLaunchBurnPolicy, createLaunchBurnTiers, validateLaunchBurnPolicy } from '../../launch-burn-policy.js';
 import { LAUNCH_TIER_USD, launchTierQuoteCurrent } from '../../launch-tier-quote.js';
@@ -246,9 +246,7 @@ export const appDependencies = {
   evaluateBuybackBatch,
   summarizeBuybackLedger,
   buildFeeRouterPolicy,
-  deriveMintFeeRouter,
   verifyFeeRouterAccount,
-  buildMintRouterInitializeInstruction,
   buildPumpLaunchPlan,
   launchReserveInstructions,
   quoteAtomicReserveBuy,

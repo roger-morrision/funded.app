@@ -22,7 +22,7 @@ export function mountLaunchReviewDialog(document = globalThis.document) {
         <details class="launch-review-route advanced-details">
           <summary>Advanced details · fee route</summary><code id="launch-review-route-short"></code>
           <div class="launch-review-route-body">
-            <span>Full fee owner</span><code id="launch-review-route-address"></code>
+            <span>Fee owner</span><code id="launch-review-route-address"></code>
             <span>Fee allocation</span><p id="launch-review-route-split"></p>
           </div>
         </details>

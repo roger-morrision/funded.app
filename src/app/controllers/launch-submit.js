@@ -33,7 +33,10 @@ export function createLaunchSubmitController(appState) {
       appState.setLaunchStatus('The $FUNDED tier quote expired or changed. Review the launch again.', true); return;
     }
     if (launchBurn.requiresBurn && !appState.launchBurnReadiness.ready) { appState.setLaunchStatus(appState.launchBurnReadiness.message, true); return; }
-    if (!appState.feeRouterState.verified || !appState.feeRouterState.address) { appState.setLaunchStatus('Launch blocked until the funded.vip fee-router PDA is deployed and verified on Solana.', true); return; }
+    if (!appState.feeRouterState.verified || !appState.feeRouterState.v3FeeRouter
+      || appState.feeRouterState.scope !== 'per-mint-v3') {
+      appState.setLaunchStatus('Launch blocked until every V3 fee and reward flow is verified on Devnet.', true); return;
+    }
     const reviewedCost=appState.launchCostReview;
     if(!appState.freshLaunchReview(reviewedCost)){appState.setLaunchStatus('Estimate expired. Refresh the launch estimate before signing.',true);return;}
     if (appState.walletBalanceLamports == null || appState.estimatedLaunchFeeLamports == null) { appState.setLaunchStatus('Wallet balance and launch cost could not be verified. Refresh the estimate before signing.', true); return; }
@@ -66,15 +69,26 @@ export function createLaunchSubmitController(appState) {
       if(!appState.freshLaunchReview(reviewedCost))throw new Error('Estimate expired during identity lookup. Refresh and review again before signing.');
       if (launchBurn.requiresBurn && (!appState.currentLaunchTierQuote() || launchBurn.quoteId !== appState.currentLaunchTierQuote().id || launchBurn.amountTokens !== appState.currentLaunchTierQuote().amountTokens))
         throw new Error('The $FUNDED tier quote expired before signing. Review the launch again.');
+      const v3FeeRouter = appState.feeRouterState.v3FeeRouter;
+      const liveV3 = await appState.apiRequest('/api/v3-launch-config');
+      appState.assertWalletSessionCurrent(session);
+      if (!liveV3.available || liveV3.data?.ready !== true
+        || liveV3.data.programId !== v3FeeRouter.programId
+        || liveV3.data.initialAuthority !== v3FeeRouter.initialAuthority
+        || JSON.stringify(liveV3.data.protocolSplit) !== JSON.stringify(v3FeeRouter.split)) {
+        throw new Error('V3 launch readiness changed. Refresh the router check and estimate; no transaction was sent.');
+      }
       const reserveConfig = await appState.getLaunchReserveConfig();
       appState.assertWalletSessionCurrent(session);
       if (launchBurn.requiresBurn && (!appState.currentLaunchTierQuote() || launchBurn.quoteId !== appState.currentLaunchTierQuote().id))
         throw new Error('The $FUNDED tier quote expired before signing. Review the launch again.');
       journalId=crypto.randomUUID();appState.recordLaunchEvent(journalId,{state:'prepared',name,symbol,payer:session.address,cluster:'devnet'});
       appState.emitPilotSignal('launch-submission-started');
-      const result = await submitPumpDevnetLaunch({ cluster: appState.APP_CLUSTER, connection: appState.connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuySol: creatorBuySol, reserveTokens:communityTokens, maxInitialBuyLamports:reviewedCost.buyMaximum }, prepareMetadata: input => appState.prepareLaunchMetadata(input, session), feeRouterAddress: appState.feeRouterState.address, feeRouterProgramId: appState.FEE_ROUTER_PROGRAM_ID, useMintRouter: true, launchBurn, reserveConfig, assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onJournal:event=>appState.recordLaunchEvent(journalId,event), onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setLaunchStatus(message); } });
+      const result = await submitPumpDevnetLaunch({ cluster: appState.APP_CLUSTER, connection: appState.connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuySol: creatorBuySol, reserveTokens:communityTokens, maxInitialBuyLamports:reviewedCost.buyMaximum }, prepareMetadata: input => appState.prepareLaunchMetadata(input, session), feeRouterAddress: appState.feeRouterState.address, feeRouterProgramId: reserveConfig.programId, useMintRouter: true, v3FeeRouter, launchBurn, reserveConfig, assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onJournal:event=>appState.recordLaunchEvent(journalId,event), onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setLaunchStatus(message); } });
       const routeAddress = result.feeRouter.toBase58();
-      const routeState = { ...appState.feeRouterState, ...appState.deriveMintFeeRouter(appState.FEE_ROUTER_PROGRAM_ID, result.mint.publicKey), address: routeAddress, scope: 'per-mint-v2' };
+      const { deriveMintRouterV3 } = await import('../../../mint-router-v3.js');
+      const routeState = { ...deriveMintRouterV3(v3FeeRouter.programId, result.mint.publicKey),
+        address:routeAddress, scope:'per-mint-v3' };
       const launchPolicy = {
         chain: 'solana',
         cluster: 'devnet',
@@ -118,12 +132,15 @@ export function createLaunchSubmitController(appState) {
           communityEffectivePercentOfCreatorFees: appState.APP_ECONOMICS.communityEffectivePercent,
           buybackPercentOfFundedRevenue: appState.APP_ECONOMICS.buybackRateOfFundedRevenue,
           buybackEffectivePercentOfCreatorFees: appState.APP_ECONOMICS.buybackEffectivePercent,
-          status: 'pump-route-verified-settlement-program-required',
+          status: 'v3-pump-route-verified-settlement-pending',
         },
         pumpFeeRoute: {
           percent: 100,
           router: routeAddress,
-          scope: 'per-mint-v2',
+          scope: 'per-mint-v3',
+          programId:v3FeeRouter.programId,
+          initialAuthority:v3FeeRouter.initialAuthority,
+          protocolSplit:v3FeeRouter.split,
           pumpCreator: result.feeRoute.creator,
           userHasCreatorFeeAuthority: result.feeRoute.userHasCreatorFeeAuthority,
           verified: result.feeRoute.verified,

@@ -114,7 +114,8 @@ export function createLaunchReviewController(appState) {
       tierQuoteId: appState.currentLaunchTierQuote()?.id || null,
       tierBurnAmount: appState.getLaunchBurnPolicy().amountTokens,
       wallet: appState.connectedWalletAddress,
-      router: appState.feeRouterState.address,
+      router: appState.feeRouterState.scope === 'per-mint-v3'
+        ? JSON.stringify(appState.feeRouterState.v3FeeRouter) : appState.feeRouterState.address,
       form: JSON.stringify(appState.launchFormSnapshot()),
       image: appState.getPreparedImage(),
       feeConsent: document.querySelector('#fee-route-agree').checked,
@@ -180,8 +181,11 @@ export function createLaunchReviewController(appState) {
     document.querySelector('#launch-review-wallet').textContent = session.address;
     document.querySelector('#launch-review-reserve').textContent = `${appState.getCommunityAirdropTokens().toLocaleString()} tokens`;
     document.querySelector('#launch-review-buy').textContent = appState.getCreatorBuySol() ? `${appState.getCreatorBuySol()} SOL` : 'None';
-    document.querySelector('#launch-review-route-short').textContent = `${appState.feeRouterState.address.slice(0, 7)}…${appState.feeRouterState.address.slice(-6)}`;
-    document.querySelector('#launch-review-route-address').textContent = appState.feeRouterState.address;
+    const v3Route = appState.feeRouterState.scope === 'per-mint-v3';
+    document.querySelector('#launch-review-route-short').textContent = v3Route
+      ? 'Mint-specific V3 PDA' : `${appState.feeRouterState.address.slice(0, 7)}…${appState.feeRouterState.address.slice(-6)}`;
+    document.querySelector('#launch-review-route-address').textContent = v3Route
+      ? 'Derived from the new mint and verified after launch' : appState.feeRouterState.address;
     document.querySelector('#launch-review-route-split').textContent = `${shares.creatorWalletPercent}% wallet · ${shares.holderAirdropPercent}% holders · ${shares.solClaimPercent}% X · 20% protocol`;
     document.querySelector('#launch-review-details').innerHTML = appState.launchReviewMarkup(reviewedCost);
     document.querySelector('#launch-review-dialog').showModal();

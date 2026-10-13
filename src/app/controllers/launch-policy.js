@@ -119,7 +119,9 @@ export function createLaunchPolicyController(appState) {
   async function getLaunchReserveConfig(){
     const result = await appState.apiRequest('/api/launch-reserve-config');
     const config = result.data;
-    if (!result.available || config?.cluster !== 'devnet' || config.programId !== appState.FEE_ROUTER_PROGRAM_ID
+    const v3 = appState.feeRouterState.v3FeeRouter;
+    if (!result.available || config?.cluster !== 'devnet' || !v3
+      || config.programId !== v3.programId || config.authority !== v3.initialAuthority
       || !appState.validateSolanaMint(config.authority).valid || !appState.validateSolanaMint(config.lookupTable).valid)
       throw new Error('Atomic community reserve custody is unavailable. Coin creation is paused.');
     return config;

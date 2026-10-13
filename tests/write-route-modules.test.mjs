@@ -40,6 +40,9 @@ test('V3-only launch configuration cannot be enabled by flags before payouts and
   assert.equal(f.responses[0].data.ready, false);
   assert.match(f.responses[0].data.reasons.join('; '), /V3 creator-directed reward funding and claims are incomplete/);
   assert.match(f.responses[0].data.reasons.join('; '), /V3 buyback purchase and burn are not implemented/);
+  assert.equal(await f.request('/api/launch-reserve-config', {}, 'GET'), true);
+  assert.equal(f.responses[1].status, 503);
+  assert.match(f.responses[1].data.error, /V3 atomic community reserve is not ready/);
 });
 
 test('keeper authorization denials terminate dispatch before reading or collecting', async () => {
@@ -219,7 +222,7 @@ test('keeper lists V3 candidates only when enabled and excludes them from V2 set
   }
 });
 
-test('launch registration rejects unsupported networks and missing router or promotion proof', async () => {
+test('launch registration rejects unsupported networks, new V2 launches, and unready V3', async () => {
   const disabled = fixture(createLaunchRegistrationRoutes, { solanaCluster: 'mainnet-beta',
     body: () => assert.fail('Disabled launch must not be read') });
   await disabled.request('/api/launches');
@@ -238,8 +241,8 @@ test('launch registration rejects unsupported networks and missing router or pro
       referralLevelPercents:[10,3,2], communityPercent:10, buybackPercent:25 } } });
   assert.deepEqual(f.responses.map(row => row.status), [400, 409, 409, 503]);
   assert.match(f.responses[1].data.error, /mint-specific fee router/);
-  assert.match(f.responses[2].data.error, /saved.*launch quote/);
-  assert.match(f.responses[3].data.error, /V3 launches are not activated/);
+  assert.match(f.responses[2].data.error, /New V2 launches are retired/);
+  assert.match(f.responses[3].data.error, /V3 normal flows are not ready/);
 });
 
 test('burn and listing receipt replay preserves attribution and never repeats verification', async () => {

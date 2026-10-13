@@ -130,7 +130,9 @@ export function updateLaunchPreview(
   const previewBurnAmount = document.querySelector('#preview-burn-amount');
   if (previewBurnAmount) previewBurnAmount.textContent = launchBurn.requiresBurn ? `${formatLaunchBurnAmount(launchBurn.amountTokens)} $FUNDED` : 'None';
   const routerPreview = document.querySelector('#preview-fee-router');
-  if (routerPreview) routerPreview.textContent = feeRouterState.verified ? `100% → ${feeRouterState.address.slice(0, 4)}…${feeRouterState.address.slice(-4)}` : 'Launch blocked';
+  if (routerPreview) routerPreview.textContent = !feeRouterState.verified ? 'Launch blocked'
+    : feeRouterState.scope === 'per-mint-v3' ? '100% → mint-specific V3 router'
+      : `100% → ${feeRouterState.address.slice(0, 4)}…${feeRouterState.address.slice(-4)}`;
   const feeStatus = document.querySelector('#fee-distribution-status');
   if (feeStatus) {
     const validation = validateFeeDistribution(feeDistribution);

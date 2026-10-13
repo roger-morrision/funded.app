@@ -2,9 +2,12 @@ import { PublicKey } from '@solana/web3.js';
 
 export const FEE_ROUTER_SEED = 'funded-fee-router-v1';
 export const MINT_FEE_ROUTER_SEED = 'funded-mint-router-v2';
+export const MINT_FEE_ROUTER_V3_SEED = 'funded-mint-router-v3';
 export const MINT_FEE_LEDGER_SEED = 'mint-fee-ledger-v1';
 export const MINT_FEE_ROUTER_MAGIC = 'FUNDMNT2';
 export const MINT_FEE_ROUTER_VERSION = 2;
+export const MINT_FEE_ROUTER_V3_MAGIC = 'FUNDMNT3';
+export const MINT_FEE_ROUTER_V3_VERSION = 3;
 export const MINT_FEE_ROUTER_DATA_LEN = 106;
 export const FEE_ROUTER_ACCOUNT_MAGIC = 'FUNDFEE1';
 export const FEE_ROUTER_VERSION = 1;
@@ -92,6 +95,7 @@ export async function verifyFeeRouterAccount({ connection, programId, commitment
 
 export function buildFeeRouterPolicy({ programId, address, bump, scope = 'shared-legacy', mint = null } = {}) {
   const perMint = scope === 'per-mint-v2';
+  const perMintV3 = scope === 'per-mint-v3';
   return {
     chain: 'solana',
     ingress: {
@@ -102,12 +106,12 @@ export function buildFeeRouterPolicy({ programId, address, bump, scope = 'shared
     },
     router: {
       type: 'program-derived-address',
-      seed: perMint ? MINT_FEE_ROUTER_SEED : FEE_ROUTER_SEED,
-      ...(perMint ? { mint: mint?.toBase58?.() || String(mint) } : {}),
+      seed: perMintV3 ? MINT_FEE_ROUTER_V3_SEED : perMint ? MINT_FEE_ROUTER_SEED : FEE_ROUTER_SEED,
+      ...((perMint || perMintV3) ? { mint: mint?.toBase58?.() || String(mint) } : {}),
       programId: programId ? String(programId) : null,
       bump: Number.isInteger(bump) ? bump : null,
-      accountMagic: perMint ? MINT_FEE_ROUTER_MAGIC : FEE_ROUTER_ACCOUNT_MAGIC,
-      version: perMint ? MINT_FEE_ROUTER_VERSION : FEE_ROUTER_VERSION,
+      accountMagic: perMintV3 ? MINT_FEE_ROUTER_V3_MAGIC : perMint ? MINT_FEE_ROUTER_MAGIC : FEE_ROUTER_ACCOUNT_MAGIC,
+      version: perMintV3 ? MINT_FEE_ROUTER_V3_VERSION : perMint ? MINT_FEE_ROUTER_VERSION : FEE_ROUTER_VERSION,
       policyId: FEE_ROUTER_POLICY_ID,
       policyHash: FEE_ROUTER_POLICY_HASH_HEX,
     },
@@ -119,8 +123,9 @@ export function buildFeeRouterPolicy({ programId, address, bump, scope = 'shared
     },
     settlement: {
       trigger: 'successful-fee-claim',
-      idempotencyKey: 'claim-transaction-signature',
-      rule: 'on-chain-cumulative-80-percent-creator-20-percent-protocol-caps',
+      idempotencyKey: perMintV3 ? 'v3-claim-id' : 'claim-transaction-signature',
+      rule: perMintV3 ? 'on-chain-seven-category-80-percent-creator-20-percent-protocol-allocation'
+        : 'on-chain-cumulative-80-percent-creator-20-percent-protocol-caps',
       creatorSignatureRequired: true,
       retry: 'failed-payouts-remain-pending-to-original-recipient',
     },

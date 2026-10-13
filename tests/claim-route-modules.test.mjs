@@ -31,6 +31,15 @@ test('claim route modules pass unrelated paths to the next handler', async () =>
   }
 });
 
+test('stale V2 launch clients receive a closed router readiness response', async () => {
+  const f = fixture(createXIdentityRoutes, { mintRouterReadiness:async () =>
+    assert.fail('New V2 launch preflight must not call legacy readiness') });
+  assert.equal(await f.request('/api/mint-router/status', {}, 'GET'), true);
+  assert.equal(f.responses[0].status, 200);
+  assert.equal(f.responses[0].data.ready, false);
+  assert.match(f.responses[0].data.reasons.join('; '), /V2 launches are retired/);
+});
+
 test('OAuth redirects and HTML failures stop dispatch exactly once', async () => {
   const pages = [];
   const f = fixture(createXIdentityRoutes, {

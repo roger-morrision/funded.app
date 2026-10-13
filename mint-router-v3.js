@@ -2,9 +2,9 @@ import { Buffer } from 'buffer';
 import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
 import { PROTOCOL_FEE_SPLIT } from './config/protocol-fee-split.js';
 import { validateProtocolFeeSplit } from './distribution-policy.js';
-import { deriveFeeRouter, FEE_ROUTER_POLICY_HASH_HEX } from './fee-router.js';
+import { deriveFeeRouter, FEE_ROUTER_POLICY_HASH_HEX, MINT_FEE_ROUTER_V3_SEED } from './fee-router.js';
 
-const MINT_ROUTER_V3_SEED = Buffer.from('funded-mint-router-v3');
+const MINT_ROUTER_V3_SEED = Buffer.from(MINT_FEE_ROUTER_V3_SEED);
 const MINT_POLICY_V3_SEED = Buffer.from('mint-fee-policy-v3');
 const MINT_VAULT_V3_SEED = Buffer.from('mint-fee-vault-v3');
 const MINT_CLAIM_V3_SEED = Buffer.from('mint-fee-claim-v3');
