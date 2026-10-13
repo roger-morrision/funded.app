@@ -7,6 +7,7 @@ import { prepareCreatorSettlement, verifyCreatorSettlement,
 import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
 import { loadFinalizedV3PumpCollection } from '../v3-finalized-collection.mjs';
 import { loadFinalizedV3Settlement } from '../v3-settlement-proof.mjs';
+import { recordedV3AllocationPlan } from '../v3-allocation-plan.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 
 export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, solanaRpcUrl,
@@ -81,6 +82,11 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
     const proofInput = { connection, programId, mint, authority:authority.publicKey,
       creator:launch.creatorWallet, claimId:source.claimId,
       expectedLamports:source.expectedLamports, split:PROTOCOL_FEE_SPLIT };
+    const recordedFinalized = (proof, signature) => ({ ...proof,
+      collectionSignature, settlementSignature:signature, status:'finalized',
+      cluster:'devnet', finalizedAt:new Date().toISOString(),
+      allocationPlan:recordedV3AllocationPlan({ launch, settlement:{ ...proof,
+        programId, collectionSignature, settlementSignature:signature } }) });
     if (prior?.settlementSignature) {
       const finalized = await loadSettlement({ ...proofInput, signature:prior.settlementSignature });
       if (finalized && finalized.claimId === collection.claimId
@@ -88,9 +94,8 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
         const result = await store.update(current => {
           const row = current.v3Settlements?.[collectionSignature];
           if (row?.settlementSignature !== prior.settlementSignature) return null;
-          return current.v3Settlements[collectionSignature] = {
-            ...finalized, collectionSignature, settlementSignature:prior.settlementSignature,
-            status:'finalized', cluster:'devnet', finalizedAt:new Date().toISOString() };
+          return current.v3Settlements[collectionSignature] =
+            recordedFinalized(finalized, prior.settlementSignature);
         });
         return result ? json(res, 200, result)
           : json(res, 409, { error:'Settlement state changed during recovery.' });
@@ -141,9 +146,7 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
     const result = await store.update(current => {
       const row = current.v3Settlements?.[collectionSignature];
       if (row?.settlementSignature !== submitted || row.status !== 'verification-pending') return null;
-      return current.v3Settlements[collectionSignature] = { ...finalized,
-        collectionSignature, settlementSignature:submitted, status:'finalized',
-        cluster:'devnet', finalizedAt:new Date().toISOString() };
+      return current.v3Settlements[collectionSignature] = recordedFinalized(finalized, submitted);
     });
     return result ? json(res, 200, result)
       : json(res, 409, { error:'Finalized settlement state changed; reconcile its signature.' });

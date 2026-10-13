@@ -219,7 +219,10 @@ export function buildMintRouterV3DisbursementInstruction({ programId, mint, auth
   const lamports = BigInt(amount);
   if (lamports <= 0n || lamports > 0xffff_ffff_ffff_ffffn) throw new Error('V3 disbursement amount is invalid.');
   const destination = key(recipient);
-  if (category === 0 && !destination.equals(key(creator))) throw new Error('Creator budget must pay the creator.');
+  if (category === 0 && !destination.equals(key(creator))
+    && !destination.equals(deriveCommunityRewardVaultV3(programId, mint, authority))) {
+    throw new Error('Creator budget must pay the creator or its proof-gated reward vault.');
+  }
   if (category === 5 && !destination.equals(deriveCommunityRewardVaultV3(programId, mint, authority))) {
     throw new Error('Community budget must enter its proof-gated reward vault.');
   }

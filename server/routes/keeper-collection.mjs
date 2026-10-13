@@ -7,6 +7,7 @@ import { deriveMintRouterV3 } from '../../mint-router-v3.js';
 import { verifyV3LaunchRouterReadiness as verifyV3Readiness } from '../v3-launch-readiness.mjs';
 import { loadFinalizedV3PumpCollection as loadV3Collection } from '../v3-finalized-collection.mjs';
 import { loadFinalizedV3Settlement as loadV3Settlement } from '../v3-settlement-proof.mjs';
+import { recordedV3AllocationPlan } from '../v3-allocation-plan.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -254,8 +255,9 @@ export function createKeeperCollectionRoutes({
         current.v3Settlements ||= {};
         return current.v3Settlements[collectionSignature] = existing?.status === 'finalized'
           ? existing : { ...proof, collectionSignature, settlementSignature,
-            status:'finalized', cluster:'devnet',
-            finalizedAt:new Date().toISOString() };
+            status:'finalized', cluster:'devnet', finalizedAt:new Date().toISOString(),
+            allocationPlan:recordedV3AllocationPlan({ launch, settlement:{ ...proof,
+              programId, collectionSignature, settlementSignature } }) };
       });
       if (!recorded) return json(res, 409, { error:'The collection changed during settlement reconciliation.' });
       return json(res, 200, recorded);

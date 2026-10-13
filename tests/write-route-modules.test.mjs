@@ -131,8 +131,10 @@ test('V3 settlement reconciliation records only the matching finalized category 
     signature:collectionSignature, mint, scope:'per-mint-v3', cluster:'devnet',
     status:'collected', attribution:'mint-verified', onchainVerified:true,
     programId, router, collectedLamports:30, claimId:claimId.toString('hex'),
-  } }, launches:{ [mint]:{ mint, creatorWallet:mint,
-    pumpFeeRoute:{ scope:'per-mint-v3', programId, router, initialAuthority:mint } } },
+  } }, launches:{ [mint]:{ mint, creatorWallet:mint, cluster:'devnet', onchainVerified:true,
+    pumpFeeRoute:{ scope:'per-mint-v3', programId, router, initialAuthority:mint },
+    feeDistribution:buildFeeDistributionPolicy({ creatorWalletPercent:60,
+      holderAirdropPercent:20, solClaimPercent:0 }) } },
   v3Settlements:{}, settlements:{}, obligations:{} };
   let settlementProof = { signature:settlementSignature, mint, router,
     claimId:claimId.toString('hex'), expectedLamports:'29', slot:42,
@@ -156,6 +158,9 @@ test('V3 settlement reconciliation records only the matching finalized category 
   assert.equal(f.responses.at(-1).status, 200);
   assert.equal(state.v3Settlements[collectionSignature].status, 'finalized');
   assert.equal(state.v3Settlements[collectionSignature].settlementSignature, settlementSignature);
+  assert.equal(state.v3Settlements[collectionSignature].allocationPlan.status, 'allocated-not-funded');
+  assert.equal(state.v3Settlements[collectionSignature].allocationPlan.creatorDirected.walletLamports, '18');
+  assert.equal(state.v3Settlements[collectionSignature].allocationPlan.creatorDirected.holderLamports, '6');
   assert.deepEqual(state.settlements, {});
   assert.deepEqual(state.obligations, {});
   await f.request(path, input);

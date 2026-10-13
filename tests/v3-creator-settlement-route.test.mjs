@@ -24,6 +24,9 @@ function fixture({ enabled = true, submit = null } = {}) {
     creatorWallet:creator.publicKey.toBase58(), pumpFeeRoute:{ scope:'per-mint-v3',
       programId:program.publicKey.toBase58(), router,
       initialAuthority:authority.publicKey.toBase58() },
+    feeDistribution:{ creatorDirected:{ shares:{ creatorWalletPercent:60,
+      holderAirdropPercent:15, solClaimPercent:5 }, recipients:{ xAccount:'@qa' } } },
+    xUserId:'12345',
   } }, v3Settlements:{} };
   let submitted = 0;
   let finalized = false;
@@ -82,6 +85,8 @@ test('creator signs the exact V3 settlement and finalized proof closes the colle
   await f.request({ creatorSignedTransaction:signPrepared(f.responses[0].data.transaction) });
   assert.equal(f.responses.at(-1).status, 200);
   assert.equal(f.state.v3Settlements[collectionSignature].status, 'finalized');
+  assert.deepEqual(f.state.v3Settlements[collectionSignature].allocationPlan.creatorDirected,
+    { walletLamports:'18', holderLamports:'4', xLamports:'2', xUserId:'12345', xHandle:'@qa' });
   assert.equal(f.submitted, 1);
   await f.request({});
   assert.equal(f.responses.at(-1).status, 200);
@@ -100,4 +105,15 @@ test('uncertain V3 submission remains pending and recovers from finalized proof 
   assert.equal(f.responses.at(-1).status, 200);
   assert.equal(f.state.v3Settlements[collectionSignature].status, 'finalized');
   assert.equal(f.submitted, 1);
+});
+
+test('finalized V3 settlement is recorded while malformed local payout policy remains blocked', async () => {
+  const f = fixture();
+  await f.request({});
+  f.state.launches[mint.publicKey.toBase58()].feeDistribution = null;
+  await f.request({ creatorSignedTransaction:signPrepared(f.responses[0].data.transaction) });
+  assert.equal(f.responses.at(-1).status, 200);
+  assert.equal(f.state.v3Settlements[collectionSignature].status, 'finalized');
+  assert.deepEqual(f.state.v3Settlements[collectionSignature].allocationPlan,
+    { status:'blocked', reason:'signed-policy-allocation-unavailable', reconciliationRequired:true });
 });

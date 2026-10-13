@@ -142,8 +142,9 @@ test('Launch pricing rejects unsupported networks and stale quotes before cachin
 
 function rewardFixture() {
   let rewards = {};
-  const state = { launches: { mint: { mint: 'mint', creatorWallet: 'creator', onchainVerified: true } },
-    collections: { receipt: { mint: 'mint', status: 'collected', attribution: 'mint-verified' } },
+  const state = { launches: { mint: { mint: 'mint', creatorWallet: 'creator', onchainVerified: true,
+    pumpFeeRoute:{ scope:'per-mint-v2' } } },
+    collections: { receipt: { mint: 'mint', status: 'collected', attribution: 'mint-verified', scope:'per-mint-v2' } },
     obligations: { obligation: { id: 'obligation', mint: 'mint', claimSignature: 'receipt' } } };
   const settlement = { claimSignature: 'receipt', creatorDestinations: { creatorWallet: 0.1, holderAirdrop: 0.2, solClaim: 0.3 }, fundedApp: { operations: 0, community: 0.4 } };
   const api = createSettlementRewards({ store: { read: async () => structuredClone(state) }, automaticRewardStore: {
@@ -155,7 +156,7 @@ function rewardFixture() {
 test('Settlement rewards require verified evidence and reject conflicting replay atomically', async () => {
   const api = rewardFixture();
   api.state.collections.receipt.attribution = 'unknown';
-  await assert.rejects(api.queueAutomaticSettlementRewards(api.settlement), /verified collection/);
+  await assert.rejects(api.queueAutomaticSettlementRewards(api.settlement), /verified V2 collection/);
   assert.deepEqual(api.snapshot(), {});
   api.state.collections.receipt.attribution = 'mint-verified';
   await api.queueAutomaticSettlementRewards(api.settlement);
@@ -165,6 +166,10 @@ test('Settlement rewards require verified evidence and reject conflicting replay
   assert.deepEqual(api.snapshot(), before);
   await assert.rejects(api.queueAutomaticSettlementRewards({ ...api.settlement,
     creatorDestinations: { ...api.settlement.creatorDestinations, holderAirdrop: 0.5 } }), /immutable settlement/);
+  assert.deepEqual(api.snapshot(), before);
+  api.state.launches.mint.pumpFeeRoute.scope = 'per-mint-v3';
+  api.state.collections.receipt.scope = 'per-mint-v3';
+  await assert.rejects(api.queueAutomaticSettlementRewards(api.settlement), /verified V2 collection/);
   assert.deepEqual(api.snapshot(), before);
 });
 

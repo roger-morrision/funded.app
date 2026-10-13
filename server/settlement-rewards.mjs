@@ -19,7 +19,10 @@ export function createSettlementRewards({
 
   async function queueAutomaticSettlementRewards(settlement) {
     const main = await store.read(), collection = main.collections?.[settlement.claimSignature], launch = collection?.mint ? main.launches?.[collection.mint] : null;
-    if (collection?.status !== 'collected' || collection.attribution !== 'mint-verified' || !launch?.onchainVerified) throw new Error('Automatic rewards require the verified collection and launch records.');
+    if (collection?.status !== 'collected' || collection.attribution !== 'mint-verified' || !launch?.onchainVerified
+      || launch.pumpFeeRoute?.scope !== 'per-mint-v2' || collection.scope === 'per-mint-v3') {
+      throw new Error('V2 automatic rewards require matching verified V2 collection and launch records.');
+    }
     const rows = [
       { suffix:'creator', kind:'creator', amount:solToLamports(settlement.creatorDestinations?.creatorWallet), recipient:launch.creatorWallet, status:'claimable' },
       { suffix:'holders', kind:'holder', amount:solToLamports(settlement.creatorDestinations?.holderAirdrop), recipient:null, status:'pending' },

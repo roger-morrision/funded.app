@@ -83,12 +83,14 @@ assert.throws(() => buildMintRouterV3DisbursementInstruction({ programId, mint, 
 assert.throws(() => buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
   withdrawalId, category:0, amount:Number.MAX_SAFE_INTEGER + 1, recipient:creator }), /safe integer/);
 assert.throws(() => buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
-  withdrawalId, category:0, amount:1, recipient:authority }), /pay the creator/);
+  withdrawalId, category:0, amount:1, recipient:authority }), /pay the creator or its proof-gated reward vault/);
 assert.throws(() => buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
   withdrawalId, category:1, amount:1, recipient:settlement.vaults[6] }), /cannot be reclassified/);
 assert.throws(() => buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
   withdrawalId, category:5, amount:1, recipient:creator }), /proof-gated reward vault/);
 const community = deriveCommunityRewardVaultV3(programId, mint, authority);
+assert.equal(buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
+  withdrawalId, category:0, amount:1, recipient:community }).recipient.toBase58(), community.toBase58());
 assert.equal(buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
   withdrawalId, category:5, amount:1, recipient:community }).recipient.toBase58(), community.toBase58());
 assert.throws(() => deriveMintWithdrawalV3(programId, mint, Buffer.alloc(31)), /32 bytes/);

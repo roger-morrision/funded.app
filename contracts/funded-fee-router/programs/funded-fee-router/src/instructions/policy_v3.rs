@@ -165,10 +165,11 @@ pub struct SettlementV3Event {
     pub category_lamports: [u64; VAULT_COUNT],
 }
 
-/// Releases one category budget. A creator payout is bound to the creator's
-/// wallet; community funds can only enter the existing proof-gated reward
-/// vault. Operations and referral recipients require both signers. Buyback
-/// has no disbursement path here.
+/// Releases one category budget. Creator-directed funds can reach the creator
+/// or this program's proof-gated reward vault for holder and X claims.
+/// Community funds can only enter that vault. Operations and referral
+/// recipients require both signers. Buyback remains locked until an atomic
+/// purchase and burn path is implemented and verified.
 #[derive(Accounts)]
 #[instruction(withdrawal_id: [u8; 32], category: u8)]
 pub struct DisburseMintV3<'info> {
@@ -209,9 +210,10 @@ pub fn disburse_mint_v3_handler(ctx: Context<DisburseMintV3>, withdrawal_id: [u8
     let recipient = &ctx.accounts.recipient;
     let mint = ctx.accounts.mint.key();
     let recipient_key = recipient.key();
-    if category == 0 {
-        require!(recipient_key == ctx.accounts.creator.key(), ErrorCode::InvalidMintWithdrawalV3);
-    } else if category == 5 {
+    if category == 0 && recipient_key == ctx.accounts.creator.key() {
+        require!(recipient.owner == &System::id() && recipient.data_is_empty(),
+            ErrorCode::InvalidMintWithdrawalV3);
+    } else if category == 0 || category == 5 {
         let (expected, bump) = Pubkey::find_program_address(
             &[REWARD_VAULT_SEED, ctx.accounts.authority.key.as_ref(), mint.as_ref()], ctx.program_id);
         require!(recipient_key == expected && recipient.owner == ctx.program_id,
@@ -220,7 +222,7 @@ pub fn disburse_mint_v3_handler(ctx: Context<DisburseMintV3>, withdrawal_id: [u8
         require!(reward.authority == ctx.accounts.authority.key() && reward.mint == mint && reward.bump == bump,
             ErrorCode::InvalidMintWithdrawalV3);
     }
-    if category < 5 {
+    if (1..5).contains(&category) {
         require!(recipient.owner == &System::id() && recipient.data_is_empty(),
             ErrorCode::InvalidMintWithdrawalV3);
     }

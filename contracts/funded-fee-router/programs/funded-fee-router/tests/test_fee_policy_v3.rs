@@ -224,6 +224,45 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
     assert_eq!(svm.get_account(&reward_vault).unwrap().lamports, reward_before + 1_000_000_000);
     assert_eq!(svm.get_account(&original[5]).unwrap().lamports, expected[5] - 1_000_000_000 + vault_reserve);
 
+    // Creator-directed holder and X shares may fund only this mint's
+    // proof-gated reward vault. The creator and current router authority both
+    // approve the transfer, and it consumes the creator category budget.
+    let wrong_vault = Pubkey::find_program_address(
+        &[b"reward-vault-v1", next_authority.pubkey().as_ref(), Keypair::new().pubkey().as_ref()], &program).0;
+    svm.expire_blockhash();
+    assert!(!send(&mut svm, &next_authority, &[&next_authority, &creator], disburse_v3_ix(program,
+        next_authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, policy,
+        0, original[0], wrong_vault, [15u8; 32], 2_000_000_000)));
+    svm.expire_blockhash();
+    assert!(send(&mut svm, &next_authority, &[&next_authority, &creator], disburse_v3_ix(program,
+        next_authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, policy,
+        0, original[0], reward_vault, [15u8; 32], 2_000_000_000)));
+    assert_eq!(svm.get_account(&reward_vault).unwrap().lamports, reward_before + 3_000_000_000);
+    assert_eq!(svm.get_account(&original[0]).unwrap().lamports,
+        expected[0] - 5_000_000_000 + vault_reserve);
+    let updated_policy = svm.get_account(&policy).unwrap();
+    let updated_policy = MintFeePolicyV3::try_deserialize(&mut &updated_policy.data[..]).unwrap();
+    assert_eq!(updated_policy.withdrawn_lamports[0], 5_000_000_000);
+
+    // Buyback remains locked until the program has an atomic purchase and burn
+    // path. A creator and router authority together cannot stage it as SOL.
+    let buyback_vault_before = svm.get_account(&original[6]).unwrap().lamports;
+    svm.expire_blockhash();
+    assert!(!send(&mut svm, &next_authority, &[&next_authority, &creator], disburse_v3_ix(program,
+        next_authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, policy,
+        6, original[6], recipient.pubkey(), [16u8; 32], 1_000_000_000)));
+    svm.expire_blockhash();
+    assert!(!send(&mut svm, &next_authority, &[&next_authority, &creator], disburse_v3_ix(program,
+        next_authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, policy,
+        6, original[6], next_authority.pubkey(), [16u8; 32], 1_000_000_000)));
+    assert_eq!(svm.get_account(&original[6]).unwrap().lamports, buyback_vault_before);
+    let buyback_policy = svm.get_account(&policy).unwrap();
+    let buyback_policy = MintFeePolicyV3::try_deserialize(&mut &buyback_policy.data[..]).unwrap();
+    assert_eq!(buyback_policy.withdrawn_lamports[6], 0);
+    let buyback_receipt = Pubkey::find_program_address(
+        &[b"mint-withdraw-v3", mint.pubkey().as_ref(), &[16u8; 32]], &program).0;
+    assert!(svm.get_account(&buyback_receipt).is_none());
+
     // A new mint may choose a different split of only the protocol 20%,
     // including a zero buyback allocation, without changing creator 80%.
     let second_mint = Keypair::new();
