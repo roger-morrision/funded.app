@@ -31,18 +31,20 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
   const json = (...args) => { respond(...args); return true; };
   return async function handleV3RewardFunding(req, res, url) {
     const match = req.method === 'POST'
-      ? url.pathname.match(/^\/api\/tokens\/([^/]+)\/v3-(community|creator-reward)-funding\/([^/]+)$/) : null;
+      ? url.pathname.match(/^\/api\/tokens\/([^/]+)\/v3-(community-funding|creator-reward-funding|creator-wallet-payout)\/([^/]+)$/) : null;
     if (!match) return false;
-    const kind = match[2];
+    const kind = match[2].replace(/-(funding|payout)$/, '');
     const category = kind === 'community' ? 5 : 0;
-    const ledger = kind === 'community' ? 'v3CommunityFunding' : 'v3CreatorRewardFunding';
+    const ledger = kind === 'community' ? 'v3CommunityFunding'
+      : kind === 'creator-reward' ? 'v3CreatorRewardFunding' : 'v3CreatorWalletPayout';
     if (solanaCluster !== 'devnet' || !originAllowed(req, env.CORS_ORIGIN)) {
-      return json(res, 403, { error:'V3 reward funding requires the Devnet app origin.' });
+      return json(res, 403, { error:'V3 category disbursement requires the Devnet app origin.' });
     }
     const enabled = kind === 'community' ? env.FUNDED_V3_COMMUNITY_FUNDING_ENABLED
-      : env.FUNDED_V3_CREATOR_REWARD_FUNDING_ENABLED;
+      : kind === 'creator-reward' ? env.FUNDED_V3_CREATOR_REWARD_FUNDING_ENABLED
+      : env.FUNDED_V3_CREATOR_WALLET_PAYOUT_ENABLED;
     if (enabled !== 'true') {
-      return json(res, 503, { error:'Creator-signed V3 reward funding is not activated.' });
+      return json(res, 503, { error:'Creator-signed V3 category disbursement is not activated.' });
     }
     let mint;
     try { mint = new PublicKey(decodeURIComponent(match[1])).toBase58(); }
@@ -104,9 +106,12 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       return json(res, 409, { error:'The saved V3 allocation differs from finalized chain evidence.' });
     }
     const amount = kind === 'community' ? BigInt(plan.protocol.communityLamports)
-      : BigInt(plan.creatorDirected.holderLamports) + BigInt(plan.creatorDirected.xLamports);
-    if (amount <= 0n) return json(res, 409, { error:'This settlement has no funding allocation for this reward category.' });
-    const recipient = await chain.ensureVault(mint);
+      : kind === 'creator-reward' ? BigInt(plan.creatorDirected.holderLamports)
+        + BigInt(plan.creatorDirected.xLamports)
+        : BigInt(plan.creatorDirected.walletLamports);
+    if (amount <= 0n) return json(res, 409, { error:'This settlement has no payable allocation for this category.' });
+    const recipient = kind === 'creator-wallet' ? new PublicKey(launch.creatorWallet)
+      : await chain.ensureVault(mint);
     const withdrawalId = withdrawalIdFor(kind, settled.settlementSignature);
     const payout = buildMintRouterV3DisbursementInstruction({ programId, mint,
       authority:authority.publicKey, creator:launch.creatorWallet, withdrawalId,
@@ -140,7 +145,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       const latest = await connection.getLatestBlockhash('finalized');
       return json(res, 202, { status:'awaiting-creator-signature', mint,
         collectionSignature, amountLamports:String(amount),
-        rewardVault:recipient.toBase58(),
+        recipient:recipient.toBase58(),
         transaction:prepareTransaction({ instruction:payout.instruction,
           authority:authority.publicKey, blockhash:latest.blockhash }),
         lastValidBlockHeight:latest.lastValidBlockHeight });
@@ -164,7 +169,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     const submitted = await submitTransaction({ connection, transaction, authority });
     if (submitted !== signature) throw new Error('Finalized V3 funding signature changed.');
     const funded = await loadProof(submitted);
-    if (!funded) throw new Error('Finalized V3 reward funding proof is unavailable; reconcile before retrying.');
+    if (!funded) throw new Error('Finalized V3 disbursement proof is unavailable; reconcile before retrying.');
     const result = await store.update(current => {
       const row = current[ledger]?.[collectionSignature];
       if (row?.signature !== submitted || row.status !== 'verification-pending') return null;

@@ -14,7 +14,8 @@ const claimId = Buffer.alloc(32, 8);
 const router = deriveMintRouterV3(program.publicKey, mint.publicKey).address.toBase58();
 
 function fixture({ enabled = true, submit = null, kind = 'community' } = {}) {
-  const path = `/api/tokens/${mint.publicKey.toBase58()}/v3-${kind}-funding/${collectionSignature}`;
+  const suffix = kind === 'creator-wallet' ? 'payout' : 'funding';
+  const path = `/api/tokens/${mint.publicKey.toBase58()}/v3-${kind}-${suffix}/${collectionSignature}`;
   const responses = [];
   const launch = { mint:mint.publicKey.toBase58(), onchainVerified:true, cluster:'devnet',
     creatorWallet:creator.publicKey.toBase58(), pumpFeeRoute:{ scope:'per-mint-v3',
@@ -47,6 +48,7 @@ function fixture({ enabled = true, submit = null, kind = 'community' } = {}) {
     v3AuthorityKeypair:() => authority,
     env:{ FUNDED_V3_COMMUNITY_FUNDING_ENABLED:enabled ? 'true' : 'false',
       FUNDED_V3_CREATOR_REWARD_FUNDING_ENABLED:enabled ? 'true' : 'false',
+      FUNDED_V3_CREATOR_WALLET_PAYOUT_ENABLED:enabled ? 'true' : 'false',
       FUNDED_V3_FEE_ROUTER_PROGRAM_ID:program.publicKey.toBase58(),
       FUNDED_V3_PROGRAM_DATA_SHA256:'a'.repeat(64) },
     connectionFactory:() => ({ getLatestBlockhash:async () => ({
@@ -55,8 +57,8 @@ function fixture({ enabled = true, submit = null, kind = 'community' } = {}) {
     rewardChainFactory:() => ({ readiness:async () => ({ constrainedPayouts:true }),
       ensureVault:async () => vault }),
     loadSettlement:async () => settlementProof,
-    loadFunding:async ({ signature, amount }) => finalized ? { signature,
-      mint:launch.mint, amount:String(amount), recipient:vault.toBase58(),
+    loadFunding:async ({ signature, amount, recipient }) => finalized ? { signature,
+      mint:launch.mint, amount:String(amount), recipient:recipient.toBase58(),
       balanceDeltaVerified:true } : null,
     submitTransaction:async ({ transaction }) => {
       submitted++;
@@ -111,6 +113,18 @@ test('V3 creator-directed holder and X funds use category zero and their exact c
   assert.equal(f.responses.at(-1).status, 200);
   assert.equal(f.state.v3CreatorRewardFunding[collectionSignature].amount, '20');
   assert.equal(f.state.v3CreatorRewardFunding[collectionSignature].status, 'finalized');
+});
+
+test('V3 creator wallet payout releases only its exact category-zero share', async () => {
+  const f = fixture({ kind:'creator-wallet' });
+  await f.request({});
+  assert.equal(f.responses[0].status, 202);
+  assert.equal(f.responses[0].data.amountLamports, '60');
+  assert.equal(f.responses[0].data.recipient, creator.publicKey.toBase58());
+  await f.request({ creatorSignedTransaction:signPrepared(f.responses[0].data.transaction) });
+  assert.equal(f.responses.at(-1).status, 200);
+  assert.equal(f.state.v3CreatorWalletPayout[collectionSignature].amount, '60');
+  assert.equal(f.state.v3CreatorWalletPayout[collectionSignature].status, 'finalized');
 });
 
 test('V3 community funding preserves uncertain submission for receipt recovery', async () => {

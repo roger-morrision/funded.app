@@ -49,3 +49,33 @@ test('V3 reward funding requires exact finalized instruction, balance deltas, an
   assert.equal(await loadFinalizedV3RewardFunding(input), null);
   assert.equal(await loadFinalizedV3RewardFunding({ ...input, category:6 }), null);
 });
+
+test('V3 creator-wallet payout proof binds the category-zero transfer to its creator', async () => {
+  const programId = Keypair.generate().publicKey;
+  const mint = Keypair.generate().publicKey;
+  const authority = Keypair.generate().publicKey;
+  const creator = Keypair.generate().publicKey;
+  const withdrawalId = Buffer.alloc(32, 10);
+  const signature = '2'.repeat(64);
+  const built = buildMintRouterV3DisbursementInstruction({ programId, mint,
+    authority, creator, withdrawalId, category:0, amount:60n, recipient:creator });
+  const message = new Transaction({ feePayer:authority,
+    recentBlockhash:Keypair.generate().publicKey.toBase58() }).add(built.instruction).compileMessage();
+  const keys = message.accountKeys.map(key => key.toBase58());
+  const before = keys.map(() => 0);
+  const after = keys.map(() => 0);
+  before[keys.indexOf(built.vault.toBase58())] = 100;
+  after[keys.indexOf(built.vault.toBase58())] = 40;
+  after[keys.indexOf(creator.toBase58())] = 60;
+  const tx = { slot:43, meta:{ err:null, preBalances:before, postBalances:after },
+    transaction:{ signatures:[signature], message } };
+  const input = { connection:{ getTransaction:async () => tx }, signature,
+    programId, mint, authority, creator, initialAuthority:authority,
+    withdrawalId, category:0, amount:60n, recipient:creator,
+    verifyWithdrawal:async () => ({ verified:true, address:built.withdrawal }),
+    verifyPolicy:async () => ({ verified:true, address:built.policy.address,
+      withdrawnLamports:[60n, 0n, 0n, 0n, 0n, 0n, 0n] }) };
+  assert.equal((await loadFinalizedV3RewardFunding(input)).recipient, creator.toBase58());
+  tx.meta.postBalances[keys.indexOf(creator.toBase58())] = 59;
+  assert.equal(await loadFinalizedV3RewardFunding(input), null);
+});

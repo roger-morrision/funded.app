@@ -7,7 +7,7 @@ const address = value => typeof value === 'string' ? value : value?.pubkey
   ? address(value.pubkey) : value?.toBase58?.() || '';
 
 // A payout plan or submitted signature is not funding. Require a finalized
-// exact V3 instruction, category-vault debit, reward-vault credit, and receipt.
+// exact V3 instruction, category-vault debit, recipient credit, and receipt.
 export async function loadFinalizedV3RewardFunding({ connection, signature, programId,
   mint, authority, creator, initialAuthority, withdrawalId, category, amount,
   recipient, split, verifyWithdrawal = verifyMintWithdrawalV3Account,
