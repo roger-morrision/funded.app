@@ -26,29 +26,37 @@ function pendingV3Buybacks(state) {
 // Dispatch after shared authorization and rate checks; preserve caller route order.
 export function createRewardStatusRoutes({
   store, automaticRewardStore, solanaCluster, xFeeReadiness, readFinalizedEvidence, clientKey,
-  respond,
+  respond, env = process.env,
 }) {
   const json = (...args) => { respond(...args); return true; };
+  const verifiedV3Burns = state => Object.values(state.v3BuybackOrders || {}).filter(row =>
+    row.status === 'finalized' && row.finalized === true
+    && row.vaultDebitVerified === true && row.burnInstructionVerified === true);
+  const currentDevnetBurns = state => solanaCluster === 'devnet'
+    && env.FUNDED_V3_BUYBACK_ENABLED === 'true'
+    && env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID
+    && /^[a-f0-9]{64}$/i.test(String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || ''))
+    ? verifiedV3Burns(state).filter(row =>
+      row.programId === env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID
+      && row.approvedHash === env.FUNDED_V3_PROGRAM_DATA_SHA256.toLowerCase()) : [];
   return async function handleRewardStatusRoutes(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/rewards/automatic') {
       const status = automaticRewardStatus(new Date(), await automaticRewardStore.read());
       const x = { ready:false, reasons:['V3 X payout and claim require a finalized Devnet payment.'] };
       status.modes.x = 'unavailable';
       const buybackState = await store.read();
-      const verifiedBurns=Object.values(buybackState.v3BuybackOrders||{}).filter(row=>
-        row.status==='finalized'&&row.finalized===true&&row.vaultDebitVerified===true
-        &&row.burnInstructionVerified===true);
-      status.modes.buyback = 'accrual-only-execution-unavailable';
-      status.routeReadiness = { x, community:{ ready:status.modes.community === 'verified-token-airdrop-cycle', reason:status.modes.community === 'verified-token-airdrop-cycle' ? null : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:false, devnetExecutorVerified:false, verifiedV3Burns:0, recordedV3Burns:verifiedBurns.length, pending:pendingV3Buybacks(buybackState), reason:'V3 buyback remains in Devnet pilot until the deployed program and residual budget are verified.' } };
+      const recordedBurns = verifiedV3Burns(buybackState);
+      const currentBurns = currentDevnetBurns(buybackState);
+      const buybackReady = currentBurns.length > 0;
+      status.modes.buyback = buybackReady ? 'verified-v3-devnet-execution' : 'accrual-only-execution-unavailable';
+      status.routeReadiness = { x, community:{ ready:status.modes.community === 'verified-token-airdrop-cycle', reason:status.modes.community === 'verified-token-airdrop-cycle' ? null : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:buybackReady, devnetExecutorVerified:buybackReady, verifiedV3Burns:currentBurns.length, recordedV3Burns:recordedBurns.length, pending:pendingV3Buybacks(buybackState), reason:buybackReady ? null : 'No finalized V3 buyback and burn matches the enabled Devnet program.' } };
       return json(res, 200, status);
     }
     if (req.method === 'GET' && url.pathname === '/api/buyback/status') {
       const state = await store.read();
       return json(res, 200, { cluster:solanaCluster, custody:'v3-mint-category-vault',
-        executionReady:false, mainnetReady:false, pending:pendingV3Buybacks(state),
-        receipts:Object.values(state.v3BuybackOrders||{}).filter(row=>row.status==='finalized'
-          &&row.finalized===true&&row.vaultDebitVerified===true
-          &&row.burnInstructionVerified===true)
+        executionReady:currentDevnetBurns(state).length > 0, mainnetReady:false, pending:pendingV3Buybacks(state),
+        receipts:verifiedV3Burns(state)
           .map(({preparedTransaction,signedTransaction,pumpData,pumpKeys,...row})=>row),
         historicalV2Receipts:Object.values(state.buybackOrders || {})
           .filter(row => row.status === 'finalized' && row.refundVerified)

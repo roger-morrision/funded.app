@@ -23,3 +23,28 @@ test('V3 buyback status retains exact unspent allocation after a recorded burn',
   assert.equal(responses.at(-1).data.receipts.length,1);
   assert.equal(responses.at(-1).data.receipts[0].signedTransaction,undefined);
 });
+
+test('only a finalized burn for the enabled current Devnet program opens buyback readiness', async () => {
+  const programId = '9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
+  const hash = 'a'.repeat(64);
+  const state = { v3BuybackOrders:{ qa:{ status:'finalized', finalized:true,
+    vaultDebitVerified:true, burnInstructionVerified:true,
+    programId, approvedHash:hash, spentLamports:'123127' } } };
+  const responses = [];
+  const env = { FUNDED_V3_BUYBACK_ENABLED:'true',
+    FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId,
+    FUNDED_V3_PROGRAM_DATA_SHA256:hash };
+  const route = createRewardStatusRoutes({ store:{ read:async () => state },
+    automaticRewardStore:{ read:async () => ({}) }, solanaCluster:'devnet', env,
+    respond:(_res,status,data) => responses.push({status,data}) });
+  await route({method:'GET'}, {}, new URL('https://funded.vip/api/buyback/status'));
+  assert.equal(responses.at(-1).data.executionReady, true);
+  assert.equal(responses.at(-1).data.mainnetReady, false);
+  await route({method:'GET'}, {}, new URL('https://funded.vip/api/rewards/automatic'));
+  assert.equal(responses.at(-1).data.routeReadiness.buyback.ready, true);
+  assert.equal(responses.at(-1).data.routeReadiness.buyback.verifiedV3Burns, 1);
+  assert.equal(responses.at(-1).data.modes.buyback, 'verified-v3-devnet-execution');
+  env.FUNDED_V3_PROGRAM_DATA_SHA256 = 'b'.repeat(64);
+  await route({method:'GET'}, {}, new URL('https://funded.vip/api/buyback/status'));
+  assert.equal(responses.at(-1).data.executionReady, false);
+});
