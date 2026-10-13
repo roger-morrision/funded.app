@@ -156,6 +156,7 @@ export function createLedgerRepository({ pool, ensureReady }) {
         const meta = await client.query('SELECT version FROM state_meta WHERE id = 1');
         const launches = await client.query('SELECT mint, payload FROM launches');
         const settlements = await client.query('SELECT claim_signature, payload FROM settlements');
+        const v3Settlements = await client.query("SELECT entity_key, payload FROM state_entities WHERE bucket='v3Settlements'");
         const collections = await client.query('SELECT id, payload FROM collections');
         const referralClaims = await client.query('SELECT id, payload FROM referral_claims');
         await client.query('COMMIT');
@@ -163,6 +164,7 @@ export function createLedgerRepository({ pool, ensureReady }) {
           version: meta.rows[0]?.version || 4,
           launches: Object.fromEntries(launches.rows.map(row => [row.mint, row.payload])),
           settlements: Object.fromEntries(settlements.rows.map(row => [row.claim_signature, row.payload])),
+          v3Settlements: Object.fromEntries(v3Settlements.rows.map(row => [row.entity_key, row.payload])),
           collections: Object.fromEntries(collections.rows.map(row => [row.id, row.payload])),
           referralClaims: Object.fromEntries(referralClaims.rows.map(row => [row.id, row.payload])),
         };
