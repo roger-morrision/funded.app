@@ -114,7 +114,6 @@
     "verify:stonk-features": "node scripts/verify-stonk-features.mjs",
     "verify:explore-discovery": "node scripts/verify-explore-discovery.mjs",
     "db:migrate": "node scripts/migrate-postgres.mjs",
-    "db:import-legacy-collections": "node --env-file=.env.local scripts/import-legacy-collections.mjs",
     "deploy:init": "node scripts/init-local-deploy.mjs",
     "check": "node scripts/check-source.mjs && npm run check:structure",
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
