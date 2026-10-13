@@ -8,6 +8,7 @@ import { createSettlementRoutes } from '../server/routes/settlement.mjs';
 import { createCreatorFeesRoutes } from '../server/routes/creator-fees.mjs';
 import { buildFeeDistributionPolicy } from '../distribution-policy.js';
 import { deriveMintRouterV3 } from '../mint-router-v3.js';
+import { DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
 
 const mint = 'So11111111111111111111111111111111111111112';
 const walletKey = value => new PublicKey(value).toBase58();
@@ -29,7 +30,7 @@ test('write route families leave unrelated requests to the shared dispatcher', a
   }
 });
 
-test('V3-only launch configuration cannot be enabled by flags before finalized payouts and burn', async () => {
+test('V3 launch stays closed without a live holder worker and both lookup tables', async () => {
   const f = fixture(createLaunchRegistrationRoutes, { env:{
     FUNDED_V3_LAUNCH_ENABLED:'true', FUNDED_V3_COLLECTION_ENABLED:'true',
     FUNDED_V3_SETTLEMENT_ENABLED:'true', FUNDED_V3_REWARDS_ENABLED:'true',
@@ -39,11 +40,34 @@ test('V3-only launch configuration cannot be enabled by flags before finalized p
   assert.equal(await f.request('/api/v3-launch-config', {}, 'GET'), true);
   assert.equal(f.responses[0].status, 200);
   assert.equal(f.responses[0].data.ready, false);
-  assert.match(f.responses[0].data.reasons.join('; '), /V3 holder worker and OAuth-bound X claim require deployed app verification/);
-  assert.match(f.responses[0].data.reasons.join('; '), /V3 public buyback route requires deployed app verification/);
+  assert.match(f.responses[0].data.reasons.join('; '), /V3 holder payout worker is disabled/);
+  assert.match(f.responses[0].data.reasons.join('; '), /V3 launch reserve and buyback lookup tables are not configured/);
   assert.equal(await f.request('/api/launch-reserve-config', {}, 'GET'), true);
   assert.equal(f.responses[1].status, 503);
   assert.match(f.responses[1].data.error, /V3 atomic community reserve is not ready/);
+});
+
+test('V3 non-X launch config needs fresh worker, exact program and active Devnet tables', async () => {
+  const maxSlot = BigInt('18446744073709551615');
+  const env = { FUNDED_V3_LAUNCH_ENABLED:'true', FUNDED_V3_COLLECTION_ENABLED:'true',
+    FUNDED_V3_SETTLEMENT_ENABLED:'true', FUNDED_V3_HOLDER_WORKER_ENABLED:'true',
+    FUNDED_V3_BUYBACK_ENABLED:'true', FUNDED_V3_FEE_ROUTER_PROGRAM_ID:mint,
+    FUNDED_V3_PROGRAM_DATA_SHA256:'a'.repeat(64),
+    FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE:mint, FUNDED_V3_BUYBACK_LOOKUP_TABLE:mint };
+  const serviceStatus = { constrainedPayouts:true, reasons:[], checkedAt:new Date().toISOString() };
+  const f = fixture(createLaunchRegistrationRoutes, { env,
+    automaticRewardStore:{ read:async () => ({serviceStatus}) },
+    v3AuthorityKeypair:() => ({publicKey:new PublicKey(mint)}),
+    connectionFactory:() => ({ getGenesisHash:async () => DEVNET_GENESIS_HASH,
+      getAddressLookupTable:async () => ({value:{state:{deactivationSlot:maxSlot}}}) }),
+    programEvidence:async () => ({account:{executable:true},sha256:'a'.repeat(64)}),
+    verifyRouter:async () => ({verified:true,authority:new PublicKey(mint)}) });
+  await f.request('/api/v3-launch-config', {}, 'GET');
+  assert.equal(f.responses.at(-1).data.ready, true);
+  serviceStatus.checkedAt = new Date(Date.now() - 181_000).toISOString();
+  await f.request('/api/v3-launch-config', {}, 'GET');
+  assert.equal(f.responses.at(-1).data.ready, false);
+  assert.match(f.responses.at(-1).data.reasons.join('; '), /no fresh verified readiness/);
 });
 
 test('keeper authorization denials terminate dispatch before reading or collecting', async () => {

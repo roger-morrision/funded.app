@@ -311,7 +311,7 @@ const handleListingPaymentsRoutes = createListingPaymentsRoutes({
   currentLaunchTierPricing, clientKey, id, respond: json,
 });
 const handleLaunchRegistrationRoutes = createLaunchRegistrationRoutes({
-  solanaCluster, body, store, resolveXUser, fundedTokenMint, solanaRpcUrl, walletSignature, v3AuthorityKeypair, id, invalidateReserveCache, respond: json,
+  solanaCluster, body, store, automaticRewardStore, resolveXUser, fundedTokenMint, solanaRpcUrl, walletSignature, v3AuthorityKeypair, id, invalidateReserveCache, respond: json,
 });
 
 const handleXIdentityRoutes = createXIdentityRoutes({

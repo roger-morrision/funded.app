@@ -15,6 +15,7 @@ import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import { protocolGrossUnits } from '../../mint-router-v3.js';
 import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
 import { verifyFeeRouterAccount } from '../../fee-router.js';
+import { rewardServiceHealth } from '../reward-service-health.mjs';
 import nacl from 'tweetnacl';
 
 // Called after the shared request policy, rate limit, and authorization checks.
@@ -23,6 +24,7 @@ export function createLaunchRegistrationRoutes({
   solanaCluster,
   body,
   store,
+  automaticRewardStore,
   resolveXUser,
   fundedTokenMint,
   solanaRpcUrl,
@@ -32,6 +34,9 @@ export function createLaunchRegistrationRoutes({
   id,
   invalidateReserveCache,
   respond,
+  connectionFactory = url => new Connection(url, 'finalized'),
+  programEvidence = readProgramDataEvidence,
+  verifyRouter = verifyFeeRouterAccount,
 }) {
   const json = (...args) => { respond(...args); return true; };
   const v3LaunchConfig = async () => {
@@ -44,24 +49,42 @@ export function createLaunchRegistrationRoutes({
       ['FUNDED_V3_COLLECTION_ENABLED', 'V3 fee collection'],
       ['FUNDED_V3_SETTLEMENT_ENABLED', 'V3 settlement'],
     ]) if (env[name] !== 'true') reasons.push(`${label} is disabled`);
-    // Configuration cannot activate missing instructions or workers. Remove
-    // these blockers only after finalized V3 payout and burn regressions.
-    reasons.push('V3 holder worker and OAuth-bound X claim require deployed app verification');
-    reasons.push('V3 public buyback route requires deployed app verification');
+    if (env.FUNDED_V3_HOLDER_WORKER_ENABLED !== 'true')
+      reasons.push('V3 holder payout worker is disabled');
+    else {
+      try {
+        const health = rewardServiceHealth((await automaticRewardStore.read()).serviceStatus);
+        if (!health.healthy) reasons.push('V3 holder payout worker has no fresh verified readiness');
+      } catch { reasons.push('V3 holder payout worker readiness is unavailable'); }
+    }
+    if (env.FUNDED_V3_BUYBACK_ENABLED !== 'true') reasons.push('V3 buyback route is disabled');
+    const lookupAddresses = [env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE,
+      env.FUNDED_V3_BUYBACK_LOOKUP_TABLE];
+    if (lookupAddresses.some(value => {
+      if (!value) return true;
+      try { new PublicKey(value); return false; } catch { return true; }
+    }))
+      reasons.push('V3 launch reserve and buyback lookup tables are not configured');
     if (!programId || !/^[a-f0-9]{64}$/.test(approvedHash)) reasons.push('Approved V3 program is not configured');
     let authority = null;
     try { authority = v3AuthorityKeypair?.(); } catch { reasons.push('V3 authority signer is invalid'); }
     if (!authority?.publicKey) reasons.push('V3 authority signer is unavailable');
     if (!reasons.length) {
       try {
-        const connection = new Connection(solanaRpcUrl, 'finalized');
-        const [genesis, evidence, router] = await Promise.all([
-          connection.getGenesisHash(), readProgramDataEvidence(connection, programId),
-          verifyFeeRouterAccount({ connection, programId, commitment:'finalized' }),
+        const connection = connectionFactory(solanaRpcUrl);
+        const [genesis, evidence, router, reserveLookup, buybackLookup] = await Promise.all([
+          connection.getGenesisHash(), programEvidence(connection, programId),
+          verifyRouter({ connection, programId, commitment:'finalized' }),
+          connection.getAddressLookupTable(new PublicKey(lookupAddresses[0]), { commitment:'finalized' }),
+          connection.getAddressLookupTable(new PublicKey(lookupAddresses[1]), { commitment:'finalized' }),
         ]);
         if (genesis !== DEVNET_GENESIS_HASH || !evidence.account?.executable
           || evidence.sha256 !== approvedHash || !router.verified
           || !router.authority.equals(authority.publicKey)) reasons.push('Approved V3 program or authority is not verified on Devnet');
+        if (!reserveLookup.value || !buybackLookup.value
+          || reserveLookup.value.state.deactivationSlot !== BigInt('18446744073709551615')
+          || buybackLookup.value.state.deactivationSlot !== BigInt('18446744073709551615'))
+          reasons.push('V3 launch reserve or buyback lookup table is not active on Devnet');
       } catch { reasons.push('V3 program verification is unavailable'); }
     }
     return { ready:reasons.length === 0, cluster:solanaCluster,

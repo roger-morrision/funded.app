@@ -14,6 +14,16 @@ services:
       FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_V3_FEE_ROUTER_PROGRAM_ID:?Set the approved V3 program ID}
       FUNDED_V3_FEE_ROUTER_PROGRAM_ID: ${FUNDED_V3_FEE_ROUTER_PROGRAM_ID:?Set the approved V3 program ID}
       FUNDED_V3_PROGRAM_DATA_SHA256: ${FUNDED_V3_PROGRAM_DATA_SHA256:?Set the tested V3 ProgramData hash}
+      FUNDED_V3_LAUNCH_ENABLED: ${FUNDED_V3_LAUNCH_ENABLED:-false}
+      FUNDED_V3_COLLECTION_ENABLED: ${FUNDED_V3_COLLECTION_ENABLED:-false}
+      FUNDED_V3_SETTLEMENT_ENABLED: ${FUNDED_V3_SETTLEMENT_ENABLED:-false}
+      FUNDED_V3_HOLDER_WORKER_ENABLED: ${FUNDED_V3_HOLDER_WORKER_ENABLED:-false}
+      FUNDED_V3_X_CLAIMS_ENABLED: ${FUNDED_V3_X_CLAIMS_ENABLED:-false}
+      FUNDED_V3_BUYBACK_ENABLED: ${FUNDED_V3_BUYBACK_ENABLED:-false}
+      FUNDED_V3_BUYBACK_LOOKUP_TABLE: ${FUNDED_BUYBACK_LOOKUP_TABLE:-}
+      SOLANA_HOLDER_INDEX_RPC_URL_FILE: /run/secrets/solana_holder_index_rpc_url
+    secrets:
+      - solana_holder_index_rpc_url
   reward-volume-init:
     image: ${FUNDED_RELEASE_IMAGE:?Set the exact-SHA image}
     environment:
@@ -32,3 +42,7 @@ services:
       FUNDED_BUILD_ID: ${FUNDED_RELEASE_SHA:?Set the exact source SHA}
       FUNDED_V3_FEE_ROUTER_PROGRAM_ID: ${FUNDED_V3_FEE_ROUTER_PROGRAM_ID:?Set the approved V3 program ID}
       FUNDED_V3_PROGRAM_DATA_SHA256: ${FUNDED_V3_PROGRAM_DATA_SHA256:?Set the tested V3 ProgramData hash}
+
+secrets:
+  solana_holder_index_rpc_url:
+    file: ./.secrets/solana-holder-index-rpc-url
