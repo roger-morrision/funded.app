@@ -140,10 +140,20 @@ export function createRewardScheduler({ store, indexer, chain }) {
   async function prepare(now = Math.floor(Date.now() / 1000)) {
     return store.transaction(state => {
       state.programs ||= {}; state.schedules ||= {}; state.holderSnapshots ||= {}; state.rewardPools ||= {};
+      for (const row of Object.values(state.schedules)) {
+        if (row.kind === 'holder' && row.status === 'skipped' && row.cycle
+          && Object.values(row.payments || {}).some(payment => payment.status === 'paid')
+          && Object.values(row.payments || {}).filter(payment => payment.status === 'paid').length
+            < (row.manifest?.leaves?.length || 0)) {
+          row.status = 'blocked';
+          row.reason = 'Partly paid holder cycle has an immutable manifest; reconcile its unpaid leaves.';
+        }
+      }
       for (const config of Object.values(state.programs).filter(item => item.enabled)) {
         if (!Number.isSafeInteger(config.activatedAt)) config.activatedAt = Math.floor(Date.parse(config.updatedAt) / 1000);
         if (!Number.isSafeInteger(config.firstPeriodStart)) config.firstPeriodStart = Math.ceil(config.activatedAt / config.periodSeconds) * config.periodSeconds;
         for (const schedule of Object.values(state.schedules).filter(row => row.mint === config.mint && row.kind === 'holder' && row.periodStart < config.firstPeriodStart && ['indexing', 'blocked'].includes(row.status)
+          && !row.manifest && !row.cycle
           && (!devnetQaShortWindow(config) || row.cutoffAt - row.periodStart <= 300))) {
           schedule.status = 'skipped';
           schedule.reason = 'Reward program activated after this period began; rewards roll into the first fully indexed period.';
@@ -156,7 +166,8 @@ export function createRewardScheduler({ store, indexer, chain }) {
       }
       const prepared = [];
       for (const schedule of Object.values(state.schedules)) {
-        if (!['indexing', 'blocked'].includes(schedule.status) || now < schedule.cutoffAt) continue;
+        if (!['indexing', 'blocked'].includes(schedule.status) || now < schedule.cutoffAt
+          || schedule.manifest || schedule.cycle) continue;
         const config = state.programs[schedule.mint];
         if (!config?.enabled) continue;
         try {

@@ -82,3 +82,22 @@ test('a prepared holder manifest containing the configured reward vault is block
   assert.equal(state.schedules.qa.status, 'blocked');
   assert.match(state.schedules.qa.reason, /protocol-owned vault/);
 });
+
+test('a partly paid holder cycle stays blocked when a QA program moves to a later period', async () => {
+  const now = 1_700_000_600;
+  const row = { id:'old', mint, kind:'holder', asset:'SOL', periodStart:now - 600,
+    cutoffAt:now - 300, payoutAt:now - 300, status:'skipped', cycle:'onchain-cycle',
+    manifest:{ leaves:[{ recipient:'wallet-a' }, { recipient:'wallet-b' }] },
+    payments:{ 'wallet-a':{ status:'paid', signature:'finalized-payment' },
+      'wallet-b':{ status:'verification-pending' } } };
+  const state = { programs:{ [mint]:{ mint, enabled:true, asset:'SOL', kind:'holder',
+    periodSeconds:300, sampleIntervalSeconds:300, payoutDelaySeconds:0,
+    activatedAt:now - 900, firstPeriodStart:now } },
+    schedules:{ old:row }, holderSnapshots:{}, rewardPools:{} };
+  const scheduler = createRewardScheduler({
+    store:{ transaction:async callback => callback(state) }, indexer:{}, chain:{} });
+  await scheduler.prepare(now);
+  assert.equal(row.status, 'blocked');
+  assert.equal(row.payments['wallet-a'].signature, 'finalized-payment');
+  assert.match(row.reason, /immutable manifest/);
+});
