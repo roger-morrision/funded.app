@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import bs58 from 'bs58';
+import { createHash } from 'node:crypto';
+import { PublicKey } from '@solana/web3.js';
+import { rewardAddresses } from '../server/automatic-reward-chain.mjs';
+import { buildRewardManifest } from '../reward-merkle.js';
 import { xWorkerConfig, runXPostCycle } from '../scripts/run-x-post-worker.mjs';
 import { createXPostChainAdapters } from '../server/x-post-events.mjs';
 import { createXPublisher } from '../server/x-post-client.mjs';
@@ -50,14 +54,30 @@ test('a queued wrong-network event fails closed before any publication request',
 function dailyPipelineFixture() {
   const mint=bs58.encode(new Uint8Array(32).fill(1)), recipient=bs58.encode(new Uint8Array(32).fill(2)), router=bs58.encode(new Uint8Array(32).fill(3));
   const signature=bs58.encode(new Uint8Array(64).fill(9)), collectionSignature=bs58.encode(new Uint8Array(64).fill(10));
-  const state={launches:{[mint]:{mint,name:'Fixture'}},payouts:{claim:{id:'referral:claim',claimId:'claim',signature,source:'solana-keeper-referral-claim',status:'paid',cluster:'devnet',from:router,to:recipient,amountLamports:'15'}},
-    collections:{[collectionSignature]:{signature:collectionSignature,mint,router,status:'collected',attribution:'mint-verified',onchainVerified:true,cluster:'devnet',collectedLamports:1000000000}},
-    referralClaims:{claim:{id:'claim',status:'paid',asset:'SOL',recipientWallet:recipient,publicKey:recipient,payoutSignature:signature,amount:1.5e-8,settlementSignature:collectionSignature,level:1}},
-    settlements:{[collectionSignature]:{fundedApp:{referralLevels:[{level:1,recipient,amount:1.5e-8}]}}}};
-  const transaction=(sig,keys,preBalances,postBalances)=>({slot:123,blockTime:Date.parse('2026-10-03T12:00:00Z')/1000,transaction:{signatures:[sig],message:{accountKeys:keys}},meta:{err:null,preBalances,postBalances}});
-  const transactions={[signature]:transaction(signature,[router,recipient],[20000,0],[14985,15]),[collectionSignature]:transaction(collectionSignature,[router],[0],[1000000000])};
+  const programId=bs58.encode(new Uint8Array(32).fill(4));
+  const manifest=buildRewardManifest({cycleId:'01'.repeat(32),asset:'SOL',allocations:[{recipient,amount:'15'}]});
+  const addresses=rewardAddresses({programId,authority:router,mint,cycleId:manifest.cycleId,recipient});
+  const state={launches:{[mint]:{mint,name:'Fixture',cluster:'devnet',onchainVerified:true,pumpFeeRoute:{scope:'per-mint-v3',verified:true}}},
+    collections:{[collectionSignature]:{signature:collectionSignature,mint,scope:'per-mint-v3',status:'collected',onchainVerified:true}},
+    v3Settlements:{[collectionSignature]:{status:'finalized'}},
+    v3CreatorRewardFunding:{[collectionSignature]:{status:'finalized',balanceDeltaVerified:true}}};
+  const cycleData=Buffer.alloc(173),paymentData=Buffer.alloc(92),blockTime=Date.parse('2026-10-03T12:00:00Z')/1000;
+  createHash('sha256').update('account:RewardCycle').digest().copy(cycleData,0,0,8);
+  addresses.vault.toBuffer().copy(cycleData,8);Buffer.from(manifest.cycleId,'hex').copy(cycleData,40);
+  Buffer.from(manifest.root,'hex').copy(cycleData,72);cycleData.writeBigUInt64LE(15n,136);cycleData.writeUInt32LE(1,168);
+  createHash('sha256').update('account:RewardPayment').digest().copy(paymentData,0,0,8);
+  addresses.cycle.toBuffer().copy(paymentData,8);new PublicKey(recipient).toBuffer().copy(paymentData,40);
+  paymentData.writeBigUInt64LE(15n,72);paymentData.writeBigInt64LE(BigInt(blockTime),84);
+  const keys=[router,addresses.vault.toBase58(),addresses.cycle.toBase58(),recipient,addresses.payment.toBase58(),'11111111111111111111111111111111',programId];
+  const ixData=Buffer.alloc(24);createHash('sha256').update('global:payout_reward_sol').digest().copy(ixData,0,0,8);ixData.writeBigUInt64LE(15n,8);
+  const transaction={slot:123,blockTime,transaction:{signatures:[signature],message:{accountKeys:keys,instructions:[{programIdIndex:6,accounts:[0,1,2,3,4,5],data:bs58.encode(ixData)}]}},
+    meta:{err:null,preBalances:[20000,100,1000,0,0,1,1],postBalances:[14985,85,1000,15,1000,1,1]}};
+  const rewardState={schedules:{cycle:{mint,kind:'holder',asset:'SOL',poolIds:[`v3:${collectionSignature}`],manifest,
+    cycle:addresses.cycle.toBase58(),payments:{[recipient]:{status:'paid',amount:'15',signature,payment:addresses.payment.toBase58(),finalized:true,balanceDeltaVerified:true}}}}};
   const rpcCalls=[];
-  const adapters=createXPostChainAdapters({connection:{getGenesisHash:async()=>{rpcCalls.push('genesis');return 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';},getTransaction:async(sig,options)=>{assert.equal(options.commitment,'finalized');rpcCalls.push(sig);return transactions[sig];}}});
+  const adapters=createXPostChainAdapters({programId,rewardAuthority:router,connection:{getGenesisHash:async()=>{rpcCalls.push('genesis');return 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';},
+    getTransaction:async(sig,options)=>{assert.equal(options.commitment,'finalized');rpcCalls.push(sig);return sig===signature?transaction:null;},
+    getAccountInfo:async(key)=>({owner:new PublicKey(programId),data:key.equals(addresses.cycle)?cycleData:paymentData})}});
   // An in-memory outbox isolates this pipeline test; durable concurrency has a
   // separate PostgreSQL integration harness.
   let checkpoint={version:0,cursor:null};const rows=new Map();
@@ -73,7 +93,7 @@ function dailyPipelineFixture() {
     assert.equal(url,'https://api.x.com/2/tweets');assert.equal(options.method,'POST');return new Response(JSON.stringify({data:{id:String(1000+transport.length)}}));
   }});
   const config={...xWorkerConfig(environment),execute:true,maxPosts:2};
-  return {state,adapters,store,rows,rpcCalls,transport,publisher,options:{config,store,mainStore:{read:async()=>state},readRewards:async()=>({schedules:{}}),publish:(event,options)=>publisher.publish(event,options),now:Date.parse('2026-10-04T12:00:00Z')}};
+  return {state,adapters,store,rows,rpcCalls,transport,publisher,options:{config,store,mainStore:{read:async()=>state},readRewards:async()=>rewardState,publish:(event,options)=>publisher.publish(event,options),now:Date.parse('2026-10-04T12:00:00Z')}};
 }
 
 test('malformed daily windows make no RPC or publication calls and retain both cursors for valid retry',async()=>{
@@ -98,7 +118,7 @@ test('malformed daily windows make no RPC or publication calls and retain both c
 
 test('formatter independently rejects malformed daily metadata even on otherwise verified adapter output',async()=>{
   const fixture=dailyPipelineFixture();
-  const input={state:fixture.state,rewardState:{schedules:{}},windowStart:'2026-10-03T00:00:00.000Z',windowEnd:'2026-10-04T00:00:00.000Z'};
+  const input={state:fixture.state,rewardState:await fixture.options.readRewards(),windowStart:'2026-10-03T00:00:00.000Z',windowEnd:'2026-10-04T00:00:00.000Z'};
   for(const [kind,provider] of [['daily_projects',fixture.adapters.verifiedDailyProjects],['daily_rewards',fixture.adapters.verifiedDailyRewards]]){
     const verified=await provider(input);
     const formatted=buildXPost(kind,verified,{cluster:'devnet'}).text;assert.match(formatted,/0\.000000015\b/);assert.match(formatted,/\bSOL\b/);
@@ -113,6 +133,7 @@ test('backdated recovery commits its checkpoint with the outbox and survives los
     const signature = bs58.encode(new Uint8Array(64).fill(20));
     const firstMint = bs58.encode(new Uint8Array(32).fill(20)), lateMint = bs58.encode(new Uint8Array(32).fill(21));
     fixture.state.launches = { first: { mint: firstMint, signature, cluster: 'devnet', onchainVerified: true, onchainVerifiedAt: '2026-10-04T11:00:00.000Z',
+      pumpFeeRoute:{ scope:'per-mint-v3', verified:true },
       creatorLaunchBurn: { tier: 'pro', status: 'verified', amountTokens: 100, receipt: { signature, verified: true, atomicWithPumpLaunch: true } } } };
     const adapters = { verifyLaunch: async row => ({ mint: row.mint, name: 'Fixture', marketingTier: 'pro', occurredAt: row.onchainVerifiedAt,
       proofs: [{ signature: row.signature, slot: 123, cluster: 'devnet', commitment: 'finalized', verified: true }] }) };

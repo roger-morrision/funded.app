@@ -9,6 +9,7 @@ import { runXPostWorker } from '../server/x-post-worker.mjs';
 import { createXPublisher } from '../server/x-post-client.mjs';
 import { buildXPost } from '../server/x-post-content.mjs';
 import { collectXPostEvents, createXPostChainAdapters } from '../server/x-post-events.mjs';
+import { verifyFeeRouterAccount } from '../fee-router.js';
 import { createXProfitVerifier } from '../server/x-profit-proof.mjs';
 
 function numberSetting(value, fallback, min, max, name) {
@@ -121,9 +122,14 @@ async function main(args) {
     const connection = new Connection(env.SOLANA_RPC_URL || 'https://api.devnet.solana.com', { commitment: 'finalized', disableRetryOnRateLimit: true,
       fetch: (url, options) => fetch(url, { ...options, signal: options?.signal
         ? AbortSignal.any([options.signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000) }) });
+    const v3ProgramId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
+    if (!v3ProgramId) throw new Error('The V3 Devnet router program is required for X event verification.');
+    const v3Router = await verifyFeeRouterAccount({ connection, programId:v3ProgramId,
+      commitment:'finalized' });
+    if (!v3Router.verified || !v3Router.authority)
+      throw new Error('The finalized V3 router authority is unavailable for X event verification.');
     const adapters = createXPostChainAdapters({ connection, fundedMint: env.FUNDED_TOKEN_MINT || env.VITE_FUNDED_TOKEN_MINT,
-      programId: env.FUNDED_FEE_ROUTER_PROGRAM_ID || env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID,
-      rewardAuthority: env.FUNDED_REWARD_AUTHORITY });
+      programId: v3ProgramId, rewardAuthority:v3Router.authority.toBase58() });
     adapters.verifyPublicClosedTrade = createXProfitVerifier({ connection, publicOrigin: config.origin, xAccount: config.handle,
       appFeeRecipient: env.FUNDED_TRADE_FEE_OWNER || env.VITE_FUNDED_TRADE_FEE_OWNER || null });
     const ledger = rewardLedgerPath(env);

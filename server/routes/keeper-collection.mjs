@@ -30,12 +30,33 @@ export function createKeeperCollectionRoutes({
       if (!requireAuthorized(req, res)) return true;
       const input = await body(req); const mint = String(input.mint || '').trim();
       if (!mint) return json(res, 400, { error: 'mint is required.' });
+      const launch = await store.readLaunch(mint);
+      if (!launch?.onchainVerified || launch.cluster !== 'devnet'
+        || launch.pumpFeeRoute?.scope !== 'per-mint-v3'
+        || launch.pumpFeeRoute?.verified !== true)
+        return json(res, 410, { error: 'Indexer sync requires a verified V3 launch.' });
       const items = await fetchPump('/coins', { offset: '0', limit: '100', sort: 'created_timestamp', order: 'DESC', includeNsfw: 'false' });
       const token = items.map(normalizePumpToken).find(item => item?.mint === mint);
       if (!token) return json(res, 404, { error: 'Mint was not returned by the Pump indexer provider.' });
-      const record = { ...token, chain: 'solana', source: 'pump.fun', indexedAt: new Date().toISOString() };
-      await store.update(state => { state.launches[mint] = { ...(state.launches[mint] || {}), ...record }; state.lastIndexedAt = record.indexedAt; return record; });
-      return json(res, 200, record);
+      // Provider metadata is untrusted. Keep the signed launch policy and router
+      // identity intact while refreshing only market observations.
+      const record = { mint, marketCapUsd: token.marketCapUsd, complete: token.complete,
+        bondingCurve: token.bondingCurve, raydiumPool: token.raydiumPool,
+        virtualSolReserves: token.virtualSolReserves, virtualTokenReserves: token.virtualTokenReserves,
+        realSolReserves: token.realSolReserves, realTokenReserves: token.realTokenReserves,
+        lastTradeTimestamp: token.lastTradeTimestamp, replyCount: token.replyCount,
+        indexedAt: new Date().toISOString() };
+      const saved = await store.update(state => {
+        const current = state.launches?.[mint];
+        if (!current?.onchainVerified || current.cluster !== 'devnet'
+          || current.pumpFeeRoute?.scope !== 'per-mint-v3'
+          || current.pumpFeeRoute?.verified !== true) return null;
+        state.launches[mint] = { ...current, ...record };
+        state.lastIndexedAt = record.indexedAt;
+        return state.launches[mint];
+      });
+      if (!saved) return json(res, 409, { error: 'The verified V3 launch changed during indexer sync.' });
+      return json(res, 200, saved);
     }
     if (req.method === 'GET' && url.pathname === '/api/keeper/collection-candidates') {
       if (!requireAuthorized(req, res)) return true;

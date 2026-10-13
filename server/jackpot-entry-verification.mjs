@@ -22,7 +22,8 @@ export async function verifyJackpotCreatorEntry({ connection, expectedGenesisHas
   if (!connection || !expectedGenesisHash || await connection.getGenesisHash() !== expectedGenesisHash)
     throw new Error('Trusted Solana RPC is required.');
   if (!appLaunch || appLaunch.cluster !== 'devnet' || appLaunch.onchainVerified !== true
-    || appLaunch.pumpFeeRoute?.scope !== 'per-mint-v2' || !appLaunch.mint
+    || appLaunch.pumpFeeRoute?.scope !== 'per-mint-v3'
+    || appLaunch.pumpFeeRoute?.verified !== true || !appLaunch.mint
     || !appLaunch.creatorWallet || !appLaunch.signature)
     throw new Error('A registered funded.vip launch is required.');
   const proof = await verifyPumpLaunch({ connection, mint:appLaunch.mint,

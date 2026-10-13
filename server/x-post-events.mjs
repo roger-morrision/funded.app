@@ -3,12 +3,9 @@ import bs58 from 'bs58';
 import { PublicKey } from '@solana/web3.js';
 import { rewardAddresses } from './automatic-reward-chain.mjs';
 import { verifyRewardProof } from '../reward-merkle.js';
-import { verifyCollectionReceipt, verifyPayoutReceipt } from './receipt-evidence.mjs';
-import { deriveXFeeObligation } from './x-fee-guard.mjs';
 import { verifyPumpLaunch } from './launch-verification.mjs';
 import { verifyFundedBurn } from './burn-verification.mjs';
 import { listingMemo } from '../listing-policy.js';
-import { exactSolLamports } from './exact-sol-units.mjs';
 
 const DEVNET_GENESIS = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -24,6 +21,23 @@ const marketingTier = row => {
 const launchTime = row => Number.isSafeInteger(row?.blockTime) && row.blockTime > 0 ? row.blockTime * 1000
   : Number.isSafeInteger(row?.createdTimestamp) ? row.createdTimestamp * 1000 : time(row?.onchainVerifiedAt);
 const positiveUnits = value => typeof value === 'string' && /^[1-9]\d*$/.test(value);
+const v3Launch = row => row?.cluster === 'devnet' && row.onchainVerified === true
+  && row.pumpFeeRoute?.scope === 'per-mint-v3' && row.pumpFeeRoute?.verified === true;
+const v3Schedule = (state, schedule) => {
+  const launch = state.launches?.[schedule?.mint]
+    || Object.values(state.launches || {}).find(row => row?.mint === schedule?.mint);
+  return v3Launch(launch) && schedule.kind === 'holder' && schedule.asset === 'SOL'
+    && Array.isArray(schedule.poolIds) && schedule.poolIds.length > 0
+    && schedule.poolIds.every(id => {
+      if (typeof id !== 'string' || !id.startsWith('v3:')) return false;
+      const source = id.slice(3), collection = state.collections?.[source];
+      const funding = state.v3CreatorRewardFunding?.[source];
+      return collection?.mint === schedule.mint && collection.scope === 'per-mint-v3'
+        && collection.status === 'collected' && collection.onchainVerified === true
+        && state.v3Settlements?.[source]?.status === 'finalized'
+        && funding?.status === 'finalized' && funding.balanceDeltaVerified === true;
+    });
+};
 const time = value => typeof value === 'number' ? value : Date.parse(value);
 const iso = value => new Date(value).toISOString();
 const identity = (kind, source) => `devnet:${kind}:${createHash('sha256').update(source).digest('hex')}`;
@@ -65,8 +79,9 @@ export function createXPostChainAdapters({ connection, fundedMint, programId, re
   const dailyRewards = async ({ state, rewardState, windowStart, windowEnd }, { start, end }) => {
     await network();
     if (!rewardState || !rewardState.schedules || Array.isArray(rewardState.schedules) || typeof rewardState.schedules !== 'object') throw Object.assign(new Error('A complete automatic reward ledger is required.'), { code: 'DAILY_LEDGER_MISSING' });
-    const candidates = Object.values(state.payouts || {}).filter(row => row?.cluster === 'devnet' && row.status === 'paid').map(row => ({ record: row }));
+    const candidates = [];
     for (const [scheduleId, schedule] of Object.entries(rewardState.schedules || {})) {
+      if (!v3Schedule(state, schedule)) continue;
       for (const [recipient, payment] of Object.entries(schedule.payments || {})) {
         if (payment.status === 'paid') candidates.push({ scheduleId, schedule, recipient, payment });
       }
@@ -76,42 +91,13 @@ export function createXPostChainAdapters({ connection, fundedMint, programId, re
     if (!Number.isSafeInteger(maxDailyRecords) || maxDailyRecords < 1 || maxDailyRecords > 500 || candidates.length > maxDailyRecords) throw Object.assign(new Error('Full daily payout verification exceeds its bounded record budget.'), { code: 'DAILY_HISTORY_BUDGET' });
     const payments = [], proofs = [], seen = new Set();
     for (const candidate of candidates) {
-      const signature = candidate.record?.signature || candidate.payment?.signature;
+      const signature = candidate.payment?.signature;
       if (!signatureValid(signature)) throw new Error('A recorded paid event lacks its receipt.');
       const proof = await finalized(signature);
       if (proof.blockTime * 1000 < start || proof.blockTime * 1000 >= end) continue;
-      let amountLamports, recipient, mint, id;
-      if (candidate.record) {
-        const record = candidate.record;
-        const payoutRecord = record.amountLamports == null ? { ...record, amountLamports: exactSolLamports(record.amountSol) } : record;
-        const payoutProof = verifyPayoutReceipt(payoutRecord, proof.transaction);
-        if (!payoutProof) throw new Error('Recorded payout does not match finalized balance deltas.');
-        amountLamports = String(payoutProof.amountLamports); recipient = payoutProof.to; id = record.id || `${record.source}:${record.claimId}`;
-        if (record.source === 'mint-router-settle-mint') {
-          const obligation = state.obligations?.[record.obligationId], claim = state.claims?.[record.claimId];
-          const derived = deriveXFeeObligation(state, { mint: obligation?.mint, claimSignature: obligation?.claimSignature });
-          if (!claim || claim.status !== 'paid' || claim.publicKey !== recipient || claim.obligationId !== obligation.id || claim.xUserId !== obligation.xUserId
-            || claim.payoutSignature !== signature || derived.amountLamports !== amountLamports || record.from !== derived.router || record.mint !== derived.mint) throw new Error('Payout does not match its original X entitlement.');
-          mint = derived.mint;
-          const collection = state.collections?.[derived.claimSignature];
-          const source = await finalized(derived.claimSignature);
-          if (!verifyCollectionReceipt(collection, source.transaction)) throw new Error('Payout collection provenance is unavailable.');
-          proofs.push(source);
-        } else if (record.source === 'solana-keeper-referral-claim') {
-          const claim = state.referralClaims?.[record.claimId], settlement = state.settlements?.[claim?.settlementSignature];
-          const level = settlement?.fundedApp?.referralLevels?.find(row => Number(row.level) === Number(claim?.level));
-          const collection = state.collections?.[claim?.settlementSignature];
-          const amount = exactSolLamports(claim?.amount);
-          if (!claim || claim.status !== 'paid' || claim.asset !== 'SOL' || claim.recipientWallet !== recipient || claim.publicKey !== recipient
-            || claim.payoutSignature !== signature || amount !== amountLamports || !level || level.recipient !== recipient || exactSolLamports(level.amount) !== amountLamports || !collection?.mint) throw new Error('Payout does not match its original referral entitlement.');
-          const source = await finalized(collection.signature);
-          if (!verifyCollectionReceipt(collection, source.transaction)) throw new Error('Referral collection provenance is unavailable.');
-          mint = collection.mint; proofs.push(source);
-        } else throw new Error('Unsupported paid claim source.');
-      } else {
         const { schedule, payment } = candidate;
         if (schedule.asset !== 'SOL' || schedule.manifest?.asset !== 'SOL' || payment.finalized !== true || payment.balanceDeltaVerified !== true || !programId || !rewardAuthority) throw new Error('A supported SOL reward configuration is required.');
-        recipient = candidate.recipient; amountLamports = String(payment.amount); mint = schedule.mint; id = `${candidate.scheduleId}:${recipient}`;
+        const recipient = candidate.recipient, amountLamports = String(payment.amount), mint = schedule.mint, id = `${candidate.scheduleId}:${recipient}`;
         const leaf = schedule.manifest.leaves?.find(row => row.recipient === recipient);
         if (!leaf || leaf.amount !== amountLamports || !verifyRewardProof({ cycleId: schedule.manifest.cycleId, asset: 'SOL', recipient, amount: amountLamports, index: leaf.index, proof: leaf.proof, root: schedule.manifest.root })) throw new Error('Scheduled payout entitlement does not match its Merkle manifest.');
         const addresses = rewardAddresses({ programId, authority: rewardAuthority, mint, cycleId: schedule.manifest.cycleId, recipient });
@@ -149,7 +135,6 @@ export function createXPostChainAdapters({ connection, fundedMint, programId, re
         if (recipient === keys[0]) throw new Error('Self-funded reward recipient balance reconciliation is unsupported.');
         if (!keys.includes(addresses.payment.toBase58()) || delta(addresses.vault.toBase58()) !== -BigInt(amountLamports)
           || delta(recipient) !== BigInt(amountLamports)) throw new Error('Finalized reward source or recipient delta does not match.');
-      }
       if (!ADDRESS.test(mint || '') || !ADDRESS.test(recipient || '') || !positiveUnits(amountLamports)) throw new Error('Payment identity or amount is unavailable.');
       const unique = `${signature}:${recipient}`;
       if (seen.has(unique)) throw new Error('Duplicate payment receipt in the complete reward ledger.');
@@ -179,6 +164,7 @@ export function createXPostChainAdapters({ connection, fundedMint, programId, re
     },
     async verifyLaunch(record) {
       await network();
+      if (!v3Launch(record)) throw new Error('A verified V3 launch is required.');
       const tier = marketingTier(record);
       if (!tier) throw new Error('The registered launch tier is invalid.');
       if (tier !== 'standard' && (!fundedMint || record.creatorLaunchBurn.fundedMint !== fundedMint
@@ -233,7 +219,7 @@ export async function collectXPostEvents({ state = {}, rewardState = null, enabl
   const known = async id => typeof adapters.isKnownEvent === 'function' && await adapters.isKnownEvent(id);
   const end = Math.floor(nowMs / DAY) * DAY, start = end - DAY;
   const streams = [
-    { kind: 'launch', rows: Object.values(state.launches || {}).filter(row => row?.onchainVerified === true && row.cluster === 'devnet' && marketingTier(row)), verifier: adapters.verifyLaunch,
+    { kind: 'launch', rows: Object.values(state.launches || {}).filter(row => v3Launch(row) && marketingTier(row)), verifier: adapters.verifyLaunch,
       at: row => Number.isFinite(time(row.onchainVerifiedAt)) ? time(row.onchainVerifiedAt) : Number.isSafeInteger(row.createdTimestamp) ? row.createdTimestamp * 1000 : NaN, identity: row => `${row.mint}:${row.signature}` },
     { kind: 'listing', rows: Object.values(state.listings || {}).filter(row => row?.onchainVerified === true && row.cluster === 'devnet' && row.status === 'listed'), verifier: adapters.verifyListing,
       at: row => time(row.listedAt), identity: row => `${row.mint}:${row.signature}` },
@@ -243,7 +229,7 @@ export async function collectXPostEvents({ state = {}, rewardState = null, enabl
       at: row => time(row.consentedAt), identity: row => `${row.wallet}:${row.mint}:${row.buySignature}:${row.sellSignature}` },
     { kind: 'daily_projects', daily: true, provider: adapters.verifiedDailyProjects },
     { kind: 'daily_rewards', daily: true, provider: adapters.verifiedDailyRewards },
-    { kind: 'launch_followup', rows: Object.values(state.launches || {}).filter(row => row?.onchainVerified === true && row.cluster === 'devnet' && marketingTier(row) === 'premier' && launchTime(row) >= baseline), verifier: adapters.verifyLaunch,
+    { kind: 'launch_followup', rows: Object.values(state.launches || {}).filter(row => v3Launch(row) && marketingTier(row) === 'premier' && launchTime(row) >= baseline), verifier: adapters.verifyLaunch,
       at: row => launchTime(row) + DAY, identity: row => `${row.mint}:${row.signature}` },
   ];
   // Each kind gets first priority within six polls, even with a one-item budget.

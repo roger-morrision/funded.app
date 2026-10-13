@@ -89,6 +89,34 @@ test('keeper authorization denials terminate dispatch before reading or collecti
   assert.deepEqual(f.responses, [], 'The authorization helper already sent the response');
 });
 
+test('indexer sync rejects old launches and cannot overwrite a signed V3 launch', async () => {
+  const original = { mint, name:'Signed launch', creator:'signed-router', signature:'signed-launch',
+    cluster:'devnet', onchainVerified:true,
+    pumpFeeRoute:{ scope:'per-mint-v3', verified:true, programId:'signed-program' } };
+  const state = { launches:{ [mint]:{ ...original } }, lastIndexedAt:null };
+  let providerCalls = 0;
+  const f = fixture(createKeeperCollectionRoutes, {
+    requireAuthorized:() => true,
+    store:{ readLaunch:async key => state.launches[key], update:async fn => fn(state) },
+    fetchPump:async () => { providerCalls++; return [{ mint, name:'Untrusted name',
+      creator:'untrusted-router', market_cap_usd:42, complete:true }]; },
+    normalizePumpToken:item => ({ ...item, marketCapUsd:item.market_cap_usd }),
+  });
+  state.launches[mint].pumpFeeRoute.scope = 'per-mint-v2';
+  await f.request('/api/indexer/sync', { mint });
+  assert.equal(f.responses.at(-1).status, 410);
+  assert.equal(providerCalls, 0);
+  state.launches[mint] = { ...original, pumpFeeRoute:{ ...original.pumpFeeRoute, scope:'per-mint-v3' } };
+  await f.request('/api/indexer/sync', { mint });
+  assert.equal(f.responses.at(-1).status, 200);
+  assert.equal(state.launches[mint].name, original.name);
+  assert.equal(state.launches[mint].creator, original.creator);
+  assert.equal(state.launches[mint].pumpFeeRoute.scope, 'per-mint-v3');
+  assert.equal(state.launches[mint].pumpFeeRoute.programId, 'signed-program');
+  assert.equal(state.launches[mint].marketCapUsd, 42);
+  assert.equal(providerCalls, 1);
+});
+
 test('failed collection keeps its reconciliation lock and blocks replay', async () => {
   const state = { alerts: {}, collections: {} };
   let collections = 0;

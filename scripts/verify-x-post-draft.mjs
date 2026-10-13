@@ -20,6 +20,7 @@ try {
   const mint = bs58.encode(Uint8Array.from({ length: 32 }, (_, i) => i + 1));
   const signature = bs58.encode(Uint8Array.from({ length: 64 }, (_, i) => i + 1));
   await store.update(state => { state.launches[mint] = { mint, signature, name: 'Offline draft fixture', cluster: 'devnet', onchainVerified: true, createdTimestamp: Math.floor(Date.now() / 1000) - 10,
+    pumpFeeRoute:{ scope:'per-mint-v3', verified:true },
     creatorLaunchBurn: { tier: 'pro', status: 'verified', amountTokens: 100, fundedMint: mint,
       receipt: { signature, verified: true, atomicWithPumpLaunch: true } } }; });
   await writeFile(trap, `
@@ -34,7 +35,7 @@ try {
   for (const args of [[], ['--status']]) {
     const result = spawnSync(process.execPath, ['--import', pathToFileURL(trap).href, 'scripts/run-x-post-worker.mjs', ...args], {
       cwd: new URL('..', import.meta.url), timeout: 15_000, encoding: 'utf8',
-      env: { PATH: process.env.PATH, DATABASE_URL: databaseUrl, SOLANA_CLUSTER: 'devnet', X_POST_EXPECTED_HANDLE: 'draftfixture', X_POST_PUBLIC_ORIGIN: 'https://funded.vip', X_POST_START_AT: '2026-10-01T00:00:00.000Z', AUTOMATIC_REWARD_STORE_PATH: join(directory, 'missing-ledger.json') },
+      env: { PATH: process.env.PATH, DATABASE_URL: databaseUrl, SOLANA_CLUSTER: 'devnet', FUNDED_V3_FEE_ROUTER_PROGRAM_ID:mint, X_POST_EXPECTED_HANDLE: 'draftfixture', X_POST_PUBLIC_ORIGIN: 'https://funded.vip', X_POST_START_AT: '2026-10-01T00:00:00.000Z', AUTOMATIC_REWARD_STORE_PATH: join(directory, 'missing-ledger.json') },
     });
     assert.equal(result.status, 0, result.stderr);
     const requests = JSON.parse(await readFile(evidence, 'utf8'));

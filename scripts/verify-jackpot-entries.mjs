@@ -46,6 +46,10 @@ await assert.rejects(verifyJackpotTraderEntry({ ...input,
       accountKeys:[{ pubkey:trader, signer:false }] } } }) } }), /did not sign/);
 await assert.rejects(verifyJackpotCreatorEntry({ connection:rpc,
   expectedGenesisHash:'mock-devnet-genesis', appLaunch:null, window }), /registered/);
+await assert.rejects(verifyJackpotCreatorEntry({ connection:rpc,
+  expectedGenesisHash:'mock-devnet-genesis', appLaunch:{ cluster:'devnet',
+    onchainVerified:true, mint, creatorWallet:trader, signature,
+    pumpFeeRoute:{ scope:'per-mint-v2', verified:true } }, window }), /registered/);
 const vault = Keypair.generate().publicKey.toBase58();
 const fundingSignature = bs58.encode(randomBytes(64));
 const fundingTx = { blockTime:window.start + 11, meta:{ err:null, fee:5_000,

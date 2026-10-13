@@ -18,6 +18,7 @@ const proof = n => ({ signature: bs58.encode(Uint8Array.from({ length: 64 }, (_,
 const now = Date.parse('2026-10-04T12:00:00Z');
 const occurredAt = '2026-10-03T12:00:00.000Z';
 const launch = { mint, signature: proof(1).signature, cluster: 'devnet', onchainVerified: true, createdTimestamp: Date.parse(occurredAt) / 1000,
+  pumpFeeRoute:{ scope:'per-mint-v3', verified:true },
   creatorLaunchBurn: { tier: 'pro', status: 'verified', amountTokens: 100, receipt: { signature: proof(1).signature, verified: true, atomicWithPumpLaunch: true } } };
 const listing = { ...launch, signature: proof(2).signature, status: 'listed', listedAt: occurredAt };
 const share = { mint, wallet: recipient, cluster: 'devnet', publicConsent: true, consentVerified: true, consentedAt: occurredAt, buySignature: proof(3).signature, sellSignature: proof(4).signature };

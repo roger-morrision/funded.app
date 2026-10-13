@@ -16,6 +16,7 @@ const signature = bs58.encode(new Uint8Array(64).fill(1)), otherSignature = bs58
 const enabledAt = '2026-10-04T00:00:00Z', occurredAt = '2026-10-04T01:00:00Z', now = '2026-10-04T02:00:00Z';
 const proof = (sig = signature) => ({ signature: sig, slot: 123, cluster: 'devnet', commitment: 'finalized', verified: true });
 const launch = { mint, signature, cluster: 'devnet', onchainVerified: true, createdTimestamp: Date.parse(occurredAt) / 1000,
+  pumpFeeRoute:{ scope:'per-mint-v3', verified:true },
   creatorLaunchBurn: { tier: 'pro', status: 'verified', amountTokens: 100, receipt: { signature, verified: true, atomicWithPumpLaunch: true } } };
 const verifiedLaunch = async row => ({ mint: row.mint, name: 'Example', symbol: 'EX', marketingTier: row.creatorLaunchBurn?.tier || 'standard', occurredAt, proofs: [proof(row.signature)] });
 
@@ -134,7 +135,7 @@ test('daily summaries require one complete exact interval, recipient-bound SOL r
 test('trade outcomes cannot become profit posts without opt-in and complete attributable cost basis', async () => {
   const row = { wallet, mint, buySignature: signature, sellSignature: otherSignature, cluster: 'devnet', publicConsent: true, consentVerified: true, consentedAt: occurredAt };
   const verification = { wallet, mint, name: 'Example', occurredAt, publicConsent: true, completeCostBasis: true, positionClosed: true, buyCostLamports: '1000000000', sellProceedsLamports: '2200000000', feesLamports: '10000', proofs: [proof(), proof(otherSignature)] };
-  const input = { state: { xPublicTradeShares: { test: row } }, enabledAt, now, adapters: { verifyPublicClosedTrade: async () => verification } };
+  const input = { state: { launches:{ [mint]:launch }, xPublicTradeShares: { test: row } }, enabledAt, now, adapters: { verifyPublicClosedTrade: async () => verification } };
   assert.equal((await collectXPostEvents(input)).events[0].kind, 'trade_profit');
   assert.equal((await collectXPostEvents({ ...input, state: { xPublicTradeShares: { test: { ...row, consentVerified: false } } } })).events.length, 0);
   assert.equal((await collectXPostEvents({ ...input, adapters: { verifyPublicClosedTrade: async () => ({ ...verification, completeCostBasis: false }) } })).events.length, 0);
@@ -154,10 +155,10 @@ function referralFixture() {
   return { state, connection, reads, amountLamports, txs };
 }
 
-test('default daily adapters reverify full recorded payout and collection entitlement, and rank exact paid SOL', async () => {
-  const { state, connection } = referralFixture();
-  const adapters = createXPostChainAdapters({ connection });
-  const result = await collectXPostEvents({ state, rewardState: { schedules: {} }, enabledAt: '2026-10-01', now, adapters });
+test('default daily adapters rank only funded V3 holder rewards with finalized receipts', async () => {
+  const fixture = scheduledFixture();
+  const result = await collectXPostEvents({ ...fixture.input, enabledAt: '2026-10-01', now,
+    adapters:fixture.adapter });
   const rewards = result.events.find(row => row.kind === 'daily_rewards');
   const projects = result.events.find(row => row.kind === 'daily_projects');
   assert.equal(rewards.payload.payments[0].amountLamports, '10000000');
@@ -167,16 +168,15 @@ test('default daily adapters reverify full recorded payout and collection entitl
   assert.match(buildXPost('daily_projects', projects.payload, { cluster: 'devnet' }).text, /verified rewards paid/);
 });
 
-test('default daily adapters fail closed on missing ledgers, changed entitlements, wrong network and bounded overflow', async () => {
-  const fixture = referralFixture(), input = { state: fixture.state, rewardState: { schedules: {} }, cluster: 'devnet', windowStart: '2026-10-03T00:00:00Z', windowEnd: '2026-10-04T00:00:00Z' };
-  const adapters = createXPostChainAdapters({ connection: fixture.connection });
+test('default daily adapters fail closed on missing ledgers, changed V3 entitlements and wrong network', async () => {
+  const fixture = scheduledFixture(), { input } = fixture, adapters = fixture.adapter;
   await assert.rejects(adapters.verifiedDailyRewards({ ...input, rewardState: null }), /complete automatic reward ledger/);
-  fixture.state.referralClaims.claim.amount = 0.02;
-  await assert.rejects(adapters.verifiedDailyRewards(input), /original referral entitlement/);
+  input.rewardState.schedules.cycle.payments[wallet].amount = '20000000';
+  await assert.rejects(adapters.verifiedDailyRewards(input), /Merkle manifest/);
+  input.rewardState.schedules.cycle.payments[wallet].amount = '10000000';
   const wrong = createXPostChainAdapters({ connection: { getGenesisHash: async () => 'mainnet', getTransaction: async () => assert.fail('Wrong-network read') } });
   await assert.rejects(wrong.verifiedDailyRewards(input), /requires Devnet/);
-  const bounded = createXPostChainAdapters({ connection: fixture.connection, maxDailyRecords: 1 });
-  fixture.state.payouts.duplicate = { ...fixture.state.payouts['referral:claim'], id: 'other' };
+  const bounded = createXPostChainAdapters({ connection: fixture.connection, maxDailyRecords: 0 });
   await assert.rejects(bounded.verifiedDailyRewards(input), /record budget/);
 });
 
@@ -195,10 +195,15 @@ function scheduledFixture(recipient = wallet) {
   const keys = [router, addresses.vault.toBase58(), addresses.cycle.toBase58(), recipient, addresses.payment.toBase58(), '11111111111111111111111111111111', programId];
   const instructionData = Buffer.alloc(24); createHash('sha256').update('global:payout_reward_sol').digest().copy(instructionData, 0, 0, 8); instructionData.writeBigUInt64LE(10000000n, 8);
   const tx = { slot: 123, blockTime, transaction: { signatures: [signature], message: { accountKeys: keys, instructions: [{ programIdIndex: 6, accounts: [0, 1, 2, 3, 4, 5], data: bs58.encode(instructionData) }] } }, meta: { err: null, preBalances: [20000000, 20000000, 1000, 0, 0, 1, 1], postBalances: [18995000, 10000000, 1000, 10000000, 1000000, 1, 1] } };
-  const connection = { getGenesisHash: async () => 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG', getTransaction: async () => tx,
+  const reads = [];
+  const connection = { getGenesisHash: async () => 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG', getTransaction: async () => { reads.push(signature); return tx; },
     getAccountInfo: async (key, commitment) => { assert.equal(commitment, 'finalized'); return { owner: new PublicKey(programId), data: key.equals(addresses.cycle) ? cycleData : paymentData }; } };
-  const input = { state: {}, rewardState: { schedules: { cycle: { mint, asset: 'SOL', manifest, cycle: addresses.cycle.toBase58(), payments: { [recipient]: { status: 'paid', amount: '10000000', signature, payment: addresses.payment.toBase58(), finalized: true, balanceDeltaVerified: true } } } } }, windowStart: '2026-10-03T00:00:00Z', windowEnd: '2026-10-04T00:00:00Z' };
-  return { adapter: createXPostChainAdapters({ connection, programId, rewardAuthority: router }), input, cycleData, paymentData, tx };
+  const input = { state:{ launches:{ [mint]:{ ...launch, mint } },
+    collections:{ [otherSignature]:{ mint, scope:'per-mint-v3', status:'collected', onchainVerified:true } },
+    v3Settlements:{ [otherSignature]:{ status:'finalized' } },
+    v3CreatorRewardFunding:{ [otherSignature]:{ status:'finalized', balanceDeltaVerified:true } } },
+    rewardState: { schedules: { cycle: { mint, kind:'holder', asset: 'SOL', poolIds:[`v3:${otherSignature}`], manifest, cycle: addresses.cycle.toBase58(), payments: { [recipient]: { status: 'paid', amount: '10000000', signature, payment: addresses.payment.toBase58(), finalized: true, balanceDeltaVerified: true } } } } }, windowStart: '2026-10-03T00:00:00Z', windowEnd: '2026-10-04T00:00:00Z' };
+  return { adapter: createXPostChainAdapters({ connection, programId, rewardAuthority: router }), input, cycleData, paymentData, tx, reads, connection };
 }
 
 test('scheduled SOL rewards bind finalized manifest, payment account, creation instruction and exact deltas', async () => {
@@ -225,13 +230,12 @@ test('collector rejects malformed signatures, conflicting proof slots and duplic
 
 
 test('one poll shares daily receipt verification but separate polls reverify finalized evidence', async () => {
-  const { state, connection, reads } = referralFixture();
-  const adapters = createXPostChainAdapters({ connection });
-  const input = { state, rewardState: { schedules: {} }, enabledAt: '2026-10-01', now, adapters };
+  const fixture = scheduledFixture(), { reads } = fixture;
+  const input = { ...fixture.input, enabledAt: '2026-10-01', now, adapters:fixture.adapter };
   assert.equal((await collectXPostEvents(input)).events.length, 2);
-  assert.equal(reads.length, 2);
+  assert.equal(reads.length, 1);
   await collectXPostEvents(input);
-  assert.equal(reads.length, 4);
+  assert.equal(reads.length, 2);
 });
 
 test('verification retries rotate and pending capacity never loses fresh highwater', async () => {
@@ -334,16 +338,12 @@ test('full timestamp boundary stops before unseen records and reports its bounde
   assert.equal(result.cursor.streams.launch.boundaryIds.length, 500);
 });
 
-test('daily rewards verify a 15-lamport receipt fixture without mutating its ledger record', async () => {
+test('daily rewards ignore retired V2 paid claims without mutating their ledger', async () => {
   const fixture = referralFixture();
-  const payout = fixture.state.payouts['referral:claim'];
-  payout.amountSol = 1.5e-8;
-  fixture.state.referralClaims.claim.amount = 1.5e-8;
-  fixture.state.settlements[otherSignature].fundedApp.referralLevels[0].amount = 1.5e-8;
-  fixture.txs[signature].meta.postBalances = [19994985, 15];
   const before = structuredClone(fixture.state);
   const result = await createXPostChainAdapters({ connection: fixture.connection }).verifiedDailyRewards({ state: fixture.state, rewardState: { schedules: {} }, windowStart: '2026-10-03T00:00:00Z', windowEnd: '2026-10-04T00:00:00Z' });
-  assert.equal(result.payments[0].amountLamports, '15');
+  assert.deepEqual(result.payments, []);
+  assert.deepEqual(fixture.reads, []);
   assert.deepEqual(fixture.state, before);
 });
 
@@ -372,12 +372,12 @@ test('daily project and reward adapters reject invalid UTC windows before any pr
 
 test('valid UTC daily adapters keep exact lower-inclusive and upper-exclusive receipt boundaries', async () => {
   for (const suffix of ['Z', '.000Z']) {
-    const fixture = referralFixture(), adapters = createXPostChainAdapters({ connection: fixture.connection });
-    const input = { state: fixture.state, rewardState: { schedules: {} }, windowStart: `2026-10-03T00:00:00${suffix}`, windowEnd: `2026-10-04T00:00:00${suffix}` };
+    const fixture = scheduledFixture(), adapters = fixture.adapter;
+    const input = { ...fixture.input, windowStart: `2026-10-03T00:00:00${suffix}`, windowEnd: `2026-10-04T00:00:00${suffix}` };
     const start = Date.parse(input.windowStart) / 1000, end = Date.parse(input.windowEnd) / 1000;
-    fixture.txs[otherSignature].blockTime = start - 2;
     for (const [blockTime, count] of [[start - 1, 0], [start, 1], [end - 1, 1], [end, 0]]) {
-      fixture.txs[signature].blockTime = blockTime;
+      fixture.tx.blockTime = blockTime;
+      fixture.paymentData.writeBigInt64LE(BigInt(blockTime), 84);
       const rewards = await adapters.verifiedDailyRewards(input);
       const projects = await adapters.verifiedDailyProjects(input);
       assert.equal(rewards.payments.length, count);
@@ -390,27 +390,27 @@ test('valid UTC daily adapters keep exact lower-inclusive and upper-exclusive re
       if (count) { assert.equal(rewards.payments[0].amountLamports, '10000000'); assert.equal(projects.projects[0].amountLamports, '10000000'); }
     }
   }
-  const fixture = referralFixture();
-  const result = await createXPostChainAdapters({ connection: fixture.connection }).verifiedDailyRewards({ state: fixture.state, rewardState: { schedules: {} }, windowStart: '2026-10-03T12:00:00Z', windowEnd: '2026-10-04T12:00:00Z' });
+  const fixture = scheduledFixture();
+  const result = await fixture.adapter.verifiedDailyRewards({ ...fixture.input, windowStart: '2026-10-03T12:00:00Z', windowEnd: '2026-10-04T12:00:00Z' });
   assert.equal(result.payments.length, 1, 'Explicit minute-aligned 24-hour windows remain valid like the formatter');
 });
 
 test('daily cache cannot bypass validation or reuse evidence for another requested interval', async () => {
-  const fixture = referralFixture(), adapters = createXPostChainAdapters({ connection: fixture.connection });
-  const input = { state: fixture.state, rewardState: { schedules: {} }, windowStart: '2026-10-03T00:00:00Z', windowEnd: '2026-10-04T00:00:00Z', batchToken: Symbol('same-poll') };
+  const fixture = scheduledFixture(), adapters = fixture.adapter;
+  const input = { ...fixture.input, batchToken: Symbol('same-poll') };
   assert.equal((await adapters.verifiedDailyRewards(input)).payments.length, 1);
   assert.equal((await adapters.verifiedDailyProjects(input)).projects.length, 1);
-  assert.equal(fixture.reads.length, 2);
+  assert.equal(fixture.reads.length, 1);
   for (const method of ['verifiedDailyProjects', 'verifiedDailyRewards']) {
     await assert.rejects(adapters[method]({ ...input, windowStart: 'not-a-date', windowEnd: 'not-a-date' }), /Daily window/);
   }
-  assert.equal(fixture.reads.length, 2, 'Malformed cached requests never reach RPC');
+  assert.equal(fixture.reads.length, 1, 'Malformed cached requests never reach RPC');
   const previous = { ...input, windowStart: '2026-10-02T00:00:00Z', windowEnd: '2026-10-03T00:00:00Z' };
   const result = await adapters.verifiedDailyProjects(previous);
   assert.equal(result.projects.length, 0);
   assert.equal(result.windowStart, previous.windowStart);
   assert.equal(result.windowEnd, previous.windowEnd);
-  assert.equal(fixture.reads.length, 3, 'A different valid interval rechecks receipt times');
+  assert.equal(fixture.reads.length, 2, 'A different valid interval rechecks receipt times');
   const millisecond = { ...input, windowStart: '2026-10-03T00:00:00.000Z', windowEnd: '2026-10-04T00:00:00.000Z' };
   const restored = await adapters.verifiedDailyRewards(millisecond);
   assert.equal(restored.payments.length, 1);
@@ -437,7 +437,8 @@ function backdatedFixture(kind = 'launch') {
       buyCostLamports: '1000000000', sellProceedsLamports: '3000000000', feesLamports: '5000',
       proofs: (kind === 'trade_profit' ? [proof(), proof(otherSignature)] : [proof()]).map(item => row.confirmed ? { ...item, commitment: 'confirmed' } : item) };
   };
-  const input = { enabledAt, now, state: { [bucket]: rows }, adapters: { [verifierName]: verified, isKnownEvent: async id => known.has(id) } };
+  const input = { enabledAt, now, state: { [bucket]: rows,
+    ...(kind === 'launch' ? {} : { launches:rows }) }, adapters: { [verifierName]: verified, isKnownEvent: async id => known.has(id) } };
   let cursor;
   const poll = async (options = {}) => {
     const result = await collectXPostEvents({ ...input, cursor, ...options });
@@ -574,6 +575,8 @@ test('known launch reconciliation cannot starve listings, profits or completed d
     fixture.input.enabledAt = '2026-10-01T00:00:00Z';
     fixture.rows.push(fixture.make(20), fixture.make(21, '2026-10-04T01:30:00Z'));
     await fixture.poll();
+    fixture.rows.push({ ...launch, createdTimestamp:Date.parse('2026-09-30T00:00:00Z') / 1000,
+      onchainVerifiedAt:'2026-09-30T00:00:00Z' });
     fixture.input.state.listings = [{ mint, signature, cluster: 'devnet', onchainVerified: true, status: 'listed', listedAt: occurredAt }];
     fixture.input.adapters.verifyListing = async () => ({ mint, name: 'Fixture', occurredAt, proofs: [proof()] });
     fixture.input.adapters.verifiedDailyProjects = async ({ windowStart, windowEnd }) => ({ cluster: 'devnet', windowStart, windowEnd, coverage: 'complete', scope: 'recorded-verified-payouts', metric: 'paid_rewards_lamports', projects: [{ mint, name: 'Fixture', amountLamports: '15' }], proofs: [proof()] });
