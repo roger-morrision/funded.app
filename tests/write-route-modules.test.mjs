@@ -39,8 +39,8 @@ test('V3-only launch configuration cannot be enabled by flags before finalized p
   assert.equal(await f.request('/api/v3-launch-config', {}, 'GET'), true);
   assert.equal(f.responses[0].status, 200);
   assert.equal(f.responses[0].data.ready, false);
-  assert.match(f.responses[0].data.reasons.join('; '), /V3 holder and X payouts require finalized Devnet verification/);
-  assert.match(f.responses[0].data.reasons.join('; '), /V3 buyback purchase and burn require finalized Devnet verification/);
+  assert.match(f.responses[0].data.reasons.join('; '), /V3 holder indexing and OAuth-bound X claim require end-to-end verification/);
+  assert.match(f.responses[0].data.reasons.join('; '), /V3 Pump-funded buyback and public route require end-to-end verification/);
   assert.equal(await f.request('/api/launch-reserve-config', {}, 'GET'), true);
   assert.equal(f.responses[1].status, 503);
   assert.match(f.responses[1].data.error, /V3 atomic community reserve is not ready/);

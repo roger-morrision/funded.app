@@ -1,11 +1,14 @@
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { PublicKey, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
+import { ComputeBudgetProgram, PublicKey, TransactionMessage,
+  VersionedTransaction } from '@solana/web3.js';
 
 export function prepareV3BuybackTransaction({ instruction, authority,
   blockhash, lookupTable }) {
   const message=new TransactionMessage({ payerKey:new PublicKey(authority),
-    recentBlockhash:blockhash, instructions:[instruction] })
+    recentBlockhash:blockhash, instructions:[
+      ComputeBudgetProgram.setComputeUnitLimit({ units:350_000 }), instruction,
+    ] })
     .compileToV0Message([lookupTable]);
   const transaction=new VersionedTransaction(message);
   if (transaction.serialize().length > 1232)

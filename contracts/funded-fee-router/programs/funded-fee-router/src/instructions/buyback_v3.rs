@@ -16,6 +16,7 @@ const FUNDED_MINT: &str = "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64";
 const FUNDED_POOL: &str = "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32";
 const PUMP_SWAP: &str = "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA";
 const BUY_EXACT_QUOTE_IN: [u8; 8] = [198, 46, 21, 82, 180, 217, 232, 112];
+const INIT_USER_VOLUME: [u8; 8] = [94, 6, 202, 115, 255, 96, 232, 183];
 const BUY_ACCOUNTS: usize = 23;
 const BUYBACK_CATEGORY: u8 = 6;
 
@@ -88,7 +89,8 @@ fn require_pump_accounts(accounts: &[AccountInfo], ctx: &BuybackMintV3) -> Resul
         require!(accounts[index].key() == key, ErrorCode::InvalidMintBuybackV3);
     }
     require!(accounts[1].is_writable && accounts[5].is_writable
-        && accounts[6].is_writable, ErrorCode::InvalidMintBuybackV3);
+        && accounts[6].is_writable && accounts[20].is_writable,
+        ErrorCode::InvalidMintBuybackV3);
     Ok(())
 }
 
@@ -145,6 +147,33 @@ pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
     let wsol_ata = ctx.accounts.quote_token_account.to_account_info();
     let funded_mint_info = ctx.accounts.funded_mint.to_account_info();
     let native_mint_info = ctx.remaining_accounts[4].clone();
+
+    // PumpSwap creates this user-volume PDA with the swap user as payer even
+    // when track_volume is false. Create it first with the authority as payer
+    // so its persistent rent never consumes category-6 fee funds.
+    let volume = ctx.remaining_accounts[20].clone();
+    let (expected_volume, _) = Pubkey::find_program_address(
+        &[b"user_volume_accumulator", vault.key().as_ref()], &pump);
+    require!(volume.key() == expected_volume, ErrorCode::InvalidMintBuybackV3);
+    if volume.lamports() == 0 {
+        let event = ctx.remaining_accounts[15].clone();
+        let init_volume = Instruction { program_id:pump,
+            accounts:vec![
+                AccountMeta::new(ctx.accounts.authority.key(), true),
+                AccountMeta::new_readonly(vault.key(), false),
+                AccountMeta::new(volume.key(), false),
+                AccountMeta::new_readonly(system.key(), false),
+                AccountMeta::new_readonly(event.key(), false),
+                AccountMeta::new_readonly(pump, false),
+            ], data:INIT_USER_VOLUME.to_vec() };
+        invoke(&init_volume, &[
+            ctx.accounts.authority.to_account_info(), vault.to_account_info(),
+            volume.clone(), system.clone(), event,
+            ctx.accounts.pump_swap_program.to_account_info(),
+        ])?;
+    }
+    require!(volume.owner == &pump && !volume.data_is_empty(),
+        ErrorCode::InvalidMintBuybackV3);
 
     // Both ATAs are controlled by the category vault PDA. The authority fronts
     // temporary WSOL rent, then receives exactly that rent back after close.
