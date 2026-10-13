@@ -238,6 +238,7 @@ const {
   mintRouterReadiness,
   xFeeReadiness,
   feeRouterConfig,
+  v3RouterConfig,
   launchPolicyConfig,
   collectPumpCreatorFees,
 } = createFeeRouterService({ store, solanaCluster, solanaRpcUrl, fundedTokenMint, devnetTestMode, xConfig, resolveXUser });
@@ -342,7 +343,7 @@ const { handleShareVisit, handleReferralActivity } = createReferralActivityRoute
 });
 const { handleServiceStatus, handleOperationsStatus, handleKeeperStatus } = createServiceStatusRoutes({
   store, solanaCluster, solanaRpcUrl, automaticRewardStore, launchPolicyConfig,
-  keeperKeypair, feeRouterConfig, birdeyeApiKey, pumpApiUrl, xOAuthConfigured,
+  keeperKeypair, v3RouterConfig, birdeyeApiKey, pumpApiUrl, xOAuthConfigured,
   readSolUsdQuote, requireAuthorized, respond: json,
 });
 

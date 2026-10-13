@@ -114,10 +114,16 @@ export function createFeeRouterService({
     const programId = String(env.FUNDED_FEE_ROUTER_PROGRAM_ID || env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID || '').trim();
     return programId ? deriveFeeRouter(programId) : null;
   }
+  function v3RouterConfig() {
+    const programId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
+    try { return programId ? { programId: new PublicKey(programId) } : null; }
+    catch { return null; }
+  }
   function launchPolicyConfig() {
     return {
       cluster: solanaCluster,
-      feeRouterProgramId: feeRouterConfig()?.programId.toBase58() || null,
+      feeRouterProgramId: v3RouterConfig()?.programId.toBase58() || null,
+      feeRouterScope: 'per-mint-v3',
       fundedMint: fundedTokenMint || null,
       burnAmounts: { boost: Number(env.VITE_FUNDED_BOOST_BURN_AMOUNT || 25_000) },
       burnUsdTargets: LAUNCH_TIER_USD,
@@ -212,6 +218,6 @@ export function createFeeRouterService({
   }
 
   return { keeperKeypair, referralPayoutKeypair, routerAuthorityKeypair,
-    v3AuthorityKeypair, mintRouterReadiness, xFeeReadiness, feeRouterConfig,
+    v3AuthorityKeypair, mintRouterReadiness, xFeeReadiness, feeRouterConfig, v3RouterConfig,
     launchPolicyConfig, executeSolPayout, reconcileSolPayout, collectPumpCreatorFees };
 }

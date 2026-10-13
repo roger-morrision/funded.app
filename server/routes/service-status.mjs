@@ -7,7 +7,7 @@ import { createReadCache } from '../read-cache.mjs';
 
 export function createServiceStatusRoutes({
   store, solanaCluster, solanaRpcUrl, automaticRewardStore, launchPolicyConfig,
-  keeperKeypair, feeRouterConfig, birdeyeApiKey, pumpApiUrl, xOAuthConfigured,
+  keeperKeypair, v3RouterConfig, birdeyeApiKey, pumpApiUrl, xOAuthConfigured,
   readSolUsdQuote, requireAuthorized, respond,
 }) {
   const statusCache = createReadCache({ ttlMs: 15_000, maxEntries: 1 });
@@ -29,7 +29,7 @@ export function createServiceStatusRoutes({
     }
     if (req.method === 'GET' && url.pathname === '/api/health') {
       const automaticRewards = automaticRewardStatus(new Date(), await automaticRewardStore.read());
-      return json(res, 200, { ok: true, service: 'funded-api', launchPolicy: launchPolicyConfig(), external: { solanaKeeper: isKeeperEnabled(process.env) && Boolean(keeperKeypair()), automaticRewards: automaticRewards.status === 'active', feeRouter: Boolean(feeRouterConfig()), birdeye: Boolean(birdeyeApiKey), pumpFun: Boolean(pumpApiUrl), xOAuth: xOAuthConfigured(req) } });
+      return json(res, 200, { ok: true, service: 'funded-api', launchPolicy: launchPolicyConfig(), external: { solanaKeeper: isKeeperEnabled(process.env) && Boolean(keeperKeypair()), automaticRewards: automaticRewards.status === 'active', feeRouter: Boolean(v3RouterConfig()), birdeye: Boolean(birdeyeApiKey), pumpFun: Boolean(pumpApiUrl), xOAuth: xOAuthConfigured(req) } });
     }
     if (req.method === 'GET' && url.pathname === '/api/market/sol-usd') {
       const quote = await readSolUsdQuote();
@@ -50,9 +50,11 @@ export function createServiceStatusRoutes({
   }
   async function handleKeeperStatus(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/keeper/status') {
-      const router = feeRouterConfig();
+      const router = v3RouterConfig();
       const keeperConfigured = isKeeperEnabled(process.env) && Boolean(keeperKeypair());
-      return json(res, 200, { cluster: solanaCluster, keeperConfigured, routerConfigured: Boolean(router), routerAddress: router?.address?.toBase58() || null, status: router && keeperConfigured ? 'ready-to-verify-router' : 'waiting-for-deployment-config' });
+      return json(res, 200, { cluster: solanaCluster, keeperConfigured, routerConfigured: Boolean(router),
+        routerScope:'per-mint-v3', routerProgramId:router?.programId.toBase58() || null,
+        routerAddress:null, status: router && keeperConfigured ? 'ready-to-verify-v3-router' : 'waiting-for-deployment-config' });
     }
     return false;
   }

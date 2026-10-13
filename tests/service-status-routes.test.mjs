@@ -7,7 +7,7 @@ function fixture(overrides = {}) {
   const handlers = createServiceStatusRoutes({
     solanaCluster: 'devnet', solanaRpcUrl: 'https://rpc.example.invalid',
     store: {}, automaticRewardStore: { read: async () => ({}) },
-    launchPolicyConfig: () => ({}), keeperKeypair: () => null, feeRouterConfig: () => null,
+    launchPolicyConfig: () => ({}), keeperKeypair: () => null, v3RouterConfig: () => null,
     birdeyeApiKey: '', pumpApiUrl: '', xOAuthConfigured: () => false,
     readSolUsdQuote: async () => null,
     requireAuthorized: (_req, res) => { res.status = 401; res.responses++; return false; },
@@ -58,6 +58,17 @@ test('SOL quote routes distinguish unavailable data from an available quote', as
   assert.equal(available.status, 200);
   assert.deepEqual(available.data, quote);
   assert.equal(available.responses, 1);
+});
+
+test('keeper status advertises a V3 program without a misleading shared router address', async () => {
+  const programId = '11111111111111111111111111111111';
+  const response = await fixture({ v3RouterConfig: () => ({ programId: { toBase58: () => programId } }) })(
+    'handleKeeperStatus', '/api/keeper/status');
+  assert.equal(response.status, 200);
+  assert.equal(response.data.routerScope, 'per-mint-v3');
+  assert.equal(response.data.routerProgramId, programId);
+  assert.equal(response.data.routerAddress, null);
+  assert.equal(response.data.status, 'waiting-for-deployment-config');
 });
 
 test('service-status cache belongs to each server instance and retains network verification', async t => {
