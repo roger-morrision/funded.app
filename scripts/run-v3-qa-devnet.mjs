@@ -5,6 +5,8 @@ import bs58 from 'bs58';
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction,
   sendAndConfirmTransaction } from '@solana/web3.js';
 import { deriveFeeRouter, verifyFeeRouterAccount } from '../fee-router.js';
+import { createAutomaticRewardChain } from '../server/automatic-reward-chain.mjs';
+import { buildRewardManifest, createRewardCycleId } from '../reward-merkle.js';
 import { buildMintRouterV3InitializeInstruction, buildMintRouterV3SettlementInstruction,
   buildMintRouterV3DisbursementInstruction, deriveMintVaultsV3, protocolGrossUnits,
   verifyMintRouterV3Account, verifyMintPolicyV3Account, verifyMintClaimV3Account,
@@ -20,8 +22,8 @@ const EXPECTED_PROTOCOL_UNITS = [1_000_000, 200_000, 60_000, 40_000, 200_000, 50
 const EXPECTED_ALLOCATION = [8_000_000, 1_000_000, 200_000, 60_000, 40_000, 200_000, 500_000];
 
 const [mode, binaryArg] = process.argv.slice(2);
-if (!['--preflight', '--execute'].includes(mode) || !binaryArg) {
-  throw new Error('Usage: node scripts/run-v3-qa-devnet.mjs --preflight|--execute <exact-tested-program.so>');
+if (!['--preflight', '--execute', '--execute-rewards'].includes(mode) || !binaryArg) {
+  throw new Error('Usage: node scripts/run-v3-qa-devnet.mjs --preflight|--execute|--execute-rewards <exact-tested-program.so>');
 }
 const authoritySecret = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
 if (!authoritySecret) throw new Error('The dedicated QA authority secret is required.');
@@ -142,14 +144,53 @@ for (let index = 0; index < deltas.length; index++) {
   requireEqual(Number(claimProof.categoryLamports[index]), EXPECTED_ALLOCATION[index],
     `category ${index} claim allocation`);
 }
+const rewardsMode = mode === '--execute-rewards';
+const rewardChain = rewardsMode ? createAutomaticRewardChain({ connection, programId:PROGRAM_ID,
+  authority, expectedProgramDataSha256:createHash('sha256').update(programData.data).digest('hex') }) : null;
+const rewardVault = rewardsMode ? await rewardChain.ensureVault(mint.publicKey) : null;
+const rewardVaultBefore = rewardVault ? await finalizedBalance(rewardVault) : null;
+const creatorAmount = rewardsMode ? 5_000_000 : EXPECTED_ALLOCATION[0];
 const creatorBefore = await finalizedBalance(creator.publicKey);
 const operationsBefore = await finalizedBalance(operationsRecipient);
 const creatorWithdrawalId = randomBytes(32);
 const creatorWithdrawal = buildMintRouterV3DisbursementInstruction({ programId: PROGRAM_ID,
   mint: mint.publicKey, authority: QA_AUTHORITY, creator: creator.publicKey,
-  withdrawalId: creatorWithdrawalId, category: 0, amount: EXPECTED_ALLOCATION[0],
+  withdrawalId: creatorWithdrawalId, category: 0, amount: creatorAmount,
   recipient: creator.publicKey });
 const creatorPayoutSignature = await send([creatorWithdrawal.instruction], [authority, creator]);
+let rewardFundingId = null, rewardFundingSignature = null, rewardCycle = null, rewardPayments = [];
+if (rewardsMode) {
+  rewardFundingId = randomBytes(32);
+  const funding = buildMintRouterV3DisbursementInstruction({ programId:PROGRAM_ID,
+    mint:mint.publicKey, authority:QA_AUTHORITY, creator:creator.publicKey,
+    withdrawalId:rewardFundingId, category:0, amount:3_000_000, recipient:rewardVault });
+  rewardFundingSignature = await send([funding.instruction], [authority, creator]);
+  requireEqual((await finalizedBalance(rewardVault)) - rewardVaultBefore, 3_000_000,
+    'V3 creator category reward-vault funding delta');
+  const fundingProof = await verifyMintWithdrawalV3Account({ connection, programId:PROGRAM_ID,
+    mint:mint.publicKey, withdrawalId:rewardFundingId, category:0,
+    amount:3_000_000, recipient:rewardVault });
+  if (!fundingProof.verified) throw new Error('V3 reward-vault funding lacks a finalized withdrawal receipt.');
+  const holder = Keypair.generate().publicKey;
+  const xRecipient = Keypair.generate().publicKey;
+  const now = Math.floor(Date.now() / 1000);
+  const cycleId = createRewardCycleId({ mint:mint.publicKey.toBase58(),
+    kind:'synthetic-v3-holder-x-qa', asset:'SOL', periodStart:now - 60, periodEnd:now });
+  const manifest = buildRewardManifest({ cycleId, allocations:[
+    { recipient:holder.toBase58(), amount:'2000000' },
+    { recipient:xRecipient.toBase58(), amount:'1000000' },
+  ] });
+  const plan = { mint:mint.publicKey.toBase58(), manifest, cutoffAt:now, payoutAt:now };
+  rewardCycle = await rewardChain.ensureCycle(plan);
+  for (const leaf of manifest.leaves) {
+    const result = await rewardChain.submitLeaf(plan, leaf);
+    if (!result.finalized || !result.balanceDeltaVerified || result.amountReceived !== leaf.amount) {
+      throw new Error('Synthetic V3 reward payment lacks finalized receipt and exact balance proof.');
+    }
+    rewardPayments.push({ recipient:leaf.recipient, amount:leaf.amount,
+      signature:result.signature, payment:result.payment });
+  }
+}
 const operationsWithdrawalId = randomBytes(32);
 const operationsWithdrawal = buildMintRouterV3DisbursementInstruction({ programId: PROGRAM_ID,
   mint: mint.publicKey, authority: QA_AUTHORITY, creator: creator.publicKey,
@@ -157,11 +198,11 @@ const operationsWithdrawal = buildMintRouterV3DisbursementInstruction({ programI
   recipient: operationsRecipient });
 const operationsPayoutSignature = await send([operationsWithdrawal.instruction], [authority, creator]);
 requireEqual((await finalizedBalance(creator.publicKey)) - creatorBefore,
-  EXPECTED_ALLOCATION[0], 'creator recipient delta');
+  creatorAmount, 'creator recipient delta');
 requireEqual((await finalizedBalance(operationsRecipient)) - operationsBefore,
   EXPECTED_ALLOCATION[1], 'operations recipient delta');
 for (const [id, category, amount, recipient] of [
-  [creatorWithdrawalId, 0, EXPECTED_ALLOCATION[0], creator.publicKey],
+  [creatorWithdrawalId, 0, creatorAmount, creator.publicKey],
   [operationsWithdrawalId, 1, EXPECTED_ALLOCATION[1], operationsRecipient],
 ]) {
   const proof = await verifyMintWithdrawalV3Account({ connection, programId: PROGRAM_ID,
@@ -183,6 +224,9 @@ console.log(JSON.stringify({ status: 'finalized-synthetic-v3-qa', program: PROGR
   categoryLamports: EXPECTED_ALLOCATION, vaultRentReserveLamports: vaultReserve,
   vaultLamportDeltas: deltas, signatures: { globalSignature, fundCreatorSignature,
     initializeSignature, creditSignature, settlementSignature, creatorPayoutSignature,
-    operationsPayoutSignature },
+    operationsPayoutSignature, rewardFundingSignature },
+  syntheticRewards:rewardsMode ? { vault:rewardVault.toBase58(),
+    cycle:rewardCycle.address, cycleSignature:rewardCycle.signature, payments:rewardPayments } : null,
   limits: { syntheticFunding: true, pumpCollectionVerified: false, buybackBurnVerified: false,
+    holderEligibilityVerified:false, xIdentityVerified:false,
     operationsEntitlementVerified: false } }, null, 2));
