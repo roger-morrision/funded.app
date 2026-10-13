@@ -64,11 +64,13 @@ test('verified V3 collection shows settlement to owner and funding after finaliz
     assert.equal(f.root.children[0].children[1].textContent, 'Approve V3 settlement');
     assert.equal(f.root.children[0].children[1].disabled, false);
     const settled = { ...overview, collections:[{ ...overview.collections[0], settlement:'finalized',
-      allocationPlan:{ status:'allocated-not-funded', protocol:{ communityLamports:'100' },
+      allocationPlan:{ status:'allocated-not-funded', protocol:{ communityLamports:'100', buybackLamports:'50' },
         creatorDirected:{ holderLamports:'200', xLamports:'0', walletLamports:'300' } } }] };
     f.controller.renderCoinFeeDashboard(settled);
-    assert.equal(f.root.children[0].children.length, 4);
+    assert.equal(f.root.children[0].children.length, 5);
     assert.equal(f.root.children[0].children[1].textContent, 'Fund community allocation');
+    assert.equal(f.root.children[0].children[4].textContent, 'Buy back and burn $FUNDED');
+    assert.equal(f.root.children[0].children[4].disabled, true);
     f.state.connectedWalletAddress = 'other-wallet';
     f.controller.renderCoinFeeDashboard(settled);
     assert.equal(f.root.hidden, true);

@@ -15,17 +15,21 @@ export function syncXClaimFlow({
   const button=document.querySelector('#sol-claim-submit');
   const review=document.querySelector('#selected-claim-review');
   const walletReview=document.querySelector('#claim-binding-review');
+  const selected=[...document.querySelectorAll('#sol-claim-list [data-claim-id]')]
+    .find(item=>item.dataset.claimId===claimId);
+  const v3Selected=selected?.dataset.claimScope==='per-mint-v3'
+    && selected?.dataset.claimStatus!=='paid';
   if(review){
-    review.hidden=true;
-    const row=[...document.querySelectorAll('#sol-claim-list [data-claim-id]')].find(item=>item.dataset.claimId===claimId);
+    review.hidden=!v3Selected;
+    const row=selected;
     const summary=document.querySelector('#selected-claim-summary');
     if(summary)summary.textContent=row?.dataset.claimSummary||`Claim ${claimId}`;
   }
-  if(walletReview)walletReview.hidden=true;
+  if(walletReview)walletReview.hidden=!v3Selected;
   if(button){
-    button.hidden=true;
-    button.disabled=true;
-    button.textContent='V3 X claims pending activation';
+    button.hidden=!v3Selected;
+    button.disabled=!v3Selected||!xConnected||!address||!agreed;
+    button.textContent='Verify wallet and claim V3 SOL';
   }
   const paidOnly=xConnected&&paidCount>0&&readyCount===0&&!claimId;
   const stepState={x:xConnected,choose:xConnected&&(Boolean(claimId)||paidOnly||awaitingCreator),wallet:xConnected&&((Boolean(claimId)&&Boolean(address&&agreed))||paidOnly||awaitingCreator),paid:paidOnly};
@@ -61,7 +65,7 @@ export function renderXClaimSummary(claims, {
 }) {
   const summary=summarizeXClaims(claims);
   window.dispatchEvent(new Event('funded:reward-identity-change'));
-  const labels={total:n=>`${n} historical reward${n===1?'':'s'}`,claimed:n=>`${n} verified payment${n===1?'':'s'}`,unclaimed:n=>`${n} historical unpaid reward${n===1?'':'s'}`,pending:n=>`${n} historical claim${n===1?'':'s'} in progress`};
+  const labels={total:n=>`${n} reward${n===1?'':'s'}`,claimed:n=>`${n} verified payment${n===1?'':'s'}`,unclaimed:n=>`${n} funded reward${n===1?'':'s'} available`,pending:n=>`${n} earlier record${n===1?'':'s'}`};
   for(const key of Object.keys(labels)){
     const value=document.querySelector(`#x-claim-${key}-value`);
     const count=document.querySelector(`#x-claim-${key}-count`);
@@ -80,15 +84,19 @@ export function resetSolClaimStatus({
   const status = document.querySelector('#sol-claim-status');
   if(status){
     const connected=document.querySelector('#x-sign-in')?.dataset.connected==='true';
-    const chosen=Boolean(document.querySelector('#sol-claim-id')?.value?.trim());
+    const claimId=document.querySelector('#sol-claim-id')?.value?.trim();
+    const chosen=[...document.querySelectorAll('#sol-claim-list [data-claim-id]')]
+      .some(row=>row.dataset.claimId===claimId && row.dataset.claimScope==='per-mint-v3');
     const address=captureWalletSession()?.address;
     const agreed=document.querySelector('#claim-binding-agree')?.checked;
     const readyCount=document.querySelectorAll('#sol-claim-list .x-claim-reward-state.ready').length;
     const paidCount=document.querySelectorAll('#sol-claim-list .x-claim-reward-state.paid').length;
     const awaitingCreator=document.querySelector('#sol-claim-list [data-claim-status="automatic-awaiting-creator-signature"]');
-    status.textContent=!connected?'Sign in with X to see historical rewards.':paidCount
-      ? 'Historical verified payments are listed above. V3 X claims are pending activation.'
-      : 'V3 X claims are pending activation. No claim signature is needed now.';
+    status.textContent=!connected?'Sign in with X to see your rewards.'
+      : chosen ? !address?'Connect the receiving wallet.':!agreed?'Confirm the receiving wallet above.':'Sign a wallet message to verify and submit this claim.'
+      : readyCount?'Select a funded V3 reward to verify your claim.'
+      : paidCount?'Verified payments are listed above.'
+      : 'No funded V3 X reward is ready for a claim.';
   }
   syncXClaimFlow();
 }

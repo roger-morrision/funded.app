@@ -59,20 +59,23 @@ export async function refreshXClaims({
     const result = await apiRequest('/api/x-fee/claims');
     if (!result.available) { clearSelection();list.textContent='Rewards are temporarily unavailable. Try again later.';renderXClaimSummary(null); syncXClaimFlow(); return; }
     renderXClaimSummary(result.data.claims);
-    if (!result.data.claims.length) { clearSelection();list.textContent = 'No historical X rewards are recorded. V3 X claims are pending activation.'; syncXClaimFlow(); return; }
+    if (!result.data.claims.length) { clearSelection();list.textContent = 'No funded X rewards are available for this account.'; syncXClaimFlow(); return; }
     clearSelection();
     const claimsByAction = [...result.data.claims].sort((a, b) =>
       Number(a.receiptVerified === true) - Number(b.receiptVerified === true));
     for (const claim of claimsByAction) {
-      const row=document.createElement('div');row.className=`x-claim-reward${claim.receiptVerified?' x-claim-reward-paid':''}`;row.dataset.claimId=claim.id;
+      const row=document.createElement('div');row.className=`x-claim-reward${claim.receiptVerified?' x-claim-reward-paid':''}`;row.dataset.claimId=claim.id;row.dataset.mint=claim.mint;
       row.dataset.claimStatus=claim.status;
-      const state=document.createElement('span');state.className=`x-claim-reward-state ${claim.receiptVerified?'paid':'pending'}`;state.textContent=claim.receiptVerified?'Paid':'V2 claim retired';
+      const isV3=claim.scope==='per-mint-v3';
+      row.dataset.claimScope=isV3?'per-mint-v3':'historical-v2';
+      const state=document.createElement('span');state.className=`x-claim-reward-state ${claim.receiptVerified?'paid':isV3&&claim.canPrepare?'ready':'pending'}`;
+      state.textContent=claim.receiptVerified?'Paid':isV3?'Verify to claim':'V2 claim retired';
       const copy=document.createElement('div');copy.className='x-claim-reward-copy';
       const launch=verifiedLaunchPolicyForMint(claim.mint);
       const coinLabel=launch?[launch.symbol,launch.name].filter(Boolean).join(' · '):`Coin ${String(claim.mint||'').slice(0,6)}…`;
       const coin=document.createElement('a');coin.className='x-claim-coin';coin.href=`/token/${encodeURIComponent(claim.mint)}`;coin.textContent=coinLabel;
       const amount=document.createElement('strong');amount.textContent=claim.amountSol==null?'Amount unavailable':`${claim.amountSol} SOL`;
-      const context=document.createElement('small');context.textContent=claim.receiptVerified?`To ${claim.payoutWallet||'verified wallet'}`:'Historical record only. V3 X claims are pending activation.';
+      const context=document.createElement('small');context.textContent=claim.receiptVerified?`To ${claim.payoutWallet||'verified wallet'}`:isV3?'Finalized funding recorded. Wallet and on-chain proof required.':'Historical record only.';
       if(claim.receiptVerified&&claim.payoutWallet)context.title=claim.payoutWallet;
       copy.append(coin,amount,context);
       if (claim.receiptVerified) {
@@ -86,6 +89,13 @@ export async function refreshXClaims({
       }
       row.append(state,copy);
       row.dataset.claimSummary=`${amount.textContent} from ${coinLabel}`;
+      if(isV3&&claim.canPrepare){
+        const select=document.createElement('button');select.type='button';select.textContent='Select reward';
+        select.addEventListener('click',()=>{
+          const id=document.querySelector('#sol-claim-id');if(id)id.value=claim.id;
+          updateClaimBindingReview();resetSolClaimStatus();
+        });row.append(select);
+      }
       if(claim.receiptVerified&&claim.payoutSignature){const receipt=document.createElement('a');receipt.className='payment-receipt-link';receipt.href=`https://explorer.solana.com/tx/${encodeURIComponent(claim.payoutSignature)}?cluster=devnet`;receipt.textContent='↗';receipt.setAttribute('aria-label','View X reward payment on Solana Explorer');receipt.title='View payment on Solana Explorer';receipt.target='_blank';receipt.rel='noopener noreferrer';row.append(receipt);}
       list.append(row);
     }

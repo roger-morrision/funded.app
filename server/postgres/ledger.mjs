@@ -5,14 +5,14 @@ import { creatorDirectoryRecords } from '../creator-directory.mjs';
 import { searchGrams } from '../creator-search.mjs';
 
 const schemaPath = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'db', 'schema.sql');
-const buckets = ['launches', 'listings', 'listingQuotes', 'boostQuotes', 'boostReceipts', 'launchTierQuotes', 'xPublicTradeShares', 'settlements', 'v3Settlements', 'obligations', 'claims', 'referralClaims', 'payouts', 'collections', 'burnReceipts', 'buybackOrders', 'communityReserveReceipts', 'launchReviews', 'alerts', 'xIntake', 'coinChats', 'shareVisits', 'referralCodes', 'referralWallets', 'referralAttributions', 'referralChallenges'];
+const buckets = ['launches', 'listings', 'listingQuotes', 'boostQuotes', 'boostReceipts', 'launchTierQuotes', 'xPublicTradeShares', 'settlements', 'v3Settlements', 'v3CommunityFunding', 'v3CreatorRewardFunding', 'v3CreatorWalletPayout', 'v3XClaims', 'v3BuybackOrders', 'obligations', 'claims', 'referralClaims', 'payouts', 'collections', 'burnReceipts', 'buybackOrders', 'communityReserveReceipts', 'launchReviews', 'alerts', 'xIntake', 'coinChats', 'shareVisits', 'referralCodes', 'referralWallets', 'referralAttributions', 'referralChallenges'];
 const referralBuckets = { referralCodes: 'codes', referralWallets: 'wallets', referralAttributions: 'attributions', referralChallenges: 'challenges' };
 buckets.push('creatorProfiles');
 
 function entriesFor(state, bucket) { return referralBuckets[bucket] ? state.referrals[referralBuckets[bucket]] : state[bucket]; }
 
 function initialState() {
-  return { version: 4, launches: {}, listings: {}, listingQuotes: {}, boostQuotes: {}, boostReceipts: {}, launchTierQuotes: {}, xPublicTradeShares: {}, settlements: {}, v3Settlements: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, coinChats: {}, shareVisits: {}, creatorProfiles: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
+  return { version: 4, launches: {}, listings: {}, listingQuotes: {}, boostQuotes: {}, boostReceipts: {}, launchTierQuotes: {}, xPublicTradeShares: {}, settlements: {}, v3Settlements: {}, v3CommunityFunding: {}, v3CreatorRewardFunding: {}, v3CreatorWalletPayout: {}, v3XClaims: {}, v3BuybackOrders: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, coinChats: {}, shareVisits: {}, creatorProfiles: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
 }
 
 function normalizeState(state) {
@@ -26,6 +26,11 @@ function normalizeState(state) {
   next.xPublicTradeShares ||= {};
   next.settlements ||= {};
   next.v3Settlements ||= {};
+  next.v3CommunityFunding ||= {};
+  next.v3CreatorRewardFunding ||= {};
+  next.v3CreatorWalletPayout ||= {};
+  next.v3XClaims ||= {};
+  next.v3BuybackOrders ||= {};
   next.obligations ||= {};
   next.claims ||= {};
   next.referralClaims ||= {};

@@ -83,7 +83,9 @@ export function createRewardScheduler({ store, indexer, chain }) {
     await store.transaction(state => {
       state.rewardPools ||= {};
       const prior = state.rewardPools[row.id];
-      if (prior && JSON.stringify(prior) !== JSON.stringify(row)) throw new Error('Reward pool ID already exists with different data.');
+      if (prior && ['id', 'mint', 'kind', 'asset', 'amount', 'fundedAt',
+        'fundingSignature', 'balanceDeltaVerified'].some(key => prior[key] !== row[key]))
+        throw new Error('Reward pool ID already exists with different immutable funding data.');
       state.rewardPools[row.id] ||= row;
     });
     return row;
@@ -100,7 +102,11 @@ export function createRewardScheduler({ store, indexer, chain }) {
       state.schedules ||= {};
       const prior = state.schedules[id];
       if (prior) {
-        if (prior.manifest?.root !== row.manifest.root || prior.mint !== row.mint || prior.kind !== row.kind) throw new Error('Direct reward ID already exists with different immutable data.');
+        if (prior.manifest?.root !== row.manifest.root || prior.mint !== row.mint
+          || prior.kind !== row.kind || prior.asset !== row.asset
+          || prior.sourceId !== row.sourceId || prior.fundingSignature !== row.fundingSignature
+          || prior.balanceDeltaVerified !== true)
+          throw new Error('Direct reward ID already exists with different immutable data.');
         return structuredClone(prior);
       }
       state.schedules[id] = row;
@@ -201,11 +207,14 @@ export function createRewardScheduler({ store, indexer, chain }) {
     return { captured, failures };
   }
 
-  async function execute(now = Math.floor(Date.now() / 1000)) {
+  async function execute(now = Math.floor(Date.now() / 1000), onlyIds = null) {
     const ready = await chain.readiness();
     await store.transaction(state => { state.serviceStatus = { constrainedPayouts: ready.constrainedPayouts === true, reasons: ready.reasons || [], reason: ready.constrainedPayouts ? null : `On-chain automatic payout is unavailable: ${(ready.reasons || []).join(', ')}`, checkedAt: new Date().toISOString() }; });
     if (!ready.constrainedPayouts) return { status: 'unavailable', reasons: ready.reasons, submitted: 0 };
-    const plans = await store.transaction(state => structuredClone(Object.values(state.schedules || {}).filter(row => ['prepared', 'distributing'].includes(row.status) && now >= row.payoutAt)));
+    const selected = onlyIds === null ? null : new Set(onlyIds);
+    const plans = await store.transaction(state => structuredClone(Object.values(state.schedules || {}).filter(row =>
+      ['prepared', 'distributing'].includes(row.status) && now >= row.payoutAt
+      && (selected === null || selected.has(row.id)))));
     let submitted = 0;
     for (const plan of plans) {
       if (plan.kind === 'holder' && plan.manifest.leaves.some(leaf => excludedHolderWallets(plan.mint, []).includes(leaf.recipient))) {

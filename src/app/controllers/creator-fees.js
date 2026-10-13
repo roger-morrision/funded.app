@@ -53,7 +53,8 @@ export function createCreatorFeesController(appState) {
       const actions = row.settlement === 'finalized' && row.allocationPlan?.status === 'allocated-not-funded'
         ? [['community-funding','communityFunding','Fund community allocation'],
           ['creator-reward-funding','creatorRewardFunding','Fund holder and X rewards'],
-          ['creator-wallet-payout','creatorWalletPayout','Receive creator allocation']]
+          ['creator-wallet-payout','creatorWalletPayout','Receive creator allocation'],
+          ['buyback','buyback','Buy back and burn $FUNDED']]
         : row.settlement === 'finalized' ? [] : [['settlement','settlement','Approve V3 settlement']];
       for (const [path, gate, label] of actions) {
         const button = document.createElement('button'); button.type = 'button';
@@ -63,6 +64,7 @@ export function createCreatorFeesController(appState) {
           try {
             const plan = row.allocationPlan;
             const amount = path === 'community-funding' ? BigInt(plan.protocol.communityLamports)
+              : path === 'buyback' ? BigInt(plan.protocol.buybackLamports)
               : path === 'creator-reward-funding' ? BigInt(plan.creatorDirected.holderLamports)
                 + BigInt(plan.creatorDirected.xLamports)
                 : BigInt(plan.creatorDirected.walletLamports);
@@ -90,7 +92,8 @@ export function createCreatorFeesController(appState) {
     }
     const collection = overview.collections?.find(row => row.signature === collectionSignature);
     const gate = { settlement:'settlement', 'community-funding':'communityFunding',
-      'creator-reward-funding':'creatorRewardFunding', 'creator-wallet-payout':'creatorWalletPayout' }[action];
+      'creator-reward-funding':'creatorRewardFunding', 'creator-wallet-payout':'creatorWalletPayout',
+      buyback:'buyback' }[action];
     if (!collection || !gate || overview.gates?.[gate] !== true) return;
     appState.creatorClaimsInFlight.add(mint);
     const originalLabel = button.textContent;
@@ -108,17 +111,20 @@ export function createCreatorFeesController(appState) {
         || !prepared.data.transaction) throw new Error('V3 transaction review is unavailable.');
       if (action === 'settlement' && prepared.data.creatorWallet !== session.address)
         throw new Error('The V3 settlement creator wallet changed.');
-      if (action !== 'settlement' && !prepared.data.recipient)
+      if (action !== 'settlement' && action !== 'buyback' && !prepared.data.recipient)
         throw new Error('The V3 funding recipient is unavailable.');
       button.textContent = 'Waiting for creator wallet…';
-      const { Transaction } = await appState.getSolana();
-      const transaction = Transaction.from(appState.base64ToBytes(prepared.data.transaction));
+      const { Transaction, VersionedTransaction } = await appState.getSolana();
+      const transaction = action === 'buyback'
+        ? VersionedTransaction.deserialize(appState.base64ToBytes(prepared.data.transaction))
+        : Transaction.from(appState.base64ToBytes(prepared.data.transaction));
       const signed = await session.provider.signTransaction(transaction);
       appState.assertWalletSessionCurrent(session);
       button.textContent = 'Verifying finalized Devnet transaction…';
       const result = await appState.apiRequest(path, { method:'POST', body:{
-        creatorSignedTransaction:appState.bytesToBase64(signed.serialize({
-          requireAllSignatures:false, verifySignatures:false })) } });
+        creatorSignedTransaction:appState.bytesToBase64(action === 'buyback'
+          ? signed.serialize() : signed.serialize({
+            requireAllSignatures:false, verifySignatures:false })) } });
       appState.assertWalletSessionCurrent(session);
       if (result.data?.status !== 'finalized') throw new Error('V3 transaction outcome is uncertain. Refresh before signing again.');
       appState.showToast('V3 transaction finalized on Devnet.');

@@ -17,6 +17,10 @@ export function initializeRewardIdentity(appState) {
   appState.updateClaimBindingReview();
   // app-source-end
 
+  document.querySelector('#sol-claim-submit')?.addEventListener('click', () => {
+    void appState.submitV3XClaim();
+  });
+
   // app-source: 1010
   appState.initPaidListing({ getSolana: appState.getSolana, getConnection: () => appState.connection, getSession: appState.captureWalletSession,
     assertSession: appState.assertWalletSessionCurrent, connectWallet: appState.connectWallet, cluster: appState.APP_CLUSTER,

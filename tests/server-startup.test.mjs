@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { setImmediate as settle } from 'node:timers/promises';
 import { loadServerEnvironment } from '../server/environment.mjs';
-import { startShareVisitCleanup, startCommunityClaimIndex } from '../server/background-maintenance.mjs';
+import { startShareVisitCleanup, startCommunityClaimIndex,
+  startV3HolderRewardWorker } from '../server/background-maintenance.mjs';
 
 test('startup preserves environment precedence, empty overrides, and local parsing', () => {
   const env = { PRESENT: 'existing', PRESENT_FILE: 'unused', EMPTY: '', EMPTY_FILE: 'unused', SECRET_FILE: 'secret' };
@@ -103,6 +104,22 @@ test('community indexing starts only with the complete supported configuration',
       createConnection() { assert.fail('disabled index must not connect'); },
     });
   }
+});
+
+test('V3 holder payments cannot start from a flag or partial configuration alone', () => {
+  const base = { solanaCluster:'devnet', solanaRpcUrl:'https://unused.invalid',
+    automaticRewardStore:{}, v3AuthorityKeypair:() => ({ publicKey:{ toBase58:() => 'authority' } }),
+    env:{ FUNDED_V3_FEE_ROUTER_PROGRAM_ID:'program',
+      FUNDED_V3_PROGRAM_DATA_SHA256:'ab'.repeat(32) },
+    createConnection() { assert.fail('disabled worker must not connect'); },
+    scheduleTimeout() { assert.fail('disabled worker must not schedule'); },
+    scheduleInterval() { assert.fail('disabled worker must not schedule'); } };
+  assert.equal(startV3HolderRewardWorker(base), false);
+  assert.equal(startV3HolderRewardWorker({ ...base,
+    env:{ ...base.env, FUNDED_V3_HOLDER_WORKER_ENABLED:'true',
+      FUNDED_V3_PROGRAM_DATA_SHA256:'' } }), false);
+  assert.equal(startV3HolderRewardWorker({ ...base, solanaCluster:'mainnet-beta',
+    env:{ ...base.env, FUNDED_V3_HOLDER_WORKER_ENABLED:'true' } }), false);
 });
 
 test('community indexing retains timing, prevents overlap, and recovers after failure', async () => {

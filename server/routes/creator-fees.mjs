@@ -85,7 +85,8 @@ export function createCreatorFeesRoutes({
               ? state.v3Settlements[row.signature].allocationPlan : null,
             communityFunding:state.v3CommunityFunding?.[row.signature]?.status || 'pending',
             creatorRewardFunding:state.v3CreatorRewardFunding?.[row.signature]?.status || 'pending',
-            creatorWalletPayout:state.v3CreatorWalletPayout?.[row.signature]?.status || 'pending' }));
+            creatorWalletPayout:state.v3CreatorWalletPayout?.[row.signature]?.status || 'pending',
+            buyback:state.v3BuybackOrders?.[row.signature]?.status || 'pending' }));
         return json(res, 200, { mint, cluster:solanaCluster,
           source:databaseUrl ? 'funded.app-postgresql' : 'funded.app-file-ledger',
           coverage:'verified-v3-collections', ...activity,
@@ -97,7 +98,8 @@ export function createCreatorFeesRoutes({
             collections:v3Collections, gates:{ settlement:process.env.FUNDED_V3_SETTLEMENT_ENABLED === 'true',
               communityFunding:process.env.FUNDED_V3_COMMUNITY_FUNDING_ENABLED === 'true',
               creatorRewardFunding:process.env.FUNDED_V3_CREATOR_REWARD_FUNDING_ENABLED === 'true',
-              creatorWalletPayout:process.env.FUNDED_V3_CREATOR_WALLET_PAYOUT_ENABLED === 'true' } },
+              creatorWalletPayout:process.env.FUNDED_V3_CREATOR_WALLET_PAYOUT_ENABLED === 'true',
+              buyback:process.env.FUNDED_V3_BUYBACK_ENABLED === 'true' } },
           sharedRouter:null });
       }
       overview.creatorClaim = creatorClaimStatus({ mint, wallet:launch?.creatorWallet, launch, collections:state.collections, settlements:state.settlements, rewardState });

@@ -85,6 +85,21 @@ impl MintWithdrawalV3 {
 }
 
 #[account]
+pub struct MintBuybackV3 {
+    pub buyback_id: [u8; 32],
+    pub source_mint: Pubkey,
+    pub funded_mint: Pubkey,
+    pub pool: Pubkey,
+    pub spent_lamports: u64,
+    pub burned_base_units: u64,
+    pub created_at: i64,
+}
+
+impl MintBuybackV3 {
+    pub const INIT_SPACE: usize = 32 * 4 + 8 * 3;
+}
+
+#[account]
 pub struct RewardVault {
     pub authority: Pubkey,
     pub mint: Pubkey,

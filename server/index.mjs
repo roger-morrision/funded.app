@@ -3,7 +3,8 @@ import { createLaunchSupportRoutes } from './routes/launch-support.mjs';
 import { createReferralActivityRoutes } from './routes/referral-activity.mjs';
 import { createServiceStatusRoutes } from './routes/service-status.mjs';
 import { loadServerEnvironment } from './environment.mjs';
-import { startShareVisitCleanup, startCommunityClaimIndex } from './background-maintenance.mjs';
+import { startShareVisitCleanup, startCommunityClaimIndex,
+  startV3HolderRewardWorker } from './background-maintenance.mjs';
 import { createFeeRouterService } from './fee-router-service.mjs';
 import { createPageDelivery } from './page-delivery.mjs';
 import { createDiscoveryRoutes } from './routes/discovery.mjs';
@@ -181,7 +182,7 @@ function authorized(req) {
 function requireAuthorized(req, res) { if (authorized(req)) return true; json(res, 401, { error: 'Keeper/indexer API authorization is required.' }); return false; }
 // Retired public claim paths reach the V3 router's 410 guard without an auth
 // challenge; no legacy write handler is registered below it.
-function publicPost(path) { return publicPostPaths.has(path) || /^\/api\/sol-claims\/[^/]+\/(?:prepare|verify|attest|execute)$/.test(path) || /^\/api\/referral-claims\/[^/]+\/(?:verify|execute)$/.test(path) || /^\/api\/tokens\/[^/]+\/creator-claim\/(?:prepare|request|settle)$/.test(path) || /^\/api\/tokens\/[^/]+\/reward-funding\/settle$/.test(path); }
+function publicPost(path) { return publicPostPaths.has(path) || /^\/api\/tokens\/[^/]+\/v3-(?:x-claim\/[^/]+\/(?:prepare|verify|execute)|buyback\/[^/]+)$/.test(path) || /^\/api\/sol-claims\/[^/]+\/(?:prepare|verify|attest|execute)$/.test(path) || /^\/api\/referral-claims\/[^/]+\/(?:verify|execute)$/.test(path) || /^\/api\/tokens\/[^/]+\/creator-claim\/(?:prepare|request|settle)$/.test(path) || /^\/api\/tokens\/[^/]+\/reward-funding\/settle$/.test(path); }
 function localDevWalletRequest(req, path) {
   if (!devMode || !/^\/api\/dev-wallet\/sign-(?:transaction|message)$/.test(path)) return false;
   try {
@@ -321,7 +322,8 @@ const handleCreatorFeesRoutes = createCreatorFeesRoutes({
   mintRouterReadiness, routerAuthorityKeypair, databaseUrl, body, creatorFeeChallenges, respond: json,
 });
 const handleV3Routes = createV3Routes({
-  body, store, solanaCluster, solanaRpcUrl, v3AuthorityKeypair, respond:json,
+  body, store, rewardStore:automaticRewardStore, xSession, walletSignature,
+  solanaCluster, solanaRpcUrl, v3AuthorityKeypair, respond:json,
 });
 
 const handleDiscoveryRoutes = createDiscoveryRoutes({
@@ -459,3 +461,5 @@ server.requestTimeout = 30_000;
 server.timeout = 120_000;
 server.listen(port, host, () => console.log(`funded.vip app listening on http://${host}:${port}`));
 startCommunityClaimIndex({ solanaCluster, solanaRpcUrl, fundedTokenMint, automaticRewardStore, v3AuthorityKeypair });
+startV3HolderRewardWorker({ solanaCluster, solanaRpcUrl,
+  automaticRewardStore, v3AuthorityKeypair });

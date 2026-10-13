@@ -99,7 +99,41 @@ export function createXIdentityRoutes({
         const claim = state.claims?.[item.id];
         return rewardView(item, claim, evidence.verifiedPayouts, automaticXClaimState(item, claim, rewards));
       });
-      return json(res, 200, { handle, claims:claims.map(claim => ({ ...claim, canPrepare:false })) });
+      const v3 = [];
+      if (solanaCluster === 'devnet' && process.env.FUNDED_V3_X_CLAIMS_ENABLED === 'true') {
+        const ledger = await store.read();
+        for (const [signature, funding] of Object.entries(ledger.v3CreatorRewardFunding || {})) {
+          const settled = ledger.v3Settlements?.[signature];
+          const launch = ledger.launches?.[funding.mint];
+          const collection = ledger.collections?.[signature];
+          const amount = settled?.allocationPlan?.creatorDirected?.xLamports;
+          const holder = settled?.allocationPlan?.creatorDirected?.holderLamports;
+          const claim = ledger.v3XClaims?.[signature];
+          if (funding.status !== 'finalized' || settled?.status !== 'finalized'
+            || !launch?.onchainVerified || launch.cluster !== 'devnet'
+            || launch.pumpFeeRoute?.scope !== 'per-mint-v3'
+            || String(launch.xUserId) !== String(session.user.id)
+            || collection?.mint !== funding.mint || !collection.onchainVerified
+            || collection.status !== 'collected' || settled.mint !== funding.mint
+            || !/^[1-9]\d*$/.test(String(amount || ''))
+            || !/^\d+$/.test(String(holder || ''))
+            || funding.amount !== String(BigInt(amount) + BigInt(holder))
+            || (claim && (claim.xUserId !== String(session.user.id)
+              || claim.mint !== funding.mint || claim.amountLamports !== amount))) continue;
+          const lamports = BigInt(amount);
+          const payment = claim?.payment;
+          const paid = claim?.status === 'paid' && payment?.finalized === true
+            && payment?.balanceDeltaVerified === true;
+          v3.push({ id:signature, scope:'per-mint-v3', mint:funding.mint,
+            status:paid ? 'paid' : claim?.status || 'ready',
+            amountSol:lamports <= BigInt(Number.MAX_SAFE_INTEGER)
+              ? Number(lamports) / 1_000_000_000 : null,
+            receiptVerified:paid, canPrepare:!paid,
+            payoutWallet:paid ? claim.wallet : null,
+            payoutSignature:paid ? payment.signature : null, paidAt:paid ? claim.paidAt : null });
+        }
+      }
+      return json(res, 200, { handle, claims:[...v3, ...claims.map(claim => ({ ...claim, canPrepare:false }))] });
     }
     if (req.method === 'POST' && url.pathname === '/api/x/logout') {
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error: 'Sign out from the app origin.' });

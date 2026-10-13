@@ -40,6 +40,14 @@ pub mod funded_fee_router {
         policy_v3::disburse_mint_v3_handler(ctx, withdrawal_id, category, amount)
     }
 
+    #[cfg(feature = "devnet-v3-program")]
+    pub fn buyback_mint_v3<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
+        buyback_id: [u8; 32], spendable_quote_in: u64,
+        min_base_amount_out: u64, max_total_debit: u64) -> Result<()> {
+        buyback_v3::handler(ctx, buyback_id, spendable_quote_in,
+            min_base_amount_out, max_total_debit)
+    }
+
     #[cfg(not(feature = "devnet-v3-program"))]
     pub fn migrate_mint_fee_ledger(ctx: Context<MigrateMintFeeLedger>, historical_creator_spent: u64,
         historical_protocol_spent: u64, expected_available_lamports: u64) -> Result<()> {

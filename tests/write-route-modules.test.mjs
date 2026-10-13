@@ -29,7 +29,7 @@ test('write route families leave unrelated requests to the shared dispatcher', a
   }
 });
 
-test('V3-only launch configuration cannot be enabled by flags before payouts and buyback exist', async () => {
+test('V3-only launch configuration cannot be enabled by flags before finalized payouts and burn', async () => {
   const f = fixture(createLaunchRegistrationRoutes, { env:{
     FUNDED_V3_LAUNCH_ENABLED:'true', FUNDED_V3_COLLECTION_ENABLED:'true',
     FUNDED_V3_SETTLEMENT_ENABLED:'true', FUNDED_V3_REWARDS_ENABLED:'true',
@@ -39,8 +39,8 @@ test('V3-only launch configuration cannot be enabled by flags before payouts and
   assert.equal(await f.request('/api/v3-launch-config', {}, 'GET'), true);
   assert.equal(f.responses[0].status, 200);
   assert.equal(f.responses[0].data.ready, false);
-  assert.match(f.responses[0].data.reasons.join('; '), /V3 creator-directed reward funding and claims are incomplete/);
-  assert.match(f.responses[0].data.reasons.join('; '), /V3 buyback purchase and burn are not implemented/);
+  assert.match(f.responses[0].data.reasons.join('; '), /V3 holder and X payouts require finalized Devnet verification/);
+  assert.match(f.responses[0].data.reasons.join('; '), /V3 buyback purchase and burn require finalized Devnet verification/);
   assert.equal(await f.request('/api/launch-reserve-config', {}, 'GET'), true);
   assert.equal(f.responses[1].status, 503);
   assert.match(f.responses[1].data.error, /V3 atomic community reserve is not ready/);

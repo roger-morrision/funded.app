@@ -8,8 +8,18 @@ function pendingV3Buybacks(state) {
     const lamports = String(row.allocationPlan?.protocol?.buybackLamports || '0');
     if (row.status !== 'finalized' || !/^[1-9]\d*$/.test(lamports)
       || row.allocationPlan?.status !== 'allocated-not-funded') return [];
-    return [{ mint:row.mint, sourceCollectionSignature:row.collectionSignature,
-      amountLamports:lamports, status:'awaiting-v3-buyback-executor' }];
+    const order=state.v3BuybackOrders?.[row.collectionSignature];
+    const burned=order?.status==='finalized'&&order.finalized===true
+      &&order.vaultDebitVerified===true&&order.burnInstructionVerified===true;
+    const spent=burned ? BigInt(order.spentLamports||'0') : 0n;
+    const residual=BigInt(lamports)-spent;
+    if(residual<0n) return [{mint:row.mint,
+      sourceCollectionSignature:row.collectionSignature,amountLamports:lamports,
+      status:'inconsistent-v3-buyback-budget'}];
+    return residual>0n ? [{ mint:row.mint,
+      sourceCollectionSignature:row.collectionSignature,
+      amountLamports:String(residual),
+      status:burned?'verified-burn-residue':order?.status||'awaiting-v3-buyback-executor' }] : [];
   });
 }
 
@@ -22,18 +32,25 @@ export function createRewardStatusRoutes({
   return async function handleRewardStatusRoutes(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/rewards/automatic') {
       const status = automaticRewardStatus(new Date(), await automaticRewardStore.read());
-      const x = { ready:false, reasons:['V3 X payout and claim verification are pending activation.'] };
+      const x = { ready:false, reasons:['V3 X payout and claim require a finalized Devnet payment.'] };
       status.modes.x = 'unavailable';
       const buybackState = await store.read();
+      const verifiedBurns=Object.values(buybackState.v3BuybackOrders||{}).filter(row=>
+        row.status==='finalized'&&row.finalized===true&&row.vaultDebitVerified===true
+        &&row.burnInstructionVerified===true);
       status.modes.buyback = 'accrual-only-execution-unavailable';
-      status.routeReadiness = { x, community:{ ready:status.modes.community === 'verified-token-airdrop-cycle', reason:status.modes.community === 'verified-token-airdrop-cycle' ? null : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:false, devnetExecutorVerified:false, verifiedV3Burns:0, pending:pendingV3Buybacks(buybackState), reason:'V3 category 6 is locked until an audited purchase and burn path is deployed.' } };
+      status.routeReadiness = { x, community:{ ready:status.modes.community === 'verified-token-airdrop-cycle', reason:status.modes.community === 'verified-token-airdrop-cycle' ? null : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:false, devnetExecutorVerified:false, verifiedV3Burns:0, recordedV3Burns:verifiedBurns.length, pending:pendingV3Buybacks(buybackState), reason:'V3 buyback remains in Devnet pilot until the deployed program and residual budget are verified.' } };
       return json(res, 200, status);
     }
     if (req.method === 'GET' && url.pathname === '/api/buyback/status') {
       const state = await store.read();
       return json(res, 200, { cluster:solanaCluster, custody:'v3-mint-category-vault',
         executionReady:false, mainnetReady:false, pending:pendingV3Buybacks(state),
-        receipts:[], historicalV2Receipts:Object.values(state.buybackOrders || {})
+        receipts:Object.values(state.v3BuybackOrders||{}).filter(row=>row.status==='finalized'
+          &&row.finalized===true&&row.vaultDebitVerified===true
+          &&row.burnInstructionVerified===true)
+          .map(({preparedTransaction,signedTransaction,pumpData,pumpKeys,...row})=>row),
+        historicalV2Receipts:Object.values(state.buybackOrders || {})
           .filter(row => row.status === 'finalized' && row.refundVerified)
           .map(({ signedTransaction, refundTransaction, ...row }) => row) });
     }

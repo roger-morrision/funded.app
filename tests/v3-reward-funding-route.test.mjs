@@ -18,6 +18,7 @@ function fixture({ enabled = true, submit = null, kind = 'community' } = {}) {
   const path = `/api/tokens/${mint.publicKey.toBase58()}/v3-${kind}-${suffix}/${collectionSignature}`;
   const responses = [];
   const launch = { mint:mint.publicKey.toBase58(), onchainVerified:true, cluster:'devnet',
+    createdTimestamp:1_700_000_000,
     creatorWallet:creator.publicKey.toBase58(), pumpFeeRoute:{ scope:'per-mint-v3',
       programId:program.publicKey.toBase58(), router,
       initialAuthority:authority.publicKey.toBase58() },
@@ -40,12 +41,23 @@ function fixture({ enabled = true, submit = null, kind = 'community' } = {}) {
       collectionSignature, settlementSignature, allocationPlan } },
     v3CommunityFunding:{} };
   let submitted = 0;
+  const holderPools = new Map();
+  const rewardState = { programs:{} };
   let finalized = false;
   const vault = deriveCommunityRewardVaultV3(program.publicKey, mint.publicKey, authority.publicKey);
   const handle = createV3RewardFundingRoutes({
     body:async req => req.input, store:{ read:async () => state, update:async fn => fn(state) },
     solanaCluster:'devnet', solanaRpcUrl:'https://unused.invalid',
     v3AuthorityKeypair:() => authority,
+    rewardStore:{ read:async () => rewardState },
+    schedulerFactory:() => ({
+      register:async input => { rewardState.programs[input.mint] = input; },
+      recordFundedPool:async input => {
+        const prior = holderPools.get(input.id);
+        if (prior) assert.deepEqual(input, prior);
+        holderPools.set(input.id, input);
+      },
+    }),
     env:{ FUNDED_V3_COMMUNITY_FUNDING_ENABLED:enabled ? 'true' : 'false',
       FUNDED_V3_CREATOR_REWARD_FUNDING_ENABLED:enabled ? 'true' : 'false',
       FUNDED_V3_CREATOR_WALLET_PAYOUT_ENABLED:enabled ? 'true' : 'false',
@@ -69,7 +81,7 @@ function fixture({ enabled = true, submit = null, kind = 'community' } = {}) {
     originAllowed:() => true,
     respond:(_res,status,data) => responses.push({ status,data }),
   });
-  return { state, responses, get submitted(){return submitted;},
+  return { state, responses, holderPools, get submitted(){return submitted;},
     setFinalized:value => { finalized=value; },
     request:input => handle({ method:'POST', input, headers:{} }, {}, new URL(path,'https://funded.vip')) };
 }
@@ -113,6 +125,9 @@ test('V3 creator-directed holder and X funds use category zero and their exact c
   assert.equal(f.responses.at(-1).status, 200);
   assert.equal(f.state.v3CreatorRewardFunding[collectionSignature].amount, '20');
   assert.equal(f.state.v3CreatorRewardFunding[collectionSignature].status, 'finalized');
+  assert.equal(f.holderPools.get(`v3:${collectionSignature}`).amount, '15');
+  await f.request({});
+  assert.equal(f.holderPools.size, 1);
 });
 
 test('V3 creator wallet payout releases only its exact category-zero share', async () => {

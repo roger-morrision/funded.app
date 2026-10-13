@@ -74,6 +74,20 @@ try {
   assert.equal(state.collections.claim.collectedLamports, 1_000_000_000);
   assert.equal(state.referrals.codes.CODE.wallet, 'inviter');
   assert.equal((await pool.query('SELECT count(*)::int AS count FROM state_entities')).rows[0].count, 5);
+  const v3Funding = { status:'finalized', signature:'fixture-v3-disbursement',
+    mint:oldLaunch.mint, amount:'2000', balanceDeltaVerified:true };
+  await store.update(current => {
+    for (const bucket of ['v3CommunityFunding', 'v3CreatorRewardFunding', 'v3CreatorWalletPayout'])
+      current[bucket]['fixture-collection'] = v3Funding;
+    current.v3XClaims['fixture-collection'] = { status:'awaiting-wallet', xUserId:'123' };
+    current.v3BuybackOrders['fixture-collection'] = { status:'verification-pending', buybackId:'fixture-id' };
+  });
+  const reloadedV3 = await other.read();
+  for (const bucket of ['v3CommunityFunding', 'v3CreatorRewardFunding', 'v3CreatorWalletPayout'])
+    assert.deepEqual(reloadedV3[bucket]['fixture-collection'], v3Funding,
+      `${bucket} must survive a separate PostgreSQL store instance.`);
+  assert.equal(reloadedV3.v3XClaims['fixture-collection'].xUserId, '123');
+  assert.equal(reloadedV3.v3BuybackOrders['fixture-collection'].buybackId, 'fixture-id');
   await Promise.all([
     store.update(state=>{state.creatorProfiles['123']={id:'123',handle:'@fixture',listed:true,identityVerified:true,following:['456'],updates:[{text:'Local fixture',createdAt:'2026-09-20T00:00:00Z'}]};}),
     other.update(state=>{state.creatorProfiles['456']={id:'456',handle:'@other',listed:false,optedOut:true};}),

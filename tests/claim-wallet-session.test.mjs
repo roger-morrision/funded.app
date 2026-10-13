@@ -25,13 +25,27 @@ test('X claim controls stay hidden for historical V2 claims despite identity and
   syncXClaimFlow({ captureWalletSession:() => ({ address:'wallet' }), document:f.document });
   assert.equal(f.nodes['#sol-claim-submit'].hidden, true);
   assert.equal(f.nodes['#sol-claim-submit'].disabled, true);
-  assert.match(f.nodes['#sol-claim-submit'].textContent, /V3 X claims pending activation/);
+  assert.match(f.nodes['#sol-claim-submit'].textContent, /Verify wallet and claim V3 SOL/);
 });
 
-test('X claim status distinguishes historical payment from pending V3 activation', () => {
+test('X claim status shows historical payment without offering a V3 payout', () => {
   const f = fixture();
   resetSolClaimStatus({ captureWalletSession:() => ({ address:'wallet' }),
     syncXClaimFlow:() => {}, document:f.document });
-  assert.match(f.nodes['#sol-claim-status'].textContent, /Historical verified payments/);
-  assert.match(f.nodes['#sol-claim-status'].textContent, /V3 X claims are pending activation/);
+  assert.match(f.nodes['#sol-claim-status'].textContent, /Verified payments are listed above/);
+});
+
+test('a funded V3 reward requires wallet consent before enabling its claim', () => {
+  const f=fixture();
+  const selected=node();selected.dataset={claimId:'historical-v2-claim',claimScope:'per-mint-v3',claimStatus:'ready'};
+  const prior=f.document.querySelectorAll;
+  f.document.querySelectorAll=selector=>selector==='#sol-claim-list [data-claim-id]'
+    ? [selected] : prior(selector);
+  f.nodes['#claim-binding-agree'].checked=false;
+  syncXClaimFlow({ captureWalletSession:()=>({address:'wallet'}), document:f.document });
+  assert.equal(f.nodes['#sol-claim-submit'].hidden,false);
+  assert.equal(f.nodes['#sol-claim-submit'].disabled,true);
+  f.nodes['#claim-binding-agree'].checked=true;
+  syncXClaimFlow({ captureWalletSession:()=>({address:'wallet'}), document:f.document });
+  assert.equal(f.nodes['#sol-claim-submit'].disabled,false);
 });

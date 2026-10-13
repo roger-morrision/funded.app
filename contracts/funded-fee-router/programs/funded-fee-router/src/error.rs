@@ -70,4 +70,8 @@ pub enum ErrorCode {
     MintWithdrawalBudgetExceededV3,
     #[msg("The v3 router balance does not match the verified collection amount")]
     MintClaimAmountMismatchV3,
+    #[msg("The V3 buyback route, market, or token custody account is invalid")]
+    InvalidMintBuybackV3,
+    #[msg("The V3 buyback did not purchase and burn the minimum token amount")]
+    MintBuybackBurnFailedV3,
 }

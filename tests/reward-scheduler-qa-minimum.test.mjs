@@ -37,3 +37,32 @@ test('a temporary QA period preserves the existing daily schedule', async () => 
     }
   }
 });
+
+test('a finalized V3 holder pool can be re-enrolled after its period is assigned', async () => {
+  const state = { rewardPools:{} };
+  const scheduler = createRewardScheduler({
+    store:{ transaction:async callback => callback(state) }, indexer:{}, chain:{} });
+  const funding = { id:'v3:collection', mint, asset:'SOL', amount:'1200000',
+    fundedAt:1_700_000_000, fundingSignature:'finalized-v3-funding',
+    balanceDeltaVerified:true };
+  await scheduler.recordFundedPool(funding);
+  state.rewardPools[funding.id].status = 'assigned';
+  state.rewardPools[funding.id].scheduleId = 'holder-cycle';
+  await scheduler.recordFundedPool(funding);
+  assert.equal(state.rewardPools[funding.id].scheduleId, 'holder-cycle');
+  await assert.rejects(scheduler.recordFundedPool({ ...funding, amount:'1200001' }),
+    /different immutable funding data/);
+});
+
+test('a direct X payout cannot replay its ID against different finalized funding', async () => {
+  const state = { schedules:{} };
+  const scheduler = createRewardScheduler({
+    store:{ transaction:async callback => callback(state) }, indexer:{}, chain:{} });
+  const input = { id:'collection', mint, recipient:'ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC',
+    asset:'SOL', kind:'x', amount:'1000000', fundingSignature:'finalized-a',
+    balanceDeltaVerified:true, fundedAt:1_700_000_000 };
+  await scheduler.recordDirectFunded(input);
+  await scheduler.recordDirectFunded(input);
+  await assert.rejects(scheduler.recordDirectFunded({ ...input,
+    fundingSignature:'finalized-b' }), /different immutable data/);
+});

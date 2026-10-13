@@ -5,6 +5,7 @@ import { Connection, PublicKey } from '@solana/web3.js';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import { buildMintRouterV3DisbursementInstruction } from '../../mint-router-v3.js';
 import { createAutomaticRewardChain } from '../automatic-reward-chain.mjs';
+import { createRewardScheduler } from '../reward-scheduler.mjs';
 import { prepareCreatorSettlement, verifyCreatorSettlement,
   submitCreatorSettlement, creatorSettlementRetryState } from '../creator-settlement-transaction.mjs';
 import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
@@ -17,10 +18,11 @@ const withdrawalIdFor = (kind, signature) => createHash('sha256')
   .update(`funded.v3.${kind}-funding.v1:${signature}`).digest();
 
 export function createV3RewardFundingRoutes({ body, store, solanaCluster, solanaRpcUrl,
-  v3AuthorityKeypair, respond, env = process.env,
+  v3AuthorityKeypair, rewardStore, respond, env = process.env,
   connectionFactory = url => new Connection(url, 'finalized'),
   verifyReadiness = verifyV3LaunchRouterReadiness,
   rewardChainFactory = createAutomaticRewardChain,
+  schedulerFactory = createRewardScheduler,
   loadSettlement = loadFinalizedV3Settlement,
   loadFunding = loadFinalizedV3RewardFunding,
   prepareTransaction = prepareCreatorSettlement,
@@ -120,10 +122,33 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       authority:authority.publicKey, creator:launch.creatorWallet,
       initialAuthority:launch.pumpFeeRoute.initialAuthority,
       withdrawalId, category, amount, recipient, split:PROTOCOL_FEE_SPLIT });
+    const enrollHolderPool = async funded => {
+      if (kind !== 'creator-reward' || BigInt(plan.creatorDirected.holderLamports) === 0n) return;
+      if (!funded?.balanceDeltaVerified || funded.amount !== String(amount)
+        || funded.recipient !== recipient.toBase58())
+        throw new Error('Holder pool enrollment requires exact finalized V3 reward funding.');
+      if (!rewardStore) throw new Error('V3 holder reward ledger is unavailable.');
+      const activatedAt = Number(launch.createdTimestamp);
+      const fundedAt = Math.floor(Date.parse(funded.finalizedAt) / 1000);
+      if (!Number.isSafeInteger(activatedAt) || activatedAt <= 0
+        || !Number.isSafeInteger(fundedAt) || fundedAt < activatedAt)
+        throw new Error('Verified launch and funding times are required for holder enrollment.');
+      const scheduler = schedulerFactory({ store:rewardStore, chain,
+        indexer:{ capture:async () => { throw new Error('Funding enrollment does not capture holder snapshots.'); } } });
+      const existingProgram = (await rewardStore.read()).programs?.[mint];
+      if (!existingProgram) await scheduler.register({ mint, asset:'SOL', activatedAt });
+      else if (existingProgram.activatedAt !== activatedAt || existingProgram.asset !== 'SOL')
+        throw new Error('Holder schedule conflicts with the verified V3 launch.');
+      await scheduler.recordFundedPool({ id:`v3:${collectionSignature}`,
+        mint, asset:'SOL', amount:plan.creatorDirected.holderLamports,
+        fundingSignature:funded.signature, balanceDeltaVerified:true, fundedAt });
+    };
     const existing = state[ledger]?.[collectionSignature];
     if (existing?.status === 'finalized') {
-      return await loadProof(existing.signature) ? json(res, 200, existing)
-        : json(res, 409, { error:'Saved V3 funding lacks finalized proof.' });
+      const verified = await loadProof(existing.signature);
+      if (!verified) return json(res, 409, { error:'Saved V3 funding lacks finalized proof.' });
+      await enrollHolderPool(existing);
+      return json(res, 200, existing);
     }
     if (existing?.signature) {
       const funded = await loadProof(existing.signature);
@@ -134,8 +159,9 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
           return current[ledger][collectionSignature] = { ...funded,
             collectionSignature, status:'finalized', finalizedAt:new Date().toISOString() };
         });
-        return result ? json(res, 200, result)
-          : json(res, 409, { error:'Funding state changed during recovery.' });
+        if (!result) return json(res, 409, { error:'Funding state changed during recovery.' });
+        await enrollHolderPool(result);
+        return json(res, 200, result);
       }
       const retry = await retryState({ connection, signatures:[existing.signature],
         blockhash:existing.blockhash });
@@ -176,7 +202,8 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       return current[ledger][collectionSignature] = { ...funded,
         collectionSignature, status:'finalized', finalizedAt:new Date().toISOString() };
     });
-    return result ? json(res, 200, result)
-      : json(res, 409, { error:'Finalized funding state changed; reconcile its signature.' });
+    if (!result) return json(res, 409, { error:'Finalized funding state changed; reconcile its signature.' });
+    await enrollHolderPool(result);
+    return json(res, 200, result);
   };
 }

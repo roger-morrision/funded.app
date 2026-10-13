@@ -46,8 +46,8 @@ export function createLaunchRegistrationRoutes({
     ]) if (env[name] !== 'true') reasons.push(`${label} is disabled`);
     // Configuration cannot activate missing instructions or workers. Remove
     // these blockers only after finalized V3 payout and burn regressions.
-    reasons.push('V3 creator-directed reward funding and claims are incomplete');
-    reasons.push('V3 buyback purchase and burn are not implemented');
+    reasons.push('V3 holder and X payouts require finalized Devnet verification');
+    reasons.push('V3 buyback purchase and burn require finalized Devnet verification');
     if (!programId || !/^[a-f0-9]{64}$/.test(approvedHash)) reasons.push('Approved V3 program is not configured');
     let authority = null;
     try { authority = v3AuthorityKeypair?.(); } catch { reasons.push('V3 authority signer is invalid'); }
@@ -91,7 +91,8 @@ export function createLaunchRegistrationRoutes({
       if (input.pumpFeeRoute?.scope !== 'per-mint-v3') return json(res, 410, { error:'V2 launch registration is retired. Submit a verified V3 launch.' });
       const v3Config = await v3LaunchConfig();
       if (!v3Config.ready) return json(res, 503, { error:'V3 normal flows are not ready to accept a new launch.' });
-      if (xLinked) return json(res, 503, { error:'V3 X payout and claim verification are not activated.' });
+      if (xLinked && env.FUNDED_V3_X_CLAIMS_ENABLED !== 'true')
+        return json(res, 503, { error:'V3 X payout and claim verification are not activated.' });
       if (xLinked && (await resolveXUser(policy.xRecipient)).id !== policy.xUserId) return json(res, 409, { error: 'The X account ID changed since launch preparation; registration is blocked.' });
       const promotionClaim = input.creatorLaunchBurn || null;
       const paidClaim = promotionClaim && promotionClaim.tier !== 'standard';

@@ -67,6 +67,39 @@ test('private X claims reject anonymous access before reading financial data', a
   assert.equal(f.headers['cache-control'], 'no-store');
 });
 
+test('enabled V3 X claim listing includes only finalized funding for the signed-in X ID', async () => {
+  const previous = process.env.FUNDED_V3_X_CLAIMS_ENABLED;
+  process.env.FUNDED_V3_X_CLAIMS_ENABLED = 'true';
+  const mint = Keypair.generate().publicKey.toBase58();
+  const collection = '3'.repeat(64);
+  const f = fixture(createXIdentityRoutes, {
+    xSession: async () => ({ user:{ id:'123', username:'qa' } }),
+    store:{ readCreatorState:async () => ({ obligations:{}, claims:{}, payouts:{} }),
+      read:async () => ({
+        launches:{ [mint]:{ mint, cluster:'devnet', xUserId:'123', onchainVerified:true,
+          pumpFeeRoute:{scope:'per-mint-v3'} } },
+        collections:{ [collection]:{ mint, status:'collected', onchainVerified:true } },
+        v3CreatorRewardFunding:{ [collection]:{ mint, status:'finalized', amount:'9000000' },
+          ['4'.repeat(64)]:{ mint, status:'verification-pending' } },
+        v3Settlements:{ [collection]:{ status:'finalized', mint,
+          allocationPlan:{ creatorDirected:{ xLamports:'5000000', holderLamports:'4000000' } } } },
+        v3XClaims:{},
+      }) },
+    readReceiptEvidence:async () => ({ verifiedPayouts:[] }),
+    automaticRewardStore:{ read:async () => ({}) },
+  });
+  try {
+    await f.request('/api/x-fee/claims', {}, 'GET');
+    assert.equal(f.responses.at(-1).status, 200);
+    assert.equal(f.responses.at(-1).data.claims.length, 1);
+    assert.equal(f.responses.at(-1).data.claims[0].id, collection);
+    assert.equal(f.responses.at(-1).data.claims[0].canPrepare, true);
+  } finally {
+    if (previous === undefined) delete process.env.FUNDED_V3_X_CLAIMS_ENABLED;
+    else process.env.FUNDED_V3_X_CLAIMS_ENABLED = previous;
+  }
+});
+
 test('SOL obligations reject caller amounts and keeper denial stops dispatch', async () => {
   let denied = 0;
   const f = fixture(createSolClaimsRoutes, { requireAuthorized: () => { denied++; return false; },

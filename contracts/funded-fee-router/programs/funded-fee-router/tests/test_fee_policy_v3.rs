@@ -6,6 +6,10 @@ use solana_keypair_lite::Keypair;
 use solana_message_lite::{Message, VersionedMessage};
 use solana_signer_lite::Signer;
 use solana_transaction_lite::versioned::VersionedTransaction;
+#[cfg(feature = "devnet-v3-program")]
+use solana_account::Account;
+#[cfg(feature = "devnet-v3-program")]
+use std::str::FromStr;
 mod support;
 
 fn send(svm: &mut LiteSVM, payer: &Keypair, signers: &[&Keypair], ix: Instruction) -> bool {
@@ -262,6 +266,54 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
     let buyback_receipt = Pubkey::find_program_address(
         &[b"mint-withdraw-v3", mint.pubkey().as_ref(), &[16u8; 32]], &program).0;
     assert!(svm.get_account(&buyback_receipt).is_none());
+
+    #[cfg(feature = "devnet-v3-program")]
+    {
+        // Even two authorized signers cannot substitute another market for
+        // the approved $FUNDED pool and extract category-6 SOL.
+        let funded_mint = Pubkey::from_str("C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64").unwrap();
+        let pump_swap = Pubkey::from_str("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA").unwrap();
+        let wrong_pool = Keypair::new().pubkey();
+        svm.set_account(wrong_pool, Account { lamports:1_000_000,
+            data:vec![0; 200], owner:pump_swap, executable:false, rent_epoch:0 }).unwrap();
+        svm.set_account(funded_mint, Account { lamports:1_000_000,
+            data:vec![0; 82], owner:anchor_spl::token::ID,
+            executable:false, rent_epoch:0 }).unwrap();
+        svm.set_account(pump_swap, Account { lamports:1_000_000,
+            data:vec![], owner:anchor_lang::system_program::ID,
+            executable:false, rent_epoch:0 }).unwrap();
+        let buyback_id = [31u8; 32];
+        let receipt = Pubkey::find_program_address(&[b"mint-buyback-v3",
+            mint.pubkey().as_ref(), &buyback_id], &program).0;
+        let funded_ata = anchor_spl::associated_token::get_associated_token_address_with_program_id(
+            &original[6], &funded_mint, &anchor_spl::token::ID);
+        let quote_ata = anchor_spl::associated_token::get_associated_token_address_with_program_id(
+            &original[6], &anchor_spl::token::spl_token::native_mint::id(), &anchor_spl::token::ID);
+        let ix = Instruction::new_with_bytes(program,
+            &funded_fee_router::instruction::BuybackMintV3 { buyback_id,
+                spendable_quote_in:1_000_000, min_base_amount_out:1,
+                max_total_debit:2_000_000 }.data(),
+            funded_fee_router::accounts::BuybackMintV3 {
+                authority:next_authority.pubkey(), creator:creator.pubkey(),
+                mint:mint.pubkey(), legacy_router, policy, vault:original[6],
+                funded_mint, funded_token_account:funded_ata,
+                quote_token_account:quote_ata, pool:wrong_pool, receipt,
+                base_token_program:anchor_spl::token::ID,
+                quote_token_program:anchor_spl::token::ID,
+                associated_token_program:anchor_spl::associated_token::ID,
+                pump_swap_program:pump_swap,
+                system_program:anchor_lang::system_program::ID,
+            }.to_account_metas(None));
+        svm.expire_blockhash();
+        assert!(!send(&mut svm, &next_authority,
+            &[&next_authority, &creator], ix));
+        assert!(svm.get_account(&receipt).is_none());
+        assert_eq!(svm.get_account(&original[6]).unwrap().lamports,
+            buyback_vault_before);
+        let updated = svm.get_account(&policy).unwrap();
+        let updated = MintFeePolicyV3::try_deserialize(&mut &updated.data[..]).unwrap();
+        assert_eq!(updated.withdrawn_lamports[6], 0);
+    }
 
     // A new mint may choose a different split of only the protocol 20%,
     // including a zero buyback allocation, without changing creator 80%.
