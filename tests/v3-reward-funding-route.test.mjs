@@ -4,6 +4,7 @@ import bs58 from 'bs58';
 import { Keypair, Transaction } from '@solana/web3.js';
 import { deriveCommunityRewardVaultV3, deriveMintRouterV3 } from '../mint-router-v3.js';
 import { v3AllocationPlan } from '../server/v3-allocation-plan.mjs';
+import { AUTOMATIC_REWARDS } from '../automatic-rewards.js';
 import { createV3RewardFundingRoutes } from '../server/routes/v3-reward-funding.mjs';
 
 const key = byte => Keypair.fromSeed(new Uint8Array(32).fill(byte));
@@ -13,7 +14,8 @@ const settlementSignature = '2'.repeat(64);
 const claimId = Buffer.alloc(32, 8);
 const router = deriveMintRouterV3(program.publicKey, mint.publicKey).address.toBase58();
 
-function fixture({ enabled = true, submit = null, kind = 'community' } = {}) {
+function fixture({ enabled = true, submit = null, kind = 'community', qaShort = false,
+  existingProgram = null } = {}) {
   const suffix = kind === 'creator-wallet' ? 'payout' : 'funding';
   const path = `/api/tokens/${mint.publicKey.toBase58()}/v3-${kind}-${suffix}/${collectionSignature}`;
   const responses = [];
@@ -42,7 +44,8 @@ function fixture({ enabled = true, submit = null, kind = 'community' } = {}) {
     v3CommunityFunding:{} };
   let submitted = 0;
   const holderPools = new Map();
-  const rewardState = { programs:{} };
+  const rewardState = { programs:existingProgram ? { [launch.mint]:existingProgram } : {} };
+  const registrations = [];
   let finalized = false;
   const vault = deriveCommunityRewardVaultV3(program.publicKey, mint.publicKey, authority.publicKey);
   const handle = createV3RewardFundingRoutes({
@@ -51,7 +54,7 @@ function fixture({ enabled = true, submit = null, kind = 'community' } = {}) {
     v3AuthorityKeypair:() => authority,
     rewardStore:{ read:async () => rewardState },
     schedulerFactory:() => ({
-      register:async input => { rewardState.programs[input.mint] = input; },
+      register:async input => { registrations.push(input); rewardState.programs[input.mint] = input; },
       recordFundedPool:async input => {
         const prior = holderPools.get(input.id);
         if (prior) assert.deepEqual(input, prior);
@@ -61,6 +64,9 @@ function fixture({ enabled = true, submit = null, kind = 'community' } = {}) {
     env:{ FUNDED_V3_COMMUNITY_FUNDING_ENABLED:enabled ? 'true' : 'false',
       FUNDED_V3_CREATOR_REWARD_FUNDING_ENABLED:enabled ? 'true' : 'false',
       FUNDED_V3_CREATOR_WALLET_PAYOUT_ENABLED:enabled ? 'true' : 'false',
+      FUNDED_QA_SHORT_REWARD_PERIODS:qaShort ? 'true' : 'false',
+      FUNDED_QA_HOLDER_MINT:qaShort ? launch.mint : '',
+      FUNDED_QA_HOLDER_MIN_LAMPORTS:qaShort ? '100000' : '',
       FUNDED_V3_FEE_ROUTER_PROGRAM_ID:program.publicKey.toBase58(),
       FUNDED_V3_PROGRAM_DATA_SHA256:'a'.repeat(64) },
     connectionFactory:() => ({ getLatestBlockhash:async () => ({
@@ -81,7 +87,7 @@ function fixture({ enabled = true, submit = null, kind = 'community' } = {}) {
     originAllowed:() => true,
     respond:(_res,status,data) => responses.push({ status,data }),
   });
-  return { state, responses, holderPools, get submitted(){return submitted;},
+  return { state, responses, holderPools, registrations, get submitted(){return submitted;},
     setFinalized:value => { finalized=value; },
     request:input => handle({ method:'POST', input, headers:{} }, {}, new URL(path,'https://funded.vip')) };
 }
@@ -128,6 +134,24 @@ test('V3 creator-directed holder and X funds use category zero and their exact c
   assert.equal(f.holderPools.get(`v3:${collectionSignature}`).amount, '15');
   await f.request({});
   assert.equal(f.holderPools.size, 1);
+});
+
+test('the selected Devnet QA holder mint can re-enroll a funded daily pool into a bounded short period', async () => {
+  const f = fixture({ kind:'creator-reward', qaShort:true,
+    existingProgram:{ mint:mint.publicKey.toBase58(), asset:'SOL',
+      activatedAt:1_700_000_000, periodSeconds:AUTOMATIC_REWARDS.periodSeconds } });
+  await f.request({});
+  await f.request({ creatorSignedTransaction:signPrepared(f.responses[0].data.transaction) });
+  assert.equal(f.responses.at(-1).status, 200);
+  assert.equal(f.registrations.length, 1);
+  assert.equal(f.registrations[0].periodSeconds, 300);
+  assert.equal(f.registrations[0].sampleIntervalSeconds, 300);
+  assert.equal(f.registrations[0].payoutDelaySeconds, 0);
+  assert.equal(f.registrations[0].firstPeriodStart % 300, 0);
+  assert.equal(f.holderPools.get(`v3:${collectionSignature}`).amount, '15');
+  await f.request({});
+  assert.equal(f.registrations.length, 1);
+  assert.equal(f.submitted, 1, 're-enrollment must not submit a second funding transaction');
 });
 
 test('V3 creator wallet payout releases only its exact category-zero share', async () => {

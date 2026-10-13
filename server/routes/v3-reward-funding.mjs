@@ -6,6 +6,8 @@ import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import { buildMintRouterV3DisbursementInstruction } from '../../mint-router-v3.js';
 import { createAutomaticRewardChain } from '../automatic-reward-chain.mjs';
 import { createRewardScheduler } from '../reward-scheduler.mjs';
+import { holderFundingMinimumLamports } from '../reward-scheduler.mjs';
+import { AUTOMATIC_REWARDS } from '../../automatic-rewards.js';
 import { prepareCreatorSettlement, verifyCreatorSettlement,
   submitCreatorSettlement, creatorSettlementRetryState } from '../creator-settlement-transaction.mjs';
 import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
@@ -136,9 +138,25 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       const scheduler = schedulerFactory({ store:rewardStore, chain,
         indexer:{ capture:async () => { throw new Error('Funding enrollment does not capture holder snapshots.'); } } });
       const existingProgram = (await rewardStore.read()).programs?.[mint];
-      if (!existingProgram) await scheduler.register({ mint, asset:'SOL', activatedAt });
-      else if (existingProgram.activatedAt !== activatedAt || existingProgram.asset !== 'SOL')
+      const qaShort = solanaCluster === 'devnet'
+        && env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true'
+        && env.FUNDED_QA_HOLDER_MINT === mint;
+      if (qaShort) holderFundingMinimumLamports({ mint, periodSeconds:300 },
+        { ...env, SOLANA_CLUSTER:'devnet' });
+      if (existingProgram && (existingProgram.activatedAt !== activatedAt
+        || existingProgram.asset !== 'SOL'))
         throw new Error('Holder schedule conflicts with the verified V3 launch.');
+      if (qaShort && existingProgram && ![300, AUTOMATIC_REWARDS.periodSeconds]
+        .includes(existingProgram.periodSeconds))
+        throw new Error('The QA holder schedule conflicts with an existing reward period.');
+      if (!existingProgram || qaShort && existingProgram.periodSeconds !== 300) {
+        const firstPeriodStart = qaShort
+          ? Math.ceil(Math.max(activatedAt, fundedAt, Math.floor(Date.now() / 1000)) / 300) * 300
+          : undefined;
+        await scheduler.register({ mint, asset:'SOL', activatedAt,
+          ...(qaShort ? { periodSeconds:300, sampleIntervalSeconds:300,
+            payoutDelaySeconds:0, firstPeriodStart } : {}) });
+      }
       await scheduler.recordFundedPool({ id:`v3:${collectionSignature}`,
         mint, asset:'SOL', amount:plan.creatorDirected.holderLamports,
         fundingSignature:funded.signature, balanceDeltaVerified:true, fundedAt });
