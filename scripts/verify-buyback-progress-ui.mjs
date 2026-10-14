@@ -18,11 +18,12 @@ try {
     contentType:'application/json',body:'{"error":"fixture"}' }));
   await context.route('**/api/fee-policy', route => route.fulfill({ status:200,
     contentType:'application/json',body:JSON.stringify(feePolicy) }));
+  let dashboardFixture = { status:'verified',collectedLamports:'447709',
+    thresholdLamports:'5000000000',triggerReached:false,
+    lastBurn:{ signature:'3'.repeat(64),burnedAt:'2026-10-13T12:25:09.000Z' } };
   await context.route('**/api/buyback/status', route => route.fulfill({ status:200,
     contentType:'application/json',body:JSON.stringify({ cluster:'devnet',
-      automationEnabled:true,pending:[],receipts:[],dashboard:{ status:'verified',
-        collectedLamports:'447709',thresholdLamports:'5000000000',triggerReached:false,
-        lastBurn:{ signature:'3'.repeat(64),burnedAt:'2026-10-13T12:25:09.000Z' } } }) }));
+      automationEnabled:true,pending:[],receipts:[],dashboard:dashboardFixture }) }));
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -49,6 +50,13 @@ try {
   await page.waitForFunction(() => document.querySelector('#buyback-route-balance')?.textContent === '0.000447709 SOL');
   assert.equal(await page.locator('.buyback-route-progress').isVisible(),true);
   assert.equal(await page.locator('#buyback-route-proof').isVisible(),true);
+  dashboardFixture = { status:'verified',collectedLamports:'0',
+    unindexedStatus:'verified',unindexedLamports:'3477413',
+    thresholdLamports:'5000000000',triggerReached:false,lastBurn:null };
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(() => document.querySelector('#buyback-route-balance')?.textContent === '0.003477413 SOL');
+  assert.match(await page.locator('#buyback-route-status').textContent(),/without app settlement records/);
+  assert.equal(await page.locator('#buyback-route-proof').isVisible(),false);
   await context.close();
 
   const unavailable = await browser.newContext({ viewport:{width:390,height:844} });

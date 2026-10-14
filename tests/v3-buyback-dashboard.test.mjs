@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Keypair, SystemProgram } from '@solana/web3.js';
 import { readV3BuybackDashboard } from '../server/v3-buyback-dashboard.mjs';
+import { deriveMintPolicyV3 } from '../mint-router-v3.js';
 
 const key = byte => Keypair.fromSeed(new Uint8Array(32).fill(byte)).publicKey.toBase58();
 const programId = key(1), mint = key(2), source = key(3);
@@ -72,4 +73,35 @@ test('only proved V3 burn reduces the balance and supplies public proof', async 
       data:Buffer.alloc(0),lamports:4_000_890_880 }) } });
   assert.equal(unproved.lastBurn,null);
   assert.equal(unproved.collectedLamports,null);
+});
+
+test('finalized on-chain vault funds without app records remain visible but cannot trigger execution', async () => {
+  const policy = Buffer.alloc(249);
+  Buffer.from('25d0c7eca736c38f', 'hex').copy(policy);
+  Keypair.fromSeed(new Uint8Array(32).fill(2)).publicKey.toBuffer().copy(policy, 8);
+  policy.writeUInt32LE(1_500_000, 104);
+  policy.writeUInt32LE(500_000, 124);
+  policy.writeBigUInt64LE(20_000_000n, 128);
+  policy.writeBigUInt64LE(15_000_000n, 136);
+  policy.writeBigUInt64LE(5_000_000n, 184);
+  const account = { pubkey:deriveMintPolicyV3(programId,mint).address,
+    account:{ data:policy } };
+  const connection = {
+    getMinimumBalanceForRentExemption:async () => 650_240,
+    getProgramAccounts:async () => [account],
+    getAccountInfo:async () => ({owner:SystemProgram.programId,
+      data:Buffer.alloc(0),lamports:5_650_240}),
+  };
+  const dashboard = await readV3BuybackDashboard({state:{v3Settlements:{},v3BuybackOrders:{}},
+    programId,connection});
+  assert.equal(dashboard.unindexedLamports,'5000000');
+  assert.equal(dashboard.unindexedVaults.length,1);
+  assert.equal(dashboard.collectedLamports,'0');
+  assert.equal(dashboard.triggerReached,false);
+  connection.getAccountInfo = async () => ({owner:SystemProgram.programId,
+    data:Buffer.alloc(0),lamports:4_650_240});
+  const discrepancy = await readV3BuybackDashboard({state:{v3Settlements:{},v3BuybackOrders:{}},
+    programId,connection});
+  assert.equal(discrepancy.unindexedStatus,'partial');
+  assert.equal(discrepancy.unindexedLamports,null);
 });

@@ -1,11 +1,56 @@
-import { SystemProgram } from '@solana/web3.js';
-import { deriveMintVaultsV3 } from '../mint-router-v3.js';
+import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { deriveMintPolicyV3, deriveMintVaultsV3 } from '../mint-router-v3.js';
 import { v3BuybackSourceSpent, verifiedV3BuybackOrder } from './v3-buyback-orders.mjs';
 
 export const BUYBACK_TRIGGER_LAMPORTS = 5_000_000_000n;
 
 const verifiedBurn = row => verifiedV3BuybackOrder(row)
   && /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(String(row.signature || ''));
+
+const POLICY_DISCRIMINATOR = Buffer.from('25d0c7eca736c38f', 'hex');
+
+// Old Devnet launches can retain funded vaults after their application records
+// have been cleared. Report that custody separately; it cannot authorize a
+// buyback without the matching collection and settlement proofs.
+export async function readUnindexedV3BuybackVaults({ connection, programId, indexedMints, reserve }) {
+  const accounts = await connection.getProgramAccounts(new PublicKey(programId), {
+    commitment:'finalized', filters:[{ dataSize:249 }],
+  });
+  const policies = [];
+  for (const { pubkey, account } of accounts) {
+    const data = Buffer.from(account.data);
+    if (data.length !== 249 || !data.subarray(0, 8).equals(POLICY_DISCRIMINATOR)) continue;
+    const mint = new PublicKey(data.subarray(8, 40));
+    if (indexedMints.has(mint.toBase58()) || !pubkey.equals(deriveMintPolicyV3(programId, mint).address)) continue;
+    const rates = Array.from({ length:6 }, (_, index) => data.readUInt32LE(104 + index * 4));
+    const paid = Array.from({ length:7 }, (_, index) => data.readBigUInt64LE(136 + index * 8));
+    const withdrawn = Array.from({ length:7 }, (_, index) => data.readBigUInt64LE(192 + index * 8));
+    const settled = data.readBigUInt64LE(128);
+    if (rates.reduce((sum, rate) => sum + rate, 0) !== 2_000_000
+      || rates[5] !== 500_000 || paid.reduce((sum, amount) => sum + amount, 0n) !== settled
+      || withdrawn.some((amount, index) => amount > paid[index])) continue;
+    policies.push({ mint:mint.toBase58(), address:deriveMintVaultsV3(programId, mint)[6],
+      expected:paid[6] - withdrawn[6] });
+  }
+  const rows = [];
+  for (let offset = 0; offset < policies.length; offset += 100) {
+    const batch = policies.slice(offset, offset + 100);
+    const accounts = typeof connection.getMultipleAccountsInfo === 'function'
+      ? await connection.getMultipleAccountsInfo(batch.map(row => row.address), 'finalized')
+      : await Promise.all(batch.map(row => connection.getAccountInfo(row.address, 'finalized')));
+    for (const [index, policy] of batch.entries()) {
+      const vault = accounts[index];
+      const { mint, address, expected } = policy;
+      const actual = !vault && expected === 0n ? 0n
+        : vault?.owner?.equals(SystemProgram.programId) && Buffer.from(vault.data || []).length === 0
+          ? BigInt(vault.lamports) > reserve ? BigInt(vault.lamports) - reserve : 0n : null;
+      rows.push({ mint, address:address.toBase58(),
+        status:actual === expected ? 'verified' : 'unavailable',
+        pendingLamports:actual === expected ? String(expected) : null });
+    }
+  }
+  return rows;
+}
 
 export function v3BuybackBudget(state, programId) {
   const byMint = new Map();
@@ -49,6 +94,16 @@ export async function readV3BuybackDashboard({ state, programId, connection,
   }));
   const complete = vaults.every(row => row.status === 'verified' && !row.discrepancy);
   const total = vaults.reduce((sum, row) => sum + BigInt(row.pendingLamports || '0'), 0n);
+  let unindexedVaults = [];
+  let unindexedStatus = 'verified';
+  try {
+    if (typeof connection.getProgramAccounts === 'function')
+      unindexedVaults = await readUnindexedV3BuybackVaults({ connection, programId,
+        indexedMints:new Set(budget.keys()), reserve });
+    else unindexedStatus = 'unavailable';
+  } catch { unindexedStatus = 'unavailable'; }
+  if (unindexedVaults.some(row => row.status !== 'verified')) unindexedStatus = 'partial';
+  const unindexedTotal = unindexedVaults.reduce((sum, row) => sum + BigInt(row.pendingLamports || '0'), 0n);
   const receipts = Object.values(state.v3BuybackOrders || {}).filter(row =>
     verifiedBurn(row) && row.programId === programId);
   receipts.sort((a, b) => Number(b.slot || 0) - Number(a.slot || 0));
@@ -67,7 +122,9 @@ export async function readV3BuybackDashboard({ state, programId, connection,
     collectedLamports:complete?String(total):null,
     observedLamports:String(total),
     triggerReached:complete && total >= thresholdLamports,
-    vaults, lastBurn:last ? { signature:last.signature, slot:last.slot,
+    vaults, unindexedVaults, unindexedStatus,
+    unindexedLamports:unindexedStatus === 'verified' ? String(unindexedTotal) : null,
+    lastBurn:last ? { signature:last.signature, slot:last.slot,
       burnedAt, spentLamports:last.spentLamports,
       burnedBaseUnits:last.burnedBaseUnits } : null };
 }

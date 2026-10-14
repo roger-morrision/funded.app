@@ -26,16 +26,24 @@ export function createBuybackController(appState) {
       const time = document.querySelector(`#${prefix}-last-time`);
       const proof = document.querySelector(`#${prefix}-proof`);
       if (!balance || !note || !track || !fill || !time || !proof) continue;
-      const exact = dashboard?.status === 'verified' && /^\d+$/.test(String(dashboard.collectedLamports));
-      const lamports = exact ? BigInt(dashboard.collectedLamports) : 0n;
+      const indexed = dashboard?.status === 'verified' && /^\d+$/.test(String(dashboard.collectedLamports));
+      const unindexed = dashboard?.unindexedStatus == null || dashboard.unindexedStatus === 'verified'
+        && /^\d+$/.test(String(dashboard.unindexedLamports));
+      const exact = indexed && unindexed;
+      const unindexedLamports = unindexed && dashboard?.unindexedLamports != null
+        ? BigInt(dashboard.unindexedLamports) : 0n;
+      const lamports = exact ? BigInt(dashboard.collectedLamports) + unindexedLamports : 0n;
       const sol = Number(lamports) / 1_000_000_000;
       balance.textContent = exact ? `${sol.toLocaleString(undefined, { maximumFractionDigits:9 })} SOL` : '—';
       note.textContent = !exact ? 'Vault verification unavailable or incomplete'
+        : unindexedLamports > 0n ? 'On-chain funds include older launches without app settlement records; these funds cannot auto-execute yet'
         : !appState.buybackNetworkState.automationEnabled ? 'Automatic execution is not active on this deployment'
           : dashboard.triggerReached ? '5 SOL trigger reached · awaiting protected execution' : 'Verified vault funds · awaiting 5 SOL';
       const progress = exact ? Math.min(100, sol / 5 * 100) : 0;
       track.setAttribute('aria-valuenow', String(Math.min(5, sol)));
-      track.setAttribute('aria-valuetext', exact ? `${sol} of 5 SOL` : 'Verified balance unavailable');
+      track.setAttribute('aria-valuetext', exact
+        ? `${sol} of 5 SOL on chain${unindexedLamports > 0n ? '; older funds cannot auto-execute without app records' : ''}`
+        : 'Verified balance unavailable');
       fill.style.width = `${progress}%`;
       const burn = dashboard?.lastBurn;
       const burnedAt = burn?.burnedAt && Number.isFinite(Date.parse(burn.burnedAt)) ? new Date(burn.burnedAt) : null;
