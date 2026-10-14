@@ -14,8 +14,6 @@ import {
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import { SOL_ASSET_MINT, verifyRewardProof } from '../reward-merkle.js';
-import { buildMintRouterSettlementInstruction, readMintClaimRecord, CreatorSignatureRequiredError } from './mint-router-payout.mjs';
-import { verifyFinalizedSettlementDelta } from './creator-settlement-transaction.mjs';
 
 // Solana may be reset. Keep this value aligned with the current official
 // Solana RPC evidence and fail closed when the configured endpoint differs.
@@ -357,39 +355,6 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     return { signature, vault: vault.toBase58(), amount: String(lamports), balanceDeltaVerified: true };
   }
 
-  async function fundSolVaultFromMintRouter({ mint, amount, fundingId, kind, creator, fundingSignature }) {
-    if (!creator || !fundingSignature) throw new CreatorSignatureRequiredError();
-    if (!['holder','operations'].includes(kind)) throw new Error('Unsupported automatic SOL funding kind.');
-    const vault = await ensureVault(mint);
-    const settlement = buildMintRouterSettlementInstruction({ programId: program, mint, authority: authority.publicKey,
-      creator, recipient: vault, amountLamports: String(amount), obligationId: fundingId,
-      claimDomain:kind === 'holder' ? 'holder-funding' : 'operations-funding' });
-    const expected = account => readMintClaimRecord(account, { programId: program, mint, recipient: vault, amountLamports: String(amount), claimId: settlement.claimId, share: settlement.share });
-    const claim = await connection.getAccountInfo(settlement.claim, 'finalized');
-    if (!expected(claim)) throw new Error('Creator-approved reward funding claim is not finalized or conflicts with this allocation.');
-    await verifyFinalizedSettlementDelta({ connection, signature:fundingSignature, router:settlement.router,
-      recipient:vault, amountLamports:String(amount) });
-    return { signature:fundingSignature, vault:vault.toBase58(), amount:String(amount), balanceDeltaVerified:true,
-      alreadyFunded:true, claim:settlement.claim.toBase58() };
-  }
-
-  async function fundCommunitySolVaultFromMintRouter({ mint, amount, fundingId, creator, fundingSignature }) {
-    if (!creator || !fundingSignature) throw new CreatorSignatureRequiredError();
-    const ready = await readiness();
-    if (!ready.constrainedPayouts) throw new Error(`Community reserve vault unavailable: ${ready.reasons.join(', ')}`);
-    const vault = await ensureVault(program);
-    const settlement = buildMintRouterSettlementInstruction({ programId:program, mint, authority:authority.publicKey,
-      creator, recipient:vault, amountLamports:String(amount), obligationId:fundingId, claimDomain:'community-reserve' });
-    const expected = account => readMintClaimRecord(account, { programId:program, mint, recipient:vault,
-      amountLamports:String(amount), claimId:settlement.claimId, share:settlement.share });
-    const claim = await connection.getAccountInfo(settlement.claim, 'finalized');
-    if (!expected(claim)) throw new Error('Creator-approved community reserve claim is not finalized or conflicts with this allocation.');
-    await verifyFinalizedSettlementDelta({ connection, signature:fundingSignature, router:settlement.router,
-      recipient:vault, amountLamports:String(amount) });
-    return { signature:fundingSignature, vault:vault.toBase58(), amount:String(amount), balanceDeltaVerified:true,
-      claim:settlement.claim.toBase58() };
-  }
-
   async function fundTokenVault({ mint, asset, amount, decimals }) {
     const vault = await ensureVault(mint), assetKey = new PublicKey(asset), assetInfo = await connection.getAccountInfo(assetKey, 'finalized');
     if (!assetInfo || (!assetInfo.owner.equals(TOKEN_PROGRAM_ID) && !assetInfo.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('Funding asset is not a supported SPL mint.');
@@ -408,6 +373,5 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       grossAmount: gross.toString(), balanceDeltaVerified: true };
   }
 
-  return { readiness, ensureVault, ensureCycle, submitLeaf, fundSolVault, fundSolVaultFromMintRouter,
-    fundCommunitySolVaultFromMintRouter, fundTokenVault };
+  return { readiness, ensureVault, ensureCycle, submitLeaf, fundSolVault, fundTokenVault };
 }

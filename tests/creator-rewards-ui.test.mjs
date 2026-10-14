@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCreatorFeesController } from '../src/app/controllers/creator-fees.js';
-import { creatorRewardRow, filterCreatorRewards } from '../creator-reward-model.js';
+import { creatorRewardRow, filterCreatorRewards, verifiedV3CreatorLaunch } from '../creator-reward-model.js';
 
-const launch = { mint:'mint-a', symbol:'ALPHA', creatorWallet:'creator', cluster:'devnet', onchainVerified:true };
+const launch = { mint:'mint-a', symbol:'ALPHA', creatorWallet:'creator', creator:'router',
+  cluster:'devnet', onchainVerified:true,
+  pumpFeeRoute:{scope:'per-mint-v3', router:'router', programId:'v3-program'} };
 const overview = { available:true, scope:'per-mint-v3', creatorWallet:'creator',
   gates:{ settlement:true, communityFunding:true, creatorRewardFunding:true, creatorWalletPayout:true },
   collections:[{ signature:'collection-signature', amountLamports:'10000000', settlement:'pending' }] };
@@ -117,11 +119,30 @@ test('creator reward filters retain pending balances and search identifiers', ()
   assert.equal(rows[0].name,'OLD');
 });
 
-test('historical creator rewards remain gated by launch, wallet, and cluster', () => {
-  const activity = { mint:'mint-a',cluster:'devnet',overview:{ available:true,creatorWallet:'creator',
-    receivers:[{ id:'creator',recipient:'creator',withoutConfirmedPayoutLamports:'10000000',confirmedPaidLamports:'0' }],
-    creatorClaim:{claimableLamports:'10000000',minimumLamports:'10000000',eligible:true} } };
-  assert.equal(creatorRewardRow(launch,activity,'creator','devnet').ready,true);
+test('creator rewards use only verified V3 settlements and payout records', () => {
+  const allocation = {status:'allocated-not-funded',mint:'mint-a',programId:'v3-program',
+    sourceCollectionSignature:'source-1',creatorDirected:{walletLamports:'10000000'}};
+  const activity = {mint:'mint-a',cluster:'devnet',overview:{available:true,scope:'per-mint-v3',
+    creatorWallet:'creator',gates:{creatorWalletPayout:true},collections:[
+      {signature:'source-1',settlement:'finalized',creatorWalletPayout:'pending',allocationPlan:allocation},
+      {signature:'source-2',settlement:'pending'},
+    ]}};
+  assert.equal(verifiedV3CreatorLaunch(launch,'creator','devnet'),true);
+  assert.equal(verifiedV3CreatorLaunch({...launch,pumpFeeRoute:{...launch.pumpFeeRoute,scope:'per-mint-v2'}},'creator','devnet'),false);
+  const pending=creatorRewardRow(launch,activity,'creator','devnet');
+  assert.equal(pending.ready,true);
+  assert.equal(pending.unclaimed,10000000n);
+  assert.equal(pending.pendingSettlementCount,1);
+  activity.overview.collections[0].creatorWalletPayout='finalized';
+  assert.equal(creatorRewardRow(launch,activity,'creator','devnet').paid,0n);
+  activity.overview.collections[0].creatorWalletPayoutVerified=true;
+  const paid=creatorRewardRow(launch,activity,'creator','devnet');
+  assert.equal(paid.paid,10000000n);
+  assert.equal(paid.unclaimed,0n);
+  assert.equal(paid.ready,false);
+  activity.overview.collections[0].allocationPlan={...allocation,programId:'retired-v2'};
+  assert.throws(() => creatorRewardRow(launch,activity,'creator','devnet'),/V3 creator allocation/);
+  activity.overview.collections[0].allocationPlan=allocation;
   assert.throws(() => creatorRewardRow(launch,{...activity,mint:'other'},'creator','devnet'));
   assert.throws(() => creatorRewardRow(launch,activity,'other','devnet'));
 });

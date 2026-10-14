@@ -1,4 +1,4 @@
-import { creatorRewardRow, filterCreatorRewards } from './creator-reward-model.js';
+import { creatorRewardRow, filterCreatorRewards, verifiedV3CreatorLaunch } from './creator-reward-model.js';
 import { paginateHistory } from './history-pagination.js';
 import { EXPLORE_CLUSTER } from './app-config.js';
 import { formatXClaimSol, summarizeXClaims } from './x-claim-summary.js';
@@ -31,8 +31,7 @@ async function refreshCreator(card, walletAddress, current) {
   try {
     const launches = await getJson('/api/launches');
     if (!Array.isArray(launches)) throw new Error('Launch registry unavailable');
-    const mine = launches.filter(launch => launch.onchainVerified === true && launch.cluster === EXPLORE_CLUSTER
-      && launch.creatorWallet === walletAddress && launch.pumpFeeRoute?.scope === 'per-mint-v2' && launch.mint);
+    const mine = launches.filter(launch => verifiedV3CreatorLaunch(launch, walletAddress, EXPLORE_CLUSTER));
     if (!mine.length) {
       if (current()) setCard(card, { unclaimed: '0 SOL', claimed: '0 SOL', note: 'No creator rewards yet. Launch a token to get started.' });
       return;
@@ -42,7 +41,7 @@ async function refreshCreator(card, walletAddress, current) {
     if (!current()) return;
     const sum = key => rows.reduce((total, row) => total + row[key], 0n);
     setCard(card, { unclaimed:formatSol(sum('unclaimed')), claimed:formatSol(sum('paid')),
-      note:`${rows.length} ${rows.length === 1 ? 'token' : 'tokens'} · Unclaimed includes amounts awaiting finalized payout proof.` });
+      note:`${rows.length} ${rows.length === 1 ? 'token' : 'tokens'} · V3 allocations appear after settlement; payouts are recorded only after finalization.` });
     renderCreatorRows(card, rows);
 
   } catch {
@@ -50,7 +49,6 @@ async function refreshCreator(card, walletAddress, current) {
   }
 }
 
-const pendingClaims = new Set();
 const expandedMints = new Set();
 let creatorFilter = 'active', creatorQuery = '';
 function renderCreatorRows(card, rows) {
@@ -82,32 +80,27 @@ function renderCreatorCards(list, rows) {
     const state = document.createElement('span'); state.className = 'creator-claim-state'; state.textContent = row.status;
     heading.append(name,state);
     const fullName=document.createElement('p');fullName.className='creator-reward-name';fullName.textContent=row.fullName;
-    const amount = document.createElement('strong'); amount.className = 'creator-claim-amount'; amount.textContent = formatSol(row.available + row.pending);
-    const label = document.createElement('small'); label.textContent = row.ready ? 'Available to claim' : 'Reward balance';
-    const button = document.createElement('button'); button.type = 'button'; button.className = 'primary-button';
-    const signing = document.documentElement.dataset.creatorClaimSigning === 'true';
-    button.textContent = pendingClaims.has(row.mint) ? 'Approving payout…' : 'Approve payouts';
-    button.disabled = !row.ready || !signing || pendingClaims.has(row.mint);
-    button.setAttribute('aria-label',`Claim SOL from ${row.name}`);
+    const amount = document.createElement('strong'); amount.className = 'creator-claim-amount'; amount.textContent = formatSol(row.unclaimed);
+    const label = document.createElement('small'); label.textContent = 'Awaiting V3 payout';
+    const link = document.createElement('a'); link.className = 'primary-button';
+    link.href = `/token/${encodeURIComponent(row.mint)}`;
+    link.textContent = 'Review V3 payouts';
+    link.setAttribute('aria-label',`Review V3 payouts for ${row.name}`);
     const note = document.createElement('p'); note.className = 'field-help';
-    note.textContent = !signing ? 'Open this app in your wallet to sign payouts.' : row.ready ? 'Approve a claim message and each exact payout transaction.'
-      : row.status === 'Payment processing' ? 'Waiting for payment confirmation.' : `Claim minimum: ${formatSol(row.minimum)}.`;
-    button.addEventListener('click', () => {
-      if (pendingClaims.has(row.mint)) return;
-      pendingClaims.add(row.mint); button.disabled = true;
-      window.dispatchEvent(new CustomEvent('funded:creator-claim', { detail:{ button, mint:row.mint, overview:row.overview,
-        complete:() => { pendingClaims.delete(row.mint); refreshPersonalRewards(); } } }));
-    });
+    note.textContent = row.ready ? 'Open the token page to review and sign the exact V3 payout.'
+      : row.pendingSettlementCount ? 'Collection settlement is awaiting creator approval on the token page.'
+      : row.unclaimed > 0n ? 'V3 payout is not activated for this allocation.'
+        : 'No creator wallet allocation is awaiting payout.';
     const details = document.createElement('details'); details.className = 'advanced-details'; details.open = expandedMints.has(row.mint);
     const summary = document.createElement('summary'); summary.textContent = 'Advanced details · verification';
     const values = document.createElement('dl');
-    for (const [title,value] of [['Unpaid total',formatSol(row.unclaimed)],['Confirmed paid',formatSol(row.paid)],['Claim minimum',formatSol(row.minimum)],['Token address',row.mint]]) {
+    for (const [title,value] of [['Awaiting payout',formatSol(row.unclaimed)],['Recorded paid',formatSol(row.paid)],['Unsettled collections',String(row.pendingSettlementCount)],['Token address',row.mint]]) {
       const dt=document.createElement('dt');dt.textContent=title;const dd=document.createElement('dd');dd.textContent=value;values.append(dt,dd);
     }
-    const explanation = document.createElement('p'); explanation.textContent = 'Unpaid includes rewards awaiting payment confirmation. Only confirmed payments count as paid.';
+    const explanation = document.createElement('p'); explanation.textContent = 'Only finalized V3 settlements and recorded V3 payouts contribute to these amounts.';
     details.append(summary,values,explanation);
     details.addEventListener('toggle',()=>{if(details.open)expandedMints.add(row.mint);else expandedMints.delete(row.mint);});
-    article.append(heading,fullName,label,amount,button,note,details); list.append(article);
+    article.append(heading,fullName,label,amount,link,note,details); list.append(article);
   }
 }
 
@@ -149,12 +142,12 @@ function refreshPersonalRewards() {
 }
 
 if (root) {
-  creatorRewardCard.querySelector('[data-creator-unclaimed]').previousElementSibling.textContent = 'Ready to claim';
-  creatorRewardCard.querySelector('[data-creator-claimed]').previousElementSibling.textContent = 'Paid';
+  creatorRewardCard.querySelector('[data-creator-unclaimed]').previousElementSibling.textContent = 'Awaiting V3 payout';
+  creatorRewardCard.querySelector('[data-creator-claimed]').previousElementSibling.textContent = 'Recorded paid';
   const refreshButton = document.createElement('button'); refreshButton.type='button'; refreshButton.className='text-button'; refreshButton.textContent='Refresh rewards';
   refreshButton.addEventListener('click',refreshPersonalRewards); creatorRewardCard.append(refreshButton);
   window.addEventListener('funded:reward-identity-change', () => { expandedMints.clear(); refreshPersonalRewards(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshPersonalRewards(); });
-  setInterval(() => { if (!document.hidden && !pendingClaims.size && !creatorRewardCard.contains(document.activeElement)) refreshPersonalRewards(); }, 60000);
+  setInterval(() => { if (!document.hidden && !creatorRewardCard.contains(document.activeElement)) refreshPersonalRewards(); }, 60000);
   refreshPersonalRewards();
 }

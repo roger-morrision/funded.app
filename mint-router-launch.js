@@ -1,29 +1,8 @@
-import { Buffer } from 'buffer';
-import { PublicKey, SystemProgram, Transaction, TransactionInstruction, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
-import { deriveFeeRouter, deriveMintFeeRouter, deriveMintFeeLedger } from './fee-router.js';
+import { PublicKey, Transaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
 
 export const MAX_LAUNCH_TRANSACTION_BYTES = 1232;
-const INITIALIZE_MINT_DISCRIMINATOR = Buffer.from('d12ac3048155d12c', 'hex');
-
-export function buildMintRouterInitializeInstruction({ programId, mint, payer }) {
-  const legacy = deriveFeeRouter(programId);
-  const router = deriveMintFeeRouter(programId, mint);
-  const ledger = deriveMintFeeLedger(programId, mint);
-  return {
-    router,
-    instruction: new TransactionInstruction({
-      programId: router.programId,
-      keys: [
-        { pubkey: new PublicKey(payer), isSigner: true, isWritable: true },
-        { pubkey: router.mint, isSigner: true, isWritable: false },
-        { pubkey: legacy.address, isSigner: false, isWritable: false },
-        { pubkey: router.address, isSigner: false, isWritable: true },
-        { pubkey: ledger.address, isSigner: false, isWritable: true },
-        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-      ],
-      data: INITIALIZE_MINT_DISCRIMINATOR,
-    }),
-  };
+export function buildMintRouterInitializeInstruction() {
+  throw new Error('V2 mint-router initialization is retired. Use the verified V3 launch path.');
 }
 
 function isOversized(error) { return /Transaction too large|offset.*out of range/i.test(String(error?.message)); }

@@ -5,8 +5,8 @@ import { getBuySolAmountFromTokenAmount, getBuyTokenAmountFromSolAmount, OnlineP
 import BN from 'bn.js';
 import { tokensToBaseUnits } from './launch-burn-policy.js';
 import { devnetMetadataUri } from './devnet-metadata.js';
-import { verifyFeeRouterAccount, verifyMintFeeRouterAccount } from './fee-router.js';
-import { buildMintRouterInitializeInstruction, buildPumpLaunchPlan } from './mint-router-launch.js';
+import { verifyFeeRouterAccount } from './fee-router.js';
+import { buildPumpLaunchPlan } from './mint-router-launch.js';
 import { buildMintRouterV3InitializeInstruction, verifyMintPolicyV3Account,
   verifyMintRouterV3Account } from './mint-router-v3.js';
 import { executeLaunchPlan } from './launch-executor.js';
@@ -48,18 +48,13 @@ export function verifyPermanentPumpCreatorRoute({ bondingCurve, feeRouter, payer
   };
 }
 
-export function buildLaunchMintRouter({ feeRouterProgramId, mint, payer, v3FeeRouter = null }) {
-  if (v3FeeRouter) {
-    if (!v3FeeRouter.programId || !v3FeeRouter.initialAuthority || !v3FeeRouter.split) {
-      throw new Error('An approved V3 program, authority, and protocol split are required.');
-    }
-    return { scope:'per-mint-v3', ...buildMintRouterV3InitializeInstruction({
-      programId:v3FeeRouter.programId, mint, authority:v3FeeRouter.initialAuthority,
-      creator:payer, split:v3FeeRouter.split,
-    }) };
+export function buildLaunchMintRouter({ mint, payer, v3FeeRouter }) {
+  if (!v3FeeRouter?.programId || !v3FeeRouter.initialAuthority || !v3FeeRouter.split) {
+    throw new Error('An approved V3 program, authority, and protocol split are required.');
   }
-  return { scope:'per-mint-v2', ...buildMintRouterInitializeInstruction({
-    programId:feeRouterProgramId, mint, payer,
+  return { scope:'per-mint-v3', ...buildMintRouterV3InitializeInstruction({
+    programId:v3FeeRouter.programId, mint, authority:v3FeeRouter.initialAuthority,
+    creator:payer, split:v3FeeRouter.split,
   }) };
 }
 
@@ -161,18 +156,17 @@ export async function prepareFundedLaunchBurn({ connection, payer, fundedMint, a
   };
 }
 
-export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, provider, payer, input, metadataUri, prepareMetadata, feeRouterAddress, feeRouterProgramId = null, useMintRouter = false, v3FeeRouter = null, launchBurn = null, reserveConfig = null, onStatus = () => {}, onJournal = () => {}, assertWalletCurrent = () => {} }) {
+export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, provider, payer, input, metadataUri, prepareMetadata, feeRouterProgramId = null, useMintRouter = false, v3FeeRouter = null, launchBurn = null, reserveConfig = null, onStatus = () => {}, onJournal = () => {}, assertWalletCurrent = () => {} }) {
   if (cluster !== 'devnet') throw new Error('Mainnet coin launching is not enabled. No transaction was prepared or sent.');
+  if (!v3FeeRouter?.programId || !v3FeeRouter.initialAuthority || !v3FeeRouter.split || !useMintRouter)
+    throw new Error('Only verified V3 mint-router launches are supported. No transaction was prepared or sent.');
   const launchInput = normalizeLaunchInput(input);
   if (!reserveConfig?.authority || !reserveConfig?.lookupTable || !Number.isSafeInteger(input.reserveTokens) || input.reserveTokens <= 0)
     throw new Error('An active, configured community reward vault is required before coin creation.');
-  if (v3FeeRouter && !useMintRouter) throw new Error('V3 mint router initialization must be enabled for this launch.');
-  if (v3FeeRouter) {
-    const global = await verifyFeeRouterAccount({ connection, programId:v3FeeRouter.programId,
-      commitment:'finalized' });
-    if (!global.verified || !global.authority.equals(new PublicKey(v3FeeRouter.initialAuthority))) {
-      throw new Error('The approved V3 router authority could not be verified before launch.');
-    }
+  const global = await verifyFeeRouterAccount({ connection, programId:v3FeeRouter.programId,
+    commitment:'finalized' });
+  if (!global.verified || !global.authority.equals(new PublicKey(v3FeeRouter.initialAuthority))) {
+    throw new Error('The approved V3 router authority could not be verified before launch.');
   }
   const developerBuy = await getInitialBuyQuote({ connection, input });
   const initialBuy = await quoteAtomicReserveBuy({ connection, supply:launchInput.supply, decimals:launchInput.decimals,
@@ -183,9 +177,8 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   if(input.maxInitialBuyLamports!=null&&initialBuy.maxSolAmountLamports>BigInt(input.maxInitialBuyLamports))throw new Error('The initial-buy cost increased beyond the reviewed maximum. Refresh the quote and review again; no transaction was sent.');
   const mint = Keypair.generate();
   onJournal({state:'prepared',mint:mint.publicKey.toBase58()});
-  const mintRouter = useMintRouter ? buildLaunchMintRouter({ feeRouterProgramId,
-    mint:mint.publicKey, payer, v3FeeRouter }) : null;
-  const feeRouter = mintRouter?.router.address || new PublicKey(String(feeRouterAddress || '').trim());
+  const mintRouter = buildLaunchMintRouter({ mint:mint.publicKey, payer, v3FeeRouter });
+  const feeRouter = mintRouter.router.address;
   const lookupTable = (await connection.getAddressLookupTable(new PublicKey(reserveConfig.lookupTable), { commitment:'finalized' })).value;
   if (!lookupTable?.isActive()) throw new Error('Solana launch reserve lookup table is missing or inactive. No coin was created.');
   const reserve = launchReserveInstructions({ mint:mint.publicKey, payer, programId:feeRouterProgramId,
@@ -251,24 +244,15 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
       && row.owner === reserve.vault.toBase58() && BigInt(row.uiTokenAmount.amount) !== 0n);
   if (!fundedInTransaction) throw new Error(`Coin was created but its atomic reserve receipt could not be verified. Mint: ${mint.publicKey.toBase58()}; transaction: ${signature}`);
   onStatus('Verifying Pump recorded funded.app—not the user—as creator-fee owner…');
-  if (mintRouter) {
-    if (mintRouter.scope === 'per-mint-v3') {
-      const [router, policy] = await Promise.all([
-        verifyMintRouterV3Account({ connection, programId:v3FeeRouter.programId,
-          mint:mint.publicKey, initialAuthority:v3FeeRouter.initialAuthority }),
-        verifyMintPolicyV3Account({ connection, programId:v3FeeRouter.programId,
-          mint:mint.publicKey, creator:payer, initialAuthority:v3FeeRouter.initialAuthority,
-          split:v3FeeRouter.split }),
-      ]);
-      if (!router.verified || !policy.verified) {
-        throw new Error(`Coin was created, but its V3 fee router or policy is not verified. Mint: ${mint.publicKey.toBase58()}`);
-      }
-    } else {
-      const legacy = await verifyFeeRouterAccount({ connection, programId: feeRouterProgramId });
-      if (!legacy.verified) throw new Error(`Coin was created, but the legacy router policy could not be verified (${legacy.reason}). Mint: ${mint.publicKey.toBase58()}`);
-      const verifiedRouter = await verifyMintFeeRouterAccount({ connection, programId: feeRouterProgramId, mint: mint.publicKey, expectedAuthority: legacy.authority });
-      if (!verifiedRouter.verified) throw new Error(`Coin was created, but its isolated fee router is not verified (${verifiedRouter.reason}). Mint: ${mint.publicKey.toBase58()}`);
-    }
+  const [router, policy] = await Promise.all([
+    verifyMintRouterV3Account({ connection, programId:v3FeeRouter.programId,
+      mint:mint.publicKey, initialAuthority:v3FeeRouter.initialAuthority }),
+    verifyMintPolicyV3Account({ connection, programId:v3FeeRouter.programId,
+      mint:mint.publicKey, creator:payer, initialAuthority:v3FeeRouter.initialAuthority,
+      split:v3FeeRouter.split }),
+  ]);
+  if (!router.verified || !policy.verified) {
+    throw new Error(`Coin was created, but its V3 fee router or policy is not verified. Mint: ${mint.publicKey.toBase58()}`);
   }
   const bondingCurve = await new OnlinePumpSdk(connection).fetchBondingCurve(mint.publicKey);
   if (!bondingCurve) throw new Error(`Coin was created, but its Pump bonding curve could not be verified. Mint: ${mint.publicKey.toBase58()}`);
@@ -294,7 +278,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
     };
   }
   return { ...launchInput, mint, signature, mintRouterSignature, mintRouterSeparate: plan.mintRouterSeparate,
-    mintRouterScope:mintRouter?.scope || 'shared-legacy', pump: true, feeRouter, feeRoute, launchBurnReceipt, initialBuy,
+    mintRouterScope:mintRouter.scope, pump: true, feeRouter, feeRoute, launchBurnReceipt, initialBuy,
     reserveReceipt:{ signature, vault:reserve.vault.toBase58(), tokenAccount:reserve.destination.toBase58(), fundedTokens:input.reserveTokens, atomic:true },
     metadataUri: metadataUri || devnetMetadataUri(mint.publicKey.toBase58()) };
 }

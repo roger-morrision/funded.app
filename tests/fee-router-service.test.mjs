@@ -88,33 +88,6 @@ function v3Fixture(overrides = {}) {
   return f;
 }
 
-test('readiness rejects missing configuration and shared wallet roles before network reads', async () => {
-  const f = fixture();
-  f.env.FUNDED_MINT_FEE_ROUTER_ENABLED = 'false';
-  assert.equal((await f.service.mintRouterReadiness()).ready, false);
-  assert.equal(f.state.connections, 0);
-  f.env.FUNDED_MINT_FEE_ROUTER_ENABLED = 'true';
-  f.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY = f.env.SOLANA_KEEPER_SECRET_KEY;
-  assert.match((await f.service.mintRouterReadiness()).reasons.join(' '), /separate wallets/);
-  assert.equal(f.state.verificationReads, 0);
-});
-
-test('readiness requires approved program evidence and respects current X lookup health', async () => {
-  const f = fixture();
-  assert.equal((await f.service.mintRouterReadiness({ creatorSigned:true })).ready, true);
-  assert.match((await f.service.xFeeReadiness()).reasons.join(' '), /Creator wallet co-signing/);
-  assert.equal((await f.service.xFeeReadiness({ creatorSigned:true })).ready, true);
-  f.state.programHash = 'b'.repeat(64);
-  assert.match((await f.service.mintRouterReadiness({ creatorSigned:true })).reasons.join(' '), /bytecode is not approved/);
-  f.state.programHash = 'a'.repeat(64);
-  f.state.executable = false;
-  assert.equal((await f.service.mintRouterReadiness({ creatorSigned:true })).ready, false);
-  f.state.executable = true;
-  f.state.lookupHealth = 'Lookup temporarily unavailable';
-  assert.equal((await f.service.xFeeReadiness({ creatorSigned:true })).ready, false);
-  assert.equal((await f.service.xFeeReadiness({ includeLookupHealth: false, creatorSigned:true })).ready, true);
-});
-
 test('referral payout rejects role collisions, missing configuration and invalid amounts without sending', async () => {
   const f = fixture();
   for (const conflicting of [f.keeper, f.authority, f.revenue]) {

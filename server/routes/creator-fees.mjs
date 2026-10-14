@@ -34,15 +34,24 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
     const collections = Object.values(state.collections || {}).filter(row => row.mint === mint
       && row.scope === 'per-mint-v3' && row.status === 'collected' && row.onchainVerified === true
       && row.programId === launch.pumpFeeRoute.programId && row.router === launch.pumpFeeRoute.router)
-      .map(row => ({ signature:row.signature, recordedAt:row.recordedAt || null,
+      .map(row => {
+        const settled = state.v3Settlements?.[row.signature];
+        const payout = state.v3CreatorWalletPayout?.[row.signature];
+        const allocation = settled?.allocationPlan?.creatorDirected?.walletLamports;
+        const payoutVerified = payout?.status === 'finalized' && payout.balanceDeltaVerified === true
+          && payout.collectionSignature === row.signature && payout.mint === mint
+          && payout.programId === launch.pumpFeeRoute.programId && payout.category === 0
+          && payout.recipient === launch.creatorWallet && payout.amount === allocation
+          && /^[1-9]\d*$/.test(String(allocation || '')) && Boolean(payout.signature);
+        return { signature:row.signature, recordedAt:row.recordedAt || null,
         amountLamports:String(row.collectedLamports),
-        settlement:state.v3Settlements?.[row.signature]?.status || 'pending',
-        allocationPlan:state.v3Settlements?.[row.signature]?.status === 'finalized'
-          ? state.v3Settlements[row.signature].allocationPlan : null,
+        settlement:settled?.status || 'pending',
+        allocationPlan:settled?.status === 'finalized' ? settled.allocationPlan : null,
         communityFunding:state.v3CommunityFunding?.[row.signature]?.status || 'pending',
         creatorRewardFunding:state.v3CreatorRewardFunding?.[row.signature]?.status || 'pending',
-        creatorWalletPayout:state.v3CreatorWalletPayout?.[row.signature]?.status || 'pending',
-        buyback:state.v3BuybackOrders?.[row.signature]?.status || 'pending' }));
+        creatorWalletPayout:payout?.status || 'pending', creatorWalletPayoutVerified:payoutVerified,
+        buyback:state.v3BuybackOrders?.[row.signature]?.status || 'pending' };
+      });
     const activity = { collections:collections.map(row => ({ signature:row.signature,
       recordedAt:row.recordedAt, collectedLamports:row.amountLamports })),
       claims:collections.filter(row => row.settlement === 'finalized').map(row => ({

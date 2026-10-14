@@ -22,6 +22,7 @@ import { createKeeperCollectionRoutes } from './routes/keeper-collection.mjs';
 import { createListingPaymentsRoutes } from './routes/listing-payments.mjs';
 import { createLaunchRegistrationRoutes } from './routes/launch-registration.mjs';
 import { createV3LaunchConfig } from './v3-launch-config.mjs';
+import { v3XCapability } from './v3-x-capability.mjs';
 import { createPublicReportsRoutes } from './routes/public-reports.mjs';
 import { createQuoteAssetsRoutes } from './routes/quote-assets.mjs';
 import { createDirectoryRoutes } from './routes/directory.mjs';
@@ -248,7 +249,6 @@ const {
   keeperKeypair,
   referralPayoutKeypair,
   v3AuthorityKeypair,
-  xFeeReadiness,
   v3RouterConfig,
   launchPolicyConfig,
   collectPumpCreatorFees,
@@ -270,7 +270,12 @@ const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solan
     cluster: solanaCluster, creatorPages: true, creatorIdentity: Boolean(process.env.X_CLIENT_ID && process.env.X_CLIENT_SECRET),
     sessions: { storage: databaseUrl ? 'postgresql' : 'local-file-single-process', absoluteLifetimeSeconds: SESSION_SECONDS },
     creatorDirectory: { storage: databaseUrl ? 'postgresql-projection' : 'local-file', cursorPagination: true },
-    xPayouts: await xFeeReadiness({ creatorSigned:true }), gifts: { enabled: false, reason: 'No approved gifting provider or delivery-receipt integration is configured.' } }) });
+    xPayouts: v3XCapability({ cluster:solanaCluster, launch:await v3LaunchConfig(),
+      enabled:process.env.FUNDED_V3_X_CLAIMS_ENABLED === 'true',
+      oauthConfigured:xOAuthConfigured({ headers:{ host:'funded.vip' } }),
+      lookupConfigured:Boolean(String(process.env.X_BEARER_TOKEN || '').trim()),
+      lookupError:resolveXUser.health() }),
+    gifts: { enabled: false, reason: 'No approved gifting provider or delivery-receipt integration is configured.' } }) });
 
 const productMetrics = createProductMetricsStore(databaseUrl);
 const handleProductMetrics = createProductMetricsHandler({metrics:productMetrics, cluster:solanaCluster,
@@ -348,7 +353,7 @@ const handleLaunchQuoteRoutes = createLaunchQuoteRoutes({
 });
 const handleRewardStatusRoutes = createRewardStatusRoutes({
   store, automaticRewardStore, solanaCluster, solanaRpcUrl,
-  xFeeReadiness, readFinalizedEvidence, clientKey, respond: json,
+  readFinalizedEvidence, clientKey, respond: json,
 });
 
 const { handlePublicMetadata, handlePages } = createPageDelivery({

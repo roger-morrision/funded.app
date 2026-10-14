@@ -303,7 +303,10 @@ test('fee activity exposes only verified V3 collections and their signing gates'
     programId:mint, status:'collected', onchainVerified:true, collectedLamports:100 },
     old:{ signature:'old', mint:v3Mint, scope:'per-mint-v2', router,
       programId:mint, status:'collected', onchainVerified:true, collectedLamports:100 } },
-  v3Settlements:{ good:{ status:'finalized', allocationPlan:{ status:'allocated-not-funded' } } } };
+  v3Settlements:{ good:{ status:'finalized', allocationPlan:{ status:'allocated-not-funded',
+    creatorDirected:{walletLamports:'10'} } } },
+  v3CreatorWalletPayout:{ good:{ status:'finalized', collectionSignature:'good', mint:v3Mint,
+    programId:mint, category:0, recipient:router, amount:'10', signature:'receipt' } } };
   try {
     const f = fixture(createCreatorFeesRoutes, { solanaRpcUrl:'invalid-rpc-url',
       route:(path, method, pattern) => method ? path.match(pattern)?.[1] : null,
@@ -315,6 +318,10 @@ test('fee activity exposes only verified V3 collections and their signing gates'
     assert.equal(f.responses[0].data.overview.scope, 'per-mint-v3');
     assert.deepEqual(f.responses[0].data.overview.collections.map(row => row.signature), ['good']);
     assert.equal(f.responses[0].data.overview.collections[0].settlement, 'finalized');
+    assert.equal(f.responses[0].data.overview.collections[0].creatorWalletPayoutVerified, false);
+    state.v3CreatorWalletPayout.good.balanceDeltaVerified = true;
+    await f.request(`/api/tokens/${v3Mint}/fee-activity`, {}, 'GET');
+    assert.equal(f.responses[1].data.overview.collections[0].creatorWalletPayoutVerified, true);
   } finally {
     if (prior === undefined) delete process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID;
     else process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID = prior;

@@ -21,10 +21,10 @@ import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
 const reserveProgram = Keypair.generate().publicKey;
 const guardedChain = createAutomaticRewardChain({ connection:{}, programId:reserveProgram, authority:Keypair.generate() });
 await assert.rejects(guardedChain.ensureCycle({ mint:reserveProgram }), /Community program reserve payouts require a separate published program flow/);
-await assert.rejects(guardedChain.fundSolVaultFromMintRouter({ mint:reserveProgram, amount:'1', fundingId:'fixture' }),
-  error => error.code === 'CREATOR_SIGNATURE_REQUIRED');
-await assert.rejects(guardedChain.fundCommunitySolVaultFromMintRouter({ mint:reserveProgram, amount:'1', fundingId:'fixture' }),
-  error => error.code === 'CREATOR_SIGNATURE_REQUIRED');
+assert.equal(guardedChain.fundSolVaultFromMintRouter, undefined,
+  'Retired V2 mint-router funding must not be exposed by the running chain.');
+assert.equal(guardedChain.fundCommunitySolVaultFromMintRouter, undefined,
+  'Retired V2 community funding must not be exposed by the running chain.');
 
 const snapshots = [
   { at: 0, accounts: [{ account:'a1', wallet:'a', balance:'50' }, { account:'a2', wallet:'a', balance:'50' }, { account:'vault', wallet:'pool', balance:'999999' }] },

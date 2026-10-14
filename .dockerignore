@@ -36,3 +36,12 @@ tmp/
 /server/routes/referral-claims.mjs
 /server/routes/reward-funding.mjs
 /server/routes/settlement.mjs
+/server/coin-fee-overview.mjs
+/server/creator-fee-claim.mjs
+/server/launch-router-readiness.mjs
+/server/mint-router-payout.mjs
+/server/reward-experience.mjs
+/server/reward-funding-claim.mjs
+/server/reward-funding-processor.mjs
+/server/settlement-rewards.mjs
+/server/x-fee-guard.mjs

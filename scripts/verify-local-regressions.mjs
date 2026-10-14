@@ -36,7 +36,6 @@ const checks = [
   "verify:local-flow",
   "verify:fee-policy",
   "verify:fee-router",
-  "verify:mint-router-v2",
   "verify:mint-router-v3",
   "verify:v3-collection-proof",
   "verify:referral-program",

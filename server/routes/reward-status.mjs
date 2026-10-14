@@ -86,7 +86,7 @@ function recordedV3XPayments(state, rewards, programId) {
 
 // Dispatch after shared authorization and rate checks; preserve caller route order.
 export function createRewardStatusRoutes({
-  store, automaticRewardStore, solanaCluster, xFeeReadiness, readFinalizedEvidence, clientKey,
+  store, automaticRewardStore, solanaCluster, readFinalizedEvidence, clientKey,
   respond, env = process.env, solanaRpcUrl = '',
   connectionFactory = url => new Connection(url, 'finalized'),
   readBuybackDashboard = readV3BuybackDashboard,
