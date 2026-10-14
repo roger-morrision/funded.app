@@ -21,11 +21,6 @@ body.product-experience-ready .hero-section { min-height:0!important; padding-to
 body.product-experience-ready .hero-section h1 { max-width:700px; font-size:clamp(32px,4.5vw,56px)!important; line-height:1.08!important; }
 body.product-experience-ready .hero-copy { max-width:580px; font-size:16px; }
 body.product-experience-ready .hero-actions { margin-top:22px; }
-body.product-experience-ready .home-simple-flow { display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; margin-top:22px; color:var(--text); font-size:12px; }
-body.product-experience-ready .home-simple-flow span:not([aria-hidden]) { display:inline-flex; align-items:center; gap:7px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:#151c2b; }
-body.product-experience-ready .home-simple-flow b { display:grid; place-items:center; width:20px; height:20px; border-radius:50%; background:#eeb04b; color:#111827; }
-body.product-experience-ready .home-flow-proof { max-width:620px; margin:12px 0 0; color:var(--muted); font-size:12px; }
-body.product-experience-ready .home-flow-proof a { color:var(--text); text-decoration:underline; }
 body.product-experience-ready .product-devnet-note { max-width:760px; margin:8px 0 18px; color:#e9c67b; font-size:12px; line-height:1.5; }
 body.product-experience-ready .product-follow-note { margin:4px 0 14px; color:var(--muted); font-size:12px; }
 body.product-experience-ready .product-follow-note a { color:var(--text); text-decoration:underline; }
@@ -117,16 +112,10 @@ html body.product-experience-ready .explore-boost-how summary { display:list-ite
   body.product-experience-ready.page-route-overview .home-hero-kicker { font-size:14px; }
   body.product-experience-ready.page-route-overview .hero-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:16px; }
   body.product-experience-ready.page-route-overview .hero-actions a { min-width:0; min-height:44px; padding:0 8px; font-size:12px; letter-spacing:0; }
-  body.product-experience-ready.page-route-overview .home-simple-flow { gap:5px; margin-top:14px; }
-  body.product-experience-ready.page-route-overview .home-simple-flow span:not([aria-hidden]) { padding:5px 8px; line-height:1.35; }
-  body.product-experience-ready.page-route-overview .home-flow-proof { margin-top:9px; }
   body.product-experience-ready #launch-route-shell { padding:24px 0 10px!important; margin-bottom:0!important; }
   body.product-experience-ready #launch-dialog { padding-top:12px!important; }
   body.product-experience-ready .launch-title-row { margin:0 0 14px; }
   body.product-experience-ready .hero-copy { font-size:14px; }
-  body.product-experience-ready .home-simple-flow { gap:7px; }
-  body.product-experience-ready .home-simple-flow span[aria-hidden] { display:none; }
-  body.product-experience-ready .home-simple-flow span:not([aria-hidden]) { width:100%; }
   body.product-experience-ready .explore-control-left { width:100%; }
   body.product-experience-ready .explore-heading .heading-actions { gap:10px; }
   body.product-experience-ready .explore-tabs { width:100%; justify-content:space-between; }

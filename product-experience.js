@@ -26,13 +26,6 @@ function home() {
     launch.className = 'hero-secondary-action'; launch.textContent = 'Launch a token';
     actions.prepend(explore);
   }
-  if (actions && !$('#home-simple-flow')) actions.insertAdjacentHTML('afterend', `
-    <div class="home-simple-flow" id="home-simple-flow" aria-label="How a launch works">
-      <span><b>1</b> Create on Solana</span><span aria-hidden="true">→</span>
-      <span><b>2</b> Trades generate creator fees</span><span aria-hidden="true">→</span>
-      <span><b>3</b> Confirmed collections follow the published split</span>
-    </div>
-    <p class="home-flow-proof">A policy allocation is not a payment. Open a coin to check its collection and payout receipts. <a href="#capital-flow">See the fee route</a></p>`);
   const rewardGroups = $('.home-rewards-stack');
   const board = $('.home-launch-board');
   if (rewardGroups && board) {
