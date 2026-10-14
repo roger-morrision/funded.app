@@ -42,6 +42,43 @@ test('reward status does not claim V3 X payout readiness from V2 configuration',
   assert.equal(response.data.modes.x, 'unavailable');
 });
 
+test('public X payout status requires one consistent finalized V3 payment record', async () => {
+  const mint = Keypair.generate().publicKey.toBase58();
+  const wallet = Keypair.generate().publicKey.toBase58();
+  const source = '3'.repeat(88), signature = '4'.repeat(88), programId = 'approved-v3-program';
+  const payment = { status:'paid', amount:'123127', signature,
+    finalized:true, balanceDeltaVerified:true };
+  const state = {
+    launches:{ [mint]:{ mint, cluster:'devnet', onchainVerified:true, xUserId:'123',
+      pumpFeeRoute:{ scope:'per-mint-v3', programId, verified:true } } },
+    collections:{ [source]:{ signature:source, mint, cluster:'devnet', scope:'per-mint-v3',
+      status:'collected', onchainVerified:true, programId } },
+    v3Settlements:{ [source]:{ status:'finalized', cluster:'devnet', mint, collectionSignature:source,
+      allocationPlan:{ creatorDirected:{ xUserId:'123', xLamports:'123127',
+        holderLamports:'0' } } } },
+    v3CreatorRewardFunding:{ [source]:{ status:'finalized', mint,
+      signature:'funding-signature', amount:'123127', balanceDeltaVerified:true } },
+    v3XClaims:{ [source]:{ status:'paid', mint, wallet, xUserId:'123',
+      amountLamports:'123127', fundingSignature:'funding-signature', payment } },
+  };
+  const rewards = { schedules:{ [`direct:x:${source}`]:{ kind:'x', sourceId:source,
+    mint, asset:'SOL', fundingSignature:'funding-signature', status:'paid',
+    manifest:{ totalAmount:'123127', leaves:[{ recipient:wallet, amount:'123127' }] },
+    payments:{ [wallet]:payment } } } };
+  const dependencies = { store:{ read:async () => state },
+    automaticRewardStore:{ read:async () => rewards }, solanaCluster:'devnet',
+    env:{ FUNDED_V3_X_CLAIMS_ENABLED:'true', FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId,
+      FUNDED_V3_PROGRAM_DATA_SHA256:'a'.repeat(64) } };
+  const verified = await call(createRewardStatusRoutes, dependencies, '/api/rewards/automatic');
+  assert.equal(verified.data.routeReadiness.x.ready, true);
+  assert.equal(verified.data.routeReadiness.x.verifiedV3Payments, 1);
+  assert.equal(verified.data.modes.x, 'v3-x-payout-recorded');
+  state.v3XClaims[source].payment = { ...payment, balanceDeltaVerified:false };
+  const unverified = await call(createRewardStatusRoutes, dependencies, '/api/rewards/automatic');
+  assert.equal(unverified.data.routeReadiness.x.ready, false);
+  assert.equal(unverified.data.modes.x, 'unavailable');
+});
+
 test('X-linked V2 launch is retired before signed readiness or lookup', async () => {
   const creator = Keypair.generate();
   const router = Keypair.generate().publicKey.toBase58();

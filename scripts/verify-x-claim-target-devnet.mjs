@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { Connection, PublicKey } from '@solana/web3.js';
+import { DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
 
 // Read-only check for a real X claim target. OAuth and wallet signing remain user controlled.
 const handle = String(process.env.X_TEST_HANDLE || '').trim();
@@ -17,12 +18,13 @@ async function get(path) {
   return { status: response.status, data: await response.json() };
 }
 
-const [identity, privateClaims, readiness, resolved, activity] = await Promise.all([
+const [identity, privateClaims, readiness, resolved, activity, experience] = await Promise.all([
   get('/api/x/me'),
   get('/api/x-fee/claims'),
   get('/api/x-fee/status'),
   get(`/api/x/resolve?handle=${encodeURIComponent(handle)}`),
   get(`/api/tokens/${mint}/fee-activity`),
+  get(`/api/rewards/experience?wallet=${encodeURIComponent(wallet)}&mint=${encodeURIComponent(mint)}`),
 ]);
 assert.equal(identity.status, 200);
 assert.equal(identity.data.configured, true, 'X OAuth must be configured.');
@@ -35,24 +37,46 @@ assert.equal(resolved.data.handle.toLowerCase(), handle.toLowerCase());
 assert.match(String(resolved.data.id), /^\d+$/);
 assert.equal(activity.status, 200);
 assert.equal(activity.data.cluster, 'devnet', 'Only Devnet rewards may be checked here.');
-const xReward = activity.data.overview?.receivers?.find(row => row.id === 'x');
-assert(xReward, 'No X reward allocation exists for this mint.');
-assert.equal(xReward.recipient.toLowerCase(), handle.toLowerCase());
-const allocated = BigInt(xReward.allocatedLamports);
-const paid = BigInt(xReward.confirmedPaidLamports);
+const allocations = (activity.data.overview?.collections || []).filter(row =>
+  BigInt(row.allocationPlan?.creatorDirected?.xLamports || 0) > 0n);
+assert(allocations.length > 0, 'No V3 X reward allocation exists for this mint.');
+for (const row of allocations) {
+  assert.equal(row.allocationPlan.creatorDirected.xHandle.toLowerCase(), handle.toLowerCase());
+  assert.equal(row.allocationPlan.creatorDirected.xUserId, String(resolved.data.id));
+  assert.equal(row.settlement, 'finalized');
+  assert.equal(row.creatorRewardFunding, 'finalized');
+}
+const allocated = allocations.reduce((sum, row) =>
+  sum + BigInt(row.allocationPlan.creatorDirected.xLamports), 0n);
 assert(allocated > 0n, 'No X reward has been allocated.');
+assert.equal(experience.status, 200);
+assert.equal(experience.data.cluster, 'devnet');
+const token = experience.data.tokens?.find(row => row.mint === mint);
+assert(token, 'The V3 reward experience does not include the selected mint.');
+assert.equal(BigInt(token.totals.x), allocated, 'The public V3 allocation views disagree.');
+const payouts = (experience.data.wallet?.rows || []).filter(row => row.mint === mint)
+  .flatMap(row => row.payouts || []).filter(row => row.kind === 'x');
+const paid = BigInt(token.xPaidLamports);
 assert(paid <= allocated, 'Paid amount exceeds the allocated X reward.');
-const signatures = xReward.payoutSignatures || [];
+assert.equal(payouts.reduce((sum, row) => sum + BigInt(row.amountLamports), 0n), paid,
+  'The supplied wallet does not account for all recorded V3 X payouts.');
+const signatures = payouts.map(row => row.signature);
+assert.equal(new Set(signatures).size, signatures.length, 'A V3 X payout signature was repeated.');
 const rpcUrl = (await readFile(rpcFile, 'utf8')).trim();
 const connection = new Connection(rpcUrl, 'finalized');
+assert.equal(await connection.getGenesisHash(), DEVNET_GENESIS_HASH, 'The payout RPC is not Devnet.');
 let verifiedPaid = 0n;
-for (const signature of signatures) {
+for (const payout of payouts) {
+  const { signature } = payout;
+  assert.equal(payout.feeSourceVerified, true);
+  assert.equal(payout.source, 'finalized-v3-x-claim');
   const transaction = await connection.getParsedTransaction(signature, { commitment: 'finalized', maxSupportedTransactionVersion: 0 });
   assert(transaction && transaction.meta?.err === null, `Payout ${signature} is not finalized and successful.`);
   const index = transaction.transaction.message.accountKeys.findIndex(key => key.pubkey.toBase58() === wallet);
   assert(index >= 0, `Payout ${signature} did not include the target wallet.`);
   const delta = BigInt(transaction.meta.postBalances[index]) - BigInt(transaction.meta.preBalances[index]);
-  assert(delta > 0n, `Payout ${signature} did not increase the target wallet balance.`);
+  assert.equal(delta, BigInt(payout.amountLamports),
+    `Payout ${signature} did not increase the target wallet by the exact recorded amount.`);
   verifiedPaid += delta;
 }
 assert.equal(verifiedPaid, paid, 'Finalized target-wallet deltas do not match the confirmed X payout.');

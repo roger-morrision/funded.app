@@ -23,6 +23,56 @@ function pendingV3Buybacks(state) {
   });
 }
 
+function recordedV3XPayments(state, rewards, programId) {
+  if (!programId) return [];
+  return Object.entries(state.v3XClaims || {}).flatMap(([source, claim]) => {
+    const launch = state.launches?.[claim.mint];
+    const collection = state.collections?.[source];
+    const settlement = state.v3Settlements?.[source];
+    const funding = state.v3CreatorRewardFunding?.[source];
+    const plan = settlement?.allocationPlan?.creatorDirected;
+    const schedule = rewards.schedules?.[`direct:x:${source}`];
+    const payment = schedule?.payments?.[claim.wallet];
+    if (claim.status !== 'paid' || !claim.wallet || !claim.payment
+      || !launch?.onchainVerified || launch.cluster !== 'devnet'
+      || launch.mint !== claim.mint
+      || launch.pumpFeeRoute?.scope !== 'per-mint-v3'
+      || launch.pumpFeeRoute.verified !== true
+      || launch.pumpFeeRoute.programId !== programId
+      || String(launch.xUserId) !== String(claim.xUserId)
+      || collection?.signature !== source || collection.mint !== claim.mint
+      || collection.cluster !== 'devnet' || collection.scope !== 'per-mint-v3'
+      || collection.status !== 'collected'
+      || collection.onchainVerified !== true || collection.programId !== programId
+      || settlement?.status !== 'finalized' || settlement.cluster !== 'devnet'
+      || settlement.mint !== claim.mint
+      || settlement.collectionSignature !== source
+      || String(plan?.xUserId) !== String(claim.xUserId)
+      || !/^[1-9]\d*$/.test(String(plan?.xLamports || ''))
+      || !/^\d+$/.test(String(plan?.holderLamports || ''))
+      || claim.amountLamports !== plan.xLamports
+      || funding?.status !== 'finalized' || funding.mint !== claim.mint
+      || funding.balanceDeltaVerified !== true
+      || funding.amount !== String(BigInt(plan.xLamports) + BigInt(plan.holderLamports))
+      || claim.fundingSignature !== funding.signature
+      || schedule?.kind !== 'x' || schedule.sourceId !== source
+      || schedule.mint !== claim.mint || schedule.asset !== 'SOL'
+      || schedule.fundingSignature !== funding.signature
+      || schedule.status !== 'paid' || schedule.manifest?.totalAmount !== claim.amountLamports
+      || schedule.manifest.leaves?.length !== 1
+      || schedule.manifest.leaves[0].recipient !== claim.wallet
+      || schedule.manifest.leaves[0].amount !== claim.amountLamports
+      || payment?.status !== 'paid' || payment.amount !== claim.amountLamports
+      || payment.finalized !== true || payment.balanceDeltaVerified !== true
+      || !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(String(payment.signature || ''))
+      || claim.payment.signature !== payment.signature
+      || claim.payment.amount !== claim.amountLamports
+      || claim.payment.finalized !== true
+      || claim.payment.balanceDeltaVerified !== true) return [];
+    return [payment.signature];
+  });
+}
+
 // Dispatch after shared authorization and rate checks; preserve caller route order.
 export function createRewardStatusRoutes({
   store, automaticRewardStore, solanaCluster, xFeeReadiness, readFinalizedEvidence, clientKey,
@@ -43,8 +93,14 @@ export function createRewardStatusRoutes({
     if (req.method === 'GET' && url.pathname === '/api/rewards/automatic') {
       const [buybackState, rewards] = await Promise.all([store.read(), automaticRewardStore.read()]);
       const status = v3AutomaticRewardStatus(buybackState, rewards);
-      const x = { ready:false, reasons:['V3 X payout and claim require a finalized Devnet payment.'] };
-      status.modes.x = 'unavailable';
+      const xPayments = solanaCluster === 'devnet'
+        && env.FUNDED_V3_X_CLAIMS_ENABLED === 'true'
+        && /^[a-f0-9]{64}$/i.test(String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || ''))
+        ? recordedV3XPayments(buybackState, rewards,
+          env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID) : [];
+      const x = { ready:xPayments.length > 0, verifiedV3Payments:xPayments.length,
+        reasons:xPayments.length ? [] : ['V3 X payout and claim require a finalized Devnet payment.'] };
+      status.modes.x = x.ready ? 'v3-x-payout-recorded' : 'unavailable';
       const recordedBurns = verifiedV3Burns(buybackState);
       const currentBurns = currentDevnetBurns(buybackState);
       const buybackReady = currentBurns.length > 0;
