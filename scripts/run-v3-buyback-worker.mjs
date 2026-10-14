@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { shouldAttemptV3Buyback } from '../server/v3-buyback-worker-policy.mjs';
 
 if (process.env.SOLANA_CLUSTER !== 'devnet') throw new Error('Automatic V3 buyback worker is Devnet-only.');
 const endpoint = new URL(process.env.FUNDED_INTERNAL_APP_URL || 'http://app:8787');
@@ -23,13 +24,8 @@ async function tick() {
   if (status !== 200 || result.cluster !== 'devnet') throw new Error('Buyback status unavailable.');
   const pending = Array.isArray(result.pending) ? result.pending : [];
   for (const row of pending) {
-    if (!['queued','verification-pending','awaiting-v3-buyback-executor'].includes(row.status)) continue;
-    if (row.status === 'awaiting-v3-buyback-executor'
-      && result.dashboard?.triggerReached !== true) continue;
-    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(row.mint || ''))
-      || !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(String(row.sourceCollectionSignature || ''))) continue;
-    if (row.status !== 'verification-pending'
-      && Date.now() < (retryAt.get(row.sourceCollectionSignature) || 0)) continue;
+    if (!shouldAttemptV3Buyback(row, { triggerReached:result.dashboard?.triggerReached,
+      retryAt:retryAt.get(row.sourceCollectionSignature) || 0 })) continue;
     const path = `/api/tokens/${row.mint}/v3-buyback/${row.sourceCollectionSignature}`;
     const executed = await request(path, 'POST');
     if (executed.status === 200) retryAt.delete(row.sourceCollectionSignature);

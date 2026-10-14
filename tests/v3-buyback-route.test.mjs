@@ -92,6 +92,11 @@ test('V3 buyback executes without creator signature only after the 5 SOL vault t
   assert.equal(f.responses.at(-1).status,200);
   assert.equal(f.state.v3BuybackOrders[signature].status,'finalized');
   assert.equal(f.state.v3BuybackOrders[signature].cycleId.startsWith('v3-buyback:'),true);
+  f.setTrigger(false);
+  await f.request({});
+  assert.equal(f.responses.at(-1).status,409,'A finished round cannot reuse its old cycle below 5 SOL.');
+  assert.equal(Object.keys(f.state.v3BuybackOrders).length,1);
+  f.setTrigger(true);
   await f.request({});
   assert.equal(f.responses.at(-1).status,200);
   assert.equal(f.state.v3BuybackOrders[`${signature}:2`].status,'finalized');
@@ -119,6 +124,13 @@ test('a triggered cycle finishes queued collections after the total drops below 
   await f.request({},second);
   assert.equal(f.responses.at(-1).status,200);
   assert.equal(f.state.v3BuybackOrders[second].status,'finalized');
+  await f.request({});
+  assert.equal(f.responses.at(-1).status,409,'Finalized residue must wait for another trigger.');
+  f.setTrigger(true);
+  await f.request({});
+  assert.equal(f.responses.at(-1).status,200);
+  assert.equal(f.state.v3BuybackOrders[`${second}:2`].status,'queued',
+    'A new 5 SOL cycle must include other verified residual allocations.');
 });
 
 test('a finalized failed swap keeps its signature audit trail and requeues safely',async()=>{

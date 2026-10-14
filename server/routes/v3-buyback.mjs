@@ -154,13 +154,12 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
       if(!saved)return json(res,409,{error:'The expired V3 quote changed during recovery.'});
     }
     if(saved?.status!=='queued') {
-      let cycleId=next.previous?.cycleId || null;
-      if(!cycleId){
-        const dashboard=await readDashboard({state,programId,connection});
-        if(dashboard.status!=='verified'||!dashboard.triggerReached)
-          return json(res,409,{error:'Finalized buyback vaults have not reached the 5 SOL trigger.'});
-        cycleId=`v3-buyback:${Date.now()}`;
-      }
+      // A finished round's residue must wait for a new 5 SOL cycle. Only an
+      // already queued row may finish after the dashboard drops below 5 SOL.
+      const dashboard=await readDashboard({state,programId,connection});
+      if(dashboard.status!=='verified'||!dashboard.triggerReached)
+        return json(res,409,{error:'Finalized buyback vaults have not reached the 5 SOL trigger.'});
+      const cycleId=`v3-buyback:${Date.now()}`;
       saved=await store.update(current=>{
         current.v3BuybackOrders||={};
         for(const settlementRow of Object.values(current.v3Settlements||{})) {
@@ -175,7 +174,6 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
             ||collected?.signature!==source||collected.onchainVerified!==true
             ||collected.programId!==programId||sourceRemaining<=0n
             ||sourceNext.row)continue;
-          if(next.previous?.cycleId && source!==collectionSignature)continue;
           current.v3BuybackOrders[sourceNext.key]={status:'queued',mint:settlementRow.mint,
             collectionSignature:source,programId,approvedHash:hash.toLowerCase(),
             buybackId:v3BuybackId([source],sourceNext.round).toString('hex'),
