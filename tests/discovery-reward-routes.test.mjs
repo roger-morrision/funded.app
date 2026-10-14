@@ -105,11 +105,17 @@ test('price provider failures remain unavailable and never persist a quote', asy
 });
 
 test('V3 buyback status excludes legacy orders and receipts', async () => {
-  const f = fixture(createRewardStatusRoutes, { store: { read: async () => ({ buybackOrders: {
+  const programId = '9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
+  const f = fixture(createRewardStatusRoutes, { env: { FUNDED_V3_FEE_ROUTER_PROGRAM_ID: programId },
+    store: { read: async () => ({ buybackOrders: {
     paid: { id: 'paid', status: 'finalized', refundVerified: true, signedTransaction: 'private', refundTransaction: 'private' },
     pending: { id: 'pending', status: 'submitted', refundVerified: true },
     unverified: { id: 'unverified', status: 'finalized', refundVerified: false },
-  }, v3Settlements:{ source:{ mint:'mint', collectionSignature:'source', status:'finalized',
+  }, launches: { mint: { mint:'mint', cluster:'devnet', onchainVerified:true,
+    pumpFeeRoute:{scope:'per-mint-v3', programId} } },
+  collections: { source: { signature:'source', mint:'mint', status:'collected',
+    onchainVerified:true, programId } },
+  v3Settlements:{ source:{ mint:'mint', collectionSignature:'source', status:'finalized',
     allocationPlan:{ status:'allocated-not-funded', protocol:{ buybackLamports:'123' } } } } }) } });
   await f.request('/api/buyback/status');
   assert.deepEqual(f.responses[0].data.receipts, []);

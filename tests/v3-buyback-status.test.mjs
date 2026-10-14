@@ -1,32 +1,46 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRewardStatusRoutes } from '../server/routes/reward-status.mjs';
+const programId='9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
+
+const verifiedSource = source => ({
+  launches:{mint:{onchainVerified:true,cluster:'devnet',
+    pumpFeeRoute:{scope:'per-mint-v3',programId}}},
+  collections:{[source]:{signature:source,mint:'mint',status:'collected',
+    onchainVerified:true,programId}},
+});
 
 test('V3 buyback status retains exact unspent allocation after a recorded burn',async()=>{
   const signature='3'.repeat(64);
-  const state={v3Settlements:{[signature]:{status:'finalized',
+  const state={...verifiedSource(signature),v3Settlements:{[signature]:{status:'finalized',
     mint:'mint',collectionSignature:signature,
     allocationPlan:{status:'allocated-not-funded',
       protocol:{buybackLamports:'1000000'}}}},
     v3BuybackOrders:{[signature]:{status:'finalized',finalized:true,
+      programId,
       spentLamports:'950000',burnedBaseUnits:'125000',
       vaultDebitVerified:true,burnInstructionVerified:true,
       preparedTransaction:'private',signedTransaction:'private',
       pumpData:'private',pumpKeys:[]}},buybackOrders:{}};
   const responses=[];
   const route=createRewardStatusRoutes({store:{read:async()=>state},
-    solanaCluster:'devnet',respond:(_res,status,data)=>responses.push({status,data})});
+    solanaCluster:'devnet',env:{FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId},
+    respond:(_res,status,data)=>responses.push({status,data})});
   await route({method:'GET'}, {},new URL('https://funded.vip/api/buyback/status'));
   assert.equal(responses.at(-1).data.executionReady,false);
   assert.equal(responses.at(-1).data.pending[0].amountLamports,'50000');
   assert.equal(responses.at(-1).data.pending[0].status,'verified-burn-residue');
   assert.equal(responses.at(-1).data.receipts.length,1);
   assert.equal(responses.at(-1).data.receipts[0].signedTransaction,undefined);
+  state.v3BuybackOrders[signature].spentLamports='1000000';
+  await route({method:'GET'}, {},new URL('https://funded.vip/api/buyback/status'));
+  assert.deepEqual(responses.at(-1).data.pending,[],
+    'A fully spent source must not be displayed as buyback residue.');
 });
 
-test('a queued buyback cycle reports its verified residue for the next round',async()=>{
-  const source='3'.repeat(64),programId='9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
-  const state={v3Settlements:{[source]:{status:'finalized',mint:'mint',
+test('a finished buyback cycle reports residue until another cycle is queued',async()=>{
+  const source='3'.repeat(64);
+  const state={...verifiedSource(source),v3Settlements:{[source]:{status:'finalized',mint:'mint',
     programId,collectionSignature:source,allocationPlan:{status:'allocated-not-funded',
       protocol:{buybackLamports:'1000000'}}}},v3BuybackOrders:{
     [source]:{status:'finalized',collectionSignature:source,programId,
@@ -37,9 +51,14 @@ test('a queued buyback cycle reports its verified residue for the next round',as
       burnInstructionVerified:true,spentLamports:'400000'} }};
   const replies=[];
   const route=createRewardStatusRoutes({store:{read:async()=>state},solanaCluster:'devnet',
+    env:{FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId},
     respond:(_res,status,data)=>replies.push({status,data})});
   await route({method:'GET'},{},new URL('https://funded.vip/api/buyback/status'));
   assert.equal(replies.at(-1).data.pending[0].amountLamports,'300000');
+  assert.equal(replies.at(-1).data.pending[0].status,'verified-burn-residue');
+  state.v3BuybackOrders[`${source}:3`]={status:'queued',collectionSignature:source,
+    programId,cycleId:'cycle-2',round:3};
+  await route({method:'GET'},{},new URL('https://funded.vip/api/buyback/status'));
   assert.equal(replies.at(-1).data.pending[0].status,'queued');
 });
 

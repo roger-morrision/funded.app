@@ -5,13 +5,23 @@ import { v3RewardExperience } from '../v3-reward-experience.mjs';
 import { readV3BuybackDashboard } from '../v3-buyback-dashboard.mjs';
 import { v3BuybackNextOrder, v3BuybackSourceSpent } from '../v3-buyback-orders.mjs';
 
-function pendingV3Buybacks(state) {
+function pendingV3Buybacks(state, programId) {
+  if (!programId) return [];
   return Object.values(state.v3Settlements || {}).flatMap(row => {
+    const launch = state.launches?.[row.mint];
+    const collection = state.collections?.[row.collectionSignature];
     const lamports = String(row.allocationPlan?.protocol?.buybackLamports || '0');
     if (row.status !== 'finalized' || !/^[1-9]\d*$/.test(lamports)
-      || row.allocationPlan?.status !== 'allocated-not-funded') return [];
+      || row.allocationPlan?.status !== 'allocated-not-funded'
+      || !launch?.onchainVerified || launch.cluster !== 'devnet'
+      || launch.pumpFeeRoute?.scope !== 'per-mint-v3'
+      || launch.pumpFeeRoute.programId !== programId
+      || collection?.signature !== row.collectionSignature
+      || collection.mint !== row.mint || collection.status !== 'collected'
+      || collection.onchainVerified !== true
+      || collection.programId !== programId) return [];
     const order=v3BuybackNextOrder(state, row.collectionSignature);
-    const spent=v3BuybackSourceSpent(state,row.collectionSignature,row.programId);
+    const spent=v3BuybackSourceSpent(state,row.collectionSignature,programId);
     const residual=BigInt(lamports)-spent;
     if(residual<0n) return [{mint:row.mint,
       sourceCollectionSignature:row.collectionSignature,amountLamports:lamports,
@@ -19,8 +29,8 @@ function pendingV3Buybacks(state) {
     return residual>0n ? [{ mint:row.mint,
       sourceCollectionSignature:row.collectionSignature,
       amountLamports:String(residual),
-      status:order.row?.status || (order.previous?.cycleId ? 'queued'
-        : order.previous ? 'verified-burn-residue' : 'awaiting-v3-buyback-executor') }] : [];
+      status:order.row?.status || (order.previous
+        ? 'verified-burn-residue' : 'awaiting-v3-buyback-executor') }] : [];
   });
 }
 
@@ -114,7 +124,7 @@ export function createRewardStatusRoutes({
       status.routeReadiness = { x, community:{ ready:migrationReady, qaClaimVerified:qaClaimReady,
         reason:migrationReady ? null : qaClaimReady
           ? 'A Devnet QA cutoff claim is verified; a real migration eligibility snapshot remains unverified.'
-          : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:buybackReady, devnetExecutorVerified:buybackReady, verifiedV3Burns:currentBurns.length, recordedV3Burns:recordedBurns.length, pending:pendingV3Buybacks(buybackState), reason:buybackReady ? null : 'No finalized V3 buyback and burn matches the enabled Devnet program.' } };
+          : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:buybackReady, devnetExecutorVerified:buybackReady, verifiedV3Burns:currentBurns.length, recordedV3Burns:recordedBurns.length, pending:pendingV3Buybacks(buybackState,env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID), reason:buybackReady ? null : 'No finalized V3 buyback and burn matches the enabled Devnet program.' } };
       return json(res, 200, status);
     }
     if (req.method === 'GET' && url.pathname === '/api/buyback/status') {
@@ -136,7 +146,7 @@ export function createRewardStatusRoutes({
       return json(res, 200, { cluster:solanaCluster, custody:'v3-mint-category-vault',
         executionReady:currentDevnetBurns(state).length > 0,
         automationEnabled:solanaCluster==='devnet'&&env.FUNDED_V3_BUYBACK_ENABLED==='true',
-        mainnetReady:false, pending:pendingV3Buybacks(state),
+        mainnetReady:false, pending:pendingV3Buybacks(state,env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID),
         dashboard,
         receipts:verifiedV3Burns(state)
           .map(({preparedTransaction,signedTransaction,pumpData,pumpKeys,...row})=>row) });
