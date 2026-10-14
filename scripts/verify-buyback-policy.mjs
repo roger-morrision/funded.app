@@ -40,11 +40,11 @@ assert.equal(accrual.buybackAmount, BUYBACK_POLICY.effectivePercentOfCreatorFees
 
 const thresholdAccrual = buildBuybackAccrual({ claimSignature: 'claim-2', grossCreatorFees: 5, asset: 'SOL', claimedAt: '2026-09-18T01:00:00.000Z' });
 assert.equal(thresholdAccrual.buybackAmount, Number((5 * BUYBACK_POLICY.effectivePercentOfCreatorFees / 100).toFixed(9)));
-const ready = evaluateBuybackBatch({ pendingAmount: 0.25, asset: 'SOL', now: '2026-09-18T02:00:00.000Z', lastExecutionAt: '2026-09-18T01:00:00.000Z', quote: { routeVerified: true, ageSeconds: 2, slippageBps: 50, priceImpactBps: 40, poolLiquidityAmount: 1000 } });
+const ready = evaluateBuybackBatch({ pendingAmount: 5, asset: 'SOL', quote: { routeVerified: true, ageSeconds: 2, slippageBps: 50, priceImpactBps: 40, poolLiquidityAmount: 10000 } });
 assert.equal(ready.executable, true);
-assert.equal(ready.executionAmount, 0.25);
+assert.equal(ready.executionAmount, 5);
 
-const blocked = evaluateBuybackBatch({ pendingAmount: 1, asset: 'SOL', quote: { routeVerified: true, ageSeconds: 2, slippageBps: 50, priceImpactBps: 80, poolLiquidityAmount: 1000 } });
+const blocked = evaluateBuybackBatch({ pendingAmount: 5, asset: 'SOL', quote: { routeVerified: true, ageSeconds: 2, slippageBps: 50, priceImpactBps: 80, poolLiquidityAmount: 1000 } });
 assert.equal(blocked.executable, false);
 assert.equal(blocked.reason, 'price-impact-limit');
 

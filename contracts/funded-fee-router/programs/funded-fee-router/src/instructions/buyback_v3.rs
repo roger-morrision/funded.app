@@ -25,7 +25,8 @@ const BUYBACK_CATEGORY: u8 = 6;
 pub struct BuybackMintV3<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
-    pub creator: Signer<'info>,
+    /// CHECK: Bound to the immutable mint policy; cannot receive vault funds.
+    pub creator: UncheckedAccount<'info>,
     pub mint: UncheckedAccount<'info>,
     #[account(seeds = [SEED], bump)]
     pub legacy_router: UncheckedAccount<'info>,

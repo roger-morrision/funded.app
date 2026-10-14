@@ -1,17 +1,17 @@
-import { PublicKey } from '@solana/web3.js';
+import { Connection, PublicKey } from '@solana/web3.js';
 import { v3AutomaticRewardStatus } from '../v3-automatic-status.mjs';
 import { jackpotPreview } from '../jackpot-model.mjs';
 import { v3RewardExperience } from '../v3-reward-experience.mjs';
+import { readV3BuybackDashboard } from '../v3-buyback-dashboard.mjs';
+import { v3BuybackNextOrder, v3BuybackSourceSpent } from '../v3-buyback-orders.mjs';
 
 function pendingV3Buybacks(state) {
   return Object.values(state.v3Settlements || {}).flatMap(row => {
     const lamports = String(row.allocationPlan?.protocol?.buybackLamports || '0');
     if (row.status !== 'finalized' || !/^[1-9]\d*$/.test(lamports)
       || row.allocationPlan?.status !== 'allocated-not-funded') return [];
-    const order=state.v3BuybackOrders?.[row.collectionSignature];
-    const burned=order?.status==='finalized'&&order.finalized===true
-      &&order.vaultDebitVerified===true&&order.burnInstructionVerified===true;
-    const spent=burned ? BigInt(order.spentLamports||'0') : 0n;
+    const order=v3BuybackNextOrder(state, row.collectionSignature);
+    const spent=v3BuybackSourceSpent(state,row.collectionSignature,row.programId);
     const residual=BigInt(lamports)-spent;
     if(residual<0n) return [{mint:row.mint,
       sourceCollectionSignature:row.collectionSignature,amountLamports:lamports,
@@ -19,7 +19,8 @@ function pendingV3Buybacks(state) {
     return residual>0n ? [{ mint:row.mint,
       sourceCollectionSignature:row.collectionSignature,
       amountLamports:String(residual),
-      status:burned?'verified-burn-residue':order?.status||'awaiting-v3-buyback-executor' }] : [];
+      status:order.row?.status || (order.previous?.cycleId ? 'queued'
+        : order.previous ? 'verified-burn-residue' : 'awaiting-v3-buyback-executor') }] : [];
   });
 }
 
@@ -76,9 +77,12 @@ function recordedV3XPayments(state, rewards, programId) {
 // Dispatch after shared authorization and rate checks; preserve caller route order.
 export function createRewardStatusRoutes({
   store, automaticRewardStore, solanaCluster, xFeeReadiness, readFinalizedEvidence, clientKey,
-  respond, env = process.env,
+  respond, env = process.env, solanaRpcUrl = '',
+  connectionFactory = url => new Connection(url, 'finalized'),
+  readBuybackDashboard = readV3BuybackDashboard,
 }) {
   const json = (...args) => { respond(...args); return true; };
+  let buybackSnapshot = null;
   const verifiedV3Burns = state => Object.values(state.v3BuybackOrders || {}).filter(row =>
     row.status === 'finalized' && row.finalized === true
     && row.vaultDebitVerified === true && row.burnInstructionVerified === true);
@@ -115,8 +119,25 @@ export function createRewardStatusRoutes({
     }
     if (req.method === 'GET' && url.pathname === '/api/buyback/status') {
       const state = await store.read();
+      let dashboard = { status:'unavailable', thresholdLamports:'5000000000',
+        collectedLamports:null, observedLamports:null, triggerReached:false,
+        vaults:[], lastBurn:null };
+      if (solanaCluster === 'devnet' && solanaRpcUrl && env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID) {
+        const cacheKey=env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID;
+        if (buybackSnapshot?.key===cacheKey && Date.now()-buybackSnapshot.at<20_000)
+          dashboard=buybackSnapshot.value;
+        else try {
+          dashboard=await readBuybackDashboard({ state,programId:cacheKey,
+            connection:connectionFactory(solanaRpcUrl) });
+          dashboard.checkedAt=new Date().toISOString();
+          buybackSnapshot={key:cacheKey,at:Date.now(),value:dashboard};
+        } catch { /* Show unavailable data rather than an inferred balance. */ }
+      }
       return json(res, 200, { cluster:solanaCluster, custody:'v3-mint-category-vault',
-        executionReady:currentDevnetBurns(state).length > 0, mainnetReady:false, pending:pendingV3Buybacks(state),
+        executionReady:currentDevnetBurns(state).length > 0,
+        automationEnabled:solanaCluster==='devnet'&&env.FUNDED_V3_BUYBACK_ENABLED==='true',
+        mainnetReady:false, pending:pendingV3Buybacks(state),
+        dashboard,
         receipts:verifiedV3Burns(state)
           .map(({preparedTransaction,signedTransaction,pumpData,pumpKeys,...row})=>row) });
     }

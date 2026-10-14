@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import bs58 from 'bs58';
-import { Keypair, SystemProgram, TransactionInstruction,
-  VersionedTransaction } from '@solana/web3.js';
+import { Keypair, SystemProgram, TransactionInstruction } from '@solana/web3.js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync,
   NATIVE_MINT, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { PUMP_AMM_PROGRAM_ID } from '@pump-fun/pump-swap-sdk';
@@ -16,7 +15,9 @@ const creator=key(41),authority=key(42),program=key(43),mint=key(44);
 const signature='3'.repeat(64),settlementSignature='4'.repeat(64);
 const programId=program.publicKey.toBase58(), mintAddress=mint.publicKey.toBase58();
 
-function fixture(enabled=true) {
+function fixture(enabled=true, triggerReached=true) {
+  let currentTrigger=triggerReached;
+  let proofAvailable=true,signatureOutcome=null;
   const vault=deriveMintVaultsV3(programId,mintAddress)[6];
   const baseAta=getAssociatedTokenAddressSync(V3_DEVNET_FUNDED_MINT,vault,true);
   const quoteAta=getAssociatedTokenAddressSync(NATIVE_MINT,vault,true);
@@ -50,7 +51,8 @@ function fixture(enabled=true) {
   const lookupAddress=key(120).publicKey;
   const connection={getAddressLookupTable:async()=>({value:{key:lookupAddress,
     state:{addresses:addresses.filter(address=>!address.equals(vault))}}}),
-    getLatestBlockhash:async()=>({blockhash:key(121).publicKey.toBase58()})};
+    getLatestBlockhash:async()=>({blockhash:key(121).publicKey.toBase58()}),
+    getSignatureStatuses:async()=>({value:[signatureOutcome]})};
   const route=createV3BuybackRoutes({body:async req=>req.input,
     store:{read:async()=>state,update:async callback=>callback(state)},
     solanaCluster:'devnet',solanaRpcUrl:'https://unused.invalid',
@@ -62,15 +64,18 @@ function fixture(enabled=true) {
     originAllowed:()=>true,connectionFactory:()=>connection,
     verifyReadiness:async()=>({ready:true,configuredRouter:'router-fixture'}),
     loadSettlement:async()=>settlement,
-    quote:async()=>({pumpBuyInstruction,baseTokenProgram:TOKEN_PROGRAM_ID,
-      spendableQuoteIn:'3',minBaseAmountOut:'1',
-      maxTotalDebit:plan.protocol.buybackLamports}),
-    loadProof:async input=>({signature:input.signature,status:'finalized',
-      spentLamports:'3',burnedBaseUnits:'1',finalized:true,
-      vaultDebitVerified:true,burnInstructionVerified:true}),
+    quote:async({budgetLamports})=>({pumpBuyInstruction,baseTokenProgram:TOKEN_PROGRAM_ID,
+      spendableQuoteIn:String(BigInt(budgetLamports)<3n?budgetLamports:'3'),
+      minBaseAmountOut:'1',maxTotalDebit:String(budgetLamports)}),
+    loadProof:async input=>proofAvailable?({signature:input.signature,status:'finalized',
+      spentLamports:input.spendableQuoteIn,burnedBaseUnits:'1',finalized:true,
+      vaultDebitVerified:true,burnInstructionVerified:true}):null,
+    readDashboard:async()=>({status:'verified',triggerReached:currentTrigger}),
     submit:async({transaction})=>bs58.encode(transaction.signatures[0])});
-  return {state,responses,request:input=>route({method:'POST',input,headers:{}},{},
-    new URL(`/api/tokens/${mintAddress}/v3-buyback/${signature}`,'https://funded.vip'))};
+  return {state,responses,setTrigger:value=>{currentTrigger=value;},
+    setProof:value=>{proofAvailable=value;},setSignatureOutcome:value=>{signatureOutcome=value;},
+    request:(input,source=signature)=>route({method:'POST',input,headers:{}},{},
+      new URL(`/api/tokens/${mintAddress}/v3-buyback/${source}`,'https://funded.vip'))};
 }
 
 test('V3 buyback cannot prepare while the Devnet pilot gate is off',async()=>{
@@ -79,15 +84,52 @@ test('V3 buyback cannot prepare while the Devnet pilot gate is off',async()=>{
   assert.deepEqual(f.state.v3BuybackOrders,{});
 });
 
-test('V3 buyback keeps one creator-signed quote and requires finalized burn proof',async()=>{
+test('V3 buyback executes without creator signature only after the 5 SOL vault trigger',async()=>{
+  const below=fixture(true,false);await below.request({});
+  assert.equal(below.responses.at(-1).status,409);
+  assert.deepEqual(below.state.v3BuybackOrders,{});
   const f=fixture();await f.request({});
-  assert.equal(f.responses.at(-1).status,202);
-  const unsigned=f.responses.at(-1).data.transaction;
-  const tx=VersionedTransaction.deserialize(Buffer.from(unsigned,'base64'));
-  tx.sign([creator]);
-  await f.request({creatorSignedTransaction:Buffer.from(tx.serialize()).toString('base64')});
   assert.equal(f.responses.at(-1).status,200);
   assert.equal(f.state.v3BuybackOrders[signature].status,'finalized');
+  assert.equal(f.state.v3BuybackOrders[signature].cycleId.startsWith('v3-buyback:'),true);
   await f.request({});
   assert.equal(f.responses.at(-1).status,200);
+  assert.equal(f.state.v3BuybackOrders[`${signature}:2`].status,'finalized');
+  assert.notEqual(f.state.v3BuybackOrders[signature].buybackId,
+    f.state.v3BuybackOrders[`${signature}:2`].buybackId);
+  await f.request({});
+  assert.equal(f.responses.at(-1).status,409);
+  assert.equal(Object.keys(f.state.v3BuybackOrders).length,2);
+});
+
+test('a triggered cycle finishes queued collections after the total drops below 5 SOL',async()=>{
+  const f=fixture();
+  const second='5'.repeat(64);
+  f.state.collections[second]={...f.state.collections[signature],signature:second};
+  f.state.v3Settlements[second]={...f.state.v3Settlements[signature],
+    collectionSignature:second,
+    allocationPlan:v3AllocationPlan({launch:f.state.launches[mintAddress],
+      settlement:{signature:settlementSignature,mint:mintAddress,
+        collectionSignature:second,settlementSignature,programId,
+        expectedLamports:'100',claimId:Buffer.alloc(32,9).toString('hex'),
+        categoryLamports:['80','10','2','1','0','2','5']}})};
+  await f.request({});
+  assert.equal(f.state.v3BuybackOrders[second].status,'queued');
+  f.setTrigger(false);
+  await f.request({},second);
+  assert.equal(f.responses.at(-1).status,200);
+  assert.equal(f.state.v3BuybackOrders[second].status,'finalized');
+});
+
+test('a finalized failed swap keeps its signature audit trail and requeues safely',async()=>{
+  const f=fixture();await f.request({});
+  const row=f.state.v3BuybackOrders[signature];
+  row.status='verification-pending';row.finalized=false;
+  f.setProof(false);
+  f.setSignatureOutcome({confirmationStatus:'finalized',err:{InstructionError:[1,1]}});
+  await f.request({});
+  assert.equal(f.responses.at(-1).status,409);
+  assert.equal(row.signature,f.state.v3BuybackOrders[signature].failedSignatures[0]);
+  assert.equal(f.state.v3BuybackOrders[signature].status,'queued');
+  assert.equal(f.state.v3BuybackOrders[signature].signature,undefined);
 });

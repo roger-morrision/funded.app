@@ -1,3 +1,5 @@
+import { mountBuybackProgressPanels } from '../../features/funded/buyback-progress-ui.js';
+
 // Dependencies and mutable application state are read live through appState.
 export function createBuybackController(appState) {
   // app-source: 341
@@ -8,12 +10,41 @@ export function createBuybackController(appState) {
 
   // app-source: 343
   async function loadBuybackNetworkState(signal){
+    mountBuybackProgressPanels(document);
     try {
       const response = await appState.apiRequest('/api/buyback/status', { signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(8000)]) : AbortSignal.timeout(8000) });
       signal?.throwIfAborted();
       if (!response.available || !response.data || response.data.cluster !== 'devnet') throw new Error('Devnet buyback index unavailable.');
-      appState.buybackNetworkState = { status:'ready', receipts:Array.isArray(response.data.receipts) ? response.data.receipts : [], pending:Array.isArray(response.data.pending) ? response.data.pending : [] };
-    } catch { signal?.throwIfAborted(); appState.buybackNetworkState = { status:'unavailable', receipts:[], pending:[] }; }
+      appState.buybackNetworkState = { status:'ready', receipts:Array.isArray(response.data.receipts) ? response.data.receipts : [], pending:Array.isArray(response.data.pending) ? response.data.pending : [], dashboard:response.data.dashboard || null, automationEnabled:response.data.automationEnabled === true };
+    } catch { signal?.throwIfAborted(); appState.buybackNetworkState = { status:'unavailable', receipts:[], pending:[], dashboard:null }; }
+    const dashboard = appState.buybackNetworkState.dashboard;
+    for (const prefix of ['home-buyback','buyback-route']) {
+      const balance = document.querySelector(`#${prefix}-balance`);
+      const note = document.querySelector(`#${prefix}-status`);
+      const track = document.querySelector(`#${prefix}-track`);
+      const fill = document.querySelector(`#${prefix}-fill`);
+      const time = document.querySelector(`#${prefix}-last-time`);
+      const proof = document.querySelector(`#${prefix}-proof`);
+      if (!balance || !note || !track || !fill || !time || !proof) continue;
+      const exact = dashboard?.status === 'verified' && /^\d+$/.test(String(dashboard.collectedLamports));
+      const lamports = exact ? BigInt(dashboard.collectedLamports) : 0n;
+      const sol = Number(lamports) / 1_000_000_000;
+      balance.textContent = exact ? `${sol.toLocaleString(undefined, { maximumFractionDigits:9 })} SOL` : '—';
+      note.textContent = !exact ? 'Vault verification unavailable or incomplete'
+        : !appState.buybackNetworkState.automationEnabled ? 'Automatic execution is not active on this deployment'
+          : dashboard.triggerReached ? '5 SOL trigger reached · awaiting protected execution' : 'Verified vault funds · awaiting 5 SOL';
+      const progress = exact ? Math.min(100, sol / 5 * 100) : 0;
+      track.setAttribute('aria-valuenow', String(Math.min(5, sol)));
+      track.setAttribute('aria-valuetext', exact ? `${sol} of 5 SOL` : 'Verified balance unavailable');
+      fill.style.width = `${progress}%`;
+      const burn = dashboard?.lastBurn;
+      const burnedAt = burn?.burnedAt && Number.isFinite(Date.parse(burn.burnedAt)) ? new Date(burn.burnedAt) : null;
+      time.textContent = burn ? burnedAt ? burnedAt.toLocaleString(undefined,{timeZone:'UTC',timeZoneName:'short'}) : 'Confirmed burn · time unavailable' : 'No verified burn yet';
+      const signature = String(burn?.signature || '');
+      proof.hidden = !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature);
+      if (!proof.hidden) proof.href = `https://explorer.solana.com/tx/${encodeURIComponent(signature)}?cluster=devnet`;
+      else proof.removeAttribute('href');
+    }
     appState.renderBuybackDashboard();
   }
   // app-source-end

@@ -3,9 +3,8 @@ import { FEE_DISTRIBUTION } from './distribution-policy.js';
 export const BUYBACK_POLICY = Object.freeze({
   percentOfFundedRevenue: FEE_DISTRIBUTION.buybackRateOfFundedRevenue,
   effectivePercentOfCreatorFees: FEE_DISTRIBUTION.buybackEffectivePercent,
-  acceptedAssets: Object.freeze(['SOL', 'USDC']),
-  minimumBatch: Object.freeze({ SOL: 0.25, USDC: 50 }),
-  maximumWaitHours: 6,
+  acceptedAssets: Object.freeze(['SOL']),
+  minimumBatch: Object.freeze({ SOL: 5 }),
   maximumSlippageBps: 100,
   maximumPriceImpactBps: 75,
   maximumLiquidityClipBps: 25,
@@ -47,7 +46,7 @@ export function buildBuybackPolicy({ fundedMint = null } = {}) {
     execution: {
       mechanism: BUYBACK_POLICY.execution,
       minimumBatch: BUYBACK_POLICY.minimumBatch,
-      maximumWaitHours: BUYBACK_POLICY.maximumWaitHours,
+      triggerScope: 'aggregate-verified-devnet-v3-vaults',
       maximumSlippageBps: BUYBACK_POLICY.maximumSlippageBps,
       maximumPriceImpactBps: BUYBACK_POLICY.maximumPriceImpactBps,
       maximumLiquidityClipBps: BUYBACK_POLICY.maximumLiquidityClipBps,
@@ -109,20 +108,14 @@ function sumByAsset(records) {
   }, {});
 }
 
-export function evaluateBuybackBatch({ pendingAmount, asset = 'SOL', lastExecutionAt = null, oldestPendingAt = null, now = new Date().toISOString(), quote = null, maximumWaitHours = BUYBACK_POLICY.maximumWaitHours }) {
+export function evaluateBuybackBatch({ pendingAmount, asset = 'SOL', quote = null }) {
   const normalizedAsset = normalizeAsset(asset);
   const pending = requireFiniteNonNegative(pendingAmount, 'Pending buyback amount');
   const minimumBatch = BUYBACK_POLICY.minimumBatch[normalizedAsset];
-  const elapsedFrom = lastExecutionAt || oldestPendingAt;
-  const elapsedHours = elapsedFrom
-    ? Math.max(0, (new Date(now).getTime() - new Date(elapsedFrom).getTime()) / 3_600_000)
-    : 0;
   const thresholdReached = pending >= minimumBatch;
-  if (!Number.isFinite(maximumWaitHours) || maximumWaitHours <= 0 || maximumWaitHours > BUYBACK_POLICY.maximumWaitHours) throw new Error('Invalid buyback maximum wait.');
-  const maximumWaitReached = pending > 0 && elapsedHours >= maximumWaitHours;
-  const eligible = thresholdReached || maximumWaitReached;
-  if (!eligible) return { eligible: false, executable: false, reason: 'accumulating', pendingAmount: pending, minimumBatch, elapsedHours };
-  if (!quote) return { eligible: true, executable: false, reason: 'protected-quote-required', pendingAmount: pending, minimumBatch, elapsedHours };
+  const eligible = thresholdReached;
+  if (!eligible) return { eligible: false, executable: false, reason: 'accumulating', pendingAmount: pending, minimumBatch };
+  if (!quote) return { eligible: true, executable: false, reason: 'protected-quote-required', pendingAmount: pending, minimumBatch };
 
   const quoteAgeSeconds = requireFiniteNonNegative(quote.ageSeconds, 'Quote age');
   const slippageBps = requireFiniteNonNegative(quote.slippageBps, 'Quote slippage');

@@ -33,6 +33,7 @@
     <link rel="stylesheet" href="/payment-history.css" />
     <link rel="stylesheet" href="/referral-ui.css" />
     <link rel="stylesheet" href="/home-rewards-carousel.css" />
+    <link rel="stylesheet" href="/buyback-progress.css" />
     <link rel="stylesheet" href="/token-card-consistency.css" />
     <link rel="stylesheet" href="/token-card-controls.css" />
     <link rel="stylesheet" href="/portfolio-dashboard.css" />
@@ -178,6 +179,8 @@
             <div class="hero-actions"><a class="primary-button" href="#launch">Create a coin <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 18 18 6M6 6h12v12"/></svg></a><a class="hero-secondary-action" href="#explore">Explore tokens <span aria-hidden="true">→</span></a></div>
           </div>
         </section>
+
+        <section class="home-buyback-progress" id="home-buyback-panel" aria-labelledby="home-buyback-progress-title"></section>
 
         <section data-automatic-rewards aria-label="Reward distribution schedule"></section>
         <section class="home-holder-rewards" aria-labelledby="home-holder-rewards-title">
@@ -577,6 +580,7 @@
 </section>
 <section class="buyback-section burn-center section-block" id="buybacks" aria-labelledby="burn-center-title">
   <div class="burn-center-hero"><a href="#overview" class="burn-back-link">← Back to overview</a><p class="eyebrow">$FUNDED · proof of burn</p><h1 id="burn-center-title">Burn $FUNDED</h1><p>Reduce supply permanently and associate the receipt with one of your projects. Every completed burn must be confirmed on-chain.</p></div>
+  <section class="home-buyback-progress buyback-route-progress" id="buyback-route-panel" aria-labelledby="buyback-route-title"></section>
   <div class="burn-center-layout">
     <div class="burn-center-main">
       <article class="panel burn-action-card burn-buy-card"><div class="burn-card-head"><div><p class="eyebrow">Acquire tokens</p><h2>Buy $FUNDED</h2></div><span class="burn-status unavailable" id="funded-buy-route-state">Checking</span></div><p>Buy through the verified $FUNDED / SOL pool. Preview the quote and maximum spend before approving a wallet transaction.</p><label class="burn-amount-field"><span>Amount</span><div><input id="funded-buy-amount" type="number" min="0" step="0.0001" inputmode="decimal" placeholder="0.001" disabled /><b>SOL</b></div></label><button type="button" class="burn-primary" id="funded-buy-submit" disabled>Preview buy</button><p id="funded-buy-countdown"></p><p class="funded-burn-status" id="funded-buy-status" role="status" aria-live="polite">Checking the verified Solana pool…</p></article>

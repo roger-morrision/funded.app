@@ -111,6 +111,22 @@ services:
       db:
         condition: service_healthy
 
+  buyback-worker:
+    build: .
+    restart: unless-stopped
+    command: ["node", "scripts/run-v3-buyback-worker.mjs"]
+    environment:
+      SOLANA_CLUSTER: devnet
+      FUNDED_V3_BUYBACK_ENABLED: ${FUNDED_V3_BUYBACK_ENABLED:-false}
+      FUNDED_INTERNAL_APP_URL: http://app:8787
+      CORS_ORIGIN: ${FUNDED_PUBLIC_APP_URL:-https://funded.vip}
+      FUNDED_API_TOKEN_FILE: /run/secrets/funded_api_token
+    secrets:
+      - funded_api_token
+    depends_on:
+      app:
+        condition: service_healthy
+
   tunnel:
     profiles: ["tunnel"]
     image: cloudflare/cloudflared:latest

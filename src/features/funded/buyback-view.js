@@ -72,10 +72,11 @@ export function renderBuybackDashboard(
   }).join('');
   const standaloneRows = standaloneReceipts.filter(receipt => !launchBurns.some(launch => launch.creatorLaunchBurn.receipt.signature === receipt.signature)).map(receipt => `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${formatBuybackAmount(receipt.amountTokens, 6)} $FUNDED burned</strong><small>${escapeHtml(fundedReceiptProject(receipt))} · confirmed</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed transaction ↗</a></span><b>Supply ↓</b></div>`).join('');
   const feeRows = feeReceipts.map(receipt => {
-    const baseUnits = BigInt(receipt.boughtAndBurnedBaseUnits || '0');
+    const baseUnits = BigInt(receipt.burnedBaseUnits || receipt.boughtAndBurnedBaseUnits || '0');
     const amount = formatTokenBaseUnits(baseUnits, Number(receipt.tokenDecimals ?? 6), 6);
-    const spentSol = (BigInt(receipt.settledLamports || '0') - BigInt(receipt.returnedLamports || '0'));
-    return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${escapeHtml(amount)} $FUNDED bought and burned</strong><small>${escapeHtml(formatTokenBaseUnits(spentSol, 9, 9))} SOL from collected creator fees · unused SOL returned</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed buy and burn ↗</a></span><b>Supply ↓</b></div>`;
+    const spentSol = receipt.spentLamports != null ? BigInt(receipt.spentLamports)
+      : BigInt(receipt.settledLamports || '0') - BigInt(receipt.returnedLamports || '0');
+    return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${escapeHtml(amount)} $FUNDED bought and burned</strong><small>${escapeHtml(formatTokenBaseUnits(spentSol, 9, 9))} SOL from collected creator fees · finalized on Devnet</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed buy and burn ↗</a></span><b>Supply ↓</b></div>`;
   }).join('');
   document.querySelector('#buyback-ledger').innerHTML = `${feeRows}${standaloneRows}${launchRows}${previewRows}` || (buybackNetworkState.status === 'unavailable' ? '<div class="empty-state">Burn history is temporarily unavailable. Try again shortly.</div>' : '<div class="empty-state">No confirmed $FUNDED burns yet. Fee-funded buybacks and launch promotions appear here separately.</div>');
   const runButton = document.querySelector('#buyback-run-preview');

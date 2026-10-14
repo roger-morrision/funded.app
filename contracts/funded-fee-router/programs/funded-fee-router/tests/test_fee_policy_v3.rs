@@ -269,7 +269,7 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
 
     #[cfg(feature = "devnet-v3-program")]
     {
-        // Even two authorized signers cannot substitute another market for
+        // The automatic authority cannot substitute another market for
         // the approved $FUNDED pool and extract category-6 SOL.
         let funded_mint = Pubkey::from_str("C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64").unwrap();
         let pump_swap = Pubkey::from_str("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA").unwrap();
@@ -306,7 +306,7 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
             }.to_account_metas(None));
         svm.expire_blockhash();
         assert!(!send(&mut svm, &next_authority,
-            &[&next_authority, &creator], ix));
+            &[&next_authority], ix));
         assert!(svm.get_account(&receipt).is_none());
         assert_eq!(svm.get_account(&original[6]).unwrap().lamports,
             buyback_vault_before);

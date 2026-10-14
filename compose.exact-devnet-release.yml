@@ -34,6 +34,11 @@ services:
       SOLANA_HOLDER_INDEX_RPC_URL_FILE: /run/secrets/solana_holder_index_rpc_url
     secrets:
       - solana_holder_index_rpc_url
+  buyback-worker:
+    image: ${FUNDED_RELEASE_IMAGE:?Set the exact-SHA image}
+    environment:
+      FUNDED_BUILD_ID: ${FUNDED_RELEASE_SHA:?Set the exact source SHA}
+      FUNDED_V3_BUYBACK_ENABLED: ${FUNDED_V3_BUYBACK_ENABLED:-false}
   reward-volume-init:
     image: ${FUNDED_RELEASE_IMAGE:?Set the exact-SHA image}
     environment:

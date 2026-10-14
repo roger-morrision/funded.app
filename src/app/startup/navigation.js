@@ -184,7 +184,7 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 882
-  appState.createRoutePoller({ run: signal => appState.loadBuybackNetworkState(signal), active: () => ['buybacks', 'paid', 'payments'].includes(appState.requestedPageRoute()), intervalMs: 60_000 });
+  appState.createRoutePoller({ run: signal => appState.loadBuybackNetworkState(signal), active: () => ['overview', 'buybacks', 'paid', 'payments'].includes(appState.requestedPageRoute()), intervalMs: 60_000 });
   // app-source-end
 
   // app-source: 883

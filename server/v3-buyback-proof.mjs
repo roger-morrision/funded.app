@@ -31,8 +31,7 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
     const keys = [...staticKeys, ...(tx.meta.loadedAddresses?.writable || []).map(address),
       ...(tx.meta.loadedAddresses?.readonly || []).map(address)];
     const signers = staticKeys.slice(0, message.header?.numRequiredSignatures || 0);
-    if (!signers.includes(new PublicKey(authority).toBase58())
-      || !signers.includes(new PublicKey(creator).toBase58())) return null;
+    if (!signers.includes(new PublicKey(authority).toBase58())) return null;
     const instructions = message.instructions || message.compiledInstructions || [];
     let routerIndex = -1;
     for (let index = 0; index < instructions.length; index++) {
@@ -91,11 +90,14 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
       || row.readBigUInt64LE(136) !== spent
       || row.readBigUInt64LE(144) !== burnSeen
       || !policy?.verified || policy.withdrawnLamports[6] < spent) return null;
+    const burnedAtSeconds = row.readBigInt64LE(152);
+    const burnedAt = burnedAtSeconds > 0n && burnedAtSeconds < 8_640_000_000_000n
+      ? new Date(Number(burnedAtSeconds) * 1000).toISOString() : null;
     return { signature, slot:tx.slot, sourceMint:new PublicKey(sourceMint).toBase58(),
       receipt:expected.receipt.toBase58(), vault:expected.vault.toBase58(),
       spentLamports:String(spent), burnedBaseUnits:String(burnSeen),
       fundedMint:V3_DEVNET_FUNDED_MINT.toBase58(),
-      pool:V3_DEVNET_FUNDED_POOL.toBase58(), finalized:true,
+      pool:V3_DEVNET_FUNDED_POOL.toBase58(), burnedAt, finalized:true,
       vaultDebitVerified:true, burnInstructionVerified:true };
   } catch { return null; }
 }

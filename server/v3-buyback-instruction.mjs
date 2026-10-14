@@ -20,11 +20,14 @@ function u64(value, label) {
   return bytes;
 }
 
-export function v3BuybackId(sourceCollectionSignatures) {
+export function v3BuybackId(sourceCollectionSignatures, round = 1) {
   const ids = [...new Set(sourceCollectionSignatures)].sort();
   if (!ids.length || ids.some(id => !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(id)))
     throw new Error('V3 buyback requires finalized source collection signatures.');
-  return createHash('sha256').update(`funded.v3.buyback.v1:${ids.join(',')}`).digest();
+  if (!Number.isSafeInteger(round) || round < 1)
+    throw new Error('V3 buyback round must be a positive integer.');
+  const suffix = round === 1 ? '' : `:round:${round}`;
+  return createHash('sha256').update(`funded.v3.buyback.v1:${ids.join(',')}${suffix}`).digest();
 }
 
 // The Pump instruction supplies current pool fee accounts only. The router
@@ -72,7 +75,7 @@ export function buildV3BuybackInstruction({ programId, sourceMint, authority,
   ]);
   const keys = [
     { pubkey:new PublicKey(authority), isSigner:true, isWritable:true },
-    { pubkey:new PublicKey(creator), isSigner:true, isWritable:false },
+    { pubkey:new PublicKey(creator), isSigner:false, isWritable:false },
     { pubkey:mint, isSigner:false, isWritable:false },
     { pubkey:legacy, isSigner:false, isWritable:false },
     { pubkey:policy, isSigner:false, isWritable:true },

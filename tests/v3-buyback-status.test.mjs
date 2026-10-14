@@ -24,6 +24,25 @@ test('V3 buyback status retains exact unspent allocation after a recorded burn',
   assert.equal(responses.at(-1).data.receipts[0].signedTransaction,undefined);
 });
 
+test('a queued buyback cycle reports its verified residue for the next round',async()=>{
+  const source='3'.repeat(64),programId='9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
+  const state={v3Settlements:{[source]:{status:'finalized',mint:'mint',
+    programId,collectionSignature:source,allocationPlan:{status:'allocated-not-funded',
+      protocol:{buybackLamports:'1000000'}}}},v3BuybackOrders:{
+    [source]:{status:'finalized',collectionSignature:source,programId,
+      cycleId:'cycle-1',finalized:true,vaultDebitVerified:true,
+      burnInstructionVerified:true,spentLamports:'300000'},
+    [`${source}:2`]:{status:'finalized',collectionSignature:source,programId,
+      cycleId:'cycle-1',round:2,finalized:true,vaultDebitVerified:true,
+      burnInstructionVerified:true,spentLamports:'400000'} }};
+  const replies=[];
+  const route=createRewardStatusRoutes({store:{read:async()=>state},solanaCluster:'devnet',
+    respond:(_res,status,data)=>replies.push({status,data})});
+  await route({method:'GET'},{},new URL('https://funded.vip/api/buyback/status'));
+  assert.equal(replies.at(-1).data.pending[0].amountLamports,'300000');
+  assert.equal(replies.at(-1).data.pending[0].status,'queued');
+});
+
 test('only a finalized burn for the enabled current Devnet program opens buyback readiness', async () => {
   const programId = '9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
   const hash = 'a'.repeat(64);

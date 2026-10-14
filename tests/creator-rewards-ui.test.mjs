@@ -67,10 +67,9 @@ test('verified V3 collection shows settlement to owner and funding after finaliz
       allocationPlan:{ status:'allocated-not-funded', protocol:{ communityLamports:'100', buybackLamports:'50' },
         creatorDirected:{ holderLamports:'200', xLamports:'0', walletLamports:'300' } } }] };
     f.controller.renderCoinFeeDashboard(settled);
-    assert.equal(f.root.children[0].children.length, 5);
+    assert.equal(f.root.children[0].children.length, 4);
     assert.equal(f.root.children[0].children[1].textContent, 'Fund community allocation');
-    assert.equal(f.root.children[0].children[4].textContent, 'Buy back and burn $FUNDED');
-    assert.equal(f.root.children[0].children[4].disabled, true);
+    assert.doesNotMatch(f.root.children[0].children.map(row=>row.textContent).join(' '),/Buy back and burn/);
     f.state.connectedWalletAddress = 'other-wallet';
     f.controller.renderCoinFeeDashboard(settled);
     assert.equal(f.root.hidden, true);

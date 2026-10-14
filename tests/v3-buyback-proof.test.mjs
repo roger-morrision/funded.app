@@ -47,6 +47,7 @@ function fixture() {
   V3_DEVNET_FUNDED_MINT.toBuffer().copy(receipt,72);
   V3_DEVNET_FUNDED_POOL.toBuffer().copy(receipt,104);
   receipt.writeBigUInt64LE(1_000_000n,136);receipt.writeBigUInt64LE(750n,144);
+  receipt.writeBigInt64LE(1_760_400_000n,152);
   const preBalances=keys.map(()=>10_000_000),postBalances=[...preBalances];
   postBalances[index(vault)]-=1_000_000;
   const signature=key(111).toBase58();
@@ -67,8 +68,11 @@ test('finalized V3 buyback requires the exact vault debit, swap, burn, and route
   const f=fixture();
   const proof=await loadFinalizedV3Buyback({...f.params,connection:f.connection,
     signature:f.signature,verifyPolicy:f.verifyPolicy});
+  assert.equal(f.built.instruction.keys[1].isSigner,false);
+  assert.equal(f.row.transaction.message.header.numRequiredSignatures,1);
   assert.equal(proof.spentLamports,'1000000');
   assert.equal(proof.burnedBaseUnits,'750');
+  assert.equal(proof.burnedAt,new Date(1_760_400_000_000).toISOString());
   f.receipt.writeBigUInt64LE(751n,144);
   assert.equal(await loadFinalizedV3Buyback({...f.params,connection:f.connection,
     signature:f.signature,verifyPolicy:f.verifyPolicy}),null);

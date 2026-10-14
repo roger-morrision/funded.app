@@ -23,7 +23,7 @@ export function createBuybackPreviewController(appState) {
     const pendingAccruals = state.accruals.filter(accrual => !executedIds.has(accrual.id));
     const lastReference = state.receipts.at(-1)?.executedAt || pendingAccruals[0]?.claimedAt || null;
     const decision = appState.evaluateBuybackBatch({ pendingAmount: pending, asset: 'SOL', lastExecutionAt: lastReference, quote: { routeVerified: true, ageSeconds: 2, slippageBps: 50, priceImpactBps: 40, poolLiquidityAmount: Math.max(1000, pending * 400) } });
-    if (!decision.executable) { appState.renderBuybackDashboard(decision.reason === 'accumulating' ? 'The batch is still below 0.25 SOL and the six-hour maximum wait has not elapsed.' : `Execution blocked by safeguard: ${decision.reason}.`); return; }
+    if (!decision.executable) { appState.renderBuybackDashboard(decision.reason === 'accumulating' ? 'The batch is still below the 5 SOL verified vault trigger.' : `Execution blocked by safeguard: ${decision.reason}.`); return; }
     const tokensBought = Number((decision.executionAmount * 250).toFixed(6));
     const supplyBefore = 1_000_000_000 - summary.burnedTokens;
     const stamp = Date.now();

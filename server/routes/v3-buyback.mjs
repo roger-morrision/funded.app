@@ -1,6 +1,6 @@
 import { isDeepStrictEqual } from 'node:util';
 import bs58 from 'bs58';
-import { Connection, PublicKey, TransactionInstruction } from '@solana/web3.js';
+import { Connection, PublicKey, TransactionInstruction, VersionedTransaction } from '@solana/web3.js';
 import { deriveMintVaultsV3 } from '../../mint-router-v3.js';
 import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
 import { loadFinalizedV3Settlement } from '../v3-settlement-proof.mjs';
@@ -8,8 +8,9 @@ import { v3AllocationPlan } from '../v3-allocation-plan.mjs';
 import { buildV3BuybackInstruction, v3BuybackId } from '../v3-buyback-instruction.mjs';
 import { quoteV3Buyback } from '../v3-buyback-quote.mjs';
 import { loadFinalizedV3Buyback } from '../v3-buyback-proof.mjs';
-import { prepareV3BuybackTransaction, verifyV3BuybackTransaction,
-  submitV3BuybackTransaction } from '../v3-buyback-transaction.mjs';
+import { prepareV3BuybackTransaction, submitV3BuybackTransaction } from '../v3-buyback-transaction.mjs';
+import { readV3BuybackDashboard } from '../v3-buyback-dashboard.mjs';
+import { v3BuybackNextOrder, v3BuybackSourceSpent } from '../v3-buyback-orders.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 
 const SIGNATURE=/^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
@@ -26,7 +27,8 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
   verifyReadiness=verifyV3LaunchRouterReadiness,
   loadSettlement=loadFinalizedV3Settlement,
   quote=quoteV3Buyback, loadProof=loadFinalizedV3Buyback,
-  submit=submitV3BuybackTransaction, originAllowed=allowedAuthOrigin }) {
+  submit=submitV3BuybackTransaction, originAllowed=allowedAuthOrigin,
+  readDashboard=readV3BuybackDashboard }) {
   const json=(...args)=>{respond(...args);return true;};
   return async function handleV3Buyback(req,res,url) {
     const match=req.method==='POST' ? url.pathname.match(
@@ -85,76 +87,112 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     if(!isDeepStrictEqual(plan,settled.allocationPlan)
       ||BigInt(plan.protocol.buybackLamports)<=0n)
       return json(res,409,{error:'An exact payable V3 buyback allocation is required.'});
-    const id=v3BuybackId([collectionSignature]);
     const input=await body(req);
-    const saved=state.v3BuybackOrders?.[collectionSignature];
+    if (input && Object.keys(input).length) return json(res,400,{error:'Automatic buyback accepts no wallet-signed input.'});
+    let next=v3BuybackNextOrder(state,collectionSignature);
+    let saved=next.row;
+    let id=v3BuybackId([collectionSignature],next.round);
+    let remaining=BigInt(plan.protocol.buybackLamports)
+      -v3BuybackSourceSpent(state,collectionSignature,programId);
+    if(remaining<=0n)return json(res,409,{error:'This V3 buyback allocation is fully spent.'});
     if(saved && (saved.programId!==programId
       || saved.approvedHash!==hash.toLowerCase()
       || saved.buybackId!==id.toString('hex')
-      || saved.maxTotalDebit!==plan.protocol.buybackLamports))
+      || BigInt(saved.maxTotalDebit||'0')>remaining))
       return json(res,409,{error:'The V3 buyback belongs to a different approved program or allocation.'});
     const proofFor=async row=>loadProof({connection,signature:row.signature,
       programId,sourceMint:mint,creator:launch.creatorWallet,
       initialAuthority:launch.pumpFeeRoute.initialAuthority,
       authority:authority.publicKey,baseTokenProgram:row.baseTokenProgram,
-      buybackId:id,spendableQuoteIn:row.spendableQuoteIn,
+      buybackId:Buffer.from(row.buybackId,'hex'),spendableQuoteIn:row.spendableQuoteIn,
       minBaseAmountOut:row.minBaseAmountOut,maxTotalDebit:row.maxTotalDebit,
       pumpBuyInstruction:storedPumpInstruction(row),split:launch.pumpFeeRoute.protocolSplit});
     if(saved?.signature){
       const proof=await proofFor(saved);
       if(proof){
         const finalized=await store.update(current=>{
-          const row=current.v3BuybackOrders?.[collectionSignature];
+          const row=current.v3BuybackOrders?.[next.key];
           if(row?.signature!==saved.signature) return null;
-          return current.v3BuybackOrders[collectionSignature]={...row,...proof,
+          return current.v3BuybackOrders[next.key]={...row,...proof,
             status:'finalized',finalizedAt:new Date().toISOString()};
         });
         return finalized?json(res,200,finalized)
           :json(res,409,{error:'The V3 buyback changed during reconciliation.'});
       }
+      const outcome=(await connection.getSignatureStatuses([saved.signature],{
+        searchTransactionHistory:true })).value?.[0];
+      if(outcome?.confirmationStatus==='finalized'&&outcome.err){
+        const retried=await store.update(current=>{
+          const row=current.v3BuybackOrders?.[next.key];
+          if(row?.signature!==saved.signature)return null;
+          const {signature,signedTransaction,preparedTransaction,expiresAt,
+            submittedAt,...rest}=row;
+          return current.v3BuybackOrders[next.key]={...rest,status:'queued',
+            failedSignatures:[...(row.failedSignatures||[]),saved.signature]};
+        });
+        return retried?json(res,409,{error:'Finalized buyback attempt failed without a vault debit; queued for a new protected quote.'})
+          :json(res,409,{error:'The failed V3 buyback changed during reconciliation.'});
+      }
       return json(res,409,{error:'A submitted V3 buyback is awaiting finalized burn proof; reconcile its recorded signature.'});
     }
-    if(saved?.status==='prepared'&&Date.parse(saved.expiresAt)>Date.now()){
-      if(!input?.creatorSignedTransaction)
-        return json(res,202,{status:'awaiting-creator-signature',mint,
-          collectionSignature,amountLamports:saved.maxTotalDebit,
-          minimumBoughtBaseUnits:saved.minBaseAmountOut,
-          transaction:saved.preparedTransaction,expiresAt:saved.expiresAt});
-      const signed=verifyV3BuybackTransaction({
-        signedTransaction:input.creatorSignedTransaction,
-        preparedTransaction:saved.preparedTransaction,
-        authority:authority.publicKey,creator:launch.creatorWallet});
-      signed.sign([authority]);
-      const signature=bs58.encode(signed.signatures[0]);
-      const locked=await store.update(current=>{
-        const row=current.v3BuybackOrders?.[collectionSignature];
-        if(row?.status!=='prepared'||row.preparedTransaction!==saved.preparedTransaction)
-          return false;
-        row.status='verification-pending';row.signature=signature;
-        row.signedTransaction=Buffer.from(signed.serialize()).toString('base64');
-        row.submittedAt=new Date().toISOString();return true;
+    if(saved?.status==='prepared'&&Date.parse(saved.expiresAt)>Date.now())
+      return json(res,409,{error:'An older creator-signed quote must expire before automatic execution.'});
+    if(saved?.status==='prepared'){
+      let cycleId=saved.cycleId;
+      if(!cycleId){
+        const dashboard=await readDashboard({state,programId,connection});
+        if(dashboard.status!=='verified'||!dashboard.triggerReached)
+          return json(res,409,{error:'Finalized buyback vaults have not reached the 5 SOL trigger.'});
+        cycleId=`v3-buyback:${Date.now()}`;
+      }
+      saved=await store.update(current=>{
+        const row=current.v3BuybackOrders?.[next.key];
+        if(row?.status!=='prepared'||Date.parse(row.expiresAt)>Date.now())return null;
+        const {preparedTransaction,expiresAt,...rest}=row;
+        return current.v3BuybackOrders[next.key]={...rest,status:'queued',cycleId};
       });
-      if(!locked) return json(res,409,{error:'The V3 buyback changed before submission.'});
-      const submitted=await submit({connection,transaction:signed,authority});
-      if(submitted!==signature) throw new Error('Submitted V3 buyback signature changed.');
-      const proof=await proofFor({...saved,signature});
-      if(!proof) return json(res,503,{error:'Finalized V3 burn proof is unavailable; reconcile before retrying.'});
-      const finalized=await store.update(current=>{
-        const row=current.v3BuybackOrders?.[collectionSignature];
-        if(row?.signature!==signature)return null;
-        return current.v3BuybackOrders[collectionSignature]={...row,...proof,
-          status:'finalized',finalizedAt:new Date().toISOString()};
-      });
-      return finalized?json(res,200,finalized)
-        :json(res,409,{error:'V3 buyback state changed after finality.'});
+      if(!saved)return json(res,409,{error:'The expired V3 quote changed during recovery.'});
     }
-    if(input?.creatorSignedTransaction)
-      return json(res,409,{error:'The buyback quote expired; prepare and sign a fresh transaction.'});
+    if(saved?.status!=='queued') {
+      let cycleId=next.previous?.cycleId || null;
+      if(!cycleId){
+        const dashboard=await readDashboard({state,programId,connection});
+        if(dashboard.status!=='verified'||!dashboard.triggerReached)
+          return json(res,409,{error:'Finalized buyback vaults have not reached the 5 SOL trigger.'});
+        cycleId=`v3-buyback:${Date.now()}`;
+      }
+      saved=await store.update(current=>{
+        current.v3BuybackOrders||={};
+        for(const settlementRow of Object.values(current.v3Settlements||{})) {
+          const source=settlementRow.collectionSignature;
+          const linked=current.launches?.[settlementRow.mint];
+          const collected=current.collections?.[source];
+          const sourceNext=v3BuybackNextOrder(current,source);
+          const sourceRemaining=BigInt(settlementRow.allocationPlan?.protocol?.buybackLamports||'0')
+            -v3BuybackSourceSpent(current,source,programId);
+          if(settlementRow.status!=='finalized'||settlementRow.allocationPlan?.status!=='allocated-not-funded'
+            ||!linked?.onchainVerified||linked.pumpFeeRoute?.programId!==programId
+            ||collected?.signature!==source||collected.onchainVerified!==true
+            ||collected.programId!==programId||sourceRemaining<=0n
+            ||sourceNext.row)continue;
+          if(next.previous?.cycleId && source!==collectionSignature)continue;
+          current.v3BuybackOrders[sourceNext.key]={status:'queued',mint:settlementRow.mint,
+            collectionSignature:source,programId,approvedHash:hash.toLowerCase(),
+            buybackId:v3BuybackId([source],sourceNext.round).toString('hex'),
+            maxTotalDebit:String(sourceRemaining),round:sourceNext.round,
+            cycleId,queuedAt:new Date().toISOString()};
+        }
+        return structuredClone(current.v3BuybackOrders[next.key]||null);
+      });
+      if(!saved||saved.status!=='queued')
+        return json(res,409,{error:'The 5 SOL buyback cycle could not be queued.'});
+    }
     const vault=deriveMintVaultsV3(programId,mint)[6];
     const quoted=await quote({connection,vault,
-      budgetLamports:plan.protocol.buybackLamports});
-    if(quoted.maxTotalDebit!==plan.protocol.buybackLamports)
-      return json(res,409,{error:'The V3 market quote differs from the signed buyback allocation.'});
+      budgetLamports:String(remaining)});
+    if(BigInt(quoted.maxTotalDebit)<=0n
+      ||BigInt(quoted.maxTotalDebit)>remaining)
+      return json(res,409,{error:'The V3 market quote exceeds the remaining buyback allocation.'});
     const built=buildV3BuybackInstruction({programId,sourceMint:mint,
       authority:authority.publicKey,creator:launch.creatorWallet,buybackId:id,
       ...quoted});
@@ -167,7 +205,10 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
       instruction:built.instruction,authority:authority.publicKey,
       blockhash:latest.blockhash,lookupTable:lookup.value});
     const expiresAt=new Date(Date.now()+60_000).toISOString();
-    const row={status:'prepared',mint,collectionSignature,
+    const signed=VersionedTransaction.deserialize(Buffer.from(preparedTransaction,'base64'));
+    signed.sign([authority]);
+    const signature=bs58.encode(signed.signatures[0]);
+    const row={status:'verification-pending',mint,collectionSignature,
       programId,approvedHash:hash.toLowerCase(),
       settlementSignature:settled.settlementSignature,
       buybackId:id.toString('hex'),
@@ -179,19 +220,30 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
       pumpData:Buffer.from(quoted.pumpBuyInstruction.data).toString('base64'),
       pumpKeys:quoted.pumpBuyInstruction.keys.map(key=>({
         pubkey:key.pubkey.toBase58(),isSigner:key.isSigner,isWritable:key.isWritable})),
-      preparedTransaction,expiresAt,createdAt:new Date().toISOString()};
+      preparedTransaction,expiresAt,signature,
+      signedTransaction:Buffer.from(signed.serialize()).toString('base64'),
+      submittedAt:new Date().toISOString(),createdAt:new Date().toISOString()};
     const prepared=await store.update(current=>{
       current.v3BuybackOrders||={};
-      const existing=current.v3BuybackOrders[collectionSignature];
+      const existing=current.v3BuybackOrders[next.key];
       if(existing?.signature||existing?.status==='finalized'
         ||existing?.status==='prepared'&&Date.parse(existing.expiresAt)>Date.now())
         return null;
-      return current.v3BuybackOrders[collectionSignature]=row;
+      if(existing?.status!=='queued'||existing.cycleId!==saved.cycleId)return null;
+      return current.v3BuybackOrders[next.key]={...row,cycleId:saved.cycleId,round:next.round};
     });
-    return prepared?json(res,202,{status:'awaiting-creator-signature',mint,
-      collectionSignature,amountLamports:row.maxTotalDebit,
-      minimumBoughtBaseUnits:row.minBaseAmountOut,
-      transaction:row.preparedTransaction,expiresAt})
-      :json(res,409,{error:'Another V3 buyback preparation is active.'});
+    if(!prepared)return json(res,409,{error:'Another V3 buyback execution is active.'});
+    const submitted=await submit({connection,transaction:signed,authority});
+    if(submitted!==signature) throw new Error('Submitted V3 buyback signature changed.');
+    const proof=await proofFor(row);
+    if(!proof)return json(res,503,{error:'Finalized V3 burn proof is unavailable; reconcile the recorded signature.'});
+    const finalized=await store.update(current=>{
+      const active=current.v3BuybackOrders?.[next.key];
+      if(active?.signature!==signature)return null;
+      return current.v3BuybackOrders[next.key]={...active,...proof,
+        status:'finalized',finalizedAt:new Date().toISOString()};
+    });
+    return finalized?json(res,200,finalized)
+      :json(res,409,{error:'V3 buyback state changed after finality.'});
   };
 }
