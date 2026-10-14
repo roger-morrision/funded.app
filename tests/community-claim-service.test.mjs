@@ -32,7 +32,8 @@ function fixture({ store = makeStore(), observedHash = pin, reserveStatus = 'fun
       ...openingOverrides };
   };
   return { store, paymentAccounts, service:createCommunityClaimService({ connection, store, programId, authority, eligibilityMint,
-    expectedCommunityProgramDataSha256:pin, captureSnapshot:async () => snapshot, reserveReader,
+    expectedCommunityProgramDataSha256:pin, captureSnapshot:async () => snapshot,
+    captureQaSnapshot:async () => snapshot, qaCutoffMint:mint, qaCutoffAuthority:authority, reserveReader,
     programEvidence:async () => ({ account:{ executable:true }, sha256:observedHash }) }) };
 }
 const input = { mint, creator, reservedTokens:1000, fundingSignature:'funded-finalized', migrationSignature };
@@ -46,6 +47,14 @@ test('persists one immutable exact-slot manifest and leaves proofs unavailable b
   assert.equal((await service.recipientProof({ mint, wallet:holder })).status, 'unavailable');
   assert.equal((await service.openingInstruction(mint)).instruction.keys.length, 15);
   await assert.rejects(service.prepare({ ...input, migrationSignature:bs58.encode(Buffer.alloc(64, 8)) }), /immutable/);
+});
+
+test('Devnet QA cutoff is explicitly labeled and cannot replace a migration manifest', async () => {
+  const { service } = fixture();
+  const qa = await service.prepare({ ...input, snapshotBasis:'devnet-qa-cutoff' });
+  assert.equal(qa.snapshotBasis, 'devnet-qa-cutoff');
+  await assert.rejects(service.prepare(input), /immutable/);
+  await assert.rejects(service.prepare({ ...input, snapshotBasis:'unknown' }), /Unsupported/);
 });
 
 test('keeps finalized community claims visible after a drop closes or expires', async () => {

@@ -55,7 +55,8 @@ export function createAirdropsRoutes({
               authority:config.authority, scope:config.scope,
               claimedWalletCount,
               fundingSignature:reserve.verified ? reserve.fundingSignature || recorded || null : null,
-              claimPreparation:claim ? claim.openingSignature ? 'opened' : 'prepared' : 'pending' };
+              claimPreparation:claim ? claim.openingSignature ? 'opened' : 'prepared' : 'pending',
+              snapshotBasis:claim?.snapshotBasis || null };
           } catch {
             return { mint:launch.mint, verified:false, status:'unavailable',
               reason:'Community reserve could not be verified for this mint.' };
@@ -64,7 +65,10 @@ export function createAirdropsRoutes({
         const authorities = new Set(reserves.filter(row => row.verified).map(row => row.authority));
         const result = { cluster:'devnet', checkedAt:new Date().toISOString(), claimPolicy:{ windowDays:90,
           unclaimedRecipient:authorities.size === 1 ? [...authorities][0] : null,
-          status:reserves.some(row => row.status === 'drop-active') ? 'active' : 'not-activated' }, reserves };
+          status:reserves.some(row => row.status === 'drop-active') ? 'active' : 'not-activated',
+          qaOnly:reserves.some(row => row.status === 'drop-active')
+            && reserves.filter(row => row.status === 'drop-active')
+              .every(row => row.snapshotBasis === 'devnet-qa-cutoff') }, reserves };
         communityReserveSnapshot = { value:result, expiresAt:Date.now() + 30_000 };
         return json(res, 200, result);
       } catch (error) { return json(res, 503, { error:`Community reserve verification unavailable: ${error.message}` }); }
@@ -107,10 +111,13 @@ export function createAirdropsRoutes({
         const record = await (await communityClaimService(mint)).prepared(mint);
         return json(res, 200, record ? { status:record.openingSignature ? 'opened' : 'prepared', mint:record.mint,
           drop:record.manifest.drop, openingSignature:record.openingSignature,
-          migrationSignature:record.migrationSignature, migrationSlot:record.snapshot.slot } : { status:'unprepared', mint });
+          migrationSignature:record.migrationSignature, migrationSlot:record.snapshot.slot,
+          snapshotBasis:record.snapshotBasis || 'pump-migration' } : { status:'unprepared', mint });
       } catch (error) { return json(res, 503, { error:`Community claim status is unavailable: ${error.message}` }); }
     }
-    if (req.method === 'POST' && url.pathname === '/api/airdrops/claims/prepare') {
+    if (req.method === 'POST' && ['/api/airdrops/claims/prepare', '/api/airdrops/claims/prepare-qa'].includes(url.pathname)) {
+      const qaCutoff = url.pathname.endsWith('/prepare-qa');
+      if (qaCutoff && !requireAuthorized(req, res)) return true;
       const input = await body(req);
       const mint = String(input.mint || '').trim(), migrationSignature = String(input.migrationSignature || '').trim();
       if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) || !/^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(migrationSignature))
@@ -122,10 +129,12 @@ export function createAirdropsRoutes({
         return json(res, 404, { error:'Verified Solana launch and community funding receipt are required.' });
       try {
         const record = await (await communityClaimService(mint)).prepare({ mint, creator:launch.creatorWallet,
-          reservedTokens:Number(launch.communityAirdrop.reservedTokens), fundingSignature:receipt.signature, migrationSignature });
+          reservedTokens:Number(launch.communityAirdrop.reservedTokens), fundingSignature:receipt.signature,
+          migrationSignature, snapshotBasis:qaCutoff ? 'devnet-qa-cutoff' : 'pump-migration' });
         return json(res, 200, { mint:record.mint, drop:record.manifest.drop, root:record.manifest.root,
           snapshotHash:record.manifest.snapshotHash, migrationSlot:record.snapshot.slot,
-          recipients:record.manifest.leaves.length, totalAmount:record.manifest.totalAmount, status:'prepared' });
+          snapshotBasis:record.snapshotBasis, recipients:record.manifest.leaves.length,
+          totalAmount:record.manifest.totalAmount, status:'prepared' });
       } catch (error) { return json(res, 422, { error:`Community claim preparation failed: ${error.message}` }); }
     }
     if (req.method === 'POST' && url.pathname === '/api/airdrops/claims/opening-instruction') {

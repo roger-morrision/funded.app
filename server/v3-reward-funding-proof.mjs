@@ -13,7 +13,7 @@ export async function loadFinalizedV3RewardFunding({ connection, signature, prog
   recipient, split, verifyWithdrawal = verifyMintWithdrawalV3Account,
   verifyPolicy = verifyMintPolicyV3Account }) {
   try {
-    if (category !== 0 && category !== 5) return null;
+    if (![0, 2, 3, 4, 5].includes(category)) return null;
     const expected = buildMintRouterV3DisbursementInstruction({ programId, mint,
       authority, creator, withdrawalId, category, amount, recipient });
     const transaction = await connection.getTransaction(signature, {

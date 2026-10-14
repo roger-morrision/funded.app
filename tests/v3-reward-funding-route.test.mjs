@@ -15,9 +15,10 @@ const claimId = Buffer.alloc(32, 8);
 const router = deriveMintRouterV3(program.publicKey, mint.publicKey).address.toBase58();
 
 function fixture({ enabled = true, submit = null, kind = 'community', qaShort = false,
+  recipientBalance = 1_000_000,
   existingProgram = null } = {}) {
-  const suffix = kind === 'creator-wallet' ? 'payout' : 'funding';
-  const path = `/api/tokens/${mint.publicKey.toBase58()}/v3-${kind}-${suffix}/${collectionSignature}`;
+  const suffix = ['creator-wallet', 'referral'].includes(kind) ? 'payout' : 'funding';
+  const path = `/api/tokens/${mint.publicKey.toBase58()}/v3-${kind}-${suffix}/${collectionSignature}${kind === 'referral' ? '/1' : ''}`;
   const responses = [];
   const launch = { mint:mint.publicKey.toBase58(), onchainVerified:true, cluster:'devnet',
     createdTimestamp:1_700_000_000,
@@ -41,7 +42,7 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
       router, claimId:claimId.toString('hex'), collectedLamports:100 } },
     v3Settlements:{ [collectionSignature]:{ status:'finalized', mint:launch.mint,
       collectionSignature, settlementSignature, allocationPlan } },
-    v3CommunityFunding:{} };
+    v3CommunityFunding:{}, referrals:{ attributions:{} } };
   let submitted = 0;
   const holderPools = new Map();
   const rewardState = { programs:existingProgram ? { [launch.mint]:existingProgram } : {} };
@@ -64,12 +65,15 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
     env:{ FUNDED_V3_COMMUNITY_FUNDING_ENABLED:enabled ? 'true' : 'false',
       FUNDED_V3_CREATOR_REWARD_FUNDING_ENABLED:enabled ? 'true' : 'false',
       FUNDED_V3_CREATOR_WALLET_PAYOUT_ENABLED:enabled ? 'true' : 'false',
+      FUNDED_V3_REFERRAL_PAYOUT_ENABLED:enabled ? 'true' : 'false',
       FUNDED_QA_SHORT_REWARD_PERIODS:qaShort ? 'true' : 'false',
       FUNDED_QA_HOLDER_MINT:qaShort ? launch.mint : '',
       FUNDED_QA_HOLDER_MIN_LAMPORTS:qaShort ? '100000' : '',
       FUNDED_V3_FEE_ROUTER_PROGRAM_ID:program.publicKey.toBase58(),
       FUNDED_V3_PROGRAM_DATA_SHA256:'a'.repeat(64) },
-    connectionFactory:() => ({ getLatestBlockhash:async () => ({
+    connectionFactory:() => ({ getBalance:async () => recipientBalance,
+      getMinimumBalanceForRentExemption:async () => 890_880,
+      getLatestBlockhash:async () => ({
       blockhash:key(35).publicKey.toBase58(), lastValidBlockHeight:123 }) }),
     verifyReadiness:async () => ({ ready:true, configuredRouter:router }),
     rewardChainFactory:() => ({ readiness:async () => ({ constrainedPayouts:true }),
@@ -103,6 +107,39 @@ test('V3 community funding stays disabled by default', async () => {
   await f.request({});
   assert.equal(f.responses[0].status, 503);
   assert.deepEqual(f.state.v3CommunityFunding, {});
+});
+
+test('V3 referral payout binds the frozen inviter and records only finalized proof', async () => {
+  const f = fixture({ kind:'referral' });
+  const inviter = key(39).publicKey.toBase58();
+  f.state.v3Settlements[collectionSignature].referralUpline = [inviter];
+  await f.request({});
+  assert.equal(f.responses.at(-1).status, 202);
+  assert.equal(f.responses.at(-1).data.amountLamports, '2');
+  assert.equal(f.responses.at(-1).data.recipient, inviter);
+  await f.request({ creatorSignedTransaction:signPrepared(f.responses.at(-1).data.transaction) });
+  assert.equal(f.responses.at(-1).status, 200);
+  assert.equal(f.state.v3ReferralPayouts[`${collectionSignature}:1`].status, 'finalized');
+  assert.equal(f.submitted, 1);
+  await f.request({});
+  assert.equal(f.submitted, 1);
+});
+
+test('V3 referral payout rejects an unsettled referral upline before preparing a transaction', async () => {
+  const f = fixture({ kind:'referral' });
+  await f.request({});
+  assert.equal(f.responses.at(-1).status, 409);
+  assert.deepEqual(f.state.v3ReferralPayouts, undefined);
+});
+
+test('V3 referral payout reports the rent top-up needed for a new recipient', async () => {
+  const f = fixture({ kind:'referral', recipientBalance:0 });
+  const inviter = key(39).publicKey.toBase58();
+  f.state.v3Settlements[collectionSignature].referralUpline = [inviter];
+  await f.request({});
+  assert.equal(f.responses.at(-1).status, 409);
+  assert.equal(f.responses.at(-1).data.minimumTopUpLamports, '890880');
+  assert.equal(f.submitted, 0);
 });
 
 test('V3 community funding requires creator approval and finalized category transfer proof', async () => {

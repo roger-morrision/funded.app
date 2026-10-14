@@ -117,7 +117,10 @@ async function communityClaimService(mint) {
   return createCommunityClaimService({ connection:new Connection(solanaRpcUrl, 'finalized'), store:automaticRewardStore,
     programId:config.programId, authority:config.authority,
     eligibilityMint:fundedTokenMint, cluster:solanaCluster,
-    expectedCommunityProgramDataSha256:config.expectedHash });
+    expectedCommunityProgramDataSha256:config.expectedHash,
+    qaCutoffMint:process.env.FUNDED_QA_COMMUNITY_CUTOFF_ENABLED === 'true'
+      ? process.env.FUNDED_QA_COMMUNITY_MINT : '',
+    qaCutoffAuthority:process.env.FUNDED_QA_COMMUNITY_CUTOFF_AUTHORITY || '' });
 }
 const devnetTestMode = solanaCluster === 'devnet' && process.env.DEVNET_TEST_MODE === 'true';
 const devMode = process.env.NODE_ENV !== 'production' && solanaCluster === 'devnet' && String(process.env.DEV_MODE || '').toLowerCase() === 'true';

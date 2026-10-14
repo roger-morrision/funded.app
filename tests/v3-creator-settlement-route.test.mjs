@@ -27,7 +27,7 @@ function fixture({ enabled = true, submit = null } = {}) {
     feeDistribution:{ creatorDirected:{ shares:{ creatorWalletPercent:60,
       holderAirdropPercent:15, solClaimPercent:5 }, recipients:{ xAccount:'@qa' } } },
     xUserId:'12345',
-  } }, v3Settlements:{} };
+  } }, v3Settlements:{}, referrals:{ attributions:{} } };
   let submitted = 0;
   let finalized = false;
   const handle = createV3CreatorSettlementRoutes({
@@ -46,6 +46,7 @@ function fixture({ enabled = true, submit = null } = {}) {
       signature, mint:mint.publicKey.toBase58(), router,
       claimId:claimId.toString('hex'), expectedLamports:'30',
       categoryLamports:['24','3','1','1','0','1','0'], slot:42,
+      blockTime:1_700_000_000,
     } : null,
     submitTransaction:async ({ transaction }) => {
       submitted++;
@@ -91,6 +92,20 @@ test('creator signs the exact V3 settlement and finalized proof closes the colle
   await f.request({});
   assert.equal(f.responses.at(-1).status, 200);
   assert.equal(f.submitted, 1);
+});
+
+test('V3 settlement freezes the referral upline at the first qualified fee event', async () => {
+  const f = fixture();
+  const inviter = key(26).publicKey.toBase58();
+  f.state.referrals.attributions[creator.publicKey.toBase58()] = {
+    wallet:creator.publicKey.toBase58(), inviterWallet:inviter,
+    lock:'first-touch', capturedAt:new Date(1_699_999_999_000).toISOString() };
+  await f.request({});
+  await f.request({ creatorSignedTransaction:signPrepared(f.responses[0].data.transaction) });
+  assert.deepEqual(f.state.v3Settlements[collectionSignature].referralUpline, [inviter]);
+  f.state.referrals.attributions[creator.publicKey.toBase58()].inviterWallet = key(27).publicKey.toBase58();
+  await f.request({});
+  assert.deepEqual(f.responses.at(-1).data.referralUpline, [inviter]);
 });
 
 test('uncertain V3 submission remains pending and recovers from finalized proof without rebroadcast', async () => {

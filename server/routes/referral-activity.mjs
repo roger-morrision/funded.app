@@ -34,7 +34,17 @@ export function createReferralActivityRoutes({ store, body, clientKey, walletKey
       try { wallet = walletKey(url.searchParams.get('wallet')); } catch { return json(res, 400, { error: 'A valid wallet query parameter is required.' }); }
       const session = await referralSession(req);
       if (session?.wallet !== wallet) return json(res, 401, { error:'Approve referral dashboard access with this wallet.' });
-      return json(res, 200, { wallet, claims:[], status:'v3-referral-payout-pending' });
+      const state = await store.read();
+      const claims = Object.values(state.v3ReferralPayouts || {})
+        .filter(row => row?.recipient === wallet && row.status === 'finalized'
+          && row.balanceDeltaVerified === true && row.signature
+          && state.launches?.[row.mint]?.pumpFeeRoute?.scope === 'per-mint-v3')
+        .map(row => ({ id:`${row.collectionSignature}:${row.level}`,
+          level:row.level, amount:Number(BigInt(row.amount)) / 1_000_000_000,
+          amountLamports:row.amount, asset:'SOL', status:'paid', payoutSignature:row.signature,
+          mint:row.mint, collectionSignature:row.collectionSignature }));
+      return json(res, 200, { wallet, claims,
+        status:claims.length ? 'v3-referral-payout-recorded' : 'v3-referral-payout-pending' });
     }
     if (req.method === 'GET' && url.pathname === '/api/referrals/dashboard') {
       let wallet;

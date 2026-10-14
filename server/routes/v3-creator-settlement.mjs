@@ -9,6 +9,7 @@ import { loadFinalizedV3PumpCollection } from '../v3-finalized-collection.mjs';
 import { loadFinalizedV3Settlement } from '../v3-settlement-proof.mjs';
 import { recordedV3AllocationPlan } from '../v3-allocation-plan.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
+import { v3ReferralUpline } from '../v3-referral-entitlement.mjs';
 
 export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, solanaRpcUrl,
   v3AuthorityKeypair, respond, env = process.env,
@@ -82,9 +83,19 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
     const proofInput = { connection, programId, mint, authority:authority.publicKey,
       creator:launch.creatorWallet, claimId:source.claimId,
       expectedLamports:source.expectedLamports, split:PROTOCOL_FEE_SPLIT };
-    const recordedFinalized = (proof, signature) => ({ ...proof,
+    const frozenUpline = (proof, current) => {
+      const first = Object.values(current.v3Settlements || {}).filter(row =>
+        row.mint === mint && row.status === 'finalized' && Array.isArray(row.referralUpline))
+        .sort((a, b) => a.slot - b.slot)[0];
+      if (first) return first.referralUpline;
+      try { return v3ReferralUpline({ creatorWallet:launch.creatorWallet,
+        attributions:current.referrals?.attributions, qualifiedAt:proof.blockTime }); }
+      catch { return []; }
+    };
+    const recordedFinalized = (proof, signature, current) => ({ ...proof,
       collectionSignature, settlementSignature:signature, status:'finalized',
       cluster:'devnet', finalizedAt:new Date().toISOString(),
+      referralUpline:frozenUpline(proof, current),
       allocationPlan:recordedV3AllocationPlan({ launch, settlement:{ ...proof,
         programId, collectionSignature, settlementSignature:signature } }) });
     if (prior?.settlementSignature) {
@@ -95,7 +106,7 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
           const row = current.v3Settlements?.[collectionSignature];
           if (row?.settlementSignature !== prior.settlementSignature) return null;
           return current.v3Settlements[collectionSignature] =
-            recordedFinalized(finalized, prior.settlementSignature);
+            recordedFinalized(finalized, prior.settlementSignature, current);
         });
         return result ? json(res, 200, result)
           : json(res, 409, { error:'Settlement state changed during recovery.' });
@@ -146,7 +157,7 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
     const result = await store.update(current => {
       const row = current.v3Settlements?.[collectionSignature];
       if (row?.settlementSignature !== submitted || row.status !== 'verification-pending') return null;
-      return current.v3Settlements[collectionSignature] = recordedFinalized(finalized, submitted);
+      return current.v3Settlements[collectionSignature] = recordedFinalized(finalized, submitted, current);
     });
     return result ? json(res, 200, result)
       : json(res, 409, { error:'Finalized settlement state changed; reconcile its signature.' });

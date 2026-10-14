@@ -59,6 +59,7 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
           communityFunding:process.env.FUNDED_V3_COMMUNITY_FUNDING_ENABLED === 'true',
           creatorRewardFunding:process.env.FUNDED_V3_CREATOR_REWARD_FUNDING_ENABLED === 'true',
           creatorWalletPayout:process.env.FUNDED_V3_CREATOR_WALLET_PAYOUT_ENABLED === 'true',
+          referralPayout:process.env.FUNDED_V3_REFERRAL_PAYOUT_ENABLED === 'true',
           buyback:process.env.FUNDED_V3_BUYBACK_ENABLED === 'true' } },
       sharedRouter:null });
   };

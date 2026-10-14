@@ -55,7 +55,8 @@ export async function loadFinalizedV3Settlement({ connection, signature, program
       || claim.address.toBase58() !== expected.claim.toBase58()
       || policy.address.toBase58() !== expected.policy.address.toBase58()
       || policy.settledLamports < BigInt(expectedLamports)) return null;
-    return { signature, slot:transaction.slot, mint:new PublicKey(mint).toBase58(),
+    return { signature, slot:transaction.slot, blockTime:transaction.blockTime || null,
+      mint:new PublicKey(mint).toBase58(),
       router:expected.router.address.toBase58(), claim:expected.claim.toBase58(),
       policy:expected.policy.address.toBase58(), claimId:Buffer.from(claimId).toString('hex'),
       expectedLamports:String(expectedLamports),

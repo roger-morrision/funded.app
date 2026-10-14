@@ -105,7 +105,12 @@ export function createRewardStatusRoutes({
       const currentBurns = currentDevnetBurns(buybackState);
       const buybackReady = currentBurns.length > 0;
       status.modes.buyback = buybackReady ? 'verified-v3-devnet-execution' : 'accrual-only-execution-unavailable';
-      status.routeReadiness = { x, community:{ ready:status.modes.community === 'verified-token-airdrop-cycle', reason:status.modes.community === 'verified-token-airdrop-cycle' ? null : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:buybackReady, devnetExecutorVerified:buybackReady, verifiedV3Burns:currentBurns.length, recordedV3Burns:recordedBurns.length, pending:pendingV3Buybacks(buybackState), reason:buybackReady ? null : 'No finalized V3 buyback and burn matches the enabled Devnet program.' } };
+      const migrationReady = status.modes.community === 'verified-token-airdrop-cycle';
+      const qaClaimReady = status.modes.community === 'v3-community-qa-claim-recorded';
+      status.routeReadiness = { x, community:{ ready:migrationReady, qaClaimVerified:qaClaimReady,
+        reason:migrationReady ? null : qaClaimReady
+          ? 'A Devnet QA cutoff claim is verified; a real migration eligibility snapshot remains unverified.'
+          : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:buybackReady, devnetExecutorVerified:buybackReady, verifiedV3Burns:currentBurns.length, recordedV3Burns:recordedBurns.length, pending:pendingV3Buybacks(buybackState), reason:buybackReady ? null : 'No finalized V3 buyback and burn matches the enabled Devnet program.' } };
       return json(res, 200, status);
     }
     if (req.method === 'GET' && url.pathname === '/api/buyback/status') {

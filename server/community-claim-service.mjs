@@ -5,7 +5,7 @@ import { buildCommunityManifest, verifyCommunityProof } from '../community-merkl
 import { DEVNET_GENESIS_HASH, readProgramDataEvidence, rewardAddresses } from './automatic-reward-chain.mjs';
 import { buildCommunityClaimInstruction, buildCommunityInitializeInstruction, buildCommunitySnapshotApprovalInstruction, communityAddresses } from './community-claim-chain.mjs';
 import { readCommunityReserveStatus } from './community-reserve-status.mjs';
-import { captureExactCommunitySnapshot } from './community-snapshot.mjs';
+import { captureExactCommunitySnapshot, captureQaCommunitySnapshot } from './community-snapshot.mjs';
 
 const key = value => new PublicKey(value).toBase58();
 const paymentDiscriminator = createHash('sha256').update('account:CommunityPayment').digest().subarray(0, 8);
@@ -17,7 +17,8 @@ const u64 = value => {
 
 export function createCommunityClaimService({ connection, store, programId, authority, eligibilityMint,
   cluster = 'devnet', expectedCommunityProgramDataSha256,
-  captureSnapshot = captureExactCommunitySnapshot, reserveReader = readCommunityReserveStatus,
+  captureSnapshot = captureExactCommunitySnapshot, captureQaSnapshot = captureQaCommunitySnapshot,
+  qaCutoffMint = '', qaCutoffAuthority = '', reserveReader = readCommunityReserveStatus,
   programEvidence = readProgramDataEvidence }) {
   if (cluster !== 'devnet') throw new Error('Community claim service is unavailable for this configuration.');
   if (!store?.transaction || !store?.read) throw new Error('An atomic persistent reward store is required.');
@@ -47,9 +48,15 @@ export function createCommunityClaimService({ connection, store, programId, auth
     return records[key(mint)] || null;
   }
 
-  async function prepare({ mint, creator, reservedTokens, fundingSignature, migrationSignature }) {
+  async function prepare({ mint, creator, reservedTokens, fundingSignature, migrationSignature,
+    snapshotBasis = 'pump-migration' }) {
     await assertDevnet();
     const launchMint = new PublicKey(mint), creatorAddress = key(creator);
+    if (!['pump-migration', 'devnet-qa-cutoff'].includes(snapshotBasis))
+      throw new Error('Unsupported community snapshot basis.');
+    if (snapshotBasis === 'devnet-qa-cutoff'
+      && (!qaCutoffMint || launchMint.toBase58() !== key(qaCutoffMint) || !qaCutoffAuthority))
+      throw new Error('Devnet QA cutoff is not configured for this exact launch mint.');
     if (!Number.isSafeInteger(reservedTokens) || reservedTokens <= 0 || reservedTokens > 500_000_000
       || !fundingSignature || !migrationSignature) throw new Error('Verified launch reserve and migration identities are required.');
     const mintInfo = await connection.getAccountInfo(launchMint, 'finalized');
@@ -60,21 +67,25 @@ export function createCommunityClaimService({ connection, store, programId, auth
     const reserve = await readReserve(base);
     if (reserve.status !== 'funded' || reserve.verified !== true)
       throw new Error('Launch reserve lacks a verified finalized funding receipt and full vault balance.');
-    const snapshot = await captureSnapshot({ connection, mint:eligible, launchMint, migrationSignature });
+    const snapshot = snapshotBasis === 'devnet-qa-cutoff'
+      ? await captureQaSnapshot({ connection, mint:eligible, launchMint, migrationSignature,
+        qaAuthority:qaCutoffAuthority })
+      : await captureSnapshot({ connection, mint:eligible, launchMint, migrationSignature });
     const { drop } = communityAddresses({ programId:program, authority:issuer, mint:launchMint });
     const { vault } = rewardAddresses({ programId:program, authority:issuer, mint:launchMint });
     const manifest = buildCommunityManifest({ drop:drop.toBase58(), launchMint:launchMint.toBase58(),
       eligibilityMint:eligible.toBase58(), migrationSignature, migrationSlot:snapshot.slot,
       migrationBlockTime:snapshot.blockTime, snapshot, amountBaseUnits:String(amount),
       excludedWallets:[issuer.toBase58(), vault.toBase58(), drop.toBase58()] });
-    const record = { ...base, eligibilityMint:eligible.toBase58(), programId:program.toBase58(), authority:issuer.toBase58(),
+    const record = { ...base, snapshotBasis, eligibilityMint:eligible.toBase58(), programId:program.toBase58(), authority:issuer.toBase58(),
       tokenProgram:mintInfo.owner.toBase58(), reservedBaseUnits:String(amount), snapshot,
       manifest, openingSignature:null, preparedAt:new Date().toISOString() };
     return store.transaction(state => {
       state.communityDrops ||= {};
       const prior = state.communityDrops[record.mint];
       if (prior) {
-        if (prior.creator !== record.creator || prior.fundingSignature !== record.fundingSignature
+        if ((prior.snapshotBasis || 'pump-migration') !== snapshotBasis
+          || prior.creator !== record.creator || prior.fundingSignature !== record.fundingSignature
           || prior.migrationSignature !== migrationSignature || prior.eligibilityMint !== record.eligibilityMint
           || prior.programId !== record.programId || prior.authority !== record.authority
           || prior.manifest.root !== manifest.root || prior.manifest.snapshotHash !== manifest.snapshotHash

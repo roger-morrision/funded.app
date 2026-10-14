@@ -8,6 +8,7 @@ import { PUMP_AMM_PROGRAM_ID, canonicalPumpPoolPda } from '@pump-fun/pump-swap-s
 const TOKEN_ACCOUNT_MIN_SIZE = 165;
 const MAX_REPLAY_SLOTS = 256;
 const MIGRATE_V2_DISCRIMINATOR = createHash('sha256').update('global:migrate_v2').digest().subarray(0, 8);
+const QA_MEMO_PROGRAM = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 
 function amount(value) {
   if (typeof value !== 'string' || !/^\d+$/.test(value)) throw new Error('A token balance is missing its exact base-unit amount.');
@@ -55,6 +56,31 @@ export function verifyPumpMigrationTransaction({ transaction, launchMint }) {
     throw new Error('Receipt does not contain Pump migrate_v2 for this launch mint and canonical pool.');
   }
   return { pool, slot:transaction.slot, blockTime:transaction.blockTime };
+}
+
+export function qaCommunityCutoffMemo({ launchMint, eligibilityMint }) {
+  return `funded.community.qa-cutoff.v1:${new PublicKey(launchMint).toBase58()}:${new PublicKey(eligibilityMint).toBase58()}`;
+}
+
+export function verifyQaCommunityCutoffTransaction({ transaction, signature, launchMint, eligibilityMint, authority }) {
+  if (!transaction?.meta || transaction.meta.err !== null
+    || !Number.isSafeInteger(transaction.slot) || transaction.slot <= 0
+    || !Number.isSafeInteger(transaction.blockTime) || transaction.blockTime <= 0
+    || !transaction.transaction?.signatures?.includes(signature))
+    throw new Error('A finalized, successful Devnet QA cutoff receipt is required.');
+  const keys = transactionKeys(transaction);
+  const message = transaction.transaction.message;
+  const signer = new PublicKey(authority).toBase58();
+  if (!keys.slice(0, message.header?.numRequiredSignatures || 0).some(key => key.toBase58() === signer))
+    throw new Error('The configured QA cutoff authority did not sign the receipt.');
+  const memo = qaCommunityCutoffMemo({ launchMint, eligibilityMint });
+  const matching = (message.instructions || message.compiledInstructions || []).filter(instruction => {
+    if (!keys[instruction.programIdIndex]?.equals(QA_MEMO_PROGRAM)) return false;
+    try { return Buffer.from(bs58.decode(instruction.data)).toString('utf8') === memo; }
+    catch { return false; }
+  });
+  if (matching.length !== 1) throw new Error('QA cutoff receipt lacks the exact launch and eligibility memo.');
+  return { slot:transaction.slot, blockTime:transaction.blockTime };
 }
 
 function rowsFromTransaction(transaction, mint, side) {
@@ -180,6 +206,19 @@ export async function captureExactCommunitySnapshot({ connection, mint, launchMi
   const { pool } = verifyPumpMigrationTransaction({ transaction, launchMint:launchKey });
   const poolInfo = await connection.getAccountInfo(pool, 'finalized');
   if (!poolInfo?.owner.equals(PUMP_AMM_PROGRAM_ID)) throw new Error('Canonical migrated pool is unavailable or has the wrong owner.');
+  return captureAtFinalizedSlot({ connection, mintKey, mintAddress, transaction, maxReplaySlots });
+}
+
+export async function captureQaCommunitySnapshot({ connection, mint, launchMint, migrationSignature,
+  qaAuthority, maxReplaySlots = MAX_REPLAY_SLOTS }) {
+  const mintKey = new PublicKey(mint), mintAddress = mintKey.toBase58();
+  const transaction = await connection.getTransaction(migrationSignature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
+  verifyQaCommunityCutoffTransaction({ transaction, signature:migrationSignature,
+    launchMint, eligibilityMint:mintKey, authority:qaAuthority });
+  return captureAtFinalizedSlot({ connection, mintKey, mintAddress, transaction, maxReplaySlots });
+}
+
+async function captureAtFinalizedSlot({ connection, mintKey, mintAddress, transaction, maxReplaySlots }) {
   const migrationSlot = transaction.slot;
   const finalizedTip = await connection.getSlot('finalized');
   if (finalizedTip < migrationSlot || finalizedTip - migrationSlot > Math.min(maxReplaySlots, MAX_REPLAY_SLOTS)) {

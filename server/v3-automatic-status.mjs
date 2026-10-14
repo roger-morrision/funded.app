@@ -24,7 +24,18 @@ export function v3AutomaticRewardStatus(state = {}, rewards = {}, now = new Date
     : 'v3-creator-wallet-payout-pending';
   status.modes.holders = paidHolder ? 'v3-holder-payout-recorded'
     : 'v3-holder-payout-pending';
-  status.modes.community = 'v3-community-claim-unverified';
-  status.modes.referrals = 'v3-referral-payout-pending';
+  const indexed = rewards.communityClaimIndex?.status === 'verified'
+    ? rewards.communityClaimIndex : null;
+  const paidDrops = (indexed?.drops || []).filter(row => allowedMints.has(row.mint)
+    && Number(row.claimCount) > 0 && BigInt(row.claimedBaseUnits || '0') > 0n);
+  status.modes.community = paidDrops.some(row =>
+    rewards.communityDrops?.[row.mint]?.snapshotBasis === 'pump-migration')
+    ? 'verified-token-airdrop-cycle'
+    : paidDrops.some(row => rewards.communityDrops?.[row.mint]?.snapshotBasis === 'devnet-qa-cutoff')
+      ? 'v3-community-qa-claim-recorded' : 'v3-community-claim-unverified';
+  status.modes.referrals = Object.values(state.v3ReferralPayouts || {}).some(row =>
+    row.status === 'finalized' && row.balanceDeltaVerified === true
+    && row.signature && allowedMints.has(row.mint))
+    ? 'v3-referral-payout-recorded' : 'v3-referral-payout-pending';
   return status;
 }

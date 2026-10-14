@@ -16,6 +16,7 @@ import { quoteV3Buyback } from '../server/v3-buyback-quote.mjs';
 import { buildV3BuybackInstruction, v3BuybackId } from '../server/v3-buyback-instruction.mjs';
 import { prepareV3BuybackTransaction } from '../server/v3-buyback-transaction.mjs';
 import { loadFinalizedV3Buyback } from '../server/v3-buyback-proof.mjs';
+import { loadFinalizedV3RewardFunding } from '../server/v3-reward-funding-proof.mjs';
 import { buildMintRouterV3InitializeInstruction, buildMintRouterV3SettlementInstruction,
   buildMintRouterV3DisbursementInstruction, deriveMintVaultsV3, protocolGrossUnits,
   verifyMintRouterV3Account, verifyMintPolicyV3Account, verifyMintClaimV3Account,
@@ -32,8 +33,8 @@ const EXPECTED_ALLOCATION = [8_000_000, 1_000_000, 200_000, 60_000, 40_000, 200_
 
 const [mode, binaryArg] = process.argv.slice(2);
 if (!['--preflight', '--execute', '--execute-rewards', '--execute-pump',
-  '--execute-pump-buyback'].includes(mode) || !binaryArg) {
-  throw new Error('Usage: node scripts/run-v3-qa-devnet.mjs --preflight|--execute|--execute-rewards|--execute-pump|--execute-pump-buyback <exact-tested-program.so>');
+  '--execute-pump-buyback', '--execute-referrals'].includes(mode) || !binaryArg) {
+  throw new Error('Usage: node scripts/run-v3-qa-devnet.mjs --preflight|--execute|--execute-rewards|--execute-pump|--execute-pump-buyback|--execute-referrals <exact-tested-program.so>');
 }
 const pumpBuybackMode = mode === '--execute-pump-buyback';
 const authoritySecret = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
@@ -352,6 +353,35 @@ const operationsWithdrawal = buildMintRouterV3DisbursementInstruction({ programI
   withdrawalId: operationsWithdrawalId, category: 1, amount: EXPECTED_ALLOCATION[1],
   recipient: operationsRecipient });
 const operationsPayoutSignature = await send([operationsWithdrawal.instruction], [authority, creator]);
+const referralPayments = [];
+if (mode === '--execute-referrals') {
+  for (let level = 1; level <= 3; level++) {
+    const category = level + 1;
+    const recipient = Keypair.generate().publicKey;
+    const amount = EXPECTED_ALLOCATION[category];
+    const withdrawalId = randomBytes(32);
+    const minimum = await connection.getMinimumBalanceForRentExemption(0, 'finalized');
+    const activationLamports = minimum + 10_000;
+    const activationSignature = await send([SystemProgram.transfer({
+      fromPubkey:QA_AUTHORITY, toPubkey:recipient, lamports:activationLamports,
+    })], [authority]);
+    const beforeRecipient = await finalizedBalance(recipient);
+    const payout = buildMintRouterV3DisbursementInstruction({ programId:PROGRAM_ID,
+      mint:mint.publicKey, authority:QA_AUTHORITY, creator:creator.publicKey,
+      withdrawalId, category, amount, recipient });
+    const signature = await send([payout.instruction], [authority, creator]);
+    const proof = await loadFinalizedV3RewardFunding({ connection, signature,
+      programId:PROGRAM_ID, mint:mint.publicKey, authority:QA_AUTHORITY,
+      creator:creator.publicKey, initialAuthority:QA_AUTHORITY,
+      withdrawalId, category, amount, recipient, split:PROTOCOL_FEE_SPLIT });
+    requireEqual((await finalizedBalance(recipient)) - beforeRecipient, amount,
+      `referral level ${level} recipient delta`);
+    if (!proof?.balanceDeltaVerified || proof.amount !== String(amount))
+      throw new Error(`Referral level ${level} lacks exact finalized V3 withdrawal proof.`);
+    referralPayments.push({ level, recipient:recipient.toBase58(),
+      amountLamports:String(amount), activationSignature, signature, withdrawal:proof.withdrawal });
+  }
+}
 requireEqual((await finalizedBalance(creator.publicKey)) - creatorBefore,
   creatorAmount, 'creator recipient delta');
 requireEqual((await finalizedBalance(operationsRecipient)) - operationsBefore,
@@ -368,7 +398,9 @@ requireEqual(await finalizedBalance(vaults[6]), EXPECTED_ALLOCATION[6] + vaultRe
 const finalPolicy = await verifyMintPolicyV3Account({ connection, programId: PROGRAM_ID,
   mint: mint.publicKey, creator: creator.publicKey, initialAuthority: QA_AUTHORITY });
 if (!finalPolicy.verified || finalPolicy.withdrawnLamports[0] !== BigInt(EXPECTED_ALLOCATION[0])
-  || finalPolicy.withdrawnLamports[1] !== BigInt(EXPECTED_ALLOCATION[1])) {
+  || finalPolicy.withdrawnLamports[1] !== BigInt(EXPECTED_ALLOCATION[1])
+  || referralPayments.some(row => finalPolicy.withdrawnLamports[row.level + 1]
+    !== BigInt(row.amountLamports))) {
   throw new Error('Finalized V3 policy withdrawal ledger does not match payouts.');
 }
 console.log(JSON.stringify({ status: 'finalized-synthetic-v3-qa', program: PROGRAM_ID.toBase58(),
@@ -382,6 +414,8 @@ console.log(JSON.stringify({ status: 'finalized-synthetic-v3-qa', program: PROGR
     operationsPayoutSignature, rewardFundingSignature },
   syntheticRewards:rewardsMode ? { vault:rewardVault.toBase58(),
     cycle:rewardCycle.address, cycleSignature:rewardCycle.signature, payments:rewardPayments } : null,
+  referralPayments,
   limits: { syntheticFunding: true, pumpCollectionVerified: false, buybackBurnVerified: false,
     holderEligibilityVerified:false, xIdentityVerified:false,
     operationsEntitlementVerified: false } }, null, 2));
+process.exit(0);

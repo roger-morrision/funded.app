@@ -1,5 +1,5 @@
 export function referralStatusLabel(state, claimable = 0) {
-  return ({disconnected:'Connect wallet', verification:'Sign in to view', cancelled:'Sign-in cancelled', checking:'Checking rewards…', unavailable:'Rewards unavailable', ready:claimable > 0 ? 'Ready to claim' : 'No rewards ready'})[state] || 'Check rewards';
+  return ({disconnected:'Connect wallet', verification:'Sign in to view', cancelled:'Sign-in cancelled', checking:'Checking rewards…', unavailable:'Rewards unavailable', recorded:'Payouts recorded', ready:claimable > 0 ? 'Ready to claim' : 'No rewards ready'})[state] || 'Check rewards';
 }
 
 export function isReferralSignInCancelled(error) {

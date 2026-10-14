@@ -116,7 +116,7 @@ function updateReferralStatus(state, claimable = 0){
 }
 
 
-  function renderReferralClaimPrompt(title = 'Connect wallet to check claimable referral rewards', note = 'Each available reward requires a wallet signature and a separate payout action.', approve = false){
+  function renderReferralClaimPrompt(title = 'Connect wallet to check referral rewards', note = 'Finalized creator-signed V3 payouts appear in your history.', approve = false){
     const panel = document.querySelector('#referral-claim-center');
     if (!panel) return;
     panel.replaceChildren();
@@ -200,7 +200,7 @@ function updateReferralStatus(state, claimable = 0){
     if (dashboardResult.available) { const active = document.querySelector('#referral-active-creators'); if (active) active.textContent = String(dashboardResult.data.networkCreators ?? '—'); const conversion = document.querySelector('#referral-conversion-rate'); if (conversion) conversion.textContent = dashboardResult.data.conversionRate == null ? '—' : `${dashboardResult.data.conversionRate}%`; }
     const claims = Array.isArray(result.data.claims) ? result.data.claims : [];
     const claimable = 0;
-    updateReferralStatus('unavailable', claimable);
+    updateReferralStatus(claims.length ? 'recorded' : 'ready', claimable);
     const paid = claims.filter(claim => claim.status === 'paid').reduce((sum, claim) => sum + Number(claim.amount || 0), 0);
     const claimableNode = document.querySelector('#referral-total-claimable'); if (claimableNode) claimableNode.textContent = `${claimable.toFixed(4)} SOL`;
     const paidNode = document.querySelector('#referral-paid-total'); if (paidNode) paidNode.textContent = `${paid.toFixed(4)} SOL`;
@@ -210,7 +210,7 @@ function updateReferralStatus(state, claimable = 0){
     let panel = document.querySelector('#referral-claim-center');
     if (!panel) { panel = document.createElement('div'); panel.id = 'referral-claim-center'; panel.className = 'referral-dashboard'; panel.setAttribute('aria-live', 'polite'); dashboard.querySelector('.referral-kpi-grid')?.after(panel); }
     panel.replaceChildren();
-    const heading = document.createElement('div'); const title = document.createElement('strong'); title.textContent = 'Referral history'; const note = document.createElement('small'); note.textContent = 'Referral payouts are pending activation.'; heading.append(title, note); panel.append(heading);
+    const heading = document.createElement('div'); const title = document.createElement('strong'); title.textContent = 'Referral history'; const note = document.createElement('small'); note.textContent = claims.length ? 'Finalized V3 referral payouts.' : 'Creator-signed V3 payouts appear here after final confirmation.'; heading.append(title, note); panel.append(heading);
     for (const claim of result.data.claims) {
       const row = document.createElement('div'); row.className = 'referral-claim-row'; const label = document.createElement('span'); label.textContent = `Level ${claim.level} · ${claim.amount} ${claim.asset} · ${referralClaimStatusLabel(claim.status)}`; row.append(label);
       if (claim.status === 'paid' && claim.payoutSignature) {
@@ -222,11 +222,17 @@ function updateReferralStatus(state, claimable = 0){
             try {
               const { PublicKey } = await appState.getSolana();
               const transaction = await appState.connection.getParsedTransaction(claim.payoutSignature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
-              const expectedLamports = Math.floor(Number(claim.amount) * 1_000_000_000);
-              const matchingTransfer = transaction?.transaction?.message?.instructions?.some(instruction => instruction.program === 'system'
-                && instruction.parsed?.type === 'transfer' && instruction.parsed.info?.destination === walletAddress
-                && Number(instruction.parsed.info?.lamports) === expectedLamports);
-              if (transaction?.meta?.err !== null || !matchingTransfer || new PublicKey(walletAddress).toBase58() !== walletAddress) throw new Error('The finalized payout transfer is not verified yet.');
+              const keys = transaction?.transaction?.message?.accountKeys || [];
+              const recipientIndex = keys.findIndex(entry => String(entry.pubkey || entry) === walletAddress);
+              const before = transaction?.meta?.preBalances?.[recipientIndex];
+              const after = transaction?.meta?.postBalances?.[recipientIndex];
+              const router = String(appState.FEE_ROUTER_PROGRAM_ID || '');
+              const routed = transaction?.transaction?.message?.instructions?.some(ix =>
+                String(ix.programId || '') === String(router || ''));
+              if (transaction?.meta?.err !== null || !routed || !Number.isSafeInteger(before)
+                || !Number.isSafeInteger(after) || BigInt(after) - BigInt(before) !== BigInt(claim.amountLamports)
+                || new PublicKey(walletAddress).toBase58() !== walletAddress)
+                throw new Error('The finalized V3 payout transfer is not verified yet.');
               if (!appState.isWalletSessionCurrent(session)) return;
               const code = appState.registeredShareCode();
               appState.openShareComposer({ kind:'result', title:'Finalized referral payout on funded.vip', text:`My ${appState.EXPLORE_NETWORK_LABEL} referral payout of ${Number(claim.amount).toFixed(4)} SOL is finalized. Check the receipt on funded.vip.`, url: code ? appState.buildReferralUrl(code) : new URL('/#referrals', location.origin).toString(),

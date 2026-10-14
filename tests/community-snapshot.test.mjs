@@ -6,7 +6,8 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 import { NATIVE_MINT } from '@solana/spl-token';
 import { PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
 import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
-import { reverseReplayCommunitySnapshot, verifyPumpMigrationTransaction } from '../server/community-snapshot.mjs';
+import { reverseReplayCommunitySnapshot, verifyPumpMigrationTransaction,
+  qaCommunityCutoffMemo, verifyQaCommunityCutoffTransaction } from '../server/community-snapshot.mjs';
 
 const key = () => Keypair.generate().publicKey.toBase58();
 const mint = key(), ownerA = key(), ownerB = key(), accountA = key(), accountB = key();
@@ -63,4 +64,19 @@ test('requires Pump migrate_v2 on the launch mint and canonical pool, including 
   const unresolved = altered({});
   unresolved.meta.loadedAddresses = { writable:[], readonly:[] };
   assert.throws(() => verifyPumpMigrationTransaction({ transaction:unresolved, launchMint }), /canonical pool/);
+});
+
+test('Devnet QA cutoff requires an exact signed launch and eligibility memo', () => {
+  const authority = key(), launchMint = key(), signature = '3'.repeat(64);
+  const memo = bs58.encode(Buffer.from(qaCommunityCutoffMemo({ launchMint, eligibilityMint:mint })));
+  const receipt = { slot:123, blockTime:1_800_000_000, meta:{ err:null },
+    transaction:{ signatures:[signature], message:{
+      accountKeys:[authority, 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'],
+      header:{ numRequiredSignatures:1 },
+      instructions:[{ programIdIndex:1, accounts:[], data:memo }] } } };
+  const input = { transaction:receipt, signature, authority, launchMint, eligibilityMint:mint };
+  assert.equal(verifyQaCommunityCutoffTransaction(input).slot, 123);
+  assert.throws(() => verifyQaCommunityCutoffTransaction({ ...input, launchMint:key() }), /exact launch/);
+  assert.throws(() => verifyQaCommunityCutoffTransaction({ ...input, authority:key() }), /did not sign/);
+  assert.throws(() => verifyQaCommunityCutoffTransaction({ ...input, signature:'4'.repeat(64) }), /receipt/);
 });

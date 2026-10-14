@@ -26,3 +26,16 @@ test('public automatic status excludes historical V2 schedules and claims only V
   assert.equal(status.modes.referrals, 'v3-referral-payout-pending');
   assert.equal(status.modes.community, 'v3-community-claim-unverified');
 });
+
+test('finalized QA community payments remain distinct from real migration claim readiness', () => {
+  const state = { launches:{ qa:{ mint:'qa', cluster:'devnet', onchainVerified:true,
+    pumpFeeRoute:{ scope:'per-mint-v3', verified:true } } } };
+  const rewards = { communityDrops:{ qa:{ snapshotBasis:'devnet-qa-cutoff' } },
+    communityClaimIndex:{ status:'verified', drops:[{ mint:'qa', claimCount:1,
+      claimedBaseUnits:'100' }] } };
+  assert.equal(v3AutomaticRewardStatus(state, rewards).modes.community,
+    'v3-community-qa-claim-recorded');
+  rewards.communityDrops.qa.snapshotBasis = 'pump-migration';
+  assert.equal(v3AutomaticRewardStatus(state, rewards).modes.community,
+    'verified-token-airdrop-cycle');
+});
