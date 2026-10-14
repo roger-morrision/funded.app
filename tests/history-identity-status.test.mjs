@@ -23,8 +23,7 @@ test('referral status differentiates wallet approval, empty rewards, and outages
   assert.equal(referralStatusLabel('verification'),'Sign in to view');
   assert.equal(referralStatusLabel('cancelled'),'Sign-in cancelled');
   assert.equal(referralStatusLabel('checking'),'Checking rewards…');
-  assert.equal(referralStatusLabel('ready',0),'No rewards ready');
-  assert.equal(referralStatusLabel('ready',0.001),'Ready to claim');
+  assert.equal(referralStatusLabel('ready'),'No payouts recorded');
   assert.equal(referralStatusLabel('unavailable'),'Rewards unavailable');
   assert.equal(referralClaimStatusLabel('verification-pending'),'Checking payment');
   assert.equal(referralClaimStatusLabel('awaiting-wallet-signature'),'Ready to review');

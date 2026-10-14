@@ -109,10 +109,10 @@ export function createReferralsController(appState) {
   // app-source-end
 
   // app-source: 239
-function updateReferralStatus(state, claimable = 0){
-  const label = referralStatusLabel(state, claimable);
+function updateReferralStatus(state){
+  const label = referralStatusLabel(state);
   document.documentElement.dataset.referralStatus = label;
-  document.querySelectorAll('#referral-command-center .section-state, #referral-total-claimable + small').forEach(node => { node.textContent = label; });
+  document.querySelectorAll('#referral-command-center .section-state').forEach(node => { node.textContent = label; });
   if (document.body.classList.contains('page-route-referrals')) { const node = document.querySelector('#route-guide-state'); if (node) node.textContent = label; }
 }
 
@@ -198,13 +198,11 @@ function updateReferralStatus(state, claimable = 0){
         : 'Qualified activity appears after verified fee collection is indexed.');
     } else appState.renderReferralActivityEmpty('Activity unavailable', 'The referral dashboard could not be loaded. Try again later.');
     if (!result.available) { updateReferralStatus('unavailable'); appState.renderReferralClaimPrompt('Referral claim service unavailable', 'No reward action is available until the claim service can be verified.'); appState.renderReferralLedgerEmpty('Receipts unavailable', 'The claim service could not be verified. Try again later.'); return; }
-    if (dashboardResult.available) { const active = document.querySelector('#referral-active-creators'); if (active) active.textContent = String(dashboardResult.data.networkCreators ?? '—'); const conversion = document.querySelector('#referral-conversion-rate'); if (conversion) conversion.textContent = dashboardResult.data.conversionRate == null ? '—' : `${dashboardResult.data.conversionRate}%`; }
+    if (dashboardResult.available) { const active = document.querySelector('#referral-active-creators'); if (active) active.textContent = String(dashboardResult.data.qualifiedCreators ?? '—'); const conversion = document.querySelector('#referral-conversion-rate'); if (conversion) conversion.textContent = dashboardResult.data.conversionRate == null ? '—' : `${dashboardResult.data.conversionRate}%`; }
     const claims = Array.isArray(result.data.claims) ? result.data.claims : [];
-    const claimable = 0;
-    updateReferralStatus(claims.length ? 'recorded' : 'ready', claimable);
+    updateReferralStatus(claims.length ? 'recorded' : 'ready');
     const paidLamports = claims.filter(claim => claim.status === 'paid')
       .reduce((sum, claim) => sum + BigInt(claim.amountLamports || '0'), 0n);
-    const claimableNode = document.querySelector('#referral-total-claimable'); if (claimableNode) claimableNode.textContent = `${claimable.toFixed(4)} SOL`;
     const paidNode = document.querySelector('#referral-paid-total'); if (paidNode) paidNode.textContent = `${formatReferralLamports(paidLamports)} SOL`;
     const ledger = document.querySelector('#referral-ledger-list');
     if (ledger) { ledger.replaceChildren(); if (!claims.length) appState.renderReferralLedgerEmpty('No receipts yet', 'Finalized referral claims will appear here.'); else claims.slice().reverse().forEach(claim => { const row = document.createElement('div'); row.className = 'referral-ledger-row'; const label = document.createElement('strong'); label.textContent = `Level ${claim.level}`; const status = document.createElement('small'); status.textContent = referralClaimStatusLabel(claim.status); const amount = document.createElement('b'); amount.textContent = `${formatReferralLamports(claim.amountLamports || '0')} ${claim.asset}`; row.append(label, status, amount); ledger.append(row); }); }

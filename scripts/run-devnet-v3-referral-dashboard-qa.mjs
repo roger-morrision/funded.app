@@ -36,8 +36,8 @@ assert.equal(reserveConfig.programId, programId);
 const quote = await quoteAtomicReserveBuy({ connection, supply:1_000_000_000,
   decimals:6, reserveTokens:30_000_000, developerBaseUnits:0n });
 assert(quote.maxSolAmountLamports <= 1_000_000_000n, 'QA community reserve buy exceeds 1 SOL.');
-assert((await connection.getBalance(issuer.publicKey, 'finalized')) > 1_700_000_000,
-  'Disposable issuer needs more than 1.7 Devnet SOL before funding a QA creator.');
+assert((await connection.getBalance(issuer.publicKey, 'finalized')) > 1_500_000_000,
+  'Disposable issuer needs more than 1.5 Devnet SOL before funding a QA creator.');
 assert((await connection.getBalance(authority.publicKey, 'finalized')) > 250_000_000,
   'Disposable trade authority needs more than 0.25 Devnet SOL.');
 const token = readFileSync('.secrets/funded-api-token', 'utf8').trim();
@@ -56,7 +56,7 @@ const referrers = Array.from({ length:3 }, () => Keypair.generate());
 const rent = await connection.getMinimumBalanceForRentExemption(0, 'finalized');
 const fundingSignature = await sendAndConfirmTransaction(connection,
   new Transaction().add(SystemProgram.transfer({ fromPubkey:issuer.publicKey,
-    toPubkey:creator.publicKey, lamports:1_200_000_000 }),
+    toPubkey:creator.publicKey, lamports:1_100_000_000 }),
   ...referrers.map(wallet => SystemProgram.transfer({ fromPubkey:issuer.publicKey,
     toPubkey:wallet.publicKey, lamports:rent + 100_000 }))),
   [issuer], { commitment:'finalized' });
@@ -196,23 +196,37 @@ for (const [index, wallet] of referrers.entries()) {
     httpOnly:true, secure:true, sameSite:'Lax' }]);
   await context.addInitScript(({ address }) => {
     localStorage.setItem('funded.app.wallet.provider', 'phantom');
+    const listeners = new Map();
     const provider = {
       isPhantom:true, isConnected:false, publicKey:null,
-      on() {},
+      on(event, callback) { listeners.set(event,
+        [...(listeners.get(event) || []), callback]); },
       async connect() { provider.publicKey = { toBase58:() => address,
         toString:() => address }; provider.isConnected = true;
+        for (const callback of listeners.get('connect') || []) callback(provider.publicKey);
         return { publicKey:provider.publicKey }; },
+      async signMessage() { throw new Error('The already signed QA session must be reused.'); },
     };
     window.phantom = { solana:provider };
     window.solana = provider;
   }, { address:wallet.publicKey.toBase58() });
   const page = await context.newPage();
   await page.goto(`${base}/#referrals`, { waitUntil:'domcontentloaded' });
+  await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state', 'ready',
+    { timeout:45_000 });
+  await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
   const displayAmount = `${formatReferralLamports(paid.amount)} SOL`;
-  await expect(page.locator('#referral-paid-total')).toHaveText(displayAmount,
-    { timeout:30_000 });
-  await expect(page.locator('#referral-ledger-list')).toContainText(displayAmount);
-  await expect(page.locator('#referral-claim-center')).toContainText(paid.signature);
+  try {
+    await expect(page.locator('#referral-paid-total')).toHaveText(displayAmount,
+      { timeout:30_000 });
+    await expect(page.locator('#referral-ledger-list')).toContainText(displayAmount);
+    await expect(page.locator('#referral-claim-center')).toContainText(paid.signature);
+  } catch (error) {
+    console.error(JSON.stringify({ stage:'live-referral-browser-failed',
+      wallet:wallet.publicKey.toBase58(), connectedClass:await page.locator('#connect-button').getAttribute('class'),
+      panel:await page.locator('#referral-claim-center').innerText() }));
+    throw error;
+  }
   await context.close();
   payouts.push({ level, wallet:wallet.publicKey.toBase58(), signature:paid.signature,
     amountLamports:paid.amount, dashboardClaimVisible:true, browserDashboardVisible:true,

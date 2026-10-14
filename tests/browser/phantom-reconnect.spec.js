@@ -100,6 +100,29 @@ test('trusted Phantom is restored when the extension injects after app startup',
   expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem('qa.phantom.calls')))).toEqual(['trusted']);
 });
 
+test('signed wallet session renders an exact finalized referral payout', async ({ page }) => {
+  await page.route('**/api/referrals/session**', route => {
+    const url = new URL(route.request().url());
+    if (url.pathname === '/api/referrals/session') return route.fulfill({ status:200,
+      contentType:'application/json', body:JSON.stringify({ authenticated:true, wallet:address }) });
+    return route.fallback();
+  });
+  await page.route('**/api/referral-claims?**', route => route.fulfill({ status:200,
+    contentType:'application/json', body:JSON.stringify({ wallet:address, claims:[{
+      level:1, amount:0.000057714, amountLamports:'57714', asset:'SOL', status:'paid',
+      payoutSignature:'fixture-finalized-signature' }] }) }));
+  await page.route('**/api/referrals/dashboard?**', route => route.fulfill({ status:200,
+    contentType:'application/json', body:JSON.stringify({ wallet:address,
+      networkCreators:3, qualifiedCreators:1, conversionRate:33.3 }) }));
+  await installPhantomFixture(page, { trusted:true });
+  await page.goto('/#referrals');
+  await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
+  await expect(page.locator('#referral-paid-total')).toHaveText('0.000057714 SOL');
+  await expect(page.locator('#referral-active-creators')).toHaveText('1');
+  await expect(page.locator('#referral-ledger-list')).toContainText('0.000057714 SOL');
+  await expect(page.locator('#referral-claim-center')).toContainText('fixture-finalized-signature');
+});
+
 test('explicit wallet connection signs in once and reload never requests another signature', async ({ page }) => {
   let authenticated = false;
   await page.route('**/api/referrals/session**', async route => {
