@@ -242,7 +242,7 @@ if (mode === '--execute-pump' || pumpBuybackMode) {
     const prepared = prepareV3BuybackTransaction({ instruction:built.instruction,
       authority:QA_AUTHORITY, blockhash:latest.blockhash, lookupTable:lookup.value });
     const transaction = VersionedTransaction.deserialize(Buffer.from(prepared, 'base64'));
-    transaction.sign([authority, creator]);
+    transaction.sign([authority]);
     const simulation = await connection.simulateTransaction(transaction, { commitment:'confirmed' });
     if (simulation.value.err) throw new Error(`Pump-funded V3 buyback simulation failed: ${JSON.stringify(simulation.value.err)}; ${simulation.value.logs?.slice(-8).join(' | ')}`);
     const signature = await connection.sendRawTransaction(transaction.serialize(),
