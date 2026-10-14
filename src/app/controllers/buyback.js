@@ -27,23 +27,21 @@ export function createBuybackController(appState) {
       const proof = document.querySelector(`#${prefix}-proof`);
       if (!balance || !note || !track || !fill || !time || !proof) continue;
       const indexed = dashboard?.status === 'verified' && /^\d+$/.test(String(dashboard.collectedLamports));
-      const unindexed = dashboard?.unindexedStatus == null || dashboard.unindexedStatus === 'verified'
+      const unindexed = dashboard?.unindexedStatus === 'verified'
         && /^\d+$/.test(String(dashboard.unindexedLamports));
-      const exact = indexed && unindexed;
-      const unindexedLamports = unindexed && dashboard?.unindexedLamports != null
-        ? BigInt(dashboard.unindexedLamports) : 0n;
-      const lamports = exact ? BigInt(dashboard.collectedLamports) + unindexedLamports : 0n;
-      const sol = Number(lamports) / 1_000_000_000;
-      balance.textContent = exact ? `${sol.toLocaleString(undefined, { maximumFractionDigits:9 })} SOL` : '—';
-      note.textContent = !exact ? 'Vault verification unavailable or incomplete'
-        : unindexedLamports > 0n ? 'On-chain funds include older launches without app settlement records; these funds cannot auto-execute yet'
+      const unindexedLamports = unindexed ? BigInt(dashboard.unindexedLamports) : 0n;
+      const lamports = indexed ? BigInt(dashboard.collectedLamports) : 0n;
+      const formatSol = value => `${(Number(value) / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits:9 })} SOL`;
+      balance.textContent = indexed ? formatSol(lamports) : '—';
+      note.textContent = !indexed ? 'Eligible vault verification unavailable or incomplete'
+        : unindexedLamports > 0n ? `${formatSol(unindexedLamports)} in older vaults is excluded until its app settlement records are verified`
         : !appState.buybackNetworkState.automationEnabled ? 'Automatic execution is not active on this deployment'
-          : dashboard.triggerReached ? '5 SOL trigger reached · awaiting protected execution' : 'Verified vault funds · awaiting 5 SOL';
-      const progress = exact ? Math.min(100, sol / 5 * 100) : 0;
-      track.setAttribute('aria-valuenow', String(Math.min(5, sol)));
-      track.setAttribute('aria-valuetext', exact
-        ? `${sol} of 5 SOL on chain${unindexedLamports > 0n ? '; older funds cannot auto-execute without app records' : ''}`
-        : 'Verified balance unavailable');
+          : dashboard.triggerReached ? '5 SOL trigger reached · awaiting protected execution' : 'Verified eligible funds · awaiting 5 SOL';
+      const progress = indexed ? Number(lamports > 5_000_000_000n ? 5_000_000_000n : lamports) / 5_000_000_000 * 100 : 0;
+      track.setAttribute('aria-valuenow', String(indexed ? Number(lamports > 5_000_000_000n ? 5_000_000_000n : lamports) / 1_000_000_000 : 0));
+      track.setAttribute('aria-valuetext', indexed
+        ? `${formatSol(lamports)} of 5 SOL eligible for automatic buyback${unindexedLamports > 0n ? `; ${formatSol(unindexedLamports)} in older unindexed vaults is excluded` : ''}`
+        : 'Eligible balance unavailable');
       fill.style.width = `${progress}%`;
       const burn = dashboard?.lastBurn;
       const burnedAt = burn?.burnedAt && Number.isFinite(Date.parse(burn.burnedAt)) ? new Date(burn.burnedAt) : null;
