@@ -1,5 +1,11 @@
 import { verifiedTokenBannerUri } from '../../features/coin/token-banner.js';
 
+export function linkedSharedRouterFeeCollections(ledgerData, curveCreator) {
+  const router = ledgerData?.sharedRouter;
+  const linked = Boolean(curveCreator && router?.address && curveCreator === router.address);
+  return { linked, collections: linked && Array.isArray(router.collections) ? router.collections : [] };
+}
+
 // Dependencies and mutable application state are read live through appState.
 export function createCoinLoadingController(appState) {
   // app-source: 981
@@ -73,9 +79,10 @@ export function createCoinLoadingController(appState) {
       const realQuote = graduatedPool?.quoteReservesSol ?? curve?.realQuoteReservesSol;
       const ledger = await appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/fee-activity`, { signal: AbortSignal.timeout(8000) }).catch(() => ({ available: false, data: null }));
       if (loadId !== appState.coinLoadId) return;
-      const ledgerAvailable = ledger.available && ledger.data?.cluster === appState.EXPLORE_CLUSTER;
-      const linkedRouter = ledgerAvailable && curve?.creator === ledger.data?.sharedRouter?.address;
-      appState.coinActivity = { status: 'ready', symbol, accounts, accountAvailable, holderDistribution: fullHolderDistribution, holderCount: fullHolderDistribution?.walletCount ?? 0, holderCountPartial: false, tokenDecimals: decimals, vaultAddress: curveVaultAddress || null, vaultLabel: graduatedPool ? 'PumpSwap pool vault' : 'Pump curve vault', ledgerAvailable, ledgerSource: ledger.data?.source === 'funded.app-postgresql' ? 'app database' : 'file ledger', collections: ledgerAvailable ? ledger.data.collections || [] : [], claims: ledgerAvailable ? ledger.data.claims || [] : [], sharedRouterCollections: linkedRouter ? ledger.data.sharedRouter.collections || [] : [] };
+      const ledgerAvailable = Boolean(ledger?.available && ledger.data?.cluster === appState.EXPLORE_CLUSTER);
+      const sharedRouter = linkedSharedRouterFeeCollections(ledgerAvailable ? ledger.data : null, curve?.creator);
+      const linkedRouter = sharedRouter.linked;
+      appState.coinActivity = { status: 'ready', symbol, accounts, accountAvailable, holderDistribution: fullHolderDistribution, holderCount: fullHolderDistribution?.walletCount ?? 0, holderCountPartial: false, tokenDecimals: decimals, vaultAddress: curveVaultAddress || null, vaultLabel: graduatedPool ? 'PumpSwap pool vault' : 'Pump curve vault', ledgerAvailable, ledgerSource: ledger?.data?.source === 'funded.app-postgresql' ? 'app database' : 'file ledger', collections: ledgerAvailable && Array.isArray(ledger.data.collections) ? ledger.data.collections : [], claims: ledgerAvailable && Array.isArray(ledger.data.claims) ? ledger.data.claims : [], sharedRouterCollections: sharedRouter.collections };
       appState.coinSummaryLedgerMint = ledgerAvailable && ledger.data?.mint === mintAddress ? mintAddress : null;
       appState.renderCoinFeeDashboard(appState.coinSummaryLedgerMint ? ledger.data?.overview : { available:false });
       appState.renderCoinAccountDistribution(fullHolderDistribution, decimals, symbol, graduatedPool ? 'PumpSwap pool vault' : 'Curve vault');
