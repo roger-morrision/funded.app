@@ -21,9 +21,14 @@ try {
   let dashboardFixture = { status:'verified',collectedLamports:'447709',
     thresholdLamports:'5000000000',triggerReached:false,
     lastBurn:{ signature:'3'.repeat(64),burnedAt:'2026-10-13T12:25:09.000Z' } };
+  const pending = [{ mint:'EtMFvbnLJMmp4PWqDVSqYzWfkWhZy3FznJQTN35rYWPc',
+    amountLamports:'447709',status:'awaiting-v3-buyback-executor' }];
+  const receipts = [{ mint:pending[0].mint,signature:'3'.repeat(64),
+    status:'finalized',burnedBaseUnits:'1804874',
+    vaultDebitVerified:true,burnInstructionVerified:true }];
   await context.route('**/api/buyback/status', route => route.fulfill({ status:200,
     contentType:'application/json',body:JSON.stringify({ cluster:'devnet',
-      automationEnabled:true,pending:[],receipts:[],dashboard:dashboardFixture }) }));
+      automationEnabled:true,pending,receipts,dashboard:dashboardFixture }) }));
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -48,6 +53,9 @@ try {
   await page.locator('.home-buyback-progress').first().screenshot({path:'.tmp-ui-evidence/buyback-progress.png'});
   await page.goto(`${origin}/#buybacks`,{waitUntil:'domcontentloaded'});
   await page.waitForFunction(() => document.querySelector('#buyback-route-balance')?.textContent === '0.000447709 SOL');
+  await page.waitForFunction(() => document.querySelector('.reward-buyback-stats')?.textContent?.includes('0.000447709 SOL'));
+  assert.match(await page.locator('.reward-buyback-stats').textContent(),/Completed buybacks1/);
+  assert.match(await page.locator('.reward-buyback-list').textContent(),/awaiting the 5 SOL trigger/);
   assert.equal(await page.locator('.buyback-route-progress').isVisible(),true);
   assert.equal(await page.locator('#buyback-route-proof').isVisible(),true);
   dashboardFixture = { status:'verified',collectedLamports:'0',

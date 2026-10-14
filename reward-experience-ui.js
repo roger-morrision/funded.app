@@ -222,16 +222,19 @@ function renderBuybacks(data) {
   const root = document.querySelector('[data-buyback-flow]'); if (!root) return;
   root.replaceChildren();
   if (!data) { root.textContent = 'Buyback status is unavailable.'; return; }
-  const pending = (data.pending || []).filter(row => BigInt(row.pendingLamports || '0') > 0n);
-  const receipts = (data.receipts || []).filter(row => row.status === 'finalized' && row.refundVerified === true);
+  const amount = value => /^(0|[1-9]\d*)$/.test(String(value)) ? BigInt(value) : 0n;
+  const pending = (data.pending || []).filter(row => amount(row.amountLamports) > 0n);
+  const receipts = (data.receipts || []).filter(row => row.status === 'finalized'
+    && row.vaultDebitVerified === true && row.burnInstructionVerified === true);
   const stats = node('div','reward-buyback-stats');
-  for (const [label,value] of [['Queued funds',sol(pending.reduce((sum,row) => sum + BigInt(row.pendingLamports), 0n))],
+  for (const [label,value] of [['Queued funds',sol(pending.reduce((sum,row) => sum + amount(row.amountLamports), 0n))],
     ['Completed buybacks',String(receipts.length)]]) { const item = node('div'); item.append(node('small','',label),node('strong','',value)); stats.append(item); }
   root.append(stats);
   const list = node('div','reward-buyback-list');
   for (const row of pending.slice(0, 8)) {
     const article = node('p'); article.append(link(short(row.mint), tokenUrl(row.mint)),
-      node('span','',` · ${sol(row.pendingLamports)} queued · ${row.activeOrder ? 'in progress' : row.eligible ? 'ready for the next batch' : 'building up funds'}`));
+      node('span','',` · ${sol(row.amountLamports)} queued · ${['queued','verification-pending'].includes(row.status)
+        ? 'in progress' : data.dashboard?.triggerReached ? 'ready for the next batch' : 'awaiting the 5 SOL trigger'}`));
     list.append(article);
   }
   for (const row of receipts.slice(0, 8)) {
