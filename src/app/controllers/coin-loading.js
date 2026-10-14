@@ -6,12 +6,28 @@ export function linkedSharedRouterFeeCollections(ledgerData, curveCreator) {
   return { linked, collections: linked && Array.isArray(router.collections) ? router.collections : [] };
 }
 
+export function verifiedV3FeeLedger(response, mint, cluster) {
+  const ledger=response?.available ? response.data : null;
+  return ledger?.mint===mint && ledger.cluster===cluster
+    && ledger.overview?.available===true && ledger.overview.scope==='per-mint-v3'
+    ? ledger : null;
+}
+
 // Dependencies and mutable application state are read live through appState.
 export function createCoinLoadingController(appState) {
   // app-source: 981
   async function loadCoinOnChain(mintAddress){
     const loadId = ++appState.coinLoadId;
     if (!mintAddress){ appState.renderOnChainUnavailable('Choose a token from Explore to see its details.'); return; }
+    const feeLedgerPromise=appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/fee-activity`,
+      { signal:AbortSignal.timeout(20000) }).catch(() => ({ available:false, data:null }));
+    void feeLedgerPromise.then(response => {
+      if (loadId !== appState.coinLoadId) return;
+      const ledger=verifiedV3FeeLedger(response,mintAddress,appState.EXPLORE_CLUSTER);
+      if (!ledger) return;
+      appState.coinSummaryLedgerMint=mintAddress;
+      appState.renderCoinFeeDashboard(ledger.overview);
+    });
     void appState.loadCoinChat(mintAddress, loadId);
     appState.setCoinField('#coin-page-title', 'Loading token…'); appState.setCoinField('#coin-symbol', 'TOKEN'); appState.setCoinField('#coin-address', appState.shortAddress(mintAddress));
     appState.setCoinField('#coin-description', 'Checking coin details on Solana…');
@@ -77,14 +93,15 @@ export function createCoinLoadingController(appState) {
       const fullHolderDistribution = accountAvailable
         ? appState.summarizeFullHolderDistribution(largestAccounts, curveVaultAddress, parsedMint.supply) : null;
       const realQuote = graduatedPool?.quoteReservesSol ?? curve?.realQuoteReservesSol;
-      const ledger = await appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/fee-activity`, { signal: AbortSignal.timeout(8000) }).catch(() => ({ available: false, data: null }));
+      const ledger = await feeLedgerPromise;
       if (loadId !== appState.coinLoadId) return;
-      const ledgerAvailable = Boolean(ledger?.available && ledger.data?.cluster === appState.EXPLORE_CLUSTER);
-      const sharedRouter = linkedSharedRouterFeeCollections(ledgerAvailable ? ledger.data : null, curve?.creator);
+      const feeLedger=verifiedV3FeeLedger(ledger,mintAddress,appState.EXPLORE_CLUSTER);
+      const ledgerAvailable=Boolean(feeLedger);
+      const sharedRouter = linkedSharedRouterFeeCollections(feeLedger, curve?.creator);
       const linkedRouter = sharedRouter.linked;
-      appState.coinActivity = { status: 'ready', symbol, accounts, accountAvailable, holderDistribution: fullHolderDistribution, holderCount: fullHolderDistribution?.walletCount ?? 0, holderCountPartial: false, tokenDecimals: decimals, vaultAddress: curveVaultAddress || null, vaultLabel: graduatedPool ? 'PumpSwap pool vault' : 'Pump curve vault', ledgerAvailable, ledgerSource: ledger?.data?.source === 'funded.app-postgresql' ? 'app database' : 'file ledger', collections: ledgerAvailable && Array.isArray(ledger.data.collections) ? ledger.data.collections : [], claims: ledgerAvailable && Array.isArray(ledger.data.claims) ? ledger.data.claims : [], sharedRouterCollections: sharedRouter.collections };
-      appState.coinSummaryLedgerMint = ledgerAvailable && ledger.data?.mint === mintAddress ? mintAddress : null;
-      appState.renderCoinFeeDashboard(appState.coinSummaryLedgerMint ? ledger.data?.overview : { available:false });
+      appState.coinActivity = { status: 'ready', symbol, accounts, accountAvailable, holderDistribution: fullHolderDistribution, holderCount: fullHolderDistribution?.walletCount ?? 0, holderCountPartial: false, tokenDecimals: decimals, vaultAddress: curveVaultAddress || null, vaultLabel: graduatedPool ? 'PumpSwap pool vault' : 'Pump curve vault', ledgerAvailable, ledgerSource: feeLedger?.source === 'funded.app-postgresql' ? 'app database' : 'file ledger', collections: Array.isArray(feeLedger?.collections) ? feeLedger.collections : [], claims: Array.isArray(feeLedger?.claims) ? feeLedger.claims : [], sharedRouterCollections: sharedRouter.collections };
+      appState.coinSummaryLedgerMint = feeLedger ? mintAddress : null;
+      appState.renderCoinFeeDashboard(feeLedger?.overview || { available:false });
       appState.renderCoinAccountDistribution(fullHolderDistribution, decimals, symbol, graduatedPool ? 'PumpSwap pool vault' : 'Curve vault');
       appState.setCoinTabLabels(); appState.renderCoinActivityTab();
       appState.setCoinField('.coin-live-dot', graduatedPool ? 'Trading pool confirmed' : curve ? 'Trading route confirmed' : 'Token confirmed');
@@ -159,6 +176,15 @@ export function createCoinLoadingController(appState) {
           ? 'Solana RPC timed out. Check your connection and select Refresh.'
           : detail || 'Solana RPC could not load this mint.');
       appState.renderCoinRegistryIdentity(mintAddress);
+      const feeLedger=verifiedV3FeeLedger(await feeLedgerPromise,mintAddress,appState.EXPLORE_CLUSTER);
+      if (loadId !== appState.coinLoadId || !feeLedger) return;
+      appState.coinSummaryLedgerMint=mintAddress;
+      appState.coinActivity={ ...appState.coinActivity, ledgerAvailable:true,
+        ledgerSource:feeLedger.source==='funded.app-postgresql'?'app database':'file ledger',
+        collections:Array.isArray(feeLedger.collections)?feeLedger.collections:[],
+        claims:Array.isArray(feeLedger.claims)?feeLedger.claims:[] };
+      appState.renderCoinFeeDashboard(feeLedger.overview);
+      appState.setCoinTabLabels();appState.renderCoinActivityTab();
     }
   }
   // app-source-end
