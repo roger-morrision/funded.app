@@ -35,6 +35,10 @@ assert(!execute || maxSolArg, 'Executing migration requires an explicit --max-so
 const maxSol = Number(maxSolArg?.slice('--max-sol='.length) || '3.1');
 assert(Number.isFinite(maxSol) && maxSol > 0 && maxSol <= 3.1, 'The Devnet migration cap must be above zero and at most 3.1 SOL.');
 const maxLamports = BigInt(Math.floor(maxSol * LAMPORTS_PER_SOL));
+const qaAuthorityBuy = args.includes('--qa-authority-buy');
+const prepareCommunity = args.includes('--prepare-community');
+assert(!qaAuthorityBuy || execute, '--qa-authority-buy requires --execute.');
+assert(!prepareCommunity || execute, '--prepare-community requires --execute.');
 assert.equal(process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER, 'devnet', 'Devnet configuration is required.');
 assert.notEqual(process.env.VITE_ALLOW_MAINNET, 'true', 'Mainnet must remain disabled.');
 const connection = new Connection(process.env.SOLANA_RPC_URL || clusterApiUrl('devnet'), 'finalized');
@@ -43,6 +47,9 @@ const officialGenesis = await faucetConnection.getGenesisHash();
 assert.equal(await connection.getGenesisHash(), officialGenesis, 'Configured RPC is not Devnet.');
 
 const recoveryWallet = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY));
+const qaAuthority = qaAuthorityBuy ? Keypair.fromSecretKey(bs58.decode(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '')) : null;
+if (qaAuthorityBuy) assert.equal(qaAuthority.publicKey.toBase58(),
+  '7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y', 'Only the disposable Devnet QA authority may buy.');
 const qaWallets = JSON.parse(readFileSync('.secrets/devnet-qa-wallets-20260930/public.json', 'utf8'));
 const expectedCreator = qaWallets.find(item => item.role === 'creator' && item.cluster === 'devnet')?.address;
 assert.equal(recoveryWallet.publicKey.toBase58(), expectedCreator, 'Issuer signer differs from the rotated Devnet QA creator manifest.');
@@ -139,6 +146,30 @@ if (verify) {
 }
 if (!execute) process.exit(0);
 assert(!poolAlreadyMigrated, 'This is not a fresh migration: a finalized PumpSwap pool already exists. No transaction sent.');
+let qaAuthorityBuySignature = null;
+let qaAuthoritySpendLamports = 0n;
+if (qaAuthorityBuy && !initialCurve.complete) {
+  const qaSolBefore = await connection.getBalance(qaAuthority.publicKey, 'finalized');
+  assert(qaSolBefore > 100_000_000,
+    'Disposable QA authority needs at least 0.1 SOL for the bounded buy.');
+  const before = await connection.getParsedTokenAccountsByOwner(qaAuthority.publicKey, { mint }, 'finalized');
+  const beforeUnits = before.value.reduce((sum, row) =>
+    sum + BigInt(row.account.data.parsed.info.tokenAmount.amount), 0n);
+  const trade = await buildTradeTransaction({ connection, side:'buy', mint,
+    user:qaAuthority.publicKey, amount:0.05, slippagePercent:3, feeOwner });
+  qaAuthorityBuySignature = await send(trade.instructions, qaAuthority);
+  await finalizedReceipt(qaAuthorityBuySignature);
+  qaAuthoritySpendLamports = BigInt(qaSolBefore - await connection.getBalance(qaAuthority.publicKey, 'finalized'));
+  assert(qaAuthoritySpendLamports > 0n && qaAuthoritySpendLamports <= 55_000_000n,
+    'The additional QA buy exceeded its 0.055 SOL budget.');
+  const after = await connection.getParsedTokenAccountsByOwner(qaAuthority.publicKey, { mint }, 'finalized');
+  const afterUnits = after.value.reduce((sum, row) =>
+    sum + BigInt(row.account.data.parsed.info.tokenAmount.amount), 0n);
+  assert(afterUnits > beforeUnits, 'The additional QA wallet did not receive launch tokens.');
+  console.error(JSON.stringify({ stage:'qa-authority-buy-finalized',
+    wallet:qaAuthority.publicKey.toBase58(), signature:qaAuthorityBuySignature,
+    tokenDeltaBaseUnits:String(afterUnits - beforeUnits) }));
+}
 let qaFundSignature = null;
 if (issuerWalletMode && qaFundingLamports > 0) {
   assert(recoveryBalance > qaFundingLamports + 10_000, 'Issuer wallet lacks the bounded Devnet migration budget.');
@@ -185,11 +216,13 @@ try {
     }
     requiredLamports = low;
     buySol = Number(requiredLamports + 2_000_000n) / LAMPORTS_PER_SOL;
-    assert(requiredLamports + 2_000_000n <= maxLamports, 'The finishing buy exceeds the explicit Devnet SOL cap. No buy was sent.');
+    assert(requiredLamports + 2_000_000n + qaAuthoritySpendLamports <= maxLamports,
+      'Combined QA buys exceed the explicit Devnet SOL cap. No finishing buy was sent.');
     const prepared = await buildTradeTransaction({ connection, side: 'buy', mint, user: migrationWallet.publicKey, amount: buySol, slippagePercent: 3, feeOwner });
     // Reserve 3% for Pump slippage and 0.01 SOL for account/transaction costs.
     const reviewedMaxLamports = BigInt(prepared.quoteAmount.toString()) * 10_300n / 10_000n + BigInt(prepared.feeLamports) + 10_000_000n;
-    assert(reviewedMaxLamports <= maxLamports, 'The reviewed maximum buy cost, including slippage, app fee, and reserve, exceeds the Devnet SOL cap. No buy was sent.');
+    assert(reviewedMaxLamports + qaAuthoritySpendLamports <= maxLamports,
+      'The reviewed combined buy cost, including slippage, app fee, and reserve, exceeds the Devnet SOL cap. No finishing buy was sent.');
     buySignature = await send(prepared.instructions, migrationWallet);
     buyReceipt = await finalizedReceipt(buySignature);
     completed = (await finalizedState()).curve;
@@ -217,6 +250,26 @@ try {
   assert.equal(finalState.poolVerified, true, 'Finalized PumpSwap pool was not created after migration.');
   assert(finalState.poolAccount.context.slot >= migrateReceipt.slot, 'Pool observation predates finalized migration receipt.');
   assert(finalState.poolSnapshot.baseTokenReserves > 0 && finalState.poolSnapshot.quoteReservesSol > 0, 'Finalized PumpSwap pool reserves are empty.');
+  console.error(JSON.stringify({ stage:'pump-migration-finalized',
+    signature:migrateSignature, slot:migrateReceipt.slot, mint:mint.toBase58(),
+    pool:pool.toBase58() }));
+  if (prepareCommunity) {
+    const api = 'https://funded.vip/api/airdrops/claims/prepare';
+    const apiToken = readFileSync('.secrets/funded-api-token', 'utf8').trim();
+    assert(apiToken, 'A QA API token is required to prepare the migration snapshot.');
+    const response = await fetch(api, { method:'POST', headers:{
+      origin:'https://funded.vip', 'content-type':'application/json', authorization:`Bearer ${apiToken}` },
+      body:JSON.stringify({ mint:mint.toBase58(), migrationSignature:migrateSignature }),
+      signal:AbortSignal.timeout(120_000) });
+    const prepared = await response.json();
+    if (!response.ok) throw new Error(`Genuine migration snapshot failed: ${response.status} ${prepared.error || 'unknown error'}`);
+    assert.equal(prepared.snapshotBasis, 'pump-migration');
+    assert(Number(prepared.recipients) > 0 && prepared.migrationSlot === migrateReceipt.slot);
+    console.error(JSON.stringify({ stage:'pump-migration-snapshot-prepared',
+      mint:mint.toBase58(), migrationSignature:migrateSignature,
+      migrationSlot:prepared.migrationSlot, root:prepared.root,
+      snapshotHash:prepared.snapshotHash, recipients:prepared.recipients }));
+  }
 } finally {
   refundSignature = await refundUnusedSol().catch(() => null);
 }
@@ -228,6 +281,8 @@ console.log(JSON.stringify({
   payerRole: issuerWalletMode ? 'devnet-issuer' : 'disposable',
   qaFundSignature,
   airdropSignatures,
+  qaAuthorityBuySignature,
+  qaAuthoritySpendLamports:String(qaAuthoritySpendLamports),
   requiredSol: Number(requiredLamports) / LAMPORTS_PER_SOL,
   buySol,
   buySignature,

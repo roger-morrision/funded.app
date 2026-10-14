@@ -1,5 +1,6 @@
 import { paginateHistory } from '../../../history-pagination.js';
 import { referralStatusLabel, referralClaimStatusLabel, isReferralSignInCancelled } from '../../../referral-status.js';
+import { formatReferralLamports } from '../../../referral-amount.js';
 // Dependencies and mutable application state are read live through appState.
 export function createReferralsController(appState) {
   // app-source: 232
@@ -121,7 +122,7 @@ function updateReferralStatus(state, claimable = 0){
     if (!panel) return;
     panel.replaceChildren();
     const content = document.createElement('div');
-    const eyebrow = document.createElement('span'); eyebrow.className = 'eyebrow'; eyebrow.textContent = 'Manual rewards';
+    const eyebrow = document.createElement('span'); eyebrow.className = 'eyebrow'; eyebrow.textContent = 'Referral payouts';
     const heading = document.createElement('strong'); heading.textContent = title;
     const detail = document.createElement('small'); detail.textContent = note;
     content.append(eyebrow, heading, detail); panel.append(content);
@@ -201,18 +202,19 @@ function updateReferralStatus(state, claimable = 0){
     const claims = Array.isArray(result.data.claims) ? result.data.claims : [];
     const claimable = 0;
     updateReferralStatus(claims.length ? 'recorded' : 'ready', claimable);
-    const paid = claims.filter(claim => claim.status === 'paid').reduce((sum, claim) => sum + Number(claim.amount || 0), 0);
+    const paidLamports = claims.filter(claim => claim.status === 'paid')
+      .reduce((sum, claim) => sum + BigInt(claim.amountLamports || '0'), 0n);
     const claimableNode = document.querySelector('#referral-total-claimable'); if (claimableNode) claimableNode.textContent = `${claimable.toFixed(4)} SOL`;
-    const paidNode = document.querySelector('#referral-paid-total'); if (paidNode) paidNode.textContent = `${paid.toFixed(4)} SOL`;
+    const paidNode = document.querySelector('#referral-paid-total'); if (paidNode) paidNode.textContent = `${formatReferralLamports(paidLamports)} SOL`;
     const ledger = document.querySelector('#referral-ledger-list');
-    if (ledger) { ledger.replaceChildren(); if (!claims.length) appState.renderReferralLedgerEmpty('No receipts yet', 'Finalized referral claims will appear here.'); else claims.slice().reverse().forEach(claim => { const row = document.createElement('div'); row.className = 'referral-ledger-row'; const label = document.createElement('strong'); label.textContent = `Level ${claim.level}`; const status = document.createElement('small'); status.textContent = referralClaimStatusLabel(claim.status); const amount = document.createElement('b'); amount.textContent = `${Number(claim.amount || 0).toFixed(4)} ${claim.asset}`; row.append(label, status, amount); ledger.append(row); }); }
+    if (ledger) { ledger.replaceChildren(); if (!claims.length) appState.renderReferralLedgerEmpty('No receipts yet', 'Finalized referral claims will appear here.'); else claims.slice().reverse().forEach(claim => { const row = document.createElement('div'); row.className = 'referral-ledger-row'; const label = document.createElement('strong'); label.textContent = `Level ${claim.level}`; const status = document.createElement('small'); status.textContent = referralClaimStatusLabel(claim.status); const amount = document.createElement('b'); amount.textContent = `${formatReferralLamports(claim.amountLamports || '0')} ${claim.asset}`; row.append(label, status, amount); ledger.append(row); }); }
     paginateHistory(ledger, {label:'Referral history', selector:'.referral-ledger-row', key:walletAddress});
     let panel = document.querySelector('#referral-claim-center');
     if (!panel) { panel = document.createElement('div'); panel.id = 'referral-claim-center'; panel.className = 'referral-dashboard'; panel.setAttribute('aria-live', 'polite'); dashboard.querySelector('.referral-kpi-grid')?.after(panel); }
     panel.replaceChildren();
     const heading = document.createElement('div'); const title = document.createElement('strong'); title.textContent = 'Referral history'; const note = document.createElement('small'); note.textContent = claims.length ? 'Finalized V3 referral payouts.' : 'Creator-signed V3 payouts appear here after final confirmation.'; heading.append(title, note); panel.append(heading);
     for (const claim of result.data.claims) {
-      const row = document.createElement('div'); row.className = 'referral-claim-row'; const label = document.createElement('span'); label.textContent = `Level ${claim.level} · ${claim.amount} ${claim.asset} · ${referralClaimStatusLabel(claim.status)}`; row.append(label);
+      const row = document.createElement('div'); row.className = 'referral-claim-row'; const label = document.createElement('span'); label.textContent = `Level ${claim.level} · ${formatReferralLamports(claim.amountLamports || '0')} ${claim.asset} · ${referralClaimStatusLabel(claim.status)}`; row.append(label);
       if (claim.status === 'paid' && claim.payoutSignature) {
         const receipt = document.createElement('small'); receipt.textContent = `Paid · ${claim.payoutSignature}`; row.append(receipt);
         if (claim.asset === 'SOL' && Number(claim.amount) > 0) {
@@ -235,7 +237,7 @@ function updateReferralStatus(state, claimable = 0){
                 throw new Error('The finalized V3 payout transfer is not verified yet.');
               if (!appState.isWalletSessionCurrent(session)) return;
               const code = appState.registeredShareCode();
-              appState.openShareComposer({ kind:'result', title:'Finalized referral payout on funded.vip', text:`My ${appState.EXPLORE_NETWORK_LABEL} referral payout of ${Number(claim.amount).toFixed(4)} SOL is finalized. Check the receipt on funded.vip.`, url: code ? appState.buildReferralUrl(code) : new URL('/#referrals', location.origin).toString(),
+              appState.openShareComposer({ kind:'result', title:'Finalized referral payout on funded.vip', text:`My ${appState.EXPLORE_NETWORK_LABEL} referral payout of ${formatReferralLamports(claim.amountLamports)} SOL is finalized. Check the receipt on funded.vip.`, url: code ? appState.buildReferralUrl(code) : new URL('/#referrals', location.origin).toString(),
                 result:{ verified:true, amount:Number(claim.amount), asset:'SOL', receipt:claim.payoutSignature, receiptUrl:appState.exploreExplorer(`tx/${encodeURIComponent(claim.payoutSignature)}`), wallet:walletAddress, network:appState.EXPLORE_NETWORK_LABEL, period:'Finalized payout' } });
             } catch (error) { appState.showToast(error.message || 'Finalized payout verification is unavailable.'); }
             finally { sharePaid.disabled = false; }

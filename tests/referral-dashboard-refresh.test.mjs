@@ -3,8 +3,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { referralStatusLabel, isReferralSignInCancelled } from '../referral-status.js';
+import { referralStatusLabel, referralClaimStatusLabel, isReferralSignInCancelled } from '../referral-status.js';
 import { createWalletSignIn } from '../wallet-signin.js';
+import { formatReferralLamports } from '../referral-amount.js';
 
 const app = await readAppSource();
 function section(start, end) {
@@ -26,9 +27,11 @@ function element() {
   };
 }
 
-function fixture() {
+function fixture({ claims = null } = {}) {
   const panel = element();
   const dashboard = element();
+  const paidNode = element();
+  const ledger = element();
   const calls = [];
   let authenticated = false;
   let authenticatedWallet = 'wallet';
@@ -37,7 +40,8 @@ function fixture() {
   const session = { address: 'wallet', provider: { async signMessage() { signatures++; if (signError) throw signError; return { signature: new Uint8Array(64).fill(7) }; } } };
   const context = {
     TextEncoder,
-    referralStatusLabel, isReferralSignInCancelled,
+    formatReferralLamports,
+    referralStatusLabel, referralClaimStatusLabel, isReferralSignInCancelled,
     paginateHistory: () => {},
     bs58: { encode(bytes) { assert.equal(bytes.length, 64); return 'fixture-signature'; } },
     captureWalletSession: () => session,
@@ -51,7 +55,7 @@ function fixture() {
       documentElement: {dataset:{}},
       body: {classList:{contains:()=>false}},
       querySelectorAll: () => [],
-      querySelector(selector) { return selector === '#referral-claim-center' ? panel : selector === '#referral-command-center' ? dashboard : null; },
+      querySelector(selector) { return selector === '#referral-claim-center' ? panel : selector === '#referral-command-center' ? dashboard : selector === '#referral-paid-total' ? paidNode : selector === '#referral-ledger-list' ? ledger : null; },
       createElement: element,
     },
     async apiRequest(path, options = {}) {
@@ -66,7 +70,8 @@ function fixture() {
         authenticated = true;
         return { available: true, data: { authenticated: true, wallet: session.address } };
       }
-      if (path.startsWith('/api/referral-claims?') || path.startsWith('/api/referrals/dashboard?')) return { available: false };
+      if (path.startsWith('/api/referral-claims?')) return claims ? { available:true, data:{ claims } } : { available:false };
+      if (path.startsWith('/api/referrals/dashboard?')) return claims ? { available:true, data:{ networkCreators:1, qualifiedCreators:1, conversionRate:100 } } : { available:false };
       assert.fail(`Unexpected request: ${path}`);
     },
   };
@@ -75,6 +80,8 @@ function fixture() {
   return {
     refresh: () => context.refreshReferralClaims(),
     panel,
+    paidNode,
+    ledger,
     calls,
     get status() { return context.document.documentElement.dataset.referralStatus; },
     get signatures() { return signatures; },
@@ -82,6 +89,7 @@ function fixture() {
     allowSigning() { signError = null; },
     expire() { authenticated = false; context.walletSignIn.clear(); },
     mismatch() { authenticated = true; authenticatedWallet = 'another-wallet'; },
+    authenticate() { authenticated = true; },
   };
 }
 
@@ -110,6 +118,17 @@ test('wallet refresh checks the session without requesting a signature', async (
   assert.deepEqual(f.calls, ['/api/referrals/session']);
   assert.equal(f.signatures, 1, 'An expired session does not sign during refresh');
   assert.equal(f.status, 'Sign in to view');
+});
+
+test('a signed referral dashboard displays exact small finalized payouts', async () => {
+  const f = fixture({ claims:[{ level:2, amount:0.000017314, amountLamports:'17314',
+    asset:'SOL', status:'paid', payoutSignature:'finalized-qa-signature' }] });
+  f.authenticate();
+  await f.refresh();
+  assert.equal(f.paidNode.textContent, '0.000017314 SOL');
+  assert.equal(f.ledger.children[0].children[2].textContent, '0.000017314 SOL');
+  assert.equal(f.panel.children[1].children[0].textContent, 'Level 2 · 0.000017314 SOL · Paid');
+  assert.equal(f.signatures, 0, 'A valid wallet session needs no new signature');
 });
 
 test('a session belonging to another wallet never exposes private claims', async () => {
