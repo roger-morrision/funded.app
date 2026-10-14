@@ -14,6 +14,7 @@ export function renderWalletDetail(
     coinSolUsdPrice,
     walletDetailTab,
     walletDetailFilter,
+    walletHistory,
     fundedBurnState,
   },
   {
@@ -48,7 +49,15 @@ export function renderWalletDetail(
   setCoinField('#wallet-trade-state', tradeScanReady ? `${exploreScannedCount} of ${assets.length} coins${tradeScanStale ? ' · last update' : ''}` : exploreFeedAvailable ? 'No recent trades' : 'Unavailable');
   const launchTimes = launches.map(walletLaunchTimestamp).filter(time => time > 0);
   const tradeTimes = trades.map(item => Number(item.blockTime) * 1000).filter(Number.isFinite);
-  const lastActivity = Math.max(0, ...launchTimes, ...tradeTimes);
+  const history = isSelf && walletHistory?.wallet === address ? walletHistory : { status:'idle', rows:[], coverage:{} };
+  const paymentCount = history.rows.filter(row => row.type === 'claim' || row.type === 'reward').length;
+  setCoinField('#wallet-payment-state', !isSelf ? 'Connect wallet' : history.status === 'loading'
+    ? 'Checking' : history.coverage?.claim === 'ready' && history.coverage?.reward === 'ready'
+      ? `${paymentCount} confirmed` : 'Unavailable');
+  setCoinField('#wallet-airdrop-state', !isSelf ? 'Connect wallet' : history.status === 'loading'
+    ? 'Checking' : history.coverage?.airdrop === 'ready'
+      ? `${history.rows.filter(row => row.type === 'airdrop').length} claimed` : 'Unavailable');
+  const lastActivity = Math.max(0, ...launchTimes, ...tradeTimes, ...history.rows.map(row => row.time || 0));
   const volume = trades.reduce((sum, trade) => sum + Number(trade.solAmount || 0), 0);
   const title = document.querySelector('#wallet-page-title');
   const addressNode = document.querySelector('#wallet-page-address');
@@ -83,9 +92,14 @@ export function renderWalletDetail(
   const description = document.querySelector('#wallet-detail-description');
   const content = document.querySelector('#wallet-detail-content');
   const filters = document.querySelector('#wallet-detail-filters');
+  const historyFilters = ['claim','reward','airdrop','bonus'];
+  const activeFilter = !isSelf && historyFilters.includes(walletDetailFilter) ? 'all' : walletDetailFilter;
   if (filters) {
     filters.hidden = walletDetailTab !== 'activity';
-    filters.querySelectorAll('[data-wallet-filter]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.walletFilter === walletDetailFilter)));
+    filters.querySelectorAll('[data-wallet-filter]').forEach(button => {
+      button.hidden = !isSelf && historyFilters.includes(button.dataset.walletFilter);
+      button.setAttribute('aria-pressed', String(button.dataset.walletFilter === activeFilter));
+    });
   }
   if (!content || !description) return;
   if (walletDetailTab === 'balances') {
@@ -103,7 +117,9 @@ export function renderWalletDetail(
     loadWalletRowLogos(content, launches);
     return;
   }
-  description.textContent = `Confirmed launches and burns, plus recent trades from the last 24 hours. ${scanNote}.`;
+  description.textContent = isSelf
+    ? `Confirmed wallet payments and airdrop claims, plus launches, burns, and recent trades. ${scanNote}.`
+    : `Confirmed launches and burns, plus recent trades from the last 24 hours. ${scanNote}.`;
   const tradeRows = trades.map(trade => ({ type:trade.side, time:Number(trade.blockTime) * 1000 || 0, html:`<a class="wallet-activity-row" data-token-mint="${escapeHtml(trade.mint)}" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(trade.signature)}`))}" target="_blank" rel="noopener noreferrer"><span class="wallet-activity-icon ${trade.side}">${trade.side === 'buy' ? '↗' : '↘'}</span><span><strong>${trade.side === 'buy' ? 'Bought' : 'Sold'} ${escapeHtml(trade.symbol || 'token')}</strong><small>${escapeHtml(shortAddress(trade.mint))}</small></span><b>${escapeHtml(formatOnChainNumber(trade.solAmount, 4))} SOL<small>${escapeHtml(formatOnchainAge(Number(trade.blockTime) * 1000))}</small></b></a>` }));
   const seenBurns = new Set();
   const burnRows = launches.flatMap(launch => {
@@ -114,9 +130,28 @@ export function renderWalletDetail(
     const amount = Number(receipt.amountTokens ?? burn.amountTokens);
     return [{ type:'burn', time:Date.parse(launch.onchainVerifiedAt || launch.createdAt || '') || 0, html:`<a class="wallet-activity-row" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer"><span class="wallet-activity-icon burn">♨</span><span><strong>Burned $FUNDED</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} launch · confirmed</small></span><b>${Number.isFinite(amount) ? escapeHtml(formatOnChainNumber(amount, 2)) : '—'} $FUNDED<small>View transaction ↗</small></b></a>` }];
   });
-  const rows = [...tradeRows, ...launchRows, ...burnRows].filter(row => walletDetailFilter === 'all' || row.type === walletDetailFilter).sort((a,b) => b.time - a.time);
-  const coverageIncomplete = (['all', 'launch', 'burn'].includes(walletDetailFilter) && !registryReady)
-    || (['all', 'buy', 'sell'].includes(walletDetailFilter) && !tradeScanReady);
-  content.innerHTML = rows.map(row => row.html).join('') || walletDetailEmpty(coverageIncomplete ? 'Activity unavailable' : 'No matching activity', coverageIncomplete ? 'Some activity cannot be shown right now. Please check again later.' : walletDetailFilter === 'all' ? 'No confirmed launches, burns, or recent trades were found for this wallet.' : `No ${walletDetailFilter} activity was found for this wallet.`);
+  const historyRows = history.rows.map(row => ({ type:row.type, time:row.time || 0,
+    html:`<a class="wallet-activity-row" href="${escapeHtml(row.href)}" target="_blank" rel="noopener noreferrer"><span class="wallet-activity-icon ${escapeHtml(row.type)}" aria-hidden="true">${({claim:'✓',reward:'✦',airdrop:'◈',bonus:'★'})[row.type]}</span><span><strong>${escapeHtml(row.title)}</strong><small>${escapeHtml(row.detail)}</small></span><b>${escapeHtml(row.amount)}<small>${row.time ? escapeHtml(formatOnchainAge(row.time)) : 'View on-chain proof ↗'}</small></b></a>` }));
+  const rows = [...tradeRows, ...launchRows, ...burnRows, ...historyRows]
+    .filter(row => activeFilter === 'all' || row.type === activeFilter)
+    .sort((a,b) => b.time - a.time);
+  const historyCoverage = history.coverage?.[activeFilter];
+  const historyUnavailable = isSelf && historyFilters.includes(activeFilter)
+    && (history.status === 'loading' || historyCoverage === 'unavailable'
+      || historyCoverage === 'sign-in-required' || historyCoverage === 'pending');
+  const coverageIncomplete = (['all', 'launch', 'burn'].includes(activeFilter) && !registryReady)
+    || (['all', 'buy', 'sell'].includes(activeFilter) && !tradeScanReady)
+    || (activeFilter === 'all' && isSelf && (history.status === 'loading'
+      || ['claim','reward','airdrop'].some(kind => history.coverage?.[kind] === 'unavailable')));
+  const unavailableDetail = history.status === 'loading' ? 'Checking this wallet’s confirmed history…'
+    : historyCoverage === 'sign-in-required' ? 'Verify this wallet in Referrals to see private bonus records.'
+    : historyCoverage === 'pending' ? 'V3 referral bonus payouts are not active yet.'
+    : 'This history could not be verified right now. Please retry later.';
+  content.innerHTML = rows.map(row => row.html).join('')
+    || walletDetailEmpty(historyUnavailable || coverageIncomplete ? 'Activity unavailable' : 'No matching activity',
+      historyUnavailable ? unavailableDetail
+        : coverageIncomplete ? 'Some activity cannot be shown right now. Please check again later.'
+          : activeFilter === 'all' ? 'No confirmed launches, trades, burns, or wallet payments were found.'
+            : `No confirmed ${activeFilter} history was found for this wallet.`);
   loadWalletRowLogos(content, launches);
 }

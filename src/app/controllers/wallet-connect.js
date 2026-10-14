@@ -99,6 +99,8 @@ export function createWalletConnectController(appState) {
     if (connected) { appState.setWalletMetrics({ loading: true }); void appState.refreshWalletBalance(); if (appState.feeRouterState.status !== 'checking') appState.refreshWalletInfo(); }
     else appState.setWalletMetrics();
     appState.renderWalletDetail();
+    if (!connected && ['claim','reward','airdrop','bonus'].includes(appState.walletDetailFilter)) appState.walletDetailFilter = 'all';
+    if (!document.querySelector('#wallet-page')?.hidden) void appState.refreshWalletDetailHistory();
     void appState.loadFundedBurnState({ force: true });
     appState.updateTokenChatComposerState();
     if (appState.currentCoinFeeOverview) appState.renderCoinFeeDashboard(appState.currentCoinFeeOverview);

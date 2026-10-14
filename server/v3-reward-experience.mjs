@@ -76,6 +76,19 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
         amountLamports:String(claim.amountLamports), paidAt:claim.paidAt || null,
         source:'finalized-v3-x-claim', feeSourceVerified:true });
     }
+    for (const source of sourceSignatures) {
+      const payout = state.v3CreatorWalletPayout?.[source];
+      const allocation = state.v3Settlements?.[source]?.allocationPlan?.creatorDirected?.walletLamports;
+      if (payout?.status !== 'finalized' || payout.balanceDeltaVerified !== true
+        || payout.collectionSignature !== source || payout.mint !== mint
+        || payout.programId !== launch.pumpFeeRoute.programId || payout.category !== 0
+        || payout.recipient !== launch.creatorWallet || payout.amount !== allocation
+        || !/^[1-9]\d*$/.test(String(allocation || ''))
+        || !SIGNATURE.test(String(payout.signature || ''))) continue;
+      payouts.push({ kind:'creator', wallet:launch.creatorWallet, signature:payout.signature,
+        amountLamports:payout.amount, paidAt:payout.finalizedAt || null,
+        source:'finalized-v3-creator-wallet-payout', feeSourceVerified:true });
+    }
     for (const payout of payouts) events.push({ mint, kind:`${payout.kind}-paid`,
       signature:payout.signature, amountLamports:payout.amountLamports, at:payout.paidAt,
       label:`${payout.kind} reward paid`, feeSourceVerified:true });
@@ -109,9 +122,8 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
     if (wallet) {
       const creator = launch.creatorWallet === wallet;
       const mine = payouts.filter(row => row.wallet === wallet);
-      const creatorPayout = Object.entries(state.v3CreatorWalletPayout || {}).filter(([source, row]) =>
-        sourceSignatures.has(source) && row.status === 'finalized' && row.balanceDeltaVerified === true)
-        .reduce((sum, [, row]) => sum + value(row.amount), 0n);
+      const creatorPayout = payouts.filter(row => row.kind === 'creator')
+        .reduce((sum, row) => sum + value(row.amountLamports), 0n);
       if (creator || mine.length) walletRows.push({ mint, symbol:token.symbol, creator,
         creatorAllocatedLamports:creator ? totals.creator.toString() : '0',
         creatorWithoutPayoutProofLamports:creator && totals.creator > creatorPayout

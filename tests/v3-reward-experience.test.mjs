@@ -34,4 +34,12 @@ test('V3 reward discovery excludes old launches and distinguishes allocations fr
   const paid = v3RewardExperience(state, rewards, 'devnet', wallet);
   assert.equal(paid.tokens[0].holderPaidLamports, '15');
   assert.equal(paid.wallet.rows[0].payouts.length, 2);
+  state.v3CreatorWalletPayout = { [source]: { status:'finalized', balanceDeltaVerified:true,
+    collectionSignature:source, mint, programId:wallet, category:0, recipient:wallet,
+    amount:'60', signature:'5'.repeat(64), finalizedAt:'2026-10-14T00:00:00Z' } };
+  const creatorPaid = v3RewardExperience(state, rewards, 'devnet', wallet);
+  assert.equal(creatorPaid.wallet.rows[0].payouts.find(row => row.kind === 'creator').amountLamports, '60');
+  assert.equal(creatorPaid.wallet.rows[0].creatorWithoutPayoutProofLamports, '0');
+  state.v3CreatorWalletPayout[source].recipient = mint;
+  assert.equal(v3RewardExperience(state, rewards, 'devnet', wallet).wallet.rows[0].payouts.length, 2);
 });

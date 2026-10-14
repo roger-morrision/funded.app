@@ -157,9 +157,11 @@
             </div>
             <aside class="wallet-detail-proof" aria-labelledby="wallet-proof-title">
               <p class="eyebrow">ABOUT THIS PAGE</p><h2 id="wallet-proof-title">Activity we can show</h2>
-              <p>We show confirmed launches and recent trades for coins listed here. Trading activity may be incomplete.</p>
+              <p>Connected wallets can review recorded V3 payments and on-chain airdrop claims. Recent trade coverage may be incomplete.</p>
               <div><span>Launches</span><strong id="wallet-registry-state">Checking</strong></div>
               <div><span>Recent trades</span><strong id="wallet-trade-state">Checking</strong></div>
+              <div><span>Claims and rewards</span><strong id="wallet-payment-state">Connect wallet</strong></div>
+              <div><span>Airdrops</span><strong id="wallet-airdrop-state">Connect wallet</strong></div>
             </aside>
             <div class="wallet-detail-stats" aria-label="Wallet summary">
             <div><span>SOL balance</span><strong id="wallet-stat-sol">—</strong><small id="wallet-stat-sol-note">Available for the connected wallet</small></div>
@@ -171,8 +173,8 @@
             </div>
           </header>
           <div class="wallet-detail-tabs" role="tablist" aria-label="Wallet detail views"><button type="button" class="active" role="tab" aria-selected="true" tabindex="0" data-wallet-tab="activity">Activity</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-wallet-tab="balances">Balances</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-wallet-tab="created">Created</button></div>
-          <p class="wallet-detail-description" id="wallet-detail-description">Confirmed launches and recent trades on listed coins.</p>
-          <div class="wallet-detail-filters" id="wallet-detail-filters" aria-label="Filter wallet activity"><button type="button" data-wallet-filter="all" aria-pressed="true">All</button><button type="button" data-wallet-filter="buy" aria-pressed="false">Buy</button><button type="button" data-wallet-filter="sell" aria-pressed="false">Sell</button><button type="button" data-wallet-filter="launch" aria-pressed="false">Launch</button><button type="button" data-wallet-filter="burn" aria-pressed="false">Burn</button></div>
+          <p class="wallet-detail-description" id="wallet-detail-description">Confirmed launches, trades, and connected-wallet payment history.</p>
+          <div class="wallet-detail-filters" id="wallet-detail-filters" aria-label="Filter wallet activity"><button type="button" data-wallet-filter="all" aria-pressed="true">All</button><button type="button" data-wallet-filter="buy" aria-pressed="false">Buy</button><button type="button" data-wallet-filter="sell" aria-pressed="false">Sell</button><button type="button" data-wallet-filter="launch" aria-pressed="false">Launch</button><button type="button" data-wallet-filter="burn" aria-pressed="false">Burn</button><button type="button" data-wallet-filter="claim" aria-pressed="false">Claim</button><button type="button" data-wallet-filter="reward" aria-pressed="false">Rewards</button><button type="button" data-wallet-filter="airdrop" aria-pressed="false">Airdrop</button><button type="button" data-wallet-filter="bonus" aria-pressed="false">Bonus</button></div>
           <div class="wallet-detail-content" id="wallet-detail-content" role="tabpanel"></div>
         </section>
 

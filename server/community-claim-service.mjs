@@ -145,11 +145,9 @@ export function createCommunityClaimService({ connection, store, programId, auth
     const record = await prepared(mint);
     if (!record?.openingSignature) return { status:'unavailable', reason:'No verified CommunityDrop opening receipt.' };
     const verified = await readReserve(record, record.openingSignature);
-    if (!verified.verified || verified.status !== 'drop-active'
+    if (!verified.verified || !['drop-active', 'drop-closed'].includes(verified.status)
       || verified.merkleRoot !== record.manifest.root || verified.snapshotHash !== record.manifest.snapshotHash
       || verified.migrationSlot !== record.snapshot.slot) return { status:'unavailable', reason:'CommunityDrop no longer matches its verified manifest.' };
-    if (verified.expiresAt && Math.floor(Date.now() / 1000) >= verified.expiresAt)
-      return { status:'expired', drop:record.manifest.drop };
     const recipient = key(wallet);
     const leaf = record.manifest.leaves.find(row => row.recipient === recipient);
     if (!leaf) return { status:'ineligible', drop:record.manifest.drop, recipient };
@@ -167,6 +165,8 @@ export function createCommunityClaimService({ connection, store, programId, auth
         throw new Error('Community payment account conflicts with the published proof.');
       return { status:'claimed', drop:record.manifest.drop, recipient, amount:leaf.amount, payment:payment.toBase58() };
     }
+    if (verified.status === 'drop-closed' || verified.expiresAt && Math.floor(Date.now() / 1000) >= verified.expiresAt)
+      return { status:'expired', drop:record.manifest.drop, recipient };
     return { status:'claimable', drop:record.manifest.drop, mint:record.mint, recipient,
       amount:leaf.amount, index:leaf.index, proof:[...leaf.proof], root:record.manifest.root,
       snapshotHash:record.manifest.snapshotHash, expiresAt:verified.expiresAt || null };

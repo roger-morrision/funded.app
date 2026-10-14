@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
-import { Keypair } from '@solana/web3.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
+import { communityAddresses } from '../server/community-claim-chain.mjs';
 import { createCommunityClaimService } from '../server/community-claim-service.mjs';
 
 const key = () => Keypair.generate().publicKey.toBase58();
@@ -18,8 +20,9 @@ const makeStore = () => {
 };
 const pin = 'ab'.repeat(32);
 function fixture({ store = makeStore(), observedHash = pin, reserveStatus = 'funded', openingOverrides = {}, snapshot = fixedSnapshot } = {}) {
+  const paymentAccounts = new Map();
   const connection = { getGenesisHash:async () => DEVNET_GENESIS_HASH,
-    getAccountInfo:async address => address.toBase58() === mint ? { owner:TOKEN_PROGRAM_ID, data:mintBytes } : null,
+    getAccountInfo:async address => address.toBase58() === mint ? { owner:TOKEN_PROGRAM_ID, data:mintBytes } : paymentAccounts.get(address.toBase58()) || null,
     getTokenAccountBalance:async () => ({ value:{ amount:'1000' } }) };
   const reserveReader = async ({ dropOpeningSignature }) => {
     if (!dropOpeningSignature) return { status:reserveStatus, verified:reserveStatus === 'funded' };
@@ -28,7 +31,7 @@ function fixture({ store = makeStore(), observedHash = pin, reserveStatus = 'fun
       snapshotHash:row.manifest.snapshotHash, migrationSlot:123, totalBaseUnits:'1000', expiresAt:2_100_000_000,
       ...openingOverrides };
   };
-  return { store, service:createCommunityClaimService({ connection, store, programId, authority, eligibilityMint,
+  return { store, paymentAccounts, service:createCommunityClaimService({ connection, store, programId, authority, eligibilityMint,
     expectedCommunityProgramDataSha256:pin, captureSnapshot:async () => snapshot, reserveReader,
     programEvidence:async () => ({ account:{ executable:true }, sha256:observedHash }) }) };
 }
@@ -43,6 +46,25 @@ test('persists one immutable exact-slot manifest and leaves proofs unavailable b
   assert.equal((await service.recipientProof({ mint, wallet:holder })).status, 'unavailable');
   assert.equal((await service.openingInstruction(mint)).instruction.keys.length, 15);
   await assert.rejects(service.prepare({ ...input, migrationSignature:bs58.encode(Buffer.alloc(64, 8)) }), /immutable/);
+});
+
+test('keeps finalized community claims visible after a drop closes or expires', async () => {
+  const { service, paymentAccounts } = fixture({ openingOverrides:{ status:'drop-closed', expiresAt:1 } });
+  const prepared = await service.prepare(input);
+  await service.recordOpening({ mint, signature:'opening-finalized' });
+  assert.equal((await service.recipientProof({ mint, wallet:holder })).status, 'expired');
+  const { payment } = communityAddresses({ programId, authority, mint, recipient:holder });
+  const data = Buffer.alloc(92);
+  createHash('sha256').update('account:CommunityPayment').digest().copy(data,0,0,8);
+  new PublicKey(prepared.manifest.drop).toBuffer().copy(data,8);
+  new PublicKey(holder).toBuffer().copy(data,40);
+  data.writeBigUInt64LE(1000n,72);
+  data.writeUInt32LE(0,80);
+  paymentAccounts.set(payment.toBase58(), { owner:new PublicKey(programId), data });
+  const claimed = await service.recipientProof({ mint, wallet:holder });
+  assert.equal(claimed.status, 'claimed');
+  assert.equal(claimed.payment, payment.toBase58());
+  await assert.rejects(service.claimInstruction({ mint, wallet:holder }), /No verified unclaimed/);
 });
 
 test('publishes only a verified recipient proof after the immutable opening receipt', async () => {
