@@ -9,7 +9,6 @@ export function renderWalletDetail(
     exploreScannedCount,
     assets,
     exploreProviderStatus,
-    exploreFeedAvailable,
     walletBalanceLamports,
     coinSolUsdPrice,
     walletDetailTab,
@@ -45,18 +44,9 @@ export function renderWalletDetail(
   const tradeScanReady = exploreScannedCount > 0 && assets.length > 0;
   const tradeScanStale = exploreProviderStatus.includes('stale');
   const scanNote = tradeScanReady ? `Trades shown for ${exploreScannedCount} of ${assets.length} listed coins${tradeScanStale ? ' (last available update)' : ''}` : 'Recent trades are unavailable';
-  setCoinField('#wallet-registry-state', registryReady ? 'Confirmed' : verifiedLaunchPoliciesStatus === 'loading' ? 'Checking' : 'Unavailable');
-  setCoinField('#wallet-trade-state', tradeScanReady ? `${exploreScannedCount} of ${assets.length} coins${tradeScanStale ? ' · last update' : ''}` : exploreFeedAvailable ? 'No recent trades' : 'Unavailable');
   const launchTimes = launches.map(walletLaunchTimestamp).filter(time => time > 0);
   const tradeTimes = trades.map(item => Number(item.blockTime) * 1000).filter(Number.isFinite);
   const history = isSelf && walletHistory?.wallet === address ? walletHistory : { status:'idle', rows:[], coverage:{} };
-  const paymentCount = history.rows.filter(row => row.type === 'claim' || row.type === 'reward').length;
-  setCoinField('#wallet-payment-state', !isSelf ? 'Connect wallet' : history.status === 'loading'
-    ? 'Checking' : history.coverage?.claim === 'ready' && history.coverage?.reward === 'ready'
-      ? `${paymentCount} confirmed` : 'Unavailable');
-  setCoinField('#wallet-airdrop-state', !isSelf ? 'Connect wallet' : history.status === 'loading'
-    ? 'Checking' : history.coverage?.airdrop === 'ready'
-      ? `${history.rows.filter(row => row.type === 'airdrop').length} claimed` : 'Unavailable');
   const lastActivity = Math.max(0, ...launchTimes, ...tradeTimes, ...history.rows.map(row => row.time || 0));
   const volume = trades.reduce((sum, trade) => sum + Number(trade.solAmount || 0), 0);
   const title = document.querySelector('#wallet-page-title');
