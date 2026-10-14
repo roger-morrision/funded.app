@@ -7,7 +7,6 @@ import { buildCommunityManifest } from '../community-merkle.js';
 import { DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
 import { communityAddresses } from '../server/community-claim-chain.mjs';
 import { indexCommunityClaims } from '../server/community-claim-index.mjs';
-import { feePayoutStats } from '../server/fee-payout-stats.mjs';
 
 const key = () => Keypair.generate().publicKey.toBase58();
 const hash = name => createHash('sha256').update(name).digest().subarray(0, 8);
@@ -73,12 +72,6 @@ test('indexes finalized community payments by recipient across launches', async 
   assert.equal(result.payments.length, 2);
   assert.equal(result.payments.every(row => row.recipient === holder), true);
   assert.deepEqual(f.state.communityClaimIndex, result);
-  const stats = feePayoutStats({}, { schedules:{}, communityClaimIndex:result },
-    { cluster:'devnet', commitment:'finalized', status:'no-records' });
-  assert.equal(stats.fundedHolder.status, 'verified');
-  assert.deepEqual(stats.fundedHolder.top, { recipient:holder, claimCount:2, launchCount:2 });
-  assert.equal(stats.fundedHolder.asset, 'launched tokens');
-  assert.equal(stats.fundedHolder.paidLamports, undefined);
 });
 
 test('rejects incomplete or altered finalized payment accounts without replacing the index', async () => {

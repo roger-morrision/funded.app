@@ -1,4 +1,4 @@
-import test from 'node:test';
+import nodeTest from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -6,6 +6,10 @@ import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { maintenanceLease } from '../scripts/maintenance-run-lock.mjs';
+
+const test = process.platform === 'win32'
+  ? (name, run) => nodeTest(name, { skip:'Requires POSIX flock' }, run)
+  : nodeTest;
 
 async function fixture(run) {
   const directory = await mkdtemp(join(tmpdir(), 'funded-maintenance-'));

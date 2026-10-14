@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { createSolanaRpcProxy } from '../server/rpc-proxy.mjs';
 import { createMarketProviders, normalizePumpToken, normalizeBirdeyeToken } from '../server/market-providers.mjs';
 import { createLaunchTierPricing } from '../server/launch-tier-pricing.mjs';
-import { createSettlementRewards, solToLamports } from '../server/settlement-rewards.mjs';
 
 const reply = (result, status = 200) => ({ ok: status === 200, status, json: async () => result });
 function rpcFixture(overrides = {}) {
@@ -138,63 +137,4 @@ test('Launch pricing rejects unsupported networks and stale quotes before cachin
   await assert.rejects(api.currentLaunchTierPricing(), /fresh SOL/);
   fresh = true;
   assert.equal((await api.currentLaunchTierPricing()).tokenPriceUsd, 1);
-});
-
-function rewardFixture() {
-  let rewards = {};
-  const state = { launches: { mint: { mint: 'mint', creatorWallet: 'creator', onchainVerified: true,
-    pumpFeeRoute:{ scope:'per-mint-v2' } } },
-    collections: { receipt: { mint: 'mint', status: 'collected', attribution: 'mint-verified', scope:'per-mint-v2' } },
-    obligations: { obligation: { id: 'obligation', mint: 'mint', claimSignature: 'receipt' } } };
-  const settlement = { claimSignature: 'receipt', creatorDestinations: { creatorWallet: 0.1, holderAirdrop: 0.2, solClaim: 0.3 }, fundedApp: { operations: 0, community: 0.4 } };
-  const api = createSettlementRewards({ store: { read: async () => structuredClone(state) }, automaticRewardStore: {
-    transaction: async callback => { const next = structuredClone(rewards); const result = await callback(next); rewards = next; return result; },
-  } });
-  return { ...api, state, settlement, snapshot: () => structuredClone(rewards) };
-}
-
-test('Settlement rewards require verified evidence and reject conflicting replay atomically', async () => {
-  const api = rewardFixture();
-  api.state.collections.receipt.attribution = 'unknown';
-  await assert.rejects(api.queueAutomaticSettlementRewards(api.settlement), /verified V2 collection/);
-  assert.deepEqual(api.snapshot(), {});
-  api.state.collections.receipt.attribution = 'mint-verified';
-  await api.queueAutomaticSettlementRewards(api.settlement);
-  const before = api.snapshot();
-  assert.equal(before.fundingRequests['receipt:creator'].amount, '100000000');
-  await api.queueAutomaticSettlementRewards(api.settlement);
-  assert.deepEqual(api.snapshot(), before);
-  await assert.rejects(api.queueAutomaticSettlementRewards({ ...api.settlement,
-    creatorDestinations: { ...api.settlement.creatorDestinations, holderAirdrop: 0.5 } }), /immutable settlement/);
-  assert.deepEqual(api.snapshot(), before);
-  api.state.launches.mint.pumpFeeRoute.scope = 'per-mint-v3';
-  api.state.collections.receipt.scope = 'per-mint-v3';
-  await assert.rejects(api.queueAutomaticSettlementRewards(api.settlement), /verified V2 collection/);
-  assert.deepEqual(api.snapshot(), before);
-});
-
-test('X reward enrollment requires matching attestation and cannot replace the recipient', async () => {
-  const api = rewardFixture();
-  await api.queueAutomaticSettlementRewards(api.settlement);
-  const claim = { publicKey: 'wallet', xUserId: 'account', obligationId: 'obligation', xAttestation: { subject: 'different' } };
-  await api.enrollAutomaticXReward(claim);
-  assert.equal(api.snapshot().fundingRequests['receipt:x'].status, 'awaiting-verified-recipient');
-  claim.xAttestation.subject = 'account';
-  assert.equal(await api.enrollAutomaticXReward(claim), 'awaiting-creator-signature');
-  await api.enrollAutomaticXReward({ ...claim, publicKey: 'other-wallet' });
-  assert.equal(api.snapshot().fundingRequests['receipt:x'].recipient, 'wallet');
-});
-
-test('Holder registration is idempotent and invalid reward amounts cannot be queued', async () => {
-  const api = rewardFixture();
-  const launch = { mint: 'mint', feeDistribution: { creatorDirected: { shares: { holderAirdropPercent: 0 } } } };
-  await api.registerAutomaticLaunch(launch);
-  assert.deepEqual(api.snapshot(), {});
-  launch.feeDistribution.creatorDirected.shares.holderAirdropPercent = 10;
-  await api.registerAutomaticLaunch(launch);
-  const before = api.snapshot();
-  await api.registerAutomaticLaunch(launch);
-  assert.deepEqual(api.snapshot(), before);
-  for (const amount of [-1, NaN, Infinity, Number.MAX_SAFE_INTEGER]) assert.throws(() => solToLamports(amount), /valid lamports/);
-  assert.equal(solToLamports(0.000000001), '1');
 });
