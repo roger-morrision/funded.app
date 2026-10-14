@@ -4,6 +4,8 @@ const ADMIN = 'CG87C9tjCSB9BAoKfoPUM3mLvbg3WAK1NGNQCWi12zcJ';
 const SOURCE = '7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y';
 
 test('Devnet admin page signs in, shows balances and gates, and edits only the protocol share', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
   let signedIn = false, revision = 0;
   await page.addInitScript(address => {
     window.solana = { publicKey:{ toBase58:() => address }, connect:async () => ({}),
@@ -48,4 +50,5 @@ test('Devnet admin page signs in, shows balances and gates, and edits only the p
   await page.getByRole('button', { name:'Publish for future launches' }).click();
   await expect(page.locator('#policy-revision')).toContainText('Revision 1');
   await expect(page.locator('#message')).toContainText('future launches');
+  expect(pageErrors).toEqual([]);
 });
