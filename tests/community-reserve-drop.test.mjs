@@ -2,16 +2,17 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import bs58 from 'bs58';
-import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { Keypair } from '@solana/web3.js';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { Keypair, SystemProgram } from '@solana/web3.js';
 import { communityAddresses } from '../server/community-claim-chain.mjs';
-import { rewardAddresses } from '../server/automatic-reward-chain.mjs';
+import { rewardAddresses, rewardReserveAddress } from '../server/automatic-reward-chain.mjs';
 import { readCommunityReserveStatus, verifiedCommunityClaimedWalletCount } from '../server/community-reserve-status.mjs';
 
 const key = () => Keypair.generate().publicKey;
 const programId = key(), authority = key(), creator = key(), mint = key(), eligibilityMint = key();
 const { vault } = rewardAddresses({ programId, authority, mint });
-const { drop } = communityAddresses({ programId, authority, mint });
+const { drop, approval } = communityAddresses({ programId, authority, mint });
+const reserve = rewardReserveAddress({ programId, vault, asset:mint });
 const source = getAssociatedTokenAddressSync(mint, vault, true, TOKEN_PROGRAM_ID);
 const destination = getAssociatedTokenAddressSync(mint, drop, true, TOKEN_PROGRAM_ID);
 const mintBytes = Buffer.alloc(82);
@@ -34,13 +35,13 @@ dropBytes.writeBigUInt64LE(123n, 296); dropBytes.writeBigUInt64LE(123n, 304);
 dropBytes.writeBigUInt64LE(100n, 312); dropBytes.writeBigUInt64LE(30n, 320);
 const openingSignature = bs58.encode(Buffer.alloc(64, 9));
 const openingData = bs58.encode(createHash('sha256').update('global:initialize_community_drop_from_reward_vault').digest().subarray(0, 8));
-const openingKeys = [authority, creator, authority, mint, eligibilityMint, vault, source, drop, destination, programId,
-  TOKEN_PROGRAM_ID, key(), key()];
+const openingKeys = [authority, creator, authority, mint, eligibilityMint, vault, reserve, source, drop,
+  approval, destination, key(), TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, SystemProgram.programId, programId];
 const tokenRow = (accountIndex, amount) => ({ accountIndex, mint:mint.toBase58(), uiTokenAmount:{ amount:String(amount) } });
 const openingTransaction = { slot:124, meta:{ err:null,
-  preTokenBalances:[tokenRow(6, 100), tokenRow(8, 0)], postTokenBalances:[tokenRow(6, 0), tokenRow(8, 100)] },
+  preTokenBalances:[tokenRow(7, 100), tokenRow(10, 0)], postTokenBalances:[tokenRow(7, 0), tokenRow(10, 100)] },
   transaction:{ message:{ accountKeys:openingKeys,
-    instructions:[{ programIdIndex:9, accounts:[0,1,2,3,4,5,6,7,8,10,11,12,12], data:openingData }] } } };
+    instructions:[{ programIdIndex:15, accounts:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14], data:openingData }] } } };
 const accounts = new Map([
   [mint.toBase58(), { owner:TOKEN_PROGRAM_ID, data:mintBytes }],
   [vault.toBase58(), { owner:programId, data:vaultBytes }],
@@ -66,11 +67,11 @@ test('recognizes only a finalized atomic escrow transfer with exact opening and 
   assert.equal(withoutReceipt.status, 'funding-unverified');
   const wrongReceipt = await readCommunityReserveStatus({ ...input, connection:{ ...connection,
     getTransaction:async () => ({ ...openingTransaction, meta:{ ...openingTransaction.meta,
-      preTokenBalances:[tokenRow(6, 99), tokenRow(8, 0)] } }) } });
+      preTokenBalances:[tokenRow(7, 99), tokenRow(10, 0)] } }) } });
   assert.equal(wrongReceipt.verified, false);
   const unrelatedInstruction = await readCommunityReserveStatus({ ...input, connection:{ ...connection,
     getTransaction:async () => ({ ...openingTransaction, transaction:{ message:{ ...openingTransaction.transaction.message,
-      instructions:[{ ...openingTransaction.transaction.message.instructions[0], accounts:[0,1,2,3,4,5,8,7,6,10,11,12,12] }] } } }) } });
+      instructions:[{ ...openingTransaction.transaction.message.instructions[0], accounts:[0,1,2,3,4,5,7,6,8,9,10,11,12,13,14] }] } } }) } });
   assert.equal(unrelatedInstruction.verified, false);
   const withoutExpectedEligibility = await readCommunityReserveStatus({ ...input, expectedEligibilityMint:null });
   assert.equal(withoutExpectedEligibility.verified, false);

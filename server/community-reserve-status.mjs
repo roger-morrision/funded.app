@@ -121,12 +121,14 @@ async function verifiedDrop({ connection, program, issuer, funder, mintKey, toke
       const ix = (message.instructions || message.compiledInstructions || []).find(instruction => {
         const instructionProgram = keys[instruction.programIdIndex];
         const accounts = instruction.accounts;
-        if (!instructionProgram?.equals(program) || !Array.isArray(accounts) || accounts.length < 13
+        // V3 opening includes the RewardReserve PDA at index 6. Bind every
+        // token movement account to the actual V3 instruction layout.
+        if (!instructionProgram?.equals(program) || !Array.isArray(accounts) || accounts.length !== 15
           || !keys[accounts[0]]?.equals(issuer) || !keys[accounts[1]]?.equals(funder)
           || !keys[accounts[3]]?.equals(mintKey)
           || !expectedEligibilityMint || !keys[accounts[4]]?.equals(new PublicKey(expectedEligibilityMint))
-          || !keys[accounts[5]]?.equals(sourceVault) || !keys[accounts[6]]?.equals(sourceTokenAccount)
-          || !keys[accounts[7]]?.equals(drop) || !keys[accounts[8]]?.equals(destination)) return false;
+          || !keys[accounts[5]]?.equals(sourceVault) || !keys[accounts[7]]?.equals(sourceTokenAccount)
+          || !keys[accounts[8]]?.equals(drop) || !keys[accounts[10]]?.equals(destination)) return false;
         try { return Buffer.from(bs58.decode(instruction.data)).subarray(0, 8).equals(openingDiscriminator); }
         catch { return false; }
       });

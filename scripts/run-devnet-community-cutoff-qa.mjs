@@ -46,19 +46,38 @@ const statusResponse = await fetch(new URL('/api/status', api), { signal:AbortSi
 assert(statusResponse.ok, 'The funded.vip status endpoint is unavailable.');
 const status = await statusResponse.json();
 assert.equal(status.cluster || status.network, 'devnet', 'App must report Devnet.');
-const memo = qaCommunityCutoffMemo({ launchMint:mint, eligibilityMint });
-const marker = new TransactionInstruction({
-  programId:new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'),
-  keys:[{ pubkey:authority.publicKey, isSigner:true, isWritable:false }], data:Buffer.from(memo) });
-const cutoffSignature = await send(marker, [authority]);
-const prepared = await post('/api/airdrops/claims/prepare-qa', {
-  mint:mint.toBase58(), migrationSignature:cutoffSignature });
-assert.equal(prepared.snapshotBasis, 'devnet-qa-cutoff');
-const approval = await post('/api/airdrops/claims/approval-instruction', {
-  mint:mint.toBase58(), appOwner:authority.publicKey.toBase58() });
-const approvalSignature = await send(instruction(approval), [authority]);
-const opening = await post('/api/airdrops/claims/opening-instruction', { mint:mint.toBase58() });
-const openingSignature = await send(instruction(opening), [authority]);
+const resume = process.argv.find(arg => arg.startsWith('--resume-opening-signature='))?.split('=')[1];
+if (resume && !/^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(resume))
+  throw new Error('A valid finalized opening signature is required for recovery.');
+let cutoffSignature, approvalSignature = null, openingSignature, snapshotBasis;
+if (resume) {
+  const response = await fetch(new URL(`/api/airdrops/claims/status?mint=${mint}`, api),
+    { headers:{ authorization:`Bearer ${token}` }, signal:AbortSignal.timeout(15_000) });
+  assert(response.ok, 'Prepared QA claim status is unavailable.');
+  const prepared = await response.json();
+  assert.equal(prepared.snapshotBasis, 'devnet-qa-cutoff');
+  cutoffSignature = prepared.migrationSignature;
+  openingSignature = resume;
+  snapshotBasis = prepared.snapshotBasis;
+} else {
+  const memo = qaCommunityCutoffMemo({ launchMint:mint, eligibilityMint });
+  const marker = new TransactionInstruction({
+    programId:new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'),
+    keys:[{ pubkey:authority.publicKey, isSigner:true, isWritable:false }], data:Buffer.from(memo) });
+  cutoffSignature = await send(marker, [authority]);
+  console.error(JSON.stringify({ step:'cutoff-finalized', signature:cutoffSignature }));
+  const prepared = await post('/api/airdrops/claims/prepare-qa', {
+    mint:mint.toBase58(), migrationSignature:cutoffSignature });
+  assert.equal(prepared.snapshotBasis, 'devnet-qa-cutoff');
+  snapshotBasis = prepared.snapshotBasis;
+  const approval = await post('/api/airdrops/claims/approval-instruction', {
+    mint:mint.toBase58(), appOwner:authority.publicKey.toBase58() });
+  approvalSignature = await send(instruction(approval), [authority]);
+  console.error(JSON.stringify({ step:'snapshot-approval-finalized', signature:approvalSignature }));
+  const opening = await post('/api/airdrops/claims/opening-instruction', { mint:mint.toBase58() });
+  openingSignature = await send(instruction(opening), [authority]);
+  console.error(JSON.stringify({ step:'drop-opening-finalized', signature:openingSignature }));
+}
 await post('/api/airdrops/claims/opening-receipt', { mint:mint.toBase58(), signature:openingSignature });
 const proofResponse = await fetch(new URL(`/api/airdrops/claims/proof?mint=${mint}&wallet=${creator.publicKey}`, api),
   { signal:AbortSignal.timeout(30_000) });
@@ -77,6 +96,6 @@ const paidResponse = await fetch(new URL(`/api/airdrops/claims/proof?mint=${mint
 assert(paidResponse.ok && (await paidResponse.json()).status === 'claimed',
   'The finalized CommunityPayment account is not indexed as claimed.');
 console.log(JSON.stringify({ status:'finalized-devnet-qa-community-claim',
-  snapshotBasis:prepared.snapshotBasis, mint:mint.toBase58(),
+  snapshotBasis, mint:mint.toBase58(),
   recipient:creator.publicKey.toBase58(), amountBaseUnits:claim.amount,
   cutoffSignature, approvalSignature, openingSignature, claimSignature }, null, 2));
