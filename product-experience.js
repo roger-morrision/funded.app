@@ -53,13 +53,6 @@ function home() {
 function explore() {
   setText('.explore-hero h1', 'Explore tokens');
   setText('.explore-lede', 'Find a token, compare its activity, and explore its community.');
-  const lede = $('.explore-lede');
-  if (lede && !$('.explore-hero .product-devnet-note') && $('.workspace-network')?.textContent?.includes('Devnet')) {
-    const note = document.createElement('p');
-    note.className = 'product-devnet-note';
-    note.textContent = 'This board contains Devnet test launches. Missing market observations remain unavailable; they are not zero volume.';
-    lede.after(note);
-  }
   setText('button[data-explore-tab="trending"]', 'Trending');
   setText('.workspace-watch-link', 'Following');
   $('#explore-search')?.setAttribute('placeholder', 'Search tokens or paste an address');
