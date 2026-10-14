@@ -138,7 +138,17 @@ async function withdraw(event) {
   if (!provider?.signTransaction) throw new Error('The source wallet must support transaction signing.');
   const signed = await provider.signTransaction(tx);
   const signature = await rpc.sendRawTransaction(signed.serialize(), { skipPreflight:false });
-  await rpc.confirmTransaction({ signature, blockhash:plan.blockhash, lastValidBlockHeight:plan.lastValidBlockHeight }, 'finalized');
+  $('#reconcile-signature').value = signature;
+  show(`Submitted ${signature}. Waiting for finalized Devnet confirmation.`);
+  const deadline = Math.min(Date.now() + 90_000, Date.parse(plan.expiresAt) - 5_000);
+  let finalized = false;
+  while (Date.now() < deadline) {
+    const status = (await rpc.getSignatureStatuses([signature], { searchTransactionHistory:true })).value[0];
+    if (status?.err) throw new Error(`Devnet rejected ${signature}.`);
+    if (status?.confirmationStatus === 'finalized') { finalized = true; break; }
+    await new Promise(resolve => setTimeout(resolve, 2_000));
+  }
+  if (!finalized) throw new Error(`Confirmation timed out. Check ${signature} and record its finalized receipt below.`);
   const receipt = await post('/api/admin/withdrawals/verify', { id:plan.id, signature });
   show(`Finalized ${sol(receipt.amountLamports)} SOL withdrawal: ${receipt.signature}`);
   $('#withdraw-review').textContent = `Finalized receipt ${receipt.signature}`;
@@ -162,6 +172,12 @@ $('#fee-form').addEventListener('submit', event => { event.preventDefault(); (as
   await refreshAudit();
 })().catch(error => show(error.message, true)); });
 $('#withdraw-form').addEventListener('submit', event => { withdraw(event).catch(error => show(error.message, true)); });
+$('#reconcile-form').addEventListener('submit', event => { event.preventDefault(); (async () => {
+  const signature = $('#reconcile-signature').value.trim();
+  const receipt = await post('/api/admin/withdrawals/reconcile', { signature });
+  show(`Finalized ${sol(receipt.amountLamports)} SOL transfer recorded: ${receipt.signature}`);
+  await refreshAudit();
+})().catch(error => show(error.message, true)); });
 const provider = wallet();
 provider?.on?.('accountChanged', updateWallet);
 updateWallet();

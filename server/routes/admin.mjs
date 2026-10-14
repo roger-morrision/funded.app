@@ -62,6 +62,22 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
       { role:'Boost payment wallet', address:validWallet(env.FUNDED_BOOST_PAYMENT_WALLET), custody:'external wallet', withdrawable:true },
     ].filter(row => row.address);
   };
+  const finalizedTransfer = async (rpc, signature) => {
+    const tx = await rpc.getParsedTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
+    const instructions = tx?.transaction?.message?.instructions || [];
+    const transfer = instructions[0]?.parsed;
+    const accounts = tx?.transaction?.message?.accountKeys?.map(key => key.pubkey.toBase58()) || [];
+    const source = transfer?.info?.source, destination = transfer?.info?.destination;
+    const amount = transfer?.info?.lamports;
+    const sourceIndex = accounts.indexOf(source), destinationIndex = accounts.indexOf(destination);
+    if (!tx?.meta || tx.meta.err || instructions.length !== 1 || instructions[0]?.program !== 'system'
+      || transfer?.type !== 'transfer' || sourceIndex < 0 || destinationIndex < 0
+      || !Number.isSafeInteger(amount) || amount < 1_000_000 || amount > 5_000_000_000
+      || tx.meta.postBalances[destinationIndex] - tx.meta.preBalances[destinationIndex] !== amount
+      || tx.meta.preBalances[sourceIndex] - tx.meta.postBalances[sourceIndex] !== amount + tx.meta.fee)
+      return null;
+    return { tx, source, destination, amount };
+  };
   return async function handleAdminRoutes(req, res, url) {
     if (!url.pathname.startsWith('/api/admin/')) return false;
     if (solanaCluster !== 'devnet') return json(res, 403, { error:'This admin workspace is Devnet-only.' });
@@ -182,24 +198,36 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
         return json(res, 409, { error:'The withdrawal review expired or the signature is invalid.' });
       const rpc = connection();
       if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC is not Solana Devnet.' });
-      const tx = await rpc.getParsedTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
-      const instructions = tx?.transaction?.message?.instructions || [];
-      const transfer = instructions[0]?.parsed;
-      const accounts = tx?.transaction?.message?.accountKeys?.map(key => key.pubkey.toBase58()) || [];
-      const sourceIndex = accounts.indexOf(plan.source), destinationIndex = accounts.indexOf(plan.destination);
-      if (tx?.meta?.err || instructions.length !== 1 || instructions[0]?.program !== 'system'
-        || transfer?.type !== 'transfer' || transfer.info?.source !== plan.source
-        || transfer.info?.destination !== plan.destination || transfer.info?.lamports !== plan.amount
-        || sourceIndex < 0 || destinationIndex < 0
-        || tx.transaction.message.recentBlockhash !== plan.blockhash
-        || tx.meta.postBalances[destinationIndex] - tx.meta.preBalances[destinationIndex] !== plan.amount
-        || tx.meta.preBalances[sourceIndex] - tx.meta.postBalances[sourceIndex] !== plan.amount + tx.meta.fee)
+      const transfer = await finalizedTransfer(rpc, signature);
+      if (!transfer || transfer.source !== plan.source || transfer.destination !== plan.destination
+        || transfer.amount !== plan.amount || transfer.tx.transaction.message.recentBlockhash !== plan.blockhash)
         return json(res, 409, { error:'No matching finalized one-transfer withdrawal and exact balance delta were found.' });
       const receipt = { action:'wallet-withdrawal', source:plan.source, destination:plan.destination,
         amountLamports:String(plan.amount), signature, wallet:session.wallet,
-        slot:tx.slot, at:new Date().toISOString(), finalized:true, balanceDeltaVerified:true };
+        slot:transfer.tx.slot, at:new Date().toISOString(), finalized:true, balanceDeltaVerified:true };
       await store.update(state => { state.adminAudit ||= {}; state.adminAudit[`withdraw:${signature}`] = receipt; return receipt; });
       withdrawals.delete(String(input.id));
+      return json(res, 200, receipt);
+    }
+    if (req.method === 'POST' && path === '/api/admin/withdrawals/reconcile') {
+      const input = await body(req) || {};
+      const signature = String(input.signature || '');
+      if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature)) return json(res, 400, { error:'Enter a Solana transaction signature.' });
+      const rpc = connection();
+      if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC is not Solana Devnet.' });
+      const transfer = await finalizedTransfer(rpc, signature);
+      if (!transfer || !roleAddresses().some(row => row.address === transfer.source && row.withdrawable)
+        || !withdrawalDestinations().has(transfer.destination))
+        return json(res, 409, { error:'No eligible finalized Devnet transfer with exact balance deltas was found.' });
+      const receipt = await store.update(state => {
+        state.adminAudit ||= {};
+        const key = `withdraw:${signature}`;
+        state.adminAudit[key] ||= { action:'wallet-withdrawal-reconciled', source:transfer.source,
+          destination:transfer.destination, amountLamports:String(transfer.amount), signature,
+          wallet:session.wallet, initiatedByAdmin:'unverified', slot:transfer.tx.slot,
+          at:new Date().toISOString(), finalized:true, balanceDeltaVerified:true };
+        return state.adminAudit[key];
+      });
       return json(res, 200, receipt);
     }
     if (req.method === 'POST' && path === '/api/admin/fee-policy') {

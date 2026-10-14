@@ -78,4 +78,14 @@ test('admin wallet signature gates policy edits, inventory, and exact finalized 
   assert.equal(verified.value.balanceDeltaVerified, true);
   assert.equal(state.adminAudit[`withdraw:${txSignature}`].amountLamports, '1000000');
   assert.equal((await call('POST', '/api/admin/withdrawals/verify', { id:prepared.value.id, signature:txSignature })).status, 409);
+  const idempotent = await call('POST', '/api/admin/withdrawals/reconcile', { signature:txSignature });
+  assert.equal(idempotent.status, 200);
+  assert.equal(idempotent.value.action, 'wallet-withdrawal');
+  delete state.adminAudit[`withdraw:${txSignature}`];
+  const recovered = await call('POST', '/api/admin/withdrawals/reconcile', { signature:txSignature });
+  assert.equal(recovered.status, 200);
+  assert.equal(recovered.value.action, 'wallet-withdrawal-reconciled');
+  assert.equal(recovered.value.initiatedByAdmin, 'unverified');
+  parsed.transaction.message.instructions[0].parsed.info.destination = address(Keypair.generate());
+  assert.equal((await call('POST', '/api/admin/withdrawals/reconcile', { signature:txSignature })).status, 409);
 });

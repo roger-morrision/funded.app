@@ -38,6 +38,13 @@ or router key to sign a generic withdrawal. Those roles can only be withdrawn
 through this page if the operator independently controls the source wallet in
 a compatible browser wallet. There is no general vault sweep action.
 
+The browser polls finalized RPC status without requiring a WebSocket. It shows
+the public transaction signature as soon as it is submitted. If receipt
+recording is interrupted after finalization, paste that signature into the
+reconcile form. The API independently verifies the finalized single-transfer
+transaction and exact balance deltas before recording it. A recovered receipt
+marks the initiating administrator as unverified.
+
 The gate panel reports launch, collection, settlement, holder, referral, X,
 and buyback runtime flags. It is read-only; enabling a gate requires the
 existing readiness checks and deployment configuration. Admin audit records

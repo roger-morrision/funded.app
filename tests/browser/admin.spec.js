@@ -24,6 +24,7 @@ test('Devnet admin page signs in, shows balances and gates, and edits only the p
       withdrawalDestinations:[ADMIN], revenue:{ verifiedCollectionsLamports:'1000000000', operationsAllocationLamports:'100000000', finalizedSettlementCount:1 },
       gates:{ launch:true, collection:true, settlement:true, holder:false, referral:false, xClaims:false, buyback:false } });
     if (path === '/api/admin/audit') return send(200, { entries:[] });
+    if (path === '/api/admin/withdrawals/reconcile') return send(200, { amountLamports:'1000000', signature:JSON.parse(route.request().postData()).signature, finalized:true });
     if (path === '/api/admin/fee-policy') { revision += 1; return send(200, { revision, split:JSON.parse(route.request().postData()).split, effectiveFor:'future launches only' }); }
     if (path === '/api/admin/vaults') return send(200, { totalLaunches:0, nextOffset:null, vaults:[] });
     return send(404, { error:'Unknown test route.' });
@@ -50,5 +51,8 @@ test('Devnet admin page signs in, shows balances and gates, and edits only the p
   await page.getByRole('button', { name:'Publish for future launches' }).click();
   await expect(page.locator('#policy-revision')).toContainText('Revision 1');
   await expect(page.locator('#message')).toContainText('future launches');
+  await page.locator('#reconcile-signature').fill('4'.repeat(88));
+  await page.getByRole('button', { name:'Record finalized receipt' }).click();
+  await expect(page.locator('#message')).toContainText('Finalized 0.001 SOL transfer recorded');
   expect(pageErrors).toEqual([]);
 });
