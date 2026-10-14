@@ -86,9 +86,13 @@ const proof = await proofResponse.json();
 assert.equal(proof.status, 'claimable', 'Disposable creator is not in the verified eligibility snapshot.');
 const claim = await post('/api/airdrops/claims/claim-instruction', {
   mint:mint.toBase58(), wallet:creator.publicKey.toBase58() });
-const recipientToken = getAssociatedTokenAddressSync(mint, creator.publicKey);
+const mintInfo = await connection.getAccountInfo(mint, 'finalized');
+assert(mintInfo, 'Finalized community mint is unavailable.');
+const recipientToken = getAssociatedTokenAddressSync(mint, creator.publicKey, false, mintInfo.owner);
+assert.equal(claim.recipientToken, recipientToken.toBase58(), 'Claim instruction targets a different token program.');
 const before = await connection.getTokenAccountBalance(recipientToken, 'finalized').catch(() => null);
 const claimSignature = await send(instruction(claim), [creator]);
+console.error(JSON.stringify({ step:'community-claim-finalized', signature:claimSignature }));
 const after = await connection.getTokenAccountBalance(recipientToken, 'finalized');
 assert.equal(BigInt(after.value.amount) - BigInt(before?.value?.amount || '0'), BigInt(claim.amount));
 const paidResponse = await fetch(new URL(`/api/airdrops/claims/proof?mint=${mint}&wallet=${creator.publicKey}`, api),
