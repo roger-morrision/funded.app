@@ -488,7 +488,7 @@
 
 <section class="section-block x-claim-page" id="payments" aria-label="Rewards workspace">
   <div class="payment-actions"><div class="panel action-panel x-claim-panel" id="x-claim-panel">
-    <div class="x-claim-heading"><div><p class="eyebrow">X reward history</p><h2>Your X account rewards</h2><p>Sign in to review verified payments. V3 X claims are pending activation.</p></div></div>
+    <div class="x-claim-heading"><div><p class="eyebrow">X reward history</p><h2>Your X account rewards</h2><p>Sign in with X to review linked V3 rewards, claim available SOL, and inspect confirmed payments.</p></div></div>
     <div class="x-claim-dashboard" id="x-claim-dashboard" aria-label="X reward summary">
       <article><span>Historical unpaid</span><strong id="x-claim-unclaimed-value">—</strong><small id="x-claim-unclaimed-count">Sign in to check</small></article>
       <article><span>Historical processing</span><strong id="x-claim-pending-value">—</strong><small id="x-claim-pending-count">Waiting for verification</small></article>
@@ -503,7 +503,7 @@
     <div id="claim-binding-review" class="x-claim-section x-claim-wallet" hidden><strong>Choose where the SOL will arrive</strong><p id="claim-binding-wallet">Connect the wallet that should receive this claim.</p><label><input type="checkbox" id="claim-binding-agree" /> I control this wallet and understand this reward stays bound to it after verification.</label><details class="advanced-details"><summary>Account and wallet details</summary><p>Changing your X handle does not change your earned reward. An expired signing request can be renewed, but a bound claim stays with its original wallet. Never share your seed phrase or private key.</p></details></div>
     <input id="sol-claim-x-account" type="hidden" />
     <input id="sol-claim-id" type="hidden" />
-    <button id="sol-claim-submit" type="button" class="primary-button x-claim-submit" disabled hidden>V3 X claims pending activation</button><p id="sol-claim-status" class="x-claim-status" role="status" aria-live="polite">Sign in with X to see historical rewards. V3 claims are pending activation.</p>
+    <button id="sol-claim-submit" type="button" class="primary-button x-claim-submit" disabled hidden>Verify wallet and claim V3 SOL</button><p id="sol-claim-status" class="x-claim-status" role="status" aria-live="polite">Sign in with X to see your rewards.</p>
   </div></div>
   <div class="panel x-claim-activity"><div class="panel-heading"><div><p class="eyebrow">Confirmed payments</p><h2>Payment history</h2><p>Confirmed SOL payments across funded.vip.</p></div></div><div class="payment-history-filters" id="payment-history-filters"><label>Payout type<select id="payment-history-type"><option value="all">All payouts</option><option value="creator">Creator fees</option><option value="holder">Holder rewards</option><option value="x">X account rewards</option><option value="referral">Referral rewards</option><option value="operations">Protocol payouts</option><option value="community">Community payouts</option><option value="other">Other payouts</option></select></label><label>From<input id="payment-history-from" type="date" aria-label="Payments from date (UTC)"></label><label>To<input id="payment-history-to" type="date" aria-label="Payments to date (UTC)"></label><button type="button" id="payment-history-clear">Clear filters</button></div><div class="payment-list" id="payment-list"></div><div class="panel-footnote" id="payment-history-footnote" role="status">Payments appear after confirmation.</div></div>
 </section>
