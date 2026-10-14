@@ -56,7 +56,9 @@ export function renderHomeRewardCards({ homeSpotlight, homeFundedTokens, homeRes
     addValue('Airdrop', `${formatTokens(launch.communityAirdrop.reservedTokens)} ${launch.symbol || 'tokens'}`);
     const finalizedRecipients = Number(reserve.leafCount);
     if (['drop-active', 'drop-closed'].includes(reserve.status) && Number.isSafeInteger(finalizedRecipients) && finalizedRecipients > 0) {
-      addValue('Recipients', `${finalizedRecipients.toLocaleString()} wallets`).title = 'Finalized recipient count from the migration snapshot.';
+      addValue('Recipients', `${finalizedRecipients.toLocaleString()} wallets`).title = reserve.snapshotBasis === 'devnet-qa-cutoff'
+        ? 'Finalized recipient count from the Devnet QA cutoff snapshot.'
+        : 'Finalized recipient count from the published snapshot.';
     } else if (homeReceiverEstimate?.wallets) {
       const excluded = new Set([homeReserves.claimPolicy?.unclaimedRecipient, reserve.vault, reserve.drop].filter(Boolean));
       const count = [...homeReceiverEstimate.wallets].filter(wallet => !excluded.has(wallet)).length;
@@ -78,9 +80,10 @@ export function renderHomeRewardCards({ homeSpotlight, homeFundedTokens, homeRes
     const addSnapshot = value => { const line = document.createElement('span'); line.textContent = value; snapshot.append(line); };
     const migrationSlot = Number(reserve.migrationSlot);
     const migrationAt = Number(reserve.migrationAt);
+    const label = reserve.snapshotBasis === 'devnet-qa-cutoff' ? 'Devnet QA cutoff' : '$FUNDED snapshot';
     const when = Number.isSafeInteger(migrationSlot) && migrationSlot > 0
-      ? `$FUNDED snapshot · ${Number.isSafeInteger(migrationAt) && migrationAt > 0 ? `${utcMoment(migrationAt * 1000)} · ` : ''}slot ${migrationSlot.toLocaleString()}`
-      : '$FUNDED snapshot · at migration';
+      ? `${label} · ${Number.isSafeInteger(migrationAt) && migrationAt > 0 ? `${utcMoment(migrationAt * 1000)} · ` : ''}slot ${migrationSlot.toLocaleString()}`
+      : `${label} · pending`;
     addSnapshot(when);
     snapshot.hidden = !snapshot.childElementCount;
     const timing = document.createElement('div'); timing.className = 'home-rewards-timing';

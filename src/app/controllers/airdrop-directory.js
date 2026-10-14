@@ -14,6 +14,12 @@ export function createAirdropDirectoryController(appState) {
       const claimedTokens = claimState.published && /^\d+$/.test(String(reserve.claimedBaseUnits)) && /^\d+$/.test(String(reserve.totalBaseUnits))
         && BigInt(reserve.totalBaseUnits) > 0n
         ? Number(BigInt(reserve.claimedBaseUnits) * BigInt(reservedTokens) * 1_000_000n / BigInt(reserve.totalBaseUnits)) / 1_000_000 : null;
+      const snapshotBasis = claimState.published ? reserve.snapshotBasis || null : null;
+      const snapshotLabel = snapshotBasis === 'devnet-qa-cutoff' ? 'Devnet QA cutoff'
+        : snapshotBasis === 'pump-migration' ? 'Migration' : 'On-chain snapshot';
+      const windowSeconds = Number(reserve?.expiresAt) - Number(reserve?.migrationAt);
+      const claimWindowDays = claimState.published && Number.isSafeInteger(windowSeconds)
+        && windowSeconds > 0 && windowSeconds % 86_400 === 0 ? windowSeconds / 86_400 : null;
       return [{
         id: launch.mint,
         name: launch.name || 'Solana launch',
@@ -32,6 +38,8 @@ export function createAirdropDirectoryController(appState) {
         fundingSignature: reserve?.verified === true ? reserve.fundingSignature : null,
         claimPublished: claimState.published,
         claimActive,
+        snapshotBasis,
+        claimWindowDays,
         migrationSlot: claimState.published ? reserve.migrationSlot : null,
         migrationAt: claimState.published && Number.isSafeInteger(Number(reserve.migrationAt)) && Number(reserve.migrationAt) > 0
           ? Number(reserve.migrationAt) : null,
@@ -39,8 +47,10 @@ export function createAirdropDirectoryController(appState) {
         statusLabel: claimState.label,
         merkleRoot: claimState.published ? reserve.merkleRoot : null,
         snapshotHash: claimState.published ? reserve.snapshotHash : null,
-        deadline: claimState.published && reserve.expiresAt ? new Date(reserve.expiresAt * 1000).toLocaleString() : 'After verified migration snapshot',
-        snapshot: claimState.published ? `Migration slot ${reserve.migrationSlot}` : 'Migration snapshot · unverified',
+        deadline: claimState.published && reserve.expiresAt
+          ? new Date(reserve.expiresAt * 1000).toLocaleString(undefined, { dateStyle:'medium', timeStyle:'long' })
+          : 'After verified snapshot',
+        snapshot: claimState.published ? `${snapshotLabel} slot ${reserve.migrationSlot}` : 'Snapshot · unverified',
         walletAllocation: null,
         onCurve: isOnCurveAirdrop({ claimPublished: claimState.published }, appState.assets.find(item => item.address === launch.mint)),
       }];
@@ -135,7 +145,7 @@ export function createAirdropDirectoryController(appState) {
         <div class="directory-card-top"><span class="claim-token-mark" aria-hidden="true" title="Project artwork not published for this token">${appState.escapeHtml(program.symbol.slice(0, 2).toUpperCase())}</span><div class="directory-project-info"><span class="directory-token-identity"><strong>${safeSymbol}</strong>${appState.exploreBoostAmountMarkup(program.id)}<a href="/token/${encodeURIComponent(program.id)}">${appState.escapeHtml(program.name)}</a></span>
         <p class="directory-allocation-line">${appState.formatPolicyTokenCount(program.reservedTokens)} $${safeSymbol} · ${snapshotReady ? `${appState.formatPolicyTokenCount(program.eligibleWallets)} wallets` : 'Snapshot pending'}</p>
         ${curveTab || appState.airdropDirectoryStatus === 'claiming' ? '' : `<small class="directory-funding-line">Funding: ${cardData.reserveState === 'verified' ? 'Confirmed' : appState.communityReserveStatus === 'loading' ? 'Checking…' : appState.communityReserveStatus === 'unavailable' ? 'Unavailable' : 'Not confirmed'}</small>`}
-        <details class="token-card-more"><summary>Details & links</summary>${program.claimPublished ? `<small class="directory-migration-time">${program.migrationAt ? `Migrated ${utcMoment(program.migrationAt * 1000)}` : 'Migration time unavailable'}</small>` : ''}${appState.tokenCardAddressesMarkup(program.id)}${appState.exploreSocialLinksMarkup({ address: program.id, symbol: program.symbol })}<small>${appState.escapeHtml(program.statusLabel)} · ${appState.escapeHtml(appState.tokenCardEvidenceLabel(cardData))}</small></details></div></div>
+        <details class="token-card-more"><summary>Details & links</summary>${program.claimPublished ? `<small class="directory-migration-time">${program.migrationAt ? `${program.snapshotBasis === 'devnet-qa-cutoff' ? 'Devnet QA cutoff' : program.snapshotBasis === 'pump-migration' ? 'Migrated' : 'Snapshot recorded'} ${utcMoment(program.migrationAt * 1000)}` : 'Snapshot time unavailable'}</small>` : ''}${appState.tokenCardAddressesMarkup(program.id)}${appState.exploreSocialLinksMarkup({ address: program.id, symbol: program.symbol })}<small>${appState.escapeHtml(program.statusLabel)} · ${appState.escapeHtml(appState.tokenCardEvidenceLabel(cardData))}</small></details></div></div>
         <div class="directory-wallet-allocation"><small>Your allocation</small><b>${appState.escapeHtml(appState.directoryWalletAmount(program))}</b></div>
         <div class="directory-footer"><span class="airdrop-status ${program.status}">${program.claimActive ? 'Claims open' : program.status === 'closed' ? 'Claims closed' : program.onCurve ? 'On curve · opens after migration' : 'Awaiting verified snapshot'}</span><div class="token-card-actions">${appState.tokenCardWatchMarkup(program.id, program.symbol)}${appState.tokenCardShareMarkup(program.id, program.symbol, program.name)}${curveTab ? '' : `<button type="button" class="secondary-button directory-claim" data-directory-mint="${safeMint}" aria-controls="airdrop-selected-program" ${checking ? 'disabled' : ''}>${appState.connectedWalletAddress && program.claimActive ? 'Check allocation' : 'View claim status'}</button>`}</div></div>
       </article>`;

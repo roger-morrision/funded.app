@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { renderPortfolio } from '../src/features/portfolio/holdings-view.js';
 import { renderExploreAssets } from '../src/features/explore/assets-view.js';
 import { renderAirdropProgramDetail } from '../src/features/rewards/airdrop-view.js';
+import { createAirdropDirectoryController } from '../src/app/controllers/airdrop-directory.js';
+import { airdropClaimState } from '../airdrop-directory-model.js';
 import { tabs } from '../src/features/workspace/dom.js';
 
 function documentFixture() {
@@ -85,6 +87,31 @@ test('airdrop details distinguish pending funding, open claims, and closed claim
     assert.equal(status.children.some(child => child.dataset?.checkCommunityMint === 'mint'), state === 'open');
     assert.equal(view.fields.get('#airdrop-claim-unavailable').hidden, state === 'open');
   }
+});
+
+test('Devnet QA airdrop details identify the cutoff without claiming migration eligibility', () => {
+  const mint = 'EtMFvbnLJMmp4PWqDVSqYzWfkWhZy3FznJQTN35rYWPc';
+  const reserve = { verified:true, status:'drop-active', reservedTokens:30_000_000,
+    snapshotBasis:'devnet-qa-cutoff', totalBaseUnits:'30000000000000', claimedBaseUnits:'232605982',
+    leafCount:13, migrationSlot:510881232, migrationAt:1791955661, expiresAt:1799731661 };
+  const appState = { verifiedLaunchPolicies:[{ mint, name:'Funded V3 X QA nd33c', symbol:'FV3XQ',
+    creatorWallet:'creator', communityAirdrop:{ reservedTokens:30_000_000, allocationPercent:3 } }],
+    verifiedCommunityReserves:new Map([[mint, reserve]]), airdropClaimState, assets:[] };
+  const program = createAirdropDirectoryController(appState).getAirdropPrograms()[0];
+  assert.equal(program.claimedTokens, 232.605982);
+  assert.equal(program.eligibleWallets, 13);
+  assert.equal(program.claimWindowDays, 90);
+  assert.match(program.snapshot, /Devnet QA cutoff slot 510881232/);
+  assert.match(program.deadline, /2027/);
+  const view = documentFixture();
+  for (const name of ['selected-program', 'claim-unavailable', 'selected-eyebrow', 'selected-title', 'selected-stats', 'selected-status']) view.add(`#airdrop-${name}`);
+  renderAirdropProgramDetail(program, { connectedWalletAddress:null, wallet:null }, {
+    document:view.document, formatTokenAmount:value => Number(value).toLocaleString(),
+    formatVerifiedAirdropAmount:value => String(value ?? '—'),
+  });
+  assert.match(view.fields.get('#airdrop-selected-stats').innerHTML, /Devnet QA claims/);
+  assert.match(view.fields.get('#airdrop-selected-status').textContent, /disposable Devnet QA airdrop/);
+  assert.doesNotMatch(view.fields.get('#airdrop-selected-status').textContent, /moved to its trading pool/);
 });
 
 test('workspace tabs preserve keyboard focus and skip unavailable panels', t => {
