@@ -17,6 +17,7 @@ async function open(page, route) {
 for (const width of [1280, 900, 620, 390, 320]) test(`Explore Filters stay in view and close from the same toggle at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 750 });
   await open(page, 'explore');
+  await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
   const toggle = page.locator('#explore-filter-toggle');
   const popover = page.locator('#explore-filter-popover');
   await toggle.click();

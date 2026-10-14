@@ -40,7 +40,8 @@ const authoritySecret = String(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY ||
 if (!authoritySecret) throw new Error('The dedicated QA authority secret is required.');
 const authority = Keypair.fromSecretKey(bs58.decode(authoritySecret));
 if (!authority.publicKey.equals(QA_AUTHORITY)) throw new Error('Refusing a non-QA authority signer.');
-const connection = new Connection('https://api.devnet.solana.com', 'finalized');
+const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL
+  || process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com', 'finalized');
 if (await connection.getGenesisHash() !== DEVNET_GENESIS) throw new Error('Refusing a non-Devnet cluster.');
 
 const program = await connection.getAccountInfo(PROGRAM_ID, 'finalized');
