@@ -43,13 +43,17 @@ export function createRewardIdentityController(appState) {
         status.textContent='Sign the wallet message to bind this reward.';
         const signed=await session.provider.signMessage(new TextEncoder().encode(prepared.data.statement));
         appState.assertWalletSessionCurrent(session);
-        await appState.apiRequest(`${base}/verify`, { method:'POST', body:{
+        const verified=await appState.apiRequest(`${base}/verify`, { method:'POST', body:{
           wallet:session.address, signature:appState.bs58.encode(signed.signature||signed) } });
+        appState.assertWalletSessionCurrent(session);
+        if (!verified.available || !['ready','paid'].includes(verified.data?.status)
+          || verified.data?.wallet!==session.address)
+          throw new Error(verified.data?.error||'The recipient wallet could not be verified.');
       }
       status.textContent='Submitting and verifying the Devnet payout…';
       const paid=await appState.apiRequest(`${base}/execute`, { method:'POST', body:{} });
       appState.assertWalletSessionCurrent(session);
-      if (paid.data?.status!=='paid' || !paid.data?.payment?.finalized
+      if (!paid.available || paid.data?.status!=='paid' || !paid.data?.payment?.finalized
         || !paid.data?.payment?.balanceDeltaVerified)
         throw new Error('The payout is pending finalized on-chain verification.');
       status.textContent='V3 X payout finalized and verified.';
