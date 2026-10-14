@@ -12,7 +12,7 @@ import { createReadCache } from '../server/read-cache.mjs';
 import { readFile } from 'node:fs/promises';
 
 const [uiHtml,uiApp]=await Promise.all([readFile(new URL('../index.html',import.meta.url),'utf8'),readAppSource()]);
-assert.match(uiHtml,/id="referral-claim-center"[\s\S]*?Connect wallet to check claimable referral rewards/);
+assert.match(uiHtml,/id="referral-claim-center"[\s\S]*?Connect wallet to check referral rewards/);
 assert.match(uiApp,/const dashboard = document\.querySelector\('#referral-command-center'\)/, 'Manual referral claims must mount on the visible Referrals page.');
 assert.match(uiApp,/renderReferralClaimPrompt\('Referral claim service unavailable'/, 'The visible claim center must explain an unavailable claim API.');
 

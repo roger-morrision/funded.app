@@ -126,8 +126,8 @@ try {
   }, store, fetchImpl:async(_url, request)=>{
     const query = JSON.parse(request.body);
     assert.equal(query.method, 'getTokenAccounts');
-    assert.equal(query.params.mintAddress, mint);
-    assert.equal('mint' in query.params, false);
+    assert.equal(query.params.mint, mint);
+    assert.equal('mintAddress' in query.params, false);
     return { ok:true, json:async()=>({ result:{ token_accounts:[{ address:accountA.toBase58() }, { address:accountB.toBase58() }] } }) };
   } }).capture(mint, 99_000);
   assert.equal(indexedSnapshot.source, 'indexed-token-accounts-complete');

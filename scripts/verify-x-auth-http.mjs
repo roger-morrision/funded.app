@@ -38,7 +38,7 @@ try {
   const identity=await get('/api/x/me',session);assert.equal(identity.headers.get('cache-control'),'no-store');const identityBody=await identity.json();assert.equal(identityBody.configured,true);assert.equal(identityBody.user.id,'9000001');
   const settings=await(await get('/api/creator-support/me',session)).json();assert.ok(settings.csrf);
   const claims=await get('/api/x-fee/claims',session);assert.equal(claims.status,200);assert.deepEqual((await claims.json()).claims,[]);
-  const receipts=await(await get('/api/evidence/receipts')).json();assert.equal(receipts.status,'no-records');assert.equal(receipts.scope,'global-recent');
+  const receipts=await(await get('/api/evidence/receipts')).json();assert.equal(receipts.status,'no-records');assert.equal(receipts.scope,'verified-v3-collections');
   const readiness=await(await get('/api/readiness')).json();assert.equal(readiness.ready,false);assert.equal(readiness.scope,'configuration-only');
   await stop();await start();
   const postClaim=(action,input={})=>fetch(`${base}/api/sol-claims/http-claim/${action}`,{method:'POST',headers:{cookie:session,origin:base,'content-type':'application/json'},body:JSON.stringify({xHandle:'@fixture',...input})});

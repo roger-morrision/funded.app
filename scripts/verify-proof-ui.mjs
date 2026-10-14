@@ -117,7 +117,7 @@ assert.match(app, /token-card-shell airdrop-directory-card/);
 assert.match(html, /id="airdrop-selected-program"[^>]+hidden/, 'Airdrop policy detail must be hidden until a program is selected.');
 assert.match(app, /const safeMint = escapeHtml\(program\.id\)[\s\S]*?data-directory-mint="\$\{safeMint\}"[\s\S]*?View claim status/, 'The airdrop details action must target a unique mint.');
 assert.match(app, /function renderAirdropProgramDetail\(program\)[\s\S]*?Funding and wallet eligibility must be confirmed before claims can open/, 'Airdrop details must disclose missing claim prerequisites.');
-assert.match(xClaimView, /function resetSolClaimStatus\(\{[\s\S]*?V3 X claims are pending activation/, 'Retired X claims must not invite a V2 wallet signature.');
+assert.match(xClaimView, /function resetSolClaimStatus\(\{[\s\S]*?Sign a wallet message to verify and submit this claim/, 'V3 X claims must require wallet verification before submission.');
 assert.match(app, /getElementById\(id\)\?\.addEventListener\('input', \(\) => \{ updateClaimBindingReview\(\); resetSolClaimStatus\(\); \}\)/, 'Changing claim identity fields must reset stale validation.');
 assert.match(app, /event\.target\?\.id === 'claim-binding-agree'\) resetSolClaimStatus\(\)/, 'Changing claim wallet confirmation must reset stale validation.');
 assert.match(app, /const program = getAirdropPrograms\(\)\.find\(item => item\.id === button\.dataset\.directoryMint\);[\s\S]*?renderAirdropProgramDetail\(program\)/, 'The details action must render program details, not only filter the directory.');

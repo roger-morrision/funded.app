@@ -10,7 +10,6 @@ import { bondingCurvePda } from '@pump-fun/pump-sdk';
 import { enrichMarketRecord, summarizeMarkets } from '../market-intelligence.js';
 import { buildTradePricePath, selectObservedTradeWindow, selectRecentTrades, summarizeTokenAccounts, verifiedRegistryLaunch } from '../coin-detail-model.js';
 import { readPumpMarketActivity, summarizePumpTrades } from '../server/coin-market.mjs';
-import { routerFeeActivity } from '../server/fee-activity.mjs';
 import { normalizeLargestTokenAccounts } from '../server/token-accounts.mjs';
 
 const appSource = [await readAppSource(), ...await Promise.all([
@@ -151,26 +150,30 @@ assert.equal(tokenAccountSample.accounts[0].uiAmountString, '1');
 const directory = await mkdtemp(join(tmpdir(), 'funded-coin-detail-'));
 const mint = Keypair.generate().publicKey.toBase58();
 const otherMint = Keypair.generate().publicKey.toBase58();
+const router = Keypair.generate().publicKey.toBase58();
+const programId = Keypair.generate().publicKey.toBase58();
 const claimSignature = 'recorded-claim-signature';
 const fixture = {
-  version: 3, launches: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {},
+  version: 3, launches: Object.fromEntries([mint, otherMint].map(address => [address, {
+    mint:address, cluster:'devnet', onchainVerified:true, creator:router,
+    creatorWallet:router, pumpFeeRoute:{ scope:'per-mint-v3', router, programId },
+  }])), obligations: {}, claims: {}, referralClaims: {}, payouts: {},
   collections: {
-    [claimSignature]: { id: claimSignature, mint, signature: claimSignature, status: 'collected', attribution: 'mint-verified', cluster: 'devnet', collectedLamports: 250_000_000, recordedAt: '2026-09-19T01:00:00.000Z' },
-    other: { id: 'other', mint: otherMint, signature: 'other', status: 'collected', attribution: 'mint-verified', cluster: 'devnet', collectedLamports: 500_000_000 },
+    [claimSignature]: { id: claimSignature, mint, signature: claimSignature, scope:'per-mint-v3', onchainVerified:true, programId, router, status: 'collected', attribution: 'mint-verified', cluster: 'devnet', collectedLamports: 250_000_000, recordedAt: '2026-09-19T01:00:00.000Z' },
+    other: { id: 'other', mint: otherMint, signature: 'other', scope:'per-mint-v3', onchainVerified:true, programId, router, status: 'collected', attribution: 'mint-verified', cluster: 'devnet', collectedLamports: 500_000_000 },
     legacy: { id: 'legacy', mint, router: 'shared-router', signature: 'legacy', status: 'collected', cluster: 'devnet', collectedLamports: 100_000 },
     router: { id: 'router', mint: null, requestedMint: mint, router: 'shared-router', signature: 'router', status: 'collected', attribution: 'router', cluster: 'devnet', collectedLamports: 100_000 },
     zero: { id: 'zero', mint, signature: 'zero', status: 'collected', attribution: 'mint-verified', cluster: 'devnet', collectedLamports: 0 },
     pending: { id: 'pending', mint, signature: 'pending', status: 'pending', cluster: 'devnet' },
     wrongCluster: { id: 'wrongCluster', mint, signature: 'wrongCluster', status: 'collected', cluster: 'mainnet-beta' },
   },
-  settlements: { [claimSignature]: { claimSignature, status: 'allocated', grossCreatorFees: 0.25, asset: 'SOL', claimedAt: '2026-09-19T01:01:00.000Z' } },
+  v3Settlements: { [claimSignature]: { collectionSignature:claimSignature, status:'finalized', mint } },
   referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} },
 };
-assert.deepEqual(routerFeeActivity(fixture.collections, 'shared-router', 'devnet').map(item => item.signature), ['legacy', 'router']);
 const fixturePath = join(directory, 'store.json');
 await writeFile(fixturePath, JSON.stringify(fixture));
 const port = 18094;
-const server = spawn(process.execPath, ['server/index.mjs'], { cwd: process.cwd(), env: { ...process.env, PORT: String(port), FUNDED_STORE_PATH: fixturePath, VITE_SOLANA_CLUSTER: 'devnet' }, stdio: 'ignore' });
+const server = spawn(process.execPath, ['server/index.mjs'], { cwd: process.cwd(), env: { ...process.env, FUNDED_SKIP_LOCAL_ENV:'true', NODE_ENV:'test', DATABASE_URL:'', PORT: String(port), FUNDED_STORE_PATH: fixturePath, VITE_SOLANA_CLUSTER: 'devnet', SOLANA_RPC_URL:'http://127.0.0.1:9', FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId }, stdio: 'ignore' });
 const base = `http://127.0.0.1:${port}`;
 
 async function request(path) {
@@ -188,10 +191,10 @@ try {
   const result = await request(`/api/tokens/${mint}/fee-activity`);
   assert.equal(result.status, 200);
   assert.equal(result.data.cluster, 'devnet');
-  assert.equal(result.data.coverage, 'mint-verified-fee-claims-only');
+  assert.equal(result.data.coverage, 'verified-v3-collections');
   assert.equal(result.data.source, 'funded.app-file-ledger');
   assert.deepEqual(result.data.collections.map(item => item.signature), [claimSignature]);
-  assert.equal(result.data.collections[0].collectedLamports, 250_000_000);
+  assert.equal(result.data.collections[0].collectedLamports, '250000000');
   assert.deepEqual(result.data.claims.map(item => item.claimSignature), [claimSignature]);
   assert.equal((await request(`/api/tokens/${otherMint}/fee-activity`)).data.collections.length, 1);
   assert.equal((await request('/api/tokens/invalid/fee-activity')).status, 400);

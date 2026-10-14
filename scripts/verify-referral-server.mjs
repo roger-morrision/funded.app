@@ -13,11 +13,11 @@ const mint = Keypair.generate().publicKey.toBase58();
 const inviter = Keypair.generate(); const creator = Keypair.generate();
 await writeFile(join(directory, 'store.json'), JSON.stringify({
   version: 3,
-  launches: { [mint]: { mint, creatorWallet: creator.publicKey.toBase58(), cluster: 'devnet', onchainVerified: true, feeDistribution: buildFeeDistributionPolicy({ creatorWalletPercent: 80, holderAirdropPercent: 0, solClaimPercent: 0 }) } },
+  launches: { [mint]: { mint, creatorWallet: creator.publicKey.toBase58(), cluster: 'devnet', onchainVerified: true, pumpFeeRoute:{scope:'per-mint-v3'}, feeDistribution: buildFeeDistributionPolicy({ creatorWalletPercent: 80, holderAirdropPercent: 0, solClaimPercent: 0 }) } },
   settlements: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {},
   collections: {
-    'server-referral-test': { id: 'server-referral-test', signature: 'server-referral-test', mint, cluster: 'devnet', attribution: 'mint-verified', collectedLamports: 100_000_000_000, status: 'collected', recordedAt: new Date().toISOString() },
-    'zero-fees': { id: 'zero-fees', signature: 'zero-fees', mint, cluster: 'devnet', attribution: 'mint-verified', collectedLamports: 0, status: 'no-fees', recordedAt: new Date().toISOString() },
+    'server-referral-test': { id: 'server-referral-test', signature: 'server-referral-test', mint, scope:'per-mint-v3', cluster: 'devnet', attribution: 'mint-verified', collectedLamports: 100_000_000_000, status: 'collected', recordedAt: new Date().toISOString() },
+    'zero-fees': { id: 'zero-fees', signature: 'zero-fees', mint, scope:'per-mint-v3', cluster: 'devnet', attribution: 'mint-verified', collectedLamports: 0, status: 'no-fees', recordedAt: new Date().toISOString() },
   },
   referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} },
 }));
