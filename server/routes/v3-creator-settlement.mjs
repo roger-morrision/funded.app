@@ -1,6 +1,5 @@
 import bs58 from 'bs58';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import { buildMintRouterV3SettlementInstruction } from '../../mint-router-v3.js';
 import { prepareCreatorSettlement, verifyCreatorSettlement,
   submitCreatorSettlement, creatorSettlementRetryState } from '../creator-settlement-transaction.mjs';
@@ -68,7 +67,7 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
     const connection = connectionFactory(solanaRpcUrl);
     const readiness = await verifyReadiness({ connection, programId,
       expectedProgramDataSha256:approvedHash, mint, creatorWallet:launch.creatorWallet,
-      initialAuthority:authority.publicKey, split:PROTOCOL_FEE_SPLIT });
+      initialAuthority:authority.publicKey, split:launch.pumpFeeRoute.protocolSplit });
     if (!readiness.ready || readiness.configuredRouter !== collection.router
       || launch.pumpFeeRoute.router !== collection.router) {
       return json(res, 409, { error:'The approved V3 program and mint policy are not verified.' });
@@ -82,7 +81,7 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
     }
     const proofInput = { connection, programId, mint, authority:authority.publicKey,
       creator:launch.creatorWallet, claimId:source.claimId,
-      expectedLamports:source.expectedLamports, split:PROTOCOL_FEE_SPLIT };
+      expectedLamports:source.expectedLamports, split:launch.pumpFeeRoute.protocolSplit };
     const frozenUpline = (proof, current) => {
       const first = Object.values(current.v3Settlements || {}).filter(row =>
         row.mint === mint && row.status === 'finalized' && Array.isArray(row.referralUpline))

@@ -16,6 +16,7 @@ import { createLaunchTierPricing } from './launch-tier-pricing.mjs';
 import { createXIdentityRoutes } from './routes/x-identity.mjs';
 import { createCreatorFeesRoutes } from './routes/creator-fees.mjs';
 import { createV3Routes } from './routes/v3-routes.mjs';
+import { createAdminRoutes, publicFeePolicy } from './routes/admin.mjs';
 import { publicWalletSignedV3Post } from './v3-public-post-paths.mjs';
 import { createKeeperCollectionRoutes } from './routes/keeper-collection.mjs';
 import { createListingPaymentsRoutes } from './routes/listing-payments.mjs';
@@ -245,6 +246,7 @@ function xOAuthConfigured(req) {
 function html(res, status, title, message) { res.writeHead(status, { 'content-type': 'text/html; charset=utf-8' }); res.end(`<!doctype html><title>${title}</title><p>${message}</p>`); }
 const {
   keeperKeypair,
+  referralPayoutKeypair,
   v3AuthorityKeypair,
   xFeeReadiness,
   v3RouterConfig,
@@ -319,7 +321,7 @@ const handleListingPaymentsRoutes = createListingPaymentsRoutes({
   currentLaunchTierPricing, clientKey, id, respond: json,
 });
 const v3LaunchConfig = createV3LaunchConfig({ solanaCluster, solanaRpcUrl,
-  automaticRewardStore, v3AuthorityKeypair });
+  automaticRewardStore, v3AuthorityKeypair, store });
 const handleLaunchRegistrationRoutes = createLaunchRegistrationRoutes({
   solanaCluster, body, store, automaticRewardStore, resolveXUser, fundedTokenMint, solanaRpcUrl, walletSignature, v3AuthorityKeypair, id, invalidateReserveCache, respond: json,
   v3LaunchConfig,
@@ -335,6 +337,8 @@ const handleV3Routes = createV3Routes({
   body, store, rewardStore:automaticRewardStore, xSession, walletSignature,
   solanaCluster, solanaRpcUrl, v3AuthorityKeypair, respond:json,
 });
+const handleAdminRoutes = createAdminRoutes({ store, body, respond:json, solanaCluster,
+  solanaRpcUrl, keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair });
 
 const handleDiscoveryRoutes = createDiscoveryRoutes({
   store, solanaCluster, solanaRpcUrl, birdeyeChain, fetchBirdeye, fetchPump, clientKey, respond: json,
@@ -372,6 +376,8 @@ async function handle(req, res) {
   const metadataHost = String(req.headers.host || '').split(':')[0].toLowerCase() === 'metadata.funded.vip';
   if (metadataHost && (req.method !== 'GET' || !/^\/(?:devnet-metadata|devnet-images|devnet-banners)\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(url.pathname) && url.pathname !== '/default.svg')) return json(res, 404, { error: 'Not found.' });
   if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client, authorization, x-token-chat-session' }); return res.end(); }
+    if (req.method === 'GET' && url.pathname === '/api/fee-policy') return json(res, 200, await publicFeePolicy(store));
+    if (await handleAdminRoutes(req, res, url)) return;
     if (await handleProductMetrics(req,res,url)) return;
     if (await handlePublicTradeSharing(req, res, url)) return;
     if (await handleWatchlist(req, res, url)) return;

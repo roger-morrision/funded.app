@@ -1,10 +1,11 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
+import { activeProtocolFeeSplit } from './active-protocol-fee.mjs';
 import { verifyFeeRouterAccount } from '../fee-router.js';
 import { readProgramDataEvidence, DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
 import { rewardServiceHealth } from './reward-service-health.mjs';
 
-export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRewardStore,
+export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRewardStore, store,
   v3AuthorityKeypair, env = process.env,
   connectionFactory = url => new Connection(url, 'finalized'),
   programEvidence = readProgramDataEvidence, verifyRouter = verifyFeeRouterAccount }) {
@@ -55,8 +56,9 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
           reasons.push('V3 launch reserve or buyback lookup table is not active on Devnet');
       } catch { reasons.push('V3 program verification is unavailable'); }
     }
-    return { ready:reasons.length === 0, cluster:solanaCluster,
+    const protocolSplit = store ? await activeProtocolFeeSplit(store).catch(() => null) : PROTOCOL_FEE_SPLIT;
+    return { ready:reasons.length === 0 && Boolean(protocolSplit), cluster:solanaCluster,
       programId:programId || null, initialAuthority:authority?.publicKey.toBase58() || null,
-      protocolSplit:PROTOCOL_FEE_SPLIT, reasons };
+      protocolSplit:protocolSplit || PROTOCOL_FEE_SPLIT, reasons:protocolSplit ? reasons : [...reasons, 'Active fee policy is unavailable'] };
   };
 }

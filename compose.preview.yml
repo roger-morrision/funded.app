@@ -90,6 +90,8 @@ services:
       TRUST_PROXY: "true"
       CORS_ORIGIN: ${FUNDED_PUBLIC_APP_URL:-https://funded.vip}
       PUBLIC_APP_URL: ${FUNDED_PUBLIC_APP_URL:-https://funded.vip}
+      FUNDED_ADMIN_WALLETS: ${FUNDED_ADMIN_WALLETS:-}
+      FUNDED_ADMIN_WITHDRAW_DESTINATIONS: ${FUNDED_ADMIN_WITHDRAW_DESTINATIONS:-}
       AUTOMATIC_REWARD_STORE_PATH: /app/data/automatic-rewards/ledger.json
     secrets:
       - funded_api_token

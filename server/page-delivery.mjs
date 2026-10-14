@@ -74,6 +74,7 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond }
       const page=tokenPageHtml(template,launch,metadata,tokenPageMint,solanaCluster,undefined,url.search);
       res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});return end(res, page);
     }
+    if (req.method === 'GET' && (url.pathname === '/admin' || url.pathname === '/admin/')) return await serveStatic('/admin.html', res);
     if (req.method === 'GET' && isAppPagePath(url.pathname)) return await serveStatic('/', res);
     if (req.method === 'GET' && !url.pathname.startsWith('/api/')) return await serveStatic(url.pathname, res);
     return false;

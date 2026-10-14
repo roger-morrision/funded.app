@@ -1,7 +1,6 @@
 import { isDeepStrictEqual } from 'node:util';
 import bs58 from 'bs58';
 import { Connection, PublicKey, TransactionInstruction } from '@solana/web3.js';
-import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import { deriveMintVaultsV3 } from '../../mint-router-v3.js';
 import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
 import { loadFinalizedV3Settlement } from '../v3-settlement-proof.mjs';
@@ -69,14 +68,14 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     const connection=connectionFactory(solanaRpcUrl);
     const readiness=await verifyReadiness({connection,programId,
       expectedProgramDataSha256:hash,mint,creatorWallet:launch.creatorWallet,
-      initialAuthority:launch.pumpFeeRoute.initialAuthority,split:PROTOCOL_FEE_SPLIT});
+      initialAuthority:launch.pumpFeeRoute.initialAuthority,split:launch.pumpFeeRoute.protocolSplit});
     if(!readiness.ready||readiness.configuredRouter!==collection.router)
       return json(res,409,{error:'The approved V3 buyback program or mint policy is not verified.'});
     const settlement=await loadSettlement({connection,
       signature:settled.settlementSignature,programId,mint,
       authority:launch.pumpFeeRoute.initialAuthority,creator:launch.creatorWallet,
       claimId:Buffer.from(collection.claimId,'hex'),
-      expectedLamports:collection.collectedLamports,split:PROTOCOL_FEE_SPLIT});
+      expectedLamports:collection.collectedLamports,split:launch.pumpFeeRoute.protocolSplit});
     if(!settlement||settlement.signature!==settled.settlementSignature)
       return json(res,409,{error:'Finalized V3 settlement proof is unavailable.'});
     let plan;
@@ -100,7 +99,7 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
       authority:authority.publicKey,baseTokenProgram:row.baseTokenProgram,
       buybackId:id,spendableQuoteIn:row.spendableQuoteIn,
       minBaseAmountOut:row.minBaseAmountOut,maxTotalDebit:row.maxTotalDebit,
-      pumpBuyInstruction:storedPumpInstruction(row),split:PROTOCOL_FEE_SPLIT});
+      pumpBuyInstruction:storedPumpInstruction(row),split:launch.pumpFeeRoute.protocolSplit});
     if(saved?.signature){
       const proof=await proofFor(saved);
       if(proof){

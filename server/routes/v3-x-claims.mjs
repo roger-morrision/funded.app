@@ -2,7 +2,6 @@ import { createHash, randomBytes } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import nacl from 'tweetnacl';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import { createAutomaticRewardChain, rewardAddresses } from '../automatic-reward-chain.mjs';
 import { createRewardScheduler } from '../reward-scheduler.mjs';
 import { loadFinalizedV3Settlement } from '../v3-settlement-proof.mjs';
@@ -81,7 +80,7 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
       signature:settled.settlementSignature, programId, mint,
       authority:launch.pumpFeeRoute.initialAuthority,
       creator:launch.creatorWallet, claimId:Buffer.from(collection.claimId, 'hex'),
-      expectedLamports:collection.collectedLamports, split:PROTOCOL_FEE_SPLIT });
+      expectedLamports:collection.collectedLamports, split:launch.pumpFeeRoute.protocolSplit });
     if (!settlement || settlement.signature !== settled.settlementSignature)
       return json(res, 409, { error:'Finalized V3 settlement proof is unavailable.' });
     let plan;
@@ -103,7 +102,7 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
       programId, mint, authority:authority.publicKey, creator:launch.creatorWallet,
       initialAuthority:launch.pumpFeeRoute.initialAuthority, withdrawalId,
       category:0, amount, recipient:vault,
-      split:PROTOCOL_FEE_SPLIT });
+      split:launch.pumpFeeRoute.protocolSplit });
     if (!proof?.balanceDeltaVerified || proof.signature !== funding.signature
       || proof.amount !== String(amount))
       return json(res, 409, { error:'Finalized V3 reward-vault funding proof is unavailable.' });

@@ -1,5 +1,4 @@
 import { PublicKey } from '@solana/web3.js';
-import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
 import { verifyFeeRouterAccount } from '../fee-router.js';
 import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from './automatic-reward-chain.mjs';
 import { loadFinalizedV3PumpCollection } from './v3-finalized-collection.mjs';
@@ -65,7 +64,7 @@ export async function verifyRecordedV3Settlements({ state, connection, programId
         signature:settlement.settlementSignature, programId:program,
         mint:collection.mint, authority:global.authority,
         creator:launch.creatorWallet, claimId:source.claimId,
-        expectedLamports:source.expectedLamports, split:PROTOCOL_FEE_SPLIT });
+        expectedLamports:source.expectedLamports, split:launch.pumpFeeRoute.protocolSplit });
       if (!proof || proof.signature !== settlement.settlementSignature
         || proof.claimId !== collection.claimId
         || proof.expectedLamports !== String(collection.collectedLamports)

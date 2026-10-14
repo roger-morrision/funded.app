@@ -2,12 +2,20 @@ import { Buffer } from 'buffer';
 import { APP_JACKPOT_ENABLED } from './app-config.js';
 import { loadBootstrapModules } from './bootstrap-loader.js';
 import { appReady, appFailed, optionalFeatureFailed } from './bootstrap-gate.js';
+import { setActiveProtocolFeeSplit } from './distribution-policy.js';
 
 globalThis.Buffer ??= Buffer;
 globalThis.global ??= globalThis;
 
 await loadBootstrapModules([
-  { name: 'App', required: true, load: async () => { await import('./app.js'); appReady(); } },
+  { name: 'App', required: true, load: async () => {
+    try {
+      const response = await fetch('/api/fee-policy', { credentials:'same-origin', cache:'no-store' });
+      if (!response.ok) throw new Error('The current fee policy is unavailable.');
+      setActiveProtocolFeeSplit((await response.json()).split);
+    } catch (error) { if (!import.meta.env.DEV) throw error; }
+    await import('./app.js'); appReady();
+  } },
   { name: 'Page layout', load: () => import('./page-experience.js') },
   { name: 'Creator support', load: () => import('./creator-support-ui.js') },
   { name: 'Following', load: () => import('./adoption-ui.js') },

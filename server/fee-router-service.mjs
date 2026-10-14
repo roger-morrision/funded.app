@@ -4,8 +4,7 @@ import bs58 from 'bs58';
 import { Connection as RpcConnection, Keypair, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction as sendTransaction } from '@solana/web3.js';
 import { OnlinePumpSdk as PumpSdk } from '@pump-fun/pump-sdk';
 import { deriveFeeRouter, verifyFeeRouterAccount as verifyRouter } from '../fee-router.js';
-import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
-import { deriveMintRouterV3, protocolGrossUnits } from '../mint-router-v3.js';
+import { deriveMintRouterV3 } from '../mint-router-v3.js';
 import { verifyV3LaunchRouterReadiness as verifyV3Readiness } from './v3-launch-readiness.mjs';
 import { loadFinalizedV3PumpCollection as loadV3Collection } from './v3-finalized-collection.mjs';
 import { readProgramDataEvidence as readProgramEvidence } from './automatic-reward-chain.mjs';
@@ -162,7 +161,7 @@ export function createFeeRouterService({
     const v3ProgramId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
     if (env.FUNDED_V3_COLLECTION_ENABLED !== 'true' || !v3ProgramId
       || launch.pumpFeeRoute.programId !== v3ProgramId
-      || protocolGrossUnits(launch.pumpFeeRoute.protocolSplit).some((units, index) => units !== protocolGrossUnits(PROTOCOL_FEE_SPLIT)[index])) {
+      || !launch.pumpFeeRoute.protocolSplit) {
       throw new Error('V3 collection is not activated for this immutable launch policy.');
     }
     let v3Authority;
@@ -180,7 +179,7 @@ export function createFeeRouterService({
     const readiness = await verifyV3LaunchRouterReadiness({ connection, programId:v3ProgramId,
       expectedProgramDataSha256:env.FUNDED_V3_PROGRAM_DATA_SHA256,
       mint:mintKey, creatorWallet:launch.creatorWallet,
-      initialAuthority:launch.pumpFeeRoute.initialAuthority, split:PROTOCOL_FEE_SPLIT });
+      initialAuthority:launch.pumpFeeRoute.initialAuthority, split:launch.pumpFeeRoute.protocolSplit });
     if (!readiness.ready || readiness.configuredRouter !== router.address.toBase58()) {
       throw new Error(`V3 collection program and mint policy are not verified: ${readiness.error || 'router mismatch'}.`);
     }

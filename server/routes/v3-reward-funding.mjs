@@ -2,7 +2,6 @@ import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import bs58 from 'bs58';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import { buildMintRouterV3DisbursementInstruction } from '../../mint-router-v3.js';
 import { createAutomaticRewardChain } from '../automatic-reward-chain.mjs';
 import { createRewardScheduler } from '../reward-scheduler.mjs';
@@ -91,7 +90,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     const readiness = await verifyReadiness({ connection, programId,
       expectedProgramDataSha256:approvedHash, mint,
       creatorWallet:launch.creatorWallet,
-      initialAuthority:launch.pumpFeeRoute.initialAuthority, split:PROTOCOL_FEE_SPLIT });
+      initialAuthority:launch.pumpFeeRoute.initialAuthority, split:launch.pumpFeeRoute.protocolSplit });
     if (!readiness.ready || readiness.configuredRouter !== collection.router) {
       return json(res, 409, { error:'The approved V3 program and mint policy are not verified.' });
     }
@@ -103,7 +102,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     const proof = await loadSettlement({ connection, signature:settled.settlementSignature,
       programId, mint, authority:launch.pumpFeeRoute.initialAuthority,
       creator:launch.creatorWallet, claimId:Buffer.from(collection.claimId, 'hex'),
-      expectedLamports:collection.collectedLamports, split:PROTOCOL_FEE_SPLIT });
+      expectedLamports:collection.collectedLamports, split:launch.pumpFeeRoute.protocolSplit });
     if (!proof || proof.claimId !== collection.claimId
       || proof.signature !== settled.settlementSignature) {
       return json(res, 409, { error:'Finalized V3 settlement proof is unavailable.' });
@@ -139,7 +138,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     const loadProof = signature => loadFunding({ connection, signature, programId, mint,
       authority:authority.publicKey, creator:launch.creatorWallet,
       initialAuthority:launch.pumpFeeRoute.initialAuthority,
-      withdrawalId, category, amount, recipient, split:PROTOCOL_FEE_SPLIT });
+      withdrawalId, category, amount, recipient, split:launch.pumpFeeRoute.protocolSplit });
     const enrollHolderPool = async funded => {
       if (kind !== 'creator-reward' || BigInt(plan.creatorDirected.holderLamports) === 0n) return;
       if (!funded?.balanceDeltaVerified || funded.amount !== String(amount)

@@ -11,7 +11,7 @@ import { buildCommunityAirdropPolicy, fundedCommunityAirdropPolicy } from '../..
 import { readCommunityReserveStatus } from '../community-reserve-status.mjs';
 import { buildFeeDistributionPolicy } from '../../distribution-policy.js';
 import { buildSolClaimPolicy } from '../../sol-claim-policy.js';
-import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
+import { activeProtocolFeeSplit } from '../active-protocol-fee.mjs';
 import { protocolGrossUnits } from '../../mint-router-v3.js';
 import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
 import { verifyFeeRouterAccount } from '../../fee-router.js';
@@ -91,7 +91,8 @@ export function createLaunchRegistrationRoutes({
       if (input.metadataUri && !preparedMetadata) return json(res, 409, { error: 'Signed Devnet metadata is missing.' });
       if (preparedMetadata && (preparedMetadata.creatorWallet !== proof.feePayer || preparedMetadata.name !== proof.name || preparedMetadata.symbol !== proof.symbol || (proof.uri && proof.uri !== preparedMetadataUri))) return json(res, 409, { error: 'Signed metadata does not match the confirmed Pump launch.' });
       const configuredV3Program = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
-      const configuredV3Units = protocolGrossUnits(PROTOCOL_FEE_SPLIT);
+      const currentSplit = await activeProtocolFeeSplit(store);
+      const configuredV3Units = protocolGrossUnits(currentSplit);
       if (!configuredV3Program || policy.feeRouterProgramId !== configuredV3Program
         || policy.feeRouterInitialAuthority !== v3Config.initialAuthority
         || protocolGrossUnits(policy.protocolSplit).some((units, index) => units !== configuredV3Units[index])) {
@@ -100,7 +101,7 @@ export function createLaunchRegistrationRoutes({
       const routeReadiness = await verifyV3LaunchRouterReadiness({ connection:new Connection(solanaRpcUrl, 'finalized'),
           programId:configuredV3Program, expectedProgramDataSha256:env.FUNDED_V3_PROGRAM_DATA_SHA256,
           mint:proof.mint, creatorWallet:proof.feePayer,
-          initialAuthority:policy.feeRouterInitialAuthority, split:PROTOCOL_FEE_SPLIT });
+          initialAuthority:policy.feeRouterInitialAuthority, split:currentSplit });
       if (!routeReadiness.ready) return json(res, routeReadiness.status, { error: routeReadiness.error });
       const configuredRouter = routeReadiness.configuredRouter;
       if (policy.creatorWallet !== proof.feePayer || policy.feeRouter !== proof.creator || policy.feeRouter !== configuredRouter) return json(res, 409, { error: 'Launch payer or Pump fee owner does not match the signed router policy.' });
@@ -147,7 +148,7 @@ export function createLaunchRegistrationRoutes({
         pumpFeeRoute: { percent: 100, router: proof.creator, scope:'per-mint-v3',
           verified: true, transaction: proof.signature,
           programId:configuredV3Program,
-          initialAuthority:policy.feeRouterInitialAuthority, protocolSplit:PROTOCOL_FEE_SPLIT },
+          initialAuthority:policy.feeRouterInitialAuthority, protocolSplit:currentSplit },
         policyStatement: launchPolicyStatement(input), policySignature: String(input.policySignature),
         id: id('launch'), updatedAt: new Date().toISOString(),
       };

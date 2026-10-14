@@ -1,5 +1,4 @@
 import { PublicKey, Connection } from '@solana/web3.js';
-import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import { deriveMintRouterV3 } from '../../mint-router-v3.js';
 import { verifyV3LaunchRouterReadiness as verifyV3Readiness } from '../v3-launch-readiness.mjs';
 import { loadFinalizedV3PumpCollection as loadV3Collection } from '../v3-finalized-collection.mjs';
@@ -147,7 +146,7 @@ export function createKeeperCollectionRoutes({
       const connection = connectionFactory(solanaRpcUrl);
       const readiness = await verifyV3LaunchRouterReadiness({ connection, programId,
         expectedProgramDataSha256:approvedHash, mint, creatorWallet:launch.creatorWallet,
-        initialAuthority:launch.pumpFeeRoute.initialAuthority, split:PROTOCOL_FEE_SPLIT });
+        initialAuthority:launch.pumpFeeRoute.initialAuthority, split:launch.pumpFeeRoute.protocolSplit });
       if (!readiness.ready || readiness.configuredRouter !== router) {
         return json(res, 409, { error:'The approved V3 program and mint policy are not verified.' });
       }
@@ -221,7 +220,7 @@ export function createKeeperCollectionRoutes({
       const readiness = await verifyV3LaunchRouterReadiness({ connection, programId,
         expectedProgramDataSha256:approvedHash, mint:collection.mint,
         creatorWallet:launch.creatorWallet, initialAuthority:launch.pumpFeeRoute.initialAuthority,
-        split:PROTOCOL_FEE_SPLIT });
+        split:launch.pumpFeeRoute.protocolSplit });
       if (!readiness.ready || readiness.configuredRouter !== collection.router
         || launch.pumpFeeRoute.router !== collection.router) {
         return json(res, 409, { error:'The approved V3 program and mint policy are not verified.' });
@@ -237,7 +236,7 @@ export function createKeeperCollectionRoutes({
       const proof = await loadFinalizedV3Settlement({ connection, signature:settlementSignature,
         programId, mint:collection.mint, authority:launch.pumpFeeRoute.initialAuthority,
         creator:launch.creatorWallet, claimId:collectionProof.claimId,
-        expectedLamports:collectionProof.expectedLamports, split:PROTOCOL_FEE_SPLIT });
+        expectedLamports:collectionProof.expectedLamports, split:launch.pumpFeeRoute.protocolSplit });
       if (!proof || proof.signature !== settlementSignature || proof.mint !== collection.mint
         || proof.router !== collection.router || proof.claimId !== collection.claimId
         || proof.expectedLamports !== String(collection.collectedLamports)) {

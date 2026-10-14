@@ -27,6 +27,8 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
   async function load() {
     if (loaded) return state;
     try { state = { ...state, ...JSON.parse(await readFile(filePath, 'utf8')) }; } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    state.adminSettings ||= {};
+    state.adminAudit ||= {};
     state.referralClaims ||= {};
     state.listings ||= {};
     state.listingQuotes ||= {};

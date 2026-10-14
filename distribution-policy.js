@@ -15,23 +15,25 @@ export function validateProtocolFeeSplit(split = PROTOCOL_FEE_SPLIT) {
   };
 }
 
-const DEFAULT_PROTOCOL_SPLIT = validateProtocolFeeSplit();
+let DEFAULT_PROTOCOL_SPLIT = validateProtocolFeeSplit();
 const effectivePercent = rate => Number((rate * 0.2).toFixed(6));
 
-export const FEE_DISTRIBUTION = Object.freeze({
+function feeDistributionFor(split) { return Object.freeze({
   pumpRoutedPercent: 100,
   pumpRoutedShareBps: 10_000,
   fundedPercent: 20,
   creatorPercent: 80,
-  operationsRateOfFundedRevenue: DEFAULT_PROTOCOL_SPLIT.operationsPercent,
-  operationsEffectivePercent: effectivePercent(DEFAULT_PROTOCOL_SPLIT.operationsPercent),
-  appReferralRateOfFundedRevenue: DEFAULT_PROTOCOL_SPLIT.referralLevelPercents.reduce((sum, rate) => sum + rate, 0),
-  appReferralEffectivePercent: effectivePercent(DEFAULT_PROTOCOL_SPLIT.referralLevelPercents.reduce((sum, rate) => sum + rate, 0)),
-  communityRateOfFundedRevenue: DEFAULT_PROTOCOL_SPLIT.communityPercent,
-  communityEffectivePercent: effectivePercent(DEFAULT_PROTOCOL_SPLIT.communityPercent),
-  buybackRateOfFundedRevenue: DEFAULT_PROTOCOL_SPLIT.buybackPercent,
-  buybackEffectivePercent: effectivePercent(DEFAULT_PROTOCOL_SPLIT.buybackPercent),
-});
+  operationsRateOfFundedRevenue: split.operationsPercent,
+  operationsEffectivePercent: effectivePercent(split.operationsPercent),
+  appReferralRateOfFundedRevenue: split.referralLevelPercents.reduce((sum, rate) => sum + rate, 0),
+  appReferralEffectivePercent: effectivePercent(split.referralLevelPercents.reduce((sum, rate) => sum + rate, 0)),
+  communityRateOfFundedRevenue: split.communityPercent,
+  communityEffectivePercent: effectivePercent(split.communityPercent),
+  buybackRateOfFundedRevenue: split.buybackPercent,
+  buybackEffectivePercent: effectivePercent(split.buybackPercent),
+}); }
+
+export let FEE_DISTRIBUTION = feeDistributionFor(DEFAULT_PROTOCOL_SPLIT);
 
 const REFERRAL_RELATIONSHIPS = ['direct-inviter', 'inviter-upline', 'second-upline'];
 const referralLevelsFor = split => split.referralLevelPercents.map((rate, index) => ({
@@ -40,7 +42,17 @@ const referralLevelsFor = split => split.referralLevelPercents.map((rate, index)
   percentOfFundedRevenue: rate,
   effectivePercentOfCreatorFees: effectivePercent(rate),
 }));
-export const APP_REFERRAL_LEVELS = Object.freeze(referralLevelsFor(DEFAULT_PROTOCOL_SPLIT).map(level => Object.freeze(level)));
+export let APP_REFERRAL_LEVELS = Object.freeze(referralLevelsFor(DEFAULT_PROTOCOL_SPLIT).map(level => Object.freeze(level)));
+
+// The server publishes one current policy for new launches. Existing mint
+// policies retain their on-chain protocol units and their signed snapshots.
+export function setActiveProtocolFeeSplit(input) {
+  const split = validateProtocolFeeSplit(input);
+  DEFAULT_PROTOCOL_SPLIT = Object.freeze({ ...split, referralLevelPercents:Object.freeze(split.referralLevelPercents) });
+  FEE_DISTRIBUTION = feeDistributionFor(DEFAULT_PROTOCOL_SPLIT);
+  APP_REFERRAL_LEVELS = Object.freeze(referralLevelsFor(DEFAULT_PROTOCOL_SPLIT).map(level => Object.freeze(level)));
+  return DEFAULT_PROTOCOL_SPLIT;
+}
 
 function splitFromSnapshot(fixedFunded) {
   if (!fixedFunded) return DEFAULT_PROTOCOL_SPLIT;

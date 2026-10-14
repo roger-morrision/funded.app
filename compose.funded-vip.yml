@@ -18,6 +18,8 @@ services:
       CORS_ORIGIN: https://funded.vip
       X_CALLBACK_URL: https://funded.vip/api/x/oauth/callback
       FUNDED_BUILD_ID: ${FUNDED_RELEASE_SHA:?Set the tested exact source SHA}
+      FUNDED_ADMIN_WALLETS: ${FUNDED_ADMIN_WALLETS:-}
+      FUNDED_ADMIN_WITHDRAW_DESTINATIONS: ${FUNDED_ADMIN_WITHDRAW_DESTINATIONS:-}
 
 # Keep the public app on the currently mounted, cleared Devnet data stores.
 # These names were verified against the running fundedapp app and db containers.

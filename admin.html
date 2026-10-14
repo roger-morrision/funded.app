@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Admin · funded.vip Devnet</title>
+  <link rel="icon" href="/favicon.svg" /><link rel="stylesheet" href="/admin.css" />
+</head><body>
+  <header class="top"><a class="brand" href="/">funded<span>.</span>vip</a><span class="badge">DEVNET ADMIN</span><a href="/">Back to app ↗</a></header>
+  <main>
+    <div class="page-title"><div><p class="eyebrow">Operations workspace</p><h1>Admin</h1><p>Manage the future-launch fee policy, inspect finalized balances, and review controlled SOL transfers.</p></div><span id="network">Solana Devnet</span></div>
+    <div id="message" role="status" aria-live="polite"></div>
+    <section class="panel" id="auth-panel"><div class="section-head"><div><h2>Administrator sign-in</h2><p>Use the separate QA admin wallet. Signing the sign-in message does not submit a transaction.</p></div><span id="auth-status">Not signed in</span></div><div class="actions"><button id="connect" type="button">Connect wallet</button><button id="sign-in" type="button" disabled>Sign in</button><button id="sign-out" type="button" hidden>Sign out</button><code id="connected-address">No wallet connected</code></div></section>
+    <div id="workspace" hidden>
+      <div class="summary" id="summary"></div>
+      <section class="panel"><div class="section-head"><div><h2>Fee distribution</h2><p>The creator receives a fixed 80% share. These six rates divide the protocol’s 20% share and apply only to future launches.</p></div><span id="policy-revision"></span></div><form id="fee-form"><div class="fee-fields"><label>Operations <input name="operationsPercent" type="number" min="0" max="100" step="0.0001" required />%</label><label>Referral level 1 <input name="referral1" type="number" min="0" max="100" step="0.0001" required />%</label><label>Referral level 2 <input name="referral2" type="number" min="0" max="100" step="0.0001" required />%</label><label>Referral level 3 <input name="referral3" type="number" min="0" max="100" step="0.0001" required />%</label><label>Community <input name="communityPercent" type="number" min="0" max="100" step="0.0001" required />%</label><label>Buyback <input name="buybackPercent" type="number" min="0" max="100" step="0.0001" required />%</label></div><div class="form-foot"><strong id="fee-total">Total —</strong><button type="submit">Publish for future launches</button></div></form></section>
+      <section class="panel"><div class="section-head"><div><h2>App wallets and SOL</h2><p>Live finalized Devnet balances. A balance is not cumulative revenue. Duplicate role addresses appear only once in the total.</p></div><button id="refresh" type="button">Refresh</button></div><div class="table-wrap"><table><thead><tr><th>Role</th><th>Address</th><th>Custody</th><th>SOL balance</th><th>Action</th></tr></thead><tbody id="wallet-rows"></tbody></table></div></section>
+      <section class="panel"><div class="section-head"><div><h2>Withdraw SOL</h2><p>Only a listed source wallet can sign its own transfer. Destination must be approved; at least 0.02 SOL stays in the source. Contract vaults use their own payout instructions.</p></div></div><form id="withdraw-form"><div class="withdraw-fields"><label>Source wallet<select id="withdraw-source" required></select></label><label>Approved destination<select id="withdraw-destination" required></select></label><label>Amount in SOL<input id="withdraw-amount" type="number" min="0.001" max="5" step="0.000000001" required /></label></div><div class="form-foot"><small id="withdraw-review">No transfer prepared.</small><button type="submit">Review and sign in source wallet</button></div></form></section>
+      <section class="panel"><div class="section-head"><div><h2>V3 mint vaults</h2><p>Program-controlled balances are assigned to payout categories. They cannot be swept with a wallet transfer.</p></div><button id="more-vaults" type="button">Load vaults</button></div><div id="vaults"></div></section>
+      <section class="panel"><div class="section-head"><div><h2>Operational gates</h2><p>Read-only runtime flags for launch, collection, settlement, rewards, and buyback.</p></div></div><div id="gates" class="gate-grid"></div><div class="links"><a href="/#launch">Launch workflow ↗</a><a href="/#payments">Claims ↗</a><a href="/#buybacks">Buyback ↗</a><a href="/#analytics-detail">Analytics ↗</a></div></section>
+      <section class="panel"><div class="section-head"><div><h2>Admin audit</h2><p>Policy edits and finalized withdrawal receipts.</p></div><button id="refresh-audit" type="button">Refresh</button></div><div id="audit"></div></section>
+    </div>
+  </main>
+  <script type="module" src="/admin-page.js"></script>
+</body></html>
