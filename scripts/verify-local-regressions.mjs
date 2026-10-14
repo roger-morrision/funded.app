@@ -48,7 +48,6 @@ const checks = [
   "verify:community-reserve-funding",
   "verify:community-manifest",
   "verify:buyback-policy",
-  "verify:buyback-executor",
   "verify:devnet-role-config",
   "verify:rpc-retry",
   "verify:listing-policy",

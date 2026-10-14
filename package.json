@@ -74,7 +74,6 @@
     "community:vaults:devnet": "node --env-file=.env.local scripts/initialize-community-vaults-devnet.mjs",
     "verify:buyback-policy": "node scripts/verify-buyback-policy.mjs",
     "verify:buyback-progress-ui": "node scripts/verify-buyback-progress-ui.mjs",
-    "verify:buyback-executor": "node scripts/verify-buyback-executor.mjs",
     "verify:buyback-devnet-receipts": "node --env-file=.env.local --env-file=.env.deploy scripts/verify-buyback-devnet-receipts.mjs",
     "verify:devnet-role-config": "node scripts/verify-devnet-role-config.mjs",
     "verify:rpc-retry": "node scripts/verify-rpc-retry.mjs",

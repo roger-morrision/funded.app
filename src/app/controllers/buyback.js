@@ -47,7 +47,8 @@ export function createBuybackController(appState) {
       fill.style.width = `${progress}%`;
       const burn = dashboard?.lastBurn;
       const burnedAt = burn?.burnedAt && Number.isFinite(Date.parse(burn.burnedAt)) ? new Date(burn.burnedAt) : null;
-      time.textContent = burn ? burnedAt ? burnedAt.toLocaleString(undefined,{timeZone:'UTC',timeZoneName:'short'}) : 'Confirmed burn · time unavailable' : 'No verified burn yet';
+      const burnTime = burnedAt ? burnedAt.toLocaleString(undefined,{timeZone:'UTC',timeZoneName:'short'}) : 'time unavailable';
+      time.textContent = burn ? `${burn.source === 'onchain-unindexed' ? 'QA on-chain burn · ' : ''}${burnTime}` : 'No verified burn yet';
       const signature = String(burn?.signature || '');
       proof.hidden = !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature);
       if (!proof.hidden) proof.href = `https://explorer.solana.com/tx/${encodeURIComponent(signature)}?cluster=devnet`;

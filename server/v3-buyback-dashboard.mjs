@@ -1,6 +1,7 @@
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { deriveMintPolicyV3, deriveMintVaultsV3 } from '../mint-router-v3.js';
 import { v3BuybackSourceSpent, verifiedV3BuybackOrder } from './v3-buyback-orders.mjs';
+import { latestUnindexedV3Burn } from './v3-buyback-chain-history.mjs';
 
 export const BUYBACK_TRIGGER_LAMPORTS = 5_000_000_000n;
 
@@ -107,7 +108,13 @@ export async function readV3BuybackDashboard({ state, programId, connection,
   const receipts = Object.values(state.v3BuybackOrders || {}).filter(row =>
     verifiedBurn(row) && row.programId === programId);
   receipts.sort((a, b) => Number(b.slot || 0) - Number(a.slot || 0));
-  const last = receipts[0];
+  let chainBurn = null;
+  try {
+    chainBurn = await latestUnindexedV3Burn({ connection, programId,
+      indexedSignatures:new Set(receipts.map(row => row.signature)) });
+  } catch { /* Display app receipts when chain history cannot be read. */ }
+  const last = chainBurn && (!receipts[0] || chainBurn.slot > receipts[0].slot)
+    ? chainBurn : receipts[0];
   let burnedAt = last?.burnedAt || null;
   if (last && !burnedAt && Number.isSafeInteger(last.slot)) {
     try {
@@ -126,5 +133,6 @@ export async function readV3BuybackDashboard({ state, programId, connection,
     unindexedLamports:unindexedStatus === 'verified' ? String(unindexedTotal) : null,
     lastBurn:last ? { signature:last.signature, slot:last.slot,
       burnedAt, spentLamports:last.spentLamports,
-      burnedBaseUnits:last.burnedBaseUnits } : null };
+      burnedBaseUnits:last.burnedBaseUnits,
+      source:last.source || 'app-recorded' } : null };
 }
