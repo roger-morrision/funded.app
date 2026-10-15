@@ -175,10 +175,10 @@
 
         <section class="hero-section" aria-labelledby="home-hero-title">
           <div class="hero-copy-column">
-            <p class="home-hero-kicker">For creator communities</p>
-            <h1 id="home-hero-title">Launch together. Follow the fees<span class="home-hero-period">.</span></h1>
-            <p class="hero-copy">Create a coin and show your community how collected creator fees are allocated. Verify the receipts.</p>
-            <div class="hero-actions"><a class="primary-button" href="#launch">Create a coin <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 18 18 6M6 6h12v12"/></svg></a><a class="hero-secondary-action" href="#explore">Explore tokens <span aria-hidden="true">→</span></a></div>
+            <p class="home-hero-kicker">Solana launchpad · published fee route</p>
+            <h1 id="home-hero-title">Launch a Solana coin. Follow its creator fees.</h1>
+            <p class="hero-copy">Publish a fixed 80/20 creator-fee policy, choose where your 80% goes, and track confirmed collections and payments. Every launch also reserves at least 3% of its tokens for eligible $FUNDED holders.</p>
+            <div class="hero-actions"><a class="primary-button" href="#explore">Explore tokens</a><a class="hero-secondary-action" href="#launch">Launch a token</a></div>
           </div>
         </section>
 
@@ -275,11 +275,6 @@
           <footer class="home-kpi-footer"><span><i></i> USD values use current spot quotes. Fee allocations are reserved amounts, not paid rewards; partial receipt coverage is marked.</span><a href="#analytics-detail">Open analytics →</a></footer>
         </section>
         <section class="home-launch-board" aria-labelledby="home-launch-board-title">
-          <div class="home-market-ticker" aria-label="Verified launch activity">
-            <div class="home-market-ticker-heading"><span class="home-market-ticker-label" id="home-market-ticker-label">Latest launches</span><div class="home-market-window" role="group" aria-label="Volume period changes ranking, not launch visibility"><button type="button" data-home-window="5m" aria-pressed="false">5m</button><button type="button" data-home-window="1h" aria-pressed="false">1h</button><button type="button" data-home-window="6h" aria-pressed="false">6h</button><button type="button" class="active" data-home-window="24h" aria-pressed="true">24h</button></div></div>
-            <div class="home-market-ticker-items" id="home-market-ticker-items"><span class="home-ticker-empty">Waiting for verified market activity</span></div>
-            <div class="home-market-ticker-arrows" role="group" aria-label="Scroll trending coins"><button type="button" id="home-ticker-back" aria-label="Scroll trending back" disabled>‹</button><button type="button" id="home-ticker-forward" aria-label="Scroll trending forward" disabled>›</button></div>
-          </div>
           <h2 class="home-launch-board-title" id="home-launch-board-title">Live launches</h2>
           <div class="home-launch-toolbar" aria-label="Home launch filters and display">
             <div class="home-launch-tabs" role="tablist" aria-label="Launch stage, paid listings, tiers, and boosts"><button type="button" class="active" data-home-launch-tab="all" role="tab" aria-selected="true">All</button><button type="button" data-home-launch-tab="promoted" role="tab" aria-selected="false" title="Verified paid promotion">Promoted</button><button type="button" data-home-launch-tab="paid-listing" role="tab" aria-selected="false" title="Tokens with verified paid listing burns">Paid Listing</button><button type="button" data-home-launch-tab="curve" role="tab" aria-selected="false">On curve</button><button type="button" data-home-launch-tab="migrated" role="tab" aria-selected="false">Migrated</button><button type="button" data-home-launch-tab="standard" role="tab" aria-selected="false" title="Standard launch, no verified paid promotion">Standard</button><button type="button" data-home-launch-tab="pro" role="tab" aria-selected="false">Pro</button><button type="button" data-home-launch-tab="premier" role="tab" aria-selected="false">Premier</button><button type="button" data-home-launch-tab="boost" role="tab" aria-selected="false" title="Active paid boosts">Boosted</button><button type="button" data-home-launch-tab="watchlist" role="tab" aria-selected="false">Favorites</button></div>
@@ -314,6 +309,11 @@
           </div>
           <div class="home-launch-grid" id="home-launch-grid"><div class="empty-state"><strong>Loading launches…</strong><span>Market data will appear here shortly.</span></div></div>
           <div class="home-launch-table-wrap" id="home-launch-table-wrap" hidden><table class="home-launch-table"><thead><tr><th scope="col">Coin</th><th scope="col">Tier</th><th scope="col" id="home-table-mc-heading" title="Market cap"><button type="button" id="home-table-sort-mc" aria-label="Sort by market cap">MC</button></th><th scope="col" id="home-table-volume-heading">Volume</th><th scope="col" id="home-table-txns-heading">Txns</th><th scope="col">24h</th><th scope="col">Curve</th></tr></thead><tbody id="home-launch-table-body"></tbody></table></div>
+          <div class="home-market-ticker" aria-label="Verified launch activity">
+            <div class="home-market-ticker-heading"><span class="home-market-ticker-label" id="home-market-ticker-label">Latest launches</span><div class="home-market-window" role="group" aria-label="Volume period changes ranking, not launch visibility"><button type="button" data-home-window="5m" aria-pressed="false">5m</button><button type="button" data-home-window="1h" aria-pressed="false">1h</button><button type="button" data-home-window="6h" aria-pressed="false">6h</button><button type="button" class="active" data-home-window="24h" aria-pressed="true">24h</button></div></div>
+            <div class="home-market-ticker-items" id="home-market-ticker-items"><span class="home-ticker-empty">Waiting for verified market activity</span></div>
+            <div class="home-market-ticker-arrows" role="group" aria-label="Scroll trending coins"><button type="button" id="home-ticker-back" aria-label="Scroll trending back" disabled>‹</button><button type="button" id="home-ticker-forward" aria-label="Scroll trending forward" disabled>›</button></div>
+          </div>
           <div class="home-board-footer"><p class="home-board-count" id="home-board-count" aria-live="polite"></p><a class="home-launch-all" href="#explore">Explore all launches →</a></div>
         </section>
 
@@ -658,6 +658,7 @@
           <button type="button" class="active" data-launch-step-target="1"><b>1</b><span>Token details</span></button>
           <button type="button" data-launch-step-target="2"><b>2</b><span>Rewards &amp; launch</span></button>
         </div>
+        <div class="launch-mobile-budget" aria-live="polite" aria-atomic="true"><span id="launch-mobile-budget-label">Starting SOL budget</span><strong id="launch-mobile-budget-value">Calculating…</strong><small id="launch-mobile-budget-note">Network fees and account rent are additional until a wallet estimate is ready.</small></div>
           <div class="launch-layout">
             <div class="launch-fields">
               <section class="launch-step-panel active" data-launch-step="1" aria-labelledby="coin-step-title">

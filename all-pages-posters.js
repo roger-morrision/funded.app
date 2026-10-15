@@ -6,7 +6,6 @@ const pagePosterDefinitions = [
   { key: 'profile', anchor: '#profile .section-heading', title: 'Sign with context', note: 'Connect the wallet, review the action, and confirm the result.', steps: ['Connect', 'Review', 'Verify'] },
   { key: 'holder', anchor: '#rewards-holder', position: 'afterbegin', title: 'Rewards need proof', note: 'A reserve and eligibility check come before a confirmed payment.', steps: ['Reserve', 'Eligible', 'Paid'] },
   { key: 'wallet', anchor: '#wallet-page .wallet-detail-hero', title: 'Wallet activity', note: 'Inspect the address, filter the records, and open verified receipts.', steps: ['Address', 'Filter', 'Receipt'] },
-  { key: 'docs-subtopic', anchor: '#docs .docs-guide-body', position: 'afterbegin', image: 'docs', title: 'Know the evidence', note: 'Use confirmed launches, observed market data, and payment receipts.', steps: ['Launch', 'Market', 'Payment'] },
 ];
 
 function mountPagePoster(definition) {
@@ -52,9 +51,6 @@ function refreshPagePosters() {
   requestAnimationFrame(() => {
     posterRefreshPending = false;
     pagePosterDefinitions.forEach(mountPagePoster);
-    const docsSubtopic = location.hash.startsWith('#docs/');
-    const introPoster = document.querySelector('[data-infographic-poster="docs"]');
-    document.body.classList.toggle('docs-subtopic-without-poster', docsSubtopic && !introPoster?.getClientRects().length);
   });
 }
 

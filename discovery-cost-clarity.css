@@ -36,3 +36,14 @@ body.page-route-launch .launch-pay-summary :is(.cost-initial-buy-row, .cost-netw
   text-align: left;
 }
 #launch-cost-details[hidden] { display: none !important; }
+.home-launch-progress[hidden] { display: none !important; }
+
+@media (max-width: 700px) {
+  html body.page-route-overview .hero-section { min-height: 0 !important; padding-bottom: 12px !important; }
+  html body.page-route-overview .home-launch-toolbar { gap: 5px 8px; padding: 6px 0 8px; }
+  html body.page-route-overview .home-launch-tabs { display: flex; flex: 1 0 100%; flex-wrap: nowrap; overflow-x: auto; max-width: calc(100vw - 34px); gap: 5px; margin: 0; padding-bottom: 2px; scrollbar-width: thin; }
+  html body.page-route-overview .home-launch-tabs button { flex: 0 0 auto; }
+  html body.page-route-overview .home-board-sort,
+  html body.page-route-overview .home-board-view { margin-left: 0; }
+  html body.page-route-overview .home-market-ticker { margin: 14px 0 6px; }
+}

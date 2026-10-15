@@ -46,6 +46,16 @@ export function updateCostSummary(
     }
   }
   const totalLabelNode = document.querySelector('#cost-total-label');
+  const mobileBudgetLabel = document.querySelector('#launch-mobile-budget-label');
+  const mobileBudgetValue = document.querySelector('#launch-mobile-budget-value');
+  const mobileBudgetNote = document.querySelector('#launch-mobile-budget-note');
+  const syncMobileBudget = (value = totalNode?.textContent) => {
+    if (mobileBudgetLabel) mobileBudgetLabel.textContent = totalLabelNode?.textContent || 'Starting SOL budget';
+    if (mobileBudgetValue) mobileBudgetValue.textContent = value || 'Calculating…';
+    if (mobileBudgetNote) mobileBudgetNote.textContent = wallet && estimatedLaunchFeeLamports != null
+      ? 'Estimated total includes network fees and account rent. Review again before signing.'
+      : 'Network fees and account rent are additional until a wallet estimate is ready.';
+  };
   const burnNode = document.querySelector('#cost-burn');
   const burnRow = document.querySelector('#cost-burn-row');
   const tierLabelNode = document.querySelector('#cost-tier-label');
@@ -97,6 +107,7 @@ export function updateCostSummary(
       noteNode.textContent = publicQuote?.status === 'ready'
         ? 'Starting budget is a live Pump quote for the required holder reserve and optional developer buy, with a 1% purchase allowance. Network fees and account rent are additional. Connect a wallet for the complete simulated total before signing.'
         : 'The starting budget uses a public Pump quote. Connect a wallet for the complete simulated total, including network fees and account rent, before signing.';
+      syncMobileBudget();
       return;
     }
     const pending = walletMetricsLoading ? 'Calculating…'
@@ -112,6 +123,7 @@ export function updateCostSummary(
           : walletEstimateError
             ? `Could not estimate the transaction: ${walletEstimateError} ${launchEstimateRetry?.retryable ? launchEstimateRefreshMessage({ wallet, retry: launchEstimateRetry }) : 'Correct the issue, then retry the estimate.'}`
             : 'The launch cost is not verified. Refresh the estimate before signing.';
+    syncMobileBudget(pending);
     return;
   }
   const launchCost = formatLaunchCost(estimatedLaunchFeeLamports);
@@ -126,6 +138,7 @@ export function updateCostSummary(
   noteNode.textContent = burnPolicy.requiresBurn
     ? 'SOL total includes network fees, account reserve, and any developer buy. The $FUNDED burn is separate.'
     : 'The free tier has no $FUNDED burn. Total includes network fees, account reserve, and any creator buy with its 1% allowance.';
+  syncMobileBudget();
 }
 
 export function renderLaunchCostDetails(

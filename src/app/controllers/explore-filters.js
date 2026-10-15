@@ -69,6 +69,7 @@ export function createExploreFiltersController(appState) {
   // app-source: 412
   function exploreStageLabel(record){
     if (appState.verifiedPaidListingPayment(record) && record.complete == null) return 'Paid listing · mint verified';
+    if (record.registryFallback && record.complete == null) return 'Market stage unavailable';
     return record.migrated === true ? 'Migrated' : record.complete === true ? 'Curve complete' : record.complete === false ? 'On curve' : 'Stage unverified';
   }
   // app-source-end

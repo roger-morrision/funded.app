@@ -15,7 +15,6 @@ function disclosure(target, label) {
 }
 
 function home() {
-  setText('#home-hero-title', 'Launch a Solana coin. Follow its creator fees.');
   setText('.hero-copy', 'Publish a fixed 80/20 creator-fee policy, choose where your 80% goes, and track confirmed collections and payments. Every launch also reserves at least 3% of its tokens for eligible $FUNDED holders.');
   setText('.home-hero-kicker', 'Solana launchpad · published fee route');
   const actions = $('.hero-actions');
@@ -39,7 +38,7 @@ function home() {
     const note = document.createElement('p');
     note.className = 'product-follow-note';
     note.innerHTML = 'Want to revisit a coin? Use its star, then open <a href="#explore">Explore</a> and choose Following.';
-    board.querySelector('.home-launch-board-title')?.after(note);
+    (board.querySelector('.home-launch-table-wrap') || board.querySelector('.home-launch-grid'))?.after(note);
   }
   // Pause distracting continuous movement by default. The existing control can resume it.
   const pause = $('#home-feed-pause');

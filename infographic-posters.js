@@ -39,16 +39,6 @@ const posterDefinitions = [
     ],
   },
   {
-    selector: '#docs .docs-guide-body > p:first-of-type', extra: '#docs .docs-guide-body > p:nth-of-type(2)',
-    key: 'docs', eyebrow: 'Evidence guide', title: 'Know what each screen proves',
-    summary: 'Read the full documentation introduction',
-    items: [
-      ['01', 'Launch', 'Confirmed mint and owner checks.'],
-      ['02', 'Market', 'Observed data may be incomplete.'],
-      ['03', 'Payment', 'A payout needs a final receipt.'],
-    ],
-  },
-  {
     selector: '#privacy > p:not(.eyebrow):not(.field-help)', key: 'privacy',
     eyebrow: 'Wallet safety', title: 'Know where signing happens',
     summary: 'Read the full wallet and Solana explanation',

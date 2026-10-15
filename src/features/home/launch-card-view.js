@@ -74,7 +74,9 @@ export function homeLaunchCardMarkup(
     const changeValue = Number.parseFloat(change);
     const changeClass = Number.isFinite(changeValue) ? (changeValue >= 0 ? 'is-positive' : 'is-negative') : '';
     const progressValue = item.complete === true ? 100 : Number.isFinite(Number(item.curveProgressPercent)) ? Math.max(0, Math.min(100, Number(item.curveProgressPercent))) : 0;
-    const progressLabel = item.complete === true ? 'Migrated' : progressValue > 0 ? `${Math.round(progressValue)}% filled` : 'On curve';
+    const progressLabel = item.migrated === true ? 'Migrated' : item.complete === true ? 'Curve complete'
+      : item.complete === false ? progressValue > 0 ? `${Math.round(progressValue)}% filled` : 'On curve'
+        : 'Market stage unavailable';
     const stageLabel = item.marketUnavailable ? 'Market unavailable' : exploreStageLabel(item);
     const ageLabel = item.createdTimestamp ? formatOnchainAge(Number(item.createdTimestamp) * 1000) : 'Age unavailable';
     const capSol = item.migrated === true ? item.poolMarketCapSol : item.curveCapSol;
@@ -113,7 +115,7 @@ export function homeLaunchCardMarkup(
         <span title="${escapeHtml(holderTitle)}"><small>Holders</small><strong>${escapeHtml(holderCount)}</strong></span>
         <span class="home-launch-change ${changeClass}"><small>24h change</small><strong>${escapeHtml(hasNoObservedTrades ? 'No trades' : change)}</strong></span>
       </div>
-      <div class="home-launch-progress" aria-label="${escapeHtml(progressLabel)}"><i style="--launch-progress:${progressValue}%"></i></div>
+      <div class="home-launch-progress" aria-label="${escapeHtml(progressLabel)}"${item.complete == null && item.migrated == null ? ' hidden' : ''}><i style="--launch-progress:${progressValue}%"></i></div>
       <div class="home-launch-meta"><span>${escapeHtml(ageLabel)}</span><span>${escapeHtml(progressLabel)}</span></div>
       ${footerNote ? `<small class="home-launch-evidence">${escapeHtml(footerNote)}</small>` : ''}
       <div class="home-launch-card-actions">${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
