@@ -1,5 +1,6 @@
 import { communityClaimUnit } from '../../../community-claim-summary.js';
 import { formatDashboardUsd, formatSmallDashboardUsd, formatDashboardQuantity } from '../shared/display.js';
+import { renderHomeProtocolFeeRoute } from './protocol-fee-route.js';
 
 // Presentation only: callers own state, requests, and transaction lifecycles.
 export function renderHomeKpiDashboard(verified = assets, { assets, exploreUpdatedAt, coinSolUsdPrice, verifiedLaunchPoliciesStatus, analyticsSummary, EXPLORE_CLUSTER, receiptEvidence, PROTOCOL_FUNDED_MINT }, { verifiedLaunchPolicyForMint, setHomeDashboardMetric, homeFeeAllocations, currentCommunityClaimSummary, renderFundedTokenLanding, document = globalThis.document } = {}){
@@ -44,6 +45,7 @@ export function renderHomeKpiDashboard(verified = assets, { assets, exploreUpdat
     feeAvailable ? partialFees ? 'partial' : 'available' : 'unavailable');
 
   const allocation = homeFeeAllocations;
+  renderHomeProtocolFeeRoute(allocation, document);
   const allocationReady = ['verified', 'partial'].includes(allocation?.status);
   const partialAllocation = allocation?.status === 'partial';
   const appRevenueLamports = allocationReady ? Number(allocation.appRevenueLamports) : NaN;

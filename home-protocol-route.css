@@ -1,0 +1,75 @@
+.home-protocol-route {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 20px;
+  border: 1px solid #354158;
+  border-radius: 12px;
+  background: #171f2e;
+}
+.home-protocol-route-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+.home-protocol-route-heading .eyebrow {
+  margin: 0 0 5px;
+  color: #b9a4ff;
+}
+.home-protocol-route-heading h3 {
+  margin: 0 0 6px;
+  color: #f5f6fa;
+  font-size: 19px;
+}
+.home-protocol-route-heading p:not(.eyebrow),
+.home-protocol-route-status {
+  margin: 0;
+  color: #aebbd0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.home-protocol-route-heading a {
+  flex: none;
+  color: #c6b5ff;
+  font-size: 12px;
+  text-decoration: none;
+}
+.home-protocol-route-heading a:hover { text-decoration: underline; }
+.home-protocol-route-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  margin: 18px 0 12px;
+}
+.home-protocol-route-grid article {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid #354158;
+  border-radius: 10px;
+  background: #101725;
+}
+.home-protocol-route-grid span { color: #d8dfec; font-size: 12px; font-weight: 700; }
+.home-protocol-route-grid strong { color: #f4ecff; font-size: 18px; font-variant-numeric: tabular-nums; }
+.home-protocol-route-grid small { color: #aebbd0; font-size: 11px; line-height: 1.4; }
+.home-protocol-route-grid b {
+  margin-top: auto;
+  padding-top: 9px;
+  border-top: 1px solid #354158;
+  color: #f4cf67;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.home-protocol-route[data-state='policy-only'] .home-protocol-route-grid b,
+.home-protocol-route[data-state='unavailable'] .home-protocol-route-grid b { color: #aebbd0; }
+@media (max-width: 1000px) {
+  .home-protocol-route-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .home-protocol-route { padding: 16px; }
+  .home-protocol-route-heading { flex-direction: column; gap: 8px; }
+  .home-protocol-route-grid { grid-template-columns: 1fr; }
+}

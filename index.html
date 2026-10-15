@@ -43,6 +43,7 @@
     <link rel="stylesheet" href="/payments-ux.css" />
     <link rel="stylesheet" href="/saved-token-list.css" />
     <link rel="stylesheet" href="/favorites-following.css" />
+    <link rel="stylesheet" href="/home-protocol-route.css" />
     <title>funded.vip — Launches on the record</title>
   </head>
   <body class="page-route page-route-overview" data-bootstrap-state="loading">
@@ -219,6 +220,16 @@
               <span class="home-kpi-icon" aria-hidden="true">◉</span>
               <div><small>Holder rewards allocated</small><span class="home-kpi-value"><strong id="home-kpi-holders">$—</strong><b>USD</b></span><em id="home-kpi-holders-note">Checking settled holder rewards</em></div>
             </article>
+            <section class="home-protocol-route" id="home-protocol-route" aria-labelledby="home-protocol-route-title" data-state="loading">
+              <div class="home-protocol-route-heading"><div><p class="eyebrow">Creator-fee route</p><h3 id="home-protocol-route-title">Where the app's 20% goes</h3><p id="home-protocol-route-policy">Checking current policy for new launches…</p></div><a href="#capital-flow">Full fee policy →</a></div>
+              <div class="home-protocol-route-grid" aria-label="Destinations within the 20 percent protocol share">
+                <article data-protocol-destination="operations"><span>Operations</span><strong>—</strong><small>Current share of collected fees</small><b>—</b></article>
+                <article data-protocol-destination="referrals"><span>Referral network</span><strong>—</strong><small>Three qualified levels</small><b>—</b></article>
+                <article data-protocol-destination="community"><span>Community reserve</span><strong>—</strong><small>Includes unmatched referral shares</small><b>—</b></article>
+                <article data-protocol-destination="buyback"><span>$FUNDED buyback</span><strong>—</strong><small>Buy and burn after the funding trigger</small><b>—</b></article>
+              </div>
+              <p class="home-protocol-route-status" id="home-protocol-route-status" role="status">Checking finalized V3 fee settlements…</p>
+            </section>
             <article class="home-kpi-card" id="home-kpi-holder-paid-card" data-state="loading">
               <span class="home-kpi-icon" aria-hidden="true">◉</span>
               <div><small>Coin holder rewards paid</small><span class="home-kpi-value"><strong id="home-kpi-holder-paid">$—</strong><b>USD</b></span><em id="home-kpi-holder-paid-note">Checking finalized payouts</em></div>

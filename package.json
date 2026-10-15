@@ -13,6 +13,7 @@
     "verify:jackpot-flag": "node scripts/verify-jackpot-flag.mjs",
     "verify:home-rewards-ui": "node scripts/verify-home-rewards-ui.mjs",
     "verify:holder-reward-directory": "node scripts/verify-holder-reward-directory.mjs",
+    "verify:home-protocol-route": "node scripts/verify-home-protocol-route.mjs",
     "verify:jackpot-entries": "node scripts/verify-jackpot-entries.mjs",
     "verify:jackpot-refund": "node scripts/verify-jackpot-refund.mjs",
     "verify:workspace-ui": "node scripts/verify-workspace-ui.mjs",
