@@ -46,15 +46,25 @@ export function exploreEmptyReason(
   },
   {
     getWatchlist,
+    getFollowingCoverage,
+    getFollowingTokenSources,
     document = globalThis.document,
   } = {}
 ) {
-  if (['following', 'favorites'].includes(exploreTab)) {
-    const label = exploreTab === 'favorites' ? 'favorite' : 'followed';
+  if (exploreTab === 'favorites') {
     const saved = getWatchlist();
-    if (!saved.length) return [`No ${label} tokens yet.`, 'Select the star on a token to save it here.'];
+    if (!saved.length) return ['No favorite tokens yet.', 'Select the star on a token to save it here.'];
     if (!assets.some(item => saved.includes(item.address))) return ['Saved tokens are unavailable in this feed.', 'Your favorites remain saved. Try again when the verified launch feed is available.'];
-    return [`No ${label} tokens match this view.`, 'Clear the search or filters to see your saved tokens.'];
+    return ['No favorite tokens match this view.', 'Clear the search or filters to see your saved tokens.'];
+  }
+  if (exploreTab === 'following') {
+    const coverage = getFollowingCoverage();
+    if (!coverage.total) return ['No followed wallets yet.', 'Open a trader wallet from a token page and choose Follow wallet.'];
+    if (coverage.refreshing && !getFollowingTokenSources().size) return ['Checking followed wallets…', 'Looking for held tokens and observed recent trades.'];
+    if (coverage.unavailable || coverage.partial || coverage.checked < coverage.total)
+      return ['No matching followed-wallet tokens found.', 'Balance checks are incomplete. Recent trades cover only the indexed sample; try again later.'];
+    if (!getFollowingTokenSources().size) return ['No tokens found for followed wallets.', 'No current holdings or recent trades were found among listed tokens.'];
+    return ['No followed-wallet tokens match this view.', 'Clear the search or filters to see tokens held or traded by followed wallets.'];
   }
   if ((exploreMinVolumeUsd != null || exploreMinMarketCapUsd != null) && !(Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0)) return ['USD filters are waiting for a conversion quote.', 'SOL/USD is unavailable. Clear the USD minimums to browse verified tokens.'];
   if (exploreQuery) return ['No token matches your search.', 'Try a token name, symbol, or full token address.'];

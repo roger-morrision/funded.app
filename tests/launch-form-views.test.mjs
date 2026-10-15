@@ -141,9 +141,12 @@ test('review confirmation disables immediately when wallet or consent changes', 
   assert.equal(f.nodes.get('#launch-review-confirm').disabled, true);
 });
 
-test('Explore distinguishes an empty followed list from unavailable saved tokens and quote filters', () => {
+test('Explore distinguishes followed wallets from favorite tokens and quote filters', () => {
   const state = { exploreTab: 'following', assets: [] };
-  assert.match(exploreEmptyReason(state, { getWatchlist: () => [] })[0], /No followed tokens/);
+  const following = { getFollowingCoverage: () => ({ total:0, checked:0, partial:0, unavailable:0, refreshing:false }), getFollowingTokenSources: () => new Map() };
+  assert.match(exploreEmptyReason(state, following)[0], /No followed wallets/);
+  state.exploreTab = 'favorites';
+  assert.match(exploreEmptyReason(state, { getWatchlist: () => [] })[0], /No favorite tokens/);
   assert.match(exploreEmptyReason(state, { getWatchlist: () => ['saved'] })[0], /unavailable in this feed/);
   state.assets = [{ address: 'saved' }];
   assert.match(exploreEmptyReason(state, { getWatchlist: () => ['saved'] })[0], /match this view/);

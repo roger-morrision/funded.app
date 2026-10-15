@@ -33,6 +33,8 @@ export function renderExploreAssets(
     decorateHomeLaunchCard,
     renderWatchlist,
     renderWalletDetail,
+    getFollowingCoverage,
+    getFollowingTokenSources,
     document = globalThis.document,
   } = {}
 ) {
@@ -62,6 +64,16 @@ export function renderExploreAssets(
   if (scope && EXPLORE_CLUSTER !== 'devnet') scope.textContent = 'Solana mainnet discovery · Pump.fun listings are shown only after mint verification. Missing market figures stay unavailable.';
   const records = assets.map(item => withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(item, exploreWindow) : enrichMarketRecord(item)));
   const visible = filterExploreTabRecords(records);
+  const followingStatus = document.querySelector('#explore-following-status');
+  if (followingStatus) {
+    followingStatus.hidden = exploreTab !== 'following';
+    if (exploreTab === 'following') {
+      const coverage = getFollowingCoverage();
+      followingStatus.textContent = !coverage.total
+        ? 'Follow trader wallets from their wallet pages. This view shows their listed tokens, separate from Favorites.'
+        : `${coverage.total} followed wallet${coverage.total === 1 ? '' : 's'} · ${coverage.checked + coverage.partial}/${coverage.total} balance checks${coverage.refreshing ? ' in progress' : ''}${coverage.unavailable ? ` · ${coverage.unavailable} unavailable` : ''}${coverage.partial ? ` · ${coverage.partial} partial` : ''}. Held tokens use current Solana balances; trades use the available recent indexed sample.`;
+    }
+  }
   renderExploreControls();
   renderExplorePulse(records);
   renderExploreBenefitLeaders(visible);
@@ -93,11 +105,16 @@ export function renderExploreAssets(
     : feedUnavailable || rpcUnavailable
       ? `<div class="empty-state onchain-empty"><strong>${escapeHtml(outage.title)}</strong><span>${escapeHtml(outage.detail)}</span></div>`
         : `<div class="empty-state onchain-empty"><strong>${assets.length ? 'No verified launches match these filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'Token details could not be confirmed.' : 'No tokens to show yet.'}</strong><span>${assets.length ? 'Broaden the search or clear the filters.' : exploreProviderStatus.includes('none passed RPC verification') ? 'We could not confirm these tokens on Solana. Try again shortly.' : 'Confirmed launches will appear here when available.'}</span></div>`;
-  if (!visible.length && assets.length && !feedUnavailable && !rpcUnavailable) {
+  if (!visible.length && !feedUnavailable && !rpcUnavailable) {
     const reason = exploreEmptyReason();
     if (reason) { grid.querySelector('.empty-state strong').textContent = reason[0]; grid.querySelector('.empty-state span').textContent = reason[1]; }
   }
-  grid.querySelectorAll('.explore-launch-card').forEach((card, index) => decorateHomeLaunchCard(card, visible[index]?.address));
+  const followingSources = exploreTab === 'following' ? getFollowingTokenSources() : null;
+  grid.querySelectorAll('.explore-launch-card').forEach((card, index) => {
+    decorateHomeLaunchCard(card, visible[index]?.address);
+    const source = followingSources?.get(visible[index]?.address);
+    if (source) card.insertAdjacentHTML('beforeend', `<div class="explore-following-source" aria-label="Followed wallet activity">${source.heldBy.size ? `<span>Held by ${source.heldBy.size} followed wallet${source.heldBy.size === 1 ? '' : 's'}</span>` : ''}${source.tradedBy.size ? `<span>Traded by ${source.tradedBy.size} followed wallet${source.tradedBy.size === 1 ? '' : 's'}</span>` : ''}</div>`);
+  });
   loadVerifiedTokenLogos(grid);
   if (!visible.length && !loading) {
     const action = document.createElement('button');

@@ -12,6 +12,10 @@ export function initializeFollowing(appState) {
     if (event.key !== appState.FOLLOWED_WALLETS_KEY && event.key !== null) return;
     appState.renderFollowedWallets();
     if (!document.querySelector('#wallet-page')?.hidden) appState.renderWalletDetail();
+    if (appState.exploreTab === 'following') {
+      appState.updateExploreViews(true);
+      void appState.refreshFollowedWalletHoldings();
+    }
   });
   // app-source-end
 

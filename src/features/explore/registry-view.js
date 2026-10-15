@@ -6,6 +6,7 @@ import { icon } from '../../../ui-icons.js';
 // Render current data; the application owns pagination and paused-order state.
 export function renderRegistry(query, state, {
   getWatchlist,
+  getFollowingTokenSources,
   filterExploreTabRecords,
   exploreOutageCopy,
   exploreEmptyReason,
@@ -46,9 +47,11 @@ export function renderRegistry(query, state, {
     verifiedBoosts,
     EXPLORE_CLUSTER,
   } = state;
+  const followingSources = exploreTab === 'following' ? getFollowingTokenSources() : null;
   const criteriaKey = JSON.stringify([query, exploreSort, exploreRisk, exploreStage, exploreAuthority,
     explorePromotion, exploreReward, exploreTab, exploreNewLane, exploreWindow, exploreMaxAgeHours,
-    exploreMinVolumeUsd, exploreMinMarketCapUsd, exploreMinTrades, exploreMinTraders, getWatchlist()]);
+    exploreMinVolumeUsd, exploreMinMarketCapUsd, exploreMinTrades, exploreMinTraders, getWatchlist(),
+    followingSources ? [...followingSources.keys()].sort() : null]);
   if (criteriaKey !== state.registryCriteriaKey) { state.registryPage = 1; state.registryCriteriaKey = criteriaKey; }
   const filtered = filterExploreTabRecords(registryLaunches, query);
   const page = paginateExploreRows(filtered, state.registryPage);
@@ -87,9 +90,11 @@ export function renderRegistry(query, state, {
     const stage = exploreStageLabel(item);
     const age = item.createdTimestamp ? escapeHtml(formatOnchainAge(Number(item.createdTimestamp) * 1000)) : 'Age unavailable';
     const change = item.priceChange24hPercent == null ? '—' : `${item.priceChange24hPercent >= 0 ? '+' : ''}${Number(item.priceChange24hPercent).toFixed(2)}%`;
+    const source = followingSources?.get(item.address);
+    const followingLabel = source ? `<span class="explore-following-source" aria-label="Followed wallet activity">${source.heldBy.size ? `<span>Held by ${source.heldBy.size} followed wallet${source.heldBy.size === 1 ? '' : 's'}</span>` : ''}${source.tradedBy.size ? `<span>Traded by ${source.tradedBy.size} followed wallet${source.tradedBy.size === 1 ? '' : 's'}</span>` : ''}</span>` : '';
     return `<div class="scanner-row" role="row" data-logo-mint="${mint}">
       <span class="scanner-rank" role="cell">${page.start + index + 1}</span>
-      <div class="scanner-token" role="cell"><span class="asset-icon">${escapeHtml(item.icon)}</span><span><span class="scanner-token-heading"><a class="scanner-token-link" href="/token/${encodeURIComponent(item.address)}"><strong class="${activeBoostMultiplier(verifiedBoosts[item.address]) >= 500 ? 'golden-ticker' : ''}">${symbol} <small>${escapeHtml(item.name)}</small></strong></a>${explorePaidListingBagMarkup(item)}${exploreBoostAmountMarkup(item.address)}</span><span class="scanner-actions"><button type="button" class="copy-row scanner-contract" data-mint="${mint}" aria-label="Copy ${symbol} token contract address" title="Copy full contract address: ${mint}"><span>${escapeHtml(`${item.address.slice(0, 4)}…${item.address.slice(-4)}`)}</span>${icon('copy')}</button>${exploreSocialLinksMarkup(item)}<button type="button" class="watch-button scanner-watch" data-mint="${mint}" aria-label="Add ${symbol} to favorites" aria-pressed="false" title="Add to favorites">${icon('star')}</button></span></span></div>
+      <div class="scanner-token" role="cell"><span class="asset-icon">${escapeHtml(item.icon)}</span><span><span class="scanner-token-heading"><a class="scanner-token-link" href="/token/${encodeURIComponent(item.address)}"><strong class="${activeBoostMultiplier(verifiedBoosts[item.address]) >= 500 ? 'golden-ticker' : ''}">${symbol} <small>${escapeHtml(item.name)}</small></strong></a>${explorePaidListingBagMarkup(item)}${exploreBoostAmountMarkup(item.address)}</span>${followingLabel}<span class="scanner-actions"><button type="button" class="copy-row scanner-contract" data-mint="${mint}" aria-label="Copy ${symbol} token contract address" title="Copy full contract address: ${mint}"><span>${escapeHtml(`${item.address.slice(0, 4)}…${item.address.slice(-4)}`)}</span>${icon('copy')}</button>${exploreSocialLinksMarkup(item)}<button type="button" class="watch-button scanner-watch" data-mint="${mint}" aria-label="Add ${symbol} to favorites" aria-pressed="false" title="Add to favorites">${icon('star')}</button></span></span></div>
       <div class="scanner-tier" role="cell">${exploreTierBadgeMarkup(item.address)}</div>
       <span class="scanner-metric" role="cell">${escapeHtml(exploreMarketCapUsd(item))}</span>
       <span class="scanner-age" role="cell">${age}</span>

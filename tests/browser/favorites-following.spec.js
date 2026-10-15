@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
 const mint = '9Dp8MYwvFTAwoMtxaXvAZjZyjsWUbuXGp15z8EkZzu1B';
 const creator = '9BoQNeD7MUN7Rs9x1oZS3pc3JXu9AJ8Gb89sPcGGXH2w';
@@ -7,6 +8,7 @@ test('favorite tokens and followed creator wallets persist and can be removed', 
   const launch = { mint, cluster: 'devnet', onchainVerified: true, creatorWallet: creator, name: 'Favorite QA token', symbol: 'FAV' };
   await page.addInitScript(() => sessionStorage.setItem('funded.app.wallet.manual-disconnect', '1'));
   await page.route('**/api/**', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"mocked offline API"}' }));
+  await page.route('**/api/fee-policy', route => route.fulfill({ json: { split:PROTOCOL_FEE_SPLIT } }));
   await page.route('**/api/launches', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([launch]) }));
   await page.route('**/api/x/me', route => route.fulfill({ json: { authenticated: false, configured: true } }));
 

@@ -1,12 +1,15 @@
 import { test, expect } from '@playwright/test';
+import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
 const KEY = 'funded.app.watchlist.guest.v1';
 const MINT = 'So11111111111111111111111111111111111111112';
+const FOLLOWED_WALLET = '9BoQNeD7MUN7Rs9x1oZS3pc3JXu9AJ8Gb89sPcGGXH2w';
 const errors = new WeakMap();
 test.beforeEach(async ({ page }) => {
   const found = []; errors.set(page, found); page.on('pageerror', error => found.push(error.message));
   await page.route('https://**/*', route => route.abort());
   await page.route('**/api/**', route => route.fulfill({ status: 503, json: {} }));
+  await page.route('**/api/fee-policy', route => route.fulfill({ json: { split:PROTOCOL_FEE_SPLIT } }));
   await page.route('**/api/x/me', route => route.fulfill({ json: { authenticated: false, configured: true } }));
 });
 test.afterEach(async ({ page }) => expect(errors.get(page)).toEqual([]));
@@ -97,20 +100,27 @@ for (const width of [390, 1440]) test(`unavailable token can be removed from Fav
 });
 
 const rawMints = async page => JSON.stringify(await saved(page));
-async function verifiedFeed(page) {
+async function verifiedFeed(page, { holdingWallet = '', tradingWallet = '' } = {}) {
   const bytes = Buffer.alloc(82); bytes.writeBigUInt64LE(1000000000n, 36); bytes[44] = 6; bytes[45] = 1;
   const account = { data: [bytes.toString('base64'), 'base64'], owner: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', lamports: 1000000, executable: false, rentEpoch: 0 };
   await page.route('**/api/pump/explore?*', route => route.fulfill({ json: { cluster: 'devnet', items: [{ mint: MINT, name: 'Synthetic watch fixture', symbol: 'WATCH', createdTimestamp: 1, lastTradeTimestamp: 1 }], fetchedAt: new Date().toISOString() } }));
+  if (tradingWallet) await page.route(`**/api/tokens/${MINT}/market-activity`, route => route.fulfill({ json: {
+    cluster:'devnet', mint:MINT, coverage:'partial', observedCoverage:'partial',
+    recentTrades:[{ trader:tradingWallet, side:'buy', signature:'5'.repeat(88), blockTime:Math.floor(Date.now() / 1000), solLamports:'1000000' }],
+  } }));
   const rpc = route => {
     const request = route.request().postDataJSON();
     return route.fulfill({ json: request.method === 'getMultipleAccounts'
       ? { jsonrpc: '2.0', id: request.id, result: { context: { slot: 1 }, value: request.params[0].map(mint => mint === MINT ? account : null) } }
-      : { jsonrpc: '2.0', id: request.id, error: { code: -32000, message: 'No additional evidence in offline fixture' } } });
+      : request.method === 'getTokenAccountsByOwner'
+        ? { jsonrpc:'2.0', id:request.id, result:{ context:{ slot:1 }, value:request.params[0] === holdingWallet && request.params[1]?.programId === 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+          ? [{ pubkey:MINT, account:{ data:{ parsed:{ info:{ owner:holdingWallet, mint:MINT, tokenAmount:{ amount:'1000000', decimals:6 } } }, program:'spl-token', space:165 }, executable:false, lamports:2039280, owner:'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', rentEpoch:0 } }] : [] } }
+        : { jsonrpc: '2.0', id: request.id, error: { code: -32000, message: 'No additional evidence in offline fixture' } } });
   };
   await page.route('**/api/solana/rpc*', rpc); await page.route('https://api.devnet.solana.com/**', rpc);
 }
 
-for (const [tab, route] of [['following', 'explore'], ['favorites', 'explore']]) for (const [width, view] of [[1440, 'grid'], [390, 'table']]) test(`Explore ${tab} filters tokens in place on ${route} at ${width}px with ${view} view`, async ({ page }) => {
+for (const [tab, route] of [['favorites', 'explore']]) for (const [width, view] of [[1440, 'grid'], [390, 'table']]) test(`Explore ${tab} filters tokens in place on ${route} at ${width}px with ${view} view`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 });
   await seed(page, []); await verifiedFeed(page); await page.goto(`/#${route}`); await ready(page);
   await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
@@ -155,6 +165,52 @@ for (const [tab, route] of [['following', 'explore'], ['favorites', 'explore']])
     await expect(page.locator('#asset-grid')).toContainText('No favorite tokens yet.');
     await expect(page).toHaveURL(url);
   }
+});
+
+test('Following shows a tracked wallet holding while Favorites remains star-only', async ({ page }) => {
+  await seed(page, []);
+  await page.addInitScript(wallet => localStorage.setItem('funded.app.followed.wallets.v1', JSON.stringify([{ address:wallet, roles:['trader'] }])), FOLLOWED_WALLET);
+  await verifiedFeed(page, { holdingWallet:FOLLOWED_WALLET });
+  await page.goto('/#explore'); await ready(page);
+  await page.locator('[data-explore-tab="following"]').click();
+  await expect(page.locator('#asset-grid .explore-launch-card')).toHaveCount(1);
+  await expect(page.locator('#asset-grid .explore-following-source')).toContainText('Held by 1 followed wallet');
+  await expect(page.locator('#explore-following-status')).toContainText('1/1 balance checks');
+  await page.locator('[data-explore-view="table"]').click();
+  await expect(page.locator('#launch-list .explore-following-source')).toContainText('Held by 1 followed wallet');
+  await page.setViewportSize({ width:390, height:900 });
+  await expect(page.locator('#launch-list .explore-following-source')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.locator('[data-explore-view="grid"]').click();
+  await page.locator('[data-explore-tab="favorites"]').click();
+  await expect(page.locator('#asset-grid')).toContainText('No favorite tokens yet.');
+  await page.locator('[data-explore-tab="trending"]').click();
+  await page.locator(`#asset-grid .watch-button[data-mint="${MINT}"]`).click();
+  await page.locator('[data-explore-tab="favorites"]').click();
+  await expect(page.locator('#asset-grid .explore-launch-card')).toHaveCount(1);
+  await page.locator('[data-explore-tab="following"]').click();
+  await expect(page.locator('#asset-grid .explore-following-source')).toContainText('Held by 1 followed wallet');
+});
+
+test('Following shows a tracked wallet observed trade without claiming it holds the token', async ({ page }) => {
+  await seed(page, []);
+  await page.addInitScript(wallet => localStorage.setItem('funded.app.followed.wallets.v1', JSON.stringify([{ address:wallet, roles:['trader'] }])), FOLLOWED_WALLET);
+  await verifiedFeed(page, { tradingWallet:FOLLOWED_WALLET });
+  await page.goto('/#explore'); await ready(page);
+  await page.locator('[data-explore-tab="following"]').click();
+  await expect(page.locator('#asset-grid .explore-launch-card')).toHaveCount(1);
+  await expect(page.locator('#asset-grid .explore-following-source')).toContainText('Traded by 1 followed wallet');
+  await expect(page.locator('#asset-grid .explore-following-source')).not.toContainText('Held by');
+});
+
+test('A starred token alone appears in Favorites and never in Following', async ({ page }) => {
+  await seed(page, [MINT]); await verifiedFeed(page);
+  await page.goto('/#explore'); await ready(page);
+  await page.locator('[data-explore-tab="following"]').click();
+  await expect(page.locator('#asset-grid .explore-launch-card')).toHaveCount(0);
+  await expect(page.locator('#asset-grid')).toContainText('No followed wallets yet.');
+  await page.locator('[data-explore-tab="favorites"]').click();
+  await expect(page.locator('#asset-grid .explore-launch-card')).toHaveCount(1);
 });
 
 test('Explore native watch action does not announce success when saving fails', async ({ page }) => {

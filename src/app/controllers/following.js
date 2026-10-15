@@ -1,5 +1,77 @@
+import { followingTokenSources } from '../../../following-token-model.js';
+
 // Dependencies and mutable application state are read live through appState.
 export function createFollowingController(appState) {
+  const holdingsByWallet = new Map();
+  let holdingsScan = null;
+  let scanAgain = false;
+  let scanRevision = 0;
+  const CACHE_MS = 60_000;
+  const withTimeout = (promise, milliseconds) => {
+    let timer;
+    return Promise.race([promise, new Promise(resolve => { timer = setTimeout(() => resolve([]), milliseconds); })])
+      .finally(() => clearTimeout(timer));
+  };
+
+  function getFollowingTokenSources(){
+    return followingTokenSources(appState.assets, appState.getFollowedWallets(), holdingsByWallet);
+  }
+  function getFollowingCoverage(){
+    const rows = appState.getFollowedWallets();
+    const checked = rows.filter(row => holdingsByWallet.get(row.address)?.status === 'ready').length;
+    const partial = rows.filter(row => holdingsByWallet.get(row.address)?.status === 'partial').length;
+    const unavailable = rows.filter(row => holdingsByWallet.get(row.address)?.status === 'unavailable').length;
+    return { total:rows.length, checked, partial, unavailable, refreshing:Boolean(holdingsScan) };
+  }
+  function refreshFollowedWalletHoldings(){
+    const rows = appState.getFollowedWallets();
+    if (holdingsScan) { scanAgain = true; return holdingsScan; }
+    const now = Date.now();
+    const targets = rows.filter(row => now - (holdingsByWallet.get(row.address)?.checkedAt || 0) >= CACHE_MS);
+    if (!targets.length) return Promise.resolve();
+    const revision = ++scanRevision;
+    holdingsScan = (async () => {
+      try {
+        const [{ PublicKey, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID }, rpc] = await Promise.all([
+          appState.getSolana(), appState.getExploreConnection(),
+        ]);
+        for (let offset = 0; offset < targets.length; offset += 3) {
+          const batch = await Promise.all(targets.slice(offset, offset + 3).map(async row => {
+            const wallet = row.address;
+            const owner = new PublicKey(wallet);
+            const reads = Promise.allSettled([
+              rpc.getParsedTokenAccountsByOwner(owner, { programId:TOKEN_PROGRAM_ID }, 'confirmed'),
+              rpc.getParsedTokenAccountsByOwner(owner, { programId:TOKEN_2022_PROGRAM_ID }, 'confirmed'),
+            ]);
+            const results = await withTimeout(reads, 15_000);
+            if (revision !== scanRevision) return;
+            const success = results.filter(result => result.status === 'fulfilled');
+            const mints = new Set(success.flatMap(result => result.value?.value || []).flatMap(account => {
+              const info = account?.account?.data?.parsed?.info;
+              return info?.owner === wallet && /^[1-9]\d*$/.test(String(info.tokenAmount?.amount || ''))
+                && appState.validateSolanaMint(info.mint).valid ? [info.mint] : [];
+            }));
+            const status = success.length === 2 ? 'ready' : success.length ? 'partial' : 'unavailable';
+            holdingsByWallet.set(wallet, { mints, status, checkedAt:Date.now() });
+            return status;
+          }));
+          if (revision !== scanRevision) return;
+          if (appState.exploreTab === 'following' && (offset % 9 === 0 || offset + 3 >= targets.length)) appState.updateExploreViews(true);
+          if (batch.every(status => status === 'unavailable')) break;
+        }
+      } catch {
+        for (const row of targets) if ((holdingsByWallet.get(row.address)?.checkedAt || 0) < now)
+          holdingsByWallet.set(row.address, { mints:new Set(), status:'unavailable', checkedAt:Date.now() });
+      } finally {
+        if (revision === scanRevision) {
+          holdingsScan = null;
+          if (appState.exploreTab === 'following') appState.updateExploreViews(true);
+          if (scanAgain) { scanAgain = false; void refreshFollowedWalletHoldings(); }
+        }
+      }
+    })();
+    return holdingsScan;
+  }
   // app-source: 393
   function showWatchlistStatus(message){
     appState.watchlistNotice = message;
@@ -133,6 +205,10 @@ export function createFollowingController(appState) {
       appState.lastKnownFollowedWallets = next;
       appState.renderFollowedWallets();
       if (!document.querySelector('#wallet-page')?.hidden) appState.renderWalletDetail();
+      if (appState.exploreTab === 'following') {
+        appState.updateExploreViews(true);
+        if (!remove) void appState.refreshFollowedWalletHoldings();
+      }
       appState.showToast(remove ? 'Wallet unfollowed on this device' : 'Wallet followed on this device');
       return true;
     } catch {
@@ -170,5 +246,5 @@ export function createFollowingController(appState) {
   }
   // app-source-end
 
-  return { showWatchlistStatus, getWatchlist, restoreWalletFavorites, verifyWalletFavorites, saveWatchlist, setWatchButtonState, renderWatchlist, readFollowedWallets, getFollowedWallets, walletRoles, saveFollowedWallet, renderFollowedWallets };
+  return { showWatchlistStatus, getWatchlist, restoreWalletFavorites, verifyWalletFavorites, saveWatchlist, setWatchButtonState, renderWatchlist, readFollowedWallets, getFollowedWallets, walletRoles, saveFollowedWallet, renderFollowedWallets, getFollowingTokenSources, getFollowingCoverage, refreshFollowedWalletHoldings };
 }

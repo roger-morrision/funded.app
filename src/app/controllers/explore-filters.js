@@ -29,9 +29,15 @@ export function createExploreFiltersController(appState) {
   // app-source: 408
   function filterExploreTabRecords(records, query = appState.exploreQuery){
     const filtered = appState.filterMarketRecords(records, appState.exploreFilterOptions(query));
-    if (!['following', 'favorites'].includes(appState.exploreTab)) return filtered;
-    const saved = new Set(appState.getWatchlist());
-    return filtered.filter(record => saved.has(record.address));
+    if (appState.exploreTab === 'favorites') {
+      const saved = new Set(appState.getWatchlist());
+      return filtered.filter(record => saved.has(record.address));
+    }
+    if (appState.exploreTab === 'following') {
+      const followed = appState.getFollowingTokenSources();
+      return filtered.filter(record => followed.has(record.address));
+    }
+    return filtered;
   }
   // app-source-end
 
@@ -104,7 +110,7 @@ export function createExploreFiltersController(appState) {
 
   // app-source: 420
   function exploreEmptyReason(){
-    return appState.exploreEmptyReasonView({ exploreTab: appState.exploreTab, assets: appState.assets, exploreMinVolumeUsd: appState.exploreMinVolumeUsd, exploreMinMarketCapUsd: appState.exploreMinMarketCapUsd, coinSolUsdPrice: appState.coinSolUsdPrice, exploreQuery: appState.exploreQuery, explorePromotion: appState.explorePromotion, exploreReward: appState.exploreReward, exploreMinTraders: appState.exploreMinTraders, exploreMinTrades: appState.exploreMinTrades, exploreMaxAgeHours: appState.exploreMaxAgeHours, exploreAuthority: appState.exploreAuthority, exploreRisk: appState.exploreRisk, exploreNewLane: appState.exploreNewLane, exploreStage: appState.exploreStage }, { getWatchlist: appState.getWatchlist });
+    return appState.exploreEmptyReasonView({ exploreTab: appState.exploreTab, assets: appState.assets, exploreMinVolumeUsd: appState.exploreMinVolumeUsd, exploreMinMarketCapUsd: appState.exploreMinMarketCapUsd, coinSolUsdPrice: appState.coinSolUsdPrice, exploreQuery: appState.exploreQuery, explorePromotion: appState.explorePromotion, exploreReward: appState.exploreReward, exploreMinTraders: appState.exploreMinTraders, exploreMinTrades: appState.exploreMinTrades, exploreMaxAgeHours: appState.exploreMaxAgeHours, exploreAuthority: appState.exploreAuthority, exploreRisk: appState.exploreRisk, exploreNewLane: appState.exploreNewLane, exploreStage: appState.exploreStage }, { getWatchlist: appState.getWatchlist, getFollowingCoverage: appState.getFollowingCoverage, getFollowingTokenSources: appState.getFollowingTokenSources });
   }
   // app-source-end
 
@@ -180,7 +186,7 @@ export function createExploreFiltersController(appState) {
 
   // app-source: 430
   function renderExploreAssets({ force = false } = {}){
-    return appState.renderExploreAssetsView({ force }, { exploreProviderStatus: appState.exploreProviderStatus, exploreLastVerifiedAt: appState.exploreLastVerifiedAt, exploreFeedAvailable: appState.exploreFeedAvailable, assets: appState.assets, exploreWindow: appState.exploreWindow, exploreScannedCount: appState.exploreScannedCount, verifiedBoosts: appState.verifiedBoosts, exploreTab: appState.exploreTab, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER }, { exploreOutageCopy: appState.exploreOutageCopy, withVerifiedExploreBenefits: appState.withVerifiedExploreBenefits, filterExploreTabRecords: appState.filterExploreTabRecords, renderExploreControls: appState.renderExploreControls, renderExplorePulse: appState.renderExplorePulse, renderExploreBenefitLeaders: appState.renderExploreBenefitLeaders, formatExploreUsd: appState.formatExploreUsd, exploreBoostAmountMarkup: appState.exploreBoostAmountMarkup, exploreStageLabel: appState.exploreStageLabel, loadVerifiedTokenLogos: appState.loadVerifiedTokenLogos, homeLaunchCardMarkup: appState.homeLaunchCardMarkup, launchCardVolumeUsd: appState.launchCardVolumeUsd, exploreEmptyReason: appState.exploreEmptyReason, decorateHomeLaunchCard: appState.decorateHomeLaunchCard, renderWatchlist: appState.renderWatchlist, renderWalletDetail: appState.renderWalletDetail });
+    return appState.renderExploreAssetsView({ force }, { exploreProviderStatus: appState.exploreProviderStatus, exploreLastVerifiedAt: appState.exploreLastVerifiedAt, exploreFeedAvailable: appState.exploreFeedAvailable, assets: appState.assets, exploreWindow: appState.exploreWindow, exploreScannedCount: appState.exploreScannedCount, verifiedBoosts: appState.verifiedBoosts, exploreTab: appState.exploreTab, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER }, { exploreOutageCopy: appState.exploreOutageCopy, withVerifiedExploreBenefits: appState.withVerifiedExploreBenefits, filterExploreTabRecords: appState.filterExploreTabRecords, renderExploreControls: appState.renderExploreControls, renderExplorePulse: appState.renderExplorePulse, renderExploreBenefitLeaders: appState.renderExploreBenefitLeaders, formatExploreUsd: appState.formatExploreUsd, exploreBoostAmountMarkup: appState.exploreBoostAmountMarkup, exploreStageLabel: appState.exploreStageLabel, loadVerifiedTokenLogos: appState.loadVerifiedTokenLogos, homeLaunchCardMarkup: appState.homeLaunchCardMarkup, launchCardVolumeUsd: appState.launchCardVolumeUsd, exploreEmptyReason: appState.exploreEmptyReason, decorateHomeLaunchCard: appState.decorateHomeLaunchCard, renderWatchlist: appState.renderWatchlist, renderWalletDetail: appState.renderWalletDetail, getFollowingCoverage: appState.getFollowingCoverage, getFollowingTokenSources: appState.getFollowingTokenSources });
   }
   // app-source-end
 

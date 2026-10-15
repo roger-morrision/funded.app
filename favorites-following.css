@@ -14,6 +14,11 @@
 .followed-wallet-row :is(a,button):focus-visible { outline: 2px solid #ffda80; outline-offset: 3px; }
 .wallet-detail-actions .wallet-follow-button[hidden] { display: none; }
 
+.explore-following-status { margin: 10px 0 14px; color: #a1b1cc; font-size: 12px; line-height: 1.5; }
+.explore-following-status[hidden] { display: none; }
+.explore-following-source { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+.explore-following-source span { padding: 4px 7px; border: 1px solid #526c78; border-radius: 4px; color: #b7ded6; font: 10px 'DM Mono', monospace; }
+
 .followed-wallets {
   margin-top: 18px;
   padding: 20px;
