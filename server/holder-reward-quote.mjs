@@ -1,4 +1,4 @@
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { PUMP_PROGRAM_ID, PUMP_SDK, bondingCurvePda } from '@pump-fun/pump-sdk';
 import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
@@ -26,7 +26,8 @@ export function createHolderRewardQuoteReader({ connection, env = process.env,
     if (!curveAccount?.owner?.equals(PUMP_PROGRAM_ID))
       throw new Error('A finalized Pump bonding curve is unavailable.');
     const curve = decodeCurve(curveAccount);
-    if (!curve?.quoteMint?.equals(NATIVE_MINT))
+    if (!curve?.quoteMint?.equals(NATIVE_MINT)
+      && !curve?.quoteMint?.equals(SystemProgram.programId))
       throw new Error('Holder rewards require a verified SOL-quoted Pump market.');
     const poolPrice = curve.complete
       ? (await readPool({ connection, mint,

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import BN from 'bn.js';
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { NATIVE_MINT, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
 import { createHolderRewardQuoteReader } from '../server/holder-reward-quote.mjs';
@@ -31,6 +31,11 @@ test('holder price gate uses a finalized Pump curve and a fresh SOL quote', asyn
   assert.equal(quote.tokenPriceUsd, 2);
   assert.deepEqual(reads, ['finalized','finalized']);
   assert.match(quote.source, /Pump-curve/);
+
+  const nativeSol = createHolderRewardQuoteReader({ connection, now:() => now,
+    decodeCurve:() => ({ ...curve, quoteMint:SystemProgram.programId }),
+    readSolUsd:async () => ({ priceUsd:200, fetchedAt:new Date(now).toISOString() }) });
+  assert.equal((await nativeSol(mint)).tokenPriceUsd, 2);
 
   const stale = createHolderRewardQuoteReader({ connection, now:() => now,
     decodeCurve:() => curve, readSolUsd:async () => ({ priceUsd:200,
