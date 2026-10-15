@@ -30,12 +30,13 @@ funded pool, and lamport floor without shortening the hourly cadence:
 ```dotenv
 FUNDED_DEVNET_QA_HOLDER_MINT=<disposable Devnet mint>
 FUNDED_DEVNET_QA_HOLDER_MIN_USD=1
-FUNDED_DEVNET_QA_HOLDER_POOL_MIN_USD=1
+FUNDED_DEVNET_QA_HOLDER_POOL_MIN_USD=0.50
 FUNDED_DEVNET_QA_HOLDER_MIN_LAMPORTS=1000000
 FUNDED_DEVNET_QA_FEE_COLLECTION_MIN_LAMPORTS=5000000
 ```
 
-The dollar values are whole numbers from $1 to $19; the lamport floor is
+The wallet minimum is a whole dollar amount from $1 to $19. The pool minimum
+accepts $0.10–$19.99 in cents; the lamport floor is
 1,000,000–9,999,999. They require a fresh verified quote, finalized sampled
 holder balances, a funded vault, and all existing payout proofs. Existing
 prepared manifests and paid cycles are retained. A policy change starts at the

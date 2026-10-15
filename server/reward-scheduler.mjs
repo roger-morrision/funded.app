@@ -111,10 +111,13 @@ function programConfig(input) {
   if (![activatedAt, firstPeriodStart].every(Number.isSafeInteger) || activatedAt < 0 || firstPeriodStart < activatedAt || firstPeriodStart % periodSeconds !== 0) throw new Error('Invalid reward program activation time.');
   if (!['SOL', String(input.mint)].includes(String(input.asset || 'SOL'))) throw new Error('Holder rewards must use SOL or the launched token.');
   const qaMinimums = input.eligibilityPolicy === QA_HOLDER_POLICY ? input.qaMinimums : null;
+  const qaPoolCents = Math.round(Number(qaMinimums?.minimumPoolUsd) * 100);
   if (qaMinimums) {
     if (process.env.SOLANA_CLUSTER !== 'devnet' || periodSeconds !== 3600
       || !Number.isSafeInteger(qaMinimums.minimumHolderUsd) || qaMinimums.minimumHolderUsd < 1 || qaMinimums.minimumHolderUsd > 19
-      || !Number.isSafeInteger(qaMinimums.minimumPoolUsd) || qaMinimums.minimumPoolUsd < 1 || qaMinimums.minimumPoolUsd > 19
+      || !Number.isSafeInteger(qaPoolCents)
+      || Math.abs(qaMinimums.minimumPoolUsd * 100 - qaPoolCents) > 1e-6
+      || qaPoolCents < 10 || qaPoolCents > 1999
       || !Number.isSafeInteger(qaMinimums.minimumFundingLamports) || qaMinimums.minimumFundingLamports < 1_000_000 || qaMinimums.minimumFundingLamports > 9_999_999)
       throw new Error('The hourly Devnet QA holder policy requires bounded persisted minimums.');
   } else if (input.eligibilityPolicy === QA_HOLDER_POLICY) {

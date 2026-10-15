@@ -34,9 +34,15 @@ export function qaHolderMinimums(mint, cluster, env = process.env) {
       throw new Error(`${key} is outside the bounded Devnet QA range.`);
     return value;
   };
+  const poolRaw = String(env.FUNDED_DEVNET_QA_HOLDER_POOL_MIN_USD || '');
+  if (!/^(?:0\.\d{1,2}|[1-9]\d?(?:\.\d{1,2})?)$/.test(poolRaw))
+    throw new Error('FUNDED_DEVNET_QA_HOLDER_POOL_MIN_USD must use at most two decimal places.');
+  const poolCents = Math.round(Number(poolRaw) * 100);
+  if (poolCents < 10 || poolCents > 1999)
+    throw new Error('FUNDED_DEVNET_QA_HOLDER_POOL_MIN_USD is outside the bounded Devnet QA range.');
   return {
     minimumHolderUsd:integer('FUNDED_DEVNET_QA_HOLDER_MIN_USD', 1, 19),
-    minimumPoolUsd:integer('FUNDED_DEVNET_QA_HOLDER_POOL_MIN_USD', 1, 19),
+    minimumPoolUsd:poolCents / 100,
     minimumFundingLamports:integer('FUNDED_DEVNET_QA_HOLDER_MIN_LAMPORTS', 1_000_000, 9_999_999),
   };
 }

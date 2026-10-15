@@ -13,11 +13,11 @@ const standard = 10_000_000n;
 test('hourly QA holder minimums are bounded to one Devnet mint and persist on the program', async () => {
   const env = { FUNDED_DEVNET_QA_MINIMUMS_ENABLED:'true',
     FUNDED_DEVNET_QA_HOLDER_MINT:mint, FUNDED_DEVNET_QA_HOLDER_MIN_USD:'1',
-    FUNDED_DEVNET_QA_HOLDER_POOL_MIN_USD:'1',
+    FUNDED_DEVNET_QA_HOLDER_POOL_MIN_USD:'0.50',
     FUNDED_DEVNET_QA_HOLDER_MIN_LAMPORTS:'1000000' };
   const minimums = qaHolderMinimums(mint, 'devnet', env);
   assert.deepEqual(minimums, { minimumHolderUsd:1,
-    minimumPoolUsd:1, minimumFundingLamports:1_000_000 });
+    minimumPoolUsd:0.5, minimumFundingLamports:1_000_000 });
   assert.equal(qaHolderMinimums('another-mint', 'devnet', env), null);
   assert.equal(qaHolderMinimums(mint, 'devnet', { ...env,
     FUNDED_DEVNET_QA_MINIMUMS_ENABLED:'false' }), null);
@@ -26,6 +26,9 @@ test('hourly QA holder minimums are bounded to one Devnet mint and persist on th
     FUNDED_DEVNET_QA_HOLDER_MIN_USD:'0' }), /positive integer/);
   assert.throws(() => qaHolderMinimums(mint, 'devnet', { ...env,
     FUNDED_DEVNET_QA_HOLDER_MIN_LAMPORTS:'10000000' }), /bounded Devnet QA range/);
+  for (const pool of ['0.09', '20', '0.501', '-0.5'])
+    assert.throws(() => qaHolderMinimums(mint, 'devnet', { ...env,
+      FUNDED_DEVNET_QA_HOLDER_POOL_MIN_USD:pool }), /POOL_MIN_USD/);
   const config = { mint, periodSeconds:3600, eligibilityPolicy:QA_HOLDER_POLICY,
     qaMinimums:minimums };
   assert.equal(holderFundingMinimumLamports(config, { SOLANA_CLUSTER:'devnet' }), 1_000_000n);
@@ -34,7 +37,7 @@ test('hourly QA holder minimums are bounded to one Devnet mint and persist on th
     source:'verified-test-quote', observedAt:new Date().toISOString() };
   const wallet = '11111111111111111111111111111111';
   assert.deepEqual([...holderUsdEligibility(quote, [{ wallet, balance:'50000000' }], [], 1).eligible], [wallet]);
-  assert.equal(holderPoolMinimumLamports(config, quote, 1, { SOLANA_CLUSTER:'devnet' }), 5_050_000n);
+  assert.equal(holderPoolMinimumLamports(config, quote, 1, { SOLANA_CLUSTER:'devnet' }), 2_550_000n);
   const oldCluster = process.env.SOLANA_CLUSTER;
   process.env.SOLANA_CLUSTER = 'devnet';
   try {
@@ -67,7 +70,7 @@ test('a verified small Devnet pool prepares only under the selected hourly QA po
   try {
     const start = Math.floor(Date.now() / 3_600_000) * 3600 - 3600;
     const wallet = '11111111111111111111111111111111';
-    const minimums = { minimumHolderUsd:1, minimumPoolUsd:1,
+    const minimums = { minimumHolderUsd:1, minimumPoolUsd:0.5,
       minimumFundingLamports:1_000_000 };
     const quote = { tokenPriceUsd:0.02, solUsd:200, decimals:6,
       source:'verified-test-quote', observedAt:new Date().toISOString() };
@@ -89,7 +92,7 @@ test('a verified small Devnet pool prepares only under the selected hourly QA po
     const row = state.schedules[`${mint}:${start}:holder:SOL`];
     assert.equal(row.status, 'prepared', row.reason);
     assert.equal(row.eligibility.policy, QA_HOLDER_POLICY);
-    assert.equal(row.eligibility.minimumPoolLamports, '5050000');
+    assert.equal(row.eligibility.minimumPoolLamports, '2550000');
     assert.deepEqual(row.manifest.leaves.map(leaf => leaf.recipient), [wallet]);
     const normal = structuredClone(base);
     normal.programs[mint].eligibilityPolicy = 'usd-20-hourly-v1';
