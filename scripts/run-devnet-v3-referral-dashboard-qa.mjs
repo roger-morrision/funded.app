@@ -5,6 +5,8 @@ import nacl from 'tweetnacl';
 import { chromium, expect } from '@playwright/test';
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction,
   VersionedTransaction, sendAndConfirmTransaction } from '@solana/web3.js';
+import { createAssociatedTokenAccountInstruction, createTransferCheckedInstruction,
+  getAccount, getAssociatedTokenAddressSync, getMint } from '@solana/spl-token';
 import { buildTradeTransaction } from '../pump-trading.js';
 import { DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
 import { quoteAtomicReserveBuy } from '../launch-community-reserve.js';
@@ -13,16 +15,28 @@ import { buildFeeDistributionPolicy } from '../distribution-policy.js';
 import { launchPolicyStatement } from '../launch-policy-auth.js';
 import { devnetMetadataUri, metadataStatement } from '../devnet-metadata.js';
 import { formatReferralLamports } from '../referral-amount.js';
+import { buildLaunchBurnPolicy, createLaunchBurnTiers } from '../launch-burn-policy.js';
 
 // One-shot Devnet QA. All newly generated wallet keys stay in this process.
-assert.equal(process.argv[2], '--execute', 'Pass --execute for bounded Devnet QA.');
+assert(['--preflight', '--execute'].includes(process.argv[2]),
+  'Pass --preflight for read-only checks or --execute for bounded Devnet QA.');
+const execute = process.argv[2] === '--execute';
+const promotion = process.argv.includes('--promotion');
 const base = 'https://funded.vip';
 const programId = '9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
 const authorityAddress = '7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y';
 const feeOwner = new PublicKey('CmhmRtKYExJC76R5nsPV9ovPYacoEQFEL7VhaKRZmLy2');
-const issuer = Keypair.fromSecretKey(bs58.decode(readFileSync('.secrets/solana-devnet-creator-secret-key', 'utf8').trim()));
+const issuer = Keypair.fromSecretKey(bs58.decode(promotion
+  ? process.env.SOLANA_DEVNET_REFERRER_SECRET_KEY
+  : readFileSync('.secrets/solana-devnet-creator-secret-key', 'utf8').trim()));
+const promotionSponsor = promotion
+  ? Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CLAIMANT_SECRET_KEY)) : null;
 const authority = Keypair.fromSecretKey(bs58.decode(readFileSync('.secrets/funded-router-authority-secret-key', 'utf8').trim()));
-assert.equal(issuer.publicKey.toBase58(), '8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk');
+assert.equal(issuer.publicKey.toBase58(), promotion
+  ? '7ngaVZdeipr6uZy2inh267PjZLLYFuAfsPoTRZixjJMk'
+  : '8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk');
+if (promotion) assert.equal(promotionSponsor.publicKey.toBase58(),
+  'Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7');
 assert.equal(authority.publicKey.toBase58(), authorityAddress);
 const connection = new Connection(readFileSync('.secrets/solana-devnet-rpc-url', 'utf8').trim(), 'finalized');
 assert.equal(await connection.getGenesisHash(), DEVNET_GENESIS_HASH);
@@ -36,10 +50,37 @@ assert.equal(reserveConfig.programId, programId);
 const quote = await quoteAtomicReserveBuy({ connection, supply:1_000_000_000,
   decimals:6, reserveTokens:30_000_000, developerBaseUnits:0n });
 assert(quote.maxSolAmountLamports <= 1_000_000_000n, 'QA community reserve buy exceeds 1 SOL.');
-assert((await connection.getBalance(issuer.publicKey, 'finalized')) > 1_500_000_000,
-  'Disposable issuer needs more than 1.5 Devnet SOL before funding a QA creator.');
+assert((await connection.getBalance(issuer.publicKey, 'finalized'))
+  > (promotion ? 500_000_000 : 1_500_000_000),
+  'Disposable issuer lacks the bounded Devnet SOL reserve.');
 assert((await connection.getBalance(authority.publicKey, 'finalized')) > 250_000_000,
   'Disposable trade authority needs more than 0.25 Devnet SOL.');
+if (!execute) {
+  let proAmountTokens = null;
+  let sponsorBalanceTokens = null;
+  if (promotion) {
+    const pricing = await (await fetch(`${base}/api/launch-tier-quote`,
+      { signal:AbortSignal.timeout(15_000) })).json();
+    proAmountTokens = pricing.amounts?.pro;
+    assert(Number.isSafeInteger(proAmountTokens) && proAmountTokens > 0
+      && proAmountTokens <= 20_000, 'The Pro QA burn exceeds the 20,000 $FUNDED cap.');
+    const fundedMint = new PublicKey(process.env.VITE_FUNDED_TOKEN_MINT);
+    const fundedAccount = await getAccount(connection,
+      getAssociatedTokenAddressSync(fundedMint, promotionSponsor.publicKey), 'finalized');
+    const mintAccount = await getMint(connection, fundedMint, 'finalized');
+    sponsorBalanceTokens = Number(fundedAccount.amount) / 10 ** mintAccount.decimals;
+    assert(sponsorBalanceTokens >= proAmountTokens, 'QA sponsor lacks the quoted $FUNDED.');
+    const xResponse = await fetch(`${base}/api/x/resolve?handle=%40JohnTrand83`,
+      { signal:AbortSignal.timeout(15_000) });
+    assert(xResponse.ok && (await xResponse.json()).id, 'QA X handle lookup is unavailable.');
+  }
+  console.log(JSON.stringify({ stage:'read-only-preflight', promotion,
+    programId, creatorFundingSol:promotion ? 0.3 : 1.1,
+    reserveMaxSol:Number(quote.maxSolAmountLamports) / 1e9,
+    proAmountTokens, sponsorBalanceTokens, v3Ready:config.ready,
+    communityReserveReady:Boolean(reserveConfig.lookupTable) }));
+  process.exit(0);
+}
 const token = readFileSync('.secrets/funded-api-token', 'utf8').trim();
 async function post(path, input, authorized = false) {
   const response = await fetch(`${base}${path}`, { method:'POST',
@@ -53,15 +94,53 @@ async function post(path, input, authorized = false) {
 const sign = (message, wallet) => bs58.encode(nacl.sign.detached(new TextEncoder().encode(message), wallet.secretKey));
 const creator = Keypair.generate();
 const referrers = Array.from({ length:3 }, () => Keypair.generate());
+let launchBurn = null;
+let fundedBefore = null;
+let fundedAta = null;
+if (promotion) {
+  const fundedMint = new PublicKey(process.env.VITE_FUNDED_TOKEN_MINT);
+  const quote = await post('/api/launch-tier-quote', { tier:'pro',
+    payer:creator.publicKey.toBase58() });
+  assert.equal(quote.tier, 'pro');
+  assert.equal(quote.fundedMint, fundedMint.toBase58());
+  assert(Number.isSafeInteger(quote.amountTokens) && quote.amountTokens > 0
+    && quote.amountTokens <= 20_000, 'Pro QA burn exceeds the 20,000 $FUNDED cap.');
+  launchBurn = { ...buildLaunchBurnPolicy({ tierId:'pro',
+    fundedMint:fundedMint.toBase58(), tiers:createLaunchBurnTiers() }),
+    amountTokens:quote.amountTokens, quoteId:quote.id };
+  const fundedMintAccount = await getMint(connection, fundedMint, 'finalized');
+  const sponsorAta = getAssociatedTokenAddressSync(fundedMint, promotionSponsor.publicKey);
+  fundedAta = getAssociatedTokenAddressSync(fundedMint, creator.publicKey);
+  const sponsorAccount = await getAccount(connection, sponsorAta, 'finalized');
+  const units = BigInt(quote.amountTokens) * 10n ** BigInt(fundedMintAccount.decimals);
+  assert(sponsorAccount.amount >= units, 'Disposable promotion sponsor lacks $FUNDED.');
+  fundedBefore = { mint:fundedMint, supply:fundedMintAccount.supply, units,
+    decimals:fundedMintAccount.decimals, sponsorAta };
+  console.error(JSON.stringify({ stage:'pro-quote-verified', quoteId:quote.id,
+    burnAmountTokens:quote.amountTokens, creator:creator.publicKey.toBase58() }));
+}
 const rent = await connection.getMinimumBalanceForRentExemption(0, 'finalized');
 const fundingSignature = await sendAndConfirmTransaction(connection,
   new Transaction().add(SystemProgram.transfer({ fromPubkey:issuer.publicKey,
-    toPubkey:creator.publicKey, lamports:1_100_000_000 }),
+    toPubkey:creator.publicKey, lamports:promotion ? 300_000_000 : 1_100_000_000 }),
   ...referrers.map(wallet => SystemProgram.transfer({ fromPubkey:issuer.publicKey,
     toPubkey:wallet.publicKey, lamports:rent + 100_000 }))),
   [issuer], { commitment:'finalized' });
 console.error(JSON.stringify({ stage:'disposable-wallets-funded', fundingSignature,
   creator:creator.publicKey.toBase58(), referrers:referrers.map(wallet => wallet.publicKey.toBase58()) }));
+if (promotion) {
+  const transferSignature = await sendAndConfirmTransaction(connection,
+    new Transaction().add(
+      createAssociatedTokenAccountInstruction(promotionSponsor.publicKey, fundedAta,
+        creator.publicKey, fundedBefore.mint),
+      createTransferCheckedInstruction(fundedBefore.sponsorAta, fundedBefore.mint,
+        fundedAta, promotionSponsor.publicKey, fundedBefore.units,
+        fundedBefore.decimals)), [promotionSponsor], { commitment:'finalized' });
+  const received = await getAccount(connection, fundedAta, 'finalized');
+  assert.equal(received.amount, fundedBefore.units);
+  console.error(JSON.stringify({ stage:'pro-burn-wallet-funded', transferSignature,
+    amountTokens:launchBurn.amountTokens }));
+}
 const codes = [];
 for (const wallet of referrers) {
   const challenge = await post('/api/referrals/registration/prepare', { wallet:wallet.publicKey.toBase58() });
@@ -84,7 +163,12 @@ for (const [child, code, parent] of [
 }
 console.error(JSON.stringify({ stage:'disposable-upline-recorded', creator:creator.publicKey.toBase58() }));
 const suffix = Date.now().toString(36).slice(-6);
-const name = `Funded Referral QA ${suffix}`, symbol = 'FRQA';
+const name = promotion ? `Funded Pro QA ${suffix}` : `Funded Referral QA ${suffix}`;
+const symbol = promotion ? 'FPQA' : 'FRQA';
+const xHandle = '@JohnTrand83';
+const xIdentity = promotion ? await (await fetch(`${base}/api/x/resolve?handle=${encodeURIComponent(xHandle)}`)).json() : null;
+if (promotion) assert(xIdentity?.id && xIdentity.handle.toLowerCase() === xHandle.toLowerCase(),
+  'The consenting QA X handle could not be resolved.');
 const launch = await submitPumpDevnetLaunch({ connection, payer:creator.publicKey,
   provider:{ signTransaction:async tx => {
     if (tx instanceof VersionedTransaction) tx.sign([creator]); else tx.partialSign(creator);
@@ -95,10 +179,12 @@ const launch = await submitPumpDevnetLaunch({ connection, payer:creator.publicKe
     maxInitialBuyLamports:quote.maxSolAmountLamports },
   feeRouterProgramId:programId, useMintRouter:true,
   v3FeeRouter:{ programId, initialAuthority:authorityAddress, split:config.protocolSplit },
+  launchBurn,
   reserveConfig,
   prepareMetadata:async ({ mint }) => {
     const record = { mint, creatorWallet:creator.publicKey.toBase58(), name, symbol,
-      description:'Disposable Devnet referral dashboard test token. No monetary value.',
+      description:promotion ? 'Disposable Devnet Pro promotion and payout test token. No monetary value.'
+        : 'Disposable Devnet referral dashboard test token. No monetary value.',
       tagline:'Referral QA', roadmap:'', website:'', x:'', telegram:'', discord:'', imageSha256:'' };
     const saved = await post('/api/devnet-metadata', { ...record,
       imageBase64:'', imageType:'', signature:sign(metadataStatement(record), creator) });
@@ -112,10 +198,21 @@ const launch = await submitPumpDevnetLaunch({ connection, payer:creator.publicKe
 });
 const mint = (launch.mint.publicKey || launch.mint).toBase58();
 console.error(JSON.stringify({ stage:'v3-qa-launch-finalized', mint, signature:launch.signature }));
-const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent:80,
-  holderAirdropPercent:0, solClaimPercent:0, feeRouterAddress:launch.feeRouter.toBase58() });
+if (promotion) {
+  assert.equal(launch.launchBurnReceipt?.verified, true);
+  assert.equal(launch.launchBurnReceipt?.atomicWithPumpLaunch, true);
+  const after = await getMint(connection, fundedBefore.mint, 'finalized');
+  assert(fundedBefore.supply - after.supply >= fundedBefore.units,
+    'The Pro burn did not reduce finalized $FUNDED supply.');
+}
+const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent:promotion ? 60 : 80,
+  holderAirdropPercent:promotion ? 10 : 0,
+  solClaimPercent:promotion ? 10 : 0,
+  xRecipient:promotion ? xHandle : '', feeRouterAddress:launch.feeRouter.toBase58() });
 const policy = { mint, chain:'solana', cluster:'devnet', signature:launch.signature,
   creatorWallet:creator.publicKey.toBase58(), communityAllocation:3,
+  ...(promotion ? { xUserId:String(xIdentity.id),
+    creatorLaunchBurn:{ ...launchBurn, status:'verified', receipt:launch.launchBurnReceipt } } : {}),
   feeDistribution, pumpFeeRoute:{ router:launch.feeRouter.toBase58(),
     scope:'per-mint-v3', transaction:launch.signature, programId,
     initialAuthority:authorityAddress, protocolSplit:config.protocolSplit } };
@@ -123,6 +220,7 @@ const registered = await post('/api/launches', { ...policy,
   policySignature:sign(launchPolicyStatement(policy), creator) });
 assert(registered.onchainVerified && registered.pumpFeeRoute?.scope === 'per-mint-v3');
 assert(registered.communityReserve?.verified);
+if (promotion) assert.equal(registered.creatorLaunchBurn?.tier, 'pro');
 console.error(JSON.stringify({ stage:'v3-qa-launch-registered', mint }));
 const attributionCompletedAt = Math.floor(Date.now() / 1000);
 let chainCaughtUp = false;
@@ -153,6 +251,17 @@ const settlement = await creatorSigned(`/api/tokens/${mint}/v3-settlement/${coll
 assert.equal(settlement.status, 'finalized');
 assert.deepEqual(settlement.referralUpline, referrers.map(wallet => wallet.publicKey.toBase58()));
 console.error(JSON.stringify({ stage:'v3-qa-settlement-finalized', signature:settlement.settlementSignature }));
+const categoryPayouts = [];
+if (promotion) {
+  for (const kind of ['creator-wallet-payout', 'community-funding', 'creator-reward-funding']) {
+    const path = `/api/tokens/${mint}/v3-${kind}/${collected.signature}`;
+    const funded = await creatorSigned(path);
+    assert(funded.status === 'finalized' && funded.balanceDeltaVerified);
+    categoryPayouts.push({ kind, signature:funded.signature,
+      amountLamports:funded.amount, recipient:funded.recipient });
+    console.error(JSON.stringify({ stage:'v3-category-finalized', ...categoryPayouts.at(-1) }));
+  }
+}
 const payouts = [];
 const browser = await chromium.launch({ headless:true });
 try {
@@ -236,5 +345,7 @@ for (const [index, wallet] of referrers.entries()) {
 } finally { await browser.close(); }
 console.log(JSON.stringify({ status:'finalized-v3-referral-private-dashboard', mint,
   launchSignature:launch.signature, tradeSignature, collectionSignature:collected.signature,
-  settlementSignature:settlement.settlementSignature, payouts }, null, 2));
+  settlementSignature:settlement.settlementSignature, promotion:promotion ? 'pro' : null,
+  xHandle:promotion ? xHandle : null, xUserId:promotion ? String(xIdentity.id) : null,
+  categoryPayouts, payouts }, null, 2));
 process.exit(0);
