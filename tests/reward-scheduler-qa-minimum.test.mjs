@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createRewardScheduler, holderFundingMinimumLamports } from '../server/reward-scheduler.mjs';
+import { PublicKey } from '@solana/web3.js';
+import { bondingCurvePda } from '@pump-fun/pump-sdk';
+import { createRewardScheduler, holderFundingMinimumLamports,
+  holderPoolMinimumLamports, holderUsdEligibility } from '../server/reward-scheduler.mjs';
 
 const mint = 'FWmi66ecpuAYkcpjT86i2RsBKZhm2cJdnKXqcoreW8DH';
 const qa = { SOLANA_CLUSTER:'devnet', FUNDED_QA_SHORT_REWARD_PERIODS:'true', FUNDED_QA_HOLDER_MINT:mint, FUNDED_QA_HOLDER_MIN_LAMPORTS:'800000' };
@@ -12,6 +15,74 @@ test('the short-period Devnet test can lower only its selected mint minimum', ()
   assert.equal(holderFundingMinimumLamports({mint, periodSeconds:86400}, qa), standard);
   assert.equal(holderFundingMinimumLamports({mint, periodSeconds:300}, {...qa, SOLANA_CLUSTER:'mainnet-beta'}), standard);
   assert.equal(holderFundingMinimumLamports({mint, periodSeconds:300}, {...qa, FUNDED_QA_SHORT_REWARD_PERIODS:'false'}), standard);
+});
+
+test('hourly holder policy requires priced closing balances and a pool that covers the cost allowance', async () => {
+  const large = '11111111111111111111111111111111';
+  const small = '22222222222222222222222222222222';
+  const curveWallet = bondingCurvePda(new PublicKey(mint)).toBase58();
+  const quote = { tokenPriceUsd:0.02, solUsd:200, decimals:6,
+    source:'verified-test-quote', observedAt:new Date().toISOString() };
+  const eligible = holderUsdEligibility(quote, [
+    { wallet:large, balance:'2000000000' },
+    { wallet:small, balance:'500000000' },
+    { wallet:'pool', balance:'9000000000' },
+  ], ['pool']);
+  assert.deepEqual([...eligible.eligible], [large]);
+  assert.equal(eligible.minimumTokenUnits, '1000000000');
+  assert.equal(holderPoolMinimumLamports({ mint, periodSeconds:3600 }, quote, 1),
+    100_050_000n);
+  assert.throws(() => holderUsdEligibility(null, [], []), /fresh verified token price/);
+
+  const start = Math.floor(Date.now() / 3_600_000) * 3600 - 3600;
+  const state = { programs:{ [mint]:{ mint, asset:'SOL', kind:'holder', enabled:true,
+      periodSeconds:3600, sampleIntervalSeconds:1800, payoutDelaySeconds:0,
+      activatedAt:start, firstPeriodStart:start,
+      eligibilityPolicy:'usd-20-hourly-v1', excludedWallets:[] } },
+    schedules:{}, rewardPools:{ pool:{ id:'pool', mint, asset:'SOL', status:'available',
+      amount:'120000000', fundedAt:start+100, balanceDeltaVerified:true } },
+    holderSnapshots:{ [mint]:[start,start+1800,start+3599].map((at, index) => ({
+      at, slot:index+1, finalized:true, accounts:[
+        { account:'large', wallet:large, balance:'2000000000' },
+        { account:'small', wallet:small, balance:'500000000' },
+        { account:'curve', wallet:curveWallet, balance:'9000000000' },
+      ] })) } };
+  const noPrice = structuredClone(state);
+  await createRewardScheduler({ store:{ read:async () => structuredClone(noPrice),
+    transaction:async callback => callback(noPrice) }, indexer:{}, chain:{},
+    quoteReader:async () => null }).prepare(start+3600);
+  assert.equal(noPrice.schedules[`${mint}:${start}:holder:SOL`].status, 'blocked');
+  assert.equal(noPrice.rewardPools.pool.status, 'available');
+  const store = { read:async () => structuredClone(state),
+    transaction:async callback => callback(state) };
+  await createRewardScheduler({ store, indexer:{}, chain:{},
+    quoteReader:async () => quote }).prepare(start+3600);
+  const row = state.schedules[`${mint}:${start}:holder:SOL`];
+  assert.equal(row.status, 'prepared', row.reason);
+  assert.deepEqual(row.manifest.leaves.map(leaf => leaf.recipient), [large]);
+  assert.equal(row.eligibility.minimumPoolLamports, '100050000');
+  assert.equal(row.eligibility.eligibleCount, 1);
+});
+
+test('hourly migration skips only unfinished daily periods and preserves prepared payouts', async () => {
+  const now = Math.floor(Date.now() / 3600000) * 3600;
+  const daily = { mint, asset:'SOL', kind:'holder', enabled:true,
+    periodSeconds:86400, sampleIntervalSeconds:300, payoutDelaySeconds:3600,
+    activatedAt:now-86400, firstPeriodStart:now-86400, excludedWallets:[] };
+  const state = { programs:{ [mint]:daily }, schedules:{
+    pending:{ mint, kind:'holder', periodStart:now-86400, cutoffAt:now,
+      status:'indexing', payments:{} },
+    prepared:{ mint, kind:'holder', periodStart:now-86400, cutoffAt:now,
+      status:'prepared', manifest:{ leaves:[{ recipient:'wallet', amount:'1' }] },
+      payments:{} },
+  } };
+  await createRewardScheduler({ store:{ transaction:async callback => callback(state) },
+    indexer:{}, chain:{} }).register({ ...daily, periodSeconds:3600,
+    payoutDelaySeconds:0, firstPeriodStart:now+3600,
+    eligibilityPolicy:'usd-20-hourly-v1' });
+  assert.equal(state.programs[mint].periodSeconds, 3600);
+  assert.equal(state.schedules.pending.status, 'skipped');
+  assert.equal(state.schedules.prepared.status, 'prepared');
 });
 
 test('an enabled Devnet QA override rejects missing or unsafe amounts', () => {

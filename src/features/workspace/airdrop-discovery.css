@@ -36,6 +36,11 @@ body.page-route-airdrops #airdrops .holder-airdrop-info a { display:block; overf
 body.page-route-airdrops #airdrops .holder-airdrop-row small { display:block; margin-top:5px; color:#97a7bb; font:10px/1.5 'DM Mono',monospace; }
 body.page-route-airdrops #airdrops .holder-airdrop-amount strong { display:block; color:#e2eaf5; font:12px/1.6 'DM Mono',monospace; }
 body.page-route-airdrops #airdrops .holder-airdrop-link { color:#ffdc79; font-size:11px; text-align:right; text-decoration:none; }
+body.page-route-airdrops #airdrops .holder-reward-top-wallets { grid-column:1 / -1; border-top:1px solid #30394b; padding-top:12px; }
+body.page-route-airdrops #airdrops .holder-reward-top-wallets > strong { display:block; margin-bottom:8px; color:#e3eaf5; font-size:11px; }
+body.page-route-airdrops #airdrops .holder-reward-top-wallets ol { margin:0; padding:0; list-style:none; display:grid; gap:5px; }
+body.page-route-airdrops #airdrops .holder-reward-top-wallets li { display:grid; grid-template-columns:minmax(90px,1fr) minmax(110px,.6fr) 80px; gap:12px; color:#aebdd0; font:11px/1.5 'DM Mono',monospace; }
+body.page-route-airdrops #airdrops .holder-reward-top-wallets li a { color:#ffdc79; text-decoration:none; text-align:right; }
 body.page-route-airdrops #airdrops .airdrop-public-programs :is(button,input,a):focus-visible { outline:2px solid #ffdc79; outline-offset:3px; }
 @media(max-width:1000px) {
   body.page-route-airdrops #airdrops .airdrop-public-programs .airdrop-directory-card { grid-template-columns:1fr 1fr; }

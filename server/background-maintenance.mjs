@@ -4,6 +4,7 @@ import { pruneShareVisits } from './share-visits.mjs';
 import { createAutomaticRewardChain, DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
 import { createHolderHistoryIndexer } from './holder-history-indexer.mjs';
 import { createRewardScheduler } from './reward-scheduler.mjs';
+import { createHolderRewardQuoteReader } from './holder-reward-quote.mjs';
 
 // The first cleanup must finish before the HTTP server starts accepting requests.
 export async function startShareVisitCleanup({ store, scheduleInterval = setInterval, logger = console }) {
@@ -69,12 +70,35 @@ export function startV3HolderRewardWorker({ solanaCluster, solanaRpcUrl,
   const indexer = createHolderHistoryIndexer({ connection:holderConnection,
     store:automaticRewardStore, rpcUrl:holderRpcUrl,
     expectedGenesisHash:DEVNET_GENESIS_HASH });
-  const scheduler = createRewardScheduler({ store:automaticRewardStore, chain, indexer });
+  const scheduler = createRewardScheduler({ store:automaticRewardStore, chain, indexer,
+    quoteReader:createHolderRewardQuoteReader({ connection:holderConnection, env }) });
+  const migrateFundedV3Programs = async () => {
+    const state = await automaticRewardStore.read();
+    const fundedMints = new Set(Object.values(state.rewardPools || {})
+      .filter(pool => String(pool.id).startsWith('v3:') && pool.asset === 'SOL')
+      .map(pool => pool.mint));
+    for (const config of Object.values(state.programs || {})) {
+      if (!fundedMints.has(config.mint) || config.asset !== 'SOL') continue;
+      const shortQa = env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true'
+        && env.FUNDED_QA_HOLDER_MINT === config.mint && config.periodSeconds === 300;
+      const periodSeconds = shortQa ? 300 : 3600;
+      if (config.periodSeconds === periodSeconds
+        && config.eligibilityPolicy === 'usd-20-hourly-v1') continue;
+      const now = Math.floor(Date.now() / 1000);
+      await scheduler.register({ ...config, periodSeconds,
+        sampleIntervalSeconds:300, payoutDelaySeconds:0,
+        eligibilityPolicy:'usd-20-hourly-v1',
+        firstPeriodStart:config.periodSeconds === periodSeconds
+          ? config.firstPeriodStart
+          : Math.ceil(now / periodSeconds) * periodSeconds });
+    }
+  };
   let running = false;
   const tick = async () => {
     if (running) return;
     running = true;
     try {
+      await migrateFundedV3Programs();
       const result = await scheduler.tick();
       logger.log(JSON.stringify({ event:'v3_holder_reward_tick',
         status:result.status, submitted:result.submitted,

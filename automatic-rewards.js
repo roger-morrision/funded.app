@@ -1,8 +1,10 @@
 // Versioned separately from existing immutable launch policies.
 export const AUTOMATIC_REWARDS = Object.freeze({
-  version: 2, holderAsset: 'SOL', periodSeconds: 86400, sampleIntervalSeconds: 300,
-  cutoffUtc: '00:00 UTC', payoutUtc: '01:00 UTC',
-  minimumLamports: '10000000', referralDelivery: 'manual-claim',
+  version: 3, holderAsset: 'SOL', periodSeconds: 3600, sampleIntervalSeconds: 300,
+  cutoffUtc: 'every UTC hour', payoutUtc: 'after each finalized hourly cutoff',
+  minimumLamports: '10000000', minimumHolderUsd: 20, minimumPoolUsd: 20,
+  costReserveUsdPerHolder: 0.01, maxEligibleHolders: 1000,
+  referralDelivery: 'manual-claim',
   holderDelivery: 'automatic', airdropAsset: 'launched-token',
   airdropEligibility: '$FUNDED', feeBudget: 'operations',
 });

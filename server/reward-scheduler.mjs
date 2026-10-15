@@ -4,6 +4,7 @@ import { snapshotsForPeriod } from './holder-history-indexer.mjs';
 import { createHash } from 'node:crypto';
 import { NATIVE_MINT } from '@solana/spl-token';
 import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
+import { bondingCurvePda } from '@pump-fun/pump-sdk';
 import { PublicKey } from '@solana/web3.js';
 
 function excludedHolderWallets(mint, configured = []) {
@@ -12,12 +13,63 @@ function excludedHolderWallets(mint, configured = []) {
   try { mintKey = new PublicKey(mint); }
   catch { return [...excluded].sort(); /* Unit fixtures may use non-address mint labels. */ }
   excluded.add(canonicalPumpPoolPda(mintKey, NATIVE_MINT).toBase58());
+  excluded.add(bondingCurvePda(mintKey).toBase58());
   return [...excluded].sort();
 }
 
 function requireUnits(value, label) {
   if (typeof value !== 'string' || !/^\d+$/.test(value) || BigInt(value) <= 0n) throw new Error(`${label} must be a positive integer string.`);
   return value;
+}
+
+function positiveDecimalRatio(value, label) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) throw new Error(`${label} is unavailable.`);
+  const match = /^(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/i.exec(String(numeric));
+  if (!match) throw new Error(`${label} is invalid.`);
+  const fraction = match[2] || '';
+  const exponent = Number(match[3] || 0) - fraction.length;
+  if (Math.abs(exponent) > 100) throw new Error(`${label} is outside the supported range.`);
+  const digits = BigInt(match[1] + fraction);
+  return exponent >= 0 ? { numerator:digits * 10n ** BigInt(exponent), denominator:1n }
+    : { numerator:digits, denominator:10n ** BigInt(-exponent) };
+}
+
+const ceilDiv = (numerator, denominator) => (numerator + denominator - 1n) / denominator;
+
+export function holderUsdEligibility(quote, closingAccounts, excludedWallets = []) {
+  const price = Number(quote?.tokenPriceUsd), decimals = Number(quote?.decimals);
+  if (!Number.isFinite(price) || price <= 0 || !Number.isInteger(decimals)
+    || decimals < 0 || decimals > 18 || !Number.isFinite(Date.parse(quote?.observedAt))
+    || Math.abs(Date.now() - Date.parse(quote.observedAt)) > 5 * 60_000)
+    throw new Error('A fresh verified token price is required for holder eligibility.');
+  const ratio = positiveDecimalRatio(price, 'Token price');
+  const rawMinimum = ceilDiv(BigInt(AUTOMATIC_REWARDS.minimumHolderUsd)
+    * 10n ** BigInt(decimals) * ratio.denominator, ratio.numerator);
+  if (rawMinimum <= 0n || rawMinimum > (1n << 64n) - 1n)
+    throw new Error('Token price is too small to calculate the holder minimum safely.');
+  const excluded = new Set(excludedWallets);
+  const eligible = new Set((closingAccounts || []).filter(row => !excluded.has(row.wallet)
+    && BigInt(row.balance) >= rawMinimum).map(row => row.wallet));
+  if (eligible.size > AUTOMATIC_REWARDS.maxEligibleHolders)
+    throw new Error('Eligible holder count exceeds the configured distribution limit.');
+  return { eligible, minimumTokenUnits:String(rawMinimum) };
+}
+
+export function holderPoolMinimumLamports(config, quote, recipientCount, env = process.env) {
+  const base = holderFundingMinimumLamports(config, env);
+  const solUsd = Number(quote?.solUsd);
+  if (!Number.isFinite(solUsd) || solUsd <= 0)
+    throw new Error('A fresh SOL/USD quote is required for the holder pool minimum.');
+  if (!Number.isSafeInteger(recipientCount) || recipientCount < 0
+    || recipientCount > AUTOMATIC_REWARDS.maxEligibleHolders)
+    throw new Error('Eligible holder count exceeds the configured distribution limit.');
+  const ratio = positiveDecimalRatio(solUsd, 'SOL/USD quote');
+  const cents = BigInt(Math.round(AUTOMATIC_REWARDS.minimumPoolUsd * 100))
+    + BigInt(recipientCount) * BigInt(Math.round(AUTOMATIC_REWARDS.costReserveUsdPerHolder * 100));
+  const converted = ceilDiv(cents * 1_000_000_000n * ratio.denominator,
+    100n * ratio.numerator);
+  return converted > base ? converted : base;
 }
 
 function devnetQaShortWindow(config, env = process.env) {
@@ -48,6 +100,7 @@ function programConfig(input) {
   return {
     mint: String(input.mint), enabled: input.enabled !== false, asset: String(input.asset || 'SOL'), kind: 'holder',
     periodSeconds, sampleIntervalSeconds, payoutDelaySeconds, activatedAt, firstPeriodStart,
+    eligibilityPolicy: input.eligibilityPolicy || null,
     excludedWallets: excludedHolderWallets(input.mint, input.excludedWallets || []),
     updatedAt: new Date().toISOString(),
   };
@@ -64,13 +117,27 @@ function publicSchedule(row) {
   return { id: row.id, mint: row.mint, asset: row.asset, kind: row.kind, periodStart: row.periodStart, cutoffAt: row.cutoffAt, payoutAt: row.payoutAt, status: row.status, reason: row.reason || null, recipientCount: row.manifest?.leaves?.length || 0, totalAmount: row.manifest?.totalAmount || null, cycle: row.cycle || null, paidCount: Object.values(row.payments || {}).filter(item => item.status === 'paid').length };
 }
 
-export function createRewardScheduler({ store, indexer, chain }) {
+export function createRewardScheduler({ store, indexer, chain, quoteReader = null }) {
   async function register(input) {
     return store.transaction(state => {
       state.programs ||= {};
       const prior = state.programs[String(input.mint)];
       const inferredActivation = Number.isFinite(Date.parse(prior?.updatedAt)) ? Math.floor(Date.parse(prior.updatedAt) / 1000) : undefined;
-      const config = programConfig({ ...input, activatedAt:input.activatedAt ?? prior?.activatedAt ?? inferredActivation, firstPeriodStart:input.firstPeriodStart ?? prior?.firstPeriodStart });
+      const config = programConfig({ ...input,
+        eligibilityPolicy:input.eligibilityPolicy ?? prior?.eligibilityPolicy,
+        activatedAt:input.activatedAt ?? prior?.activatedAt ?? inferredActivation,
+        firstPeriodStart:input.firstPeriodStart ?? prior?.firstPeriodStart });
+      if (prior && prior.periodSeconds !== config.periodSeconds) {
+        state.schedules ||= {};
+        for (const schedule of Object.values(state.schedules)) {
+          if (schedule.mint !== config.mint || schedule.kind !== 'holder'
+            || schedule.cutoffAt - schedule.periodStart === config.periodSeconds
+            || schedule.manifest || schedule.cycle
+            || !['indexing', 'blocked', 'deferred'].includes(schedule.status)) continue;
+          schedule.status = 'skipped';
+          schedule.reason = 'Hourly policy replaced this unprepared period; verified funding rolls forward.';
+        }
+      }
       state.programs[config.mint] = config;
       return structuredClone(config);
     });
@@ -138,6 +205,24 @@ export function createRewardScheduler({ store, indexer, chain }) {
   }
 
   async function prepare(now = Math.floor(Date.now() / 1000)) {
+    const snapshot = typeof store.read === 'function' ? await store.read()
+      : await store.transaction(state => structuredClone(state));
+    const quotedMints = [...new Set(Object.values(snapshot.programs || {})
+      .filter(config => {
+        if (!config.enabled || config.eligibilityPolicy !== 'usd-20-hourly-v1'
+          || now < config.firstPeriodStart + config.periodSeconds) return false;
+        const total = Object.values(snapshot.rewardPools || {}).filter(pool => pool.mint === config.mint
+          && pool.status === 'available' && pool.asset === 'SOL')
+          .reduce((sum, pool) => sum + (/^\d+$/.test(String(pool.amount))
+            ? BigInt(pool.amount) : 0n), 0n);
+        try { return total >= holderFundingMinimumLamports(config); }
+        catch { return false; }
+      })
+      .map(config => config.mint))];
+    const quotes = new Map(await Promise.all(quotedMints.map(async mint => {
+      try { return [mint, quoteReader ? await quoteReader(mint) : null]; }
+      catch { return [mint, null]; }
+    })));
     return store.transaction(state => {
       state.programs ||= {}; state.schedules ||= {}; state.holderSnapshots ||= {}; state.rewardPools ||= {};
       for (const row of Object.values(state.schedules)) {
@@ -182,7 +267,28 @@ export function createRewardScheduler({ store, indexer, chain }) {
             continue;
           }
           const snapshots = snapshotsForPeriod(state.holderSnapshots[schedule.mint], schedule.periodStart, schedule.cutoffAt, config.sampleIntervalSeconds * 2);
-          const weights = holdingWeights({ start: schedule.periodStart, end: schedule.cutoffAt, snapshots, excludedWallets: excludedHolderWallets(schedule.mint, config.excludedWallets || []), coverage: 'finalized-sampled-v1' });
+          const excluded = excludedHolderWallets(schedule.mint, config.excludedWallets || []);
+          let weights = holdingWeights({ start: schedule.periodStart, end: schedule.cutoffAt,
+            snapshots, excludedWallets:excluded, coverage:'finalized-sampled-v1' });
+          if (config.eligibilityPolicy === 'usd-20-hourly-v1') {
+            const quote = quotes.get(schedule.mint);
+            const { eligible, minimumTokenUnits } = holderUsdEligibility(quote,
+              snapshots.at(-1).accounts, excluded);
+            weights = weights.filter(row => eligible.has(row.wallet));
+            if (!weights.length) throw new Error('No holder meets the $20-equivalent closing balance minimum.');
+            const minimum = holderPoolMinimumLamports(config, quote, weights.length);
+            if (total < minimum) {
+              schedule.status = 'deferred';
+              schedule.reason = 'Verified holder funding is below the $20-equivalent pool and distribution-cost threshold; it carries forward.';
+              schedule.lastCheckedAt = new Date().toISOString();
+              continue;
+            }
+            schedule.eligibility = { policy:config.eligibilityPolicy,
+              quoteSource:quote.source, quoteObservedAt:quote.observedAt,
+              tokenPriceUsd:quote.tokenPriceUsd, solUsd:quote.solUsd,
+              minimumTokenUnits, eligibleCount:weights.length,
+              minimumPoolLamports:String(minimum) };
+          }
           const allocation = allocateHolderPool(String(total), weights);
           if (!allocation.allocations.length) throw new Error('No eligible holders had positive time-weighted balances.');
           const cycleId = createRewardCycleId({ mint: schedule.mint, kind: schedule.kind, asset: schedule.asset, periodStart: schedule.periodStart, periodEnd: schedule.cutoffAt });

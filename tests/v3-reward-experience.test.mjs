@@ -25,6 +25,7 @@ test('V3 reward discovery excludes old launches and distinguishes allocations fr
   };
   const before = v3RewardExperience(state, {}, 'devnet');
   assert.equal(before.tokens.length, 1);
+  assert.equal(v3RewardExperience(state, null, 'devnet').evidence.status, 'partial');
   assert.equal(before.tokens[0].totals.holder, '15');
   assert.equal(before.tokens[0].holderPaidLamports, '0');
   assert.equal(before.tokens[0].xPaidLamports, '5');
@@ -33,6 +34,15 @@ test('V3 reward discovery excludes old launches and distinguishes allocations fr
       finalized:true, balanceDeltaVerified:true } } } } };
   const paid = v3RewardExperience(state, rewards, 'devnet', wallet);
   assert.equal(paid.tokens[0].holderPaidLamports, '15');
+  assert.deepEqual(paid.tokens[0].topHolderRecipients.map(row => row.wallet), [wallet]);
+  assert.equal(paid.tokens[0].topHolderRecipients[0].latestSignature, payment);
+  const secondWallet = '33333333333333333333333333333333';
+  rewards.schedules.holder.payments[secondWallet] = { status:'paid',
+    signature:'6'.repeat(64), amount:'30', finalized:true, balanceDeltaVerified:true };
+  const ranked = v3RewardExperience(state, rewards, 'devnet');
+  assert.deepEqual(ranked.tokens[0].topHolderRecipients.map(row => row.wallet),
+    [secondWallet, wallet]);
+  assert.equal(ranked.tokens[0].topHolderRecipients[0].amountLamports, '30');
   assert.equal(paid.wallet.rows[0].payouts.length, 2);
   state.v3CreatorWalletPayout = { [source]: { status:'finalized', balanceDeltaVerified:true,
     collectionSignature:source, mint, programId:wallet, category:0, recipient:wallet,

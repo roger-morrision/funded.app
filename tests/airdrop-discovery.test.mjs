@@ -27,4 +27,5 @@ test('distributed requires positive confirmed SOL and recipients, not migration 
   assert.equal(groups.partial,true);
   assert.equal(holderRewardGroups({evidence:{status:'unavailable'},tokens}).available,false);
   assert.equal(holderRewardGroups({evidence:{status:'unavailable'},tokens}).distributed.length,0);
+  assert.equal(holderRewardGroups({evidence:{status:'recorded-finalized-v3'},tokens}).available,true);
 });

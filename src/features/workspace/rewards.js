@@ -7,7 +7,7 @@ export function rewards() {
   const overview = node('div'); overview.id = 'rewards-overview';
   overview.innerHTML = `<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Rewards</p><h1>Your rewards</h1><p>Claim rewards and track your payments.</p></div>
     <section class="reward-upcoming" aria-labelledby="reward-upcoming-title"><header><p class="eyebrow">Plan ahead</p><h2 id="reward-upcoming-title">When to join, when to wait</h2><p>Recorded cutoffs and targets appear per reward. A target is not a confirmed payment.</p></header><div class="reward-upcoming-grid">
-      <article><span>SOL · COIN HOLDERS</span><h3>Hold before the daily snapshot</h3><p>Choose a coin with a holder fee share and hold through its cutoff. Eligible funded cycles pay SOL automatically; small pools can roll forward.</p><button type="button" data-reward-open="holder">See cutoff and payout target →</button></article>
+      <article><span>SOL · COIN HOLDERS</span><h3>Hold through an hourly cutoff</h3><p>Choose a coin with a holder fee share. An hourly payout needs finalized holdings, a fresh price, eligible wallets, and enough funded SOL. Small pools roll forward.</p><button type="button" data-reward-open="holder">See cutoff and payout target →</button></article>
       <article><span>LAUNCHED COIN TOKENS · $FUNDED HOLDERS</span><h3>Hold before that coin migrates</h3><p>Each coin snapshots $FUNDED holders at migration. Once claims open, eligible wallets have 90 days to claim.</p><a href="#airdrops">See airdrops and claim status →</a></article>
     </div><p class="reward-upcoming-note">Creator, X, and referral SOL depend on collected fees. X and referral rewards require a claim when ready.</p></section>
     <div class="reward-overview-start"><h2>Explore rewards</h2><p>Each program has its own eligibility and payment status.</p></div>
@@ -25,6 +25,9 @@ export function rewards() {
   const xSummary = $('[data-x-rewards]',personal || creator);if(xSummary)x.prepend(xSummary);
   const holder = node('div'); holder.id = 'rewards-holder';
   const automatic = $('[data-automatic-rewards]'); if(automatic)holder.append(automatic);
+  const topWallets = node('a', 'secondary-button');
+  topWallets.href = '#airdrops'; topWallets.textContent = 'View confirmed top recipient wallets →';
+  holder.append(topWallets);
   const funded = node('div'); funded.id = 'rewards-funded';
   funded.innerHTML = '<div class="reward-section-intro"><p class="eyebrow">$FUNDED holders</p><h2>Token airdrops</h2><p>Hold $FUNDED when a launch sets its eligibility date. Connect that wallet to check your amount and claim status.</p><a class="primary-button funded-claim-link" href="#airdrops">Check eligibility and claim →</a></div>';
   const fundedCard = automatic?.querySelector('.auto-reward-card:nth-child(2)');

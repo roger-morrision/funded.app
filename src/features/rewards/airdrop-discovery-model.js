@@ -13,7 +13,8 @@ export function directoryPage(rows, query = '', page = 1, size = 10) {
 }
 
 export function holderRewardGroups(data) {
-  const available = ['onchain-indexed', 'partial', 'no-records'].includes(data?.evidence?.status) && Array.isArray(data?.tokens);
+  const available = ['recorded-finalized-v3', 'onchain-indexed', 'partial', 'no-records']
+    .includes(data?.evidence?.status) && Array.isArray(data?.tokens);
   const rows = available ? data.tokens.filter(row => Number(row.holderSharePercent) > 0) : [];
   // A migrated coin or a fee allocation alone does not prove a payment.
   const paid = row => /^\d+$/.test(String(row.holderPaidLamports)) && BigInt(row.holderPaidLamports) > 0n && row.holderPaidWallets > 0;

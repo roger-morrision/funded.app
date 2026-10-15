@@ -1,3 +1,5 @@
+import { AUTOMATIC_REWARDS } from '../automatic-rewards.js';
+
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const value = input => /^(0|[1-9]\d*)$/.test(String(input)) ? BigInt(input) : 0n;
@@ -7,6 +9,7 @@ const value = input => /^(0|[1-9]\d*)$/.test(String(input)) ? BigInt(input) : 0n
 export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet', wallet = null, selectedMint = null) {
   if (wallet != null && !ADDRESS.test(wallet)) throw new Error('A valid Solana wallet is required.');
   if (selectedMint != null && !ADDRESS.test(selectedMint)) throw new Error('A valid Solana mint is required.');
+  const rewardState = rewards && typeof rewards === 'object' ? rewards : {};
   const tokens = [], walletRows = [], events = [];
   let communityAllocated = 0n, communityFunded = 0n;
   const communityVaults = new Set();
@@ -48,7 +51,7 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
     }
     communityAllocated += totals.community;
     const payouts = [];
-    for (const schedule of Object.values(rewards.schedules || {})) {
+    for (const schedule of Object.values(rewardState.schedules || {})) {
       if (schedule.mint !== mint || schedule.kind !== 'holder' || schedule.asset !== 'SOL') continue;
       const linked = (schedule.poolIds || []).some(id => {
         if (!id.startsWith('v3:') || !sourceSignatures.has(id.slice(3))) return false;
@@ -100,6 +103,22 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
         amountLamports:String(row.spentLamports || '0'), at:row.finalizedAt || null,
         label:'Fee-funded $FUNDED buyback and burn' });
     const holderPaid = payouts.filter(row => row.kind === 'holder');
+    const paidByWallet = new Map();
+    for (const row of holderPaid) {
+      const prior = paidByWallet.get(row.wallet) || { wallet:row.wallet,
+        amountLamports:0n, paymentCount:0, latestSignature:null, latestPaidAt:null };
+      prior.amountLamports += value(row.amountLamports);
+      prior.paymentCount += 1;
+      if (!prior.latestSignature || String(row.paidAt || '') >= String(prior.latestPaidAt || '')) {
+        prior.latestSignature = row.signature;
+        prior.latestPaidAt = row.paidAt;
+      }
+      paidByWallet.set(row.wallet, prior);
+    }
+    const topHolderRecipients = [...paidByWallet.values()]
+      .sort((a, b) => a.amountLamports === b.amountLamports
+        ? a.wallet.localeCompare(b.wallet) : a.amountLamports > b.amountLamports ? -1 : 1)
+      .slice(0, 10).map(row => ({ ...row, amountLamports:String(row.amountLamports) }));
     const xPaid = payouts.filter(row => row.kind === 'x');
     const lastHolderPayout = holderPaid.map(row => row.paidAt).filter(Boolean).sort().at(-1) || null;
     const token = { mint, name:launch.name || launch.symbol || mint,
@@ -111,6 +130,12 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
       collectionCount:collections.length, holderPaidWallets:new Set(holderPaid.map(row => row.wallet)).size,
       holderPayoutCount:holderPaid.length,
       holderPaidLamports:holderPaid.reduce((sum, row) => sum + value(row.amountLamports), 0n).toString(),
+      topHolderRecipients,
+      holderRewardPolicy:rewardState.programs?.[mint]?.eligibilityPolicy === 'usd-20-hourly-v1'
+        ? { cadence:'hourly', minimumHolderUsd:AUTOMATIC_REWARDS.minimumHolderUsd,
+          minimumPoolUsd:AUTOMATIC_REWARDS.minimumPoolUsd,
+          maxEligibleHolders:AUTOMATIC_REWARDS.maxEligibleHolders,
+          referenceOnly:cluster === 'devnet' } : null,
       xPaidWallets:new Set(xPaid.map(row => row.wallet)).size, xPayoutCount:xPaid.length,
       xPaidLamports:xPaid.reduce((sum, row) => sum + value(row.amountLamports), 0n).toString(),
       lastHolderPayout, buybackBurnCount:burns.length,
@@ -134,7 +159,8 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
     || String(b.lastHolderPayout || '').localeCompare(String(a.lastHolderPayout || ''))
     || a.mint.localeCompare(b.mint));
   events.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
-  return { cluster, generatedAt:new Date().toISOString(), evidence:{ status:'recorded-finalized-v3',
+  return { cluster, generatedAt:new Date().toISOString(), evidence:{ status:rewards == null
+      ? 'partial' : 'recorded-finalized-v3',
     commitment:null, coverage:null }, tokens:tokens.slice(0, 100),
     wallet:wallet ? { address:wallet, rows:walletRows } : null,
     community:{ allocatedLamports:String(communityAllocated), baseAllocatedLamports:'0',

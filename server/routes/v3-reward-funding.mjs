@@ -161,23 +161,22 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       if (existingProgram && (existingProgram.activatedAt !== activatedAt
         || existingProgram.asset !== 'SOL'))
         throw new Error('Holder schedule conflicts with the verified V3 launch.');
-      if (qaShort && existingProgram && ![300, AUTOMATIC_REWARDS.periodSeconds]
+      if (qaShort && existingProgram && ![300, 3600, 86400]
         .includes(existingProgram.periodSeconds))
         throw new Error('The QA holder schedule conflicts with an existing reward period.');
+      const periodSeconds = qaShort ? 300 : AUTOMATIC_REWARDS.periodSeconds;
       const excludedWallets = [...new Set([
         ...(existingProgram?.excludedWallets || []), recipient.toBase58()])];
-      if (!existingProgram || qaShort && existingProgram.periodSeconds !== 300
+      if (!existingProgram || existingProgram.periodSeconds !== periodSeconds
+        || existingProgram.eligibilityPolicy !== 'usd-20-hourly-v1'
         || !existingProgram.excludedWallets?.includes(recipient.toBase58())) {
-        const firstPeriodStart = qaShort
-          ? Math.ceil(Math.max(activatedAt, fundedAt, Math.floor(Date.now() / 1000)) / 300) * 300
-          : existingProgram?.firstPeriodStart;
+        const firstPeriodStart = !existingProgram || existingProgram.periodSeconds !== periodSeconds
+          ? Math.ceil(Math.max(activatedAt, fundedAt, Math.floor(Date.now() / 1000)) / periodSeconds) * periodSeconds
+          : existingProgram.firstPeriodStart;
         await scheduler.register({ mint, asset:'SOL', activatedAt,
-          excludedWallets,
-          ...(existingProgram ? { periodSeconds:existingProgram.periodSeconds,
-            sampleIntervalSeconds:existingProgram.sampleIntervalSeconds,
-            payoutDelaySeconds:existingProgram.payoutDelaySeconds } : {}),
-          ...(qaShort ? { periodSeconds:300, sampleIntervalSeconds:300,
-            payoutDelaySeconds:0, firstPeriodStart } : {}) });
+          excludedWallets, eligibilityPolicy:'usd-20-hourly-v1',
+          periodSeconds, sampleIntervalSeconds:AUTOMATIC_REWARDS.sampleIntervalSeconds,
+          payoutDelaySeconds:0, firstPeriodStart });
       }
       await scheduler.recordFundedPool({ id:`v3:${collectionSignature}`,
         mint, asset:'SOL', amount:plan.creatorDirected.holderLamports,

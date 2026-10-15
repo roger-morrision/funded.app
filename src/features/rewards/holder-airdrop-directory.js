@@ -56,10 +56,13 @@ export function renderHolderAirdropDirectory(data) {
     button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1;
     button.querySelector('span').textContent = groups.available ? `${groups.partial ? '≥' : ''}${groups[button.dataset.holderAirdropTab].length}` : '—';
   }
+  const hourly = groups.available && data.tokens.some(row => row.holderRewardPolicy?.cadence === 'hourly');
   root.querySelector('#holder-airdrop-note').textContent = groups.partial
     ? 'Partial receipt coverage. Upcoming means no payment is confirmed in the available records.'
-    : active === 'upcoming' ? 'Published fee-sharing policies awaiting their first confirmed holder payout. Timing depends on funding and an eligible snapshot.'
-    : 'Projects with confirmed holder payouts. Further distributions may still be upcoming.';
+    : active === 'upcoming' ? hourly
+      ? 'Hourly payouts require finalized holder history, a fresh price, a $20-equivalent holding per wallet, and a funded pool above $20 equivalent plus distribution costs. Devnet dollar values are test references; unpaid SOL carries forward.'
+      : 'Published fee-sharing policies awaiting their first confirmed holder payout. Timing depends on funding and an eligible snapshot.'
+    : 'Projects with confirmed holder payouts. Top wallets below include only verified payment receipts.';
   const result = directoryPage(groups[active], root.querySelector('input').value, page);
   page = result.page;
   const list = root.querySelector('#holder-airdrop-list'); list.replaceChildren();
@@ -87,7 +90,25 @@ export function renderHolderAirdropDirectory(data) {
     if (active === 'distributed') amount.append(element('small', '', `${row.holderPaidWallets} paid wallets`));
     const status = element('span', `airdrop-status ${active === 'distributed' ? 'claiming' : 'upcoming'}`, active === 'distributed' ? 'Distributed' : 'Awaiting payout');
     const action = element('a', 'holder-airdrop-link', 'View rewards →'); action.href = link.href;
-    article.append(identity, amount, status, action); list.append(article);
+    article.append(identity, amount, status, action);
+    if (active === 'distributed' && Array.isArray(row.topHolderRecipients)
+      && row.topHolderRecipients.length) {
+      const top = element('div', 'holder-reward-top-wallets');
+      top.append(element('strong', '', 'Top wallets paid'));
+      const recipients = element('ol', '');
+      for (const paid of row.topHolderRecipients.slice(0, 5)) {
+        const item = element('li', '');
+        const wallet = element('span', '', `${paid.wallet.slice(0, 5)}…${paid.wallet.slice(-5)}`);
+        wallet.title = paid.wallet;
+        const amountPaid = element('span', '', sol(paid.amountLamports));
+        const receipt = element('a', '', 'Receipt ↗');
+        receipt.href = `https://explorer.solana.com/tx/${encodeURIComponent(paid.latestSignature)}?cluster=${encodeURIComponent(data.cluster || 'devnet')}`;
+        receipt.target = '_blank'; receipt.rel = 'noopener noreferrer';
+        item.append(wallet, amountPaid, receipt); recipients.append(item);
+      }
+      top.append(recipients); article.append(top);
+    }
+    list.append(article);
   }
   if (!result.rows.length) list.append(element('div', 'empty-state', !groups.available
     ? data === undefined ? 'Checking holder rewards…' : 'Holder rewards are temporarily unavailable.'
