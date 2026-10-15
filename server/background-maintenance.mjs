@@ -5,7 +5,7 @@ import { createAutomaticRewardChain, DEVNET_GENESIS_HASH } from './automatic-rew
 import { createHolderHistoryIndexer } from './holder-history-indexer.mjs';
 import { createRewardScheduler } from './reward-scheduler.mjs';
 import { createHolderRewardQuoteReader } from './holder-reward-quote.mjs';
-import { QA_HOLDER_POLICY, qaHolderMinimums } from './devnet-qa-minimums.mjs';
+import { QA_HOLDER_POLICY, qaHolderMinimums, qaShortHolderMintSelected } from './devnet-qa-minimums.mjs';
 
 // The first cleanup must finish before the HTTP server starts accepting requests.
 export async function startShareVisitCleanup({ store, scheduleInterval = setInterval, logger = console }) {
@@ -82,8 +82,7 @@ export function startV3HolderRewardWorker({ solanaCluster, solanaRpcUrl,
       if (!fundedMints.has(config.mint) || config.asset !== 'SOL') continue;
       const qaMinimums = qaHolderMinimums(config.mint, solanaCluster, env);
       const eligibilityPolicy = qaMinimums ? QA_HOLDER_POLICY : 'usd-20-hourly-v1';
-      const shortQa = env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true'
-        && solanaCluster === 'devnet' && env.FUNDED_QA_HOLDER_MINT === config.mint;
+      const shortQa = qaShortHolderMintSelected(config.mint, solanaCluster, env);
       const periodSeconds = shortQa ? 300 : 3600;
       if (config.periodSeconds === periodSeconds
         && config.eligibilityPolicy === eligibilityPolicy

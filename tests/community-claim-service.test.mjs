@@ -19,7 +19,8 @@ const makeStore = () => {
   return { read:async () => structuredClone(state), transaction:async mutate => mutate(state) };
 };
 const pin = 'ab'.repeat(32);
-function fixture({ store = makeStore(), observedHash = pin, reserveStatus = 'funded', openingOverrides = {}, snapshot = fixedSnapshot } = {}) {
+function fixture({ store = makeStore(), observedHash = pin, reserveStatus = 'funded', openingOverrides = {}, snapshot = fixedSnapshot,
+  qaCutoffMints = mint } = {}) {
   const paymentAccounts = new Map();
   const connection = { getGenesisHash:async () => DEVNET_GENESIS_HASH,
     getAccountInfo:async address => address.toBase58() === mint ? { owner:TOKEN_PROGRAM_ID, data:mintBytes } : paymentAccounts.get(address.toBase58()) || null,
@@ -33,7 +34,7 @@ function fixture({ store = makeStore(), observedHash = pin, reserveStatus = 'fun
   };
   return { store, paymentAccounts, service:createCommunityClaimService({ connection, store, programId, authority, eligibilityMint,
     expectedCommunityProgramDataSha256:pin, captureSnapshot:async () => snapshot,
-    captureQaSnapshot:async () => snapshot, qaCutoffMint:mint, qaCutoffAuthority:authority, reserveReader,
+    captureQaSnapshot:async () => snapshot, qaCutoffMint:qaCutoffMints, qaCutoffAuthority:authority, reserveReader,
     programEvidence:async () => ({ account:{ executable:true }, sha256:observedHash }) }) };
 }
 const input = { mint, creator, reservedTokens:1000, fundingSignature:'funded-finalized', migrationSignature };
@@ -50,11 +51,13 @@ test('persists one immutable exact-slot manifest and leaves proofs unavailable b
 });
 
 test('Devnet QA cutoff is explicitly labeled and cannot replace a migration manifest', async () => {
-  const { service } = fixture();
+  const { service } = fixture({ qaCutoffMints:`${key()},${mint}` });
   const qa = await service.prepare({ ...input, snapshotBasis:'devnet-qa-cutoff' });
   assert.equal(qa.snapshotBasis, 'devnet-qa-cutoff');
   await assert.rejects(service.prepare(input), /immutable/);
   await assert.rejects(service.prepare({ ...input, snapshotBasis:'unknown' }), /Unsupported/);
+  await assert.rejects(fixture({ qaCutoffMints:key() }).service.prepare({
+    ...input, snapshotBasis:'devnet-qa-cutoff' }), /exact launch mint/);
 });
 
 test('keeps finalized community claims visible after a drop closes or expires', async () => {

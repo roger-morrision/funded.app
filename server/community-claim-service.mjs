@@ -54,9 +54,13 @@ export function createCommunityClaimService({ connection, store, programId, auth
     const launchMint = new PublicKey(mint), creatorAddress = key(creator);
     if (!['pump-migration', 'devnet-qa-cutoff'].includes(snapshotBasis))
       throw new Error('Unsupported community snapshot basis.');
-    if (snapshotBasis === 'devnet-qa-cutoff'
-      && (!qaCutoffMint || launchMint.toBase58() !== key(qaCutoffMint) || !qaCutoffAuthority))
-      throw new Error('Devnet QA cutoff is not configured for this exact launch mint.');
+    if (snapshotBasis === 'devnet-qa-cutoff') {
+      const allowed = String(qaCutoffMint || '').split(',').map(value => value.trim()).filter(Boolean);
+      if (!qaCutoffAuthority || !allowed.length || allowed.length > 8
+        || allowed.some(value => key(value) !== value)
+        || !allowed.includes(launchMint.toBase58()))
+        throw new Error('Devnet QA cutoff is not configured for this exact launch mint.');
+    }
     if (!Number.isSafeInteger(reservedTokens) || reservedTokens <= 0 || reservedTokens > 500_000_000
       || !fundingSignature || !migrationSignature) throw new Error('Verified launch reserve and migration identities are required.');
     const mintInfo = await connection.getAccountInfo(launchMint, 'finalized');

@@ -6,7 +6,7 @@ import { NATIVE_MINT } from '@solana/spl-token';
 import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
 import { bondingCurvePda } from '@pump-fun/pump-sdk';
 import { PublicKey } from '@solana/web3.js';
-import { QA_HOLDER_POLICY } from './devnet-qa-minimums.mjs';
+import { QA_HOLDER_POLICY, qaShortHolderMintSelected } from './devnet-qa-minimums.mjs';
 
 const pricedHolderPolicy = config => ['usd-20-hourly-v1', QA_HOLDER_POLICY]
   .includes(config?.eligibilityPolicy);
@@ -52,8 +52,10 @@ export function holderUsdEligibility(quote, closingAccounts, excludedWallets = [
     || Math.abs(Date.now() - Date.parse(quote.observedAt)) > 5 * 60_000)
     throw new Error('A fresh verified token price is required for holder eligibility.');
   const ratio = positiveDecimalRatio(price, 'Token price');
-  const rawMinimum = ceilDiv(BigInt(minimumUsd)
-    * 10n ** BigInt(decimals) * ratio.denominator, ratio.numerator);
+  const dollars = positiveDecimalRatio(minimumUsd, 'Holder USD minimum');
+  const rawMinimum = ceilDiv(dollars.numerator
+    * 10n ** BigInt(decimals) * ratio.denominator,
+    dollars.denominator * ratio.numerator);
   if (rawMinimum <= 0n || rawMinimum > (1n << 64n) - 1n)
     throw new Error('Token price is too small to calculate the holder minimum safely.');
   const excluded = new Set(excludedWallets);
@@ -73,16 +75,18 @@ export function holderPoolMinimumLamports(config, quote, recipientCount, env = p
     || recipientCount > AUTOMATIC_REWARDS.maxEligibleHolders)
     throw new Error('Eligible holder count exceeds the configured distribution limit.');
   const ratio = positiveDecimalRatio(solUsd, 'SOL/USD quote');
-  const cents = BigInt(Math.round(poolUsdMinimum(config) * 100))
-    + BigInt(recipientCount) * BigInt(Math.round(AUTOMATIC_REWARDS.costReserveUsdPerHolder * 100));
-  const converted = ceilDiv(cents * 1_000_000_000n * ratio.denominator,
-    100n * ratio.numerator);
+  const qaPolicy = config?.eligibilityPolicy === QA_HOLDER_POLICY;
+  const millidollars = BigInt(Math.round(poolUsdMinimum(config) * 1000))
+    + BigInt(recipientCount) * BigInt(qaPolicy ? 0
+      : Math.round(AUTOMATIC_REWARDS.costReserveUsdPerHolder * 1000));
+  const converted = ceilDiv(millidollars * 1_000_000_000n * ratio.denominator,
+    1000n * ratio.numerator);
   return converted > base ? converted : base;
 }
 
 function devnetQaShortWindow(config, env = process.env) {
-  return env.SOLANA_CLUSTER === 'devnet' && env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true'
-    && env.FUNDED_QA_HOLDER_MINT === config.mint && config.periodSeconds === 300;
+  return qaShortHolderMintSelected(config.mint, env.SOLANA_CLUSTER, env)
+    && config.periodSeconds === 300;
 }
 
 export function holderFundingMinimumLamports(config, env = process.env) {
@@ -103,9 +107,8 @@ export function holderFundingMinimumLamports(config, env = process.env) {
 function programConfig(input) {
   const periodSeconds = Number(input.periodSeconds || AUTOMATIC_REWARDS.periodSeconds);
   const sampleIntervalSeconds = Number(input.sampleIntervalSeconds || AUTOMATIC_REWARDS.sampleIntervalSeconds);
-  const qaShortPeriod = process.env.SOLANA_CLUSTER === 'devnet'
-    && process.env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true'
-    && process.env.FUNDED_QA_HOLDER_MINT === String(input.mint);
+  const qaShortPeriod = qaShortHolderMintSelected(String(input.mint),
+    process.env.SOLANA_CLUSTER, process.env);
   const minimumPeriodSeconds = qaShortPeriod ? 300 : 3600;
   const payoutDelaySeconds = Number(input.payoutDelaySeconds ?? 3600);
   const activatedAt = Number(input.activatedAt ?? Math.floor(Date.now() / 1000));
@@ -114,15 +117,18 @@ function programConfig(input) {
   if (![activatedAt, firstPeriodStart].every(Number.isSafeInteger) || activatedAt < 0 || firstPeriodStart < activatedAt || firstPeriodStart % periodSeconds !== 0) throw new Error('Invalid reward program activation time.');
   if (!['SOL', String(input.mint)].includes(String(input.asset || 'SOL'))) throw new Error('Holder rewards must use SOL or the launched token.');
   const qaMinimums = input.eligibilityPolicy === QA_HOLDER_POLICY ? input.qaMinimums : null;
-  const qaPoolCents = Math.round(Number(qaMinimums?.minimumPoolUsd) * 100);
+  const qaPoolMillis = Math.round(Number(qaMinimums?.minimumPoolUsd) * 1000);
+  const qaHolderCents = Math.round(Number(qaMinimums?.minimumHolderUsd) * 100);
   if (qaMinimums) {
     if (process.env.SOLANA_CLUSTER !== 'devnet'
       || (periodSeconds !== 3600 && !(qaShortPeriod && periodSeconds === 300))
-      || !Number.isSafeInteger(qaMinimums.minimumHolderUsd) || qaMinimums.minimumHolderUsd < 1 || qaMinimums.minimumHolderUsd > 19
-      || !Number.isSafeInteger(qaPoolCents)
-      || Math.abs(qaMinimums.minimumPoolUsd * 100 - qaPoolCents) > 1e-6
-      || qaPoolCents < 10 || qaPoolCents > 1999
-      || !Number.isSafeInteger(qaMinimums.minimumFundingLamports) || qaMinimums.minimumFundingLamports < 1_000_000 || qaMinimums.minimumFundingLamports > 9_999_999)
+      || !Number.isSafeInteger(qaHolderCents)
+      || Math.abs(qaMinimums.minimumHolderUsd * 100 - qaHolderCents) > 1e-6
+      || qaHolderCents < 1 || qaHolderCents > 1999
+      || !Number.isSafeInteger(qaPoolMillis)
+      || Math.abs(qaMinimums.minimumPoolUsd * 1000 - qaPoolMillis) > 1e-6
+      || qaPoolMillis < 1 || qaPoolMillis > 19999
+      || !Number.isSafeInteger(qaMinimums.minimumFundingLamports) || qaMinimums.minimumFundingLamports < 10_000 || qaMinimums.minimumFundingLamports > 9_999_999)
       throw new Error('The Devnet QA holder policy requires bounded persisted minimums.');
   } else if (input.eligibilityPolicy === QA_HOLDER_POLICY) {
     throw new Error('The Devnet QA holder policy requires persisted minimums.');

@@ -15,7 +15,7 @@ import { v3AllocationPlan } from '../v3-allocation-plan.mjs';
 import { loadFinalizedV3RewardFunding } from '../v3-reward-funding-proof.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 import { v3ReferralEntitlement } from '../v3-referral-entitlement.mjs';
-import { QA_HOLDER_POLICY, qaHolderMinimums } from '../devnet-qa-minimums.mjs';
+import { QA_HOLDER_POLICY, qaHolderMinimums, qaShortHolderMintSelected } from '../devnet-qa-minimums.mjs';
 
 const withdrawalIdFor = (kind, signature) => createHash('sha256')
   .update(`funded.v3.${kind}-funding.v1:${signature}`).digest();
@@ -154,9 +154,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       const scheduler = schedulerFactory({ store:rewardStore, chain,
         indexer:{ capture:async () => { throw new Error('Funding enrollment does not capture holder snapshots.'); } } });
       const existingProgram = (await rewardStore.read()).programs?.[mint];
-      const qaShort = solanaCluster === 'devnet'
-        && env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true'
-        && env.FUNDED_QA_HOLDER_MINT === mint;
+      const qaShort = qaShortHolderMintSelected(mint, solanaCluster, env);
       const qaMinimums = qaHolderMinimums(mint, solanaCluster, env);
       const eligibilityPolicy = qaMinimums ? QA_HOLDER_POLICY : 'usd-20-hourly-v1';
       if (qaShort) holderFundingMinimumLamports({ mint, periodSeconds:300,

@@ -121,7 +121,8 @@ async function communityClaimService(mint) {
     eligibilityMint:fundedTokenMint, cluster:solanaCluster,
     expectedCommunityProgramDataSha256:config.expectedHash,
     qaCutoffMint:process.env.FUNDED_QA_COMMUNITY_CUTOFF_ENABLED === 'true'
-      ? process.env.FUNDED_QA_COMMUNITY_MINT : '',
+      ? [process.env.FUNDED_QA_COMMUNITY_MINT,
+        process.env.FUNDED_QA_COMMUNITY_MINTS].filter(Boolean).join(',') : '',
     qaCutoffAuthority:process.env.FUNDED_QA_COMMUNITY_CUTOFF_AUTHORITY || '' });
 }
 const devnetTestMode = solanaCluster === 'devnet' && process.env.DEVNET_TEST_MODE === 'true';
