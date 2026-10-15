@@ -159,7 +159,8 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
         && env.FUNDED_QA_HOLDER_MINT === mint;
       const qaMinimums = qaHolderMinimums(mint, solanaCluster, env);
       const eligibilityPolicy = qaMinimums ? QA_HOLDER_POLICY : 'usd-20-hourly-v1';
-      if (qaShort) holderFundingMinimumLamports({ mint, periodSeconds:300 },
+      if (qaShort) holderFundingMinimumLamports({ mint, periodSeconds:300,
+        eligibilityPolicy, qaMinimums },
         { ...env, SOLANA_CLUSTER:'devnet' });
       if (existingProgram && (existingProgram.activatedAt !== activatedAt
         || existingProgram.asset !== 'SOL'))

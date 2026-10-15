@@ -116,6 +116,9 @@ test('selected Devnet QA mint can use five-minute periods without losing bounded
   const wallet = '11111111111111111111111111111111';
   const minimums = { minimumHolderUsd:1, minimumPoolUsd:0.5,
     minimumFundingLamports:1_000_000 };
+  assert.equal(holderFundingMinimumLamports({ mint, periodSeconds:300,
+    eligibilityPolicy:QA_HOLDER_POLICY, qaMinimums:minimums },
+    { SOLANA_CLUSTER:'devnet' }), 1_000_000n);
   const state = { programs:{ [mint]:{ mint, enabled:true, asset:'SOL', kind:'holder',
     periodSeconds:3600, sampleIntervalSeconds:300, payoutDelaySeconds:0,
     activatedAt:start - 3600, firstPeriodStart:start - 3600,
