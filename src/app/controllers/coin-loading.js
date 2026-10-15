@@ -106,6 +106,16 @@ export function createCoinLoadingController(appState) {
       appState.setCoinTabLabels(); appState.renderCoinActivityTab();
       appState.setCoinField('.coin-live-dot', graduatedPool ? 'Trading pool confirmed' : curve ? 'Trading route confirmed' : 'Token confirmed');
       appState.setCoinField('#coin-avatar', symbol.slice(0, 1).toUpperCase()); appState.setCoinField('#coin-symbol', symbol); appState.setCoinField('#coin-artwork-symbol', symbol); appState.setCoinField('#coin-page-title', name);
+      if (registeredLaunch?.onchainVerified && appState.EXPLORE_CLUSTER === 'devnet') {
+        const avatar = document.querySelector('#coin-avatar');
+        if (avatar) {
+          avatar.textContent = '';
+          avatar.style.backgroundImage = `url("${appState.isDevnetImageUri(registeredLaunch.imageUri, mintAddress) ? registeredLaunch.imageUri : `/devnet-images/${encodeURIComponent(mintAddress)}`}")`;
+          avatar.style.backgroundSize = 'cover';
+          avatar.style.backgroundPosition = 'center';
+          avatar.title = appState.isDevnetImageUri(registeredLaunch.imageUri, mintAddress) ? '' : 'Generated token avatar; project artwork was not uploaded';
+        }
+      }
       appState.setCoinField('#coin-address', appState.shortAddress(mintAddress)); appState.setCoinField('#coin-full-address', mintAddress);
       appState.setCoinField('#coin-description', graduatedPool ? 'Trading pool confirmed. Checking recent trades…' : 'Coin details confirmed on Solana. Checking recent trades…');
       appState.setCoinFact('#coin-stage', graduatedPool ? 'Migrated · PumpSwap' : curve ? curve.complete ? 'Curve complete · pool unavailable' : 'On Pump curve' : 'Unverified', curve ? 'clear' : 'unknown');
@@ -156,7 +166,7 @@ export function createCoinLoadingController(appState) {
         appState.setCoinFact('#coin-metadata-status', 'Name and symbol confirmed', 'clear');
         if (appState.isDevnetImageUri(details.image, mintAddress)) {
           const avatar = document.querySelector('#coin-avatar');
-          if (avatar) { avatar.textContent = ''; avatar.style.backgroundImage = `url("${details.image}")`; avatar.style.backgroundSize = 'cover'; avatar.style.backgroundPosition = 'center'; }
+          if (avatar) { avatar.textContent = ''; avatar.style.backgroundImage = `url("${details.image}")`; avatar.style.backgroundSize = 'cover'; avatar.style.backgroundPosition = 'center'; avatar.removeAttribute('title'); }
         }
         for (const [selector, href] of [['#coin-website-link', details.website], ['#coin-x-link', details.twitter], ['#coin-telegram-link', details.telegram], ['#coin-discord-link', details.discord]]) {
           const link = document.querySelector(selector); if (link && typeof href === 'string' && href.startsWith('https://')) { link.href = href; link.hidden = false; }

@@ -1,5 +1,5 @@
 import { directoryPage, holderRewardGroups } from './airdrop-discovery-model.js';
-import { devnetImageUri } from '../../../devnet-metadata.js';
+import { isDevnetImageUri } from '../../../devnet-metadata.js';
 
 let latest;
 let active = 'upcoming';
@@ -75,13 +75,13 @@ export function renderHolderAirdropDirectory(data) {
     const identity = element('div', 'holder-airdrop-identity');
     const avatar = element('span', 'claim-token-mark', String(row.symbol || '?').slice(0,2));
     avatar.setAttribute('aria-hidden', 'true');
+    if (!isDevnetImageUri(row.imageUri, row.mint)) avatar.title = 'Generated token avatar; project artwork was not uploaded';
     const image = element('img', ''); image.alt = ''; image.loading = 'lazy';
-    image.src = `/devnet-images/${encodeURIComponent(row.mint)}`;
-    let fallback = false;
-    image.addEventListener('error', () => {
-      if (!fallback) { fallback = true; image.src = devnetImageUri(row.mint); }
-      else image.remove();
-    });
+    const localImage = `/devnet-images/${encodeURIComponent(row.mint)}`;
+    const sources = isDevnetImageUri(row.imageUri, row.mint) ? [row.imageUri, localImage] : [localImage];
+    let next = 0;
+    image.addEventListener('error', () => { if (next < sources.length) image.src = sources[next++]; else image.remove(); });
+    image.src = sources[next++];
     avatar.append(image);
     const info = element('div', 'holder-airdrop-info');
     const link = element('a', '', `${row.symbol || 'TOKEN'} · ${row.name || 'Unnamed token'}`);

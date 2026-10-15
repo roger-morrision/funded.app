@@ -65,10 +65,13 @@ function renderSummary() {
 function renderWallets() {
   const rows = overview?.wallets || [];
   $('#wallet-rows').innerHTML = rows.length ? rows.map(row => `<tr><td>${escape(row.role)}</td><td><code>${escape(row.address)}</code></td>
-    <td>${escape(row.custody)}</td><td>${sol(row.lamports)}</td><td>${row.address === connected
+    <td>${escape(row.custody)}</td><td>${sol(row.lamports)}</td><td>${row.withdrawable && row.address === connected
       ? `<button type="button" data-source="${escape(row.address)}">Withdraw</button>`
-      : '<span title="Connect this source wallet in Phantom to sign">Source signature required</span>'}</td></tr>`).join('') : '<tr><td colspan="5">No app wallet addresses configured.</td></tr>';
-  $('#withdraw-source').innerHTML = rows.map(row => `<option value="${escape(row.address)}">${escape(row.role)} · ${escape(row.address.slice(0, 7))}…</option>`).join('');
+      : row.withdrawable ? '<span title="Connect this source wallet in Phantom to sign">Source signature required</span>'
+        : '<span title="Operational signer; use its dedicated payout workflow">Operational signer · no sweep</span>'}</td></tr>`).join('') : '<tr><td colspan="5">No app wallet addresses configured.</td></tr>';
+  $('#withdraw-source').innerHTML = rows.filter(row => row.withdrawable && row.custody === 'external wallet')
+    .map(row => `<option value="${escape(row.address)}">${escape(row.role)} · ${escape(row.address.slice(0, 7))}…</option>`).join('');
+  $('#withdraw-form button[type="submit"]').disabled = !$('#withdraw-source').options.length;
   $('#withdraw-destination').innerHTML = (overview.withdrawalDestinations || []).map(address => `<option value="${escape(address)}">${escape(address)}</option>`).join('');
   $('#wallet-rows').querySelectorAll('[data-source]').forEach(button => button.addEventListener('click', () => {
     $('#withdraw-source').value = button.dataset.source;
@@ -112,7 +115,7 @@ async function refreshAudit() {
 async function loadVaults() {
   if (nextVault == null) return;
   const page = await api(`/api/admin/vaults?offset=${nextVault}`);
-  $('#vaults').insertAdjacentHTML('beforeend', page.vaults.map(row => `<div class="vault-card"><h3>${escape(row.symbol || 'Mint')} · <code>${escape(row.mint)}</code></h3><div class="vault-grid">${row.categories.map(category => `<div><strong>${escape(category.category)}:</strong> ${sol(category.lamports)} SOL · <code>${escape(category.address)}</code></div>`).join('')}</div></div>`).join(''));
+  $('#vaults').insertAdjacentHTML('beforeend', page.vaults.map(row => `<div class="vault-card"><h3>${escape(row.symbol || 'Mint')} · <code>${escape(row.mint)}</code></h3><p>Policy: ${escape(row.policyStatus)}</p><div class="vault-grid">${row.categories.map(category => `<div><strong>${escape(category.category)}</strong><br>Balance ${sol(category.lamports)} SOL · Payable ${category.payableLamports == null ? 'unavailable' : `${sol(category.payableLamports)} SOL`}${category.rentReserveLamports == null ? '' : ` · Rent reserve ${sol(category.rentReserveLamports)} SOL`}${category.shortfallLamports && category.shortfallLamports !== '0' ? ` · <em class="invalid">Shortfall ${sol(category.shortfallLamports)} SOL</em>` : ''}${category.unassignedLamports == null ? '' : ` · Unassigned ${sol(category.unassignedLamports)} SOL`}<br><small>${escape(category.accountingStatus)}</small> · <code>${escape(category.address)}</code></div>`).join('')}</div></div>`).join(''));
   if (!page.totalLaunches) $('#vaults').textContent = 'No V3 launches recorded.';
   nextVault = page.nextOffset;
   $('#more-vaults').disabled = nextVault == null;

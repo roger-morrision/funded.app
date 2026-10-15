@@ -5,6 +5,7 @@ import { summarizeXClaims, formatXClaimSol } from './x-claim-summary.js';
 import { createTokenCardActions } from './token-card-controls.js';
 import { tokenListMarket, tokenAge } from './token-list-market-state.js';
 import { devnetImageUri } from './devnet-metadata.js';
+import { paidReferralLamports } from './referral-amount.js';
 
 const LAMPORTS = 1_000_000_000n;
 const ALERT_KEY = 'funded.vip.reward-alerts.v1';
@@ -18,10 +19,6 @@ function sol(value) {
   const n = /^(?:0|[1-9]\d*)$/.test(String(value)) ? BigInt(value) : 0n;
   const fraction = String(n % LAMPORTS).padStart(9, '0').replace(/0+$/, '');
   return `${n / LAMPORTS}${fraction ? '.' + fraction : ''} SOL`;
-}
-function decimalLamports(value) {
-  const match = String(value ?? '').match(/^(0|[1-9]\d*)(?:\.(\d{1,9}))?$/);
-  return match ? BigInt(match[1]) * LAMPORTS + BigInt((match[2] || '').padEnd(9, '0')) : 0n;
 }
 function node(tag, className, text) {
   const element = document.createElement(tag);
@@ -56,7 +53,7 @@ function createPanels() {
   const rewardsOverview = byId('rewards-overview') || payments;
   if (payments && !byId('reward-portfolio')) {
     const section = node('section', 'reward-experience-panel', null); section.id = 'reward-portfolio';
-    section.innerHTML = `<header><div><p class="eyebrow">Your connected wallet</p><h2>Your reward status</h2><p>See SOL received by this wallet and creator fees awaiting payout. X rewards need a matching X sign-in; launched coin tokens are checked in Airdrops.</p></div><div class="reward-portfolio-top-actions"><span data-reward-evidence>Checking evidence…</span><button type="button" data-reward-connect>Connect wallet</button></div></header><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><div class="reward-portfolio-destinations"><p class="reward-portfolio-label">Other reward programs</p><nav class="reward-portfolio-links" aria-label="Reward programs"><a href="#airdrops"><span><strong>$FUNDED airdrops</strong><small>Check snapshot and claim status</small></span><b aria-hidden="true">↗</b></a><a href="#referrals"><span><strong>Referral rewards</strong><small>Sign and claim earned SOL</small></span><b aria-hidden="true">↗</b></a><a href="#payments" data-x-reward-link><span><strong>X account rewards</strong><small>Use the matching X sign-in</small></span><b aria-hidden="true">↗</b></a></nav></div><small class="reward-portfolio-note">A published allocation is not your wallet balance. Holder payments are automatic after an eligible snapshot and verified payout.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Your connected wallet</p><h2>Your reward status</h2><p>See SOL received by this wallet and creator fees awaiting payout. X rewards need a matching X sign-in; launched coin tokens are checked in Airdrops.</p></div><div class="reward-portfolio-top-actions"><span data-reward-evidence>Checking evidence…</span><button type="button" data-reward-connect>Connect wallet</button></div></header><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><div class="reward-portfolio-destinations"><p class="reward-portfolio-label">Other reward programs</p><nav class="reward-portfolio-links" aria-label="Reward programs"><a href="#airdrops"><span><strong>$FUNDED airdrops</strong><small>Check snapshot and claim status</small></span><b aria-hidden="true">↗</b></a><a href="#referrals"><span><strong>Referral rewards</strong><small>Sign in to view paid SOL</small></span><b aria-hidden="true">↗</b></a><a href="#payments" data-x-reward-link><span><strong>X account rewards</strong><small>Use the matching X sign-in</small></span><b aria-hidden="true">↗</b></a></nav></div><small class="reward-portfolio-note">A published allocation is not your wallet balance. Holder payments are automatic after an eligible snapshot and verified payout.</small>`;
     const publicHistory = payments.querySelector('.x-claim-activity');
     if (publicHistory && rewardsOverview === payments) payments.insertBefore(section, publicHistory);
     else rewardsOverview.prepend(section);
@@ -104,8 +101,7 @@ function renderPortfolio(data, referralData, xData) {
   if (data.evidence.status === 'unavailable') { body.textContent = 'We cannot check reward payments right now. Try again shortly to see your totals.'; return; }
   const rows = wallet.rows || [];
   const paid = rows.flatMap(row => row.payouts || []);
-  const referralClaims = Array.isArray(referralData?.claims) ? referralData.claims.filter(row => row.asset === 'SOL') : null;
-  const referralOpen = referralClaims?.filter(row => row.status !== 'paid' && row.status !== 'expired') || [];
+  const referralPaid = paidReferralLamports(referralData?.claims);
   const xClaims = summarizeXClaims(xData?.claims);
   const legend = node('div', 'reward-status-legend');
   for (const [name, description] of [['Ready to claim', 'Review and claim your reward'], ['Waiting', 'Set aside; payment not confirmed'], ['Received', 'Payment confirmed in your wallet']]) {
@@ -117,7 +113,7 @@ function renderPortfolio(data, referralData, xData) {
   const summaryRows = [
     ['Waiting · creator SOL', sol(creatorUnpaid), 'Set aside for you; payment is not confirmed yet', 'creator'],
     ['Received · SOL', sol(paid.reduce((sum, row) => sum + BigInt(row.amountLamports), 0n)), 'Confirmed payments found in your reward history', 'history'],
-    ['Referral SOL to review', referralClaims ? sol(referralOpen.reduce((sum, row) => sum + decimalLamports(row.amount), 0n)) : 'Unable to check', 'Connect the wallet that earned these rewards, then review each claim', '#referrals'],
+    ['Referral SOL received', referralPaid === null ? 'Unable to check' : sol(referralPaid), 'Finalized payouts for this wallet; open Referrals for receipts', '#referrals'],
     ['Ready to claim · X SOL', xClaims ? formatXClaimSol(xClaims.unclaimed) : document.querySelector('#x-sign-in')?.dataset.connected === 'true' ? 'Unable to check' : 'Sign in with X', 'Only rewards linked to the signed-in X account', 'x'],
   ];
   for (const [label, value, hint, destination] of summaryRows) {

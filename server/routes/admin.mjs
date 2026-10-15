@@ -1,11 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { Connection, PublicKey } from '@solana/web3.js';
-import { DEVNET_GENESIS_HASH } from '../automatic-reward-chain.mjs';
+import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
+import { DEVNET_GENESIS_HASH, parseReserve, rewardReserveAddress } from '../automatic-reward-chain.mjs';
+import { SOL_ASSET_MINT } from '../../reward-merkle.js';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import { validateProtocolFeeSplit } from '../../distribution-policy.js';
-import { protocolGrossUnits, deriveMintVaultsV3, deriveCommunityRewardVaultV3 } from '../../mint-router-v3.js';
+import { protocolGrossUnits, deriveMintVaultsV3, deriveCommunityRewardVaultV3, verifyMintPolicyV3Account } from '../../mint-router-v3.js';
 
 const COOKIE = 'funded_admin';
 const CHALLENGE_MS = 5 * 60_000;
@@ -54,9 +55,9 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
   const roleAddresses = () => {
     const signer = read => { try { return read()?.publicKey?.toBase58() || null; } catch { return null; } };
     return [
-      { role:'Pump fee keeper', address:signer(keeperKeypair), custody:'server signer', withdrawable:true },
-      { role:'V3 router authority', address:signer(v3AuthorityKeypair), custody:'server signer', withdrawable:true },
-      { role:'Referral payout funder', address:signer(referralPayoutKeypair), custody:'server signer', withdrawable:true },
+      { role:'Pump fee keeper', address:signer(keeperKeypair), custody:'server signer', withdrawable:false },
+      { role:'V3 router authority', address:signer(v3AuthorityKeypair), custody:'server signer', withdrawable:false },
+      { role:'Referral payout funder', address:signer(referralPayoutKeypair), custody:'server signer', withdrawable:false },
       { role:'Protocol operations treasury', address:validWallet(env.FUNDED_PUMP_REVENUE_WALLET), custody:'external wallet', withdrawable:true },
       { role:'Trading fee treasury', address:validWallet(env.FUNDED_TRADE_FEE_OWNER || env.VITE_FUNDED_TRADE_FEE_OWNER), custody:'external wallet', withdrawable:true },
       { role:'Boost payment wallet', address:validWallet(env.FUNDED_BOOST_PAYMENT_WALLET), custody:'external wallet', withdrawable:true },
@@ -151,30 +152,62 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
       const offset = Number(url.searchParams.get('offset') || 0);
       if (!Number.isSafeInteger(offset) || offset < 0) return json(res, 400, { error:'Invalid vault page.' });
       const page = launches.slice(offset, offset + 10);
-      const addresses = page.flatMap(row => [
+      const rewardVaults = page.map(row => deriveCommunityRewardVaultV3(row.pumpFeeRoute.programId, row.mint, row.pumpFeeRoute.initialAuthority));
+      const addresses = page.flatMap((row, index) => [
         ...deriveMintVaultsV3(row.pumpFeeRoute.programId, row.mint),
-        deriveCommunityRewardVaultV3(row.pumpFeeRoute.programId, row.mint, row.pumpFeeRoute.initialAuthority),
+        rewardReserveAddress({ programId:row.pumpFeeRoute.programId, vault:rewardVaults[index], asset:'SOL' }),
       ]);
       const rpc = connection();
       const genesis = await rpc.getGenesisHash();
       if (genesis !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC is not Solana Devnet.' });
       const accounts = addresses.length ? await rpc.getMultipleAccountsInfo(addresses, 'finalized') : [];
+      const rentReserve = page.length ? BigInt(await rpc.getMinimumBalanceForRentExemption(0, 'finalized')) : 0n;
+      const rewardRentReserve = page.length ? BigInt(await rpc.getMinimumBalanceForRentExemption(81, 'finalized')) : 0n;
+      const policies = await Promise.all(page.map(async launch => {
+        try {
+          return await verifyMintPolicyV3Account({ connection:rpc,
+            programId:launch.pumpFeeRoute.programId, mint:launch.mint,
+            creator:launch.creatorWallet, initialAuthority:launch.pumpFeeRoute.initialAuthority,
+            split:launch.pumpFeeRoute.protocolSplit });
+        } catch { return { verified:false, reason:'v3-policy-read-unavailable' }; }
+      }));
       const vaults = page.map((launch, index) => ({ mint:launch.mint, symbol:launch.symbol || null,
-        categories:[...CATEGORIES, 'Holder and X reward vault'].map((category, categoryIndex) => ({ category,
-          address:addresses[index * 8 + categoryIndex].toBase58(),
-          lamports:String(accounts[index * 8 + categoryIndex]?.lamports || 0),
-          custody:'V3 program vault', withdrawable:false })) }));
+        policyStatus:policies[index].verified ? 'verified' : policies[index].reason,
+        categories:[...CATEGORIES, 'Holder and X SOL reserve'].map((category, categoryIndex) => {
+          const account = accounts[index * 8 + categoryIndex];
+          const balance = BigInt(account?.lamports || 0);
+          const standardVault = categoryIndex < 7;
+          const accountValid = !account || account.owner?.equals(SystemProgram.programId)
+            && Buffer.from(account.data || []).length === 0;
+          const reward = !standardVault && account?.owner?.equals(new PublicKey(launch.pumpFeeRoute.programId))
+            ? parseReserve(account) : null;
+          const rewardValid = reward?.vault === rewardVaults[index].toBase58() && reward.asset === SOL_ASSET_MINT;
+          const payable = standardVault ? policies[index].verified && accountValid
+            ? policies[index].paidLamports[categoryIndex] - policies[index].withdrawnLamports[categoryIndex] : null
+            : rewardValid ? BigInt(reward.outstanding) : null;
+          const reserve = account ? standardVault ? rentReserve : rewardRentReserve : 0n;
+          const excess = payable == null ? null : balance > reserve + payable ? balance - reserve - payable : 0n;
+          const shortfall = payable == null ? null : balance < reserve + payable ? reserve + payable - balance : 0n;
+          return { category, address:addresses[index * 8 + categoryIndex].toBase58(),
+            lamports:String(balance), payableLamports:payable == null ? null : String(payable),
+            rentReserveLamports:account ? String(reserve) : null,
+            unassignedLamports:excess == null ? null : String(excess),
+            shortfallLamports:shortfall == null ? null : String(shortfall),
+            accountingStatus:!standardVault ? rewardValid ? 'verified' : 'reward-reserve-unverified' : !accountValid ? 'vault-account-unverified'
+              : policies[index].verified ? 'verified' : 'policy-unverified',
+            custody:'V3 program vault', withdrawable:false };
+        }) }));
       return json(res, 200, { totalLaunches:launches.length, offset, nextOffset:offset + page.length < launches.length ? offset + page.length : null, vaults,
-        note:'Program vault balances include rent and category obligations. A raw SOL withdrawal is unavailable.' });
+        note:'Category payable amounts are finalized policy paid minus withdrawn counters; the SOL reward reserve uses its outstanding counter. Unassigned excess is not authorized for withdrawal.' });
     }
     if (req.method === 'POST' && path === '/api/admin/withdrawals/prepare') {
       const input = await body(req) || {};
       const source = validWallet(input.source), destination = validWallet(input.destination);
       const amount = Number(input.amountLamports);
-      if (!source || !roleAddresses().some(row => row.address === source && row.withdrawable)
+      if (!source || !roleAddresses().some(row => row.address === source && row.custody === 'external wallet' && row.withdrawable)
         || !destination || !withdrawalDestinations().has(destination)
         || !Number.isSafeInteger(amount) || amount < 1_000_000 || amount > 5_000_000_000
-        || source === destination) return json(res, 400, { error:'Select a listed source, an allowed destination, and 0.001–5 Devnet SOL.' });
+        || source === destination) return json(res, 400, { error:'Select a listed external source wallet, an allowed destination, and 0.001–5 Devnet SOL. Server signers and program vaults are not treasury withdrawal sources.' });
       const rpc = connection();
       if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC is not Solana Devnet.' });
       const balance = await rpc.getBalance(new PublicKey(source), 'finalized');
@@ -216,7 +249,7 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
       const rpc = connection();
       if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC is not Solana Devnet.' });
       const transfer = await finalizedTransfer(rpc, signature);
-      if (!transfer || !roleAddresses().some(row => row.address === transfer.source && row.withdrawable)
+      if (!transfer || !roleAddresses().some(row => row.address === transfer.source && row.custody === 'external wallet' && row.withdrawable)
         || !withdrawalDestinations().has(transfer.destination))
         return json(res, 409, { error:'No eligible finalized Devnet transfer with exact balance deltas was found.' });
       const receipt = await store.update(state => {

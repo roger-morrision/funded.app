@@ -5,6 +5,7 @@ import { isAppPagePath } from './page-routes.mjs';
 import { creatorPageHtml } from './creator-social.mjs';
 import { tokenPageHtml } from './token-social.mjs';
 import { publicMetadata } from './devnet-metadata.mjs';
+import { tokenPlaceholderSvg } from './token-placeholder.mjs';
 
 // Keep the public metadata lookup before API dispatch and page fallbacks after it.
 export function createPageDelivery({ staticRoot, store, solanaCluster, respond }) {
@@ -40,7 +41,14 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond }
     }
     if (publicMint && url.pathname.startsWith('/devnet-images/')) {
       const image = await store.readMetadataImage(publicMint);
-      if (!image) return json(res, 404, { error: 'Image not found.' });
+      if (!image) {
+        const launch = await store.readLaunch(publicMint);
+        if (launch?.mint !== publicMint || launch.cluster !== 'devnet' || launch.onchainVerified !== true
+          || !launch.policySignature || !launch.symbol) return json(res, 404, { error: 'Image not found.' });
+        const avatar = Buffer.from(tokenPlaceholderSvg(publicMint, launch.symbol));
+        res.writeHead(200, { 'content-type': 'image/svg+xml', 'content-length': avatar.length, 'cache-control': 'public, max-age=86400', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'", 'access-control-allow-origin': '*' });
+        return end(res, avatar);
+      }
       res.writeHead(200, { 'content-type': image.mime, 'content-length': image.bytes.length, 'cache-control': 'public, max-age=86400, immutable', 'x-content-type-options': 'nosniff', 'access-control-allow-origin': '*' });
       return end(res, image.bytes);
     }

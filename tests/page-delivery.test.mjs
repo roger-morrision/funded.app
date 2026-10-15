@@ -68,12 +68,26 @@ test('unmatched API paths and POST requests fall through without writing a respo
   }
 }));
 
-test('public metadata handles default artwork, images and metadata-host misses exactly once', () => fixture(async ({ request, records }) => {
+test('public metadata serves uploaded images and distinct avatars for verified launches', () => fixture(async ({ request, records }) => {
   const artwork = await request('/default.svg', { publicMetadata: true });
   assert.equal(artwork.headers['content-security-policy'], "default-src 'none'");
   assert.equal(artwork.endCount, 1);
   assert.equal(artwork.handled, true);
   assert.equal((await request(`/devnet-images/${mint}`, { publicMetadata: true })).status, 404);
+  records.launch = { mint, symbol: '<TEST', cluster: 'devnet', onchainVerified: true, policySignature: 'fixture' };
+  const generated = await request(`/devnet-images/${mint}`, { publicMetadata: true });
+  assert.equal(generated.status, 200);
+  assert.equal(generated.headers['content-type'], 'image/svg+xml');
+  assert.equal(generated.headers['cache-control'], 'public, max-age=86400');
+  assert.equal(generated.headers['content-length'], generated.content.length);
+  assert.match(String(generated.content), /&lt;TEST/);
+  assert.doesNotMatch(String(generated.content), /<TEST/);
+  assert.equal(generated.endCount, 1);
+  assert.equal((await request('/devnet-images/22222222222222222222222222222222', { publicMetadata: true })).status, 404);
+  records.launch.mint = '22222222222222222222222222222222';
+  const other = await request('/devnet-images/22222222222222222222222222222222', { publicMetadata: true });
+  assert.equal(other.status, 200);
+  assert.notEqual(String(other.content), String(generated.content));
   records.image = { mime: 'image/png', bytes: Buffer.from('fixture') };
   const image = await request(`/devnet-images/${mint}`, { publicMetadata: true });
   assert.equal(image.content, records.image.bytes);

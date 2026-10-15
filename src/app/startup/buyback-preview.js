@@ -22,7 +22,10 @@ export function initializeBuybackPreview(appState) {
         return rank(b) - rank(a) || capUsd(b) - capUsd(a) || String(a.name || '').localeCompare(String(b.name || ''));
       })
       .slice(0, term ? 8 : 5)
-      .map(item => ({ name: item.name || item.symbol || 'Token', symbol: item.symbol || 'TOKEN', mint: item.address, stage: appState.exploreStageLabel(item), marketCap: appState.exploreMarketCapUsd(item) }));
+      .map(item => {
+        const launch = appState.EXPLORE_CLUSTER === 'devnet' ? appState.verifiedLaunchPolicyForMint(item.address) : null;
+        return { name: item.name || item.symbol || 'Token', symbol: item.symbol || 'TOKEN', mint: item.address, verifiedLaunch: Boolean(launch), imageUri: launch?.imageUri || null, stage: appState.exploreStageLabel(item), marketCap: appState.exploreMarketCapUsd(item) };
+      });
   };
   // app-source-end
 

@@ -94,7 +94,7 @@ function parseLegacyCycle(account) {
   return cycle && !cycle.reserved && Buffer.from(account.data).length === 173 ? cycle : null;
 }
 
-function parseReserve(account) {
+export function parseReserve(account) {
   const data = Buffer.from(account?.data || []);
   if (data.length !== 81 || !data.subarray(0, 8).equals(discriminator('account', 'RewardReserve'))) return null;
   return { vault:new PublicKey(data.subarray(8, 40)).toBase58(), asset:new PublicKey(data.subarray(40, 72)).toBase58(),

@@ -169,7 +169,7 @@ function updateReferralStatus(state){
           updateReferralStatus('verification');
           appState.renderReferralClaimPrompt('Sign in with wallet to view referral rewards', 'Approve one free sign-in message. Your session works across referrals and token discussions for one hour.', true);
           appState.renderReferralActivityEmpty('Wallet verification needed', 'Verify your wallet to check referral activity.');
-          appState.renderReferralLedgerEmpty('Wallet verification needed', 'Verify your wallet to check claim receipts.');
+          appState.renderReferralLedgerEmpty('Wallet verification needed', 'Verify your wallet to check payout receipts.');
         }
         return;
       }
@@ -197,7 +197,7 @@ function updateReferralStatus(state){
         ? `${creators} network creator${creators === 1 ? '' : 's'} reported. Individual activity is not available in this view.`
         : 'Qualified activity appears after verified fee collection is indexed.');
     } else appState.renderReferralActivityEmpty('Activity unavailable', 'The referral dashboard could not be loaded. Try again later.');
-    if (!result.available) { updateReferralStatus('unavailable'); appState.renderReferralClaimPrompt('Referral claim service unavailable', 'No reward action is available until the claim service can be verified.'); appState.renderReferralLedgerEmpty('Receipts unavailable', 'The claim service could not be verified. Try again later.'); return; }
+    if (!result.available) { updateReferralStatus('unavailable'); appState.renderReferralClaimPrompt('Referral payout history unavailable', 'We cannot verify payout receipts right now. Try again later.'); appState.renderReferralLedgerEmpty('Receipts unavailable', 'Payout receipts could not be loaded. Try again later.'); return; }
     if (dashboardResult.available) { const active = document.querySelector('#referral-active-creators'); if (active) active.textContent = String(dashboardResult.data.qualifiedCreators ?? '—'); const conversion = document.querySelector('#referral-conversion-rate'); if (conversion) conversion.textContent = dashboardResult.data.conversionRate == null ? '—' : `${dashboardResult.data.conversionRate}%`; }
     const claims = Array.isArray(result.data.claims) ? result.data.claims : [];
     updateReferralStatus(claims.length ? 'recorded' : 'ready');
@@ -205,7 +205,7 @@ function updateReferralStatus(state){
       .reduce((sum, claim) => sum + BigInt(claim.amountLamports || '0'), 0n);
     const paidNode = document.querySelector('#referral-paid-total'); if (paidNode) paidNode.textContent = `${formatReferralLamports(paidLamports)} SOL`;
     const ledger = document.querySelector('#referral-ledger-list');
-    if (ledger) { ledger.replaceChildren(); if (!claims.length) appState.renderReferralLedgerEmpty('No receipts yet', 'Finalized referral claims will appear here.'); else claims.slice().reverse().forEach(claim => { const row = document.createElement('div'); row.className = 'referral-ledger-row'; const label = document.createElement('strong'); label.textContent = `Level ${claim.level}`; const status = document.createElement('small'); status.textContent = referralClaimStatusLabel(claim.status); const amount = document.createElement('b'); amount.textContent = `${formatReferralLamports(claim.amountLamports || '0')} ${claim.asset}`; row.append(label, status, amount); ledger.append(row); }); }
+    if (ledger) { ledger.replaceChildren(); if (!claims.length) appState.renderReferralLedgerEmpty('No receipts yet', 'Finalized referral payouts will appear here.'); else claims.slice().reverse().forEach(claim => { const row = document.createElement('div'); row.className = 'referral-ledger-row'; const label = document.createElement('strong'); label.textContent = `Level ${claim.level}`; const status = document.createElement('small'); status.textContent = referralClaimStatusLabel(claim.status); const amount = document.createElement('b'); amount.textContent = `${formatReferralLamports(claim.amountLamports || '0')} ${claim.asset}`; row.append(label, status, amount); ledger.append(row); }); }
     paginateHistory(ledger, {label:'Referral history', selector:'.referral-ledger-row', key:walletAddress});
     let panel = document.querySelector('#referral-claim-center');
     if (!panel) { panel = document.createElement('div'); panel.id = 'referral-claim-center'; panel.className = 'referral-dashboard'; panel.setAttribute('aria-live', 'polite'); dashboard.querySelector('.referral-kpi-grid')?.after(panel); }

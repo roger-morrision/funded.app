@@ -22,7 +22,7 @@ const coinSummaryModel = await readFile(new URL('../coin-summary-model.js', impo
 
 assert.match(html, /id="capital-flow"/);
 assert.match(app, /setCoinField\('\.coin-live-dot', graduatedPool \? 'Trading pool confirmed' : curve \? 'Trading route confirmed' : 'Token confirmed'\)/, 'The token badge must scope confirmation to mint and market accounts, not unavailable trade or fee data.');
-assert.match(html, /id="referral-ledger-list"><div class="empty-state referral-empty-state"><strong>No receipts to show<\/strong><small>Connect your wallet to check finalized referral claims\.<\/small><\/div>/, 'Disconnected referral history must not imply verified absence of claims.');
+assert.match(html, /id="referral-ledger-list"><div class="empty-state referral-empty-state"><strong>No receipts to show<\/strong><small>Connect your wallet to check finalized referral payouts\.<\/small><\/div>/, 'Disconnected referral history must not imply verified absence of payouts.');
 assert.match(html, /id="fee-flow-input"/);
 assert.match(html, /Enter a gross fee amount to preview the policy split\. This example does not move funds\./, 'Capital-flow preview copy must distinguish a policy example from live activity.');
 assert.match(html, /class="home-kpi-footer"[\s\S]*?<a href="#analytics-detail">Open analytics →<\/a>/, 'The home dashboard must link to the routed analytics page.');
@@ -42,7 +42,7 @@ assert.match(paymentReceiptView, /const filtered = filterPaymentHistory\(history
 assert.match(paymentReceiptView, /if \(!filtered\.length\)[\s\S]*?No confirmed payments are available to show yet\./, 'Payment history must explain when confirmed payment receipts are absent.');
 assert.match(html, /id="leaderboard-panel" role="tabpanel" aria-labelledby="leaderboard-burners-tab"/, 'The active leaderboard panel must be associated with its selected tab.');
 assert.match(html, /id="notifications-button" aria-label="Notifications">♧<\/button>/);
-assert.match(html, /<h2>No verified notifications<\/h2>[\s\S]*?Notification feed unavailable/);
+assert.doesNotMatch(html, /No verified notifications|Notification feed unavailable/, 'The page must not hard-code notification claims without a verified feed.');
 assert.doesNotMatch(html, /Devnet launch flow ready|Fee estimate refreshed/);
 assert.match(html, /id="leaderboard-burn-board-tab"[^>]*>Burn board<\/button>/, 'The project burn board must be available.');
 assert.match(app, /leaderboardBadge\.textContent = connected \? 'Indexer pending' : 'Wallet required'/);

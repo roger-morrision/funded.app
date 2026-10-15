@@ -220,7 +220,7 @@ export function createWalletSessionController(appState) {
       const node = document.querySelector(`#${id}`); if (node) node.textContent = '— SOL';
     }
     const ledger = document.querySelector('#referral-ledger-list');
-    if (ledger) appState.renderReferralLedgerEmpty('No receipts to show', 'Connect your wallet to check finalized referral claims.');
+    if (ledger) appState.renderReferralLedgerEmpty('No receipts to show', 'Connect your wallet to check finalized referral payouts.');
     const claimStatus = document.querySelector('#sol-claim-status');
     if (claimStatus) claimStatus.textContent = '';
   }

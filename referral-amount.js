@@ -8,3 +8,14 @@ export function formatReferralLamports(value) {
     .replace(/0+$/, '').padEnd(4, '0');
   return `${whole}.${fraction}`;
 }
+
+export function paidReferralLamports(claims) {
+  if (!Array.isArray(claims)) return null;
+  let total = 0n;
+  for (const row of claims) {
+    if (row?.asset !== 'SOL' || row.status !== 'paid') continue;
+    if (!/^(0|[1-9]\d*)$/.test(String(row.amountLamports))) return null;
+    total += BigInt(row.amountLamports);
+  }
+  return total;
+}

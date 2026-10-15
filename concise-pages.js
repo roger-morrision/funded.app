@@ -232,7 +232,7 @@ function shortenPageCopy() {
     ['#referral-faq .faq-grid details:nth-child(1) p', 'Rewards become available after a referred creator earns fees and those fees are collected. Signups alone earn nothing.'],
     ['#referral-faq .faq-grid details:nth-child(2) p', 'Unfilled levels go to the community reserve; they are not reassigned.'],
     ['#referral-faq .faq-grid details:nth-child(3) p', 'Rates are policy, not promised income. Payouts depend on collected creator fees.'],
-    ['#referral-faq .faq-grid details:nth-child(4) p', 'A failed or unconfirmed fee collection earns nothing. A claim opens after payment is confirmed.'],
+    ['#referral-faq .faq-grid details:nth-child(4) p', 'A failed or unconfirmed fee collection earns nothing. A payout appears only after the creator-signed transfer is finalized.'],
     ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Buy from the verified Solana pool. Check spend, then approve in your wallet.'],
     ['#buybacks .burn-token-card > p:not(.eyebrow):not(.funded-burn-status)', 'Choose a project if you want to link this burn to it, then approve in your wallet.'],
     ['#buybacks .burn-receipts-panel > .field-help', 'This history shows confirmed burns recorded by funded.vip. Total supply can include other burns.'],

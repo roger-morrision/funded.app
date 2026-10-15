@@ -14,7 +14,7 @@ import { readFile } from 'node:fs/promises';
 const [uiHtml,uiApp]=await Promise.all([readFile(new URL('../index.html',import.meta.url),'utf8'),readAppSource()]);
 assert.match(uiHtml,/id="referral-claim-center"[\s\S]*?Connect wallet to check referral rewards/);
 assert.match(uiApp,/const dashboard = document\.querySelector\('#referral-command-center'\)/, 'Manual referral claims must mount on the visible Referrals page.');
-assert.match(uiApp,/renderReferralClaimPrompt\('Referral claim service unavailable'/, 'The visible claim center must explain an unavailable claim API.');
+assert.match(uiApp,/renderReferralClaimPrompt\('Referral payout history unavailable'/, 'The visible referral center must explain unavailable payout receipts.');
 
 const data=new Map(),storage={getItem:key=>data.get(key),setItem:(key,value)=>data.set(key,value)};
 const cache=createReadCache();let loads=0;const shared=await Promise.all(Array.from({length:40},()=>cache('same',async()=>{loads++;return 'value';})));assert.equal(loads,1);assert.ok(shared.every(value=>value==='value'));

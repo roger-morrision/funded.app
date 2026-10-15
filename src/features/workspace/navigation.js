@@ -1,6 +1,7 @@
 import { $$, $, node } from './dom.js';
 import { icon } from '../../../ui-icons.js';
 import { EXPLORE_CLUSTER, APP_MAINNET_READ_ONLY } from '../../../app-config.js';
+import { isDevnetImageUri } from '../../../devnet-metadata.js';
 
 export function navigation() {
   $$('[data-icon]').forEach(item => item.innerHTML = icon(item.dataset.icon));
@@ -84,12 +85,16 @@ export function navigation() {
       link.append(token, market);
       link.addEventListener('click', () => searchDialog.close());
       searchResults.append(link);
-      if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(candidate.mint)) {
+      if (candidate.verifiedLaunch && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(candidate.mint)) {
         const image = new Image();
         image.alt = '';
         image.decoding = 'async';
         image.onload = () => { if (avatar.isConnected) avatar.replaceChildren(image); };
-        image.src = `/devnet-images/${encodeURIComponent(candidate.mint)}`;
+        const local = `/devnet-images/${encodeURIComponent(candidate.mint)}`;
+        const sources = isDevnetImageUri(candidate.imageUri, candidate.mint) ? [candidate.imageUri, local] : [local];
+        let next = 0;
+        image.onerror = () => { if (next < sources.length) image.src = sources[next++]; };
+        image.src = sources[next++];
       }
     });
     modalSearch.setAttribute('aria-activedescendant', activeCandidate >= 0 ? `header-search-result-${activeCandidate}` : '');

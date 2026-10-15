@@ -150,7 +150,7 @@ export function createAirdropDirectoryController(appState) {
         <div class="directory-footer"><span class="airdrop-status ${program.status}">${program.claimActive ? 'Claims open' : program.status === 'closed' ? 'Claims closed' : program.onCurve ? 'On curve · opens after migration' : 'Awaiting verified snapshot'}</span><div class="token-card-actions">${appState.tokenCardWatchMarkup(program.id, program.symbol)}${appState.tokenCardShareMarkup(program.id, program.symbol, program.name)}${curveTab ? '' : `<button type="button" class="secondary-button directory-claim" data-directory-mint="${safeMint}" aria-controls="airdrop-selected-program" ${checking ? 'disabled' : ''}>${appState.connectedWalletAddress && program.claimActive ? 'Check allocation' : 'View claim status'}</button>`}</div></div>
       </article>`;
     }).join('') || `<div class="empty-state">${appState.verifiedLaunchPoliciesStatus === 'loading' ? 'Checking airdrops…' : appState.verifiedLaunchPoliciesStatus === 'unavailable' ? 'Airdrops are temporarily unavailable.' : query ? 'No airdrops match your search.' : appState.airdropDirectoryStatus === 'claiming' ? 'No claims are open yet.' : appState.airdropDirectoryStatus === 'closed' ? 'No closed airdrops yet.' : appState.airdropDirectoryStatus === 'curve' ? 'No verified on-curve airdrops yet.' : 'No airdrops yet.'}</div>`;
-    appState.loadVerifiedTokenLogos(list, { probeMissing: true });
+    appState.loadVerifiedTokenLogos(list);
     if (appState.airdropDirectoryStatus === 'claiming' && appState.connectedWalletAddress
       && appState.requestedPageRoute?.() === 'airdrops' && !document.hidden) {
       for (const program of filtered.slice(first, first + appState.AIRDROP_DIRECTORY_PAGE_SIZE)) {

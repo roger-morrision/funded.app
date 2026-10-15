@@ -71,13 +71,14 @@ export function createTokenCardsController(appState) {
     appState.setCoinField('#coin-avatar', (symbol || name).slice(0, 1).toUpperCase());
     appState.setCoinField('#coin-description', 'This coin’s name and symbol are confirmed. Current trading and holder details are unavailable.');
     appState.setCoinFact('#coin-metadata-status', 'Verified launch registry', 'clear');
-    if (appState.isDevnetImageUri(launch.imageUri, mint)) {
+    if (launch.onchainVerified && appState.EXPLORE_CLUSTER === 'devnet') {
       const avatar = document.querySelector('#coin-avatar');
       if (avatar) {
         avatar.textContent = '';
-        avatar.style.backgroundImage = `url("${launch.imageUri}")`;
+        avatar.style.backgroundImage = `url("${appState.isDevnetImageUri(launch.imageUri, mint) ? launch.imageUri : `/devnet-images/${encodeURIComponent(mint)}`}")`;
         avatar.style.backgroundSize = 'cover';
         avatar.style.backgroundPosition = 'center';
+        avatar.title = appState.isDevnetImageUri(launch.imageUri, mint) ? '' : 'Generated token avatar; project artwork was not uploaded';
       }
     }
   }
@@ -104,17 +105,18 @@ export function createTokenCardsController(appState) {
   // app-source-end
 
   // app-source: 305
-  function loadTokenLogo(avatar, launch, { probeMissing = false } = {}){
+  function loadTokenLogo(avatar, launch){
     const mint = String(launch?.mint || '');
-    if (!avatar || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) || (!probeMissing && !appState.isDevnetImageUri(launch?.imageUri, mint))) return;
-    const sources = [`/devnet-images/${encodeURIComponent(mint)}`, appState.devnetImageUri(mint)];
+    if (!avatar || appState.EXPLORE_CLUSTER !== 'devnet' || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) || launch?.onchainVerified !== true) return;
+    const local = `/devnet-images/${encodeURIComponent(mint)}`;
+    const sources = appState.isDevnetImageUri(launch.imageUri, mint) ? [launch.imageUri, local] : [local];
     let next = 0;
     const trySource = () => {
       if (!avatar.isConnected || next >= sources.length) return;
       const image = new Image();
       image.alt = '';
       image.decoding = 'async';
-      image.onload = () => { if (avatar.isConnected) { avatar.replaceChildren(image); avatar.removeAttribute('title'); } };
+      image.onload = () => { if (avatar.isConnected) { avatar.replaceChildren(image); if (sources.length === 1 || next > 1) avatar.title = 'Generated token avatar; project artwork was not uploaded'; else avatar.removeAttribute('title'); } };
       image.onerror = trySource;
       image.src = sources[next++];
     };
@@ -123,14 +125,14 @@ export function createTokenCardsController(appState) {
   // app-source-end
 
   // app-source: 306
-  function loadPortfolioLogo(card, launch, options){
-    appState.loadTokenLogo(card?.querySelector('.portfolio-token-avatar, .asset-icon, .wallet-activity-icon, .home-token-avatar, .home-holder-reward-avatar, .claim-token-mark, .claim-token > span, .explore-ticker-token > i, .explore-tape-logo, .terminal-signal-logo, .leader-token-logo, .coin-trade-token-avatar'), launch, options);
+  function loadPortfolioLogo(card, launch){
+    appState.loadTokenLogo(card?.querySelector('.portfolio-token-avatar, .asset-icon, .wallet-activity-icon, .home-token-avatar, .home-holder-reward-avatar, .claim-token-mark, .claim-token > span, .explore-ticker-token > i, .explore-tape-logo, .terminal-signal-logo, .leader-token-logo, .coin-trade-token-avatar'), launch);
   }
   // app-source-end
 
   // app-source: 307
-  function loadVerifiedTokenLogos(container, options){
-    container?.querySelectorAll('[data-logo-mint]').forEach(row => appState.loadPortfolioLogo(row, appState.verifiedLaunchPolicyForMint(row.dataset.logoMint), options));
+  function loadVerifiedTokenLogos(container){
+    container?.querySelectorAll('[data-logo-mint]').forEach(row => appState.loadPortfolioLogo(row, appState.verifiedLaunchPolicyForMint(row.dataset.logoMint)));
   }
   // app-source-end
 
