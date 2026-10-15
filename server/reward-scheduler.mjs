@@ -6,6 +6,14 @@ import { NATIVE_MINT } from '@solana/spl-token';
 import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
 import { bondingCurvePda } from '@pump-fun/pump-sdk';
 import { PublicKey } from '@solana/web3.js';
+import { QA_HOLDER_POLICY } from './devnet-qa-minimums.mjs';
+
+const pricedHolderPolicy = config => ['usd-20-hourly-v1', QA_HOLDER_POLICY]
+  .includes(config?.eligibilityPolicy);
+const holderUsdMinimum = config => config?.eligibilityPolicy === QA_HOLDER_POLICY
+  ? config.qaMinimums.minimumHolderUsd : AUTOMATIC_REWARDS.minimumHolderUsd;
+const poolUsdMinimum = config => config?.eligibilityPolicy === QA_HOLDER_POLICY
+  ? config.qaMinimums.minimumPoolUsd : AUTOMATIC_REWARDS.minimumPoolUsd;
 
 function excludedHolderWallets(mint, configured = []) {
   const excluded = new Set(configured.map(String));
@@ -37,14 +45,14 @@ function positiveDecimalRatio(value, label) {
 
 const ceilDiv = (numerator, denominator) => (numerator + denominator - 1n) / denominator;
 
-export function holderUsdEligibility(quote, closingAccounts, excludedWallets = []) {
+export function holderUsdEligibility(quote, closingAccounts, excludedWallets = [], minimumUsd = AUTOMATIC_REWARDS.minimumHolderUsd) {
   const price = Number(quote?.tokenPriceUsd), decimals = Number(quote?.decimals);
   if (!Number.isFinite(price) || price <= 0 || !Number.isInteger(decimals)
     || decimals < 0 || decimals > 18 || !Number.isFinite(Date.parse(quote?.observedAt))
     || Math.abs(Date.now() - Date.parse(quote.observedAt)) > 5 * 60_000)
     throw new Error('A fresh verified token price is required for holder eligibility.');
   const ratio = positiveDecimalRatio(price, 'Token price');
-  const rawMinimum = ceilDiv(BigInt(AUTOMATIC_REWARDS.minimumHolderUsd)
+  const rawMinimum = ceilDiv(BigInt(minimumUsd)
     * 10n ** BigInt(decimals) * ratio.denominator, ratio.numerator);
   if (rawMinimum <= 0n || rawMinimum > (1n << 64n) - 1n)
     throw new Error('Token price is too small to calculate the holder minimum safely.');
@@ -65,7 +73,7 @@ export function holderPoolMinimumLamports(config, quote, recipientCount, env = p
     || recipientCount > AUTOMATIC_REWARDS.maxEligibleHolders)
     throw new Error('Eligible holder count exceeds the configured distribution limit.');
   const ratio = positiveDecimalRatio(solUsd, 'SOL/USD quote');
-  const cents = BigInt(Math.round(AUTOMATIC_REWARDS.minimumPoolUsd * 100))
+  const cents = BigInt(Math.round(poolUsdMinimum(config) * 100))
     + BigInt(recipientCount) * BigInt(Math.round(AUTOMATIC_REWARDS.costReserveUsdPerHolder * 100));
   const converted = ceilDiv(cents * 1_000_000_000n * ratio.denominator,
     100n * ratio.numerator);
@@ -79,6 +87,11 @@ function devnetQaShortWindow(config, env = process.env) {
 
 export function holderFundingMinimumLamports(config, env = process.env) {
   const standard = BigInt(AUTOMATIC_REWARDS.minimumLamports);
+  if (config?.eligibilityPolicy === QA_HOLDER_POLICY) {
+    if (env.SOLANA_CLUSTER !== 'devnet')
+      throw new Error('The Devnet QA holder policy cannot run outside Devnet.');
+    return BigInt(config.qaMinimums.minimumFundingLamports);
+  }
   if (!devnetQaShortWindow(config, env)) return standard;
   const raw = String(env.FUNDED_QA_HOLDER_MIN_LAMPORTS || '');
   if (!/^[1-9]\d*$/.test(raw)) throw new Error('A numeric Solana QA holder minimum is required.');
@@ -97,10 +110,20 @@ function programConfig(input) {
   if (![periodSeconds, sampleIntervalSeconds, payoutDelaySeconds].every(Number.isSafeInteger) || periodSeconds < minimumPeriodSeconds || sampleIntervalSeconds < 30 || sampleIntervalSeconds > periodSeconds || payoutDelaySeconds < 0) throw new Error('Invalid reward schedule timing.');
   if (![activatedAt, firstPeriodStart].every(Number.isSafeInteger) || activatedAt < 0 || firstPeriodStart < activatedAt || firstPeriodStart % periodSeconds !== 0) throw new Error('Invalid reward program activation time.');
   if (!['SOL', String(input.mint)].includes(String(input.asset || 'SOL'))) throw new Error('Holder rewards must use SOL or the launched token.');
+  const qaMinimums = input.eligibilityPolicy === QA_HOLDER_POLICY ? input.qaMinimums : null;
+  if (qaMinimums) {
+    if (process.env.SOLANA_CLUSTER !== 'devnet' || periodSeconds !== 3600
+      || !Number.isSafeInteger(qaMinimums.minimumHolderUsd) || qaMinimums.minimumHolderUsd < 1 || qaMinimums.minimumHolderUsd > 19
+      || !Number.isSafeInteger(qaMinimums.minimumPoolUsd) || qaMinimums.minimumPoolUsd < 1 || qaMinimums.minimumPoolUsd > 19
+      || !Number.isSafeInteger(qaMinimums.minimumFundingLamports) || qaMinimums.minimumFundingLamports < 1_000_000 || qaMinimums.minimumFundingLamports > 9_999_999)
+      throw new Error('The hourly Devnet QA holder policy requires bounded persisted minimums.');
+  } else if (input.eligibilityPolicy === QA_HOLDER_POLICY) {
+    throw new Error('The hourly Devnet QA holder policy requires persisted minimums.');
+  }
   return {
     mint: String(input.mint), enabled: input.enabled !== false, asset: String(input.asset || 'SOL'), kind: 'holder',
     periodSeconds, sampleIntervalSeconds, payoutDelaySeconds, activatedAt, firstPeriodStart,
-    eligibilityPolicy: input.eligibilityPolicy || null,
+    eligibilityPolicy: input.eligibilityPolicy || null, qaMinimums,
     excludedWallets: excludedHolderWallets(input.mint, input.excludedWallets || []),
     updatedAt: new Date().toISOString(),
   };
@@ -125,17 +148,25 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
       const inferredActivation = Number.isFinite(Date.parse(prior?.updatedAt)) ? Math.floor(Date.parse(prior.updatedAt) / 1000) : undefined;
       const config = programConfig({ ...input,
         eligibilityPolicy:input.eligibilityPolicy ?? prior?.eligibilityPolicy,
+        qaMinimums:input.qaMinimums === undefined ? prior?.qaMinimums : input.qaMinimums,
         activatedAt:input.activatedAt ?? prior?.activatedAt ?? inferredActivation,
         firstPeriodStart:input.firstPeriodStart ?? prior?.firstPeriodStart });
-      if (prior && prior.periodSeconds !== config.periodSeconds) {
+      if (prior && (prior.periodSeconds !== config.periodSeconds
+        || prior.eligibilityPolicy !== config.eligibilityPolicy
+        || JSON.stringify(prior.qaMinimums || null) !== JSON.stringify(config.qaMinimums || null))) {
         state.schedules ||= {};
         for (const schedule of Object.values(state.schedules)) {
           if (schedule.mint !== config.mint || schedule.kind !== 'holder'
-            || schedule.cutoffAt - schedule.periodStart === config.periodSeconds
             || schedule.manifest || schedule.cycle
             || !['indexing', 'blocked', 'deferred'].includes(schedule.status)) continue;
+          if (schedule.cutoffAt - schedule.periodStart === config.periodSeconds
+            && schedule.periodStart >= config.firstPeriodStart) {
+            schedule.status = 'indexing';
+            schedule.reason = null;
+            continue;
+          }
           schedule.status = 'skipped';
-          schedule.reason = 'Hourly policy replaced this unprepared period; verified funding rolls forward.';
+          schedule.reason = 'Holder policy replaced this unprepared period; verified funding rolls forward.';
         }
       }
       state.programs[config.mint] = config;
@@ -209,7 +240,7 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
       : await store.transaction(state => structuredClone(state));
     const quotedMints = [...new Set(Object.values(snapshot.programs || {})
       .filter(config => {
-        if (!config.enabled || config.eligibilityPolicy !== 'usd-20-hourly-v1'
+        if (!config.enabled || !pricedHolderPolicy(config)
           || now < config.firstPeriodStart + config.periodSeconds) return false;
         const total = Object.values(snapshot.rewardPools || {}).filter(pool => pool.mint === config.mint
           && pool.status === 'available' && pool.asset === 'SOL')
@@ -270,23 +301,24 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
           const excluded = excludedHolderWallets(schedule.mint, config.excludedWallets || []);
           let weights = holdingWeights({ start: schedule.periodStart, end: schedule.cutoffAt,
             snapshots, excludedWallets:excluded, coverage:'finalized-sampled-v1' });
-          if (config.eligibilityPolicy === 'usd-20-hourly-v1') {
+          if (pricedHolderPolicy(config)) {
             const quote = quotes.get(schedule.mint);
             const { eligible, minimumTokenUnits } = holderUsdEligibility(quote,
-              snapshots.at(-1).accounts, excluded);
+              snapshots.at(-1).accounts, excluded, holderUsdMinimum(config));
             weights = weights.filter(row => eligible.has(row.wallet));
-            if (!weights.length) throw new Error('No holder meets the $20-equivalent closing balance minimum.');
+            if (!weights.length) throw new Error(`No holder meets the $${holderUsdMinimum(config)}-equivalent closing balance minimum.`);
             const minimum = holderPoolMinimumLamports(config, quote, weights.length);
             if (total < minimum) {
               schedule.status = 'deferred';
-              schedule.reason = 'Verified holder funding is below the $20-equivalent pool and distribution-cost threshold; it carries forward.';
+              schedule.reason = `Verified holder funding is below the $${poolUsdMinimum(config)}-equivalent pool and distribution-cost threshold; it carries forward.`;
               schedule.lastCheckedAt = new Date().toISOString();
               continue;
             }
             schedule.eligibility = { policy:config.eligibilityPolicy,
               quoteSource:quote.source, quoteObservedAt:quote.observedAt,
               tokenPriceUsd:quote.tokenPriceUsd, solUsd:quote.solUsd,
-              minimumTokenUnits, eligibleCount:weights.length,
+              minimumTokenUnits, minimumHolderUsd:holderUsdMinimum(config),
+              minimumPoolUsd:poolUsdMinimum(config), eligibleCount:weights.length,
               minimumPoolLamports:String(minimum) };
           }
           const allocation = allocateHolderPool(String(total), weights);

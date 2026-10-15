@@ -15,6 +15,7 @@ import { v3AllocationPlan } from '../v3-allocation-plan.mjs';
 import { loadFinalizedV3RewardFunding } from '../v3-reward-funding-proof.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 import { v3ReferralEntitlement } from '../v3-referral-entitlement.mjs';
+import { QA_HOLDER_POLICY, qaHolderMinimums } from '../devnet-qa-minimums.mjs';
 
 const withdrawalIdFor = (kind, signature) => createHash('sha256')
   .update(`funded.v3.${kind}-funding.v1:${signature}`).digest();
@@ -156,6 +157,8 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       const qaShort = solanaCluster === 'devnet'
         && env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true'
         && env.FUNDED_QA_HOLDER_MINT === mint;
+      const qaMinimums = qaShort ? null : qaHolderMinimums(mint, solanaCluster, env);
+      const eligibilityPolicy = qaMinimums ? QA_HOLDER_POLICY : 'usd-20-hourly-v1';
       if (qaShort) holderFundingMinimumLamports({ mint, periodSeconds:300 },
         { ...env, SOLANA_CLUSTER:'devnet' });
       if (existingProgram && (existingProgram.activatedAt !== activatedAt
@@ -168,13 +171,16 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       const excludedWallets = [...new Set([
         ...(existingProgram?.excludedWallets || []), recipient.toBase58()])];
       if (!existingProgram || existingProgram.periodSeconds !== periodSeconds
-        || existingProgram.eligibilityPolicy !== 'usd-20-hourly-v1'
+        || existingProgram.eligibilityPolicy !== eligibilityPolicy
+        || JSON.stringify(existingProgram.qaMinimums || null) !== JSON.stringify(qaMinimums)
         || !existingProgram.excludedWallets?.includes(recipient.toBase58())) {
         const firstPeriodStart = !existingProgram || existingProgram.periodSeconds !== periodSeconds
+          || existingProgram.eligibilityPolicy !== eligibilityPolicy
+          || JSON.stringify(existingProgram.qaMinimums || null) !== JSON.stringify(qaMinimums)
           ? Math.ceil(Math.max(activatedAt, fundedAt, Math.floor(Date.now() / 1000)) / periodSeconds) * periodSeconds
           : existingProgram.firstPeriodStart;
         await scheduler.register({ mint, asset:'SOL', activatedAt,
-          excludedWallets, eligibilityPolicy:'usd-20-hourly-v1',
+          excludedWallets, eligibilityPolicy, qaMinimums,
           periodSeconds, sampleIntervalSeconds:AUTOMATIC_REWARDS.sampleIntervalSeconds,
           payoutDelaySeconds:0, firstPeriodStart });
       }

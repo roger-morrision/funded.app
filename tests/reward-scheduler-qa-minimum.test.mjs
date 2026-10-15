@@ -4,10 +4,105 @@ import { PublicKey } from '@solana/web3.js';
 import { bondingCurvePda } from '@pump-fun/pump-sdk';
 import { createRewardScheduler, holderFundingMinimumLamports,
   holderPoolMinimumLamports, holderUsdEligibility } from '../server/reward-scheduler.mjs';
+import { QA_HOLDER_POLICY, qaHolderMinimums } from '../server/devnet-qa-minimums.mjs';
 
 const mint = 'FWmi66ecpuAYkcpjT86i2RsBKZhm2cJdnKXqcoreW8DH';
 const qa = { SOLANA_CLUSTER:'devnet', FUNDED_QA_SHORT_REWARD_PERIODS:'true', FUNDED_QA_HOLDER_MINT:mint, FUNDED_QA_HOLDER_MIN_LAMPORTS:'800000' };
 const standard = 10_000_000n;
+
+test('hourly QA holder minimums are bounded to one Devnet mint and persist on the program', async () => {
+  const env = { FUNDED_DEVNET_QA_MINIMUMS_ENABLED:'true',
+    FUNDED_DEVNET_QA_HOLDER_MINT:mint, FUNDED_DEVNET_QA_HOLDER_MIN_USD:'1',
+    FUNDED_DEVNET_QA_HOLDER_POOL_MIN_USD:'1',
+    FUNDED_DEVNET_QA_HOLDER_MIN_LAMPORTS:'1000000' };
+  const minimums = qaHolderMinimums(mint, 'devnet', env);
+  assert.deepEqual(minimums, { minimumHolderUsd:1,
+    minimumPoolUsd:1, minimumFundingLamports:1_000_000 });
+  assert.equal(qaHolderMinimums('another-mint', 'devnet', env), null);
+  assert.equal(qaHolderMinimums(mint, 'devnet', { ...env,
+    FUNDED_DEVNET_QA_MINIMUMS_ENABLED:'false' }), null);
+  assert.throws(() => qaHolderMinimums(mint, 'mainnet-beta', env), /outside Devnet/);
+  assert.throws(() => qaHolderMinimums(mint, 'devnet', { ...env,
+    FUNDED_DEVNET_QA_HOLDER_MIN_USD:'0' }), /positive integer/);
+  assert.throws(() => qaHolderMinimums(mint, 'devnet', { ...env,
+    FUNDED_DEVNET_QA_HOLDER_MIN_LAMPORTS:'10000000' }), /bounded Devnet QA range/);
+  const config = { mint, periodSeconds:3600, eligibilityPolicy:QA_HOLDER_POLICY,
+    qaMinimums:minimums };
+  assert.equal(holderFundingMinimumLamports(config, { SOLANA_CLUSTER:'devnet' }), 1_000_000n);
+  assert.throws(() => holderFundingMinimumLamports(config, { SOLANA_CLUSTER:'mainnet-beta' }), /outside Devnet/);
+  const quote = { tokenPriceUsd:0.02, solUsd:200, decimals:6,
+    source:'verified-test-quote', observedAt:new Date().toISOString() };
+  const wallet = '11111111111111111111111111111111';
+  assert.deepEqual([...holderUsdEligibility(quote, [{ wallet, balance:'50000000' }], [], 1).eligible], [wallet]);
+  assert.equal(holderPoolMinimumLamports(config, quote, 1, { SOLANA_CLUSTER:'devnet' }), 5_050_000n);
+  const oldCluster = process.env.SOLANA_CLUSTER;
+  process.env.SOLANA_CLUSTER = 'devnet';
+  try {
+    const state = { programs:{ [mint]:{ mint, enabled:true, asset:'SOL', kind:'holder',
+      periodSeconds:3600, eligibilityPolicy:'usd-20-hourly-v1',
+      activatedAt:3600, firstPeriodStart:3600 } },
+      schedules:{ old:{ mint, kind:'holder', periodStart:3600, cutoffAt:7200,
+        status:'indexing', payments:{} }, next:{ mint, kind:'holder', periodStart:7200,
+        cutoffAt:10800, status:'blocked', reason:'Old policy', payments:{} },
+        paid:{ mint, kind:'holder', periodStart:0,
+        cutoffAt:3600, status:'paid', cycle:'immutable-cycle', payments:{} } } };
+    const scheduler = createRewardScheduler({ store:{ transaction:async callback => callback(state) },
+      indexer:{}, chain:{} });
+    await scheduler.register({ ...config, asset:'SOL', activatedAt:3600,
+      firstPeriodStart:7200, sampleIntervalSeconds:300, payoutDelaySeconds:0 });
+    assert.equal(state.programs[mint].eligibilityPolicy, QA_HOLDER_POLICY);
+    assert.deepEqual(state.programs[mint].qaMinimums, minimums);
+    assert.equal(state.schedules.old.status, 'skipped');
+    assert.equal(state.schedules.next.status, 'indexing');
+    assert.equal(state.schedules.paid.status, 'paid');
+  } finally {
+    if (oldCluster === undefined) delete process.env.SOLANA_CLUSTER;
+    else process.env.SOLANA_CLUSTER = oldCluster;
+  }
+});
+
+test('a verified small Devnet pool prepares only under the selected hourly QA policy', async () => {
+  const previous = process.env.SOLANA_CLUSTER;
+  process.env.SOLANA_CLUSTER = 'devnet';
+  try {
+    const start = Math.floor(Date.now() / 3_600_000) * 3600 - 3600;
+    const wallet = '11111111111111111111111111111111';
+    const minimums = { minimumHolderUsd:1, minimumPoolUsd:1,
+      minimumFundingLamports:1_000_000 };
+    const quote = { tokenPriceUsd:0.02, solUsd:200, decimals:6,
+      source:'verified-test-quote', observedAt:new Date().toISOString() };
+    const base = { programs:{ [mint]:{ mint, asset:'SOL', kind:'holder', enabled:true,
+      periodSeconds:3600, sampleIntervalSeconds:1800, payoutDelaySeconds:0,
+      activatedAt:start, firstPeriodStart:start, excludedWallets:[],
+      eligibilityPolicy:QA_HOLDER_POLICY, qaMinimums:minimums } },
+      schedules:{}, rewardPools:{ pool:{ id:'pool', mint, asset:'SOL',
+        status:'available', amount:'6000000', fundedAt:start+100,
+        balanceDeltaVerified:true } },
+      holderSnapshots:{ [mint]:[start,start+1800,start+3600].map((at, slot) => ({
+        at, slot:slot+1, finalized:true,
+        accounts:[{ account:'holder', wallet, balance:'50000000' }] })) } };
+    const state = structuredClone(base);
+    const scheduler = createRewardScheduler({ store:{ read:async () => structuredClone(state),
+      transaction:async callback => callback(state) }, indexer:{}, chain:{},
+      quoteReader:async () => quote });
+    await scheduler.prepare(start+3600);
+    const row = state.schedules[`${mint}:${start}:holder:SOL`];
+    assert.equal(row.status, 'prepared', row.reason);
+    assert.equal(row.eligibility.policy, QA_HOLDER_POLICY);
+    assert.equal(row.eligibility.minimumPoolLamports, '5050000');
+    assert.deepEqual(row.manifest.leaves.map(leaf => leaf.recipient), [wallet]);
+    const normal = structuredClone(base);
+    normal.programs[mint].eligibilityPolicy = 'usd-20-hourly-v1';
+    normal.programs[mint].qaMinimums = null;
+    await createRewardScheduler({ store:{ read:async () => structuredClone(normal),
+      transaction:async callback => callback(normal) }, indexer:{}, chain:{},
+      quoteReader:async () => quote }).prepare(start+3600);
+    assert.equal(normal.schedules[`${mint}:${start}:holder:SOL`].status, 'deferred');
+  } finally {
+    if (previous === undefined) delete process.env.SOLANA_CLUSTER;
+    else process.env.SOLANA_CLUSTER = previous;
+  }
+});
 
 test('the short-period Devnet test can lower only its selected mint minimum', () => {
   assert.equal(holderFundingMinimumLamports({mint, periodSeconds:300}, qa), 800_000n);
