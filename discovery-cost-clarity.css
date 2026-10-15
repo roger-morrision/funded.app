@@ -46,4 +46,11 @@ body.page-route-launch .launch-pay-summary :is(.cost-initial-buy-row, .cost-netw
   html body.page-route-overview .home-board-sort,
   html body.page-route-overview .home-board-view { margin-left: 0; }
   html body.page-route-overview .home-market-ticker { margin: 14px 0 6px; }
+  html body.page-route-overview .home-filter-search { width: 100%; }
+}
+@media (max-width: 360px) {
+  html body.page-route-overview .home-filter-range-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html body.page-route-overview .home-filter-range-row > span { grid-column: 1 / -1; }
+  html body.page-route-overview .home-filter-checks { gap: 9px 6px; }
+  html body.page-route-overview .home-filter-checks label { white-space: nowrap; }
 }
