@@ -113,6 +113,7 @@ test('selected Devnet QA mint can use five-minute periods without losing bounded
   Object.assign(process.env, { SOLANA_CLUSTER:'devnet',
     FUNDED_QA_SHORT_REWARD_PERIODS:'true', FUNDED_QA_HOLDER_MINT:mint });
   const start = Math.floor(Date.now() / 300_000) * 300 - 300;
+  const collisionId = `${mint}:${start + 300}:holder:SOL`;
   const wallet = '11111111111111111111111111111111';
   const minimums = { minimumHolderUsd:1, minimumPoolUsd:0.5,
     minimumFundingLamports:1_000_000 };
@@ -124,7 +125,10 @@ test('selected Devnet QA mint can use five-minute periods without losing bounded
     activatedAt:start - 3600, firstPeriodStart:start - 3600,
     eligibilityPolicy:QA_HOLDER_POLICY, qaMinimums:minimums } },
     schedules:{ old:{ mint, kind:'holder', periodStart:start - 3600,
-      cutoffAt:start, status:'indexing', payments:{} } },
+      cutoffAt:start, status:'indexing', payments:{} },
+      [collisionId]:{ id:collisionId, mint, asset:'SOL', kind:'holder',
+        periodStart:start + 300, cutoffAt:start + 3900,
+        status:'indexing', payments:{} } },
     rewardPools:{ pool:{ id:'pool', mint, asset:'SOL', status:'available',
       amount:'6000000', fundedAt:start - 60, balanceDeltaVerified:true } },
     holderSnapshots:{ [mint]:[start - 60, start + 60, start + 180, start + 299]
@@ -143,12 +147,19 @@ test('selected Devnet QA mint can use five-minute periods without losing bounded
     assert.equal(state.programs[mint].periodSeconds, 300);
     assert.deepEqual(state.programs[mint].qaMinimums, minimums);
     assert.equal(state.schedules.old.status, 'skipped');
+    assert.equal(state.schedules[collisionId].status, 'skipped');
     assert.equal(state.rewardPools.pool.status, 'available');
     await scheduler.prepare(start + 300);
     const row = state.schedules[`${mint}:${start}:holder:SOL`];
     assert.equal(row.status, 'prepared', row.reason);
     assert.deepEqual(row.manifest.leaves.map(leaf => leaf.recipient), [wallet]);
     assert.equal(state.rewardPools.pool.status, 'assigned');
+    assert.equal(state.schedules[collisionId].status, 'indexing');
+    assert.equal(state.schedules[collisionId].cutoffAt, start + 600);
+    await scheduler.prepare(start + 600);
+    assert.equal(state.schedules[collisionId].status, 'deferred');
+    assert.match(state.schedules[collisionId].reason, /No balance-verified reward pool/);
+    assert.equal(state.rewardPools.pool.scheduleId, row.id);
     await assert.rejects(() => scheduler.register({ mint:'another-mint', asset:'SOL',
       activatedAt:start - 3600, firstPeriodStart:start, periodSeconds:300,
       sampleIntervalSeconds:60, payoutDelaySeconds:0,

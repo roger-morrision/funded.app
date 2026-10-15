@@ -284,7 +284,16 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
         for (const start of periodsToEnsure(now, config.periodSeconds)) {
           if (start < config.firstPeriodStart) continue;
           const id = scheduleId(config.mint, start, config.asset);
-          state.schedules[id] ||= { id, mint: config.mint, asset: config.asset, kind: config.kind, periodStart: start, cutoffAt: start + config.periodSeconds, payoutAt: start + config.periodSeconds + config.payoutDelaySeconds, status: 'indexing', payments: {}, createdAt: new Date().toISOString() };
+          const existing = state.schedules[id];
+          // A retired hourly row can share this ID with a new five-minute row
+          // at an hour boundary. Only replace an unprepared, skipped row; an
+          // immutable manifest, cycle, or payment must remain untouched.
+          if (!existing || (existing.status === 'skipped'
+            && existing.cutoffAt - existing.periodStart !== config.periodSeconds
+            && !existing.manifest && !existing.cycle
+            && !Object.keys(existing.payments || {}).length)) {
+            state.schedules[id] = { id, mint: config.mint, asset: config.asset, kind: config.kind, periodStart: start, cutoffAt: start + config.periodSeconds, payoutAt: start + config.periodSeconds + config.payoutDelaySeconds, status: 'indexing', payments: {}, createdAt: new Date().toISOString() };
+          }
         }
       }
       const prepared = [];
