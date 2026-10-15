@@ -21,7 +21,6 @@ body.product-experience-ready .hero-section { min-height:0!important; padding-to
 body.product-experience-ready .hero-section h1 { max-width:700px; font-size:clamp(32px,4.5vw,56px)!important; line-height:1.08!important; }
 body.product-experience-ready .hero-copy { max-width:580px; font-size:16px; }
 body.product-experience-ready .hero-actions { margin-top:22px; }
-body.product-experience-ready .product-devnet-note { max-width:760px; margin:8px 0 18px; color:#e9c67b; font-size:12px; line-height:1.5; }
 body.product-experience-ready .product-follow-note { margin:4px 0 14px; color:var(--muted); font-size:12px; }
 body.product-experience-ready .product-follow-note a { color:var(--text); text-decoration:underline; }
 body.product-experience-ready .coin-fee-status-guide { margin:0 0 16px; padding:12px 14px; border-left:3px solid #eeb04b; background:#151c2b; color:var(--muted); font-size:12px; }

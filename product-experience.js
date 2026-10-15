@@ -32,18 +32,14 @@ function home() {
     board.after(rewardGroups);
     disclosure(rewardGroups, 'Community rewards');
   }
-  if (board && !board.querySelector('.product-devnet-note') && $('.workspace-network')?.textContent?.includes('Devnet')) {
-    const note = document.createElement('p');
-    note.className = 'product-devnet-note';
-    note.textContent = 'Devnet test launches · test SOL has no monetary value. Market figures appear only when verified observations are available.';
-    board.querySelector('.home-launch-board-title')?.after(note);
+  if (board && $('.workspace-network')?.textContent?.includes('Devnet')) {
     setText('.home-launch-board-title', 'Devnet launches');
   }
   if (board && !board.querySelector('.product-follow-note')) {
     const note = document.createElement('p');
     note.className = 'product-follow-note';
     note.innerHTML = 'Want to revisit a coin? Use its star, then open <a href="#explore">Explore</a> and choose Following.';
-    (board.querySelector('.product-devnet-note') || board.querySelector('.home-launch-board-title'))?.after(note);
+    board.querySelector('.home-launch-board-title')?.after(note);
   }
   // Pause distracting continuous movement by default. The existing control can resume it.
   const pause = $('#home-feed-pause');
