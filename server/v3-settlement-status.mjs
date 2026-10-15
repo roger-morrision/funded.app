@@ -34,8 +34,7 @@ export async function verifyRecordedV3Settlements({ state, connection, programId
     if (genesis !== DEVNET_GENESIS_HASH || !evidence.account?.executable
       || evidence.sha256 !== approvedHash.toLowerCase() || !global.verified
       || !global.authority) return result(false, recorded, 0, 'approved-program-unverified');
-    let checked = 0;
-    for (const collection of collections) {
+    const verifyCollection = async collection => {
       const launch = state.launches?.[collection.mint];
       const settlement = state.v3Settlements?.[collection.signature];
       if (!launch?.onchainVerified || launch.cluster !== 'devnet'
@@ -52,14 +51,14 @@ export async function verifyRecordedV3Settlements({ state, connection, programId
         || settlement.mint !== collection.mint || settlement.claimId !== collection.claimId
         || settlement.expectedLamports !== String(collection.collectedLamports)
         || !settlement.settlementSignature)
-        return result(false, recorded, checked, 'record-mismatch-or-pending');
+        return 'record-mismatch-or-pending';
       const source = await loadCollection({ connection, signature:collection.signature,
         programId:program, mint:collection.mint, launch });
       if (!source || source.signature !== collection.signature
         || source.claimId.toString('hex') !== collection.claimId
         || source.expectedLamports !== BigInt(collection.collectedLamports)
         || source.router !== collection.router)
-        return result(false, recorded, checked, 'collection-proof-unavailable');
+        return 'collection-proof-unavailable';
       const proof = await loadSettlement({ connection,
         signature:settlement.settlementSignature, programId:program,
         mint:collection.mint, authority:global.authority,
@@ -70,8 +69,19 @@ export async function verifyRecordedV3Settlements({ state, connection, programId
         || proof.expectedLamports !== String(collection.collectedLamports)
         || proof.router !== collection.router
         || JSON.stringify(proof.categoryLamports) !== JSON.stringify(settlement.categoryLamports))
-        return result(false, recorded, checked, 'settlement-proof-unavailable');
-      checked += 1;
+        return 'settlement-proof-unavailable';
+      return null;
+    };
+    let checked = 0;
+    // Finalized transaction proofs are immutable. Read a small batch at once so
+    // status checks do not time out as the number of verified mints grows.
+    for (let offset = 0; offset < collections.length; offset += 4) {
+      const outcomes = await Promise.all(collections.slice(offset, offset + 4)
+        .map(verifyCollection));
+      for (const reason of outcomes) {
+        if (reason) return result(false, recorded, checked, reason);
+        checked += 1;
+      }
     }
     return result(true, recorded, checked);
   } catch {

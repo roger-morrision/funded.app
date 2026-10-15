@@ -61,3 +61,40 @@ test('rejects missing, inconsistent, and unapproved evidence', async () => {
     loadSettlement:async () => ({ ...await input.loadSettlement(), categoryLamports:['100'] }) })).reason,
   'settlement-proof-unavailable');
 });
+
+test('checks finalized proofs in bounded parallel batches and keeps ordered failure evidence', async () => {
+  const input = fixture();
+  const signatures = Array.from({ length:5 }, (_, index) => signature.slice(0, -1) + String(index + 1));
+  input.state.collections = Object.fromEntries(signatures.map((id, index) => [id, {
+    ...input.state.collections[signature], signature:id,
+  }]));
+  input.state.v3Settlements = Object.fromEntries(signatures.map((id, index) => [id, {
+    ...input.state.v3Settlements[signature], collectionSignature:id,
+    settlementSignature:`settlement-${index}`,
+  }]));
+  let active = 0;
+  let maximum = 0;
+  input.loadCollection = async ({ signature:id }) => {
+    active += 1;
+    maximum = Math.max(maximum, active);
+    await Promise.resolve();
+    active -= 1;
+    return { signature:id, claimId:Buffer.from(claimId, 'hex'),
+      expectedLamports:100n, router:'router' };
+  };
+  input.loadSettlement = async ({ signature:id }) => ({
+    signature:id, claimId, expectedLamports:'100', router:'router', categoryLamports,
+  });
+  assert.deepEqual(await verifyRecordedV3Settlements(input), {
+    verified:true, scope:'all-recorded-v3-collections', recorded:5, checked:5,
+  });
+  assert.equal(maximum, 4);
+  input.loadSettlement = async ({ signature:id }) => ({
+    signature:id, claimId, expectedLamports:'100', router:'router',
+    categoryLamports:id === 'settlement-2' ? ['wrong'] : categoryLamports,
+  });
+  assert.deepEqual(await verifyRecordedV3Settlements(input), {
+    verified:false, scope:'all-recorded-v3-collections', recorded:5, checked:2,
+    reason:'settlement-proof-unavailable',
+  });
+});

@@ -4,7 +4,11 @@ import bs58 from 'bs58';
 import { Connection, Keypair, Transaction } from '@solana/web3.js';
 
 const base = 'https://funded.vip';
-const mint = 'EtMFvbnLJMmp4PWqDVSqYzWfkWhZy3FznJQTN35rYWPc';
+const mint = process.argv.find(value => value.startsWith('--mint='))?.slice(7)
+  || 'EtMFvbnLJMmp4PWqDVSqYzWfkWhZy3FznJQTN35rYWPc';
+assert(new Set(['EtMFvbnLJMmp4PWqDVSqYzWfkWhZy3FznJQTN35rYWPc',
+  '2F6VAkmF6sXEwmY9No15EkthW7bwd2eocxM4yd8pWaRw']).has(mint),
+  'Only reviewed V3 Devnet QA mints are allowed.');
 const collection = process.argv.find(value => value.startsWith('--collection='))?.slice(13);
 const execute = process.argv.includes('--execute');
 assert(/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(collection || ''), 'A finalized QA collection signature is required.');

@@ -5,13 +5,25 @@ import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import { creatorVaultPda } from '@pump-fun/pump-sdk';
 import { buildTradeTransaction, fetchBondingCurveSnapshot } from '../pump-trading.js';
 
-const mint = new PublicKey('EtMFvbnLJMmp4PWqDVSqYzWfkWhZy3FznJQTN35rYWPc');
+const allowedMints = new Set([
+  'EtMFvbnLJMmp4PWqDVSqYzWfkWhZy3FznJQTN35rYWPc',
+  '2F6VAkmF6sXEwmY9No15EkthW7bwd2eocxM4yd8pWaRw',
+]);
+const mintAddress = process.argv.find(value => value.startsWith('--mint='))?.slice(7)
+  || 'EtMFvbnLJMmp4PWqDVSqYzWfkWhZy3FznJQTN35rYWPc';
+assert(allowedMints.has(mintAddress), 'Only reviewed V3 Devnet QA mints are allowed.');
+const mint = new PublicKey(mintAddress);
 const feeOwner = new PublicKey('CmhmRtKYExJC76R5nsPV9ovPYacoEQFEL7VhaKRZmLy2');
 const rounds = Number(process.argv.find(value => value.startsWith('--rounds='))?.slice(9) || '1');
 const buySol = Number(process.argv.find(value => value.startsWith('--buy-sol='))?.slice(10) || '0.5');
+const holdSol = Number(process.argv.find(value => value.startsWith('--hold-sol='))?.slice(11) || '0');
 const execute = process.argv.includes('--execute');
-assert(Number.isInteger(rounds) && rounds >= 1 && rounds <= 10, 'Use 1-10 QA rounds.');
+assert(Number.isInteger(rounds) && rounds >= 0 && rounds <= 10 && (rounds > 0 || holdSol > 0),
+  'Use 1-10 QA rounds or a single final holder buy.');
 assert(Number.isFinite(buySol) && buySol > 0 && buySol <= 0.5, 'Use at most 0.5 Devnet SOL per buy.');
+assert(Number.isFinite(holdSol) && holdSol >= 0 && holdSol <= 0.2, 'Use at most 0.2 SOL for a final holder position.');
+if (mintAddress === '2F6VAkmF6sXEwmY9No15EkthW7bwd2eocxM4yd8pWaRw')
+  assert(buySol <= 0.3, 'The fresh QA curve permits at most 0.3 SOL per round-trip buy.');
 const trader = Keypair.fromSecretKey(bs58.decode(readFileSync('.secrets/funded-router-authority-secret-key', 'utf8').trim()));
 assert.equal(trader.publicKey.toBase58(), '7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y');
 const connection = new Connection(readFileSync('.secrets/solana-devnet-rpc-url', 'utf8').trim(), 'finalized');
@@ -28,9 +40,9 @@ const initialSol = await connection.getBalance(trader.publicKey, 'finalized');
 const initialTokens = await tokenBalance();
 const curve = await fetchBondingCurveSnapshot({ connection, mint });
 assert(!curve.complete && curve.progressPercent < 90, 'The QA mint is no longer on its safe test curve.');
-assert(initialSol >= Math.ceil((buySol + 0.1) * 1e9), 'QA wallet cannot fund the bounded trade.');
+assert(initialSol >= Math.ceil((buySol + holdSol + 0.1) * 1e9), 'QA wallet cannot fund the bounded trade.');
 console.log(JSON.stringify({ stage:'preflight', cluster:'devnet', mint:mint.toBase58(), trader:trader.publicKey.toBase58(),
-  rounds, buySol, initialSolLamports:initialSol, initialTokenBaseUnits:String(initialTokens), progressPercent:curve.progressPercent,
+  rounds, buySol, holdSol, initialSolLamports:initialSol, initialTokenBaseUnits:String(initialTokens), progressPercent:curve.progressPercent,
   execute }));
 if (!execute) process.exit(0);
 
@@ -66,6 +78,8 @@ for (let round = 1; round <= rounds; round += 1) {
   const buy = await buildTradeTransaction({ connection, side:'buy', mint, user:trader.publicKey,
     amount:buySol, slippagePercent:3, feeOwner });
   assert.equal(buy.route, 'curve');
+  assert(Number(buy.outputAmount) / 1e6 < currentCurve.realTokenReserves * 0.75,
+    'QA buy quote would approach migration; stop before sending.');
   const buySignature = await send(buy.instructions);
   const buyCreatorFee = await feeDeltas(buySignature, buy.feeLamports);
   const afterBuyTokens = await tokenBalance();
@@ -83,6 +97,23 @@ for (let round = 1; round <= rounds; round += 1) {
     boughtBaseUnits:String(bought), quotedAppFeesLamports:String(BigInt(buy.feeLamports) + BigInt(sell.feeLamports)),
     creatorFeeLamports:buyCreatorFee + sellCreatorFee,
     traderSolDeltaLamports:afterSol-beforeSol }));
+}
+if (holdSol > 0) {
+  const before = await tokenBalance();
+  const currentCurve = await fetchBondingCurveSnapshot({ connection, mint });
+  assert(!currentCurve.complete && currentCurve.progressPercent < 90,
+    'QA curve progressed beyond the safe bound.');
+  const hold = await buildTradeTransaction({ connection, side:'buy', mint, user:trader.publicKey,
+    amount:holdSol, slippagePercent:3, feeOwner });
+  assert.equal(hold.route, 'curve');
+  assert(Number(hold.outputAmount) / 1e6 < currentCurve.realTokenReserves * 0.75,
+    'Final holder buy quote would approach migration; stop before sending.');
+  const signature = await send(hold.instructions);
+  const creatorFeeLamports = await feeDeltas(signature, hold.feeLamports);
+  const after = await tokenBalance();
+  assert(after > before, 'Final holder buy did not create a positive position.');
+  console.log(JSON.stringify({ stage:'holder-position-finalized', signature,
+    tokenDeltaBaseUnits:String(after - before), creatorFeeLamports }));
 }
 console.log(JSON.stringify({ stage:'complete', rounds, finalSolLamports:await connection.getBalance(trader.publicKey, 'finalized'),
   finalTokenBaseUnits:String(await tokenBalance()) }));
