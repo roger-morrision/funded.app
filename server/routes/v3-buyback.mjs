@@ -10,6 +10,7 @@ import { quoteV3Buyback } from '../v3-buyback-quote.mjs';
 import { loadFinalizedV3Buyback } from '../v3-buyback-proof.mjs';
 import { prepareV3BuybackTransaction, submitV3BuybackTransaction } from '../v3-buyback-transaction.mjs';
 import { readV3BuybackDashboard } from '../v3-buyback-dashboard.mjs';
+import { buybackTriggerLamports } from '../devnet-qa-minimums.mjs';
 import { v3BuybackNextOrder, v3BuybackSourceSpent } from '../v3-buyback-orders.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 
@@ -45,6 +46,8 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     if(!SIGNATURE.test(collectionSignature))
       return json(res,400,{error:'A finalized V3 collection signature is required.'});
     const programId=String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID||'');
+    const thresholdLamports=buybackTriggerLamports(solanaCluster,env);
+    const thresholdSol=`${Number(thresholdLamports)/1_000_000_000} SOL`;
     const hash=String(env.FUNDED_V3_PROGRAM_DATA_SHA256||'');
     const lookupAddress=String(env.FUNDED_V3_BUYBACK_LOOKUP_TABLE||'');
     if(!programId||!/^[a-f0-9]{64}$/i.test(hash)||!lookupAddress)
@@ -140,9 +143,9 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     if(saved?.status==='prepared'){
       let cycleId=saved.cycleId;
       if(!cycleId){
-        const dashboard=await readDashboard({state,programId,connection});
+        const dashboard=await readDashboard({state,programId,connection,thresholdLamports});
         if(dashboard.status!=='verified'||!dashboard.triggerReached)
-          return json(res,409,{error:'Finalized buyback vaults have not reached the 5 SOL trigger.'});
+          return json(res,409,{error:`Finalized buyback vaults have not reached the ${thresholdSol} trigger.`});
         cycleId=`v3-buyback:${Date.now()}`;
       }
       saved=await store.update(current=>{
@@ -154,11 +157,11 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
       if(!saved)return json(res,409,{error:'The expired V3 quote changed during recovery.'});
     }
     if(saved?.status!=='queued') {
-      // A finished round's residue must wait for a new 5 SOL cycle. Only an
-      // already queued row may finish after the dashboard drops below 5 SOL.
-      const dashboard=await readDashboard({state,programId,connection});
+      // A finished round's residue waits for a new threshold cycle. An
+      // already queued row may finish after the dashboard drops below it.
+      const dashboard=await readDashboard({state,programId,connection,thresholdLamports});
       if(dashboard.status!=='verified'||!dashboard.triggerReached)
-        return json(res,409,{error:'Finalized buyback vaults have not reached the 5 SOL trigger.'});
+        return json(res,409,{error:`Finalized buyback vaults have not reached the ${thresholdSol} trigger.`});
       const cycleId=`v3-buyback:${Date.now()}`;
       saved=await store.update(current=>{
         current.v3BuybackOrders||={};
@@ -183,7 +186,7 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
         return structuredClone(current.v3BuybackOrders[next.key]||null);
       });
       if(!saved||saved.status!=='queued')
-        return json(res,409,{error:'The 5 SOL buyback cycle could not be queued.'});
+        return json(res,409,{error:`The ${thresholdSol} buyback cycle could not be queued.`});
     }
     const vault=deriveMintVaultsV3(programId,mint)[6];
     const quoted=await quote({connection,vault,

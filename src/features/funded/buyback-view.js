@@ -82,7 +82,7 @@ export function renderBuybackDashboard(
   const runButton = document.querySelector('#buyback-run-preview');
   const addButton = document.querySelector('#buyback-add-claim');
   if (addButton) { addButton.disabled = true; addButton.title = 'Recording requires verified fee-claim receipts and a deployed buyback vault.'; }
-  if (runButton) { runButton.disabled = true; runButton.title = 'V3 fee-funded buybacks are awaiting the audited purchase and burn path.'; }
+  if (runButton) { runButton.disabled = true; runButton.title = 'Local simulation is disabled; V3 fee-funded buybacks execute automatically after the verified trigger.'; }
   renderBuybackExample();
   const burnCard = document.querySelector('.burn-token-card');
   const burnBadge = burnCard?.querySelector('.burn-status');
@@ -104,6 +104,8 @@ export function renderBuybackDashboard(
   updateFundedBurnButton();
   const status = document.querySelector('#buyback-preview-status');
   if (message) status.textContent = message;
-  else if (pendingSol > 0) status.textContent = `${formatBuybackAmount(pendingSol)} SOL appears in the local preview. V3 fee-funded buyback execution is not active.`;
-  else status.textContent = 'Local calculation only. V3 fee-funded buyback execution is awaiting verified purchase and burn.';
+  else if (pendingSol > 0) status.textContent = `${formatBuybackAmount(pendingSol)} SOL appears in the local preview. Only verified on-chain vault fees count toward automatic execution.`;
+  else status.textContent = buybackNetworkState.automationEnabled
+    ? 'Automatic V3 buybacks require the verified vault trigger and a protected market quote.'
+    : 'Local calculation only. Automatic V3 buyback execution is not active.';
 }

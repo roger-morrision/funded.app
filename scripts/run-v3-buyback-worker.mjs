@@ -34,6 +34,7 @@ async function tick() {
     console.log(JSON.stringify({ event:'v3_buyback_attempt', mint:row.mint,
       source:row.sourceCollectionSignature,status:executed.status,
       signature:executed.status === 200 ? executed.result.signature : null,
+      reason:executed.status === 200 ? null : String(executed.result?.error || 'Execution unavailable').slice(0,160),
       outcome:executed.status === 200 ? 'finalized' : 'pending-or-blocked' }));
   }
 }

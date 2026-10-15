@@ -2,8 +2,9 @@ import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { deriveMintPolicyV3, deriveMintVaultsV3 } from '../mint-router-v3.js';
 import { v3BuybackSourceSpent, verifiedV3BuybackOrder } from './v3-buyback-orders.mjs';
 import { latestUnindexedV3Burn } from './v3-buyback-chain-history.mjs';
+import { STANDARD_BUYBACK_TRIGGER_LAMPORTS } from './devnet-qa-minimums.mjs';
 
-export const BUYBACK_TRIGGER_LAMPORTS = 5_000_000_000n;
+export const BUYBACK_TRIGGER_LAMPORTS = STANDARD_BUYBACK_TRIGGER_LAMPORTS;
 
 const verifiedBurn = row => verifiedV3BuybackOrder(row)
   && /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(String(row.signature || ''));

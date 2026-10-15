@@ -3,6 +3,29 @@ import assert from 'node:assert/strict';
 import { createRewardStatusRoutes } from '../server/routes/reward-status.mjs';
 const programId='9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
 
+test('Devnet QA trigger is passed through the public status without changing the standard gate', async () => {
+  const replies=[];
+  const input=[];
+  const env={FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId,
+    FUNDED_DEVNET_QA_MINIMUMS_ENABLED:'true',
+    FUNDED_DEVNET_QA_BUYBACK_TRIGGER_LAMPORTS:'10000000'};
+  const route=createRewardStatusRoutes({store:{read:async()=>({})},
+    solanaCluster:'devnet',solanaRpcUrl:'https://unused.invalid',env,
+    connectionFactory:()=>({}),readBuybackDashboard:async args=>{
+      input.push(args);return {status:'verified',collectedLamports:'15000000',
+        thresholdLamports:String(args.thresholdLamports),triggerReached:args.thresholdLamports<=15_000_000n};
+    },respond:(_res,status,data)=>replies.push({status,data})});
+  await route({method:'GET'},{},new URL('https://funded.vip/api/buyback/status'));
+  assert.equal(input[0].programId,programId);
+  assert.equal(input[0].thresholdLamports,10_000_000n);
+  assert.equal(replies.at(-1).data.dashboard.triggerReached,true);
+  env.FUNDED_DEVNET_QA_MINIMUMS_ENABLED='false';
+  await route({method:'GET'},{},new URL('https://funded.vip/api/buyback/status'));
+  assert.equal(input[1].thresholdLamports,5_000_000_000n,
+    'Changing profile invalidates the cached dashboard.');
+  assert.equal(replies.at(-1).data.dashboard.triggerReached,false);
+});
+
 const verifiedSource = source => ({
   launches:{mint:{onchainVerified:true,cluster:'devnet',
     pumpFeeRoute:{scope:'per-mint-v3',programId}}},

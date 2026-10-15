@@ -3,6 +3,7 @@ import { v3AutomaticRewardStatus } from '../v3-automatic-status.mjs';
 import { jackpotPreview } from '../jackpot-model.mjs';
 import { v3RewardExperience } from '../v3-reward-experience.mjs';
 import { readV3BuybackDashboard } from '../v3-buyback-dashboard.mjs';
+import { buybackTriggerLamports } from '../devnet-qa-minimums.mjs';
 import { v3BuybackNextOrder, v3BuybackSourceSpent } from '../v3-buyback-orders.mjs';
 
 function pendingV3Buybacks(state, programId) {
@@ -129,15 +130,17 @@ export function createRewardStatusRoutes({
     }
     if (req.method === 'GET' && url.pathname === '/api/buyback/status') {
       const state = await store.read();
-      let dashboard = { status:'unavailable', thresholdLamports:'5000000000',
+      const thresholdLamports = buybackTriggerLamports(solanaCluster, env);
+      let dashboard = { status:'unavailable', thresholdLamports:String(thresholdLamports),
         collectedLamports:null, observedLamports:null, triggerReached:false,
         vaults:[], lastBurn:null };
       if (solanaCluster === 'devnet' && solanaRpcUrl && env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID) {
-        const cacheKey=env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID;
+        const cacheKey=`${env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID}:${thresholdLamports}`;
         if (buybackSnapshot?.key===cacheKey && Date.now()-buybackSnapshot.at<20_000)
           dashboard=buybackSnapshot.value;
         else try {
-          dashboard=await readBuybackDashboard({ state,programId:cacheKey,
+          dashboard=await readBuybackDashboard({ state,
+            programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,thresholdLamports,
             connection:connectionFactory(solanaRpcUrl) });
           dashboard.checkedAt=new Date().toISOString();
           buybackSnapshot={key:cacheKey,at:Date.now(),value:dashboard};

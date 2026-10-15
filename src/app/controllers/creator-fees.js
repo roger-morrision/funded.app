@@ -47,7 +47,7 @@ export function createCreatorFeesController(appState) {
       detail.textContent = row.settlement === 'finalized' && row.allocationPlan?.status !== 'allocated-not-funded'
         ? 'Finalized settlement needs allocation reconciliation before funding.'
         : row.settlement === 'finalized'
-        ? 'Categories settled on Devnet. Buyback vault funds follow the automatic 5 SOL trigger; other approved allocations are funded separately.'
+        ? 'Categories settled on Devnet. Buyback vault funds follow the verified trigger shown on Buybacks; other approved allocations are funded separately.'
         : 'Settlement requires the launch creator to review and sign the V3 transaction.';
       summary.append(title, amount, detail); section.append(summary);
       const actions = row.settlement === 'finalized' && row.allocationPlan?.status === 'allocated-not-funded'

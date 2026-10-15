@@ -70,6 +70,15 @@ try {
   assert.match(await page.locator('#buyback-route-track').getAttribute('aria-valuetext'),/0.000447709 SOL of 5 SOL eligible/);
   assert.match(await page.locator('#buyback-route-last-time').textContent(),/QA on-chain burn/);
   assert.equal(await page.locator('#buyback-route-proof').isVisible(),true);
+  dashboardFixture = { ...dashboardFixture,collectedLamports:'15000000',unindexedLamports:'0',
+    thresholdLamports:'10000000',triggerReached:true };
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(() => document.querySelector('#buyback-route-balance')?.textContent === '0.015 SOL');
+  assert.match(await page.locator('#buyback-route-title').textContent(),/0\.01 SOL trigger/);
+  assert.match(await page.locator('#buyback-route-status').textContent(),/0\.01 SOL trigger reached/);
+  assert.equal(await page.locator('#buyback-route-track').getAttribute('aria-valuemax'),'0.01');
+  assert.equal(await page.locator('#buyback-route-track').getAttribute('aria-valuenow'),'0.01');
+  assert.match(await page.locator('#buyback-route-policy').textContent(),/0\.01 SOL aggregate trigger/);
   await context.close();
 
   const unavailable = await browser.newContext({ viewport:{width:390,height:844} });

@@ -31,16 +31,28 @@ export function createBuybackController(appState) {
         && /^\d+$/.test(String(dashboard.unindexedLamports));
       const unindexedLamports = unindexed ? BigInt(dashboard.unindexedLamports) : 0n;
       const lamports = indexed ? BigInt(dashboard.collectedLamports) : 0n;
+      const threshold = /^\d+$/.test(String(dashboard?.thresholdLamports))
+        && BigInt(dashboard.thresholdLamports) > 0n ? BigInt(dashboard.thresholdLamports) : 5_000_000_000n;
       const formatSol = value => `${(Number(value) / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits:9 })} SOL`;
+      const trigger = formatSol(threshold);
       balance.textContent = indexed ? formatSol(lamports) : '—';
+      const triggerText = document.querySelector(`#${prefix}-trigger`);
+      if (triggerText) triggerText.textContent = `${trigger} trigger`;
+      const policy = document.querySelector(`#${prefix}-policy`);
+      if (policy) policy.textContent = prefix === 'home-buyback'
+        ? `For launches using the published 5% buyback split, that share goes into dedicated on-chain vaults. At ${trigger} in verified, indexed allocations, the app queues a protected $FUNDED purchase and burn. Execution depends on a verified market quote and available liquidity.`
+        : `The published buyback share of collected creator fees remains in dedicated program vaults until verified, indexed allocations reach the ${trigger} aggregate trigger. The worker then attempts protected $FUNDED purchases and burns; failed market checks leave funds in custody.`;
+      if (prefix === 'buyback-route') document.querySelector('#buyback-route-title').textContent = `${trigger} trigger, verified eligible fees.`;
       note.textContent = !indexed ? 'Eligible vault verification unavailable or incomplete'
         : unindexedLamports > 0n ? `${formatSol(unindexedLamports)} in older vaults is excluded until its app settlement records are verified`
         : !appState.buybackNetworkState.automationEnabled ? 'Automatic execution is not active on this deployment'
-          : dashboard.triggerReached ? '5 SOL trigger reached · awaiting protected execution' : 'Verified eligible funds · awaiting 5 SOL';
-      const progress = indexed ? Number(lamports > 5_000_000_000n ? 5_000_000_000n : lamports) / 5_000_000_000 * 100 : 0;
-      track.setAttribute('aria-valuenow', String(indexed ? Number(lamports > 5_000_000_000n ? 5_000_000_000n : lamports) / 1_000_000_000 : 0));
+          : dashboard.triggerReached ? `${trigger} trigger reached · awaiting protected execution` : `Verified eligible funds · awaiting ${trigger}`;
+      const progress = indexed ? Number(lamports > threshold ? threshold : lamports) / Number(threshold) * 100 : 0;
+      track.setAttribute('aria-label', `Eligible buyback progress toward ${trigger}`);
+      track.setAttribute('aria-valuemax',String(Number(threshold)/1_000_000_000));
+      track.setAttribute('aria-valuenow', String(indexed ? Number(lamports > threshold ? threshold : lamports) / 1_000_000_000 : 0));
       track.setAttribute('aria-valuetext', indexed
-        ? `${formatSol(lamports)} of 5 SOL eligible for automatic buyback${unindexedLamports > 0n ? `; ${formatSol(unindexedLamports)} in older unindexed vaults is excluded` : ''}`
+        ? `${formatSol(lamports)} of ${trigger} eligible for automatic buyback${unindexedLamports > 0n ? `; ${formatSol(unindexedLamports)} in older unindexed vaults is excluded` : ''}`
         : 'Eligible balance unavailable');
       fill.style.width = `${progress}%`;
       const burn = dashboard?.lastBurn;
