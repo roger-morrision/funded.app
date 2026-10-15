@@ -1,6 +1,22 @@
 export const STANDARD_BUYBACK_TRIGGER_LAMPORTS = 5_000_000_000n;
 
 export const QA_HOLDER_POLICY = 'usd-qa-hourly-v1';
+export const STANDARD_FEE_COLLECTION_MINIMUM_LAMPORTS = 10_000_000n;
+
+export function feeCollectionMinimumLamports(mint, cluster, env = process.env) {
+  if (env.FUNDED_DEVNET_QA_MINIMUMS_ENABLED !== 'true'
+    || env.FUNDED_DEVNET_QA_HOLDER_MINT !== mint)
+    return STANDARD_FEE_COLLECTION_MINIMUM_LAMPORTS;
+  if (cluster !== 'devnet')
+    throw new Error('Devnet QA fee collection minimum cannot be enabled outside Devnet.');
+  const raw = String(env.FUNDED_DEVNET_QA_FEE_COLLECTION_MIN_LAMPORTS || '');
+  if (!/^[1-9]\d*$/.test(raw))
+    throw new Error('A positive Devnet QA fee collection minimum is required.');
+  const amount = BigInt(raw);
+  if (amount < 1_000_000n || amount >= STANDARD_FEE_COLLECTION_MINIMUM_LAMPORTS)
+    throw new Error('Devnet QA fee collection minimum must be between 0.001 and 0.01 SOL.');
+  return amount;
+}
 
 // Apply a smaller holder threshold to one disposable Devnet mint only. The
 // values are copied into the reward program so later env changes cannot alter

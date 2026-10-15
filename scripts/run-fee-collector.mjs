@@ -1,8 +1,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
+import { feeCollectionMinimumLamports } from '../server/devnet-qa-minimums.mjs';
 
 const heartbeat = '/tmp/funded-fee-collector-status.json';
 const intervalMs = Math.max(60_000, Number(process.env.FUNDED_FEE_COLLECTION_TICK_MS || 300_000));
-const minimum = 10_000_000n;
 const api = String(process.env.FUNDED_FEE_COLLECTION_API || 'http://app:8787').replace(/\/$/, '');
 
 if (process.argv.includes('--check')) {
@@ -27,7 +27,8 @@ if (process.argv.includes('--check')) {
       const activity = await request(`/api/tokens/${encodeURIComponent(candidate.mint)}/fee-activity`);
       const pump = activity.overview?.pump;
       if (activity.overview?.available !== true || pump?.status !== 'confirmed' || !/^\d+$/.test(String(pump.accruedLamports))) continue;
-      if (BigInt(pump.accruedLamports) < minimum) continue;
+      if (BigInt(pump.accruedLamports) < feeCollectionMinimumLamports(candidate.mint,
+        process.env.SOLANA_CLUSTER, process.env)) continue;
       // A failed or timed-out collect is uncertain. The server locks that mint for review.
       const result = await request('/api/keeper/collect', { mint:candidate.mint });
       if (result.scope === 'per-mint-v3' && result.status === 'collected'
