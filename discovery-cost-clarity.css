@@ -1,0 +1,38 @@
+/* Put live launch discovery in the first desktop viewport. */
+@media (min-width: 901px) {
+  body.page-route-overview.product-experience-ready .hero-section {
+    min-height: 0 !important;
+    padding-top: 22px !important;
+    padding-bottom: 24px !important;
+  }
+  body.page-route-overview.product-experience-ready .hero-section h1 {
+    max-width: 620px;
+    font-size: clamp(40px, 3.6vw, 50px) !important;
+    line-height: 1.08 !important;
+    white-space: normal;
+  }
+  body.page-route-overview .home-hero-kicker { font-size: 13px; }
+  body.page-route-overview.product-experience-ready .hero-copy { max-width: 620px; font-size: 14px; }
+  body.page-route-overview.product-experience-ready .hero-actions { margin-top: 14px; }
+  html body.page-route-overview .home-market-ticker {
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    gap: 12px;
+    margin-bottom: 12px !important;
+    padding-bottom: 10px !important;
+  }
+  html body.page-route-overview .home-market-ticker-items { grid-column: 2 !important; grid-row: 1 !important; }
+  html body.page-route-overview .home-market-ticker-arrows { grid-column: 3 !important; grid-row: 1 !important; }
+  html body.page-route-overview .home-market-ticker-items a { min-height: 38px !important; padding: 5px 8px; }
+}
+
+/* Keep the new breakdown legible in the narrow launch summary column. */
+body.page-route-launch .launch-pay-summary :is(.cost-initial-buy-row, .cost-network-row) {
+  grid-template-columns: minmax(0, 1fr) !important;
+  justify-content: stretch;
+  gap: 4px !important;
+}
+body.page-route-launch .launch-pay-summary :is(.cost-initial-buy-row, .cost-network-row) > b {
+  justify-self: start;
+  text-align: left;
+}
+#launch-cost-details[hidden] { display: none !important; }

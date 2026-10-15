@@ -72,8 +72,8 @@ assert.match(app, /function getCommunityAllocationPercent\(\)[\s\S]*?getCommunit
 assert.match(preview, /'#preview-community': Number\.isFinite\(allocation\) \? formatVerifiedPercent\(allocation\) : '—'/, 'The launch summary must format fractional reserve percentages without floating-point scientific notation.');
 assert.match(app, /initialBuySol: getCreatorBuySol\(\)/, 'The developer SOL amount must feed the live Pump quote.');
 assert.match(app, /estimatedInitialBuyTokens=Number\(developerBuy\.amountTokens\);\s*updateLaunchPreview\(\);/, 'The live Pump quote must refresh the visible developer-buy token estimate.');
-assert.match(preview, /creatorBuy\.sol > 0 \? wallet \? 'Calculating…' : 'Connect wallet to estimate' : 'None'/, 'An unconnected developer buy must ask for a wallet instead of remaining stuck on Calculating.');
-assert.match(costs, /wallet \? 'calculating…' : 'connect wallet to quote'/, 'The launch cost summary must label an unconnected developer-buy quote truthfully.');
+assert.match(preview, /publicQuote\?\.status === 'ready' \? publicQuote\.developerTokens/, 'The public developer-buy token quote must appear before wallet connection.');
+assert.match(costs, /publicQuote\?\.status === 'ready' && publicQuote\.developerTokens > 0/, 'The launch cost summary must show the public developer-buy quote.');
 assert.match(actions, /!feeDistribution\.valid \? 'Fix fee distribution'/, 'Invalid fee shares must be explained before the disconnected-wallet prompt.');
 assert.match(launchPage, /id="preview-promotion-badge"/, 'The launch preview must show the selected promotion badge.');
 assert.match(launchPage, /class="cost-summary launch-pay-summary free-launch"[\s\S]*?id="cost-tier-label">Platform launch fee: 0[\s\S]*?id="cost-burn-row" hidden[\s\S]*?id="cost-burn"/, 'Zero platform fee must remain distinct from paid promotion burns and network costs.');
@@ -192,10 +192,10 @@ assert.match(html, /id="sol-claim-submit"/);
 assert.doesNotMatch(app, /submitSolClaim/, 'Retired V2 X claim signing must not be wired into the app.');
 assert.doesNotMatch(app, /#dialog-connect|['"]dialog-connect['"]|#wallet-status/, 'Removed launch wallet-card controls must have no stale script references.');
 assert.doesNotMatch(app, /#wallet-metrics|#wallet-balance|#launch-fee|#refresh-wallet|#fee-note/, 'Removed wallet-metrics controls must have no stale script references.');
-function costSummaryFor({ connected = false, loading = false, fee = null, error = '', buySol = 0, retry = null } = {}) {
-  const nodes = Object.fromEntries(['cost-launch', 'cost-total-enabled', 'cost-total', 'cost-note', 'preview-launch-cost', 'cost-burn', 'cost-community-tokens', 'cost-community-detail', 'cost-creator-buy'].map(id => [`#${id}`, { textContent: '', innerHTML: '' }]));
+function costSummaryFor({ connected = false, loading = false, fee = null, error = '', buySol = 0, retry = null, publicQuote = null, review = null } = {}) {
+  const nodes = Object.fromEntries(['cost-launch', 'cost-initial-buy', 'cost-total-enabled', 'cost-total-label', 'preview-cost-label', 'cost-total', 'cost-note', 'preview-launch-cost', 'cost-burn', 'cost-community-tokens', 'cost-community-detail', 'cost-creator-buy'].map(id => [`#${id}`, { textContent: '', innerHTML: '' }]));
   updateCostSummary({ wallet: connected ? { publicKey: true } : null, walletMetricsLoading: loading,
-    walletEstimateError: error, launchEstimateRetry: retry, estimatedLaunchFeeLamports: fee, launchCostReview: null }, {
+    walletEstimateError: error, launchEstimateRetry: retry, estimatedLaunchFeeLamports: fee, launchCostReview: review, publicQuote }, {
     document: { querySelector: selector => nodes[selector] || null }, renderLaunchCostDetails() {},
     getLaunchBurnPolicy: () => ({ requiresBurn: false }), getCreatorBuySummary: () => ({ sol: buySol, tokens: 0, percent: 0 }),
     getCommunityAirdropTokens: () => 30_000_000, getCommunityAllocationPercent: () => 3,
@@ -205,7 +205,12 @@ function costSummaryFor({ connected = false, loading = false, fee = null, error 
   });
   return nodes;
 }
-assert.equal(costSummaryFor()['#cost-launch'].textContent, 'Connect wallet to estimate');
+assert.equal(costSummaryFor()['#cost-launch'].textContent, 'Calculated after wallet connection');
+const publicBudget = costSummaryFor({ publicQuote: { status: 'ready', maxSolAmountLamports: 850_000_000n, developerTokens: 0 } });
+assert.equal(publicBudget['#cost-total-enabled'].textContent, 'From 0.850000 SOL');
+assert.equal(publicBudget['#cost-initial-buy'].textContent, 'From 0.850000 SOL');
+assert.equal(publicBudget['#preview-launch-cost'].textContent, 'From 0.850000 SOL');
+assert.match(publicBudget['#cost-note'].textContent, /Network fees and account rent are additional/);
 assert.equal(costSummaryFor()['#cost-burn'].textContent, '0 $FUNDED');
 assert.equal(costSummaryFor({ connected: true, loading: true })['#cost-launch'].textContent, 'Calculating…');
 const connectedWithoutEstimate = costSummaryFor({ connected: true, error: 'RPC unavailable.' });
@@ -225,6 +230,10 @@ assert.match(validation, /developerBuyLimitReached\(\)\) return \{ valid: false,
 assert.match(actions, /developerBuyLimitReached\(\) \? 'Edit developer buy' : 'Retry checks'/);
 assert.doesNotMatch(launchPage, /A submitted transaction is pending until confirmed/, 'The form must not imply a transaction was sent before signing.');
 assert.equal(costSummaryFor({ connected: true, fee: 10_000_000 })['#cost-launch'].textContent, '0.010000 SOL');
+const verifiedBudget = costSummaryFor({ connected: true, fee: 15_000_000, review: { buyMaximum: '10000000', networkFee: '500000', otherLaunchCosts: '4500000' } });
+assert.equal(verifiedBudget['#cost-initial-buy'].textContent, '0.010000 SOL');
+assert.equal(verifiedBudget['#cost-launch'].textContent, '0.005000 SOL');
+assert.equal(verifiedBudget['#cost-total-enabled'].textContent, '0.015000 SOL');
 assert.match(actions, /ready \? \(launchBurn\.requiresBurn \? `Review launch · \$\{launchBurn\.label\}` : 'Review launch'\)/, 'The ready action must explicitly lead to transaction review.');
 assert.match(pageStyles, /\.launch-token-preview-image \{[^}]*aspect-ratio: 1 \/ 1/, 'The token preview must retain a square image area.');
 assert.match(pageStyles, /\.preview-promotion-badge\.premier/, 'The preview badge must support the Premier promotion tier.');

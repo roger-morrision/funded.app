@@ -10,6 +10,7 @@ export function updateCostSummary(
     walletEstimateError,
     launchCostReview,
     launchEstimateRetry,
+    publicQuote,
   },
   {
     renderLaunchCostDetails,
@@ -29,6 +30,22 @@ export function updateCostSummary(
   const totalNode = document.querySelector('#cost-total-enabled');
   const noteNode = document.querySelector('#cost-note');
   const previewLaunchNode = document.querySelector('#preview-launch-cost');
+  const previewCostLabel = document.querySelector('#preview-cost-label');
+  let initialBuyNode = document.querySelector('#cost-initial-buy');
+  if (!initialBuyNode && document.createElement) {
+    const networkRow = document.querySelector('#cost-launch')?.parentElement;
+    if (networkRow) {
+      const row = document.createElement('div');
+      const label = document.createElement('span');
+      initialBuyNode = document.createElement('b');
+      row.className = 'cost-row cost-initial-buy-row';
+      label.textContent = 'Initial purchase + 1% allowance';
+      initialBuyNode.id = 'cost-initial-buy';
+      row.append(label, initialBuyNode);
+      networkRow.before(row);
+    }
+  }
+  const totalLabelNode = document.querySelector('#cost-total-label');
   const burnNode = document.querySelector('#cost-burn');
   const burnRow = document.querySelector('#cost-burn-row');
   const tierLabelNode = document.querySelector('#cost-tier-label');
@@ -58,19 +75,37 @@ export function updateCostSummary(
         : walletEstimateError ? retrySeconds == null ? 'estimate unavailable' : `retrying in ${retrySeconds}s`
           : walletMetricsLoading ? 'calculating…'
             : creatorBuy.tokens > 0 ? `${Math.round(creatorBuy.tokens).toLocaleString()} tokens`
-              : wallet ? 'calculating…' : 'connect wallet to quote';
+              : wallet ? 'calculating…' : publicQuote?.status === 'ready' && publicQuote.developerTokens > 0
+                ? `${Math.round(publicQuote.developerTokens).toLocaleString()} tokens`
+                : publicQuote?.status === 'invalid' ? 'invalid amount'
+                  : publicQuote?.status === 'unavailable' ? 'quote unavailable' : 'calculating…';
     creatorBuyNode.textContent = `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL · ${buyStatus}`;
   } else if (creatorBuyNode) creatorBuyNode.textContent = 'None';
   if (!launchNode || !totalNode || !noteNode) return;
+  if (previewCostLabel) previewCostLabel.textContent = !wallet ? 'Starting SOL budget' : 'Estimated total';
+  if (totalLabelNode) totalLabelNode.textContent = !wallet ? 'Starting SOL budget' : 'Estimated total';
   if (estimatedLaunchFeeLamports == null) {
-    const pending = !wallet ? 'Connect wallet to estimate' : walletMetricsLoading ? 'Calculating…'
+    if (!wallet) {
+      const starting = publicQuote?.status === 'ready'
+        ? `From ${formatLaunchCost(publicQuote.maxSolAmountLamports)}`
+        : publicQuote?.status === 'unavailable' ? 'Quote unavailable'
+          : publicQuote?.status === 'invalid' ? 'Enter valid amounts' : 'Calculating…';
+      if (initialBuyNode) initialBuyNode.textContent = starting;
+      launchNode.textContent = 'Calculated after wallet connection';
+      totalNode.textContent = starting;
+      if (previewLaunchNode) previewLaunchNode.textContent = starting;
+      noteNode.textContent = publicQuote?.status === 'ready'
+        ? 'Starting budget is a live Pump quote for the required holder reserve and optional developer buy, with a 1% purchase allowance. Network fees and account rent are additional. Connect a wallet for the complete simulated total before signing.'
+        : 'The starting budget uses a public Pump quote. Connect a wallet for the complete simulated total, including network fees and account rent, before signing.';
+      return;
+    }
+    const pending = walletMetricsLoading ? 'Calculating…'
       : retrySeconds == null ? 'Estimate unavailable' : `Retrying in ${retrySeconds}s`;
     launchNode.textContent = pending;
+    if (initialBuyNode) initialBuyNode.textContent = pending;
     totalNode.textContent = '—';
-    if (previewLaunchNode) previewLaunchNode.textContent = !wallet ? 'Connect wallet' : pending;
-    noteNode.textContent = !wallet
-      ? 'Connect a wallet to build and estimate the transaction.'
-      : walletMetricsLoading
+    if (previewLaunchNode) previewLaunchNode.textContent = pending;
+    noteNode.textContent = walletMetricsLoading
         ? 'Building and estimating the Solana transaction…'
         : developerBuyLimitReached()
           ? 'Developer buy exceeds 20% of the token supply. Return to Launch settings and lower the SOL amount or set it to 0. A new estimate will run after you change it.'
@@ -84,6 +119,8 @@ export function updateCostSummary(
     ? formatLaunchCost(Number(BigInt(launchCostReview.networkFee) + BigInt(launchCostReview.otherLaunchCosts)))
     : launchCost;
   launchNode.textContent = networkReserve;
+  if (initialBuyNode) initialBuyNode.textContent = launchCostReview
+    ? formatLaunchCost(launchCostReview.buyMaximum) : 'Included in total';
   totalNode.textContent = launchCost;
   if (previewLaunchNode) previewLaunchNode.textContent = launchCost;
   noteNode.textContent = burnPolicy.requiresBurn
@@ -104,9 +141,11 @@ export function renderLaunchCostDetails(
 ) {
   let node=document.querySelector('#launch-cost-details');
   if(!node){node=document.createElement('div');node.id='launch-cost-details';node.className='adoption-panel';document.querySelector('#cost-note')?.after(node);}
+  node.hidden = !wallet;
   const expanded = node.querySelector('details')?.open;
   const refreshMessage = launchEstimateRefreshMessage({ wallet, loading: walletMetricsLoading, retry: launchEstimateRetry });
-  if (!launchCostReview && refreshMessage) node.textContent = refreshMessage;
+  if (!wallet) node.textContent = '';
+  else if (!launchCostReview && refreshMessage) node.textContent = refreshMessage;
   else node.innerHTML=launchReviewMarkup(launchCostReview);
   if (expanded && node.querySelector('details')) node.querySelector('details').open = true;
 }

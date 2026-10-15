@@ -44,6 +44,7 @@
     <link rel="stylesheet" href="/saved-token-list.css" />
     <link rel="stylesheet" href="/favorites-following.css" />
     <link rel="stylesheet" href="/home-protocol-route.css" />
+    <link rel="stylesheet" href="/discovery-cost-clarity.css" />
     <title>funded.vip — Launches on the record</title>
   </head>
   <body class="page-route page-route-overview" data-bootstrap-state="loading">
@@ -743,18 +744,18 @@
               <section class="launch-preview-panel" aria-labelledby="launch-preview-title">
                 <div class="launch-preview-heading"><strong id="launch-preview-title">Launch summary</strong></div>
                 <div class="launch-summary-identity"><strong id="launch-summary-name">Token name</strong><span id="launch-summary-symbol">TICKER</span></div>
-                <div class="launch-summary-specs"><div><span>Launchpad</span><strong id="preview-launchpad">Pump.fun</strong></div><div><span>Supply</span><strong id="preview-supply">1 billion</strong></div><div><span>Airdrop to $funded holders</span><strong id="preview-community">3%</strong></div><div><span>Developer buy</span><strong id="preview-creator-buy">Creation only</strong></div><div><span>Launch tier</span><strong id="preview-burn-tier" class="tier-badge standard">STANDARD</strong></div><div><span>Estimated total</span><strong id="preview-launch-cost">Connect wallet</strong></div></div>
+                <div class="launch-summary-specs"><div><span>Launchpad</span><strong id="preview-launchpad">Pump.fun</strong></div><div><span>Supply</span><strong id="preview-supply">1 billion</strong></div><div><span>Airdrop to $funded holders</span><strong id="preview-community">3%</strong></div><div><span>Developer buy</span><strong id="preview-creator-buy">Creation only</strong></div><div><span>Launch tier</span><strong id="preview-burn-tier" class="tier-badge standard">STANDARD</strong></div><div><span id="preview-cost-label">Starting SOL budget</span><strong id="preview-launch-cost">Calculating…</strong></div></div>
                 <p class="field-help" id="fee-router-status" role="status" aria-live="polite">Checking V3 launch readiness…</p>
                 <div class="launch-summary-policy" aria-labelledby="launch-summary-policy-title"><strong id="launch-summary-policy-title">Creator fee split</strong><p>Percent of gross creator fees collected.</p><div class="launch-summary-fee-bar" aria-hidden="true"><span data-summary-share="creator"></span><span data-summary-share="holders"></span><span data-summary-share="x"></span><span data-summary-share="protocol"></span></div><dl><div><dt>Creator wallet</dt><dd id="launch-summary-creator">80%</dd></div><div><dt>Holder rewards</dt><dd id="launch-summary-holders">0%</dd></div><div><dt>X account</dt><dd id="launch-summary-x">0%</dd></div><div><dt>Protocol</dt><dd id="launch-summary-protocol">20%</dd></div></dl></div>
               </section>
               <div class="cost-summary launch-pay-summary free-launch" id="cost-summary" aria-live="polite">
                 <div class="cost-summary-head"><span>You pay</span><strong id="cost-tier-label">Platform launch fee: 0</strong></div>
                   <div class="community-airdrop-highlight"><span>Airdrop to $funded holders</span><strong><b id="cost-community-tokens">30,000,000</b> tokens</strong><p id="cost-community-detail"><b>3.00% of supply</b> · bought and locked at launch</p></div>
-                <div class="cost-row"><span>Network + account reserve</span><b id="cost-launch">Connect wallet to estimate</b></div>
+                <div class="cost-row cost-network-row"><span>Network + account reserve</span><b id="cost-launch"></b></div>
                 <div class="cost-row"><span>Developer buy <small>optional</small></span><b id="cost-creator-buy">None</b></div>
                 <div class="cost-row funded-burn-row" id="cost-burn-row" hidden><span>$FUNDED burn</span><b id="cost-burn">0 $FUNDED</b></div>
-                <div class="cost-row cost-total-row"><span>Total</span><b id="cost-total-enabled">—</b></div>
-                <p id="cost-note">The free tier has no $FUNDED burn. Solana network and account costs still apply.</p>
+                <div class="cost-row cost-total-row"><span id="cost-total-label">Starting SOL budget</span><b id="cost-total-enabled">…</b></div>
+                <p id="cost-note"></p>
                 <div class="launch-pay-approval" aria-label="Wallet and launch approval">
                   <div class="launch-pay-consents">
                     <label class="terms-check"><input id="fee-route-agree" type="checkbox" /> <span>I understand that funded.vip—not my wallet—is recorded as Pump’s creator-fee owner and I cannot redirect the route from Pump.fun.</span></label>

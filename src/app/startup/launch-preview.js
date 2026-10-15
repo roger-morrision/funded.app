@@ -1,6 +1,9 @@
 import { shouldAutoRefreshLaunchEstimate } from '../../features/launch/estimate-refresh.js';
 // Startup runs in the order declared in start.js.
 export function initializeLaunchPreview(appState, { document = globalThis.document, navigator = globalThis.navigator, setInterval = globalThis.setInterval } = {}) {
+  globalThis.window.addEventListener('funded:route-change', event => {
+    if (event.detail?.route === 'launch') appState.updateCostSummary();
+  });
   // app-source: 612
   setInterval(()=>{
     appState.refreshQuoteClocks();

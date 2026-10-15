@@ -7,6 +7,7 @@ export function updateLaunchPreview(
     wallet,
     feeRouterState,
     xFeeStatus,
+    publicQuote,
   },
   {
     getCommunityAllocationPercent,
@@ -75,12 +76,13 @@ export function updateLaunchPreview(
   if (xFollowup) xFollowup.hidden = launchBurn.tier !== 'premier';
   const xFollowupText = document.querySelector('#launch-x-followup-preview');
   if (xFollowupText) xFollowupText.textContent = `Premier project follow-up: “${xLabel}”. Explore the verified launch and public token page.\n${xLink}`;
-  const buyLabel = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL${creatorBuy.tokens > 0 ? ` · ${Math.round(creatorBuy.tokens).toLocaleString()} tokens` : ''}` : 'Creation only';
+  const quotedBuyTokens = creatorBuy.tokens || (!wallet && publicQuote?.status === 'ready' ? publicQuote.developerTokens : 0);
+  const buyLabel = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL${quotedBuyTokens > 0 ? ` · ${Math.round(quotedBuyTokens).toLocaleString()} tokens` : ''}` : 'Creation only';
   const previewBuy = document.querySelector('#preview-creator-buy');
   if (previewBuy) previewBuy.textContent = buyLabel;
   const buyTokensNode = document.querySelector('#creator-buy-token-amount');
   const buySolNode = document.querySelector('#creator-buy-sol-amount');
-  if (buyTokensNode) buyTokensNode.textContent = creatorBuyExceedsWalletBalance() ? 'Insufficient SOL' : creatorBuy.tokens > 0 ? `${Math.round(creatorBuy.tokens).toLocaleString()} tokens` : creatorBuy.sol > 0 ? wallet ? 'Calculating…' : 'Connect wallet to estimate' : 'None';
+  if (buyTokensNode) buyTokensNode.textContent = creatorBuyExceedsWalletBalance() ? 'Insufficient SOL' : quotedBuyTokens > 0 ? `${Math.round(quotedBuyTokens).toLocaleString()} tokens` : creatorBuy.sol > 0 ? wallet ? 'Calculating…' : publicQuote?.status === 'unavailable' ? 'Quote unavailable' : 'Calculating…' : 'None';
   if (buySolNode) buySolNode.textContent = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL developer buy` : 'No developer buy';
   const image = getPreparedImage();
   const roadmap = document.querySelector('#token-roadmap')?.value.trim() || '';

@@ -1,5 +1,61 @@
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchPreviewController(appState) {
+  let publicQuoteKey = '';
+  let publicQuote = null;
+  let publicQuoteTimer = null;
+  let publicQuoteRequest = 0;
+
+  function refreshPublicQuote() {
+    if (appState.wallet) {
+      clearTimeout(publicQuoteTimer);
+      ++publicQuoteRequest;
+      return;
+    }
+    if (appState.requestedPageRoute() !== 'launch') return;
+    const reserveTokens = appState.getCommunityAirdropTokens();
+    const creatorBuySol = appState.getCreatorBuySol();
+    const key = `${reserveTokens}:${creatorBuySol}`;
+    if (key === publicQuoteKey && (publicQuote?.status === 'loading'
+      || Date.now() - publicQuote?.updatedAt < (publicQuote?.status === 'ready' ? 60_000 : 15_000))) return;
+    publicQuoteKey = key;
+    clearTimeout(publicQuoteTimer);
+    const request = ++publicQuoteRequest;
+    if (!Number.isSafeInteger(reserveTokens) || reserveTokens <= 0 || !Number.isFinite(creatorBuySol) || creatorBuySol < 0) {
+      publicQuote = { status: 'invalid', updatedAt: Date.now() };
+      return;
+    }
+    publicQuote = { status: 'loading', updatedAt: Date.now() };
+    publicQuoteTimer = setTimeout(async () => {
+      let timeout;
+      try {
+        const { developer, quote } = await Promise.race([
+          (async () => {
+            await appState.getSolana();
+            const [{ getInitialBuyQuote }, { normalizeLaunchInput }] = await Promise.all([
+              import('../../../launch-flow.js'), import('../../../launch-core.js'),
+            ]);
+            const input = normalizeLaunchInput({ name: 'Solana Coin', symbol: 'COIN', supply: appState.LAUNCH_TOKEN_SUPPLY, decimals: 6 });
+            const developer = await getInitialBuyQuote({ connection: appState.connection, input: { ...input, initialBuySol: creatorBuySol } });
+            const quote = await appState.quoteAtomicReserveBuy({ connection: appState.connection, supply: input.supply,
+              decimals: input.decimals, reserveTokens, developerBaseUnits: developer.amountBaseUnits });
+            return { developer, quote };
+          })(),
+          new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('Public quote timed out')), 12_000); }),
+        ]);
+        if (request !== publicQuoteRequest || appState.wallet) return;
+        publicQuote = { status: 'ready', maxSolAmountLamports: quote.maxSolAmountLamports,
+          developerTokens: developer.amountTokens, updatedAt: Date.now() };
+      } catch (error) {
+        if (request !== publicQuoteRequest || appState.wallet) return;
+        publicQuote = { status: /developer buy|community reserve|launch supply/i.test(String(error?.message || ''))
+          ? 'invalid' : 'unavailable', updatedAt: Date.now() };
+      } finally {
+        clearTimeout(timeout);
+      }
+      appState.updateCostSummary();
+      appState.updateLaunchPreview();
+    }, 300);
+  }
   // app-source: 602
   function setLaunchStatus(message, error = false){ const node = document.querySelector('#launch-status'); node.textContent = message; node.className = `launch-status${error ? ' error' : message ? ' success' : ''}`; }
   // app-source-end
@@ -58,7 +114,8 @@ export function createLaunchPreviewController(appState) {
 
   // app-source: 609
   function updateCostSummary(){
-    return appState.updateCostSummaryView({ wallet: appState.wallet, estimatedLaunchFeeLamports: appState.estimatedLaunchFeeLamports, walletMetricsLoading: appState.walletMetricsLoading, walletEstimateError: appState.walletEstimateError, launchCostReview: appState.launchCostReview, launchEstimateRetry: appState.launchEstimateRetry }, { renderLaunchCostDetails: appState.renderLaunchCostDetails, getLaunchBurnPolicy: appState.getLaunchBurnPolicy, getCreatorBuySummary: appState.getCreatorBuySummary, getCommunityAirdropTokens: appState.getCommunityAirdropTokens, getCommunityAllocationPercent: appState.getCommunityAllocationPercent, formatLaunchBurnAmount: appState.formatLaunchBurnAmount, creatorBuyExceedsWalletBalance: appState.creatorBuyExceedsWalletBalance, developerBuyLimitReached: appState.developerBuyLimitReached, formatLaunchCost: appState.formatLaunchCost });
+    refreshPublicQuote();
+    return appState.updateCostSummaryView({ wallet: appState.wallet, estimatedLaunchFeeLamports: appState.estimatedLaunchFeeLamports, walletMetricsLoading: appState.walletMetricsLoading, walletEstimateError: appState.walletEstimateError, launchCostReview: appState.launchCostReview, launchEstimateRetry: appState.launchEstimateRetry, publicQuote }, { renderLaunchCostDetails: appState.renderLaunchCostDetails, getLaunchBurnPolicy: appState.getLaunchBurnPolicy, getCreatorBuySummary: appState.getCreatorBuySummary, getCommunityAirdropTokens: appState.getCommunityAirdropTokens, getCommunityAllocationPercent: appState.getCommunityAllocationPercent, formatLaunchBurnAmount: appState.formatLaunchBurnAmount, creatorBuyExceedsWalletBalance: appState.creatorBuyExceedsWalletBalance, developerBuyLimitReached: appState.developerBuyLimitReached, formatLaunchCost: appState.formatLaunchCost });
   }
   // app-source-end
 
@@ -159,7 +216,7 @@ export function createLaunchPreviewController(appState) {
 
   // app-source: 617
   function updateLaunchPreview(){
-    return appState.updateLaunchPreviewView({ wallet: appState.wallet, feeRouterState: appState.feeRouterState, xFeeStatus: appState.xFeeStatus, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER }, { getCommunityAllocationPercent: appState.getCommunityAllocationPercent, getCommunityAirdropTokens: appState.getCommunityAirdropTokens, getFeeDistributionInputs: appState.getFeeDistributionInputs, getLaunchBurnPolicy: appState.getLaunchBurnPolicy, getBannerPreviewUrl: appState.getBannerPreviewUrl, getCreatorBuySummary: appState.getCreatorBuySummary, creatorBuyExceedsWalletBalance: appState.creatorBuyExceedsWalletBalance, formatVerifiedPercent: appState.formatVerifiedPercent, formatLaunchBurnAmount: appState.formatLaunchBurnAmount, xFeeFailureDetail: appState.xFeeFailureDetail, renderLaunchBurnSelection: appState.renderLaunchBurnSelection, updateLaunchNavigation: appState.updateLaunchNavigation });
+    return appState.updateLaunchPreviewView({ wallet: appState.wallet, feeRouterState: appState.feeRouterState, xFeeStatus: appState.xFeeStatus, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER, publicQuote }, { getCommunityAllocationPercent: appState.getCommunityAllocationPercent, getCommunityAirdropTokens: appState.getCommunityAirdropTokens, getFeeDistributionInputs: appState.getFeeDistributionInputs, getLaunchBurnPolicy: appState.getLaunchBurnPolicy, getBannerPreviewUrl: appState.getBannerPreviewUrl, getCreatorBuySummary: appState.getCreatorBuySummary, creatorBuyExceedsWalletBalance: appState.creatorBuyExceedsWalletBalance, formatVerifiedPercent: appState.formatVerifiedPercent, formatLaunchBurnAmount: appState.formatLaunchBurnAmount, xFeeFailureDetail: appState.xFeeFailureDetail, renderLaunchBurnSelection: appState.renderLaunchBurnSelection, updateLaunchNavigation: appState.updateLaunchNavigation });
   }
   // app-source-end
 
