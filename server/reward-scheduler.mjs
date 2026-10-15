@@ -103,7 +103,10 @@ export function holderFundingMinimumLamports(config, env = process.env) {
 function programConfig(input) {
   const periodSeconds = Number(input.periodSeconds || AUTOMATIC_REWARDS.periodSeconds);
   const sampleIntervalSeconds = Number(input.sampleIntervalSeconds || AUTOMATIC_REWARDS.sampleIntervalSeconds);
-  const minimumPeriodSeconds = process.env.SOLANA_CLUSTER === 'devnet' && process.env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true' ? 300 : 3600;
+  const qaShortPeriod = process.env.SOLANA_CLUSTER === 'devnet'
+    && process.env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true'
+    && process.env.FUNDED_QA_HOLDER_MINT === String(input.mint);
+  const minimumPeriodSeconds = qaShortPeriod ? 300 : 3600;
   const payoutDelaySeconds = Number(input.payoutDelaySeconds ?? 3600);
   const activatedAt = Number(input.activatedAt ?? Math.floor(Date.now() / 1000));
   const firstPeriodStart = Number(input.firstPeriodStart ?? Math.ceil(activatedAt / periodSeconds) * periodSeconds);
@@ -113,15 +116,16 @@ function programConfig(input) {
   const qaMinimums = input.eligibilityPolicy === QA_HOLDER_POLICY ? input.qaMinimums : null;
   const qaPoolCents = Math.round(Number(qaMinimums?.minimumPoolUsd) * 100);
   if (qaMinimums) {
-    if (process.env.SOLANA_CLUSTER !== 'devnet' || periodSeconds !== 3600
+    if (process.env.SOLANA_CLUSTER !== 'devnet'
+      || (periodSeconds !== 3600 && !(qaShortPeriod && periodSeconds === 300))
       || !Number.isSafeInteger(qaMinimums.minimumHolderUsd) || qaMinimums.minimumHolderUsd < 1 || qaMinimums.minimumHolderUsd > 19
       || !Number.isSafeInteger(qaPoolCents)
       || Math.abs(qaMinimums.minimumPoolUsd * 100 - qaPoolCents) > 1e-6
       || qaPoolCents < 10 || qaPoolCents > 1999
       || !Number.isSafeInteger(qaMinimums.minimumFundingLamports) || qaMinimums.minimumFundingLamports < 1_000_000 || qaMinimums.minimumFundingLamports > 9_999_999)
-      throw new Error('The hourly Devnet QA holder policy requires bounded persisted minimums.');
+      throw new Error('The Devnet QA holder policy requires bounded persisted minimums.');
   } else if (input.eligibilityPolicy === QA_HOLDER_POLICY) {
-    throw new Error('The hourly Devnet QA holder policy requires persisted minimums.');
+    throw new Error('The Devnet QA holder policy requires persisted minimums.');
   }
   return {
     mint: String(input.mint), enabled: input.enabled !== false, asset: String(input.asset || 'SOL'), kind: 'holder',

@@ -57,13 +57,13 @@ export function renderHolderAirdropDirectory(data) {
     button.querySelector('span').textContent = groups.available ? `${groups.partial ? '≥' : ''}${groups[button.dataset.holderAirdropTab].length}` : '—';
   }
   const hourly = groups.available && data.tokens.some(row => row.holderRewardPolicy?.cadence === 'hourly');
-  const qaHourly = groups.available && data.tokens.filter(row => row.holderRewardPolicy?.qaMinimums);
-  const qaNote = qaHourly?.length
-    ? ` Selected Devnet QA launches use their displayed test minimums; the standard is $20 per wallet and pool.` : '';
+  const qaFast = groups.available && data.tokens.some(row => row.holderRewardPolicy?.cadence === 'five-minutes');
+  const qaMinimums = groups.available && data.tokens.some(row => row.holderRewardPolicy?.qaMinimums);
+  const qaNote = qaMinimums ? ' Selected Devnet QA launches use their displayed test minimums.' : '';
   root.querySelector('#holder-airdrop-note').textContent = groups.partial
     ? 'Partial receipt coverage. Upcoming means no payment is confirmed in the available records.'
-    : active === 'upcoming' ? hourly
-      ? `Hourly payouts require finalized holder history, a fresh price, an eligible holding, and a funded pool plus distribution costs. Standard minimums are $20 per wallet and pool.${qaNote} Devnet dollar values are test references; unpaid SOL carries forward.`
+    : active === 'upcoming' ? hourly || qaFast
+      ? `Payouts require finalized holder history, a fresh price, an eligible holding, and a funded pool plus distribution costs. Standard cadence is hourly with $20 wallet and pool minimums.${qaFast ? ' Selected Devnet QA payouts run every 5 minutes.' : ''}${qaNote} Devnet dollar values are test references; unpaid SOL carries forward.`
       : 'Published fee-sharing policies awaiting their first confirmed holder payout. Timing depends on funding and an eligible snapshot.'
     : 'Projects with confirmed holder payouts. Top wallets below include only verified payment receipts.';
   const result = directoryPage(groups[active], root.querySelector('input').value, page);
@@ -88,7 +88,7 @@ export function renderHolderAirdropDirectory(data) {
     link.href = `/token/${encodeURIComponent(row.mint)}`;
     info.append(link, element('small', '', `${row.holderSharePercent}% creator fee share · ${String(row.mint).slice(0,4)}…${String(row.mint).slice(-4)}`));
     if (row.holderRewardPolicy?.qaMinimums) info.append(element('small', '',
-      `Devnet QA: $${row.holderRewardPolicy.minimumHolderUsd} wallet · $${row.holderRewardPolicy.minimumPoolUsd} pool minimum`));
+      `Devnet QA: ${row.holderRewardPolicy.cadence === 'five-minutes' ? 'every 5 min · ' : ''}$${row.holderRewardPolicy.minimumHolderUsd} wallet · $${row.holderRewardPolicy.minimumPoolUsd} pool minimum`));
     identity.append(avatar, info);
     const amount = element('div', 'holder-airdrop-amount');
     amount.append(element('small', '', active === 'distributed' ? 'Confirmed paid' : 'Fees allocated'), element('strong', '', `${groups.partial ? '≥' : ''}${sol(active === 'distributed' ? row.holderPaidLamports : row.totals?.holder)}`));

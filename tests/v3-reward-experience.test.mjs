@@ -29,6 +29,12 @@ test('V3 reward discovery excludes old launches and distinguishes allocations fr
   assert.equal(before.tokens[0].totals.holder, '15');
   assert.equal(before.tokens[0].holderPaidLamports, '0');
   assert.equal(before.tokens[0].xPaidLamports, '5');
+  const qaProgram = { periodSeconds:300, eligibilityPolicy:'usd-qa-hourly-v1',
+    qaMinimums:{ minimumHolderUsd:1, minimumPoolUsd:0.5,
+      minimumFundingLamports:1_000_000 } };
+  const qaView = v3RewardExperience(state, { programs:{ [mint]:qaProgram } }, 'devnet');
+  assert.equal(qaView.tokens[0].holderRewardPolicy.cadence, 'five-minutes');
+  assert.equal(qaView.tokens[0].holderRewardPolicy.periodSeconds, 300);
   const rewards = { schedules:{ holder:{ mint, kind:'holder', asset:'SOL', poolIds:[`v3:${source}`],
     payments:{ [wallet]:{ status:'paid', signature:payment, amount:'15',
       finalized:true, balanceDeltaVerified:true } } } } };

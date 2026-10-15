@@ -157,7 +157,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       const qaShort = solanaCluster === 'devnet'
         && env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true'
         && env.FUNDED_QA_HOLDER_MINT === mint;
-      const qaMinimums = qaShort ? null : qaHolderMinimums(mint, solanaCluster, env);
+      const qaMinimums = qaHolderMinimums(mint, solanaCluster, env);
       const eligibilityPolicy = qaMinimums ? QA_HOLDER_POLICY : 'usd-20-hourly-v1';
       if (qaShort) holderFundingMinimumLamports({ mint, periodSeconds:300 },
         { ...env, SOLANA_CLUSTER:'devnet' });
@@ -181,7 +181,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
           : existingProgram.firstPeriodStart;
         await scheduler.register({ mint, asset:'SOL', activatedAt,
           excludedWallets, eligibilityPolicy, qaMinimums,
-          periodSeconds, sampleIntervalSeconds:AUTOMATIC_REWARDS.sampleIntervalSeconds,
+          periodSeconds, sampleIntervalSeconds:qaShort ? 60 : AUTOMATIC_REWARDS.sampleIntervalSeconds,
           payoutDelaySeconds:0, firstPeriodStart });
       }
       await scheduler.recordFundedPool({ id:`v3:${collectionSignature}`,

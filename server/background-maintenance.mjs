@@ -83,7 +83,7 @@ export function startV3HolderRewardWorker({ solanaCluster, solanaRpcUrl,
       const qaMinimums = qaHolderMinimums(config.mint, solanaCluster, env);
       const eligibilityPolicy = qaMinimums ? QA_HOLDER_POLICY : 'usd-20-hourly-v1';
       const shortQa = env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true'
-        && env.FUNDED_QA_HOLDER_MINT === config.mint && config.periodSeconds === 300;
+        && solanaCluster === 'devnet' && env.FUNDED_QA_HOLDER_MINT === config.mint;
       const periodSeconds = shortQa ? 300 : 3600;
       if (config.periodSeconds === periodSeconds
         && config.eligibilityPolicy === eligibilityPolicy
@@ -92,7 +92,7 @@ export function startV3HolderRewardWorker({ solanaCluster, solanaRpcUrl,
       const policyChanged = config.eligibilityPolicy !== eligibilityPolicy
         || JSON.stringify(config.qaMinimums || null) !== JSON.stringify(qaMinimums);
       await scheduler.register({ ...config, periodSeconds,
-        sampleIntervalSeconds:300, payoutDelaySeconds:0,
+        sampleIntervalSeconds:shortQa ? 60 : 300, payoutDelaySeconds:0,
         eligibilityPolicy, qaMinimums,
         firstPeriodStart:config.periodSeconds === periodSeconds && !policyChanged
           ? config.firstPeriodStart

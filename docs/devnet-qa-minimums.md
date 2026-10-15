@@ -51,3 +51,11 @@ It accepts 1,000,000–9,999,999 lamports; all other mints keep the 10,000,000
 lamport collector floor. This only starts collection. A creator must still
 finalize the V3 settlement and holder funding before the hourly reward
 schedule can prepare a payout.
+
+For a disposable five-minute payout test, set the same selected mint in
+`FUNDED_QA_HOLDER_MINT` and set `FUNDED_QA_SHORT_REWARD_PERIODS=true`. This
+retains its bounded Devnet holder and pool minimums, samples finalized holder
+balances every minute, and starts at the next five-minute boundary. Unprepared
+hourly periods are skipped while verified funding rolls into the first complete
+five-minute period. Paid cycles remain immutable. Set the short-period flag to
+`false` to restore hourly cadence at the next boundary for larger UAT.

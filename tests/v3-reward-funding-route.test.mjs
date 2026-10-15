@@ -184,7 +184,7 @@ test('the selected Devnet QA holder mint can re-enroll a funded daily pool into 
   assert.equal(f.responses.at(-1).status, 200);
   assert.equal(f.registrations.length, 1);
   assert.equal(f.registrations[0].periodSeconds, 300);
-  assert.equal(f.registrations[0].sampleIntervalSeconds, 300);
+  assert.equal(f.registrations[0].sampleIntervalSeconds, 60);
   assert.equal(f.registrations[0].payoutDelaySeconds, 0);
   assert.equal(f.registrations[0].firstPeriodStart % 300, 0);
   assert.deepEqual(f.registrations[0].excludedWallets, [deriveCommunityRewardVaultV3(
