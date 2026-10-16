@@ -10,13 +10,14 @@ const address = value => typeof value === 'string' ? value : value?.pubkey
 // exact V3 instruction, category-vault debit, recipient credit, and receipt.
 export async function loadFinalizedV3RewardFunding({ connection, signature, programId,
   mint, authority, creator, initialAuthority, withdrawalId, category, amount,
-  recipient, split, verifyWithdrawal = verifyMintWithdrawalV3Account,
+  recipient, split, transaction:providedTransaction,
+  verifyWithdrawal = verifyMintWithdrawalV3Account,
   verifyPolicy = verifyMintPolicyV3Account }) {
   try {
     if (![0, 2, 3, 4, 5].includes(category)) return null;
     const expected = buildMintRouterV3DisbursementInstruction({ programId, mint,
       authority, creator, withdrawalId, category, amount, recipient });
-    const transaction = await connection.getTransaction(signature, {
+    const transaction = providedTransaction || await connection.getTransaction(signature, {
       commitment:'finalized', maxSupportedTransactionVersion:0 });
     if (!transaction || transaction.meta?.err !== null
       || !Number.isSafeInteger(transaction.slot) || transaction.slot <= 0
@@ -61,7 +62,9 @@ export async function loadFinalizedV3RewardFunding({ connection, signature, prog
       || !withdrawal.address.equals(expected.withdrawal)
       || !policy.address.equals(expected.policy.address)
       || policy.withdrawnLamports[category] < lamports) return null;
-    return { signature, slot:transaction.slot, mint:new PublicKey(mint).toBase58(),
+    return { signature, slot:transaction.slot, blockTime:transaction.blockTime ?? null,
+      feePayer:staticKeys[0], feeLamports:transaction.meta.fee,
+      mint:new PublicKey(mint).toBase58(),
       programId:new PublicKey(programId).toBase58(), category, amount:String(lamports),
       recipient:expected.recipient.toBase58(), vault:expected.vault.toBase58(),
       withdrawal:expected.withdrawal.toBase58(), balanceDeltaVerified:true };

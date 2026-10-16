@@ -24,5 +24,24 @@ test('public analytics exclude V2 collections and payouts while retaining verifi
   assert.equal(metrics.recordedCollections,1);
   assert.equal(metrics.rewardPaid.x.paidLamports,'5');
   assert.equal(metrics.feePayoutStats.x.top.handle,'@fixture');
-  assert.equal(metrics.feePayoutStats.creator.status,'unavailable');
+  assert.equal(metrics.feePayoutStats.creator.status,'verified');
+  assert.equal(metrics.feePayoutStats.creator.payoutCount,0);
+});
+
+test('V3 metrics expose verified creator payments and fresh community claim counts', () => {
+  const wallet='5'.repeat(44), mint='6'.repeat(44), signature='3'.repeat(64);
+  const history={cluster:'devnet',commitment:'finalized',status:'onchain-indexed',
+    generatedAt:new Date().toISOString(), checkedAutomatic:0, checkedCreator:1,
+    verifiedPayouts:[{source:'v3-creator-wallet',signature,to:wallet,amountLamports:60}]};
+  const rewards={communityClaimIndex:{cluster:'devnet',commitment:'finalized',status:'verified',
+    indexedAt:new Date().toISOString(), drops:[{mint,claimCount:1,claimedBaseUnits:'9'}],
+    payments:[{mint,recipient:wallet,amountBaseUnits:'9',payment:'7'.repeat(44)}]}};
+  const summary=v3PublicMetrics({}, {cluster:'devnet',commitment:'finalized',status:'no-records'},
+    history,rewards,'devnet');
+  assert.equal(summary.feePayoutStats.creator.paidLamports,'60');
+  assert.equal(summary.feePayoutStats.fundedHolder.claimCount,1);
+  assert.equal(summary.recordedPayouts,1);
+  assert.equal(summary.verifiedPayoutCount,1);
+  rewards.communityClaimIndex.indexedAt='2020-01-01T00:00:00.000Z';
+  assert.equal(v3PublicMetrics({}, {}, history,rewards,'devnet').feePayoutStats.fundedHolder.status,'unavailable');
 });

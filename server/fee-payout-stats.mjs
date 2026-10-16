@@ -21,7 +21,7 @@ function empty(status) {
     top:null, status };
 }
 
-function communityHolderClaims(index, cluster, now = Date.now()) {
+export function communityHolderClaims(index, cluster, now = Date.now()) {
   const unavailable = { status:'unavailable', asset:'launched tokens', claimCount:null, top:null,
     reason:'Finalized community claims have not been indexed by recipient.' };
   if (index?.cluster !== cluster || index.commitment !== 'finalized' || index.status !== 'verified'

@@ -7,7 +7,8 @@ import { shortAddress } from '../shared/display.js';
 
 export function payoutType(source) {
   return ({ 'solana-keeper-referral-claim':'referral', 'mint-router-settle-mint':'x',
-    'automatic-creator':'creator', 'automatic-holder':'holder', 'automatic-operations':'operations',
+    'automatic-creator':'creator', 'v3-creator-wallet':'creator',
+    'automatic-holder':'holder', 'automatic-operations':'operations',
     'automatic-community':'community', 'automatic-x':'x' })[source] || 'other';
 }
 
@@ -47,7 +48,11 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     try {
       const lamports = collections.reduce((sum, item) => sum + exactLamports(item.collectedLamports), 0n);
       feeCard.querySelector('strong').textContent = `${formatReceiptSol(lamports)} SOL`;
-      feeCard.querySelector('small').innerHTML = `<b>SOL</b>${collections.length} confirmed fee claims · available history`;
+      const recorded = Number(receiptEvidence?.coverage?.recordedCollections || collections.length);
+      const checkedAt = Date.parse(receiptEvidence?.generatedAt || '');
+      const freshness = Number.isFinite(checkedAt)
+        ? ` · checked ${new Date(checkedAt).toISOString().slice(11, 16)} UTC` : '';
+      feeCard.querySelector('small').innerHTML = `<b>SOL</b>${collections.length}/${recorded} confirmed fee claims · finalized history${freshness}`;
     } catch {
       feeCard.querySelector('strong').textContent = '—';
       feeCard.querySelector('small').innerHTML = '<b>SOL</b>Collection total unavailable; inspect individual receipts';
@@ -57,7 +62,12 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
   if (payoutCard) {
     payoutCard.querySelector('span').textContent = 'Finalized payments';
     payoutCard.querySelector('strong').textContent = paymentHistoryEvidence ? String(historyPayouts.length) : '—';
-    payoutCard.querySelector('small').innerHTML = `<b>COUNT</b>${!receiptEvidenceChecked ? 'Checking payment history' : !paymentHistoryEvidence ? 'Payment history unavailable' : historyPayouts.length ? `${historyPayouts.length} confirmed payouts across all types` : 'No finalized payments in available history'}`;
+    const recorded = Number(paymentHistoryEvidence?.checkedAutomatic || 0)
+      + Number(paymentHistoryEvidence?.checkedCreator || 0);
+    const checkedAt = Date.parse(paymentHistoryEvidence?.generatedAt || '');
+    const freshness = Number.isFinite(checkedAt)
+      ? ` · checked ${new Date(checkedAt).toISOString().slice(11, 16)} UTC` : '';
+    payoutCard.querySelector('small').innerHTML = `<b>COUNT</b>${!receiptEvidenceChecked ? 'Checking payment history' : !paymentHistoryEvidence ? 'Payment history unavailable' : recorded ? `${historyPayouts.length}/${recorded} finalized payouts indexed${freshness}` : historyPayouts.length ? `${historyPayouts.length} finalized payouts indexed${freshness}` : 'No finalized payments in available history'}`;
   }
   const list = document.querySelector('#payment-list');
   if (!list) return;
@@ -78,7 +88,8 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     identity.className = 'payment-history-identity';
     const name = document.createElement('strong');
     name.textContent = ({ 'solana-keeper-referral-claim':'Referral reward', 'mint-router-settle-mint':'X account reward',
-      'automatic-creator':'Creator fee', 'automatic-holder':'Holder reward', 'automatic-operations':'Protocol payout',
+      'automatic-creator':'Creator fee', 'v3-creator-wallet':'Creator fee',
+      'automatic-holder':'Holder reward', 'automatic-operations':'Protocol payout',
       'automatic-community':'Community payout', 'automatic-x':'X account reward' })[receipt.source] || 'SOL payout';
     if (['mint-router-settle-mint', 'automatic-x'].includes(receipt.source)
       && /^@[A-Za-z0-9_]{1,15}$/.test(receipt.xHandle || '')) name.textContent += ` · ${receipt.xHandle}`;

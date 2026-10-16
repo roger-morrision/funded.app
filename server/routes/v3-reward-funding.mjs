@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import bs58 from 'bs58';
 import { Connection, PublicKey } from '@solana/web3.js';
@@ -13,12 +12,10 @@ import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
 import { loadFinalizedV3Settlement } from '../v3-settlement-proof.mjs';
 import { v3AllocationPlan } from '../v3-allocation-plan.mjs';
 import { loadFinalizedV3RewardFunding } from '../v3-reward-funding-proof.mjs';
+import { v3DisbursementId } from '../v3-disbursement-id.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 import { v3ReferralEntitlement } from '../v3-referral-entitlement.mjs';
 import { QA_HOLDER_POLICY, qaHolderMinimums, qaShortHolderMintSelected } from '../devnet-qa-minimums.mjs';
-
-const withdrawalIdFor = (kind, signature) => createHash('sha256')
-  .update(`funded.v3.${kind}-funding.v1:${signature}`).digest();
 
 export function createV3RewardFundingRoutes({ body, store, solanaCluster, solanaRpcUrl,
   v3AuthorityKeypair, rewardStore, respond, env = process.env,
@@ -130,7 +127,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     const recipient = kind === 'referral' ? new PublicKey(entitlement.recipient)
       : kind === 'creator-wallet' ? new PublicKey(launch.creatorWallet)
       : await chain.ensureVault(mint);
-    const withdrawalId = withdrawalIdFor(kind === 'referral' ? `referral-${level}` : kind,
+    const withdrawalId = v3DisbursementId(kind === 'referral' ? `referral-${level}` : kind,
       settled.settlementSignature);
     const ledgerKey = kind === 'referral' ? `${collectionSignature}:${level}` : collectionSignature;
     const payout = buildMintRouterV3DisbursementInstruction({ programId, mint,

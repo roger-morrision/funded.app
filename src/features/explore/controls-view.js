@@ -131,6 +131,13 @@ export function renderExplorePayoutStats(
   const stats = analyticsSummary?.feePayoutStats;
   const ready = stats?.cluster === EXPLORE_CLUSTER && stats.commitment === 'finalized';
   const loading = analyticsSummary == null;
+  const payoutCheckedAt = Date.parse(analyticsSummary?.payoutEvidenceAt || '');
+  const payoutCoverage = ready && Number.isFinite(payoutCheckedAt)
+    && Number.isSafeInteger(analyticsSummary?.recordedPayouts)
+    && Number.isSafeInteger(analyticsSummary?.verifiedPayoutCount)
+    ? `${analyticsSummary.verifiedPayoutCount}/${analyticsSummary.recordedPayouts} payouts verified` : null;
+  const payoutFreshness = Number.isFinite(payoutCheckedAt)
+    ? ` · checked ${new Date(payoutCheckedAt).toISOString().slice(11, 16)} UTC` : '';
   const cards = [
     { label:'Total fee paid to X accounts', kind:'x' },
     { label:'Total fee paid to creators', kind:'creator' },
@@ -150,7 +157,10 @@ export function renderExplorePayoutStats(
         : !available ? 'Checking finalized community claims'
           : leader ? `${shortAddress(leader.recipient)} · ${leader.launchCount} launch${leader.launchCount === 1 ? '' : 'es'}`
             : 'No finalized community claims yet';
-      return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></article>`;
+      const checkedAt = Date.parse(group?.indexedAt || '');
+      const freshness = Number.isFinite(checkedAt)
+        ? `<small>Finalized index checked ${escapeHtml(new Date(checkedAt).toISOString().slice(11, 16))} UTC</small>` : '';
+      return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small>${freshness}</article>`;
     }
     const amount = card.top ? leader?.paidLamports : group?.paidLamports;
     const count = card.top ? leader?.payoutCount : group?.payoutCount;
@@ -170,6 +180,7 @@ export function renderExplorePayoutStats(
     const detailMarkup = profile
       ? `<a href="${escapeHtml(profile)}" target="_blank" rel="noopener noreferrer">${escapeHtml(detail)} ↗</a>`
       : `<small>${escapeHtml(detail)}</small>`;
-    return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong>${detailMarkup}${group?.status === 'partial' ? `<em${group.reason ? ` title="${escapeHtml(group.reason)}"` : ''}>Partial coverage</em>` : ''}</article>`;
+    const coverageMarkup = payoutCoverage ? `<small>${escapeHtml(payoutCoverage + payoutFreshness)}</small>` : '';
+    return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong>${detailMarkup}${coverageMarkup}${group?.status === 'partial' ? `<em${group.reason ? ` title="${escapeHtml(group.reason)}"` : ''}>Partial coverage</em>` : ''}</article>`;
   }).join('');
 }

@@ -1,6 +1,8 @@
 import { createReadCache } from './read-cache.mjs';
 import { verifyPayoutReceipt } from './receipt-evidence.mjs';
 import { cachedReceiptProof, receiptFingerprint } from './receipt-history.mjs';
+import { loadFinalizedV3RewardFunding } from './v3-reward-funding-proof.mjs';
+import { v3DisbursementId } from './v3-disbursement-id.mjs';
 
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
@@ -50,7 +52,8 @@ export function verifyAutomaticPayment(schedule, recipient, payment, transaction
     slot:transaction.slot, blockTime:transaction.blockTime ?? null };
 }
 
-export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, connectionFactory, officialGenesis, cluster, v3Only = false }) {
+export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, connectionFactory, officialGenesis,
+  cluster, v3Only = false, loadCreatorPayment = loadFinalizedV3RewardFunding }) {
   const cache = createReadCache({ ttlMs:30_000, maxEntries:1 });
   const verifiedAutomatic = new Map();
   return () => cache('recent', async () => {
@@ -79,10 +82,13 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
       && payment?.status === 'paid' && payment.finalized === true && payment.balanceDeltaVerified === true
       && SIGNATURE.test(String(payment.signature || '')))
       .sort((a, b) => String(b.payment.paidAt || '').localeCompare(String(a.payment.paidAt || '')));
+    const creatorCandidates = v3Only ? Object.entries(state.v3CreatorWalletPayout || {})
+      .filter(([, row]) => row?.status === 'finalized') : [];
     const automatic = [];
+    const creators = [];
     const olderProofs = [];
     let unavailable = 0;
-    if (candidates.length || older.length) {
+    if (candidates.length || older.length || creatorCandidates.length) {
       try {
         const connection = connectionFactory();
         if (await connection.getGenesisHash() !== await officialGenesis()) throw new Error('Wrong Solana network');
@@ -136,7 +142,56 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
             } catch { unavailable += 1; }
           }));
         }
-      } catch { unavailable += candidates.length + older.length; }
+        for (let i = 0; i < creatorCandidates.length; i += 4) {
+          await Promise.all(creatorCandidates.slice(i, i + 4).map(async ([source, row]) => {
+            try {
+              const launch = state.launches?.[row.mint];
+              const collection = state.collections?.[source];
+              const settlement = state.v3Settlements?.[source];
+              const route = launch?.pumpFeeRoute;
+              const amount = Number(row.amount);
+              if (cluster !== 'devnet' || !SIGNATURE.test(String(row.signature || ''))
+                || !SIGNATURE.test(String(settlement?.settlementSignature || ''))
+                || !ADDRESS.test(String(row.mint || '')) || !ADDRESS.test(String(row.recipient || ''))
+                || !Number.isSafeInteger(amount) || amount <= 0
+                || row.balanceDeltaVerified !== true || row.category !== 0
+                || row.collectionSignature !== source || row.recipient !== launch?.creatorWallet
+                || launch?.onchainVerified !== true || launch.cluster !== cluster
+                || route?.scope !== 'per-mint-v3' || !ADDRESS.test(String(route.programId || ''))
+                || row.programId !== route.programId || !ADDRESS.test(String(route.initialAuthority || ''))
+                || collection?.signature !== source || collection.mint !== row.mint
+                || collection.cluster !== cluster || collection.scope !== 'per-mint-v3'
+                || collection.programId !== route.programId || collection.status !== 'collected'
+                || collection.onchainVerified !== true || settlement?.status !== 'finalized'
+                || settlement.collectionSignature !== source || settlement.mint !== row.mint
+                || settlement.allocationPlan?.status !== 'allocated-not-funded'
+                || String(settlement.allocationPlan.creatorDirected?.walletLamports) !== String(row.amount))
+                throw new Error('Creator payment lacks a matching V3 allocation');
+              const transaction = await connection.getTransaction(row.signature, {
+                commitment:'finalized', maxSupportedTransactionVersion:0 });
+              const authority = addressOf(transaction?.transaction?.message?.accountKeys?.[0]
+                || transaction?.transaction?.message?.staticAccountKeys?.[0]);
+              if (!ADDRESS.test(authority)) throw new Error('Missing transaction authority');
+              const proof = await loadCreatorPayment({ connection, transaction, signature:row.signature,
+                programId:route.programId, mint:row.mint, authority, creator:launch.creatorWallet,
+                initialAuthority:route.initialAuthority,
+                withdrawalId:v3DisbursementId('creator-wallet', settlement.settlementSignature),
+                category:0, amount:row.amount, recipient:row.recipient, split:route.protocolSplit });
+              if (!proof || proof.signature !== row.signature || proof.recipient !== row.recipient
+                || proof.mint !== row.mint || proof.programId !== route.programId
+                || proof.category !== 0 || proof.amount !== String(row.amount)
+                || proof.balanceDeltaVerified !== true || !Number.isSafeInteger(proof.slot)
+                || proof.slot <= 0 || proof.feePayer !== authority
+                || !Number.isSafeInteger(proof.feeLamports) || proof.feeLamports < 0)
+                throw new Error('Creator payment proof does not match');
+              creators.push({ signature:row.signature, source:'v3-creator-wallet', to:row.recipient,
+                mint:row.mint, amountLamports:amount, actualReceivedLamports:amount,
+                feeLamports:proof.feeLamports, feePayer:authority,
+                slot:proof.slot, blockTime:proof.blockTime ?? null });
+            } catch { unavailable += 1; }
+          }));
+        }
+      } catch { unavailable += candidates.length + older.length + creatorCandidates.length; }
     }
     const recordedX = new Map((v3Only ? [] : Object.values(state.payouts || {}))
       .filter(row => row?.source === 'mint-router-settle-mint' && row.status === 'paid' && row.cluster === cluster)
@@ -148,7 +203,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
         ? verifiedXHandle(state, cluster, record.mint, record.obligationId, proof.to) : null;
       return xHandle ? { ...proof, xHandle } : proof;
     });
-    const rows = [...new Map([...attributed, ...automatic].filter(row =>
+    const rows = [...new Map([...attributed, ...automatic, ...creators].filter(row =>
       ADDRESS.test(String(row.to || '')) && SIGNATURE.test(String(row.signature || ''))
       && Number.isSafeInteger(row.actualReceivedLamports) && row.actualReceivedLamports > 0
       && (row.feeLamports === null || Number.isSafeInteger(row.feeLamports) && row.feeLamports >= 0)
@@ -156,7 +211,8 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
       .map(row => [`${row.signature}:${row.to}`, row])).values()]
       .sort((a, b) => Number(b.blockTime || 0) - Number(a.blockTime || 0) || b.slot - a.slot);
     return { cluster, commitment:'finalized', status:unavailable || !v3Only && evidence.status === 'unavailable' ? 'partial' : 'onchain-indexed',
-      verifiedPayouts:rows, checkedAutomatic:candidates.length, unavailablePayouts:unavailable,
+      verifiedPayouts:rows, checkedAutomatic:candidates.length, checkedCreator:creatorCandidates.length,
+      unavailablePayouts:unavailable, generatedAt:new Date().toISOString(),
       note:'Network transaction fees are paid by the transaction fee payer; received amounts are verified recipient balance increases.' };
   });
 }

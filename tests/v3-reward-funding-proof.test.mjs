@@ -67,7 +67,7 @@ test('V3 creator-wallet payout proof binds the category-zero transfer to its cre
   before[keys.indexOf(built.vault.toBase58())] = 100;
   after[keys.indexOf(built.vault.toBase58())] = 40;
   after[keys.indexOf(creator.toBase58())] = 60;
-  const tx = { slot:43, meta:{ err:null, preBalances:before, postBalances:after },
+  const tx = { slot:43, blockTime:1234, meta:{ err:null, fee:5000, preBalances:before, postBalances:after },
     transaction:{ signatures:[signature], message } };
   const input = { connection:{ getTransaction:async () => tx }, signature,
     programId, mint, authority, creator, initialAuthority:authority,
@@ -75,7 +75,12 @@ test('V3 creator-wallet payout proof binds the category-zero transfer to its cre
     verifyWithdrawal:async () => ({ verified:true, address:built.withdrawal }),
     verifyPolicy:async () => ({ verified:true, address:built.policy.address,
       withdrawnLamports:[60n, 0n, 0n, 0n, 0n, 0n, 0n] }) };
-  assert.equal((await loadFinalizedV3RewardFunding(input)).recipient, creator.toBase58());
+  const proof = await loadFinalizedV3RewardFunding({ ...input, transaction:tx,
+    connection:{ getTransaction:async () => { throw new Error('Unexpected second fetch'); } } });
+  assert.equal(proof.recipient, creator.toBase58());
+  assert.equal(proof.feePayer, authority.toBase58());
+  assert.equal(proof.feeLamports,5000);
+  assert.equal(proof.blockTime,1234);
   tx.meta.postBalances[keys.indexOf(creator.toBase58())] = 59;
   assert.equal(await loadFinalizedV3RewardFunding(input), null);
 });

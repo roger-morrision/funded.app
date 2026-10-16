@@ -1,3 +1,5 @@
+import { communityHolderClaims } from './fee-payout-stats.mjs';
+
 const safe = value => /^(0|[1-9]\d*)$/.test(String(value))
   && BigInt(value) <= BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(value) : null;
 const number = value => value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : null;
@@ -51,10 +53,11 @@ export function v3PublicMetrics(state, evidence, history, rewards, cluster) {
   const partialPayouts = history?.status !== 'onchain-indexed';
   const holder = payoutGroup(payments,'automatic-holder',partialPayouts);
   const x = payoutGroup(payments,'automatic-x',partialPayouts);
-  const creator = { paidLamports:null, payoutCount:null, top:null, status:'unavailable',
-    reason:'V3 creator wallet payments are not yet in the independent payout index.' };
-  const unavailableCommunity = { status:'unavailable', asset:'launched tokens', claimCount:null,
-    top:null, reason:'Finalized community token claims are not indexed.' };
+  const creator = history?.cluster === cluster && history.commitment === 'finalized'
+    ? payoutGroup(payments,'v3-creator-wallet',partialPayouts)
+    : { paidLamports:null, payoutCount:null, top:null, status:'unavailable',
+      reason:'Finalized creator payout history is unavailable.' };
+  const community = communityHolderClaims(rewards?.communityClaimIndex, cluster);
   const collected = verified.reduce((sum,row) => sum + BigInt(safe(row.collectedLamports) || 0n),0n);
   const recordedTotal = recorded.reduce((sum,row) => sum + BigInt(safe(row.collectedLamports) || 0n),0n);
   const paid = payments.reduce((sum,row) => sum + BigInt(safe(row.amountLamports) || 0n),0n);
@@ -77,10 +80,11 @@ export function v3PublicMetrics(state, evidence, history, rewards, cluster) {
       + BigInt(safe(row.collectedLamports) || 0n),0n))/1_000_000_000,
     collectedLamports:number(collected), buybackAccrued:Number(buyback)/1_000_000_000,
     finalizedPaidLamports:number(paid), referralPaidLamports:0, referralPayoutCount:0,
-    recordedPayouts:history?.checkedAutomatic || 0, verifiedPayoutCount:payments.length,
+    recordedPayouts:(history?.checkedAutomatic || 0) + (history?.checkedCreator || 0),
+    verifiedPayoutCount:payments.length, payoutEvidenceAt:history?.generatedAt || null,
     rewardPaid:{ cluster, commitment:'finalized', holder:{ ...holder, top:undefined },
       x:{ ...x, top:undefined } },
     feePayoutStats:{ cluster, commitment:'finalized', holder, x, creator,
-      fundedHolder:unavailableCommunity },
+      fundedHolder:community },
     v3Evidence:receipts };
 }
