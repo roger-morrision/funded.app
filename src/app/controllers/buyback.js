@@ -33,9 +33,9 @@ export function createBuybackController(appState) {
       const lamports = eligible ? BigInt(dashboard.collectedLamports) : 0n;
       const older = document.querySelector(`#${prefix}-older`);
       const threshold = /^\d+$/.test(String(dashboard?.thresholdLamports))
-        && BigInt(dashboard.thresholdLamports) > 0n ? BigInt(dashboard.thresholdLamports) : 5_000_000_000n;
+        && BigInt(dashboard.thresholdLamports) > 0n ? BigInt(dashboard.thresholdLamports) : null;
       const formatSol = value => `${(Number(value) / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits:9 })} SOL`;
-      const trigger = formatSol(threshold);
+      const trigger = threshold === null ? null : formatSol(threshold);
       balance.textContent = eligible ? formatSol(lamports) : '—';
       if (older) {
         older.hidden = !eligible || !unindexed || unindexedLamports === 0n;
@@ -43,22 +43,27 @@ export function createBuybackController(appState) {
           : `Older verified vault custody included: ${formatSol(unindexedLamports)} · total eligible ${formatSol(lamports)}`;
       }
       const triggerText = document.querySelector(`#${prefix}-trigger`);
-      if (triggerText) triggerText.textContent = `${trigger} trigger`;
+      if (triggerText) triggerText.textContent = trigger ? `${trigger} trigger` : 'Trigger unavailable';
       const policy = document.querySelector(`#${prefix}-policy`);
-      if (policy) policy.textContent = prefix === 'home-buyback'
+      if (policy && trigger) policy.textContent = prefix === 'home-buyback'
         ? `For launches using the published 5% buyback split, that share goes into dedicated on-chain vaults. At ${trigger} in verified vault allocations, the app queues a protected $FUNDED purchase and burn. Execution depends on a verified market quote and available liquidity.`
         : `The published buyback share of collected creator fees remains in dedicated program vaults until verified vault allocations reach the ${trigger} aggregate trigger. The worker then attempts protected $FUNDED purchases and burns; failed market checks leave funds in custody.`;
-      if (prefix === 'buyback-route') document.querySelector('#buyback-route-title').textContent = `${trigger} trigger, verified eligible fees.`;
-      note.textContent = !eligible ? 'Eligible vault verification unavailable or incomplete'
+      if (prefix === 'buyback-route' && trigger) document.querySelector('#buyback-route-title').textContent = `${trigger} trigger, verified eligible fees.`;
+      note.textContent = !eligible || !trigger ? 'Eligible vault or trigger verification unavailable or incomplete'
         : !appState.buybackNetworkState.automationEnabled ? 'Automatic execution is not active on this deployment'
           : dashboard.triggerReached ? `${trigger} trigger reached · awaiting protected execution` : `Verified eligible funds · awaiting ${trigger}`;
-      const progress = eligible ? Number(lamports > threshold ? threshold : lamports) / Number(threshold) * 100 : 0;
-      track.setAttribute('aria-label', `Eligible buyback progress toward ${trigger}`);
-      track.setAttribute('aria-valuemax',String(Number(threshold)/1_000_000_000));
-      track.setAttribute('aria-valuenow', String(eligible ? Number(lamports > threshold ? threshold : lamports) / 1_000_000_000 : 0));
-      track.setAttribute('aria-valuetext', eligible
+      const progress = eligible && threshold ? Number(lamports > threshold ? threshold : lamports) / Number(threshold) * 100 : 0;
+      track.setAttribute('aria-label', trigger ? `Eligible buyback progress toward ${trigger}` : 'Eligible buyback progress unavailable');
+      if (threshold) {
+        track.setAttribute('aria-valuemax',String(Number(threshold)/1_000_000_000));
+        track.setAttribute('aria-valuenow', String(eligible ? Number(lamports > threshold ? threshold : lamports) / 1_000_000_000 : 0));
+      } else {
+        track.removeAttribute('aria-valuemax');
+        track.removeAttribute('aria-valuenow');
+      }
+      track.setAttribute('aria-valuetext', eligible && trigger
         ? `${formatSol(lamports)} of ${trigger} eligible for automatic buyback`
-        : 'Eligible balance unavailable');
+        : 'Eligible balance or trigger unavailable');
       fill.style.width = `${progress}%`;
       const burn = dashboard?.lastBurn;
       const burnedAt = burn?.burnedAt && Number.isFinite(Date.parse(burn.burnedAt)) ? new Date(burn.burnedAt) : null;

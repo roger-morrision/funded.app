@@ -226,11 +226,14 @@ function renderBuybacks(data) {
   for (const [label,value] of [['Queued funds',sol(pending.reduce((sum,row) => sum + amount(row.amountLamports), 0n))],
     ['Completed buybacks',String(receipts.length)]]) { const item = node('div'); item.append(node('small','',label),node('strong','',value)); stats.append(item); }
   root.append(stats);
+  const trigger = amount(data.dashboard?.thresholdLamports) > 0n
+    ? sol(data.dashboard.thresholdLamports) : null;
   const list = node('div','reward-buyback-list');
   for (const row of pending.slice(0, 8)) {
     const article = node('p'); article.append(link(short(row.mint), tokenUrl(row.mint)),
       node('span','',` · ${sol(row.amountLamports)} queued · ${['queued','verification-pending'].includes(row.status)
-        ? 'in progress' : data.dashboard?.triggerReached ? 'ready for the next batch' : 'awaiting the 5 SOL trigger'}`));
+        ? 'in progress' : data.dashboard?.triggerReached ? 'ready for the next batch'
+          : trigger ? `awaiting the ${trigger} trigger` : 'awaiting verified trigger'}`));
     list.append(article);
   }
   for (const row of receipts.slice(0, 8)) {

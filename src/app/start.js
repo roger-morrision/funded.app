@@ -38,6 +38,7 @@ import { initializeCoinLoading } from './startup/coin-loading.js';
 import { initializeCoinNavigation } from './startup/coin-navigation.js';
 import { initializeCoinChat } from './startup/coin-chat.js';
 import { initializeRewardIdentity } from './startup/reward-identity.js';
+import { initializeDeferredArtwork } from './startup/deferred-artwork.js';
 
 // Preserve initialization and listener registration order across feature boundaries.
 export async function startApp(appState) {
@@ -72,6 +73,7 @@ export async function startApp(appState) {
   initializeExploreSearchActions(appState);
   initializeExploreFiltersActions(appState);
   await initializeNavigation(appState);
+  initializeDeferredArtwork();
   initializeCreatorFees(appState);
   initializeCoinHeader(appState);
   initializePortfolio(appState);

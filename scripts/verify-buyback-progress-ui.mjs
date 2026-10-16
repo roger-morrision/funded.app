@@ -80,6 +80,10 @@ try {
   assert.equal(await page.locator('#buyback-route-track').getAttribute('aria-valuemax'),'0.01');
   assert.equal(await page.locator('#buyback-route-track').getAttribute('aria-valuenow'),'0.01');
   assert.match(await page.locator('#buyback-route-policy').textContent(),/0\.01 SOL aggregate trigger/);
+  dashboardFixture = { ...dashboardFixture, triggerReached:false };
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(() => document.querySelector('#buyback-route-trigger')?.textContent === '0.01 SOL trigger');
+  assert.match(await page.locator('.reward-buyback-list').textContent(),/awaiting the 0\.01 SOL trigger/);
   await context.close();
 
   const unavailable = await browser.newContext({ viewport:{width:390,height:844} });
