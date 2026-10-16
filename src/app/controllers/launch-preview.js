@@ -43,7 +43,8 @@ export function createLaunchPreviewController(appState) {
           new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('Public quote timed out')), 12_000); }),
         ]);
         if (request !== publicQuoteRequest || appState.wallet) return;
-        publicQuote = { status: 'ready', maxSolAmountLamports: quote.maxSolAmountLamports,
+        publicQuote = { status: 'ready', solAmountLamports: quote.solAmountLamports,
+          maxSolAmountLamports: quote.maxSolAmountLamports,
           developerTokens: developer.amountTokens, updatedAt: Date.now() };
       } catch (error) {
         if (request !== publicQuoteRequest || appState.wallet) return;
@@ -121,7 +122,7 @@ export function createLaunchPreviewController(appState) {
 
   // app-source: 610
   function renderLaunchCostDetails(){
-    return appState.renderLaunchCostDetailsView({ launchCostReview: appState.launchCostReview, wallet: appState.wallet, walletMetricsLoading: appState.walletMetricsLoading, launchEstimateRetry: appState.launchEstimateRetry }, {  });
+    return appState.renderLaunchCostDetailsView({ launchCostReview: appState.launchCostReview, wallet: appState.wallet, walletMetricsLoading: appState.walletMetricsLoading, launchEstimateRetry: appState.launchEstimateRetry, publicQuote }, { formatLaunchCost: appState.formatLaunchCost });
   }
   // app-source-end
 

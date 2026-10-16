@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { updateCostSummary } from '../src/features/launch/cost-view.js';
 import { launchReviewStillCurrent } from '../launch-review-gate.js';
+import { publicLaunchBudget } from '../public-launch-budget.js';
 
 const [html, app, styles, pageStyles, workspaceStyles, preview, actions, costs, validation] = await Promise.all([
   readFile(new URL('../index.html', import.meta.url), 'utf8'),
@@ -192,25 +193,35 @@ assert.match(html, /id="sol-claim-submit"/);
 assert.doesNotMatch(app, /submitSolClaim/, 'Retired V2 X claim signing must not be wired into the app.');
 assert.doesNotMatch(app, /#dialog-connect|['"]dialog-connect['"]|#wallet-status/, 'Removed launch wallet-card controls must have no stale script references.');
 assert.doesNotMatch(app, /#wallet-metrics|#wallet-balance|#launch-fee|#refresh-wallet|#fee-note/, 'Removed wallet-metrics controls must have no stale script references.');
-function costSummaryFor({ connected = false, loading = false, fee = null, error = '', buySol = 0, retry = null, publicQuote = null, review = null } = {}) {
+function costSummaryFor({ connected = false, loading = false, fee = null, error = '', buySol = 0, retry = null, publicQuote = null, review = null,
+  burnPolicy = { requiresBurn:false } } = {}) {
   const nodes = Object.fromEntries(['cost-launch', 'cost-initial-buy', 'cost-total-enabled', 'cost-total-label', 'preview-cost-label', 'cost-total', 'cost-note', 'preview-launch-cost', 'cost-burn', 'cost-community-tokens', 'cost-community-detail', 'cost-creator-buy'].map(id => [`#${id}`, { textContent: '', innerHTML: '' }]));
   updateCostSummary({ wallet: connected ? { publicKey: true } : null, walletMetricsLoading: loading,
     walletEstimateError: error, launchEstimateRetry: retry, estimatedLaunchFeeLamports: fee, launchCostReview: review, publicQuote }, {
     document: { querySelector: selector => nodes[selector] || null }, renderLaunchCostDetails() {},
-    getLaunchBurnPolicy: () => ({ requiresBurn: false }), getCreatorBuySummary: () => ({ sol: buySol, tokens: 0, percent: 0 }),
+    getLaunchBurnPolicy: () => burnPolicy, getCreatorBuySummary: () => ({ sol: buySol, tokens: 0, percent: 0 }),
     getCommunityAirdropTokens: () => 30_000_000, getCommunityAllocationPercent: () => 3,
-    formatLaunchBurnAmount: String, formatLaunchCost: lamports => (Number(lamports) / 1_000_000_000).toFixed(6) + ' SOL',
+    formatLaunchBurnAmount: amount => Number(amount).toLocaleString('en-US'), formatLaunchCost: lamports => (Number(lamports) / 1_000_000_000).toFixed(6) + ' SOL',
     creatorBuyExceedsWalletBalance: () => false,
     developerBuyLimitReached: () => error.startsWith('Developer buy cannot exceed 20% of the token supply.'),
   });
   return nodes;
 }
-assert.equal(costSummaryFor()['#cost-launch'].textContent, 'Calculated after wallet connection');
-const publicBudget = costSummaryFor({ publicQuote: { status: 'ready', maxSolAmountLamports: 850_000_000n, developerTokens: 0 } });
-assert.equal(publicBudget['#cost-total-enabled'].textContent, 'From 0.850000 SOL');
-assert.equal(publicBudget['#cost-initial-buy'].textContent, 'From 0.850000 SOL');
-assert.equal(publicBudget['#preview-launch-cost'].textContent, 'From 0.850000 SOL');
-assert.match(publicBudget['#cost-note'].textContent, /Network fees and account rent are additional/);
+assert.equal(costSummaryFor()['#cost-launch'].textContent, 'Calculating…');
+const quote = { status: 'ready', solAmountLamports: 840_000_000n,
+  maxSolAmountLamports: 850_000_000n, developerTokens: 0 };
+assert.deepEqual(publicLaunchBudget(quote), { purchase: 840_000_000n, allowance: 10_000_000n,
+  overhead: 50_000_000n, total: 900_000_000n });
+const publicBudget = costSummaryFor({ publicQuote: quote });
+assert.equal(publicBudget['#cost-total-enabled'].textContent, '0.900000 SOL');
+assert.equal(publicBudget['#cost-initial-buy'].textContent, '0.850000 SOL');
+assert.equal(publicBudget['#cost-launch'].textContent, '0.050000 SOL planning allowance');
+assert.equal(publicBudget['#preview-launch-cost'].textContent, '0.900000 SOL');
+assert.match(publicBudget['#cost-note'].textContent, /actual wallet-specific amount is simulated before signing/);
+const paidBudget = costSummaryFor({ publicQuote:quote,
+  burnPolicy:{ requiresBurn:true,amountTokens:1234,usdTarget:100,label:'Pro' } });
+assert.equal(paidBudget['#cost-total-enabled'].textContent, '0.900000 SOL');
+assert.equal(paidBudget['#cost-burn'].textContent, '1,234 $FUNDED (≈$100)');
 assert.equal(costSummaryFor()['#cost-burn'].textContent, '0 $FUNDED');
 assert.equal(costSummaryFor({ connected: true, loading: true })['#cost-launch'].textContent, 'Calculating…');
 const connectedWithoutEstimate = costSummaryFor({ connected: true, error: 'RPC unavailable.' });
