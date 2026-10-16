@@ -31,11 +31,17 @@ export function createBuybackController(appState) {
         && /^\d+$/.test(String(dashboard.unindexedLamports));
       const unindexedLamports = unindexed ? BigInt(dashboard.unindexedLamports) : 0n;
       const lamports = indexed ? BigInt(dashboard.collectedLamports) : 0n;
+      const older = document.querySelector(`#${prefix}-older`);
       const threshold = /^\d+$/.test(String(dashboard?.thresholdLamports))
         && BigInt(dashboard.thresholdLamports) > 0n ? BigInt(dashboard.thresholdLamports) : 5_000_000_000n;
       const formatSol = value => `${(Number(value) / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits:9 })} SOL`;
       const trigger = formatSol(threshold);
       balance.textContent = indexed ? formatSol(lamports) : '—';
+      if (older) {
+        older.hidden = !indexed || !unindexed || unindexedLamports === 0n;
+        older.textContent = older.hidden ? ''
+          : `Older verified vault custody: ${formatSol(unindexedLamports)} · total verified custody ${formatSol(lamports + unindexedLamports)}`;
+      }
       const triggerText = document.querySelector(`#${prefix}-trigger`);
       if (triggerText) triggerText.textContent = `${trigger} trigger`;
       const policy = document.querySelector(`#${prefix}-policy`);

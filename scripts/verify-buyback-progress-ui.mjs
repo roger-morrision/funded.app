@@ -66,6 +66,7 @@ try {
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(() => document.querySelector('#buyback-route-balance')?.textContent === '0.000447709 SOL');
   assert.match(await page.locator('#buyback-route-status').textContent(),/0.003477413 SOL in older vaults is excluded/);
+  assert.match(await page.locator('#buyback-route-older').textContent(),/total verified custody 0.003925122 SOL/);
   assert.equal(await page.locator('#buyback-route-track').getAttribute('aria-valuenow'),'0.000447709');
   assert.match(await page.locator('#buyback-route-track').getAttribute('aria-valuetext'),/0.000447709 SOL of 5 SOL eligible/);
   assert.match(await page.locator('#buyback-route-last-time').textContent(),/QA on-chain burn/);

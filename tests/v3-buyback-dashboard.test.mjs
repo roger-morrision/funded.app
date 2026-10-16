@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Keypair, SystemProgram } from '@solana/web3.js';
+import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
 import { readV3BuybackDashboard } from '../server/v3-buyback-dashboard.mjs';
-import { deriveMintPolicyV3 } from '../mint-router-v3.js';
+import { deriveMintPolicyV3, deriveMintRouterV3 } from '../mint-router-v3.js';
+import { FEE_ROUTER_POLICY_HASH_HEX } from '../fee-router.js';
 
 const key = byte => Keypair.fromSeed(new Uint8Array(32).fill(byte)).publicKey.toBase58();
 const programId = key(1), mint = key(2), source = key(3);
@@ -84,24 +85,45 @@ test('finalized on-chain vault funds without app records remain visible but cann
   policy.writeBigUInt64LE(20_000_000n, 128);
   policy.writeBigUInt64LE(15_000_000n, 136);
   policy.writeBigUInt64LE(5_000_000n, 184);
+  const policyAddress=deriveMintPolicyV3(programId,mint);
+  policy[248]=policyAddress.bump;
+  Keypair.fromSeed(new Uint8Array(32).fill(5)).publicKey.toBuffer().copy(policy,40);
+  Keypair.fromSeed(new Uint8Array(32).fill(4)).publicKey.toBuffer().copy(policy,72);
+  const router=deriveMintRouterV3(programId,mint);
+  const routerData=Buffer.alloc(106);
+  routerData.write('FUNDMNT3',0,'ascii');routerData[8]=3;
+  Buffer.from(FEE_ROUTER_POLICY_HASH_HEX,'hex').copy(routerData,9);
+  Keypair.fromSeed(new Uint8Array(32).fill(4)).publicKey.toBuffer().copy(routerData,41);
+  Keypair.fromSeed(new Uint8Array(32).fill(2)).publicKey.toBuffer().copy(routerData,73);
+  routerData[105]=router.bump;
   const account = { pubkey:deriveMintPolicyV3(programId,mint).address,
     account:{ data:policy } };
+  let vaultLamports=5_650_240;
   const connection = {
     getMinimumBalanceForRentExemption:async () => 650_240,
     getProgramAccounts:async () => [account],
-    getAccountInfo:async () => ({owner:SystemProgram.programId,
-      data:Buffer.alloc(0),lamports:5_650_240}),
+    getAccountInfo:async address => address.equals(router.address)
+      ? {owner:new PublicKey(programId),data:routerData}
+      : {owner:SystemProgram.programId,data:Buffer.alloc(0),lamports:vaultLamports},
   };
   const dashboard = await readV3BuybackDashboard({state:{v3Settlements:{},v3BuybackOrders:{}},
     programId,connection});
   assert.equal(dashboard.unindexedLamports,'5000000');
+  assert.equal(dashboard.verifiedCustodyLamports,'5000000');
   assert.equal(dashboard.unindexedVaults.length,1);
   assert.equal(dashboard.collectedLamports,'0');
   assert.equal(dashboard.triggerReached,false);
-  connection.getAccountInfo = async () => ({owner:SystemProgram.programId,
-    data:Buffer.alloc(0),lamports:4_650_240});
+  vaultLamports=4_650_240;
   const discrepancy = await readV3BuybackDashboard({state:{v3Settlements:{},v3BuybackOrders:{}},
     programId,connection});
   assert.equal(discrepancy.unindexedStatus,'partial');
   assert.equal(discrepancy.unindexedLamports,null);
+  assert.equal(discrepancy.verifiedCustodyLamports,null);
+  assert.equal(discrepancy.triggerReached,false);
+  vaultLamports=5_650_240;
+  routerData[105]^=1;
+  const invalidRouter=await readV3BuybackDashboard({state:{v3Settlements:{},v3BuybackOrders:{}},
+    programId,connection});
+  assert.equal(invalidRouter.unindexedStatus,'partial');
+  assert.equal(invalidRouter.verifiedCustodyLamports,null);
 });
