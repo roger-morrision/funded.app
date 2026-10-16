@@ -6,11 +6,28 @@ import { creatorPageHtml } from './creator-social.mjs';
 import { tokenPageHtml } from './token-social.mjs';
 import { publicMetadata } from './devnet-metadata.mjs';
 import { tokenPlaceholderSvg } from './token-placeholder.mjs';
+import { publicDiscoveryHtml } from './public-discovery.mjs';
 
 // Keep the public metadata lookup before API dispatch and page fallbacks after it.
 export function createPageDelivery({ staticRoot, store, solanaCluster, respond }) {
   const json = (...args) => { respond(...args); return true; };
   const end = (res, content) => { res.end(content); return true; };
+  let discoveryCache = { expiresAt: 0, launches: [] };
+  let discoveryInflight = null;
+  async function recentLaunches() {
+    if (Date.now() < discoveryCache.expiresAt) return discoveryCache.launches;
+    if (!discoveryInflight) discoveryInflight = store.readLaunches({ limit: 80 })
+      .then(launches => {
+        discoveryCache = { expiresAt: Date.now() + 30_000, launches };
+        return launches;
+      })
+      .catch(() => {
+        discoveryCache = { expiresAt: Date.now() + 5_000, launches: null };
+        return null;
+      })
+      .finally(() => { discoveryInflight = null; });
+    return discoveryInflight;
+  }
   async function serveStatic(pathname, res) {
     const fileName = pathname === '/' ? 'index.html' : pathname.slice(1);
     const filePath = resolve(staticRoot, fileName);
@@ -83,6 +100,13 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond }
       res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});return end(res, page);
     }
     if (req.method === 'GET' && (url.pathname === '/admin' || url.pathname === '/admin/')) return await serveStatic('/admin.html', res);
+    if (req.method === 'GET' && ['/', '/explore', '/explore/'].includes(url.pathname)) {
+      const [template, launches] = await Promise.all([
+        readFile(resolve(staticRoot, 'index.html'), 'utf8'), recentLaunches(),
+      ]);
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
+      return end(res, publicDiscoveryHtml(template, launches, solanaCluster));
+    }
     if (req.method === 'GET' && isAppPagePath(url.pathname)) return await serveStatic('/', res);
     if (req.method === 'GET' && !url.pathname.startsWith('/api/')) return await serveStatic(url.pathname, res);
     return false;
