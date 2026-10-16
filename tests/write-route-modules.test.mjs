@@ -8,7 +8,6 @@ import { createSettlementRoutes } from '../server/routes/settlement.mjs';
 import { createCreatorFeesRoutes } from '../server/routes/creator-fees.mjs';
 import { buildFeeDistributionPolicy } from '../distribution-policy.js';
 import { deriveMintRouterV3 } from '../mint-router-v3.js';
-import { DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
 
 const mint = 'So11111111111111111111111111111111111111112';
 const walletKey = value => new PublicKey(value).toBase58();
@@ -47,8 +46,7 @@ test('V3 launch stays closed without a live holder worker and both lookup tables
   assert.match(f.responses[1].data.error, /V3 atomic community reserve is not ready/);
 });
 
-test('V3 non-X launch config needs fresh worker, exact program and active Devnet tables', async () => {
-  const maxSlot = BigInt('18446744073709551615');
+test('V3 non-X launch stays blocked by beneficiary policy even with fresh worker and configured tables', async () => {
   const env = { FUNDED_V3_LAUNCH_ENABLED:'true', FUNDED_V3_COLLECTION_ENABLED:'true',
     FUNDED_V3_SETTLEMENT_ENABLED:'true', FUNDED_V3_HOLDER_WORKER_ENABLED:'true',
     FUNDED_V3_BUYBACK_ENABLED:'true', FUNDED_V3_FEE_ROUTER_PROGRAM_ID:mint,
@@ -58,12 +56,11 @@ test('V3 non-X launch config needs fresh worker, exact program and active Devnet
   const f = fixture(createLaunchRegistrationRoutes, { env,
     automaticRewardStore:{ read:async () => ({serviceStatus}) },
     v3AuthorityKeypair:() => ({publicKey:new PublicKey(mint)}),
-    connectionFactory:() => ({ getGenesisHash:async () => DEVNET_GENESIS_HASH,
-      getAddressLookupTable:async () => ({value:{state:{deactivationSlot:maxSlot}}}) }),
-    programEvidence:async () => ({account:{executable:true},sha256:'a'.repeat(64)}),
-    verifyRouter:async () => ({verified:true,authority:new PublicKey(mint)}) });
+    connectionFactory:() => assert.fail('Unmet policy must stop network readiness checks') });
   await f.request('/api/v3-launch-config', {}, 'GET');
-  assert.equal(f.responses.at(-1).data.ready, true);
+  assert.equal(f.responses.at(-1).data.ready, false);
+  assert.equal(f.responses.at(-1).data.beneficiaryRoutingOnChainEnforced, false);
+  assert.match(f.responses.at(-1).data.reasons.join('; '), /does not enforce creator\/holder\/X shares/);
   serviceStatus.checkedAt = new Date(Date.now() - 181_000).toISOString();
   await f.request('/api/v3-launch-config', {}, 'GET');
   assert.equal(f.responses.at(-1).data.ready, false);

@@ -49,7 +49,8 @@ export function createLaunchRegistrationRoutes({
     }
     if (req.method === 'GET' && url.pathname === '/api/launch-reserve-config') {
       const config = await v3LaunchConfig();
-      if (!config.ready || !env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE) {
+      if (!config.ready || config.beneficiaryRoutingOnChainEnforced !== true
+        || !env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE) {
         return json(res, 503, { error:'The V3 atomic community reserve is not ready.',
           reasons:config.reasons });
       }
@@ -65,7 +66,9 @@ export function createLaunchRegistrationRoutes({
       const xLinked = policy.solClaimPercent > 0;
       if (input.pumpFeeRoute?.scope !== 'per-mint-v3') return json(res, 410, { error:'V2 launch registration is retired. Submit a verified V3 launch.' });
       const v3Config = await v3LaunchConfig();
-      if (!v3Config.ready) return json(res, 503, { error:'V3 normal flows are not ready to accept a new launch.' });
+      if (!v3Config.ready || v3Config.beneficiaryRoutingOnChainEnforced !== true)
+        return json(res, 503, { error:'V3 normal flows are not ready to accept a new launch.',
+          reasons:v3Config.reasons });
       if (xLinked && env.FUNDED_V3_X_CLAIMS_ENABLED !== 'true')
         return json(res, 503, { error:'V3 X payout and claim verification are not activated.' });
       if (xLinked && (await resolveXUser(policy.xRecipient)).id !== policy.xUserId) return json(res, 409, { error: 'The X account ID changed since launch preparation; registration is blocked.' });

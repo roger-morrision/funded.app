@@ -2,6 +2,12 @@
 
 The supported launch flow remains **Devnet only**; this does not establish that the public host is currently available. The separate Mainnet preview is read only. A Mainnet build must not enable coin creation by changing `VITE_ALLOW_MAINNET` alone: the launch client, metadata service, registration API, and fee distribution still contain Devnet-specific paths. The client launch function and registration API reject Mainnet until these dependencies are implemented and verified.
 
+## Active beneficiary-routing release block
+
+V3 enforces the 80/20 allocation into seven per-mint vaults, including the configured six protocol rates. Its `disburse_mint_v3` instruction does **not** commit the creator/holder/X subshares or the operations and referral beneficiaries. Two signatures and server-side entitlement checks constrain the current Devnet flow, but they are not an on-chain beneficiary policy. The V3 launch config and registration API now refuse **new** launches even if all operator switches are enabled. Existing V3 collections and obligations still require reconciliation; this gate does not reverse finalized transactions or alter their payout instructions.
+
+Removing this block requires a versioned router that commits subshares and approved payout destinations on chain, closes every older-instruction bypass against its vaults, and has a migration or payout path for existing V3 balances. Holder and X budgets need distinct on-chain accounting through final claims; referral identities need a documented, reviewable binding rule. Prove unauthorized destination, wrong share, replay, rounding, upgrade, and migration cases in program tests; then verify the exact deployed bytecode and finalized Devnet balance changes. Independent security review and the remaining Mainnet gates below are still required. Changing the `beneficiaryRoutingOnChainEnforced` response alone does not satisfy this gate.
+
 ## Historical evidence — 2026-10-01
 
 On that date, the public Devnet release contract passed through `https://funded.vip`: health, capabilities, deep links, assets, wallet-signed chat contract, and 20 parallel read requests. The [fee-funded holder payout](devnet-fee-funded-holder-payout-qa-2026-10-01.md) and [four buy-and-burn receipts](devnet-holder-payout-buyback-qa-2026-10-01.md) have finalized on-chain checks. These are historical Devnet results. The public `/api/readiness` response then reported `ready: false` with `scope: configuration-only`.
