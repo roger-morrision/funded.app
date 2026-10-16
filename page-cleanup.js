@@ -1,6 +1,3 @@
-import './page-cleanup.css';
-import './professional-ui.css';
-
 // Keep the primary task visible before optional illustrations and supporting data.
 const guideLabels = {
   capital: 'How claimed fees are allocated',

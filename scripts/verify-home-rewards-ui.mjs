@@ -30,6 +30,9 @@ const schedules = [mints[0], mints[5]].map((mint, index) => ({
 const json = body => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
 const fixture = async (context, evidenceStatus = 'onchain-indexed') => {
   await context.route('**/api/**', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Read-only fixture"}' }));
+  await context.route('**/api/fee-policy', route => route.fulfill(json({split:{
+    operationsPercent:50,referralLevelPercents:[10,3,2],
+    communityPercent:10,buybackPercent:25}})));
   await context.route('**/api/launches', route => route.fulfill(json(launches)));
   await context.route('**/api/listings/config', route => route.fulfill(json({ cluster:'devnet', fundedMint:mints[5] })));
   await context.route('**/api/tokens/' + mints[5] + '/token-accounts', route => route.fulfill(json({

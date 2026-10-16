@@ -41,14 +41,14 @@ export function navigation() {
   $$('button.dialog-close, #explore-filter-close, #share-close').forEach(button => {
     if (button.textContent.trim() === '×') button.innerHTML = icon('close');
   });
-  const searchTrigger = node('button', 'header-search-trigger');
+  const searchTrigger = $('#header-search-trigger') || node('button', 'header-search-trigger');
   searchTrigger.innerHTML = icon('explore');
   searchTrigger.type = 'button';
   searchTrigger.id = 'header-search-trigger';
   searchTrigger.setAttribute('aria-label', 'Search launches');
   searchTrigger.setAttribute('aria-haspopup', 'dialog');
   searchTrigger.setAttribute('aria-controls', 'header-search-dialog');
-  $('.top-actions')?.before(searchTrigger);
+  if (!searchTrigger.isConnected) $('.top-actions')?.before(searchTrigger);
   const searchDialog = node('dialog', 'header-search-dialog');
   searchDialog.id = 'header-search-dialog';
   searchDialog.setAttribute('aria-label', 'Search launches');
@@ -186,8 +186,11 @@ export function navigation() {
     link.innerHTML = icon(glyph); link.append(node('span', '', label)); mobile.append(link);
   }
   document.body.append(mobile);
-  const network = node('span', 'workspace-network', EXPLORE_CLUSTER === 'mainnet-beta' ? (APP_MAINNET_READ_ONLY ? 'Mainnet · read only' : 'Mainnet') : 'Devnet · test SOL');
-  network.title = EXPLORE_CLUSTER === 'devnet' ? 'Solana Devnet uses test SOL with no monetary value.' : APP_MAINNET_READ_ONLY ? 'Solana Mainnet preview: transactions are disabled.' : 'Solana Mainnet: transactions use real SOL.'; network.setAttribute('aria-label', network.title); $('.top-actions')?.prepend(network);
+  const network = $('.workspace-network') || node('span', 'workspace-network');
+  network.textContent = EXPLORE_CLUSTER === 'mainnet-beta' ? (APP_MAINNET_READ_ONLY ? 'Mainnet · read only' : 'Mainnet') : 'Devnet · test SOL';
+  network.title = EXPLORE_CLUSTER === 'devnet' ? 'Solana Devnet uses test SOL with no monetary value.' : APP_MAINNET_READ_ONLY ? 'Solana Mainnet preview: transactions are disabled.' : 'Solana Mainnet: transactions use real SOL.';
+  network.setAttribute('aria-label', network.title);
+  if (!network.isConnected) $('.top-actions')?.prepend(network);
   const sidebar = $('#sidebar');
   sidebar?.addEventListener('click', event => {
     if (event.target.closest('a')) $('#close-menu')?.click();

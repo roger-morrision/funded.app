@@ -1,19 +1,19 @@
 /* Put live launch discovery in the first desktop viewport. */
 @media (min-width: 901px) {
-  body.page-route-overview.product-experience-ready .hero-section {
+  body.page-route-overview.product-experience-style .hero-section {
     min-height: 0 !important;
     padding-top: 22px !important;
     padding-bottom: 24px !important;
   }
-  body.page-route-overview.product-experience-ready .hero-section h1 {
+  body.page-route-overview.product-experience-style .hero-section h1 {
     max-width: 620px;
     font-size: clamp(40px, 3.6vw, 50px) !important;
     line-height: 1.08 !important;
     white-space: normal;
   }
   body.page-route-overview .home-hero-kicker { font-size: 13px; }
-  body.page-route-overview.product-experience-ready .hero-copy { max-width: 620px; font-size: 14px; }
-  body.page-route-overview.product-experience-ready .hero-actions { margin-top: 14px; }
+  body.page-route-overview.product-experience-style .hero-copy { max-width: 620px; font-size: 14px; }
+  body.page-route-overview.product-experience-style .hero-actions { margin-top: 14px; }
   html body.page-route-overview .home-market-ticker {
     grid-template-columns: auto minmax(0, 1fr) auto !important;
     gap: 12px;

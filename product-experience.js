@@ -1,4 +1,3 @@
-import './product-experience.css';
 import { productEvent } from './product-events.js';
 
 // Compose existing controls; their data sources and transaction handlers stay authoritative.
