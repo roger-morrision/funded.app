@@ -1,4 +1,11 @@
 // Dependencies and mutable application state are read live through appState.
+export async function scanExploreMarketsBounded(items, scan) {
+  let next = 0;
+  await Promise.all(Array.from({ length:Math.min(4, items.length) }, async () => {
+    while (next < items.length) await scan(items[next++]);
+  }));
+}
+
 export function createExploreLoadingController(appState) {
   // app-source: 523
   async function loadOnchainExploreData(signal){
@@ -133,7 +140,7 @@ export function createExploreLoadingController(appState) {
         // The endpoint's 60-credit minute budget charges ten credits per fresh scan.
         // Leave one scan available for an explicit token-detail request.
         const scanned = verified.slice(0, 5);
-        await Promise.all(scanned.map(async item => {
+        await scanExploreMarketsBounded(scanned, async item => {
           const cached = appState.exploreActivityCache.get(item.address);
           const hasBreakdown = data => data && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
             && data.activityWindows?.['6h'] && data.activityWindows?.['24h']
@@ -172,7 +179,7 @@ export function createExploreLoadingController(appState) {
             item.priceChange24hPercent = Number(market.priceChangePercent);
             item.change = `${item.priceChange24hPercent >= 0 ? '+' : ''}${item.priceChange24hPercent.toFixed(2)}%`;
           }
-        }));
+        });
       }
       signal?.throwIfAborted();
       if (requestedSort !== appState.exploreSort) return;

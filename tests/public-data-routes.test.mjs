@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { Keypair } from '@solana/web3.js';
 import { createDirectoryRoutes } from '../server/routes/directory.mjs';
 import { createPublicReportsRoutes } from '../server/routes/public-reports.mjs';
 import { createQuoteAssetsRoutes } from '../server/routes/quote-assets.mjs';
@@ -97,4 +98,57 @@ test('incomplete persisted market data is not reused as a complete trade breakdo
   await f.request(`/api/tokens/${mint}/market-activity`);
   assert.equal(charges, 1);
   assert.equal(f.responses[0].status, 429);
+});
+
+async function waitFor(predicate) {
+  for (let attempt = 0; attempt < 100 && !predicate(); attempt++)
+    await new Promise(resolve => setImmediate(resolve));
+  assert.ok(predicate(), 'Expected queued market scan to advance');
+}
+
+test('five uncached catalog mints queue behind four active market scans', async () => {
+  const releases = [];
+  let active = 0, peak = 0, started = 0;
+  const f = fixture(createTokenMarketRoutes, {
+    solanaRpcUrl:'https://api.devnet.solana.com', clientKey:() => 'catalog',
+    store:{ readMarketActivity:async () => null, chargeRpcRate:async () => true,
+      writeMarketActivity:async () => {} },
+    readMarketActivity:() => new Promise(resolve => {
+      started++; active++; peak = Math.max(peak, active);
+      releases.push(() => { active--; resolve({ poolHistoryCoverage:'complete',
+        observedCoverage:'complete', tradeCount24h:null }); });
+    }),
+  });
+  const requests = Array.from({ length:5 }, () => f.request(
+    `/api/tokens/${Keypair.generate().publicKey.toBase58()}/market-activity`));
+  await waitFor(() => started === 4);
+  assert.equal(peak, 4);
+  releases.shift()();
+  await waitFor(() => started === 5);
+  for (const release of releases) release();
+  await Promise.all(requests);
+  assert.equal(peak, 4);
+  assert.deepEqual(f.responses.map(response => response.status), [200, 200, 200, 200, 200]);
+});
+
+test('concurrent requests for one mint share one scan and one rate charge', async () => {
+  let started = 0, charges = 0, release;
+  const f = fixture(createTokenMarketRoutes, {
+    solanaRpcUrl:'https://api.devnet.solana.com', clientKey:() => 'catalog',
+    store:{ readMarketActivity:async () => null,
+      chargeRpcRate:async () => { charges++; return true; },
+      writeMarketActivity:async () => {} },
+    readMarketActivity:() => new Promise(resolve => {
+      started++; release = () => resolve({ poolHistoryCoverage:'complete',
+        observedCoverage:'complete', tradeCount24h:null });
+    }),
+  });
+  const path = `/api/tokens/${Keypair.generate().publicKey.toBase58()}/market-activity`;
+  const requests = Array.from({ length:5 }, () => f.request(path));
+  await waitFor(() => started === 1);
+  release();
+  await Promise.all(requests);
+  assert.equal(started, 1);
+  assert.equal(charges, 1);
+  assert.deepEqual(f.responses.map(response => response.status), [200, 200, 200, 200, 200]);
 });
