@@ -76,7 +76,7 @@ test('only proved V3 burn reduces the balance and supplies public proof', async 
   assert.equal(unproved.collectedLamports,null);
 });
 
-test('finalized on-chain vault funds without app records remain visible but cannot trigger execution', async () => {
+test('finalized on-chain vault funds without app records count toward a verified trigger', async () => {
   const policy = Buffer.alloc(249);
   Buffer.from('25d0c7eca736c38f', 'hex').copy(policy);
   Keypair.fromSeed(new Uint8Array(32).fill(2)).publicKey.toBuffer().copy(policy, 8);
@@ -111,8 +111,11 @@ test('finalized on-chain vault funds without app records remain visible but cann
   assert.equal(dashboard.unindexedLamports,'5000000');
   assert.equal(dashboard.verifiedCustodyLamports,'5000000');
   assert.equal(dashboard.unindexedVaults.length,1);
-  assert.equal(dashboard.collectedLamports,'0');
+  assert.equal(dashboard.collectedLamports,'5000000');
   assert.equal(dashboard.triggerReached,false);
+  const triggered = await readV3BuybackDashboard({state:{v3Settlements:{},v3BuybackOrders:{}},
+    programId,connection,thresholdLamports:5_000_000n});
+  assert.equal(triggered.triggerReached,true);
   vaultLamports=4_650_240;
   const discrepancy = await readV3BuybackDashboard({state:{v3Settlements:{},v3BuybackOrders:{}},
     programId,connection});

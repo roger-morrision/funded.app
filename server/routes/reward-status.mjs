@@ -5,6 +5,7 @@ import { v3RewardExperience } from '../v3-reward-experience.mjs';
 import { readV3BuybackDashboard } from '../v3-buyback-dashboard.mjs';
 import { buybackTriggerLamports } from '../devnet-qa-minimums.mjs';
 import { v3BuybackNextOrder, v3BuybackSourceSpent } from '../v3-buyback-orders.mjs';
+import { onchainBuybackSource } from '../v3-buyback-cycle.mjs';
 
 function pendingV3Buybacks(state, programId) {
   if (!programId) return [];
@@ -33,6 +34,29 @@ function pendingV3Buybacks(state, programId) {
       status:order.row?.status || (order.previous
         ? 'verified-burn-residue' : 'awaiting-v3-buyback-executor') }] : [];
   });
+}
+
+function pendingUnindexedV3Buybacks(state, dashboard, programId) {
+  if (!programId) return [];
+  const verified = dashboard.unindexedStatus === 'verified'
+    ? (dashboard.unindexedVaults || []).flatMap(vault => {
+    if (vault.status !== 'verified' || !/^[1-9]\d*$/.test(String(vault.pendingLamports || ''))
+      || Object.values(state.v3Settlements || {}).some(row => row.mint === vault.mint)) return [];
+    const source = onchainBuybackSource(vault.mint);
+    const order = v3BuybackNextOrder(state, source);
+    return [{ mint:vault.mint, sourceCollectionSignature:'onchain',
+      amountLamports:vault.pendingLamports,
+      status:order.row?.status || (order.previous
+        ? 'verified-burn-residue' : 'awaiting-v3-buyback-executor') }];
+    }) : [];
+  const known = new Set(verified.map(row => row.mint));
+  const reconciling = Object.values(state.v3BuybackOrders || {}).filter(row =>
+    row.sourceKind === 'onchain-policy' && row.programId === programId
+    && row.signature && row.status !== 'finalized' && !known.has(row.mint)
+    && !Object.values(state.v3Settlements || {}).some(settlement => settlement.mint === row.mint))
+    .map(row => ({ mint:row.mint, sourceCollectionSignature:'onchain',
+      amountLamports:null, status:'verification-pending' }));
+  return [...verified, ...reconciling];
 }
 
 function recordedV3XPayments(state, rewards, programId) {
@@ -149,7 +173,10 @@ export function createRewardStatusRoutes({
       return json(res, 200, { cluster:solanaCluster, custody:'v3-mint-category-vault',
         executionReady:currentDevnetBurns(state).length > 0,
         automationEnabled:solanaCluster==='devnet'&&env.FUNDED_V3_BUYBACK_ENABLED==='true',
-        mainnetReady:false, pending:pendingV3Buybacks(state,env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID),
+        mainnetReady:false, pending:[
+          ...pendingV3Buybacks(state,env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID),
+          ...pendingUnindexedV3Buybacks(state,dashboard,env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID),
+        ],
         dashboard,
         receipts:verifiedV3Burns(state)
           .map(({preparedTransaction,signedTransaction,pumpData,pumpKeys,...row})=>row) });

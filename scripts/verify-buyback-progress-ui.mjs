@@ -58,17 +58,17 @@ try {
   assert.match(await page.locator('.reward-buyback-list').textContent(),/awaiting the 5 SOL trigger/);
   assert.equal(await page.locator('.buyback-route-progress').isVisible(),true);
   assert.equal(await page.locator('#buyback-route-proof').isVisible(),true);
-  dashboardFixture = { status:'verified',collectedLamports:'447709',
+  dashboardFixture = { status:'verified',collectedLamports:'3925122',
     unindexedStatus:'verified',unindexedLamports:'3477413',
     thresholdLamports:'5000000000',triggerReached:false,
     lastBurn:{ signature:'4'.repeat(64),burnedAt:'2026-10-14T13:05:20.000Z',
       source:'onchain-unindexed' } };
   await page.reload({waitUntil:'domcontentloaded'});
-  await page.waitForFunction(() => document.querySelector('#buyback-route-balance')?.textContent === '0.000447709 SOL');
-  assert.match(await page.locator('#buyback-route-status').textContent(),/0.003477413 SOL in older vaults is excluded/);
-  assert.match(await page.locator('#buyback-route-older').textContent(),/total verified custody 0.003925122 SOL/);
-  assert.equal(await page.locator('#buyback-route-track').getAttribute('aria-valuenow'),'0.000447709');
-  assert.match(await page.locator('#buyback-route-track').getAttribute('aria-valuetext'),/0.000447709 SOL of 5 SOL eligible/);
+  await page.waitForFunction(() => document.querySelector('#buyback-route-balance')?.textContent === '0.003925122 SOL');
+  assert.match(await page.locator('#buyback-route-status').textContent(),/awaiting 5 SOL/);
+  assert.match(await page.locator('#buyback-route-older').textContent(),/Older verified vault custody included: 0.003477413 SOL · total eligible 0.003925122 SOL/);
+  assert.equal(await page.locator('#buyback-route-track').getAttribute('aria-valuenow'),'0.003925122');
+  assert.match(await page.locator('#buyback-route-track').getAttribute('aria-valuetext'),/0.003925122 SOL of 5 SOL eligible/);
   assert.match(await page.locator('#buyback-route-last-time').textContent(),/QA on-chain burn/);
   assert.equal(await page.locator('#buyback-route-proof').isVisible(),true);
   dashboardFixture = { ...dashboardFixture,collectedLamports:'15000000',unindexedLamports:'0',

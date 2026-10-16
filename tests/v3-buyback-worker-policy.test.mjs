@@ -26,4 +26,6 @@ test('an existing queued cycle can finish below 5 SOL and retry safely', () => {
     { triggerReached:true, retryAt:2000, now:1000 }), false);
   assert.equal(shouldAttemptV3Buyback({ ...row('verified-burn-residue'), mint:'invalid' },
     { triggerReached:true, now:1000 }), false);
+  assert.equal(shouldAttemptV3Buyback({ ...row('awaiting-v3-buyback-executor'),
+    sourceCollectionSignature:'onchain' },{ triggerReached:true, now:1000 }), true);
 });

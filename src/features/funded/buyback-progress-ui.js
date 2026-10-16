@@ -16,11 +16,11 @@ export function mountBuybackProgressPanels(document) {
   if (home && !home.firstElementChild)
     home.innerHTML = panel('home-buyback', '5% fee route · $FUNDED',
       'Collected fees fund buybacks and burns.',
-      'For launches using the published 5% buyback split, that share goes into dedicated on-chain vaults. At 5 SOL in verified, indexed allocations, the app queues a protected $FUNDED purchase and burn. Execution depends on a verified market quote and available liquidity.',
+      'For launches using the published 5% buyback split, that share goes into dedicated on-chain vaults. At 5 SOL in verified vault allocations, the app queues a protected $FUNDED purchase and burn. Execution depends on a verified market quote and available liquidity.',
       '<a href="#buybacks">See buyback receipts →</a>');
   const route = document.querySelector('#buyback-route-panel');
   if (route && !route.firstElementChild)
     route.innerHTML = panel('buyback-route', 'Fee-funded buyback',
       '5 SOL trigger, verified eligible fees.',
-      'The published buyback share of collected creator fees remains in dedicated program vaults until verified, indexed allocations reach the 5 SOL aggregate trigger. The worker then attempts protected $FUNDED purchases and burns; failed market checks leave funds in custody.');
+      'The published buyback share of collected creator fees remains in dedicated program vaults until verified vault allocations reach the 5 SOL aggregate trigger. The worker then attempts protected $FUNDED purchases and burns; failed market checks leave funds in custody.');
 }

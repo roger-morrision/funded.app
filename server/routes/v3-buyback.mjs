@@ -5,13 +5,15 @@ import { deriveMintVaultsV3 } from '../../mint-router-v3.js';
 import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
 import { loadFinalizedV3Settlement } from '../v3-settlement-proof.mjs';
 import { v3AllocationPlan } from '../v3-allocation-plan.mjs';
-import { buildV3BuybackInstruction, v3BuybackId } from '../v3-buyback-instruction.mjs';
+import { buildV3BuybackInstruction, v3BuybackId, v3BuybackOnchainId } from '../v3-buyback-instruction.mjs';
 import { quoteV3Buyback } from '../v3-buyback-quote.mjs';
 import { loadFinalizedV3Buyback } from '../v3-buyback-proof.mjs';
 import { prepareV3BuybackTransaction, submitV3BuybackTransaction } from '../v3-buyback-transaction.mjs';
 import { readV3BuybackDashboard } from '../v3-buyback-dashboard.mjs';
 import { buybackTriggerLamports } from '../devnet-qa-minimums.mjs';
 import { v3BuybackNextOrder, v3BuybackSourceSpent } from '../v3-buyback-orders.mjs';
+import { onchainBuybackSource, queueV3BuybackCycle } from '../v3-buyback-cycle.mjs';
+import { finalizedUnindexedV3Budget } from '../v3-unindexed-buyback.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 
 const SIGNATURE=/^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
@@ -42,9 +44,11 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     let mint;
     try{mint=new PublicKey(decodeURIComponent(match[1])).toBase58();}
     catch{return json(res,400,{error:'A valid V3 source mint is required.'});}
-    const collectionSignature=decodeURIComponent(match[2]);
-    if(!SIGNATURE.test(collectionSignature))
+    const requestedSource=decodeURIComponent(match[2]);
+    const unindexed=requestedSource==='onchain';
+    if(!unindexed && !SIGNATURE.test(requestedSource))
       return json(res,400,{error:'A finalized V3 collection signature is required.'});
+    const collectionSignature=unindexed?onchainBuybackSource(mint):requestedSource;
     const programId=String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID||'');
     const thresholdLamports=buybackTriggerLamports(solanaCluster,env);
     const thresholdSol=`${Number(thresholdLamports)/1_000_000_000} SOL`;
@@ -56,6 +60,41 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     try{authority=v3AuthorityKeypair();}
     catch{return json(res,503,{error:'V3 authority signer is unavailable.'});}
     const state=await store.read();
+    const connection=connectionFactory(solanaRpcUrl);
+    let creator, initialAuthority, split=null, remaining, settlementSignature=null;
+    if(unindexed){
+      if(Object.values(state.v3Settlements||{}).some(row=>row.mint===mint))
+        return json(res,409,{error:'This mint has indexed settlements; use their verified collection routes.'});
+      const pending=v3BuybackNextOrder(state,collectionSignature).row;
+      const reconciling=Boolean(pending?.signature&&pending.sourceKind==='onchain-policy'
+        &&pending.mint===mint&&pending.programId===programId);
+      let vault;
+      if(reconciling){
+        creator=pending.creator;initialAuthority=pending.initialAuthority;
+      }else{
+        const dashboard=await readDashboard({state,programId,connection,thresholdLamports});
+        vault=dashboard.unindexedVaults?.find(row=>row.mint===mint);
+        if(dashboard.unindexedStatus!=='verified'||vault?.status!=='verified')
+          return json(res,409,{error:'Finalized unindexed policy and exact vault custody are required.'});
+        creator=vault.creator;initialAuthority=vault.initialAuthority;
+      }
+      if(!authority?.publicKey||initialAuthority!==authority.publicKey.toBase58()||!creator)
+        return json(res,409,{error:'Finalized unindexed policy and exact vault custody are required.'});
+      const readiness=await verifyReadiness({connection,programId,
+        expectedProgramDataSha256:hash,mint,creatorWallet:creator,
+        initialAuthority,split:null});
+      if(!readiness.ready)
+        return json(res,409,{error:'The approved V3 buyback program or mint policy is not verified.'});
+      if(reconciling) remaining=0n;
+      else{
+        const budget=await finalizedUnindexedV3Budget({connection,programId,mint,
+          creator,initialAuthority});
+        if(!budget || budget.vault.toBase58()!==vault.address
+          ||String(budget.remaining)!==String(vault.pendingLamports))
+          return json(res,409,{error:'Finalized unindexed policy and exact vault custody changed.'});
+        remaining=budget.remaining;
+      }
+    } else {
     const launch=state.launches?.[mint];
     const collection=state.collections?.[collectionSignature];
     const settled=state.v3Settlements?.[collectionSignature];
@@ -70,7 +109,6 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
       ||settled?.status!=='finalized'||settled.mint!==mint
       ||settled.collectionSignature!==collectionSignature)
       return json(res,409,{error:'Matching verified V3 launch, collection, and settlement are required.'});
-    const connection=connectionFactory(solanaRpcUrl);
     const readiness=await verifyReadiness({connection,programId,
       expectedProgramDataSha256:hash,mint,creatorWallet:launch.creatorWallet,
       initialAuthority:launch.pumpFeeRoute.initialAuthority,split:launch.pumpFeeRoute.protocolSplit});
@@ -90,26 +128,32 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     if(!isDeepStrictEqual(plan,settled.allocationPlan)
       ||BigInt(plan.protocol.buybackLamports)<=0n)
       return json(res,409,{error:'An exact payable V3 buyback allocation is required.'});
+    creator=launch.creatorWallet;initialAuthority=launch.pumpFeeRoute.initialAuthority;
+    split=launch.pumpFeeRoute.protocolSplit;
+    settlementSignature=settled.settlementSignature;
+    remaining=BigInt(plan.protocol.buybackLamports)
+      -v3BuybackSourceSpent(state,collectionSignature,programId);
+    }
     const input=await body(req);
     if (input && Object.keys(input).length) return json(res,400,{error:'Automatic buyback accepts no wallet-signed input.'});
     let next=v3BuybackNextOrder(state,collectionSignature);
     let saved=next.row;
-    let id=v3BuybackId([collectionSignature],next.round);
-    let remaining=BigInt(plan.protocol.buybackLamports)
-      -v3BuybackSourceSpent(state,collectionSignature,programId);
-    if(remaining<=0n)return json(res,409,{error:'This V3 buyback allocation is fully spent.'});
+    let id=unindexed?v3BuybackOnchainId(mint,next.round)
+      :v3BuybackId([collectionSignature],next.round);
     if(saved && (saved.programId!==programId
       || saved.approvedHash!==hash.toLowerCase()
       || saved.buybackId!==id.toString('hex')
-      || BigInt(saved.maxTotalDebit||'0')>remaining))
+      || unindexed && (saved.sourceKind!=='onchain-policy'
+        || saved.creator!==creator || saved.initialAuthority!==initialAuthority)
+      || !saved.signature && BigInt(saved.maxTotalDebit||'0')>remaining))
       return json(res,409,{error:'The V3 buyback belongs to a different approved program or allocation.'});
     const proofFor=async row=>loadProof({connection,signature:row.signature,
-      programId,sourceMint:mint,creator:launch.creatorWallet,
-      initialAuthority:launch.pumpFeeRoute.initialAuthority,
+      programId,sourceMint:mint,creator,
+      initialAuthority,
       authority:authority.publicKey,baseTokenProgram:row.baseTokenProgram,
       buybackId:Buffer.from(row.buybackId,'hex'),spendableQuoteIn:row.spendableQuoteIn,
       minBaseAmountOut:row.minBaseAmountOut,maxTotalDebit:row.maxTotalDebit,
-      pumpBuyInstruction:storedPumpInstruction(row),split:launch.pumpFeeRoute.protocolSplit});
+      pumpBuyInstruction:storedPumpInstruction(row),split});
     if(saved?.signature){
       const proof=await proofFor(saved);
       if(proof){
@@ -138,6 +182,7 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
       }
       return json(res,409,{error:'A submitted V3 buyback is awaiting finalized burn proof; reconcile its recorded signature.'});
     }
+    if(remaining<=0n)return json(res,409,{error:'This V3 buyback allocation is fully spent.'});
     if(saved?.status==='prepared'&&Date.parse(saved.expiresAt)>Date.now())
       return json(res,409,{error:'An older creator-signed quote must expire before automatic execution.'});
     if(saved?.status==='prepared'){
@@ -164,25 +209,7 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
         return json(res,409,{error:`Finalized buyback vaults have not reached the ${thresholdSol} trigger.`});
       const cycleId=`v3-buyback:${Date.now()}`;
       saved=await store.update(current=>{
-        current.v3BuybackOrders||={};
-        for(const settlementRow of Object.values(current.v3Settlements||{})) {
-          const source=settlementRow.collectionSignature;
-          const linked=current.launches?.[settlementRow.mint];
-          const collected=current.collections?.[source];
-          const sourceNext=v3BuybackNextOrder(current,source);
-          const sourceRemaining=BigInt(settlementRow.allocationPlan?.protocol?.buybackLamports||'0')
-            -v3BuybackSourceSpent(current,source,programId);
-          if(settlementRow.status!=='finalized'||settlementRow.allocationPlan?.status!=='allocated-not-funded'
-            ||!linked?.onchainVerified||linked.pumpFeeRoute?.programId!==programId
-            ||collected?.signature!==source||collected.onchainVerified!==true
-            ||collected.programId!==programId||sourceRemaining<=0n
-            ||sourceNext.row)continue;
-          current.v3BuybackOrders[sourceNext.key]={status:'queued',mint:settlementRow.mint,
-            collectionSignature:source,programId,approvedHash:hash.toLowerCase(),
-            buybackId:v3BuybackId([source],sourceNext.round).toString('hex'),
-            maxTotalDebit:String(sourceRemaining),round:sourceNext.round,
-            cycleId,queuedAt:new Date().toISOString()};
-        }
+        queueV3BuybackCycle(current,{dashboard,programId,hash,cycleId});
         return structuredClone(current.v3BuybackOrders[next.key]||null);
       });
       if(!saved||saved.status!=='queued')
@@ -195,7 +222,7 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
       ||BigInt(quoted.maxTotalDebit)>remaining)
       return json(res,409,{error:'The V3 market quote exceeds the remaining buyback allocation.'});
     const built=buildV3BuybackInstruction({programId,sourceMint:mint,
-      authority:authority.publicKey,creator:launch.creatorWallet,buybackId:id,
+      authority:authority.publicKey,creator,buybackId:id,
       ...quoted});
     const lookup=await connection.getAddressLookupTable(new PublicKey(lookupAddress),{
       commitment:'finalized'});
@@ -211,7 +238,8 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     const signature=bs58.encode(signed.signatures[0]);
     const row={status:'verification-pending',mint,collectionSignature,
       programId,approvedHash:hash.toLowerCase(),
-      settlementSignature:settled.settlementSignature,
+      settlementSignature,sourceKind:unindexed?'onchain-policy':'collection',
+      ...(unindexed?{creator,initialAuthority}:{}),
       buybackId:id.toString('hex'),
       baseTokenProgram:quoted.baseTokenProgram.toBase58(),
       spendableQuoteIn:quoted.spendableQuoteIn,

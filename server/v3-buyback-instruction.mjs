@@ -30,6 +30,13 @@ export function v3BuybackId(sourceCollectionSignatures, round = 1) {
   return createHash('sha256').update(`funded.v3.buyback.v1:${ids.join(',')}${suffix}`).digest();
 }
 
+export function v3BuybackOnchainId(mint, round = 1) {
+  const source = new PublicKey(mint).toBase58();
+  if (!Number.isSafeInteger(round) || round < 1)
+    throw new Error('V3 buyback round must be a positive integer.');
+  return createHash('sha256').update(`funded.v3.buyback.onchain.v1:${source}:round:${round}`).digest();
+}
+
 // The Pump instruction supplies current pool fee accounts only. The router
 // constructs its own exact-quote CPI and verifies every custody address.
 export function buildV3BuybackInstruction({ programId, sourceMint, authority,

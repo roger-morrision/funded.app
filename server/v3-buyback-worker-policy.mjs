@@ -7,6 +7,7 @@ export function shouldAttemptV3Buyback(row, { triggerReached, retryAt = 0, now =
   if (['awaiting-v3-buyback-executor', 'verified-burn-residue'].includes(row.status)
     && triggerReached !== true) return false;
   if (!MINT.test(String(row.mint || ''))
-    || !SIGNATURE.test(String(row.sourceCollectionSignature || ''))) return false;
+    || !(SIGNATURE.test(String(row.sourceCollectionSignature || ''))
+      || row.sourceCollectionSignature === 'onchain')) return false;
   return row.status === 'verification-pending' || now >= retryAt;
 }

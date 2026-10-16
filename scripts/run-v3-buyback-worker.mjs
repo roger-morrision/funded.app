@@ -24,13 +24,14 @@ async function tick() {
   if (status !== 200 || result.cluster !== 'devnet') throw new Error('Buyback status unavailable.');
   const pending = Array.isArray(result.pending) ? result.pending : [];
   for (const row of pending) {
+    const sourceKey=`${row.mint}:${row.sourceCollectionSignature}`;
     if (!shouldAttemptV3Buyback(row, { triggerReached:result.dashboard?.triggerReached,
-      retryAt:retryAt.get(row.sourceCollectionSignature) || 0 })) continue;
+      retryAt:retryAt.get(sourceKey) || 0 })) continue;
     const path = `/api/tokens/${row.mint}/v3-buyback/${row.sourceCollectionSignature}`;
     const executed = await request(path, 'POST');
-    if (executed.status === 200) retryAt.delete(row.sourceCollectionSignature);
+    if (executed.status === 200) retryAt.delete(sourceKey);
     else if (executed.status !== 503)
-      retryAt.set(row.sourceCollectionSignature,Date.now()+10*60_000);
+      retryAt.set(sourceKey,Date.now()+10*60_000);
     console.log(JSON.stringify({ event:'v3_buyback_attempt', mint:row.mint,
       source:row.sourceCollectionSignature,status:executed.status,
       signature:executed.status === 200 ? executed.result.signature : null,

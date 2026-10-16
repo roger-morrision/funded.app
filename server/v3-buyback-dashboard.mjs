@@ -13,8 +13,8 @@ const verifiedBurn = row => verifiedV3BuybackOrder(row)
 const POLICY_DISCRIMINATOR = Buffer.from('25d0c7eca736c38f', 'hex');
 
 // Old Devnet launches can retain funded vaults after their application records
-// have been cleared. Report that custody separately; it cannot authorize a
-// buyback without the matching collection and settlement proofs.
+// have been cleared. The route independently rechecks this policy and custody
+// against the approved program before any spend.
 export async function readUnindexedV3BuybackVaults({ connection, programId, indexedMints, reserve }) {
   const accounts = await connection.getProgramAccounts(new PublicKey(programId), {
     commitment:'finalized', filters:[{ dataSize:249 }],
@@ -113,14 +113,16 @@ export async function readV3BuybackDashboard({ state, programId, connection,
   try {
     if (typeof connection.getProgramAccounts === 'function')
       unindexedVaults = await readUnindexedV3BuybackVaults({ connection, programId,
-        indexedMints:new Set(budget.keys()), reserve });
+        indexedMints:new Set([...budget.keys(),
+          ...Object.values(state.v3Settlements || {}).map(row => row.mint).filter(Boolean)]), reserve });
     else unindexedStatus = 'unavailable';
   } catch { unindexedStatus = 'unavailable'; }
   if (unindexedVaults.some(row => row.status !== 'verified')) unindexedStatus = 'partial';
   const unindexedTotal = unindexedVaults.reduce((sum, row) => sum + BigInt(row.pendingLamports || '0'), 0n);
-  const total = indexedTotal;
+  const total = indexedTotal + unindexedTotal;
+  const eligibleTotal = indexedTotal + (unindexedStatus === 'verified' ? unindexedTotal : 0n);
   const verifiedCustody = complete && unindexedStatus === 'verified'
-    ? indexedTotal + unindexedTotal : null;
+    ? total : null;
   const receipts = Object.values(state.v3BuybackOrders || {}).filter(row =>
     verifiedBurn(row) && row.programId === programId);
   receipts.sort((a, b) => Number(b.slot || 0) - Number(a.slot || 0));
@@ -139,12 +141,12 @@ export async function readV3BuybackDashboard({ state, programId, connection,
         burnedAt = new Date(blockTime * 1000).toISOString();
     } catch { /* Keep the transaction proof even when the block timestamp is unavailable. */ }
   }
-  return { status:complete?'verified':budget.size?'partial':'verified',
+  return { status:complete?'verified':'partial',
     cluster:'devnet', custody:'per-mint-program-vaults',
     thresholdLamports:String(thresholdLamports),
-    collectedLamports:complete?String(total):null,
+    collectedLamports:complete?String(eligibleTotal):null,
     observedLamports:String(total),
-    triggerReached:complete && total >= thresholdLamports,
+    triggerReached:complete && eligibleTotal >= thresholdLamports,
     vaults, unindexedVaults, unindexedStatus,
     unindexedLamports:unindexedStatus === 'verified' ? String(unindexedTotal) : null,
     verifiedCustodyLamports:verifiedCustody === null ? null : String(verifiedCustody),

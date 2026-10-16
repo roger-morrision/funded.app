@@ -109,3 +109,28 @@ test('only a finalized burn for the enabled current Devnet program opens buyback
   await route({method:'GET'}, {}, new URL('https://funded.vip/api/buyback/status'));
   assert.equal(responses.at(-1).data.executionReady, false);
 });
+
+test('verified older vaults become worker sources only while custody scan is complete', async () => {
+  const mint='9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
+  const dashboard={status:'verified',triggerReached:true,
+    unindexedStatus:'verified',unindexedVaults:[{mint,status:'verified',
+      pendingLamports:'5000000'}]};
+  const state={v3Settlements:{},v3BuybackOrders:{}};
+  const replies=[];
+  const route=createRewardStatusRoutes({store:{read:async()=>state},
+    solanaCluster:'devnet',solanaRpcUrl:'https://unused.invalid',
+    env:{FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId},
+    connectionFactory:()=>({}),readBuybackDashboard:async()=>dashboard,
+    respond:(_res,status,data)=>replies.push({status,data})});
+  await route({method:'GET'},{},new URL('https://funded.vip/api/buyback/status'));
+  assert.equal(replies.at(-1).data.pending[0].sourceCollectionSignature,'onchain');
+  assert.equal(replies.at(-1).data.pending[0].amountLamports,'5000000');
+  dashboard.unindexedStatus='partial';
+  dashboard.unindexedVaults=[];
+  await route({method:'GET'},{},new URL('https://funded.vip/api/buyback/status'));
+  assert.equal(replies.at(-1).data.pending.length,0);
+  state.v3BuybackOrders[`onchain:${mint}`]={mint,programId,
+    sourceKind:'onchain-policy',status:'verification-pending',signature:'3'.repeat(64)};
+  await route({method:'GET'},{},new URL('https://funded.vip/api/buyback/status'));
+  assert.equal(replies.at(-1).data.pending[0].status,'verification-pending');
+});
