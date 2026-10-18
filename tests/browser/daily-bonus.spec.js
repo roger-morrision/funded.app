@@ -7,12 +7,12 @@ test('fee calculator shows 8/4 and daily rankings distinguish allocations from f
   await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'Offline test fixture' } }));
   await page.route('**/api/daily-bonus', route => route.fulfill({ json:{ cluster:'devnet', payoutEnabled:false,
     worker:{ status:'active' }, nextCutoffAt:'2026-10-19T00:00:00Z', snapshots:[{ day:'2026-10-17',
-      hash:'a'.repeat(64), allocatedLamports:'4000000000', retainedLamports:'0',
+      status:'snapshotted', hash:'a'.repeat(64), allocatedLamports:'4000000000', retainedLamports:'0',
       rankings:Object.fromEntries(['creators', 'referrals', 'traders'].map(group => [group,
         wallets.map((wallet, index) => ({ rank:index + 1, wallet, scoreLamports:String(300 - index),
           bonusLamports:String([500, 300, 200][index]), percentOfCategory:[50, 30, 20][index] }))])),
       sources:[{ mint:wallets[0], status:paid ? 'paid' : 'awaiting-verified-community-funding',
-        payments:paid ? { [wallets[1]]:{ amount:'500', finalized:true, balanceDeltaVerified:true, signature:'3'.repeat(88) } } : {} }] }] } }));
+        payments:paid ? { [wallets[1]]:{ amount:'500', amountReceived:'450', finalized:true, balanceDeltaVerified:true, signature:'3'.repeat(88) } } : {} }] }] } }));
   await page.route('https://**/*', route => route.abort());
   await page.goto('/#capital-flow');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
@@ -44,8 +44,10 @@ test('fee calculator shows 8/4 and daily rankings distinguish allocations from f
   await page.getByText('Snapshot and payment evidence', { exact:true }).click();
   await expect(page.locator('#daily-bonus-dashboard details')).toContainText('awaiting verified community funding');
   await expect(page.locator('#daily-bonus-dashboard details a')).toHaveCount(0);
+  await expect(page.locator('#daily-bonus-dashboard tbody tr').first()).toContainText('No finalized receipt');
   paid = true; await page.locator('[data-bonus-refresh]').click();
   await expect(page.locator('#daily-bonus-dashboard details a')).toHaveAttribute('href', /explorer\.solana\.com\/tx\/.*cluster=devnet/);
+  await expect(page.locator('#daily-bonus-dashboard tbody tr').nth(1)).toContainText('0.00000045 SOL');
   await page.setViewportSize({ width:390, height:844 });
   await page.locator('#open-menu').click();
   await expect(capitalMenu).toBeVisible();
@@ -55,4 +57,43 @@ test('fee calculator shows 8/4 and daily rankings distinguish allocations from f
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path:test.info().outputPath('daily-bonus-mobile.png'), fullPage:true });
   expect(errors).toEqual([]);
+});
+
+
+test('snapshot selection shows reconciliation blocks and invalid networks clear stale results', async ({ page }) => {
+  let cluster = 'devnet';
+  const empty = { hash:'b'.repeat(64), allocatedLamports:'0', retainedLamports:'0',
+    rankings:{ creators:[], referrals:[], traders:[] }, sources:[] };
+  await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'Offline fixture' } }));
+  await page.route('**/api/daily-bonus', route => route.fulfill({ json:{ cluster, snapshotEnabled:true, payoutEnabled:true,
+    worker:{ status:'active' }, snapshots:[{ ...empty, day:'2026-10-17', status:'reconciliation-required', reason:'Evidence changed.' },
+      { ...empty, day:'2026-10-16', status:'snapshotted' }] } }));
+  await page.route('https://**/*', route => route.abort());
+  await page.goto('/#capital-flow');
+  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  const status = page.locator('[data-bonus-status]');
+  await expect(status).toContainText('Further payouts are blocked');
+  await expect(status).toContainText('Evidence changed');
+  await page.locator('[data-bonus-day]').selectOption('2026-10-16');
+  await expect(status).toContainText('Verified snapshot below');
+  await page.locator('[data-bonus-day]').selectOption('2026-10-17');
+  await expect(status).toContainText('requires reconciliation');
+  cluster = 'mainnet-beta';
+  await page.locator('[data-bonus-refresh]').click();
+  await expect(status).toContainText('data is unavailable');
+  await expect(page.locator('[data-bonus-day-label]')).toBeHidden();
+  await expect(page.locator('[data-bonus-results]')).toBeEmpty();
+});
+
+test('Analytics identifies V3 creator receipts and displays the net wallet receipt', async ({ page }) => {
+  await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'Offline fixture' } }));
+  await page.route('**/api/evidence/payment-history', route => route.fulfill({ json:{ cluster:'devnet',
+    status:'onchain-indexed', checkedCreator:1, verifiedPayouts:[{ source:'v3-creator-wallet', to:wallets[0],
+      signature:'3'.repeat(64), amountLamports:'1000', actualReceivedLamports:'900', blockTime:1792274400 }] } }));
+  await page.route('https://**/*', route => route.abort());
+  await page.goto('/#analytics-detail');
+  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  await expect(page.locator('.recipients-panel .payment-row')).toContainText('Creator ·');
+  await expect(page.locator('.recipients-panel .payment-row')).toContainText('0.0000009 SOL received');
+  await expect(page.locator('.recipients-panel .payment-row')).not.toContainText('Recipient ·');
 });

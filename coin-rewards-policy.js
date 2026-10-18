@@ -1,7 +1,7 @@
 const percent = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100 ? value : null;
 const matches = (value, expected) => value !== null && Math.abs(value - expected) < 0.000001;
 
-export const formatPolicyPercent = value => `${Number(value.toFixed(2))}%`;
+export const formatPolicyPercent = value => `${Number(value.toFixed(6))}%`;
 
 export function verifiedCoinRewardsPolicy(policy, mint, cluster) {
   if (!policy || policy.mint !== mint || policy.cluster !== cluster || policy.onchainVerified !== true

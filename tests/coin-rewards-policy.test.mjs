@@ -51,3 +51,12 @@ test('zero shares are omitted from the compact line', () => {
     solClaimPercent:80, xRecipient:'@fundedvip' });
   assert.equal(verifiedCoinRewardsPolicy(policy, mint, 'devnet').compact, '@fundedvip 80%');
 });
+
+
+test('small configured holder percentages remain visible in the saved token policy', () => {
+  const policy = makePolicy();
+  policy.feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent:79.9989,
+    holderAirdropPercent:0.0011, solClaimPercent:0 });
+  assert.equal(verifiedCoinRewardsPolicy(policy, mint, 'devnet').compact,
+    'Creator 79.9989% · Holders 0.0011%');
+});
