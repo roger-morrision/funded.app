@@ -33,6 +33,8 @@ Daily bonus snapshots close at 00:00 UTC. Creators rank by collected fees, direc
 
 Ordinary referral-network levels are separate from the Daily referrer bonus. Missing upline allocations stay in the community reserve and do not enlarge the Daily bonus pool.
 
+For selected disposable Devnet mints, an explicit five-minute QA bonus schedule uses independent `qa5m:` snapshot keys and a 30-second worker check. Existing daily snapshots remain intact and a collection cannot fund both schedules. The UI displays the active schedule. See [QA setup and restoration](docs/daily-bonus-policy.md#five-minute-devnet-qa); the normal daily policy remains 24 hours.
+
 Community token airdrops normally use verified migration eligibility and a 90-day claim window. A clearly labeled Devnet QA cutoff is not proof of a genuine migration snapshot.
 
 The normal aggregate buyback trigger is 5 SOL. Selected Devnet QA settings can lower that trigger without changing the saved fee split. Quotes, liquidity, spend controls, current program approval and finalized purchase/burn proofs remain required. The app buys and burns $FUNDED, not each launched coin.

@@ -63,6 +63,12 @@ export function initBonusDashboard(document = globalThis.document) {
     clock.textContent = bonusCountdown(clockBase.cutoff, clockBase.at, elapsed);
   }
   function render() {
+    const qa = data.schedule?.mode === 'devnet-qa-5m' && data.schedule.periodSeconds === 300;
+    home.querySelector('[data-bonus-schedule]').textContent = qa
+      ? 'Devnet QA: top 3 in each group. Snapshots every 5 minutes for selected test coins.'
+      : 'Three leaderboards. Top 3 in each. One snapshot every UTC day.';
+    home.querySelector('[data-bonus-cutoff-label]').textContent = qa ? 'Next QA snapshot · every 5 minutes' : 'Next snapshot · 00:00 UTC';
+    page.querySelector('[data-bonus-delivery]').textContent = `Creators, referrers and traders share the bonus pool equally. Top 3 in each group receive 50%, 30% and 20%. ${qa ? 'Devnet QA snapshots close every 5 minutes for selected test coins. Standard daily policy remains 24 hours.' : 'Snapshots close at 00:00 UTC.'} Bonuses are paid automatically after snapshot and funding verification. No manual claim or recipient signature is required.`;
     clockBase = { cutoff:Date.parse(data.nextCutoffAt), at:Date.parse(data.serverTime), started:view.performance.now() };
     tick();
     for (const [key] of Object.entries(GROUPS)) animate(home.querySelector(`[data-bonus-pool="${key}"]`), data.pool?.categoryLamports?.[key]);

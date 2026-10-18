@@ -2,19 +2,21 @@ import { Connection } from '@solana/web3.js';
 import { DAILY_BONUS_POLICY } from '../config/daily-bonus.js';
 import { createDailyBonusService } from './daily-bonus-service.mjs';
 import { dailyBonusWork } from './daily-bonus-queue.mjs';
+import { bonusSchedule } from './daily-bonus-schedule.mjs';
 
 export function createDailyBonusRuntime({ store, rewardStore, solanaCluster, solanaRpcUrl,
   v3AuthorityKeypair, env = process.env, logger = console,
   serviceFactory = createDailyBonusService, now = () => Math.floor(Date.now() / 1000) }) {
-  let service, unavailable = 'Daily bonus requires a configured reviewed Devnet V3 program and authority.';
+  let service, schedule, unavailable = 'Daily bonus requires a configured reviewed Devnet V3 program and authority.';
   try {
+    schedule = bonusSchedule({ cluster:solanaCluster,env });
     if (solanaCluster === 'devnet' && env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID
       && /^[a-f0-9]{64}$/i.test(String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || ''))) {
       service = serviceFactory({ store, rewardStore,
         connection:new Connection(solanaRpcUrl, 'finalized'), cluster:solanaCluster,
         programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID, authority:v3AuthorityKeypair(),
         expectedProgramDataSha256:env.FUNDED_V3_PROGRAM_DATA_SHA256,
-        payoutEnabled:env.FUNDED_DAILY_BONUS_PAYOUT_ENABLED === 'true', now });
+        payoutEnabled:env.FUNDED_DAILY_BONUS_PAYOUT_ENABLED === 'true', now, schedule });
     }
   } catch { service = null; }
   let running = false;
@@ -23,7 +25,7 @@ export function createDailyBonusRuntime({ store, rewardStore, solanaCluster, sol
     running = true;
     try {
       const app = await store.read();
-      let work = dailyBonusWork({ app, ledger:await rewardStore.read(), now:now() });
+      let work = dailyBonusWork({ app, ledger:await rewardStore.read(), now:now(), schedule });
       if (!work.eligible) {
         await rewardStore.transaction(state => { state.dailyBonusServiceStatus = { status:'waiting-for-eligible-launch', checkedAt:new Date().toISOString() }; });
         return;
@@ -41,7 +43,7 @@ export function createDailyBonusRuntime({ store, rewardStore, solanaCluster, sol
         await rewardStore.transaction(state => { state.dailyBonusCaptureCursor = day; });
       }
       if (env.FUNDED_DAILY_BONUS_PAYOUT_ENABLED === 'true') {
-        work = dailyBonusWork({ app, ledger:await rewardStore.read(), now:now() });
+        work = dailyBonusWork({ app, ledger:await rewardStore.read(), now:now(), schedule });
         for (const day of work.pending) {
           try { await service.execute(day); }
           catch (error) { failures.push({ day, reason:String(error.message || error).slice(0,180) }); }
@@ -108,7 +110,7 @@ export function createDailyBonusRuntime({ store, rewardStore, solanaCluster, sol
         let progressing = false;
         try { progressing = await tick(); }
         catch (error) { logger.error(JSON.stringify({ event:'daily_bonus_storage_failed', reason:String(error.message || error).slice(0,180) })); }
-        setTimeout(run, progressing ? 10_000 : 5 * 60_000).unref();
+        setTimeout(run, progressing ? 10_000 : schedule.periodSeconds === 300 ? 30_000 : 5 * 60_000).unref();
       };
       setTimeout(run, 15_000).unref();
       return true;

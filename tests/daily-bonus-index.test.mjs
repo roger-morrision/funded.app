@@ -18,6 +18,13 @@ function setup(mints=[keys[0]]) {
  const connection={getGenesisHash:async()=>DEVNET_GENESIS_HASH,getSlot:async()=>60000,getBlockTime:async()=>now,getSignaturesForAddress:async()=>[]};
  return {rewardStore,state,connection,args:{connection,state,programId,day:'2026-10-17',now}};
 }
+test('five-minute QA indexing limits complete coverage to the explicitly selected test mints',async()=>{
+ const f=setup([keys[0],keys[1]]),checked=[];
+ f.connection.getSignaturesForAddress=async address=>{checked.push(address.toBase58());return[];};
+ const result=await createDailyBonusEvidenceIndex({rewardStore:f.rewardStore})({...f.args,day:'qa5m:2026-10-17T00:00:00Z',qaMints:[keys[0]]});
+ assert.equal(result.complete,true);assert.deepEqual(result.coverage.map(row=>row.mint),[keys[0]]);assert.equal(checked.length,3);
+ assert(!checked.includes(bondingCurvePda(keys[1]).toBase58()));
+});
 test('more than 2000 post-cutoff references resume across durable checkpoints without rejecting the day',async()=>{
  const f=setup(),curve=bondingCurvePda(keys[0]).toBase58(),refs=Array.from({length:2101},(_,i)=>reference(i+1));
  f.connection.getSignaturesForAddress=async(address,{limit,before})=>address.toBase58()===curve

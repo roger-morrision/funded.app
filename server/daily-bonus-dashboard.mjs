@@ -4,6 +4,7 @@ import { dailyBonusPayments } from '../src/features/fees/daily-bonus-payments.js
 import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
 import { verifyV3PumpCollection } from './v3-collection-proof.mjs';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
+import { DEFAULT_BONUS_SCHEDULE, currentBonusStart, bonusWindowKey } from './daily-bonus-schedule.mjs';
 
 const integer = value => /^(0|[1-9]\d*)$/.test(String(value)) ? BigInt(value) : null;
 const categories = POLICY.categories;
@@ -96,9 +97,9 @@ export function bonusDashboardHistory(ledger, { category = 'all', page = 1, page
 
 // Read only finalized indexed collections under a saved Daily bonus policy.
 // This pool is an allocation, not a vault balance or a payment promise.
-export async function readBonusPool({ state, connection, programId, now, signal,
+export async function readBonusPool({ state, connection, programId, now, signal, schedule = DEFAULT_BONUS_SCHEDULE,
   verifyCollection = verifyV3PumpCollection, loadSettlement = loadFinalizedV3Settlement }) {
-  const start = Math.floor(now / 86_400) * 86_400;
+  const start = currentBonusStart(now,schedule);
   signal?.throwIfAborted();
   if (await connection.getGenesisHash() !== DEVNET_GENESIS_HASH) throw new Error('Bonus pool RPC is not Devnet.');
   const candidates = Object.values(state.collections || {}).filter(row => {
@@ -106,6 +107,7 @@ export async function readBonusPool({ state, connection, programId, now, signal,
     return row.scope === 'per-mint-v3' && row.cluster === 'devnet' && row.programId === programId
       && row.status === 'collected' && row.onchainVerified === true && row.attribution === 'mint-verified'
       && launch?.onchainVerified === true && launch.cluster === 'devnet'
+      && (!schedule.mints || schedule.mints.includes(row.mint))
       && launch.pumpFeeRoute?.programId === programId && launch.pumpFeeRoute?.verified === true
       && launch.feeDistribution?.fixedFunded?.communityRewards?.dailyBonus?.version === 1
       && settled?.status === 'finalized' && settled.blockTime >= start;
@@ -119,7 +121,7 @@ export async function readBonusPool({ state, connection, programId, now, signal,
     const tx = await connection.getTransaction(row.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
     signal?.throwIfAborted();
     if (!tx || !Number.isSafeInteger(tx.blockTime)) throw new Error('Bonus collection proof is unavailable.');
-    if (tx.blockTime < start || tx.blockTime >= start + 86_400 || tx.blockTime > now) continue;
+    if (tx.blockTime < start || tx.blockTime >= start + schedule.periodSeconds || tx.blockTime > now) continue;
     const launch = state.launches[row.mint], settled = state.v3Settlements[row.signature];
     const collected = await verifyCollection({ transaction:tx, signature:row.signature, programId,
       mint:row.mint, expectedLamports:row.collectedLamports });
@@ -132,6 +134,6 @@ export async function readBonusPool({ state, connection, programId, now, signal,
     const shares = splitBonusLamports(BigInt(proof.categoryLamports[5]), POLICY.categoryWeights);
     shares.forEach((value, index) => { values[index] += value; }); collections++;
   }
-  return { status:'verified-indexed-settlements', day:new Date(start * 1000).toISOString().slice(0, 10),
+  return { status:'verified-indexed-settlements', day:bonusWindowKey(start,schedule),
     collections, categoryLamports:Object.fromEntries(categories.map((key, index) => [key, String(values[index])])) };
 }

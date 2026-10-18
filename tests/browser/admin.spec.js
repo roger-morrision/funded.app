@@ -3,7 +3,8 @@ import { test, expect } from '@playwright/test';
 const ADMIN = 'CG87C9tjCSB9BAoKfoPUM3mLvbg3WAK1NGNQCWi12zcJ';
 const SOURCE = '7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y';
 
-test('Devnet admin page signs in, shows balances and gates, and edits only the protocol share', async ({ page }) => {
+for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot recovery (${qa ? 'five-minute QA' : 'daily'})`, async ({ page }) => {
+  const selectedDay=qa ? 'qa5m:2026-10-17T00:00:00Z' : '2026-10-17', paidDay=qa ? 'qa5m:2026-10-16T00:00:00Z' : '2026-10-16';
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   let signedIn = false, revision = 0, recoveryApplied = null;
@@ -24,9 +25,9 @@ test('Devnet admin page signs in, shows balances and gates, and edits only the p
       withdrawalDestinations:[ADMIN], revenue:{ verifiedCollectionsLamports:'1000000000', operationsAllocationLamports:'100000000', finalizedSettlementCount:1 },
       gates:{ launch:true, collection:true, settlement:true, holder:false, referral:false, xClaims:false, buyback:false } });
     if (path === '/api/admin/audit') return send(200, { entries:[] });
-    if (path === '/api/daily-bonus') return send(200,{cluster:'devnet',snapshots:[{day:'2026-10-17',hash:'a'.repeat(64),sources:[]},{day:'2026-10-16',hash:'c'.repeat(64),sources:[{status:'paid'}]}]});
-    if (path === '/api/admin/daily-bonus/snapshot') return send(200,{snapshot:{day:'2026-10-17',hash:'a'.repeat(64)},payouts:{},status:'snapshotted'});
-    if (path === '/api/admin/daily-bonus/review') return send(200,{day:'2026-10-17',expectedHash:'a'.repeat(64),expectedNewHash:'b'.repeat(64),rankings:{},sources:1});
+    if (path === '/api/daily-bonus') return send(200,{cluster:'devnet',schedule:qa ? {mode:'devnet-qa-5m',periodSeconds:300} : {mode:'daily',periodSeconds:86400},nextCutoffAt:'2026-10-17T00:10:00Z',snapshots:[{day:selectedDay,hash:'a'.repeat(64),sources:[]},{day:paidDay,hash:'c'.repeat(64),sources:[{status:'paid'}]}]});
+    if (path === '/api/admin/daily-bonus/snapshot') return send(200,{snapshot:{day:selectedDay,hash:'a'.repeat(64)},payouts:{},status:'snapshotted'});
+    if (path === '/api/admin/daily-bonus/review') return send(200,{day:selectedDay,expectedHash:'a'.repeat(64),expectedNewHash:'b'.repeat(64),rankings:{},sources:1});
     if (path === '/api/admin/daily-bonus/reconcile') {
       recoveryApplied=JSON.parse(route.request().postData());return send(200,{snapshots:[]});
     }
@@ -40,6 +41,7 @@ test('Devnet admin page signs in, shows balances and gates, and edits only the p
   await expect(page.locator('#workspace')).toBeHidden();
   await page.locator('#sign-in').click();
   await expect(page.locator('#workspace')).toBeVisible();
+  if(qa) await expect(page.locator('#bonus-recovery-day')).toHaveValue(selectedDay);
   await expect(page.locator('#fee-gross-preview')).toContainText('8% Operations & marketing');
   await expect(page.locator('#fee-gross-preview')).toContainText('4% Daily bonus');
   await expect(page.locator('#wallet-rows')).toContainText('2');
@@ -64,17 +66,17 @@ test('Devnet admin page signs in, shows balances and gates, and edits only the p
   await page.locator('#reconcile-signature').fill('4'.repeat(88));
   await page.getByRole('button', { name:'Record finalized receipt' }).click();
   await expect(page.locator('#message')).toContainText('Finalized 0.001 SOL transfer recorded');
-  await page.locator('#bonus-recovery-day').fill('2026-10-17');
+  await page.locator('#bonus-recovery-day').fill(selectedDay);
   await expect(page.locator('#bonus-recovery-apply')).toBeDisabled();
   await page.locator('#bonus-recovery-index').click();
   await expect(page.locator('#bonus-recovery-hash')).toHaveValue('a'.repeat(64));
   await page.locator('#bonus-recovery-review').click();
   await expect(page.locator('#bonus-recovery-apply')).toBeEnabled();
-  await page.locator('#bonus-recovery-day').fill('2026-10-16');
+  await page.locator('#bonus-recovery-day').fill(paidDay);
   await expect(page.locator('#bonus-recovery-apply')).toBeDisabled();
   await expect(page.locator('#bonus-recovery-review')).toBeDisabled();
   await expect(page.locator('#bonus-recovery-status')).toContainText('Payments have started');
-  await page.locator('#bonus-recovery-day').fill('2026-10-17');
+  await page.locator('#bonus-recovery-day').fill(selectedDay);
   await page.locator('#bonus-recovery-review').click();
   await expect(page.locator('#bonus-recovery-apply')).toBeEnabled();
   await page.locator('#bonus-recovery-reason').fill('Verified missing finalized collection evidence.');

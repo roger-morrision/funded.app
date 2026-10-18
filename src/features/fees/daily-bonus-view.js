@@ -18,6 +18,8 @@ export function initDailyBonusView(document = globalThis.document) {
   const select = root.querySelector('select');
   let data;
   function render() {
+    const qa = data?.schedule?.mode === 'devnet-qa-5m' && data.schedule.periodSeconds === 300;
+    root.querySelector('h2').textContent = qa ? 'Top 3. Every 5 minutes · Devnet QA.' : 'Top 3. Every 24 hours.';
     results.replaceChildren();
     const snapshot = data?.snapshots?.find(row => row.day === select.value);
     const nextTime = Date.parse(data?.nextCutoffAt || '');
@@ -29,7 +31,7 @@ export function initDailyBonusView(document = globalThis.document) {
     intro.textContent = `${snapshot.day} UTC · ${sol(snapshot.allocatedLamports)} allocated · ${sol(snapshot.retainedLamports)} retained for unfilled ranks. Allocation is not a payment.`;
     results.append(intro);
     const paidNote = document.createElement('p'); paidNote.className = 'field-help';
-    paidNote.textContent = 'Finalized received totals combine all Daily bonus categories for this wallet and UTC day. Repeated wallets show the same total; allocations are shown per ranking group. Global payment history includes these receipts after independent chain verification.';
+    paidNote.textContent = 'Finalized received totals combine all bonus categories for this wallet and snapshot window. Repeated wallets show the same total; allocations are shown per ranking group. QA windows are marked qa5m. Global payment history includes these receipts after independent chain verification.';
     results.append(paidNote);
     for (const [key, label] of Object.entries(GROUPS)) {
       const group = document.createElement('section'), heading = document.createElement('h3'); heading.textContent = label; group.append(heading);

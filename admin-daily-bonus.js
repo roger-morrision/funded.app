@@ -22,11 +22,18 @@ export function initAdminDailyBonus({ document, api, post, show, refreshAudit })
     hash.value = row?.hash || ''; preview.textContent = ''; render();
   }
   async function refresh() {
-    day.max = new Date(Date.now() - 86_400_000).toISOString().slice(0,10);
-    if (!day.value) day.value = day.max;
     try {
       const data = await api('/api/daily-bonus');
       if (data.cluster !== 'devnet' || !Array.isArray(data.snapshots)) throw new Error();
+      const qa = data.schedule?.mode === 'devnet-qa-5m' && data.schedule.periodSeconds === 300;
+      const cutoff = Date.parse(data.nextCutoffAt || '');
+      const latest = qa && Number.isFinite(cutoff) ? `qa5m:${new Date(cutoff - 600000).toISOString().replace('.000Z','Z')}`
+        : new Date(Date.now() - 86400000).toISOString().slice(0,10);
+      if (!day.value) day.value = latest;
+      const choices = $('#bonus-recovery-windows'); choices?.replaceChildren();
+      for (const row of data.snapshots) {
+        const option = document.createElement('option'); option.value = row.day; choices?.append(option);
+      }
       snapshots = data.snapshots; selectDay();
     } catch { status.textContent = 'Snapshot status is unavailable. Index a completed day or enter a current snapshot hash for server verification.'; }
   }

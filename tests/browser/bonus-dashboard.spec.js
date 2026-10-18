@@ -71,3 +71,15 @@ test('empty history shows no synthetic recipients and Home does not invent rewar
   await page.goto('/#overview');
   await expect(page.locator('[data-bonus-pool="creators"]')).toHaveText('Unavailable');
 });
+
+test('Devnet QA schedule shows five-minute cutoffs consistently on Home, history and Capital flow',async({page})=>{
+  const qa={...fixture(),schedule:{mode:'devnet-qa-5m',periodSeconds:300,mints:['qa']},serverTime:'2026-10-18T10:15:20Z',nextCutoffAt:'2026-10-18T10:20:00Z'};
+  await setup(page,()=>qa);
+  await page.route('**/api/daily-bonus',route=>route.fulfill({json:{cluster:'devnet',schedule:qa.schedule,nextCutoffAt:qa.nextCutoffAt,snapshots:[],payoutEnabled:true,snapshotEnabled:true}}));
+  await page.goto('/#overview');
+  await expect(page.locator('[data-bonus-schedule]')).toContainText('every 5 minutes');
+  await expect(page.locator('[data-bonus-cutoff-label]')).toHaveText('Next QA snapshot · every 5 minutes');
+  await expect(page.locator('[data-bonus-countdown]')).toContainText('00:04:');
+  await page.goto('/#bonuses');await expect(page.locator('[data-bonus-delivery]')).toContainText('Devnet QA snapshots close every 5 minutes');
+  await page.goto('/#capital-flow');await expect(page.locator('#daily-bonus-title')).toHaveText('Top 3. Every 5 minutes · Devnet QA.');
+});

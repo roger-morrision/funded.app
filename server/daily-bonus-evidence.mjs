@@ -64,7 +64,7 @@ export async function readDailyBonusTrades({ connection, launch, window, maxPage
   return { rows, coverage:{ mint:launch.mint, complete:true, routes:routes.length } };
 }
 
-export async function readDailyBonusEvidence({ connection, state, programId, day, now,
+export async function readDailyBonusEvidence({ connection, state, programId, day, now, qaMints,
   readTrades = readDailyBonusTrades, verifyCollection = verifyV3PumpCollection,
   loadSettlement = loadFinalizedV3Settlement }) {
   const window = dailyBonusWindow(day, now);
@@ -76,6 +76,7 @@ export async function readDailyBonusEvidence({ connection, state, programId, day
   const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified === true
     && row.cluster === 'devnet' && row.pumpFeeRoute?.scope === 'per-mint-v3'
     && row.pumpFeeRoute.programId === programId && row.pumpFeeRoute.verified === true
+    && (!window.qa || qaMints?.includes(row.mint))
     && Number.isSafeInteger(row.createdTimestamp) && row.createdTimestamp < window.end);
   if (launches.length > 200) throw new Error('Daily bonus mint coverage requires a larger reviewed indexer.');
   const byMint = new Map(launches.map(row => [row.mint, row]));

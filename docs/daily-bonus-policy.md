@@ -8,6 +8,14 @@ Ordinary referral-network transfers are separate: they require creator approval 
 
 ## Dashboard and payment history
 
+### Five-minute Devnet QA
+
+`FUNDED_DEVNET_QA_BONUS_PERIOD_SECONDS=300` requires Devnet, `FUNDED_DEVNET_QA_MINIMUMS_ENABLED=true`, and one to eight disposable mints in `FUNDED_DEVNET_QA_BONUS_MINTS`. No other shortened period is accepted. Unset the period or set it to `86400` to restore daily windows. Mainnet rejects the QA configuration.
+
+QA windows align to UTC five-minute boundaries and use distinct keys such as `qa5m:2026-10-18T10:15:00Z`. Only selected test mints contribute rankings and sources. The worker checks every 30 seconds; finalized indexing, settlement, exact source funding and program checks still apply. Home, Capital flow and history expose the QA schedule. A completed window is not a payment guarantee.
+
+Existing daily snapshots and payment manifests are preserved. A collection assigned to a payout cannot fund a second window or the later daily snapshot. Consumed sources are explicitly excluded from later funding snapshots while their legitimate ranking evidence can remain. Missing ranks retain funds; tests do not redistribute them to fabricate full payment coverage.
+
 Home cards animate actual category allocations from verified indexed settlements; they do not simulate continuously earned income. `GET /api/daily-bonus/dashboard` supplies server time, cutoff, current pool, paginated history and all-time top-ten recipients across **all recorded snapshots**, rather than only the latest 30 snapshots in `GET /api/daily-bonus`.
 
 A combined payment can cover multiple categories. Its verified net receipt is attributed proportionally with exact lamport rounding and counted once. Gross allocations and received totals are not added together. Repeated aliases are deduplicated; missing net evidence, conflicting proofs and failed snapshot integrity are reported as unavailable and excluded from rankings. Rewards History and Analytics separately verify finalized instructions, accounts and recipient balance deltas. An empty history does not mean an allocation was paid.
