@@ -223,15 +223,18 @@ function renderBuybacks(data) {
   const receipts = (data.receipts || []).filter(row => row.status === 'finalized'
     && row.vaultDebitVerified === true && row.burnInstructionVerified === true);
   const stats = node('div','reward-buyback-stats');
-  for (const [label,value] of [['Queued funds',sol(pending.reduce((sum,row) => sum + amount(row.amountLamports), 0n))],
+  for (const [label,value] of [['Unspent allocations',sol(pending.reduce((sum,row) => sum + amount(row.amountLamports), 0n))],
     ['Completed buybacks',String(receipts.length)]]) { const item = node('div'); item.append(node('small','',label),node('strong','',value)); stats.append(item); }
   root.append(stats);
   const trigger = amount(data.dashboard?.thresholdLamports) > 0n
     ? sol(data.dashboard.thresholdLamports) : null;
+  const minimum = amount(data.minimumOrderLamports) > 0n ? sol(data.minimumOrderLamports) : null;
   const list = node('div','reward-buyback-list');
   for (const row of pending.slice(0, 8)) {
     const article = node('p'); article.append(link(short(row.mint), tokenUrl(row.mint)),
-      node('span','',` · ${sol(row.amountLamports)} queued · ${['queued','verification-pending'].includes(row.status)
+      node('span','',` · ${sol(row.amountLamports)} ${row.status==='below-minimum-order' ? 'retained' : 'queued'} · ${row.status==='below-minimum-order'
+        ? `below ${minimum ? minimum+' order minimum' : 'execution minimum'}; retained in its vault`
+        : ['queued','verification-pending'].includes(row.status)
         ? 'in progress' : data.dashboard?.triggerReached ? 'ready for the next batch'
           : trigger ? `awaiting the ${trigger} trigger` : 'awaiting verified trigger'}`));
     list.append(article);

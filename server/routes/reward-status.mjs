@@ -6,6 +6,7 @@ import { readV3BuybackDashboard } from '../v3-buyback-dashboard.mjs';
 import { buybackTriggerLamports } from '../devnet-qa-minimums.mjs';
 import { v3BuybackNextOrder, v3BuybackSourceSpent } from '../v3-buyback-orders.mjs';
 import { onchainBuybackSource } from '../v3-buyback-cycle.mjs';
+import { v3BuybackPendingStatus, MIN_V3_BUYBACK_ORDER_LAMPORTS } from '../v3-buyback-worker-policy.mjs';
 
 function pendingV3Buybacks(state, programId) {
   if (!programId) return [];
@@ -31,7 +32,7 @@ function pendingV3Buybacks(state, programId) {
     return residual>0n ? [{ mint:row.mint,
       sourceCollectionSignature:row.collectionSignature,
       amountLamports:String(residual),
-      status:order.row?.status || (order.previous
+      status:v3BuybackPendingStatus(order.row,residual,order.previous
         ? 'verified-burn-residue' : 'awaiting-v3-buyback-executor') }] : [];
   });
 }
@@ -46,7 +47,7 @@ function pendingUnindexedV3Buybacks(state, dashboard, programId) {
     const order = v3BuybackNextOrder(state, source);
     return [{ mint:vault.mint, sourceCollectionSignature:'onchain',
       amountLamports:vault.pendingLamports,
-      status:order.row?.status || (order.previous
+      status:v3BuybackPendingStatus(order.row,vault.pendingLamports,order.previous
         ? 'verified-burn-residue' : 'awaiting-v3-buyback-executor') }];
     }) : [];
   const known = new Set(verified.map(row => row.mint));
@@ -171,6 +172,7 @@ export function createRewardStatusRoutes({
         } catch { /* Show unavailable data rather than an inferred balance. */ }
       }
       return json(res, 200, { cluster:solanaCluster, custody:'v3-mint-category-vault',
+        minimumOrderLamports:String(MIN_V3_BUYBACK_ORDER_LAMPORTS),
         executionReady:currentDevnetBurns(state).length > 0,
         automationEnabled:solanaCluster==='devnet'&&env.FUNDED_V3_BUYBACK_ENABLED==='true',
         mainnetReady:false, pending:[

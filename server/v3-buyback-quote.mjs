@@ -4,6 +4,7 @@ import { OnlinePumpAmmSdk, PUMP_AMM_PROGRAM_ID, PUMP_AMM_SDK,
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { BUYBACK_POLICY } from '../buyback-policy.js';
 import { V3_DEVNET_FUNDED_MINT, V3_DEVNET_FUNDED_POOL } from './v3-buyback-instruction.mjs';
+import { MIN_V3_BUYBACK_ORDER_LAMPORTS } from './v3-buyback-worker-policy.mjs';
 
 export function protectedV3BuybackClip(budgetLamports, reserveLamports) {
   const budget=BigInt(budgetLamports),reserves=BigInt(reserveLamports);
@@ -13,7 +14,7 @@ export function protectedV3BuybackClip(budgetLamports, reserveLamports) {
 
 export async function quoteV3Buyback({ connection, vault, budgetLamports }) {
   const budget=BigInt(budgetLamports);
-  if (budget<10_000n || budget>BigInt(Number.MAX_SAFE_INTEGER))
+  if (budget<MIN_V3_BUYBACK_ORDER_LAMPORTS || budget>BigInt(Number.MAX_SAFE_INTEGER))
     throw Object.assign(new Error('V3 buyback budget must be at least 10,000 lamports and within the bounded Devnet range.'), { statusCode:409 });
   const [state,mintInfo]=await Promise.all([
     new OnlinePumpAmmSdk(connection).swapSolanaState(V3_DEVNET_FUNDED_POOL,vault),
@@ -28,7 +29,7 @@ export async function quoteV3Buyback({ connection, vault, budgetLamports }) {
     throw new Error('The approved $FUNDED PumpSwap Devnet pool is unavailable.');
   const reserves=BigInt(state.poolQuoteAmount.toString());
   const quote=protectedV3BuybackClip(budget,reserves);
-  if (quote < 10_000n)
+  if (quote < MIN_V3_BUYBACK_ORDER_LAMPORTS)
     throw new Error('The verified pool has too little quote liquidity for a protected buyback.');
   const quoted=buyQuoteInput({ quote:new BN(String(quote)),slippage:1,
     baseReserve:state.poolBaseAmount,quoteReserve:state.poolQuoteAmount,

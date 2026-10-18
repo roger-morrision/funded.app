@@ -8,6 +8,8 @@ The normal aggregate trigger is **5 SOL** of verified eligible allocations. A bo
 
 Execution requires the approved current program, finalized collection/settlement proofs, vault backing and a verified $FUNDED market quote/route. Quote age, liquidity, slippage and spend protections still apply after the trigger is met. Finalized purchase and burn receipts must prove the expected vault debit and token supply/account changes.
 
+The Devnet executor also has a separate **10,000-lamport (0.00001 SOL) minimum per source order**. Smaller allocations remain in their program vaults and appear as `below-minimum-order`, rather than executable queued purchases. The worker skips these unsigned orders; transactions that already have a signature remain eligible for reconciliation. `/api/buyback/status` exposes the floor as `minimumOrderLamports`. This order floor does not change the aggregate trigger or mark retained funds as spent.
+
 Home and Buy & burn show eligible SOL, trigger, last verified execution timestamp and transaction evidence. An allocation, queued order, full progress bar or historical burn under another code hash does not prove current execution. Mainnet is a separate reviewed release.
 
 Sources: [worker policy](../server/v3-buyback-worker-policy.mjs), [quote](../server/v3-buyback-quote.mjs), [transaction](../server/v3-buyback-transaction.mjs), [proof](../server/v3-buyback-proof.mjs), [dashboard](../server/v3-buyback-dashboard.mjs), [QA minima](devnet-qa-minimums.md).
@@ -31,4 +33,4 @@ The worker is enabled only by `compose.buyback-worker.yml` with `SOLANA_CLUSTER=
 
 ## Mainnet gate
 
-This Devnet executor uses the per-mint fee-router PDA until execution, then briefly uses a signer wallet for the swap and burn. It does **not** satisfy the published Mainnet requirement for a dedicated buyback PDA with no general withdrawal path. Keep Mainnet buyback readiness false until that custody program, its independent audit, permissionless execution, and public receipt indexing are complete. Devnet transaction fees and one-time account rent are paid by the disposable operator wallet, separate from creator-fee allocations.
+The current V3 executor uses the program vault as the PumpSwap authority and burns through program CPI; the operator signs execution and pays transaction fees and one-time account rent separately. It does not temporarily transfer the buyback budget into the operator wallet. Devnet execution does not authorize Mainnet: keep Mainnet readiness false until the separate deployment, approved program bytes, audit, market route, execution permissions and receipt verification have been reviewed.

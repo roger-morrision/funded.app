@@ -120,7 +120,7 @@ test('V3 buyback status excludes legacy orders and receipts', async () => {
   await f.request('/api/buyback/status');
   assert.deepEqual(f.responses[0].data.receipts, []);
   assert.deepEqual(f.responses[0].data.pending, [{ mint:'mint', sourceCollectionSignature:'source',
-    amountLamports:'123', status:'awaiting-v3-buyback-executor' }]);
+    amountLamports:'123', status:'below-minimum-order' }]);
   assert.equal('historicalV2Receipts' in f.responses[0].data, false);
   assert.equal(f.responses[0].data.executionReady, false);
   assert.equal(f.responses[0].data.mainnetReady, false);

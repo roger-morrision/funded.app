@@ -33,6 +33,20 @@ const verifiedSource = source => ({
     onchainVerified:true,programId}},
 });
 
+test('small unsigned buyback allocations are disclosed without hiding submitted reconciliation',async()=>{
+  const source='3'.repeat(64),state={...verifiedSource(source),v3Settlements:{[source]:{status:'finalized',mint:'mint',collectionSignature:source,
+    allocationPlan:{status:'allocated-not-funded',protocol:{buybackLamports:'8911'}}}},v3BuybackOrders:{[source]:{status:'queued',programId}}};
+  let output;const route=createRewardStatusRoutes({store:{read:async()=>state},solanaCluster:'devnet',env:{FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId},respond:(_res,_status,data)=>{output=data;}});
+  await route({method:'GET'},{},new URL('https://funded.vip/api/buyback/status'));
+  assert.equal(output.minimumOrderLamports,'10000');assert.equal(output.pending[0].amountLamports,'8911');assert.equal(output.pending[0].status,'below-minimum-order');
+  state.v3BuybackOrders[source]={status:'verification-pending',signature:'4'.repeat(64),programId};
+  await route({method:'GET'},{},new URL('https://funded.vip/api/buyback/status'));
+  assert.equal(output.pending[0].status,'verification-pending');
+  state.v3BuybackOrders[source].status='queued';
+  await route({method:'GET'},{},new URL('https://funded.vip/api/buyback/status'));
+  assert.equal(output.pending[0].status,'verification-pending','A queued record with a signature must reconcile despite its small residual.');
+});
+
 test('V3 buyback status retains exact unspent allocation after a recorded burn',async()=>{
   const signature='3'.repeat(64);
   const state={...verifiedSource(signature),v3Settlements:{[signature]:{status:'finalized',
