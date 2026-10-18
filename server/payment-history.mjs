@@ -66,7 +66,7 @@ export function verifyAutomaticPayment(schedule, recipient, payment, transaction
 
 export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, connectionFactory, officialGenesis,
   cluster, v3Only = false, loadCreatorPayment = loadFinalizedV3RewardFunding,
-  loadReferralPayment = loadFinalizedV3RewardFunding }) {
+  loadReferralPayment = loadFinalizedV3RewardFunding, loadOperationsPayment = loadFinalizedV3RewardFunding }) {
   const cache = createReadCache({ ttlMs:30_000, maxEntries:1 });
   const verifiedAutomatic = new Map();
   const verifiedReferrals = new Map();
@@ -102,6 +102,10 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
       .sort((a, b) => String(b.payment.paidAt || '').localeCompare(String(a.payment.paidAt || '')));
     const creatorCandidates = v3Only ? Object.entries(state.v3CreatorWalletPayout || {})
       .filter(([, row]) => row?.status === 'finalized') : [];
+    const operationsCandidates = v3Only ? Object.entries(state.v3OperationsPayout || {})
+      .filter(([,row])=>row?.status==='finalized') : [];
+    const directCandidates=[...creatorCandidates.map(([source,row])=>[source,row,false]),
+      ...operationsCandidates.map(([source,row])=>[source,row,true])];
     const automatic = [];
     const creators = [];
     const olderProofs = [];
@@ -109,7 +113,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
     let referralSummary = { status:referralCount ? 'unavailable' : 'verified', paidLamports:'0',
       payoutCount:0, checkedCount:referralCount, unavailableCount:referralCount };
     let unavailable = dailySelection.unavailable;
-    if (candidates.length || older.length || creatorCandidates.length || referralCount || dailySelection.candidates.length) {
+    if (candidates.length || older.length || directCandidates.length || referralCount || dailySelection.candidates.length) {
       try {
         const connection = connectionFactory();
         if (await connection.getGenesisHash() !== await officialGenesis()) throw new Error('Wrong Solana network');
@@ -170,8 +174,8 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
             } catch { unavailable += 1; }
           }));
         }
-        for (let i = 0; i < creatorCandidates.length; i += 4) {
-          await Promise.all(creatorCandidates.slice(i, i + 4).map(async ([source, row]) => {
+        for (let i = 0; i < directCandidates.length; i += 4) {
+          await Promise.all(directCandidates.slice(i, i + 4).map(async ([source, row,operations]) => {
             try {
               const launch = state.launches?.[row.mint];
               const collection = state.collections?.[source];
@@ -182,8 +186,9 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
                 || !SIGNATURE.test(String(settlement?.settlementSignature || ''))
                 || !ADDRESS.test(String(row.mint || '')) || !ADDRESS.test(String(row.recipient || ''))
                 || !Number.isSafeInteger(amount) || amount <= 0
-                || row.balanceDeltaVerified !== true || row.category !== 0
-                || row.collectionSignature !== source || row.recipient !== launch?.creatorWallet
+                || row.balanceDeltaVerified !== true || row.category !== (operations?1:0)
+                || operations&&row.protectedPolicy!==true
+                || row.collectionSignature !== source || !operations&&row.recipient !== launch?.creatorWallet
                 || launch?.onchainVerified !== true || launch.cluster !== cluster
                 || route?.scope !== 'per-mint-v3' || !ADDRESS.test(String(route.programId || ''))
                 || row.programId !== route.programId || !ADDRESS.test(String(route.initialAuthority || ''))
@@ -193,33 +198,34 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
                 || collection.onchainVerified !== true || settlement?.status !== 'finalized'
                 || settlement.collectionSignature !== source || settlement.mint !== row.mint
                 || settlement.allocationPlan?.status !== 'allocated-not-funded'
-                || String(settlement.allocationPlan.creatorDirected?.walletLamports) !== String(row.amount))
-                throw new Error('Creator payment lacks a matching V3 allocation');
+                || String(operations?settlement.allocationPlan.protocol?.operationsLamports:settlement.allocationPlan.creatorDirected?.walletLamports) !== String(row.amount))
+                throw new Error('Payment lacks a matching V3 allocation');
               const transaction = await connection.getTransaction(row.signature, {
                 commitment:'finalized', maxSupportedTransactionVersion:0 });
               const authority = addressOf(transaction?.transaction?.message?.accountKeys?.[0]
                 || transaction?.transaction?.message?.staticAccountKeys?.[0]);
               if (!ADDRESS.test(authority)) throw new Error('Missing transaction authority');
-              const proof = await loadCreatorPayment({ connection, transaction, signature:row.signature,
+              const proof = await (operations?loadOperationsPayment:loadCreatorPayment)({ connection, transaction, signature:row.signature,
                 programId:route.programId, mint:row.mint, authority, creator:launch.creatorWallet,
                 initialAuthority:route.initialAuthority,
-                withdrawalId:v3DisbursementId('creator-wallet', settlement.settlementSignature),
-                category:0, amount:row.amount, recipient:row.recipient, split:route.protocolSplit });
+                withdrawalId:v3DisbursementId(operations?'operations':'creator-wallet', settlement.settlementSignature),
+                category:operations?1:0, amount:row.amount, recipient:row.recipient, split:route.protocolSplit,
+                protectedPolicy:row.protectedPolicy===true,beneficiary:operations?3:0,holderAmount:0n });
               if (!proof || proof.signature !== row.signature || proof.recipient !== row.recipient
                 || proof.mint !== row.mint || proof.programId !== route.programId
-                || proof.category !== 0 || proof.amount !== String(row.amount)
+                || proof.category !== (operations?1:0) || proof.amount !== String(row.amount)
                 || proof.balanceDeltaVerified !== true || !Number.isSafeInteger(proof.slot)
                 || proof.slot <= 0 || proof.feePayer !== authority
                 || !Number.isSafeInteger(proof.feeLamports) || proof.feeLamports < 0)
                 throw new Error('Creator payment proof does not match');
-              creators.push({ signature:row.signature, source:'v3-creator-wallet', to:row.recipient,
+              creators.push({ signature:row.signature, source:operations?'v3-operations':'v3-creator-wallet', to:row.recipient,
                 mint:row.mint, amountLamports:amount, actualReceivedLamports:amount,
                 feeLamports:proof.feeLamports, feePayer:authority,
                 slot:proof.slot, blockTime:proof.blockTime ?? null });
             } catch { unavailable += 1; }
           }));
         }
-      } catch { unavailable += candidates.length + older.length + creatorCandidates.length + referralCount + dailySelection.candidates.length; }
+      } catch { unavailable += candidates.length + older.length + directCandidates.length + referralCount + dailySelection.candidates.length; }
     }
     const recordedX = new Map((v3Only ? [] : Object.values(state.payouts || {}))
       .filter(row => row?.source === 'mint-router-settle-mint' && row.status === 'paid' && row.cluster === cluster)
@@ -243,6 +249,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
       .sort((a, b) => Number(b.blockTime || 0) - Number(a.blockTime || 0) || b.slot - a.slot);
     return { cluster, commitment:'finalized', status:unavailable || !v3Only && evidence.status === 'unavailable' ? 'partial' : 'onchain-indexed',
       verifiedPayouts:rows, checkedAutomatic:candidates.length, checkedCreator:creatorCandidates.length,
+      checkedOperations:operationsCandidates.length,
       checkedDaily:daily.checked, dailyBonusSummary:{status:daily.unavailable ? 'partial' : 'verified',
         payoutCount:daily.rows.length, paidLamports:String(daily.rows.reduce((sum,row)=>sum+BigInt(row.amountLamports),0n)),
         receivedLamports:String(daily.rows.reduce((sum,row)=>sum+BigInt(row.actualReceivedLamports),0n))},

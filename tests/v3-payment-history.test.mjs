@@ -8,7 +8,7 @@ const program='8'.repeat(44), initialAuthority='9'.repeat(44);
 const collectionSignature='3'.repeat(64), settlementSignature='4'.repeat(64);
 const paymentSignature='A'.repeat(64);
 
-function fixture({ amount='60', recipient=creator } = {}) {
+function fixture({ amount='60', operations=false, protectedPolicy=false, recipient=operations?'B'.repeat(44):creator } = {}) {
   const state={
     launches:{[mint]:{mint,creatorWallet:creator,cluster:'devnet',onchainVerified:true,
       pumpFeeRoute:{scope:'per-mint-v3',programId:program,initialAuthority,protocolSplit:{}}}},
@@ -19,9 +19,20 @@ function fixture({ amount='60', recipient=creator } = {}) {
         creatorDirected:{walletLamports:'60'}}}},
     v3CreatorWalletPayout:{[collectionSignature]:{collectionSignature,mint,
       signature:paymentSignature,recipient,amount,programId:program,category:0,
-      status:'finalized',balanceDeltaVerified:true}},
+      status:'finalized',balanceDeltaVerified:true,protectedPolicy}},
   };
+  if(operations){state.v3OperationsPayout=state.v3CreatorWalletPayout;state.v3CreatorWalletPayout={};
+    state.v3OperationsPayout[collectionSignature].category=1;
+    state.v3Settlements[collectionSignature].allocationPlan.protocol={operationsLamports:'60'};}
   let proofCalls=0;
+  const loadPayment=async args=>{
+    proofCalls++;
+    assert.deepEqual(args.withdrawalId,v3DisbursementId(operations?'operations':'creator-wallet',settlementSignature));
+    assert.equal(args.authority,authority);assert.equal(args.amount,'60');assert.equal(args.protectedPolicy,protectedPolicy);
+    assert.equal(args.beneficiary,operations?3:0);assert.equal(args.holderAmount,0n);
+    return {signature:paymentSignature,mint,programId:program,category:operations?1:0,amount:'60',
+      recipient:operations?recipient:creator,balanceDeltaVerified:true,slot:42,blockTime:1000,feePayer:authority,feeLamports:5000};
+  };
   const read=createPaymentHistoryReader({v3Only:true,cluster:'devnet',
     readEvidence:async()=>({cluster:'devnet',commitment:'finalized',status:'no-records'}),
     rewardsStore:{read:async()=>({schedules:{}})},store:{read:async()=>state},
@@ -29,15 +40,7 @@ function fixture({ amount='60', recipient=creator } = {}) {
       getGenesisHash:async()=> 'devnet-genesis',
       getTransaction:async()=>({transaction:{message:{accountKeys:[authority]}}}),
     }),
-    loadCreatorPayment:async args=>{
-      proofCalls++;
-      assert.deepEqual(args.withdrawalId,v3DisbursementId('creator-wallet',settlementSignature));
-      assert.equal(args.authority,authority);
-      assert.equal(args.amount,'60');
-      return {signature:paymentSignature,mint,programId:program,category:0,amount:'60',
-        recipient:creator,balanceDeltaVerified:true,slot:42,blockTime:1000,
-        feePayer:authority,feeLamports:5000};
-    },
+    loadCreatorPayment:loadPayment,loadOperationsPayment:loadPayment,
   });
   return {read,proofCalls:()=>proofCalls};
 }
@@ -60,4 +63,18 @@ test('mismatched creator allocation stays partial and never calls proof loader',
   assert.equal(history.checkedCreator,1);
   assert.equal(history.unavailablePayouts,1);
   assert.deepEqual(history.verifiedPayouts,[]);
+});
+
+test('protected V3 creator receipts preserve their beneficiary enforcement during history verification',async()=>{
+  const f=fixture({protectedPolicy:true}),history=await f.read();assert.equal(f.proofCalls(),1);
+  assert.equal(history.verifiedPayouts[0].source,'v3-creator-wallet');assert.equal(history.unavailablePayouts,0);
+});
+test('operations history requires a matching protected allocation and exact operations proof',async()=>{
+  const f=fixture({operations:true,protectedPolicy:true}),history=await f.read();assert.equal(f.proofCalls(),1);
+  assert.equal(history.checkedOperations,1);assert.equal(history.checkedCreator,0);
+  assert.equal(history.verifiedPayouts[0].source,'v3-operations');assert.equal(history.verifiedPayouts[0].actualReceivedLamports,60);
+  for(const invalid of [{operations:true},{operations:true,protectedPolicy:true,amount:'61'}]){
+    const bad=fixture(invalid),result=await bad.read();assert.equal(bad.proofCalls(),0);
+    assert.equal(result.unavailablePayouts,1);assert.deepEqual(result.verifiedPayouts,[]);
+  }
 });

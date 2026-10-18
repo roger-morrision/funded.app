@@ -8,7 +8,7 @@ import { shortAddress } from '../shared/display.js';
 export function payoutType(source) {
   return ({ 'solana-keeper-referral-claim':'referral', 'mint-router-settle-mint':'x',
     'automatic-creator':'creator', 'v3-creator-wallet':'creator',
-    'automatic-holder':'holder', 'automatic-operations':'operations',
+    'automatic-holder':'holder', 'automatic-operations':'operations', 'v3-operations':'operations',
     'automatic-community':'community', 'daily-bonus':'community', 'automatic-x':'x' })[source] || 'other';
 }
 
@@ -63,7 +63,8 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     payoutCard.querySelector('span').textContent = 'Finalized payments';
     payoutCard.querySelector('strong').textContent = paymentHistoryEvidence ? String(historyPayouts.length) : '—';
     const recorded = Number(paymentHistoryEvidence?.checkedAutomatic || 0)
-      + Number(paymentHistoryEvidence?.checkedCreator || 0) + Number(paymentHistoryEvidence?.checkedDaily || 0);
+      + Number(paymentHistoryEvidence?.checkedCreator || 0) + Number(paymentHistoryEvidence?.checkedDaily || 0)
+      + Number(paymentHistoryEvidence?.checkedOperations || 0);
     const checkedAt = Date.parse(paymentHistoryEvidence?.generatedAt || '');
     const freshness = Number.isFinite(checkedAt)
       ? ` · checked ${new Date(checkedAt).toISOString().slice(11, 16)} UTC` : '';
@@ -89,7 +90,7 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     const name = document.createElement('strong');
     name.textContent = ({ 'solana-keeper-referral-claim':'Referral reward', 'mint-router-settle-mint':'X account reward',
       'automatic-creator':'Creator fee', 'v3-creator-wallet':'Creator fee',
-      'automatic-holder':'Holder reward', 'automatic-operations':'Protocol payout',
+      'automatic-holder':'Holder reward', 'automatic-operations':'Protocol payout', 'v3-operations':'Operations & marketing',
       'automatic-community':'Community payout', 'daily-bonus':'Daily bonus', 'automatic-x':'X account reward' })[receipt.source] || 'SOL payout';
     if (['mint-router-settle-mint', 'automatic-x'].includes(receipt.source)
       && /^@[A-Za-z0-9_]{1,15}$/.test(receipt.xHandle || '')) name.textContent += ` · ${receipt.xHandle}`;
