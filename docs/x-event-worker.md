@@ -1,6 +1,18 @@
 # X event worker setup
 
-The intended account is **@johntrand83** (`X_POST_EXPECTED_HANDLE=johntrand83`). Posting is currently disabled: no dedicated posting credential is bound, the user has not approved public Devnet announcements, and the workspace preview is not a verified public HTTPS origin. This worker is separate from the hourly engineering automation.
+The funded.vip payout profile targets **@fundedvip** (`X_POST_EXPECTED_HANDLE=fundedvip`) with a separately verified, pinned account ID. The user authorized public Devnet payout congratulations. The generic worker remains draft-only unless its explicit execution gates are enabled. This worker is separate from the hourly engineering automation.
+
+## Automatic payout congratulations
+
+`compose.funded-vip-x-post.yml` enables `X_POST_PAYOUTS_ONLY=true` and uses the same exact source image as the app. It queues one announcement for each finalized holder reward, daily bonus, creator payment, X reward, referral payment, and protected operations payment. Community funding transfers, reward-vault funding, buyback orders and manual token-airdrop claims are not recipient SOL payouts and do not enter this stream.
+
+Each candidate is independently checked against the approved V3 program hash, its original collection, settlement and funding, and its finalized recipient payment. Automatic rewards also require the exact Merkle entitlement, cycle, payment PDA, payout instruction and balance deltas. Pending or mismatched evidence stays pending for reconciliation. A negative net change caused by receiver-paid fees and receipt rent is shown explicitly rather than described as a gain.
+
+Public text contains only the first four and last four wallet characters, a short receipt reference, the reward type and exact SOL amount, and a generic Rewards-page link. It does not tag an X user or include a full wallet, wallet URL, or full transaction signature. Devnet posts begin with `[Devnet test]`.
+
+Set `X_POST_START_AT` to a deliberate activation time. Historical payouts before that chain timestamp are not backfilled. Receipt PDAs keep event IDs stable across signature recovery and restarts. PostgreSQL persists the cursor and immutable outbox together. Confirmed posts are not resent; uncertain X delivery requires reconciliation, since X does not supply an exactly-once creation API.
+
+The profile queues every eligible receipt but dispatches at most one per minute, six per hour and 24 per day. Provider rate limits can delay the queue. Authentication, billing or permanent permission failures stay visible for operator repair. Automatic OAuth refresh is not implemented. The dedicated worker has no Solana signing secrets and mounts the reward ledger read-only.
 
 ## Image and data
 
@@ -12,7 +24,7 @@ The worker shares PostgreSQL, the configured Devnet RPC secret and a read-only a
 
 | Setting | Required value or purpose |
 | --- | --- |
-| `X_POST_EXPECTED_HANDLE` | `johntrand83`; the publisher checks `/2/users/me` before dispatch |
+| `X_POST_EXPECTED_HANDLE` | `fundedvip`; the publisher independently checks the authenticated account before dispatch |
 | `X_POST_ACCOUNT_ID` | Optional numeric account ID, recommended as an additional identity check |
 | `X_POST_PUBLIC_ORIGIN` | Verified public HTTPS app origin, without a path; localhost preview does not qualify |
 | `X_POST_START_AT` | Explicit ISO activation watermark at or before now; select deliberately to avoid unintended historical announcements |

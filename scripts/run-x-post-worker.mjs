@@ -11,6 +11,7 @@ import { buildXPost } from '../server/x-post-content.mjs';
 import { collectXPostEvents, createXPostChainAdapters } from '../server/x-post-events.mjs';
 import { verifyFeeRouterAccount } from '../fee-router.js';
 import { createXProfitVerifier } from '../server/x-profit-proof.mjs';
+import { createAutomaticPayoutVerifier } from '../server/x-auto-payouts.mjs';
 
 function numberSetting(value, fallback, min, max, name) {
   const result = value === undefined || value === '' ? fallback : Number(value);
@@ -46,10 +47,12 @@ export function xWorkerConfig(env, args = []) {
   if (execute && oauth1 && ['X_POST_API_KEY', 'X_POST_API_SECRET', 'X_POST_ACCESS_TOKEN', 'X_POST_ACCESS_TOKEN_SECRET'].some(key => !env[key]))
     throw new Error('Complete X OAuth 1.0a user credentials are required for publication.');
   const minProfitLamports = env.X_POST_MIN_PROFIT_LAMPORTS || '1000000000';
+  if(env.X_POST_PAYOUTS_ONLY!==undefined&&!['true','false'].includes(env.X_POST_PAYOUTS_ONLY))throw new Error('X_POST_PAYOUTS_ONLY must be true or false.');
   if (!/^[1-9]\d{0,19}$/.test(minProfitLamports)) throw new Error('X_POST_MIN_PROFIT_LAMPORTS must be positive integer lamports.');
   return {
     mode: args.includes('--status') ? 'status' : args.includes('--loop') ? 'loop' : 'once', execute, cluster, handle,
     origin: origin.origin, enabledAt: new Date(start).toISOString(), minProfitLamports,
+    payoutsOnly:env.X_POST_PAYOUTS_ONLY==='true',
     intervalMs: numberSetting(env.X_POST_INTERVAL_MS, 60_000, 10_000, 3_600_000, 'X_POST_INTERVAL_MS'),
     maxPosts: numberSetting(env.X_POST_MAX_PER_PASS, 1, 1, 20, 'X_POST_MAX_PER_PASS'),
     maxHourlyPosts: numberSetting(env.X_POST_MAX_HOURLY, 6, 1, 60, 'X_POST_MAX_HOURLY'),
@@ -81,14 +84,16 @@ async function verifyPublicApp(config) {
 export async function runXPostCycle({ config, store, mainStore, readRewards, adapters, publish, now = Date.now() }) {
   const checkpoint = await store.readCursor();
   const [state, rewardState] = await Promise.all([mainStore.read(), readRewards()]);
+  if(config.payoutsOnly&&typeof adapters.verifyPayoutReadiness==='function')await adapters.verifyPayoutReadiness();
   const collected = await collectXPostEvents({ state, rewardState, enabledAt: config.enabledAt, now,
-    cursor: checkpoint.cursor, adapters: { ...adapters, isKnownEvent: id => store.has(id), isPostedEvent: id => store.isPosted(id) }, minProfitLamports: config.minProfitLamports });
+    cursor: checkpoint.cursor, adapters: { ...adapters, isKnownEvent: id => store.has(id), isPostedEvent: id => store.isPosted(id) }, minProfitLamports: config.minProfitLamports,payoutsOnly:config.payoutsOnly });
   // Any formatting failure leaves the entire cursor unchanged for investigation.
   const events = collected.events.map(event => ({ id: event.id, occurredAt: event.occurredAt,
     ...buildXPost(event.kind, event.payload, { cluster: event.cluster, publicOrigin: config.origin, minProfitLamports: config.minProfitLamports }) }));
   await store.enqueueBatch(events, { cursor: collected.cursor, version: checkpoint.version });
   const checkedPublish = async (event, options) => {
     if (event.cluster !== config.cluster) throw Object.assign(new Error('Queued X event does not match the configured network.'), { delivery: 'rejected' });
+    if(config.payoutsOnly&&event.kind!=='auto_payout')throw Object.assign(new Error('This worker is restricted to payout congratulations.'),{delivery:'rejected'});
     return publish(event, options);
   };
   const dispatch = await runXPostWorker({ store, publish: checkedPublish, enabled: true, dryRun: !config.execute, maxPosts: config.maxPosts });
@@ -130,6 +135,8 @@ async function main(args) {
       throw new Error('The finalized V3 router authority is unavailable for X event verification.');
     const adapters = createXPostChainAdapters({ connection, fundedMint: env.FUNDED_TOKEN_MINT || env.VITE_FUNDED_TOKEN_MINT,
       programId: v3ProgramId, rewardAuthority:v3Router.authority.toBase58() });
+    Object.assign(adapters,createAutomaticPayoutVerifier({connection,programId:v3ProgramId,
+      authority:v3Router.authority.toBase58(),approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256}));
     adapters.verifyPublicClosedTrade = createXProfitVerifier({ connection, publicOrigin: config.origin, xAccount: config.handle,
       appFeeRecipient: env.FUNDED_TRADE_FEE_OWNER || env.VITE_FUNDED_TRADE_FEE_OWNER || null });
     const ledger = rewardLedgerPath(env);

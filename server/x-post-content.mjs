@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
 import { PublicKey } from '@solana/web3.js';
 
-export const X_POST_KINDS = Object.freeze(['launch', 'launch_followup', 'listing', 'trade_profit', 'daily_projects', 'daily_rewards']);
+export const X_POST_KINDS = Object.freeze(['launch', 'launch_followup', 'listing', 'trade_profit', 'daily_projects', 'daily_rewards', 'auto_payout']);
 export const DEFAULT_BIG_PROFIT_LAMPORTS = '1000000000';
 const LAMPORTS = 1_000_000_000n;
 const DAY_MS = 86_400_000;
@@ -112,7 +112,16 @@ export function buildXPost(kind, payload, { cluster, publicOrigin = 'https://fun
   const proofs = finalizedProofs(payload.proofs, cluster);
   const prefix = cluster === 'devnet' ? '[Devnet test] ' : '[Mainnet] ';
   let makeText;
-  if (kind === 'launch' || kind === 'launch_followup' || kind === 'listing' || kind === 'trade_profit') {
+  if(kind==='auto_payout') {
+    const wallet=address(payload.recipient,'Recipient'),amount=units(payload.amountLamports,'Gross reward',true);
+    const labels={holder:'Holder reward',creator:'Creator payout',referral:'Referral reward',x:'X reward',operations:'Operations payout',bonus:'Daily bonus'};
+    requireValue(Object.hasOwn(labels,payload.payoutKind),'A verified payout type is required.');
+    requireValue(typeof payload.netLamports==='string'&&/^-?(0|[1-9]\d{0,39})$/.test(payload.netLamports),'Exact net wallet change is required.');
+    const net=BigInt(payload.netLamports),fee=units(payload.feeLamports,'Transaction fee'),rent=units(payload.rentLamports,'Receipt rent');
+    requireValue(net===amount||net===amount-fee-rent,'Net change does not reconcile with verified costs.');
+    const masked=`${wallet.slice(0,4)}...${wallet.slice(-4)}`;
+    makeText=()=>`${prefix}Congratulations ${masked}! ${labels[payload.payoutKind]} finalized: ${formatXSol(amount)} SOL${net!==amount?' gross. Net wallet change: '+(net<0n?'-':'')+formatXSol(net<0n?-net:net)+' SOL after fees/rent.':'.'}\nReceipt ${proofs[0].signature.slice(0,10)}\n${origin}/#payments`;
+  } else if (kind === 'launch' || kind === 'launch_followup' || kind === 'listing' || kind === 'trade_profit') {
     const mint = address(payload.mint);
     const link = `${origin}/token/${mint}`;
     const project = budget => `“${sanitizeXLabel(payload.name || payload.symbol, budget)}”`;

@@ -6,6 +6,7 @@ import { verifyRewardProof } from '../reward-merkle.js';
 import { verifyPumpLaunch } from './launch-verification.mjs';
 import { verifyFundedBurn } from './burn-verification.mjs';
 import { listingMemo } from '../listing-policy.js';
+import { automaticPayoutCandidates } from './x-auto-payouts.mjs';
 
 const DEVNET_GENESIS = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -204,21 +205,23 @@ export function createXPostChainAdapters({ connection, fundedMint, programId, re
  * Daily providers must cover the exact full UTC day and reverify every included
  * transaction. Bounded dashboard caches and user-supplied aggregates are not providers.
  */
-export async function collectXPostEvents({ state = {}, rewardState = null, enabledAt, now = Date.now(), cursor = null, adapters = {}, maxBatch = 50, minProfitLamports = '1000000000' } = {}) {
+export async function collectXPostEvents({ state = {}, rewardState = null, enabledAt, now = Date.now(), cursor = null, adapters = {}, maxBatch = 50, minProfitLamports = '1000000000', payoutsOnly = false } = {}) {
   const nowMs = time(now), baseline = time(enabledAt);
   if (!Number.isFinite(nowMs) || !Number.isFinite(baseline) || baseline > nowMs) throw new Error('A valid past or current activation time is required.');
   if (!Number.isSafeInteger(maxBatch) || maxBatch < 1 || maxBatch > 200) throw new Error('Collector batch must be from 1 to 200.');
   if (!positiveUnits(minProfitLamports)) throw new Error('A positive profit threshold in lamports is required.');
   if (cursor && (cursor.version !== 1 || cursor.enabledAt !== iso(baseline))) throw new Error('Collector cursor activation baseline differs; explicitly reset before changing it.');
-  const firstStream = cursor?.nextStream ?? 0;
-  if (!Number.isInteger(firstStream) || firstStream < 0 || firstStream > 5) throw new Error('Invalid event stream scheduling cursor.');
+  const savedStream = cursor?.nextStream ?? 0;
+  if (!Number.isInteger(savedStream) || savedStream < 0 || savedStream > 5) throw new Error('Invalid event stream scheduling cursor.');
+  const firstStream = payoutsOnly ? 0 : savedStream;
   const events = [], sourceGaps = [], batchToken = Symbol('x-event-poll');
   const gap = (source, reason, id = null) => sourceGaps.push({ source, reason, ...(id ? { id } : {}) });
-  const next = { version: 1, enabledAt: iso(baseline), streams: structuredClone(cursor?.streams || {}), lastPolledAt: iso(nowMs), nextStream: (firstStream + 1) % 6 };
+  const next = { version: 1, enabledAt: iso(baseline), streams: structuredClone(cursor?.streams || {}), lastPolledAt: iso(nowMs), nextStream: payoutsOnly ? 0 : (firstStream + 1) % 6 };
   let budget = maxBatch;
   const known = async id => typeof adapters.isKnownEvent === 'function' && await adapters.isKnownEvent(id);
   const end = Math.floor(nowMs / DAY) * DAY, start = end - DAY;
-  const streams = [
+  const streams = payoutsOnly ? [{kind:'auto_payout',rows:automaticPayoutCandidates(state,rewardState),verifier:adapters.verifyAutomaticPayout,
+    at:row=>time(row.paidAt),identity:row=>`${row.receiptId||row.signature}:${row.recipient}`}]:[
     { kind: 'launch', rows: Object.values(state.launches || {}).filter(row => v3Launch(row) && marketingTier(row)), verifier: adapters.verifyLaunch,
       at: row => Number.isFinite(time(row.onchainVerifiedAt)) ? time(row.onchainVerifiedAt) : Number.isSafeInteger(row.createdTimestamp) ? row.createdTimestamp * 1000 : NaN, identity: row => `${row.mint}:${row.signature}` },
     { kind: 'listing', rows: Object.values(state.listings || {}).filter(row => row?.onchainVerified === true && row.cluster === 'devnet' && row.status === 'listed'), verifier: adapters.verifyListing,
@@ -245,7 +248,8 @@ export async function collectXPostEvents({ state = {}, rewardState = null, enabl
     if (position.reconciliation != null && (!eventId(position.reconciliation.throughId)
       || position.reconciliation.afterId !== null && (!eventId(position.reconciliation.afterId) || position.reconciliation.afterId > position.reconciliation.throughId))) throw new Error('Invalid event reconciliation cursor.');
     const seenIds = new Set();
-    const rows = stream.rows.filter(row => ADDRESS.test(row.mint || '') && (stream.kind === 'trade_profit' || signatureValid(row.signature)))
+    const rows = stream.rows.filter(row => ADDRESS.test(row.mint || '') && (stream.kind === 'trade_profit' || signatureValid(row.signature)
+      || stream.kind==='auto_payout'&&!row.signature&&ADDRESS.test(row.receiptId||'')))
       .map(row => ({ row, at: stream.at(row), id: identity(stream.kind, stream.identity(row)) }))
       .filter(item => Number.isFinite(item.at) && item.at >= baseline && item.at <= nowMs)
       .sort((a, b) => a.at - b.at || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
@@ -324,7 +328,14 @@ export async function collectXPostEvents({ state = {}, rewardState = null, enabl
         if ((stream.kind === 'launch' || stream.kind === 'launch_followup')
           && verified.marketingTier !== marketingTier(item.row)) throw new Error('Verified marketing tier differs from the registered burn.');
         let payload;
-        if (stream.kind === 'trade_profit') {
+        if (stream.kind === 'auto_payout') {
+          if(verified.recipient!==item.row.recipient||verified.payoutKind!==item.row.kind
+            ||item.row.signature&&!proofs.some(proof=>proof.signature===item.row.signature)
+            ||!item.row.signature&&verified.receiptId!==item.row.receiptId)throw new Error('Verified payout identity differs from the recorded receipt.');
+          payload={mint:verified.mint,recipient:verified.recipient,payoutKind:verified.payoutKind,
+            amountLamports:verified.amountLamports,netLamports:verified.netLamports,
+            feeLamports:verified.feeLamports,rentLamports:verified.rentLamports,proofs};
+        } else if (stream.kind === 'trade_profit') {
           if (verified.publicConsent !== true || verified.completeCostBasis !== true || verified.positionClosed !== true || proofs.length < 2
             || verified.wallet !== item.row.wallet || !proofs.some(proof => proof.signature === item.row.buySignature) || !proofs.some(proof => proof.signature === item.row.sellSignature)
             || !positiveUnits(verified.buyCostLamports) || !positiveUnits(verified.sellProceedsLamports) || !/^(?:0|[1-9]\d*)$/.test(verified.feesLamports || '')) throw new Error('Verified closed-position cost basis, fees and public consent are required.');

@@ -73,7 +73,7 @@ function transactionProof(tx, signature, candidate, program, addresses) {
   const vault=keys.indexOf(address(addresses.vault)), recipient=keys.indexOf(leaf.recipient), payment=keys.indexOf(address(addresses.payment));
   if ([vault,recipient,payment].some(index=>index<0) || pre[payment] !== 0 || post[payment] <= 0) return null;
   const gross=Number(leaf.amount), net=post[recipient]-pre[recipient];
-  if (pre[vault]-post[vault] !== gross || net <= 0
+  if (pre[vault]-post[vault] !== gross || net <= 0 && recipient !== 0
     || net !== gross-(recipient === 0 ? fee+post[payment] : 0)) return null;
   return {signature,source:'daily-bonus',to:leaf.recipient,mint:source.mint,day:snapshot.day,
     amountLamports:gross,actualReceivedLamports:net,feeLamports:fee,feePayer:keys[0],

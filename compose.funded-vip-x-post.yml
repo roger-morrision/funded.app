@@ -3,7 +3,7 @@
 services:
   x-post-worker:
     profiles: [x-posting]
-    image: ${FUNDED_APP_IMAGE:?Set the verified funded.vip image}
+    image: ${FUNDED_RELEASE_IMAGE:?Set the same exact-SHA image as the app}
     restart: unless-stopped
     init: true
     read_only: true
@@ -13,6 +13,7 @@ services:
     command: [node, scripts/run-x-post-worker.mjs, --loop, --execute]
     environment:
       NODE_ENV: production
+      FUNDED_BUILD_ID: ${FUNDED_RELEASE_SHA:?Set the tested source SHA}
       DATABASE_URL_FILE: /run/secrets/database_url
       DATABASE_SSL: 'false'
       SOLANA_CLUSTER: devnet
@@ -20,11 +21,14 @@ services:
       AUTOMATIC_REWARD_STORE_PATH: /app/data/automatic-rewards/ledger.json
       FUNDED_TOKEN_MINT: ${FUNDED_TOKEN_MINT:-}
       FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_FEE_ROUTER_PROGRAM_ID:-}
+      FUNDED_V3_FEE_ROUTER_PROGRAM_ID: ${FUNDED_V3_FEE_ROUTER_PROGRAM_ID:?Set the approved V3 program}
+      FUNDED_V3_PROGRAM_DATA_SHA256: ${FUNDED_V3_PROGRAM_DATA_SHA256:?Set the approved V3 ProgramData hash}
       FUNDED_REWARD_AUTHORITY: ${FUNDED_REWARD_AUTHORITY:-}
       FUNDED_TRADE_FEE_OWNER: ${FUNDED_TRADE_FEE_OWNER:-}
       X_POST_ENABLED: ${X_POST_ENABLED:?Explicitly enable verified publication}
       X_POST_ALLOW_DEVNET: ${X_POST_ALLOW_DEVNET:?Explicitly authorize public Devnet posts}
       X_POST_EXPECTED_HANDLE: fundedvip
+      X_POST_PAYOUTS_ONLY: 'true'
       X_POST_ACCOUNT_ID: ${X_POST_ACCOUNT_ID:?Pin the verified fundedvip X user ID}
       X_POST_API_KEY_FILE: /run/secrets/x_post_api_key
       X_POST_API_SECRET_FILE: /run/secrets/x_post_api_secret

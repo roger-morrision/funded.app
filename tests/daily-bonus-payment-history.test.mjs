@@ -118,6 +118,17 @@ test('self-paid daily awards show the exact net receipt after fees and payment-a
   assert.equal(history.verifiedPayouts[0].actualReceivedLamports,Number(f.leaf.amount)-f.fee-f.rent);
   assert.equal(history.verifiedPayouts[0].recipientRentLamports,f.rent);
 });
+
+test('a self-paid bonus with costs exceeding its award remains a verified net debit',async()=>{
+  const f=fixture({self:true});
+  const keys=f.tx.transaction.message.accountKeys;
+  const index=keys.findIndex(key=>key.equals(f.addresses.payment));
+  const extra=Number(f.leaf.amount);
+  f.tx.meta.postBalances[index]+=extra;f.tx.meta.postBalances[0]-=extra;
+  const history=await f.read();assert.equal(history.verifiedPayouts.length,1);
+  assert.equal(history.verifiedPayouts[0].actualReceivedLamports,-f.fee-f.rent);
+  assert.equal(history.verifiedPayouts[0].recipientRentLamports,f.rent+extra);
+});
 test('versioned transactions with typed account indexes and loaded addresses remain verifiable',async()=>{
   const f=fixture(), original=f.tx.transaction.message;
   f.tx.transaction.message={header:original.header,staticAccountKeys:original.accountKeys.slice(0,-2),
