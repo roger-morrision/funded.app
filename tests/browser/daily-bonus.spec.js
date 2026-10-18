@@ -99,6 +99,33 @@ test('Analytics identifies V3 creator receipts and displays the net wallet recei
   await expect(page.locator('.recipients-panel .payment-row')).toContainText('Creator ·');
   await expect(page.locator('.recipients-panel .payment-row')).toContainText('0.0000009 SOL received');
   await expect(page.locator('.recipients-panel .payment-row')).not.toContainText('Recipient ·');
-  await expect(page.locator('[data-payment-scope]')).toContainText('Daily bonus receipts are listed separately');
-  await expect(page.locator('[data-payment-scope] a')).toHaveAttribute('href','#capital-flow');
+  await expect(page.locator('[data-payment-scope]')).toContainText('Daily bonus receipts are included');
+  await expect(page.locator('[data-payment-scope] a')).toHaveAttribute('href','#bonuses');
+});
+
+test('Daily bonus receipts are named, filterable, and explain receiver-paid rent', async ({page}) => {
+  await page.setViewportSize({width:390,height:844});
+  await page.route('**/api/**', route => route.fulfill({status:503,json:{error:'Offline fixture'}}));
+  await page.route('**/api/evidence/payment-history', route => route.fulfill({json:{cluster:'devnet',
+    status:'onchain-indexed',checkedDaily:1,verifiedPayouts:[{source:'daily-bonus',to:wallets[0],
+      signature:'3'.repeat(64),amountLamports:2000000,actualReceivedLamports:995000,
+      recipientRentLamports:1000000,feeLamports:5000,feePayer:wallets[0],blockTime:1792274400}]}}));
+  await page.route('https://**/*',route=>route.abort());
+  await page.goto('/#payments');
+  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  await page.waitForFunction(()=>document.body.dataset.bootstrapState === 'ready'
+    && document.body.classList.contains('product-experience-ready'));
+  await page.getByRole('tab',{name:'History',exact:true}).click();
+  const row=page.locator('#payment-list .payment-history-row');
+  await expect(row).toBeVisible();
+  await expect(row).toContainText('Daily bonus');
+  await expect(row).toContainText('0.000995');
+  await page.locator('#payment-history-type').selectOption('community');
+  await expect(row).toHaveCount(1);
+  await row.locator('summary').click();
+  await expect(row).toContainText('Payment account rent 0.001 SOL · paid by receiver');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({path:'test-results/daily-bonus-payment-mobile.png'});
+  await page.locator('#payment-history-type').selectOption('creator');
+  await expect(row).toHaveCount(0);
 });

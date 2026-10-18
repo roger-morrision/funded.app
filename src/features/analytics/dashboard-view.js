@@ -62,9 +62,9 @@ export function renderExtendedAnalyticsDashboard({ assets, verifiedLaunchPolicie
     let scope = recipients.querySelector('[data-payment-scope]');
     if (!scope) {
       scope = document.createElement('p'); scope.dataset.paymentScope = ''; scope.className = 'field-help';
-      scope.append('Daily bonus receipts are listed separately in ');
-      const link = document.createElement('a'); link.href = '#capital-flow'; link.textContent = 'Capital flow';
-      scope.append(link,'. They are not included in the payment history totals shown here.'); recipients.append(scope);
+      scope.append('Independently verified Daily bonus receipts are included in payment history totals. View rankings in ');
+      const link = document.createElement('a'); link.href = '#bonuses'; link.textContent = 'Daily bonuses';
+      scope.append(link,'.'); recipients.append(scope);
     }
     const recentPayouts = Array.isArray(paymentHistoryEvidence?.verifiedPayouts) ? paymentHistoryEvidence.verifiedPayouts : [];
     const count = recipients.querySelector('.panel-count');
@@ -79,7 +79,7 @@ export function renderExtendedAnalyticsDashboard({ assets, verifiedLaunchPolicie
         const name = document.createElement('strong');
         const xHandle = ['mint-router-settle-mint', 'automatic-x'].includes(payout.source)
           && /^@[A-Za-z0-9_]{1,15}$/.test(payout.xHandle || '') ? payout.xHandle : null;
-        name.textContent = `${({ 'solana-keeper-referral-claim':'Referral', 'mint-router-settle-mint':'X account', 'automatic-creator':'Creator', 'v3-creator-wallet':'Creator', 'automatic-holder':'Holder', 'automatic-operations':'Protocol', 'automatic-community':'Community', 'automatic-x':'X account' })[payout.source] || 'Recipient'} · ${xHandle || shortAddress(payout.to)}`;
+        name.textContent = `${({ 'solana-keeper-referral-claim':'Referral', 'mint-router-settle-mint':'X account', 'automatic-creator':'Creator', 'v3-creator-wallet':'Creator', 'automatic-holder':'Holder', 'automatic-operations':'Protocol', 'automatic-community':'Community', 'daily-bonus':'Daily bonus', 'automatic-x':'X account' })[payout.source] || 'Recipient'} · ${xHandle || shortAddress(payout.to)}`;
         const proof = document.createElement('a'); proof.href = exploreExplorer(`tx/${encodeURIComponent(payout.signature)}`); proof.target = '_blank'; proof.rel = 'noopener noreferrer';
         proof.className = 'payment-receipt-link solana-explorer-link';
         proof.innerHTML = icon('solana');

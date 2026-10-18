@@ -52,6 +52,7 @@ export function v3PublicMetrics(state, evidence, history, rewards, cluster) {
     ? history.verifiedPayouts || [] : [];
   const partialPayouts = history?.status !== 'onchain-indexed';
   const holder = payoutGroup(payments,'automatic-holder',partialPayouts);
+  const daily = payoutGroup(payments,'daily-bonus',partialPayouts);
   const x = payoutGroup(payments,'automatic-x',partialPayouts);
   const creator = history?.cluster === cluster && history.commitment === 'finalized'
     ? payoutGroup(payments,'v3-creator-wallet',partialPayouts)
@@ -73,11 +74,13 @@ export function v3PublicMetrics(state, evidence, history, rewards, cluster) {
     ['recordedCollectedLamports',recordedTotal],['collectedLamports',collected],
     ['finalizedPaidLamports',paid],
     ['referralPaidLamports',referralPaid],
+    ['dailyBonusPaidLamports',BigInt(daily.paidLamports)],
   ].filter(([,amount])=>number(amount)===null).map(([field])=>field);
   return { status, precisionStatus:precisionUnavailableFields.length ? 'overflow' : 'safe',
     precisionUnavailableFields,
     exactLamports:{ recordedCollectedLamports:String(recordedTotal),
-      collectedLamports:String(collected), finalizedPaidLamports:String(paid), referralPaidLamports:String(referralPaid) },
+      collectedLamports:String(collected), finalizedPaidLamports:String(paid), referralPaidLamports:String(referralPaid),
+      dailyBonusPaidLamports:daily.paidLamports },
     receiptCommitment:'finalized', receiptScope:'verified-v3-collections',
     recordedCollections:recorded.length, recordedCollectedLamports:number(recordedTotal),
     collections:verified.length, settlements:settled.length,
@@ -86,7 +89,9 @@ export function v3PublicMetrics(state, evidence, history, rewards, cluster) {
     collectedLamports:number(collected), buybackAccrued:Number(buyback)/1_000_000_000,
     finalizedPaidLamports:number(paid), referralPaidLamports:referral ? number(referralPaid) : null,
     referralPayoutCount:referral ? referralCount : null, referralEvidenceStatus:referral?.status || 'unavailable',
-    recordedPayouts:(history?.checkedAutomatic || 0) + (history?.checkedCreator || 0) + (history?.referralSummary?.checkedCount || 0),
+    recordedPayouts:(history?.checkedAutomatic || 0) + (history?.checkedCreator || 0) + (history?.checkedDaily || 0) + (history?.referralSummary?.checkedCount || 0),
+    dailyBonusPaidLamports:number(BigInt(daily.paidLamports)), dailyBonusPayoutCount:daily.payoutCount,
+    dailyBonusEvidenceStatus:history?.dailyBonusSummary?.status || 'unavailable',
     verifiedPayoutCount:payments.length + referralCount, payoutEvidenceAt:history?.generatedAt || null,
     rewardPaid:{ cluster, commitment:'finalized', holder:{ ...holder, top:undefined },
       x:{ ...x, top:undefined } },

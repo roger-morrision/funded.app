@@ -4,6 +4,7 @@ import { cachedReceiptProof, receiptFingerprint } from './receipt-history.mjs';
 import { loadFinalizedV3RewardFunding } from './v3-reward-funding-proof.mjs';
 import { v3DisbursementId } from './v3-disbursement-id.mjs';
 import { v3ReferralPaymentSummary } from './v3-referral-payment-summary.mjs';
+import { dailyPaymentCandidates, dailyPaymentHistory } from './daily-bonus-payment-history.mjs';
 
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
@@ -59,8 +60,12 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
   const cache = createReadCache({ ttlMs:30_000, maxEntries:1 });
   const verifiedAutomatic = new Map();
   const verifiedReferrals = new Map();
+  const verifiedDaily = new Map();
   return () => cache('recent', async () => {
     const [evidence, ledger, state] = await Promise.all([readEvidence(), rewardsStore.read(), store?.read?.() ?? {}]);
+    const dailySelection = cluster === 'devnet' ? dailyPaymentCandidates(ledger) : {candidates:[],checked:0,unavailable:0};
+    let daily = {rows:[],checked:dailySelection.checked,
+      unavailable:dailySelection.unavailable + dailySelection.candidates.length};
     const verified = !v3Only && evidence.cluster === cluster && evidence.commitment === 'finalized'
       ? evidence.verifiedPayouts || [] : [];
     const recorded = (v3Only ? [] : Object.values(state.payouts || {})).filter(row => row?.cluster === cluster && row.status === 'paid'
@@ -93,11 +98,13 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
     const referralCount = v3Only ? Object.values(state.v3ReferralPayouts || {}).filter(row => row?.status === 'finalized').length : 0;
     let referralSummary = { status:referralCount ? 'unavailable' : 'verified', paidLamports:'0',
       payoutCount:0, checkedCount:referralCount, unavailableCount:referralCount };
-    let unavailable = 0;
-    if (candidates.length || older.length || creatorCandidates.length || referralCount) {
+    let unavailable = dailySelection.unavailable;
+    if (candidates.length || older.length || creatorCandidates.length || referralCount || dailySelection.candidates.length) {
       try {
         const connection = connectionFactory();
         if (await connection.getGenesisHash() !== await officialGenesis()) throw new Error('Wrong Solana network');
+        daily = await dailyPaymentHistory({connection,state,selection:dailySelection,proofCache:verifiedDaily});
+        unavailable += daily.unavailable - dailySelection.unavailable;
         if (v3Only) {
           referralSummary = await v3ReferralPaymentSummary({ state, connection, cluster,
             loadFunding:loadReferralPayment, proofCache:verifiedReferrals });
@@ -202,7 +209,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
             } catch { unavailable += 1; }
           }));
         }
-      } catch { unavailable += candidates.length + older.length + creatorCandidates.length + referralCount; }
+      } catch { unavailable += candidates.length + older.length + creatorCandidates.length + referralCount + dailySelection.candidates.length; }
     }
     const recordedX = new Map((v3Only ? [] : Object.values(state.payouts || {}))
       .filter(row => row?.source === 'mint-router-settle-mint' && row.status === 'paid' && row.cluster === cluster)
@@ -214,7 +221,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
         ? verifiedXHandle(state, cluster, record.mint, record.obligationId, proof.to) : null;
       return xHandle ? { ...proof, xHandle } : proof;
     });
-    const rows = [...new Map([...attributed, ...automatic, ...creators].filter(row =>
+    const rows = [...new Map([...attributed, ...automatic, ...creators, ...daily.rows].filter(row =>
       ADDRESS.test(String(row.to || '')) && SIGNATURE.test(String(row.signature || ''))
       && Number.isSafeInteger(row.actualReceivedLamports) && row.actualReceivedLamports > 0
       && (row.feeLamports === null || Number.isSafeInteger(row.feeLamports) && row.feeLamports >= 0)
@@ -223,6 +230,9 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
       .sort((a, b) => Number(b.blockTime || 0) - Number(a.blockTime || 0) || b.slot - a.slot);
     return { cluster, commitment:'finalized', status:unavailable || !v3Only && evidence.status === 'unavailable' ? 'partial' : 'onchain-indexed',
       verifiedPayouts:rows, checkedAutomatic:candidates.length, checkedCreator:creatorCandidates.length,
+      checkedDaily:daily.checked, dailyBonusSummary:{status:daily.unavailable ? 'partial' : 'verified',
+        payoutCount:daily.rows.length, paidLamports:String(daily.rows.reduce((sum,row)=>sum+BigInt(row.amountLamports),0n)),
+        receivedLamports:String(daily.rows.reduce((sum,row)=>sum+BigInt(row.actualReceivedLamports),0n))},
       ...(v3Only ? { referralSummary } : {}),
       unavailablePayouts:unavailable, generatedAt:new Date().toISOString(),
       note:'Network transaction fees are paid by the transaction fee payer; received amounts are verified recipient balance increases.' };

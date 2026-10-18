@@ -29,7 +29,7 @@ export function initDailyBonusView(document = globalThis.document) {
     intro.textContent = `${snapshot.day} UTC · ${sol(snapshot.allocatedLamports)} allocated · ${sol(snapshot.retainedLamports)} retained for unfilled ranks. Allocation is not a payment.`;
     results.append(intro);
     const paidNote = document.createElement('p'); paidNote.className = 'field-help';
-    paidNote.textContent = 'Finalized received totals combine all Daily bonus categories for this wallet and UTC day. Repeated wallets show the same total; allocations are shown per ranking group. These receipts are listed separately from the global payment history totals.';
+    paidNote.textContent = 'Finalized received totals combine all Daily bonus categories for this wallet and UTC day. Repeated wallets show the same total; allocations are shown per ranking group. Global payment history includes these receipts after independent chain verification.';
     results.append(paidNote);
     for (const [key, label] of Object.entries(GROUPS)) {
       const group = document.createElement('section'), heading = document.createElement('h3'); heading.textContent = label; group.append(heading);
