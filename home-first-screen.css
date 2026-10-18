@@ -55,3 +55,12 @@ html body.page-route-overview .topbar :is(#open-menu, #header-search-trigger) { 
   html body.page-route-overview .home-launch-tabs button { min-height: 36px; }
   html body.page-route-overview .home-launch-grid { gap: 8px; }
 }
+.activity-coverage {
+  margin: 0 0 10px;
+  min-block-size: 6em;
+  color: var(--muted, #a7b4ca);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 768px) { .activity-coverage { min-block-size: 3em; } }

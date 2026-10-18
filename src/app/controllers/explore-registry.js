@@ -45,13 +45,13 @@ export function createExploreRegistryController(appState) {
     const supported = {
       boosted: true,
       'market-cap': appState.assets.some(item => item.curveCapSol != null),
-      volume: appState.exploreScannedCount === appState.assets.length && appState.assets.some(item => appState.withMarketWindow(item, appState.exploreWindow).windowVolumeSol != null),
+      volume: appState.assets.some(item => appState.withMarketWindow(item, appState.exploreWindow).windowVolumeSol != null),
       airdrop: benefits.some(item => item.benefitPolicyVerified && item.communityAirdropPercent != null),
       'tier-burn': benefits.some(item => item.promotionBurnTokens != null),
       'holder-fee': benefits.some(item => item.benefitPolicyVerified && item.holderFeePercent != null),
       'x-fee': benefits.some(item => item.benefitPolicyVerified && item.xFeePercent != null),
-      trades: appState.exploreScannedCount === appState.assets.length && appState.assets.some(item => appState.withMarketWindow(item, appState.exploreWindow).windowTradeCount != null),
-      turnover: appState.exploreScannedCount === appState.assets.length && appState.assets.some(item => { const metric = appState.withMarketWindow(item, appState.exploreWindow); return metric.windowVolumeSol != null && metric.curveCapSol > 0; }),
+      trades: appState.assets.some(item => appState.withMarketWindow(item, appState.exploreWindow).windowTradeCount != null),
+      turnover: appState.assets.some(item => { const metric = appState.withMarketWindow(item, appState.exploreWindow); return metric.windowVolumeSol != null && metric.curveCapSol > 0; }),
       liquidity: appState.assets.some(item => item.curveReserveSol != null),
       'recent-trade': true,
       holders: false,
@@ -62,7 +62,10 @@ export function createExploreRegistryController(appState) {
       const available = supported[button.dataset.exploreSort || button.dataset.exploreLeaderSort] !== false
         && (!button.dataset.exploreLeaderSort || button.dataset.state === 'ready');
       button.disabled = !available;
-      button.title = available ? '' : 'This sort needs more verified data';
+      const activitySort = ['volume','trades','turnover'].includes(button.dataset.exploreSort || button.dataset.exploreLeaderSort);
+      button.title = !available ? 'This sort needs more verified data' : activitySort && appState.exploreScannedCount < appState.assets.length
+        ? `Partial ranking: activity checked for ${appState.exploreScannedCount} of ${appState.assets.length} tokens` : '';
+      if (activitySort) button.setAttribute('aria-describedby','explore-activity-coverage');
     });
     if (select) {
       for (const option of select.options) option.disabled = !supported[option.value];

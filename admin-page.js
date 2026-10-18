@@ -1,4 +1,5 @@
 import { Buffer } from 'buffer';
+import { initAdminDailyBonus } from './admin-daily-bonus.js';
 import bs58 from 'bs58';
 import { Connection, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { validateProtocolFeeSplit } from './distribution-policy.js';
@@ -108,7 +109,7 @@ function feeTotal() {
 async function refresh() {
   [policy, overview] = await Promise.all([api('/api/fee-policy'), api('/api/admin/overview')]);
   renderPolicy(); renderSummary(); renderWallets(); renderGates();
-  await refreshAudit();
+  await Promise.all([refreshAudit(),dailyBonusRecovery.refresh()]);
 }
 async function refreshAudit() {
   const result = await api('/api/admin/audit');
@@ -184,33 +185,7 @@ $('#reconcile-form').addEventListener('submit', event => { event.preventDefault(
   await refreshAudit();
 })().catch(error => show(error.message, true)); });
 const provider = wallet();
-let reviewedBonus = null;
-const clearBonusReview = () => { reviewedBonus = null; $('#bonus-recovery-apply').disabled = true; };
-$('#daily-bonus-recovery').addEventListener('input', event => {
-  if (event.target.id !== 'bonus-recovery-reason') clearBonusReview();
-});
-$('#bonus-recovery-index').addEventListener('click', () => { (async () => {
-  clearBonusReview();
-  const result = await post('/api/admin/daily-bonus/snapshot',{day:$('#bonus-recovery-day').value});
-  $('#bonus-recovery-preview').textContent = JSON.stringify(result,null,2);
-  if (result.snapshot?.hash) $('#bonus-recovery-hash').value = result.snapshot.hash;
-})().catch(error => show(error.message,true)); });
-$('#bonus-recovery-review').addEventListener('click', () => { (async () => {
-  clearBonusReview();
-  reviewedBonus = await post('/api/admin/daily-bonus/review',{
-    day:$('#bonus-recovery-day').value,expectedHash:$('#bonus-recovery-hash').value.trim()});
-  $('#bonus-recovery-preview').textContent = JSON.stringify(reviewedBonus,null,2);
-  $('#bonus-recovery-apply').disabled = false;
-})().catch(error => show(error.message,true)); });
-$('#daily-bonus-recovery').addEventListener('submit', event => { event.preventDefault(); (async () => {
-  if (!reviewedBonus) throw new Error('Review the replacement evidence first.');
-  const reason = $('#bonus-recovery-reason').value.trim();
-  if (reason.length < 10) throw new Error('Enter an audit reason of at least 10 characters.');
-  const result = await post('/api/admin/daily-bonus/reconcile',{...reviewedBonus,reason});
-  clearBonusReview(); $('#bonus-recovery-preview').textContent = JSON.stringify(result,null,2);
-  show('Unpaid daily bonus snapshot reconciled. The original revision remains in the audit history.');
-  await refreshAudit();
-})().catch(error => show(error.message,true)); });
+const dailyBonusRecovery = initAdminDailyBonus({document,api,post,show,refreshAudit});
 provider?.on?.('accountChanged', updateWallet);
 updateWallet();
 restoreSession();

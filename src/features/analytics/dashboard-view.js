@@ -59,6 +59,13 @@ export function renderExtendedAnalyticsDashboard({ assets, verifiedLaunchPolicie
 
   const recipients = document.querySelector('.recipients-panel');
   if (recipients) {
+    let scope = recipients.querySelector('[data-payment-scope]');
+    if (!scope) {
+      scope = document.createElement('p'); scope.dataset.paymentScope = ''; scope.className = 'field-help';
+      scope.append('Daily bonus receipts are listed separately in ');
+      const link = document.createElement('a'); link.href = '#capital-flow'; link.textContent = 'Capital flow';
+      scope.append(link,'. They are not included in the payment history totals shown here.'); recipients.append(scope);
+    }
     const recentPayouts = Array.isArray(paymentHistoryEvidence?.verifiedPayouts) ? paymentHistoryEvidence.verifiedPayouts : [];
     const count = recipients.querySelector('.panel-count');
     if (count) count.textContent = recentPayouts.length ? `Latest ${Math.min(5, recentPayouts.length)} of ${recentPayouts.length} finalized payments` : receiptEvidenceChecked && !paymentHistoryEvidence ? 'Payment history unavailable' : 'Checking payments';

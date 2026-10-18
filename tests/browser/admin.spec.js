@@ -24,7 +24,8 @@ test('Devnet admin page signs in, shows balances and gates, and edits only the p
       withdrawalDestinations:[ADMIN], revenue:{ verifiedCollectionsLamports:'1000000000', operationsAllocationLamports:'100000000', finalizedSettlementCount:1 },
       gates:{ launch:true, collection:true, settlement:true, holder:false, referral:false, xClaims:false, buyback:false } });
     if (path === '/api/admin/audit') return send(200, { entries:[] });
-    if (path === '/api/admin/daily-bonus/snapshot') return send(200,{snapshot:{hash:'a'.repeat(64)},status:'snapshotted'});
+    if (path === '/api/daily-bonus') return send(200,{cluster:'devnet',snapshots:[{day:'2026-10-17',hash:'a'.repeat(64),sources:[]},{day:'2026-10-16',hash:'c'.repeat(64),sources:[{status:'paid'}]}]});
+    if (path === '/api/admin/daily-bonus/snapshot') return send(200,{snapshot:{day:'2026-10-17',hash:'a'.repeat(64)},payouts:{},status:'snapshotted'});
     if (path === '/api/admin/daily-bonus/review') return send(200,{day:'2026-10-17',expectedHash:'a'.repeat(64),expectedNewHash:'b'.repeat(64),rankings:{},sources:1});
     if (path === '/api/admin/daily-bonus/reconcile') {
       recoveryApplied=JSON.parse(route.request().postData());return send(200,{snapshots:[]});
@@ -71,6 +72,8 @@ test('Devnet admin page signs in, shows balances and gates, and edits only the p
   await expect(page.locator('#bonus-recovery-apply')).toBeEnabled();
   await page.locator('#bonus-recovery-day').fill('2026-10-16');
   await expect(page.locator('#bonus-recovery-apply')).toBeDisabled();
+  await expect(page.locator('#bonus-recovery-review')).toBeDisabled();
+  await expect(page.locator('#bonus-recovery-status')).toContainText('Payments have started');
   await page.locator('#bonus-recovery-day').fill('2026-10-17');
   await page.locator('#bonus-recovery-review').click();
   await expect(page.locator('#bonus-recovery-apply')).toBeEnabled();

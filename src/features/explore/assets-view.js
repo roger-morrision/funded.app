@@ -1,6 +1,7 @@
 import { withMarketWindow, enrichMarketRecord, summarizeMarkets, formatSignal, sortMarketRecords } from '../../../market-intelligence.js';
 import { escapeHtml } from '../shared/display.js';
 import { activeBoostMultiplier } from '../../../boost-offer.js';
+import { renderActivityCoverage } from './activity-sampling.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderExploreAssets(
@@ -64,6 +65,7 @@ export function renderExploreAssets(
   if (scope && EXPLORE_CLUSTER !== 'devnet') scope.textContent = 'Solana mainnet discovery · Pump.fun listings are shown only after mint verification. Missing market figures stay unavailable.';
   const records = assets.map(item => withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(item, exploreWindow) : enrichMarketRecord(item)));
   const visible = filterExploreTabRecords(records);
+  renderActivityCoverage(document,'explore-activity-coverage',records,{hidden:EXPLORE_CLUSTER !== 'devnet'});
   const followingStatus = document.querySelector('#explore-following-status');
   if (followingStatus) {
     followingStatus.hidden = exploreTab !== 'following';

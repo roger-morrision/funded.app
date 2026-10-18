@@ -62,13 +62,13 @@ test('fee calculator shows 8/4 and daily rankings distinguish allocations from f
 });
 
 
-test('snapshot selection shows reconciliation blocks and invalid networks clear stale results', async ({ page }) => {
+test('snapshot selection explains started payouts, reconciliation blocks and invalid networks clear stale results', async ({ page }) => {
   let cluster = 'devnet';
   const empty = { hash:'b'.repeat(64), allocatedLamports:'0', retainedLamports:'0',
     rankings:{ creators:[], referrals:[], traders:[] }, sources:[] };
   await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'Offline fixture' } }));
   await page.route('**/api/daily-bonus', route => route.fulfill({ json:{ cluster, snapshotEnabled:true, payoutEnabled:true,
-    worker:{ status:'active' }, snapshots:[{ ...empty, day:'2026-10-17', status:'reconciliation-required', reason:'Evidence changed.' },
+    worker:{ status:'active' }, snapshots:[{ ...empty, day:'2026-10-17', status:'reconciliation-required', reason:'Evidence changed.', sources:[{mint:wallets[0],status:'paid',payments:{}}] },
       { ...empty, day:'2026-10-16', status:'snapshotted' }] } }));
   await page.route('https://**/*', route => route.abort());
   await page.goto('/#capital-flow');
@@ -76,6 +76,7 @@ test('snapshot selection shows reconciliation blocks and invalid networks clear 
   const status = page.locator('[data-bonus-status]');
   await expect(status).toContainText('Further payouts are blocked');
   await expect(status).toContainText('Evidence changed');
+  await expect(status).toContainText('replacing a started payout is unavailable');
   await page.locator('[data-bonus-day]').selectOption('2026-10-16');
   await expect(status).toContainText('Verified snapshot below');
   await page.locator('[data-bonus-day]').selectOption('2026-10-17');
@@ -98,4 +99,6 @@ test('Analytics identifies V3 creator receipts and displays the net wallet recei
   await expect(page.locator('.recipients-panel .payment-row')).toContainText('Creator ·');
   await expect(page.locator('.recipients-panel .payment-row')).toContainText('0.0000009 SOL received');
   await expect(page.locator('.recipients-panel .payment-row')).not.toContainText('Recipient ·');
+  await expect(page.locator('[data-payment-scope]')).toContainText('Daily bonus receipts are listed separately');
+  await expect(page.locator('[data-payment-scope] a')).toHaveAttribute('href','#capital-flow');
 });

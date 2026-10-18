@@ -3,6 +3,7 @@ import { formatCompactUsd, escapeHtml } from '../shared/display.js';
 import { activeBoostPackages, activeBoostMultiplier } from '../../../boost-offer.js';
 import { matchesHomeLaunchFilters, homeLaunchFilterCount } from '../../../home-launch-filters.js';
 import { paidListingCardMarkup, paidListingTableMarkup } from './paid-listing-view.js';
+import { renderActivityCoverage } from '../explore/activity-sampling.js';
 
 // Render current data; the application owns pagination and paused-order state.
 export function renderHomeLaunchBoard(state, {
@@ -91,6 +92,7 @@ export function renderHomeLaunchBoard(state, {
     const value = Number(observed);
     return Number.isFinite(value) && value >= 0 ? value : -1;
   };
+  renderActivityCoverage(document,'home-activity-coverage',verified,{hidden:paidListingView || EXPLORE_CLUSTER !== 'devnet'});
   const capUsd = item => {
     const capSol = item.migrated === true ? item.poolMarketCapSol : item.curveCapSol;
     const observed = EXPLORE_CLUSTER === 'devnet'

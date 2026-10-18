@@ -52,8 +52,10 @@ export function dailyBonusPayments(snapshot) {
 
 export function dailyBonusStatus(data, snapshot, next) {
   const indexing = data.indexing?.[0];
-  if (snapshot?.status === 'reconciliation-required')
-    return `Snapshot ${snapshot.day} requires reconciliation. Further payouts are blocked. ${snapshot.reason || 'Recorded evidence changed.'}`;
+  if (snapshot?.status === 'reconciliation-required') {
+    const started = snapshot.sources?.some(source => ['prepared','distributing','paid'].includes(source.status));
+    return `Snapshot ${snapshot.day} requires reconciliation. Further payouts are blocked. ${snapshot.reason || 'Recorded evidence changed.'}${started ? ' Existing payment records are preserved. This day needs operator review; replacing a started payout is unavailable.' : ' An administrator must review the updated evidence.'}`;
+  }
   if (data.worker?.status === 'blocked' || data.worker?.status === 'unavailable')
     return `Snapshot worker unavailable: ${data.worker.reason || 'Verification is unavailable.'}`;
   if (data.snapshotEnabled === false) return 'Daily snapshots and SOL bonus execution are not activated.';

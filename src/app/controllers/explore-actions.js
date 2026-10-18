@@ -41,7 +41,9 @@ export function createExploreActionsController(appState) {
   // app-source: 768
   function refreshExploreFeedForSort(){
     const required = appState.exploreSort === 'newest' ? 'created_timestamp' : 'last_trade_timestamp';
-    if (appState.exploreFeedSort !== required) appState.loadOnchainExploreData().catch(() => appState.showToast('Launch feed could not refresh.'));
+    if (appState.exploreFeedSort !== required) appState.loadOnchainExploreData().catch(error => {
+      if (error?.name !== 'AbortError') appState.showToast('Launch feed could not refresh.');
+    });
   }
   // app-source-end
 

@@ -1,12 +1,9 @@
 // Dependencies and mutable application state are read live through appState.
-export async function scanExploreMarketsBounded(items, scan) {
-  let next = 0;
-  await Promise.all(Array.from({ length:Math.min(4, items.length) }, async () => {
-    while (next < items.length) await scan(items[next++]);
-  }));
-}
+import { createExploreActivitySampler } from '../../features/explore/activity-sampling.js';
+export { scanExploreMarketsBounded } from '../../features/explore/activity-sampling.js';
 
 export function createExploreLoadingController(appState) {
+  let sampleActivity;
   // app-source: 523
   async function loadOnchainExploreData(signal){
     if (appState.exploreLoadInFlight) return appState.exploreLoadInFlight;
@@ -137,49 +134,14 @@ export function createExploreLoadingController(appState) {
       let scannedCount = 0;
       let marketScanRateLimited = false;
       if (appState.EXPLORE_CLUSTER === 'devnet' && !exploreVerificationFailed) {
-        // The endpoint's 60-credit minute budget charges ten credits per fresh scan.
-        // Leave one scan available for an explicit token-detail request.
-        const scanned = verified.slice(0, 5);
-        await scanExploreMarketsBounded(scanned, async item => {
-          const cached = appState.exploreActivityCache.get(item.address);
-          const hasBreakdown = data => data && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
-            && data.activityWindows?.['6h'] && data.activityWindows?.['24h']
-            && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h)));
-          let market = cached && Date.now() - cached.at < 60_000 && hasBreakdown(cached.data) ? cached.data : null;
-          if (!market) {
-            const response = await appState.apiRequest(`/api/tokens/${encodeURIComponent(item.address)}/market-activity`, { signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(12000)]) : AbortSignal.timeout(12000) }).catch(error => {
-              if (/rate limit|429|too many requests/i.test(String(error?.message || ''))) marketScanRateLimited = true;
-              return { available: false, data: null };
-            });
-            if (response.available && response.data?.cluster === appState.EXPLORE_CLUSTER && response.data?.mint === item.address) {
-              market = response.data;
-              appState.exploreActivityCache.set(item.address, { at: Date.now(), data: market });
-            }
-          }
-          if (!market) return;
-          scannedCount += 1;
-          const volume = Number(market.volume24hSol);
-          item.volume24hSol = market.volume24hSol != null && Number.isFinite(volume) && volume >= 0 ? volume : null;
-          item.volumeCoverage = market.coverage;
-          const observedVolume = Number(market.observedVolumeSol);
-          item.observedVolumeSol = market.observedVolumeSol != null && Number.isFinite(observedVolume) && observedVolume >= 0 ? observedVolume : null;
-          item.observedCoverage = market.observedCoverage || 'unavailable';
-          for (const key of ['tradeCount24h', 'buyCount24h', 'sellCount24h']) {
-            const count = Number(market[key]);
-            item[key] = market[key] != null && Number.isInteger(count) && count >= 0 ? count : null;
-          }
-          const traderCountRaw = market.activityWindows?.['24h']?.traderCount;
-          const traderCount = Number(traderCountRaw);
-          item.traderCount24h = traderCountRaw != null && Number.isInteger(traderCount) && traderCount >= 0 ? traderCount : null;
-          item.recentTrades = Array.isArray(market.recentTrades) ? market.recentTrades : [];
-          item.activityWindows = market.activityWindows && ['1h', '6h', '24h'].every(period => market.activityWindows[period]) ? market.activityWindows : null;
-          const latestTrade = Number(market.recentTrades?.[0]?.blockTime);
-          if (Number.isFinite(latestTrade) && latestTrade > 0) item.lastTradeUnixTime = latestTrade;
-          if (market.priceChangeBasis === '24h' && market.priceChangePercent != null && Number.isFinite(Number(market.priceChangePercent))) {
-            item.priceChange24hPercent = Number(market.priceChangePercent);
-            item.change = `${item.priceChange24hPercent >= 0 ? '+' : ''}${item.priceChange24hPercent.toFixed(2)}%`;
-          }
-        });
+        sampleActivity ||= createExploreActivitySampler({cache:appState.exploreActivityCache});
+        scannedCount = await sampleActivity(verified, async item => {
+          const response = await appState.apiRequest(`/api/tokens/${encodeURIComponent(item.address)}/market-activity`, { signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(12000)]) : AbortSignal.timeout(12000) }).catch(error => {
+            if (/rate limit|429|too many requests/i.test(String(error?.message || ''))) marketScanRateLimited = true;
+            return {available:false,data:null};
+          });
+          return response.available && response.data?.cluster === appState.EXPLORE_CLUSTER && response.data?.mint === item.address ? response.data : null;
+        }, signal);
       }
       signal?.throwIfAborted();
       if (requestedSort !== appState.exploreSort) return;
