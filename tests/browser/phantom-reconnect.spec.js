@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
 const address = '11111111111111111111111111111111';
 
@@ -47,6 +48,7 @@ async function installPhantomFixture(page, { trusted = false, delayMs = 0 } = {}
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/**', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
   await page.route('https://**/*', route => route.abort());
+  await page.route('**/api/fee-policy', route => route.fulfill({ json:{ split:PROTOCOL_FEE_SPLIT } }));
 });
 
 test('Phantom stays connected after reload and explicit disconnect stays disconnected', async ({ page }) => {
