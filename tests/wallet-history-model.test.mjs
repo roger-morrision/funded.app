@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { walletHistoryRows, walletHistorySol, walletHistoryTokenAmount } from '../src/features/portfolio/wallet-history-model.js';
+import { walletHistoryRows, walletHistorySol, walletHistoryTokenAmount, walletBonusCoverage } from '../src/features/portfolio/wallet-history-model.js';
 
 const wallet = '22222222222222222222222222222222';
 const mint = '11111111111111111111111111111111';
@@ -47,4 +47,43 @@ test('amount formatting keeps lamport precision and declines an unprovable token
   assert.equal(walletHistorySol('123127'), '0.000123127 SOL');
   assert.equal(walletHistoryTokenAmount('2500000','100','100000000'), '2.5');
   assert.equal(walletHistoryTokenAmount('1','3','10'), null);
+});
+
+
+const dailyPayment = { finalized:true, balanceDeltaVerified:true, amount:'500', amountReceived:'450',
+  signature:'C'.repeat(64), payment:'D'.repeat(32), paidAt:'2026-10-17T12:00:00Z' };
+const dailyBonus = { cluster:'devnet', snapshots:[{ day:'2026-10-17', status:'snapshotted',
+  sources:[{ payments:{ [wallet]:dailyPayment, [mint]:{ ...dailyPayment, signature:'E'.repeat(64) } } },
+    { payments:{ [wallet]:dailyPayment } }] }] };
+
+test('wallet Daily bonus history uses its own net receipts and deduplicates payment proofs', () => {
+  const rows = walletHistoryRows({ wallet, dailyBonus });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].type, 'bonus');
+  assert.equal(rows[0].title, 'Daily bonus received');
+  assert.equal(rows[0].amount, '0.00000045 SOL');
+  assert.match(rows[0].detail, /2026-10-17 UTC/);
+  assert.match(rows[0].href, /tx\/C{64}\?cluster=devnet$/);
+  assert.equal(rows[0].time, Date.parse('2026-10-17T12:00:00Z'));
+  assert.deepEqual(walletHistoryRows({ wallet, dailyBonus:{ ...dailyBonus, cluster:'mainnet-beta' } }), []);
+});
+test('unfunded or unfinalized Daily bonus allocations do not enter wallet payment history', () => {
+  const pending = structuredClone(dailyBonus);
+  for (const source of pending.snapshots[0].sources) source.payments[wallet].finalized = false;
+  assert.deepEqual(walletHistoryRows({ wallet, dailyBonus:pending }), []);
+});
+test('recovered bonus payments link their proof account and missing net evidence is not guessed', () => {
+  const recovered = structuredClone(dailyBonus);
+  recovered.snapshots[0].sources = [{ payments:{ [wallet]:{ ...dailyPayment, signature:null, amountReceived:undefined } } }];
+  const rows = walletHistoryRows({ wallet, dailyBonus:recovered });
+  assert.equal(rows[0].title, 'Daily bonus payment recorded');
+  assert.equal(rows[0].amount, 'Received amount unavailable');
+  assert.match(rows[0].href, /address\/D{32}/);
+});
+test('bonus coverage distinguishes private sign-in, outages, and complete recent feeds', () => {
+  assert.equal(walletBonusCoverage({ dailyBonus:'ready', referralBonus:'sign-in-required' }).state, 'partial');
+  assert.match(walletBonusCoverage({ dailyBonus:'ready', referralBonus:'sign-in-required' }).message, /Verify this wallet in Referrals/);
+  assert.match(walletBonusCoverage({ dailyBonus:'unavailable', referralBonus:'ready' }).message, /Daily bonus history is unavailable/);
+  assert.equal(walletBonusCoverage({ dailyBonus:'ready', referralBonus:'ready' }).state, 'ready');
+  assert.equal(walletBonusCoverage({ dailyBonus:'unavailable', referralBonus:'unavailable' }).state, 'unavailable');
 });

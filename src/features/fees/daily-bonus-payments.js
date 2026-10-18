@@ -27,7 +27,8 @@ export function dailyBonusPayments(snapshot) {
       }
       const row = wallets.get(wallet) || { receivedLamports:0n, receipts:[] };
       row.receivedLamports = row.receivedLamports == null || net == null ? null : row.receivedLamports + net;
-      const receipt = { receivedLamports:net,
+      const receipt = { receivedLamports:net, signature, paymentAccount:account,
+        paidAt:payment.paidAt || null, day:source.snapshotDay || null,
         href:`https://explorer.solana.com/${signature ? 'tx' : 'address'}/${signature || account}?cluster=devnet` };
       const record = { identity:`${amount}:${net}`, receipt };
       for (const key of keys) seen.set(key, record);

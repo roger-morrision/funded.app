@@ -1,3 +1,4 @@
+import { walletBonusCoverage } from './wallet-history-model.js';
 import { setCoinField as writeCoinField, shortAddress, escapeHtml, formatDashboardUsd, formatOnChainNumber } from '../shared/display.js';
 import { formatTokenBaseUnits } from '../../../funded-burn.js';
 
@@ -128,12 +129,14 @@ export function renderWalletDetail(
   const historyCoverage = history.coverage?.[activeFilter];
   const historyUnavailable = isSelf && historyFilters.includes(activeFilter)
     && (history.status === 'loading' || historyCoverage === 'unavailable'
-      || historyCoverage === 'sign-in-required' || historyCoverage === 'pending');
+      || historyCoverage === 'partial' || historyCoverage === 'sign-in-required' || historyCoverage === 'pending');
   const coverageIncomplete = (['all', 'launch', 'burn'].includes(activeFilter) && !registryReady)
     || (['all', 'buy', 'sell'].includes(activeFilter) && !tradeScanReady)
     || (activeFilter === 'all' && isSelf && (history.status === 'loading'
-      || ['claim','reward','airdrop'].some(kind => history.coverage?.[kind] === 'unavailable')));
+      || ['claim','reward','airdrop'].some(kind => history.coverage?.[kind] === 'unavailable')
+      || ['partial','unavailable'].includes(history.coverage?.bonus)));
   const unavailableDetail = history.status === 'loading' ? 'Checking this wallet’s confirmed history…'
+    : activeFilter === 'bonus' ? walletBonusCoverage(history.coverage).message
     : historyCoverage === 'sign-in-required' ? 'Verify this wallet in Referrals to see private bonus records.'
     : historyCoverage === 'pending' ? 'V3 referral bonus payouts are not active yet.'
     : 'This history could not be verified right now. Please retry later.';
@@ -143,5 +146,10 @@ export function renderWalletDetail(
         : coverageIncomplete ? 'Some activity cannot be shown right now. Please check again later.'
           : activeFilter === 'all' ? 'No confirmed launches, trades, burns, or wallet payments were found.'
             : `No confirmed ${activeFilter} history was found for this wallet.`);
+  if (isSelf && ['all', 'bonus'].includes(activeFilter) && history.status === 'ready') {
+    const note = document.createElement('p'); note.className = 'source-note'; note.dataset.walletBonusCoverage = '';
+    note.textContent = walletBonusCoverage(history.coverage).message;
+    content.append(note);
+  }
   loadWalletRowLogos(content, launches);
 }

@@ -1,4 +1,4 @@
-import { walletHistoryRows } from '../../features/portfolio/wallet-history-model.js';
+import { walletHistoryRows, walletBonusCoverage } from '../../features/portfolio/wallet-history-model.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createPortfolioController(appState) {
@@ -60,11 +60,12 @@ export function createPortfolioController(appState) {
     walletHistory = { wallet:address, status:'loading', rows:[], coverage:{} };
     appState.renderWalletDetail();
     const read = path => appState.apiRequest(path, { signal:AbortSignal.timeout(18_000) })
-      .catch(() => ({ available:false, data:null }));
-    const [experienceResponse, reservesResponse, bonusResponse] = await Promise.all([
+      .catch(error => ({ available:false, data:null, status:error.status || null }));
+    const [experienceResponse, reservesResponse, bonusResponse, dailyBonusResponse] = await Promise.all([
       read(`/api/rewards/experience?wallet=${encodeURIComponent(address)}`),
       read('/api/airdrops/reserves'),
       read(`/api/referral-claims?wallet=${encodeURIComponent(address)}`),
+      read('/api/daily-bonus'),
     ]);
     if (request !== walletHistoryRequest || address !== appState.connectedWalletAddress
       || address !== appState.getWalletDetailAddress()) return;
@@ -93,16 +94,22 @@ export function createPortfolioController(appState) {
       mint:reserve.mint, symbol:appState.verifiedLaunchPolicies.find(row => row.mint === reserve.mint)?.symbol || '',
       reservedTokens:reserve.reservedTokens, totalBaseUnits:reserve.totalBaseUnits, proof,
     }));
+    const dailyBonus = dailyBonusResponse.available && dailyBonusResponse.data?.cluster === 'devnet'
+      && Array.isArray(dailyBonusResponse.data.snapshots) ? dailyBonusResponse.data : null;
     const coverage = {
       claim:experience ? 'ready' : 'unavailable',
       reward:experience ? 'ready' : 'unavailable',
       airdrop:reserves === null || reserves.length > selected.length || proofs.some(row => !row.proof) ? 'unavailable' : 'ready',
-      bonus:bonusResponse.available && bonusResponse.data?.wallet === address && Array.isArray(bonusResponse.data.claims)
-        ? bonusResponse.data.status === 'v3-referral-payout-pending' ? 'pending' : 'ready' : 'sign-in-required',
+      referralBonus:bonusResponse.available && bonusResponse.data?.wallet === address && Array.isArray(bonusResponse.data.claims)
+        ? bonusResponse.data.status === 'v3-referral-payout-pending' ? 'pending' : 'ready'
+        : bonusResponse.status === 401 || bonusResponse.status === 403 ? 'sign-in-required' : 'unavailable',
+      dailyBonus:!dailyBonus ? 'unavailable' : ['blocked','unavailable'].includes(dailyBonus.worker?.status)
+        || dailyBonus.snapshots.some(row => row.status !== 'snapshotted') ? 'partial' : 'ready',
     };
+    coverage.bonus = walletBonusCoverage(coverage).state;
     walletHistory = { wallet:address, status:'ready', coverage,
       rows:walletHistoryRows({ wallet:address, experience, airdrops,
-        bonusClaims:coverage.bonus === 'ready' ? bonusResponse.data.claims : [] }) };
+        bonusClaims:coverage.referralBonus === 'ready' ? bonusResponse.data.claims : [], dailyBonus }) };
     appState.renderWalletDetail();
   }
 

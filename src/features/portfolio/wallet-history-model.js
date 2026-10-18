@@ -1,3 +1,5 @@
+import { dailyBonusPayments } from '../fees/daily-bonus-payments.js';
+
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const LAMPORTS = 1_000_000_000n;
@@ -22,7 +24,7 @@ export function walletHistoryTokenAmount(baseUnits, reservedTokens, totalBaseUni
   return `${whole}${fraction ? `.${fraction}` : ''}`;
 }
 
-export function walletHistoryRows({ wallet, experience, airdrops = [], bonusClaims = [] }) {
+export function walletHistoryRows({ wallet, experience, airdrops = [], bonusClaims = [], dailyBonus = null }) {
   if (!ADDRESS.test(String(wallet || ''))) return [];
   const rows = [];
   const seen = new Set();
@@ -77,5 +79,34 @@ export function walletHistoryRows({ wallet, experience, airdrops = [], bonusClai
       href:`https://explorer.solana.com/tx/${encodeURIComponent(claim.payoutSignature)}?cluster=devnet`,
       time:Date.parse(claim.paidAt || '') || 0 });
   }
+  if (dailyBonus?.cluster === 'devnet' && Array.isArray(dailyBonus.snapshots)) {
+    const sources = dailyBonus.snapshots.filter(row => /^\d{4}-\d{2}-\d{2}$/.test(row.day || ''))
+      .flatMap(row => (Array.isArray(row.sources) ? row.sources : []).map(source => ({ ...source, snapshotDay:row.day })));
+    const payments = dailyBonusPayments({ sources }).get(wallet);
+    for (const receipt of payments?.receipts || []) {
+      const id = `daily-bonus:${receipt.paymentAccount || receipt.signature}`;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      rows.push({ id, type:'bonus', title:receipt.receivedLamports == null ? 'Daily bonus payment recorded' : 'Daily bonus received',
+        detail:`${receipt.day} UTC · finalized Daily bonus receipt`,
+        amount:receipt.receivedLamports == null ? 'Received amount unavailable' : walletHistorySol(receipt.receivedLamports),
+        href:receipt.href, time:Date.parse(receipt.paidAt || '') || 0 });
+    }
+  }
   return rows.sort((a,b) => b.time - a.time || a.id.localeCompare(b.id));
+}
+
+
+export function walletBonusCoverage(coverage = {}) {
+  const daily = coverage.dailyBonus, referral = coverage.referralBonus;
+  const state = daily === 'ready' && referral === 'ready' ? 'ready'
+    : [daily, referral].some(value => value === 'ready' || value === 'partial') ? 'partial' : 'unavailable';
+  const dailyNote = daily === 'ready' ? 'Daily bonus: up to 30 published UTC snapshots.'
+    : daily === 'partial' ? 'Daily bonus snapshot verification is incomplete; only recorded finalized payment proofs are shown.'
+      : 'Daily bonus history is unavailable.';
+  const referralNote = referral === 'ready' ? 'Referral bonus records loaded.'
+    : referral === 'sign-in-required' ? 'Verify this wallet in Referrals to load private referral bonus records.'
+      : referral === 'pending' ? 'Referral bonus payouts are pending; no referral payment is inferred.'
+        : 'Referral bonus history is unavailable.';
+  return { state, message:`${dailyNote} ${referralNote}` };
 }
