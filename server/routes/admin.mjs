@@ -59,6 +59,7 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
       { role:'V3 router authority', address:signer(v3AuthorityKeypair), custody:'server signer', withdrawable:false },
       { role:'Referral payout funder', address:signer(referralPayoutKeypair), custody:'server signer', withdrawable:false },
       { role:'Protocol operations treasury', address:validWallet(env.FUNDED_PUMP_REVENUE_WALLET), custody:'external wallet', withdrawable:true },
+      { role:'V3 Operations & marketing', address:validWallet(env.FUNDED_V3_OPERATIONS_RECIPIENT), custody:'external wallet', withdrawable:true },
       { role:'Trading fee treasury', address:validWallet(env.FUNDED_TRADE_FEE_OWNER || env.VITE_FUNDED_TRADE_FEE_OWNER), custody:'external wallet', withdrawable:true },
       { role:'Boost payment wallet', address:validWallet(env.FUNDED_BOOST_PAYMENT_WALLET), custody:'external wallet', withdrawable:true },
     ].filter(row => row.address);

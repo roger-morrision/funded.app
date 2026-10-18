@@ -13,13 +13,14 @@ import { rewardReserveAddress } from '../server/automatic-reward-chain.mjs';
 import { SOL_ASSET_MINT } from '../reward-merkle.js';
 
 test('admin wallet signature gates policy edits, inventory, and exact finalized withdrawal receipts', async () => {
-  const admin = Keypair.generate(), keeper = Keypair.generate(), treasury = Keypair.generate();
+  const admin = Keypair.generate(), keeper = Keypair.generate(), treasury = Keypair.generate(), operationsWallet = Keypair.generate();
   const address = key => key.publicKey.toBase58();
   const state = { adminSettings:{}, adminAudit:{}, collections:{}, v3Settlements:{}, launches:{} };
   const store = { async read() { return structuredClone(state); },
     async update(mutator) { return mutator(state); } };
   const env = { PUBLIC_APP_URL:'https://funded.vip', FUNDED_ADMIN_WALLETS:address(admin),
-    FUNDED_ADMIN_WITHDRAW_DESTINATIONS:address(admin), FUNDED_PUMP_REVENUE_WALLET:address(treasury), FUNDED_V3_LAUNCH_ENABLED:'true' };
+    FUNDED_ADMIN_WITHDRAW_DESTINATIONS:address(admin), FUNDED_PUMP_REVENUE_WALLET:address(treasury),
+    FUNDED_V3_OPERATIONS_RECIPIENT:address(operationsWallet), FUNDED_V3_LAUNCH_ENABLED:'true' };
   let input, output, cookie = '';
   const respond = (res, status, value) => { output = { status, value, cookie:res.cookie || null }; };
   const blockhash = Keypair.generate().publicKey.toBase58();
@@ -77,6 +78,7 @@ test('admin wallet signature gates policy edits, inventory, and exact finalized 
   assert.equal((await call('POST','/api/admin/daily-bonus/review',{day:'invalid'})).status,409);
   const overview = await call('GET', '/api/admin/overview');
   assert.equal(overview.status, 200);
+  assert(overview.value.wallets.some(row=>row.role==='V3 Operations & marketing'&&row.address===address(operationsWallet)&&row.balanceStatus==='finalized'));
   assert.equal(overview.value.wallets[0].address, address(keeper));
   assert.equal(overview.value.wallets[0].lamports, '2000000000');
   assert.equal(overview.value.wallets[0].withdrawable, false);

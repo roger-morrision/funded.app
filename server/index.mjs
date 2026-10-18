@@ -37,6 +37,7 @@ import { readJsonBody } from './request-body.mjs';
 import { createSolUsdQuoteReader } from './price-quote.mjs';
 import { createServer } from 'node:http';
 import { createAutomaticRewardStore } from './automatic-reward-store.mjs';
+import {installRewardShutdown} from './reward-shutdown.mjs';
 import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
 
 import { createCommunityClaimService } from './community-claim-service.mjs';
@@ -483,6 +484,7 @@ async function handle(req, res) {
 
 await startShareVisitCleanup({ store });
 const server = createServer(handle);
+installRewardShutdown({server});
 server.headersTimeout = 10_000;
 server.requestTimeout = 30_000;
 server.timeout = 120_000;

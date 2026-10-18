@@ -3,6 +3,13 @@ import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 
+const activeTransactions=new Set();
+let draining=false;
+export async function drainAutomaticRewardTransactions() {
+  draining=true;
+  await Promise.allSettled([...activeTransactions]);
+}
+
 // Dedicated ledger; existing immutable launches are never rewritten. A crashed
 // lock needs operator investigation rather than unsafe automatic lock expiration.
 export function createAutomaticRewardStore(path) {
@@ -25,7 +32,7 @@ export function createAutomaticRewardStore(path) {
       return { version: 2, obligations: {}, batches: {}, programs: {}, schedules: {}, holderSnapshots: {}, rewardPools: {}, buyOrders: {}, fundingRequests: {} };
     }
   }
-  return { async read() { return structuredClone(await readState()); }, async transaction(mutator) {
+  async function transaction(mutator) {
     await mkdir(dirname(path), { recursive: true });
     const lock = await acquireLock();
     const temp = `${path}.${randomUUID()}.tmp`;
@@ -42,5 +49,11 @@ export function createAutomaticRewardStore(path) {
       try { await unlink(temp).catch(error => { if (error.code !== 'ENOENT') throw error; }); }
       finally { await lock.close(); await unlink(`${path}.lock`); }
     }
-  } };
+  }
+  return {async read(){return structuredClone(await readState());},transaction(mutator){
+    if(draining)return Promise.reject(Object.assign(new Error('Reward service is restarting; retry shortly.'),{statusCode:503}));
+    const pending=transaction(mutator);activeTransactions.add(pending);
+    void pending.then(()=>activeTransactions.delete(pending),()=>activeTransactions.delete(pending));
+    return pending;
+  }};
 }

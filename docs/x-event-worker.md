@@ -14,6 +14,12 @@ Set `X_POST_START_AT` to a deliberate activation time. Historical payouts before
 
 The profile queues every eligible receipt but dispatches at most one per minute, six per hour and 24 per day. Provider rate limits can delay the queue. Authentication, billing or permanent permission failures stay visible for operator repair. Automatic OAuth refresh is not implemented. The dedicated worker has no Solana signing secrets and mounts the reward ledger read-only.
 
+## Reward ledger deployment recovery
+
+The app forwards termination signals to Node and drains admitted ledger transactions and active HTTP requests before exiting. Compose allows 120 seconds for shutdown. This prevents normal app replacement from interrupting an atomic ledger write. A force kill or host crash can still leave `ledger.json.lock`; no age-based automatic unlock is performed.
+
+For an orphaned lock, inspect every container sharing the exact ledger volume, stop all writers, validate and back up the ledger, and preserve the orphaned lock by renaming it before restarting the app. Never remove a lock while a writer could own it. Reconcile saved transaction signatures and payment accounts before retrying a failed request: a finalized funding transfer may already exist even when subsequent holder enrollment failed. X sign-in and wallet verification remain required; recovery does not authorize a different recipient.
+
 ## Image and data
 
 The funded.vip profile uses `FUNDED_RELEASE_IMAGE` and `FUNDED_RELEASE_SHA`, matching the app's tested production image. The generic optional `compose.x-post-worker.yml` uses `FUNDED_APP_IMAGE` with `compose.devnet-release.yml`. Both require the explicit `x-posting` profile.
