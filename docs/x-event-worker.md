@@ -16,7 +16,9 @@ The profile queues every eligible receipt but dispatches at most one per minute,
 
 ## Image and data
 
-Build and verify a new application image containing `scripts/run-x-post-worker.mjs` before selecting it with `FUNDED_APP_IMAGE`. The existing workspace preview uses an earlier source snapshot; do not assume the new CLI is present in that running image. The optional `compose.x-post-worker.yml` must be combined with `compose.devnet-release.yml`; its `x-posting` profile is never included in the normal stack.
+The funded.vip profile uses `FUNDED_RELEASE_IMAGE` and `FUNDED_RELEASE_SHA`, matching the app's tested production image. The generic optional `compose.x-post-worker.yml` uses `FUNDED_APP_IMAGE` with `compose.devnet-release.yml`. Both require the explicit `x-posting` profile.
+
+If the transaction RPC struggles with large program accounts, `FUNDED_PROGRAM_EVIDENCE_RPC_URL` selects a separate HTTPS provider for read-only program evidence in the funded.vip app and payout worker. Both providers must independently identify Devnet. Alternate reads have an eight-second deadline, validate the upgradeable account owner and header, and still require the complete approved ProgramData hash. This setting does not change transaction submission, payout amounts, recipient consent or X delivery state. An unavailable or mismatched provider blocks verification.
 
 The worker shares PostgreSQL, the configured Devnet RPC secret and a read-only application data volume. `AUTOMATIC_REWARD_STORE_PATH` matches the web service's reward ledger. Set `FUNDED_TOKEN_MINT`, `FUNDED_FEE_ROUTER_PROGRAM_ID` and the public `FUNDED_REWARD_AUTHORITY` address to the verified Devnet identities for the deployed application; missing source configuration is a coverage gap, not evidence that no events happened. No Solana wallet, keeper key, payout key or browser-login credential is mounted.
 

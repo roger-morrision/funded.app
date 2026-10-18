@@ -18,6 +18,7 @@ services:
       DATABASE_SSL: 'false'
       SOLANA_CLUSTER: devnet
       SOLANA_RPC_URL_FILE: /run/secrets/solana_devnet_rpc_url
+      FUNDED_PROGRAM_EVIDENCE_RPC_URL: ${FUNDED_PROGRAM_EVIDENCE_RPC_URL:-}
       AUTOMATIC_REWARD_STORE_PATH: /app/data/automatic-rewards/ledger.json
       FUNDED_TOKEN_MINT: ${FUNDED_TOKEN_MINT:-}
       FUNDED_FEE_ROUTER_PROGRAM_ID: ${FUNDED_FEE_ROUTER_PROGRAM_ID:-}

@@ -14,6 +14,8 @@ import {
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import { SOL_ASSET_MINT, verifyRewardProof } from '../reward-merkle.js';
+import {readProgramDataEvidence} from './program-data-evidence.mjs';
+export {readProgramDataEvidence};
 
 // Solana may be reset. Keep this value aligned with the current official
 // Solana RPC evidence and fail closed when the configured endpoint differs.
@@ -24,7 +26,6 @@ const RESERVE_SEED = Buffer.from('reward-reserve-v1');
 const CYCLE_SEED = Buffer.from('reward-cycle-v1');
 const PAYMENT_SEED = Buffer.from('reward-payment-v1');
 const ROUTER_SEED = Buffer.from('funded-fee-router-v1');
-const BPF_LOADER_UPGRADEABLE_PROGRAM_ID = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 
 function discriminator(namespace, name) {
   return createHash('sha256').update(`${namespace}:${name}`).digest().subarray(0, 8);
@@ -144,18 +145,6 @@ export async function finalizedSend(connection, transaction, signers, { pollMs =
   if (status?.err) throw new Error(`Reward transaction failed: ${JSON.stringify(status.err)}`);
   if (status?.confirmationStatus === 'finalized') return signature;
   throw new Error(`Reward transaction ${signature} has no verified finalized receipt; reconcile before retrying.${lastRpcError ? ` Last RPC error: ${String(lastRpcError.message || lastRpcError)}` : ''}`);
-}
-
-export async function readProgramDataEvidence(connection, program) {
-  const programKey = new PublicKey(program);
-  const account = await connection.getAccountInfo(programKey, 'finalized');
-  if (!account?.executable) return { account, programData: null, sha256: null };
-  if (account.owner.equals(BPF_LOADER_UPGRADEABLE_PROGRAM_ID) && account.data.length >= 36 && account.data.readUInt32LE(0) === 2) {
-    const address = new PublicKey(account.data.subarray(4, 36));
-    const programData = await connection.getAccountInfo(address, 'finalized');
-    return { account, programData, programDataAddress: address.toBase58(), sha256: programData ? createHash('sha256').update(programData.data).digest('hex') : null };
-  }
-  return { account, programData: account, programDataAddress: programKey.toBase58(), sha256: createHash('sha256').update(account.data).digest('hex') };
 }
 
 export function createAutomaticRewardChain({ connection, programId, authority, expectedProgramDataSha256, expectedVersion = REWARD_PROGRAM_VERSION }) {
