@@ -2,6 +2,7 @@ import { summarizeBuybackLedger } from '../../../buyback-policy.js';
 import { formatTokenBaseUnits } from '../../../funded-burn.js';
 import { escapeHtml } from '../shared/display.js';
 import { canSignTransactions } from '../../../wallet-core.js';
+import { newestBuybackReceipts } from './buyback-receipts.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderBuybackDashboard(
@@ -38,7 +39,7 @@ export function renderBuybackDashboard(
   document.querySelector('#buyback-pending').textContent = walletBalanceReady ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : '—';
   document.querySelector('#buyback-burned').textContent = fundedBurnState.status === 'ready' ? formatTokenBaseUnits(fundedBurnState.burnedBaseUnits, fundedBurnState.decimals, 6) : '—';
   document.querySelector('#buyback-claims').textContent = connectedWalletAddress && fundedBurnState.status === 'ready' ? String(receiptSignatures.size) : '—';
-  const feeReceipts = buybackNetworkState.receipts;
+  const feeReceipts = newestBuybackReceipts(buybackNetworkState.receipts);
   const totalReceiptCount = feeReceipts.length + launchBurns.length + standaloneReceipts.filter(receipt => !launchBurns.some(launch => launch.creatorLaunchBurn.receipt.signature === receipt.signature)).length;
   document.querySelector('#buyback-execution-count').textContent = totalReceiptCount
     ? `${totalReceiptCount} verified receipt${totalReceiptCount === 1 ? '' : 's'}`
@@ -78,7 +79,10 @@ export function renderBuybackDashboard(
       : BigInt(receipt.settledLamports || '0') - BigInt(receipt.returnedLamports || '0');
     return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${escapeHtml(amount)} $FUNDED bought and burned</strong><small>${escapeHtml(formatTokenBaseUnits(spentSol, 9, 9))} SOL from collected creator fees · finalized on Devnet</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed buy and burn ↗</a></span><b>Supply ↓</b></div>`;
   }).join('');
-  document.querySelector('#buyback-ledger').innerHTML = `${feeRows}${standaloneRows}${launchRows}${previewRows}` || (buybackNetworkState.status === 'unavailable' ? '<div class="empty-state">Burn history is temporarily unavailable. Try again shortly.</div>' : '<div class="empty-state">No confirmed $FUNDED burns yet. Fee-funded buybacks and launch promotions appear here separately.</div>');
+  const ledger = document.querySelector('#buyback-ledger');
+  const more = ledger.querySelector(':scope > .concise-ledger-more');
+  if (more) ledger.dataset.buybackExpanded = String(more.open);
+  ledger.innerHTML = `${feeRows}${standaloneRows}${launchRows}${previewRows}` || (buybackNetworkState.status === 'unavailable' ? '<div class="empty-state">Burn history is temporarily unavailable. Try again shortly.</div>' : '<div class="empty-state">No confirmed $FUNDED burns yet. Fee-funded buybacks and launch promotions appear here separately.</div>');
   const runButton = document.querySelector('#buyback-run-preview');
   const addButton = document.querySelector('#buyback-add-claim');
   if (addButton) { addButton.disabled = true; addButton.title = 'Recording requires verified fee-claim receipts and a deployed buyback vault.'; }

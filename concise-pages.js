@@ -62,6 +62,7 @@ function compactBuyback() {
     if (!disclosure) {
       disclosure = document.createElement('details');
       disclosure.className = 'concise-buyback-queue';
+      disclosure.open = flow.dataset.buybackExpanded === 'true';
       const summary = document.createElement('summary');
       summary.textContent = 'View pending and completed buys';
       disclosure.append(summary);
@@ -106,6 +107,7 @@ function compactBuyback() {
     if (!more) {
       more = document.createElement('details');
       more.className = 'concise-ledger-more';
+      more.open = ledger.dataset.buybackExpanded === 'true';
       const summary = document.createElement('summary');
       more.append(summary);
       rows[3].before(more);
