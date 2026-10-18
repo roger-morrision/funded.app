@@ -59,7 +59,7 @@ export function createAirdropReportingController(appState) {
     if (state) state.textContent = appState.connectedWalletAddress ? `Wallet ${appState.connectedWalletAddress.slice(0, 4)}…${appState.connectedWalletAddress.slice(-4)} connected. Check an open claim for your verified allocation.` : 'Connect your wallet to check open Solana claims.';
     const count = document.querySelector('#claim-program-count');
     if (count) count.textContent = appState.verifiedLaunchPoliciesStatus === 'ready'
-      ? `${programs.length} allocations · ${appState.communityReserveStatus === 'ready' ? `${programs.filter(program => program.claimActive).length} open` : 'claims unverified'}`
+      ? `${programs.length} allocations · ${appState.communityReserveStatus === 'ready' && programs.every(program => program.claimVerification === 'verified') ? `${programs.filter(program => program.claimActive).length} open` : 'claims unverified'}`
       : appState.verifiedLaunchPoliciesStatus === 'loading' ? 'Checking airdrops…' : 'Airdrops unavailable';
     appState.renderAirdropSummary(programs);
     appState.renderAirdropDirectory(programs);

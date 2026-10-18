@@ -53,7 +53,10 @@ export function secondaryPages() {
       for(const button of $$('[data-public-airdrop-tab]',publicPrograms)){
         const active=button.dataset.publicAirdropTab===selectedPublicTab;
         button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;
-        button.querySelector('span').textContent=directory?.dataset.indexStatus==='ready'?String(button.dataset.publicAirdropTab==='all'?all:button.dataset.publicAirdropTab==='claiming'?claiming:curve):'—';
+        const kind=button.dataset.publicAirdropTab;
+        const count=kind==='all'?all:kind==='claiming'?claiming:curve;
+        const known=kind==='all'||directory?.dataset[kind==='claiming'?'claimsStatus':'stagesStatus']==='ready';
+        button.querySelector('span').textContent=directory?.dataset.indexStatus==='ready'?(known?String(count):count>0?`≥${count}`:'—'):'—';
       }
       directory?.setAttribute('aria-labelledby',`airdrop-${selectedPublicTab}-tab`);
     };

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 
 const walletAddress = '11111111111111111111111111111111';
 const mint = 'So11111111111111111111111111111111111111112';
@@ -7,6 +8,7 @@ test('connected wallet can check its airdrop card without a misleading connect p
   const expiresAt = Math.floor(Date.now() / 1000) + 86_400;
   let proofRequests = 0;
   await page.route('**/api/**', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
+  await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route('**/api/launches', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([
     { mint, name: 'Funded Clean QA', symbol: 'FCQA', cluster: 'devnet', onchainVerified: true,
       creatorWallet: walletAddress, communityAirdrop: { allocationPercent: 3, reservedTokens: 30_000_000 } },

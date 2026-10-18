@@ -54,7 +54,7 @@ try {
   await page.goto(`${origin}/#buybacks`,{waitUntil:'domcontentloaded'});
   await page.waitForFunction(() => document.querySelector('#buyback-route-balance')?.textContent === '0.000447709 SOL');
   await page.waitForFunction(() => document.querySelector('.reward-buyback-stats')?.textContent?.includes('0.000447709 SOL'));
-  assert.match(await page.locator('.reward-buyback-stats').textContent(),/Completed buybacks1/);
+  assert.match(await page.locator('.reward-buyback-stats').textContent(),/Recorded buybacks1/);
   assert.match(await page.locator('.reward-buyback-list').textContent(),/awaiting the 5 SOL trigger/);
   assert.equal(await page.locator('.buyback-route-progress').isVisible(),true);
   assert.equal(await page.locator('#buyback-route-proof').isVisible(),true);

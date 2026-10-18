@@ -226,9 +226,12 @@ function renderBuybacks(data) {
   const receipts = newestBuybackReceipts((data.receipts || []).filter(row => row.status === 'finalized'
     && row.vaultDebitVerified === true && row.burnInstructionVerified === true));
   const stats = node('div','reward-buyback-stats');
-  for (const [label,value] of [['Unspent allocations',sol(pending.reduce((sum,row) => sum + amount(row.amountLamports), 0n))],
-    ['Completed buybacks',String(receipts.length)]]) { const item = node('div'); item.append(node('small','',label),node('strong','',value)); stats.append(item); }
+  for (const [label,value] of [['Recorded unspent allocations',sol(pending.reduce((sum,row) => sum + amount(row.amountLamports), 0n))],
+    ['Recorded buybacks',String(receipts.length)]]) { const item = node('div'); item.append(node('small','',label),node('strong','',value)); stats.append(item); }
   root.append(stats);
+  root.append(node('p','reward-source-note',data.dashboard?.status==='verified'
+    ? 'Recorded receipts and allocations are shown below. Current eligible vault funds are verified in the trigger panel above.'
+    : 'Current vault balances and automatic execution readiness could not be verified. Any receipts below are recorded history.'));
   const trigger = amount(data.dashboard?.thresholdLamports) > 0n
     ? sol(data.dashboard.thresholdLamports) : null;
   const minimum = amount(data.minimumOrderLamports) > 0n ? sol(data.minimumOrderLamports) : null;

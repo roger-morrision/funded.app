@@ -22,17 +22,20 @@ export function renderAirdropProgramDetail(
   panel.dataset.mint = program.id;
   const unavailableButton = document.querySelector('#airdrop-claim-unavailable');
   if (unavailableButton) unavailableButton.hidden = program.claimActive;
+  const unknownClaim = program.claimVerification === 'checking' ? 'Checking claim availability…'
+    : program.claimVerification === 'unavailable' ? 'Claim availability could not be verified. Try again shortly.' : null;
   const eyebrow = document.querySelector('#airdrop-selected-eyebrow');
-  if (eyebrow) eyebrow.textContent = program.vaultVerified ? 'Airdrop funding confirmed' : 'Airdrop funding pending';
+  if (eyebrow) eyebrow.textContent = unknownClaim ? program.claimVerification === 'checking' ? 'Checking airdrop funding…' : 'Airdrop verification unavailable'
+    : program.vaultVerified ? 'Airdrop funding confirmed' : 'Airdrop funding pending';
   document.querySelector('#airdrop-selected-title').textContent = `${program.name} (${program.symbol})`;
-  const claimWindow = !program.claimPublished ? 'Not open yet'
+  const claimWindow = unknownClaim ? program.claimVerification === 'checking' ? 'Checking…' : 'Verification unavailable' : !program.claimPublished ? 'Not open yet'
     : !Number.isSafeInteger(program.claimWindowDays) || program.claimWindowDays <= 0 ? 'One claim per wallet before the published deadline'
       : program.snapshotBasis === 'devnet-qa-cutoff'
         ? `Devnet QA claims · one full allocation per wallet within ${program.claimWindowDays} days`
         : `Claim your full allocation once within ${program.claimWindowDays} days`;
   document.querySelector('#airdrop-selected-stats').innerHTML = `<span><small>Airdrop allocation</small><strong>${formatTokenAmount(program.reservedTokens)} tokens · ${program.allocationPercent}% of supply</strong></span><span><small>Claimed</small><strong>${formatVerifiedAirdropAmount(program.claimedTokens)}</strong></span><span><small>Eligible wallets</small><strong>${formatVerifiedAirdropAmount(program.eligibleWallets)}</strong></span><span><small>Claim window</small><strong>${escapeHtml(claimWindow)}</strong></span><details class="airdrop-verification-details advanced-details"><summary>Advanced details · verification</summary><div class="airdrop-program-detail-stats"><span><small>Snapshot</small><strong>${escapeHtml(program.snapshot)}</strong></span><span><small>Snapshot hash</small><strong class="airdrop-proof-value">${escapeHtml(program.snapshotHash || 'Pending verified snapshot')}</strong></span><span><small>Proof root</small><strong class="airdrop-proof-value">${escapeHtml(program.merkleRoot || 'Pending published proof')}</strong></span></div></details>`;
   const status = document.querySelector('#airdrop-selected-status');
-  status.textContent = program.claimActive
+  status.textContent = unknownClaim || (program.claimActive
     ? program.snapshotBasis === 'devnet-qa-cutoff'
       ? `This disposable Devnet QA airdrop uses a $FUNDED holder cutoff at ${program.snapshot}. Eligible wallets can check their allocation and claim by ${program.deadline}.`
       : program.snapshotBasis === 'pump-migration'
@@ -42,7 +45,7 @@ export function renderAirdropProgramDetail(
     ? `The claim window ended ${program.deadline}. You can still review past claims and verification details.`
     : program.vaultVerified
     ? `${formatTokenAmount(program.reservedTokens)} tokens are set aside. Claims will open after the token moves to its trading pool and the eligible wallet list is confirmed.`
-    : 'This airdrop is planned. Funding and wallet eligibility must be confirmed before claims can open.';
+    : 'This airdrop is planned. Funding and wallet eligibility must be confirmed before claims can open.');
   if (program.claimActive) {
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'secondary-button'; button.dataset.checkCommunityMint = program.id;
@@ -99,7 +102,9 @@ export function renderAirdropAnalytics(
   if (claimers) claimers.innerHTML = sortedClaimers.map((item, index) => `<div class="leader-row"><b>${index + 1}</b><span><strong>${escapeHtml(claimantWalletLabel(item.wallet, privateMode))}</strong><small>${escapeHtml(item.symbol)} claimed${claimerRate(item) == null ? '' : ` · ${(claimerRate(item) * 100).toFixed(1)}% of allocation`}</small></span><em>${formatTokenAmount(item.amount)}</em></div>`).join('') || '<div class="empty-state">Verified claimant receipts are not indexed yet. Ranking and privacy controls will appear when verified rows are available.</div>';
   if (programs) programs.innerHTML = getAirdropPrograms().sort((a, b) => b.reservedTokens - a.reservedTokens).slice(0, 5).map((item, index) => {
     const rate = airdropClaimRate(item);
-    const claimLabel = rate == null ? 'Snapshot pending' : rate > 0 && rate * 100 < 0.05 ? '<0.1% claimed' : `${(rate * 100).toFixed(1)}% claimed`;
+    const claimLabel = item.claimVerification === 'checking' ? 'Checking snapshot…'
+      : item.claimVerification === 'unavailable' ? 'Snapshot verification unavailable'
+        : rate == null ? 'Snapshot pending' : rate > 0 && rate * 100 < 0.05 ? '<0.1% claimed' : `${(rate * 100).toFixed(1)}% claimed`;
     return `<div class="leader-row" data-logo-mint="${escapeHtml(item.id)}"><b>${index + 1}</b><i class="leader-token-logo" aria-hidden="true">${escapeHtml(String(item.symbol || "T").slice(0, 1))}</i><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.symbol)} · ${escapeHtml(claimLabel)}</small></span><em>${formatTokenAmount(item.reservedTokens)}</em></div>`;
   }).join('');
   loadVerifiedTokenLogos(programs);

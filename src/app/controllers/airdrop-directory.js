@@ -10,7 +10,10 @@ export function createAirdropDirectoryController(appState) {
       if (!launch.mint || !Number.isFinite(allocationPercent) || !Number.isSafeInteger(reservedTokens) || reservedTokens <= 0) return [];
       const reserve = appState.verifiedCommunityReserves.get(launch.mint);
       const claimState = appState.airdropClaimState(reserve);
-      const claimActive = claimState.claimActive;
+      const claimVerification = appState.communityReserveStatus === 'loading' ? 'checking'
+        : appState.communityReserveStatus === 'ready' && reserve?.verified === true ? 'verified' : 'unavailable';
+      const market = appState.assets.find(item => item.address === launch.mint);
+      const claimActive = claimVerification === 'verified' && claimState.claimActive;
       const claimedTokens = claimState.published && /^\d+$/.test(String(reserve.claimedBaseUnits)) && /^\d+$/.test(String(reserve.totalBaseUnits))
         && BigInt(reserve.totalBaseUnits) > 0n
         ? Number(BigInt(reserve.claimedBaseUnits) * BigInt(reservedTokens) * 1_000_000n / BigInt(reserve.totalBaseUnits)) / 1_000_000 : null;
@@ -37,6 +40,8 @@ export function createAirdropDirectoryController(appState) {
         vaultAddress: reserve?.verified === true ? claimState.published ? reserve.drop : reserve.vault : null,
         fundingSignature: reserve?.verified === true ? reserve.fundingSignature : null,
         claimPublished: claimState.published,
+        claimVerification,
+        marketStageKnown: typeof market?.complete === 'boolean' || market?.migrated === true,
         claimActive,
         snapshotBasis,
         claimWindowDays,
@@ -44,7 +49,7 @@ export function createAirdropDirectoryController(appState) {
         migrationAt: claimState.published && Number.isSafeInteger(Number(reserve.migrationAt)) && Number(reserve.migrationAt) > 0
           ? Number(reserve.migrationAt) : null,
         status: claimState.status,
-        statusLabel: claimState.label,
+        statusLabel: claimVerification === 'verified' ? claimState.label : claimVerification === 'checking' ? 'Checking claim status…' : 'Claim status unavailable',
         merkleRoot: claimState.published ? reserve.merkleRoot : null,
         snapshotHash: claimState.published ? reserve.snapshotHash : null,
         deadline: claimState.published && reserve.expiresAt
@@ -52,7 +57,7 @@ export function createAirdropDirectoryController(appState) {
           : 'After verified snapshot',
         snapshot: claimState.published ? `${snapshotLabel} slot ${reserve.migrationSlot}` : 'Snapshot · unverified',
         walletAllocation: null,
-        onCurve: isOnCurveAirdrop({ claimPublished: claimState.published }, appState.assets.find(item => item.address === launch.mint)),
+        onCurve: isOnCurveAirdrop({ claimPublished: claimState.published }, market),
       }];
     });
   }
@@ -85,15 +90,18 @@ export function createAirdropDirectoryController(appState) {
     const eligible = eligibilityPrograms.length ? eligibilityPrograms.reduce((sum, item) => sum + item.eligibleWallets, 0) : null;
     const fundedCount = programs.filter(item => item.vaultVerified).length;
     const activeCount = programs.filter(item => item.claimActive).length;
-    const fundingNote = appState.communityReserveStatus === 'ready'
+    const claimsKnown = appState.communityReserveStatus === 'ready' && programs.every(item => item.claimVerification === 'verified');
+    const fundingNote = claimsKnown
       ? `${fundedCount} of ${programs.length} airdrops funded · ${activeCount} open for claims`
-      : appState.communityReserveStatus === 'loading' ? 'Checking funding' : 'Funding status unavailable';
-    node.innerHTML = `<article><span>Indexed allocations</span><strong>${programs.length}</strong><small>${appState.communityReserveStatus === 'ready' ? `${activeCount} open for claims` : 'Claim status unverified'}</small></article><article><span>Planned tokens</span><strong>${appState.formatTokenAmount(reserved)}</strong><small>${fundingNote}</small></article><article data-community-claimed><span>Community airdrops claimed</span><strong>${claimSummary.amount}</strong><span>${appState.communityClaimUnit(claimSummary)}</span><small>${claimSummary.note}</small></article><article><span>Eligible wallets</span><strong>${eligible == null ? '—' : `${eligibilityPrograms.length < programs.length ? '≥' : ''}${appState.formatVerifiedAirdropAmount(eligible)}`}</strong><small>${eligible == null ? 'Eligibility details unavailable' : `Eligibility available for ${eligibilityPrograms.length} of ${programs.length} airdrops`}</small></article>`;
+      : appState.communityReserveStatus === 'loading' ? 'Checking funding' : 'Funding verification unavailable or incomplete';
+    node.innerHTML = `<article><span>Indexed allocations</span><strong>${programs.length}</strong><small>${claimsKnown ? `${activeCount} open for claims` : 'Claim status unverified'}</small></article><article><span>Planned tokens</span><strong>${appState.formatTokenAmount(reserved)}</strong><small>${fundingNote}</small></article><article data-community-claimed><span>Community airdrops claimed</span><strong>${claimSummary.amount}</strong><span>${appState.communityClaimUnit(claimSummary)}</span><small>${claimSummary.note}</small></article><article><span>Eligible wallets</span><strong>${eligible == null ? '—' : `${eligibilityPrograms.length < programs.length ? '≥' : ''}${appState.formatVerifiedAirdropAmount(eligible)}`}</strong><small>${eligible == null ? 'Eligibility details unavailable' : `Eligibility available for ${eligibilityPrograms.length} of ${programs.length} airdrops`}</small></article>`;
   }
   // app-source-end
 
   // app-source: 329
   function directoryWalletAmount(program){
+    if (program.claimVerification === 'checking') return 'Checking claim status…';
+    if (program.claimVerification === 'unavailable') return 'Claim status unavailable';
     if (!program.claimActive) return program.status === 'closed' ? 'Claims closed' : 'Check when claims open';
     if (!appState.connectedWalletAddress) return 'Connect to check';
     const allocation = appState.communityWalletAllocations.get(program.id);
@@ -122,6 +130,8 @@ export function createAirdropDirectoryController(appState) {
     if (!list) return;
     const query = document.querySelector('#airdrop-search')?.value.trim().toLowerCase() || '';
     list.dataset.indexStatus = appState.verifiedLaunchPoliciesStatus;
+    list.dataset.claimsStatus = appState.communityReserveStatus === 'ready' && programs.every(item => item.claimVerification === 'verified') ? 'ready' : 'unavailable';
+    list.dataset.stagesStatus = programs.every(item => item.marketStageKnown) ? 'ready' : 'unavailable';
     list.dataset.allCount = String(programs.length);
     list.dataset.curveCount = String(programs.filter(item => item.onCurve).length);
     list.dataset.upcomingCount = String(programs.filter(item => item.status === 'upcoming').length);
@@ -140,16 +150,20 @@ export function createAirdropDirectoryController(appState) {
       const walletCheck = appState.communityWalletAllocations.get(program.id);
       const checking = walletCheck?.status === 'checking' && walletCheck.wallet === appState.connectedWalletAddress && walletCheck.snapshotHash === program.snapshotHash;
       const snapshotReady = program.eligibleWallets != null;
+      const unknownClaim = program.claimVerification === 'checking' ? 'Checking claim status…'
+        : program.claimVerification === 'unavailable' ? 'Claim status unavailable' : null;
+      const snapshotLabel = unknownClaim ? program.claimVerification === 'checking' ? 'Checking snapshot…' : 'Snapshot verification unavailable'
+        : snapshotReady ? `${appState.formatPolicyTokenCount(program.eligibleWallets)} wallets` : 'Snapshot pending';
       const cardData = appState.tokenCardData({ mint: program.id, policy: appState.verifiedLaunchPolicyForMint(program.id), reserve: { mint: program.id, verified: program.vaultVerified } });
       return `<article class="token-card-shell airdrop-directory-card" data-logo-mint="${safeMint}">
         <div class="directory-card-top"><span class="claim-token-mark" aria-hidden="true" title="Project artwork not published for this token">${appState.escapeHtml(program.symbol.slice(0, 2).toUpperCase())}</span><div class="directory-project-info"><span class="directory-token-identity"><strong>${safeSymbol}</strong>${appState.exploreBoostAmountMarkup(program.id)}<a href="/token/${encodeURIComponent(program.id)}">${appState.escapeHtml(program.name)}</a></span>
-        <p class="directory-allocation-line">${appState.formatPolicyTokenCount(program.reservedTokens)} $${safeSymbol} · ${snapshotReady ? `${appState.formatPolicyTokenCount(program.eligibleWallets)} wallets` : 'Snapshot pending'}</p>
-        ${curveTab || appState.airdropDirectoryStatus === 'claiming' ? '' : `<small class="directory-funding-line">Funding: ${cardData.reserveState === 'verified' ? 'Confirmed' : appState.communityReserveStatus === 'loading' ? 'Checking…' : appState.communityReserveStatus === 'unavailable' ? 'Unavailable' : 'Not confirmed'}</small>`}
+        <p class="directory-allocation-line">${appState.formatPolicyTokenCount(program.reservedTokens)} $${safeSymbol} · ${snapshotLabel}</p>
+        ${curveTab || appState.airdropDirectoryStatus === 'claiming' ? '' : `<small class="directory-funding-line">Funding: ${cardData.reserveState === 'verified' ? 'Confirmed' : program.claimVerification === 'checking' ? 'Checking…' : program.claimVerification === 'unavailable' ? 'Unavailable' : 'Not confirmed'}</small>`}
         <details class="token-card-more"><summary>Details & links</summary>${program.claimPublished ? `<small class="directory-migration-time">${program.migrationAt ? `${program.snapshotBasis === 'devnet-qa-cutoff' ? 'Devnet QA cutoff' : program.snapshotBasis === 'pump-migration' ? 'Migrated' : 'Snapshot recorded'} ${utcMoment(program.migrationAt * 1000)}` : 'Snapshot time unavailable'}</small>` : ''}${appState.tokenCardAddressesMarkup(program.id)}${appState.exploreSocialLinksMarkup({ address: program.id, symbol: program.symbol })}<small>${appState.escapeHtml(program.statusLabel)} · ${appState.escapeHtml(appState.tokenCardEvidenceLabel(cardData))}</small></details></div></div>
         <div class="directory-wallet-allocation"><small>Your allocation</small><b>${appState.escapeHtml(appState.directoryWalletAmount(program))}</b></div>
-        <div class="directory-footer"><span class="airdrop-status ${program.status}">${program.claimActive ? 'Claims open' : program.status === 'closed' ? 'Claims closed' : program.onCurve ? 'On curve · opens after migration' : 'Awaiting verified snapshot'}</span><div class="token-card-actions">${appState.tokenCardWatchMarkup(program.id, program.symbol)}${appState.tokenCardShareMarkup(program.id, program.symbol, program.name)}${curveTab ? '' : `<button type="button" class="secondary-button directory-claim" data-directory-mint="${safeMint}" aria-controls="airdrop-selected-program" ${checking ? 'disabled' : ''}>${appState.connectedWalletAddress && program.claimActive ? 'Check allocation' : 'View claim status'}</button>`}</div></div>
+        <div class="directory-footer"><span class="airdrop-status ${program.status}">${unknownClaim || (program.claimActive ? 'Claims open' : program.status === 'closed' ? 'Claims closed' : program.onCurve ? 'On curve · opens after migration' : 'Awaiting verified snapshot')}</span><div class="token-card-actions">${appState.tokenCardWatchMarkup(program.id, program.symbol)}${appState.tokenCardShareMarkup(program.id, program.symbol, program.name)}${curveTab ? '' : `<button type="button" class="secondary-button directory-claim" data-directory-mint="${safeMint}" aria-controls="airdrop-selected-program" ${checking ? 'disabled' : ''}>${appState.connectedWalletAddress && program.claimActive ? 'Check allocation' : 'View claim status'}</button>`}</div></div>
       </article>`;
-    }).join('') || `<div class="empty-state">${appState.verifiedLaunchPoliciesStatus === 'loading' ? 'Checking airdrops…' : appState.verifiedLaunchPoliciesStatus === 'unavailable' ? 'Airdrops are temporarily unavailable.' : query ? 'No airdrops match your search.' : appState.airdropDirectoryStatus === 'claiming' ? 'No claims are open yet.' : appState.airdropDirectoryStatus === 'closed' ? 'No closed airdrops yet.' : appState.airdropDirectoryStatus === 'curve' ? 'No verified on-curve airdrops yet.' : 'No airdrops yet.'}</div>`;
+    }).join('') || `<div class="empty-state">${appState.verifiedLaunchPoliciesStatus === 'loading' ? 'Checking airdrops…' : appState.verifiedLaunchPoliciesStatus === 'unavailable' ? 'Airdrops are temporarily unavailable.' : query ? 'No airdrops match your search.' : ['claiming','closed'].includes(appState.airdropDirectoryStatus) && list.dataset.claimsStatus !== 'ready' ? 'Claim availability could not be verified. Try again shortly.' : appState.airdropDirectoryStatus === 'claiming' ? 'No claims are open yet.' : appState.airdropDirectoryStatus === 'closed' ? 'No closed airdrops yet.' : appState.airdropDirectoryStatus === 'curve' && list.dataset.stagesStatus !== 'ready' ? 'Trading stages could not be verified. Try again shortly.' : appState.airdropDirectoryStatus === 'curve' ? 'No verified on-curve airdrops yet.' : 'No airdrops yet.'}</div>`;
     appState.loadVerifiedTokenLogos(list);
     if (appState.airdropDirectoryStatus === 'claiming' && appState.connectedWalletAddress
       && appState.requestedPageRoute?.() === 'airdrops' && !document.hidden) {

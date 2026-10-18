@@ -96,7 +96,7 @@ test('Devnet QA airdrop details identify the cutoff without claiming migration e
     leafCount:13, migrationSlot:510881232, migrationAt:1791955661, expiresAt:1799731661 };
   const appState = { verifiedLaunchPolicies:[{ mint, name:'Funded V3 X QA nd33c', symbol:'FV3XQ',
     creatorWallet:'creator', communityAirdrop:{ reservedTokens:30_000_000, allocationPercent:3 } }],
-    verifiedCommunityReserves:new Map([[mint, reserve]]), airdropClaimState, assets:[] };
+    verifiedCommunityReserves:new Map([[mint, reserve]]), communityReserveStatus:'ready', airdropClaimState, assets:[] };
   const program = createAirdropDirectoryController(appState).getAirdropPrograms()[0];
   assert.equal(program.claimedTokens, 232.605982);
   assert.equal(program.eligibleWallets, 13);

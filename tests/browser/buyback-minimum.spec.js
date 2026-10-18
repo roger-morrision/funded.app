@@ -36,7 +36,7 @@ for(const width of [1280,390])test(`small buyback allocations explain retained f
   await expect(rows.nth(0)).toContainText('below 0.00001 SOL order minimum; retained in its vault');
   await expect(rows.nth(0)).not.toContainText('ready for the next batch');
   await expect(rows.nth(1)).toContainText('in progress');
-  await expect(page.locator('.reward-buyback-stats')).toContainText('Unspent allocations');
+  await expect(page.locator('.reward-buyback-stats')).toContainText('Recorded unspent allocations');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 

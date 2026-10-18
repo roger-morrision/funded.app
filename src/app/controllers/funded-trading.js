@@ -1,3 +1,4 @@
+import { fundedBuyFailureMessage } from '../../features/funded/buy-feedback.js';
 // Dependencies and mutable application state are read live through appState.
 export function createFundedTradingController(appState) {
   // app-source: 351
@@ -40,12 +41,7 @@ export function createFundedTradingController(appState) {
       signal?.throwIfAborted();
       if (appState.fundedBuyBusy) return;
       appState.fundedBuyPreview = null;
-      const detail = String(error?.message || error);
-      const reason = /(?:\b429\b|rate limit|too many requests)/i.test(detail)
-        ? 'Buy preview is temporarily unavailable because Solana RPC is rate limited. Try again shortly.'
-        : /(?:failed to fetch|networkerror|econnrefused|timed out)/i.test(detail)
-          ? 'Buy preview is unavailable while the Solana RPC connection recovers.'
-          : `Buy preview is unavailable: ${detail.slice(0, 220)}`;
+      const reason = fundedBuyFailureMessage(error);
       appState.fundedBuyRoute = { status:'unavailable', snapshot:null, reason };
       appState.renderFundedBuyControl();
       appState.renderFundedTokenLanding();
@@ -106,7 +102,7 @@ export function createFundedTradingController(appState) {
       appState.fundedBuyPreview = null;
       appState.renderFundedBuyControl(error.signature || submittedSignature
         ? `Confirmation is uncertain for ${error.signature || submittedSignature}. Check that signature on Solana before trying again.`
-        : `Buy stopped or confirmation unavailable: ${String(error.message || error)}`);
+        : fundedBuyFailureMessage(error, 'buy'));
     } finally {
       appState.fundedBuyBusy = false;
       appState.renderFundedBuyControl();
