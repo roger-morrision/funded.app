@@ -34,7 +34,7 @@ export function verifyCreatorSettlement({ signedTransaction, instruction, author
 
 export async function submitCreatorSettlement({ connection, transaction, authority, timeoutMs = 90_000, pollMs = 1000 }) {
   const valid = await connection.isBlockhashValid(transaction.recentBlockhash, 'confirmed');
-  if (!valid.value) throw new Error('Creator approval expired. Prepare and sign a fresh transaction.');
+  if (!valid.value) throw Object.assign(new Error('Creator approval expired. Prepare and sign a fresh transaction.'), {statusCode:409});
   transaction.partialSign(authority);
   const signature = bs58.encode(transaction.signature);
   try {

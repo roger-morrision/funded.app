@@ -5,6 +5,7 @@ import { Keypair, Transaction } from '@solana/web3.js';
 import { buildMintRouterSettlementInstruction } from '../server/mint-router-payout.mjs';
 import { prepareCreatorSettlement, verifyCreatorSettlement, submitCreatorSettlement, verifyFinalizedSettlementDelta,
   creatorSettlementRetryState } from '../server/creator-settlement-transaction.mjs';
+import {publicError} from '../server/http-policy.mjs';
 
 const programId = Keypair.generate().publicKey;
 const mint = Keypair.generate().publicKey;
@@ -55,6 +56,16 @@ test('server adds its signature to the same transaction and verifies finality', 
   const signature = await submitCreatorSettlement({ connection, transaction, authority, pollMs:1 });
   assert.equal(signature, bs58.encode(transaction.signature));
   assert.equal(sends, 1);
+});
+
+test('expired creator approvals return a recoverable conflict without broadcasting', async () => {
+  const transaction=verifyCreatorSettlement({signedTransaction:creatorSigned(),instruction:settlement.instruction,
+    authority:authority.publicKey,creator:creator.publicKey});
+  await assert.rejects(submitCreatorSettlement({connection:{isBlockhashValid:async()=>({value:false}),
+    sendRawTransaction:()=>assert.fail('An expired transaction must not be broadcast')},transaction,authority}),error=>{
+    const response=publicError(error,'qa-expired');assert.equal(response.status,409);
+    assert.match(response.body.error,/Prepare and sign a fresh transaction/);return true;
+  });
 });
 
 test('ambiguous broadcast and transient receipt errors do not create a second transaction', async () => {
