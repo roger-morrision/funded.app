@@ -1,6 +1,8 @@
 import {test,expect} from '@playwright/test';
 
 for(const width of [1280,390])test(`holder self-payment shows its signed net change and costs at ${width}px`,async({page})=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  page.on('console',message=>{if(message.type()==='error'&&/Invalid token balance/.test(message.text()))errors.push(message.text());});
   await page.setViewportSize({width,height:900});
   await page.route('https://**/*',route=>route.abort());
   await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline fixture'}}));
@@ -18,4 +20,5 @@ for(const width of [1280,390])test(`holder self-payment shows its signed net cha
   await expect(row.locator('.payment-history-fee')).toContainText('paid by receiver');
   await page.locator('#payment-history-type').selectOption('holder');await expect(row).toHaveCount(1);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  expect(errors).toEqual([]);
 });

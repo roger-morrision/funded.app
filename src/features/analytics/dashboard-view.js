@@ -95,7 +95,8 @@ export function renderExtendedAnalyticsDashboard({ assets, verifiedLaunchPolicie
           paid.textContent = 'Payout time unavailable';
         }
 
-        const amount = document.createElement('span'); amount.className = 'payment-amount'; amount.textContent = `${formatTokenBaseAmount(payout.actualReceivedLamports, 9, 9)} SOL received`;
+        const amount = document.createElement('span'); amount.className = 'payment-amount';
+        amount.textContent = `${payout.actualReceivedLamports < 0 ? '-' : ''}${formatTokenBaseAmount(Math.abs(payout.actualReceivedLamports), 9, 9)} SOL ${payout.recipientRentLamports > 0 ? 'net change' : 'received'}`;
         identity.append(name, proof, paid); row.append(identity, amount); target.append(row);
       }
     } else if (target && receiptEvidenceChecked && !paymentHistoryEvidence) {
