@@ -33,7 +33,9 @@ export async function readDailyBonusTrades({ connection, launch, window, maxPage
   const mint = new PublicKey(launch.mint), pool = canonicalPumpPoolPda(mint, NATIVE_MINT);
   const account = await connection.getAccountInfo(pool, 'finalized');
   if (account && !account.owner.equals(PUMP_AMM_PROGRAM_ID)) throw new Error('Daily bonus pool owner mismatch.');
-  const routes = [bondingCurvePda(mint), ...(account ? [pool] : [])];
+  // Both addresses are deterministic. Current pool existence must not change
+  // a completed day's immutable coverage after a later migration (or closure).
+  const routes = [bondingCurvePda(mint), pool];
   const coder = getPumpAmmProgram(connection).coder.events;
   const rows = [];
   for (const address of routes) {
@@ -52,7 +54,7 @@ export async function readDailyBonusTrades({ connection, launch, window, maxPage
           throw new Error('Daily bonus trade history has an unresolved time or finality gap.');
         if (ref.err || ref.blockTime < window.start || ref.blockTime >= window.end) continue;
         const tx = await connection.getTransaction(ref.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
-        rows.push(...dailyBonusTradeRows(tx, ref, mint, account ? pool : null, coder.decode.bind(coder)));
+        rows.push(...dailyBonusTradeRows(tx, ref, mint, pool, coder.decode.bind(coder)));
       }
       if (refs.length < pageSize || refs.some(row => row.blockTime < window.start)) { complete = true; break; }
       before = refs.at(-1)?.signature;

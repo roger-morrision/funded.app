@@ -34,6 +34,22 @@ test('trading snapshot scans finalized history and refuses missing transactions 
   connection.getTransaction = async () => tx();
   await assert.rejects(readDailyBonusTrades({ ...params, pageSize:1, maxPages:1 }), /scan limit/);
 });
+
+test('completed-day coverage stays stable when a Pump pool appears after the cutoff', async () => {
+  let poolExists = false;
+  const scanned = [];
+  const connection = {
+    getAccountInfo:async () => poolExists ? { owner:PUMP_AMM_PROGRAM_ID } : null,
+    getSignaturesForAddress:async address => { scanned.push(address.toBase58()); return []; },
+  };
+  const params = { connection, launch:{ mint:fixture.mint },
+    window:{ start:item.blockTime - 1, end:item.blockTime + 1 } };
+  const before = await readDailyBonusTrades(params);
+  assert(scanned.includes(pool.toBase58()), 'Even an absent current pool must have its historical address checked.');
+  poolExists = true;
+  const after = await readDailyBonusTrades(params);
+  assert.deepEqual(after, before, 'Later migration must not change a completed day with identical finalized trades.');
+});
 test('snapshot waits for finalized chain time and rejects a different genesis', async () => {
   const now = Date.parse('2026-10-18T00:00:00Z') / 1000;
   const params = { day:'2026-10-17', now, state:{}, programId:fixture.mint,
