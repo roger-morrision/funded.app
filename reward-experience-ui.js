@@ -221,7 +221,10 @@ function renderBuybacks(data) {
   const amount = value => /^(0|[1-9]\d*)$/.test(String(value)) ? BigInt(value) : 0n;
   const pending = (data.pending || []).filter(row => amount(row.amountLamports) > 0n);
   const receipts = (data.receipts || []).filter(row => row.status === 'finalized'
-    && row.vaultDebitVerified === true && row.burnInstructionVerified === true);
+    && row.vaultDebitVerified === true && row.burnInstructionVerified === true)
+    .sort((a,b)=> (Number.isSafeInteger(b.slot)?b.slot:0)-(Number.isSafeInteger(a.slot)?a.slot:0)
+      || (Date.parse(b.finalizedAt||b.burnedAt||'')||0)-(Date.parse(a.finalizedAt||a.burnedAt||'')||0)
+      || String(a.signature||'').localeCompare(String(b.signature||'')));
   const stats = node('div','reward-buyback-stats');
   for (const [label,value] of [['Unspent allocations',sol(pending.reduce((sum,row) => sum + amount(row.amountLamports), 0n))],
     ['Completed buybacks',String(receipts.length)]]) { const item = node('div'); item.append(node('small','',label),node('strong','',value)); stats.append(item); }

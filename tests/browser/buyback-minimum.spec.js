@@ -18,3 +18,18 @@ for(const width of [1280,390])test(`small buyback allocations explain retained f
   await expect(page.locator('.reward-buyback-stats')).toContainText('Unspent allocations');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
+
+test('buyback history shows the newest eight confirmed receipts with their matching proof links',async({page})=>{
+  await page.route('https://**/*',route=>route.abort());
+  await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline fixture'}}));
+  const receipts=Array.from({length:10},(_,i)=>({mint:'52TdgMLp41CtiLrAqqZ1N889RPfWMMzxwpF8MoaZFvN1',
+    signature:'3456789ABC'[i].repeat(64),slot:i+1,status:'finalized',vaultDebitVerified:true,burnInstructionVerified:true,burnedBaseUnits:String(1000+i)}));
+  await page.route('**/api/buyback/status',route=>route.fulfill({json:{cluster:'devnet',automationEnabled:true,minimumOrderLamports:'10000',pending:[],receipts,
+    dashboard:{status:'verified',thresholdLamports:'100000',collectedLamports:'0',triggerReached:false}}}));
+  await page.goto('/#buybacks');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  await page.locator('.concise-buyback-queue summary').click();
+  const rows=page.locator('.reward-buyback-list p');await expect(rows).toHaveCount(8);
+  await expect(rows.first()).toContainText('1009 $FUNDED base units burned');
+  await expect(rows.first().getByRole('link',{name:'Proof ↗'})).toHaveAttribute('href',/\/C{64}\?cluster=devnet$/);
+  await expect(rows.last()).toContainText('1002 $FUNDED base units burned');
+});
