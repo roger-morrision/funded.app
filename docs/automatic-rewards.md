@@ -1,4 +1,33 @@
-# Automatic reward delivery
+# V3 rewards: automatic delivery, claims and approvals
+
+## Current product rules
+
+The current preview uses Devnet and V3 per-mint fee policies. Default gross creator-fee allocations are 80% creator-directed, 8% Operations & marketing, 3% referral network, 4% Daily bonus and 5% $FUNDED buyback. A saved admin policy overrides protocol defaults for future launches; existing coins keep their saved policy. Percentages apply to collected creator fees, not trade volume.
+
+| Program | Asset | Recipient action | Required evidence |
+| --- | --- | --- | --- |
+| Creator wallet | SOL | Creator reviews/signs available settlement, funding and payout actions | Saved wallet share; finalized collection, settlement and transfer |
+| Coin holders | SOL | Automatic; no claim or recipient signature | Funded pool, complete finalized holdings, prices and applicable minima |
+| X account | SOL | Named X account signs in, links receiving wallet and claims | Identity, ownership, funding and finalized receipt |
+| Referral network | SOL | No recipient claim; creator approves V3 transfers | Frozen first-touch upline, collected fees and finalized transfer |
+| Daily bonus | SOL | Automatic; no claim or recipient signature | Completed UTC day, verified rankings and exact source funding |
+| Community airdrop | Launched coin tokens | Eligible wallet claims within displayed window | Token custody, verified eligibility snapshot and claim proof |
+
+### Holder cadence and conditions
+
+Standard holder periods close hourly, with finalized samples normally every five minutes. Defaults include US$20 reference-equivalent holdings, at most 1,000 eligible wallets, and a funded pool meeting 0.01 SOL and the US$20-plus-cost condition. The economic allowance is US$0.01 per recipient; transaction/account costs are paid separately. Missing prices or incomplete coverage blocks preparation; small pools carry forward. Selected Devnet QA mints can use reduced minima and five-minute periods with one-minute samples. See [QA configuration](devnet-qa-minimums.md) and each coin's conditions.
+
+### Daily bonus and history
+
+Each completed UTC day closes at 00:00 UTC. The pool splits equally between creators, direct referrers and traders; ranks 1/2/3 receive 50/30/20 within each group. Scores use collected creator fees, direct referred collected fees and finalized buy/sell SOL volume respectively. Ties use wallet address order; unfilled ranks retain their share. The worker checks every five minutes and automatically executes funded, verified snapshots. A cutoff does not guarantee immediate payment. See [Daily bonus rules](daily-bonus-policy.md).
+
+Home shows verified indexed category allocations and the next UTC cutoff. `#bonuses` shows paginated finalized history and all-time recipients across all recorded snapshots. Rewards History and Analytics independently verify transactions, payment accounts and balance changes. Combined category receipts are counted once. Wallet profiles have separate activity sources and authentication boundaries.
+
+An allocation, vault funding, submitted transaction and finalized payment are different stages. Mocked tests and dated QA receipts do not establish a current-source payout. Sources: [holder defaults](../automatic-rewards.js), [Daily policy](../config/daily-bonus.js), [runtime](../server/daily-bonus-runtime.mjs), [service](../server/daily-bonus-service.mjs), [history proof](../server/daily-bonus-payment-history.mjs), [fee configuration](protocol-fee-split-config.md).
+
+## Historical implementation and QA chronology
+
+The material below records earlier revisions and retired delivery models. Manual referral claims, earlier program IDs, old minima and activation states below are historical, not current V3 instructions. Use the current rules above; Git preserves the original chronology.
 
 Status: the payout contract is deployed on Devnet. Fee collection, SOL/token transfers, buy-and-distribute, and the scheduler have been live-verified there; the scheduler verification used a one-shot local worker rather than claiming a continuously deployed worker. Holder indexing uses the configured Helius endpoint, reads accounts at finalized commitment, and accepts a snapshot only when its balances exactly equal finalized mint supply. Current live holder periods below the 0.01 SOL funding minimum are correctly deferred. Mainnet remains disabled pending a separate audit and release authorization.
 
@@ -35,7 +64,7 @@ Read-only release preflight initially found the app and reward worker pinned to 
 
 The running Devnet app loads X OAuth and user-lookup configuration from ignored `.env.x` plus the matching mounted secret files. `/api/x/oauth/start` returns an X authorization redirect with the configured HTTPS callback; a real account sign-in has not yet been completed. The deployed router has passed finalized mint initialization and settlement checks, and the funded.vip Devnet gate is enabled. The local readiness check pins the deployed program bytecode. A real X payout remains unverified until OAuth identity, destination wallet, Pump fee collection, and finalized payout delta are jointly observed. Buy-and-distribute to holders has separate Devnet evidence above. The current router has one independently verified fee-funded buy-and-burn receipt for the disposable QA mint; broader custody and audit checks remain pending. Community claims require the custody and exact-slot eligibility work in `docs/community-airdrop-devnet.md`. Creator and holder payouts continue under the 0.01 SOL minimum; a deferred period is not a failed settlement. Referral rewards remain user-signed manual claims with receipt reconciliation.
 
-## Operational model
+### Historical operational model
 
 The current V3 source schedules complete UTC hours with five-minute finalized holder snapshots and payout after each hourly cutoff. New and migrated programs start with the next complete hour. Unprepared daily schedules are skipped during migration; already prepared or partly paid manifests remain intact. A funded hourly cycle requires a fresh verified SOL and token price, at least US$20 equivalent in each recipient wallet at the closing snapshot, no more than 1,000 eligible recipients, and a pool of at least 0.01 SOL and US$20 equivalent plus a US$0.01-equivalent cost allowance per recipient. The allowance is an economic gate; the app authority pays transaction costs separately and the holder pool is not silently reduced. Devnet USD figures are reference-equivalent test thresholds, not realizable market values. Unfunded or subminimum pools carry forward. Missing prices, incomplete finalized history, ineligible holders, or excess recipient counts block preparation without spending the pool. Historic daily receipts remain evidence for their original periods; this source change is not proof of an hourly live payout.
 
@@ -49,7 +78,7 @@ For the local Compose Devnet profile, resolve protected values from both ignored
 
 Required deployment inputs are `SOLANA_RPC_URL` or `SOLANA_DEVNET_RPC_URL`, `FUNDED_FEE_ROUTER_PROGRAM_ID`, `FUNDED_ROUTER_AUTHORITY_SECRET_KEY` or its keypair path, `FUNDED_REWARD_PROGRAM_DATA_SHA256`, and `AUTOMATIC_REWARD_STORE_PATH`. `SOLANA_HOLDER_INDEX_RPC_URL` is optional when the primary endpoint supports complete enumeration. If a provider blocks program scans, the worker tries paginated `getTokenAccounts`, rereads every discovered account at finalized commitment, and reconciles the sum to finalized mint supply. It accepts largest-account results only when those balances also equal supply; partial holder data is always rejected. On Devnet only, the worker may use `SOLANA_DEVNET_CREATOR_SECRET_KEY` as the router-authority fallback. `FUNDED_REWARD_PROGRAMS_JSON` is an optional bootstrap list; verified launches with holder rewards register themselves in the shared durable store. The worker rejects non-Devnet configuration. Production enablement requires a separately audited and authorized deployment.
 
-## Verification
+### Historical verification
 
 - `npm run verify:automatic-rewards` verifies allocation, Merkle proofs, sampled history, scheduling, restart behavior, manual referral exclusion, and buy policy with a mocked chain.
 - `npm run verify:reward-contract-source` checks contract controls plus JS manifest/PDA parity.

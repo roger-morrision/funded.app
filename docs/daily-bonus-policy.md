@@ -1,5 +1,19 @@
 # Daily bonus and protocol fee policy
 
+## Recipient delivery and timing
+
+Daily bonuses are **automatic SOL transfers**: winners do not claim or sign a recipient transaction. The worker checks every five minutes for completed UTC days and pending payouts. A day closes at **00:00 UTC** (07:00 Bangkok); the countdown starts verification, not an immediate payment guarantee. Exact source funding is still required after creator settlement/funding approval. Incomplete history, missing funding, reconciliation or an unavailable worker can delay payment.
+
+Ordinary referral-network transfers are separate: they require creator approval but no recipient claim. X SOL and community token airdrops require recipient claim actions.
+
+## Dashboard and payment history
+
+Home cards animate actual category allocations from verified indexed settlements; they do not simulate continuously earned income. `GET /api/daily-bonus/dashboard` supplies server time, cutoff, current pool, paginated history and all-time top-ten recipients across **all recorded snapshots**, rather than only the latest 30 snapshots in `GET /api/daily-bonus`.
+
+A combined payment can cover multiple categories. Its verified net receipt is attributed proportionally with exact lamport rounding and counted once. Gross allocations and received totals are not added together. Repeated aliases are deduplicated; missing net evidence, conflicting proofs and failed snapshot integrity are reported as unavailable and excluded from rankings. Rewards History and Analytics separately verify finalized instructions, accounts and recipient balance deltas. An empty history does not mean an allocation was paid.
+
+## Allocation, eligibility and execution
+
 The current configuration allocates gross collected creator fees as 80% creator-directed, 8% Operations & marketing, 3% referral network, 4% Daily bonus, and 5% $FUNDED buyback. In `config/protocol-fee-split.js`, the values are percentages of the protocol's 20% share: 40 / 15 / 20 / 25. Existing mint policies and their historical obligations retain their recorded rates. A saved admin policy takes precedence over configuration; publishing the 40/20 operations/community values through the authenticated admin editor is necessary if an earlier override exists.
 
 `config/daily-bonus.js` defines a completed UTC calendar day, 00:00–00:00. The base community allocation for launches that recorded daily bonus policy version 1 is split into three equal budgets. The top three creators rank by finalized collected creator fees, direct referrers by those referred creators' collected fees, and traders by finalized Pump/PumpSwap buy and sell SOL volume. Each category pays ranks 1/2/3 at 50/30/20. Ties use ascending wallet address. One wallet may qualify in several categories; each source mint combines its awards into one Merkle leaf. Integer rounding is deterministic. Empty ranks retain their portion in the source reward vault. Unmatched ordinary referral levels and old community allocations are not daily bonus funding sources.

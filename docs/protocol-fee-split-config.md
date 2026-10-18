@@ -10,4 +10,6 @@ V3 initializes per-mint category units on-chain and uses the recorded policy for
 
 Daily bonus uses the base community allocation of launches that recorded the Daily bonus policy. It is split equally among top creators, direct referrers and traders for a completed UTC day; each group pays ranks 1/2/3 at 50/30/20. Verified snapshots and creator-approved source funding are required. Missing ordinary referral levels remain in the community reserve and are not Daily bonus funding. Community token airdrops are a separate launched-token program. See [Daily bonus rules and evidence](daily-bonus-policy.md).
 
+Daily bonus winners receive automatic SOL transfers after snapshot and source-funding verification; they do not claim or sign. The worker checks every five minutes after the daily cutoff. Ordinary referral recipients also have no separate V3 claim, but those transfers need creator approval.
+
 Run `npm run verify:fee-policy`, `npm run verify:proof-ui`, the fee-policy browser regressions and `npm run build` before deployment. These checks establish local math and UI behavior; finalized on-chain receipts establish actual payments.

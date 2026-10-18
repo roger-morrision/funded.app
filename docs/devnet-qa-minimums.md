@@ -11,7 +11,7 @@ FUNDED_DEVNET_QA_MINIMUMS_ENABLED=true
 FUNDED_DEVNET_QA_BUYBACK_TRIGGER_LAMPORTS=5000000
 ```
 
-The QA value must be between 5,000,000 and 100,000,000 lamports (0.005–0.1
+The QA value must be between 100,000 and 100,000,000 lamports (0.0001–0.1
 SOL). The app refuses the QA profile outside Devnet. Remove the flag or set it
 to `false` to restore the 5 SOL gate for larger UAT. The public buyback API and
 dashboard show the active threshold; the worker reads the API rather than a
@@ -35,9 +35,9 @@ FUNDED_DEVNET_QA_HOLDER_MIN_LAMPORTS=1000000
 FUNDED_DEVNET_QA_FEE_COLLECTION_MIN_LAMPORTS=5000000
 ```
 
-The wallet minimum is a whole dollar amount from $1 to $19. The pool minimum
-accepts $0.10–$19.99 in cents; the lamport floor is
-1,000,000–9,999,999. They require a fresh verified quote, finalized sampled
+The wallet minimum accepts $0.01–$19.99 with at most two decimal places. The pool minimum
+accepts $0.001–$19.999 with at most three decimal places; the lamport floor is
+10,000–9,999,999. They require a fresh verified quote, finalized sampled
 holder balances, a funded vault, and all existing payout proofs. Existing
 prepared manifests and paid cycles are retained. A policy change starts at the
 next hourly boundary; available verified funding can carry forward. The policy
@@ -47,7 +47,7 @@ wallet/pool and 0.01 SOL floor for new periods. Changing the application
 minimums does not change the on-chain fee split.
 
 The optional fee collector setting applies only to the selected Devnet mint.
-It accepts 1,000,000–9,999,999 lamports; all other mints keep the 10,000,000
+It accepts 100,000–9,999,999 lamports; all other mints keep the 10,000,000
 lamport collector floor. This only starts collection. A creator must still
 finalize the V3 settlement and holder funding before the hourly reward
 schedule can prepare a payout.
@@ -59,3 +59,5 @@ balances every minute, and starts at the next five-minute boundary. Unprepared
 hourly periods are skipped while verified funding rolls into the first complete
 five-minute period. Paid cycles remain immutable. Set the short-period flag to
 `false` to restore hourly cadence at the next boundary for larger UAT.
+
+The plural holder-mint allowlists support at most eight valid addresses and require the relevant Devnet-only flag. These gates do not alter fee percentages, existing prepared manifests or on-chain obligations. Daily bonuses retain completed UTC calendar days; shortening holder periods does not shorten Daily bonus snapshots. Community QA cutoffs have their own explicit approval and must not be presented as genuine migration evidence. See `server/devnet-qa-minimums.mjs` for the enforced ranges and each public coin/program record for active settings.

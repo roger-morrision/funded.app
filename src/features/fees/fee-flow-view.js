@@ -2,9 +2,11 @@
 import { currentFeePolicyCopy } from './fee-policy-copy.js';
 import { initDailyBonusView } from './daily-bonus-view.js';
 import { initBonusDashboard } from './bonus-dashboard-view.js';
+import { renderProductFaqs } from '../help/product-guidance.js';
 export function createFeeFlowView(APP_ECONOMICS) {
   initDailyBonusView();
   initBonusDashboard();
+  renderProductFaqs();
   function formatFlowAmount(value){
     const amount = Number(value || 0);
     if (amount > 0 && amount < 0.000000001) return '<0.000000001 SOL';
@@ -12,6 +14,7 @@ export function createFeeFlowView(APP_ECONOMICS) {
   }
 
   function renderPublishedFeeRates(){
+    renderProductFaqs();
     const copy = currentFeePolicyCopy();
     const effective = [APP_ECONOMICS.operationsEffectivePercent, APP_ECONOMICS.appReferralEffectivePercent, APP_ECONOMICS.communityEffectivePercent, APP_ECONOMICS.buybackEffectivePercent];
     const levels = APP_ECONOMICS.appReferralLevels;

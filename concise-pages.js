@@ -118,7 +118,7 @@ function compactBuyback() {
 function compactTokenStory() {
   const story = document.querySelector('#paid .funded-token-story');
   if (!story || story.dataset.conciseStory === '2') return;
-  story.innerHTML = '<article><h2>Launch tiers</h2><p>Burn $FUNDED to choose a tier. Standard is free; tiers do not promise returns.</p></article><article><h2>Holder rewards</h2><p>Check each launch for eligibility and claim dates. <a href="#airdrops">View airdrops →</a></p></article><article><h2>How fees are shared</h2><p>Collected fees support creators, holders, referrals, community rewards, and buybacks. <a href="#capital-flow">View the fee split →</a></p></article>';
+  story.innerHTML = '<article><h2>Launch tiers</h2><p>Optional packages burn $FUNDED. Standard is the free package choice; network costs still apply.</p></article><article><h2>$FUNDED holder airdrops</h2><p>Launched coin tokens use separate snapshot eligibility and claim windows. <a href="#airdrops">View airdrops →</a></p></article><article><h2>How fees are shared</h2><p>Collected creator fees follow each coin’s saved V3 policy. Holder SOL and Daily bonuses are automatic after verification. <a href="#capital-flow">View the fee split →</a></p></article>';
   story.dataset.conciseStory = '2';
 }
 
@@ -231,14 +231,10 @@ function shortenPageCopy() {
     ['#launch-route-shell .launch-immutable-note', 'Token details publish at launch and cannot be edited here later.'],
     ['#referral-command-center .section-heading .panel-explainer', 'Share your link. Rewards come from collected creator fees, not signups.'],
     ['#referral-command-center .referral-share-panel .field-help', 'Use one link per campaign. Never promise returns.'],
-    ['#referral-faq .faq-grid details:nth-child(1) p', 'Rewards become available after a referred creator earns fees and those fees are collected. Signups alone earn nothing.'],
-    ['#referral-faq .faq-grid details:nth-child(2) p', currentFeePolicyCopy().reserve],
-    ['#referral-faq .faq-grid details:nth-child(3) p', 'Rates are policy, not promised income. Payouts depend on collected creator fees.'],
-    ['#referral-faq .faq-grid details:nth-child(4) p', 'A failed or unconfirmed fee collection earns nothing. A payout appears only after the creator-signed transfer is finalized.'],
     ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Buy from the verified Solana pool. Check spend, then approve in your wallet.'],
     ['#buybacks .burn-token-card > p:not(.eyebrow):not(.funded-burn-status)', 'Choose a project if you want to link this burn to it, then approve in your wallet.'],
     ['#buybacks .burn-receipts-panel > .field-help', 'This history shows confirmed burns recorded by funded.vip. Total supply can include other burns.'],
-    ['#reward-portfolio .reward-portfolio-note', 'Allocations are not balances. Holder SOL is automatic after a verified snapshot; X claims need matching sign-in.'],
+    ['#reward-portfolio .reward-portfolio-note', 'Allocations are not balances. Holder SOL and Daily bonuses are automatic after verification; X rewards need matching sign-in and a claim.'],
     ['#reward-discovery > small', 'Eligible wallets receive SOL automatically when funds are available. “0 paid wallets” means no holder payment is confirmed.'],
     ['#payments .auto-rewards-intro', 'Eligible holders receive SOL automatically after each verified cutoff and funding check. No claim needed.'],
     ['#payments .auto-rewards-fineprint', 'Target time is not payment. Each cycle checks funding and eligibility.'],

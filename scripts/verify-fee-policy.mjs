@@ -3,6 +3,7 @@ import { APP_REFERRAL_LEVELS, buildFeeDistributionPolicy, calculateCreatorFeeCla
 import { createFeeFlowView } from '../src/features/fees/fee-flow-view.js';
 import { readFileSync } from 'node:fs';
 import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
+import { productFaqs } from '../src/features/help/product-guidance.js';
 
 const configured = validateProtocolFeeSplit(PROTOCOL_FEE_SPLIT);
 const grossRate = rate => Number((rate / 5).toFixed(6));
@@ -75,7 +76,8 @@ const alternateClaim = calculateCreatorFeeClaim(100, { creatorWalletPercent: 80 
 assert.deepEqual([alternateClaim.fundedApp.operations, alternateClaim.fundedApp.referralPayout, alternateClaim.fundedApp.community, alternateClaim.fundedApp.buyback], [10, 4, 4, 2]);
 assert.equal(alternateClaim.totalAllocated, 100);
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-for (const id of ['fee-policy-faq', 'buyback-policy-heading', 'buyback-policy-note']) {
+assert.match(productFaqs().map(([, , body]) => body).join(''), /id="fee-policy-faq"/, 'the current FAQ renderer must expose its configured-policy target');
+for (const id of ['buyback-policy-heading', 'buyback-policy-note']) {
   assert.match(html, new RegExp(`id="${id}"`), `${id} must be rendered from the configured policy`);
 }
 const nodes = new Map([...['#fee-policy-faq', '#buyback-policy-heading', '#buyback-policy-note']].map(selector => [selector, { textContent: '' }]));
@@ -83,6 +85,7 @@ const bars = Array.from({ length: 5 }, () => ({ style: {} }));
 const rows = Array.from({ length: 5 }, () => ({ textContent: '' }));
 const previousDocument = globalThis.document;
 globalThis.document = {
+  getElementById: id => nodes.get(`#${id}`) || null,
   querySelector: selector => nodes.get(selector) || null,
   querySelectorAll: selector => selector === '.home-receipt-card .receipt-bars span' ? bars
     : selector === '.home-receipt-card .receipt-rows span' ? rows : [],

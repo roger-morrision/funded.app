@@ -50,3 +50,11 @@ and buyback runtime flags. It is read-only; enabling a gate requires the
 existing readiness checks and deployment configuration. Admin audit records
 fee-policy edits and verified ordinary-wallet withdrawals in the application
 store. The panel links to existing launch, claim, buyback, and analytics flows.
+
+## Daily bonus review and recovery
+
+The Daily bonus panel exposes worker/snapshot status and recovery actions. Snapshots and funded payouts are normally automatic; recipients do not claim. For an unstarted stale snapshot, review the old and replacement hashes and supply an audit reason before reconciliation. Prepared, assigned, on-chain or paid cycles must retain their immutable manifests and require operator review rather than replacement.
+
+The default operations/community entries are 40% / 20% **of the protocol share**, equivalent to 8% Operations & marketing and 4% Daily bonus **of gross creator fees**. The creator-directed 80% is fixed. Editing policy does not rewrite existing mint policies, snapshots, receipts or balances. A healthy gate or successful admin sign-in does not establish a payout or withdrawal.
+
+See [fee configuration](protocol-fee-split-config.md), [Daily bonus](daily-bonus-policy.md) and in-app `#docs/admin` for current scope.

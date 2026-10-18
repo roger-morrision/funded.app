@@ -417,7 +417,7 @@ try {
   await page.goto(`${base}/#docs/faq`,{waitUntil:'domcontentloaded'});
   await page.waitForSelector('body.workspace-ready');
   await check('Docs topics have direct links and browser history',async()=>{
-    assert.equal(await page.locator('.docs-guide-nav button').count(),16);
+    assert((await page.locator('.docs-guide-nav button').count()) >= 29, 'Docs must include the expanded V3 reward, bonus, referral and promotion guides');
     assert.equal(await page.locator('.docs-guide-article h1').innerText(),'FAQ');
     await page.getByRole('button',{name:'Enhanced coin page'}).click();
     assert(page.url().endsWith('#docs/enhanced-page'));

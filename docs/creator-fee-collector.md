@@ -11,3 +11,5 @@ Holder payouts normally use hourly cutoffs; selected Devnet QA coins use five-mi
 This collector is Devnet-only. It checks the supported Pump per-mint fee-vault route; it does not establish automatic post-migration AMM collection. Keeper credentials are never sent to the browser. Inspect `docker logs --tail 30 fundedapp-fee-collector-1` and the authenticated `GET /api/keeper/collection-candidates` endpoint for pending or blocked mints. A healthy tick records checked mints, collected receipts and pending creator settlements.
 
 See [protocol configuration](protocol-fee-split-config.md) and [Daily bonus](daily-bonus-policy.md) for current rules. Historical QA reports describe their original revisions and do not establish current runtime behavior.
+
+Eligible holder SOL and Daily bonus SOL are sent automatically after their separate conditions pass; neither requires a recipient claim. Ordinary referral recipients also do not claim, but creator-approved V3 transfers are required. X rewards require the named identity and wallet claim. Community airdrops pay launched coin tokens through a separate snapshot/proof claim flow. See [all reward modes](automatic-rewards.md).

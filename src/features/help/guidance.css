@@ -1,0 +1,15 @@
+@media (min-width: 821px) {
+  body.page-route-docs .docs-guide-nav {
+    position: sticky;
+    top: 85px;
+    align-self: start;
+    max-height: calc(100dvh - 120px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+}
+.docs-guide-body .daily-bonus-table td { min-width: 140px; vertical-align: top; }
+.docs-guide-body .daily-bonus-table td:nth-child(3),
+.docs-guide-body .daily-bonus-table td:nth-child(4) { min-width: 210px; }
+.docs-guide-body ol, .docs-guide-body ul { line-height: 1.7; padding-left: 22px; }
+.docs-guide-body li { margin-bottom: 8px; }

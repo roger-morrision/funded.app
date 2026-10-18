@@ -1,6 +1,20 @@
-# Fee-funded buyback executor: Devnet evidence
+# V3 fee-funded $FUNDED buyback and burn
 
-> **Retired V2 procedure.** The worker and its Compose overlay have been removed. This page is historical evidence only. V3 category 6 remains locked until a verified purchase and burn path is deployed.
+## Current execution rule
+
+The coin's saved buyback share of collected creator fees accrues in dedicated V3 program vaults. The current new-launch default is 5% of gross creator fees. Existing coins retain their recorded rates. It is not 5% of trade volume and does not buy back each launched coin.
+
+The normal aggregate trigger is **5 SOL** of verified eligible allocations. A bounded Devnet QA profile can lower it; the API/dashboard displays the active value. Rent, holder/X obligations, unrelated funds and spent allocations are not eligible balances.
+
+Execution requires the approved current program, finalized collection/settlement proofs, vault backing and a verified $FUNDED market quote/route. Quote age, liquidity, slippage and spend protections still apply after the trigger is met. Finalized purchase and burn receipts must prove the expected vault debit and token supply/account changes.
+
+Home and Buy & burn show eligible SOL, trigger, last verified execution timestamp and transaction evidence. An allocation, queued order, full progress bar or historical burn under another code hash does not prove current execution. Mainnet is a separate reviewed release.
+
+Sources: [worker policy](../server/v3-buyback-worker-policy.mjs), [quote](../server/v3-buyback-quote.mjs), [transaction](../server/v3-buyback-transaction.mjs), [proof](../server/v3-buyback-proof.mjs), [dashboard](../server/v3-buyback-dashboard.mjs), [QA minima](devnet-qa-minimums.md).
+
+## Historical executor evidence
+
+> **Retired V2 procedure.** The worker and Compose commands below describe an earlier implementation. They are historical evidence, not instructions or activation status for the current V3 executor above.
 
 The Devnet worker selects only settled, mint-verified creator-fee collections under an onchain-verified launch policy. It checks the pinned mint-router bytecode, source router header and spendable balance, the configured $FUNDED mint, and the verified SOL PumpSwap pool. The fee-router payout, protected buy, and SPL `BurnChecked` are signed by separate authority/operator wallets in one versioned Solana transaction. It persists the signed transaction and deterministic claim ID before broadcast. A completed receipt requires a finalized claim record, exact router debit, exact $FUNDED supply reduction, and an independently verified refund of unused swap input to the source router.
 
