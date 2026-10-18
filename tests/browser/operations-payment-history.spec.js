@@ -11,4 +11,10 @@ test('operations payments display their label, amount and proof under the protoc
   await expect(row).toContainText('Operations & marketing');await expect(row.locator('.payment-amount')).toHaveText('0.000016328SOL received');
   await expect(row.locator('a[href*="/tx/"]')).toHaveAttribute('href',/cluster=devnet/);
   await page.locator('#payment-history-type').selectOption('creator');await expect(row).toHaveCount(0);
+  await page.goto('/#analytics-detail');
+  const analyticsRow=page.locator('.recipients-panel .payment-row');
+  await expect(analyticsRow).toContainText('Operations & marketing ·');
+  await expect(analyticsRow).not.toContainText('Recipient ·');
+  await expect(analyticsRow).toContainText('0.000016328 SOL received');
+  await expect(analyticsRow.locator('a[href*="/tx/"]')).toHaveAttribute('href',/9{88}\?cluster=devnet$/);
 });

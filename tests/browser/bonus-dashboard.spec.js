@@ -82,6 +82,8 @@ test('Devnet QA schedule shows five-minute cutoffs consistently on Home, history
   await page.goto('/#overview');
   await expect(page.locator('[data-bonus-schedule]')).toContainText('every 5 minutes');
   await expect(page.locator('[data-bonus-cutoff-label]')).toHaveText('Next QA snapshot · every 5 minutes');
+  await expect(page.locator('#home-daily-bonuses')).toContainText('After the snapshot and source funding are verified');
+  await expect(page.locator('#home-daily-bonuses')).not.toContainText('After the daily snapshot');
   await expect(page.locator('[data-bonus-countdown]')).toContainText('00:04:');
   await page.goto('/#bonuses');await expect(page.locator('[data-bonus-delivery]')).toContainText('Devnet QA snapshots close every 5 minutes');
   await page.goto('/#capital-flow');await expect(page.locator('#daily-bonus-title')).toHaveText('Top 3. Every 5 minutes · Devnet QA.');
