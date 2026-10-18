@@ -89,3 +89,28 @@ test('Devnet QA schedule shows five-minute cutoffs consistently on Home, history
   await page.goto('/#capital-flow');await expect(page.locator('#daily-bonus-title')).toHaveText('Top 3. Every 5 minutes · Devnet QA.');
   await expect(page.locator('[data-bonus-status]')).not.toContainText('Processing');
 });
+
+test('Capital flow refreshes on entry and ignores an older overlapping snapshot response',async({page})=>{
+  await setup(page);
+  let requests=0, releaseOld;
+  const oldResponse=new Promise(resolve=>{releaseOld=resolve;});
+  await page.route('**/api/daily-bonus',async route=>{
+    const first=++requests===1;
+    if(first)await oldResponse;
+    await route.fulfill({json:{cluster:'devnet',snapshotEnabled:true,payoutEnabled:true,
+      nextCutoffAt:first?'2026-10-18T10:05:00Z':'2026-10-18T10:10:00Z',snapshots:[]}});
+  });
+  try {
+    await page.goto('/#overview');
+    await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+    await expect.poll(()=>requests).toBe(1);
+    await page.locator('.primary-nav > a[href="#capital-flow"]').click();
+    await expect.poll(()=>requests).toBe(2);
+    const status=page.locator('#daily-bonus-dashboard [data-bonus-status]');
+    await expect(status).toContainText('10:10:00 UTC');
+    const completed=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/daily-bonus');
+    releaseOld();await completed;
+    await expect(status).toContainText('10:10:00 UTC');
+    await expect(status).not.toContainText('10:05:00 UTC');
+  } finally {releaseOld();}
+});

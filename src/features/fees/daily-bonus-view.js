@@ -16,7 +16,7 @@ export function initDailyBonusView(document = globalThis.document) {
   parent.append(root);
   const results = root.querySelector('[data-bonus-results]'), status = root.querySelector('[data-bonus-status]');
   const select = root.querySelector('select');
-  let data;
+  let data, serial = 0;
   function render() {
     const qa = data?.schedule?.mode === 'devnet-qa-5m' && data.schedule.periodSeconds === 300;
     root.querySelector('h2').textContent = qa ? 'Top 3. Every 5 minutes · Devnet QA.' : 'Top 3. Every 24 hours.';
@@ -62,20 +62,34 @@ export function initDailyBonusView(document = globalThis.document) {
     results.append(proof);
   }
   async function refresh() {
+    const request = ++serial;
     try {
       const response = await fetch('/api/daily-bonus', { signal:AbortSignal.timeout(15_000) });
       if (!response.ok) throw new Error('Daily snapshot data is unavailable.');
-      data = await response.json();
-      if (data.cluster !== 'devnet' || !Array.isArray(data.snapshots)) throw new Error('Unexpected snapshot network or schema.');
+      const nextData = await response.json();
+      if (request !== serial) return;
+      if (nextData.cluster !== 'devnet' || !Array.isArray(nextData.snapshots)) throw new Error('Unexpected snapshot network or schema.');
+      data = nextData;
       const previous = select.value; select.replaceChildren();
       for (const row of data.snapshots || []) { const option = document.createElement('option'); option.value = row.day; option.textContent = row.day; select.append(option); }
       if ([...select.options].some(option => option.value === previous)) select.value = previous;
       root.querySelector('[data-bonus-day-label]').hidden = !select.options.length;
       render();
-    } catch { data = null; select.replaceChildren(); root.querySelector('[data-bonus-day-label]').hidden = true; status.textContent = 'Daily snapshot data is unavailable. No reward or payment is confirmed here.'; results.replaceChildren(); }
+    } catch {
+      if (request !== serial) return;
+      data = null; select.replaceChildren(); root.querySelector('[data-bonus-day-label]').hidden = true; status.textContent = 'Daily snapshot data is unavailable. No reward or payment is confirmed here.'; results.replaceChildren();
+    }
   }
   select.addEventListener('change', render);
   root.querySelector('button').addEventListener('click', () => { void refresh(); });
   void refresh();
-  setInterval(() => { if (globalThis.location?.hash === '#capital-flow') void refresh(); }, 60_000);
+  const refreshActive = () => { if (!document.hidden && globalThis.location?.hash === '#capital-flow') void refresh(); };
+  globalThis.addEventListener('hashchange', refreshActive);
+  document.addEventListener('visibilitychange', refreshActive);
+  const timer = setInterval(refreshActive, 60_000);
+  return () => {
+    ++serial; clearInterval(timer);
+    globalThis.removeEventListener('hashchange', refreshActive);
+    document.removeEventListener('visibilitychange', refreshActive);
+  };
 }
