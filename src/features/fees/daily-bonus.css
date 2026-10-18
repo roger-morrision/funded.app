@@ -1,0 +1,12 @@
+.daily-bonus-dashboard { margin-top: 24px; }
+.daily-bonus-dashboard > p { max-width: 85ch; line-height: 1.6; }
+.daily-bonus-dashboard label { display: grid; gap: 8px; max-width: 260px; margin: 20px 0; }
+.daily-bonus-dashboard select { padding: 10px; background: var(--bg-panel, #121522); color: inherit; border: 1px solid #353a54; border-radius: 8px; }
+.daily-bonus-dashboard h3 { margin: 24px 0 12px; }
+.daily-bonus-table { overflow-x: auto; }
+.daily-bonus-table table { width: 100%; min-width: 480px; border-collapse: collapse; }
+.daily-bonus-table th, .daily-bonus-table td { padding: 12px; text-align: left; border-bottom: 1px solid #30354b; font-variant-numeric: tabular-nums; }
+.daily-bonus-table th { color: #9faecb; font-size: .8rem; }
+.daily-bonus-dashboard details { margin-top: 24px; }
+.daily-bonus-dashboard details a { display: block; margin: 8px 0; }
+.daily-bonus-hash { overflow-wrap: anywhere; font-size: .8rem; }

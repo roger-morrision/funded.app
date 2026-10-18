@@ -1,0 +1,37 @@
+import { test, expect } from '@playwright/test';
+const wallets = ['7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y',
+  'ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC', 'GTGKxA9DRbVFuAyoXvA8j1LAtZaf9fyJbvArGbJSbm5c'];
+test('fee calculator shows 8/4 and daily rankings distinguish allocations from finalized payments', async ({ page }) => {
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  let paid = false;
+  await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'Offline test fixture' } }));
+  await page.route('**/api/daily-bonus', route => route.fulfill({ json:{ cluster:'devnet', payoutEnabled:false,
+    worker:{ status:'active' }, nextCutoffAt:'2026-10-19T00:00:00Z', snapshots:[{ day:'2026-10-17',
+      hash:'a'.repeat(64), allocatedLamports:'4000000000', retainedLamports:'0',
+      rankings:Object.fromEntries(['creators', 'referrals', 'traders'].map(group => [group,
+        wallets.map((wallet, index) => ({ rank:index + 1, wallet, scoreLamports:String(300 - index),
+          bonusLamports:String([500, 300, 200][index]), percentOfCategory:[50, 30, 20][index] }))])),
+      sources:[{ mint:wallets[0], status:paid ? 'paid' : 'awaiting-verified-community-funding',
+        payments:paid ? { [wallets[1]]:{ amount:'500', finalized:true, balanceDeltaVerified:true, signature:'3'.repeat(88) } } : {} }] }] } }));
+  await page.route('https://**/*', route => route.abort());
+  await page.goto('/#capital-flow');
+  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  await expect(page.locator('#fee-output-operations')).toHaveText('8 SOL');
+  await expect(page.locator('#fee-output-community')).toHaveText('4 SOL');
+  await expect(page.locator('.fee-output-grid .operations')).toContainText('Operations & marketing');
+  await page.locator('#fee-flow-input').fill('250');
+  await expect(page.locator('#fee-output-operations')).toHaveText('20 SOL');
+  await expect(page.locator('#fee-output-community')).toHaveText('10 SOL');
+  await expect(page.locator('#daily-bonus-dashboard')).toContainText('50% to 1st, 30% to 2nd, and 20% to 3rd');
+  await expect(page.locator('#daily-bonus-dashboard tbody tr')).toHaveCount(9);
+  await expect(page.locator('#daily-bonus-dashboard [data-bonus-status]')).toContainText('not activated');
+  await page.getByText('Snapshot and payment evidence', { exact:true }).click();
+  await expect(page.locator('#daily-bonus-dashboard details')).toContainText('awaiting verified community funding');
+  await expect(page.locator('#daily-bonus-dashboard details a')).toHaveCount(0);
+  paid = true; await page.locator('[data-bonus-refresh]').click();
+  await expect(page.locator('#daily-bonus-dashboard details a')).toHaveAttribute('href', /explorer\.solana\.com\/tx\/.*cluster=devnet/);
+  await page.setViewportSize({ width:390, height:844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path:test.info().outputPath('daily-bonus-mobile.png'), fullPage:true });
+  expect(errors).toEqual([]);
+});

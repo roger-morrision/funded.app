@@ -35,7 +35,7 @@ export function protocolFeeRouteModel(allocation) {
   const completeAmounts = evidenceReady && amounts.every(amount => amount != null)
     && total != null && amounts.reduce((sum, amount) => sum + amount, 0n) === total
     && (allocation.status === 'verified' || allocation.settledCollections > 0);
-  const labels = ['Operations', 'Referral network', 'Community reserve', '$FUNDED buyback'];
+  const labels = ['Operations & marketing', 'Referral network', 'Daily bonus', '$FUNDED buyback'];
   const rates = policyReady ? [split.operationsPercent,
     split.referralLevelPercents.reduce((sum, rate) => sum + rate, 0),
     split.communityPercent, split.buybackPercent] : [];
@@ -56,7 +56,8 @@ export function protocolFeeRouteModel(allocation) {
       amount:formatSol(completeAmounts ? amounts[index] : null),
       detail:key === 'referrals' && policyReady
         ? `L1 ${split.referralLevelPercents[0]}% · L2 ${split.referralLevelPercents[1]}% · L3 ${split.referralLevelPercents[2]}% of app share`
-        : null,
+        : key === 'community' ? 'Top 3 creators, referrers and traders · every 24h UTC · historical totals include older community allocations'
+          : null,
     })),
   };
 }
@@ -74,9 +75,11 @@ export function renderHomeProtocolFeeRoute(allocation, document = globalThis.doc
     const card = root.querySelector(`[data-protocol-destination="${row.key}"]`);
     if (!card) continue;
     const rate = card.querySelector('strong');
+    const label = card.querySelector('span');
     const description = card.querySelector('small');
     const amount = card.querySelector('b');
     if (rate) rate.textContent = row.share;
+    if (label) label.textContent = row.label;
     if (description) description.textContent = row.detail
       ? `${row.gross} · ${row.detail}` : row.gross;
     if (amount) amount.textContent = row.amount;

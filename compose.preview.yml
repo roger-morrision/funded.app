@@ -47,6 +47,8 @@ services:
     command: ["sh", "-c", "node scripts/migrate-postgres.mjs && node server/index.mjs"]
     environment:
       FUNDED_BUILD_ID: ${FUNDED_BUILD_ID:-local-development}
+      FUNDED_DAILY_BONUS_ENABLED: ${FUNDED_DAILY_BONUS_ENABLED:-false}
+      FUNDED_DAILY_BONUS_PAYOUT_ENABLED: ${FUNDED_DAILY_BONUS_PAYOUT_ENABLED:-false}
       SOLANA_CLUSTER: devnet
       DEVNET_METADATA_ORIGIN: ${FUNDED_DEVNET_METADATA_ORIGIN:-https://metadata.funded.vip}
       VITE_ALLOW_MAINNET: "false"

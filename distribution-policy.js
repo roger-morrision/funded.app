@@ -1,4 +1,5 @@
 import { PROTOCOL_FEE_SPLIT } from './config/protocol-fee-split.js';
+import { DAILY_BONUS_POLICY } from './config/daily-bonus.js';
 
 export function validateProtocolFeeSplit(split = PROTOCOL_FEE_SPLIT) {
   const levels = split?.referralLevelPercents;
@@ -130,8 +131,9 @@ export function buildFeeDistributionPolicy(input = {}, { fundedSplit = DEFAULT_P
         percentOfFundedRevenue: split.communityPercent,
         effectivePercentOfCreatorFees: effectivePercent(split.communityPercent),
         destination: 'community-program-reserve',
-        use: 'future-published-community-programs',
-        payoutMode: 'disabled-until-program-rules-and-verified-receipts',
+        use: 'daily-top-three-bonuses',
+        payoutMode: 'verified-daily-snapshot-and-funded-reward-cycle',
+        dailyBonus: DAILY_BONUS_POLICY,
       },
       fundedBuyback: {
         percentOfFundedRevenue: split.buybackPercent,

@@ -37,7 +37,9 @@ assert.equal(policy.fixedFunded.appReferral.levels.length, 3);
 assert.equal(policy.fixedFunded.appReferral.unattributedDestination, 'community-growth-reserve');
 assert.equal(policy.fixedFunded.communityRewards.effectivePercentOfCreatorFees, grossRate(configured.communityPercent));
 assert.equal(policy.fixedFunded.communityRewards.destination, 'community-program-reserve');
-assert.equal(policy.fixedFunded.communityRewards.payoutMode, 'disabled-until-program-rules-and-verified-receipts');
+assert.equal(policy.fixedFunded.communityRewards.payoutMode, 'verified-daily-snapshot-and-funded-reward-cycle');
+assert.deepEqual(policy.fixedFunded.communityRewards.dailyBonus.rankPercents, [50, 30, 20]);
+assert.equal(policy.fixedFunded.communityRewards.dailyBonus.periodSeconds, 86400);
 assert.equal(policy.fixedFunded.fundedBuyback.effectivePercentOfCreatorFees, grossRate(configured.buybackPercent));
 assert.equal(policy.creatorDirected.percent, 80);
 assert.equal(policy.immutable, true);
@@ -90,7 +92,7 @@ try {
     operationsEffectivePercent: 10, appReferralEffectivePercent: 4, communityEffectivePercent: 4, buybackEffectivePercent: 2,
     operationsRateOfFundedRevenue: 50, appReferralRateOfFundedRevenue: 20, communityRateOfFundedRevenue: 20, buybackRateOfFundedRevenue: 10,
     appReferralLevels: alternatePolicy.fixedFunded.appReferral.levels }).renderPublishedFeeRates();
-  assert.match(nodes.get('#fee-policy-faq').textContent, /referrals \(4%\).*community \(4%\).*buyback allocation \(2%\)/);
+  assert.match(nodes.get('#fee-policy-faq').textContent, /referrals \(4%\).*Daily bonus \(4%\).*buyback allocation \(2%\)/);
   assert.equal(nodes.get('#buyback-policy-heading').textContent, 'Preview the 2% policy');
   assert.match(nodes.get('#buyback-policy-note').textContent, /0\.100 SOL.*Local calculation only/);
   assert.deepEqual(bars.map(node => node.style.width), ['80%', '10%', '4%', '4%', '2%']);

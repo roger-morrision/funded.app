@@ -23,7 +23,7 @@ const coinSummaryModel = await readFile(new URL('../coin-summary-model.js', impo
 assert.match(html, /id="capital-flow"/);
 assert.match(app, /setCoinField\('\.coin-live-dot', graduatedPool \? 'Trading pool confirmed' : curve \? 'Trading route confirmed' : 'Token confirmed'\)/, 'The token badge must scope confirmation to mint and market accounts, not unavailable trade or fee data.');
 assert.match(html, /id="referral-ledger-list"><div class="empty-state referral-empty-state"><strong>No receipts to show<\/strong><small>Connect your wallet to check finalized referral payouts\.<\/small><\/div>/, 'Disconnected referral history must not imply verified absence of payouts.');
-assert.match(html, /id="fee-flow-input"/);
+assert.match(await readFile(new URL('../src/features/fees/fee-flow-markup.js', import.meta.url), 'utf8'), /id="fee-flow-input"/);
 assert.match(html, /Enter a gross fee amount to preview the policy split\. This example does not move funds\./, 'Capital-flow preview copy must distinguish a policy example from live activity.');
 assert.match(html, /class="home-kpi-footer"[\s\S]*?<a href="#analytics-detail">Open analytics →<\/a>/, 'The home dashboard must link to the routed analytics page.');
 assert.match(html, /Community airdrops claimed/, 'The home KPI must label confirmed token claims rather than unclaimed allocations.');

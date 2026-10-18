@@ -1,5 +1,7 @@
 // Read the published policy supplied by the application; this preview never moves funds.
+import { initDailyBonusView } from './daily-bonus-view.js';
 export function createFeeFlowView(APP_ECONOMICS) {
+  initDailyBonusView();
   function formatFlowAmount(value){
     const amount = Number(value || 0);
     if (amount > 0 && amount < 0.000000001) return '<0.000000001 SOL';
@@ -17,13 +19,14 @@ export function createFeeFlowView(APP_ECONOMICS) {
     setWidths('.home-receipt-card .receipt-bars span', [APP_ECONOMICS.creatorSharePercent, ...effective]);
     setWidths('.fee-route-bar i', [APP_ECONOMICS.creatorSharePercent, ...effective]);
     setAll('.home-receipt-card .receipt-rows span', [
-      `${APP_ECONOMICS.creatorSharePercent} SOL Creator-directed`, `${effective[0]} SOL Operations`, `${effective[1]} SOL Referral network`,
-      `${effective[2]} SOL Community reserve`, `${effective[3]} SOL Buyback allocation`,
+      `${APP_ECONOMICS.creatorSharePercent} SOL Creator-directed`, `${effective[0]} SOL Operations & marketing`, `${effective[1]} SOL Referral network`,
+      `${effective[2]} SOL Daily bonus`, `${effective[3]} SOL Buyback allocation`,
     ]);
     setAll('.audience-referrer li', levelGross.map((rate, index) => `${percent(rate)} ${['direct', 'second', 'third'][index]} level`));
     setAll('.home-referral-levels article strong', levelGross.map(percent));
     setAll('.referral-tier-strip > span b', levelGross.map(percent));
     setAll('.app-revenue-grid > span b', [APP_ECONOMICS.operationsRateOfFundedRevenue, APP_ECONOMICS.appReferralRateOfFundedRevenue, APP_ECONOMICS.communityRateOfFundedRevenue, APP_ECONOMICS.buybackRateOfFundedRevenue].map(percent));
+    setAll('.app-revenue-grid > span em', ['Operations & marketing', 'Referral network', 'Daily bonus', '$FUNDED burn']);
     setAll('.allocation-chips span b', effective.map(percent));
     setAll('.app-revenue-grid > span small', [
       `${percent(effective[0])} of gross fees`, levels.map(level => `L${level.level} ${percent(level.percentOfFundedRevenue)}`).join(' · '),
@@ -39,7 +42,7 @@ export function createFeeFlowView(APP_ECONOMICS) {
     set('#referrals .referral-calculator + .field-help', `Example only: the three levels total ${percent(APP_ECONOMICS.appReferralEffectivePercent)} of gross collected fees when all levels qualify. Rewards require collected fees.`);
     set('.home-referral-guide .data-badge', `${percent(APP_ECONOMICS.appReferralEffectivePercent)} total policy`);
     set('#paid .revenue-model > .field-help', `Levels 1–3 receive ${levelGross.map(percent).join(', ')} of gross creator fees. Missing upline levels move to the community reserve. Existing coins keep their recorded split.`);
-    set('#fee-policy-faq', `For each finalized collection, ${percent(APP_ECONOMICS.creatorSharePercent)} follows the creator's launch-time split between their wallet, coin holders, and an eligible X account. The other ${percent(APP_ECONOMICS.fundedSharePercent)} funds operations (${percent(effective[0])}), referrals (${percent(effective[1])}), community (${percent(effective[2])}), and the $FUNDED buyback allocation (${percent(effective[3])}). These are shares of collected fees, not promised earnings. Existing coins keep their saved policy.`);
+    set('#fee-policy-faq', `For each finalized collection, ${percent(APP_ECONOMICS.creatorSharePercent)} follows the creator's launch-time split between their wallet, coin holders, and an eligible X account. The other ${percent(APP_ECONOMICS.fundedSharePercent)} funds Operations & marketing (${percent(effective[0])}), referrals (${percent(effective[1])}), Daily bonus (${percent(effective[2])}), and the $FUNDED buyback allocation (${percent(effective[3])}). Daily bonus uses the top three creators, referrers, and traders from each completed UTC day. Existing coins keep their saved policy.`);
     set('#buyback-policy-heading', `Preview the ${percent(effective[3])} policy`);
     set('#buyback-policy-note', `A 5 SOL claim allocates ${formatFlowAmount(5 * effective[3] / 100)} to the buyback allocation. Local calculation only; no claim recorded.`);
   }

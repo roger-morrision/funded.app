@@ -3,6 +3,7 @@ import { createLaunchSupportRoutes } from './routes/launch-support.mjs';
 import { createReferralActivityRoutes } from './routes/referral-activity.mjs';
 import { createServiceStatusRoutes } from './routes/service-status.mjs';
 import { loadServerEnvironment } from './environment.mjs';
+import { createDailyBonusRuntime } from './daily-bonus-runtime.mjs';
 import { startShareVisitCleanup, startCommunityClaimIndex,
   startV3HolderRewardWorker } from './background-maintenance.mjs';
 import { createFeeRouterService } from './fee-router-service.mjs';
@@ -311,6 +312,8 @@ const handleQuoteAssetsRoutes = createQuoteAssetsRoutes({
 const handleDirectoryRoutes = createDirectoryRoutes({
   store, solanaCluster, route, fundedTokenMint, currentLaunchTierPricing: () => currentLaunchTierPricing(), solanaRpcUrl, walletKey, respond: json,
 });
+const dailyBonusRuntime = createDailyBonusRuntime({ store, rewardStore:automaticRewardStore,
+  solanaCluster, solanaRpcUrl, v3AuthorityKeypair });
 const handleTokenMarketRoutes = createTokenMarketRoutes({
   route, store, clientKey, solanaRpcUrl, solanaCluster, respond: json,
 });
@@ -439,6 +442,7 @@ async function handle(req, res) {
       catch { return json(res, 400, { error: 'Invalid development message.' }); }
     }
     if (await handleRewardStatusRoutes(req, res, url)) return;
+    if (await dailyBonusRuntime.handle(req, res, url, { body, requireAuthorized, respond:json })) return;
     if (await handleAirdropsRoutes(req, res, url, requestId)) return;
     if (await handleServiceStatus(req, res, url)) return;
     if (await handleLaunchQuoteRoutes(req, res, url)) return;
@@ -486,3 +490,4 @@ server.listen(port, host, () => console.log(`funded.vip app listening on http://
 startCommunityClaimIndex({ solanaCluster, solanaRpcUrl, fundedTokenMint, automaticRewardStore, v3AuthorityKeypair });
 startV3HolderRewardWorker({ solanaCluster, solanaRpcUrl,
   automaticRewardStore, v3AuthorityKeypair });
+dailyBonusRuntime.start();
