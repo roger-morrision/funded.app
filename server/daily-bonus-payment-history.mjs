@@ -47,7 +47,7 @@ function transactionProof(tx, signature, candidate, program, addresses) {
   const {leaf,manifest,snapshot,source}=candidate;
   if (!tx || tx.meta?.err !== null || tx.transaction?.signatures?.[0] !== signature
     || !Number.isSafeInteger(tx.slot) || tx.slot <= 0 || !Number.isSafeInteger(tx.blockTime)
-    || tx.blockTime < snapshot.end) return null;
+    || tx.blockTime <= 0) return null;
   const message=tx.transaction.message;
   const keys=[...(message.accountKeys || message.staticAccountKeys || []),
     ...(tx.meta.loadedAddresses?.writable || []),...(tx.meta.loadedAddresses?.readonly || [])].map(address);
@@ -113,6 +113,8 @@ export async function loadDailyPayment({connection,state,candidate}) {
     || cycle.readUInt32LE(168) !== manifest.leaves.length || cycle[173] !== 1
     || !receipt.subarray(8,40).equals(addresses.cycle.toBuffer()) || !receipt.subarray(40,72).equals(new PublicKey(leaf.recipient).toBuffer())
     || String(receipt.readBigUInt64LE(72)) !== leaf.amount || receipt.readUInt32LE(80) !== leaf.index
+    || receipt.readBigInt64LE(84) < BigInt(snapshot.end)
+    || receipt.readBigInt64LE(84) > BigInt(Number.MAX_SAFE_INTEGER)
     || receipt.readBigUInt64LE(92) !== BigInt(leaf.amount)) throw new Error('Daily payment account conflicts with its manifest.');
   let signatures;
   if (payment.signature != null) {
@@ -125,7 +127,11 @@ export async function loadDailyPayment({connection,state,candidate}) {
   for (const signature of signatures) {
     const tx=await connection.getTransaction(signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
     const proof=transactionProof(tx,signature,candidate,program,addresses);
-    if (proof && receipt.readBigInt64LE(84) === BigInt(proof.blockTime)) return proof;
+    // paid_at is the program's Clock value; RPC blockTime is an estimate and
+    // can differ even for this exact finalized transaction. The payment PDA,
+    // zero pre-balance, unique instruction, Merkle leaf and balance deltas above
+    // bind account creation to the transaction. Enforce the cutoff using Clock.
+    if (proof) return {...proof,paidAt:Number(receipt.readBigInt64LE(84))};
   }
   throw new Error('Daily payment finalized transaction and balance evidence are unavailable.');
 }

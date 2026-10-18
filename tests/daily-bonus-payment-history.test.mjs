@@ -85,6 +85,26 @@ test('daily receipts enter global history and Analytics once, with explicit dail
   assert.equal(metrics.dailyBonusPayoutCount,1);assert.equal(metrics.dailyBonusPaidLamports,Number(f.leaf.amount));
   assert.equal(metrics.feePayoutStats.creator.paidLamports,'0','Daily creator awards must not be counted as creator fees');
 });
+
+test('Clock timestamps and estimated RPC block times may differ for the same proven payment',async()=>{
+  for(const drift of [-1,1]){
+    const f=fixture(),clock=Number(f.receipt.readBigInt64LE(84));
+    f.tx.blockTime=clock+drift;
+    const history=await f.read();
+    assert.equal(history.verifiedPayouts.length,1);
+    assert.equal(history.verifiedPayouts[0].actualReceivedLamports,Number(f.leaf.amount));
+    assert.equal(history.verifiedPayouts[0].paidAt,clock);
+    assert.equal(history.verifiedPayouts[0].blockTime,clock+drift);
+  }
+});
+
+test('payment cutoff uses program Clock and still rejects an early receipt despite a later RPC estimate',async()=>{
+  const f=fixture();f.receipt.writeBigInt64LE(BigInt(start+86400-1),84);
+  const history=await f.read();
+  assert.equal(history.verifiedPayouts.length,0);assert.equal(history.unavailablePayouts,1);
+  const edge=fixture();edge.receipt.writeBigInt64LE(BigInt(start+86400),84);edge.tx.blockTime=start+86400-1;
+  assert.equal((await edge.read()).verifiedPayouts.length,1);
+});
 test('recovered payment accounts discover their finalized transaction and aliases are deduplicated',async()=>{
   const f=fixture({recovered:true});
   f.ledger.dailyBonusSnapshots.alias=structuredClone(f.ledger.dailyBonusSnapshots['2026-10-17']);
