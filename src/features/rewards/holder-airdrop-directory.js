@@ -23,8 +23,8 @@ export function mountHolderAirdropDirectory(after) {
   section.id = 'holder-airdrop-programs';
   section.innerHTML = `<header class="airdrop-directory-heading"><div><p class="eyebrow">Coin holder rewards</p><h2>Airdrop for launched coin holders</h2><p>SOL from creator fees, delivered automatically to eligible holders.</p></div><span class="airdrop-asset-label">SOL REWARDS</span></header>
     <div class="airdrop-discovery-toolbar"><div class="airdrop-reference-tabs" role="tablist" aria-label="Coin holder reward status">
-    <button type="button" id="holder-upcoming-tab" role="tab" aria-selected="true" aria-controls="holder-airdrop-list" data-holder-airdrop-tab="upcoming">Upcoming <span>—</span></button>
-    <button type="button" id="holder-distributed-tab" role="tab" aria-selected="false" tabindex="-1" aria-controls="holder-airdrop-list" data-holder-airdrop-tab="distributed">Distributed <span>—</span></button></div>
+    <button type="button" id="holder-upcoming-tab" role="tab" aria-selected="true" aria-controls="holder-airdrop-list" data-holder-airdrop-tab="upcoming">Awaiting first payout <span>—</span></button>
+    <button type="button" id="holder-distributed-tab" role="tab" aria-selected="false" tabindex="-1" aria-controls="holder-airdrop-list" data-holder-airdrop-tab="distributed">Payment history <span>—</span></button></div>
     <input id="holder-airdrop-search" type="search" aria-label="Search launched coin holder rewards" placeholder="Search name, ticker, or address" /></div>
     <p class="airdrop-stage-help" id="holder-airdrop-note"></p><div id="holder-airdrop-list" role="tabpanel" aria-labelledby="holder-upcoming-tab"></div>
     <nav class="airdrop-directory-pagination" aria-label="Coin holder reward pages"><button type="button" data-holder-page="prev">‹ Prev</button><span role="status" data-holder-range></span><button type="button" data-holder-page="next">Next ›</button></nav>`;
@@ -65,7 +65,7 @@ export function renderHolderAirdropDirectory(data) {
     : active === 'upcoming' ? hourly || qaFast
       ? `Payouts require finalized holder history, a fresh price, an eligible holding, and a funded pool plus distribution costs. Standard cadence is hourly with $20 wallet and pool minimums.${qaFast ? ' Selected Devnet QA payouts run every 5 minutes.' : ''}${qaNote} Devnet dollar values are test references; unpaid SOL carries forward.`
       : 'Published fee-sharing policies awaiting their first confirmed holder payout. Timing depends on funding and an eligible snapshot.'
-    : 'Projects with confirmed holder payouts. Top wallets below include only verified payment receipts.';
+    : 'Projects with recorded holder payments. These projects may still receive additional rewards; this is payment history, not the current payout queue.';
   const result = directoryPage(groups[active], root.querySelector('input').value, page);
   page = result.page;
   const list = root.querySelector('#holder-airdrop-list'); list.replaceChildren();
@@ -91,7 +91,7 @@ export function renderHolderAirdropDirectory(data) {
       `Devnet QA: ${row.holderRewardPolicy.cadence === 'five-minutes' ? 'every 5 min · ' : ''}$${row.holderRewardPolicy.minimumHolderUsd} wallet · $${row.holderRewardPolicy.minimumPoolUsd} pool minimum`));
     identity.append(avatar, info);
     const amount = element('div', 'holder-airdrop-amount');
-    amount.append(element('small', '', active === 'distributed' ? 'Confirmed paid' : 'Fees allocated'), element('strong', '', `${groups.partial ? '≥' : ''}${sol(active === 'distributed' ? row.holderPaidLamports : row.totals?.holder)}`));
+    amount.append(element('small', '', active === 'distributed' ? 'Recorded paid' : 'Fees allocated'), element('strong', '', `${groups.partial ? '≥' : ''}${sol(active === 'distributed' ? row.holderPaidLamports : row.totals?.holder)}`));
     if (active === 'distributed') amount.append(element('small', '', `${row.holderPaidWallets} paid wallets`));
     const status = element('span', `airdrop-status ${active === 'distributed' ? 'claiming' : 'upcoming'}`, active === 'distributed' ? 'Distributed' : 'Awaiting payout');
     const action = element('a', 'holder-airdrop-link', 'View rewards →'); action.href = link.href;
@@ -117,7 +117,7 @@ export function renderHolderAirdropDirectory(data) {
   }
   if (!result.rows.length) list.append(element('div', 'empty-state', !groups.available
     ? data === undefined ? 'Checking holder rewards…' : 'Holder rewards are temporarily unavailable.'
-    : root.querySelector('input').value ? 'No rewards match your search.' : active === 'distributed' ? 'No confirmed holder payouts yet.' : 'No upcoming holder rewards.'));
+    : root.querySelector('input').value ? 'No rewards match your search.' : active === 'distributed' ? 'No holder payments in the available history.' : 'No projects without a recorded payout in this feed. Previously paid projects may still receive more rewards.'));
   root.querySelector('[data-holder-range]').textContent = `${result.range} · page ${page} / ${result.pages}`;
   root.querySelector('[data-holder-page="prev"]').disabled = page <= 1;
   root.querySelector('[data-holder-page="next"]').disabled = page >= result.pages;

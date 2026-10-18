@@ -1,3 +1,4 @@
+import { bonusSnapshotLabel } from './bonus-labels.js';
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const positive = value => /^[1-9]\d*$/.test(String(value || '')) ? BigInt(value) : null;
@@ -58,12 +59,12 @@ export function dailyBonusStatus(data, snapshot, next) {
   });
   if (snapshot?.status === 'reconciliation-required') {
     const started = snapshot.sources?.some(source => ['prepared','distributing','paid'].includes(source.status));
-    return `Snapshot ${snapshot.day} requires reconciliation. Further payouts are blocked. ${snapshot.reason || 'Recorded evidence changed.'}${started ? ' Existing payment records are preserved. This day needs operator review; replacing a started payout is unavailable.' : ' An administrator must review the updated evidence.'}`;
+    return `Snapshot ${bonusSnapshotLabel(snapshot.day)} requires reconciliation. Further payouts are blocked. ${snapshot.reason || 'Recorded evidence changed.'}${started ? ' Existing payment records are preserved. This day needs operator review; replacing a started payout is unavailable.' : ' An administrator must review the updated evidence.'}`;
   }
   if (data.worker?.status === 'blocked' || data.worker?.status === 'unavailable')
     return `Snapshot worker unavailable: ${data.worker.reason || 'Verification is unavailable.'}`;
   if (data.snapshotEnabled === false) return 'Daily snapshots and SOL bonus execution are not activated.';
-  if (indexing) return `Processing ${indexing.day} UTC: ${indexing.reason || 'Verifying finalized history.'} Completed snapshots remain below.`;
+  if (indexing) return `Processing ${bonusSnapshotLabel(indexing.day)}: ${indexing.reason || 'Verifying finalized history.'} Completed snapshots remain below.`;
   if (data.worker?.status === 'degraded') return 'Some daily bonus days need attention. Recorded snapshots and finalized receipts remain below.';
   const state = !snapshot ? 'No completed snapshot yet.' : snapshot.status === 'snapshotted'
     ? 'Verified snapshot below.' : 'Recorded snapshot below; verification status unavailable.';

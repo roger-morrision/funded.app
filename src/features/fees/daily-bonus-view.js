@@ -1,5 +1,6 @@
 import { dailyBonusPayments, dailyBonusStatus } from './daily-bonus-payments.js';
 import { currentFeePolicyCopy } from './fee-policy-copy.js';
+import { bonusSnapshotLabel } from './bonus-labels.js';
 const GROUPS = { creators:'Top creators', referrals:'Top referrers', traders:'Top traders' };
 const sol = value => {
   const n = BigInt(value || '0');
@@ -28,10 +29,10 @@ export function initDailyBonusView(document = globalThis.document) {
     if (!snapshot) return;
     const payments = dailyBonusPayments(snapshot);
     const intro = document.createElement('p');
-    intro.textContent = `${snapshot.day} UTC · ${sol(snapshot.allocatedLamports)} allocated · ${sol(snapshot.retainedLamports)} retained for unfilled ranks. Allocation is not a payment.`;
+    intro.textContent = `${bonusSnapshotLabel(snapshot.day)} · ${sol(snapshot.allocatedLamports)} allocated · ${sol(snapshot.retainedLamports)} retained for unfilled ranks. Allocation is not a payment.`;
     results.append(intro);
     const paidNote = document.createElement('p'); paidNote.className = 'field-help';
-    paidNote.textContent = 'Finalized received totals combine all bonus categories for this wallet and snapshot window. Repeated wallets show the same total; allocations are shown per ranking group. QA windows are marked qa5m. Global payment history includes these receipts after independent chain verification.';
+    paidNote.textContent = 'Finalized received totals combine all bonus categories for this wallet and snapshot window. Repeated wallets show the same total; allocations are shown per ranking group. Five-minute test windows are marked QA. Global payment history includes these receipts after independent chain verification.';
     results.append(paidNote);
     for (const [key, label] of Object.entries(GROUPS)) {
       const group = document.createElement('section'), heading = document.createElement('h3'); heading.textContent = label; group.append(heading);
@@ -71,7 +72,7 @@ export function initDailyBonusView(document = globalThis.document) {
       if (nextData.cluster !== 'devnet' || !Array.isArray(nextData.snapshots)) throw new Error('Unexpected snapshot network or schema.');
       data = nextData;
       const previous = select.value; select.replaceChildren();
-      for (const row of data.snapshots || []) { const option = document.createElement('option'); option.value = row.day; option.textContent = row.day; select.append(option); }
+      for (const row of data.snapshots || []) { const option = document.createElement('option'); option.value = row.day; option.textContent = bonusSnapshotLabel(row.day); option.title = row.day; select.append(option); }
       if ([...select.options].some(option => option.value === previous)) select.value = previous;
       root.querySelector('[data-bonus-day-label]').hidden = !select.options.length;
       render();

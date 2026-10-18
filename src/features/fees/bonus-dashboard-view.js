@@ -1,4 +1,5 @@
 import { HOME_BONUS_MARKUP, BONUS_HISTORY_MARKUP } from './bonus-dashboard-markup.js';
+import { bonusSnapshotLabel, bonusVerificationLabel } from './bonus-labels.js';
 const GROUPS = { creators:'Creators', referrals:'Referrers', traders:'Traders' };
 const integer = value => /^(0|[1-9]\d*)$/.test(String(value)) ? BigInt(value) : null;
 export function bonusSol(value) {
@@ -71,12 +72,12 @@ export function initBonusDashboard(document = globalThis.document) {
     page.querySelector('[data-bonus-delivery]').textContent = `Creators, referrers and traders share the bonus pool equally. Top 3 in each group receive 50%, 30% and 20%. ${qa ? 'Devnet QA snapshots close every 5 minutes for selected test coins. Standard daily policy remains 24 hours.' : 'Snapshots close at 00:00 UTC.'} Bonuses are paid automatically after snapshot and funding verification. No manual claim or recipient signature is required.`;
     clockBase = { cutoff:Date.parse(data.nextCutoffAt), at:Date.parse(data.serverTime), started:view.performance.now() };
     tick();
+    home.querySelector('[data-bonus-verification]').textContent = bonusVerificationLabel(data);
     for (const [key] of Object.entries(GROUPS)) animate(home.querySelector(`[data-bonus-pool="${key}"]`), data.pool?.categoryLamports?.[key]);
     poolStatus.textContent = data.pool?.status === 'verified-indexed-settlements'
-      ? `${data.pool.day} UTC · ${data.pool.collections} verified indexed settlement(s) · checked ${new Date(data.poolCheckedAt).toLocaleTimeString('en-GB', { timeZone:'UTC' })} UTC. Updates every 30 seconds.`
+      ? `${bonusSnapshotLabel(data.pool.day)} · ${data.pool.collections} verified indexed settlement(s) · checked ${new Date(data.poolCheckedAt).toLocaleTimeString('en-GB', { timeZone:'UTC' })} UTC. Updates every 30 seconds.`
       : 'Today’s settled pool is unavailable. No amount is confirmed here.';
-    const worker = data.worker?.status;
-    status.textContent = `${data.snapshots} recorded snapshot(s) · ${data.totalPayments} finalized receipt(s). ${data.unavailableSnapshots ? `${data.unavailableSnapshots} snapshot(s) failed integrity checks and are excluded. ` : ''}${data.unavailableReceipts ? `${data.unavailableReceipts} receipt(s) have unavailable category attribution and are excluded from rankings. ` : ''}${!data.snapshotEnabled ? 'Snapshots are not activated. ' : ''}${!data.payoutEnabled ? 'Payout execution is not activated. ' : ''}${['blocked','degraded','unavailable','indexing'].includes(worker) ? `Worker: ${worker}. ` : ''}A cutoff starts verification; it does not guarantee immediate payment.`;
+    status.textContent = `${data.snapshots} recorded snapshot(s) · ${data.totalPayments} finalized receipt(s). ${data.unavailableSnapshots ? `${data.unavailableSnapshots} snapshot(s) failed integrity checks and are excluded. ` : ''}${data.unavailableReceipts ? `${data.unavailableReceipts} receipt(s) have unavailable category attribution and are excluded from rankings. ` : ''}${bonusVerificationLabel(data)} A cutoff starts verification; it does not guarantee immediate payment.`;
     leaders.replaceChildren();
     for (const [key, title] of Object.entries(GROUPS)) {
       const group = node('section'); group.append(node('h3', title));
@@ -94,7 +95,7 @@ export function initBonusDashboard(document = globalThis.document) {
       for (const title of ['UTC snapshot', 'Wallet', 'Wallet received', 'Creator bonus', 'Referral bonus', 'Trader bonus', 'Receipt']) heading.append(node('th', title));
       head.append(heading); table.append(head); const body = node('tbody');
       for (const receipt of data.history.rows) {
-        const tr = node('tr'); tr.append(node('td', receipt.day || 'Unavailable'));
+        const tr = node('tr'), snapshot = node('td', bonusSnapshotLabel(receipt.day)); snapshot.title = receipt.day || ''; tr.append(snapshot);
         const wallet = node('td'); wallet.append(walletLink(receipt.wallet)); tr.append(wallet, node('td', bonusSol(receipt.receivedLamports)));
         for (const key of Object.keys(GROUPS)) tr.append(node('td', bonusSol(receipt.categoryLamports?.[key])));
         const proof = node('td'), link = node('a', receipt.signature ? 'Transaction ↗' : 'Payment account ↗');
@@ -109,6 +110,7 @@ export function initBonusDashboard(document = globalThis.document) {
     data = null; clockBase = null; tick();
     for (const el of home.querySelectorAll('[data-bonus-pool]')) animate(el, null);
     poolStatus.textContent = 'Bonus pool data is unavailable. No amount is confirmed here.';
+    home.querySelector('[data-bonus-verification]').textContent = 'Current payout readiness is unavailable.';
     status.textContent = 'Bonus history is unavailable. No payout or ranking is confirmed here.';
     leaders.replaceChildren(); rows.replaceChildren(); pageLabel.textContent = ''; previous.disabled = next.disabled = true;
   }

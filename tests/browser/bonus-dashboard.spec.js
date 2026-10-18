@@ -116,3 +116,24 @@ test('Capital flow refreshes on entry and ignores an older overlapping snapshot 
     await expect(status).not.toContainText('10:05:00 UTC');
   } finally {releaseOld();}
 });
+
+test('QA snapshot labels stay readable and retain their original selection and proof identifiers',async({page})=>{
+  const key='qa5m:2026-10-18T16:25:00Z@abcdef012345';
+  const response=fixture();response.worker={status:'degraded'};response.history.rows[0].day=key;
+  await setup(page,()=>response);
+  await page.route('**/api/daily-bonus',route=>route.fulfill({json:{cluster:'devnet',snapshotEnabled:true,payoutEnabled:true,
+    snapshots:[{day:key,status:'snapshotted',hash:'a'.repeat(64),allocatedLamports:'0',retainedLamports:'0',rankings:{creators:[],referrals:[],traders:[]},sources:[]}]}}));
+  await page.goto('/#bonuses');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  const day=page.locator('[data-bonus-history-rows] tbody tr td').first();
+  await expect(day).toHaveText('2026-10-18 · 16:25–16:30 UTC · QA');
+  await expect(day).toHaveAttribute('title',key);
+  await expect(page.locator('[data-bonus-history-status]')).toContainText('Payout verification is delayed');
+  await expect(page.locator('[data-bonus-history-status]')).not.toContainText('Worker:');
+  await expect(page.locator('[data-bonus-history-rows]').getByRole('link',{name:'Transaction ↗',exact:true})).toHaveAttribute('href',/3{64}\?cluster=devnet$/);
+  await page.goto('/#overview');await expect(page.locator('[data-bonus-verification]')).toContainText('Payout verification is delayed');
+  await page.goto('/#capital-flow');
+  await expect(page.locator('[data-bonus-day]')).toHaveValue(key);
+  await expect(page.locator('[data-bonus-day] option')).toHaveText('2026-10-18 · 16:25–16:30 UTC · QA');
+  await expect(page.locator('[data-bonus-results]')).not.toContainText('@abcdef012345');
+  await page.locator('#daily-bonus-dashboard').screenshot({path:test.info().outputPath('readable-snapshot-windows.png')});
+});
