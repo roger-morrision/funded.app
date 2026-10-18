@@ -92,6 +92,7 @@ export function snapshotsForPeriod(snapshots, start, end, maxGapSeconds) {
   const interior = ordered.filter(row => row.at > start && row.at < end);
   const closingSource = ordered.filter(row => row.at < end).at(-1);
   if (!opening || !closingSource) throw new Error('Finalized holder snapshots do not cover this reward period.');
+  if (start - opening.at > maxGapSeconds) throw new Error('Holder opening snapshot gap exceeds the configured sampling interval.');
   const selected = [{ ...opening, at: start }, ...interior, { ...closingSource, at: end }];
   for (let index = 1; index < selected.length; index += 1) {
     if (selected[index].at - selected[index - 1].at > maxGapSeconds) throw new Error('Holder snapshot gap exceeds the configured sampling interval.');
