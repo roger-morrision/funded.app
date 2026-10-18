@@ -73,16 +73,23 @@ export async function verifyRecordedV3Settlements({ state, connection, programId
       return null;
     };
     let checked = 0;
+    const failures = [];
     // Finalized transaction proofs are immutable. Read a small batch at once so
     // status checks do not time out as the number of verified mints grows.
     for (let offset = 0; offset < collections.length; offset += 4) {
-      const outcomes = await Promise.all(collections.slice(offset, offset + 4)
-        .map(verifyCollection));
-      for (const reason of outcomes) {
-        if (reason) return result(false, recorded, checked, reason);
+      const batch = collections.slice(offset, offset + 4);
+      const outcomes = await Promise.all(batch.map(async collection => {
+        try { return await verifyCollection(collection); }
+        catch { return 'finalized-evidence-unavailable'; }
+      }));
+      for (const [index, reason] of outcomes.entries()) {
+        if (reason) failures.push({ mint:batch[index].mint,
+          collectionSignature:batch[index].signature, reason });
         checked += 1;
       }
     }
+    if (failures.length) return { ...result(false, recorded, checked, failures[0].reason),
+      verifiedRecords:checked - failures.length, failed:failures.length, failures };
     return result(true, recorded, checked);
   } catch {
     return result(false, recorded, 0, 'finalized-evidence-unavailable');

@@ -94,7 +94,18 @@ test('checks finalized proofs in bounded parallel batches and keeps ordered fail
     categoryLamports:id === 'settlement-2' ? ['wrong'] : categoryLamports,
   });
   assert.deepEqual(await verifyRecordedV3Settlements(input), {
-    verified:false, scope:'all-recorded-v3-collections', recorded:5, checked:2,
+    verified:false, scope:'all-recorded-v3-collections', recorded:5, checked:5,
     reason:'settlement-proof-unavailable',
+    verifiedRecords:4, failed:1,
+    failures:[{mint,collectionSignature:signatures[2],reason:'settlement-proof-unavailable'}],
   });
+  input.loadCollection = async ({signature:id}) => {
+    if(id===signatures[4])throw new Error('RPC unavailable');
+    return {signature:id,claimId:Buffer.from(claimId,'hex'),expectedLamports:100n,router:'router'};
+  };
+  const partial=await verifyRecordedV3Settlements(input);
+  assert.equal(partial.verified,false);assert.equal(partial.checked,5);
+  assert.equal(partial.verifiedRecords,3);assert.equal(partial.failed,2);
+  assert.deepEqual(partial.failures.map(row=>row.collectionSignature),[signatures[2],signatures[4]]);
+  assert.equal(partial.failures[1].reason,'finalized-evidence-unavailable');
 });
