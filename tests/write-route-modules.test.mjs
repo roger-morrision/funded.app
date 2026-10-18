@@ -60,7 +60,7 @@ test('V3 non-X launch stays blocked by beneficiary policy even with fresh worker
   await f.request('/api/v3-launch-config', {}, 'GET');
   assert.equal(f.responses.at(-1).data.ready, false);
   assert.equal(f.responses.at(-1).data.beneficiaryRoutingOnChainEnforced, false);
-  assert.match(f.responses.at(-1).data.reasons.join('; '), /does not enforce creator\/holder\/X shares/);
+    assert.match(f.responses.at(-1).data.reasons.join('; '), /exact reviewed Devnet program bytes/);
   serviceStatus.checkedAt = new Date(Date.now() - 181_000).toISOString();
   await f.request('/api/v3-launch-config', {}, 'GET');
   assert.equal(f.responses.at(-1).data.ready, false);

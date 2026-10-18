@@ -5,12 +5,14 @@ import { verifyFeeRouterAccount } from '../fee-router.js';
 import { readProgramDataEvidence, DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
 import { rewardServiceHealth } from './reward-service-health.mjs';
 
-// V3 fixes the seven category budgets on chain, but its disbursement
-// instruction does not commit the creator/holder/X shares or the operations
-// and referral beneficiaries. No environment setting can waive this gate.
-export const V3_BENEFICIARY_ROUTING_ON_CHAIN_ENFORCED = false;
+// This exact Devnet ProgramData was verified against the tested protected V3
+// binary and exercised with finalized disposable-wallet payouts. An operator
+// setting cannot make older, unprotected program bytes eligible for launches.
+export const PROTECTED_V3_PROGRAM_DATA_SHA256 =
+  '53b6910f00d436d2a2418e441ef9898744d9414ff1ba85f9e2454e4dab3ace81';
+export const V3_BENEFICIARY_ROUTING_ON_CHAIN_ENFORCED = true;
 export const V3_BENEFICIARY_RELEASE_BLOCKER =
-  'V3 disbursement does not enforce creator/holder/X shares and approved operations/referral recipients on chain';
+  'Protected V3 beneficiary rules require the exact reviewed Devnet program bytes';
 
 export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRewardStore, store,
   v3AuthorityKeypair, env = process.env,
@@ -18,10 +20,11 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
   programEvidence = readProgramDataEvidence, verifyRouter = verifyFeeRouterAccount }) {
   return async () => {
     const reasons = [];
-    if (!V3_BENEFICIARY_ROUTING_ON_CHAIN_ENFORCED)
-      reasons.push(V3_BENEFICIARY_RELEASE_BLOCKER);
     const programId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
     const approvedHash = String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || '').trim().toLowerCase();
+    const beneficiaryRoutingOnChainEnforced = V3_BENEFICIARY_ROUTING_ON_CHAIN_ENFORCED
+      && approvedHash === PROTECTED_V3_PROGRAM_DATA_SHA256;
+    if (!beneficiaryRoutingOnChainEnforced) reasons.push(V3_BENEFICIARY_RELEASE_BLOCKER);
     if (solanaCluster !== 'devnet') reasons.push('V3 launches require Devnet');
     for (const [name, label] of [
       ['FUNDED_V3_LAUNCH_ENABLED', 'V3 launch registration'],
@@ -67,7 +70,7 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
     }
     const protocolSplit = store ? await activeProtocolFeeSplit(store).catch(() => null) : PROTOCOL_FEE_SPLIT;
     return { ready:reasons.length === 0 && Boolean(protocolSplit), cluster:solanaCluster,
-      beneficiaryRoutingOnChainEnforced:V3_BENEFICIARY_ROUTING_ON_CHAIN_ENFORCED,
+      beneficiaryRoutingOnChainEnforced,
       programId:programId || null, initialAuthority:authority?.publicKey.toBase58() || null,
       protocolSplit:protocolSplit || PROTOCOL_FEE_SPLIT, reasons:protocolSplit ? reasons : [...reasons, 'Active fee policy is unavailable'] };
   };
