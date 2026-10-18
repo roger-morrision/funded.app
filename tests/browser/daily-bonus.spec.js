@@ -1,12 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
+const offlineFixture = route => new URL(route.request().url()).pathname === '/api/fee-policy'
+  ? route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}})
+  : route.fulfill({status:503,json:{error:'Offline fixture'}});
 const wallets = ['7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y',
   'ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC', 'GTGKxA9DRbVFuAyoXvA8j1LAtZaf9fyJbvArGbJSbm5c'];
 test('fee calculator shows 8/4 and daily rankings distinguish allocations from finalized payments', async ({ page }) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   let paid = false;
-  await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'Offline test fixture' } }));
-  await page.route('**/api/fee-policy', route => route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
+  await page.route('**/api/**', offlineFixture);
   await page.route('**/api/daily-bonus', route => route.fulfill({ json:{ cluster:'devnet', payoutEnabled:false,
     worker:{ status:'active' }, nextCutoffAt:'2026-10-19T00:00:00Z', snapshots:[{ day:'2026-10-17',
       status:'snapshotted', hash:'a'.repeat(64), allocatedLamports:'4000000000', retainedLamports:'0',
@@ -68,7 +70,7 @@ test('snapshot selection explains started payouts, reconciliation blocks and inv
   let cluster = 'devnet';
   const empty = { hash:'b'.repeat(64), allocatedLamports:'0', retainedLamports:'0',
     rankings:{ creators:[], referrals:[], traders:[] }, sources:[] };
-  await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'Offline fixture' } }));
+  await page.route('**/api/**', offlineFixture);
   await page.route('**/api/daily-bonus', route => route.fulfill({ json:{ cluster, snapshotEnabled:true, payoutEnabled:true,
     worker:{ status:'active' }, snapshots:[{ ...empty, day:'2026-10-17', status:'reconciliation-required', reason:'Evidence changed.', sources:[{mint:wallets[0],status:'paid',payments:{}}] },
       { ...empty, day:'2026-10-16', status:'snapshotted' }] } }));
@@ -91,7 +93,7 @@ test('snapshot selection explains started payouts, reconciliation blocks and inv
 });
 
 test('Analytics identifies V3 creator receipts and displays the net wallet receipt', async ({ page }) => {
-  await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'Offline fixture' } }));
+  await page.route('**/api/**', offlineFixture);
   await page.route('**/api/evidence/payment-history', route => route.fulfill({ json:{ cluster:'devnet',
     status:'onchain-indexed', checkedCreator:1, verifiedPayouts:[{ source:'v3-creator-wallet', to:wallets[0],
       signature:'3'.repeat(64), amountLamports:'1000', actualReceivedLamports:'900', blockTime:1792274400 }] } }));
@@ -107,7 +109,7 @@ test('Analytics identifies V3 creator receipts and displays the net wallet recei
 
 test('Daily bonus receipts are named, filterable, and explain receiver-paid rent', async ({page}) => {
   await page.setViewportSize({width:390,height:844});
-  await page.route('**/api/**', route => route.fulfill({status:503,json:{error:'Offline fixture'}}));
+  await page.route('**/api/**', offlineFixture);
   await page.route('**/api/evidence/payment-history', route => route.fulfill({json:{cluster:'devnet',
     status:'onchain-indexed',checkedDaily:1,verifiedPayouts:[{source:'daily-bonus',to:wallets[0],
       signature:'3'.repeat(64),amountLamports:2000000,actualReceivedLamports:995000,
