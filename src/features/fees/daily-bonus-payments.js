@@ -51,7 +51,11 @@ export function dailyBonusPayments(snapshot) {
 }
 
 export function dailyBonusStatus(data, snapshot, next) {
-  const indexing = data.indexing?.[0];
+  const indexing = data.indexing?.find(row => {
+    if (data.schedule?.mode !== 'devnet-qa-5m') return !String(row.day).startsWith('qa5m:');
+    return String(row.day).startsWith('qa5m:') && (data.schedule.cohort
+      ? String(row.day).endsWith(`@${data.schedule.cohort}`) : !String(row.day).includes('@'));
+  });
   if (snapshot?.status === 'reconciliation-required') {
     const started = snapshot.sources?.some(source => ['prepared','distributing','paid'].includes(source.status));
     return `Snapshot ${snapshot.day} requires reconciliation. Further payouts are blocked. ${snapshot.reason || 'Recorded evidence changed.'}${started ? ' Existing payment records are preserved. This day needs operator review; replacing a started payout is unavailable.' : ' An administrator must review the updated evidence.'}`;

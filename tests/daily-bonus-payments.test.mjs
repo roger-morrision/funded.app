@@ -57,6 +57,14 @@ test('a late linking proof merges separately recovered account and transaction r
   }
 });
 
+test('paused indexing from another QA cohort does not hide the active verified snapshot',()=>{
+  const data={schedule:{mode:'devnet-qa-5m',cohort:'abcdef012345'},snapshotEnabled:true,payoutEnabled:true,
+    indexing:[{day:'qa5m:2026-10-18T13:10:00Z',reason:'Old fixture waits for settlement.'}]};
+  const selected={day:'qa5m:2026-10-18T13:25:00Z@abcdef012345',status:'snapshotted'};
+  assert.match(dailyBonusStatus(data,selected,'next'),/^Verified snapshot below/);
+  data.indexing.push({day:selected.day,reason:'Active finalized history.'});
+  assert.match(dailyBonusStatus(data,selected,'next'),/Processing.*Active finalized history/);
+});
 test('merging proof aliases preserves conflicting or missing net evidence after later replays', () => {
   const full = { ...payment, payment:'5'.repeat(44) };
   for (const amountReceived of ['449', undefined]) {
