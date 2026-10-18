@@ -1,4 +1,5 @@
 import { mountBuybackProgressPanels } from '../../features/funded/buyback-progress-ui.js';
+import { fundedBurnFailureMessage } from '../../features/funded/buy-feedback.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createBuybackController(appState) {
@@ -187,11 +188,8 @@ export function createBuybackController(appState) {
       };
     } catch (error) {
       if (request !== appState.fundedBurnRequest) return;
-      const detail = String(error?.message || '');
-      const unavailable = /(?:5\d\d (?:Internal Server Error|Bad Gateway)|returned an invalid response|failed to fetch|networkerror|econnrefused|\b429\b|rate limit|too many requests)/i.test(detail);
-      appState.fundedBurnState = { ...appState.fundedBurnState, status: 'error', wallet: address, message: unavailable
-        ? 'Solana RPC unavailable; $FUNDED mint and balance could not be verified.'
-        : detail || 'Solana burn data is unavailable.' };
+      appState.fundedBurnState = { ...appState.fundedBurnState, status: 'error', wallet: address,
+        message: fundedBurnFailureMessage(error) };
     }
     appState.renderBuybackDashboard();
     appState.renderWalletFundedBalance();

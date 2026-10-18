@@ -1,4 +1,4 @@
-import { fundedBuyFailureMessage } from '../../features/funded/buy-feedback.js';
+import { fundedBuyFailureMessage, fundedBurnFailureMessage } from '../../features/funded/buy-feedback.js';
 // Dependencies and mutable application state are read live through appState.
 export function createFundedTradingController(appState) {
   // app-source: 351
@@ -137,6 +137,8 @@ export function createFundedTradingController(appState) {
     appState.fundedBurnState.message = 'Review and approve the permanent burn in your wallet.';
     button.textContent = 'Awaiting approval…';
     appState.renderBuybackDashboard();
+    let submittedBurnSignature = null;
+    let burnFailedOnChain = false;
     try {
       const { PublicKey, Transaction, TransactionInstruction, createBurnCheckedInstruction, getAccount, getMint } = await appState.getSolana();
       appState.assertWalletSessionCurrent(session);
@@ -152,10 +154,11 @@ export function createFundedTradingController(appState) {
       const signed = await session.provider.signTransaction(transaction);
       appState.assertWalletSessionCurrent(session);
       const signature = await appState.connection.sendRawTransaction(signed.serialize(), { skipPreflight: false, maxRetries: 3 });
+      submittedBurnSignature = signature;
       appState.fundedBurnState.message = `Burn submitted (${signature.slice(0, 8)}…). Waiting for Solana confirmation.`;
       appState.renderBuybackDashboard();
       const confirmation = await appState.waitForSignatureConfirmation(appState.connection, { signature, lastValidBlockHeight: latest.lastValidBlockHeight });
-      if (confirmation.value.err) throw new Error(`Burn transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      if (confirmation.value.err) { burnFailedOnChain = true; throw new Error('Burn transaction failed on Solana.'); }
       const [accountResults, mintAfter] = await Promise.all([
         Promise.all(burnPlan.map(async burn => ({ burn, account: await getAccount(appState.connection, burn.address, 'confirmed', appState.fundedBurnState.tokenProgram) }))),
         getMint(appState.connection, mint, 'confirmed', appState.fundedBurnState.tokenProgram),
@@ -173,7 +176,11 @@ export function createFundedTradingController(appState) {
       await appState.loadFundedBurnState({ force: true });
     } catch (error) {
       appState.fundedBurnState.status = 'ready';
-      appState.fundedBurnState.message = `Burn stopped or confirmation unavailable: ${error.message}`;
+      const signature = error.signature || submittedBurnSignature;
+      appState.fundedBurnState.message = signature
+        ? burnFailedOnChain ? `Burn failed on Solana: ${signature}. Review the transaction before trying again.`
+          : `Burn confirmation is uncertain for ${signature}. Check that signature on Solana before trying again.`
+        : fundedBurnFailureMessage(error);
       appState.renderBuybackDashboard();
     } finally { button.textContent = 'Burn $FUNDED'; appState.updateFundedBurnButton(); }
   }

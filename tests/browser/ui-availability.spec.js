@@ -20,6 +20,9 @@ for(const width of [390,1440])test(`RPC HTML errors remain concise and buy contr
   expect(requests).toBeGreaterThan(0);
   await expect(page.locator('#funded-buy-status')).not.toContainText('private-test-value');
   await expect(page.locator('#funded-buy-status')).not.toContainText('<html');
+  await expect(page.locator('#funded-burn-status')).toContainText('Burn verification is temporarily unavailable');
+  await expect(page.locator('#funded-burn-status')).not.toContainText('private-test-value');
+  await expect(page.locator('#funded-burn-status')).not.toContainText('<html');
   await expect(page.locator('#funded-buy-submit')).toBeDisabled();
   await expect(page.locator('#funded-buy-amount')).toBeDisabled();
 });
