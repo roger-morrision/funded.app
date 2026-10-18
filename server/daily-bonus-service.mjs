@@ -11,7 +11,8 @@ import { bonusDashboardHistory, readBonusPool } from './daily-bonus-dashboard.mj
 export function createDailyBonusService({ store, rewardStore, connection, programId, authority,
   expectedProgramDataSha256, cluster, payoutEnabled = false, readEvidence,
   chainFactory = createAutomaticRewardChain, loadFunding = loadFinalizedV3RewardFunding,
-  verifyPolicy = verifyMintPolicyV3Account, now = () => Math.floor(Date.now() / 1000) }) {
+  verifyPolicy = verifyMintPolicyV3Account, now = () => Math.floor(Date.now() / 1000),
+  readPool = readBonusPool, poolTimeoutMs = 12_000 }) {
   if (cluster !== 'devnet') throw new Error('Daily bonus execution is available only on Devnet.');
   const chain = chainFactory({ connection, programId, authority, expectedProgramDataSha256 });
   const readIndexedEvidence = readEvidence || createDailyBonusEvidenceIndex({ rewardStore });
@@ -21,16 +22,25 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
     const at = now();
     if (!poolCache || at - poolCache.at >= 30 || poolCache.day !== Math.floor(at / 86_400)) {
       poolRead ||= (async () => {
-        let value;
-        try { value = await readBonusPool({ state:await store.read(), connection, programId, now:at }); }
+        let value, timer; const controller = new AbortController();
+        try {
+          value = await Promise.race([
+            (async () => readPool({ state:await store.read(), connection, programId, now:at, signal:controller.signal }))(),
+            new Promise(resolve => { timer = setTimeout(() => {
+              controller.abort(); resolve({ status:'unavailable', categoryLamports:null });
+            }, poolTimeoutMs); timer.unref(); }),
+          ]);
+        }
         catch { value = { status:'unavailable', categoryLamports:null }; }
+        finally { clearTimeout(timer); }
         poolCache = { at, day:Math.floor(at / 86_400), value };
       })().finally(() => { poolRead = null; });
       await poolRead;
     }
     return { cluster, serverTime:new Date(now() * 1000).toISOString(),
       nextCutoffAt:new Date((Math.floor(now() / 86_400) + 1) * 86_400_000).toISOString(),
-      poolCheckedAt:new Date(poolCache.at * 1000).toISOString(), pool:poolCache.value,
+      poolCheckedAt:new Date(poolCache.at * 1000).toISOString(),
+      pool:poolCache.day === Math.floor(now() / 86_400) ? poolCache.value : { status:'unavailable', categoryLamports:null },
       ...bonusDashboardHistory(await rewardStore.read(), options) };
   }
   const ready = async () => {

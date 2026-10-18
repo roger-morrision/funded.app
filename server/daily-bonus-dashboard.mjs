@@ -96,9 +96,10 @@ export function bonusDashboardHistory(ledger, { category = 'all', page = 1, page
 
 // Read only finalized indexed collections under a saved Daily bonus policy.
 // This pool is an allocation, not a vault balance or a payment promise.
-export async function readBonusPool({ state, connection, programId, now,
+export async function readBonusPool({ state, connection, programId, now, signal,
   verifyCollection = verifyV3PumpCollection, loadSettlement = loadFinalizedV3Settlement }) {
   const start = Math.floor(now / 86_400) * 86_400;
+  signal?.throwIfAborted();
   if (await connection.getGenesisHash() !== DEVNET_GENESIS_HASH) throw new Error('Bonus pool RPC is not Devnet.');
   const candidates = Object.values(state.collections || {}).filter(row => {
     const launch = state.launches?.[row.mint], settled = state.v3Settlements?.[row.signature];
@@ -113,14 +114,17 @@ export async function readBonusPool({ state, connection, programId, now,
   const seen = new Set(), values = categories.map(() => 0n); let collections = 0;
   // Sequential bounded reads avoid overwhelming the shared RPC.
   for (const row of candidates) {
+    signal?.throwIfAborted();
     if (seen.has(row.signature)) continue; seen.add(row.signature);
     const tx = await connection.getTransaction(row.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
+    signal?.throwIfAborted();
     if (!tx || !Number.isSafeInteger(tx.blockTime)) throw new Error('Bonus collection proof is unavailable.');
     if (tx.blockTime < start || tx.blockTime >= start + 86_400 || tx.blockTime > now) continue;
     const launch = state.launches[row.mint], settled = state.v3Settlements[row.signature];
     const collected = await verifyCollection({ transaction:tx, signature:row.signature, programId,
       mint:row.mint, expectedLamports:row.collectedLamports });
     if (!collected) throw new Error('Bonus collection proof is unavailable.');
+    signal?.throwIfAborted();
     const proof = await loadSettlement({ connection, signature:settled.settlementSignature, programId,
       mint:row.mint, authority:launch.pumpFeeRoute.initialAuthority, creator:launch.creatorWallet,
       claimId:collected.claimId, expectedLamports:row.collectedLamports, split:launch.pumpFeeRoute.protocolSplit });

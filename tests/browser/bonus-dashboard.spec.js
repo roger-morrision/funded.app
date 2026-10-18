@@ -46,7 +46,8 @@ test('reduced motion, narrow layout, direct page routing and invalid-network sta
   await page.setViewportSize({ width:390, height:844 }); await page.goto('/#bonuses');
   await expect(page.locator('#bonuses')).toBeVisible();
   await expect(page.locator('[data-bonus-history-rows]')).toContainText('2026-10-17');
-  await page.locator('#open-menu').click(); await page.locator('.nav-more summary').click();
+  await page.locator('#open-menu').click();
+  if (!(await page.locator('.nav-more a[href="#bonuses"]').isVisible())) await page.locator('.nav-more summary').click();
   await expect(page.locator('.nav-more a[href="#bonuses"]')).toHaveAttribute('aria-current', 'page');
   await page.locator('.nav-more a[href="#bonuses"]').click();
   await expect(page.locator('#sidebar')).not.toHaveClass(/open/);

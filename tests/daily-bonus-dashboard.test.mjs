@@ -6,6 +6,7 @@ import { bonusCountdown, bonusSol } from '../src/features/fees/bonus-dashboard-v
 import { DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
 import { PublicKey } from '@solana/web3.js';
 import { createDailyBonusRuntime } from '../server/daily-bonus-runtime.mjs';
+import { createDailyBonusService } from '../server/daily-bonus-service.mjs';
 const wallet = new PublicKey(new Uint8Array(32).fill(2)).toBase58(), mint = new PublicKey(new Uint8Array(32).fill(3)).toBase58();
 function saved(day, id = 0) {
   const start = Date.parse(`${day}T00:00:00Z`) / 1000;
@@ -107,4 +108,15 @@ test('public dashboard route validates category, forwards pagination and exposes
   assert.equal(result.value.snapshotEnabled, true); assert.equal(result.value.payoutEnabled, false);
   assert.equal(result.value.worker.status, 'indexing');
   assert.equal((await invoke('?category=invalid')).code, 400);
+});
+test('slow pool RPC cannot block recorded payout history; failed pool stays unavailable and cached', async () => {
+  let calls = 0;
+  const ledger = { dailyBonusSnapshots:{ row:saved('2026-10-16') } };
+  const service = createDailyBonusService({ cluster:'devnet', store:{ read:async () => ({}) },
+    rewardStore:{ read:async () => ledger }, chainFactory:() => ({}), now:() => 1792320000,
+    poolTimeoutMs:2, readPool:async () => { calls++; await new Promise(resolve => setTimeout(resolve, 20)); } });
+  const result = await service.dashboard({});
+  assert.equal(result.pool.status, 'unavailable'); assert.equal(result.totalPayments, 1);
+  assert.equal(result.history.rows[0].receivedLamports, '149');
+  await service.dashboard({}); assert.equal(calls, 1);
 });
