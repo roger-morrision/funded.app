@@ -112,3 +112,4 @@ assert.equal(prepared.migrationSlot,snapshot.slot);assert.equal(prepared.recipie
 journal.reviewedManifest=manifest;journal.snapshot=snapshot;journal.prepared=prepared;journal.finishedAt=new Date().toISOString();save();
 console.log(JSON.stringify({stage:'genuine-migration-manifest-independently-matched',migrationSignature:journal.migrationSignature,
   migrationSlot:snapshot.slot,root:manifest.root,snapshotHash:manifest.snapshotHash,recipients:manifest.leaves.length,archivePath}));
+process.exit(0);
