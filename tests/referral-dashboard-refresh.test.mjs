@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { referralStatusLabel, referralClaimStatusLabel, isReferralSignInCancelled } from '../referral-status.js';
 import { createWalletSignIn } from '../wallet-signin.js';
-import { formatReferralLamports } from '../referral-amount.js';
+import { formatReferralLamports, readReferralHistory } from '../referral-amount.js';
 
 const app = await readAppSource();
 function section(start, end) {
@@ -35,6 +35,7 @@ function fixture({ claims = null } = {}) {
   const conversionNode = element();
   const ledger = element();
   const calls = [];
+  const shared = [];
   let authenticated = false;
   let authenticatedWallet = 'wallet';
   let signatures = 0;
@@ -44,8 +45,18 @@ function fixture({ claims = null } = {}) {
   const session = { address: 'wallet', provider: { async signMessage() { signatures++; if (signError) throw signError; return { signature: new Uint8Array(64).fill(7) }; } } };
   const context = {
     TextEncoder,
+    URL,
+    location:{origin:'https://funded.vip'},
     formatReferralLamports,
+    readReferralHistory,
     exploreExplorer: path => `https://explorer.solana.com/${path}?cluster=devnet`,
+    FEE_ROUTER_PROGRAM_ID:'fixture-router', EXPLORE_NETWORK_LABEL:'Devnet',
+    getSolana:async () => ({PublicKey:class {constructor(value){this.value=value;}toBase58(){return this.value;}}}),
+    connection:{getParsedTransaction:async () => ({meta:{err:null,preBalances:[1000],postBalances:[58714]},
+      transaction:{message:{accountKeys:[{pubkey:'wallet'}],instructions:[{programId:'fixture-router'}]}}})},
+    registeredShareCode:() => '',
+    openShareComposer:value => shared.push(value),
+    showToast:message => { throw new Error(message); },
     referralStatusLabel, referralClaimStatusLabel, isReferralSignInCancelled,
     paginateHistory: () => {},
     bs58: { encode(bytes) { assert.equal(bytes.length, 64); return 'fixture-signature'; } },
@@ -90,6 +101,7 @@ function fixture({ claims = null } = {}) {
     conversionNode,
     ledger,
     calls,
+    shared,
     get status() { return context.document.documentElement.dataset.referralStatus; },
     get signatures() { return signatures; },
     rejectSigning() { signError = Object.assign(new Error('User rejected the request.'), {code:4001}); },
@@ -99,6 +111,7 @@ function fixture({ claims = null } = {}) {
     authenticate() { authenticated = true; },
     failClaims() { claimsAvailable = false; },
     failDashboard() { dashboardAvailable = false; },
+    setClaims(value) { claims = value; },
   };
 }
 
@@ -201,4 +214,35 @@ test('malformed claim history is unavailable rather than a zero payout or thrown
   await f.refresh();
   assert.equal(f.status, 'Rewards unavailable');
   assert.equal(f.paidNode.textContent, '— SOL');
+});
+
+for (const [name, row] of [
+  ['null receipt', null],
+  ['missing amount', {...paidClaims[0],amountLamports:undefined}],
+  ['invalid amount', {...paidClaims[0],amountLamports:'invalid'}],
+  ['negative pending amount', {...paidClaims[0],status:'verification-pending',amountLamports:'-1'}],
+  ['unsafe numeric amount', {...paidClaims[0],amountLamports:Number.MAX_SAFE_INTEGER+1}],
+  ['unsupported asset', {...paidClaims[0],asset:'TOKEN'}],
+]) test(`${name} clears stale payout totals without a render exception`, async () => {
+  const f = fixture({claims:paidClaims}); f.authenticate(); await f.refresh();
+  f.setClaims([row]); await f.refresh();
+  assert.equal(f.status,'Rewards unavailable');
+  assert.equal(f.paidNode.textContent,'— SOL');
+  assert.equal(f.activeNode.textContent,'1','Independent network metrics remain available');
+});
+
+test('pending allocations do not enter paid totals or receive a finalized-history description', async () => {
+  const f = fixture({claims:[...paidClaims,{...paidClaims[0],status:'verification-pending',amountLamports:'999999999'}]});
+  f.authenticate(); await f.refresh();
+  assert.equal(f.paidNode.textContent,'0.000057714 SOL');
+  assert.equal(f.panel.children[0].children[1].textContent,'Recorded referral allocations and finalized payout receipts.');
+});
+
+for (const amount of [undefined,10]) test(`share receipt derives its amount from verified lamports when the float is ${amount}`, async () => {
+  const f = fixture({claims:[{...paidClaims[0],amount}]}); f.authenticate(); await f.refresh();
+  const share = f.panel.children[1].children.find(node=>node.textContent==='Share receipt card');
+  assert(share); await share.click();
+  assert.equal(f.shared.length,1);
+  assert.equal(f.shared[0].result.amount,0.000057714);
+  assert.match(f.shared[0].text,/0\.000057714 SOL/);
 });

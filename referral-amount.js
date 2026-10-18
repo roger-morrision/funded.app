@@ -19,3 +19,22 @@ export function paidReferralLamports(claims) {
   }
   return total;
 }
+
+// Validate the complete history before replacing any displayed payout total.
+// A malformed amount is unavailable data, never a zero-lamport receipt.
+export function readReferralHistory(claims) {
+  if (!Array.isArray(claims)) return null;
+  for (const row of claims) {
+    if (!row || Array.isArray(row) || row.asset !== 'SOL'
+      || !Number.isInteger(row.level) || row.level < 1 || row.level > 3
+      || typeof row.status !== 'string' || !row.status) return null;
+    const amount = row.amountLamports;
+    if (!['string','number','bigint'].includes(typeof amount)
+      || (typeof amount === 'number' && !Number.isSafeInteger(amount))
+      || !/^(0|[1-9]\d{0,19})$/.test(String(amount))) return null;
+    const lamports = BigInt(amount);
+    if (lamports > 0xffffffffffffffffn || (row.status === 'paid'
+      && (lamports === 0n || typeof row.payoutSignature !== 'string' || !row.payoutSignature))) return null;
+  }
+  return { claims, paidLamports:paidReferralLamports(claims) };
+}

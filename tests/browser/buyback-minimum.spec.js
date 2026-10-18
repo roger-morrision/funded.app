@@ -1,8 +1,12 @@
 import {test,expect} from '@playwright/test';
+import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
+const offlineFixture=route=>new URL(route.request().url()).pathname==='/api/fee-policy'
+  ? route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}})
+  : route.fulfill({status:503,json:{error:'Offline fixture'}});
 for(const width of [1280,390])test(`small buyback allocations explain retained funds without hiding reconciliation at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:844});
   await page.route('https://**/*',route=>route.abort());
-  await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline fixture'}}));
+  await page.route('**/api/**',offlineFixture);
   await page.route('**/api/buyback/status',route=>route.fulfill({json:{cluster:'devnet',automationEnabled:true,minimumOrderLamports:'10000',
     dashboard:{status:'verified',thresholdLamports:'100000',collectedLamports:'103938',triggerReached:true},receipts:[],pending:[
       {mint:'52TdgMLp41CtiLrAqqZ1N889RPfWMMzxwpF8MoaZFvN1',amountLamports:'8911',status:'below-minimum-order'},
@@ -21,7 +25,7 @@ for(const width of [1280,390])test(`small buyback allocations explain retained f
 
 test('buyback history shows the newest eight confirmed receipts with their matching proof links',async({page})=>{
   await page.route('https://**/*',route=>route.abort());
-  await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline fixture'}}));
+  await page.route('**/api/**',offlineFixture);
   const receipts=Array.from({length:10},(_,i)=>({mint:'52TdgMLp41CtiLrAqqZ1N889RPfWMMzxwpF8MoaZFvN1',
     signature:'3456789ABC'[i].repeat(64),slot:i+1,status:'finalized',vaultDebitVerified:true,burnInstructionVerified:true,burnedBaseUnits:String(1000+i)}));
   await page.route('**/api/buyback/status',route=>route.fulfill({json:{cluster:'devnet',automationEnabled:true,minimumOrderLamports:'10000',pending:[],receipts,
@@ -40,7 +44,7 @@ test('buyback history shows the newest eight confirmed receipts with their match
 test('buyback disclosures preserve open and closed choices across polling and temporary outages',async({page})=>{
   await page.clock.install();
   await page.route('https://**/*',route=>route.abort());
-  await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline fixture'}}));
+  await page.route('**/api/**',offlineFixture);
   let unavailable=false,revision=0,requests=0;
   await page.route('**/api/buyback/status',route=>{
     requests++;
@@ -73,7 +77,7 @@ test('buyback disclosures preserve open and closed choices across polling and te
 
 test('a verified buyback scan lasting more than eight seconds fills both history views',async({page})=>{
   await page.route('https://**/*',route=>route.abort());
-  await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline fixture'}}));
+  await page.route('**/api/**',offlineFixture);
   await page.route('**/api/buyback/status',async route=>{
     await new Promise(resolve=>setTimeout(resolve,9000));
     return route.fulfill({json:{cluster:'devnet',automationEnabled:true,pending:[],receipts:[{

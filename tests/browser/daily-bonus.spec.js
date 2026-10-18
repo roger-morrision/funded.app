@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 const wallets = ['7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y',
   'ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC', 'GTGKxA9DRbVFuAyoXvA8j1LAtZaf9fyJbvArGbJSbm5c'];
 test('fee calculator shows 8/4 and daily rankings distinguish allocations from finalized payments', async ({ page }) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   let paid = false;
   await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'Offline test fixture' } }));
+  await page.route('**/api/fee-policy', route => route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route('**/api/daily-bonus', route => route.fulfill({ json:{ cluster:'devnet', payoutEnabled:false,
     worker:{ status:'active' }, nextCutoffAt:'2026-10-19T00:00:00Z', snapshots:[{ day:'2026-10-17',
       status:'snapshotted', hash:'a'.repeat(64), allocatedLamports:'4000000000', retainedLamports:'0',

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 const wallet = '2'.repeat(44), tx = '3'.repeat(64);
 function fixture({ category = 'all', page = 1 } = {}) {
   const received = { wallet, receivedLamports:'500000000', payments:2 };
@@ -14,6 +15,7 @@ function fixture({ category = 'all', page = 1 } = {}) {
 }
 async function setup(page, response = () => null) {
   await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'Offline fixture' } }));
+  await page.route('**/api/fee-policy', route => route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route('**/api/daily-bonus/dashboard?*', route => {
     const url = new URL(route.request().url());
     return route.fulfill({ json:response() || fixture({ category:url.searchParams.get('category'), page:Number(url.searchParams.get('page')) }) });

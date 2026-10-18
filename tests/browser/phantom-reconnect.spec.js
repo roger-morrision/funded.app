@@ -128,10 +128,16 @@ test('signed wallet session renders an exact finalized referral payout', async (
   await expect(proof).toHaveAttribute('rel', 'noopener noreferrer');
 });
 
-test('malformed referral history stays unavailable without a render exception', async ({ page }) => {
+for (const [name, claims] of [
+  ['missing history',null], ['null receipt',[null]],
+  ['missing lamports',[{level:1,asset:'SOL',status:'paid',payoutSignature:'fixture'}]],
+  ['invalid lamports',[{level:1,asset:'SOL',status:'paid',amountLamports:'invalid',payoutSignature:'fixture'}]],
+  ['unsafe numeric lamports',[{level:1,asset:'SOL',status:'paid',amountLamports:9007199254740992,payoutSignature:'fixture'}]],
+  ['unsupported asset',[{level:1,asset:'TOKEN',status:'paid',amountLamports:'57714',payoutSignature:'fixture'}]],
+]) test(`${name} stays unavailable without a referral render exception`, async ({ page }) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await page.route('**/api/referrals/session', route => route.fulfill({ json:{ authenticated:true, wallet:address } }));
-  await page.route('**/api/referral-claims?**', route => route.fulfill({ json:{ wallet:address, claims:null } }));
+  await page.route('**/api/referral-claims?**', route => route.fulfill({ json:{ wallet:address, claims } }));
   await page.route('**/api/referrals/dashboard?**', route => route.fulfill({ json:{ wallet:address,
     networkCreators:3, qualifiedCreators:1, conversionRate:33.3 } }));
   await installPhantomFixture(page, { trusted:true }); await page.goto('/#referrals');
@@ -140,6 +146,20 @@ test('malformed referral history stays unavailable without a render exception', 
   await expect(page.locator('#referral-active-creators')).toHaveText('1');
   await expect(page.locator('#referral-ledger-list')).toContainText('Receipts unavailable');
   expect(errors).toEqual([]);
+});
+
+test('long referral payout receipts fit a mobile wallet dashboard', async ({ page }) => {
+  await page.setViewportSize({width:390,height:900});
+  await page.route('**/api/referrals/session', route => route.fulfill({json:{authenticated:true,wallet:address}}));
+  await page.route('**/api/referral-claims?**', route => route.fulfill({json:{wallet:address,claims:[{
+    level:1,asset:'SOL',status:'paid',amount:0.000057714,amountLamports:'57714',payoutSignature:'7'.repeat(88)}]}}));
+  await page.route('**/api/referrals/dashboard?**', route => route.fulfill({json:{wallet:address,networkCreators:1,qualifiedCreators:1,conversionRate:100}}));
+  await installPhantomFixture(page,{trusted:true});await page.goto('/#referrals');
+  const row=page.locator('#referral-claim-center .referral-claim-row');await expect(row).toBeVisible();
+  await page.screenshot({path:test.info().outputPath('referral-receipt-mobile.png'),fullPage:true});
+  expect(await row.evaluate(node=>node.scrollWidth<=node.clientWidth),'Receipt row fits its container').toBe(true);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Mobile page has no horizontal overflow').toBe(true);
+  await expect(row.getByRole('link',{name:'Verify payout'})).toHaveAttribute('href',/7{88}\?cluster=devnet$/);
 });
 
 test('explicit wallet connection signs in once and reload never requests another signature', async ({ page }) => {
