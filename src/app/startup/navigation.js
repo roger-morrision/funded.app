@@ -51,7 +51,7 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 856
-  const mergedPageRoutes = { community: 'my-launches', 'capital-flow': 'analytics-detail', buybacks: 'paid' };
+  const mergedPageRoutes = { community: 'my-launches', buybacks: 'paid' };
   initializeAppState(appState, 'mergedPageRoutes', mergedPageRoutes);
   // app-source-end
 

@@ -86,7 +86,6 @@ export function createNavigationController(appState) {
     document.body.classList.remove('page-route', ...Object.keys(appState.pageRouteTargets).map(key => `page-route-${key}`), 'page-route-overview', 'page-route-coin', 'page-route-wallet');
     document.body.classList.add('page-route', `page-route-${route}`);
     if (requestedHash === 'community') document.body.classList.add('page-route-community');
-    if (requestedHash === 'capital-flow') document.body.classList.add('page-route-capital-flow');
     if (requestedHash === 'buybacks') document.body.classList.add('page-route-buybacks');
     if (appState.coinRouteRequested()) { document.body.classList.remove('page-route-overview'); document.body.classList.add('page-route-coin'); }
     if (appState.walletRouteRequested()) { document.body.classList.remove('page-route-overview'); document.body.classList.add('page-route-wallet'); }
@@ -106,7 +105,7 @@ export function createNavigationController(appState) {
       explore: ['Explore', 'Verified launches and market signals'],
       list: ['Get listed', 'Listing status and token mint check'],
       payments: ['Rewards', 'Claims and payout receipts'],
-      'analytics-detail': ['Analytics', 'Protocol flow and indexed activity'],
+      'analytics-detail': ['Analytics', 'Indexed platform activity'],
       launch: ['Create a coin', 'Create and review a Devnet coin'],
       'my-launches': ['Portfolio', 'Launches, favorites and followed wallets'],
       referrals: ['Referrals', 'Track qualified growth'],

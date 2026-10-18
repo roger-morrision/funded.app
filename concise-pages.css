@@ -145,7 +145,6 @@ body.page-route-payments #funded-holder-token-rewards .concise-holder-more {
 
 /* Each merged workspace tab owns its main content. */
 body.page-route-paid:not(.page-route-buybacks) #paid > #buybacks,
-body.page-route-analytics-detail:not(.page-route-capital-flow) #analytics-detail > #capital-flow,
 body.page-route-my-launches:not(.page-route-community) #my-launches > #community { display: none !important; }
 body.page-route-paid:not(.page-route-buybacks) .paid-hero-actions a[href="#explore"],
 body.page-route-paid:not(.page-route-buybacks) .paid-hero-actions a[href="#launch"] { display: none !important; }

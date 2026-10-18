@@ -130,7 +130,7 @@ body.page-route-payments #reward-portfolio { margin-top: 18px; }
 
 /* Merged routes should show the selected page's content immediately. */
 body.page-route-community #my-launches > .portfolio-dashboard { display: none !important; }
-body.page-route.page-route-analytics-detail.page-route-capital-flow .main-content > #route-guide:not([hidden]) { display: none !important; }
+body.page-route-capital-flow .main-content > #route-guide:not([hidden]) { display: none !important; }
 body.page-route-community #my-launches > #community { margin-top: 8px; }
 body.page-route-capital-flow #capital-flow-title,
 body.page-route-community #community-title { font-size: clamp(32px, 3.7vw, 44px); line-height: 1.1; letter-spacing: -.045em; }

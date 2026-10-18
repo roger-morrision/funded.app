@@ -528,7 +528,6 @@ try {
   await check('Related menu pages share one destination and keep old links working',async()=>{
     for(const [route,host,child,menu] of [
       ['community','my-launches','community','#my-launches'],
-      ['capital-flow','analytics-detail','capital-flow','#analytics-detail'],
       ['buybacks','paid','buybacks','/funded'],
     ]){
       await open(route);
