@@ -13,7 +13,7 @@ const result = (verified, recorded, checked, reason) => ({
 // A persisted `finalized` label is insufficient. Recheck the approved program,
 // source collection, category claim, exact settlement instruction and balances.
 export async function verifyRecordedV3Settlements({ state, connection, programId,
-  approvedHash, maxRecords = 25, readProgram = readProgramDataEvidence,
+  approvedHash, maxRecords = 100, readProgram = readProgramDataEvidence,
   verifyGlobal = verifyFeeRouterAccount,
   loadCollection = loadFinalizedV3PumpCollection,
   loadSettlement = loadFinalizedV3Settlement }) {

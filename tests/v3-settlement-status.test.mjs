@@ -109,3 +109,27 @@ test('checks finalized proofs in bounded parallel batches and keeps ordered fail
   assert.deepEqual(partial.failures.map(row=>row.collectionSignature),[signatures[2],signatures[4]]);
   assert.equal(partial.failures[1].reason,'finalized-evidence-unavailable');
 });
+
+test('status covers the 26th collection and still rejects ledgers beyond its bounded budget before RPC',async()=>{
+  const input=fixture(),collection=input.state.collections[signature],settlement=input.state.v3Settlements[signature];
+  const fill=count=>{
+    input.state.collections=Object.fromEntries(Array.from({length:count},(_,index)=>{
+      const id=`collection-${index}`;return[id,{...collection,signature:id}];
+    }));
+    input.state.v3Settlements=Object.fromEntries(Object.keys(input.state.collections).map((id,index)=>
+      [id,{...settlement,collectionSignature:id,settlementSignature:`settlement-${index}`} ]));
+  };
+  let reads=0,active=0,maximum=0;
+  input.loadCollection=async({signature:id})=>{
+    reads++;active++;maximum=Math.max(maximum,active);await Promise.resolve();active--;
+    return{signature:id,claimId:Buffer.from(claimId,'hex'),expectedLamports:100n,router:'router'};
+  };
+  input.loadSettlement=async({signature:id})=>({signature:id,claimId,expectedLamports:'100',router:'router',categoryLamports});
+  fill(26);
+  assert.deepEqual(await verifyRecordedV3Settlements(input),{verified:true,scope:'all-recorded-v3-collections',recorded:26,checked:26});
+  assert.equal(reads,26);assert.equal(maximum,4);
+  fill(101);reads=0;
+  input.connection.getGenesisHash=async()=>{throw new Error('Budget rejection must precede all RPC reads.');};
+  assert.deepEqual(await verifyRecordedV3Settlements(input),{verified:false,scope:'all-recorded-v3-collections',recorded:101,checked:0,reason:'verification-budget-exceeded'});
+  assert.equal(reads,0);
+});
