@@ -347,7 +347,7 @@ const handleV3Routes = createV3Routes({
   solanaCluster, solanaRpcUrl, v3AuthorityKeypair, respond:json,
 });
 const handleAdminRoutes = createAdminRoutes({ store, body, respond:json, solanaCluster,
-  solanaRpcUrl, keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair });
+  solanaRpcUrl, keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair, dailyBonusRuntime });
 
 const handleDiscoveryRoutes = createDiscoveryRoutes({
   store, solanaCluster, solanaRpcUrl, birdeyeChain, fetchBirdeye, fetchPump, clientKey, respond: json,

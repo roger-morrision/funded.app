@@ -23,14 +23,15 @@ function setup() {
     trades:[{ signature:'trade', logIndex:1, mint, wallet:addresses[5], blockTime:start + 2,
       finalized:true, amountLamports:'5000' }] };
   let cycles = 0, payments = 0;
-  const service = createDailyBonusService({ store, rewardStore, connection:{}, programId, authority,
+  const connection = { getAccountInfo:async () => null };
+  const service = createDailyBonusService({ store, rewardStore, connection, programId, authority,
     cluster:'devnet', payoutEnabled:true, now:() => start + 86_400,
     readEvidence:async () => structuredClone(evidence), verifyPolicy:async () => ({ verified:true, protectedPolicy:true }),
     loadFunding:async () => ({ signature:'funding', mint, category:5, amount:'3000', recipient:vault, balanceDeltaVerified:true }),
     chainFactory:() => ({ readiness:async () => ({ constrainedPayouts:true }),
       ensureCycle:async () => { cycles++; return { address:addresses[6], signature:'cycle' }; },
       submitLeaf:async (_, leaf) => { payments++; return { signature:`paid-${leaf.index}`, payment:addresses[7], finalized:true, balanceDeltaVerified:true }; } }) });
-  return { service, app, rewardStore, evidence, mint, counts:() => ({ cycles, payments }) };
+  return { service, app, rewardStore, evidence, mint, connection, counts:() => ({ cycles, payments }) };
 }
 test('funded daily awards use frozen manifests and cannot replay on repeated execution', async () => {
   const f = setup(); await f.service.execute('2026-10-17'); await f.service.execute('2026-10-17');
@@ -50,11 +51,38 @@ test('missing funding defers payouts; conflicting funding cannot spend another p
 test('late or changed evidence preserves the original snapshot and blocks further payout', async () => {
   const f = setup(), before = await f.service.capture('2026-10-17');
   f.evidence.trades[0].amountLamports = '9999';
-  await assert.rejects(f.service.execute('2026-10-17'), /evidence changed/);
+  await assert.rejects(f.service.capture('2026-10-17'), /evidence changed/);
   const after = f.rewardStore.data.dailyBonusSnapshots['2026-10-17'];
   assert.equal(after.snapshot.hash, before.snapshot.hash);
   assert.equal(after.status, 'reconciliation-required');
   assert.deepEqual(f.counts(), { cycles:0, payments:0 });
+});
+
+test('published payouts use immutable captured evidence without rescanning later history', async () => {
+  const f = setup(); await f.service.capture('2026-10-17');
+  f.evidence.trades = [];
+  await f.service.execute('2026-10-17');
+  assert.equal(f.counts().payments,3);
+});
+test('explicit audited reconciliation can replace only an unreserved snapshot and retains the original', async () => {
+  const f = setup(), before = await f.service.capture('2026-10-17');
+  const beforeHash=before.snapshot.hash;
+  f.evidence.trades[0].amountLamports = '9999';
+  await assert.rejects(f.service.capture('2026-10-17'), /evidence changed/);
+  const reviewed=await f.service.review('2026-10-17',beforeHash);
+  await f.service.reconcile('2026-10-17',{...reviewed,reason:'Indexer completed its missing finalized evidence.',actor:'qa-admin'});
+  const saved=f.rewardStore.data.dailyBonusSnapshots['2026-10-17'];
+  assert.equal(saved.status,'snapshotted');assert.notEqual(saved.snapshot.hash,beforeHash);
+  assert.equal(saved.revisions[0].snapshot.hash,beforeHash);assert.equal(saved.revisions[0].actor,'qa-admin');
+  await f.service.execute('2026-10-17');
+  await assert.rejects(f.service.reconcile('2026-10-17',{expectedHash:saved.snapshot.hash,expectedNewHash:'a'.repeat(64),reason:'Cannot change a reserved manifest.'}), /prepared or paid/);
+});
+test('reconciliation refuses existing on-chain cycles and stale review hashes', async () => {
+  const f=setup(), before=await f.service.capture('2026-10-17');
+  await assert.rejects(f.service.reconcile('2026-10-17',{expectedHash:'a'.repeat(64),expectedNewHash:'b'.repeat(64),reason:'Stale operator review hash.'}), /snapshot changed/);
+  f.connection.getAccountInfo=async()=>({owner:'existing-cycle'});
+  await assert.rejects(f.service.reconcile('2026-10-17',{expectedHash:before.snapshot.hash,expectedNewHash:'b'.repeat(64),reason:'A cycle is already reserved.'}), /on-chain daily bonus cycle/);
+  assert.deepEqual(f.counts(),{cycles:0,payments:0});
 });
 
 test('a modified saved snapshot cannot reuse its original hash to change recipients', async () => {

@@ -27,7 +27,7 @@ const ipLimit = (map, key, limit, windowMs) => {
 };
 
 export function createAdminRoutes({ store, body, respond, solanaCluster, solanaRpcUrl,
-  keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair, env = process.env,
+  keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair, dailyBonusRuntime, env = process.env,
   connectionFactory = url => new Connection(url, 'finalized') }) {
   const challenges = new Map(), sessions = new Map(), attempts = new Map(), withdrawals = new Map();
   const json = (res, status, value) => { respond(res, status, value); return true; };
@@ -119,6 +119,22 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
     if (!session) return json(res, 401, { error:'Sign in with the configured admin wallet.' });
     if (req.method === 'GET' && path === '/api/admin/session')
       return json(res, 200, { wallet:session.wallet, expiresAt:new Date(session.expiresAt).toISOString() });
+    const dailyAction = req.method === 'POST' && path.match(/^\/api\/admin\/daily-bonus\/(snapshot|review|reconcile)$/);
+    if (dailyAction) {
+      if (!dailyBonusRuntime) return json(res,503,{error:'Daily bonus recovery is unavailable.'});
+      const input = await body(req);
+      try {
+        const result = await dailyBonusRuntime.operate(dailyAction[1],input,session.wallet);
+        if (dailyAction[1] === 'reconcile') await store.update(state => {
+          state.adminAudit ||= {};
+          state.adminAudit[`daily-bonus:${input.day}:${input.expectedNewHash}`] = {
+            action:'daily-bonus-reconciled', day:input.day, previousHash:input.expectedHash,
+            replacementHash:input.expectedNewHash, wallet:session.wallet, reason:String(input.reason).slice(0,500),
+            at:new Date().toISOString() };
+        });
+        return json(res,200,result);
+      } catch(error) {return json(res,409,{error:String(error.message || error)});}
+    }
     if (req.method === 'POST' && path === '/api/admin/logout') {
       sessions.delete(cookieValue(req, COOKIE)); setCookie(res, '', 0);
       return json(res, 200, { signedOut:true });

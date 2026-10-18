@@ -31,6 +31,7 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
     xUserId:'12345' };
   const settlementProof = { signature:settlementSignature, mint:mint.publicKey.toBase58(),
     claimId:claimId.toString('hex'), expectedLamports:'100',
+    position:{settledBeforeLamports:'0',settledAfterLamports:'100',policySettledLamports:'100',creatorPoolBeforeLamports:'0',creatorPoolAfterLamports:'80'},
     categoryLamports:['80','10','2','1','0','2','5'] };
   const allocationPlan = v3AllocationPlan({ launch, settlement:{ ...settlementProof,
     programId:program.publicKey.toBase58(), collectionSignature,

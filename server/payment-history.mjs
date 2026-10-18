@@ -3,6 +3,7 @@ import { verifyPayoutReceipt } from './receipt-evidence.mjs';
 import { cachedReceiptProof, receiptFingerprint } from './receipt-history.mjs';
 import { loadFinalizedV3RewardFunding } from './v3-reward-funding-proof.mjs';
 import { v3DisbursementId } from './v3-disbursement-id.mjs';
+import { v3ReferralPaymentSummary } from './v3-referral-payment-summary.mjs';
 
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
@@ -53,9 +54,11 @@ export function verifyAutomaticPayment(schedule, recipient, payment, transaction
 }
 
 export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, connectionFactory, officialGenesis,
-  cluster, v3Only = false, loadCreatorPayment = loadFinalizedV3RewardFunding }) {
+  cluster, v3Only = false, loadCreatorPayment = loadFinalizedV3RewardFunding,
+  loadReferralPayment = loadFinalizedV3RewardFunding }) {
   const cache = createReadCache({ ttlMs:30_000, maxEntries:1 });
   const verifiedAutomatic = new Map();
+  const verifiedReferrals = new Map();
   return () => cache('recent', async () => {
     const [evidence, ledger, state] = await Promise.all([readEvidence(), rewardsStore.read(), store?.read?.() ?? {}]);
     const verified = !v3Only && evidence.cluster === cluster && evidence.commitment === 'finalized'
@@ -87,11 +90,19 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
     const automatic = [];
     const creators = [];
     const olderProofs = [];
+    const referralCount = v3Only ? Object.values(state.v3ReferralPayouts || {}).filter(row => row?.status === 'finalized').length : 0;
+    let referralSummary = { status:referralCount ? 'unavailable' : 'verified', paidLamports:'0',
+      payoutCount:0, checkedCount:referralCount, unavailableCount:referralCount };
     let unavailable = 0;
-    if (candidates.length || older.length || creatorCandidates.length) {
+    if (candidates.length || older.length || creatorCandidates.length || referralCount) {
       try {
         const connection = connectionFactory();
         if (await connection.getGenesisHash() !== await officialGenesis()) throw new Error('Wrong Solana network');
+        if (v3Only) {
+          referralSummary = await v3ReferralPaymentSummary({ state, connection, cluster,
+            loadFunding:loadReferralPayment, proofCache:verifiedReferrals });
+          unavailable += referralSummary.unavailableCount;
+        }
         let indexed = new Map();
         try {
           indexed = new Map((await store?.readReceiptProofs?.(older.map(row => receiptFingerprint('payouts', row))) || [])
@@ -191,7 +202,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
             } catch { unavailable += 1; }
           }));
         }
-      } catch { unavailable += candidates.length + older.length + creatorCandidates.length; }
+      } catch { unavailable += candidates.length + older.length + creatorCandidates.length + referralCount; }
     }
     const recordedX = new Map((v3Only ? [] : Object.values(state.payouts || {}))
       .filter(row => row?.source === 'mint-router-settle-mint' && row.status === 'paid' && row.cluster === cluster)
@@ -212,6 +223,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
       .sort((a, b) => Number(b.blockTime || 0) - Number(a.blockTime || 0) || b.slot - a.slot);
     return { cluster, commitment:'finalized', status:unavailable || !v3Only && evidence.status === 'unavailable' ? 'partial' : 'onchain-indexed',
       verifiedPayouts:rows, checkedAutomatic:candidates.length, checkedCreator:creatorCandidates.length,
+      ...(v3Only ? { referralSummary } : {}),
       unavailablePayouts:unavailable, generatedAt:new Date().toISOString(),
       note:'Network transaction fees are paid by the transaction fee payer; received amounts are verified recipient balance increases.' };
   });

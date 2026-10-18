@@ -81,7 +81,7 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
     }
     const proofInput = { connection, programId, mint, authority:authority.publicKey,
       creator:launch.creatorWallet, claimId:source.claimId,
-      expectedLamports:source.expectedLamports, split:launch.pumpFeeRoute.protocolSplit };
+      expectedLamports:source.expectedLamports, split:launch.pumpFeeRoute.protocolSplit, includePosition:true };
     const frozenUpline = (proof, current) => {
       const first = Object.values(current.v3Settlements || {}).filter(row =>
         row.mint === mint && row.status === 'finalized' && Array.isArray(row.referralUpline))

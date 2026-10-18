@@ -60,7 +60,11 @@ export function v3PublicMetrics(state, evidence, history, rewards, cluster) {
   const community = communityHolderClaims(rewards?.communityClaimIndex, cluster);
   const collected = verified.reduce((sum,row) => sum + BigInt(safe(row.collectedLamports) || 0n),0n);
   const recordedTotal = recorded.reduce((sum,row) => sum + BigInt(safe(row.collectedLamports) || 0n),0n);
-  const paid = payments.reduce((sum,row) => sum + BigInt(safe(row.amountLamports) || 0n),0n);
+  const referral = history?.cluster === cluster && history.commitment === 'finalized'
+    && ['verified','partial'].includes(history.referralSummary?.status) ? history.referralSummary : null;
+  const referralPaid = safe(referral?.paidLamports) ?? 0n;
+  const referralCount = Number.isSafeInteger(referral?.payoutCount) && referral.payoutCount >= 0 ? referral.payoutCount : 0;
+  const paid = payments.reduce((sum,row) => sum + BigInt(safe(row.amountLamports) || 0n),0n) + referralPaid;
   const buyback = settled.reduce((sum,row) => sum
     + BigInt(safe(state.v3Settlements[row.signature].allocationPlan.protocol?.buybackLamports) || 0n),0n);
   const status = receipts.status === 'onchain-indexed' ? 'indexed'
@@ -68,20 +72,22 @@ export function v3PublicMetrics(state, evidence, history, rewards, cluster) {
   const precisionUnavailableFields = [
     ['recordedCollectedLamports',recordedTotal],['collectedLamports',collected],
     ['finalizedPaidLamports',paid],
+    ['referralPaidLamports',referralPaid],
   ].filter(([,amount])=>number(amount)===null).map(([field])=>field);
   return { status, precisionStatus:precisionUnavailableFields.length ? 'overflow' : 'safe',
     precisionUnavailableFields,
     exactLamports:{ recordedCollectedLamports:String(recordedTotal),
-      collectedLamports:String(collected), finalizedPaidLamports:String(paid), referralPaidLamports:'0' },
+      collectedLamports:String(collected), finalizedPaidLamports:String(paid), referralPaidLamports:String(referralPaid) },
     receiptCommitment:'finalized', receiptScope:'verified-v3-collections',
     recordedCollections:recorded.length, recordedCollectedLamports:number(recordedTotal),
     collections:verified.length, settlements:settled.length,
     grossCreatorFees:Number(settled.reduce((sum,row)=>sum
       + BigInt(safe(row.collectedLamports) || 0n),0n))/1_000_000_000,
     collectedLamports:number(collected), buybackAccrued:Number(buyback)/1_000_000_000,
-    finalizedPaidLamports:number(paid), referralPaidLamports:0, referralPayoutCount:0,
-    recordedPayouts:(history?.checkedAutomatic || 0) + (history?.checkedCreator || 0),
-    verifiedPayoutCount:payments.length, payoutEvidenceAt:history?.generatedAt || null,
+    finalizedPaidLamports:number(paid), referralPaidLamports:referral ? number(referralPaid) : null,
+    referralPayoutCount:referral ? referralCount : null, referralEvidenceStatus:referral?.status || 'unavailable',
+    recordedPayouts:(history?.checkedAutomatic || 0) + (history?.checkedCreator || 0) + (history?.referralSummary?.checkedCount || 0),
+    verifiedPayoutCount:payments.length + referralCount, payoutEvidenceAt:history?.generatedAt || null,
     rewardPaid:{ cluster, commitment:'finalized', holder:{ ...holder, top:undefined },
       x:{ ...x, top:undefined } },
     feePayoutStats:{ cluster, commitment:'finalized', holder, x, creator,

@@ -125,15 +125,16 @@ export function renderHomeKpiDashboard(verified = assets, { assets, exploreUpdat
   const payoutEvidenceReady = Boolean(receiptEvidence) && Array.isArray(receiptEvidence?.verifiedPayouts);
   const referralPayouts = payoutEvidenceReady ? receiptEvidence.verifiedPayouts.filter(item => item.source === 'solana-keeper-referral-claim') : [];
   const finalizedReferralLamports = Number(analyticsSummary?.referralPaidLamports);
-  const referralsFromFinalized = finalizedReady && Number.isSafeInteger(finalizedReferralLamports)
-    && finalizedReferralLamports >= 0 && Number.isSafeInteger(Number(analyticsSummary.referralPayoutCount));
+  const referralsFromFinalized = finalizedReady && Number.isSafeInteger(analyticsSummary?.referralPaidLamports)
+    && finalizedReferralLamports >= 0 && Number.isSafeInteger(analyticsSummary.referralPayoutCount);
   const referralCount = referralsFromFinalized ? Number(analyticsSummary.referralPayoutCount) : referralPayouts.length;
   const referralSol = referralsFromFinalized ? finalizedReferralLamports / 1_000_000_000
     : referralPayouts.reduce((sum, item) => sum + Number(item.amountLamports || 0) / 1_000_000_000, 0);
   const recordedPayouts = Number(analyticsSummary?.recordedPayouts ?? receiptEvidence?.coverage?.recordedPayouts ?? 0);
   const referralAvailable = solQuoteReady && (referralsFromFinalized || payoutEvidenceReady)
     && (referralCount > 0 || recordedPayouts === 0);
-  const partialReferrals = referralsFromFinalized ? analyticsSummary.status === 'partial' : receiptEvidence?.status === 'partial';
+  const partialReferrals = referralsFromFinalized ? analyticsSummary.status === 'partial'
+    || analyticsSummary.referralEvidenceStatus === 'partial' : receiptEvidence?.status === 'partial';
   setHomeDashboardMetric('referrals', referralAvailable ? formatDashboardUsd(referralSol * coinSolUsdPrice, { partial:partialReferrals }) : '$—',
     referralAvailable ? referralCount ? `${referralCount} verified referral payout${referralCount === 1 ? '' : 's'}${partialReferrals ? ' · partial coverage' : ''}` : 'No verified referral payouts yet'
       : recordedPayouts ? 'Recorded payouts are awaiting receipt verification' : 'USD quote or payout evidence unavailable',

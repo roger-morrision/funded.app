@@ -51,11 +51,14 @@ export function dailyBonusPayments(snapshot) {
 }
 
 export function dailyBonusStatus(data, snapshot, next) {
+  const indexing = data.indexing?.[0];
   if (snapshot?.status === 'reconciliation-required')
     return `Snapshot ${snapshot.day} requires reconciliation. Further payouts are blocked. ${snapshot.reason || 'Recorded evidence changed.'}`;
   if (data.worker?.status === 'blocked' || data.worker?.status === 'unavailable')
     return `Snapshot worker unavailable: ${data.worker.reason || 'Verification is unavailable.'}`;
   if (data.snapshotEnabled === false) return 'Daily snapshots and SOL bonus execution are not activated.';
+  if (indexing) return `Processing ${indexing.day} UTC: ${indexing.reason || 'Verifying finalized history.'} Completed snapshots remain below.`;
+  if (data.worker?.status === 'degraded') return 'Some daily bonus days need attention. Recorded snapshots and finalized receipts remain below.';
   const state = !snapshot ? 'No completed snapshot yet.' : snapshot.status === 'snapshotted'
     ? 'Verified snapshot below.' : 'Recorded snapshot below; verification status unavailable.';
   return `${state} Next cutoff: ${next}. ${data.payoutEnabled ? 'Payments require verified funding and finalized receipts.' : 'SOL payout execution is not activated.'}`;

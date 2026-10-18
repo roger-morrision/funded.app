@@ -36,7 +36,13 @@ test('admin wallet signature gates policy edits, inventory, and exact finalized 
       : address.equals(reserveAddress) ? reserveAccount : null),
     getMinimumBalanceForRentExemption:async size => size === 81 ? 1_500_000 : 890_880,
   });
-  const handle = createAdminRoutes({ store, body:async () => input, respond, solanaCluster:'devnet',
+  const operations = [];
+  const dailyBonusRuntime = { async operate(action, value, actor) {
+    operations.push({action,value,actor});
+    if (value?.day === 'invalid') throw new Error('Invalid UTC day.');
+    return {status:'reviewed',day:value.day};
+  } };
+  const handle = createAdminRoutes({ store, body:async () => input, respond, solanaCluster:'devnet', dailyBonusRuntime,
     solanaRpcUrl:'https://api.devnet.solana.com', keeperKeypair:() => keeper,
     referralPayoutKeypair:() => null, v3AuthorityKeypair:() => null,
     env, connectionFactory });
@@ -48,6 +54,8 @@ test('admin wallet signature gates policy edits, inventory, and exact finalized 
     return output;
   };
   assert.equal((await call('GET', '/api/admin/overview')).status, 401);
+  assert.equal((await call('POST','/api/admin/daily-bonus/reconcile',{})).status,401);
+  assert.equal(operations.length,0);
   assert.equal((await call('POST', '/api/admin/challenge', { wallet:address(admin) }, { origin:'https://evil.example' })).status, 403);
   const challenge = await call('POST', '/api/admin/challenge', { wallet:address(admin) });
   assert.equal(challenge.status, 200);
@@ -59,6 +67,14 @@ test('admin wallet signature gates policy edits, inventory, and exact finalized 
   assert.equal(signedIn.status, 200);
   assert.match(signedIn.cookie, /HttpOnly; SameSite=Strict/);
   cookie = signedIn.cookie.split(';')[0];
+  const review = {day:'2026-10-17',expectedHash:'a'.repeat(64),expectedNewHash:'b'.repeat(64),reason:'Verified missing source evidence.',actor:'forged'};
+  assert.equal((await call('POST','/api/admin/daily-bonus/review',review,{origin:'https://evil.example'})).status,403);
+  assert.equal(operations.length,0);
+  assert.equal((await call('POST','/api/admin/daily-bonus/review',review)).status,200);
+  assert.equal(operations[0].actor,address(admin));
+  assert.equal((await call('POST','/api/admin/daily-bonus/reconcile',review)).status,200);
+  assert.equal(state.adminAudit[`daily-bonus:${review.day}:${review.expectedNewHash}`].wallet,address(admin));
+  assert.equal((await call('POST','/api/admin/daily-bonus/review',{day:'invalid'})).status,409);
   const overview = await call('GET', '/api/admin/overview');
   assert.equal(overview.status, 200);
   assert.equal(overview.value.wallets[0].address, address(keeper));

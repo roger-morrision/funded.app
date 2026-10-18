@@ -2,6 +2,7 @@ import bs58 from 'bs58';
 import { ComputeBudgetProgram, PublicKey } from '@solana/web3.js';
 import { buildMintRouterV3SettlementInstruction, verifyMintClaimV3Account,
   verifyMintPolicyV3Account } from '../mint-router-v3.js';
+import { loadV3SettlementPosition } from './v3-settlement-position.mjs';
 
 const address = value => typeof value === 'string' ? value : value?.pubkey
   ? address(value.pubkey) : value?.toBase58?.() || '';
@@ -9,7 +10,7 @@ const address = value => typeof value === 'string' ? value : value?.pubkey
 // The caller must separately verify the approved Devnet program hash, the
 // immutable launch policy, and the source Pump collection before using this.
 export async function loadFinalizedV3Settlement({ connection, signature, programId, mint,
-  authority, creator, claimId, expectedLamports, split,
+  authority, creator, claimId, expectedLamports, split, includePosition = false,
   verifyClaim = verifyMintClaimV3Account, verifyPolicy = verifyMintPolicyV3Account }) {
   try {
     const expected = buildMintRouterV3SettlementInstruction({ programId, mint,
@@ -55,11 +56,15 @@ export async function loadFinalizedV3Settlement({ connection, signature, program
       || claim.address.toBase58() !== expected.claim.toBase58()
       || policy.address.toBase58() !== expected.policy.address.toBase58()
       || policy.settledLamports < BigInt(expectedLamports)) return null;
+    const position = includePosition ? await loadV3SettlementPosition({connection,signature,
+      slot:transaction.slot,programId,mint,authority,creator,expectedLamports,split,
+      categoryLamports:claim.categoryLamports,verifyPolicy}) : null;
     return { signature, slot:transaction.slot, blockTime:transaction.blockTime || null,
       mint:new PublicKey(mint).toBase58(),
       router:expected.router.address.toBase58(), claim:expected.claim.toBase58(),
       policy:expected.policy.address.toBase58(), claimId:Buffer.from(claimId).toString('hex'),
       expectedLamports:String(expectedLamports),
-      categoryLamports:claim.categoryLamports.map(value => String(value)) };
+      categoryLamports:claim.categoryLamports.map(value => String(value)),
+      ...(position ? {position} : {}) };
   } catch { return null; }
 }

@@ -118,7 +118,8 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
       signature:settled.settlementSignature,programId,mint,
       authority:launch.pumpFeeRoute.initialAuthority,creator:launch.creatorWallet,
       claimId:Buffer.from(collection.claimId,'hex'),
-      expectedLamports:collection.collectedLamports,split:launch.pumpFeeRoute.protocolSplit});
+      expectedLamports:collection.collectedLamports,split:launch.pumpFeeRoute.protocolSplit,
+      includePosition:settled.allocationPlan?.allocationVersion===2});
     if(!settlement||settlement.signature!==settled.settlementSignature)
       return json(res,409,{error:'Finalized V3 settlement proof is unavailable.'});
     let plan;

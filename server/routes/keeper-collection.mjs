@@ -236,7 +236,7 @@ export function createKeeperCollectionRoutes({
       const proof = await loadFinalizedV3Settlement({ connection, signature:settlementSignature,
         programId, mint:collection.mint, authority:launch.pumpFeeRoute.initialAuthority,
         creator:launch.creatorWallet, claimId:collectionProof.claimId,
-        expectedLamports:collectionProof.expectedLamports, split:launch.pumpFeeRoute.protocolSplit });
+        expectedLamports:collectionProof.expectedLamports, split:launch.pumpFeeRoute.protocolSplit, includePosition:true });
       if (!proof || proof.signature !== settlementSignature || proof.mint !== collection.mint
         || proof.router !== collection.router || proof.claimId !== collection.claimId
         || proof.expectedLamports !== String(collection.collectedLamports)) {

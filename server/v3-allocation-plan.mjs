@@ -42,13 +42,20 @@ export function v3AllocationPlan({ launch, settlement }) {
     throw new Error('The V3 creator-directed split or X identity is incomplete.');
   }
   const creatorPool = category[0];
-  const wallet = creatorPool * BigInt(walletBps) / 8_000n;
-  const holder = creatorPool * BigInt(walletBps + holderBps) / 8_000n - wallet;
+  const position = settlement.position;
+  const priorPool = position ? lamports(position.creatorPoolBeforeLamports) : 0n;
+  const afterPool = position ? lamports(position.creatorPoolAfterLamports) : creatorPool;
+  if (afterPool - priorPool !== creatorPool) throw new Error('The cumulative V3 creator pool does not reconcile.');
+  const wallet = afterPool * BigInt(walletBps) / 8_000n - priorPool * BigInt(walletBps) / 8_000n;
+  const holder = afterPool * BigInt(walletBps + holderBps) / 8_000n
+    - priorPool * BigInt(walletBps + holderBps) / 8_000n - wallet;
   const x = creatorPool - wallet - holder;
+  if ([wallet,holder,x].some(value=>value<0n)) throw new Error('The collection is too small to release cumulative rounding safely.');
   return {
     status:'allocated-not-funded', sourceCollectionSignature:settlement.collectionSignature,
     settlementSignature:settlement.settlementSignature,
     mint:launch.mint, programId:launch.pumpFeeRoute.programId,
+    ...(position ? {allocationVersion:2,creatorPoolBeforeLamports:String(priorPool),creatorPoolAfterLamports:String(afterPool)} : {}),
     grossLamports:String(gross), creatorPoolLamports:String(creatorPool),
     creatorDirected:{ walletLamports:String(wallet), holderLamports:String(holder),
       xLamports:String(x), xUserId:xBps > 0 ? String(launch.xUserId) : null,

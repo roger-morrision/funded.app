@@ -38,15 +38,23 @@ export function renderExtendedAnalyticsDashboard({ assets, verifiedLaunchPolicie
 
   const verifiedPayouts = Array.isArray(receiptEvidence?.verifiedPayouts) ? receiptEvidence.verifiedPayouts : [];
   const referralPayouts = verifiedPayouts.filter(item => item.source === 'solana-keeper-referral-claim');
-  const referralSol = referralPayouts.reduce((sum, item) => sum + Number(item.amountLamports || 0) / 1_000_000_000, 0);
+  const aggregate = paymentHistoryEvidence?.referralSummary;
+  const aggregateReady = ['verified','partial'].includes(aggregate?.status)
+    && Number.isSafeInteger(aggregate.payoutCount) && aggregate.payoutCount >= 0
+    && /^(0|[1-9]\d*)$/.test(String(aggregate.paidLamports))
+    && Number.isSafeInteger(Number(aggregate.paidLamports));
+  const referralCount = aggregateReady ? aggregate.payoutCount : referralPayouts.length;
+  const referralSol = aggregateReady ? Number(aggregate.paidLamports) / 1_000_000_000
+    : referralPayouts.reduce((sum, item) => sum + Number(item.amountLamports || 0) / 1_000_000_000, 0);
+  const partialReferrals = aggregate?.status === 'partial';
   const referralCard = document.querySelector('[data-analytics-metric="referrals"]');
   if (referralCard) {
-    referralCard.querySelector('strong').textContent = referralPayouts.length && Number.isFinite(coinSolUsdPrice)
-      ? formatDashboardUsd(referralSol * coinSolUsdPrice)
-      : referralPayouts.length ? `${referralSol.toFixed(6)} SOL` : '—';
-    referralCard.querySelector('small').innerHTML = referralPayouts.length
-      ? `<b>${Number.isFinite(coinSolUsdPrice) ? 'USD' : 'SOL'}</b>${referralPayouts.length} confirmed referral payment${referralPayouts.length === 1 ? '' : 's'}`
-      : `<b>USD</b>${receiptEvidenceChecked && !receiptEvidence ? 'Referral payment history unavailable' : 'No confirmed referral payments'}`;
+    referralCard.querySelector('strong').textContent = referralCount && Number.isFinite(coinSolUsdPrice)
+      ? formatDashboardUsd(referralSol * coinSolUsdPrice, { partial:partialReferrals })
+      : referralCount ? `${referralSol.toFixed(6)} SOL` : '—';
+    referralCard.querySelector('small').innerHTML = referralCount
+      ? `<b>${Number.isFinite(coinSolUsdPrice) ? 'USD' : 'SOL'}</b>${referralCount} confirmed referral payment${referralCount === 1 ? '' : 's'}${partialReferrals ? ' · partial coverage' : ''}`
+      : `<b>USD</b>${!aggregateReady && !referralPayouts.length || partialReferrals ? 'Referral payment history unavailable' : 'No confirmed referral payments'}`;
   }
 
   const recipients = document.querySelector('.recipients-panel');

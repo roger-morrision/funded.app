@@ -6,7 +6,7 @@ const SOURCE = '7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y';
 test('Devnet admin page signs in, shows balances and gates, and edits only the protocol share', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
-  let signedIn = false, revision = 0;
+  let signedIn = false, revision = 0, recoveryApplied = null;
   await page.addInitScript(address => {
     window.solana = { publicKey:{ toBase58:() => address }, connect:async () => ({}),
       signMessage:async () => ({ signature:new Uint8Array(64) }), on:() => {} };
@@ -24,6 +24,11 @@ test('Devnet admin page signs in, shows balances and gates, and edits only the p
       withdrawalDestinations:[ADMIN], revenue:{ verifiedCollectionsLamports:'1000000000', operationsAllocationLamports:'100000000', finalizedSettlementCount:1 },
       gates:{ launch:true, collection:true, settlement:true, holder:false, referral:false, xClaims:false, buyback:false } });
     if (path === '/api/admin/audit') return send(200, { entries:[] });
+    if (path === '/api/admin/daily-bonus/snapshot') return send(200,{snapshot:{hash:'a'.repeat(64)},status:'snapshotted'});
+    if (path === '/api/admin/daily-bonus/review') return send(200,{day:'2026-10-17',expectedHash:'a'.repeat(64),expectedNewHash:'b'.repeat(64),rankings:{},sources:1});
+    if (path === '/api/admin/daily-bonus/reconcile') {
+      recoveryApplied=JSON.parse(route.request().postData());return send(200,{snapshots:[]});
+    }
     if (path === '/api/admin/withdrawals/reconcile') return send(200, { amountLamports:'1000000', signature:JSON.parse(route.request().postData()).signature, finalized:true });
     if (path === '/api/admin/fee-policy') { revision += 1; return send(200, { revision, split:JSON.parse(route.request().postData()).split, effectiveFor:'future launches only' }); }
     if (path === '/api/admin/vaults') return send(200, { totalLaunches:0, nextOffset:null, vaults:[] });
@@ -58,5 +63,21 @@ test('Devnet admin page signs in, shows balances and gates, and edits only the p
   await page.locator('#reconcile-signature').fill('4'.repeat(88));
   await page.getByRole('button', { name:'Record finalized receipt' }).click();
   await expect(page.locator('#message')).toContainText('Finalized 0.001 SOL transfer recorded');
+  await page.locator('#bonus-recovery-day').fill('2026-10-17');
+  await expect(page.locator('#bonus-recovery-apply')).toBeDisabled();
+  await page.locator('#bonus-recovery-index').click();
+  await expect(page.locator('#bonus-recovery-hash')).toHaveValue('a'.repeat(64));
+  await page.locator('#bonus-recovery-review').click();
+  await expect(page.locator('#bonus-recovery-apply')).toBeEnabled();
+  await page.locator('#bonus-recovery-day').fill('2026-10-16');
+  await expect(page.locator('#bonus-recovery-apply')).toBeDisabled();
+  await page.locator('#bonus-recovery-day').fill('2026-10-17');
+  await page.locator('#bonus-recovery-review').click();
+  await expect(page.locator('#bonus-recovery-apply')).toBeEnabled();
+  await page.locator('#bonus-recovery-reason').fill('Verified missing finalized collection evidence.');
+  await page.locator('#bonus-recovery-apply').click();
+  await expect(page.locator('#message')).toContainText('original revision remains');
+  expect(recoveryApplied.expectedNewHash).toBe('b'.repeat(64));
+  await expect(page.locator('#bonus-recovery-apply')).toBeDisabled();
   expect(pageErrors).toEqual([]);
 });

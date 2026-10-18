@@ -13,6 +13,7 @@ import { prepareCreatorSettlement, verifyCreatorSettlement,
 import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
 import { loadFinalizedV3Settlement } from '../v3-settlement-proof.mjs';
 import { v3AllocationPlan } from '../v3-allocation-plan.mjs';
+import { reconcileV3Allocations } from '../v3-allocation-reconciliation.mjs';
 import { loadFinalizedV3RewardFunding } from '../v3-reward-funding-proof.mjs';
 import { v3DisbursementId } from '../v3-disbursement-id.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
@@ -73,10 +74,10 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     }
     let authority;
     try { authority = v3AuthorityKeypair(); } catch {}
-    const state = await store.read();
+    let state = await store.read();
     const launch = state.launches?.[mint];
     const collection = state.collections?.[collectionSignature];
-    const settled = state.v3Settlements?.[collectionSignature];
+    let settled = state.v3Settlements?.[collectionSignature];
     if (!authority?.publicKey || !launch?.onchainVerified || launch.cluster !== 'devnet'
       || launch.mint !== mint || launch.pumpFeeRoute?.scope !== 'per-mint-v3'
       || launch.pumpFeeRoute.programId !== programId
@@ -99,6 +100,12 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     }
     if (kind === 'operations' && !readiness.protectedPolicy)
       return json(res, 409, { error:'Operations funds require the protected V3 on-chain approval policy.' });
+    if (readiness.protectedPolicy && ['creator-wallet','creator-reward'].includes(kind)) {
+      try {
+        state = await reconcileV3Allocations({store,connection,mint,loadSettlement});
+        settled = state.v3Settlements[collectionSignature];
+      } catch(error) { return json(res,409,{error:String(error.message || error)}); }
+    }
     const chain = rewardChainFactory({ connection, programId, authority,
       expectedProgramDataSha256:approvedHash });
     if (!(await chain.readiness()).constrainedPayouts) {
@@ -107,7 +114,8 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     const proof = await loadSettlement({ connection, signature:settled.settlementSignature,
       programId, mint, authority:launch.pumpFeeRoute.initialAuthority,
       creator:launch.creatorWallet, claimId:Buffer.from(collection.claimId, 'hex'),
-      expectedLamports:collection.collectedLamports, split:launch.pumpFeeRoute.protocolSplit });
+      expectedLamports:collection.collectedLamports, split:launch.pumpFeeRoute.protocolSplit,
+      includePosition:settled.allocationPlan?.allocationVersion===2 });
     if (!proof || proof.claimId !== collection.claimId
       || proof.signature !== settled.settlementSignature) {
       return json(res, 409, { error:'Finalized V3 settlement proof is unavailable.' });
@@ -269,6 +277,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
         catch { return false; }
       }
       if (current.v3Settlements?.[collectionSignature]?.status !== 'finalized'
+        || !isDeepStrictEqual(current.v3Settlements[collectionSignature].allocationPlan,plan)
         || row?.status === 'finalized' || row?.signature !== existing?.signature
         || kind === 'referral' && (currentEntitlement?.recipient !== entitlement.recipient
           || currentEntitlement?.amount !== entitlement.amount)) return false;
