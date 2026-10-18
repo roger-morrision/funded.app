@@ -32,7 +32,7 @@ body.page-route-overview .main-content > .home-launch-board { order: 4; }
 body.page-route-overview .main-content > .home-kpi-dashboard { order: 5; }
 body.page-route-overview .main-content > .home-reference-faq { order: 6; }
 body.page-route-overview .main-content > .home-reference-footer { order: 7; }
-body.page-route-overview .main-content > section:not(.hero-section):not(.public-discovery):not(.home-buyback-progress):not(.home-rewards-spotlight):not(.home-jackpot-spotlight):not(.home-launch-board):not(.home-kpi-dashboard):not(.home-reference-faq):not(.home-reference-footer) { display: none !important; }
+body.page-route-overview .main-content > section:not(.hero-section):not(.public-discovery):not(.home-daily-bonuses):not(.home-buyback-progress):not(.home-rewards-spotlight):not(.home-jackpot-spotlight):not(.home-launch-board):not(.home-kpi-dashboard):not(.home-reference-faq):not(.home-reference-footer) { display: none !important; }
 body.page-route-overview .main-content > .ui-disclosure,
 body.page-route-overview .main-content > .workspace-shortcuts { display: none !important; }
 body.page-route-overview .mobile-growth-cta { display: none !important; }

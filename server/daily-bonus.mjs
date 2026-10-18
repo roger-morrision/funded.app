@@ -20,7 +20,7 @@ export function dailyBonusWindow(day, now = Math.floor(Date.now() / 1000)) {
 export function latestBonusDay(now = Math.floor(Date.now() / 1000)) {
   return new Date((Math.floor(now / 86_400) * 86_400 - 86_400) * 1000).toISOString().slice(0, 10);
 }
-function split(total, weights) {
+export function splitBonusLamports(total, weights) {
   const denominator = BigInt(weights.reduce((sum, n) => sum + n, 0));
   const rows = weights.map((weight, index) => ({ index, value:total * BigInt(weight) / denominator,
     remainder:total * BigInt(weight) % denominator }));
@@ -69,9 +69,9 @@ export function buildDailyBonusSnapshot({ day, collections, trades, coverage, no
       .slice(0, 3).map(([recipient, score], index) => ({ rank:index + 1, wallet:recipient,
         scoreLamports:String(score), percentOfCategory:DAILY_BONUS_POLICY.rankPercents[index], bonusLamports:'0' }))]));
   const sources = fees.filter(row => row.dailyBonusVersion === 1 && amount(row.communityLamports) > 0n).map(row => {
-    const budget = amount(row.communityLamports), groups = split(budget, DAILY_BONUS_POLICY.categoryWeights), allocations = new Map();
+    const budget = amount(row.communityLamports), groups = splitBonusLamports(budget, DAILY_BONUS_POLICY.categoryWeights), allocations = new Map();
     DAILY_BONUS_POLICY.categories.forEach((category, group) => {
-      const ranks = split(groups[group], DAILY_BONUS_POLICY.rankPercents);
+      const ranks = splitBonusLamports(groups[group], DAILY_BONUS_POLICY.rankPercents);
       for (const winner of rankings[category]) {
         const reward = ranks[winner.rank - 1];
         winner.bonusLamports = String(BigInt(winner.bonusLamports) + reward);

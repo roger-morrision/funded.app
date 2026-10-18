@@ -32,7 +32,8 @@ for (const [label, operations, community] of [['current 8/4', 40, 20], ['saved o
     await expect(page.locator('.launch-fee-options .benefit-grid article:last-child small')).toContainText(`${ops}% Operations & marketing`);
     await expect(page.locator('.launch-fee-options .benefit-grid article:last-child small')).toContainText(`${bonus}% Daily bonus`);
     await page.evaluate(() => { location.hash = 'payments'; });
-    await expect(page.getByRole('link', { name:/Daily bonus · top 3/ })).toBeVisible();
+    await expect(page.getByRole('link', { name:/Daily bonus · payout history/ })).toBeVisible();
+    await expect(page.getByRole('link', { name:/Daily bonus · payout history/ })).toHaveAttribute('href', '#bonuses');
     await expect(page.locator('.reward-upcoming-note')).toContainText('referral payouts are creator signed');
     await page.evaluate(() => { location.hash = 'paid'; });
     await expect(page.locator('#paid .app-revenue-grid')).toContainText(`${ops}% of gross fees`);

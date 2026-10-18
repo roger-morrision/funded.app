@@ -6,6 +6,7 @@ import { buildDailyBonusSnapshot, dailyBonusManifest, latestBonusDay, bonusHash 
 import { createDailyBonusEvidenceIndex } from './daily-bonus-index.mjs';
 import { loadFinalizedV3RewardFunding } from './v3-reward-funding-proof.mjs';
 import { v3DisbursementId } from './v3-disbursement-id.mjs';
+import { bonusDashboardHistory, readBonusPool } from './daily-bonus-dashboard.mjs';
 
 export function createDailyBonusService({ store, rewardStore, connection, programId, authority,
   expectedProgramDataSha256, cluster, payoutEnabled = false, readEvidence,
@@ -15,6 +16,23 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
   const chain = chainFactory({ connection, programId, authority, expectedProgramDataSha256 });
   const readIndexedEvidence = readEvidence || createDailyBonusEvidenceIndex({ rewardStore });
   let running = false;
+  let poolCache, poolRead;
+  async function dashboard(options) {
+    const at = now();
+    if (!poolCache || at - poolCache.at >= 30 || poolCache.day !== Math.floor(at / 86_400)) {
+      poolRead ||= (async () => {
+        let value;
+        try { value = await readBonusPool({ state:await store.read(), connection, programId, now:at }); }
+        catch { value = { status:'unavailable', categoryLamports:null }; }
+        poolCache = { at, day:Math.floor(at / 86_400), value };
+      })().finally(() => { poolRead = null; });
+      await poolRead;
+    }
+    return { cluster, serverTime:new Date(now() * 1000).toISOString(),
+      nextCutoffAt:new Date((Math.floor(now() / 86_400) + 1) * 86_400_000).toISOString(),
+      poolCheckedAt:new Date(poolCache.at * 1000).toISOString(), pool:poolCache.value,
+      ...bonusDashboardHistory(await rewardStore.read(), options) };
+  }
   const ready = async () => {
     if (!(await chain.readiness()).constrainedPayouts) throw new Error('Daily bonus requires the reviewed V3 program and authority.');
   };
@@ -175,7 +193,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
     });
     return await status();
   }
-  return { capture, execute, status, reconcile,
+  return { capture, execute, status, reconcile, dashboard,
     async review(day, expectedHash) {
       const { prior, next } = await reviewReconciliation(day, expectedHash);
       return { day, expectedHash:prior.snapshot.hash, expectedNewHash:next.hash,

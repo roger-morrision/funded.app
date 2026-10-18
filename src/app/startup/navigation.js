@@ -42,6 +42,7 @@ export async function initializeNavigation(appState) {
     airdrops: '#airdrops',
     buybacks: '#buybacks',
     'capital-flow': '#capital-flow',
+    bonuses: '#bonuses',
     docs: '#docs',
     profile: '#profile',
     privacy: '#privacy',

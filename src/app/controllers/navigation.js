@@ -114,6 +114,7 @@ export function createNavigationController(appState) {
       airdrops: ['Airdrops', 'Eligibility and claim records'],
       buybacks: ['Burn $FUNDED', 'Supply reduction and burn receipts'],
       'capital-flow': ['Capital flow', 'Follow the published allocation'],
+      bonuses: ['Daily bonuses', 'Payout history and all-time recipients'],
       docs: ['Docs', 'Guides, safety, and disclosures'],
       profile: ['Profile', 'Wallet and signing safety'],
       privacy: ['Privacy', 'Wallet and browser data'],

@@ -1,8 +1,10 @@
 // Read the published policy supplied by the application; this preview never moves funds.
 import { currentFeePolicyCopy } from './fee-policy-copy.js';
 import { initDailyBonusView } from './daily-bonus-view.js';
+import { initBonusDashboard } from './bonus-dashboard-view.js';
 export function createFeeFlowView(APP_ECONOMICS) {
   initDailyBonusView();
+  initBonusDashboard();
   function formatFlowAmount(value){
     const amount = Number(value || 0);
     if (amount > 0 && amount < 0.000000001) return '<0.000000001 SOL';
