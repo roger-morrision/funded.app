@@ -31,6 +31,18 @@ export async function loadV3SettlementPosition({ connection, signature, slot, pr
   const policy = await verifyPolicy({ connection:{getAccountInfo:async()=>snapshot.value},
     programId,mint,creator,initialAuthority:authority,split });
   if (!policy.verified) throw new Error('Finalized V3 policy snapshot is invalid.');
+  const positionAt = (prior,after) => {
+    if (prior < 0n) throw new Error('Finalized V3 settlement totals do not reconcile.');
+    const low = targets(prior,split), high = targets(after,split);
+    if (high.some((value,index)=>String(value-low[index]) !== String(categoryLamports[index])))
+      throw new Error('Finalized V3 category deltas disagree with cumulative totals.');
+    return { settledBeforeLamports:String(prior), settledAfterLamports:String(after),
+      creatorPoolBeforeLamports:String(low[0]), creatorPoolAfterLamports:String(high[0]),
+      policySettledLamports:String(policy.settledLamports) };
+  };
+  // A positive monotonic policy total equal to this verified claim proves it
+  // is the only settlement. Later withdrawals do not require history scans.
+  if (policy.settledLamports === BigInt(expectedLamports)) return positionAt(0n,policy.settledLamports);
   const block = await connection.getBlockSignatures(slot,'finalized');
   const order = block?.signatures;
   if (!Array.isArray(order) || order.filter(value=>value===signature).length !== 1)
@@ -83,11 +95,5 @@ export async function loadV3SettlementPosition({ connection, signature, slot, pr
   }
   if (!found) throw new Error('The settlement is missing from finalized policy history.');
   const after = policy.settledLamports - later, prior = after - BigInt(expectedLamports);
-  if (prior < 0n) throw new Error('Finalized V3 settlement totals do not reconcile.');
-  const low = targets(prior,split), high = targets(after,split);
-  if (high.some((value,index)=>String(value-low[index]) !== String(categoryLamports[index])))
-    throw new Error('Finalized V3 category deltas disagree with cumulative totals.');
-  return { settledBeforeLamports:String(prior), settledAfterLamports:String(after),
-    creatorPoolBeforeLamports:String(low[0]), creatorPoolAfterLamports:String(high[0]),
-    policySettledLamports:String(policy.settledLamports) };
+  return positionAt(prior,after);
 }

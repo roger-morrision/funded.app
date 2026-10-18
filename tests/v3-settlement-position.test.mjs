@@ -41,6 +41,14 @@ test('pruned history, duplicate references and missing finalized block order are
  const g=fixture();g.refs.splice(1,0,g.refs[0]);await assert.rejects(loadV3SettlementPosition(g.input),/ordering or finality/);
  const h=fixture();h.connection.getBlockSignatures=async()=>null;await assert.rejects(loadV3SettlementPosition(h.input),/block order/);
 });
+test('a verified sole claim needs no history scan despite subsequent withdrawals',async()=>{
+ const f=fixture();f.input.verifyPolicy=async()=>({verified:true,settledLamports:1000002n});
+ f.input.categoryLamports=categories(1000002n);
+ f.connection.getBlockSignatures=async()=>{throw new Error('History must not be needed.');};
+ f.connection.getSignaturesForAddress=f.connection.getBlockSignatures;
+ const proof=await loadV3SettlementPosition(f.input);
+ assert.equal(proof.settledBeforeLamports,'0');assert.equal(proof.creatorPoolAfterLamports,'800001');
+});
 
 test('finalized signature ordering works through the installed Solana SDK response decoder',async()=>{
  const f=fixture();
