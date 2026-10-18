@@ -16,7 +16,12 @@ export const V3_BENEFICIARY_RELEASE_BLOCKER =
 
 export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRewardStore, store,
   v3AuthorityKeypair, env = process.env,
-  connectionFactory = url => new Connection(url, 'finalized'),
+  verificationTimeoutMs = 8000,
+  connectionFactory = (url, { signal } = {}) => new Connection(url, {
+    commitment:'finalized', disableRetryOnRateLimit:true,
+    fetch:(target, options) => fetch(target, { ...options,
+      signal:options?.signal ? AbortSignal.any([signal,options.signal]) : signal }),
+  }),
   programEvidence = readProgramDataEvidence, verifyRouter = verifyFeeRouterAccount }) {
   return async () => {
     const reasons = [];
@@ -51,13 +56,23 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
     try { authority = v3AuthorityKeypair?.(); } catch { reasons.push('V3 authority signer is invalid'); }
     if (!authority?.publicKey) reasons.push('V3 authority signer is unavailable');
     if (!reasons.length) {
+      const controller = new AbortController();
+      let timer;
       try {
-        const connection = connectionFactory(solanaRpcUrl);
-        const [genesis, evidence, router, reserveLookup, buybackLookup] = await Promise.all([
+        const connection = connectionFactory(solanaRpcUrl, { signal:controller.signal });
+        const checks = Promise.all([
           connection.getGenesisHash(), programEvidence(connection, programId),
           verifyRouter({ connection, programId, commitment:'finalized' }),
           connection.getAddressLookupTable(new PublicKey(lookupAddresses[0]), { commitment:'finalized' }),
           connection.getAddressLookupTable(new PublicKey(lookupAddresses[1]), { commitment:'finalized' }),
+        ]);
+        // Cap the complete verification, including sequential ProgramData reads.
+        // Slow RPC must close readiness, not leave public capability requests pending.
+        const [genesis, evidence, router, reserveLookup, buybackLookup] = await Promise.race([
+          checks,
+          new Promise((_,reject) => { timer=setTimeout(() => {
+            controller.abort(); reject(new Error('V3 verification timed out'));
+          },verificationTimeoutMs); }),
         ]);
         if (genesis !== DEVNET_GENESIS_HASH || !evidence.account?.executable
           || evidence.sha256 !== approvedHash || !router.verified
@@ -67,6 +82,7 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
           || buybackLookup.value.state.deactivationSlot !== BigInt('18446744073709551615'))
           reasons.push('V3 launch reserve or buyback lookup table is not active on Devnet');
       } catch { reasons.push('V3 program verification is unavailable'); }
+      finally { clearTimeout(timer); controller.abort(); }
     }
     const protocolSplit = store ? await activeProtocolFeeSplit(store).catch(() => null) : PROTOCOL_FEE_SPLIT;
     return { ready:reasons.length === 0 && Boolean(protocolSplit), cluster:solanaCluster,

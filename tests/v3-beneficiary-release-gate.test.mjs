@@ -58,6 +58,32 @@ test('exact protected ProgramData and current Devnet router permit launch readin
   assert.deepEqual(result.reasons, []);
 });
 
+test('a stalled V3 RPC closes readiness promptly, aborts reads, and permits a fresh retry', async () => {
+  const authority=Keypair.generate(), address=Keypair.generate().publicKey.toBase58();
+  let stalled=true, signal;
+  const config=createV3LaunchConfig({
+    solanaCluster:'devnet', solanaRpcUrl:'https://example.invalid', verificationTimeoutMs:20,
+    automaticRewardStore:{read:async()=>({serviceStatus:{constrainedPayouts:true,checkedAt:new Date().toISOString(),reasons:[]}})},
+    v3AuthorityKeypair:()=>authority,
+    env:{FUNDED_V3_LAUNCH_ENABLED:'true',FUNDED_V3_COLLECTION_ENABLED:'true',FUNDED_V3_SETTLEMENT_ENABLED:'true',
+      FUNDED_V3_HOLDER_WORKER_ENABLED:'true',FUNDED_V3_BUYBACK_ENABLED:'true',FUNDED_V3_FEE_ROUTER_PROGRAM_ID:address,
+      FUNDED_V3_PROGRAM_DATA_SHA256:PROTECTED_V3_PROGRAM_DATA_SHA256,
+      FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE:address,FUNDED_V3_BUYBACK_LOOKUP_TABLE:address},
+    connectionFactory:(_url,options)=>{signal=options.signal;return {
+      getGenesisHash:()=>stalled?new Promise(()=>{}):Promise.resolve('EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG'),
+      getAddressLookupTable:async()=>({value:{state:{deactivationSlot:18446744073709551615n}}}),
+    };},
+    programEvidence:async()=>({account:{executable:true},sha256:PROTECTED_V3_PROGRAM_DATA_SHA256}),
+    verifyRouter:async()=>({verified:true,authority:authority.publicKey}),
+  });
+  const first=await config();
+  assert.equal(first.ready,false);
+  assert.ok(first.reasons.includes('V3 program verification is unavailable'));
+  assert.equal(signal.aborted,true);
+  stalled=false;
+  assert.equal((await config()).ready,true);
+});
+
 test('launch reserve route rejects a ready flag without beneficiary enforcement', async () => {
   let response;
   const handler = createLaunchRegistrationRoutes({
