@@ -74,4 +74,10 @@ pub enum ErrorCode {
     InvalidMintBuybackV3,
     #[msg("The V3 buyback did not purchase and burn the minimum token amount")]
     MintBuybackBurnFailedV3,
+    #[msg("A protected V3 policy requires the approved beneficiary route")]
+    ProtectedMintRouteRequiredV3,
+    #[msg("The protected V3 beneficiary policy or share budget is invalid")]
+    InvalidProtectedMintPolicyV3,
+    #[msg("The protected V3 withdrawal has no matching unused approval")]
+    InvalidMintApprovalV3,
 }

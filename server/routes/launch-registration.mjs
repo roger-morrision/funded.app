@@ -104,7 +104,10 @@ export function createLaunchRegistrationRoutes({
       const routeReadiness = await verifyV3LaunchRouterReadiness({ connection:new Connection(solanaRpcUrl, 'finalized'),
           programId:configuredV3Program, expectedProgramDataSha256:env.FUNDED_V3_PROGRAM_DATA_SHA256,
           mint:proof.mint, creatorWallet:proof.feePayer,
-          initialAuthority:policy.feeRouterInitialAuthority, split:currentSplit });
+          initialAuthority:policy.feeRouterInitialAuthority, split:currentSplit,
+          directedShares:{ creatorWalletPercent:policy.creatorWalletPercent,
+            holderAirdropPercent:policy.holderAirdropPercent,
+            solClaimPercent:policy.solClaimPercent }, requireProtectedPolicy:true });
       if (!routeReadiness.ready) return json(res, routeReadiness.status, { error: routeReadiness.error });
       const configuredRouter = routeReadiness.configuredRouter;
       if (policy.creatorWallet !== proof.feePayer || policy.feeRouter !== proof.creator || policy.feeRouter !== configuredRouter) return json(res, 409, { error: 'Launch payer or Pump fee owner does not match the signed router policy.' });

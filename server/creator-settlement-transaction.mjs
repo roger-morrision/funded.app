@@ -4,7 +4,9 @@ import { PublicKey, Transaction } from '@solana/web3.js';
 
 export function prepareCreatorSettlement({ instruction, authority, blockhash }) {
   if (!blockhash) throw new Error('A recent Devnet blockhash is required.');
-  const transaction = new Transaction({ feePayer:new PublicKey(authority), recentBlockhash:blockhash }).add(instruction);
+  const instructions = Array.isArray(instruction) ? instruction : [instruction];
+  if (!instructions.length || instructions.some(value => !value)) throw new Error('Approved payout instructions are required.');
+  const transaction = new Transaction({ feePayer:new PublicKey(authority), recentBlockhash:blockhash }).add(...instructions);
   return transaction.serialize({ requireAllSignatures:false, verifySignatures:false }).toString('base64');
 }
 
@@ -15,7 +17,9 @@ export function verifyCreatorSettlement({ signedTransaction, instruction, author
   try { transaction = Transaction.from(Buffer.from(signedTransaction, 'base64')); }
   catch { throw new Error('Creator-signed transaction cannot be decoded.'); }
   if (!transaction.recentBlockhash) throw new Error('Creator-signed transaction has no blockhash.');
-  const expected = new Transaction({ feePayer:new PublicKey(authority), recentBlockhash:transaction.recentBlockhash }).add(instruction);
+  const instructions = Array.isArray(instruction) ? instruction : [instruction];
+  if (!instructions.length || instructions.some(value => !value)) throw new Error('Approved payout instructions are required.');
+  const expected = new Transaction({ feePayer:new PublicKey(authority), recentBlockhash:transaction.recentBlockhash }).add(...instructions);
   const message = expected.serializeMessage();
   if (!transaction.serializeMessage().equals(message)) throw new Error('Creator-signed transaction changes the approved payout.');
   const creatorKey = new PublicKey(creator);

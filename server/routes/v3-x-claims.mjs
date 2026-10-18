@@ -8,6 +8,7 @@ import { loadFinalizedV3Settlement } from '../v3-settlement-proof.mjs';
 import { loadFinalizedV3RewardFunding } from '../v3-reward-funding-proof.mjs';
 import { v3AllocationPlan } from '../v3-allocation-plan.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
+import { verifyMintPolicyV3Account } from '../../mint-router-v3.js';
 
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const CLAIM_LIFETIME_MS = 14 * 24 * 60 * 60 * 1000;
@@ -26,6 +27,7 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
   schedulerFactory = createRewardScheduler,
   loadSettlement = loadFinalizedV3Settlement,
   loadFunding = loadFinalizedV3RewardFunding,
+  verifyPolicy = verifyMintPolicyV3Account,
   originAllowed = allowedAuthOrigin }) {
   const json = (...args) => { respond(...args); return true; };
   return async function handleV3XClaims(req, res, url) {
@@ -93,6 +95,11 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
       return json(res, 409, { error:'The stored V3 X allocation differs from the signed launch policy.' });
     const amount = BigInt(plan.creatorDirected.holderLamports)
       + BigInt(plan.creatorDirected.xLamports);
+    const policy = await verifyPolicy({ connection, programId, mint,
+      creator:launch.creatorWallet, initialAuthority:launch.pumpFeeRoute.initialAuthority,
+      split:launch.pumpFeeRoute.protocolSplit });
+    if (!policy.verified) return json(res, 409, {
+      error:'The immutable V3 creator fee policy is not verified.' });
     const withdrawalId = createHash('sha256')
       .update(`funded.v3.creator-reward-funding.v1:${settled.settlementSignature}`).digest();
     const { vault } = rewardAddresses({ programId, authority:authority.publicKey, mint });
@@ -102,7 +109,9 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
       programId, mint, authority:authority.publicKey, creator:launch.creatorWallet,
       initialAuthority:launch.pumpFeeRoute.initialAuthority, withdrawalId,
       category:0, amount, recipient:vault,
-      split:launch.pumpFeeRoute.protocolSplit });
+      split:launch.pumpFeeRoute.protocolSplit,
+      protectedPolicy:policy.protectedPolicy, beneficiary:1,
+      holderAmount:BigInt(plan.creatorDirected.holderLamports) });
     if (!proof?.balanceDeltaVerified || proof.signature !== funding.signature
       || proof.amount !== String(amount))
       return json(res, 409, { error:'Finalized V3 reward-vault funding proof is unavailable.' });

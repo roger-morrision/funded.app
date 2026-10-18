@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { Keypair, TransactionInstruction } from '@solana/web3.js';
-import { buildMintRouterV3InitializeInstruction, buildMintRouterV3SettlementInstruction,
+import { buildMintRouterV3InitializeInstruction, buildProtectedMintRouterV3InitializeInstruction,
+  buildMintRouterV3SettlementInstruction,
   buildMintRouterV3DisbursementInstruction, deriveCommunityRewardVaultV3,
   deriveMintClaimV3, deriveMintWithdrawalV3, deriveMintRouterV3, deriveMintVaultsV3, protocolGrossUnits,
   verifyMintRouterV3Account, verifyMintPolicyV3Account, verifyMintWithdrawalV3Account,
@@ -19,11 +20,17 @@ const claimId = createHash('sha256').update('verified-collection-v3').digest();
 const initial = buildMintRouterV3InitializeInstruction({ programId, mint, authority, creator });
 const launchRouter = buildLaunchMintRouter({ feeRouterProgramId:Keypair.generate().publicKey,
   mint, payer:creator, v3FeeRouter:{ programId, initialAuthority:authority,
-    split:{ operationsPercent:50, referralLevelPercents:[10,3,2], communityPercent:10, buybackPercent:25 } } });
+    split:{ operationsPercent:50, referralLevelPercents:[10,3,2], communityPercent:10, buybackPercent:25 } },
+  feeShares:{ creatorWalletPercent:60, holderAirdropPercent:10, solClaimPercent:10 } });
 assert.equal(launchRouter.scope, 'per-mint-v3');
 assert.equal(launchRouter.router.address.toBase58(), initial.router.address.toBase58());
 assert.equal(launchRouter.instruction.keys[0].isSigner, false);
 assert.equal(launchRouter.instruction.keys[1].isSigner, true);
+assert.equal(launchRouter.instruction.data.toString('hex').slice(0, 16),
+  createHash('sha256').update('global:initialize_protected_mint_v3').digest('hex').slice(0, 16));
+assert.deepEqual(launchRouter.directedUnits, [6_000_000, 1_000_000, 1_000_000]);
+assert.throws(() => buildProtectedMintRouterV3InitializeInstruction({ programId, mint,
+  authority, creator, shares:{ creatorWalletPercent:80, holderAirdropPercent:1, solClaimPercent:0 } }), /total 80%/);
 assert.throws(() => buildLaunchMintRouter({ mint, payer:creator,
   v3FeeRouter:{ programId, initialAuthority:authority } }), /protocol split/);
 assert.deepEqual(initial.protocolUnits, [1_000_000, 200_000, 60_000, 40_000, 200_000, 500_000]);

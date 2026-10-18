@@ -14,6 +14,7 @@ test('V3 mint router instruction can be built in the browser', async ({ page }) 
         split:{ operationsPercent:50, referralLevelPercents:[10,3,2],
           communityPercent:10, buybackPercent:25 },
       },
+      feeShares:{ creatorWalletPercent:80, holderAirdropPercent:0, solClaimPercent:0 },
     });
     return { scope:router.scope, program:router.instruction.programId.toBase58(),
       authoritySigner:router.instruction.keys[0].isSigner,

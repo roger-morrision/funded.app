@@ -17,7 +17,8 @@ async function fixture(run) {
   await writeFile(join(root, 'outside.txt'), 'Must never be served');
   const records = { launch: null, metadata: null, image: null, creatorReads: [] };
   const delivery = createPageDelivery({ staticRoot, solanaCluster: 'devnet',
-    store: { readLaunch: async () => records.launch, readMetadata: async () => records.metadata,
+    store: { readLaunch: async () => records.launch, readLaunches: async () => [],
+      readMetadata: async () => records.metadata,
       readMetadataImage: async () => records.image,
       readCreatorState: async (...args) => { records.creatorReads.push(args); return {}; } },
     respond: (res, status, data) => { res.writeHead(status, {}); res.end(JSON.stringify(data)); },
@@ -40,7 +41,7 @@ test('page delivery preserves app fallbacks and immutable caching only for hashe
     assert.equal(response.handled, true);
     assert.equal(response.status, 200);
     assert.equal(String(response.content), template);
-    assert.equal(response.headers['cache-control'], 'no-cache');
+    assert.equal(response.headers['cache-control'], path.startsWith('/wallet/') ? 'no-cache' : 'no-store');
     assert.equal(response.endCount, 1);
   }
   const asset = await request('/assets/app-12345678.js');

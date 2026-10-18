@@ -2,6 +2,8 @@ import { isDeepStrictEqual } from 'node:util';
 import bs58 from 'bs58';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { buildMintRouterV3DisbursementInstruction } from '../../mint-router-v3.js';
+import { buildProtectedMintV3ApprovalInstruction,
+  buildProtectedMintV3DisbursementInstruction } from '../../protected-mint-router-v3.js';
 import { createAutomaticRewardChain } from '../automatic-reward-chain.mjs';
 import { createRewardScheduler } from '../reward-scheduler.mjs';
 import { holderFundingMinimumLamports } from '../reward-scheduler.mjs';
@@ -33,20 +35,23 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
   const json = (...args) => { respond(...args); return true; };
   return async function handleV3RewardFunding(req, res, url) {
     const match = req.method === 'POST'
-      ? url.pathname.match(/^\/api\/tokens\/([^/]+)\/v3-(community-funding|creator-reward-funding|creator-wallet-payout|referral-payout)\/([^/]+)(?:\/([1-3]))?$/) : null;
+      ? url.pathname.match(/^\/api\/tokens\/([^/]+)\/v3-(community-funding|creator-reward-funding|creator-wallet-payout|referral-payout|operations-payout)\/([^/]+)(?:\/([1-3]))?$/) : null;
     if (!match) return false;
     const kind = match[2].replace(/-(funding|payout)$/, '');
     const level = kind === 'referral' ? Number(match[4]) : null;
     if (kind === 'referral' && !level || kind !== 'referral' && match[4])
       return json(res, 400, { error:'A V3 referral payout requires one level from 1 to 3.' });
-    const category = kind === 'community' ? 5 : kind === 'referral' ? level + 1 : 0;
+    const category = kind === 'community' ? 5 : kind === 'operations' ? 1
+      : kind === 'referral' ? level + 1 : 0;
     const ledger = kind === 'community' ? 'v3CommunityFunding'
       : kind === 'creator-reward' ? 'v3CreatorRewardFunding'
-        : kind === 'referral' ? 'v3ReferralPayouts' : 'v3CreatorWalletPayout';
+      : kind === 'referral' ? 'v3ReferralPayouts'
+        : kind === 'operations' ? 'v3OperationsPayout' : 'v3CreatorWalletPayout';
     if (solanaCluster !== 'devnet' || !originAllowed(req, env.CORS_ORIGIN)) {
       return json(res, 403, { error:'V3 category disbursement requires the Devnet app origin.' });
     }
     const enabled = kind === 'referral' ? env.FUNDED_V3_REFERRAL_PAYOUT_ENABLED
+      : kind === 'operations' ? env.FUNDED_V3_OPERATIONS_PAYOUT_ENABLED
       : kind === 'community' ? env.FUNDED_V3_COMMUNITY_FUNDING_ENABLED
       : kind === 'creator-reward' ? env.FUNDED_V3_CREATOR_REWARD_FUNDING_ENABLED
       : env.FUNDED_V3_CREATOR_WALLET_PAYOUT_ENABLED;
@@ -92,6 +97,8 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     if (!readiness.ready || readiness.configuredRouter !== collection.router) {
       return json(res, 409, { error:'The approved V3 program and mint policy are not verified.' });
     }
+    if (kind === 'operations' && !readiness.protectedPolicy)
+      return json(res, 409, { error:'Operations funds require the protected V3 on-chain approval policy.' });
     const chain = rewardChainFactory({ connection, programId, authority,
       expectedProgramDataSha256:approvedHash });
     if (!(await chain.readiness()).constrainedPayouts) {
@@ -119,24 +126,43 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       if (!entitlement) return json(res, 409, { error:'No inviter frozen at the first qualified V3 fee event has a payable allocation for this level.' });
     }
     const amount = kind === 'referral' ? BigInt(entitlement.amount)
+      : kind === 'operations' ? BigInt(plan.protocol.operationsLamports)
       : kind === 'community' ? BigInt(plan.protocol.communityLamports)
       : kind === 'creator-reward' ? BigInt(plan.creatorDirected.holderLamports)
         + BigInt(plan.creatorDirected.xLamports)
         : BigInt(plan.creatorDirected.walletLamports);
     if (amount <= 0n) return json(res, 409, { error:'This settlement has no payable allocation for this category.' });
+    let operationsRecipient;
+    if (kind === 'operations') {
+      try { operationsRecipient = new PublicKey(env.FUNDED_V3_OPERATIONS_RECIPIENT); }
+      catch { return json(res, 503, { error:'The approved Devnet operations recipient is not configured.' }); }
+    }
     const recipient = kind === 'referral' ? new PublicKey(entitlement.recipient)
+      : kind === 'operations' ? operationsRecipient
       : kind === 'creator-wallet' ? new PublicKey(launch.creatorWallet)
       : await chain.ensureVault(mint);
     const withdrawalId = v3DisbursementId(kind === 'referral' ? `referral-${level}` : kind,
       settled.settlementSignature);
     const ledgerKey = kind === 'referral' ? `${collectionSignature}:${level}` : collectionSignature;
-    const payout = buildMintRouterV3DisbursementInstruction({ programId, mint,
-      authority:authority.publicKey, creator:launch.creatorWallet, withdrawalId,
-      category, amount, recipient });
+    const protectedPolicy = readiness.protectedPolicy === true;
+    const beneficiary = kind === 'creator-wallet' ? 0 : kind === 'creator-reward' ? 1
+      : category + 2;
+    const holderAmount = kind === 'creator-reward'
+      ? BigInt(plan.creatorDirected.holderLamports) : 0n;
+    const payoutInput = { programId, mint, authority:authority.publicKey,
+      creator:launch.creatorWallet, withdrawalId, category, amount, recipient };
+    const payout = protectedPolicy
+      ? buildProtectedMintV3DisbursementInstruction({ ...payoutInput, beneficiary, holderAmount })
+      : buildMintRouterV3DisbursementInstruction(payoutInput);
+    const approval = protectedPolicy && ['referral','operations'].includes(kind)
+      ? buildProtectedMintV3ApprovalInstruction({ ...payoutInput, beneficiary }) : null;
+    const payoutInstructions = approval ? [approval.instruction, payout.instruction]
+      : payout.instruction;
     const loadProof = signature => loadFunding({ connection, signature, programId, mint,
       authority:authority.publicKey, creator:launch.creatorWallet,
       initialAuthority:launch.pumpFeeRoute.initialAuthority,
-      withdrawalId, category, amount, recipient, split:launch.pumpFeeRoute.protocolSplit });
+      withdrawalId, category, amount, recipient, split:launch.pumpFeeRoute.protocolSplit,
+      protectedPolicy, beneficiary, holderAmount });
     const enrollHolderPool = async funded => {
       if (kind !== 'creator-reward' || BigInt(plan.creatorDirected.holderLamports) === 0n) return;
       if (!funded?.balanceDeltaVerified || funded.amount !== String(amount)
@@ -211,13 +237,13 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
         blockhash:existing.blockhash });
       if (!retry.retry) return json(res, 409, { error:retry.reason });
     }
-    if (kind === 'referral') {
+    if (kind === 'referral' || kind === 'operations') {
       const [balance, rentMinimum] = await Promise.all([
         connection.getBalance(recipient, 'finalized'),
         connection.getMinimumBalanceForRentExemption(0, 'finalized'),
       ]);
       if (BigInt(balance) + amount < BigInt(rentMinimum))
-        return json(res, 409, { error:'The referral recipient needs a funded Devnet wallet before this small SOL payout can satisfy account rent.',
+        return json(res, 409, { error:'The payout recipient needs a funded Devnet wallet before this small SOL payout can satisfy account rent.',
           recipient:recipient.toBase58(), minimumTopUpLamports:String(BigInt(rentMinimum) - BigInt(balance)) });
     }
     if (!input?.creatorSignedTransaction) {
@@ -225,12 +251,12 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       return json(res, 202, { status:'awaiting-creator-signature', mint,
         collectionSignature, ...(level ? { level } : {}), amountLamports:String(amount),
         recipient:recipient.toBase58(),
-        transaction:prepareTransaction({ instruction:payout.instruction,
+        transaction:prepareTransaction({ instruction:payoutInstructions,
           authority:authority.publicKey, blockhash:latest.blockhash }),
         lastValidBlockHeight:latest.lastValidBlockHeight });
     }
     const transaction = verifyTransaction({ signedTransaction:input.creatorSignedTransaction,
-      instruction:payout.instruction, authority:authority.publicKey,
+      instruction:payoutInstructions, authority:authority.publicKey,
       creator:launch.creatorWallet });
     transaction.partialSign(authority);
     const signature = bs58.encode(transaction.signature);

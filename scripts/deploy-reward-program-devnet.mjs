@@ -57,7 +57,8 @@ if (upgrading) {
   if (expectedProgram !== '9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm') {
     throw new Error('Only the isolated V3 QA program may use this upgrade path.');
   }
-  const prior = JSON.parse(run('solana', ['program', 'show', expectedProgram, '--url', rpcUrl,
+  const prior = JSON.parse(run('solana', ['program', 'show', expectedProgram,
+    '--keypair', programKeypairPath, '--url', rpcUrl,
     '--output', 'json']).stdout);
   if (prior.programId !== expectedProgram || prior.owner !== 'BPFLoaderUpgradeab1e11111111111111111111111'
     || prior.programdataAddress !== '4hw9GBAx5BicgiGCiw9hKVu1Xs4xWDrdqXSAFzgn4bwa'

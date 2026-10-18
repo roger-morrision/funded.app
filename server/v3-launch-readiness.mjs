@@ -1,7 +1,8 @@
 import { PublicKey } from '@solana/web3.js';
 import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
 import { verifyFeeRouterAccount } from '../fee-router.js';
-import { deriveMintRouterV3, verifyMintPolicyV3Account, verifyMintRouterV3Account } from '../mint-router-v3.js';
+import { deriveMintRouterV3, directedGrossUnits, verifyMintPolicyV3Account,
+  verifyMintRouterV3Account } from '../mint-router-v3.js';
 import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from './automatic-reward-chain.mjs';
 
 // Registration must check the program actually running on Devnet, as well as
@@ -9,6 +10,7 @@ import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from './automatic-reward
 // not establish that the deployed program enforces the configured 80/20 split.
 export async function verifyV3LaunchRouterReadiness({ connection, programId, expectedProgramDataSha256,
   mint, creatorWallet, initialAuthority, split = PROTOCOL_FEE_SPLIT,
+  directedShares = null, requireProtectedPolicy = false,
   readEvidence = readProgramDataEvidence, verifyGlobal = verifyFeeRouterAccount,
   verifyRouter = verifyMintRouterV3Account, verifyPolicy = verifyMintPolicyV3Account }) {
   if (!programId || !/^[a-f0-9]{64}$/i.test(String(expectedProgramDataSha256 || ''))) {
@@ -33,10 +35,14 @@ export async function verifyV3LaunchRouterReadiness({ connection, programId, exp
         initialAuthority:authority, split }),
     ]);
     const configuredRouter = deriveMintRouterV3(program, mintKey).address.toBase58();
-    if (!router.verified || router.address.toBase58() !== configuredRouter || !policy.verified) {
+    const expectedDirected = directedShares ? directedGrossUnits(directedShares) : null;
+    if (!router.verified || router.address.toBase58() !== configuredRouter || !policy.verified
+      || requireProtectedPolicy && (!policy.protectedPolicy || !expectedDirected
+        || policy.directedUnits.some((value, index) => value !== expectedDirected[index]))) {
       return { ready:false, status:409, error:'The V3 mint router or immutable fee policy is not verified.' };
     }
-    return { ready:true, configuredRouter, programId:program };
+    return { ready:true, configuredRouter, programId:program,
+      protectedPolicy:Boolean(policy.protectedPolicy), directedUnits:policy.directedUnits || null };
   } catch {
     return { ready:false, status:503, error:'The V3 Devnet router accounts could not be verified.' };
   }

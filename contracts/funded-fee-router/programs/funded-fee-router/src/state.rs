@@ -85,6 +85,22 @@ impl MintWithdrawalV3 {
 }
 
 #[account]
+pub struct MintWithdrawalApprovalV3 {
+    pub withdrawal_id: [u8; 32],
+    pub mint: Pubkey,
+    pub category: u8,
+    pub beneficiary: u8,
+    pub recipient: Pubkey,
+    pub amount: u64,
+    pub consumed: bool,
+    pub bump: u8,
+}
+
+impl MintWithdrawalApprovalV3 {
+    pub const INIT_SPACE: usize = 32 + 32 + 1 + 1 + 32 + 8 + 1 + 1;
+}
+
+#[account]
 pub struct MintBuybackV3 {
     pub buyback_id: [u8; 32],
     pub source_mint: Pubkey,

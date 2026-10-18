@@ -9,6 +9,7 @@ const MINT_POLICY_V3_SEED = Buffer.from('mint-fee-policy-v3');
 const MINT_VAULT_V3_SEED = Buffer.from('mint-fee-vault-v3');
 const MINT_CLAIM_V3_SEED = Buffer.from('mint-fee-claim-v3');
 const MINT_WITHDRAWAL_V3_SEED = Buffer.from('mint-withdraw-v3');
+const MINT_APPROVAL_V3_SEED = Buffer.from('mint-approval-v3');
 const REWARD_VAULT_SEED = Buffer.from('reward-vault-v1');
 // Anchor's first eight SHA-256 bytes for each V3 instruction/account. Keep
 // these constants checked against Node's crypto implementation in the verifier
@@ -17,11 +18,15 @@ const GLOBAL_DISCRIMINATORS = Object.freeze({
   initialize_mint_v3:'81b9d41bdc1b9cec',
   settle_mint_v3:'a44b0102a9594346',
   disburse_mint_v3:'68aef12e59187f1b',
+  initialize_protected_mint_v3:'4e42861eaaae5847',
+  approve_protected_withdrawal_v3:'dd6fdb42000c1d97',
+  disburse_protected_mint_v3:'fec3433797747da7',
 });
 const ACCOUNT_DISCRIMINATORS = Object.freeze({
   MintFeePolicyV3:'25d0c7eca736c38f',
   MintWithdrawalV3:'66d5a507606b85ce',
   MintClaimRecordV3:'90c82e2a7a966b02',
+  MintWithdrawalApprovalV3:'5ae68c6f60d080e6',
 });
 const discriminator = name => Buffer.from(GLOBAL_DISCRIMINATORS[name], 'hex');
 const accountDiscriminator = name => Buffer.from(ACCOUNT_DISCRIMINATORS[name], 'hex');
@@ -36,6 +41,18 @@ export function protocolGrossUnits(split = PROTOCOL_FEE_SPLIT) {
   if (rates.some((rate, index) => Math.abs(rate * 20_000 - units[index]) > 0.000001)
     || units.reduce((sum, rate) => sum + rate, 0) !== 2_000_000) {
     throw new Error('Protocol fee rates cannot be represented in whole gross-fee units.');
+  }
+  return units;
+}
+
+export function directedGrossUnits(shares) {
+  const values = [shares?.creatorWalletPercent, shares?.holderAirdropPercent,
+    shares?.solClaimPercent].map(Number);
+  const units = values.map(value => Math.round(value * 100_000));
+  if (values.some((value, index) => !Number.isFinite(value) || value < 0
+    || Math.abs(units[index] / 100_000 - value) > 0.000001)
+    || units.reduce((sum, value) => sum + value, 0) !== 8_000_000) {
+    throw new Error('Protected V3 creator, holder, and X shares must total 80% of gross fees.');
   }
   return units;
 }
@@ -69,6 +86,12 @@ export function deriveMintWithdrawalV3(programId, mint, withdrawalId) {
   return PublicKey.findProgramAddressSync([MINT_WITHDRAWAL_V3_SEED, key(mint).toBuffer(), bytes], key(programId))[0];
 }
 
+export function deriveMintWithdrawalApprovalV3(programId, mint, withdrawalId) {
+  const bytes = Buffer.from(withdrawalId);
+  if (bytes.length !== 32) throw new Error('V3 withdrawal ID must be 32 bytes.');
+  return PublicKey.findProgramAddressSync([MINT_APPROVAL_V3_SEED, key(mint).toBuffer(), bytes], key(programId))[0];
+}
+
 export function deriveCommunityRewardVaultV3(programId, mint, authority) {
   return PublicKey.findProgramAddressSync([REWARD_VAULT_SEED, key(authority).toBuffer(), key(mint).toBuffer()], key(programId))[0];
 }
@@ -91,7 +114,7 @@ export async function verifyMintPolicyV3Account({ connection, programId, mint, c
   if (!account?.owner?.equals(key(programId))) return { ...address, verified:false, reason:'v3-policy-owner-or-account-mismatch' };
   const data = Buffer.from(account.data);
   const expectedDiscriminator = accountDiscriminator('MintFeePolicyV3');
-  if (data.length !== 249 || !data.subarray(0, 8).equals(expectedDiscriminator)
+  if (![249,293].includes(data.length) || !data.subarray(0, 8).equals(expectedDiscriminator)
     || !data.subarray(8, 40).equals(key(mint).toBuffer())
     || !data.subarray(40, 72).equals(key(creator).toBuffer())
     || !data.subarray(72, 104).equals(key(initialAuthority).toBuffer()) || data[248] !== address.bump) {
@@ -109,8 +132,51 @@ export async function verifyMintPolicyV3Account({ connection, programId, mint, c
     || withdrawnLamports.some((amount, index) => amount > paidLamports[index])) {
     return { ...address, verified:false, reason:'v3-policy-ledger-mismatch' };
   }
+  const protectedPolicy = data.length === 293;
+  let directedUnits = null;
+  let directedReleased = null;
+  if (protectedPolicy) {
+    directedUnits = Array.from({ length:3 }, (_, index) => data.readUInt32LE(257 + index * 4));
+    directedReleased = Array.from({ length:3 }, (_, index) => data.readBigUInt64LE(269 + index * 8));
+    const targets = directedUnits.map((units, index) => {
+      const cumulative = directedUnits.slice(0, index + 1).reduce((sum, value) => sum + value, 0);
+      const preceding = cumulative - units;
+      return BigInt(paidLamports[0]) * BigInt(cumulative) / 8_000_000n
+        - BigInt(paidLamports[0]) * BigInt(preceding) / 8_000_000n;
+    });
+    if (data.subarray(249, 257).toString('ascii') !== 'FNDPROT1'
+      || directedUnits.reduce((sum, value) => sum + value, 0) !== 8_000_000
+      || directedReleased.some((value, index) => value > targets[index])
+      || directedReleased.reduce((sum, value) => sum + value, 0n) !== withdrawnLamports[0]) {
+      return { ...address, verified:false, reason:'v3-protected-policy-invalid' };
+    }
+  }
   return { ...address, verified:true, reason:'verified', protocolUnits, settledLamports,
-    paidLamports, withdrawnLamports };
+    paidLamports, withdrawnLamports, protectedPolicy, directedUnits, directedReleased };
+}
+
+export function buildProtectedMintRouterV3InitializeInstruction({ programId, mint, authority, creator,
+  split = PROTOCOL_FEE_SPLIT, shares }) {
+  const router = deriveMintRouterV3(programId, mint);
+  const policy = deriveMintPolicyV3(programId, mint);
+  const legacy = deriveFeeRouter(programId);
+  const protocolUnits = protocolGrossUnits(split);
+  const directedUnits = directedGrossUnits(shares);
+  const data = Buffer.alloc(8 + 6 * 4 + 3 * 4);
+  discriminator('initialize_protected_mint_v3').copy(data);
+  protocolUnits.forEach((value, index) => data.writeUInt32LE(value, 8 + index * 4));
+  directedUnits.forEach((value, index) => data.writeUInt32LE(value, 32 + index * 4));
+  return { router, policy, protocolUnits, directedUnits,
+    instruction:new TransactionInstruction({ programId:router.programId,
+      keys:[
+        { pubkey:key(authority), isSigner:false, isWritable:false },
+        { pubkey:key(creator), isSigner:true, isWritable:true },
+        { pubkey:router.mint, isSigner:true, isWritable:false },
+        { pubkey:legacy.address, isSigner:false, isWritable:false },
+        { pubkey:router.address, isSigner:false, isWritable:true },
+        { pubkey:policy.address, isSigner:false, isWritable:true },
+        { pubkey:SystemProgram.programId, isSigner:false, isWritable:false },
+      ], data }) };
 }
 
 export async function verifyMintWithdrawalV3Account({ connection, programId, mint, withdrawalId,
@@ -127,6 +193,22 @@ export async function verifyMintWithdrawalV3Account({ connection, programId, min
     && data.readBigUInt64LE(105) === BigInt(amount);
   return { address, verified:valid, reason:valid ? 'verified' : 'v3-withdrawal-receipt-mismatch',
     createdAt:valid ? data.readBigInt64LE(113) : null };
+}
+
+export async function verifyMintWithdrawalApprovalV3Account({ connection, programId, mint,
+  withdrawalId, category, beneficiary, recipient, amount }) {
+  const address = deriveMintWithdrawalApprovalV3(programId, mint, withdrawalId);
+  const account = await connection.getAccountInfo(address, 'finalized');
+  if (!account?.owner?.equals(key(programId))) return { address, verified:false };
+  const data = Buffer.from(account.data);
+  const valid = data.length === 116
+    && data.subarray(0, 8).equals(accountDiscriminator('MintWithdrawalApprovalV3'))
+    && data.subarray(8, 40).equals(Buffer.from(withdrawalId))
+    && data.subarray(40, 72).equals(key(mint).toBuffer())
+    && data[72] === category && data[73] === beneficiary
+    && data.subarray(74, 106).equals(key(recipient).toBuffer())
+    && data.readBigUInt64LE(106) === BigInt(amount) && data[114] === 1;
+  return { address, verified:valid };
 }
 
 export async function verifyMintClaimV3Account({ connection, programId, mint, claimId,

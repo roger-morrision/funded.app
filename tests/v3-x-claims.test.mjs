@@ -60,6 +60,7 @@ function fixture({ enabled = true, xUserId = '12345', proof = true,
     connectionFactory:() => ({}),
     rewardChainFactory:() => ({ readiness:async () => ({ constrainedPayouts:true }) }),
     loadSettlement:async () => settlement,
+    verifyPolicy:async () => ({ verified:true, protectedPolicy:false }),
     loadFunding:async () => proof ? { signature:fundingSignature, amount:'20',
       balanceDeltaVerified:true } : null,
     schedulerFactory:() => ({

@@ -31,6 +31,11 @@ pub mod funded_fee_router {
         policy_v3::initialize_mint_v3_handler(ctx, protocol_units)
     }
 
+    pub fn initialize_protected_mint_v3(ctx: Context<InitializeProtectedMintV3>,
+        protocol_units: [u32; 6], directed_units: [u32; 3]) -> Result<()> {
+        protected_v3::initialize_protected_mint_v3_handler(ctx, protocol_units, directed_units)
+    }
+
     pub fn settle_mint_v3<'info>(ctx: Context<'info, SettleMintV3<'info>>,
         claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
         policy_v3::settle_mint_v3_handler(ctx, claim_id, expected_lamports)
@@ -38,6 +43,18 @@ pub mod funded_fee_router {
 
     pub fn disburse_mint_v3(ctx: Context<DisburseMintV3>, withdrawal_id: [u8; 32], category: u8, amount: u64) -> Result<()> {
         policy_v3::disburse_mint_v3_handler(ctx, withdrawal_id, category, amount)
+    }
+
+    pub fn approve_protected_withdrawal_v3(ctx: Context<ApproveProtectedWithdrawalV3>,
+        withdrawal_id: [u8; 32], category: u8, beneficiary: u8, amount: u64) -> Result<()> {
+        protected_v3::approve_protected_withdrawal_v3_handler(ctx, withdrawal_id, category, beneficiary, amount)
+    }
+
+    pub fn disburse_protected_mint_v3(ctx: Context<DisburseProtectedMintV3>,
+        withdrawal_id: [u8; 32], category: u8, beneficiary: u8, amount: u64,
+        holder_amount: u64) -> Result<()> {
+        protected_v3::disburse_protected_mint_v3_handler(ctx, withdrawal_id, category,
+            beneficiary, amount, holder_amount)
     }
 
     #[cfg(feature = "devnet-v3-program")]

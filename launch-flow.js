@@ -7,7 +7,8 @@ import { tokensToBaseUnits } from './launch-burn-policy.js';
 import { devnetMetadataUri } from './devnet-metadata.js';
 import { verifyFeeRouterAccount } from './fee-router.js';
 import { buildPumpLaunchPlan } from './mint-router-launch.js';
-import { buildMintRouterV3InitializeInstruction, verifyMintPolicyV3Account,
+import { buildProtectedMintRouterV3InitializeInstruction, directedGrossUnits,
+  verifyMintPolicyV3Account,
   verifyMintRouterV3Account } from './mint-router-v3.js';
 import { executeLaunchPlan } from './launch-executor.js';
 import { initialCurvePremiumBps } from './launch-review.js';
@@ -48,13 +49,13 @@ export function verifyPermanentPumpCreatorRoute({ bondingCurve, feeRouter, payer
   };
 }
 
-export function buildLaunchMintRouter({ mint, payer, v3FeeRouter }) {
+export function buildLaunchMintRouter({ mint, payer, v3FeeRouter, feeShares }) {
   if (!v3FeeRouter?.programId || !v3FeeRouter.initialAuthority || !v3FeeRouter.split) {
     throw new Error('An approved V3 program, authority, and protocol split are required.');
   }
-  return { scope:'per-mint-v3', ...buildMintRouterV3InitializeInstruction({
+  return { scope:'per-mint-v3', ...buildProtectedMintRouterV3InitializeInstruction({
     programId:v3FeeRouter.programId, mint, authority:v3FeeRouter.initialAuthority,
-    creator:payer, split:v3FeeRouter.split,
+    creator:payer, split:v3FeeRouter.split, shares:feeShares,
   }) };
 }
 
@@ -177,7 +178,8 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   if(input.maxInitialBuyLamports!=null&&initialBuy.maxSolAmountLamports>BigInt(input.maxInitialBuyLamports))throw new Error('The initial-buy cost increased beyond the reviewed maximum. Refresh the quote and review again; no transaction was sent.');
   const mint = Keypair.generate();
   onJournal({state:'prepared',mint:mint.publicKey.toBase58()});
-  const mintRouter = buildLaunchMintRouter({ mint:mint.publicKey, payer, v3FeeRouter });
+  const mintRouter = buildLaunchMintRouter({ mint:mint.publicKey, payer, v3FeeRouter,
+    feeShares:input.feeShares });
   const feeRouter = mintRouter.router.address;
   const lookupTable = (await connection.getAddressLookupTable(new PublicKey(reserveConfig.lookupTable), { commitment:'finalized' })).value;
   if (!lookupTable?.isActive()) throw new Error('Solana launch reserve lookup table is missing or inactive. No coin was created.');
@@ -251,7 +253,8 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
       mint:mint.publicKey, creator:payer, initialAuthority:v3FeeRouter.initialAuthority,
       split:v3FeeRouter.split }),
   ]);
-  if (!router.verified || !policy.verified) {
+  if (!router.verified || !policy.verified || !policy.protectedPolicy
+    || policy.directedUnits.some((value, index) => value !== directedGrossUnits(input.feeShares)[index])) {
     throw new Error(`Coin was created, but its V3 fee router or policy is not verified. Mint: ${mint.publicKey.toBase58()}`);
   }
   const bondingCurve = await new OnlinePumpSdk(connection).fetchBondingCurve(mint.publicKey);

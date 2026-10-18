@@ -15,9 +15,10 @@ const claimId = Buffer.alloc(32, 8);
 const router = deriveMintRouterV3(program.publicKey, mint.publicKey).address.toBase58();
 
 function fixture({ enabled = true, submit = null, kind = 'community', qaShort = false,
+  protectedPolicy = false,
   recipientBalance = 1_000_000,
   existingProgram = null } = {}) {
-  const suffix = ['creator-wallet', 'referral'].includes(kind) ? 'payout' : 'funding';
+  const suffix = ['creator-wallet', 'referral', 'operations'].includes(kind) ? 'payout' : 'funding';
   const path = `/api/tokens/${mint.publicKey.toBase58()}/v3-${kind}-${suffix}/${collectionSignature}${kind === 'referral' ? '/1' : ''}`;
   const responses = [];
   const launch = { mint:mint.publicKey.toBase58(), onchainVerified:true, cluster:'devnet',
@@ -66,6 +67,8 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
       FUNDED_V3_CREATOR_REWARD_FUNDING_ENABLED:enabled ? 'true' : 'false',
       FUNDED_V3_CREATOR_WALLET_PAYOUT_ENABLED:enabled ? 'true' : 'false',
       FUNDED_V3_REFERRAL_PAYOUT_ENABLED:enabled ? 'true' : 'false',
+      FUNDED_V3_OPERATIONS_PAYOUT_ENABLED:enabled ? 'true' : 'false',
+      FUNDED_V3_OPERATIONS_RECIPIENT:key(40).publicKey.toBase58(),
       FUNDED_QA_SHORT_REWARD_PERIODS:qaShort ? 'true' : 'false',
       FUNDED_QA_HOLDER_MINT:qaShort ? launch.mint : '',
       FUNDED_QA_HOLDER_MIN_LAMPORTS:qaShort ? '100000' : '',
@@ -75,7 +78,7 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
       getMinimumBalanceForRentExemption:async () => 890_880,
       getLatestBlockhash:async () => ({
       blockhash:key(35).publicKey.toBase58(), lastValidBlockHeight:123 }) }),
-    verifyReadiness:async () => ({ ready:true, configuredRouter:router }),
+    verifyReadiness:async () => ({ ready:true, configuredRouter:router, protectedPolicy }),
     rewardChainFactory:() => ({ readiness:async () => ({ constrainedPayouts:true }),
       ensureVault:async () => vault }),
     loadSettlement:async () => settlementProof,
@@ -123,6 +126,41 @@ test('V3 referral payout binds the frozen inviter and records only finalized pro
   assert.equal(f.submitted, 1);
   await f.request({});
   assert.equal(f.submitted, 1);
+});
+
+test('protected referral payout prepares approval and release in one creator-signed transaction', async () => {
+  const f = fixture({ kind:'referral', protectedPolicy:true });
+  f.state.v3Settlements[collectionSignature].referralUpline = [key(39).publicKey.toBase58()];
+  await f.request({});
+  assert.equal(f.responses.at(-1).status, 202);
+  const prepared = Transaction.from(Buffer.from(f.responses.at(-1).data.transaction, 'base64'));
+  assert.equal(prepared.instructions.length, 2);
+  await f.request({ creatorSignedTransaction:signPrepared(f.responses.at(-1).data.transaction) });
+  assert.equal(f.responses.at(-1).status, 200);
+  assert.equal(f.submitted, 1);
+});
+
+test('protected holder funding includes separate holder and X amounts', async () => {
+  const f = fixture({ kind:'creator-reward', protectedPolicy:true });
+  await f.request({});
+  assert.equal(f.responses.at(-1).status, 202);
+  const prepared = Transaction.from(Buffer.from(f.responses.at(-1).data.transaction, 'base64'));
+  assert.equal(prepared.instructions.length, 1);
+  const data = prepared.instructions[0].data;
+  assert.equal(data.readBigUInt64LE(42), 20n);
+  assert.equal(data.readBigUInt64LE(50), 15n);
+});
+
+test('protected operations funds stay in their vault until a named recipient is approved', async () => {
+  const f = fixture({ kind:'operations', protectedPolicy:true });
+  await f.request({});
+  assert.equal(f.responses.at(-1).status, 202);
+  assert.equal(f.responses.at(-1).data.amountLamports, '10');
+  const prepared = Transaction.from(Buffer.from(f.responses.at(-1).data.transaction, 'base64'));
+  assert.equal(prepared.instructions.length, 2);
+  await f.request({ creatorSignedTransaction:signPrepared(f.responses.at(-1).data.transaction) });
+  assert.equal(f.responses.at(-1).status, 200);
+  assert.equal(f.state.v3OperationsPayout[collectionSignature].status, 'finalized');
 });
 
 test('V3 referral payout rejects an unsettled referral upline before preparing a transaction', async () => {

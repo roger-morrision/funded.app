@@ -12,7 +12,8 @@ const global={feeRecipient:Keypair.generate().publicKey,feeRecipients:[]};
 let passed=0,blocked=0,splitCount=0;
 for(const long of [false,true])for(const buyPercent of [0,.1,10,20])for(const burn of [false,true]){
   const mint=Keypair.generate(),router=buildLaunchMintRouter({mint:mint.publicKey,payer,
-    v3FeeRouter:{programId:program,initialAuthority:authority,split:protocolSplit}});
+    v3FeeRouter:{programId:program,initialAuthority:authority,split:protocolSplit},
+    feeShares:{creatorWalletPercent:80,holderAirdropPercent:0,solClaimPercent:0}});
   const input={global,mint:mint.publicKey,name:long?'N'.repeat(32):'Fixture',symbol:long?'T'.repeat(10):'QA',uri:`https://metadata.funded.vip/devnet-metadata/${mint.publicKey}`,creator:router.router.address,user:payer,mayhemMode:false,cashback:false,holderReward:false};
   const buy=normalizeInitialBuy({initialBuyPercent:buyPercent,supply:1000000000,decimals:6});assert.ok(buy.amountBaseUnits<=200000000000000n);
   const instructions=buyPercent?await PUMP_SDK.createV2AndBuyInstructions({...input,amount:new BN(buy.amountBaseUnits.toString()),solAmount:new BN('100000000')}):[await PUMP_SDK.createV2Instruction(input)];

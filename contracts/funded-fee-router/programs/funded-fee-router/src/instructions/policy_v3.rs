@@ -195,6 +195,10 @@ pub struct DisburseMintV3<'info> {
 
 pub fn disburse_mint_v3_handler(ctx: Context<DisburseMintV3>, withdrawal_id: [u8; 32],
     category: u8, amount: u64) -> Result<()> {
+    // A protected mint has a larger policy account. Never let it use the
+    // legacy route, which has no beneficiary share or approval checks.
+    require!(ctx.accounts.policy.to_account_info().data_len() == 8 + MintFeePolicyV3::INIT_SPACE,
+        ErrorCode::ProtectedMintRouteRequiredV3);
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
     require!(category < 6, ErrorCode::InvalidMintWithdrawalV3);
     require!(amount > 0, ErrorCode::InvalidAmount);
