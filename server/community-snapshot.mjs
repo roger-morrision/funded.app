@@ -200,13 +200,13 @@ export function reverseReplayCommunitySnapshot({ mint, migrationSlot, migrationB
     baseSlot, replayedBlocks:orderedSlots.length, supplyBaseUnits:String(supply), accounts };
 }
 
-export async function captureExactCommunitySnapshot({ connection, mint, launchMint, migrationSignature, maxReplaySlots = MAX_REPLAY_SLOTS }) {
+export async function captureExactCommunitySnapshot({ connection, mint, launchMint, migrationSignature, maxReplaySlots = MAX_REPLAY_SLOTS, onEvidence }) {
   const mintKey = new PublicKey(mint), mintAddress = mintKey.toBase58(), launchKey = new PublicKey(launchMint);
   const transaction = await connection.getTransaction(migrationSignature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
   const { pool } = verifyPumpMigrationTransaction({ transaction, launchMint:launchKey });
   const poolInfo = await connection.getAccountInfo(pool, 'finalized');
   if (!poolInfo?.owner.equals(PUMP_AMM_PROGRAM_ID)) throw new Error('Canonical migrated pool is unavailable or has the wrong owner.');
-  return captureAtFinalizedSlot({ connection, mintKey, mintAddress, transaction, maxReplaySlots });
+  return captureAtFinalizedSlot({ connection, mintKey, mintAddress, transaction, maxReplaySlots, onEvidence });
 }
 
 export async function captureQaCommunitySnapshot({ connection, mint, launchMint, migrationSignature,
@@ -218,7 +218,7 @@ export async function captureQaCommunitySnapshot({ connection, mint, launchMint,
   return captureAtFinalizedSlot({ connection, mintKey, mintAddress, transaction, maxReplaySlots });
 }
 
-async function captureAtFinalizedSlot({ connection, mintKey, mintAddress, transaction, maxReplaySlots }) {
+async function captureAtFinalizedSlot({ connection, mintKey, mintAddress, transaction, maxReplaySlots, onEvidence }) {
   const migrationSlot = transaction.slot;
   const finalizedTip = await connection.getSlot('finalized');
   if (finalizedTip < migrationSlot || finalizedTip - migrationSlot > Math.min(maxReplaySlots, MAX_REPLAY_SLOTS)) {
@@ -238,6 +238,10 @@ async function captureAtFinalizedSlot({ connection, mintKey, mintAddress, transa
     if (!block) throw new Error(`Finalized block ${slot} is unavailable.`);
     blocks.set(slot, block);
   }
-  return reverseReplayCommunitySnapshot({ mint:mintAddress, migrationSlot, migrationBlockTime:transaction.blockTime,
-    baseSlot, baseAccounts:base.accounts, supplyBaseUnits:String(base.supply), blockSlots:slots, blocks });
+  const input = { mint:mintAddress, migrationSlot, migrationBlockTime:transaction.blockTime,
+    baseSlot, baseAccounts:base.accounts, supplyBaseUnits:String(base.supply), blockSlots:slots, blocks };
+  const snapshot = reverseReplayCommunitySnapshot(input);
+  // An auditor can retain the complete replay inputs without expanding the live ledger.
+  if (onEvidence) await onEvidence({ version:1, ...input, blocks:[...blocks], migrationTransaction:transaction });
+  return snapshot;
 }
