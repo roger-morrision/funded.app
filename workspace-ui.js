@@ -8,15 +8,7 @@ import { tokenPage } from './src/features/workspace/token-page.js';
 
 // Workspace composition owns layout and navigation. Financial state remains in its source modules.
 
-import './workspace-ui.css';
-import './home-reference.css';
-import './ansem-pages.css';
-import './payments-redesign.css';
-
 function home() {
-  const hero = $('.hero-section');
-  const board = $('.home-launch-board');
-  if (hero && board) hero.after(board);
   disclose($('.hero-stakeholders'), 'How participants benefit');
   disclose($('.home-referral-guide'), 'How referral rewards work');
 }

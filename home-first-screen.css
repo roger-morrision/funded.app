@@ -1,0 +1,49 @@
+/* Home geometry is present before optional workspace modules initialize. */
+html body.page-route-overview.product-experience-style .hero-section {
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 24px 0 20px !important;
+}
+html body.page-route-overview .hero-copy-column { width: 100%; max-width: 680px; }
+html body.page-route-overview.product-experience-style .hero-section h1 {
+  max-width: 680px;
+  margin: 0 0 10px;
+  font-size: clamp(34px, 3.5vw, 48px) !important;
+  line-height: 1.08 !important;
+}
+html body.page-route-overview.product-experience-style .hero-copy {
+  max-width: 580px;
+  margin: 0 0 14px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+html body.page-route-overview .hero-actions { margin: 0; }
+html body.page-route-overview .main-content > .home-launch-board { order: 2; }
+html body.page-route-overview .main-content > .public-discovery { order: 4; }
+html body.page-route-overview .home-launch-grid { min-height: 320px; }
+/* Icon replacement must not resize the controls during startup. */
+html body.page-route-overview .topbar :is(#open-menu, #header-search-trigger) { flex-shrink: 0; }
+
+@media (max-width: 700px) {
+  html body.page-route-overview.product-experience-style .hero-section {
+    padding: 18px 0 16px !important;
+    background-size: cover;
+    background-position: center, center, right center;
+  }
+  html body.page-route-overview .home-hero-kicker { margin: 0 0 8px; font-size: 11px; }
+  html body.page-route-overview.product-experience-style .hero-section h1 {
+    max-width: 20ch;
+    font-size: clamp(25px, 7.2vw, 32px) !important;
+    line-height: 1.12 !important;
+    letter-spacing: -.035em;
+  }
+  html body.page-route-overview.product-experience-style .hero-copy { max-width: 48ch; font-size: 13px; }
+  html body.page-route-overview .hero-actions { display: flex; gap: 8px; }
+  html body.page-route-overview .hero-actions a { min-height: 44px; font-size: 12px; }
+  html body.page-route-overview .home-launch-board { margin: 0 0 18px; padding: 0; }
+  html body.page-route-overview .home-launch-toolbar { gap: 6px 8px; padding: 6px 0 12px; }
+  html body.page-route-overview .home-launch-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
+  html body.page-route-overview .home-launch-tabs button { min-height: 36px; }
+  html body.page-route-overview .home-launch-grid { gap: 8px; }
+}
