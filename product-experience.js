@@ -36,7 +36,7 @@ function home() {
   if (board && !board.querySelector('.product-follow-note')) {
     const note = document.createElement('p');
     note.className = 'product-follow-note';
-    note.innerHTML = 'Want to revisit a coin? Use its star, then open <a href="#explore">Explore</a> and choose Following.';
+    note.innerHTML = 'Want to revisit a coin? Use its star, then open <a href="#explore">Explore</a> and choose Favorites.';
     (board.querySelector('.home-launch-table-wrap') || board.querySelector('.home-launch-grid'))?.after(note);
   }
   // Pause distracting continuous movement by default. The existing control can resume it.

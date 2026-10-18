@@ -128,10 +128,13 @@
   .coin-page .coin-fee-table th,.coin-page .coin-fee-table td{display:block;min-width:0;padding:0;border:0;text-align:left;overflow-wrap:anywhere}
   .coin-page .coin-fee-table tbody th{grid-column:1/-1;padding-bottom:7px;border-bottom:1px solid #2b3950}
   .coin-page .coin-fee-table td::before{display:block;margin-bottom:3px;color:#8fa5c2;font-size:10px;font-weight:400}
-  .coin-page .coin-fee-table td:nth-child(2)::before{content:'In Pump vault · estimate'}
-  .coin-page .coin-fee-table td:nth-child(3)::before{content:'Allocated'}
-  .coin-page .coin-fee-table td:nth-child(4)::before{content:'Paid with proof'}
-  .coin-page .coin-fee-table td:nth-child(5)::before{content:'No confirmed payout'}
+  .coin-page .coin-fee-table td:nth-child(2)::before{content:'Event'}
+  .coin-page .coin-fee-table td:nth-child(3)::before{content:'Amount collected'}
+  .coin-page .coin-fee-table td:nth-child(4)::before{content:'USD estimate'}
+  .coin-page .coin-fee-table td:nth-child(5)::before{content:'Collection transaction'}
+  .coin-page .coin-fee-allocations-table td:nth-child(3)::before{content:'Gross fees'}
+  .coin-page .coin-fee-allocations-table td:nth-child(4)::before{content:'Allocation status'}
+  .coin-page .coin-fee-allocations-table td:nth-child(5)::before{content:'Related collection'}
 }
 @media(max-width:520px){.coin-page .coin-fee-dashboard{padding:16px}.coin-page .coin-fee-stats{grid-template-columns:1fr 1fr}.coin-page .coin-fee-stats>div{padding:10px}.coin-page .coin-fee-stats strong{font-size:14px}.coin-page .coin-fee-heading h2{font-size:16px}}
 @media(max-width:520px){.coin-page .coin-creator-claim{align-items:stretch;flex-direction:column}.coin-page .coin-creator-claim button{width:100%}}

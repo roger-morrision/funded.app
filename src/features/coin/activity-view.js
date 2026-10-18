@@ -56,11 +56,12 @@ export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_T
     if (trades.length) loadVerifiedTokenLogos(activity);
     return;
   }
-  if (coinActivity.status === 'loading') {
+  const feeRecordsAvailable = ['payments','claims'].includes(tab) && coinActivity.ledgerAvailable === true;
+  if (coinActivity.status === 'loading' && !feeRecordsAvailable) {
     activity.innerHTML = '<div class="coin-activity-row"><span class="activity-icon">◎</span><span><strong>Reading token records</strong><small>Confirmed Solana RPC request in progress</small></span><b class="activity-amount">—</b><span class="activity-time">RPC</span></div>';
     return;
   }
-  if (coinActivity.status === 'unavailable') {
+  if (coinActivity.status === 'unavailable' && !feeRecordsAvailable) {
     activity.innerHTML = `<div class="coin-activity-row"><span class="activity-icon">!</span><span><strong>Token data unavailable</strong><small>${escapeHtml(coinActivity.message || 'Solana RPC could not load this mint.')}</small></span><b class="activity-amount">—</b><span class="activity-time">RPC</span></div>`;
     return;
   }

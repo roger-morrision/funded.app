@@ -25,6 +25,14 @@ html body.page-route-overview .home-launch-grid { min-height: 320px; }
 /* Icon replacement must not resize the controls during startup. */
 html body.page-route-overview .topbar :is(#open-menu, #header-search-trigger) { flex-shrink: 0; }
 
+@media (min-width: 901px) and (max-width: 1050px) {
+  html body.page-route-overview .sidebar .primary-nav > .nav-item,
+  html body.page-route-overview .sidebar .nav-more > summary {
+    padding-inline: 4px !important;
+    letter-spacing: 0;
+  }
+}
+
 @media (max-width: 700px) {
   html body.page-route-overview.product-experience-style .hero-section {
     padding: 18px 0 16px !important;
