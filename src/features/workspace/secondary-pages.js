@@ -1,3 +1,4 @@
+import { currentFeePolicyCopy } from '../fees/fee-policy-copy.js';
 import { mountHolderAirdropDirectory } from '../rewards/holder-airdrop-directory.js';
 import './airdrop-discovery.css';
 import { text, $, node, $$, disclose } from './dom.js';
@@ -81,14 +82,17 @@ export function secondaryPages() {
 export function protocolPage() {
   const root = $('#paid');
   if (!root || $('.paid-reference-hero', root)) return;
+  const copy = currentFeePolicyCopy();
   const policyContent = [...root.children];
+  const collectionNote = root.querySelector(':scope > p:not(.eyebrow)');
+  if (collectionNote) collectionNote.textContent = copy.collection;
   const hero = node('div', 'paid-reference-hero');
   hero.innerHTML = '<span class="paid-hero-mark" aria-hidden="true">ƒ</span><div><p class="eyebrow">$FUNDED · network token</p><h1>The token behind every launch</h1><p>$FUNDED connects launch tiers, community allocations, and the published burn policy. Verify holder rewards and burns through their receipts.</p><div class="paid-hero-actions"><a class="primary-button" href="#buybacks">Buy or burn $FUNDED ↗</a><a class="secondary-button" id="funded-token-chart" href="#explore" hidden>View on Solana ↗</a><a class="secondary-button" href="#explore">Explore launches</a><a class="secondary-button" href="#launch">Burn for a tier</a></div></div>';
   const facts = node('div', 'paid-reference-metrics');
   facts.setAttribute('aria-label', '$FUNDED token and tier metrics');
   facts.innerHTML = '<div><span>PRICE</span><strong id="funded-token-price">$—</strong><small id="funded-token-price-note">Verified quote unavailable</small></div><div><span>MARKET CAP</span><strong id="funded-token-market-cap">$—</strong><small id="funded-token-market-cap-note">Verified market unavailable</small></div><div><span>$FUNDED BURNED</span><strong id="funded-token-burned">—</strong><small id="funded-token-burned-note">Checking on-chain supply</small></div><div><span>PRO TIER</span><strong id="funded-token-pro">—</strong><small id="funded-token-pro-note">$FUNDED burn per launch</small></div><div><span>PREMIER TIER</span><strong id="funded-token-premier">—</strong><small id="funded-token-premier-note">$FUNDED burn per launch</small></div>';
   const story = node('div', 'funded-token-story');
-  story.innerHTML = '<article><h2>What it does here</h2><p>Teams can choose a paid launch tier by burning $FUNDED. The tier and amount are recorded with the launch, and the badge only appears after verification.</p><p>The burn receipt can be checked on-chain; a tier is a promotion signal, not a promise of liquidity or returns. The free Standard tier remains available.</p></article><article><h2>Why holding it matters</h2><p>Funded launches reserve community tokens for eligible $FUNDED holders. Eligibility, funding, and delivery are shown through their own records.</p><p>A policy allocation alone is not a completed airdrop. <a href="#airdrops">Review airdrops →</a></p></article><article><h2>The story</h2><p>Funded.vip links launches, creator fee routes, community rewards, and token burns in one place.</p><p>The published fee policy assigns a protocol share to operations, referrals, community, and a $FUNDED buyback and burn program. <a href="#capital-flow">Follow the fee route →</a></p></article>';
+  story.innerHTML = '<article><h2>What it does here</h2><p>Teams can choose a paid launch tier by burning $FUNDED. The tier and amount are recorded with the launch, and the badge only appears after verification.</p><p>The burn receipt can be checked on-chain; a tier is a promotion signal, not a promise of liquidity or returns. The free Standard tier remains available.</p></article><article><h2>Why holding it matters</h2><p>Funded launches reserve community tokens for eligible $FUNDED holders. Eligibility, funding, and delivery are shown through their own records.</p><p>A policy allocation alone is not a completed airdrop. <a href="#airdrops">Review airdrops →</a></p></article><article><h2>The story</h2><p>Funded.vip links launches, creator fee routes, community rewards, and token burns in one place.</p><p>The protocol share funds Operations &amp; marketing, referrals, Daily bonus, and $FUNDED buyback and burn. <a href="#capital-flow">Follow the fee route →</a></p></article>';
   const contract = node('div', 'funded-token-contract');
   contract.innerHTML = '<span>CONTRACT</span><code id="funded-token-mint">Mint not configured</code><button type="button" id="funded-token-copy" class="secondary-button" disabled>COPY</button>';
   const policy = node('details', 'funded-policy-details');

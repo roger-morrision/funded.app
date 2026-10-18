@@ -19,7 +19,7 @@ test('Devnet admin page signs in, shows balances and gates, and edits only the p
       return send(signedIn ? 200 : 401, signedIn ? { wallet:ADMIN, expiresAt:new Date(Date.now() + 100_000).toISOString() } : { error:'Sign in.' });
     if (path === '/api/admin/challenge') return send(200, { nonce:'test', message:'funded.vip Devnet admin sign-in', expiresAt:new Date(Date.now() + 100_000).toISOString() });
     if (path === '/api/admin/session') { signedIn = true; return send(200, { wallet:ADMIN }); }
-    if (path === '/api/fee-policy') return send(200, { revision, split:{ operationsPercent:50, referralLevelPercents:[10, 3, 2], communityPercent:10, buybackPercent:25 } });
+    if (path === '/api/fee-policy') return send(200, { revision, split:{ operationsPercent:40, referralLevelPercents:[10, 3, 2], communityPercent:20, buybackPercent:25 } });
     if (path === '/api/admin/overview') return send(200, { wallets:[{ role:'Pump fee keeper', address:SOURCE, custody:'server signer', withdrawable:true, lamports:'2000000000' }],
       withdrawalDestinations:[ADMIN], revenue:{ verifiedCollectionsLamports:'1000000000', operationsAllocationLamports:'100000000', finalizedSettlementCount:1 },
       gates:{ launch:true, collection:true, settlement:true, holder:false, referral:false, xClaims:false, buyback:false } });
@@ -34,6 +34,8 @@ test('Devnet admin page signs in, shows balances and gates, and edits only the p
   await expect(page.locator('#workspace')).toBeHidden();
   await page.locator('#sign-in').click();
   await expect(page.locator('#workspace')).toBeVisible();
+  await expect(page.locator('#fee-gross-preview')).toContainText('8% Operations & marketing');
+  await expect(page.locator('#fee-gross-preview')).toContainText('4% Daily bonus');
   await expect(page.locator('#wallet-rows')).toContainText('2');
   await expect(page.locator('#gates')).toContainText('Enabled');
   await expect(page.locator('#withdraw-destination')).toHaveValue(ADMIN);
@@ -44,9 +46,11 @@ test('Devnet admin page signs in, shows balances and gates, and edits only the p
       .slice(0, 8).map(node => `${node.tagName.toLowerCase()}${node.id ? `#${node.id}` : ''}.${node.className || ''}`) }));
   expect(overflow.width, JSON.stringify(overflow)).toBeLessThanOrEqual(overflow.viewport);
   await page.screenshot({ path:test.info().outputPath('admin-mobile.png'), fullPage:true });
-  await page.locator('[name="operationsPercent"]').fill('40');
+  await page.locator('[name="operationsPercent"]').fill('30');
   await page.locator('[name="referral1"]').fill('20');
   await expect(page.locator('#fee-total')).toContainText('100.0000%');
+  await expect(page.locator('#fee-gross-preview')).toContainText('6% Operations & marketing');
+  await expect(page.locator('#fee-gross-preview')).toContainText('5% referrals');
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name:'Publish for future launches' }).click();
   await expect(page.locator('#policy-revision')).toContainText('Revision 1');

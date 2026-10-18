@@ -1,3 +1,5 @@
+import { currentFeePolicyCopy } from './src/features/fees/fee-policy-copy.js';
+
 // Reorganize secondary information without changing data, policies, or transaction controls.
 function compactHomeJackpot() {
   const spotlight = document.querySelector('.home-jackpot-spotlight');
@@ -219,18 +221,18 @@ function shortenPageCopy() {
   const edits = [
     ['#payments > .workspace-page-header > p:last-child', 'Claim rewards and track your payments.'],
     ['#my-launches > .section-heading .panel-explainer', 'Your launches and saved tokens.'],
-    ['#capital-flow > .section-heading .panel-explainer', 'See how collected creator fees are shared.'],
+    ['#capital-flow > .section-heading .panel-explainer', currentFeePolicyCopy().scope],
     ['#launch-route-shell > .page-lede', 'Add your token details, choose rewards, and review the total before signing.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
     ['#community .section-heading .panel-explainer', 'Use the same verified wallet or X account to access favorites on another device.'],
     ['#capital-flow-title', 'Where every SOL goes'],
-    ['#analytics-detail .split-detail', 'This shows the published fee split. Actual payments appear after confirmation.'],
+    ['#analytics-detail .split-detail', currentFeePolicyCopy().scope],
     ['#token-image-help', 'PNG, JPG, WEBP · 12 MB max · square image recommended'],
     ['#launch-route-shell .launch-immutable-note', 'Token details publish at launch and cannot be edited here later.'],
     ['#referral-command-center .section-heading .panel-explainer', 'Share your link. Rewards come from collected creator fees, not signups.'],
     ['#referral-command-center .referral-share-panel .field-help', 'Use one link per campaign. Never promise returns.'],
     ['#referral-faq .faq-grid details:nth-child(1) p', 'Rewards become available after a referred creator earns fees and those fees are collected. Signups alone earn nothing.'],
-    ['#referral-faq .faq-grid details:nth-child(2) p', 'Unfilled levels go to the community reserve; they are not reassigned.'],
+    ['#referral-faq .faq-grid details:nth-child(2) p', currentFeePolicyCopy().reserve],
     ['#referral-faq .faq-grid details:nth-child(3) p', 'Rates are policy, not promised income. Payouts depend on collected creator fees.'],
     ['#referral-faq .faq-grid details:nth-child(4) p', 'A failed or unconfirmed fee collection earns nothing. A payout appears only after the creator-signed transfer is finalized.'],
     ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Buy from the verified Solana pool. Check spend, then approve in your wallet.'],
@@ -259,13 +261,13 @@ const moneyFlowPosters = [
     selector: '[data-page-infographic="capital"]', image: 'fee-distribution-flow-v1.webp',
     key: 'distribution', title: 'CLAIMED FEE SPLIT', metric: '80% / 20%',
     metricLabel: 'creator-directed / protocol',
-    steps: ['10% Ops', '3% Referrals', '2% Community', '5% Buyback/burn'],
+    steps: () => currentFeePolicyCopy().steps,
   },
   {
     selector: '[data-infographic-poster="fees"]', image: 'fee-distribution-flow-v1.webp',
     key: 'distribution', title: 'CLAIMED FEE SPLIT', metric: '80% / 20%',
     metricLabel: 'creator-directed / protocol',
-    steps: ['10% Ops', '3% Referrals', '2% Community', '5% Buyback/burn'],
+    steps: () => currentFeePolicyCopy().steps,
   },
   {
     selector: '[data-infographic-poster="rewards"]', image: 'holder-rewards-flow-v1.webp',
@@ -277,7 +279,7 @@ const moneyFlowPosters = [
     selector: '[data-page-infographic="holder"]', image: 'holder-rewards-flow-v1.webp',
     key: 'rewards', title: 'HOLDER SOL PAYOUTS', metric: '0–80%',
     metricLabel: 'holder share set per token',
-    steps: ['Daily snapshot', '≥0.01 SOL payout', 'Receipt'],
+    steps: ['Verified cutoff', 'Eligible + funded', 'Finalized receipt'],
   },
 ];
 
@@ -286,7 +288,14 @@ function decorateMoneyFlowPosters() {
     const poster = document.querySelector(flow.selector);
     const figure = poster?.querySelector('figure');
     const picture = figure?.querySelector('img');
-    if (!poster || !figure || !picture || poster.dataset.moneyFlowPoster) continue;
+    if (!poster || !figure || !picture) continue;
+    const labels = typeof flow.steps === 'function' ? flow.steps() : flow.steps;
+    if (poster.dataset.moneyFlowPoster) {
+      figure.querySelectorAll('.money-flow-steps > span').forEach((item, i) => {
+        if (item.textContent !== labels[i]) item.textContent = labels[i];
+      });
+      continue;
+    }
     poster.dataset.moneyFlowPoster = flow.key;
     poster.setAttribute('aria-label', flow.title);
     picture.src = `/posters/${flow.image}`;
@@ -308,7 +317,7 @@ function decorateMoneyFlowPosters() {
     top.append(heading, stat);
     const steps = document.createElement('span');
     steps.className = 'money-flow-steps';
-    for (const label of flow.steps) {
+    for (const label of labels) {
       const item = document.createElement('span');
       item.textContent = label;
       steps.append(item);
@@ -338,6 +347,7 @@ function refreshConcisePages() {
   });
 }
 function startConcisePages() {
+  window.addEventListener('funded:fee-policy-ready', refreshConcisePages);
   refreshConcisePages();
   const observer = new MutationObserver(refreshConcisePages);
   observer.observe(document.body, { childList: true, subtree: true });

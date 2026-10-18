@@ -1,3 +1,16 @@
+import { currentFeePolicyCopy } from './src/features/fees/fee-policy-copy.js';
+
+const feeGuide = () => {
+  const copy = currentFeePolicyCopy();
+  return [
+    ['Current policy', copy.allocation, copy.scope],
+    ['Collection, settlement and funding', copy.collection, copy.creator],
+    ['Holder and X payments', copy.holders, copy.x],
+    ['Referral rewards', copy.referrals, copy.reserve],
+    ['Daily bonus', copy.bonus, copy.bonusFunding],
+    ['Buyback and burn', copy.buyback],
+  ].map(([title, ...paragraphs]) => `<h2>${title}</h2>${paragraphs.map(text => `<p>${text}</p>`).join('')}`).join('');
+};
 const topics = [
   {
     group: 'Getting started',
@@ -28,14 +41,14 @@ const topics = [
     group: 'Discovery and rewards',
     items: [
       { id: 'index', title: 'Launch Directory and boosts', body: '<p>Filter confirmed funded.vip launches by stage and verified promotion tier, then compare market cap, volume, trades, and reserve data in the table.</p><p>Boost actions show the configured Solana burn route and required confirmation. Paid listings appear only after the mint and burn are verified.</p>', href: '#explore', link: 'Open Launch Directory' },
-      { id: 'leaderboard', title: 'Leaderboard', body: '<p>The creator table ranks activity available from confirmed launches in the current feed. Trader and referral rankings stay unavailable until their activity can be verified.</p>', href: '#leaderboard', link: 'View leaderboard' },
+      { id: 'leaderboard', title: 'Leaderboard', body: '<p>The creator table ranks activity available from confirmed launches in the current feed. Daily bonus rankings for creators, referrers, and traders appear on Capital flow after a completed UTC day is verified. A rank is not a payment.</p>', href: '#leaderboard', link: 'View leaderboard' },
       { id: 'claims', title: 'Claiming rewards', body: '<p>Connect the eligible wallet and review the program evidence before any claim. A reserved allocation or policy percentage is not a claimable balance.</p><p>Claim controls open only after the required funding, snapshot, proof, and receipt checks are available.</p>', href: '#airdrops', link: 'Check airdrops' },
     ],
   },
   {
     group: 'Reference',
     items: [
-      { id: 'fees', title: 'Fees and costs', body: '<p>The published creator-fee policy routes 80% of gross collected fees to creator-directed destinations and 20% to protocol programs. The protocol share includes operations, referrals, community, and $FUNDED burn policy allocations.</p><p>These rates describe policy. Actual payouts and burns require finalized, indexed receipts.</p>', href: '#capital-flow', link: 'Review fee flow' },
+      { id: 'fees', title: 'Fees and costs', body: feeGuide, href: '#capital-flow', link: 'Review fee flow' },
       { id: 'verification', title: 'Current availability', body: '<p>Launches, trades, and payments appear when their Solana transactions can be confirmed. Some history may be temporarily unavailable.</p><p>A submitted transaction is still pending until it is confirmed. Check its status in the app or on Solana Explorer.</p>', href: '#docs', link: 'Check service status below' },
       { id: 'faq', title: 'FAQ', body: '<h3>Are the coins real?</h3><p>Confirmed launches create Solana tokens. Use the mint and transaction links on the coin page to inspect their on-chain records.</p><h3>Does connecting a wallet move funds?</h3><p>No. A wallet connection only provides an address. Transactions require a separate wallet approval.</p><h3>When can I claim an airdrop?</h3><p>After the token vault, eligibility snapshot, and claim proof have been verified. A policy reserve by itself is not a claimable balance.</p><h3>Where can I check a burn?</h3><p>Open the burn receipt from the tier badge or burn record and verify its transaction on Solana.</p>', href: '#airdrops', link: 'Check airdrop status' },
     ],
@@ -67,7 +80,7 @@ export function mountDocsReference(root) {
       if (active) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
     }
-    article.innerHTML = `<p class="eyebrow">${topics.find(group => group.items.includes(topic)).group}</p><h1>${topic.title}</h1><div class="docs-guide-body">${topic.body}</div><a class="docs-guide-link" href="${topic.href}">${topic.link} →</a><div class="docs-guide-next"><span>NEXT →</span><button type="button">${flat[(selected + 1) % flat.length].title}</button></div>`;
+    article.innerHTML = `<p class="eyebrow">${topics.find(group => group.items.includes(topic)).group}</p><h1>${topic.title}</h1><div class="docs-guide-body">${typeof topic.body === 'function' ? topic.body() : topic.body}</div><a class="docs-guide-link" href="${topic.href}">${topic.link} →</a><div class="docs-guide-next"><span>NEXT →</span><button type="button">${flat[(selected + 1) % flat.length].title}</button></div>`;
     article.querySelector('.docs-guide-next button').addEventListener('click', () => select(selected + 1, true));
     if (focus) article.focus({ preventScroll: true });
     if (updateHash && location.hash !== `#docs/${topic.id}`) location.hash = `#docs/${topic.id}`;

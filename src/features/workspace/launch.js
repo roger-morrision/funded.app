@@ -1,3 +1,4 @@
+import { currentFeePolicyCopy } from '../fees/fee-policy-copy.js';
 import { $, $$, text, node, disclose } from './dom.js';
 import { icon } from '../../../ui-icons.js';
 
@@ -48,9 +49,9 @@ export function launch() {
     const amount = Number(reserve.value);
     if (funding) funding.textContent = Number.isSafeInteger(amount) ? `${amount.toLocaleString()} tokens · ${(amount / 1e9 * 100).toFixed(2)}% of supply. Allowed: 30M–500M.` : 'Enter a whole token amount between 30M and 500M.';
   });
-  const route = node('div','launch-distribution-summary');
-  route.innerHTML = '<div class="distribution-bar" aria-label="80 percent creator-directed; 20 percent protocol"><i></i><i></i></div><p>80% creator-directed · 20% protocol<br><small>Percentages of gross collected creator fees. Allocation is not a paid reward.</small></p>';
-  $('.fee-split-fixed')?.after(route);
+  const copy = currentFeePolicyCopy();
+  const protocol = $('.launch-fee-options .benefit-grid article:last-child small');
+  if (protocol) protocol.textContent = `${copy.steps.join(' · ')} of gross collected fees. ${copy.scope}`;
   // The initial step is set by the application; align first paint before any interaction.
   page.dataset.step = '1';
   $$('[data-launch-step]',page).forEach(panel=>panel.hidden=panel.dataset.launchStep!=='1');

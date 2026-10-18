@@ -60,7 +60,7 @@ function renderSummary() {
   const total = [...unique.values()].reduce((sum, value) => sum + value, 0n);
   $('#summary').innerHTML = `<div><span>Listed app wallet SOL</span><strong>${sol(total)} SOL</strong><small>Finalized Devnet balance · ${unique.size} distinct addresses</small></div>
     <div><span>Verified V3 collections</span><strong>${sol(revenue.verifiedCollectionsLamports)} SOL</strong><small>Recorded gross fees, not profit or withdrawable cash</small></div>
-    <div><span>Operations allocation</span><strong>${sol(revenue.operationsAllocationLamports)} SOL</strong><small>${revenue.finalizedSettlementCount} finalized settlements · before payouts</small></div>`;
+    <div><span>Operations &amp; marketing allocation</span><strong>${sol(revenue.operationsAllocationLamports)} SOL</strong><small>${revenue.finalizedSettlementCount} finalized settlements · before payouts</small></div>`;
 }
 function renderWallets() {
   const rows = overview?.wallets || [];
@@ -99,6 +99,8 @@ function readSplit() {
 function feeTotal() {
   const split = readSplit(), rates = [split.operationsPercent, ...split.referralLevelPercents, split.communityPercent, split.buybackPercent];
   const total = rates.reduce((sum, value) => sum + value, 0);
+  const gross = value => `${Number((value / 5).toFixed(6))}%`;
+  $('#fee-gross-preview').textContent = `Gross collected fees: 80% creator-directed · ${gross(split.operationsPercent)} Operations & marketing · ${gross(split.referralLevelPercents.reduce((sum, rate) => sum + rate, 0))} referrals · ${gross(split.communityPercent)} Daily bonus · ${gross(split.buybackPercent)} buyback. Existing coins retain their saved policy.`;
   const target = $('#fee-total');
   target.textContent = `Protocol share total: ${total.toFixed(4)}% / 100%`;
   target.classList.toggle('invalid', Math.abs(total - 100) > 0.000001);
@@ -169,7 +171,7 @@ $('#more-vaults').addEventListener('click', () => loadVaults().catch(error => sh
 $('#fee-form').addEventListener('input', feeTotal);
 $('#fee-form').addEventListener('submit', event => { event.preventDefault(); (async () => {
   const split = validateProtocolFeeSplit(readSplit());
-  if (!confirm(`Publish this split for future V3 launches?\nOperations ${split.operationsPercent}% · referrals ${split.referralLevelPercents.join('/')}% · community ${split.communityPercent}% · buyback ${split.buybackPercent}%\nExisting mint policies remain unchanged.`)) return;
+  if (!confirm(`Publish this split for future V3 launches?\nOperations & marketing ${split.operationsPercent}% · referrals ${split.referralLevelPercents.join('/')}% · Daily bonus ${split.communityPercent}% · buyback ${split.buybackPercent}% (all percentages of the protocol share)\nExisting mint policies remain unchanged.`)) return;
   const updated = await post('/api/admin/fee-policy', { split, expectedRevision:policy.revision });
   policy = updated; renderPolicy(); show(`Fee policy revision ${updated.revision} published for future launches.`);
   await refreshAudit();

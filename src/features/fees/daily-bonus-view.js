@@ -1,3 +1,4 @@
+import { currentFeePolicyCopy } from './fee-policy-copy.js';
 const GROUPS = { creators:'Top creators', referrals:'Top referrers', traders:'Top traders' };
 const sol = value => {
   const n = BigInt(value || '0');
@@ -10,7 +11,7 @@ export function initDailyBonusView(document = globalThis.document) {
   const root = document.createElement('section');
   root.id = 'daily-bonus-dashboard'; root.className = 'panel daily-bonus-dashboard';
   root.setAttribute('aria-labelledby', 'daily-bonus-title');
-  root.innerHTML = `<div class="panel-heading"><div><p class="eyebrow">Daily bonus · SOL</p><h2 id="daily-bonus-title">Top 3. Every 24 hours.</h2></div><button type="button" data-bonus-refresh>Refresh</button></div><p>The Daily bonus fee allocation for new launches is split equally across creators, referrers, and traders. Each group awards 50% to 1st, 30% to 2nd, and 20% to 3rd.</p><p class="field-help">Creators rank by collected fees; referrers by their direct referred creators' collected fees; traders by verified buy and sell volume. Each UTC day closes at 00:00 UTC. Ties use wallet address order. Unfilled ranks retain their share in the reserve.</p><p data-bonus-status role="status">Checking daily snapshots…</p><label data-bonus-day-label hidden>Snapshot day (UTC)<select data-bonus-day aria-label="Daily bonus snapshot day"></select></label><div data-bonus-results></div>`;
+  root.innerHTML = `<div class="panel-heading"><div><p class="eyebrow">Daily bonus · SOL</p><h2 id="daily-bonus-title">Top 3. Every 24 hours.</h2></div><button type="button" data-bonus-refresh>Refresh</button></div><p>${currentFeePolicyCopy().bonus}</p><p class="field-help">${currentFeePolicyCopy().bonusFunding}</p><p data-bonus-status role="status">Checking daily snapshots…</p><label data-bonus-day-label hidden>Snapshot day (UTC)<select data-bonus-day aria-label="Daily bonus snapshot day"></select></label><div data-bonus-results></div>`;
   parent.append(root);
   const results = root.querySelector('[data-bonus-results]'), status = root.querySelector('[data-bonus-status]');
   const select = root.querySelector('select');
