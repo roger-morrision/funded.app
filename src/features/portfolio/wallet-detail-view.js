@@ -136,12 +136,12 @@ export function renderWalletDetail(
       || ['claim','reward','airdrop'].some(kind => history.coverage?.[kind] === 'unavailable')
       || ['partial','unavailable'].includes(history.coverage?.bonus)));
   const unavailableDetail = history.status === 'loading' ? 'Checking this wallet’s confirmed history…'
-    : activeFilter === 'bonus' ? walletBonusCoverage(history.coverage).message
+    : activeFilter === 'bonus' ? 'Some bonus records are unavailable. See source coverage below.'
     : historyCoverage === 'sign-in-required' ? 'Verify this wallet in Referrals to see private bonus records.'
     : historyCoverage === 'pending' ? 'V3 referral bonus payouts are not active yet.'
     : 'This history could not be verified right now. Please retry later.';
   content.innerHTML = rows.map(row => row.html).join('')
-    || walletDetailEmpty(historyUnavailable || coverageIncomplete ? 'Activity unavailable' : 'No matching activity',
+    || walletDetailEmpty(historyUnavailable || coverageIncomplete ? activeFilter === 'bonus' ? 'Bonus history incomplete' : 'Activity unavailable' : 'No matching activity',
       historyUnavailable ? unavailableDetail
         : coverageIncomplete ? 'Some activity cannot be shown right now. Please check again later.'
           : activeFilter === 'all' ? 'No confirmed launches, trades, burns, or wallet payments were found.'

@@ -7,7 +7,7 @@ const holderSignature = '4'.repeat(64);
 const bonusSignature = '5'.repeat(64);
 const payment = '6'.repeat(32);
 
-for (const referralStatus of [200, 401, 503]) test(`wallet profile shows Daily bonus receipts with referral HTTP ${referralStatus}`, async ({ page }) => {
+for (const [referralStatus, hasDailyReceipt] of [[200, true], [401, true], [503, true], [401, false]]) test(`wallet profile Daily bonus receipt ${hasDailyReceipt} with referral HTTP ${referralStatus}`, async ({ page }) => {
   await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'mocked unavailable' } }));
   await page.route('**/api/launches', route => route.fulfill({ json:[{
     mint, symbol:'QA', name:'QA token', creatorWallet:wallet, cluster:'devnet', onchainVerified:true,
@@ -39,10 +39,10 @@ for (const referralStatus of [200, 401, 503]) test(`wallet profile shows Daily b
     signature:'8'.repeat(64), payment:'9'.repeat(32), paidAt:'2026-10-17T12:00:00Z' };
   await page.route('**/api/daily-bonus', route => route.fulfill({ json:{ cluster:'devnet', snapshots:[{
     day:'2026-10-17', status:'snapshotted', hash:'c'.repeat(64), allocatedLamports:'500000', retainedLamports:'0',
-    rankings:{ creators:[], referrals:[], traders:[] }, sources:[{ status:'paid', mint, payments:{ [wallet]:dailyPayment,
+    rankings:{ creators:[], referrals:[], traders:[] }, sources:hasDailyReceipt ? [{ status:'paid', mint, payments:{ [wallet]:dailyPayment,
       [mint]:{ ...dailyPayment, amount:'9000000000', amountReceived:'9000000000', signature:'A'.repeat(64) } } },
       { status:'paid', mint, payments:{ [wallet]:dailyPayment } },
-      { status:'distributing', mint, payments:{ [wallet]:{ ...dailyPayment, finalized:false, signature:'B'.repeat(64) } } }],
+      { status:'distributing', mint, payments:{ [wallet]:{ ...dailyPayment, finalized:false, signature:'B'.repeat(64) } } }] : [],
   }] } }));
   await page.addInitScript(address => {
     const listeners = new Map();
@@ -71,18 +71,19 @@ for (const referralStatus of [200, 401, 503]) test(`wallet profile shows Daily b
   await page.locator('#connect-button').click();
   await page.locator('[data-wallet-choice="phantom"]').click();
   await expect(page.locator('#wallet-self-badge')).toBeVisible();
-  await expect(page.locator('#wallet-detail-content .wallet-activity-row')).toHaveCount(referralStatus === 200 ? 6 : 5);
+  await expect(page.locator('#wallet-detail-content .wallet-activity-row')).toHaveCount((referralStatus === 200 ? 6 : 5) - (hasDailyReceipt ? 0 : 1));
   for (const [filter, label] of [
     ['claim','X reward claimed'], ['reward','Holder reward received'],
-    ['airdrop','Community airdrop claimed'], ['bonus','Daily bonus received'],
+    ['airdrop','Community airdrop claimed'], ['bonus',hasDailyReceipt ? 'Daily bonus received' : 'Bonus history incomplete'],
   ]) {
     await page.locator(`[data-wallet-filter="${filter}"]`).click();
-    await expect(page.locator('#wallet-detail-content .wallet-activity-row')).toHaveCount(filter === 'bonus' && referralStatus === 200 ? 2 : 1);
+    await expect(page.locator('#wallet-detail-content .wallet-activity-row')).toHaveCount(filter === 'bonus' ? (hasDailyReceipt ? 1 : 0) + (referralStatus === 200 ? 1 : 0) : 1);
     await expect(page.locator('#wallet-detail-content')).toContainText(label);
   }
   await page.locator('[data-wallet-filter="bonus"]').click();
   const content = page.locator('#wallet-detail-content');
-  await expect(content).toContainText('0.00045 SOL');
+  if (hasDailyReceipt) await expect(content).toContainText('0.00045 SOL');
+  else expect((await content.textContent()).split('Verify this wallet in Referrals').length - 1).toBe(1);
   await expect(content).not.toContainText('9 SOL');
   await expect(page.locator('[data-wallet-bonus-coverage]')).toContainText('up to 30 published UTC snapshots');
   await expect(page.locator('[data-wallet-bonus-coverage]')).toContainText(referralStatus === 200 ? 'Referral bonus records loaded'
