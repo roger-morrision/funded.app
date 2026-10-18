@@ -44,13 +44,23 @@ export function verifyAutomaticPayment(schedule, recipient, payment, transaction
   const index = keys.indexOf(recipient);
   const pre = transaction.meta.preBalances, post = transaction.meta.postBalances;
   const fee = transaction.meta.fee;
+  let recipientRentLamports = 0;
+  if (index === 0 && payment.payment) {
+    const paymentIndex = keys.indexOf(payment.payment);
+    if (paymentIndex <= 0 || !Array.isArray(pre) || !Array.isArray(post)
+      || pre[paymentIndex] !== 0 || !Number.isSafeInteger(post[paymentIndex])
+      || post[paymentIndex] <= 0) return null;
+    recipientRentLamports = post[paymentIndex];
+  }
   if (!Number.isSafeInteger(amount) || amount <= 0 || !Number.isSafeInteger(transaction.slot) || transaction.slot <= 0
     || !Array.isArray(pre) || !Array.isArray(post) || pre.length !== post.length || pre.length !== keys.length
     || index < 0 || !Number.isSafeInteger(pre[index]) || !Number.isSafeInteger(post[index])
-    || post[index] - pre[index] !== (keys[0] === recipient ? amount - fee : amount)
-    || post[index] - pre[index] <= 0 || !Number.isSafeInteger(fee) || fee < 0 || !ADDRESS.test(keys[0])) return null;
+    || post[index] - pre[index] !== (keys[0] === recipient ? amount - fee - recipientRentLamports : amount)
+    || post[index] - pre[index] <= 0 && recipientRentLamports === 0
+    || !Number.isSafeInteger(fee) || fee < 0 || !ADDRESS.test(keys[0])) return null;
   return { signature:payment.signature, source:`automatic-${schedule.kind}`, to:recipient,
     amountLamports:amount, actualReceivedLamports:post[index] - pre[index], feeLamports:fee, feePayer:keys[0],
+    ...(recipientRentLamports > 0 ? {recipientRentLamports} : {}),
     slot:transaction.slot, blockTime:transaction.blockTime ?? null };
 }
 
@@ -223,7 +233,10 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
     });
     const rows = [...new Map([...attributed, ...automatic, ...creators, ...daily.rows].filter(row =>
       ADDRESS.test(String(row.to || '')) && SIGNATURE.test(String(row.signature || ''))
-      && Number.isSafeInteger(row.actualReceivedLamports) && row.actualReceivedLamports > 0
+      && Number.isSafeInteger(row.actualReceivedLamports)
+      && (row.actualReceivedLamports > 0 || row.feePayer === row.to
+        && Number.isSafeInteger(row.recipientRentLamports) && row.recipientRentLamports > 0
+        && row.actualReceivedLamports === row.amountLamports - row.feeLamports - row.recipientRentLamports)
       && (row.feeLamports === null || Number.isSafeInteger(row.feeLamports) && row.feeLamports >= 0)
       && ADDRESS.test(String(row.feePayer || '')))
       .map(row => [`${row.signature}:${row.to}`, row])).values()]
@@ -235,6 +248,6 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
         receivedLamports:String(daily.rows.reduce((sum,row)=>sum+BigInt(row.actualReceivedLamports),0n))},
       ...(v3Only ? { referralSummary } : {}),
       unavailablePayouts:unavailable, generatedAt:new Date().toISOString(),
-      note:'Network transaction fees are paid by the transaction fee payer; received amounts are verified recipient balance increases.' };
+      note:'Amounts show verified recipient balance changes. A receiver paying transaction fees and payment-account rent can have a net debit despite receiving a gross reward.' };
   });
 }

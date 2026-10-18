@@ -144,9 +144,9 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     const amount = document.createElement('span');
     amount.className = 'payment-amount';
     const amountValue = document.createElement('strong');
-    amountValue.textContent = formatTokenBaseAmount(receipt.actualReceivedLamports, 9, 9);
+    amountValue.textContent = `${receipt.actualReceivedLamports < 0 ? '-' : ''}${formatTokenBaseAmount(Math.abs(receipt.actualReceivedLamports), 9, 9)}`;
     const amountUnit = document.createElement('small');
-    amountUnit.textContent = 'SOL received';
+    amountUnit.textContent = receipt.recipientRentLamports > 0 ? 'SOL net change' : 'SOL received';
     amount.append(amountValue, amountUnit);
     const proof = document.createElement('a');
     proof.className = 'payment-receipt-link';
