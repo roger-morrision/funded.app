@@ -15,27 +15,38 @@ export function dailyBonusPayments(snapshot) {
       const received = positive(payment.amountReceived);
       const net = received != null && received <= amount ? received : null;
       const keys = [account && `account:${account}:${wallet}`, signature && `tx:${signature}:${wallet}`].filter(Boolean);
-      const matches = keys.map(key => seen.get(key)).filter(Boolean);
-      const prior = matches[0];
-      if (prior) {
-        if (prior.identity !== `${amount}:${net}` || matches.some(row => row !== prior)) {
-          wallets.get(wallet).receivedLamports = null;
-          for (const match of matches) match.receipt.receivedLamports = null;
-        }
-        for (const key of keys) seen.set(key, prior);
-        continue;
-      }
       const row = wallets.get(wallet) || { receivedLamports:0n, receipts:[] };
-      row.receivedLamports = row.receivedLamports == null || net == null ? null : row.receivedLamports + net;
-      const receipt = { receivedLamports:net, signature, paymentAccount:account,
-        paidAt:payment.paidAt || null, day:source.snapshotDay || null,
-        href:`https://explorer.solana.com/${signature ? 'tx' : 'address'}/${signature || account}?cluster=devnet` };
-      const record = { identity:`${amount}:${net}`, receipt };
-      for (const key of keys) seen.set(key, record);
-      row.receipts.push(receipt);
+      const matches = [...new Set(keys.map(key => seen.get(key)).filter(Boolean))];
+      const record = matches[0] || { identity:`${amount}:${net}`, keys:new Set(),
+        receipt:{ receivedLamports:net, signature, paymentAccount:account,
+          paidAt:payment.paidAt || null, day:source.snapshotDay || null } };
+      if (!matches.length) row.receipts.push(record.receipt);
+      // A later proof may connect two previously separate recovered records.
+      // Remap every alias and remove the duplicate before calculating totals.
+      for (const match of matches.slice(1)) {
+        if (match.identity !== record.identity || match.receipt.receivedLamports == null)
+          record.receipt.receivedLamports = null;
+        for (const key of match.keys) record.keys.add(key);
+        record.receipt.signature ||= match.receipt.signature;
+        record.receipt.paymentAccount ||= match.receipt.paymentAccount;
+        record.receipt.paidAt ||= match.receipt.paidAt;
+        record.receipt.day ||= match.receipt.day;
+        row.receipts = row.receipts.filter(receipt => receipt !== match.receipt);
+      }
+      if (record.identity !== `${amount}:${net}`) record.receipt.receivedLamports = null;
+      record.receipt.signature ||= signature;
+      record.receipt.paymentAccount ||= account;
+      record.receipt.paidAt ||= payment.paidAt || null;
+      record.receipt.day ||= source.snapshotDay || null;
+      const proof = record.receipt;
+      proof.href = `https://explorer.solana.com/${proof.signature ? 'tx' : 'address'}/${proof.signature || proof.paymentAccount}?cluster=devnet`;
+      for (const key of keys) record.keys.add(key);
+      for (const key of record.keys) seen.set(key, record);
       wallets.set(wallet, row);
     }
   }
+  for (const row of wallets.values()) row.receivedLamports = row.receipts.reduce((total, receipt) =>
+    total == null || receipt.receivedLamports == null ? null : total + receipt.receivedLamports, 0n);
   return wallets;
 }
 

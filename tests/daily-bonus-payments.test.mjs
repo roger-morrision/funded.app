@@ -42,3 +42,28 @@ test('transaction and payment-account aliases identify the same received payment
     assert.equal(row.receipts.length, 1);
   }
 });
+
+test('a late linking proof merges separately recovered account and transaction receipts in every order', () => {
+  const full = { ...payment, payment:'5'.repeat(44) };
+  const accountOnly = { ...full, signature:null }, txOnly = { ...full, payment:null };
+  for (const rows of [[accountOnly, txOnly, full], [txOnly, accountOnly, full],
+    [full, accountOnly, txOnly], [full, txOnly, accountOnly], [accountOnly, full, txOnly], [txOnly, full, accountOnly]]) {
+    const row = dailyBonusPayments(snapshot(...rows, txOnly, accountOnly)).get(wallet);
+    assert.equal(row.receipts.length, 1);
+    assert.equal(row.receivedLamports, 450n);
+    assert.equal(row.receipts[0].signature, full.signature);
+    assert.equal(row.receipts[0].paymentAccount, full.payment);
+    assert.match(row.receipts[0].href, /\/tx\//);
+  }
+});
+
+test('merging proof aliases preserves conflicting or missing net evidence after later replays', () => {
+  const full = { ...payment, payment:'5'.repeat(44) };
+  for (const amountReceived of ['449', undefined]) {
+    const row = dailyBonusPayments(snapshot({ ...full, signature:null },
+      { ...full, payment:null, amountReceived }, full, payment, full)).get(wallet);
+    assert.equal(row.receipts.length, 1);
+    assert.equal(row.receivedLamports, null);
+    assert.equal(row.receipts[0].receivedLamports, null);
+  }
+});

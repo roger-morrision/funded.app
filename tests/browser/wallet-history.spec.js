@@ -39,7 +39,10 @@ for (const [referralStatus, hasDailyReceipt] of [[200, true], [401, true], [503,
     signature:'8'.repeat(64), payment:'9'.repeat(32), paidAt:'2026-10-17T12:00:00Z' };
   await page.route('**/api/daily-bonus', route => route.fulfill({ json:{ cluster:'devnet', snapshots:[{
     day:'2026-10-17', status:'snapshotted', hash:'c'.repeat(64), allocatedLamports:'500000', retainedLamports:'0',
-    rankings:{ creators:[], referrals:[], traders:[] }, sources:hasDailyReceipt ? [{ status:'paid', mint, payments:{ [wallet]:dailyPayment,
+    rankings:{ creators:[], referrals:[], traders:[] }, sources:hasDailyReceipt ? [
+      { status:'paid', mint, payments:{ [wallet]:{ ...dailyPayment, signature:null } } },
+      { status:'paid', mint, payments:{ [wallet]:{ ...dailyPayment, payment:null } } },
+      { status:'paid', mint, payments:{ [wallet]:dailyPayment,
       [mint]:{ ...dailyPayment, amount:'9000000000', amountReceived:'9000000000', signature:'A'.repeat(64) } } },
       { status:'paid', mint, payments:{ [wallet]:dailyPayment } },
       { status:'distributing', mint, payments:{ [wallet]:{ ...dailyPayment, finalized:false, signature:'B'.repeat(64) } } }] : [],

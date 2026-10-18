@@ -11,8 +11,10 @@ test('fee calculator shows 8/4 and daily rankings distinguish allocations from f
       rankings:Object.fromEntries(['creators', 'referrals', 'traders'].map(group => [group,
         wallets.map((wallet, index) => ({ rank:index + 1, wallet, scoreLamports:String(300 - index),
           bonusLamports:String([500, 300, 200][index]), percentOfCategory:[50, 30, 20][index] }))])),
-      sources:[{ mint:wallets[0], status:paid ? 'paid' : 'awaiting-verified-community-funding',
-        payments:paid ? { [wallets[1]]:{ amount:'500', amountReceived:'450', finalized:true, balanceDeltaVerified:true, signature:'3'.repeat(88) } } : {} }] }] } }));
+      sources:(paid ? [{ signature:null, payment:'5'.repeat(44) }, { signature:'3'.repeat(88) },
+        { signature:'3'.repeat(88), payment:'5'.repeat(44) }] : [{}]).map(proof => ({
+        mint:wallets[0], status:paid ? 'paid' : 'awaiting-verified-community-funding',
+        payments:paid ? { [wallets[1]]:{ amount:'500', amountReceived:'450', finalized:true, balanceDeltaVerified:true, ...proof } } : {} })) }] } }));
   await page.route('https://**/*', route => route.abort());
   await page.goto('/#capital-flow');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
