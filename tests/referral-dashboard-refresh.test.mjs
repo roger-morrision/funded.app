@@ -31,16 +31,21 @@ function fixture({ claims = null } = {}) {
   const panel = element();
   const dashboard = element();
   const paidNode = element();
+  const activeNode = element();
+  const conversionNode = element();
   const ledger = element();
   const calls = [];
   let authenticated = false;
   let authenticatedWallet = 'wallet';
   let signatures = 0;
   let signError = null;
+  let claimsAvailable = true;
+  let dashboardAvailable = true;
   const session = { address: 'wallet', provider: { async signMessage() { signatures++; if (signError) throw signError; return { signature: new Uint8Array(64).fill(7) }; } } };
   const context = {
     TextEncoder,
     formatReferralLamports,
+    exploreExplorer: path => `https://explorer.solana.com/${path}?cluster=devnet`,
     referralStatusLabel, referralClaimStatusLabel, isReferralSignInCancelled,
     paginateHistory: () => {},
     bs58: { encode(bytes) { assert.equal(bytes.length, 64); return 'fixture-signature'; } },
@@ -55,7 +60,7 @@ function fixture({ claims = null } = {}) {
       documentElement: {dataset:{}},
       body: {classList:{contains:()=>false}},
       querySelectorAll: () => [],
-      querySelector(selector) { return selector === '#referral-claim-center' ? panel : selector === '#referral-command-center' ? dashboard : selector === '#referral-paid-total' ? paidNode : selector === '#referral-ledger-list' ? ledger : null; },
+      querySelector(selector) { return selector === '#referral-claim-center' ? panel : selector === '#referral-command-center' ? dashboard : selector === '#referral-paid-total' ? paidNode : selector === '#referral-active-creators' ? activeNode : selector === '#referral-conversion-rate' ? conversionNode : selector === '#referral-ledger-list' ? ledger : null; },
       createElement: element,
     },
     async apiRequest(path, options = {}) {
@@ -70,8 +75,8 @@ function fixture({ claims = null } = {}) {
         authenticated = true;
         return { available: true, data: { authenticated: true, wallet: session.address } };
       }
-      if (path.startsWith('/api/referral-claims?')) return claims ? { available:true, data:{ claims } } : { available:false };
-      if (path.startsWith('/api/referrals/dashboard?')) return claims ? { available:true, data:{ networkCreators:1, qualifiedCreators:1, conversionRate:100 } } : { available:false };
+      if (path.startsWith('/api/referral-claims?')) return claims && claimsAvailable ? { available:true, data:{ claims } } : { available:false };
+      if (path.startsWith('/api/referrals/dashboard?')) return claims && dashboardAvailable ? { available:true, data:{ networkCreators:1, qualifiedCreators:1, conversionRate:100 } } : { available:false };
       assert.fail(`Unexpected request: ${path}`);
     },
   };
@@ -81,6 +86,8 @@ function fixture({ claims = null } = {}) {
     refresh: () => context.refreshReferralClaims(),
     panel,
     paidNode,
+    activeNode,
+    conversionNode,
     ledger,
     calls,
     get status() { return context.document.documentElement.dataset.referralStatus; },
@@ -90,6 +97,8 @@ function fixture({ claims = null } = {}) {
     expire() { authenticated = false; context.walletSignIn.clear(); },
     mismatch() { authenticated = true; authenticatedWallet = 'another-wallet'; },
     authenticate() { authenticated = true; },
+    failClaims() { claimsAvailable = false; },
+    failDashboard() { dashboardAvailable = false; },
   };
 }
 
@@ -154,4 +163,42 @@ test('declined wallet sign-in gives a truthful retry without loading private rew
   await f.panel.children.find(child => child.textContent === 'Sign in with wallet').click();
   assert.equal(f.signatures, 2);
   assert(f.calls.includes('/api/referrals/session/verify'));
+});
+
+const paidClaims = [{ level:1, amount:0.000057714, amountLamports:'57714',
+  asset:'SOL', status:'paid', payoutSignature:'finalized-qa-signature' }];
+
+test('expired sign-in clears previously displayed private referral totals', async () => {
+  const f = fixture({ claims:paidClaims }); f.authenticate(); await f.refresh();
+  assert.equal(f.paidNode.textContent, '0.000057714 SOL');
+  f.expire(); await f.refresh();
+  assert.equal(f.paidNode.textContent, '— SOL');
+  assert.equal(f.activeNode.textContent, '—');
+  assert.equal(f.conversionNode.textContent, '—');
+});
+
+test('independent referral request failures clear only their unavailable metrics', async () => {
+  const f = fixture({ claims:paidClaims }); f.authenticate(); await f.refresh();
+  f.failDashboard(); await f.refresh();
+  assert.equal(f.activeNode.textContent, '—');
+  assert.equal(f.conversionNode.textContent, '—');
+  assert.equal(f.paidNode.textContent, '0.000057714 SOL');
+  f.failClaims(); await f.refresh();
+  assert.equal(f.paidNode.textContent, '— SOL');
+});
+
+test('paid referral receipts link directly to the configured network explorer', async () => {
+  const f = fixture({ claims:paidClaims }); f.authenticate(); await f.refresh();
+  const link = f.panel.children[1].children.find(child => child.href);
+  assert(link);
+  assert.equal(link.href, 'https://explorer.solana.com/tx/finalized-qa-signature?cluster=devnet');
+  assert.equal(link.target, '_blank');
+  assert.equal(link.rel, 'noopener noreferrer');
+});
+
+test('malformed claim history is unavailable rather than a zero payout or thrown render', async () => {
+  const f = fixture({ claims:{} }); f.authenticate();
+  await f.refresh();
+  assert.equal(f.status, 'Rewards unavailable');
+  assert.equal(f.paidNode.textContent, '— SOL');
 });

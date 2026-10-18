@@ -116,6 +116,15 @@ function updateReferralStatus(state){
   if (document.body.classList.contains('page-route-referrals')) { const node = document.querySelector('#route-guide-state'); if (node) node.textContent = label; }
 }
 
+  function clearReferralMetrics({ payouts = true, network = true } = {}){
+    if (network) appState.renderShareInsights({ available:false });
+    const values = { ...(payouts ? { 'referral-paid-total':'— SOL' } : {}),
+      ...(network ? { 'referral-active-creators':'—', 'referral-conversion-rate':'—' } : {}) };
+    for (const [id, value] of Object.entries(values)) {
+      const node = document.querySelector(`#${id}`); if (node) node.textContent = value;
+    }
+  }
+
 
   function renderReferralClaimPrompt(title = 'Connect wallet to check referral rewards', note = 'Finalized creator-signed V3 payouts appear in your history.', approve = false){
     const panel = document.querySelector('#referral-claim-center');
@@ -166,6 +175,7 @@ function updateReferralStatus(state){
     try {
       if (!await appState.ensureReferralSession(session, { interactive })) {
         if (appState.isWalletSessionCurrent(session)) {
+          clearReferralMetrics();
           updateReferralStatus('verification');
           appState.renderReferralClaimPrompt('Sign in with wallet to view referral rewards', 'Approve one free sign-in message. Your session works across referrals and token discussions for one hour.', true);
           appState.renderReferralActivityEmpty('Wallet verification needed', 'Verify your wallet to check referral activity.');
@@ -175,6 +185,7 @@ function updateReferralStatus(state){
       }
     } catch (error) {
       if (appState.isWalletSessionCurrent(session)) {
+        clearReferralMetrics();
         const cancelled = isReferralSignInCancelled(error);
         updateReferralStatus(cancelled ? 'cancelled' : 'unavailable');
         appState.renderReferralClaimPrompt(cancelled ? 'Wallet connected · sign-in cancelled' : 'Wallet connected · sign-in unavailable',
@@ -196,10 +207,10 @@ function updateReferralStatus(state){
       appState.renderReferralActivityEmpty(creators > 0 ? 'Network summary available' : 'No qualified activity yet', creators > 0
         ? `${creators} network creator${creators === 1 ? '' : 's'} reported. Individual activity is not available in this view.`
         : 'Qualified activity appears after verified fee collection is indexed.');
-    } else appState.renderReferralActivityEmpty('Activity unavailable', 'The referral dashboard could not be loaded. Try again later.');
-    if (!result.available) { updateReferralStatus('unavailable'); appState.renderReferralClaimPrompt('Referral payout history unavailable', 'We cannot verify payout receipts right now. Try again later.'); appState.renderReferralLedgerEmpty('Receipts unavailable', 'Payout receipts could not be loaded. Try again later.'); return; }
+    } else { clearReferralMetrics({ payouts:false }); appState.renderReferralActivityEmpty('Activity unavailable', 'The referral dashboard could not be loaded. Try again later.'); }
     if (dashboardResult.available) { const active = document.querySelector('#referral-active-creators'); if (active) active.textContent = String(dashboardResult.data.qualifiedCreators ?? '—'); const conversion = document.querySelector('#referral-conversion-rate'); if (conversion) conversion.textContent = dashboardResult.data.conversionRate == null ? '—' : `${dashboardResult.data.conversionRate}%`; }
-    const claims = Array.isArray(result.data.claims) ? result.data.claims : [];
+    if (!result.available || !Array.isArray(result.data?.claims)) { clearReferralMetrics({ network:false }); updateReferralStatus('unavailable'); appState.renderReferralClaimPrompt('Referral payout history unavailable', 'We cannot verify payout receipts right now. Try again later.'); appState.renderReferralLedgerEmpty('Receipts unavailable', 'Payout receipts could not be loaded. Try again later.'); return; }
+    const claims = result.data.claims;
     updateReferralStatus(claims.length ? 'recorded' : 'ready');
     const paidLamports = claims.filter(claim => claim.status === 'paid')
       .reduce((sum, claim) => sum + BigInt(claim.amountLamports || '0'), 0n);
@@ -211,10 +222,13 @@ function updateReferralStatus(state){
     if (!panel) { panel = document.createElement('div'); panel.id = 'referral-claim-center'; panel.className = 'referral-dashboard'; panel.setAttribute('aria-live', 'polite'); dashboard.querySelector('.referral-kpi-grid')?.after(panel); }
     panel.replaceChildren();
     const heading = document.createElement('div'); const title = document.createElement('strong'); title.textContent = 'Referral history'; const note = document.createElement('small'); note.textContent = claims.length ? 'Finalized V3 referral payouts.' : 'Creator-signed V3 payouts appear here after final confirmation.'; heading.append(title, note); panel.append(heading);
-    for (const claim of result.data.claims) {
+    for (const claim of claims) {
       const row = document.createElement('div'); row.className = 'referral-claim-row'; const label = document.createElement('span'); label.textContent = `Level ${claim.level} · ${formatReferralLamports(claim.amountLamports || '0')} ${claim.asset} · ${referralClaimStatusLabel(claim.status)}`; row.append(label);
       if (claim.status === 'paid' && claim.payoutSignature) {
         const receipt = document.createElement('small'); receipt.textContent = `Paid · ${claim.payoutSignature}`; row.append(receipt);
+        const proof = document.createElement('a'); proof.textContent = 'Verify payout ↗';
+        proof.href = appState.exploreExplorer(`tx/${encodeURIComponent(claim.payoutSignature)}`);
+        proof.target = '_blank'; proof.rel = 'noopener noreferrer'; row.append(proof);
         if (claim.asset === 'SOL' && Number(claim.amount) > 0) {
           const sharePaid = document.createElement('button'); sharePaid.type = 'button'; sharePaid.className = 'secondary-button'; sharePaid.textContent = 'Share receipt card';
           sharePaid.addEventListener('click', async () => {
