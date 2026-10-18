@@ -8,7 +8,7 @@ const panel = (prefix, eyebrow, title, description, link = '') => `
     <div class="home-buyback-track" role="progressbar" aria-label="Checking eligible buyback progress" aria-valuetext="Checking verified trigger" id="${prefix}-track"><span id="${prefix}-fill"></span></div>
     <div class="home-buyback-live-foot"><span id="${prefix}-status">Checking finalized vault balances</span><span id="${prefix}-trigger">Checking trigger…</span></div>
     <small id="${prefix}-older" class="home-buyback-older" hidden></small>
-    <div class="home-buyback-last"><span>Last verified buy and burn</span><strong id="${prefix}-last-time">No verified burn yet</strong><a id="${prefix}-proof" hidden target="_blank" rel="noopener noreferrer">View transaction ↗</a></div>
+    <div class="home-buyback-last"><span>Last verified buy and burn</span><strong id="${prefix}-last-time">Checking burn history…</strong><a id="${prefix}-proof" hidden target="_blank" rel="noopener noreferrer">View transaction ↗</a></div>
   </div>`;
 
 export function mountBuybackProgressPanels(document) {

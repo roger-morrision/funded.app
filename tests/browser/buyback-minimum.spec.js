@@ -3,6 +3,23 @@ import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 const offlineFixture=route=>new URL(route.request().url()).pathname==='/api/fee-policy'
   ? route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}})
   : route.fulfill({status:503,json:{error:'Offline fixture'}});
+
+for(const [name,status,dashboard,expected] of [
+  ['transport failure',503,null,'Burn verification unavailable'],
+  ['unavailable verification',200,{status:'unavailable',lastBurn:null},'Burn verification unavailable'],
+  ['verified empty history',200,{status:'verified',collectedLamports:'0',lastBurn:null},'No verified burn yet'],
+  ['known burn during a vault verification gap',200,{status:'partial',lastBurn:{signature:'3'.repeat(64),burnedAt:'2026-10-18T12:00:00Z'}},/2026/],
+]) test(`buyback last-burn panels distinguish ${name}`,async({page})=>{
+  await page.route('https://**/*',route=>route.abort());await page.route('**/api/**',offlineFixture);
+  await page.route('**/api/buyback/status',route=>route.fulfill({status,json:{cluster:'devnet',receipts:[],pending:[],dashboard}}));
+  await page.goto('/#buybacks');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  for(const prefix of ['home-buyback','buyback-route']){
+    await expect(page.locator(`#${prefix}-last-time`)).toHaveText(expected);
+    const proof=page.locator(`#${prefix}-proof`);
+    if(dashboard?.lastBurn)await expect(proof).toHaveAttribute('href',/3{64}\?cluster=devnet$/);
+    else {await expect(proof).toHaveAttribute('hidden','');await expect(proof).not.toHaveAttribute('href',/./);}
+  }
+});
 for(const width of [1280,390])test(`small buyback allocations explain retained funds without hiding reconciliation at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:844});
   await page.route('https://**/*',route=>route.abort());
