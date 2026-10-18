@@ -101,6 +101,22 @@ export async function runXPostCycle({ config, store, mainStore, readRewards, ada
     collected: events.length, sourceGaps: collected.sourceGaps, dispatch };
 }
 
+export async function pollXPostWorker({ config, prepare, dispatch, shouldStop,
+  wait, report, blocked }) {
+  while (!shouldStop()) {
+    try {
+      const adapters = await prepare();
+      if (shouldStop()) break;
+      report(await dispatch(adapters));
+    } catch (error) {
+      blocked(error);
+      if (config.mode !== 'loop') throw error;
+    }
+    if (config.mode !== 'loop' || shouldStop()) break;
+    await wait(config.intervalMs);
+  }
+}
+
 async function main(args) {
   const env = await loadSecrets(process.env, args.includes('--execute'));
   const config = xWorkerConfig(env, args);
@@ -129,34 +145,37 @@ async function main(args) {
         ? AbortSignal.any([options.signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000) }) });
     const v3ProgramId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
     if (!v3ProgramId) throw new Error('The V3 Devnet router program is required for X event verification.');
-    const v3Router = await verifyFeeRouterAccount({ connection, programId:v3ProgramId,
-      commitment:'finalized' });
-    if (!v3Router.verified || !v3Router.authority)
-      throw new Error('The finalized V3 router authority is unavailable for X event verification.');
-    const adapters = createXPostChainAdapters({ connection, fundedMint: env.FUNDED_TOKEN_MINT || env.VITE_FUNDED_TOKEN_MINT,
-      programId: v3ProgramId, rewardAuthority:v3Router.authority.toBase58() });
-    Object.assign(adapters,createAutomaticPayoutVerifier({connection,programId:v3ProgramId,
-      authority:v3Router.authority.toBase58(),approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256}));
-    adapters.verifyPublicClosedTrade = createXProfitVerifier({ connection, publicOrigin: config.origin, xAccount: config.handle,
-      appFeeRecipient: env.FUNDED_TRADE_FEE_OWNER || env.VITE_FUNDED_TRADE_FEE_OWNER || null });
+    const prepareAdapters = async () => {
+      const v3Router = await verifyFeeRouterAccount({ connection, programId:v3ProgramId,
+        commitment:'finalized' });
+      if (!v3Router.verified || !v3Router.authority)
+        throw new Error('The finalized V3 router authority is unavailable for X event verification.');
+      const adapters = createXPostChainAdapters({ connection, fundedMint: env.FUNDED_TOKEN_MINT || env.VITE_FUNDED_TOKEN_MINT,
+        programId: v3ProgramId, rewardAuthority:v3Router.authority.toBase58() });
+      Object.assign(adapters,createAutomaticPayoutVerifier({connection,programId:v3ProgramId,
+        authority:v3Router.authority.toBase58(),approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256}));
+      adapters.verifyPublicClosedTrade = createXProfitVerifier({ connection, publicOrigin: config.origin, xAccount: config.handle,
+        appFeeRecipient: env.FUNDED_TRADE_FEE_OWNER || env.VITE_FUNDED_TRADE_FEE_OWNER || null });
+      return adapters;
+    };
     const ledger = rewardLedgerPath(env);
     const readRewards = async () => {
       try { await access(ledger); } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
       return createAutomaticRewardStore(ledger).read();
     };
-    do {
-      try {
+    await pollXPostWorker({ config, prepare:prepareAdapters, shouldStop:() => stopping,
+      dispatch:async adapters => {
         if (publisher) { await verifyPublicApp(config); await publisher.verifyAccount(); }
-        const report = await runXPostCycle({ config, store: outbox, mainStore, readRewards, adapters,
+        return runXPostCycle({ config, store: outbox, mainStore, readRewards, adapters,
           publish: publisher ? (event, options) => publisher.publish(event, options) : undefined });
-        console.log(JSON.stringify({ at: new Date().toISOString(), ...report }));
-      } catch (error) {
-        console.error(JSON.stringify({ status: 'blocked', reason: error.message }));
-        if (config.mode !== 'loop') throw error;
-      }
-      if (config.mode !== 'loop' || stopping) break;
-      await new Promise(resolve => { const timer = setTimeout(resolve, config.intervalMs); wake = () => { clearTimeout(timer); resolve(); }; });
-    } while (!stopping);
+      },
+      report:result => console.log(JSON.stringify({ at:new Date().toISOString(), ...result })),
+      blocked:error => console.error(JSON.stringify({ at:new Date().toISOString(), status:'blocked', reason:error.message })),
+      wait:ms => new Promise(resolve => {
+        const timer = setTimeout(() => { wake = null; resolve(); }, ms);
+        wake = () => { clearTimeout(timer); wake = null; resolve(); };
+      }),
+    });
   } finally {
     await mainStore?.close(); await outbox.close();
     process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop);
