@@ -14,10 +14,10 @@ const [program,authority,mint,creator,recipient]=keys.map(k=>k.publicKey.toBase5
 const signature=n=>bs58.encode(Buffer.alloc(64,n));
 const start=Date.parse('2026-10-17')/1000;
 const discriminator=(space,name)=>createHash('sha256').update(`${space}:${name}`).digest().subarray(0,8);
-function fixture({recovered=false,self=false,qa=false}={}) {
+function fixture({recovered=false,self=false,qa=false,cohort=false}={}) {
   const wallet=self ? authority : recipient;
   const collection=signature(1), settlement=signature(2), funding=signature(3), paid=signature(4);
-  const snapshot=buildDailyBonusSnapshot({day:qa ? 'qa5m:2026-10-17T00:00:00Z' : '2026-10-17',now:start+86400,
+  const snapshot=buildDailyBonusSnapshot({day:qa ? `qa5m:2026-10-17T00:00:00Z${cohort ? '@abcdef012345' : ''}` : '2026-10-17',now:start+86400,
     coverage:[{mint,complete:true}],collections:[{signature:collection,settlementSignature:settlement,
       mint,creator:wallet,referrer:null,blockTime:start+1,finalized:true,amountLamports:'1000000000',
       communityLamports:'40000000',dailyBonusVersion:1}],trades:[]});
@@ -69,10 +69,10 @@ function fixture({recovered=false,self=false,qa=false}={}) {
   return {read,ledger,app,tx,accounts,addresses,cycle,receipt,reads,connection,leaf,paid,wallet,rent,fee};
 }
 
-test('five-minute QA manifests retain independent finalized payment verification',async()=>{
-  const f=fixture({qa:true}),history=await f.read();
+for(const cohort of [false,true])test(`five-minute QA manifests retain independent finalized payment verification (cohort=${cohort})`,async()=>{
+  const f=fixture({qa:true,cohort}),history=await f.read();
   assert.equal(history.verifiedPayouts.length,1);
-  assert.equal(history.verifiedPayouts[0].day,'qa5m:2026-10-17T00:00:00Z');
+  assert.equal(history.verifiedPayouts[0].day,`qa5m:2026-10-17T00:00:00Z${cohort ? '@abcdef012345' : ''}`);
   assert.equal(history.verifiedPayouts[0].actualReceivedLamports,Number(f.leaf.amount));
 });
 test('daily receipts enter global history and Analytics once, with explicit daily totals',async()=>{

@@ -78,7 +78,8 @@ export function createKeeperCollectionRoutes({
           claimId:row.claimId, amountLamports:String(row.collectedLamports),
           status:state.v3Settlements?.[row.signature]?.status || 'awaiting-creator-signature' }));
       return json(res, 200, { cluster:solanaCluster, minimumCollectionLamports:'10000000', mints:launches.map(row => ({ mint:row.mint,
-        scope:row.pumpFeeRoute.scope, collectionStatus:state.alerts?.[`fee-collect:${row.mint}`]?.status || null })),
+        scope:row.pumpFeeRoute.scope, collectionStatus:pendingV3Settlements.some(source=>source.mint===row.mint)
+          ? 'awaiting-creator-settlement' : state.alerts?.[`fee-collect:${row.mint}`]?.status || null })),
         pendingSettlements:[], pendingV3Settlements });
     }
     if (req.method === 'POST' && url.pathname === '/api/keeper/collect') {
@@ -94,10 +95,15 @@ export function createKeeperCollectionRoutes({
       const started = await store.update(state => {
         const key = `fee-collect:${mintKey}`;
         if (state.alerts?.[key] && !['complete','nothing-to-collect','no-fees'].includes(state.alerts[key].status)) return false;
+        const pending = Object.values(state.collections || {}).find(row=>row.mint===mintKey
+          && row.scope==='per-mint-v3' && state.v3Settlements?.[row.signature]?.status!=='finalized');
+        if(pending) return { awaitingSettlement:pending.signature };
         state.alerts ||= {};
         state.alerts[key] = { mint:mintKey, status:'executing', startedAt:new Date().toISOString() };
         return true;
       });
+      if(started?.awaitingSettlement) return json(res,409,{status:'awaiting-creator-settlement',
+        collectionSignature:started.awaitingSettlement,error:'Settle the existing V3 collection before collecting more fees. No transaction was submitted.'});
       if (!started) return json(res, 409, { error:'A previous fee collection needs operator reconciliation before retry.' });
       let result;
       try { result = await collectPumpCreatorFees({ requestedMint: mintKey }); }

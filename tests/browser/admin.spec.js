@@ -4,7 +4,7 @@ const ADMIN = 'CG87C9tjCSB9BAoKfoPUM3mLvbg3WAK1NGNQCWi12zcJ';
 const SOURCE = '7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y';
 
 for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot recovery (${qa ? 'five-minute QA' : 'daily'})`, async ({ page }) => {
-  const selectedDay=qa ? 'qa5m:2026-10-17T00:00:00Z' : '2026-10-17', paidDay=qa ? 'qa5m:2026-10-16T00:00:00Z' : '2026-10-16';
+  const selectedDay=qa ? 'qa5m:2026-10-17T00:00:00Z@abcdef012345' : '2026-10-17', paidDay=qa ? 'qa5m:2026-10-16T00:00:00Z' : '2026-10-16';
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   let signedIn = false, revision = 0, recoveryApplied = null;
@@ -25,7 +25,7 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
       withdrawalDestinations:[ADMIN], revenue:{ verifiedCollectionsLamports:'1000000000', operationsAllocationLamports:'100000000', finalizedSettlementCount:1 },
       gates:{ launch:true, collection:true, settlement:true, holder:false, referral:false, xClaims:false, buyback:false } });
     if (path === '/api/admin/audit') return send(200, { entries:[] });
-    if (path === '/api/daily-bonus') return send(200,{cluster:'devnet',schedule:qa ? {mode:'devnet-qa-5m',periodSeconds:300} : {mode:'daily',periodSeconds:86400},nextCutoffAt:'2026-10-17T00:10:00Z',snapshots:[{day:selectedDay,hash:'a'.repeat(64),sources:[]},{day:paidDay,hash:'c'.repeat(64),sources:[{status:'paid'}]}]});
+    if (path === '/api/daily-bonus') return send(200,{cluster:'devnet',schedule:qa ? {mode:'devnet-qa-5m',periodSeconds:300,cohort:'abcdef012345'} : {mode:'daily',periodSeconds:86400},nextCutoffAt:'2026-10-17T00:10:00Z',snapshots:[{day:selectedDay,hash:'a'.repeat(64),sources:[]},{day:paidDay,hash:'c'.repeat(64),sources:[{status:'paid'}]}]});
     if (path === '/api/admin/daily-bonus/snapshot') return send(200,{snapshot:{day:selectedDay,hash:'a'.repeat(64)},payouts:{},status:'snapshotted'});
     if (path === '/api/admin/daily-bonus/review') return send(200,{day:selectedDay,expectedHash:'a'.repeat(64),expectedNewHash:'b'.repeat(64),rankings:{},sources:1});
     if (path === '/api/admin/daily-bonus/reconcile') {

@@ -12,7 +12,10 @@ import {launchPolicyStatement} from '../launch-policy-auth.js';
 import {metadataStatement} from '../devnet-metadata.js';
 import {DEVNET_GENESIS_HASH} from '../server/automatic-reward-chain.mjs';
 const base='https://funded.vip',execute=process.argv.includes('--execute'),resume=process.argv.includes('--resume');
-const file=new URL('../tmp/bonus-5m-qa-session.json',import.meta.url);
+const runId=process.argv.find(arg=>arg.startsWith('--run-id='))?.slice(9)||'session';
+assert(/^[a-z0-9-]{1,32}$/.test(runId),'Use a short QA run identifier.');
+const file=new URL(`../tmp/bonus-5m-qa-${runId}.json`,import.meta.url);
+const feeOwner=new PublicKey(process.env.FUNDED_TRADE_FEE_OWNER||'CmhmRtKYExJC76R5nsPV9ovPYacoEQFEL7VhaKRZmLy2');
 const secret=async name=>(await readFile(new URL(`../.secrets/${name}`,import.meta.url),'utf8')).trim();
 const creator=Keypair.fromSecretKey(bs58.decode(await secret('solana-devnet-creator-secret-key')));
 const payer=Keypair.fromSecretKey(bs58.decode(await secret('funded-router-authority-secret-key')));
@@ -61,12 +64,15 @@ if(!journal.mint){
 }
 assert(journal.registered,'Launch registration requires review before continuation.');
 console.log(JSON.stringify({stage:'launch-registered',mint:journal.mint,signature:journal.launchSignature}));
+assert.notEqual(feeOwner.toBase58(),journal.router,'The separate app trading fee must never be sent to the mint fee router.');
+if(process.argv.includes('--setup-only')){journal.setupOnly=true;await save();console.log(JSON.stringify({stage:'ready-for-qa-allowlist',mint:journal.mint}));process.exit(0);}
 if(process.argv.includes('--fresh-trades')){
   assert(resume&&!journal.collection&&journal.trades.length===3&&!journal.previousTrades,'A fresh bounded trade round requires one completed setup and no collection.');
   journal.previousTrades=journal.trades;journal.trades=[];await save();
 }
 if(!journal.trades.length){
-  assert(!resume||process.argv.includes('--fresh-trades'),'Trader stage was not completed; review before creating fresh traders.');
+  assert(!resume||journal.setupOnly||process.argv.includes('--fresh-trades'),'Trader stage was not completed; review before creating fresh traders.');
+  journal.setupOnly=false;await save();
   // Leave enough time for three finalizations plus collection in one QA window.
   while(Math.floor(Date.now()/1000)%300>120){
     console.log(JSON.stringify({stage:'waiting-for-complete-trade-window',at:new Date().toISOString()}));
@@ -76,18 +82,19 @@ if(!journal.trades.length){
   journal.traderWallets=traders.map(wallet=>wallet.publicKey.toBase58());await save();
   journal.traderFundingSignature=await sendAndConfirmTransaction(connection,new Transaction().add(...traders.map(wallet=>SystemProgram.transfer({fromPubkey:payer.publicKey,toPubkey:wallet.publicKey,lamports:80000000}))),[payer],{commitment:'finalized'});await save();
   for(const [index,trader] of traders.entries()){
-    const trade=await buildTradeTransaction({connection,side:'buy',mint:new PublicKey(journal.mint),user:trader.publicKey,amount:amounts[index],slippagePercent:3,feeOwner:new PublicKey(journal.router)});
+    const trade=await buildTradeTransaction({connection,side:'buy',mint:new PublicKey(journal.mint),user:trader.publicKey,amount:amounts[index],slippagePercent:3,feeOwner});
     const signature=await sendAndConfirmTransaction(connection,new Transaction().add(...trade.instructions),[trader],{commitment:'finalized'});
     journal.trades.push({wallet:trader.publicKey.toBase58(),signature,spendSol:amounts[index]});await save();console.log(JSON.stringify({stage:'trade-finalized',...journal.trades.at(-1)}));
   }
 }
 assert.equal(journal.trades.length,3,'An incomplete trader stage requires review; no automatic retry.');
-if(process.argv.includes('--setup-only')){console.log(JSON.stringify({stage:'ready-for-qa-allowlist',mint:journal.mint,trades:journal.trades}));process.exit(0);}
 if(!journal.collection){
   const tradeProofs=await Promise.all(journal.trades.map(row=>connection.getTransaction(row.signature,{commitment:'finalized',maxSupportedTransactionVersion:0})));
   const windowStart=Math.floor(Date.now()/300000)*300;
   assert(tradeProofs.every(tx=>tx&&tx.meta?.err===null&&Math.floor(tx.blockTime/300)*300===windowStart),'Trades are outside one complete five-minute window. Inspect their signatures before continuing.');
-  const collected=await request('/api/keeper/collect',{mint:journal.mint},true);
+  const before=await request(`/api/tokens/${journal.mint}/fee-activity`);
+  const collected=before.collections?.some(row=>row.settlement!=='finalized')
+    ? {status:'existing-collection-awaiting-settlement'} : await request('/api/keeper/collect',{mint:journal.mint},true);
   const activity=await request(`/api/tokens/${journal.mint}/fee-activity`),sources=[];
   assert(activity.collections.length<=3,'Unexpected QA collections require review.');
   for(const row of activity.collections){const tx=await connection.getTransaction(row.signature,{commitment:'finalized',maxSupportedTransactionVersion:0});

@@ -114,6 +114,15 @@ test('indexer sync rejects old launches and cannot overwrite a signed V3 launch'
   assert.equal(providerCalls, 1);
 });
 
+test('awaiting settlement is a non-mutating conflict, not an uncertain collection attempt',async()=>{
+  const state={collections:{source:{signature:'source',mint,scope:'per-mint-v3'}},alerts:{}};let calls=0;
+  const f=fixture(createKeeperCollectionRoutes,{requireAuthorized:()=>true,store:{readLaunch:async()=>({pumpFeeRoute:{scope:'per-mint-v3'}}),update:async fn=>fn(state)},
+    collectPumpCreatorFees:async()=>{calls++;return{status:'no-fees'};}});
+  await f.request('/api/keeper/collect',{mint});assert.equal(f.responses.at(-1).status,409);
+  assert.equal(f.responses.at(-1).data.status,'awaiting-creator-settlement');assert.equal(calls,0);assert.deepEqual(state.alerts,{});
+  state.v3Settlements={source:{status:'finalized'}};
+  await f.request('/api/keeper/collect',{mint});assert.equal(f.responses.at(-1).status,200);assert.equal(calls,1);
+});
 test('failed collection keeps its reconciliation lock and blocks replay', async () => {
   const state = { alerts: {}, collections: {} };
   let collections = 0;

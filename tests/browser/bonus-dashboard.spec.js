@@ -44,10 +44,13 @@ test('Home bonus amounts animate to recorded totals; countdown ticks down; categ
 test('reduced motion, narrow layout, direct page routing and invalid-network stale clearing', async ({ page }) => {
   let response; await page.emulateMedia({ reducedMotion:'reduce' }); await setup(page, () => response);
   await page.setViewportSize({ width:390, height:844 }); await page.goto('/#bonuses');
+  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await expect(page.locator('#bonuses')).toBeVisible();
   await expect(page.locator('[data-bonus-history-rows]')).toContainText('2026-10-17');
   await page.locator('#open-menu').click();
-  if (!(await page.locator('.nav-more a[href="#bonuses"]').isVisible())) await page.locator('.nav-more summary').click();
+  await expect(page.locator('#sidebar')).toHaveClass(/open/);
+  if (await page.locator('.nav-more').getAttribute('open') === null) await page.locator('.nav-more summary').click();
+  await expect(page.locator('.nav-more a[href="#bonuses"]')).toBeVisible();
   await expect(page.locator('.nav-more a[href="#bonuses"]')).toHaveAttribute('aria-current', 'page');
   await page.locator('.nav-more a[href="#bonuses"]').click();
   await expect(page.locator('#sidebar')).not.toHaveClass(/open/);

@@ -15,7 +15,7 @@ export function dailyBonusWork({ app, ledger, now, limit = 3, schedule = DEFAULT
   }
   const pending = Object.entries(snapshots).filter(([day,row]) => {
     try { bonusWindow(day,now); } catch { return false; }
-    return (period !== 300 || day.startsWith('qa5m:')) && row.status === 'snapshotted'
+    return (period !== 300 || day.startsWith('qa5m:') && row.snapshot.cohort === schedule.cohort) && row.status === 'snapshotted'
       && row.snapshot.sources.some(source => source.allocations.length && row.payouts?.[source.collectionSignature]?.status !== 'paid');
   }).map(([day])=>day).sort();
   const cursor = ledger.dailyBonusWorkCursor;

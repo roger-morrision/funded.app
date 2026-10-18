@@ -51,6 +51,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
   async function evidenceFor(day, prior) {
     const window = bonusWindow(day,now());
     if (Boolean(window.qa) !== (schedule.periodSeconds === 300)) throw new Error('Snapshot period does not match the active bonus schedule.');
+    if (window.qa && window.cohort !== schedule.cohort) throw new Error('Snapshot belongs to a different QA mint cohort.');
     const evidence = await readIndexedEvidence({ connection, state:await store.read(), programId, day, now:now(), qaMints:schedule.mints });
     if (evidence.complete === false) return evidence;
     const ledger = await rewardStore.read();

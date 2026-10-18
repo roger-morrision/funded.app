@@ -27,7 +27,7 @@ export function initAdminDailyBonus({ document, api, post, show, refreshAudit })
       if (data.cluster !== 'devnet' || !Array.isArray(data.snapshots)) throw new Error();
       const qa = data.schedule?.mode === 'devnet-qa-5m' && data.schedule.periodSeconds === 300;
       const cutoff = Date.parse(data.nextCutoffAt || '');
-      const latest = qa && Number.isFinite(cutoff) ? `qa5m:${new Date(cutoff - 600000).toISOString().replace('.000Z','Z')}`
+      const latest = qa && Number.isFinite(cutoff) ? `qa5m:${new Date(cutoff - 600000).toISOString().replace('.000Z','Z')}${data.schedule.cohort ? '@'+data.schedule.cohort : ''}`
         : new Date(Date.now() - 86400000).toISOString().slice(0,10);
       if (!day.value) day.value = latest;
       const choices = $('#bonus-recovery-windows'); choices?.replaceChildren();
