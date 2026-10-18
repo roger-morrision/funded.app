@@ -93,7 +93,11 @@ if(!journal.collection){
   const windowStart=Math.floor(Date.now()/300000)*300;
   assert(tradeProofs.every(tx=>tx&&tx.meta?.err===null&&Math.floor(tx.blockTime/300)*300===windowStart),'Trades are outside one complete five-minute window. Inspect their signatures before continuing.');
   const before=await request(`/api/tokens/${journal.mint}/fee-activity`);
-  const collected=before.collections?.some(row=>row.settlement!=='finalized')
+  // The top-level collection list contains receipt summaries, not settlement
+  // state. Read the verified overview so a completed earlier cycle cannot
+  // suppress collection in the next cycle.
+  assert(Array.isArray(before.overview?.collections),'Verified collection overview is unavailable; do not submit another collection.');
+  const collected=before.overview.collections.some(row=>row.settlement!=='finalized')
     ? {status:'existing-collection-awaiting-settlement'} : await request('/api/keeper/collect',{mint:journal.mint},true);
   const activity=await request(`/api/tokens/${journal.mint}/fee-activity`),sources=[];
   assert(activity.collections.length<=3,'Unexpected QA collections require review.');
