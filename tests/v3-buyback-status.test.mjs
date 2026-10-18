@@ -3,6 +3,56 @@ import assert from 'node:assert/strict';
 import { createRewardStatusRoutes } from '../server/routes/reward-status.mjs';
 const programId='9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
 
+test('simultaneous buyback views share one verification scan and its warm cache', async () => {
+  let finish, reads=0;
+  const replies=[];
+  const route=createRewardStatusRoutes({store:{read:async()=>({})},solanaCluster:'devnet',
+    solanaRpcUrl:'https://unused.invalid',env:{FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId},connectionFactory:()=>({}),
+    readBuybackDashboard:()=>{reads++;return new Promise(resolve=>{finish=resolve;});},
+    respond:(_res,_status,data)=>replies.push(data)});
+  const request=()=>route({method:'GET'},{},new URL('https://funded.vip/api/buyback/status'));
+  const pending=[request(),request(),request()];
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(reads,1);
+  finish({status:'verified',collectedLamports:'29681',unindexedStatus:'verified',unindexedVaults:[]});
+  await Promise.all(pending);
+  assert.equal(replies.length,3);
+  assert(replies.every(reply=>reply.dashboard.collectedLamports==='29681'&&reply.dashboard.checkedAt));
+  await request();assert.equal(reads,1,'A completed scan remains cached for the normal bounded window.');
+});
+
+test('a failed shared buyback scan clears its pending request and can be retried', async () => {
+  let reject, reads=0;
+  const replies=[];
+  const route=createRewardStatusRoutes({store:{read:async()=>({})},solanaCluster:'devnet',
+    solanaRpcUrl:'https://unused.invalid',env:{FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId},connectionFactory:()=>({}),
+    readBuybackDashboard:()=>{reads++;return reads===1?new Promise((_resolve,rejectRead)=>{reject=rejectRead;})
+      :Promise.resolve({status:'verified',collectedLamports:'29681',unindexedStatus:'verified',unindexedVaults:[]});},
+    respond:(_res,_status,data)=>replies.push(data)});
+  const request=()=>route({method:'GET'},{},new URL('https://funded.vip/api/buyback/status'));
+  const pending=[request(),request()];await new Promise(resolve=>setImmediate(resolve));
+  reject(new Error('Temporary RPC outage'));await Promise.all(pending);
+  assert.equal(reads,1);assert(replies.every(reply=>reply.dashboard.status==='unavailable'));
+  await request();assert.equal(reads,2);assert.equal(replies.at(-1).dashboard.status,'verified');
+});
+
+test('a hung scan times out, retries, and cannot overwrite fresh cache with its late result', async t => {
+  t.mock.timers.enable({apis:['setTimeout']});
+  let finishLate,reads=0;const replies=[];
+  const route=createRewardStatusRoutes({store:{read:async()=>({})},solanaCluster:'devnet',
+    solanaRpcUrl:'https://unused.invalid',env:{FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId},connectionFactory:()=>({}),
+    readBuybackDashboard:()=>{reads++;return reads===1?new Promise(resolve=>{finishLate=resolve;})
+      :Promise.resolve({status:'verified',collectedLamports:'29681',unindexedStatus:'verified',unindexedVaults:[]});},
+    respond:(_res,_status,data)=>replies.push(data)});
+  const request=()=>route({method:'GET'},{},new URL('https://funded.vip/api/buyback/status'));
+  const pending=[request(),request()];await new Promise(resolve=>setImmediate(resolve));
+  t.mock.timers.tick(25_001);await Promise.all(pending);
+  assert.equal(reads,1);assert(replies.every(reply=>reply.dashboard.status==='unavailable'));
+  await request();assert.equal(reads,2);
+  finishLate({status:'verified',collectedLamports:'999999'});await new Promise(resolve=>setImmediate(resolve));
+  await request();assert.equal(reads,2);assert.equal(replies.at(-1).dashboard.collectedLamports,'29681');
+});
+
 test('Devnet QA trigger is passed through the public status without changing the standard gate', async () => {
   const replies=[];
   const input=[];

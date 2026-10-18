@@ -12,7 +12,8 @@ export function createBuybackController(appState) {
   async function loadBuybackNetworkState(signal){
     mountBuybackProgressPanels(document);
     try {
-      const response = await appState.apiRequest('/api/buyback/status', { signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(8000)]) : AbortSignal.timeout(8000) });
+      const deadline = AbortSignal.timeout(30_000);
+      const response = await appState.apiRequest('/api/buyback/status', { signal: signal ? AbortSignal.any([signal, deadline]) : deadline });
       signal?.throwIfAborted();
       if (!response.available || !response.data || response.data.cluster !== 'devnet') throw new Error('Devnet buyback index unavailable.');
       appState.buybackNetworkState = { status:'ready', receipts:Array.isArray(response.data.receipts) ? response.data.receipts : [], pending:Array.isArray(response.data.pending) ? response.data.pending : [], dashboard:response.data.dashboard || null, automationEnabled:response.data.automationEnabled === true };

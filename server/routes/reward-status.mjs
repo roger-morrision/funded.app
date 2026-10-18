@@ -119,6 +119,7 @@ export function createRewardStatusRoutes({
 }) {
   const json = (...args) => { respond(...args); return true; };
   let buybackSnapshot = null;
+  const buybackReads = new Map();
   const verifiedV3Burns = state => Object.values(state.v3BuybackOrders || {}).filter(row =>
     row.status === 'finalized' && row.finalized === true
     && row.vaultDebitVerified === true && row.burnInstructionVerified === true);
@@ -164,11 +165,27 @@ export function createRewardStatusRoutes({
         if (buybackSnapshot?.key===cacheKey && Date.now()-buybackSnapshot.at<20_000)
           dashboard=buybackSnapshot.value;
         else try {
-          dashboard=await readBuybackDashboard({ state,
-            programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,thresholdLamports,
-            connection:connectionFactory(solanaRpcUrl) });
-          dashboard.checkedAt=new Date().toISOString();
-          buybackSnapshot={key:cacheKey,at:Date.now(),value:dashboard};
+          let pending = buybackReads.get(cacheKey);
+          if (!pending) {
+            pending = (async () => {
+              let timer;
+              try {
+                const deadline = new Promise((_resolve, reject) => {
+                  timer = setTimeout(() => reject(new Error('Buyback verification timed out.')), 25_000);
+                  timer.unref?.();
+                });
+                const value = await Promise.race([readBuybackDashboard({ state,
+                  programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,thresholdLamports,
+                  connection:connectionFactory(solanaRpcUrl) }), deadline]);
+                value.checkedAt = new Date().toISOString();
+                buybackSnapshot = {key:cacheKey,at:Date.now(),value};
+                return value;
+              } finally { clearTimeout(timer); }
+            })();
+            buybackReads.set(cacheKey, pending);
+          }
+          try { dashboard = await pending; }
+          finally { if (buybackReads.get(cacheKey) === pending) buybackReads.delete(cacheKey); }
         } catch { /* Show unavailable data rather than an inferred balance. */ }
       }
       return json(res, 200, { cluster:solanaCluster, custody:'v3-mint-category-vault',

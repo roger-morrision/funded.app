@@ -290,8 +290,8 @@ function captureAlerts(data) {
   prefs.seen = [...seen].slice(-150); prefs.notices = prefs.notices.slice(-30);
   saveAlertPrefs(prefs); renderAlerts();
 }
-async function fetchJson(path) {
-  const response = await fetch(path, { credentials:'same-origin', cache:'no-store', signal:AbortSignal.timeout(18000) });
+async function fetchJson(path, timeoutMs = 18000) {
+  const response = await fetch(path, { credentials:'same-origin', cache:'no-store', signal:AbortSignal.timeout(timeoutMs) });
   if (!response.ok) throw new Error(`Status ${response.status}`);
   return response.json();
 }
@@ -314,7 +314,7 @@ async function refresh({ force = false } = {}) {
   const scoped = validMint(mint);
   const [experience, buybacks, referrals, xClaims, alertEvents] = await Promise.allSettled([
     fetchJson(`/api/rewards/experience${params.size ? '?' + params : ''}`),
-    fetchJson('/api/buyback/status'),
+    fetchJson('/api/buyback/status', 30_000),
     validMint(wallet) ? fetchJson(`/api/referral-claims?wallet=${encodeURIComponent(wallet)}`) : Promise.resolve(null),
     xConnected ? fetchJson('/api/x-fee/claims') : Promise.resolve(null),
     scoped && alertsEnabled() ? fetchJson('/api/rewards/experience') : Promise.resolve(null),

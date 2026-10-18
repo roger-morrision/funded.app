@@ -70,3 +70,19 @@ test('buyback disclosures preserve open and closed choices across polling and te
   await expect(page.locator('.reward-buyback-list p').first()).toContainText('1304 $FUNDED base units burned');
   await expect(queue).not.toHaveAttribute('open','');await expect(more).not.toHaveAttribute('open','');
 });
+
+test('a verified buyback scan lasting more than eight seconds fills both history views',async({page})=>{
+  await page.route('https://**/*',route=>route.abort());
+  await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline fixture'}}));
+  await page.route('**/api/buyback/status',async route=>{
+    await new Promise(resolve=>setTimeout(resolve,9000));
+    return route.fulfill({json:{cluster:'devnet',automationEnabled:true,pending:[],receipts:[{
+      mint:'52TdgMLp41CtiLrAqqZ1N889RPfWMMzxwpF8MoaZFvN1',signature:'3'.repeat(64),slot:512496644,
+      status:'finalized',vaultDebitVerified:true,burnInstructionVerified:true,burnedBaseUnits:'1034450',spentLamports:'74257'}]}});
+  });
+  await page.goto('/#buybacks');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  await expect(page.locator('#buyback-ledger')).toContainText('1.03445 $FUNDED bought and burned');
+  await page.locator('.concise-buyback-queue summary').click();
+  await expect(page.locator('.reward-buyback-list')).toContainText('1034450 $FUNDED base units burned');
+  await expect(page.locator('#buyback-ledger a')).toHaveAttribute('href',/\/3{64}\?cluster=devnet$/);
+});
