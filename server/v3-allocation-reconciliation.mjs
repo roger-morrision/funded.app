@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
 import { v3AllocationPlan } from './v3-allocation-plan.mjs';
+import { createFinalizedReadCache } from './finalized-read-cache.mjs';
 
 const usage = (state,source) => [state.v3CreatorWalletPayout?.[source],
   state.v3CreatorRewardFunding?.[source],state.v3XClaims?.[source]];
@@ -13,6 +14,11 @@ export async function reconcileV3Allocations({store,connection,mint,loadSettleme
     || launch.pumpFeeRoute?.scope!=='per-mint-v3') throw new Error('A verified Devnet V3 launch is required.');
   const entries = Object.entries(state.v3Settlements || {}).filter(([,row])=>row.mint===mint && row.status==='finalized');
   const reviewed=[];
+  // The default reader fetches each distinct finalized input once per pass.
+  // N claims, T distinct transactions, B target blocks and P history pages
+  // need at most T + N + B + P + 2 RPC reads (one policy and one snapshot).
+  // Validators still inspect the complete history; no proof survives this pass.
+  const proofConnection=createFinalizedReadCache(connection);
   for (const [source,row] of entries) {
     const collection=state.collections?.[source];
     if (!collection || collection.signature!==source || collection.mint!==mint
@@ -20,7 +26,7 @@ export async function reconcileV3Allocations({store,connection,mint,loadSettleme
       || collection.cluster!=='devnet' || collection.scope!=='per-mint-v3'
       || collection.programId!==launch.pumpFeeRoute.programId || row.collectionSignature!==source)
       throw new Error('Cumulative allocation requires every matching finalized source collection.');
-    const proof=await loadSettlement({connection,signature:row.settlementSignature,
+    const proof=await loadSettlement({connection:proofConnection,signature:row.settlementSignature,
       programId:launch.pumpFeeRoute.programId,mint,authority:launch.pumpFeeRoute.initialAuthority,
       creator:launch.creatorWallet,claimId:Buffer.from(collection.claimId,'hex'),
       expectedLamports:collection.collectedLamports,split:launch.pumpFeeRoute.protocolSplit,includePosition:true});
