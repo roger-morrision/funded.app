@@ -6,9 +6,11 @@ import { renderProductFaqs } from '../help/product-guidance.js';
 import { initMarketingAgency } from '../marketing/agency-view.js';
 import { initServiceFeeCopy } from './service-fees-client.js';
 export function createFeeFlowView(APP_ECONOMICS) {
-  initMarketingAgency();
-  initServiceFeeCopy();
-  window.addEventListener('funded:service-fees', () => renderProductFaqs());
+  if (typeof window !== 'undefined') {
+    initMarketingAgency();
+    initServiceFeeCopy();
+    window.addEventListener('funded:service-fees', () => renderProductFaqs());
+  }
   initDailyBonusView();
   initBonusDashboard();
   renderProductFaqs();

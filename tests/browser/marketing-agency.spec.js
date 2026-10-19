@@ -21,6 +21,7 @@ for (const width of [1440, 390]) test(`dedicated agency menu, clear readiness an
   await expect(page.locator('.primary-nav a[href="#marketing-agency"]')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('[data-route-label]')).toHaveText('AI Marketing');
   await expect(page.locator('.agency-agent')).toHaveCount(3);
+  await expect(page.locator('.agency-agent-grid')).toHaveCSS('display', 'grid');
   await expect(page.locator('.agency-agent').nth(1)).toContainText('$100,000');
   await expect(page.locator('.agency-agent').nth(2)).toContainText('$300,000');
   await expect(page.locator('[data-agency-status]')).toContainText('Not activated');

@@ -1,6 +1,5 @@
 import { MARKETING_AGENCY_POLICY as POLICY } from '../../../config/marketing-agency.js';
 import { readLaunchAgencySelection } from './agency-selection.js';
-import './agency.css';
 
 export function initMarketingAgency(document = globalThis.document) {
   const main = document?.querySelector('.main-content');
