@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { v3RewardExperience } from '../server/v3-reward-experience.mjs';
-import {bonusHash} from '../server/daily-bonus.mjs';
+import {allocationAuditHash as bonusHash} from '../server/allocation-audit-hash.mjs';
 import {residualSourceKey} from '../server/v3-residual-source.mjs';
 
 const mint = '11111111111111111111111111111111';

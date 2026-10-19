@@ -1,5 +1,5 @@
 import {isDeepStrictEqual} from 'node:util';
-import {bonusHash} from './daily-bonus.mjs';
+import {allocationAuditHash as bonusHash} from './allocation-audit-hash.mjs';
 import {v3DisbursementId} from './v3-disbursement-id.mjs';
 
 const signature=/^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
@@ -53,6 +53,7 @@ export function v3SourceAllocation(state,key){
 export function v3DisplayAllocation(state,source){
   let reviewed=null;
   for(const [hash,approval] of Object.entries(state.v3AllocationResidualPlans||{})){
+    if(approval.plan?.status!=='reviewed-residual-not-paid')continue;
     if(!approval.plan?.sources?.some(row=>row.collectionSignature===source))continue;
     const target=v3ResidualAllocation({state,collectionSignature:source,residualPlanHash:hash}).source.target;
     if(reviewed&&!isDeepStrictEqual(reviewed,target))throw new Error('Audited residual targets conflict.');

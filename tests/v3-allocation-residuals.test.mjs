@@ -5,6 +5,9 @@ import {v3AllocationPlan} from '../server/v3-allocation-plan.mjs';
 import {reviewV3AllocationResiduals,recordV3AllocationResidualPlan} from '../server/v3-allocation-residuals.mjs';
 import {rewardAddresses} from '../server/automatic-reward-chain.mjs';
 import {residualSourceKey} from '../server/v3-residual-source.mjs';
+import {reconcileV3Allocations} from '../server/v3-allocation-reconciliation.mjs';
+import {v3DisplayAllocation,v3ResidualAllocation} from '../server/v3-residual-source.mjs';
+import {allocationAuditHash} from '../server/allocation-audit-hash.mjs';
 function fixture(){
   const [mint,creator,authority,program]=Array.from({length:4},(_,n)=>Keypair.fromSeed(Buffer.alloc(32,n+110)).publicKey.toBase58());
   const launch={mint,onchainVerified:true,cluster:'devnet',creatorWallet:creator,
@@ -92,4 +95,27 @@ test('finalized supplemental transfers consume the reviewed residual and unknown
   f.policy.directedReleased[0]--;
   const retry=await reviewV3AllocationResiduals({...f.options,ignorePendingResidual:{bucket:'v3CreatorWalletPayout',key,signature:receipt.signature}});
   assert.equal(retry.sources.find(row=>row.collectionSignature===source).unreleasedLamports[0],'1');
+});
+
+test('reviewed old unprotected rounding preserves original funded beneficiaries without clawback or a corrective transfer',async()=>{
+  const f=fixture(),launch=f.state.launches[f.options.mint],original=structuredClone(f.state.v3Settlements.source1.allocationPlan);
+  const recipient=rewardAddresses({programId:launch.pumpFeeRoute.programId,authority:launch.pumpFeeRoute.initialAuthority,mint:launch.mint}).vault.toBase58();
+  f.state.v3CreatorRewardFunding={source1:{status:'finalized',balanceDeltaVerified:true,signature:'legacy-funded',mint:launch.mint,amount:'100001',recipient}};
+  f.policy.protectedPolicy=false;f.policy.withdrawnLamports=[800002n];
+  const plan=await reviewV3AllocationResiduals(f.options);
+  assert.equal(plan.status,'reviewed-legacy-preservation-no-transfer');assert.equal(plan.sources.length,1);
+  assert.deepEqual(plan.sources[0].cumulativeRoundingDelta,['1','-1','0']);assert.deepEqual(plan.sources[0].unreleasedLamports,['0','0','0']);
+  await assert.rejects(reconcileV3Allocations(f.options),/needs reviewed rounding/);
+  await recordV3AllocationResidualPlan({...f.options,actor:'qa-admin',reason:'Preserve funded v1 amounts; no holder clawback or creator reallocation.',expectedHash:plan.hash});
+  const reorder=value=>Array.isArray(value)?value.map(reorder):value&&typeof value==='object'
+    ?Object.fromEntries(Object.keys(value).sort().reverse().map(key=>[key,reorder(value[key])])):value;
+  f.state.v3AllocationResidualPlans=reorder(f.state.v3AllocationResidualPlans);
+  assert.equal(allocationAuditHash(plan.sources[0].originalCreatorDirected),allocationAuditHash(reorder(plan.sources[0].originalCreatorDirected)));
+  await reconcileV3Allocations(f.options);await reconcileV3Allocations(f.options);
+  assert.deepEqual(f.state.v3Settlements.source1.allocationPlan,original);
+  assert.equal(f.state.v3Settlements.source0.allocationPlan.allocationVersion,2);
+  assert.deepEqual(v3DisplayAllocation(f.state,'source1'),original);
+  assert.throws(()=>v3ResidualAllocation({state:f.state,collectionSignature:'source1',residualPlanHash:plan.hash}),/plan changed/);
+  f.state.v3CreatorRewardFunding.source1.amount='100000';
+  await assert.rejects(reconcileV3Allocations(f.options),/changed legacy transfer/);
 });

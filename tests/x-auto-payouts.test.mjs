@@ -7,7 +7,7 @@ import {collectXPostEvents} from '../server/x-post-events.mjs';
 import {buildXPost,xWeightedLength} from '../server/x-post-content.mjs';
 import {xWorkerConfig} from '../scripts/run-x-post-worker.mjs';
 import {v3AllocationPlan} from '../server/v3-allocation-plan.mjs';
-import {bonusHash} from '../server/daily-bonus.mjs';
+import {allocationAuditHash as bonusHash} from '../server/allocation-audit-hash.mjs';
 import {residualSourceKey,residualDisbursementId} from '../server/v3-residual-source.mjs';
 import {deriveCommunityRewardVaultV3} from '../mint-router-v3.js';
 

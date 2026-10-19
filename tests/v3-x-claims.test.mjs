@@ -6,7 +6,7 @@ import { Keypair } from '@solana/web3.js';
 import { deriveCommunityRewardVaultV3, deriveMintRouterV3 } from '../mint-router-v3.js';
 import { v3AllocationPlan } from '../server/v3-allocation-plan.mjs';
 import { createV3XClaimRoutes } from '../server/routes/v3-x-claims.mjs';
-import {bonusHash} from '../server/daily-bonus.mjs';
+import {allocationAuditHash as bonusHash} from '../server/allocation-audit-hash.mjs';
 import {residualSourceKey,residualDisbursementId} from '../server/v3-residual-source.mjs';
 
 const key = byte => Keypair.fromSeed(new Uint8Array(32).fill(byte));

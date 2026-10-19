@@ -4,8 +4,9 @@ import {rewardAddresses} from './automatic-reward-chain.mjs';
 import {readFinalizedV3Allocations} from './v3-allocation-reconciliation.mjs';
 import {loadFinalizedV3RewardFunding} from './v3-reward-funding-proof.mjs';
 import {v3DisbursementId} from './v3-disbursement-id.mjs';
-import {bonusHash} from './daily-bonus.mjs';
+import {allocationAuditHash as bonusHash} from './allocation-audit-hash.mjs';
 import {parseV3SourceKey,v3ResidualAllocation,residualDisbursementId} from './v3-residual-source.mjs';
+import {reviewV3LegacyPreservation} from './v3-legacy-preservation.mjs';
 
 const fields=['walletLamports','holderLamports','xLamports'];
 const vector=plan=>fields.map(key=>BigInt(plan.creatorDirected[key]));
@@ -17,6 +18,7 @@ export async function reviewV3AllocationResiduals({verifyPolicy=verifyMintPolicy
   const {state,launch,reviewed,proofConnection:connection}=await readFinalizedV3Allocations(options);
   const {mint}=options,programId=launch.pumpFeeRoute.programId,authority=launch.pumpFeeRoute.initialAuthority;
   const policy=await verifyPolicy({connection,programId,mint,creator:launch.creatorWallet,initialAuthority:authority,split:launch.pumpFeeRoute.protocolSplit});
+  if(policy?.verified&&!policy.protectedPolicy)return reviewV3LegacyPreservation({state,launch,reviewed,connection,policy,loadFunding});
   if(!policy?.verified||!policy.protectedPolicy||!Array.isArray(policy.directedReleased)||policy.directedReleased.length!==3)
     throw new Error('Residual review requires a verified protected V3 policy and released beneficiary counters.');
   if(!isDeepStrictEqual(policy.directedUnits,directedGrossUnits(launch.feeDistribution?.creatorDirected?.shares)))

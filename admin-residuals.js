@@ -18,9 +18,12 @@ export function initAdminResiduals({api,post,show,wallet,document=globalThis.doc
     submit.disabled=busy||!approved||!source.value;
     reviewForm.querySelector('[type=submit]').disabled=busy;
     const row=reviewed?.sources.find(row=>row.collectionSignature===source.value);
+    const preservation=reviewed?.status==='reviewed-legacy-preservation-no-transfer';
+    approve.textContent=preservation?'Approve legacy preservation':'Approve reviewed plan';
     const amount=row?(kind.value==='creator-wallet'?BigInt(row.unreleasedLamports[0]):BigInt(row.unreleasedLamports[1])+BigInt(row.unreleasedLamports[2])):0n;
     submit.disabled||=amount===0n;
-    if(reviewed)status.textContent=`${approved?'Approved':'Reviewed, not approved'} · ${amount} lamports for this action. Launch creator ${reviewed.beneficiaries.creatorWallet} must sign. No recipient payment is confirmed by a review.`;
+    if(preservation)status.textContent=`${approved?'Approved':'Reviewed, not approved'} · preserve original legacy funding and receipts. No corrective transfer is approved. Ordinary unpaid allocations retain their original creator-signature flow.`;
+    else if(reviewed)status.textContent=`${approved?'Approved':'Reviewed, not approved'} · ${amount} lamports for this action. Launch creator ${reviewed.beneficiaries.creatorWallet} must sign. No recipient payment is confirmed by a review.`;
   }
   function clear(){generation++;reviewed=null;approved=false;source.replaceChildren();preview.textContent='';
     panel.querySelector('[data-residual-receipt]').replaceChildren();status.textContent='No residual reviewed or approved.';render();}

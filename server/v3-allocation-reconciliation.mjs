@@ -2,6 +2,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
 import { v3AllocationPlan } from './v3-allocation-plan.mjs';
 import { createFinalizedReadCache } from './finalized-read-cache.mjs';
+import {approvedLegacyPreservation} from './v3-legacy-preservation.mjs';
 
 const usage = (state,source) => [state.v3CreatorWalletPayout?.[source],
   state.v3CreatorRewardFunding?.[source],state.v3XClaims?.[source],
@@ -57,8 +58,19 @@ export async function readFinalizedV3Allocations({store,connection,mint,loadSett
 export async function reconcileV3Allocations(options) {
   const {store,mint}=options;
   const {state,launch,reviewed}=await readFinalizedV3Allocations(options);
-  for(const row of reviewed)if(row.used&&!isDeepStrictEqual(row.row.allocationPlan.creatorDirected,row.next.creatorDirected))
-    throw new Error('A previously used legacy allocation needs reviewed rounding reconciliation. Its payment amounts were preserved.');
+  const differences=reviewed.filter(row=>row.used&&!isDeepStrictEqual(row.row.allocationPlan.creatorDirected,row.next.creatorDirected));
+  if(differences.length){
+    const approvals=Object.values(state.v3AllocationResidualPlans||{}).some(row=>row.plan?.status==='reviewed-legacy-preservation-no-transfer');
+    if(!approvals)throw new Error('A previously used legacy allocation needs reviewed rounding reconciliation. Its payment amounts were preserved.');
+    const{reviewV3AllocationResiduals}=await import('./v3-allocation-residuals.mjs');
+    const preservation=await reviewV3AllocationResiduals(options);
+    for(const row of differences){
+      const checked=preservation.sources.find(item=>item.collectionSignature===row.source);
+      if(preservation.status!=='reviewed-legacy-preservation-no-transfer'||!checked
+        ||!approvedLegacyPreservation(state,row.source,{...checked,mint,programId:launch.pumpFeeRoute.programId}))
+        throw new Error('A used legacy allocation requires a matching audited preservation approval.');
+    }
+  }
   const changes=reviewed.filter(row=>!row.used&&!isDeepStrictEqual(row.row.allocationPlan,row.next));
   if(!changes.length)return state;
   await store.update(current=>{
