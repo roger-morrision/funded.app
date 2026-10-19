@@ -148,13 +148,7 @@ export function createNavigationController(appState) {
       }
     }
     if (route === 'buybacks' || route === 'paid' || (route === 'airdrops' && appState.connectedWalletAddress)) void appState.loadFundedBurnState();
-    if (location.hash === '#referral-faq') requestAnimationFrame(() => {
-      const faq = document.querySelector('#referral-faq');
-      if (faq) faq.tabIndex = -1;
-      faq?.scrollIntoView({ block: 'start', behavior: 'auto' });
-      faq?.focus({ preventScroll: true });
-    });
-    else if (route !== 'overview') window.scrollTo({ top: 0, behavior: 'auto' });
+    if (route !== 'overview' && requestedHash !== 'referral-faq') window.scrollTo({ top: 0, behavior: 'auto' });
     window.dispatchEvent(new CustomEvent('funded:route-change', {detail: {route}}));
   }
   // app-source-end

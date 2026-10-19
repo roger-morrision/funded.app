@@ -14,9 +14,10 @@ function home() {
 }
 
 let lastSyncedRoute = null;
+let scrollRequest = 0;
 function syncRoute() {
   const route=location.hash.slice(1)||(/^\/funded\/?$/.test(location.pathname)?'paid':/^\/list\/?$/.test(location.pathname)?'list':/^\/pilot\/?$/.test(location.pathname)?'launch':/^\/explore\/?$/.test(location.pathname)?'explore':'overview');
-  const mergedRoutes={pilot:'launch',community:'my-launches',buybacks:'paid'};
+  const mergedRoutes={pilot:'launch',community:'my-launches',buybacks:'paid','referral-faq':'referrals'};
   const pageRoute=mergedRoutes[route]|| (route==='funded-holder-token-rewards'?'payments':route.startsWith('docs/')?'docs':route);
   const tokenOrWallet = /^\/(token|wallet|launch\/coin)\//.test(location.pathname) && !location.hash || route.startsWith('coin/');
   const creatorSupportRoute = route==='creators'||/^creator\/\d{1,24}$/.test(route)
@@ -44,10 +45,25 @@ function syncRoute() {
   if(pageRoute==='payments')document.title='Rewards · funded.vip';
   else if(route==='launch')document.title='Create a coin · funded.vip';
   else document.title=`${$('[data-route-label]')?.textContent||'funded.vip'} · funded.vip`;
-  if(route!==lastSyncedRoute && !route.includes('/') && route!=='funded-holder-token-rewards') {
+  const request = ++scrollRequest;
+  const fragment = location.hash;
+  if(route==='referral-faq') {
+    // Reveal and focus the guide only after both route renderers have settled.
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      if(request!==scrollRequest || location.hash!=='#referral-faq')return;
+      const section=$('#referral-faq');
+      const heading=section?.querySelector('h2');
+      if(!section?.getClientRects().length || !heading)return;
+      section.scrollIntoView({block:'start',behavior:'instant'});
+      heading.tabIndex=-1;
+      heading.focus({preventScroll:true});
+    }));
+  } else if(route!==lastSyncedRoute && !route.includes('/') && route!=='funded-holder-token-rewards') {
     // Each workspace route begins with its own header. Native fragment scrolling
     // can otherwise leave the shared header partly offscreen after layout changes.
-    requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'instant'})));
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      if(location.hash===fragment)window.scrollTo({top:0,behavior:'instant'});
+    }));
   }
   lastSyncedRoute=route;
 }
@@ -57,5 +73,13 @@ document.body.classList.add('workspace-ready');
 window.addEventListener('funded:route-change',syncRoute);
 window.addEventListener('funded:layout-change',syncRoute);
 window.addEventListener('hashchange',syncRoute);
+document.addEventListener('click',event=>{
+  const link=event.target.closest('a[href="#referral-faq"]');
+  if(!link || event.defaultPrevented || event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;
+  if(location.hash==='#referral-faq'){
+    event.preventDefault();
+    syncRoute();
+  }
+});
 matchMedia('(min-width:1180px)').addEventListener('change',syncRoute);
 syncRoute();
