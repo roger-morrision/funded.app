@@ -94,6 +94,38 @@ fn approved_collection_leaves_unrelated_surplus_and_requires_both_signers() {
 }
 
 #[test]
+fn approved_followup_is_exact_preserves_withdrawals_and_rejects_replay() {
+    let (mut svm,legacy,router,policy,vaults)=fixture(QA_MINT,QA_CREATOR,
+        QA_FOLLOWUP_PRIOR_SETTLED,QA_RATES,QA_FOLLOWUP_AMOUNT);
+    for (claim,amount) in [(QA_CLAIM,QA_FOLLOWUP_AMOUNT),(QA_FOLLOWUP_CLAIM,QA_AMOUNT),
+        (QA_FOLLOWUP_CLAIM,QA_FOLLOWUP_AMOUNT+1)] {
+        assert!(!submit(&mut svm,QA_AUTHORITY,instruction(QA_MINT,QA_CREATOR,legacy,router,policy,vaults,claim,amount,true)));
+    }
+    svm.expire_blockhash();
+    assert!(submit(&mut svm,QA_AUTHORITY,instruction(QA_MINT,QA_CREATOR,legacy,router,policy,vaults,
+        QA_FOLLOWUP_CLAIM,QA_FOLLOWUP_AMOUNT,true)));
+    let after=svm.get_account(&policy).unwrap();
+    let after=MintFeePolicyV3::try_deserialize(&mut &after.data[..]).unwrap();
+    assert_eq!(after.settled_lamports,QA_FOLLOWUP_PRIOR_SETTLED+QA_FOLLOWUP_AMOUNT);
+    assert_eq!(after.withdrawn_lamports,HISTORICAL_WITHDRAWN);
+    assert_eq!(after.protocol_units,QA_RATES);
+    assert_eq!(after.paid_lamports,policy_v3::category_targets(after.settled_lamports,QA_RATES).unwrap());
+    assert_eq!(svm.get_account(&router).unwrap().lamports,svm.minimum_balance_for_rent_exemption(MINT_ROUTER_DATA_LEN));
+    svm.expire_blockhash();
+    assert!(!submit(&mut svm,QA_AUTHORITY,instruction(QA_MINT,QA_CREATOR,legacy,router,policy,vaults,
+        QA_FOLLOWUP_CLAIM,QA_FOLLOWUP_AMOUNT,true)));
+}
+
+#[test]
+fn recovery_claim_cannot_use_the_other_approved_prior_state() {
+    for (prior,claim,amount) in [(QA_PRIOR_SETTLED,QA_FOLLOWUP_CLAIM,QA_FOLLOWUP_AMOUNT),
+        (QA_FOLLOWUP_PRIOR_SETTLED,QA_CLAIM,QA_AMOUNT)] {
+        let (mut svm,legacy,router,policy,vaults)=fixture(QA_MINT,QA_CREATOR,prior,QA_RATES,amount);
+        assert!(!submit(&mut svm,QA_AUTHORITY,instruction(QA_MINT,QA_CREATOR,legacy,router,policy,vaults,claim,amount,true)));
+    }
+}
+
+#[test]
 fn recovery_rejects_any_change_to_the_approved_record() {
     for case in 0..10 {
         let mut rates = QA_RATES; if case == 7 { rates = [800_000,200_000,60_000,40_000,400_000,500_000]; }

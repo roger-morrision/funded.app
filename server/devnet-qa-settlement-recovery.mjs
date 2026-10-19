@@ -17,8 +17,20 @@ export const QA_SETTLEMENT_RECOVERY = Object.freeze({
 export const QA_RECOVERY_DISCRIMINATOR = createHash('sha256')
   .update('global:recover_qa_settlement_v3').digest().subarray(0,8);
 
+// Separately approved collection created after the first recovery finalized.
+// This does not permit future claims, different amounts or new beneficiaries.
+export const QA_SETTLEMENT_RECOVERY_FOLLOWUP=Object.freeze({...QA_SETTLEMENT_RECOVERY,
+  claimId:'9cadcccb3d2554a50853fe7b7cbb263fb5cae08150ec1a9cfb0cb51108c4f864',
+  collectionSignature:'4VtYV4QBomTFcNZQZ4o36Pfe8FwCSRkvtkFNqTWinwLJ8JYsymGUyNmThvHKoAavqZhyU2SgfiUhay6AVG3hAmqB',
+  expectedLamports:'1484671',priorSettledLamports:'1065492'});
+export function qaSettlementRecoveryForClaim(claimId){
+  const id=Buffer.from(claimId).toString('hex');
+  return [QA_SETTLEMENT_RECOVERY,QA_SETTLEMENT_RECOVERY_FOLLOWUP].find(row=>row.claimId===id)||null;
+}
+
 export function buildQaSettlementRecoveryInstruction(input) {
-  const approved = QA_SETTLEMENT_RECOVERY;
+  const approved = qaSettlementRecoveryForClaim(input.claimId);
+  if(!approved)throw new Error('Historical QA claim, amount or immutable fee policy differs.');
   for (const field of ['programId','mint','creator','authority']) {
     if (new PublicKey(input[field]).toBase58() !== approved[field])
       throw new Error('This is not the approved historical Devnet QA recovery.');

@@ -1,4 +1,4 @@
-//! One explicitly approved, lost-creator Devnet collection. This module is
+//! Two explicitly approved, fixed lost-creator Devnet collections. This module is
 //! excluded from the default program. It cannot withdraw or change recipients.
 use anchor_lang::prelude::*;
 use crate::{constants::*, error::ErrorCode, state::{MintClaimRecordV3, MintFeePolicyV3}};
@@ -13,6 +13,16 @@ pub const QA_AMOUNT: u64 = 742_575;
 pub const QA_PRIOR_SETTLED: u64 = 322_917;
 pub const QA_RATES: [u32; 6] = [1_000_000, 200_000, 60_000, 40_000, 200_000, 500_000];
 pub const QA_PRIOR_PAID: [u64; 7] = [258_333,32_292,6_458,1_938,1_291,6_459,16_146];
+pub const QA_FOLLOWUP_CLAIM: [u8;32] = [156,173,204,203,61,37,84,165,8,83,254,123,124,187,38,63,
+    181,202,224,129,80,236,26,156,251,12,181,17,8,196,248,100];
+pub const QA_FOLLOWUP_AMOUNT: u64 = 1_484_671;
+pub const QA_FOLLOWUP_PRIOR_SETTLED: u64 = 1_065_492;
+pub const QA_FOLLOWUP_PRIOR_PAID: [u64;7] = [852_393,106_549,21_310,6_393,4_262,21_310,53_275];
+
+pub fn approved_prior(claim_id: [u8;32], settled: u64, paid: [u64;7]) -> bool {
+    (claim_id == QA_CLAIM && settled == QA_PRIOR_SETTLED && paid == QA_PRIOR_PAID)
+        || (claim_id == QA_FOLLOWUP_CLAIM && settled == QA_FOLLOWUP_PRIOR_SETTLED && paid == QA_FOLLOWUP_PRIOR_PAID)
+}
 
 #[derive(Accounts)]
 #[instruction(claim_id: [u8; 32])]
@@ -34,8 +44,7 @@ pub struct RecoverQaSettlementV3<'info> {
     #[account(mut, seeds = [MINT_POLICY_V3_SEED, mint.key().as_ref()], bump = policy.bump,
         constraint = policy.mint == QA_MINT && policy.creator == QA_CREATOR
             && policy.authority == QA_AUTHORITY && policy.protocol_units == QA_RATES
-            && policy.settled_lamports == QA_PRIOR_SETTLED
-            && policy.paid_lamports == QA_PRIOR_PAID
+            && approved_prior(claim_id, policy.settled_lamports, policy.paid_lamports)
             @ ErrorCode::InvalidQaRecoveryV3)]
     pub policy: Account<'info, MintFeePolicyV3>,
     #[account(init, payer = authority, space = 8 + MintClaimRecordV3::INIT_SPACE,
@@ -48,7 +57,8 @@ pub fn handler<'info>(ctx: Context<'info, RecoverQaSettlementV3<'info>>,
     claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
     require_keys_eq!(*ctx.program_id,
         pubkey!("9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"), ErrorCode::InvalidQaRecoveryV3);
-    require!(claim_id == QA_CLAIM && expected_lamports == QA_AMOUNT, ErrorCode::InvalidQaRecoveryV3);
+    require!((claim_id == QA_CLAIM && expected_lamports == QA_AMOUNT)
+        || (claim_id == QA_FOLLOWUP_CLAIM && expected_lamports == QA_FOLLOWUP_AMOUNT), ErrorCode::InvalidQaRecoveryV3);
     settle_collection(ctx.program_id, &ctx.accounts.authority, &ctx.accounts.mint,
         &ctx.accounts.legacy_router, &ctx.accounts.router, &mut ctx.accounts.policy,
         &mut ctx.accounts.claim, &ctx.accounts.system_program, ctx.remaining_accounts,

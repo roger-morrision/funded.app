@@ -175,7 +175,7 @@ These records contain public transaction evidence, not private signing keys.
 - Claim ID: `9cadcccb3d2554a50853fe7b7cbb263fb5cae08150ec1a9cfb0cb51108c4f864`.
 - Prior cumulative settlement: 1,065,492 lamports; original 10% operations / 2% community policy remains fixed.
 - Source proof independently verified. No new recovery instruction was submitted.
-- A separate, exact-claim recovery approval was requested; the earlier approved exception cannot settle this claim.
+- The user separately approved preparing, deploying and executing this exact-claim recovery, preserving the 3 SOL reserve, original split and beneficiaries. Its build and execution are tracked separately from the completed first recovery.
 
 `FUNDED_FEE_COLLECTION_PAUSED_MINTS` now supports a comma-separated per-mint
 operational pause. The Devnet worker skips configured mints, keeps all prior
