@@ -41,6 +41,12 @@ pub mod funded_fee_router {
         policy_v3::settle_mint_v3_handler(ctx, claim_id, expected_lamports)
     }
 
+    #[cfg(feature = "devnet-v3-program")]
+    pub fn recover_qa_settlement_v3<'info>(ctx: Context<'info, RecoverQaSettlementV3<'info>>,
+        claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
+        recover_qa_v3::handler(ctx, claim_id, expected_lamports)
+    }
+
     pub fn disburse_mint_v3(ctx: Context<DisburseMintV3>, withdrawal_id: [u8; 32], category: u8, amount: u64) -> Result<()> {
         policy_v3::disburse_mint_v3_handler(ctx, withdrawal_id, category, amount)
     }

@@ -35,6 +35,12 @@ test('V3 settlement proof binds signed instruction, exact router debit, claim an
   assert.equal(proof.signature, signature);
   assert.equal(proof.router, built.router.address.toBase58());
   assert.deepEqual(proof.categoryLamports, ['24','3','1','1','0','1','0']);
+  // Unrelated router funds stay outside the collection proof and fee split.
+  tx.meta.preBalances[routerIndex] += 600_000;
+  tx.meta.postBalances[routerIndex] += 600_000;
+  assert.equal((await loadFinalizedV3Settlement(input)).expectedLamports, '30');
+  tx.meta.preBalances[routerIndex] = 100;
+  tx.meta.postBalances[routerIndex] = 70;
   tx.meta.postBalances[routerIndex] = 71;
   assert.equal(await loadFinalizedV3Settlement(input), null);
   tx.meta.postBalances[routerIndex] = 70;

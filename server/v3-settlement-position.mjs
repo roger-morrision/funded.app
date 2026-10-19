@@ -3,6 +3,7 @@ import bs58 from 'bs58';
 import { PublicKey } from '@solana/web3.js';
 import { buildMintRouterV3SettlementInstruction, deriveMintPolicyV3,
   verifyMintPolicyV3Account, protocolGrossUnits } from '../mint-router-v3.js';
+import { buildQaSettlementRecoveryInstruction, QA_RECOVERY_DISCRIMINATOR } from './devnet-qa-settlement-recovery.mjs';
 
 const address = value => typeof value === 'string' ? value : value?.pubkey
   ? address(value.pubkey) : value?.toBase58?.() || '';
@@ -81,9 +82,11 @@ export async function loadV3SettlementPosition({ connection, signature, slot, pr
         const data = Buffer.from(typeof instruction.data === 'string' ? bs58.decode(instruction.data) : instruction.data || []);
         const code = data.subarray(0,8).toString('hex');
         if (unchanged.has(code)) continue;
-        if (code !== settle || data.length !== 48) throw new Error('Unknown V3 policy mutation requires reconciliation.');
+        const recovery = code === QA_RECOVERY_DISCRIMINATOR.toString('hex');
+        if ((code !== settle && !recovery) || data.length !== 48) throw new Error('Unknown V3 policy mutation requires reconciliation.');
         const amount = data.readBigUInt64LE(40);
-        const expected = buildMintRouterV3SettlementInstruction({programId,mint,authority,creator,
+        const build = recovery ? buildQaSettlementRecoveryInstruction : buildMintRouterV3SettlementInstruction;
+        const expected = build({programId,mint,authority,creator,split,
           claimId:data.subarray(8,40),expectedLamports:amount}).instruction;
         if (accounts.length !== expected.keys.length || expected.keys.some((key,index)=>key.pubkey.toBase58() !== accounts[index]))
           throw new Error('Later V3 settlement does not match the immutable policy.');

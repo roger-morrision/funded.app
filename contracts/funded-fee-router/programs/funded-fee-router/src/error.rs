@@ -80,4 +80,6 @@ pub enum ErrorCode {
     InvalidProtectedMintPolicyV3,
     #[msg("The protected V3 withdrawal has no matching unused approval")]
     InvalidMintApprovalV3,
+    #[msg("This recovery is restricted to the approved historical Devnet QA claim")]
+    InvalidQaRecoveryV3,
 }

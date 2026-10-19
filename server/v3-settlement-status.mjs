@@ -70,6 +70,8 @@ export async function verifyRecordedV3Settlements({ state, connection, programId
         || proof.router !== collection.router
         || JSON.stringify(proof.categoryLamports) !== JSON.stringify(settlement.categoryLamports))
         return 'settlement-proof-unavailable';
+      if (proof.authorization !== settlement.authorization)
+        return 'settlement-authorization-mismatch';
       return null;
     };
     let checked = 0;
@@ -90,7 +92,9 @@ export async function verifyRecordedV3Settlements({ state, connection, programId
     }
     if (failures.length) return { ...result(false, recorded, checked, failures[0].reason),
       verifiedRecords:checked - failures.length, failed:failures.length, failures };
-    return result(true, recorded, checked);
+    const recoveredRecords=collections.filter(collection=>state.v3Settlements[collection.signature]
+      .authorization==='restricted-devnet-qa-recovery').length;
+    return {...result(true,recorded,checked),...(recoveredRecords?{recoveredRecords}:{})};
   } catch {
     return result(false, recorded, 0, 'finalized-evidence-unavailable');
   }

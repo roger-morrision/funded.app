@@ -1,3 +1,5 @@
+#![cfg(not(feature = "devnet-v3-program"))]
+
 use anchor_lang::{prelude::Pubkey, solana_program::{instruction::Instruction, system_instruction}, InstructionData, ToAccountMetas};
 use funded_fee_router::{MAGIC, POLICY_HASH, ROUTER_DATA_LEN, VERSION};
 use litesvm::LiteSVM;

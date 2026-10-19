@@ -1,3 +1,4 @@
+#![cfg(not(feature = "devnet-v3-program"))]
 
 use {
     anchor_lang::{solana_program::{instruction::{AccountMeta, Instruction}, system_instruction}, InstructionData, ToAccountMetas},

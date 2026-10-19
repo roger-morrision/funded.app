@@ -62,6 +62,17 @@ test('rejects missing, inconsistent, and unapproved evidence', async () => {
   'settlement-proof-unavailable');
 });
 
+test('mocked status requires recovery provenance to match the chain proof and reports it separately',async()=>{
+  const input=fixture(),load=input.loadSettlement;
+  input.loadSettlement=async()=>({...await load(),authorization:'restricted-devnet-qa-recovery'});
+  assert.equal((await verifyRecordedV3Settlements(input)).reason,'settlement-authorization-mismatch');
+  input.state.v3Settlements[signature].authorization='restricted-devnet-qa-recovery';
+  assert.deepEqual(await verifyRecordedV3Settlements(input),{
+    verified:true,scope:'all-recorded-v3-collections',recorded:1,checked:1,recoveredRecords:1});
+  input.loadSettlement=load;
+  assert.equal((await verifyRecordedV3Settlements(input)).reason,'settlement-authorization-mismatch');
+});
+
 test('checks finalized proofs in bounded parallel batches and keeps ordered failure evidence', async () => {
   const input = fixture();
   const signatures = Array.from({ length:5 }, (_, index) => signature.slice(0, -1) + String(index + 1));

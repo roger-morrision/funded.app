@@ -1,3 +1,5 @@
+#![cfg(not(feature = "devnet-v3-program"))]
+
 use {
     anchor_lang::{solana_program::{instruction::Instruction, program_option::COption, program_pack::Pack, system_instruction}, InstructionData, ToAccountMetas},
     anchor_spl::{associated_token::{get_associated_token_address, spl_associated_token_account}, token::spl_token},

@@ -97,32 +97,47 @@ pub struct SettleMintV3<'info> {
 
 pub fn settle_mint_v3_handler<'info>(ctx: Context<'info, SettleMintV3<'info>>,
     claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
-    assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
-    let router = &ctx.accounts.router;
-    require!(router.owner == ctx.program_id, ErrorCode::InvalidMintRouter);
+    settle_collection(ctx.program_id, &ctx.accounts.authority, &ctx.accounts.mint,
+        &ctx.accounts.legacy_router, &ctx.accounts.router, &mut ctx.accounts.policy,
+        &mut ctx.accounts.claim, &ctx.accounts.system_program, ctx.remaining_accounts,
+        ctx.bumps.router, claim_id, expected_lamports)
+}
+
+// Shared accounting only. Each entry point enforces its own authorization
+// before entering; normal settlement still requires the creator's signature.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn settle_collection<'info>(program_id: &Pubkey, authority: &Signer<'info>,
+    mint: &UncheckedAccount<'info>, legacy_router: &UncheckedAccount<'info>,
+    router: &UncheckedAccount<'info>, policy: &mut Account<'info, MintFeePolicyV3>,
+    claim: &mut Account<'info, MintClaimRecordV3>, system_program: &Program<'info, System>,
+    vaults: &[AccountInfo<'info>], router_bump: u8, claim_id: [u8; 32],
+    expected_lamports: u64) -> Result<()> {
+    assert_current_router_authority(&legacy_router.to_account_info(), &authority.key(), program_id)?;
+    require!(router.owner == program_id, ErrorCode::InvalidMintRouter);
     let data = router.try_borrow_data()?;
     require!(data.len() == MINT_ROUTER_DATA_LEN && &data[0..8] == MINT_ROUTER_V3_MAGIC
         && data[8] == MINT_ROUTER_V3_VERSION && data[9..41] == POLICY_HASH
-        && data[41..73] == ctx.accounts.policy.authority.to_bytes()
-        && data[73..105] == ctx.accounts.mint.key().to_bytes()
-        && data[105] == ctx.bumps.router, ErrorCode::InvalidMintRouter);
+        && data[41..73] == policy.authority.to_bytes()
+        && data[73..105] == mint.key().to_bytes()
+        && data[105] == router_bump, ErrorCode::InvalidMintRouter);
     drop(data);
 
-    let vaults = ctx.remaining_accounts;
     require!(vaults.len() == VAULT_COUNT, ErrorCode::InvalidMintFeeVaultV3);
     for (index, vault) in vaults.iter().enumerate() {
         let category = [index as u8];
         let (expected, _) = Pubkey::find_program_address(
-            &[MINT_VAULT_V3_SEED, ctx.accounts.mint.key.as_ref(), &category], ctx.program_id);
+            &[MINT_VAULT_V3_SEED, mint.key.as_ref(), &category], program_id);
         require!(vault.key() == expected && vault.is_writable && vault.owner == &System::id()
             && vault.data_is_empty(), ErrorCode::InvalidMintFeeVaultV3);
     }
 
     let minimum = Rent::get()?.minimum_balance(MINT_ROUTER_DATA_LEN);
-    let amount = router.lamports().checked_sub(minimum).ok_or(ErrorCode::InsufficientRouterBalance)?;
-    require!(amount > 0, ErrorCode::InvalidAmount);
-    require!(amount == expected_lamports, ErrorCode::MintClaimAmountMismatchV3);
-    let policy = &mut ctx.accounts.policy;
+    let available = router.lamports().checked_sub(minimum).ok_or(ErrorCode::InsufficientRouterBalance)?;
+    require!(expected_lamports > 0, ErrorCode::InvalidAmount);
+    // Both signers approve this collection's exact amount. Other collections
+    // and unsolicited transfers must not block it or become part of its fees.
+    require!(expected_lamports <= available, ErrorCode::MintClaimAmountMismatchV3);
+    let amount = expected_lamports;
     let new_total = policy.settled_lamports.checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
     let targets = category_targets(new_total, policy.protocol_units)?;
     let mut paid = [0u64; VAULT_COUNT];
@@ -133,10 +148,10 @@ pub fn settle_mint_v3_handler<'info>(ctx: Context<'info, SettleMintV3<'info>>,
             // A new system-owned PDA with a small allocation can fail the
             // transaction-wide rent check. Keep rent separate from fee funds.
             if vault.lamports() < vault_reserve {
-                invoke(&system_instruction::transfer(&ctx.accounts.authority.key(), &vault.key(),
+                invoke(&system_instruction::transfer(&authority.key(), &vault.key(),
                     vault_reserve - vault.lamports()),
-                    &[ctx.accounts.authority.to_account_info(), vault.to_account_info(),
-                        ctx.accounts.system_program.to_account_info()])?;
+                    &[authority.to_account_info(), vault.to_account_info(),
+                        system_program.to_account_info()])?;
             }
             let router_balance = router.lamports().checked_sub(allocation).ok_or(ErrorCode::AmountOverflow)?;
             let vault_balance = vault.lamports().checked_add(allocation).ok_or(ErrorCode::AmountOverflow)?;
@@ -147,9 +162,8 @@ pub fn settle_mint_v3_handler<'info>(ctx: Context<'info, SettleMintV3<'info>>,
         paid[index] = allocation;
     }
     policy.settled_lamports = new_total;
-    let claim = &mut ctx.accounts.claim;
     claim.claim_id = claim_id;
-    claim.mint = ctx.accounts.mint.key();
+    claim.mint = mint.key();
     claim.total_lamports = amount;
     claim.category_lamports = paid;
     claim.created_at = Clock::get()?.unix_timestamp;

@@ -183,6 +183,7 @@ fn overlapping_token_cycles_cannot_overcommit_the_vault() {
 }
 
 #[test]
+#[cfg(not(feature = "devnet-v3-program"))]
 fn legacy_sol_cycle_migration_reserves_only_its_unpaid_amount() {
     let program_id = funded_fee_router::id();
     let authority = Keypair::new();

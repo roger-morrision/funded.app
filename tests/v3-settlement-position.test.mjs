@@ -4,6 +4,7 @@ import bs58 from 'bs58';
 import { Connection, Keypair, Transaction } from '@solana/web3.js';
 import { buildMintRouterV3SettlementInstruction, protocolGrossUnits } from '../mint-router-v3.js';
 import { loadV3SettlementPosition } from '../server/v3-settlement-position.mjs';
+import { buildQaSettlementRecoveryInstruction, QA_SETTLEMENT_RECOVERY as recovery } from '../server/devnet-qa-settlement-recovery.mjs';
 const keys=Array.from({length:4},(_,i)=>Keypair.fromSeed(Buffer.alloc(32,i+10)).publicKey);
 const sig=i=>bs58.encode(Buffer.alloc(64,i));
 function categories(total){let prefix=0n,prior=0n;return [8000000,...protocolGrossUnits()].map(value=>{
@@ -65,4 +66,23 @@ test('finalized signature ordering works through the installed Solana SDK respon
  f.connection.getBlockSignatures=rpc.getBlockSignatures.bind(rpc);
  const proof=await loadV3SettlementPosition(f.input);
  assert.equal(proof.settledBeforeLamports,'1000002');
+});
+
+test('mocked historical position retains the prior claim when the restricted recovery is later in policy history',async()=>{
+ const split={operationsPercent:50,referralLevelPercents:[10,3,2],communityPercent:10,buybackPercent:25};
+ const params={...recovery,split,claimId:Buffer.from(recovery.claimId,'hex')};
+ const built=buildQaSettlementRecoveryInstruction(params);
+ const message=new Transaction({feePayer:built.instruction.keys[0].pubkey,
+  recentBlockhash:keys[0].toBase58()}).add(built.instruction).compileMessage();
+ const refs=[{signature:sig(2),slot:101,err:null,confirmationStatus:'finalized'},
+  {signature:sig(1),slot:100,err:null,confirmationStatus:'finalized'}];
+ const connection={getAccountInfoAndContext:async()=>({context:{slot:102},value:{}}),
+  getBlockSignatures:async()=>({signatures:[sig(1)]}),getSignaturesForAddress:async()=>refs,
+  getTransaction:async()=>({slot:101,meta:{err:null},transaction:{signatures:[sig(2)],message}})};
+ const input={...params,connection,signature:sig(1),slot:100,expectedLamports:322917n,
+  categoryLamports:[258333n,32292n,6458n,1938n,1291n,6459n,16146n],
+  verifyPolicy:async()=>({verified:true,settledLamports:1065492n})};
+ assert.equal((await loadV3SettlementPosition(input)).settledAfterLamports,'322917');
+ message.instructions[0].data=bs58.encode(Buffer.from(built.instruction.data).fill(0,8,40));
+ await assert.rejects(loadV3SettlementPosition(input),/claim, amount or immutable fee policy differs/);
 });

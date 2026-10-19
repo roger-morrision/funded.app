@@ -3,6 +3,8 @@ import { ComputeBudgetProgram, PublicKey } from '@solana/web3.js';
 import { buildMintRouterV3SettlementInstruction, verifyMintClaimV3Account,
   verifyMintPolicyV3Account } from '../mint-router-v3.js';
 import { loadV3SettlementPosition } from './v3-settlement-position.mjs';
+import { buildQaSettlementRecoveryInstruction, QA_RECOVERY_DISCRIMINATOR,
+  QA_SETTLEMENT_RECOVERY } from './devnet-qa-settlement-recovery.mjs';
 
 const address = value => typeof value === 'string' ? value : value?.pubkey
   ? address(value.pubkey) : value?.toBase58?.() || '';
@@ -13,7 +15,7 @@ export async function loadFinalizedV3Settlement({ connection, signature, program
   authority, creator, claimId, expectedLamports, split, includePosition = false,
   verifyClaim = verifyMintClaimV3Account, verifyPolicy = verifyMintPolicyV3Account }) {
   try {
-    const expected = buildMintRouterV3SettlementInstruction({ programId, mint,
+    let expected = buildMintRouterV3SettlementInstruction({ programId, mint,
       authority, creator, claimId, expectedLamports });
     const transaction = await connection.getTransaction(signature, {
       commitment:'finalized', maxSupportedTransactionVersion:0 });
@@ -25,22 +27,28 @@ export async function loadFinalizedV3Settlement({ connection, signature, program
     const keys = [...staticKeys, ...(transaction.meta.loadedAddresses?.writable || []).map(address),
       ...(transaction.meta.loadedAddresses?.readonly || []).map(address)];
     const signers = staticKeys.slice(0, message.header?.numRequiredSignatures || 0);
-    if (!signers.includes(new PublicKey(authority).toBase58())
-      || !signers.includes(new PublicKey(creator).toBase58())) return null;
+    if (!signers.includes(new PublicKey(authority).toBase58())) return null;
     const instructions = message.instructions || message.compiledInstructions || [];
     let settlements = 0;
+    let recovery = false;
     for (const instruction of instructions) {
       const program = keys[instruction.programIdIndex];
       if (program === ComputeBudgetProgram.programId.toBase58()) continue;
       if (program !== expected.instruction.programId.toBase58() || settlements++) return null;
       const data = typeof instruction.data === 'string'
         ? bs58.decode(instruction.data) : Buffer.from(instruction.data || []);
+      if (Buffer.from(data).subarray(0,8).equals(QA_RECOVERY_DISCRIMINATOR)) {
+        expected = buildQaSettlementRecoveryInstruction({programId,mint,authority,creator,
+          claimId,expectedLamports,split});
+        recovery = true;
+      }
       const accounts = instruction.accounts || instruction.accountKeyIndexes || [];
       if (!Buffer.from(data).equals(expected.instruction.data)
         || accounts.length !== expected.instruction.keys.length
         || expected.instruction.keys.some((entry, index) => keys[accounts[index]] !== entry.pubkey.toBase58())) return null;
     }
     if (settlements !== 1) return null;
+    if (recovery ? signers.length !== 1 : !signers.includes(new PublicKey(creator).toBase58())) return null;
     const routerIndex = keys.indexOf(expected.router.address.toBase58());
     const before = transaction.meta.preBalances;
     const after = transaction.meta.postBalances;
@@ -56,6 +64,8 @@ export async function loadFinalizedV3Settlement({ connection, signature, program
       || claim.address.toBase58() !== expected.claim.toBase58()
       || policy.address.toBase58() !== expected.policy.address.toBase58()
       || policy.settledLamports < BigInt(expectedLamports)) return null;
+    if (recovery && policy.settledLamports < BigInt(QA_SETTLEMENT_RECOVERY.priorSettledLamports)
+      + BigInt(expectedLamports)) return null;
     const position = includePosition ? await loadV3SettlementPosition({connection,signature,
       slot:transaction.slot,programId,mint,authority,creator,expectedLamports,split,
       categoryLamports:claim.categoryLamports,verifyPolicy}) : null;
@@ -65,6 +75,7 @@ export async function loadFinalizedV3Settlement({ connection, signature, program
       policy:expected.policy.address.toBase58(), claimId:Buffer.from(claimId).toString('hex'),
       expectedLamports:String(expectedLamports),
       categoryLamports:claim.categoryLamports.map(value => String(value)),
+      ...(recovery ? {authorization:'restricted-devnet-qa-recovery'} : {}),
       ...(position ? {position} : {}) };
   } catch { return null; }
 }

@@ -55,6 +55,23 @@ fn disburse_v3_ix(program: Pubkey, authority: Pubkey, creator: Pubkey, mint: Pub
 }
 
 #[test]
+#[cfg(not(feature = "devnet-v3-program"))]
+fn default_program_does_not_expose_the_devnet_qa_recovery_instruction() {
+    let program = funded_fee_router::id();
+    let mut svm = LiteSVM::new();
+    svm.add_program(program, &support::program_bytes()).unwrap();
+    let payer = Keypair::new();
+    svm.airdrop(&payer.pubkey(), 1_000_000).unwrap();
+    // SHA256(global:recover_qa_settlement_v3)[0..8]. Dispatch must fail
+    // before account validation: this entry point is absent, not merely gated.
+    let ix = Instruction::new_with_bytes(program, &[88,4,242,224,57,110,84,109], vec![]);
+    let message = Message::new_with_blockhash(&[ix], Some(&payer.pubkey()), &svm.latest_blockhash());
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(message), &[&payer]).unwrap();
+    let failure = svm.send_transaction(tx).unwrap_err();
+    assert_eq!(format!("{:?}",failure.err), "InstructionError(0, Custom(101))");
+}
+
+#[test]
 fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() {
     let program = funded_fee_router::id();
     let mut svm = LiteSVM::new();
@@ -109,7 +126,7 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
     svm.expire_blockhash();
     assert!(!send(&mut svm, &authority, &[&authority, &creator], settle_v3_ix(program,
         authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy,
-        claim_id, original, amount - 1)));
+        claim_id, original, amount + 1)));
     assert_eq!(svm.get_account(&router).unwrap().lamports, rent + amount);
     svm.expire_blockhash();
     assert!(send(&mut svm, &authority, &[&authority, &creator], settle_v3_ix(program,
