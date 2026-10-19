@@ -81,6 +81,7 @@ export function createLaunchFormController(appState) {
       communityTokens: Number(value('community-airdrop-tokens')), creatorBuySol: Number(value('creator-buy-sol')),
       creatorWalletPercent: Number(value('creator-wallet-share')), holderAirdropPercent: Number(value('holder-airdrop-share')),
       solClaimPercent: Number(value('x-share')), xRecipient: appState.normalizeXHandle(value('x-recipient')),
+      agencySelection:[...document.querySelectorAll('[data-launch-agency]:checked')].map(input=>input.value).sort(),
     };
   }
   // app-source-end

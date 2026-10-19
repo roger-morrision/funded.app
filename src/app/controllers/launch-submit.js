@@ -5,7 +5,8 @@ import { readLaunchAgencySelection } from '../../features/marketing/agency-selec
 export function createLaunchSubmitController(appState) {
   // app-source: 662
   async function launchToken(){
-    if (readLaunchAgencySelection().length) {
+    const agencySelection=readLaunchAgencySelection();
+    if (agencySelection.length&&!appState.feeRouterState?.v3FeeRouter?.agency) {
       appState.setLaunchStatus('AI agency launch is unavailable until its dedicated V3 fee budget and executors are verified. No transaction was sent.', true);
       return;
     }
@@ -76,13 +77,15 @@ export function createLaunchSubmitController(appState) {
       if(!appState.freshLaunchReview(reviewedCost))throw new Error('Estimate expired during identity lookup. Refresh and review again before signing.');
       if (launchBurn.requiresBurn && (!appState.currentLaunchTierQuote() || launchBurn.quoteId !== appState.currentLaunchTierQuote().id || launchBurn.amountTokens !== appState.currentLaunchTierQuote().amountTokens))
         throw new Error('The $FUNDED tier quote expired before signing. Review the launch again.');
-      const v3FeeRouter = appState.feeRouterState.v3FeeRouter;
+      const configuredV3=appState.feeRouterState.v3FeeRouter;
+      const v3FeeRouter={...configuredV3,...(configuredV3.agency?{agency:{...configuredV3.agency,selectedAgents:agencySelection}}:{})};
       const liveV3 = await appState.apiRequest('/api/v3-launch-config');
       appState.assertWalletSessionCurrent(session);
       if (!liveV3.available || liveV3.data?.ready !== true
         || liveV3.data.programId !== v3FeeRouter.programId
         || liveV3.data.initialAuthority !== v3FeeRouter.initialAuthority
-        || JSON.stringify(liveV3.data.protocolSplit) !== JSON.stringify(v3FeeRouter.split)) {
+        || JSON.stringify(liveV3.data.protocolSplit) !== JSON.stringify(v3FeeRouter.split)
+        ||JSON.stringify(liveV3.data.agency)!==JSON.stringify(configuredV3.agency)) {
         throw new Error('V3 launch readiness changed. Refresh the router check and estimate; no transaction was sent.');
       }
       const fees = await refreshServiceFees(appState);
@@ -97,7 +100,7 @@ export function createLaunchSubmitController(appState) {
       const routeAddress = result.feeRouter.toBase58();
       const { deriveMintRouterV3 } = await import('../../../mint-router-v3.js');
       const routeState = { ...deriveMintRouterV3(v3FeeRouter.programId, result.mint.publicKey),
-        address:routeAddress, scope:'per-mint-v3' };
+        address:routeAddress, scope:'per-mint-v3',agencyPolicy:Boolean(v3FeeRouter.agency) };
       const launchPolicy = {
         chain: 'solana',
         cluster: 'devnet',
@@ -127,7 +130,8 @@ export function createLaunchSubmitController(appState) {
         launchServiceFee:{quoteId:appState.launchServiceQuote.id,policyHash:appState.launchServiceQuote.policyHash,amountLamports:appState.launchServiceQuote.amountLamports,recipient:appState.launchServiceQuote.recipient},
         fundedTokenMint: fundedMint || null,
         feeRouter: appState.buildFeeRouterPolicy(routeState),
-        feeDistribution: appState.buildFeeDistributionPolicy({ ...feeDistributionInput, feeRouterAddress: routeAddress }),
+        feeDistribution: appState.buildFeeDistributionPolicy({ ...feeDistributionInput, feeRouterAddress: routeAddress },{fundedSplit:v3FeeRouter.split}),
+        ...(v3FeeRouter.agency?{marketingAgency:v3FeeRouter.agency}:{}),
         ...(xLinked ? { xUserId } : {}),
          solClaim: appState.buildSolClaimPolicy({ handle: xRecipient, percent: feeDistributionInput.solClaimPercent, feeRouterAddress: routeAddress }),
         revenueModel: {

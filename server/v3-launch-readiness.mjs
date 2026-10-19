@@ -11,6 +11,7 @@ import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from './automatic-reward
 export async function verifyV3LaunchRouterReadiness({ connection, programId, expectedProgramDataSha256,
   mint, creatorWallet, initialAuthority, split = PROTOCOL_FEE_SPLIT,
   directedShares = null, requireProtectedPolicy = false,
+  agencySelection = null,
   readEvidence = readProgramDataEvidence, verifyGlobal = verifyFeeRouterAccount,
   verifyRouter = verifyMintRouterV3Account, verifyPolicy = verifyMintPolicyV3Account }) {
   if (!programId || !/^[a-f0-9]{64}$/i.test(String(expectedProgramDataSha256 || ''))) {
@@ -38,8 +39,13 @@ export async function verifyV3LaunchRouterReadiness({ connection, programId, exp
     const expectedDirected = directedShares ? directedGrossUnits(directedShares) : null;
     if (!router.verified || router.address.toBase58() !== configuredRouter || !policy.verified
       || requireProtectedPolicy && (!policy.protectedPolicy || !expectedDirected
-        || policy.directedUnits.some((value, index) => value !== expectedDirected[index]))) {
+        || policy.directedUnits.some((value, index) => value !== expectedDirected[index]))
+      || agencySelection&&(!policy.agencyPolicy||String(policy.configRevision)!==String(agencySelection.configRevision))) {
       return { ready:false, status:409, error:'The V3 mint router or immutable fee policy is not verified.' };
+    }
+    if(agencySelection){
+      const{agencySelectionMask}=await import('../agency-mint-router-v3.js');
+      if(policy.selectedMask!==agencySelectionMask(agencySelection.selectedAgents))return{ready:false,status:409,error:'The immutable agency selection differs from the signed launch.'};
     }
     return { ready:true, configuredRouter, programId:program,
       protectedPolicy:Boolean(policy.protectedPolicy), directedUnits:policy.directedUnits || null };

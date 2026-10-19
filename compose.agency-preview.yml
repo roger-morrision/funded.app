@@ -1,0 +1,20 @@
+# Add alongside compose.funded-vip-x-post.yml only after exact-byte program
+# verification. Keep normal flows disabled until current-source Devnet QA passes.
+services:
+  app:
+    environment:
+      FUNDED_V3_AGENCY_ENABLED: ${FUNDED_V3_AGENCY_ENABLED:-false}
+      FUNDED_V3_AGENCY_NORMAL_FLOWS_ENABLED: ${FUNDED_V3_AGENCY_NORMAL_FLOWS_ENABLED:-false}
+  agency-worker:
+    extends:
+      file: compose.funded-vip-x-post.yml
+      service: x-post-worker
+    profiles: [agency]
+    command: [node, scripts/run-agency-worker.mjs, --loop, --execute]
+    stop_grace_period: 120s
+    environment:
+      FUNDED_V3_AGENCY_ENABLED: ${FUNDED_V3_AGENCY_ENABLED:-false}
+      FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY_FILE: /run/secrets/funded_router_authority_secret_key
+      FUNDED_V3_BUYBACK_LOOKUP_TABLE: ${FUNDED_V3_BUYBACK_LOOKUP_TABLE:-${FUNDED_BUYBACK_LOOKUP_TABLE:?Set the verified agency lookup table}}
+    secrets:
+      - funded_router_authority_secret_key

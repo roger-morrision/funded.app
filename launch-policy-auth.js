@@ -1,6 +1,7 @@
 import { PublicKey } from '@solana/web3.js';
 import { validateCommunityAllocation } from './airdrop-policy.js';
 import { validateFeeDistribution, validateProtocolFeeSplit } from './distribution-policy.js';
+import {canonicalAgencySelection,MARKETING_AGENCY_POLICY} from './config/marketing-agency.js';
 
 export function canonicalLaunchPolicy(input = {}) {
   const communityAllocation = Number(input.communityAllocation);
@@ -24,6 +25,14 @@ export function canonicalLaunchPolicy(input = {}) {
     feeRouterInitialAuthority:new PublicKey(String(input.pumpFeeRoute.initialAuthority || '')).toBase58(),
     protocolSplit:validateProtocolFeeSplit(input.pumpFeeRoute.protocolSplit),
   } : {};
+  let marketingAgency;
+  if(v3.protocolSplit?.agencyPercent!==undefined){
+    const agency=input.marketingAgency;
+    if(v3.protocolSplit.agencyPercent!==10||agency?.version!==MARKETING_AGENCY_POLICY.version
+      ||!(/^[1-9]\d{0,19}$/).test(String(agency.configRevision))||BigInt(agency.configRevision)>0xffffffffffffffffn)
+      throw new Error('An immutable agency version and current on-chain configuration revision are required.');
+    marketingAgency={version:agency.version,configRevision:String(agency.configRevision),selectedAgents:canonicalAgencySelection(agency.selectedAgents)};
+  }else if(input.marketingAgency!=null)throw new Error('An agency selection requires its signed dedicated 2% policy.');
   return {
     mint: new PublicKey(String(input.mint || '')).toBase58(),
     creatorWallet: new PublicKey(String(input.creatorWallet || '')).toBase58(),
@@ -31,6 +40,7 @@ export function canonicalLaunchPolicy(input = {}) {
     transaction: String(input.signature || input.pumpFeeRoute?.transaction || '').trim(),
     feeRouter: new PublicKey(String(input.pumpFeeRoute?.router || '')).toBase58(),
     ...v3,
+    ...(marketingAgency?{marketingAgency}:{}),
     communityAllocation,
     creatorWalletPercent: distribution.shares.creatorWalletPercent,
     holderAirdropPercent: distribution.shares.holderAirdropPercent,

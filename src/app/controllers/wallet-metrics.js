@@ -37,7 +37,7 @@ export function createWalletMetricsController(appState) {
       const creatorBuySol = appState.getCreatorBuySol();
       if (creatorBuySol > 0 && Math.ceil(creatorBuySol * 1_000_000_000) >= balance) throw new Error('Insufficient SOL for the developer buy and network costs. Reduce the buy amount or add SOL.');
       const [{ PUMP_SDK, OnlinePumpSdk }, { normalizeLaunchInput },
-        { getInitialBuyQuote, prepareFundedLaunchBurn },
+        { getInitialBuyQuote, prepareFundedLaunchBurn,buildLaunchMintRouter },
         { buildProtectedMintRouterV3InitializeInstruction }] = await Promise.all([
         import('@pump-fun/pump-sdk'), import('../../../launch-core.js'),
         import('../../../launch-flow.js'), import('../../../mint-router-v3.js')]);
@@ -55,9 +55,9 @@ export function createWalletMetricsController(appState) {
       if (xLinked && !appState.xFeeStatus.ready) throw new Error('Mint-specific X fee claims are not ready on Solana.');
       const v3 = appState.feeRouterState.v3FeeRouter;
       if (!v3 || appState.feeRouterState.scope !== 'per-mint-v3') throw new Error('V3 launch configuration is not verified.');
-      const mintRouter = buildProtectedMintRouterV3InitializeInstruction({ programId:v3.programId,
-        mint:mint.publicKey, authority:v3.initialAuthority, creator:payer, split:v3.split,
-        shares:appState.getFeeDistributionInputs() });
+      const{readLaunchAgencySelection}=await import('../../features/marketing/agency-selection.js');
+      const launchV3={...v3,...(v3.agency?{agency:{...v3.agency,selectedAgents:readLaunchAgencySelection()}}:{})};
+      const mintRouter = buildLaunchMintRouter({mint:mint.publicKey,payer,v3FeeRouter:launchV3,feeShares:appState.getFeeDistributionInputs()});
       const router = mintRouter.router.address;
       const launchInstructions = initialBuy.amountBaseUnits > 0n
         ? await PUMP_SDK.createV2AndBuyInstructions({ global:initialBuy.global, mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://funded.vip/devnet-metadata/${mint.publicKey.toBase58()}`, creator: router, user: payer, amount: new (await import('bn.js')).default(initialBuy.amountBaseUnits.toString()), solAmount: new (await import('bn.js')).default(initialBuy.solAmountLamports.toString()), mayhemMode: false, cashback: false, holderReward: false })

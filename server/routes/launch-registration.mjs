@@ -42,10 +42,10 @@ export function createLaunchRegistrationRoutes({
   v3LaunchConfig,
 }) {
   const json = (...args) => { respond(...args); return true; };
-  const handleMarketingAgency = createMarketingAgencyRoutes({ respond });
   v3LaunchConfig ||= createV3LaunchConfig({ solanaCluster, solanaRpcUrl,
-    automaticRewardStore, v3AuthorityKeypair, env, connectionFactory,
+    automaticRewardStore, store,v3AuthorityKeypair, env, connectionFactory,
     programEvidence, verifyRouter });
+  const handleMarketingAgency = createMarketingAgencyRoutes({ respond,store,readLaunchConfig:()=>v3LaunchConfig(),env });
   return async function handleLaunchRegistrationRoutes(req, res, url) {
     if (await handleMarketingAgency(req, res, url)) return true;
     if (req.method === 'GET' && url.pathname === '/api/v3-launch-config') {
@@ -64,7 +64,7 @@ export function createLaunchRegistrationRoutes({
     if (req.method === 'POST' && url.pathname === '/api/launches') {
       if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Coin launching is unavailable for this configuration. No launch policy was registered.' });
       const input = await body(req); if (!input.mint || input.chain !== 'solana' || input.cluster !== solanaCluster) return json(res, 400, { error: 'A Solana launch on the configured cluster is required.' });
-      if (input.marketingAgency != null) return json(res, 409, { error: 'Agency-enabled launches require verified dedicated V3 agency accounting. The agency fee policy is not activated.' });
+      if (input.marketingAgency != null&&env.FUNDED_V3_AGENCY_ENABLED!=='true') return json(res, 409, { error: 'Agency-enabled launches require verified dedicated V3 agency accounting. The agency fee policy is not activated.' });
       const policy = validateInput(() => canonicalLaunchPolicy(input));
       const existingLaunch = await store.readLaunch(policy.mint);
       if (!existingLaunch && policy.xUserId && (await store.read()).creatorProfiles?.[policy.xUserId]?.optedOut) return json(res, 409, { error: 'This creator has opted out of new support launches. Existing entitlements are unchanged.' });
@@ -74,6 +74,8 @@ export function createLaunchRegistrationRoutes({
       if (!v3Config.ready || v3Config.beneficiaryRoutingOnChainEnforced !== true)
         return json(res, 503, { error:'V3 normal flows are not ready to accept a new launch.',
           reasons:v3Config.reasons });
+      if(!existingLaunch&&v3Config.agency&&(policy.marketingAgency?.version!==v3Config.agency.version
+        ||policy.marketingAgency.configRevision!==v3Config.agency.configRevision))return json(res,409,{error:'The signed agency configuration changed; refresh before launching.'});
       if (xLinked && env.FUNDED_V3_X_CLAIMS_ENABLED !== 'true')
         return json(res, 503, { error:'V3 X payout and claim verification are not activated.' });
       if (xLinked && (await resolveXUser(policy.xRecipient)).id !== policy.xUserId) return json(res, 409, { error: 'The X account ID changed since launch preparation; registration is blocked.' });
@@ -106,7 +108,7 @@ export function createLaunchRegistrationRoutes({
       if (input.metadataUri && !preparedMetadata) return json(res, 409, { error: 'Signed Devnet metadata is missing.' });
       if (preparedMetadata && (preparedMetadata.creatorWallet !== proof.feePayer || preparedMetadata.name !== proof.name || preparedMetadata.symbol !== proof.symbol || (proof.uri && proof.uri !== preparedMetadataUri))) return json(res, 409, { error: 'Signed metadata does not match the confirmed Pump launch.' });
       const configuredV3Program = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
-      const currentSplit = await activeProtocolFeeSplit(store);
+      const currentSplit = existingLaunch?.pumpFeeRoute?.protocolSplit||v3Config.protocolSplit||await activeProtocolFeeSplit(store);
       const configuredV3Units = protocolGrossUnits(currentSplit);
       if (!configuredV3Program || policy.feeRouterProgramId !== configuredV3Program
         || policy.feeRouterInitialAuthority !== v3Config.initialAuthority
@@ -117,7 +119,7 @@ export function createLaunchRegistrationRoutes({
           programId:configuredV3Program, expectedProgramDataSha256:env.FUNDED_V3_PROGRAM_DATA_SHA256,
           mint:proof.mint, creatorWallet:proof.feePayer,
           initialAuthority:policy.feeRouterInitialAuthority, split:currentSplit,
-          directedShares:{ creatorWalletPercent:policy.creatorWalletPercent,
+          agencySelection:policy.marketingAgency||null,directedShares:{ creatorWalletPercent:policy.creatorWalletPercent,
             holderAirdropPercent:policy.holderAirdropPercent,
             solClaimPercent:policy.solClaimPercent }, requireProtectedPolicy:true });
       if (!routeReadiness.ready) return json(res, routeReadiness.status, { error: routeReadiness.error });
@@ -148,7 +150,7 @@ export function createLaunchRegistrationRoutes({
         if (!verifiedReserve.verified || verifiedReserve.status !== 'funded' || verifiedReserve.fundingSignature !== proof.signature)
           return json(res, 422, { error:'Launch transaction did not fund the exact community reserve in the reward vault.', reserve:verifiedReserve });
       }
-      const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent: policy.creatorWalletPercent, holderAirdropPercent: policy.holderAirdropPercent, solClaimPercent: policy.solClaimPercent, xRecipient: policy.xRecipient, feeRouterAddress: configuredRouter });
+      const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent: policy.creatorWalletPercent, holderAirdropPercent: policy.holderAirdropPercent, solClaimPercent: policy.solClaimPercent, xRecipient: policy.xRecipient, feeRouterAddress: configuredRouter },{fundedSplit:currentSplit});
       const record = {
         ...proof, cluster: solanaCluster, creatorWallet: proof.feePayer,
         ...(serviceFeeReceipt ? { launchServiceFee:serviceFeeReceipt } : {}),
@@ -163,6 +165,7 @@ export function createLaunchRegistrationRoutes({
         ...(verifiedReserve ? { communityReserve:{ vault:verifiedReserve.vault, tokenAccount:verifiedReserve.tokenAccount,
           fundingSignature:proof.signature, fundedTokens:verifiedReserve.fundedTokens, verified:true, atomicWithPumpLaunch:true } } : {}),
         feeDistribution,
+        ...(policy.marketingAgency?{marketingAgency:policy.marketingAgency}:{}),
         solClaim: { ...buildSolClaimPolicy({ handle: policy.xRecipient, percent: policy.solClaimPercent, feeRouterAddress: configuredRouter }), forwardingStatus: xLinked ? 'awaiting-mint-verified-collection' : 'not-selected' },
         pumpFeeRoute: { percent: 100, router: proof.creator, scope:'per-mint-v3',
           verified: true, transaction: proof.signature,

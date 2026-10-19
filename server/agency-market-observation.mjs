@@ -27,7 +27,8 @@ export async function readAgencyMarketObservation({connection,mint,readSolUsd=cr
   const key=new PublicKey(mint),poolKey=canonicalPumpPoolPda(key,NATIVE_MINT),curveKey=bondingCurvePda(key);
   if(await connection.getGenesisHash()!==DEVNET_GENESIS_HASH)throw new Error('Agency market observation requires Devnet.');
   const first=await connection.getAccountInfo(poolKey,'finalized');
-  if(!first?.owner.equals(PUMP_AMM_PROGRAM_ID))throw new Error('A canonical finalized PumpSwap pool is required.');
+  if(!first)throw Object.assign(new Error('The canonical own-coin pool is not deployed.'),{code:'AGENCY_MARKET_NOT_MIGRATED'});
+  if(!first.owner.equals(PUMP_AMM_PROGRAM_ID))throw new Error('A canonical finalized PumpSwap pool is required.');
   const layout=decodePool(first),addresses=[poolKey,key,curveKey,layout.poolBaseTokenAccount,layout.poolQuoteTokenAccount];
   const[snapshot,usd]=await Promise.all([connection.getMultipleAccountsInfoAndContext(addresses,{commitment:'finalized'}),readSolUsd()]);
   const slot=snapshot?.context?.slot;
@@ -39,6 +40,7 @@ export async function readAgencyMarketObservation({connection,mint,readSolUsd=cr
   if(!poolInfo?.owner.equals(PUMP_AMM_PROGRAM_ID)||!curveInfo?.owner.equals(PUMP_PROGRAM_ID)
     ||![TOKEN_PROGRAM_ID,TOKEN_2022_PROGRAM_ID].some(program=>mintInfo?.owner.equals(program)))throw new Error('Market account ownership differs.');
   const pool=decodePool(poolInfo),curve=decodeCurve(curveInfo);
+  if(curve?.complete===false)throw Object.assign(new Error('The Pump curve is not complete.'),{code:'AGENCY_MARKET_NOT_MIGRATED'});
   const baseAta=getAssociatedTokenAddressSync(key,poolKey,true,mintInfo.owner),quoteAta=getAssociatedTokenAddressSync(NATIVE_MINT,poolKey,true,TOKEN_PROGRAM_ID);
   if(!pool.baseMint.equals(key)||!pool.quoteMint.equals(NATIVE_MINT)||!pool.poolBaseTokenAccount.equals(baseAta)
     ||!pool.poolQuoteTokenAccount.equals(quoteAta)||!layout.poolBaseTokenAccount.equals(baseAta)||!layout.poolQuoteTokenAccount.equals(quoteAta)

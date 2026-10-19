@@ -93,7 +93,7 @@ export async function verifyFeeRouterAccount({ connection, programId, commitment
   return { ...router, authority: new PublicKey(data.slice(41, 73)), verified: true, reason: 'verified' };
 }
 
-export function buildFeeRouterPolicy({ programId, address, bump, scope = 'shared-legacy', mint = null } = {}) {
+export function buildFeeRouterPolicy({ programId, address, bump, scope = 'shared-legacy', mint = null,agencyPolicy=false } = {}) {
   const perMint = scope === 'per-mint-v2';
   const perMintV3 = scope === 'per-mint-v3';
   return {
@@ -124,7 +124,7 @@ export function buildFeeRouterPolicy({ programId, address, bump, scope = 'shared
     settlement: {
       trigger: 'successful-fee-claim',
       idempotencyKey: perMintV3 ? 'v3-claim-id' : 'claim-transaction-signature',
-      rule: perMintV3 ? 'on-chain-seven-category-80-percent-creator-20-percent-protocol-allocation'
+        rule: perMintV3 ? agencyPolicy?'on-chain-eight-category-80-percent-creator-20-percent-protocol-allocation':'on-chain-seven-category-80-percent-creator-20-percent-protocol-allocation'
         : 'on-chain-cumulative-80-percent-creator-20-percent-protocol-caps',
       creatorSignatureRequired: true,
       retry: 'failed-payouts-remain-pending-to-original-recipient',

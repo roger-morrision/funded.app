@@ -49,13 +49,15 @@ export function createFeeReadinessController(appState) {
       appState.feeRouterState = { status:'verified', verified:true,
         address:verified.address.toBase58(), programId:config.programId,
         scope:'per-mint-v3', v3FeeRouter:{ programId:config.programId,
-          initialAuthority:config.initialAuthority, split:config.protocolSplit } };
+          initialAuthority:config.initialAuthority, split:config.protocolSplit,...(config.agency?{agency:config.agency}:{}) } };
+      window.dispatchEvent(new CustomEvent('funded:agency-readiness',{detail:{active:Boolean(config.agency)}}));
       if (addressNode) addressNode.textContent = 'Derived for each new mint';
       if (status) { status.textContent = 'V3 policy verified. Pump fee ownership uses a new mint-specific router at launch.';
         status.className = 'field-help funded-mint-valid'; }
     } catch (error) {
       appState.feeRouterState = { status:String(error?.message || 'V3 launch verification unavailable'),
         verified:false, address:null, programId:null, scope:'per-mint-v3', v3FeeRouter:null };
+      window.dispatchEvent(new CustomEvent('funded:agency-readiness',{detail:{active:false}}));
       if (status) { status.textContent = `Launch blocked: ${appState.feeRouterState.status}.`;
         status.className = 'field-help funded-mint-invalid'; }
       if (addressNode) addressNode.textContent = 'Not verified';

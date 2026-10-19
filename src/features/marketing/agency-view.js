@@ -5,6 +5,7 @@ export function initMarketingAgency(document = globalThis.document) {
   const main = document?.querySelector('.main-content');
   if (!main || document.getElementById('marketing-agency')) return;
   const view = document.defaultView, page = document.createElement('section');
+  let agencyAvailable=false;
   page.id = 'marketing-agency'; page.className = 'agency-page section-block';
   page.setAttribute('aria-labelledby', 'agency-title');
   page.innerHTML = `<header class="section-heading"><div><p class="eyebrow">AI marketing agency teams</p><h1 id="agency-title">A team for every launch</h1><p>Select promotion agents when preparing a coin. Each agent uses its own share of the agency budget.</p></div><button type="button" data-agency-refresh>Refresh status</button></header>
@@ -26,6 +27,8 @@ export function initMarketingAgency(document = globalThis.document) {
     card.append(title, description, state); page.querySelector('[data-agency-cards]').append(card);
   }
   main.append(page);
+  const oldHistory=page.querySelector('[data-agency-history]'),historyContainer=document.createElement('div');
+  historyContainer.dataset.agencyHistory='';historyContainer.textContent=oldHistory.textContent;oldHistory.replaceWith(historyContainer);
   const nav = document.querySelector('.primary-nav'), anchor = nav?.querySelector('a[href="#capital-flow"]');
   if (nav && !nav.querySelector('a[href="#marketing-agency"]')) {
     const link = document.createElement('a'); link.href = '#marketing-agency'; link.className = 'nav-item';
@@ -46,35 +49,68 @@ export function initMarketingAgency(document = globalThis.document) {
     const split = document.createElement('p'); split.dataset.agencySplit = ''; split.setAttribute('role', 'status'); fieldset.append(split);
     const update = () => {
       const ids = readLaunchAgencySelection(document);
-      split.textContent = ids.length ? `2% of gross collected fees, split equally across ${ids.length} selected agent${ids.length === 1 ? '' : 's'}. Activation pending; no funds move.` : 'No team selected. The proposed 2% agency share remains in reserve after activation.';
+      split.textContent = ids.length ? `2% of gross collected fees, split equally across ${ids.length} selected agent${ids.length === 1 ? '' : 's'}. ${agencyAvailable?'Only finalized fees fund agent actions.':'Activation pending; no funds move.'}` : `No team selected. The 2% agency share remains in reserve ${agencyAvailable?'for this launch.':'after activation.'}`;
     };
     fieldset.addEventListener('change', update); update(); promotion.append(fieldset);
   }
+  function teamReadiness(active){
+    agencyAvailable=active;
+    const options=document.getElementById('launch-agency-options');
+    if(options){options.querySelector('legend').textContent=active?'AI marketing team':'AI marketing team · preview';
+      options.querySelector('#launch-agency-help').textContent=active?'Selections and fee rates are signed at launch and recorded on-chain. Each agent uses only its protected budget.':'Agency activation is pending. Preview the team here; agency-enabled launch submission is unavailable until its fee vault and executors are verified.';
+      options.dispatchEvent(new Event('change'));}
+  }
+  const readiness=event=>teamReadiness(event.detail?.active===true);
+  view.addEventListener('funded:agency-readiness',readiness);
+  const sol=value=>{if(!/^(0|[1-9]\d{0,19})$/.test(String(value)))return'Unavailable';const n=BigInt(value),fraction=String(n%1000000000n).padStart(9,'0').replace(/0+$/,'');return`${n/1000000000n}${fraction?'.'+fraction:''} SOL`;};
   let serial = 0, request;
   async function refresh() {
     const id = ++serial; request?.abort(); request = new AbortController();
     const timeout = view.setTimeout(() => request?.abort(), 10_000);
     page.querySelector('[data-agency-status]').textContent = 'Checking agency activation…';
+    page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Checking availability';});
     page.querySelector('[data-agency-funded]').textContent = 'Unavailable';
     page.querySelector('[data-agency-spent]').textContent = 'Unavailable';
     try {
       const response = await view.fetch('/api/marketing-agency', { cache: 'no-store', signal: request.signal });
       if (!response.ok) throw new Error('Unavailable');
       const data = await response.json(); if (id !== serial) return;
-      // This candidate cannot render an affirmative readiness assertion: its
-      // current contract and executors have no agency support to verify.
+      if(data.status==='deployment-verified'&&data.active===true&&data.executionEnabled===true){
+        const proof=data.verification;
+        if(data.policy?.version!==POLICY.version||proof?.scope!=='reviewed-devnet-program-and-fresh-worker'
+          ||!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(proof.programId)||!/^[a-f0-9]{64}$/.test(proof.approvedHash)
+          ||!/^[a-f0-9]{40}$/.test(proof.build)||!(/^[1-9]\d{0,19}$/).test(String(proof.configRevision)))throw new Error('Unverified agency deployment');
+        teamReadiness(true);page.querySelector('#agency-policy-title').textContent='New-launch fee policy';
+        page.querySelector('[data-agency-status]').textContent='Agency execution enabled on Devnet. Actions wait for protected funding, cadence and verified milestones; receipts below establish completed actions.';
+        page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Available · execution requires proof';});
+        page.querySelector('[data-agency-funded]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.collectedLamports):'Unavailable';
+        page.querySelector('[data-agency-spent]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.spentLamports):'Unavailable';
+        const history=page.querySelector('[data-agency-history]');history.replaceChildren();
+        const note=document.createElement('span');note.textContent='Budgets are timestamped finalized worker snapshots of registered launches. History shows worker-verified receipts.';history.append(note);
+        const list=document.createElement('ul');
+        for(const row of Array.isArray(data.history)?data.history:[]){
+          if(row.status!=='worker-recorded-finalized'||!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(row.signature)||!POLICY.agents[row.agent])continue;
+          const item=document.createElement('li'),link=document.createElement('a');link.href=`https://explorer.solana.com/tx/${encodeURIComponent(row.signature)}?cluster=devnet`;
+          link.target='_blank';link.rel='noopener noreferrer';link.textContent=`${POLICY.agents[row.agent].name} · ${sol(row.amountLamports)} · ${row.finalizedAt||'Finalized'} ↗`;item.append(link);list.append(item);
+        }
+        if(list.childElementCount)history.append(list);else history.append(document.createTextNode(' No agency execution receipt has been recorded.'));
+        return;
+      }
       if (data.status !== 'activation-blocked' || data.active !== false || data.executionEnabled !== false
         || data.policy?.version !== POLICY.version) throw new Error('Unverified agency capability');
+      teamReadiness(false);page.querySelector('#agency-policy-title').textContent='New-launch fee policy · awaiting activation';
+      page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Not activated';});
       page.querySelector('[data-agency-status]').textContent = 'Not activated. The dedicated V3 agency budget and execution verification are still required. The new 1% referral / 2% agency split is not active yet.';
       page.querySelector('[data-agency-funded]').textContent = 'Unavailable';
       page.querySelector('[data-agency-spent]').textContent = 'Unavailable';
     } catch {
-      if (id === serial) page.querySelector('[data-agency-status]').textContent = 'Agency status unavailable. No agency funding or execution is confirmed. Refresh to try again.';
+      if (id === serial){page.querySelector('[data-agency-status]').textContent = 'Agency status unavailable. No agency funding or execution is confirmed. Refresh to try again.';
+        page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Unavailable';});}
     } finally { view.clearTimeout(timeout); }
   }
   const active = () => view.location.hash === '#marketing-agency' && !document.hidden;
   const route = () => { if (active()) void refresh(); };
   page.querySelector('[data-agency-refresh]').addEventListener('click', () => { void refresh(); });
   view.addEventListener('hashchange', route); document.addEventListener('visibilitychange', route); route();
-  return () => { ++serial; request?.abort(); view.removeEventListener('hashchange', route); document.removeEventListener('visibilitychange', route); };
+  return () => { ++serial; request?.abort(); view.removeEventListener('hashchange', route);view.removeEventListener('funded:agency-readiness',readiness); document.removeEventListener('visibilitychange', route); };
 }

@@ -26,7 +26,10 @@ Refreshed `origin/main` remained `620aff2`. The public `/api/status` reported bu
 - Durable promotion intents retain exact text, sequence and budget across restarts. X delivery must independently match the configured account, full text with provider-expanded t.co links, and timestamp before billing.
 - Durable transaction journals save signed bytes before broadcast, preserve the payer's 3 SOL reserve, and reconcile ambiguous outcomes using the same signature. A timeout cannot authorize a fresh payment or post. Finalized receipts and balance changes are required before success is stored.
 - Milestone observations use one finalized bank snapshot for the canonical own-coin pool, completed Pump curve, mint supply and both reserves, plus a fresh fetched SOL/USD reference. Server-configured USD prices cannot qualify. Integer arithmetic never rounds a below-threshold cap upward. Purchases retain the existing liquidity clip and 1% slippage guard.
-- Generic X dispatch excludes agency events; they require the dedicated funded-intent preflight. The dedicated runtime worker and launch activation are not wired yet.
+- Generic X dispatch excludes agency events; they require the dedicated funded-intent preflight. The dedicated worker, normal browser launch/estimate, signed selection metadata, immutable registration verification, timestamped public budget/history summary, and disabled-by-default Compose profile are now implemented locally.
+- Normal launch activation requires reviewed program bytes, the on-chain configuration revision, matching published fee policy, a fresh exact-build worker heartbeat, and an explicit acceptance switch. Merely enabling an environment flag cannot supply the chain/configuration proofs. Every new launch uses the agency policy after activation, including no-team launches.
+- Worker readiness and execution success are distinct. Missing canonical migration remains pending; unexpected execution failures degrade readiness. Public summaries refuse stale/missing snapshots and never expose signed journal bytes. History labels worker-verified finalized receipts and does not equate rendering with a new payment.
+- Registration now saves the verified per-launch protocol split in its fee-distribution metadata rather than rebuilding the static default. Signed marketing selections and revision changes invalidate the launch statement and reviewed estimate.
 
 ## Contract evidence and payer
 
@@ -50,11 +53,11 @@ The approved rule keeps original funding and receipts. This plan permits no corr
 
 | Check | Result | Scope |
 | --- | --- | --- |
-| Full unit suite | 1,022 passed; 10 existing skips; zero failures | Synthetic and mocked chain fixtures included; not live financial acceptance. |
+| Full unit suite | 1,031 passed; 10 existing skips; zero failures | Synthetic and mocked chain fixtures included; not live financial acceptance. |
 | Critical gates | Passed | Chat, backend hardening, production policies, fee policy, receipt evidence. |
 | Production build | Passed | Rebuilt after integrating the trade-panel source; existing chunk warning retained. |
-| Admin/Daily bonus/agency browser | 11 passed | Production bundle, mocked APIs and wallet providers. |
-| Integrated wallet chooser browser | 4 passed | Buy/sell at 390px and 1440px; cancel/focus, one provider connection, zero wallet signatures or financial writes. |
+| Admin/Daily bonus/agency/launch-package/wallet browser | 25 passed | Production bundle, mocked APIs and wallet providers. Includes timestamped active budget/receipt fixture and mobile/desktop wallet chooser; zero real wallet signatures or financial writes. |
+| Agency Compose profile | Validated | Exact-release stack parsed with no secret output and no service startup. |
 | PostgreSQL durability | 8 checks passed | Real isolated PostgreSQL, mocked RPC; promotion intent, signed journal and finalized-proof persistence verified across reconnect. Zero network transactions/X posts. Temporary container removed after exact-ID verification. |
 | Audit hash jsonb roundtrip | Passed | Actual read-only PostgreSQL SELECT; reordered keys preserve audit identity and tampered amount is rejected. |
 | Legacy chain audit | Two exact preservation sources verified | Read-only finalized RPC; zero DB writes or submitted transactions. |
@@ -63,8 +66,8 @@ Evidence is ignored under `tmp/agency-*` and `data/qa-evidence/remaining-issues-
 
 ## Release gates still open
 
-1. Complete normal browser launch/estimate, signed selection metadata and registration wiring against the reviewed on-chain configuration; keep old policy snapshots intact.
-2. Complete dedicated worker, heartbeat, deployment/configuration and public budget/history integration. Complete the authority-approved admin future-mint config update; the generic off-chain editor currently rejects agency activation.
+1. Bootstrap and verify the reviewed on-chain agency configuration, then complete the authority-approved admin future-mint config update; the generic off-chain editor currently rejects agency activation. Keep old policy snapshots intact.
+2. Deploy and verify the normal launch/worker/public-summary integration. The source and Compose profile are implemented; no running agency worker or enabled normal flow is claimed.
 3. Verify full-size transaction/lookup tables and actual current-source agency settlement, X publication/billing and each canonical own-coin milestone execution on Devnet. No synthetic pool or configured USD price may be reported as a real qualifying migration/market.
 4. Apply the live audited legacy-preservation approval and verify reconciliation after deploying the tested recovery candidate. Apply additive bonus corrections only to real eligible unpaid evidence, preserving paid rankings and receipts.
 5. Fund the QA payer, recalculate costs, then upgrade only after the source/runtime cutover and tests are ready. Confirm new ProgramData bytes and exact app image SHA. Push/deploy the complete tested integration and verify affected live flows.

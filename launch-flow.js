@@ -14,6 +14,8 @@ import { executeLaunchPlan } from './launch-executor.js';
 import { initialCurvePremiumBps } from './launch-review.js';
 import { launchReserveInstructions, quoteAtomicReserveBuy } from './launch-community-reserve.js';
 import { launchServiceFeeInstructions } from './launch-service-fee.js';
+import {buildAgencyMintV3InitializeInstruction,agencySelectionMask} from './agency-mint-router-v3.js';
+import {MARKETING_AGENCY_POLICY,canonicalAgencySelection} from './config/marketing-agency.js';
 
 export async function submitLaunch({ connection, provider, payer, input, onStatus = () => {} }) {
   const launchInput = normalizeLaunchInput(input);
@@ -53,6 +55,14 @@ export function verifyPermanentPumpCreatorRoute({ bondingCurve, feeRouter, payer
 export function buildLaunchMintRouter({ mint, payer, v3FeeRouter, feeShares }) {
   if (!v3FeeRouter?.programId || !v3FeeRouter.initialAuthority || !v3FeeRouter.split) {
     throw new Error('An approved V3 program, authority, and protocol split are required.');
+  }
+  if(v3FeeRouter.split.agencyPercent!==undefined){
+    const agency=v3FeeRouter.agency;
+    if(agency?.version!==MARKETING_AGENCY_POLICY.version||v3FeeRouter.split.agencyPercent!==10)
+      throw new Error('A verified dedicated agency launch configuration is required.');
+    return{scope:'per-mint-v3',...buildAgencyMintV3InitializeInstruction({programId:v3FeeRouter.programId,mint,
+      authority:v3FeeRouter.initialAuthority,creator:payer,shares:feeShares,
+      selectedAgents:canonicalAgencySelection(agency.selectedAgents),configRevision:agency.configRevision})};
   }
   return { scope:'per-mint-v3', ...buildProtectedMintRouterV3InitializeInstruction({
     programId:v3FeeRouter.programId, mint, authority:v3FeeRouter.initialAuthority,
@@ -256,7 +266,9 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
       split:v3FeeRouter.split }),
   ]);
   if (!router.verified || !policy.verified || !policy.protectedPolicy
-    || policy.directedUnits.some((value, index) => value !== directedGrossUnits(input.feeShares)[index])) {
+    || policy.directedUnits.some((value, index) => value !== directedGrossUnits(input.feeShares)[index])
+    || v3FeeRouter.agency&&(!policy.agencyPolicy||String(policy.configRevision)!==String(v3FeeRouter.agency.configRevision)
+      ||policy.selectedMask!==agencySelectionMask(v3FeeRouter.agency.selectedAgents))) {
     throw new Error(`Coin was created, but its V3 fee router or policy is not verified. Mint: ${mint.publicKey.toBase58()}`);
   }
   const bondingCurve = await new OnlinePumpSdk(connection).fetchBondingCurve(mint.publicKey);
