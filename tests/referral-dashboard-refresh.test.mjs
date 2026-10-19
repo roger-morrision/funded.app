@@ -34,6 +34,7 @@ function fixture({ claims = null } = {}) {
   const activeNode = element();
   const conversionNode = element();
   const ledger = element();
+  const historyNote = element();
   const calls = [];
   const shared = [];
   let authenticated = false;
@@ -71,7 +72,7 @@ function fixture({ claims = null } = {}) {
       documentElement: {dataset:{}},
       body: {classList:{contains:()=>false}},
       querySelectorAll: () => [],
-      querySelector(selector) { return selector === '#referral-claim-center' ? panel : selector === '#referral-command-center' ? dashboard : selector === '#referral-paid-total' ? paidNode : selector === '#referral-active-creators' ? activeNode : selector === '#referral-conversion-rate' ? conversionNode : selector === '#referral-ledger-list' ? ledger : null; },
+      querySelector(selector) { return selector === '#referral-claim-center' ? panel : selector === '#referral-command-center' ? dashboard : selector === '#referral-paid-total' ? paidNode : selector === '#referral-active-creators' ? activeNode : selector === '#referral-conversion-rate' ? conversionNode : selector === '#referral-ledger-list' ? ledger : selector === '#referral-history-note' ? historyNote : null; },
       createElement: element,
     },
     async apiRequest(path, options = {}) {
@@ -96,6 +97,7 @@ function fixture({ claims = null } = {}) {
   return {
     refresh: () => context.refreshReferralClaims(),
     panel,
+    historyNote,
     paidNode,
     activeNode,
     conversionNode,
@@ -148,8 +150,12 @@ test('a signed referral dashboard displays exact small finalized payouts', async
   f.authenticate();
   await f.refresh();
   assert.equal(f.paidNode.textContent, '0.000017314 SOL');
-  assert.equal(f.ledger.children[0].children[2].textContent, '0.000017314 SOL');
-  assert.equal(f.panel.children[1].children[0].textContent, 'Level 2 · 0.000017314 SOL · Paid');
+  assert.equal(f.ledger.children[0].children[1].textContent, '0.000017314 SOL');
+  assert.equal(f.ledger.children[0].children[0].children[0].textContent, 'Level 2');
+  assert.equal(f.ledger.children[0].children[0].children[1].textContent, 'Paid');
+  assert.equal(f.panel.children.length, 0, 'Payouts have one history, without duplicate receipt rows');
+  assert.equal(f.panel.hidden, true);
+  assert.equal(f.ledger.hidden, false);
   assert.equal(f.signatures, 0, 'A valid wallet session needs no new signature');
 });
 
@@ -185,6 +191,8 @@ test('expired sign-in clears previously displayed private referral totals', asyn
   const f = fixture({ claims:paidClaims }); f.authenticate(); await f.refresh();
   assert.equal(f.paidNode.textContent, '0.000057714 SOL');
   f.expire(); await f.refresh();
+  assert.equal(f.ledger.hidden, true, 'Private receipt history is hidden when sign-in expires');
+  assert.equal(f.panel.hidden, false);
   assert.equal(f.paidNode.textContent, '— SOL');
   assert.equal(f.activeNode.textContent, '—');
   assert.equal(f.conversionNode.textContent, '—');
@@ -198,11 +206,13 @@ test('independent referral request failures clear only their unavailable metrics
   assert.equal(f.paidNode.textContent, '0.000057714 SOL');
   f.failClaims(); await f.refresh();
   assert.equal(f.paidNode.textContent, '— SOL');
+  assert.equal(f.ledger.hidden, true);
+  assert.equal(f.panel.hidden, false);
 });
 
 test('paid referral receipts link directly to the configured network explorer', async () => {
   const f = fixture({ claims:paidClaims }); f.authenticate(); await f.refresh();
-  const link = f.panel.children[1].children.find(child => child.href);
+  const link = f.ledger.children[0].children[2].children.find(child => child.href);
   assert(link);
   assert.equal(link.href, 'https://explorer.solana.com/tx/finalized-qa-signature?cluster=devnet');
   assert.equal(link.target, '_blank');
@@ -235,12 +245,12 @@ test('pending allocations do not enter paid totals or receive a finalized-histor
   const f = fixture({claims:[...paidClaims,{...paidClaims[0],status:'verification-pending',amountLamports:'999999999'}]});
   f.authenticate(); await f.refresh();
   assert.equal(f.paidNode.textContent,'0.000057714 SOL');
-  assert.equal(f.panel.children[0].children[1].textContent,'Recorded referral allocations and finalized payout receipts.');
+  assert.match(f.historyNote.textContent,/Only paid receipts count/);
 });
 
 for (const amount of [undefined,10]) test(`share receipt derives its amount from verified lamports when the float is ${amount}`, async () => {
   const f = fixture({claims:[{...paidClaims[0],amount}]}); f.authenticate(); await f.refresh();
-  const share = f.panel.children[1].children.find(node=>node.textContent==='Share receipt card');
+  const share = f.ledger.children[0].children[2].children.find(node=>node.textContent==='Share receipt');
   assert(share); await share.click();
   assert.equal(f.shared.length,1);
   assert.equal(f.shared[0].result.amount,0.000057714);

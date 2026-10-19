@@ -232,7 +232,6 @@ function shortenPageCopy() {
     ['#token-image-help', 'PNG, JPG, WEBP · 12 MB max · square image recommended'],
     ['#launch-route-shell .launch-immutable-note', 'Token details publish at launch and cannot be edited here later.'],
     ['#referral-command-center .section-heading .panel-explainer', 'Share your link. Rewards come from collected creator fees, not signups.'],
-    ['#referral-command-center .referral-share-panel .field-help', 'Use one link per campaign. Never promise returns.'],
     ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Buy from the verified Solana pool. Check spend, then approve in your wallet.'],
     ['#buybacks .burn-token-card > p:not(.eyebrow):not(.funded-burn-status)', 'Choose a project if you want to link this burn to it, then approve in your wallet.'],
     ['#buybacks .burn-receipts-panel > .field-help', 'This history shows confirmed burns recorded by funded.vip. Total supply can include other burns.'],

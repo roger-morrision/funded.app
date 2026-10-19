@@ -129,6 +129,9 @@ function updateReferralStatus(state){
   function renderReferralClaimPrompt(title = 'Connect wallet to check referral rewards', note = 'Finalized creator-signed V3 payouts appear in your history.', approve = false){
     const panel = document.querySelector('#referral-claim-center');
     if (!panel) return;
+    panel.hidden = false;
+    const ledger = document.querySelector('#referral-ledger-list');
+    if (ledger) ledger.hidden = true;
     panel.replaceChildren();
     const content = document.createElement('div');
     const eyebrow = document.createElement('span'); eyebrow.className = 'eyebrow'; eyebrow.textContent = 'Referral payouts';
@@ -139,6 +142,9 @@ function updateReferralStatus(state){
       const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary-button'; button.textContent = 'Sign in with wallet';
       button.addEventListener('click', async () => { button.disabled = true; try { await appState.refreshReferralClaims({ interactive: true }); } finally { button.disabled = false; } });
       panel.append(button);
+    } else if (!appState.captureWalletSession()) {
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary-button'; button.textContent = 'Connect wallet';
+      button.addEventListener('click', () => document.querySelector('#connect-button')?.click()); panel.append(button);
     }
   }
   // app-source-end
@@ -216,21 +222,24 @@ function updateReferralStatus(state){
     const paidLamports = history.paidLamports;
     const paidNode = document.querySelector('#referral-paid-total'); if (paidNode) paidNode.textContent = `${formatReferralLamports(paidLamports)} SOL`;
     const ledger = document.querySelector('#referral-ledger-list');
-    if (ledger) { ledger.replaceChildren(); if (!claims.length) appState.renderReferralLedgerEmpty('No receipts yet', 'Finalized referral payouts will appear here.'); else claims.slice().reverse().forEach(claim => { const row = document.createElement('div'); row.className = 'referral-ledger-row'; const label = document.createElement('strong'); label.textContent = `Level ${claim.level}`; const status = document.createElement('small'); status.textContent = referralClaimStatusLabel(claim.status); const amount = document.createElement('b'); amount.textContent = `${formatReferralLamports(claim.amountLamports || '0')} ${claim.asset}`; row.append(label, status, amount); ledger.append(row); }); }
-    paginateHistory(ledger, {label:'Referral history', selector:'.referral-ledger-row', key:walletAddress});
+    if (ledger) { ledger.hidden = false; ledger.replaceChildren(); if (!claims.length) appState.renderReferralLedgerEmpty('No payouts yet', 'Finalized referral payouts will appear here after creator-approved settlement.'); }
     let panel = document.querySelector('#referral-claim-center');
     if (!panel) { panel = document.createElement('div'); panel.id = 'referral-claim-center'; panel.className = 'referral-dashboard'; panel.setAttribute('aria-live', 'polite'); dashboard.querySelector('.referral-kpi-grid')?.after(panel); }
-    panel.replaceChildren();
-    const heading = document.createElement('div'); const title = document.createElement('strong'); title.textContent = 'Referral history'; const note = document.createElement('small'); note.textContent = claims.length ? (claims.some(claim => claim.status !== 'paid') ? 'Recorded referral allocations and finalized payout receipts.' : 'Finalized V3 referral payouts.') : 'Creator-signed V3 payouts appear here after final confirmation.'; heading.append(title, note); panel.append(heading);
-    for (const claim of claims) {
-      const row = document.createElement('div'); row.className = 'referral-claim-row'; const label = document.createElement('span'); label.textContent = `Level ${claim.level} · ${formatReferralLamports(claim.amountLamports || '0')} ${claim.asset} · ${referralClaimStatusLabel(claim.status)}`; row.append(label);
+    panel.replaceChildren(); panel.hidden = true;
+    const note = document.querySelector('#referral-history-note');
+    if (note) note.textContent = claims.some(claim => claim.status !== 'paid') ? 'Recorded allocations and finalized payouts. Only paid receipts count toward paid rewards.' : 'Creator-approved payouts are sent to your wallet. No manual claim is needed.';
+    for (const claim of claims.slice().reverse()) {
+      const row = document.createElement('div'); row.className = 'referral-ledger-row';
+      const label = document.createElement('div'), level = document.createElement('strong'), status = document.createElement('small');
+      level.textContent = `Level ${claim.level}`; status.textContent = referralClaimStatusLabel(claim.status); label.append(level, status);
+      const amount = document.createElement('b'); amount.textContent = `${formatReferralLamports(claim.amountLamports || '0')} ${claim.asset}`;
+      const actions = document.createElement('div'); actions.className = 'referral-receipt-actions'; row.append(label, amount, actions);
       if (claim.status === 'paid' && claim.payoutSignature) {
-        const receipt = document.createElement('small'); receipt.textContent = `Paid · ${claim.payoutSignature}`; row.append(receipt);
-        const proof = document.createElement('a'); proof.textContent = 'Verify payout ↗';
+        const proof = document.createElement('a'); proof.textContent = 'Transaction ↗'; proof.title = claim.payoutSignature;
         proof.href = appState.exploreExplorer(`tx/${encodeURIComponent(claim.payoutSignature)}`);
-        proof.target = '_blank'; proof.rel = 'noopener noreferrer'; row.append(proof);
+        proof.target = '_blank'; proof.rel = 'noopener noreferrer'; actions.append(proof);
         if (BigInt(claim.amountLamports) > 0n) {
-          const sharePaid = document.createElement('button'); sharePaid.type = 'button'; sharePaid.className = 'secondary-button'; sharePaid.textContent = 'Share receipt card';
+          const sharePaid = document.createElement('button'); sharePaid.type = 'button'; sharePaid.className = 'secondary-button'; sharePaid.textContent = 'Share receipt';
           sharePaid.addEventListener('click', async () => {
             sharePaid.disabled = true;
             try {
@@ -254,11 +263,12 @@ function updateReferralStatus(state){
             } catch (error) { appState.showToast(error.message || 'Finalized payout verification is unavailable.'); }
             finally { sharePaid.disabled = false; }
           });
-          row.append(sharePaid);
+          actions.append(sharePaid);
         }
       }
-      panel.append(row);
+      ledger?.append(row);
     }
+    paginateHistory(ledger, {label:'Referral history', selector:'.referral-ledger-row', key:walletAddress});
   }
   // app-source-end
 
@@ -283,6 +293,10 @@ function updateReferralStatus(state){
     let registered = null;
     try { registered = JSON.parse(localStorage.getItem(`${appState.REFERRAL_SERVER_KEY_PREFIX}${appState.connectedWalletAddress}`) || 'null'); } catch {}
     const status = document.querySelector('#referral-link-status'); if (status) status.textContent = !code ? 'Connect wallet' : registered?.code === code ? 'Ready to share' : 'Activate link when sharing';
+    const copy = document.querySelector('#referral-command-center [data-copy-referral-link]');
+    if (copy) copy.textContent = !code ? 'Get invite link' : registered?.code === code ? 'Copy link' : 'Activate invite link';
+    const help = document.querySelector('#referral-share-help');
+    if (help) help.textContent = registered?.code === code && code ? 'Invite creators with this link. Rewards depend on their collected and settled fees.' : 'Connect your wallet and approve a free sign-in message to activate your link.';
   }
   // app-source-end
 

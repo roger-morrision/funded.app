@@ -6,10 +6,10 @@ export function createShareConsentController(appState) {
     const panel = document.querySelector('#referral-command-center .referral-share-panel');
     if (!panel) return;
     let insight = panel.querySelector('.share-insights');
-    if (!insight) { insight = document.createElement('div'); insight.className = 'share-insights'; panel.append(insight); }
+    if (!insight) { insight = document.createElement('details'); insight.className = 'share-insights'; panel.append(insight); }
     insight.replaceChildren();
     const visits = dashboard?.available ? dashboard.data.shareVisits : null;
-    const heading = document.createElement('strong'); heading.textContent = 'Share insights';
+    const heading = document.createElement('summary'); heading.textContent = 'Sharing statistics';
     const metrics = document.createElement('div'); metrics.className = 'referral-share-metrics';
     const metric = (value, label) => {
       const item = document.createElement('span');

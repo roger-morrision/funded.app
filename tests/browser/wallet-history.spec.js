@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
 const wallet = 'ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC';
 const mint = 'EtMFvbnLJMmp4PWqDVSqYzWfkWhZy3FznJQTN35rYWPc';
@@ -9,6 +10,7 @@ const payment = '6'.repeat(32);
 
 for (const [referralStatus, hasDailyReceipt] of [[200, true], [401, true], [503, true], [401, false]]) test(`wallet profile Daily bonus receipt ${hasDailyReceipt} with referral HTTP ${referralStatus}`, async ({ page }) => {
   await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'mocked unavailable' } }));
+  await page.route('**/api/fee-policy', route => route.fulfill({ json:{ split:PROTOCOL_FEE_SPLIT } }));
   await page.route('**/api/launches', route => route.fulfill({ json:[{
     mint, symbol:'QA', name:'QA token', creatorWallet:wallet, cluster:'devnet', onchainVerified:true,
   }] }));

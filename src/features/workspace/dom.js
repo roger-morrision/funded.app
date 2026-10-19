@@ -14,7 +14,7 @@ export function disclose(target, label, { open = false, id } = {}) {
   if (id) details.id = id;
   details.open = open;
   if (target.parentElement?.classList.contains('main-content')) {
-    details.dataset.workspaceRoute = target.matches('.referral-toolkit,.referral-progress-panel') ? 'referrals' : 'overview';
+    details.dataset.workspaceRoute = target.matches('.referral-toolkit') ? 'referrals' : 'overview';
   }
   const summary = node('summary', '', label);
   target.before(details);

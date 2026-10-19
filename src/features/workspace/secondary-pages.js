@@ -6,7 +6,7 @@ import airdropWolfDropUrl from '../../../airdrop-wolf-drop.webp';
 import { mountDocsReference } from '../../../docs-reference.js';
 
 export function secondaryPages() {
-  text('#referral-command-title', 'Your referral activity');
+  text('#referral-command-title', 'Your dashboard');
   disclose($('.referral-toolkit'), 'Campaign links and sharing tools');
   const receipts=$('.burn-receipts-panel');
   if(receipts)receipts.prepend(node('p','field-help','This history shows confirmed burns available to funded.vip. Total supply can include other burns.'));

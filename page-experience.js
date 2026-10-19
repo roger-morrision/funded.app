@@ -133,22 +133,6 @@ function clarifyReferrals() {
   const faq = byId('referral-faq');
   const toolkit = document.querySelector('.referral-toolkit');
   if (faq && toolkit) toolkit.after(faq);
-  const progress = document.querySelector('.referral-progress-steps .complete');
-  progress?.classList.remove('complete');
-  const panel = document.querySelector('.referral-progress-panel');
-  if (panel) {
-    const heading = panel.querySelector('h3');
-    const badge = panel.querySelector('.data-badge');
-    const firstStep = panel.querySelector('.referral-progress-steps small');
-    if (heading) heading.textContent = 'How qualification works';
-    if (badge) badge.textContent = 'Example journey';
-    if (firstStep) firstStep.textContent = 'Invite link used';
-    const walletStep = panel.querySelector('.referral-progress-steps > div:nth-of-type(2)');
-    if (walletStep) {
-      walletStep.querySelector('strong').textContent = 'Creator wallet linked';
-      walletStep.querySelector('small').textContent = 'Invite confirmed';
-    }
-  }
 }
 
 function addContextPanels() {
