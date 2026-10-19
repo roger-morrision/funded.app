@@ -16,6 +16,7 @@ for (const width of [390,1440]) {
     await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state','ready');
     await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
     const details=page.locator('#launch-project-links'),summary=details.locator('summary');
+    expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);
     await expect(details).not.toHaveAttribute('open','');
     const boxes=await page.evaluate(()=>Object.fromEntries(['token-symbol','token-image-picker','launch-project-links']
       .map(id=>[id,document.getElementById(id).getBoundingClientRect().top])));

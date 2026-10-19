@@ -60,6 +60,7 @@ body.page-route .topbar .workspace-network { white-space: nowrap; }
 body.page-route .launch-optional-socials {
   padding: 4px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
 }
+body.page-route #launch-project-links > summary { min-height: 44px; }
 body.page-route .launch-optional-socials > h3 {
   margin: 0; min-height: 44px; padding: 12px 0;
   color: var(--text); font: 600 13px/1.5 'Manrope', sans-serif;
