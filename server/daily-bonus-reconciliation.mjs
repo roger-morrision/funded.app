@@ -1,9 +1,34 @@
 import {isDeepStrictEqual} from 'node:util';
-import {allocateDailyBonusSource,bonusHash} from './daily-bonus.mjs';
+import {allocateDailyBonusSource,bonusHash,buildDailyBonusSnapshot} from './daily-bonus.mjs';
 
 export function assertBonusSnapshot(snapshot){
   const {hash,...frozen}=snapshot;
   if(hash!==bonusHash(frozen))throw new Error('Saved daily bonus snapshot evidence changed.');
+}
+
+// Payment readers must reproduce the recorded eligibility rules and audited
+// frozen-ranking append chain. Recomputing every revision as a collection-time
+// reranking would hide genuine settlement-time and reconciled payments.
+export function verifyBonusSnapshotRevision(record){
+  const seen=new Set();
+  function verify(snapshot){
+    assertBonusSnapshot(snapshot);
+    if(seen.has(snapshot.hash)||seen.size>=64)throw new Error('Invalid bonus revision chain.');
+    seen.add(snapshot.hash);
+    const rebuilt=buildDailyBonusSnapshot({day:snapshot.day,...snapshot.evidence,
+      eligibilityBasis:snapshot.eligibilityBasis||'collection-time-v1',now:snapshot.end});
+    if(!snapshot.reconciliation){
+      if(!isDeepStrictEqual(snapshot,rebuilt))throw new Error('Invalid daily snapshot.');
+      return;
+    }
+    if(snapshot.reconciliation.kind!=='append-only-frozen-rankings-v1')throw new Error('Unknown bonus revision.');
+    const matches=(record.revisions||[]).filter(row=>row.snapshot?.hash===snapshot.reconciliation.priorHash);
+    if(matches.length!==1)throw new Error('Missing or ambiguous archived bonus revision.');
+    verify(matches[0].snapshot);
+    if(!isDeepStrictEqual(snapshot,appendDailyBonusResidual(matches[0].snapshot,rebuilt)))
+      throw new Error('Audited bonus append does not match its frozen source evidence.');
+  }
+  verify(record.snapshot);
 }
 
 // An assignment can keep its original hash after an audited append. Both

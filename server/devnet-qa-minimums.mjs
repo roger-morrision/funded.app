@@ -76,7 +76,7 @@ export function buybackTriggerLamports(cluster, env = process.env) {
   if (!/^[1-9]\d*$/.test(raw))
     throw new Error('A positive Devnet QA buyback trigger in lamports is required.');
   const amount = BigInt(raw);
-  if (amount < 100_000n || amount > 100_000_000n)
-    throw new Error('Devnet QA buyback trigger must be between 0.0001 and 0.1 SOL.');
+  if (amount < 10_000n || amount > 100_000_000n)
+    throw new Error('Devnet QA buyback trigger must be between 0.00001 and 0.1 SOL.');
   return amount;
 }

@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
 import { Keypair, PublicKey, Transaction, TransactionInstruction, SystemProgram } from '@solana/web3.js';
 import { buildDailyBonusSnapshot, dailyBonusManifest } from '../server/daily-bonus.mjs';
+import {appendDailyBonusResidual} from '../server/daily-bonus-reconciliation.mjs';
 import { rewardAddresses, rewardReserveAddress, DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
 import { createPaymentHistoryReader } from '../server/payment-history.mjs';
 import { v3PublicMetrics } from '../server/v3-public-metrics.mjs';
@@ -14,12 +15,13 @@ const [program,authority,mint,creator,recipient]=keys.map(k=>k.publicKey.toBase5
 const signature=n=>bs58.encode(Buffer.alloc(64,n));
 const start=Date.parse('2026-10-17')/1000;
 const discriminator=(space,name)=>createHash('sha256').update(`${space}:${name}`).digest().subarray(0,8);
-function fixture({recovered=false,self=false,qa=false,cohort=false}={}) {
+function fixture({recovered=false,self=false,qa=false,cohort=false,settlementTime=false}={}) {
   const wallet=self ? authority : recipient;
   const collection=signature(1), settlement=signature(2), funding=signature(3), paid=signature(4);
   const snapshot=buildDailyBonusSnapshot({day:qa ? `qa5m:2026-10-17T00:00:00Z${cohort ? '@abcdef012345' : ''}` : '2026-10-17',now:start+86400,
+    eligibilityBasis:settlementTime?'settlement-time-v1':'collection-time-v1',
     coverage:[{mint,complete:true}],collections:[{signature:collection,settlementSignature:settlement,
-      mint,creator:wallet,referrer:null,blockTime:start+1,finalized:true,amountLamports:'1000000000',
+      mint,creator:wallet,referrer:null,blockTime:settlementTime?start-300:start+1,settlementBlockTime:start+1,finalized:true,amountLamports:'1000000000',
       communityLamports:'40000000',dailyBonusVersion:1}],trades:[]});
   const source=snapshot.sources[0], manifest=dailyBonusManifest(snapshot,source), leaf=manifest.leaves[0];
   const addresses=rewardAddresses({programId:program,authority,mint,cycleId:manifest.cycleId,recipient:wallet});
@@ -74,6 +76,25 @@ for(const cohort of [false,true])test(`five-minute QA manifests retain independe
   assert.equal(history.verifiedPayouts.length,1);
   assert.equal(history.verifiedPayouts[0].day,`qa5m:2026-10-17T00:00:00Z${cohort ? '@abcdef012345' : ''}`);
   assert.equal(history.verifiedPayouts[0].actualReceivedLamports,Number(f.leaf.amount));
+});
+
+for(const qa of [false,true])test(`settlement-time payments remain verifiable when collection preceded the window (QA=${qa})`,async()=>{
+  const f=fixture({qa,cohort:qa,settlementTime:true}),history=await f.read();
+  assert.equal(history.verifiedPayouts.length,1);
+  assert.equal(dailyPaymentCandidates(f.ledger).unavailable,0);
+});
+
+test('audited additive funding preserves independently verified old payment receipts; missing archives are rejected',async()=>{
+  const f=fixture({settlementTime:true}),saved=Object.values(f.ledger.dailyBonusSnapshots)[0],prior=saved.snapshot;
+  const evidence=structuredClone(prior.evidence);
+  evidence.collections.push({...evidence.collections[0],signature:signature(8),creator:creator,amountLamports:'2000000000'});
+  const next=buildDailyBonusSnapshot({day:prior.day,...evidence,eligibilityBasis:prior.eligibilityBasis,now:prior.end});
+  saved.revisions=[{snapshot:prior}];saved.snapshot=appendDailyBonusResidual(prior,next);
+  assert.equal((await f.read()).verifiedPayouts.length,1);
+  assert.equal(dailyPaymentCandidates(f.ledger).unavailable,0);
+  saved.revisions=[];
+  assert.equal(dailyPaymentCandidates(f.ledger).candidates.length,0);
+  assert.equal(dailyPaymentCandidates(f.ledger).unavailable,1);
 });
 test('daily receipts enter global history and Analytics once, with explicit daily totals',async()=>{
   const f=fixture(), history=await f.read();

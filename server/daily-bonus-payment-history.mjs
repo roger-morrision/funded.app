@@ -3,7 +3,8 @@ import { isDeepStrictEqual } from 'node:util';
 import bs58 from 'bs58';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { rewardAddresses, rewardReserveAddress } from './automatic-reward-chain.mjs';
-import { bonusHash, buildDailyBonusSnapshot, dailyBonusManifest } from './daily-bonus.mjs';
+import { bonusHash, dailyBonusManifest } from './daily-bonus.mjs';
+import { verifyBonusSnapshotRevision } from './daily-bonus-reconciliation.mjs';
 
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const discriminator = (space, name) => createHash('sha256').update(`${space}:${name}`).digest().subarray(0,8);
@@ -27,9 +28,8 @@ export function dailyPaymentCandidates(ledger) {
     checked+=saved.length;
     if (!saved.length) continue;
     try {
-      const snapshot=row.snapshot, {hash,...frozen}=snapshot;
-      const rebuilt=buildDailyBonusSnapshot({day:snapshot.day,...snapshot.evidence,now:snapshot.end});
-      if (hash !== bonusHash(frozen) || !isDeepStrictEqual(snapshot,rebuilt)) throw new Error('Invalid daily snapshot.');
+      verifyBonusSnapshotRevision(row);
+      const snapshot=row.snapshot;
       for (const record of saved) {
         const source=snapshot.sources.find(source=>source.collectionSignature === record.source);
         const manifest=source && dailyBonusManifest(snapshot,source);

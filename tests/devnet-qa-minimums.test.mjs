@@ -18,8 +18,10 @@ test('explicit Devnet QA profile accepts only a bounded trigger', () => {
     FUNDED_DEVNET_QA_BUYBACK_TRIGGER_LAMPORTS:'5000000' }), 5_000_000n);
   assert.equal(buybackTriggerLamports('devnet', { ...env,
     FUNDED_DEVNET_QA_BUYBACK_TRIGGER_LAMPORTS:'100000' }), 100_000n);
+  assert.equal(buybackTriggerLamports('devnet', { ...env,
+    FUNDED_DEVNET_QA_BUYBACK_TRIGGER_LAMPORTS:'10000' }), 10_000n);
   assert.throws(() => buybackTriggerLamports('mainnet-beta', env), /outside Devnet/);
-  for (const raw of ['', '10000', '99999', '100000001', '0.005', '-5000000'])
+  for (const raw of ['', '9999', '100000001', '0.005', '-5000000'])
     assert.throws(() => buybackTriggerLamports('devnet',
       { ...env,FUNDED_DEVNET_QA_BUYBACK_TRIGGER_LAMPORTS:raw }), /Devnet QA buyback trigger|positive/);
 });
