@@ -21,7 +21,7 @@ const tradeReviewModel = await readFile(new URL('../trade-review-model.js', impo
 const coinSummaryModel = await readFile(new URL('../coin-summary-model.js', import.meta.url), 'utf8');
 
 assert.match(html, /id="capital-flow"/);
-assert.match(app, /setCoinField\('\.coin-live-dot', graduatedPool \? 'Trading pool confirmed' : curve \? 'Trading route confirmed' : 'Token confirmed'\)/, 'The token badge must scope confirmation to mint and market accounts, not unavailable trade or fee data.');
+assert.doesNotMatch(html, /id="coin-rpc-status"/, 'The removed token header confirmation badge must not be rendered.');
 assert.match(html, /id="referral-ledger-list"><div class="empty-state referral-empty-state"><strong>No receipts to show<\/strong><small>Connect your wallet to check finalized referral payouts\.<\/small><\/div>/, 'Disconnected referral history must not imply verified absence of payouts.');
 assert.match(await readFile(new URL('../src/features/fees/fee-flow-markup.js', import.meta.url), 'utf8'), /id="fee-flow-input"/);
 assert.match(html, /Enter a gross fee amount to preview the policy split\. This example does not move funds\./, 'Capital-flow preview copy must distinguish a policy example from live activity.');

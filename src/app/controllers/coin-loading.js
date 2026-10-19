@@ -104,7 +104,6 @@ export function createCoinLoadingController(appState) {
       appState.renderCoinFeeDashboard(feeLedger?.overview || { available:false });
       appState.renderCoinAccountDistribution(fullHolderDistribution, decimals, symbol, graduatedPool ? 'PumpSwap pool vault' : 'Curve vault');
       appState.setCoinTabLabels(); appState.renderCoinActivityTab();
-      appState.setCoinField('.coin-live-dot', graduatedPool ? 'Trading pool confirmed' : curve ? 'Trading route confirmed' : 'Token confirmed');
       appState.setCoinField('#coin-avatar', symbol.slice(0, 1).toUpperCase()); appState.setCoinField('#coin-symbol', symbol); appState.setCoinField('#coin-artwork-symbol', symbol); appState.setCoinField('#coin-page-title', name);
       if (registeredLaunch?.onchainVerified && appState.EXPLORE_CLUSTER === 'devnet') {
         const avatar = document.querySelector('#coin-avatar');

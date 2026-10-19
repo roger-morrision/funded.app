@@ -59,7 +59,7 @@ export function createTokenCardsController(appState) {
 
   // app-source: 302
   function renderCoinRegistryIdentity(mint){
-    if (document.querySelector('#coin-rpc-status')?.textContent?.trim() !== 'Data unavailable') return;
+    if (appState.coinActivity?.status !== 'unavailable') return;
     const launch = appState.verifiedLaunchPolicyForMint(mint);
     if (!launch?.onchainVerified) return;
     const name = typeof launch.name === 'string' ? launch.name.trim() : '';

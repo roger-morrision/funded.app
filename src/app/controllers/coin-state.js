@@ -38,7 +38,6 @@ export function createCoinStateController(appState) {
     appState.invalidateTradePreview();
     appState.queueTradeQuote();
     appState.setCoinTabLabels(); appState.renderCoinActivityTab();
-    appState.setCoinField('.coin-live-dot', 'Checking data');
     appState.setCoinField('#coin-avatar', '?'); appState.setCoinField('#coin-symbol', 'TOKEN'); appState.setCoinField('#coin-artwork-symbol', 'TOKEN'); appState.setCoinField('#coin-page-title', 'Loading token…'); appState.setCoinField('#coin-address', appState.shortAddress(mintAddress));
     appState.setCoinFact('#coin-stage', 'Checking curve'); appState.setCoinFact('#coin-fee-owner', 'Checking route'); appState.setCoinFact('#coin-metadata-status', 'Reading mint');
     appState.setCoinFact('#coin-mint-authority', 'Checking…'); appState.setCoinFact('#coin-freeze-authority', 'Checking…');

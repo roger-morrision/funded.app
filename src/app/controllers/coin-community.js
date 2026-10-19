@@ -175,7 +175,6 @@ export function createCoinCommunityController(appState) {
     appState.coinMarketActivity = { status: 'unavailable', trades: [], coverage: null, decimals: 6 };
     appState.renderCoinPricePath(); appState.renderCoinFlow(NaN, NaN); appState.renderCoinPulse();
     appState.setCoinTabLabels(); appState.renderCoinActivityTab();
-    appState.setCoinField('.coin-live-dot', 'Data unavailable');
     appState.setCoinField('#coin-page-title', 'Token data unavailable');
     appState.setCoinField('#coin-avatar', '?'); appState.setCoinField('#coin-symbol', '—'); appState.setCoinField('#coin-description', displayMessage);
     ['#coin-stage','#coin-fee-owner','#coin-metadata-status','#coin-mint-authority','#coin-freeze-authority'].forEach(selector => appState.setCoinFact(selector, 'Unavailable'));
