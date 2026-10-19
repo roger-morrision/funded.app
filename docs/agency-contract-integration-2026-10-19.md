@@ -8,6 +8,17 @@ This is a local integration checkpoint. It is not a deployment or a claim that a
 
 The public and Helius CLI airdrop attempts both failed with possible rate-limit errors. No refundable QA upload buffers were found. The read-only payer balance remained 6.352742082 SOL against an 8.8399198 SOL upgrade requirement preserving the 3 SOL reserve. The user is funding via the web faucet; upgrade and activation are still pending that funding and subsequent live checks.
 
+### Concurrent live release audit
+
+During preparation, funded.vip changed from `9111ae3` to `3e84c99` outside this checkout's deployment actions. Git was inspected before any candidate cutover:
+
+| Source | Classification | Commit and patch evidence |
+| --- | --- | --- |
+| `9111ae38fc9307493e89a57087526d6b790cf788` wallet chooser rapid-cancel recovery | Integrated as `5c30e1a` | Cherry-picked focused commit. `wallet-onboarding.js` and its two unit regressions match the source exactly; browser fixture improvements from the main integration remain intact. Both immediate cancel/reopen and completed-choice suppression pass. |
+| `3e84c999f0448ddc3d11be060c31c59acf0cd361` late bonus funding with frozen paid rankings | Already included by equivalent implementation | `admin-daily-bonus.js`, `server/automatic-reward-chain.mjs`, `server/daily-bonus-reconciliation.mjs`, `server/daily-bonus-service.mjs` and `tests/daily-bonus-service.test.mjs` are byte-identical to that source; implementation history includes `9a8e9a0`. The bonus table's explicit percent-of-category label is intentionally retained from `06e35d9`. Additional paid-day admin browser assertions are integrated alongside residual and agency tests. |
+
+This is patch/behavior evidence, not an ancestry claim that the live commit itself was merged. The earlier `b3d8667` image is superseded by the candidate containing the chooser fix; no public deployment of that earlier image was performed.
+
 ## Git and observed runtime
 
 | Item | Classification | Evidence |

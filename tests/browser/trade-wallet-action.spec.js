@@ -90,7 +90,8 @@ for (const [width, height] of [[390, 844], [1440, 900]]) for (const side of ['bu
 
 test('desktop chooser does not drop a retry before its close event', async ({ page }) => {
   await page.setViewportSize({ width:1440, height:900 });
-  await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'Mocked offline API' } }));
+  await page.route('**/api/**', route => new URL(route.request().url()).pathname==='/api/fee-policy'
+    ?route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):route.fulfill({ status:503, json:{ error:'Mocked offline API' } }));
   await page.route('https://**/*', route => route.abort());
   await page.goto(`/token/${mint}`);
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
