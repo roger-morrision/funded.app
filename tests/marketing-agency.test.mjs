@@ -102,6 +102,20 @@ test('X promotion is a candidate only after positive agency funding; does not sp
   assert.equal(evaluateAgencyTrigger({ ...base, agentId: ids[0], budgetLamports: '0' }).status, 'awaiting-funding');
 });
 
+test('X promotion waits 24 hours after verified delivery and billing, with one durable sequence per post',()=>{
+  const args={...base,agentId:ids[0],observation:null};
+  const first=evaluateAgencyTrigger(args);
+  assert.equal(first.sequence,0);assert.equal(first.billAfter,'after-verified-x-post');
+  const execution={mint,agentId:ids[0],status:'finalized',receiptVerified:true,billingVerified:true,
+    sequence:0,completedAt:new Date(now).toISOString()};
+  assert.equal(evaluateAgencyTrigger({...args,execution,now:now+86399999}).status,'cooldown');
+  const next=evaluateAgencyTrigger({...args,execution,now:now+86400000});
+  assert.equal(next.status,'candidate');assert.equal(next.sequence,1);assert.notEqual(next.intentId,first.intentId);
+  assert.equal(evaluateAgencyTrigger({...args,execution:{...execution,billingVerified:false},now:now+86400000}).status,'awaiting-verified-billing');
+  assert.equal(evaluateAgencyTrigger({...args,execution:{...execution,status:'uncertain'},now:now+86400000}).status,'reconciliation-required');
+  assert.equal(evaluateAgencyTrigger({...args,execution:{...execution,completedAt:new Date(now+1).toISOString()}}).status,'reconciliation-required');
+});
+
 test('capability API cannot be enabled by an environment variable or assert zero funding', async () => {
   const old = process.env.FUNDED_MARKETING_AGENCY_ENABLED;
   process.env.FUNDED_MARKETING_AGENCY_ENABLED = 'true';

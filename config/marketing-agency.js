@@ -13,9 +13,11 @@ export const MARKETING_AGENCY_POLICY = Object.freeze({
   budgetSplit: 'equal-selected-agents',
   unselectedBudget: 'retain-in-agency-reserve',
   maxObservationAgeMs: 60_000,
+  promotionCadenceSeconds: 86_400,
+  promotionBilling: 'after-verified-x-post',
   agents: Object.freeze([
     Object.freeze({ id: 'x-promotion', name: 'Agent 1 · X promotion', kind: 'x-post', marketCapUsd: null,
-      description: 'Publish a project promotion from the funded.vip X account after its launch and agency funding are verified.' }),
+      description: 'Promote the project at most once per 24 hours; its accumulated agency share is billed only after the X post is verified.' }),
     Object.freeze({ id: 'buyback-100k', name: 'Agent 2 · $100k buyback', kind: 'buyback-burn', marketCapUsd: 100_000,
       description: 'Buy this launched coin and burn it once after its verified market cap reaches $100,000.' }),
     Object.freeze({ id: 'buyback-300k', name: 'Agent 3 · $300k buyback', kind: 'buyback-burn', marketCapUsd: 300_000,

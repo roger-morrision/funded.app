@@ -32,7 +32,25 @@ function dedupe(rows, key) {
   }
   return [...seen.values()].sort((a, b) => compareText(key(a), key(b)));
 }
-export function buildDailyBonusSnapshot({ day, collections, trades, coverage, now, excludedCollectionSignatures = [] }) {
+export function allocateDailyBonusSource(row, rankings) {
+  const budget = amount(row.communityLamports), groups = splitBonusLamports(budget, DAILY_BONUS_POLICY.categoryWeights), allocations = new Map();
+  DAILY_BONUS_POLICY.categories.forEach((category, group) => {
+    const ranks = splitBonusLamports(groups[group], DAILY_BONUS_POLICY.rankPercents);
+    for (const winner of rankings[category]) {
+      const reward = ranks[winner.rank - 1];
+      winner.bonusLamports = String(BigInt(winner.bonusLamports) + reward);
+      if (reward > 0n) allocations.set(winner.wallet, (allocations.get(winner.wallet) || 0n) + reward);
+    }
+  });
+  const paid = [...allocations.values()].reduce((sum, n) => sum + n, 0n);
+  return { collectionSignature:row.signature, settlementSignature:row.settlementSignature,
+    mint:row.mint, amountLamports:String(budget), payableLamports:String(paid),
+    retainedLamports:String(budget - paid), allocations:[...allocations].sort((a, b) => compareText(a[0], b[0]))
+      .map(([recipient, value]) => ({ recipient, amount:String(value) })) };
+}
+export function buildDailyBonusSnapshot({ day, collections, trades, coverage, now, excludedCollectionSignatures = [], eligibilityBasis='collection-time-v1' }) {
+  if(!['collection-time-v1','settlement-time-v1'].includes(eligibilityBasis))throw new Error('Unknown bonus eligibility basis.');
+  const settlementTime=eligibilityBasis==='settlement-time-v1';
   const window = dailyBonusWindow(day, now);
   if (!Array.isArray(coverage) || coverage.some(row => row.complete !== true))
     throw new Error('Complete finalized trading coverage is required for every registered mint.');
@@ -48,7 +66,7 @@ export function buildDailyBonusSnapshot({ day, collections, trades, coverage, no
   };
   const inWindow = row => Number.isSafeInteger(row.blockTime) && row.blockTime >= window.start && row.blockTime < window.end;
   for (const row of fees) {
-    if (row.finalized !== true || !inWindow(row)) throw new Error('Collection does not belong to the finalized UTC day.');
+    if (row.finalized !== true || !(settlementTime?inWindow({blockTime:row.settlementBlockTime}):inWindow(row))) throw new Error('Collection does not belong to the finalized UTC day.');
     include('creators', row.creator, row.amountLamports);
     if (row.referrer) include('referrals', row.referrer, row.amountLamports);
   }
@@ -62,23 +80,11 @@ export function buildDailyBonusSnapshot({ day, collections, trades, coverage, no
         scoreLamports:String(score), percentOfCategory:DAILY_BONUS_POLICY.rankPercents[index], bonusLamports:'0' }))]));
   const excluded = [...new Set(excludedCollectionSignatures)].sort();
   if (excluded.some(id=>!fees.some(row=>row.signature === id))) throw new Error('Excluded bonus source is outside the verified window.');
-  const sources = fees.filter(row => !excluded.includes(row.signature) && row.dailyBonusVersion === 1 && amount(row.communityLamports) > 0n).map(row => {
-    const budget = amount(row.communityLamports), groups = splitBonusLamports(budget, DAILY_BONUS_POLICY.categoryWeights), allocations = new Map();
-    DAILY_BONUS_POLICY.categories.forEach((category, group) => {
-      const ranks = splitBonusLamports(groups[group], DAILY_BONUS_POLICY.rankPercents);
-      for (const winner of rankings[category]) {
-        const reward = ranks[winner.rank - 1];
-        winner.bonusLamports = String(BigInt(winner.bonusLamports) + reward);
-        if (reward > 0n) allocations.set(winner.wallet, (allocations.get(winner.wallet) || 0n) + reward);
-      }
-    });
-    const paid = [...allocations.values()].reduce((sum, n) => sum + n, 0n);
-    return { collectionSignature:row.signature, settlementSignature:row.settlementSignature,
-      mint:row.mint, amountLamports:String(budget), payableLamports:String(paid),
-      retainedLamports:String(budget - paid), allocations:[...allocations].sort((a, b) => compareText(a[0], b[0]))
-        .map(([recipient, value]) => ({ recipient, amount:String(value) })) };
-  });
-  const snapshot = { version:1, ...window, policy:window.qa ? { ...DAILY_BONUS_POLICY, periodSeconds:300, qa:true } : DAILY_BONUS_POLICY, rankings, sources,
+  const sources = fees.filter(row => !excluded.includes(row.signature) && row.dailyBonusVersion === 1 && amount(row.communityLamports) > 0n)
+    .map(row => allocateDailyBonusSource(row,rankings));
+  const policy=settlementTime?{...DAILY_BONUS_POLICY,eligibilityBasis,metrics:{...DAILY_BONUS_POLICY.metrics,
+    creators:'settled-creator-fee-lamports',referrals:'direct-referred-settled-fee-lamports'}}:DAILY_BONUS_POLICY;
+  const snapshot = { version:1, ...window, ...(settlementTime?{eligibilityBasis}:{}), policy:window.qa ? { ...policy, periodSeconds:300, qa:true } : policy, rankings, sources,
     evidence:{ collections:fees, trades:events, coverage:[...coverage].sort((a, b) => compareText(a.mint, b.mint)),
       ...(excluded.length ? { excludedCollectionSignatures:excluded } : {}) } };
   return { ...snapshot, hash:bonusHash(snapshot) };

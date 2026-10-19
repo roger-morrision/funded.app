@@ -81,6 +81,19 @@ test('V3 settlement state is stored separately from legacy settlement projection
   assert.ok(!db.calls.some(call => call.sql.startsWith('INSERT INTO settlements')));
 });
 
+test('audited residual plans survive ledger serialization and a separate read without changing source receipts',async()=>{
+  const rows=[],db=database((sql,args)=>{
+    if(sql==='SELECT bucket, entity_key, payload FROM state_entities')return {rows:structuredClone(rows),rowCount:rows.length};
+    if(sql.startsWith('INSERT INTO state_entities'))rows.push({bucket:args[0],entity_key:args[1],payload:JSON.parse(args[2])});
+    return {rows:[],rowCount:0};
+  });
+  const repo=createLedgerRepository(db),approval={plan:{hash:'a'.repeat(64),status:'reviewed-residual-not-paid'},actor:'qa-admin',executionStatus:'not-executed'};
+  await repo.update(state=>{state.v3AllocationResidualPlans[approval.plan.hash]=approval;});
+  const state=await createLedgerRepository(db).read();
+  assert.deepEqual(state.v3AllocationResidualPlans[approval.plan.hash],approval);
+  assert.deepEqual(rows.map(row=>row.bucket),['v3AllocationResidualPlans']);
+});
+
 test('chat append still delegates through the composed repository and bounds retained messages', async () => {
   const messages = [{ id: 1 }, { id: 2 }];
   const db = database(sql => ({ rows: sql.startsWith('SELECT payload FROM state_entities') ? [{ payload: messages }] : [], rowCount: 0 }));

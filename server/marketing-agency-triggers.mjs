@@ -13,17 +13,27 @@ export function evaluateAgencyTrigger({ mint, agentId, selectedAgents, budgetLam
   const selected = canonicalAgencySelection(selectedAgents);
   const agent = POLICY.agents.find(row => row.id === agentId);
   if (!agent || !selected.includes(agentId)) return { status: 'not-selected' };
+  let promotionSequence=0;
   if (execution != null) {
     if (execution.mint !== mint || execution.agentId !== agentId) throw new Error('Agency execution belongs to another mint or agent.');
     // Submitted, ambiguous, or failed delivery cannot be treated as fresh;
     // reconcile the same durable intent before any new spend or public post.
-    if (execution.status === 'finalized' && execution.receiptVerified === true) return { status: 'completed' };
-    return { status: 'reconciliation-required' };
+    if (execution.status !== 'finalized' || execution.receiptVerified !== true) return { status: 'reconciliation-required' };
+    if(agent.kind!=='x-post')return {status:'completed'};
+    if(execution.billingVerified!==true)return {status:'awaiting-verified-billing'};
+    const completed=Date.parse(execution.completedAt);
+    if(!Number.isSafeInteger(now)||!Number.isSafeInteger(completed)||completed>now
+      ||!Number.isSafeInteger(execution.sequence)||execution.sequence<0||execution.sequence>=0xffff_ffff)
+      return {status:'reconciliation-required'};
+    const nextEligibleAt=completed+POLICY.promotionCadenceSeconds*1000;
+    if(now<nextEligibleAt)return {status:'cooldown',nextEligibleAt:new Date(nextEligibleAt).toISOString()};
+    promotionSequence=execution.sequence+1;
   }
   if (!integer(budgetLamports) || BigInt(budgetLamports) > 0xffff_ffff_ffff_ffffn) throw new Error('An exact agency budget is required.');
   if (BigInt(budgetLamports) === 0n) return { status: 'awaiting-funding' };
-  const intentId = `agency:${POLICY.version}:${mint}:${agentId}`;
+  const intentId = `agency:${POLICY.version}:${mint}:${agentId}${agent.kind==='x-post'?`:${promotionSequence}`:''}`;
   if (agent.kind === 'x-post') return { status: 'candidate', intentId, kind: agent.kind,
+    sequence:promotionSequence,billAfter:POLICY.promotionBilling,
     maxDebitLamports: budgetLamports, executionAuthorized: false };
   const age = now - Date.parse(observation?.observedAt);
   if (observation?.mint !== mint || observation?.cluster !== 'devnet'

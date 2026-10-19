@@ -8,7 +8,7 @@ const usage = (state,source) => [state.v3CreatorWalletPayout?.[source],
 
 // Upgrade only unused creator allocations. Recorded transactions, enrolled
 // holder pools and X claims retain their original amounts and source IDs.
-export async function reconcileV3Allocations({store,connection,mint,loadSettlement=loadFinalizedV3Settlement}) {
+export async function readFinalizedV3Allocations({store,connection,mint,loadSettlement=loadFinalizedV3Settlement}) {
   const state = await store.read(), launch = state.launches?.[mint];
   if (!launch?.onchainVerified || launch.cluster!=='devnet' || launch.mint!==mint
     || launch.pumpFeeRoute?.scope!=='per-mint-v3') throw new Error('A verified Devnet V3 launch is required.');
@@ -38,8 +38,6 @@ export async function reconcileV3Allocations({store,connection,mint,loadSettleme
     const original=v3AllocationPlan({launch,settlement:{...settlement,position:row.allocationPlan?.allocationVersion===2?proof.position:undefined}});
     if (!isDeepStrictEqual(original,row.allocationPlan)) throw new Error('The saved allocation differs from finalized source evidence.');
     const used=usage(state,source).some(Boolean);
-    if (used && !isDeepStrictEqual(original.creatorDirected,next.creatorDirected))
-      throw new Error('A previously used legacy allocation needs reviewed rounding reconciliation. Its payment amounts were preserved.');
     reviewed.push({source,row,proof,next,used,usage:usage(state,source)});
   }
   reviewed.sort((a,b)=>BigInt(a.proof.position.settledBeforeLamports)<BigInt(b.proof.position.settledBeforeLamports)?-1:1);
@@ -51,6 +49,14 @@ export async function reconcileV3Allocations({store,connection,mint,loadSettleme
     observed=BigInt(position.policySettledLamports)>observed?BigInt(position.policySettledLamports):observed;
   }
   if(cursor!==observed)throw new Error('A finalized settlement is missing from the allocation ledger.');
+  return {state,launch,reviewed,proofConnection};
+}
+
+export async function reconcileV3Allocations(options) {
+  const {store,mint}=options;
+  const {state,launch,reviewed}=await readFinalizedV3Allocations(options);
+  for(const row of reviewed)if(row.used&&!isDeepStrictEqual(row.row.allocationPlan.creatorDirected,row.next.creatorDirected))
+    throw new Error('A previously used legacy allocation needs reviewed rounding reconciliation. Its payment amounts were preserved.');
   const changes=reviewed.filter(row=>!row.used&&!isDeepStrictEqual(row.row.allocationPlan,row.next));
   if(!changes.length)return state;
   await store.update(current=>{

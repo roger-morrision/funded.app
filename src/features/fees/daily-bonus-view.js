@@ -26,11 +26,20 @@ export function initDailyBonusView(document = globalThis.document) {
     const nextTime = Date.parse(data?.nextCutoffAt || '');
     const next = Number.isFinite(nextTime) ? new Date(nextTime).toLocaleString('en-GB', { timeZone:'UTC' }) + ' UTC' : 'unavailable';
     status.textContent = dailyBonusStatus(data || {}, snapshot, next);
+    if(data?.pendingSettlementSources?.length){
+      status.textContent+=` ${data.pendingSettlementSources.length} source(s) await finalized settlement and are not eligible yet.`;
+    }
     if (!snapshot) return;
     const payments = dailyBonusPayments(snapshot);
     const intro = document.createElement('p');
     intro.textContent = `${bonusSnapshotLabel(snapshot.day)} · ${sol(snapshot.allocatedLamports)} allocated · ${sol(snapshot.retainedLamports)} retained for unfilled ranks. Allocation is not a payment.`;
     results.append(intro);
+    const eligibility=document.createElement('p');eligibility.className='field-help';
+    eligibility.textContent=snapshot.eligibilityBasis==='settlement-time-v1'
+      ?'Fee eligibility uses finalized settlement time. Later settlements enter their applicable later window.'
+      :'Historical snapshot: fee eligibility uses its original collection-time rules.';
+    if(snapshot.reconciliation?.kind==='append-only-frozen-rankings-v1')eligibility.textContent+=' Audited added funding uses the original frozen ranks and scores; previous payments are preserved.';
+    results.append(eligibility);
     const paidNote = document.createElement('p'); paidNote.className = 'field-help';
     paidNote.textContent = 'Finalized received totals combine all bonus categories for this wallet and snapshot window. Repeated wallets show the same total; allocations are shown per ranking group. Five-minute test windows are marked QA. Global payment history includes these receipts after independent chain verification.';
     results.append(paidNote);

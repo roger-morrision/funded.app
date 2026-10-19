@@ -8,6 +8,8 @@ import { SOL_ASSET_MINT } from '../../reward-merkle.js';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import { validateProtocolFeeSplit } from '../../distribution-policy.js';
 import { protocolGrossUnits, deriveMintVaultsV3, deriveCommunityRewardVaultV3, verifyMintPolicyV3Account } from '../../mint-router-v3.js';
+import {reviewV3AllocationResiduals,recordV3AllocationResidualPlan} from '../v3-allocation-residuals.mjs';
+import {verifyV3LaunchRouterReadiness} from '../v3-launch-readiness.mjs';
 
 const COOKIE = 'funded_admin';
 const CHALLENGE_MS = 5 * 60_000;
@@ -122,6 +124,24 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
     if (await handleAdminServiceFees({ req,res,url,store,body,respond,session })) return true;
     if (req.method === 'GET' && path === '/api/admin/session')
       return json(res, 200, { wallet:session.wallet, expiresAt:new Date(session.expiresAt).toISOString() });
+    const residualAction=req.method==='POST'&&path.match(/^\/api\/admin\/v3-allocations\/(review|approve)$/);
+    if(residualAction){
+      try{
+        const input=await body(req),mint=validWallet(input?.mint),launch=(await store.read()).launches?.[mint];
+        if(!mint||!launch)throw new Error('A registered Devnet V3 mint is required.');
+        const rpc=connection(),programId=env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID;
+        if(await rpc.getGenesisHash()!==DEVNET_GENESIS_HASH)throw new Error('Residual RPC is not Devnet.');
+        const ready=await verifyV3LaunchRouterReadiness({connection:rpc,programId,mint,
+          expectedProgramDataSha256:env.FUNDED_V3_PROGRAM_DATA_SHA256,creatorWallet:launch.creatorWallet,
+          initialAuthority:launch.pumpFeeRoute?.initialAuthority,split:launch.pumpFeeRoute?.protocolSplit});
+        if(!ready.ready||!ready.protectedPolicy||launch.pumpFeeRoute.programId!==programId)
+          throw new Error('The reviewed protected V3 program and policy are required.');
+        const options={store,connection:rpc,mint};
+        const result=residualAction[1]==='review'?await reviewV3AllocationResiduals(options)
+          :await recordV3AllocationResidualPlan({...options,expectedHash:input.expectedHash,reason:input.reason,actor:session.wallet});
+        return json(res,200,result);
+      }catch(error){return json(res,409,{error:String(error.message||error)});}
+    }
     const dailyAction = req.method === 'POST' && path.match(/^\/api\/admin\/daily-bonus\/(snapshot|review|reconcile)$/);
     if (dailyAction) {
       if (!dailyBonusRuntime) return json(res,503,{error:'Daily bonus recovery is unavailable.'});

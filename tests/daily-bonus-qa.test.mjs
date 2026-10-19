@@ -13,7 +13,7 @@ const schedule=bonusSchedule({cluster:'devnet',env});
 const day=bonusWindowKey(start,schedule);
 const memory=data=>({read:async()=>structuredClone(data),transaction:async fn=>fn(data)});
 const evidence=()=>({coverage:[{mint:addresses[2],complete:true}],collections:[{signature:'collection',settlementSignature:'settlement',
-  mint:addresses[2],creator:addresses[3],referrer:addresses[4],blockTime:start+1,finalized:true,
+  mint:addresses[2],creator:addresses[3],referrer:addresses[4],blockTime:start+1,settlementBlockTime:start+1,finalized:true,
   amountLamports:'75000',communityLamports:'3000',dailyBonusVersion:1}],trades:[{signature:'trade',logIndex:0,
   mint:addresses[2],wallet:addresses[5],blockTime:start+2,finalized:true,amountLamports:'5000'}]});
 test('five-minute periods require explicit Devnet configuration and an allowlist; daily remains the default',()=>{
