@@ -80,3 +80,21 @@ for (const [width, height] of [[390, 844], [1440, 900]]) for (const side of ['bu
     expect(writes).toEqual([]);
   });
 }
+
+test('desktop chooser does not drop a retry before its close event', async ({ page }) => {
+  await page.setViewportSize({ width:1440, height:900 });
+  await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'Mocked offline API' } }));
+  await page.route('https://**/*', route => route.abort());
+  await page.goto(`/token/${mint}`);
+  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  await page.locator('#trade-connect-wallet').click();
+  await expect(page.locator('#wallet-onboarding-dialog')).toHaveAttribute('open', '');
+  await page.evaluate(() => {
+    document.querySelector('#wallet-onboarding-dialog').close();
+    document.querySelector('#trade-connect-wallet').click();
+  });
+  await expect(page.locator('#wallet-onboarding-dialog')).toHaveAttribute('open', '');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#wallet-onboarding-dialog')).not.toHaveAttribute('open', '');
+  await expect(page.locator('#trade-connect-wallet')).toBeFocused();
+});

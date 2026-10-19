@@ -9,8 +9,9 @@ export function availableWalletChoices(entries) {
 
 let pendingChoice;
 export function chooseWallet(entries, { devnet = false, preferred = '' } = {}) {
-  if (pendingChoice) return pendingChoice;
   const dialog = document.querySelector('#wallet-onboarding-dialog');
+  if (pendingChoice) return dialog.open ? pendingChoice
+    : pendingChoice.then(choice => choice ? null : chooseWallet(entries, { devnet, preferred }));
   const options = dialog.querySelector('#wallet-onboarding-options');
   const status = dialog.querySelector('#wallet-onboarding-status');
   options.replaceChildren();
