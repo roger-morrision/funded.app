@@ -2,6 +2,13 @@ import { initializeAppState } from '../runtime.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeTradeControls(appState) {
+  document.querySelector('#trade-connect-wallet')?.addEventListener('click', async () => {
+    const panel = document.querySelector('#trade-panel');
+    const mobileSheetOpen = panel?.getAttribute('aria-modal') === 'true';
+    if (mobileSheetOpen) panel.dispatchEvent(new Event('funded:trade-wallet-start'));
+    try { await appState.connectWallet({ interactiveSignIn:false }); }
+    finally { if (mobileSheetOpen) panel.dispatchEvent(new Event('funded:trade-wallet-return')); }
+  });
   // app-source: 737
   try {
     const saved = JSON.parse(localStorage.getItem(appState.coinQuickAmountKey) || 'null');
