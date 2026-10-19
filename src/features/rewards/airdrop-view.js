@@ -11,6 +11,7 @@ export function renderAirdropProgramDetail(
     wallet,
     APP_EXPLORER_QUERY,
     preserveStatus = false,
+    open = true,
   },
   {
     formatTokenAmount,
@@ -19,8 +20,9 @@ export function renderAirdropProgramDetail(
   } = {}
 ) {
   const panel = document.querySelector('#airdrop-selected-program');
-  if (!panel) return;
+  if (!panel || !program || (!open && (panel.hidden || panel.dataset.mint !== program.id))) return;
   panel.dataset.mint = program.id;
+  panel.hidden = false;
   const unavailableButton = document.querySelector('#airdrop-claim-unavailable');
   if (unavailableButton) unavailableButton.hidden = program.claimActive;
   const unknownClaim = program.claimVerification === 'checking' ? 'Checking claim availability…'
@@ -35,11 +37,18 @@ export function renderAirdropProgramDetail(
         ? `Devnet QA claims · one full allocation per wallet within ${program.claimWindowDays} days`
         : `Claim your full allocation once within ${program.claimWindowDays} days`;
   const unknownEvidence = unknownClaim ? program.claimVerification === 'checking' ? 'Checking verification…' : 'Verification unavailable' : null;
-  document.querySelector('#airdrop-selected-stats').innerHTML = `<span><small>Airdrop allocation</small><strong>${formatTokenAmount(program.reservedTokens)} tokens · ${program.allocationPercent}% of supply</strong></span><span><small>Claimed</small><strong>${formatVerifiedAirdropAmount(program.claimedTokens)}</strong></span><span><small>Eligible wallets</small><strong>${formatVerifiedAirdropAmount(program.eligibleWallets)}</strong></span><span><small>Claim window</small><strong>${escapeHtml(claimWindow)}</strong></span><details class="airdrop-verification-details advanced-details"><summary>Advanced details · verification</summary><div class="airdrop-program-detail-stats"><span><small>Snapshot</small><strong>${escapeHtml(program.snapshot)}</strong></span><span><small>Snapshot hash</small><strong class="airdrop-proof-value">${escapeHtml(program.snapshotHash || unknownEvidence || 'Pending verified snapshot')}</strong></span><span><small>Proof root</small><strong class="airdrop-proof-value">${escapeHtml(program.merkleRoot || unknownEvidence || 'Pending published proof')}</strong></span></div></details>`;
+  const stats = document.querySelector('#airdrop-selected-stats');
+  const nextStats = document.createElement?.('div') || { innerHTML: '', querySelectorAll: () => [] };
+  nextStats.innerHTML = `<span><small>Airdrop allocation</small><strong>${formatTokenAmount(program.reservedTokens)} tokens · ${program.allocationPercent}% of supply</strong></span><span><small>Claimed</small><strong>${formatVerifiedAirdropAmount(program.claimedTokens)}</strong></span><span><small>Eligible wallets</small><strong>${formatVerifiedAirdropAmount(program.eligibleWallets)}</strong></span><span><small>Claim window</small><strong>${escapeHtml(claimWindow)}</strong></span><details class="airdrop-verification-details advanced-details"><summary>Advanced details · verification</summary><div class="airdrop-program-detail-stats"><span><small>Snapshot</small><strong>${escapeHtml(program.snapshot)}</strong></span><span><small>Snapshot hash</small><strong class="airdrop-proof-value">${escapeHtml(program.snapshotHash || unknownEvidence || 'Pending verified snapshot')}</strong></span><span><small>Proof root</small><strong class="airdrop-proof-value">${escapeHtml(program.merkleRoot || unknownEvidence || 'Pending published proof')}</strong></span></div></details>`;
+  const currentValues = stats.querySelectorAll?.('strong') || [];
+  const nextValues = nextStats.querySelectorAll('strong');
+  if (currentValues.length === nextValues.length && stats.querySelector?.('details')) {
+    currentValues.forEach((node, index) => { node.textContent = nextValues[index].textContent; });
+  } else stats.innerHTML = nextStats.innerHTML;
   const status = document.querySelector('#airdrop-selected-status');
   // Background verification may refresh the stats while a wallet review,
   // signature request or submitted transaction still owns these controls.
-  if (preserveStatus) return;
+  if (preserveStatus || (!open && status.contains(document.activeElement))) return;
   if (status.dataset) {
     delete status.dataset.communityClaimWallet;
     delete status.dataset.communityClaimMint;
@@ -79,8 +88,6 @@ export function renderAirdropProgramDetail(
   } else if (!program.vaultVerified && program.creatorWallet === connectedWalletAddress && !program.vaultInitialized) {
     status.append(document.createTextNode(' The reward vault must be initialized before your wallet can fund it.'));
   }
-  panel.hidden = false;
-  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 export function renderAirdropAnalytics(

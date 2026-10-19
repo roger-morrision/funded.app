@@ -2,6 +2,32 @@ import { initializeAppState } from '../runtime.js';
 import {referralRatePresentation} from '../../features/fees/referral-rate-copy.js';
 
 export function initializeExploreFiltersActions(appState) {
+  const selectedAirdrop = document.querySelector('#airdrop-selected-program');
+  const airdropTriggers = () => [...document.querySelectorAll('#airdrop-directory [data-directory-mint]')];
+  function hideAirdropDetail(){
+    selectedAirdrop.hidden = true;
+    delete selectedAirdrop.dataset.mint;
+    airdropTriggers().forEach(button => button.setAttribute('aria-expanded', 'false'));
+  }
+  function openAirdropDetail(program){
+    appState.renderAirdropProgramDetail(program, { open:true });
+    airdropTriggers().forEach(button => button.setAttribute('aria-expanded', String(button.dataset.directoryMint === program.id)));
+    const title = document.querySelector('#airdrop-selected-title');
+    title.tabIndex = -1;
+    title.focus({ preventScroll:true });
+    selectedAirdrop.scrollIntoView({ behavior:'instant', block:'start' });
+  }
+  function closeAirdropDetail(){
+    const mint = selectedAirdrop.dataset.mint;
+    hideAirdropDetail();
+    const trigger = airdropTriggers().find(button => button.dataset.directoryMint === mint
+      && !button.disabled && button.getClientRects().length);
+    const target = trigger || document.querySelector('#airdrop-search');
+    if (target?.getClientRects().length) {
+      target.focus({ preventScroll:true });
+      target.scrollIntoView({ behavior:'instant', block:'center' });
+    }
+  }
   // app-source: 810
   document.querySelector('#home-launch-grid')?.addEventListener('click', async event => {
     const copy = event.target.closest('.home-launch-copy-address');
@@ -43,7 +69,7 @@ export function initializeExploreFiltersActions(appState) {
     const live = event.target.closest('[data-check-community-mint]');
     if (live) {
       const program = appState.getAirdropPrograms().find(row => row.id === live.dataset.checkCommunityMint);
-      if (program) { appState.renderAirdropProgramDetail(program); void appState.checkCommunityClaim(program.id).catch(error => appState.showToast(String(error.message || error))); }
+      if (program) { openAirdropDetail(program); void appState.checkCommunityClaim(program.id).catch(error => appState.showToast(String(error.message || error))); }
       return;
     }
     const button = event.target.closest('[data-preview-claim]');
@@ -62,7 +88,7 @@ export function initializeExploreFiltersActions(appState) {
 
   // app-source: 814
   document.querySelector('#airdrop-search')?.addEventListener('input', () => {
-    document.querySelector('#airdrop-selected-program').hidden = true;
+    hideAirdropDetail();
     appState.airdropDirectoryPage = 1;
     appState.renderAirdropDirectory();
   });
@@ -73,7 +99,7 @@ export function initializeExploreFiltersActions(appState) {
     if (!['all','curve','claiming'].includes(event.detail?.status)) return;
     appState.airdropDirectoryStatus = event.detail.status;
     appState.airdropDirectoryPage = 1;
-    document.querySelector('#airdrop-selected-program').hidden = true;
+    hideAirdropDetail();
     appState.renderAirdropDirectory();
   });
   document.addEventListener('funded:token-list-markets', () => appState.renderAirdropDirectory());
@@ -84,7 +110,7 @@ export function initializeExploreFiltersActions(appState) {
     const button = event.target.closest('[data-airdrop-page]');
     if (!button || button.disabled) return;
     appState.airdropDirectoryPage += button.dataset.airdropPage === 'next' ? 1 : -1;
-    document.querySelector('#airdrop-selected-program').hidden = true;
+    hideAirdropDetail();
     appState.renderAirdropDirectory();
   });
   // app-source-end
@@ -95,15 +121,14 @@ export function initializeExploreFiltersActions(appState) {
     if (!button) return;
     const program = appState.getAirdropPrograms().find(item => item.id === button.dataset.directoryMint);
     if (!program) return;
-    appState.renderAirdropProgramDetail(program);
+    openAirdropDetail(program);
     if (appState.connectedWalletAddress && program.claimActive)
       void appState.checkCommunityClaim(program.id).catch(error => appState.showToast(String(error.message || error)));
-    document.querySelector('#airdrop-selected-program')?.scrollIntoView({ block: 'start' });
   });
   // app-source-end
 
   // app-source: 818
-  document.querySelector('#airdrop-detail-close')?.addEventListener('click', () => { document.querySelector('#airdrop-selected-program').hidden = true; });
+  document.querySelector('#airdrop-detail-close')?.addEventListener('click', closeAirdropDetail);
   // app-source-end
 
   // app-source: 819

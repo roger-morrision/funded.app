@@ -144,6 +144,8 @@ export function createAirdropDirectoryController(appState) {
     appState.airdropDirectoryPage = Math.min(appState.airdropDirectoryPage, totalPages);
     const first = (appState.airdropDirectoryPage - 1) * appState.AIRDROP_DIRECTORY_PAGE_SIZE;
     const curveTab = appState.airdropDirectoryStatus === 'curve';
+    const selectedPanel = document.querySelector('#airdrop-selected-program');
+    const selectedMint = selectedPanel && !selectedPanel.hidden ? selectedPanel.dataset.mint : null;
     list.innerHTML = filtered.slice(first, first + appState.AIRDROP_DIRECTORY_PAGE_SIZE).map(program => {
       const safeMint = appState.escapeHtml(program.id);
       const safeSymbol = appState.escapeHtml(program.symbol);
@@ -161,7 +163,7 @@ export function createAirdropDirectoryController(appState) {
         ${curveTab || appState.airdropDirectoryStatus === 'claiming' ? '' : `<small class="directory-funding-line">Funding: ${cardData.reserveState === 'verified' ? 'Confirmed' : program.claimVerification === 'checking' ? 'Checking…' : program.claimVerification === 'unavailable' ? 'Unavailable' : 'Not confirmed'}</small>`}
         <details class="token-card-more"><summary>Details & links</summary>${program.claimPublished ? `<small class="directory-migration-time">${program.migrationAt ? `${program.snapshotBasis === 'devnet-qa-cutoff' ? 'Devnet QA cutoff' : program.snapshotBasis === 'pump-migration' ? 'Migrated' : 'Snapshot recorded'} ${utcMoment(program.migrationAt * 1000)}` : 'Snapshot time unavailable'}</small>` : ''}${appState.tokenCardAddressesMarkup(program.id)}${appState.exploreSocialLinksMarkup({ address: program.id, symbol: program.symbol })}<small>${appState.escapeHtml(program.statusLabel)} · ${appState.escapeHtml(appState.tokenCardEvidenceLabel(cardData))}</small></details></div></div>
         <div class="directory-wallet-allocation"><small>Your allocation</small><b>${appState.escapeHtml(appState.directoryWalletAmount(program))}</b></div>
-        <div class="directory-footer"><span class="airdrop-status ${program.status}">${unknownClaim || (program.claimActive ? 'Claims open' : program.status === 'closed' ? 'Claims closed' : program.onCurve ? 'On curve · opens after migration' : 'Awaiting verified snapshot')}</span><div class="token-card-actions">${appState.tokenCardWatchMarkup(program.id, program.symbol)}${appState.tokenCardShareMarkup(program.id, program.symbol, program.name)}${curveTab ? '' : `<button type="button" class="secondary-button directory-claim" data-directory-mint="${safeMint}" aria-controls="airdrop-selected-program" ${checking ? 'disabled' : ''}>${appState.connectedWalletAddress && program.claimActive ? 'Check allocation' : 'View claim status'}</button>`}</div></div>
+        <div class="directory-footer"><span class="airdrop-status ${program.status}">${unknownClaim || (program.claimActive ? 'Claims open' : program.status === 'closed' ? 'Claims closed' : program.onCurve ? 'On curve · opens after migration' : 'Awaiting verified snapshot')}</span><div class="token-card-actions">${appState.tokenCardWatchMarkup(program.id, program.symbol)}${appState.tokenCardShareMarkup(program.id, program.symbol, program.name)}${curveTab ? '' : `<button type="button" class="secondary-button directory-claim" data-directory-mint="${safeMint}" aria-controls="airdrop-selected-program" aria-expanded="${selectedMint === program.id}" ${checking ? 'disabled' : ''}>${appState.connectedWalletAddress && program.claimActive ? 'Check allocation' : 'View claim status'}</button>`}</div></div>
       </article>`;
     }).join('') || `<div class="empty-state">${appState.verifiedLaunchPoliciesStatus === 'loading' ? 'Checking airdrops…' : appState.verifiedLaunchPoliciesStatus === 'unavailable' ? 'Airdrops are temporarily unavailable.' : query ? 'No airdrops match your search.' : ['claiming','closed'].includes(appState.airdropDirectoryStatus) && list.dataset.claimsStatus !== 'ready' ? 'Claim availability could not be verified. Try again shortly.' : appState.airdropDirectoryStatus === 'claiming' ? 'No claims are open yet.' : appState.airdropDirectoryStatus === 'closed' ? 'No closed airdrops yet.' : appState.airdropDirectoryStatus === 'curve' && list.dataset.stagesStatus !== 'ready' ? 'Trading stages could not be verified. Try again shortly.' : appState.airdropDirectoryStatus === 'curve' ? 'No verified on-curve airdrops yet.' : 'No airdrops yet.'}</div>`;
     appState.loadVerifiedTokenLogos(list);
@@ -185,8 +187,8 @@ export function createAirdropDirectoryController(appState) {
   // app-source-end
 
   // app-source: 332
-  function renderAirdropProgramDetail(program, { preserveStatus = false } = {}){
-    return appState.renderAirdropProgramDetailView(program, { connectedWalletAddress: appState.connectedWalletAddress, communityClaimPolicy: appState.communityClaimPolicy, wallet: appState.wallet, APP_EXPLORER_QUERY: appState.APP_EXPLORER_QUERY, preserveStatus }, { formatTokenAmount: appState.formatTokenAmount, formatVerifiedAirdropAmount: appState.formatVerifiedAirdropAmount });
+  function renderAirdropProgramDetail(program, { preserveStatus = false, open = false } = {}){
+    return appState.renderAirdropProgramDetailView(program, { connectedWalletAddress: appState.connectedWalletAddress, communityClaimPolicy: appState.communityClaimPolicy, wallet: appState.wallet, APP_EXPLORER_QUERY: appState.APP_EXPLORER_QUERY, preserveStatus, open }, { formatTokenAmount: appState.formatTokenAmount, formatVerifiedAirdropAmount: appState.formatVerifiedAirdropAmount });
   }
   // app-source-end
 
