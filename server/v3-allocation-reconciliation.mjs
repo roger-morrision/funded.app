@@ -2,13 +2,16 @@ import { isDeepStrictEqual } from 'node:util';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
 import { v3AllocationPlan } from './v3-allocation-plan.mjs';
 import { createFinalizedReadCache } from './finalized-read-cache.mjs';
+import {approvedLegacyPreservation} from './v3-legacy-preservation.mjs';
 
 const usage = (state,source) => [state.v3CreatorWalletPayout?.[source],
-  state.v3CreatorRewardFunding?.[source],state.v3XClaims?.[source]];
+  state.v3CreatorRewardFunding?.[source],state.v3XClaims?.[source],
+  ...['v3CreatorWalletPayout','v3CreatorRewardFunding','v3XClaims'].flatMap(bucket=>
+    Object.entries(state[bucket]||{}).filter(([id])=>id.startsWith(`${source}:residual:`)).sort(([a],[b])=>a.localeCompare(b)))];
 
 // Upgrade only unused creator allocations. Recorded transactions, enrolled
 // holder pools and X claims retain their original amounts and source IDs.
-export async function reconcileV3Allocations({store,connection,mint,loadSettlement=loadFinalizedV3Settlement}) {
+export async function readFinalizedV3Allocations({store,connection,mint,loadSettlement=loadFinalizedV3Settlement}) {
   const state = await store.read(), launch = state.launches?.[mint];
   if (!launch?.onchainVerified || launch.cluster!=='devnet' || launch.mint!==mint
     || launch.pumpFeeRoute?.scope!=='per-mint-v3') throw new Error('A verified Devnet V3 launch is required.');
@@ -38,8 +41,6 @@ export async function reconcileV3Allocations({store,connection,mint,loadSettleme
     const original=v3AllocationPlan({launch,settlement:{...settlement,position:row.allocationPlan?.allocationVersion===2?proof.position:undefined}});
     if (!isDeepStrictEqual(original,row.allocationPlan)) throw new Error('The saved allocation differs from finalized source evidence.');
     const used=usage(state,source).some(Boolean);
-    if (used && !isDeepStrictEqual(original.creatorDirected,next.creatorDirected))
-      throw new Error('A previously used legacy allocation needs reviewed rounding reconciliation. Its payment amounts were preserved.');
     reviewed.push({source,row,proof,next,used,usage:usage(state,source)});
   }
   reviewed.sort((a,b)=>BigInt(a.proof.position.settledBeforeLamports)<BigInt(b.proof.position.settledBeforeLamports)?-1:1);
@@ -51,6 +52,25 @@ export async function reconcileV3Allocations({store,connection,mint,loadSettleme
     observed=BigInt(position.policySettledLamports)>observed?BigInt(position.policySettledLamports):observed;
   }
   if(cursor!==observed)throw new Error('A finalized settlement is missing from the allocation ledger.');
+  return {state,launch,reviewed,proofConnection};
+}
+
+export async function reconcileV3Allocations(options) {
+  const {store,mint}=options;
+  const {state,launch,reviewed}=await readFinalizedV3Allocations(options);
+  const differences=reviewed.filter(row=>row.used&&!isDeepStrictEqual(row.row.allocationPlan.creatorDirected,row.next.creatorDirected));
+  if(differences.length){
+    const approvals=Object.values(state.v3AllocationResidualPlans||{}).some(row=>row.plan?.status==='reviewed-legacy-preservation-no-transfer');
+    if(!approvals)throw new Error('A previously used legacy allocation needs reviewed rounding reconciliation. Its payment amounts were preserved.');
+    const{reviewV3AllocationResiduals}=await import('./v3-allocation-residuals.mjs');
+    const preservation=await reviewV3AllocationResiduals(options);
+    for(const row of differences){
+      const checked=preservation.sources.find(item=>item.collectionSignature===row.source);
+      if(preservation.status!=='reviewed-legacy-preservation-no-transfer'||!checked
+        ||!approvedLegacyPreservation(state,row.source,{...checked,mint,programId:launch.pumpFeeRoute.programId}))
+        throw new Error('A used legacy allocation requires a matching audited preservation approval.');
+    }
+  }
   const changes=reviewed.filter(row=>!row.used&&!isDeepStrictEqual(row.row.allocationPlan,row.next));
   if(!changes.length)return state;
   await store.update(current=>{

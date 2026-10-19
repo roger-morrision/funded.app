@@ -8,6 +8,8 @@ import { SOL_ASSET_MINT } from '../../reward-merkle.js';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import { validateProtocolFeeSplit } from '../../distribution-policy.js';
 import { protocolGrossUnits, deriveMintVaultsV3, deriveCommunityRewardVaultV3, verifyMintPolicyV3Account } from '../../mint-router-v3.js';
+import {reviewV3AllocationResiduals,recordV3AllocationResidualPlan} from '../v3-allocation-residuals.mjs';
+import {verifyV3LaunchRouterReadiness} from '../v3-launch-readiness.mjs';
 
 const COOKIE = 'funded_admin';
 const CHALLENGE_MS = 5 * 60_000;
@@ -29,7 +31,10 @@ const ipLimit = (map, key, limit, windowMs) => {
 
 export function createAdminRoutes({ store, body, respond, solanaCluster, solanaRpcUrl,
   keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair, dailyBonusRuntime, env = process.env,
-  connectionFactory = url => new Connection(url, 'finalized') }) {
+  connectionFactory = url => new Connection(url, 'finalized'),
+  verifyResidualReadiness = verifyV3LaunchRouterReadiness,
+  reviewResiduals = reviewV3AllocationResiduals,
+  recordResidualPlan = recordV3AllocationResidualPlan }) {
   const challenges = new Map(), sessions = new Map(), attempts = new Map(), withdrawals = new Map();
   const json = (res, status, value) => { respond(res, status, value); return true; };
   const allowed = () => new Set(String(env.FUNDED_ADMIN_WALLETS || '').split(',').map(value => validWallet(value.trim())).filter(Boolean));
@@ -122,6 +127,37 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
     if (await handleAdminServiceFees({ req,res,url,store,body,respond,session })) return true;
     if (req.method === 'GET' && path === '/api/admin/session')
       return json(res, 200, { wallet:session.wallet, expiresAt:new Date(session.expiresAt).toISOString() });
+    const residualAction=req.method==='POST'&&path.match(/^\/api\/admin\/v3-allocations\/(review|approve)$/);
+    if(residualAction){
+      try{
+        const input=await body(req),mint=validWallet(input?.mint),launch=(await store.read()).launches?.[mint];
+        if(!mint||!launch||launch.cluster!=='devnet'||!launch.onchainVerified
+          ||launch.pumpFeeRoute?.programId!==env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID)
+          throw new Error('A verified registered Devnet V3 mint is required.');
+        const rpc=connection(),programId=env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID;
+        if(await rpc.getGenesisHash()!==DEVNET_GENESIS_HASH)throw new Error('Residual RPC is not Devnet.');
+        const ready=await verifyResidualReadiness({connection:rpc,programId,mint,
+          expectedProgramDataSha256:env.FUNDED_V3_PROGRAM_DATA_SHA256,creatorWallet:launch.creatorWallet,
+          initialAuthority:launch.pumpFeeRoute.initialAuthority,split:launch.pumpFeeRoute.protocolSplit});
+        if(!ready.ready||ready.programId!==programId)
+          throw new Error('The reviewed V3 program, router and immutable mint policy are required.');
+        const options={store,connection:rpc,mint};
+        const reviewed=await reviewResiduals(options);
+        if(ready.protectedPolicy&&reviewed.status!=='reviewed-residual-not-paid')
+          throw new Error('Protected residual review requires the verified beneficiary policy.');
+        if(!ready.protectedPolicy&&(reviewed.status!=='reviewed-legacy-preservation-no-transfer'
+          ||reviewed.programId!==programId||reviewed.mint!==mint||!/^[a-f0-9]{64}$/.test(reviewed.hash||'')
+          ||!Array.isArray(reviewed.sources)||!reviewed.sources.length
+          ||reviewed.sources.some(source=>!Array.isArray(source.unreleasedLamports)
+            ||source.unreleasedLamports.length!==3||source.unreleasedLamports.some(amount=>amount!=='0'))))
+          throw new Error('An unprotected legacy mint permits only a verified no-transfer preservation plan.');
+        const result=residualAction[1]==='review'?reviewed
+          :await recordResidualPlan({...options,expectedHash:input.expectedHash,reason:input.reason,actor:session.wallet});
+        if(residualAction[1]==='approve'&&result.plan?.hash!==reviewed.hash)
+          throw new Error('The approved residual evidence changed after review.');
+        return json(res,200,result);
+      }catch(error){return json(res,409,{error:String(error.message||error)});}
+    }
     const dailyAction = req.method === 'POST' && path.match(/^\/api\/admin\/daily-bonus\/(snapshot|review|reconcile)$/);
     if (dailyAction) {
       if (!dailyBonusRuntime) return json(res,503,{error:'Daily bonus recovery is unavailable.'});

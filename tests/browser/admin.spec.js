@@ -36,6 +36,13 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
     if (path === '/api/admin/daily-bonus/reconcile') {
       recoveryApplied=JSON.parse(route.request().postData());return send(200,{snapshots:[]});
     }
+    if (path === '/api/admin/v3-allocations/review') return send(200,{mint:SOURCE,
+      programId:ADMIN,hash:'d'.repeat(64),status:'reviewed-legacy-preservation-no-transfer',
+      sources:[{collectionSignature:'4'.repeat(88),unreleasedLamports:['0','0','0'],
+        originalCreatorDirected:{walletLamports:'10396043',holderLamports:'742574',xLamports:'742575'},
+        verifiedTransfers:[{kind:'creator-reward',amount:'1485149'}]}]});
+    if (path === '/api/admin/v3-allocations/approve') return send(200,{plan:{hash:'d'.repeat(64)},
+      executionStatus:'not-executed'});
     if (path === '/api/admin/withdrawals/reconcile') return send(200, { amountLamports:'1000000', signature:JSON.parse(route.request().postData()).signature, finalized:true });
     if (path === '/api/admin/fee-policy') { revision += 1; return send(200, { revision, split:JSON.parse(route.request().postData()).split, effectiveFor:'future launches only' }); }
     if (path === '/api/admin/vaults') return send(200, { totalLaunches:0, nextOffset:null, vaults:[] });
@@ -52,6 +59,10 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
   await expect(page.locator('#wallet-rows')).toContainText('2');
   await expect(page.locator('#gates')).toContainText('Enabled');
   await expect(page.locator('#withdraw-destination')).toHaveValue(ADMIN);
+  const residual=page.locator('#residual-audit');
+  await expect(residual).toBeVisible();
+  await expect(residual).toContainText('An approval records an audit plan; it does not send funds.');
+  await expect(residual.locator('[data-residual-approve]')).toBeDisabled();
   await page.screenshot({ path:test.info().outputPath('admin-desktop.png'), fullPage:true });
   await page.setViewportSize({ width:390, height:844 });
   const overflow = await page.evaluate(() => ({ viewport:innerWidth, width:document.documentElement.scrollWidth,
@@ -59,6 +70,15 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
       .slice(0, 8).map(node => `${node.tagName.toLowerCase()}${node.id ? `#${node.id}` : ''}.${node.className || ''}`) }));
   expect(overflow.width, JSON.stringify(overflow)).toBeLessThanOrEqual(overflow.viewport);
   await page.screenshot({ path:test.info().outputPath('admin-mobile.png'), fullPage:true });
+  await residual.locator('[name="mint"]').fill(SOURCE);
+  await residual.getByRole('button',{name:'Review finalized allocations'}).click();
+  await expect(residual.locator('[data-residual-status]')).toContainText('Corrective residual: 0 lamports');
+  await expect(residual.locator('[data-residual-status]')).toContainText('10396043 lamports');
+  await expect(residual.locator('[data-residual-approve]')).toBeEnabled();
+  await residual.locator('[name="reason"]').fill('Verified legacy no-transfer preservation.');
+  await residual.locator('[data-residual-approve]').click();
+  await expect(page.locator('#message')).toContainText('No funds moved');
+  await expect(residual.getByRole('button',{name:/Pay creator|Fund holder/})).toHaveCount(0);
   await page.locator('[name="operationsPercent"]').fill('30');
   await page.locator('[name="referral1"]').fill('20');
   await expect(page.locator('#fee-total')).toContainText('100.0000%');

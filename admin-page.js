@@ -1,5 +1,6 @@
 import { Buffer } from 'buffer';
 import { initAdminDailyBonus } from './admin-daily-bonus.js';
+import { initAdminResidualReview } from './admin-residual-review.js';
 import { initAdminServiceFees } from './admin-service-fees.js';
 import bs58 from 'bs58';
 import { Connection, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
@@ -187,6 +188,7 @@ $('#reconcile-form').addEventListener('submit', event => { event.preventDefault(
 })().catch(error => show(error.message, true)); });
 const provider = wallet();
 const dailyBonusRecovery = initAdminDailyBonus({document,api,post,show,refreshAudit});
+initAdminResidualReview({document,post,show});
 initAdminServiceFees({api,post,show});
 provider?.on?.('accountChanged', updateWallet);
 updateWallet();

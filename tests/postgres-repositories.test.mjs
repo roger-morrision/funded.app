@@ -81,6 +81,40 @@ test('V3 settlement state is stored separately from legacy settlement projection
   assert.ok(!db.calls.some(call => call.sql.startsWith('INSERT INTO settlements')));
 });
 
+test('an approved allocation audit survives the JSONB ledger read and a repeat approval write', async () => {
+  const rows = new Map();
+  const db = database((sql, args) => {
+    if (sql === 'SELECT version, last_indexed_at FROM state_meta WHERE id = 1')
+      return { rows:[{version:4}], rowCount:1 };
+    if (sql === 'SELECT bucket, entity_key, payload FROM state_entities')
+      return { rows:[...rows].map(([identity, payload]) => {
+        const [bucket, entity_key] = identity.split(':');
+        return {bucket, entity_key, payload:JSON.parse(JSON.stringify(payload))};
+      }), rowCount:rows.size };
+    if (sql.startsWith('INSERT INTO state_entities'))
+      rows.set(`${args[0]}:${args[1]}`, JSON.parse(args[2]));
+    return {rows:[], rowCount:0};
+  });
+  const repo = createLedgerRepository(db);
+  const plan = {hash:'a'.repeat(64),status:'reviewed-legacy-preservation-no-transfer',
+    sources:[{collectionSignature:'source',unreleasedLamports:['0','0','0'],
+      originalCreatorDirected:{walletLamports:'10396043'}}]};
+  const approval = {plan,actor:'operator',reason:'Finalized legacy evidence reviewed.',
+    executionStatus:'not-executed'};
+  await repo.update(state => {state.v3AllocationResidualPlans[plan.hash]=approval;});
+  const inserted = db.calls.find(call => call.sql.startsWith('INSERT INTO state_entities')
+    && call.args[0] === 'v3AllocationResidualPlans');
+  assert.equal(inserted.args[1], plan.hash);
+  assert.deepEqual(JSON.parse(inserted.args[2]), approval);
+  const restored = await repo.read();
+  assert.deepEqual(restored.v3AllocationResidualPlans[plan.hash], approval);
+  await repo.update(state => {
+    assert.deepEqual(state.v3AllocationResidualPlans[plan.hash], approval);
+    return state.v3AllocationResidualPlans[plan.hash];
+  });
+  assert.equal(db.calls.filter(call => call.sql.startsWith('INSERT INTO state_entities')).length, 1);
+});
+
 test('chat append still delegates through the composed repository and bounds retained messages', async () => {
   const messages = [{ id: 1 }, { id: 2 }];
   const db = database(sql => ({ rows: sql.startsWith('SELECT payload FROM state_entities') ? [{ payload: messages }] : [], rowCount: 0 }));
