@@ -45,7 +45,7 @@ export function initDailyBonusView(document = globalThis.document) {
     results.append(paidNote);
     for (const [key, label] of Object.entries(GROUPS)) {
       const group = document.createElement('section'), heading = document.createElement('h3'); heading.textContent = label; group.append(heading);
-      const table = document.createElement('table'); table.innerHTML = '<thead><tr><th>Rank</th><th>Wallet</th><th>Verified SOL basis</th><th>Recorded allocation</th><th>Wallet received · all groups</th></tr></thead>';
+      const table = document.createElement('table'); table.innerHTML = '<thead><tr><th>Rank · % of category</th><th>Wallet</th><th>Verified SOL basis</th><th>Recorded allocation</th><th>Wallet received · all groups</th></tr></thead>';
       const body = document.createElement('tbody');
       for (const winner of snapshot.rankings[key] || []) {
         const row = document.createElement('tr');

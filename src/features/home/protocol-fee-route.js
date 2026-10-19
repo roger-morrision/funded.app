@@ -56,7 +56,7 @@ export function protocolFeeRouteModel(allocation) {
       amount:formatSol(completeAmounts ? amounts[index] : null),
       detail:key === 'referrals' && policyReady
         ? `L1 ${split.referralLevelPercents[0]}% · L2 ${split.referralLevelPercents[1]}% · L3 ${split.referralLevelPercents[2]}% of app share`
-        : key === 'community' ? 'Top 3 creators, referrers and traders · every 24h UTC · historical totals include older community allocations'
+        : key === 'community' ? 'Top 3 per category · equal creator, referrer and trader budgets · daily UTC; selected Devnet QA coins use 5-minute windows · historical totals include older community allocations'
           : null,
     })),
   };

@@ -1,5 +1,7 @@
 # Devnet community SOL reserve
 
+**Historical policy (2026-10-01):** the 2% reserve and implementation status below describe that revision. Current default Daily bonus funding is 4% of gross collected creator fees, with its own eligibility and automatic payout rules. See [current bonus policy](daily-bonus-policy.md) and [fee configuration](protocol-fee-split-config.md). Historical mints retain their recorded obligations; their reserves are not automatically eligible Daily bonus sources.
+
 The fixed 2% of verified Pump creator-fee collections, plus referral levels without an eligible recipient, now funds a dedicated program-owned SOL reward vault. Its vault namespace uses the fee-router program ID instead of a coin mint, separating it from every coin-holder reward vault. The ordinary reward scheduler rejects a payout cycle for this namespace. Community programs need their own published rules and payout implementation later.
 
 The reward worker funds this vault from each verified mint router with a domain-separated, idempotent claim ID. It records a request as funded only after finalized vault balance and exact claim-record deltas are verified. The rewards API reports allocation and verified funding separately; it does not present the balance as a community payout.

@@ -6,6 +6,8 @@ Collection transfers fees into the verified per-mint V3 router. It does not comp
 
 For new launches the current gross-fee split is 80% creator-directed, 8% Operations & marketing, 3% referrals, 4% Daily bonus and 5% $FUNDED buyback. Existing coins retain their saved rates. The 80% follows the creator's wallet/holder/X split. Unmatched ordinary referral levels stay in the community reserve and do not enlarge the Daily bonus pool.
 
+This published split precedes activation of the [approved agency policy](marketing-agency-policy.md#approved-rules): 1% referrals and 2% agency. The Daily bonus allocation remains 4% under both policies; saved mint policies still govern actual settlement amounts.
+
 Holder payouts normally use hourly cutoffs; selected Devnet QA coins use five-minute periods and reduced minimums. X claims require the allocated identity and recipient wallet. Daily bonus uses completed UTC days and verified funded sources. The buyback worker waits for its configured aggregate trigger and market/proof checks before purchasing and burning. A queued request, allocation or signature prompt is not proof of payment. Read the mint's actual conditions and finalized account/balance evidence.
 
 This collector is Devnet-only. It checks the supported Pump per-mint fee-vault route; it does not establish automatic post-migration AMM collection. Keeper credentials are never sent to the browser. Inspect `docker logs --tail 30 fundedapp-fee-collector-1` and the authenticated `GET /api/keeper/collection-candidates` endpoint for pending or blocked mints. A healthy tick records checked mints, collected receipts and pending creator settlements.

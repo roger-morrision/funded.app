@@ -35,6 +35,9 @@ for(const [width,override] of [[390,false],[1440,true]]) test(`reward actions, F
   const article=page.locator('#docs-guide-article'), ops=override ? 6:8, bonus=override ? 6:4;
   await expect(article).toContainText(`${ops}% Operations & marketing`);
   await expect(article).toContainText(`${bonus}% Daily bonus pool`);
+  await expect(article).toContainText('gross collected creator fees at each coin’s saved rate');
+  await expect(article).toContainText('each receive one third');
+  await expect(article).toContainText('1st 50% · 2nd 30% · 3rd 20% of the category budget');
   await expect(article).toContainText('No manual claim or recipient signature is required');
   await page.locator('.docs-guide-nav').getByRole('button',{name:'Automatic payouts or claims?',exact:true}).click();
   const daily=article.locator('tbody tr').filter({hasText:'Daily bonus'});
@@ -46,10 +49,15 @@ for(const [width,override] of [[390,false],[1440,true]]) test(`reward actions, F
   await faq.getByText('How are Daily bonuses paid?',{exact:true}).click();
   await expect(faq.locator('details[data-faq="bonus"]')).toContainText(`${bonus}% Daily bonus pool`);
   await expect(faq.locator('details[data-faq="bonus"]')).toContainText('No manual claim');
+  await expect(faq.locator('details[data-faq="bonus"]')).toContainText('of the category budget');
   await faq.locator('a[href="#bonuses"]').click();await expect(page.locator('#bonuses')).toBeVisible();
   await page.goto('/#referral-faq');
   await page.locator('#referral-faq').getByText('Do I need to claim a referral bonus?',{exact:true}).click();
   await expect(page.locator('[data-faq="referral-claim"]')).toContainText('no separate V3 recipient claim');
+  const dailyFaq=page.locator('[data-faq="referral-daily"]');
+  await expect(dailyFaq).toContainText(`${bonus}% Daily bonus pool`);
+  await expect(dailyFaq).toContainText('each receive one third');
+  await expect(dailyFaq).toContainText('of the category budget');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:test.info().outputPath('current-referral-guidance.png'),fullPage:true});
 });

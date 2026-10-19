@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { Keypair } from '@solana/web3.js';
 import { buildDailyBonusSnapshot, dailyBonusWindow, dailyBonusManifest } from '../server/daily-bonus.mjs';
 import { verifyRewardProof } from '../reward-merkle.js';
+import {setActiveProtocolFeeSplit,FEE_DISTRIBUTION} from '../distribution-policy.js';
+import {PROTOCOL_FEE_SPLIT} from '../config/protocol-fee-split.js';
+import {agencyProtocolSplit} from '../agency-mint-router-v3.js';
+import {currentFeePolicyCopy} from '../src/features/fees/fee-policy-copy.js';
 
 export const wallets = Array.from({ length:12 }, (_, n) => Keypair.fromSeed(new Uint8Array(32).fill(n + 1)).publicKey.toBase58());
 export function bonusFixture() {
@@ -54,4 +58,23 @@ test('only launches that recorded the daily bonus policy can fund awards; old co
     collections:input.collections.map(row => ({ ...row, dailyBonusVersion:null })) });
   assert.equal(snapshot.sources.length, 0);
   assert.equal(snapshot.rankings.creators.length, 3);
+});
+
+test('published and approved policies both allocate 4% gross with equal categories and category-relative rank awards',()=>{
+  try {
+    for(const split of [PROTOCOL_FEE_SPLIT,agencyProtocolSplit()]) {
+      setActiveProtocolFeeSplit(split);
+      assert.equal(FEE_DISTRIBUTION.communityEffectivePercent,4);
+      const input=bonusFixture(), gross=300_000_000_000n;
+      const snapshot=buildDailyBonusSnapshot({...input,collections:input.collections.map((row,index)=>({...row,
+        communityLamports:index===0?String(gross*BigInt(FEE_DISTRIBUTION.communityEffectivePercent)/100n):'0'}))});
+      for(const group of ['creators','referrals','traders']) {
+        assert.deepEqual(snapshot.rankings[group].map(row=>row.bonusLamports),['2000000000','1200000000','800000000']);
+      }
+      assert.equal(snapshot.sources[0].payableLamports,'12000000000');
+      assert.match(currentFeePolicyCopy().bonus,/4% Daily bonus pool/);
+      assert.match(currentFeePolicyCopy().bonus,/each receive one third/);
+      assert.match(currentFeePolicyCopy().bonus,/of the category budget/);
+    }
+  } finally {setActiveProtocolFeeSplit(PROTOCOL_FEE_SPLIT);}
 });

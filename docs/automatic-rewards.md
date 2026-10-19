@@ -4,6 +4,8 @@
 
 The current preview uses Devnet and V3 per-mint fee policies. Default gross creator-fee allocations are 80% creator-directed, 8% Operations & marketing, 3% referral network, 4% Daily bonus and 5% $FUNDED buyback. A saved admin policy overrides protocol defaults for future launches; existing coins keep their saved policy. Percentages apply to collected creator fees, not trade volume.
 
+This is the published policy before agency activation. The [approved agency update](marketing-agency-policy.md#approved-rules) moves referrals to 1% and adds 2% agency funding; Daily bonus stays 4%. That update is pending activation. Existing coins retain their saved rates.
+
 | Program | Asset | Recipient action | Required evidence |
 | --- | --- | --- | --- |
 | Creator wallet | SOL | Creator reviews/signs available settlement, funding and payout actions | Saved wallet share; finalized collection, settlement and transfer |
@@ -19,7 +21,7 @@ Standard holder periods close hourly, with finalized samples normally every five
 
 ### Daily bonus and history
 
-Each completed UTC day closes at 00:00 UTC. The pool splits equally between creators, direct referrers and traders; ranks 1/2/3 receive 50/30/20 within each group. Scores use collected creator fees, direct referred collected fees and finalized buy/sell SOL volume respectively. Ties use wallet address order; unfilled ranks retain their share. The worker checks every five minutes and automatically executes funded, verified snapshots. A cutoff does not guarantee immediate payment. See [Daily bonus rules](daily-bonus-policy.md).
+Each completed UTC day closes at 00:00 UTC. The 4%-of-gross Daily bonus pool splits equally between creators, direct referrers and traders; ranks 1/2/3 receive 50%/30%/20% of their category's budget. Scores use finalized settled creator fees, direct referred creators' finalized settled fees and finalized buy/sell SOL volume respectively. New fee eligibility uses settlement finalization time; late settlements enter a later window and paid rankings stay frozen. Ties use wallet address order; unfilled ranks retain their share. The worker checks every five minutes and automatically executes funded, verified snapshots. Selected Devnet QA coins use labeled five-minute snapshot windows with 30-second checks. A cutoff does not guarantee immediate payment. See [Daily bonus rules](daily-bonus-policy.md).
 
 Home shows verified indexed category allocations and the next UTC cutoff. `#bonuses` shows paginated finalized history and all-time recipients across all recorded snapshots. Rewards History and Analytics independently verify transactions, payment accounts and balance changes. Combined category receipts are counted once. Wallet profiles have separate activity sources and authentication boundaries.
 

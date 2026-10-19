@@ -2,6 +2,14 @@ import { FEE_DISTRIBUTION } from '../../../distribution-policy.js';
 import { DAILY_BONUS_POLICY } from '../../../config/daily-bonus.js';
 import {referralRatePresentation} from './referral-rate-copy.js';
 
+export function bonusRankCopy() {
+  return `1st ${DAILY_BONUS_POLICY.rankPercents[0]}% · 2nd ${DAILY_BONUS_POLICY.rankPercents[1]}% · 3rd ${DAILY_BONUS_POLICY.rankPercents[2]}% of the category budget`;
+}
+
+export function bonusCategoryCopy() {
+  return `Creators, direct referrers and traders each receive one third of the Daily bonus pool. Within each category: ${bonusRankCopy()}.`;
+}
+
 // Read live bindings when rendering so saved admin policy overrides the build default.
 export function currentFeePolicyCopy() {
   const fee = FEE_DISTRIBUTION;
@@ -17,7 +25,7 @@ export function currentFeePolicyCopy() {
     x: 'X rewards require the allocated X account to sign in, link the recipient wallet, and claim. A completed sign-in or signature prompt is not a finalized payment.',
     referrals: `${referralRatePresentation().guide} Recipients do not submit a separate claim. Payouts require creator-approved transfers and finalized receipts.`,
     reserve: 'Missing referral levels stay in the community reserve. They are not reassigned to another inviter or added to the Daily bonus pool.',
-    bonus: `The ${fee.communityEffectivePercent}% Daily bonus pool is split equally across creators, direct referrers, and traders. Each completed UTC day closes at 00:00 UTC. Each group awards ${DAILY_BONUS_POLICY.rankPercents[0]}% to 1st, ${DAILY_BONUS_POLICY.rankPercents[1]}% to 2nd, and ${DAILY_BONUS_POLICY.rankPercents[2]}% to 3rd. Creators rank by finalized settled fees, referrers by direct referred creators’ settled fees, and traders by finalized buy and sell SOL volume. Fees qualify in the window when settlement finalizes; later settlements enter a later window. Paid rankings stay frozen.`,
+    bonus: `The ${fee.communityEffectivePercent}% Daily bonus pool is funded from gross collected creator fees at each coin’s saved rate. ${bonusCategoryCopy()} Each completed UTC day closes at 00:00 UTC. Creators rank by finalized settled fees, referrers by direct referred creators’ settled fees, and traders by finalized buy and sell SOL volume. Fees qualify in the window when settlement finalizes; later settlements enter a later window. Paid rankings stay frozen.`,
     bonusFunding: 'Daily bonuses are paid automatically to winning wallets after the snapshot and source funding are verified. No manual claim or recipient signature is required. Standard snapshots close daily; an explicitly labeled Devnet QA mode uses five-minute windows for selected test coins, with checks every 30 seconds. The cutoff is not an immediate payment guarantee. Ties use wallet address order; unfilled ranks retain their share in the reserve. The separate community airdrop uses launched coin tokens, not this SOL pool.',
     buyback: 'The buyback allocation stays in dedicated program vaults until the configured aggregate trigger is met. The worker then attempts a protected $FUNDED purchase and burn. Market checks and finalized purchase/burn receipts are required; the allocation itself is not a burn.',
     steps: rates.map((rate, i) => `${rate}% ${names[i]}`),

@@ -37,7 +37,7 @@ These are percentages of creator fees, not trade volume or every Pump fee. The p
 
 Standard holder rewards use hourly periods and five-minute finalized samples. Selected Devnet QA coins can use five-minute periods and reduced minima. Check each coin's actual program conditions.
 
-Daily bonus snapshots close at 00:00 UTC. Creators rank by collected fees, direct referrers by referred collected fees, and traders by finalized buy/sell SOL volume. Each category pays its top three at 50% / 30% / 20%. Ties use wallet address order; unfilled ranks retain their share. The worker checks every five minutes. Winners do not claim or sign; the cutoff does not guarantee immediate payment.
+Daily bonus snapshots close at 00:00 UTC. Creators rank by finalized settled fees, direct referrers by referred creators' finalized settled fees, and traders by finalized buy/sell SOL volume. The 4% of gross collected creator fees is divided into three equal category budgets. Each category pays its top three 50% / 30% / 20% of that category's budget. New fee eligibility uses the settlement finalization window; late settlements enter a later window and paid rankings remain frozen. Ties use wallet address order; unfilled ranks retain their share. The worker checks every five minutes. Winners do not claim or sign; the cutoff does not guarantee immediate payment.
 
 Ordinary referral-network levels are separate from the Daily referrer bonus. Missing upline allocations stay in the community reserve and do not enlarge the Daily bonus pool.
 

@@ -48,7 +48,8 @@ test('fee calculator shows 8/4 and daily rankings distinguish allocations from f
   await page.locator('#fee-flow-input').fill('250');
   await expect(page.locator('#fee-output-operations')).toHaveText('20 SOL');
   await expect(page.locator('#fee-output-community')).toHaveText('10 SOL');
-  await expect(page.locator('#daily-bonus-dashboard')).toContainText('50% to 1st, 30% to 2nd, and 20% to 3rd');
+  await expect(page.locator('#daily-bonus-dashboard')).toContainText('1st 50% · 2nd 30% · 3rd 20% of the category budget');
+  await expect(page.locator('#daily-bonus-dashboard')).toContainText('each receive one third');
   await expect(page.locator('#daily-bonus-dashboard tbody tr')).toHaveCount(9);
   await expect(page.locator('#daily-bonus-dashboard [data-bonus-status]')).toContainText('not activated');
   await expect(page.locator('#daily-bonus-dashboard')).toContainText('Historical snapshot: fee eligibility uses its original collection-time rules.');
