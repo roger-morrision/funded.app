@@ -68,7 +68,17 @@ export function createCoinStateController(appState) {
 
   // app-source: 980
   async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
-    const response = await appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/market-activity`, { signal: AbortSignal.timeout(12000) }).catch(() => ({ available: false, data: null }));
+    let response;
+    // A cold scan can outlive a single RPC request. Rejoin its cached/in-flight
+    // result once after a transient failure instead of stranding both panels.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      if (loadId !== appState.coinLoadId) return;
+      response = await appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/market-activity`,
+        { signal: AbortSignal.timeout(20000) }).catch(error => ({ available:false, data:null, status:error?.status }));
+      if (loadId !== appState.coinLoadId) return;
+      if (response.available || (response.status && ![408,429,500,502,503,504].includes(response.status))) break;
+      if (attempt === 0) await new Promise(resolve => setTimeout(resolve,500));
+    }
     if (loadId !== appState.coinLoadId) return;
     const market = response.available && response.data?.cluster === appState.EXPLORE_CLUSTER ? response.data : null;
     const hasPoolTradeCount = Number.isInteger(market?.poolTradeCount24h);
