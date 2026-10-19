@@ -34,6 +34,8 @@ The admin page can prepare a separate residual through the existing creator-wall
 
 ## Follow-up evidence
 
+- Integration source **620aff2096abaac328e6009267703163ac627e6e**: the settlement index/dashboard/model matched the earlier implementation already in `9a8e9a0`. The merge retains settlement-time eligibility and adds the remote file-ledger pagination/restart and concurrent-CAS regressions. Overlapping service/UI changes retain additive paid-snapshot reconciliation, original assignment matching and frozen-ranking labels. Both browser overflow checks and frozen-ranking assertions remain; no recovery behavior was discarded to resolve formatting conflicts.
+
 - Recovery application suite: **985 passed, 10 skipped, 0 failed** (995 cases). All critical gates passed. Six affected production-bundle browser cases passed with mocked APIs, including 390px admin recovery and wrong-creator rejection.
 - Docker/WSL recovered after an explicitly authorized restart; public `/api/status` subsequently reported Devnet, operational, **31/31 finalized settlements verified**. The independently observed public revision was **620aff2096abaac328e6009267703163ac627e6e** from the separate settlement-window rollout. It does not prove deployment of this recovery code.
 - Read-only legacy audit found **two** old `EtMFvbn…rYWPc` sources with a holder residual of **+1 lamport** and X residual of **−1 lamport** each. The approved preserve-paid-receipts rule forbids silently reallocating these differences. Other unprotected sources include ordinary unpaid creator allocations and two already-settled lost-creator allocations; settlement proof alone does not pay their beneficiaries.

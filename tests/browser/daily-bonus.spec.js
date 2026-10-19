@@ -6,6 +6,7 @@ const offlineFixture = route => new URL(route.request().url()).pathname === '/ap
 const wallets = ['7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y',
   'ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC', 'GTGKxA9DRbVFuAyoXvA8j1LAtZaf9fyJbvArGbJSbm5c'];
 test('fee calculator shows 8/4 and daily rankings distinguish allocations from finalized payments', async ({ page }) => {
+  await page.setViewportSize({ width:1440, height:900 });
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   let paid = false;
   await page.route('**/api/**', offlineFixture);
@@ -59,6 +60,8 @@ test('fee calculator shows 8/4 and daily rankings distinguish allocations from f
   paid = true; await page.locator('[data-bonus-refresh]').click();
   await expect(page.locator('#daily-bonus-dashboard')).toContainText('Fee eligibility uses finalized settlement time.');
   await expect(page.locator('#daily-bonus-dashboard')).toContainText('original frozen ranks and scores');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path:test.info().outputPath('daily-bonus-desktop.png'), fullPage:true });
   await expect(page.locator('#daily-bonus-dashboard details a')).toHaveAttribute('href', /explorer\.solana\.com\/tx\/.*cluster=devnet/);
   await expect(page.locator('#daily-bonus-dashboard tbody tr').nth(1)).toContainText('0.00000045 SOL');
   await page.setViewportSize({ width:390, height:844 });

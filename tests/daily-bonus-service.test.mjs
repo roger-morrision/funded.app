@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Keypair } from '@solana/web3.js';
 import { createDailyBonusService } from '../server/daily-bonus-service.mjs';
+import { buildDailyBonusSnapshot } from '../server/daily-bonus.mjs';
 import { rewardAddresses } from '../server/automatic-reward-chain.mjs';
 
 const keys = Array.from({ length:8 }, (_, n) => Keypair.fromSeed(new Uint8Array(32).fill(n + 40)));
@@ -140,4 +141,34 @@ test('a modified saved snapshot cannot reuse its original hash to change recipie
   f.rewardStore.data.dailyBonusSnapshots['2026-10-17'].snapshot.sources[0].allocations[0].amount = '999999';
   await assert.rejects(f.service.execute('2026-10-17'), /evidence changed/);
   assert.deepEqual(f.counts(), { cycles:0, payments:0 });
+});
+
+test('new snapshots use settlement-time eligibility and pending sources stay explicitly unassigned', async () => {
+  const f=setup(), captured=await f.service.capture('2026-10-17');
+  assert.equal(captured.snapshot.eligibilityBasis,'settlement-time-v1');
+  const status=await f.service.status();
+  assert.equal(status.eligibilityBasis,'settlement-time-v1');
+  assert.equal(status.snapshots[0].eligibilityBasis,'settlement-time-v1');
+  f.app.data.collections={ collection:{ signature:'collection',mint:f.mint,scope:'per-mint-v3',
+    cluster:'devnet',programId:addresses[0],status:'collected' } };
+  const pending=await f.service.status();
+  assert.deepEqual(pending.pendingSettlementSources,[{mint:f.mint,collectionSignature:'collection',
+    status:'not-eligible',reason:'Awaiting a matching finalized settlement; no bonus window assigned.'}]);
+});
+
+test('a legacy snapshot keeps its original hash, manifest and paid receipt after the new default', async () => {
+  const f=setup(), day='2026-10-17';
+  const legacy=buildDailyBonusSnapshot({day,...f.evidence,now:start+86_400});
+  assert.equal(legacy.eligibilityBasis,undefined);
+  f.rewardStore.data.dailyBonusSnapshots={ [day]:{snapshot:legacy,status:'snapshotted',
+    evidenceCoverageVersion:1,createdAt:new Date(start*1000).toISOString(),payouts:{}} };
+  await f.service.execute(day);
+  const paid=structuredClone(f.rewardStore.data.dailyBonusSnapshots[day]);
+  assert.equal(paid.snapshot.hash,legacy.hash);
+  assert.equal((await f.service.status()).snapshots[0].eligibilityBasis,'collection-time-v1');
+  await f.service.capture(day);
+  await f.service.execute(day);
+  assert.deepEqual(f.rewardStore.data.dailyBonusSnapshots[day],paid);
+  assert.equal(f.rewardStore.data.dailyBonusAssignments.collection,legacy.hash);
+  assert.deepEqual(f.counts(),{cycles:1,payments:3});
 });

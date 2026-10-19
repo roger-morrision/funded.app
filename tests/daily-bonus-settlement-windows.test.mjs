@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {unlink} from 'node:fs/promises';
+import {createAutomaticRewardStore} from '../server/automatic-reward-store.mjs';
 import bs58 from 'bs58';
 import {Keypair} from '@solana/web3.js';
 import {deriveMintPolicyV3} from '../mint-router-v3.js';
@@ -92,4 +96,44 @@ test('settlement windows include the exact start and place the exact end only in
   assert.throws(()=>buildDailyBonusSnapshot({...input,collections:[{...fee,settlementBlockTime:now}]}),/finalized UTC day/);
   const next=buildDailyBonusSnapshot({...input,day:'2026-10-19',now:now+86400,collections:[{...fee,settlementBlockTime:now}]});
   assert.equal(next.sources.length,1);assert.equal(next.start,now);
+});
+
+test('settlement index resumes paginated checkpoints in the actual reward ledger after reader restarts',async t=>{
+  const file=join(tmpdir(),'funded-fqa002-'+randomUUID()+'.json');
+  t.after(async()=>{await unlink(file).catch(error=>{if(error.code!=='ENOENT')throw error;});});
+  const f=fixture(),store=createAutomaticRewardStore(file),lookup=f.connection.getSignaturesForAddress;
+  f.connection.getSignaturesForAddress=async(address,options)=>options?.before?[]:lookup(address);
+  let result;
+  for(let tick=0;tick<8;tick++){
+    result=await createDailyBonusEvidenceIndex({...f.options,rewardStore:store,
+      pageSize:1,pagesPerTick:1,transactionsPerTick:2})(f.args);
+    if(result.complete)break;
+  }
+  assert.equal(result.complete,true);
+  assert.equal(result.collections.length,1);
+  const saved=await createAutomaticRewardStore(file).read();
+  assert(saved.dailyBonusSettlementIndexes[day].revision>1);
+  assert.equal(saved.dailyBonusIndexes,undefined);
+});
+
+test('two settlement readers cannot overwrite one actual reward-ledger checkpoint revision',async t=>{
+  const file=join(tmpdir(),'funded-fqa002-'+randomUUID()+'.json');
+  t.after(async()=>{await unlink(file).catch(error=>{if(error.code!=='ENOENT')throw error;});});
+  const f=fixture(),adapter=createAutomaticRewardStore(file);
+  let firstReads=0,release;
+  const bothReady=new Promise(resolve=>{release=resolve;});
+  const store={
+    read:async()=>{
+      const snapshot=await adapter.read();
+      if(++firstReads<=2){if(firstReads===2)release();await bothReady;}
+      return snapshot;
+    },
+    transaction:fn=>adapter.transaction(fn)
+  };
+  const options={...f.options,rewardStore:store};
+  const first=createDailyBonusEvidenceIndex(options),second=createDailyBonusEvidenceIndex(options);
+  const outcomes=await Promise.allSettled([first(f.args),second(f.args)]);
+  assert.equal(outcomes.filter(row=>row.status==='fulfilled').length,1);
+  assert.match(outcomes.find(row=>row.status==='rejected').reason.message,/changed concurrently/);
+  assert.equal((await createDailyBonusEvidenceIndex({...f.options,rewardStore:adapter})(f.args)).complete,true);
 });
