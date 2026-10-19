@@ -5,6 +5,7 @@ import { initBonusDashboard } from './bonus-dashboard-view.js';
 import { renderProductFaqs } from '../help/product-guidance.js';
 import { initMarketingAgency } from '../marketing/agency-view.js';
 import { initServiceFeeCopy } from './service-fees-client.js';
+import {referralRatePresentation} from './referral-rate-copy.js';
 export function createFeeFlowView(APP_ECONOMICS) {
   if (typeof window !== 'undefined') {
     initMarketingAgency();
@@ -30,15 +31,19 @@ export function createFeeFlowView(APP_ECONOMICS) {
     const setAll = (selector, values) => document.querySelectorAll(selector).forEach((node, index) => { if (index < values.length) node.textContent = values[index]; });
     const setWidths = (selector, values) => document.querySelectorAll(selector).forEach((node, index) => { if (index < values.length) node.style.width = percent(values[index]); });
     const levelGross = levels.map(level => level.effectivePercentOfCreatorFees);
+    const referral=referralRatePresentation(),displayGross=referral.levels.map(level=>level.rate);
     setWidths('.home-receipt-card .receipt-bars span', [APP_ECONOMICS.creatorSharePercent, ...effective]);
     setWidths('.fee-route-bar i', [APP_ECONOMICS.creatorSharePercent, ...effective]);
     setAll('.home-receipt-card .receipt-rows span', [
       `${APP_ECONOMICS.creatorSharePercent} SOL Creator-directed`, `${effective[0]} SOL Operations & marketing`, `${effective[1]} SOL Referral network`,
       `${effective[2]} SOL Daily bonus`, `${effective[3]} SOL Buyback allocation`,
     ]);
-    setAll('.audience-referrer li', levelGross.map((rate, index) => `${percent(rate)} ${['direct', 'second', 'third'][index]} level`));
-    setAll('.home-referral-levels article strong', levelGross.map(percent));
-    setAll('.referral-tier-strip > span b', levelGross.map(percent));
+    setAll('.audience-referrer li', displayGross.map((rate, index) => `${percent(rate)} ${['direct', 'second', 'third'][index]} level${referral.pending?' · approved policy':''}`));
+    setAll('.home-referral-levels article strong', displayGross.map(percent));
+    setAll('.referral-tier-strip > span b', displayGross.map(percent));
+    set('.referral-tier-strip .eyebrow',referral.heading);
+    set('.referral-tier-strip > div > small',referral.scopeDetail);
+    set('.home-referral-guide-head > div > p:last-child',`Invite creators with your personal link. ${referral.scope}`);
     setAll('.app-revenue-grid > span b', [APP_ECONOMICS.operationsRateOfFundedRevenue, APP_ECONOMICS.appReferralRateOfFundedRevenue, APP_ECONOMICS.communityRateOfFundedRevenue, APP_ECONOMICS.buybackRateOfFundedRevenue].map(percent));
     setAll('.app-revenue-grid > span em', ['Operations & marketing', 'Referral network', 'Daily bonus', '$FUNDED burn']);
     setAll('.allocation-chips span b', effective.map(percent));
@@ -52,10 +57,13 @@ export function createFeeFlowView(APP_ECONOMICS) {
       `L1 ${percent(levelGross[0])} · L2 ${percent(levelGross[1])} · L3 ${percent(levelGross[2])}`,
       `${percent(effective[2])} of gross`, `${percent(effective[3])} of gross`,
     ]);
-    setAll('.referral-level-results span small', levelGross.map((rate, index) => `Level ${index + 1} · ${percent(rate)} of gross`));
-    set('.referral-growth-hero p', `A direct creator can earn you ${percent(levelGross[0])} of their gross creator fees, with additional rewards from the next two levels.`);
-    set('#referrals .referral-calculator + .field-help', `Example only: the three levels total ${percent(APP_ECONOMICS.appReferralEffectivePercent)} of gross collected fees when all levels qualify. Rewards require collected fees.`);
-    set('.home-referral-guide .data-badge', `${percent(APP_ECONOMICS.appReferralEffectivePercent)} total policy`);
+    setAll('.referral-level-results span small', displayGross.map((rate, index) => `Level ${index + 1} · ${percent(rate)} of gross`));
+    set('.referral-growth-hero p', `The ${referral.pending?'approved':'published'} policy allocates ${percent(displayGross[0])} of a direct creator’s collected fees. ${referral.scope}`);
+    set('#referrals .referral-calculator + .field-help', `Example of the ${referral.pending?'approved':'published'} ${percent(referral.total)} referral policy; no funds move. ${referral.scope}`);
+    const example=Number(document.querySelector('#referral-example-input')?.value||0);
+    referral.levels.forEach(({level,rate})=>set(`#referral-level-${level}-output`,`$${(example*rate/100).toFixed(2)}`));
+    set('.home-referral-guide .data-badge', `${percent(referral.total)} total · ${referral.pending?'activation pending':'published policy'}`);
+    set('#referral-faq .section-heading .data-badge',referral.pending?'Approved policy · activation pending':'Published policy');
     set('#paid .revenue-model > .field-help', `Levels 1–3 receive ${levelGross.map(percent).join(', ')} of gross creator fees. ${copy.reserve} Existing coins keep their recorded split.`);
     set('#fee-policy-faq', `For each finalized collection, ${percent(APP_ECONOMICS.creatorSharePercent)} follows the creator's launch-time split between their wallet, coin holders, and an eligible X account. The other ${percent(APP_ECONOMICS.fundedSharePercent)} funds Operations & marketing (${percent(effective[0])}), referrals (${percent(effective[1])}), Daily bonus (${percent(effective[2])}), and the $FUNDED buyback allocation (${percent(effective[3])}). Daily bonus uses the top three creators, referrers, and traders from each completed UTC day. Existing coins keep their saved policy.`);
     set('#capital-flow > .section-heading .panel-explainer', copy.scope);

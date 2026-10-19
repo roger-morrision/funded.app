@@ -1,5 +1,5 @@
 import { currentFeePolicyCopy } from '../fees/fee-policy-copy.js';
-import { APP_REFERRAL_LEVELS } from '../../../distribution-policy.js';
+import {referralRatePresentation} from '../fees/referral-rate-copy.js';
 import { serviceFeeGuide } from '../fees/service-fees-client.js';
 
 export const rewardActions = () => [
@@ -16,8 +16,7 @@ export function rewardActionsTable() {
 }
 
 export function referralGuide() {
-  const rates = APP_REFERRAL_LEVELS.map(level => `Level ${level.level}: ${level.effectivePercentOfCreatorFees}% of gross collected creator fees`).join(' · ');
-  return `${rates}. These are the current new-launch rates; existing coins keep their saved rates. First-touch wallet attribution must exist before the qualifying settlement. The upline is frozen at the first qualified settlement; self-referrals and cycles are rejected. No referral recipient claim is required. The creator approves the V3 payout, then finalized transfers appear in the wallet-authenticated referral dashboard.`;
+  return `${referralRatePresentation().guide} First-touch wallet attribution must exist before the qualifying settlement. The upline is frozen at the first qualified settlement; self-referrals and cycles are rejected. No referral recipient claim is required. The creator approves the V3 payout, then finalized transfers appear in the wallet-authenticated referral dashboard.`;
 }
 
 export function productHelpTopics() {
@@ -68,7 +67,7 @@ export function productFaqs() {
 export function referralFaqs() {
   const copy=currentFeePolicyCopy();
   return [
-    ['referral-rates','What are the current referral rates?',`<p>${referralGuide()}</p>`],
+    ['referral-rates','What are the referral rates?',`<p>${referralGuide()}</p>`],
     ['referral-qualified','When do rewards become payable?',`<p>${copy.referrals} Creating an account, recruiting or launching without collected fees does not create a payout.</p>`],
     ['referral-claim','Do I need to claim a referral bonus?', '<p>There is no separate V3 recipient claim. Connect and verify the earning wallet to view its private referral dashboard. The launch creator’s approval and a finalized transfer are required before a referral-network reward is paid. Daily referrer bonuses are sent automatically after their daily snapshot and funding checks.</p>'],
     ['referral-missing','What happens when a level is missing?',`<p>${copy.reserve}</p>`],

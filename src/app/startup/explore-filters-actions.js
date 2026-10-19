@@ -1,4 +1,5 @@
 import { initializeAppState } from '../runtime.js';
+import {referralRatePresentation} from '../../features/fees/referral-rate-copy.js';
 
 export function initializeExploreFiltersActions(appState) {
   // app-source: 810
@@ -159,10 +160,9 @@ export function initializeExploreFiltersActions(appState) {
   // app-source: 830
   document.querySelector('#referral-example-input').addEventListener('input', event => {
     const fees = Math.max(0, Number(event.target.value) || 0);
-    const fundedRevenue = fees * appState.APP_ECONOMICS.fundedSharePercent / 100;
-    appState.APP_ECONOMICS.appReferralLevels.forEach(level => {
+    referralRatePresentation().levels.forEach(level => {
       const output = document.querySelector(`#referral-level-${level.level}-output`);
-      if (output) output.textContent = `$${(fundedRevenue * level.percentOfFundedRevenue / 100).toFixed(2)}`;
+      if (output) output.textContent = `$${(fees * level.rate / 100).toFixed(2)}`;
     });
   });
   // app-source-end

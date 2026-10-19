@@ -2,7 +2,15 @@
 
 A Solana Devnet application for launching and discovering tokens, inspecting V3 creator-fee routes, and tracking verified rewards. Mainnet activation is a separate reviewed release.
 
-## Current fee policy
+## Approved referral update
+
+The approved new referral policy totals **1% of gross collected creator fees**:
+**L1 0.6667% · L2 0.2% · L3 0.1333%**. The other 2% moves to the dedicated AI
+agency allocation. The referral overview, FAQ, Help and Docs identify this as
+pending until the eight-category V3 agency policy is activated. Existing coins
+and recorded payments retain their saved rates.
+
+## Published deployment policy before agency activation
 
 The current new-launch default, as a percentage of **gross creator fees collected**, is:
 
