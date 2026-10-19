@@ -79,7 +79,10 @@ export function createFollowingController(appState) {
       if (!host) continue;
       let status = host.querySelector('[data-watchlist-status]');
       if (!status) { status = document.createElement('p'); status.className = 'field-help'; status.dataset.watchlistStatus = ''; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); host.append(status); }
-      const visibleMessage = host.closest('.coin-identity') && appState.watchlistSync.identity() === null && !appState.watchlistUnavailable ? '' : message;
+      const quietTokenStatus = host.closest('.coin-identity') && (
+        message === 'Favorites synced to your account.'
+        || (appState.watchlistSync.identity() === null && !appState.watchlistUnavailable));
+      const visibleMessage = quietTokenStatus ? '' : message;
       if (status.textContent !== visibleMessage) status.textContent = visibleMessage;
       status.hidden = !visibleMessage;
     }
