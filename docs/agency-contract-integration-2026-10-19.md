@@ -2,6 +2,8 @@
 
 This is a local integration checkpoint. It is not a deployment or a claim that agency execution is active.
 
+**Subsequent referral amendment:** the approved new-launch levels are now **0.6% / 0.25% / 0.15% of gross collected creator fees**, totaling 1%. This supersedes the 0.6667% / 0.2% / 0.1333% configuration recorded below. The candidate configuration, API presentation, UI and test fixtures use the revised levels; the earlier checkpoint results below describe their original revision. Activation remains pending, and existing mint policies retain their recorded rates.
+
 ## Git and observed runtime
 
 | Item | Classification | Evidence |

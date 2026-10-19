@@ -19,7 +19,8 @@ test('approved candidate conserves 100 SOL and reduces referrals to exactly 1%',
   const row = projectAgencyAllocation({ totalGrossLamports: '100000000000', selectedAgents: ids });
   assert.equal(row.creatorLamports, '80000000000');
   assert.equal(row.operationsLamports, '8000000000');
-  assert.deepEqual(row.referralLamports, ['666700000', '200000000', '133300000']);
+  assert.deepEqual(row.referralLamports, ['600000000', '250000000', '150000000']);
+  assert.deepEqual(marketingAgencyCapabilities().referralGrossPercents,[0.6,0.25,0.15]);
   assert.equal(row.agencyLamports, '2000000000');
   assert.equal(row.communityLamports, '4000000000');
   assert.equal(row.fundedBuybackLamports, '5000000000');

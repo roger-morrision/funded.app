@@ -54,6 +54,6 @@ export function marketingAgencyCapabilities() {
   return { status: 'activation-blocked', active: false, executionEnabled: false,
     policyHash: agencyPolicyHash, policy: POLICY,
     requiredGrossPercent: { creator: 80, operations: 8, referrals: 1, agency: 2, dailyBonus: 4, fundedBuyback: 5 },
-    referralGrossPercents: [0.6667, 0.2, 0.1333],
+    referralGrossPercents: POLICY.referralUnits.map(units=>units*100/POLICY.grossUnits),
     blockers: [AGENCY_CONTRACT_BLOCKER, AGENCY_EXECUTOR_BLOCKER] };
 }

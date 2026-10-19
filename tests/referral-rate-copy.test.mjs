@@ -9,9 +9,9 @@ test('approved 1% referral display and guidance distinguish the pending update f
   try{
     setActiveProtocolFeeSplit(PROTOCOL_FEE_SPLIT);
     const saved=buildFeeDistributionPolicy({creatorWalletPercent:80});
-    const copy=referralRatePresentation();assert.deepEqual(copy.levels.map(row=>row.rate),[0.6667,0.2,0.1333]);
+    const copy=referralRatePresentation();assert.deepEqual(copy.levels.map(row=>row.rate),[0.6,0.25,0.15]);
     assert.equal(copy.total,1);assert.equal(copy.pending,true);assert.match(copy.scope,/Awaiting V3 agency activation/);
-    assert.match(referralGuide(),/Level 1: 0\.6667%/);assert.match(referralGuide(),/Level 2: 0\.2%/);assert.match(referralGuide(),/Level 3: 0\.1333%/);
+    assert.match(referralGuide(),/Level 1: 0\.6%/);assert.match(referralGuide(),/Level 2: 0\.25%/);assert.match(referralGuide(),/Level 3: 0\.15%/);
     assert.match(referralFaqs()[0][2],/1% total/);assert.match(referralGuide(),/published deployment uses L1 2%/);
     assert.equal(saved.fixedFunded.appReferral.effectivePercentOfCreatorFees,3);
     setActiveProtocolFeeSplit(agencyProtocolSplit());

@@ -6,7 +6,7 @@ export const MARKETING_AGENCY_POLICY = Object.freeze({
   grossUnits: 10_000_000,
   creatorUnits: 8_000_000,
   operationsUnits: 800_000,
-  referralUnits: Object.freeze([66_670, 20_000, 13_330]),
+  referralUnits: Object.freeze([60_000, 25_000, 15_000]),
   agencyUnits: 200_000,
   communityUnits: 400_000,
   fundedBuybackUnits: 500_000,

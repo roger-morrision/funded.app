@@ -28,6 +28,7 @@ for (const width of [1440, 390]) test(`dedicated agency menu, clear readiness an
   await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');
   await expect(page.locator('[data-agency-history]')).toContainText('No agency execution history has been verified');
   await expect(page.locator('.agency-policy')).toContainText('1% referrals · 2% AI agency');
+  await expect(page.locator('.agency-policy')).toContainText('L1 0.6% · L2 0.25% · L3 0.15%');
   await expect(page.locator('.agency-policy')).toContainText('each buy and burn the launched coin once');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   if (width === 1440) await page.screenshot({ path: 'tmp/agency-desktop.png', fullPage: true, animations: 'disabled' });

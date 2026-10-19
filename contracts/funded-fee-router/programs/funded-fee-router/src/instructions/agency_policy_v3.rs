@@ -175,9 +175,9 @@ pub fn settle<'info>(ctx: Context<'info, SettleAgencyMintV3<'info>>, claim_id: [
 #[cfg(test)]
 mod tests {
     use super::*;
-    const UNITS: [u32; 7] = [800_000, 66_670, 20_000, 13_330, 400_000, 500_000, 200_000];
+    const UNITS: [u32; 7] = [800_000, 60_000, 25_000, 15_000, 400_000, 500_000, 200_000];
     #[test] fn policy_conserves_and_separates_agency() {
-        assert_eq!(agency_category_targets(10_000_000, UNITS).unwrap(), [8_000_000,800_000,66_670,20_000,13_330,400_000,500_000,200_000]);
+        assert_eq!(agency_category_targets(10_000_000, UNITS).unwrap(), [8_000_000,800_000,60_000,25_000,15_000,400_000,500_000,200_000]);
         for total in [1,2,49,50,99,1_000_002,u64::MAX] { assert_eq!(agency_category_targets(total,UNITS).unwrap().iter().map(|v| u128::from(*v)).sum::<u128>(), u128::from(total)); }
         let mut bad=UNITS; bad[6]=0; assert!(agency_category_targets(10_000_000,bad).is_err());
     }

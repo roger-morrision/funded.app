@@ -7,7 +7,7 @@ use solana_message_lite::{Message,VersionedMessage};
 use solana_signer_lite::Signer;
 use solana_transaction_lite::versioned::VersionedTransaction;
 mod support;
-const UNITS:[u32;7]=[800_000,66_670,20_000,13_330,400_000,500_000,200_000];
+const UNITS:[u32;7]=[800_000,60_000,25_000,15_000,400_000,500_000,200_000];
 const SHARES:[u32;3]=[6_000_000,1_000_000,1_000_000];
 const GROSS:u64=1_000_000_000;
 struct Fixture{svm:LiteSVM,program:Pubkey,authority:Keypair,creator:Keypair,mint:Keypair,billing:Keypair,
@@ -102,7 +102,7 @@ impl Fixture{
  let mut missing=ix.clone();missing.accounts.pop();assert!(!send(&mut f.svm,&f.authority,&[&f.authority,&f.creator],missing));
  let mut swapped=ix.clone();swapped.accounts.swap(14,15);assert!(!send(&mut f.svm,&f.authority,&[&f.authority,&f.creator],swapped));
  assert!(send(&mut f.svm,&f.authority,&[&f.authority,&f.creator],ix.clone()));assert!(!send(&mut f.svm,&f.authority,&[&f.authority,&f.creator],ix));
- assert_eq!(f.policy().paid_lamports,[800_000_000,80_000_000,6_667_000,2_000_000,1_333_000,40_000_000,50_000_000,20_000_000]);
+ assert_eq!(f.policy().paid_lamports,[800_000_000,80_000_000,6_000_000,2_500_000,1_500_000,40_000_000,50_000_000,20_000_000]);
  let amount=f.svm.get_account(&f.vaults[7]).unwrap().lamports;
  assert_eq!(amount-f.svm.minimum_balance_for_rent_exemption(0),20_000_000);
 }

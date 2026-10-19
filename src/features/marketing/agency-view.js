@@ -13,7 +13,7 @@ export function initMarketingAgency(document = globalThis.document) {
     <div class="agency-agent-grid" data-agency-cards></div>
     <section class="agency-policy" aria-labelledby="agency-policy-title"><h2 id="agency-policy-title">New-launch fee policy · awaiting activation</h2>
       <p>80% creator-directed · 8% Operations &amp; marketing · 1% referrals · 2% AI agency · 4% Daily bonus · 5% $FUNDED buyback.</p>
-      <p>The agency allocation applies to every new launch after activation and is divided equally among selected agents. With no selection, it remains reserved. Referral levels: L1 0.6667% · L2 0.2% · L3 0.1333% of gross collected creator fees.</p>
+      <p>The agency allocation applies to every new launch after activation and is divided equally among selected agents. With no selection, it remains reserved. Referral levels: ${POLICY.referralUnits.map((units,index)=>`L${index+1} ${units*100/POLICY.grossUnits}%`).join(' · ')} of gross collected creator fees.</p>
       <p>Agents 2 and 3 each buy and burn the launched coin once, using only their accumulated budget. Reaching a milestone is not a purchase or burn receipt. Later fees remain reserved after a one-time action.</p>
       <p>The separate 5% $FUNDED buyback allocation keeps its own trigger and funds. Existing launches retain their signed fee policy.</p>
       <a href="#capital-flow">View the currently active fee policy →</a></section>

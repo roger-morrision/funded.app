@@ -14,7 +14,7 @@ Applies to every new launch after activation. Existing mint policies and histori
 | --- | --- |
 | Creator-directed | 80% |
 | Operations & marketing | 8% |
-| Referrals | 1%: L1 0.6667%, L2 0.2%, L3 0.1333% |
+| Referrals | 1%: L1 0.6%, L2 0.25%, L3 0.15% |
 | AI marketing agency | 2% |
 | Daily bonus | 4% |
 | Existing $FUNDED buyback | 5% |
