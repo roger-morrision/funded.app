@@ -6,6 +6,8 @@ import { Keypair } from '@solana/web3.js';
 import { deriveCommunityRewardVaultV3, deriveMintRouterV3 } from '../mint-router-v3.js';
 import { v3AllocationPlan } from '../server/v3-allocation-plan.mjs';
 import { createV3XClaimRoutes } from '../server/routes/v3-x-claims.mjs';
+import {bonusHash} from '../server/daily-bonus.mjs';
+import {residualSourceKey,residualDisbursementId} from '../server/v3-residual-source.mjs';
 
 const key = byte => Keypair.fromSeed(new Uint8Array(32).fill(byte));
 const creator = key(41), authority = key(42), program = key(43), mint = key(44);
@@ -17,7 +19,7 @@ const mintAddress = mint.publicKey.toBase58();
 const vault = deriveCommunityRewardVaultV3(program.publicKey, mint.publicKey, authority.publicKey);
 
 function fixture({ enabled = true, xUserId = '12345', proof = true,
-  sessionUsername = 'qa' } = {}) {
+  sessionUsername = 'qa',residual=false } = {}) {
   const launch = { mint:mintAddress, onchainVerified:true, cluster:'devnet',
     creatorWallet:creator.publicKey.toBase58(), xUserId,
     pumpFeeRoute:{ scope:'per-mint-v3', programId:program.publicKey.toBase58(),
@@ -28,7 +30,9 @@ function fixture({ enabled = true, xUserId = '12345', proof = true,
   const settlement = { signature:settlementSignature, mint:mintAddress,
     claimId:Buffer.alloc(32, 9).toString('hex'), expectedLamports:'100',
     categoryLamports:['80','10','2','1','0','2','5'] };
-  const allocationPlan = v3AllocationPlan({ launch, settlement:{ ...settlement,
+  if(residual)Object.assign(settlement,{expectedLamports:'1000002',categoryLamports:['800002','80000','20000','6000','4000','40000','50000'],
+    position:{settledBeforeLamports:'1000002',settledAfterLamports:'2000004',policySettledLamports:'2000004',creatorPoolBeforeLamports:'800001',creatorPoolAfterLamports:'1600003'}});
+  const allocationPlan = v3AllocationPlan({ launch, settlement:{ ...settlement,position:undefined,
     programId:program.publicKey.toBase58(), collectionSignature,
     settlementSignature } });
   const state = { launches:{ [mintAddress]:launch },
@@ -43,6 +47,18 @@ function fixture({ enabled = true, xUserId = '12345', proof = true,
       signature:fundingSignature, mint:mintAddress, amount:'20',
       recipient:vault.toBase58(), finalizedAt:'2026-10-13T00:00:00Z' } },
     v3XClaims:{} };
+  let sourceKey=collectionSignature,auditHash,fundingInput;
+  if(residual){
+    state.collections[collectionSignature].collectedLamports=1000002;
+    const target=v3AllocationPlan({launch,settlement:{...settlement,programId:program.publicKey.toBase58(),collectionSignature,settlementSignature}});
+    const source={collectionSignature,settlementSignature,originalPlanHash:bonusHash(allocationPlan),target,
+      releasedLamports:[allocationPlan.creatorDirected.walletLamports,'0','0'],
+      unreleasedLamports:['1',target.creatorDirected.holderLamports,target.creatorDirected.xLamports]};
+    const frozen={version:1,status:'reviewed-residual-not-paid',mint:mintAddress,programId:program.publicKey.toBase58(),sources:[source]};
+    auditHash=bonusHash(frozen);sourceKey=residualSourceKey(collectionSignature,auditHash);
+    state.v3AllocationResidualPlans={[auditHash]:{plan:{...frozen,hash:auditHash},actor:'qa-admin',approvedAt:'2026-10-19T00:00:00Z'}};
+    state.v3CreatorRewardFunding={[sourceKey]:{...state.v3CreatorRewardFunding[collectionSignature],amount:'200000',residualPlanHash:auditHash}};
+  }
   const rewards = { schedules:{} };
   const responses = [];
   let enrolled = 0, submitted = 0;
@@ -60,37 +76,51 @@ function fixture({ enabled = true, xUserId = '12345', proof = true,
     connectionFactory:() => ({}),
     rewardChainFactory:() => ({ readiness:async () => ({ constrainedPayouts:true }) }),
     loadSettlement:async () => settlement,
-    verifyPolicy:async () => ({ verified:true, protectedPolicy:false }),
-    loadFunding:async () => proof ? { signature:fundingSignature, amount:'20',
-      balanceDeltaVerified:true } : null,
+    verifyPolicy:async () => ({ verified:true, protectedPolicy:residual }),
+    loadFunding:async args => {fundingInput=args;return proof ? { signature:fundingSignature, amount:residual?'200000':'20',
+      balanceDeltaVerified:true } : null;},
     schedulerFactory:() => ({
       recordDirectFunded:async input => {
         enrolled++;
-        const row = { id:`direct:x:${collectionSignature}`, mint:input.mint,
+        const row = { id:`direct:x:${input.id}`, mint:input.mint,
           manifest:{ totalAmount:input.amount,
             leaves:[{ recipient:input.recipient }] } };
         rewards.schedules[row.id] ||= row;
         return row;
       },
       execute:async (_now, ids) => {
-        submitted++;
-        assert.deepEqual(ids, [`direct:x:${collectionSignature}`]);
+        assert.deepEqual(ids, [`direct:x:${sourceKey}`]);
         const row = rewards.schedules[ids[0]];
+        if(row.status==='paid')return;submitted++;
         row.status = 'paid';
         row.payments = { [wallet.publicKey.toBase58()]:{
           status:'paid', finalized:true, balanceDeltaVerified:true,
-          amount:'5', signature:'finalized-qa-signature' } };
+          amount:residual?'50000':'5', signature:'finalized-qa-signature' } };
       },
     }),
     originAllowed:() => true,
     respond:(_res,status,data) => responses.push({ status,data }),
   });
-  return { state, responses, get enrolled(){return enrolled;},
+  return { state, responses,sourceKey,auditHash,get fundingInput(){return fundingInput;},get enrolled(){return enrolled;},
     get submitted(){return submitted;},
     request:(action,input = {}) => handle({ method:'POST', input, headers:{} }, {},
-      new URL(`/api/tokens/${mintAddress}/v3-x-claim/${collectionSignature}/${action}`,
+      new URL(`/api/tokens/${mintAddress}/v3-x-claim/${encodeURIComponent(sourceKey)}/${action}`,
         'https://funded.vip')) };
 }
+
+test('an audited residual X claim uses its own wallet challenge, funding receipt and replay-safe cycle',async()=>{
+  const f=fixture({residual:true});
+  await f.request('prepare',{wallet:wallet.publicKey.toBase58()});assert.equal(f.responses.at(-1).status,200);
+  const statement=f.responses.at(-1).data.statement;
+  assert(statement.includes(f.sourceKey));assert.equal(f.responses.at(-1).data.amountLamports,'50000');
+  assert(f.fundingInput.withdrawalId.equals(residualDisbursementId('creator-reward',settlementSignature,f.auditHash)));
+  await f.request('verify',{wallet:wallet.publicKey.toBase58(),signature:bs58.encode(nacl.sign.detached(new TextEncoder().encode(statement),wallet.secretKey))});
+  assert.equal(f.responses.at(-1).status,200);await f.request('execute');await f.request('execute');
+  assert.equal(f.responses.at(-1).status,200);assert.equal(f.submitted,1);
+  assert.equal(f.state.v3XClaims[f.sourceKey].status,'paid');assert.equal(f.state.v3XClaims[collectionSignature],undefined);
+  f.state.v3AllocationResidualPlans[f.auditHash].plan.sources[0].unreleasedLamports[2]='999';
+  await f.request('prepare',{wallet:wallet.publicKey.toBase58()});assert.equal(f.responses.at(-1).status,409);
+});
 
 test('V3 X claims stay closed without the explicit Devnet gate', async () => {
   const f = fixture({ enabled:false });

@@ -7,7 +7,9 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
   const selectedDay=qa ? 'qa5m:2026-10-17T00:00:00Z@abcdef012345' : '2026-10-17', paidDay=qa ? 'qa5m:2026-10-16T00:00:00Z' : '2026-10-16';
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
-  let signedIn = false, revision = 0, recoveryApplied = null;
+  let signedIn = false, revision = 0, recoveryApplied = null,residualApproved=null,residualPayouts=0;
+  const residualPlan={version:1,status:'reviewed-residual-not-paid',hash:'d'.repeat(64),mint:SOURCE,
+    beneficiaries:{creatorWallet:SOURCE},sources:[{collectionSignature:'1'.repeat(64),unreleasedLamports:['1','14','5']}]};
   await page.addInitScript(address => {
     window.solana = { publicKey:{ toBase58:() => address }, connect:async () => ({}),
       signMessage:async () => ({ signature:new Uint8Array(64) }), on:() => {} };
@@ -34,6 +36,9 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
     if (path === '/api/admin/withdrawals/reconcile') return send(200, { amountLamports:'1000000', signature:JSON.parse(route.request().postData()).signature, finalized:true });
     if (path === '/api/admin/fee-policy') { revision += 1; return send(200, { revision, split:JSON.parse(route.request().postData()).split, effectiveFor:'future launches only' }); }
     if (path === '/api/admin/vaults') return send(200, { totalLaunches:0, nextOffset:null, vaults:[] });
+    if(path==='/api/admin/v3-allocations/review')return send(200,residualPlan);
+    if(path==='/api/admin/v3-allocations/approve'){residualApproved=JSON.parse(route.request().postData());return send(200,{plan:residualPlan,executionStatus:'not-executed'});}
+    if(path.includes('/v3-creator-wallet-payout/')){residualPayouts++;return send(500,{error:'Wrong wallet must not reach signing preparation.'});}
     return send(404, { error:'Unknown test route.' });
   });
   await page.goto('/admin.html');
@@ -74,7 +79,7 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
   await expect(page.locator('#bonus-recovery-apply')).toBeEnabled();
   await page.locator('#bonus-recovery-day').fill(paidDay);
   await expect(page.locator('#bonus-recovery-apply')).toBeDisabled();
-  await expect(page.locator('#bonus-recovery-review')).toBeDisabled();
+  await expect(page.locator('#bonus-recovery-review')).toBeEnabled();
   await expect(page.locator('#bonus-recovery-status')).toContainText('Payments have started');
   await page.locator('#bonus-recovery-day').fill(selectedDay);
   await page.locator('#bonus-recovery-review').click();
@@ -84,5 +89,21 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
   await expect(page.locator('#message')).toContainText('original revision remains');
   expect(recoveryApplied.expectedNewHash).toBe('b'.repeat(64));
   await expect(page.locator('#bonus-recovery-apply')).toBeDisabled();
+  await page.locator('#residual-review-form [name=mint]').fill(SOURCE);
+  await page.getByRole('button',{name:'Review finalized residuals',exact:true}).click();
+  await expect(page.locator('[data-residual-approve]')).toBeEnabled();
+  await page.locator('#residual-review-form [name=reason]').fill('Reviewed exact finalized legacy beneficiary residual.');
+  await page.locator('[data-residual-approve]').click();
+  await expect(page.locator('[data-residual-status]')).toContainText('Approved · 1 lamports');
+  expect(residualApproved.expectedHash).toBe(residualPlan.hash);
+  await page.getByRole('button',{name:'Review and sign as launch creator',exact:true}).click();
+  await expect(page.locator('#message')).toContainText('admin sign-in alone cannot authorize');
+  expect(residualPayouts).toBe(0);
+  const reviewedOverflow=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth,
+    elements:[...document.querySelectorAll('body *')].filter(node=>node.getBoundingClientRect().right>innerWidth+1)
+      .map(node=>`${node.tagName.toLowerCase()}#${node.id}.${node.className||''}`)}));
+  expect(reviewedOverflow.width,JSON.stringify(reviewedOverflow)).toBeLessThanOrEqual(reviewedOverflow.viewport);
+  await page.locator('#residual-review-form [name=mint]').fill(ADMIN);
+  await expect(page.getByRole('button',{name:'Review and sign as launch creator',exact:true})).toBeDisabled();
   expect(pageErrors).toEqual([]);
 });

@@ -6,6 +6,10 @@ import {automaticPayoutCandidates,createAutomaticPayoutVerifier} from '../server
 import {collectXPostEvents} from '../server/x-post-events.mjs';
 import {buildXPost,xWeightedLength} from '../server/x-post-content.mjs';
 import {xWorkerConfig} from '../scripts/run-x-post-worker.mjs';
+import {v3AllocationPlan} from '../server/v3-allocation-plan.mjs';
+import {bonusHash} from '../server/daily-bonus.mjs';
+import {residualSourceKey,residualDisbursementId} from '../server/v3-residual-source.mjs';
+import {deriveCommunityRewardVaultV3} from '../mint-router-v3.js';
 
 const [mint,recipient,program]=[1,2,3].map(n=>Keypair.fromSeed(Buffer.alloc(32,n)).publicKey.toBase58());
 const signature=bs58.encode(Buffer.alloc(64,1)),paidAt='2026-10-18T14:40:00Z';
@@ -72,4 +76,49 @@ test('payout-only worker mode must be explicit and rejects misspelled configurat
   const env={DATABASE_URL:'postgresql://fixture:fixture@127.0.0.1/test',X_POST_EXPECTED_HANDLE:'fundedvip',X_POST_PUBLIC_ORIGIN:'https://funded.vip',X_POST_START_AT:'2026-10-18T00:00:00Z'};
   assert.equal(xWorkerConfig(env).payoutsOnly,false);assert.equal(xWorkerConfig({...env,X_POST_PAYOUTS_ONLY:'true'}).payoutsOnly,true);
   assert.throws(()=>xWorkerConfig({...env,X_POST_PAYOUTS_ONLY:'yes'}),/true or false/);
+});
+
+test('creator, holder and X residual announcements verify their distinct protected funding and preserve the original source',async()=>{
+  const source='3'.repeat(64),settlementSignature='4'.repeat(64),fundingSignature='5'.repeat(64),authority=recipient;
+  const launched={...structuredClone(launch),creatorWallet:recipient,xUserId:'123',
+    pumpFeeRoute:{...launch.pumpFeeRoute,initialAuthority:authority},
+    feeDistribution:{creatorDirected:{shares:{creatorWalletPercent:60,holderAirdropPercent:15,solClaimPercent:5},recipients:{xAccount:'@qa'}}}};
+  const settlement={mint,signature:settlementSignature,expectedLamports:'1000002',categoryLamports:['800002','80000','20000','6000','4000','40000','50000'],
+    position:{settledBeforeLamports:'1000002',settledAfterLamports:'2000004',policySettledLamports:'2000004',creatorPoolBeforeLamports:'800001',creatorPoolAfterLamports:'1600003'}};
+  const allocation=position=>v3AllocationPlan({launch:launched,settlement:{...settlement,position,programId:program,collectionSignature:source,settlementSignature}});
+  const original=allocation(undefined),target=allocation(settlement.position);
+  const frozen={version:1,status:'reviewed-residual-not-paid',mint,programId:program,sources:[{collectionSignature:source,settlementSignature,
+    originalPlanHash:bonusHash(original),target,releasedLamports:[original.creatorDirected.walletLamports,'0','0'],
+    unreleasedLamports:['1',target.creatorDirected.holderLamports,target.creatorDirected.xLamports]}]};
+  const hash=bonusHash(frozen),key=residualSourceKey(source,hash),vault=deriveCommunityRewardVaultV3(program,mint,authority).toBase58();
+  const current={launches:{[mint]:launched},collections:{[source]:{mint,signature:source,status:'collected',onchainVerified:true,programId:program,
+    scope:'per-mint-v3',cluster:'devnet',router:program,claimId:'a'.repeat(64),collectedLamports:'1000002'}},
+    v3Settlements:{[source]:{status:'finalized',mint,collectionSignature:source,settlementSignature,allocationPlan:original}},
+    v3AllocationResidualPlans:{[hash]:{plan:{...frozen,hash},actor:'qa-admin',approvedAt:paidAt}},
+    v3CreatorWalletPayout:{[key]:{mint,collectionSignature:source,residualPlanHash:hash,protectedPolicy:true,status:'finalized',balanceDeltaVerified:true,
+      signature,withdrawal:program,category:0,amount:'1',recipient}},
+    v3CreatorRewardFunding:{[key]:{mint,collectionSignature:source,residualPlanHash:hash,protectedPolicy:true,status:'finalized',balanceDeltaVerified:true,
+      signature:fundingSignature,category:0,amount:'200000',recipient:vault}},
+    v3XClaims:{[key]:{status:'paid',wallet:recipient,payment:{signature},fundingSignature,amountLamports:'50000',xUserId:'123'}}};
+  const rewardState={rewardPools:{[`v3:${key}`]:{status:'assigned',balanceDeltaVerified:true,mint,scheduleId:'holder',fundingSignature,amount:'150000'}},
+    schedules:{holder:{mint,kind:'holder',asset:'SOL',poolIds:[`v3:${key}`]},
+      x:{mint,kind:'x',asset:'SOL',sourceId:key,manifest:{leaves:[{recipient}],totalAmount:'50000'}}}};
+  const seen=[];
+  const verifier=createAutomaticPayoutVerifier({connection:{getGenesisHash:async()=>'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG'},
+    programId:program,authority,approvedHash:'b'.repeat(64),readProgram:async()=>({account:{executable:true},sha256:'b'.repeat(64)}),
+    loadCollection:async()=>({signature:source,router:program,claimId:Buffer.from('a'.repeat(64),'hex'),expectedLamports:'1000002'}),
+    loadSettlement:async args=>{assert(args.includePosition);return settlement;},
+    loadFunding:async args=>{seen.push(args);assert(args.protectedPolicy);assert(args.withdrawalId.equals(residualDisbursementId(
+      args.recipient===recipient?'creator-wallet':'creator-reward',settlementSignature,hash)));
+      return {signature:args.signature,mint,recipient:args.recipient,amount:args.amount,withdrawal:program,balanceDeltaVerified:true,slot:123,blockTime:1_700_000_000};},
+    loadAutomatic:async({schedule})=>({signature,recipient,amount:schedule.kind==='x'?'50000':'150000',slot:124,blockTime:1_700_000_001})});
+  const creator=automaticPayoutCandidates(current).find(row=>row.kind==='creator');assert.equal(creator.source,key);
+  const first=await verifier.verifyAutomaticPayout(creator,{state:current,rewardState});assert.equal(first.amountLamports,'1');
+  for(const kind of ['holder','x']){
+    const row=await verifier.verifyAutomaticPayout({mint,kind,scheduleId:kind,recipient,signature},{state:current,rewardState});
+    assert.equal(row.amountLamports,kind==='holder'?'150000':'50000');
+  }
+  assert.equal(seen.length,3);assert.deepEqual(current.v3Settlements[source].allocationPlan,original);
+  current.v3CreatorWalletPayout[key].protectedPolicy=false;
+  await assert.rejects(()=>verifier.verifyAutomaticPayout(creator,{state:current,rewardState}));
 });

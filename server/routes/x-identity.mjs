@@ -1,5 +1,6 @@
 import { authCookie, OAUTH_SECONDS, cookieValue, SESSION_SECONDS, allowedAuthOrigin } from '../x-auth.mjs';
 import { xLookupHttpError } from '../x-user-lookup.mjs';
+import {v3SourceAllocation} from '../v3-residual-source.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -112,11 +113,13 @@ export function createXIdentityRoutes({
       if (solanaCluster === 'devnet' && process.env.FUNDED_V3_X_CLAIMS_ENABLED === 'true') {
         const ledger = await store.read();
         for (const [signature, funding] of Object.entries(ledger.v3CreatorRewardFunding || {})) {
-          const settled = ledger.v3Settlements?.[signature];
+          let source;try{source=v3SourceAllocation(ledger,signature);}catch{continue;}
+          if(source.residualPlanHash&&funding.residualPlanHash!==source.residualPlanHash)continue;
+          const settled = ledger.v3Settlements?.[source.collectionSignature];
           const launch = ledger.launches?.[funding.mint];
-          const collection = ledger.collections?.[signature];
-          const amount = settled?.allocationPlan?.creatorDirected?.xLamports;
-          const holder = settled?.allocationPlan?.creatorDirected?.holderLamports;
+          const collection = ledger.collections?.[source.collectionSignature];
+          const amount = source.allocation?.creatorDirected?.xLamports;
+          const holder = source.allocation?.creatorDirected?.holderLamports;
           const claim = ledger.v3XClaims?.[signature];
           if (funding.status !== 'finalized' || settled?.status !== 'finalized'
             || !launch?.onchainVerified || launch.cluster !== 'devnet'

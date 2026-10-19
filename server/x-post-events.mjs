@@ -7,6 +7,7 @@ import { verifyPumpLaunch } from './launch-verification.mjs';
 import { verifyFundedBurn } from './burn-verification.mjs';
 import { listingMemo } from '../listing-policy.js';
 import { automaticPayoutCandidates } from './x-auto-payouts.mjs';
+import {v3SourceAllocation} from './v3-residual-source.mjs';
 
 const DEVNET_GENESIS = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -31,8 +32,9 @@ const v3Schedule = (state, schedule) => {
     && Array.isArray(schedule.poolIds) && schedule.poolIds.length > 0
     && schedule.poolIds.every(id => {
       if (typeof id !== 'string' || !id.startsWith('v3:')) return false;
-      const source = id.slice(3), collection = state.collections?.[source];
-      const funding = state.v3CreatorRewardFunding?.[source];
+      let identity;try{identity=v3SourceAllocation(state,id.slice(3));}catch{return false;}
+      const source = identity.collectionSignature, collection = state.collections?.[source];
+      const funding = state.v3CreatorRewardFunding?.[id.slice(3)];
       return collection?.mint === schedule.mint && collection.scope === 'per-mint-v3'
         && collection.status === 'collected' && collection.onchainVerified === true
         && state.v3Settlements?.[source]?.status === 'finalized'

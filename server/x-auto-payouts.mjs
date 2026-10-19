@@ -14,6 +14,7 @@ import {v3AllocationPlan} from './v3-allocation-plan.mjs';
 import {v3ReferralEntitlement} from './v3-referral-entitlement.mjs';
 import {v3DisbursementId} from './v3-disbursement-id.mjs';
 import {loadFinalizedV3RewardFunding} from './v3-reward-funding-proof.mjs';
+import {v3SourceAllocation,v3ResidualAllocation,residualDisbursementId} from './v3-residual-source.mjs';
 
 const discriminator=name=>createHash('sha256').update(name).digest().subarray(0,8);
 const finalized=row=>row?.finalized===true&&row.balanceDeltaVerified===true;
@@ -36,7 +37,8 @@ export function automaticPayoutCandidates(state,rewardState={}) {
       }
   for(const [bucket,kind]of [['v3CreatorWalletPayout','creator'],['v3ReferralPayouts','referral'],['v3OperationsPayout','operations']])
     for(const [recordId,row]of Object.entries(state[bucket]||{}))if(row.status==='finalized'&&row.balanceDeltaVerified===true&&launchV3(state.launches?.[row.mint]))
-      rows.push({mint:row.mint,signature:row.signature,receiptId:row.withdrawal,recipient:row.recipient,paidAt:row.finalizedAt,kind,bucket,recordId,source:row.collectionSignature,level:row.level});
+      rows.push({mint:row.mint,signature:row.signature,receiptId:row.withdrawal,recipient:row.recipient,paidAt:row.finalizedAt,kind,bucket,recordId,
+        source:kind==='creator'&&row.residualPlanHash?recordId:row.collectionSignature,level:row.level});
   return rows;
 }
 
@@ -83,17 +85,21 @@ export function createAutomaticPayoutVerifier({connection,programId,authority,ap
       const program=await readProgram(connection,programId);assert(program.account?.executable);assert(/^[a-f0-9]{64}$/.test(approvedHash||''));assert.equal(program.sha256,approvedHash);})();
     await readiness;
   }
-  async function funding(state,source,kind,level) {
+  async function funding(state,sourceKey,kind,level) {
+    const identity=v3SourceAllocation(state,sourceKey),source=identity.collectionSignature;
+    if(identity.residualPlanHash)assert(['creator','reward'].includes(kind));
     const collection=state.collections?.[source],launch=state.launches?.[collection?.mint],saved=state.v3Settlements?.[source];
     assert(launchV3(launch)&&launch.pumpFeeRoute.programId===programId&&launch.pumpFeeRoute.initialAuthority===authority);
     assert(collection.status==='collected'&&collection.onchainVerified===true&&collection.programId===programId&&collection.scope==='per-mint-v3'&&collection.cluster==='devnet');
     assert(saved?.status==='finalized'&&saved.mint===collection.mint&&saved.collectionSignature===source);
     const receipt=await loadCollection({connection,signature:source,programId,mint:collection.mint,launch});
     assert(receipt&&receipt.signature===source&&receipt.router===collection.router&&receipt.claimId.toString('hex')===collection.claimId&&String(receipt.expectedLamports)===String(collection.collectedLamports));
-    const settlement=await loadSettlement({connection,signature:saved.settlementSignature,programId,mint:collection.mint,authority,creator:launch.creatorWallet,claimId:receipt.claimId,expectedLamports:receipt.expectedLamports,split:launch.pumpFeeRoute.protocolSplit,includePosition:saved.allocationPlan?.allocationVersion===2});assert(settlement);
-    const plan=v3AllocationPlan({launch,settlement:{...settlement,programId,collectionSignature:source,settlementSignature:saved.settlementSignature}});assert(isDeepStrictEqual(plan,saved.allocationPlan));
+    const settlement=await loadSettlement({connection,signature:saved.settlementSignature,programId,mint:collection.mint,authority,creator:launch.creatorWallet,claimId:receipt.claimId,expectedLamports:receipt.expectedLamports,split:launch.pumpFeeRoute.protocolSplit,includePosition:Boolean(identity.residualPlanHash)||saved.allocationPlan?.allocationVersion===2});assert(settlement);
+    let plan=v3AllocationPlan({launch,settlement:{...settlement,position:saved.allocationPlan?.allocationVersion===2?settlement.position:undefined,programId,collectionSignature:source,settlementSignature:saved.settlementSignature}});assert(isDeepStrictEqual(plan,saved.allocationPlan));
+    if(identity.residualPlanHash){assert(settlement.position);plan=v3ResidualAllocation({state,...identity,canonicalTarget:v3AllocationPlan({launch,settlement:{...settlement,programId,collectionSignature:source,settlementSignature:saved.settlementSignature}})}).allocation;}
     const bucket=kind==='creator'?'v3CreatorWalletPayout':kind==='referral'?'v3ReferralPayouts':kind==='operations'?'v3OperationsPayout':kind==='community'?'v3CommunityFunding':'v3CreatorRewardFunding';
-    const row=state[bucket]?.[kind==='referral'?`${source}:${level}`:source];assert(row?.status==='finalized'&&row.balanceDeltaVerified===true&&row.mint===collection.mint);
+    const row=state[bucket]?.[kind==='referral'?`${source}:${level}`:sourceKey];assert(row?.status==='finalized'&&row.balanceDeltaVerified===true&&row.mint===collection.mint);
+    if(identity.residualPlanHash){assert.equal(row.residualPlanHash,identity.residualPlanHash);assert.equal(row.protectedPolicy,true);}
     const reward=deriveCommunityRewardVaultV3(programId,collection.mint,authority).toBase58();
     const entitlement=kind==='referral'?v3ReferralEntitlement({settlement:saved,plan,level}):null;
     const amount=kind==='creator'?plan.creatorDirected.walletLamports:kind==='referral'?entitlement?.amount:kind==='operations'?plan.protocol.operationsLamports:kind==='community'?plan.protocol.communityLamports:String(BigInt(plan.creatorDirected.holderLamports)+BigInt(plan.creatorDirected.xLamports));
@@ -101,7 +107,8 @@ export function createAutomaticPayoutVerifier({connection,programId,authority,ap
     const category=kind==='referral'?level+1:kind==='operations'?1:kind==='community'?5:0;
     assert.equal(row.amount,amount);assert.equal(row.recipient,recipient);assert.equal(row.category,category);
     const idKind=kind==='creator'?'creator-wallet':kind==='referral'?`referral-${level}`:kind==='operations'?'operations':kind==='community'?'community':'creator-reward';
-    const proof=await loadFunding({connection,signature:row.signature,programId,mint:collection.mint,authority,creator:launch.creatorWallet,initialAuthority:authority,split:launch.pumpFeeRoute.protocolSplit,withdrawalId:v3DisbursementId(idKind,saved.settlementSignature),category,amount,recipient,protectedPolicy:row.protectedPolicy===true,beneficiary:kind==='creator'?0:kind==='referral'?level+3:kind==='operations'?3:kind==='community'?7:1,holderAmount:kind==='reward'?plan.creatorDirected.holderLamports:0n});
+    const withdrawalId=identity.residualPlanHash?residualDisbursementId(idKind,saved.settlementSignature,identity.residualPlanHash):v3DisbursementId(idKind,saved.settlementSignature);
+    const proof=await loadFunding({connection,signature:row.signature,programId,mint:collection.mint,authority,creator:launch.creatorWallet,initialAuthority:authority,split:launch.pumpFeeRoute.protocolSplit,withdrawalId,category,amount,recipient,protectedPolicy:row.protectedPolicy===true,beneficiary:kind==='creator'?0:kind==='referral'?level+3:kind==='operations'?3:kind==='community'?7:1,holderAmount:kind==='reward'?plan.creatorDirected.holderLamports:0n});
     assert(proof?.balanceDeltaVerified&&proof.signature===row.signature);return {proof,plan,row};
   }
   async function verifyAutomaticPayout(record,{state,rewardState}) {

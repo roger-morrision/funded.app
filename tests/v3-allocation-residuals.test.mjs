@@ -4,6 +4,7 @@ import {Keypair} from '@solana/web3.js';
 import {v3AllocationPlan} from '../server/v3-allocation-plan.mjs';
 import {reviewV3AllocationResiduals,recordV3AllocationResidualPlan} from '../server/v3-allocation-residuals.mjs';
 import {rewardAddresses} from '../server/automatic-reward-chain.mjs';
+import {residualSourceKey} from '../server/v3-residual-source.mjs';
 function fixture(){
   const [mint,creator,authority,program]=Array.from({length:4},(_,n)=>Keypair.fromSeed(Buffer.alloc(32,n+110)).publicKey.toBase58());
   const launch={mint,onchainVerified:true,cluster:'devnet',creatorWallet:creator,
@@ -68,4 +69,27 @@ test('changed reviewed evidence and concurrent payment preparation reject audit 
   f.store.update=async fn=>{f.state.v3CreatorRewardFunding={source0:{status:'verification-pending'}};return normal(fn);};
   await assert.rejects(recordV3AllocationResidualPlan({...f.options,expectedHash:reviewed.hash,reason:'A source was reserved during review.',actor:'qa-admin'}),/changed before audit/);
   assert.equal(f.state.v3AllocationResidualPlans,undefined);
+});
+
+test('finalized supplemental transfers consume the reviewed residual and unknown pending attempts block new approvals',async()=>{
+  const f=fixture(),source='7'.repeat(64),old='source1';
+  const launch=f.state.launches[f.options.mint],row=f.state.v3Settlements[old],proof=f.proofs[row.settlementSignature];
+  f.state.collections[source]={...f.state.collections[old],signature:source};delete f.state.collections[old];
+  row.collectionSignature=source;row.allocationPlan=v3AllocationPlan({launch,settlement:{...proof,position:undefined,
+    programId:launch.pumpFeeRoute.programId,collectionSignature:source,settlementSignature:row.settlementSignature}});
+  f.state.v3Settlements[source]=row;delete f.state.v3Settlements[old];
+  f.state.v3CreatorWalletPayout[source]=f.state.v3CreatorWalletPayout[old];delete f.state.v3CreatorWalletPayout[old];
+  const reviewed=await reviewV3AllocationResiduals(f.options);
+  await recordV3AllocationResidualPlan({...f.options,expectedHash:reviewed.hash,reason:'Review the exact one-lamport supplemental payout.',actor:'qa-admin'});
+  const key=residualSourceKey(source,reviewed.hash),receipt={status:'finalized',balanceDeltaVerified:true,
+    collectionSignature:source,residualPlanHash:reviewed.hash,signature:'residual-payment',amount:'1',mint:launch.mint,recipient:launch.creatorWallet};
+  f.state.v3CreatorWalletPayout[key]=receipt;f.policy.directedReleased[0]++;
+  const after=await reviewV3AllocationResiduals(f.options);
+  assert.equal(after.sources.find(row=>row.collectionSignature===source).unreleasedLamports[0],'0');
+  assert.equal(after.releasedLamports[0],'700002');
+  receipt.status='verification-pending';
+  await assert.rejects(reviewV3AllocationResiduals(f.options),/uncertain or conflicts/);
+  f.policy.directedReleased[0]--;
+  const retry=await reviewV3AllocationResiduals({...f.options,ignorePendingResidual:{bucket:'v3CreatorWalletPayout',key,signature:receipt.signature}});
+  assert.equal(retry.sources.find(row=>row.collectionSignature===source).unreleasedLamports[0],'1');
 });

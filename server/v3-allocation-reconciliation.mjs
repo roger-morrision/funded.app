@@ -4,7 +4,9 @@ import { v3AllocationPlan } from './v3-allocation-plan.mjs';
 import { createFinalizedReadCache } from './finalized-read-cache.mjs';
 
 const usage = (state,source) => [state.v3CreatorWalletPayout?.[source],
-  state.v3CreatorRewardFunding?.[source],state.v3XClaims?.[source]];
+  state.v3CreatorRewardFunding?.[source],state.v3XClaims?.[source],
+  ...['v3CreatorWalletPayout','v3CreatorRewardFunding','v3XClaims'].flatMap(bucket=>
+    Object.entries(state[bucket]||{}).filter(([id])=>id.startsWith(`${source}:residual:`)).sort(([a],[b])=>a.localeCompare(b)))];
 
 // Upgrade only unused creator allocations. Recorded transactions, enrolled
 // holder pools and X claims retain their original amounts and source IDs.

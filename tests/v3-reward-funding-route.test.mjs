@@ -6,6 +6,8 @@ import { deriveCommunityRewardVaultV3, deriveMintRouterV3 } from '../mint-router
 import { v3AllocationPlan } from '../server/v3-allocation-plan.mjs';
 import { AUTOMATIC_REWARDS } from '../automatic-rewards.js';
 import { createV3RewardFundingRoutes } from '../server/routes/v3-reward-funding.mjs';
+import {bonusHash} from '../server/daily-bonus.mjs';
+import {residualSourceKey} from '../server/v3-residual-source.mjs';
 
 const key = byte => Keypair.fromSeed(new Uint8Array(32).fill(byte));
 const creator = key(31), authority = key(32), program = key(33), mint = key(34);
@@ -15,7 +17,7 @@ const claimId = Buffer.alloc(32, 8);
 const router = deriveMintRouterV3(program.publicKey, mint.publicKey).address.toBase58();
 
 function fixture({ enabled = true, submit = null, kind = 'community', qaShort = false,
-  protectedPolicy = false,
+  protectedPolicy = false, residual = false,
   recipientBalance = 1_000_000,
   existingProgram = null } = {}) {
   const suffix = ['creator-wallet', 'referral', 'operations'].includes(kind) ? 'payout' : 'funding';
@@ -33,7 +35,9 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
     claimId:claimId.toString('hex'), expectedLamports:'100',
     position:{settledBeforeLamports:'0',settledAfterLamports:'100',policySettledLamports:'100',creatorPoolBeforeLamports:'0',creatorPoolAfterLamports:'80'},
     categoryLamports:['80','10','2','1','0','2','5'] };
-  const allocationPlan = v3AllocationPlan({ launch, settlement:{ ...settlementProof,
+  if(residual)Object.assign(settlementProof,{expectedLamports:'1000002',categoryLamports:['800002','80000','20000','6000','4000','40000','50000'],
+    position:{settledBeforeLamports:'1000002',settledAfterLamports:'2000004',policySettledLamports:'2000004',creatorPoolBeforeLamports:'800001',creatorPoolAfterLamports:'1600003'}});
+  const allocationPlan = v3AllocationPlan({ launch, settlement:{ ...settlementProof,position:residual?undefined:settlementProof.position,
     programId:program.publicKey.toBase58(), collectionSignature,
     settlementSignature } });
   const state = { launches:{ [launch.mint]:launch },
@@ -45,6 +49,17 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
     v3Settlements:{ [collectionSignature]:{ status:'finalized', mint:launch.mint,
       collectionSignature, settlementSignature, allocationPlan } },
     v3CommunityFunding:{}, referrals:{ attributions:{} } };
+  let auditSource,auditHash;
+  if(residual){
+    state.collections[collectionSignature].collectedLamports=1000002;
+    const target=v3AllocationPlan({launch,settlement:{...settlementProof,programId:program.publicKey.toBase58(),collectionSignature,settlementSignature}});
+    const originalWallet=allocationPlan.creatorDirected.walletLamports;
+    state.v3CreatorWalletPayout={[collectionSignature]:{status:'finalized',signature:'old-wallet-receipt',amount:originalWallet}};
+    auditSource={collectionSignature,settlementSignature,originalPlanHash:bonusHash(allocationPlan),target,
+      releasedLamports:[originalWallet,'0','0'],unreleasedLamports:[String(BigInt(target.creatorDirected.walletLamports)-BigInt(originalWallet)),target.creatorDirected.holderLamports,target.creatorDirected.xLamports]};
+    const frozen={version:1,status:'reviewed-residual-not-paid',mint:launch.mint,programId:program.publicKey.toBase58(),sources:[auditSource]};
+    auditHash=bonusHash(frozen);state.v3AllocationResidualPlans={[auditHash]:{plan:{...frozen,hash:auditHash},actor:'qa-admin',approvedAt:'2026-10-19T00:00:00Z'}};
+  }
   let submitted = 0;
   const holderPools = new Map();
   const rewardState = { programs:existingProgram ? { [launch.mint]:existingProgram } : {} };
@@ -83,6 +98,7 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
     rewardChainFactory:() => ({ readiness:async () => ({ constrainedPayouts:true }),
       ensureVault:async () => vault }),
     loadSettlement:async () => settlementProof,
+    reviewResiduals:async()=>({sources:[auditSource]}),
     loadFunding:async ({ signature, amount, recipient }) => finalized ? { signature,
       mint:launch.mint, amount:String(amount), recipient:recipient.toBase58(),
       balanceDeltaVerified:true } : null,
@@ -95,7 +111,7 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
     originAllowed:() => true,
     respond:(_res,status,data) => responses.push({ status,data }),
   });
-  return { state, responses, holderPools, registrations, get submitted(){return submitted;},
+  return { state, responses, holderPools, registrations, auditHash, auditSource,get submitted(){return submitted;},
     setFinalized:value => { finalized=value; },
     request:input => handle({ method:'POST', input, headers:{} }, {}, new URL(path,'https://funded.vip')) };
 }
@@ -105,6 +121,48 @@ function signPrepared(base64) {
   tx.partialSign(creator);
   return tx.serialize({ requireAllSignatures:false, verifySignatures:false }).toString('base64');
 }
+
+test('audited one-lamport wallet residual uses a new withdrawal and ledger identity without rewriting the paid receipt',async()=>{
+  const f=fixture({kind:'creator-wallet',protectedPolicy:true,residual:true});
+  const original=structuredClone(f.state.v3CreatorWalletPayout[collectionSignature]);
+  const originalAllocation=structuredClone(f.state.v3Settlements[collectionSignature].allocationPlan);
+  await f.request({residualPlanHash:f.auditHash});
+  assert.equal(f.responses.at(-1).status,202);assert.equal(f.responses.at(-1).data.amountLamports,'1');
+  const creatorSignedTransaction=signPrepared(f.responses.at(-1).data.transaction);
+  await f.request({residualPlanHash:f.auditHash,creatorSignedTransaction});
+  assert.equal(f.responses.at(-1).status,200);assert.equal(f.submitted,1);
+  const key=residualSourceKey(collectionSignature,f.auditHash);
+  assert.equal(f.state.v3CreatorWalletPayout[key].amount,'1');
+  assert.equal(f.state.v3CreatorWalletPayout[key].residualPlanHash,f.auditHash);
+  assert.deepEqual(f.state.v3CreatorWalletPayout[collectionSignature],original);
+  assert.deepEqual(f.state.v3Settlements[collectionSignature].allocationPlan,originalAllocation);
+  await f.request({residualPlanHash:f.auditHash});assert.equal(f.responses.at(-1).status,200);assert.equal(f.submitted,1);
+});
+
+test('audited holder/X residual funding enrolls a separate holder pool and preserves the original used plan',async()=>{
+  const f=fixture({kind:'creator-reward',protectedPolicy:true,residual:true});
+  const original=structuredClone(f.state.v3Settlements[collectionSignature].allocationPlan);
+  await f.request({residualPlanHash:f.auditHash});assert.equal(f.responses.at(-1).status,202);
+  assert.equal(f.responses.at(-1).data.amountLamports,'200000');
+  await f.request({residualPlanHash:f.auditHash,creatorSignedTransaction:signPrepared(f.responses.at(-1).data.transaction)});
+  assert.equal(f.responses.at(-1).status,200);
+  const key=residualSourceKey(collectionSignature,f.auditHash),pool=f.holderPools.get(`v3:${key}`);
+  assert.equal(pool.amount,'150000');assert.equal(f.state.v3CreatorRewardFunding[key].amount,'200000');
+  assert.equal(f.state.v3CreatorRewardFunding[collectionSignature],undefined);
+  assert.deepEqual(f.state.v3Settlements[collectionSignature].allocationPlan,original);
+  await f.request({residualPlanHash:f.auditHash});assert.equal(f.submitted,1);assert.equal(f.holderPools.size,1);
+});
+
+test('residual recovery does not resubmit an uncertain transfer and rejects an edited approval',async()=>{
+  const f=fixture({kind:'creator-wallet',protectedPolicy:true,residual:true,submit:async()=>{throw new Error('QA ambiguous broadcast.');}});
+  await f.request({residualPlanHash:f.auditHash});const encoded=signPrepared(f.responses.at(-1).data.transaction);
+  await assert.rejects(f.request({residualPlanHash:f.auditHash,creatorSignedTransaction:encoded}),/ambiguous/);
+  assert.equal(f.state.v3CreatorWalletPayout[residualSourceKey(collectionSignature,f.auditHash)].status,'verification-pending');
+  f.setFinalized(true);await f.request({residualPlanHash:f.auditHash});
+  assert.equal(f.responses.at(-1).status,200);assert.equal(f.submitted,1);
+  f.state.v3AllocationResidualPlans[f.auditHash].plan.sources[0].unreleasedLamports[0]='999';
+  await f.request({residualPlanHash:f.auditHash});assert.equal(f.responses.at(-1).status,409);assert.equal(f.submitted,1);
+});
 
 test('V3 community funding stays disabled by default', async () => {
   const f = fixture({ enabled:false });

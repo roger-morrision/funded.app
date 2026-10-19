@@ -1,4 +1,5 @@
 import { AUTOMATIC_REWARDS } from '../automatic-rewards.js';
+import {v3SourceAllocation,v3DisplayAllocation} from './v3-residual-source.mjs';
 
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
@@ -32,7 +33,7 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
         amountLamports:String(row.collectedLamports), at:row.recordedAt || null,
         label:'Creator fees collected from Pump' });
       const settlement = state.v3Settlements?.[row.signature];
-      const plan = settlement?.allocationPlan;
+      let plan;try{plan=v3DisplayAllocation(state,row.signature);}catch{continue;}
       if (settlement?.status !== 'finalized' || settlement.mint !== mint
         || plan?.status !== 'allocated-not-funded'
         || value(plan.grossLamports) !== value(row.collectedLamports)) continue;
@@ -54,9 +55,12 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
     for (const schedule of Object.values(rewardState.schedules || {})) {
       if (schedule.mint !== mint || schedule.kind !== 'holder' || schedule.asset !== 'SOL') continue;
       const linked = (schedule.poolIds || []).some(id => {
-        if (!id.startsWith('v3:') || !sourceSignatures.has(id.slice(3))) return false;
+        if (!id.startsWith('v3:')) return false;
+        let source;try{source=v3SourceAllocation(state,id.slice(3));}catch{return false;}
+        if(!sourceSignatures.has(source.collectionSignature))return false;
         const funded = state.v3CreatorRewardFunding?.[id.slice(3)];
-        return funded?.status === 'finalized' && funded.balanceDeltaVerified === true;
+        return funded?.status === 'finalized' && funded.balanceDeltaVerified === true
+          &&(!source.residualPlanHash||funded.residualPlanHash===source.residualPlanHash);
       });
       if (!linked) continue;
       for (const [recipient, payment] of Object.entries(schedule.payments || {})) {
@@ -69,7 +73,9 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
       }
     }
     for (const [source, claim] of Object.entries(state.v3XClaims || {})) {
-      if (!sourceSignatures.has(source) || claim.mint !== mint || claim.status !== 'paid'
+      let identity;try{identity=v3SourceAllocation(state,source);}catch{continue;}
+      if (!sourceSignatures.has(identity.collectionSignature) || claim.mint !== mint || claim.status !== 'paid'
+        ||identity.residualPlanHash&&(claim.residualPlanHash!==identity.residualPlanHash||state.v3CreatorRewardFunding?.[source]?.residualPlanHash!==identity.residualPlanHash)
         || state.v3CreatorRewardFunding?.[source]?.status !== 'finalized'
         || state.v3CreatorRewardFunding[source]?.balanceDeltaVerified !== true
         || !ADDRESS.test(String(claim.wallet || ''))
@@ -79,9 +85,11 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
         amountLamports:String(claim.amountLamports), paidAt:claim.paidAt || null,
         source:'finalized-v3-x-claim', feeSourceVerified:true });
     }
-    for (const source of sourceSignatures) {
-      const payout = state.v3CreatorWalletPayout?.[source];
-      const allocation = state.v3Settlements?.[source]?.allocationPlan?.creatorDirected?.walletLamports;
+    for (const [key,payout] of Object.entries(state.v3CreatorWalletPayout||{})) {
+      let identity;try{identity=v3SourceAllocation(state,key);}catch{continue;}
+      const source=identity.collectionSignature;
+      if(!sourceSignatures.has(source)||identity.residualPlanHash&&payout.residualPlanHash!==identity.residualPlanHash)continue;
+      const allocation = identity.allocation?.creatorDirected?.walletLamports;
       if (payout?.status !== 'finalized' || payout.balanceDeltaVerified !== true
         || payout.collectionSignature !== source || payout.mint !== mint
         || payout.programId !== launch.pumpFeeRoute.programId || payout.category !== 0

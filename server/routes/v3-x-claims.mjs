@@ -9,6 +9,7 @@ import { loadFinalizedV3RewardFunding } from '../v3-reward-funding-proof.mjs';
 import { v3AllocationPlan } from '../v3-allocation-plan.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 import { verifyMintPolicyV3Account } from '../../mint-router-v3.js';
+import {parseV3SourceKey,v3ResidualAllocation,residualDisbursementId} from '../v3-residual-source.mjs';
 
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const CLAIM_LIFETIME_MS = 14 * 24 * 60 * 60 * 1000;
@@ -41,9 +42,11 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
     let mint;
     try { mint = new PublicKey(decodeURIComponent(match[1])).toBase58(); }
     catch { return json(res, 400, { error:'A valid V3 mint is required.' }); }
-    const collectionSignature = decodeURIComponent(match[2]);
-    if (!SIGNATURE.test(collectionSignature))
+    let sourceIdentity;
+    try{sourceIdentity=parseV3SourceKey(decodeURIComponent(match[2]));}catch{}
+    if (!sourceIdentity)
       return json(res, 400, { error:'A valid V3 collection signature is required.' });
+    const {collectionSignature,ledgerKey:claimKey,residualPlanHash}=sourceIdentity;
     const session = await xSession(req);
     if (!/^\d{1,24}$/.test(String(session?.user?.id || '')))
       return json(res, 401, { error:'Sign in with the selected X account.' });
@@ -51,7 +54,7 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
     const launch = state.launches?.[mint];
     const collection = state.collections?.[collectionSignature];
     const settled = state.v3Settlements?.[collectionSignature];
-    const funding = state.v3CreatorRewardFunding?.[collectionSignature];
+    const funding = state.v3CreatorRewardFunding?.[claimKey];
     const programId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '');
     const approvedHash = String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || '');
     if (!launch?.onchainVerified || launch.cluster !== 'devnet' || launch.mint !== mint
@@ -66,6 +69,7 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
       || settled?.status !== 'finalized' || settled.mint !== mint
       || settled.collectionSignature !== collectionSignature
       || funding?.status !== 'finalized' || funding.mint !== mint
+      ||residualPlanHash&&funding.residualPlanHash!==residualPlanHash
       || !SIGNATURE.test(String(funding.signature || ''))
       || !/^[a-f0-9]{64}$/i.test(approvedHash))
       return json(res, 409, { error:'A matching finalized V3 X allocation and funding record are required.' });
@@ -83,15 +87,23 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
       authority:launch.pumpFeeRoute.initialAuthority,
       creator:launch.creatorWallet, claimId:Buffer.from(collection.claimId, 'hex'),
       expectedLamports:collection.collectedLamports, split:launch.pumpFeeRoute.protocolSplit,
-      includePosition:settled.allocationPlan?.allocationVersion === 2 });
+      includePosition:Boolean(residualPlanHash)||settled.allocationPlan?.allocationVersion === 2 });
     if (!settlement || settlement.signature !== settled.settlementSignature)
       return json(res, 409, { error:'Finalized V3 settlement proof is unavailable.' });
     let plan;
-    try { plan = v3AllocationPlan({ launch, settlement:{ ...settlement, programId,
+    try { plan = v3AllocationPlan({ launch, settlement:{ ...settlement,
+      position:settled.allocationPlan?.allocationVersion===2?settlement.position:undefined,programId,
       collectionSignature, settlementSignature:settled.settlementSignature } }); }
     catch { return json(res, 409, { error:'The V3 X allocation cannot be reconstructed.' }); }
-    if (!isDeepStrictEqual(plan, settled.allocationPlan)
-      || plan.creatorDirected.xUserId !== String(session.user.id)
+    if (!isDeepStrictEqual(plan, settled.allocationPlan))return json(res,409,{error:'The original V3 allocation differs from signed source evidence.'});
+    if(residualPlanHash){
+      try{if(!settlement.position)throw new Error('Finalized cumulative settlement position is required.');
+        plan=v3ResidualAllocation({state,collectionSignature,residualPlanHash,
+        canonicalTarget:v3AllocationPlan({launch,settlement:{...settlement,programId,collectionSignature,
+          settlementSignature:settled.settlementSignature}})}).allocation;}
+      catch{return json(res,409,{error:'The audited residual X allocation cannot be verified.'});}
+    }
+    if (plan.creatorDirected.xUserId !== String(session.user.id)
       || BigInt(plan.creatorDirected.xLamports) <= 0n)
       return json(res, 409, { error:'The stored V3 X allocation differs from the signed launch policy.' });
     const amount = BigInt(plan.creatorDirected.holderLamports)
@@ -99,10 +111,10 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
     const policy = await verifyPolicy({ connection, programId, mint,
       creator:launch.creatorWallet, initialAuthority:launch.pumpFeeRoute.initialAuthority,
       split:launch.pumpFeeRoute.protocolSplit });
-    if (!policy.verified) return json(res, 409, {
+    if (!policy.verified || residualPlanHash&&!policy.protectedPolicy) return json(res, 409, {
       error:'The immutable V3 creator fee policy is not verified.' });
-    const withdrawalId = createHash('sha256')
-      .update(`funded.v3.creator-reward-funding.v1:${settled.settlementSignature}`).digest();
+    const withdrawalId = residualPlanHash?residualDisbursementId('creator-reward',settled.settlementSignature,residualPlanHash)
+      :createHash('sha256').update(`funded.v3.creator-reward-funding.v1:${settled.settlementSignature}`).digest();
     const { vault } = rewardAddresses({ programId, authority:authority.publicKey, mint });
     if (funding.amount !== String(amount) || funding.recipient !== vault.toBase58())
       return json(res, 409, { error:'The recorded V3 reward funding does not match its allocation.' });
@@ -116,7 +128,7 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
     if (!proof?.balanceDeltaVerified || proof.signature !== funding.signature
       || proof.amount !== String(amount))
       return json(res, 409, { error:'Finalized V3 reward-vault funding proof is unavailable.' });
-    const claim = state.v3XClaims?.[collectionSignature];
+    const claim = state.v3XClaims?.[claimKey];
     if (match[3] === 'prepare') {
       const input = await body(req);
       let requestedWallet;
@@ -124,14 +136,15 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
       catch { return json(res, 400, { error:'A valid recipient wallet is required.' }); }
       const prepared = await store.update(current => {
         current.v3XClaims ||= {};
-        const existing = current.v3XClaims[collectionSignature];
+        const existing = current.v3XClaims[claimKey];
         if (existing && (existing.mint !== mint || existing.xUserId !== String(session.user.id)
           || existing.amountLamports !== plan.creatorDirected.xLamports
           || existing.fundingSignature !== funding.signature)) return null;
         if (existing && (existing.wallet || Date.parse(existing.expiresAt) > Date.now()))
           return existing;
-        return current.v3XClaims[collectionSignature] = {
-          collectionSignature, mint, xUserId:String(session.user.id),
+        return current.v3XClaims[claimKey] = {
+          collectionSignature:claimKey,sourceCollectionSignature:collectionSignature,
+          ...(residualPlanHash?{residualPlanHash}:{}),mint, xUserId:String(session.user.id),
           amountLamports:plan.creatorDirected.xLamports,
           fundingSignature:funding.signature, wallet:null,
           nonce:randomBytes(24).toString('hex'), status:'awaiting-wallet',
@@ -165,7 +178,7 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
         signature, new PublicKey(wallet).toBytes()))
         return json(res, 401, { error:'The recipient wallet signature is invalid.' });
       const bound = await store.update(current => {
-        const row = current.v3XClaims?.[collectionSignature];
+        const row = current.v3XClaims?.[claimKey];
         if (!row || row.nonce !== claim.nonce || row.xUserId !== claim.xUserId
           || row.wallet && row.wallet !== wallet) return null;
         row.wallet = wallet;
@@ -185,7 +198,7 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
     const scheduler = schedulerFactory({ store:rewardStore, chain,
       indexer:{ capture:async () => { throw new Error('X payouts do not use holder indexing.'); } } });
     const schedule = await scheduler.recordDirectFunded({ kind:'x',
-      id:collectionSignature, mint, recipient:claim.wallet, asset:'SOL',
+      id:claimKey, mint, recipient:claim.wallet, asset:'SOL',
       amount:claim.amountLamports, fundingSignature:funding.signature,
       balanceDeltaVerified:true, fundedAt });
     if (schedule.mint !== mint || schedule.manifest.leaves[0]?.recipient !== claim.wallet
@@ -198,7 +211,7 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
       || !payment.balanceDeltaVerified || !payment.finalized)
       return json(res, 503, { error:'X payout is pending finalized on-chain verification.' });
     const result = await store.update(current => {
-      const row = current.v3XClaims?.[collectionSignature];
+      const row = current.v3XClaims?.[claimKey];
       if (!row || row.wallet !== claim.wallet || row.xUserId !== claim.xUserId) return null;
       row.status = 'paid'; row.payment = payment;
       row.paidAt ||= new Date().toISOString();

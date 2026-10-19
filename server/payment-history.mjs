@@ -6,6 +6,7 @@ import { v3DisbursementId } from './v3-disbursement-id.mjs';
 import { v3ReferralPaymentSummary } from './v3-referral-payment-summary.mjs';
 import { dailyPaymentCandidates, dailyPaymentHistory } from './daily-bonus-payment-history.mjs';
 import { payoutCoverage } from './payout-coverage.mjs';
+import {v3SourceAllocation,residualDisbursementId} from './v3-residual-source.mjs';
 
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
@@ -178,8 +179,11 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
           }));
         }
         for (let i = 0; i < directCandidates.length; i += 4) {
-          await Promise.all(directCandidates.slice(i, i + 4).map(async ([source, row,operations]) => {
+          await Promise.all(directCandidates.slice(i, i + 4).map(async ([sourceKey, row,operations]) => {
             try {
+              const identity=v3SourceAllocation(state,sourceKey),source=identity.collectionSignature;
+              if(identity.residualPlanHash&&(operations||row.residualPlanHash!==identity.residualPlanHash||row.protectedPolicy!==true))
+                throw new Error('Residual payment approval differs from its receipt.');
               const launch = state.launches?.[row.mint];
               const collection = state.collections?.[source];
               const settlement = state.v3Settlements?.[source];
@@ -201,7 +205,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
                 || collection.onchainVerified !== true || settlement?.status !== 'finalized'
                 || settlement.collectionSignature !== source || settlement.mint !== row.mint
                 || settlement.allocationPlan?.status !== 'allocated-not-funded'
-                || String(operations?settlement.allocationPlan.protocol?.operationsLamports:settlement.allocationPlan.creatorDirected?.walletLamports) !== String(row.amount))
+                || String(operations?identity.allocation.protocol?.operationsLamports:identity.allocation.creatorDirected?.walletLamports) !== String(row.amount))
                 throw new Error('Payment lacks a matching V3 allocation');
               const transaction = await connection.getTransaction(row.signature, {
                 commitment:'finalized', maxSupportedTransactionVersion:0 });
@@ -211,7 +215,8 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
               const proof = await (operations?loadOperationsPayment:loadCreatorPayment)({ connection, transaction, signature:row.signature,
                 programId:route.programId, mint:row.mint, authority, creator:launch.creatorWallet,
                 initialAuthority:route.initialAuthority,
-                withdrawalId:v3DisbursementId(operations?'operations':'creator-wallet', settlement.settlementSignature),
+                withdrawalId:identity.residualPlanHash?residualDisbursementId('creator-wallet',settlement.settlementSignature,identity.residualPlanHash)
+                  :v3DisbursementId(operations?'operations':'creator-wallet', settlement.settlementSignature),
                 category:operations?1:0, amount:row.amount, recipient:row.recipient, split:route.protocolSplit,
                 protectedPolicy:row.protectedPolicy===true,beneficiary:operations?3:0,holderAmount:0n });
               if (!proof || proof.signature !== row.signature || proof.recipient !== row.recipient
