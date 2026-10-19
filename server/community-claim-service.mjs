@@ -182,6 +182,13 @@ export function createCommunityClaimService({ connection, store, programId, auth
     }
     if (verified.status === 'drop-closed' || verified.expiresAt && Math.floor(Date.now() / 1000) >= verified.expiresAt)
       return { status:'expired', drop:record.manifest.drop, recipient };
+    // This endpoint builds a transaction paid and signed by the recipient.
+    // An old immutable snapshot can contain a pool PDA, which cannot sign.
+    // Preserve that allocation and any prior receipt without offering a claim.
+    if (!PublicKey.isOnCurve(new PublicKey(recipient).toBytes()))
+      return { status:'unavailable', drop:record.manifest.drop, recipient, amount:leaf.amount,
+        reasonCode:'program-address-allocation',
+        reason:'This allocation belongs to a program address and cannot be claimed by a connected wallet.' };
     return { status:'claimable', drop:record.manifest.drop, mint:record.mint, recipient,
       amount:leaf.amount, index:leaf.index, proof:[...leaf.proof], root:record.manifest.root,
       snapshotHash:record.manifest.snapshotHash, expiresAt:verified.expiresAt || null };
@@ -189,7 +196,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
 
   async function claimInstruction({ mint, wallet }) {
     const proof = await recipientProof({ mint, wallet });
-    if (proof.status !== 'claimable') throw new Error('No verified unclaimed community allocation exists for this wallet.');
+    if (proof.status !== 'claimable') throw new Error(proof.reason || 'No verified unclaimed community allocation exists for this wallet.');
     const record = await prepared(mint);
     return buildCommunityClaimInstruction({ programId:program, authority:issuer, mint:record.mint,
       tokenProgram:record.tokenProgram, manifest:record.manifest, recipient:wallet, payer:wallet });

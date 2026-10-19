@@ -109,6 +109,32 @@ test('fails closed on Mainnet, unverified funding and unpinned program bytes', a
   await assert.rejects(service.recipientProof({ mint, wallet:holder }), /differs from the reviewed build/);
 });
 
+test('does not advertise a program-address allocation as wallet-claimable or rewrite its immutable manifest', async () => {
+  const [pool] = PublicKey.findProgramAddressSync([Buffer.from('qa-pool')], new PublicKey(programId));
+  const snapshot = { ...fixedSnapshot, accounts:[{ wallet:pool.toBase58(), balance:'100' }] };
+  const { service, paymentAccounts } = fixture({ snapshot });
+  const prepared = await service.prepare(input);
+  await service.recordOpening({ mint, signature:'opening-finalized' });
+  const before = await service.prepared(mint);
+  const proof = await service.recipientProof({ mint, wallet:pool.toBase58() });
+  assert.equal(proof.status, 'unavailable');
+  assert.equal(proof.reasonCode, 'program-address-allocation');
+  assert.equal(proof.amount, '1000');
+  await assert.rejects(service.claimInstruction({ mint, wallet:pool.toBase58() }), /program address.*connected wallet/);
+  assert.deepEqual(await service.prepared(mint), before);
+
+  // A valid historical payment must still win over the unsupported-wallet guard.
+  const { payment } = communityAddresses({ programId, authority, mint, recipient:pool });
+  const data = Buffer.alloc(92);
+  createHash('sha256').update('account:CommunityPayment').digest().copy(data, 0, 0, 8);
+  new PublicKey(prepared.manifest.drop).toBuffer().copy(data, 8);
+  pool.toBuffer().copy(data, 40);
+  data.writeBigUInt64LE(1000n, 72);
+  data.writeUInt32LE(0, 80);
+  paymentAccounts.set(payment.toBase58(), { owner:new PublicKey(programId), data });
+  assert.equal((await service.recipientProof({ mint, wallet:pool.toBase58() })).status, 'claimed');
+});
+
 test('refuses a finalized opening receipt whose on-chain root differs from the persisted manifest', async () => {
   const { service } = fixture({ openingOverrides:{ merkleRoot:'00'.repeat(32) } });
   await service.prepare(input);

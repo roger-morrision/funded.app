@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
 test('mocked funded V3 X reward can be selected but still requires a wallet', async ({ page }) => {
   const mint='FWmi66ecpuAYkcpjT86i2RsBKZhm2cJdnKXqcoreW8DH';
   const signature='3'.repeat(64);
   await page.route('**/api/**', route => route.fulfill({ status:503,
     json:{ error:'offline fixture' } }));
+  await page.route('**/api/fee-policy', route => route.fulfill({ json:{ split:PROTOCOL_FEE_SPLIT } }));
   await page.route('**/api/x/me', route => route.fulfill({ json:{
     available:true, authenticated:true, configured:true,
     user:{ id:'12345', username:'qa' } } }));
