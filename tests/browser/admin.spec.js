@@ -116,6 +116,15 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
   expect(reviewedOverflow.width,JSON.stringify(reviewedOverflow)).toBeLessThanOrEqual(reviewedOverflow.viewport);
   await page.locator('#residual-review-form [name=mint]').fill(ADMIN);
   await expect(page.getByRole('button',{name:'Review and sign as launch creator',exact:true})).toBeDisabled();
+  residualPlan.status='reviewed-legacy-preservation-no-transfer';
+  residualPlan.mint=ADMIN;
+  residualPlan.sources[0].unreleasedLamports=['0','0','0'];
+  await page.getByRole('button',{name:'Review finalized residuals',exact:true}).click();
+  await expect(page.locator('[data-residual-approve]')).toHaveText('Approve legacy preservation');
+  await page.locator('[data-residual-approve]').click();
+  await expect(page.locator('[data-residual-status]')).toContainText('No corrective transfer is approved');
+  await expect(page.getByRole('button',{name:'Review and sign as launch creator',exact:true})).toBeDisabled();
+  expect(residualPayouts).toBe(0);
   expect(pageErrors).toEqual([]);
 });
 

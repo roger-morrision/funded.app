@@ -5,6 +5,7 @@ import { NATIVE_MINT } from '@solana/spl-token';
 import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
 import { decodePumpTrades, decodePumpSwapTrades } from './coin-market.mjs';
 import { successfulEventLogs } from './product-trade-index.mjs';
+import { migrationOnlyProof } from './product-migration-proof.mjs';
 import { verifyV3PumpCollection } from './v3-collection-proof.mjs';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
 import { v3AllocationPlan } from './v3-allocation-plan.mjs';
@@ -15,7 +16,15 @@ export function dailyBonusTradeRows(transaction, reference, mint, pool, decodePo
     || transaction.transaction?.signatures?.[0] !== reference.signature
     || !Number.isSafeInteger(transaction.blockTime) || transaction.blockTime !== reference.blockTime) throw new Error('Daily bonus trade proof is unavailable.');
   const rows = [];
-  for (const event of successfulEventLogs(transaction.meta.logMessages)) {
+  let events;
+  try { events = successfulEventLogs(transaction.meta.logMessages); }
+  catch (error) {
+    // A full, known migration instruction tree proves zero trading volume even
+    // when its logs were truncated. Unknown or incomplete trade proofs still block.
+    if (['logs-incomplete','logs-unavailable'].includes(error.reason) && migrationOnlyProof(transaction,mint)) return [];
+    throw error;
+  }
+  for (const event of events) {
     const curve = event.program === PUMP_PROGRAM_ID.toBase58();
     const amm = pool && event.program === PUMP_AMM_PROGRAM_ID.toBase58();
     if (!curve && !amm) continue;

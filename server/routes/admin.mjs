@@ -33,7 +33,10 @@ const ipLimit = (map, key, limit, windowMs) => {
 
 export function createAdminRoutes({ store, body, respond, solanaCluster, solanaRpcUrl,
   keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair, dailyBonusRuntime, env = process.env,
-  connectionFactory = url => new Connection(url, 'finalized') }) {
+  connectionFactory = url => new Connection(url, 'finalized'),
+  verifyResidualReadiness = verifyV3LaunchRouterReadiness,
+  reviewResiduals = reviewV3AllocationResiduals,
+  recordResidualPlan = recordV3AllocationResidualPlan }) {
   const challenges = new Map(), sessions = new Map(), attempts = new Map(), withdrawals = new Map();
   const json = (res, status, value) => { respond(res, status, value); return true; };
   const allowed = () => new Set(String(env.FUNDED_ADMIN_WALLETS || '').split(',').map(value => validWallet(value.trim())).filter(Boolean));
@@ -136,17 +139,32 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
     if(residualAction){
       try{
         const input=await body(req),mint=validWallet(input?.mint),launch=(await store.read()).launches?.[mint];
-        if(!mint||!launch)throw new Error('A registered Devnet V3 mint is required.');
+        if(!mint||!launch||launch.cluster!=='devnet'||!launch.onchainVerified
+          ||launch.pumpFeeRoute?.programId!==env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID)
+          throw new Error('A verified registered Devnet V3 mint is required.');
         const rpc=connection(),programId=env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID;
         if(await rpc.getGenesisHash()!==DEVNET_GENESIS_HASH)throw new Error('Residual RPC is not Devnet.');
-        const ready=await verifyV3LaunchRouterReadiness({connection:rpc,programId,mint,
+        const ready=await verifyResidualReadiness({connection:rpc,programId,mint,
           expectedProgramDataSha256:env.FUNDED_V3_PROGRAM_DATA_SHA256,creatorWallet:launch.creatorWallet,
           initialAuthority:launch.pumpFeeRoute?.initialAuthority,split:launch.pumpFeeRoute?.protocolSplit});
-        if(!ready.ready||!ready.protectedPolicy||launch.pumpFeeRoute.programId!==programId)
-          throw new Error('The reviewed protected V3 program and policy are required.');
+        if(!ready.ready||ready.programId!==programId)
+          throw new Error('The reviewed V3 program, router and immutable mint policy are required.');
         const options={store,connection:rpc,mint};
-        const result=residualAction[1]==='review'?await reviewV3AllocationResiduals(options)
-          :await recordV3AllocationResidualPlan({...options,expectedHash:input.expectedHash,reason:input.reason,actor:session.wallet});
+        const reviewed=await reviewResiduals(options);
+        if(ready.protectedPolicy&&reviewed.status!=='reviewed-residual-not-paid')
+          throw new Error('Protected residual review requires the verified beneficiary policy.');
+        if(!ready.protectedPolicy&&(reviewed.status!=='reviewed-legacy-preservation-no-transfer'
+          ||reviewed.programId!==programId||reviewed.mint!==mint||!/^[a-f0-9]{64}$/.test(reviewed.hash||'')
+          ||!Array.isArray(reviewed.sources)||!reviewed.sources.length
+          ||reviewed.sources.some(source=>!Array.isArray(source.unreleasedLamports)
+            ||source.unreleasedLamports.length!==3||source.unreleasedLamports.some(amount=>amount!=='0'))))
+          throw new Error('An unprotected legacy mint permits only a verified no-transfer preservation plan.');
+        if(residualAction[1]==='approve'&&input.expectedHash!==reviewed.hash)
+          throw new Error('The approved residual evidence changed after review.');
+        const result=residualAction[1]==='review'?reviewed
+          :await recordResidualPlan({...options,expectedHash:input.expectedHash,reason:input.reason,actor:session.wallet});
+        if(residualAction[1]==='approve'&&result.plan?.hash!==reviewed.hash)
+          throw new Error('The approved residual evidence changed after review.');
         return json(res,200,result);
       }catch(error){return json(res,409,{error:String(error.message||error)});}
     }

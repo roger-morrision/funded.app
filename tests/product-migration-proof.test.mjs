@@ -5,6 +5,7 @@ import bs58 from 'bs58';
 import {PublicKey} from '@solana/web3.js';
 import {migrationOnlyProof} from '../server/product-migration-proof.mjs';
 import {scanTradePage} from '../server/product-trade-index.mjs';
+import {dailyBonusTradeRows} from '../server/daily-bonus-evidence.mjs';
 const fixture=JSON.parse(readFileSync(new URL('./fixtures/finalized-migration.json',import.meta.url),'utf8'));
 const mint=new PublicKey(fixture.mint);
 function transaction() {
@@ -19,6 +20,9 @@ function transaction() {
 test('finalized Devnet migration is proven from its full instruction tree despite truncated logs',async()=>{
   const tx=transaction();assert.equal(migrationOnlyProof(tx,mint),true);
   assert.equal(migrationOnlyProof(tx,new PublicKey('11111111111111111111111111111111')),false);
+  const reference={signature:fixture.signature,slot:fixture.slot,blockTime:fixture.blockTime};
+  assert.deepEqual(dailyBonusTradeRows(tx,reference,mint,null,()=>null),[]);
+  assert.throws(()=>dailyBonusTradeRows(tx,{...reference,slot:fixture.slot+1},mint,null,()=>null),/proof/);
   const connection={getSignaturesForAddress:async()=>[{signature:fixture.signature,slot:fixture.slot,confirmationStatus:'finalized',err:null}],getTransaction:async()=>tx};
   const page=await scanTradePage({connection,mint:fixture.mint,route:'curve',decodePoolEvent:()=>null});
   assert.equal(page.records.length,0);assert.equal(page.gaps.length,0);assert.equal(page.nontrades.length,1);
@@ -39,5 +43,6 @@ test('missing, spoofed, additional, or changed instructions cannot clear a migra
     tx=>{tx.meta.innerInstructions[0].instructions[0].programIdIndex=9999;},
     tx=>{tx.meta.innerInstructions[0].instructions.splice(1,0,{...tx.meta.innerInstructions[0].instructions.at(-1),data:bs58.encode(Buffer.alloc(8))});},
   ];
-  for(const mutate of mutations){const tx=transaction();mutate(tx);assert.equal(migrationOnlyProof(tx,mint),false);}
+  for(const mutate of mutations){const tx=transaction();mutate(tx);assert.equal(migrationOnlyProof(tx,mint),false);
+    assert.throws(()=>dailyBonusTradeRows(tx,{signature:fixture.signature,slot:fixture.slot,blockTime:fixture.blockTime},mint,null,()=>null));}
 });
