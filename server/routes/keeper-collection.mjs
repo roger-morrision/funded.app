@@ -4,6 +4,7 @@ import { verifyV3LaunchRouterReadiness as verifyV3Readiness } from '../v3-launch
 import { loadFinalizedV3PumpCollection as loadV3Collection } from '../v3-finalized-collection.mjs';
 import { loadFinalizedV3Settlement as loadV3Settlement } from '../v3-settlement-proof.mjs';
 import { recordedV3AllocationPlan } from '../v3-allocation-plan.mjs';
+import { pausedFeeCollectionMints } from '../fee-collection-pause.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -23,6 +24,7 @@ export function createKeeperCollectionRoutes({
   loadFinalizedV3PumpCollection = loadV3Collection,
   loadFinalizedV3Settlement = loadV3Settlement,
 }) {
+  const pausedMints=pausedFeeCollectionMints(env);
   const json = (...args) => { respond(...args); return true; };
   return async function handleKeeperCollectionRoutes(req, res, url) {
     if (req.method === 'POST' && url.pathname === '/api/indexer/sync') {
@@ -78,7 +80,7 @@ export function createKeeperCollectionRoutes({
           claimId:row.claimId, amountLamports:String(row.collectedLamports),
           status:state.v3Settlements?.[row.signature]?.status || 'awaiting-creator-signature' }));
       return json(res, 200, { cluster:solanaCluster, minimumCollectionLamports:'10000000', mints:launches.map(row => ({ mint:row.mint,
-        scope:row.pumpFeeRoute.scope, collectionStatus:pendingV3Settlements.some(source=>source.mint===row.mint)
+        scope:row.pumpFeeRoute.scope, collectionStatus:pausedMints.has(row.mint) ? 'collection-paused' : pendingV3Settlements.some(source=>source.mint===row.mint)
           ? 'awaiting-creator-settlement' : state.alerts?.[`fee-collect:${row.mint}`]?.status || null })),
         pendingSettlements:[], pendingV3Settlements });
     }
@@ -89,6 +91,8 @@ export function createKeeperCollectionRoutes({
       if (solanaCluster !== 'devnet') return json(res, 403, { error:'Automatic fee collection is Solana only.' });
       let mintKey;
       try { mintKey = new PublicKey(mint).toBase58(); } catch { return json(res, 400, { error:'A valid mint is required.' }); }
+      if(pausedMints.has(mintKey))return json(res,409,{status:'collection-paused',mint:mintKey,
+        error:'Fee collection is paused for this mint. Existing collection and settlement records remain available.'});
       const launch = await store.readLaunch(mintKey);
       if (launch?.pumpFeeRoute?.scope !== 'per-mint-v3')
         return json(res, 410, { error:'V2 fee collection is retired. A verified V3 launch is required.' });

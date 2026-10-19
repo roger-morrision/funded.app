@@ -5,6 +5,7 @@ import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawn} from 'node:child_process';
+import {createKeeperCollectionRoutes} from '../server/routes/keeper-collection.mjs';
 
 const paused='HdGmAbwR1ng3VTQkQ6Gw3QYhJGebWNFf5voktjCKwhvL';
 const active='33NWqBP7VedxoKm5M7qZbb8LT6xvBu8iHQrwD5wkbkKH';
@@ -37,4 +38,14 @@ test('invalid pause configuration stops the worker before any collection',async(
     FUNDED_FEE_COLLECTION_PAUSED_MINTS:'not-a-mint'},stdio:['ignore','pipe','pipe']});
   let output='';worker.stderr.on('data',chunk=>output+=chunk);
   const code=await new Promise(resolve=>worker.once('exit',resolve));assert.notEqual(code,0);assert.match(output,/pause mint is invalid/);
+});
+
+test('the keeper API also rejects collection for a paused mint before any transaction or ledger mutation',async()=>{
+  let response;
+  const handle=createKeeperCollectionRoutes({requireAuthorized:()=>true,solanaCluster:'devnet',body:async()=>({mint:paused}),
+    env:{FUNDED_FEE_COLLECTION_PAUSED_MINTS:paused},respond:(_res,status,data)=>response={status,data},
+    store:{readLaunch:()=>{throw new Error('Paused collection must stop before database work.');},update:()=>{throw new Error('No ledger write allowed.');}},
+    collectPumpCreatorFees:()=>{throw new Error('No collection transaction allowed.');}});
+  assert.equal(await handle({method:'POST'},{},new URL('http://localhost/api/keeper/collect')),true);
+  assert.equal(response.status,409);assert.equal(response.data.status,'collection-paused');
 });
