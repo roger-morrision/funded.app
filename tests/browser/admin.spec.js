@@ -27,7 +27,12 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
     if (path === '/api/admin/audit') return send(200, { entries:[] });
     if (path === '/api/daily-bonus') return send(200,{cluster:'devnet',schedule:qa ? {mode:'devnet-qa-5m',periodSeconds:300,cohort:'abcdef012345'} : {mode:'daily',periodSeconds:86400},nextCutoffAt:'2026-10-17T00:10:00Z',snapshots:[{day:selectedDay,hash:'a'.repeat(64),sources:[]},{day:paidDay,hash:'c'.repeat(64),sources:[{status:'paid'}]}]});
     if (path === '/api/admin/daily-bonus/snapshot') return send(200,{snapshot:{day:selectedDay,hash:'a'.repeat(64)},payouts:{},status:'snapshotted'});
-    if (path === '/api/admin/daily-bonus/review') return send(200,{day:selectedDay,expectedHash:'a'.repeat(64),expectedNewHash:'b'.repeat(64),rankings:{},sources:1});
+    if (path === '/api/admin/daily-bonus/review') {
+      const input=JSON.parse(route.request().postData());
+      return send(200,{day:input.day,expectedHash:input.expectedHash,
+        expectedNewHash:(input.day===paidDay?'d':'b').repeat(64),rankings:{},sources:1,
+        mode:input.day===paidDay?'append-only-frozen-rankings-v1':'replace-unused-v1'});
+    }
     if (path === '/api/admin/daily-bonus/reconcile') {
       recoveryApplied=JSON.parse(route.request().postData());return send(200,{snapshots:[]});
     }
@@ -74,9 +79,15 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
   await expect(page.locator('#bonus-recovery-apply')).toBeEnabled();
   await page.locator('#bonus-recovery-day').fill(paidDay);
   await expect(page.locator('#bonus-recovery-apply')).toBeDisabled();
-  await expect(page.locator('#bonus-recovery-review')).toBeDisabled();
+  await expect(page.locator('#bonus-recovery-hash')).toHaveValue('c'.repeat(64));
+  await expect(page.locator('#bonus-recovery-review')).toBeEnabled();
+  await expect(page.locator('#bonus-recovery-review')).toHaveText('Review added funding');
   await expect(page.locator('#bonus-recovery-status')).toContainText('Payments have started');
+  await page.locator('#bonus-recovery-review').click();
+  await expect(page.locator('#bonus-recovery-apply')).toBeEnabled();
+  await expect(page.locator('#bonus-recovery-apply')).toHaveText('Apply reviewed added funding');
   await page.locator('#bonus-recovery-day').fill(selectedDay);
+  await expect(page.locator('#bonus-recovery-apply')).toBeDisabled();
   await page.locator('#bonus-recovery-review').click();
   await expect(page.locator('#bonus-recovery-apply')).toBeEnabled();
   await page.locator('#bonus-recovery-reason').fill('Verified missing finalized collection evidence.');

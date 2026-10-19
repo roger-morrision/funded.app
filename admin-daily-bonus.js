@@ -9,11 +9,13 @@ export function initAdminDailyBonus({ document, api, post, show, refreshAudit })
   function render() {
     const row = snapshots.find(row => row.day === day.value);
     const blocked = started(row);
-    reviewButton.disabled = busy || blocked || !/^[a-f0-9]{64}$/.test(hash.value.trim());
-    applyButton.disabled = busy || blocked || !reviewed;
+    reviewButton.disabled = busy || !/^[a-f0-9]{64}$/.test(hash.value.trim());
+    applyButton.disabled = busy || !reviewed;
+    reviewButton.textContent=blocked?'Review added funding':'Review reconciliation';
+    applyButton.textContent=reviewed?.mode==='append-only-frozen-rankings-v1'?'Apply reviewed added funding':'Apply reviewed reconciliation';
     $('#bonus-recovery-index').disabled = busy;
     status.textContent = blocked
-      ? 'Payments have started for this day. Replacement is unavailable; existing receipts must be preserved. Operator review is required for remaining awards.'
+      ? 'Payments have started. Review may add newly verified funding using the original frozen ranks; existing manifests and receipts are preserved.'
       : row ? 'No prepared or paid records are listed. Review the replacement before applying it; the server also checks on-chain reservations.'
         : 'Choose a completed UTC day to index it. For older snapshots, enter its current hash to request a review.';
   }
@@ -74,7 +76,9 @@ export function initAdminDailyBonus({ document, api, post, show, refreshAudit })
     run(async() => {
       const result = await post('/api/admin/daily-bonus/reconcile',input);
       clear(); preview.textContent = JSON.stringify(result,null,2);
-      show('Unpaid daily bonus snapshot reconciled. The original revision remains in the audit history.');
+      show(input.mode==='append-only-frozen-rankings-v1'
+        ?'Added funding reconciled. Original ranks, manifests and paid receipts were preserved.'
+        :'Unpaid daily bonus snapshot reconciled. The original revision remains in the audit history.');
       await refreshAudit();
     });
   });

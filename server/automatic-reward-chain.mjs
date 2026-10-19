@@ -258,6 +258,26 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     return { address: cycle.toBase58(), created: !legacy, migrated: Boolean(legacy), signature };
   }
 
+  async function inspectLeaf(plan, leaf) {
+    if (!verifyRewardProof({cycleId:plan.manifest.cycleId,asset:plan.manifest.asset,recipient:leaf.recipient,
+      amount:leaf.amount,index:leaf.index,proof:leaf.proof,root:plan.manifest.root})) throw new Error('Invalid reviewed reward Merkle proof.');
+    const {vault,cycle,payment}=rewardAddresses({programId:program,authority:authority.publicKey,
+      mint:plan.mint,cycleId:plan.manifest.cycleId,recipient:leaf.recipient});
+    const [cycleAccount,paymentAccount]=await Promise.all([connection.getAccountInfo(cycle,'finalized'),connection.getAccountInfo(payment,'finalized')]);
+    if(!paymentAccount)return null;
+    const record=parsePayment(paymentAccount),saved=parseCycle(cycleAccount);
+    if(!paymentAccount.owner?.equals(program)||!cycleAccount?.owner?.equals(program)
+      ||!saved||saved.vault!==vault.toBase58()||saved.cycleId!==plan.manifest.cycleId
+      ||saved.root!==plan.manifest.root||saved.totalAmount!==plan.manifest.totalAmount
+      ||saved.asset!==plan.manifest.asset||saved.leafCount!==plan.manifest.leaves.length
+      ||saved.cutoffAt!==plan.cutoffAt||saved.payoutAt!==plan.payoutAt
+      ||!record||record.cycle!==cycle.toBase58()||record.recipient!==leaf.recipient
+      ||record.amount!==leaf.amount||record.leafIndex!==leaf.index||record.receivedAmount===null
+      ||BigInt(record.receivedAmount)<=0n||BigInt(record.receivedAmount)>BigInt(record.amount))
+      throw new Error('Finalized reward payment conflicts with the frozen manifest.');
+    return {payment:payment.toBase58(),amount:record.amount,amountReceived:record.receivedAmount,finalized:true};
+  }
+
   async function submitLeaf(plan, leaf) {
     if (!verifyRewardProof({ cycleId: plan.manifest.cycleId, asset: plan.manifest.asset, recipient: leaf.recipient, amount: leaf.amount, index: leaf.index, proof: leaf.proof, root: plan.manifest.root })) throw new Error('Refusing to submit an invalid local Merkle proof.');
     const { vault, cycle, payment } = rewardAddresses({ programId: program, authority: authority.publicKey, mint: plan.mint, cycleId: plan.manifest.cycleId, recipient: leaf.recipient });
@@ -362,5 +382,5 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       grossAmount: gross.toString(), balanceDeltaVerified: true };
   }
 
-  return { readiness, ensureVault, ensureCycle, submitLeaf, fundSolVault, fundTokenVault };
+  return { readiness, ensureVault, ensureCycle, inspectLeaf, submitLeaf, fundSolVault, fundTokenVault };
 }
