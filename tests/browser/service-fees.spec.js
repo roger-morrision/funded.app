@@ -50,6 +50,12 @@ test('published admin prices replace build defaults across all price displays',a
   await expect(page.locator('#cost-tier-label')).toContainText('0.03 SOL');
   await page.goto('/#capital-flow'); await expect(page.locator('#service-fee-guide')).toContainText('0.8% on buys and sells');
   await page.goto('/#list'); await expect(page.locator('#list-burn-disclosure')).toContainText('$400');
+  // The creator/community picker re-renders cards; it must not restore old prices.
+  await expect(page.locator('#program-option-list [data-program-tier="pro"] .program-option-meta i').first()).toHaveText('$175 in $FUNDED + 0.03 SOL');
+  await page.locator('[data-program-view="community"]').evaluate(el=>el.click());
+  await page.locator('[data-program-view="creator"]').evaluate(el=>el.click());
+  await expect(page.locator('#program-option-list [data-program-tier="premier"] .program-option-meta i').first()).toHaveText('$350 in $FUNDED + 0.03 SOL');
+  await expect(page.locator('#program-option-list [data-program-tier="standard"] .program-option-meta i').first()).toHaveText('0.03 SOL · no promotion burn');
 });
 
 test('admin edits and reviews service fees with revision and audit reason',async({page})=>{

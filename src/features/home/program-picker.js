@@ -1,3 +1,10 @@
+import { currentServiceFees, serviceFeeSol } from '../../../service-fees.js';
+
+function feeStat(tier, fallback = '') {
+  if (!['standard','pro','premier'].includes(tier)) return fallback;
+  const fees=currentServiceFees(), launch=`${serviceFeeSol(fees.launchLamports)} SOL`;
+  return tier==='standard' ? `${launch} · no promotion burn` : `$${fees[tier+'Usd']} in $FUNDED + ${launch}`;
+}
 // One instance owns the picker listener; wallet state is read only when rendering.
 export function initProgramPicker({ isWalletConnected }) {
   const programPreviewData = {
@@ -18,8 +25,8 @@ export function initProgramPicker({ isWalletConnected }) {
       href: '#launch',
       cards: [
         ['standard', 'STANDARD', 'Start here', 'Launch without the guesswork', 'Core Pump launch, public fee route, and a basic funded.vip X announcement when publishing is active.', '0 $FUNDED', 'Basic X post'],
-        ['pro', 'PRO', 'For serious launches', 'Give the launch a stronger signal', 'Pro badge, public burn receipt, and a featured funded.vip X launch post after verification when publishing is active.', '$100 in $FUNDED', 'Featured X post'],
-        ['premier', 'PREMIER', 'Largest showcase', 'Put your launch in the spotlight', 'Premier badge, public burn receipt, one funded.vip X launch post and a follow-up after 24 hours when publishing is active.', '$200 in $FUNDED', 'Two X posts'],
+        ['pro', 'PRO', 'For serious launches', 'Give the launch a stronger signal', 'Pro badge, public burn receipt, and a featured funded.vip X launch post after verification when publishing is active.', '', 'Featured X post'],
+        ['premier', 'PREMIER', 'Largest showcase', 'Put your launch in the spotlight', 'Premier badge, public burn receipt, one funded.vip X launch post and a follow-up after 24 hours when publishing is active.', '', 'Two X posts'],
       ],
     },
     community: {
@@ -55,9 +62,18 @@ export function initProgramPicker({ isWalletConnected }) {
     list.innerHTML = config.cards.map(([key, label, hint, title, description, stat, meta], index) => `<button type="button" class="program-option${index === 0 ? ' active' : ''}" data-program-tier="${key}" aria-pressed="${index === 0 ? 'true' : 'false'}"><span class="program-option-top"><b>${label}</b><span>${hint}</span></span><strong>${title}</strong><small>${description}</small><span class="program-option-meta"><i>${stat}</i><i>${meta}</i><em>→</em></span></button>`).join('');
     if (copy) copy.textContent = config.copy;
     if (cta) { cta.textContent = `${config.cta} ↗`; cta.href = config.href; }
+    renderFeeStats();
     const first = config.cards[0]?.[0];
     renderProgramPreview(first);
   }
+  function renderFeeStats() {
+    for(const card of document.querySelectorAll('#program-option-list [data-program-tier]')) {
+      const stat=card.querySelector('.program-option-meta i');
+      if(stat)stat.textContent=feeStat(card.dataset.programTier,stat.textContent);
+    }
+  }
+  window.addEventListener('funded:service-fees',renderFeeStats);
+  renderFeeStats();
   document.querySelector('.program-market-panel')?.addEventListener('click', event => {
     const tierButton = event.target.closest('[data-program-tier]');
     if (tierButton) {

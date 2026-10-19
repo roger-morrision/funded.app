@@ -17,6 +17,8 @@ The browser loads the current policy before preparing a trade or launch. Trading
 
 The API registers a new launch only after finalized Pump creation, immutable V3 policy, atomic community reserve, any promotion burn, and the exact service payment are verified. A fee transfer made in a different transaction does not satisfy the atomic launch fee. A failed creation transaction rolls back its service transfer. If router setup is a separate earlier transaction, its network/rent costs can remain even when creation fails.
 
+Launch service quotes are persisted in the file and PostgreSQL stores. The quote endpoint reads its write back before permitting payment preparation; a storage failure returns an unavailable response before signing. The Devnet fee-flow verification and its recovery evidence are recorded in [the QA report](service-fees-qa-2026-10-19.md).
+
 External listings require verified mint metadata, a saved USD/token quote, and a finalized matching burn. A burn cannot be reused for another listing. Verified funded.vip launches are already in the launch directory and are excluded from paid listing quotes. Older confirmed receipts retain their original USD value in history.
 
 ## Accounting and disclosure
