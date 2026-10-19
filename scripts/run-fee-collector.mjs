@@ -1,7 +1,10 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { feeCollectionMinimumLamports } from '../server/devnet-qa-minimums.mjs';
+import { pausedFeeCollectionMints } from '../server/fee-collection-pause.mjs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 
-const heartbeat = '/tmp/funded-fee-collector-status.json';
+const heartbeat = join(tmpdir(),'funded-fee-collector-status.json');
 const intervalMs = Math.max(60_000, Number(process.env.FUNDED_FEE_COLLECTION_TICK_MS || 300_000));
 const api = String(process.env.FUNDED_FEE_COLLECTION_API || 'http://app:8787').replace(/\/$/, '');
 
@@ -10,6 +13,7 @@ if (process.argv.includes('--check')) {
   if (Date.now() - Date.parse(state.at) > intervalMs * 2 + 30_000 || state.status !== 'ready') process.exitCode = 1;
 } else {
   if (process.env.SOLANA_CLUSTER !== 'devnet') throw new Error('Automatic Pump fee collection is Devnet only.');
+  const pausedMints=pausedFeeCollectionMints();
   const token = (await readFile(process.env.FUNDED_API_TOKEN_FILE, 'utf8')).trim();
   if (!token) throw new Error('Keeper API token is required.');
   async function request(path, body) {
@@ -23,6 +27,7 @@ if (process.argv.includes('--check')) {
     if (candidates.cluster !== 'devnet') throw new Error('API cluster is not Devnet.');
     let collected = 0;
     for (const candidate of candidates.mints || []) {
+      if(pausedMints.has(candidate.mint))continue;
       if (candidate.collectionStatus && !['complete','nothing-to-collect','no-fees'].includes(candidate.collectionStatus)) continue;
       const activity = await request(`/api/tokens/${encodeURIComponent(candidate.mint)}/fee-activity`);
       const pump = activity.overview?.pump;
@@ -35,13 +40,14 @@ if (process.argv.includes('--check')) {
         && result.onchainVerified === true && result.signature) collected += 1;
     }
     const status = { status:'ready', at:new Date().toISOString(), checked:(candidates.mints || []).length,
-      collected, awaitingCreatorSettlement:(candidates.pendingV3Settlements || []).length };
+      collected, pausedMints:[...pausedMints], awaitingCreatorSettlement:(candidates.pendingV3Settlements || []).length };
     await writeFile(heartbeat, JSON.stringify(status));
     console.log(JSON.stringify(status));
   }
   for (;;) {
     try { await tick(); }
-    catch (error) { console.error(`Fee collector: ${String(error.message || error)}`); }
+    catch (error) { console.error(`Fee collector: ${String(error.message || error)}`); if(process.argv.includes('--once'))process.exitCode=1; }
+    if(process.argv.includes('--once'))break;
     await new Promise(resolve => setTimeout(resolve, intervalMs));
   }
 }

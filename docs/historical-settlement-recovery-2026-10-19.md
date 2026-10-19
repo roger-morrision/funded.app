@@ -1,9 +1,18 @@
 # Historical Devnet settlement recovery candidate
 
-Status: **prepared locally; neither historical settlement has been submitted**.
-The user authorized preparation of a restricted recovery for the unavailable
-historical QA creator. Execution of that authorization exception remains a
-separate release step. Public status still verifies 28 of 30 collections.
+Status: **the original two claims are finalized; a later collection makes current public verification 30/31**.
+The user explicitly approved the restricted upgrade, both settlements and
+proof-gated shared-ledger reconciliation, choosing to fund the QA payer and
+preserve its 3 SOL reserve. Funding finalized before execution. The running app
+revision is `467984011d0f0058c595e2e44d9c9820c11763d3`.
+
+At 2026-10-19T04:39:21.866Z, public `/api/status` reported
+`settlementVerified:true`, `recorded:30`, `checked:30`, `recoveredRecords:1`.
+No collection was deleted, excluded or relabeled as a recipient payment.
+At 04:40:41.953Z, the collector made a new 1,484,671-lamport collection for
+the same lost-creator QA mint. The existing pending-settlement gate correctly
+allowed it after the older claims finalized. Its new claim is outside the
+approved one-claim exception and remains pending, as described below.
 
 ## Independently checked source collections
 
@@ -75,7 +84,7 @@ It must not be silently repriced to the newer 8% / 4% policy.
 compare exact executable bytes and zero padding, verify authority and owner,
 then calculate and configure the complete account hash.
 
-## Read-only preparation and release gates
+## Read-only preparation and release gates (execution record below)
 
 Run `scripts/prepare-historical-settlement-recovery-devnet.mjs` with `--records`,
 `--artifact`, `--artifact-sha256`, `--current-program-sha256`, and `--report`.
@@ -96,7 +105,7 @@ At 2026-10-19 03:43 UTC:
 
 Before claiming completion:
 
-1. Obtain execution approval for the prepared exception and the temporary upload budget.
+1. Verify the user's execution approval and chosen reserve before spending.
 2. Recheck source, old pending signature, claim absence, exact artifact and payer budget.
 3. Upgrade only this Devnet program; verify exact finalized executable and full ProgramData hash.
 4. Release matching server verification code and configure the new complete account hash.
@@ -111,3 +120,67 @@ Before claiming completion:
    finalized instruction and reports `recoveredRecords:1` separately.
 
 No records have been removed, reclassified as paid, or excluded to obtain a green status.
+
+## Finalized execution and independent verification
+
+| Operation | Finalized transaction | Verified result |
+| --- | --- | --- |
+| Approved program upgrade | `3vYsJcrh5CN4za1nXQxeyUTu6DASZVFpS4orjb6HqJxjbw7EUbLEuk34mQ4qxUJFXkdMqjiRJ71X4RbKkEA3Ag8N` | Slot 512678515; upgradeable-loader instruction targets the original program and ProgramData; exact candidate executable and zero padding verified. |
+| Normal historical settlement, 204,105 lamports | `esW4pBHz7Qu7Ytpm4t4BeFCm4KAb41QBLhpw7abhkDMvfSDJ6o8gaWW5AGHBYCBZB4gjd9Bc3koXxBy1TsvDVU9` | Authority and original available creator signed. Claim, seven category credits, router debit and cumulative policy match; 600,000-lamport surplus remains. |
+| Restricted historical settlement, 742,575 lamports | `5GcEJLtswNbz3uo8cRfgfQncpYnDwsRGe7uDicXN1uFwRU617GfQnYdaQ3AyDj4jZ4V4uamvsD5Tcm4LNnG2mrqu` | Exact approved exception; original historical split, claim, beneficiaries, seven category credits and prior withdrawals preserved. |
+
+The new complete ProgramData account hash, including deployment metadata, is
+`5e2cc6e58544fc1498810be42c25814c72c4cc2218ea8ce3c2cd274d18732c64`.
+This pin is configured in the existing Devnet app and workers. Their image and
+source revision remain the tested `4679840` app release.
+
+The upload used the installed Solana CLI through a local RPC journal proxy.
+Signed transaction bytes were fsynced before broadcast. The proxy passes RPC
+response bytes unchanged to preserve u64 values. Two preflight failures occurred
+before any submission and were corrected before upload. The final CLI run made
+779 submission requests; net upgrade fees were 3,900,000 lamports, with the upload
+buffer rent refunded. The original program ID and upgrade authority are unchanged.
+
+Both settlement transactions were simulated with signatures verified and
+journaled before broadcast. The first receipt's raw vault credits also included
+seven authority-funded 650,240-lamport rent top-ups. Independent verification
+checks those inner system transfers separately from the exact fee allocations.
+The verification paused at that distinction, then reconciled the already-finalized
+first transaction without resubmitting it before executing the second.
+
+Both entries were reread through the running app's strict finalized collection
+and settlement proof loaders, including cumulative positions. The ledger update
+was atomic and checked for concurrent changes. The expired earlier attempt was
+preserved in the recovery audit, along with original frozen referral uplines.
+Both allocation plans remain correctly labeled `allocated-not-funded`; category
+settlement alone does not prove any downstream recipient payout.
+
+The payer had 14.588452592 SOL before upload and 14.577222392 SOL after both
+settlements. Total net cost was 0.0112302 SOL, below the approved 0.03 SOL budget;
+the 3 SOL reserve was preserved. The 14 focused recovery tests passed again.
+The unchanged app release had 910 passing unit tests, nine skips, seven passing
+mocked browser checks, and a passing production build.
+
+Ignored evidence is retained under
+`data/qa-evidence/historical-settlement-recovery-20261019/`, including the fresh
+preflight, signed-transaction journals, complete byte proof, finalized upgrade
+instruction, settlement proofs, atomic reconciliation report and public status.
+These records contain public transaction evidence, not private signing keys.
+
+## New claim discovered during final verification
+
+- Mint: `HdGmAbwR1ng3VTQkQ6Gw3QYhJGebWNFf5voktjCKwhvL`.
+- Finalized collection: `4VtYV4QBomTFcNZQZ4o36Pfe8FwCSRkvtkFNqTWinwLJ8JYsymGUyNmThvHKoAavqZhyU2SgfiUhay6AVG3hAmqB`.
+- Amount: 1,484,671 lamports; source slot 512680377.
+- Claim ID: `9cadcccb3d2554a50853fe7b7cbb263fb5cae08150ec1a9cfb0cb51108c4f864`.
+- Prior cumulative settlement: 1,065,492 lamports; original 10% operations / 2% community policy remains fixed.
+- Source proof independently verified. No new recovery instruction was submitted.
+- A separate, exact-claim recovery approval was requested; the earlier approved exception cannot settle this claim.
+
+`FUNDED_FEE_COLLECTION_PAUSED_MINTS` now supports a comma-separated per-mint
+operational pause. The Devnet worker skips configured mints, keeps all prior
+records visible and reports the pause in its heartbeat. Its single-pass mode
+supports verification without entering the scheduler loop. An actual-worker HTTP
+test proves the paused mint is skipped while another mint still collects; invalid
+pause configuration stops before any collection. Configure this QA mint as paused
+before resuming the collector or completing any additional recovery.
