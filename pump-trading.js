@@ -6,7 +6,7 @@ import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/sp
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
-export const DEFAULT_TRADE_FEE_BPS = 75;
+export const DEFAULT_TRADE_FEE_BPS = 50;
 
 export function buildTradeFeePolicy({ feeOwner, feeBps = DEFAULT_TRADE_FEE_BPS } = {}) {
   const owner = String(feeOwner || '').trim();

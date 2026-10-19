@@ -61,7 +61,7 @@ See [fee configuration](protocol-fee-split-config.md), [Daily bonus](daily-bonus
 
 ## App service fees
 
-The separate App service fees editor controls trading on buys and sells (default 0.75%), the SOL service charge on every launch (0.02 SOL), Pro promotion ($150 in $FUNDED burned), Premier promotion ($300 burned), and external coin listing ($300 burned). Promotion burns are additional to the SOL launch service charge. Listing is included for verified funded.vip launches.
+The separate App service fees editor controls trading on buys and sells (default 0.5%), the SOL service charge on every launch (0.02 SOL), Pro promotion ($150 in $FUNDED burned), Premier promotion ($300 burned), and external coin listing ($300 burned). Promotion burns are additional to the SOL launch service charge. Listing is included for verified funded.vip launches.
 
 Sign in with an allowlisted wallet, refresh the current revision, enter the new prices and an audit reason, then review the summary before saving. Updates use revision/hash comparison and an audit record. Prices are persisted in `adminSettings.serviceFees`; they do not require a rebuild. Trading accepts 0–5% in whole basis points, launch fees 0–5 SOL in whole lamports, and promotion/listing prices whole positive USD amounts, with Premier above Pro.
 

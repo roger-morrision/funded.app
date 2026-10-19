@@ -1,5 +1,5 @@
 export const DEFAULT_SERVICE_FEES = Object.freeze({
-  tradeBps:75, launchLamports:'20000000', proUsd:150, premierUsd:300, listingUsd:300,
+  tradeBps:50, launchLamports:'20000000', proUsd:150, premierUsd:300, listingUsd:300,
 });
 let current = DEFAULT_SERVICE_FEES;
 export const currentServiceFees = () => current;

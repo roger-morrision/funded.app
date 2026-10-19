@@ -2,7 +2,7 @@
 
 | Service | Default | Payment |
 | --- | --- | --- |
-| Trading through funded.vip | 0.75% on buys and sells | SOL transfer included in the trade |
+| Trading through funded.vip | 0.5% on buys and sells | SOL transfer included in the trade |
 | Every coin launch, including Standard | 0.02 SOL | Atomic SOL transfer to the app service treasury |
 | Optional Pro promotion | $150 | $FUNDED BurnChecked in the creation transaction, plus launch SOL fee |
 | Optional Premier promotion | $300 | $FUNDED BurnChecked in the creation transaction, plus launch SOL fee |

@@ -44,7 +44,7 @@ function fixture() {
 }
 
 test('recommended service fees are exact, bounded and independent from creator distribution', () => {
-  assert.deepEqual(validateServiceFees(DEFAULT_SERVICE_FEES),{tradeBps:75,launchLamports:'20000000',proUsd:150,premierUsd:300,listingUsd:300});
+  assert.deepEqual(validateServiceFees(DEFAULT_SERVICE_FEES),{tradeBps:50,launchLamports:'20000000',proUsd:150,premierUsd:300,listingUsd:300});
   for (const patch of [{tradeBps:501},{tradeBps:0.5},{launchLamports:'0.02'},{launchLamports:20000000},{launchLamports:'5000000001'},{proUsd:0},{premierUsd:150},{listingUsd:300.5},{other:1}])
     assert.throws(() => validateServiceFees({...DEFAULT_SERVICE_FEES,...patch}));
 });

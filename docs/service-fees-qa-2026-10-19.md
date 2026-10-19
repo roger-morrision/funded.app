@@ -1,5 +1,7 @@
 # Service fee QA — 19 October 2026
 
+**Historical rate notice:** the trade receipts in this report were executed at the earlier 0.75% rate. The user subsequently corrected trading to **0.5% on both buys and sells**. These earlier receipts retain their actual rates and do not prove collection at the corrected rate. See [current fees](app-service-fees.md) for the active schedule.
+
 ## Release and scope
 
 - Initial implementation: `fe9b144a15ff0f854e5bd0167cb87abe61b4d04f`.

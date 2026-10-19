@@ -36,7 +36,7 @@ for(const width of [1440,390])test(`new fee schedule is consistent in launch, li
   await expect(page.locator('#cost-tier-label')).toContainText('0.02 SOL');
   await expect(page.locator('.creator-burn-section [data-burn-tier="pro"] > span')).toContainText('$150');
   await expect(page.locator('.creator-burn-section [data-burn-tier="premier"] > span')).toContainText('$300');
-  await page.goto('/#capital-flow'); await expect(page.locator('#service-fee-guide')).toContainText('0.75% on buys and sells');
+  await page.goto('/#capital-flow'); await expect(page.locator('#service-fee-guide')).toContainText('0.5% on buys and sells');
   await expect(page.locator('#service-fee-guide')).toContainText('Listing is included');
   await page.goto('/#docs/fees'); await expect(page.locator('#docs')).toContainText('Every coin launch: 0.02 SOL');
   await page.goto('/#list'); await expect(page.locator('#list-burn-disclosure')).toContainText('$300');
@@ -61,7 +61,7 @@ test('published admin prices replace build defaults across all price displays',a
 test('admin edits and reviews service fees with revision and audit reason',async({page})=>{
   const fixture=await mock(page); await page.goto('/admin.html');
   await expect(page.locator('#service-fee-form')).toBeVisible();
-  await expect(page.locator('#service-fee-form [name=tradePercent]')).toHaveValue('0.75');
+  await expect(page.locator('#service-fee-form [name=tradePercent]')).toHaveValue('0.5');
   await page.locator('#service-fee-form [name=tradePercent]').fill('0.8');
   await page.locator('#service-fee-form [name=launchSol]').fill('0.03');
   await page.locator('#service-fee-form [name=reason]').fill('Reviewed Devnet test pricing change');
