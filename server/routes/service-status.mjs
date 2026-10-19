@@ -41,7 +41,7 @@ export function createServiceStatusRoutes({
     }
     if (req.method === 'GET' && url.pathname === '/api/health') {
       const automaticRewards = automaticRewardStatus(new Date(), await automaticRewardStore.read());
-      return json(res, 200, { ok: true, service: 'funded-api', launchPolicy: launchPolicyConfig(), external: { solanaKeeper: isKeeperEnabled(process.env) && Boolean(keeperKeypair()), automaticRewards: automaticRewards.status === 'active', feeRouter: Boolean(v3RouterConfig()), birdeye: Boolean(birdeyeApiKey), pumpFun: Boolean(pumpApiUrl), xOAuth: xOAuthConfigured(req) } });
+      return json(res, 200, { ok: true, service: 'funded-api', launchPolicy: await launchPolicyConfig(), external: { solanaKeeper: isKeeperEnabled(process.env) && Boolean(keeperKeypair()), automaticRewards: automaticRewards.status === 'active', feeRouter: Boolean(v3RouterConfig()), birdeye: Boolean(birdeyeApiKey), pumpFun: Boolean(pumpApiUrl), xOAuth: xOAuthConfigured(req) } });
     }
     if (req.method === 'GET' && url.pathname === '/api/market/sol-usd') {
       const quote = await readSolUsdQuote();

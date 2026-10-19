@@ -6,7 +6,7 @@ import { launchReviewStillCurrent } from '../launch-review-gate.js';
 test('Pro and Premier burn counts cover their USD targets at a positive pool price', () => {
   const price = 0.008116173245088697;
   const amounts = launchTierAmounts(price);
-  assert.deepEqual(amounts, { pro: 12322, premier: 24643 });
+  assert.deepEqual(amounts, { pro: 18482, premier: 36964 });
   for (const [tier, usd] of Object.entries(LAUNCH_TIER_USD)) {
     assert.ok(amounts[tier] * price >= usd);
     assert.ok((amounts[tier] - 1) * price < usd);
@@ -18,7 +18,7 @@ test('Pro and Premier burn counts cover their USD targets at a positive pool pri
 test('paid launch quote is bound to tier, wallet, mint, and expiry', () => {
   const now = Date.UTC(2026, 9, 5);
   const quote = { id:'launch_tier_1_0123456789abcdef', tier:'pro', payer:'wallet-a', fundedMint:'mint-a',
-    amountTokens:12322, usd:100, createdAt:new Date(now - 1000).toISOString(), expiresAt:new Date(now + 60000).toISOString() };
+    amountTokens:12322, usd:150, createdAt:new Date(now - 1000).toISOString(), expiresAt:new Date(now + 60000).toISOString() };
   const matches = { tier:'pro', payer:'wallet-a', mint:'mint-a', now };
   assert.equal(launchTierQuoteCurrent(quote, matches), true);
   assert.equal(launchTierQuoteCurrent(quote, { ...matches, payer:'wallet-b' }), false);

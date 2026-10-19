@@ -4,6 +4,7 @@ import { DEVNET_GENESIS_HASH } from '../automatic-reward-chain.mjs';
 import { readVerifiedListingMint } from '../token-metadata.mjs';
 import { projectBurnBoard, walletBurnBoard } from '../leaderboard-burn-board.mjs';
 import { LISTING_PRICE_USD, listingBurnTokens } from '../../listing-policy.js';
+import { readServiceFees } from '../service-fees.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -49,11 +50,13 @@ export function createDirectoryRoutes({
       return json(res, 200, limit == null ? launches : launches.slice(offset, offset + limit));
     }
     if (req.method === 'GET' && url.pathname === '/api/listings/config') {
+      const fees = await readServiceFees(store);
       let pricing = null;
       try { pricing = await currentLaunchTierPricing(); } catch { /* A listing cannot be paid without a verified price. */ }
       const enabled = solanaCluster === 'devnet' && Boolean(fundedTokenMint) && Boolean(pricing);
       return json(res, 200, { cluster: solanaCluster, enabled, fundedMint: fundedTokenMint || null,
-        usd: LISTING_PRICE_USD, burnTokens: enabled ? listingBurnTokens(pricing.tokenPriceUsd) : null,
+        usd: fees.policy.listingUsd, burnTokens: enabled ? listingBurnTokens(pricing.tokenPriceUsd,fees.policy.listingUsd) : null,
+        serviceFees:fees,
         tokenPriceUsd: enabled ? pricing.tokenPriceUsd : null, observedAt: enabled ? pricing.observedAt : null,
         paymentMethod: 'BurnChecked', status: enabled ? 'ready' : 'price-unavailable' });
     }
@@ -67,7 +70,7 @@ export function createDirectoryRoutes({
         const rpc = new Connection(solanaRpcUrl, 'finalized');
         if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'Listing mint checks require a Solana RPC.' });
         const [trustedLaunch, signedMetadata] = await Promise.all([store.readLaunch(listingMint), store.readMetadata(listingMint)]);
-        return json(res, 200, { cluster:'devnet', ...(await readVerifiedListingMint(rpc, listingMint, { trustedLaunch, signedMetadata })) });
+        return json(res, 200, { cluster:'devnet', included:Boolean(trustedLaunch?.onchainVerified && trustedLaunch.cluster==='devnet' && trustedLaunch.pumpFeeRoute?.scope==='per-mint-v3'), ...(await readVerifiedListingMint(rpc, listingMint, { trustedLaunch, signedMetadata })) });
       } catch (error) { return json(res, 409, { error:error.message || 'Verified token metadata is unavailable.' }); }
     }
     if (req.method === 'GET' && url.pathname === '/api/listings') {

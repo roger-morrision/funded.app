@@ -110,6 +110,7 @@ publicPostPaths.add('/api/shares/visit');
 publicPostPaths.add('/api/boosts/quote');
 publicPostPaths.add('/api/boosts/confirm');
 publicPostPaths.add('/api/launch-tier-quote');
+publicPostPaths.add('/api/launch-service-quote');
 publicPostPaths.add('/api/listings/quote');
 publicPostPaths.add('/api/x-public-trade-shares/challenge');
 publicPostPaths.add('/api/x-public-trade-shares/consent');

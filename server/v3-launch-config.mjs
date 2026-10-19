@@ -9,7 +9,7 @@ import { rewardServiceHealth } from './reward-service-health.mjs';
 // binary and exercised with finalized disposable-wallet payouts. An operator
 // setting cannot make older, unprotected program bytes eligible for launches.
 export const PROTECTED_V3_PROGRAM_DATA_SHA256 =
-  '53b6910f00d436d2a2418e441ef9898744d9414ff1ba85f9e2454e4dab3ace81';
+  '5ddcfdd45ce4643a5e4eb4b8bc414e6fc3ab78339e3f62f10ddd787523d865f9';
 export const V3_BENEFICIARY_ROUTING_ON_CHAIN_ENFORCED = true;
 export const V3_BENEFICIARY_RELEASE_BLOCKER =
   'Protected V3 beneficiary rules require the exact reviewed Devnet program bytes';

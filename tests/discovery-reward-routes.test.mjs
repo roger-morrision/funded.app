@@ -75,7 +75,7 @@ test('launch quotes reject origin, rate limits and invalid input before reading 
 test('launch quote binds payer, price and expiry, retains recent quotes and prunes old ones', async () => {
   const state = { launchTierQuotes: { old: { expiresAt: '2000-01-01' }, recent: { expiresAt: new Date().toISOString() } } };
   const f = fixture(createLaunchQuoteRoutes, {
-    store: { chargeRpcRate: async () => true, update: async fn => fn(state) },
+    store: { read:async()=>state, chargeRpcRate: async () => true, update: async fn => fn(state) },
     id: () => 'quote-fixture', fundedTokenMint: 'funded-mint',
     currentLaunchTierPricing: async () => ({ amounts: { pro: 100 }, tokenPriceUsd: 1, pool: 'pool', slot: 42, source: 'fixture' }),
   });
@@ -84,7 +84,7 @@ test('launch quote binds payer, price and expiry, retains recent quotes and prun
   const { status, data } = f.responses[0];
   assert.equal(status, 201);
   assert.equal(data.payer, payer);
-  assert.equal(data.amountTokens, 100);
+  assert.equal(data.amountTokens, 150);
   assert.equal(data.fundedMint, 'funded-mint');
   assert.equal(Date.parse(data.expiresAt) - Date.parse(data.createdAt), 600_000);
   assert.equal(state.launchTierQuotes[data.id], data);

@@ -7,6 +7,7 @@ export function launchReviewStillCurrent(pending, current, now = Date.now()) {
     && pending.wallet === current.wallet
     && pending.router === current.router
     && pending.tierQuoteId === current.tierQuoteId
+    && pending.serviceFeeQuoteId === current.serviceFeeQuoteId
     && pending.tierBurnAmount === current.tierBurnAmount
     && pending.form === current.form
     && pending.image === current.image

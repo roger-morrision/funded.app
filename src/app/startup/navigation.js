@@ -43,6 +43,7 @@ export async function initializeNavigation(appState) {
     buybacks: '#buybacks',
     'capital-flow': '#capital-flow',
     bonuses: '#bonuses',
+    'marketing-agency': '#marketing-agency',
     docs: '#docs',
     profile: '#profile',
     privacy: '#privacy',

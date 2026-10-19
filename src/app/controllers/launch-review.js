@@ -121,6 +121,7 @@ export function createLaunchReviewController(appState) {
     return {
       reviewedCost: appState.launchCostReview,
       tierQuoteId: appState.currentLaunchTierQuote()?.id || null,
+      serviceFeeQuoteId:appState.launchServiceQuote?.id || null,
       tierBurnAmount: appState.getLaunchBurnPolicy().amountTokens,
       wallet: appState.connectedWalletAddress,
       router: appState.feeRouterState.scope === 'per-mint-v3'

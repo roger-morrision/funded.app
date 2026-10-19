@@ -1,5 +1,7 @@
 import { validateInput, invalidRequest } from '../http-policy.mjs';
 import { canonicalLaunchPolicy, launchPolicyStatement } from '../../launch-policy-auth.js';
+import { createMarketingAgencyRoutes } from './marketing-agency.mjs';
+import { verifyLaunchServiceFee } from '../launch-service-fee-proof.mjs';
 import { createLaunchBurnTiers } from '../../launch-burn-policy.js';
 import { verifyPumpLaunch } from '../launch-verification.mjs';
 import { Connection, PublicKey } from '@solana/web3.js';
@@ -40,10 +42,12 @@ export function createLaunchRegistrationRoutes({
   v3LaunchConfig,
 }) {
   const json = (...args) => { respond(...args); return true; };
+  const handleMarketingAgency = createMarketingAgencyRoutes({ respond });
   v3LaunchConfig ||= createV3LaunchConfig({ solanaCluster, solanaRpcUrl,
     automaticRewardStore, v3AuthorityKeypair, env, connectionFactory,
     programEvidence, verifyRouter });
   return async function handleLaunchRegistrationRoutes(req, res, url) {
+    if (await handleMarketingAgency(req, res, url)) return true;
     if (req.method === 'GET' && url.pathname === '/api/v3-launch-config') {
       return json(res, 200, await v3LaunchConfig());
     }
@@ -60,6 +64,7 @@ export function createLaunchRegistrationRoutes({
     if (req.method === 'POST' && url.pathname === '/api/launches') {
       if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Coin launching is unavailable for this configuration. No launch policy was registered.' });
       const input = await body(req); if (!input.mint || input.chain !== 'solana' || input.cluster !== solanaCluster) return json(res, 400, { error: 'A Solana launch on the configured cluster is required.' });
+      if (input.marketingAgency != null) return json(res, 409, { error: 'Agency-enabled launches require verified dedicated V3 agency accounting. The agency fee policy is not activated.' });
       const policy = validateInput(() => canonicalLaunchPolicy(input));
       const existingLaunch = await store.readLaunch(policy.mint);
       if (!existingLaunch && policy.xUserId && (await store.read()).creatorProfiles?.[policy.xUserId]?.optedOut) return json(res, 409, { error: 'This creator has opted out of new support launches. Existing entitlements are unchanged.' });
@@ -72,6 +77,10 @@ export function createLaunchRegistrationRoutes({
       if (xLinked && env.FUNDED_V3_X_CLAIMS_ENABLED !== 'true')
         return json(res, 503, { error:'V3 X payout and claim verification are not activated.' });
       if (xLinked && (await resolveXUser(policy.xRecipient)).id !== policy.xUserId) return json(res, 409, { error: 'The X account ID changed since launch preparation; registration is blocked.' });
+      const serviceQuote = input.launchServiceFee?.quoteId
+        ? (await store.read()).launchServiceQuotes?.[input.launchServiceFee.quoteId] : null;
+      if (!existingLaunch && !serviceQuote) return json(res,409,{error:'A saved launch service fee quote and atomic payment are required.'});
+      if (!existingLaunch && ['policyHash','amountLamports','recipient'].some(key => input.launchServiceFee[key] !== serviceQuote[key])) return json(res,409,{error:'The signed launch service fee does not match the saved quote.'});
       const promotionClaim = input.creatorLaunchBurn || null;
       const paidClaim = promotionClaim && promotionClaim.tier !== 'standard';
       const promotionQuote = paidClaim && promotionClaim.quoteId
@@ -89,6 +98,9 @@ export function createLaunchRegistrationRoutes({
         promotionClaim, promotionQuote, fundedMint: fundedTokenMint, promotionTiers,
         commitment:'finalized' });
       const preparedMetadata = await store.readMetadata(proof.mint);
+      const serviceFeeReceipt = !existingLaunch ? verifyLaunchServiceFee({
+        transaction:await connectionFactory(solanaRpcUrl).getTransaction(proof.signature,{commitment:'finalized',maxSupportedTransactionVersion:0}),
+        signature:proof.signature, mint:proof.mint, payer:proof.feePayer, quote:serviceQuote }) : existingLaunch.launchServiceFee;
       const preparedMetadataUri = devnetMetadataUri(proof.mint, metadataRecordOrigin(preparedMetadata));
       if (input.metadataUri && input.metadataUri !== preparedMetadataUri) return json(res, 409, { error: 'Launch metadata URL does not match the mint.' });
       if (input.metadataUri && !preparedMetadata) return json(res, 409, { error: 'Signed Devnet metadata is missing.' });
@@ -139,6 +151,7 @@ export function createLaunchRegistrationRoutes({
       const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent: policy.creatorWalletPercent, holderAirdropPercent: policy.holderAirdropPercent, solClaimPercent: policy.solClaimPercent, xRecipient: policy.xRecipient, feeRouterAddress: configuredRouter });
       const record = {
         ...proof, cluster: solanaCluster, creatorWallet: proof.feePayer,
+        ...(serviceFeeReceipt ? { launchServiceFee:serviceFeeReceipt } : {}),
         ...(preparedMetadata ? { metadataUri: preparedMetadataUri, description: preparedMetadata.description, imageUri: publicMetadata(preparedMetadata).image, website: preparedMetadata.website, twitter: preparedMetadata.x, telegram: preparedMetadata.telegram, discord: preparedMetadata.discord } : {}),
         ...(preparedMetadata?.bannerSha256 && verifiedPromotionBadge(proof) ? { bannerUri: devnetBannerUri(proof.mint, metadataRecordOrigin(preparedMetadata)) } : {}),
         communityAllocation: policy.communityAllocation,

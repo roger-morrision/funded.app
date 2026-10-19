@@ -8,6 +8,7 @@ import { verifyV3LaunchRouterReadiness as verifyV3Readiness } from './v3-launch-
 import { loadFinalizedV3PumpCollection as loadV3Collection } from './v3-finalized-collection.mjs';
 import { buildMintCreatorFeeCollectionInstructions as buildMintInstructions } from './pump-fee-collection.mjs';
 import { LAUNCH_TIER_USD } from '../launch-tier-quote.js';
+import { readServiceFees } from './service-fees.mjs';
 import { sendFinalizedSolPayout as sendFinalizedReferral, reconcileFinalizedSolPayout as reconcileFinalizedReferral, solToLamports } from './referral-sol-transfer.mjs';
 
 // One service per API instance. Inject RPC/signing dependencies for isolated tests.
@@ -58,14 +59,16 @@ export function createFeeRouterService({
     try { return programId ? { programId: new PublicKey(programId) } : null; }
     catch { return null; }
   }
-  function launchPolicyConfig() {
+  async function launchPolicyConfig() {
+    const serviceFees = await readServiceFees(store);
     return {
       cluster: solanaCluster,
       feeRouterProgramId: v3RouterConfig()?.programId.toBase58() || null,
       feeRouterScope: 'per-mint-v3',
       fundedMint: fundedTokenMint || null,
       burnAmounts: { boost: Number(env.VITE_FUNDED_BOOST_BURN_AMOUNT || 25_000) },
-      burnUsdTargets: LAUNCH_TIER_USD,
+      burnUsdTargets: {pro:serviceFees.policy.proUsd,premier:serviceFees.policy.premierUsd},
+      serviceFees,
       burnPricing: 'verified-pool-spot',
     };
   }

@@ -1,3 +1,4 @@
+import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../features/fees/service-fees-client.js';
 // Dependencies and mutable application state are read live through appState.
 export function createTradeExecutionController(appState) {
   // app-source: 565
@@ -33,9 +34,10 @@ export function createTradeExecutionController(appState) {
     const version = appState.tradeQuoteVersion;
     const request = (async () => {
       appState.setTradeStatus('Calculating the current on-chain quote…');
+      await refreshServiceFees(appState); appState.assertWalletSessionCurrent(session);
       const previewConnection = await appState.getTradePreviewConnection();
       appState.assertWalletSessionCurrent(session);
-      const trade = await appState.buildTradeTransaction({ connection: previewConnection, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: appState.TRADE_FEE_OWNER, feeBps: appState.TRADE_FEE_BPS });
+      const trade = await appState.buildTradeTransaction({ connection: previewConnection, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: appTradeRecipient(appState), feeBps: appTradeBps(appState) });
       appState.assertWalletSessionCurrent(session);
       if (version !== appState.tradeQuoteVersion || !appState.tradeInputs().valid || `${appState.tradeInputs().mint}:${appState.tradeInputs().side}:${appState.tradeInputs().amount}:${appState.tradeInputs().slippagePercent}:${session.address}` !== inputKey) return null;
       const quote = appState.describeTradeQuote(trade, slippagePercent);
@@ -131,7 +133,7 @@ export function createTradeExecutionController(appState) {
     const mint = document.querySelector('#trade-mint').value.trim(); const side = document.querySelector('#trade-side').value;
     const amount = appState.parseTradeAmountInput(document.querySelector('#trade-amount').value); const slippagePercent = Number(document.querySelector('#trade-slippage').value);
     if (!mint || !Number.isFinite(amount) || amount <= 0) { appState.setTradeStatus('Enter a valid mint and positive trade amount.', true); return; }
-    if (!appState.TRADE_FEE_OWNER) { appState.setTradeStatus('Trading is disabled: configure VITE_FUNDED_TRADE_FEE_OWNER for the app owner.', true); return; }
+    if (!appTradeRecipient(appState)) { appState.setTradeStatus('Trading is disabled: configure VITE_FUNDED_TRADE_FEE_OWNER for the app owner.', true); return; }
     const inputKey = `${mint}:${side}:${amount}:${slippagePercent}:${session.address}`;
     if (!appState.tradePreview || appState.tradePreview.inputKey !== inputKey || Date.now() - appState.tradePreview.preparedAt > 15_000) {
       appState.invalidateTradePreview();
@@ -150,12 +152,12 @@ export function createTradeExecutionController(appState) {
       appState.assertWalletSessionCurrent(session);
       if (side === 'buy') {
         const latestBalance = await activeConnection.getBalance(session.provider.publicKey, 'confirmed');
-        if (!appState.hasBuyBalance(latestBalance, { amountSol:amount, slippagePercent, feeBps:appState.TRADE_FEE_BPS, trade:appState.tradePreview.trade })) throw new Error('Insufficient SOL for maximum spend, app fee, and network/account allowance.');
+        if (!appState.hasBuyBalance(latestBalance, { amountSol:amount, slippagePercent, feeBps:appTradeBps(appState), trade:appState.tradePreview.trade })) throw new Error('Insufficient SOL for maximum spend, app fee, and network/account allowance.');
       }
       appState.assertWalletSessionCurrent(session);
       if (!appState.currentTradePreview()) throw new Error('The trade quote expired during balance verification. Review a fresh quote.');
       const shownCoin = appState.getCoinMintAddress() === mint;
-      const result = await appState.submitTrade({ connection: activeConnection, provider: session.provider, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: appState.TRADE_FEE_OWNER, feeBps: appState.TRADE_FEE_BPS, preparedTrade: appState.tradePreview.trade, tokenName:shownCoin ? document.querySelector('#coin-page-title')?.textContent?.trim() : '', tokenSymbol:shownCoin ? document.querySelector('#coin-symbol')?.textContent?.trim() : '', assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setTradeStatus(message); } });
+      const result = await appState.submitTrade({ connection: activeConnection, provider: session.provider, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: appTradeRecipient(appState), feeBps: appTradeBps(appState), preparedTrade: appState.tradePreview.trade, tokenName:shownCoin ? document.querySelector('#coin-page-title')?.textContent?.trim() : '', tokenSymbol:shownCoin ? document.querySelector('#coin-symbol')?.textContent?.trim() : '', assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setTradeStatus(message); } });
       submittedSignature = result.signature;
       appState.setTradeReceiptStatus('Trade submitted and confirmed. Waiting for finalization before showing it as complete.', submittedSignature);
       const finalization = await appState.waitForSignatureConfirmation(activeConnection, { signature:submittedSignature, commitment:'finalized' });

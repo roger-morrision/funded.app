@@ -22,7 +22,7 @@ export function launch() {
   text('#creator-burn-title + span', 'Select one');
   if (tier) {
     const explanations = {
-      standard: ['Standard', 'No $FUNDED burn. The core Pump launch, community airdrop policy, and basic funded.vip X announcement apply when account publishing is active.'],
+      standard: ['Standard', 'No promotion burn; the configured SOL launch service fee applies. The core Pump launch, community airdrop policy, and basic funded.vip X announcement apply when account publishing is active.'],
       pro: ['Pro', 'A confirmed $FUNDED burn is bound to the launch transaction. The package adds a verified badge and a featured funded.vip X launch post when account publishing is active.'],
       premier: ['Premier', 'A confirmed $FUNDED burn adds the Premier badge, one funded.vip X launch post, and a separate follow-up after 24 hours once the first post is published.'],
     };

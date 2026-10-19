@@ -1,3 +1,4 @@
+import { serviceFeeGuide } from '../fees/service-fees-client.js';
 import { currentFeePolicyCopy } from '../fees/fee-policy-copy.js';
 import { productFaqs, referralGuide, rewardActionsTable } from './product-guidance.js';
 
@@ -5,7 +6,7 @@ const topic=(id,title,body,href,link)=>({id,title,body,href,link});
 const paragraphs=(...rows)=>rows.map(text=>`<p>${text}</p>`).join('');
 const feeGuide=()=>{
   const copy=currentFeePolicyCopy();
-  return paragraphs(copy.allocation,copy.scope,copy.collection)
+  return paragraphs(serviceFeeGuide(),copy.allocation,copy.scope,copy.collection)
     +'<h2>Collection is not a payment</h2><ol><li>Trading accrues creator fees at Pump.</li><li>The keeper collects eligible fees into the verified per-mint V3 router.</li><li>The creator reviews and signs settlement under the saved mint policy.</li><li>Required approvals fund the relevant vaults or recipient transfers.</li><li>A payment is counted only after finalized program and balance evidence.</li></ol>'
     +paragraphs('The percentages apply to collected creator fees, not to trade volume or all Pump fees. The 80% creator-directed amount follows the launch’s creator-wallet, holder and X split. The protocol’s 20% is configured separately; saved admin changes apply to future launches.',copy.creator,copy.holders,copy.x,copy.referrals,copy.reserve,copy.bonus,copy.bonusFunding,copy.buyback)
     +'<p><a href="#docs/reward-actions">Compare automatic payouts, claims and creator approvals →</a></p>';

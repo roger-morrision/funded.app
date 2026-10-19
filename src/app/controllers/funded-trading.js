@@ -1,3 +1,4 @@
+import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../features/fees/service-fees-client.js';
 import { fundedBuyFailureMessage, fundedBurnFailureMessage } from '../../features/funded/buy-feedback.js';
 // Dependencies and mutable application state are read live through appState.
 export function createFundedTradingController(appState) {
@@ -71,7 +72,8 @@ export function createFundedTradingController(appState) {
       const rpc = await appState.getTradePreviewConnection();
       appState.assertWalletSessionCurrent(session);
       if (!appState.fundedBuyPreview) {
-        const trade = await appState.buildVerifiedPoolTradeTransaction({ connection:rpc, side:'buy', mint:appState.PROTOCOL_FUNDED_MINT, poolAddress:appState.PROTOCOL_FUNDED_SWAP_POOL, user:session.provider.publicKey, amount, slippagePercent:1, feeOwner:appState.TRADE_FEE_OWNER, feeBps:appState.TRADE_FEE_BPS });
+        await refreshServiceFees(appState); appState.assertWalletSessionCurrent(session);
+        const trade = await appState.buildVerifiedPoolTradeTransaction({ connection:rpc, side:'buy', mint:appState.PROTOCOL_FUNDED_MINT, poolAddress:appState.PROTOCOL_FUNDED_SWAP_POOL, user:session.provider.publicKey, amount, slippagePercent:1, feeOwner:appTradeRecipient(appState), feeBps:appTradeBps(appState) });
         appState.assertWalletSessionCurrent(session);
         const quote = appState.describeTradeQuote(trade, 1);
         appState.fundedBuyPreview = { trade, amount, wallet:session.address, preparedAt:Date.now() };
@@ -87,7 +89,7 @@ export function createFundedTradingController(appState) {
       const before = beforeAccount ? BigInt((await rpc.getTokenAccountBalance(tokenAccount, 'finalized')).value.amount) : 0n;
       const preparedTrade = appState.fundedBuyPreview.trade;
       appState.fundedBuyPreview = null;
-      const result = await appState.submitTrade({ connection:rpc, provider:session.provider, side:'buy', mint, user:session.provider.publicKey, amount, slippagePercent:1, feeOwner:appState.TRADE_FEE_OWNER, feeBps:appState.TRADE_FEE_BPS, preparedTrade, tokenName:'Funded', tokenSymbol:'FUNDED', assertWalletCurrent:()=>appState.assertWalletSessionCurrent(session), onStatus:appState.renderFundedBuyControl });
+      const result = await appState.submitTrade({ connection:rpc, provider:session.provider, side:'buy', mint, user:session.provider.publicKey, amount, slippagePercent:1, feeOwner:appTradeRecipient(appState), feeBps:appTradeBps(appState), preparedTrade, tokenName:'Funded', tokenSymbol:'FUNDED', assertWalletCurrent:()=>appState.assertWalletSessionCurrent(session), onStatus:appState.renderFundedBuyControl });
       submittedSignature = result.signature;
       await appState.waitForSignatureConfirmation(rpc, { signature:result.signature, commitment:'finalized' });
       appState.assertWalletSessionCurrent(session);

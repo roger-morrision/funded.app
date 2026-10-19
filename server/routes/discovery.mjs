@@ -44,7 +44,7 @@ export function createDiscoveryRoutes({
         }));
         const v3Mints = new Set(candidates.map(item => item.mint));
         const paidListings = Object.values((await store.read()).listings || {})
-          .filter(item => v3Mints.has(item.mint) && item.cluster === 'devnet' && item.onchainVerified === true)
+          .filter(item => (v3Mints.has(item.mint) || item.serviceFeeVersion === 1) && item.cluster === 'devnet' && item.onchainVerified === true)
           .map(item => ({ mint: item.mint, name: item.name || 'Paid listing', symbol: item.symbol || 'TOKEN',
             createdTimestamp: Math.floor(Date.parse(item.listedAt) / 1000), listingPayment: { signature: item.signature, amountTokens: item.amountTokens, verified: true } }));
         const launchItems = [...alreadyVerified, ...newlyVerified.filter(Boolean)].map(normalizePumpToken).filter(Boolean);

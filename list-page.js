@@ -4,7 +4,7 @@ import { PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js'
 import { createBurnCheckedInstruction, getAccount, getMint, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, unpackAccount } from '@solana/spl-token';
 import { apiRequest } from './client.js';
 import { waitForSignatureConfirmation } from './funded-burn.js';
-import { LISTING_PRICE_USD, LISTING_DEVNET_GENESIS_HASH, listingBurnBaseUnitsForUsd, listingBurnTokens, listingMemo, listingQuoteCurrent } from './listing-policy.js';
+import { LISTING_PRICE_USD, LISTING_DEVNET_GENESIS_HASH, listingBurnBaseUnitsForUsd, listingBurnTokens, listingMemo, listingQuoteCurrent, setListingPriceUsd } from './listing-policy.js';
 import { canSignTransactions } from './wallet-core.js';
 import { readPendingListing, savePendingListing, clearPendingListing } from './listing-recovery.js';
 
@@ -65,12 +65,12 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     const disclosure = byId('list-burn-disclosure');
     const reviewCopy = byId('list-review-copy');
     const reviewPayment = byId('list-review-payment');
-    if (step) step.textContent = 'Approve a permanent burn of $200 worth of $FUNDED. The exact token amount is quoted before wallet approval.';
-    if (disclosure) disclosure.textContent = 'The listing fee is $200 in $FUNDED, calculated from a verified pool price. The token quantity changes with that price. Burns permanently reduce supply; a wallet approval and verified receipt are required.';
+    if (step) step.textContent = `Approve a permanent burn of $${LISTING_PRICE_USD} worth of $FUNDED. The exact token amount is quoted before wallet approval.`;
+    if (disclosure) disclosure.textContent = `The listing fee is $${LISTING_PRICE_USD} in $FUNDED, calculated from a verified pool price. The token quantity changes with that price. Burns permanently reduce supply; a wallet approval and verified receipt are required.`;
     if (reviewCopy) reviewCopy.textContent = prepared
-      ? `Burning ${prepared.amountTokens.toLocaleString('en-US', { maximumFractionDigits:prepared.decimals })} $FUNDED for this $200 listing is permanent. The quote expires ${new Date(prepared.quote.expiresAt).toLocaleTimeString()}. Your listing appears after the finalized burn and token details are verified.`
-      : 'The exact $FUNDED burn will be shown after a verified $200 quote is prepared.';
-    if (reviewPayment) reviewPayment.textContent = prepared ? `$200 · ${prepared.amountTokens.toLocaleString('en-US', { maximumFractionDigits:prepared.decimals })} $FUNDED burn` : '$200 in $FUNDED';
+      ? `Burning ${prepared.amountTokens.toLocaleString('en-US', { maximumFractionDigits:prepared.decimals })} $FUNDED for this $${LISTING_PRICE_USD} listing is permanent. The quote expires ${new Date(prepared.quote.expiresAt).toLocaleTimeString()}. Your listing appears after the finalized burn and token details are verified.`
+      : `The exact $FUNDED burn will be shown after a verified $${LISTING_PRICE_USD} quote is prepared.`;
+    if (reviewPayment) reviewPayment.textContent = prepared ? `$${LISTING_PRICE_USD} · ${prepared.amountTokens.toLocaleString('en-US', { maximumFractionDigits:prepared.decimals })} $FUNDED burn` : `$${LISTING_PRICE_USD} in $FUNDED`;
   }
 
   function mintValue() {
@@ -98,7 +98,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     if (!value) help.textContent = 'Enter a Solana token address to check its format.';
     else if (!mint) { help.textContent = 'Enter a valid Solana mint address.'; help.classList.add('is-invalid'); mintInput.setAttribute('aria-invalid', 'true'); }
     else { help.textContent = 'Valid address format. The token mint will be checked on Solana before payment.'; help.classList.add('is-valid'); }
-    const existing = mint && listings.find(item => item.mint === mint);
+    const existing = mint && (listings.find(item => item.mint === mint) || (lookup?.mint===mint && lookup.included ? {included:true}:null));
     preview.hidden = !mint;
     preview.replaceChildren();
     if (mint) {
@@ -128,13 +128,13 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     const ready = listingsAvailable && config?.enabled === true && config.cluster === 'devnet' && config.fundedMint === fundedMint
       && amountTokens != null && cluster === 'devnet' && !mainnetReadOnly;
     renderBurnCopy();
-    availability.textContent = ready ? `$200 in $FUNDED · about ${burnLabel()} tokens` : '$FUNDED price unavailable';
+    availability.textContent = existing?.included ? 'Listing included with launch · no additional fee' : ready ? `$${LISTING_PRICE_USD} in $FUNDED · about ${burnLabel()} tokens` : '$FUNDED price unavailable';
     payButton.disabled = !ready || !verified || busy || Boolean(existing) || Boolean(pending) || Boolean(recoveryError);
-    payButton.textContent = busy ? 'Processing…' : pending ? 'Resolve pending burn first' : existing ? 'Already listed' : ready ? 'Review $200 listing burn' : 'Listing unavailable';
+    payButton.textContent = busy ? 'Processing…' : pending ? 'Resolve pending burn first' : existing ? 'Already listed' : ready ? `Review $${LISTING_PRICE_USD} listing burn` : 'Listing unavailable';
     if (recoveryError) setStatus(recoveryError, pending?.signature);
     else if (pending) setStatus(pendingNotice?.signature === pending.signature ? pendingNotice.message
       : 'A signed burn is saved in this tab. Verify its original receipt before another payment; submission may be unconfirmed.', pending.signature);
-    else if (existing) setStatus('Listing burn verified.', existing.signature);
+    else if (existing) setStatus(existing.included ? 'Listing is included with this funded.vip launch. No extra payment.' : 'Listing burn verified.', existing.signature);
   }
   function queueLookup() {
     const sequence = ++lookupSequence;
@@ -183,7 +183,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       const amount = Number(item.amountTokens);
       const amountLabel = Number.isFinite(amount) && amount > 0
         ? amount.toLocaleString('en-US', { maximumFractionDigits:Number.isInteger(item.decimals) ? item.decimals : 9 }) : burnLabel();
-      const note = document.createElement('small'); note.textContent = `${item.usd === LISTING_PRICE_USD ? '$200 listing · ' : ''}${amountLabel} $FUNDED burned · token details verified`;
+      const note = document.createElement('small'); note.textContent = `${item.usd ? `$${item.usd} listing · ` : ''}${amountLabel} $FUNDED burned · token details verified`;
       row.append(title, mint, note); live.append(row);
     }
   }
@@ -209,9 +209,10 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     try {
       const result = await apiRequest('/api/listings/config', { signal: AbortSignal.timeout(8000) });
       config = result.available ? result.data : null;
+      if(Number.isInteger(config?.usd))setListingPriceUsd(config.usd);
       const pending = readPending();
       setStatus(pending ? 'A prior burn is awaiting receipt verification. Retry the receipt before another payment.'
-        : config?.enabled ? 'Enter a token mint to review the $200 $FUNDED burn.' : 'Listing payments are unavailable until the verified $FUNDED price can be loaded.', pending?.signature);
+        : config?.enabled ? `Enter a token mint to review the $${LISTING_PRICE_USD} $FUNDED burn.` : 'Listing payments are unavailable until the verified $FUNDED price can be loaded.', pending?.signature);
     } catch { config = null; setStatus('Listing payment service unavailable. No burn can be submitted.'); }
     draw();
   }
@@ -250,13 +251,13 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       if (!listingQuoteCurrent(quote, { mint, payer:session.address, fundedMint:fundedMint, now:Date.now() + 60_000 })
         || quote.decimals !== funded.decimals
         || quote.amountBaseUnits !== listingBurnBaseUnitsForUsd(quote.tokenPriceUsd, funded.decimals).toString())
-        throw new Error(quoteResponse.data?.error || 'A fresh $200 listing quote is unavailable. No burn was submitted.');
+        throw new Error(quoteResponse.data?.error || `A fresh $${LISTING_PRICE_USD} listing quote is unavailable. No burn was submitted.`);
       const amountTokens = quote.amountTokens;
       const amount = BigInt(quote.amountBaseUnits);
       const accounts = await rpc.getTokenAccountsByOwner(new PublicKey(session.address), { mint: fundedKey }, 'confirmed');
       const source = accounts.value.map(row => ({ address: row.pubkey, amount: unpackAccount(row.pubkey, row.account, tokenProgram).amount }))
         .find(row => row.amount >= amount);
-      if (!source) throw new Error(`This wallet needs ${amountTokens.toLocaleString('en-US', { maximumFractionDigits:funded.decimals })} $FUNDED in one token account for the $200 listing quote.`);
+      if (!source) throw new Error(`This wallet needs ${amountTokens.toLocaleString('en-US', { maximumFractionDigits:funded.decimals })} $FUNDED in one token account for the $${LISTING_PRICE_USD} listing quote.`);
       assertSession(session);
       prepared = { session, rpc, mint, name: nameInput.value.trim(), symbol: symbolInput.value.trim(),
         fundedKey, tokenProgram, decimals: funded.decimals, amountTokens, amount, quote, source, supplyBefore: funded.supply };
@@ -299,7 +300,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
         throw new Error('Listing details changed. Review the payment again.');
       if (!listingQuoteCurrent(payment.quote, { mint:payment.mint, payer:payment.session.address,
         fundedMint:fundedMint, now:Date.now() + 60_000 }))
-        throw new Error('The $200 listing quote expired. Review a fresh quote before signing.');
+        throw new Error(`The $${LISTING_PRICE_USD} listing quote expired. Review a fresh quote before signing.`);
       const latest = await payment.rpc.getLatestBlockhash('confirmed');
       assertSession(payment.session);
       const transaction = new Transaction({ feePayer: payment.session.provider.publicKey, recentBlockhash: latest.blockhash }).add(

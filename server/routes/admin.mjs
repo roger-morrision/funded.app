@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { handleAdminServiceFees } from '../service-fees.mjs';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
@@ -118,6 +119,7 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
     }
     const session = currentSession(req);
     if (!session) return json(res, 401, { error:'Sign in with the configured admin wallet.' });
+    if (await handleAdminServiceFees({ req,res,url,store,body,respond,session })) return true;
     if (req.method === 'GET' && path === '/api/admin/session')
       return json(res, 200, { wallet:session.wallet, expiresAt:new Date(session.expiresAt).toISOString() });
     const dailyAction = req.method === 'POST' && path.match(/^\/api\/admin\/daily-bonus\/(snapshot|review|reconcile)$/);

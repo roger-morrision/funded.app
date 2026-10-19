@@ -13,7 +13,7 @@ addresses; `.secrets/devnet-admin-qa-keypair.json` is a local ignored test key.
 `node scripts/provision-admin-qa-wallet.mjs` provisions that key once without
 printing its secret.
 
-The fee editor changes only the protocol's fixed 20% share. Six rates must
+The Fee distribution editor changes only the protocol's fixed 20% share. Six rates must
 total 100% of that share and fit V3 integer on-chain units. A successful save
 creates a versioned persisted policy for **future launches**. The browser
 fetches that policy at startup; a page already open before a change should be
@@ -58,3 +58,13 @@ The Daily bonus panel exposes worker/snapshot status and recovery actions. Snaps
 The default operations/community entries are 40% / 20% **of the protocol share**, equivalent to 8% Operations & marketing and 4% Daily bonus **of gross creator fees**. The creator-directed 80% is fixed. Editing policy does not rewrite existing mint policies, snapshots, receipts or balances. A healthy gate or successful admin sign-in does not establish a payout or withdrawal.
 
 See [fee configuration](protocol-fee-split-config.md), [Daily bonus](daily-bonus-policy.md) and in-app `#docs/admin` for current scope.
+
+## App service fees
+
+The separate App service fees editor controls trading on buys and sells (default 0.75%), the SOL service charge on every launch (0.02 SOL), Pro promotion ($150 in $FUNDED burned), Premier promotion ($300 burned), and external coin listing ($300 burned). Promotion burns are additional to the SOL launch service charge. Listing is included for verified funded.vip launches.
+
+Sign in with an allowlisted wallet, refresh the current revision, enter the new prices and an audit reason, then review the summary before saving. Updates use revision/hash comparison and an audit record. Prices are persisted in `adminSettings.serviceFees`; they do not require a rebuild. Trading accepts 0–5% in whole basis points, launch fees 0–5 SOL in whole lamports, and promotion/listing prices whole positive USD amounts, with Premier above Pro.
+
+Each new launch or burn quote snapshots the configured amount. Issued quotes remain valid for ten minutes, and their finalized receipts remain recoverable after an admin price change. Trading reviews use their short-lived fee snapshot. A page already open refreshes on route change; the signing flow obtains current fees before preparing a new quote. The launch charge is included in the atomic coin-creation transaction and verified against its saved quote, memo, payer, and exact treasury credit. The SOL treasury defaults to `FUNDED_TRADE_FEE_OWNER`; `FUNDED_SERVICE_FEE_RECIPIENT` can select a dedicated public recipient.
+
+SOL service charges, app trade charges, and $FUNDED burns are separate from the immutable 80/20 creator-fee allocation. Burning $FUNDED reduces token supply and does not credit SOL revenue to the app. Quotes and allocations alone do not prove collection.

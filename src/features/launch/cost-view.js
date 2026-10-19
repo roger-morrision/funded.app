@@ -1,3 +1,4 @@
+import { currentServiceFees, serviceFeeSol } from '../../../service-fees.js';
 import { launchReviewMarkup } from '../../../launch-review.js';
 import { launchEstimateRefreshMessage } from './estimate-refresh.js';
 import { publicLaunchBudget } from '../../../public-launch-budget.js';
@@ -82,7 +83,7 @@ export function updateCostSummary(
     ? burnPolicy.amountTokens > 0 ? `${formatLaunchBurnAmount(burnPolicy.amountTokens)} $FUNDED${burnPolicy.usdTarget ? ` (≈$${burnPolicy.usdTarget})` : ''}` : 'Quote unavailable'
     : '0 $FUNDED';
   if (burnRow) burnRow.hidden = !burnPolicy.requiresBurn;
-  if (tierLabelNode) tierLabelNode.textContent = burnPolicy.requiresBurn ? burnPolicy.label.toUpperCase() : 'Platform launch fee: 0';
+  if (tierLabelNode) tierLabelNode.textContent = `Launch service fee: ${serviceFeeSol(currentServiceFees().launchLamports)} SOL${burnPolicy.requiresBurn ? ` · ${burnPolicy.label}` : ''}`;
   if (summaryNode) summaryNode.classList.toggle('free-launch', !burnPolicy.requiresBurn);
   if (creatorBuyNode && creatorBuy.sol > 0) {
     const buyStatus = creatorBuyExceedsWalletBalance() ? 'insufficient SOL'

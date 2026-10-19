@@ -115,6 +115,7 @@ export function createNavigationController(appState) {
       buybacks: ['Burn $FUNDED', 'Supply reduction and burn receipts'],
       'capital-flow': ['Capital flow', 'Follow the published allocation'],
       bonuses: ['Daily bonuses', 'Payout history and all-time recipients'],
+      'marketing-agency': ['AI Marketing', 'Launch teams, budgets and milestone actions'],
       docs: ['Docs', 'Guides, safety, and disclosures'],
       profile: ['Profile', 'Wallet and signing safety'],
       privacy: ['Privacy', 'Wallet and browser data'],

@@ -373,7 +373,7 @@ test('burn and listing receipt replay preserves attribution and never repeats ve
   assert.equal(f.responses[2].data, listing);
 });
 
-test('listing quote binds $200 token amount to mint and payer before any burn', async () => {
+test('listing quote binds $300 token amount to mint and payer before any burn', async () => {
   const state = { listings:{}, listingQuotes:{} };
   const responses = [];
   const handle = createListingPaymentsRoutes({ solanaCluster:'devnet', fundedTokenMint:mint,
@@ -387,13 +387,13 @@ test('listing quote binds $200 token amount to mint and payer before any burn', 
     headers:{ origin:'https://funded.vip', host:'funded.vip' }, socket:{ encrypted:true } }, {}, new URL(path, 'https://funded.vip'));
   await request('/api/listings/quote', { mint, payer:mint });
   assert.equal(responses[0].status, 201);
-  assert.equal(responses[0].data.usd, 200);
-  assert.equal(responses[0].data.amountTokens, 6_666.666667);
-  assert.equal(responses[0].data.amountBaseUnits, '6666666667');
+  assert.equal(responses[0].data.usd, 300);
+  assert.equal(responses[0].data.amountTokens, 10000);
+  assert.equal(responses[0].data.amountBaseUnits, '10000000000');
   assert.equal(state.listingQuotes[responses[0].data.id].payer, mint);
   await request('/api/listings', { mint, wallet:mint, signature:'1'.repeat(64), quoteId:'missing' });
   assert.equal(responses[1].status, 409);
-  assert.match(responses[1].data.error, /matching \$200 listing quote/);
+  assert.match(responses[1].data.error, /matching priced listing quote/);
 });
 
 test('listing registration verifies the quoted base units and finalized quote window', async () => {

@@ -38,6 +38,9 @@ export function canonicalLaunchPolicy(input = {}) {
     xRecipient: distribution.shares.solClaimPercent > 0 ? xRecipient : '',
     ...(distribution.shares.solClaimPercent > 0 ? { xUserId } : {}),
     ...(promotion ? { promotion } : {}),
+    ...(input.launchServiceFee ? { launchServiceFee:{ quoteId:String(input.launchServiceFee.quoteId),
+      policyHash:String(input.launchServiceFee.policyHash), amountLamports:String(input.launchServiceFee.amountLamports),
+      recipient:new PublicKey(input.launchServiceFee.recipient).toBase58() } } : {}),
   };
 }
 

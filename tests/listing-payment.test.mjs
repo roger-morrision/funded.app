@@ -24,19 +24,19 @@ function transaction({ memo = listingMemo(mint), burnAmount = amount, failed = f
   };
 }
 
-test('listing fee is $200 converted from the verified token price', () => {
-  assert.equal(LISTING_PRICE_USD, 200);
-  assert.equal(amount, 20_000_000_000n);
-  assert.equal(listingBurnTokens(0.02), 10_000);
-  assert.equal(listingBurnTokens(0.005), 40_000);
-  assert.equal(listingBurnBaseUnitsForUsd(0.03, 6), 6_666_666_667n);
+test('listing fee is $300 converted from the verified token price', () => {
+  assert.equal(LISTING_PRICE_USD, 300);
+  assert.equal(amount, 30_000_000_000n);
+  assert.equal(listingBurnTokens(0.02), 15_000);
+  assert.equal(listingBurnTokens(0.005), 60_000);
+  assert.equal(listingBurnBaseUnitsForUsd(0.03, 6), 10_000_000_000n);
   assert.throws(() => listingBurnTokens(0));
   assert.throws(() => listingBurnBaseUnits(-1));
 });
 
 test('listing quote binds the mint, payer, fee and expiry', () => {
   const quote = { id:'listing_1000_0123456789abcdef', mint, payer:wallet, fundedMint,
-    usd:200, amountTokens:20_000, amountBaseUnits:'20000000000', decimals:6,
+    usd:300, amountTokens:30_000, amountBaseUnits:'30000000000', decimals:6,
     createdAt:new Date(1000).toISOString(), expiresAt:new Date(601_000).toISOString() };
   assert.equal(listingQuoteCurrent(quote, { mint, payer:wallet, fundedMint, now:10_000 }), true);
   assert.equal(listingQuoteCurrent(quote, { mint:wallet, payer:wallet, fundedMint, now:10_000 }), false);

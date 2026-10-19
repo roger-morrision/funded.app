@@ -120,7 +120,7 @@ test('Launch pricing caches verified quotes per instance and refreshes after exp
     fetchVerifiedPoolSnapshot: async () => { reads++; return { pool: 'pool', slot: reads, spotPriceSol: 0.01 }; } };
   const first = pricing(options), second = pricing(options);
   const quote = await first.currentLaunchTierPricing();
-  assert.deepEqual(quote.amounts, { pro: 100, premier: 200 });
+  assert.deepEqual(quote.amounts, { pro: 150, premier: 300 });
   assert.equal(await first.currentLaunchTierPricing(), quote);
   assert.equal(reads, 1);
   await second.currentLaunchTierPricing();

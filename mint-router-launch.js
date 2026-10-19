@@ -5,7 +5,7 @@ export function buildMintRouterInitializeInstruction() {
   throw new Error('V2 mint-router initialization is retired. Use the verified V3 launch path.');
 }
 
-function isOversized(error) { return /Transaction too large|offset.*out of range/i.test(String(error?.message)); }
+function isOversized(error) { return /Transaction too large|offset.*out of range|encoding overruns Uint8Array/i.test(String(error?.message)); }
 function serializedLength(transaction) {
   try { return transaction.serialize({ requireAllSignatures: false, verifySignatures: false }).length; }
   catch (error) {
@@ -31,9 +31,8 @@ export function buildPumpLaunchPlan({ payer, mint, blockhash, launchInstructions
       const message = new TransactionMessage({ payerKey:new PublicKey(payer), recentBlockhash:blockhash, instructions:items }).compileToV0Message([lookupTable]);
       if (!message.addressTableLookups.some(row => row.accountKey.equals(lookupTable.key))) throw new Error('Launch reserve lookup table did not compress this transaction.');
       const transaction = new VersionedTransaction(message);
-      transaction.sign([mint]);
       let bytes;
-      try { bytes = transaction.serialize().length; }
+      try { transaction.sign([mint]); bytes = transaction.serialize().length; }
       catch (error) { if (!isOversized(error)) throw error; bytes = Infinity; }
       return { kind:'launch', transaction, bytes };
     };

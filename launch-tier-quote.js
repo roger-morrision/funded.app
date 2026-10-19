@@ -1,9 +1,10 @@
-export const LAUNCH_TIER_USD = Object.freeze({ pro: 100, premier: 200 });
+import { currentServiceFees } from './service-fees.js';
+export const LAUNCH_TIER_USD = Object.freeze({ get pro() { return currentServiceFees().proUsd; }, get premier() { return currentServiceFees().premierUsd; } });
 
-export function launchTierAmounts(tokenPriceUsd) {
+export function launchTierAmounts(tokenPriceUsd, fees = currentServiceFees()) {
   const price = Number(tokenPriceUsd);
   if (!Number.isFinite(price) || price <= 0) throw new Error('A positive $FUNDED/USD price is required.');
-  const amounts = Object.fromEntries(Object.entries(LAUNCH_TIER_USD).map(([tier, usd]) => [tier, Math.ceil(usd / price)]));
+  const amounts = { pro:Math.ceil(fees.proUsd/price), premier:Math.ceil(fees.premierUsd/price) };
   if (Object.values(amounts).some(amount => !Number.isSafeInteger(amount) || amount <= 0))
     throw new Error('The $FUNDED price cannot be converted to a safe token amount.');
   return amounts;

@@ -1,7 +1,14 @@
+import { refreshServiceFees } from '../../features/fees/service-fees-client.js';
+import { readLaunchAgencySelection } from '../../features/marketing/agency-selection.js';
+
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchSubmitController(appState) {
   // app-source: 662
   async function launchToken(){
+    if (readLaunchAgencySelection().length) {
+      appState.setLaunchStatus('AI agency launch is unavailable until its dedicated V3 fee budget and executors are verified. No transaction was sent.', true);
+      return;
+    }
     if (appState.APP_CLUSTER !== 'devnet') {
       appState.setLaunchStatus('Coin launching is unavailable in this workspace.', true);
       return;
@@ -78,13 +85,15 @@ export function createLaunchSubmitController(appState) {
         || JSON.stringify(liveV3.data.protocolSplit) !== JSON.stringify(v3FeeRouter.split)) {
         throw new Error('V3 launch readiness changed. Refresh the router check and estimate; no transaction was sent.');
       }
+      const fees = await refreshServiceFees(appState);
+      if(!appState.launchServiceQuote || appState.launchServiceQuote.policyHash!==fees.hash || Date.parse(appState.launchServiceQuote.expiresAt)<=Date.now()+30000)throw new Error('Launch service fees changed or quote expired. Refresh the estimate before signing.');
       const reserveConfig = await appState.getLaunchReserveConfig();
       appState.assertWalletSessionCurrent(session);
       if (launchBurn.requiresBurn && (!appState.currentLaunchTierQuote() || launchBurn.quoteId !== appState.currentLaunchTierQuote().id))
         throw new Error('The $FUNDED tier quote expired before signing. Review the launch again.');
       journalId=crypto.randomUUID();appState.recordLaunchEvent(journalId,{state:'prepared',name,symbol,payer:session.address,cluster:'devnet'});
       appState.emitPilotSignal('launch-submission-started');
-      const result = await submitPumpDevnetLaunch({ cluster: appState.APP_CLUSTER, connection: appState.connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuySol: creatorBuySol, reserveTokens:communityTokens, maxInitialBuyLamports:reviewedCost.buyMaximum, feeShares:feeDistributionInput }, prepareMetadata: input => appState.prepareLaunchMetadata(input, session), feeRouterProgramId: reserveConfig.programId, useMintRouter: true, v3FeeRouter, launchBurn, reserveConfig, assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onJournal:event=>appState.recordLaunchEvent(journalId,event), onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setLaunchStatus(message); } });
+      const result = await submitPumpDevnetLaunch({ cluster: appState.APP_CLUSTER, connection: appState.connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuySol: creatorBuySol, reserveTokens:communityTokens, maxInitialBuyLamports:reviewedCost.buyMaximum, feeShares:feeDistributionInput }, prepareMetadata: input => appState.prepareLaunchMetadata(input, session), feeRouterProgramId: reserveConfig.programId, useMintRouter: true, v3FeeRouter, launchBurn, launchServiceQuote:appState.launchServiceQuote, reserveConfig, assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onJournal:event=>appState.recordLaunchEvent(journalId,event), onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setLaunchStatus(message); } });
       const routeAddress = result.feeRouter.toBase58();
       const { deriveMintRouterV3 } = await import('../../../mint-router-v3.js');
       const routeState = { ...deriveMintRouterV3(v3FeeRouter.programId, result.mint.publicKey),
@@ -115,6 +124,7 @@ export function createLaunchSubmitController(appState) {
           status: result.launchBurnReceipt ? 'verified' : 'not-required',
           receipt: result.launchBurnReceipt,
         },
+        launchServiceFee:{quoteId:appState.launchServiceQuote.id,policyHash:appState.launchServiceQuote.policyHash,amountLamports:appState.launchServiceQuote.amountLamports,recipient:appState.launchServiceQuote.recipient},
         fundedTokenMint: fundedMint || null,
         feeRouter: appState.buildFeeRouterPolicy(routeState),
         feeDistribution: appState.buildFeeDistributionPolicy({ ...feeDistributionInput, feeRouterAddress: routeAddress }),

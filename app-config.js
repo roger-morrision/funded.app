@@ -36,4 +36,4 @@ if (APP_IS_MAINNET && !APP_ALLOW_MAINNET) {
 }
 
 export const TRADE_FEE_OWNER = String(import.meta.env.VITE_FUNDED_TRADE_FEE_OWNER || '').trim();
-export const TRADE_FEE_BPS = Number(import.meta.env.VITE_FUNDED_TRADE_FEE_BPS || 50);
+export const TRADE_FEE_BPS = Number(import.meta.env.VITE_FUNDED_TRADE_FEE_BPS || 75);

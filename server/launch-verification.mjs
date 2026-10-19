@@ -32,7 +32,7 @@ export function verifyAtomicLaunchPromotion({ transaction, payer, signature, cla
   const requiredAmount = quote ? quote.amountTokens : tier?.amountTokens;
   if (!tier || !fundedMint || claim.fundedMint !== fundedMint || claim.amountTokens !== requiredAmount
     || (quote && (claim.quoteId !== quote.id || quote.tier !== claim.tier || quote.payer !== payer
-      || quote.fundedMint !== fundedMint || quote.usd !== (claim.tier === 'pro' ? 100 : claim.tier === 'premier' ? 200 : null)))) {
+      || quote.fundedMint !== fundedMint || !Number.isInteger(quote.usd) || quote.usd < 1))) {
     throw new Error('The claimed promotion package does not match the configured $FUNDED burn policy.');
   }
   if (quote) {

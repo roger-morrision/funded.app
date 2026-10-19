@@ -1,4 +1,6 @@
 import { launchEstimateRetry } from '../../features/launch/estimate-refresh.js';
+import { refreshServiceFees, quoteLaunchServiceFee } from '../../features/fees/service-fees-client.js';
+import { launchServiceFeeInstructions } from '../../../launch-service-fee.js';
 // Dependencies and mutable application state are read live through appState.
 export function createWalletMetricsController(appState) {
   // app-source: 645
@@ -21,6 +23,9 @@ export function createWalletMetricsController(appState) {
     appState.setWalletMetrics({ loading: true });
     try {
       await appState.getSolana();
+      const fees = await refreshServiceFees(appState);
+      appState.assertWalletSessionCurrent(session);
+      const serviceQuote=await quoteLaunchServiceFee(appState,fees,session.address);
       const balance = await appState.connection.getBalance(payer, 'confirmed');
       fetchedBalance = balance;
       if (request !== appState.metricsRequest || !appState.isWalletSessionCurrent(session)) return;
@@ -73,7 +78,7 @@ export function createWalletMetricsController(appState) {
         if (blockhashAttempt > 0) await new Promise(resolve => setTimeout(resolve, 1100));
         const latest = await appState.connection.getLatestBlockhash('finalized');
         plan = appState.buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions, burnInstruction: burnPlan?.instruction,
-          mintRouterInstruction: mintRouter?.instruction, reserveInstructions:reserve.instructions, lookupTable });
+          mintRouterInstruction: mintRouter?.instruction, reserveInstructions:[...reserve.instructions,...launchServiceFeeInstructions({payer,mint:mint.publicKey,quote:serviceQuote})], lookupTable });
         const estimateTransactions = plan.steps.map(step => step.transaction);
         try {
           // The split path still simulates every transaction; the legacy path is the original full launch simulation: connection.simulateTransaction(launchTransaction, undefined, [payer]).
@@ -112,9 +117,10 @@ export function createWalletMetricsController(appState) {
         ? { ready: true, message: `Wallet verified for an atomic ${appState.formatLaunchBurnAmount(launchBurn.amountTokens)} $FUNDED burn with Pump creation${plan.mintRouterSeparate ? '; router initialization uses a separate approval' : ''}.` }
         : { ready: true, message: 'No creator-funded burn is required.' };
       appState.renderLaunchBurnSelection();
-      const review=appState.launchReview({balance,simulatedSpend:estimatedSpend,networkFee:fee,buyQuote:initialBuy.solAmountLamports,buyMaximum:initialBuy.maxSolAmountLamports,transactionCount:plan.steps.length,curvePremiumBps:initialBuy.curvePremiumBps,now:quoteStartedAt});
+      const review=appState.launchReview({balance,serviceFeeLamports:serviceQuote.amountLamports,simulatedSpend:estimatedSpend,networkFee:fee,buyQuote:initialBuy.solAmountLamports,buyMaximum:initialBuy.maxSolAmountLamports,transactionCount:plan.steps.length,curvePremiumBps:initialBuy.curvePremiumBps,now:quoteStartedAt});
       if(!appState.freshLaunchReview(review))throw new Error('Estimate took too long and expired. Refresh before signing.');
       appState.launchCostReview=review;
+      appState.launchServiceQuote=serviceQuote;
       appState.launchEstimateRetry = null;
       appState.estimatedInitialBuyLamports=Number(initialBuy.solAmountLamports);
       appState.estimatedInitialBuyTokens=Number(developerBuy.amountTokens);

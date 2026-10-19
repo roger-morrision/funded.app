@@ -1,3 +1,4 @@
+import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../features/fees/service-fees-client.js';
 // Dependencies and mutable application state are read live through appState.
 export function createTradeStateController(appState) {
   // app-source: 545
@@ -79,7 +80,7 @@ export function createTradeStateController(appState) {
 
   // app-source: 555
   function renderTradeBalances(){
-    return appState.renderTradeBalancesView({ tradeBalanceState: appState.tradeBalanceState, coinTradeEstimate: appState.coinTradeEstimate, wallet: appState.wallet, TRADE_FEE_BPS: appState.TRADE_FEE_BPS }, { renderRoundTripAction: appState.renderRoundTripAction, tradeBalanceKey: appState.tradeBalanceKey, tradeInputs: appState.tradeInputs, currentTradePreview: appState.currentTradePreview, updateTradeActionState: appState.updateTradeActionState });
+    return appState.renderTradeBalancesView({ tradeBalanceState: appState.tradeBalanceState, coinTradeEstimate: appState.coinTradeEstimate, wallet: appState.wallet, TRADE_FEE_BPS: appTradeBps(appState) }, { renderRoundTripAction: appState.renderRoundTripAction, tradeBalanceKey: appState.tradeBalanceKey, tradeInputs: appState.tradeInputs, currentTradePreview: appState.currentTradePreview, updateTradeActionState: appState.updateTradeActionState });
   }
   // app-source-end
 
@@ -162,7 +163,7 @@ export function createTradeStateController(appState) {
     const current = Boolean(appState.tradeBalanceState.key && appState.tradeBalanceState.key === appState.tradeBalanceKey());
     const preview = appState.currentTradePreview(inputs);
     const sufficient = current && valid && (side === 'buy'
-      ? appState.hasBuyBalance(appState.tradeBalanceState.solLamports, { amountSol:amount, slippagePercent:inputs.slippagePercent, feeBps:appState.TRADE_FEE_BPS, trade:preview?.trade })
+      ? appState.hasBuyBalance(appState.tradeBalanceState.solLamports, { amountSol:amount, slippagePercent:inputs.slippagePercent, feeBps:appTradeBps(appState), trade:preview?.trade })
       : appState.tradeBalanceState.tokenRaw != null && amount <= Number(appState.tradeBalanceState.tokenRaw) / (10 ** appState.tradeBalanceState.tokenDecimals));
     if (submit) submit.disabled = appState.tradeActionBusy || !appState.wallet || !appState.canSignTransactions(appState.wallet) || !valid || !preview || !sufficient;
   }

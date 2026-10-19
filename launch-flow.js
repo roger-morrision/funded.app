@@ -13,6 +13,7 @@ import { buildProtectedMintRouterV3InitializeInstruction, directedGrossUnits,
 import { executeLaunchPlan } from './launch-executor.js';
 import { initialCurvePremiumBps } from './launch-review.js';
 import { launchReserveInstructions, quoteAtomicReserveBuy } from './launch-community-reserve.js';
+import { launchServiceFeeInstructions } from './launch-service-fee.js';
 
 export async function submitLaunch({ connection, provider, payer, input, onStatus = () => {} }) {
   const launchInput = normalizeLaunchInput(input);
@@ -157,7 +158,7 @@ export async function prepareFundedLaunchBurn({ connection, payer, fundedMint, a
   };
 }
 
-export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, provider, payer, input, metadataUri, prepareMetadata, feeRouterProgramId = null, useMintRouter = false, v3FeeRouter = null, launchBurn = null, reserveConfig = null, onStatus = () => {}, onJournal = () => {}, assertWalletCurrent = () => {} }) {
+export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, provider, payer, input, metadataUri, prepareMetadata, feeRouterProgramId = null, useMintRouter = false, v3FeeRouter = null, launchBurn = null, launchServiceQuote = null, reserveConfig = null, onStatus = () => {}, onJournal = () => {}, assertWalletCurrent = () => {} }) {
   if (cluster !== 'devnet') throw new Error('Mainnet coin launching is not enabled. No transaction was prepared or sent.');
   if (!v3FeeRouter?.programId || !v3FeeRouter.initialAuthority || !v3FeeRouter.split || !useMintRouter)
     throw new Error('Only verified V3 mint-router launches are supported. No transaction was prepared or sent.');
@@ -177,6 +178,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   initialBuy.developerAmountTokens = developerBuy.amountTokens;
   if(input.maxInitialBuyLamports!=null&&initialBuy.maxSolAmountLamports>BigInt(input.maxInitialBuyLamports))throw new Error('The initial-buy cost increased beyond the reviewed maximum. Refresh the quote and review again; no transaction was sent.');
   const mint = Keypair.generate();
+  const serviceInstructions = launchServiceFeeInstructions({ payer, mint:mint.publicKey, quote:launchServiceQuote });
   onJournal({state:'prepared',mint:mint.publicKey.toBase58()});
   const mintRouter = buildLaunchMintRouter({ mint:mint.publicKey, payer, v3FeeRouter,
     feeShares:input.feeShares });
@@ -222,7 +224,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   const latest = await connection.getLatestBlockhash('confirmed');
   const plan = buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions,
     burnInstruction: burnPlan?.instruction, mintRouterInstruction: mintRouter?.instruction,
-    reserveInstructions:reserve.instructions, lookupTable });
+    reserveInstructions:[...reserve.instructions,...serviceInstructions], lookupTable });
   plan.steps.find(step => step.kind === 'launch').transaction.fundedLaunchSummary = {
     kind:'launch', mint:mint.publicKey.toBase58(), tokenName:launchInput.name, tokenSymbol:launchInput.symbol,
     reserveTokens:String(input.reserveTokens), vault:reserve.vault.toBase58(),

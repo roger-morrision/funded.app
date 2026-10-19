@@ -1,0 +1,25 @@
+.page-route-overview #marketing-agency { display: none !important; }
+body.page-route-marketing-agency .main-content > #marketing-agency { display: block !important; }
+.agency-page { max-width: 1280px; margin: 0 auto 32px; padding: 24px; min-width: 0; }
+.agency-page h1 { font-size: clamp(26px, 4vw, 40px); }
+.agency-page button { min-height: 44px; padding: 10px 16px; border: 1px solid #454c68; border-radius: 6px; background: #1d2238; color: inherit; font: inherit; cursor: pointer; }
+.agency-page p { line-height: 1.65; max-width: 90ch; color: #b2bed1; }
+.agency-agent-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 24px 0; }
+.agency-agent, .agency-policy, .agency-options, .agency-funds > div { padding: 20px; border: 1px solid #353a54; border-radius: 12px; background: #121424; min-width: 0; }
+.agency-agent h2 { font-size: 20px; line-height: 1.4; }
+.agency-policy { margin: 24px 0; }
+.agency-status { border-left: 3px solid #edb800; padding: 12px 16px; background: #191a2c; }
+.agency-funds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.agency-funds dd { margin: 10px 0 0; font-weight: 700; }
+.agency-options { margin: 20px 0; }
+.agency-options label { display: flex; align-items: center; gap: 12px; padding: 10px 0; cursor: pointer; }
+.agency-options input[type=checkbox] { width: 20px; height: 20px; flex: 0 0 20px; accent-color: #f2b700; }
+.agency-options p { line-height: 1.6; }
+.agency-options :focus-visible, .agency-page :focus-visible { outline: 2px solid #f2b700; outline-offset: 4px; }
+@media (max-width: 760px) { .agency-agent-grid, .agency-funds { grid-template-columns: 1fr; } .agency-page { padding: 16px 8px; } }
+@media (min-width: 701px) {
+  body.page-route-marketing-agency .sidebar { width: 220px; }
+  html body.page-route.page-route-marketing-agency .main-content { width: calc(100% - 220px) !important; max-width: none; margin-left: 220px !important; padding: 0 24px 48px; }
+  html.sidebar-collapsed body.page-route-marketing-agency .sidebar { width: 76px; }
+  html.sidebar-collapsed body.page-route.page-route-marketing-agency .main-content { width: calc(100% - 76px) !important; margin-left: 76px !important; }
+}

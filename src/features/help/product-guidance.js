@@ -1,5 +1,6 @@
 import { currentFeePolicyCopy } from '../fees/fee-policy-copy.js';
 import { APP_REFERRAL_LEVELS } from '../../../distribution-policy.js';
+import { serviceFeeGuide } from '../fees/service-fees-client.js';
 
 export const rewardActions = () => [
   ['Creator wallet', 'SOL', 'Creator reviews and signs settlement, funding and the available payout action.', 'The coin’s saved creator-wallet share and finalized collected fees.', '#payments'],
@@ -22,6 +23,7 @@ export function referralGuide() {
 export function productHelpTopics() {
   const copy = currentFeePolicyCopy();
   return {
+    pricing:{ title:'App fees and launch costs', answer:serviceFeeGuide(), href:'#docs/fees', link:'Review current fees →' },
     coin:{ title:'Coin details', answer:'Check the mint, saved V3 fee policy, creator, trading stage and transaction links. Missing or partial observations are not zero activity.', href:'#docs/coin-pages', link:'Read about coin pages →' },
     trade:{ title:'Trading issues', answer:'Review quote, slippage and maximum spend before signing. If a submission is uncertain, inspect its transaction and balances before retrying. A wallet signature alone is not a successful trade.', href:'#docs/trading', link:'Read trading guidance →' },
     launch:{ title:'Launch receipts', answer:'Verify the mint, V3 fee owner, creator-directed split and any paid-tier burn. The selected package is recorded only after its launch and burn are confirmed.', href:'#docs/launch', link:'Read launch guidance →' },
@@ -35,13 +37,14 @@ export function productHelpTopics() {
     buyback:{ title:'Buyback & burn', answer:'The saved buyback share accrues in dedicated program vaults. The normal aggregate trigger is 5 SOL; Devnet QA may use a smaller displayed trigger. A verified market route, liquidity and purchase/burn receipts are required.', href:'#docs/buyback', link:'Read buyback guidance →' },
     history:{ title:'Payment history', answer:'Rewards History combines independently verified SOL payments, including Daily bonuses. Use program/date filters and transaction links. The Daily bonuses page has all-time recipient rankings; your wallet profile has its own reward and claim activity.', href:'#docs/history', link:'Find payment evidence →' },
     following:{ title:'Favorites & Following', answer:'Favorites contains starred tokens. Following shows holdings and trading activity from tracked trader wallets. Follow a wallet to populate it; starring a token only adds it to Favorites.', href:'#docs/following', link:'Read discovery guidance →' },
-    admin:{ title:'Admin tools', answer:'The separate Devnet admin page requires an allowlisted wallet signature. Its fee editor versions the protocol share for future launches; balances and allocations are separate. Withdrawals require an approved destination and a source-wallet signature.', href:'#docs/admin', link:'Read admin guidance →' },
+    admin:{ title:'Admin tools', answer:'The separate Devnet admin page requires an allowlisted wallet signature. Its separate editors version app service prices and the protocol share; issued quotes and existing launch allocations retain their saved terms. Withdrawals require an approved destination and a source-wallet signature.', href:'#docs/admin', link:'Read admin guidance →' },
   };
 }
 
 export function productFaqs() {
   const copy=currentFeePolicyCopy();
   return [
+    ['service-prices','What does it cost to trade, launch or list?', `<p>${serviceFeeGuide()}</p><a href="#docs/fees">Review service charges and creator fees →</a>`],
     ['assets','Which rewards are SOL, and which are coin tokens?', '<p>Creator-wallet rewards, holder rewards, X rewards, referral payouts and Daily bonuses use <strong>SOL</strong>. Community airdrops use <strong>tokens of the launched coin</strong>. Check the asset and program on each record.</p>'],
     ['fees','How are collected creator fees allocated?', `<p id="fee-policy-faq">${copy.allocation} ${copy.scope}</p><a href="#capital-flow">See the fee split →</a>`],
     ['fee-base','Do these percentages apply to every trade?', '<p>They apply to gross creator fees actually collected through the funded.vip route. They are not percentages of trade volume or all Pump trading fees. The creator-directed 80% is divided according to that coin’s saved wallet, holder and X settings.</p>'],
