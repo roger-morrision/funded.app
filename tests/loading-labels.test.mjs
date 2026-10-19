@@ -35,10 +35,11 @@ test('Payout summary completion never leaves absent groups in the loading state'
   render(); assert.doesNotMatch(container.innerHTML,/Checking|data-state="loading"/);
   assert.match(container.innerHTML,/0 finalized payments/);assert.match(container.innerHTML,/Finalized payout data unavailable/);
   state.analyticsSummary={recordedPayouts:2,verifiedPayoutCount:1,
-    payoutEvidenceAt:'2026-10-16T04:05:00.000Z',feePayoutStats:{cluster:'devnet',commitment:'finalized',
+    payoutCoverage:{scope:'v3-sol-recipient-receipts',status:'partial'},
+    payoutEvidenceAt:new Date().toISOString(),feePayoutStats:{cluster:'devnet',commitment:'finalized',
       creator:{status:'partial',paidLamports:'60',payoutCount:1}}};
-  render(); assert.match(container.innerHTML,/1\/2 payouts verified/);
-  assert.match(container.innerHTML,/checked 04:05 UTC/);
+  render(); assert.match(container.innerHTML,/1 of 2 payouts verified/);
+  assert.match(container.innerHTML,/checked \d{2}:\d{2} UTC/);
   state.analyticsSummary={feePayoutStats:{cluster:'mainnet-beta',commitment:'finalized'}};
   render(); assert.doesNotMatch(container.innerHTML,/Checking|data-state="loading"/);
   assert.match(container.innerHTML,/data-state="unavailable"/);

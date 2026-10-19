@@ -5,6 +5,7 @@ import { loadFinalizedV3RewardFunding } from './v3-reward-funding-proof.mjs';
 import { v3DisbursementId } from './v3-disbursement-id.mjs';
 import { v3ReferralPaymentSummary } from './v3-referral-payment-summary.mjs';
 import { dailyPaymentCandidates, dailyPaymentHistory } from './daily-bonus-payment-history.mjs';
+import { payoutCoverage } from './payout-coverage.mjs';
 
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
@@ -109,6 +110,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
     const automatic = [];
     const creators = [];
     const olderProofs = [];
+    const referralReceipts = [];
     const referralCount = v3Only ? Object.values(state.v3ReferralPayouts || {}).filter(row => row?.status === 'finalized').length : 0;
     let referralSummary = { status:referralCount ? 'unavailable' : 'verified', paidLamports:'0',
       payoutCount:0, checkedCount:referralCount, unavailableCount:referralCount };
@@ -121,7 +123,8 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
         unavailable += daily.unavailable - dailySelection.unavailable;
         if (v3Only) {
           referralSummary = await v3ReferralPaymentSummary({ state, connection, cluster,
-            loadFunding:loadReferralPayment, proofCache:verifiedReferrals });
+            loadFunding:loadReferralPayment, proofCache:verifiedReferrals,
+            onVerified:row=>referralReceipts.push(row) });
           unavailable += referralSummary.unavailableCount;
         }
         let indexed = new Map();
@@ -247,7 +250,17 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
       && ADDRESS.test(String(row.feePayer || '')))
       .map(row => [`${row.signature}:${row.to}`, row])).values()]
       .sort((a, b) => Number(b.blockTime || 0) - Number(a.blockTime || 0) || b.slot - a.slot);
+    const recordedReceipts = [
+      ...candidates.map(({recipient,payment})=>({to:recipient,signature:payment.signature,paymentAccount:payment.payment})),
+      ...directCandidates.map(([,row])=>({to:row.recipient,signature:row.signature})),
+      ...Object.values(ledger.dailyBonusSnapshots || {}).flatMap(row=>Object.values(row.payouts || {})
+        .flatMap(payout=>Object.entries(payout.payments || {}).filter(([,payment])=>payment?.finalized === true)
+          .map(([to,payment])=>({to,signature:payment.signature,paymentAccount:payment.payment})))),
+      ...Object.values(state.v3ReferralPayouts || {}).filter(row=>row?.status === 'finalized')
+        .map(row=>({to:row.recipient,signature:row.signature})),
+    ];
     return { cluster, commitment:'finalized', status:unavailable || !v3Only && evidence.status === 'unavailable' ? 'partial' : 'onchain-indexed',
+      ...(v3Only ? {payoutCoverage:payoutCoverage(recordedReceipts,[...rows,...referralReceipts])} : {}),
       verifiedPayouts:rows, checkedAutomatic:candidates.length, checkedCreator:creatorCandidates.length,
       checkedOperations:operationsCandidates.length,
       checkedDaily:daily.checked, dailyBonusSummary:{status:daily.unavailable ? 'partial' : 'verified',

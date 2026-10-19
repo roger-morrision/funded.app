@@ -1,6 +1,7 @@
 import { activeBoostMultiplier } from '../../../boost-offer.js';
 import { sortMarketRecords } from '../../../market-intelligence.js';
 import { shortAddress, escapeHtml } from '../shared/display.js';
+import { payoutCoverageLabel } from './payout-coverage.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderExploreControls(
@@ -131,13 +132,9 @@ export function renderExplorePayoutStats(
   const stats = analyticsSummary?.feePayoutStats;
   const ready = stats?.cluster === EXPLORE_CLUSTER && stats.commitment === 'finalized';
   const loading = analyticsSummary == null;
-  const payoutCheckedAt = Date.parse(analyticsSummary?.payoutEvidenceAt || '');
-  const payoutCoverage = ready && Number.isFinite(payoutCheckedAt)
-    && Number.isSafeInteger(analyticsSummary?.recordedPayouts)
-    && Number.isSafeInteger(analyticsSummary?.verifiedPayoutCount)
-    ? `${analyticsSummary.verifiedPayoutCount}/${analyticsSummary.recordedPayouts} payouts verified` : null;
-  const payoutFreshness = Number.isFinite(payoutCheckedAt)
-    ? ` · checked ${new Date(payoutCheckedAt).toISOString().slice(11, 16)} UTC` : '';
+  const coverage = payoutCoverageLabel(analyticsSummary,EXPLORE_CLUSTER);
+  const announcement = document.querySelector('#explore-payout-coverage-status');
+  if (!loading && announcement && announcement.textContent !== coverage.text) announcement.textContent = coverage.text;
   const cards = [
     { label:'Total fee paid to X accounts', kind:'x' },
     { label:'Total fee paid to creators', kind:'creator' },
@@ -180,7 +177,7 @@ export function renderExplorePayoutStats(
     const detailMarkup = profile
       ? `<a href="${escapeHtml(profile)}" target="_blank" rel="noopener noreferrer">${escapeHtml(detail)} ↗</a>`
       : `<small>${escapeHtml(detail)}</small>`;
-    const coverageMarkup = payoutCoverage ? `<small>${escapeHtml(payoutCoverage + payoutFreshness)}</small>` : '';
+    const coverageMarkup = loading ? '' : `<small>${escapeHtml(coverage.text)}</small>${coverage.reason ? `<small>${escapeHtml(coverage.reason)}</small>` : ''}`;
     return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong>${detailMarkup}${coverageMarkup}${group?.status === 'partial' ? `<em${group.reason ? ` title="${escapeHtml(group.reason)}"` : ''}>Partial coverage</em>` : ''}</article>`;
   }).join('');
 }

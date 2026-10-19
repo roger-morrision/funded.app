@@ -24,6 +24,7 @@ import { createListingPaymentsRoutes } from './routes/listing-payments.mjs';
 import { createLaunchRegistrationRoutes } from './routes/launch-registration.mjs';
 import { createV3LaunchConfig } from './v3-launch-config.mjs';
 import { v3XCapability } from './v3-x-capability.mjs';
+import { createRewardXReadiness } from './reward-x-readiness.mjs';
 import { createPublicReportsRoutes } from './routes/public-reports.mjs';
 import { createQuoteAssetsRoutes } from './routes/quote-assets.mjs';
 import { createDirectoryRoutes } from './routes/directory.mjs';
@@ -358,7 +359,10 @@ const handleLaunchQuoteRoutes = createLaunchQuoteRoutes({
 });
 const handleRewardStatusRoutes = createRewardStatusRoutes({
   store, automaticRewardStore, solanaCluster, solanaRpcUrl,
-  readFinalizedEvidence, clientKey, respond: json,
+  readFinalizedEvidence, clientKey, respond: json, requireAuthorized,
+  readProgramReadiness:v3LaunchConfig,
+  readXCapability:createRewardXReadiness({cluster:solanaCluster,
+    xOAuthConfigured,resolveXUser}),
 });
 
 const { handlePublicMetadata, handlePages } = createPageDelivery({

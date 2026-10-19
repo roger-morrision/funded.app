@@ -1,7 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRewardStatusRoutes } from '../server/routes/reward-status.mjs';
+import { createAutomaticRewardStore } from '../server/automatic-reward-store.mjs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 const programId='9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
+
+test('automatic status returns unavailable current custody before the UI deadline while its scan is delayed',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  let result;
+  const route=createRewardStatusRoutes({store:{read:async()=>({})},automaticRewardStore:{read:async()=>({})},
+    solanaCluster:'devnet',solanaRpcUrl:'https://unused.invalid',env:{FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId},
+    connectionFactory:()=>({}),readBuybackDashboard:()=>new Promise(()=>{}),
+    respond:(_res,_status,data)=>{result=data;}});
+  const pending=route({method:'GET'},{},new URL('https://funded.vip/api/rewards/automatic'));
+  await new Promise(resolve=>setImmediate(resolve));t.mock.timers.tick(10_001);await pending;
+  assert.equal(result.routeReadiness.buyback.ready,false);
+  assert.match(result.routeReadiness.buyback.reasons.join(' '),/custody/);
+});
 
 test('simultaneous buyback views share one verification scan and its warm cache', async () => {
   let finish, reads=0;
@@ -163,15 +180,72 @@ test('only a finalized burn for the enabled current Devnet program opens buyback
     automaticRewardStore:{ read:async () => ({}) }, solanaCluster:'devnet', env,
     respond:(_res,status,data) => responses.push({status,data}) });
   await route({method:'GET'}, {}, new URL('https://funded.vip/api/buyback/status'));
-  assert.equal(responses.at(-1).data.executionReady, true);
+  assert.equal(responses.at(-1).data.executionReady, false,
+    'An old burn cannot establish current buyback execution readiness.');
+  assert.equal(responses.at(-1).data.historicalExecutionVerified, true);
   assert.equal(responses.at(-1).data.mainnetReady, false);
   await route({method:'GET'}, {}, new URL('https://funded.vip/api/rewards/automatic'));
-  assert.equal(responses.at(-1).data.routeReadiness.buyback.ready, true);
+  assert.equal(responses.at(-1).data.routeReadiness.buyback.ready, false);
+  assert.equal(responses.at(-1).data.routeReadiness.buyback.historicalExecutionVerified, true);
   assert.equal(responses.at(-1).data.routeReadiness.buyback.verifiedV3Burns, 1);
   assert.equal(responses.at(-1).data.modes.buyback, 'verified-v3-devnet-execution');
   env.FUNDED_V3_PROGRAM_DATA_SHA256 = 'b'.repeat(64);
   await route({method:'GET'}, {}, new URL('https://funded.vip/api/buyback/status'));
   assert.equal(responses.at(-1).data.executionReady, false);
+});
+
+test('buyback readiness follows fresh worker, program, RPC and funding gates while receipts remain historical', async () => {
+  let clock=Date.parse('2026-10-19T04:00:00Z'), programReady=true, custodyReady=true;
+  const rewards={buybackWorkerHeartbeat:{status:'ready',cluster:'devnet',at:new Date(clock).toISOString()}};
+  const state={v3BuybackOrders:{past:{status:'finalized',finalized:true,vaultDebitVerified:true,burnInstructionVerified:true,
+      programId,approvedHash:'a'.repeat(64)}}};
+  const env={FUNDED_V3_BUYBACK_ENABLED:'true',FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId,
+    FUNDED_V3_PROGRAM_DATA_SHA256:'a'.repeat(64)};
+  const replies=[];
+  const route=createRewardStatusRoutes({store:{read:async()=>state},automaticRewardStore:{read:async()=>rewards},
+    solanaCluster:'devnet',solanaRpcUrl:'https://unused.invalid',env,now:()=>clock,
+    connectionFactory:()=>({}),
+    readProgramReadiness:async()=>({ready:programReady,programId,reasons:programReady?[]:['RPC unavailable.']}),
+    readBuybackDashboard:async()=>({status:custodyReady?'verified':'unavailable',
+      unindexedStatus:custodyReady?'verified':'unavailable',triggerReached:custodyReady,
+      unindexedVaults:custodyReady?[{mint:programId,status:'verified',pendingLamports:'5000000'}]:[]}),
+    respond:(_res,_status,data)=>replies.push(data)});
+  const read=async path=>{await route({method:'GET'},{},new URL(`https://funded.vip${path}`));return replies.at(-1);};
+  assert.equal((await read('/api/buyback/status')).executionReady,true);
+  assert.equal((await read('/api/rewards/automatic')).routeReadiness.buyback.ready,true);
+  programReady=false;clock+=15_001;
+  let result=await read('/api/buyback/status');
+  assert.equal(result.executionReady,false);assert.match(result.executionReasons.join(' '),/RPC unavailable/);
+  assert.equal(result.historicalExecutionVerified,true);
+  programReady=true;custodyReady=false;clock+=20_001;
+  result=await read('/api/buyback/status');
+  assert.equal(result.executionReady,false);assert.match(result.executionReasons.join(' '),/custody/);
+  custodyReady=true;clock+=20_001;
+  rewards.buybackWorkerHeartbeat={status:'failed',cluster:'devnet',at:new Date(clock).toISOString()};
+  result=await read('/api/buyback/status');
+  assert.equal(result.executionReady,false);assert.match(result.executionReasons.join(' '),/worker-not-ready/);
+  rewards.buybackWorkerHeartbeat={status:'ready',cluster:'devnet',at:new Date(clock).toISOString()};
+  result=await read('/api/buyback/status');
+  assert.equal(result.executionReady,true);
+  clock+=180_001;
+  result=await read('/api/buyback/status');
+  assert.equal(result.executionReady,false);assert.match(result.executionReasons.join(' '),/heartbeat-stale/);
+});
+
+test('only an authorized Devnet worker records a heartbeat that survives reward store reopening', async t => {
+  const directory=await mkdtemp(join(tmpdir(),'funded-buyback-status-'));
+  t.after(()=>rm(directory,{recursive:true,force:true}));
+  const path=join(directory,'rewards.json'),ledger=createAutomaticRewardStore(path);
+  let allowed=false,clock=Date.parse('2026-10-19T04:00:00Z');const replies=[];
+  const route=createRewardStatusRoutes({automaticRewardStore:ledger,solanaCluster:'devnet',
+    now:()=>clock,requireAuthorized:()=>allowed,
+    respond:(_res,status,data)=>replies.push({status,data})});
+  const request=()=>route({method:'POST'},{},new URL('https://funded.vip/api/buyback/worker-heartbeat?status=ready'));
+  await request();assert.equal((await ledger.read()).buybackWorkerHeartbeat,undefined);
+  allowed=true;await request();
+  assert.equal(replies.at(-1).status,200);
+  assert.deepEqual((await createAutomaticRewardStore(path).read()).buybackWorkerHeartbeat,
+    {status:'ready',cluster:'devnet',at:new Date(clock).toISOString()});
 });
 
 test('verified older vaults become worker sources only while custody scan is complete', async () => {

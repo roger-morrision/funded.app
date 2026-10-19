@@ -7,6 +7,7 @@ import { buildFeeDistributionPolicy } from '../distribution-policy.js';
 import { launchPolicyStatement } from '../launch-policy-auth.js';
 import { createLaunchRegistrationRoutes } from '../server/routes/launch-registration.mjs';
 import { createRewardStatusRoutes } from '../server/routes/reward-status.mjs';
+import { createRewardXReadiness } from '../server/reward-x-readiness.mjs';
 import { createXIdentityRoutes } from '../server/routes/x-identity.mjs';
 
 function call(create, dependencies, path, method = 'GET') {
@@ -17,6 +18,19 @@ function call(create, dependencies, path, method = 'GET') {
     .then(() => responses.at(-1));
 }
 
+test('current X capability follows launch RPC, OAuth and lookup gates without a receipt', async () => {
+  let oauth=true,lookupError=null;
+  const read=createRewardXReadiness({cluster:'devnet',env:{FUNDED_V3_X_CLAIMS_ENABLED:'true',X_BEARER_TOKEN:'configured'},
+    xOAuthConfigured:()=>oauth,resolveXUser:{health:()=>lookupError}});
+  assert.equal((await read({}, {ready:true,reasons:[]})).ready,true);
+  oauth=false;
+  assert.match((await read({}, {ready:true,reasons:[]})).reasons.join(' '),/OAuth/);
+  oauth=true;lookupError='X lookup is unavailable.';
+  assert.equal((await read({}, {ready:true,reasons:[]})).ready,false);
+  lookupError=null;
+  assert.equal((await read({}, {ready:false,reasons:['Devnet RPC unavailable.']})).ready,false);
+});
+
 test('public X launch status stays closed without the V3 claim gate while handle lookup remains usable', async () => {
   const dependencies = { xFeeReadiness:async () => assert.fail('V2 payout readiness must not gate X identity lookup'), clientKey: () => 'fixture',
     solanaCluster:'devnet', env:{ FUNDED_V3_X_CLAIMS_ENABLED:'false' },
@@ -25,6 +39,7 @@ test('public X launch status stays closed without the V3 claim gate while handle
   const status = await call(createXIdentityRoutes, dependencies, '/api/x-fee/status');
   assert.equal(status.status, 200);
   assert.equal(status.data.ready, false);
+  assert(Number.isFinite(Date.parse(status.data.checkedAt)));
   assert.match(status.data.reasons[0], /V3 X claims are disabled/);
   const lookup = await call(createXIdentityRoutes, dependencies, '/api/x/resolve?handle=%40fixture');
   assert.equal(lookup.status, 200);
@@ -67,12 +82,32 @@ test('public X payout status requires one consistent finalized V3 payment record
     payments:{ [wallet]:payment } } } };
   const dependencies = { store:{ read:async () => state },
     automaticRewardStore:{ read:async () => rewards }, solanaCluster:'devnet',
+    readProgramReadiness:async () => ({ready:true,programId,reasons:[]}),
     env:{ FUNDED_V3_X_CLAIMS_ENABLED:'true', FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId,
       FUNDED_V3_PROGRAM_DATA_SHA256:'a'.repeat(64) } };
   const verified = await call(createRewardStatusRoutes, dependencies, '/api/rewards/automatic');
-  assert.equal(verified.data.routeReadiness.x.ready, true);
+  assert.equal(verified.data.routeReadiness.x.ready, false,
+    'An old paid receipt cannot establish current X execution readiness.');
   assert.equal(verified.data.routeReadiness.x.verifiedV3Payments, 1);
+  assert.equal(verified.data.routeReadiness.x.historicalExecutionVerified, true);
+  assert.match(verified.data.routeReadiness.x.reasons[0], /Current X execution gates/);
   assert.equal(verified.data.modes.x, 'v3-x-payout-recorded');
+  dependencies.readXCapability = async () => ({ ready:true, reasons:[] });
+  const recovered = await call(createRewardStatusRoutes, dependencies, '/api/rewards/automatic');
+  assert.equal(recovered.data.routeReadiness.x.ready, true,
+    'Fresh program, RPC and authorization gates can recover without a new payment.');
+  assert.equal(recovered.data.routeReadiness.x.verifiedV3Payments, 1);
+  dependencies.readProgramReadiness = async () => ({ready:false,programId,reasons:['Devnet RPC unavailable.']});
+  const rpcUnavailable = await call(createRewardStatusRoutes, dependencies, '/api/rewards/automatic');
+  assert.equal(rpcUnavailable.data.routeReadiness.x.ready, false);
+  assert.match(rpcUnavailable.data.routeReadiness.x.reasons.join(' '),/RPC unavailable/);
+  assert.equal(rpcUnavailable.data.routeReadiness.x.verifiedV3Payments, 1);
+  dependencies.readProgramReadiness = async () => ({ready:true,programId,reasons:[]});
+  dependencies.readXCapability = async () => ({ ready:false, reasons:['X OAuth is unavailable.'] });
+  const unavailable = await call(createRewardStatusRoutes, dependencies, '/api/rewards/automatic');
+  assert.equal(unavailable.data.routeReadiness.x.ready, false);
+  assert.match(unavailable.data.routeReadiness.x.reasons[0], /OAuth/);
+  assert.equal(unavailable.data.routeReadiness.x.verifiedV3Payments, 1);
   state.v3XClaims[source].payment = { ...payment, balanceDeltaVerified:false };
   const unverified = await call(createRewardStatusRoutes, dependencies, '/api/rewards/automatic');
   assert.equal(unverified.data.routeReadiness.x.ready, false);

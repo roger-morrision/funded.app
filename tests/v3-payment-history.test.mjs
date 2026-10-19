@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPaymentHistoryReader } from '../server/payment-history.mjs';
 import { v3DisbursementId } from '../server/v3-disbursement-id.mjs';
+import { v3PublicMetrics } from '../server/v3-public-metrics.mjs';
 
 const mint='5'.repeat(44), creator='6'.repeat(44), authority='7'.repeat(44);
 const program='8'.repeat(44), initialAuthority='9'.repeat(44);
@@ -73,6 +74,9 @@ test('operations history requires a matching protected allocation and exact oper
   const f=fixture({operations:true,protectedPolicy:true}),history=await f.read();assert.equal(f.proofCalls(),1);
   assert.equal(history.checkedOperations,1);assert.equal(history.checkedCreator,0);
   assert.equal(history.verifiedPayouts[0].source,'v3-operations');assert.equal(history.verifiedPayouts[0].actualReceivedLamports,60);
+  const metrics=v3PublicMetrics({}, {}, history, {}, 'devnet');
+  assert.equal(metrics.recordedPayouts,1);assert.equal(metrics.verifiedPayoutCount,1);
+  assert.equal(metrics.finalizedPaidLamports,60);
   for(const invalid of [{operations:true},{operations:true,protectedPolicy:true,amount:'61'}]){
     const bad=fixture(invalid),result=await bad.read();assert.equal(bad.proofCalls(),0);
     assert.equal(result.unavailablePayouts,1);assert.deepEqual(result.verifiedPayouts,[]);

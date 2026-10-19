@@ -19,7 +19,8 @@ test('verified V3 referrals enter public aggregate totals without private recipi
  assert.deepEqual(summary,{status:'verified',paidLamports:'6459',payoutCount:1,checkedCount:1,unavailableCount:0});
  assert.equal(f.calls[0].protectedPolicy,true); assert.equal(f.calls[0].beneficiary,4);
  assert.equal(JSON.stringify(summary).includes(recipient),false);
- const history={cluster:'devnet',commitment:'finalized',status:'onchain-indexed',verifiedPayouts:[],referralSummary:summary};
+ const history={cluster:'devnet',commitment:'finalized',status:'onchain-indexed',verifiedPayouts:[],referralSummary:summary,
+   payoutCoverage:{scope:'v3-sol-recipient-receipts',status:'verified',recorded:1,verified:1,verifiedTotalLamports:'6459'}};
  const metrics=v3PublicMetrics({}, {cluster:'devnet',commitment:'finalized',status:'no-records'},history,{},'devnet');
  assert.equal(metrics.referralPaidLamports,6459);assert.equal(metrics.referralPayoutCount,1);
  assert.equal(metrics.finalizedPaidLamports,6459);assert.equal(metrics.verifiedPayoutCount,1);

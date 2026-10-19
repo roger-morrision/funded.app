@@ -1,4 +1,5 @@
 import { communityHolderClaims } from './fee-payout-stats.mjs';
+import { PAYOUT_COVERAGE_SCOPE } from './payout-coverage.mjs';
 
 const safe = value => /^(0|[1-9]\d*)$/.test(String(value))
   && BigInt(value) <= BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(value) : null;
@@ -65,7 +66,13 @@ export function v3PublicMetrics(state, evidence, history, rewards, cluster) {
     && ['verified','partial'].includes(history.referralSummary?.status) ? history.referralSummary : null;
   const referralPaid = safe(referral?.paidLamports) ?? 0n;
   const referralCount = Number.isSafeInteger(referral?.payoutCount) && referral.payoutCount >= 0 ? referral.payoutCount : 0;
-  const paid = payments.reduce((sum,row) => sum + BigInt(safe(row.amountLamports) || 0n),0n) + referralPaid;
+  const coverage = history?.cluster === cluster && history.commitment === 'finalized'
+    && history.payoutCoverage?.scope === PAYOUT_COVERAGE_SCOPE ? history.payoutCoverage : null;
+  const coverageValid = ['verified','partial'].includes(coverage?.status)
+    && Number.isSafeInteger(coverage.recorded) && Number.isSafeInteger(coverage.verified)
+    && coverage.verified >= 0 && coverage.recorded >= coverage.verified;
+  const paid = coverage ? !/^(0|[1-9]\d*)$/.test(String(coverage.verifiedTotalLamports)) ? null : BigInt(coverage.verifiedTotalLamports)
+    : payments.reduce((sum,row) => sum + BigInt(safe(row.amountLamports) || 0n),0n) + referralPaid;
   const buyback = settled.reduce((sum,row) => sum
     + BigInt(safe(state.v3Settlements[row.signature].allocationPlan.protocol?.buybackLamports) || 0n),0n);
   const status = receipts.status === 'onchain-indexed' ? 'indexed'
@@ -75,11 +82,11 @@ export function v3PublicMetrics(state, evidence, history, rewards, cluster) {
     ['finalizedPaidLamports',paid],
     ['referralPaidLamports',referralPaid],
     ['dailyBonusPaidLamports',BigInt(daily.paidLamports)],
-  ].filter(([,amount])=>number(amount)===null).map(([field])=>field);
+  ].filter(([,amount])=>amount !== null && number(amount)===null).map(([field])=>field);
   return { status, precisionStatus:precisionUnavailableFields.length ? 'overflow' : 'safe',
     precisionUnavailableFields,
     exactLamports:{ recordedCollectedLamports:String(recordedTotal),
-      collectedLamports:String(collected), finalizedPaidLamports:String(paid), referralPaidLamports:String(referralPaid),
+      collectedLamports:String(collected), finalizedPaidLamports:paid === null ? null : String(paid), referralPaidLamports:String(referralPaid),
       dailyBonusPaidLamports:daily.paidLamports },
     receiptCommitment:'finalized', receiptScope:'verified-v3-collections',
     recordedCollections:recorded.length, recordedCollectedLamports:number(recordedTotal),
@@ -87,12 +94,14 @@ export function v3PublicMetrics(state, evidence, history, rewards, cluster) {
     grossCreatorFees:Number(settled.reduce((sum,row)=>sum
       + BigInt(safe(row.collectedLamports) || 0n),0n))/1_000_000_000,
     collectedLamports:number(collected), buybackAccrued:Number(buyback)/1_000_000_000,
-    finalizedPaidLamports:number(paid), referralPaidLamports:referral ? number(referralPaid) : null,
+    finalizedPaidLamports:paid === null ? null : number(paid), referralPaidLamports:referral ? number(referralPaid) : null,
     referralPayoutCount:referral ? referralCount : null, referralEvidenceStatus:referral?.status || 'unavailable',
-    recordedPayouts:(history?.checkedAutomatic || 0) + (history?.checkedCreator || 0) + (history?.checkedDaily || 0) + (history?.referralSummary?.checkedCount || 0),
+    recordedPayouts:coverageValid ? coverage.recorded : null,
+    payoutCoverage:{scope:PAYOUT_COVERAGE_SCOPE,status:coverageValid ? coverage.status : 'unavailable',
+      reason:coverageValid ? null : coverage?.reason || 'A common recorded and verified payout scope is unavailable.'},
     dailyBonusPaidLamports:number(BigInt(daily.paidLamports)), dailyBonusPayoutCount:daily.payoutCount,
     dailyBonusEvidenceStatus:history?.dailyBonusSummary?.status || 'unavailable',
-    verifiedPayoutCount:payments.length + referralCount, payoutEvidenceAt:history?.generatedAt || null,
+    verifiedPayoutCount:coverageValid ? coverage.verified : null, payoutEvidenceAt:history?.generatedAt || null,
     rewardPaid:{ cluster, commitment:'finalized', holder:{ ...holder, top:undefined },
       x:{ ...x, top:undefined } },
     feePayoutStats:{ cluster, commitment:'finalized', holder, x, creator,

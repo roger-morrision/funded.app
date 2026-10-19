@@ -32,6 +32,7 @@ test('V3 metrics expose verified creator payments and fresh community claim coun
   const wallet='5'.repeat(44), mint='6'.repeat(44), signature='3'.repeat(64);
   const history={cluster:'devnet',commitment:'finalized',status:'onchain-indexed',
     generatedAt:new Date().toISOString(), checkedAutomatic:0, checkedCreator:1,
+    payoutCoverage:{scope:'v3-sol-recipient-receipts',status:'verified',recorded:1,verified:1,verifiedTotalLamports:'60'},
     verifiedPayouts:[{source:'v3-creator-wallet',signature,to:wallet,amountLamports:60}]};
   const rewards={communityClaimIndex:{cluster:'devnet',commitment:'finalized',status:'verified',
     indexedAt:new Date().toISOString(), drops:[{mint,claimCount:1,claimedBaseUnits:'9'}],

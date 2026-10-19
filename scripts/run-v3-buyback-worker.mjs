@@ -19,10 +19,11 @@ async function request(path, method = 'GET') {
 }
 
 async function tick() {
-  if (process.env.FUNDED_V3_BUYBACK_ENABLED !== 'true') return;
+  if (process.env.FUNDED_V3_BUYBACK_ENABLED !== 'true') return false;
   const { status, result } = await request('/api/buyback/status');
   if (status !== 200 || result.cluster !== 'devnet') throw new Error('Buyback status unavailable.');
   const pending = Array.isArray(result.pending) ? result.pending : [];
+  let attemptFailed = false;
   for (const row of pending) {
     const sourceKey=`${row.mint}:${row.sourceCollectionSignature}`;
     if (!shouldAttemptV3Buyback(row, { triggerReached:result.dashboard?.triggerReached,
@@ -30,20 +31,32 @@ async function tick() {
     const path = `/api/tokens/${row.mint}/v3-buyback/${row.sourceCollectionSignature}`;
     const executed = await request(path, 'POST');
     if (executed.status === 200) retryAt.delete(sourceKey);
-    else if (executed.status !== 503)
-      retryAt.set(sourceKey,Date.now()+10*60_000);
+    else {
+      attemptFailed = true;
+      if (executed.status !== 503) retryAt.set(sourceKey,Date.now()+10*60_000);
+    }
     console.log(JSON.stringify({ event:'v3_buyback_attempt', mint:row.mint,
       source:row.sourceCollectionSignature,status:executed.status,
       signature:executed.status === 200 ? executed.result.signature : null,
       reason:executed.status === 200 ? null : String(executed.result?.error || 'Execution unavailable').slice(0,160),
       outcome:executed.status === 200 ? 'finalized' : 'pending-or-blocked' }));
   }
+  return !attemptFailed && result.dashboard?.status === 'verified'
+    && result.dashboard?.unindexedStatus === 'verified';
 }
 
 await new Promise(resolve => setTimeout(resolve, 10_000));
 for (;;) {
-  try { await tick(); }
+  let heartbeat = 'failed';
+  try { heartbeat = await tick() ? 'ready' : 'degraded'; }
   catch (error) { console.error(JSON.stringify({ event:'v3_buyback_worker_error',
+    reason:String(error.message || error).slice(0,240) })); }
+  try {
+    const reported = await request(`/api/buyback/worker-heartbeat?status=${heartbeat}`, 'POST');
+    if (reported.status !== 200 || reported.result?.recorded !== true)
+      throw new Error('Buyback worker heartbeat was not recorded.');
+  }
+  catch (error) { console.error(JSON.stringify({ event:'v3_buyback_worker_heartbeat_error',
     reason:String(error.message || error).slice(0,240) })); }
   await new Promise(resolve => setTimeout(resolve, 60_000));
 }

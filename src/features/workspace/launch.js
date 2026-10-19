@@ -13,7 +13,11 @@ export function launch() {
   const description = firstStep?.querySelector('.full-label:has(#token-description)');
   const socials = firstStep?.querySelector('.launch-optional-socials');
   const image = firstStep?.querySelector('.full-label:has(#token-image-picker)');
-  if (coinFields && description && socials && image) coinFields.after(description, socials, image);
+  if (coinFields && description && socials && image) coinFields.after(image, socials, description);
+  const links = socials ? [...socials.querySelectorAll('input')] : [];
+  const restoreLinks = () => { if (links.some(field=>field.value.trim())) socials.open = true; };
+  restoreLinks();
+  window.addEventListener('pageshow',restoreLinks);
   text('#creator-burn-title', 'Promotion package');
   text('#creator-burn-title + span', 'Select one');
   if (tier) {

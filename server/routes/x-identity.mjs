@@ -101,7 +101,7 @@ export function createXIdentityRoutes({
         } catch { reasons.push('V3 launch readiness is unavailable.'); }
       }
       return json(res, 200, { ready:reasons.length === 0, reasons,
-        scope:'per-mint-v3', cluster:solanaCluster });
+        checkedAt:new Date().toISOString(), scope:'per-mint-v3', cluster:solanaCluster });
     }
     if (req.method === 'GET' && url.pathname === '/api/x-fee/claims') {
       const session = await xSession(req);

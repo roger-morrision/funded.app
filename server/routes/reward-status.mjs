@@ -6,7 +6,9 @@ import { readV3BuybackDashboard } from '../v3-buyback-dashboard.mjs';
 import { buybackTriggerLamports } from '../devnet-qa-minimums.mjs';
 import { v3BuybackNextOrder, v3BuybackSourceSpent } from '../v3-buyback-orders.mjs';
 import { onchainBuybackSource } from '../v3-buyback-cycle.mjs';
-import { v3BuybackPendingStatus, MIN_V3_BUYBACK_ORDER_LAMPORTS } from '../v3-buyback-worker-policy.mjs';
+import { v3BuybackPendingStatus, shouldAttemptV3Buyback,
+  MIN_V3_BUYBACK_ORDER_LAMPORTS } from '../v3-buyback-worker-policy.mjs';
+import { workerHeartbeatHealth } from '../worker-readiness.mjs';
 
 function pendingV3Buybacks(state, programId) {
   if (!programId) return [];
@@ -116,10 +118,13 @@ export function createRewardStatusRoutes({
   respond, env = process.env, solanaRpcUrl = '',
   connectionFactory = url => new Connection(url, 'finalized'),
   readBuybackDashboard = readV3BuybackDashboard,
+  readXCapability, readProgramReadiness, requireAuthorized,
+  now = () => Date.now(), statusTimeoutMs = 10_000,
 }) {
   const json = (...args) => { respond(...args); return true; };
   let buybackSnapshot = null;
   const buybackReads = new Map();
+  let programSnapshot = null, programRead = null;
   const verifiedV3Burns = state => Object.values(state.v3BuybackOrders || {}).filter(row =>
     row.status === 'finalized' && row.finalized === true
     && row.vaultDebitVerified === true && row.burnInstructionVerified === true);
@@ -130,72 +135,155 @@ export function createRewardStatusRoutes({
     ? verifiedV3Burns(state).filter(row =>
       row.programId === env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID
       && row.approvedHash === env.FUNDED_V3_PROGRAM_DATA_SHA256.toLowerCase()) : [];
+  async function currentProgram() {
+    if (programSnapshot && now()-programSnapshot.at<15_000) return programSnapshot.value;
+    if (!programRead) programRead = (async () => {
+      let value;
+      try { value = await readProgramReadiness?.(); }
+      catch { /* Current program or RPC verification failed closed. */ }
+      const matched = value?.ready === true
+        && value.programId === env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID;
+      const result = { ready:matched,
+        programId:value?.programId || null, checkedAt:new Date(now()).toISOString(),
+        reasons:matched ? [] : value?.reasons?.length ? value.reasons
+          : value?.ready === true ? ['Current V3 program does not match this deployment.']
+            : ['Current V3 program and RPC readiness are unavailable.'] };
+      programSnapshot = {at:now(),value:result};
+      return result;
+    })().finally(() => { programRead = null; });
+    return programRead;
+  }
+  async function buybackDashboard(state, thresholdLamports) {
+    let dashboard = { status:'unavailable', thresholdLamports:String(thresholdLamports),
+      collectedLamports:null, observedLamports:null, triggerReached:false,
+      vaults:[], lastBurn:null };
+    if (solanaCluster !== 'devnet' || !solanaRpcUrl || !env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID)
+      return dashboard;
+    const cacheKey=`${env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID}:${thresholdLamports}`;
+    if (buybackSnapshot?.key===cacheKey && now()-buybackSnapshot.at<20_000)
+      return buybackSnapshot.value;
+    try {
+      let pending = buybackReads.get(cacheKey);
+      if (!pending) {
+        pending = (async () => {
+          let timer;
+          try {
+            const deadline = new Promise((_resolve, reject) => {
+              timer = setTimeout(() => reject(new Error('Buyback verification timed out.')), 25_000);
+              timer.unref?.();
+            });
+            const value = await Promise.race([readBuybackDashboard({ state,
+              programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,thresholdLamports,
+              connection:connectionFactory(solanaRpcUrl) }), deadline]);
+            value.checkedAt = new Date(now()).toISOString();
+            buybackSnapshot = {key:cacheKey,at:now(),value};
+            return value;
+          } finally { clearTimeout(timer); }
+        })();
+        buybackReads.set(cacheKey, pending);
+      }
+      try { dashboard = await pending; }
+      finally { if (buybackReads.get(cacheKey) === pending) buybackReads.delete(cacheKey); }
+    } catch { /* An unavailable scan cannot establish current execution readiness. */ }
+    return dashboard;
+  }
+  async function currentBuyback(rewards, dashboard, pending, program) {
+    const checkedAt = new Date(now()).toISOString();
+    const reasons = [];
+    if (solanaCluster !== 'devnet') reasons.push('Buyback execution requires Devnet.');
+    if (env.FUNDED_V3_BUYBACK_ENABLED !== 'true') reasons.push('V3 buyback execution is disabled.');
+    const worker = workerHeartbeatHealth(rewards.buybackWorkerHeartbeat,
+      {now:now(),maxAgeMs:180_000,expectedCluster:'devnet'});
+    if (!worker.healthy) reasons.push(...worker.reasons.map(reason=>`Buyback worker: ${reason}.`));
+    if (program.ready !== true) reasons.push(...program.reasons);
+    if (dashboard.status !== 'verified' || dashboard.unindexedStatus !== 'verified')
+      reasons.push('Fresh buyback custody and RPC verification are unavailable.');
+    if (dashboard.triggerReached !== true) reasons.push('Verified buyback funding is below the execution threshold.');
+    if (!pending.some(row => row.status !== 'verification-pending'
+      && shouldAttemptV3Buyback(row,{triggerReached:dashboard.triggerReached,now:now()})))
+      reasons.push('No verified executable buyback allocation is currently available.');
+    return { ready:reasons.length === 0, checkedAt, programCheckedAt:program.checkedAt,
+      workerCheckedAt:worker.checkedAt,
+      custodyCheckedAt:dashboard.checkedAt || null, reasons:[...new Set(reasons)] };
+  }
+  async function automaticGates(state) {
+    let timer;
+    let program={ready:false,checkedAt:null,reasons:['Current V3 program and RPC readiness are unavailable.']};
+    let dashboard={status:'unavailable',triggerReached:false};
+    try {
+      await Promise.race([
+        Promise.all([currentProgram().then(value=>{program=value;}),
+          buybackDashboard(state,buybackTriggerLamports(solanaCluster,env)).then(value=>{dashboard=value;})]),
+        new Promise(resolve=>{timer=setTimeout(resolve,statusTimeoutMs);timer.unref?.();}),
+      ]);
+    } finally { clearTimeout(timer); }
+    return {program,dashboard};
+  }
   return async function handleRewardStatusRoutes(req, res, url) {
+    if (req.method === 'POST' && url.pathname === '/api/buyback/worker-heartbeat') {
+      if (!requireAuthorized) return json(res, 503, { error:'Worker authorization is unavailable.' });
+      if (!requireAuthorized(req,res)) return true;
+      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Buyback worker is Devnet-only.' });
+      const status = url.searchParams.get('status');
+      if (!['ready','degraded','failed'].includes(status))
+        return json(res, 400, { error:'A valid worker state is required.' });
+      await automaticRewardStore.transaction(state => { state.buybackWorkerHeartbeat = {
+        status, cluster:'devnet', at:new Date(now()).toISOString() }; });
+      return json(res, 200, { recorded:true });
+    }
     if (req.method === 'GET' && url.pathname === '/api/rewards/automatic') {
       const [buybackState, rewards] = await Promise.all([store.read(), automaticRewardStore.read()]);
       const status = v3AutomaticRewardStatus(buybackState, rewards);
-      const xPayments = solanaCluster === 'devnet'
-        && env.FUNDED_V3_X_CLAIMS_ENABLED === 'true'
-        && /^[a-f0-9]{64}$/i.test(String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || ''))
-        ? recordedV3XPayments(buybackState, rewards,
-          env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID) : [];
-      const x = { ready:xPayments.length > 0, verifiedV3Payments:xPayments.length,
-        reasons:xPayments.length ? [] : ['V3 X payout and claim require a finalized Devnet payment.'] };
-      status.modes.x = x.ready ? 'v3-x-payout-recorded' : 'unavailable';
+      const xPayments = recordedV3XPayments(buybackState, rewards,
+        env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID);
+      const {program,dashboard} = await automaticGates(buybackState);
+      let xCapability;
+      try { xCapability = await readXCapability?.(req,program); }
+      catch { /* Current authorization or network readiness failed closed. */ }
+      const xReasons = [
+        ...(program.ready ? [] : program.reasons),
+        ...(xCapability?.ready === true ? []
+          : xCapability?.reasons?.length ? xCapability.reasons : ['Current X execution gates are unavailable.'])];
+      const x = { ready:xReasons.length === 0, executionReady:xReasons.length === 0,
+        historicalExecutionVerified:xPayments.length > 0, verifiedV3Payments:xPayments.length,
+        checkedAt:new Date(now()).toISOString(), programCheckedAt:program.checkedAt,
+        reasons:[...new Set(xReasons)] };
+      status.modes.x = xPayments.length ? 'v3-x-payout-recorded' : 'unavailable';
       const recordedBurns = verifiedV3Burns(buybackState);
       const currentBurns = currentDevnetBurns(buybackState);
-      const buybackReady = currentBurns.length > 0;
-      status.modes.buyback = buybackReady ? 'verified-v3-devnet-execution' : 'accrual-only-execution-unavailable';
+      const pendingBuybacks = [...pendingV3Buybacks(buybackState,env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID),
+        ...pendingUnindexedV3Buybacks(buybackState,dashboard,env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID)];
+      const buybackCurrent = await currentBuyback(rewards,dashboard,pendingBuybacks,program);
+      status.modes.buyback = currentBurns.length ? 'verified-v3-devnet-execution' : 'accrual-only-execution-unavailable';
       const migrationReady = status.modes.community === 'verified-token-airdrop-cycle';
       const qaClaimReady = status.modes.community === 'v3-community-qa-claim-recorded';
-      status.routeReadiness = { x, community:{ ready:migrationReady, qaClaimVerified:qaClaimReady,
-        reason:migrationReady ? null : qaClaimReady
-          ? 'A Devnet QA cutoff claim is verified; a real migration eligibility snapshot remains unverified.'
-          : 'A verified migration-time eligibility snapshot and payable funded cycle are required.' }, buyback:{ ready:buybackReady, devnetExecutorVerified:buybackReady, verifiedV3Burns:currentBurns.length, recordedV3Burns:recordedBurns.length, pending:pendingV3Buybacks(buybackState,env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID), reason:buybackReady ? null : 'No finalized V3 buyback and burn matches the enabled Devnet program.' } };
+      const communityReason = 'Fresh migration eligibility, funded cycle and claim-worker readiness have not been verified.';
+      status.routeReadiness = { x, community:{ ready:false, executionReady:false,
+        historicalExecutionVerified:migrationReady || qaClaimReady,
+        checkedAt:new Date(now()).toISOString(), reasons:[communityReason],
+        qaClaimVerified:qaClaimReady, reason:communityReason },
+      buyback:{ ...buybackCurrent, executionReady:buybackCurrent.ready,
+        historicalExecutionVerified:recordedBurns.length > 0,
+        devnetExecutorVerified:currentBurns.length > 0,
+        verifiedV3Burns:currentBurns.length, recordedV3Burns:recordedBurns.length,
+        pending:pendingBuybacks,
+        reason:buybackCurrent.reasons[0] || null } };
       return json(res, 200, status);
     }
     if (req.method === 'GET' && url.pathname === '/api/buyback/status') {
-      const state = await store.read();
+      const [state,rewards] = await Promise.all([store.read(),automaticRewardStore?.read?.() || {}]);
       const thresholdLamports = buybackTriggerLamports(solanaCluster, env);
-      let dashboard = { status:'unavailable', thresholdLamports:String(thresholdLamports),
-        collectedLamports:null, observedLamports:null, triggerReached:false,
-        vaults:[], lastBurn:null };
-      if (solanaCluster === 'devnet' && solanaRpcUrl && env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID) {
-        const cacheKey=`${env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID}:${thresholdLamports}`;
-        if (buybackSnapshot?.key===cacheKey && Date.now()-buybackSnapshot.at<20_000)
-          dashboard=buybackSnapshot.value;
-        else try {
-          let pending = buybackReads.get(cacheKey);
-          if (!pending) {
-            pending = (async () => {
-              let timer;
-              try {
-                const deadline = new Promise((_resolve, reject) => {
-                  timer = setTimeout(() => reject(new Error('Buyback verification timed out.')), 25_000);
-                  timer.unref?.();
-                });
-                const value = await Promise.race([readBuybackDashboard({ state,
-                  programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,thresholdLamports,
-                  connection:connectionFactory(solanaRpcUrl) }), deadline]);
-                value.checkedAt = new Date().toISOString();
-                buybackSnapshot = {key:cacheKey,at:Date.now(),value};
-                return value;
-              } finally { clearTimeout(timer); }
-            })();
-            buybackReads.set(cacheKey, pending);
-          }
-          try { dashboard = await pending; }
-          finally { if (buybackReads.get(cacheKey) === pending) buybackReads.delete(cacheKey); }
-        } catch { /* Show unavailable data rather than an inferred balance. */ }
-      }
+      const dashboard = await buybackDashboard(state,thresholdLamports);
+      const pending = [...pendingV3Buybacks(state,env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID),
+        ...pendingUnindexedV3Buybacks(state,dashboard,env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID)];
+      const current = await currentBuyback(rewards,dashboard,pending,await currentProgram());
       return json(res, 200, { cluster:solanaCluster, custody:'v3-mint-category-vault',
         minimumOrderLamports:String(MIN_V3_BUYBACK_ORDER_LAMPORTS),
-        executionReady:currentDevnetBurns(state).length > 0,
+        executionReady:current.ready, executionCheckedAt:current.checkedAt,
+        executionReasons:current.reasons, workerCheckedAt:current.workerCheckedAt,
+        historicalExecutionVerified:verifiedV3Burns(state).length > 0,
         automationEnabled:solanaCluster==='devnet'&&env.FUNDED_V3_BUYBACK_ENABLED==='true',
-        mainnetReady:false, pending:[
-          ...pendingV3Buybacks(state,env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID),
-          ...pendingUnindexedV3Buybacks(state,dashboard,env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID),
-        ],
+        mainnetReady:false, pending,
         dashboard,
         receipts:verifiedV3Burns(state)
           .map(({preparedTransaction,signedTransaction,pumpData,pumpKeys,...row})=>row) });

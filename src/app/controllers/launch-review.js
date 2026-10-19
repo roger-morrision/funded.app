@@ -78,6 +78,15 @@ export function createLaunchReviewController(appState) {
     if (!field) return;
     try { appState.canonicalLaunchSocialUrl(appState.launchSocialValue(field), appState.LAUNCH_SOCIAL_KINDS[field.id]); field.setCustomValidity(''); }
     catch (error) { field.setCustomValidity(error.message); }
+    let error = document.getElementById(`${field.id}-error`);
+    if (!error) {
+      error = document.createElement('small'); error.id = `${field.id}-error`; error.className = 'field-error';
+      field.after(error);
+      field.setAttribute('aria-describedby',[field.getAttribute('aria-describedby'),error.id].filter(Boolean).join(' '));
+    }
+    error.textContent = field.validationMessage; error.hidden = !field.validationMessage;
+    field.setAttribute('aria-invalid',String(Boolean(field.validationMessage)));
+    if (field.validationMessage && field.closest('details')) field.closest('details').open = true;
   }
   // app-source-end
 

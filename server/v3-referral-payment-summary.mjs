@@ -8,7 +8,7 @@ const key = value => typeof value === 'string' ? value : value?.pubkey ? key(val
 
 // Public aggregates never include recipients, referral levels or graph edges.
 export async function v3ReferralPaymentSummary({ state, connection, cluster,
-  loadFunding = loadFinalizedV3RewardFunding, proofCache = new Map() }) {
+  loadFunding = loadFinalizedV3RewardFunding, proofCache = new Map(), onVerified = () => {} }) {
   const candidates = Object.entries(state.v3ReferralPayouts || {}).filter(([, row]) => row?.status === 'finalized');
   let paid = 0n, count = 0, unavailable = 0;
   const seen = new Set();
@@ -54,7 +54,10 @@ export async function v3ReferralPaymentSummary({ state, connection, cluster,
           proofCache.set(cacheKey, proof);
         }
         const identity = `${row.programId}:${proof.withdrawal}`;
-        if (!seen.has(identity)) { seen.add(identity); paid += BigInt(proof.amount); count++; }
+        if (!seen.has(identity)) {
+          seen.add(identity); paid += BigInt(proof.amount); count++;
+          onVerified({signature:proof.signature,to:proof.recipient,amountLamports:proof.amount});
+        }
       } catch { unavailable++; }
     }));
   }
