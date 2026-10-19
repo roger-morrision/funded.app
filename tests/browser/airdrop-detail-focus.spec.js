@@ -79,13 +79,17 @@ for(const [width,height] of [[390,844],[1440,900]]){
     await page.emulateMedia({reducedMotion:'reduce'});
     const release=await fixture(page);
     const panel=page.locator('#airdrop-selected-program');
-    await page.locator(`#airdrop-directory [data-directory-mint="${mints[0]}"]`).focus();
+    const first=page.locator(`#airdrop-directory [data-directory-mint="${mints[0]}"]`);
+    await first.focus();
     await page.keyboard.press('Space');
     await page.locator('#airdrop-detail-close').click();
+    await expect(first).toBeFocused();
     release();
-    await expect(page.locator(`#airdrop-directory [data-directory-mint="${mints[1]}"]`)).toBeVisible();
+    const second=page.locator(`#airdrop-directory [data-directory-mint="${mints[1]}"]`);
+    await expect(page.locator(`.airdrop-directory-card[data-logo-mint="${mints[1]}"] .directory-funding-line`)).toHaveText('Funding: Confirmed');
     await expect(panel).toBeHidden();
-    await page.locator(`#airdrop-directory [data-directory-mint="${mints[1]}"]`).click();
+    await expect(first).toBeFocused();
+    await second.click();
     await expect(panel).toHaveAttribute('data-mint',mints[1]);
     await expect(page.locator('#airdrop-selected-title')).toBeFocused();
     await focusVisible(page,height);
@@ -97,6 +101,7 @@ for(const [width,height] of [[390,844],[1440,900]]){
     await page.locator('#airdrop-search').fill('no such token');
     await expect(panel).toBeHidden();
     await expect(page.locator('#airdrop-search')).toHaveValue('no such token');
+    await expect(page.locator('#airdrop-search')).toBeFocused();
     await expect(page.locator('#airdrop-directory')).toContainText('No airdrops match your search');
   });
 }
