@@ -1,4 +1,5 @@
 import bs58 from 'bs58';
+import {buildV3PolicyApproval,buildV3PolicyDisbursement} from './v3-policy-builders.mjs';
 import { ComputeBudgetProgram, PublicKey } from '@solana/web3.js';
 import { buildMintRouterV3DisbursementInstruction,
   verifyMintPolicyV3Account, verifyMintWithdrawalV3Account,
@@ -21,12 +22,12 @@ export async function loadFinalizedV3RewardFunding({ connection, signature, prog
   try {
     if (![0, 2, 3, 4, 5].includes(category) && !(protectedPolicy && category === 1)) return null;
     const expected = protectedPolicy
-      ? buildProtectedMintV3DisbursementInstruction({ programId, mint, authority, creator,
-        withdrawalId, category, beneficiary, amount, holderAmount, recipient })
+      ? buildV3PolicyDisbursement({ programId, mint, authority, creator,
+        withdrawalId, category, beneficiary, amount, holderAmount, recipient,split })
       : buildMintRouterV3DisbursementInstruction({ programId, mint,
         authority, creator, withdrawalId, category, amount, recipient });
     const approvalRequired = protectedPolicy && category >= 1 && category <= 4;
-    const approval = approvalRequired ? buildProtectedMintV3ApprovalInstruction({
+    const approval = approvalRequired ? buildV3PolicyApproval({split,
       programId, mint, authority, creator, withdrawalId, category, beneficiary,
       amount, recipient }) : null;
     const expectedInstructions = approval ? [approval.instruction, expected.instruction]

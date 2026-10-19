@@ -53,7 +53,16 @@ The admin page can prepare a separate residual through the existing creator-wall
 
 Ignored evidence is under `data/qa-evidence/remaining-issues-20261019/` and `tmp/remaining-*`, `tmp/bonus-*`, `tmp/agency-cadence-tests.log`. Keys, generated artifacts and exports must not be committed.
 
-## Still unfinished
+## Later integration checkpoint
+
+See [agency and legacy integration](agency-contract-integration-2026-10-19.md)
+for the compiled eight-category candidate, durable execution helpers, the
+canonical PostgreSQL audit-hash fix (`459a6d8`), independently verified two-source
+legacy preservation plan, and newer observed live wallet-panel revision
+`004bf1c`. Initial preparation results below are historical; no live agency or
+residual execution is established by the newer local tests.
+
+## Still unfinished at the initial checkpoint
 
 1. A backward-compatible V3 agency contract extension with its dedicated 2% category, immutable team selections, per-agent caps and protected own-coin execution; browser/server decoders, launch/settlement support and verified Devnet deployment must follow. Current live policies retain their saved rates.
 2. Actual agency X publishing/verified billing and own-coin $100k/$300k purchase/burn executors, durable submission recovery and finalized receipts. Candidate trigger decisions do not authorize execution.

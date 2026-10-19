@@ -24,7 +24,8 @@ export function v3AllocationPlan({ launch, settlement }) {
     throw new Error('A matching verified V3 launch and settlement are required.');
   }
   const rows = settlement.categoryLamports;
-  if (!Array.isArray(rows) || rows.length !== 7) throw new Error('Seven on-chain V3 categories are required.');
+  const agency=launch.pumpFeeRoute.protocolSplit?.agencyPercent!==undefined;
+  if (!Array.isArray(rows) || rows.length !== (agency?8:7)) throw new Error('The signed V3 policy category count differs.');
   const category = rows.map(lamports);
   const gross = lamports(settlement.expectedLamports);
   if (gross <= 0n || category.reduce((total, value) => total + value, 0n) !== gross) {
@@ -63,6 +64,7 @@ export function v3AllocationPlan({ launch, settlement }) {
     protocol:{ operationsLamports:String(category[1]),
       referralLamports:category.slice(2, 5).map(String),
       communityLamports:String(category[5]), buybackLamports:String(category[6]) },
+    ...(agency?{agency:{amountLamports:String(category[7]),status:'allocated-not-executed'}}:{}),
   };
 }
 

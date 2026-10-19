@@ -78,7 +78,7 @@ export async function verifyPumpLaunch({ connection, mint, signature, promotionC
   const payer = (transaction.transaction.message.accountKeys || transaction.transaction.message.staticAccountKeys)[0].toBase58();
   const promotion = verifyAtomicLaunchPromotion({ transaction, payer, signature, claim: promotionClaim, fundedMint, tiers: promotionTiers, quote: promotionQuote });
   return {
-    chain: 'solana', mint: mintKey.toBase58(), signature,
+    chain: 'solana', mint: mintKey.toBase58(), signature, slot: transaction.slot,
     feePayer:payer,
     name: event.name, symbol: event.symbol, uri: event.uri || null, creator: event.creator.toBase58(),
     createdTimestamp: Number(event.timestamp.toString()), blockTime: transaction.blockTime ?? null,

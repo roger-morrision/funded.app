@@ -3,7 +3,8 @@ import { DAILY_BONUS_POLICY } from './config/daily-bonus.js';
 
 export function validateProtocolFeeSplit(split = PROTOCOL_FEE_SPLIT) {
   const levels = split?.referralLevelPercents;
-  const rates = [split?.operationsPercent, ...(Array.isArray(levels) ? levels : []), split?.communityPercent, split?.buybackPercent];
+  const agency=split?.agencyPercent;
+  const rates = [split?.operationsPercent, ...(Array.isArray(levels) ? levels : []), split?.communityPercent, split?.buybackPercent,...(agency===undefined?[]:[agency])];
   if (!Array.isArray(levels) || levels.length !== 3 || rates.some(rate => typeof rate !== 'number' || !Number.isFinite(rate) || rate < 0 || rate > 100 || Math.abs(Math.round(rate * 10_000) - rate * 10_000) > 0.000001)
     || Math.abs(rates.reduce((sum, rate) => sum + rate, 0) - 100) > 0.000001) {
     throw new Error('Protocol fee split must contain operations, three referral levels, community, and buyback percentages totaling 100% of the 20% app share.');
@@ -13,6 +14,7 @@ export function validateProtocolFeeSplit(split = PROTOCOL_FEE_SPLIT) {
     referralLevelPercents: [...levels],
     communityPercent: split.communityPercent,
     buybackPercent: split.buybackPercent,
+    ...(agency===undefined?{}:{agencyPercent:agency}),
   };
 }
 
@@ -32,6 +34,7 @@ function feeDistributionFor(split) { return Object.freeze({
   communityEffectivePercent: effectivePercent(split.communityPercent),
   buybackRateOfFundedRevenue: split.buybackPercent,
   buybackEffectivePercent: effectivePercent(split.buybackPercent),
+  ...(split.agencyPercent===undefined?{}:{agencyRateOfFundedRevenue:split.agencyPercent,agencyEffectivePercent:effectivePercent(split.agencyPercent)}),
 }); }
 
 export let FEE_DISTRIBUTION = feeDistributionFor(DEFAULT_PROTOCOL_SPLIT);
@@ -63,6 +66,7 @@ function splitFromSnapshot(fixedFunded) {
     referralLevelPercents: fixedFunded.appReferral?.levels?.map(level => level.percentOfFundedRevenue),
     communityPercent: fixedFunded.communityRewards?.percentOfFundedRevenue,
     buybackPercent: fixedFunded.fundedBuyback?.percentOfFundedRevenue,
+    ...(fixedFunded.marketingAgency?{agencyPercent:fixedFunded.marketingAgency.percentOfFundedRevenue}:{}),
   });
 }
 
@@ -144,6 +148,9 @@ export function buildFeeDistributionPolicy(input = {}, { fundedSplit = DEFAULT_P
         burnInstruction: 'BurnChecked',
         failedExecutionRule: 'keep-pending-never-reroute',
       },
+      ...(split.agencyPercent===undefined?{}:{marketingAgency:{percentOfFundedRevenue:split.agencyPercent,
+        effectivePercentOfCreatorFees:effectivePercent(split.agencyPercent),destination:'dedicated-v3-agency-vault',
+        budgetRule:'equal-selected-agents; retain unselected budget',status:'policy-not-execution-proof'}}),
       status: 'policy-defined-settlement-requires-verified-receipts',
     },
     creatorDirected: {
@@ -196,7 +203,9 @@ export function calculateCreatorFeeClaim(grossCreatorFees, input = {}, { referra
     validation.shares.creatorWalletPercent, validation.shares.holderAirdropPercent, validation.shares.solClaimPercent,
     effectivePercent(split.operationsPercent), effectivePercent(split.communityPercent), effectivePercent(split.buybackPercent),
     ...levelDefinitions.map(level => level.effectivePercentOfCreatorFees),
+    ...(split.agencyPercent===undefined?[]:[effectivePercent(split.agencyPercent)]),
   ]);
+  const agency=split.agencyPercent===undefined?0:referralAmounts[levelDefinitions.length];
   const creatorDestinations = { creatorWallet, holderAirdrop, solClaim };
   const referralLevels = levelDefinitions.map((level, index) => {
     const amount = referralAmounts[index];
@@ -212,7 +221,7 @@ export function calculateCreatorFeeClaim(grossCreatorFees, input = {}, { referra
   const missingReferral = roundAmount(referralLevels.filter(level => !level.recipient).reduce((sum, level) => sum + level.amount, 0));
   const community = roundAmount(communityBase + missingReferral);
   const creatorTotal = roundAmount(Object.values(creatorDestinations).reduce((sum, amount) => sum + amount, 0));
-  const totalAllocated = roundAmount(creatorTotal + operations + referralPayout + community + buyback);
+  const totalAllocated = roundAmount(creatorTotal + operations + referralPayout + community + buyback + agency);
   if (Math.round(totalAllocated * 1_000_000_000) !== Math.round(gross * 1_000_000_000)) throw new Error('Creator-fee settlement must allocate every claimed lamport exactly once.');
 
   return {
@@ -221,7 +230,7 @@ export function calculateCreatorFeeClaim(grossCreatorFees, input = {}, { referra
     creatorDestinations,
     creatorTotal,
     fundedApp: {
-      total: roundAmount(operations + referralPayout + community + buyback),
+      total: roundAmount(operations + referralPayout + community + buyback + agency),
       operations,
       referralLevels,
       referralPayout,
@@ -229,6 +238,7 @@ export function calculateCreatorFeeClaim(grossCreatorFees, input = {}, { referra
       missingReferralToCommunity: missingReferral,
       community,
       buyback,
+      ...(split.agencyPercent===undefined?{}:{agency}),
     },
     totalAllocated,
     status: 'obligations-created',

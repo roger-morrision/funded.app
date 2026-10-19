@@ -53,6 +53,94 @@ pub struct MintFeePolicyV3 {
     pub bump: u8,
 }
 
+/// Eight categories for new agency launches. Existing seven-category accounts
+/// retain their discriminator, seeds, rates and release rules.
+#[account]
+pub struct MintAgencyPolicyV3 {
+    pub mint: Pubkey,
+    pub creator: Pubkey,
+    pub authority: Pubkey,
+    pub protocol_units: [u32; 7],
+    pub settled_lamports: u64,
+    pub paid_lamports: [u64; 8],
+    pub withdrawn_lamports: [u64; 8],
+    pub directed_units: [u32; 3],
+    pub directed_released: [u64; 3],
+    pub selected_agents: u8,
+    pub agent_spent: [u64; 3],
+    pub completed_agents: u8,
+    pub last_promotion_at: i64,
+    pub promotion_sequence: u32,
+    pub promotion_recipient: Pubkey,
+    pub config_revision: u64,
+    pub bump: u8,
+}
+
+impl MintAgencyPolicyV3 {
+    pub const INIT_SPACE: usize = 32 * 4 + 4 * 7 + 8 + 8 * 16 + 4 * 3
+        + 8 * 3 + 1 + 8 * 3 + 1 + 8 + 4 + 8 + 1;
+}
+
+#[account]
+pub struct AgencyConfigV3 {
+    pub protocol_units: [u32; 7],
+    pub promotion_recipient: Pubkey,
+    pub revision: u64,
+    pub bump: u8,
+}
+
+impl AgencyConfigV3 {
+    pub const INIT_SPACE: usize = 4 * 7 + 32 + 8 + 1;
+}
+
+#[account]
+pub struct MintAgencyClaimV3 {
+    pub claim_id: [u8; 32],
+    pub mint: Pubkey,
+    pub total_lamports: u64,
+    pub category_lamports: [u64; 8],
+    pub created_at: i64,
+}
+
+impl MintAgencyClaimV3 {
+    pub const INIT_SPACE: usize = 32 * 2 + 8 * 10;
+}
+
+#[account]
+pub struct AgencyPromotionV3 {
+    pub mint: Pubkey,
+    pub post_id: u64,
+    pub delivery_hash: [u8; 32],
+    pub sequence: u32,
+    pub recipient: Pubkey,
+    pub amount: u64,
+    pub posted_at: i64,
+    pub billed_at: i64,
+}
+
+impl AgencyPromotionV3 {
+    pub const INIT_SPACE: usize = 32 * 3 + 8 * 4 + 4;
+}
+
+#[account]
+pub struct AgencyBuybackV3 {
+    pub buyback_id: [u8; 32],
+    pub source_mint: Pubkey,
+    pub bought_mint: Pubkey,
+    pub pool: Pubkey,
+    pub spent_lamports: u64,
+    pub burned_base_units: u64,
+    pub created_at: i64,
+    pub agent: u8,
+    pub observation_slot: u64,
+    pub market_cap_usd_micros: u64,
+    pub observation_hash: [u8; 32],
+}
+
+impl AgencyBuybackV3 {
+    pub const INIT_SPACE: usize = 32 * 5 + 8 * 5 + 1;
+}
+
 impl MintFeePolicyV3 {
     pub const INIT_SPACE: usize = 32 * 3 + 4 * 6 + 8 + 8 * 7 + 8 * 7 + 1;
 }

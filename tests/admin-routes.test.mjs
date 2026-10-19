@@ -84,6 +84,8 @@ test('admin wallet signature gates policy edits, inventory, and exact finalized 
   assert.equal(overview.value.wallets[0].withdrawable, false);
   assert.equal(overview.value.wallets.find(row => row.address === address(treasury)).withdrawable, true);
   const changed = { operationsPercent:40, referralLevelPercents:[15, 5, 5], communityPercent:10, buybackPercent:25 };
+  assert.equal((await call('POST', '/api/admin/fee-policy', {split:{...changed,operationsPercent:30,agencyPercent:10},expectedRevision:0})).status,409);
+  assert.equal(state.adminSettings?.protocolFeePolicy,undefined);
   assert.equal((await call('POST', '/api/admin/fee-policy', { split:{ ...changed, buybackPercent:26 }, expectedRevision:0 })).status, 400);
   const saved = await call('POST', '/api/admin/fee-policy', { split:changed, expectedRevision:0 });
   assert.equal(saved.status, 200);

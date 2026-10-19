@@ -1,5 +1,11 @@
 # AI marketing agency candidate
 
+Latest contract, custody-verification, durable-execution and integration evidence:
+[2026-10-19 checkpoint](agency-contract-integration-2026-10-19.md).
+The sections below record the initial preview. New contract/executor source is
+now implemented locally and tested; normal launch/runtime activation and live
+agency acceptance remain incomplete. The candidate is not deployed or active.
+
 ## Approved rules
 
 Applies to every new launch after activation. Existing mint policies and historical allocations retain their signed rates.

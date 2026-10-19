@@ -1,6 +1,7 @@
 import bs58 from 'bs58';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { buildMintRouterV3SettlementInstruction } from '../../mint-router-v3.js';
+import {buildV3PolicySettlement} from '../v3-policy-builders.mjs';
 import { prepareCreatorSettlement, verifyCreatorSettlement,
   submitCreatorSettlement, creatorSettlementRetryState } from '../creator-settlement-transaction.mjs';
 import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
@@ -114,7 +115,7 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
         blockhash:prior.blockhash });
       if (!retry.retry) return json(res, 409, { error:retry.reason });
     }
-    const settlement = buildMintRouterV3SettlementInstruction({ programId, mint,
+    const settlement = buildV3PolicySettlement({ programId, mint,split:launch.pumpFeeRoute.protocolSplit,
       authority:authority.publicKey, creator:launch.creatorWallet,
       claimId:source.claimId, expectedLamports:source.expectedLamports });
     if (!input?.creatorSignedTransaction) {

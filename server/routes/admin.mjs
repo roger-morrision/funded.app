@@ -304,6 +304,7 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
     }
     if (req.method === 'POST' && path === '/api/admin/fee-policy') {
       const input = await body(req) || {};
+      if(input.split?.agencyPercent!==undefined)return json(res,409,{error:'Agency fee changes require a verified on-chain future-mint configuration update. Off-chain activation is not supported.'});
       let split;
       try { split = validateProtocolFeeSplit(input.split); protocolGrossUnits(split); }
       catch { return json(res, 400, { error:'The six rates must be nonnegative, representable on-chain, and total 100% of the protocol share.' }); }

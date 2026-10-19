@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
+import {deriveAgencyPolicyV3} from '../agency-mint-router-v3.js';
+import {buildV3PolicySettlement} from './v3-policy-builders.mjs';
 import { PublicKey } from '@solana/web3.js';
 import { buildMintRouterV3SettlementInstruction, deriveMintPolicyV3,
   verifyMintPolicyV3Account, protocolGrossUnits } from '../mint-router-v3.js';
@@ -9,8 +11,10 @@ const address = value => typeof value === 'string' ? value : value?.pubkey
   ? address(value.pubkey) : value?.toBase58?.() || '';
 const discriminator = name => createHash('sha256').update(`global:${name}`).digest().subarray(0,8).toString('hex');
 const settle = discriminator('settle_mint_v3');
+const agencySettle=discriminator('settle_agency_mint_v3');
 const unchanged = new Set(['disburse_mint_v3','approve_protected_withdrawal_v3',
-  'disburse_protected_mint_v3','buyback_mint_v3'].map(discriminator));
+  'disburse_protected_mint_v3','buyback_mint_v3','disburse_agency_mint_v3',
+  'approve_agency_withdrawal_v3','bill_agency_promotion_v3','buyback_agency_mint_v3'].map(discriminator));
 const targets = (total, split) => {
   let prefix = 0n, previous = 0n;
   return [8_000_000, ...protocolGrossUnits(split)].map(units => {
@@ -25,7 +29,7 @@ const targets = (total, split) => {
 export async function loadV3SettlementPosition({ connection, signature, slot, programId,
   mint, authority, creator, expectedLamports, categoryLamports, split,
   verifyPolicy = verifyMintPolicyV3Account }) {
-  const policyAddress = deriveMintPolicyV3(programId,mint).address;
+  const policyAddress = (split?.agencyPercent!==undefined?deriveAgencyPolicyV3:deriveMintPolicyV3)(programId,mint).address;
   const snapshot = await connection.getAccountInfoAndContext(policyAddress,{commitment:'finalized'});
   if (!snapshot?.value || !Number.isSafeInteger(snapshot.context?.slot) || snapshot.context.slot < slot)
     throw new Error('Finalized V3 policy snapshot is unavailable.');
@@ -83,9 +87,9 @@ export async function loadV3SettlementPosition({ connection, signature, slot, pr
         const code = data.subarray(0,8).toString('hex');
         if (unchanged.has(code)) continue;
         const recovery = code === QA_RECOVERY_DISCRIMINATOR.toString('hex');
-        if ((code !== settle && !recovery) || data.length !== 48) throw new Error('Unknown V3 policy mutation requires reconciliation.');
+        if ((code !== (split?.agencyPercent!==undefined?agencySettle:settle) && !recovery) || data.length !== 48) throw new Error('Unknown V3 policy mutation requires reconciliation.');
         const amount = data.readBigUInt64LE(40);
-        const build = recovery ? buildQaSettlementRecoveryInstruction : buildMintRouterV3SettlementInstruction;
+        const build = recovery ? buildQaSettlementRecoveryInstruction : buildV3PolicySettlement;
         const expected = build({programId,mint,authority,creator,split,
           claimId:data.subarray(8,40),expectedLamports:amount}).instruction;
         if (accounts.length !== expected.keys.length || expected.keys.some((key,index)=>key.pubkey.toBase58() !== accounts[index]))

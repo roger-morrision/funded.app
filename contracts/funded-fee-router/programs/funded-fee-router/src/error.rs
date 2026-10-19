@@ -82,4 +82,6 @@ pub enum ErrorCode {
     InvalidMintApprovalV3,
     #[msg("This recovery is restricted to the approved historical Devnet QA claim")]
     InvalidQaRecoveryV3,
+    #[msg("The agency V3 policy, selected agent, budget, cadence or delivery attestation is invalid")]
+    InvalidAgencyPolicyV3,
 }

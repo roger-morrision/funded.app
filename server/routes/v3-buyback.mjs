@@ -224,6 +224,7 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
       return json(res,409,{error:'The V3 market quote exceeds the remaining buyback allocation.'});
     const built=buildV3BuybackInstruction({programId,sourceMint:mint,
       authority:authority.publicKey,creator,buybackId:id,
+      agencyPolicy:split?.agencyPercent!==undefined,
       ...quoted});
     const lookup=await connection.getAddressLookupTable(new PublicKey(lookupAddress),{
       commitment:'finalized'});

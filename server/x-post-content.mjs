@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
 import { PublicKey } from '@solana/web3.js';
 
-export const X_POST_KINDS = Object.freeze(['launch', 'launch_followup', 'listing', 'trade_profit', 'daily_projects', 'daily_rewards', 'auto_payout']);
+export const X_POST_KINDS = Object.freeze(['launch', 'launch_followup', 'listing', 'trade_profit', 'daily_projects', 'daily_rewards', 'auto_payout','agency_promotion']);
 export const DEFAULT_BIG_PROFIT_LAMPORTS = '1000000000';
 const LAMPORTS = 1_000_000_000n;
 const DAY_MS = 86_400_000;
@@ -121,6 +121,12 @@ export function buildXPost(kind, payload, { cluster, publicOrigin = 'https://fun
     requireValue(net===amount||net===amount-fee-rent,'Net change does not reconcile with verified costs.');
     const masked=`${wallet.slice(0,4)}...${wallet.slice(-4)}`;
     makeText=()=>`${prefix}Congratulations ${masked}! ${labels[payload.payoutKind]} finalized: ${formatXSol(amount)} SOL${net!==amount?' gross. Net wallet change: '+(net<0n?'-':'')+formatXSol(net<0n?-net:net)+' SOL after fees/rent.':'.'}\nReceipt ${proofs[0].signature.slice(0,10)}\n${origin}/#payments`;
+  } else if(kind==='agency_promotion'){
+    const mint=address(payload.mint);units(payload.budgetLamports,'Protected agency budget',true);
+    requireValue(payload.agencyVersion==='marketing-agency-v1'&&payload.agentId==='x-promotion'
+      &&Number.isSafeInteger(payload.sequence)&&payload.sequence>=0&&payload.sequence<0xffffffff,
+      'An immutable, funded agency promotion sequence is required.');
+    makeText=budget=>`${prefix}AI marketing team spotlight: “${sanitizeXLabel(payload.name||payload.symbol,budget)}”. Explore this launched coin and its public activity on funded.vip.\n${origin}/token/${mint}`;
   } else if (kind === 'launch' || kind === 'launch_followup' || kind === 'listing' || kind === 'trade_profit') {
     const mint = address(payload.mint);
     const link = `${origin}/token/${mint}`;

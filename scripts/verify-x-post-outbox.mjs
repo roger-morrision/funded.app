@@ -111,6 +111,21 @@ try {
   assert.equal((await isolated.list())[0].status, 'uncertain');
   checks.push('Account namespaces are isolated; pending work survives restart and uncertain delivery is terminal');
 
+  const filtered=await store('agency-payout-shared-budget');
+  await filtered.enqueue({...fixture('agency:promotion:0'),kind:'agency_promotion'});
+  await filtered.enqueue({...fixture('payout:holder:0'),kind:'auto_payout'});
+  const payoutOnly=await filtered.claim({kinds:['auto_payout']});
+  assert.equal(payoutOnly.event.id,'payout:holder:0');
+  await filtered.markPosted(payoutOnly.event.id,payoutOnly.token,published);await allow('agency-payout-shared-budget');
+  assert.equal(await filtered.claim({kinds:['auto_payout']}),null);
+  assert.equal((await filtered.get('agency:promotion:0')).status,'pending');
+  const agencyOnly=await filtered.claim({kinds:['agency_promotion']});
+  assert.equal(agencyOnly.event.id,'agency:promotion:0');
+  await filtered.markUncertain(agencyOnly.event.id,agencyOnly.token);await allow('agency-payout-shared-budget');
+  assert.equal(await filtered.claim({kinds:['agency_promotion']}),null);
+  assert.equal((await filtered.get('agency:promotion:0')).status,'uncertain');
+  checks.push('Payout and agency workers filter before claiming while sharing account pacing; uncertain promotions never replay');
+
   for (const [name, error, status] of [
     ['429', { delivery: 'not-sent', status: 429, retryAfterMs: 60_000 }, 'pending'],
     ['503', { delivery: 'unknown', status: 503 }, 'uncertain'],

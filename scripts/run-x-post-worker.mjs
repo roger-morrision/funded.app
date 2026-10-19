@@ -7,7 +7,7 @@ import { rewardLedgerPath } from '../server/reward-ledger-path.mjs';
 import { createXPostStore } from '../server/x-post-store.mjs';
 import { runXPostWorker } from '../server/x-post-worker.mjs';
 import { createXPublisher } from '../server/x-post-client.mjs';
-import { buildXPost } from '../server/x-post-content.mjs';
+import { buildXPost,X_POST_KINDS } from '../server/x-post-content.mjs';
 import { collectXPostEvents, createXPostChainAdapters } from '../server/x-post-events.mjs';
 import { verifyFeeRouterAccount } from '../fee-router.js';
 import { createXProfitVerifier } from '../server/x-profit-proof.mjs';
@@ -96,7 +96,8 @@ export async function runXPostCycle({ config, store, mainStore, readRewards, ada
     if(config.payoutsOnly&&event.kind!=='auto_payout')throw Object.assign(new Error('This worker is restricted to payout congratulations.'),{delivery:'rejected'});
     return publish(event, options);
   };
-  const dispatch = await runXPostWorker({ store, publish: checkedPublish, enabled: true, dryRun: !config.execute, maxPosts: config.maxPosts });
+  const dispatch = await runXPostWorker({ store, publish: checkedPublish, enabled: true, dryRun: !config.execute, maxPosts: config.maxPosts,
+    kinds:config.payoutsOnly?['auto_payout']:X_POST_KINDS.filter(kind=>kind!=='agency_promotion') });
   return { mode: config.execute ? 'dispatch' : 'draft', account: config.handle, cluster: config.cluster,
     collected: events.length, sourceGaps: collected.sourceGaps, dispatch };
 }

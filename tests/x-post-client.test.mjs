@@ -48,3 +48,21 @@ test('transport failures never expose provider bodies or access tokens in errors
     });
   }
 });
+
+test('agency delivery verification requires the pinned author, exact saved text and a real post timestamp',async()=>{
+  let post={id:'456',author_id:'123',text:event.text,created_at:'2026-10-18T10:00:00Z'};
+  const calls=[],publisher=createXPublisher({accessToken:'synthetic-private-token',expectedHandle:'fundedfixture',expectedAccountId:'123',
+    fetchImpl:async url=>{calls.push(url);return Response.json(url.endsWith('/users/me')?{data:{id:'123',username:'fundedfixture'}}:{data:post});}});
+  await assert.rejects(publisher.verifyPost({id:'456',text:event.text}),/verified publishing account/);
+  await publisher.verifyAccount();const verified=await publisher.verifyPost({id:'456',text:event.text});
+  assert.equal(verified.verified,true);assert.equal(verified.authorId,'123');assert.equal(verified.createdAt,'2026-10-18T10:00:00.000Z');
+  assert(calls.includes('https://api.x.com/2/tweets/456?tweet.fields=author_id,created_at,entities'));
+  for(const change of [{id:'789'},{author_id:'999'},{text:'Changed advertisement'},{created_at:null},{created_at:'2999-01-01T00:00:00Z'}]){
+    const previous=post;post={...post,...change};await assert.rejects(publisher.verifyPost({id:'456',text:event.text}),/differs/);post=previous;
+  }
+  const text='[Devnet test] QA coin https://funded.vip/token/verifiedmint';
+  post={...post,text:'[Devnet test] QA coin https://t.co/AbCd',entities:{urls:[{url:'https://t.co/AbCd',expanded_url:'https://funded.vip/token/verifiedmint'}]}};
+  assert.equal((await publisher.verifyPost({id:'456',text})).text,text);
+  post.entities.urls[0].expanded_url='https://funded-vip.example/token/verifiedmint';
+  await assert.rejects(publisher.verifyPost({id:'456',text}),/differs/);
+});

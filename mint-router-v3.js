@@ -35,7 +35,7 @@ const key = value => new PublicKey(value);
 export function protocolGrossUnits(split = PROTOCOL_FEE_SPLIT) {
   const checked = validateProtocolFeeSplit(split);
   const rates = [checked.operationsPercent, ...checked.referralLevelPercents,
-    checked.communityPercent, checked.buybackPercent];
+    checked.communityPercent, checked.buybackPercent,...(checked.agencyPercent===undefined?[]:[checked.agencyPercent])];
   // One percent of the protocol's fixed 20% is 20,000 ten-millionths of gross fees.
   const units = rates.map(rate => Math.round(rate * 20_000));
   if (rates.some((rate, index) => Math.abs(rate * 20_000 - units[index]) > 0.000001)
@@ -109,6 +109,13 @@ export async function verifyMintRouterV3Account({ connection, programId, mint, i
 }
 
 export async function verifyMintPolicyV3Account({ connection, programId, mint, creator, initialAuthority, split = null }) {
+  if(split?.agencyPercent!==undefined){
+    const {deriveAgencyPolicyV3,decodeAgencyPolicyV3}=await import('./agency-mint-router-v3.js');
+    const identity=deriveAgencyPolicyV3(programId,mint);
+    try{return decodeAgencyPolicyV3(await connection.getAccountInfo(identity.address,'finalized'),
+      {programId,mint,creator,initialAuthority,protocolUnits:protocolGrossUnits(split)});}
+    catch{return{...identity,verified:false,reason:'v3-agency-policy-invalid'};}
+  }
   const address = deriveMintPolicyV3(programId, mint);
   const account = await connection.getAccountInfo(address.address, 'finalized');
   if (!account?.owner?.equals(key(programId))) return { ...address, verified:false, reason:'v3-policy-owner-or-account-mismatch' };
@@ -218,6 +225,10 @@ export async function verifyMintClaimV3Account({ connection, programId, mint, cl
   if (!account?.owner?.equals(key(programId))) return { address, verified:false, reason:'v3-claim-owner-or-account-mismatch' };
   const data = Buffer.from(account.data);
   const expectedDiscriminator = accountDiscriminator('MintClaimRecordV3');
+  if(data.length===152){
+    try{const {decodeAgencyClaimV3}=await import('./agency-mint-router-v3.js');return decodeAgencyClaimV3(account,{programId,mint,claimId,expectedLamports});}
+    catch{return{address,verified:false,reason:'v3-agency-claim-invalid'};}
+  }
   if (data.length !== 144 || !data.subarray(0, 8).equals(expectedDiscriminator)
     || !data.subarray(8, 40).equals(Buffer.from(claimId))
     || !data.subarray(40, 72).equals(key(mint).toBuffer())

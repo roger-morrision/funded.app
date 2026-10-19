@@ -18,7 +18,7 @@ export function projectAgencyAllocation({ totalGrossLamports, previousGrossLampo
   if (before > total) throw new Error('Cumulative gross fees cannot decrease.');
   const selected = canonicalAgencySelection(selectedAgents);
   const rates = [POLICY.creatorUnits, POLICY.operationsUnits, ...POLICY.referralUnits,
-    POLICY.agencyUnits, POLICY.communityUnits, POLICY.fundedBuybackUnits];
+    POLICY.communityUnits, POLICY.fundedBuybackUnits, POLICY.agencyUnits];
   if (rates.reduce((sum, n) => sum + n, 0) !== POLICY.grossUnits) throw new Error('Agency policy does not conserve gross fees.');
   const targets = amount => {
     let boundary = 0n, prior = 0n;
@@ -37,14 +37,14 @@ export function projectAgencyAllocation({ totalGrossLamports, previousGrossLampo
   const agentTargets = budget => selected.map((id, index) => ({ id,
     amount: budget * BigInt(index + 1) / BigInt(selected.length)
       - budget * BigInt(index) / BigInt(selected.length) }));
-  const priorAgents = agentTargets(prior[5]);
+  const priorAgents = agentTargets(prior[7]);
   return { status: 'projection-not-funded', policyHash: agencyPolicyHash,
     grossLamports: String(total - before), creatorLamports: String(category[0]),
     operationsLamports: String(category[1]), referralLamports: category.slice(2, 5).map(String),
-    agencyLamports: String(category[5]), communityLamports: String(category[6]),
-    fundedBuybackLamports: String(category[7]),
-    agents: agentTargets(after[5]).map((row, index) => ({ id: row.id, lamports: String(row.amount - priorAgents[index].amount) })),
-    retainedAgencyLamports: selected.length ? '0' : String(category[5]) };
+    agencyLamports: String(category[7]), communityLamports: String(category[5]),
+    fundedBuybackLamports: String(category[6]),
+    agents: agentTargets(after[7]).map((row, index) => ({ id: row.id, lamports: String(row.amount - priorAgents[index].amount) })),
+    retainedAgencyLamports: selected.length ? '0' : String(category[7]) };
 }
 
 // No environment switch can assert that the current seven-category contract

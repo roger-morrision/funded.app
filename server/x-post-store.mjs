@@ -12,6 +12,11 @@ function stable(value) {
   if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().map(key => [key, stable(value[key])]));
   return value;
 }
+function checkedKinds(kinds){
+  if(kinds===undefined)return null;
+  if(!Array.isArray(kinds)||!kinds.length||kinds.length>16||kinds.some(kind=>!(/^[a-z][a-z0-9_]{0,63}$/).test(kind)))throw new Error('X worker kind selection is invalid.');
+  return [...new Set(kinds)];
+}
 export function normalizeXPostEvent(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('X event is invalid.');
   const { id, kind, cluster, occurredAt, text } = input;
@@ -119,6 +124,10 @@ export function createXPostStore({ databaseUrl, accountId, minIntervalMs = 60_00
       if (typeof id !== 'string' || !/^[A-Za-z0-9:_./-]{1,240}$/.test(id)) throw new Error('X event ID is invalid.');
       return Boolean((await pool.query("SELECT 1 FROM x_post_outbox WHERE account_id=$1 AND event_id=$2 AND status='posted'",[accountId,id])).rowCount);
     },
+    async get(id){
+      if(typeof id!=='string'||!/^[A-Za-z0-9:_./-]{1,240}$/.test(id))throw new Error('X event ID is invalid.');
+      return row((await pool.query('SELECT * FROM x_post_outbox WHERE account_id=$1 AND event_id=$2',[accountId,id])).rows[0]);
+    },
     async readCursor() {
       const account = (await pool.query('SELECT collector_cursor,cursor_version FROM x_post_accounts WHERE account_id=$1',[accountId])).rows[0];
       if (!account) throw new Error('Initialize the X account before reading its cursor.');
@@ -145,7 +154,8 @@ export function createXPostStore({ databaseUrl, accountId, minIntervalMs = 60_00
       integer(limit, 1, 200, 'X outbox list limit');
       return (await pool.query('SELECT * FROM x_post_outbox WHERE account_id=$1 AND ($2::text IS NULL OR status=$2) ORDER BY created_at,event_id LIMIT $3', [accountId,status ?? null,limit])).rows.map(row);
     },
-    async claim() {
+    async claim({kinds}={}) {
+      const selectedKinds=checkedKinds(kinds);
       return transaction(async client => {
         await accountLock(client);
         // Process death after sending is ambiguous, even if the lease expired.
@@ -158,7 +168,7 @@ export function createXPostStore({ databaseUrl, accountId, minIntervalMs = 60_00
         const allowed = await client.query(`SELECT 1 FROM x_post_accounts WHERE account_id=$1 AND active_token IS NULL AND next_allowed_at<=clock_timestamp()
           AND hour_count<max_hourly_posts AND day_count<max_daily_posts`, [accountId]);
         if (!allowed.rowCount) return null;
-        const candidate = (await client.query("SELECT * FROM x_post_outbox WHERE account_id=$1 AND status='pending' AND next_attempt_at<=clock_timestamp() ORDER BY created_at,event_id FOR UPDATE SKIP LOCKED LIMIT 1", [accountId])).rows[0];
+        const candidate = (await client.query("SELECT * FROM x_post_outbox WHERE account_id=$1 AND status='pending' AND next_attempt_at<=clock_timestamp() AND ($2::text[] IS NULL OR payload->>'kind'=ANY($2)) ORDER BY created_at,event_id FOR UPDATE SKIP LOCKED LIMIT 1", [accountId,selectedKinds])).rows[0];
         if (!candidate) return null;
         const token = randomUUID();
         const claimed = (await client.query(`UPDATE x_post_outbox SET status='sending',attempts=attempts+1,claim_token=$3,

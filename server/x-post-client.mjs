@@ -15,6 +15,22 @@ function retryDelay(response) {
   return Math.min(86_400_000, Math.max(1000, delay));
 }
 
+// X rewrites posted links to t.co. Compare the exact expanded URL entities
+// returned by X; never follow arbitrary redirects or accept a similar domain.
+function expandedPostText(post){
+  if(typeof post?.text!=='string')return null;
+  const rows=post.entities?.urls||[];if(!Array.isArray(rows)||rows.length>16)return null;
+  const urls=new Map();
+  for(const row of rows){
+    if(!/^https:\/\/t\.co\/[A-Za-z0-9]+$/.test(row.url||''))continue;
+    let target;try{target=new URL(row.expanded_url);}catch{return null;}
+    if(target.protocol!=='https:'||target.username||target.password
+      ||urls.has(row.url)&&urls.get(row.url)!==row.expanded_url)return null;
+    urls.set(row.url,row.expanded_url);
+  }
+  return post.text.replace(/https:\/\/t\.co\/[A-Za-z0-9]+/g,url=>urls.get(url)||url);
+}
+
 export function createXPublisher({ accessToken, oauth1, expectedHandle, expectedAccountId, fetchImpl = globalThis.fetch, timeoutMs = 15_000 } = {}) {
   const usingOAuth1 = oauth1 != null;
   if (usingOAuth1 && accessToken) throw new Error('Choose exactly one X user authentication method.');
@@ -82,6 +98,17 @@ export function createXPublisher({ accessToken, oauth1, expectedHandle, expected
       const id = result?.data?.id;
       if (!/^\d{1,30}$/.test(id || '')) throw failure('X did not return a valid post ID; reconcile before retrying.', 'unknown');
       return { id, url: `https://x.com/i/web/status/${id}` };
+    },
+    async verifyPost({id,text,signal}={}){
+      if(!account||!/^\d{1,20}$/.test(String(id))||typeof text!=='string'||!text.trim())
+        throw failure('A verified publishing account and exact saved post are required.','rejected');
+      const result=await request(`/2/tweets/${id}?tweet.fields=author_id,created_at,entities`,{signal});
+      const post=result?.data,createdAt=Date.parse(post?.created_at);
+      if(post?.id!==String(id)||post.author_id!==account.id||expandedPostText(post)!==text
+        ||!Number.isSafeInteger(createdAt)||createdAt>Date.now()+30000)
+        throw failure('Published X author, exact text or timestamp differs from the saved agency post.','rejected');
+      return{id:post.id,authorId:account.id,text,createdAt:new Date(createdAt).toISOString(),
+        url:`https://x.com/i/web/status/${post.id}`,verified:true};
     },
   };
 }

@@ -9,6 +9,7 @@ import { verifyV3PumpCollection } from './v3-collection-proof.mjs';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
 import { dailyBonusWindow, bonusHash } from './daily-bonus.mjs';
 import { dailyBonusSettlementReferences, finalizedBonusSettlementSources } from './daily-bonus-settlements.mjs';
+import {deriveAgencyPolicyV3} from '../agency-mint-router-v3.js';
 
 const signature = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const launchFingerprint = row => bonusHash({ mint:row.mint, creator:row.creatorWallet,
@@ -50,7 +51,7 @@ export function createDailyBonusEvidenceIndex({ rewardStore, pageSize = 100,
       const mint = new PublicKey(launch.mint);
       for (const [kind,address] of [['curve',bondingCurvePda(mint)],
         ['pool',canonicalPumpPoolPda(mint,NATIVE_MINT)],
-        [settlementTime?'settlements':'collections',settlementTime?deriveMintPolicyV3(programId,mint).address:deriveMintRouterV3(programId,mint).address]]) {
+        [settlementTime?'settlements':'collections',settlementTime?(launch.pumpFeeRoute.protocolSplit?.agencyPercent!==undefined?deriveAgencyPolicyV3:deriveMintPolicyV3)(programId,mint).address:deriveMintRouterV3(programId,mint).address]]) {
         const id = `${launch.mint}:${kind}`;
         job.routes[id] ||= { mint:launch.mint, kind, address:address.toBase58(), complete:false,
           before:null, previousSlot:Number.MAX_SAFE_INTEGER, pending:[], seen:{} };

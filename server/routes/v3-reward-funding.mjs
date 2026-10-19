@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
+import {buildV3PolicyApproval,buildV3PolicyDisbursement} from '../v3-policy-builders.mjs';
 import bs58 from 'bs58';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { buildMintRouterV3DisbursementInstruction } from '../../mint-router-v3.js';
@@ -179,12 +180,12 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     const holderAmount = kind === 'creator-reward'
       ? BigInt(plan.creatorDirected.holderLamports) : 0n;
     const payoutInput = { programId, mint, authority:authority.publicKey,
-      creator:launch.creatorWallet, withdrawalId, category, amount, recipient };
+      creator:launch.creatorWallet, withdrawalId, category, amount, recipient,split:launch.pumpFeeRoute.protocolSplit };
     const payout = protectedPolicy
-      ? buildProtectedMintV3DisbursementInstruction({ ...payoutInput, beneficiary, holderAmount })
+      ? buildV3PolicyDisbursement({ ...payoutInput, beneficiary, holderAmount })
       : buildMintRouterV3DisbursementInstruction(payoutInput);
     const approval = protectedPolicy && ['referral','operations'].includes(kind)
-      ? buildProtectedMintV3ApprovalInstruction({ ...payoutInput, beneficiary }) : null;
+      ? buildV3PolicyApproval({ ...payoutInput, beneficiary }) : null;
     const payoutInstructions = approval ? [approval.instruction, payout.instruction]
       : payout.instruction;
     const loadProof = signature => loadFunding({ connection, signature, programId, mint,

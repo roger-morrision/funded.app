@@ -23,6 +23,13 @@ test('disabled and dry-run workers never acquire a dispatch claim or call X', as
   const result=await runXPostWorker({store,publish,enabled:true,dryRun:true});
   assert.equal(result.mode,'dry-run');assert.deepEqual(result.events,[event]);assert.deepEqual(calls,['list']);
 });
+
+test('separate payout and agency workers select their kinds before acquiring a shared-budget dispatch claim',async()=>{
+  const selections=[],published=[],store={leaseMs:60000,claim:async options=>{selections.push(options);return null;}};
+  for(const kinds of [['auto_payout'],['agency_promotion']])await runXPostWorker({store,enabled:true,dryRun:false,kinds,publish:async event=>published.push(event)});
+  assert.deepEqual(selections,[{kinds:['auto_payout']},{kinds:['agency_promotion']}]);assert.deepEqual(published,[]);
+  await assert.rejects(runXPostWorker({store,enabled:true,dryRun:false,kinds:[],publish:async()=>{}}),/kinds/);
+});
 test('worker persists sending before network and saves the successful publication without replay',async()=>{
   const f=fixture();let published=0;
   const result=await runXPostWorker({store:f.store,enabled:true,dryRun:false,maxPosts:2,publish:async()=>{assert.equal(f.state,'sending');published++;return{id:'123',url:'https://x.com/i/web/status/123'};}});

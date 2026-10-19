@@ -1,4 +1,5 @@
 import bs58 from 'bs58';
+import {buildV3PolicySettlement} from './v3-policy-builders.mjs';
 import { ComputeBudgetProgram, PublicKey } from '@solana/web3.js';
 import { buildMintRouterV3SettlementInstruction, verifyMintClaimV3Account,
   verifyMintPolicyV3Account } from '../mint-router-v3.js';
@@ -15,8 +16,8 @@ export async function loadFinalizedV3Settlement({ connection, signature, program
   authority, creator, claimId, expectedLamports, split, includePosition = false,
   verifyClaim = verifyMintClaimV3Account, verifyPolicy = verifyMintPolicyV3Account }) {
   try {
-    let expected = buildMintRouterV3SettlementInstruction({ programId, mint,
-      authority, creator, claimId, expectedLamports });
+    let expected = buildV3PolicySettlement({ programId, mint,
+      authority, creator, claimId, expectedLamports,split });
     const transaction = await connection.getTransaction(signature, {
       commitment:'finalized', maxSupportedTransactionVersion:0 });
     if (!transaction || transaction.meta?.err !== null
