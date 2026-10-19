@@ -1,18 +1,19 @@
 # Historical Devnet settlement recovery candidate
 
-Status: **the original two claims are finalized; a later collection makes current public verification 30/31**.
+Status: **all three approved claims are finalized; public verification is 31/31**.
 The user explicitly approved the restricted upgrade, both settlements and
 proof-gated shared-ledger reconciliation, choosing to fund the QA payer and
 preserve its 3 SOL reserve. Funding finalized before execution. The running app
-revision is `467984011d0f0058c595e2e44d9c9820c11763d3`.
+revision for the initial recovery was `467984011d0f0058c595e2e44d9c9820c11763d3`.
+The follow-up code revision is `40893d132478e9233ad167decb1f5ec3a53b18a6`.
 
 At 2026-10-19T04:39:21.866Z, public `/api/status` reported
 `settlementVerified:true`, `recorded:30`, `checked:30`, `recoveredRecords:1`.
 No collection was deleted, excluded or relabeled as a recipient payment.
 At 04:40:41.953Z, the collector made a new 1,484,671-lamport collection for
 the same lost-creator QA mint. The existing pending-settlement gate correctly
-allowed it after the older claims finalized. Its new claim is outside the
-approved one-claim exception and remains pending, as described below.
+allowed it after the older claims finalized. Its new claim was outside the first
+approved exception; its separately approved, finalized recovery is recorded below.
 
 ## Independently checked source collections
 
@@ -174,7 +175,7 @@ These records contain public transaction evidence, not private signing keys.
 - Amount: 1,484,671 lamports; source slot 512680377.
 - Claim ID: `9cadcccb3d2554a50853fe7b7cbb263fb5cae08150ec1a9cfb0cb51108c4f864`.
 - Prior cumulative settlement: 1,065,492 lamports; original 10% operations / 2% community policy remains fixed.
-- Source proof independently verified. No new recovery instruction was submitted.
+- Source proof independently verified before preparing and executing the follow-up below.
 - The user separately approved preparing, deploying and executing this exact-claim recovery, preserving the 3 SOL reserve, original split and beneficiaries. Its build and execution are tracked separately from the completed first recovery.
 
 `FUNDED_FEE_COLLECTION_PAUSED_MINTS` now supports a comma-separated per-mint
@@ -182,5 +183,35 @@ operational pause. The Devnet worker skips configured mints, keeps all prior
 records visible and reports the pause in its heartbeat. Its single-pass mode
 supports verification without entering the scheduler loop. An actual-worker HTTP
 test proves the paused mint is skipped while another mint still collects; invalid
-pause configuration stops before any collection. Configure this QA mint as paused
-before resuming the collector or completing any additional recovery.
+pause configuration stops before any collection. The keeper API independently
+enforces the same pause before database writes or signing. This mint is configured
+as paused. The live API returned HTTP 409 `collection-paused`, and the collector
+heartbeat reported the exact paused mint while remaining ready for other mints.
+
+## Finalized follow-up and final public result
+
+The user explicitly approved this additional exact-claim exception. It accepts
+only the fixed new claim ID and amount above, at prior cumulative settlement
+1,065,492 lamports and exact prior category totals. Both approved claims retain
+their distinct prior-state checks. The exception cannot authorize future claims,
+change beneficiaries, alter the original policy, or withdraw funds.
+
+| Operation | Finalized transaction | Result |
+| --- | --- | --- |
+| Follow-up program upgrade | `5LWfKj7UoVZbMHQgmuWJQX6uGN2g4RXJrVs2ZVNqGWcehPqRiyn7pQfNHoqjvdYRU1Skacxeo6iBx4tZ2hiRnMVw` | Slot 512685550; exact tested executable, padding, authority and upgrade instruction verified. |
+| Follow-up settlement | `4GSvzAEyo3eh2YCYUDduZ1Cq8yq4DKGFTY7MnzQBAegAFkmbDomesaJ2YyVcCcfasNCm1S4ivg6rsmakoLu5BL6k` | Exactly 1,484,671 lamports; strict claim and cumulative-policy proof, seven category deltas, unchanged prior withdrawals, preserved referral upline and atomic ledger reconciliation. |
+
+- Artifact: 746,400 bytes, SHA-256 `92c38dd4300989994e8d5f98bc2c840ffad988653fe784f96b1d2290ebb1a93c`.
+- Current complete ProgramData pin: `5ddcfdd45ce4643a5e4eb4b8bc414e6fc3ab78339e3f62f10ddd787523d865f9`.
+- Category deltas: `[1187737,148467,29693,8908,5939,29693,74234]` lamports.
+- Contract validation: 16 Devnet VM tests and 20 default-program tests passed, including exact follow-up, wrong amount/claim/prior state, preserved withdrawals and replay rejection.
+- Exact committed-source app validation: 915 unit tests passed, nine skipped (924 total); production build passed; 19 affected tests also passed inside its release image.
+- At `2026-10-19T05:04:04.567Z`, public status returned operational Devnet, `settlementVerified:true`, `recorded:31`, `checked:31`, `recoveredRecords:2`.
+- Payer after all recoveries: 14.571930632 SOL. Follow-up net cost: 0.00529176 SOL. Total net cost for both upgrades and all three settlements: 0.01652196 SOL. The 3 SOL reserve was preserved.
+
+The additional evidence is in ignored directory
+`data/qa-evidence/historical-settlement-followup-20261019/`: source binding,
+both VM logs, preflight, signed upload and settlement journals, finalized byte
+and instruction proofs, reconciliation and public status. Nothing was excluded
+from public verification. Downstream recipient payouts are separate and remain
+unproven by these category-settlement receipts.
