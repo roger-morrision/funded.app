@@ -60,6 +60,24 @@ export function createNavigationController(appState) {
   }
   // app-source-end
 
+  function focusCurrentPageContent(){
+    const main=document.querySelector('#main-content');
+    const preferredSelectors=appState.coinRouteRequested() ? ['#coin-page-title']
+      : location.hash.startsWith('#docs/') ? ['#docs-guide-article']
+        : appState.requestedPageRoute()==='launch' ? ['#launch-title','#launch-route-title'] : [];
+    const preferred=preferredSelectors.map(selector=>document.querySelector(selector))
+      .find(node=>node?.getClientRects().length);
+    if (preferred) {
+      preferred.tabIndex=-1;
+      preferred.focus({preventScroll:true});
+    } else appState.focusCurrentPageRoute();
+    const focused=document.activeElement;
+    const target=focused!==document.body&&focused!==document.querySelector('.skip-link')&&focused.getClientRects().length
+      ? focused : main;
+    if (target===main) main.focus({preventScroll:true});
+    target.scrollIntoView({block:'start'});
+  }
+
   // app-source: 860
   function requestedPageRoute(){
     if (/^\/pilot\/?$/.test(location.pathname) && !location.hash) return 'launch';
@@ -164,5 +182,5 @@ export function createNavigationController(appState) {
   }
   // app-source-end
 
-  return { setDesktopSidebarCollapsed, setMenuOpen, requestPageRouteFocus, focusCurrentPageRoute, requestedPageRoute, normalizeDirectPagePathForHashRoute, syncPageRoute };
+  return { setDesktopSidebarCollapsed, setMenuOpen, requestPageRouteFocus, focusCurrentPageRoute, focusCurrentPageContent, requestedPageRoute, normalizeDirectPagePathForHashRoute, syncPageRoute };
 }

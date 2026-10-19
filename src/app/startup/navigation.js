@@ -102,7 +102,11 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 866
-  document.querySelectorAll('a[href^="#"]').forEach(link => link.addEventListener('click', () => {
+  document.querySelector('.skip-link').addEventListener('click', event => {
+    event.preventDefault();
+    if (!event.currentTarget.inert) appState.focusCurrentPageContent();
+  });
+  document.querySelectorAll('a[href^="#"]:not(.skip-link)').forEach(link => link.addEventListener('click', () => {
     const href = link.getAttribute('href');
     if (href !== '#launch' && !link.dataset.info) appState.closeDialog('launch-dialog');
     if (!link.dataset.info && href !== '#referral-faq') {
