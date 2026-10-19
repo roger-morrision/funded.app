@@ -186,10 +186,6 @@ export function navigation() {
   network.title = EXPLORE_CLUSTER === 'devnet' ? 'Solana Devnet uses test SOL with no monetary value.' : APP_MAINNET_READ_ONLY ? 'Solana Mainnet preview: transactions are disabled.' : 'Solana Mainnet: transactions use real SOL.';
   network.setAttribute('aria-label', network.title);
   if (!network.isConnected) $('.top-actions')?.prepend(network);
-  const sidebar = $('#sidebar');
-  sidebar?.addEventListener('click', event => {
-    if (event.target.closest('a')) $('#close-menu')?.click();
-  });
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape') { const more = $('.nav-more'); if (more?.open) { more.open = false; $('summary', more).focus(); } }
   });
