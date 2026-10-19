@@ -387,6 +387,8 @@ export function initializeConnections(appState) {
     communityEffectivePercent: appState.FEE_DISTRIBUTION.communityEffectivePercent,
     buybackRateOfFundedRevenue: appState.FEE_DISTRIBUTION.buybackRateOfFundedRevenue,
     buybackEffectivePercent: appState.FEE_DISTRIBUTION.buybackEffectivePercent,
+    agencyEffectivePercent: appState.FEE_DISTRIBUTION.agencyEffectivePercent,
+    agencyRateOfFundedRevenue: appState.FEE_DISTRIBUTION.agencyRateOfFundedRevenue,
   });
   initializeAppState(appState, 'APP_ECONOMICS', APP_ECONOMICS);
   // app-source-end

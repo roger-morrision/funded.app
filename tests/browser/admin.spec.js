@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import {agencyProtocolSplit} from '../../agency-mint-router-v3.js';
 
 const ADMIN = 'CG87C9tjCSB9BAoKfoPUM3mLvbg3WAK1NGNQCWi12zcJ';
 const SOURCE = '7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y';
@@ -106,4 +107,33 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
   await page.locator('#residual-review-form [name=mint]').fill(ADMIN);
   await expect(page.getByRole('button',{name:'Review and sign as launch creator',exact:true})).toBeDisabled();
   expect(pageErrors).toEqual([]);
+});
+
+test('agency policy publication displays verified rates and disables the old off-chain fee editor',async({page})=>{
+  let published=false,request;
+  const split=agencyProtocolSplit();
+  await page.route('**/api/**',route=>{
+    const path=new URL(route.request().url()).pathname;
+    const send=value=>route.fulfill({json:value});
+    if(path==='/api/admin/session')return send({wallet:ADMIN});
+    if(path==='/api/fee-policy')return send({revision:published?3:2,split});
+    if(path==='/api/admin/overview')return send({wallets:[],withdrawalDestinations:[],gates:{},revenue:{verifiedCollectionsLamports:'0',operationsAllocationLamports:'0',finalizedSettlementCount:0}});
+    if(path==='/api/admin/audit')return send({entries:[]});
+    if(path==='/api/admin/agency-fee-policy'){
+      request=JSON.parse(route.request().postData());published=true;
+      return send({revision:3,split,configRevision:'1',configSlot:500});
+    }
+    return route.fulfill({status:503,json:{error:'Offline fixture'}});
+  });
+  await page.setViewportSize({width:390,height:844});await page.goto('/admin.html');
+  await expect(page.locator('#fee-form button')).toBeDisabled();
+  await expect(page.locator('#fee-total')).toContainText('100.0000%');
+  const form=page.locator('#agency-policy-form');
+  await form.locator('[name=signature]').fill('1'.repeat(64));
+  await form.locator('[name=configRevision]').fill('1');
+  await form.locator('[name=reason]').fill('Verified QA new-launch referral activation.');
+  await form.locator('button').click();
+  await expect(page.locator('[data-agency-policy-review]')).toContainText('L1 0.6% · L2 0.25% · L3 0.15%');
+  expect(request.expectedRevision).toBe(2);expect(request.configRevision).toBe('1');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

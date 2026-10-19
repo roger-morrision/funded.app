@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { homeFeeAllocationSummary } from '../server/home-dashboard-metrics.mjs';
 import { protocolFeeRouteModel } from '../src/features/home/protocol-fee-route.js';
+import {agencyProtocolSplit} from '../agency-mint-router-v3.js';
 
 test('home protocol route reconciles verified V3 settlement categories and current future-launch policy', () => {
   const split = { operationsPercent:40, referralLevelPercents:[20, 5, 5],
@@ -38,6 +39,14 @@ test('home protocol route reconciles verified V3 settlement categories and curre
   assert.deepEqual(view.rows.map(row => row.amount),
     ['0.08 SOL allocated', '0.06 SOL allocated', '0.02 SOL allocated', '0.04 SOL allocated']);
   assert.match(view.evidenceNote, /partial receipt coverage/);
+});
+
+test('active agency protocol route includes the reserved agency allocation when reconciling all revenue',()=>{
+  const row=protocolFeeRouteModel({currentPolicy:{split:agencyProtocolSplit()},status:'verified',settledCollections:1,
+    operationsLamports:'8',referralLamports:'1',communityLamports:'4',buybackLamports:'5',agencyLamports:'2',appRevenueLamports:'20'});
+  assert.equal(row.state,'verified');assert.equal(row.rows.length,5);
+  assert.equal(row.rows[4].label,'AI agency');assert.equal(row.rows[4].share,'10% of app share');
+  assert.equal(row.rows[4].gross,'2% of gross collected fees');
 });
 
 test('home protocol route shows policy but hides amounts when evidence is missing or totals disagree', () => {

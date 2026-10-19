@@ -28,6 +28,7 @@ test('eight-category signed settlement, raw account decoders, receipt proof and 
     pumpFeeRoute:{protocolSplit:split,scope:'per-mint-v3',programId:programId.toBase58()},feeDistribution};
   const plan=v3AllocationPlan({launch,settlement:{...proof,programId:programId.toBase58(),collectionSignature:'collection',settlementSignature:signature}});
   assert.equal(plan.protocol.operationsLamports,'8000000000');assert.equal(plan.protocol.referralLamports.reduce((n,row)=>n+BigInt(row),0n),1000000000n);
+  assert.deepEqual(plan.protocol.referralLamports,['600000000','250000000','150000000']);
   assert.equal(plan.protocol.buybackLamports,'5000000000');assert.equal(plan.agency.amountLamports,'2000000000');
   // Old seven-category bytes and a reclassified eighth amount are rejected.
   claim[0]^=1;assert.equal(await loadFinalizedV3Settlement(input),null);claim[0]^=1;
@@ -40,4 +41,15 @@ test('100-SOL public calculator matches the new 80/8/1/2/4/5 policy without chan
   assert.equal(result.fundedApp.communityBase,4);assert.equal(result.fundedApp.buyback,5);assert.equal(result.fundedApp.referralPayout,1);assert.equal(result.totalAllocated,100);
   const old=validateProtocolFeeSplit({operationsPercent:40,referralLevelPercents:[10,3,2],communityPercent:20,buybackPercent:25});
   assert.equal(Object.hasOwn(old,'agencyPercent'),false);
+});
+
+test('each missing referral level retains its exact new-rate allocation separately from the base Daily bonus pool',()=>{
+  const fee=buildFeeDistributionPolicy({creatorWalletPercent:80},{fundedSplit:agencyProtocolSplit()});
+  for(let count=0;count<=3;count++){
+    const result=calculateCreatorFeeClaim(100,{creatorWalletPercent:80},{fixedFunded:fee.fixedFunded,referralRecipients:['one','two','three'].slice(0,count)});
+    assert.deepEqual(result.fundedApp.referralLevels.map(row=>row.amount),[.6,.25,.15]);
+    assert.equal(Number((result.fundedApp.referralPayout+result.fundedApp.missingReferralToCommunity).toFixed(8)),1);
+    assert.equal(result.fundedApp.communityBase,4);assert.equal(result.fundedApp.agency,2);
+    assert.equal(result.totalAllocated,100);
+  }
 });

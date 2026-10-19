@@ -13,7 +13,7 @@ export function homeFeeAllocationSummary(state, evidence, cluster) {
   const verified = new Map((evidenceReady ? evidence.verifiedCollections || [] : [])
     .map(row => [row.signature, row]));
   const totals = { appRevenueLamports:0n, operationsLamports:0n, referralLamports:0n,
-    holderLamports:0n, xLamports:0n, buybackLamports:0n, communityLamports:0n };
+      holderLamports:0n, xLamports:0n, buybackLamports:0n, communityLamports:0n,agencyLamports:0n };
   let settledCollections = 0;
   for (const collection of Object.values(state.collections || {})) {
     const proof = verified.get(collection.signature);
@@ -31,7 +31,9 @@ export function homeFeeAllocationSummary(state, evidence, cluster) {
     const referrals = (plan.protocol?.referralLamports || []).reduce((sum, row) => sum + lamports(row), 0n);
     const community = lamports(plan.protocol?.communityLamports);
     const buyback = lamports(plan.protocol?.buybackLamports);
-    totals.appRevenueLamports += operations + referrals + community + buyback;
+    const agency=lamports(plan.agency?.amountLamports);
+    totals.appRevenueLamports += operations + referrals + community + buyback + agency;
+    totals.agencyLamports+=agency;
     totals.operationsLamports += operations;
     totals.referralLamports += referrals;
     totals.holderLamports += lamports(plan.creatorDirected?.holderLamports);

@@ -32,6 +32,21 @@ export function createFeeFlowView(APP_ECONOMICS) {
     const setWidths = (selector, values) => document.querySelectorAll(selector).forEach((node, index) => { if (index < values.length) node.style.width = percent(values[index]); });
     const levelGross = levels.map(level => level.effectivePercentOfCreatorFees);
     const referral=referralRatePresentation(),displayGross=referral.levels.map(level=>level.rate);
+    const agency=APP_ECONOMICS.agencyEffectivePercent;
+    const agencyFields=[['.home-receipt-card .receipt-bars','span',''],['.fee-route-bar','i',''],
+      ['.home-receipt-card .receipt-rows','span',`${agency} SOL AI agency`],
+      ['.app-revenue-grid','span',`<b>${APP_ECONOMICS.agencyRateOfFundedRevenue}%</b><em>AI agency</em><small>${agency}% of gross fees</small>`],
+      ['.allocation-chips','span',`<b>${agency}%</b><small>AI agency</small>`],
+      ['.fee-output-grid','div',`<span>AI agency</span><strong id="fee-output-agency">—</strong><small>${agency}% of gross</small>`]];
+    for(const [selector,tag,html] of agencyFields){
+      const parent=document.querySelector(selector);if(!parent)continue;
+      let node=parent.querySelector('[data-agency-fee]');
+      if(agency===undefined){node?.remove();continue;}
+      if(!node){node=document.createElement(tag);node.dataset.agencyFee='';node.className='agency';parent.append(node);}
+      node.innerHTML=html;
+      if(!html){node.style.width=percent(agency);node.style.background='#6bd6c3';}
+    }
+    set('.home-receipt-card h2',agency===undefined?'One claim. Five destinations.':'One claim. Six destinations.');
     setWidths('.home-receipt-card .receipt-bars span', [APP_ECONOMICS.creatorSharePercent, ...effective]);
     setWidths('.fee-route-bar i', [APP_ECONOMICS.creatorSharePercent, ...effective]);
     setAll('.home-receipt-card .receipt-rows span', [
@@ -65,7 +80,7 @@ export function createFeeFlowView(APP_ECONOMICS) {
     set('.home-referral-guide .data-badge', `${percent(referral.total)} total · ${referral.pending?'activation pending':'published policy'}`);
     set('#referral-faq .section-heading .data-badge',referral.pending?'Approved policy · activation pending':'Published policy');
     set('#paid .revenue-model > .field-help', `Levels 1–3 receive ${levelGross.map(percent).join(', ')} of gross creator fees. ${copy.reserve} Existing coins keep their recorded split.`);
-    set('#fee-policy-faq', `For each finalized collection, ${percent(APP_ECONOMICS.creatorSharePercent)} follows the creator's launch-time split between their wallet, coin holders, and an eligible X account. The other ${percent(APP_ECONOMICS.fundedSharePercent)} funds Operations & marketing (${percent(effective[0])}), referrals (${percent(effective[1])}), Daily bonus (${percent(effective[2])}), and the $FUNDED buyback allocation (${percent(effective[3])}). Daily bonus uses the top three creators, referrers, and traders from each completed UTC day. Existing coins keep their saved policy.`);
+    set('#fee-policy-faq', `For each finalized collection, ${percent(APP_ECONOMICS.creatorSharePercent)} follows the creator's launch-time split between their wallet, coin holders, and an eligible X account. The other ${percent(APP_ECONOMICS.fundedSharePercent)} funds Operations & marketing (${percent(effective[0])}), referrals (${percent(effective[1])}), Daily bonus (${percent(effective[2])}), and the $FUNDED buyback allocation (${percent(effective[3])})${agency===undefined?'':`, plus AI agency (${percent(agency)})`}. Existing coins keep their saved policy.`);
     set('#capital-flow > .section-heading .panel-explainer', copy.scope);
     set('#capital-flow .route-timeline li:nth-child(2) small', 'The keeper collects verified fees into the coin’s V3 router.');
     set('#capital-flow .route-timeline li:nth-child(3) small', 'The creator signs settlement under the coin’s saved fee policy.');
@@ -80,7 +95,7 @@ export function createFeeFlowView(APP_ECONOMICS) {
     const note = document.querySelector('#fee-flow-note');
     const gross = Number(input.value);
     if (input.value.trim() === '' || !Number.isFinite(gross) || gross < 0) {
-      ['creator', 'operations', 'referrals', 'community', 'buyback'].forEach(key => {
+      ['creator', 'operations', 'referrals', 'community', 'buyback','agency'].forEach(key => {
         const node = document.querySelector(`#fee-output-${key}`);
         if (node) node.textContent = '—';
       });
@@ -93,6 +108,7 @@ export function createFeeFlowView(APP_ECONOMICS) {
       referrals: gross * APP_ECONOMICS.appReferralEffectivePercent / 100,
       community: gross * APP_ECONOMICS.communityEffectivePercent / 100,
       buyback: gross * APP_ECONOMICS.buybackEffectivePercent / 100,
+      ...(APP_ECONOMICS.agencyEffectivePercent===undefined?{}:{agency:gross*APP_ECONOMICS.agencyEffectivePercent/100}),
     };
     Object.entries(allocations).forEach(([key, amount]) => {
       const node = document.querySelector(`#fee-output-${key}`);

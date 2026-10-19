@@ -19,8 +19,8 @@ function formatSol(amount) {
 function validPolicy(split) {
   const levels = split?.referralLevelPercents;
   const rates = [split?.operationsPercent, ...(Array.isArray(levels) ? levels : []),
-    split?.communityPercent, split?.buybackPercent];
-  return Array.isArray(levels) && levels.length === 3 && rates.length === 6
+    split?.communityPercent, split?.buybackPercent,...(split?.agencyPercent===undefined?[]:[split.agencyPercent])];
+  return Array.isArray(levels) && levels.length === 3
     && rates.every(rate => typeof rate === 'number' && Number.isFinite(rate) && rate >= 0)
     && Math.abs(rates.reduce((sum, rate) => sum + rate, 0) - 100) < 0.000001;
 }
@@ -30,15 +30,17 @@ export function protocolFeeRouteModel(allocation) {
   const policyReady = validPolicy(split);
   const evidenceReady = ['verified', 'partial'].includes(allocation?.status)
     && Number.isSafeInteger(allocation?.settledCollections) && allocation.settledCollections >= 0;
-  const amounts = DESTINATIONS.map(([, , field]) => exactLamports(allocation?.[field]));
+  const agency=split?.agencyPercent!==undefined;
+  const destinations=[...DESTINATIONS,...(agency?[['agency','agencyPercent','agencyLamports']]:[])];
+  const amounts = destinations.map(([, , field]) => exactLamports(allocation?.[field]));
   const total = exactLamports(allocation?.appRevenueLamports);
   const completeAmounts = evidenceReady && amounts.every(amount => amount != null)
     && total != null && amounts.reduce((sum, amount) => sum + amount, 0n) === total
     && (allocation.status === 'verified' || allocation.settledCollections > 0);
-  const labels = ['Operations & marketing', 'Referral network', 'Daily bonus', '$FUNDED buyback'];
+  const labels = ['Operations & marketing', 'Referral network', 'Daily bonus', '$FUNDED buyback','AI agency'];
   const rates = policyReady ? [split.operationsPercent,
     split.referralLevelPercents.reduce((sum, rate) => sum + rate, 0),
-    split.communityPercent, split.buybackPercent] : [];
+    split.communityPercent, split.buybackPercent,...(agency?[split.agencyPercent]:[])] : [];
   return {
     state:!policyReady ? 'unavailable' : !completeAmounts ? 'policy-only'
       : allocation.status === 'partial' ? 'partial' : 'verified',
@@ -48,7 +50,7 @@ export function protocolFeeRouteModel(allocation) {
     evidenceNote:!completeAmounts
       ? 'Verified V3 allocation amounts are unavailable. The percentages above describe policy only.'
       : `${allocation.settledCollections} finalized V3 settlement${allocation.settledCollections === 1 ? '' : 's'} · allocated SOL, not wallet balances or paid rewards${allocation.status === 'partial' ? ' · partial receipt coverage' : ''}.`,
-    rows:DESTINATIONS.map(([key], index) => ({
+    rows:destinations.map(([key], index) => ({
       key,
       label:labels[index],
       share:policyReady ? `${rates[index]}% of app share` : '—',
@@ -66,6 +68,10 @@ export function renderHomeProtocolFeeRoute(allocation, document = globalThis.doc
   const root = document?.querySelector('#home-protocol-route');
   if (!root) return;
   const model = protocolFeeRouteModel(allocation);
+  let agency=root.querySelector('[data-protocol-destination="agency"]');
+  if(model.rows.some(row=>row.key==='agency')){
+    if(!agency){const last=root.querySelector('[data-protocol-destination="buyback"]');agency=last.cloneNode(true);agency.dataset.protocolDestination='agency';last.after(agency);}
+  }else agency?.remove();
   root.dataset.state = model.state;
   const policy = root.querySelector('#home-protocol-route-policy');
   const status = root.querySelector('#home-protocol-route-status');

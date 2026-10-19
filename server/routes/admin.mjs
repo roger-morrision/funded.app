@@ -10,6 +10,8 @@ import { validateProtocolFeeSplit } from '../../distribution-policy.js';
 import { protocolGrossUnits, deriveMintVaultsV3, deriveCommunityRewardVaultV3, verifyMintPolicyV3Account } from '../../mint-router-v3.js';
 import {reviewV3AllocationResiduals,recordV3AllocationResidualPlan} from '../v3-allocation-residuals.mjs';
 import {verifyV3LaunchRouterReadiness} from '../v3-launch-readiness.mjs';
+import {publishAgencyFeePolicy} from '../admin-agency-policy.mjs';
+import {deriveAgencyVaultsV3} from '../../agency-mint-router-v3.js';
 
 const COOKIE = 'funded_admin';
 const CHALLENGE_MS = 5 * 60_000;
@@ -121,6 +123,12 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
     }
     const session = currentSession(req);
     if (!session) return json(res, 401, { error:'Sign in with the configured admin wallet.' });
+    if(req.method==='POST'&&path==='/api/admin/agency-fee-policy'){
+      try{return json(res,200,await publishAgencyFeePolicy({store,connection:connection(),
+        programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256,
+        authority:v3AuthorityKeypair().publicKey,actor:session.wallet,input:await body(req)||{}}));}
+      catch{return json(res,409,{error:'Agency configuration proof is unavailable or mismatched. Refresh the revision and verify the finalized authority signature.'});}
+    }
     if (await handleAdminServiceFees({ req,res,url,store,body,respond,session })) return true;
     if (req.method === 'GET' && path === '/api/admin/session')
       return json(res, 200, { wallet:session.wallet, expiresAt:new Date(session.expiresAt).toISOString() });
@@ -192,10 +200,11 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
       if (!Number.isSafeInteger(offset) || offset < 0) return json(res, 400, { error:'Invalid vault page.' });
       const page = launches.slice(offset, offset + 10);
       const rewardVaults = page.map(row => deriveCommunityRewardVaultV3(row.pumpFeeRoute.programId, row.mint, row.pumpFeeRoute.initialAuthority));
-      const addresses = page.flatMap((row, index) => [
-        ...deriveMintVaultsV3(row.pumpFeeRoute.programId, row.mint),
+      const addressGroups = page.map((row, index) => [
+        ...(row.pumpFeeRoute.protocolSplit?.agencyPercent===undefined?deriveMintVaultsV3:deriveAgencyVaultsV3)(row.pumpFeeRoute.programId, row.mint),
         rewardReserveAddress({ programId:row.pumpFeeRoute.programId, vault:rewardVaults[index], asset:'SOL' }),
       ]);
+      const addresses=addressGroups.flat(),offsets=addressGroups.map((_,index)=>addressGroups.slice(0,index).reduce((sum,group)=>sum+group.length,0));
       const rpc = connection();
       const genesis = await rpc.getGenesisHash();
       if (genesis !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC is not Solana Devnet.' });
@@ -212,10 +221,10 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
       }));
       const vaults = page.map((launch, index) => ({ mint:launch.mint, symbol:launch.symbol || null,
         policyStatus:policies[index].verified ? 'verified' : policies[index].reason,
-        categories:[...CATEGORIES, 'Holder and X SOL reserve'].map((category, categoryIndex) => {
-          const account = accounts[index * 8 + categoryIndex];
+        categories:[...CATEGORIES,...(addressGroups[index].length===9?['AI agency']:[]), 'Holder and X SOL reserve'].map((category, categoryIndex) => {
+          const account = accounts[offsets[index] + categoryIndex];
           const balance = BigInt(account?.lamports || 0);
-          const standardVault = categoryIndex < 7;
+          const standardVault = categoryIndex < addressGroups[index].length-1;
           const accountValid = !account || account.owner?.equals(SystemProgram.programId)
             && Buffer.from(account.data || []).length === 0;
           const reward = !standardVault && account?.owner?.equals(new PublicKey(launch.pumpFeeRoute.programId))
@@ -227,7 +236,7 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
           const reserve = account ? standardVault ? rentReserve : rewardRentReserve : 0n;
           const excess = payable == null ? null : balance > reserve + payable ? balance - reserve - payable : 0n;
           const shortfall = payable == null ? null : balance < reserve + payable ? reserve + payable - balance : 0n;
-          return { category, address:addresses[index * 8 + categoryIndex].toBase58(),
+          return { category, address:addressGroups[index][categoryIndex].toBase58(),
             lamports:String(balance), payableLamports:payable == null ? null : String(payable),
             rentReserveLamports:account ? String(reserve) : null,
             unassignedLamports:excess == null ? null : String(excess),
@@ -312,6 +321,7 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
       if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0)
         return json(res, 400, { error:'The current policy revision is required.' });
       const saved = await store.update(state => {
+        if(state.adminSettings?.protocolFeePolicy?.split?.agencyPercent!==undefined)return null;
         const revision = state.adminSettings?.protocolFeePolicy?.revision || 0;
         if (revision !== expectedRevision) return null;
         state.adminSettings ||= {};

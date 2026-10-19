@@ -59,6 +59,14 @@ The default operations/community entries are 40% / 20% **of the protocol share**
 
 See [fee configuration](protocol-fee-split-config.md), [Daily bonus](daily-bonus-policy.md) and in-app `#docs/admin` for current scope.
 
+### Authority-signed agency policy publication
+
+After the reviewed eight-category program is deployed, its router authority must initialize or update the on-chain configuration. The new-launch referral default is **0.6% / 0.25% / 0.15% of gross collected creator fees**; these are **3% / 1.25% / 0.75% of the protocol's 20%**, with 10% of the protocol share reserved for agency funding.
+
+In Admin, enter the finalized configuration signature, exact on-chain configuration revision and an audit reason under **Publish verified agency fee configuration**. `POST /api/admin/agency-fee-policy` requires the allowlisted admin session and configured origin. It independently verifies the reviewed Devnet binary, router authority, current configuration, and the exact authority-signed configuration transaction before publishing matching rates. A stale policy revision, different instruction, failed transaction or changed configuration is rejected. Repeating an already verified publication returns its saved result. Existing mint records remain intact.
+
+Once agency policy is published, the old off-chain fee form is disabled and its API cannot downgrade the policy. Subsequent rate changes require another authority-signed on-chain configuration revision and verified publication. Launch readiness additionally requires matching program/configuration proofs, an exact-build agency worker heartbeat and the explicit normal-flow activation gate. Publishing rates alone does not prove a referral payment or agency execution.
+
 ## App service fees
 
 The separate App service fees editor controls trading on buys and sells (default 0.5%), the SOL service charge on every launch (0.02 SOL), Pro promotion ($150 in $FUNDED burned), Premier promotion ($300 burned), and external coin listing ($300 burned). Promotion burns are additional to the SOL launch service charge. Listing is included for verified funded.vip launches.

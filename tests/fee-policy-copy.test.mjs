@@ -4,6 +4,7 @@ import { setActiveProtocolFeeSplit, buildFeeDistributionPolicy } from '../distri
 import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
 import { verifiedCoinRewardsPolicy } from '../coin-rewards-policy.js';
 import { currentFeePolicyCopy } from '../src/features/fees/fee-policy-copy.js';
+import {agencyProtocolSplit} from '../agency-mint-router-v3.js';
 
 test('current page rules follow saved policy without rewriting historical token rates', () => {
   try {
@@ -22,4 +23,11 @@ test('current page rules follow saved policy without rewriting historical token 
     assert.match(currentFeePolicyCopy().bonus, /6% Daily bonus pool/);
     assert.equal(verifiedCoinRewardsPolicy(historical, 'verified-mint', 'devnet').protocolPrograms.community, 2);
   } finally { setActiveProtocolFeeSplit(PROTOCOL_FEE_SPLIT); }
+});
+
+test('active agency allocation copy includes every category and sums to the fixed gross fee total',()=>{
+  try{setActiveProtocolFeeSplit(agencyProtocolSplit());
+    const copy=currentFeePolicyCopy();assert.match(copy.allocation,/1% Referral network/);assert.match(copy.allocation,/2% AI agency/);
+    assert.equal([...copy.allocation.matchAll(/([\d.]+)%/g)].reduce((sum,row)=>sum+Number(row[1]),0),100);
+  }finally{setActiveProtocolFeeSplit(PROTOCOL_FEE_SPLIT);}
 });

@@ -36,4 +36,14 @@ test('published agency referral policy removes the pending label without reprici
   await expect(strip).toContainText('Published rates for new launches');await expect(strip).not.toContainText('Awaiting');
   await expect(strip).toContainText('Existing coins keep their saved rates');
   await expect(page.locator('#referral-faq .data-badge')).toHaveText('Published policy');
+  await page.goto('/#capital-flow');
+  await expect(page.locator('#fee-output-referrals')).toHaveText('1 SOL');
+  await expect(page.locator('#fee-output-agency')).toHaveText('2 SOL');
+  await expect(page.locator('#fee-flow-note')).toContainText('allocates exactly 100 SOL');
+  await page.locator('#fee-flow-input').fill('300');
+  await expect(page.locator('#fee-output-referrals')).toHaveText('3 SOL');
+  await expect(page.locator('#fee-output-agency')).toHaveText('6 SOL');
+  await expect(page.locator('#fee-flow-note')).toContainText('allocates exactly 300 SOL');
+  await page.goto('/#docs/fees');
+  await expect(page.locator('#docs-guide-article')).toContainText('2% AI agency');
 });

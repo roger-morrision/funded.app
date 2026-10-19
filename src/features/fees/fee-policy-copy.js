@@ -16,6 +16,7 @@ export function currentFeePolicyCopy() {
   const rates = [fee.operationsEffectivePercent, fee.appReferralEffectivePercent,
     fee.communityEffectivePercent, fee.buybackEffectivePercent];
   const names = ['Operations & marketing', 'Referral network', 'Daily bonus', '$FUNDED buyback'];
+  if(fee.agencyEffectivePercent!==undefined){rates.push(fee.agencyEffectivePercent);names.push('AI agency');}
   return {
     allocation: `${fee.creatorPercent}% creator-directed · ${rates.map((rate, i) => `${rate}% ${names[i]}`).join(' · ')}.`,
     scope: 'Current policy for new launches. Existing coins and historical settlements keep their recorded rates. Allocated SOL is not a wallet balance or a completed payment.',

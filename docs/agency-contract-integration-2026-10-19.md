@@ -4,6 +4,10 @@ This is a local integration checkpoint. It is not a deployment or a claim that a
 
 **Subsequent referral amendment:** the approved new-launch levels are now **0.6% / 0.25% / 0.15% of gross collected creator fees**, totaling 1%. This supersedes the 0.6667% / 0.2% / 0.1333% configuration recorded below. The candidate configuration, API presentation, UI and test fixtures use the revised levels; the earlier checkpoint results below describe their original revision. Activation remains pending, and existing mint policies retain their recorded rates.
 
+**Subsequent activation preparation:** the allowlisted admin API/UI can now publish the matching future-mint policy only after independently verifying the reviewed deployment, exact finalized configuration instruction and its Ed25519 authority signature. Stale revisions, unrelated instructions and invalid signatures are rejected; the old editor cannot downgrade an active agency policy. New-rate calculator/category displays conserve all 100%, including the separate 2% agency budget; admin vault indexing supports mixed seven/eight-category mints. Current local checks: 1,038 unit tests passed, 10 existing skips, 14 mocked browser checks passed, production build/critical/structure checks passed. Zero new-rate live payouts are claimed.
+
+The public and Helius CLI airdrop attempts both failed with possible rate-limit errors. No refundable QA upload buffers were found. The read-only payer balance remained 6.352742082 SOL against an 8.8399198 SOL upgrade requirement preserving the 3 SOL reserve. The user is funding via the web faucet; upgrade and activation are still pending that funding and subsequent live checks.
+
 ## Git and observed runtime
 
 | Item | Classification | Evidence |

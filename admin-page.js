@@ -2,6 +2,7 @@ import { Buffer } from 'buffer';
 import { initAdminDailyBonus } from './admin-daily-bonus.js';
 import { initAdminServiceFees } from './admin-service-fees.js';
 import {initAdminResiduals} from './admin-residuals.js';
+import {initAdminAgencyPolicy} from './admin-agency-policy.js';
 import bs58 from 'bs58';
 import { Connection, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { validateProtocolFeeSplit } from './distribution-policy.js';
@@ -88,6 +89,7 @@ function renderGates() {
 }
 function renderPolicy() {
   const split = policy.split, form = $('#fee-form');
+  for(const control of form.querySelectorAll('input,button'))control.disabled=split.agencyPercent!==undefined;
   for (const field of ['operationsPercent', 'communityPercent', 'buybackPercent']) form.elements[field].value = split[field];
   split.referralLevelPercents.forEach((value, index) => { form.elements[`referral${index + 1}`].value = value; });
   $('#policy-revision').textContent = `Revision ${policy.revision}${policy.updatedAt ? ` · ${new Date(policy.updatedAt).toLocaleString()}` : ' · build default'}`;
@@ -97,13 +99,15 @@ function readSplit() {
   const form = $('#fee-form');
   return { operationsPercent:Number(form.elements.operationsPercent.value),
     referralLevelPercents:[1, 2, 3].map(i => Number(form.elements[`referral${i}`].value)),
-    communityPercent:Number(form.elements.communityPercent.value), buybackPercent:Number(form.elements.buybackPercent.value) };
+    communityPercent:Number(form.elements.communityPercent.value), buybackPercent:Number(form.elements.buybackPercent.value),
+    ...(policy?.split?.agencyPercent===undefined?{}:{agencyPercent:policy.split.agencyPercent}) };
 }
 function feeTotal() {
-  const split = readSplit(), rates = [split.operationsPercent, ...split.referralLevelPercents, split.communityPercent, split.buybackPercent];
+  const split = readSplit(), rates = [split.operationsPercent, ...split.referralLevelPercents, split.communityPercent, split.buybackPercent,...(split.agencyPercent===undefined?[]:[split.agencyPercent])];
   const total = rates.reduce((sum, value) => sum + value, 0);
   const gross = value => `${Number((value / 5).toFixed(6))}%`;
   $('#fee-gross-preview').textContent = `Gross collected fees: 80% creator-directed · ${gross(split.operationsPercent)} Operations & marketing · ${gross(split.referralLevelPercents.reduce((sum, rate) => sum + rate, 0))} referrals · ${gross(split.communityPercent)} Daily bonus · ${gross(split.buybackPercent)} buyback. Existing coins retain their saved policy.`;
+  if(split.agencyPercent!==undefined)$('#fee-gross-preview').textContent+=` AI agency: ${gross(split.agencyPercent)} of gross. Use the authority-signed configuration publication below for updates.`;
   const target = $('#fee-total');
   target.textContent = `Protocol share total: ${total.toFixed(4)}% / 100%`;
   target.classList.toggle('invalid', Math.abs(total - 100) > 0.000001);
@@ -190,6 +194,7 @@ const provider = wallet();
 const dailyBonusRecovery = initAdminDailyBonus({document,api,post,show,refreshAudit});
 initAdminServiceFees({api,post,show});
 initAdminResiduals({api,post,show,wallet});
+initAdminAgencyPolicy({api,post,show,refresh});
 provider?.on?.('accountChanged', updateWallet);
 updateWallet();
 restoreSession();
