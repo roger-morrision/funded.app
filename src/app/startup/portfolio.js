@@ -21,6 +21,10 @@ export function initializePortfolio(appState) {
 
   // app-source: 942
   document.querySelector('#portfolio-refresh')?.addEventListener('click', () => { void appState.refreshPortfolioHoldings(); });
+  document.querySelector('#portfolio-trades-refresh')?.addEventListener('click', () => { void appState.refreshPortfolioTrades(); });
+  appState.createRoutePoller({run:()=>appState.refreshPortfolioTrades(),
+    active:()=>Boolean(appState.connectedWalletAddress)&&!appState.coinRouteRequested()
+      && appState.requestedPageRoute()==='my-launches',intervalMs:60_000});
   // app-source-end
 
 }

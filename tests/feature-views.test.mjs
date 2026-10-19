@@ -61,6 +61,17 @@ test('portfolio leaves unpriced holdings unknown and escapes token metadata', ()
   assert.doesNotMatch(markup, /<script>/);
 });
 
+test('portfolio distinguishes unscanned, loading, failed and confirmed-empty wallet history',()=>{
+  const view=portfolioFixture();view.state.exploreScannedCount=0;
+  view.render();assert.match(view.fields.get('#portfolio-trade-rows').innerHTML,/not been checked/);
+  for (const [status,coverage,expected] of [['loading','unavailable',/Checking finalized/],
+    ['unavailable','unavailable',/history is unavailable/],['ready','partial',/Some transactions could not be checked/],
+    ['ready','complete',/No finalized Pump or PumpSwap trades/]]) {
+    view.state.portfolioTradeHistory={wallet:'wallet-a',status,coverage,scannedSignatures:7,signatureLimit:50,rowLimit:100};
+    view.render();assert.match(view.fields.get('#portfolio-trade-rows').innerHTML,expected);
+  }
+});
+
 test('background Explore refresh preserves a focused action', () => {
   const view = documentFixture();
   const grid = view.add('#asset-grid');

@@ -8,6 +8,7 @@ export function renderPortfolio(
   {
     connectedWalletAddress,
     portfolioHoldings,
+    portfolioTradeHistory,
     assets,
     exploreScannedCount,
     PROTOCOL_FUNDED_MINT,
@@ -47,6 +48,8 @@ export function renderPortfolio(
   status.textContent = !address ? 'Connect wallet' : current ? `${holdings.length} tokens · ${portfolioHoldings.coverage}${pricedCount < holdings.length ? ' · some values unavailable' : ''}` : portfolioHoldings.status === 'loading' ? 'Checking Solana balances' : 'Balance lookup unavailable';
   value.textContent = pricedCount ? `${pricedCount < holdings.length ? '≥' : ''}${formatDashboardUsd(total)}` : holdings.length ? '—' : current ? '$0.00' : '—';
   const trades = address ? walletDetailTrades(address) : [];
+  const history=portfolioTradeHistory?.wallet===address?portfolioTradeHistory:null;
+  for (const trade of trades) if (Number.isInteger(trade.decimals)) decimalsByMint.set(trade.mint,trade.decimals);
   const observed = matchedTradePnl(trades, decimalsByMint);
   pnl.textContent = observed.matchedSales ? `${observed.pnlSol >= 0 ? '+' : ''}${formatOnChainNumber(observed.pnlSol, 5)} SOL` : '—';
   pnl.title = observed.matchedSales ? `${observed.matchedSales} sale${observed.matchedSales === 1 ? '' : 's'} matched to buys observed in the last 24 hours. Excludes fees, unmatched trades and open positions.` : 'Cost basis is unavailable for older holdings and unmatched trades.';
@@ -58,8 +61,16 @@ export function renderPortfolio(
     const tokenAmount = Number.isFinite(quantity) ? formatOnChainNumber(quantity, 6) : '—';
     const receiptUrl = exploreExplorer(`tx/${encodeURIComponent(trade.signature)}`);
     return `<tr class="portfolio-trade-row"><td><time datetime="${escapeHtml(new Date(timestamp).toISOString())}" title="${escapeHtml(new Date(timestamp).toLocaleString())}">${escapeHtml(formatOnchainAge(timestamp))}</time></td><td><span class="portfolio-trade-side ${trade.side}">${trade.side === 'buy' ? 'Buy' : 'Sell'}</span></td><td><a href="/token/${encodeURIComponent(trade.mint)}">${escapeHtml(trade.symbol || shortAddress(trade.mint))}</a></td><td class="numeric">${escapeHtml(tokenAmount)}</td><td class="numeric">${escapeHtml(formatOnChainNumber(trade.solAmount, 5))}</td><td><a href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener noreferrer" aria-label="View transaction ${escapeHtml(shortAddress(trade.signature))} on Solana Explorer">${escapeHtml(shortAddress(trade.signature))} ↗</a></td></tr>`;
-  }).join('') || `<tr><td class="portfolio-trade-empty" colspan="6"><span>${!address ? 'Connect a wallet to see trade transactions.' : 'No trades found in the available 24-hour coin scan.'}</span></td></tr>`;
-  txNote.textContent = !address ? 'Connect a wallet for Solana trade history.' : `Last 24 hours · ${exploreScannedCount} of ${assets.length} listed coins scanned · up to 20 trades per coin, 100 wallet rows. Older or unscanned transactions may be missing.`;
+  }).join('') || `<tr><td class="portfolio-trade-empty" colspan="6"><span>${!address ? 'Connect a wallet to see trade transactions.'
+    : history?.status==='loading' ? 'Checking finalized wallet trades…'
+      : history?.status==='unavailable' ? 'Wallet trade history is unavailable. Select Refresh trades to retry.'
+        : history?.status==='ready' ? history.coverage==='complete' ? 'No finalized Pump or PumpSwap trades found for this wallet in the last 24 hours.'
+          : 'No trades found in the checked wallet history. Some transactions could not be checked.'
+          : 'Trade history has not been checked yet. Select Refresh trades.'}</span></td></tr>`;
+  txNote.textContent = !address ? 'Connect a wallet for Solana trade history.'
+    : history?.status==='ready' ? `Pump and PumpSwap · last 24 hours · ${history.scannedSignatures} wallet transactions checked · ${history.coverage} coverage within a ${history.signatureLimit}-signature lookback, up to ${history.rowLimit} trades.`
+      : history?.status==='loading' ? 'Checking this wallet’s finalized transactions independently of Explore.'
+        : 'Wallet trades are not loaded. This does not mean the wallet has no trades.';
   paginateHistory(rows, {document, label:'Holdings', selector:'.portfolio-holding-row', key:address});
   paginateHistory(txRows, {document, label:'Trade history', selector:'.portfolio-trade-row', key:address, anchor:txRows.closest('table')?.parentElement || txRows});
 }

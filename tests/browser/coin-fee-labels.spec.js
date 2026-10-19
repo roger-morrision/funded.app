@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
 test('mobile collection and allocation labels never imply recipient payments', async ({ page }) => {
   const mint = '26ds5kv2n8JuWZ2uRu1goxEw7xy7YirpdsqdiLycy1Zg';
   const signature = '3'.repeat(64);
   await page.setViewportSize({width:390, height:844});
   await page.route('**/api/**', route => route.fulfill({status:503, json:{error:'Offline fee-label fixture'}}));
+  await page.route('**/api/fee-policy', route => route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route(`**/api/tokens/${mint}/fee-activity`, route => route.fulfill({json:{
     mint, cluster:'devnet', overview:{available:true, scope:'per-mint-v3'},
     collections:[{signature, collectedLamports:'2462530', recordedAt:'2026-10-17T00:00:00Z'}],

@@ -6,6 +6,7 @@ import { formatTokenBaseUnits } from '../../../funded-burn.js';
 export function renderWalletDetail(
   {
     connectedWalletAddress,
+    portfolioTradeHistory,
     verifiedLaunchPoliciesStatus,
     exploreScannedCount,
     assets,
@@ -42,9 +43,13 @@ export function renderWalletDetail(
   const trades = walletDetailTrades(address);
   const burned = walletDetailBurned(launches);
   const registryReady = verifiedLaunchPoliciesStatus === 'ready';
-  const tradeScanReady = exploreScannedCount > 0 && assets.length > 0;
+  const directTrades=portfolioTradeHistory?.wallet===address?portfolioTradeHistory:null;
+  const tradeScanReady = directTrades ? directTrades.status==='ready' : exploreScannedCount > 0 && assets.length > 0;
   const tradeScanStale = exploreProviderStatus.includes('stale');
-  const scanNote = tradeScanReady ? `Trades shown for ${exploreScannedCount} of ${assets.length} listed coins${tradeScanStale ? ' (last available update)' : ''}` : 'Recent trades are unavailable';
+  const scanNote = directTrades ? directTrades.status==='loading' ? 'Checking finalized wallet trades'
+    : directTrades.status==='ready' ? `${directTrades.scannedSignatures} wallet transactions checked · ${directTrades.coverage} Pump/PumpSwap history`
+      : 'Wallet trade history is unavailable'
+    : tradeScanReady ? `Trades shown for ${exploreScannedCount} of ${assets.length} listed coins${tradeScanStale ? ' (last available update)' : ''}` : 'Recent trades are unavailable';
   const launchTimes = launches.map(walletLaunchTimestamp).filter(time => time > 0);
   const tradeTimes = trades.map(item => Number(item.blockTime) * 1000).filter(Number.isFinite);
   const history = isSelf && walletHistory?.wallet === address ? walletHistory : { status:'idle', rows:[], coverage:{} };

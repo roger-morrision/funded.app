@@ -4,6 +4,8 @@ import { walletHistoryRows, walletBonusCoverage } from '../../features/portfolio
 export function createPortfolioController(appState) {
   let walletHistory = { wallet:'', status:'idle', rows:[], coverage:{} };
   let walletHistoryRequest = 0;
+  let portfolioTradeHistory={wallet:'',status:'idle',trades:[],coverage:'unavailable'};
+  let portfolioTradeRequest=0,portfolioTradeLoad=null;
   // app-source: 932
   function getWalletDetailAddress(){
     const match = location.pathname.match(/^\/wallet\/([^/?#]+)/i);
@@ -46,9 +48,49 @@ export function createPortfolioController(appState) {
   // app-source: 935
   function walletDetailTrades(address){
     if (!address) return [];
+    if (portfolioTradeHistory.wallet===address) return portfolioTradeHistory.status==='ready'
+      ? portfolioTradeHistory.trades.map(trade=>({...trade,solAmount:Number(trade.solLamports)/1_000_000_000,
+        symbol:appState.assets.find(asset=>asset.address===trade.mint)?.symbol
+          || appState.verifiedLaunchPolicies.find(launch=>launch.mint===trade.mint)?.symbol || ''})) : [];
     return appState.collectRecentTrades(appState.assets, { limit: 1000, since: Math.floor(Date.now() / 1000) - 86400 }).filter(trade => trade.trader === address).slice(0, 100);
   }
   // app-source-end
+
+  function refreshPortfolioTrades(){
+    const address=appState.connectedWalletAddress;
+    if (portfolioTradeLoad?.wallet!==address) portfolioTradeLoad=null;
+    if (portfolioTradeLoad&&portfolioTradeLoad.wallet===address) return portfolioTradeLoad.promise;
+    const request=++portfolioTradeRequest;
+    portfolioTradeHistory={wallet:address||'',status:address?'loading':'idle',trades:[],coverage:'unavailable'};
+    appState.renderPortfolio();
+    if (!address) return Promise.resolve();
+    const promise=(async()=>{
+      try {
+        const response=await appState.apiRequest(`/api/wallets/${encodeURIComponent(address)}/trades`,{signal:AbortSignal.timeout(25_000)});
+        if (request!==portfolioTradeRequest||address!==appState.connectedWalletAddress) return;
+        const data=response.available?response.data:null;
+        if (data?.wallet!==address||data.cluster!==appState.EXPLORE_CLUSTER
+          || data.source!=='finalized-wallet-pump-trades'||!['complete','partial'].includes(data.coverage)
+          || data.signatureLimit!==50||data.rowLimit!==100||!Number.isInteger(data.scannedSignatures)
+          || data.scannedSignatures<0||data.scannedSignatures>50
+          || !Array.isArray(data.trades)||data.trades.length>100||data.trades.some(trade=>
+            trade.trader!==address||trade.finalized!==true||!['buy','sell'].includes(trade.side)
+            || !appState.validateSolanaMint(trade.mint).valid||!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(trade.signature||'')
+            || !Number.isSafeInteger(trade.blockTime)||trade.blockTime<Math.floor(Date.now()/1000)-86400
+            || !Number.isSafeInteger(trade.slot)||trade.slot<1
+            || !Number.isInteger(trade.decimals)||trade.decimals<0||trade.decimals>18
+            || !/^[1-9]\d*$/.test(trade.solLamports)||!/^[1-9]\d*$/.test(trade.tokenAmountRaw)))
+          throw new Error('Wallet history is unavailable or mismatched.');
+        portfolioTradeHistory={...data,status:'ready'};
+      } catch {
+        if (request!==portfolioTradeRequest||address!==appState.connectedWalletAddress) return;
+        portfolioTradeHistory={wallet:address,status:'unavailable',trades:[],coverage:'unavailable'};
+      }
+      appState.renderPortfolio();
+      appState.renderWalletDetail();
+    })().finally(()=>{if(portfolioTradeLoad?.promise===promise)portfolioTradeLoad=null;});
+    portfolioTradeLoad={wallet:address,promise};return promise;
+  }
 
   async function refreshWalletDetailHistory(address = appState.getWalletDetailAddress()){
     const request = ++walletHistoryRequest;
@@ -115,6 +157,7 @@ export function createPortfolioController(appState) {
 
   // app-source: 936
   async function refreshPortfolioHoldings(){
+    void refreshPortfolioTrades();
     const address = appState.connectedWalletAddress;
     const request = ++appState.portfolioRequest;
     appState.portfolioHoldings = { wallet: address || '', status: address ? 'loading' : 'idle', accounts: [], coverage: '' };
@@ -154,12 +197,13 @@ export function createPortfolioController(appState) {
 
   // app-source: 938
   function renderPortfolio(){
-    return appState.renderPortfolioView({ connectedWalletAddress: appState.connectedWalletAddress, portfolioHoldings: appState.portfolioHoldings, PROTOCOL_FUNDED_MINT: appState.PROTOCOL_FUNDED_MINT, assets: appState.assets, exploreScannedCount: appState.exploreScannedCount }, { verifiedLaunchPolicyForMint: appState.verifiedLaunchPolicyForMint, portfolioUnitPriceUsd: appState.portfolioUnitPriceUsd, walletDetailTrades: appState.walletDetailTrades, formatOnchainAge: appState.formatOnchainAge, exploreExplorer: appState.exploreExplorer });
+    return appState.renderPortfolioView({ connectedWalletAddress: appState.connectedWalletAddress, portfolioHoldings: appState.portfolioHoldings, portfolioTradeHistory, PROTOCOL_FUNDED_MINT: appState.PROTOCOL_FUNDED_MINT, assets: appState.assets, exploreScannedCount: appState.exploreScannedCount }, { verifiedLaunchPolicyForMint: appState.verifiedLaunchPolicyForMint, portfolioUnitPriceUsd: appState.portfolioUnitPriceUsd, walletDetailTrades: appState.walletDetailTrades, formatOnchainAge: appState.formatOnchainAge, exploreExplorer: appState.exploreExplorer });
   }
   // app-source-end
 
   // app-source: 939
   function activatePortfolioTab(name, focus = false){
+    if (name==='trades') void refreshPortfolioTrades();
     const tabs = document.querySelectorAll('[data-portfolio-tab]');
     for (const button of tabs) {
       const active = button.dataset.portfolioTab === name;
@@ -203,9 +247,9 @@ export function createPortfolioController(appState) {
 
   // app-source: 947
   function renderWalletDetail(){
-    return appState.renderWalletDetailView({ connectedWalletAddress: appState.connectedWalletAddress, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus, exploreScannedCount: appState.exploreScannedCount, assets: appState.assets, exploreProviderStatus: appState.exploreProviderStatus, exploreFeedAvailable: appState.exploreFeedAvailable, walletBalanceLamports: appState.walletBalanceLamports, coinSolUsdPrice: appState.coinSolUsdPrice, walletDetailTab: appState.walletDetailTab, walletDetailFilter: appState.walletDetailFilter, walletHistory, fundedBurnState: appState.fundedBurnState }, { getWalletDetailAddress: appState.getWalletDetailAddress, walletDetailLaunches: appState.walletDetailLaunches, walletDetailTrades: appState.walletDetailTrades, walletDetailBurned: appState.walletDetailBurned, walletLaunchTimestamp: appState.walletLaunchTimestamp, validateSolanaMint: appState.validateSolanaMint, getFollowedWallets: appState.getFollowedWallets, formatSol: appState.formatSol, formatOnchainAge: appState.formatOnchainAge, walletDetailEmpty: appState.walletDetailEmpty, loadWalletRowLogos: appState.loadWalletRowLogos, exploreExplorer: appState.exploreExplorer });
+    return appState.renderWalletDetailView({ connectedWalletAddress: appState.connectedWalletAddress, portfolioTradeHistory, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus, exploreScannedCount: appState.exploreScannedCount, assets: appState.assets, exploreProviderStatus: appState.exploreProviderStatus, exploreFeedAvailable: appState.exploreFeedAvailable, walletBalanceLamports: appState.walletBalanceLamports, coinSolUsdPrice: appState.coinSolUsdPrice, walletDetailTab: appState.walletDetailTab, walletDetailFilter: appState.walletDetailFilter, walletHistory, fundedBurnState: appState.fundedBurnState }, { getWalletDetailAddress: appState.getWalletDetailAddress, walletDetailLaunches: appState.walletDetailLaunches, walletDetailTrades: appState.walletDetailTrades, walletDetailBurned: appState.walletDetailBurned, walletLaunchTimestamp: appState.walletLaunchTimestamp, validateSolanaMint: appState.validateSolanaMint, getFollowedWallets: appState.getFollowedWallets, formatSol: appState.formatSol, formatOnchainAge: appState.formatOnchainAge, walletDetailEmpty: appState.walletDetailEmpty, loadWalletRowLogos: appState.loadWalletRowLogos, exploreExplorer: appState.exploreExplorer });
   }
   // app-source-end
 
-  return { getWalletDetailAddress, showWalletPage, walletDetailLaunches, walletDetailTrades, refreshWalletDetailHistory, refreshPortfolioHoldings, portfolioUnitPriceUsd, renderPortfolio, activatePortfolioTab, walletDetailBurned, walletDetailEmpty, loadWalletRowLogos, walletLaunchTimestamp, renderWalletDetail };
+  return { getWalletDetailAddress, showWalletPage, walletDetailLaunches, walletDetailTrades, refreshWalletDetailHistory, refreshPortfolioHoldings, refreshPortfolioTrades, portfolioUnitPriceUsd, renderPortfolio, activatePortfolioTab, walletDetailBurned, walletDetailEmpty, loadWalletRowLogos, walletLaunchTimestamp, renderWalletDetail };
 }

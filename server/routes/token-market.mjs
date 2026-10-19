@@ -2,22 +2,52 @@ import { PublicKey, Connection } from '@solana/web3.js';
 import { normalizeLargestTokenAccounts, attachVerifiedTokenAccountWallets, normalizeAllTokenAccounts } from '../token-accounts.mjs';
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { readPumpMarketActivity } from '../coin-market.mjs';
+import { readWalletTradeHistory } from '../wallet-trades.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
 export function createTokenMarketRoutes({
   route, store, clientKey, solanaRpcUrl, solanaCluster,
   respond, readMarketActivity = readPumpMarketActivity,
+  readWalletTrades = readWalletTradeHistory,
 }) {
   const coinMarketCache = new Map();
   const tokenAccountsCache = new Map();
   const coinMarketInflight = new Map();
   let coinMarketActive = 0;
   const coinMarketWaiting = [];
+  const walletTradeCache=new Map(),walletTradeInflight=new Map();
   const maxActiveMarketScans = 4;
   const maxWaitingMarketScans = 24;
   const json = (...args) => { respond(...args); return true; };
   return async function handleTokenMarketRoutes(req, res, url, requestId) {
+    const walletMatch=req.method==='GET'?/^\/api\/wallets\/([^/]+)\/trades$/.exec(url.pathname):null;
+    if (walletMatch) {
+      if (solanaCluster!=='devnet') return json(res,503,{error:'Wallet trade scanning requires Devnet.'});
+      let wallet;
+      try {wallet=new PublicKey(decodeURIComponent(walletMatch[1])).toBase58();}
+      catch {return json(res,400,{error:'A valid Solana wallet is required.'});}
+      const cached=walletTradeCache.get(wallet);
+      if (cached&&Date.now()-cached.at<60_000) return json(res,200,cached.data);
+      let pending=walletTradeInflight.get(wallet);
+      if (!pending) {
+        if (walletTradeInflight.size>=2) return json(res,429,{error:'Wallet history scanning is busy; retry shortly.'});
+        pending=(async()=>{
+          if (!await store.chargeRpcRate(`wallet-trades:${clientKey(req)}`,10,60,Math.floor(Date.now()/60_000)*60_000))
+            return {status:429,data:{error:'Wallet history refresh limit reached; retry shortly.'}};
+          const signal=AbortSignal.timeout(20_000);
+          const connection=new Connection(solanaRpcUrl,{commitment:'finalized',disableRetryOnRateLimit:true,
+            fetch:(input,init)=>fetch(input,{...init,signal})});
+          const data=await readWalletTrades({connection,wallet});
+          if (walletTradeCache.size>=250) walletTradeCache.delete(walletTradeCache.keys().next().value);
+          walletTradeCache.set(wallet,{at:Date.now(),data});
+          return {status:200,data};
+        })().finally(()=>walletTradeInflight.delete(wallet));
+        walletTradeInflight.set(wallet,pending);
+      }
+      try {const result=await pending;return json(res,result.status,result.data);}
+      catch {return json(res,502,{error:'Finalized wallet trade history is unavailable.'});}
+    }
     const tokenAccountsMint = req.method === 'GET' ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/token-accounts$/) : null;
     if (tokenAccountsMint) {
       let mint;
