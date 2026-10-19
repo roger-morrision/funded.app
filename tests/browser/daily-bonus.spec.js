@@ -6,12 +6,15 @@ const offlineFixture = route => new URL(route.request().url()).pathname === '/ap
 const wallets = ['7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y',
   'ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC', 'GTGKxA9DRbVFuAyoXvA8j1LAtZaf9fyJbvArGbJSbm5c'];
 test('fee calculator shows 8/4 and daily rankings distinguish allocations from finalized payments', async ({ page }) => {
+  await page.setViewportSize({ width:1440, height:900 });
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   let paid = false;
   await page.route('**/api/**', offlineFixture);
   await page.route('**/api/daily-bonus', route => route.fulfill({ json:{ cluster:'devnet', payoutEnabled:false,
+    pendingSettlementSources:[{mint:wallets[0],status:'not-eligible'}],
     worker:{ status:'active' }, nextCutoffAt:'2026-10-19T00:00:00Z', snapshots:[{ day:'2026-10-17',
       status:'snapshotted', hash:'a'.repeat(64), allocatedLamports:'4000000000', retainedLamports:'0',
+      eligibilityBasis:paid?'settlement-time-v1':'collection-time-v1',
       rankings:Object.fromEntries(['creators', 'referrals', 'traders'].map(group => [group,
         wallets.map((wallet, index) => ({ rank:index + 1, wallet, scoreLamports:String(300 - index),
           bonusLamports:String([500, 300, 200][index]), percentOfCategory:[50, 30, 20][index] }))])),
@@ -47,11 +50,16 @@ test('fee calculator shows 8/4 and daily rankings distinguish allocations from f
   await expect(page.locator('#daily-bonus-dashboard')).toContainText('50% to 1st, 30% to 2nd, and 20% to 3rd');
   await expect(page.locator('#daily-bonus-dashboard tbody tr')).toHaveCount(9);
   await expect(page.locator('#daily-bonus-dashboard [data-bonus-status]')).toContainText('not activated');
+  await expect(page.locator('#daily-bonus-dashboard')).toContainText('Historical snapshot: fee eligibility uses its original collection-time rules.');
+  await expect(page.locator('#daily-bonus-dashboard [data-bonus-status]')).toContainText('1 source(s) await finalized settlement');
   await page.getByText('Snapshot and payment evidence', { exact:true }).click();
   await expect(page.locator('#daily-bonus-dashboard details')).toContainText('awaiting verified community funding');
   await expect(page.locator('#daily-bonus-dashboard details a')).toHaveCount(0);
   await expect(page.locator('#daily-bonus-dashboard tbody tr').first()).toContainText('No finalized receipt');
   paid = true; await page.locator('[data-bonus-refresh]').click();
+  await expect(page.locator('#daily-bonus-dashboard')).toContainText('Fee eligibility uses finalized settlement time.');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path:test.info().outputPath('daily-bonus-desktop.png'), fullPage:true });
   await expect(page.locator('#daily-bonus-dashboard details a')).toHaveAttribute('href', /explorer\.solana\.com\/tx\/.*cluster=devnet/);
   await expect(page.locator('#daily-bonus-dashboard tbody tr').nth(1)).toContainText('0.00000045 SOL');
   await page.setViewportSize({ width:390, height:844 });

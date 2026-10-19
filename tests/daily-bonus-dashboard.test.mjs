@@ -66,24 +66,30 @@ test('mutated snapshot awards fail integrity checks instead of publishing recipi
   const result = bonusDashboardHistory({ dailyBonusSnapshots:{ row } });
   assert.equal(result.unavailableSnapshots, 1); assert.equal(result.totalPayments, 0);
 });
-test('pool verifies collection and settlement and excludes old-policy / prior-day collections', async () => {
+test('pool uses finalized settlement time, including collections from an earlier day', async () => {
   const now = Date.parse('2026-10-18T12:00:00Z') / 1000, signature = '5'.repeat(64);
   const state = { launches:{ [mint]:{ mint, onchainVerified:true, cluster:'devnet',
     pumpFeeRoute:{ programId:'program', scope:'per-mint-v3', verified:true },
     feeDistribution:{ fixedFunded:{ communityRewards:{ dailyBonus:{ version:1 } } } } } },
     collections:{ [signature]:{ mint, signature, scope:'per-mint-v3', cluster:'devnet', programId:'program',
-      status:'collected', onchainVerified:true, attribution:'mint-verified', collectedLamports:'1000' } },
+      status:'collected', onchainVerified:true, attribution:'mint-verified', collectedLamports:'1000',claimId:'0'.repeat(64) } },
     v3Settlements:{ [signature]:{ status:'finalized', blockTime:now, settlementSignature:'6'.repeat(64) } } };
   const args = { state, programId:'program', now, connection:{
     getGenesisHash:async () => DEVNET_GENESIS_HASH, getTransaction:async () => ({ blockTime:now - 1 }) },
     verifyCollection:async () => ({ claimId:Buffer.alloc(32) }),
-    loadSettlement:async () => ({ categoryLamports:['0','0','0','0','0','100','0'] }) };
+    loadSettlement:async () => ({ blockTime:now, categoryLamports:['0','0','0','0','0','100','0'] }) };
   const result = await readBonusPool(args);
   assert.deepEqual(result.categoryLamports, { creators:'34', referrals:'33', traders:'33' });
   assert.equal(result.collections, 1);
+  delete state.v3Settlements[signature].blockTime;
+  assert.equal((await readBonusPool(args)).collections,1,'Missing app timestamps cannot hide a finalized settlement.');
   await assert.rejects(readBonusPool({ ...args, loadSettlement:async () => null }), /proof is unavailable/);
   assert.equal((await readBonusPool({ ...args, connection:{ ...args.connection,
-    getTransaction:async () => ({ blockTime:now - 86400 }) } })).collections, 0);
+    getTransaction:async () => ({ blockTime:now - 86400 }) } })).collections, 1);
+  assert.equal((await readBonusPool({ ...args, loadSettlement:async () => ({blockTime:now-86400,
+    categoryLamports:['0','0','0','0','0','100','0']}) })).collections, 0);
+  await assert.rejects(readBonusPool({ ...args, loadSettlement:async () => ({
+    categoryLamports:['0','0','0','0','0','100','0']}) }), /settlement time/);
   state.launches[mint].feeDistribution.fixedFunded.communityRewards.dailyBonus.version = 0;
   assert.equal((await readBonusPool(args)).collections, 0);
   await assert.rejects(readBonusPool({ ...args, connection:{ getGenesisHash:async () => 'mainnet' } }), /not Devnet/);

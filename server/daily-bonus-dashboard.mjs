@@ -110,7 +110,7 @@ export async function readBonusPool({ state, connection, programId, now, signal,
       && (!schedule.mints || schedule.mints.includes(row.mint))
       && launch.pumpFeeRoute?.programId === programId && launch.pumpFeeRoute?.verified === true
       && launch.feeDistribution?.fixedFunded?.communityRewards?.dailyBonus?.version === 1
-      && settled?.status === 'finalized' && settled.blockTime >= start;
+      && settled?.status === 'finalized';
   });
   if (candidates.length > 2000) throw new Error('Bonus pool coverage requires a larger reviewed indexer.');
   const seen = new Set(), values = categories.map(() => 0n); let collections = 0;
@@ -118,19 +118,20 @@ export async function readBonusPool({ state, connection, programId, now, signal,
   for (const row of candidates) {
     signal?.throwIfAborted();
     if (seen.has(row.signature)) continue; seen.add(row.signature);
-    const tx = await connection.getTransaction(row.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
-    signal?.throwIfAborted();
-    if (!tx || !Number.isSafeInteger(tx.blockTime)) throw new Error('Bonus collection proof is unavailable.');
-    if (tx.blockTime < start || tx.blockTime >= start + schedule.periodSeconds || tx.blockTime > now) continue;
     const launch = state.launches[row.mint], settled = state.v3Settlements[row.signature];
-    const collected = await verifyCollection({ transaction:tx, signature:row.signature, programId,
-      mint:row.mint, expectedLamports:row.collectedLamports });
-    if (!collected) throw new Error('Bonus collection proof is unavailable.');
-    signal?.throwIfAborted();
+    if(!/^[a-f0-9]{64}$/.test(String(row.claimId||'')))throw new Error('Bonus source claim identity is unavailable.');
     const proof = await loadSettlement({ connection, signature:settled.settlementSignature, programId,
       mint:row.mint, authority:launch.pumpFeeRoute.initialAuthority, creator:launch.creatorWallet,
-      claimId:collected.claimId, expectedLamports:row.collectedLamports, split:launch.pumpFeeRoute.protocolSplit });
+      claimId:Buffer.from(row.claimId,'hex'), expectedLamports:row.collectedLamports, split:launch.pumpFeeRoute.protocolSplit });
     if (!proof || integer(proof.categoryLamports?.[5]) == null) throw new Error('Bonus settlement proof is unavailable.');
+    if(!Number.isSafeInteger(proof.blockTime))throw new Error('Bonus settlement time is unavailable.');
+    if(proof.blockTime<start||proof.blockTime>=start+schedule.periodSeconds||proof.blockTime>now)continue;
+    const tx = await connection.getTransaction(row.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
+    signal?.throwIfAborted();
+    if (!tx || !Number.isSafeInteger(tx.blockTime)||tx.blockTime>proof.blockTime) throw new Error('Bonus collection proof is unavailable.');
+    const collected = await verifyCollection({ transaction:tx, signature:row.signature, programId,
+      mint:row.mint, expectedLamports:row.collectedLamports });
+    if (!collected||Buffer.from(collected.claimId).toString('hex')!==row.claimId) throw new Error('Bonus collection proof is unavailable.');
     const shares = splitBonusLamports(BigInt(proof.categoryLamports[5]), POLICY.categoryWeights);
     shares.forEach((value, index) => { values[index] += value; }); collections++;
   }

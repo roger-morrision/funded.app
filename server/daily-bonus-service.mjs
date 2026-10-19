@@ -13,7 +13,9 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
   expectedProgramDataSha256, cluster, payoutEnabled = false, readEvidence,
   chainFactory = createAutomaticRewardChain, loadFunding = loadFinalizedV3RewardFunding,
   verifyPolicy = verifyMintPolicyV3Account, now = () => Math.floor(Date.now() / 1000),
-  readPool = readBonusPool, poolTimeoutMs = 12_000, schedule = DEFAULT_BONUS_SCHEDULE }) {
+  readPool = readBonusPool, poolTimeoutMs = 12_000, schedule = DEFAULT_BONUS_SCHEDULE,
+  eligibilityBasis = 'settlement-time-v1' }) {
+  if (!['collection-time-v1','settlement-time-v1'].includes(eligibilityBasis)) throw new Error('Unknown bonus eligibility basis.');
   if (cluster !== 'devnet') throw new Error('Daily bonus execution is available only on Devnet.');
   const chain = chainFactory({ connection, programId, authority, expectedProgramDataSha256 });
   const readIndexedEvidence = readEvidence || createDailyBonusEvidenceIndex({ rewardStore });
@@ -52,13 +54,16 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
     const window = bonusWindow(day,now());
     if (Boolean(window.qa) !== (schedule.periodSeconds === 300)) throw new Error('Snapshot period does not match the active bonus schedule.');
     if (window.qa && window.cohort !== schedule.cohort) throw new Error('Snapshot belongs to a different QA mint cohort.');
-    const evidence = await readIndexedEvidence({ connection, state:await store.read(), programId, day, now:now(), qaMints:schedule.mints });
+    const basis = prior?.snapshot.eligibilityBasis || (prior ? 'collection-time-v1' : eligibilityBasis);
+    const evidence = await readIndexedEvidence({ connection, state:await store.read(), programId, day, now:now(), qaMints:schedule.mints,
+      eligibilityBasis:basis });
     if (evidence.complete === false) return evidence;
     const ledger = await rewardStore.read();
     const excluded = prior?.snapshot.evidence.excludedCollectionSignatures || evidence.collections
       .filter(row=>ledger.dailyBonusAssignments?.[row.signature] && ledger.dailyBonusAssignments[row.signature] !== prior?.snapshot.hash)
       .map(row=>row.signature);
-    return { ...evidence, ...(excluded.length ? { excludedCollectionSignatures:excluded } : {}) };
+    return { ...evidence, eligibilityBasis:basis,
+      ...(excluded.length ? { excludedCollectionSignatures:excluded } : {}) };
   }
   async function capture(day = latestBonusDay(now(),schedule)) {
     await ready();
@@ -168,13 +173,20 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
     } finally { running = false; }
   }
   async function status() {
-    const state = await rewardStore.read();
-    return { cluster, policy:DAILY_BONUS_POLICY, schedule:publicBonusSchedule(schedule), payoutEnabled,
+    const state = await rewardStore.read(), app = await store.read();
+    const pendingSettlementSources = Object.values(app.collections || {}).filter(row => row.scope === 'per-mint-v3'
+      && row.cluster === 'devnet' && row.programId === programId && row.status === 'collected'
+      && app.launches?.[row.mint]?.feeDistribution?.fixedFunded?.communityRewards?.dailyBonus?.version === 1
+      && app.v3Settlements?.[row.signature]?.status !== 'finalized')
+      .map(row => ({ mint:row.mint, collectionSignature:row.signature, status:'not-eligible',
+        reason:'Awaiting a matching finalized settlement; no bonus window assigned.' }));
+    return { cluster, policy:DAILY_BONUS_POLICY, eligibilityBasis, pendingSettlementSources,
+      schedule:publicBonusSchedule(schedule), payoutEnabled,
       indexing:Object.values(state.dailyBonusProgress || {}).sort((a,b) => a.day.localeCompare(b.day)), nextCutoffAt:
       new Date((currentBonusStart(now(),schedule) + schedule.periodSeconds) * 1000).toISOString(),
       snapshots:Object.values(state.dailyBonusSnapshots || {}).sort((a, b) => b.snapshot.start - a.snapshot.start)
         .slice(0, 30).map(({ snapshot, status:state, reason, payouts }) => ({ day:snapshot.day,
-          cutoffAt:new Date(snapshot.end * 1000).toISOString(), hash:snapshot.hash, status:state, reason,
+          eligibilityBasis:snapshot.eligibilityBasis || 'collection-time-v1', cutoffAt:new Date(snapshot.end * 1000).toISOString(), hash:snapshot.hash, status:state, reason,
           rankings:snapshot.rankings, allocatedLamports:String(snapshot.sources.reduce((sum, row) => sum + BigInt(row.amountLamports), 0n)),
           retainedLamports:String(snapshot.sources.reduce((sum, row) => sum + BigInt(row.retainedLamports), 0n)),
           sources:snapshot.sources.map(source => ({ mint:source.mint, collectionSignature:source.collectionSignature,
