@@ -13,6 +13,15 @@ export function createLaunchRegistryController(appState) {
     appState.communityClaimPolicy = appState.communityReserveStatus === 'ready' ? response.data.claimPolicy || null : null;
     appState.renderHomeKpiDashboard(appState.assets);
     appState.renderAirdropClaims();
+    const panel = globalThis.document?.querySelector('#airdrop-selected-program');
+    if (panel && !panel.hidden) {
+      const program = appState.getAirdropPrograms().find(row => row.id === panel.dataset.mint);
+      const status = document.querySelector('#airdrop-selected-status');
+      const preserveStatus = Boolean(appState.connectedWalletAddress
+        && status?.dataset?.communityClaimWallet === appState.connectedWalletAddress
+        && status.dataset.communityClaimMint === panel.dataset.mint);
+      if (program) appState.renderAirdropProgramDetail(program, { preserveStatus });
+    }
     appState.renderRegistry();
   }
   // app-source-end

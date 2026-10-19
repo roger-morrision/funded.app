@@ -185,8 +185,8 @@ export function createAirdropDirectoryController(appState) {
   // app-source-end
 
   // app-source: 332
-  function renderAirdropProgramDetail(program){
-    return appState.renderAirdropProgramDetailView(program, { connectedWalletAddress: appState.connectedWalletAddress, communityClaimPolicy: appState.communityClaimPolicy, wallet: appState.wallet, APP_EXPLORER_QUERY: appState.APP_EXPLORER_QUERY }, { formatTokenAmount: appState.formatTokenAmount, formatVerifiedAirdropAmount: appState.formatVerifiedAirdropAmount });
+  function renderAirdropProgramDetail(program, { preserveStatus = false } = {}){
+    return appState.renderAirdropProgramDetailView(program, { connectedWalletAddress: appState.connectedWalletAddress, communityClaimPolicy: appState.communityClaimPolicy, wallet: appState.wallet, APP_EXPLORER_QUERY: appState.APP_EXPLORER_QUERY, preserveStatus }, { formatTokenAmount: appState.formatTokenAmount, formatVerifiedAirdropAmount: appState.formatVerifiedAirdropAmount });
   }
   // app-source-end
 

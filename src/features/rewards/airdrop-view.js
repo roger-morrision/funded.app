@@ -10,6 +10,7 @@ export function renderAirdropProgramDetail(
     communityClaimPolicy,
     wallet,
     APP_EXPLORER_QUERY,
+    preserveStatus = false,
   },
   {
     formatTokenAmount,
@@ -36,6 +37,13 @@ export function renderAirdropProgramDetail(
   const unknownEvidence = unknownClaim ? program.claimVerification === 'checking' ? 'Checking verification…' : 'Verification unavailable' : null;
   document.querySelector('#airdrop-selected-stats').innerHTML = `<span><small>Airdrop allocation</small><strong>${formatTokenAmount(program.reservedTokens)} tokens · ${program.allocationPercent}% of supply</strong></span><span><small>Claimed</small><strong>${formatVerifiedAirdropAmount(program.claimedTokens)}</strong></span><span><small>Eligible wallets</small><strong>${formatVerifiedAirdropAmount(program.eligibleWallets)}</strong></span><span><small>Claim window</small><strong>${escapeHtml(claimWindow)}</strong></span><details class="airdrop-verification-details advanced-details"><summary>Advanced details · verification</summary><div class="airdrop-program-detail-stats"><span><small>Snapshot</small><strong>${escapeHtml(program.snapshot)}</strong></span><span><small>Snapshot hash</small><strong class="airdrop-proof-value">${escapeHtml(program.snapshotHash || unknownEvidence || 'Pending verified snapshot')}</strong></span><span><small>Proof root</small><strong class="airdrop-proof-value">${escapeHtml(program.merkleRoot || unknownEvidence || 'Pending published proof')}</strong></span></div></details>`;
   const status = document.querySelector('#airdrop-selected-status');
+  // Background verification may refresh the stats while a wallet review,
+  // signature request or submitted transaction still owns these controls.
+  if (preserveStatus) return;
+  if (status.dataset) {
+    delete status.dataset.communityClaimWallet;
+    delete status.dataset.communityClaimMint;
+  }
   status.textContent = unknownClaim || (program.claimActive
     ? program.snapshotBasis === 'devnet-qa-cutoff'
       ? `This disposable Devnet QA airdrop uses a $FUNDED holder cutoff at ${program.snapshot}. Eligible wallets can check their allocation and claim by ${program.deadline}.`

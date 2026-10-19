@@ -11,6 +11,10 @@ export function createCommunityClaimsController(appState) {
     const pending = appState.communityWalletAllocations.get(mintAddress);
     if (pending && pending.wallet === session.address && pending.snapshotHash === program.snapshotHash
       && (pending.status === 'checking' || silent)) return;
+    if (!silent && status?.dataset) {
+      status.dataset.communityClaimWallet = session.address;
+      status.dataset.communityClaimMint = mintAddress;
+    }
     appState.updateDirectoryWalletAmount(session, program, 'checking');
     try {
       const response = await appState.apiRequest(`/api/airdrops/claims/proof?mint=${encodeURIComponent(mintAddress)}&wallet=${encodeURIComponent(session.address)}`);
@@ -180,6 +184,10 @@ export function createCommunityClaimsController(appState) {
     const status = document.querySelector('#airdrop-selected-status');
     let submittedSignature = null;
     if (!session || !appState.canSignTransactions(session.provider)) return;
+    if (status?.dataset) {
+      status.dataset.communityClaimWallet = session.address;
+      status.dataset.communityClaimMint = mintAddress;
+    }
     button.disabled = true;
     try {
       const launch = appState.verifiedLaunchPolicies.find(row => row.mint === mintAddress && row.onchainVerified && row.cluster === 'devnet');
