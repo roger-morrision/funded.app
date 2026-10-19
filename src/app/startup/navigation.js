@@ -12,6 +12,14 @@ export async function initializeNavigation(appState) {
   appState.setDesktopSidebarCollapsed(document.documentElement.classList.contains('sidebar-collapsed'));
   // app-source-end
 
+  const mobileNavigation=window.matchMedia('(max-width: 700px)');
+  appState.setMenuOpen(false);
+  mobileNavigation.addEventListener('change', () => {
+    if (!mobileNavigation.matches&&document.activeElement===document.querySelector('#close-menu'))
+      appState.desktopSidebarToggle?.focus();
+    appState.setMenuOpen(false,mobileNavigation.matches);
+  });
+
   // app-source: 851
   document.querySelector('#open-menu').addEventListener('click', () => appState.setMenuOpen(true));
   // app-source-end
@@ -81,7 +89,12 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 864
-  document.querySelectorAll('.nav-item, .profile-row').forEach(item => item.addEventListener('click', () => appState.setMenuOpen(false)));
+  document.querySelector('#sidebar').addEventListener('click', event => {
+    const link=event.target.closest('a');
+    if (!link||!event.currentTarget.contains(link)) return;
+    const internal=link.getAttribute('href')?.startsWith('#');
+    appState.setMenuOpen(false,!internal);
+  });
   // app-source-end
 
   // app-source: 865

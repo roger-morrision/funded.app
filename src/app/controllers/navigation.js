@@ -16,12 +16,23 @@ export function createNavigationController(appState) {
 
   // app-source: 850
   function setMenuOpen(open, restoreFocus = false){
-    document.querySelector('#sidebar').classList.toggle('open', open);
-    document.querySelector('#menu-backdrop').hidden = !open;
-    document.querySelector('#open-menu').setAttribute('aria-expanded', String(open));
-    document.body.classList.toggle('menu-open', open);
-    if (open) document.querySelector('#close-menu').focus();
-    else if (restoreFocus) document.querySelector('#open-menu').focus();
+    const sidebar=document.querySelector('#sidebar');
+    const opener=document.querySelector('#open-menu');
+    const mobile=window.matchMedia('(max-width: 700px)').matches;
+    const visible=mobile&&Boolean(open);
+    if (!visible&&mobile&&sidebar.contains(document.activeElement)) {
+      if (restoreFocus) opener.focus();
+      else document.querySelector('#main-content').focus({preventScroll:true});
+    }
+    sidebar.inert=mobile&&!visible;
+    if (sidebar.inert) sidebar.setAttribute('aria-hidden','true');
+    else sidebar.removeAttribute('aria-hidden');
+    sidebar.classList.toggle('open',visible);
+    document.querySelector('#menu-backdrop').hidden=!visible;
+    opener.setAttribute('aria-expanded',String(visible));
+    document.body.classList.toggle('menu-open',visible);
+    if (visible) document.querySelector('#close-menu').focus();
+    else if (restoreFocus&&mobile) opener.focus();
   }
   // app-source-end
 
