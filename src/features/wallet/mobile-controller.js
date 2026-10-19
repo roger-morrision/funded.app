@@ -130,7 +130,7 @@ export function createMobileWalletController({
     };
     return provider;
   }
-  async function openMobileWalletDialog(){
+  async function openMobileWalletDialog({ interactiveSignIn = true } = {}){
     if (window.location.protocol !== 'https:') { showToast('Use the hosted HTTPS site to connect Phantom on your phone.'); return; }
     try {
       const [{ default: nacl }, { decryptPhantomMobileResult, verifyPhantomMobileSession }] = await Promise.all([import('tweetnacl'), import('../../../phantom-mobile-crypto.js')]);
@@ -149,7 +149,7 @@ export function createMobileWalletController({
       const provider = await createMobileWalletProvider(session);
       storage().setItem(MOBILE_WALLET_SESSION_KEY, JSON.stringify(session));
       allowWalletReconnect();
-      activateWallet(provider, 'Phantom mobile wallet connected', { interactiveSignIn: true });
+      activateWallet(provider, 'Phantom mobile wallet connected', { interactiveSignIn });
       closeDialog('mobile-wallet-dialog');
       showToast('Phantom wallet connected on desktop');
     } catch (error) { const label=document.querySelector('#mobile-wallet-qr-label'); if(label?.closest('dialog')?.open)label.textContent=error.message; showToast(error.message || 'Phantom connection failed.'); }

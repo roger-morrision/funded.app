@@ -145,6 +145,13 @@ export function tokenPage() {
     }
     else {for(const [element,inert] of sheetBackground)element.inert=inert;sheetBackground.clear();trade?.removeAttribute('role');trade?.removeAttribute('aria-modal');trade?.removeAttribute('aria-label');}
   };
+  trade?.addEventListener('funded:trade-wallet-start',()=>setSheet(false));
+  trade?.addEventListener('funded:trade-wallet-return',()=>{
+    if(root.hidden||!matchMedia('(max-width:700px)').matches)return;
+    setSheet(true);
+    const connect=$('#trade-connect-wallet',trade);
+    if(!connect?.hidden)connect?.focus();else $('#trade-amount',trade)?.focus();
+  });
   button.addEventListener('click',()=>setSheet(!root.classList.contains('trade-sheet-open')));
   button.setAttribute('aria-controls','trade-panel');button.setAttribute('aria-expanded','false');
   const tradeActionAnchor=$('.coin-stat-strip',root);

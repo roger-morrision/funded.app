@@ -12,6 +12,9 @@
 .coin-page .coin-side-toggle button.active[data-coin-trade-side="sell"]{background:#582637;color:#ffe5ea}
 .coin-page .coin-trade-balance{display:flex;justify-content:space-between;gap:12px;margin:0 2px 8px;color:#8990a3;font-size:12px}
 .coin-page .coin-trade-balance strong{min-width:0;overflow:hidden;color:#d7dae5;font-weight:600;text-align:right;text-overflow:ellipsis;white-space:nowrap}
+.coin-page .trade-connect-wallet{display:block;width:100%;min-height:44px;margin:0 0 12px;border:1px solid #b4a1ff;border-radius:8px;background:#302748;color:#f3edff;font-weight:700}
+.coin-page .trade-connect-wallet:hover,.coin-page .trade-connect-wallet:focus-visible{background:#423465}
+.coin-page .trade-connect-wallet[hidden]{display:none}
 .coin-page .coin-trade-amount-card,.coin-page .coin-trade-slippage{overflow:hidden;border:1px solid #404354;border-radius:11px;background:#12141d}
 .coin-page .coin-trade-amount-card>label{margin:0!important;padding:9px 12px 0;color:#969cad;font-size:11px}
 .coin-page .coin-trade-amount-main{display:flex;align-items:center;gap:10px;padding:0 12px 10px}

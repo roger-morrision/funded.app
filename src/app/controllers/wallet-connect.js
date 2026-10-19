@@ -7,6 +7,11 @@ export function createWalletConnectController(appState) {
     document.documentElement.dataset.creatorClaimSigning = String(Boolean(connected && !appState.wallet?.readOnly && typeof appState.wallet?.signMessage === 'function' && typeof appState.wallet?.signTransaction === 'function'));
     window.dispatchEvent(new Event('funded:reward-identity-change'));
     const signingReady = connected && appState.canSignTransactions(appState.wallet);
+    const tradeConnect = document.querySelector('#trade-connect-wallet');
+    if (tradeConnect) {
+      tradeConnect.hidden = signingReady;
+      tradeConnect.textContent = connected ? 'Connect signing wallet' : 'Connect wallet';
+    }
     const header = document.querySelector('#connect-button');
     const walletPopover = document.querySelector('#wallet-popover');
     const keepPopoverOpen = Boolean(connected && walletPopover && !walletPopover.hidden);
@@ -108,7 +113,7 @@ export function createWalletConnectController(appState) {
   // app-source-end
 
   // app-source: 648
-  async function connectWallet(){
+  async function connectWallet({ interactiveSignIn = true } = {}){
     if (appState.APP_MAINNET_READ_ONLY) {
       appState.setLaunchStatus('This workspace is read-only. Wallet connection and signing are disabled.', true);
       appState.showToast('This workspace is read-only. Wallet actions are disabled.');
@@ -120,7 +125,7 @@ export function createWalletConnectController(appState) {
     }
     const choice = await appState.chooseWallet(appState.injectedWalletProviders(), { devnet:appState.APP_CLUSTER === 'devnet', preferred:appState.rememberedWalletProviderId() });
     if (!choice) return;
-    if (choice.mobile) { await appState.mobileWallet.open(); return; }
+    if (choice.mobile) { await appState.mobileWallet.open({ interactiveSignIn }); return; }
     const provider = choice.provider;
     const request = ++appState.walletConnectRequest;
     try {
@@ -129,7 +134,7 @@ export function createWalletConnectController(appState) {
       const activatedByEvent = appState.wallet === connected.provider && appState.connectedWalletAddress === connectedAddress;
       if (request !== appState.walletConnectRequest && !activatedByEvent) return;
       appState.allowWalletReconnect();
-      appState.activateWallet(connected.provider, 'Wallet connected', { interactiveSignIn: true });
+      appState.activateWallet(connected.provider, 'Wallet connected', { interactiveSignIn });
       appState.setLaunchStatus(`Ready to sign with ${connectedAddress}`);
     }
     catch (error) {

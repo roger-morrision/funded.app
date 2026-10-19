@@ -34,7 +34,7 @@ export function initializeLaunchActions(appState) {
   document.addEventListener('click', event => {
     const button = event.target.closest('button');
     if (!button || !/^connect wallet/i.test(button.textContent.trim())) return;
-    if (['connect-button', 'profile-connect', 'coin-trade-button', 'trade-submit', 'launch-button', 'airdrop-button', 'sol-claim-submit'].includes(button.id)) return;
+    if (['connect-button', 'profile-connect', 'coin-trade-button', 'trade-connect-wallet', 'trade-submit', 'launch-button', 'airdrop-button', 'sol-claim-submit'].includes(button.id)) return;
     event.preventDefault();
     appState.connectWallet();
   });
