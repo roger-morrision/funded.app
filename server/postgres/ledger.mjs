@@ -9,6 +9,7 @@ const buckets = ['launches', 'listings', 'listingQuotes', 'boostQuotes', 'boostR
 const referralBuckets = { referralCodes: 'codes', referralWallets: 'wallets', referralAttributions: 'attributions', referralChallenges: 'challenges' };
 buckets.push('creatorProfiles');
 buckets.push('adminSettings', 'adminAudit');
+buckets.push('launchServiceQuotes');
 
 function entriesFor(state, bucket) { return referralBuckets[bucket] ? state.referrals[referralBuckets[bucket]] : state[bucket]; }
 
@@ -16,7 +17,7 @@ function baseState() {
   return { version: 4, launches: {}, listings: {}, listingQuotes: {}, boostQuotes: {}, boostReceipts: {}, launchTierQuotes: {}, xPublicTradeShares: {}, settlements: {}, v3Settlements: {}, v3CommunityFunding: {}, v3CreatorRewardFunding: {}, v3CreatorWalletPayout: {}, v3ReferralPayouts: {}, v3OperationsPayout: {}, v3XClaims: {}, v3BuybackOrders: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, coinChats: {}, shareVisits: {}, creatorProfiles: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
 }
 
-function initialState() { return { ...baseState(), adminSettings:{}, adminAudit:{} }; }
+function initialState() { return { ...baseState(), adminSettings:{}, adminAudit:{}, launchServiceQuotes:{} }; }
 
 function normalizeState(state) {
   const next = { ...initialState(), ...state };

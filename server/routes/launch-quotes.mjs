@@ -27,6 +27,9 @@ export function createLaunchQuoteRoutes({
       const quote = { id:id('launch_service'), payer, recipient, amountLamports:fees.policy.launchLamports,
         policyHash:fees.hash, revision:fees.revision, createdAt:new Date(now).toISOString(), expiresAt:new Date(now+10*60_000).toISOString() };
       await store.update(state => { state.launchServiceQuotes ||= {}; state.launchServiceQuotes[quote.id] = quote; });
+      const persisted=(await store.read()).launchServiceQuotes?.[quote.id];
+      if (!persisted || Object.keys(quote).some(key=>persisted[key]!==quote[key]))
+        return json(res,503,{error:'Launch fee quote could not be saved. No payment should be signed; retry after storage recovers.'});
       return json(res,201,quote);
     }
     if (req.method === 'GET' && url.pathname === '/api/launch-tier-quote') {

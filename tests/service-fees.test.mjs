@@ -49,6 +49,14 @@ test('recommended service fees are exact, bounded and independent from creator d
     assert.throws(() => validateServiceFees({...DEFAULT_SERVICE_FEES,...patch}));
 });
 
+test('launch quote refuses payment preparation if a store silently drops its write',async()=>{
+  const {context,call}=fixture();context.store.update=async callback=>callback({});
+  const handler=createLaunchQuoteRoutes(context);
+  const fees=await call(handler,'GET','/api/service-fees');
+  const result=await call(handler,'POST','/api/launch-service-quote',{payer:address(payer),expectedHash:fees.data.hash});
+  assert.equal(result.status,503);assert.match(result.data.error,/No payment should be signed/);
+});
+
 test('admin policy uses revision/hash compare and immutable audit; stale writes cannot overwrite', async () => {
   const {state,store,context} = fixture(); let output;
   const save = async value => handleAdminServiceFees({ req:{method:'POST'},res:{},url:new URL('https://funded.vip/api/admin/service-fees'),
