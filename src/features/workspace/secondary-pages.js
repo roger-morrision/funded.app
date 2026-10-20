@@ -10,17 +10,18 @@ function revealCampaignFocus(event) {
   requestAnimationFrame(() => {
     if (document.activeElement !== button) return;
     const nav = $('.mobile-workspace-nav');
-    if (!nav?.getClientRects().length) return;
-    // Settle native smooth scrolling before measuring the fixed mobile bounds.
+    // Settle native smooth scrolling before measuring navigation and viewport.
     window.scrollTo({top:scrollY, left:scrollX, behavior:'instant'});
     const box = button.getBoundingClientRect(), style = getComputedStyle(button);
     const outline = (parseFloat(style.outlineWidth) || 0) + Math.max(0, parseFloat(style.outlineOffset) || 0);
     const header = $('.topbar');
     const top = header?.getClientRects().length ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
-    const bottom = nav.getBoundingClientRect().top;
-    if (box.top - outline < top || box.bottom + outline > bottom) {
-      // Keep the same native button focused; reveal only an obscured control.
-      button.scrollIntoView({behavior:'instant', block:'center', inline:'nearest'});
+    const bottom = nav?.getClientRects().length ? nav.getBoundingClientRect().top : innerHeight;
+    const delta = box.top - outline < top ? box.top - outline - top : Math.max(0, box.bottom + outline - bottom);
+    if (delta) {
+      // Campaigns scroll with the document. Reveal the full outline with the
+      // smallest whole-pixel offset, including fractional native display scales.
+      window.scrollBy({top:delta < 0 ? Math.floor(delta) : Math.ceil(delta), behavior:'instant'});
     }
   });
 }
