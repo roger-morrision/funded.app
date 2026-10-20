@@ -5,6 +5,7 @@ import { PublicKey } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { burnedSupplyBaseUnits, formatTokenBaseUnits, parseTokenAmount, planTokenAccountBurns, projectBurnMemo, waitForSignatureConfirmation } from '../funded-burn.js';
 import { readVerifiedBurnChecked } from '../server/burn-verification.mjs';
+import { fundedBurnFailureMessage } from '../src/features/funded/buy-feedback.js';
 const burnDashboardSource = readFileSync(new URL('../src/features/funded/buyback-view.js', import.meta.url), 'utf8');
 assert.match(burnDashboardSource, /buybackNetworkState\.status === 'unavailable' && verifiedLaunchPoliciesStatus !== 'ready' && !fundedBurnState\.receiptIndexAvailable[\s\S]*?\? 'Receipt index unavailable'/, 'The burn ledger must not display a verified zero when all receipt sources are unavailable.');
 
@@ -61,7 +62,13 @@ const listingSource = readFileSync(new URL('../server/routes/listing-payments.mj
 const composeSource = readFileSync(new URL('../compose.preview.yml', import.meta.url), 'utf8');
 assert.match(appSource, /createBurnCheckedInstruction/);
 assert.match(appSource, /waitForSignatureConfirmation/);
-assert.match(appSource, /Solana RPC unavailable; \$FUNDED mint and balance could not be verified\./, 'Burn UI must explain RPC outages without exposing raw transport errors.');
+assert.match(appSource, /message: fundedBurnFailureMessage\(error\)/, 'Burn state must route RPC errors through the safe UI message.');
+for (const detail of ['RPC 503 <html>private-endpoint</html>', 'failed to fetch https://private-endpoint']) {
+  const message = fundedBurnFailureMessage(new Error(detail));
+  assert.match(message, /Burn verification is temporarily unavailable\. The Solana connection could not be verified\./);
+  assert.doesNotMatch(message, /private-endpoint|<html>|https?:/);
+}
+assert.match(fundedBurnFailureMessage(new Error('429 rate limit')), /Solana RPC is rate limited/);
 assert.match(listingSource, /verifyFundedBurn/);
 assert.match(serverSource, /process\.env\.FUNDED_TOKEN_MINT \|\| process\.env\.VITE_FUNDED_TOKEN_MINT/);
 assert.match(composeSource, /FUNDED_TOKEN_MINT: \$\{FUNDED_TOKEN_MINT:\?Missing Devnet FUNDED mint\}/);

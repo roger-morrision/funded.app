@@ -29,6 +29,7 @@ assert.match(app, /chain:\s*'solana'/);
 assert.match(app, /cluster:\s*'devnet'/);
 assert.match(app, /launchpad:\s*'pump'/);
 assert.doesNotMatch(productSource, /launchpad:\s*['"](?!pump['"])/i);
-assert.match(readme, /Solana-only market dashboard/);
+assert.match(readme, /A Solana Devnet application for launching and discovering tokens/);
+assert.match(readme, /Mainnet activation is a separate reviewed release\./, 'Documentation must not imply mainnet launch availability.');
 
 console.log('solana-only product verification passed');

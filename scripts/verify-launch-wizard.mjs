@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { updateCostSummary } from '../src/features/launch/cost-view.js';
 import { launchReviewStillCurrent } from '../launch-review-gate.js';
 import { publicLaunchBudget } from '../public-launch-budget.js';
+import { DEFAULT_SERVICE_FEES, serviceFeeSol } from '../service-fees.js';
 
 const [html, app, styles, pageStyles, workspaceStyles, preview, actions, costs, validation] = await Promise.all([
   readFile(new URL('../index.html', import.meta.url), 'utf8'),
@@ -77,7 +78,10 @@ assert.match(preview, /publicQuote\?\.status === 'ready' \? publicQuote\.develop
 assert.match(costs, /publicQuote\?\.status === 'ready' && publicQuote\.developerTokens > 0/, 'The launch cost summary must show the public developer-buy quote.');
 assert.match(actions, /!feeDistribution\.valid \? 'Fix fee distribution'/, 'Invalid fee shares must be explained before the disconnected-wallet prompt.');
 assert.match(launchPage, /id="preview-promotion-badge"/, 'The launch preview must show the selected promotion badge.');
-assert.match(launchPage, /class="cost-summary launch-pay-summary free-launch"[\s\S]*?id="cost-tier-label">Platform launch fee: 0[\s\S]*?id="cost-burn-row" hidden[\s\S]*?id="cost-burn"/, 'Zero platform fee must remain distinct from paid promotion burns and network costs.');
+assert.equal(DEFAULT_SERVICE_FEES.launchLamports, '20000000', 'The approved launch service fee must not drift.');
+assert.equal(serviceFeeSol(DEFAULT_SERVICE_FEES.launchLamports), 0.02);
+assert.match(launchPage, /class="cost-summary launch-pay-summary free-launch"[\s\S]*?id="cost-tier-label">Launch service fee: 0\.02 SOL[\s\S]*?Network \+ account reserve[\s\S]*?id="cost-burn-row" hidden[\s\S]*?id="cost-burn"/, 'The approved service fee, network allowance and optional promotion burn must remain separate.');
+assert.match(costs, /tierLabelNode\.textContent = `Launch service fee: \$\{serviceFeeSol\(currentServiceFees\(\)\.launchLamports\)\} SOL/, 'The visible service fee must follow the current approved policy.');
 assert.match(launchPage, /class="community-airdrop-highlight"[\s\S]*?30,000,000[\s\S]*?3\.00% of supply[\s\S]*?bought and locked at launch/, 'The You pay panel must describe atomic reserve funding.');
 assert.doesNotMatch(launchPage, /delivery requires vault funding and a verified active distribution cycle/, 'The removed delivery sentence must not return to the launch panel.');
 assert.doesNotMatch(launchPage, /claimable at migration/, 'Migration alone must not promise a claimable payout.');
@@ -165,7 +169,7 @@ assert.match(app, /history\.replaceState\(\{\}, '', `\$\{location\.pathname\}\$\
 assert.match(app, /fee-route-agree/);
 assert.match(app, /function setLaunchBurnTier\(/);
 assert.match(app, /launchBurnReadiness/);
-assert.match(app, /buildPumpLaunchPlan\(\{ payer, mint, blockhash: latest\.blockhash, launchInstructions, burnInstruction: burnPlan\?\.instruction,\s*mintRouterInstruction: mintRouter\?\.instruction, reserveInstructions:reserve\.instructions,\s*lookupTable \}\)/, 'Estimate must use the same reserve-funded transaction plan as launch.');
+assert.match(app, /buildPumpLaunchPlan\(\{ payer, mint, blockhash: latest\.blockhash, launchInstructions, burnInstruction: burnPlan\?\.instruction,\s*mintRouterInstruction: mintRouter\?\.instruction, reserveInstructions:\[\.\.\.reserve\.instructions,\.\.\.launchServiceFeeInstructions\(\{payer,mint:mint\.publicKey,quote:serviceQuote\}\)\], lookupTable \}\)/, 'Estimate must include the same reserve and service-fee instructions as launch.');
 assert.match(app, /for \(let blockhashAttempt = 0; blockhashAttempt < 2; blockhashAttempt \+= 1\)[\s\S]*?getLatestBlockhash\('finalized'\)/, 'Launch estimation must use a finalized blockhash and one bounded retry.');
 assert.match(app, /BlockhashNotFound\|blockhash not found[\s\S]*?if \(!blockhashMissing \|\| blockhashAttempt > 0\) throw error/, 'Only BlockhashNotFound may retry, and only once.');
 assert.match(app, /blockhashAttempt > 0\) await new Promise\(resolve => setTimeout\(resolve, 1100\)\)/, 'The blockhash retry must outwait the one-second RPC proxy cache.');

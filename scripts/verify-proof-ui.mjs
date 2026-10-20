@@ -2,6 +2,7 @@ import { readAppSource } from './read-app-source.mjs';
 import { readStylesheet } from './read-stylesheet.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { referralRatePresentation } from '../src/features/fees/referral-rate-copy.js';
 
 const [html, appEntry, css, pageCss, pageExperience, creatorSupport] = await Promise.all([
   readFile(new URL('../index.html', import.meta.url), 'utf8'),
@@ -22,7 +23,11 @@ const coinSummaryModel = await readFile(new URL('../coin-summary-model.js', impo
 
 assert.match(html, /id="capital-flow"/);
 assert.doesNotMatch(html, /id="coin-rpc-status"/, 'The removed token header confirmation badge must not be rendered.');
-assert.match(html, /id="referral-ledger-list"><div class="empty-state referral-empty-state"><strong>No receipts to show<\/strong><small>Connect your wallet to check finalized referral payouts\.<\/small><\/div>/, 'Disconnected referral history must not imply verified absence of payouts.');
+assert.match(html, /id="referral-claim-center"[\s\S]*?Connect your earning wallet[\s\S]*?Sign in to view your private referral payouts\.[\s\S]*?data-referral-connect/, 'Disconnected referral state must request a wallet without claiming verified absence of payouts.');
+assert.match(html, /id="referral-ledger-list" hidden/, 'The payout ledger stays hidden before receipt verification.');
+const referralSource = await readFile(new URL('../src/app/controllers/referrals.js', import.meta.url), 'utf8');
+assert.match(referralSource, /if \(!history\)[\s\S]*?renderReferralLedgerEmpty\('Receipts unavailable', 'Payout receipts could not be loaded\./, 'Unavailable history must not become a verified empty payout state.');
+assert.match(referralSource, /if \(!claims\.length\) appState\.renderReferralLedgerEmpty\('No payouts yet'/, 'Only a verified empty history may report no payouts.');
 assert.match(await readFile(new URL('../src/features/fees/fee-flow-markup.js', import.meta.url), 'utf8'), /id="fee-flow-input"/);
 assert.match(html, /Enter a gross fee amount to preview the policy split\. This example does not move funds\./, 'Capital-flow preview copy must distinguish a policy example from live activity.');
 assert.match(html, /class="home-kpi-footer"[\s\S]*?<a href="#analytics-detail">Open analytics →<\/a>/, 'The home dashboard must link to the routed analytics page.');
@@ -116,11 +121,14 @@ assert.match(portfolioCardView, /class="saved-token-row/, 'Portfolio and Favorit
 assert.match(app, /token-card-shell airdrop-directory-card/);
 assert.match(html, /id="airdrop-selected-program"[^>]+hidden/, 'Airdrop policy detail must be hidden until a program is selected.');
 assert.match(app, /const safeMint = escapeHtml\(program\.id\)[\s\S]*?data-directory-mint="\$\{safeMint\}"[\s\S]*?View claim status/, 'The airdrop details action must target a unique mint.');
-assert.match(app, /function renderAirdropProgramDetail\(program\)[\s\S]*?Funding and wallet eligibility must be confirmed before claims can open/, 'Airdrop details must disclose missing claim prerequisites.');
+assert.match(app, /function renderAirdropProgramDetail\(program, \{ preserveStatus = false, open = false \} = \{\}\)[\s\S]*?renderAirdropProgramDetailView\(program/, 'Airdrop details must delegate to the current verified-status view.');
+assert.match(await readFile(new URL('../src/features/rewards/airdrop-view.js', import.meta.url), 'utf8'), /program\.vaultVerified[\s\S]*?Funding and wallet eligibility must be confirmed before claims can open/, 'Planned airdrops must disclose missing funding and eligibility prerequisites.');
 assert.match(xClaimView, /function resetSolClaimStatus\(\{[\s\S]*?Sign a wallet message to verify and submit this claim/, 'V3 X claims must require wallet verification before submission.');
 assert.match(app, /getElementById\(id\)\?\.addEventListener\('input', \(\) => \{ updateClaimBindingReview\(\); resetSolClaimStatus\(\); \}\)/, 'Changing claim identity fields must reset stale validation.');
 assert.match(app, /event\.target\?\.id === 'claim-binding-agree'\) resetSolClaimStatus\(\)/, 'Changing claim wallet confirmation must reset stale validation.');
-assert.match(app, /const program = getAirdropPrograms\(\)\.find\(item => item\.id === button\.dataset\.directoryMint\);[\s\S]*?renderAirdropProgramDetail\(program\)/, 'The details action must render program details, not only filter the directory.');
+const airdropActions = await readFile(new URL('../src/app/startup/explore-filters-actions.js', import.meta.url), 'utf8');
+assert.match(airdropActions, /const program = appState\.getAirdropPrograms\(\)\.find\(item => item\.id === button\.dataset\.directoryMint\);[\s\S]*?openAirdropDetail\(program\)/, 'The selected mint must open its details rather than only filter the directory.');
+assert.match(airdropActions, /function openAirdropDetail\(program\)[\s\S]*?appState\.renderAirdropProgramDetail\(program, \{ open:true \}\)/, 'Opening the selected mint must render its program details.');
 assert.doesNotMatch(app, /selected — checking eligibility for your connected wallet/, 'Selecting an airdrop must not imply a wallet check that did not run.');
 assert.match(pageCss, /One professional card surface is shared by Home, Explore, portfolios, watchlists, and rewards/);
 assert.match(pageCss, /\.analytics-kpis\.analytics-kpis-complete/);
@@ -133,14 +141,17 @@ assert.match(app, /creatorRankingUnavailable = verifiedLaunchPoliciesStatus !== 
 assert.match(pageExperience, /data-analytics-metric="burned"/);
 assert.match(html, /<h1 id="favorites-title">Favorite tokens<\/h1>/);
 assert.match(html, /<h2>All airdrops<\/h2>/);
-assert.match(app, /communityReserveStatus === 'ready'[\s\S]*?Funding status unavailable[\s\S]*?<span>Planned tokens<\/span>/, 'Indexed policy allocations must report funded counts only when reserve evidence is ready.');
+const airdropDirectory = await readFile(new URL('../src/app/controllers/airdrop-directory.js', import.meta.url), 'utf8');
+assert.match(airdropDirectory, /const claimsKnown = appState\.communityReserveStatus === 'ready' && programs\.every\(item => item\.claimVerification === 'verified'\)/, 'Funded counts require verified reserve evidence for every program.');
+assert.match(airdropDirectory, /const fundingNote = claimsKnown[\s\S]*?'Funding verification unavailable or incomplete'[\s\S]*?<span>Planned tokens<\/span>/, 'Planned token amounts must disclose unavailable funding verification.');
 assert.match(html, /id="airdrop-export-csv" disabled title="Requires an indexed, verified list of unclaimed wallets"/, 'Airdrop CSV export must be gated on verified wallet rows, not a snapshot count alone.');
 assert.match(app, /getVerifiedUnclaimedWallets\(\)\{[\s\S]*?snapshotVerified === true/, 'Only verified snapshot wallets can enter the export.');
 assert.match(app, /if \(exportButton\) exportButton\.disabled = verifiedWallets\.length === 0/, 'Export control must follow verified wallet availability.');
 assert.match(app, /if \(!verifiedWallets\.length\) \{[\s\S]*?No verified eligibility snapshot or unclaimed wallets are available to export/, 'Direct export calls must fail closed without verified wallets.');
 assert.match(app, /profileConnect\.textContent = connected \? 'View wallet details' : 'Connect wallet'/, 'Connected profile action must describe wallet details, not reconnection.');
 assert.match(app, /#profile-connect'\)\?\.addEventListener\('click', \(\) => \{[\s\S]*?if \(connectedWalletAddress\) document\.querySelector\('#profile-dialog'\)\?\.showModal\(\)/, 'Connected profile action must open wallet details.');
-assert.match(app, /async function connectWallet\(\)\{[\s\S]*?if \(!getProvider\(\) && DEV_MODE && DEV_WALLET_AUTOCONNECT\) \{[\s\S]*?allowWalletReconnect\(\);[\s\S]*?if \(await connectDevWallet\(\)\) return;/, 'An explicit reconnect must restore the disposable Dev Mode wallet after manual disconnect.');
+const walletConnectSource = await readFile(new URL('../src/app/controllers/wallet-connect.js', import.meta.url), 'utf8');
+assert.match(walletConnectSource, /async function connectWallet\(\{ interactiveSignIn = true \} = \{\}\)\{[\s\S]*?if \(appState\.APP_MAINNET_READ_ONLY\) \{[\s\S]*?return;[\s\S]*?if \(!appState\.getProvider\(\) && appState\.DEV_MODE && appState\.DEV_WALLET_AUTOCONNECT\) \{[\s\S]*?appState\.allowWalletReconnect\(\);[\s\S]*?if \(await appState\.connectDevWallet\(\)\) return;/, 'Read-only mode must block signing; explicit Dev Mode reconnect may restore only the disposable wallet.');
 assert.match(html, /id="trade-review-dialog"[\s\S]*?id="trade-review-confirm"/, 'Trade submission must have an explicit review dialog.');
 assert.match(app, /#trade-submit'\)\?\.addEventListener\('click', openTradeReview\)/, 'Review and sign must not immediately submit a trade.');
 assert.match(launchReviewMarkup, /id="launch-review-dialog"[\s\S]*?id="launch-review-confirm"/, 'Launch submission must have an explicit review dialog.');
@@ -161,7 +172,12 @@ assert.match(pageCss, /html\.sidebar-collapsed \.sidebar/);
 assert.doesNotMatch(creatorSupport, /More & transparency|support-more-nav|nav\.replaceChildren\(\.\.\.primary,more\)/);
 assert.match(pageCss, /Keep the complete navigation visible and grouped/);
 assert.match(html, /class="home-referral-guide section-block"[\s\S]*?One link\. Three levels of benefits\./, 'The home page must end with the three-level referral quick guide.');
-assert.match(html, /Level 1 · Direct[\s\S]*?<strong>2%<\/strong>[\s\S]*?Level 2 · Network[\s\S]*?<strong>0\.6%<\/strong>[\s\S]*?Level 3 · Extended[\s\S]*?<strong>0\.4%<\/strong>/, 'The home referral guide must show the published three-level rates.');
+assert.match(html, /Level 1 · Direct[\s\S]*?<strong>0\.6%<\/strong>[\s\S]*?Level 2 · Network[\s\S]*?<strong>0\.25%<\/strong>[\s\S]*?Level 3 · Extended[\s\S]*?<strong>0\.15%<\/strong>/, 'The home guide must show the approved pending three-level rates.');
+const referralRates = referralRatePresentation();
+assert.equal(referralRates.pending, true, 'Agency activation must remain pending in the shipped policy.');
+assert.deepEqual(referralRates.levels.map(level => level.rate), [0.6, 0.25, 0.15]);
+assert.match(referralRates.scopeDetail, /published deployment uses L1 2% \/ L2 0\.6% \/ L3 0\.4%/, 'Pending presentation must distinguish current deployed rates from approved future rates.');
+assert.match(await readFile(new URL('../src/features/fees/fee-flow-view.js', import.meta.url), 'utf8'), /setAll\('\.home-referral-levels article strong', displayGross\.map\(percent\)\)/, 'The rendered home guide must take its rates from the policy presenter.');
 assert.match(html, /class="home-referral-link-box"[\s\S]*?data-referral-link[\s\S]*?data-copy-referral-link/, 'The home referral guide must reuse the live referral link and copy behavior.');
 assert.match(pageCss, /Home referral guide: explain the published three-level benefit/);
 const coinPageMarkup = html.slice(html.indexOf('<section class="coin-page"'), html.indexOf('<section class="wallet-page"'));

@@ -10,6 +10,7 @@ import { buildMintRouterV3InitializeInstruction, buildProtectedMintRouterV3Initi
 import { FEE_ROUTER_POLICY_HASH_HEX } from '../fee-router.js';
 import { buildPumpLaunchPlan } from '../mint-router-launch.js';
 import { buildLaunchMintRouter } from '../launch-flow.js';
+import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
 
 const programId = Keypair.generate().publicKey;
 const mintSigner = Keypair.generate();
@@ -33,7 +34,10 @@ assert.throws(() => buildProtectedMintRouterV3InitializeInstruction({ programId,
   authority, creator, shares:{ creatorWalletPercent:80, holderAirdropPercent:1, solClaimPercent:0 } }), /total 80%/);
 assert.throws(() => buildLaunchMintRouter({ mint, payer:creator,
   v3FeeRouter:{ programId, initialAuthority:authority } }), /protocol split/);
-assert.deepEqual(initial.protocolUnits, [1_000_000, 200_000, 60_000, 40_000, 200_000, 500_000]);
+assert.deepEqual(PROTOCOL_FEE_SPLIT, { operationsPercent:40, referralLevelPercents:[10,3,2], communityPercent:20, buybackPercent:25 }, 'Current approved protocol split must not drift.');
+assert.deepEqual(initial.protocolUnits, [800_000, 200_000, 60_000, 40_000, 400_000, 500_000]);
+assert.deepEqual(protocolGrossUnits({ operationsPercent:50, referralLevelPercents:[10,3,2], communityPercent:10, buybackPercent:25 }),
+  [1_000_000, 200_000, 60_000, 40_000, 200_000, 500_000], 'Historical 50/10 snapshots remain interpretable.');
 assert.equal(initial.instruction.data.toString('hex').slice(0, 16),
   createHash('sha256').update('global:initialize_mint_v3').digest('hex').slice(0, 16));
 assert.equal(initial.instruction.keys[1].isSigner, true);
@@ -149,7 +153,9 @@ assert.equal((await verifyMintPolicyV3Account({ connection:accountAt(policyData)
 policyData.writeBigUInt64LE(0n, 192);
 assert.equal((await verifyMintPolicyV3Account({ connection:accountAt(policyData), programId, mint, creator:authority, initialAuthority:authority })).verified, false);
 assert.equal((await verifyMintPolicyV3Account({ connection:accountAt(policyData), programId, mint, creator, initialAuthority:authority,
-  split:{ operationsPercent:40, referralLevelPercents:[10,3,2], communityPercent:20, buybackPercent:25 } })).verified, false);
+  split:{ operationsPercent:50, referralLevelPercents:[10,3,2], communityPercent:10, buybackPercent:25 } })).verified, false);
+assert.equal((await verifyMintPolicyV3Account({ connection:accountAt(policyData), programId, mint, creator, initialAuthority:authority,
+  split:PROTOCOL_FEE_SPLIT })).verified, true, 'The current split must verify against its recorded policy units.');
 policyData.writeBigUInt64LE(1n, 128);
 assert.equal((await verifyMintPolicyV3Account({ connection:accountAt(policyData), programId, mint, creator, initialAuthority:authority })).verified, false);
 console.log('mint router v3 policy and instruction checks passed');
