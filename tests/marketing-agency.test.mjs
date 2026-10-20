@@ -132,6 +132,18 @@ test('capability API cannot be enabled by an environment variable or assert zero
   assert.equal(result.status, 405);
   assert.equal(await handle({ method: 'GET' }, {}, new URL('http://localhost/api/other')), false);
 });
+test('verified buyback runtime exposes per-agent readiness without activating a suspended publisher',async()=>{
+  let response;
+  const state={adminSettings:{protocolFeePolicy:{revision:3,split:{agencyPercent:10}}}};
+  const route=createMarketingAgencyRoutes({respond:(_res,status,body)=>{response={status,body};},store:{read:async()=>state},
+    env:{FUNDED_V3_AGENCY_ENABLED:'true',FUNDED_V3_AGENCY_BUYBACK_ENABLED:'true',X_POST_ENABLED:'false',X_POST_ACCOUNT_STATUS:'suspended',
+      FUNDED_BUILD_ID:'a'.repeat(40),FUNDED_V3_PROGRAM_DATA_SHA256:'b'.repeat(64)},
+    readLaunchConfig:async()=>({ready:true,agency:{configRevision:'1'},programId:mint,protocolSplit:{agencyPercent:10}})});
+  await route({method:'GET'},{},new URL('https://funded.vip/api/marketing-agency'));
+  assert.equal(response.body.active,true);assert.equal(response.body.publishingPaused,true);
+  assert.deepEqual(response.body.agents.map(row=>row.enabled),[false,true,true]);assert.equal(response.body.agents[0].status,'paused');
+  assert.equal(response.body.feePolicy.status,'published');
+});
 
 test('selected agency launch fails before wallet connection, signing, RPC or transaction', async () => {
   const prior = globalThis.document;

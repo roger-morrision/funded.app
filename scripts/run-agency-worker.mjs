@@ -45,7 +45,8 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
   const lookup=(await connection.getAddressLookupTable(new PublicKey(config.lookupAddress),{commitment:'finalized'})).value;
   if(!lookup?.key.equals(new PublicKey(config.lookupAddress))||lookup.state.deactivationSlot!==0xffffffffffffffffn)
     throw new Error('Agency buyback lookup table is not active.');
-  const account=config.execute?await publisher.verifyAccount():null;
+  const buybacksOnly=config.buybacksOnly===true;
+  const account=config.execute&&!buybacksOnly?await publisher.verifyAccount():null;
   const state=await store.read(),mints=Object.values(state.launches||{}).filter(row=>row.cluster==='devnet'
     &&row.pumpFeeRoute?.programId===config.programId&&row.pumpFeeRoute?.protocolSplit?.agencyPercent!==undefined).map(row=>row.mint).sort();
   const previous=state.adminSettings?.agencyWorker?.lastMint||'',ordered=[...mints.filter(mint=>mint>previous),...mints.filter(mint=>mint<=previous)].slice(0,5);
@@ -57,7 +58,7 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
       const context=await readContext({...base,mint,state});
       events.push({mint,status:'dry-run',selectedMask:context.policy.selectedMask,remainingLamports:context.remainingLamports});continue;
     }
-    events.push(await promotion({...base,mint}));
+    if(!buybacksOnly)events.push(await promotion({...base,mint}));
     for(const agent of [1,2]){
       if(shouldStop())break;
       try{events.push({...await milestone({...base,mint,agent}),mint,agent});}
@@ -65,12 +66,14 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
     }
   }
   if(config.execute&&!shouldStop()){
+    if(!buybacksOnly){
     const publish=createAgencyPublisher({...base});
     const sent=await dispatch({store:outbox,publish,enabled:true,dryRun:false,maxPosts:config.maxPosts,kinds:['agency_promotion']});
     events.push({status:'x-dispatch',...sent});
     // Publication and billing are separate. Each billing re-fetches exact X
     // author/text/time and independently verifies finalized chain receipts.
     for(const mint of ordered){if(shouldStop())break;events.push(await promotion({...base,mint}));}
+    }
     const budgets={};
     for(const mint of ordered){
       if(shouldStop())break;
@@ -82,9 +85,9 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
         scope:'finalized-pump-sources-and-agency-vault',verified:true};
     }
     if(!shouldStop())await store.update(current=>{
-      current.adminSettings||={};current.adminSettings.agencyWorker={status:events.some(row=>row.status==='execution-unavailable')?'degraded':'ready',version:'agency-executor-v1',cluster:'devnet',
+      current.adminSettings||={};current.adminSettings[buybacksOnly?'agencyBuybackWorker':'agencyWorker']={status:events.some(row=>row.status==='execution-unavailable')?'degraded':'ready',version:buybacksOnly?'agency-buyback-executor-v1':'agency-executor-v1',cluster:'devnet',
         programId:config.programId,approvedHash:config.approvedHash,authority:authority.publicKey.toBase58(),configRevision:deployment.revision,
-        build:config.build,xAccountId:account.id,capabilities:['x-promotion','buyback-100k','buyback-300k'],
+        build:config.build,...(buybacksOnly?{}:{xAccountId:account.id}),capabilities:buybacksOnly?['buyback-100k','buyback-300k']:['x-promotion','buyback-100k','buyback-300k'],
         checkedAt:new Date(now()).toISOString(),lastMint:ordered.at(-1)||previous,
         pendingExecutions:events.filter(row=>!['finalized','not-payable','below-threshold','cadence-wait','x-dispatch'].includes(row.status)).length};
       current.adminSettings.agencyBudgets={...(current.adminSettings.agencyBudgets||{}),...budgets};

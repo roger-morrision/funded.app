@@ -5,7 +5,7 @@ export function initMarketingAgency(document = globalThis.document) {
   const main = document?.querySelector('.main-content');
   if (!main || document.getElementById('marketing-agency')) return;
   const view = document.defaultView, page = document.createElement('section');
-  let agencyAvailable=false;
+  let agencyAvailable=false,publishingPaused=false;
   page.id = 'marketing-agency'; page.className = 'agency-page section-block';
   page.setAttribute('aria-labelledby', 'agency-title');
   page.innerHTML = `<header class="section-heading"><div><p class="eyebrow">AI marketing agency teams</p><h1 id="agency-title">A team for every launch</h1><p>Select promotion agents when preparing a coin. Each agent uses its own share of the agency budget.</p></div><button type="button" data-agency-refresh>Refresh status</button></header>
@@ -58,6 +58,7 @@ export function initMarketingAgency(document = globalThis.document) {
     const options=document.getElementById('launch-agency-options');
     if(options){options.querySelector('legend').textContent=active?'AI marketing team':'AI marketing team · preview';
       options.querySelector('#launch-agency-help').textContent=active?'Selections and fee rates are signed at launch and recorded on-chain. Each agent uses only its protected budget.':'Agency activation is pending. Preview the team here; agency-enabled launch submission is unavailable until its fee vault and executors are verified.';
+      if(active&&publishingPaused)options.querySelector('#launch-agency-help').textContent+=' X promotion is paused; its selected budget stays reserved until reinstatement and verified delivery.';
       options.dispatchEvent(new Event('change'));}
   }
   const readiness=event=>teamReadiness(event.detail?.active===true);
@@ -80,9 +81,18 @@ export function initMarketingAgency(document = globalThis.document) {
         if(data.policy?.version!==POLICY.version||proof?.scope!=='reviewed-devnet-program-and-fresh-worker'
           ||!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(proof.programId)||!/^[a-f0-9]{64}$/.test(proof.approvedHash)
           ||!/^[a-f0-9]{40}$/.test(proof.build)||!(/^[1-9]\d{0,19}$/).test(String(proof.configRevision)))throw new Error('Unverified agency deployment');
-        teamReadiness(true);page.querySelector('#agency-policy-title').textContent='New-launch fee policy';
-        page.querySelector('[data-agency-status]').textContent='Agency execution enabled on Devnet. Actions wait for protected funding, cadence and verified milestones; receipts below establish completed actions.';
-        page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Available · execution requires proof';});
+        if(!Array.isArray(data.agents)||data.agents.length!==POLICY.agents.length||POLICY.agents.some(agent=>
+          data.agents.filter(row=>row.id===agent.id&&typeof row.enabled==='boolean').length!==1)
+          ||(data.publishingPaused&&data.agents.some(row=>row.id==='x-promotion'&&(row.enabled||row.status!=='paused'))))
+          throw new Error('Unverified per-agent readiness');
+        publishingPaused=data.publishingPaused===true;teamReadiness(true);page.querySelector('#agency-policy-title').textContent='Published new-launch fee policy';
+        page.querySelector('[data-agency-status]').textContent=data.publishingPaused
+          ?'Buyback agents are available on Devnet. X promotion stays paused until the account is reinstated; its budget remains reserved. Buybacks wait for verified funding and their $100k / $300k milestones.'
+          :'Agency execution enabled on Devnet. Actions wait for protected funding, cadence and verified milestones; receipts below establish completed actions.';
+        page.querySelectorAll('.agency-agent .data-badge').forEach((node,index)=>{
+          const row=data.agents?.find(row=>row.id===POLICY.agents[index].id);
+          node.textContent=row?.status==='paused'?'Paused · X account suspended':row?.enabled===false?'Not activated':'Available · execution requires proof';
+        });
         page.querySelector('[data-agency-funded]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.collectedLamports):'Unavailable';
         page.querySelector('[data-agency-spent]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.spentLamports):'Unavailable';
         const history=page.querySelector('[data-agency-history]');history.replaceChildren();
@@ -98,13 +108,16 @@ export function initMarketingAgency(document = globalThis.document) {
       }
       if (data.status !== 'activation-blocked' || data.active !== false || data.executionEnabled !== false
         || data.policy?.version !== POLICY.version) throw new Error('Unverified agency capability');
-      teamReadiness(false);page.querySelector('#agency-policy-title').textContent='New-launch agency allocation';
-      page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Not activated';});
-      page.querySelector('[data-agency-status]').textContent = 'Not activated. Agency execution is unavailable. New agency launches remain disabled until deployment and worker verification passes. See Capital flow for the published fee policy.';
+      publishingPaused=data.publishingPaused===true;teamReadiness(false);page.querySelector('#agency-policy-title').textContent='New-launch agency allocation';
+      if(data.feePolicy?.status==='published')page.querySelector('#agency-policy-title').textContent='Published new-launch fee policy';
+      page.querySelectorAll('.agency-agent .data-badge').forEach((node,index)=>{
+        node.textContent=data.agents?.find(row=>row.id===POLICY.agents[index].id)?.status==='paused'?'Paused · X account suspended':'Not activated';
+      });
+      page.querySelector('[data-agency-status]').textContent = `${data.feePolicy?.status==='published'?'The 1% referral / 2% agency policy is published. ':''}Not activated. Agency execution is unavailable. New agency launches remain disabled until deployment and worker verification passes.${data.publishingPaused?' X promotion is paused pending account reinstatement.':''} See Capital flow for the published fee policy.`;
       page.querySelector('[data-agency-funded]').textContent = 'Unavailable';
       page.querySelector('[data-agency-spent]').textContent = 'Unavailable';
     } catch {
-      if (id === serial){page.querySelector('[data-agency-status]').textContent = 'Agency status unavailable. No agency funding or execution is confirmed. Refresh to try again.';
+      if (id === serial){teamReadiness(false);page.querySelector('[data-agency-status]').textContent = 'Agency status unavailable. No agency funding or execution is confirmed. Refresh to try again.';
         page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Unavailable';});}
     } finally { view.clearTimeout(timeout); }
   }

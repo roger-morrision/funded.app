@@ -65,3 +65,21 @@ The initial October 19 local pass did not submit an agency upgrade, policy chang
 - No new on-chain or live X agency execution was verified. This records initial local preparation; later app releases may carry this inactive preview without activating its contract budget or executors.
 
 Ignored local evidence: `tmp/marketing-agency-all-unit.log`, `tmp/marketing-agency-focused-final.log`, `tmp/marketing-agency-browser.log`, `tmp/marketing-agency-browser-final.log`, `tmp/marketing-agency-build.log`, `tmp/agency-desktop.png`, and `tmp/agency-mobile.png`.
+## Independent buyback execution during an X suspension
+
+The dedicated `agency-buyback-worker` runs only Agents 2 and 3. It has no X
+credentials, publisher or outbox. `FUNDED_V3_AGENCY_BUYBACK_ENABLED=true` enables
+this worker only with the reviewed Devnet binary, active lookup table and fresh
+exact-build heartbeat. Normal launch activation remains a separate acceptance
+gate. The worker independently verifies each immutable mint policy, finalized
+source collections, settlement counters and protected budget before spending.
+
+Agent 1 remains paused while X publishing is disabled or the account is
+suspended. Selecting it reserves its share; it does not publish or bill. The
+page reports this pause separately from buyback-agent availability and from
+publication of the 1% referral / 2% agency policy. Reinstatement alone does not
+start either publisher; a separate reviewed activation is required.
+
+Agents 2 and 3 retain their real $100,000 / $300,000 verified USD market-cap
+thresholds, one execution per agent per mint, protected payer reserve and
+finalized debit/burn receipt checks. Availability is not an executed burn.

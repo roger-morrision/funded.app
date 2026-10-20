@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {Keypair,PublicKey} from '@solana/web3.js';
 import {agencyWorkerConfig,runAgencyCycle,agencyWorkerBlocked} from '../scripts/run-agency-worker.mjs';
 import {agencyWorkerHealth} from '../server/agency-deployment.mjs';
+import {agencyBuybackWorkerHealth} from '../server/agency-deployment.mjs';
+import {agencyBuybackConfig} from '../scripts/run-agency-buyback-worker.mjs';
 const key=n=>Keypair.fromSeed(Buffer.alloc(32,n)),authority=key(231),programId=key(232).publicKey.toBase58(),mint=key(233).publicKey.toBase58(),lookupAddress=key(234).publicKey.toBase58();
 const env={SOLANA_CLUSTER:'devnet',DATABASE_URL:'postgresql://fixture.invalid/qa',X_POST_EXPECTED_HANDLE:'fundedvip',X_POST_ACCOUNT_ID:'123',
   X_POST_PUBLIC_ORIGIN:'https://funded.vip',X_POST_START_AT:'2026-10-01T00:00:00Z',X_POST_ENABLED:'true',X_POST_ALLOW_DEVNET:'true',X_POST_ACCESS_TOKEN:'synthetic',X_POST_ACCOUNT_STATUS:'active',
@@ -23,6 +25,21 @@ function fixture(execute){
 test('agency dry run performs custody preview without financial journal, post dispatch or heartbeat activation',async()=>{
   const f=fixture(false),result=await runAgencyCycle(f.input);assert.equal(result.events[0].status,'dry-run');
   assert.deepEqual(f.counts,{writes:0,promotions:0,buys:0,posts:0});
+});
+test('buyback-only worker requires no X configuration and never verifies, prepares, bills or dispatches a post',async()=>{
+  const noX=Object.fromEntries(Object.entries({...env,FUNDED_V3_AGENCY_BUYBACK_ENABLED:'true'}).filter(([key])=>!key.startsWith('X_')));
+  const config=agencyBuybackConfig(noX,['--once','--execute']);
+  const f=fixture(true);f.input.config=config;
+  f.input.publisher=new Proxy({},{get(){throw new Error('A buyback worker must never access X.');}});
+  await runAgencyCycle(f.input);assert.deepEqual(f.counts,{writes:1,promotions:0,buys:2,posts:0});
+  assert.equal(f.state.adminSettings.agencyWorker,undefined);
+  const health={programId,approvedHash:config.approvedHash,authority:authority.publicKey.toBase58(),revision:'1',build:config.build};
+  assert.equal(agencyBuybackWorkerHealth(f.state,health),true);
+  assert.equal(agencyBuybackWorkerHealth(f.state,{...health,build:'c'.repeat(40)}),false);
+  f.state.adminSettings.agencyBuybackWorker.checkedAt=new Date(Date.now()-90001).toISOString();
+  assert.equal(agencyBuybackWorkerHealth(f.state,health),false);
+  for(const change of [{SOLANA_CLUSTER:'mainnet-beta'},{FUNDED_V3_AGENCY_BUYBACK_ENABLED:'false'},{FUNDED_BUILD_ID:'latest'}])
+    assert.throws(()=>agencyBuybackConfig({...noX,...change},['--execute']));
 });
 test('dedicated worker verifies account, dispatches only agency events and distinguishes heartbeat readiness from execution success',async()=>{
   const f=fixture(true);await runAgencyCycle(f.input);assert.deepEqual(f.counts,{writes:1,promotions:2,buys:2,posts:1});

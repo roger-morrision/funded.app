@@ -22,3 +22,11 @@ export function agencyWorkerHealth(state,{programId,approvedHash,authority,revis
     &&/^\d{1,30}$/.test(String(row.xAccountId))&&row.capabilities?.join(',')==='x-promotion,buyback-100k,buyback-300k'
     &&Number.isSafeInteger(Date.parse(row.checkedAt))&&now-Date.parse(row.checkedAt)>=0&&now-Date.parse(row.checkedAt)<90000);
 }
+export function agencyBuybackWorkerHealth(state,{programId,approvedHash,authority,revision,build,now=Date.now()}){
+  const row=state.adminSettings?.agencyBuybackWorker;
+  return Boolean(row?.status==='ready'&&row.version==='agency-buyback-executor-v1'&&row.cluster==='devnet'
+    &&row.programId===String(programId)&&row.approvedHash===approvedHash&&row.authority===String(authority)
+    &&row.configRevision===String(revision)&&/^[a-f0-9]{40}$/.test(String(build))&&row.build===build
+    &&row.capabilities?.join(',')==='buyback-100k,buyback-300k'
+    &&Number.isSafeInteger(Date.parse(row.checkedAt))&&now-Date.parse(row.checkedAt)>=0&&now-Date.parse(row.checkedAt)<90000);
+}

@@ -4,7 +4,7 @@ import { activeProtocolFeeSplit } from './active-protocol-fee.mjs';
 import { verifyFeeRouterAccount } from '../fee-router.js';
 import { readProgramDataEvidence, DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
 import { rewardServiceHealth } from './reward-service-health.mjs';
-import {readAgencyDeployment,agencyWorkerHealth} from './agency-deployment.mjs';
+import {readAgencyDeployment,agencyWorkerHealth,agencyBuybackWorkerHealth} from './agency-deployment.mjs';
 import {MARKETING_AGENCY_POLICY} from '../config/marketing-agency.js';
 
 // This exact Devnet ProgramData was verified against the tested protected V3
@@ -90,8 +90,10 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
           reasons.push('V3 launch reserve or buyback lookup table is not active on Devnet');
         if(agencyEnabled){
           agencyDeployment=agency;beneficiaryRoutingOnChainEnforced=agency?.verified===true;
-          if(!agencyWorkerHealth(agencyState||{},{programId,approvedHash,authority:authority.publicKey.toBase58(),
-            revision:agency.revision,build:env.FUNDED_BUILD_ID}))reasons.push('Agency worker has no fresh matching verified deployment readiness');
+          const health={programId,approvedHash,authority:authority.publicKey.toBase58(),revision:agency.revision,build:env.FUNDED_BUILD_ID};
+          const buybacksReady=env.FUNDED_V3_AGENCY_BUYBACK_ENABLED==='true'&&agencyBuybackWorkerHealth(agencyState||{},health);
+          const fullReady=env.X_POST_ENABLED==='true'&&env.X_POST_ACCOUNT_STATUS==='active'&&agencyWorkerHealth(agencyState||{},health);
+          if(!buybacksReady&&!fullReady)reasons.push('Agency worker has no fresh matching verified deployment readiness');
         }
       } catch { reasons.push('V3 program verification is unavailable'); }
       finally { clearTimeout(timer); controller.abort(); }

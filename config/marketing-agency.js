@@ -1,5 +1,5 @@
-// Approved next-launch policy. This is a candidate, not the active V3 fee split.
-// Activation requires a dedicated on-chain agency budget and verified executors.
+// Approved agency-launch policy. Publication and executor readiness are separate.
+// Existing launches retain their immutable saved split and selected agents.
 export const MARKETING_AGENCY_POLICY = Object.freeze({
   version: 'marketing-agency-v1',
   scope: 'every-new-launch',

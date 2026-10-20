@@ -1,0 +1,33 @@
+services:
+  app:
+    environment:
+      FUNDED_V3_AGENCY_BUYBACK_ENABLED: ${FUNDED_V3_AGENCY_BUYBACK_ENABLED:-false}
+  agency-buyback-worker:
+    profiles: [agency-buyback]
+    image: ${FUNDED_RELEASE_IMAGE:?Set the exact tested app image}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    stop_grace_period: 120s
+    command: [node, scripts/run-agency-buyback-worker.mjs, --loop, --execute]
+    environment:
+      NODE_ENV: production
+      FUNDED_BUILD_ID: ${FUNDED_RELEASE_SHA:?Set the tested source SHA}
+      DATABASE_URL_FILE: /run/secrets/database_url
+      DATABASE_SSL: 'false'
+      SOLANA_CLUSTER: devnet
+      SOLANA_RPC_URL_FILE: /run/secrets/solana_devnet_rpc_url
+      FUNDED_PROGRAM_EVIDENCE_RPC_URL: ${FUNDED_PROGRAM_EVIDENCE_RPC_URL:-}
+      FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY_FILE: /run/secrets/funded_router_authority_secret_key
+      FUNDED_V3_FEE_ROUTER_PROGRAM_ID: ${FUNDED_V3_FEE_ROUTER_PROGRAM_ID:?Set the reviewed agency program}
+      FUNDED_V3_PROGRAM_DATA_SHA256: ${FUNDED_V3_PROGRAM_DATA_SHA256:?Set the reviewed agency ProgramData hash}
+      FUNDED_V3_BUYBACK_LOOKUP_TABLE: ${FUNDED_V3_BUYBACK_LOOKUP_TABLE:?Set the active agency lookup table}
+      FUNDED_V3_AGENCY_ENABLED: ${FUNDED_V3_AGENCY_ENABLED:-false}
+      FUNDED_V3_AGENCY_BUYBACK_ENABLED: ${FUNDED_V3_AGENCY_BUYBACK_ENABLED:-false}
+    secrets: [database_url, solana_devnet_rpc_url, funded_router_authority_secret_key]
+    depends_on:
+      db:
+        condition: service_healthy

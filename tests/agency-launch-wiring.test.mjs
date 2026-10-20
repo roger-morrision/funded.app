@@ -41,7 +41,7 @@ test('normal agency launch readiness requires explicit acceptance, verified chai
   const env={FUNDED_V3_FEE_ROUTER_PROGRAM_ID:program.toBase58(),FUNDED_V3_PROGRAM_DATA_SHA256:hash,FUNDED_BUILD_ID:build,
     FUNDED_V3_LAUNCH_ENABLED:'true',FUNDED_V3_COLLECTION_ENABLED:'true',FUNDED_V3_SETTLEMENT_ENABLED:'true',FUNDED_V3_HOLDER_WORKER_ENABLED:'true',
     FUNDED_V3_BUYBACK_ENABLED:'true',FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE:lookup.toBase58(),FUNDED_V3_BUYBACK_LOOKUP_TABLE:lookup.toBase58(),
-    FUNDED_V3_AGENCY_ENABLED:'true',FUNDED_V3_AGENCY_NORMAL_FLOWS_ENABLED:'true'};
+    FUNDED_V3_AGENCY_ENABLED:'true',FUNDED_V3_AGENCY_NORMAL_FLOWS_ENABLED:'true',X_POST_ENABLED:'true',X_POST_ACCOUNT_STATUS:'active'};
   const config=createV3LaunchConfig({solanaCluster:'devnet',solanaRpcUrl:'https://fixture.invalid',env,store:{read:async()=>state},
     automaticRewardStore:{read:async()=>({serviceStatus:{checkedAt:new Date().toISOString(),constrainedPayouts:true}})},v3AuthorityKeypair:()=>({publicKey:authority}),
     connectionFactory:()=>({getGenesisHash:async()=>DEVNET_GENESIS_HASH,getAddressLookupTable:async()=>({value:{state:{deactivationSlot:0xffffffffffffffffn}}})}),
@@ -49,5 +49,9 @@ test('normal agency launch readiness requires explicit acceptance, verified chai
     readAgency:async()=>({verified:true,revision:'2',protocolSplit:split})});
   assert.equal((await config()).ready,true);assert.deepEqual((await config()).agency,{version:agency.version,configRevision:'2'});
   state.adminSettings.agencyWorker.build='c'.repeat(40);assert.equal((await config()).ready,false);state.adminSettings.agencyWorker.build=build;
+  env.X_POST_ENABLED='false';env.X_POST_ACCOUNT_STATUS='suspended';assert.equal((await config()).ready,false);
+  env.FUNDED_V3_AGENCY_BUYBACK_ENABLED='true';
+  state.adminSettings.agencyBuybackWorker={...state.adminSettings.agencyWorker,version:'agency-buyback-executor-v1',capabilities:['buyback-100k','buyback-300k']};
+  assert.equal((await config()).ready,true,'An independent verified buyback worker must not require X reinstatement.');
   env.FUNDED_V3_AGENCY_NORMAL_FLOWS_ENABLED='false';assert.equal((await config()).ready,false);
 });
