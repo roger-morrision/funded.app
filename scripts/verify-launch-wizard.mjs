@@ -61,6 +61,14 @@ assert.doesNotMatch(launchPage, /class="launch-platform-grid"|Solana Devnet bond
 assert.match(launchPage, /id="launch-preview-title">Launch summary[\s\S]*?id="preview-community"[\s\S]*?id="preview-creator-buy"[\s\S]*?id="preview-launch-cost"/, 'The sticky summary must expose the live community reserve, developer buy, and total.');
 assert.match(launchPage, /<aside class="launch-preview"[^>]*><div class="launch-preview-sticky">/, 'The summary must use an inner sticky card so the launch action remains available through the full form.');
 assert.match(launchPage, /data-launch-step="1"[\s\S]*?data-launch-step="2"/, 'Details and settings must follow a logical order.');
+assert.match(launchPage, /Add a name and ticker\.[^<]*image[^<]*optional/i,
+  'The step introduction must tell creators an image is optional.');
+assert.match(launchPage, /<label class="full-label">Token image \(optional\)/,
+  'The visible image label must match the optional validation rule.');
+assert.match(launchPage, /id="token-image"[^>]*aria-label="Choose token image \(optional\)"/,
+  'The file input accessible name must also state optionality.');
+assert.doesNotMatch(launchPage, /id="token-image"[^>]*\srequired(?:\s|>|=)/,
+  'Optional image input must not become required.');
 assert.doesNotMatch(launchPage, /data-launch-step="4"|sign-step-title|Sign and verify|sign-checklist|Run local dry run/, 'The removed sign-and-verify panel must not return.');
 assert.doesNotMatch(launchPage, /launch-page-checks|>Logo<\/span>|>Thesis<\/span>|>Official links<\/span>/, 'The removed launch-page readiness badges must not return.');
 assert.doesNotMatch(launchPage, /Before the Pump transaction|desktop-hosted URL|preview database/, 'The removed metadata-storage warning must not return to the launch form.');
