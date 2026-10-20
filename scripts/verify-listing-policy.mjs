@@ -1,9 +1,14 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { LISTING_PRICE_USD, listingBurnBaseUnits, listingBurnTokens, listingMemo } from '../listing-policy.js';
+import { LISTING_PRICE_USD, listingBurnBaseUnits, listingBurnBaseUnitsForUsd, listingBurnTokens, listingMemo } from '../listing-policy.js';
+import { DEFAULT_SERVICE_FEES } from '../service-fees.js';
 
-assert.equal(LISTING_PRICE_USD, 200);
-assert.equal(listingBurnBaseUnits(6, listingBurnTokens(0.01)), 20_000_000_000n);
+assert.equal(DEFAULT_SERVICE_FEES.listingUsd, 300, 'The approved listing price must not drift.');
+assert.equal(LISTING_PRICE_USD, DEFAULT_SERVICE_FEES.listingUsd);
+assert.equal(listingBurnBaseUnits(6, listingBurnTokens(0.01)), 30_000_000_000n);
+assert.equal(listingBurnBaseUnitsForUsd(0.01, 6), 30_000_000_000n);
+assert.equal(listingBurnBaseUnitsForUsd(0.01, 6, 200), 20_000_000_000n, 'Historical $200 quotes remain representable without changing the current default.');
+assert.throws(() => listingBurnBaseUnitsForUsd(0, 6), /verified/);
 assert.equal(listingBurnBaseUnits(6, 1), 1_000_000n);
 assert.throws(() => listingBurnBaseUnits(6, 0), /Unsupported/);
 assert.throws(() => listingBurnBaseUnits(18, 20), /exceeds/);
@@ -14,5 +19,6 @@ const listingRoutes = await readFile(new URL('../server/routes/listing-payments.
 assert.match(client, /listingQuoteCurrent/);
 assert.match(client, /listingBurnBaseUnitsForUsd\(quote\.tokenPriceUsd, funded\.decimals\)/);
 assert.match(server, /currentLaunchTierPricing/);
-assert.match(listingRoutes, /listingBurnBaseUnitsForUsd\(quote\.tokenPriceUsd, quote\.decimals\)/);
+assert.match(listingRoutes, /listingBurnBaseUnitsForUsd\(pricing\.tokenPriceUsd, decimals,fees\.policy\.listingUsd\)/, 'New quotes use the current approved listing price.');
+assert.match(listingRoutes, /listingBurnBaseUnitsForUsd\(quote\.tokenPriceUsd, quote\.decimals,quote\.usd\)/, 'Recovery verifies the price saved in the signed quote instead of repricing it.');
 console.log('listing policy checks passed');

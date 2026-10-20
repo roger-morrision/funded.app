@@ -6,6 +6,7 @@ import { explorePageNumbers, paginateExploreRows } from '../explore-pagination.j
 import { exploreSocialLinks } from '../explore-social-links.js';
 import { formatSolMetric, readCurveMetrics, readPumpSwapMetrics } from '../explore-onchain-metrics.js';
 import { sortDevnetLaunches } from '../server/explore-registry.mjs';
+import { createExploreActivitySampler, ACTIVITY_MAX_AGE_MS } from '../src/features/explore/activity-sampling.js';
 
 const exploreMarkup = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const appSource = ['../app.js', '../src/features/home/onchain-view.js', '../src/features/home/kpi-view.js', '../src/features/home/launch-board-view.js', '../src/features/home/launch-card-view.js', '../src/features/explore/assets-view.js', '../src/features/explore/asset-card-view.js', '../src/features/explore/controls-view.js', '../src/features/explore/registry-view.js']
@@ -25,7 +26,15 @@ assert.match(appSource, /launchFeedUnavailable \? 'Launch feed unavailable; coun
 assert.match(appSource, /recordedPayouts \? 'Recorded payouts are awaiting receipt verification' : 'USD quote or payout evidence unavailable'/, 'Analytics must not claim there are no referral payouts when receipt verification is unavailable.');
 assert.match(appSource, /registryUnavailable \? outage\.title : `\$\{filtered\.length\} of \$\{registryLaunches\.length\} shown`/, 'Explore must explain the current outage instead of showing a verified zero result while its sources are unavailable.');
 assert.match(appSource, /if \(exploreLoadInFlight\) return exploreLoadInFlight;[\s\S]*?exploreLoadInFlight = load;[\s\S]*?exploreLoadInFlight = null;/, 'Overlapping Explore refreshes must share one load instead of racing their scan counter.');
-assert.match(appSource, /let scannedCount = 0;[\s\S]*?scannedCount \+= 1;[\s\S]*?exploreScannedCount = scannedCount;/, 'A completed Explore load must publish only its own scan count.');
+const exploreLoadingSource = readFileSync(new URL('../src/app/controllers/explore-loading.js', import.meta.url), 'utf8');
+assert.match(exploreLoadingSource, /let scannedCount = 0;[\s\S]*?scannedCount = await sampleActivity\(verified,[\s\S]*?if \(requestedSort !== appState\.exploreSort\) return;[\s\S]*?appState\.exploreScannedCount = scannedCount;/, 'A completed Explore load must publish its own sampler count only after the requested sort is current.');
+let sampledAt = 600_000;
+const sample = createExploreActivitySampler({ cache:new Map(), now:()=>sampledAt });
+const sampledItems = [{ address:'verified' }, { address:'unavailable' }];
+assert.equal(await sample(sampledItems, async item => item.address === 'verified' ? { observedCoverage:'complete', tradeCount24h:null, volume24hSol:2 } : null), 1);
+sampledAt += ACTIVITY_MAX_AGE_MS + 60_000;
+assert.equal(await sample(sampledItems, async () => null), 0, 'An expired scan must not retain a stale verified count.');
+assert.equal(sampledItems[0].volume24hSol, null, 'Unavailable activity must clear the old volume.');
 assert.match(exploreMarkup, /Minimum market cap · USD\s*<input id="explore-min-cap-sol"/);
 assert.match(exploreMarkup, /Minimum 24h volume · USD<\/span><input id="explore-min-volume-sol"/);
 assert.match(exploreMarkup, /id="explore-promotion-filter"[\s\S]*?Any paid promotion[\s\S]*?Premier/);
