@@ -82,6 +82,14 @@ for (const width of [390, 1440]) {
     const { trigger } = await open(page);
     await close(page, 'Escape');
     await expect(trigger).toBeFocused();
+    // Place the focused trigger inside the usable viewport before asserting that
+    // a same-row replacement leaves the page scroll unchanged.
+    await trigger.evaluate(button => button.scrollIntoView({ behavior: 'instant', block: 'center' }));
+    expect(await trigger.evaluate(button => {
+      const rect = button.getBoundingClientRect();
+      const top = document.querySelector('.topbar')?.getBoundingClientRect().bottom || 0;
+      return rect.top >= top && rect.bottom <= innerHeight;
+    })).toBe(true);
     const scrollBefore = await page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
     expect(await renderTableAgain(page)).toBe(true);
     await expect(trigger).toBeFocused();

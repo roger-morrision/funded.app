@@ -53,16 +53,23 @@ export function navigation() {
   const searchDialog = node('dialog', 'header-search-dialog');
   searchDialog.id = 'header-search-dialog';
   searchDialog.setAttribute('aria-label', 'Search launches');
-  searchDialog.innerHTML = `<form class="header-search-panel"><label for="header-search-input">Search launches</label><div class="header-search-field"><span aria-hidden="true">${icon('explore')}</span><input id="header-search-input" type="search" role="combobox" aria-autocomplete="list" aria-expanded="true" autocomplete="off" placeholder="Search name, ticker, or mint" aria-controls="header-search-results" /><button type="button" class="header-search-close" aria-label="Close search">${icon('close')}</button></div><div class="header-search-results-head"><strong id="header-search-results-title">EXPLORE TOKENS</strong><span>NAME · SYMBOL · ADDRESS</span></div><div id="header-search-results" class="header-search-results" role="listbox" aria-label="Verified launch search results"></div><p id="header-search-help">↑↓ navigate · ↵ open · Esc close</p></form>`;
+  searchDialog.innerHTML = `<form class="header-search-panel"><label for="header-search-input">Search launches</label><div class="header-search-field"><span aria-hidden="true">${icon('explore')}</span><input id="header-search-input" type="search" role="combobox" aria-autocomplete="list" aria-expanded="true" autocomplete="off" placeholder="Search name, ticker, or mint" aria-controls="header-search-results" /><button type="button" class="header-search-close" aria-label="Close search">${icon('close')}</button></div><div class="header-search-results-head"><strong id="header-search-results-title">EXPLORE TOKENS</strong><span>NAME · SYMBOL · ADDRESS</span></div><div id="header-search-results" class="header-search-results" role="listbox" aria-label="Verified launch search results"></div><p id="header-search-help" role="status" aria-live="polite">↑↓ navigate · ↵ open · Esc close</p></form>`;
   document.body.append(searchDialog);
   const modalSearch = $('#header-search-input', searchDialog);
   const globalSearch = $('#global-search');
   const searchResults = $('#header-search-results', searchDialog);
+  const searchHelp = $('#header-search-help', searchDialog);
+  const defaultSearchHelp = searchHelp.textContent;
   let candidates = [];
   let activeCandidate = -1;
-  const renderSearchResults = () => {
+  const renderSearchResults = ({ preserveSelection = false } = {}) => {
+    const selectedMint = preserveSelection && activeCandidate >= 0 ? candidates[activeCandidate]?.mint : null;
     candidates = window.fundedVerifiedSearchCandidates?.(modalSearch.value) || [];
-    activeCandidate = candidates.length ? 0 : -1;
+    if (preserveSelection) activeCandidate = selectedMint ? candidates.findIndex(candidate => candidate.mint === selectedMint) : -1;
+    else activeCandidate = candidates.length ? 0 : -1;
+    if (selectedMint && activeCandidate < 0) {
+      searchHelp.textContent = 'Your selected result is no longer in the current list. Choose another result or press Enter to search Explore.';
+    } else if (!preserveSelection) searchHelp.textContent = defaultSearchHelp;
     $('#header-search-results-title', searchDialog).textContent = modalSearch.value.trim() ? 'SEARCH RESULTS' : 'EXPLORE TOKENS';
     searchResults.replaceChildren();
     if (!candidates.length) {
@@ -98,12 +105,17 @@ export function navigation() {
         image.src = sources[next++];
       }
     });
-    modalSearch.setAttribute('aria-activedescendant', activeCandidate >= 0 ? `header-search-result-${activeCandidate}` : '');
+    if (activeCandidate >= 0) {
+      modalSearch.setAttribute('aria-activedescendant', `header-search-result-${activeCandidate}`);
+      if (preserveSelection) searchResults.querySelector(`#header-search-result-${activeCandidate}`)?.scrollIntoView({ block: 'nearest' });
+    } else modalSearch.removeAttribute('aria-activedescendant');
   };
   const selectCandidate = index => {
     activeCandidate = index;
     for (const [position, link] of [...searchResults.querySelectorAll('[role="option"]')].entries()) link.setAttribute('aria-selected', String(position === index));
-    modalSearch.setAttribute('aria-activedescendant', index >= 0 ? `header-search-result-${index}` : '');
+    if (index >= 0) modalSearch.setAttribute('aria-activedescendant', `header-search-result-${index}`);
+    else modalSearch.removeAttribute('aria-activedescendant');
+    searchHelp.textContent = defaultSearchHelp;
     searchResults.querySelector(`#header-search-result-${index}`)?.scrollIntoView({ block: 'nearest' });
   };
   searchTrigger.addEventListener('click', () => {
@@ -114,11 +126,20 @@ export function navigation() {
     modalSearch.select();
   });
   modalSearch.addEventListener('input', renderSearchResults);
-  document.addEventListener('funded:verified-search-index', () => { if (searchDialog.open) renderSearchResults(); });
+  document.addEventListener('funded:verified-search-index', () => { if (searchDialog.open) renderSearchResults({ preserveSelection: true }); });
   modalSearch.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      searchDialog.close();
+      return;
+    }
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
     event.preventDefault();
-    if (candidates.length) selectCandidate((activeCandidate + (event.key === 'ArrowDown' ? 1 : candidates.length - 1)) % candidates.length);
+    if (candidates.length) {
+      const next = activeCandidate < 0 ? event.key === 'ArrowDown' ? 0 : candidates.length - 1
+        : (activeCandidate + (event.key === 'ArrowDown' ? 1 : candidates.length - 1)) % candidates.length;
+      selectCandidate(next);
+    }
   });
   $('.header-search-close', searchDialog).addEventListener('click', () => searchDialog.close());
   $('form', searchDialog).addEventListener('submit', event => {
