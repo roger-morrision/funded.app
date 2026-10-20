@@ -66,3 +66,16 @@ test('agency delivery verification requires the pinned author, exact saved text 
   post.entities.urls[0].expanded_url='https://funded-vip.example/token/verifiedmint';
   await assert.rejects(publisher.verifyPost({id:'456',text}),/differs/);
 });
+
+test('the final dispatch guard and cancellation are checked before any POST',async()=>{
+  let posts=0;
+  const publisher=createXPublisher({accessToken:'synthetic-token',expectedHandle:'fundedfixture',fetchImpl:async(url)=>{
+    if(url.endsWith('/users/me'))return Response.json({data:{id:'123',username:'fundedfixture'}});
+    posts++;return Response.json({data:{id:'456'}});
+  }});
+  await publisher.verifyAccount();
+  await assert.rejects(publisher.publish(event,{beforeSend:async()=>{throw new Error('Current account pause');}}),/pause/);
+  const controller=new AbortController();
+  await assert.rejects(publisher.publish(event,{signal:controller.signal,beforeSend:async()=>{controller.abort();}}),/cancelled/);
+  assert.equal(posts,0);
+});

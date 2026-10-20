@@ -10,7 +10,7 @@ export async function handleAdminXPosts({req,res,url,body,respond,session,env,cr
   try{
     await store.init();
     if(req.method==='GET'&&url.pathname==='/api/admin/x-posts')return send(200,{safety:await store.safetyStatus(),
-      events:await store.list({status:'pending',limit:200,reviewable:true})});
+      ...await store.reviewPage({after:url.searchParams.get('after')})});
     if(req.method==='POST'&&url.pathname==='/api/admin/x-posts/review'){
       const input=await body(req)||{};
       const event=await store.review({id:input.id,expectedHash:input.expectedHash,decision:input.decision,reason:input.reason,actor:session.wallet});
@@ -18,6 +18,10 @@ export async function handleAdminXPosts({req,res,url,body,respond,session,env,cr
     }
     if(req.method==='POST'&&url.pathname==='/api/admin/x-posts/pause')return send(200,{safety:await store.pause('account-suspended'),published:false});
     return send(404,{error:'Unknown X editorial action.'});
-  }catch(error){return send(400,{error:error.message});}
+  }catch(error){
+    const message=String(error?.message||'');
+    const inputError=/^(Invalid X review page cursor|X review page limit|A reviewer, exact content hash|The pending post changed|Individual payout posts and unsolicited mentions)/.test(message);
+    return send(inputError?400:503,{error:inputError?message:'X publishing review is unavailable. No publishing settings were changed.'});
+  }
   finally{await store.close();}
 }

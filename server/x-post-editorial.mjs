@@ -51,7 +51,7 @@ export function buildPayoutDigest(rows,{day,origin='https://funded.vip'}={}){
     if(event.kind!=='auto_payout'||event.cluster!=='devnet'||!Array.isArray(event.proofs)||!event.proofs.length||!event.proofs.every(validProof))throw new Error('Verified Devnet payout sources are required.');
     const facts=checkedPayout(event.payout);recipients.add(facts.recipient);total+=BigInt(facts.amountLamports);
   }
-  const text=`[Devnet test] Payout receipts recorded ${day} UTC: ${sources.length} payments to ${recipients.size} wallets, ${formatXSol(total)} SOL gross. Test SOL only. Review individual receipts and net amounts:\n${url.origin}/#payments`;
+  const text=`[Devnet test] Payout receipts recorded ${day} UTC: ${sources.length} payment${sources.length===1?'':'s'} to ${recipients.size} wallet${recipients.size===1?'':'s'}, ${formatXSol(total)} SOL gross. Test SOL only. Review individual receipts and net amounts:\n${url.origin}/#payments`;
   if(Buffer.byteLength(text)>280||xWeightedLength(text)>280)throw new Error('Daily summary exceeds the post limit.');
   return{id:`devnet:payout_digest:${day}`,kind:'payout_digest',cluster:'devnet',occurredAt:new Date(start+86400000).toISOString(),text,
     proofs:{kind:'recorded-payout-summary',recordedDay:day,count:sources.length,sourceHash:xEventHash(sources),grossLamports:String(total),walletCount:recipients.size}};

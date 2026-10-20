@@ -44,7 +44,7 @@ test('CLI rejects ambiguous modes, wrong networks and unsafe public destinations
 test('a queued wrong-network event fails closed before any publication request', async () => {
   let claimed = false, failed = false, sends = 0;
   const store = {
-    leaseMs: 60_000, readCursor: async () => ({version:0,cursor:null}), has: async () => false, enqueueBatch: async () => {},
+    leaseMs: 60_000, authorizeDispatch:async()=>{},releaseUnsent:async()=>{}, readCursor: async () => ({version:0,cursor:null}), has: async () => false, enqueueBatch: async () => {},
     claim: async () => { if(claimed) return null; claimed=true; return {event:{id:'wrong-network',cluster:'mainnet-beta',text:'Wrong network'},token:'fixture'}; },
     fail: async (id,token,reason) => { assert.equal(id,'wrong-network'); assert.equal(token,'fixture'); assert.equal(reason,'delivery-rejected'); failed=true; },
   };
@@ -83,7 +83,7 @@ function dailyPipelineFixture() {
   // An in-memory outbox isolates this pipeline test; durable concurrency has a
   // separate PostgreSQL integration harness.
   let checkpoint={version:0,cursor:null};const rows=new Map();
-  const store={leaseMs:60000,readCursor:async()=>structuredClone(checkpoint),has:async id=>rows.has(id),list:async()=>[...rows.values()],
+  const store={leaseMs:60000,authorizeDispatch:async()=>{},releaseUnsent:async()=>{},readCursor:async()=>structuredClone(checkpoint),has:async id=>rows.has(id),list:async()=>[...rows.values()],
     enqueueBatch:async(events,{cursor,version})=>{assert.equal(version,checkpoint.version);for(const event of events){assert(!rows.has(event.id));rows.set(event.id,{event,status:'pending'});}checkpoint={version:version+1,cursor:structuredClone(cursor)};},
     claim:async({kinds}={})=>{const row=[...rows.values()].find(row=>row.status==='pending'&&(!kinds||kinds.includes(row.event.kind)));if(!row)return null;row.status='sending';return {event:row.event,token:row.event.id};},
     markPosted:async(id,token,result)=>{assert.equal(id,token);Object.assign(rows.get(id),{status:'posted',result});},

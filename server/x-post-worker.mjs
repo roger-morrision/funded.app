@@ -1,14 +1,17 @@
 // X has no reliable idempotency key for create-post. Durable claims prevent
 // normal duplicate dispatch; unknown delivery always requires reconciliation.
+import {X_POSTING_DEFAULTS} from '../config/x-posting.js';
+
 export async function runXPostWorker({ store, publish, enabled = false, dryRun = true, maxPosts = 1, timeoutMs = 15_000,kinds } = {}) {
   if (!Number.isSafeInteger(maxPosts) || maxPosts < 1 || maxPosts > 20) throw new Error('X dispatch batch must contain 1 to 20 posts.');
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 30_000) throw new Error('X publication timeout is invalid.');
   if(kinds!==undefined&&(!Array.isArray(kinds)||!kinds.length||kinds.length>16||kinds.some(kind=>typeof kind!=='string'||!/^[a-z][a-z0-9_]{0,63}$/.test(kind))))throw new Error('X worker kinds are invalid.');
   const summary = { mode:!enabled ? 'disabled' : dryRun ? 'dry-run' : 'dispatch', claimed:0, posted:0, uncertain:0, retried:0, failed:0, events:[] };
   if (!enabled) return summary;
-  if (dryRun) { summary.events = (await store.list({status:'pending',limit:kinds?200:maxPosts})).map(row => row.event).filter(event=>!kinds||kinds.includes(event.kind)).slice(0,maxPosts); return summary; }
+  if (dryRun) { summary.events = (await store.list({status:'pending',limit:maxPosts,...(kinds?{kinds}:{})})).map(row => row.event).filter(event=>!kinds||kinds.includes(event.kind)).slice(0,maxPosts); return summary; }
   if (typeof publish !== 'function') throw new Error('An X publisher is required.');
   if (!Number.isSafeInteger(store.leaseMs) || store.leaseMs < timeoutMs + 1000) throw new Error('X dispatch lease must exceed the publication timeout by at least one second.');
+  if(typeof store.authorizeDispatch!=='function'||typeof store.releaseUnsent!=='function')throw new Error('A durable X dispatch guard and unsent-release handler are required.');
   for (let count = 0; count < maxPosts; count++) {
     const claim = await store.claim(kinds?{kinds}:undefined);
     if (!claim) break;
@@ -17,9 +20,14 @@ export async function runXPostWorker({ store, publish, enabled = false, dryRun =
     let timer;
     let result;
     let publicationError;
+    const beforeSend=async()=>{
+      if(typeof store.authorizeDispatch!=='function')throw Object.assign(new Error('A current durable dispatch guard is required.'),{delivery:'not-sent',dispatchBlocked:'dispatch-preflight-unavailable'});
+      try{await store.authorizeDispatch(claim.event,claim.token);}
+      catch(error){if(error.dispatchBlocked)throw error;throw Object.assign(new Error('X dispatch verification is unavailable.'),{delivery:'not-sent',dispatchBlocked:'dispatch-preflight-unavailable'});}
+    };
     try {
       result = await Promise.race([
-        Promise.resolve().then(() => publish(claim.event, {signal:controller.signal})),
+        Promise.resolve().then(async() => {await beforeSend();controller.signal.throwIfAborted();return publish(claim.event, {signal:controller.signal,beforeSend});}),
         new Promise((_, reject) => { timer = setTimeout(() => {
           controller.abort();
           reject(Object.assign(new Error('X publication timed out.'), {delivery:'unknown'}));
@@ -44,12 +52,15 @@ export async function runXPostWorker({ store, publish, enabled = false, dryRun =
       continue;
     }
     const status=publicationError.status??publicationError.statusCode;
-    if(['not-sent','rejected'].includes(publicationError.delivery)&&[401,402,403].includes(status)){
+    if(publicationError.delivery==='not-sent'&&publicationError.dispatchBlocked){
+      await store.releaseUnsent(claim.event.id,claim.token,publicationError.dispatchBlocked);
+      summary.retried++;summary.events.push({id:claim.event.id,status:'pending'});
+    } else if(['not-sent','rejected'].includes(publicationError.delivery)&&[401,402,403].includes(status)){
       await store.deferAccount(claim.event.id,claim.token,status);
       summary.retried++;summary.events.push({id:claim.event.id,status:'pending'});
     } else if (publicationError.delivery === 'not-sent' && Number(status) === 429) {
       const requested = Number(publicationError.retryAfterMs);
-      const delay = Number.isSafeInteger(requested) && requested > 0 ? Math.min(requested,86_400_000) : 60_000;
+      const delay = Math.max(X_POSTING_DEFAULTS.rateLimitCooldownMs,Number.isSafeInteger(requested) && requested > 0 ? Math.min(requested,86_400_000) : 0);
       const updated = await store.retryLater(claim.event.id, claim.token, delay);
       if (updated?.status === 'failed') { summary.failed++; summary.events.push({id:claim.event.id,status:'failed'}); }
       else { summary.retried++; summary.events.push({id:claim.event.id,status:'pending'}); }

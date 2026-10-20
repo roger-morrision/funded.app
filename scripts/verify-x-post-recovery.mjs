@@ -6,7 +6,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtemp, writeFile, readFile, rm, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, resolve, dirname, basename } from 'node:path';
 import pg from 'pg';
 import { createXPostStore } from '../server/x-post-store.mjs';
 import { runXPostWorker } from '../server/x-post-worker.mjs';
@@ -31,11 +31,11 @@ const stores=[],pools=[];
 let containerId=null,outcome;
 const began=performance.now();
 const sha=value=>createHash('sha256').update(value).digest('hex');
-const fixture=id=>({id,kind:'launch',cluster:'devnet',occurredAt:'2026-10-04T00:00:00.000Z',text:'Synthetic Devnet recovery fixture',proofs:{signature:'synthetic-only',slot:42}});
+const fixture=id=>({id,kind:'launch',cluster:'devnet',occurredAt:'2026-10-04T00:00:00.000Z',text:'Synthetic Devnet recovery fixture '+id,proofs:{signature:'synthetic-only',slot:42}});
 const publication={id:'987654321',url:'https://x.com/i/web/status/987654321'};
 async function snapshot(pool){
   const result={};
-  for(const table of ['x_post_accounts','x_post_outbox']) result[table]=(await pool.query(`SELECT to_jsonb(t) AS row FROM ${table} t ORDER BY to_jsonb(t)::text`)).rows.map(row=>row.row);
+  for(const table of ['x_post_accounts','x_post_outbox','x_post_review_audit','x_post_digest_sources']) result[table]=(await pool.query(`SELECT to_jsonb(t) AS row FROM ${table} t ORDER BY to_jsonb(t)::text`)).rows.map(row=>row.row);
   return result;
 }
 try{
@@ -67,6 +67,10 @@ try{
   const events=['event:01-posted','event:02-uncertain','event:03-interrupted','event:04-pending'].map(fixture);
   const cursor={version:1,enabledAt:'2026-10-04T00:00:00.000Z',streams:{launches:{after:{id:'verified-last-event',at:1791072000000},pending:[]}}};
   await source.enqueueBatch(events,{cursor,version:0});
+  // Explicitly reviewed synthetic events in this disposable fixture only.
+  for(const event of events){const saved=await source.get(event.id);await source.review({id:event.id,expectedHash:saved.hash,
+    decision:'approved',actor:'11111111111111111111111111111111',reason:'Reviewed synthetic recovery fixture.'});}
+  await sourcePool.query('UPDATE x_post_accounts SET publishing_paused=false');
   const first=await source.claim();assert.equal(first.event.id,events[0].id);
   await source.markPosted(first.event.id,first.token,publication);
   await sourcePool.query("UPDATE x_post_accounts SET next_allowed_at=clock_timestamp()-interval '1 second'");
@@ -76,6 +80,13 @@ try{
   const interrupted=await source.claim();assert.equal(interrupted.event.id,events[2].id);
   await sourcePool.query("UPDATE x_post_accounts SET lease_expires_at=clock_timestamp()-interval '1 minute'");
   await sourcePool.query("UPDATE x_post_outbox SET lease_expires_at=clock_timestamp()-interval '1 minute' WHERE status='sending'");
+  await source.pause('account-suspended');
+  // Nonempty digest provenance must survive too; it is not enough to restore
+  // only an empty schema for the newly introduced tables.
+  const digestEvent={...fixture('digest:reviewed'),kind:'payout_digest'};
+  await source.enqueue(digestEvent);const digestSaved=await source.get(digestEvent.id);
+  await source.review({id:digestEvent.id,expectedHash:digestSaved.hash,decision:'rejected',actor:'11111111111111111111111111111111',reason:'Synthetic summary retained for recovery review.'});
+  await sourcePool.query('INSERT INTO x_post_digest_sources(account_id,digest_id,event_id) VALUES($1,$2,$3)',[accountId,digestEvent.id,events[0].id]);
   const before=await snapshot(sourcePool);
   assert.equal(before.x_post_accounts[0].day_count,3);
   await source.close();stores.splice(stores.indexOf(source),1);
@@ -96,7 +107,7 @@ try{
   const restoreMs=Math.round(performance.now()-restoreStarted);
   const [restored,replica]=await Promise.all([storeFor(targetDb),storeFor(targetDb)]);
   assert.deepEqual(await restored.readCursor(),{version:1,cursor});
-  assert.deepEqual((await restored.list()).map(item=>item.status),['posted','uncertain','sending','pending']);
+  assert.deepEqual((await restored.list()).map(item=>item.status),['posted','uncertain','sending','pending','pending']);
   assert.equal((await restored.enqueue(events[0])).status,'posted','Replay must preserve a restored publication receipt.');
   await assert.rejects(restored.enqueueBatch([fixture('event:should-rollback'),{...events[0],text:'Changed'}],{cursor:{changed:true},version:1}),/immutable/);
   assert.equal(await restored.has('event:should-rollback'),false);
@@ -110,8 +121,11 @@ try{
   await assert.rejects(restored.markPosted(interrupted.event.id,interrupted.token,publication),/no longer current/);
   // Simulate the next permitted UTC window without sleeping or publishing.
   await restoredPool.query("UPDATE x_post_accounts SET hour_start=clock_timestamp()-interval '2 hours',day_start=clock_timestamp()-interval '2 days',next_allowed_at=clock_timestamp()-interval '1 second'");
+  assert.equal((await restored.safetyStatus()).paused,true);
+  assert.equal(await restored.claim(),null,'A restored suspension must prevent dispatch even after its budget window resets.');
+  await restoredPool.query('UPDATE x_post_accounts SET publishing_paused=false'); // explicit fixture-only activation
   const published=[];
-  const publish=async event=>{published.push(event.id);return publication;};
+  const publish=async(event,{beforeSend})=>{await beforeSend();published.push(event.id);return publication;};
   await Promise.all([restored,replica].map(store=>runXPostWorker({store,publish,enabled:true,dryRun:false,maxPosts:4})));
   assert.deepEqual(published,[events[3].id],'Only the pending fixture may dispatch after restore; uncertain and posted entries must never resend.');
   assert.equal((await restored.list({status:'posted'})).length,2);
@@ -119,9 +133,9 @@ try{
   outcome={observedAt:new Date().toISOString(),mode:'isolated Docker PostgreSQL backup/restore; mock publisher only',
     postgresVersion:await docker('exec',containerId,'postgres','--version'),imageId:await docker('inspect','--format','{{.Image}}',containerId),
     archive:{bytes:archiveBytes.length,sha256:sha(archiveBytes)},backupMs,restoreMs,totalMs:Math.round(performance.now()-began),
-    checks:['Exact account and outbox table restoration after source deletion','Pending, posted, uncertain and interrupted sending states preserved',
+    checks:['Exact restoration of accounts, outbox, review audit and digest links after source deletion','Pending, posted, uncertain and interrupted sending states preserved',
       'Posted receipt replay remains idempotent','Hourly/daily caps and counters remain binding','Collector cursor and atomic rollback survive restore',
-      'Expired sending becomes uncertain and stale completion is fenced','Two workers dispatch only the restored pending event after a simulated next window'],
+      'Expired sending becomes uncertain and stale completion is fenced','Restored suspension blocks dispatch until explicit fixture-only activation','Two workers dispatch only the reviewed restored pending event after a simulated next window'],
     realXPosts:0,realSolanaTransactions:0,limitations:['Quiesced synthetic fixture only; production backup retention, encryption and point-in-time recovery are not exercised.','Posts accepted by X after the backup boundary require external reconciliation before restoring live dispatch.']};
 }finally{
   await Promise.allSettled(stores.map(store=>store.close()));
@@ -131,7 +145,7 @@ try{
       assert.equal(await docker('inspect','--format','{{index .Config.Labels "app.funded.x-recovery"}}',containerId),runId);
       await docker('rm','--force','--volumes',containerId);
     }
-  }finally{await rm(directory,{recursive:true,force:true});}
+  }finally{assert.equal(dirname(resolve(directory)),resolve(tmpdir()));assert(basename(directory).startsWith('funded-x-restore-'));await rm(directory,{recursive:true,force:true});}
 }
 if(reportPath)await writeFile(reportPath,`${JSON.stringify(outcome,null,2)}\n`,{mode:0o600});
 console.log(JSON.stringify({...outcome,cleanup:'Task-owned PostgreSQL container, volume and temporary archive removed.'},null,2));

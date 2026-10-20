@@ -3,6 +3,8 @@ import pg from 'pg';
 import bs58 from 'bs58';
 import {createXPostStore} from '../server/x-post-store.mjs';
 import {xEventHash} from '../server/x-post-editorial.mjs';
+import {runXPostWorker} from '../server/x-post-worker.mjs';
+import {createXPublisher} from '../server/x-post-client.mjs';
 assert.equal(process.env.X_POST_DB_TEST,'1');
 const databaseUrl=process.env.X_POST_TEST_DATABASE_URL,target=new URL(databaseUrl);
 assert.equal(target.hostname,'127.0.0.1');assert.equal(target.port,'15433');assert.equal(target.pathname,'/funded_x_test');
@@ -66,5 +68,36 @@ try{
   assert.equal(await e.prepareDailyDigest(),null);assert.equal((await d.get('payout:a')).status,'pending');
   assert.equal(await d.claim({kinds:['auto_payout']}),null);
   checks.push('One summary per closed recording day across replicas, exact totals, source audit and no individual dispatch');
+  const lateAccount=`${accountId}-late`,late=await make(lateAccount);let postRequests=0;
+  const publisher=createXPublisher({accessToken:'synthetic-fixture',expectedHandle:'fundedfixture',fetchImpl:async url=>{
+    if(url.endsWith('/users/me'))return Response.json({data:{id:'123',username:'fundedfixture'}});
+    postRequests++;return Response.json({data:{id:'123'}});
+  }});await publisher.verifyAccount();
+  const lateEvent=await late.enqueue(event('late-check','The wallet history export now includes finalized receipt links and recording times.'));
+  for(const [change,reason]of [
+    [()=>late.pause(),'account-paused'],
+    [()=>pool.query("UPDATE x_post_outbox SET review_expires_at=clock_timestamp()-interval '1 second' WHERE account_id=$1",[lateAccount]),'approval-expired'],
+    [()=>pool.query("UPDATE x_post_outbox SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE account_id=$1",[lateAccount]),'dispatch-claim-expired'],
+  ]){
+    await late.review({...review,id:lateEvent.event.id,expectedHash:lateEvent.hash});
+    await pool.query('UPDATE x_post_accounts SET publishing_paused=false,next_allowed_at=clock_timestamp() WHERE account_id=$1',[lateAccount]);
+    const result=await runXPostWorker({store:late,enabled:true,dryRun:false,publish:async(event,options)=>{await change();return publisher.publish(event,options);}});
+    assert.equal(result.retried,1);assert.equal((await late.get(lateEvent.event.id)).reason,reason);assert.equal((await late.get(lateEvent.event.id)).status,'pending');
+  }
+  assert.equal(postRequests,0);checks.push('Pause, approval expiry and expired claim after async preflight prevent the provider POST and preserve pending work');
+  const pageAccount=`${accountId}-pages`,pages=await make(pageAccount);
+  // Shared microseconds reproduce a cursor boundary that JS millisecond Dates
+  // cannot represent. IDs break ties without losing or repeating rows.
+  const values=Array.from({length:205},(_,i)=>event('page:'+String(i).padStart(3,'0')));
+  await pages.enqueueBatch(values.slice(0,200),{cursor:{page:1},version:0});
+  await pages.enqueueBatch(values.slice(200),{cursor:{page:2},version:1});
+  await pool.query("UPDATE x_post_outbox SET created_at='2026-10-19T12:00:00.123456Z' WHERE account_id=$1",[pageAccount]);
+  const seen=[];let after=null;
+  do{const page=await pages.reviewPage({after,limit:50});seen.push(...page.events.map(row=>row.event.id));after=page.nextCursor;}while(after);
+  assert.deepEqual(seen,values.map(event=>event.id));assert.equal(new Set(seen).size,205);
+  await pages.enqueue({...event('legacy-hidden'),kind:'daily_rewards'});
+  const preview=await pages.list({status:'pending',kinds:['daily_rewards'],limit:1});assert.equal(preview[0].event.id,'legacy-hidden');
+  assert(!(await pages.reviewPage({limit:200})).events.some(row=>row.event.kind==='daily_rewards'));
+  checks.push('Review pagination preserves every microsecond boundary across more than 200 rows; previews filter kinds before limiting');
   console.log(JSON.stringify({passed:checks.length,checks,mode:'isolated PostgreSQL, synthetic receipts, no live X or Solana requests'},null,2));
 }finally{await Promise.allSettled(stores.map(store=>store.close()));await pool.end();}

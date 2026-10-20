@@ -89,11 +89,15 @@ export function createXPublisher({ accessToken, oauth1, expectedHandle, expected
       account = { id: user.id, handle: user.username };
       return { ...account };
     },
-    async publish(event, { signal } = {}) {
+    async publish(event, { signal,beforeSend } = {}) {
       if (!account) throw failure('Verify the publishing account before posting to X.', 'rejected');
       if (typeof event?.text !== 'string' || !event.text.trim() || Buffer.byteLength(event.text, 'utf8') > 280) {
         throw failure('X post text must contain between 1 and 280 UTF-8 bytes.', 'rejected');
       }
+      // The agency adapter performs async funding checks before arriving here.
+      // Recheck the durable pause and approval immediately before the POST.
+      if(beforeSend)await beforeSend();
+      if(signal?.aborted)throw failure('X request was cancelled before transmission.','not-sent');
       const result = await request('/2/tweets', { method: 'POST', body: { text: event.text }, signal });
       const id = result?.data?.id;
       if (!/^\d{1,30}$/.test(id || '')) throw failure('X did not return a valid post ID; reconcile before retrying.', 'unknown');

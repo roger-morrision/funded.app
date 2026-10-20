@@ -27,3 +27,28 @@ test('admin reviews exact content without publishing or enabling a suspended acc
   expect(await page.evaluate(()=>window.reviewCalls.map(row=>row.path))).toEqual(['/api/admin/x-posts/review','/api/admin/x-posts/pause']);
   await expect(page.getByRole('button',{name:/resume|publish now/i})).toHaveCount(0);
 });
+
+test('review queue loads later pages, shows expired approvals and resets on refresh',async({page})=>{
+  await page.route('**/editorial-pages.html',route=>route.fulfill({contentType:'text/html',body:'<main><div id="workspace"></div></main>'}));
+  await page.goto('/editorial-pages.html');
+  await page.evaluate(async()=>{
+    window.pageCalls=[];
+    const {initAdminXPosts}=await import('/admin-x-posts.js');
+    initAdminXPosts({api:async path=>{
+      window.pageCalls.push(path);const second=path.includes('?after=');
+      return{safety:{paused:true,reason:'account-suspended'},nextCursor:second||window.pageCalls.length>2?null:'cursor/page+two',events:[{
+        event:{id:second?'two':'one',kind:'agency_promotion',text:second?'Second reviewed project':'First reviewed project'},hash:'a'.repeat(64),
+        review:second?{decision:'approved',expiresAt:'2000-01-01T00:00:00Z'}:{decision:'rejected',expiresAt:'2999-01-01T00:00:00Z'},
+      }]};
+    },post:async()=>{throw new Error('No publishing or review action is expected.');},show:()=>{}});
+  });
+  await expect(page.getByText('First reviewed project',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Load more posts'}).click();
+  await expect(page.getByText('Second reviewed project',{exact:true})).toBeVisible();
+  await expect(page.getByText(/^Approval expired/)).toBeVisible();
+  await expect(page.getByRole('button',{name:'Load more posts'})).toBeHidden();
+  expect(await page.evaluate(()=>window.pageCalls)).toEqual(['/api/admin/x-posts','/api/admin/x-posts?after=cursor%2Fpage%2Btwo']);
+  await page.getByRole('button',{name:'Refresh review queue'}).click();
+  await expect(page.getByText('Second reviewed project',{exact:true})).toHaveCount(0);
+  await expect(page.getByText('First reviewed project',{exact:true})).toBeVisible();
+});

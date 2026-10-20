@@ -7,7 +7,7 @@ function fixture() {
   const calls = [];
   let state = 'pending';
   const store = {
-    leaseMs:60000,
+    leaseMs:60000, authorizeDispatch:async()=>{}, releaseUnsent:async(id,token,reason)=>{calls.push(['hold',reason]);state='pending';},
     list:async () => { calls.push('list'); return [{event}]; },
     claim:async () => { calls.push('claim'); if(state !== 'pending') return null; state='sending'; return {event,token:'token'}; },
     markPosted:async (id,token,result) => { assert.equal(state,'sending'); assert.equal(id,event.id); assert.equal(token,'token'); assert.equal(result.id,'123'); calls.push('posted'); state='posted'; },
@@ -26,7 +26,7 @@ test('disabled and dry-run workers never acquire a dispatch claim or call X', as
 });
 
 test('separate payout and agency workers select their kinds before acquiring a shared-budget dispatch claim',async()=>{
-  const selections=[],published=[],store={leaseMs:60000,claim:async options=>{selections.push(options);return null;}};
+  const selections=[],published=[],store={leaseMs:60000,authorizeDispatch:async()=>{},releaseUnsent:async()=>{},claim:async options=>{selections.push(options);return null;}};
   for(const kinds of [['auto_payout'],['agency_promotion']])await runXPostWorker({store,enabled:true,dryRun:false,kinds,publish:async event=>published.push(event)});
   assert.deepEqual(selections,[{kinds:['auto_payout']},{kinds:['agency_promotion']}]);assert.deepEqual(published,[]);
   await assert.rejects(runXPostWorker({store,enabled:true,dryRun:false,kinds:[],publish:async()=>{}}),/kinds/);
@@ -51,7 +51,7 @@ test('timeout aborts publication and leaves uncertain state even if publisher re
 test('undelivered 429 is bounded, account access failures are held, and other rejections fail',async()=>{
   const f=fixture();
   const result=await runXPostWorker({store:f.store,enabled:true,dryRun:false,publish:async()=>{throw Object.assign(new Error('limit'),{delivery:'not-sent',status:429,retryAfterMs:120000});}});
-  assert.equal(result.retried,1);assert.deepEqual(f.calls,['claim',['retry',120000]]);
+  assert.equal(result.retried,1);assert.deepEqual(f.calls,['claim',['retry',900000]]);
   const g=fixture();
   assert.equal((await runXPostWorker({store:g.store,enabled:true,dryRun:false,publish:async()=>{throw Object.assign(new Error('forbidden'),{delivery:'not-sent',status:403});}})).retried,1);
   assert.equal(g.state,'pending');assert.deepEqual(g.calls,['claim',['account-hold',403]]);
@@ -65,7 +65,7 @@ test('authentication, credit and permission rejections hold pending work and sto
   }
 });
 test('an ambiguous first send stops even when another pending event is claimable',async()=>{
-  let claims=0,sends=0;const store={leaseMs:60000,claim:async()=>{claims++;return{event,token:'t'};},markUncertain:async()=>{}};
+  let claims=0,sends=0;const store={leaseMs:60000,authorizeDispatch:async()=>{},releaseUnsent:async()=>{},claim:async()=>{claims++;return{event,token:'t'};},markUncertain:async()=>{}};
   const result=await runXPostWorker({store,enabled:true,dryRun:false,maxPosts:20,publish:async()=>{sends++;throw new Error('unknown');}});
   assert.equal(result.uncertain,1);assert.equal(claims,1);assert.equal(sends,1);
 });
@@ -79,6 +79,23 @@ test('worker rejects unsafe dispatch bounds before claiming',async()=>{
   await assert.rejects(runXPostWorker({store:f.store,maxPosts:100}),/batch/);
   await assert.rejects(runXPostWorker({store:{...f.store,leaseMs:1000},publish:async()=>{},enabled:true,dryRun:false}),/lease/);
   assert.deepEqual(f.calls,[]);
+});
+
+test('dispatch requires a durable guard before acquiring work and preserves a newly paused intent',async()=>{
+  const f=fixture();delete f.store.authorizeDispatch;
+  await assert.rejects(runXPostWorker({store:f.store,publish:async()=>{},enabled:true,dryRun:false}),/durable/);
+  assert.deepEqual(f.calls,[]);
+  const held=fixture();let sends=0;
+  held.store.authorizeDispatch=async()=>{throw Object.assign(new Error('Paused'),{delivery:'not-sent',dispatchBlocked:'account-paused'});};
+  const result=await runXPostWorker({store:held.store,publish:async()=>{sends++;},enabled:true,dryRun:false});
+  assert.equal(sends,0);assert.equal(result.retried,1);assert.equal(held.state,'pending');assert.deepEqual(held.calls,['claim',['hold','account-paused']]);
+});
+
+test('a guard completing after the deadline cannot invoke the publisher later',async()=>{
+  const f=fixture();let release,sends=0;
+  f.store.authorizeDispatch=()=>new Promise(resolve=>{release=resolve;});
+  const result=await runXPostWorker({store:f.store,publish:async()=>{sends++;},enabled:true,dryRun:false,timeoutMs:100});
+  assert.equal(result.uncertain,1);release();await new Promise(resolve=>setImmediate(resolve));assert.equal(sends,0);
 });
 test('outbox events use deterministic canonical payloads and bounded validated fields',()=>{
   assert.deepEqual(normalizeXPostEvent({...event,proofs:{z:1,a:2}}),{...event,occurredAt:'2026-10-04T00:00:00.000Z',proofs:{a:2,z:1}});

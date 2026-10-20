@@ -3,6 +3,7 @@ import pg from 'pg';
 import { pgPoolConfig } from './db-config.mjs';
 import {X_POSTING_DEFAULTS} from '../config/x-posting.js';
 import {xEventHash,checkedPayout,editorialBlock,substantiallySimilar,buildPayoutDigest} from './x-post-editorial.mjs';
+import {readXPostCursor,writeXPostCursor} from './x-post-cursor.mjs';
 
 const statuses = ['pending', 'sending', 'posted', 'uncertain', 'failed'];
 function integer(value, min, max, label) {
@@ -161,6 +162,15 @@ export function createXPostStore({ databaseUrl, accountId, minIntervalMs = X_POS
         return row(updated.rows[0]);
       });
     },
+    async reviewPage({after,limit=50}={}){
+      integer(limit,1,200,'X review page limit');const cursor=readXPostCursor(after);
+      const records=(await pool.query(`SELECT *,to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at
+        FROM x_post_outbox WHERE account_id=$1 AND status='pending' AND payload->>'kind' NOT IN ('auto_payout','daily_rewards')
+        AND ($2::timestamptz IS NULL OR (created_at,event_id)>($2::timestamptz,$3::text))
+        ORDER BY created_at,event_id LIMIT $4`,[accountId,cursor?.[0]??null,cursor?.[1]??null,limit+1])).rows;
+      const visible=records.slice(0,limit),last=visible.at(-1);
+      return{events:visible.map(row),nextCursor:records.length>limit?writeXPostCursor(last.cursor_at,last.event_id):null};
+    },
     async prepareDailyDigest({origin}={}){
       return transaction(async client=>{
         await accountLock(client);
@@ -215,10 +225,11 @@ export function createXPostStore({ databaseUrl, accountId, minIntervalMs = X_POS
         return {events:rows,cursor:JSON.parse(encoded),version:version+1};
       });
     },
-    async list({ status, limit = 50,reviewable=false } = {}) {
+    async list({ status, limit = 50,reviewable=false,kinds } = {}) {
       if (status !== undefined && !statuses.includes(status)) throw new Error('X outbox status is invalid.');
       integer(limit, 1, 200, 'X outbox list limit');
-      return (await pool.query("SELECT * FROM x_post_outbox WHERE account_id=$1 AND ($2::text IS NULL OR status=$2) AND (NOT $4 OR payload->>'kind'<>'auto_payout') ORDER BY created_at,event_id LIMIT $3", [accountId,status ?? null,limit,reviewable])).rows.map(row);
+      const selectedKinds=checkedKinds(kinds);
+      return (await pool.query("SELECT * FROM x_post_outbox WHERE account_id=$1 AND ($2::text IS NULL OR status=$2) AND (NOT $4 OR payload->>'kind' NOT IN ('auto_payout','daily_rewards')) AND ($5::text[] IS NULL OR payload->>'kind'=ANY($5)) ORDER BY created_at,event_id LIMIT $3", [accountId,status ?? null,limit,reviewable,selectedKinds])).rows.map(row);
     },
     async claim({kinds}={}) {
       const selectedKinds=checkedKinds(kinds);
@@ -265,6 +276,25 @@ export function createXPostStore({ databaseUrl, accountId, minIntervalMs = X_POS
       const expected = `https://x.com/i/web/status/${result.id}`;
       if (result.url !== expected) throw new Error('X publication URL is invalid.');
       return finish(id, token, {status:'posted', result:{id:result.id,url:expected}});
+    },
+    // Revalidate at the final provider boundary, after any async chain preflight.
+    // This cannot cancel a request X already accepted before a pause arrived.
+    async authorizeDispatch(event,token){
+      const reason=await transaction(async client=>{
+        const account=await accountLock(client);
+        const saved=(await client.query(`SELECT *,lease_expires_at>clock_timestamp() AS lease_live,
+          review_expires_at>clock_timestamp() AS review_live FROM x_post_outbox WHERE account_id=$1 AND event_id=$2 FOR UPDATE`,[accountId,event.id])).rows[0];
+        if(!account||account.publishing_paused)return'account-paused';
+        if(!saved||saved.status!=='sending'||saved.claim_token!==token||account.active_token!==token||!saved.lease_live)return'dispatch-claim-expired';
+        if(saved.review_decision!=='approved'||!saved.review_live)return'approval-expired';
+        if(saved.reviewed_hash!==xEventHash(saved.payload)||xEventHash(event)!==xEventHash(saved.payload))return'review-content-changed';
+        return editorialBlock(saved.payload);
+      });
+      if(reason)throw Object.assign(new Error('X dispatch stopped by current account, claim or approval state.'),{delivery:'not-sent',dispatchBlocked:reason});
+    },
+    releaseUnsent(id,token,reason){
+      if(!['account-paused','dispatch-claim-expired','approval-expired','review-content-changed','legacy-payout-posts-disabled','unsolicited-mentions-disabled','dispatch-preflight-unavailable'].includes(reason))throw new Error('Invalid X dispatch hold.');
+      return finish(id,token,{status:'pending',reason,bounded:false});
     },
     markUncertain: (id,token,reason='delivery-unknown') => finish(id,token,{status:'uncertain',reason}),
     retryLater(id,token,retryAfterMs) { integer(retryAfterMs,1,86_400_000,'X retry delay'); return finish(id,token,{status:'pending',reason:'rate-limited',delay:retryAfterMs}); },

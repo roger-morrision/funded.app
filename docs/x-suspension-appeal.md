@@ -1,6 +1,6 @@
 # X account suspension: owner action
 
-The suspension notice does not identify the specific violation. A lower posting limit or new credentials cannot reverse the suspension. The owner should sign into the affected account and use the notice's appeal link or [X's suspension guidance](https://help.x.com/en/managing-your-account/suspended-x-accounts). Do not open replacement accounts to bypass enforcement. This document has not been submitted to X.
+The suspension notice does not identify the specific violation. A lower posting limit or new credentials cannot reverse the suspension. The owner should sign into the affected account and use the notice's appeal link or [X's suspension guidance](https://help.x.com/en/managing-your-account/suspended-x-accounts). Do not open replacement accounts to bypass enforcement. On 2026-10-20, the authenticated appeal page for @fundedvip displayed “Thank you!” and “We’ve received your request.” The completed form had already been submitted when checked; no duplicate was sent. This confirms receipt only. X has not been confirmed to reinstate the account. The text below is the preparation draft; the completed form used the same explanation with the account handle specified.
 
 ## Draft for the owner to review
 
