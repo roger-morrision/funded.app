@@ -18,7 +18,8 @@ test('CLI defaults to draft and normalizes the explicit target account', () => {
   const config = xWorkerConfig(environment);
   assert.equal(config.execute, false); assert.equal(config.mode, 'once');
   assert.equal(config.handle, 'fundedfixture'); assert.equal(config.cluster, 'devnet');
-  assert.equal(config.maxHourlyPosts, 6); assert.equal(config.maxDailyPosts, 24);
+  assert.equal(config.maxHourlyPosts, 1); assert.equal(config.maxDailyPosts, 4);
+  assert.equal(config.minIntervalMs,21600000);assert.equal(config.intervalMs,300000);
   assert.equal(xWorkerConfig(environment, ['--status']).mode, 'status');
 });
 test('CLI requires independent explicit live gates and a dedicated publication token', () => {
@@ -37,7 +38,7 @@ test('CLI rejects ambiguous modes, wrong networks and unsafe public destinations
   for (const args of [['--once','--loop'], ['--status','--once'], ['--unknown']]) assert.throws(() => xWorkerConfig(environment, args));
   for (const SOLANA_CLUSTER of ['mainnet-beta', 'testnet', 'mainnet']) assert.throws(() => xWorkerConfig({ ...environment, SOLANA_CLUSTER }), /Devnet/);
   for (const X_POST_PUBLIC_ORIGIN of ['http://funded.vip', 'https://localhost', 'https://127.0.0.1', 'https://funded.vip/other', 'https://secret@funded.vip', 'https://internal.test']) assert.throws(() => xWorkerConfig({ ...environment, X_POST_PUBLIC_ORIGIN }));
-  for (const changes of [{X_POST_START_AT:'invalid'}, {X_POST_START_AT:'2999-01-01'}, {X_POST_MAX_HOURLY:'0'}, {X_POST_MAX_DAILY:'1441'}, {X_POST_MIN_PROFIT_LAMPORTS:'1.5'}, {DATABASE_URL:'https://funded.vip'}]) assert.throws(() => xWorkerConfig({ ...environment, ...changes }));
+  for (const changes of [{X_POST_START_AT:'invalid'}, {X_POST_START_AT:'2999-01-01'}, {X_POST_MAX_HOURLY:'0'}, {X_POST_MAX_DAILY:'1441'}, {X_POST_MIN_INTERVAL_MS:'0'},{X_POST_MIN_INTERVAL_MS:'86400001'},{X_POST_MIN_PROFIT_LAMPORTS:'1.5'}, {DATABASE_URL:'https://funded.vip'}]) assert.throws(() => xWorkerConfig({ ...environment, ...changes }));
 });
 test('a queued wrong-network event fails closed before any publication request', async () => {
   let claimed = false, failed = false, sends = 0;

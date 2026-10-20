@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { pgPoolConfig } from './db-config.mjs';
+import {X_POSTING_DEFAULTS} from '../config/x-posting.js';
 
 const statuses = ['pending', 'sending', 'posted', 'uncertain', 'failed'];
 function integer(value, min, max, label) {
@@ -40,7 +41,7 @@ function row(record) {
     nextAttemptAt:record.next_attempt_at, leaseExpiresAt:record.lease_expires_at, result:record.result, reason:record.reason };
 }
 
-export function createXPostStore({ databaseUrl, accountId, minIntervalMs = 60_000, leaseMs = 60_000, maxAttempts = 3, maxHourlyPosts = 6, maxDailyPosts = 24 }) {
+export function createXPostStore({ databaseUrl, accountId, minIntervalMs = X_POSTING_DEFAULTS.minIntervalMs, leaseMs = 60_000, maxAttempts = 3, maxHourlyPosts = X_POSTING_DEFAULTS.maxHourlyPosts, maxDailyPosts = X_POSTING_DEFAULTS.maxDailyPosts }) {
   if (typeof accountId !== 'string' || !/^[A-Za-z0-9:_-]{1,128}$/.test(accountId)) throw new Error('X posting account ID is invalid.');
   // X handles are case-insensitive; replicas must share one budget/queue.
   accountId = accountId.toLowerCase();
@@ -66,15 +67,15 @@ export function createXPostStore({ databaseUrl, accountId, minIntervalMs = 60_00
     if (!saved.rowCount) throw new Error('X event ID already has different immutable content.');
     return row(saved.rows[0]);
   }
-  async function finish(id, token, { status, reason = null, result = null, delay = 0 }) {
+  async function finish(id, token, { status, reason = null, result = null, delay = 0, bounded = true }) {
     if (!['posted','uncertain','pending','failed'].includes(status)) throw new Error('X outbox transition is invalid.');
     if (reason !== null && !/^[a-z0-9-]{1,80}$/.test(reason)) throw new Error('X outbox reason is invalid.');
     return transaction(async client => {
       await accountLock(client);
-      const updated = await client.query(`UPDATE x_post_outbox SET status=CASE WHEN $4='pending' AND attempts >= $8 THEN 'failed' ELSE $4 END,
-        reason=CASE WHEN $4='pending' AND attempts >= $8 THEN 'retry-limit' ELSE $5 END, result=$6,
+      const updated = await client.query(`UPDATE x_post_outbox SET status=CASE WHEN $4='pending' AND $9 AND attempts >= $8 THEN 'failed' ELSE $4 END,
+        reason=CASE WHEN $4='pending' AND $9 AND attempts >= $8 THEN 'retry-limit' ELSE $5 END, result=$6,
         next_attempt_at=clock_timestamp()+($7::bigint * interval '1 millisecond'), lease_expires_at=NULL, claim_token=NULL, updated_at=clock_timestamp()
-        WHERE account_id=$1 AND event_id=$2 AND claim_token=$3 AND status='sending' RETURNING *`, [accountId,id,token,status,reason,result,delay,maxAttempts]);
+        WHERE account_id=$1 AND event_id=$2 AND claim_token=$3 AND status='sending' RETURNING *`, [accountId,id,token,status,reason,result,delay,maxAttempts,bounded]);
       if (!updated.rowCount) throw new Error('X dispatch claim is no longer current.');
       await client.query(`UPDATE x_post_accounts SET active_token=NULL, lease_expires_at=NULL,
         next_allowed_at=GREATEST(next_allowed_at,clock_timestamp()+($3::bigint * interval '1 millisecond')) WHERE account_id=$1 AND active_token=$2`, [accountId,token,delay]);
@@ -109,6 +110,11 @@ export function createXPostStore({ databaseUrl, accountId, minIntervalMs = 60_00
           ON CONFLICT(account_id) DO UPDATE SET min_interval_ms=GREATEST(x_post_accounts.min_interval_ms,EXCLUDED.min_interval_ms),
           max_hourly_posts=LEAST(x_post_accounts.max_hourly_posts,EXCLUDED.max_hourly_posts),
           max_daily_posts=LEAST(x_post_accounts.max_daily_posts,EXCLUDED.max_daily_posts)`, [accountId,minIntervalMs,maxHourlyPosts,maxDailyPosts]);
+        // A stricter interval applies to the most recent attempted delivery,
+        // including work sent by an older replica before this deployment.
+        await client.query(`UPDATE x_post_accounts SET next_allowed_at=GREATEST(next_allowed_at,
+          (SELECT MAX(updated_at) FROM x_post_outbox WHERE account_id=$1 AND attempts>0)
+          +(min_interval_ms*interval '1 millisecond')) WHERE account_id=$1`,[accountId]);
       });
     },
     close: () => pool.end(),
@@ -168,7 +174,12 @@ export function createXPostStore({ databaseUrl, accountId, minIntervalMs = 60_00
         const allowed = await client.query(`SELECT 1 FROM x_post_accounts WHERE account_id=$1 AND active_token IS NULL AND next_allowed_at<=clock_timestamp()
           AND hour_count<max_hourly_posts AND day_count<max_daily_posts`, [accountId]);
         if (!allowed.rowCount) return null;
-        const candidate = (await client.query("SELECT * FROM x_post_outbox WHERE account_id=$1 AND status='pending' AND next_attempt_at<=clock_timestamp() AND ($2::text[] IS NULL OR payload->>'kind'=ANY($2)) ORDER BY created_at,event_id FOR UPDATE SKIP LOCKED LIMIT 1", [accountId,selectedKinds])).rows[0];
+        const candidate = (await client.query(`SELECT candidate.* FROM x_post_outbox candidate WHERE candidate.account_id=$1 AND candidate.status='pending'
+          AND candidate.next_attempt_at<=clock_timestamp() AND ($2::text[] IS NULL OR candidate.payload->>'kind'=ANY($2))
+          AND NOT EXISTS(SELECT 1 FROM x_post_outbox previous WHERE previous.account_id=candidate.account_id
+            AND previous.event_id<>candidate.event_id AND previous.status IN ('posted','sending','uncertain')
+            AND previous.payload->>'text'=candidate.payload->>'text')
+          ORDER BY candidate.created_at,candidate.event_id FOR UPDATE OF candidate SKIP LOCKED LIMIT 1`, [accountId,selectedKinds])).rows[0];
         if (!candidate) return null;
         const token = randomUUID();
         const claimed = (await client.query(`UPDATE x_post_outbox SET status='sending',attempts=attempts+1,claim_token=$3,
@@ -186,6 +197,11 @@ export function createXPostStore({ databaseUrl, accountId, minIntervalMs = 60_00
     },
     markUncertain: (id,token,reason='delivery-unknown') => finish(id,token,{status:'uncertain',reason}),
     retryLater(id,token,retryAfterMs) { integer(retryAfterMs,1,86_400_000,'X retry delay'); return finish(id,token,{status:'pending',reason:'rate-limited',delay:retryAfterMs}); },
+    deferAccount(id,token,status){
+      const reason={401:'x-auth-rejected',402:'x-credits-unavailable',403:'x-permission-denied'}[status];
+      if(!Number.isInteger(status)||!reason)throw new Error('X account deferral requires a known provider rejection.');
+      return finish(id,token,{status:'pending',reason,delay:X_POSTING_DEFAULTS.authCooldownMs,bounded:false});
+    },
     fail: (id,token,reason='delivery-rejected') => finish(id,token,{status:'failed',reason}),
   };
 }

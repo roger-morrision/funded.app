@@ -16,10 +16,11 @@ assert.equal(target.pathname, '/funded_x_test');
 const pool = new pg.Pool({ connectionString: databaseUrl });
 const stores = [];
 const checks = [];
-const fixture = id => ({ id, kind: 'launch', cluster: 'devnet', occurredAt: '2026-10-04T00:00:00.000Z', text: 'Devnet integration fixture', proofs: { signature: 'synthetic-proof', slot: 42 } });
+const fixture = id => ({ id, kind: 'launch', cluster: 'devnet', occurredAt: '2026-10-04T00:00:00.000Z', text: `Devnet integration fixture ${id}`, proofs: { signature: 'synthetic-proof', slot: 42 } });
 const published = { id: '123456', url: 'https://x.com/i/web/status/123456' };
 async function store(accountId, options = {}) {
-  const item = createXPostStore({ databaseUrl, accountId, minIntervalMs: 1, leaseMs: 1000, ...options });
+  // Historical fast-fixture policy is explicit; production defaults are tested separately.
+  const item = createXPostStore({ databaseUrl, accountId, minIntervalMs: 1, leaseMs: 1000, maxHourlyPosts:6,maxDailyPosts:24,...options });
   stores.push(item); await item.init(); return item;
 }
 async function allow(accountId) {
@@ -49,7 +50,7 @@ try {
   const restartedProcess = spawnSync(process.execPath, ['--input-type=module', '-e', `
     import assert from 'node:assert/strict';
     import { createXPostStore } from ${JSON.stringify(new URL('../server/x-post-store.mjs', import.meta.url).href)};
-    const store = createXPostStore({ databaseUrl: process.env.X_POST_TEST_DATABASE_URL, accountId: 'concurrent', minIntervalMs: 1 });
+    const store = createXPostStore({ databaseUrl: process.env.X_POST_TEST_DATABASE_URL, accountId: 'concurrent', minIntervalMs: 1,maxHourlyPosts:6,maxDailyPosts:24 });
     try {
       await store.init();
       assert.equal(await store.claim(), null);
@@ -126,11 +127,43 @@ try {
   assert.equal((await filtered.get('agency:promotion:0')).status,'uncertain');
   checks.push('Payout and agency workers filter before claiming while sharing account pacing; uncertain promotions never replay');
 
+  const safe=createXPostStore({databaseUrl,accountId:'reduced-policy'});stores.push(safe);await safe.init();
+  await safe.enqueue({...fixture('safe:payout'),kind:'auto_payout'});
+  await safe.enqueue({...fixture('safe:agency'),kind:'agency_promotion'});
+  claim=await safe.claim({kinds:['auto_payout']});assert(claim);await safe.markPosted(claim.event.id,claim.token,published);
+  const olderReplica=await store('reduced-policy');assert.equal(await olderReplica.claim({kinds:['agency_promotion']}),null);
+  let policy=(await pool.query("SELECT *,next_allowed_at>clock_timestamp()+interval '5 hours 59 minutes' AS gap FROM x_post_accounts WHERE account_id='reduced-policy'")).rows[0];
+  assert.equal(Number(policy.min_interval_ms),21600000);assert.equal(policy.max_hourly_posts,1);assert.equal(policy.max_daily_posts,4);assert(policy.gap);
+  await pool.query("UPDATE x_post_accounts SET hour_start=hour_start-interval '1 day',day_start=day_start-interval '1 day' WHERE account_id='reduced-policy'");
+  assert.equal(await olderReplica.claim(),null,'UTC counter rollover must not bypass six-hour spacing');
+  assert.equal((await safe.list({status:'pending'})).length,1);
+  checks.push('Production defaults share a six-hour gap and 1/hour, 4/day caps across payout/agency, restarts, old replicas and UTC rollover');
+
+  const tightened=await store('tighten-policy',{minIntervalMs:60000});await tightened.enqueue(fixture('tighten:posted'));claim=await tightened.claim();await tightened.markPosted(claim.event.id,claim.token,published);
+  const strict=createXPostStore({databaseUrl,accountId:'tighten-policy'});stores.push(strict);await strict.init();
+  assert((await pool.query("SELECT next_allowed_at>clock_timestamp()+interval '5 hours 59 minutes' AS gap FROM x_post_accounts WHERE account_id='tighten-policy'")).rows[0].gap);
+  checks.push('Tightening the policy includes the last old-replica delivery rather than allowing an immediate extra post');
+
+  const duplicate=await store('text-dedupe');await duplicate.enqueue({...fixture('original'),text:'Identical exact post'});claim=await duplicate.claim();await duplicate.markPosted(claim.event.id,claim.token,published);
+  await duplicate.enqueue({...fixture('other-id'),text:'Identical exact post'});await duplicate.enqueue(fixture('different-content'));await allow('text-dedupe');
+  claim=await duplicate.claim();assert.equal(claim.event.id,'different-content');await duplicate.markUncertain(claim.event.id,claim.token);
+  await duplicate.enqueue({...fixture('uncertain-alias'),text:fixture('different-content').text});await allow('text-dedupe');assert.equal(await duplicate.claim(),null);
+  assert.equal((await duplicate.list({status:'pending'})).length,2);
+  checks.push('Different event IDs cannot repeat posted or uncertain exact text; duplicates remain pending without starving distinct content');
+
+  const held=await store('account-hold',{maxAttempts:1});await held.enqueue(fixture('held:auth'));claim=await held.claim();await held.deferAccount(claim.event.id,claim.token,401);
+  assert.equal((await held.get(claim.event.id)).status,'pending');assert.equal((await held.get(claim.event.id)).reason,'x-auth-rejected');
+  assert((await pool.query("SELECT next_allowed_at>clock_timestamp()+interval '5 hours 59 minutes' AS gap FROM x_post_accounts WHERE account_id='account-hold'")).rows[0].gap);
+  await allow('account-hold');claim=await held.claim();await held.deferAccount(claim.event.id,claim.token,403);
+  assert.equal((await held.get(claim.event.id)).status,'pending');assert.equal((await held.get(claim.event.id)).attempts,2);
+  assert.equal(await (await store('account-hold')).claim(),null);
+  checks.push('Known auth/credit/permission failures retain pending intents beyond network retry limits and hold all replicas for six hours');
+
   for (const [name, error, status] of [
     ['429', { delivery: 'not-sent', status: 429, retryAfterMs: 60_000 }, 'pending'],
     ['503', { delivery: 'unknown', status: 503 }, 'uncertain'],
     ['network', {}, 'uncertain'],
-    ['403', { delivery: 'not-sent', status: 403 }, 'failed'],
+    ['403', { delivery: 'not-sent', status: 403 }, 'pending'],
   ]) {
     const dispatch = await store(`worker-${name}`, { leaseMs: 2000 });
     await dispatch.enqueue(fixture(`launch:${name}`));
@@ -154,7 +187,7 @@ try {
   assert.equal(timeout.uncertain, 1);
   assert.equal(timedOutSignal.aborted, true);
   assert.equal((await timeoutStore.list())[0].status, 'uncertain');
-  checks.push('Real persisted worker transitions retry only 429; 403 fails and timeout/network/5xx remain uncertain');
+  checks.push('Real persisted worker transitions bound 429 retries, retain account rejections, and keep timeout/network/5xx uncertain');
 
   const preview = await store('worker-preview');
   await preview.enqueue(fixture('launch:preview'));
@@ -194,7 +227,7 @@ try {
   for (const [name, response, expected] of [
     ['success', () => Response.json({ data: { id: '987654' } }), 'posted'],
     ['limited', () => new Response('', { status: 429, headers: { 'retry-after': '120' } }), 'pending'],
-    ['forbidden', () => new Response('', { status: 403 }), 'failed'],
+    ['forbidden', () => new Response('', { status: 403 }), 'pending'],
     ['upstream', () => new Response('', { status: 503 }), 'uncertain'],
     ['invalid-json', () => new Response('not JSON', { status: 200 }), 'uncertain'],
     ['missing-id', () => Response.json({ data: {} }), 'uncertain'],
@@ -211,7 +244,7 @@ try {
         assert.equal(url, 'https://api.x.com/2/tweets');
         assert.equal(options.method, 'POST');
         assert.equal((await actualStore.list())[0].status, 'sending');
-        assert.deepEqual(JSON.parse(options.body), { text: fixture('unused').text });
+        assert.deepEqual(JSON.parse(options.body), { text: fixture(`launch:client-${name}`).text });
         return response();
       } });
     await assert.rejects(client.publish(fixture('unverified')), /Verify the publishing account/);

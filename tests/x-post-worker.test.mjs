@@ -13,6 +13,7 @@ function fixture() {
     markPosted:async (id,token,result) => { assert.equal(state,'sending'); assert.equal(id,event.id); assert.equal(token,'token'); assert.equal(result.id,'123'); calls.push('posted'); state='posted'; },
     markUncertain:async () => { calls.push('uncertain'); state='uncertain'; },
     retryLater:async (id,token,delay) => { calls.push(['retry',delay]); state='pending'; return {status:'pending'}; },
+    deferAccount:async (id,token,status)=>{calls.push(['account-hold',status]);state='pending';},
     fail:async () => { calls.push('failed'); state='failed'; },
   };
   return {store,calls,get state(){return state;}};
@@ -36,7 +37,7 @@ test('worker persists sending before network and saves the successful publicatio
   assert.equal(published,1);assert.equal(result.posted,1);assert.deepEqual(f.calls,['claim','posted','claim']);
 });
 test('ambiguous network errors and 5xx never automatically retry',async()=>{
-  for(const error of [new Error('network failed'),Object.assign(new Error('upstream'),{status:503,delivery:'unknown'})]){
+  for(const error of [new Error('network failed'),Object.assign(new Error('upstream'),{status:503,delivery:'unknown'}),Object.assign(new Error('ambiguous authentication response'),{status:401,delivery:'unknown'})]){
     const f=fixture();let published=0;
     const result=await runXPostWorker({store:f.store,enabled:true,dryRun:false,maxPosts:2,publish:async()=>{published++;throw error;}});
     assert.equal(result.uncertain,1);assert.equal(published,1);assert.equal(f.state,'uncertain');
@@ -47,14 +48,26 @@ test('timeout aborts publication and leaves uncertain state even if publisher re
   const result=await runXPostWorker({store:f.store,enabled:true,dryRun:false,timeoutMs:100,publish:async(_,{signal:s})=>{signal=s;return new Promise(()=>{});}});
   assert.equal(result.uncertain,1);assert.equal(signal.aborted,true);assert.equal(f.state,'uncertain');
 });
-test('only explicit undelivered 429 is retryable; permanent rejection fails',async()=>{
+test('undelivered 429 is bounded, account access failures are held, and other rejections fail',async()=>{
   const f=fixture();
   const result=await runXPostWorker({store:f.store,enabled:true,dryRun:false,publish:async()=>{throw Object.assign(new Error('limit'),{delivery:'not-sent',status:429,retryAfterMs:120000});}});
   assert.equal(result.retried,1);assert.deepEqual(f.calls,['claim',['retry',120000]]);
   const g=fixture();
-  assert.equal((await runXPostWorker({store:g.store,enabled:true,dryRun:false,publish:async()=>{throw Object.assign(new Error('forbidden'),{delivery:'not-sent',status:403});}})).failed,1);
+  assert.equal((await runXPostWorker({store:g.store,enabled:true,dryRun:false,publish:async()=>{throw Object.assign(new Error('forbidden'),{delivery:'not-sent',status:403});}})).retried,1);
+  assert.equal(g.state,'pending');assert.deepEqual(g.calls,['claim',['account-hold',403]]);
   const h=fixture();
   assert.equal((await runXPostWorker({store:h.store,enabled:true,dryRun:false,publish:async()=>{throw Object.assign(new Error('local validation'),{delivery:'rejected'});}})).failed,1);
+});
+test('authentication, credit and permission rejections hold pending work and stop the batch',async()=>{
+  for(const status of [401,402,403]){
+    const f=fixture();let sends=0;const result=await runXPostWorker({store:f.store,enabled:true,dryRun:false,maxPosts:20,publish:async()=>{sends++;throw Object.assign(new Error('rejected'),{status,delivery:'rejected'});}});
+    assert.equal(sends,1);assert.equal(result.failed,0);assert.equal(result.retried,1);assert.equal(f.state,'pending');assert.equal(f.calls.filter(call=>call==='claim').length,1);
+  }
+});
+test('an ambiguous first send stops even when another pending event is claimable',async()=>{
+  let claims=0,sends=0;const store={leaseMs:60000,claim:async()=>{claims++;return{event,token:'t'};},markUncertain:async()=>{}};
+  const result=await runXPostWorker({store,enabled:true,dryRun:false,maxPosts:20,publish:async()=>{sends++;throw new Error('unknown');}});
+  assert.equal(result.uncertain,1);assert.equal(claims,1);assert.equal(sends,1);
 });
 test('successful publication with persistence failure never republishes',async()=>{
   const f=fixture();let sends=0;f.store.markPosted=async()=>{throw new Error('database connection lost');};

@@ -12,6 +12,7 @@ import { collectXPostEvents, createXPostChainAdapters } from '../server/x-post-e
 import { verifyFeeRouterAccount } from '../fee-router.js';
 import { createXProfitVerifier } from '../server/x-profit-proof.mjs';
 import { createAutomaticPayoutVerifier } from '../server/x-auto-payouts.mjs';
+import {X_POSTING_DEFAULTS,xPostingRetryWait} from '../config/x-posting.js';
 
 function numberSetting(value, fallback, min, max, name) {
   const result = value === undefined || value === '' ? fallback : Number(value);
@@ -53,10 +54,11 @@ export function xWorkerConfig(env, args = []) {
     mode: args.includes('--status') ? 'status' : args.includes('--loop') ? 'loop' : 'once', execute, cluster, handle,
     origin: origin.origin, enabledAt: new Date(start).toISOString(), minProfitLamports,
     payoutsOnly:env.X_POST_PAYOUTS_ONLY==='true',
-    intervalMs: numberSetting(env.X_POST_INTERVAL_MS, 60_000, 10_000, 3_600_000, 'X_POST_INTERVAL_MS'),
+    intervalMs: numberSetting(env.X_POST_INTERVAL_MS, X_POSTING_DEFAULTS.pollIntervalMs, 10_000, 3_600_000, 'X_POST_INTERVAL_MS'),
+    minIntervalMs:numberSetting(env.X_POST_MIN_INTERVAL_MS,X_POSTING_DEFAULTS.minIntervalMs,60_000,86_400_000,'X_POST_MIN_INTERVAL_MS'),
     maxPosts: numberSetting(env.X_POST_MAX_PER_PASS, 1, 1, 20, 'X_POST_MAX_PER_PASS'),
-    maxHourlyPosts: numberSetting(env.X_POST_MAX_HOURLY, 6, 1, 60, 'X_POST_MAX_HOURLY'),
-    maxDailyPosts: numberSetting(env.X_POST_MAX_DAILY, 24, 1, 1440, 'X_POST_MAX_DAILY'),
+    maxHourlyPosts: numberSetting(env.X_POST_MAX_HOURLY, X_POSTING_DEFAULTS.maxHourlyPosts, 1, 60, 'X_POST_MAX_HOURLY'),
+    maxDailyPosts: numberSetting(env.X_POST_MAX_DAILY, X_POSTING_DEFAULTS.maxDailyPosts, 1, 1440, 'X_POST_MAX_DAILY'),
   };
 }
 
@@ -105,16 +107,18 @@ export async function runXPostCycle({ config, store, mainStore, readRewards, ada
 export async function pollXPostWorker({ config, prepare, dispatch, shouldStop,
   wait, report, blocked }) {
   while (!shouldStop()) {
+    let waitMs=config.intervalMs;
     try {
       const adapters = await prepare();
       if (shouldStop()) break;
       report(await dispatch(adapters));
     } catch (error) {
+      waitMs=xPostingRetryWait(error,waitMs);
       blocked(error);
       if (config.mode !== 'loop') throw error;
     }
     if (config.mode !== 'loop' || shouldStop()) break;
-    await wait(config.intervalMs);
+    await wait(waitMs);
   }
 }
 
@@ -122,7 +126,7 @@ async function main(args) {
   const env = await loadSecrets(process.env, args.includes('--execute'));
   const config = xWorkerConfig(env, args);
   const outbox = createXPostStore({ databaseUrl: env.DATABASE_URL, accountId: config.handle,
-    maxHourlyPosts: config.maxHourlyPosts, maxDailyPosts: config.maxDailyPosts });
+    minIntervalMs:config.minIntervalMs,maxHourlyPosts: config.maxHourlyPosts, maxDailyPosts: config.maxDailyPosts });
   let mainStore;
   let stopping = false;
   let wake;

@@ -11,6 +11,7 @@ import {readAgencyDeployment} from '../server/agency-deployment.mjs';
 import {readAgencyMintContext} from '../server/agency-mint-context.mjs';
 import {runAgencyPromotion,createAgencyPublisher} from '../server/agency-promotion-executor.mjs';
 import {runAgencyMilestone} from '../server/agency-buyback-executor.mjs';
+import {xPostingRetryWait} from '../config/x-posting.js';
 
 export function agencyWorkerConfig(env,args=[]){
   if(args.includes('--status'))throw new Error('Use --once or --loop; omit --execute for a read-only execution preview.');
@@ -19,7 +20,9 @@ export function agencyWorkerConfig(env,args=[]){
   if(!/^[a-f0-9]{64}$/.test(String(env.FUNDED_V3_PROGRAM_DATA_SHA256)))throw new Error('An exact agency ProgramData hash is required.');
   if(x.execute&&env.FUNDED_V3_AGENCY_ENABLED!=='true')throw new Error('Agency execution requires explicit activation and --execute.');
   if(!/^[a-f0-9]{40}$/.test(String(env.FUNDED_BUILD_ID)))throw new Error('The exact committed agency build revision is required.');
-  return{...x,programId,approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256,build:env.FUNDED_BUILD_ID,
+  // Agency custody/readiness heartbeats must stay fresher than 90 seconds;
+  // publication pacing is independently enforced by the shared outbox.
+  return{...x,intervalMs:60000,programId,approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256,build:env.FUNDED_BUILD_ID,
     lookupAddress:new PublicKey(env.FUNDED_V3_BUYBACK_LOOKUP_TABLE).toBase58()};
 }
 export function agencyWorkerBlocked(error,{config,authority,now=Date.now()}){
@@ -97,7 +100,7 @@ async function main(args){
     ?Keypair.fromSecretKey(Uint8Array.from(JSON.parse(await readFile(env.FUNDED_V3_ROUTER_AUTHORITY_KEYPAIR_PATH,'utf8'))))
     :Keypair.fromSecretKey(bs58.decode(env.FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY||''));
   const store=createPostgresStore(env.DATABASE_URL),outbox=createXPostStore({databaseUrl:env.DATABASE_URL,accountId:config.handle,
-    maxHourlyPosts:config.maxHourlyPosts,maxDailyPosts:config.maxDailyPosts});
+    minIntervalMs:config.minIntervalMs,maxHourlyPosts:config.maxHourlyPosts,maxDailyPosts:config.maxDailyPosts});
   const connection=new Connection(env.SOLANA_RPC_URL,{commitment:'finalized',disableRetryOnRateLimit:true,
     fetch:(url,options)=>fetch(url,{...options,signal:options?.signal?AbortSignal.any([options.signal,AbortSignal.timeout(15000)]):AbortSignal.timeout(15000)})});
   const publisher=config.execute?createXPublisher({expectedHandle:config.handle,expectedAccountId:env.X_POST_ACCOUNT_ID,
@@ -107,15 +110,17 @@ async function main(args){
   try{
     await outbox.init();
     do{
+      let waitMs=config.intervalMs;
       try{console.log(JSON.stringify(await runAgencyCycle({config,store,outbox,connection,authority,publisher,shouldStop:()=>stopped})));}
       catch(error){
+        waitMs=xPostingRetryWait(error,waitMs);
         const blocked=agencyWorkerBlocked(error,{config,authority});
         if(config.execute)await store.update(state=>{state.adminSettings||={};state.adminSettings.agencyWorker=blocked;});
         console.error(JSON.stringify({event:'agency-worker-blocked',...blocked}));
         if(config.mode!=='loop')process.exitCode=1;
       }
       if(config.mode!=='loop'||stopped)break;
-      await new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},config.intervalMs);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
+      await new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},waitMs);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
     }while(!stopped);
   }finally{await store.close();await outbox.close();process.removeListener('SIGTERM',stop);process.removeListener('SIGINT',stop);}
 }

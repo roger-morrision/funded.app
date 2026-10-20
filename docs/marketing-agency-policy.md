@@ -1,10 +1,11 @@
-# AI marketing agency candidate
+# AI marketing agency policy
 
 Latest contract, custody-verification, durable-execution and integration evidence:
 [2026-10-19 checkpoint](agency-contract-integration-2026-10-19.md).
-The sections below record the initial preview. New contract/executor source is
-now implemented locally and tested; normal launch/runtime activation and live
-agency acceptance remain incomplete. The candidate is not deployed or active.
+The [2026-10-20 activation checkpoint](agency-activation-2026-10-20.md) records
+the finalized Devnet contract/configuration and published future-launch policy.
+Normal launch/runtime activation and live agency acceptance remain incomplete;
+deployment of configuration alone does not prove posting, billing or buybacks.
 
 ## Approved rules
 
@@ -27,6 +28,8 @@ Agency budget is split equally among selected agents, using cumulative integer r
 
 Each milestone can spend only its own accumulated agency budget. Later allocations remain reserved after a one-time action. A missing quote, incomplete market data, insufficient spendable funds, uncertain submission, or missing proof does not count as execution.
 
+Agent 1 additionally shares the account's conservative limit of four X posts per UTC day, at least six hours apart, with payout congratulations and all other automated posts. The per-coin 24-hour cadence is eligibility, not a promise of daily publication. Queued promotions are not billed. Exact posted/uncertain duplicate text is held, including another daily promotion whose text has not changed; it needs reviewed, genuinely new content before a later delivery. Account-access failures retain the intent and wait six hours. See [X worker policy](x-event-worker.md) for the operational limits; they cannot guarantee that X will not restrict an account.
+
 ## Implemented locally
 
 - Dedicated `#marketing-agency` navigation and responsive page.
@@ -38,7 +41,7 @@ Each milestone can spend only its own accumulated agency budget. Later allocatio
 
 ## Incomplete — do not describe as active
 
-The deployed V3 layout has six protocol rates and seven vaults. The active split remains 80/8/3/4/5. This candidate does **not** activate 1% referrals or collect agency funds. `config/marketing-agency.js` is separate from `config/protocol-fee-split.js` deliberately until the full policy can be enforced.
+Historical V3 launches keep their six protocol rates, seven vaults and saved 80/8/3/4/5 split. The reviewed eight-category configuration and 1% future-launch referral policy are published on Devnet. Normal agency launches and real executor acceptance remain gated. `config/protocol-fee-split.js` remains the historical fallback; it does not reprice existing launches.
 
 Required before activation:
 
@@ -50,7 +53,7 @@ Required before activation:
 6. Protected own-coin purchase and `BurnChecked` execution, slippage limits, correct token-program/mint checks, atomic burn where supported, verified SOL debit/token burn/supply deltas, and linked finalized receipts.
 7. Contract VM tests, current-source SBF build, reviewed Devnet upgrade and hash pin, then disposable-wallet end-to-end launch/collection/settlement/agency funding/X post/100k/300k tests. Mocked threshold observations do not prove real market-cap crossings.
 
-No agency contract upgrade, live financial policy change, X promotion, purchase or burn is performed by this candidate. No agency receipt or balance is invented from an HTTP response or UI render.
+The initial October 19 local pass did not submit an agency upgrade, policy change, X promotion, purchase or burn. The later October 20 upgrade/configuration proofs are recorded separately; no agency execution receipt or balance is inferred from an HTTP response or UI render.
 
 ## Local verification on 2026-10-19
 

@@ -96,3 +96,9 @@ test('a stop requested before startup does not verify or dispatch', async () => 
   assert.equal(f.calls.dispatch.length, 0);
   assert.equal(f.calls.waits.length, 0);
 });
+test('provider auth/credit/permission failures cool down for six hours; 429 respects the longer retry window',async()=>{
+  for(const[status,retryAfterMs,expected]of [[401,0,21600000],[402,0,21600000],[403,0,21600000],[429,120000,900000],[429,3600000,3600000]]){
+    const f=fixture();f.options.dispatch=async()=>{throw Object.assign(new Error('provider'),{status,retryAfterMs});};await f.run();
+    assert.deepEqual(f.calls.waits,[expected]);assert.equal(f.calls.reports.length,0);
+  }
+});

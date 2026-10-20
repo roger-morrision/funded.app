@@ -37,12 +37,17 @@ try {
       cwd: new URL('..', import.meta.url), timeout: 15_000, encoding: 'utf8',
       env: { PATH: process.env.PATH, DATABASE_URL: databaseUrl, SOLANA_CLUSTER: 'devnet', FUNDED_V3_FEE_ROUTER_PROGRAM_ID:mint, X_POST_EXPECTED_HANDLE: 'draftfixture', X_POST_PUBLIC_ORIGIN: 'https://funded.vip', X_POST_START_AT: '2026-10-01T00:00:00.000Z', AUTOMATIC_REWARD_STORE_PATH: join(directory, 'missing-ledger.json') },
     });
-    assert.equal(result.status, 0, result.stderr);
+    if(args.includes('--status'))assert.equal(result.status,0,result.stderr);
+    else{
+      assert.equal(result.status,1,'A blocked finalized-router RPC must fail visibly instead of reporting a successful draft.');
+      assert.match(result.stderr,/Outbound HTTP blocked by draft verification fixture/);
+      assert.equal(result.stdout.trim(),'','No successful draft report is allowed after failed router verification.');
+    }
     const requests = JSON.parse(await readFile(evidence, 'utf8'));
     assert(requests.every(host => !/(?:^|\.)x\.com$|(?:^|\.)twitter\.com$/.test(host)), 'Draft and status CLI must make zero X requests, even with eligible source launches');
     if (args.includes('--status')) assert.deepEqual(requests, [], 'Status only reads local persisted records');
     else assert(requests.length > 0 && requests.every(host => host === 'api.devnet.solana.com'), 'Eligible draft sources must attempt only read-only Devnet verification');
-    outputs.push(JSON.parse(result.stdout.trim()));
+    outputs.push(args.includes('--status')?JSON.parse(result.stdout.trim()):{mode:'draft',status:'blocked-before-dispatch'});
   }
   console.log(JSON.stringify({ mode: 'real PostgreSQL and real CLI subprocesses with all outbound HTTP blocked', passed: 2, checks: ['Default draft mode makes zero X requests while attempting read-only RPC verification', 'Status mode makes zero outbound requests'], externalRequests: 0, xRequests: 0, rpc: 'intercepted and blocked before network' }, null, 2));
 } finally { await store.close(); await rm(directory, { recursive: true, force: true }); }

@@ -12,7 +12,9 @@ Public text contains only the first four and last four wallet characters, a shor
 
 Set `X_POST_START_AT` to a deliberate activation time. Historical payouts before that chain timestamp are not backfilled. Receipt PDAs keep event IDs stable across signature recovery and restarts. PostgreSQL persists the cursor and immutable outbox together. Confirmed posts are not resent; uncertain X delivery requires reconciliation, since X does not supply an exactly-once creation API.
 
-The profile queues every eligible receipt but dispatches at most one per minute, six per hour and 24 per day. Provider rate limits can delay the queue. Authentication, billing or permanent permission failures stay visible for operator repair. Automatic OAuth refresh is not implemented. The dedicated worker has no Solana signing secrets and mounts the reward ledger read-only.
+The profile queues every eligible receipt but dispatches at most **four posts per UTC day**, **one per hour**, with **at least six hours between attempts**. This is one persisted account budget shared by payout congratulations and agency promotions, including replicas and restarts. Tightening the interval includes the last older-worker attempt; a UTC counter reset cannot bypass the spacing. A backlog waits instead of generating a catch-up burst. Authentication, billing or permission rejections retain the pending intent and defer the account for six hours; preflight failures use the same cooldown. Unknown delivery remains uncertain and is never automatically resent. Automatic OAuth refresh is not implemented. The dedicated payout worker has no Solana signing secrets and mounts the reward ledger read-only.
+
+These are conservative application limits, not an X-approved safe quota or a guarantee against account restrictions. [X's automation rules](https://help.x.com/en/rules-and-policies/x-automation) and [authenticity policy](https://help.x.com/en/rules-and-policies/authenticity) also address duplicative or spammy content. Exact text already posted, sending or uncertain is excluded even under another event ID; its queued evidence is preserved. Near-duplicate meaning still requires editorial review. Recipient congratulations mask wallets and do not create unsolicited mentions, replies, follows or DMs.
 
 ## Reward ledger deployment recovery
 
@@ -39,16 +41,28 @@ The worker shares PostgreSQL, the configured Devnet RPC secret and a read-only a
 | `X_POST_ACCESS_TOKEN_FILE` | Private host file containing a dedicated user-context posting token; mounted only on this worker |
 | `X_POST_ENABLED` | Defaults `false`; executing publication requires `true` and `--execute` together |
 | `X_POST_ALLOW_DEVNET` | Defaults `false`; requires explicit approval for publicly labeled Devnet announcements |
-| `X_POST_INTERVAL_MS` | Compose fixes polling at `60000` milliseconds |
+| `X_POST_INTERVAL_MS` | Payout event polling defaults to `300000` milliseconds; this is not the publication interval |
+| `X_POST_MIN_INTERVAL_MS` | Shared persisted publication spacing defaults to `21600000` milliseconds (six hours) |
 | `X_POST_MAX_PER_PASS` | Compose caps each pass at `1` post |
-| `X_POST_MAX_HOURLY` | Compose caps publication at `6` per hour |
-| `X_POST_MAX_DAILY` | Compose caps publication at `24` per day |
+| `X_POST_MAX_HOURLY` | Defaults to `1` per UTC hour across this account |
+| `X_POST_MAX_DAILY` | Defaults to `4` per UTC day across this account |
 | `X_POST_MIN_PROFIT_LAMPORTS` | Compose requires at least `1000000000` lamports for qualifying profit events |
 | `FUNDED_TRADE_FEE_OWNER` | Public address of the app's fee recipient; must match the web service for strict trade-cost verification |
 
 Authorize an X user-context token for this specific account with the provider's required `tweet.write` and `users.read` permissions, plus any required companion scopes such as `tweet.read`. App-only bearer tokens and the app's identity-only browser login are insufficient. The existing login flow does not request posting access and does not retain a reusable posting token.
 
 **Automatic token refresh is not implemented.** Track expiry in the secret manager, rotate the dedicated token through the authorized account flow, replace its private secret file and recreate only the worker to load it. Revocation or expiry must remain a visible blocked state. Never paste tokens into command arguments, source, reports or chat. Keep the host secret directory private and permit the container's nonroot user to read only its mounted file.
+
+Defaults live in `config/x-posting.js`. Compose exposes the validated settings above; initialization can automatically tighten an existing account's policy but cannot loosen its saved caps. Raising a saved budget requires a separately reviewed operator change. Healthy agency custody/readiness cycles retain their 60-second heartbeat, independent of shared X publication spacing; access failures back off for six hours instead of repeatedly retrying each minute. A 429 preflight waits at least 15 minutes and honors a longer provider delay (bounded to 24 hours). Dispatch stops after the first provider or persistence failure.
+
+| Flow | Publication policy |
+| --- | --- |
+| Finalized holder, creator, X, referral, Operations and Daily bonus SOL payments | Eligible receipts queue masked congratulations; shared account limits apply; payment completion does not depend on posting |
+| Agent 1 paid coin promotion | At most once per coin per 24 hours, additionally subject to the same shared account limits; no billing while merely queued |
+| Launch/follow-up, paid listing, opted-in profit share, daily projects/rewards summaries | Generic explicitly enabled profile only; the same queue and account limits apply; funded.vip's payout-only worker does not dispatch these kinds |
+| Manual X share/intent | User action; does not start an automatic posting worker |
+
+Do not clear the queue, reset counters, recreate account namespaces, or relax limits to flush a backlog. Stopped publishers remain stopped during policy review; credential repair alone is not permission to resume public delivery.
 
 ## Draft inspection before any publication
 

@@ -38,6 +38,8 @@ test('unexpected milestone failures degrade readiness; an incomplete migration r
   assert(result.events.some(row=>row.status==='execution-unavailable'));assert.equal(f.state.adminSettings.agencyWorker.status,'degraded');
 });
 test('worker requires explicit execution, correct network, pinned platform account and exact build',()=>{
+  assert.equal(agencyWorkerConfig({...env,X_POST_INTERVAL_MS:'300000'},[]).intervalMs,60000,'Slower payout polling must not age agency readiness beyond 90 seconds.');
+  assert.equal(agencyWorkerConfig(env,[]).minIntervalMs,21600000);
   for(const bad of [{FUNDED_V3_AGENCY_ENABLED:'false'},{SOLANA_CLUSTER:'mainnet-beta'},{X_POST_EXPECTED_HANDLE:'otheraccount'},
     {X_POST_ACCOUNT_ID:''},{FUNDED_BUILD_ID:'latest'}])assert.throws(()=>agencyWorkerConfig({...env,...bad},['--execute']));
   assert.throws(()=>agencyWorkerConfig(env,['--status','--execute']));

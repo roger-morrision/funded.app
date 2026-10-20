@@ -37,10 +37,11 @@ services:
       X_POST_ACCESS_TOKEN_SECRET_FILE: /run/secrets/x_post_access_token_secret
       X_POST_PUBLIC_ORIGIN: https://funded.vip
       X_POST_START_AT: ${X_POST_START_AT:?Pin the new-launch activation timestamp}
-      X_POST_INTERVAL_MS: '60000'
+      X_POST_INTERVAL_MS: ${X_POST_INTERVAL_MS:-300000}
+      X_POST_MIN_INTERVAL_MS: ${X_POST_MIN_INTERVAL_MS:-21600000}
       X_POST_MAX_PER_PASS: '1'
-      X_POST_MAX_HOURLY: '6'
-      X_POST_MAX_DAILY: '24'
+      X_POST_MAX_HOURLY: ${X_POST_MAX_HOURLY:-1}
+      X_POST_MAX_DAILY: ${X_POST_MAX_DAILY:-4}
       X_POST_MIN_PROFIT_LAMPORTS: '1000000000'
     secrets: [database_url, solana_devnet_rpc_url, x_post_api_key, x_post_api_secret, x_post_access_token, x_post_access_token_secret]
     volumes:

@@ -40,9 +40,14 @@ export async function runXPostWorker({ store, publish, enabled = false, dryRun =
         summary.uncertain++;
         summary.events.push({id:claim.event.id,status:'uncertain'});
       }
+      if(summary.uncertain)break;
       continue;
     }
-    if (publicationError.delivery === 'not-sent' && Number(publicationError.status ?? publicationError.statusCode) === 429) {
+    const status=publicationError.status??publicationError.statusCode;
+    if(['not-sent','rejected'].includes(publicationError.delivery)&&[401,402,403].includes(status)){
+      await store.deferAccount(claim.event.id,claim.token,status);
+      summary.retried++;summary.events.push({id:claim.event.id,status:'pending'});
+    } else if (publicationError.delivery === 'not-sent' && Number(status) === 429) {
       const requested = Number(publicationError.retryAfterMs);
       const delay = Number.isSafeInteger(requested) && requested > 0 ? Math.min(requested,86_400_000) : 60_000;
       const updated = await store.retryLater(claim.event.id, claim.token, delay);
@@ -57,6 +62,8 @@ export async function runXPostWorker({ store, publish, enabled = false, dryRun =
       summary.uncertain++;
       summary.events.push({id:claim.event.id,status:'uncertain'});
     }
+    // Do not consume another queued item after a provider or persistence error.
+    break;
   }
   return summary;
 }
