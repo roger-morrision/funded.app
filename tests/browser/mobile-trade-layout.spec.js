@@ -37,6 +37,7 @@ for (const width of [360, 390, 430, 1440]) {
     }
     const packageLink = page.locator('.coin-package-rail .is-premier');
     await packageLink.scrollIntoViewIfNeeded();
+    await packageLink.evaluate(link => link.scrollIntoView({ behavior: 'instant', block: 'center' }));
     expect(await packageLink.evaluate(link => {
       const r = link.getBoundingClientRect();
       return [.1, .5, .9].every(dx => [.1, .5, .9].every(dy =>

@@ -2,6 +2,18 @@ import { $, node, $$, tabs, disclose } from './dom.js';
 
 export function tokenPage() {
   const root=$('#coin-page');if(!root)return;
+  const revealMobileFocus = element => {
+    if (!matchMedia('(max-width:700px)').matches) return;
+    const box = element.getBoundingClientRect(), style = getComputedStyle(element);
+    const outline = parseFloat(style.outlineWidth) + Math.max(0, parseFloat(style.outlineOffset));
+    const header = $('.topbar'), nav = $('.mobile-workspace-nav');
+    const top = Math.max(0, header?.getBoundingClientRect().bottom || 0);
+    const bottom = nav?.getClientRects().length ? nav.getBoundingClientRect().top : innerHeight;
+    if (box.top - outline < top || box.bottom + outline > bottom) {
+      // Reveal through the actual scroll ancestors, without a smooth-scroll delay.
+      element.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' });
+    }
+  };
   const layout=$('.coin-layout',root);
   const chart=$('.coin-chart-panel',root);const column=chart?.parentElement;
   if(column)column.prepend(chart);
@@ -36,6 +48,9 @@ export function tokenPage() {
     if(avatar)new MutationObserver(syncArtwork).observe(avatar,{attributes:true,attributeFilter:['style']});
     new MutationObserver(syncArtwork).observe(artwork,{attributes:true,attributeFilter:['data-banner-url']});
     const about=node('div','coin-hero-about');about.id='coin-profile';
+    about.addEventListener('focusin', event => {
+      if (event.target.matches('[role="tab"]')) revealMobileFocus(event.target);
+    });
     const aboutPanel=node('div','coin-profile-panel');
     const tagline=node('p','coin-profile-tagline');tagline.id='coin-profile-tagline';tagline.hidden=true;
     aboutPanel.append(tagline,description);
@@ -137,17 +152,7 @@ export function tokenPage() {
   };
   if (tradeHeading) new MutationObserver(syncTradeAction).observe(tradeHeading, { childList: true, characterData: true, subtree: true });
   syncTradeAction();
-  button.addEventListener('focus', () => {
-    if (!matchMedia('(max-width:700px)').matches) return;
-    const box = button.getBoundingClientRect();
-    const header = $('.topbar');
-    const nav = $('.mobile-workspace-nav');
-    const top = Math.max(0, header?.getBoundingClientRect().bottom || 0);
-    const bottom = nav?.getClientRects().length ? nav.getBoundingClientRect().top : innerHeight;
-    if (box.top < top || box.bottom > bottom) {
-      button.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' });
-    }
-  });
+  button.addEventListener('focus', () => revealMobileFocus(button));
   const sheetBackground = new Map();
   const setSheet = open => {
     root.classList.toggle('trade-sheet-open',open);button.setAttribute('aria-expanded',String(open));
