@@ -238,7 +238,7 @@ export function initializeExploreSearchActions(appState) {
   });
   // app-source-end
 
-  document.querySelector('#explore')?.addEventListener('click', event => {
+  document.querySelector('#explore')?.addEventListener('click', async event => {
     const emptyAction = event.target.closest('[data-explore-empty-action]');
     if (!emptyAction || !emptyAction.closest('#asset-grid, #launch-list')) return;
     if (emptyAction.dataset.exploreEmptyAction === 'clear') {
@@ -246,7 +246,20 @@ export function initializeExploreSearchActions(appState) {
       const search = document.querySelector('#explore-search');
       search?.focus({ preventScroll: true });
       search?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
-    } else appState.loadOnchainExploreData().catch(() => appState.showToast('Retry could not verify Devnet data.'));
+    } else {
+      const grid = emptyAction.closest('#asset-grid');
+      try { await appState.loadOnchainExploreData(); }
+      catch { appState.showToast('Retry could not verify Devnet data.'); }
+      // This completion belongs to a deliberate retry only while its button is still focused.
+      // Background refreshes keep the existing focus guard, and later navigation keeps its focus.
+      if (!grid || !emptyAction.isConnected || document.activeElement !== emptyAction
+        || appState.exploreView !== 'grid' || !document.body.classList.contains('page-route-explore')) return;
+      appState.renderExploreAssets({ force: true });
+      const nextAction = grid.querySelector('[data-explore-empty-action]');
+      const focusTarget = nextAction || document.querySelector('#explore-search');
+      focusTarget?.focus({ preventScroll: true });
+      if (!nextAction) focusTarget?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
+    }
   });
 
   // app-source: 807
