@@ -21,7 +21,9 @@ for(const width of [360,390,1440]) test(`FQA-032 native leaderboard link focus r
       const left=box.left+t.clientLeft,right=left+t.clientWidth;
       const delta=t.scrollWidth<=t.clientWidth?0:rect.left-pad<left?rect.left-pad-left:rect.right+pad>right?rect.right+pad-right:0;
       const ancestors=[];for(let n=t;n;n=n.parentElement)ancestors.push([n,n.scrollTop]);
-      const record={node:a,text:a.textContent,href:a.getAttribute('href'),before:t.scrollLeft,delta,ancestors};window.focusObservations.push(record);
+      const nav=document.querySelector('.mobile-workspace-nav'),header=document.querySelector('.topbar');
+      const clearTop=header?.getClientRects().length?Math.max(0,header.getBoundingClientRect().bottom):0,clearBottom=nav?.getClientRects().length?nav.getBoundingClientRect().top:innerHeight;
+      const record={node:a,text:a.textContent,href:a.getAttribute('href'),before:t.scrollLeft,delta,ancestors,verticalWasClear:rect.top-pad>=clearTop&&rect.bottom+pad<=clearBottom};window.focusObservations.push(record);
     },true);
   });
   const observations=[];
@@ -29,9 +31,10 @@ for(const width of [360,390,1440]) test(`FQA-032 native leaderboard link focus r
     await expect.poll(()=>table.locator('a:focus-visible').count()).toBe(1);
     const result=await table.evaluate(async t=>{
       await new Promise(requestAnimationFrame);const a=document.activeElement,r=a.getBoundingClientRect(),b=t.getBoundingClientRect(),s=getComputedStyle(a),pad=parseFloat(s.outlineWidth)+Math.max(0,parseFloat(s.outlineOffset)),o=window.focusObservations.at(-1);
-      return {text:a.textContent,href:a.getAttribute('href'),sameNode:o.node===a,sameName:o.text===a.textContent,sameHref:o.href===a.getAttribute('href'),left:r.left-pad,right:r.right+pad,boundLeft:b.left+t.clientLeft,boundRight:b.left+t.clientLeft+t.clientWidth,before:o.before,after:t.scrollLeft,expected:Math.max(0,Math.min(t.scrollWidth-t.clientWidth,o.before+o.delta)),verticalUnchanged:o.ancestors.every(([n,top])=>n.scrollTop===top),cellTabstops:t.querySelectorAll('[role="cell"][tabindex]').length};
+      const nav=document.querySelector('.mobile-workspace-nav'),header=document.querySelector('.topbar'),top=header?.getClientRects().length?Math.max(0,header.getBoundingClientRect().bottom):0,bottom=nav?.getClientRects().length?nav.getBoundingClientRect().top:innerHeight;
+      return {text:a.textContent,href:a.getAttribute('href'),sameNode:o.node===a,sameName:o.text===a.textContent,sameHref:o.href===a.getAttribute('href'),left:r.left-pad,right:r.right+pad,boundLeft:b.left+t.clientLeft,boundRight:b.left+t.clientLeft+t.clientWidth,before:o.before,after:t.scrollLeft,expected:Math.max(0,Math.min(t.scrollWidth-t.clientWidth,o.before+o.delta)),verticalWasClear:o.verticalWasClear,verticalClear:r.top-pad>=top-1&&r.bottom+pad<=bottom+1,verticalUnchanged:o.ancestors.every(([n,top])=>n.scrollTop===top),cellTabstops:t.querySelectorAll('[role="cell"][tabindex]').length};
     });
-    expect(result.sameNode&&result.sameName&&result.sameHref,label).toBe(true);expect(result.left,label).toBeGreaterThanOrEqual(result.boundLeft-1);expect(result.right,label).toBeLessThanOrEqual(result.boundRight+1);expect(result.after,label).toBeCloseTo(result.expected,0);expect(result.verticalUnchanged,label).toBe(true);expect(result.cellTabstops).toBe(0);observations.push({label,...result});
+    expect(result.sameNode&&result.sameName&&result.sameHref,label).toBe(true);expect(result.left,label).toBeGreaterThanOrEqual(result.boundLeft-1);expect(result.right,label).toBeLessThanOrEqual(result.boundRight+1);expect(result.after,label).toBeCloseTo(result.expected,0);expect(result.verticalClear,label).toBe(true);if(result.verticalWasClear)expect(result.verticalUnchanged,label).toBe(true);expect(result.cellTabstops).toBe(0);observations.push({label,...result});
   }
   await page.locator('[data-leaderboard-view="burners"]').focus();await page.keyboard.press('Tab');await expect(page.locator('#leaderboard-panel a.text-button')).toBeFocused();await page.keyboard.press('Tab');await expect(table).toBeFocused();
   if(width<700){for(let i=0;i<8;i++)await page.keyboard.press('ArrowRight',{delay:60});await page.keyboard.press('ArrowLeft',{delay:100});expect(await table.evaluate(t=>t.scrollLeft)).toBeGreaterThan(0);}

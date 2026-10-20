@@ -18,6 +18,32 @@ export function initializeLeaderboards(appState) {
     else if (rect.right + outline > right) table.scrollLeft += rect.right + outline - right;
   });
 
+  let revealFrame = 0;
+  table?.addEventListener('focusin', event => {
+    cancelAnimationFrame(revealFrame);
+    const link = event.target.closest('a[href]');
+    if (!link || !table.contains(link) || !link.matches(':focus-visible')) return;
+    // Let native focus scrolling start before measuring the actual fixed chrome.
+    revealFrame = requestAnimationFrame(() => {
+      if (document.activeElement !== link || !table.contains(link)) return;
+      const nav = document.querySelector('.mobile-workspace-nav');
+      if (!nav?.getClientRects().length) return;
+      const header = document.querySelector('.topbar');
+      const top = header?.getClientRects().length ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
+      const bottom = Math.min(innerHeight, nav.getBoundingClientRect().top);
+      const rect = link.getBoundingClientRect(), style = getComputedStyle(link);
+      const outline = parseFloat(style.outlineWidth) + Math.max(0, parseFloat(style.outlineOffset));
+      const delta = rect.top - outline < top ? rect.top - outline - top
+        : rect.bottom + outline > bottom ? rect.bottom + outline - bottom : 0;
+      if (!delta) return;
+      // Only the nearest vertical scroller moves, and only by the hidden amount.
+      let scroller = table;
+      while (scroller && !(scroller.scrollHeight > scroller.clientHeight
+        && /auto|scroll/.test(getComputedStyle(scroller).overflowY))) scroller = scroller.parentElement;
+      (scroller || window).scrollBy({ top: delta > 0 ? Math.ceil(delta) : Math.floor(delta), left: 0, behavior: 'instant' });
+    });
+  });
+
   // app-source: 460
   document.querySelector('.leaderboard-tabs')?.addEventListener('click', event => {
     const button = event.target.closest('[data-leaderboard-view]');
