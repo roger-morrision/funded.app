@@ -64,6 +64,7 @@ for (const [width, height] of [[390, 844], [1440, 900]]) {
     await expect(page.locator('#explore-promotion-filter')).toHaveValue('all');
     await expect(page.locator('#explore-reward-filter')).toHaveValue('all');
     await expect(page.locator('#explore-search')).toHaveValue('');
+    await expect(page.locator('#explore-search')).toBeFocused();
 
     await page.locator('#explore-search').fill('missing token');
     await expect(page.locator('#asset-grid .empty-state strong')).toHaveText('No token matches your search.');
@@ -83,5 +84,35 @@ for (const [width, height] of [[390, 844], [1440, 900]]) {
     await page.keyboard.press('Escape');
     await expect(toggle).toBeFocused();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+
+    for (const view of ['grid', 'table']) {
+      await page.locator(`button[data-explore-view="${view}"]`).click();
+      await toggle.click();
+      await page.locator('#explore-promotion-filter').selectOption('premier');
+      await page.locator('#explore-reward-filter').selectOption('holder-fees');
+      await page.keyboard.press('Escape');
+      await page.locator('#explore-search').fill('Fee premier QA');
+      const clearAll = page.locator('#workspace-filter-summary button');
+      await expect(clearAll).toBeVisible();
+      const box = await clearAll.boundingBox();
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      await expect(page.locator('#explore-search'), `First pointer click clears edited Search in ${view}`).toHaveValue('');
+      await expect(page.locator('#explore-promotion-filter')).toHaveValue('all');
+      await expect(page.locator('#explore-reward-filter')).toHaveValue('all');
+      await expect(page.locator('#explore-search')).toBeFocused();
+      await expect(page.locator('#workspace-filter-summary')).toBeHidden();
+      await expect(page.locator('#asset-grid .explore-launch-card')).toHaveCount(2);
+
+      await toggle.click();
+      await page.locator('#explore-promotion-filter').selectOption('premier');
+      await page.locator('#explore-reward-filter').selectOption('holder-fees');
+      await page.keyboard.press('Escape');
+      await page.locator('#explore-search').fill('Fee premier QA');
+      await clearAll.focus();
+      await page.keyboard.press('Enter');
+      await expect(page.locator('#explore-search'), `Keyboard Clear all restores focus in ${view}`).toBeFocused();
+      await expect(page.locator('#workspace-filter-summary')).toBeHidden();
+      await expect(page.locator('#asset-grid .explore-launch-card')).toHaveCount(2);
+    }
   });
 }

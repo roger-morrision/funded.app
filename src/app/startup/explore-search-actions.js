@@ -233,7 +233,13 @@ export function initializeExploreSearchActions(appState) {
     const button = event.target.closest('.watch-button');
     const share = event.target.closest('.share-asset');
     const emptyAction = event.target.closest('[data-explore-empty-action]');
-    if (emptyAction) { if (emptyAction.dataset.exploreEmptyAction === 'clear') appState.clearExploreFilters(); else appState.loadOnchainExploreData().catch(() => appState.showToast('Retry could not verify Devnet data.')); return; }
+    if (emptyAction) {
+      if (emptyAction.dataset.exploreEmptyAction === 'clear') {
+        appState.clearExploreFilters();
+        document.querySelector('#explore-search')?.focus({ preventScroll: true });
+      } else appState.loadOnchainExploreData().catch(() => appState.showToast('Retry could not verify Devnet data.'));
+      return;
+    }
     if (share) { appState.openCoinShare(share.dataset.shareMint || '', share.dataset.shareSymbol || 'Coin', share.dataset.shareName || ''); return; }
    if (!button) return;
     appState.toggleExploreWatch(button.dataset.mint, button);
