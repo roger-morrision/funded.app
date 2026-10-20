@@ -494,7 +494,9 @@ server.headersTimeout = 10_000;
 server.requestTimeout = 30_000;
 server.timeout = 120_000;
 server.listen(port, host, () => console.log(`funded.vip app listening on http://${host}:${port}`));
-startCommunityClaimIndex({ solanaCluster, solanaRpcUrl, fundedTokenMint, automaticRewardStore, v3AuthorityKeypair });
-startV3HolderRewardWorker({ solanaCluster, solanaRpcUrl,
-  automaticRewardStore, v3AuthorityKeypair });
-dailyBonusRuntime.start();
+const {startApiFinancialWorkers}=await import('./api-financial-workers.mjs');
+console.log(JSON.stringify({event:'api-financial-worker-role',...startApiFinancialWorkers({
+  startCommunity:()=>startCommunityClaimIndex({ solanaCluster, solanaRpcUrl, fundedTokenMint, automaticRewardStore, v3AuthorityKeypair }),
+  startHolder:()=>startV3HolderRewardWorker({ solanaCluster, solanaRpcUrl, automaticRewardStore, v3AuthorityKeypair }),
+  startDailyBonus:()=>dailyBonusRuntime.start(),
+})}));
