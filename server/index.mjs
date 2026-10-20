@@ -487,8 +487,8 @@ async function handle(req, res) {
 }
 
 await startShareVisitCleanup({ store });
-const server = createServer(handle);
-installRewardShutdown({server});
+const server = createServer();
+installRewardShutdown({server,handle});
 server.headersTimeout = 10_000;
 server.requestTimeout = 30_000;
 server.timeout = 120_000;
