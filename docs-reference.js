@@ -1,6 +1,38 @@
 import { documentationTopics as topics } from './src/features/help/docs-topics.js';
 import './src/features/help/guidance.css';
 
+function initializeRewardActionsScroll(article) {
+  const table = article.querySelector('.reward-actions-scroll');
+  const help = article.querySelector('#reward-actions-scroll-help');
+  if (!table || !help) return () => {};
+  const update = () => {
+    const overflowing = table.clientWidth > 0 && table.scrollWidth > table.clientWidth + 1;
+    help.hidden = !overflowing;
+    table.toggleAttribute('data-overflowing', overflowing);
+    if (overflowing) {
+      table.setAttribute('tabindex', '0');
+      table.setAttribute('aria-describedby', help.id);
+    } else {
+      table.removeAttribute('tabindex');
+      table.removeAttribute('aria-describedby');
+    }
+  };
+  if (window.ResizeObserver) {
+    let frame;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(update);
+    });
+    observer.observe(table);
+    observer.observe(table.querySelector('table'));
+    update();
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); };
+  }
+  window.addEventListener('resize', update);
+  update();
+  return () => window.removeEventListener('resize', update);
+}
+
 export function mountDocsReference(root) {
   if (!root || root.querySelector('.docs-guide-layout')) return;
   const shell = document.createElement('div');
@@ -15,6 +47,7 @@ export function mountDocsReference(root) {
   article.tabIndex = -1;
   const flat = topics.flatMap(group => group.items);
   let selected = 0;
+  let releaseScroll = () => {};
   const buttons = new Map();
   const indexFromHash = () => flat.findIndex(topic => location.hash === `#docs/${topic.id}`);
   const select = (index, focus = false, updateHash = true) => {
@@ -26,7 +59,9 @@ export function mountDocsReference(root) {
       if (active) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
     }
+    releaseScroll();
     article.innerHTML = `<p class="eyebrow">${topics.find(group => group.items.includes(topic)).group}</p><h1>${topic.title}</h1><div class="docs-guide-body">${typeof topic.body === 'function' ? topic.body() : topic.body}</div><a class="docs-guide-link" href="${topic.href}">${topic.link} →</a><div class="docs-guide-next"><span>NEXT →</span><button type="button">${flat[(selected + 1) % flat.length].title}</button></div>`;
+    releaseScroll = initializeRewardActionsScroll(article);
     article.querySelector('.docs-guide-next button').addEventListener('click', () => select(selected + 1, true));
     if (focus) article.focus({ preventScroll: true });
     if (updateHash && location.hash !== `#docs/${topic.id}`) location.hash = `#docs/${topic.id}`;

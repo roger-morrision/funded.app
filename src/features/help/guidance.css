@@ -13,3 +13,12 @@
 .docs-guide-body .daily-bonus-table td:nth-child(4) { min-width: 210px; }
 .docs-guide-body ol, .docs-guide-body ul { line-height: 1.7; padding-left: 22px; }
 .docs-guide-body li { margin-bottom: 8px; }
+body.page-route-docs .docs-guide-article { min-width: 0; }
+.docs-guide-body .reward-actions-scroll { max-width: 100%; scrollbar-width: thin; scroll-margin-block: 100px; }
+.docs-guide-body .reward-actions-scroll[data-overflowing] { max-height: min(480px,calc(100dvh - 240px)); overflow: auto; }
+.docs-guide-body .reward-actions-scroll:focus-visible { outline: 3px solid #a8d9bc; outline-offset: 3px; }
+.docs-guide-body .reward-actions-scroll-help { margin: 8px 0 12px; color: #b8c8bf; font-size: 12px; line-height: 1.5; }
+.docs-guide-body .reward-actions-scroll-help[hidden] { display: none; }
+.docs-guide-body .reward-actions-scroll a,
+body.page-route-docs .docs-guide-link,
+body.page-route-docs .docs-guide-next button { scroll-margin-block: 100px; }

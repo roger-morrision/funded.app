@@ -12,7 +12,7 @@ export const rewardActions = () => [
 ];
 
 export function rewardActionsTable() {
-  return `<div class="daily-bonus-table"><table><thead><tr><th>Program</th><th>Asset</th><th>What you do</th><th>What must be ready</th></tr></thead><tbody>${rewardActions().map(([name, asset, action, required, href]) => `<tr><td><a href="${href}">${name}</a></td><td>${asset}</td><td>${action}</td><td>${required}</td></tr>`).join('')}</tbody></table></div>`;
+  return `<p class="reward-actions-scroll-help" id="reward-actions-scroll-help" hidden>Scroll to see all programs and columns. Swipe, or focus the comparison and use Left/Right and Up/Down arrow keys.</p><div class="daily-bonus-table reward-actions-scroll" role="region" aria-label="Reward actions comparison"><table><thead><tr><th>Program</th><th>Asset</th><th>What you do</th><th>What must be ready</th></tr></thead><tbody>${rewardActions().map(([name, asset, action, required, href]) => `<tr><td><a href="${href}">${name}</a></td><td>${asset}</td><td>${action}</td><td>${required}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
 export function referralGuide() {
