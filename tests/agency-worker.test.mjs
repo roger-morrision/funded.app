@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Keypair,PublicKey} from '@solana/web3.js';
-import {agencyWorkerConfig,runAgencyCycle} from '../scripts/run-agency-worker.mjs';
+import {agencyWorkerConfig,runAgencyCycle,agencyWorkerBlocked} from '../scripts/run-agency-worker.mjs';
 import {agencyWorkerHealth} from '../server/agency-deployment.mjs';
 const key=n=>Keypair.fromSeed(Buffer.alloc(32,n)),authority=key(231),programId=key(232).publicKey.toBase58(),mint=key(233).publicKey.toBase58(),lookupAddress=key(234).publicKey.toBase58();
 const env={SOLANA_CLUSTER:'devnet',DATABASE_URL:'postgresql://fixture.invalid/qa',X_POST_EXPECTED_HANDLE:'fundedvip',X_POST_ACCOUNT_ID:'123',
@@ -41,4 +41,20 @@ test('worker requires explicit execution, correct network, pinned platform accou
   for(const bad of [{FUNDED_V3_AGENCY_ENABLED:'false'},{SOLANA_CLUSTER:'mainnet-beta'},{X_POST_EXPECTED_HANDLE:'otheraccount'},
     {X_POST_ACCOUNT_ID:''},{FUNDED_BUILD_ID:'latest'}])assert.throws(()=>agencyWorkerConfig({...env,...bad},['--execute']));
   assert.throws(()=>agencyWorkerConfig(env,['--status','--execute']));
+});
+test('publisher failures retain actionable sanitized diagnostics and cannot satisfy worker readiness',()=>{
+  const config=agencyWorkerConfig(env,['--execute']);
+  const reasons={401:'x-auth-rejected',402:'x-credits-unavailable',403:'x-permission-denied',429:'x-rate-limited'};
+  for(const [status,reasonCode]of Object.entries(reasons)){
+    const failure=agencyWorkerBlocked(Object.assign(new Error('secret-token-and-rpc-url'),{status:Number(status)}),{config,authority,now:1792462679000});
+    assert.equal(failure.reasonCode,reasonCode);assert.equal(failure.build,config.build);assert.equal(failure.approvedHash,config.approvedHash);
+    assert.doesNotMatch(JSON.stringify(failure),/secret-token-and-rpc-url/);
+    assert.equal(agencyWorkerHealth({adminSettings:{agencyWorker:failure}},{programId,approvedHash:config.approvedHash,authority:authority.publicKey.toBase58(),revision:'1',build:config.build,now:1792462679000}),false);
+  }
+});
+test('unknown worker errors do not expose raw diagnostics or invent a provider rejection',()=>{
+  const config=agencyWorkerConfig(env,[]),failure=agencyWorkerBlocked(new Error('private RPC URL and credential'),{config,authority});
+  assert.equal(failure.reasonCode,'verification-unavailable');assert.equal(failure.status,'blocked');
+  assert.doesNotMatch(JSON.stringify(failure),/private RPC URL and credential/);
+  assert.equal(agencyWorkerBlocked({status:'constructor'},{config,authority}).reasonCode,'verification-unavailable');
 });

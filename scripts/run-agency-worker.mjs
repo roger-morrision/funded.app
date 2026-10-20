@@ -22,6 +22,19 @@ export function agencyWorkerConfig(env,args=[]){
   return{...x,programId,approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256,build:env.FUNDED_BUILD_ID,
     lookupAddress:new PublicKey(env.FUNDED_V3_BUYBACK_LOOKUP_TABLE).toBase58()};
 }
+export function agencyWorkerBlocked(error,{config,authority,now=Date.now()}){
+  const failures={
+    401:['x-auth-rejected','The dedicated X publishing credentials were rejected. Refresh the matching credential set and restart the worker.'],
+    402:['x-credits-unavailable','X publishing credits are unavailable.'],
+    403:['x-permission-denied','X denied publishing-account or app access.'],
+    429:['x-rate-limited','X rate limits prevent current publishing verification.'],
+  };
+  const known=Number.isInteger(error?.status)&&Object.hasOwn(failures,error.status)?failures[error.status]:null;
+  const [reasonCode,reason]=known||['verification-unavailable',
+    'Reviewed deployment, signing, funding, X access or finalized execution evidence is unavailable.'];
+  return{status:'blocked',reasonCode,reason,build:config.build,programId:config.programId,
+    approvedHash:config.approvedHash,authority:authority.publicKey.toBase58(),checkedAt:new Date(now).toISOString()};
+}
 export async function runAgencyCycle({config,store,outbox,connection,authority,publisher,shouldStop=()=>false,
   readDeployment=readAgencyDeployment,readContext=readAgencyMintContext,promotion=runAgencyPromotion,milestone=runAgencyMilestone,
   dispatch=runXPostWorker,now=()=>Date.now()}){
@@ -95,9 +108,10 @@ async function main(args){
     await outbox.init();
     do{
       try{console.log(JSON.stringify(await runAgencyCycle({config,store,outbox,connection,authority,publisher,shouldStop:()=>stopped})));}
-      catch{
-        if(config.execute)await store.update(state=>{state.adminSettings||={};state.adminSettings.agencyWorker={status:'blocked',checkedAt:new Date().toISOString()};});
-        console.error(JSON.stringify({event:'agency-worker-blocked',reason:'Reviewed deployment, signing, funding, X access or finalized execution evidence is unavailable.'}));
+      catch(error){
+        const blocked=agencyWorkerBlocked(error,{config,authority});
+        if(config.execute)await store.update(state=>{state.adminSettings||={};state.adminSettings.agencyWorker=blocked;});
+        console.error(JSON.stringify({event:'agency-worker-blocked',...blocked}));
         if(config.mode!=='loop')process.exitCode=1;
       }
       if(config.mode!=='loop'||stopped)break;

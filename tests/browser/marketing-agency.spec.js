@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { marketingAgencyCapabilities } from '../../server/marketing-agency-policy.mjs';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
+import {agencyProtocolSplit} from '../../agency-mint-router-v3.js';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/**', route => {
@@ -73,6 +74,21 @@ test('unverified active API claims cannot advertise working agency agents', asyn
   await page.goto('/#marketing-agency');
   await expect(page.locator('[data-agency-status]')).toContainText('Agency status unavailable');
   await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');
+});
+
+test('published fee policy does not imply agency execution or get described as unpublished',async({page})=>{
+  await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:agencyProtocolSplit(),revision:3}}));
+  await page.goto('/#marketing-agency');
+  await expect(page.locator('[data-agency-status]')).toContainText('Agency execution is unavailable');
+  await expect(page.locator('[data-agency-status]')).toContainText('New agency launches remain disabled');
+  await expect(page.locator('[data-agency-status]')).not.toContainText('split is not active yet');
+  await expect(page.locator('#agency-policy-title')).toHaveText('New-launch agency allocation');
+  await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');
+  await page.goto('/#referrals');
+  await expect(page.locator('.referral-tier-strip')).toContainText('0.6%');
+  await expect(page.locator('.referral-tier-strip')).toContainText('0.25%');
+  await expect(page.locator('.referral-tier-strip')).toContainText('0.15%');
+  await expect(page.locator('.referral-tier-strip')).toContainText('Published rates');
 });
 
 test('verified deployment shows timestamped worker budget scope and finalized receipt links without inventing new payments',async({page})=>{

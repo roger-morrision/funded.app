@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { MARKETING_AGENCY_POLICY as POLICY, canonicalAgencySelection } from '../config/marketing-agency.js';
 
-export const AGENCY_CONTRACT_BLOCKER = 'A dedicated V3 agency vault, immutable launch selection, and protected agency spending are not deployed or verified.';
+export const AGENCY_CONTRACT_BLOCKER = 'The current reviewed V3 agency vault, immutable launch selection, and protected spending must be independently verified.';
 export const AGENCY_EXECUTOR_BLOCKER = 'Agency X publishing and own-coin milestone purchase/burn executors are not activated.';
 export const agencyPolicyHash = createHash('sha256').update(JSON.stringify(POLICY)).digest('hex');
 const unsigned = value => {

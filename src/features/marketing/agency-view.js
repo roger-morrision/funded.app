@@ -11,7 +11,7 @@ export function initMarketingAgency(document = globalThis.document) {
   page.innerHTML = `<header class="section-heading"><div><p class="eyebrow">AI marketing agency teams</p><h1 id="agency-title">A team for every launch</h1><p>Select promotion agents when preparing a coin. Each agent uses its own share of the agency budget.</p></div><button type="button" data-agency-refresh>Refresh status</button></header>
     <p class="agency-status" data-agency-status role="status">Checking agency activation…</p>
     <div class="agency-agent-grid" data-agency-cards></div>
-    <section class="agency-policy" aria-labelledby="agency-policy-title"><h2 id="agency-policy-title">New-launch fee policy · awaiting activation</h2>
+    <section class="agency-policy" aria-labelledby="agency-policy-title"><h2 id="agency-policy-title">New-launch agency allocation</h2>
       <p>80% creator-directed · 8% Operations &amp; marketing · 1% referrals · 2% AI agency · 4% Daily bonus · 5% $FUNDED buyback.</p>
       <p>The agency allocation applies to every new launch after activation and is divided equally among selected agents. With no selection, it remains reserved. Referral levels: ${POLICY.referralUnits.map((units,index)=>`L${index+1} ${units*100/POLICY.grossUnits}%`).join(' · ')} of gross collected creator fees.</p>
       <p>Agents 2 and 3 each buy and burn the launched coin once, using only their accumulated budget. Reaching a milestone is not a purchase or burn receipt. Later fees remain reserved after a one-time action.</p>
@@ -98,9 +98,9 @@ export function initMarketingAgency(document = globalThis.document) {
       }
       if (data.status !== 'activation-blocked' || data.active !== false || data.executionEnabled !== false
         || data.policy?.version !== POLICY.version) throw new Error('Unverified agency capability');
-      teamReadiness(false);page.querySelector('#agency-policy-title').textContent='New-launch fee policy · awaiting activation';
+      teamReadiness(false);page.querySelector('#agency-policy-title').textContent='New-launch agency allocation';
       page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Not activated';});
-      page.querySelector('[data-agency-status]').textContent = 'Not activated. The dedicated V3 agency budget and execution verification are still required. The new 1% referral / 2% agency split is not active yet.';
+      page.querySelector('[data-agency-status]').textContent = 'Not activated. Agency execution is unavailable. New agency launches remain disabled until deployment and worker verification passes. See Capital flow for the published fee policy.';
       page.querySelector('[data-agency-funded]').textContent = 'Unavailable';
       page.querySelector('[data-agency-spent]').textContent = 'Unavailable';
     } catch {
