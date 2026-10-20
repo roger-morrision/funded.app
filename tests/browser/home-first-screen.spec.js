@@ -1,11 +1,14 @@
 import { test, expect } from '@playwright/test';
+import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
 for (const width of [320, 390, 1440]) test(`Home discovery and header stay in place while the workspace initializes at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height:844 });
-  await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'Offline layout fixture' } }));
+  await page.route('**/api/**', route => new URL(route.request().url()).pathname === '/api/fee-policy'
+    ? route.fulfill({ json: { split: PROTOCOL_FEE_SPLIT } })
+    : route.fulfill({ status:503, json:{ error:'Offline layout fixture' } }));
   await page.route('https://**/*', route => route.abort());
   let held;
-  await page.route('**/workspace-ui.js*', route => { held = route; });
+  await page.route('**/workspace-ui*.js*', route => { held = route; });
   await page.goto('/#overview', { waitUntil:'domcontentloaded' });
   await expect.poll(() => Boolean(held)).toBe(true);
   const selectors = ['.hero-section', '#home-launch-grid', '#connect-button', '#header-search-trigger'];

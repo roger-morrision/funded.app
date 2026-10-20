@@ -121,15 +121,22 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 867
-  window.addEventListener('hashchange', () => {
+  let syncedLocation = location.href;
+  const syncLocation = () => {
+    // A history traversal can change only the pathname. Fragment traversals
+    // emit both events, so synchronize each destination once.
+    if (location.href === syncedLocation) return;
     for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close();
     if (location.hash !== '#launch') appState.closeDialog('launch-dialog');
     appState.syncPageRoute();
+    syncedLocation = location.href;
     if (appState.pageRouteFocusRequested) {
       appState.pageRouteFocusRequested = false;
       requestAnimationFrame(appState.focusCurrentPageRoute);
     }
-  });
+  };
+  window.addEventListener('popstate', syncLocation);
+  window.addEventListener('hashchange', syncLocation);
   // app-source-end
 
   // app-source: 868

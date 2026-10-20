@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
     : route.fulfill({ status: 503, json: { error: 'Offline navigation fixture' } }));
 });
 
-for (const width of [1440, 1918, 1180, 1179, 390]) {
+for (const width of [1440, 1918, 1180, 1179, 1024, 901, 390]) {
   test(`FQA-016 / UX-017 Agency shares the responsive navigation at ${width}px (mocked APIs)`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: width === 1918 ? 1043 : width === 390 ? 844 : 900 });
     const ready = async () => {
@@ -58,16 +58,37 @@ for (const width of [1440, 1918, 1180, 1179, 390]) {
     if (width >= 1180) {
       for (const selector of ['#connect-button', '.top-actions .create-coin-button', '.nav-more > summary', width >= 1500 ? '.topbar .search-box' : '#header-search-trigger']) {
         await expect(page.locator(selector)).toBeVisible();
-        expect(await page.locator(selector).evaluate(e => { const r = e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)); }), selector).toBe(true);
+        expect(await page.locator(selector).evaluate(e => { const r = e.getBoundingClientRect();return [.1,.5,.9].every(dx => [.1,.5,.9].every(dy => e.contains(document.elementFromPoint(r.x+r.width*dx,r.y+r.height*dy)))); }), selector).toBe(true);
       }
       await page.locator('.nav-more > summary').click();await expect(page.locator('.nav-more-menu')).toBeVisible();
       await page.locator('.nav-more > summary').click();
       if (width < 1500) { await page.locator('#header-search-trigger').click();await expect(page.locator('#header-search-dialog')).toBeVisible();await page.keyboard.press('Escape');await expect(page.locator('#header-search-trigger')).toBeFocused(); }
       await page.locator('.primary-nav > a[href="#overview"]').click();
       await expect(page.locator('body')).toHaveClass(/page-route-overview/);await shell();
+      for (const selector of ['#connect-button', '.top-actions .create-coin-button', '.nav-more > summary', width >= 1500 ? '.topbar .search-box' : '#header-search-trigger']) {
+        await expect(page.locator(selector)).toBeVisible();
+        expect(await page.locator(selector).evaluate(e => { const r = e.getBoundingClientRect();return [.1,.5,.9].every(dx => [.1,.5,.9].every(dy => e.contains(document.elementFromPoint(r.x+r.width*dx,r.y+r.height*dy)))); }), `Home ${selector}`).toBe(true);
+      }
       await page.goBack();await expect(page.locator('#marketing-agency')).toBeVisible();await shell();
       await page.goForward();await expect(page.locator('body')).toHaveClass(/page-route-overview/);await shell();
       await page.goto('/token/9Dp8MYwvFTAwoMtxaXvAZjZyjsWUbuXGp15z8EkZzu1B');await shell();
+      await page.locator('.primary-nav > a[href="#marketing-agency"]').click();await expect(page.locator('#marketing-agency')).toBeVisible();await shell();
+    } else {
+      if (width === 390) await page.locator('#open-menu').click();
+      await page.locator('.primary-nav > a[href="#overview"]').click();
+      await expect(page.locator('body')).toHaveClass(/page-route-overview/);await shell();
+      await page.reload();await expect(page.locator('body')).toHaveClass(/page-route-overview/);await shell();
+      if (width === 1179) {
+        await page.locator('#desktop-sidebar-toggle').click();
+        await expect(page.locator('#sidebar')).toHaveCSS('width', '76px');
+        await expect(page.locator('.main-content')).toHaveCSS('margin-left', '76px');
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        await page.locator('#desktop-sidebar-toggle').click();await shell();
+      }
+      await page.goBack();await expect(page.locator('#marketing-agency')).toBeVisible();await shell();
+      await page.goForward();await expect(page.locator('body')).toHaveClass(/page-route-overview/);await shell();
+      await page.goto('/token/9Dp8MYwvFTAwoMtxaXvAZjZyjsWUbuXGp15z8EkZzu1B');await shell();
+      if (width === 390) await page.locator('#open-menu').click();
       await page.locator('.primary-nav > a[href="#marketing-agency"]').click();await expect(page.locator('#marketing-agency')).toBeVisible();await shell();
     }
   });

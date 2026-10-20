@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/**', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Offline layout fixture"}' }));
+  await page.route('**/api/**', route => new URL(route.request().url()).pathname === '/api/fee-policy'
+    ? route.fulfill({ json: { split: PROTOCOL_FEE_SPLIT } })
+    : route.fulfill({ status: 503, json: { error: 'Offline layout fixture' } }));
   await page.route('https://**/*', route => route.abort());
 });
 

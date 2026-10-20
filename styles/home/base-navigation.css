@@ -45,7 +45,7 @@ body.page-route-overview .preview-status-drawer {
 body.page-route-overview .preview-status-drawer a { color: var(--home-green); }
 
 /* Turn the existing navigation into the slim horizontal bar in the reference. */
-@media (min-width: 901px) {
+@media (min-width: 1180px) {
   html.sidebar-collapsed body.page-route-overview .main-content { width: 100%; margin-left: 0; }
   body.page-route-overview .sidebar,
   .sidebar-collapsed body.page-route-overview .sidebar {
