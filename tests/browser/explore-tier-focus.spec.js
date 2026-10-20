@@ -43,7 +43,84 @@ async function close(page, activation) {
   await expect(page.locator('#explore-tier-dialog')).toHaveJSProperty('open', false);
 }
 
+// Invoke the real Table renderer with deterministic launch records. This replaces
+// the row in the same way as a completed background refresh, without touching DOM
+// nodes directly or waiting for the timer/network in the regression test.
+async function renderTableAgain(page, { dropFocused = false } = {}) {
+  return page.evaluate(async ({ dropFocused }) => {
+    const { renderRegistry } = await import('/src/features/explore/registry-view.js');
+    const buttons = [...document.querySelectorAll('#launch-list [data-tier-info-mint]')];
+    const before = buttons.map(button => ({ mint: button.dataset.tierInfoMint, node: button }));
+    const focusedMint = document.activeElement.dataset.tierInfoMint;
+    const rows = buttons.filter(button => !dropFocused || button.dataset.tierInfoMint !== focusedMint)
+      .map((button, index) => ({
+        address: button.dataset.tierInfoMint, symbol: `TF${index}`, name: `Tier focus QA ${index}`,
+        icon: 'T', complete: false,
+      }));
+    const state = { registryLaunches: rows, registryPage: 1, registryCriteriaKey: '',
+      exploreProviderStatus: 'Ready', exploreLastVerifiedAt: Date.now(),
+      assets: rows, exploreFeedAvailable: true, verifiedBoosts: {}, EXPLORE_CLUSTER: 'devnet' };
+    renderRegistry('', state, {
+      getWatchlist: () => [], getFollowingTokenSources: () => new Map(),
+      filterExploreTabRecords: records => records,
+      exploreOutageCopy: () => ({ title: 'Unavailable', detail: '' }),
+      exploreEmptyReason: () => null, exploreStageLabel: () => 'New', formatOnchainAge: () => 'Now',
+      explorePaidListingBagMarkup: () => '', exploreBoostAmountMarkup: () => '',
+      exploreSocialLinksMarkup: () => '',
+      exploreTierBadgeMarkup: mint => before.find(row => row.mint === mint)?.node.outerHTML || '',
+      exploreMarketCapUsd: () => '—', formatExploreTradeCount: () => '—',
+      formatExploreUsd: () => '—', exploreAirdropMarkup: () => '',
+      loadVerifiedTokenLogos: () => {}, renderWatchlist: () => {},
+    });
+    return before.every(row => !row.node.isConnected);
+  }, { dropFocused });
+}
+
 for (const width of [390, 1440]) {
+  test(`UX-010 restored tier focus survives a later real Table render at ${width}px (deterministic rows)`, async ({ page }) => {
+    await prepare(page, width);
+    const { trigger } = await open(page);
+    await close(page, 'Escape');
+    await expect(trigger).toBeFocused();
+    const scrollBefore = await page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
+    expect(await renderTableAgain(page)).toBe(true);
+    await expect(trigger).toBeFocused();
+    expect(await page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual(scrollBefore);
+    await expect(page.locator('#explore-tier-dialog')).toHaveJSProperty('open', false);
+    await expect(page.locator('button[data-explore-view="table"]')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test(`UX-010 real Table render keeps superseding focus at ${width}px (deterministic rows)`, async ({ page }) => {
+    await prepare(page, width);
+    const { trigger } = await open(page);
+    await close(page, 'Escape');
+    await expect(trigger).toBeFocused();
+    await page.locator('#explore-search').focus();
+    expect(await renderTableAgain(page)).toBe(true);
+    await expect(page.locator('#explore-search')).toBeFocused();
+  });
+
+  test(`UX-010 real Table render reveals fallback after focused mint disappears at ${width}px (deterministic rows)`, async ({ page }) => {
+    await prepare(page, width);
+    const { trigger } = await open(page);
+    await close(page, 'Escape');
+    await expect(trigger).toBeFocused();
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    expect(await renderTableAgain(page, { dropFocused: true })).toBe(true);
+    await expect(page.locator('#explore-search')).toBeFocused();
+    const visible = await page.locator('#explore-search').evaluate(node => {
+      const rect = node.getBoundingClientRect();
+      const header = document.querySelector('.topbar');
+      const top = header?.getClientRects().length && ['fixed', 'sticky'].includes(getComputedStyle(header).position)
+        ? header.getBoundingClientRect().bottom : 0;
+      const nav = document.querySelector('.mobile-workspace-nav');
+      const bottom = nav?.getClientRects().length && getComputedStyle(nav).position === 'fixed'
+        ? nav.getBoundingClientRect().top : innerHeight;
+      return rect.top >= top && rect.bottom <= bottom;
+    });
+    expect(visible).toBe(true);
+  });
+
   for (const activation of ['pointer', 'Enter', 'Space', 'Escape']) {
     for (const replaced of [false, true]) {
       test(`UX-010 ${replaced ? 'replaced' : 'current'} tier trigger returns focus after ${activation} at ${width}px (mocked APIs)`, async ({ page }) => {

@@ -76,6 +76,31 @@ export function renderRegistry(query, state, {
   }
   const list = document.querySelector('#launch-list');
   if (!list) return;
+  // Replacing Table rows during a background refresh also replaces the focused
+  // tier button. Keep the user's current keyboard position across that render.
+  const activeTier = document.activeElement;
+  const focusedMint = document.body?.classList.contains('page-route-explore')
+    && list.contains(activeTier) && activeTier.matches?.('[data-tier-info-mint]')
+    ? activeTier.dataset.tierInfoMint : null;
+  const restoreTierFocus = () => {
+    if (!focusedMint || (document.activeElement !== document.body && document.activeElement !== activeTier)) return;
+    const visible = element => element && !element.disabled && element.getClientRects().length;
+    const current = [...list.querySelectorAll('[data-tier-info-mint]')]
+      .find(button => button.dataset.tierInfoMint === focusedMint && visible(button));
+    const target = current || document.querySelector('#explore-search');
+    if (!visible(target)) return;
+    target.focus({ preventScroll: true });
+    const rect = target.getBoundingClientRect();
+    const header = document.querySelector('.topbar');
+    const top = header?.getClientRects().length && ['fixed', 'sticky'].includes(getComputedStyle(header).position)
+      ? header.getBoundingClientRect().bottom : 0;
+    const nav = document.querySelector('.mobile-workspace-nav');
+    const bottom = nav?.getClientRects().length && getComputedStyle(nav).position === 'fixed'
+      ? nav.getBoundingClientRect().top : globalThis.innerHeight;
+    if (rect.top < top || rect.bottom > bottom || rect.left < 0 || rect.right > globalThis.innerWidth) {
+      target.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' });
+    }
+  };
   if (!filtered.length) {
     const reason = exploreEmptyReason();
     list.innerHTML = registryLoading
@@ -86,6 +111,7 @@ export function renderRegistry(query, state, {
     if (!registryLoading && !registryUnavailable) {
       list.querySelector('.empty-state')?.append(createExploreEmptyAction(document, { hasAssets: assets.length, exploreTab }));
     }
+    restoreTierFocus();
     return;
   }
   list.innerHTML = page.rows.map((item, index) => {
@@ -112,4 +138,5 @@ export function renderRegistry(query, state, {
   }).join('');
   loadVerifiedTokenLogos(list);
   renderWatchlist();
+  restoreTierFocus();
 }
