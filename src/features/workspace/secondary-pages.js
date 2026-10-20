@@ -5,9 +5,30 @@ import { text, $, node, $$, disclose } from './dom.js';
 import airdropWolfDropUrl from '../../../airdrop-wolf-drop.webp';
 import { mountDocsReference } from '../../../docs-reference.js';
 
+function revealCampaignFocus(event) {
+  const button = event.currentTarget;
+  requestAnimationFrame(() => {
+    if (document.activeElement !== button) return;
+    const nav = $('.mobile-workspace-nav');
+    if (!nav?.getClientRects().length) return;
+    // Settle native smooth scrolling before measuring the fixed mobile bounds.
+    window.scrollTo({top:scrollY, left:scrollX, behavior:'instant'});
+    const box = button.getBoundingClientRect(), style = getComputedStyle(button);
+    const outline = (parseFloat(style.outlineWidth) || 0) + Math.max(0, parseFloat(style.outlineOffset) || 0);
+    const header = $('.topbar');
+    const top = header?.getClientRects().length ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
+    const bottom = nav.getBoundingClientRect().top;
+    if (box.top - outline < top || box.bottom + outline > bottom) {
+      // Keep the same native button focused; reveal only an obscured control.
+      button.scrollIntoView({behavior:'instant', block:'center', inline:'nearest'});
+    }
+  });
+}
+
 export function secondaryPages() {
   text('#referral-command-title', 'Your dashboard');
   disclose($('.referral-toolkit'), 'Campaign links and sharing tools');
+  for (const button of $$('[data-referral-campaign]')) button.addEventListener('focus', revealCampaignFocus);
   const receipts=$('.burn-receipts-panel');
   if(receipts)receipts.prepend(node('p','field-help','This history shows confirmed burns available to funded.vip. Total supply can include other burns.'));
   disclose($('.burn-policy-preview'), 'Fee-funded buyback policy · example calculator');
