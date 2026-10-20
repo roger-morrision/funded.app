@@ -4,8 +4,7 @@ import { createReferralActivityRoutes } from './routes/referral-activity.mjs';
 import { createServiceStatusRoutes } from './routes/service-status.mjs';
 import { loadServerEnvironment } from './environment.mjs';
 import { createDailyBonusRuntime } from './daily-bonus-runtime.mjs';
-import { startShareVisitCleanup, startCommunityClaimIndex,
-  startV3HolderRewardWorker } from './background-maintenance.mjs';
+import { startShareVisitCleanup } from './background-maintenance.mjs';
 import { createFeeRouterService } from './fee-router-service.mjs';
 import { createPageDelivery } from './page-delivery.mjs';
 import { createDiscoveryRoutes } from './routes/discovery.mjs';
@@ -494,9 +493,7 @@ server.headersTimeout = 10_000;
 server.requestTimeout = 30_000;
 server.timeout = 120_000;
 server.listen(port, host, () => console.log(`funded.vip app listening on http://${host}:${port}`));
-const {startApiFinancialWorkers}=await import('./api-financial-workers.mjs');
-console.log(JSON.stringify({event:'api-financial-worker-role',...startApiFinancialWorkers({
-  startCommunity:()=>startCommunityClaimIndex({ solanaCluster, solanaRpcUrl, fundedTokenMint, automaticRewardStore, v3AuthorityKeypair }),
-  startHolder:()=>startV3HolderRewardWorker({ solanaCluster, solanaRpcUrl, automaticRewardStore, v3AuthorityKeypair }),
-  startDailyBonus:()=>dailyBonusRuntime.start(),
+const {startApiFinancialWorkerServices}=await import('./api-financial-workers.mjs');
+console.log(JSON.stringify({event:'api-financial-worker-role',...startApiFinancialWorkerServices({
+  solanaCluster,solanaRpcUrl,fundedTokenMint,automaticRewardStore,v3AuthorityKeypair,dailyBonusRuntime,
 })}));
