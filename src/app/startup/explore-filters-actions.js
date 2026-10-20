@@ -2,6 +2,25 @@ import { initializeAppState } from '../runtime.js';
 import {referralRatePresentation} from '../../features/fees/referral-rate-copy.js';
 
 export function initializeExploreFiltersActions(appState) {
+  const tierDialog = document.querySelector('#explore-tier-dialog');
+  const tierClose = document.querySelector('#explore-tier-close');
+  let tierReturnFocus = null;
+  tierDialog?.addEventListener('close', () => {
+    if (tierDialog.open) return;
+    const context = tierReturnFocus;
+    tierReturnFocus = null;
+    if (!context || location.hash !== context.route
+      || !document.body.classList.contains('page-route-explore') || appState.exploreView !== context.view) return;
+    const active = document.activeElement;
+    if (active !== document.body && active !== context.trigger && active !== tierDialog && active !== tierClose) return;
+    const visible = element => element && !element.disabled && element.getClientRects().length;
+    const trigger = [...document.querySelectorAll('#launch-list [data-tier-info-mint]')]
+      .find(button => button.dataset.tierInfoMint === context.mint && visible(button));
+    const target = trigger || document.querySelector('#explore-search');
+    if (!visible(target)) return;
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' });
+  });
   const selectedAirdrop = document.querySelector('#airdrop-selected-program');
   const airdropTriggers = () => [...document.querySelectorAll('#airdrop-directory [data-directory-mint]')];
   function hideAirdropDetail(){
@@ -199,7 +218,13 @@ export function initializeExploreFiltersActions(appState) {
   // app-source: 832
   document.querySelector('#launch-list').addEventListener('click', async event => {
     const tierInfo = event.target.closest('[data-tier-info-mint]');
-    if (tierInfo) { appState.openExploreTierInfo(tierInfo.dataset.tierInfoMint); return; }
+    if (tierInfo) {
+      tierReturnFocus = { mint: tierInfo.dataset.tierInfoMint, trigger: tierInfo,
+        view: appState.exploreView, route: location.hash };
+      appState.openExploreTierInfo(tierInfo.dataset.tierInfoMint);
+      if (!tierDialog?.open) tierReturnFocus = null;
+      return;
+    }
     const boost = event.target.closest('[data-boost-mint]');
     if (boost) { appState.openExploreBoost(boost.dataset.boostMint); return; }
     const watch = event.target.closest('.scanner-watch');
@@ -213,7 +238,7 @@ export function initializeExploreFiltersActions(appState) {
   // app-source-end
 
   // app-source: 833
-  document.querySelector('#explore-tier-close')?.addEventListener('click', () => document.querySelector('#explore-tier-dialog')?.close());
+  tierClose?.addEventListener('click', () => tierDialog?.close());
   // app-source-end
 
   // app-source: 834
