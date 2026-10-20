@@ -42,7 +42,7 @@ body .header-search-field input { flex: 1; width: 100%; min-width: 0; height: 46
 @media (max-width: 520px) { .help-topics-trigger { right: 12px; bottom: 82px; } .help-topics-panel { right: 12px; bottom: 136px; } }
 @media (max-width: 520px) { .header-search-results-head span, .header-search-market small { display: none; } .header-search-panel { padding: 16px; } }
 @media (max-width: 700px) { .header-search-trigger { display: grid; } }
-@media (min-width: 701px) and (max-width: 1179px) { body.page-route-explore .header-search-trigger { display: grid; } }
+@media (width > 700px) and (width < 1180px) { body.page-route-explore .header-search-trigger { display: grid; } }
 @media (min-width: 1180px) and (max-width: 1499px) { body.page-route:is(.page-route-explore,.page-route-leaderboard,.page-route-airdrops,.page-route-buybacks,.page-route-launch,.page-route-docs,.page-route-paid,.page-route-coin,.page-route-wallet,.page-route-list,.page-route-my-launches,.page-route-payments,.page-route-analytics-detail,.page-route-referrals,.page-route-profile,.page-route-privacy,.page-route-marketing-agency,.page-route-overview) .header-search-trigger { display: grid; } }
 @media (min-width: 1180px) {
   body.page-route:is(.page-route-explore,.page-route-leaderboard,.page-route-airdrops,.page-route-buybacks,.page-route-launch,.page-route-docs,.page-route-paid,.page-route-coin,.page-route-wallet,.page-route-list,.page-route-my-launches,.page-route-payments,.page-route-analytics-detail,.page-route-referrals,.page-route-profile,.page-route-privacy,.page-route-marketing-agency) .app-shell { display: block; }
