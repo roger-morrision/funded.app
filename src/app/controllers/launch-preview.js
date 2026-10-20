@@ -121,8 +121,8 @@ export function createLaunchPreviewController(appState) {
   // app-source-end
 
   // app-source: 610
-  function renderLaunchCostDetails(){
-    return appState.renderLaunchCostDetailsView({ launchCostReview: appState.launchCostReview, wallet: appState.wallet, walletMetricsLoading: appState.walletMetricsLoading, launchEstimateRetry: appState.launchEstimateRetry, publicQuote }, { formatLaunchCost: appState.formatLaunchCost });
+  function renderLaunchCostDetails(launchFeeLamports){
+    return appState.renderLaunchCostDetailsView({ launchCostReview: appState.launchCostReview, wallet: appState.wallet, walletMetricsLoading: appState.walletMetricsLoading, launchEstimateRetry: appState.launchEstimateRetry, publicQuote }, { formatLaunchCost: appState.formatLaunchCost, getLaunchFeeLamports: launchFeeLamports === undefined ? undefined : () => launchFeeLamports });
   }
   // app-source-end
 

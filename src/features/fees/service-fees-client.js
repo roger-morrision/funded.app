@@ -2,16 +2,33 @@ import { apiRequest } from '../../../client.js';
 import { currentServiceFees, setCurrentServiceFees, serviceFeeSol, validateServiceFees } from '../../../service-fees.js';
 import { setListingPriceUsd } from '../../../listing-policy.js';
 
+let verifiedLaunchFeeLamports = null;
+let latestFeeRequest = 0;
+export const currentVerifiedLaunchFeeLamports = () => verifiedLaunchFeeLamports;
+
 export async function refreshServiceFees(appState = null) {
-  const response = await (appState?.apiRequest || apiRequest)('/api/service-fees', { signal:AbortSignal.timeout(8000) });
-  const data = response.data;
-  if (!response.available || data?.cluster !== 'devnet' || !/^[a-f0-9]{64}$/.test(data.hash || '')
-    || !Number.isSafeInteger(data.revision) || data.revision < 0 || typeof data.recipient !== 'string'
-    || typeof data.tradeRecipient !== 'string') throw new Error('Current app service fees are unavailable. Refresh before signing.');
-  validateServiceFees(data.policy);
-  setCurrentServiceFees(data.policy); setListingPriceUsd(data.policy.listingUsd);
+  const request = ++latestFeeRequest;
+  let data;
+  try {
+    const response = await (appState?.apiRequest || apiRequest)('/api/service-fees', { signal:AbortSignal.timeout(8000) });
+    data = response.data;
+    if (!response.available || data?.cluster !== 'devnet' || !/^[a-f0-9]{64}$/.test(data.hash || '')
+      || !Number.isSafeInteger(data.revision) || data.revision < 0 || typeof data.recipient !== 'string'
+      || typeof data.tradeRecipient !== 'string') throw new Error('Current app service fees are unavailable. Refresh before signing.');
+    validateServiceFees(data.policy);
+  } catch (error) {
+    if (request === latestFeeRequest) {
+      verifiedLaunchFeeLamports = null;
+      globalThis.window?.dispatchEvent(new CustomEvent('funded:service-fees-unavailable'));
+    }
+    throw error;
+  }
+  if (request === latestFeeRequest) {
+    setCurrentServiceFees(data.policy); setListingPriceUsd(data.policy.listingUsd);
+    verifiedLaunchFeeLamports = data.policy.launchLamports;
+  }
   if (appState) appState.serviceFeeConfig = data;
-  globalThis.window?.dispatchEvent(new CustomEvent('funded:service-fees', { detail:data }));
+  if (request === latestFeeRequest) globalThis.window?.dispatchEvent(new CustomEvent('funded:service-fees', { detail:data }));
   return data;
 }
 export const appTradeBps = appState => appState.serviceFeeConfig?.policy.tradeBps ?? appState.TRADE_FEE_BPS;
@@ -43,16 +60,18 @@ export function initServiceFeeCopy() {
     }
     const promotions = document.querySelector('.creator-burn-section');
     if(promotions && !document.getElementById('launch-service-fee-note')) { const p=document.createElement('p'); p.id='launch-service-fee-note'; p.className='field-help'; promotions.append(p); }
-    const note=document.getElementById('launch-service-fee-note'); if(note)note.textContent=`Every launch pays ${serviceFeeSol(f.launchLamports)} SOL, plus network, reserve and account costs. Pro and Premier add the displayed promotion burn. Listing is included.`;
+    const note=document.getElementById('launch-service-fee-note');
+    if (note) note.textContent = verifiedLaunchFeeLamports == null
+      ? 'Checking the current app launch service fee. A complete SOL budget needs the verified fee policy.'
+      : `Every launch pays ${serviceFeeSol(verifiedLaunchFeeLamports)} SOL, plus network, reserve and account costs. Pro and Premier add the displayed promotion burn. Listing is included.`;
     const target = document.querySelector('#capital-flow');
     if (target && !document.getElementById('service-fee-guide')) {
       const p = document.createElement('p'); p.id = 'service-fee-guide'; p.className = 'panel-explainer'; target.append(p);
     }
     const p = document.getElementById('service-fee-guide'); if (p) p.textContent = serviceFeeGuide();
-    const launch = document.querySelector('#cost-tier-label');
-    if (launch) launch.textContent = `Launch service fee: ${serviceFeeSol(f.launchLamports)} SOL`;
   };
   window.addEventListener('funded:service-fees', render);
+  window.addEventListener('funded:service-fees-unavailable', render);
   let last = 0;
   const refresh = () => { if (!document.hidden && Date.now()-last > 30_000) { last = Date.now(); void refreshServiceFees().catch(() => {}); } };
   window.addEventListener('hashchange', refresh); render(); refresh();

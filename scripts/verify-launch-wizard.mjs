@@ -80,8 +80,8 @@ assert.match(actions, /!feeDistribution\.valid \? 'Fix fee distribution'/, 'Inva
 assert.match(launchPage, /id="preview-promotion-badge"/, 'The launch preview must show the selected promotion badge.');
 assert.equal(DEFAULT_SERVICE_FEES.launchLamports, '20000000', 'The approved launch service fee must not drift.');
 assert.equal(serviceFeeSol(DEFAULT_SERVICE_FEES.launchLamports), 0.02);
-assert.match(launchPage, /class="cost-summary launch-pay-summary free-launch"[\s\S]*?id="cost-tier-label">Launch service fee: 0\.02 SOL[\s\S]*?Network \+ account reserve[\s\S]*?id="cost-burn-row" hidden[\s\S]*?id="cost-burn"/, 'The approved service fee, network allowance and optional promotion burn must remain separate.');
-assert.match(costs, /tierLabelNode\.textContent = `Launch service fee: \$\{serviceFeeSol\(currentServiceFees\(\)\.launchLamports\)\} SOL/, 'The visible service fee must follow the current approved policy.');
+assert.match(launchPage, /class="cost-summary launch-pay-summary free-launch"[\s\S]*?id="cost-tier-label">Checking current launch service fee…[\s\S]*?Network \+ account reserve[\s\S]*?App launch service fee[\s\S]*?id="cost-service-fee"[\s\S]*?id="cost-burn-row" hidden[\s\S]*?id="cost-burn"/, 'The app fee, network allowance and optional promotion burn must remain separate, without a default total before policy verification.');
+assert.match(costs, /getLaunchFeeLamports = currentVerifiedLaunchFeeLamports[\s\S]*?getLaunchFeeLamports\(\)/, 'The displayed public fee must come from a verified policy.');
 assert.match(launchPage, /class="community-airdrop-highlight"[\s\S]*?30,000,000[\s\S]*?3\.00% of supply[\s\S]*?bought and locked at launch/, 'The You pay panel must describe atomic reserve funding.');
 assert.doesNotMatch(launchPage, /delivery requires vault funding and a verified active distribution cycle/, 'The removed delivery sentence must not return to the launch panel.');
 assert.doesNotMatch(launchPage, /claimable at migration/, 'Migration alone must not promise a claimable payout.');
@@ -198,14 +198,15 @@ assert.doesNotMatch(app, /submitSolClaim/, 'Retired V2 X claim signing must not 
 assert.doesNotMatch(app, /#dialog-connect|['"]dialog-connect['"]|#wallet-status/, 'Removed launch wallet-card controls must have no stale script references.');
 assert.doesNotMatch(app, /#wallet-metrics|#wallet-balance|#launch-fee|#refresh-wallet|#fee-note/, 'Removed wallet-metrics controls must have no stale script references.');
 function costSummaryFor({ connected = false, loading = false, fee = null, error = '', buySol = 0, retry = null, publicQuote = null, review = null,
-  burnPolicy = { requiresBurn:false } } = {}) {
-  const nodes = Object.fromEntries(['cost-launch', 'cost-initial-buy', 'cost-total-enabled', 'cost-total-label', 'preview-cost-label', 'cost-total', 'cost-note', 'preview-launch-cost', 'cost-burn', 'cost-community-tokens', 'cost-community-detail', 'cost-creator-buy'].map(id => [`#${id}`, { textContent: '', innerHTML: '' }]));
+  launchFeeLamports = DEFAULT_SERVICE_FEES.launchLamports, burnPolicy = { requiresBurn:false } } = {}) {
+  const nodes = Object.fromEntries(['cost-launch', 'cost-service-fee', 'cost-initial-buy', 'cost-total-enabled', 'cost-total-label', 'preview-cost-label', 'cost-total', 'cost-note', 'preview-launch-cost', 'cost-burn', 'cost-community-tokens', 'cost-community-detail', 'cost-creator-buy'].map(id => [`#${id}`, { textContent: '', innerHTML: '' }]));
   updateCostSummary({ wallet: connected ? { publicKey: true } : null, walletMetricsLoading: loading,
     walletEstimateError: error, launchEstimateRetry: retry, estimatedLaunchFeeLamports: fee, launchCostReview: review, publicQuote }, {
     document: { querySelector: selector => nodes[selector] || null }, renderLaunchCostDetails() {},
     getLaunchBurnPolicy: () => burnPolicy, getCreatorBuySummary: () => ({ sol: buySol, tokens: 0, percent: 0 }),
     getCommunityAirdropTokens: () => 30_000_000, getCommunityAllocationPercent: () => 3,
     formatLaunchBurnAmount: amount => Number(amount).toLocaleString('en-US'), formatLaunchCost: lamports => (Number(lamports) / 1_000_000_000).toFixed(6) + ' SOL',
+    getLaunchFeeLamports: () => launchFeeLamports,
     creatorBuyExceedsWalletBalance: () => false,
     developerBuyLimitReached: () => error.startsWith('Developer buy cannot exceed 20% of the token supply.'),
   });
@@ -214,17 +215,18 @@ function costSummaryFor({ connected = false, loading = false, fee = null, error 
 assert.equal(costSummaryFor()['#cost-launch'].textContent, 'Calculating…');
 const quote = { status: 'ready', solAmountLamports: 840_000_000n,
   maxSolAmountLamports: 850_000_000n, developerTokens: 0 };
-assert.deepEqual(publicLaunchBudget(quote), { purchase: 840_000_000n, allowance: 10_000_000n,
-  overhead: 50_000_000n, total: 900_000_000n });
+assert.deepEqual(publicLaunchBudget(quote, DEFAULT_SERVICE_FEES.launchLamports), { purchase: 840_000_000n, allowance: 10_000_000n,
+  overhead: 50_000_000n, serviceFee: 20_000_000n, total: 920_000_000n });
 const publicBudget = costSummaryFor({ publicQuote: quote });
-assert.equal(publicBudget['#cost-total-enabled'].textContent, '0.900000 SOL');
+assert.equal(publicBudget['#cost-total-enabled'].textContent, '0.920000 SOL');
+assert.equal(publicBudget['#cost-service-fee'].textContent, '0.020000 SOL');
 assert.equal(publicBudget['#cost-initial-buy'].textContent, '0.850000 SOL');
 assert.equal(publicBudget['#cost-launch'].textContent, '0.050000 SOL planning allowance');
-assert.equal(publicBudget['#preview-launch-cost'].textContent, '0.900000 SOL');
-assert.match(publicBudget['#cost-note'].textContent, /actual wallet-specific amount is simulated before signing/);
+assert.equal(publicBudget['#preview-launch-cost'].textContent, '0.920000 SOL');
+assert.match(publicBudget['#cost-note'].textContent, /current app launch service fee[\s\S]*wallet-specific simulation replaces the planning allowance before signing/);
 const paidBudget = costSummaryFor({ publicQuote:quote,
   burnPolicy:{ requiresBurn:true,amountTokens:1234,usdTarget:100,label:'Pro' } });
-assert.equal(paidBudget['#cost-total-enabled'].textContent, '0.900000 SOL');
+assert.equal(paidBudget['#cost-total-enabled'].textContent, '0.920000 SOL');
 assert.equal(paidBudget['#cost-burn'].textContent, '1,234 $FUNDED (≈$100)');
 assert.equal(costSummaryFor()['#cost-burn'].textContent, '0 $FUNDED');
 assert.equal(costSummaryFor({ connected: true, loading: true })['#cost-launch'].textContent, 'Calculating…');
@@ -245,10 +247,11 @@ assert.match(validation, /developerBuyLimitReached\(\)\) return \{ valid: false,
 assert.match(actions, /developerBuyLimitReached\(\) \? 'Edit developer buy' : 'Retry checks'/);
 assert.doesNotMatch(launchPage, /A submitted transaction is pending until confirmed/, 'The form must not imply a transaction was sent before signing.');
 assert.equal(costSummaryFor({ connected: true, fee: 10_000_000 })['#cost-launch'].textContent, '0.010000 SOL');
-const verifiedBudget = costSummaryFor({ connected: true, fee: 15_000_000, review: { buyMaximum: '10000000', networkFee: '500000', otherLaunchCosts: '4500000' } });
+const verifiedBudget = costSummaryFor({ connected: true, fee: 35_000_000, review: { buyMaximum: '10000000', networkFee: '500000', otherLaunchCosts: '4500000', serviceFeeLamports: '20000000' } });
 assert.equal(verifiedBudget['#cost-initial-buy'].textContent, '0.010000 SOL');
 assert.equal(verifiedBudget['#cost-launch'].textContent, '0.005000 SOL');
-assert.equal(verifiedBudget['#cost-total-enabled'].textContent, '0.015000 SOL');
+assert.equal(verifiedBudget['#cost-service-fee'].textContent, '0.020000 SOL');
+assert.equal(verifiedBudget['#cost-total-enabled'].textContent, '0.035000 SOL');
 assert.match(actions, /ready \? \(launchBurn\.requiresBurn \? `Review launch · \$\{launchBurn\.label\}` : 'Review launch'\)/, 'The ready action must explicitly lead to transaction review.');
 assert.match(pageStyles, /\.launch-token-preview-image \{[^}]*aspect-ratio: 1 \/ 1/, 'The token preview must retain a square image area.');
 assert.match(pageStyles, /\.preview-promotion-badge\.premier/, 'The preview badge must support the Premier promotion tier.');

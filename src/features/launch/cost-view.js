@@ -1,4 +1,5 @@
-import { currentServiceFees, serviceFeeSol } from '../../../service-fees.js';
+import { serviceFeeSol } from '../../../service-fees.js';
+import { currentVerifiedLaunchFeeLamports } from '../fees/service-fees-client.js';
 import { launchReviewMarkup } from '../../../launch-review.js';
 import { launchEstimateRefreshMessage } from './estimate-refresh.js';
 import { publicLaunchBudget } from '../../../public-launch-budget.js';
@@ -24,11 +25,17 @@ export function updateCostSummary(
     creatorBuyExceedsWalletBalance,
     developerBuyLimitReached,
     formatLaunchCost,
+    getLaunchFeeLamports = currentVerifiedLaunchFeeLamports,
     document = globalThis.document,
   } = {}
 ) {
-  renderLaunchCostDetails();
+  const launchFeeLamports = getLaunchFeeLamports();
+  const displayedLaunchFeeLamports = wallet && launchCostReview?.serviceFeeLamports != null
+    ? launchCostReview.serviceFeeLamports : launchFeeLamports;
+  const publicBudget = !wallet ? publicLaunchBudget(publicQuote, launchFeeLamports) : null;
+  renderLaunchCostDetails(launchFeeLamports);
   const launchNode = document.querySelector('#cost-launch');
+  const serviceFeeNode = document.querySelector('#cost-service-fee');
   const totalNode = document.querySelector('#cost-total-enabled');
   const noteNode = document.querySelector('#cost-note');
   const previewLaunchNode = document.querySelector('#preview-launch-cost');
@@ -56,11 +63,11 @@ export function updateCostSummary(
     if (mobileBudgetValue) mobileBudgetValue.textContent = value || 'Calculating…';
     if (mobileBudgetNote) mobileBudgetNote.textContent = wallet
       ? estimatedLaunchFeeLamports != null
-        ? 'Estimated total includes network fees and account rent. Review again before signing.'
+        ? 'Estimated total includes the approved app launch service fee, network fees and account rent. Review again before signing.'
         : 'Checking the wallet-specific network fees and account rent before signing.'
-      : publicLaunchBudget(publicQuote)
-        ? 'Includes a 0.05 SOL planning allowance for network fees and account rent. The wallet estimate replaces it before signing.'
-        : 'A current public Pump quote is needed. No wallet is required to view the planning budget.';
+      : publicBudget
+        ? 'Includes the current app launch service fee and a 0.05 SOL planning allowance for network fees and account rent. The wallet estimate replaces the allowance before signing.'
+        : 'A current public Pump quote and app fee policy are needed. No wallet is required to view the planning budget.';
   };
   const burnNode = document.querySelector('#cost-burn');
   const burnRow = document.querySelector('#cost-burn-row');
@@ -83,7 +90,9 @@ export function updateCostSummary(
     ? burnPolicy.amountTokens > 0 ? `${formatLaunchBurnAmount(burnPolicy.amountTokens)} $FUNDED${burnPolicy.usdTarget ? ` (≈$${burnPolicy.usdTarget})` : ''}` : 'Quote unavailable'
     : '0 $FUNDED';
   if (burnRow) burnRow.hidden = !burnPolicy.requiresBurn;
-  if (tierLabelNode) tierLabelNode.textContent = `Launch service fee: ${serviceFeeSol(currentServiceFees().launchLamports)} SOL${burnPolicy.requiresBurn ? ` · ${burnPolicy.label}` : ''}`;
+  if (tierLabelNode) tierLabelNode.textContent = displayedLaunchFeeLamports == null
+    ? 'Checking current launch service fee…'
+    : `Launch service fee: ${serviceFeeSol(displayedLaunchFeeLamports)} SOL${burnPolicy.requiresBurn ? ` · ${burnPolicy.label}` : ''}`;
   if (summaryNode) summaryNode.classList.toggle('free-launch', !burnPolicy.requiresBurn);
   if (creatorBuyNode && creatorBuy.sol > 0) {
     const buyStatus = creatorBuyExceedsWalletBalance() ? 'insufficient SOL'
@@ -102,21 +111,23 @@ export function updateCostSummary(
   if (totalLabelNode) totalLabelNode.textContent = !wallet ? 'Estimated total budget' : 'Estimated total';
   if (estimatedLaunchFeeLamports == null) {
     if (!wallet) {
-      const budget = publicLaunchBudget(publicQuote);
-      if (budget) {
-        if (initialBuyNode) initialBuyNode.textContent = formatLaunchCost(budget.purchase + budget.allowance);
-        launchNode.textContent = `${formatLaunchCost(budget.overhead)} planning allowance`;
-        totalNode.textContent = formatLaunchCost(budget.total);
-        if (previewLaunchNode) previewLaunchNode.textContent = formatLaunchCost(budget.total);
-        noteNode.textContent = 'Estimated total includes the live Pump quote for the holder reserve and optional developer buy, its 1% purchase allowance, and a 0.05 SOL planning allowance for network fees and account rent. The actual wallet-specific amount is simulated before signing. Any $FUNDED tier burn is separate.';
+      if (publicBudget) {
+        if (initialBuyNode) initialBuyNode.textContent = formatLaunchCost(publicBudget.purchase + publicBudget.allowance);
+        launchNode.textContent = `${formatLaunchCost(publicBudget.overhead)} planning allowance`;
+        if (serviceFeeNode) serviceFeeNode.textContent = formatLaunchCost(publicBudget.serviceFee);
+        totalNode.textContent = formatLaunchCost(publicBudget.total);
+        if (previewLaunchNode) previewLaunchNode.textContent = formatLaunchCost(publicBudget.total);
+        noteNode.textContent = 'Estimated total includes the live Pump quote for the holder reserve and optional developer buy, its 1% purchase allowance, the current app launch service fee, and a 0.05 SOL planning allowance for network fees and account rent. The wallet-specific simulation replaces the planning allowance before signing. Any $FUNDED tier burn is separate.';
       } else {
         const pending = publicQuote?.status === 'unavailable' ? 'Quote unavailable'
-          : publicQuote?.status === 'invalid' ? 'Enter valid amounts' : 'Calculating…';
+          : publicQuote?.status === 'invalid' ? 'Enter valid amounts'
+            : publicQuote?.status === 'ready' && launchFeeLamports == null ? 'Fee policy unavailable' : 'Calculating…';
         if (initialBuyNode) initialBuyNode.textContent = pending;
         launchNode.textContent = pending;
+        if (serviceFeeNode) serviceFeeNode.textContent = launchFeeLamports == null ? 'Unavailable' : formatLaunchCost(BigInt(launchFeeLamports));
         totalNode.textContent = pending;
         if (previewLaunchNode) previewLaunchNode.textContent = pending;
-        noteNode.textContent = 'The full planning budget needs a current public Pump quote. No wallet is required to view it; retry when the quote service is available.';
+        noteNode.textContent = 'The full planning budget needs a current public Pump quote and app fee policy. No wallet is required to view it; retry when either service is available.';
       }
       syncMobileBudget(totalNode.textContent);
       return;
@@ -124,6 +135,7 @@ export function updateCostSummary(
     const pending = walletMetricsLoading ? 'Calculating…'
       : retrySeconds == null ? 'Estimate unavailable' : `Retrying in ${retrySeconds}s`;
     launchNode.textContent = pending;
+    if (serviceFeeNode) serviceFeeNode.textContent = pending;
     if (initialBuyNode) initialBuyNode.textContent = pending;
     totalNode.textContent = '—';
     if (previewLaunchNode) previewLaunchNode.textContent = pending;
@@ -142,13 +154,15 @@ export function updateCostSummary(
     ? formatLaunchCost(Number(BigInt(launchCostReview.networkFee) + BigInt(launchCostReview.otherLaunchCosts)))
     : launchCost;
   launchNode.textContent = networkReserve;
+  if (serviceFeeNode) serviceFeeNode.textContent = launchCostReview
+    ? formatLaunchCost(launchCostReview.serviceFeeLamports) : 'Included in total';
   if (initialBuyNode) initialBuyNode.textContent = launchCostReview
     ? formatLaunchCost(launchCostReview.buyMaximum) : 'Included in total';
   totalNode.textContent = launchCost;
   if (previewLaunchNode) previewLaunchNode.textContent = launchCost;
   noteNode.textContent = burnPolicy.requiresBurn
-    ? 'SOL total includes network fees, account reserve, and any developer buy. The $FUNDED burn is separate.'
-    : 'The free tier has no $FUNDED burn. Total includes network fees, account reserve, and any creator buy with its 1% allowance.';
+    ? 'SOL total includes the approved app launch service fee, network fees, account reserve, and any developer buy. The $FUNDED burn is separate.'
+    : 'Standard has no $FUNDED burn. Total includes the approved app launch service fee, network fees, account reserve, and any creator buy with its 1% allowance.';
   syncMobileBudget();
 }
 
@@ -162,16 +176,17 @@ export function renderLaunchCostDetails(
   },
   {
     formatLaunchCost,
+    getLaunchFeeLamports = currentVerifiedLaunchFeeLamports,
     document = globalThis.document,
   } = {}
 ) {
   let node=document.querySelector('#launch-cost-details');
   if(!node){node=document.createElement('div');node.id='launch-cost-details';node.className='adoption-panel';document.querySelector('#cost-note')?.after(node);}
-  const publicBudget = !wallet ? publicLaunchBudget(publicQuote) : null;
+  const publicBudget = !wallet ? publicLaunchBudget(publicQuote, getLaunchFeeLamports()) : null;
   node.hidden = !wallet && !publicBudget;
   const expanded = node.querySelector('details')?.open;
   const refreshMessage = launchEstimateRefreshMessage({ wallet, loading: walletMetricsLoading, retry: launchEstimateRetry });
-  if (publicBudget) node.innerHTML = `<section class="launch-review-costs" aria-labelledby="public-launch-cost-heading"><h3 id="public-launch-cost-heading">Cost breakdown before connecting</h3><dl><div><dt>Holder reserve + optional developer buy</dt><dd>${formatLaunchCost(publicBudget.purchase)}</dd></div><div><dt>Purchase allowance (1%)</dt><dd>${formatLaunchCost(publicBudget.allowance)}</dd></div><div><dt>Network fees + account rent planning allowance</dt><dd>${formatLaunchCost(publicBudget.overhead)}</dd></div><div><dt>Estimated total SOL budget</dt><dd>${formatLaunchCost(publicBudget.total)}</dd></div></dl><p>The wallet-specific simulation replaces the planning allowance before signing. Any $FUNDED tier burn is shown separately above.</p></section>`;
+  if (publicBudget) node.innerHTML = `<section class="launch-review-costs" aria-labelledby="public-launch-cost-heading"><h3 id="public-launch-cost-heading">Cost breakdown before connecting</h3><dl><div><dt>Holder reserve + optional developer buy</dt><dd>${formatLaunchCost(publicBudget.purchase)}</dd></div><div><dt>Purchase allowance (1%)</dt><dd>${formatLaunchCost(publicBudget.allowance)}</dd></div><div><dt>App launch service fee</dt><dd>${formatLaunchCost(publicBudget.serviceFee)}</dd></div><div><dt>Network fees + account rent planning allowance</dt><dd>${formatLaunchCost(publicBudget.overhead)}</dd></div><div><dt>Estimated total SOL budget</dt><dd>${formatLaunchCost(publicBudget.total)}</dd></div></dl><p>The wallet-specific simulation replaces the planning allowance before signing. Any $FUNDED tier burn is shown separately above.</p></section>`;
   else if (!wallet) node.textContent = '';
   else if (!launchCostReview && refreshMessage) node.textContent = refreshMessage;
   else node.innerHTML=launchReviewMarkup(launchCostReview);
