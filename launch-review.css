@@ -43,6 +43,9 @@
 .launch-review-costs dl>div+div{border-top:1px solid #2b384b}
 .launch-review-costs dt{color:#abb9cc;font-size:11px;line-height:1.4}
 .launch-review-costs dd{margin:0;color:#edf3fc;font:600 11px 'DM Mono',monospace;white-space:nowrap;text-align:right}
+#launch-cost-details .launch-review-costs dl{display:block}
+#launch-cost-details .launch-review-costs dl>div{grid-template-columns:minmax(0,1fr);gap:4px}
+#launch-cost-details .launch-review-costs dd{text-align:left;white-space:normal;overflow-wrap:anywhere}
 .launch-review-notes{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px}
 .launch-review-notes p{margin:0;padding:12px 13px;border:1px solid #2d394e;border-radius:10px;background:#141d29}
 .launch-review-notes strong,.launch-review-notes span{display:block}

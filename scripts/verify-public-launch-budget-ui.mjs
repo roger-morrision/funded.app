@@ -63,6 +63,14 @@ try {
         details:document.querySelector('#launch-cost-details').textContent,
         visible:getComputedStyle(document.querySelector('#launch-cost-details')).display !== 'none',
         pageOverflow:document.documentElement.scrollWidth > innerWidth,
+        detailLayout:[...document.querySelectorAll('#launch-cost-details dl > div')].map(row => {
+          const label = row.querySelector('dt').getBoundingClientRect();
+          const amount = row.querySelector('dd').getBoundingClientRect();
+          const bounds = row.getBoundingClientRect();
+          return { labelWidth:label.width, labelHeight:label.height, amountBelowLabel:amount.top >= label.bottom - 1,
+            withinRow:label.left >= bounds.left - 1 && label.right <= bounds.right + 1
+              && amount.left >= bounds.left - 1 && amount.right <= bounds.right + 1 };
+        }),
       };
     }, variant);
     assert.equal(result.wallet,'');
@@ -76,6 +84,9 @@ try {
       assert.match(result.overhead,/0\.050000 SOL planning allowance/);
       assert.equal(result.label,`Launch service fee: ${Number(variant.fee)/1e9} SOL`);
       assert.equal(result.visible,true);
+      assert.equal(result.detailLayout.length,5);
+      assert.ok(result.detailLayout.every(item => item.labelWidth >= 80 && item.labelHeight <= 70
+        && item.amountBelowLabel && item.withinRow), 'Every cost label and amount must stay readable without overlap.');
       assert.match(result.details,/Purchase allowance \(1%\)/);
       assert.match(result.details,new RegExp(`App launch service fee\\s*${variant.row.replace('.', '\\.')}`));
       assert.match(result.details,/Network fees \+ account rent planning allowance/);
@@ -84,8 +95,37 @@ try {
       assert.equal(result.visible,false);
       assert.doesNotMatch(result.details,/Estimated total SOL budget/);
     }
+    if (process.env.FUNDED_BUDGET_SCREENSHOT_DIR && variant.status === 'ready'
+      && variant.fee === '20000000' && variant.purchase === '840000000') {
+      await page.screenshot({ path:`${process.env.FUNDED_BUDGET_SCREENSHOT_DIR}/local-${width}.png`, fullPage:true });
+    }
     console.log(`${width}px ${variant.status}/${variant.fee ?? 'no policy'}: ${result.total}`);
     }
+    const connectedLayout = await page.evaluate(() => {
+      const now = Date.now();
+      window.PublicCostView.renderLaunchCostDetails({
+        wallet:{ publicKey:'fixture-only' },
+        launchCostReview:{ budget:'935000000', balanceAfterBudget:'1000000000',
+          buyQuote:'840000000', allowance:'10000000', serviceFeeLamports:'35000000',
+          otherLaunchCosts:'45000000', networkFee:'5000000', transactionCount:2,
+          messageCount:2, curvePremiumBps:0, quotedAt:now, expiresAt:now+60000 },
+      }, { document, formatLaunchCost:value => `${(Number(value)/1e9).toFixed(6)} SOL` });
+      const details = document.querySelector('#launch-cost-details details');
+      details.open = true;
+      return [...details.querySelectorAll('.launch-review-costs dl > div')].map(row => {
+        const label = row.querySelector('dt').getBoundingClientRect();
+        const amount = row.querySelector('dd').getBoundingClientRect();
+        const bounds = row.getBoundingClientRect();
+        return { labelWidth:label.width, labelHeight:label.height,
+          amountBelowLabel:amount.top >= label.bottom - 1,
+          withinRow:label.left >= bounds.left - 1 && label.right <= bounds.right + 1
+            && amount.left >= bounds.left - 1 && amount.right <= bounds.right + 1 };
+      });
+    });
+    assert.equal(connectedLayout.length,5);
+    assert.ok(connectedLayout.every(item => item.labelWidth >= 80 && item.labelHeight <= 70
+      && item.amountBelowLabel && item.withinRow), 'Connected cost labels and amounts must stay readable without overlap.');
+    console.log(`${width}px connected advanced cost breakdown: readable`);
   }
   await context.close();
 } finally {
