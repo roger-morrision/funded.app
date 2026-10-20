@@ -132,6 +132,25 @@ export function initializeLaunchActions(appState) {
     appState.updateLaunchPreview();appState.updateLaunchButton();
   });
   let bannerPreparationRevision = 0;
+  document.querySelector('#token-banner')?.addEventListener('focus', event => {
+    const input = event.currentTarget;
+    // Run after native focus scrolling starts, so it cannot overwrite the reveal.
+    requestAnimationFrame(() => {
+      if (document.activeElement !== input) return;
+      // A previous tier's smooth native scroll may still be running even when
+      // this input is currently visible. Stop it at the current position first.
+      window.scrollTo({ top: window.scrollY, left: window.scrollX, behavior: 'instant' });
+      const box = input.getBoundingClientRect(), style = getComputedStyle(input);
+      const outline = (parseFloat(style.outlineWidth) || 0) + Math.max(0, parseFloat(style.outlineOffset) || 0);
+      const header = document.querySelector('.topbar'), nav = document.querySelector('.mobile-workspace-nav');
+      const top = header?.getClientRects().length ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
+      const bottom = nav?.getClientRects().length ? nav.getBoundingClientRect().top : innerHeight;
+      if (box.top - outline < top || box.bottom + outline > bottom) {
+        // Reveal the existing file control without changing focus or opening it.
+        input.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' });
+      }
+    });
+  });
   document.querySelector('#token-banner')?.addEventListener('change', async event => {
     const revision = ++bannerPreparationRevision;
     const file = event.target.files?.[0];
