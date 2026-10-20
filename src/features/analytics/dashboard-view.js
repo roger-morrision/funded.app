@@ -67,8 +67,18 @@ export function renderExtendedAnalyticsDashboard({ assets, verifiedLaunchPolicie
       scope.append(link,'.'); recipients.append(scope);
     }
     const recentPayouts = Array.isArray(paymentHistoryEvidence?.verifiedPayouts) ? paymentHistoryEvidence.verifiedPayouts : [];
+    const coverage = paymentHistoryEvidence?.payoutCoverage?.status;
+    const unavailable = receiptEvidenceChecked && (!paymentHistoryEvidence || paymentHistoryEvidence.status === 'unavailable' || coverage === 'unavailable');
+    const partial = paymentHistoryEvidence?.status === 'partial' || coverage === 'partial';
+    const complete = paymentHistoryEvidence?.status === 'onchain-indexed'
+      && (!Object.hasOwn(paymentHistoryEvidence, 'payoutCoverage') || coverage === 'verified');
+    const state = !receiptEvidenceChecked ? 'loading' : unavailable ? 'unavailable' : partial ? 'partial' : complete ? 'complete' : 'unavailable';
+    const labels = { loading:'Checking payments', unavailable:'Payment history unavailable', partial:'Partial payment history', complete:'No finalized payments' };
+    const messages = { loading:'Checking finalized payment history.', unavailable:'Payment history is temporarily unavailable.', partial:'Verification coverage is incomplete. Verified recipient rows are not available in this response.', complete:'No finalized payout receipts are available yet.' };
     const count = recipients.querySelector('.panel-count');
-    if (count) count.textContent = recentPayouts.length ? `Latest ${Math.min(5, recentPayouts.length)} of ${recentPayouts.length} finalized payments` : receiptEvidenceChecked && !paymentHistoryEvidence ? 'Payment history unavailable' : 'Checking payments';
+    if (count) count.textContent = recentPayouts.length
+      ? `Latest ${Math.min(5, recentPayouts.length)} of ${recentPayouts.length} finalized payments${state === 'partial' ? ' · partial coverage' : state === 'unavailable' ? ' · coverage unavailable' : ''}`
+      : labels[state];
     const target = recipients.querySelector('.payment-list, .empty-state');
     if (target && recentPayouts.length) {
       target.className = 'payment-list';
@@ -99,12 +109,9 @@ export function renderExtendedAnalyticsDashboard({ assets, verifiedLaunchPolicie
         amount.textContent = `${payout.actualReceivedLamports < 0 ? '-' : ''}${formatTokenBaseAmount(Math.abs(payout.actualReceivedLamports), 9, 9)} SOL ${payout.recipientRentLamports > 0 ? 'net change' : 'received'}`;
         identity.append(name, proof, paid); row.append(identity, amount); target.append(row);
       }
-    } else if (target && receiptEvidenceChecked && !paymentHistoryEvidence) {
+    } else if (target) {
       target.className = 'empty-state';
-      target.textContent = 'Payment history is temporarily unavailable.';
-    } else if (target && receiptEvidenceChecked) {
-      target.className = 'empty-state';
-      target.textContent = 'No finalized payout receipts are available yet.';
+      target.textContent = messages[state];
     }
   }
 }
