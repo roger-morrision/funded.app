@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
+import {chromium} from 'playwright';
 const original=()=>Array.from({length:6},(_,i)=>({mint:'52TdgMLp41CtiLrAqqZ1N889RPfWMMzxwpF8MoaZFvN1',signature:'345678'[i].repeat(64),slot:i+1,status:'finalized',vaultDebitVerified:true,burnInstructionVerified:true,burnedBaseUnits:String(1000+i),spentLamports:'10000'}));
 
 for(const width of[390,1440])for(const reducedMotion of['no-preference','reduce'])test(`FQA-025 real history replacement preserves native focus at ${width}px ${reducedMotion} (mocked read-only API)`,async({page},info)=>{
@@ -36,4 +37,20 @@ for(const width of[390,1440])for(const reducedMotion of['no-preference','reduce'
   await top.focus();await page.keyboard.press('Shift+Tab');await page.keyboard.press('Tab');await remember('intervening outside focus then blur');await page.evaluate(()=>{const l=document.querySelector('#buyback-ledger');new MutationObserver((_,o)=>{if(window.devOldBuyback.isConnected)return;o.disconnect();const b=document.querySelector('#connect-button');b.focus({preventScroll:true});b.blur();}).observe(l,{childList:true})});await refresh();expect(await page.evaluate(()=>document.activeElement===document.body)).toBe(true);
   expect(await ledger.locator('a').evaluateAll(a=>a.map(x=>x.getAttribute('href')))).toEqual([...original()].reverse().map(r=>`https://explorer.solana.com/tx/${r.signature}?cluster=devnet`));await expect(page.locator('#buyback-execution-count')).toHaveText('6 verified receipts');expect(errors).toEqual([]);expect(unexpected).toEqual([]);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await info.attach('focus-evidence',{body:JSON.stringify({label:'Real renderer and60s route poll; mocked response data/clock only; no financial action',width,reducedMotion,requests,evidence,errors,unexpected},null,2),contentType:'application/json'});
+});
+
+for(const width of[390,1440])for(const nativeScale of[1,1.25])test(`FQA-025 repeated expanded49-receipt replacements keep viewport at ${width}px native scale ${nativeScale} (mocked read-only API)`,async({page:defaultPage},info)=>{
+  const nativeBrowser=nativeScale===1.25?await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--force-device-scale-factor=1.25']}):null;
+  const page=nativeBrowser?await nativeBrowser.newPage():defaultPage;
+  try{
+  test.setTimeout(90000);await page.setViewportSize({width,height:width===390?844:900});await page.clock.install();
+  const alphabet='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  const receipts=Array.from({length:49},(_,i)=>({...original()[0],signature:alphabet[i].repeat(64),slot:i+1}));let requests=0;
+  await page.route('https://**/*',r=>r.abort());await page.route('**/api/**',r=>new URL(r.request().url()).pathname==='/api/fee-policy'?r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):r.fulfill({status:503,json:{error:'Offline long history fixture'}}));
+  await page.route('**/api/buyback/status',r=>{requests++;return r.fulfill({json:{cluster:'devnet',automationEnabled:true,pending:[],receipts}})});
+  await page.goto('/#buybacks');await page.locator('body.workspace-ready.product-experience-ready').waitFor();const ledger=page.locator('#buyback-ledger'),more=ledger.locator(':scope > .concise-ledger-more');await expect(ledger.locator('a')).toHaveCount(49);await more.locator('summary').click();await page.keyboard.press('Tab');await page.clock.runFor(1000);await page.waitForTimeout(1500);
+  const before=await page.evaluate(()=>({href:document.activeElement.getAttribute('href'),top:document.activeElement.getBoundingClientRect().top,scrollY})),cycles=[];
+  for(let i=0;i<3;i++){await page.evaluate(()=>{window.devLongOld=document.activeElement});const count=requests;await page.clock.fastForward(60001);await expect.poll(()=>requests).toBeGreaterThan(count);await expect.poll(()=>page.evaluate(()=>!window.devLongOld.isConnected)).toBe(true);await page.clock.runFor(160);await page.waitForTimeout(250);const after=await page.evaluate(()=>({href:document.activeElement.getAttribute('href'),top:document.activeElement.getBoundingClientRect().top,scrollY,tag:document.activeElement.tagName,open:document.querySelector('#buyback-ledger > details')?.open}));cycles.push(after);expect(after.tag).toBe('A');expect(after.href).toBe(before.href);expect(after.open).toBe(true);expect(Math.abs(after.scrollY-before.scrollY),JSON.stringify({before,cycles})).toBeLessThanOrEqual(1);expect(Math.abs(after.top-before.top)).toBeLessThanOrEqual(1)}
+  await info.attach('long-history-cycles',{body:JSON.stringify({before,cycles},null,2),contentType:'application/json'});
+  }finally{await nativeBrowser?.close()}
 });

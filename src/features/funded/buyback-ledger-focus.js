@@ -9,12 +9,6 @@ export function preserveBuybackLedgerFocus(ledger, document) {
   // Position is used only to detect reordering, never to choose a receipt.
   const previousIndex = [...ledger.querySelectorAll('a[href]')].indexOf(active);
   if (!summary && !href) return () => {};
-  const scroll = [];
-  for (let parent = active.parentElement; parent; parent = parent.parentElement) {
-    if (parent === document.scrollingElement || parent.scrollHeight > parent.clientHeight || parent.scrollWidth > parent.clientWidth) {
-      scroll.push({element:parent, top:parent.scrollTop, left:parent.scrollLeft});
-    }
-  }
   let cancelled = false;
   const moved = event => { if (event.target !== active) cancelled = true; };
   document.addEventListener('focusin', moved);
@@ -37,9 +31,8 @@ export function preserveBuybackLedgerFocus(ledger, document) {
       if (next.tagName === 'H2') next.tabIndex = -1;
       next.focus({preventScroll:true});
       if (document.activeElement !== next) return;
-      for (const position of scroll) if (position.element.isConnected) {
-        position.element.scrollTo({top:position.top, left:position.left, behavior:'instant'});
-      }
+      // Native anchoring tracks concurrent layout updates above this ledger.
+      // preventScroll keeps restoring focus from adding another scroll.
       // Preserve stationary history. Only a moved/removed target may need a
       // small instant reveal to keep its focus outline above fixed overlays.
       const retained = summary ? next === more : next === receipt;
