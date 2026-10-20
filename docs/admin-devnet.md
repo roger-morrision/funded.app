@@ -76,3 +76,28 @@ Sign in with an allowlisted wallet, refresh the current revision, enter the new 
 Each new launch or burn quote snapshots the configured amount. Issued quotes remain valid for ten minutes, and their finalized receipts remain recoverable after an admin price change. Trading reviews use their short-lived fee snapshot. A page already open refreshes on route change; the signing flow obtains current fees before preparing a new quote. The launch charge is included in the atomic coin-creation transaction and verified against its saved quote, memo, payer, and exact treasury credit. The SOL treasury defaults to `FUNDED_TRADE_FEE_OWNER`; `FUNDED_SERVICE_FEE_RECIPIENT` can select a dedicated public recipient.
 
 SOL service charges, app trade charges, and $FUNDED burns are separate from the immutable 80/20 creator-fee allocation. Burning $FUNDED reduces token supply and does not credit SOL revenue to the app. Quotes and allocations alone do not prove collection.
+
+## X publishing review verification
+
+The X review panel requires the signed admin session. Each decision records the
+exact content hash, reviewer, reason and expiry in PostgreSQL. A review never
+resumes publishing. While the account is suspended, both publishing workers
+remain stopped and the persistent `account-suspended` pause remains active.
+An empty review queue excludes legacy individual payout announcements; those
+records cannot be approved or dispatched.
+
+Run `npm run verify:admin-x-review` for a disposable PostgreSQL and real HTTP /
+browser component test. It generates an ephemeral admin signer by default.
+To exercise the existing separate QA admin wallet, append
+`-- --qa-keypair .secrets/devnet-admin-qa-keypair.json`; the verifier rejects
+other public wallets. Keys stay in Node and are used only for the exact local
+admin sign-in challenge. The verifier never reads the application database
+configuration, starts a publishing worker, calls X, or signs a transaction.
+It removes only its own labeled container and temporary files.
+
+The test covers approval/rejection audit persistence, stale content rejection,
+a refresh racing an approval, the suspension gate, and blocked legacy or
+mention-containing posts. It tests real admin routes and database writes in
+isolation, not a wallet extension or a live X post. Live authentication and
+queue checks must be reported separately. A refresh during a pending read is
+queued so the older response cannot leave a saved review looking unsaved.

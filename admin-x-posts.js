@@ -3,9 +3,11 @@ export function initAdminXPosts({api,post,show}){
   const panel=document.createElement('section');panel.className='panel';
   panel.innerHTML='<h2>X publishing review</h2><p>Publishing stays paused while the account is suspended. Approving content does not publish it or resume a worker. Daily summaries cover recorded payout receipts; individual payments stay on funded.vip.</p><p data-x-status role="status">Sign in to load publishing status.</p><div class="actions"><button type="button" data-x-load>Refresh review queue</button><button type="button" data-x-pause>Keep publishing paused</button></div><div data-x-events></div><button type="button" data-x-more hidden>Load more posts</button>';
   workspace.prepend(panel);
-  const status=panel.querySelector('[data-x-status]'),list=panel.querySelector('[data-x-events]'),more=panel.querySelector('[data-x-more]');let loading=false,nextCursor=null;
+  const status=panel.querySelector('[data-x-status]'),list=panel.querySelector('[data-x-events]'),more=panel.querySelector('[data-x-more]');let loading=false,nextCursor=null,reloadRequested=false;
   async function load(append=false){
-    if(loading)return;loading=true;
+    // A save or manual refresh during a slow read needs a fresh read afterward.
+    // Otherwise the older response can leave a saved review looking unsaved.
+    if(loading){if(!append)reloadRequested=true;return;}loading=true;
     more.disabled=true;
     try{
       const data=await api('/api/admin/x-posts'+(append&&nextCursor?'?after='+encodeURIComponent(nextCursor):''));
@@ -39,7 +41,7 @@ export function initAdminXPosts({api,post,show}){
         form.append(label,approve,reject);article.append(title,reviewStatus,text,evidence,form);list.append(article);
       }
     }catch(error){status.textContent='Publishing review unavailable. No posts were sent.';show(error.message,true);}
-    finally{loading=false;more.disabled=false;}
+    finally{loading=false;more.disabled=false;if(reloadRequested){reloadRequested=false;void load();}}
   }
   more.addEventListener('click',()=>{void load(true);});
   panel.querySelector('[data-x-load]').addEventListener('click',()=>{void load();});
