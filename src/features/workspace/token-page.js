@@ -137,6 +137,17 @@ export function tokenPage() {
   };
   if (tradeHeading) new MutationObserver(syncTradeAction).observe(tradeHeading, { childList: true, characterData: true, subtree: true });
   syncTradeAction();
+  button.addEventListener('focus', () => {
+    if (!matchMedia('(max-width:700px)').matches) return;
+    const box = button.getBoundingClientRect();
+    const header = $('.topbar');
+    const nav = $('.mobile-workspace-nav');
+    const top = Math.max(0, header?.getBoundingClientRect().bottom || 0);
+    const bottom = nav?.getClientRects().length ? nav.getBoundingClientRect().top : innerHeight;
+    if (box.top < top || box.bottom > bottom) {
+      button.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' });
+    }
+  });
   const sheetBackground = new Map();
   const setSheet = open => {
     root.classList.toggle('trade-sheet-open',open);button.setAttribute('aria-expanded',String(open));

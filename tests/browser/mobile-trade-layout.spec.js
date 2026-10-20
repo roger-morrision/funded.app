@@ -42,7 +42,8 @@ for (const width of [360, 390, 430, 1440]) {
       return [.1, .5, .9].every(dx => [.1, .5, .9].every(dy =>
         link.contains(document.elementFromPoint(r.x + r.width * dx, r.y + r.height * dy))));
     })).toBe(true);
-    await packageLink.focus();
+    await page.evaluate(() => scrollTo({ top: 200, behavior: 'instant' }));
+    await packageLink.evaluate(link => link.focus({ preventScroll: true }));
     await page.keyboard.press('Tab');
     await expect(page.locator('#coin-profile-about-tab')).toBeFocused();
     const sequence = [];
@@ -56,12 +57,13 @@ for (const width of [360, 390, 430, 1440]) {
     expect(sequence.some(item => item.trade), JSON.stringify(sequence)).toBe(true);
     const tradeTop = sequence.at(-1).top;
     await expect(action).toBeFocused();
-    await expect.poll(() => action.evaluate(element => {
+    const focusGeometry = await action.evaluate(element => {
       const box = element.getBoundingClientRect(), nav = document.querySelector('.mobile-workspace-nav').getBoundingClientRect();
       return { focusVisible: element.matches(':focus-visible'), outline: getComputedStyle(element).outlineStyle,
         top: Math.round(box.top), bottom: Math.round(box.bottom), navTop: Math.round(nav.top),
         clearOfNav: box.top >= 64 && box.bottom <= nav.top };
-    })).toMatchObject({ focusVisible: true, outline: 'solid', clearOfNav: true });
+    });
+    expect(focusGeometry).toMatchObject({ focusVisible: true, outline: 'solid', clearOfNav: true });
     await page.keyboard.press('Tab');
     await expect(action).not.toBeFocused();
     expect(await page.evaluate(() => document.activeElement.getBoundingClientRect().top + scrollY)).toBeGreaterThanOrEqual(tradeTop);
