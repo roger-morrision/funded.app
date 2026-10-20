@@ -1,7 +1,8 @@
 // Mount before application bootstrap so calculator controls exist for event binding.
 export const feeFlowCalculatorMarkup = `<article class="panel fee-flow-calculator">
               <div class="panel-heading"><div><p class="eyebrow">Creator-fee calculator</p><h2>What happens to a claim?</h2></div><span class="flow-unit">SOL</span></div>
-              <label class="fee-input-label">Gross creator fees claimed<input id="fee-flow-input" type="number" min="0" step="any" value="100" inputmode="decimal" /><small>Example only. No funds move.</small></label>
+              <label class="fee-input-label">Gross creator fees claimed<input id="fee-flow-input" type="number" min="0" step="any" value="100" inputmode="decimal" aria-describedby="fee-flow-example fee-flow-feedback" aria-invalid="false" /><small id="fee-flow-example">Example only. No funds move.</small></label>
+              <p class="fee-flow-feedback" id="fee-flow-feedback" role="status" aria-live="polite" aria-atomic="true">Preview ready.</p>
               <div class="fee-route-bar" aria-label="Fee distribution"><i class="creator" style="width:80%"></i><i class="operations" style="width:8%"></i><i class="referrals" style="width:3%"></i><i class="community" style="width:4%"></i><i class="burn" style="width:5%"></i></div>
               <div class="fee-output-grid">
                 <div class="creator"><span>Creator-directed</span><strong id="fee-output-creator">80 SOL</strong><small>80% of gross</small></div>

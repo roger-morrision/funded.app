@@ -94,7 +94,13 @@ export function createFeeFlowView(APP_ECONOMICS) {
     if (!input) return;
     const note = document.querySelector('#fee-flow-note');
     const gross = Number(input.value);
-    if (input.value.trim() === '' || !Number.isFinite(gross) || gross < 0) {
+    const unavailable = input.value.trim() === '' || !Number.isFinite(gross) || gross < 0;
+    input.setAttribute('aria-invalid', String(unavailable));
+    const feedback = document.querySelector('#fee-flow-feedback');
+    const message = unavailable ? 'Enter an amount of 0 or more to preview the split.' : 'Preview ready.';
+    // Announce availability transitions, not each recalculated amount or keystroke.
+    if (feedback && feedback.textContent !== message) feedback.textContent = message;
+    if (unavailable) {
       ['creator', 'operations', 'referrals', 'community', 'buyback','agency'].forEach(key => {
         const node = document.querySelector(`#fee-output-${key}`);
         if (node) node.textContent = '—';
