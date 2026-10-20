@@ -121,6 +121,9 @@
 .registry-order button:disabled { opacity:.42; cursor:not-allowed; }
 .explore-scanner .registry-toolbar { display:flex; align-items:center; justify-content:space-between; gap:15px; margin-bottom:12px; }
 .scanner-scroll { overflow-x:auto; border:1px solid #293648; border-radius:10px; background:#101720; }
+.scanner-scroll:focus-visible { outline:3px solid #a8d9bc; outline-offset:3px; }
+.scanner-scroll-help { margin:8px 0 12px; color:#b8c8bf; font-size:12px; line-height:1.5; }
+.scanner-scroll-help[hidden] { display:none; }
 .scanner-head,.scanner-row { display:grid; grid-template-columns:minmax(155px,1.5fr) 96px 70px minmax(62px,.7fr) minmax(62px,.7fr) minmax(108px,.9fr) minmax(62px,.7fr) 142px 100px; gap:6px; align-items:center; min-width:940px; padding:9px; }
 .scanner-head { background:#192436; color:#788ba6; font:9px 'DM Mono',monospace; text-transform:uppercase; letter-spacing:.45px; }
 .scanner-row { min-height:58px; border-top:1px solid #263447; color:#d5dfea; font:11px 'DM Mono',monospace; }

@@ -1,4 +1,7 @@
+import { initializeExploreTableScroll } from '../../features/explore/table-scroll.js';
+
 export function initializeExploreSearchActions(appState) {
+  initializeExploreTableScroll();
   // app-source: 771
   document.querySelector('#global-search').addEventListener('input', event => {
     appState.exploreQuery = event.target.value;
