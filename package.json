@@ -127,6 +127,7 @@
     "x:posts": "node scripts/run-x-post-worker.mjs",
     "verify:x-post-outbox": "node scripts/verify-x-post-outbox.mjs",
     "verify:admin-x-review": "node scripts/verify-admin-x-review.mjs --run",
+    "verify:admin-workspace": "node scripts/verify-admin-workspace.mjs --run",
     "verify:x-post-cycle": "node scripts/verify-x-post-cycle.mjs",
     "verify:x-post-draft": "node scripts/verify-x-post-draft.mjs",
     "verify:x-post-recovery": "node scripts/verify-x-post-recovery.mjs --run",

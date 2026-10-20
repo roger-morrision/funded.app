@@ -3,7 +3,7 @@ import { handleAdminServiceFees } from '../service-fees.mjs';
 import {handleAdminXPosts} from '../admin-x-posts.mjs';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
+import { Connection, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { DEVNET_GENESIS_HASH, parseReserve, rewardReserveAddress } from '../automatic-reward-chain.mjs';
 import { SOL_ASSET_MINT } from '../../reward-merkle.js';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
@@ -279,14 +279,18 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
       const rpc = connection();
       if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC is not Solana Devnet.' });
       const balance = await rpc.getBalance(new PublicKey(source), 'finalized');
-      if (balance - amount < 20_000_000) return json(res, 409, { error:'The source must retain at least 0.02 SOL for rent and operations.' });
       const blockhash = await rpc.getLatestBlockhash('finalized');
+      const message = new Transaction({feePayer:new PublicKey(source),recentBlockhash:blockhash.blockhash})
+        .add(SystemProgram.transfer({fromPubkey:new PublicKey(source),toPubkey:new PublicKey(destination),lamports:amount})).compileMessage();
+      const fee = (await rpc.getFeeForMessage(message,'finalized')).value;
+      if (!Number.isSafeInteger(fee) || fee < 0) return json(res,503,{error:'The network fee is unavailable. Refresh before preparing a withdrawal.'});
+      if (balance - amount - fee < 20_000_000) return json(res, 409, { error:'The source must retain at least 0.02 SOL after the transfer and network fee.' });
       const id = randomBytes(16).toString('hex');
       withdrawals.set(id, { source, destination, amount, blockhash:blockhash.blockhash,
         expiresAt:Date.now() + 120_000, requestedBy:session.wallet });
       if (withdrawals.size > 300) for (const [key, row] of withdrawals) if (row.expiresAt <= Date.now()) withdrawals.delete(key);
       return json(res, 200, { id, source, destination, amountLamports:amount,
-        blockhash:blockhash.blockhash, lastValidBlockHeight:blockhash.lastValidBlockHeight,
+        blockhash:blockhash.blockhash, lastValidBlockHeight:blockhash.lastValidBlockHeight, estimatedFeeLamports:fee,
         expiresAt:new Date(Date.now() + 120_000).toISOString(),
         note:'Only the source wallet can sign. This does not use a server-held key.' });
     }

@@ -45,6 +45,12 @@ reconcile form. The API independently verifies the finalized single-transfer
 transaction and exact balance deltas before recording it. A recovered receipt
 marks the initiating administrator as unverified.
 
+Withdrawal preparation estimates the exact single-transfer message's network
+fee and checks that at least 0.02 SOL remains after both the transfer and fee.
+If the fee estimate is unavailable, preparation stops. This is a review-time
+balance check; another transaction can still change the source balance before
+signing. The source owner retains control of their wallet.
+
 The gate panel reports launch, collection, settlement, holder, referral, X,
 and buyback runtime flags. It is read-only; enabling a gate requires the
 existing readiness checks and deployment configuration. Admin audit records
@@ -101,3 +107,23 @@ mention-containing posts. It tests real admin routes and database writes in
 isolation, not a wallet extension or a live X post. Live authentication and
 queue checks must be reported separately. A refresh during a pending read is
 queued so the older response cannot leave a saved review looking unsaved.
+
+## Admin workspace regression checks
+
+`npm run verify:admin-workspace` extends the same disposable database test with
+the real service-fee routes, PostgreSQL policy persistence, exact nine-decimal
+SOL amounts, stale revision rejection, out-of-order refresh responses and
+logout during a pending read. The same optional QA key argument is supported.
+The older `verify:admin-x-review` command remains a compatible entry point.
+These tests change only synthetic local policies; live prices are preserved.
+
+The fee editor ignores stale responses and disables edits during a save.
+After a failed save it requires a fresh policy before another attempt. Fee
+amounts and withdrawal inputs use exact decimal-to-lamport conversion rather
+than floating-point multiplication or rounding. Vault pagination accepts only
+one request at a time, so repeated clicks cannot duplicate balances on screen.
+
+Live checks should separately verify finalized inventory, every vault page,
+fee and audit reads, and rejection of invalid recovery/withdrawal requests.
+Those checks do not establish a signed withdrawal, a recovery transfer, an
+on-chain policy update or a wallet-extension approval.

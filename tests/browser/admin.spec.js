@@ -8,7 +8,7 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
   const selectedDay=qa ? 'qa5m:2026-10-17T00:00:00Z@abcdef012345' : '2026-10-17', paidDay=qa ? 'qa5m:2026-10-16T00:00:00Z' : '2026-10-16';
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
-  let signedIn = false, revision = 0, recoveryApplied = null,residualApproved=null,residualPayouts=0;
+  let signedIn = false, revision = 0, recoveryApplied = null,residualApproved=null,residualPayouts=0,vaultCalls=0;
   const residualPlan={version:1,status:'reviewed-residual-not-paid',hash:'d'.repeat(64),mint:SOURCE,
     beneficiaries:{creatorWallet:SOURCE},sources:[{collectionSignature:'1'.repeat(64),unreleasedLamports:['1','14','5']}]};
   await page.addInitScript(address => {
@@ -41,7 +41,10 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
     }
     if (path === '/api/admin/withdrawals/reconcile') return send(200, { amountLamports:'1000000', signature:JSON.parse(route.request().postData()).signature, finalized:true });
     if (path === '/api/admin/fee-policy') { revision += 1; return send(200, { revision, split:JSON.parse(route.request().postData()).split, effectiveFor:'future launches only' }); }
-    if (path === '/api/admin/vaults') return send(200, { totalLaunches:0, nextOffset:null, vaults:[] });
+    if (path === '/api/admin/vaults') {
+      vaultCalls++;await new Promise(resolve=>setTimeout(resolve,150));
+      return send(200, {totalLaunches:1,nextOffset:null,vaults:[{mint:SOURCE,symbol:'QA',policyStatus:'verified',categories:[]}]});
+    }
     if(path==='/api/admin/v3-allocations/review')return send(200,residualPlan);
     if(path==='/api/admin/v3-allocations/approve'){residualApproved=JSON.parse(route.request().postData());return send(200,{plan:residualPlan,executionStatus:'not-executed'});}
     if(path.includes('/v3-creator-wallet-payout/')){residualPayouts++;return send(500,{error:'Wrong wallet must not reach signing preparation.'});}
@@ -58,6 +61,10 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
   await expect(page.locator('#wallet-rows')).toContainText('2');
   await expect(page.locator('#gates')).toContainText('Enabled');
   await expect(page.locator('#withdraw-destination')).toHaveValue(ADMIN);
+  await page.locator('#more-vaults').dblclick();
+  await expect(page.locator('.vault-card')).toHaveCount(1);
+  await expect(page.locator('#more-vaults')).toHaveText('All vaults loaded');
+  expect(vaultCalls).toBe(1);
   await page.screenshot({ path:test.info().outputPath('admin-desktop.png'), fullPage:true });
   await page.setViewportSize({ width:390, height:844 });
   const overflow = await page.evaluate(() => ({ viewport:innerWidth, width:document.documentElement.scrollWidth,

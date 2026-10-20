@@ -7,6 +7,7 @@ import {initAdminXPosts} from './admin-x-posts.js';
 import bs58 from 'bs58';
 import { Connection, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { validateProtocolFeeSplit } from './distribution-policy.js';
+import { exactSolLamports } from './exact-sol-units.js';
 
 globalThis.Buffer ??= Buffer;
 globalThis.global ??= globalThis;
@@ -25,7 +26,7 @@ const api = async (path, options = {}) => {
 };
 const post = (path, body) => api(path, { method:'POST', body:JSON.stringify(body) });
 const sol = lamports => (Number(lamports) / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits:9 });
-let connected = null, overview = null, policy = null, nextVault = 0;
+let connected = null, overview = null, policy = null, nextVault = 0, vaultLoading = false;
 
 function updateWallet() {
   connected = wallet()?.publicKey?.toBase58() || null;
@@ -123,23 +124,29 @@ async function refreshAudit() {
   $('#audit').innerHTML = result.entries.length ? result.entries.map(entry => `<p><strong>${escape(entry.action)}</strong> · ${escape(entry.at)} · ${escape(entry.wallet)}${entry.signature ? ` · <code>${escape(entry.signature)}</code>` : ''}</p>`).join('') : '<p>No admin actions recorded yet.</p>';
 }
 async function loadVaults() {
-  if (nextVault == null) return;
-  const page = await api(`/api/admin/vaults?offset=${nextVault}`);
-  $('#vaults').insertAdjacentHTML('beforeend', page.vaults.map(row => `<div class="vault-card"><h3>${escape(row.symbol || 'Mint')} · <code>${escape(row.mint)}</code></h3><p>Policy: ${escape(row.policyStatus)}</p><div class="vault-grid">${row.categories.map(category => `<div><strong>${escape(category.category)}</strong><br>Balance ${sol(category.lamports)} SOL · Payable ${category.payableLamports == null ? 'unavailable' : `${sol(category.payableLamports)} SOL`}${category.rentReserveLamports == null ? '' : ` · Rent reserve ${sol(category.rentReserveLamports)} SOL`}${category.shortfallLamports && category.shortfallLamports !== '0' ? ` · <em class="invalid">Shortfall ${sol(category.shortfallLamports)} SOL</em>` : ''}${category.unassignedLamports == null ? '' : ` · Unassigned ${sol(category.unassignedLamports)} SOL`}<br><small>${escape(category.accountingStatus)}</small> · <code>${escape(category.address)}</code></div>`).join('')}</div></div>`).join(''));
-  if (!page.totalLaunches) $('#vaults').textContent = 'No V3 launches recorded.';
-  nextVault = page.nextOffset;
-  $('#more-vaults').disabled = nextVault == null;
-  $('#more-vaults').textContent = nextVault == null ? 'All vaults loaded' : 'Load more vaults';
+  if (nextVault == null || vaultLoading) return;
+  vaultLoading = true;
+  $('#more-vaults').disabled = true;
+  $('#more-vaults').textContent = 'Loading vaults…';
+  try {
+    const page = await api(`/api/admin/vaults?offset=${nextVault}`);
+    $('#vaults').insertAdjacentHTML('beforeend', page.vaults.map(row => `<div class="vault-card"><h3>${escape(row.symbol || 'Mint')} · <code>${escape(row.mint)}</code></h3><p>Policy: ${escape(row.policyStatus)}</p><div class="vault-grid">${row.categories.map(category => `<div><strong>${escape(category.category)}</strong><br>Balance ${sol(category.lamports)} SOL · Payable ${category.payableLamports == null ? 'unavailable' : `${sol(category.payableLamports)} SOL`}${category.rentReserveLamports == null ? '' : ` · Rent reserve ${sol(category.rentReserveLamports)} SOL`}${category.shortfallLamports && category.shortfallLamports !== '0' ? ` · <em class="invalid">Shortfall ${sol(category.shortfallLamports)} SOL</em>` : ''}${category.unassignedLamports == null ? '' : ` · Unassigned ${sol(category.unassignedLamports)} SOL`}<br><small>${escape(category.accountingStatus)}</small> · <code>${escape(category.address)}</code></div>`).join('')}</div></div>`).join(''));
+    if (!page.totalLaunches) $('#vaults').textContent = 'No V3 launches recorded.';
+    nextVault = page.nextOffset;
+  } finally {
+    vaultLoading = false;
+    $('#more-vaults').disabled = nextVault == null;
+    $('#more-vaults').textContent = nextVault == null ? 'All vaults loaded' : nextVault === 0 ? 'Load vaults' : 'Load more vaults';
+  }
 }
 async function withdraw(event) {
   event.preventDefault();
   const source = $('#withdraw-source').value, destination = $('#withdraw-destination').value;
-  const amountSol = Number($('#withdraw-amount').value);
+  const amountLamports = Number(exactSolLamports($('#withdraw-amount').value));
   if (!connected || connected !== source) throw new Error('Connect the selected source wallet before signing its transfer.');
-  if (!Number.isFinite(amountSol) || amountSol < .001 || amountSol > 5) throw new Error('Enter 0.001–5 SOL.');
-  const amountLamports = Math.round(amountSol * 1_000_000_000);
+  if (amountLamports < 1_000_000 || amountLamports > 5_000_000_000) throw new Error('Enter 0.001–5 SOL in exact lamports.');
   const plan = await post('/api/admin/withdrawals/prepare', { source, destination, amountLamports });
-  const summary = `Withdraw ${sol(plan.amountLamports)} Devnet SOL\nFrom ${source}\nTo ${destination}\nThe source wallet will pay the network fee.`;
+  const summary = `Withdraw ${sol(plan.amountLamports)} Devnet SOL\nFrom ${source}\nTo ${destination}\n${Number.isSafeInteger(plan.estimatedFeeLamports) ? `Estimated network fee: ${sol(plan.estimatedFeeLamports)} SOL. At least 0.02 SOL must remain at review. ` : ''}The source wallet will pay the network fee.`;
   $('#withdraw-review').textContent = summary.replaceAll('\n', ' · ');
   if (!confirm(`${summary}\n\nContinue to your wallet?`)) return;
   const rpc = new Connection(`${location.origin}/api/solana/rpc`, 'finalized');

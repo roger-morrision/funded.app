@@ -24,13 +24,14 @@ test('admin wallet signature gates policy edits, inventory, and exact finalized 
   let input, output, cookie = '';
   const respond = (res, status, value) => { output = { status, value, cookie:res.cookie || null }; };
   const blockhash = Keypair.generate().publicKey.toBase58();
-  let parsed = null;
+  let parsed = null, sourceBalance = 2_000_000_000, networkFee = 5000;
   let policyAddress = null, policyAccount = null, vaultAddress = null, vaultAccount = null;
   let reserveAddress = null, reserveAccount = null;
   const connectionFactory = () => ({
     getGenesisHash:async () => DEVNET_GENESIS_HASH,
-    getBalance:async () => 2_000_000_000,
+    getBalance:async () => sourceBalance,
     getLatestBlockhash:async () => ({ blockhash, lastValidBlockHeight:123 }),
+    getFeeForMessage:async () => ({value:networkFee}),
     getParsedTransaction:async () => parsed,
     getAccountInfo:async address => address.equals(policyAddress) ? policyAccount : null,
     getMultipleAccountsInfo:async addresses => addresses.map(address => address.equals(vaultAddress) ? vaultAccount
@@ -101,6 +102,18 @@ test('admin wallet signature gates policy edits, inventory, and exact finalized 
   assert.deepEqual(launchProtocolFeeSplit(oldLaunch), PROTOCOL_FEE_SPLIT);
   assert.equal((await call('POST', '/api/admin/withdrawals/prepare', {
     source:address(keeper), destination:address(admin), amountLamports:1_000_000 })).status, 400);
+  sourceBalance = 21_004_999;
+  assert.equal((await call('POST', '/api/admin/withdrawals/prepare', {
+    source:address(treasury), destination:address(admin), amountLamports:1_000_000 })).status,409,
+  'The network fee must not reduce the retained reserve below 0.02 SOL.');
+  sourceBalance = 21_005_000;
+  const boundary = await call('POST', '/api/admin/withdrawals/prepare', {
+    source:address(treasury), destination:address(admin), amountLamports:1_000_000 });
+  assert.equal(boundary.status,200);assert.equal(boundary.value.estimatedFeeLamports,5000);
+  networkFee = null;
+  assert.equal((await call('POST', '/api/admin/withdrawals/prepare', {
+    source:address(treasury), destination:address(admin), amountLamports:1_000_000 })).status,503);
+  networkFee = 5000;sourceBalance = 2_000_000_000;
   const prepared = await call('POST', '/api/admin/withdrawals/prepare', {
     source:address(treasury), destination:address(admin), amountLamports:1_000_000 });
   assert.equal(prepared.status, 200);
