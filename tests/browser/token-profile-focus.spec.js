@@ -18,6 +18,9 @@ for (const reducedMotion of ['no-preference', 'reduce']) for (const width of [36
     await page.goto(`/token/${mint}`);
     await expect(page.locator('.coin-hero-card')).toHaveAttribute('data-launch-tier', 'premier');
     await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
+    await expect(page.locator('#coin-page-title')).toHaveText('Fee premier QA');
+    await page.waitForLoadState('networkidle');
+    await page.evaluate(() => document.fonts.ready);
     const link = page.locator('.coin-package-rail .is-premier');
     const about = page.locator('#coin-profile-about-tab'), updates = page.locator('#coin-profile-updates-tab');
     const clear = async control => {
@@ -35,17 +38,46 @@ for (const reducedMotion of ['no-preference', 'reduce']) for (const width of [36
       expect(geometry, JSON.stringify(geometry)).toMatchObject({ visible: true, hit: true, outline: 'solid', focusVisible: true });
     };
     for (const top of [0, 200]) {
+      await page.evaluate(() => {
+        document.querySelector('#coin-creator-by').hidden = true;
+        document.querySelector('#coin-launched-by')?.remove();
+      });
       await page.evaluate(top => document.scrollingElement.scrollTo({ top, behavior: 'instant' }), top);
       await link.evaluate(element => element.focus({ preventScroll: true }));
       await page.keyboard.press('Tab');
       await expect(about).toBeFocused();
       await clear(about);
+      const before = await about.evaluate(e => ({ y: e.getBoundingClientRect().top, scrollY }));
+      await page.evaluate(() => {
+        const owner = document.querySelector('#coin-creator-by');
+        owner.textContent = 'Fee owner 84c4eV…U9xDPS'; owner.hidden = false;
+        const creator = document.createElement('span'); creator.id = 'coin-launched-by';
+        creator.textContent = 'Launched by 8ZCtLW…Gvn1Wk'; owner.parentElement.append(creator);
+        return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      });
+      expect(await about.evaluate(e => ({ y: e.getBoundingClientRect().top, scrollY }))).toEqual(before);
+      await expect(about).toBeFocused();await clear(about);
       if (top === 0) await page.screenshot({ path: testInfo.outputPath('about-focused.png') });
       await page.keyboard.press('ArrowRight');
       await expect(updates).toBeFocused();await expect(updates).toHaveAttribute('aria-selected', 'true');
       await clear(updates);
       await page.keyboard.press('ArrowLeft');await expect(about).toBeFocused();await clear(about);
       await page.keyboard.press('Tab');await expect(page.locator('#coin-profile-about')).toBeFocused();
+      if (width !== 1440) await clear(page.locator('#coin-profile-about'));
+      if (width === 390 && top === 0) {
+        await page.locator('#coin-profile-about').evaluate(e => {
+          const paragraph = document.createElement('div');paragraph.id = 'long-profile-fixture';
+          paragraph.style.whiteSpace = 'pre-wrap';
+          paragraph.textContent = 'Long project profile.\n'.repeat(100);e.append(paragraph);
+        });
+        expect(await page.locator('#coin-profile-about').evaluate(e => e.getBoundingClientRect().height > innerHeight)).toBe(true);
+        await page.keyboard.press('Shift+Tab');await page.keyboard.press('Tab');
+        await expect(page.locator('#coin-profile-about')).toBeFocused();
+        const scrollPosition = await page.evaluate(() => document.scrollingElement.scrollTop);
+        await page.keyboard.press('ArrowDown');
+        await expect.poll(() => page.evaluate(() => document.scrollingElement.scrollTop)).toBeGreaterThan(scrollPosition);
+        await page.locator('#long-profile-fixture').evaluate(e => e.remove());
+      }
       await page.keyboard.press('Shift+Tab');await expect(about).toBeFocused();await clear(about);
       const refresh = await page.evaluate(() => {
         const content = document.querySelector('.main-content');

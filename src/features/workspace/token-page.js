@@ -9,6 +9,7 @@ export function tokenPage() {
     const header = $('.topbar'), nav = $('.mobile-workspace-nav');
     const top = Math.max(0, header?.getBoundingClientRect().bottom || 0);
     const bottom = nav?.getClientRects().length ? nav.getBoundingClientRect().top : innerHeight;
+    if (box.height + 2 * outline > bottom - top) return;
     if (box.top - outline < top || box.bottom + outline > bottom) {
       // Reveal through the actual scroll ancestors, without a smooth-scroll delay.
       element.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' });
@@ -49,7 +50,7 @@ export function tokenPage() {
     new MutationObserver(syncArtwork).observe(artwork,{attributes:true,attributeFilter:['data-banner-url']});
     const about=node('div','coin-hero-about');about.id='coin-profile';
     about.addEventListener('focusin', event => {
-      if (event.target.matches('[role="tab"]')) revealMobileFocus(event.target);
+      if (event.target.matches('[role="tab"],[role="tabpanel"]')) revealMobileFocus(event.target);
     });
     const aboutPanel=node('div','coin-profile-panel');
     const tagline=node('p','coin-profile-tagline');tagline.id='coin-profile-tagline';tagline.hidden=true;

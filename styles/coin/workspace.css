@@ -201,6 +201,9 @@
   .coin-page .coin-identity>.coin-identity-main{display:contents}
   .coin-page .coin-avatar{grid-column:1;grid-row:1 / span 4;align-self:center}
   .coin-page .coin-title-row,.coin-page .coin-identity h1,.coin-page .coin-address,.coin-page .coin-attribution{grid-column:2;min-width:0}
+  /* Reserve both attribution lines while their verified identities load. */
+  .coin-page .coin-attribution{min-height:calc(2lh + 4px);font-size:10px;line-height:1.4;align-content:start}
+  .coin-page .coin-attribution a,.coin-page .coin-attribution #coin-launched-by{line-height:1.4}
   .coin-page .coin-socials.is-compact,.coin-page .coin-identity>.field-help,.coin-page .coin-package-rail{grid-column:1/-1}
   .coin-page .coin-socials.is-compact{margin-top:10px}
   .coin-page .coin-package-rail{flex:0 0 100%;align-items:flex-end;align-self:auto}
