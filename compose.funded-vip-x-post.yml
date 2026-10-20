@@ -27,6 +27,7 @@ services:
       FUNDED_REWARD_AUTHORITY: ${FUNDED_REWARD_AUTHORITY:-}
       FUNDED_TRADE_FEE_OWNER: ${FUNDED_TRADE_FEE_OWNER:-}
       X_POST_ENABLED: ${X_POST_ENABLED:?Explicitly enable verified publication}
+      X_POST_ACCOUNT_STATUS: ${X_POST_ACCOUNT_STATUS:-suspended}
       X_POST_ALLOW_DEVNET: ${X_POST_ALLOW_DEVNET:?Explicitly authorize public Devnet posts}
       X_POST_EXPECTED_HANDLE: fundedvip
       X_POST_PAYOUTS_ONLY: 'true'

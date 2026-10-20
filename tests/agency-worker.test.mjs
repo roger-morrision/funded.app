@@ -5,7 +5,7 @@ import {agencyWorkerConfig,runAgencyCycle,agencyWorkerBlocked} from '../scripts/
 import {agencyWorkerHealth} from '../server/agency-deployment.mjs';
 const key=n=>Keypair.fromSeed(Buffer.alloc(32,n)),authority=key(231),programId=key(232).publicKey.toBase58(),mint=key(233).publicKey.toBase58(),lookupAddress=key(234).publicKey.toBase58();
 const env={SOLANA_CLUSTER:'devnet',DATABASE_URL:'postgresql://fixture.invalid/qa',X_POST_EXPECTED_HANDLE:'fundedvip',X_POST_ACCOUNT_ID:'123',
-  X_POST_PUBLIC_ORIGIN:'https://funded.vip',X_POST_START_AT:'2026-10-01T00:00:00Z',X_POST_ENABLED:'true',X_POST_ALLOW_DEVNET:'true',X_POST_ACCESS_TOKEN:'synthetic',
+  X_POST_PUBLIC_ORIGIN:'https://funded.vip',X_POST_START_AT:'2026-10-01T00:00:00Z',X_POST_ENABLED:'true',X_POST_ALLOW_DEVNET:'true',X_POST_ACCESS_TOKEN:'synthetic',X_POST_ACCOUNT_STATUS:'active',
   FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId,FUNDED_V3_PROGRAM_DATA_SHA256:'a'.repeat(64),FUNDED_BUILD_ID:'b'.repeat(40),
   FUNDED_V3_BUYBACK_LOOKUP_TABLE:lookupAddress,FUNDED_V3_AGENCY_ENABLED:'true'};
 function fixture(execute){

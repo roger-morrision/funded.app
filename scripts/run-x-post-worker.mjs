@@ -47,11 +47,14 @@ export function xWorkerConfig(env, args = []) {
   const oauth1 = ['X_POST_API_KEY', 'X_POST_API_SECRET', 'X_POST_ACCESS_TOKEN_SECRET'].some(key => Boolean(env[key]));
   if (execute && oauth1 && ['X_POST_API_KEY', 'X_POST_API_SECRET', 'X_POST_ACCESS_TOKEN', 'X_POST_ACCESS_TOKEN_SECRET'].some(key => !env[key]))
     throw new Error('Complete X OAuth 1.0a user credentials are required for publication.');
+  const accountStatus=env.X_POST_ACCOUNT_STATUS||'suspended';
+  if(!['suspended','active'].includes(accountStatus))throw new Error('X_POST_ACCOUNT_STATUS must be suspended or active.');
+  if(execute&&accountStatus!=='active')throw new Error('X publication is paused for account suspension/review. Reinstatement is required before activation.');
   const minProfitLamports = env.X_POST_MIN_PROFIT_LAMPORTS || '1000000000';
   if(env.X_POST_PAYOUTS_ONLY!==undefined&&!['true','false'].includes(env.X_POST_PAYOUTS_ONLY))throw new Error('X_POST_PAYOUTS_ONLY must be true or false.');
   if (!/^[1-9]\d{0,19}$/.test(minProfitLamports)) throw new Error('X_POST_MIN_PROFIT_LAMPORTS must be positive integer lamports.');
   return {
-    mode: args.includes('--status') ? 'status' : args.includes('--loop') ? 'loop' : 'once', execute, cluster, handle,
+    mode: args.includes('--status') ? 'status' : args.includes('--loop') ? 'loop' : 'once', execute, cluster, handle,accountStatus,
     origin: origin.origin, enabledAt: new Date(start).toISOString(), minProfitLamports,
     payoutsOnly:env.X_POST_PAYOUTS_ONLY==='true',
     intervalMs: numberSetting(env.X_POST_INTERVAL_MS, X_POSTING_DEFAULTS.pollIntervalMs, 10_000, 3_600_000, 'X_POST_INTERVAL_MS'),
@@ -93,15 +96,16 @@ export async function runXPostCycle({ config, store, mainStore, readRewards, ada
   const events = collected.events.map(event => ({ id: event.id, occurredAt: event.occurredAt,
     ...buildXPost(event.kind, event.payload, { cluster: event.cluster, publicOrigin: config.origin, minProfitLamports: config.minProfitLamports }) }));
   await store.enqueueBatch(events, { cursor: collected.cursor, version: checkpoint.version });
+  const digest=typeof store.prepareDailyDigest==='function'?await store.prepareDailyDigest({origin:config.origin}):null;
   const checkedPublish = async (event, options) => {
     if (event.cluster !== config.cluster) throw Object.assign(new Error('Queued X event does not match the configured network.'), { delivery: 'rejected' });
-    if(config.payoutsOnly&&event.kind!=='auto_payout')throw Object.assign(new Error('This worker is restricted to payout congratulations.'),{delivery:'rejected'});
+    if(['auto_payout','daily_rewards'].includes(event.kind)||config.payoutsOnly&&event.kind!=='payout_digest')throw Object.assign(new Error('This worker publishes reviewed daily payout summaries only.'),{delivery:'rejected'});
     return publish(event, options);
   };
   const dispatch = await runXPostWorker({ store, publish: checkedPublish, enabled: true, dryRun: !config.execute, maxPosts: config.maxPosts,
-    kinds:config.payoutsOnly?['auto_payout']:X_POST_KINDS.filter(kind=>kind!=='agency_promotion') });
+    kinds:config.payoutsOnly?['payout_digest']:[...X_POST_KINDS.filter(kind=>!['agency_promotion','auto_payout','daily_rewards'].includes(kind)),'payout_digest'] });
   return { mode: config.execute ? 'dispatch' : 'draft', account: config.handle, cluster: config.cluster,
-    collected: events.length, sourceGaps: collected.sourceGaps, dispatch };
+    collected: events.length, digestPrepared:Boolean(digest),sourceGaps: collected.sourceGaps, dispatch };
 }
 
 export async function pollXPostWorker({ config, prepare, dispatch, shouldStop,
@@ -136,9 +140,10 @@ async function main(args) {
     await outbox.init();
     if (config.mode === 'status') {
       const rows = await outbox.list({ limit: 50 });
-      console.log(JSON.stringify({ account: config.handle, events: rows }, null, 2));
+      console.log(JSON.stringify({ account: config.handle,safety:await outbox.safetyStatus(), events: rows }, null, 2));
       return;
     }
+    if(config.execute&&(await outbox.safetyStatus()).paused)throw new Error('The durable X account pause is active. No provider request was made.');
     const publisher = config.execute ? createXPublisher({
       ...(env.X_POST_ACCESS_TOKEN_SECRET ? { oauth1: { apiKey: env.X_POST_API_KEY, apiSecret: env.X_POST_API_SECRET,
         accessToken: env.X_POST_ACCESS_TOKEN, accessTokenSecret: env.X_POST_ACCESS_TOKEN_SECRET } }

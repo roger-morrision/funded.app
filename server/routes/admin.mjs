@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { handleAdminServiceFees } from '../service-fees.mjs';
+import {handleAdminXPosts} from '../admin-x-posts.mjs';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
@@ -126,6 +127,7 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
     }
     const session = currentSession(req);
     if (!session) return json(res, 401, { error:'Sign in with the configured admin wallet.' });
+    if(await handleAdminXPosts({req,res,url,body,respond,session,env}))return true;
     if(req.method==='POST'&&path==='/api/admin/agency-fee-policy'){
       try{return json(res,200,await publishAgencyFeePolicy({store,connection:connection(),
         programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256,

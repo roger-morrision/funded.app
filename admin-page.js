@@ -3,6 +3,7 @@ import { initAdminDailyBonus } from './admin-daily-bonus.js';
 import { initAdminServiceFees } from './admin-service-fees.js';
 import {initAdminResiduals} from './admin-residuals.js';
 import {initAdminAgencyPolicy} from './admin-agency-policy.js';
+import {initAdminXPosts} from './admin-x-posts.js';
 import bs58 from 'bs58';
 import { Connection, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { validateProtocolFeeSplit } from './distribution-policy.js';
@@ -195,6 +196,7 @@ const dailyBonusRecovery = initAdminDailyBonus({document,api,post,show,refreshAu
 initAdminServiceFees({api,post,show});
 initAdminResiduals({api,post,show,wallet});
 initAdminAgencyPolicy({api,post,show,refresh});
+initAdminXPosts({api,post,show});
 provider?.on?.('accountChanged', updateWallet);
 updateWallet();
 restoreSession();

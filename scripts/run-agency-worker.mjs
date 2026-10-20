@@ -109,6 +109,7 @@ async function main(args){
   let stopped=false,wake;const stop=()=>{stopped=true;wake?.();};process.once('SIGTERM',stop);process.once('SIGINT',stop);
   try{
     await outbox.init();
+    if(config.execute&&(await outbox.safetyStatus()).paused)throw new Error('The durable X account pause is active. No provider request was made.');
     do{
       let waitMs=config.intervalMs;
       try{console.log(JSON.stringify(await runAgencyCycle({config,store,outbox,connection,authority,publisher,shouldStop:()=>stopped})));}

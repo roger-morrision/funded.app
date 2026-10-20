@@ -55,6 +55,8 @@ test('admin wallet signature gates policy edits, inventory, and exact finalized 
     return output;
   };
   assert.equal((await call('GET', '/api/admin/overview')).status, 401);
+  assert.equal((await call('GET','/api/admin/x-posts')).status,401);
+  assert.equal((await call('POST','/api/admin/x-posts/review',{})).status,401);
   assert.equal((await call('POST','/api/admin/agency-fee-policy',{})).status,401);
   assert.equal((await call('POST','/api/admin/agency-fee-policy',{}, {origin:'https://evil.example'})).status,403);
   assert.equal((await call('POST','/api/admin/daily-bonus/reconcile',{})).status,401);

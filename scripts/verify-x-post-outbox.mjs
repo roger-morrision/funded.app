@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import pg from 'pg';
 import { spawnSync } from 'node:child_process';
+import {xEventHash} from '../server/x-post-editorial.mjs';
 import { createXPostStore } from '../server/x-post-store.mjs';
 import { runXPostWorker } from '../server/x-post-worker.mjs';
 import { createXPublisher } from '../server/x-post-client.mjs';
@@ -21,7 +22,14 @@ const published = { id: '123456', url: 'https://x.com/i/web/status/123456' };
 async function store(accountId, options = {}) {
   // Historical fast-fixture policy is explicit; production defaults are tested separately.
   const item = createXPostStore({ databaseUrl, accountId, minIntervalMs: 1, leaseMs: 1000, maxHourlyPosts:6,maxDailyPosts:24,...options });
-  stores.push(item); await item.init(); return item;
+  stores.push(item); await item.init();
+  // This disposable-fixture helper explicitly unpauses and reviews its synthetic
+  // legacy events. Production defaults and rejection gates are tested separately.
+  await pool.query('UPDATE x_post_accounts SET publishing_paused=false WHERE account_id=$1',[accountId.toLowerCase()]);
+  const enqueue=item.enqueue.bind(item);item.enqueue=async event=>{
+    const saved=await enqueue(event);await item.review({id:saved.event.id,expectedHash:xEventHash(saved.event),decision:'approved',
+      actor:'11111111111111111111111111111111',reason:'Synthetic fixture reviewed for isolated test.'});return saved;
+  };return item;
 }
 async function allow(accountId) {
   await pool.query("UPDATE x_post_accounts SET next_allowed_at=clock_timestamp()-interval '1 second' WHERE account_id=$1", [accountId]);
@@ -114,11 +122,11 @@ try {
 
   const filtered=await store('agency-payout-shared-budget');
   await filtered.enqueue({...fixture('agency:promotion:0'),kind:'agency_promotion'});
-  await filtered.enqueue({...fixture('payout:holder:0'),kind:'auto_payout'});
-  const payoutOnly=await filtered.claim({kinds:['auto_payout']});
+  await filtered.enqueue({...fixture('payout:holder:0'),kind:'payout_digest'});
+  const payoutOnly=await filtered.claim({kinds:['payout_digest']});
   assert.equal(payoutOnly.event.id,'payout:holder:0');
   await filtered.markPosted(payoutOnly.event.id,payoutOnly.token,published);await allow('agency-payout-shared-budget');
-  assert.equal(await filtered.claim({kinds:['auto_payout']}),null);
+  assert.equal(await filtered.claim({kinds:['payout_digest']}),null);
   assert.equal((await filtered.get('agency:promotion:0')).status,'pending');
   const agencyOnly=await filtered.claim({kinds:['agency_promotion']});
   assert.equal(agencyOnly.event.id,'agency:promotion:0');
@@ -127,10 +135,10 @@ try {
   assert.equal((await filtered.get('agency:promotion:0')).status,'uncertain');
   checks.push('Payout and agency workers filter before claiming while sharing account pacing; uncertain promotions never replay');
 
-  const safe=createXPostStore({databaseUrl,accountId:'reduced-policy'});stores.push(safe);await safe.init();
-  await safe.enqueue({...fixture('safe:payout'),kind:'auto_payout'});
+  const safe=await store('reduced-policy',{minIntervalMs:21600000,maxHourlyPosts:1,maxDailyPosts:4});
+  await safe.enqueue({...fixture('safe:payout'),kind:'payout_digest'});
   await safe.enqueue({...fixture('safe:agency'),kind:'agency_promotion'});
-  claim=await safe.claim({kinds:['auto_payout']});assert(claim);await safe.markPosted(claim.event.id,claim.token,published);
+  claim=await safe.claim({kinds:['payout_digest']});assert(claim);await safe.markPosted(claim.event.id,claim.token,published);
   const olderReplica=await store('reduced-policy');assert.equal(await olderReplica.claim({kinds:['agency_promotion']}),null);
   let policy=(await pool.query("SELECT *,next_allowed_at>clock_timestamp()+interval '5 hours 59 minutes' AS gap FROM x_post_accounts WHERE account_id='reduced-policy'")).rows[0];
   assert.equal(Number(policy.min_interval_ms),21600000);assert.equal(policy.max_hourly_posts,1);assert.equal(policy.max_daily_posts,4);assert(policy.gap);
@@ -199,7 +207,7 @@ try {
   checks.push('Disabled and draft worker modes make zero publication requests and leave dispatch attempts unchanged');
 
   const capped = await store('capped', { maxHourlyPosts: 2, maxDailyPosts: 3 });
-  for (let index = 0; index < 4; index++) await capped.enqueue(fixture(`launch:cap-${index}`));
+  for (let index = 0; index < 4; index++) await capped.enqueue(fixture(`launch:cap-${['alpha','beta','gamma','delta'][index]}`));
   for (let index = 0; index < 2; index++) {
     await allow('capped'); const item = await capped.claim(); assert.ok(item);
     await capped.markPosted(item.event.id, item.token, published);

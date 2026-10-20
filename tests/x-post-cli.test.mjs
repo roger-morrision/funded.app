@@ -26,7 +26,8 @@ test('CLI requires independent explicit live gates and a dedicated publication t
   assert.throws(() => xWorkerConfig(environment, ['--execute']), /X_POST_ENABLED/);
   assert.throws(() => xWorkerConfig({ ...environment, X_POST_ENABLED: 'true' }, ['--execute']), /ALLOW_DEVNET/);
   assert.throws(() => xWorkerConfig({ ...environment, X_POST_ENABLED: 'true', X_POST_ALLOW_DEVNET: 'true' }, ['--execute']), /ACCESS_TOKEN/);
-  const enabled = { ...environment, X_POST_ENABLED: 'true', X_POST_ALLOW_DEVNET: 'true', X_POST_ACCESS_TOKEN: 'synthetic-fixture' };
+  const enabled = { ...environment, X_POST_ENABLED: 'true', X_POST_ALLOW_DEVNET: 'true', X_POST_ACCESS_TOKEN: 'synthetic-fixture', X_POST_ACCOUNT_STATUS:'active' };
+  assert.throws(()=>xWorkerConfig({...enabled,X_POST_ACCOUNT_STATUS:'suspended'},['--execute']),/suspension/);
   assert.equal(xWorkerConfig(enabled, ['--execute']).execute, true);
   assert.equal(xWorkerConfig(enabled).execute, false, 'Environment alone must not enable publishing');
   const oauth1 = { ...enabled, X_POST_API_KEY: 'fixture-key', X_POST_API_SECRET: 'fixture-secret',
@@ -84,7 +85,7 @@ function dailyPipelineFixture() {
   let checkpoint={version:0,cursor:null};const rows=new Map();
   const store={leaseMs:60000,readCursor:async()=>structuredClone(checkpoint),has:async id=>rows.has(id),list:async()=>[...rows.values()],
     enqueueBatch:async(events,{cursor,version})=>{assert.equal(version,checkpoint.version);for(const event of events){assert(!rows.has(event.id));rows.set(event.id,{event,status:'pending'});}checkpoint={version:version+1,cursor:structuredClone(cursor)};},
-    claim:async()=>{const row=[...rows.values()].find(row=>row.status==='pending');if(!row)return null;row.status='sending';return {event:row.event,token:row.event.id};},
+    claim:async({kinds}={})=>{const row=[...rows.values()].find(row=>row.status==='pending'&&(!kinds||kinds.includes(row.event.kind)));if(!row)return null;row.status='sending';return {event:row.event,token:row.event.id};},
     markPosted:async(id,token,result)=>{assert.equal(id,token);Object.assign(rows.get(id),{status:'posted',result});},
     markUncertain:async()=>assert.fail('Unexpected uncertain mock delivery'),retryLater:async()=>assert.fail('Unexpected mock retry'),fail:async()=>assert.fail('Unexpected mock rejection')};
   const transport=[];
@@ -107,8 +108,8 @@ test('malformed daily windows make no RPC or publication calls and retain both c
     for(const kind of ['daily_projects','daily_rewards']){assert.equal(cursor.streams[kind],undefined);assert(blocked.sourceGaps.some(gap=>gap.source===kind&&/no summary/.test(gap.reason)));}
     await fixture.publisher.verifyAccount();
     const recovered=await runXPostCycle({...fixture.options,adapters:fixture.adapters});
-    assert.equal(recovered.collected,2);assert.equal(recovered.dispatch.posted,2);assert.equal(fixture.rows.size,2);assert(fixture.rpcCalls.length>0);
-    const posts=fixture.transport.filter(call=>call.method==='POST');assert.equal(posts.length,2);
+    assert.equal(recovered.collected,2);assert.equal(recovered.dispatch.posted,1);assert.equal(fixture.rows.size,2);assert(fixture.rpcCalls.length>0);
+    const posts=fixture.transport.filter(call=>call.method==='POST');assert.equal(posts.length,1);
     for(const post of posts){assert.match(post.body.text,/^\[Devnet test\]/);assert.match(post.body.text,/0\.000000015\b/);assert.match(post.body.text,/\bSOL\b/);assert.match(post.body.text,/2026-10-03 00:00 to 2026-10-04 00:00 UTC/);}
     for(const kind of ['daily_projects','daily_rewards'])assert.equal((await fixture.store.readCursor()).cursor.streams[kind].windowEnd,'2026-10-04T00:00:00.000Z');
     const rpcCount=fixture.rpcCalls.length,transportCount=fixture.transport.length;

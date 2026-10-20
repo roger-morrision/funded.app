@@ -191,7 +191,8 @@ export function buildXPost(kind, payload, { cluster, publicOrigin = 'https://fun
   for (const limit of [3, 2, 1]) for (const budget of [32, 24, 16, 8]) {
     const text = makeText(budget, limit);
     const weightedLength = xWeightedLength(text);
-    if (weightedLength <= 280 && Buffer.byteLength(text) <= 280) return { kind, cluster, text, weightedLength, byteLength: Buffer.byteLength(text), proofs: evidenceForOutbox(proofs, cluster) };
+    if (weightedLength <= 280 && Buffer.byteLength(text) <= 280) return { kind, cluster, text, weightedLength, byteLength: Buffer.byteLength(text), proofs: evidenceForOutbox(proofs, cluster),
+      ...(kind==='auto_payout'?{payout:{kind:payload.payoutKind,recipient:payload.recipient,amountLamports:String(payload.amountLamports)}}:{}) };
   }
   throw new Error('Verified facts exceed the X post length limit; amounts and interval cannot be truncated.');
 }
