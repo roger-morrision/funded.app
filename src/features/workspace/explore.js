@@ -120,15 +120,24 @@ export function explore() {
     window: $('.explore-timeframe [aria-pressed="true"]', root)?.dataset.exploreWindow || '24h',
     view: $('.explore-view-switch [aria-pressed="true"]', root)?.dataset.exploreView || 'grid',
   });
+  const summaryText = node('span', '');
+  const clear = node('button', 'text-button', 'Clear all');
+  clear.type = 'button';
+  clear.addEventListener('click', () => {
+    $('#explore-clear-filters')?.click();
+    const search = $('#explore-search');
+    if (search) {
+      search.value = '';
+      search.dispatchEvent(new Event('input', { bubbles: true }));
+      search.focus({ preventScroll: true });
+    }
+  });
+  count.append(summaryText, clear);
   const summarize = () => {
     const active = keys.slice(2).filter(id => { const value = $('#'+id)?.value; return value && value !== 'all'; });
     if ($('.explore-stage-filter [aria-pressed="true"]', root)?.dataset.exploreStage !== 'all') active.push('stage');
-    count.replaceChildren();
-    if (!active.length && !$('#explore-search')?.value) return;
-    count.append(node('span', '', `${active.length} filter${active.length === 1 ? '' : 's'}${$('#explore-search')?.value ? ' · search active' : ''}`));
-    const clear = node('button', 'text-button', 'Clear all'); clear.type = 'button';
-    clear.addEventListener('click', () => { $('#explore-clear-filters')?.click(); const search = $('#explore-search'); if(search){search.value='';search.dispatchEvent(new Event('input',{bubbles:true}));} });
-    count.append(clear);
+    count.hidden = !active.length && !$('#explore-search')?.value;
+    summaryText.textContent = `${active.length} filter${active.length === 1 ? '' : 's'}${$('#explore-search')?.value ? ' · search active' : ''}`;
   };
   const save = () => {
     summarize(); if (restoring) return;
