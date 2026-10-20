@@ -235,6 +235,7 @@ body.page-route .reward-review-note { border-left-color: #f4a340; }
 body.page-route .creator-support-page :is(a,.support-shortcuts a),
 body.page-route #notification-dialog article a,
 body.page-route #claim-technical-details summary { color: #8fb2f0; }
+body.page-route .creator-support-page a.primary-button { color: #18151c; }
 body.page-route .creator-support-page button,
 body.page-route #notification-dialog article button { background: #1b2940; border-color: #30405b; color: #f6f2e9; }
 body.page-route .creator-support-page :is(button,input,textarea):focus-visible,
