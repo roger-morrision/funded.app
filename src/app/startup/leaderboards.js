@@ -2,6 +2,22 @@ import { initializeAppState } from '../runtime.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeLeaderboards(appState) {
+  const table = document.querySelector('#leaderboard-table');
+  table?.addEventListener('focusin', event => {
+    const link = event.target.closest('a[href]');
+    if (!link || !table.contains(link) || !link.matches(':focus-visible')
+      || table.scrollWidth <= table.clientWidth) return;
+    const rect = link.getBoundingClientRect();
+    const style = getComputedStyle(link);
+    const outline = parseFloat(style.outlineWidth) + Math.max(0, parseFloat(style.outlineOffset));
+    const left = table.getBoundingClientRect().left + table.clientLeft;
+    const right = left + table.clientWidth;
+    // Correct only horizontal clipping, after native focus scrolling. Delegation
+    // survives row replacements without moving focus or any vertical ancestor.
+    if (rect.left - outline < left) table.scrollLeft += rect.left - outline - left;
+    else if (rect.right + outline > right) table.scrollLeft += rect.right + outline - right;
+  });
+
   // app-source: 460
   document.querySelector('.leaderboard-tabs')?.addEventListener('click', event => {
     const button = event.target.closest('[data-leaderboard-view]');
