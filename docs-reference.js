@@ -59,11 +59,21 @@ export function mountDocsReference(root) {
       if (active) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
     }
-    releaseScroll();
-    article.innerHTML = `<p class="eyebrow">${topics.find(group => group.items.includes(topic)).group}</p><h1>${topic.title}</h1><div class="docs-guide-body">${typeof topic.body === 'function' ? topic.body() : topic.body}</div><a class="docs-guide-link" href="${topic.href}">${topic.link} →</a><div class="docs-guide-next"><span>NEXT →</span><button type="button">${flat[(selected + 1) % flat.length].title}</button></div>`;
-    releaseScroll = initializeRewardActionsScroll(article);
-    article.querySelector('.docs-guide-next button').addEventListener('click', () => select(selected + 1, true));
-    if (focus) article.focus({ preventScroll: true });
+    const priorFocus = article.contains(document.activeElement) ? document.activeElement : null;
+    let interveningFocus = false;
+    const trackFocus = event => { if (event.target !== priorFocus) interveningFocus = true; };
+    if (priorFocus) document.addEventListener('focusin', trackFocus, true);
+    try {
+      releaseScroll();
+      article.innerHTML = `<p class="eyebrow">${topics.find(group => group.items.includes(topic)).group}</p><h1>${topic.title}</h1><div class="docs-guide-body">${typeof topic.body === 'function' ? topic.body() : topic.body}</div><a class="docs-guide-link" href="${topic.href}">${topic.link} →</a><div class="docs-guide-next"><span>NEXT →</span><button type="button">${flat[(selected + 1) % flat.length].title}</button></div>`;
+      releaseScroll = initializeRewardActionsScroll(article);
+      article.querySelector('.docs-guide-next button').addEventListener('click', () => select(selected + 1, true));
+    } finally {
+      if (priorFocus) document.removeEventListener('focusin', trackFocus, true);
+    }
+    if (focus || priorFocus && !priorFocus.isConnected && !interveningFocus && document.activeElement === document.body) {
+      article.focus({ preventScroll: true });
+    }
     if (updateHash && location.hash !== `#docs/${topic.id}`) location.hash = `#docs/${topic.id}`;
   };
   for (const group of topics) {
