@@ -17,7 +17,7 @@ body.page-route-marketing-agency .main-content > #marketing-agency { display: bl
 .agency-options p { line-height: 1.6; }
 .agency-options :focus-visible, .agency-page :focus-visible { outline: 2px solid #f2b700; outline-offset: 4px; }
 @media (max-width: 760px) { .agency-agent-grid, .agency-funds { grid-template-columns: 1fr; } .agency-page { padding: 16px 8px; } }
-@media (min-width: 701px) {
+@media (min-width: 701px) and (max-width: 1179px) {
   body.page-route-marketing-agency .sidebar { width: 220px; }
   html body.page-route.page-route-marketing-agency .main-content { width: calc(100% - 220px) !important; max-width: none; margin-left: 220px !important; padding: 0 24px 48px; }
   html.sidebar-collapsed body.page-route-marketing-agency .sidebar { width: 76px; }

@@ -34,7 +34,7 @@ for (const width of [1440, 390]) test(`dedicated agency menu, clear readiness an
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   if (width === 1440) await page.screenshot({ path: 'tmp/agency-desktop.png', fullPage: true, animations: 'disabled' });
   else await page.screenshot({ path: 'tmp/agency-mobile.png', fullPage: true, animations: 'disabled' });
-  if (width === 1440) expect(await page.locator('#marketing-agency').evaluate(n => n.getBoundingClientRect().left >= document.querySelector('.sidebar').getBoundingClientRect().right)).toBe(true);
+  if (width === 1440) expect(await page.locator('#marketing-agency').evaluate(n => n.getBoundingClientRect().top >= document.querySelector('.sidebar').getBoundingClientRect().bottom)).toBe(true);
 });
 
 test('team preview updates equal selected budgets without altering the active fee policy', async ({ page }) => {
