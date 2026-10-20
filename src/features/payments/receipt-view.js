@@ -22,6 +22,46 @@ export function filterPaymentHistory(rows, { type = 'all', from = '', to = '' } 
   });
 }
 
+function preserveReceiptFocus(list, document) {
+  const active = document.activeElement;
+  if (!active || !list.contains(active) || !active.getClientRects().length) return () => {};
+  const selectors = ['summary', '.payment-history-wallet', '.payment-copy-receiver', '.payment-receipt-link'];
+  const selector = selectors.find(value => active.matches(value));
+  const key = active.closest('.payment-history-row')?.querySelector('details')?.dataset.receiptKey;
+  if (!selector || !key) return () => {};
+  const scroll = [];
+  for (let parent = active.parentElement; parent; parent = parent.parentElement) {
+    if (parent === document.scrollingElement || parent.scrollHeight > parent.clientHeight || parent.scrollWidth > parent.clientWidth) {
+      scroll.push({element:parent, top:parent.scrollTop, left:parent.scrollLeft});
+    }
+  }
+  return () => {
+    // Do not override another focus owner, including synchronous focus handlers.
+    if (document.activeElement !== document.body && document.activeElement !== active) return;
+    const details = [...list.querySelectorAll('.payment-history-details')].find(item => item.dataset.receiptKey === key);
+    const target = details?.closest('.payment-history-row')?.querySelector(selector);
+    const retained = target && target.getClientRects().length;
+    // The stable filter button is the explicit fallback only when the receipt
+    // has actually disappeared from the current filtered/paginated view.
+    const next = retained ? target : document.querySelector('#payment-history-clear');
+    if (!next?.getClientRects().length) return;
+    next.focus({preventScroll:true});
+    for (const position of scroll) if (position.element.isConnected) {
+      position.element.scrollTo({top:position.top, left:position.left, behavior:'instant'});
+    }
+    const box = next.getBoundingClientRect(), style = getComputedStyle(next);
+    const outline = (parseFloat(style.outlineWidth) || 0) + Math.max(0, parseFloat(style.outlineOffset) || 0);
+    const header = document.querySelector('.topbar'), nav = document.querySelector('.mobile-workspace-nav');
+    const top = header?.getClientRects().length ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
+    const bottom = nav?.getClientRects().length ? nav.getBoundingClientRect().top : innerHeight;
+    // Stable rows stay stationary. Only reveal a moved/removed control when
+    // keeping the old scroll position would hide its focus cue.
+    if (box.top - outline < top || box.bottom + outline > bottom) {
+      next.scrollIntoView({behavior:'instant', block:'center', inline:'nearest'});
+    }
+  };
+}
+
 // Presentation only: callers own state, requests, and transaction lifecycles.
 export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummary, receiptEvidenceChecked, paymentHistoryEvidence }, { exploreExplorer, renderExtendedAnalyticsDashboard, document = globalThis.document } = {}){
   const verifiedStatus = ['onchain-indexed', 'partial'].includes(receiptEvidence?.status);
@@ -81,6 +121,7 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
   // Live receipt refreshes must not interrupt an expanded fee breakdown.
   const openDetails = container => new Set(Array.from(container.querySelectorAll('details[open]'), details => details.dataset.receiptKey));
   const listOpenDetails = openDetails(list);
+  const restoreFocus = preserveReceiptFocus(list, document);
   list.replaceChildren();
   for (const receipt of filtered) {
     const row = document.createElement('div');
@@ -172,4 +213,5 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     : paymentHistoryEvidence?.status === 'partial' || !paymentHistoryEvidence ? 'Payment history could not be fully checked. Try again shortly.'
       : 'No confirmed payments are available.';
   renderExtendedAnalyticsDashboard();
+  restoreFocus();
 }

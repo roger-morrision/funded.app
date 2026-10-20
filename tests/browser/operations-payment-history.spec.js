@@ -1,7 +1,9 @@
 import {test,expect} from '@playwright/test';
+import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 test('operations payments display their label, amount and proof under the protocol filter',async({page})=>{
   await page.route('https://**/*',route=>route.abort());
   await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline fixture'}}));
+  await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route('**/api/evidence/payment-history',route=>route.fulfill({json:{cluster:'devnet',status:'onchain-indexed',checkedOperations:1,
     verifiedPayouts:[{source:'v3-operations',to:'8'.repeat(44),signature:'9'.repeat(88),amountLamports:16328,
       actualReceivedLamports:16328,feeLamports:10000,feePayer:'7'.repeat(44),blockTime:1792336800,slot:512479001}]}}));

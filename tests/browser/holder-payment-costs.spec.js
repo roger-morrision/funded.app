@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 
 for(const width of [1280,390])test(`holder self-payment shows its signed net change and costs at ${width}px`,async({page})=>{
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
@@ -6,6 +7,7 @@ for(const width of [1280,390])test(`holder self-payment shows its signed net cha
   await page.setViewportSize({width,height:900});
   await page.route('https://**/*',route=>route.abort());
   await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline fixture'}}));
+  await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route('**/api/evidence/payment-history',route=>route.fulfill({json:{cluster:'devnet',status:'onchain-indexed',
     verifiedPayouts:[{source:'automatic-holder',to:'7'.repeat(44),signature:'9'.repeat(88),
       amountLamports:215886,actualReceivedLamports:-947354,feeLamports:5000,recipientRentLamports:1158240,

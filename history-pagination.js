@@ -22,7 +22,8 @@ export function paginateHistory(container, { label, selector, key = '', pageSize
   state.nav.setAttribute('aria-label', `${label} pages`);
   state.previous.setAttribute('aria-label', `Previous ${label.toLowerCase()} page`);
   state.next.setAttribute('aria-label', `Next ${label.toLowerCase()} page`);
-  anchor.after(state.nav);
+  // Moving an already placed nav detaches its focused button in browsers.
+  if (anchor.nextSibling !== state.nav) anchor.after(state.nav);
   const items = [...container.querySelectorAll(selector)];
   state.render = () => {
     const result = paginateExploreRows(items, state.page, pageSize);
