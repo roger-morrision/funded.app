@@ -67,13 +67,41 @@ export function exploreEmptyReason(
     return ['No followed-wallet tokens match this view.', 'Clear the search or filters to see tokens held or traded by followed wallets.'];
   }
   if ((exploreMinVolumeUsd != null || exploreMinMarketCapUsd != null) && !(Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0)) return ['USD filters are waiting for a conversion quote.', 'SOL/USD is unavailable. Clear the USD minimums to browse verified tokens.'];
-  if (exploreQuery) return ['No token matches your search.', 'Try a token name, symbol, or full token address.'];
-  if (explorePromotion !== 'all') return ['No launch matches this promotion filter.', 'Promoted includes verified launch burns and active finalized SOL boost payments.'];
-  if (exploreReward !== 'all') return ['No token matches this reward type.', 'Choose another reward type or clear filters.'];
+  if (exploreRisk === 'watchlist' && !getWatchlist?.().length) return ['No favorite tokens in this feed.', 'Use the star on a verified token to save it here.'];
+  if (!assets?.length) return null;
+  const tierLabels = { promoted: 'Paid promotion', standard: 'Standard', boost: 'Boost', pro: 'Pro', premier: 'Premier' };
+  const rewardLabels = { 'community-airdrop': 'Community token airdrop', 'holder-fees': 'Holder rewards', 'x-fees': 'X account rewards', 'creator-wallet': 'Creator wallet fees' };
+  const stageLabels = { curve: 'On curve', near: 'Near', graduated: 'Curve complete', migrated: 'Migrated' };
+  const signalLabels = { normal: 'Clear signal', watch: 'Review data', high: 'High risk', watchlist: 'Favorites' };
+  const authorityLabels = { 'both-revoked': 'Creating and freezing disabled', 'mint-active': 'More tokens can be created', 'freeze-active': 'Transfers can be frozen' };
+  const criteria = [];
+  if (explorePromotion && explorePromotion !== 'all') criteria.push(tierLabels[explorePromotion] || `Tier: ${explorePromotion}`);
+  if (exploreReward && exploreReward !== 'all') criteria.push(rewardLabels[exploreReward] || `Rewards: ${exploreReward}`);
+  if (exploreStage && exploreStage !== 'all') criteria.push(stageLabels[exploreStage] || `Stage: ${exploreStage}`);
+  if (exploreRisk && exploreRisk !== 'all') criteria.push(signalLabels[exploreRisk] || `Signal: ${exploreRisk}`);
+  if (exploreAuthority && exploreAuthority !== 'all') criteria.push(authorityLabels[exploreAuthority] || `Permissions: ${exploreAuthority}`);
+  if (exploreMaxAgeHours != null) criteria.push(`Created within ${exploreMaxAgeHours} hours`);
+  if (exploreMinVolumeUsd != null) criteria.push(`Minimum volume: $${exploreMinVolumeUsd}`);
+  if (exploreMinMarketCapUsd != null) criteria.push(`Minimum market cap: $${exploreMinMarketCapUsd}`);
+  if (exploreMinTrades != null) criteria.push(`Minimum trades: ${exploreMinTrades}`);
+  if (exploreMinTraders != null) criteria.push(`Minimum trading wallets: ${exploreMinTraders}`);
+  const query = String(exploreQuery || '').trim();
+  if (query) criteria.push(`Search: ${query}`);
+  if (criteria.length > 1) return [
+    'No tokens match this combination.',
+    `${query ? 'Search and active filters' : 'Active filters'} apply together. Broaden a selection or clear filters to see more tokens.`,
+    criteria.join(' · '),
+  ];
+  if (query) return ['No token matches your search.', 'Try a token name, symbol, or full token address.'];
+  if (explorePromotion && explorePromotion !== 'all') return [
+    explorePromotion === 'promoted' ? 'No paid promotions match this view.' : `No ${tierLabels[explorePromotion] || 'selected tier'} tokens match this view.`,
+    'Choose another tier or clear filters.',
+  ];
+  if (exploreReward && exploreReward !== 'all') return ['No token matches this reward type.', 'Choose another reward type or clear filters.'];
   if (exploreMinTraders != null) return ['No launch meets the trading-wallet minimum.', 'Lower the selected-window minimum or clear filters.'];
   if (exploreMinTrades != null || exploreMinVolumeUsd != null) return ['No launch meets these trade-activity minimums.', 'Lower the selected-window minimums or clear filters.'];
   if (exploreMinMarketCapUsd != null || exploreMaxAgeHours != null) return ['No launch meets these advanced filters.', 'Broaden the market cap or age limit, or clear filters.'];
-  if (exploreAuthority !== 'all') return ['No token matches these permissions.', 'Choose Any permissions or clear filters to see more tokens.'];
+  if (exploreAuthority && exploreAuthority !== 'all') return ['No token matches these permissions.', 'Choose Any permissions or clear filters to see more tokens.'];
   if (exploreRisk === 'watchlist') return ['No favorite tokens in this feed.', 'Use the star on a verified token to save it here.'];
   if (exploreTab === 'new' && exploreNewLane === 'almost') return ['No tokens near migration.', 'This view shows active curves at least 80% filled.'];
   if (exploreTab === 'new' && exploreNewLane === 'migrated') return ['No RPC-verified migrated pools in this feed.', 'A completed curve alone is not migration proof. A PumpSwap pool must also exist on this network.'];
