@@ -42,12 +42,19 @@ for (const width of [360, 390, 430, 1440]) {
       return [.1, .5, .9].every(dx => [.1, .5, .9].every(dy =>
         link.contains(document.elementFromPoint(r.x + r.width * dx, r.y + r.height * dy))));
     })).toBe(true);
-    await action.evaluate(element => {
-      [...document.querySelectorAll('button,a[href],input,select,summary')]
-        .filter(node => !node.disabled && node.tabIndex >= 0 && node.getClientRects().length
-          && (element.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_PRECEDING)).at(-1)?.focus();
-    });
+    await packageLink.focus();
     await page.keyboard.press('Tab');
+    await expect(page.locator('#coin-profile-about-tab')).toBeFocused();
+    const sequence = [];
+    for (let index = 0; index < 20; index++) {
+      sequence.push(await page.evaluate(() => ({ id: document.activeElement.id,
+        trade: document.activeElement.classList.contains('mobile-trade-open'),
+        top: document.activeElement.getBoundingClientRect().top + scrollY })));
+      if (sequence.at(-1).trade) break;
+      await page.keyboard.press('Tab');
+    }
+    expect(sequence.some(item => item.trade), JSON.stringify(sequence)).toBe(true);
+    const tradeTop = sequence.at(-1).top;
     await expect(action).toBeFocused();
     await expect.poll(() => action.evaluate(element => {
       const box = element.getBoundingClientRect(), nav = document.querySelector('.mobile-workspace-nav').getBoundingClientRect();
@@ -57,6 +64,7 @@ for (const width of [360, 390, 430, 1440]) {
     })).toMatchObject({ focusVisible: true, outline: 'solid', clearOfNav: true });
     await page.keyboard.press('Tab');
     await expect(action).not.toBeFocused();
+    expect(await page.evaluate(() => document.activeElement.getBoundingClientRect().top + scrollY)).toBeGreaterThanOrEqual(tradeTop);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 }

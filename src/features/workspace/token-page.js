@@ -70,7 +70,8 @@ export function tokenPage() {
     window.fundedSetCoinProfileMetadata({});
     heroAside=node('div','coin-hero-aside');
     heroAside.append(about);
-    hero.append(heroAside);
+    // Match the rendered identity → profile → stats sequence for keyboard users.
+    hero.insertBefore(heroAside, stats || null);
     window.fundedRenderCoinPromotionBadge?.();
   }
   const chartPanel=$('.coin-chart-panel',root);
