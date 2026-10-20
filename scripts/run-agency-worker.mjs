@@ -55,7 +55,7 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
   for(const mint of ordered){
     if(shouldStop())break;
     if(!config.execute){
-      const context=await readContext({...base,mint,state});
+      const context=await readContext({...base,mint,state,authority:authority.publicKey});
       events.push({mint,status:'dry-run',selectedMask:context.policy.selectedMask,remainingLamports:context.remainingLamports});continue;
     }
     if(!buybacksOnly)events.push(await promotion({...base,mint}));
@@ -77,7 +77,7 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
     const budgets={};
     for(const mint of ordered){
       if(shouldStop())break;
-      const context=await readContext({...base,mint,state:await store.read()});
+      const context=await readContext({...base,mint,state:await store.read(),authority:authority.publicKey});
       budgets[mint]={mint,programId:config.programId,approvedHash:config.approvedHash,build:config.build,
         checkedAt:new Date(now()).toISOString(),slot:context.slot,policyFingerprint:context.policyFingerprint,
         paidLamports:String(context.policy.paidLamports[7]),spentLamports:String(context.policy.withdrawnLamports[7]),

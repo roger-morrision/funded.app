@@ -16,8 +16,8 @@ function fixture(execute){
   const input={config,store:{read:async()=>structuredClone(state),update:async fn=>{writes++;return fn(state);}},
     outbox:{},connection:{getAddressLookupTable:async()=>({value:{key:new PublicKey(lookupAddress),state:{deactivationSlot:0xffffffffffffffffn}}})},authority,
     publisher:{verifyAccount:async()=>({id:'123'}),publish:async()=>{throw new Error('Unexpected public request');}},
-    readDeployment:async()=>({revision:'1'}),readContext:async()=>({policy:{selectedMask:7,completedMask:0,paidLamports:[0n,0n,0n,0n,0n,0n,0n,100n],
-      withdrawnLamports:[0n,0n,0n,0n,0n,0n,0n,0n]},remainingLamports:'100',agentRemaining:['33','33','34'],slot:123,policyFingerprint:'c'.repeat(64)}),
+    readDeployment:async()=>({revision:'1'}),readContext:async({authority:reader})=>{assert(reader instanceof PublicKey,'Custody reads need the public authority, never a signer object.');return({policy:{selectedMask:7,completedMask:0,paidLamports:[0n,0n,0n,0n,0n,0n,0n,100n],
+      withdrawnLamports:[0n,0n,0n,0n,0n,0n,0n,0n]},remainingLamports:'100',agentRemaining:['33','33','34'],slot:123,policyFingerprint:'c'.repeat(64)});},
     promotion:async()=>{promotions++;return{status:'x-pending',mint};},milestone:async()=>{buys++;return{status:'below-threshold',mint};},
     dispatch:async args=>{assert.deepEqual(args.kinds,['agency_promotion']);posts++;return{posted:0};}};
   return{input,get state(){return state;},get counts(){return{writes,promotions,buys,posts};}};
