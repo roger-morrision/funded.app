@@ -2,6 +2,7 @@ import { withMarketWindow, enrichMarketRecord, summarizeMarkets, formatSignal, s
 import { escapeHtml } from '../shared/display.js';
 import { activeBoostMultiplier } from '../../../boost-offer.js';
 import { renderActivityCoverage } from './activity-sampling.js';
+import { createExploreEmptyAction } from './empty-action.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderExploreAssets(
@@ -129,12 +130,7 @@ export function renderExploreAssets(
   });
   loadVerifiedTokenLogos(grid);
   if (!visible.length && !loading) {
-    const action = document.createElement('button');
-    action.type = 'button';
-    action.className = 'explore-empty-action';
-    action.dataset.exploreEmptyAction = assets.length ? 'clear' : 'retry';
-    action.textContent = assets.length ? ['new', 'following', 'favorites'].includes(exploreTab) ? 'View all tokens' : 'Clear filters' : 'Try again';
-    grid.querySelector('.empty-state')?.append(action);
+    grid.querySelector('.empty-state')?.append(createExploreEmptyAction(document, { hasAssets: assets.length, exploreTab }));
   }
   renderWatchlist();
   renderWalletDetail();

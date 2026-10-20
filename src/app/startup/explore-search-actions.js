@@ -232,19 +232,22 @@ export function initializeExploreSearchActions(appState) {
     if (boost) { appState.openExploreBoost(boost.dataset.boostMint); return; }
     const button = event.target.closest('.watch-button');
     const share = event.target.closest('.share-asset');
-    const emptyAction = event.target.closest('[data-explore-empty-action]');
-    if (emptyAction) {
-      if (emptyAction.dataset.exploreEmptyAction === 'clear') {
-        appState.clearExploreFilters();
-        document.querySelector('#explore-search')?.focus({ preventScroll: true });
-      } else appState.loadOnchainExploreData().catch(() => appState.showToast('Retry could not verify Devnet data.'));
-      return;
-    }
     if (share) { appState.openCoinShare(share.dataset.shareMint || '', share.dataset.shareSymbol || 'Coin', share.dataset.shareName || ''); return; }
    if (!button) return;
     appState.toggleExploreWatch(button.dataset.mint, button);
   });
   // app-source-end
+
+  document.querySelector('#explore')?.addEventListener('click', event => {
+    const emptyAction = event.target.closest('[data-explore-empty-action]');
+    if (!emptyAction || !emptyAction.closest('#asset-grid, #launch-list')) return;
+    if (emptyAction.dataset.exploreEmptyAction === 'clear') {
+      appState.clearExploreFilters();
+      const search = document.querySelector('#explore-search');
+      search?.focus({ preventScroll: true });
+      search?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
+    } else appState.loadOnchainExploreData().catch(() => appState.showToast('Retry could not verify Devnet data.'));
+  });
 
   // app-source: 807
   document.addEventListener('click', event => {
