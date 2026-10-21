@@ -16,7 +16,7 @@ test('own-coin quote uses only snapshot reserves and clips expenditure to the sm
     quoteOutput:args=>{assert.equal(String(args.quote),'2500000');assert.equal(args.slippage,1);return{base:new BN(1234)};},
     buildBuy:async(_state,amount)=>{assert.equal(String(amount),'2500000');return[
       {programId:PUMP_AMM_PROGRAM_ID,data:Buffer.from('ea66c2cb96483ee5','hex')},
-      {programId:PUMP_AMM_PROGRAM_ID,data:Buffer.from([102,6,61,18,1,218,235,234])}];}};
+      {programId:PUMP_AMM_PROGRAM_ID,data:Buffer.concat([Buffer.from([102,6,61,18,1,218,235,234]),Buffer.alloc(17)])}];}};
   const result=await quoteAgencyBuyback(input);assert.equal(result.maxTotalDebit,'2500000');assert.equal(result.minBaseAmountOut,'1234');
   state.poolQuoteAmount=new BN('999999999');await assert.rejects(()=>quoteAgencyBuyback(input),/differs/);
   state.poolQuoteAmount=new BN('1000000000');state.pool.baseMint=key(204);await assert.rejects(()=>quoteAgencyBuyback(input),/differs/);

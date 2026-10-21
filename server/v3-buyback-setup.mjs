@@ -8,7 +8,7 @@ const BUY=Buffer.from([102,6,61,18,1,218,235,234]);
 // buy supplies CPI accounts; the router constructs its own bounded exact buy.
 export function selectV3PumpBuy(instructions){
   const buys=instructions.filter(ix=>ix.programId?.equals(PUMP_AMM_PROGRAM_ID)
-    &&Buffer.from(ix.data||[]).subarray(0,8).equals(BUY));
+    &&Buffer.from(ix.data||[]).length===25&&Buffer.from(ix.data).subarray(0,8).equals(BUY));
   if(buys.length!==1)throw new Error('An exact unique PumpSwap buy instruction is required.');
   return buys[0];
 }
