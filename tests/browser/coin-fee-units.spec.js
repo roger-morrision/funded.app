@@ -21,7 +21,7 @@ for(const width of [360,390,1440]) test(`token collection and allocation units a
   await page.route('https://**/*',route=>route.abort());
   await page.goto(`/token/${mint}`);
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  await page.getByRole('tab',{name:/^Fee claims/}).click();
+  await page.getByRole('tab',{name:/^Fee collections/}).click();
   const rows=page.locator('#coin-activity-list tbody tr');
   await expect(rows).toHaveCount(4);
   for(const [i,value] of displayed.entries()) {

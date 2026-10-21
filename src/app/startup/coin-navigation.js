@@ -1,3 +1,5 @@
+import { openCoinRecord } from '../../features/coin/records-navigation.js';
+
 // Startup runs in the order declared in start.js.
 export function initializeCoinNavigation(appState) {
   // app-source: 986
@@ -79,6 +81,8 @@ export function initializeCoinNavigation(appState) {
     if (holderTrades){ const wallet = holderTrades.dataset.coinHolderTrades; if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet || '')) return; document.querySelector('#coin-trade-wallet').value = wallet; appState.coinTradeFilter = 'all'; appState.coinTradeOpenFilter = null; const typeInput = document.querySelector('[data-coin-trade-input="side"]'); if (typeInput) typeInput.value = 'all'; document.querySelectorAll('[data-coin-trade-filter]').forEach(button => { const active = button.dataset.coinTradeFilter === 'all'; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); }); document.querySelectorAll('[data-coin-tab]').forEach(button => button.classList.toggle('active', button.dataset.coinTab === 'trades')); appState.setCoinTabLabels(); appState.renderCoinActivityTab(); document.querySelector('#coin-trade-wallet')?.focus(); return; }
     const tradeFilter = event.target.closest('[data-coin-trade-filter]');
     if (tradeFilter){ appState.coinTradeFilter = tradeFilter.dataset.coinTradeFilter; const typeInput = document.querySelector('[data-coin-trade-input="side"]'); if (typeInput) typeInput.value = appState.coinTradeFilter; document.querySelectorAll('[data-coin-trade-filter]').forEach(button => { const active = button === tradeFilter; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); }); appState.renderCoinActivityTab(); return; }
+    const record = event.target.closest('[data-coin-record-target]');
+    if (record) { openCoinRecord(record.dataset.coinRecordTarget); return; }
     const tab = event.target.closest('[data-coin-tab]');
     if (tab){ document.querySelectorAll('[data-coin-tab]').forEach(item => item.classList.toggle('active', item === tab)); appState.setCoinTabLabels(); appState.renderCoinActivityTab(); }
   });

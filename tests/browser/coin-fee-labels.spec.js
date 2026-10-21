@@ -16,7 +16,7 @@ test('mobile collection and allocation labels never imply recipient payments', a
   await page.route('https://**/*', route => route.abort());
   await page.goto(`/token/${mint}`);
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  await page.getByRole('tab', {name:/^Fee claims/}).click();
+  await page.getByRole('tab', {name:/^Fee collections/}).click();
   const table = page.locator('#coin-activity-list .coin-fee-table');
   await expect(table).toContainText('0.00246253 SOL');
   const labels = () => table.locator('tbody tr').first().locator('td').evaluateAll(cells =>

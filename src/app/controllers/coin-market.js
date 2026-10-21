@@ -120,7 +120,7 @@ export function createCoinMarketController(appState) {
     const labels = {
       trades: `Trades ${['ready', 'summary-only'].includes(appState.coinMarketActivity.status) ? appState.coinMarketActivity.tradeCount : '—'}`,
       chat: 'Chat',
-      payments: `Fee claims ${appState.coinActivity.status === 'ready' && appState.coinActivity.ledgerAvailable ? appState.coinActivity.collections.length : '—'}`,
+      payments: `Fee collections ${appState.coinActivity.status === 'ready' && appState.coinActivity.ledgerAvailable ? appState.coinActivity.collections.length : '—'}`,
       claims: `Allocations ${appState.coinActivity.status === 'ready' && appState.coinActivity.ledgerAvailable ? appState.coinActivity.claims.length : '—'}`,
       holders: `Holders ${appState.coinActivity.holderDistribution ? appState.coinActivity.holderCount : '—'}`,
     };

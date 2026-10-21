@@ -42,6 +42,15 @@
 .coin-page .coin-symbol{color:#e9e1cf;font-size:12px;letter-spacing:.11em}
 .coin-page .coin-live-dot{border-color:#9a6d36;background:#26354d;color:#e9e1cf}
 .coin-page .coin-address{color:#a0b8ae}
+.coin-page .coin-record-shortcuts{min-width:0;margin:12px 0}
+.coin-page .coin-record-shortcuts>span{display:block;margin-bottom:7px;color:#a0b8ae;font:700 10px 'DM Mono',monospace}
+.coin-page .coin-record-actions{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.coin-page .coin-record-actions button{flex:1 1 92px;min-width:44px;min-height:44px;box-sizing:border-box;padding:8px;border:1px solid #3a4964;border-radius:6px;background:#172131;color:#e9e1cf;font:700 11px Manrope,sans-serif;line-height:1.3;cursor:pointer;overflow-wrap:anywhere}
+.coin-page .coin-record-actions button:hover{background:#26354d;border-color:#a9b9ec}
+.coin-page .coin-record-actions button:focus-visible{outline:2px solid #a9b9ec;outline-offset:2px}
+.coin-page .coin-tabs{overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.coin-page .coin-tabs button{scroll-margin:4px}
+@media(max-width:700px){.coin-page .coin-record-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
 .coin-page .coin-attribution{margin:6px 0 8px}
 .coin-page .coin-socials.is-compact a,.coin-page .coin-socials.is-compact button{border-color:#9a6d36;background:#111b2e;color:#cee5d4}
 .coin-page .coin-hero-stat{display:none}

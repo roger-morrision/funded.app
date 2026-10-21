@@ -1,4 +1,5 @@
 import { $, node, $$, tabs, disclose } from './dom.js';
+import { openCoinRecord } from '../coin/records-navigation.js';
 
 export function tokenPage() {
   const root=$('#coin-page');if(!root)return;
@@ -132,10 +133,7 @@ export function tokenPage() {
     const heading=node('div','coin-holders-aside-head');
     const title=node('h2','','Holder distribution');title.id='coin-holders-aside-title';
     const view=node('button','coin-holders-aside-link','View holders →');view.type='button';
-    view.addEventListener('click',()=>{
-      $('#coin-page [data-coin-tab="holders"]')?.click();
-      $('.coin-tabs-panel',root)?.scrollIntoView({behavior:'smooth',block:'start'});
-    });
+    view.addEventListener('click',()=>openCoinRecord('holders'));
     heading.append(title,view);
     const status=node('p','coin-holders-aside-status','Checking verified holder wallets…');status.id='coin-holder-distribution-status';
     status.hidden=!distribution.hidden;

@@ -34,7 +34,7 @@ for(const width of [360,390,1440]) test(`token error recovery and fee records re
     expect(errorText).not.toMatch(/DOCTYPE|footer|script|192\.0\.2\.1|rpc\.example|diagnostic/);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
     if(i===0)await page.screenshot({path:test.info().outputPath(`bounded-error-${width}-mocked.png`),fullPage:true});
-    await page.getByRole('tab',{name:/^Fee claims/}).click();
+    await page.getByRole('tab',{name:/^Fee collections/}).click();
     await expect(page.locator('#coin-activity-list')).toContainText('0.000025887 SOL');
     await page.getByRole('tab',{name:/^Allocations/}).click();
     await expect(page.locator('#coin-activity-list')).toContainText('0.000025887 SOL');
