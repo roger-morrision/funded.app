@@ -7,6 +7,10 @@ function savedMilestone(row){
   try{
     const execution=row.evidence?.agencyExecution;
     if(!execution||execution.agent!==row.intent.agent||row.proof.agent!==row.intent.agent
+      ||row.proof.sourceMint!==row.intent.mint||row.proof.agencyPolicy!==true
+      ||row.proof.burnInstructionVerified!==true||row.proof.vaultDebitVerified!==true
+      ||execution.pool&&execution.pool!==row.proof.pool
+      ||row.evidence.observation&&row.evidence.observation.mint!==row.intent.mint
       ||row.proof.category!==7||allocationAuditHash(row.intent)!==row.intentHash
       ||allocationAuditHash(row.evidence)!==row.evidenceHash)return null;
     return validateAgencyRules(execution.rules).marketCapUsd[row.intent.agent-1];

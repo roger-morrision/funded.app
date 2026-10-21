@@ -44,7 +44,8 @@ test('burn history uses receipt time instead of a later worker reconciliation ti
 test('history reports saved execution thresholds rather than current launch defaults',()=>{
   const f=fixture(),rules={marketCapUsd:[1,2],communityWindowSeconds:7776000,promotionIntervalSeconds:86400};
   const row={status:'finalized',signature:'sig',intent:{programId,approvedHash:f.args.approvedHash,mint,agent:1},
-    evidence:{agencyExecution:{agent:1,rules}},proof:{signature:'sig',finalized:true,balanceDeltaVerified:true,agent:1,category:7}};
+    evidence:{agencyExecution:{agent:1,rules}},proof:{signature:'sig',sourceMint:mint,finalized:true,balanceDeltaVerified:true,
+      agencyPolicy:true,burnInstructionVerified:true,vaultDebitVerified:true,agent:1,category:7}};
   row.intentHash=allocationAuditHash(row.intent);row.evidenceHash=allocationAuditHash(row.evidence);
   f.state.v3AgencyExecutions={burn:row};
   assert.equal(agencyPublicSummary(f.args).history[0].savedMarketCapUsd,1);
@@ -56,4 +57,20 @@ test('history reports saved execution thresholds rather than current launch defa
   row.evidenceHash=allocationAuditHash(row.evidence);row.evidence.agencyExecution.rules.marketCapUsd=[2,1];
   row.evidenceHash=allocationAuditHash(row.evidence);
   assert.equal(agencyPublicSummary(f.args).history[0].savedMarketCapUsd,null,'invalid saved rules require a neutral caption');
+});
+
+test('numeric captions require matching mint, agency burn and vault proof; legacy receipts stay visible',()=>{
+  const f=fixture(),rules={marketCapUsd:[1,2],communityWindowSeconds:7776000,promotionIntervalSeconds:86400};
+  const base={status:'finalized',signature:'sig',intent:{programId,approvedHash:f.args.approvedHash,mint,agent:1},
+    evidence:{agencyExecution:{agent:1,rules,pool:programId},observation:{mint}},proof:{signature:'sig',sourceMint:mint,
+      pool:programId,finalized:true,balanceDeltaVerified:true,agencyPolicy:true,burnInstructionVerified:true,vaultDebitVerified:true,agent:1,category:7}};
+  base.intentHash=allocationAuditHash(base.intent);base.evidenceHash=allocationAuditHash(base.evidence);
+  const mutations=[r=>r.proof.sourceMint=programId,r=>delete r.proof.sourceMint,r=>r.proof.agencyPolicy=false,
+    r=>r.proof.burnInstructionVerified=false,r=>r.proof.vaultDebitVerified=false,r=>r.proof.pool=mint,
+    r=>{r.evidence.observation.mint=programId;r.evidenceHash=allocationAuditHash(r.evidence);}];
+  for(const change of mutations){
+    const row=structuredClone(base);change(row);f.state.v3AgencyExecutions={burn:row};
+    const history=agencyPublicSummary(f.args).history;assert.equal(history.length,1);
+    assert.equal(history[0].savedMarketCapUsd,null);assert.equal(history[0].signature,'sig');
+  }
 });
