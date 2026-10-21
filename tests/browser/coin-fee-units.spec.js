@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
 for(const width of [360,390,1440]) test(`token collection and allocation units are exact at ${width}px`, async ({page}) => {
   const mint='H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z';
@@ -8,7 +9,7 @@ for(const width of [360,390,1440]) test(`token collection and allocation units a
   const signatures=amounts.map((_,i)=>String(i+3).repeat(64));
   await page.setViewportSize({width,height:900});
   await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline token fee units fixture'}}));
-  // Keep the existing saved-policy bootstrap fixture supplied by the test wrapper.
+  await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route(`**/api/tokens/${mint}/fee-activity`,route=>route.fulfill({json:{
     mint,cluster:'devnet',coverage:'verified-v3-collections',source:'funded.app-file-ledger',
     overview:{available:true,scope:'per-mint-v3'},

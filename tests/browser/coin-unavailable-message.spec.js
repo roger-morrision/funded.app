@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 
 for(const width of [360,390,1440]) test(`token error recovery and fee records remain usable at ${width}px`,async({page})=>{
   const mint='H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z',signature='3'.repeat(64);
@@ -10,6 +11,7 @@ for(const width of [360,390,1440]) test(`token error recovery and fee records re
   ];
   await page.setViewportSize({width,height:900});
   await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline token error fixture'}}));
+  await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route(`**/api/tokens/${mint}/fee-activity`,route=>route.fulfill({json:{mint,cluster:'devnet',overview:{available:true,scope:'per-mint-v3'},collections:[{signature,collectedLamports:'25887'}],claims:[{claimSignature:signature,asset:'SOL',grossCreatorFees:'0.000025887',status:'finalized'}]}}));
   await page.route('https://**/*',route=>route.abort());
   for(const [i,[body,expected]] of variants.entries()) {
