@@ -32,7 +32,7 @@ async function main(args){
   let stopped=false,wake;const stop=()=>{stopped=true;wake?.();};process.once('SIGTERM',stop);process.once('SIGINT',stop);
   try{
     await runAgencyBuybackLoop({config,shouldStop:()=>stopped,
-      runCycle:async()=>console.log(JSON.stringify(await runAgencyCycle({config,store,connection,authority,shouldStop:()=>stopped}))),
+      runCycle:async()=>{const result=await runAgencyCycle({config,store,connection,authority,shouldStop:()=>stopped});console.log(JSON.stringify(result));return result;},
       onBlocked:async()=>{
         if(config.execute)await store.update(state=>{state.adminSettings||={};state.adminSettings.agencyBuybackWorker={status:'blocked',
           reason:'Reviewed Devnet deployment, protected custody, or execution proof is unavailable.',build:config.build,
