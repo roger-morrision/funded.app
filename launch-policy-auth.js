@@ -28,11 +28,11 @@ export function canonicalLaunchPolicy(input = {}) {
   let marketingAgency;
   if(v3.protocolSplit?.agencyPercent!==undefined){
     const agency=input.marketingAgency;
-    if(v3.protocolSplit.agencyPercent!==10||agency?.version!==MARKETING_AGENCY_POLICY.version
+    if(agency?.version!==MARKETING_AGENCY_POLICY.version
       ||!(/^[1-9]\d{0,19}$/).test(String(agency.configRevision))||BigInt(agency.configRevision)>0xffffffffffffffffn)
       throw new Error('An immutable agency version and current on-chain configuration revision are required.');
     marketingAgency={version:agency.version,configRevision:String(agency.configRevision),selectedAgents:canonicalAgencySelection(agency.selectedAgents)};
-  }else if(input.marketingAgency!=null)throw new Error('An agency selection requires its signed dedicated 2% policy.');
+  }else if(input.marketingAgency!=null)throw new Error('An agency selection requires its signed dedicated agency policy.');
   return {
     mint: new PublicKey(String(input.mint || '')).toBase58(),
     creatorWallet: new PublicKey(String(input.creatorWallet || '')).toBase58(),

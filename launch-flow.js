@@ -7,7 +7,7 @@ import { tokensToBaseUnits } from './launch-burn-policy.js';
 import { devnetMetadataUri } from './devnet-metadata.js';
 import { verifyFeeRouterAccount } from './fee-router.js';
 import { buildPumpLaunchPlan } from './mint-router-launch.js';
-import { buildProtectedMintRouterV3InitializeInstruction, directedGrossUnits,
+import { buildProtectedMintRouterV3InitializeInstruction, directedGrossUnits, protocolGrossUnits,
   verifyMintPolicyV3Account,
   verifyMintRouterV3Account } from './mint-router-v3.js';
 import { executeLaunchPlan } from './launch-executor.js';
@@ -58,8 +58,9 @@ export function buildLaunchMintRouter({ mint, payer, v3FeeRouter, feeShares }) {
   }
   if(v3FeeRouter.split.agencyPercent!==undefined){
     const agency=v3FeeRouter.agency;
-    if(agency?.version!==MARKETING_AGENCY_POLICY.version||v3FeeRouter.split.agencyPercent!==10)
+    if(agency?.version!==MARKETING_AGENCY_POLICY.version)
       throw new Error('A verified dedicated agency launch configuration is required.');
+    protocolGrossUnits(v3FeeRouter.split);
     return{scope:'per-mint-v3',...buildAgencyMintV3InitializeInstruction({programId:v3FeeRouter.programId,mint,
       authority:v3FeeRouter.initialAuthority,creator:payer,shares:feeShares,
       selectedAgents:canonicalAgencySelection(agency.selectedAgents),configRevision:agency.configRevision})};

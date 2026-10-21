@@ -33,6 +33,23 @@ test('creator signature binds canonical selected agents and config revision; his
   assert.throws(()=>canonicalLaunchPolicy({...input,marketingAgency:undefined}),/immutable agency/);
   assert.throws(()=>canonicalLaunchPolicy({...input,marketingAgency:{...agency,selectedAgents:['unknown']}}));
 });
+
+test('configured agency rates work through launch preparation and the signed policy without relaxing the fixed protocol share',()=>{
+  for(const agencyPercent of [0,15]){
+    const configured={...split,agencyPercent,operationsPercent:split.operationsPercent+split.agencyPercent-agencyPercent};
+    const v3={programId:program,initialAuthority:authority,split:configured,agency};
+    const built=buildLaunchMintRouter({mint,payer:creator,v3FeeRouter:v3,feeShares:shares});
+    assert(built.instruction.data.subarray(0,8).equals(agencyDiscriminator('initialize_agency_mint_v3')));
+    const input={mint:String(mint),creatorWallet:String(creator),cluster:'devnet',signature:'launch',communityAllocation:3,
+      pumpFeeRoute:{scope:'per-mint-v3',programId:String(program),initialAuthority:String(authority),router:String(creator),protocolSplit:configured},
+      marketingAgency:agency,feeDistribution:buildFeeDistributionPolicy(shares,{fundedSplit:configured})};
+    assert.equal(canonicalLaunchPolicy(input).protocolSplit.agencyPercent,agencyPercent);
+    assert.notEqual(launchPolicyStatement(input),launchPolicyStatement({...input,pumpFeeRoute:{...input.pumpFeeRoute,protocolSplit:split}}));
+    const invalid={...configured,operationsPercent:configured.operationsPercent+1};
+    assert.throws(()=>buildLaunchMintRouter({mint,payer:creator,v3FeeRouter:{...v3,split:invalid},feeShares:shares}),/totaling 100%/);
+    assert.throws(()=>canonicalLaunchPolicy({...input,pumpFeeRoute:{...input.pumpFeeRoute,protocolSplit:invalid}}),/totaling 100%/);
+  }
+});
 test('normal agency launch readiness requires explicit acceptance, verified chain config, matching published split and fresh exact-build worker',async()=>{
   const hash='a'.repeat(64),build='b'.repeat(40),authorityString=authority.toBase58();
   const state={adminSettings:{protocolFeePolicy:{split},agencyWorker:{status:'ready',version:'agency-executor-v1',cluster:'devnet',
