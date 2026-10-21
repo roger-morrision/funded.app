@@ -27,3 +27,19 @@ export function v3BuybackFeeSetup({pumpBuyInstruction:buy,authority}){
     return[createAssociatedTokenAccountIdempotentInstruction(payer,ata,owner,NATIVE_MINT,TOKEN_PROGRAM_ID)];
   });
 }
+
+export async function verifyV3BuybackAuthorityReserve({connection,transaction,authority,setupCount}){
+  const signer=new PublicKey(authority);
+  if(!Number.isInteger(setupCount)||setupCount<0||setupCount>3
+    ||transaction.message.header.numRequiredSignatures!==1||!transaction.message.staticAccountKeys[0].equals(signer))
+    throw new Error('A bounded authority-only buyback is required.');
+  const [fee,balance,...rents]=await Promise.all([
+    connection.getFeeForMessage(transaction.message,'finalized'),connection.getBalance(signer,'finalized'),
+    ...[10240,209,256,165].map(size=>connection.getMinimumBalanceForRentExemption(size,'finalized'))]);
+  if(![fee.value,balance].every(value=>Number.isSafeInteger(value)&&value>=0)
+    ||!rents.every(value=>Number.isSafeInteger(value)&&value>0))
+    throw new Error('Verified buyback fees, rent and payer balance are unavailable.');
+  const maximumRent=BigInt(rents[0])*2n+BigInt(rents[1])+BigInt(rents[2])+BigInt(rents[3])*BigInt(setupCount);
+  return{ready:BigInt(balance)-BigInt(fee.value)-maximumRent>=3000000000n,
+    maximumRentLamports:String(maximumRent),feeLamports:String(fee.value)};
+}

@@ -53,6 +53,7 @@ function fixture() {
   const state = { v3Settlements:{}, v3BuybackOrders:{} };
   const responses = [];
   const connection = {
+    getBalance:async()=>4000000000,getFeeForMessage:async()=>({value:5000}),
     getAccountInfo:async address => address.equals(policyAddress.address)
       ? { owner:program.publicKey, data:policy }
       : address.equals(vault)

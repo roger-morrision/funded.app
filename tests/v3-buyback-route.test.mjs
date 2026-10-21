@@ -17,7 +17,7 @@ const programId=program.publicKey.toBase58(), mintAddress=mint.publicKey.toBase5
 
 function fixture(enabled=true, triggerReached=true) {
   let currentTrigger=triggerReached;
-  let proofAvailable=true,signatureOutcome=null;
+  let proofAvailable=true,signatureOutcome=null,balance=4000000000,fee=5000,submitted=0;
   const vault=deriveMintVaultsV3(programId,mintAddress)[6];
   const baseAta=getAssociatedTokenAddressSync(V3_DEVNET_FUNDED_MINT,vault,true);
   const quoteAta=getAssociatedTokenAddressSync(NATIVE_MINT,vault,true);
@@ -54,7 +54,8 @@ function fixture(enabled=true, triggerReached=true) {
   const connection={getAddressLookupTable:async()=>({value:{key:lookupAddress,
     state:{addresses:addresses.filter(address=>!address.equals(vault))}}}),
     getLatestBlockhash:async()=>({blockhash:key(121).publicKey.toBase58()}),
-    getSignatureStatuses:async()=>({value:[signatureOutcome]})};
+    getSignatureStatuses:async()=>({value:[signatureOutcome]}),getBalance:async()=>balance,
+    getFeeForMessage:async()=>({value:fee}),getMinimumBalanceForRentExemption:async()=>1000000};
   const route=createV3BuybackRoutes({body:async req=>req.input,
     store:{read:async()=>state,update:async callback=>callback(state)},
     solanaCluster:'devnet',solanaRpcUrl:'https://unused.invalid',
@@ -73,8 +74,9 @@ function fixture(enabled=true, triggerReached=true) {
       spentLamports:input.spendableQuoteIn,burnedBaseUnits:'1',finalized:true,
       vaultDebitVerified:true,burnInstructionVerified:true}):null,
     readDashboard:async()=>({status:'verified',triggerReached:currentTrigger}),
-    submit:async({transaction})=>bs58.encode(transaction.signatures[0])});
+    submit:async({transaction})=>{submitted++;return bs58.encode(transaction.signatures[0]);}});
   return {state,responses,setTrigger:value=>{currentTrigger=value;},
+    setBalance:value=>{balance=value;},setFee:value=>{fee=value;},get submitted(){return submitted;},
     setProof:value=>{proofAvailable=value;},setSignatureOutcome:value=>{signatureOutcome=value;},
     request:(input,source=signature)=>route({method:'POST',input,headers:{}},{},
       new URL(`/api/tokens/${mintAddress}/v3-buyback/${source}`,'https://funded.vip'))};
@@ -84,6 +86,15 @@ test('V3 buyback cannot prepare while the Devnet pilot gate is off',async()=>{
   const f=fixture(false);await f.request({});
   assert.equal(f.responses.at(-1).status,503);
   assert.deepEqual(f.state.v3BuybackOrders,{});
+});
+
+test('generic buyback never signs below reserve plus all setup rent and fees, or with an unknown fee',async()=>{
+  for(const balance of [3000000000,3007004999]){
+    const f=fixture();f.setBalance(balance);await f.request({});assert.equal(f.responses.at(-1).status,409);
+    assert.equal(f.submitted,0);assert(Object.values(f.state.v3BuybackOrders).every(row=>!row.signature&&!row.signedTransaction));
+  }
+  const unknown=fixture();unknown.setFee(null);await unknown.request({});assert.equal(unknown.responses.at(-1).status,503);assert.equal(unknown.submitted,0);
+  const boundary=fixture();boundary.setBalance(3007005000);await boundary.request({});assert.equal(boundary.responses.at(-1).status,200);assert.equal(boundary.submitted,1);
 });
 
 test('V3 buyback executes without creator signature only after the 5 SOL vault trigger',async()=>{

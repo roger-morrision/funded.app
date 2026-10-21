@@ -9,7 +9,7 @@ import { buildV3BuybackInstruction, v3BuybackId, v3BuybackOnchainId } from '../v
 import { quoteV3Buyback } from '../v3-buyback-quote.mjs';
 import { loadFinalizedV3Buyback } from '../v3-buyback-proof.mjs';
 import { prepareV3BuybackTransaction, submitV3BuybackTransaction } from '../v3-buyback-transaction.mjs';
-import {v3BuybackFeeSetup} from '../v3-buyback-setup.mjs';
+import {v3BuybackFeeSetup,verifyV3BuybackAuthorityReserve} from '../v3-buyback-setup.mjs';
 import { readV3BuybackDashboard } from '../v3-buyback-dashboard.mjs';
 import { buybackTriggerLamports } from '../devnet-qa-minimums.mjs';
 import { v3BuybackNextOrder, v3BuybackSourceSpent } from '../v3-buyback-orders.mjs';
@@ -232,12 +232,17 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     if(!lookup.value||!lookup.value.key.equals(new PublicKey(lookupAddress)))
       return json(res,503,{error:'The V3 buyback address lookup table is unavailable.'});
     const latest=await connection.getLatestBlockhash('finalized');
+    const setupInstructions=v3BuybackFeeSetup({pumpBuyInstruction:quoted.pumpBuyInstruction,authority:authority.publicKey});
     const preparedTransaction=prepareV3BuybackTransaction({
       instruction:built.instruction,authority:authority.publicKey,
       blockhash:latest.blockhash,lookupTable:lookup.value,
-      setupInstructions:v3BuybackFeeSetup({pumpBuyInstruction:quoted.pumpBuyInstruction,authority:authority.publicKey})});
+      setupInstructions});
     const expiresAt=new Date(Date.now()+60_000).toISOString();
     const signed=VersionedTransaction.deserialize(Buffer.from(preparedTransaction,'base64'));
+    let reserveCheck;
+    try{reserveCheck=await verifyV3BuybackAuthorityReserve({connection,transaction:signed,authority:authority.publicKey,setupCount:setupInstructions.length});}
+    catch{return json(res,503,{error:'Verified buyback fees, setup rent and authority balance are unavailable.'});}
+    if(!reserveCheck.ready)return json(res,409,{error:'Buyback setup and transaction fees would breach the protected 3 SOL authority reserve.'});
     signed.sign([authority]);
     const signature=bs58.encode(signed.signatures[0]);
     const row={status:'verification-pending',mint,collectionSignature,
