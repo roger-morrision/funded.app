@@ -94,3 +94,20 @@
   .saved-token-actions { grid-column: 1; flex-wrap: wrap; }
   .saved-token-row.watchlist-unavailable { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Favorites guidance and existing account controls only; saved rows stay unchanged. */
+#community .section-heading .panel-explainer { max-width: 68ch; font-size: 14px; line-height: 1.6; }
+#community .favorites-sync { display: grid; gap: 8px; margin: 16px 0; }
+#community #favorites-sync-label { margin: 0; color: #a8b4c6; font-size: 14px; font-weight: 700; }
+#community .favorites-sync-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+#community .favorites-sync-actions > button:not([hidden]),
+#community .watchlist-empty .favorites-explore {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px; box-sizing: border-box;
+  padding: 10px 14px; border: 1px solid var(--line); border-radius: 7px;
+  background: #181f2b; color: #a8b4c6; font-size: 14px; font-weight: 700;
+  line-height: 1.5; text-decoration: none; white-space: normal; scroll-margin-block: 96px;
+}
+#community .favorites-sync-actions > button:disabled { opacity: .5; cursor: not-allowed; }
+#community .favorites-sync-actions > button:focus-visible,
+#community .watchlist-empty .favorites-explore:focus-visible { outline: 2px solid #ffd28a; outline-offset: 3px; }

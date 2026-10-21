@@ -226,7 +226,7 @@ function shortenPageCopy() {
     ['#capital-flow > .section-heading .panel-explainer', currentFeePolicyCopy().scope],
     ['#launch-route-shell > .page-lede', 'Add your token details, choose rewards, and review the total before signing.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
-    ['#community .section-heading .panel-explainer', 'Use the same verified wallet or X account to access favorites on another device.'],
+    ['#community .section-heading .panel-explainer', 'Use the star on a token in Explore to add it to Favorites. Signed-out saving uses this browser; verify a wallet or sign in with X to sync across devices.'],
     ['#capital-flow-title', 'Where every SOL goes'],
     ['#analytics-detail .split-detail', currentFeePolicyCopy().scope],
     ['#token-image-help', 'PNG, JPG, WEBP · 12 MB max · square image recommended'],
