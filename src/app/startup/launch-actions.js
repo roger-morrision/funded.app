@@ -63,8 +63,7 @@ export function initializeLaunchActions(appState) {
   // app-source-end
 
   // app-source: 672
-  bindPublicQuoteRetry(appState);
-  bindLaunchCostNavigation(appState);
+  bindPublicQuoteRetry(appState); bindLaunchCostNavigation(appState);
   document.querySelector('#launch-review-retry')?.addEventListener('click', async () => {
     if (appState.developerBuyLimitReached()) {
       document.querySelector('#creator-buy-sol')?.focus();
