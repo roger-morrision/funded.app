@@ -37,6 +37,7 @@ export function renderPortfolio(
     if (disconnected) disconnected.hidden = Boolean(address);
   }
   const current = portfolioHoldings.wallet === address && portfolioHoldings.status === 'ready';
+  const partial = current && portfolioHoldings.coverage === 'Partial token-program coverage';
   const holdings = current ? portfolioHoldings.accounts : [];
   const assetByMint = new Map(assets.map(asset => [asset.address, asset]));
   const decimalsByMint = new Map(assets.filter(asset => Number.isInteger(asset.mintDecimals)).map(asset => [asset.address, asset.mintDecimals]));
@@ -50,9 +51,9 @@ export function renderPortfolio(
     if (holdingValue != null) { pricedCount += 1; total += holdingValue; }
     const identity = portfolioTokenIdentity(holding.mint, {asset, launch:verifiedLaunchPolicyForMint(holding.mint), fundedMint:PROTOCOL_FUNDED_MINT});
     return `<a class="portfolio-holding-row" href="/token/${encodeURIComponent(holding.mint)}"><span><strong>${escapeHtml(identity.label)}</strong><small>${escapeHtml(identity.description)}</small><small class="portfolio-token-address" title="${escapeHtml(holding.mint)}">${escapeHtml(identity.address)}</small></span><span>${escapeHtml(formatOnChainNumber(holding.quantity, 6))}</span><span>${holdingValue == null ? '—' : escapeHtml(formatDashboardUsd(holdingValue))}</span><span title="Complete cost basis unavailable">—</span></a>`;
-  }).join('') || `<div class="empty-state">${!address ? 'Connect a wallet to see token holdings.' : portfolioHoldings.status === 'loading' ? 'Checking live Solana balances…' : portfolioHoldings.status === 'unavailable' ? 'Token balances are unavailable from Solana RPC.' : 'No SPL token holdings in this wallet.'}</div>`;
-  status.textContent = !address ? 'Connect wallet' : current ? `${holdings.length} tokens · ${portfolioHoldings.coverage}${pricedCount < holdings.length ? ' · some values unavailable' : ''}` : portfolioHoldings.status === 'loading' ? 'Checking Solana balances' : 'Balance lookup unavailable';
-  value.textContent = pricedCount ? `${pricedCount < holdings.length ? '≥' : ''}${formatDashboardUsd(total)}` : holdings.length ? '—' : current ? '$0.00' : '—';
+  }).join('') || `<div class="empty-state">${!address ? 'Connect a wallet to see token holdings.' : portfolioHoldings.status === 'loading' ? 'Checking live Solana balances…' : portfolioHoldings.status === 'unavailable' ? 'Token balances are unavailable from Solana RPC. Select Refresh to retry.' : partial ? 'Some token balances could not be checked. Select Refresh to retry.' : 'No SPL token holdings in this wallet.'}</div>`;
+  status.textContent = !address ? 'Connect wallet' : current ? `${holdings.length} ${partial ? holdings.length === 1 ? 'observed token' : 'observed tokens' : 'tokens'} · ${portfolioHoldings.coverage}${pricedCount < holdings.length ? ' · some values unavailable' : ''}${partial ? ' · Select Refresh to retry.' : ''}` : portfolioHoldings.status === 'loading' ? 'Checking Solana balances' : 'Balance lookup unavailable';
+  value.textContent = pricedCount ? `${partial || pricedCount < holdings.length ? '≥' : ''}${formatDashboardUsd(total)}` : holdings.length ? '—' : current && !partial ? '$0.00' : '—';
   const trades = address ? walletDetailTrades(address) : [];
   const history=portfolioTradeHistory?.wallet===address?portfolioTradeHistory:null;
   for (const trade of trades) if (Number.isInteger(trade.decimals)) decimalsByMint.set(trade.mint,trade.decimals);
