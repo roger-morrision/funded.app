@@ -5,6 +5,7 @@ import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/sp
 import { BUYBACK_POLICY } from '../buyback-policy.js';
 import { V3_DEVNET_FUNDED_MINT, V3_DEVNET_FUNDED_POOL } from './v3-buyback-instruction.mjs';
 import { MIN_V3_BUYBACK_ORDER_LAMPORTS } from './v3-buyback-worker-policy.mjs';
+import {selectV3PumpBuy} from './v3-buyback-setup.mjs';
 
 export function protectedV3BuybackClip(budgetLamports, reserveLamports) {
   const budget=BigInt(budgetLamports),reserves=BigInt(reserveLamports);
@@ -42,9 +43,8 @@ export async function quoteV3Buyback({ connection, vault, budgetLamports }) {
   const minimum=BigInt(quoted.base?.toString()||0);
   if (minimum<=0n) throw new Error('The protected $FUNDED output quote is empty.');
   const instructions=await PUMP_AMM_SDK.buyQuoteInput(state,new BN(String(quote)),1);
-  const buy=instructions.filter(ix=>ix.programId.equals(PUMP_AMM_PROGRAM_ID));
-  if (buy.length!==1) throw new Error('The PumpSwap quote has no unique buy instruction.');
-  return { pumpBuyInstruction:buy[0],baseTokenProgram:mintInfo.owner,
+  const buy=selectV3PumpBuy(instructions);
+  return { pumpBuyInstruction:buy,baseTokenProgram:mintInfo.owner,
     spendableQuoteIn:String(quote),minBaseAmountOut:String(minimum),
     maxTotalDebit:String(quote) };
 }

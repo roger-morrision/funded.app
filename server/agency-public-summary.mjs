@@ -18,7 +18,7 @@ export function agencyPublicSummary({state,programId,approvedHash,build,now=Date
   const history=Object.values(state.v3AgencyExecutions||{}).filter(row=>row.status==='finalized'
     &&row.intent?.programId===programId&&row.intent.approvedHash===approvedHash&&row.proof?.finalized===true
     &&row.proof.balanceDeltaVerified===true&&row.proof.signature===row.signature).map(row=>({mint:row.intent.mint,agent:row.intent.agent,
-      signature:row.signature,finalizedAt:row.finalizedAt,slot:row.proof.slot,amountLamports:row.proof.amount||row.proof.spentLamports,
+      signature:row.signature,finalizedAt:row.proof.burnedAt||row.finalizedAt,slot:row.proof.slot,amountLamports:row.proof.amount||row.proof.spentLamports,
       burnedBaseUnits:row.proof.burnedBaseUnits||null,postUrl:row.proof.post?.url||null,status:'worker-recorded-finalized'}))
     .sort((a,b)=>String(b.finalizedAt).localeCompare(String(a.finalizedAt))).slice(0,50);
   return{funding:{status:complete?'worker-verified-snapshots':'partial',scope:'last-finalized-worker-snapshots-of-registered-launches',

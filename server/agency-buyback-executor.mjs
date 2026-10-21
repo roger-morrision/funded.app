@@ -9,6 +9,7 @@ import {executeAgencyJournal} from './agency-execution-journal.mjs';
 import {buildV3BuybackInstruction} from './v3-buyback-instruction.mjs';
 import {prepareV3BuybackTransaction} from './v3-buyback-transaction.mjs';
 import {loadFinalizedV3Buyback} from './v3-buyback-proof.mjs';
+import {v3BuybackFeeSetup} from './v3-buyback-setup.mjs';
 
 // Fixed action key plus contract completion bitmap enforce one purchase per
 // milestone, including when future fees replenish this agent's sub-budget.
@@ -49,13 +50,17 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
     if(!lookup.value?.key.equals(new PublicKey(lookupAddress))||lookup.value.state.deactivationSlot!==0xffffffffffffffffn)
       throw new Error('An active agency buyback lookup table is required.');
     const latest=await connection.getLatestBlockhash('finalized');
-    const prepared=prepareV3BuybackTransaction({instruction:built.instruction,authority:authority.publicKey,blockhash:latest.blockhash,lookupTable:lookup.value});
+    const setupInstructions=v3BuybackFeeSetup({pumpBuyInstruction:quoted.pumpBuyInstruction,authority:authority.publicKey});
+    const prepared=prepareV3BuybackTransaction({instruction:built.instruction,authority:authority.publicKey,blockhash:latest.blockhash,lookupTable:lookup.value,setupInstructions});
+    const transaction=VersionedTransaction.deserialize(Buffer.from(prepared,'base64'));
+    const simulation=await connection.simulateTransaction(transaction,{sigVerify:false,replaceRecentBlockhash:true,commitment:'finalized'});
+    if(simulation.value.err)throw new Error('Protected agency buyback simulation failed before signing.');
     // Conservative maximum for two ATAs, volume PDA and receipt, including
     // temporary refundable rent. Preserve reserve before, during and after CPI.
     const rents=await Promise.all([connection.getMinimumBalanceForRentExemption(10240,'finalized'),
-      connection.getMinimumBalanceForRentExemption(209,'finalized'),connection.getMinimumBalanceForRentExemption(256,'finalized')]);
-    return{transaction:VersionedTransaction.deserialize(Buffer.from(prepared,'base64')),lastValidBlockHeight:latest.lastValidBlockHeight,
-      estimatedRentLamports:String(BigInt(rents[0])*2n+BigInt(rents[1])+BigInt(rents[2])),evidence:{
+      connection.getMinimumBalanceForRentExemption(209,'finalized'),connection.getMinimumBalanceForRentExemption(256,'finalized'),connection.getMinimumBalanceForRentExemption(165,'finalized')]);
+    return{transaction,lastValidBlockHeight:latest.lastValidBlockHeight,
+      estimatedRentLamports:String(BigInt(rents[0])*2n+BigInt(rents[1])+BigInt(rents[2])+BigInt(rents[3])*BigInt(setupInstructions.length)),evidence:{
         agencyExecution:{...agencyExecution,observationHash:agencyExecution.observationHash.toString('hex')},
         observation:{mint,slot:observation.slot,marketCapUsdMicros:observation.marketCapUsdMicros,observedAt:observation.observedAt,
           source:observation.source,accountHashes:observation.accountHashes,solUsd:observation.solUsd,solUsdFetchedAt:observation.solUsdFetchedAt},

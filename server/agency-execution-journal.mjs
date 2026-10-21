@@ -41,7 +41,9 @@ export async function executeAgencyJournal({store,connection,key,intent,authorit
       const active=state[BUCKET]?.[key];
       if(active?.signature!==current.signature||active.intentHash!==intentHash)return null;
       const {signedTransaction,...rest}=active;
-      state[BUCKET][key]={...rest,status:'finalized',proof:snapshot(proof),finalizedAt:new Date(now()).toISOString()};
+      const verifiedAt=new Date(now()).toISOString();
+      state[BUCKET][key]={...rest,status:'finalized',proof:snapshot(proof),
+        finalizedAt:active.finalizedAt||verifiedAt,lastVerifiedAt:verifiedAt};
       return{status:'finalized',signature:current.signature,key,proof:snapshot(proof)};
     });
   };

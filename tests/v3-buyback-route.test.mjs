@@ -22,6 +22,8 @@ function fixture(enabled=true, triggerReached=true) {
   const baseAta=getAssociatedTokenAddressSync(V3_DEVNET_FUNDED_MINT,vault,true);
   const quoteAta=getAssociatedTokenAddressSync(NATIVE_MINT,vault,true);
   const addresses=Array.from({length:25},(_,i)=>key(i+60).publicKey);
+  for(const [ownerIndex,ataIndex] of [[9,10],[18,17],[23,24]])
+    addresses[ataIndex]=getAssociatedTokenAddressSync(NATIVE_MINT,addresses[ownerIndex],true);
   for(const [index,value] of [[0,V3_DEVNET_FUNDED_POOL],[1,vault],
     [3,V3_DEVNET_FUNDED_MINT],[4,NATIVE_MINT],[5,baseAta],[6,quoteAta],
     [11,TOKEN_PROGRAM_ID],[12,TOKEN_PROGRAM_ID],[13,SystemProgram.programId],

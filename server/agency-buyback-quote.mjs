@@ -2,6 +2,7 @@ import BN from 'bn.js';
 import {OnlinePumpAmmSdk,PUMP_AMM_SDK,PUMP_AMM_PROGRAM_ID,buyQuoteInput} from '@pump-fun/pump-swap-sdk';
 import {NATIVE_MINT} from '@solana/spl-token';
 import {protectedV3BuybackClip} from './v3-buyback-quote.mjs';
+import {selectV3PumpBuy} from './v3-buyback-setup.mjs';
 
 export async function quoteAgencyBuyback({observation,vault,budgetLamports,
   readSwap=(connection,pool,user)=>new OnlinePumpAmmSdk(connection).swapSolanaState(pool,user),
@@ -21,8 +22,7 @@ export async function quoteAgencyBuyback({observation,vault,budgetLamports,
     baseMint:state.baseMint,baseMintAccount:state.baseMintAccount,coinCreator:state.pool.coinCreator,creator:state.pool.creator,
     quoteMint:state.pool.quoteMint,isMayhemMode:state.pool.isMayhemMode,creatorFeeBps:state.pool.creatorFeeBps});
   if(BigInt(String(quoted.base||0))<=0n)throw new Error('The agency minimum token output is empty.');
-  const instructions=await buildBuy(state,new BN(String(amount))),buys=instructions.filter(ix=>ix.programId.equals(PUMP_AMM_PROGRAM_ID));
-  if(buys.length!==1)throw new Error('An exact unique PumpSwap own-coin buy is required.');
-  return{pumpBuyInstruction:buys[0],baseTokenProgram:observation.baseTokenProgram,spendableQuoteIn:String(amount),
+  const instructions=await buildBuy(state,new BN(String(amount))),buy=selectV3PumpBuy(instructions);
+  return{pumpBuyInstruction:buy,baseTokenProgram:observation.baseTokenProgram,spendableQuoteIn:String(amount),
     maxTotalDebit:String(amount),minBaseAmountOut:String(quoted.base)};
 }

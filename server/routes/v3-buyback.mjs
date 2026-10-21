@@ -9,6 +9,7 @@ import { buildV3BuybackInstruction, v3BuybackId, v3BuybackOnchainId } from '../v
 import { quoteV3Buyback } from '../v3-buyback-quote.mjs';
 import { loadFinalizedV3Buyback } from '../v3-buyback-proof.mjs';
 import { prepareV3BuybackTransaction, submitV3BuybackTransaction } from '../v3-buyback-transaction.mjs';
+import {v3BuybackFeeSetup} from '../v3-buyback-setup.mjs';
 import { readV3BuybackDashboard } from '../v3-buyback-dashboard.mjs';
 import { buybackTriggerLamports } from '../devnet-qa-minimums.mjs';
 import { v3BuybackNextOrder, v3BuybackSourceSpent } from '../v3-buyback-orders.mjs';
@@ -233,7 +234,8 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     const latest=await connection.getLatestBlockhash('finalized');
     const preparedTransaction=prepareV3BuybackTransaction({
       instruction:built.instruction,authority:authority.publicKey,
-      blockhash:latest.blockhash,lookupTable:lookup.value});
+      blockhash:latest.blockhash,lookupTable:lookup.value,
+      setupInstructions:v3BuybackFeeSetup({pumpBuyInstruction:quoted.pumpBuyInstruction,authority:authority.publicKey})});
     const expiresAt=new Date(Date.now()+60_000).toISOString();
     const signed=VersionedTransaction.deserialize(Buffer.from(preparedTransaction,'base64'));
     signed.sign([authority]);

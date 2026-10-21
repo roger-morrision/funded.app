@@ -5,6 +5,7 @@ import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { PUMP_AMM_PROGRAM_ID } from '@pump-fun/pump-swap-sdk';
 import { verifyMintPolicyV3Account } from '../mint-router-v3.js';
 import {agencyDiscriminator} from '../agency-mint-router-v3.js';
+import {v3BuybackFeeSetup} from './v3-buyback-setup.mjs';
 import { buildV3BuybackInstruction, V3_DEVNET_FUNDED_MINT,
   V3_DEVNET_FUNDED_POOL } from './v3-buyback-instruction.mjs';
 
@@ -37,10 +38,19 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
     const signers = staticKeys.slice(0, message.header?.numRequiredSignatures || 0);
     if (!signers.includes(new PublicKey(authority).toBase58())) return null;
     const instructions = message.instructions || message.compiledInstructions || [];
-    let routerIndex = -1;
+    let routerIndex = -1,setupIndex=0;
+    const setup=()=>v3BuybackFeeSetup({pumpBuyInstruction,authority});
     for (let index = 0; index < instructions.length; index++) {
       const ix = instructions[index];
       if (keys[ix.programIdIndex] === ComputeBudgetProgram.programId.toBase58()) continue;
+      if(keys[ix.programIdIndex]!==new PublicKey(programId).toBase58()){
+        if(routerIndex!==-1)return null;
+        const allowed=setup()[setupIndex++],ixKeys=ix.accounts||ix.accountKeyIndexes||[];
+        if(!allowed||keys[ix.programIdIndex]!==allowed.programId.toBase58()
+          ||!bytes(ix.data).equals(Buffer.from(allowed.data))||ixKeys.length!==allowed.keys.length
+          ||allowed.keys.some((entry,offset)=>keys[ixKeys[offset]]!==entry.pubkey.toBase58()))return null;
+        continue;
+      }
       if (routerIndex !== -1 || keys[ix.programIdIndex] !== new PublicKey(programId).toBase58())
         return null;
       const ixKeys = ix.accounts || ix.accountKeyIndexes || [];
@@ -50,7 +60,7 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
           keys[ixKeys[offset]] !== entry.pubkey.toBase58())) return null;
       routerIndex = index;
     }
-    if (routerIndex < 0) return null;
+    if (routerIndex < 0||setupIndex&&setupIndex!==setup().length) return null;
     const inner = tx.meta.innerInstructions?.find(group => group.index === routerIndex)?.instructions || [];
     let pumpSeen = false, burnSeen = false;
     for (const ix of inner) {

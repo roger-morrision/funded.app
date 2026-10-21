@@ -3,10 +3,10 @@ import { ComputeBudgetProgram, PublicKey, TransactionMessage,
   VersionedTransaction } from '@solana/web3.js';
 
 export function prepareV3BuybackTransaction({ instruction, authority,
-  blockhash, lookupTable }) {
+  blockhash, lookupTable, setupInstructions=[] }) {
   const message=new TransactionMessage({ payerKey:new PublicKey(authority),
     recentBlockhash:blockhash, instructions:[
-      ComputeBudgetProgram.setComputeUnitLimit({ units:350_000 }), instruction,
+      ComputeBudgetProgram.setComputeUnitLimit({ units:350_000 }), ...setupInstructions, instruction,
     ] })
     .compileToV0Message([lookupTable]);
   const transaction=new VersionedTransaction(message);

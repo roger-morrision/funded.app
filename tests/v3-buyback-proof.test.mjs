@@ -11,10 +11,11 @@ import { buildV3BuybackInstruction, V3_DEVNET_FUNDED_MINT,
   V3_DEVNET_FUNDED_POOL } from '../server/v3-buyback-instruction.mjs';
 import { loadFinalizedV3Buyback } from '../server/v3-buyback-proof.mjs';
 import {deriveAgencyVaultsV3,agencyDiscriminator} from '../agency-mint-router-v3.js';
+import {v3BuybackFeeSetup} from '../server/v3-buyback-setup.mjs';
 
 const key = byte => Keypair.fromSeed(new Uint8Array(32).fill(byte)).publicKey;
 
-function fixture({agency=false,own=false}={}) {
+function fixture({agency=false,own=false,feeSetup=false}={}) {
   const programId=key(51), sourceMint=key(52), authority=key(53), creator=key(54);
   const boughtMint=own?sourceMint:V3_DEVNET_FUNDED_MINT,pool=own?key(129):V3_DEVNET_FUNDED_POOL;
   const vault=(agency?deriveAgencyVaultsV3:deriveMintVaultsV3)(programId,sourceMint)[own?7:6];
@@ -22,6 +23,8 @@ function fixture({agency=false,own=false}={}) {
   const quoteAta=getAssociatedTokenAddressSync(NATIVE_MINT,vault,true);
   const addresses=Array.from({length:23},(_,index)=>key(index+60));
   addresses.push(key(83),key(84));
+  for(const [ownerIndex,ataIndex] of [[9,10],[18,17],[23,24]])
+    addresses[ataIndex]=getAssociatedTokenAddressSync(NATIVE_MINT,addresses[ownerIndex],true);
   for(const [index,address] of [[0,pool],[1,vault],
     [3,boughtMint],[4,NATIVE_MINT],[5,fundedAta],[6,quoteAta],
     [11,TOKEN_PROGRAM_ID],[12,TOKEN_PROGRAM_ID],[13,SystemProgram.programId],
@@ -36,7 +39,7 @@ function fixture({agency=false,own=false}={}) {
       observationSlot:'122',observedAt:1760399999,marketCapUsdMicros:'100000000000',observationHash:Buffer.alloc(32,8)}}:{})};
   const built=buildV3BuybackInstruction(params);
   const tx=new Transaction({feePayer:authority,recentBlockhash:key(110).toBase58()})
-    .add(built.instruction);
+    .add(...(feeSetup?v3BuybackFeeSetup({pumpBuyInstruction,authority}):[]),built.instruction);
   const message=tx.compileMessage();
   const keys=message.accountKeys.map(item=>item.toBase58());
   const index=pubkey=>keys.indexOf(pubkey.toBase58());
@@ -57,7 +60,7 @@ function fixture({agency=false,own=false}={}) {
   postBalances[index(vault)]-=1_000_000;
   const signature=key(111).toBase58();
   const row={slot:123,transaction:{signatures:[signature],message},
-    meta:{err:null,preBalances,postBalances,innerInstructions:[{index:0,
+    meta:{err:null,preBalances,postBalances,innerInstructions:[{index:feeSetup?3:0,
       instructions:[{programIdIndex:index(PUMP_AMM_PROGRAM_ID),
         accounts:[index(pool),index(vault)],data:bs58.encode(swap)},
       {programIdIndex:index(TOKEN_PROGRAM_ID),
@@ -88,6 +91,15 @@ test('a V3 buyback without the finalized token burn cannot become a receipt', as
   const f=fixture();f.row.meta.innerInstructions[0].instructions.pop();
   assert.equal(await loadFinalizedV3Buyback({...f.params,connection:f.connection,
     signature:f.signature,verifyPolicy:f.verifyPolicy}),null);
+});
+
+test('proof accepts only exact authority-funded canonical fee setup before the burn',async()=>{
+  const f=fixture({agency:true,own:true,feeSetup:true}),input={...f.params,connection:f.connection,signature:f.signature,verifyPolicy:f.verifyPolicy};
+  assert.equal((await loadFinalizedV3Buyback(input)).burnedBaseUnits,'750');
+  const ix=f.row.transaction.message.instructions[0],data=ix.data;
+  ix.data=bs58.encode(Buffer.from([0]));assert.equal(await loadFinalizedV3Buyback(input),null);ix.data=data;
+  const accounts=[...ix.accounts];ix.accounts[0]=ix.accounts[2];assert.equal(await loadFinalizedV3Buyback(input),null);ix.accounts=accounts;
+  f.row.transaction.message.instructions.splice(1,1);assert.equal(await loadFinalizedV3Buyback(input),null);
 });
 
 test('agency policy FUNDED buyback retains category six and its pinned target',async()=>{

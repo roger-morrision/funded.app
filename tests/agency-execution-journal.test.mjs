@@ -34,7 +34,10 @@ test('timeout and restart reuse one journaled signature; finalized proof is requ
   assert.equal(f.prepared,1);assert.equal(f.sent.length,2);assert.equal(f.sent[0],f.sent[1]);
   f.setProof(true);assert.equal((await executeAgencyJournal(f.input)).status,'finalized');
   assert.equal(f.sent.length,2);assert.equal(f.state.v3AgencyExecutions[f.input.key].signedTransaction,undefined);
+  const finalizedAt=f.state.v3AgencyExecutions[f.input.key].finalizedAt;f.tick();
   assert.equal((await executeAgencyJournal(f.input)).status,'finalized');
+  assert.equal(f.state.v3AgencyExecutions[f.input.key].finalizedAt,finalizedAt);
+  assert.notEqual(f.state.v3AgencyExecutions[f.input.key].lastVerifiedAt,finalizedAt);
   f.setProof(false);assert.equal((await executeAgencyJournal(f.input)).status,'verification-pending');
   assert.equal(f.sent.length,2);
 });

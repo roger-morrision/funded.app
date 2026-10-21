@@ -31,3 +31,10 @@ test('public activation requires verified normal-flow readiness; journal secrets
   ready=true;await handler({method:'GET'},{},new URL('https://funded.vip/api/marketing-agency'));assert.equal(response.active,true);
   assert.equal(response.funding.collectedLamports,null);assert.deepEqual(response.history,[]);assert(!JSON.stringify(response).includes('private-journal-bytes'));
 });
+
+test('burn history uses receipt time instead of a later worker reconciliation time',()=>{
+  const f=fixture(),burnedAt='2026-10-20T01:00:00.000Z';
+  f.state.v3AgencyExecutions={burn:{status:'finalized',signature:'sig',finalizedAt:'2026-10-21T01:00:00.000Z',
+    intent:{programId,approvedHash:f.args.approvedHash,mint,agent:1},proof:{signature:'sig',finalized:true,balanceDeltaVerified:true,burnedAt}}};
+  assert.equal(agencyPublicSummary(f.args).history[0].finalizedAt,burnedAt);
+});
