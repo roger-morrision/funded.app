@@ -6,19 +6,47 @@ import { CREATOR_SUPPORT_VERSION } from '../../creator-support-model.js';
 import { createReadCache } from '../read-cache.mjs';
 import { Connection } from '@solana/web3.js';
 import { verifyRecordedV3Settlements } from '../v3-settlement-status.mjs';
+import { createSettlementStatusReader } from '../settlement-status-reader.mjs';
+import { allocationAuditHash } from '../allocation-audit-hash.mjs';
 
 export function createServiceStatusRoutes({
   store, solanaCluster, solanaRpcUrl, automaticRewardStore, launchPolicyConfig,
   keeperKeypair, v3RouterConfig, birdeyeApiKey, pumpApiUrl, xOAuthConfigured,
   readSolUsdQuote, requireAuthorized, respond, env = process.env,
-  readSettlementEvidence, connectionFactory = url => new Connection(url, 'finalized'),
+  readSettlementEvidence, connectionFactory = (url, config) => new Connection(url, config),
 }) {
+  // Preserve the existing dependency-probe cache, but never use its lifetime to
+  // hide a change in the collection, launch policy, or settlement inputs.
   const statusCache = createReadCache({ ttlMs: 60_000, maxEntries: 1 });
+  const identity = () => ({ cluster:solanaCluster, build:env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
+    rpcUrl:solanaRpcUrl, programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,
+    approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256,
+    enabled:env.FUNDED_V3_SETTLEMENT_ENABLED === 'true',
+    programEvidenceRpcUrl:process.env.FUNDED_PROGRAM_EVIDENCE_RPC_URL || '' });
+  const settlementStatus = createSettlementStatusReader({
+    readSnapshot:async () => {
+      const config = identity();
+      return { identity:config, state:config.cluster === 'devnet' && config.enabled
+        ? await store.read() : {} };
+    },
+    verify:async ({state,identity:config,signal}) => {
+      if (readSettlementEvidence) return readSettlementEvidence({state,signal});
+      if (config.cluster !== 'devnet' || !config.enabled)
+        return { verified:false, scope:'all-recorded-v3-collections', recorded:0,
+          checked:0, reason:'v3-settlement-disabled' };
+      return verifyRecordedV3Settlements({state,
+        connection:connectionFactory(config.rpcUrl, {commitment:'finalized',
+          disableRetryOnRateLimit:true, fetch:(target,options) => fetch(target,{...options,
+            signal:options?.signal ? AbortSignal.any([signal,options.signal]) : signal})}),
+        programId:config.programId,approvedHash:config.approvedHash});
+    },
+  });
   const json = (...args) => { respond(...args); return true; };
   async function handleServiceStatus(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/status') {
-      const report = await statusCache('service-status', () => serviceStatus({
-        cluster: solanaCluster, build: process.env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
+      const config = identity();
+      const [base, proof] = await Promise.all([statusCache(allocationAuditHash(config), () => serviceStatus({
+        cluster: solanaCluster, build: config.build,
         database: () => store.health(),
         rpc: async () => {
           const response = await fetch(solanaRpcUrl, { method: 'POST', headers: { 'content-type': 'application/json' },
@@ -27,16 +55,13 @@ export function createServiceStatusRoutes({
           if (!response.ok || data.error || typeof data.result !== 'string') throw new Error('RPC unavailable');
           return data.result;
         },
-        settlement: readSettlementEvidence || (async () => {
-          if (solanaCluster !== 'devnet' || env.FUNDED_V3_SETTLEMENT_ENABLED !== 'true')
-            return { verified:false, scope:'all-recorded-v3-collections', recorded:0,
-              checked:0, reason:'v3-settlement-disabled' };
-          return verifyRecordedV3Settlements({ state:await store.read(),
-            connection:connectionFactory(solanaRpcUrl),
-            programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,
-            approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256 });
-        }),
-      }));
+      })), settlementStatus(config)]);
+      const currentProof = base.status === 'operational' ? proof : {
+        verified:false,scope:'all-recorded-v3-collections',recorded:proof.recorded,checked:0,
+        status:'unavailable',reason:'dependencies-unavailable',
+      };
+      const report = {...base, respondedAt:new Date().toISOString(),
+        settlementVerified:currentProof.verified === true, settlementEvidence:currentProof};
       return json(res, 200, report);
     }
     if (req.method === 'GET' && url.pathname === '/api/health') {
