@@ -122,14 +122,23 @@ test('timing configuration cannot extend supported response, scan, inventory or 
     assert.throws(()=>fixture(options),/timing budgets/);
 });
 
-test('aborted raw scans are capped at two and capacity recovers when retired work quiesces',async()=>{
-  const gates=[deferred(),deferred()];let calls=0,active=0,maximum=0;
+test('aborted raw scans are capped at two and capacity recovers when retired work quiesces',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  const gates=[deferred(),deferred()],started=[deferred(),deferred()];let calls=0,active=0,maximum=0;
   const f=fixture({responseWaitMs:20,verificationTimeoutMs:10,verify:async()=>{
     const index=calls++;maximum=Math.max(maximum,++active);
+    started[index]?.resolve();
     try{return index<2?await gates[index].promise:proof(1);}finally{active--;}
   }});
-  assert.equal((await f.read()).reason,'verification-timeout');f.setTime(1_060_000);
-  assert.equal((await f.read()).reason,'verification-timeout');f.setTime(1_120_000);
+  // Synchronize admitted work, then advance the unchanged 10ms verification
+  // budget before the unchanged 20ms response budget; wall-clock snapshot cost
+  // must not turn this capacity/retirement assertion into a response race.
+  const first=f.read();await tick();assert.equal(calls,1);await started[0].promise;
+  t.mock.timers.tick(10);await tick();
+  assert.equal((await first).reason,'verification-timeout');f.setTime(1_060_000);
+  const second=f.read();await tick();assert.equal(calls,2);await started[1].promise;
+  t.mock.timers.tick(10);await tick();
+  assert.equal((await second).reason,'verification-timeout');f.setTime(1_120_000);
   assert.equal((await f.read()).reason,'verification-capacity-unavailable');assert.equal(calls,2);
   gates[0].resolve(proof(1));await tick();
   assert.equal((await f.read()).verified,true);assert.equal(calls,3);assert.equal(maximum,2);
