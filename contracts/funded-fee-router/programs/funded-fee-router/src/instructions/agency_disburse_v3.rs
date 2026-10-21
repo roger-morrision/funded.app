@@ -132,11 +132,12 @@ pub struct BillAgencyPromotionV3<'info> {
 // a delivery hash is an audit commitment, not an on-chain X oracle.
 pub fn bill_promotion(ctx: Context<BillAgencyPromotionV3>, post_id: u64, delivery_hash: [u8; 32], sequence: u32, amount: u64, posted_at: i64) -> Result<()> {
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
+    let rules = super::agency_rules_v3::read_rules(&ctx.accounts.policy.to_account_info().try_borrow_data()?, super::agency_rules_v3::POLICY_BASE)?;
     let now = Clock::get()?.unix_timestamp; let policy = &mut ctx.accounts.policy;
     require!(post_id > 0 && delivery_hash != [0; 32] && amount > 0 && policy.selected_agents & 1 != 0
         && sequence == policy.promotion_sequence && posted_at > 0 && posted_at <= now
         && (policy.last_promotion_at == 0
-            || posted_at.saturating_sub(policy.last_promotion_at) >= 86_400), ErrorCode::InvalidAgencyPolicyV3);
+            || posted_at.saturating_sub(policy.last_promotion_at) >= rules.promotion_interval_seconds), ErrorCode::InvalidAgencyPolicyV3);
     let target = agent_targets(policy.paid_lamports[7], policy.selected_agents)?[0];
     let spent = policy.agent_spent[0].checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
     let withdrawn = policy.withdrawn_lamports[7].checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;

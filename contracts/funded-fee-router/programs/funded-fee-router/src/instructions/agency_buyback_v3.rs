@@ -133,7 +133,8 @@ pub fn handler<'info>(ctx: Context<'info, BuybackAgencyMintV3<'info>>,
     let now = Clock::get()?;
     let remaining = if own_coin {
         let bit = 1u8 << agent;
-        let threshold = if agent == 1 { 100_000_000_000u64 } else { 300_000_000_000u64 };
+        let rules = super::agency_rules_v3::read_rules(&policy.to_account_info().try_borrow_data()?, super::agency_rules_v3::POLICY_BASE)?;
+        let threshold = rules.market_caps[usize::from(agent - 1)];
         // The current authority attests a finalized, independently verified
         // reserve + USD-price observation. This is not an on-chain USD oracle.
         require!(policy.selected_agents & bit != 0 && policy.completed_agents & bit == 0

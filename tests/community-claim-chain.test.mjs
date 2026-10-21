@@ -19,12 +19,12 @@ const manifest = buildCommunityManifest({ drop, launchMint:mint, eligibilityMint
 test('builds the escrow initialization instruction with exact on-chain account order', () => {
   const approval = buildCommunitySnapshotApprovalInstruction({programId,appOwner:authority,programData:key(),
     authority,creator,mint,eligibilityMint,manifest});
-  assert.equal(approval.keys.length, 9);
+  assert.equal(approval.keys.length, 10);
   assert.equal(approval.keys[0].isSigner, true);
   assert.equal(approval.keys[5].pubkey.toBase58(), communityAddresses({programId,authority,mint}).approval.toBase58());
   const { instruction, sourceToken, dropToken } = buildCommunityInitializeInstruction({ programId, authority, creator, mint,
     eligibilityMint, tokenProgram:TOKEN_PROGRAM_ID, manifest, sourceVaultBalance:'1000' });
-  assert.equal(instruction.keys.length, 15);
+  assert.equal(instruction.keys.length, 16);
   assert.deepEqual(instruction.keys.slice(0, 5).map(row => row.pubkey.toBase58()), [authority, creator, authority, mint, eligibilityMint]);
   assert.equal(instruction.keys[7].pubkey.toBase58(), sourceToken);
   assert.equal(instruction.keys[10].pubkey.toBase58(), dropToken);

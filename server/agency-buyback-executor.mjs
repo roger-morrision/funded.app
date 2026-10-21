@@ -1,3 +1,4 @@
+import {DEFAULT_AGENCY_RULES} from '../config/agency-rules.js';
 import {createHash} from 'node:crypto';
 import {PublicKey,TransactionInstruction,VersionedTransaction} from '@solana/web3.js';
 import {deriveAgencyVaultsV3} from '../agency-mint-router-v3.js';
@@ -29,7 +30,7 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
   let observation=null;
   if(!saved?.signature){
     observation=await readObservation({connection,mint});
-    if(BigInt(observation.marketCapUsdMicros)<BigInt(agent===1?100000:300000)*1000000n)return{status:'below-threshold',mint,agent};
+    if(BigInt(observation.marketCapUsdMicros)<BigInt((context.policy.rules||DEFAULT_AGENCY_RULES).marketCapUsd[agent-1])*1000000n)return{status:'below-threshold',mint,agent};
   }
   const buybackId=createHash('sha256').update(`funded.agency.own-coin.v1:${mint}:${agent}`).digest();
   return journal({store,connection,key,intent,authority,prepare:async()=>{
@@ -41,7 +42,7 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
       ||now()<observation.observedAt*1000)throw new Error('A current finalized own-coin observation is required.');
     const vault=deriveAgencyVaultsV3(programId,mint)[7],quoted=await quote({observation,vault,budgetLamports:intent.maxBudgetLamports});
     const agencyExecution={agent,pool:observation.pool,observationSlot:String(observation.slot),observedAt:observation.observedAt,
-      marketCapUsdMicros:observation.marketCapUsdMicros,observationHash:Buffer.from(observation.observationHash,'hex')};
+      marketCapUsdMicros:observation.marketCapUsdMicros,rules:fresh.policy.rules||DEFAULT_AGENCY_RULES,observationHash:Buffer.from(observation.observationHash,'hex')};
     const built=buildV3BuybackInstruction({programId,sourceMint:mint,creator:intent.creator,authority:authority.publicKey,
       buybackId,agencyPolicy:true,agencyExecution,...quoted});
     const lookup=await connection.getAddressLookupTable(new PublicKey(lookupAddress),{commitment:'finalized'});

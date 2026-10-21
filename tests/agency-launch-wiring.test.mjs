@@ -46,12 +46,16 @@ test('normal agency launch readiness requires explicit acceptance, verified chai
     automaticRewardStore:{read:async()=>({serviceStatus:{checkedAt:new Date().toISOString(),constrainedPayouts:true}})},v3AuthorityKeypair:()=>({publicKey:authority}),
     connectionFactory:()=>({getGenesisHash:async()=>DEVNET_GENESIS_HASH,getAddressLookupTable:async()=>({value:{state:{deactivationSlot:0xffffffffffffffffn}}})}),
     programEvidence:async()=>({sha256:hash,account:{executable:true}}),verifyRouter:async()=>({verified:true,authority}),
-    readAgency:async()=>({verified:true,revision:'2',protocolSplit:split})});
+    readAgency:async()=>({verified:true,revision:'2',protocolSplit:split,...(state.configRules?{rules:state.configRules}:{})})});
   assert.equal((await config()).ready,true);assert.deepEqual((await config()).agency,{version:agency.version,configRevision:'2'});
   state.adminSettings.agencyWorker.build='c'.repeat(40);assert.equal((await config()).ready,false);state.adminSettings.agencyWorker.build=build;
   env.X_POST_ENABLED='false';env.X_POST_ACCOUNT_STATUS='suspended';assert.equal((await config()).ready,false);
   env.FUNDED_V3_AGENCY_BUYBACK_ENABLED='true';
   state.adminSettings.agencyBuybackWorker={...state.adminSettings.agencyWorker,version:'agency-buyback-executor-v1',capabilities:['buyback-100k','buyback-300k']};
   assert.equal((await config()).ready,true,'An independent verified buyback worker must not require X reinstatement.');
+  state.configRules={marketCapUsd:[10,20],communityWindowSeconds:300,promotionIntervalSeconds:86400,source:'on-chain-snapshot'};
+  assert.equal((await config()).ready,false,'Unpublished rules must close new-launch readiness.');
+  state.adminSettings.protocolFeePolicy.configRevision='2';state.adminSettings.protocolFeePolicy.rules=state.configRules;
+  assert.equal((await config()).ready,true);
   env.FUNDED_V3_AGENCY_NORMAL_FLOWS_ENABLED='false';assert.equal((await config()).ready,false);
 });

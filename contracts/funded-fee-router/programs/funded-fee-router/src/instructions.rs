@@ -45,3 +45,8 @@ pub use agency_buyback_v3::*;
 pub use buyback_v3::*;
 #[cfg(feature = "devnet-v3-program")]
 pub use recover_qa_v3::*;
+
+#[cfg(feature = "devnet-v3-program")]
+pub mod agency_rules_v3;
+#[cfg(feature = "devnet-v3-program")]
+pub use agency_rules_v3::*;

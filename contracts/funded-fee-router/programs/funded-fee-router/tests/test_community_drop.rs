@@ -11,7 +11,22 @@ use {
 mod support;
 
 fn send(svm: &mut LiteSVM, payer: &Keypair, signers: &[&Keypair], instructions: &[Instruction]) -> bool {
-    let message = Message::new_with_blockhash(instructions, Some(&payer.pubkey()), &svm.latest_blockhash());
+    #[cfg(feature = "devnet-v3-program")]
+    let instructions = {
+        use anchor_lang::Discriminator;
+        let mut rows = instructions.to_vec();
+        for ix in &mut rows {
+            let mint_index = if ix.data.starts_with(funded_fee_router::instruction::ApproveCommunitySnapshot::DISCRIMINATOR) { Some(3) }
+                else if ix.data.starts_with(funded_fee_router::instruction::InitializeCommunityDrop::DISCRIMINATOR) { Some(4) }
+                else if ix.data.starts_with(funded_fee_router::instruction::InitializeCommunityDropFromRewardVault::DISCRIMINATOR) { Some(3) } else { None };
+            if let Some(index) = mint_index {
+                let policy=Pubkey::find_program_address(&[b"mint-agency-policy-v3",ix.accounts[index].pubkey.as_ref()], &ix.program_id).0;
+                ix.accounts.push(anchor_lang::solana_program::instruction::AccountMeta::new_readonly(policy,false));
+            }
+        }
+        rows
+    };
+    let message = Message::new_with_blockhash(&instructions, Some(&payer.pubkey()), &svm.latest_blockhash());
     let transaction = VersionedTransaction::try_new(VersionedMessage::Legacy(message), signers).unwrap();
     match svm.send_transaction(transaction) {
         Ok(_) => true,
@@ -29,7 +44,13 @@ fn leaf(drop: Pubkey, recipient: Pubkey, amount: u64, index: u32) -> [u8; 32] {
 }
 
 #[test]
-fn community_claim_duplicate_ineligible_expiry_and_owner_closeout() {
+fn community_claim_duplicate_ineligible_expiry_and_owner_closeout() { community_flow(90*86400); }
+
+#[cfg(feature = "devnet-v3-program")]
+#[test]
+fn configured_five_minute_claim_window_is_enforced_by_program() { community_flow(300); }
+
+fn community_flow(window: i64) {
     let program_id = funded_fee_router::id();
     let mut svm = LiteSVM::new();
     svm.add_program(program_id, &support::program_bytes()).unwrap();
@@ -73,6 +94,20 @@ fn community_claim_duplicate_ineligible_expiry_and_owner_closeout() {
     let root_b = leaf(drop, eligible_b.pubkey(), 60, 1);
     let root = if root_a <= root_b { hashv(&[&root_a, &root_b]).to_bytes() } else { hashv(&[&root_b, &root_a]).to_bytes() };
     let migration_at = svm.get_sysvar::<Clock>().unix_timestamp;
+    #[cfg(feature = "devnet-v3-program")]
+    if window != 90*86400 {
+        use anchor_lang::AccountSerialize;
+        use funded_fee_router::instructions::agency_rules_v3::{write_rules,AgencyRules,POLICY_BASE,RULES_LEN};
+        let (policy,bump)=Pubkey::find_program_address(&[b"mint-agency-policy-v3",mint.pubkey().as_ref()],&program_id);
+        let saved=funded_fee_router::MintAgencyPolicyV3 {mint:mint.pubkey(),creator:creator.pubkey(),authority:protocol.pubkey(),
+          protocol_units:[800_000,60_000,25_000,15_000,400_000,500_000,200_000],settled_lamports:0,paid_lamports:[0;8],withdrawn_lamports:[0;8],
+          directed_units:[8_000_000,0,0],directed_released:[0;3],selected_agents:0,agent_spent:[0;3],completed_agents:0,
+          last_promotion_at:0,promotion_sequence:0,promotion_recipient:protocol.pubkey(),config_revision:1,bump};
+        let mut bytes=vec![0;POLICY_BASE+RULES_LEN];saved.try_serialize(&mut &mut bytes[..]).unwrap();
+        write_rules(&mut bytes,POLICY_BASE,AgencyRules{community_window_seconds:window,..AgencyRules::default()}).unwrap();
+        svm.set_account(policy,solana_account::Account{lamports:10_000_000,data:bytes,owner:program_id,executable:false,rent_epoch:0}).unwrap();
+    }
+
     let approve = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::ApproveCommunitySnapshot {
         merkle_root:root, snapshot_hash:[9; 32], migration_signature:[7; 64], migration_slot:1234,
         migration_at, total_amount:100, leaf_count:2,
@@ -138,7 +173,7 @@ fn community_claim_duplicate_ineligible_expiry_and_owner_closeout() {
     assert_eq!(token_amount(&svm, vault), 60);
 
     let mut clock = svm.get_sysvar::<Clock>();
-    clock.unix_timestamp = migration_at + 90 * 24 * 60 * 60;
+    clock.unix_timestamp = migration_at + window;
     svm.set_sysvar(&clock);
     let claim_b = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::ClaimCommunityDrop { amount:60, leaf_index:1, proof:vec![root_a] }.data(),
         funded_fee_router::accounts::ClaimCommunityDrop { payer:creator.pubkey(), drop, recipient:eligible_b.pubkey(), mint:mint.pubkey(), vault_token_account:vault,

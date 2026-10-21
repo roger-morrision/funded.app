@@ -23,6 +23,12 @@ pub mod funded_fee_router {
     }
 
     #[cfg(feature = "devnet-v3-program")]
+    pub fn configure_agency_rules_v3(ctx: Context<ConfigureAgencyRulesV3>, units: [u32; 7], recipient: Pubkey,
+        expected_revision: u64, market_caps: [u64; 2], community_window_seconds: i64, promotion_interval_seconds: i64) -> Result<()> {
+        instructions::agency_rules_v3::configure(ctx, units, recipient, expected_revision, market_caps, community_window_seconds, promotion_interval_seconds)
+    }
+
+    #[cfg(feature = "devnet-v3-program")]
     pub fn initialize_agency_config_v3(ctx: Context<InitializeAgencyConfigV3>, units: [u32; 7], recipient: Pubkey) -> Result<()> {
         agency_policy_v3::initialize_config(ctx, units, recipient)
     }

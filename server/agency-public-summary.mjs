@@ -2,7 +2,7 @@ import {agencySelectionMask} from '../agency-mint-router-v3.js';
 const exact=value=>typeof value==='string'&&/^(0|[1-9]\d{0,19})$/.test(value)&&BigInt(value)<=0xffffffffffffffffn;
 export function agencyPublicSummary({state,programId,approvedHash,build,now=Date.now()}){
   const launches=Object.values(state.launches||{}).filter(launch=>launch.cluster==='devnet'
-    &&launch.onchainVerified===true&&launch.pumpFeeRoute?.programId===programId&&launch.pumpFeeRoute.protocolSplit?.agencyPercent===10);
+    &&launch.onchainVerified===true&&launch.pumpFeeRoute?.programId===programId&&Number.isFinite(launch.pumpFeeRoute.protocolSplit?.agencyPercent));
   let paid=0n,spent=0n;
   const rows=launches.map(launch=>{
     const row=state.adminSettings?.agencyBudgets?.[launch.mint],age=now-Date.parse(row?.checkedAt);

@@ -50,10 +50,15 @@ export function projectAgencyAllocation({ totalGrossLamports, previousGrossLampo
 // No environment switch can assert that the current seven-category contract
 // enforces an eighth budget. A verified contract/receipt implementation must
 // replace this readiness result before execution can be wired into workers.
-export function marketingAgencyCapabilities() {
+export function marketingAgencyCapabilities({split,rules}={}) {
+  const policy={...POLICY,agents:POLICY.agents.map((agent,i)=>i===0?{...agent,...(rules?{description:`Promote the project no more often than once every ${rules.promotionIntervalSeconds/86400} day(s); bill its protected budget only after verified X delivery.`}:{})}:({...agent,
+    marketCapUsd:rules?.marketCapUsd[i-1]??agent.marketCapUsd,
+    name:`Agent ${i+1} · $${(rules?.marketCapUsd[i-1]??agent.marketCapUsd).toLocaleString("en-US")} buyback`,
+    description:`Buy this launched coin and burn it once after its verified market cap reaches $${(rules?.marketCapUsd[i-1]??agent.marketCapUsd).toLocaleString("en-US")}.`})),...(rules?{rules}:{} )};
   return { status: 'activation-blocked', active: false, executionEnabled: false,
-    policyHash: agencyPolicyHash, policy: POLICY,
+    policyHash: agencyPolicyHash, policy,
     requiredGrossPercent: { creator: 80, operations: 8, referrals: 1, agency: 2, dailyBonus: 4, fundedBuyback: 5 },
-    referralGrossPercents: POLICY.referralUnits.map(units=>units*100/POLICY.grossUnits),
+    referralGrossPercents: split?split.referralLevelPercents.map(n=>n/5):POLICY.referralUnits.map(units=>units*100/POLICY.grossUnits),
+    ...(split?{requiredGrossPercent:{creator:80,operations:split.operationsPercent/5,referrals:split.referralLevelPercents.reduce((a,b)=>a+b,0)/5,agency:split.agencyPercent/5,dailyBonus:split.communityPercent/5,fundedBuyback:split.buybackPercent/5}}:{}),
     blockers: [AGENCY_CONTRACT_BLOCKER, AGENCY_EXECUTOR_BLOCKER] };
 }

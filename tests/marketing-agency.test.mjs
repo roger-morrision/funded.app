@@ -138,7 +138,7 @@ test('verified buyback runtime exposes per-agent readiness without activating a 
   const route=createMarketingAgencyRoutes({respond:(_res,status,body)=>{response={status,body};},store:{read:async()=>state},
     env:{FUNDED_V3_AGENCY_ENABLED:'true',FUNDED_V3_AGENCY_BUYBACK_ENABLED:'true',X_POST_ENABLED:'false',X_POST_ACCOUNT_STATUS:'suspended',
       FUNDED_BUILD_ID:'a'.repeat(40),FUNDED_V3_PROGRAM_DATA_SHA256:'b'.repeat(64)},
-    readLaunchConfig:async()=>({ready:true,agency:{configRevision:'1'},programId:mint,protocolSplit:{agencyPercent:10}})});
+    readLaunchConfig:async()=>({ready:true,agency:{configRevision:'1'},programId:mint,protocolSplit:{operationsPercent:40,referralLevelPercents:[3,1.25,.75],communityPercent:20,buybackPercent:25,agencyPercent:10}})});
   await route({method:'GET'},{},new URL('https://funded.vip/api/marketing-agency'));
   assert.equal(response.body.active,true);assert.equal(response.body.publishingPaused,true);
   assert.deepEqual(response.body.agents.map(row=>row.enabled),[false,true,true]);assert.equal(response.body.agents[0].status,'paused');

@@ -1,3 +1,4 @@
+import {DEFAULT_AGENCY_RULES} from '../config/agency-rules.js';
 import {TransactionMessage,VersionedTransaction} from '@solana/web3.js';
 import {MARKETING_AGENCY_POLICY as POLICY} from '../config/marketing-agency.js';
 import {buildAgencyPromotionV3Instruction} from '../agency-mint-router-v3.js';
@@ -15,7 +16,7 @@ function assertCurrent(context,row,{delivered=false}={}){
   if(!context.verified||context.cluster!=='devnet'||context.programDataSha256!==row.approvedHash
     ||!(p.selectedMask&1)||p.promotionSequence!==row.sequence||BigInt(context.agentRemaining[0])<BigInt(row.amount)
     ||p.promotionRecipient!==row.recipient||!context.promotionRecipientReady
-    ||!delivered&&p.lastPromotionAt>0n&&BigInt(Math.floor(Date.now()/1000))-p.lastPromotionAt<BigInt(POLICY.promotionCadenceSeconds))
+    ||!delivered&&p.lastPromotionAt>0n&&BigInt(Math.floor(Date.now()/1000))-p.lastPromotionAt<BigInt((p.rules||DEFAULT_AGENCY_RULES).promotionIntervalSeconds))
     throw new Error('The immutable agency selection, delivery sequence, cadence or protected funding changed.');
 }
 
@@ -30,7 +31,7 @@ export async function runAgencyPromotion({store,outbox,connection,mint,programId
   let row=pending[0];
   if(!row){
     if(!(current.policy.selectedMask&1)||BigInt(current.agentRemaining[0])===0n)return{status:'not-payable',mint};
-    if(current.policy.lastPromotionAt>0n&&BigInt(Math.floor(now()/1000))-current.policy.lastPromotionAt<BigInt(POLICY.promotionCadenceSeconds))
+    if(current.policy.lastPromotionAt>0n&&BigInt(Math.floor(now()/1000))-current.policy.lastPromotionAt<BigInt((current.policy.rules||DEFAULT_AGENCY_RULES).promotionIntervalSeconds))
       return{status:'cadence-wait',mint};
     const sequence=current.policy.promotionSequence,key=`agency:${mint}:0:${sequence}`,amount=current.agentRemaining[0];
     const post=buildXPost('agency_promotion',{mint,name:current.launch.name,symbol:current.launch.symbol,
@@ -65,7 +66,7 @@ export async function runAgencyPromotion({store,outbox,connection,mint,programId
     prepare:async()=>{
       const fresh=await readContext({connection,state:await store.read(),mint,programId,approvedHash,authority:authority.publicKey});
       assertCurrent(fresh,row,{delivered:true});
-      if(postedAt<Math.floor(Date.parse(row.createdAt)/1000)||BigInt(postedAt)<fresh.policy.lastPromotionAt+BigInt(POLICY.promotionCadenceSeconds)
+      if(postedAt<Math.floor(Date.parse(row.createdAt)/1000)||BigInt(postedAt)<fresh.policy.lastPromotionAt+BigInt((fresh.policy.rules||DEFAULT_AGENCY_RULES).promotionIntervalSeconds)
         &&fresh.policy.lastPromotionAt>0n)throw new Error('Delivered agency post does not satisfy its funded sequence and cadence.');
       const built=buildAgencyPromotionV3Instruction({programId,mint,authority:authority.publicKey,promotionRecipient:row.recipient,
         postId,sequence:row.sequence,amount:row.amount,postedAt,deliveryHash:hash});

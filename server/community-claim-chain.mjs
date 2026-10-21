@@ -1,3 +1,4 @@
+import {deriveAgencyPolicyV3} from '../agency-mint-router-v3.js';
 import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
@@ -46,7 +47,8 @@ export function buildCommunitySnapshotApprovalInstruction({programId,appOwner,pr
     {pubkey:approval,isSigner:false,isWritable:true},
     {pubkey:program,isSigner:false,isWritable:false},
     {pubkey:new PublicKey(programData),isSigner:false,isWritable:false},
-    {pubkey:SystemProgram.programId,isSigner:false,isWritable:false}],data});
+    {pubkey:SystemProgram.programId,isSigner:false,isWritable:false},
+    {pubkey:deriveAgencyPolicyV3(program,mint).address,isSigner:false,isWritable:false}],data});
 }
 
 export function buildCommunityInitializeInstruction({ programId, authority, creator, mint, eligibilityMint, tokenProgram,
@@ -98,6 +100,7 @@ export function buildCommunityInitializeInstruction({ programId, authority, crea
     { pubkey:token, isSigner:false, isWritable:false },
     { pubkey:ASSOCIATED_TOKEN_PROGRAM_ID, isSigner:false, isWritable:false },
     { pubkey:SystemProgram.programId, isSigner:false, isWritable:false },
+    { pubkey:deriveAgencyPolicyV3(program,asset).address, isSigner:false, isWritable:false },
   ];
   return { instruction:new TransactionInstruction({ programId:program, keys, data }), drop:drop.toBase58(),
     sourceToken:sourceToken.toBase58(), dropToken:dropToken.toBase58() };

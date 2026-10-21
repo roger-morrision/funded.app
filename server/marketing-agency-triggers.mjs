@@ -1,3 +1,4 @@
+import {DEFAULT_AGENCY_RULES,validateAgencyRules} from '../config/agency-rules.js';
 import { PublicKey } from '@solana/web3.js';
 import { MARKETING_AGENCY_POLICY as POLICY, canonicalAgencySelection } from '../config/marketing-agency.js';
 
@@ -8,7 +9,8 @@ const key = value => { try { return new PublicKey(value).toBase58() === value; }
 // derive this observation from finalized pool state and a fresh USD oracle,
 // then verify protected funding and burn receipts independently.
 export function evaluateAgencyTrigger({ mint, agentId, selectedAgents, budgetLamports,
-  observation, execution = null, now = Date.now() }) {
+  observation, execution = null, now = Date.now(), rules = DEFAULT_AGENCY_RULES }) {
+  rules=validateAgencyRules(rules);
   if (!key(mint)) throw new Error('A canonical launched mint is required.');
   const selected = canonicalAgencySelection(selectedAgents);
   const agent = POLICY.agents.find(row => row.id === agentId);
@@ -25,7 +27,7 @@ export function evaluateAgencyTrigger({ mint, agentId, selectedAgents, budgetLam
     if(!Number.isSafeInteger(now)||!Number.isSafeInteger(completed)||completed>now
       ||!Number.isSafeInteger(execution.sequence)||execution.sequence<0||execution.sequence>=0xffff_ffff)
       return {status:'reconciliation-required'};
-    const nextEligibleAt=completed+POLICY.promotionCadenceSeconds*1000;
+    const nextEligibleAt=completed+rules.promotionIntervalSeconds*1000;
     if(now<nextEligibleAt)return {status:'cooldown',nextEligibleAt:new Date(nextEligibleAt).toISOString()};
     promotionSequence=execution.sequence+1;
   }
@@ -42,9 +44,10 @@ export function evaluateAgencyTrigger({ mint, agentId, selectedAgents, budgetLam
     || observation.quoteCurrency !== 'USD' || !integer(observation.marketCapUsdMicros)) {
     return { status: 'awaiting-verified-market-cap' };
   }
-  const threshold = BigInt(agent.marketCapUsd) * 1_000_000n;
-  if (BigInt(observation.marketCapUsdMicros) < threshold) return { status: 'below-threshold', thresholdUsd: agent.marketCapUsd };
+  const thresholdUsd=rules.marketCapUsd[POLICY.agents.indexOf(agent)-1];
+  const threshold = BigInt(thresholdUsd) * 1_000_000n;
+  if (BigInt(observation.marketCapUsdMicros) < threshold) return { status: 'below-threshold', thresholdUsd };
   return { status: 'candidate', intentId, kind: agent.kind, mint,
-    thresholdUsd: agent.marketCapUsd, maxDebitLamports: budgetLamports,
+    thresholdUsd, maxDebitLamports: budgetLamports,
     observationSlot: observation.slot, executionAuthorized: false };
 }

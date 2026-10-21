@@ -19,7 +19,7 @@ export async function readAgencyMintContext({connection,state,mint,programId,app
   const launch=state.launches?.[mint],route=launch?.pumpFeeRoute;
   if(!launch?.onchainVerified||launch.cluster!=='devnet'||launch.mint!==mint||route?.scope!=='per-mint-v3'
     ||route.verified!==true||route.programId!==String(programId)||route.initialAuthority!==new PublicKey(authority).toBase58()
-    ||launch.marketingAgency?.version!==POLICY.version||route.protocolSplit?.agencyPercent!==10
+    ||launch.marketingAgency?.version!==POLICY.version||!Number.isFinite(route.protocolSplit?.agencyPercent)
     ||!/^[a-f0-9]{64}$/.test(String(approvedHash)))throw new Error('An immutable agency-enabled Devnet launch is required.');
   const rpc=createFinalizedReadCache(connection);
   const[genesis,program,global]=await Promise.all([rpc.getGenesisHash(),readProgram(rpc,programId),verifyRouter({connection:rpc,programId,commitment:'finalized'})]);

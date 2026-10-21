@@ -1,7 +1,9 @@
 import {PublicKey,Transaction} from '@solana/web3.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import {buildAgencyConfigV3Instruction} from '../agency-mint-router-v3.js';
+import {buildAgencyConfigV3Instruction,buildAgencyRulesV3Instruction} from '../agency-mint-router-v3.js';
+import {validateAgencyRules} from '../config/agency-rules.js';
+import {protocolGrossUnits} from '../mint-router-v3.js';
 import {readAgencyDeployment} from './agency-deployment.mjs';
 
 // Publishing changes future launches only. The authority must first finalize
@@ -25,7 +27,14 @@ export async function publishAgencyFeePolicy({store,connection,programId,approve
   const message=tx.transaction.message;
   const expected=new Transaction({feePayer:new PublicKey(authority),recentBlockhash:message.recentBlockhash})
     .add(built.instruction).compileMessage();
-  if(!Buffer.from(message.serialize()).equals(Buffer.from(expected.serialize())))
+  const messages=[expected];
+  if(revision>1n&&deployment.rules?.source==='on-chain-snapshot'){
+    const configured=buildAgencyRulesV3Instruction({programId,authority,protocolUnits:deployment.protocolUnits,
+      promotionRecipient:deployment.promotionRecipient,expectedRevision:String(revision-1n),rules:deployment.rules});
+    messages.push(new Transaction({feePayer:new PublicKey(authority),recentBlockhash:message.recentBlockhash})
+      .add(configured.instruction).compileMessage());
+  }
+  if(!messages.some(candidate=>Buffer.from(message.serialize()).equals(Buffer.from(candidate.serialize()))))
     throw new Error('The authority-signed transaction does not match the exact configuration instruction.');
   if(tx.transaction.signatures?.length!==1||tx.transaction.signatures[0]!==input.signature
     ||!nacl.sign.detached.verify(message.serialize(),bs58.decode(input.signature),new PublicKey(authority).toBytes()))
@@ -38,7 +47,7 @@ export async function publishAgencyFeePolicy({store,connection,programId,approve
     state.adminSettings||={};state.adminAudit||={};
     const policy={split:deployment.protocolSplit,revision:input.expectedRevision+1,updatedAt:new Date().toISOString(),
       updatedBy:actor,configurationSignature:input.signature,configRevision:deployment.revision,
-      programId:String(programId),approvedHash,configSlot:tx.slot};
+      programId:String(programId),approvedHash,configSlot:tx.slot,...(deployment.rules?{rules:deployment.rules}:{})};
     state.adminSettings.protocolFeePolicy=policy;
     state.adminAudit[`agency-fee-policy:${policy.revision}`]={...policy,action:'agency-fee-policy-published',wallet:actor,
       signature:input.signature,reason:input.reason.trim(),at:policy.updatedAt};
@@ -46,4 +55,19 @@ export async function publishAgencyFeePolicy({store,connection,programId,approve
   });
   if(!saved)throw new Error('The published policy changed. Refresh and review it again.');
   return {...saved,creatorPercent:80,protocolPercent:20,effectiveFor:'future launches only'};
+}
+
+export async function prepareAgencyRules({connection,programId,approvedHash,authority,input,readDeployment=readAgencyDeployment}){
+  const deployment=await readDeployment({connection,programId,approvedHash,authority});
+  if(!deployment.verified||String(input.expectedRevision)!==deployment.revision)
+    throw new Error('Configuration changed. Refresh before preparing.');
+  const rules=validateAgencyRules(input.rules),protocolUnits=protocolGrossUnits(input.split);
+  const built=buildAgencyRulesV3Instruction({programId,authority,protocolUnits,
+    promotionRecipient:input.promotionRecipient,expectedRevision:deployment.revision,rules});
+  const latest=await connection.getLatestBlockhash('finalized');
+  const transaction=new Transaction({feePayer:new PublicKey(authority),recentBlockhash:latest.blockhash}).add(built.instruction);
+  return{authority:String(authority),configRevision:deployment.revision,rules,protocolUnits,
+    promotionRecipient:new PublicKey(input.promotionRecipient).toBase58(),...latest,
+    transaction:transaction.serialize({requireAllSignatures:false,verifySignatures:false}).toString('base64'),
+    appliesTo:'future launches only',publishingPaused:true};
 }

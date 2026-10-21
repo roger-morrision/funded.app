@@ -5,12 +5,11 @@ use super::{initialize::create_router_account, rotate::assert_current_router_aut
 
 pub const AGENCY_CONFIG_SEED: &[u8] = b"agency-config-v3";
 pub const AGENCY_POLICY_SEED: &[u8] = b"mint-agency-policy-v3";
-pub const AGENCY_UNITS: u32 = 200_000;
+use super::agency_rules_v3::{read_rules, write_rules, AgencyRules, RULES_LEN, CONFIG_BASE, POLICY_BASE};
 
 // Creator, operations, three referral levels, Daily bonus, FUNDED buyback,
 // agency. No saved seven-category policy is reinterpreted as this layout.
 pub fn agency_category_targets(total: u64, units: [u32; 7]) -> Result<[u64; 8]> {
-    require!(units[6] == AGENCY_UNITS, ErrorCode::InvalidAgencyPolicyV3);
     let mut cumulative = 8_000_000u32;
     let mut prior = 0u64;
     let mut result = [0u64; 8];
@@ -48,7 +47,7 @@ pub fn agent_targets(total: u64, selected: u8) -> Result<[u64; 3]> {
 pub struct InitializeAgencyConfigV3<'info> {
     #[account(mut)] pub authority: Signer<'info>,
     #[account(seeds = [SEED], bump)] pub legacy_router: UncheckedAccount<'info>,
-    #[account(init, payer = authority, space = 8 + AgencyConfigV3::INIT_SPACE,
+    #[account(init, payer = authority, space = 8 + AgencyConfigV3::INIT_SPACE + RULES_LEN,
         seeds = [AGENCY_CONFIG_SEED], bump)]
     pub config: Account<'info, AgencyConfigV3>,
     pub system_program: Program<'info, System>,
@@ -61,6 +60,7 @@ pub fn initialize_config(ctx: Context<InitializeAgencyConfigV3>, units: [u32; 7]
     let config = &mut ctx.accounts.config;
     config.protocol_units = units; config.promotion_recipient = recipient;
     config.revision = 1; config.bump = ctx.bumps.config;
+    write_rules(&mut config.to_account_info().try_borrow_mut_data()?, CONFIG_BASE, AgencyRules::default())?;
     Ok(())
 }
 
@@ -90,7 +90,7 @@ pub struct InitializeAgencyMintV3<'info> {
     #[account(seeds = [SEED], bump)] pub legacy_router: UncheckedAccount<'info>,
     #[account(seeds = [AGENCY_CONFIG_SEED], bump = config.bump)] pub config: Account<'info, AgencyConfigV3>,
     #[account(mut, seeds = [MINT_ROUTER_V3_SEED, mint.key().as_ref()], bump)] pub router: UncheckedAccount<'info>,
-    #[account(init, payer = creator, space = 8 + MintAgencyPolicyV3::INIT_SPACE,
+    #[account(init, payer = creator, space = 8 + MintAgencyPolicyV3::INIT_SPACE + RULES_LEN,
         seeds = [AGENCY_POLICY_SEED, mint.key().as_ref()], bump)] pub policy: Account<'info, MintAgencyPolicyV3>,
     pub system_program: Program<'info, System>,
 }
@@ -119,6 +119,8 @@ pub fn initialize_mint(ctx: Context<InitializeAgencyMintV3>, directed_units: [u3
     policy.last_promotion_at = 0; policy.promotion_sequence = 0;
     policy.promotion_recipient = ctx.accounts.config.promotion_recipient;
     policy.config_revision = config_revision; policy.bump = ctx.bumps.policy;
+    let rules = read_rules(&ctx.accounts.config.to_account_info().try_borrow_data()?, CONFIG_BASE)?;
+    write_rules(&mut policy.to_account_info().try_borrow_mut_data()?, POLICY_BASE, rules)?;
     Ok(())
 }
 

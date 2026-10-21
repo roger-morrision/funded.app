@@ -11,7 +11,8 @@ import { validateProtocolFeeSplit } from '../../distribution-policy.js';
 import { protocolGrossUnits, deriveMintVaultsV3, deriveCommunityRewardVaultV3, verifyMintPolicyV3Account } from '../../mint-router-v3.js';
 import {reviewV3AllocationResiduals,recordV3AllocationResidualPlan} from '../v3-allocation-residuals.mjs';
 import {verifyV3LaunchRouterReadiness} from '../v3-launch-readiness.mjs';
-import {publishAgencyFeePolicy} from '../admin-agency-policy.mjs';
+import {publishAgencyFeePolicy,prepareAgencyRules} from '../admin-agency-policy.mjs';
+import {readAgencyDeployment} from '../agency-deployment.mjs';
 import {deriveAgencyVaultsV3} from '../../agency-mint-router-v3.js';
 
 const COOKIE = 'funded_admin';
@@ -128,6 +129,13 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
     const session = currentSession(req);
     if (!session) return json(res, 401, { error:'Sign in with the configured admin wallet.' });
     if(await handleAdminXPosts({req,res,url,body,respond,session,env}))return true;
+    if(path==='/api/admin/agency-rules' && ['GET','POST'].includes(req.method)){
+      try{
+        const args={connection:connection(),programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,
+          approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256,authority:v3AuthorityKeypair().publicKey};
+        return json(res,200,req.method==='GET'?await readAgencyDeployment(args):await prepareAgencyRules({...args,input:await body(req)||{}}));
+      }catch(error){return json(res,409,{error:String(error.message||'Agency settings unavailable.')});}
+    }
     if(req.method==='POST'&&path==='/api/admin/agency-fee-policy'){
       try{return json(res,200,await publishAgencyFeePolicy({store,connection:connection(),
         programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256,

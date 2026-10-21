@@ -1,3 +1,4 @@
+import {initAdminAgencyRules} from './admin-agency-rules.js';
 export function initAdminAgencyPolicy({api,post,show,refresh}) {
   const anchor=document.querySelector('#fee-form')?.closest('section');
   if(!anchor)return;
@@ -5,6 +6,7 @@ export function initAdminAgencyPolicy({api,post,show,refresh}) {
   panel.innerHTML=`<h2>Publish verified agency fee configuration</h2><p>The router authority must first finalize its configuration transaction. This publishes the matching on-chain rates for future launches. Existing coins retain their saved rates.</p>
     <form id="agency-policy-form"><div class="withdraw-fields"><label>Finalized configuration signature<input name="signature" pattern="[1-9A-HJ-NP-Za-km-z]{64,88}" required spellcheck="false"></label><label>On-chain configuration revision<input name="configRevision" pattern="[1-9][0-9]{0,19}" required></label><label>Audit reason<input name="reason" minlength="10" maxlength="500" required></label></div><p data-agency-policy-review role="status">Review the authority-approved transaction and its rates before publishing.</p><button type="submit">Verify transaction and publish for new launches</button></form>`;
   anchor.after(panel);
+  initAdminAgencyRules({api,post,show,refresh});
   const form=panel.querySelector('form'),status=panel.querySelector('[data-agency-policy-review]');
   form.addEventListener('submit',event=>{event.preventDefault();(async()=>{
     const current=await api('/api/fee-policy');

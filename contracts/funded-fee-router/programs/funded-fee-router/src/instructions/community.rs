@@ -5,6 +5,14 @@ use solana_sha256_hasher::hashv;
 use crate::{constants::*, error::ErrorCode, state::{CommunityDrop, CommunityPayment, CommunitySnapshotApproval, RewardReserve, RewardVault}};
 use super::rotate::{assert_current_router_authority, assert_upgrade_owner};
 
+
+fn configured_window(program: &Pubkey, mint: &Pubkey, accounts: &[AccountInfo]) -> Result<i64> {
+    #[cfg(feature = "devnet-v3-program")]
+    { super::agency_rules_v3::community_window(program, mint, accounts) }
+    #[cfg(not(feature = "devnet-v3-program"))]
+    { let _ = (program, mint, accounts); Ok(COMMUNITY_WINDOW_SECONDS) }
+}
+
 #[derive(Accounts)]
 pub struct ApproveCommunitySnapshot<'info> {
     #[account(mut)]
@@ -30,10 +38,11 @@ pub fn approve_snapshot(ctx: Context<ApproveCommunitySnapshot>, merkle_root: [u8
     migration_signature: [u8; 64], migration_slot: u64, migration_at: i64, total_amount: u64, leaf_count: u32) -> Result<()> {
     assert_upgrade_owner(&ctx.accounts.program.to_account_info(), &ctx.accounts.program_data.to_account_info(),
         &ctx.accounts.app_owner.key(), ctx.program_id)?;
+    let window = configured_window(ctx.program_id, &ctx.accounts.mint.key(), ctx.remaining_accounts)?;
     let now = Clock::get()?.unix_timestamp;
     require!(merkle_root != [0; 32] && snapshot_hash != [0; 32] && migration_signature != [0; 64]
         && migration_slot > 0 && migration_at > 0 && migration_at <= now
-        && now < migration_at.checked_add(COMMUNITY_WINDOW_SECONDS).ok_or(ErrorCode::AmountOverflow)?
+        && now < migration_at.checked_add(window).ok_or(ErrorCode::AmountOverflow)?
         && total_amount > 0 && leaf_count > 0, ErrorCode::InvalidCommunitySnapshot);
     let approval = &mut ctx.accounts.approval;
     approval.protocol_authority = ctx.accounts.protocol_authority.key();
@@ -180,7 +189,7 @@ pub fn initialize_drop_from_reward_vault(
     fill_drop(&mut ctx.accounts.drop, ctx.accounts.protocol_authority.key(), ctx.accounts.creator.key(),
         ctx.accounts.app_owner.key(), ctx.accounts.mint.key(), ctx.accounts.eligibility_mint.key(),
         merkle_root, snapshot_hash, migration_signature, migration_slot, snapshot_slot, migration_at,
-        total_amount, leaf_count, ctx.bumps.drop)?;
+        total_amount, leaf_count, ctx.bumps.drop, configured_window(ctx.program_id, &ctx.accounts.mint.key(), ctx.remaining_accounts)?)?;
     assert_snapshot_approval(&ctx.accounts.snapshot_approval, &ctx.accounts.drop)?;
     let authority = ctx.accounts.reward_vault.authority;
     let mint = ctx.accounts.reward_vault.mint;
@@ -205,9 +214,9 @@ pub fn initialize_drop_from_reward_vault(
 fn fill_drop(drop: &mut Account<CommunityDrop>, protocol_authority: Pubkey, creator: Pubkey,
     app_owner: Pubkey, mint: Pubkey, eligibility_mint: Pubkey, merkle_root: [u8; 32], snapshot_hash: [u8; 32],
     migration_signature: [u8; 64], migration_slot: u64, snapshot_slot: u64, migration_at: i64,
-    total_amount: u64, leaf_count: u32, bump: u8) -> Result<()> {
+    total_amount: u64, leaf_count: u32, bump: u8, window: i64) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
-    let expires_at = migration_at.checked_add(COMMUNITY_WINDOW_SECONDS).ok_or(ErrorCode::AmountOverflow)?;
+    let expires_at = migration_at.checked_add(window).ok_or(ErrorCode::AmountOverflow)?;
     require!(migration_slot > 0 && snapshot_slot == migration_slot && migration_at > 0 && migration_at <= now
         && now < expires_at && merkle_root != [0; 32] && snapshot_hash != [0; 32]
         && migration_signature != [0; 64], ErrorCode::InvalidCommunitySnapshot);
@@ -249,7 +258,7 @@ pub fn initialize_drop(
     fill_drop(&mut ctx.accounts.drop, ctx.accounts.protocol_authority.key(), ctx.accounts.creator.key(),
         ctx.accounts.app_owner.key(), ctx.accounts.mint.key(), ctx.accounts.eligibility_mint.key(),
         merkle_root, snapshot_hash, migration_signature, migration_slot, snapshot_slot, migration_at,
-        total_amount, leaf_count, ctx.bumps.drop)?;
+        total_amount, leaf_count, ctx.bumps.drop, configured_window(ctx.program_id, &ctx.accounts.mint.key(), ctx.remaining_accounts)?)?;
     assert_snapshot_approval(&ctx.accounts.snapshot_approval, &ctx.accounts.drop)?;
     token_interface::transfer_checked(
         CpiContext::new(

@@ -78,7 +78,7 @@ impl Fixture{
  for (mask,revision)in[(8,1),(7,2)]{let ix=f.init_ix(mask,revision);assert!(!send(&mut f.svm,&f.creator,&[&f.creator,&f.mint],ix));}
  let ix=f.init_ix(7,1);assert!(!send(&mut f.svm,&f.creator,&[&f.creator],ix.clone()));
  assert!(send(&mut f.svm,&f.creator,&[&f.creator,&f.mint],ix));
- let saved=f.policy();assert_eq!(f.svm.get_account(&f.policy).unwrap().data.len(),383);
+ let saved=f.policy();assert_eq!(f.svm.get_account(&f.policy).unwrap().data.len(),423);
  assert_eq!(saved.protocol_units,UNITS);assert_eq!(saved.directed_units,SHARES);assert_eq!(saved.selected_agents,7);
  assert_eq!(saved.promotion_recipient,f.billing.pubkey());
  let mut changed=UNITS;changed[0]=700_000;changed[4]=500_000;
@@ -150,4 +150,40 @@ impl Fixture{
     recipient:f.billing.pubkey(),approval,system_program:anchor_lang::system_program::ID}.to_account_metas(None));
  assert!(send(&mut f.svm,&f.authority,&[&f.authority,&f.creator],approve));assert!(send(&mut f.svm,&f.authority,&[&f.authority,&f.creator],ops.clone()));
  assert!(!send(&mut f.svm,&f.authority,&[&f.authority,&f.creator],ops));assert_eq!(f.policy().withdrawn_lamports[1],80_000_000);
+}
+
+#[test] fn configurable_rules_require_authority_and_snapshot_only_future_launches() {
+ use funded_fee_router::instructions::agency_rules_v3::{read_rules,AgencyRules,POLICY_BASE,CONFIG_BASE};
+ let mut f=Fixture::new();f.initialize();let original=f.svm.get_account(&f.policy).unwrap().data;
+ let mut units=UNITS;units[0]-=100_000;units[6]+=100_000;
+ let configure=|revision,window|Instruction::new_with_bytes(f.program,&funded_fee_router::instruction::ConfigureAgencyRulesV3 {
+   units,recipient:f.billing.pubkey(),expected_revision:revision,market_caps:[10_000_000,20_000_000],
+   community_window_seconds:window,promotion_interval_seconds:172_800 }.data(),
+   funded_fee_router::accounts::ConfigureAgencyRulesV3 {authority:f.authority.pubkey(),legacy_router:f.legacy,
+     config:f.config,system_program:anchor_lang::system_program::ID}.to_account_metas(None));
+ let ix=configure(1,300);let bad=configure(1,299);
+ assert!(!send(&mut f.svm,&f.creator,&[&f.creator],ix.clone()));
+ assert!(!send(&mut f.svm,&f.authority,&[&f.authority],bad));
+ assert!(send(&mut f.svm,&f.authority,&[&f.authority],ix.clone()));
+ assert!(!send(&mut f.svm,&f.authority,&[&f.authority],ix));
+ let cfg=f.svm.get_account(&f.config).unwrap();let rules=read_rules(&cfg.data,CONFIG_BASE).unwrap();
+ assert_eq!(rules.community_window_seconds,300);assert_eq!(rules.market_caps,[10_000_000,20_000_000]);
+ assert_eq!(f.svm.get_account(&f.policy).unwrap().data,original);
+ assert_eq!(read_rules(&original,POLICY_BASE).unwrap(),AgencyRules::default());
+ // A subsequent launch snapshots the exact new configuration and immutable rates.
+ let mint=Keypair::new();let old=f.mint.pubkey();f.mint=mint;
+ f.router=Pubkey::find_program_address(&[b"funded-mint-router-v3",f.mint.pubkey().as_ref()],&f.program).0;
+ f.policy=Pubkey::find_program_address(&[b"mint-agency-policy-v3",f.mint.pubkey().as_ref()],&f.program).0;
+ let init=f.init_ix(6,2);assert!(send(&mut f.svm,&f.creator,&[&f.creator,&f.mint],init));
+ assert_ne!(old,f.mint.pubkey());assert_eq!(f.policy().protocol_units,units);
+ assert_eq!(read_rules(&f.svm.get_account(&f.policy).unwrap().data,POLICY_BASE).unwrap(),rules);
+}
+
+#[test] fn old_policy_bytes_keep_legacy_billing_rules_after_upgrade() {
+ let mut f=Fixture::new();f.initialize();f.settle(19);
+ let mut account=f.svm.get_account(&f.policy).unwrap();account.data.truncate(383);
+ f.svm.set_account(f.policy,account).unwrap();
+ let ix=f.promotion(123456789,0,100,1_760_000_000,f.billing.pubkey(),[1;32]);
+ assert!(send(&mut f.svm,&f.authority,&[&f.authority],ix));
+ assert_eq!(f.svm.get_account(&f.policy).unwrap().data.len(),383);
 }

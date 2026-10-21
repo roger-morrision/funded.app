@@ -8,7 +8,7 @@ export function createMarketingAgencyRoutes({ respond,store,readLaunchConfig,env
     let state={},config=null;
     try{if(store)state=await store.read();}catch{}
     const published=state.adminSettings?.protocolFeePolicy;
-    const feePolicy={status:published?.split?.agencyPercent===10?'published':'unavailable',revision:published?.revision??null};
+    const feePolicy={status:Number.isFinite(published?.split?.agencyPercent)?'published':'unavailable',revision:published?.revision??null};
     const xPaused=env.X_POST_ENABLED!=='true'||env.X_POST_ACCOUNT_STATUS!=='active';
     const agents=enabled=>marketingAgencyCapabilities().policy.agents.map((agent,index)=>{
       const available=enabled&&(index===0?!xPaused:env.FUNDED_V3_AGENCY_BUYBACK_ENABLED==='true'||!xPaused);
@@ -18,9 +18,9 @@ export function createMarketingAgencyRoutes({ respond,store,readLaunchConfig,env
     if(env.FUNDED_V3_AGENCY_ENABLED==='true'&&store&&readLaunchConfig){
       try{
         config=await readLaunchConfig();
-        if(config.ready&&config.agency&&config.protocolSplit.agencyPercent===10){
+        if(config.ready&&config.agency&&Number.isFinite(config.protocolSplit.agencyPercent)){
           state=await store.read();
-          respond(res,200,{...marketingAgencyCapabilities(),status:'deployment-verified',active:true,executionEnabled:true,blockers:[],
+          respond(res,200,{...marketingAgencyCapabilities({split:config.protocolSplit,rules:config.agency.rules}),status:'deployment-verified',active:true,executionEnabled:true,blockers:[],
             agents:agents(true),feePolicy,publishingPaused:xPaused,
             verification:{scope:'reviewed-devnet-program-and-fresh-worker',programId:config.programId,
               approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256,build:env.FUNDED_BUILD_ID,configRevision:config.agency.configRevision},

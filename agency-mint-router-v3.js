@@ -1,4 +1,5 @@
 import {Buffer} from 'buffer';
+import {decodeAgencyRules,encodeAgencyRules} from './agency-rules-v3.js';
 import {PublicKey,SystemProgram,TransactionInstruction} from '@solana/web3.js';
 import {deriveFeeRouter} from './fee-router.js';
 import {deriveMintRouterV3,deriveMintClaimV3,directedGrossUnits,
@@ -7,6 +8,7 @@ import {buildProtectedMintV3ApprovalInstruction,buildProtectedMintV3Disbursement
 import {canonicalAgencySelection,MARKETING_AGENCY_POLICY as POLICY} from './config/marketing-agency.js';
 
 export const AGENCY_V3_DISCRIMINATORS=Object.freeze({
+  configure_agency_rules_v3:'fcff468becf89818',
   initialize_agency_config_v3:'9499224dfd359bdb',update_agency_config_v3:'03446109a7439c95',
   initialize_agency_mint_v3:'2e7888a3cdecc35b',settle_agency_mint_v3:'7f493f692a129ef4',
   approve_agency_withdrawal_v3:'5aa819a4af260af8',disburse_agency_mint_v3:'20fbe4d5ce06717b',
@@ -29,8 +31,8 @@ export function agencyProtocolSplit(units=agencyProtocolUnits()){
     communityPercent:units[4]/20000,buybackPercent:units[5]/20000,agencyPercent:units[6]/20000};
 }
 export function agencyCategoryTargets(total,units=agencyProtocolUnits()){
-  if(!Array.isArray(units)||units.length!==7||units.some(n=>!Number.isInteger(n)||n<0)||units[6]!==200000
-    ||units.reduce((sum,n)=>sum+n,0)!==2000000)throw new Error('Eight agency categories require a fixed 80% creator and 2% agency budget.');
+  if(!Array.isArray(units)||units.length!==7||units.some(n=>!Number.isInteger(n)||n<0)
+    ||units.reduce((sum,n)=>sum+n,0)!==2000000)throw new Error('Protocol categories must total 20%; the creator-directed allocation remains fixed at 80%.');
   const amount=agencyU64(total);let cumulative=0n,prior=0n;
   return [8000000,...units].map(n=>{cumulative+=BigInt(n);const boundary=amount*cumulative/10000000n,delta=boundary-prior;prior=boundary;return delta;});
 }
@@ -46,18 +48,18 @@ export const deriveAgencyVaultsV3=(program,mint)=>Array.from({length:8},(_,n)=>P
 export const deriveAgencyPromotionV3=(program,mint,postId)=>PublicKey.findProgramAddressSync([Buffer.from('agency-promotion-v3'),key(mint).toBuffer(),u64(postId)],key(program))[0];
 function ownedBytes(account,program,name,length){
   const data=Buffer.from(account?.data||[]);
-  if(!account?.owner?.equals(key(program))||account.executable||data.length!==length||!data.subarray(0,8).equals(agencyDiscriminator(name)))throw new Error('Agency account owner, discriminator or layout differs.');
+  if(!account?.owner?.equals(key(program))||account.executable||!(Array.isArray(length)?length:[length]).includes(data.length)||!data.subarray(0,8).equals(agencyDiscriminator(name)))throw new Error('Agency account owner, discriminator or layout differs.');
   return data;
 }
 export function decodeAgencyConfigV3(account,program){
-  const data=ownedBytes(account,program,'AgencyConfigV3',77),protocolUnits=Array.from({length:7},(_,n)=>data.readUInt32LE(8+n*4));
+  const data=ownedBytes(account,program,'AgencyConfigV3',[77,117]),protocolUnits=Array.from({length:7},(_,n)=>data.readUInt32LE(8+n*4));
   agencyCategoryTargets('10000000',protocolUnits);
   const recipient=new PublicKey(data.subarray(36,68)),revision=data.readBigUInt64LE(68),{bump}=deriveAgencyConfigV3(program);
   if(recipient.equals(PublicKey.default)||revision<1n||data[76]!==bump)throw new Error('Agency configuration is invalid.');
-  return{protocolUnits,promotionRecipient:recipient.toBase58(),revision:String(revision),bump};
+  return{protocolUnits,promotionRecipient:recipient.toBase58(),revision:String(revision),bump,rules:decodeAgencyRules(data,77)};
 }
 export function decodeAgencyPolicyV3(account,{programId,mint,creator,initialAuthority,protocolUnits:expectedUnits,shares,selectedAgents}){
-  const data=ownedBytes(account,programId,'MintAgencyPolicyV3',383),identity=deriveAgencyPolicyV3(programId,mint);
+  const data=ownedBytes(account,programId,'MintAgencyPolicyV3',[383,423]),identity=deriveAgencyPolicyV3(programId,mint);
   if(!data.subarray(8,40).equals(key(mint).toBuffer())||!data.subarray(40,72).equals(key(creator).toBuffer())
     ||!data.subarray(72,104).equals(key(initialAuthority).toBuffer())||data[382]!==identity.bump)throw new Error('Agency mint identity differs.');
   const protocolUnits=Array.from({length:7},(_,n)=>data.readUInt32LE(104+n*4)),settledLamports=data.readBigUInt64LE(132);
@@ -79,7 +81,7 @@ export function decodeAgencyPolicyV3(account,{programId,mint,creator,initialAuth
     ||[1,2].some(n=>Boolean(completedMask&(1<<n))!==(agentSpent[n]>0n)))throw new Error('Agency immutable rates, selections or released counters differ.');
   return{...identity,verified:true,reason:'verified',agencyPolicy:true,protectedPolicy:true,protocolUnits,settledLamports,
     paidLamports,withdrawnLamports,directedUnits,directedReleased,selectedMask,agentSpent,agentTargets,completedMask,
-    lastPromotionAt,promotionSequence,promotionRecipient,configRevision};
+    lastPromotionAt,promotionSequence,promotionRecipient,configRevision,rules:decodeAgencyRules(data,383)};
 }
 export function decodeAgencyClaimV3(account,{programId,mint,claimId,expectedLamports}){
   const data=ownedBytes(account,programId,'MintAgencyClaimV3',152),amount=agencyU64(expectedLamports,{positive:true});
@@ -129,4 +131,14 @@ export function buildAgencyPromotionV3Instruction({programId,mint,authority,prom
     data:Buffer.concat([agencyDiscriminator('bill_agency_promotion_v3'),u64(postId),hash,seq,u64(amount),time]),
     keys:[meta(authority,true,true),meta(mint),meta(deriveFeeRouter(programId).address),meta(policy.address,false,true),meta(vault,false,true),
       meta(promotionRecipient,false,true),meta(receipt,false,true),meta(SystemProgram.programId)]})};
+}
+
+// One signed transaction changes future-launch rates and business settings.
+export function buildAgencyRulesV3Instruction({programId,authority,protocolUnits=agencyProtocolUnits(),promotionRecipient,expectedRevision,rules}){
+  if(expectedRevision===undefined)throw new Error('An existing configuration revision is required.');
+  const old=buildAgencyConfigV3Instruction({programId,authority,protocolUnits,promotionRecipient,expectedRevision});
+  const extension=encodeAgencyRules(rules).subarray(8);
+  return{...old,instruction:new TransactionInstruction({programId:key(programId),
+    keys:[{...old.instruction.keys[0],isWritable:true},...old.instruction.keys.slice(1),meta(SystemProgram.programId)],
+    data:Buffer.concat([agencyDiscriminator('configure_agency_rules_v3'),old.instruction.data.subarray(8),extension])})};
 }

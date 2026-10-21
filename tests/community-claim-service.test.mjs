@@ -46,7 +46,7 @@ test('persists one immutable exact-slot manifest and leaves proofs unavailable b
   assert.equal(first.manifest.root, second.manifest.root);
   assert.equal(first.snapshot.coverage, 'finalized-exact-slot-v1');
   assert.equal((await service.recipientProof({ mint, wallet:holder })).status, 'unavailable');
-  assert.equal((await service.openingInstruction(mint)).instruction.keys.length, 15);
+  assert.equal((await service.openingInstruction(mint)).instruction.keys.length, 16);
   await assert.rejects(service.prepare({ ...input, migrationSignature:bs58.encode(Buffer.alloc(64, 8)) }), /immutable/);
 });
 
@@ -150,5 +150,5 @@ test('opens a full reserve when integer pro-rata shares leave token dust for the
   const record = await service.prepare(input);
   assert.equal(record.manifest.allocatedAmount, '999');
   assert.equal(record.manifest.remainderAmount, '1');
-  assert.equal((await service.openingInstruction(mint)).instruction.keys.length, 15);
+  assert.equal((await service.openingInstruction(mint)).instruction.keys.length, 16);
 });

@@ -1,3 +1,5 @@
+import {deriveAgencyPolicyV3,agencyDiscriminator} from '../agency-mint-router-v3.js';
+import {decodeAgencyRules} from '../agency-rules-v3.js';
 import { createHash } from 'node:crypto';
 import { PublicKey } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from '@solana/spl-token';
@@ -77,10 +79,20 @@ export function createCommunityClaimService({ connection, store, programId, auth
       : await captureSnapshot({ connection, mint:eligible, launchMint, migrationSignature });
     const { drop } = communityAddresses({ programId:program, authority:issuer, mint:launchMint });
     const { vault } = rewardAddresses({ programId:program, authority:issuer, mint:launchMint });
+    const policyAccount=await connection.getAccountInfo(deriveAgencyPolicyV3(program,launchMint).address,'finalized');
+    let claimWindowSeconds=90*86400;
+    if(policyAccount){
+      const bytes=Buffer.from(policyAccount.data||[]);
+      if(!policyAccount.owner.equals(program)||policyAccount.executable||![383,423].includes(bytes.length)
+        ||!bytes.subarray(0,8).equals(agencyDiscriminator('MintAgencyPolicyV3'))
+        ||!bytes.subarray(8,40).equals(launchMint.toBuffer()))throw new Error('Community launch settings are not verified.');
+      claimWindowSeconds=decodeAgencyRules(bytes,383).communityWindowSeconds;
+    }
     const manifest = buildCommunityManifest({ drop:drop.toBase58(), launchMint:launchMint.toBase58(),
       eligibilityMint:eligible.toBase58(), migrationSignature, migrationSlot:snapshot.slot,
       migrationBlockTime:snapshot.blockTime, snapshot, amountBaseUnits:String(amount),
       excludedWallets:[issuer.toBase58(), vault.toBase58(), drop.toBase58()] });
+    manifest.claimWindowSeconds=claimWindowSeconds;manifest.expiresAt=snapshot.blockTime+claimWindowSeconds;
     const record = { ...base, snapshotBasis, eligibilityMint:eligible.toBase58(), programId:program.toBase58(), authority:issuer.toBase58(),
       tokenProgram:mintInfo.owner.toBase58(), reservedBaseUnits:String(amount), snapshot,
       manifest, openingSignature:null, preparedAt:new Date().toISOString() };

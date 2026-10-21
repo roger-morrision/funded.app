@@ -5,17 +5,17 @@ export function initMarketingAgency(document = globalThis.document) {
   const main = document?.querySelector('.main-content');
   if (!main || document.getElementById('marketing-agency')) return;
   const view = document.defaultView, page = document.createElement('section');
-  let agencyAvailable=false,publishingPaused=false;
+  let agencyAvailable=false,publishingPaused=false,agencyGrossPercent=2;
   page.id = 'marketing-agency'; page.className = 'agency-page section-block';
   page.setAttribute('aria-labelledby', 'agency-title');
   page.innerHTML = `<header class="section-heading"><div><p class="eyebrow">AI marketing agency teams</p><h1 id="agency-title">A team for every launch</h1><p>Select promotion agents when preparing a coin. Each agent uses its own share of the agency budget.</p></div><button type="button" data-agency-refresh>Refresh status</button></header>
     <p class="agency-status" data-agency-status role="status">Checking agency activation…</p>
     <div class="agency-agent-grid" data-agency-cards></div>
     <section class="agency-policy" aria-labelledby="agency-policy-title"><h2 id="agency-policy-title">New-launch agency allocation</h2>
-      <p>80% creator-directed · 8% Operations &amp; marketing · 1% referrals · 2% AI agency · 4% Daily bonus · 5% $FUNDED buyback.</p>
-      <p>The agency allocation applies to every new launch after activation and is divided equally among selected agents. With no selection, it remains reserved. Referral levels: ${POLICY.referralUnits.map((units,index)=>`L${index+1} ${units*100/POLICY.grossUnits}%`).join(' · ')} of gross collected creator fees.</p>
+      <p data-agency-policy-split>80% creator-directed · 8% Operations &amp; marketing · 1% referrals · 2% AI agency · 4% Daily bonus · 5% $FUNDED buyback.</p>
+      <p data-agency-policy-referrals>The agency allocation applies to every new launch after activation and is divided equally among selected agents. With no selection, it remains reserved. Referral levels: ${POLICY.referralUnits.map((units,index)=>`L${index+1} ${units*100/POLICY.grossUnits}%`).join(' · ')} of gross collected creator fees.</p>
       <p>Agents 2 and 3 each buy and burn the launched coin once, using only their accumulated budget. Reaching a milestone is not a purchase or burn receipt. Later fees remain reserved after a one-time action.</p>
-      <p>The separate 5% $FUNDED buyback allocation keeps its own trigger and funds. Existing launches retain their signed fee policy.</p>
+      <p>The separate $FUNDED buyback allocation keeps its own trigger and funds. Existing launches retain their signed fee policy.</p>
       <a href="#capital-flow">View the currently active fee policy →</a></section>
     <section aria-labelledby="agency-budget-title"><h2 id="agency-budget-title">Agency funds &amp; activity</h2><dl class="agency-funds"><div><dt>Verified agency funding</dt><dd data-agency-funded>Unavailable</dd></div><div><dt>Verified agency spending</dt><dd data-agency-spent>Unavailable</dd></div></dl><p data-agency-history>No agency execution history has been verified.</p></section>
     <a class="text-button" href="#launch">Review launch promotions →</a>`;
@@ -49,7 +49,7 @@ export function initMarketingAgency(document = globalThis.document) {
     const split = document.createElement('p'); split.dataset.agencySplit = ''; split.setAttribute('role', 'status'); fieldset.append(split);
     const update = () => {
       const ids = readLaunchAgencySelection(document);
-      split.textContent = ids.length ? `2% of gross collected fees, split equally across ${ids.length} selected agent${ids.length === 1 ? '' : 's'}. ${agencyAvailable?'Only finalized fees fund agent actions.':'Activation pending; no funds move.'}` : `No team selected. The 2% agency share remains in reserve ${agencyAvailable?'for this launch.':'after activation.'}`;
+      split.textContent = ids.length ? `${agencyGrossPercent}% of gross collected fees, split equally across ${ids.length} selected agent${ids.length === 1 ? '' : 's'}. ${agencyAvailable?'Only finalized fees fund agent actions.':'Activation pending; no funds move.'}` : `No team selected. The ${agencyGrossPercent}% agency share remains in reserve ${agencyAvailable?'for this launch.':'after activation.'}`;
     };
     fieldset.addEventListener('change', update); update(); promotion.append(fieldset);
   }
@@ -85,9 +85,20 @@ export function initMarketingAgency(document = globalThis.document) {
           data.agents.filter(row=>row.id===agent.id&&typeof row.enabled==='boolean').length!==1)
           ||(data.publishingPaused&&data.agents.some(row=>row.id==='x-promotion'&&(row.enabled||row.status!=='paused'))))
           throw new Error('Unverified per-agent readiness');
+        const rates=data.requiredGrossPercent;
+        if(rates&&Object.values(rates).every(n=>typeof n==='number'&&Number.isFinite(n)&&n>=0)){
+          agencyGrossPercent=rates.agency;
+          page.querySelector('[data-agency-policy-split]').textContent=`${rates.creator}% creator-directed · ${rates.operations}% Operations & marketing · ${rates.referrals}% referrals · ${rates.agency}% AI agency · ${rates.dailyBonus}% Daily bonus · ${rates.fundedBuyback}% $FUNDED buyback.`;
+          page.querySelector('[data-agency-policy-referrals]').textContent=`The agency share is divided equally among selected agents; without a selection it stays reserved. Referral levels: ${data.referralGrossPercents.map((n,i)=>`L${i+1} ${n}%`).join(' · ')} of gross collected fees. Each coin keeps its launch settings.`;
+        }
+        for(const[ i,card]of [...page.querySelectorAll('.agency-agent')].entries()){
+          const agent=data.policy.agents[i];card.querySelector('h2').textContent=agent.name;card.querySelector('p').textContent=agent.description;
+          const input=document.querySelector(`[data-launch-agency][value="${agent.id}"]`),label=input?.closest('label');
+          if(label?.lastChild?.nodeType===3)label.lastChild.textContent=agent.name;
+        }
         publishingPaused=data.publishingPaused===true;teamReadiness(true);page.querySelector('#agency-policy-title').textContent='Published new-launch fee policy';
         page.querySelector('[data-agency-status]').textContent=data.publishingPaused
-          ?'Buyback agents are available on Devnet. X promotion stays paused until the account is reinstated; its budget remains reserved. Buybacks wait for verified funding and their $100k / $300k milestones.'
+          ?'Buyback agents are available on Devnet. X promotion stays paused until the account is reinstated; its budget remains reserved. Buybacks wait for verified funding and their saved market-cap milestones.'
           :'Agency execution enabled on Devnet. Actions wait for protected funding, cadence and verified milestones; receipts below establish completed actions.';
         page.querySelectorAll('.agency-agent .data-badge').forEach((node,index)=>{
           const row=data.agents?.find(row=>row.id===POLICY.agents[index].id);

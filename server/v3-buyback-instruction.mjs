@@ -1,3 +1,4 @@
+import {DEFAULT_AGENCY_RULES,validateAgencyRules} from '../config/agency-rules.js';
 import { createHash } from 'node:crypto';
 import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync,
@@ -89,7 +90,7 @@ export function buildV3BuybackInstruction({ programId, sourceMint, authority,
       const slot=agencyU64(agencyExecution.observationSlot,{positive:true}),cap=agencyU64(agencyExecution.marketCapUsdMicros,{positive:true});
       const hash=Buffer.from(agencyExecution.observationHash||[]),time=agencyExecution.observedAt;
       if(hash.length!==32||hash.equals(Buffer.alloc(32))||!Number.isSafeInteger(time)||time<1
-        ||cap<BigInt(agent===1?100000:300000)*1000000n)throw new Error('A verified milestone observation is required.');
+        ||cap<BigInt(validateAgencyRules(agencyExecution.rules||DEFAULT_AGENCY_RULES).marketCapUsd[agent-1])*1000000n)throw new Error('A verified milestone observation is required.');
       attest.writeBigUInt64LE(slot,2);attest.writeBigInt64LE(BigInt(time),10);attest.writeBigUInt64LE(cap,18);hash.copy(attest,26);
     }
     data=Buffer.concat([agencyDiscriminator('buyback_agency_mint_v3'),id,attest,quote,floor,limit]);
