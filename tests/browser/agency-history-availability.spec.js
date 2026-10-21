@@ -17,7 +17,9 @@ function ready(){const data=blocked();return{...data,status:'deployment-verified
 async function fixture(page,getData){
   const requests=[];
   await page.route('**/api/**',route=>{
-    const request=route.request(),path=new URL(request.url()).pathname;requests.push({path,method:request.method()});
+    const request=route.request(),path=new URL(request.url()).pathname;
+    let rpcMethods=[];if(path==='/api/solana/rpc'){try{const payload=request.postDataJSON();rpcMethods=(Array.isArray(payload)?payload:[payload]).map(x=>x.method);}catch{}}
+    requests.push({path,method:request.method(),rpcMethods});
     if(path==='/api/fee-policy')return route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}});
     if(path==='/api/marketing-agency'){const data=getData();return data===null?route.abort():route.fulfill({json:data});}
     return route.fulfill({status:503,json:{error:'Offline deterministic fixture'}});
@@ -47,7 +49,10 @@ for(const width of [360,390,1440])test(`earlier receipts survive unavailable rea
   data=blocked();await refresh.click();await assertRows(page);await expect(refresh).toBeFocused();
   data={...blocked(),history:[]};await refresh.click();await expect(page.locator('[data-agency-history]')).toContainText('No earlier verified agency receipt has been recorded');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-  expect(requests.filter(x=>x.path==='/api/marketing-agency').length).toBe(6);expect(requests.every(x=>x.method==='GET')).toBe(true);
+  const existingReadMethods=new Set(['getMultipleAccounts','getSlot','getAccountInfo']);
+  expect(requests.filter(x=>x.path==='/api/marketing-agency').length).toBe(6);
+  expect(requests.filter(x=>x.method!=='GET'&&!(x.method==='POST'&&x.path==='/api/solana/rpc'
+    &&x.rpcMethods.length&&x.rpcMethods.every(method=>existingReadMethods.has(method))))).toEqual([]);
 });
 test('unavailable and malformed historical context never invents empty or current verified history',async({page})=>{
   let data=blocked();await fixture(page,()=>data);await page.goto('/#marketing-agency');await assertRows(page);
