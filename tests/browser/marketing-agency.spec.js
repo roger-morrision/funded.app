@@ -114,3 +114,32 @@ test('buyback availability stays separate from the suspended X publisher',async(
   for(const index of [1,2])await expect(page.locator('.agency-agent').nth(index)).toContainText('Available · execution requires proof');
   await expect(page.locator('#agency-policy-title')).toHaveText('Published new-launch fee policy');
 });
+
+for(const width of [390,1440])test(`receipt captions retain saved QA triggers and use neutral legacy labels at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:844});
+  const policy=marketingAgencyCapabilities();
+  const history=[
+    {agent:1,savedMarketCapUsd:1,signature:'3'.repeat(88)},
+    {agent:2,savedMarketCapUsd:2,signature:'4'.repeat(88)},
+    {agent:1,signature:'5'.repeat(88)},
+    {agent:2,savedMarketCapUsd:'<b>300000</b>',signature:'6'.repeat(88)},
+  ].map(row=>({...row,status:'worker-recorded-finalized',amountLamports:'25502',finalizedAt:'2026-10-21T05:04:37.000Z'}));
+  await page.route('**/api/marketing-agency',route=>route.fulfill({json:{...policy,status:'deployment-verified',active:true,executionEnabled:true,publishingPaused:true,
+    agents:policy.policy.agents.map((row,index)=>({id:row.id,enabled:index>0,status:index?'available':'paused'})),
+    verification:{scope:'reviewed-devnet-program-and-fresh-worker',programId:'9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm',approvedHash:'a'.repeat(64),build:'b'.repeat(40),configRevision:'4'},
+    funding:{status:'worker-verified-snapshots',collectedLamports:'51004',spentLamports:'51004'},history}}));
+  await page.goto('/#marketing-agency');
+  const links=page.locator('[data-agency-history] a');await expect(links).toHaveCount(4);
+  await expect(links.nth(0)).toContainText('Agent 2 · Own-coin buyback · Saved trigger $1 ·');
+  await expect(links.nth(1)).toContainText('Agent 3 · Own-coin buyback · Saved trigger $2 ·');
+  for(const index of [2,3]){
+    await expect(links.nth(index)).toContainText('Own-coin buyback');
+    await expect(links.nth(index)).not.toContainText('Saved trigger');
+  }
+  await expect(page.locator('[data-agency-history]')).not.toContainText('$100k');
+  await expect(page.locator('[data-agency-history]')).not.toContainText('$300k');
+  await expect(page.locator('.agency-agent').nth(1)).toContainText('$100,000');
+  await expect(page.locator('.agency-agent').nth(2)).toContainText('$300,000');
+  await expect(page.locator('.agency-agent').nth(0)).toContainText('Paused · X account suspended');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});

@@ -1,5 +1,17 @@
 import {agencySelectionMask} from '../agency-mint-router-v3.js';
+import {validateAgencyRules} from '../config/agency-rules.js';
+import {allocationAuditHash} from './allocation-audit-hash.mjs';
 const exact=value=>typeof value==='string'&&/^(0|[1-9]\d{0,19})$/.test(value)&&BigInt(value)<=0xffffffffffffffffn;
+function savedMilestone(row){
+  if(![1,2].includes(row.intent?.agent))return null;
+  try{
+    const execution=row.evidence?.agencyExecution;
+    if(!execution||execution.agent!==row.intent.agent||row.proof.agent!==row.intent.agent
+      ||row.proof.category!==7||allocationAuditHash(row.intent)!==row.intentHash
+      ||allocationAuditHash(row.evidence)!==row.evidenceHash)return null;
+    return validateAgencyRules(execution.rules).marketCapUsd[row.intent.agent-1];
+  }catch{return null;}
+}
 export function agencyPublicSummary({state,programId,approvedHash,build,now=Date.now()}){
   const launches=Object.values(state.launches||{}).filter(launch=>launch.cluster==='devnet'
     &&launch.onchainVerified===true&&launch.pumpFeeRoute?.programId===programId&&Number.isFinite(launch.pumpFeeRoute.protocolSplit?.agencyPercent));
@@ -19,7 +31,8 @@ export function agencyPublicSummary({state,programId,approvedHash,build,now=Date
     &&row.intent?.programId===programId&&row.intent.approvedHash===approvedHash&&row.proof?.finalized===true
     &&row.proof.balanceDeltaVerified===true&&row.proof.signature===row.signature).map(row=>({mint:row.intent.mint,agent:row.intent.agent,
       signature:row.signature,finalizedAt:row.proof.burnedAt||row.finalizedAt,slot:row.proof.slot,amountLamports:row.proof.amount||row.proof.spentLamports,
-      burnedBaseUnits:row.proof.burnedBaseUnits||null,postUrl:row.proof.post?.url||null,status:'worker-recorded-finalized'}))
+      burnedBaseUnits:row.proof.burnedBaseUnits||null,postUrl:row.proof.post?.url||null,
+      savedMarketCapUsd:savedMilestone(row),status:'worker-recorded-finalized'}))
     .sort((a,b)=>String(b.finalizedAt).localeCompare(String(a.finalizedAt))).slice(0,50);
   return{funding:{status:complete?'worker-verified-snapshots':'partial',scope:'last-finalized-worker-snapshots-of-registered-launches',
     collectedLamports:complete?String(paid):null,spentLamports:complete?String(spent):null,maxAgeSeconds:180},

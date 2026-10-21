@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {Keypair} from '@solana/web3.js';
 import {agencyPublicSummary} from '../server/agency-public-summary.mjs';
 import {createMarketingAgencyRoutes} from '../server/routes/marketing-agency.mjs';
+import {allocationAuditHash} from '../server/allocation-audit-hash.mjs';
 const mint=Keypair.fromSeed(Buffer.alloc(32,246)).publicKey.toBase58(),programId=Keypair.fromSeed(Buffer.alloc(32,247)).publicKey.toBase58();
 function fixture(){
   const now=Date.now(),approvedHash='a'.repeat(64),build='b'.repeat(40);
@@ -37,4 +38,22 @@ test('burn history uses receipt time instead of a later worker reconciliation ti
   f.state.v3AgencyExecutions={burn:{status:'finalized',signature:'sig',finalizedAt:'2026-10-21T01:00:00.000Z',
     intent:{programId,approvedHash:f.args.approvedHash,mint,agent:1},proof:{signature:'sig',finalized:true,balanceDeltaVerified:true,burnedAt}}};
   assert.equal(agencyPublicSummary(f.args).history[0].finalizedAt,burnedAt);
+  assert.equal(agencyPublicSummary(f.args).history[0].savedMarketCapUsd,null);
+});
+
+test('history reports saved execution thresholds rather than current launch defaults',()=>{
+  const f=fixture(),rules={marketCapUsd:[1,2],communityWindowSeconds:7776000,promotionIntervalSeconds:86400};
+  const row={status:'finalized',signature:'sig',intent:{programId,approvedHash:f.args.approvedHash,mint,agent:1},
+    evidence:{agencyExecution:{agent:1,rules}},proof:{signature:'sig',finalized:true,balanceDeltaVerified:true,agent:1,category:7}};
+  row.intentHash=allocationAuditHash(row.intent);row.evidenceHash=allocationAuditHash(row.evidence);
+  f.state.v3AgencyExecutions={burn:row};
+  assert.equal(agencyPublicSummary(f.args).history[0].savedMarketCapUsd,1);
+  row.intent.agent=2;row.proof.agent=2;row.evidence.agencyExecution.agent=2;
+  row.intentHash=allocationAuditHash(row.intent);row.evidenceHash=allocationAuditHash(row.evidence);
+  assert.equal(agencyPublicSummary(f.args).history[0].savedMarketCapUsd,2);
+  row.evidence.agencyExecution.rules.marketCapUsd=[100000,300000];
+  assert.equal(agencyPublicSummary(f.args).history[0].savedMarketCapUsd,null,'changed evidence must not relabel a receipt');
+  row.evidenceHash=allocationAuditHash(row.evidence);row.evidence.agencyExecution.rules.marketCapUsd=[2,1];
+  row.evidenceHash=allocationAuditHash(row.evidence);
+  assert.equal(agencyPublicSummary(f.args).history[0].savedMarketCapUsd,null,'invalid saved rules require a neutral caption');
 });

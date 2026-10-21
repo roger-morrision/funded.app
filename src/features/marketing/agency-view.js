@@ -112,7 +112,10 @@ export function initMarketingAgency(document = globalThis.document) {
         for(const row of Array.isArray(data.history)?data.history:[]){
           if(row.status!=='worker-recorded-finalized'||!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(row.signature)||!POLICY.agents[row.agent])continue;
           const item=document.createElement('li'),link=document.createElement('a');link.href=`https://explorer.solana.com/tx/${encodeURIComponent(row.signature)}?cluster=devnet`;
-          link.target='_blank';link.rel='noopener noreferrer';link.textContent=`${POLICY.agents[row.agent].name} · ${sol(row.amountLamports)} · ${row.finalizedAt||'Finalized'} ↗`;item.append(link);list.append(item);
+          const saved=row.savedMarketCapUsd;
+          const trigger=Number.isSafeInteger(saved)&&saved>=1&&saved<=1_000_000_000?` · Saved trigger $${saved.toLocaleString('en-US')}`:'';
+          const caption=row.agent===0?POLICY.agents[0].name:`Agent ${row.agent+1} · Own-coin buyback${trigger}`;
+          link.target='_blank';link.rel='noopener noreferrer';link.textContent=`${caption} · ${sol(row.amountLamports)} · ${row.finalizedAt||'Finalized'} ↗`;item.append(link);list.append(item);
         }
         if(list.childElementCount)history.append(list);else history.append(document.createTextNode(' No agency execution receipt has been recorded.'));
         return;
