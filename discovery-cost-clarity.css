@@ -48,6 +48,9 @@ body.page-route-launch .launch-pay-summary :is(.cost-initial-buy-row, .cost-netw
   text-align: left;
 }
 #launch-cost-details[hidden] { display: none !important; }
+#cost-summary.public-launch-planning > :is(.cost-summary-head,.cost-row:not(#cost-burn-row),#cost-note,.launch-total-cost-note) { display: none !important; }
+#cost-summary.public-launch-planning #launch-cost-details { display: block; }
+#cost-public-tier-note[hidden],.launch-summary-specs > [hidden] { display: none !important; }
 .home-launch-progress[hidden] { display: none !important; }
 
 @media (max-width: 700px) {

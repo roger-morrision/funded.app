@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { build, preview } from 'vite';
+import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const moduleBundle = await build({ configFile:false, build:{ write:false,
@@ -16,8 +17,7 @@ try {
   await context.route('**/api/**', route => route.fulfill({ status:503,
     contentType:'application/json', body:'{"error":"Read-only fixture"}' }));
   await context.route('**/api/fee-policy', route => route.fulfill({ status:200,
-    contentType:'application/json', body:JSON.stringify({split:{operationsPercent:50,
-      referralLevelPercents:[10,3,2],communityPercent:10,buybackPercent:25}}) }));
+    contentType:'application/json', body:JSON.stringify({split:PROTOCOL_FEE_SPLIT}) }));
   const page = await context.newPage();
   await page.goto(`${origin}#launch`, { waitUntil:'domcontentloaded' });
   await page.locator('body.product-experience-ready').waitFor({ timeout:20_000 });
@@ -92,7 +92,9 @@ try {
       assert.match(result.details,/Network fees \+ account rent planning allowance/);
       assert.match(result.details,new RegExp(`Estimated total SOL budget\\s*${variant.total.replace('.', '\\.')}`));
     } else {
-      assert.equal(result.visible,false);
+      assert.equal(result.visible,true);
+      assert.match(result.details,/Review launch costs/);
+      assert.match(result.details,/complete planning budget needs/);
       assert.doesNotMatch(result.details,/Estimated total SOL budget/);
     }
     if (process.env.FUNDED_BUDGET_SCREENSHOT_DIR && variant.status === 'ready'
