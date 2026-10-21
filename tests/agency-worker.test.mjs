@@ -49,6 +49,24 @@ test('dedicated worker verifies account, dispatches only agency events and disti
   assert.equal(agencyWorkerHealth(f.state,{...health,build:'c'.repeat(40)}),false);
   assert.equal(agencyWorkerHealth(f.state,{...health,now:Date.parse(row.checkedAt)+90001}),false);
 });
+
+test('paused publisher cannot pin buyback pagination to the first five coins',async()=>{
+  const f=fixture(true),mints=Array.from({length:8},(_,i)=>key(100+i).publicKey.toBase58()).sort();
+  f.input.config={...f.input.config,buybacksOnly:true};
+  f.state.launches=Object.fromEntries(mints.map(mint=>[mint,{mint,cluster:'devnet',pumpFeeRoute:{programId,protocolSplit:{agencyPercent:10}}}]));
+  const publisherCursor={lastMint:mints[2],status:'blocked'};
+  f.state.adminSettings={agencyWorker:structuredClone(publisherCursor)};
+  const visited=[];
+  f.input.milestone=async({mint,agent})=>{if(agent===1)visited.push(mint);return{status:'below-threshold'};};
+  for(let cycle=0;cycle<2;cycle++){
+    await runAgencyCycle(f.input);
+    assert.deepEqual(f.state.adminSettings.agencyWorker,publisherCursor,'Buyback rotation must not mutate the paused publisher.');
+  }
+  assert.deepEqual(visited,[...mints.slice(0,5),...mints.slice(5),...mints.slice(0,2)]);
+  assert.equal(new Set(visited).size,mints.length,'Every eligible coin must receive a turn.');
+  assert.equal(f.state.adminSettings.agencyBuybackWorker.lastMint,mints[1]);
+  assert.equal(f.counts.promotions,0);assert.equal(f.counts.posts,0);
+});
 test('unexpected milestone failures degrade readiness; an incomplete migration remains explicitly pending',async()=>{
   const f=fixture(true);f.input.milestone=async({agent})=>{throw Object.assign(new Error('Unavailable'),{code:agent===1?'AGENCY_MARKET_NOT_MIGRATED':'RPC_UNAVAILABLE'});};
   const result=await runAgencyCycle(f.input);assert(result.events.some(row=>row.status==='awaiting-migration'));

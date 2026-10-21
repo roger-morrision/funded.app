@@ -49,7 +49,8 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
   const account=config.execute&&!buybacksOnly?await publisher.verifyAccount():null;
   const state=await store.read(),mints=Object.values(state.launches||{}).filter(row=>row.cluster==='devnet'
     &&row.pumpFeeRoute?.programId===config.programId&&row.pumpFeeRoute?.protocolSplit?.agencyPercent!==undefined).map(row=>row.mint).sort();
-  const previous=state.adminSettings?.agencyWorker?.lastMint||'',ordered=[...mints.filter(mint=>mint>previous),...mints.filter(mint=>mint<=previous)].slice(0,5);
+  const heartbeatKey=buybacksOnly?'agencyBuybackWorker':'agencyWorker';
+  const previous=state.adminSettings?.[heartbeatKey]?.lastMint||'',ordered=[...mints.filter(mint=>mint>previous),...mints.filter(mint=>mint<=previous)].slice(0,5);
   const base={store,outbox,connection,authority,publisher,programId:config.programId,approvedHash:config.approvedHash,
     lookupAddress:config.lookupAddress,readContext,publicOrigin:config.origin},events=[];
   for(const mint of ordered){
@@ -85,7 +86,7 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
         scope:'finalized-pump-sources-and-agency-vault',verified:true};
     }
     if(!shouldStop())await store.update(current=>{
-      current.adminSettings||={};current.adminSettings[buybacksOnly?'agencyBuybackWorker':'agencyWorker']={status:events.some(row=>row.status==='execution-unavailable')?'degraded':'ready',version:buybacksOnly?'agency-buyback-executor-v1':'agency-executor-v1',cluster:'devnet',
+      current.adminSettings||={};current.adminSettings[heartbeatKey]={status:events.some(row=>row.status==='execution-unavailable')?'degraded':'ready',version:buybacksOnly?'agency-buyback-executor-v1':'agency-executor-v1',cluster:'devnet',
         programId:config.programId,approvedHash:config.approvedHash,authority:authority.publicKey.toBase58(),configRevision:deployment.revision,
         build:config.build,...(buybacksOnly?{}:{xAccountId:account.id}),capabilities:buybacksOnly?['buyback-100k','buyback-300k']:['x-promotion','buyback-100k','buyback-300k'],
         checkedAt:new Date(now()).toISOString(),lastMint:ordered.at(-1)||previous,
