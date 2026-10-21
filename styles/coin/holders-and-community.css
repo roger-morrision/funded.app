@@ -126,6 +126,7 @@
   .coin-page .coin-fee-table tbody{display:grid;gap:10px}
   .coin-page .coin-fee-table tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;padding:12px;border:1px solid #2c3b55;border-radius:10px;background:#121c2a}
   .coin-page .coin-fee-table th,.coin-page .coin-fee-table td{display:block;min-width:0;padding:0;border:0;text-align:left;overflow-wrap:anywhere}
+  .coin-page .coin-fee-table td.coin-fee-amount{white-space:normal}
   .coin-page .coin-fee-table tbody th{grid-column:1/-1;padding-bottom:7px;border-bottom:1px solid #2b3950}
   .coin-page .coin-fee-table td::before{display:block;margin-bottom:3px;color:#8fa5c2;font-size:10px;font-weight:400}
   .coin-page .coin-fee-table td:nth-child(2)::before{content:'Event'}

@@ -1,6 +1,7 @@
 import { homeLaunchFeeIndex } from '../home-launch-fee-index.mjs';
 import { PublicKey, Connection } from '@solana/web3.js';
 import { creatorVaultPda, OnlinePumpSdk } from '@pump-fun/pump-sdk';
+import { solFromLamports } from '../../fee-activity-amount.js';
 
 export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpcUrl, databaseUrl, respond }) {
   const json = (...args) => { respond(...args); return true; };
@@ -44,7 +45,7 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
           && payout.recipient === launch.creatorWallet && payout.amount === allocation
           && /^[1-9]\d*$/.test(String(allocation || '')) && Boolean(payout.signature);
         return { signature:row.signature, recordedAt:row.recordedAt || null,
-        amountLamports:String(row.collectedLamports),
+        amountLamports:solFromLamports(row.collectedLamports) == null ? null : String(row.collectedLamports),
         settlement:settled?.status || 'pending',
         allocationPlan:settled?.status === 'finalized' ? settled.allocationPlan : null,
         communityFunding:state.v3CommunityFunding?.[row.signature]?.status || 'pending',
@@ -56,7 +57,9 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
       recordedAt:row.recordedAt, collectedLamports:row.amountLamports })),
       claims:collections.filter(row => row.settlement === 'finalized').map(row => ({
         claimSignature:row.signature, status:'finalized',
-        grossCreatorFees:row.amountLamports, asset:'SOL', claimedAt:null })) };
+        grossLamports:solFromLamports(row.amountLamports) == null ? null : row.amountLamports,
+        grossCreatorFees:solFromLamports(row.amountLamports), grossCreatorFeesUnit:'SOL',
+        asset:'SOL', claimedAt:null })) };
     return json(res, 200, { mint, cluster:solanaCluster,
       source:databaseUrl ? 'funded.app-postgresql' : 'funded.app-file-ledger',
       coverage:'verified-v3-collections', ...activity,
