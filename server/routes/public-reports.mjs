@@ -2,6 +2,7 @@ import { CREATOR_SUPPORT_VERSION } from '../../creator-support-model.js';
 import { homeFeeAllocationSummary } from '../home-dashboard-metrics.mjs';
 import { creatorReputation } from '../../stonk-features.js';
 import { v3PublicMetrics, v3ReceiptEvidence } from '../v3-public-metrics.mjs';
+import { createAnalyticsSummaryReader } from '../analytics-summary-reader.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -9,6 +10,10 @@ export function createPublicReportsRoutes({
   publicState, store, readReceiptEvidence, readPaymentHistory, automaticRewardStore, readFinalizedEvidence, solanaCluster, databaseUrl,
   respond,
 }) {
+  const readSummary = createAnalyticsSummaryReader([
+    () => store.read(), () => automaticRewardStore.read(),
+    () => readFinalizedEvidence(), () => readPaymentHistory(),
+  ]);
 
   const json = (...args) => { respond(...args); return true; };
   return async function handlePublicReportsRoutes(req, res, url, requestId) {
@@ -19,7 +24,10 @@ export function createPublicReportsRoutes({
     }
     if (req.method === 'GET' && url.pathname === '/api/evidence/payment-history') return json(res, 200, await readPaymentHistory());
     if (req.method === 'GET' && url.pathname === '/api/analytics/summary') {
-      const [state, rewards, evidence, history] = await Promise.all([store.read(), automaticRewardStore.read(), readFinalizedEvidence(), readPaymentHistory()]);
+      const input = await readSummary();
+      if (!input.available) return json(res, 503, { status:'unavailable', retryable:true,
+        error:'Analytics is temporarily unavailable. Please try again shortly.' });
+      const [state, rewards, evidence, history] = input.values;
       const launches = Object.values(state.launches || {}).filter(row => row.cluster === solanaCluster
         && row.onchainVerified === true && row.pumpFeeRoute?.scope === 'per-mint-v3');
       const { v3Evidence, ...totals } = v3PublicMetrics(state, evidence, history, rewards, solanaCluster);
