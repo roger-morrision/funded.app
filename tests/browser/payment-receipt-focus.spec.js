@@ -1,5 +1,38 @@
-import{test,expect}from'@playwright/test';
+import{test,expect as baseExpect}from'@playwright/test';
+
+// Preserve the original receipt-flow deadlines inside the complete matrices.
+const expect=baseExpect.configure({timeout:15_000});
+test.setTimeout(30_000);
 import{PROTOCOL_FEE_SPLIT}from'../../config/protocol-fee-split.js';
+
+// FQA-055 test-method correction: measure continuous visible keyboard focus in
+// browser time, excluding repeated browser/runner transport from the 1s window.
+function observeStableFocus(target, {timeoutMs=1000, stableMs=100}={}) {
+  return new Promise(resolve=>{
+    const start=performance.now(),samples=[];
+    let stableSince=null,lastScroll=null,frame,timer,done=false;
+    const finish=(pass,reason,last)=>{
+      if(done)return;done=true;cancelAnimationFrame(frame);clearTimeout(timer);
+      resolve({pass,reason,elapsedMs:performance.now()-start,stableForMs:stableSince===null?0:performance.now()-stableSince,samples,last});
+    };
+    const sample=()=>{
+      const now=performance.now(),e=document.activeElement,r=target.getBoundingClientRect(),s=getComputedStyle(target);
+      const n=document.querySelector('.mobile-workspace-nav'),h=document.querySelector('.topbar');
+      const margin=(parseFloat(s.outlineWidth)||0)+Math.max(0,parseFloat(s.outlineOffset)||0);
+      const state={elapsedMs:now-start,scrollY,focused:e===target,focusVisible:target.matches(':focus-visible'),visible:target.getClientRects().length>0&&r.top-margin>=(h?.getClientRects().length?Math.max(0,h.getBoundingClientRect().bottom):0)&&r.bottom+margin<=(n?.getClientRects().length?n.getBoundingClientRect().top:innerHeight)};
+      samples.push(state);
+      if(now-start>timeoutMs)return finish(false,'deadline',state);
+      if(state.focused&&state.focusVisible&&state.visible){
+        if(stableSince===null||lastScroll!==state.scrollY)stableSince=now;
+        lastScroll=state.scrollY;
+        if(now-stableSince>=stableMs)return finish(true,'visible-and-stationary',state);
+      }else{stableSince=null;lastScroll=null;}
+      frame=requestAnimationFrame(sample);
+    };
+    timer=setTimeout(()=>finish(false,'deadline',samples.at(-1)),timeoutMs);
+    frame=requestAnimationFrame(sample);
+  });
+}
 
 const alphabet='123456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const receipts=Array.from({length:23},(_,i)=>({source:i===22?'automatic-holder':'v3-creator-wallet',to:'8'.repeat(44),signature:alphabet[i].repeat(88),amountLamports:100000+i,actualReceivedLamports:95000+i,feeLamports:5000,feePayer:'7'.repeat(44),blockTime:1792454400+i,slot:512479000+i}));
@@ -24,12 +57,14 @@ for(const width of[390,1440])test(`FQA-021 / UX-020 receipt controls survive rea
   };
   const check=async(receiptKey,selector)=>{
     await expect(rowFor(receiptKey).locator(selector)).toBeFocused();
-    // Native keyboard focus can start a smooth scroll. Capture the settled
-    // position before comparing refreshes; visibility alone can occur mid-scroll.
-    await expect.poll(async()=>{
-      const before=await focused();await page.waitForTimeout(100);const after=await focused();
-      return before.visible&&after.visible&&before.scrollY===after.scrollY;
-    },{timeout:1000}).toBe(true);
+    // Native keyboard focus can start smooth scrolling. Require >=100ms of
+    // continuous stationary, fully visible focus within the original 1000ms.
+    // This corrects measurement transport overhead; no app settling wait is added.
+    const motion=await rowFor(receiptKey).locator(selector).evaluate(observeStableFocus,{timeoutMs:1000,stableMs:100});
+    await testInfo.attach('receipt-focus-browser-measurement',{body:JSON.stringify({receiptKey,selector,...motion},null,2),contentType:'application/json'});
+    expect(motion.pass,JSON.stringify(motion)).toBe(true);
+    expect(motion.elapsedMs).toBeLessThanOrEqual(1000);
+    expect(motion.stableForMs).toBeGreaterThanOrEqual(100);
     const state=await focused();
     expect(state,JSON.stringify(state)).toMatchObject({key:receiptKey,focusVisible:true,visible:true});return state;
   };
@@ -55,4 +90,24 @@ for(const width of[390,1440])test(`FQA-021 / UX-020 receipt controls survive rea
   // If the user is outside the list, refreshing must not steal focus or scroll.
   const outside=await page.locator('#payment-history-type').evaluate(e=>{e.focus({preventScroll:true});return scrollY});await refresh();await expect(page.locator('#payment-history-type')).toBeFocused();expect(await page.evaluate(()=>scrollY)).toBe(outside);
   expect(errors).toEqual([]);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+});
+
+// Standalone synthetic controls; painted-frame setup never runs in app flows.
+for(const mode of ['static-visible','offscreen','moving-scroll','stolen-focus','late-visible'])test('FQA-055 focus measurement control '+mode,async({page},info)=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.setContent('<style>html{scroll-behavior:auto}body{height:5000px}button{outline:2px solid orange;outline-offset:3px}#target{position:fixed;top:100px;left:20px}</style><button id="target">Target</button><button id="other">Other</button>');
+ // This synthetic setContent fixture must paint before its measurement clock starts.
+ // No such setup wait is inserted into either original application journey.
+ await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+ const target=page.locator('#target');await target.focus();await page.keyboard.press('Shift');
+ await page.evaluate(mode=>{
+  if(mode==='offscreen')document.querySelector('#target').style.top='2200px';
+  if(mode==='moving-scroll'){let y=10;function move(){scrollTo(0,y===10?11:10);y=y===10?11:10;requestAnimationFrame(move)}requestAnimationFrame(move)}
+  if(mode==='stolen-focus')document.querySelector('#other').focus({preventScroll:true});
+  if(mode==='late-visible'){document.querySelector('#target').style.top='2200px';setTimeout(()=>document.querySelector('#target').style.top='100px',950)}
+ },mode);
+ const result=await target.evaluate(observeStableFocus,{timeoutMs:1000,stableMs:100});
+ await info.attach('receipt-focus-measurement-control',{body:JSON.stringify({mode,...result},null,2),contentType:'application/json'});
+ expect(result.pass).toBe(mode==='static-visible');
+ if(result.pass){expect(result.elapsedMs).toBeLessThanOrEqual(1000);expect(result.stableForMs).toBeGreaterThanOrEqual(100)}
 });
