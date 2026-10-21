@@ -132,7 +132,7 @@ export function createLaunchPreviewController(appState) {
   // app-source: 611
   function refreshQuoteClocks(){
     if (document.hidden) return;
-    renderPublicQuoteRetry({wallet:appState.wallet, publicQuote, active:appState.requestedPageRoute()==='launch'});
+    if (document.querySelector('#launch-public-quote-retry')) renderPublicQuoteRetry({wallet:appState.wallet, publicQuote, active:appState.requestedPageRoute()==='launch'});
     appState.updateQuoteCountdowns();
     if (document.querySelector('#explore-boost-dialog')?.open && !appState.boostCheckout.busy && !appState.boostCheckout.pendingSignature
       && appState.boostCheckout.quote && Date.parse(appState.boostCheckout.quote.expiresAt) <= Date.now()
