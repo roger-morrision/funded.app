@@ -53,6 +53,7 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
   const previous=state.adminSettings?.[heartbeatKey]?.lastMint||'',ordered=[...mints.filter(mint=>mint>previous),...mints.filter(mint=>mint<=previous)].slice(0,5);
   const base={store,outbox,connection,authority,publisher,programId:config.programId,approvedHash:config.approvedHash,
     lookupAddress:config.lookupAddress,readContext,publicOrigin:config.origin},events=[];
+  let readinessStatus=null;
   for(const mint of ordered){
     if(shouldStop())break;
     if(!config.execute){
@@ -85,16 +86,20 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
         selectedMask:context.policy.selectedMask,completedMask:context.policy.completedMask,agentRemaining:context.agentRemaining,
         scope:'finalized-pump-sources-and-agency-vault',verified:true};
     }
-    if(!shouldStop())await store.update(current=>{
-      current.adminSettings||={};current.adminSettings[heartbeatKey]={status:events.some(row=>row.status==='execution-unavailable')?'degraded':'ready',version:buybacksOnly?'agency-buyback-executor-v1':'agency-executor-v1',cluster:'devnet',
+    if(!shouldStop()){
+    const status=events.some(row=>row.status==='execution-unavailable')?'degraded':'ready';
+    await store.update(current=>{
+      current.adminSettings||={};current.adminSettings[heartbeatKey]={status,version:buybacksOnly?'agency-buyback-executor-v1':'agency-executor-v1',cluster:'devnet',
         programId:config.programId,approvedHash:config.approvedHash,authority:authority.publicKey.toBase58(),configRevision:deployment.revision,
         build:config.build,...(buybacksOnly?{}:{xAccountId:account.id}),capabilities:buybacksOnly?['buyback-100k','buyback-300k']:['x-promotion','buyback-100k','buyback-300k'],
         checkedAt:new Date(now()).toISOString(),lastMint:ordered.at(-1)||previous,
         pendingExecutions:events.filter(row=>!['finalized','not-payable','below-threshold','cadence-wait','x-dispatch'].includes(row.status)).length};
       current.adminSettings.agencyBudgets={...(current.adminSettings.agencyBudgets||{}),...budgets};
     });
+    readinessStatus=status;
+    }
   }
-  return{mode:config.execute?'execute':'dry-run',cluster:'devnet',build:config.build,events};
+  return{mode:config.execute?'execute':'dry-run',cluster:'devnet',build:config.build,readinessStatus,events};
 }
 async function main(args){
   const env={...process.env};

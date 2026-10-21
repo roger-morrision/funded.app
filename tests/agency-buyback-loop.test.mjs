@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {agencyBuybackWaitMs,runAgencyBuybackLoop} from '../server/agency-buyback-loop.mjs';
 import {agencyBuybackWorkerHealth} from '../server/agency-deployment.mjs';
-const build='b'.repeat(40),ready=()=>({mode:'execute',cluster:'devnet',build,events:[]});
+const build='b'.repeat(40),ready=()=>({mode:'execute',cluster:'devnet',build,readinessStatus:'ready',events:[]});
 
 test('observed slow successful cycles stay within the unchanged readiness age without overlapping',async()=>{
   let clock=0,cycles=0,active=0;
@@ -33,9 +33,9 @@ test('verification failures retain full polling backoff and are never marked suc
 });
 
 test('resolved degraded or unverified cycles keep full backoff without overwriting their existing status',async()=>{
-  const degraded={...ready(),events:[{status:'execution-unavailable'}]};
+  const degraded={...ready(),readinessStatus:'degraded',events:[{status:'execution-unavailable'}]};
   for(const result of [degraded,{...ready(),mode:'dry-run'},{...ready(),build:'c'.repeat(40)},
-    {...ready(),cluster:'mainnet-beta'},{...ready(),events:null},undefined]){
+    {...ready(),cluster:'mainnet-beta'},{...ready(),events:null},{...ready(),readinessStatus:undefined},undefined]){
     let clock=0,cycles=0;const waits=[];
     await runAgencyBuybackLoop({config:{mode:'loop',intervalMs:60000,build},now:()=>clock,shouldStop:()=>cycles===2,
       runCycle:async()=>{cycles++;clock+=67000;return result;},onBlocked:async()=>assert.fail('The cycle already classified its result'),

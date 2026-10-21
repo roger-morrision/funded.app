@@ -18,7 +18,7 @@ export async function runAgencyBuybackLoop({ config, runCycle, onBlocked,
       // runAgencyCycle records a degraded heartbeat without throwing when a
       // milestone is unavailable. Only its matching ready-result shape can
       // shorten idle; degraded, dry-run and unknown results keep full backoff.
-      if (result?.mode === 'execute' && result.cluster === 'devnet'
+      if (result?.readinessStatus === 'ready' && result.mode === 'execute' && result.cluster === 'devnet'
         && /^[a-f0-9]{40}$/.test(String(config.build)) && result.build === config.build
         && Array.isArray(result.events) && result.events.every(row => row && row.status !== 'execution-unavailable'))
         waitMs = agencyBuybackWaitMs(config.intervalMs, now() - startedAt);
