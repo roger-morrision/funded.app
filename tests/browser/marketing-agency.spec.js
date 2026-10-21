@@ -25,9 +25,9 @@ for (const width of [1440, 390]) test(`dedicated agency menu, clear readiness an
   await expect(page.locator('.agency-agent-grid')).toHaveCSS('display', 'grid');
   await expect(page.locator('.agency-agent').nth(1)).toContainText('$100,000');
   await expect(page.locator('.agency-agent').nth(2)).toContainText('$300,000');
-  await expect(page.locator('[data-agency-status]')).toContainText('Not activated');
+  await expect(page.locator('[data-agency-status]')).toContainText('Current agency readiness is unavailable');
   await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');
-  await expect(page.locator('[data-agency-history]')).toContainText('No agency execution history has been verified');
+  await expect(page.locator('[data-agency-history]')).toContainText('Earlier receipt history is unavailable');
   await expect(page.locator('.agency-policy')).toContainText('1% referrals · 2% AI agency');
   await expect(page.locator('.agency-policy')).toContainText('L1 0.6% · L2 0.25% · L3 0.15%');
   await expect(page.locator('.agency-policy')).toContainText('each buy and burn the launched coin once');
@@ -64,7 +64,7 @@ test('failed capability load is unavailable with working retry, never zero funds
   await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');
   await page.unroute('**/api/marketing-agency');
   await page.locator('[data-agency-refresh]').click();
-  await expect(page.locator('[data-agency-status]')).toContainText('Not activated');
+  await expect(page.locator('[data-agency-status]')).toContainText('Current agency readiness is unavailable');
 });
 
 test('unverified active API claims cannot advertise working agency agents', async ({ page }) => {
@@ -92,7 +92,7 @@ test('published fee policy does not imply agency execution or get described as u
 });
 
 test('verified deployment shows timestamped worker budget scope and finalized receipt links without inventing new payments',async({page})=>{
-  await page.route('**/api/marketing-agency',route=>route.fulfill({json:{...marketingAgencyCapabilities(),status:'deployment-verified',active:true,executionEnabled:true,
+  await page.route('**/api/marketing-agency',route=>route.fulfill({json:{...marketingAgencyCapabilities(),status:'deployment-verified',historyStatus:'worker-recorded-finalized',active:true,executionEnabled:true,
     agents:marketingAgencyCapabilities().policy.agents.map(row=>({id:row.id,enabled:true,status:'available'})),
     verification:{scope:'reviewed-devnet-program-and-fresh-worker',programId:'9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm',approvedHash:'a'.repeat(64),build:'b'.repeat(40),configRevision:'1'},
     funding:{status:'worker-verified-snapshots',collectedLamports:'20000000',spentLamports:'1000000'},
@@ -105,7 +105,7 @@ test('verified deployment shows timestamped worker budget scope and finalized re
 
 test('buyback availability stays separate from the suspended X publisher',async({page})=>{
   const policy=marketingAgencyCapabilities();
-  await page.route('**/api/marketing-agency',route=>route.fulfill({json:{...policy,status:'deployment-verified',active:true,executionEnabled:true,publishingPaused:true,
+  await page.route('**/api/marketing-agency',route=>route.fulfill({json:{...policy,status:'deployment-verified',historyStatus:'worker-recorded-finalized',active:true,executionEnabled:true,publishingPaused:true,
     feePolicy:{status:'published',revision:3},agents:policy.policy.agents.map((row,index)=>({id:row.id,enabled:index>0,status:index?'available':'paused'})),
     verification:{scope:'reviewed-devnet-program-and-fresh-worker',programId:'9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm',approvedHash:'a'.repeat(64),build:'b'.repeat(40),configRevision:'1'},
     funding:{status:'worker-verified-snapshots',collectedLamports:'10000',spentLamports:'0'},history:[]}}));
@@ -124,7 +124,7 @@ for(const width of [390,1440])test(`receipt captions retain saved QA triggers an
     {agent:1,signature:'5'.repeat(88)},
     {agent:2,savedMarketCapUsd:'<b>300000</b>',signature:'6'.repeat(88)},
   ].map(row=>({...row,status:'worker-recorded-finalized',amountLamports:'25502',finalizedAt:'2026-10-21T05:04:37.000Z'}));
-  await page.route('**/api/marketing-agency',route=>route.fulfill({json:{...policy,status:'deployment-verified',active:true,executionEnabled:true,publishingPaused:true,
+  await page.route('**/api/marketing-agency',route=>route.fulfill({json:{...policy,status:'deployment-verified',historyStatus:'worker-recorded-finalized',active:true,executionEnabled:true,publishingPaused:true,
     agents:policy.policy.agents.map((row,index)=>({id:row.id,enabled:index>0,status:index?'available':'paused'})),
     verification:{scope:'reviewed-devnet-program-and-fresh-worker',programId:'9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm',approvedHash:'a'.repeat(64),build:'b'.repeat(40),configRevision:'4'},
     funding:{status:'worker-verified-snapshots',collectedLamports:'51004',spentLamports:'51004'},history}}));

@@ -1,5 +1,6 @@
 import { MARKETING_AGENCY_POLICY as POLICY } from '../../../config/marketing-agency.js';
 import { readLaunchAgencySelection } from './agency-selection.js';
+import { renderAgencyHistory } from './agency-history.js';
 
 export function initMarketingAgency(document = globalThis.document) {
   const main = document?.querySelector('.main-content');
@@ -106,18 +107,7 @@ export function initMarketingAgency(document = globalThis.document) {
         });
         page.querySelector('[data-agency-funded]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.collectedLamports):'Unavailable';
         page.querySelector('[data-agency-spent]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.spentLamports):'Unavailable';
-        const history=page.querySelector('[data-agency-history]');history.replaceChildren();
-        const note=document.createElement('span');note.textContent='Budgets are timestamped finalized worker snapshots of registered launches. History shows worker-verified receipts.';history.append(note);
-        const list=document.createElement('ul');
-        for(const row of Array.isArray(data.history)?data.history:[]){
-          if(row.status!=='worker-recorded-finalized'||!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(row.signature)||!POLICY.agents[row.agent])continue;
-          const item=document.createElement('li'),link=document.createElement('a');link.href=`https://explorer.solana.com/tx/${encodeURIComponent(row.signature)}?cluster=devnet`;
-          const saved=row.savedMarketCapUsd;
-          const trigger=Number.isSafeInteger(saved)&&saved>=1&&saved<=1_000_000_000?` · Saved trigger $${saved.toLocaleString('en-US')}`:'';
-          const caption=row.agent===0?POLICY.agents[0].name:`Agent ${row.agent+1} · Own-coin buyback${trigger}`;
-          link.target='_blank';link.rel='noopener noreferrer';link.textContent=`${caption} · ${sol(row.amountLamports)} · ${row.finalizedAt||'Finalized'} ↗`;item.append(link);list.append(item);
-        }
-        if(list.childElementCount)history.append(list);else history.append(document.createTextNode(' No agency execution receipt has been recorded.'));
+        renderAgencyHistory(page.querySelector('[data-agency-history]'),data,{currentVerified:true});
         return;
       }
       if (data.status !== 'activation-blocked' || data.active !== false || data.executionEnabled !== false
@@ -125,14 +115,15 @@ export function initMarketingAgency(document = globalThis.document) {
       publishingPaused=data.publishingPaused===true;teamReadiness(false);page.querySelector('#agency-policy-title').textContent='New-launch agency allocation';
       if(data.feePolicy?.status==='published')page.querySelector('#agency-policy-title').textContent='Published new-launch fee policy';
       page.querySelectorAll('.agency-agent .data-badge').forEach((node,index)=>{
-        node.textContent=data.agents?.find(row=>row.id===POLICY.agents[index].id)?.status==='paused'?'Paused · X account suspended':'Not activated';
+        node.textContent=data.agents?.find(row=>row.id===POLICY.agents[index].id)?.status==='paused'?'Paused · X account suspended':'Readiness unavailable';
       });
-      page.querySelector('[data-agency-status]').textContent = `${data.feePolicy?.status==='published'?'The 1% referral / 2% agency policy is published. ':''}Not activated. Agency execution is unavailable. New agency launches remain disabled until deployment and worker verification passes.${data.publishingPaused?' X promotion is paused pending account reinstatement.':''} See Capital flow for the published fee policy.`;
+      page.querySelector('[data-agency-status]').textContent = `${data.feePolicy?.status==='published'?'The 1% referral / 2% agency policy is published. ':''}Current agency readiness is unavailable. Agency execution is unavailable. New agency launches remain disabled until deployment and worker verification passes.${data.publishingPaused?' X promotion is paused pending account reinstatement.':''} Earlier receipts below do not establish current readiness. See Capital flow for the published fee policy.`;
       page.querySelector('[data-agency-funded]').textContent = 'Unavailable';
       page.querySelector('[data-agency-spent]').textContent = 'Unavailable';
+      renderAgencyHistory(page.querySelector('[data-agency-history]'),data);
     } catch {
       if (id === serial){teamReadiness(false);page.querySelector('[data-agency-status]').textContent = 'Agency status unavailable. No agency funding or execution is confirmed. Refresh to try again.';
-        page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Unavailable';});}
+        page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Unavailable';});renderAgencyHistory(page.querySelector('[data-agency-history]'),null);}
     } finally { view.clearTimeout(timeout); }
   }
   const active = () => view.location.hash === '#marketing-agency' && !document.hidden;
