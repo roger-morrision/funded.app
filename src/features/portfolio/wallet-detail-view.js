@@ -50,6 +50,8 @@ export function renderWalletDetail(
     : directTrades.status==='ready' ? `${directTrades.scannedSignatures} wallet transactions checked · ${directTrades.coverage} Pump/PumpSwap history`
       : 'Wallet trade history is unavailable'
     : tradeScanReady ? `Trades shown for ${exploreScannedCount} of ${assets.length} listed coins${tradeScanStale ? ' (last available update)' : ''}` : 'Recent trades are unavailable';
+  const publicScopeNote = !isSelf && tradeScanReady && (directTrades
+    ? directTrades.coverage === 'partial' : exploreScannedCount < assets.length || tradeScanStale) ? ` ${scanNote}.` : '';
   const launchTimes = launches.map(walletLaunchTimestamp).filter(time => time > 0);
   const tradeTimes = trades.map(item => Number(item.blockTime) * 1000).filter(Number.isFinite);
   const history = isSelf && walletHistory?.wallet === address ? walletHistory : { status:'idle', rows:[], coverage:{} };
@@ -81,7 +83,7 @@ export function renderWalletDetail(
   setCoinField('#wallet-stat-trades-note', scanNote);
   const hasSolUsdQuote = Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0;
   setCoinField('#wallet-stat-volume', !tradeScanReady ? '$—' : !trades.length ? '$0.00' : hasSolUsdQuote ? formatDashboardUsd(volume * coinSolUsdPrice) : '$—');
-  setCoinField('#wallet-stat-volume-note', !tradeScanReady ? scanNote : !trades.length ? 'No recent trades found' : hasSolUsdQuote ? 'Estimated USD at the current SOL price' : 'SOL price unavailable');
+  setCoinField('#wallet-stat-volume-note', !tradeScanReady ? scanNote : !trades.length ? isSelf ? 'No recent trades found' : `No trades observed in available 24-hour records.${publicScopeNote}` : hasSolUsdQuote ? 'Estimated USD at the current SOL price' : 'SOL price unavailable');
   setCoinField('#wallet-stat-burned', !registryReady ? '—' : burned > 0 ? formatOnChainNumber(burned, 2) : launches.length ? '0' : '—');
   setCoinField('#wallet-stat-last', lastActivity ? formatOnchainAge(lastActivity) : '—');
   document.querySelectorAll('[data-wallet-tab]').forEach(button => { const active = button.dataset.walletTab === walletDetailTab; button.classList.toggle('active', active); button.setAttribute('aria-selected', String(active)); button.tabIndex = active ? 0 : -1; });
@@ -149,6 +151,7 @@ export function renderWalletDetail(
     || walletDetailEmpty(historyUnavailable || coverageIncomplete ? activeFilter === 'bonus' ? 'Bonus history incomplete' : 'Activity unavailable' : 'No matching activity',
       historyUnavailable ? unavailableDetail
         : coverageIncomplete ? 'Some activity cannot be shown right now. Please check again later.'
+          : !isSelf && ['all', 'buy', 'sell'].includes(activeFilter) ? `${activeFilter === 'all' ? 'No matching activity was found in the available public records.' : `No ${activeFilter === 'buy' ? 'buys' : 'sells'} were found in the available 24-hour trade records.`}${publicScopeNote}`
           : activeFilter === 'all' ? 'No confirmed launches, trades, burns, or wallet payments were found.'
             : `No confirmed ${activeFilter} history was found for this wallet.`);
   if (isSelf && ['all', 'bonus'].includes(activeFilter) && history.status === 'ready') {
