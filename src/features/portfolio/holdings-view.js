@@ -30,6 +30,12 @@ export function renderPortfolio(
   const txNote = document.querySelector('#portfolio-trade-note');
   if (!status || !rows || !value || !pnl || !txRows || !txNote) return;
   const address = connectedWalletAddress;
+  for (const panel of ['holdings', 'trades']) {
+    const content = document.querySelector(`#portfolio-${panel}-content`);
+    const disconnected = document.querySelector(`#portfolio-${panel}-disconnected`);
+    if (content) content.hidden = !address;
+    if (disconnected) disconnected.hidden = Boolean(address);
+  }
   const current = portfolioHoldings.wallet === address && portfolioHoldings.status === 'ready';
   const holdings = current ? portfolioHoldings.accounts : [];
   const assetByMint = new Map(assets.map(asset => [asset.address, asset]));
