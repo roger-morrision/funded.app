@@ -1,3 +1,5 @@
+import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
+
 // Dependencies and mutable application state are read live through appState.
 export function createCoinCommunityController(appState) {
   // app-source: 962
@@ -161,10 +163,7 @@ export function createCoinCommunityController(appState) {
 
   // app-source: 978
   function renderOnChainUnavailable(message){
-    const detail = String(message || '');
-    const displayMessage = /(?:5\d\d (?:Internal Server Error|Bad Gateway)|returned an invalid response)/i.test(detail)
-      ? 'Solana Devnet RPC is unavailable. Retry when network access recovers.'
-      : detail;
+    const displayMessage = coinUnavailableMessage(message);
     appState.coinTradeEstimate = null;
     appState.renderTradeAmountEstimate();
     appState.coinActivity = { status: 'unavailable', message: displayMessage, collections: [], claims: [], accounts: [] };

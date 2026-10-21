@@ -1,4 +1,5 @@
 import { verifiedTokenBannerUri } from '../../features/coin/token-banner.js';
+import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
 
 export function linkedSharedRouterFeeCollections(ledgerData, curveCreator) {
   const router = ledgerData?.sharedRouter;
@@ -177,13 +178,9 @@ export function createCoinLoadingController(appState) {
       else { appState.coinMarketActivity = { status: 'unavailable', trades: [], coverage: null, decimals }; appState.renderCoinSummary(); appState.renderCoinPricePath(); appState.renderCoinFlow(NaN, NaN); appState.renderCoinPulse(); appState.setCoinField('#coin-trade-count', 'Unavailable'); appState.setCoinField('#coin-trade-breakdown', 'Pump curve required'); appState.setCoinTabLabels(); appState.renderCoinActivityTab(); }
     } catch (error) {
       if (loadId !== appState.coinLoadId) return;
-      console.error('On-chain token detail failed', error);
-      const detail = String(error?.message || '');
-      appState.renderOnChainUnavailable(/\b429\b|rate limit|too many requests/i.test(detail)
-        ? 'Solana RPC is rate limited. Wait a moment, then select Refresh.'
-        : /timed out/i.test(detail)
-          ? 'Solana RPC timed out. Check your connection and select Refresh.'
-          : detail || 'Solana RPC could not load this mint.');
+      const detail = coinUnavailableMessage(error?.message);
+      console.error('On-chain token detail failed', detail);
+      appState.renderOnChainUnavailable(detail);
       appState.renderCoinRegistryIdentity(mintAddress);
       const feeLedger=verifiedV3FeeLedger(await feeLedgerPromise,mintAddress,appState.EXPLORE_CLUSTER);
       if (loadId !== appState.coinLoadId || !feeLedger) return;
