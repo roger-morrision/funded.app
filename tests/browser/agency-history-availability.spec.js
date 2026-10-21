@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {marketingAgencyCapabilities} from '../../server/marketing-agency-policy.mjs';
 import {AGENCY_RECEIPT_PROGRAM,AGENCY_RECEIPT_SCOPE} from '../../config/agency-history.js';
+import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 
 const policy=marketingAgencyCapabilities(),hash='a'.repeat(64),build='b'.repeat(40);
 const history=[1,2].map(agent=>({agent,signature:String(agent+2).repeat(88),savedMarketCapUsd:agent,
@@ -17,6 +18,7 @@ async function fixture(page,getData){
   const requests=[];
   await page.route('**/api/**',route=>{
     const request=route.request(),path=new URL(request.url()).pathname;requests.push({path,method:request.method()});
+    if(path==='/api/fee-policy')return route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}});
     if(path==='/api/marketing-agency'){const data=getData();return data===null?route.abort():route.fulfill({json:data});}
     return route.fulfill({status:503,json:{error:'Offline deterministic fixture'}});
   });await page.route('https://**/*',route=>route.abort());return requests;
