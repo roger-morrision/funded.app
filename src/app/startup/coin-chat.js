@@ -1,3 +1,5 @@
+import { openCoinRecord } from '../../features/coin/records-navigation.js';
+
 // Startup runs in the order declared in start.js.
 export function initializeCoinChat(appState) {
   // app-source: 999
@@ -41,12 +43,12 @@ export function initializeCoinChat(appState) {
   // app-source: 1002
   document.querySelector('.coin-tabs')?.addEventListener('keydown', event => {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-    const tabs = [...document.querySelectorAll('[data-coin-tab]')];
+    const tabs = [...event.currentTarget.querySelectorAll('[data-coin-tab]')];
     const current = tabs.indexOf(document.activeElement);
     if (current < 0) return;
     event.preventDefault();
     const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
-    tabs[next].focus(); tabs[next].click();
+    openCoinRecord(tabs[next].dataset.coinTab, {initiatingEvent:event});
   });
   // app-source-end
 

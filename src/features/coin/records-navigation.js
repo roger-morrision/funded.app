@@ -2,8 +2,8 @@ const RECORDS = new Set(['trades','payments','claims','holders']);
 let revealFrame = 0;
 let stopWatching = () => {};
 
-// Use the existing tab click/render pathway; only explicit shortcuts move focus.
-export function openCoinRecord(key, {document = globalThis.document} = {}) {
+// Use the existing tab click/render pathway for explicit shortcuts and tab keys.
+export function openCoinRecord(key, {document = globalThis.document, initiatingEvent} = {}) {
   if (!RECORDS.has(key)) return false;
   const tab = document.querySelector(`#coin-page .coin-tabs [data-coin-tab="${key}"]`);
   if (!tab || !tab.getClientRects().length || tab.closest('[hidden]')) return false;
@@ -58,7 +58,11 @@ export function openCoinRecord(key, {document = globalThis.document} = {}) {
   observer.observe(tab.closest('.coin-tabs'));
   document.addEventListener('focusin', () => { if (document.activeElement !== tab) stop(); }, {signal:controller.signal});
   for (const event of ['pointerdown','wheel','touchstart','keydown'])
-    document.addEventListener(event, stop, {signal:controller.signal,passive:true});
+    document.addEventListener(event, input => {
+      // The key that created this focus owner is still bubbling to document.
+      // Later user input cancels it, including the next native tab movement.
+      if (input !== initiatingEvent) stop();
+    }, {signal:controller.signal,passive:true});
   view.addEventListener('resize', schedule, {signal:controller.signal});
   schedule();
   return true;
