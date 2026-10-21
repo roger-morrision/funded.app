@@ -15,6 +15,9 @@
 }
 .payment-history-filters select { min-width:175px; }
 .payment-history-filters input { color-scheme:dark; }
+.payment-history-filters .payment-history-search { flex:1 1 280px; min-width:0; }
+.payment-history-search input { width:100%; min-width:0; }
+.payment-history-search small { color:#8fa0b7; font-weight:400; line-height:1.5; }
 .payment-history-filters button { cursor:pointer; }
 .payment-history-filters :is(select,input,button):focus-visible { outline:2px solid #a9bcff; outline-offset:2px; }
 .payment-history-filters button:hover { border-color:#89a6ec; }
@@ -192,7 +195,9 @@
   .x-claim-activity .payment-history-details > small { font-size: 14px !important; line-height: 20px; }
   .x-claim-activity .payment-history-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .payment-history-filters label { flex: 1 1 calc((100% - 10px) / 2); min-width: 0; }
-  .payment-history-filters label:first-child { flex-basis: 100%; }
+  .payment-history-filters .payment-history-search, .payment-history-filters label:has(select) { flex-basis: 100%; }
+  #payment-history-search { font-size:16px !important; min-height:44px; }
+  #payment-history-clear { min-width:44px; min-height:44px; }
   .payment-history-filters select, .payment-history-filters input { width: 100%; min-width: 0; }
   #payment-history-filters :is(select,input,button) { scroll-margin-bottom: calc(100px + env(safe-area-inset-bottom)); }
   .payment-history-actions { justify-content: space-between; }

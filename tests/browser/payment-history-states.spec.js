@@ -135,3 +135,89 @@ for(const {width,height} of [{width:360,height:844},{width:360,height:740},{widt
   check(tabPath).toContain('payment-history-from');check(tabPath).toContain('payment-history-to');check(tabPath.at(-1)).toBe('payment-history-clear');for(const motion of[beforeEnter,afterEnter]){check(motion.pass,JSON.stringify(motion)).toBe(true);check(motion.elapsedMs).toBeLessThanOrEqual(1000);check(motion.stableForMs).toBeGreaterThanOrEqual(100);}
   await check(type).toHaveValue('all');await check(page.locator('#payment-history-from')).toHaveValue('');await check(page.locator('#payment-history-to')).toHaveValue('');check(await rows(page)).toEqual(originalRows);await check(page.locator('[data-analytics-metric="payouts"] strong')).toHaveText(kpi);check(f.requests()).toBe(before);check(wallet).toEqual([]);check(f.errors).toEqual([]);check(f.writes).toEqual([]);check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);await page.screenshot({path:info.outputPath('native-clear-after-'+width+'.png')});
 });
+
+// Local identifier retrieval uses the real bootstrap, controls and receipt renderer.
+const searchReceipts = Array.from({length:32}, (_,i) => ({
+  ...receipts[i % 2], to:i < 15 ? 'GroupAbC' + '8'.repeat(36) : `WalletAbC${i}` + '9'.repeat(33),
+  signature:i === 18 || i === 26 ? 'SharedAbC' + '4'.repeat(79) : `SignatureAbC${i}` + '3'.repeat(73),
+  blockTime:1792454400 + i * 60, slot:512479000 + i,
+}));
+const receiptKey = r => `${r.signature}:${r.to}:${r.source}`;
+async function searchFonts(page) {
+  await page.unroute('https://**/*');
+  await page.route('https://**/*',r => ['fonts.googleapis.com','fonts.gstatic.com'].includes(new URL(r.request().url()).hostname) && r.request().method() === 'GET' ? r.continue() : r.abort());
+}
+// Start before the action. Resolve the current control on every animation frame;
+// a replacement row must contain the response marker before stability can accrue.
+function observeSearchFocus(target, {selector, replacementKey = null, waitForRemoval = false}) {
+  const original = replacementKey || waitForRemoval ? target : null;
+  return new Promise(resolve => {
+    const start = performance.now(), samples = []; let since = null, position = null, frame, timer, done = false;
+    const finish = pass => {if(done)return;done=true;cancelAnimationFrame(frame);clearTimeout(timer);resolve({pass,elapsedMs:performance.now()-start,stableMs:since===null?0:performance.now()-since,samples});};
+    const sample = () => {
+      const e = replacementKey ? [...document.querySelectorAll('#payment-list details')].find(d=>d.dataset.receiptKey===replacementKey)?.querySelector(selector) : document.querySelector(selector);
+      const r=e?.getBoundingClientRect(),s=e&&getComputedStyle(e),h=document.querySelector('.topbar'),n=document.querySelector('.mobile-workspace-nav'),margin=s?(parseFloat(s.outlineWidth)||0)+Math.max(0,parseFloat(s.outlineOffset)||0):0;
+      const p=JSON.stringify([scrollX,scrollY,r?.x,r?.y]);
+      const visible=!!r&&e.getClientRects().length>0&&r.top-margin>=(h?.getClientRects().length?Math.max(0,h.getBoundingClientRect().bottom):0)&&r.bottom+margin<=(n?.getClientRects().length?n.getBoundingClientRect().top:innerHeight)&&r.left-margin>=0&&r.right+margin<=innerWidth;
+      const current=(!original||!original.isConnected)&&(waitForRemoval||document.querySelector('#payment-list')?.textContent.includes('00:02 UTC'));
+      const state={at:performance.now()-start,focused:e===document.activeElement,visible,focusVisible:!!e?.matches(':focus-visible'),current:replacementKey||waitForRemoval?current:true};samples.push(state);
+      if(state.at>1000)return finish(false);
+      if(state.focused&&state.visible&&state.focusVisible&&state.current){if(since===null||p!==position)since=performance.now();position=p;if(performance.now()-since>=100)return finish(true);}else{since=null;position=null;}
+      frame=requestAnimationFrame(sample);
+    };timer=setTimeout(()=>finish(false),1000);frame=requestAnimationFrame(sample);
+  });
+}
+
+for(const width of [360,390,1440])test(`Rewards History native local identifier search preserves records, states and focus at ${width}px`,async({browser},info)=>{
+  test.setTimeout(60_000);
+  const context=await browser.newContext({viewport:{width,height:width<700?844:900},hasTouch:width<700,isMobile:width<700,locale:'en-US'}),page=await context.newPage();
+  try{
+    const f=await fixture(page,{held:true,history:data('onchain-indexed',searchReceipts)});await searchFonts(page);
+    // This unrelated read already retries503 once after1500ms. Supply a truthful
+    // unavailable200 fixture so its existing retry cannot be mistaken for search I/O.
+    await page.route('**/api/rewards/automatic',r=>r.fulfill({json:{status:'unavailable',schedules:[],serverTime:'2026-10-21T00:00:00Z'}}));
+    const calls=[],wallet=[];page.on('request',q=>{const path=new URL(q.url()).pathname;if(path.startsWith('/api/'))calls.push({path,method:q.method()});if(path.startsWith('/api/wallets/'))wallet.push(path);});
+    await ready(page,width);
+    const fonts=await page.evaluate(async()=>{await document.fonts.ready;const faces=await document.fonts.load('600 16px "Manrope"');return faces.map(f=>({family:f.family,status:f.status}));});expect(fonts.length).toBeGreaterThan(0);expect(fonts.every(f=>f.family==='Manrope'&&f.status==='loaded')).toBe(true);
+    const search=page.getByRole('searchbox',{name:'Search wallet or transaction'}),clear=page.locator('#payment-history-clear'),nav=page.getByRole('navigation',{name:'Payment history pages',includeHidden:true}),focus=[];
+    await search.click();await page.keyboard.insertText('Pending');await state(page,loading,'Waiting for the current payment history check to finish.');await expect(search).toBeFocused();expect(f.requests()).toBe(1);expect(f.completed()).toBe(0);
+    await f.release(data('onchain-indexed',searchReceipts));await expect(list(page).locator('.empty-state')).toHaveText('No confirmed payments match this search and these filters.');await clear.click();
+    await expect(list(page).locator('.payment-history-row')).toHaveCount(32);const baseline=await rows(page),payout=await page.locator('[data-analytics-metric="payouts"] strong').innerText();
+    expect(await search.getAttribute('aria-describedby')).toBe('payment-history-search-help');await expect(page.locator('#payment-history-search-help')).toContainText('case-sensitive');
+    await nav.getByRole('button',{name:'Next payment history page'}).click();await expect(nav).toContainText('Page 2 of 4');
+    const localCalls=calls.length,before=f.requests(),url=page.url();
+    if(width<700)await search.tap();else await search.click();await page.keyboard.press('ControlOrMeta+A');await page.keyboard.insertText('  '+searchReceipts[25].to+'  ');
+    await expect(list(page).locator('.payment-history-row')).toHaveCount(1);expect((await rows(page)).map(r=>r.details)).toEqual([receiptKey(searchReceipts[25])]);await expect(note(page)).toHaveText('1 of 32 confirmed payments · fees in details');await expect(search).toBeFocused();await page.keyboard.press('Enter');expect(page.url()).toBe(url);expect(calls.length).toBe(localCalls);
+    await page.keyboard.press('ControlOrMeta+A');await page.keyboard.insertText(searchReceipts[18].signature);expect((await rows(page)).map(r=>r.details)).toEqual([receiptKey(searchReceipts[18]),receiptKey(searchReceipts[26])]);await expect(nav).toContainText('Page 1 of 1');
+    await page.keyboard.press('ControlOrMeta+A');await page.keyboard.insertText('GroupAbC');await expect(nav).toContainText('Page 1 of 2');await nav.getByRole('button',{name:'Next payment history page'}).click();await expect(nav).toContainText('Page 2 of 2');
+    await search.click();await page.keyboard.press('ControlOrMeta+A');await page.keyboard.insertText('  GroupAbC  ');await expect(nav).toContainText('Page 2 of 2');await expect(search).toBeFocused();
+    await page.keyboard.press('ControlOrMeta+A');await page.keyboard.insertText('SharedAbC');await expect(nav).toContainText('Page 1 of 1');
+    await page.locator('#payment-history-type').selectOption('creator');await page.locator('#payment-history-from').fill('2026-10-20');await page.locator('#payment-history-to').fill('2026-10-20');
+    expect((await rows(page)).map(r=>r.details)).toEqual([receiptKey(searchReceipts[18]),receiptKey(searchReceipts[26])]);
+    await page.locator('#payment-history-from').fill('2026-10-21');await expect(list(page).locator('.empty-state')).toHaveText('No confirmed payments match this search and these filters.');await page.locator('#payment-history-from').fill('2026-10-20');await page.locator('#payment-history-type').selectOption('holder');await expect(list(page).locator('.empty-state')).toHaveText('No confirmed payments match this search and these filters.');await page.locator('#payment-history-type').selectOption('all');
+    await search.click();await page.keyboard.press('ControlOrMeta+A');await page.keyboard.insertText('sharedabc.*');await expect(list(page).locator('.empty-state')).toHaveText('No confirmed payments match this search and these filters.');
+    await page.keyboard.press('Tab');await expect(page.locator('#payment-history-type')).toBeFocused();await page.keyboard.press('Shift+Tab');await expect(search).toBeFocused();
+    focus.push(await search.evaluate(observeSearchFocus,{selector:'#payment-history-search'}));
+    await page.keyboard.press('ControlOrMeta+A');await page.keyboard.insertText('X'.repeat(500));const inputGeometry=await search.evaluate(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return{width:r.width,height:r.height,font:parseFloat(s.fontSize)};});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+    if(width<700){expect(inputGeometry.font).toBeGreaterThanOrEqual(16);expect(inputGeometry.height).toBeGreaterThanOrEqual(44);expect(inputGeometry.width).toBeGreaterThanOrEqual(44);}
+    // A composing event is not yet a committed filter; compositionend is.
+    await search.evaluate(e=>{e.value='SharedAbC';e.dispatchEvent(new InputEvent('input',{bubbles:true,isComposing:true,data:'C'}));});await expect(list(page).locator('.empty-state')).toHaveText('No confirmed payments match this search and these filters.');
+    await search.evaluate(e=>e.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true,data:'SharedAbC'})));expect((await rows(page)).map(r=>r.details)).toEqual([receiptKey(searchReceipts[18]),receiptKey(searchReceipts[26])]);
+    await page.keyboard.press('Escape');await expect(search).toHaveValue('');expect(await rows(page)).toEqual(baseline);await page.keyboard.insertText('SharedAbC');
+    await clear.click();await expect(clear).toBeFocused();await expect(search).toHaveValue('');await expect(page.locator('#payment-history-type')).toHaveValue('all');await expect(page.locator('#payment-history-from')).toHaveValue('');await expect(page.locator('#payment-history-to')).toHaveValue('');expect(await rows(page)).toEqual(baseline);expect(f.requests()).toBe(before);expect(calls.length).toBe(localCalls);
+    // Native keyboard path to Clear and retained values; no synthetic focus or scroll.
+    await search.click();const clearTabPath=[];for(let i=0;i<14;i++){await page.keyboard.press('Tab');const id=await page.evaluate(()=>document.activeElement?.id);clearTabPath.push(id);if(id==='payment-history-clear')break;}expect(clearTabPath).toContain('payment-history-from');expect(clearTabPath).toContain('payment-history-to');await expect(clear).toBeFocused();focus.push(await clear.evaluate(observeSearchFocus,{selector:'#payment-history-clear'}));const clearGeometry=await clear.boundingBox();if(width<700){expect(clearGeometry.width).toBeGreaterThanOrEqual(44);expect(clearGeometry.height).toBeGreaterThanOrEqual(44);}await page.keyboard.press('Enter');await expect(clear).toBeFocused();
+    // Search node, raw value, native caret and input focus survive source refresh.
+    await search.click();await page.keyboard.insertText('SharedAbC');await page.keyboard.press('Home');await page.keyboard.press('ArrowRight');
+    await search.evaluate(e=>{window.retainedSearch=e;window.retainedCaret=e.selectionStart;});await refresh(page,f,data('partial',searchReceipts));
+    expect(await search.evaluate(e=>e===window.retainedSearch&&e.selectionStart===window.retainedCaret)).toBe(true);await expect(search).toHaveValue('SharedAbC');await expect(search).toBeFocused();await expect(note(page)).toHaveText('2 of 32 confirmed payments · fees in details · some history is missing');focus.push(await search.evaluate(observeSearchFocus,{selector:'#payment-history-search'}));
+    const summary=list(page).locator('summary').first(),firstKey=receiptKey(searchReceipts[18]);await summary.click();await page.keyboard.press('Tab');await page.keyboard.press('Shift+Tab');await expect(summary).toBeFocused();await expect(summary.locator('..')).toHaveAttribute('open','');
+    const replacement=searchReceipts.map((r,i)=>i===18?{...r,blockTime:1792454520}:r),observing=summary.evaluate(observeSearchFocus,{selector:'summary',replacementKey:firstKey});await refresh(page,f,data('partial',replacement));focus.push(await observing);await expect(summary).toBeFocused();await expect(summary.locator('..')).toHaveAttribute('open','');
+    const removal=summary.evaluate(observeSearchFocus,{selector:'#payment-history-clear',waitForRemoval:true});await refresh(page,f,data('partial',searchReceipts.filter((_,i)=>i!==18&&i!==26)));focus.push(await removal);await expect(clear).toBeFocused();await expect(search).toHaveValue('SharedAbC');await expect(list(page).locator('.empty-state')).toHaveText('No confirmed payments match this search and these filters.');
+    await search.click();
+    for(const [history,message,caption] of [[null,unavailable,'Payment history could not be fully checked. Try again shortly.'],[data('partial'),incomplete,'Available history is incomplete. No confirmed payments are available in this response.'],[data('onchain-indexed'),empty,'No confirmed payments are available.']]){await refresh(page,f,history);await state(page,message,caption);await expect(search).toHaveValue('SharedAbC');await expect(search).toBeFocused();}
+    await refresh(page,f,data('onchain-indexed',searchReceipts));await clear.click();expect(await rows(page)).toEqual(baseline);await expect(page.locator('[data-analytics-metric="payouts"] strong')).toHaveText(payout);
+    await expect(list(page).locator('summary').first()).toHaveText('Amount and fees');expect(wallet).toEqual([]);expect(f.errors).toEqual([]);expect(f.writes).toEqual([]);for(const result of focus){expect(result.pass,JSON.stringify(result)).toBe(true);expect(result.elapsedMs).toBeLessThanOrEqual(1000);expect(result.stableMs).toBeGreaterThanOrEqual(100);}
+    await info.attach('search-native-evidence',{body:JSON.stringify({width,fonts,inputGeometry,clearGeometry,clearTabPath,focus,original:baseline,localApiCalls:calls.slice(0,localCalls),explicitRefreshes:f.requests()-before,noLocalInputRequests:true},null,2),contentType:'application/json'});await page.screenshot({path:info.outputPath('history-search-'+width+'.png')});
+  }finally{await context.close();}
+});

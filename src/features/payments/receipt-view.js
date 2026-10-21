@@ -12,9 +12,11 @@ export function payoutType(source) {
     'automatic-community':'community', 'daily-bonus':'community', 'automatic-x':'x' })[source] || 'other';
 }
 
-export function filterPaymentHistory(rows, { type = 'all', from = '', to = '' } = {}) {
+export function filterPaymentHistory(rows, { type = 'all', from = '', to = '', query = '' } = {}) {
+  const search = query.trim();
   return rows.filter(row => {
     if (type !== 'all' && payoutType(row.source) !== type) return false;
+    if (search && ![row.to, row.signature].some(id => typeof id === 'string' && id.includes(search))) return false;
     if (!from && !to) return true;
     if (!Number.isSafeInteger(row.blockTime) || row.blockTime <= 0) return false;
     const day = new Date(row.blockTime * 1000).toISOString().slice(0, 10);
@@ -113,6 +115,7 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
   const list = document.querySelector('#payment-list');
   if (!list) return;
   const filters = {
+    query:document.querySelector('#payment-history-search')?.value.trim() || '',
     type:document.querySelector('#payment-history-type')?.value || 'all',
     from:document.querySelector('#payment-history-from')?.value || '',
     to:document.querySelector('#payment-history-to')?.value || '',
@@ -216,7 +219,8 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     list.append(row);
   }
   if (!filtered.length) {
-    list.innerHTML = `<p class="empty-state">${historyPayouts.length ? 'No confirmed payments match these filters.' : emptyMessages[historyState]}</p>`;
+    const noMatch = filters.query ? 'No confirmed payments match this search and these filters.' : 'No confirmed payments match these filters.';
+    list.innerHTML = `<p class="empty-state">${historyPayouts.length ? noMatch : emptyMessages[historyState]}</p>`;
   }
   paginateHistory(list, {label:'Payment history', selector:'.payment-history-row', key:JSON.stringify(filters), pageSize:10});
   const footnote = document.querySelector('#payment-history-footnote');
