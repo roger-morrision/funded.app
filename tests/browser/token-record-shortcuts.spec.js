@@ -4,7 +4,7 @@ import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 const mint='H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z',signature='3'.repeat(64);
 const targets=[['trades','Trades'],['payments','Fee collections'],['claims','Allocations'],['holders','Holders']];
 for(const width of [360,390,1440])for(const motion of ['no-preference','reduce'])test(`record shortcuts at ${width}px with ${motion} motion reuse native views`,async({page},testInfo)=>{
-  await page.setViewportSize({width,height:900});await page.emulateMedia({reducedMotion:motion});
+  await page.setViewportSize({width,height:width<700?844:900});await page.emulateMedia({reducedMotion:motion});
   if(process.env.FUNDED_RECORD_FOCUS_DIAGNOSTIC==='true')await page.addInitScript(()=>{
     const events=[];window.__recordFocusDiagnostic=events;
     const record=(type,element,args)=>{if(events.length>160)events.shift();events.push({type,time:performance.now(),target:element?.dataset?.coinTab||element?.dataset?.coinRecordTarget||element?.id||element?.className||'window',args,y:scrollY,top:element?.getBoundingClientRect?.().top,scrollTop:element?.scrollTop});};
