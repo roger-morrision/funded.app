@@ -184,7 +184,7 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     const receiptKey = `${receipt.signature}:${receipt.to}:${receipt.source}`;
     details.dataset.receiptKey = receiptKey;
     const detailsSummary = document.createElement('summary');
-    detailsSummary.textContent = 'Details';
+    detailsSummary.textContent = 'Amount and fees';
     const fullReceiver = document.createElement('small');
     fullReceiver.textContent = `Receiver ${receipt.to}`;
     details.append(detailsSummary, fullReceiver, gross, fee);
