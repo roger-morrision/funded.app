@@ -13,12 +13,22 @@ const evidence = (recorded, reason, extra = {}) => ({
 // can produce a verified result; requests never wait for its full RPC budget.
 export function createSettlementStatusReader({ readSnapshot, verify,
   now = Date.now, responseWaitMs = 250, verificationTimeoutMs = 30_000,
-  maxAgeMs = 60_000 }) {
+  maxAgeMs = 60_000, snapshotTimeoutMs = 6_000 }) {
+  for (const [value,limit] of [[responseWaitMs,500],[verificationTimeoutMs,30_000],
+    [snapshotTimeoutMs,6_000],[maxAgeMs,60_000]])
+    if (!Number.isSafeInteger(value) || value <= 0 || value > limit)
+      throw new RangeError('Status timing budgets must stay within their supported limits.');
   let reading, running, completed, latestKey;
 
   function readInputs() {
     if (!reading) {
-      reading = Promise.resolve().then(readSnapshot).then(input => {
+      const controller = new AbortController(); let timer, task;
+      task = Promise.race([
+        Promise.resolve().then(() => readSnapshot({signal:controller.signal})),
+        new Promise((_,reject) => { timer = setTimeout(() => {
+          controller.abort(); reject(new Error('Status inventory read timed out.'));
+        },snapshotTimeoutMs); }),
+      ]).then(input => {
         const collections = Object.fromEntries(Object.entries(input.state?.collections || {})
           .filter(([, row]) => row?.scope === 'per-mint-v3' && row.cluster === 'devnet'));
         const launches = {}, v3Settlements = {};
@@ -32,7 +42,11 @@ export function createSettlementStatusReader({ readSnapshot, verify,
           state: { collections, launches, v3Settlements } });
         return { ...snapshot, recorded: Object.keys(collections).length,
           key: allocationAuditHash(snapshot) };
-      }).finally(() => { reading = null; });
+      }).catch(error => { completed = null; latestKey = null; throw error; })
+        .finally(() => {
+          clearTimeout(timer); controller.abort(); if (reading === task) reading = null;
+        });
+      reading = task;
     }
     return reading;
   }
@@ -46,7 +60,7 @@ export function createSettlementStatusReader({ readSnapshot, verify,
 
   function start(context) {
     const controller = new AbortController();
-    const slot = { key: context.key, controller, rawSettled: false, finished: false };
+    const slot = { key: context.key, controller };
     running = slot;
     let timer;
     const raw = Promise.resolve().then(async () => {
@@ -55,15 +69,13 @@ export function createSettlementStatusReader({ readSnapshot, verify,
       // Observe the inventory again even if no other request arrived while the
       // scan ran. Its completion must not certify an input that has since changed.
       const current = await readInputs();
+      if (controller.signal.aborted) return evidence(context.recorded, 'verification-timeout');
       if (current.key !== context.key) {
         latestKey = current.key;
         return evidence(context.recorded, 'verification-inputs-changed');
       }
       return proof;
     });
-    // A verifier ignoring abort must not allow another overlapping verification.
-    const release = () => { slot.rawSettled = true; if (slot.finished && running === slot) running = null; };
-    void raw.then(release, release);
     const deadline = new Promise(resolve => {
       timer = setTimeout(() => {
         controller.abort();
@@ -72,15 +84,15 @@ export function createSettlementStatusReader({ readSnapshot, verify,
     });
     slot.promise = Promise.race([raw, deadline]).catch(() =>
       evidence(context.recorded, 'finalized-evidence-unavailable')).then(proof => {
-      clearTimeout(timer); controller.abort(); slot.finished = true;
+      clearTimeout(timer); controller.abort();
       if (!proof || proof.scope !== scope || typeof proof.verified !== 'boolean'
         || proof.recorded !== context.recorded || !Number.isSafeInteger(proof.checked)
         || proof.checked < 0 || proof.checked > context.recorded
         || (proof.verified && (!context.recorded || context.recorded > 100 || proof.checked !== context.recorded
           || proof.failed || proof.failures?.length)))
         proof = evidence(context.recorded, 'invalid-verification-result');
-      if (latestKey !== context.key) {
-        if (slot.rawSettled && running === slot) running = null;
+      if (latestKey !== context.key || running !== slot) {
+        if (running === slot) running = null;
         return pending(context);
       }
       const safe = {verified:proof.verified,scope,recorded:proof.recorded,checked:proof.checked};
@@ -100,7 +112,7 @@ export function createSettlementStatusReader({ readSnapshot, verify,
         }));
       }
       completed = { key: context.key, proof: safe, checkedAt: now() };
-      if (slot.rawSettled && running === slot) running = null;
+      if (running === slot) running = null;
       return present(completed, false);
     });
     return slot.promise;
@@ -118,7 +130,6 @@ export function createSettlementStatusReader({ readSnapshot, verify,
         return present(completed, true);
       completed = null;
       if (running) {
-        if (running.finished) return evidence(context.recorded, 'verification-still-stopping', {status:'unavailable'});
         if (running.key !== context.key) return pending(context);
         return running.promise;
       }

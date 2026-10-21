@@ -83,15 +83,15 @@ test('completion rechecks source identity even without an intervening request',a
   assert.equal((await f.read()).cached,false);assert.equal(calls,2);
 });
 
-test('timeout aborts the verifier, rejects a late success and never overlaps an abort-ignoring read',async()=>{
+test('timeout aborts and releases the old generation; a late success cannot poison recovered proof',async()=>{
   const gate=deferred();let calls=0,signal;
   const f=fixture({verify:async context=>{calls++;signal=context.signal;return calls===1?gate.promise:proof(1);},
     verificationTimeoutMs:15,responseWaitMs:30});
   const timeout=await f.read();assert.equal(timeout.reason,'verification-timeout');assert.equal(signal.aborted,true);
-  f.setTime(1_060_000);const blocked=await f.read();assert.equal(blocked.verified,false);
-  assert.equal(blocked.reason,'verification-still-stopping');assert.equal(calls,1);
+  assert.equal((await f.read()).verified,false);assert.equal(calls,1,'Failure backoff prevents repeated proof work');
+  f.setTime(1_060_000);const recovered=await f.read();assert.equal(recovered.verified,true);assert.equal(calls,2);
   gate.resolve(proof(1));await tick();
-  assert.equal((await f.read()).verified,true);assert.equal(calls,2,'A late result cannot replace the timed-out result');
+  assert.equal((await f.read()).checkedAt,recovered.checkedAt);assert.equal(calls,2);
 });
 
 test('slow or failed source reads are explicit, shared, and never reuse old verified evidence',async()=>{
@@ -102,6 +102,24 @@ test('slow or failed source reads are explicit, shared, and never reuse old veri
   gate.reject(new Error('secret-url'));await tick();
   const failed=await f.read();assert.equal(failed.reason,'snapshot-unavailable');
   assert(!JSON.stringify(failed).includes('secret-url'));
+});
+
+test('a never-resolving inventory generation expires and later reads recover independently',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  const old=deferred();let calls=0;const f=fixture();
+  const read=createSettlementStatusReader({readSnapshot:async()=>++calls===1?old.promise:f.input,
+    verify:async()=>proof(1)});
+  const first=read();await tick();t.mock.timers.tick(250);assert.equal((await first).reason,'snapshot-pending');
+  t.mock.timers.tick(5750);await tick();
+  const recovered=await read();assert.equal(recovered.verified,true);
+  old.resolve({identity:{build:'old'},state:{}});await tick();
+  assert.equal((await read()).checkedAt,recovered.checkedAt);
+});
+
+test('timing configuration cannot extend supported response, scan, inventory or freshness budgets',()=>{
+  for(const options of [{responseWaitMs:501},{verificationTimeoutMs:30001},{maxAgeMs:60001},
+    {snapshotTimeoutMs:6001},{responseWaitMs:NaN},{snapshotTimeoutMs:0}])
+    assert.throws(()=>fixture(options),/timing budgets/);
 });
 
 test('invalid, empty, partial and rejected proof results fail closed',async()=>{
