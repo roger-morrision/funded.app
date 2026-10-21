@@ -170,7 +170,7 @@ body.page-route-launch .launch-page-flat .launch-tier-first .creator-burn-card >
   #launch-dialog:has(#cost-summary.public-launch-planning)[data-step="2"] [data-launch-cost-step="2"],
   #launch-dialog:has(#cost-summary.public-launch-planning) #launch-cost-return:not([hidden]) {
     display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;
-    min-width:44px; min-height:44px; padding:8px 12px; font-size:14px !important; line-height:1.4;
+    min-width:44px; min-height:44px; padding:8px 12px; font-size:14px !important; line-height:1.4; scroll-margin-block:32px;
   }
   #launch-dialog .launch-cost-jump { margin:8px 0 16px; }
   #launch-dialog:has(#cost-summary.public-launch-planning) .launch-cost-return-host { position:relative; }

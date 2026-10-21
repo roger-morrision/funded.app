@@ -5,12 +5,20 @@ export function bindLaunchCostNavigation(appState, document = globalThis.documen
   const back = document.querySelector('#launch-cost-return');
   if (!page || !back) return;
   let invoker = null;
+  let pendingFocusFrame = null;
+  let focusEpisode = 0;
+  const invalidateFocusFrame = () => {
+    ++focusEpisode;
+    if (pendingFocusFrame !== null) window.cancelAnimationFrame(pendingFocusFrame);
+    pendingFocusFrame = null;
+  };
   const visible = element => Boolean(element?.isConnected && element.getClientRects().length);
   const current = button => !appState.wallet && appState.requestedPageRoute() === 'launch'
     && window.matchMedia('(max-width:600px)').matches
     && document.querySelector('#cost-summary')?.classList.contains('public-launch-planning')
     && visible(button) && button.dataset.launchCostStep === page.dataset.step;
   const clearReturn = () => {
+    invalidateFocusFrame();
     back.hidden = true;
     document.querySelector('#launch-cost-details')?.classList.remove('launch-cost-navigation-target');
     invoker = null;
@@ -35,21 +43,44 @@ export function bindLaunchCostNavigation(appState, document = globalThis.documen
     element.scrollIntoView({block:'start', behavior:'instant'});
     const header = document.querySelector('.topbar');
     const top = header?.getClientRects().length ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
-    window.scrollBy({top:element.getBoundingClientRect().top - top - 8, behavior:'instant'});
+    // Leave room for the observed native post-focus scroll adjustment and the
+    // full focus outline. This stays local to explicit/new-control navigation.
+    window.scrollBy({top:element.getBoundingClientRect().top - top - 32, behavior:'instant'});
+  };
+  const revealFocusedControl = (control, contextInvoker) => {
+    invalidateFocusFrame();
+    if (document.activeElement !== control || !visible(control) || !current(contextInvoker)) return;
+    if (control === back) positionReturn();
+    reveal(control);
+    const episode = focusEpisode;
+    // One post-native-focus check, never a loop or a delayed focus transfer.
+    pendingFocusFrame = window.requestAnimationFrame(() => {
+      if (episode !== focusEpisode || document.activeElement !== control
+        || !visible(control) || !current(contextInvoker)) return;
+      pendingFocusFrame = null;
+      window.scrollTo({top:window.scrollY, left:window.scrollX, behavior:'instant'});
+      if (control === back) positionReturn();
+      const rect = control.getBoundingClientRect(), style = window.getComputedStyle(control);
+      const outline = (parseFloat(style.outlineWidth) || 0) + Math.max(0, parseFloat(style.outlineOffset) || 0);
+      const header = document.querySelector('.topbar'), nav = document.querySelector('.mobile-workspace-nav');
+      const top = header?.getClientRects().length ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
+      const bottom = nav?.getClientRects().length ? Math.min(window.innerHeight, nav.getBoundingClientRect().top) : window.innerHeight;
+      if (rect.top - outline < top || rect.bottom + outline > bottom
+        || rect.left - outline < 0 || rect.right + outline > window.innerWidth) reveal(control);
+    });
   };
   // Native reverse navigation can arrive while the browser is still scrolling
   // toward the previous control. Only the newly focused navigation button may
   // cancel that superseded scroll; never move focus or change native Tab order.
   back.addEventListener('focus', () => {
-    if (document.activeElement === back && !back.hidden && current(invoker)) {
-      positionReturn();
-      reveal(back);
-    }
+    if (!back.hidden) revealFocusedControl(back, invoker);
   });
+  back.addEventListener('blur', invalidateFocusFrame);
   page.querySelectorAll('[data-launch-cost-step]').forEach(button => {
     button.addEventListener('focus', () => {
-      if (document.activeElement === button && current(button)) reveal(button);
+      revealFocusedControl(button, button);
     });
+    button.addEventListener('blur', invalidateFocusFrame);
     button.addEventListener('click', () => {
     if (!current(button)) return;
     const target = document.querySelector('#launch-cost-details');
@@ -72,10 +103,11 @@ export function bindLaunchCostNavigation(appState, document = globalThis.documen
     reveal(destination);
     destination.focus({preventScroll:true});
   });
-  // Layout-only updates: never focus, validate, advance or request a quote.
-  window.addEventListener('resize', positionReturn);
-  window.addEventListener('funded:launch-step', positionReturn);
-  window.addEventListener('hashchange', positionReturn);
-  window.addEventListener('popstate', positionReturn);
+  // Context updates invalidate queued focus work; never move focus or request.
+  const contextChanged = () => { invalidateFocusFrame(); positionReturn(); };
+  window.addEventListener('resize', contextChanged);
+  window.addEventListener('funded:launch-step', contextChanged);
+  window.addEventListener('hashchange', contextChanged);
+  window.addEventListener('popstate', contextChanged);
   document.fonts?.addEventListener('loadingdone', positionReturn);
 }
