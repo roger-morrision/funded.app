@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 
 for(const width of [360,390,1440])test(`per-coin snapshot guidance and native Airdrops navigation at ${width}px`,async({page},testInfo)=>{
-  await page.setViewportSize({width,height:900});
+  await page.setViewportSize({width,height:width<700?844:900});
   await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline rewards guidance fixture'}}));
   await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route('https://**/*',route=>route.abort());
