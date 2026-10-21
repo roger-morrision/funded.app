@@ -122,6 +122,35 @@ test('timing configuration cannot extend supported response, scan, inventory or 
     assert.throws(()=>fixture(options),/timing budgets/);
 });
 
+test('aborted raw scans are capped at two and capacity recovers when retired work quiesces',async()=>{
+  const gates=[deferred(),deferred()];let calls=0,active=0,maximum=0;
+  const f=fixture({responseWaitMs:20,verificationTimeoutMs:10,verify:async()=>{
+    const index=calls++;maximum=Math.max(maximum,++active);
+    try{return index<2?await gates[index].promise:proof(1);}finally{active--;}
+  }});
+  assert.equal((await f.read()).reason,'verification-timeout');f.setTime(1_060_000);
+  assert.equal((await f.read()).reason,'verification-timeout');f.setTime(1_120_000);
+  assert.equal((await f.read()).reason,'verification-capacity-unavailable');assert.equal(calls,2);
+  gates[0].resolve(proof(1));await tick();
+  assert.equal((await f.read()).verified,true);assert.equal(calls,3);assert.equal(maximum,2);
+  gates[1].resolve(proof(1));await tick();assert.equal((await f.read()).verified,true);
+});
+
+test('timed-out inventory reads are capped and their late results cannot replace healthy input',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  const gates=[deferred(),deferred()],f=fixture();let calls=0;
+  const read=createSettlementStatusReader({readSnapshot:async()=>{const index=calls++;return index<2?gates[index].promise:f.input;},
+    verify:async()=>proof(1)});
+  for(let i=0;i<2;i++){
+    const pending=read();await tick();t.mock.timers.tick(250);assert.equal((await pending).verified,false);
+    t.mock.timers.tick(5750);await tick();
+  }
+  assert.equal((await read()).reason,'snapshot-unavailable');assert.equal(calls,2);
+  gates[0].resolve({identity:{build:'old'},state:{}});await tick();
+  assert.equal((await read()).verified,true);
+  gates[1].resolve({identity:{build:'old'},state:{}});await tick();assert.equal((await read()).verified,true);
+});
+
 test('invalid, empty, partial and rejected proof results fail closed',async()=>{
   for(const value of [null,{...proof(1),scope:'other'},proof(2),{...proof(1),checked:0},
     {...proof(1),checked:-1},{...proof(1),failed:1},{...proof(1),failures:[{}]},

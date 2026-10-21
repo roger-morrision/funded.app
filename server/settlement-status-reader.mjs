@@ -19,12 +19,25 @@ export function createSettlementStatusReader({ readSnapshot, verify,
     if (!Number.isSafeInteger(value) || value <= 0 || value > limit)
       throw new RangeError('Status timing budgets must stay within their supported limits.');
   let reading, running, completed, latestKey;
+  // Include aborted dependencies that have not acknowledged cancellation. A
+  // healthy replacement is allowed, but uncooperative providers cannot cause
+  // an unbounded accumulation of retired work across successive timeouts.
+  const inventoryReads = new Set(), verificationJobs = new Set();
+  function tracked(work, active) {
+    const promise = Promise.resolve().then(work); active.add(promise);
+    void promise.then(() => active.delete(promise), () => active.delete(promise));
+    return promise;
+  }
 
   function readInputs() {
     if (!reading) {
+      if (inventoryReads.size >= 2) {
+        completed = null; latestKey = null;
+        return Promise.reject(new Error('Status inventory capacity unavailable.'));
+      }
       const controller = new AbortController(); let timer, task;
       task = Promise.race([
-        Promise.resolve().then(() => readSnapshot({signal:controller.signal})),
+        tracked(() => readSnapshot({signal:controller.signal}),inventoryReads),
         new Promise((_,reject) => { timer = setTimeout(() => {
           controller.abort(); reject(new Error('Status inventory read timed out.'));
         },snapshotTimeoutMs); }),
@@ -59,11 +72,13 @@ export function createSettlementStatusReader({ readSnapshot, verify,
     expiresAt: new Date(entry.checkedAt + maxAgeMs).toISOString(), cached });
 
   function start(context) {
+    if (verificationJobs.size >= 2)
+      return evidence(context.recorded,'verification-capacity-unavailable',{status:'unavailable'});
     const controller = new AbortController();
     const slot = { key: context.key, controller };
     running = slot;
     let timer;
-    const raw = Promise.resolve().then(async () => {
+    const raw = tracked(async () => {
       const proof = await verify({ ...context, signal: controller.signal });
       if (controller.signal.aborted) return evidence(context.recorded, 'verification-timeout');
       // Observe the inventory again even if no other request arrived while the
@@ -75,7 +90,7 @@ export function createSettlementStatusReader({ readSnapshot, verify,
         return evidence(context.recorded, 'verification-inputs-changed');
       }
       return proof;
-    });
+    },verificationJobs);
     const deadline = new Promise(resolve => {
       timer = setTimeout(() => {
         controller.abort();
