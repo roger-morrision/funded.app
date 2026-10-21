@@ -1,5 +1,33 @@
 import { setCoinField as writeCoinField, escapeHtml, shortAddress, formatDashboardUsd } from '../shared/display.js';
 
+function replaceLeaderboardRows(table, html) {
+  const document = table.ownerDocument, active = document?.activeElement;
+  const link = active?.closest('a[href]'), row = link?.closest('.leaderboard-row');
+  const key = row?.querySelector('a[href]')?.getAttribute('href');
+  if (!key || !table.contains(link) || !link.getClientRects().length) {
+    table.innerHTML = html;
+    return;
+  }
+  // Primary wallet/token href identifies the row; cell and destination identify
+  // the link even when multiple rows share a creator or receipt destination.
+  const cellIndex = [...row.children].indexOf(link.closest('[role="cell"]'));
+  const href = link.getAttribute('href');
+  let focusMoved = false;
+  const moved = event => { if (event.target !== active) focusMoved = true; };
+  document.addEventListener('focusin', moved, true);
+  try { table.innerHTML = html; }
+  finally { document.removeEventListener('focusin', moved, true); }
+  if (focusMoved || active.isConnected || !table.getClientRects().length
+    || document.activeElement !== document.body) return;
+  const nextRow = [...table.querySelectorAll('.leaderboard-row')].find(item =>
+    item.querySelector('a[href]')?.getAttribute('href') === key);
+  const next = [...(nextRow?.children[cellIndex]?.querySelectorAll('a[href]') || [])]
+    .find(item => item.getAttribute('href') === href);
+  // Removed or changed destinations fall back to the existing local table stop.
+  // Keep native scroll anchoring; the table's focus handlers reveal moved links.
+  (next?.getClientRects().length ? next : table).focus({ preventScroll: true });
+}
+
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderWalletBurnersBoard(
   {
@@ -30,22 +58,22 @@ export function renderWalletBurnersBoard(
   table.setAttribute('aria-label', 'Solana wallet burn leaderboard');
   const header = '<div class="leaderboard-table-head" role="row"><span role="columnheader">Rank</span><span role="columnheader">Wallet</span><span role="columnheader">Burned</span><span role="columnheader">First burn</span><span role="columnheader">Proof</span></div>';
   if (!['ready','partial'].includes(board.status)) {
-    table.innerHTML = `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5">${board.status === 'unavailable' ? 'Burn history is temporarily unavailable.' : 'Checking confirmed burns…'}</div></div>`;
+    replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5">${board.status === 'unavailable' ? 'Burn history is temporarily unavailable.' : 'Checking confirmed burns…'}</div></div>`);
     return;
   }
   if (!board.wallets.length) {
     const detail = board.status === 'partial'
       ? 'No launch burns are available in the current history.'
       : 'Wallets appear after a confirmed $FUNDED burn.';
-    table.innerHTML = `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>${board.status === 'partial' ? 'No launch burns in this feed.' : 'No verified wallet burns yet.'}</strong><span>${detail}</span></div></div>`;
+    replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>${board.status === 'partial' ? 'No launch burns in this feed.' : 'No verified wallet burns yet.'}</strong><span>${detail}</span></div></div>`);
     return;
   }
-  table.innerHTML = `${header}${board.wallets.slice(0,50).map((item,index) => {
+  replaceLeaderboardRows(table, `${header}${board.wallets.slice(0,50).map((item,index) => {
     const amount = Number(item.burnedTokens).toLocaleString(undefined,{maximumFractionDigits:6});
     const firstBurn = item.firstBurnAt ? formatOnchainAge(Date.parse(item.firstBurnAt)) : 'Time unavailable';
     const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
     return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index+1).padStart(2,'0')}</span><span role="cell" class="leader-identity"><span class="leader-avatar">${escapeHtml(String(item.wallet || '').slice(0,2).toUpperCase())}</span><span><a href="/wallet/${encodeURIComponent(item.wallet)}"><strong>${escapeHtml(shortAddress(item.wallet))}</strong></a><small>${item.receiptCount} verified receipt${item.receiptCount === 1 ? '' : 's'}</small></span></span><span role="cell"><b>${escapeHtml(amount)}</b><small>$FUNDED</small></span><span role="cell" class="leader-value">${escapeHtml(firstBurn)}</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
-  }).join('')}`;
+  }).join('')}`);
 }
 
 export function renderProjectBurnBoard(
@@ -84,23 +112,23 @@ export function renderProjectBurnBoard(
     const message = board.status === 'unavailable'
       ? 'Project burn history is temporarily unavailable. Try again shortly.'
       : 'Checking confirmed project burns…';
-    table.innerHTML = `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5">${message}</div></div>`;
+    replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5">${message}</div></div>`);
     return;
   }
   if (!projects.length) {
     const detail = board.status === 'partial'
       ? 'No launch burns are available in the current history.'
       : 'Projects appear here after a confirmed $FUNDED burn is linked to a launch.';
-    table.innerHTML = `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>No project burns yet.</strong><span>${detail}</span></div></div>`;
+    replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>No project burns yet.</strong><span>${detail}</span></div></div>`);
     return;
   }
-  table.innerHTML = `${header}${projects.slice(0, 50).map((item, index) => {
+  replaceLeaderboardRows(table, `${header}${projects.slice(0, 50).map((item, index) => {
     const lastBurn = item.lastBurnAt ? formatOnchainAge(Date.parse(item.lastBurnAt)) : 'Time unavailable';
     const amount = Number(item.burnedTokens).toLocaleString(undefined, { maximumFractionDigits: 6 });
     const tokenHref = `/token/${encodeURIComponent(item.mint)}`;
     const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
     return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leader-identity"><span class="leader-avatar mint">${escapeHtml(String(item.symbol || 'T').slice(0, 2))}</span><span><a href="${escapeHtml(tokenHref)}"><strong>${escapeHtml(item.name)}</strong></a><small>${escapeHtml(item.symbol)} · ${item.burnerCount} verified burner${item.burnerCount === 1 ? '' : 's'}</small></span></span><span role="cell"><b>${escapeHtml(amount)}</b><small>$FUNDED</small></span><span role="cell" class="leader-value">${escapeHtml(lastBurn)}</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
-  }).join('')}`;
+  }).join('')}`);
 }
 
 export function renderLeaderboard(
@@ -159,14 +187,14 @@ export function renderLeaderboard(
       const detail = unavailable ? 'Try again when the verified launch registry and trade feed are available.' : !scannedTokens
         ? 'The leaderboard will populate after verified tokens have been scanned.'
         : 'No wallet-attributed Pump trades were found in the recent scanned activity.';
-      table.innerHTML = `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>${heading}</strong><span>${detail}</span></div></div>`;
+      replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>${heading}</strong><span>${detail}</span></div></div>`);
       return;
     }
-    table.innerHTML = `${header}${traders.slice(0, 50).map((item, index) => {
+    replaceLeaderboardRows(table, `${header}${traders.slice(0, 50).map((item, index) => {
       const amount = item.volumeSol > 0 && item.volumeSol < 0.000001 ? '<0.000001' : item.volumeSol.toLocaleString(undefined, { maximumFractionDigits: 6 });
       const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
       return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leader-identity"><span class="leader-avatar blue" aria-hidden="true">${escapeHtml(item.wallet.slice(0, 2).toUpperCase())}</span><span><a href="/wallet/${encodeURIComponent(item.wallet)}"><strong>${escapeHtml(shortAddress(item.wallet))}</strong></a><small>${item.tokenCount} token${item.tokenCount === 1 ? '' : 's'} observed</small></span></span><span role="cell"><b>${item.tradeCount}</b><small>${item.buyCount} buy · ${item.sellCount} sell</small></span><span role="cell" class="leader-value">${escapeHtml(amount)} SOL</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer" aria-label="View recent transaction for ${escapeHtml(shortAddress(item.wallet))} on Solana Explorer">Trade ↗</a></span></div>`;
-    }).join('')}`;
+    }).join('')}`);
     return;
   }
   document.querySelector('#leaderboard-panel')?.setAttribute('aria-labelledby', 'leaderboard-creators-tab');
@@ -209,17 +237,17 @@ export function renderLeaderboard(
     if (title) title.textContent = creatorRankingUnavailable ? 'Creator ranking unavailable' : EXPLORE_CLUSTER === 'devnet' ? 'No verified Solana launches yet' : 'Leaderboard unavailable on this cluster';
     if (note) note.textContent = creatorRankingUnavailable ? 'Launch registry or market feed unavailable; creator count not verified.' : 'No confirmed creator launches are available to rank.';
     if (badge) badge.textContent = 'Unavailable';
-    table.innerHTML = `${header}${empty}`;
+    replaceLeaderboardRows(table, `${header}${empty}`);
     return;
   }
   if (title) title.textContent = `${ranked.length} verified launch${ranked.length === 1 ? '' : 'es'} on Solana`;
   if (note) note.textContent = 'Ranked from confirmed launch policies and available market caps. Missing market data is shown as unavailable.';
   if (badge) badge.textContent = 'RPC verified';
   const avatarClass = index => ['mint', 'lavender', 'coral', 'blue'][index % 4];
-  table.innerHTML = `${header}${ranked.map((item, index) => {
+  replaceLeaderboardRows(table, `${header}${ranked.map((item, index) => {
     const symbol = String(item.symbol || 'TOKEN').trim() || 'TOKEN';
     const name = String(item.name || symbol).trim() || symbol;
     return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leaderboard-token-cell" data-logo-mint="${escapeHtml(item.address)}"><span class="leader-avatar leader-token-logo ${avatarClass(index)}" aria-hidden="true">${escapeHtml(symbol.slice(0, 2).toUpperCase())}</span><span class="leaderboard-token-label"><a href="/token/${encodeURIComponent(item.address)}"><strong>${escapeHtml(symbol)}</strong></a><small title="${escapeHtml(name)}">${escapeHtml(name)}</small></span></span><span role="cell" class="leader-identity leaderboard-creator-cell"><span><a href="/wallet/${encodeURIComponent(item.creator)}"><strong>${escapeHtml(shortAddress(item.creator))}</strong></a><small>Creator wallet</small></span></span><span role="cell"><b>${item.capUsd == null ? '$—' : escapeHtml(formatDashboardUsd(item.capUsd))}</b><small>${item.capUsd == null ? 'Market data unavailable' : item.migrated === true ? 'Pool MC' : 'Curve MC'}</small></span><span role="cell" class="leader-value">${item.createdTimestamp ? escapeHtml(formatOnchainAge(Number(item.createdTimestamp) * 1000)) : 'Time unavailable'}</span></div>`;
-  }).join('')}`;
+  }).join('')}`);
   loadVerifiedTokenLogos?.(table);
 }
