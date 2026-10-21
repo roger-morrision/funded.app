@@ -24,6 +24,7 @@ function fixture(execute){
 }
 test('agency dry run performs custody preview without financial journal, post dispatch or heartbeat activation',async()=>{
   const f=fixture(false),result=await runAgencyCycle(f.input);assert.equal(result.events[0].status,'dry-run');
+  assert.equal(result.readinessStatus,null);
   assert.deepEqual(f.counts,{writes:0,promotions:0,buys:0,posts:0});
 });
 test('buyback-only worker requires no X configuration and never verifies, prepares, bills or dispatches a post',async()=>{
@@ -31,7 +32,8 @@ test('buyback-only worker requires no X configuration and never verifies, prepar
   const config=agencyBuybackConfig(noX,['--once','--execute']);
   const f=fixture(true);f.input.config=config;
   f.input.publisher=new Proxy({},{get(){throw new Error('A buyback worker must never access X.');}});
-  await runAgencyCycle(f.input);assert.deepEqual(f.counts,{writes:1,promotions:0,buys:2,posts:0});
+  const result=await runAgencyCycle(f.input);assert.deepEqual(f.counts,{writes:1,promotions:0,buys:2,posts:0});
+  assert.equal(result.readinessStatus,'ready');
   assert.equal(f.state.adminSettings.agencyWorker,undefined);
   const health={programId,approvedHash:config.approvedHash,authority:authority.publicKey.toBase58(),revision:'1',build:config.build};
   assert.equal(agencyBuybackWorkerHealth(f.state,health),true);
@@ -70,6 +72,7 @@ test('paused publisher cannot pin buyback pagination to the first five coins',as
 test('unexpected milestone failures degrade readiness; an incomplete migration remains explicitly pending',async()=>{
   const f=fixture(true);f.input.milestone=async({agent})=>{throw Object.assign(new Error('Unavailable'),{code:agent===1?'AGENCY_MARKET_NOT_MIGRATED':'RPC_UNAVAILABLE'});};
   const result=await runAgencyCycle(f.input);assert(result.events.some(row=>row.status==='awaiting-migration'));
+  assert.equal(result.readinessStatus,'degraded');
   assert(result.events.some(row=>row.status==='execution-unavailable'));assert.equal(f.state.adminSettings.agencyWorker.status,'degraded');
 });
 test('worker requires explicit execution, correct network, pinned platform account and exact build',()=>{

@@ -4,6 +4,7 @@ import {Connection,Keypair,PublicKey} from '@solana/web3.js';
 import bs58 from 'bs58';
 import {createPostgresStore} from '../server/postgres-store.mjs';
 import {runAgencyCycle} from './run-agency-worker.mjs';
+import {runAgencyBuybackLoop} from '../server/agency-buyback-loop.mjs';
 
 // This entry point has no publisher, outbox or X credential configuration.
 export function agencyBuybackConfig(env,args=[]){
@@ -30,18 +31,22 @@ async function main(args){
     fetch:(url,options)=>fetch(url,{...options,signal:options?.signal?AbortSignal.any([options.signal,AbortSignal.timeout(15000)]):AbortSignal.timeout(15000)})});
   let stopped=false,wake;const stop=()=>{stopped=true;wake?.();};process.once('SIGTERM',stop);process.once('SIGINT',stop);
   try{
-    do{
-      try{console.log(JSON.stringify(await runAgencyCycle({config,store,connection,authority,shouldStop:()=>stopped})));}
-      catch{
+    await runAgencyBuybackLoop({config,shouldStop:()=>stopped,
+      runCycle:async()=>{
+        const startedAt=performance.now();
+        const result=await runAgencyCycle({config,store,connection,authority,shouldStop:()=>stopped});
+        console.log(JSON.stringify({...result,cycleDurationMs:Math.round(performance.now()-startedAt)}));
+        return result;
+      },
+      onBlocked:async()=>{
         if(config.execute)await store.update(state=>{state.adminSettings||={};state.adminSettings.agencyBuybackWorker={status:'blocked',
           reason:'Reviewed Devnet deployment, protected custody, or execution proof is unavailable.',build:config.build,
           programId:config.programId,approvedHash:config.approvedHash,checkedAt:new Date().toISOString()};});
         console.error(JSON.stringify({event:'agency-buyback-worker-blocked',build:config.build}));
         if(config.mode!=='loop')process.exitCode=1;
-      }
-      if(config.mode!=='loop'||stopped)break;
-      await new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},config.intervalMs);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
-    }while(!stopped);
+      },
+      wait:waitMs=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},waitMs);wake=()=>{clearTimeout(timer);wake=null;resolve();};}),
+    });
   }finally{await store.close();process.removeListener('SIGTERM',stop);process.removeListener('SIGINT',stop);}
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)main(process.argv.slice(2)).catch(()=>{
