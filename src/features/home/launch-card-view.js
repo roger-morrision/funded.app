@@ -52,7 +52,7 @@ export function launchCardVolumeUsd(
 
 export function homeLaunchCardMarkup(
   item,
-  { volumeLabel, volumeValue, extraClass, extraActions, footerNote },
+  { volumeLabel, volumeValue, extraClass, extraActions, footerNote, compact = false },
   {
     verifiedBoosts,
     EXPLORE_CLUSTER,
@@ -101,6 +101,27 @@ export function homeLaunchCardMarkup(
     const boost = verifiedBoosts[item.address];
     const boostMultiplier = activeBoostMultiplier(boost);
     const activeBoost = boostMultiplier > 0;
+    if (compact) return `<article class="token-card-shell home-launch-card explore-compact-card${extraClass}" data-mint="${escapeHtml(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}">
+      <a class="home-launch-card-link" href="/token/${encodeURIComponent(item.address || '')}" aria-label="Open ${escapeHtml(item.name || item.symbol || 'token')} token details"></a>
+      <div class="explore-compact-heading">
+        <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span></div>
+        <div class="home-launch-card-top"><span class="home-token-identity"><strong class="${activeBoost && boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(item.symbol || 'TOKEN')}</strong>${exploreBoostAmountMarkup(item.address)}<small>${escapeHtml(item.name || 'Unnamed token')}</small></span><span class="home-launch-media-stage">${escapeHtml(stageLabel)}</span></div>
+      </div>
+      <div class="home-launch-card-stats">
+        <span><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small><strong>${escapeHtml(value)}</strong></span>
+        <span><small>${escapeHtml(volumeLabel)} volume</small><strong>${escapeHtml(shownVolume)}</strong></span>
+        <span title="${escapeHtml(holderTitle)}"><small>Holders</small><strong>${escapeHtml(holderCount)}</strong></span>
+        <span class="home-launch-change ${changeClass}"><small>24h change</small><strong>${escapeHtml(hasNoObservedTrades ? 'No trades' : change)}</strong></span>
+      </div>
+      <div class="explore-compact-details">
+        <div class="home-launch-card-addresses"><span title="Token contract: ${escapeHtml(item.address || '')}"><small>CA</small><code>${escapeHtml(mintLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(item.address || '')}" data-copy-kind="token" aria-label="Copy full token address" title="Copy full token address">${icon('copy')}</button></span>${creatorWallet ? `<span title="Verified launch creator: ${escapeHtml(creatorWallet)}"><small>Creator</small><code>${escapeHtml(creatorLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(creatorWallet)}" data-copy-kind="creator" aria-label="Copy full creator wallet address" title="Copy full creator wallet address">${icon('copy')}</button></span>` : ''}</div>
+        <div class="explore-compact-context">${feeRoute}<div class="home-launch-meta"><span>${escapeHtml(ageLabel)}</span><span>${escapeHtml(progressLabel)}</span></div></div>
+      </div>
+      <div class="home-launch-progress" aria-label="${escapeHtml(progressLabel)}"${item.complete == null && item.migrated == null ? ' hidden' : ''}><i style="--launch-progress:${progressValue}%"></i></div>
+      ${footerNote ? `<small class="home-launch-evidence">${escapeHtml(footerNote)}</small>` : ''}
+      <div class="home-launch-card-actions"><div class="home-launch-media-badges"><span class="home-launch-media-package"></span></div>${tokenCardWatchMarkup(item.address, item.symbol)}${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
+      ${exploreSocialLinksMarkup(item)}
+    </article>`;
     return `<article class="token-card-shell home-launch-card${extraClass}" data-mint="${escapeHtml(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}">
       <a class="home-launch-card-link" href="/token/${encodeURIComponent(item.address || '')}" aria-label="Open ${escapeHtml(item.name || item.symbol || 'token')} token details"></a>
       <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span>${exploreSocialLinksMarkup(item)}${tokenCardWatchMarkup(item.address, item.symbol)}<span class="home-launch-media-stage">${escapeHtml(stageLabel)}</span><div class="home-launch-media-badges"><span class="home-launch-media-package"></span></div></div>

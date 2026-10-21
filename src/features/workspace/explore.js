@@ -23,8 +23,6 @@ export function explore() {
   if (tabs && headingActions) headingActions.prepend(tabs);
   const timeframe = $('.explore-timeframe', root);
   if (timeframe) $('.explore-control-left', root)?.prepend(timeframe);
-  const viewSwitch = $('.explore-view-switch', root);
-  if (viewSwitch && headingActions) headingActions.append(viewSwitch);
   const quickFilters = node('div', 'explore-quick-filters');
   const stageStrip = node('div', 'explore-index-filters');
   stageStrip.setAttribute('role', 'group');

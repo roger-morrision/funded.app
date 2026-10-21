@@ -103,6 +103,7 @@ export function renderExploreAssets(
     volumeLabel: exploreWindow,
     volumeValue: launchCardVolumeUsd(item, exploreWindow),
     extraClass: ' explore-launch-card',
+    compact: true,
   })).join('') : loading
     ? '<div class="empty-state onchain-empty"><strong>Loading verified launches…</strong><span>Checking the indexed launch feed and confirming current Solana state.</span></div>'
     : feedUnavailable || rpcUnavailable

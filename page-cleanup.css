@@ -1,3 +1,4 @@
+@import './src/features/explore/compact-cards.css';
 /* Optional illustrations are one click away; page tasks and evidence stay first. */
 body.page-route .page-cleanup-guide {
   display: block;
@@ -31,13 +32,14 @@ body.page-route #sidebar .primary-nav > a.nav-item[href="#launch"] { display: no
 body.page-route-launch .topbar .create-coin-button { display: none !important; }
 
 /* Keep discovery and action controls in the first viewport. */
-html body.page-route-explore .explore-hero { min-height: 188px; padding: 22px 28px; }
-html body.page-route-explore .explore-hero h1 { font-size: clamp(35px, 4vw, 53px); }
-body.page-route-explore .explore-page { padding-top: 14px; }
-body.page-route-explore .explore-page .section-heading.explore-heading { margin-top: 12px; }
+html body.page-route-explore .explore-hero { min-height: 0; margin: 0 0 8px; padding: 0; border: 0; background: none !important; }
+html body.page-route-explore .explore-hero h1 { margin: 0 0 4px; font-size: 32px; line-height: 1.2; }
+html body.page-route-explore .explore-hero .explore-lede { margin: 0; font-size: 14px; line-height: 1.5; }
+body.page-route-explore .explore-page { padding-top: 0; }
+body.page-route-explore .explore-page .section-heading.explore-heading { margin-top: 0; padding-top: 0; }
 body.page-route-explore .explore-quick-filters { display: none !important; }
 body.page-route-explore .explore-filter-toggle { width: auto; min-width: 86px; padding: 0 10px; gap: 7px; }
-body.page-route-explore #asset-grid { margin-top: 14px; }
+body.page-route-explore #asset-grid { margin-top: 8px; }
 body.page-route-explore .explore-benefit-leaders { margin-top: 25px; }
 body.page-route-overview .home-launch-tabs [data-home-launch-tab="standard"],
 body.page-route-overview .home-launch-tabs [data-home-launch-tab="boost"],
@@ -67,8 +69,10 @@ body.page-route-my-launches .projects-public-launches { margin-top: 14px; paddin
 
 /* Spend the home card space on identity and proof rather than empty artwork. */
 html body.page-route-overview .hero-section { min-height: 375px !important; }
-html body:is(.page-route-overview,.page-route-explore) .home-launch-card-media { aspect-ratio: 3 / 2; }
-body:is(.page-route-overview,.page-route-explore) .home-launch-card-media .home-token-avatar { font-size: 48px; }
+html body:is(.page-route-overview) .home-launch-card-media { aspect-ratio: 3 / 2; }
+html body:is(.page-route-explore) .home-launch-card-media { aspect-ratio: 3 / 2; }
+body:is(.page-route-overview) .home-launch-card-media .home-token-avatar { font-size: 48px; }
+body:is(.page-route-explore) .home-launch-card-media .home-token-avatar { font-size: 48px; }
 body.page-route-overview .home-reward-token-proof { font-weight: 650; line-height: 1.35; }
 body.page-route-overview .home-rewards-note { max-width: 78ch; }
 html body.page-route-overview .home-rewards-spotlight { padding: 12px 16px; }
@@ -102,7 +106,8 @@ body.page-route .help-topics-trigger { right: 12px; bottom: 12px; min-width: 42p
 body.page-route-referrals #referral-command-center .section-heading .section-state { display: none; }
 
 @media (max-width: 700px) {
-  html body.page-route-explore .explore-hero { min-height: 0; padding: 22px 16px; }
+  html body.page-route-explore .explore-hero { min-height: 0; padding: 0; }
+  html body.page-route-explore .explore-hero h1 { font-size: 28px; }
   body.page-route-explore .explore-hero-actions { display: none !important; }
   html body.page-route-overview .hero-section { min-height: 0 !important; padding-bottom: 14px !important; }
   body.page-route-overview .home-market-ticker { grid-template-columns: minmax(0, 1fr); gap: 4px; margin-bottom: 8px; padding-bottom: 8px; }
@@ -167,4 +172,31 @@ body.page-route-coin .coin-hero-card:is([data-launch-tier="standard"],[data-laun
   body.page-route-coin .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) .coin-package-chip,
   body.page-route-coin .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) .coin-package-rail #coin-promotion-badge { width: 125px; }
   body.page-route-coin .coin-artwork-package { right: 10px; top: 38px; max-width: calc(100% - 20px); font-size: 9px; }
+}
+
+/* Existing discovery controls wrap together without a separate layout-toggle row. */
+#explore .explore-heading { margin-top: 0; margin-bottom: 8px; padding-top: 0; }
+#explore .explore-heading .heading-actions { width: 100%; gap: 6px; }
+#explore .explore-heading .explore-tabs { display: flex !important; flex-wrap: wrap; gap: 2px; padding: 0; border: 0; }
+#explore .explore-tabs button { min-width: 44px; min-height: 44px; padding: 6px 10px; }
+#explore .explore-tools { display: grid; grid-template-columns: minmax(240px, 400px) minmax(0, 1fr); gap: 8px 16px; margin: 0; padding: 0; border: 0; background: none; }
+#explore .explore-tools .explore-search-row { margin: 0; }
+#explore .explore-search-label { min-height: 44px; }
+#explore .explore-tools .explore-control-bar { display: flex; flex-direction: row; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; border: 0; }
+#explore .explore-tools .explore-control-left { display: flex; flex: 0 0 auto; width: auto; gap: 6px; }
+#explore .explore-timeframe { margin: 0; padding: 0; }
+#explore .explore-timeframe button { min-width: 44px; min-height: 44px; padding: 4px 6px; }
+#explore .explore-control-bar > .explore-view-switch { display: flex; flex: none; gap: 0; padding: 0; }
+#explore .explore-view-switch button { min-width: 44px; min-height: 44px; padding: 4px 8px; }
+#explore .explore-control-bar > .explore-view-switch { border: 1px solid var(--line); border-radius: 8px; background: #1b1e1f; }
+#explore .explore-control-bar > .explore-view-switch button.active { background: #35393a; color: #fff; }
+#explore .explore-tools .explore-control-bar .product-sort { display: flex; flex: 1 1 180px; flex-direction: row; align-items: center; gap: 6px; margin: 0; font-size: 12px; }
+#explore .explore-tools #explore-sort { flex: 1; min-width: 0; max-width: none; min-height: 44px; }
+#explore #explore-activity-coverage { margin: 8px 0 0; min-block-size: 0; font-size: 12px; line-height: 1.35; }
+@media (max-width: 1100px) {
+  #explore .explore-tools { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 700px) {
+  #explore .explore-tabs button { padding-inline: 8px; }
+  #explore .explore-tools .explore-control-bar .product-sort { flex-basis: 100%; }
 }
