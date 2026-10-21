@@ -1,20 +1,18 @@
 import {test,expect} from '@playwright/test';
 import {build} from 'vite';
-import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 async function bundle(entry,name){const r=await build({root,configFile:false,logLevel:'silent',build:{write:false,lib:{entry:root+entry,name,formats:['iife']}}});return r[0].output.find(x=>x.type==='chunk').code;}
 const renderer=await bundle('src/features/portfolio/wallet-detail-view.js','WalletScopeRenderer');
 const navigation=await bundle('src/app/startup/coin-navigation.js','WalletScopeNavigation');
-const shell=readFileSync(root+'index.html','utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');
 
 // Actual shell/styles/fonts/renderer and unchanged native wallet handlers, deterministic
 // renderer data only. This does not model API admission, wallet connection or finality.
 async function prepare(page,width){
-  const requests=[],errors=[];page.on('request',r=>requests.push({method:r.method(),url:r.url()}));page.on('pageerror',e=>errors.push(e.message));
+  const requests=[],errors=[],styles=[];let servedDocument=null;page.on('request',r=>requests.push({method:r.method(),url:r.url()}));page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.request().resourceType()==='stylesheet'&&['127.0.0.1','localhost'].includes(new URL(r.url()).hostname))styles.push({url:r.url(),status:r.status(),contentType:r.headers()['content-type']||''});});
   await page.setViewportSize({width,height:width===360?740:width===390?844:900});
-  await page.route('**/*',r=>{const u=new URL(r.request().url());if(r.request().isNavigationRequest())return r.fulfill({contentType:'text/html',body:shell});if(r.request().method()!=='GET'||u.pathname.startsWith('/api/'))return r.abort();if(['127.0.0.1','localhost','fonts.googleapis.com','fonts.gstatic.com'].includes(u.hostname))return r.continue();return r.abort();});
+  await page.route('**/*',async r=>{const u=new URL(r.request().url());if(r.request().isNavigationRequest()){const response=await r.fetch();expect(response.ok()).toBe(true);expect(response.headers()['content-type']).toMatch(/text\/html/);const html=await response.text(),shell=html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');servedDocument={url:r.request().url(),status:response.status(),compiled:/<script\b[^>]*\bsrc=["']\/assets\//i.test(html)};return r.fulfill({response,body:shell});}if(r.request().method()!=='GET'||u.pathname.startsWith('/api/'))return r.abort();if(['127.0.0.1','localhost','fonts.googleapis.com','fonts.gstatic.com'].includes(u.hostname))return r.continue();return r.abort();});
   await page.goto('/wallet/ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC');
   await page.addScriptTag({content:renderer});await page.addScriptTag({content:navigation});
   await page.evaluate(()=>{
@@ -29,8 +27,10 @@ async function prepare(page,width){
     window.renderScope();
   });
   await page.evaluate(()=>document.fonts.ready);expect(await page.evaluate(()=>[...document.fonts].some(f=>f.family.includes('Manrope')&&f.status==='loaded'))).toBe(true);
+  const localStyles=await page.locator('link[rel="stylesheet"]').evaluateAll(nodes=>nodes.map(e=>e.href).filter(h=>new URL(h).origin===location.origin));expect(localStyles.length).toBeGreaterThan(0);expect(styles.length).toBeGreaterThan(0);for(const s of styles){expect(s.status,s.url).toBe(200);expect(s.contentType,s.url).toMatch(/text\/css/);}for(const url of localStyles)expect(styles.some(s=>s.url===url),'Stylesheet was not delivered: '+url).toBe(true);if(servedDocument.compiled){for(const url of localStyles)expect(new URL(url).pathname).toMatch(/^\/assets\/.+\.css$/);expect(styles.some(s=>/^\/assets\/.+\.css$/.test(new URL(s.url).pathname))).toBe(true);}
+  await test.info().attach('served-document-and-styles',{body:JSON.stringify({servedDocument,localStyles,styles,qualification:'Fetched current local test-server HTML, successful HTML required, scripts removed only. All local stylesheet responses successful CSS; compiled HTML must consume exact preview /assets/*.css. No source-CSS/root/style override.'}),contentType:'application/json'});
   const baselineFonts=await page.evaluate(()=>{document.querySelector('#wallet-stat-volume-note').textContent='No recent trades found';document.querySelector('#wallet-detail-content .wallet-detail-empty span').textContent='No confirmed buy history was found for this wallet.';const fonts=[...document.querySelectorAll('#wallet-stat-volume-note, #wallet-detail-content .wallet-detail-empty span')].map(e=>({font:parseFloat(getComputedStyle(e).fontSize),family:getComputedStyle(e).fontFamily,lineHeight:getComputedStyle(e).lineHeight}));renderScope();return fonts;});
-  return {requests,errors,baselineFonts};
+  return {requests,errors,baselineFonts,servedDocument,styles};
 }
 function stableFocus(target){return new Promise(resolve=>{const start=performance.now(),samples=[];let stable=null,last=null,frame,finished=false;const finish=pass=>{if(finished)return;finished=true;cancelAnimationFrame(frame);clearTimeout(timer);resolve({pass,elapsedMs:performance.now()-start,stableMs:stable===null?0:performance.now()-stable,samples});};const tick=()=>{const r=target.getBoundingClientRect(),s=getComputedStyle(target),m=(parseFloat(s.outlineWidth)||0)+Math.max(0,parseFloat(s.outlineOffset)||0),h=document.querySelector('.topbar'),n=document.querySelector('.mobile-workspace-nav'),top=h?.getClientRects().length?Math.max(0,h.getBoundingClientRect().bottom):0,bottom=n?.getClientRects().length?Math.min(innerHeight,n.getBoundingClientRect().top):innerHeight;const point={at:performance.now()-start,y:scrollY,focused:document.activeElement===target,top:r.top,bottom:r.bottom,clear:target.matches(':focus-visible')&&m>0&&s.outlineStyle!=='none'&&r.top-m>=top&&r.bottom+m<=bottom&&r.left-m>=0&&r.right+m<=innerWidth};samples.push(point);if(point.at>1000)return finish(false);if(point.focused&&point.clear){if(stable===null||last!==scrollY)stable=performance.now();last=scrollY;if(performance.now()-stable>=100)return finish(true);}else stable=null;frame=requestAnimationFrame(tick);};const timer=setTimeout(()=>finish(false),1000);frame=requestAnimationFrame(tick);});}
 async function focusCheck(locator,info){const r=await locator.evaluate(stableFocus);await info.attach('native-focus',{body:JSON.stringify(r),contentType:'application/json'});expect(r.pass,JSON.stringify(r)).toBe(true);expect(r.elapsedMs).toBeLessThanOrEqual(1000);expect(r.stableMs).toBeGreaterThanOrEqual(100);}
