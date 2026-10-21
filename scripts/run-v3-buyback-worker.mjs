@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { shouldAttemptV3Buyback } from '../server/v3-buyback-worker-policy.mjs';
+import { createWorkerLifecycle, WorkerStoppingError } from './worker-lifecycle.mjs';
 
 if (process.env.SOLANA_CLUSTER !== 'devnet') throw new Error('Automatic V3 buyback worker is Devnet-only.');
 const endpoint = new URL(process.env.FUNDED_INTERNAL_APP_URL || 'http://app:8787');
@@ -8,8 +9,10 @@ const token = String(process.env.FUNDED_API_TOKEN || (process.env.FUNDED_API_TOK
   ? readFileSync(process.env.FUNDED_API_TOKEN_FILE, 'utf8') : '')).trim();
 if (!token) throw new Error('Automatic V3 buyback worker requires internal API authorization.');
 const retryAt = new Map();
+const lifecycle = createWorkerLifecycle({ name:'v3-buyback-worker' });
 
 async function request(path, method = 'GET') {
+  lifecycle.assertRunning();
   const response = await fetch(new URL(path, endpoint), { method,
     headers:{ authorization:`Bearer ${token}`, origin,
       ...(method === 'POST' ? { 'content-type':'application/json' } : {}) },
@@ -25,6 +28,7 @@ async function tick() {
   const pending = Array.isArray(result.pending) ? result.pending : [];
   let attemptFailed = false;
   for (const row of pending) {
+    lifecycle.assertRunning();
     const sourceKey=`${row.mint}:${row.sourceCollectionSignature}`;
     if (!shouldAttemptV3Buyback(row, { triggerReached:result.dashboard?.triggerReached,
       retryAt:retryAt.get(sourceKey) || 0 })) continue;
@@ -45,12 +49,14 @@ async function tick() {
     && result.dashboard?.unindexedStatus === 'verified';
 }
 
-await new Promise(resolve => setTimeout(resolve, 10_000));
-for (;;) {
+try {
+await lifecycle.wait(10_000);
+while (!lifecycle.stopped) {
   let heartbeat = 'failed';
   try { heartbeat = await tick() ? 'ready' : 'degraded'; }
-  catch (error) { console.error(JSON.stringify({ event:'v3_buyback_worker_error',
+  catch (error) { if (!(error instanceof WorkerStoppingError)) console.error(JSON.stringify({ event:'v3_buyback_worker_error',
     reason:String(error.message || error).slice(0,240) })); }
+  if (lifecycle.stopped) break;
   try {
     const reported = await request(`/api/buyback/worker-heartbeat?status=${heartbeat}`, 'POST');
     if (reported.status !== 200 || reported.result?.recorded !== true)
@@ -58,5 +64,6 @@ for (;;) {
   }
   catch (error) { console.error(JSON.stringify({ event:'v3_buyback_worker_heartbeat_error',
     reason:String(error.message || error).slice(0,240) })); }
-  await new Promise(resolve => setTimeout(resolve, 60_000));
+  await lifecycle.wait(60_000);
 }
+} finally { lifecycle.dispose(); }
