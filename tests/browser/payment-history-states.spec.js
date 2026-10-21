@@ -83,3 +83,55 @@ for (const width of [360, 390, 1440]) {
     await page.screenshot({ path: info.outputPath(`filtered-${width}.png`) }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true); expect(f.errors).toEqual([]); expect(f.writes).toEqual([]);
   });
 }
+
+// Font-sensitive native coverage: the six offline state cases above stay exact.
+function observeFilterFocus(target, {timeoutMs=1000, stableMs=100}={}) {
+  return new Promise(resolve=>{
+    const start=performance.now(),samples=[];
+    let stableSince=null,lastScroll=null,frame,timer,done=false;
+    const finish=(pass,reason,last)=>{
+      if(done)return;done=true;cancelAnimationFrame(frame);clearTimeout(timer);
+      resolve({pass,reason,elapsedMs:performance.now()-start,stableForMs:stableSince===null?0:performance.now()-stableSince,samples,last});
+    };
+    const sample=()=>{
+      const now=performance.now(),e=document.activeElement,r=target.getBoundingClientRect(),s=getComputedStyle(target);
+      const n=document.querySelector('.mobile-workspace-nav'),h=document.querySelector('.topbar');
+      const margin=(parseFloat(s.outlineWidth)||0)+Math.max(0,parseFloat(s.outlineOffset)||0);
+      const state={elapsedMs:now-start,scrollY,focused:e===target,focusVisible:target.matches(':focus-visible'),visible:target.getClientRects().length>0&&r.top-margin>=(h?.getClientRects().length?Math.max(0,h.getBoundingClientRect().bottom):0)&&r.bottom+margin<=(n?.getClientRects().length?n.getBoundingClientRect().top:innerHeight)};
+      samples.push(state);
+      if(now-start>timeoutMs)return finish(false,'deadline',state);
+      if(state.focused&&state.focusVisible&&state.visible){
+        if(stableSince===null||lastScroll!==state.scrollY)stableSince=now;
+        lastScroll=state.scrollY;
+        if(now-stableSince>=stableMs)return finish(true,'visible-and-stationary',state);
+      }else{stableSince=null;lastScroll=null;}
+      frame=requestAnimationFrame(sample);
+    };
+    timer=setTimeout(()=>finish(false,'deadline',samples.at(-1)),timeoutMs);
+    frame=requestAnimationFrame(sample);
+  });
+}
+
+for(const width of [360,390,1440])test(`Rewards History loaded Manrope native filters and Clear stay readable at ${width}px`,async({page},info)=>{
+  test.setTimeout(30_000);const check=expect.configure({timeout:15_000});
+  const f=await fixture(page,{history:data('onchain-indexed',receipts)}),external=[],wallet=[];
+  await page.route('https://**/*',r=>{const q=r.request(),u=new URL(q.url());if(q.method()==='GET'&&['fonts.googleapis.com','fonts.gstatic.com'].includes(u.hostname)){external.push({host:u.hostname,method:q.method()});return r.continue();}return r.abort();});
+  page.on('request',q=>{if(new URL(q.url()).pathname.startsWith('/api/wallets/'))wallet.push(q.url());});
+  await ready(page,width);await check(list(page).locator('.payment-history-row')).toHaveCount(2);
+  const font=await page.evaluate(async()=>{try{await document.fonts.ready;const faces=await document.fonts.load('600 12px "Manrope"','Community / daily bonus 01/01/2030');await document.fonts.ready;const control=document.querySelector('#payment-history-type'),style=getComputedStyle(control);return{loaded:faces.map(f=>({family:f.family,weight:f.weight,status:f.status})),family:style.fontFamily,weight:style.fontWeight,status:document.fonts.status};}catch(e){return{error:String(e)};}});
+  await info.attach('actual-control-font',{body:JSON.stringify({font,external},null,2),contentType:'application/json'});
+  check(font.error,'font-unavailable: existing Google Fonts could not load').toBeUndefined();check(font.loaded?.length,'font-unavailable: no actual Manrope600 FontFace').toBeGreaterThan(0);check(font.loaded.every(f=>f.family==='Manrope'&&f.status==='loaded')).toBe(true);check(font.family).toContain('Manrope');check(font.weight).toBe('600');
+  const type=page.locator('#payment-history-type'),clear=page.locator('#payment-history-clear'),before=f.requests(),kpi=await page.locator('[data-analytics-metric="payouts"] strong').innerText(),originalRows=await rows(page),readability=[];
+  const choices=await type.evaluate(e=>{const c=document.createElement('canvas').getContext('2d');c.font=getComputedStyle(e).font;return[...e.options].map(o=>({value:o.value,label:o.textContent,width:c.measureText(o.textContent).width})).sort((a,b)=>b.width-a.width).slice(0,3);});
+  for(const choice of choices){await type.selectOption(choice.value);const box=await type.evaluate(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e),c=document.createElement('canvas').getContext('2d');c.font=s.font;return{width:r.width,contentWidth:e.clientWidth-parseFloat(s.paddingLeft)-parseFloat(s.paddingRight),textWidth:c.measureText(e.selectedOptions[0].textContent).width,font:s.font,selected:e.selectedOptions[0].textContent,left:r.left,right:r.right};});const ax=await type.ariaSnapshot();readability.push({choice,box,ax});await page.screenshot({path:info.outputPath('choice-'+width+'-'+choice.value+'.png')});}
+  const dates=await page.locator('#payment-history-from,#payment-history-to').evaluateAll(es=>es.map(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e),c=document.createElement('canvas').getContext('2d');c.font=s.font;return{id:e.id,width:r.width,height:r.height,contentWidth:e.clientWidth-parseFloat(s.paddingLeft)-parseFloat(s.paddingRight),textWidth:c.measureText('01/01/2030').width,font:s.font,left:r.left,right:r.right};}));
+  await info.attach('selected-choice-and-date-readability',{body:JSON.stringify({readability,dates,ax:await page.locator('#payment-history-filters').ariaSnapshot()},null,2),contentType:'application/json'});
+  for(const item of readability){check(item.box.contentWidth-item.box.textWidth,'Full selected payout label plus native indicator').toBeGreaterThanOrEqual(20);check(item.ax).toContain(item.choice.label);}
+  for(const item of dates){check(item.contentWidth-item.textWidth,'Native date text plus calendar indicator').toBeGreaterThanOrEqual(20);check(item.height).toBeGreaterThanOrEqual(42);}
+  await type.selectOption('holder');await page.locator('#payment-history-from').fill('2030-01-01');await check(list(page).locator('.empty-state')).toHaveText('No confirmed payments match these filters.');
+  await type.focus();const tabPath=[];for(let i=0;i<14;i++){await page.keyboard.press('Tab');const id=await page.evaluate(()=>document.activeElement?.id);tabPath.push(id);if(id==='payment-history-clear')break;}
+  await check(clear).toBeFocused();const beforeEnter=await clear.evaluate(observeFilterFocus,{timeoutMs:1000,stableMs:100});await page.screenshot({path:info.outputPath('native-clear-before-'+width+'.png')});await page.keyboard.press('Enter');await check(clear).toBeFocused();const afterEnter=await clear.evaluate(observeFilterFocus,{timeoutMs:1000,stableMs:100});
+  await info.attach('native-filter-focus',{body:JSON.stringify({width,font,tabPath,beforeEnter,afterEnter},null,2),contentType:'application/json'});
+  check(tabPath).toContain('payment-history-from');check(tabPath).toContain('payment-history-to');check(tabPath.at(-1)).toBe('payment-history-clear');for(const motion of[beforeEnter,afterEnter]){check(motion.pass,JSON.stringify(motion)).toBe(true);check(motion.elapsedMs).toBeLessThanOrEqual(1000);check(motion.stableForMs).toBeGreaterThanOrEqual(100);}
+  await check(type).toHaveValue('all');await check(page.locator('#payment-history-from')).toHaveValue('');await check(page.locator('#payment-history-to')).toHaveValue('');check(await rows(page)).toEqual(originalRows);await check(page.locator('[data-analytics-metric="payouts"] strong')).toHaveText(kpi);check(f.requests()).toBe(before);check(wallet).toEqual([]);check(f.errors).toEqual([]);check(f.writes).toEqual([]);check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);await page.screenshot({path:info.outputPath('native-clear-after-'+width+'.png')});
+});
