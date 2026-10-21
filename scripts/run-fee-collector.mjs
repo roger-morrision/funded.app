@@ -14,11 +14,11 @@ if (process.argv.includes('--check')) {
   if (Date.now() - Date.parse(state.at) > intervalMs * 2 + 30_000 || state.status !== 'ready') process.exitCode = 1;
 } else {
   if (process.env.SOLANA_CLUSTER !== 'devnet') throw new Error('Automatic Pump fee collection is Devnet only.');
+  const lifecycle = createWorkerLifecycle({ name:'fee-collector' });
+  try {
   const pausedMints=pausedFeeCollectionMints();
   const token = (await readFile(process.env.FUNDED_API_TOKEN_FILE, 'utf8')).trim();
   if (!token) throw new Error('Keeper API token is required.');
-  const lifecycle = createWorkerLifecycle({ name:'fee-collector' });
-  try {
   async function request(path, body) {
     lifecycle.assertRunning();
     const response = await fetch(`${api}${path}`, { method:body ? 'POST' : 'GET', headers:{ authorization:`Bearer ${token}`, ...(body ? { 'content-type':'application/json' } : {}) }, body:body ? JSON.stringify(body) : undefined, signal:AbortSignal.timeout(path === '/api/keeper/collect' ? 90_000 : 15_000) });

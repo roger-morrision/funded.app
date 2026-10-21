@@ -41,6 +41,8 @@ test('actual workers await admitted reads/writes through repeated signals and ne
     const preload=join(temporary,'preload.mjs'), token=join(temporary,'token');
     await writeFile(token,'fixture-not-a-credential');
     await writeFile(preload,`
+import fsPromises from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 const job=process.env.FUNDED_STOP_TEST_CASE;
 const trace=value=>console.log(JSON.stringify({fixture:value}));
 const mint='1'.repeat(32), signature='2'.repeat(64);
@@ -54,6 +56,15 @@ const finish=async()=>{
   trace('admitted-settled');
   if(job.endsWith('uncertain')||job.endsWith('heartbeat-error'))throw Error('fixture uncertain request; inspect existing server journal');
 };
+if(job==='fee-startup'){
+  const original=fsPromises.readFile;
+  fsPromises.readFile=async(...args)=>{
+    const value=await original(...args);
+    if(args[0]===process.env.FUNDED_API_TOKEN_FILE)await finish();
+    return value;
+  };
+  syncBuiltinESMExports();
+}
 globalThis.fetch=async(target,options={})=>{
   const path=new URL(target).pathname,method=options.method||'GET'; trace(method+' '+path);
   if(path==='/api/keeper/collection-candidates'){
@@ -78,7 +89,7 @@ globalThis.fetch=async(target,options={})=>{
   trace('FORBIDDEN '+method+' '+path);throw Error('Unexpected request in shutdown fixture');
 };
 `);
-    const cases=['fee-read','fee-detail-read','fee-write','fee-uncertain','fee-json',
+    const cases=['fee-startup','fee-read','fee-detail-read','fee-write','fee-uncertain','fee-json',
       'buyback-read','buyback-write','buyback-uncertain','buyback-json','buyback-heartbeat','buyback-heartbeat-error'];
     const results=await Promise.allSettled(cases.map(async job=>{
       const fee=job.startsWith('fee');
@@ -96,7 +107,8 @@ globalThis.fetch=async(target,options={})=>{
       assert.equal(lines.at(-1).event,'worker_shutdown_finished',job);
       assert(trace.indexOf('admitted-settled')>trace.indexOf('signals-delivered'),job);
       const writes=trace.filter(value=>value.startsWith('POST '));
-      assert.equal(writes.length,job.endsWith('read')?0:1,job);
+      assert.equal(writes.length,job.endsWith('read')||job==='fee-startup'?0:1,job);
+      if(job==='fee-startup')assert(!trace.some(value=>value.startsWith('GET ')),job);
       assert.equal(trace.filter(value=>value.includes('worker-heartbeat')).length,job.includes('heartbeat')?1:0,job);
       assert(!lines.some(row=>row.event==='v3_buyback_attempt'&&row.outcome==='finalized')||job==='buyback-write',job);
       if(job.endsWith('uncertain')||job.endsWith('heartbeat-error'))assert(stderr.includes('fixture uncertain request'),job);
