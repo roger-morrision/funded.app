@@ -1,3 +1,4 @@
+import { renderPublicQuoteRetry } from '../../features/launch/cost-view.js';
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchPreviewController(appState) {
   let publicQuoteKey = '';
@@ -116,7 +117,9 @@ export function createLaunchPreviewController(appState) {
   // app-source: 609
   function updateCostSummary(){
     refreshPublicQuote();
-    return appState.updateCostSummaryView({ wallet: appState.wallet, estimatedLaunchFeeLamports: appState.estimatedLaunchFeeLamports, walletMetricsLoading: appState.walletMetricsLoading, walletEstimateError: appState.walletEstimateError, launchCostReview: appState.launchCostReview, launchEstimateRetry: appState.launchEstimateRetry, publicQuote }, { renderLaunchCostDetails: appState.renderLaunchCostDetails, getLaunchBurnPolicy: appState.getLaunchBurnPolicy, getCreatorBuySummary: appState.getCreatorBuySummary, getCommunityAirdropTokens: appState.getCommunityAirdropTokens, getCommunityAllocationPercent: appState.getCommunityAllocationPercent, formatLaunchBurnAmount: appState.formatLaunchBurnAmount, creatorBuyExceedsWalletBalance: appState.creatorBuyExceedsWalletBalance, developerBuyLimitReached: appState.developerBuyLimitReached, formatLaunchCost: appState.formatLaunchCost });
+    const result = appState.updateCostSummaryView({ wallet: appState.wallet, estimatedLaunchFeeLamports: appState.estimatedLaunchFeeLamports, walletMetricsLoading: appState.walletMetricsLoading, walletEstimateError: appState.walletEstimateError, launchCostReview: appState.launchCostReview, launchEstimateRetry: appState.launchEstimateRetry, publicQuote }, { renderLaunchCostDetails: appState.renderLaunchCostDetails, getLaunchBurnPolicy: appState.getLaunchBurnPolicy, getCreatorBuySummary: appState.getCreatorBuySummary, getCommunityAirdropTokens: appState.getCommunityAirdropTokens, getCommunityAllocationPercent: appState.getCommunityAllocationPercent, formatLaunchBurnAmount: appState.formatLaunchBurnAmount, creatorBuyExceedsWalletBalance: appState.creatorBuyExceedsWalletBalance, developerBuyLimitReached: appState.developerBuyLimitReached, formatLaunchCost: appState.formatLaunchCost });
+    renderPublicQuoteRetry({wallet:appState.wallet, publicQuote, active:appState.requestedPageRoute()==='launch'});
+    return result;
   }
   // app-source-end
 
@@ -129,6 +132,7 @@ export function createLaunchPreviewController(appState) {
   // app-source: 611
   function refreshQuoteClocks(){
     if (document.hidden) return;
+    renderPublicQuoteRetry({wallet:appState.wallet, publicQuote, active:appState.requestedPageRoute()==='launch'});
     appState.updateQuoteCountdowns();
     if (document.querySelector('#explore-boost-dialog')?.open && !appState.boostCheckout.busy && !appState.boostCheckout.pendingSignature
       && appState.boostCheckout.quote && Date.parse(appState.boostCheckout.quote.expiresAt) <= Date.now()

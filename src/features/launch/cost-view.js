@@ -18,6 +18,41 @@ function syncPlanningPresentation(wallet, document) {
   if (tier) tier.hidden = Boolean(wallet);
 }
 
+// Display only: the controller still owns debounce, cache and request admission.
+export function bindPublicQuoteRetry(appState, document = globalThis.document) {
+  document.querySelector('#launch-public-quote-retry-button')?.addEventListener('click', event => {
+    if (event.currentTarget.getAttribute('aria-disabled') === 'true' || appState.wallet
+      || appState.requestedPageRoute() !== 'launch' || !appState.getLaunchStepState(2).valid) return;
+    appState.updateCostSummary();
+  });
+}
+
+export function renderPublicQuoteRetry({wallet, publicQuote, active}, {document = globalThis.document, now = Date.now()} = {}) {
+  const group = document?.querySelector('#launch-public-quote-retry');
+  const button = document?.querySelector('#launch-public-quote-retry-button');
+  const status = document?.querySelector('#launch-public-quote-retry-status');
+  if (!group || !button || !status) return;
+  if (publicQuote?.status === 'unavailable') button.dataset.quoteRetryShown = 'true';
+  const loading = publicQuote?.status === 'loading';
+  const visible = active && !wallet && (publicQuote?.status === 'unavailable' || loading && button.dataset.quoteRetryShown === 'true');
+  const wasFocused = document.activeElement === button;
+  group.hidden = !visible;
+  if (!visible) {
+    delete button.dataset.quoteRetryShown;
+    if (wasFocused && active && !wallet && publicQuote?.status === 'ready') {
+      const heading = document.querySelector('#public-launch-cost-heading');
+      heading?.setAttribute('tabindex', '-1');
+      heading?.focus();
+    }
+    return;
+  }
+  const seconds = Math.max(0, Math.ceil((publicQuote.updatedAt + 15_000 - now) / 1000));
+  button.setAttribute('aria-disabled', String(loading || seconds > 0));
+  status.textContent = loading ? 'Requesting a planning quote…'
+    : seconds > 0 ? `Quote unavailable. Retry available in ${seconds}s. This retries the quote only.`
+      : 'Quote unavailable. Retry the planning quote when ready. Fee policy is checked separately.';
+}
+
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function updateCostSummary(
   {

@@ -1,4 +1,5 @@
 import { initializeAppState } from '../runtime.js';
+import { bindPublicQuoteRetry } from '../../features/launch/cost-view.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeLaunchActions(appState) {
@@ -61,6 +62,7 @@ export function initializeLaunchActions(appState) {
   // app-source-end
 
   // app-source: 672
+  bindPublicQuoteRetry(appState);
   document.querySelector('#launch-review-retry')?.addEventListener('click', async () => {
     if (appState.developerBuyLimitReached()) {
       document.querySelector('#creator-buy-sol')?.focus();
