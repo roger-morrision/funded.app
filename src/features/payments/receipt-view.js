@@ -117,6 +117,18 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     from:document.querySelector('#payment-history-from')?.value || '',
     to:document.querySelector('#payment-history-to')?.value || '',
   };
+  const coverage = paymentHistoryEvidence?.payoutCoverage?.status;
+  const unavailable = receiptEvidenceChecked && (!paymentHistoryEvidence || paymentHistoryEvidence.status === 'unavailable' || coverage === 'unavailable');
+  const partial = paymentHistoryEvidence?.status === 'partial' || coverage === 'partial';
+  const complete = paymentHistoryEvidence?.status === 'onchain-indexed'
+    && (!Object.hasOwn(paymentHistoryEvidence, 'payoutCoverage') || coverage === 'verified');
+  const historyState = !receiptEvidenceChecked ? 'loading' : unavailable ? 'unavailable' : partial ? 'partial' : complete ? 'complete' : 'unavailable';
+  const emptyMessages = {
+    loading:'Checking finalized payout receipts.',
+    unavailable:'Payment history is temporarily unavailable.',
+    partial:'Verification coverage is incomplete. Confirmed payments are not available in this response.',
+    complete:'No confirmed payments are available to show yet.',
+  };
   const filtered = filterPaymentHistory(historyPayouts, filters);
   // Live receipt refreshes must not interrupt an expanded fee breakdown.
   const openDetails = container => new Set(Array.from(container.querySelectorAll('details[open]'), details => details.dataset.receiptKey));
@@ -204,14 +216,17 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     list.append(row);
   }
   if (!filtered.length) {
-    list.innerHTML = `<p class="empty-state">${historyPayouts.length ? 'No confirmed payments match these filters.' : 'No confirmed payments are available to show yet.'}</p>`;
+    list.innerHTML = `<p class="empty-state">${historyPayouts.length ? 'No confirmed payments match these filters.' : emptyMessages[historyState]}</p>`;
   }
   paginateHistory(list, {label:'Payment history', selector:'.payment-history-row', key:JSON.stringify(filters), pageSize:10});
   const footnote = document.querySelector('#payment-history-footnote');
-  if (footnote) footnote.textContent = historyPayouts.length
-    ? `${filtered.length} of ${historyPayouts.length} confirmed payments${filters.from || filters.to ? ' · dates in UTC' : ''} · fees in details${paymentHistoryEvidence.status === 'partial' ? ' · some history is missing' : ''}`
-    : paymentHistoryEvidence?.status === 'partial' || !paymentHistoryEvidence ? 'Payment history could not be fully checked. Try again shortly.'
-      : 'No confirmed payments are available.';
+  const footnoteMessage = historyPayouts.length
+    ? `${filtered.length} of ${historyPayouts.length} confirmed payments${filters.from || filters.to ? ' · dates in UTC' : ''} · fees in details${historyState === 'partial' ? ' · some history is missing' : historyState === 'unavailable' ? ' · coverage unavailable' : historyState === 'loading' ? ' · checking payment history' : ''}`
+    : ({ loading:'Waiting for the current payment history check to finish.',
+      unavailable:'Payment history could not be fully checked. Try again shortly.',
+      partial:'Available history is incomplete. No confirmed payments are available in this response.',
+      complete:'No confirmed payments are available.' })[historyState];
+  if (footnote && footnote.textContent !== footnoteMessage) footnote.textContent = footnoteMessage;
   renderExtendedAnalyticsDashboard();
   restoreFocus();
 }
