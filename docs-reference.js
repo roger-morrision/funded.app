@@ -1,4 +1,5 @@
 import { documentationTopics as topics } from './src/features/help/docs-topics.js';
+import { filterDocumentationTopics } from './src/features/help/docs-topic-filter.js';
 import './src/features/help/guidance.css';
 
 function initializeRewardActionsScroll(article) {
@@ -41,6 +42,20 @@ export function mountDocsReference(root) {
   nav.className = 'docs-guide-nav';
   nav.setAttribute('aria-label', 'Documentation topics');
   nav.innerHTML = '<a class="docs-back" href="#overview">← Back to home</a>';
+  const search = document.createElement('div');
+  search.className = 'docs-guide-search';
+  search.innerHTML = '<label for="docs-guide-search">Search guides</label><div class="docs-guide-search-controls"><input id="docs-guide-search" type="search" autocomplete="off" aria-controls="docs-guide-topic-results"><button type="button" disabled>Clear search</button></div><p class="docs-guide-count" role="status" aria-live="polite" aria-atomic="true"></p>';
+  const input = search.querySelector('input');
+  const clear = search.querySelector('button');
+  const count = search.querySelector('[role="status"]');
+  const results = document.createElement('div');
+  results.className = 'docs-guide-topic-results';
+  results.id = 'docs-guide-topic-results';
+  const empty = document.createElement('p');
+  empty.className = 'docs-guide-no-results';
+  empty.textContent = 'No guides match your search. Clear search to see all guides.';
+  empty.hidden = true;
+  nav.append(search, results);
   const article = document.createElement('article');
   article.className = 'docs-guide-article';
   article.id = 'docs-guide-article';
@@ -49,6 +64,41 @@ export function mountDocsReference(root) {
   let selected = 0;
   let releaseScroll = () => {};
   const buttons = new Map();
+  const groups = [];
+  let composing = false;
+  let announcement;
+  const filter = () => {
+    const matches = new Set(filterDocumentationTopics(topics, input.value).map(topic => topic.id));
+    for (const [id, button] of buttons) button.hidden = !matches.has(id);
+    for (const group of groups) group.node.hidden = !group.ids.some(id => matches.has(id));
+    empty.hidden = matches.size > 0;
+    clear.disabled = input.value.length === 0;
+    clearTimeout(announcement);
+    announcement = setTimeout(() => {
+      count.textContent = matches.size === flat.length ? `${flat.length} guides`
+        : matches.size === 0 ? 'No guides found' : `${matches.size} of ${flat.length} guides`;
+    }, 300);
+  };
+  const revealTopic = button => {
+    if (document.activeElement !== button || !button.isConnected || !button.getClientRects().length) return;
+    const style = getComputedStyle(button);
+    const extent = (parseFloat(style.outlineWidth) || 0) + Math.max(0, parseFloat(style.outlineOffset) || 0);
+    let rect = button.getBoundingClientRect();
+    const clip = results.getBoundingClientRect();
+    const top = clip.top + results.clientTop, bottom = top + results.clientHeight;
+    if (rect.top - extent < top) results.scrollTop -= top - rect.top + extent;
+    else if (rect.bottom + extent > bottom) results.scrollTop += rect.bottom + extent - bottom;
+    rect = button.getBoundingClientRect();
+    const header = document.querySelector('.topbar'), mobile = document.querySelector('.mobile-workspace-nav');
+    const viewTop = header?.getClientRects().length ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
+    const viewBottom = mobile?.getClientRects().length ? Math.min(innerHeight, mobile.getBoundingClientRect().top) : innerHeight;
+    if (rect.top - extent < viewTop) window.scrollBy(0, rect.top - extent - viewTop);
+    else if (rect.bottom + extent > viewBottom) window.scrollBy(0, rect.bottom + extent - viewBottom);
+  };
+  input.addEventListener('input', event => { if (!composing && !event.isComposing) filter(); });
+  input.addEventListener('compositionstart', () => { composing = true; clearTimeout(announcement); });
+  input.addEventListener('compositionend', () => { composing = false; filter(); });
+  clear.addEventListener('click', () => { composing = false; input.value = ''; filter(); input.focus(); });
   const indexFromHash = () => flat.findIndex(topic => location.hash === `#docs/${topic.id}`);
   const select = (index, focus = false, updateHash = true) => {
     selected = (index + flat.length) % flat.length;
@@ -77,26 +127,36 @@ export function mountDocsReference(root) {
     if (updateHash && location.hash !== `#docs/${topic.id}`) location.hash = `#docs/${topic.id}`;
   };
   for (const group of topics) {
+    const groupNode = document.createElement('div');
+    groups.push({ node: groupNode, ids: group.items.map(topic => topic.id) });
     const label = document.createElement('p');
     label.className = 'docs-guide-group';
     label.textContent = group.group;
-    nav.append(label);
+    groupNode.append(label);
     for (const topic of group.items) {
       const button = document.createElement('button');
       button.type = 'button';
+      button.dataset.docsTopic = topic.id;
       button.textContent = topic.title;
       button.setAttribute('aria-controls', article.id);
       button.addEventListener('click', () => select(flat.indexOf(topic), true));
       buttons.set(topic.id, button);
-      nav.append(button);
+      groupNode.append(button);
     }
+    results.append(groupNode);
   }
-  nav.addEventListener('keydown', event => {
-    if (!['ArrowDown', 'ArrowUp'].includes(event.key) || !event.target.matches('button')) return;
+  results.append(empty);
+  count.textContent = `${flat.length} guides`;
+  results.addEventListener('focusin', event => {
+    if (event.target.matches('button[data-docs-topic]')) requestAnimationFrame(() => revealTopic(event.target));
+  });
+  results.addEventListener('keydown', event => {
+    if (!['ArrowDown', 'ArrowUp'].includes(event.key) || !event.target.matches('button[data-docs-topic]')) return;
+    const visible = [...buttons.values()].filter(button => !button.hidden);
+    if (!visible.length) return;
     event.preventDefault();
-    const current = flat.findIndex(topic => buttons.get(topic.id) === event.target);
-    const next = (current + (event.key === 'ArrowDown' ? 1 : -1) + flat.length) % flat.length;
-    buttons.get(flat[next].id).focus();
+    const next = (visible.indexOf(event.target) + (event.key === 'ArrowDown' ? 1 : -1) + visible.length) % visible.length;
+    visible[next].focus();
   });
   shell.append(nav, article);
   const oldCards = [...root.querySelectorAll(':scope > .support-card')];
