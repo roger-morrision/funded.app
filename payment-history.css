@@ -184,6 +184,7 @@
   .payment-history-filters label { flex: 1 1 calc((100% - 10px) / 2); min-width: 0; }
   .payment-history-filters label:first-child { flex-basis: 100%; }
   .payment-history-filters select, .payment-history-filters input { width: 100%; min-width: 0; }
+  #payment-history-filters :is(select,input,button) { scroll-margin-bottom: calc(100px + env(safe-area-inset-bottom)); }
   .payment-history-actions { justify-content: space-between; }
 }
 
