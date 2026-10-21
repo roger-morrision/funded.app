@@ -1,5 +1,6 @@
 import { initializeAppState } from '../runtime.js';
 import { bindPublicQuoteRetry } from '../../features/launch/cost-view.js';
+import { bindLaunchCostNavigation } from '../../features/launch/cost-navigation.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeLaunchActions(appState) {
@@ -63,6 +64,7 @@ export function initializeLaunchActions(appState) {
 
   // app-source: 672
   bindPublicQuoteRetry(appState);
+  bindLaunchCostNavigation(appState);
   document.querySelector('#launch-review-retry')?.addEventListener('click', async () => {
     if (appState.developerBuyLimitReached()) {
       document.querySelector('#creator-buy-sol')?.focus();
