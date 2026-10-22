@@ -55,6 +55,16 @@ export function rewards() {
   root.prepend(overview.querySelector('.workspace-page-header'));
   $$('[data-reward-open]',root).forEach(button=>button.addEventListener('click',()=>select(button.dataset.rewardOpen,true)));
   $$('a[href="#payments"]',personal || creator).forEach(link=>link.addEventListener('click',()=>select('x',true)));
+  let historyLocation;
+  const syncHistoryRoute=()=>{
+    if (historyLocation===location.href) return;
+    historyLocation=location.href;
+    if (location.hash==='#payments/history') select('history');
+  };
+  window.addEventListener('funded:route-change',syncHistoryRoute);
+  window.addEventListener('hashchange',syncHistoryRoute);
+  window.addEventListener('popstate',syncHistoryRoute);
+  syncHistoryRoute();
   const syncIdentity=()=>{const gate=$('.reward-creator-gate'); if(gate)gate.hidden=Boolean(document.documentElement.dataset.connectedWallet);};
   window.addEventListener('funded:reward-identity-change',syncIdentity); syncIdentity();
 }

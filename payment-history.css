@@ -1,4 +1,15 @@
 /* Verified payout rows and filters on the Rewards history page. */
+.recipients-panel .recipients-heading { flex-wrap:wrap; gap:8px 16px; }
+.recipients-panel .recipients-history-link {
+  display:inline-flex; align-items:center; min-height:44px; max-width:100%;
+  color:var(--accent, #aebfff); font-size:14px; line-height:1.5;
+  text-underline-offset:3px; scroll-margin-block:140px 110px;
+}
+.recipients-panel .recipients-history-link:focus-visible { outline:2px solid #a9bcff; outline-offset:2px; }
+@media (max-width:600px) {
+  .recipients-panel .recipients-heading { align-items:flex-start; }
+  .recipients-panel .recipients-history-link { flex-basis:100%; }
+}
 .x-claim-activity .panel-heading {
   display: flex;
   align-items: center;

@@ -1,5 +1,7 @@
 // Dependencies and mutable application state are read live through appState.
 export function createNavigationController(appState) {
+  let historyRouteLocation = location.href;
+  let historyRouteTransition = false;
   // app-source: 847
   function setDesktopSidebarCollapsed(collapsed){
     const isCollapsed = Boolean(collapsed);
@@ -44,6 +46,20 @@ export function createNavigationController(appState) {
 
   // app-source: 859
   function focusCurrentPageRoute(){
+    if (location.hash === '#payments/history') {
+      historyRouteTransition = false;
+      // Browser traversal restores scroll after the route renderers run.
+      // Reveal the explicit destination after that layout, as other aliases do.
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        if (location.hash !== '#payments/history') return;
+        const tab = document.querySelector('#rewards-history-tab');
+        if (tab?.getClientRects().length && tab.getAttribute('aria-selected') === 'true') {
+          tab.scrollIntoView({block:'center',behavior:'instant'});
+          tab.focus({preventScroll:true});
+        }
+      }));
+      return;
+    }
     const route = appState.requestedPageRoute();
     const routeTarget = appState.pageRouteTargets[location.hash.slice(1)] || appState.pageRouteTargets[route];
     const selectors = route === 'overview'
@@ -57,6 +73,14 @@ export function createNavigationController(appState) {
     if (!heading) return;
     heading.tabIndex = -1;
     heading.focus({ preventScroll: true });
+    const revealHistoryReturn = historyRouteTransition;
+    historyRouteTransition = false;
+    if (revealHistoryReturn) {
+      const destination = location.href;
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        if (location.href===destination && document.activeElement===heading) heading.scrollIntoView({block:'center',behavior:'instant'});
+      }));
+    }
   }
   // app-source-end
 
@@ -90,7 +114,7 @@ export function createNavigationController(appState) {
     if (hash.startsWith('coin/')) return 'overview';
     if (hash === 'referral-faq') return 'referrals';
     if (hash.startsWith('docs/')) return 'docs';
-    if (hash === 'funded-holder-token-rewards') return 'payments';
+    if (hash === 'funded-holder-token-rewards' || hash === 'payments/history') return 'payments';
     return appState.pageRouteTargets[hash] ? appState.mergedPageRoutes[hash] || hash : 'overview';
   }
   // app-source-end
@@ -105,6 +129,13 @@ export function createNavigationController(appState) {
 
   // app-source: 863
   function syncPageRoute(){
+    // Only actual transitions involving the History alias request route focus.
+    // Same-location data refreshes must preserve a visitor's tab and caret.
+    if (location.href !== historyRouteLocation) {
+      historyRouteTransition = [new URL(historyRouteLocation).hash, location.hash].includes('#payments/history');
+      if (historyRouteTransition) appState.requestPageRouteFocus();
+    }
+    historyRouteLocation = location.href;
     appState.normalizeDirectPagePathForHashRoute();
     const requestedHash = location.hash.replace(/^#/, '');
     const infoRoute = appState.infoDialogRoutes.has(requestedHash) ? requestedHash : '';
@@ -164,7 +195,7 @@ export function createNavigationController(appState) {
     }
     const guide = appState.routeGuideCopy[route];
     const routeGuide = document.querySelector('#route-guide');
-    routeGuide.hidden = !guide;
+    routeGuide.hidden = !guide || requestedHash === 'payments/history';
     if (guide) {
       document.querySelector('#route-guide-group').textContent = guide.group;
       document.querySelector('#route-guide-state').textContent = route === 'referrals' ? document.documentElement.dataset.referralStatus || (appState.connectedWalletAddress ? 'Verify wallet' : 'Connect wallet') : guide.state;
