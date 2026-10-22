@@ -1,6 +1,6 @@
 // Dependencies and mutable application state are read live through appState.
 export function createNavigationController(appState) {
-  let historyRouteLocation = location.href;
+  let historyRouteLocation = globalThis.location?.href;
   let historyRouteTransition = false;
   // app-source: 847
   function setDesktopSidebarCollapsed(collapsed){
