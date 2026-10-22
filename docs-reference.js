@@ -92,8 +92,8 @@ export function mountDocsReference(root) {
     const header = document.querySelector('.topbar'), mobile = document.querySelector('.mobile-workspace-nav');
     const viewTop = header?.getClientRects().length ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
     const viewBottom = mobile?.getClientRects().length ? Math.min(innerHeight, mobile.getBoundingClientRect().top) : innerHeight;
-    if (rect.top - extent < viewTop) window.scrollBy(0, rect.top - extent - viewTop);
-    else if (rect.bottom + extent > viewBottom) window.scrollBy(0, rect.bottom + extent - viewBottom);
+    if (rect.top - extent < viewTop) window.scrollBy({ left: 0, top: Math.floor(rect.top - extent - viewTop), behavior: 'instant' });
+    else if (rect.bottom + extent > viewBottom) window.scrollBy({ left: 0, top: Math.ceil(rect.bottom + extent - viewBottom), behavior: 'instant' });
   };
   input.addEventListener('input', event => { if (!composing && !event.isComposing) filter(); });
   input.addEventListener('compositionstart', () => { composing = true; clearTimeout(announcement); });
