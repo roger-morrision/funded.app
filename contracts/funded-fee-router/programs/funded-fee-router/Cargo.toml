@@ -27,7 +27,7 @@ anchor-spl = "=1.2.0"
 solana-sha256-hasher = "3.1.0"
 
 [dev-dependencies]
-litesvm = "0.17.0"
+litesvm = "0.18.0"
 solana-message = "5.0.0"
 solana-transaction = "5.0.0"
 solana-signer = "4.0.0"
