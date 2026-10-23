@@ -20,6 +20,7 @@ body.page-route-docs .docs-guide-article { min-width: 0; }
 .docs-guide-body .reward-actions-scroll-help { margin: 8px 0 12px; color: #b8c8bf; font-size: 12px; line-height: 1.5; }
 .docs-guide-body .reward-actions-scroll-help[hidden] { display: none; }
 .docs-guide-body .reward-actions-scroll a,
+body.page-route-docs .docs-guide-body a[href="#list"],
 body.page-route-docs .docs-guide-link,
 body.page-route-docs .docs-guide-next button { scroll-margin-block: 100px; }
 body.page-route-docs .docs-guide-nav { overflow: visible; }
@@ -39,4 +40,12 @@ body.page-route-docs .docs-guide-topic-results button { min-height: 44px; scroll
 @media (min-width: 821px) {
   body.page-route-docs .docs-guide-nav { height: calc(100dvh - 120px); max-height: calc(100dvh - 120px); }
   .docs-guide-topic-results { flex: 1 1 auto; min-height: 190px; }
+}
+
+body.page-route-docs .docs-guide-article > .docs-guide-link,
+body.page-route-docs .docs-guide-next button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 44px;
 }

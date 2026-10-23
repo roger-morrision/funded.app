@@ -171,10 +171,83 @@ export function mountDocsReference(root) {
     root.prepend(shell);
     root.append(more);
   } else root.prepend(shell);
-  window.addEventListener('hashchange', () => {
+  let pendingListingReveal = null;
+  const retireListingReveal = () => {
+    if (!pendingListingReveal) return;
+    cancelAnimationFrame(pendingListingReveal.frame);
+    pendingListingReveal.anchor.removeEventListener('focusout', retireListingReveal, true);
+    document.removeEventListener('focusin', trackListingFocus, true);
+    pendingListingReveal = null;
+  };
+  const trackListingFocus = event => {
+    if (pendingListingReveal && event.target !== pendingListingReveal.anchor) retireListingReveal();
+  };
+  article.addEventListener('focusin', event => {
+    const anchor = event.target;
+    if (!event.isTrusted || !anchor.matches?.('.docs-guide-body a[href="#list"]')) return;
+    retireListingReveal();
+    const hash = location.hash, topicId = flat[selected].id;
+    if (hash !== `#docs/${topicId}` || !document.body.classList.contains('page-route-docs')) return;
+    const request = pendingListingReveal = { anchor, article, hash, topicId, frame: 0 };
+    anchor.addEventListener('focusout', retireListingReveal, true);
+    document.addEventListener('focusin', trackListingFocus, true);
+    // Preserve native focus; cancel an obscuring in-flight scroll only when needed.
+    request.frame = requestAnimationFrame(() => {
+      if (pendingListingReveal !== request) return;
+      const eligible = location.hash === hash && flat[selected].id === topicId
+        && document.body.classList.contains('page-route-docs') && root.isConnected
+        && root.contains(request.article) && request.article === article && article.isConnected
+        && article.getClientRects().length && getComputedStyle(article).visibility === 'visible'
+        && anchor.isConnected && article.contains(anchor) && anchor.getClientRects().length
+        && getComputedStyle(anchor).visibility === 'visible' && document.activeElement === anchor
+        && anchor.matches(':focus-visible');
+      if (!eligible) { retireListingReveal(); return; }
+      const visibleChrome = (element, positions) => element?.getClientRects().length
+        && getComputedStyle(element).visibility !== 'hidden'
+        && positions.includes(getComputedStyle(element).position);
+      const header = document.querySelector('.topbar'), nav = document.querySelector('.mobile-workspace-nav');
+      const fixedHeader = visibleChrome(header, ['fixed', 'sticky']), fixedNav = visibleChrome(nav, ['fixed']);
+      const top = fixedHeader ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
+      const bottom = fixedNav ? Math.min(innerHeight, nav.getBoundingClientRect().top) : innerHeight;
+      const rect = anchor.getBoundingClientRect(), style = getComputedStyle(anchor);
+      const outline = style.outlineStyle === 'none' ? 0
+        : (parseFloat(style.outlineWidth) || 0) + Math.max(0, parseFloat(style.outlineOffset) || 0);
+      const delta = fixedHeader && rect.top - outline < top ? rect.top - outline - top
+        : fixedNav && rect.bottom + outline > bottom ? rect.bottom + outline - bottom : 0;
+      retireListingReveal();
+      if (delta) window.scrollBy({ left: 0, top: delta > 0 ? Math.ceil(delta) : Math.floor(delta), behavior: 'instant' });
+    });
+  });
+  let pendingReturn = null;
+  const retireReturn = () => {
+    if (!pendingReturn) return;
+    cancelAnimationFrame(pendingReturn.frame);
+    document.removeEventListener('focusin', retireReturn, true);
+    pendingReturn = null;
+  };
+  window.addEventListener('hashchange', event => {
+    retireReturn();
+    retireListingReveal();
     const index = indexFromHash();
     if (index >= 0 && index !== selected) select(index, false, false);
     else if (location.hash === '#docs' && selected !== 0) select(0, false, false);
+    const previous = new URL(event.oldURL), destination = new URL(event.newURL);
+    const fromDocs = previous.hash === '#docs' || previous.hash.startsWith('#docs/');
+    if (fromDocs || index < 0 || destination.href !== location.href
+      || previous.origin !== destination.origin || previous.pathname !== destination.pathname
+      || previous.search !== destination.search || document.activeElement !== document.body) return;
+    // Browser Back can restore the same selected guide without selecting again.
+    // Repair only that empty focus context; any intervening focus retires it.
+    const request = pendingReturn = { frame: 0 };
+    document.addEventListener('focusin', retireReturn, true);
+    request.frame = requestAnimationFrame(() => {
+      const eligible = pendingReturn === request && location.href === destination.href
+        && document.body.classList.contains('page-route-docs') && root.isConnected
+        && root.getClientRects().length && article.isConnected && article.getClientRects().length
+        && getComputedStyle(article).visibility === 'visible' && document.activeElement === document.body;
+      retireReturn();
+      if (eligible) article.focus({ preventScroll: true });
+    });
   });
   select(Math.max(0, indexFromHash()), false, false);
 }
