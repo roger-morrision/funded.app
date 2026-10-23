@@ -33,7 +33,7 @@ export function createAnalyticsController(appState) {
 
   // app-source: 445
   function renderExtendedAnalyticsDashboard(){
-    return appState.renderExtendedAnalyticsDashboardView({ assets: appState.assets, verifiedLaunchPolicies: appState.verifiedLaunchPolicies, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus, coinSolUsdPrice: appState.coinSolUsdPrice, receiptEvidence: appState.receiptEvidence, receiptEvidenceChecked: appState.receiptEvidenceChecked, paymentHistoryEvidence: appState.paymentHistoryEvidence }, { verifiedLaunchBurns: appState.verifiedLaunchBurns, exploreExplorer: appState.exploreExplorer });
+    return appState.renderExtendedAnalyticsDashboardView({ assets: appState.assets, verifiedLaunchPolicies: appState.verifiedLaunchPolicies, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus, coinSolUsdPrice: appState.coinSolUsdPrice, receiptEvidence: appState.receiptEvidence, receiptEvidenceChecked: appState.receiptEvidenceChecked, paymentHistoryEvidence: appState.paymentHistoryEvidence, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER }, { verifiedLaunchBurns: appState.verifiedLaunchBurns, exploreExplorer: appState.exploreExplorer });
   }
   // app-source-end
 

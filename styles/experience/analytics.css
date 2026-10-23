@@ -102,3 +102,53 @@
   .page-route-analytics-detail .recipients-panel { padding: 18px; }
   .page-route-analytics-detail .recipients-panel .payment-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
 }
+
+/* Only the optional sparse available-collection disclosure. */
+.page-route-analytics-detail .collection-history {
+  min-width: 0;
+  margin: 0 0 24px;
+  padding: 12px;
+  overflow: visible;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--text);
+  background: var(--panel);
+}
+.page-route-analytics-detail .collection-history > summary {
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: 700 14px/1.6 Manrope, sans-serif;
+  overflow-wrap: anywhere;
+  scroll-margin-block: 100px;
+  cursor: pointer;
+}
+.page-route-analytics-detail .collection-history > summary:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 3px;
+}
+.page-route-analytics-detail #analytics-collection-history-body { padding: 16px 4px 4px; }
+.page-route-analytics-detail .collection-history h3 { margin: 0 0 12px; font: 700 16px/1.5 Manrope, sans-serif; }
+.page-route-analytics-detail .collection-history p,
+.page-route-analytics-detail .collection-history caption { color: var(--muted); font: 500 13px/1.6 Manrope, sans-serif; overflow-wrap: anywhere; }
+.page-route-analytics-detail .collection-history p { margin: 0 0 12px; }
+.page-route-analytics-detail .collection-history table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.page-route-analytics-detail .collection-history caption { padding-bottom: 10px; text-align: left; }
+.page-route-analytics-detail .collection-history-date { width: 32%; }
+.page-route-analytics-detail .collection-history-amount { width: 47%; }
+.page-route-analytics-detail .collection-history-count { width: 21%; }
+.page-route-analytics-detail .collection-history th,
+.page-route-analytics-detail .collection-history td {
+  padding: 10px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font: 500 12px/1.6 'DM Mono', monospace;
+}
+.page-route-analytics-detail .collection-history thead th,
+.page-route-analytics-detail .collection-history tfoot th { font-family: Manrope, sans-serif; font-weight: 700; }
+.page-route-analytics-detail .collection-history tfoot td { font-weight: 600; }
