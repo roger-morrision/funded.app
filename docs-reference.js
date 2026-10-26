@@ -229,8 +229,16 @@ export function mountDocsReference(root) {
     retireReturn();
     retireListingReveal();
     const index = indexFromHash();
-    if (index >= 0 && index !== selected) select(index, false, false);
-    else if (location.hash === '#docs' && selected !== 0) select(0, false, false);
+    let interveningRenderFocus = false;
+    const trackRenderFocus = () => { interveningRenderFocus = true; };
+    document.addEventListener('focusin', trackRenderFocus, true);
+    try {
+      if (index >= 0 && index !== selected) select(index, false, false);
+      else if (location.hash === '#docs' && selected !== 0) select(0, false, false);
+    } finally {
+      document.removeEventListener('focusin', trackRenderFocus, true);
+    }
+    if (interveningRenderFocus) return;
     const previous = new URL(event.oldURL), destination = new URL(event.newURL);
     const fromDocs = previous.hash === '#docs' || previous.hash.startsWith('#docs/');
     if (fromDocs || index < 0 || destination.href !== location.href

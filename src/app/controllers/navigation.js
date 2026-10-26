@@ -99,7 +99,13 @@ export function createNavigationController(appState) {
     const target=focused!==document.body&&focused!==document.querySelector('.skip-link')&&focused.getClientRects().length
       ? focused : main;
     if (target===main) main.focus({preventScroll:true});
-    target.scrollIntoView({block:'start'});
+    const header=document.querySelector('.topbar');
+    const fixedHeader=header?.getClientRects().length && ['fixed','sticky'].includes(getComputedStyle(header).position);
+    const clearance=fixedHeader ? header.getBoundingClientRect().height : 0;
+    const style=getComputedStyle(target);
+    const outline=style.outlineStyle==='none' ? 0
+      : (parseFloat(style.outlineWidth)||0)+Math.max(0,parseFloat(style.outlineOffset)||0);
+    window.scrollTo({top:Math.max(0,scrollY+target.getBoundingClientRect().top-clearance-outline),behavior:'instant'});
   }
 
   // app-source: 860
