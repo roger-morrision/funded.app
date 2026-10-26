@@ -222,3 +222,256 @@ for(const width of [360,390,1440])test(`Rewards History native local identifier 
     await info.attach('search-native-evidence',{body:JSON.stringify({width,fonts,searchAX,inputGeometry,clearGeometry,clearTabPath,focus,original:baseline,localApiCalls:calls.slice(0,localCalls),explicitRefreshes:f.requests()-before,noLocalInputRequests:true},null,2),contentType:'application/json'});await page.screenshot({path:info.outputPath('history-search-'+width+'.png')});
   }finally{await context.close();}
 });
+
+// FQA-077: native navigation to the separate bonus source. The legacy prefix
+// above is unchanged. All receipt/bonus values below are deterministic mocks.
+const bonus077Selector = '#rewards-history .payment-history-bonus-link';
+const bonus077Path = '/api/daily-bonus/dashboard';
+function bonus077Payload() {
+  return {
+    cluster:'devnet',scope:'all-recorded-snapshots',serverTime:'2026-10-26T00:00:00Z',nextCutoffAt:'2026-10-27T00:00:00Z',
+    snapshotEnabled:false,payoutEnabled:false,worker:{status:'unavailable'},snapshots:1,totalPayments:1,unavailableSnapshots:0,unavailableReceipts:0,
+    pool:{status:'unavailable',categoryLamports:{}},leaders:{creators:[],referrals:[],traders:[]},
+    history:{page:1,pages:1,total:1,rows:[{day:'2026-10-20',wallet:'8'.repeat(44),receivedLamports:'450',categoryLamports:{creators:'450',referrals:'0',traders:'0'},signature:'3'.repeat(88),href:'https://explorer.solana.com/tx/'+ '3'.repeat(88)+'?cluster=devnet'}]},
+  };
+}
+async function bonus077Fixture(page, available) {
+  const f=await fixture(page,{held:true});await searchFonts(page);
+  // Existing unrelated503 retry is not an effect of the new static anchor.
+  await page.route('**/api/rewards/automatic',r=>r.fulfill({json:{status:'unavailable',schedules:[],serverTime:'2026-10-26T00:00:00Z'}}));
+  const requests=[],reads=[],pending=new Set();let bonusAvailable=available;
+  const request=q=>{const u=new URL(q.url());if(u.pathname.startsWith('/api/'))requests.push({path:u.pathname,query:u.search,method:q.method()});};
+  const response=r=>{
+    const u=new URL(r.url());if(![bonus077Path,'/api/evidence/payment-history'].includes(u.pathname))return;
+    const row={path:u.pathname,query:u.search,status:r.status(),state:'pending'};reads.push(row);
+    const work=(async()=>{try{row.finishedError=await r.finished();row.body=await r.json();row.state='complete';}catch(e){row.state='unavailable';row.error=String(e);}})();
+    pending.add(work);void work.finally(()=>pending.delete(work));
+  };
+  page.on('request',request);page.on('response',response);
+  await page.route('**/api/daily-bonus/dashboard?*',r=>bonusAvailable?r.fulfill({json:bonus077Payload()}):r.fulfill({status:503,json:{error:'Separate bonus source unavailable fixture'}}));
+  return {f,requests,reads,pending,setBonus:value=>{bonusAvailable=value;},detach:()=>{page.off('request',request);page.off('response',response);}};
+}
+async function bonus077Read(page,action,available) {
+  const awaited=page.waitForResponse(r=>new URL(r.url()).pathname===bonus077Path);
+  await action();const response=await awaited;
+  expect(await response.finished()).toBeNull();const body=await response.json();
+  expect(response.request().method()).toBe('GET');expect(new URL(response.url()).searchParams.get('category')).toBe('all');
+  expect(new URL(response.url()).searchParams.get('page')).toBe('1');
+  await expect(page.locator('#bonuses')).toBeVisible();await expect(page.locator('#bonus-history-title')).toHaveText('Payout history');
+  const status=page.locator('#bonuses [data-bonus-history-status]'),rows=page.locator('#bonuses [data-bonus-history-rows]');
+  if(available){
+    expect(response.status()).toBe(200);expect(body).toEqual(bonus077Payload());
+    await expect(status).toContainText('1 finalized receipt(s).');await expect(status).toContainText('Bonus snapshots are not enabled.');
+    await expect(rows.locator('tbody tr')).toHaveCount(1);await expect(rows).toContainText('2026-10-20');await expect(rows).toContainText('0.00000045 SOL');
+    await expect(page.locator('#bonuses [data-bonus-page]')).toHaveText('Page 1 of 1 · 1 payments');
+  }else{
+    expect(response.status()).toBe(503);await expect(status).toHaveText('Bonus history is unavailable. No payout or ranking is confirmed here.');
+    await expect(rows).toBeEmpty();await expect(page.locator('#bonuses [data-bonus-page]')).toBeEmpty();
+  }
+  await expect(page.locator('#bonuses [data-bonus-history-category]')).toHaveValue('all');
+  return {status:response.status(),body,renderedStatus:await status.innerText(),responseFinished:true,qualification:'Mocked independent source/read completion; not on-chain or matching-payment proof.'};
+}
+async function bonus077Font(link) {
+  const font=await link.evaluate(async e=>{
+    await document.fonts.ready;const s=getComputedStyle(e),faces=await document.fonts.load(s.fontWeight+' '+s.fontSize+' "Manrope"',e.textContent);await document.fonts.ready;
+    return {family:s.fontFamily,weight:s.fontWeight,size:parseFloat(s.fontSize),faces:faces.map(f=>({family:f.family,weight:f.weight,status:f.status}))};
+  });
+  expect(font.family).toContain('Manrope');expect(font.weight).toBe('700');expect(font.size).toBeGreaterThanOrEqual(14);
+  expect(font.faces.length,'font unavailable: actual Manrope700 required').toBeGreaterThan(0);
+  expect(font.faces.every(f=>f.family==='Manrope'&&f.status==='loaded')).toBe(true);
+  expect(font.faces.some(f=>{const w=f.weight.split(/\s+/).map(Number);return w.length===1?w[0]===700:w.length===2&&w[0]<=700&&w[1]>=700;})).toBe(true);
+  return font;
+}
+async function bonus077Identity(original,focused=false) {
+  expect(await original.evaluate((e,wantsFocus)=>e.isConnected&&e===document.querySelector('#rewards-history .payment-history-bonus-link')&&(!wantsFocus||document.activeElement===e),focused)).toBe(true);
+}
+async function bonus077TabTo(page,original) {
+  for(let n=0;n<100;n++){
+    if(await original.evaluate(e=>e===document.activeElement))return;
+    await page.keyboard.press('Tab');
+  }
+  throw Error('Native Tab did not reach the original History bonus link');
+}
+async function bonus077Arm(page,original,key,hash) {
+  // Listen only on the currently focused control. No global focus hook or
+  // focus/scroll override; the trusted key starts the unchanged strict clock.
+  await original.evaluate((target,{source,key,hash})=>{
+    const from=document.activeElement;let resolve;
+    const state=window.__bonus077Proof={promise:new Promise(r=>{resolve=r;})};
+    const begin=event=>{
+      if(!event.isTrusted||event.key!=='Tab'||event.shiftKey!==(key==='Shift+Tab'))return;
+      from.removeEventListener('keydown',begin,true);state.began=performance.now();
+      state.trigger={type:event.type,key:event.key,shiftKey:event.shiftKey,trusted:event.isTrusted};
+      (new Function('return ('+source+')')())(target,{hash}).then(proof=>resolve({proof,trigger:state.trigger,began:state.began,ended:performance.now(),connected:target.isConnected,active:document.activeElement===target}));
+    };
+    from.addEventListener('keydown',begin,true);
+  },{source:observeBonus077Control.toString(),key,hash});
+}
+async function bonus077Focus(page,original,hash,evidence) {
+  await bonus077TabTo(page,original);
+  // The next native stop is the existing Search control. Shift+Tab returns to
+  // the original link; the reverse path checks forward Tab into it as well.
+  await page.keyboard.press('Tab');await expect(page.locator('#payment-history-search')).toBeFocused();
+  await bonus077Arm(page,original,'Shift+Tab',hash);await page.keyboard.press('Shift+Tab');
+  evidence.push(await page.evaluate(()=>window.__bonus077Proof.promise));
+  await page.keyboard.press('Shift+Tab');expect(await original.evaluate(e=>e===document.activeElement)).toBe(false);
+  await bonus077Arm(page,original,'Tab',hash);await page.keyboard.press('Tab');
+  evidence.push(await page.evaluate(()=>window.__bonus077Proof.promise));
+  for(const value of evidence){expect(value.trigger.trusted&&value.connected&&value.active).toBe(true);expect(value.proof.pass,JSON.stringify(value)).toBe(true);expect(value.ended-value.began).toBeLessThanOrEqual(1000);expect(value.proof.samples.at(-1).stationaryMs).toBeGreaterThanOrEqual(100);}
+}
+async function bonus077Geometry(original) {
+  const g=await original.evaluate(e=>{const r=e.getBoundingClientRect();return {width:r.width,height:r.height,left:r.left,right:r.right,pageWidth:document.documentElement.scrollWidth,viewport:innerWidth};});
+  expect(g.width).toBeGreaterThanOrEqual(44);expect(g.height).toBeGreaterThanOrEqual(44);expect(g.pageWidth).toBeLessThanOrEqual(g.viewport);
+  return g;
+}
+async function bonus077Copy(page,original) {
+  const link=page.locator(bonus077Selector);await expect(link).toHaveCount(1);await expect(link).toBeVisible();
+  await expect(link).toHaveAttribute('href','#bonuses');await expect(link).toHaveAccessibleName('Browse Daily bonus payout history →');
+  await expect(link.locator('..').locator(':scope > p').nth(0)).toHaveText('Looking for a Daily bonus receipt?');
+  await expect(link.locator('..').locator(':scope > p').nth(1)).toHaveText('Daily bonus history has its own filters.');
+  await expect(page.locator('#rewards-history h2')).toHaveText('Payment history');
+  await expect(page.locator('#rewards-history .panel-heading > div > p').nth(1)).toHaveText('Confirmed SOL payments across funded.vip.');
+  await bonus077Identity(original);
+}
+async function bonus077Criteria(page,query) {
+  await page.locator('#payment-history-search').click();await page.keyboard.insertText(query);
+  await page.locator('#payment-history-type').selectOption('creator');
+  // Date fills are fixture preconditions, not a claimed native date edit.
+  await page.locator('#payment-history-from').fill('2026-10-20');await page.locator('#payment-history-to').fill('2026-10-20');
+  return {query,type:'creator',from:'2026-10-20',to:'2026-10-20'};
+}
+async function bonus077Back(page,original,criteria,hash) {
+  await page.goBack();await expect(page).toHaveURL(new RegExp('/'+hash.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$'));
+  await expect(page.locator('#rewards-history')).toBeVisible();await expect(page.getByRole('tab',{name:'History',exact:true})).toHaveAttribute('aria-selected','true');
+  await expect(page.locator('#payment-history-search')).toHaveValue(criteria.query);await expect(page.locator('#payment-history-type')).toHaveValue(criteria.type);
+  await expect(page.locator('#payment-history-from')).toHaveValue(criteria.from);await expect(page.locator('#payment-history-to')).toHaveValue(criteria.to);
+  await bonus077Copy(page,original);
+  return await page.evaluate(()=>({activeTag:document.activeElement.tagName,activeId:document.activeElement.id,connected:document.activeElement.isConnected,hash:location.hash}));
+}
+for(const width of [360,390,1440])test.describe('FQA-077 separate bonus source '+width,()=>{
+  test.use({viewport:{width,height:width<700?844:900},hasTouch:width<700,isMobile:width<700,locale:'en-US'});
+  for(const available of [true,false])test(`FQA-077 History to separate Daily bonus ${available?'availableBack':'unavailableRecovery'} at ${width}px (mocked read-only sources)`,async({page},info)=>{
+    const x=await bonus077Fixture(page,available),proofs=[],states=[],destinations=[];let original,font,geometry,criteria,back;
+    const hash=available?'#payments':'#payments/history';
+    try{
+      if(available)await ready(page,width);
+      else{await page.goto('/#payments/history');await page.locator('body.workspace-ready.product-experience-ready').waitFor();await expect(page.locator('#rewards-history')).toBeVisible();}
+      await state(page,loading,'Waiting for the current payment history check to finish.');expect(x.f.requests()).toBe(1);expect(x.f.completed()).toBe(0);states.push({state:'loading',provenance:'Original loader request held before its transport response'});
+      original=await page.locator(bonus077Selector).elementHandle();expect(original).not.toBeNull();await bonus077Copy(page,original);
+      font=await bonus077Font(page.locator(bonus077Selector));await bonus077Focus(page,original,hash,proofs);geometry=await bonus077Geometry(original);
+      // This original pending loader response completes while the new link has
+      // native keyboard focus. No renderer call or synthetic event causes it.
+      await x.f.release(available?data('partial'):null);
+      await state(page,available?incomplete:unavailable,available?'Available history is incomplete. No confirmed payments are available in this response.':'Payment history could not be fully checked. Try again shortly.');
+      await bonus077Identity(original,true);states.push({state:available?'partial-zero':'unavailable-zero',provenance:'Original held transport response completed while original native link focused'});
+      await expect.poll(()=>x.reads.filter(r=>r.path==='/api/evidence/payment-history'&&r.state==='complete').length).toBe(1);
+      for(const [value,message,caption] of [[data('onchain-indexed'),empty,'No confirmed payments are available.'],[data('onchain-indexed',receipts),null,'2 of 2 confirmed payments · fees in details']]){
+        // Reuse the original suite's explicitly modeled route-read trigger.
+        // These updates are not described as native background events.
+        await refresh(page,x.f,value);
+        if(message)await state(page,message,caption);else{await expect(list(page).locator('.payment-history-row')).toHaveCount(2);await expect(note(page)).toHaveText(caption);}
+        await bonus077Identity(original,true);await bonus077Copy(page,original);states.push({state:message?'complete-empty':'populated-recovery',provenance:'Existing modeled funded:route-change stimulus; original request/loader/renderer'});
+      }
+      const rawRows=await rows(page),beforeFilters=x.f.requests();
+      await page.locator('#payment-history-type').selectOption('x');await expect(list(page).locator('.empty-state')).toHaveText('No confirmed payments match these filters.');
+      await expect(note(page)).toHaveText('0 of 2 confirmed payments · fees in details');await bonus077Copy(page,original);states.push({state:'no-match',provenance:'Existing native selectOption local filter; no source inference'});
+      await page.locator('#payment-history-clear').click();expect(await rows(page)).toEqual(rawRows);expect(x.f.requests()).toBe(beforeFilters);
+      criteria=await bonus077Criteria(page,available?receipts[0].to:receipts[0].signature);
+      await expect(list(page).locator('.payment-history-row')).toHaveCount(1);expect(x.f.requests()).toBe(beforeFilters);
+      if(available){await refresh(page,x.f,data('partial'));await state(page,incomplete,'Available history is incomplete. No confirmed payments are available in this response.');}
+      else{await refresh(page,x.f,data('partial',receipts));await expect(note(page)).toHaveText('1 of 2 confirmed payments · dates in UTC · fees in details · some history is missing');states.push({state:'partial-populated',provenance:'Existing modeled route-read trigger; native filters retained'});}
+      await bonus077Focus(page,original,hash,proofs);await bonus077Copy(page,original);
+      const beforeEntry=x.requests.filter(r=>r.path===bonus077Path).length;expect(beforeEntry).toBe(0);
+      destinations.push(await bonus077Read(page,()=>available?page.keyboard.press('Enter'):width<700?page.locator(bonus077Selector).tap():page.locator(bonus077Selector).click(),available));
+      await expect(page).toHaveURL(/\/#bonuses$/);expect(x.requests.filter(r=>r.path===bonus077Path).length).toBe(1);
+      if(!available){x.setBonus(true);destinations.push(await bonus077Read(page,()=>width<700?page.locator('#bonuses [data-bonus-history-refresh]').tap():page.locator('#bonuses [data-bonus-history-refresh]').click(),true));expect(x.requests.filter(r=>r.path===bonus077Path).length).toBe(2);}
+      back=await bonus077Back(page,original,criteria,hash);expect(back.connected).toBe(true);geometry=await bonus077Geometry(original);
+      expect(x.f.writes).toEqual([]);expect(x.f.errors).toEqual([]);expect(x.requests.some(r=>r.path.startsWith('/api/wallets/'))).toBe(false);
+      await expect.poll(()=>x.pending.size).toBe(0);expect(x.reads.every(r=>r.state==='complete'&&r.finishedError===null)).toBe(true);
+      await page.screenshot({path:info.outputPath(`history-bonus-${width}-${available?'available':'recovery'}.png`)});
+    }finally{
+      // Attach original state/provenance even when the first assertion fails.
+      // The built-in Playwright fixture owns close; no replacement teardown.
+      try{await info.attach('history-bonus-native-evidence',{body:JSON.stringify({width,available,hash,font,geometry,criteria,back,proofs,states,destinations,reads:x.reads,requests:x.requests,errors:x.f.errors,writes:x.f.writes,qualification:'Deterministic mocked APIs. Datefills/modelled route events explicitly qualified; sourcegroup has no handler/API/storage logic. No actual payment or on-chain proof.'},null,2),contentType:'application/json'});}catch(error){console.error('FQA077 evidence attachment unavailable: '+String(error));}
+      x.detach();
+    }
+  });
+});
+
+function observeBonus077Control(original, readiness = {}) {
+  const began = performance.now();
+  return new Promise(resolve => {
+    const samples = []; let stationaryAt = null, previous = null, frame;
+    const finish = pass => { cancelAnimationFrame(frame); clearTimeout(timer); resolve({ pass, samples }); };
+    const tick = () => {
+      const element = original, rect = element?.getBoundingClientRect();
+      const style = element && getComputedStyle(element);
+      const edge = style ? (parseFloat(style.outlineWidth) || 0) + (parseFloat(style.outlineOffset) || 0) : 0;
+      const bounds = { left:0, right:innerWidth, top:0, bottom:innerHeight }, clips = [];
+      let cornersClear = true;
+      const rootStyle = getComputedStyle(document.documentElement);
+      const root = { tag:document.documentElement.tagName, display:rootStyle.display,
+        overflowX:rootStyle.overflowX, overflowY:rootStyle.overflowY, contain:rootStyle.contain };
+      for (const chrome of document.querySelectorAll('.topbar,.mobile-workspace-nav')) {
+        if (chrome.contains(element)) continue;
+        if (!chrome.getClientRects().length) continue;
+        const r = chrome.getBoundingClientRect();
+        if (chrome.matches('.topbar')) bounds.top = Math.max(bounds.top, r.bottom);
+        else bounds.bottom = Math.min(bounds.bottom, r.top);
+      }
+      for (let ancestor = element?.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        const css = getComputedStyle(ancestor), r = ancestor.getBoundingClientRect();
+        const clipX = /^(hidden|clip|auto|scroll)$/.test(css.overflowX);
+        const clipY = /^(hidden|clip|auto|scroll)$/.test(css.overflowY);
+        if (clipX || clipY) {
+          // CSS Overflow 3: root overflow, or body overflow when the HTML root
+          // is visible in both axes, is propagated to the viewport. Its used
+          // clip is not its translated document-coordinate border rectangle.
+          const viewportClip = ancestor === document.documentElement || (ancestor === document.body
+            && rootStyle.overflowX === 'visible' && rootStyle.overflowY === 'visible'
+            && rootStyle.contain === 'none' && css.contain === 'none');
+          if (viewportClip) { clips.push({ tag:ancestor.tagName, display:css.display, overflowX:css.overflowX,
+            overflowY:css.overflowY, contain:css.contain, viewportClip:true,
+            propagationReason:ancestor === document.documentElement ? 'root overflow applies to viewport' : 'visible HTML root propagates body overflow to viewport',
+            left:0, top:0, right:innerWidth, bottom:innerHeight }); continue; }
+          const box = { left:r.left + ancestor.clientLeft, top:r.top + ancestor.clientTop,
+            right:r.left + ancestor.clientLeft + ancestor.clientWidth,
+            bottom:r.top + ancestor.clientTop + ancestor.clientHeight };
+          const radii = ['borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomRightRadius', 'borderBottomLeftRadius']
+            .map(key => Math.max(0, (parseFloat(css[key]) || 0) - ancestor.clientLeft));
+          if (rect && clipX && clipY) {
+            const points = [[rect.left-edge,rect.top-edge],[rect.right+edge,rect.top-edge],
+              [rect.right+edge,rect.bottom+edge],[rect.left-edge,rect.bottom+edge]];
+            const centers = [[box.left+radii[0],box.top+radii[0]],[box.right-radii[1],box.top+radii[1]],
+              [box.right-radii[2],box.bottom-radii[2]],[box.left+radii[3],box.bottom-radii[3]]];
+            for (let i=0;i<4;i++) { const radius=radii[i], [x,y]=points[i], [cx,cy]=centers[i];
+              const inCorner = (i===0||i===3 ? x<cx : x>cx) && (i<2 ? y<cy : y>cy);
+              if (radius && inCorner && (x-cx)**2+(y-cy)**2>radius**2) cornersClear=false;
+            }
+          }
+          clips.push({ id:ancestor.id, tag:ancestor.tagName, display:css.display, overflowX:css.overflowX,
+            overflowY:css.overflowY, contain:css.contain, clipX, clipY, radii, ...box });
+          if (clipX) { bounds.left = Math.max(bounds.left, box.left); bounds.right = Math.min(bounds.right, box.right); }
+          if (clipY) { bounds.top = Math.max(bounds.top, box.top); bounds.bottom = Math.min(bounds.bottom, box.bottom); }
+        }
+      }
+      const position = rect && { top:rect.top, bottom:rect.bottom, left:rect.left, right:rect.right };
+      const ready = location.hash === readiness.hash && element?.isConnected && element.getClientRects().length > 0;
+      const clear = Boolean(ready && element.isConnected && rect && cornersClear && element === document.activeElement && element.matches(':focus-visible')
+        && style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0
+        && rect.left - edge >= bounds.left && rect.right + edge <= bounds.right
+        && rect.top - edge >= bounds.top && rect.bottom + edge <= bounds.bottom);
+      const now = performance.now(), geometry = JSON.stringify([position, scrollX, scrollY, bounds]);
+      if (clear) { if (stationaryAt === null || previous !== geometry) stationaryAt = now; }
+      else stationaryAt = null;
+      previous = geometry;
+      samples.push({ at:now - began, clear, ready, position, edge, bounds, clips, root, cornersClear,
+        stationaryMs:stationaryAt === null ? 0 : now - stationaryAt });
+      if (now - began > 1000) return finish(false);
+      if (clear && now - stationaryAt >= 100) return finish(true);
+      frame = requestAnimationFrame(tick);
+    };
+    const timer = setTimeout(() => finish(false), 1000);
+    frame = requestAnimationFrame(tick);
+  });
+}

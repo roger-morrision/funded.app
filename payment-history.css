@@ -219,3 +219,9 @@
   .payment-history-actions { gap: 6px; }
   .payment-history-actions .payment-amount strong { font-size: 12px; }
 }
+
+/* Scoped History navigation to the separate existing Daily bonus source. */
+#rewards-history .payment-history-bonus-help { display:grid; justify-items:start; gap:8px; min-width:0; margin-top:12px; }
+#rewards-history .payment-history-bonus-help > p { margin:0; }
+#rewards-history .payment-history-bonus-link { display:inline-flex; align-items:center; min-height:44px; min-width:44px; max-width:100%; box-sizing:border-box; white-space:normal; overflow-wrap:anywhere; font-size:14px!important; line-height:1.5; scroll-margin-block:140px 110px; }
+#rewards-history .payment-history-bonus-link:focus-visible { outline:2px solid #a9bcff; outline-offset:2px; }
