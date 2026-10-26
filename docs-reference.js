@@ -215,7 +215,7 @@ export function mountDocsReference(root) {
       const delta = fixedHeader && rect.top - outline < top ? rect.top - outline - top
         : fixedNav && rect.bottom + outline > bottom ? rect.bottom + outline - bottom : 0;
       retireListingReveal();
-      if (delta) window.scrollBy({ left: 0, top: delta > 0 ? Math.ceil(delta) : Math.floor(delta), behavior: 'instant' });
+      window.scrollBy({ left: 0, top: delta > 0 ? Math.ceil(delta) : Math.floor(delta), behavior: 'instant' });
     });
   });
   let pendingReturn = null;
