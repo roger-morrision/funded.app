@@ -38,15 +38,20 @@ export async function runtimeSourceFiles(root) {
   // Git knows about checkout-specific ignored overlays and generated files.
   // Keep the directory walk below for standalone source-structure fixtures.
   try {
-    const listed = execFileSync('git', ['-C', root, 'ls-files', '--cached', '--others',
-      '--exclude-standard', '-z'], { stdio:['ignore', 'pipe', 'ignore'] }).toString('utf8');
-    const candidates = [...new Set(listed.split('\0').filter(Boolean))]
-      .filter(file => maintainedCodeFile(basename(file)));
-    const present = await Promise.all(candidates.map(async file => {
-      try { return (await stat(resolve(root, file))).isFile() ? file : null; }
-      catch (error) { if (error.code === 'ENOENT') return null; throw error; }
-    }));
-    return present.filter(Boolean).sort();
+    const prefix = execFileSync('git', ['-C', root, 'rev-parse', '--show-prefix'],
+      { stdio:['ignore', 'pipe', 'ignore'] }).toString('utf8').trim();
+    // An enclosing checkout must not supply the inventory for a standalone root.
+    if (!prefix) {
+      const listed = execFileSync('git', ['-C', root, 'ls-files', '--cached', '--others',
+        '--exclude-standard', '-z'], { stdio:['ignore', 'pipe', 'ignore'] }).toString('utf8');
+      const candidates = [...new Set(listed.split('\0').filter(Boolean))]
+        .filter(file => maintainedCodeFile(basename(file)));
+      const present = await Promise.all(candidates.map(async file => {
+        try { return (await stat(resolve(root, file))).isFile() ? file : null; }
+        catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+      }));
+      return present.filter(Boolean).sort();
+    }
   } catch (error) {
     if (error.code !== 'ENOENT' && error.status !== 128) throw error;
   }

@@ -106,3 +106,26 @@ test('size guard checks Git source while excluding ignored local overlays', () =
   assert.equal(result.failures.length, 1);
   assert.match(result.failures[0], /^src\/untracked\.js:/);
 }));
+
+
+test('size guard scans standalone roots inside ignored and untracked parent Git directories', () => fixture(async parent => {
+  execFileSync('git', ['-C', parent, 'init', '-q']);
+  await writeFile(join(parent, '.gitignore'), '/ignored-source/\n');
+  await writeFile(join(parent, 'unrelated.js'), '// parent source\n'.repeat(1001));
+  for (const directory of ['ignored-source', 'untracked-source']) {
+    const root = join(parent, directory);
+    await mkdir(join(root, 'config'), { recursive:true });
+    await writeFile(join(root, 'config/source-size-baseline.json'), JSON.stringify({ files:{} }));
+    for (const file of ['src/view.js', 'scripts/check.mjs', 'dist/generated.js']) {
+      await mkdir(join(root, file, '..'), { recursive:true });
+      await writeFile(join(root, file), '// oversized source\n'.repeat(1001));
+    }
+    assert.notEqual(execFileSync('git', ['-C', root, 'rev-parse', '--show-prefix']).toString().trim(), '');
+    const result = await checkSourceSizes(root);
+    assert.equal(result.files, 2, directory);
+    assert.equal(result.failures.length, 2, directory);
+    assert.ok(result.failures.some(message => message.startsWith('src/view.js: 1001 lines')), directory);
+    assert.ok(result.failures.some(message => message.startsWith('scripts/check.mjs: 1001 lines')), directory);
+    assert.equal(result.failures.some(message => message.includes('unrelated.js') || message.includes('generated.js')), false, directory);
+  }
+}));
