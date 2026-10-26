@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
+import {withConfiguredPoolSource,withRpcHtmlReads,rpcHtmlBody} from '../fixtures/configured-pool-rpc.js';
 const mint='So11111111111111111111111111111111111111112';
 const secondMint='11111111111111111111111111111111';
 const launch=address=>({mint:address,name:'Availability QA',symbol:'AQA',cluster:'devnet',onchainVerified:true,
@@ -10,21 +11,33 @@ const active=address=>({mint:address,verified:true,status:'drop-active',reserved
 const offline=route=>new URL(route.request().url()).pathname==='/api/fee-policy'
   ? route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):route.fulfill({status:503,json:{error:'Unavailable fixture'}});
 
-for(const width of [390,1440])test(`RPC HTML errors remain concise and buy controls disabled at ${width}px`,async({page})=>{
+for(const width of [390,1440])test(`RPC HTML errors remain concise and buy controls disabled at ${width}px`,async({page},info)=>{
   await page.setViewportSize({width,height:900});
-  await page.route('https://**/*',route=>route.abort());await page.route('**/api/**',offline);
-  let requests=0;
-  await page.route('**/api/solana/rpc**',route=>{requests++;return route.fulfill({status:502,contentType:'text/html',body:'<!DOCTYPE html><html>private-test-value upstream proxy failure</html>'});});
-  await page.goto('/#buybacks');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  await expect(page.locator('#funded-buy-status')).toContainText('Solana connection could not be verified');
-  expect(requests).toBeGreaterThan(0);
-  await expect(page.locator('#funded-buy-status')).not.toContainText('private-test-value');
-  await expect(page.locator('#funded-buy-status')).not.toContainText('<html');
-  await expect(page.locator('#funded-burn-status')).toContainText('Burn verification is temporarily unavailable');
-  await expect(page.locator('#funded-burn-status')).not.toContainText('private-test-value');
-  await expect(page.locator('#funded-burn-status')).not.toContainText('<html');
-  await expect(page.locator('#funded-buy-submit')).toBeDisabled();
-  await expect(page.locator('#funded-buy-amount')).toBeDisabled();
+  await withConfiguredPoolSource(info,async(origin)=>withRpcHtmlReads(page,info,origin,expect,async f=>{
+    await page.goto(origin+'/#buybacks');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+    await expect(page.locator('#funded-buy-status')).toContainText('Solana connection could not be verified');
+    await expect.poll(()=>f.configuredPoolReads().some(row=>row.complete&&row.status===502&&row.body===rpcHtmlBody&&row.requestfinishedAt&&row.bodyFinishedAt&&row.identityMatches)).toBe(true);
+    await expect(page.locator('#funded-buy-status')).not.toContainText('private-test-value');
+    await expect(page.locator('#funded-buy-status')).not.toContainText('<html');
+    await expect(page.locator('#funded-burn-status')).toContainText('Burn verification is temporarily unavailable');
+    await expect(page.locator('#funded-burn-status')).not.toContainText('private-test-value');
+    await expect(page.locator('#funded-burn-status')).not.toContainText('<html');
+    await expect(page.locator('#funded-buy-submit')).toBeDisabled();
+    await expect(page.locator('#funded-buy-amount')).toBeDisabled();
+    expect(await page.evaluate(()=>Boolean(window.phantom?.solana||window.solana))).toBe(false);
+  }));
+});
+
+for(const width of [390,1440])test(`Unconfigured pool stays unavailable at ${width}px (canonical read-only APIs)`,async({page},info)=>{
+  await page.setViewportSize({width,height:900});const origin=new URL(info.project.use.baseURL).origin;
+  await withRpcHtmlReads(page,info,origin,expect,async()=>{
+    await page.goto('/#buybacks');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+    await expect(page.locator('#funded-buy-status')).toHaveText('Buy preview is unavailable because the pool could not be verified. Try again shortly.');
+    await expect(page.locator('#funded-buy-submit')).toBeDisabled();
+    await expect(page.locator('#funded-buy-amount')).toBeDisabled();
+    for(const selector of ['#funded-buy-status','#funded-burn-status']){await expect(page.locator(selector)).not.toContainText('private-test-value');await expect(page.locator(selector)).not.toContainText('<html');}
+    expect(await page.evaluate(()=>Boolean(window.phantom?.solana||window.solana))).toBe(false);
+  });
 });
 
 for(const mode of ['outage','partial','pending','active'])test(`airdrop ${mode} state has truthful counts and snapshot labels`,async({page})=>{
