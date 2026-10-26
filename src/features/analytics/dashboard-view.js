@@ -5,6 +5,36 @@ import { shortAddress, formatDashboardQuantity, formatDashboardUsd } from '../sh
 import { exactLamports } from '../../../exact-lamports.js';
 import { formatReceiptSol } from '../../../receipt-export.js';
 
+// Static collection-history presentation; install once before app bindings initialize.
+const collectionHistoryBodyMarkup = `
+    <h3 id="analytics-collection-history-heading">Available verified collections by day (UTC)</h3>
+    <div data-collection-scope>
+    <p data-collection-coverage>Checking available collection evidence.</p>
+    <p><span data-collection-checked-label>Waiting for the evidence check.</span><time data-collection-checked-time hidden></time></p>
+    </div>
+    <div data-collection-context>
+    <p data-collection-basis>Totals cover the available verified records only. Missing dates are unknown.</p>
+    <p data-collection-caveats>Dates use transaction block times; checked time describes evidence freshness. Collections are not completed payments.</p>
+    </div>
+    <p data-collection-message>Checking collection history.</p>
+    <table hidden aria-labelledby="analytics-collection-history-heading">
+      <caption>Available verified collection totals by transaction date (UTC)</caption>
+      <colgroup><col class="collection-history-date"><col class="collection-history-amount"><col class="collection-history-count"></colgroup>
+      <thead><tr><th scope="col">Date (UTC)</th><th scope="col">Collected (SOL)</th><th scope="col">Receipts</th></tr></thead>
+      <tbody></tbody>
+      <tfoot><tr><th scope="row">Available total</th><td data-collection-total></td><td data-collection-count></td></tr></tfoot>
+    </table>`;
+const mountedCollectionHistoryBodies = new WeakSet();
+
+export function mountAvailableCollectionHistory(document = globalThis.document) {
+  const body = document.querySelector('#analytics-collection-history-body');
+  if (body && !mountedCollectionHistoryBodies.has(body)) {
+    body.innerHTML = collectionHistoryBodyMarkup;
+    mountedCollectionHistoryBodies.add(body);
+  }
+  return body;
+}
+
 function collectionIdentity(value, bytes) {
   const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
   if (typeof value !== 'string' || value.length < bytes || value.length > (bytes === 64 ? 88 : 44)) return false;

@@ -225,7 +225,7 @@ compressing a large file into long lines does not evade the limit. Line endings
 are normalized for consistent Windows and Linux results.
 
 `config/source-size-baseline.json` records the remaining oversized legacy files.
-Only `index.html` (855 lines) retains an exception to the tighter runtime budget.
+Only `index.html` (848 lines) retains an exception to the tighter runtime budget.
 No exception may exceed 1,000 lines. Its ceiling allows this migration to be
 incremental; it must not grow beyond its existing ceiling. Reduce the ceiling
 after an extraction. Do not raise it to

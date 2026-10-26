@@ -2,7 +2,7 @@
   "description": "All maintained code: at most 1000 lines, including legacy files. New runtime modules: at most 500 lines and 40 KiB. Legacy ceilings may shrink but must not grow.",
   "files": {
     "index.html": {
-      "lines": 855,
+      "lines": 848,
       "bytes": 172803
     }
   }
