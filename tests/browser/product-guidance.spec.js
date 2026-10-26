@@ -37,8 +37,8 @@ test('all Docs topics navigate, have deep links, and link only to existing docum
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   const nav=page.locator('.docs-guide-nav'), article=page.locator('#docs-guide-article');
   await expect(article).toBeVisible();
-  const titles=await nav.locator('button').allTextContents(), hashes=new Set(), linked=new Set();
-  expect(titles.length).toBeGreaterThanOrEqual(29);
+  const titles=await nav.locator('button[data-docs-topic]').allTextContents(), hashes=new Set(), linked=new Set();
+  expect(titles).toHaveLength(29); expect(new Set(titles).size).toBe(29);
   for(const title of titles) {
     await nav.getByRole('button',{name:title,exact:true}).click();
     await expect(article.locator('h1')).toHaveText(title);

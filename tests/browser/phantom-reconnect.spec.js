@@ -122,8 +122,13 @@ test('signed wallet session renders an exact finalized referral payout', async (
   await expect(page.locator('#referral-paid-total')).toHaveText('0.000057714 SOL');
   await expect(page.locator('#referral-active-creators')).toHaveText('1');
   await expect(page.locator('#referral-ledger-list')).toContainText('0.000057714 SOL');
-  await expect(page.locator('#referral-claim-center')).toContainText('fixture-finalized-signature');
-  const proof = page.locator('#referral-claim-center a').filter({ hasText:'Verify payout' });
+  const row = page.locator('#referral-ledger-list .referral-ledger-row');
+  await expect(row).toHaveCount(1); await expect(row).toBeVisible();
+  await expect(row.locator('strong')).toHaveText('Level 1');
+  await expect(row.locator('small')).toHaveText('Paid');
+  await expect(row.locator('b')).toHaveText('0.000057714 SOL');
+  const proof = row.getByRole('link',{name:'Transaction ↗',exact:true});
+  await expect(proof).toHaveAttribute('title','fixture-finalized-signature');
   await expect(proof).toHaveAttribute('href', 'https://explorer.solana.com/tx/fixture-finalized-signature?cluster=devnet');
   await expect(proof).toHaveAttribute('rel', 'noopener noreferrer');
 });
@@ -155,11 +160,16 @@ test('long referral payout receipts fit a mobile wallet dashboard', async ({ pag
     level:1,asset:'SOL',status:'paid',amount:0.000057714,amountLamports:'57714',payoutSignature:'7'.repeat(88)}]}}));
   await page.route('**/api/referrals/dashboard?**', route => route.fulfill({json:{wallet:address,networkCreators:1,qualifiedCreators:1,conversionRate:100}}));
   await installPhantomFixture(page,{trusted:true});await page.goto('/#referrals');
-  const row=page.locator('#referral-claim-center .referral-claim-row');await expect(row).toBeVisible();
+  const row=page.locator('#referral-ledger-list .referral-ledger-row');await expect(row).toHaveCount(1);await expect(row).toBeVisible();
   await page.screenshot({path:test.info().outputPath('referral-receipt-mobile.png'),fullPage:true});
   expect(await row.evaluate(node=>node.scrollWidth<=node.clientWidth),'Receipt row fits its container').toBe(true);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Mobile page has no horizontal overflow').toBe(true);
-  await expect(row.getByRole('link',{name:'Verify payout'})).toHaveAttribute('href',/7{88}\?cluster=devnet$/);
+  await expect(row.locator('b')).toHaveText('0.000057714 SOL');
+  await expect(row.locator('small')).toHaveText('Paid');
+  const proof=row.getByRole('link',{name:'Transaction ↗',exact:true});
+  await expect(proof).toHaveAttribute('title','7'.repeat(88));
+  await expect(proof).toHaveAttribute('href','https://explorer.solana.com/tx/'+'7'.repeat(88)+'?cluster=devnet');
+  await expect(proof).toHaveAttribute('rel','noopener noreferrer');
 });
 
 test('explicit wallet connection signs in once and reload never requests another signature', async ({ page }) => {

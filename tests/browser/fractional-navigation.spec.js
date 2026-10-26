@@ -4,9 +4,10 @@ import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 for (const scale of [1.25, 1.5]) {
   test.describe(`FQA-016 fractional desktop scale ${scale}`, () => {
     test('Home content stays clear of the tablet sidebar at a fractional CSS width (mocked APIs)', async ({}, testInfo) => {
+      const nativeLaunchWidth=process.platform==='win32'?({1.25:1195,1.5:1197})[scale]:1179;
       const browser = await chromium.launch({ headless: true,
         ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}),
-        args: [`--force-device-scale-factor=${scale}`, '--window-size=1179,1000'] });
+        args: [`--force-device-scale-factor=${scale}`, `--window-size=${nativeLaunchWidth},1000`] });
       const page = await browser.newPage({ viewport: null });
       try {
       await page.route('https://**/*', route => route.abort());
