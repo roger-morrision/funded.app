@@ -48,6 +48,33 @@ for (const width of [1440, 390]) {
       await page.reload();await route('coin', '#coin-page', 'explore');
       await page.goForward();await route(target, target === 'overview' ? '.hero-section' : `#${target}`, target);
     }
+  });
+
+  test(`FQA-017 mixed pathname and hash roundtrips restore the visible route at ${width}px (mocked APIs)`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: async value => { window.qaCopiedMint = value; } },
+    }));
+    await page.route('https://**/*', route => route.abort());
+    await page.route('**/api/**', route => new URL(route.request().url()).pathname === '/api/fee-policy'
+      ? route.fulfill({ json: { split: PROTOCOL_FEE_SPLIT } })
+      : route.fulfill({ status: 503, json: { error: 'Offline navigation fixture' } }));
+    const route = async (name, selector, active) => {
+      await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
+      await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+      await expect(page.locator('body')).toHaveClass(new RegExp(`page-route-${name}(?: |$)`));
+      await expect(page.locator(selector)).toBeVisible();
+      await expect(page.locator(`.primary-nav > a[href="#${active}"]`)).toHaveAttribute('aria-current', 'page');
+      if (width === 390) await expect(page.locator('#sidebar')).toHaveAttribute('inert', '');
+    };
+    const agency = async (target = 'marketing-agency') => {
+      if (width === 390) await page.locator('#open-menu').click();
+      await page.locator(`.primary-nav > a[href="#${target}"]`).click();
+      await route(target, target === 'overview' ? '.hero-section' : `#${target}`, target);
+    };
+    await page.goto('/#explore');
+    await route('explore', '#explore', 'explore');
+    await expect(page).toHaveURL(/\/#explore$/);
     await agency();
     if (width === 390) await page.locator('#open-menu').click();
     await page.locator('.primary-nav > a[href="#explore"]').click();
