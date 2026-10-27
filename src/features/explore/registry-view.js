@@ -233,9 +233,9 @@ export function renderRegistry(query, state, {
     const edge = Math.max(0, parseFloat(css.outlineWidth) || 0) + Math.max(0, parseFloat(css.outlineOffset) || 0);
     const header = document.querySelector('.topbar'), nav = document.querySelector('.mobile-workspace-nav');
     const top = header?.getClientRects().length && ['fixed', 'sticky'].includes(getComputedStyle(header).position)
-      ? header.getBoundingClientRect().bottom : 0;
+      ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
     const bottom = nav?.getClientRects().length && getComputedStyle(nav).position === 'fixed'
-      ? nav.getBoundingClientRect().top : globalThis.innerHeight;
+      ? Math.min(globalThis.innerHeight, nav.getBoundingClientRect().top) : globalThis.innerHeight;
     const hiddenY = rect.top - edge < top ? rect.top - edge - top
       : rect.bottom + edge > bottom ? rect.bottom + edge - bottom : 0;
     const hiddenX = rect.left - edge < 0 ? rect.left - edge

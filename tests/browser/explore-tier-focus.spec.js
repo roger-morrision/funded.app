@@ -819,7 +819,8 @@ test.beforeEach(async ({page}) => page.addInitScript(() => {
   window.__searchRevealDebug = [];
   const snapshot = () => {
     const search = document.querySelector('#explore-search'), rect = search?.getBoundingClientRect();
-    return {y:scrollY,mainTop:document.querySelector('#main-content')?.scrollTop,active:document.activeElement?.id,top:rect?.top,bottom:rect?.bottom};
+    const header=document.querySelector('.topbar');
+    return {y:scrollY,mainTop:document.querySelector('#main-content')?.scrollTop,active:document.activeElement?.id,top:rect?.top,bottom:rect?.bottom,headerBottom:header?.getBoundingClientRect().bottom,headerPosition:header?getComputedStyle(header).position:null};
   };
   for (const [owner,name] of [[HTMLElement.prototype,'focus'],[Element.prototype,'scrollIntoView'],[Element.prototype,'scrollBy'],[Element.prototype,'scrollTo'],[window,'scrollBy'],[window,'scrollTo']]) {
     const original = owner[name];
