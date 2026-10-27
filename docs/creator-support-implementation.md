@@ -41,6 +41,6 @@ Twitch/Kick subscriptions and YouTube donations are explicitly disabled. There i
 
 ## Broader roadmap still open
 
-Automatic image preparation; complete packet/cancellation/partial-success recovery matrix; authenticated/moderated chat; privacy-reviewed funnel analytics and user studies; production-scale indexed discovery/pagination and lifetime payout aggregates; PNG social cards; live stream alerts; multi-device follows/notifications; production infrastructure/security review and external creator pilot. Mandatory vanity suffixes and expanded tokenomics remain deferred as recorded in the product review.
+Automatic image preparation; complete packet/cancellation/partial-success recovery matrix; authenticated/moderated chat; privacy-reviewed funnel analytics and user studies; production-scale indexed discovery/pagination and lifetime payout aggregates; PNG social cards; live stream alerts; multi-device follows/notifications; production infrastructure/security review and external creator pilot. Mandatory vanity suffixes and expanded tokenomics were deferred in the original review.
 
-See [the phased product review](product-review-roadmap-2026-09-20.md) for prioritization. Production deployment, real X identity verification, actual payouts, gifting and virality are not claimed as completed.
+These are historical implementation notes, not a current priority queue. Production deployment, real X identity verification, actual payouts, gifting and virality are not claimed as completed by this report.

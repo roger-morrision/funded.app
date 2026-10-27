@@ -1,6 +1,6 @@
 # UI implementation and validation
 
-Implemented locally on 29 September 2026 from the [launchpad review](ui-launchpad-review-2026-09-28.md). No deployment, wallet signing, or transaction submission was performed.
+Implemented locally on 29 September 2026 from the launchpad review, which has since been retired. No deployment, wallet signing, or transaction submission was performed during that validation.
 
 ## Implemented
 

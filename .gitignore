@@ -155,3 +155,4 @@ data/automatic-rewards.json.lock
 /test-results/
 /playwright-report/
 /mnt-c-data-dev-apps-funded-app-contracts-funded-fee-router
+/docs/qa-dev-loop

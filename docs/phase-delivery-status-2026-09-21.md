@@ -103,4 +103,4 @@ Complete lifetime payout coverage and full-chain discovery, backfill worker acti
 
 Launch keys are intentionally not saved. After a reload during an unsigned or router-only stage, there is no automatic continuation requiring that lost mint key. Inspect the original receipts; never assume a network timeout means failure. Journal confirmation is transaction-level evidence, not a fee-policy verification or completed registration.
 
-The earlier [creator support report](creator-support-implementation.md) describes the initial batch; this document supersedes its “still open” and verification status where noted. The [product roadmap](product-review-roadmap-2026-09-20.md) remains the acceptance-gate reference.
+The earlier [creator support report](creator-support-implementation.md) describes the initial batch; this document records the later verification status at the time of this historical delivery. The retired product roadmap has been removed.
