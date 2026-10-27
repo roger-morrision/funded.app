@@ -55,22 +55,6 @@ function revealRetainedRegistryPrimary(owner, list, document, state, criteriaKey
     || !document.body.classList.contains('page-route-explore') || document.location.hash !== owner.routeHash
     || document.querySelector('#explore')?.dataset.exploreView !== 'table' || state.registryCriteriaKey !== criteriaKey || state.registryPage !== page
     || [...document.querySelectorAll('dialog[open], [aria-modal="true"]')].some(modal => modal.getClientRects().length)) return;
-  revealRegistryPrimaryAnchor(anchor, document);
-}
-
-export function revealNativeRegistryPrimary(anchor, document = globalThis.document) {
-  const row = anchor?.closest?.('.scanner-row'), mint = row?.dataset.logoMint;
-  if (!anchor?.isConnected || document.activeElement !== anchor || !anchor.matches('a.scanner-token-link:focus-visible')
-    || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint || '') || row.parentElement?.id !== 'launch-list'
-    || row.querySelectorAll('.scanner-token-link').length !== 1
-    || anchor.getAttribute('href') !== '/token/' + encodeURIComponent(mint)
-    || !document.body.classList.contains('page-route-explore')
-    || document.querySelector('#explore')?.dataset.exploreView !== 'table'
-    || [...document.querySelectorAll('dialog[open], [aria-modal="true"]')].some(modal => modal.getClientRects().length)) return;
-  revealRegistryPrimaryAnchor(anchor, document);
-}
-
-function revealRegistryPrimaryAnchor(anchor, document) {
   const view = document.defaultView, scrollers = [];
   for (let parent = anchor.parentElement; parent && parent !== document.body && parent !== document.documentElement; parent = parent.parentElement) scrollers.push(parent);
   scrollers.push(view);

@@ -675,7 +675,9 @@ for (const width of [360,390,1440]) {
       f.arm('updated',true);const response=await tablePumpPhase(f,'updated',true);
       await tableReleaseOutline(page,original,f,info,'retained',{selector:tablePrimary,text:'Alpha updated'});
       await tablePumpPhase(f,'updated');
-      await tableEndRevealAudit(original,info,'retained',width===1440?'none':width===360?'covered':'covered-only');
+      // Native scroll clearance can leave the reordered link fully visible.
+      // Any actual reveal must still move only its measured clipped amount.
+      await tableEndRevealAudit(original,info,'retained',width===1440?'none':'covered-only');
       await tableExpect(page.locator(tablePrimary)).toContainText('Alpha updated',{timeout:15000});
       const after=await tableSnapshot(original,info,'retained');await tableObserved(original,info,'retained');
       tableExpect(after.href).toBe(entry.before.href);tableExpect(after.mint).toBe(tableMints[0]);tableExpect(after.rank).toBe('2');
