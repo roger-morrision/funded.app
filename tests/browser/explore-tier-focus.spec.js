@@ -801,7 +801,8 @@ test('FQA-078 ordinary read does not reveal a primary link obscured by native us
         const obscured=rect.bottom<top&&document.activeElement===anchor&&anchor.isConnected;
         if(obscured){if(last!==position||stable===null)stable=now;}else stable=null;last=position;
         if(stable!==null&&now-stable>=100)return finish({pass:true,scrollX,scrollY,rect:{top:rect.top,bottom:rect.bottom},top,
-          documentHeight:document.documentElement.scrollHeight,tableHeight:document.querySelector('.scanner-scroll').scrollHeight});
+          documentHeight:document.documentElement.scrollHeight,tableHeight:document.querySelector('.scanner-scroll').scrollHeight,
+          documentTop:rect.top+scrollY});
         if(now-began>1000)return finish({pass:false});frame=requestAnimationFrame(tick);};
       timer=setTimeout(()=>finish({pass:false}),1000);frame=requestAnimationFrame(tick);
     }));
@@ -809,11 +810,13 @@ test('FQA-078 ordinary read does not reveal a primary link obscured by native us
     await tablePumpPhase(f,'updated');await tableExpect(page.locator(tablePrimary)).toContainText('Alpha updated');
     const audit=await tableEndRevealAudit(original,info,'pre-obscured','none');
     tableExpect(audit.after.scrollX).toBe(before.scrollX);
-    const nativeGeometry=await page.evaluate(()=>({documentHeight:document.documentElement.scrollHeight,
-      tableHeight:document.querySelector('.scanner-scroll').scrollHeight,scrollY,maxScroll:document.documentElement.scrollHeight-innerHeight}));
+    const nativeGeometry=await original.evaluate(anchor=>({documentHeight:document.documentElement.scrollHeight,
+      tableHeight:document.querySelector('.scanner-scroll').scrollHeight,documentTop:anchor.getBoundingClientRect().top+scrollY,
+      scrollY,maxScroll:document.documentElement.scrollHeight-innerHeight}));
     // Native scroll anchoring can track a growing/reordered table without an
     // application scroll call. Exact window Y is meaningful for stable geometry.
-    if(nativeGeometry.documentHeight===before.documentHeight&&nativeGeometry.tableHeight===before.tableHeight) {
+    if(nativeGeometry.documentHeight===before.documentHeight&&nativeGeometry.tableHeight===before.tableHeight
+      &&nativeGeometry.documentTop===before.documentTop) {
       tableExpect(audit.after.scrollY).toBe(before.scrollY);
     } else {
       tableExpect(nativeGeometry.scrollY).toBeGreaterThanOrEqual(0);
