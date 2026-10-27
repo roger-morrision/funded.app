@@ -814,23 +814,3 @@ test('FQA-078 ordinary read does not reveal a primary link obscured by native us
     await info.attach('table-pre-obscured-ordinary-read',{body:JSON.stringify({id:response.id,before,audit}),contentType:'application/json'});
   } finally {if(original){await tableCancelRevealAudit(original).catch(()=>{});await tableStopObservation(original).catch(()=>{});await original.dispose();}await tableFinish(f,info);}
 });
-// Temporary transparent diagnostic; original native methods and assertions remain intact.
-test.beforeEach(async ({page}) => page.addInitScript(() => {
-  window.__searchRevealDebug = [];
-  const snapshot = () => {
-    const search = document.querySelector('#explore-search'), rect = search?.getBoundingClientRect();
-    const header=document.querySelector('.topbar');
-    return {y:scrollY,mainTop:document.querySelector('#main-content')?.scrollTop,active:document.activeElement?.id,top:rect?.top,bottom:rect?.bottom,headerBottom:header?.getBoundingClientRect().bottom,headerPosition:header?getComputedStyle(header).position:null};
-  };
-  for (const [owner,name] of [[HTMLElement.prototype,'focus'],[Element.prototype,'scrollIntoView'],[Element.prototype,'scrollBy'],[Element.prototype,'scrollTo'],[window,'scrollBy'],[window,'scrollTo']]) {
-    const original = owner[name];
-    owner[name] = function(...args) {
-      const record={method:name,target:this===window?'window':this.id||this.tagName,args,before:snapshot(),stack:new Error().stack};
-      const result=Reflect.apply(original,this,args);record.after=snapshot();window.__searchRevealDebug.push(record);
-      return result;
-    };
-  }
-}));
-test.afterEach(async ({page},info) => {
-  await info.attach('search-reveal-native-debug',{body:JSON.stringify(await page.evaluate(()=>window.__searchRevealDebug)),contentType:'application/json'});
-});
