@@ -235,6 +235,15 @@ export function createFollowingController(appState) {
       section.innerHTML = '<div class="followed-wallets-heading"><div><h3 id="followed-wallets-title">Followed wallets</h3><p>Creator and trader wallets you follow on this device. Recent activity covers listed coins and may be incomplete.</p></div><span id="followed-wallet-count"></span></div><div id="followed-wallet-rows"></div><p id="followed-wallet-status" role="status" aria-live="polite"></p>';
       community.append(section);
     }
+    let browse = section.querySelector('[data-followed-wallet-browse]');
+    if (!browse) {
+      browse = document.createElement('a');
+      browse.className = 'secondary-button followed-wallet-browse';
+      browse.dataset.followedWalletBrowse = '';
+      browse.href = '#leaderboard';
+      browse.textContent = 'Browse leaderboard';
+      section.querySelector('#followed-wallet-status').before(browse);
+    }
     let rows;
     try { rows = appState.readFollowedWallets(); appState.lastKnownFollowedWallets = rows; document.querySelector('#followed-wallet-status').textContent = ''; }
     catch { rows = appState.lastKnownFollowedWallets; document.querySelector('#followed-wallet-status').textContent = 'Saved wallets could not be read. Check browser storage before changing this list.'; }
@@ -245,7 +254,7 @@ export function createFollowingController(appState) {
       const roles = [...new Set([...row.roles, creators.has(row.address) ? 'creator' : '', traders.has(row.address) ? 'trader' : ''].filter(Boolean))];
       const address = appState.escapeHtml(row.address);
       return `<article class="followed-wallet-row"><a href="/wallet/${encodeURIComponent(row.address)}" title="${address}"><strong>${appState.escapeHtml(appState.shortAddress(row.address))}</strong><small>${address}</small></a><span class="followed-wallet-roles">${roles.map(role => `<span>${role === 'creator' ? 'Creator' : 'Trader'}</span>`).join('') || '<span>Wallet</span>'}</span><button type="button" data-unfollow-wallet="${address}" aria-label="Unfollow wallet ${address}">Unfollow</button></article>`;
-    }).join('') || '<p class="followed-wallet-empty">No followed wallets yet. Open a creator or trader wallet from a token page, then choose Follow wallet.</p>';
+    }).join('') || '<p class="followed-wallet-empty">No followed wallets yet. Open a wallet from the Burners, Creators, or Traders tabs in Leaderboard, or from a token page, then choose Follow wallet.</p>';
   }
   // app-source-end
 

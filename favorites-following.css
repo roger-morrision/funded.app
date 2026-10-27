@@ -58,3 +58,6 @@
   .followed-wallet-row > a { grid-column: 1 / -1; }
   .followed-wallet-row button { justify-self: end; }
 }
+
+#followed-wallets .followed-wallet-browse { display:inline-flex; align-items:center; min-height:44px; min-width:44px; max-width:100%; box-sizing:border-box; margin:12px 0 0; font-size:14px!important; line-height:1.5; white-space:normal; overflow-wrap:anywhere; scroll-margin-block:140px 110px; }
+#followed-wallets .followed-wallet-browse:focus-visible { outline:2px solid #ffda80; outline-offset:3px; }
