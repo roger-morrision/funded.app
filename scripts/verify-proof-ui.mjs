@@ -3,6 +3,8 @@ import { readStylesheet } from './read-stylesheet.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { referralRatePresentation } from '../src/features/fees/referral-rate-copy.js';
+import { createFollowingController as createFollowingFixture } from '../src/app/controllers/following.js';
+import { escapeHtml as escapeFixtureHtml } from '../src/features/shared/display.js';
 
 const [html, appEntry, css, pageCss, pageExperience, creatorSupport] = await Promise.all([
   readFile(new URL('../index.html', import.meta.url), 'utf8'),
@@ -95,16 +97,59 @@ assert.ok(watchlistRenderSource, 'Watchlist renderer must be present.');
 const watchlistNodes = {
   '#watch-count': { textContent: '' },
   '#watchlist-empty': { hidden: false },
-  '#watchlist-items': { innerHTML: '', querySelectorAll: () => [] },
+  '#watchlist-items': {
+    isConnected:true, childNodes:[], querySelectorAll:()=>[],
+    get children() { return this.childNodes; },
+    get firstChild() { return this.childNodes[0] || null; },
+    get innerHTML() { return this.childNodes.map(node=>node.outerHTML).join(''); },
+    insertBefore(node,cursor) {
+      const prior=this.childNodes.indexOf(node);
+      if(prior>=0)this.childNodes.splice(prior,1);
+      const index=cursor?this.childNodes.indexOf(cursor):this.childNodes.length;
+      assert.ok(index>=0);
+      this.childNodes.splice(index,0,node);node.parentElement=this;node.isConnected=true;
+    },
+  },
 };
-const renderWatchlistFixture = new Function('document', 'getWatchlist', 'assets', 'verifiedLaunchPolicyForMint', 'portfolioTokenCardMarkup', 'escapeHtml', 'shortAddress', 'loadVerifiedTokenLogos', 'setWatchButtonState', 'watchlistUnavailable', 'watchlistNotice', 'showWatchlistStatus', 'getCoinMintAddress', 'renderFollowedWallets',
-  `${watchlistRenderSource}; return renderWatchlist;`);
-const renderUnavailableWatchlist = renderWatchlistFixture(
-  { querySelector: selector => watchlistNodes[selector], querySelectorAll: () => [] },
-  () => ['missing-mint'], [], () => null, () => 'VERIFIED CARD', value => String(value), value => String(value).slice(0, 5), () => {}, () => {},
-  false, '', () => {}, () => '', () => {},
-);
-renderUnavailableWatchlist();
+const watchlistItems=watchlistNodes['#watchlist-items'];
+watchlistNodes['#community']={isConnected:true,hidden:false,getClientRects:()=>[{}],
+  contains:node=>node===watchlistItems || node?.parentElement===watchlistItems};
+// Initial-render DOM model only: browser cases own native focus and layout proof.
+const watchlistDocument={
+  activeElement:null,hidden:false,hasFocus:()=>false,
+  querySelector:selector=>watchlistNodes[selector],querySelectorAll:()=>[],
+  createElement(tag) {
+    assert.equal(tag,'template');
+    return {content:{firstElementChild:null},set innerHTML(markup) {
+      this.content.firstElementChild={outerHTML:markup,isConnected:false,parentElement:null,
+        contains:()=>false,get nextSibling() {
+          const children=this.parentElement?.childNodes || [];
+          return children[children.indexOf(this)+1] || null;
+        },remove() {
+          const children=this.parentElement?.childNodes || [],index=children.indexOf(this);
+          if(index>=0)children.splice(index,1);this.isConnected=false;this.parentElement=null;
+        }};
+    }};
+  },
+};
+const watchlistGlobals={document:watchlistDocument,location:{pathname:'/',search:'',hash:'#community'},
+  getComputedStyle:()=>({visibility:'visible'})};
+const priorWatchlistGlobals=Object.fromEntries(Object.keys(watchlistGlobals).map(key=>[key,Object.getOwnPropertyDescriptor(globalThis,key)]));
+try {
+  for(const [key,value] of Object.entries(watchlistGlobals))Object.defineProperty(globalThis,key,{value,configurable:true,writable:true});
+  const controller=createFollowingFixture({
+    watchlistSync:{identity:()=>null},getWatchlist:()=>['missing-mint'],assets:[],
+    verifiedLaunchPolicyForMint:()=>null,portfolioTokenCardMarkup:()=>'VERIFIED CARD',
+    escapeHtml:escapeFixtureHtml,shortAddress:value=>String(value).slice(0,5),
+    loadVerifiedTokenLogos:()=>{},setWatchButtonState:()=>{},watchlistUnavailable:false,
+    watchlistNotice:'',showWatchlistStatus:()=>{},getCoinMintAddress:()=>'',renderFollowedWallets:()=>{},
+  });
+  controller.renderWatchlist();
+} finally {
+  for(const [key,descriptor] of Object.entries(priorWatchlistGlobals)) {
+    if(descriptor)Object.defineProperty(globalThis,key,descriptor);else delete globalThis[key];
+  }
+}
 assert.equal(watchlistNodes['#watch-count'].textContent, '1 favorite');
 assert.equal(watchlistNodes['#watchlist-empty'].hidden, true);
 assert.match(watchlistNodes['#watchlist-items'].innerHTML, /Token details unavailable[\s\S]*?data-remove-watch="missing-mint"/, 'A saved mint without verified data must remain removable.');
