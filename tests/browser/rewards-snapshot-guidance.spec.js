@@ -36,7 +36,7 @@ for(const width of [360,390,1440])test(`per-coin snapshot guidance and native Ai
   expect(await page.evaluate(()=>!!document.activeElement?.getClientRects().length&&!document.activeElement?.closest('[hidden]'))).toBe(true);
 });
 
-for(const width of [360,390,1440])test(`holder cutoff boundary and schedule states with native guidance at ${width}px`,async({page},testInfo)=>{
+for(const width of [360,390,1440])for(const partition of [0,1])test(`holder cutoff boundary and schedule states part ${partition+1}/2 with native guidance at ${width}px`,async({page},testInfo)=>{
   await page.setViewportSize({width,height:width<700?844:900});
   const now='2026-10-22T12:00:00.000Z',mint='So11111111111111111111111111111111111111112';
   await page.clock.setFixedTime(new Date(now));
@@ -72,8 +72,8 @@ for(const width of [360,390,1440])test(`holder cutoff boundary and schedule stat
     {name:'late-confirmation',status:'scheduled',payout:'2026-10-22T11:59:30Z',label:'Delayed · awaiting payment confirmation'},
     {name:'unavailable',status:'unavailable',service:'unavailable',label:'Not scheduled'},
   ];
-  const observations=[];
-  for(const state of states){
+  const observations=[];let guideIdentity=null;
+  for(const state of states.slice(partition*5,partition*5+5)){
     current={cutoff:'2026-10-22T11:59:00Z',payout:'2026-10-22T12:01:00Z',...state};
     if(observations.length)await page.reload();else await page.goto('/#payments');
     await page.locator('body.workspace-ready.product-experience-ready').waitFor();
@@ -109,6 +109,7 @@ for(const width of [360,390,1440])test(`holder cutoff boundary and schedule stat
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
     observations.push({state:state.name,label:await panel.locator('[data-clock-label]').innerText(),datesHidden:await dates.getAttribute('hidden'),cutoff:current.cutoff,payout:current.payout,countdown:current.countdown||null});
   }
+  if(partition===1){
   await page.locator('#rewards-overview-tab').click();
   const summary=page.getByText('How to qualify for upcoming rewards',{exact:true});
   // Native pointer entry followed by native keyboard disclosure and its next link.
@@ -117,13 +118,14 @@ for(const width of [360,390,1440])test(`holder cutoff boundary and schedule stat
   await page.keyboard.press('Enter');await expect(summary.locator('..')).toHaveAttribute('open','');
   const guide=page.getByRole('link',{name:'See snapshots and claim deadlines →',exact:true});
   await expect(guide).toBeVisible();
-  const guideIdentity=await guide.evaluate(e=>({sameTarget:e===document.querySelector('.reward-upcoming-grid a[href="#airdrops"]'),matchingTargets:document.querySelectorAll('.reward-upcoming-grid a[href="#airdrops"]').length,tag:e.tagName,text:e.textContent,href:e.getAttribute('href')}));
+  guideIdentity=await guide.evaluate(e=>({sameTarget:e===document.querySelector('.reward-upcoming-grid a[href="#airdrops"]'),matchingTargets:document.querySelectorAll('.reward-upcoming-grid a[href="#airdrops"]').length,tag:e.tagName,text:e.textContent,href:e.getAttribute('href')}));
   expect(guideIdentity.sameTarget).toBe(true);expect(guideIdentity.matchingTargets).toBe(1);
   const guideWatching=page.evaluate(observe,'.reward-upcoming-grid a[href="#airdrops"]');
   for(let i=0;i<4&&!await guide.evaluate(e=>e===document.activeElement);i++)await page.keyboard.press('Tab');
   const guideFocus=await guideWatching;focus.push(guideFocus);expect(guideFocus.pass,JSON.stringify(guideFocus.samples.at(-1))).toBe(true);expect(guideFocus.elapsedMs).toBeLessThanOrEqual(1000);expect(guideFocus.stableMs).toBeGreaterThanOrEqual(100);
   await expect(guide).toBeFocused();await expect(guide).toHaveAttribute('href','#airdrops');
   await page.keyboard.press('Enter');await expect(page).toHaveURL(/#airdrops$/);await expect(page.locator('#airdrops')).toBeVisible();
-  await testInfo.attach('cutoff-schedule-evidence',{body:JSON.stringify({width,qualification:'Controlled API payloads and fixed Date, real application bootstrap/renderer and native interactions; mocked read RPC503, no payment/chain proof. Degraded hidden DOM is underlying data only.',observations,focus,guideIdentity,requests,errors}),contentType:'application/json'});
+  }
+  await testInfo.attach('cutoff-schedule-evidence',{body:JSON.stringify({width,partition:partition+1,qualification:'Controlled API payloads and fixed Date, real application bootstrap/renderer and native interactions; mocked read RPC503, no payment/chain proof. Degraded hidden DOM is underlying data only.',observations,focus,guideIdentity,requests,errors}),contentType:'application/json'});
   expect(errors).toEqual([]);expect(requests.filter(x=>x.path.startsWith('/api/wallets/')||(x.method!=='GET'&&!(x.method==='POST'&&x.path==='/api/solana/rpc'&&x.rpcMethods.length&&x.rpcMethods.every(m=>rpcReads.has(m)))))).toEqual([]);
 });
