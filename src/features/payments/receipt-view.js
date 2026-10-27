@@ -24,6 +24,45 @@ export function filterPaymentHistory(rows, { type = 'all', from = '', to = '', q
   });
 }
 
+// Presentation validity only: existing UTC row filtering remains unchanged.
+export function isPaymentHistoryRangeInverted({from='',to='',fromValid=false,toValid=false,fromTime=NaN,toTime=NaN}={}) {
+  return Boolean(from && to && fromValid && toValid && Number.isFinite(fromTime)
+    && Number.isFinite(toTime) && fromTime > toTime);
+}
+const rangeAttributes = new WeakMap();
+function presentPaymentHistoryDateRange(document) {
+  const from=document.querySelector('#payment-history-from'),to=document.querySelector('#payment-history-to');
+  const conflict=isPaymentHistoryRangeInverted({from:from?.value,to:to?.value,
+    fromValid:from?.validity.valid,toValid:to?.validity.valid,fromTime:from?.valueAsNumber,toTime:to?.valueAsNumber});
+  const error=document.querySelector('#payment-history-range-error');
+  if(!error)return conflict;
+  for(const input of [from,to].filter(Boolean)) {
+    if(conflict) {
+      if(!rangeAttributes.has(input))rangeAttributes.set(input,{invalid:input.getAttribute('aria-invalid'),description:input.getAttribute('aria-describedby')});
+      const before=rangeAttributes.get(input),tokens=(input.getAttribute('aria-describedby')||'').split(/\s+/).filter(Boolean);
+      if(!tokens.includes(error.id)) {
+        before.writtenDescription=[...tokens,error.id].join(' ');
+        input.setAttribute('aria-describedby',before.writtenDescription);
+      }
+      if(input.getAttribute('aria-invalid')!=='true')input.setAttribute('aria-invalid','true');
+    } else if(rangeAttributes.has(input)) {
+      const before=rangeAttributes.get(input),current=input.getAttribute('aria-describedby');
+      if(current===before.writtenDescription) {
+        if(before.description===null)input.removeAttribute('aria-describedby');else input.setAttribute('aria-describedby',before.description);
+      } else {
+        const remaining=(current||'').split(/\s+/).filter(token=>token&&token!==error.id).join(' ');
+        if(remaining)input.setAttribute('aria-describedby',remaining);else input.removeAttribute('aria-describedby');
+      }
+      if(before.invalid===null)input.removeAttribute('aria-invalid');else input.setAttribute('aria-invalid',before.invalid);
+      rangeAttributes.delete(input);
+    }
+  }
+  const text=conflict?'Choose a From date on or before the To date.':'';
+  if(error.textContent!==text)error.textContent=text;
+  if(error.hidden===conflict)error.hidden=!conflict;
+  return conflict;
+}
+
 function preserveReceiptFocus(list, document) {
   const active = document.activeElement;
   if (!active || !list.contains(active) || !active.getClientRects().length) return () => {};
@@ -132,7 +171,8 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     partial:'Verification coverage is incomplete. Confirmed payments are not available in this response.',
     complete:'No confirmed payments are available to show yet.',
   };
-  const filtered = filterPaymentHistory(historyPayouts, filters);
+  const rangeConflict = presentPaymentHistoryDateRange(document);
+  const filtered = rangeConflict ? [] : filterPaymentHistory(historyPayouts, filters);
   // Live receipt refreshes must not interrupt an expanded fee breakdown.
   const openDetails = container => new Set(Array.from(container.querySelectorAll('details[open]'), details => details.dataset.receiptKey));
   const listOpenDetails = openDetails(list);
@@ -220,11 +260,15 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
   }
   if (!filtered.length) {
     const noMatch = filters.query ? 'No confirmed payments match this search and these filters.' : 'No confirmed payments match these filters.';
-    list.innerHTML = `<p class="empty-state">${historyPayouts.length ? noMatch : emptyMessages[historyState]}</p>`;
+    list.innerHTML = `<p class="empty-state">${rangeConflict ? 'Correct the date range to view matching payments.' : historyPayouts.length ? noMatch : emptyMessages[historyState]}</p>`;
   }
   paginateHistory(list, {label:'Payment history', selector:'.payment-history-row', key:JSON.stringify(filters), pageSize:10});
   const footnote = document.querySelector('#payment-history-footnote');
-  const footnoteMessage = historyPayouts.length
+  const footnoteMessage = rangeConflict
+    ? ({ loading:'Waiting for the current payment history check to finish.',
+      unavailable:'Payment history could not be fully checked. Try again shortly.',
+      partial:'Available history is incomplete.', complete:'Payment history check is complete.' })[historyState]
+    : historyPayouts.length
     ? `${filtered.length} of ${historyPayouts.length} confirmed payments${filters.from || filters.to ? ' · dates in UTC' : ''} · fees in details${historyState === 'partial' ? ' · some history is missing' : historyState === 'unavailable' ? ' · coverage unavailable' : historyState === 'loading' ? ' · checking payment history' : ''}`
     : ({ loading:'Waiting for the current payment history check to finish.',
       unavailable:'Payment history could not be fully checked. Try again shortly.',

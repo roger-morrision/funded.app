@@ -195,7 +195,7 @@ for(const width of [360,390,1440])test(`Rewards History native local identifier 
     await page.keyboard.press('ControlOrMeta+A');await page.keyboard.insertText('SharedAbC');await expect(nav).toContainText('Page 1 of 1');
     await page.locator('#payment-history-type').selectOption('creator');await page.locator('#payment-history-from').fill('2026-10-20');await page.locator('#payment-history-to').fill('2026-10-20');
     expect((await rows(page)).map(r=>r.details)).toEqual([receiptKey(searchReceipts[18]),receiptKey(searchReceipts[26])]);
-    await page.locator('#payment-history-from').fill('2026-10-21');await expect(list(page).locator('.empty-state')).toHaveText('No confirmed payments match this search and these filters.');await page.locator('#payment-history-from').fill('2026-10-20');await page.locator('#payment-history-type').selectOption('holder');await expect(list(page).locator('.empty-state')).toHaveText('No confirmed payments match this search and these filters.');await page.locator('#payment-history-type').selectOption('all');
+    await page.locator('#payment-history-from').fill('2026-10-21');await expect(list(page).locator('.empty-state')).toHaveText('Correct the date range to view matching payments.');await expect(page.locator('#payment-history-range-error')).toHaveText('Choose a From date on or before the To date.');await page.locator('#payment-history-from').fill('2026-10-20');await page.locator('#payment-history-type').selectOption('holder');await expect(list(page).locator('.empty-state')).toHaveText('No confirmed payments match this search and these filters.');await page.locator('#payment-history-type').selectOption('all');
     await search.click();await page.keyboard.press('ControlOrMeta+A');await page.keyboard.insertText('sharedabc.*');await expect(list(page).locator('.empty-state')).toHaveText('No confirmed payments match this search and these filters.');
     await page.keyboard.press('Tab');await expect(page.locator('#payment-history-type')).toBeFocused();await page.keyboard.press('Shift+Tab');await expect(search).toBeFocused();
     focus.push(await search.evaluate(observeSearchFocus,{selector:'#payment-history-search'}));
@@ -473,5 +473,232 @@ function observeBonus077Control(original, readiness = {}) {
     };
     const timer = setTimeout(() => finish(false), 1000);
     frame = requestAnimationFrame(tick);
+  });
+}
+
+const range079Message='Choose a From date on or before the To date.';
+const range079Instruction='Correct the date range to view matching payments.';
+const range079Ids=['payment-history-search','payment-history-type','payment-history-from','payment-history-to','payment-history-clear'];
+async function range079Observe(page) {
+  const requests=[],pending=new Set();let closing;
+  const failed=(row,reason,error)=>{
+    row.state=closing?'cancelled':'failed';row.failureReason=reason;row.error=String(error);
+    if(closing){row.phase=closing.phase;row.closeReason=closing.reason;}
+  };
+  page.on('request',request=>{
+    const u=new URL(request.url());if(!u.pathname.startsWith('/api/'))return;
+    requests.push({request,path:u.pathname,method:request.method(),state:'pending',phase:'journey'});
+  });
+  page.on('requestfailed',request=>{
+    const row=requests.find(r=>r.request===request);if(row)failed(row,'requestfailed',request.failure()?.errorText||'Request failed');
+  });
+  page.on('response',response=>{
+    const row=requests.find(r=>r.request===response.request());if(!row)return;
+    row.status=response.status();
+    const work=(async()=>{try{
+      row.finishedError=await response.finished();
+      if(row.finishedError!==null){failed(row,'response-finished-error',row.finishedError);return;}
+      row.body=await response.json();row.jsonComplete=true;row.state='complete';
+    }catch(error){failed(row,'response-body-error',error);}})();
+    pending.add(work);void work.finally(()=>pending.delete(work));
+  });
+  return {requests,pending,beginClose:reason=>{closing={phase:'owned-context-close',reason};},settle:async({allowCloseCancellation=false}={})=>{
+    await expect.poll(()=>pending.size).toBe(0);
+    await expect.poll(()=>requests.filter(r=>r.state==='pending').length).toBe(0);
+    const unacceptable=requests.filter(row=>!(row.state==='complete'&&row.jsonComplete===true&&row.finishedError===null)
+      && !(allowCloseCancellation&&row.state==='cancelled'&&row.phase==='owned-context-close'&&row.closeReason));
+    expect(unacceptable.map(({request,...row})=>row),'Expected API reads must have complete JSON and no finished/request failure; JSON503 fixtures are allowed').toEqual([]);
+  },snapshot:()=>requests.map(({request,...row})=>row)};
+}
+async function range079Finish({context,watch,release,info,evidence,name,primary,hasPrimary}) {
+  const errors=[];
+  const attempt=async(phase,action)=>{try{await action();}catch(error){errors.push({phase,error});}};
+  evidence.primaryFailure=hasPrimary?{name:primary?.name,message:String(primary),stack:primary?.stack}:null;
+  try{
+    if(release)await attempt('release-held-route',release);
+    if(watch)await attempt('before-close-complete-responses',()=>watch.settle());
+  }finally{
+    try{
+      await attempt('mark-close-phase',()=>watch?.beginClose(hasPrimary||errors.length?'Cleanup after original journey or verification failure':'Normal cleanup after complete response checks'));
+      evidence.contextClose={attempted:true,complete:false};
+      await attempt('owned-context-close',async()=>{await context.close();evidence.contextClose.complete=true;});
+    }finally{
+      if(watch)await attempt('after-close-final-zero',async()=>{
+        // Only a journey that already failed may classify close cancellation separately.
+        // Such rows never count as completed-body proof or rescue the original failure.
+        await watch.settle({allowCloseCancellation:hasPrimary});expect(watch.pending.size).toBe(0);
+      });
+      evidence.responses=watch?.snapshot();
+      evidence.cleanupErrors=errors.map(({phase,error})=>({phase,message:String(error),stack:error.stack}));
+      await attempt('evidence-attachment',()=>info.attach(name,{body:JSON.stringify(evidence),contentType:'application/json'}));
+    }
+  }
+  if(hasPrimary){
+    if(errors.length){
+      const causes=[...(primary?.cause?[primary.cause]:[]),...errors.map(({error})=>error)];
+      try{Object.defineProperty(primary,'cause',{value:new AggregateError(causes,'Cleanup diagnostics; original journey failure retained'),configurable:true});}catch{/* Preserve the exact original thrown value even if it cannot hold metadata. */}
+    }
+    throw primary;
+  }
+  if(errors.length)throw new AggregateError(errors.map(({error})=>error),'Date-range verification cleanup or completed-response check failed');
+}
+async function range079Setup(page) {
+  const fonts=await page.evaluate(async()=>{
+    await document.fonts.ready;const faces=await document.fonts.load('600 16px "Manrope"','2026 Choose From To');
+    await document.fonts.ready;return faces.map(f=>({family:f.family,weight:f.weight,status:f.status}));
+  });
+  expect(fonts.length).toBeGreaterThan(0);expect(fonts.every(f=>f.family==='Manrope'&&f.status==='loaded')).toBe(true);
+  await page.evaluate(ids=>{
+    const controls=ids.map(id=>document.getElementById(id)),error=document.getElementById('payment-history-range-error');
+    // Controlled accessibility preconditions only; no focus, value, scroll or style replacement.
+    controls[2].setAttribute('aria-describedby','payment-history-search-help');
+    controls[3].setAttribute('aria-invalid','false');
+    const baseline=controls.slice(2,4).map(e=>({invalid:e.getAttribute('aria-invalid'),description:e.getAttribute('aria-describedby')}));
+    window.__range079={controls,error,baseline,announcements:[],nativeEvents:[]};
+    new MutationObserver(()=>{const text=error.textContent;if(text)window.__range079.announcements.push(text);})
+      .observe(error,{childList:true,subtree:true,characterData:true});
+    for(const input of controls.slice(2,4))for(const type of ['input','change'])input.addEventListener(type,event=>{
+      window.__range079.nativeEvents.push({type,trusted:event.isTrusted,id:input.id,value:input.value});
+    });
+  },range079Ids);
+  return fonts;
+}
+async function range079TabTo(page,target) {
+  for(let n=0;n<100;n++){
+    if(await target.evaluate(e=>document.activeElement===e))return;
+    await page.keyboard.press('Tab');
+  }
+  throw Error('Native Tab did not reach original date/Clear control');
+}
+async function range079Focus(page,target,evidence) {
+  await range079TabTo(page,target);await page.keyboard.press('Shift+Tab');
+  const hash=new URL(page.url()).hash;
+  await target.evaluate((element,{source,hash})=>{
+    let resolve;window.__range079Proof=new Promise(r=>resolve=r);
+    const from=document.activeElement;
+    const begin=event=>{
+      if(!event.isTrusted||event.key!=='Tab'||event.shiftKey)return;
+      from.removeEventListener('keydown',begin,true);const began=performance.now();
+      (new Function('return ('+source+')')())(element,{hash}).then(proof=>resolve({proof,began,ended:performance.now(),
+        trusted:event.isTrusted,active:element===document.activeElement,connected:element.isConnected}));
+    };
+    from.addEventListener('keydown',begin,true);
+  },{source:observeBonus077Control.toString(),hash});
+  await page.keyboard.press('Tab');const value=await page.evaluate(()=>window.__range079Proof);evidence.push(value);
+  expect(value.proof.pass,JSON.stringify(value)).toBe(true);expect(value.ended-value.began).toBeLessThanOrEqual(1000);
+  expect(value.proof.samples.at(-1).stationaryMs).toBeGreaterThanOrEqual(100);
+  expect(value.trusted&&value.active&&value.connected).toBe(true);
+}
+async function range079Conflict(page) {
+  // Date fills establish the contradiction, not claimed native date-picker entry.
+  await page.locator('#payment-history-from').fill('2026-10-21');
+  await page.locator('#payment-history-to').fill('2026-10-20');
+  await expect(page.locator('#payment-history-to')).toBeFocused();
+  const error=page.locator('#payment-history-range-error');await expect(error).toBeVisible();await expect(error).toHaveText(range079Message);
+  await expect(error).toHaveAttribute('role','status');await expect(error).toHaveAttribute('aria-live','polite');
+  for(const id of ['payment-history-from','payment-history-to']){
+    const input=page.locator('#'+id);await expect(input).toHaveAttribute('aria-invalid','true');
+    expect((await input.getAttribute('aria-describedby')).split(/\s+/)).toContain('payment-history-range-error');
+  }
+  expect((await page.locator('#payment-history-from').getAttribute('aria-describedby')).split(/\s+/)).toContain('payment-history-search-help');
+  await expect(list(page).locator('.empty-state')).toHaveText(range079Instruction);
+  await expect(note(page)).not.toContainText(/\b0 of\b/);
+  expect(await page.evaluate(()=>window.__range079.controls.every(e=>e.isConnected&&e===document.getElementById(e.id)))).toBe(true);
+}
+async function range079Restored(page) {
+  await expect(page.locator('#payment-history-range-error')).toBeHidden();
+  expect(await page.evaluate(()=>window.__range079.controls.slice(2,4).map(e=>({invalid:e.getAttribute('aria-invalid'),description:e.getAttribute('aria-describedby')}))))
+    .toEqual(await page.evaluate(()=>window.__range079.baseline));
+}
+async function range079ReadMessage(page) {
+  const clear=await page.locator('#payment-history-clear').elementHandle();await range079TabTo(page,clear);
+  // Arrow keys scroll normally from a button; never use them to scroll a focused date segment.
+  for(let n=0;n<100;n++){
+    const value=await page.locator('#payment-history-range-error').evaluate(e=>{
+      const r=e.getBoundingClientRect(),s=getComputedStyle(e),nav=document.querySelector('.mobile-workspace-nav'),header=document.querySelector('.topbar');
+      const top=header?.getClientRects().length?Math.max(0,header.getBoundingClientRect().bottom):0;
+      const bottom=nav?.getClientRects().length?nav.getBoundingClientRect().top:innerHeight;
+      const range=document.createRange();range.selectNodeContents(e);
+      return {top:r.top,bottom:r.bottom,bounds:{top,bottom},full:r.top>=top&&r.bottom<=bottom&&r.left>=0&&r.right<=innerWidth,
+        overflow:document.documentElement.scrollWidth>innerWidth,textOverflow:s.textOverflow,whiteSpace:s.whiteSpace,
+        textContained:[...range.getClientRects()].every(q=>q.left>=r.left-1&&q.right<=r.right+1&&q.top>=r.top-1&&q.bottom<=r.bottom+1)};
+    });
+    if(value.full){expect(value.overflow).toBe(false);expect(value.textOverflow).not.toBe('ellipsis');expect(value.whiteSpace).not.toBe('nowrap');expect(value.textContained).toBe(true);return value;}
+    await page.keyboard.press(value.top<value.bounds.top?'ArrowUp':'ArrowDown');await page.evaluate(()=>new Promise(requestAnimationFrame));
+  }
+  throw Error('Native reading did not reveal complete date guidance');
+}
+async function range079NativeCorrection(page,width) {
+  const from=page.locator('#payment-history-from'),before=await from.inputValue();
+  const position=await from.evaluate(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return{x:Math.min(r.width-24,Math.max(12,parseFloat(s.paddingLeft)+8)),y:r.height/2};});
+  if(width<700)await from.tap({position});else await from.click({position});
+  await expect(from).toBeFocused();await page.keyboard.press('ArrowDown');await page.keyboard.press('Tab');
+  await expect(from).not.toHaveValue(before);await range079Restored(page);
+  const after=await from.inputValue();expect(after<'2026-10-20'||after==='2026-10-20').toBe(true);
+  const events=await page.evaluate(()=>window.__range079.nativeEvents);
+  expect(events.some(e=>e.type==='change'&&e.trusted&&e.id==='payment-history-from'&&e.value===after)).toBe(true);
+  return {before,after,events,qualification:'ArrowDown native segment edit and Tab commit after qualified fills; mobile touch is emulated.'};
+}
+for(const width of [360,390,1440]){
+  test(`FQA-079 native inverted dates correct and Clear at ${width}px`,async({browser},info)=>{
+    test.setTimeout(60_000);
+    const context=await browser.newContext({viewport:{width,height:width<700?844:900},hasTouch:width<700,isMobile:width<700,locale:'en-US'});
+    let page,f,watch,primary,hasPrimary=false;const evidence={width,proofs:[]};
+    try{
+      page=await context.newPage(); // Existing Playwright trace:on owns tracing and artifact retention.
+      f=await fixture(page,{history:data('onchain-indexed',receipts)});await searchFonts(page);
+      await page.route('**/api/rewards/automatic',r=>r.fulfill({json:{status:'unavailable',schedules:[],serverTime:'2026-10-21T00:00:00Z'}}));
+      watch=await range079Observe(page);await ready(page,width);await expect(list(page).locator('.payment-history-row')).toHaveCount(2);await watch.settle();
+      evidence.fonts=await range079Setup(page);const baseline=await rows(page),kpi=await page.locator('[data-analytics-metric="payouts"] strong').innerText(),before=watch.requests.length;
+      const storage=await page.evaluate(()=>JSON.stringify([Object.entries(localStorage),Object.entries(sessionStorage)]));
+      await range079Conflict(page);await expect(note(page)).toHaveText('Payment history check is complete.');
+      evidence.reading=await range079ReadMessage(page);await page.screenshot({path:info.outputPath('range-guidance-'+width+'.png')});
+      evidence.correction=await range079NativeCorrection(page,width);expect(await rows(page)).toEqual(baseline);
+      await range079Conflict(page);const original=await page.locator('#payment-history-clear').elementHandle();
+      await range079Focus(page,original,evidence.proofs);await page.keyboard.press('Enter');await expect(page.locator('#payment-history-clear')).toBeFocused();
+      await range079Restored(page);expect(await rows(page)).toEqual(baseline);
+      for(const selector of ['#payment-history-search','#payment-history-from','#payment-history-to'])await expect(page.locator(selector)).toHaveValue('');
+      await expect(page.locator('#payment-history-type')).toHaveValue('all');
+      expect(await page.locator('[data-analytics-metric="payouts"] strong').innerText()).toBe(kpi);
+      expect(watch.requests.length).toBe(before);expect(await page.evaluate(()=>JSON.stringify([Object.entries(localStorage),Object.entries(sessionStorage)]))).toBe(storage);
+      expect(await page.evaluate(()=>window.__range079.announcements)).toEqual([range079Message,range079Message]);
+      expect(f.errors).toEqual([]);expect(f.writes).toEqual([]);expect(watch.requests.filter(r=>r.path.startsWith('/api/wallets/'))).toEqual([]);
+    }catch(error){primary=error;hasPrimary=true;}finally{
+      await range079Finish({context,watch,info,evidence,name:'range-native-'+width,primary,hasPrimary});
+    }
+  });
+  test(`FQA-079 date guidance survives independent coverage states at ${width}px`,async({browser},info)=>{
+    test.setTimeout(60_000);
+    const context=await browser.newContext({viewport:{width,height:width<700?844:900},hasTouch:width<700,isMobile:width<700,locale:'en-US'});
+    let page,f,watch,primary,released=false,hasPrimary=false;const evidence={width,states:[],proofs:[]};
+    try{
+      page=await context.newPage(); // Existing Playwright trace:on owns tracing and artifact retention.
+      f=await fixture(page,{held:true});await searchFonts(page);
+      await page.route('**/api/rewards/automatic',r=>r.fulfill({json:{status:'unavailable',schedules:[],serverTime:'2026-10-21T00:00:00Z'}}));
+      watch=await range079Observe(page);await ready(page,width);await expect.poll(()=>f.requests()).toBe(1);
+      evidence.fonts=await range079Setup(page);const original=await page.locator('#payment-history-to').elementHandle();
+      await range079Conflict(page);await expect(note(page)).toHaveText('Waiting for the current payment history check to finish.');
+      expect(f.requests()).toBe(1);expect(f.completed()).toBe(0);
+      await f.release(null);released=true;await expect(note(page)).toHaveText('Payment history could not be fully checked. Try again shortly.');
+      for(const [history,caption] of [[data('partial'),'Available history is incomplete.'],[data('partial',receipts),'Available history is incomplete.'],
+        [data('onchain-indexed'),'Payment history check is complete.'],[data('onchain-indexed',receipts),'Payment history check is complete.']]){
+        const announcements=await page.evaluate(()=>window.__range079.announcements.length);
+        await refresh(page,f,history);await expect(note(page)).toHaveText(caption);await expect(list(page).locator('.empty-state')).toHaveText(range079Instruction);
+        expect(await original.evaluate(e=>e.isConnected&&e===document.activeElement)).toBe(true);
+        expect(await page.evaluate(()=>window.__range079.announcements.length)).toBe(announcements);
+        evidence.states.push({source:history.status,sourceRows:history.verifiedPayouts.length,caption});
+      }
+      const before=watch.requests.length;await page.locator('#payment-history-from').fill('2026-10-20');await range079Restored(page);
+      await expect(list(page).locator('.payment-history-row')).toHaveCount(2);
+      await page.locator('#payment-history-from').fill('');await range079Restored(page);await expect(list(page).locator('.payment-history-row')).toHaveCount(2);
+      await range079Conflict(page);const clear=page.locator('#payment-history-clear');
+      if(width<700)await clear.tap();else await clear.click();await expect(clear).toBeFocused();await range079Restored(page);
+      await expect(list(page).locator('.payment-history-row')).toHaveCount(2);expect(watch.requests.length).toBe(before);
+      await range079Focus(page,await clear.elementHandle(),evidence.proofs);
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+      expect(f.errors).toEqual([]);expect(f.writes).toEqual([]);await page.screenshot({path:info.outputPath('range-states-'+width+'.png')});
+    }catch(error){primary=error;hasPrimary=true;}finally{
+      await range079Finish({context,watch,release:f&&!released?()=>f.release(null):null,info,evidence,name:'range-states-'+width,primary,hasPrimary});
+    }
   });
 }

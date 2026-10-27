@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { filterPaymentHistory } from '../src/features/payments/receipt-view.js';
+import { filterPaymentHistory, isPaymentHistoryRangeInverted } from '../src/features/payments/receipt-view.js';
 
 const day = Date.parse('2026-10-20T00:00:00Z') / 1000;
 const rows = Object.freeze([
@@ -54,4 +54,39 @@ test('History clearing search/type/dates recovers original source without changi
   assert.deepEqual(select(options),[rows[1]]);
   assert.deepEqual(select({query:'',type:'all',from:'',to:''}),rows);
   assert.equal(options.query,'Shared');
+});
+
+const range = (from,to,extra={}) => ({from,to,fromValid:true,toValid:true,
+  fromTime:from?Date.parse(from+'T00:00:00Z'):NaN,toTime:to?Date.parse(to+'T00:00:00Z'):NaN,...extra});
+test('History range guidance identifies a complete native inversion without changing filters or receipts',()=>{
+  const options=Object.freeze(range('2026-10-21','2026-10-20'));
+  assert.equal(isPaymentHistoryRangeInverted(options),true);
+  assert.deepEqual(select({from:options.from,to:options.to}),[]);
+  assert.equal(options.from,'2026-10-21');assert.equal(rows.length,5);
+});
+test('History range guidance keeps equal inclusive UTC day and either one-sided bound valid',()=>{
+  for(const [from,to] of [['2026-10-20','2026-10-20'],['2026-10-20',''],['','2026-10-20'],['','']])
+    assert.equal(isPaymentHistoryRangeInverted(range(from,to)),false);
+  assert.deepEqual(select({from:'2026-10-20',to:'2026-10-20'}),[rows[0],rows[1]]);
+});
+test('History range guidance ignores incomplete or invalid native date controls',()=>{
+  for(const extra of [{fromValid:false},{toValid:false},{fromTime:NaN},{toTime:Infinity}])
+    assert.equal(isPaymentHistoryRangeInverted(range('2026-10-21','2026-10-20',extra)),false);
+  assert.equal(isPaymentHistoryRangeInverted(),false);
+});
+test('History correcting either conflicting bound recovers the original loaded UTC interval',()=>{
+  assert.equal(isPaymentHistoryRangeInverted(range('2026-10-21','2026-10-20')),true);
+  for(const [from,to] of [['2026-10-20','2026-10-20'],['2026-10-21','2026-10-21']]) {
+    assert.equal(isPaymentHistoryRangeInverted(range(from,to)),false);
+    assert.deepEqual(select({from,to}),from==='2026-10-20'?[rows[0],rows[1]]:[rows[2]]);
+  }
+});
+test('History clearing an inverted interval restores exact unfiltered identities and order',()=>{
+  assert.equal(isPaymentHistoryRangeInverted(range('2026-10-21','2026-10-20')),true);
+  assert.equal(isPaymentHistoryRangeInverted(range('','')),false);assert.deepEqual(select(),rows);
+});
+test('History validity presentation does not change literal search/type or missing-time behavior',()=>{
+  assert.equal(isPaymentHistoryRangeInverted(range('2026-10-20','2026-10-20')),false);
+  assert.deepEqual(select({query:'Shared',type:'creator',from:'2026-10-20',to:'2026-10-20'}),[rows[1]]);
+  assert.deepEqual(select({query:'shared',from:'2026-10-20'}),[]);
 });
