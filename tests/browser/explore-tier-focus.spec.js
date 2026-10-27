@@ -685,7 +685,7 @@ for (const width of [360,390,1440]) {
       await tableStopObservation(original);await tableSettled(f);f.destination=true;
       await page.keyboard.press('Enter');await tableExpect(page).toHaveURL(new RegExp('/token/'+tableMints[0]+'$'),{timeout:15000});
       await tableExpect(page.locator('#coin-page-title')).toHaveText('FQA078 Alpha updated',{timeout:15000});
-      await tableExpect(page.locator('#coin-trade-count')).toHaveText('Unavailable',{timeout:15000});
+      await tableExpect(page.locator('#coin-pulse-trades')).toHaveText('Unavailable',{timeout:15000});
       await tableSettled(f);await page.goBack();await page.locator('body.page-route-explore.workspace-ready').waitFor();
       await tableExpect(page.locator('#explore-search')).toHaveValue(tableQuery,{timeout:15000});
       await tableExpect(page.locator('button[data-explore-view="table"]')).toHaveAttribute('aria-pressed','true',{timeout:15000});
