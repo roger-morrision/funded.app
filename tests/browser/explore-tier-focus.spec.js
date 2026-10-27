@@ -800,14 +800,27 @@ test('FQA-078 ordinary read does not reveal a primary link obscured by native us
         const now=performance.now(),position=JSON.stringify([scrollX,scrollY,rect.top,rect.bottom]);
         const obscured=rect.bottom<top&&document.activeElement===anchor&&anchor.isConnected;
         if(obscured){if(last!==position||stable===null)stable=now;}else stable=null;last=position;
-        if(stable!==null&&now-stable>=100)return finish({pass:true,scrollX,scrollY,rect:{top:rect.top,bottom:rect.bottom},top});
+        if(stable!==null&&now-stable>=100)return finish({pass:true,scrollX,scrollY,rect:{top:rect.top,bottom:rect.bottom},top,
+          documentHeight:document.documentElement.scrollHeight,tableHeight:document.querySelector('.scanner-scroll').scrollHeight});
         if(now-began>1000)return finish({pass:false});frame=requestAnimationFrame(tick);};
       timer=setTimeout(()=>finish({pass:false}),1000);frame=requestAnimationFrame(tick);
     }));
     tableExpect(before.pass).toBe(true);await tableBeginRevealAudit(original);f.release();
     await tablePumpPhase(f,'updated');await tableExpect(page.locator(tablePrimary)).toContainText('Alpha updated');
     const audit=await tableEndRevealAudit(original,info,'pre-obscured','none');
-    tableExpect(audit.after.scrollX).toBe(before.scrollX);tableExpect(audit.after.scrollY).toBe(before.scrollY);
+    tableExpect(audit.after.scrollX).toBe(before.scrollX);
+    const nativeGeometry=await page.evaluate(()=>({documentHeight:document.documentElement.scrollHeight,
+      tableHeight:document.querySelector('.scanner-scroll').scrollHeight,scrollY,maxScroll:document.documentElement.scrollHeight-innerHeight}));
+    // Native scroll anchoring can track a growing/reordered table without an
+    // application scroll call. Exact window Y is meaningful for stable geometry.
+    if(nativeGeometry.documentHeight===before.documentHeight&&nativeGeometry.tableHeight===before.tableHeight) {
+      tableExpect(audit.after.scrollY).toBe(before.scrollY);
+    } else {
+      tableExpect(nativeGeometry.scrollY).toBeGreaterThanOrEqual(0);
+      tableExpect(nativeGeometry.scrollY).toBeLessThanOrEqual(nativeGeometry.maxScroll);
+    }
+    await info.attach('table-native-anchor-geometry',{body:JSON.stringify({before,after:nativeGeometry,
+      appRevealCalls:audit.records.length,qualification:'Native geometry shift is recorded separately; zero application reveal, same original focus and remaining obscuration are still mandatory.'}),contentType:'application/json'});
     tableExpect(audit.after.bottom).toBeLessThan(audit.after.safeTop);
     await tableObserved(original,info,'pre-obscured');const after=await tableSnapshot(original,info,'pre-obscured');
     tableExpect(after.rank).toBe('2');tableExpect(after.rows.map(row=>row.mint)).toEqual([tableMints[1],tableMints[0]]);
