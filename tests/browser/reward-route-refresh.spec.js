@@ -1,8 +1,9 @@
+import {requiredFeePolicyForCompiled} from '../fixtures/compiled-artifact-fixture.js';
 import { test, expect } from '@playwright/test';
 
 test('rapid section navigation reuses reward evidence while identity changes refresh it', async ({ page }) => {
   let rewardRequests = 0;
-  await page.route('**/api/**', route => route.fulfill({ status: 503, json: { error: 'offline fixture' } }));
+  await page.route('**/api/**', route => requiredFeePolicyForCompiled(route) ?? route.fulfill({ status: 503, json: { error: 'offline fixture' } }));
   await page.route('**/api/rewards/experience*', route => {
     rewardRequests += 1;
     return route.fulfill({ json: { cluster: 'devnet', evidence: { status: 'no-records' }, tokens: [], events: [] } });

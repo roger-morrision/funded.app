@@ -393,7 +393,7 @@ for(const width of[360,390,1440])test.describe(`listing guide viewport${width}`,
       await listingGuideBack(page,c,'pointer-Back',returns);
       const explore='#docs-guide-article > .docs-guide-link';targets.push(await listingGuideFocus(page,explore,'#docs/promotions','preserved-explore'));
       await expect(page.locator(explore)).toHaveText('Review verified token promotions →');await expect(page.locator(explore)).toHaveAttribute('href','#explore');
-      f.phase='preserved-explore';f.explore.armedAt={epochMs:performance.timeOrigin+performance.now(),monotonicMs:performance.now()};
+      f.phase='preserved-explore';f.explore.armedAt=await page.evaluate(()=>({epochMs:performance.timeOrigin+performance.now(),monotonicMs:performance.now(),clock:'browser-performance'}));
       await info.attach('listing-guide-Explore-armed',{body:JSON.stringify({phase:f.phase,armedAt:f.explore.armedAt,sourceInventory:{pumpMinimum:1,distinctLaunchesMinimum:2}}),contentType:'application/json'});
       await page.keyboard.press('Enter');await expect(page).toHaveURL(/#explore$/);await expect(page.locator('body')).toHaveClass(/page-route-explore/);await expect(page.locator('#explore')).toBeVisible();
       await expect(page.locator('#asset-grid .onchain-empty > strong')).toBeVisible();await expect(page.locator('#asset-grid .onchain-empty > strong')).toHaveText('Tokens are temporarily unavailable.');

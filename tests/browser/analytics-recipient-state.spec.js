@@ -258,8 +258,14 @@ async function collectionRead(page,locator,label) {
 }
 async function collectionFixture(page,width,mode) {
   const origin=new URL(test.info().project.use.baseURL).origin;
-  const f={api:[],rpc:[],errors:[],failed:[],forbidden:[],responses:[],finishedTasks:[],receiptRequests:0,release:null};
-  const records=new WeakMap();let next=0;
+  const f={api:[],rpc:[],errors:[],failed:[],forbidden:[],responses:[],finishedTasks:[],receiptRequests:0,release:null,receiptFixturePhase:'initial',receiptGeneration:0,receiptPhaseArms:[]};
+  f.armReceiptPhase=phase=>{
+    if(!['invalid','recovery'].includes(phase)||f.receiptGeneration!==0)throw Error('Exactly one explicit receipt phase transition required');
+    f.receiptPhaseArms.push({from:f.receiptFixturePhase,to:phase,generation:++f.receiptGeneration,at:new Date().toISOString(),started:f.receiptRequests,finished:f.responses.filter(r=>r.path==='/api/evidence/receipts').length});
+    f.receiptFixturePhase=phase;
+  };
+  const records=new WeakMap(),receiptDispatchPhases=new WeakMap();let next=0;
+  page.on('request',q=>{if(new URL(q.url()).pathname==='/api/evidence/receipts')receiptDispatchPhases.set(q,{phase:f.receiptFixturePhase,generation:f.receiptGeneration,startedAt:new Date().toISOString()});});
   page.on('pageerror',e=>f.errors.push(e.message));page.on('requestfailed',q=>f.failed.push({url:q.url(),method:q.method(),error:q.failure()?.errorText}));
   page.on('requestfinished',q=>{const record=records.get(q);if(!record)return;
     f.finishedTasks.push((async()=>{const response=await q.response();record.finishedError=await response.finished();
@@ -283,10 +289,12 @@ async function collectionFixture(page,width,mode) {
     if(u.pathname==='/api/fee-policy')return fulfill(200,{split:PROTOCOL_FEE_SPLIT});
     if(u.pathname==='/api/rewards/automatic')return fulfill(200,{status:'unavailable',reason:'Offline collection fixture',schedules:[],serverTime:'2026-10-23T04:00:00.000Z'});
     if(u.pathname==='/api/evidence/receipts') {
-      record.receiptPhase=++f.receiptRequests;
-      if(mode==='recovery'&&record.receiptPhase===1){await new Promise(resolve=>f.release=resolve);return fulfill(503,{error:'Controlled initial collection evidence unavailable'});}
-      if(mode==='populated'&&record.receiptPhase===1)return fulfill(200,collectionPayload(collectionRows));
-      if(mode==='populated')return fulfill(200,collectionPayload([collectionRows[0],{...collectionRows[0],collectedLamports:'1'}]));
+      const dispatch=receiptDispatchPhases.get(q);if(!dispatch)throw Error('Original receipt request dispatch phase unavailable');
+      record.receiptPhase=++f.receiptRequests;record.receiptFixturePhase=dispatch.phase;record.receiptGeneration=dispatch.generation;record.receiptDispatchedAt=dispatch.startedAt;
+      if(mode==='recovery'&&record.receiptFixturePhase==='initial'&&record.receiptPhase===1){await new Promise(resolve=>f.release=resolve);return fulfill(503,{error:'Controlled initial collection evidence unavailable'});}
+      if(mode==='populated'&&record.receiptFixturePhase==='initial')return fulfill(200,collectionPayload(collectionRows));
+      if(record.receiptFixturePhase==='invalid')return fulfill(200,collectionPayload([collectionRows[0],{...collectionRows[0],collectedLamports:'1'}]));
+      if(record.receiptFixturePhase==='initial')return fulfill(503,{error:'Controlled initial collection evidence unavailable'});
       return fulfill(200,collectionPayload(collectionRows.map(row=>({...row,blockTime:null}))));
     }
     return fulfill(503,{error:'Controlled unavailable collection supporting service'});
@@ -317,7 +325,9 @@ async function collectionFinish(f,info) {
   for(const r of f.responses){expect(r.finishedError).toBeNull();expect(r.fulfilled).toBe(true);expect(r.actualStatus).toBe(r.expectedStatus);expect(r.actualBody).toBe(r.expectedBody);expect(r.actualHeaders['x-fqa076-read-id']).toBe(r.id);}
 }
 async function collectionRefreshProof(page,original,details,f,phase) {
-  const prior=f.responses.filter(r=>r.path==='/api/evidence/receipts').length;
+  const generation=f.receiptGeneration;expect(generation).toBe(1);
+  const completed=()=>f.responses.filter(r=>r.path==='/api/evidence/receipts'&&r.receiptGeneration===generation);
+  const prior=completed().length;
   const focus=await original.evaluate(e=>{
     window.__collectionRefreshFocus=[];const listener=event=>window.__collectionRefreshFocus.push({original:event.target===e,id:event.target.id});
     document.addEventListener('focusin',listener,true);window.__collectionRefreshFocusCleanup=()=>document.removeEventListener('focusin',listener,true);
@@ -325,7 +335,8 @@ async function collectionRefreshProof(page,original,details,f,phase) {
   });
   expect(focus.active).toBe(true);
   // The app already polls every60000ms. No clock manipulation, synthetic route event or extra request.
-  await expect.poll(()=>f.responses.filter(r=>r.path==='/api/evidence/receipts').length,{timeout:70000}).toBeGreaterThan(prior);
+  await expect.poll(()=>completed().length,{timeout:70000}).toBeGreaterThan(prior);
+  expect(completed().every(r=>r.fulfilled&&r.finishedError===null&&r.actualHeaders['x-fqa076-read-id']===r.id)).toBe(true);
   expect(await original.evaluate(e=>e.isConnected&&e===document.getElementById('analytics-collection-history-summary')&&document.activeElement===e)).toBe(true);
   expect(await details.evaluate(e=>e.isConnected&&e===document.getElementById('analytics-collection-history'))).toBe(true);
   expect(await details.evaluate(e=>e.open)).toBe(focus.open);
@@ -356,7 +367,7 @@ for(const width of [360,390,1440]) {
       for(const [selector,label] of [['h3','heading'],['[data-collection-scope]','coverage-and-checked-time'],['[data-collection-context]','basis-and-caveats'],['table','sparse-table-exact-and-undated']])reading.push(await collectionRead(page,body.locator(selector),label));
       await info.attach('collection-native-reading',{body:JSON.stringify(reading),contentType:'application/json'});await page.screenshot({path:info.outputPath(`collection-reading-${width}.png`)});
       await collectionRead(page,summary,'return-to-original-summary');
-      await collectionRefreshProof(page,original,details,f,'open-invalid');await expect(body).toHaveAttribute('data-state','unavailable');
+      f.armReceiptPhase('invalid');await collectionRefreshProof(page,original,details,f,'open-invalid');await expect(body).toHaveAttribute('data-state','unavailable');
       await expect(body.locator('table')).toBeHidden();await expect(body.locator('tbody tr')).toHaveCount(0);await expect(body.locator('[data-collection-total]')).toBeEmpty();
       await expect(body.locator('[data-collection-coverage]')).toHaveText('Collection coverage unavailable.');
       await collectionNoDisclosureIo(page,f,()=>collectionProof(page,original,' ','close-after-invalid'));expect(await details.evaluate(e=>e.open)).toBe(false);
@@ -377,7 +388,7 @@ for(const width of [360,390,1440]) {
       f.release();await expect(body).toHaveAttribute('data-state','unavailable');await expect(body.locator('tbody tr')).toHaveCount(0);await expect(summary).toBeFocused();
       await collectionProof(page,original,' ','unavailable-close');expect(await details.evaluate(e=>e.open)).toBe(false);
       await expect.poll(()=>f.responses.filter(r=>r.path==='/api/evidence/receipts').length).toBe(1);
-      await collectionRefreshProof(page,original,details,f,'closed-recovery');await expect(body).toHaveAttribute('data-state','partial');
+      f.armReceiptPhase('recovery');await collectionRefreshProof(page,original,details,f,'closed-recovery');await expect(body).toHaveAttribute('data-state','partial');
       expect(await details.evaluate(e=>e.open)).toBe(false);await collectionNoDisclosureIo(page,f,()=>collectionProof(page,original,'Enter','recovery-open'));
       await expect(body.locator('tbody th')).toHaveText('Date unavailable');await expect(body.locator('tbody td')).toHaveText(['9007199.254741011','3']);
       await expect(body.locator('[data-collection-coverage]')).toHaveText('3 of 12 recorded collections verified · partial coverage');

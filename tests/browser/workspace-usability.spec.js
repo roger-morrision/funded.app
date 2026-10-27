@@ -1,10 +1,11 @@
+import {requiredFeePolicyForCompiled} from '../fixtures/compiled-artifact-fixture.js';
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
 const failures = new WeakMap();
 test.beforeEach(async ({ page }) => {
   const errors=[];failures.set(page,errors);page.on('pageerror',error=>errors.push(error.message));
-  await page.route('**/api/**', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"offline fixture"}' }));
+  await page.route('**/api/**', route => requiredFeePolicyForCompiled(route) ?? route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"offline fixture"}' }));
   await page.route('https://**/*', route => route.abort());
 });
 test.afterEach(async({page})=>expect(failures.get(page),'No uncaught browser errors').toEqual([]));

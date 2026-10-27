@@ -1,3 +1,4 @@
+import {requiredFeePolicyForCompiled} from '../fixtures/compiled-artifact-fixture.js';
 import { test, expect } from '@playwright/test';
 
 // The retired pilot UI must stay absent, including for returning users who
@@ -6,7 +7,7 @@ for (const width of [390, 1440]) for (const legacyConsent of [false, true]) {
   test(`retired pilot does not record or appear at ${width}px with legacy consent ${legacyConsent}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.route('https://**/*', route => route.abort());
-    await page.route('**/api/**', route => route.fulfill({ status: 503, json: {} }));
+    await page.route('**/api/**', route => requiredFeePolicyForCompiled(route) ?? route.fulfill({ status: 503, json: {} }));
     const events = [];
     await page.route('**/api/product-events', route => {
       events.push(route.request().postDataJSON());

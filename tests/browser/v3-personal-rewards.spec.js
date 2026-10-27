@@ -1,3 +1,4 @@
+import {requiredFeePolicyForCompiled} from '../fixtures/compiled-artifact-fixture.js';
 import { expect, test } from '@playwright/test';
 
 test('connected creator sees V3 payout history and no retired claim action', async ({ page }) => {
@@ -5,7 +6,7 @@ test('connected creator sees V3 payout history and no retired claim action', asy
   const wallet='7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y';
   const programId='9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
   const source='3'.repeat(64);
-  await page.route('**/api/**', route => route.fulfill({ status:503, json:{error:'offline fixture'} }));
+  await page.route('**/api/**', route => requiredFeePolicyForCompiled(route) ?? route.fulfill({ status:503, json:{error:'offline fixture'} }));
   await page.route('**/api/launches', route => route.fulfill({ json:[{
     mint,name:'V3 QA coin',symbol:'V3QA',cluster:'devnet',onchainVerified:true,
     creatorWallet:wallet,creator:'v3-router',

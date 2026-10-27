@@ -1,9 +1,10 @@
+import {requiredFeePolicyForCompiled,browserModulePath,browserModuleRoute,expectedBootstrapImportFailure} from '../fixtures/compiled-artifact-fixture.js';
 import {test,expect} from '@playwright/test';
 
 const failures=new WeakMap();
 test.beforeEach(async({page})=>{
   const found=[];failures.set(page,found);page.on('pageerror',error=>found.push(error.message));
-  await page.route('**/api/**',route=>route.fulfill({status:503,contentType:'application/json',body:'{}'}));
+  await page.route('**/api/**',route=>requiredFeePolicyForCompiled(route) ?? route.fulfill({status:503,contentType:'application/json',body:'{}'}));
   await page.route('https://**/*',route=>route.abort());
   await page.route('**/api/x/me',route=>route.fulfill({json:{authenticated:false,configured:true}}));
 });
@@ -31,20 +32,20 @@ async function launchReady(page){
 
 for(const width of [1440,390])test(`static startup guard blocks early interaction and keyboard Reload preserves the route at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});let held,appRequests=0;
-  page.on('request',request=>{if(new URL(request.url()).pathname==='/app.js')appRequests++;});
-  await page.route('**/bootstrap-gate.js*',route=>{held=route;});
+  page.on('request',request=>{if(new URL(request.url()).pathname===browserModulePath('app.js'))appRequests++;});
+  await page.route(browserModuleRoute('bootstrap-gate.js'),route=>{held=route;});
   await page.goto('/?startup=fixture#launch',{waitUntil:'commit'});await expect.poll(()=>Boolean(held)).toBe(true);await locked(page);
   expect(appRequests).toBe(0);await expect(gate(page)).toContainText(/loading|starting/i);
   const box=await gate(page).boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(width);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:test.info().outputPath(`startup-loading-${width}.png`)});
-  await page.unroute('**/bootstrap-gate.js*');
+  await page.unroute(browserModuleRoute('bootstrap-gate.js'));
   await Promise.all([page.waitForURL(url=>url.search==='?startup=fixture'&&url.hash==='#launch',{waitUntil:'domcontentloaded'}),page.keyboard.press('Enter')]);
   await ready(page);await expect(page).toHaveURL(/\?startup=fixture#launch$/);await launchReady(page);
 });
 
 test('a held required app import cannot accept launch input or keyboard focus before handlers exist',async({page})=>{
-  let held;await page.route('**/app.js*',route=>{held=route;});await page.goto('/#launch',{waitUntil:'commit'});await expect.poll(()=>Boolean(held)).toBe(true);await locked(page);
+  let held;await page.route(browserModuleRoute('app.js'),route=>{held=route;});await page.goto('/#launch',{waitUntil:'commit'});await expect.poll(()=>Boolean(held)).toBe(true);await locked(page);
   await page.keyboard.press('Tab');expect(await page.evaluate(()=>Boolean(document.activeElement.closest('[inert]')))).toBe(false);
   // Independent sentinel elements prove the gate owns only its own inert markers.
   await page.evaluate(()=>{
@@ -70,7 +71,7 @@ test('a held required app import cannot accept launch input or keyboard focus be
 test('slow successful startup unlocks after the loading reminder without requiring a reload',async({page})=>{
   let held;
   await page.clock.install();
-  await page.route('**/app.js*',route=>{held=route;});
+  await page.route(browserModuleRoute('app.js'),route=>{held=route;});
   await page.goto('/#launch',{waitUntil:'commit'});
   await expect.poll(()=>Boolean(held)).toBe(true);
   await locked(page);
@@ -85,24 +86,24 @@ test('slow successful startup unlocks after the loading reminder without requiri
 });
 
 for(const [name,path,state] of [['gate','bootstrap-gate.js','failed'],['entry','bootstrap.js','failed'],['required app','app.js','failed']])test(`${name} import failure leaves an accessible recovery action and reload restores the requested route`,async({page})=>{
-  let failed=false;await page.route(`**/${path}*`,route=>{failed=true;return route.abort('failed');});
+  let failed=false;await page.route(browserModuleRoute(path),route=>{failed=true;return route.abort('failed');});
   await page.goto('/?recover=1#launch',{waitUntil:'domcontentloaded'});await expect.poll(()=>failed).toBe(true);
   await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state',state);await expect(page.locator('.app-shell')).toHaveAttribute('inert','');
   await expect(gate(page)).toBeVisible();await expect(reload(page)).toBeVisible();if(state==='failed')await expect(gate(page)).toContainText(/could not|unable|failed/i);
-  await page.keyboard.press('Tab');await expect(reload(page)).toBeFocused();await page.unroute(`**/${path}*`);await page.keyboard.press('Enter');
+  await page.keyboard.press('Tab');await expect(reload(page)).toBeFocused();await page.unroute(browserModuleRoute(path));await page.keyboard.press('Enter');
   await ready(page);await expect(page).toHaveURL(/\?recover=1#launch$/);await launchReady(page);
-  if (name !== 'required app') failures.set(page, failures.get(page).filter(message => !/Failed to fetch dynamically imported module: .*\/bootstrap\.js/.test(message)));
+  if (name !== 'required app') failures.set(page, failures.get(page).filter(message => !expectedBootstrapImportFailure(message)));
 });
 
 test('optional module failure reports degraded startup while initialized app controls remain usable',async({page})=>{
-  await page.route('**/creator-support-ui.js*',route=>route.abort('failed'));await page.goto('/#launch');
+  await page.route(browserModuleRoute('creator-support-ui.js'),route=>route.abort('failed'));await page.goto('/#launch');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state','degraded');
   await expect(page.locator('[data-bootstrap-inert]')).toHaveCount(0);await expect(gate(page)).toBeVisible();await expect(gate(page)).toContainText(/some features|could not/i);await launchReady(page);
   await expect(reload(page)).toBeVisible();
 });
 
 test('an unresolved optional module does not keep already initialized app controls locked',async({page})=>{
-  let held;await page.route('**/creator-support-ui.js*',route=>{held=route;});await page.goto('/#launch',{waitUntil:'commit'});await expect.poll(()=>Boolean(held)).toBe(true);
+  let held;await page.route(browserModuleRoute('creator-support-ui.js'),route=>{held=route;});await page.goto('/#launch',{waitUntil:'commit'});await expect.poll(()=>Boolean(held)).toBe(true);
   await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state','ready');await expect(page.locator('[data-bootstrap-inert]')).toHaveCount(0);await expect(gate(page)).toBeHidden();
   await expect(page.locator('body')).not.toHaveClass(/workspace-ready/);await launchReady(page);
   await page.locator('#token-name').fill('Kept while optional module loads');await held.continue();await ready(page);

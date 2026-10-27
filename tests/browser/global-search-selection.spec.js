@@ -1,3 +1,4 @@
+import {requiredFeePolicyForCompiled} from '../fixtures/compiled-artifact-fixture.js';
 import { test, expect } from '@playwright/test';
 
 const standard = 'CkRQTeLGEz2DMxRj3todCD1qtLb77vYBjAkCBMt814ky';
@@ -8,7 +9,7 @@ const row = (mint, name, marketCap = '1') => ({ mint, name, symbol: 'FEEQA', mar
 async function prepare(page, width) {
   await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
   await page.route('https://**/*', route => route.abort());
-  await page.route('**/api/**', route => route.fulfill({ status: 503, json: { error: 'Controlled offline fixture' } }));
+  await page.route('**/api/**', route => requiredFeePolicyForCompiled(route) ?? route.fulfill({ status: 503, json: { error: 'Controlled offline fixture' } }));
   await page.goto('/#explore');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await page.evaluate(rows => {

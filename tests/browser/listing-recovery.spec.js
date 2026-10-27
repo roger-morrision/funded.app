@@ -1,3 +1,4 @@
+import {requiredFeePolicyForCompiled} from '../fixtures/compiled-artifact-fixture.js';
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { PublicKey } from '@solana/web3.js';
@@ -11,7 +12,7 @@ const errors = new WeakMap();
 test.beforeEach(async ({ page }) => {
   const found = []; errors.set(page, found); page.on('pageerror', error => found.push(error.message));
   await page.route('https://**/*', route => route.abort());
-  await page.route('**/api/**', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
+  await page.route('**/api/**', route => requiredFeePolicyForCompiled(route) ?? route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
 });
 test.afterEach(async ({ page }) => expect(errors.get(page), 'No uncaught browser exceptions').toEqual([]));
 

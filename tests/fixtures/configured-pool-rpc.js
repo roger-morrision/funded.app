@@ -7,8 +7,10 @@ const sourceRoot=fileURLToPath(new URL('../../',import.meta.url));
 export const configuredPoolFixture={mint:'US517G5965aydkZ46HS38QLi7UQiSojurfbQfKCELFx',pool:'YMN9Qj5jPNp7j14VPcML1B6xGgcPWVZUGLFU3Mnyfaf'};
 export const rpcHtmlBody='<!DOCTYPE html><html>private-test-value upstream proxy failure</html>';
 function throwRetained(errors,message){if(errors.length===1)throw errors[0];if(errors.length)throw new AggregateError(errors,message);}
-export async function withConfiguredPoolSource(info,action){
- const errors=[],contract={qualification:'Actual unmodified product source with synthetic Devnet pool configuration; source-only, never canonical compiled artifact evidence.',sourceRoot,cache:info.outputPath('configured-pool-vite-cache'),events:[],sourcePins:[],effectiveDefines:{VITE_FUNDED_TOKEN_MINT:configuredPoolFixture.mint,VITE_FUNDED_SWAP_POOL:configuredPoolFixture.pool,VITE_API_BASE_URL:'/',VITE_SOLANA_CLUSTER:'devnet',VITE_EXPLORE_CLUSTER:'devnet',VITE_ALLOW_MAINNET:'false',VITE_MAINNET_READ_ONLY:'false',VITE_DEV_MODE:'false',VITE_DEV_AUTOCONNECT:'false'}};
+export function withConfiguredPoolSource(info,action){return withPoolSource(info,action,configuredPoolFixture,'configured');}
+export function withUnconfiguredPoolSource(info,action){return withPoolSource(info,action,{mint:'',pool:''},'unconfigured');}
+async function withPoolSource(info,action,poolFixture,profile){
+ const errors=[],contract={qualification:'Actual unmodified product source with explicit '+profile+' Devnet pool configuration; source-only, never canonical compiled artifact evidence.',sourceRoot,cache:info.outputPath(profile+'-pool-vite-cache'),events:[],sourcePins:[],effectiveDefines:{VITE_FUNDED_TOKEN_MINT:poolFixture.mint,VITE_FUNDED_SWAP_POOL:poolFixture.pool,VITE_API_BASE_URL:'/',VITE_SOLANA_CLUSTER:'devnet',VITE_EXPLORE_CLUSTER:'devnet',VITE_ALLOW_MAINNET:'false',VITE_MAINNET_READ_ONLY:'false',VITE_DEV_MODE:'false',VITE_DEV_AUTOCONNECT:'false'}};
  let server;
  try{
   for(const path of ['index.html','app.js','app-config.js','src/app/startup/connections.js','src/app/controllers/connections.js','src/app/controllers/funded-trading.js','src/features/funded/buy-feedback.js','pump-trading.js','package-lock.json']){const bytes=await readFile(sourceRoot+path);contract.sourcePins.push({path,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});}
@@ -21,7 +23,7 @@ export async function withConfiguredPoolSource(info,action){
  finally{
   if(server)try{await server.close();contract.events.push({event:'original-server-close-resolved',at:new Date().toISOString(),listening:server.httpServer?.listening??false});if(server.httpServer?.listening)throw Error('Configured source listener remains active.');}catch(error){errors.push(error);}
   contract.errors=errors.map(e=>({name:e.name,message:e.message,stack:e.stack}));
-  try{await info.attach('configured-pool-source-lifecycle',{body:JSON.stringify(contract,null,2),contentType:'application/json'});}catch(error){errors.push(error);}
+  try{await info.attach(profile+'-pool-source-lifecycle',{body:JSON.stringify(contract,null,2),contentType:'application/json'});}catch(error){errors.push(error);}
  }
  throwRetained(errors,'Configured source startup, test, close or artifact errors.');
 }
@@ -49,7 +51,7 @@ export async function withRpcHtmlReads(page,info,origin,expect,action){
   row.expectedStatus=status;row.expectedBody=body;
   return route.fulfill({status,contentType,body,headers:{'x-fqa009-read-id':row.id}});
  });
- const f={rows,forbidden,failed,configuredPoolReads:()=>rows.filter(row=>new URL(row.url).searchParams.get('purpose')==='trade-preview'&&row.rpc?.some(call=>call.method==='getMultipleAccounts'&&Array.isArray(call.params?.[0])&&call.params[0].includes(configuredPoolFixture.pool)))};
+ const f={rows,forbidden,failed,configuredPoolReads:(expectedPool=configuredPoolFixture.pool)=>rows.filter(row=>new URL(row.url).searchParams.get('purpose')==='trade-preview'&&row.rpc?.some(call=>call.method==='getMultipleAccounts'&&Array.isArray(call.params?.[0])&&call.params[0].includes(expectedPool)))};
  try{await action(f);}catch(error){errors.push(error);}
  finally{
   try{await expect.poll(()=>rows.filter(row=>!row.complete&&!row.finishedError).length).toBe(0);await Promise.all(finishedTasks);if(forbidden.length||failed.length||rows.some(row=>!row.complete))throw Error('Original read-only request inventory did not complete exactly.');}catch(error){errors.push(error);}

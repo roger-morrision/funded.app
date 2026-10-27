@@ -1,10 +1,11 @@
+import {requiredFeePolicyForCompiled,browserModuleRoute} from '../fixtures/compiled-artifact-fixture.js';
 import { test, expect } from '@playwright/test';
 
 const failures = new WeakMap();
 test.beforeEach(async ({ page }) => {
   const errors = []; failures.set(page, errors);
   page.on('pageerror', error => errors.push(error.message));
-  await page.route('**/api/**', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Unavailable fixture"}' }));
+  await page.route('**/api/**', route => requiredFeePolicyForCompiled(route) ?? route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Unavailable fixture"}' }));
   await page.route('https://**/*', route => route.abort());
 });
 test.afterEach(async ({ page }) => expect(failures.get(page), 'No uncaught browser exceptions').toEqual([]));
@@ -61,7 +62,7 @@ test('a stalled optional fee-status provider does not block the workspace', asyn
 });
 
 test('an unavailable optional module leaves navigation usable and explains reload recovery', async ({ page }) => {
-  await page.route('**/creator-support-ui.js*', route => route.abort('failed'));
+  await page.route(browserModuleRoute('creator-support-ui.js'), route => route.abort('failed'));
   await open(page, 'explore');
   await expect(page.locator('#bootstrap-status')).toContainText('Reload');
   await expect(page.locator('#explore-search')).toBeVisible();

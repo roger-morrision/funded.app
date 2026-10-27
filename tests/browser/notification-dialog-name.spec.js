@@ -1,9 +1,10 @@
+import {requiredFeePolicyForCompiled} from '../fixtures/compiled-artifact-fixture.js';
 import { test, expect } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.route('https://**/*', route => route.abort());
-  await page.route('**/api/**', route => route.fulfill({
+  await page.route('**/api/**', route => requiredFeePolicyForCompiled(route) ?? route.fulfill({
     status: 503,
     json: { error: 'Controlled offline fixture' },
   }));
