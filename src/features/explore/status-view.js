@@ -1,3 +1,5 @@
+import { withMarketWindow } from '../../../market-intelligence.js';
+
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderExplorePulse(
   records,
@@ -29,6 +31,8 @@ export function renderExplorePulse(
 export function exploreEmptyReason(
   {
     exploreTab,
+    exploreWindow,
+    EXPLORE_CLUSTER,
     assets,
     exploreMinVolumeUsd,
     exploreMinMarketCapUsd,
@@ -87,6 +91,23 @@ export function exploreEmptyReason(
   if (exploreMinTraders != null) criteria.push(`Minimum trading wallets: ${exploreMinTraders}`);
   const query = String(exploreQuery || '').trim();
   if (query) criteria.push(`Search: ${query}`);
+  const activityMetrics = [
+    exploreMinTrades != null ? 'windowTradeCount' : null,
+    exploreMinTraders != null ? 'windowTraderCount' : null,
+    exploreMinVolumeUsd != null ? 'windowVolumeSol' : null,
+  ].filter(Boolean);
+  if (EXPLORE_CLUSTER === 'devnet' && activityMetrics.length) {
+    const period = ['5m', '1h', '6h', '24h'].includes(exploreWindow) ? exploreWindow : '24h';
+    const incomplete = assets.some(item => {
+      const current = withMarketWindow(item, period);
+      return activityMetrics.some(metric => current[metric] == null || current.windowCoverage !== 'complete');
+    });
+    if (incomplete) return [
+      'Available activity data cannot confirm matches.',
+      `Some ${period} activity data is unavailable or incomplete. ${criteria.length > 1 ? `${query ? 'Search and active filters' : 'Active filters'} apply together. Broaden a selection or clear filters to see more tokens.` : 'Lower the selected-window minimums or clear filters.'}`,
+      criteria.join(' · '),
+    ];
+  }
   if (criteria.length > 1) return [
     'No tokens match this combination.',
     `${query ? 'Search and active filters' : 'Active filters'} apply together. Broaden a selection or clear filters to see more tokens.`,

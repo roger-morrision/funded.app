@@ -248,11 +248,60 @@ body.page-route-launch .launch-page-flat .launch-preview-panel { display: none; 
 .launch-review-submit { margin-top: 18px; padding-top: 18px; border-top: 1px solid #263943; }
 .launch-review-submit .primary-button { width: 100%; min-height: 48px; }
 
+/* One informational service check follows the active planning heading. */
+#launch-dialog .launch-availability {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid var(--border, #2d4650);
+  border-radius: 8px;
+  background: var(--surface, #10242a);
+  color: var(--text, #eaf0f7);
+  overflow-wrap: anywhere;
+}
+#launch-dialog .launch-availability-title {
+  color: var(--muted, #91aab3);
+  font-size: 12px;
+}
+#launch-dialog #launch-availability-label { font-size: 14px; line-height: 1.5; }
+#launch-dialog #launch-availability-guidance,
+#launch-dialog #launch-availability-details .field-help {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+#launch-dialog .launch-availability[data-state="verified"] #launch-availability-label {
+  color: var(--green, #74d8aa);
+}
+#launch-dialog .launch-availability[data-state="unavailable"] #launch-availability-label {
+  color: var(--yellow, #ffd28a);
+}
+#launch-dialog #launch-availability-details { min-width: 0; }
+#launch-dialog #launch-availability-details > summary {
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 12px 8px;
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+}
+#launch-dialog #launch-availability-details > summary:focus-visible {
+  outline: 3px solid var(--yellow, #ffd28a);
+  outline-offset: 3px;
+}
+
 @media (max-width: 1180px) {
   .page-route-launch #launch-route-shell { width: min(100%, 760px); padding-top: 28px; }
   .launch-page .launch-layout { grid-template-columns: minmax(0, 1fr); }
   .launch-page .launch-preview { order: initial; min-height: 0; }
   .launch-preview-sticky { position: static; }
+}
+@media (max-width: 700px) {
+  #launch-dialog :is(#launch-next, #launch-back) {
+    scroll-margin-block: 100px calc(100px + env(safe-area-inset-bottom));
+  }
 }
 @media (max-width: 560px) {
   .page-route-launch #launch-route-shell { padding: 24px 0 48px; }

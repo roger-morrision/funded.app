@@ -99,6 +99,32 @@ body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-stats strong { font-size: 11px; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-progress { margin: 8px 10px 0; border-radius: 0; background: #111b2e; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-progress i { border-radius: 0; background: var(--home-green); }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-progress-row { min-width: 0; margin: 8px 10px 0; color: #aebcc7; font: 10px/1.4 'DM Mono', monospace; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-progress-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-progress-heading > span { flex: 1 1 100px; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-progress-heading strong { flex: 1 1 110px; min-width: 0; color: #cdd7e0; font: inherit; overflow-wrap: anywhere; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-progress-row .home-launch-progress { height: 6px; margin: 4px 0 0; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-progress-row[data-progress-state="stale"] .home-launch-progress i { opacity: .65; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-token-identity { display: flex; flex-wrap: wrap; align-items: baseline; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-token-identity :is(strong,small) { min-width: 0; overflow-wrap: anywhere; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-token-identity small { flex: 1 0 100%; white-space: normal; overflow: visible; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-launch-card-addresses { grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 6px; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-launch-card-addresses > span:first-child { display: grid; grid-template-columns: minmax(0, 1fr) 44px; grid-template-rows: auto auto; gap: 0 4px; align-items: center; min-height: 44px; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-launch-card-addresses small { grid-area: 1 / 1; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-launch-card-addresses code { grid-area: 2 / 1; text-align: left; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-launch-copy-address { grid-area: 1 / 2 / 3 / 3; width: 44px; height: 44px; padding: 10px; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-launch-card-media > .token-card-action-watch { width: 44px; min-height: 44px; padding: 10px; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-launch-card-media:has(> .token-card-action-watch) .home-launch-media-stage { top: 8px; right: auto; left: 8px; max-width: calc(100% - 68px); white-space: normal; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-launch-media-package > a { display: inline-flex; align-items: center; min-height: 44px; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-launch-card-actions { flex-wrap: wrap; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-launch-card-actions > button { min-width: 44px; min-height: 44px; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-actions > .explore-social-links { display: flex; flex: 1 0 100%; flex-wrap: wrap; gap: 6px; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-actions > .explore-social-links > .explore-social-link { display: inline-grid; place-items: center; width: 44px; min-height: 44px; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card :is(a,button) { scroll-margin-block: 100px; }
+body.page-route-explore .home-launch-card .home-launch-card-addresses code { font-size: inherit; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-launch-fee-route { white-space: normal; overflow: visible; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-launch-fee-route span { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+body.page-route-explore .home-launch-card .home-launch-fee-route { font-size: 11px; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-meta { margin: 6px 10px 0; color: #87939f; font-size: 9px; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-actions { display: flex; justify-content: flex-end; align-items: center; gap: 6px; margin: auto 10px 0; padding-top: 8px; border-top: 1px solid #263039; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-actions button { border-color: #f4a340; border-radius: 0; background: #26354d; color: var(--home-green); }
@@ -116,6 +142,7 @@ body.page-route-explore .home-launch-card-stats strong { font-size: 13px; }
 @media (max-width: 620px) { body.page-route-explore #asset-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 440px) {
   body.page-route-explore #asset-grid { gap: 6px; }
-  body.page-route-explore .home-launch-card-stats { grid-template-columns: 1fr; }
-  body.page-route-explore .home-launch-card-stats > span:nth-child(even) { text-align: left; }
 }
+
+/* Native viewing region excludes the existing fixed mobile navigation. */
+@media (max-width: 700px) { html:has(body.page-route-overview #home-launch-grid:not([hidden]) [data-verified-feed-retry]), html:has(body.page-route-overview #home-launch-table-wrap:not([hidden]) .home-launch-table:not([hidden]) #home-launch-table-body [data-verified-feed-retry]) { scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom)); } }

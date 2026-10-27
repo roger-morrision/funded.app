@@ -193,10 +193,22 @@ export function renderHomeLaunchBoard(state, {
   if (!visible.length) {
     const feedUnavailable = (!exploreFeedAvailable && !exploreLastVerifiedAt)
       || /RPC (?:rate limited|unavailable)/i.test(exploreProviderStatus);
-    const title = feedUnavailable ? 'Tokens are temporarily unavailable.' : homeLaunchTab === 'watchlist' ? 'No favorite tokens yet.' : homeLaunchFilterCount(homeLaunchFilters) ? 'No launches match these filters.' : 'No verified launches in this view.';
-    const detail = feedUnavailable ? 'Current Solana mint and market checks could not finish. Recorded reward and airdrop policies remain visible in their own sections.' : homeLaunchTab === 'watchlist' ? 'Add a verified token from Explore to see it here.' : 'Try another view or adjust the filters.';
-    grid.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${detail}</span>${feedUnavailable ? '<button type="button" class="secondary-button" data-verified-feed-retry>Try again</button>' : ''}</div>`;
-    if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="home-table-empty"><strong>${title}</strong><span>${detail}</span>${feedUnavailable ? '<button type="button" class="secondary-button" data-verified-feed-retry>Try again</button>' : ''}</td></tr>`;
+    const initialCheck = !exploreLastVerifiedAt && exploreProviderStatus === 'On-chain only · loading';
+    const filtersActive = homeLaunchFilterCount(homeLaunchFilters) > 0;
+    const stage = homeLaunchTab === 'curve' ? 'Curve' : homeLaunchTab === 'migrated' ? 'Migration' : '';
+    // An unrelated unknown record must not replace a deliberate filter no-match.
+    const stageUnavailable = !filtersActive && stage && verified.some(item => homeLaunchTab === 'curve'
+      ? item.complete == null && item.migrated !== true
+      : item.complete == null || (item.complete === true && item.migrated == null));
+    const title = initialCheck ? stage ? 'Checking launch stages…' : 'Checking verified launches…'
+      : stageUnavailable ? `${stage} verification is unavailable.`
+      : feedUnavailable ? 'Tokens are temporarily unavailable.' : homeLaunchTab === 'watchlist' ? 'No favorite tokens yet.' : filtersActive ? 'No launches match these filters.' : 'No verified launches in this view.';
+    const detail = initialCheck ? 'Current launch checks are in progress. You can select All to view verified registry tokens.'
+      : stageUnavailable ? `${stage} status is unverified. Select All to view verified registry tokens, or try again.`
+      : feedUnavailable ? 'Current Solana mint and market checks could not finish. Recorded reward and airdrop policies remain visible in their own sections.' : homeLaunchTab === 'watchlist' ? 'Add a verified token from Explore to see it here.' : 'Try another view or adjust the filters.';
+    const retry = !initialCheck && (stageUnavailable || feedUnavailable) ? '<button type="button" class="secondary-button" data-verified-feed-retry>Try again</button>' : '';
+    grid.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${detail}</span>${retry}</div>`;
+    if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="home-table-empty"><strong>${title}</strong><span>${detail}</span>${retry}</td></tr>`;
     return;
   }
   if (tableBody) {

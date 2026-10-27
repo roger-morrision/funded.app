@@ -1,4 +1,5 @@
 import { followingTokenSources } from '../../../following-token-model.js';
+import { isWatchlistRetryPending } from '../../features/portfolio/watchlist-retry-state.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createFollowingController(appState) {
@@ -145,6 +146,181 @@ export function createFollowingController(appState) {
   }
   // app-source-end
 
+  let watchlistRowsState;
+  const watchlistRowProvenance = new WeakMap();
+  const watchlistLocation = () => `${location.pathname}${location.search}${location.hash}`;
+  function watchlistScene(items) {
+    const sync = appState.watchlistSync, owner = sync.identity(), root = document.querySelector('#community');
+    return { items, root, sync, owner, location:watchlistLocation() };
+  }
+  function currentWatchlistScene(scene) {
+    return scene && (scene.owner === null || typeof scene.owner === 'string'
+      && /^(?:\d{1,24}|wallet:[1-9A-HJ-NP-Za-km-z]{32,44})$/.test(scene.owner)) && scene.sync === appState.watchlistSync
+      && scene.owner === scene.sync.identity() && scene.location === watchlistLocation() && location.hash === '#community'
+      && scene.root === document.querySelector('#community') && scene.items === document.querySelector('#watchlist-items')
+      && scene.root?.isConnected && scene.items?.isConnected && !scene.root.hidden
+      && scene.root.getClientRects().length > 0 && getComputedStyle(scene.root).visibility === 'visible';
+  }
+  const sameWatchlistScene = (a, b) => a && b && a.items === b.items && a.root === b.root
+    && a.sync === b.sync && a.owner === b.owner && a.location === b.location;
+  function validWatchlistModelKey(key) {
+    if (typeof key !== 'string') return false;
+    try {
+      const parts = JSON.parse(key);
+      return Array.isArray(parts) && parts.length === 2 && JSON.stringify(parts) === key
+        && typeof parts[0] === 'string' && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(parts[0])
+        && (parts[1] === 'verified' || parts[1] === 'unavailable');
+    } catch { return false; }
+  }
+  function stampWatchlistRows(items, scene, records) {
+    if (!(scene.owner === null || typeof scene.owner === 'string'
+      && /^(?:\d{1,24}|wallet:[1-9A-HJ-NP-Za-km-z]{32,44})$/.test(scene.owner))
+      || scene.sync !== appState.watchlistSync || scene.owner !== scene.sync.identity() || scene.location !== watchlistLocation()
+      || scene.items !== items || items !== document.querySelector('#watchlist-items') || scene.root !== document.querySelector('#community')
+      || !scene.root?.isConnected || !items.isConnected || !scene.root.contains(items)) return;
+    for (const { key, node } of records) {
+      if (!validWatchlistModelKey(key) || !node.isConnected || node.parentElement !== items) continue;
+      // These are committed model/DOM facts, never a saved focus or attention claim.
+      watchlistRowProvenance.set(node, { key, node, items, root:scene.root, sync:scene.sync, owner:scene.owner });
+    }
+  }
+  function committedWatchlistRows(items, scene) {
+    return [...items.children].flatMap(node => {
+      const fact = watchlistRowProvenance.get(node);
+      return fact && fact.node === node && fact.items === items && fact.root === scene.root && fact.sync === scene.sync
+        && fact.owner === scene.owner && validWatchlistModelKey(fact.key) && node.isConnected && node.parentElement === items
+        && scene.root.contains(node) ? [{ key:fact.key, node }] : [];
+    });
+  }
+  function watchlistNodeKey(node) {
+    if (node.nodeType !== 1) return '';
+    if (node.matches('.saved-token-identity > a')) return 'link:identity';
+    if (node.matches('.saved-token-view')) return 'link:view';
+    for (const attribute of ['data-mint', 'data-share-mint', 'data-boost-mint', 'data-trade-mint', 'data-watch-retry', 'data-copy-address', 'data-remove-watch']) {
+      if (node.matches('button') && node.hasAttribute(attribute))
+        return `${node.tagName}:${attribute}:${node.getAttribute(attribute)}:${node.getAttribute('data-copy-kind') || ''}`;
+    }
+    for (const role of ['saved-token-main', 'saved-token-identity', 'saved-token-metrics', 'saved-token-actions',
+      'portfolio-token-avatar', 'portfolio-token-stage', 'boost-package-badges', 'watchlist-unavailable-actions']) {
+      if (node.classList.contains(role)) return `slot:${role}`;
+    }
+    return '';
+  }
+  function orderWatchlistNodes(parent, desired) {
+    const keep = new Set(desired);
+    for (const child of [...parent.childNodes]) if (!keep.has(child)) child.remove();
+    const fixed = desired.findIndex(child => child === document.activeElement || child.contains(document.activeElement));
+    let cursor = parent.firstChild;
+    for (let i = 0; i < (fixed < 0 ? desired.length : fixed); i++) {
+      const child = desired[i]; if (child !== cursor) parent.insertBefore(child, cursor); cursor = child.nextSibling;
+    }
+    if (fixed < 0) return;
+    cursor = desired[fixed].nextSibling;
+    for (let i = fixed + 1; i < desired.length; i++) {
+      const child = desired[i]; if (child !== cursor) parent.insertBefore(child, cursor); cursor = child.nextSibling;
+    }
+  }
+  function patchWatchlistNode(current, fresh) {
+    if (current.nodeType === 3) { if (current.nodeValue !== fresh.nodeValue) current.nodeValue = fresh.nodeValue; return; }
+    for (const attribute of [...current.attributes]) if (!fresh.hasAttribute(attribute.name)) current.removeAttribute(attribute.name);
+    for (const attribute of fresh.attributes) if (current.getAttribute(attribute.name) !== attribute.value) current.setAttribute(attribute.name, attribute.value);
+    const old = [...current.childNodes], used = new Set(), keyed = new Map();
+    for (const child of old) {
+      const key = watchlistNodeKey(child); if (!key) continue;
+      if (!keyed.has(key)) keyed.set(key, []); keyed.get(key).push(child);
+    }
+    const incoming = [...fresh.childNodes], counts = new Map();
+    for (const child of incoming) { const key = watchlistNodeKey(child); if (key) counts.set(key, (counts.get(key) || 0) + 1); }
+    const desired = incoming.map(child => {
+      const key = watchlistNodeKey(child);
+      // Fresh avatars disconnect every obsolete image callback captured by the unchanged loader.
+      if (key === 'slot:portfolio-token-avatar') return child;
+      let retained;
+      if (key && counts.get(key) === 1 && keyed.get(key)?.length === 1) retained = keyed.get(key)[0];
+      else if (!key && !child.matches?.('a,button,input,select,textarea,[tabindex]')) retained = old.find(prior =>
+        !used.has(prior) && !watchlistNodeKey(prior) && prior.nodeType === child.nodeType && prior.nodeName === child.nodeName
+        && !prior.matches?.('a,button,input,select,textarea,[tabindex]'));
+      if (!retained || retained.nodeName !== child.nodeName) return child;
+      used.add(retained); patchWatchlistNode(retained, child); return retained;
+    });
+    orderWatchlistNodes(current, desired);
+  }
+  function watchlistPaintedOutlineVisible(element) {
+    const rect = element.getBoundingClientRect(), style = getComputedStyle(element);
+    if (!element.getClientRects().length || style.visibility !== 'visible' || style.outlineStyle === 'none') return false;
+    const edge = Math.max(0, (parseFloat(style.outlineWidth) || 0) + (parseFloat(style.outlineOffset) || 0));
+    const bounds = { left:0, right:innerWidth, top:0, bottom:innerHeight }, rootStyle = getComputedStyle(document.documentElement);
+    for (const chrome of document.querySelectorAll('.topbar,.mobile-workspace-nav')) {
+      if (!chrome.getClientRects().length || getComputedStyle(chrome).visibility !== 'visible') continue;
+      const box = chrome.getBoundingClientRect();
+      if (chrome.matches('.topbar')) bounds.top = Math.max(bounds.top, box.bottom);
+      else bounds.bottom = Math.min(bounds.bottom, box.top);
+    }
+    for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+      const css = getComputedStyle(ancestor), r = ancestor.getBoundingClientRect();
+      const clipX = /^(hidden|clip|auto|scroll)$/.test(css.overflowX), clipY = /^(hidden|clip|auto|scroll)$/.test(css.overflowY);
+      if (!clipX && !clipY) continue;
+      // Propagated root/body overflow clips to the viewport, not a translated document box.
+      if (ancestor === document.documentElement || ancestor === document.body
+        && rootStyle.overflowX === 'visible' && rootStyle.overflowY === 'visible'
+        && rootStyle.contain === 'none' && css.contain === 'none') continue;
+      const box = { left:r.left + ancestor.clientLeft, top:r.top + ancestor.clientTop,
+        right:r.left + ancestor.clientLeft + ancestor.clientWidth, bottom:r.top + ancestor.clientTop + ancestor.clientHeight };
+      if (clipX && clipY) {
+        const radii = ['borderTopLeftRadius','borderTopRightRadius','borderBottomRightRadius','borderBottomLeftRadius']
+          .map(key => Math.max(0, (parseFloat(css[key]) || 0) - ancestor.clientLeft));
+        const points = [[rect.left-edge,rect.top-edge],[rect.right+edge,rect.top-edge],
+          [rect.right+edge,rect.bottom+edge],[rect.left-edge,rect.bottom+edge]];
+        const centers = [[box.left+radii[0],box.top+radii[0]],[box.right-radii[1],box.top+radii[1]],
+          [box.right-radii[2],box.bottom-radii[2]],[box.left+radii[3],box.bottom-radii[3]]];
+        for (let i = 0; i < 4; i++) {
+          const radius = radii[i], [x,y] = points[i], [cx,cy] = centers[i];
+          const corner = (i === 0 || i === 3 ? x < cx : x > cx) && (i < 2 ? y < cy : y > cy);
+          if (radius && corner && (x-cx)**2 + (y-cy)**2 > radius**2) return false;
+        }
+      }
+      if (clipX) { bounds.left = Math.max(bounds.left, box.left); bounds.right = Math.min(bounds.right, box.right); }
+      if (clipY) { bounds.top = Math.max(bounds.top, box.top); bounds.bottom = Math.min(bounds.bottom, box.bottom); }
+    }
+    return rect.left-edge >= bounds.left && rect.right+edge <= bounds.right
+      && rect.top-edge >= bounds.top && rect.bottom+edge <= bounds.bottom;
+  }
+  function renderWatchlistRows(items, scene, candidates) {
+    const eligible = currentWatchlistScene(scene), prior = eligible && sameWatchlistScene(watchlistRowsState?.scene, scene)
+      ? watchlistRowsState.records : eligible ? committedWatchlistRows(items, scene) : [];
+    const original = document.activeElement;
+    const owned = eligible && document.hasFocus() && !document.hidden && original?.isConnected
+      && original.matches?.('a,button') && watchlistNodeKey(original)
+      && prior.some(record => record.node.parentElement === items && record.node.contains(original));
+    const originalRow = owned && prior.find(record => record.node.contains(original));
+    const preVisible = owned && !original.disabled && original.matches(':focus-visible') && watchlistPaintedOutlineVisible(original);
+    const counts = list => { const result = new Map(); for (const row of list) result.set(row.key, (result.get(row.key) || 0) + 1); return result; };
+    const before = counts(prior), after = counts(candidates); let intervened = false;
+    const changedFocus = event => { if (event.target !== original && event.target !== document.body) intervened = true; };
+    if (owned) document.addEventListener('focusin', changedFocus, true);
+    try {
+      const records = candidates.map(candidate => {
+        const retained = candidate.key && before.get(candidate.key) === 1 && after.get(candidate.key) === 1
+          && prior.find(row => row.key === candidate.key && row.node.parentElement === items);
+        if (!retained) return candidate;
+        patchWatchlistNode(retained.node, candidate.node); return { ...candidate, node:retained.node };
+      });
+      orderWatchlistNodes(items, records.map(record => record.node));
+      stampWatchlistRows(items, scene, records);
+      // Rendering is synchronous: never carry a pre-render owner into another account or route.
+      watchlistRowsState = currentWatchlistScene(scene) ? { scene, records } : undefined;
+      if (preVisible && !intervened && original.isConnected && !original.disabled && original === document.activeElement
+        && original.matches(':focus-visible') && currentWatchlistScene(scene) && document.hasFocus() && !document.hidden
+        && records.some(record => record.key === originalRow.key && record.node === originalRow.node && record.node.contains(original))
+        && !watchlistPaintedOutlineVisible(original)) original.scrollIntoView({ block:'nearest', inline:'nearest', behavior:'instant' });
+      const recovery = document.querySelector('#watchlist-sync-retry');
+      if (owned && !original.isConnected && !intervened && document.activeElement === document.body
+        && currentWatchlistScene(scene) && document.hasFocus() && !document.hidden
+        && recovery?.isConnected && !recovery.disabled && recovery.getClientRects().length
+        && getComputedStyle(recovery).visibility === 'visible') recovery.focus();
+    } finally { if (owned) document.removeEventListener('focusin', changedFocus, true); }
+  }
+
   // app-source: 397
   function renderWatchlist(){
     const saved = appState.getWatchlist();
@@ -153,13 +329,21 @@ export function createFollowingController(appState) {
     const items = document.querySelector('#watchlist-items');
     if (count) count.textContent = appState.watchlistUnavailable ? 'Favorites unavailable' : `${saved.length} favorite${saved.length === 1 ? '' : 's'}`;
     if (empty) empty.hidden = saved.length > 0 || appState.watchlistUnavailable;
-    if (items) items.innerHTML = saved.map(mint => {
+    const scene = items && watchlistScene(items);
+    const candidates = items && saved.map(mint => {
       const asset = appState.assets.find(item => item.address === mint);
       const policy = appState.verifiedLaunchPolicyForMint(mint);
-      return asset ? appState.portfolioTokenCardMarkup({ mint: asset.address, name: asset.name, symbol: asset.symbol, source: 'Saved token · RPC verified', verified: true, removable: true })
+      const markup = asset ? appState.portfolioTokenCardMarkup({ mint: asset.address, name: asset.name, symbol: asset.symbol, source: 'Saved token · RPC verified', verified: true, removable: true })
         : policy?.onchainVerified ? appState.portfolioTokenCardMarkup({ mint, name: policy.name, symbol: policy.symbol, source: 'Saved token · verified launch', verified: true, removable: true })
-          : `<div class="saved-token-row watchlist-unavailable"><div><strong>Token details unavailable</strong><span class="watchlist-unavailable-mint" title="${appState.escapeHtml(mint)}">${appState.escapeHtml(appState.shortAddress(mint))}</span><small>This token remains in your favorites.</small></div><div class="watchlist-unavailable-actions"><button type="button" class="secondary-button" data-watch-retry="${appState.escapeHtml(mint)}">Retry check</button><button type="button" class="secondary-button token-card-copy-address" data-copy-address="${appState.escapeHtml(mint)}" data-copy-kind="token" aria-label="Copy full token address">Copy mint</button><button type="button" class="secondary-button" data-remove-watch="${appState.escapeHtml(mint)}" aria-label="Remove saved token">Remove</button></div></div>`;
-    }).join('');
+          : `<div class="saved-token-row watchlist-unavailable"><div><strong>Token details unavailable</strong><span class="watchlist-unavailable-mint" title="${appState.escapeHtml(mint)}">${appState.escapeHtml(appState.shortAddress(mint))}</span><small>This token remains in your favorites.</small></div><div class="watchlist-unavailable-actions"><button type="button" class="secondary-button" data-watch-retry="${appState.escapeHtml(mint)}"${isWatchlistRetryPending(scene.sync, mint) ? ' disabled' : ''}>Retry check</button><button type="button" class="secondary-button token-card-copy-address" data-copy-address="${appState.escapeHtml(mint)}" data-copy-kind="token" aria-label="Copy full token address">Copy mint</button><button type="button" class="secondary-button" data-remove-watch="${appState.escapeHtml(mint)}" aria-label="Remove saved token">Remove</button></div></div>`;
+      const template = document.createElement('template'); template.innerHTML = markup;
+      return { key:/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) ? JSON.stringify([mint, asset || policy?.onchainVerified ? 'verified' : 'unavailable']) : '', node:template.content.firstElementChild };
+    });
+    if (items) {
+      if (scene.sync !== appState.watchlistSync || scene.owner !== scene.sync.identity() || scene.location !== watchlistLocation()
+        || scene.items !== document.querySelector('#watchlist-items') || scene.root !== document.querySelector('#community')) return;
+      renderWatchlistRows(items, scene, candidates);
+    } else watchlistRowsState = undefined;
     appState.loadVerifiedTokenLogos(items);
     document.querySelectorAll('.watch-button').forEach(button => appState.setWatchButtonState(button, saved.includes(button.dataset.mint)));
     const coinWatch = document.querySelector('#coin-watch');

@@ -46,13 +46,14 @@ export function createNavigationController(appState) {
 
   // app-source: 859
   function focusCurrentPageRoute(){
-    if (location.hash === '#payments/history') {
+    const explicitRewardHash = location.hash;
+    if (explicitRewardHash === '#payments/history' || explicitRewardHash === '#payments/holders') {
       historyRouteTransition = false;
       // Browser traversal restores scroll after the route renderers run.
       // Reveal the explicit destination after that layout, as other aliases do.
       requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        if (location.hash !== '#payments/history') return;
-        const tab = document.querySelector('#rewards-history-tab');
+        if (location.hash !== explicitRewardHash) return;
+        const tab = document.querySelector(explicitRewardHash === '#payments/holders' ? '#rewards-holder-tab' : '#rewards-history-tab');
         if (tab?.getClientRects().length && tab.getAttribute('aria-selected') === 'true') {
           tab.scrollIntoView({block:'center',behavior:'instant'});
           tab.focus({preventScroll:true});
@@ -120,7 +121,7 @@ export function createNavigationController(appState) {
     if (hash.startsWith('coin/')) return 'overview';
     if (hash === 'referral-faq') return 'referrals';
     if (hash.startsWith('docs/')) return 'docs';
-    if (hash === 'funded-holder-token-rewards' || hash === 'payments/history') return 'payments';
+    if (hash === 'funded-holder-token-rewards' || hash === 'payments/history' || hash === 'payments/holders') return 'payments';
     return appState.pageRouteTargets[hash] ? appState.mergedPageRoutes[hash] || hash : 'overview';
   }
   // app-source-end
@@ -135,10 +136,11 @@ export function createNavigationController(appState) {
 
   // app-source: 863
   function syncPageRoute(){
-    // Only actual transitions involving the History alias request route focus.
+    // Only actual transitions involving an explicit reward alias request route focus.
     // Same-location data refreshes must preserve a visitor's tab and caret.
     if (location.href !== historyRouteLocation) {
-      historyRouteTransition = [new URL(historyRouteLocation).hash, location.hash].includes('#payments/history');
+      historyRouteTransition = [new URL(historyRouteLocation).hash, location.hash]
+        .some(hash => hash === '#payments/history' || hash === '#payments/holders');
       if (historyRouteTransition) appState.requestPageRouteFocus();
     }
     historyRouteLocation = location.href;
@@ -201,7 +203,7 @@ export function createNavigationController(appState) {
     }
     const guide = appState.routeGuideCopy[route];
     const routeGuide = document.querySelector('#route-guide');
-    routeGuide.hidden = !guide || requestedHash === 'payments/history';
+    routeGuide.hidden = !guide || requestedHash === 'payments/history' || requestedHash === 'payments/holders';
     if (guide) {
       document.querySelector('#route-guide-group').textContent = guide.group;
       document.querySelector('#route-guide-state').textContent = route === 'referrals' ? document.documentElement.dataset.referralStatus || (appState.connectedWalletAddress ? 'Verify wallet' : 'Connect wallet') : guide.state;

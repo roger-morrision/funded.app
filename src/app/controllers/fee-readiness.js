@@ -1,5 +1,10 @@
+import { ensureLaunchAvailability, updateLaunchAvailabilityView } from '../../features/launch/availability-view.js';
+
 // Dependencies and mutable application state are read live through appState.
 export function createFeeReadinessController(appState) {
+  ensureLaunchAvailability();
+  function updateLaunchAvailability() { updateLaunchAvailabilityView(appState); }
+  globalThis.window?.addEventListener?.('funded:launch-step', updateLaunchAvailability);
   // app-source: 255
   function updateFundedMintConfig(){
     const input = document.querySelector('#funded-mint-address');
@@ -27,11 +32,13 @@ export function createFeeReadinessController(appState) {
 
   // app-source: 257
   async function checkFeeRouterConfig(){
+    ensureLaunchAvailability();
     const status = document.querySelector('#fee-router-status');
     const addressNode = document.querySelector('#fee-router-address');
     appState.feeRouterState = { status:'checking', verified:false, address:null,
       programId:null, scope:'per-mint-v3', v3FeeRouter:null };
     if (status) { status.textContent = 'Checking V3 launch readiness…'; status.className = 'field-help'; }
+    updateLaunchAvailability();
     try {
       const service = await appState.apiRequest('/api/v3-launch-config');
       const config = service.available ? service.data : null;
@@ -62,6 +69,7 @@ export function createFeeReadinessController(appState) {
         status.className = 'field-help funded-mint-invalid'; }
       if (addressNode) addressNode.textContent = 'Not verified';
     }
+    updateLaunchAvailability();
     appState.updateLaunchPreview();
     appState.updateLaunchButton();
     if (appState.wallet) appState.refreshWalletInfo();

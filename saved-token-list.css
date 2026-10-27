@@ -111,3 +111,8 @@
 #community .favorites-sync-actions > button:disabled { opacity: .5; cursor: not-allowed; }
 #community .favorites-sync-actions > button:focus-visible,
 #community .watchlist-empty .favorites-explore:focus-visible { outline: 2px solid #ffd28a; outline-offset: 3px; }
+
+body.page-route-community #community:not([hidden]) #watchlist-items :is(a, button) { scroll-margin-block: 100px; }
+@media (max-width: 700px) {
+  html:has(body.page-route-community #community:not([hidden])) { scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+}

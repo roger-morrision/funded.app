@@ -60,6 +60,7 @@ export function rewards() {
     if (historyLocation===location.href) return;
     historyLocation=location.href;
     if (location.hash==='#payments/history') select('history');
+    else if (location.hash==='#payments/holders') select('holder');
   };
   window.addEventListener('funded:route-change',syncHistoryRoute);
   window.addEventListener('hashchange',syncHistoryRoute);

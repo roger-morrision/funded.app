@@ -22,6 +22,10 @@ body.page-route-wallet .wallet-detail-tabs button.active::after { background: #f
 body.page-route-wallet .wallet-detail-description { color: #8998a0; }
 body.page-route-wallet .wallet-detail-content { border-color: #26354d; border-radius: 8px; background: #111b2e; }
 body.page-route-wallet .wallet-activity-row { border-color: var(--line); }
+body.page-route-wallet .wallet-activity-row,
+body.page-route-wallet .wallet-detail-tabs button { scroll-margin-block: 110px calc(110px + env(safe-area-inset-bottom)); }
+body.page-route-wallet .wallet-detail-tabs button:focus-visible { outline-offset: -3px; }
+body.page-route-wallet .wallet-activity-row:focus-visible { outline-offset: -6px; }
 body.page-route-wallet .wallet-activity-row:hover { background: #111b2e; }
 body.page-route-wallet .wallet-activity-icon { border-radius: 8px; }
 body.page-route-wallet .wallet-balance-grid { background: var(--line); }

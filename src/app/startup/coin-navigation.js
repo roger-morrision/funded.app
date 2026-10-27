@@ -1,7 +1,92 @@
 import { openCoinRecord } from '../../features/coin/records-navigation.js';
 
+function bindTokenControlFocus(appState) {
+  const page = document.querySelector('#coin-page');
+  const controls = '[data-coin-chart-period],[data-coin-chart-metric],[data-coin-chart-unit],[data-coin-pulse-period]';
+  let frame = 0, episode = 0, release = () => {};
+  const cancel = () => { ++episode; cancelAnimationFrame(frame); frame = 0; release(); release = () => {}; };
+  const current = (target, route) => document.activeElement === target && target.isConnected
+    && target.getClientRects().length && !target.closest('[hidden],[inert]')
+    && appState.coinRouteRequested() && location.href === route && page?.contains(target);
+  const clipped = target => {
+    const rect = target.getBoundingClientRect(), style = getComputedStyle(target);
+    const edge = (parseFloat(style.outlineWidth) || 0) + (parseFloat(style.outlineOffset) || 0);
+    const bounds = {left:0, right:innerWidth, top:0, bottom:innerHeight};
+    for (const chrome of document.querySelectorAll('.topbar,.mobile-workspace-nav')) {
+      if (!chrome.getClientRects().length) continue;
+      if (chrome.matches('.topbar')) bounds.top = Math.max(bounds.top, chrome.getBoundingClientRect().bottom);
+      else bounds.bottom = Math.min(bounds.bottom, chrome.getBoundingClientRect().top);
+    }
+    const rootStyle = getComputedStyle(document.documentElement);
+    for (let parent = target.parentElement; parent; parent = parent.parentElement) {
+      const css = getComputedStyle(parent), box = parent.getBoundingClientRect();
+      const clipX = /^(hidden|clip|auto|scroll)$/.test(css.overflowX), clipY = /^(hidden|clip|auto|scroll)$/.test(css.overflowY);
+      // Propagated root/body overflow clips the viewport, not a translated box.
+      if (parent === document.documentElement || (parent === document.body
+        && rootStyle.overflowX === 'visible' && rootStyle.overflowY === 'visible'
+        && rootStyle.contain === 'none' && css.contain === 'none')) continue;
+      const left = box.left + parent.clientLeft, top = box.top + parent.clientTop;
+      const right = left + parent.clientWidth, bottom = top + parent.clientHeight;
+      if (clipX) { bounds.left = Math.max(bounds.left,left); bounds.right = Math.min(bounds.right,right); }
+      if (clipY) { bounds.top = Math.max(bounds.top,top); bounds.bottom = Math.min(bounds.bottom,bottom); }
+      if (clipX && clipY) {
+        const radii = ['borderTopLeftRadius','borderTopRightRadius','borderBottomRightRadius','borderBottomLeftRadius']
+          .map(key => Math.max(0,(parseFloat(css[key]) || 0) - parent.clientLeft));
+        const points = [[rect.left-edge,rect.top-edge],[rect.right+edge,rect.top-edge],
+          [rect.right+edge,rect.bottom+edge],[rect.left-edge,rect.bottom+edge]];
+        const centers = [[left+radii[0],top+radii[0]],[right-radii[1],top+radii[1]],
+          [right-radii[2],bottom-radii[2]],[left+radii[3],bottom-radii[3]]];
+        for (let i=0;i<4;i++) {
+          const [x,y] = points[i], [cx,cy] = centers[i], radius = radii[i];
+          if (radius && (i===0||i===3 ? x<cx : x>cx) && (i<2 ? y<cy : y>cy)
+            && (x-cx)**2 + (y-cy)**2 > radius**2) return true;
+        }
+      }
+    }
+    return rect.left-edge < bounds.left || rect.right+edge > bounds.right
+      || rect.top-edge < bounds.top || rect.bottom+edge > bounds.bottom;
+  };
+  page?.addEventListener('focusin', event => {
+    cancel();
+    const target = event.target, route = location.href, owner = episode;
+    if (!target.matches(controls) || !current(target, route)) return;
+    const valid = () => owner === episode && current(target, route);
+    const lateScroll = () => {
+      if (owner !== episode) return;
+      if (!valid()) return cancel();
+      if (!clipped(target)) return;
+      cancel(); // Unregister before revealing; queued callbacks cannot recurse.
+      target.scrollIntoView({block:'center', inline:'nearest', behavior:'instant'});
+    };
+    const input = () => { if (owner === episode) cancel(); };
+    const inputs = ['keydown','pointerdown','wheel','touchstart'];
+    // Native focus follows the initiating input's window capture phase. Adding
+    // these here cannot see that completed phase, but catches the very next input
+    // even before our first frame. No delay or timestamp-based exclusion.
+    for (const name of inputs) window.addEventListener(name,input,{capture:true,passive:true});
+    release = () => {
+      for (const name of inputs) window.removeEventListener(name,input,true);
+      window.removeEventListener('scroll',lateScroll,true);
+    };
+    // One post-native frame belongs only to this still-focused original node.
+    frame = requestAnimationFrame(() => {
+      if (owner !== episode) return;
+      frame = 0;
+      if (!valid()) return cancel();
+      // Stop superseded native movement at its CURRENT position, never restore
+      // a captured position or move focus. Reveal only an actually clipped node.
+      window.scrollTo({top:window.scrollY, left:window.scrollX, behavior:'instant'});
+      if (clipped(target)) target.scrollIntoView({block:'center', inline:'nearest', behavior:'instant'});
+      window.addEventListener('scroll',lateScroll,{capture:true,passive:true});
+    });
+  });
+  page?.addEventListener('focusout', cancel);
+  for (const event of ['hashchange','popstate','pagehide']) window.addEventListener(event,cancel);
+}
+
 // Startup runs in the order declared in start.js.
 export function initializeCoinNavigation(appState) {
+  bindTokenControlFocus(appState);
   // app-source: 986
   if (appState.coinRouteRequested()) appState.showCoinPage();
   else if (appState.walletRouteRequested()) appState.showWalletPage();
@@ -17,7 +102,7 @@ export function initializeCoinNavigation(appState) {
   // app-source-end
 
   // app-source: 989
-  document.querySelector('#asset-grid')?.addEventListener('click', event => { if (event.target.closest('button, a')) return; const card = event.target.closest('.asset-card, .explore-compact-card'); const mint = card?.dataset.mint; if (!mint) return; location.href = `/token/${encodeURIComponent(mint)}`; });
+  document.querySelector('#asset-grid')?.addEventListener('click', event => { if (event.target.closest('button, a')) return; const card = event.target.closest('.asset-card, .explore-compact-card, .explore-launch-card'); const mint = card?.dataset.mint; if (!mint) return; location.href = `/token/${encodeURIComponent(mint)}`; });
   // app-source-end
 
   // app-source: 990

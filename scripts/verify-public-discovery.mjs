@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createPageDelivery } from '../server/page-delivery.mjs';
+import { publicDiscoveryHtml } from '../server/public-discovery.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const launch = (index, overrides = {}) => ({
@@ -38,23 +39,30 @@ async function render(pathname, readLaunches) {
 }
 
 for (const path of ['/', '/explore']) {
-  const html = await render(path, async () => launches);
-  const section = html.match(/<section class="public-discovery"[\s\S]*?<\/section>/)?.[0];
-  assert.ok(section);
-  assert.match(section, /Explore Solana coins/);
-  assert.equal((section.match(/<li><a href="\/token\//g) || []).length, 6);
-  assert.match(section, /<strong>Coin 8<\/strong>/);
-  assert.doesNotMatch(section, /<strong>&lt;Unsafe/);
-  assert.doesNotMatch(section, /\/token\/[A]+9/);
-  assert.doesNotMatch(section, /Checking verified launches/);
+  for (const read of [async () => launches, async () => [], async () => { throw new Error('database offline'); }]) {
+    const html = await render(path, read);
+    assert.doesNotMatch(html, /id="public-discovery"|class="public-discovery|public-discovery-items:/);
+    assert.doesNotMatch(html, /Verified launch directory|Explore Solana coins|Browse all launches/);
+    assert.match(html, /class="home-launch-board"/);
+    assert.equal(publicDiscoveryHtml(html, launches, 'devnet'), html, 'Removed markers cannot reinject a section');
+  }
 }
-const escaped = await render('/', async () => [launch(1)]);
+// Explicit helper fixtures preserve filtering/escaping negative controls. They
+// are not page-delivery presence claims after the human-requested removal.
+const fixture = '<section><!-- public-discovery-items:start -->Checking verified launches<!-- public-discovery-items:end --></section>';
+const filtered = publicDiscoveryHtml(fixture, launches, 'devnet');
+assert.equal((filtered.match(/<li><a href="\/token\//g) || []).length, 6);
+assert.match(filtered, /<strong>Coin 8<\/strong>/);
+assert.doesNotMatch(filtered, /<strong>&lt;Unsafe/);
+assert.doesNotMatch(filtered, /\/token\/[A]+9/);
+assert.doesNotMatch(filtered, /Checking verified launches/);
+const escaped = publicDiscoveryHtml(fixture, [launch(1)], 'devnet');
 assert.match(escaped, /&lt;Unsafe &amp; name&gt;/);
 assert.match(escaped, /A&amp;B/);
 assert.doesNotMatch(escaped, /<Unsafe/);
-assert.match(await render('/', async () => []), /No verified launches to show right now/);
-assert.match(await render('/', async () => { throw new Error('database offline'); }), /Launch directory is temporarily unavailable/);
+assert.match(publicDiscoveryHtml(fixture, [], 'devnet'), /No verified launches to show right now/);
+assert.match(publicDiscoveryHtml(fixture, null, 'devnet'), /Launch directory is temporarily unavailable/);
 
 const styles = await readFile(resolve(root, 'styles/home/base-navigation.css'), 'utf8');
 assert.match(styles, /section:not\(\.hero-section\):not\(\.public-discovery\)/);
-console.log('Public discovery: page rendering, verified links, escaping, empty state, and unavailable state passed.');
+console.log('Public discovery removal: root/explore absence for populated, empty and unavailable reads; isolated helper filtering, escaping and negative controls passed.');

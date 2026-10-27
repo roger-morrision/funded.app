@@ -4,7 +4,7 @@ import { serviceFeeGuide } from '../fees/service-fees-client.js';
 
 export const rewardActions = () => [
   ['Creator wallet', 'SOL', 'Creator reviews and signs settlement, funding and the available payout action.', 'The coin’s saved creator-wallet share and finalized collected fees.', '#payments'],
-  ['Coin holders', 'SOL', 'Automatic transfer; no holder claim or recipient signature.', 'A funded holder pool, complete finalized holdings and the coin’s eligibility/minimum conditions.', '#payments'],
+  ['Coin holders', 'SOL', 'Automatic transfer; no holder claim or recipient signature.', 'A funded holder pool, complete finalized holdings and the coin’s eligibility/minimum conditions.', '#payments/holders'],
   ['X account', 'SOL', 'Sign in with the allocated X account, verify the receiving wallet and complete the claim.', 'The launch’s named X identity, an available allocation and verified source funding.', '#payments'],
   ['Referral network', 'SOL', 'No separate recipient claim; creator-approved V3 transfers pay the recorded upline.', 'Qualified collected fees, frozen first-touch attribution and signed payout approval.', '#referrals'],
   ['Daily bonus', 'SOL', 'Automatic transfer to winners; no manual claim or recipient signature.', 'A completed UTC day, verified top-three rankings and exact source funding.', '#bonuses'],

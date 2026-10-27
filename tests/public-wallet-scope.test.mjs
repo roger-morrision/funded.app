@@ -20,7 +20,7 @@ test('public partial BUY/SELL/ALL empty records carry adjacent applicable scope 
   for(const [filter,detail] of [['buy','No buys were found in the available 24-hour trade records.'],['sell','No sells were found in the available 24-hour trade records.'],['all','No matching activity was found in the available public records.']]) {
     const f=fixture({filter});assert.deepEqual(f.empty,{title:'No matching activity',detail:detail+' Trades shown for 5 of 18 listed coins.'});
     assert.equal(f.text('stat-volume'),'$0.00');assert.equal(f.text('stat-trades'),'0');assert.equal(f.text('stat-volume-note'),'No trades observed in available 24-hour records. Trades shown for 5 of 18 listed coins.');
-    assert.equal(f.text('stat-sol'),'—');assert.equal(f.text('stat-sol-note'),'Connect this wallet to view balance');assert.equal(f.nodes['#wallet-follow'].textContent,'Following ✓');
+    assert.equal(f.text('stat-sol'),'—');assert.equal(f.text('stat-sol-note'),'Shown only for your connected wallet.');assert.equal(f.nodes['#wallet-follow'].textContent,'Following ✓');
     assert.deepEqual(f.filters.filter(n=>n.attrs['aria-pressed']==='true').map(n=>n.dataset.walletFilter),[filter]);
   }
 });

@@ -3,6 +3,7 @@ import { escapeHtml } from '../shared/display.js';
 import { activeBoostMultiplier } from '../../../boost-offer.js';
 import { renderActivityCoverage } from './activity-sampling.js';
 import { createExploreEmptyAction } from './empty-action.js';
+import { syncLaunchCardProgressFreshness } from '../home/launch-card-view.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderExploreAssets(
@@ -40,6 +41,7 @@ export function renderExploreAssets(
     document = globalThis.document,
   } = {}
 ) {
+  syncLaunchCardProgressFreshness(document, exploreProviderStatus);
   const grid = document.querySelector('#asset-grid');
   // Preserve the focused action through background market refreshes.
   if (!force && grid?.contains(document.activeElement)) {
@@ -103,7 +105,6 @@ export function renderExploreAssets(
     volumeLabel: exploreWindow,
     volumeValue: launchCardVolumeUsd(item, exploreWindow),
     extraClass: ' explore-launch-card',
-    compact: true,
   })).join('') : loading
     ? '<div class="empty-state onchain-empty"><strong>Loading verified launches…</strong><span>Checking the indexed launch feed and confirming current Solana state.</span></div>'
     : feedUnavailable || rpcUnavailable

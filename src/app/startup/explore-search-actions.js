@@ -1,4 +1,5 @@
 import { initializeExploreTableScroll } from '../../features/explore/table-scroll.js';
+import { beginWatchlistRetry, isWatchlistRetryPending } from '../../features/portfolio/watchlist-retry-state.js';
 
 export function initializeExploreSearchActions(appState) {
   initializeExploreTableScroll();
@@ -290,7 +291,22 @@ export function initializeExploreSearchActions(appState) {
     const trade = event.target.closest('[data-trade-mint]');
     if (trade) { appState.openExploreTrade(trade.dataset.tradeMint); return; }
     const retry = event.target.closest('[data-watch-retry]');
-    if (retry) { retry.disabled = true; void Promise.allSettled([appState.loadVerifiedLaunchPolicies(), appState.loadOnchainExploreData()]).then(() => appState.renderWatchlist()); return; }
+    if (retry) {
+      const mint = retry.dataset.watchRetry, sync = appState.watchlistSync;
+      if (isWatchlistRetryPending(sync, mint)) return;
+      const finish = beginWatchlistRetry(sync, mint), started = [];
+      retry.disabled = true;
+      let invocationFailed = false, invocationError;
+      try {
+        started.push(appState.loadVerifiedLaunchPolicies());
+        started.push(appState.loadOnchainExploreData());
+      } catch (error) { invocationFailed = true; invocationError = error; }
+      try {
+        await Promise.allSettled(started);
+        if (invocationFailed) throw invocationError;
+      } finally { finish(); appState.renderWatchlist(); }
+      return;
+    }
     const button = event.target.closest('[data-remove-watch]');
     if (!button) return;
     if (!await appState.saveWatchlist(button.dataset.removeWatch, { remove: true })) return;

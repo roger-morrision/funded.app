@@ -96,6 +96,13 @@ for(const viewport of[{width:360,height:740},{width:360,height:844},{width:390,h
  for(const step of['1','2']){
   if(step==='2'){await page.locator('#launch-next').click();await expect(page.locator('#launch-dialog')).toHaveAttribute('data-step','2');}
   const matched=await page.evaluate(quote=>window.renderCostNavigationFixture({quote,matchRetry:true}),healthy),jump=page.locator('[data-launch-cost-step="'+step+'"]');await expect(page.locator('#launch-public-quote-retry')).toBeHidden();
+  // QA-approved FQA-072 exception: the new native disclosure precedes Step2 cost navigation.
+  if(step==='2'){
+   await expect(page.locator('#benefits-step-title')).toBeFocused();
+   const originalSummary=await page.locator('#launch-availability-details > summary').elementHandle();expect(originalSummary).not.toBeNull();
+   await armAvailabilityFocus(originalSummary,{step:'2'},'Tab');
+   await page.keyboard.press('Tab');await availabilityFocusProof(page,'legacy-step2-original-summary-before-cost','Tab');
+  }
   if(step==='1')await page.locator('[data-launch-step-target="2"]').focus();await page.keyboard.press('Tab');await expect(jump).toBeFocused();await check(jump);
   const saved=await snapshot(page),count=f.reads.length;await page.keyboard.press(step==='1'?'Enter':'Space');await check(target);expect(await target.innerHTML()).toBe(matched.markup);await page.keyboard.press('Shift+Tab');await check(back);await page.keyboard.press(step==='1'?'Space':'Enter');await check(jump);expect(await snapshot(page)).toEqual(saved);expect(f.reads.length).toBe(count);
   await rapidReverse(jump,'fee-route-agree');await expect(page.locator('#launch-public-quote-retry')).toBeHidden();
@@ -142,4 +149,356 @@ test('Cost navigation fails closed for stale context and preserves invalid draft
  expect(await captureFrame(false)).toEqual({count:1,canceled:0});await page.setViewportSize({width:1440,height:900});const lostContext=await flushStale();expect(lostContext.after).toEqual(lostContext.before);await page.setViewportSize({width:360,height:740});
  await info.attach('stale-frame-no-effect',{body:JSON.stringify({lostFocus,lostContext,qualification:'Captured canceled callback manually invoked after real focus/context changes; no acceptance timing override. All native focus cases use real requestAnimationFrame and unchanged1s/100ms checks.'}),contentType:'application/json'});expect(await snapshot(page)).toEqual(invalid);expect(f.reads.length).toBe(guardReads);
  await info.attach('stale-and-invalid-state',{body:JSON.stringify({invalid,requests:f.reads},null,2),contentType:'application/json'});expect(f.errors).toEqual([]);expect(f.writes).toEqual([]);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});
+
+// FQA-072 / UX-053: actual bootstrap and existing finalized 74-byte loader.
+// The legacy cost-render-only cases above remain byte-for-byte unchanged.
+function observeAvailabilityFocus(original, readiness = {}) {
+  const began = performance.now();
+  return new Promise(resolve => {
+    const samples = []; let stationaryAt = null, previous = null, frame;
+    const finish = pass => { cancelAnimationFrame(frame); clearTimeout(timer); resolve({ pass, samples }); };
+    const tick = () => {
+      const element = original, rect = element?.getBoundingClientRect();
+      const style = element && getComputedStyle(element);
+      const edge = style ? (parseFloat(style.outlineWidth) || 0) + (parseFloat(style.outlineOffset) || 0) : 0;
+      const bounds = { left:0, right:innerWidth, top:0, bottom:innerHeight }, clips = [];
+      let cornersClear = true;
+      const rootStyle = getComputedStyle(document.documentElement);
+      const root = { tag:document.documentElement.tagName, display:rootStyle.display,
+        overflowX:rootStyle.overflowX, overflowY:rootStyle.overflowY, contain:rootStyle.contain };
+      for (const chrome of document.querySelectorAll('.topbar,.mobile-workspace-nav')) {
+        if (chrome.contains(element)) continue;
+        if (!chrome.getClientRects().length) continue;
+        const r = chrome.getBoundingClientRect();
+        if (chrome.matches('.topbar')) bounds.top = Math.max(bounds.top, r.bottom);
+        else bounds.bottom = Math.min(bounds.bottom, r.top);
+      }
+      for (let ancestor = element?.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        const css = getComputedStyle(ancestor), r = ancestor.getBoundingClientRect();
+        const clipX = /^(hidden|clip|auto|scroll)$/.test(css.overflowX);
+        const clipY = /^(hidden|clip|auto|scroll)$/.test(css.overflowY);
+        if (clipX || clipY) {
+          // CSS Overflow 3: root overflow, or body overflow when the HTML root
+          // is visible in both axes, is propagated to the viewport. Its used
+          // clip is not its translated document-coordinate border rectangle.
+          const viewportClip = ancestor === document.documentElement || (ancestor === document.body
+            && rootStyle.overflowX === 'visible' && rootStyle.overflowY === 'visible'
+            && rootStyle.contain === 'none' && css.contain === 'none');
+          if (viewportClip) { clips.push({ tag:ancestor.tagName, display:css.display, overflowX:css.overflowX,
+            overflowY:css.overflowY, contain:css.contain, viewportClip:true,
+            propagationReason:ancestor === document.documentElement ? 'root overflow applies to viewport' : 'visible HTML root propagates body overflow to viewport',
+            left:0, top:0, right:innerWidth, bottom:innerHeight }); continue; }
+          const box = { left:r.left + ancestor.clientLeft, top:r.top + ancestor.clientTop,
+            right:r.left + ancestor.clientLeft + ancestor.clientWidth,
+            bottom:r.top + ancestor.clientTop + ancestor.clientHeight };
+          const radii = ['borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomRightRadius', 'borderBottomLeftRadius']
+            .map(key => Math.max(0, (parseFloat(css[key]) || 0) - ancestor.clientLeft));
+          if (rect && clipX && clipY) {
+            const points = [[rect.left-edge,rect.top-edge],[rect.right+edge,rect.top-edge],
+              [rect.right+edge,rect.bottom+edge],[rect.left-edge,rect.bottom+edge]];
+            const centers = [[box.left+radii[0],box.top+radii[0]],[box.right-radii[1],box.top+radii[1]],
+              [box.right-radii[2],box.bottom-radii[2]],[box.left+radii[3],box.bottom-radii[3]]];
+            for (let i=0;i<4;i++) { const radius=radii[i], [x,y]=points[i], [cx,cy]=centers[i];
+              const inCorner = (i===0||i===3 ? x<cx : x>cx) && (i<2 ? y<cy : y>cy);
+              if (radius && inCorner && (x-cx)**2+(y-cy)**2>radius**2) cornersClear=false;
+            }
+          }
+          clips.push({ id:ancestor.id, tag:ancestor.tagName, display:css.display, overflowX:css.overflowX,
+            overflowY:css.overflowY, contain:css.contain, clipX, clipY, radii, ...box });
+          if (clipX) { bounds.left = Math.max(bounds.left, box.left); bounds.right = Math.min(bounds.right, box.right); }
+          if (clipY) { bounds.top = Math.max(bounds.top, box.top); bounds.bottom = Math.min(bounds.bottom, box.bottom); }
+        }
+      }
+      const position = rect && { top:rect.top, bottom:rect.bottom, left:rect.left, right:rect.right };
+      const row = document.querySelector('#launch-availability');
+      const panel = row?.closest('[data-launch-step]'), rowRect = row?.getBoundingClientRect();
+      const warning = readiness.warning && document.getElementById(readiness.warning);
+      const rowVisible = !element.matches('.step-heading h3') || (rowRect && rowRect.top >= bounds.top && rowRect.bottom <= bounds.bottom && rowRect.left >= bounds.left && rowRect.right <= bounds.right);
+      const ready = Boolean(row && !panel?.hidden && rowVisible
+        && (!readiness.state || row.dataset.state === readiness.state)
+        && (!readiness.step || panel.dataset.launchStep === readiness.step)
+        && (!readiness.warning || warning?.getClientRects().length));
+      const clear = Boolean(ready && element.isConnected && rect && cornersClear && element === document.activeElement && element.matches(':focus-visible')
+        && style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0
+        && rect.left - edge >= bounds.left && rect.right + edge <= bounds.right
+        && rect.top - edge >= bounds.top && rect.bottom + edge <= bounds.bottom);
+      const now = performance.now(), geometry = JSON.stringify([position, scrollX, scrollY, bounds]);
+      if (clear) { if (stationaryAt === null || previous !== geometry) stationaryAt = now; }
+      else stationaryAt = null;
+      previous = geometry;
+      samples.push({ at:now - began, clear, ready, position, edge, bounds, clips, root, cornersClear,
+        stationaryMs:stationaryAt === null ? 0 : now - stationaryAt });
+      if (now - began > 1000) return finish(false);
+      if (clear && now - stationaryAt >= 100) return finish(true);
+      frame = requestAnimationFrame(tick);
+    };
+    const timer = setTimeout(() => finish(false), 1000);
+    frame = requestAnimationFrame(tick);
+  });
+}
+
+async function armAvailabilityFocus(original, readiness, key = null) {
+  await original.evaluate((element, { source, readiness, key }) => {
+    let resolve;
+    const state = window.__launchAvailabilityFocus = { promise: new Promise(r => { resolve = r; }), events: [], key: null };
+    const changed = event => state.events.push({ original: event.target === element, id: event.target.id });
+    document.addEventListener('focusin', changed, true);
+    const begin = event => {
+      if (key && (!event?.isTrusted || event.key !== key)) return;
+      if (event) state.key = { key: event.key, trusted: event.isTrusted };
+      document.removeEventListener('keydown', begin, true);
+      state.began = performance.now();
+      (new Function('return (' + source + ')')())(element, readiness).then(proof => {
+        document.removeEventListener('focusin', changed, true);
+        resolve({ proof, key: state.key, events: state.events, began: state.began, ended: performance.now(),
+          connected: element.isConnected, active: document.activeElement === element });
+      });
+    };
+    if (key) document.addEventListener('keydown', begin, true); else begin();
+  }, { source: observeAvailabilityFocus.toString(), readiness, key });
+}
+async function availabilityFocusProof(page, label, key = null) {
+  const result = await page.evaluate(() => window.__launchAvailabilityFocus.promise);
+  await test.info().attach('availability-native-' + label, { body: JSON.stringify(result), contentType: 'application/json' });
+  expect(result.proof.pass, JSON.stringify(result)).toBe(true);
+  expect(result.ended - result.began).toBeLessThanOrEqual(1000);
+  expect(result.proof.samples.at(-1).stationaryMs).toBeGreaterThanOrEqual(100);
+  expect(result.connected && result.active).toBe(true);
+  expect(result.events.every(e => e.original)).toBe(true);
+  if (key) expect(result.key).toEqual({ key, trusted: true });
+}
+async function availabilityTab(page, selector, readiness = {}) {
+  const original = await page.locator(selector).elementHandle(); expect(original).not.toBeNull();
+  // Discover the final native Tab from read-only DOM order; never focus/scroll in JS.
+  let next = false;
+  for (let n = 0; n < 180; n++) {
+    next = await original.evaluate(element => {
+      const nodes = [...document.querySelectorAll('a[href],button,input,select,textarea,summary,[tabindex]')]
+        .filter(e => e.tabIndex >= 0 && !e.disabled && !e.closest('[hidden],[inert]') && e.getClientRects().length && getComputedStyle(e).visibility === 'visible');
+      return nodes[(nodes.indexOf(document.activeElement) + 1) % nodes.length] === element;
+    });
+    if (next) break;
+    await page.keyboard.press('Tab');
+  }
+  expect(next).toBe(true);
+  await armAvailabilityFocus(original, readiness, 'Tab'); await page.keyboard.press('Tab');
+  await availabilityFocusProof(page, selector, 'Tab'); return original;
+}
+async function availabilityEnter(page, selector, readiness = {}) {
+  const original = await page.locator(selector).elementHandle(); expect(original).not.toBeNull();
+  await armAvailabilityFocus(original, readiness, 'Enter'); await page.keyboard.press('Enter');
+  await availabilityFocusProof(page, selector + '-Enter', 'Enter'); return original;
+}
+
+async function availabilityFixture(page, width, variant = 'verified', fixtureOrigin = test.info().project.use.baseURL) {
+  const { PublicKey } = await import('@solana/web3.js');
+  const { deriveFeeRouter, buildExpectedFeeRouterAccountPrefix } = await import('../../fee-router.js');
+  const programId = 'BPFLoaderUpgradeab1e11111111111111111111111';
+  const authority = '11111111111111111111111111111111';
+  const otherAuthority = 'SysvarRent111111111111111111111111111111111';
+  const router = deriveFeeRouter(programId), prefix = buildExpectedFeeRouterAccountPrefix();
+  expect(prefix.length).toBe(41);
+  let bytes = Buffer.concat([Buffer.from(prefix), Buffer.from(new PublicKey(variant === 'authority' ? otherAuthority : authority).toBytes()), Buffer.from([router.bump])]);
+  expect(bytes.length).toBe(74);
+  if (variant === 'layout') bytes = bytes.subarray(0, 73);
+  let releaseConfig, releaseAccount, enteredAccount;
+  const configGate = new Promise(r => { releaseConfig = r; }), accountGate = new Promise(r => { releaseAccount = r; });
+  const accountEntered = new Promise(r => { enteredAccount = r; });
+  const f = { api: [], network: [], forbidden: [], errors: [], failed: [], accountReads: [],
+    router: router.address.toBase58(), programId, authority, prefixHex: Buffer.from(prefix).toString('hex'),
+    bump: router.bump, dataLength: bytes.length, variant };
+  page.on('pageerror', error => f.errors.push(error.message));
+  page.on('requestfailed', request => f.failed.push({ url: request.url(), method: request.method(), error: request.failure()?.errorText }));
+  await page.setViewportSize({ width, height: width === 360 ? 740 : width === 390 ? 844 : 900 });
+  const readMethods = new Set(['getAccountInfo', 'getMultipleAccounts', 'getSlot', 'getGenesisHash']);
+  await page.route('**/*', async route => {
+    const request = route.request(), url = new URL(request.url()), method = request.method();
+    const local = url.origin === new URL(fixtureOrigin).origin;
+    f.network.push({ origin: url.origin, path: url.pathname, method });
+    if (!local) {
+      if (method === 'GET' && ['fonts.googleapis.com', 'fonts.gstatic.com'].includes(url.hostname)) return route.continue();
+      f.forbidden.push({ origin: url.origin, path: url.pathname, method }); return route.abort();
+    }
+    if (url.pathname === '/api/solana/rpc') {
+      let body; try { body = request.postDataJSON(); } catch {}
+      const calls = Array.isArray(body) ? body : [body];
+      f.api.push({ path: url.pathname, method, calls });
+      if (method !== 'POST' || !calls.length || !calls.every(c => c && readMethods.has(c.method))) {
+        f.forbidden.push({ path: url.pathname, method, calls }); return route.fulfill({ status: 403, json: { error: 'Unapproved RPC fixture call' } });
+      }
+      const responses = [];
+      for (const call of calls) {
+        let value;
+        if (call.method === 'getAccountInfo' && call.params?.[0] === f.router) {
+          const read = { id: call.id, params: call.params, method: call.method, responseLength: bytes.length, replied: false };
+          f.accountReads.push(read); enteredAccount(); await accountGate;
+          value = { context: { slot: 100 }, value: { data: [bytes.toString('base64'), 'base64'],
+            owner: variant === 'owner' ? 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' : programId,
+            executable: false, lamports: 1000000, rentEpoch: 0, space: bytes.length } };
+          read.replied = true;
+        } else if (call.method === 'getAccountInfo') value = { context: { slot: 100 }, value: null };
+        else if (call.method === 'getMultipleAccounts') value = { context: { slot: 100 }, value: (call.params?.[0] || []).map(() => null) };
+        else if (call.method === 'getSlot') value = 100;
+        else value = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
+        responses.push({ jsonrpc: '2.0', id: call.id, result: value });
+      }
+      return route.fulfill({ json: Array.isArray(body) ? responses : responses[0] });
+    }
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+      f.forbidden.push({ path: url.pathname, method }); return route.fulfill({ status: 403, json: { error: 'No writes in availability fixture' } });
+    }
+    if (!url.pathname.startsWith('/api/')) return route.continue();
+    f.api.push({ path: url.pathname, method });
+    if (url.pathname === '/api/v3-launch-config') {
+      await configGate;
+      if (variant === 'service503') return route.fulfill({ status: 503, json: { error: 'Offline launch service unavailable' } });
+      return route.fulfill({ json: { ready: variant !== 'serviceFalse', cluster: 'devnet', programId,
+        initialAuthority: authority, protocolSplit: PROTOCOL_FEE_SPLIT, reasons: variant === 'serviceFalse' ? ['Fixture service check has not passed'] : [] } });
+    }
+    if (url.pathname === '/api/fee-policy') return route.fulfill({ json: { split: PROTOCOL_FEE_SPLIT } });
+    if (url.pathname === '/api/rewards/automatic') return route.fulfill({ json: { status: 'unavailable', reason: 'Offline availability fixture',
+      evidence: { status: 'unavailable' }, serverTime: new Date().toISOString(), schedules: [] } });
+    return route.fulfill({ status: 503, json: { error: 'Offline informational planning fixture' } });
+  });
+  return { ...f, f, releaseConfig, releaseAccount, accountEntered,
+    async finish() { releaseConfig(); releaseAccount(); await test.info().attach('availability-actual-loader-reads', { body: JSON.stringify(f), contentType: 'application/json' }); } };
+}
+async function availabilityStructure(page, original = null) {
+  const row = page.locator('#launch-availability'), details = page.locator('#launch-availability-details');
+  await expect(row).toHaveCount(1); await expect(page.locator('#fee-router-status')).toHaveCount(1);
+  await expect(page.locator('#launch-availability-summary')).toHaveAttribute('role', 'status');
+  await expect(page.locator('#launch-availability-summary')).toHaveAttribute('aria-live', 'polite');
+  await expect(page.locator('#launch-availability-summary')).toHaveAttribute('aria-atomic', 'true');
+  expect(await row.locator('[aria-live]').count()).toBe(1);
+  expect(await page.locator('#fee-router-status').getAttribute('role')).toBeNull();
+  expect(await page.locator('#fee-router-status').getAttribute('aria-live')).toBeNull();
+  expect(await row.evaluate(e => e.previousElementSibling?.classList.contains('step-heading') && !e.parentElement.hidden)).toBe(true);
+  if (original) for (const [id, node] of Object.entries(original)) expect(await node.evaluate((e, id) => e === document.getElementById(id) && e.isConnected, id)).toBe(true);
+  const geometry = await details.locator('summary').evaluate(e => ({ height: e.getBoundingClientRect().height, font: getComputedStyle(e).fontFamily }));
+  expect(geometry.height).toBeGreaterThanOrEqual(44); expect(geometry.font).toContain('Manrope');
+  await expect(page.locator('#fee-route-agree')).not.toBeChecked(); await expect(page.locator('#terms-agree')).not.toBeChecked();
+  expect(await page.locator('html').getAttribute('data-connected-wallet') || '').toBe('');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+}
+async function availabilityNativePlanning(page, state, validate = false) {
+  if (validate) {
+    await availabilityTab(page, '#launch-next', { state });
+    await availabilityEnter(page, '#token-name', { state, warning: 'token-name-warning' });
+    await expect(page.locator('#token-name')).toHaveAttribute('aria-invalid', 'true');
+    await page.locator('#token-name').fill('   ');
+    await availabilityTab(page, '#launch-next', { state });
+    await availabilityEnter(page, '#token-name', { state, warning: 'token-name-warning' });
+    await page.locator('#token-name').fill('Launch availability QA');
+    await page.locator('#token-symbol').fill('!?');
+    await availabilityTab(page, '#launch-next', { state });
+    await availabilityEnter(page, '#token-symbol', { state, warning: 'token-symbol-warning' });
+    expect((await page.locator('#token-symbol').getAttribute('aria-describedby')).split(' ')).toContain('token-symbol-warning');
+  } else await page.locator('#token-name').fill('Launch availability QA');
+  await page.locator('#token-symbol').fill('AVQA');
+  const description = page.locator('details').filter({ has: page.locator('#token-description') });
+  if (await description.getAttribute('open') === null) await description.locator(':scope > summary').click();
+  await expect(description).toHaveAttribute('open', '');
+  await expect(page.locator('#token-description')).toBeVisible();
+  await page.locator('#token-description').fill('A draft only. No account, consent or financial action.');
+  await availabilityTab(page, '#launch-next', { state });
+  await availabilityEnter(page, '#benefits-step-title', { state, step: '2' });
+  await availabilityStructure(page);
+  await availabilityTab(page, '#launch-back', { state, step: '2' });
+  await availabilityEnter(page, '#coin-step-title', { state, step: '1' });
+  await expect(page.locator('#token-name')).toHaveValue('Launch availability QA');
+  await expect(page.locator('#token-symbol')).toHaveValue('AVQA');
+  await expect(page.locator('#token-description')).toHaveValue('A draft only. No account, consent or financial action.');
+  await expect(description).toHaveAttribute('open', '');
+}
+
+for (const width of [360, 390, 1440]) test(`Launch availability actual loader checking to verified and native planning ${width}`, async ({ page }, info) => {
+  test.setTimeout(60000);
+  const fixture = await availabilityFixture(page, width), f = fixture.f;
+  try {
+    await page.goto('/#launch'); await page.locator('body.workspace-ready.product-experience-ready').waitFor();
+    await expect(page.locator('#launch-availability-label')).toHaveText('Checking launch service');
+    const original = {};
+    for (const id of ['launch-availability', 'launch-availability-details', 'fee-router-status', 'launch-availability-summary']) original[id] = await page.locator('#' + id).elementHandle();
+    await page.evaluate(async () => { await document.fonts.ready; await document.fonts.load('700 14px "Manrope"', 'Technical details'); });
+    const summary = await availabilityTab(page, '#launch-availability-details > summary', { state: 'checking' });
+    await page.keyboard.press('Enter'); await expect(page.locator('#launch-availability-details')).toHaveAttribute('open', '');
+    fixture.releaseConfig(); await fixture.accountEntered;
+    await armAvailabilityFocus(summary, { state: 'verified' }); fixture.releaseAccount();
+    await availabilityFocusProof(page, 'real-account-response-keeps-summary-focus');
+    await expect(page.locator('#launch-availability-label')).toHaveText('Launch service verified');
+    await expect(page.locator('#launch-availability-guidance')).toHaveText('Your wallet, quote and final launch checks are still required.');
+    await expect(page.locator('#cost-total-enabled')).toHaveText('Quote unavailable', { timeout: 18000 });
+    await availabilityStructure(page, original);
+    const checkingAndVerifiedReads = f.api.filter(x => x.path === '/api/v3-launch-config').length;
+    expect(checkingAndVerifiedReads).toBe(1); expect(f.accountReads).toHaveLength(1);
+    expect(f.accountReads[0].params[0]).toBe(f.router); expect(f.accountReads[0].params[1].commitment).toBe('finalized');
+    expect(f.accountReads[0].replied).toBe(true); expect(f.accountReads[0].responseLength).toBe(74);
+    await availabilityNativePlanning(page, 'verified', true); await availabilityStructure(page, original);
+    await expect(page.locator('#launch-availability-details')).toHaveAttribute('open', '');
+    expect(f.api.filter(x => x.path === '/api/v3-launch-config')).toHaveLength(1); expect(f.accountReads).toHaveLength(1);
+    await expect(page.locator('#launch-button')).toHaveAttribute('data-launch-action', 'connect-wallet');
+    await expect(page.locator('#launch-button')).toHaveText('Connect wallet to create coin');
+    await expect(page.locator('#launch-review-dialog')).not.toBeVisible();
+    await page.screenshot({ path: info.outputPath('availability-verified-draft.png') });
+    expect(f.forbidden).toEqual([]); expect(f.errors).toEqual([]);
+  } finally { await fixture.finish(); }
+});
+
+for (const { width, variant } of [
+  { width: 360, variant: 'authority' }, { width: 390, variant: 'owner' }, { width: 1440, variant: 'layout' },
+  { width: 390, variant: 'serviceFalse' }, { width: 360, variant: 'service503' }
+]) test(`Launch availability actual loader rejects ${variant} and preserves drafting ${width}`, async ({ page }, info) => {
+  test.setTimeout(60000); const fixture = await availabilityFixture(page, width, variant), f = fixture.f;
+  try {
+    await page.goto('/#launch'); await page.locator('body.workspace-ready.product-experience-ready').waitFor();
+    await expect(page.locator('#launch-availability-label')).toHaveText('Checking launch service');
+    await page.evaluate(async () => { await document.fonts.ready; await document.fonts.load('700 14px "Manrope"', 'Technical details'); });
+    const summary = await availabilityTab(page, '#launch-availability-details > summary', { state: 'checking' });
+    await page.keyboard.press('Enter');
+    if (!variant.startsWith('service')) { fixture.releaseConfig(); await fixture.accountEntered; }
+    await armAvailabilityFocus(summary, { state: 'unavailable' }); fixture.releaseAccount(); fixture.releaseConfig();
+    await availabilityFocusProof(page, 'real-rejected-read-keeps-summary-focus');
+    await expect(page.locator('#launch-availability-label')).toHaveText('Submission unavailable');
+    await expect(page.locator('#launch-availability-guidance')).toHaveText('You can keep preparing your draft. Launch service verification has not passed.');
+    await expect(page.locator('#fee-router-status')).toContainText('Launch blocked:');
+    await availabilityNativePlanning(page, 'unavailable', true); await availabilityStructure(page);
+    expect(f.api.filter(x => x.path === '/api/v3-launch-config')).toHaveLength(1);
+    expect(f.accountReads).toHaveLength(variant.startsWith('service') ? 0 : 1);
+    await expect(page.locator('#launch-button')).toBeDisabled();
+    await page.screenshot({ path: info.outputPath('availability-unavailable-' + variant + '.png') });
+    expect(f.forbidden).toEqual([]); expect(f.errors).toEqual([]);
+  } finally { await fixture.finish(); }
+});
+
+test('Launch availability presentation preserves ordinary entry and step request counts', async ({ page }, info) => {
+  test.setTimeout(60000);
+  const baselineURL = info.project.metadata.availabilityBaselineURL;
+  expect(typeof baselineURL, 'Separate read-only accepted669 baseline server must be explicitly admitted in runner metadata').toBe('string');
+  expect(new URL(baselineURL).hostname).toBe('127.0.0.1');
+  const baseline = await page.context().newPage();
+  const fixtures = [];
+  try {
+    const exercise = async (target, url) => {
+      const fixture = await availabilityFixture(target, 390, 'serviceFalse', url); fixtures.push(fixture);
+      // The baseline's origin is explicitly local and uses this same per-page transport fixture.
+      await target.goto(url + '/#launch'); await target.locator('body.workspace-ready.product-experience-ready').waitFor();
+      fixture.releaseAccount(); fixture.releaseConfig();
+      await expect(target.locator('#fee-router-status')).toContainText('Launch blocked:');
+      await expect(target.locator('#cost-total-enabled')).toHaveText('Quote unavailable', { timeout: 18000 });
+      await target.locator('#token-name').fill('Count comparison'); await target.locator('#token-symbol').fill('COUNT');
+      await target.locator('#launch-next').click(); await expect(target.locator('#launch-dialog')).toHaveAttribute('data-step', '2');
+      await target.locator('#launch-back').click(); await expect(target.locator('#launch-dialog')).toHaveAttribute('data-step', '1');
+      const counts = {};
+      for (const r of fixture.f.api) {
+        const key = JSON.stringify([r.path, r.method, r.calls?.map(c => ({ method: c.method, params: c.params })) || null]);
+        counts[key] = (counts[key] || 0) + 1;
+      }
+      expect(fixture.f.forbidden).toEqual([]); expect(fixture.f.errors).toEqual([]);
+      return counts;
+    };
+    const ordinary = await exercise(baseline, baselineURL), candidate = await exercise(page, info.project.use.baseURL);
+    expect(candidate).toEqual(ordinary);
+    await info.attach('availability-baseline-all-api-counts', { body: JSON.stringify({ ordinary, candidate, qualification: 'Same actual-bootstrap local fixture; IDs excluded, no API/RPC/auth path or abort filtered from raw attachments.' }), contentType: 'application/json' });
+  } finally { for (const fixture of fixtures) await fixture.finish(); await baseline.close(); }
 });

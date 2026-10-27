@@ -35,8 +35,10 @@ html body.page-route-overview .main-content > .home-daily-bonuses { order: 5; di
 .bonus-history-page button:disabled { opacity: .45; cursor: default; }
 .bonus-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin: 18px 0 26px; }
 .bonus-history-page .field-help, .home-daily-bonuses .field-help { color: #acb8cf; line-height: 1.6; }
+body.page-route-bonuses #bonuses:not([hidden]) [data-bonus-history-rows] tbody td:nth-child(2) a { scroll-margin-block: 100px; }
 @media (max-width: 1050px) { .bonus-leaders-grid { grid-template-columns: 1fr; } }
 @media (max-width: 700px) {
+  html:has(body.page-route-bonuses #bonuses:not([hidden])) { scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
   .home-daily-bonuses, .bonus-history-page { padding: 20px 16px; }
   .bonus-section-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
   .bonus-pool-grid { grid-template-columns: 1fr; }

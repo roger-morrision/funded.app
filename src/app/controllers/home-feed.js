@@ -190,7 +190,7 @@ export function createHomeFeedController(appState) {
 
   // app-source: 489
   function homeLaunchCardMarkup(item, { volumeLabel, volumeValue, extraClass = '', extraActions = '', footerNote = '', compact = false }){
-    return appState.homeLaunchCardMarkupView(item, { volumeLabel, volumeValue, extraClass, extraActions, footerNote, compact }, { verifiedBoosts: appState.verifiedBoosts, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER }, { exploreStageLabel: appState.exploreStageLabel, formatOnchainAge: appState.formatOnchainAge, formatCoinUsd: appState.formatCoinUsd, verifiedLaunchPolicyForMint: appState.verifiedLaunchPolicyForMint, homeLaunchFeeRouteMarkup: appState.homeLaunchFeeRouteMarkup, exploreSocialLinksMarkup: appState.exploreSocialLinksMarkup, tokenCardWatchMarkup: appState.tokenCardWatchMarkup, exploreBoostAmountMarkup: appState.exploreBoostAmountMarkup, tokenCardShareMarkup: appState.tokenCardShareMarkup });
+    return appState.homeLaunchCardMarkupView(item, { volumeLabel, volumeValue, extraClass, extraActions, footerNote, compact }, { verifiedBoosts: appState.verifiedBoosts, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER, exploreProviderStatus: appState.exploreProviderStatus }, { exploreStageLabel: appState.exploreStageLabel, formatOnchainAge: appState.formatOnchainAge, formatCoinUsd: appState.formatCoinUsd, verifiedLaunchPolicyForMint: appState.verifiedLaunchPolicyForMint, homeLaunchFeeRouteMarkup: appState.homeLaunchFeeRouteMarkup, exploreSocialLinksMarkup: appState.exploreSocialLinksMarkup, tokenCardWatchMarkup: appState.tokenCardWatchMarkup, exploreBoostAmountMarkup: appState.exploreBoostAmountMarkup, tokenCardShareMarkup: appState.tokenCardShareMarkup });
   }
   // app-source-end
 

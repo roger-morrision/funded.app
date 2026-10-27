@@ -20,12 +20,14 @@ export function createWalletMetricsController(appState) {
     const request = ++appState.metricsRequest;
     const quoteStartedAt=Date.now();
     let fetchedBalance = null;
+    let balanceReadStarted = false;
     appState.setWalletMetrics({ loading: true });
     try {
       await appState.getSolana();
       const fees = await refreshServiceFees(appState);
       appState.assertWalletSessionCurrent(session);
       const serviceQuote=await quoteLaunchServiceFee(appState,fees,session.address);
+      balanceReadStarted = true;
       const balance = await appState.connection.getBalance(payer, 'confirmed');
       fetchedBalance = balance;
       if (request !== appState.metricsRequest || !appState.isWalletSessionCurrent(session)) return;
@@ -147,7 +149,7 @@ export function createWalletMetricsController(appState) {
           appState.launchBurnReadiness = { ready: false, message: error?.message || 'The $FUNDED burn could not be prepared.' };
           appState.renderLaunchBurnSelection();
         }
-        appState.setWalletMetrics({ balance: fetchedBalance, fee: null, error: reason });
+        appState.setWalletMetrics({ ...(balanceReadStarted ? { balance: fetchedBalance } : {}), fee: null, error: reason });
       }
     }
   }

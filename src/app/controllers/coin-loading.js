@@ -117,7 +117,7 @@ export function createCoinLoadingController(appState) {
         }
       }
       appState.setCoinField('#coin-address', appState.shortAddress(mintAddress)); appState.setCoinField('#coin-full-address', mintAddress);
-      appState.setCoinField('#coin-description', graduatedPool ? 'Trading pool confirmed. Checking recent trades…' : 'Coin details confirmed on Solana. Checking recent trades…');
+      appState.setCoinField('#coin-description', graduatedPool ? 'Trading pool confirmed.' : 'Coin details confirmed on Solana.');
       appState.setCoinFact('#coin-stage', graduatedPool ? 'Migrated · PumpSwap' : curve ? curve.complete ? 'Curve complete · pool unavailable' : 'On Pump curve' : 'Unverified', curve ? 'clear' : 'unknown');
       appState.setCoinFact('#coin-fee-owner', linkedRouter ? 'App router address matched' : curve?.creator ? appState.shortAddress(curve.creator) : 'Unavailable', linkedRouter ? 'clear' : 'unknown');
       appState.setCoinFact('#coin-metadata-status', metadataInfo?.data && (metadata.name || metadata.symbol) ? 'On-chain name / symbol' : registeredLaunch ? 'Pump create event verified' : 'No verified name', metadataInfo?.data && (metadata.name || metadata.symbol) || registeredLaunch ? 'clear' : 'unknown');

@@ -26,8 +26,8 @@ for (const width of [320, 390, 1440]) test(`Home discovery and header stay in pl
   expect(after[1].y, 'Token grid begins inside the usable first viewport').toBeLessThan(650);
   expect(await page.evaluate(() => {
     const board=document.querySelector('.home-launch-board'), directory=document.querySelector('#public-discovery');
-    return Boolean(board.compareDocumentPosition(directory)&Node.DOCUMENT_POSITION_FOLLOWING)
-      && board.getBoundingClientRect().top<directory.getBoundingClientRect().top
+    return Boolean(board && !directory && board.getBoundingClientRect().width>0)
+      && !document.querySelector('.public-discovery-list,.public-discovery-empty')
       && document.documentElement.scrollWidth<=innerWidth;
   })).toBe(true);
 });

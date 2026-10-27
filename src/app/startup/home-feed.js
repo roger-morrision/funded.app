@@ -23,6 +23,45 @@ export function initializeHomeFeed(appState) {
   // app-source-end
 
   const paidTableWrap = document.querySelector('#home-launch-table-wrap');
+  let cancelRetryReveal = null;
+  paidTableWrap?.addEventListener('focusout', () => cancelRetryReveal?.());
+  paidTableWrap?.addEventListener('focusin', event => {
+    cancelRetryReveal?.();
+    const owner = event.target.closest?.('[data-verified-feed-retry]');
+    if (!owner) return;
+    const eligible = () => owner.isConnected && document.activeElement === owner
+      && owner.matches(':focus-visible') && document.body.classList.contains('page-route-overview')
+      && owner.closest('#home-launch-table-wrap') === paidTableWrap
+      && owner.closest('#home-launch-table-body') && !owner.closest('[hidden],[inert]')
+      && !paidTableWrap.hidden && owner.getClientRects().length && getComputedStyle(owner).visibility === 'visible'
+      && paidTableWrap.scrollWidth > paidTableWrap.clientWidth;
+    if (!eligible()) return;
+    let frame = 0, stopped = false;
+    const guards = ['keydown', 'pointerdown', 'wheel', 'touchstart', 'hashchange', 'pagehide'];
+    const cancel = () => {
+      if (stopped) return;
+      stopped = true;
+      cancelAnimationFrame(frame);
+      for (const type of guards) window.removeEventListener(type, cancel, true);
+      if (cancelRetryReveal === cancel) cancelRetryReveal = null;
+    };
+    cancelRetryReveal = cancel;
+    // Capture has already passed for the initiating Tab. Any later input wins.
+    for (const type of guards) window.addEventListener(type, cancel, {capture:true, passive:true});
+    frame = requestAnimationFrame(() => {
+      if (stopped) return;
+      const current = eligible();
+      cancel();
+      if (!current) return;
+      const rect = owner.getBoundingClientRect(), style = getComputedStyle(owner);
+      const edge = (parseFloat(style.outlineWidth) || 0) + Math.max(0, parseFloat(style.outlineOffset) || 0);
+      const left = paidTableWrap.getBoundingClientRect().left + paidTableWrap.clientLeft;
+      const right = left + paidTableWrap.clientWidth;
+      const delta = rect.left - edge < left ? rect.left - edge - left
+        : rect.right + edge > right ? rect.right + edge - right : 0;
+      if (delta) paidTableWrap.scrollBy({left:delta > 0 ? Math.ceil(delta) : Math.floor(delta), top:0, behavior:'instant'});
+    });
+  });
   if (paidTableWrap && !document.querySelector('#home-paid-listing-table'))
     paidTableWrap.insertAdjacentHTML('beforeend', "<table class=\"home-launch-table home-paid-listing-table\" id=\"home-paid-listing-table\" hidden><thead><tr><th scope=\"col\">Token</th><th scope=\"col\">Mint</th><th scope=\"col\">Listed</th><th scope=\"col\">Payment proof</th></tr></thead><tbody id=\"home-paid-listing-table-body\"></tbody></table>");
   // app-source: 492

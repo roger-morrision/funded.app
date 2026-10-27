@@ -2,6 +2,56 @@ import { walletBonusCoverage } from './wallet-history-model.js';
 import { setCoinField as writeCoinField, shortAddress, escapeHtml, formatDashboardUsd, formatOnChainNumber } from '../shared/display.js';
 import { formatTokenBaseUnits } from '../../../funded-burn.js';
 
+// DOM identity belongs to one displayed wallet and only its Created tab.
+const createdWalletRows = new WeakMap();
+
+function reconcileCreatedRows(content, address, rows, emptyHtml, document) {
+  const previous = createdWalletRows.get(content);
+  const sameWallet = previous?.address === address;
+  const active = document.activeElement;
+  const ownedFocus = sameWallet && [...previous.rows.values()].includes(active);
+  const next = new Map();
+  for (const row of rows) {
+    if (next.has(row.mint)) continue;
+    let anchor = sameWallet && previous.rows.get(row.mint);
+    const template = document.createElement('template');
+    template.innerHTML = row.html;
+    const fresh = template.content.firstElementChild;
+    if (!anchor) anchor = fresh;
+    else {
+      anchor.setAttribute('href', fresh.getAttribute('href'));
+      // Retire the old icon so its pending image callbacks cannot overwrite
+      // newer artwork. The focused link itself stays connected and active.
+      anchor.replaceChildren(...fresh.childNodes);
+    }
+    next.set(row.mint, anchor);
+  }
+  const retainedFocus = ownedFocus && [...next.values()].includes(active);
+  for (const child of [...content.children]) if (![...next.values()].includes(child)) child.remove();
+  const anchors = [...next.values()];
+  if (retainedFocus) {
+    // Move siblings around the focused anchor: detaching/reinserting that anchor
+    // would lose focus in browsers without state-preserving DOM moves.
+    const index = anchors.indexOf(active);
+    for (const anchor of anchors.slice(0, index)) content.insertBefore(anchor, active);
+    let after = null;
+    for (const anchor of anchors.slice(index + 1).reverse()) {
+      if (anchor.nextSibling !== after) content.insertBefore(anchor, after);
+      after = anchor;
+    }
+    active.scrollIntoView({ block:'nearest', behavior:'instant' });
+  } else {
+    let cursor = content.firstElementChild;
+    for (const anchor of anchors) {
+      if (anchor !== cursor) content.insertBefore(anchor, cursor);
+      cursor = anchor.nextElementSibling;
+    }
+  }
+  if (!anchors.length) content.innerHTML = emptyHtml;
+  createdWalletRows.set(content, { address, rows:next });
+  if (ownedFocus && !retainedFocus) document.querySelector('[data-wallet-tab="created"][aria-selected="true"]')?.focus();
+}
+
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderWalletDetail(
   {
@@ -77,7 +127,7 @@ export function renderWalletDetail(
   const statSol = document.querySelector('#wallet-stat-sol');
   const statSolNote = document.querySelector('#wallet-stat-sol-note');
   if (statSol) statSol.textContent = isSelf && walletBalanceLamports != null ? formatSol(walletBalanceLamports) : '—';
-  if (statSolNote) statSolNote.textContent = isSelf ? (walletBalanceLamports == null ? 'Balance currently unavailable' : 'Connected wallet balance') : 'Connect this wallet to view balance';
+  if (statSolNote) statSolNote.textContent = isSelf ? (walletBalanceLamports == null ? 'Balance currently unavailable' : 'Connected wallet balance') : 'Shown only for your connected wallet.';
   setCoinField('#wallet-stat-launches', registryReady ? String(launches.length) : '—');
   setCoinField('#wallet-stat-trades', tradeScanReady ? String(trades.length) : '—');
   setCoinField('#wallet-stat-trades-note', scanNote);
@@ -100,6 +150,7 @@ export function renderWalletDetail(
     });
   }
   if (!content || !description) return;
+  if (walletDetailTab !== 'created') createdWalletRows.delete(content);
   if (walletDetailTab === 'balances') {
     description.textContent = 'Balances are shown when current information is available.';
     const fundedBalance = isSelf && fundedBurnState.wallet === address && fundedBurnState.status === 'ready'
@@ -111,7 +162,7 @@ export function renderWalletDetail(
   const launchRows = launches.map(launch => ({ type:'launch', time:walletLaunchTimestamp(launch), mint:launch.mint, html:`<a class="wallet-activity-row" data-token-mint="${escapeHtml(launch.mint)}" href="/token/${encodeURIComponent(launch.mint)}"><span class="wallet-activity-icon">✦</span><span><strong>Created ${escapeHtml(launch.name || launch.symbol || 'token')}</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} · ${escapeHtml(shortAddress(launch.mint))}</small></span><b>Verified<small>${walletLaunchTimestamp(launch) ? escapeHtml(formatOnchainAge(walletLaunchTimestamp(launch))) : 'Time unavailable'}</small></b></a>` }));
   if (walletDetailTab === 'created') {
     description.textContent = registryReady ? 'Confirmed coins created by this wallet.' : 'Created coins are unavailable right now.';
-    content.innerHTML = launchRows.map(row => row.html).join('') || (registryReady ? walletDetailEmpty('No created coins found', 'No confirmed launch was found for this wallet.') : walletDetailEmpty('Created coins unavailable', 'Please check again later.'));
+    reconcileCreatedRows(content, address, launchRows, registryReady ? walletDetailEmpty('No created coins found', 'No confirmed launch was found for this wallet.') : walletDetailEmpty('Created coins unavailable', 'Please check again later.'), document);
     loadWalletRowLogos(content, launches);
     return;
   }

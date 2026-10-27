@@ -10,15 +10,16 @@ async function prepare(page,width,{logo='loaded',long=false,longFee=false}={}){
  const rows=records.map((r,i)=>({...r,...(long&&i===0?{name:'A deliberately long token name that must wrap completely without losing its identity or status'}:{}),...(longFee&&i===0?{feeDistribution:{...r.feeDistribution,creatorDirected:{...r.feeDistribution.creatorDirected,shares:{creatorWalletPercent:30,holderAirdropPercent:25,solClaimPercent:25},recipients:{...r.feeDistribution.creatorDirected.recipients,xAccount:'@ScopeFixtureQA'}}}}:{})}));
  await page.route('**/api/launches',r=>r.fulfill({json:rows}));await page.route('**/api/pump/explore?*',r=>r.fulfill({json:{items:[],fetchedAt:'2026-10-21T10:31:00Z'}}));
  await page.route('**/devnet-images/**',r=>logo==='loaded'?r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="#243149"/><text x="32" y="42" text-anchor="middle" fill="#ffd28a" font-size="32">F</text></svg>'}):logo==='failed'?r.abort():r.fulfill({status:404,body:''}));
- await page.goto('/#explore');await page.locator('body.product-experience-ready').waitFor();await page.evaluate(()=>document.fonts.ready);await expect(page.locator('#asset-grid .explore-compact-card')).toHaveCount(3);await expect.poll(()=>page.evaluate(()=>[...document.fonts].some(f=>f.family.includes('Manrope')&&f.status==='loaded'))).toBe(true);
+ await page.goto('/#explore');await page.locator('body.product-experience-ready').waitFor();await page.evaluate(()=>document.fonts.ready);await expect(page.locator('#asset-grid .explore-launch-card')).toHaveCount(3);await expect.poll(()=>page.evaluate(()=>[...document.fonts].some(f=>f.family.includes('Manrope')&&f.status==='loaded'))).toBe(true);
  if(logo==='loaded')await expect(page.locator('#asset-grid .home-token-avatar img')).toHaveCount(3);return rows;
 }
-async function measure(page){return page.locator('#asset-grid .explore-compact-card').evaluateAll(cards=>{const box=e=>{const r=e.getBoundingClientRect();return{top:r.top+scrollY,bottom:r.bottom+scrollY,height:r.height,width:r.width}};return cards.map(e=>({mint:e.dataset.mint,text:e.innerText,card:box(e),identity:box(e.querySelector('.home-token-identity')),metrics:box(e.querySelector('.home-launch-card-stats')),actions:box(e.querySelector('.home-launch-card-actions')),logo:box(e.querySelector('.home-launch-card-media')),code:e.querySelector('.home-launch-card-addresses code').scrollWidth<=e.querySelector('.home-launch-card-addresses code').clientWidth+1}))})}
+async function measure(page){return page.locator('#asset-grid .explore-launch-card').evaluateAll(cards=>{const box=e=>{const r=e.getBoundingClientRect();return{top:r.top+scrollY,bottom:r.bottom+scrollY,height:r.height,width:r.width}};return cards.map(e=>({mint:e.dataset.mint,text:e.innerText,card:box(e),identity:box(e.querySelector('.home-token-identity')),metrics:box(e.querySelector('.home-launch-card-stats')),actions:box(e.querySelector('.home-launch-card-actions')),logo:box(e.querySelector('.home-launch-card-media')),code:e.querySelector('.home-launch-card-addresses code').scrollWidth<=e.querySelector('.home-launch-card-addresses code').clientWidth+1}))})}
 async function clearFocus(locator,page){await locator.focus();await page.keyboard.press('Shift');await expect(locator).toBeFocused();await expect.poll(()=>locator.evaluate(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e),m=(parseFloat(s.outlineWidth)||0)+Math.max(0,parseFloat(s.outlineOffset)||0),h=document.querySelector('.topbar'),n=document.querySelector('.mobile-workspace-nav'),top=h?.getClientRects().length?h.getBoundingClientRect().bottom:0,bottom=n?.getClientRects().length?n.getBoundingClientRect().top:innerHeight;return r.top-m>=top-1&&r.bottom+m<=bottom+1&&r.left-m>=-1&&r.right+m<=innerWidth+1})).toBe(true)}
 for(const width of[360,390,1440])test(`compact frozen-first3 geometry,data,controls and native actions at${width}px`,async({page},info)=>{
- await prepare(page,width);const cards=page.locator('#asset-grid .explore-compact-card'),geometry=await measure(page);expect(geometry.map(x=>x.mint)).toEqual(records.map(x=>x.mint));
- for(let i=0;i<3;i++){expect(words(geometry[i].text)).toEqual(words(baselineText[i]));expect(geometry[i].card.height).toBeLessThanOrEqual(340);expect(geometry[i].logo.width).toBeGreaterThanOrEqual(56);expect(geometry[i].logo.width).toBeLessThanOrEqual(64);expect(geometry[i].logo.height).toBe(geometry[i].logo.width);expect(geometry[i].code).toBe(true);}
- const nav=await page.locator('.mobile-workspace-nav').evaluate(e=>e.getClientRects().length?e.getBoundingClientRect().top:innerHeight);if(width===390){expect(geometry[0].card.top).toBeLessThanOrEqual(500);expect(geometry[0].identity.bottom).toBeLessThanOrEqual(600);expect(geometry[0].metrics.bottom).toBeLessThanOrEqual(730)}if(width===360){expect(geometry[0].identity.bottom).toBeLessThan(nav);expect(geometry[0].metrics.bottom).toBeLessThan(nav)}if(width===1440){expect(geometry[0].card.top).toBeLessThanOrEqual(330);for(const g of geometry)expect(g.actions.bottom).toBeLessThanOrEqual(900)}
+ await prepare(page,width);const cards=page.locator('#asset-grid .explore-launch-card'),geometry=await measure(page);expect(geometry.map(x=>x.mint)).toEqual(records.map(x=>x.mint));
+ for(let i=0;i<3;i++){const expected=baselineText[i].replace(/^MARKET STAGE UNAVAILABLE\n/,'').replace(/\nMarket stage unavailable\n/,'\n')+'\nMigration progress\nProgress unavailable';expect(words(geometry[i].text)).toEqual(words(expected));expect(Math.abs(geometry[i].logo.width-geometry[i].card.width)).toBeLessThanOrEqual(2);expect(geometry[i].logo.width/geometry[i].logo.height).toBeCloseTo(1.5,1);expect(geometry[i].code).toBe(true);}
+ for(const card of await cards.all()){const order=await card.evaluate(e=>['.home-launch-card-stats','.home-launch-progress-row','.home-launch-meta','.home-launch-card-actions'].map(s=>e.querySelector(s)?.getBoundingClientRect().top));expect(order.every(Number.isFinite)).toBe(true);expect([...order].sort((a,b)=>a-b)).toEqual(order);await expect(card.locator('.home-launch-progress-row')).toBeVisible();expect((await card.locator('.home-launch-progress').boundingBox()).height).toBe(6);}
+
  expect(await page.locator('.explore-view-switch').evaluate(e=>e.parentElement.classList.contains('explore-control-bar'))).toBe(true);for(const group of['.explore-tabs','.explore-timeframe','.explore-view-switch'])for(const button of await page.locator(group+' button').all())expect((await button.boundingBox()).height).toBeGreaterThanOrEqual(44);
  await page.screenshot({path:info.outputPath('compact-'+width+'.png')});await info.attach('measured-before-after',{body:JSON.stringify({width,geometry,label:'Same captured3records and loadedManrope; fixedwallclock/API/logo fixture. Source865 baseline separate; no chain outcome.'}),contentType:'application/json'});
  const first=cards.first(),proof=cards.nth(2).locator('.promotion-badge');await expect(proof).toHaveAttribute('title',/paid promotion, not a token safety endorsement/);expect((await proof.boundingBox()).height).toBeGreaterThanOrEqual(44);
@@ -30,7 +31,7 @@ for(const width of[360,390,1440])test(`compact frozen-first3 geometry,data,contr
  const link=cards.first().locator('.home-launch-card-link');await link.focus();await page.keyboard.press('Enter');await expect(page).toHaveURL(new RegExp('/token/'+records[0].mint));await expect(page.locator('#coin-page-title')).toHaveText(records[0].name,{timeout:20000});await page.goBack();await expect(cards).toHaveCount(3);expect(await page.locator('.explore-view-switch').evaluate(e=>e.parentElement.classList.contains('explore-control-bar'))).toBe(true);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
 for(const width of[360,390,1440])test(`compact long names and failed/missing logo reserve geometry at${width}px`,async({page},info)=>{
- await prepare(page,width,{logo:width===390?'missing':'failed',long:true});const first=page.locator('#asset-grid .explore-compact-card').first();await expect(first.locator('.home-token-identity small')).toHaveText('A deliberately long token name that must wrap completely without losing its identity or status');const before=await first.locator('.home-launch-card-media').boundingBox();expect(before.width).toBeGreaterThanOrEqual(56);expect(before.width).toBeLessThanOrEqual(64);await page.waitForTimeout(250);expect(await first.locator('.home-launch-card-media').boundingBox()).toEqual(before);expect(await first.locator('.home-token-identity small').evaluate(e=>e.scrollHeight<=e.clientHeight+1)).toBe(true);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);await clearFocus(first.locator('[data-copy-kind="token"]'),page);await page.screenshot({path:info.outputPath('long-logo-'+width+'.png')});
+ await prepare(page,width,{logo:width===390?'missing':'failed',long:true});const first=page.locator('#asset-grid .explore-launch-card').first();await expect(first.locator('.home-token-identity small')).toHaveText('A deliberately long token name that must wrap completely without losing its identity or status');const before=await first.locator('.home-launch-card-media').boundingBox();expect(Math.abs(before.width-(await first.boundingBox()).width)).toBeLessThanOrEqual(2);expect(before.width/before.height).toBeCloseTo(1.5,1);await page.waitForTimeout(250);expect(await first.locator('.home-launch-card-media').boundingBox()).toEqual(before);expect(await first.locator('.home-token-identity small').evaluate(e=>e.scrollHeight<=e.clientHeight+1)).toBe(true);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);await clearFocus(first.locator('[data-copy-kind="token"]'),page);await page.screenshot({path:info.outputPath('long-logo-'+width+'.png')});
 });
 test('actual Grid renderer preserves focused action during background admission and truthful state meanings',async({page},info)=>{
  await prepare(page,390);const action=page.locator('#asset-grid .watch-button').first();await action.focus();const guard=await page.evaluate(async()=>{const {renderExploreAssets}=await import('/src/features/explore/assets-view.js'),grid=document.querySelector('#asset-grid'),focus=document.activeElement,html=grid.innerHTML;renderExploreAssets({force:false},{},{document});return{sameNode:document.activeElement===focus,sameMarkup:grid.innerHTML===html,pending:grid.dataset.refreshPending}});expect(guard).toEqual({sameNode:true,sameMarkup:true,pending:'true'});await page.locator('#explore-search').focus();
@@ -40,7 +41,7 @@ test('actual Grid renderer preserves focused action during background admission 
   const noop=()=>{},result=[];for(const kind of['loading','unavailable','empty','combined-empty','partial','populated','zero-no-trades','stale']){
    const absent=['loading','unavailable','empty'].includes(kind),rows=absent?[]:records.map((r,i)=>({address:r.mint,name:r.name,symbol:r.symbol,createdTimestamp:r.createdTimestamp,complete:false,curveCapSol:kind==='zero-no-trades'?0:kind==='partial'&&i>0?null:10,volume24hSol:kind==='zero-no-trades'?0:kind==='partial'&&i>0?null:3.25,tradeCount24h:kind==='zero-no-trades'?0:2,volumeCoverage:kind==='partial'?'partial':'complete'}));
    const state={...base,assets:rows,exploreProviderStatus:kind==='loading'?'On-chain only · loading':kind==='unavailable'?'RPC unavailable':kind==='stale'?'RPC verified · stale':'RPC verified',exploreLastVerifiedAt:kind==='loading'||kind==='unavailable'?null:'2026-10-21T10:31:00Z',exploreFeedAvailable:kind!=='unavailable',exploreWindow:'24h',exploreScannedCount:rows.length,exploreTab:'trending'};
-   renderExploreAssets({force:true},state,{document,exploreOutageCopy:()=>({title:'Verification unavailable',detail:'Existing recovery remains available.'}),withVerifiedExploreBenefits:r=>r,filterExploreTabRecords:r=>kind==='combined-empty'?[]:r,renderExploreControls:noop,renderExplorePulse:noop,renderExploreBenefitLeaders:noop,formatExploreUsd:n=>n==null?'$—':n+' SOL',exploreBoostAmountMarkup:()=>'',exploreStageLabel:deps.exploreStageLabel,loadVerifiedTokenLogos:noop,homeLaunchCardMarkup:(r,o)=>homeLaunchCardMarkup(r,{extraClass:'',extraActions:'',footerNote:'',...o},base,deps),launchCardVolumeUsd:(r,w)=>launchCardVolumeUsd(r,w,{coinSolUsdPrice:NaN,EXPLORE_CLUSTER:'devnet'}),exploreEmptyReason:()=>kind==='combined-empty'?['No matching fixture','Clear criteria to recover.','Source,search and window remain selected']:null,decorateHomeLaunchCard:noop,renderWatchlist:noop,renderWalletDetail:noop,getFollowingCoverage:()=>({total:0}),getFollowingTokenSources:()=>new Map()});
+   renderExploreAssets({force:true},state,{document,exploreOutageCopy:()=>({title:'Verification unavailable',detail:'Existing recovery remains available.'}),withVerifiedExploreBenefits:r=>r,filterExploreTabRecords:r=>kind==='combined-empty'?[]:r,renderExploreControls:noop,renderExplorePulse:noop,renderExploreBenefitLeaders:noop,formatExploreUsd:n=>n==null?'$—':n+' SOL',exploreBoostAmountMarkup:()=>'',exploreStageLabel:deps.exploreStageLabel,loadVerifiedTokenLogos:noop,homeLaunchCardMarkup:(r,o)=>homeLaunchCardMarkup(r,{extraClass:'',extraActions:'',footerNote:'',...o},{...base,exploreProviderStatus:state.exploreProviderStatus},deps),launchCardVolumeUsd:(r,w)=>launchCardVolumeUsd(r,w,{coinSolUsdPrice:NaN,EXPLORE_CLUSTER:'devnet'}),exploreEmptyReason:()=>kind==='combined-empty'?['No matching fixture','Clear criteria to recover.','Source,search and window remain selected']:null,decorateHomeLaunchCard:noop,renderWatchlist:noop,renderWalletDetail:noop,getFollowingCoverage:()=>({total:0}),getFollowingTokenSources:()=>new Map()});
    result.push({kind,text:document.querySelector('#asset-grid').innerText,coverage:document.querySelector('#explore-activity-coverage').textContent,metrics:[...document.querySelectorAll('#asset-grid .home-launch-card-stats')].map(e=>e.innerText),viewParent:document.querySelector('.explore-view-switch').parentElement.className});
   }return result;
  },records);
@@ -60,20 +61,52 @@ function compactStableFocus(target){return new Promise(resolve=>{
 });}
 
 async function compactNavigationState(page){return page.evaluate(()=>({
- rows:[...document.querySelectorAll('#asset-grid .explore-compact-card')].map(e=>({mint:e.dataset.mint,href:e.querySelector('.home-launch-card-link').getAttribute('href'),text:e.innerText,width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height})),
+ rows:[...document.querySelectorAll('#asset-grid .explore-launch-card')].map(e=>({mint:e.dataset.mint,href:e.querySelector('.home-launch-card-link').getAttribute('href'),text:e.innerText,width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height})),
  sort:document.querySelector('#explore-sort').value,search:document.querySelector('#explore-search').value,
  selected:[...document.querySelectorAll('.explore-tabs button,.explore-timeframe button,.explore-view-switch button')].filter(e=>e.classList.contains('active')||e.getAttribute('aria-selected')==='true'||e.getAttribute('aria-pressed')==='true').map(e=>({text:e.textContent.trim(),tab:e.dataset.exploreTab,window:e.dataset.exploreWindow,view:e.dataset.exploreView})),
 }));}
+
+
+// Native viewing setup for the human-requested taller Home artwork, not a touch-swipe claim.
+async function compactPointerView(target){return target.evaluate(e=>{
+ const r=e.getBoundingClientRect(),point={x:r.left+r.width/2,y:r.top+r.height/2},bounds={left:0,right:innerWidth,top:0,bottom:innerHeight},clips=[],root=getComputedStyle(document.documentElement);let cornersClear=true;
+ for(const chrome of document.querySelectorAll('.topbar,.mobile-workspace-nav')){if(!chrome.getClientRects().length)continue;const q=chrome.getBoundingClientRect();if(chrome.matches('.topbar'))bounds.top=Math.max(bounds.top,q.bottom);else bounds.bottom=Math.min(bounds.bottom,q.top);}
+ const viewport={...bounds};
+ for(let a=e.parentElement;a;a=a.parentElement){const c=getComputedStyle(a),q=a.getBoundingClientRect(),cx=/^(hidden|clip|auto|scroll)$/.test(c.overflowX),cy=/^(hidden|clip|auto|scroll)$/.test(c.overflowY);if(!cx&&!cy)continue;
+  const propagated=a===document.documentElement||(a===document.body&&root.overflowX==='visible'&&root.overflowY==='visible'&&root.contain==='none'&&c.contain==='none');
+  if(propagated){clips.push({tag:a.tagName,viewportClip:true});continue;}
+  const b={left:q.left+a.clientLeft,top:q.top+a.clientTop,right:q.left+a.clientLeft+a.clientWidth,bottom:q.top+a.clientTop+a.clientHeight},radii=['borderTopLeftRadius','borderTopRightRadius','borderBottomRightRadius','borderBottomLeftRadius'].map(k=>Math.max(0,(parseFloat(c[k])||0)-a.clientLeft));
+  if(cx){bounds.left=Math.max(bounds.left,b.left);bounds.right=Math.min(bounds.right,b.right);}if(cy){bounds.top=Math.max(bounds.top,b.top);bounds.bottom=Math.min(bounds.bottom,b.bottom);}
+  if(cx&&cy){const centers=[[b.left+radii[0],b.top+radii[0]],[b.right-radii[1],b.top+radii[1]],[b.right-radii[2],b.bottom-radii[2]],[b.left+radii[3],b.bottom-radii[3]]];for(let i=0;i<4;i++){const [x,y]=centers[i],radius=radii[i],corner=(i===0||i===3?point.x<x:point.x>x)&&(i<2?point.y<y:point.y>y);if(radius&&corner&&(point.x-x)**2+(point.y-y)**2>radius**2)cornersClear=false;}}
+  clips.push({tag:a.tagName,id:a.id,clipX:cx,clipY:cy,radii,...b});
+ }
+ const main=document.querySelector('#main-content'),m=main.getBoundingClientRect(),wheelRegion={left:Math.max(viewport.left,m.left+main.clientLeft),right:Math.min(viewport.right,m.left+main.clientLeft+main.clientWidth),top:Math.max(viewport.top,m.top+main.clientTop),bottom:Math.min(viewport.bottom,m.top+main.clientTop+main.clientHeight)},validRegion=wheelRegion.right>wheelRegion.left&&wheelRegion.bottom>wheelRegion.top,wheel={x:Math.max(wheelRegion.left+8,Math.min(point.x,wheelRegion.right-8)),y:(wheelRegion.top+wheelRegion.bottom)/2};
+ const surface=document.elementFromPoint(wheel.x,wheel.y),nested=[];for(let a=surface;a&&a!==main&&a!==document.scrollingElement;a=a.parentElement){const c=getComputedStyle(a);if(/^(auto|scroll)$/.test(c.overflowY)&&a.scrollHeight>a.clientHeight+1)nested.push({tag:a.tagName,id:a.id});}
+ const hit=document.elementFromPoint(point.x,point.y),link=hit?.closest('a');return{at:performance.now(),scrollX,scrollY,rect:{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height},point,viewport,wheelRegion,bounds,clips,cornersClear,eligible:e.isConnected&&r.width>0&&r.height>0&&cornersClear&&point.x>=bounds.left&&point.x<=bounds.right&&point.y>=bounds.top&&point.y<=bounds.bottom,wheel:{...wheel,tag:surface?.tagName,id:surface?.id,main:Boolean(validRegion&&surface&&main.contains(surface)),validRegion,foreignNestedScrollers:nested},hit:{x:point.x,y:point.y,tag:hit?.tagName,text:hit?.textContent,button:Boolean(hit?.closest('button')),href:link?.getAttribute('href')||null,mint:hit?.closest('.explore-launch-card')?.dataset.mint}};
+});}
+async function compactNativeViewingSetup(page,target){
+ const initial=await compactPointerView(target),steps=[];let current=initial,stop='bounded';
+ for(let step=0;step<8;step++){
+  if(current.eligible){stop='eligible';break;}
+  if(!current.wheel.main||current.wheel.foreignNestedScrollers.length){stop='invalid-wheel-surface';break;}
+  const delta=Math.max(-500,Math.min(500,current.point.y-(current.wheelRegion.top+current.wheelRegion.bottom)/2));if(Math.abs(delta)<1){stop='no-vertical-viewing-progress';break;}
+  await page.mouse.move(current.wheel.x,current.wheel.y);await page.mouse.wheel(0,delta);
+  const settled=await target.evaluate(e=>new Promise(resolve=>{const began=performance.now();let prior=null,stable=began;const tick=()=>{const q=e.getBoundingClientRect(),now=performance.now(),key=JSON.stringify([q.top,q.left,scrollY,scrollX]);if(key!==prior){prior=key;stable=now;}if(now-began>=350||now-stable>=100)return resolve({elapsedMs:now-began,stationaryMs:now-stable});requestAnimationFrame(tick);};requestAnimationFrame(tick);}));
+  const next=await compactPointerView(target);steps.push({before:current,delta,settled,after:next});if(Math.abs(next.rect.top-current.rect.top)<.5&&Math.abs(next.scrollY-current.scrollY)<.5){current=next;stop='no-progress';break;}current=next;
+ }
+ // Fresh geometry and native hit after setup; caller attaches before ALL assertions/input.
+ return{initial,steps,stop,final:await compactPointerView(target),qualification:'Bounded ordinary mouse.wheel setup over actual main content; passive geometry only. No JS scroll/focus/DOM mutation/force click. Mobile activation remains native touch, not a swipe claim.'};
+}
 
 test.describe('compact card noninteractive pointer recovery',()=>{
  test.use({hasTouch:true});
  for(const width of[360,390,1440])test.describe(`viewport${width}`,()=>{test.use({hasTouch:width<700});test(`plain fee and metric text native entry, isolated links and keyboard at${width}px`,async({page,context},info)=>{
   const nonreads=[],errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{const u=new URL(r.url());if(u.pathname.startsWith('/api/')&&!['GET','HEAD','OPTIONS'].includes(r.method())){let rows=[];try{const d=r.postDataJSON();rows=Array.isArray(d)?d:[d];}catch{}if(!(u.pathname==='/api/solana/rpc'&&rows.length&&rows.every(x=>['getAccountInfo','getMultipleAccounts','getSlot','getBalance','getGenesisHash','getLatestBlockhash','getBlockHeight','getTokenSupply','getMinimumBalanceForRentExemption','getFeeForMessage','getRecentPrioritizationFees','getTokenAccountBalance','getTokenLargestAccounts','getTokenAccountsByOwner','getSignaturesForAddress','getSignatureStatuses','getTransaction','getBlockTime'].includes(x?.method))))nonreads.push({method:r.method(),path:u.pathname});}});
-  await prepare(page,width);const cards=page.locator('#asset-grid .explore-compact-card'),card=cards.first(),fee=card.locator('.home-launch-fee-route span'),link=card.locator('.home-launch-card-link'),before=await compactNavigationState(page),hits=[],focus=[];
+  await prepare(page,width);const cards=page.locator('#asset-grid .explore-launch-card'),card=cards.first(),fee=card.locator('.home-launch-fee-route span'),link=card.locator('.home-launch-card-link'),before=await compactNavigationState(page),hits=[],focus=[];
   await expect(fee).toHaveText('Creator 80%');const destination=await link.getAttribute('href');expect(destination).toBe('/token/'+records[0].mint);
   const back=async()=>{await page.goBack();await expect(page).toHaveURL(/#explore$/);await page.locator('body.product-experience-ready').waitFor();await expect(cards).toHaveCount(3);await expect(page.locator('#asset-grid .home-token-avatar img')).toHaveCount(3);await page.evaluate(()=>document.fonts.ready);expect(await compactNavigationState(page)).toEqual(before);};
   for(const target of[fee,card.locator('.home-launch-card-stats strong').first()]){
-   await expect(target).toBeVisible();const hit=await target.evaluate(e=>{const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2,h=document.elementFromPoint(x,y),a=h?.closest('a');return{x,y,tag:h?.tagName,text:h?.textContent,button:Boolean(h?.closest('button')),href:a?.getAttribute('href')||null,mint:h?.closest('.explore-compact-card')?.dataset.mint};});hits.push(hit);expect(hit.button).toBe(false);expect(hit.mint).toBe(records[0].mint);if(target===fee){expect(hit.href).toBeNull();expect(hit.tag).toBe('SPAN');}else expect(hit.href).toBe(destination);
+   await expect(target).toBeVisible();const viewing=await compactNativeViewingSetup(page,target),hit=viewing.final.hit;await info.attach('pointer-view-'+(target===fee?'fee':'metric')+'-'+width,{body:JSON.stringify(viewing,null,2),contentType:'application/json'});expect(viewing.final.eligible,JSON.stringify(viewing)).toBe(true);hits.push(hit);expect(hit.button).toBe(false);expect(hit.mint).toBe(records[0].mint);if(target===fee){expect(hit.href).toBeNull();expect(hit.tag).toBe('SPAN');}else expect(hit.href).toBe(destination);
    // The metric is intentionally beneath the canonical overlay: use the actual
    // native hit-tested point, never force a lower covered node or dispatch JS.
    if(width<700)await page.touchscreen.tap(hit.x,hit.y);else await page.mouse.click(hit.x,hit.y);await expect(page).toHaveURL(new RegExp(destination+'$'));await expect(page.locator('#coin-page-title')).toHaveText(records[0].name,{timeout:20000});await back();
@@ -89,7 +122,188 @@ test.describe('compact card noninteractive pointer recovery',()=>{
   await info.attach('native-pointer-and-link-isolation',{body:JSON.stringify({width,hits,focus,before,after:await compactNavigationState(page),qualification:'Real app/controller/renderer with frozen public Devnet record/read/logo fixtures and wallclock only. Native touch/mobile or click/desktop, named-anchor native Tab/Enter. Synthetic proof hyperlink uses a local fulfilled popup, never a real proof/social/financial action. Existing Favorite/Copy/Share/Boost and background/partial/unavailable cases retained unchanged.'}),contentType:'application/json'});
  });});
  test('long verified fee-text fixture retains values, compact geometry and native token entry',async({page},info)=>{
-  await prepare(page,390,{longFee:true});const card=page.locator('#asset-grid .explore-compact-card').first(),fee=card.locator('.home-launch-fee-route span'),before=await compactNavigationState(page);await expect(fee).toHaveText('Creator 30% · Holders 25% · @ScopeFixtureQA 25%');expect((await card.boundingBox()).height).toBeLessThanOrEqual(340);expect(await fee.evaluate(e=>e.scrollWidth<=e.clientWidth+1)).toBe(true);
-  await fee.tap();await expect(page).toHaveURL(new RegExp('/token/'+records[0].mint+'$'));await expect(page.locator('#coin-page-title')).toHaveText(records[0].name,{timeout:20000});await page.goBack();await page.locator('body.product-experience-ready').waitFor();await expect(page.locator('#asset-grid .home-token-avatar img')).toHaveCount(3);expect(await compactNavigationState(page)).toEqual(before);await info.attach('long-fee-qualification',{body:'Mocked valid80%-total renderer fee shares30/25/25 and named recipient, solely to cover a longer existing fee-strip string. Not actual policy, chain verification, payouts or permission for a financial action. Production fee/renderer/CSS unchanged.',contentType:'text/plain'});
+  await prepare(page,390,{longFee:true});const card=page.locator('#asset-grid .explore-launch-card').first(),fee=card.locator('.home-launch-fee-route span'),before=await compactNavigationState(page);await expect(fee).toHaveText('Creator 30% · Holders 25% · @ScopeFixtureQA 25%');expect(Math.abs((await card.locator('.home-launch-card-media').boundingBox()).width-(await card.boundingBox()).width)).toBeLessThanOrEqual(2);await expect(card.locator('.home-launch-progress-row')).toBeVisible();expect(await fee.evaluate(e=>e.scrollWidth<=e.clientWidth+1)).toBe(true);
+  await fee.tap();await expect(page).toHaveURL(new RegExp('/token/'+records[0].mint+'$'));await expect(page.locator('#coin-page-title')).toHaveText(records[0].name,{timeout:20000});await page.goBack();await page.locator('body.product-experience-ready').waitFor();await expect(page.locator('#asset-grid .home-token-avatar img')).toHaveCount(3);expect(await compactNavigationState(page)).toEqual(before);await info.attach('long-fee-qualification',{body:'Mocked valid80%-total renderer fee shares30/25/25 and named recipient, solely to cover a longer existing fee-strip string. Not actual policy, chain verification, payouts or permission for a financial action. Existing fee policy fixture and behavior retained; shared renderer/CSS changed by human070.',contentType:'text/plain'});
  });
+});
+
+// FQA-070: SDK-account/read-only API fixtures through the real bootstrap.
+// No wallet, signing, real clipboard, direct app render/state/clock or DOM workaround.
+async function sharedRuntimeFixture(page,width,mode='unknown'){
+ const [{PublicKey},{PUMP_SDK,bondingCurvePda},{PUMP_AMM_SDK,PUMP_AMM_PROGRAM_ID,canonicalPumpPoolPda},{MintLayout,TOKEN_PROGRAM_ID,NATIVE_MINT},{default:BN}]=await Promise.all([import('@solana/web3.js'),import('@pump-fun/pump-sdk'),import('@pump-fun/pump-swap-sdk'),import('@solana/spl-token'),import('bn.js')]);
+ const fixtureRecords=records.map((r,i)=>({...r,...(i===0?{website:'https://example.test/shared-card',twitter:'https://x.com/FixtureOnly',telegram:'https://t.me/FixtureOnly',discord:'https://discord.gg/FixtureOnly'}:{})}));
+ const f={mode,reads:[],writes:[],errors:[]};let gate;
+ f.hold=()=>{let release,started;gate={promise:new Promise(r=>release=r),started:new Promise(r=>started=r),release,start:()=>started(),used:false};return gate;};
+ const mintData=Buffer.alloc(MintLayout.span);MintLayout.encode({mintAuthorityOption:0,mintAuthority:PublicKey.default,supply:1000000000000000n,decimals:6,isInitialized:true,freezeAuthorityOption:0,freezeAuthority:PublicKey.default},mintData);
+ const account=(data,owner)=>({lamports:1000000,executable:false,owner,rentEpoch:0,data:[data.toString('base64'),'base64']}),mintInfo=account(mintData,TOKEN_PROGRAM_ID.toBase58()),curveKeys=records.map(r=>bondingCurvePda(new PublicKey(r.mint)).toBase58()),poolKeys=records.map(r=>canonicalPumpPoolPda(new PublicKey(r.mint),NATIVE_MINT).toBase58()),curves={},pools={};
+ for(const complete of[false,true])curves[String(complete)]=await PUMP_SDK.offlinePumpProgram.coder.accounts.encode('bondingCurve',{virtualTokenReserves:new BN('1000000000000'),virtualQuoteReserves:new BN('30000000000'),realTokenReserves:new BN(complete?'0':'700000000000'),realQuoteReserves:new BN('1000000000'),tokenTotalSupply:new BN('1000000000000000'),complete,creator:PublicKey.default,isMayhemMode:false,isCashbackCoin:false,quoteMint:NATIVE_MINT,creatorFeeBps:new BN(0),canEditCreatorFee:false,isHolderReward:false});
+ for(const [i,r]of records.entries())pools[poolKeys[i]]=await PUMP_AMM_SDK.offlineProgram.coder.accounts.encode('pool',{poolBump:255,index:0,creator:PublicKey.default,baseMint:new PublicKey(r.mint),quoteMint:NATIVE_MINT,lpMint:new PublicKey(new Uint8Array(32).fill(91+i)),poolBaseTokenAccount:new PublicKey(new Uint8Array(32).fill(101+i)),poolQuoteTokenAccount:new PublicKey(new Uint8Array(32).fill(111+i)),lpSupply:new BN(0),coinCreator:PublicKey.default,isMayhemMode:false,isCashbackCoin:false,virtualQuoteReserves:new BN(0),creatorFeeBps:new BN(0),canEditCreatorFee:false});
+ const valueFor=k=>records.some(r=>r.mint===k)?mintInfo:curveKeys.includes(k)&&['curve','complete','migrated'].includes(f.mode)?account(curves[String(f.mode!=='curve')],PUMP_SDK.offlinePumpProgram.programId.toBase58()):f.mode==='migrated'&&pools[k]?account(pools[k],PUMP_AMM_PROGRAM_ID.toBase58()):null;
+ await page.setViewportSize({width,height:width<700?844:900});page.on('pageerror',e=>f.errors.push(e.message));
+ await page.addInitScript(()=>{window.__sharedCopies=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async s=>window.__sharedCopies.push(s)}});});
+ await page.route('https://**/*',r=>['fonts.googleapis.com','fonts.gstatic.com'].includes(new URL(r.request().url()).hostname)?r.continue():r.abort());
+ await page.route('**/devnet-images/**',r=>r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="96" height="64"><rect width="96" height="64" fill="#243149"/></svg>'}));
+ await page.route('**/api/**',async r=>{const q=r.request(),u=new URL(q.url());f.reads.push({path:u.pathname,method:q.method(),mode:f.mode});
+  if(u.pathname==='/api/fee-policy')return r.fulfill({json:policy});
+  if(u.pathname==='/api/x/me')return r.fulfill({json:{authenticated:false,configured:false}});
+  if(u.pathname==='/api/launches')return r.fulfill({json:fixtureRecords});
+  if(u.pathname==='/api/pump/explore'){const g=gate;if(g&&!g.used){g.used=true;g.start();await g.promise;}return r.fulfill({json:{items:fixtureRecords,fetchedAt:new Date().toISOString()}});}
+  if(u.pathname==='/api/solana/rpc'){const b=q.postDataJSON(),calls=Array.isArray(b)?b:[b],responses=calls.map(c=>{
+   if(c.method==='getMultipleAccounts'&&f.mode==='read-failure')return{jsonrpc:'2.0',id:c.id,error:{code:-32000,message:'Controlled read unavailable'}};
+   let result=null;if(c.method==='getMultipleAccounts')result={context:{slot:100},value:c.params[0].map(valueFor)};
+   else if(c.method==='getAccountInfo')result={context:{slot:100},value:valueFor(c.params[0])};else if(c.method==='getSlot')result=100;
+   else if(c.method==='getGenesisHash')result='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
+   else if(c.method==='getTokenLargestAccounts')result={context:{slot:100},value:[]};else if(c.method==='getProgramAccounts')result=[];
+   else if(c.method==='getTokenAccountsByOwner')result={context:{slot:100},value:[]};else f.writes.push({rpc:c.method});return{jsonrpc:'2.0',id:c.id,result};});
+   return r.fulfill({json:Array.isArray(b)?responses:responses[0]});}
+  if(!['GET','HEAD','OPTIONS'].includes(q.method()))f.writes.push({path:u.pathname,method:q.method()});
+  return r.fulfill({status:503,json:{error:'Controlled read unavailable; no financial action'}});
+ });
+ f.ready=()=>expect(page.locator('#explore-pulse-scope')).toHaveText(/^(Launch stages unavailable\.|\d+ launch stages await curve or pool verification\.|Stages confirmed on-chain\.)$/);
+ f.open=async()=>{await page.goto('/#explore');await expect(page.locator('body')).toHaveClass(/product-experience-ready/);await f.ready();};
+ f.nav=async name=>{const link=width<700?page.getByRole('navigation',{name:'Mobile workspace'}).getByRole('link',{name,exact:true}):page.locator('#sidebar a.nav-item[href="#'+(name==='Home'?'overview':name==='Portfolio'?'my-launches':'explore')+'"]');await link.click();};
+ f.refresh=async()=>{const sort=page.locator('#explore-sort'),current=await sort.inputValue(),next=current==='newest'?'recent-trade':'newest';await expect(sort).toBeVisible();await expect(sort).toBeEnabled();await expect(sort.locator('option[value="'+next+'"]')).toBeEnabled();await sort.click();await expect(sort).toBeFocused();await page.keyboard.press(next==='newest'?'n':'r');await page.keyboard.press('Enter');await expect(sort).toHaveValue(next);await expect(sort).toBeFocused();};
+ return f;
+}
+async function sharedCardEvidence(page,info,f,label){
+ const fonts=await page.evaluate(async()=>{await document.fonts.ready;const out=[];for(const e of document.querySelectorAll('.home-launch-card:has(.home-launch-progress-row) .home-launch-progress-heading strong,.home-launch-card:has(.home-launch-progress-row) .home-token-identity strong')){
+  if(!e.getClientRects().length)continue;const s=getComputedStyle(e),request=s.fontWeight+' '+s.fontSize+' '+s.fontFamily.split(',')[0];out.push({request,faces:(await document.fonts.load(request)).map(x=>({family:x.family,weight:x.weight,status:x.status}))});}return out;});
+ expect(fonts.length).toBeGreaterThan(0);expect(fonts.every(x=>x.faces.length&&x.faces.every(y=>y.status==='loaded'))).toBe(true);
+ const state=await page.evaluate(()=>({route:location.hash,width:innerWidth,documentWidth:document.documentElement.scrollWidth,source:document.querySelector('#explore-cluster-label')?.textContent,
+  cards:[...document.querySelectorAll('.home-launch-card:has(.home-launch-progress-row)')].filter(e=>e.getClientRects().length).map(e=>{const row=e.querySelector('.home-launch-progress-row'),track=row.querySelector('.home-launch-progress'),media=e.querySelector('.home-launch-card-media'),box=x=>{const r=x.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};};return{mint:e.dataset.mint,card:box(e),media:box(media),text:e.innerText,progress:row.innerText,kind:row.dataset.progressState,track:box(track),value:track.getAttribute('aria-valuenow'),valueText:track.getAttribute('aria-valuetext'),role:track.getAttribute('role'),controls:[...e.querySelectorAll('a,button')].filter(a=>!a.matches('.home-launch-card-link')&&a.getClientRects().length).map(a=>({name:a.getAttribute('aria-label')||a.textContent.trim(),...box(a)}))};})}));
+ expect(state.documentWidth).toBeLessThanOrEqual(state.width+1);expect(state.cards.length).toBeGreaterThan(0);for(const c of state.cards){expect(c.track.height).toBe(6);expect(Math.abs(c.media.width-c.card.width)).toBeLessThanOrEqual(2);expect(c.media.width/c.media.height).toBeCloseTo(1.5,1);
+  for(const a of c.controls){expect(a.width).toBeGreaterThanOrEqual(44);expect(a.height).toBeGreaterThanOrEqual(44);expect(a.x).toBeGreaterThanOrEqual(c.card.x-1);expect(a.right).toBeLessThanOrEqual(c.card.right+1);}
+  for(let i=0;i<c.controls.length;i++)for(let j=i+1;j<c.controls.length;j++){const a=c.controls[i],b=c.controls[j],x=Math.min(a.right,b.right)-Math.max(a.x,b.x),y=Math.min(a.bottom,b.bottom)-Math.max(a.y,b.y);expect(x>1&&y>1,'Controls overlap: '+a.name+' / '+b.name).toBe(false);}
+ }
+ await info.attach(label,{body:JSON.stringify({mode:f.mode,state,fonts,reads:f.reads,writes:f.writes,errors:f.errors,qualification:'Actual bootstrap/style/native route with controlled SDK/read-only API fixtures. No intermediate producer, real chain/pool outcome, wallet or financial proof.'},null,2),contentType:'application/json'});await page.screenshot({path:info.outputPath(label+'.png')});expect(f.writes).toEqual([]);expect(f.errors).toEqual([]);return state;
+}
+function observeSharedCardFocus(selector) {
+  const began = performance.now();
+  return new Promise(resolve => {
+    const samples = []; let stationaryAt = null, previous = null, frame;
+    const finish = pass => { cancelAnimationFrame(frame); clearTimeout(timer); resolve({ pass, samples }); };
+    const tick = () => {
+      const element = document.querySelector(selector), rect = element?.getBoundingClientRect();
+      const style = element && getComputedStyle(element);
+      const edge = style ? (parseFloat(style.outlineWidth) || 0) + (parseFloat(style.outlineOffset) || 0) : 0;
+      const bounds = { left:0, right:innerWidth, top:0, bottom:innerHeight }, clips = [];
+      let cornersClear = true;
+      const rootStyle = getComputedStyle(document.documentElement);
+      const root = { tag:document.documentElement.tagName, display:rootStyle.display,
+        overflowX:rootStyle.overflowX, overflowY:rootStyle.overflowY, contain:rootStyle.contain };
+      for (const chrome of document.querySelectorAll('.topbar,.mobile-workspace-nav')) {
+        if (!chrome.getClientRects().length) continue;
+        const r = chrome.getBoundingClientRect();
+        if (chrome.matches('.topbar')) bounds.top = Math.max(bounds.top, r.bottom);
+        else bounds.bottom = Math.min(bounds.bottom, r.top);
+      }
+      for (let ancestor = element?.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        const css = getComputedStyle(ancestor), r = ancestor.getBoundingClientRect();
+        const clipX = /^(hidden|clip|auto|scroll)$/.test(css.overflowX);
+        const clipY = /^(hidden|clip|auto|scroll)$/.test(css.overflowY);
+        if (clipX || clipY) {
+          // CSS Overflow 3: root overflow, or body overflow when the HTML root
+          // is visible in both axes, is propagated to the viewport. Its used
+          // clip is not its translated document-coordinate border rectangle.
+          const viewportClip = ancestor === document.documentElement || (ancestor === document.body
+            && rootStyle.overflowX === 'visible' && rootStyle.overflowY === 'visible'
+            && rootStyle.contain === 'none' && css.contain === 'none');
+          if (viewportClip) { clips.push({ tag:ancestor.tagName, display:css.display, overflowX:css.overflowX,
+            overflowY:css.overflowY, contain:css.contain, viewportClip:true,
+            propagationReason:ancestor === document.documentElement ? 'root overflow applies to viewport' : 'visible HTML root propagates body overflow to viewport',
+            left:0, top:0, right:innerWidth, bottom:innerHeight }); continue; }
+          const box = { left:r.left + ancestor.clientLeft, top:r.top + ancestor.clientTop,
+            right:r.left + ancestor.clientLeft + ancestor.clientWidth,
+            bottom:r.top + ancestor.clientTop + ancestor.clientHeight };
+          const radii = ['borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomRightRadius', 'borderBottomLeftRadius']
+            .map(key => Math.max(0, (parseFloat(css[key]) || 0) - ancestor.clientLeft));
+          if (rect && clipX && clipY) {
+            const points = [[rect.left-edge,rect.top-edge],[rect.right+edge,rect.top-edge],
+              [rect.right+edge,rect.bottom+edge],[rect.left-edge,rect.bottom+edge]];
+            const centers = [[box.left+radii[0],box.top+radii[0]],[box.right-radii[1],box.top+radii[1]],
+              [box.right-radii[2],box.bottom-radii[2]],[box.left+radii[3],box.bottom-radii[3]]];
+            for (let i=0;i<4;i++) { const radius=radii[i], [x,y]=points[i], [cx,cy]=centers[i];
+              const inCorner = (i===0||i===3 ? x<cx : x>cx) && (i<2 ? y<cy : y>cy);
+              if (radius && inCorner && (x-cx)**2+(y-cy)**2>radius**2) cornersClear=false;
+            }
+          }
+          clips.push({ id:ancestor.id, tag:ancestor.tagName, display:css.display, overflowX:css.overflowX,
+            overflowY:css.overflowY, contain:css.contain, clipX, clipY, radii, ...box });
+          if (clipX) { bounds.left = Math.max(bounds.left, box.left); bounds.right = Math.min(bounds.right, box.right); }
+          if (clipY) { bounds.top = Math.max(bounds.top, box.top); bounds.bottom = Math.min(bounds.bottom, box.bottom); }
+        }
+      }
+      const position = rect && { top:rect.top, bottom:rect.bottom, left:rect.left, right:rect.right };
+      const clear = Boolean(rect && cornersClear && element === document.activeElement && element.matches(':focus-visible')
+        && style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0
+        && rect.left - edge >= bounds.left && rect.right + edge <= bounds.right
+        && rect.top - edge >= bounds.top && rect.bottom + edge <= bounds.bottom);
+      const now = performance.now(), geometry = JSON.stringify([position, scrollX, scrollY, bounds]);
+      if (clear) { if (stationaryAt === null || previous !== geometry) stationaryAt = now; }
+      else stationaryAt = null;
+      previous = geometry;
+      samples.push({ at:now - began, clear, position, edge, bounds, clips, root, cornersClear,
+        stationaryMs:stationaryAt === null ? 0 : now - stationaryAt });
+      if (now - began > 1000) return finish(false);
+      if (clear && now - stationaryAt >= 100) return finish(true);
+      frame = requestAnimationFrame(tick);
+    };
+    const timer = setTimeout(() => finish(false), 1000);
+    frame = requestAnimationFrame(tick);
+  });
+}
+async function sharedNativeEntry(page,selector,info,label){
+ const walk=[];for(let i=0;i<140;i++){
+  const position=await page.evaluate(selector=>{const target=document.querySelector(selector),all=[...document.querySelectorAll('a[href],button,input,select,textarea,summary,[tabindex]')].filter(e=>e.tabIndex>=0&&!e.disabled&&!e.closest('[hidden],[inert]')&&e.getClientRects().length&&getComputedStyle(e).visibility==='visible'),index=all.indexOf(document.activeElement);return{already:document.activeElement===target,next:index>=0&&all[index+1]===target,id:document.activeElement?.id,tag:document.activeElement?.tagName};},selector);
+  walk.push(position);if(position.next)break;await page.keyboard.press(position.already?'Shift+Tab':'Tab');
+ }
+ const armed=await page.evaluate(({selector,source})=>{const target=document.querySelector(selector),all=[...document.querySelectorAll('a[href],button,input,select,textarea,summary,[tabindex]')].filter(e=>e.tabIndex>=0&&!e.disabled&&!e.closest('[hidden],[inert]')&&e.getClientRects().length&&getComputedStyle(e).visibility==='visible'),index=all.indexOf(document.activeElement),state=window.__sharedNative={began:performance.now(),original:target};
+  const observe=new Function('return ('+source+')')();state.promise=observe(selector).then(focus=>({focus,began:state.began,endedAt:performance.now(),key:state.key}));document.addEventListener('keydown',e=>{state.key={at:performance.now(),key:e.key,trusted:e.isTrusted};},{capture:true,once:true});return{at:performance.now(),nextOriginal:index>=0&&all[index+1]===target,connected:Boolean(target?.isConnected)};
+ },{selector,source:observeSharedCardFocus.toString()});
+ expect(armed.nextOriginal).toBe(true);expect(armed.connected).toBe(true);const original=await page.evaluateHandle(()=>window.__sharedNative.original);await page.keyboard.press('Tab');const proof=await page.evaluate(()=>window.__sharedNative.promise);
+ await info.attach(label,{body:JSON.stringify({walk,armed,proof},null,2),contentType:'application/json'});expect(proof.key?.trusted).toBe(true);expect(proof.key.key).toBe('Tab');expect(proof.key.at).toBeGreaterThanOrEqual(armed.at);expect(proof.endedAt-proof.began).toBeLessThanOrEqual(1000);expect(proof.focus.pass,JSON.stringify(proof.focus)).toBe(true);expect(proof.focus.samples.at(-1).stationaryMs).toBeGreaterThanOrEqual(100);expect(await original.evaluate(e=>e.isConnected&&document.activeElement===e)).toBe(true);return original;
+}
+for(const width of[360,390,1440])test(`FQA-070 shared actual Home and Explore states, layout and native copy at${width}`,async({page},info)=>{
+ const f=await sharedRuntimeFixture(page,width);await f.open();
+ for(const mode of['unknown','curve','complete','migrated']){
+  if(mode!=='unknown'){f.mode=mode;await f.refresh();await expect(page.locator('#asset-grid .home-launch-progress-row').first()).toHaveAttribute('data-progress-state',mode==='curve'?'unavailable':mode);if(mode==='curve')await expect(page.locator('#asset-grid .home-launch-progress-row').first()).toContainText('On curve');}
+  for(const route of['Home','Explore']){await f.nav(route);const snapshot=await sharedCardEvidence(page,info,f,mode+'-'+route+'-'+width);expect(snapshot.cards).toHaveLength(3);for(const c of snapshot.cards){
+   if(['unknown','curve'].includes(mode)){expect(c.progress).toContain('Progress unavailable');expect(c.value).toBeNull();expect(c.role).toBeNull();}
+   else{expect(c.value).toBe('100');expect(c.role).toBe('progressbar');expect(c.progress).toContain(mode==='migrated'?'Migrated':'Migration not yet verified');}
+  }
+  if(mode==='unknown'){const prefix=route==='Home'?'#home-launch-grid':'#asset-grid',original=await sharedNativeEntry(page,prefix+' .home-launch-card:first-child [data-copy-kind="token"]',info,'native-copy-'+route+'-'+width);await page.keyboard.press('Enter');expect(await original.evaluate(e=>e.isConnected&&document.activeElement===e)).toBe(true);expect(await page.evaluate(()=>window.__sharedCopies.at(-1))).toBe(records[0].mint);}
+  }
+ }
+ await f.nav('Portfolio');await expect(page.locator('body')).toHaveClass(/page-route-my-launches/);await expect(page.locator('#creator-launch-empty')).toContainText('Connect');expect(f.writes).toEqual([]);expect(f.errors).toEqual([]);
+});
+async function sharedNativeLeaveCard(page,originals,info,width){
+ const route=await page.evaluate(()=>location.hash),steps=[];
+ const read=()=>originals.evaluate(o=>({ownerConnected:o.owner.isConnected,cardConnected:o.card.isConnected,rowConnected:o.row.isConnected,trackConnected:o.track.isConnected,fillConnected:o.fill.isConnected,sameNodes:o.owner.closest('.home-launch-card')===o.card&&o.card.querySelector('.home-launch-progress-row')===o.row&&o.row.querySelector('.home-launch-progress')===o.track&&o.track.querySelector('i')===o.fill,value:o.track.getAttribute('aria-valuenow'),fill:o.fill.style.getPropertyValue('--launch-progress'),text:o.row.querySelector('strong').textContent,ariaText:o.track.getAttribute('aria-valuetext'),state:o.row.dataset.progressState,route:location.hash}));
+ const initial=await read();let position;
+ for(let i=0;i<80;i++){
+  position=await page.evaluate(()=>{const e=document.activeElement;return{inCard:Boolean(e?.closest('.home-launch-card')),visible:Boolean(e?.isConnected&&e.getClientRects().length&&getComputedStyle(e).visibility==='visible'),tag:e?.tagName,id:e?.id,label:e?.getAttribute('aria-label')||e?.textContent?.trim().slice(0,100),route:location.hash};});
+  const identities=await read();steps.push({position,identities});if(!identities.ownerConnected||position.route!==route||!position.inCard)break;
+  await page.keyboard.press('Shift+Tab');
+ }
+ const outside=await page.evaluateHandle(()=>document.activeElement);let final,owner;
+ try{
+  expect(initial.ownerConnected&&initial.sameNodes).toBe(true);expect(initial.value).toBe('100');expect(initial.fill).toBe('100%');expect(steps.length).toBeGreaterThan(1);expect(position.inCard).toBe(false);expect(position.visible).toBe(true);expect(position.route).toBe(route);
+  await expect.poll(async()=>{final=await read();owner=await outside.evaluate(e=>({active:document.activeElement===e,connected:e.isConnected,inCard:Boolean(e.closest('.home-launch-card'))}));return final.ownerConnected&&final.cardConnected&&final.rowConnected&&final.trackConnected&&final.fillConnected&&final.sameNodes&&final.value===initial.value&&final.fill===initial.fill&&final.state==='stale'&&final.text.startsWith('Last verified')&&final.ariaText===final.text&&final.route===route&&owner.active&&owner.connected&&!owner.inCard;}).toBe(true);
+ }finally{await info.attach('same-route-native-focus-leave-'+width,{body:JSON.stringify({initial,steps,final,owner,qualification:'Original exact card/control/row/track/fill retained across deferred qualifier flush after native ShiftTab to an outside-card owner on the same Home route. No full-render prohibition across later explicit navigation.'},null,2),contentType:'application/json'});}
+}
+
+for(const width of[390,1440])test(`FQA-070 ordinary held failure preserves Home focus then qualifies retained rows at${width}`,async({page},info)=>{
+ const f=await sharedRuntimeFixture(page,width,'complete');await f.open();const gate=f.hold();try{
+  await f.refresh();await gate.started;await f.nav('Home');const selector='#home-launch-grid .home-launch-card:first-child [data-copy-kind="token"]',original=await sharedNativeEntry(page,selector,info,'before-outage-entry-'+width);
+  const originals=await original.evaluateHandle(e=>{const card=e.closest('.home-launch-card'),row=card.querySelector('.home-launch-progress-row'),track=row.querySelector('.home-launch-progress');return{owner:e,card,row,track,fill:track.querySelector('i')};});
+  const before=await page.locator('#home-launch-grid .home-launch-progress-row').first().innerText();expect(before).toContain('Migration not yet verified');expect(before).not.toContain('Last verified');
+  f.mode='read-failure';gate.release();await expect(page.locator('#explore-pulse-scope')).toHaveText('Launch stages use the last verified feed.');
+  expect(await original.evaluate(e=>e.isConnected&&document.activeElement===e)).toBe(true);
+  const proof=await page.evaluate(async({selector,source})=>{const began=performance.now(),focus=await(new Function('return ('+source+')')())(selector);return{focus,began,endedAt:performance.now(),qualification:'After observed actual stale producer transition; separate native entry proof retains original input-inclusive1s. No1s request-completion claim.'};},{selector,source:observeSharedCardFocus.toString()});
+  await info.attach('outage-original-focus-'+width,{body:JSON.stringify(proof,null,2),contentType:'application/json'});expect(proof.endedAt-proof.began).toBeLessThanOrEqual(1000);expect(proof.focus.pass,JSON.stringify(proof.focus)).toBe(true);expect(proof.focus.samples.at(-1).stationaryMs).toBeGreaterThanOrEqual(100);expect(await original.evaluate(e=>e.isConnected&&document.activeElement===e)).toBe(true);
+  await expect(page.locator('#home-launch-grid .home-launch-progress-row').first()).not.toContainText('Last verified');
+  await sharedNativeLeaveCard(page,originals,info,width);
+  await f.nav('Explore');await f.nav('Home');const snapshot=await sharedCardEvidence(page,info,f,'retained-after-native-return-'+width);for(const c of snapshot.cards){expect(c.progress).toContain('Last verified');expect(c.progress).toContain('Migration not yet verified');expect(c.value).toBe('100');}await info.attach('old-node-after-explicit-route-'+width,{body:JSON.stringify(await originals.evaluate(o=>({connected:o.owner.isConnected,qualification:'Informational after explicit Explore/Home route pollers may perform normal full renders. Required identity preservation was asserted separately on same-route native focus leave.'}))),contentType:'application/json'});
+  await f.nav('Explore');f.mode='complete';await f.refresh();await expect(page.locator('#asset-grid .home-launch-progress-row').first()).toHaveAttribute('data-progress-state','complete');await f.nav('Home');const recovered=await sharedCardEvidence(page,info,f,'fresh-successful-render-'+width);for(const c of recovered.cards){expect(c.progress).not.toContain('Last verified');expect(c.value).toBe('100');} // Only the existing successful full render refreshes old data.
+ }finally{gate.release();}
 });
