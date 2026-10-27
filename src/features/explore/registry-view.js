@@ -236,9 +236,14 @@ export function renderRegistry(query, state, {
       ? header.getBoundingClientRect().bottom : 0;
     const bottom = nav?.getClientRects().length && getComputedStyle(nav).position === 'fixed'
       ? nav.getBoundingClientRect().top : globalThis.innerHeight;
-    if (rect.top - edge < top || rect.bottom + edge > bottom || rect.left - edge < 0 || rect.right + edge > globalThis.innerWidth) {
-      search.scrollIntoView({ behavior:'instant', block:'center', inline:'nearest' });
-    }
+    const hiddenY = rect.top - edge < top ? rect.top - edge - top
+      : rect.bottom + edge > bottom ? rect.bottom + edge - bottom : 0;
+    const hiddenX = rect.left - edge < 0 ? rect.left - edge
+      : rect.right + edge > globalThis.innerWidth ? rect.right + edge - globalThis.innerWidth : 0;
+    // Search is outside the Table scroller. Move the viewport by its remaining
+    // covered outline instead of centering through hidden overflow ancestors.
+    const round = value => value > 0 ? Math.ceil(value) : Math.floor(value);
+    if (hiddenX || hiddenY) document.defaultView.scrollBy({ left:round(hiddenX), top:round(hiddenY), behavior:'instant' });
   };
   // Replacing Table rows during a background refresh also replaces the focused
   // tier button. Keep the user's current keyboard position across that render.
