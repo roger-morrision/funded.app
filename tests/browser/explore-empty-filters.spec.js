@@ -283,6 +283,38 @@ async function activityMinimum(page,value) {
   await page.locator('#explore-min-trades').fill(String(value));await page.keyboard.press('Escape');
   await expect(page.locator('#explore-filter-popover')).toBeHidden();await expect(toggle).toBeFocused();
 }
+async function activityPointerPoint(page, selector, info) {
+  const original = await page.locator(selector).elementHandle();
+  expect(original).not.toBeNull();
+  try {
+    const result = await original.evaluate(element => new Promise(resolve => {
+      const began = performance.now(); let previous = null, stationaryAt = null, frame, timer;
+      const finish = value => { cancelAnimationFrame(frame); clearTimeout(timer); resolve(value); };
+      const tick = () => {
+        const now = performance.now(), box = element.getBoundingClientRect();
+        const x = box.left + box.width / 2, y = box.top + box.height / 2;
+        const hit = document.elementFromPoint(x, y);
+        const ready = element.isConnected && document.activeElement === document.querySelector('#explore-search')
+          && box.width > 0 && box.height > 0 && box.left >= 0 && box.right <= innerWidth
+          && box.top >= 0 && box.bottom <= innerHeight && (hit === element || element.contains(hit));
+        const position = JSON.stringify([box.left, box.top, box.width, box.height, scrollX, scrollY]);
+        if (ready) { if (previous !== position || stationaryAt === null) stationaryAt = now; }
+        else stationaryAt = null;
+        previous = position;
+        if (now - began > 1000) return finish({ pass:false, ready, elapsed:now-began });
+        if (ready && now - stationaryAt >= 100) return finish({ pass:true, x, y, stationaryMs:now-stationaryAt, elapsed:now-began });
+        frame = requestAnimationFrame(tick);
+      };
+      timer = setTimeout(() => finish({ pass:false, elapsed:performance.now()-began }), 1000);
+      frame = requestAnimationFrame(tick);
+    }));
+    await info.attach('activity-original-pointer-point',{body:JSON.stringify(result),contentType:'application/json'});
+    expect(result.pass,JSON.stringify(result)).toBe(true);
+    expect(result.stationaryMs).toBeGreaterThanOrEqual(100);
+    expect(result.elapsed).toBeLessThanOrEqual(1000);
+    return result;
+  } finally { await original.dispose(); }
+}
 for(const width of[360,390,1440])test.describe(`activity viewport${width}`,()=>{
   test.use({hasTouch:width<700});
   for(const view of['grid','table'])for(const recovery of['pointer','Enter'])test(`UX-008 available activity ${view} first ${recovery} Clear at${width}px`,async({page},info)=>{
@@ -311,10 +343,11 @@ for(const width of[360,390,1440])test.describe(`activity viewport${width}`,()=>{
       if(recovery==='pointer'){
         // Edited Search remains focused immediately before the FIRST real pointer/touch activation.
         await activityTabTo(page,'#explore-search');await page.keyboard.press('Control+A');await page.keyboard.type('QA');await expect(page.locator('#explore-search')).toBeFocused();
-        const box=await page.locator(clear).boundingBox();expect(box).not.toBeNull();
-        expect(box.x>=0&&box.y>=0&&box.x+box.width<=width&&box.y+box.height<=(width<700?844:900)).toBe(true);
+        // Observe native Search scrolling settle; never aim at stale coordinates
+        // or scroll/focus the target on behalf of the application.
+        const point=await activityPointerPoint(page,clear,info);
         await activityArm(page,'#explore-search','pointerdown',null,clear);
-        if(width<700)await page.touchscreen.tap(box.x+box.width/2,box.y+box.height/2);else await page.mouse.click(box.x+box.width/2,box.y+box.height/2);
+        if(width<700)await page.touchscreen.tap(point.x,point.y);else await page.mouse.click(point.x,point.y);
         await activityProof(page,'first-pointer-search',true);
       }else{
         await activityArm(page,'#explore-search','keydown','Enter',clear);await page.keyboard.press('Enter');await activityProof(page,'first-enter-search');
