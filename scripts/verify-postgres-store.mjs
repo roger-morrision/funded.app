@@ -155,7 +155,7 @@ try {
   await referralAuth.revoke(referralSession.token);
   assert.equal(await referralAuthReader.session(referralSession.token),null);
   const supportMint='5'.repeat(44), router='2'.repeat(44);
-  const supportLaunch={mint:supportMint,cluster:'devnet',onchainVerified:true,policySignature:'fixture',xUserId:'700',creator:router,pumpFeeRoute:{verified:true,scope:'per-mint-v2',router},feeDistribution:{creatorDirected:{shares:{solClaimPercent:80},recipients:{xAccount:'@fan_fixture'}}}};
+  const supportLaunch={mint:supportMint,cluster:'devnet',onchainVerified:true,policySignature:'fixture',xUserId:'700',creator:router,pumpFeeRoute:{verified:true,scope:'per-mint-v3',router},feeDistribution:{creatorDirected:{shares:{solClaimPercent:80},recipients:{xAccount:'@fan_fixture'}}}};
   await store.update(s=>{
     for(let n=200;n<270;n++)s.creatorProfiles[String(n)]={id:String(n),handle:`@fixture${n}`,name:`Creator ${n}`,listed:true,identityVerified:true};
     s.launches[supportMint]=supportLaunch;
@@ -208,9 +208,10 @@ try {
   // Payload reads must stay bounded; changes and deletions are visible without a separate worker.
   await store.update(s=>{delete s.payouts['receipt-window-39'];s.collections['receipt-window-39'].status='verification-pending';});
   assert.deepEqual(await other.readReceiptCandidates('devnet'),selectReceiptCandidates(await store.read(),'devnet'));
+  const fixtureProgram = '3'.repeat(44), fixtureRouter = '2'.repeat(44);
   const api = spawn(process.execPath, ['server/index.mjs'], {
     cwd: process.cwd(),
-    env: { ...process.env, NODE_ENV: 'production', PORT: String(port), HOST: '127.0.0.1', FUNDED_STORE_PATH: '', FUNDED_API_TOKEN: 'postgres-test-token', DATABASE_URL: databaseUrl, DATABASE_SSL: 'false' },
+    env: { ...process.env, NODE_ENV: 'production', PORT: String(port), HOST: '127.0.0.1', FUNDED_STORE_PATH: '', FUNDED_API_TOKEN: 'postgres-test-token', DATABASE_URL: databaseUrl, DATABASE_SSL: 'false', FUNDED_V3_FEE_ROUTER_PROGRAM_ID: fixtureProgram, SOLANA_RPC_URL: 'http://127.0.0.1:9' },
     stdio: 'ignore',
   });
   try {
@@ -221,12 +222,26 @@ try {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     assert.equal(ready, true, 'Production API did not start on the keyed store.');
+    const legacyPublicPage = await (await fetch(`${base}/api/launches?limit=1&offset=0`)).json();
+    assert.deepEqual(legacyPublicPage, [], 'Legacy launches without a V3 route remain stored but are excluded from public discovery.');
+    assert.equal((await fetch(`${base}/api/tokens/${oldLaunch.mint}/fee-activity`)).status, 410, 'Legacy fee activity must remain rejected.');
+    // Synthetic database fixtures only: no chain state or balance is asserted.
+    await store.update(s => {
+      Object.assign(s.launches[oldLaunch.mint], { cluster: 'devnet', onchainVerified: true, creator: fixtureRouter,
+        pumpFeeRoute: { verified: true, scope: 'per-mint-v3', router: fixtureRouter, programId: fixtureProgram } });
+      Object.assign(s.collections.claim, { scope: 'per-mint-v3', onchainVerified: true, programId: fixtureProgram, router: fixtureRouter });
+    });
     const launchPage = await (await fetch(`${base}/api/launches?limit=1&offset=0`)).json();
     assert.equal(launchPage.length, 1);
     assert.equal(launchPage[0].mint, oldLaunch.mint);
-    const activity = await (await fetch(`${base}/api/tokens/${oldLaunch.mint}/fee-activity`)).json();
+    const activityResponse = await fetch(`${base}/api/tokens/${oldLaunch.mint}/fee-activity`);
+    assert.equal(activityResponse.status, 200);
+    const activity = await activityResponse.json();
     assert.equal(activity.source, 'funded.app-postgresql');
-    assert.equal(activity.collections[0].collectedLamports, 1_000_000_000);
+    assert.equal(activity.collections.length, 1);
+    assert.equal(activity.collections[0].collectedLamports, '1000000000');
+    assert.equal(activity.overview.pump.status, 'unavailable');
+    assert.equal(activity.overview.pump.accruedLamports, null);
     const unauthorized = await fetch(`${base}/api/alerts`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ wallet: 'viewer', mint: oldLaunch.mint }) });
     assert.equal(unauthorized.status, 401);
   } finally { api.kill(); }

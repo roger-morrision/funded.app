@@ -46,7 +46,7 @@ assert.equal((await request('/api/ops/receipt-worker')).status, 401);
 assert.equal((await request('/api/alerts', { body: { wallet: 'unsigned', mint: 'unsigned' } })).status, 401);
 checks.push('anonymous privileged reads and writes fail closed');
 
-const home = await request('/'); assert.equal(home.status, 200); assert.equal(home.headers.get('cache-control'), 'no-cache');
+const home = await request('/'); assert.equal(home.status, 200); assert.equal(home.headers.get('cache-control'), 'no-store');
 const asset = home.data.match(/(?:src|href)="(\/assets\/[^"?#]+\.js)"/)?.[1]; assert.ok(asset);
 const bundle = await request(asset); assert.equal(bundle.status, 200); assert.match(bundle.headers.get('cache-control'), /immutable/);
 for (const path of ['/explore', '/launch/coin/11111111111111111111111111111111', '/token/11111111111111111111111111111111', '/wallet/11111111111111111111111111111111']) {
