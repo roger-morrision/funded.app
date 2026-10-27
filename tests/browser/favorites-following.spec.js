@@ -488,14 +488,17 @@ function observeFollowing082Control(original, readiness = {}) {
   });
 }
 function following082Observe(page) {
-  const requests=[],pending=new Set();let closing;
+  const requests=[],pending=new Set();let closing,contextClosed=false;
   const failed=(row,reason,error)=>{
     row.state=closing?'cancelled':'failed';row.failureReason=reason;row.error=String(error);
     if(closing){row.phase=closing.phase;row.closeReason=closing.reason;}
   };
   page.on('request',request=>{
     const u=new URL(request.url());if(!u.pathname.startsWith('/api/'))return;
-    requests.push({request,path:u.pathname,method:request.method(),state:'pending',phase:'journey'});
+    const row={request,path:u.pathname,method:request.method(),state:'pending',
+      phase:closing?'owned-context-close':'journey',startedDuringOwnedClose:Boolean(closing)};
+    requests.push(row);
+    if(contextClosed)failed(row,'request-observed-after-owned-close','Owned context is already closed; no response-body completion claimed');
   });
   page.on('requestfailed',request=>{
     const row=requests.find(r=>r.request===request);if(row)failed(row,'requestfailed',request.failure()?.errorText||'Request failed');
@@ -510,11 +513,17 @@ function following082Observe(page) {
     }catch(error){failed(row,'response-body-error',error);}})();
     pending.add(work);void work.finally(()=>pending.delete(work));
   });
-  return {requests,pending,beginClose:reason=>{closing={phase:'owned-context-close',reason};},settle:async({allowCloseCancellation=false}={})=>{
+  return {requests,pending,beginClose:reason=>{closing={phase:'owned-context-close',reason};},
+    closed:()=>{
+      contextClosed=true;
+      for(const row of requests)if(row.state==='pending'&&row.startedDuringOwnedClose)
+        failed(row,'owned-context-closed-without-response-event','Actual owned context close completed; no response-body completion claimed');
+    },settle:async({allowCloseCancellation=false}={})=>{
     await expect.poll(()=>pending.size).toBe(0);
     await expect.poll(()=>requests.filter(r=>r.state==='pending').length).toBe(0);
     const unacceptable=requests.filter(row=>!(row.state==='complete'&&row.jsonComplete===true&&row.finishedError===null)
-      && !(allowCloseCancellation&&row.state==='cancelled'&&row.phase==='owned-context-close'&&row.closeReason));
+      && !(allowCloseCancellation&&row.state==='cancelled'&&row.phase==='owned-context-close'&&row.closeReason)
+      && !(contextClosed&&row.startedDuringOwnedClose&&row.state==='cancelled'&&row.phase==='owned-context-close'&&row.closeReason));
     expect(unacceptable.map(({request,...row})=>row),'Expected API reads must have complete JSON and no finished/request failure; JSON503 fixtures are allowed').toEqual([]);
   },snapshot:()=>requests.map(({request,...row})=>row)};
 }
@@ -529,11 +538,12 @@ async function following082Finish({context,watch,release,info,evidence,name,prim
     try{
       await attempt('mark-close-phase',()=>watch?.beginClose(hasPrimary||errors.length?'Cleanup after original journey or verification failure':'Normal cleanup after complete response checks'));
       evidence.contextClose={attempted:true,complete:false};
-      await attempt('owned-context-close',async()=>{await context.close();evidence.contextClose.complete=true;});
+      await attempt('owned-context-close',async()=>{await context.close();evidence.contextClose.complete=true;watch?.closed();});
     }finally{
       if(watch)await attempt('after-close-final-zero',async()=>{
-        // Only a journey that already failed may classify close cancellation separately.
-        // Such rows never count as completed-body proof or rescue the original failure.
+        // Existing journey reads still require completed JSON. A new read initiated
+        // during actual owned close is teardown cancellation, never completed-body proof.
+        // Earlier journey failures remain the primary failure.
         await watch.settle({allowCloseCancellation:hasPrimary});expect(watch.pending.size).toBe(0);
       });
       evidence.responses=watch?.snapshot();
