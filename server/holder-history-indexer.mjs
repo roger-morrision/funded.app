@@ -51,14 +51,26 @@ async function completeLargestAccountsFallback(connection, mint, mintAccount) {
 async function completeIndexedAccountsFallback(connection, mint, mintAccount, rpcUrl, fetchImpl) {
   if (!rpcUrl || typeof fetchImpl !== 'function') throw new Error('An indexed token-account endpoint is not configured.');
   const addresses = new Map();
+  let mintField = 'mint';
   for (let page = 1; page <= MAX_INDEX_PAGES; page += 1) {
-    const response = await fetchImpl(rpcUrl, {
+    const request = () => fetchImpl(rpcUrl, {
       method:'POST',
       headers:{ 'content-type':'application/json' },
-      body:JSON.stringify({ jsonrpc:'2.0', id:`funded-holder-index-${page}`, method:'getTokenAccounts', params:{ mint:mint.toBase58(), page, limit:INDEX_PAGE_SIZE, displayOptions:{} } }),
+      body:JSON.stringify({ jsonrpc:'2.0', id:`funded-holder-index-${page}`, method:'getTokenAccounts', params:{ [mintField]:mint.toBase58(), page, limit:INDEX_PAGE_SIZE, displayOptions:{} } }),
     });
+    let response = await request();
     if (!response.ok) throw new Error(`Indexed token-account request failed with HTTP ${response.status}.`);
-    const payload = await response.json();
+    let payload = await response.json();
+    // Preserve Helius' mint parameter. Negotiate the public RPC spelling only
+    // when that endpoint explicitly rejects it and names mintAddress instead.
+    if (mintField === 'mint' && payload.error?.code === -32602
+      && /unknown field [`'"]?mint[`'"]?[, ]/i.test(String(payload.error.message))
+      && /\bmintAddress\b/.test(String(payload.error.message))) {
+      mintField = 'mintAddress';
+      response = await request();
+      if (!response.ok) throw new Error(`Indexed token-account request failed with HTTP ${response.status}.`);
+      payload = await response.json();
+    }
     if (payload.error) throw new Error(`Indexed token-account request failed: ${payload.error.message || payload.error.code || 'unknown error'}.`);
     const rows = payload.result?.token_accounts;
     if (!Array.isArray(rows)) throw new Error('Indexed token-account response is missing token_accounts.');
