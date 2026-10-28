@@ -98,6 +98,6 @@ for (const test of cases) {
 }
 report.passed = report.receipts.filter(row => row.status === 'passed').length;
 report.blocked = report.receipts.length - report.passed;
-await mkdir('docs/audit/devnet-2026-10-04', { recursive: true });
-await writeFile('docs/audit/devnet-2026-10-04/historical-receipts.json', `${JSON.stringify(report, null, 2)}\n`);
+await mkdir('data/qa-evidence/devnet-acceptance', { recursive: true });
+await writeFile('data/qa-evidence/devnet-acceptance/historical-receipts.json', `${JSON.stringify(report, null, 2)}\n`);
 process.exitCode = report.blocked ? 2 : 0;

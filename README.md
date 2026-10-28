@@ -77,7 +77,7 @@ The in-app Docs page and Help panel cover all product actions. Maintained refere
 - [Admin tools and withdrawal limits](docs/admin-devnet.md)
 - [Operational safeguards](docs/operations-runbook.md)
 
-Dated audits and sections labeled historical describe their original revisions and programs. They are not current activation instructions. Earlier README implementation notes remain available in Git history at revision ef317ad3e6cafba5179b975182877da7dd308f82.
+Retired release, audit and planning reports are preserved in Git history and local recovery archives. They are not current activation instructions. Earlier README implementation notes remain available in Git history at revision ef317ad3e6cafba5179b975182877da7dd308f82.
 
 ## Local development
 

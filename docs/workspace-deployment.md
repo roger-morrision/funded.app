@@ -4,7 +4,7 @@ The workspace deployment runs the production Node 24 application with PostgreSQL
 
 ## Open in GitHub Codespaces
 
-1. Open [the enhancement branch](https://github.com/roger-morrision/funded.app/tree/enhancements/devnet-readiness-2026-10-04), then **Code → Codespaces → Create codespace on this branch**. The repository includes `.devcontainer/devcontainer.json`.
+1. Open [the main branch](https://github.com/roger-morrision/funded.app/tree/main), then **Code → Codespaces → Create codespace on this branch**. The repository includes `.devcontainer/devcontainer.json`.
 2. Wait for the Docker/Node features and initial image build. Startup creates fresh database/API credentials under ignored `.secrets/workspace-devnet`, applies database migrations and starts the app and database. No external hosting keys are required.
 3. In the **Ports** tab, open **8788 — Funded Devnet**. The app uses `https://<codespace-name>-8788.app.github.dev` for its public origin, CORS, mobile callback and new metadata URLs. The forwarded port is private by default.
 
@@ -52,3 +52,11 @@ The `docker-image` CI job builds the exact source revision on a disposable runne
 For an already running, explicitly selected local Devnet container, set `FUNDED_EXPECT_BUILD` to the full source revision before running `node scripts/verify-container-image.mjs <container>`. Optionally set `FUNDED_EXPECT_IMAGE` to its immutable image ID. The verifier checks image labels and runtime identity, performs one uniquely named data-directory write, and removes that probe immediately. It never submits a transaction or starts an X worker.
 
 Keep image-layer sizes separate from physical disk usage. Moving permissions earlier can reduce a runtime layer without reclaiming existing images or proving a lower peak build-space requirement. Do not reduce the capacity thresholds from image history alone. A local capacity failure can leave the running preview on an older revision even when source and CI are current; report both identities explicitly.
+
+## Clean local staging files
+
+`tmp/` is excluded from Git, but an existing deployment can still depend on files there. Before removing old staging files, inspect the app container's `com.docker.compose.project.config_files` label, render that exact Compose chain, and check its build context and bind mounts. Preserve every referenced configuration file, the current build source, deployment and rollback tools, and recovery backups.
+
+Archive retired files under ignored `.secrets/` storage and verify their hashes before deleting the originals. Handle directory junctions and symbolic links separately so cleanup cannot traverse their targets. After cleanup, verify that the resolved Compose configuration and retained files are unchanged and that running container identities and start times match the pre-cleanup snapshot. Local file cleanup requires no service restart or volume removal.
+
+Commit documentation changes separately from ignored staging files and private archives. Recover retired tracked reports from Git history; retain local recovery archives for files that were never tracked.

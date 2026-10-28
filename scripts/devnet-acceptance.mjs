@@ -249,6 +249,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   const manualFundingFlag = flags.find(flag => flag.startsWith('--manual-funding-wait-seconds='));
   assert(flags.filter(flag => flag.startsWith('--manual-funding-wait-seconds=')).length <= 1, 'Pass manual funding wait only once.');
   assert(!manualFundingFlag || /^[1-9]\d{0,2}$/.test(manualFundingFlag.slice(30)), 'Manual funding wait requires whole seconds from 1 to 900.');
-  const result = await runAcceptance({ feeRecipientAddress: feeRecipientFlag?.slice(16) || null, walletFile: walletFlag?.slice(9) || null, manualFundingWaitSeconds: manualFundingFlag ? Number(manualFundingFlag.slice(30)) : 0, execute: flags.includes('--execute'), output: flags.find(flag => flag.startsWith('--output='))?.slice(9) || 'docs/audit/devnet-2026-10-04/live-acceptance.json' });
+  const result = await runAcceptance({ feeRecipientAddress: feeRecipientFlag?.slice(16) || null, walletFile: walletFlag?.slice(9) || null, manualFundingWaitSeconds: manualFundingFlag ? Number(manualFundingFlag.slice(30)) : 0, execute: flags.includes('--execute'), output: flags.find(flag => flag.startsWith('--output='))?.slice(9) || 'data/qa-evidence/devnet-acceptance/live-acceptance.json' });
   process.exitCode = result.status === 'passed' ? 0 : 2;
 }

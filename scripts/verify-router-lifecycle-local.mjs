@@ -116,7 +116,7 @@ for (const receipt of evidence.transactions) {
   Object.assign(receipt, { finalized: true, slot: transaction.slot, feeLamports: transaction.meta.fee });
 }
 evidence.finishedAt = new Date().toISOString(); evidence.status = 'passed';
-const output = resolve(process.env.LOCAL_LIFECYCLE_EVIDENCE || 'docs/audit/devnet-2026-10-04/local-router-lifecycle-acceptance.json');
+const output = resolve(process.env.LOCAL_LIFECYCLE_EVIDENCE || 'data/qa-evidence/devnet-acceptance/local-router-lifecycle-acceptance.json');
 await mkdir(dirname(output), { recursive: true });
 await writeFile(output, `${JSON.stringify(evidence, null, 2)}\n`);
 console.log(JSON.stringify({ status: evidence.status, artifactSha256: evidence.artifactSha256, transactions: evidence.transactions.length, checks: evidence.checks.length, output }));

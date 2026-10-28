@@ -1,11 +1,8 @@
 # AI marketing agency policy
 
-Latest contract, custody-verification, durable-execution and integration evidence:
-[2026-10-19 checkpoint](agency-contract-integration-2026-10-19.md).
-The [2026-10-20 activation checkpoint](agency-activation-2026-10-20.md) records
-the finalized Devnet contract/configuration and published future-launch policy.
-Normal launch/runtime activation and live agency acceptance remain incomplete;
-deployment of configuration alone does not prove posting, billing or buybacks.
+Historical integration and activation checkpoint reports have been retired. The
+rules and activation requirements below remain the maintained reference.
+Configuration alone does not prove posting, billing or buybacks.
 
 ## Approved rules
 
