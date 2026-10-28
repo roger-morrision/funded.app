@@ -482,6 +482,9 @@ test('Launch availability presentation preserves ordinary entry and step request
     const exercise = async (target, url) => {
       const fixture = await availabilityFixture(target, 390, 'serviceFalse', url); fixtures.push(fixture);
       // The baseline's origin is explicitly local and uses this same per-page transport fixture.
+      // Route polling pauses in hidden tabs; both sides must own the foreground.
+      await target.bringToFront();
+      await expect.poll(()=>target.evaluate(()=>document.visibilityState)).toBe('visible');
       await target.goto(url + '/#launch'); await target.locator('body.workspace-ready.product-experience-ready').waitFor();
       fixture.releaseAccount(); fixture.releaseConfig();
       await expect(target.locator('#fee-router-status')).toContainText('Launch blocked:');
@@ -489,6 +492,7 @@ test('Launch availability presentation preserves ordinary entry and step request
       await target.locator('#token-name').fill('Count comparison'); await target.locator('#token-symbol').fill('COUNT');
       await target.locator('#launch-next').click(); await expect(target.locator('#launch-dialog')).toHaveAttribute('data-step', '2');
       await target.locator('#launch-back').click(); await expect(target.locator('#launch-dialog')).toHaveAttribute('data-step', '1');
+      await target.waitForLoadState('networkidle');
       const counts = {};
       for (const r of fixture.f.api) {
         const key = JSON.stringify([r.path, r.method, r.calls?.map(c => ({ method: c.method, params: c.params })) || null]);

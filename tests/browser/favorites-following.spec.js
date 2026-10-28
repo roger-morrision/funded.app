@@ -630,7 +630,11 @@ for(const width of[360,390,1440])test(`FQA-082 stable discovery survives followi
   let watch,primary,hasPrimary=false;const evidence={width,proofs:[],states:[],qualification:'Controlled native cross-page storage events and storage-read-error setup; no live producer, account connection or Follow action.'};
   try {
     const page=await context.newPage(),fixture=await following082Fixture(context,page);watch=following082Observe(page);
-    await page.goto('/#community');await following082Ready(page);evidence.fonts=await following082Fonts(page);await watch.settle();
+    await page.goto('/#community');await following082Ready(page);evidence.fonts=await following082Fonts(page);
+    // The offline reward fixture schedules one real retry after 1500ms. Include
+    // both startup reads before measuring requests caused by storage callbacks.
+    await expect.poll(()=>watch.requests.filter(row=>row.path==='/api/rewards/automatic').length).toBe(2);
+    await watch.settle();
     const link=await following082Anchor(page),original=await link.elementHandle();
     await expect(page.locator('.followed-wallet-empty')).toHaveText(following082Empty);
     await expect(page.locator('#followed-wallet-count')).toHaveText('0 followed');
