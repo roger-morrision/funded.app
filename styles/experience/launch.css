@@ -292,6 +292,10 @@ body.page-route-launch .launch-page-flat .launch-preview-panel { display: none; 
   outline-offset: 3px;
 }
 
+#launch-dialog :is(#launch-next, #launch-back, summary) {
+  scroll-margin-block: 8px;
+}
+
 @media (max-width: 1180px) {
   .page-route-launch #launch-route-shell { width: min(100%, 760px); padding-top: 28px; }
   .launch-page .launch-layout { grid-template-columns: minmax(0, 1fr); }
@@ -299,7 +303,7 @@ body.page-route-launch .launch-page-flat .launch-preview-panel { display: none; 
   .launch-preview-sticky { position: static; }
 }
 @media (max-width: 700px) {
-  #launch-dialog :is(#launch-next, #launch-back) {
+  #launch-dialog :is(#launch-next, #launch-back, summary) {
     scroll-margin-block: 100px calc(100px + env(safe-area-inset-bottom));
   }
 }

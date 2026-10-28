@@ -684,14 +684,18 @@ for (const width of [360,390,1440]) {
       tableExpect(after.age).not.toBe(entry.before.age);tableExpect(after.rows.map(row=>row.mint)).toEqual([tableMints[1],tableMints[0]]);
       await info.attach('table-retained-ordinary-read',{body:JSON.stringify({id:response.id,phase:response.phase,query:response.query,qualification:'Actual completed ordinary pump read plus source-awaited RPC/activity publication; raw protocol and resources independently required.'}),contentType:'application/json'});
       await tableOutline(page,original,info,'retained');await page.screenshot({path:info.outputPath(`primary-retained-${width}.png`)});
-      await tableStopObservation(original);await tableSettled(f);f.destination=true;
+      await tableStopObservation(original);
+      // Finish initial/queued reads before navigation destroys their CDP bodies.
+      // tableSettled still requires every exact response and original cancellation.
+      await page.waitForLoadState('networkidle');await tableSettled(f);f.destination=true;
       await page.keyboard.press('Enter');await tableExpect(page).toHaveURL(new RegExp('/token/'+tableMints[0]+'$'),{timeout:15000});
       await tableExpect(page.locator('#coin-page-title')).toHaveText('FQA078 Alpha updated',{timeout:15000});
       await tableExpect(page.locator('#coin-pulse-trades')).toHaveText('Unavailable',{timeout:15000});
-      await tableSettled(f);await page.goBack();await page.locator('body.page-route-explore.workspace-ready').waitFor();
+      await page.waitForLoadState('networkidle');await tableSettled(f);await page.goBack();await page.locator('body.page-route-explore.workspace-ready').waitFor();
       await tableExpect(page.locator('#explore-search')).toHaveValue(tableQuery,{timeout:15000});
       await tableExpect(page.locator('button[data-explore-view="table"]')).toHaveAttribute('aria-pressed','true',{timeout:15000});
       await tableExpect(page.locator(tablePrimary)).toHaveAttribute('href','/token/'+tableMints[0],{timeout:15000});
+      await page.waitForLoadState('networkidle');
     } finally {if(original){await tableCancelRevealAudit(original).catch(()=>{});await tableStopObservation(original).catch(()=>{});await original.dispose();}await tableFinish(f,info);}
   });
   test(`FQA-078 partial activity recovers then focused mint removal returns guarded Search at ${width}px`,async({page},info)=>{

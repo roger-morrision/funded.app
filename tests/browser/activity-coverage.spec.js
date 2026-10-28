@@ -4,6 +4,10 @@ for(const width of [320,390,1440])test(`partial activity is visible and older to
  await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline fixture'}}));
  await page.route('https://**/*',route=>route.abort());
  await page.goto('/#overview');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+ // This renderer fixture writes into the live Home region. Let bootstrap's
+ // initial reads settle before it takes ownership, so they cannot replace it.
+ await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
+ await page.waitForLoadState('networkidle');
  await page.evaluate(async()=>{
   const sampling=await import('/src/features/explore/activity-sampling.js');
   const market=await import('/market-intelligence.js');
