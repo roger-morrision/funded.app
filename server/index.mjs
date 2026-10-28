@@ -63,6 +63,7 @@ import { CREATOR_SUPPORT_VERSION } from '../creator-support-model.js';
 import { createXAuth, cookieValue, allowedAuthOrigin, callbackUrlFor, SESSION_SECONDS } from './x-auth.mjs';
 import { createMobileWalletRelay } from './mobile-wallet-relay.mjs';
 import { createReceiptEvidenceReader } from './receipt-service.mjs';
+import { createReceiptRpcConnection } from './receipt-rpc-connection.mjs';
 import { createPaymentHistoryReader } from './payment-history.mjs';
 
 import { verifyPumpLaunch } from './launch-verification.mjs';
@@ -259,13 +260,13 @@ const {
 } = createFeeRouterService({ store, solanaCluster, solanaRpcUrl, fundedTokenMint, devnetTestMode, xConfig, resolveXUser });
 
 const readReceiptEvidence = createReceiptEvidenceReader({ store, cluster: solanaCluster,
-  connectionFactory: () => new Connection(solanaRpcUrl, 'confirmed'),
+  connectionFactory: () => createReceiptRpcConnection(solanaRpcUrl, 'confirmed'),
   officialGenesis: () => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'confirmed').getGenesisHash() });
 const readFinalizedEvidence = createReceiptEvidenceReader({ store, cluster: solanaCluster, commitment:'finalized',
-  connectionFactory: () => new Connection(solanaRpcUrl, 'finalized'),
+  connectionFactory: () => createReceiptRpcConnection(solanaRpcUrl, 'finalized'),
   officialGenesis: () => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash() });
 const readPaymentHistory = createPaymentHistoryReader({ readEvidence:readFinalizedEvidence, rewardsStore:automaticRewardStore, store,
-  connectionFactory:() => new Connection(solanaRpcUrl, 'finalized'), cluster:solanaCluster,
+  connectionFactory:() => createReceiptRpcConnection(solanaRpcUrl, 'finalized'), cluster:solanaCluster,
   officialGenesis:() => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash(), v3Only:true });
 
 const handleWatchlist = createWatchlistHandler({ store, cluster: solanaCluster, getSession: xSession, getWalletSession: referralSession });
