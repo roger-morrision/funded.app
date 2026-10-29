@@ -40,6 +40,21 @@ for(const width of [1280,390])test(`small buyback allocations explain retained f
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 
+test('aggregate buyback trigger does not claim execution when every source is below its order minimum',async({page})=>{
+  await page.route('https://**/*',route=>route.abort());
+  await page.route('**/api/**',offlineFixture);
+  await page.route('**/api/buyback/status',route=>route.fulfill({json:{cluster:'devnet',automationEnabled:true,
+    executionReady:false,minimumOrderLamports:'10000',receipts:[],pending:[
+      {mint:'52TdgMLp41CtiLrAqqZ1N889RPfWMMzxwpF8MoaZFvN1',amountLamports:'8911',status:'below-minimum-order'},
+      {mint:'26ds5kv2n8JuWZ2uRu1goxEw7xy7YirpdsqdiLycy1Zg',amountLamports:'8889',status:'below-minimum-order'}],
+    dashboard:{status:'verified',thresholdLamports:'10000',collectedLamports:'17800',triggerReached:true}}}));
+  await page.goto('/#buybacks');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  for(const prefix of ['home-buyback','buyback-route']){
+    await expect(page.locator(`#${prefix}-status`)).toContainText('individual allocations below 0.00001 SOL order minimum');
+    await expect(page.locator(`#${prefix}-policy`)).toContainText('minimum');
+  }
+});
+
 test('buyback history shows the newest eight confirmed receipts with their matching proof links',async({page})=>{
   await page.route('https://**/*',route=>route.abort());
   await page.route('**/api/**',offlineFixture);

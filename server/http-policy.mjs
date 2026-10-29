@@ -28,6 +28,23 @@ export function publicError(error, requestId) {
   return { status: 500, body: { error: 'The request could not be completed. Retry using the request ID if you contact support.', requestId } };
 }
 
+// Solana SDK and fetch adapters do not consistently set a network error code.
+// Classify only recognizable transient dependency failures; keep their raw
+// messages, which may contain a private RPC URL, out of public responses/logs.
+export function transientDependencyCode(error) {
+  let current = error;
+  for (let depth = 0; current && depth < 3; depth++, current = current.cause) {
+    const code = String(current.code || '');
+    if (['ECONNREFUSED','ECONNRESET','ETIMEDOUT','EAI_AGAIN'].includes(code)) return code;
+    const status = Number(current.response?.status);
+    if ([429,502,503,504].includes(status)) return `HTTP_${status}`;
+    const message = String(current.message || '');
+    if (/\b(?:HTTP|status|response)\s*429\b|\b429\s+Too Many Requests\b|\bRPC rate limit(?:ed| exceeded)?\b/i.test(message))
+      return 'RPC_RATE_LIMIT';
+  }
+  return null;
+}
+
 export function invalidRequest(message) { return Object.assign(new Error(message), { statusCode: 400 }); }
 
 // Use only around synchronous input validators, never around dependency calls.

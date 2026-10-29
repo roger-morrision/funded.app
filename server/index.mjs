@@ -32,7 +32,7 @@ import { createBoostRoutes } from './routes/boost.mjs';
 import { createAirdropsRoutes } from './routes/airdrops.mjs';
 import { createTokenChatRoutes } from './routes/token-chat.mjs';
 import { createReferralIdentityRoutes } from './routes/referral-identity.mjs';
-import { applyHttpPolicy, invalidRequest, publicError, validateInput } from './http-policy.mjs';
+import { applyHttpPolicy, invalidRequest, publicError, transientDependencyCode, validateInput } from './http-policy.mjs';
 import { readJsonBody } from './request-body.mjs';
 import { createSolUsdQuoteReader } from './price-quote.mjs';
 import { createServer } from 'node:http';
@@ -476,8 +476,9 @@ async function handle(req, res) {
   } catch (error) {
     if (res.headersSent || res.destroyed) { res.destroy(); return; }
     if (!req.complete) { res.shouldKeepAlive = false; res.setHeader('connection', 'close'); }
-    if (error.severity || ['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT'].includes(error.code)) {
-      console.error(JSON.stringify({ event: 'dependency_failure', requestId, code: error.code || 'DEPENDENCY_ERROR' }));
+    const dependencyCode = transientDependencyCode(error);
+    if (error?.severity || dependencyCode) {
+      console.error(JSON.stringify({ event: 'dependency_failure', requestId, code: dependencyCode || 'DEPENDENCY_ERROR' }));
       return json(res, 503, { error: 'Backend dependency is temporarily unavailable.', requestId });
     }
     if (error instanceof URIError) error = Object.assign(new Error('Invalid URL encoding.'), { statusCode: 400 });

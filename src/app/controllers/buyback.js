@@ -17,7 +17,8 @@ export function createBuybackController(appState) {
       const response = await appState.apiRequest('/api/buyback/status', { signal: signal ? AbortSignal.any([signal, deadline]) : deadline });
       signal?.throwIfAborted();
       if (!response.available || !response.data || response.data.cluster !== 'devnet') throw new Error('Devnet buyback index unavailable.');
-      appState.buybackNetworkState = { status:'ready', receipts:Array.isArray(response.data.receipts) ? response.data.receipts : [], pending:Array.isArray(response.data.pending) ? response.data.pending : [], dashboard:response.data.dashboard || null, automationEnabled:response.data.automationEnabled === true };
+      appState.buybackNetworkState = { status:'ready', receipts:Array.isArray(response.data.receipts) ? response.data.receipts : [], pending:Array.isArray(response.data.pending) ? response.data.pending : [], dashboard:response.data.dashboard || null, automationEnabled:response.data.automationEnabled === true,
+        executionReady:response.data.executionReady === true, minimumOrderLamports:response.data.minimumOrderLamports };
     } catch { signal?.throwIfAborted(); appState.buybackNetworkState = { status:'unavailable', receipts:[], pending:[], dashboard:null }; }
     const dashboard = appState.buybackNetworkState.dashboard;
     for (const prefix of ['home-buyback','buyback-route']) {
@@ -38,6 +39,10 @@ export function createBuybackController(appState) {
         && BigInt(dashboard.thresholdLamports) > 0n ? BigInt(dashboard.thresholdLamports) : null;
       const formatSol = value => `${(Number(value) / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits:9 })} SOL`;
       const trigger = threshold === null ? null : formatSol(threshold);
+      const minimumOrder = /^\d+$/.test(String(appState.buybackNetworkState.minimumOrderLamports))
+        ? BigInt(appState.buybackNetworkState.minimumOrderLamports) : null;
+      const belowMinimum = appState.buybackNetworkState.pending?.length > 0
+        && appState.buybackNetworkState.pending.every(row => row.status === 'below-minimum-order');
       balance.textContent = eligible ? formatSol(lamports) : '—';
       if (older) {
         older.hidden = !eligible || !unindexed || unindexedLamports === 0n;
@@ -48,12 +53,17 @@ export function createBuybackController(appState) {
       if (triggerText) triggerText.textContent = trigger ? `${trigger} trigger` : 'Trigger unavailable';
       const policy = document.querySelector(`#${prefix}-policy`);
       if (policy && trigger) policy.textContent = prefix === 'home-buyback'
-        ? `For launches using the published 5% buyback split, that share goes into dedicated on-chain vaults. At ${trigger} in verified vault allocations, the app queues a protected $FUNDED purchase and burn. Execution depends on a verified market quote and available liquidity.`
-        : `The published buyback share of collected creator fees remains in dedicated program vaults until verified vault allocations reach the ${trigger} aggregate trigger. The worker then attempts protected $FUNDED purchases and burns; failed market checks leave funds in custody.`;
+        ? `For launches using the published 5% buyback split, that share goes into dedicated on-chain vaults. At ${trigger} in verified vault allocations, the app reviews protected $FUNDED purchases and burns. Each order must meet its own minimum and pass market quote and liquidity checks.`
+        : `The published buyback share of collected creator fees remains in dedicated program vaults until verified vault allocations reach the ${trigger} aggregate trigger. The worker then reviews individual orders for protected $FUNDED purchases and burns; orders below their minimum and failed market checks leave funds in custody.`;
       if (prefix === 'buyback-route' && trigger) document.querySelector('#buyback-route-title').textContent = `${trigger} trigger, verified eligible fees.`;
       note.textContent = !eligible || !trigger ? 'Eligible vault or trigger verification unavailable or incomplete'
         : !appState.buybackNetworkState.automationEnabled ? 'Automatic execution is not active on this deployment'
-          : dashboard.triggerReached ? `${trigger} trigger reached · awaiting protected execution` : `Verified eligible funds · awaiting ${trigger}`;
+          : dashboard.triggerReached && !appState.buybackNetworkState.executionReady && belowMinimum && minimumOrder
+            ? `${trigger} aggregate trigger reached · individual allocations below ${formatSol(minimumOrder)} order minimum`
+            : dashboard.triggerReached && !appState.buybackNetworkState.executionReady
+              ? `${trigger} aggregate trigger reached · no executable allocation yet`
+              : dashboard.triggerReached ? `${trigger} trigger reached · protected execution ready`
+                : `Verified eligible funds · awaiting ${trigger}`;
       const progress = eligible && threshold ? Number(lamports > threshold ? threshold : lamports) / Number(threshold) * 100 : 0;
       track.setAttribute('aria-label', trigger ? `Eligible buyback progress toward ${trigger}` : 'Eligible buyback progress unavailable');
       if (threshold) {
