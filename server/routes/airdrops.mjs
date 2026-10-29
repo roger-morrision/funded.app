@@ -71,7 +71,7 @@ export function createAirdropsRoutes({
               .every(row => row.snapshotBasis === 'devnet-qa-cutoff') }, reserves };
         communityReserveSnapshot = { value:result, expiresAt:Date.now() + 30_000 };
         return json(res, 200, result);
-      } catch (error) { return json(res, 503, { error:`Community reserve verification unavailable: ${error.message}` }); }
+      } catch { return json(res, 503, { error:'Community reserve verification is temporarily unavailable.' }); }
     }
     if (req.method === 'POST' && url.pathname === '/api/airdrops/reserves/receipt') {
       if (solanaCluster !== 'devnet') return json(res, 503, { error:'Solana community reserve verification is unavailable.' });
@@ -101,7 +101,7 @@ export function createAirdropsRoutes({
         invalidateReserveCache();
         return json(res, 200, { ...reserve, creatorWallet:launch.creatorWallet,
           programId:config.programId, authority:config.authority, scope:config.scope });
-      } catch (error) { return json(res, 503, { error:`Community funding receipt could not be recorded: ${error.message}` }); }
+      } catch { return json(res, 503, { error:'Community funding receipt could not be verified.' }); }
     }
     if (req.method === 'GET' && url.pathname === '/api/airdrops/claims/status') {
       if (!requireAuthorized(req, res)) return true;
@@ -113,7 +113,7 @@ export function createAirdropsRoutes({
           drop:record.manifest.drop, openingSignature:record.openingSignature,
           migrationSignature:record.migrationSignature, migrationSlot:record.snapshot.slot,
           snapshotBasis:record.snapshotBasis || 'pump-migration' } : { status:'unprepared', mint });
-      } catch (error) { return json(res, 503, { error:`Community claim status is unavailable: ${error.message}` }); }
+      } catch { return json(res, 503, { error:'Community claim status is temporarily unavailable.' }); }
     }
     if (req.method === 'POST' && ['/api/airdrops/claims/prepare', '/api/airdrops/claims/prepare-qa'].includes(url.pathname)) {
       const qaCutoff = url.pathname.endsWith('/prepare-qa');
@@ -135,7 +135,7 @@ export function createAirdropsRoutes({
           snapshotHash:record.manifest.snapshotHash, migrationSlot:record.snapshot.slot,
           snapshotBasis:record.snapshotBasis, recipients:record.manifest.leaves.length,
           totalAmount:record.manifest.totalAmount, status:'prepared' });
-      } catch (error) { return json(res, 422, { error:`Community claim preparation failed: ${error.message}` }); }
+      } catch { return json(res, 422, { error:'Community claim preparation failed. Check the launch and migration evidence.' }); }
     }
     if (req.method === 'POST' && url.pathname === '/api/airdrops/claims/opening-instruction') {
       const input = await body(req);
@@ -145,7 +145,7 @@ export function createAirdropsRoutes({
         return json(res, 200, { drop:prepared.drop, programId:instruction.programId.toBase58(),
           accounts:instruction.keys.map(row => ({ pubkey:row.pubkey.toBase58(), isSigner:row.isSigner, isWritable:row.isWritable })),
           data:instruction.data.toString('base64') });
-      } catch (error) { return json(res, 422, { error:`Community opening is unavailable: ${error.message}` }); }
+      } catch { return json(res, 422, { error:'Community opening instruction is unavailable.' }); }
     }
     if (req.method === 'POST' && url.pathname === '/api/airdrops/claims/approval-instruction') {
       if (!requireAuthorized(req, res)) return true;
@@ -155,7 +155,7 @@ export function createAirdropsRoutes({
         return json(res, 200, { programId:instruction.programId.toBase58(),
           accounts:instruction.keys.map(row => ({ pubkey:row.pubkey.toBase58(), isSigner:row.isSigner, isWritable:row.isWritable })),
           data:instruction.data.toString('base64') });
-      } catch (error) { return json(res, 422, { error:`Snapshot approval is unavailable: ${error.message}` }); }
+      } catch { return json(res, 422, { error:'Snapshot approval instruction is unavailable.' }); }
     }
     if (req.method === 'POST' && url.pathname === '/api/airdrops/claims/opening-receipt') {
       const input = await body(req);
@@ -164,7 +164,7 @@ export function createAirdropsRoutes({
         invalidateReserveCache();
         return json(res, 200, receipt);
       }
-      catch (error) { return json(res, 422, { error:`Community opening receipt was rejected: ${error.message}` }); }
+      catch { return json(res, 422, { error:'Community opening receipt could not be verified.' }); }
     }
     if (req.method === 'GET' && url.pathname === '/api/airdrops/claims/proof') {
       const mint = url.searchParams.get('mint'), wallet = url.searchParams.get('wallet');
@@ -172,7 +172,7 @@ export function createAirdropsRoutes({
       if (!await store.chargeRpcRate(`community-proof:${clientKey(req)}`, 1, 12, Math.floor(Date.now()/60000)*60000))
         return json(res, 429, { error:'Wait before requesting another community proof.' });
       try { return json(res, 200, await (await communityClaimService(mint)).recipientProof({ mint, wallet })); }
-      catch (error) { return json(res, 503, { error:`Community proof is unavailable: ${error.message}` }); }
+      catch { return json(res, 503, { error:'Community proof is temporarily unavailable.' }); }
     }
     if (req.method === 'POST' && url.pathname === '/api/airdrops/claims/claim-instruction') {
       if (!await store.chargeRpcRate(`community-claim:${clientKey(req)}`, 1, 6, Math.floor(Date.now()/60000)*60000))
@@ -184,7 +184,7 @@ export function createAirdropsRoutes({
           accounts:result.instruction.keys.map(row => ({ pubkey:row.pubkey.toBase58(), isSigner:row.isSigner, isWritable:row.isWritable })),
           data:result.instruction.data.toString('base64'), amount:result.amount,
           payment:result.payment, recipientToken:result.recipientToken, vaultToken:result.vaultToken });
-      } catch (error) { return json(res, 422, { error:`Community claim is unavailable: ${error.message}` }); }
+      } catch { return json(res, 422, { error:'Community claim instruction is unavailable.' }); }
     }
     return false;
   }

@@ -5,6 +5,7 @@ import {DEFAULT_AGENCY_RULES} from '../../config/agency-rules.js';
 test('admin reviews future-launch terms, invalidates edits and requires the authority wallet (mocked API)',async({page})=>{
   await page.route('**/api/**',route=>route.fulfill({status:401,json:{error:'Offline QA fixture'}}));
   await page.goto('/admin.html');
+  await page.evaluate(() => import('/admin-bootstrap.js'));
   const key=n=>Keypair.fromSeed(Buffer.alloc(32,n)).publicKey,authority=key(71),programId=key(72),recipient=key(73),blockhash=String(key(74));
   const prepared={authority:String(authority),configRevision:'7',promotionRecipient:String(recipient),blockhash,lastValidBlockHeight:500,
     transaction:new Transaction({feePayer:authority,recentBlockhash:blockhash}).add(buildAgencyRulesV3Instruction({programId,authority,
