@@ -35,6 +35,7 @@ function fixture(proofResponse) {
     wallet: provider, connectedWalletAddress: 'fixture-wallet', walletVersion: 1,
     communityWalletAllocations: new Map(), communityClaimReview: null,
     walletAddress: wallet => wallet.publicKey.toBase58(),
+    readPendingCommunityClaim: () => null,
     getAirdropPrograms: () => [program],
     renderAirdropDirectory() {},
     document: {

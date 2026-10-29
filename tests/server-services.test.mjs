@@ -77,6 +77,19 @@ test('RPC error responses are not cached and recovered reads can succeed', async
   assert.equal(count, 2);
 });
 
+test('plain-text upstream rate limits remain 429 and never enter the RPC cache', async () => {
+  let count = 0;
+  const api = rpcFixture({ fetch: async () => ++count === 1
+    ? { status: 429, ok: false, json: async () => { throw new SyntaxError('not JSON'); } }
+    : reply({ jsonrpc: '2.0', id: 1, result: 42 }) });
+  const limited = await api.request();
+  assert.equal(limited.status, 429);
+  assert.equal(limited.body.error.code, 429);
+  assert.match(limited.body.error.message, /rate limited/i);
+  assert.equal((await api.request()).body.result, 42);
+  assert.equal(count, 2);
+});
+
 function providers(overrides = {}) {
   return createMarketProviders({ birdeyeApiKey: 'synthetic-key', birdeyeBaseUrl: 'https://bird.invalid',
     birdeyeChain: 'solana', birdeyeTimeoutMs: 1000, pumpApiUrl: 'https://pump.invalid', ...overrides });

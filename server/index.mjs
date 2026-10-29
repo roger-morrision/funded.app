@@ -307,7 +307,7 @@ const handleReferralIdentityRoutes = createReferralIdentityRoutes({
 });
 
 const handlePublicReportsRoutes = createPublicReportsRoutes({
-  publicState, store, readReceiptEvidence, readPaymentHistory, automaticRewardStore, readFinalizedEvidence, solanaCluster, databaseUrl, respond: json,
+  publicState, store, readReceiptEvidence, readPaymentHistory, automaticRewardStore, readFinalizedEvidence, solanaCluster, databaseUrl, analyticsDeadlineMs:12_000, respond: json,
 });
 const handleQuoteAssetsRoutes = createQuoteAssetsRoutes({
   configuredQuoteAssets, solanaRpcUrl, solanaCluster, respond: json,

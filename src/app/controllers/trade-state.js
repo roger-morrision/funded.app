@@ -1,4 +1,5 @@
 import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../features/fees/service-fees-client.js';
+import { TRADE_QUOTE_TTL_MS } from '../../../trade-quote-policy.js';
 // Dependencies and mutable application state are read live through appState.
 export function createTradeStateController(appState) {
   // app-source: 545
@@ -151,7 +152,7 @@ export function createTradeStateController(appState) {
   function currentTradePreview(inputs = appState.tradeInputs()){
     const session = appState.captureWalletSession();
     const key = `${inputs.mint}:${inputs.side}:${inputs.amount}:${inputs.slippagePercent}:${session?.address || ''}`;
-    return appState.tradePreview?.inputKey === key && Date.now() - appState.tradePreview.preparedAt < 15_000 ? appState.tradePreview : null;
+    return appState.tradePreview?.inputKey === key && Date.now() - appState.tradePreview.preparedAt < TRADE_QUOTE_TTL_MS ? appState.tradePreview : null;
   }
   // app-source-end
 

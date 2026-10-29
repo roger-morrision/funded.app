@@ -2,24 +2,12 @@ import { initializeAppState } from '../runtime.js';
 import { initializePaymentHistoryControls } from '../../features/payments/history-controls.js';
 import { bindPublicQuoteRetry } from '../../features/launch/cost-view.js';
 import { bindLaunchCostNavigation } from '../../features/launch/cost-navigation.js';
+import { initializeLaunchRegistrationRecovery } from './launch-registration-recovery.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeLaunchActions(appState) {
   // app-source: 664
-  window.addEventListener('funded:recover-registration',async event=>{
-    const report=message=>window.dispatchEvent(new CustomEvent('funded:recovery-result',{detail:message}));
-    try{
-      const {mint,id}=event.detail||{};const row=appState.readLaunchJournal().find(r=>r.id===id&&r.mint===mint&&r.state==='registration-pending');
-      if(!row||row.cluster!=='devnet')throw new Error('No pending Solana registration matches this request.');
-      const policy=JSON.parse(localStorage.getItem(`funded.launch.${mint}`)||'null');if(!appState.policyMatchesJournal(policy,row))throw new Error('Saved policy does not match this launch. Do not recreate the coin.');
-      const session=appState.captureWalletSession();if(!session||session.address!==row.payer)throw new Error('Connect the original launch wallet before registration.');appState.assertWalletSessionCurrent(session);
-      if(!policy.policySignature){if(typeof session.provider.signMessage!=='function')throw new Error('This wallet must support message signing.');const signed=await session.provider.signMessage(new TextEncoder().encode(appState.launchPolicyStatement(policy)));appState.assertWalletSessionCurrent(session);policy.policySignature=appState.bs58.encode(signed.signature||signed);localStorage.setItem(`funded.launch.${mint}`,JSON.stringify(policy));}
-      report('Checking the original launch and policy with the API. No coin transaction is being sent.');
-      const result=await appState.apiRequest('/api/launches',{method:'POST',body:policy});if(!result.available||result.data?.mint!==mint||!result.data?.onchainVerified)throw new Error('Registration is still pending verified API evidence.');
-      if (appState.verifiedPilotLaunchRegistration(result, mint)) appState.emitPilotSignal('launch-confirmed');
-      appState.recordLaunchEvent(id,{state:'completed'});report('Original launch registered. No duplicate launch was created.');void appState.loadVerifiedLaunchPolicies();
-    }catch(error){report(error.message);}
-  });
+  initializeLaunchRegistrationRecovery(appState);
   // app-source-end
 
   // app-source: 665

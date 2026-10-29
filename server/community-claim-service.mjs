@@ -10,6 +10,9 @@ import { readCommunityReserveStatus } from './community-reserve-status.mjs';
 import { captureExactCommunitySnapshot, captureQaCommunitySnapshot } from './community-snapshot.mjs';
 
 const key = value => new PublicKey(value).toBase58();
+const recentReadProgramProofs = new Map();
+const inflightReadProgramProofs = new Map();
+const READ_PROGRAM_PROOF_TTL_MS = 15_000;
 const paymentDiscriminator = createHash('sha256').update('account:CommunityPayment').digest().subarray(0, 8);
 const u64 = value => {
   if (!/^\d+$/.test(String(value)) || BigInt(value) <= 0n || BigInt(value) > 0xffffffffffffffffn)
@@ -30,13 +33,27 @@ export function createCommunityClaimService({ connection, store, programId, auth
     if (await connection.getGenesisHash() !== DEVNET_GENESIS_HASH) throw new Error('Community claim RPC failed verification.');
   }
 
-  async function assertReviewedProgram() {
+  async function assertReviewedProgram(allowRecentRead = false) {
     await assertDevnet();
     if (!/^[a-f0-9]{64}$/i.test(String(expectedCommunityProgramDataSha256 || '')))
       throw new Error('Reviewed community program-data hash is not pinned.');
-    const evidence = await programEvidence(connection, program);
-    if (!evidence.account?.executable || evidence.sha256 !== expectedCommunityProgramDataSha256)
-      throw new Error('Current on-chain community program differs from the reviewed build.');
+    const cacheKey = `${program.toBase58()}:${expectedCommunityProgramDataSha256}`;
+    if (allowRecentRead && programEvidence === readProgramDataEvidence) {
+      const recent = recentReadProgramProofs.get(cacheKey);
+      if (recent && Date.now() - recent < READ_PROGRAM_PROOF_TTL_MS) return;
+      const pending = inflightReadProgramProofs.get(cacheKey);
+      if (pending) return pending;
+    }
+    const verify = async () => {
+      const evidence = await programEvidence(connection, program);
+      if (!evidence.account?.executable || evidence.sha256 !== expectedCommunityProgramDataSha256)
+        throw new Error('Current on-chain community program differs from the reviewed build.');
+      if (programEvidence === readProgramDataEvidence) recentReadProgramProofs.set(cacheKey, Date.now());
+    };
+    if (!allowRecentRead || programEvidence !== readProgramDataEvidence) return verify();
+    const pending = verify().finally(() => inflightReadProgramProofs.delete(cacheKey));
+    inflightReadProgramProofs.set(cacheKey, pending);
+    return pending;
   }
 
   async function readReserve(row, openingSignature = null) {
@@ -167,8 +184,8 @@ export function createCommunityClaimService({ connection, store, programId, auth
     });
   }
 
-  async function recipientProof({ mint, wallet }) {
-    await assertReviewedProgram();
+  async function recipientProof({ mint, wallet, allowRecentProgramProof = true }) {
+    await assertReviewedProgram(allowRecentProgramProof);
     const record = await prepared(mint);
     if (!record?.openingSignature) return { status:'unavailable', reason:'No verified CommunityDrop opening receipt.' };
     const verified = await readReserve(record, record.openingSignature);
@@ -207,7 +224,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
   }
 
   async function claimInstruction({ mint, wallet }) {
-    const proof = await recipientProof({ mint, wallet });
+    const proof = await recipientProof({ mint, wallet, allowRecentProgramProof:false });
     if (proof.status !== 'claimable') throw new Error(proof.reason || 'No verified unclaimed community allocation exists for this wallet.');
     const record = await prepared(mint);
     return buildCommunityClaimInstruction({ programId:program, authority:issuer, mint:record.mint,

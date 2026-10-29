@@ -60,6 +60,7 @@ export function createSolanaRpcProxy({
     try {
       const upstream = await fetch(solanaRpcUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request), signal: controller.signal });
       const result = await upstream.json().catch(() => null);
+      if (upstream.status === 429) return json(res, 429, { jsonrpc: '2.0', id: request.id, error: { code: 429, message: 'Solana RPC is rate limited; retry shortly.' } });
       if (!result || typeof result !== 'object') return json(res, 502, { jsonrpc: '2.0', id: request.id, error: { code: -32000, message: 'Solana RPC returned an invalid response.' } });
       if (cacheKey && upstream.ok && !result.error) {
         if (rpcCache.size > 500) rpcCache.clear();

@@ -1,6 +1,6 @@
 import { buildLaunchTransaction, normalizeLaunchInput } from './launch-core.js';
 import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
-import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, createBurnCheckedInstruction, getAccount, getAssociatedTokenAddress, getMint } from '@solana/spl-token';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, createBurnCheckedInstruction, getAccount, getAssociatedTokenAddress, getMint, unpackMint } from '@solana/spl-token';
 import { getBuySolAmountFromTokenAmount, getBuyTokenAmountFromSolAmount, OnlinePumpSdk, PUMP_SDK } from '@pump-fun/pump-sdk';
 import BN from 'bn.js';
 import { tokensToBaseUnits } from './launch-burn-policy.js';
@@ -35,7 +35,8 @@ export async function submitLaunch({ connection, provider, payer, input, onStatu
   const signed = await provider.signTransaction(transaction);
   const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
   onStatus('Confirming on Solana…');
-  await connection.confirmTransaction({ signature, blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight }, 'confirmed');
+  const confirmation = await connection.confirmTransaction({ signature, blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight }, 'confirmed');
+  if (confirmation?.value?.err !== null) throw new Error(`Launch transaction ${signature} did not confirm successfully.`);
   return { ...launchInput, mint, ata, amount, signature };
 }
 
@@ -198,11 +199,8 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   if (!lookupTable?.isActive()) throw new Error('Solana launch reserve lookup table is missing or inactive. No coin was created.');
   const reserve = launchReserveInstructions({ mint:mint.publicKey, payer, programId:feeRouterProgramId,
     authority:reserveConfig.authority, reserveTokens:input.reserveTokens, decimals:launchInput.decimals });
-  if (prepareMetadata) {
-    onStatus('Storing signed Solana image and metadata before wallet transaction approval…');
-    metadataUri = await prepareMetadata({ mint: mint.publicKey.toBase58(), name: launchInput.name, symbol: launchInput.symbol });
-    if (metadataUri !== devnetMetadataUri(mint.publicKey.toBase58())) throw new Error('Metadata service returned an unexpected URL. Launch was not submitted.');
-  }
+  const launchMetadataUri = prepareMetadata ? devnetMetadataUri(mint.publicKey.toBase58())
+    : metadataUri || devnetMetadataUri(mint.publicKey.toBase58());
   onStatus('Preparing Pump Solana bonding-curve launch…');
   const burnPlan = launchBurn?.amountTokens > 0
     ? await prepareFundedLaunchBurn({ connection, payer, fundedMint: launchBurn.fundedMint, amountTokens: launchBurn.amountTokens })
@@ -213,7 +211,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
       mint: mint.publicKey,
       name: launchInput.name,
       symbol: launchInput.symbol,
-      uri: metadataUri || devnetMetadataUri(mint.publicKey.toBase58()),
+      uri: launchMetadataUri,
       creator: feeRouter,
       user: payer,
       amount: new BN(initialBuy.amountBaseUnits.toString()),
@@ -226,7 +224,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
       mint: mint.publicKey,
       name: launchInput.name,
       symbol: launchInput.symbol,
-      uri: metadataUri || devnetMetadataUri(mint.publicKey.toBase58()),
+      uri: launchMetadataUri,
       creator: feeRouter,
       user: payer,
       mayhemMode: false,
@@ -236,6 +234,11 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   const plan = buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions,
     burnInstruction: burnPlan?.instruction, mintRouterInstruction: mintRouter?.instruction,
     reserveInstructions:[...reserve.instructions,...serviceInstructions], lookupTable });
+  if (prepareMetadata) {
+    onStatus('Storing signed Solana image and metadata before wallet transaction approval…');
+    metadataUri = await prepareMetadata({ mint:mint.publicKey.toBase58(), name:launchInput.name, symbol:launchInput.symbol });
+    if (metadataUri !== launchMetadataUri) throw new Error('Metadata service returned an unexpected URL. Launch was not submitted.');
+  }
   plan.steps.find(step => step.kind === 'launch').transaction.fundedLaunchSummary = {
     kind:'launch', mint:mint.publicKey.toBase58(), tokenName:launchInput.name, tokenSymbol:launchInput.symbol,
     reserveTokens:String(input.reserveTokens), vault:reserve.vault.toBase58(),
@@ -278,9 +281,24 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   if (!feeRoute.verified) throw new Error(`Coin was created, but funded.app is not its Pump creator-fee owner. Mint: ${mint.publicKey.toBase58()}`);
   let launchBurnReceipt = null;
   if (burnPlan) {
-    const mintAfter = await getMint(connection, burnPlan.mint, 'confirmed', TOKEN_PROGRAM_ID);
     const expectedMaximumSupply = burnPlan.supplyBefore - burnPlan.amount;
-    if (mintAfter.supply > expectedMaximumSupply) throw new Error('Launch confirmed, but the $FUNDED supply reduction could not be verified.');
+    let mintAfter;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        // Require an account view at least as new as the finalized launch. A
+        // load-balanced RPC can otherwise return the mint's pre-burn supply.
+        const view = await connection.getAccountInfoAndContext(burnPlan.mint,
+          { commitment:'finalized', minContextSlot:reserveTransaction.slot });
+        if (view.context.slot < reserveTransaction.slot) throw new Error('The RPC mint view predates the launch.');
+        mintAfter = unpackMint(burnPlan.mint, view.value, TOKEN_PROGRAM_ID);
+        if (mintAfter.supply <= expectedMaximumSupply) break;
+      } catch (error) {
+        if (attempt === 4) throw new Error(`Launch confirmed, but the $FUNDED mint supply read is unavailable. Mint: ${mint.publicKey.toBase58()}; transaction: ${signature}`, { cause:error });
+      }
+      if (attempt < 4) await new Promise(resolve => setTimeout(resolve, 800));
+    }
+    if (mintAfter.supply > expectedMaximumSupply)
+      throw new Error(`Launch confirmed, but the $FUNDED supply reduction could not be verified. Mint: ${mint.publicKey.toBase58()}; transaction: ${signature}`);
     launchBurnReceipt = {
       signature,
       instruction: 'BurnChecked',

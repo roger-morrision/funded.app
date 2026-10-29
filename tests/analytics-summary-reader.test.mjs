@@ -216,3 +216,14 @@ test('isolated real HTTP transport sends one sanitized503 within6500ms without w
     hold.resolve(values[2]);await flush();assert.equal(subject.responses.length,1);
   }finally{hold.resolve(values[2]);server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 });
+
+test('a bounded per-route deadline expires a held payment-history read', async () => {
+  const never = new Promise(() => {});
+  const read = createAnalyticsSummaryReader([() => ({}), () => ({}), () => ({}), () => never],
+    { deadlineMs:25 });
+  const start = performance.now();
+  assert.deepEqual(await read(), { available:false });
+  assert(performance.now() - start < 1_000);
+  assert.throws(() => createAnalyticsSummaryReader([() => 1, () => 2, () => 3, () => 4],
+    { deadlineMs:30_001 }), /bounded positive/);
+});

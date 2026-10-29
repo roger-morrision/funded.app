@@ -1,5 +1,6 @@
 import { refreshServiceFees } from '../../features/fees/service-fees-client.js';
 import { readLaunchAgencySelection } from '../../features/marketing/agency-selection.js';
+import { deriveMintRouterV3 } from '../../../mint-router-v3.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchSubmitController(appState) {
@@ -96,9 +97,45 @@ export function createLaunchSubmitController(appState) {
         throw new Error('The $FUNDED tier quote expired before signing. Review the launch again.');
       journalId=crypto.randomUUID();appState.recordLaunchEvent(journalId,{state:'prepared',name,symbol,payer:session.address,cluster:'devnet'});
       appState.emitPilotSignal('launch-submission-started');
-      const result = await submitPumpDevnetLaunch({ cluster: appState.APP_CLUSTER, connection: appState.connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuySol: creatorBuySol, reserveTokens:communityTokens, maxInitialBuyLamports:reviewedCost.buyMaximum, feeShares:feeDistributionInput }, prepareMetadata: input => appState.prepareLaunchMetadata(input, session), feeRouterProgramId: reserveConfig.programId, useMintRouter: true, v3FeeRouter, launchBurn, launchServiceQuote:appState.launchServiceQuote, reserveConfig, assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onJournal:event=>appState.recordLaunchEvent(journalId,event), onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setLaunchStatus(message); } });
+      let recoveryMint = null;
+      const recordAndSaveRecovery = event => {
+        const row = appState.recordLaunchEvent(journalId, event);
+        if (event.state === 'prepared' && event.mint) {
+          recoveryMint = event.mint;
+          const routeAddress = deriveMintRouterV3(v3FeeRouter.programId, recoveryMint).address.toBase58();
+          const draft = {
+            chain:'solana', cluster:'devnet', mint:recoveryMint,
+            creatorWallet:session.address, name, symbol, communityAllocation,
+            feeDistribution:appState.buildFeeDistributionPolicy({ ...feeDistributionInput,
+              feeRouterAddress:routeAddress }, { fundedSplit:v3FeeRouter.split }),
+            pumpFeeRoute:{ scope:'per-mint-v3', router:routeAddress,
+              programId:v3FeeRouter.programId, initialAuthority:v3FeeRouter.initialAuthority,
+              protocolSplit:v3FeeRouter.split },
+            ...(v3FeeRouter.agency ? { marketingAgency:v3FeeRouter.agency } : {}),
+            ...(launchBurn.requiresBurn ? { creatorLaunchBurn:{ tier:launchBurn.tier,
+              amountTokens:launchBurn.amountTokens, fundedMint:launchBurn.fundedMint,
+              quoteId:launchBurn.quoteId } } : {}),
+            launchServiceFee:{ quoteId:appState.launchServiceQuote.id,
+              policyHash:appState.launchServiceQuote.policyHash,
+              amountLamports:appState.launchServiceQuote.amountLamports,
+              recipient:appState.launchServiceQuote.recipient },
+          };
+          // Save before any broadcast so a confirmed mint remains registerable
+          // if a later RPC verification fails or the page closes.
+          localStorage.setItem(`funded.launch.${recoveryMint}`, JSON.stringify(draft));
+        }
+        if (event.state === 'verification-pending' && event.signature && recoveryMint) {
+          const key = `funded.launch.${recoveryMint}`;
+          const draft = JSON.parse(localStorage.getItem(key) || 'null');
+          if (!draft || draft.mint !== recoveryMint) throw new Error('Launch recovery draft is missing. Check the confirmed transaction before another launch.');
+          draft.signature = event.signature;
+          draft.pumpFeeRoute.transaction = event.signature;
+          localStorage.setItem(key, JSON.stringify(draft));
+        }
+        return row;
+      };
+      const result = await submitPumpDevnetLaunch({ cluster: appState.APP_CLUSTER, connection: appState.connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuySol: creatorBuySol, reserveTokens:communityTokens, maxInitialBuyLamports:reviewedCost.buyMaximum, feeShares:feeDistributionInput }, prepareMetadata: input => appState.prepareLaunchMetadata(input, session), feeRouterProgramId: reserveConfig.programId, useMintRouter: true, v3FeeRouter, launchBurn, launchServiceQuote:appState.launchServiceQuote, reserveConfig, assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onJournal:recordAndSaveRecovery, onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setLaunchStatus(message); } });
       const routeAddress = result.feeRouter.toBase58();
-      const { deriveMintRouterV3 } = await import('../../../mint-router-v3.js');
       const routeState = { ...deriveMintRouterV3(v3FeeRouter.programId, result.mint.publicKey),
         address:routeAddress, scope:'per-mint-v3',agencyPolicy:Boolean(v3FeeRouter.agency) };
       const launchPolicy = {

@@ -1,4 +1,5 @@
 import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../features/fees/service-fees-client.js';
+import { TRADE_QUOTE_TTL_MS, TRADE_QUOTE_REFRESH_MS, TRADE_REVIEW_REFRESH_AFTER_MS } from '../../../trade-quote-policy.js';
 // Dependencies and mutable application state are read live through appState.
 export function createTradeExecutionController(appState) {
   // app-source: 565
@@ -29,7 +30,7 @@ export function createTradeExecutionController(appState) {
     const session = appState.captureWalletSession();
     if (!session || !appState.canSignTransactions(session.provider)) throw new Error('Connect a signing wallet to calculate the trade quote.');
     const inputKey = `${mint}:${side}:${amount}:${slippagePercent}:${session.address}`;
-    if (appState.tradePreview?.inputKey === inputKey && Date.now() - appState.tradePreview.preparedAt < 15_000) return appState.tradePreview;
+    if (appState.tradePreview?.inputKey === inputKey && Date.now() - appState.tradePreview.preparedAt < TRADE_QUOTE_TTL_MS) return appState.tradePreview;
     if (appState.tradeQuoteInFlight?.inputKey === inputKey && appState.tradeQuoteInFlight.version === appState.tradeQuoteVersion) return appState.tradeQuoteInFlight.promise;
     const version = appState.tradeQuoteVersion;
     const request = (async () => {
@@ -43,7 +44,7 @@ export function createTradeExecutionController(appState) {
       const quote = appState.describeTradeQuote(trade, slippagePercent);
       if (side === 'sell' && quote.minimumNetSol <= 0) throw new Error('The app fee would exceed the minimum SOL output. Increase the sell amount.');
       appState.tradePreview = { trade, inputKey, preparedAt: Date.now() };
-      document.querySelector('#trade-live-countdown').innerHTML = appState.quoteCountdownMarkup(appState.tradePreview.preparedAt + 15_000);
+      document.querySelector('#trade-live-countdown').innerHTML = appState.quoteCountdownMarkup(appState.tradePreview.preparedAt + TRADE_QUOTE_TTL_MS);
       appState.renderTradeBalances();
       const outputDigits = quote.outputSymbol === 'SOL' ? 9 : 6;
       const receiveText = `${quote.expected.toLocaleString('en-US', { maximumFractionDigits: outputDigits })} ${quote.outputSymbol}`;
@@ -65,7 +66,7 @@ export function createTradeExecutionController(appState) {
       document.querySelector('#trade-quote').textContent = `${quote.route === 'graduated-pool' ? 'Graduated pool' : 'Pump curve'} · ${slippageText} ${feeText}`;
       appState.setTradeStatus('Review this quote and the transaction in your wallet before signing.');
       appState.productEvent('trade_quote_ready');
-      appState.tradeQuoteTimer = setTimeout(() => appState.refreshTradeQuoteWhenIdle(version), 12_000);
+      appState.tradeQuoteTimer = setTimeout(() => appState.refreshTradeQuoteWhenIdle(version), TRADE_QUOTE_REFRESH_MS);
       return appState.tradePreview;
     })();
     appState.tradeQuoteInFlight = { inputKey, version, promise:request };
@@ -91,6 +92,10 @@ export function createTradeExecutionController(appState) {
     if (appState.tradeActionBusy) return;
     const { mint, side, amount, slippagePercent, valid } = appState.tradeInputs();
     if (!valid) return appState.setTradeStatus('Enter a positive amount and slippage between 0.1% and 10%.', true);
+    // Give the wallet review a usable countdown even when the inline quote is
+    // already near expiry. The refreshed quote is still checked before signing.
+    if (appState.tradePreview && Date.now() - appState.tradePreview.preparedAt > TRADE_REVIEW_REFRESH_AFTER_MS)
+      appState.invalidateTradePreview();
     appState.tradeActionBusy = true;
     appState.updateTradeActionState();
     const version = appState.tradeQuoteVersion;
@@ -99,7 +104,7 @@ export function createTradeExecutionController(appState) {
       if (!prepared) return;
       const session = appState.captureWalletSession();
       const inputKey = `${mint}:${side}:${amount}:${slippagePercent}:${session?.address || ''}`;
-      if (!session || prepared.inputKey !== inputKey || Date.now() - prepared.preparedAt > 15_000) return;
+      if (!session || prepared.inputKey !== inputKey || Date.now() - prepared.preparedAt > TRADE_QUOTE_TTL_MS) return;
       const shownCoin = appState.getCoinMintAddress() === mint;
       const review = appState.buildTradeReview({ trade:prepared.trade, side, amount, slippagePercent, mint, wallet:session.address,
         tokenName:shownCoin ? document.querySelector('#coin-page-title')?.textContent?.trim() : '',
@@ -117,7 +122,7 @@ export function createTradeExecutionController(appState) {
       for (const [selector, value] of Object.entries(fields)) document.querySelector(selector).textContent = value;
       document.querySelector('#trade-review-minimum-row').hidden = !review.minimumLabel;
       document.querySelector('#trade-review-dialog').dataset.side = side;
-      document.querySelector('#trade-review-countdown').innerHTML = appState.quoteCountdownMarkup(prepared.preparedAt + 15_000);
+      document.querySelector('#trade-review-countdown').innerHTML = appState.quoteCountdownMarkup(prepared.preparedAt + TRADE_QUOTE_TTL_MS);
       document.querySelector('#trade-review-dialog').showModal();
       appState.productEvent('trade_review');
     } catch (error) { if (version === appState.tradeQuoteVersion) appState.setTradeStatus(appState.tradePreviewFailureMessage(error, side), true); }
@@ -135,7 +140,7 @@ export function createTradeExecutionController(appState) {
     if (!mint || !Number.isFinite(amount) || amount <= 0) { appState.setTradeStatus('Enter a valid mint and positive trade amount.', true); return; }
     if (!appTradeRecipient(appState)) { appState.setTradeStatus('Trading is disabled: configure VITE_FUNDED_TRADE_FEE_OWNER for the app owner.', true); return; }
     const inputKey = `${mint}:${side}:${amount}:${slippagePercent}:${session.address}`;
-    if (!appState.tradePreview || appState.tradePreview.inputKey !== inputKey || Date.now() - appState.tradePreview.preparedAt > 15_000) {
+    if (!appState.tradePreview || appState.tradePreview.inputKey !== inputKey || Date.now() - appState.tradePreview.preparedAt > TRADE_QUOTE_TTL_MS) {
       appState.invalidateTradePreview();
       appState.setTradeStatus('The quote changed or expired. Calculating a new quote for review.');
       await appState.openTradeReview();

@@ -43,6 +43,22 @@ test('buyback-only worker requires no X configuration and never verifies, prepar
   for(const change of [{SOLANA_CLUSTER:'mainnet-beta'},{FUNDED_V3_AGENCY_BUYBACK_ENABLED:'false'},{FUNDED_BUILD_ID:'latest'}])
     assert.throws(()=>agencyBuybackConfig({...noX,...change},['--execute']));
 });
+test('verified buyback progress keeps a long serial cycle fresh and fails closed on execution error',async()=>{
+  const f=fixture(true);f.input.config={...f.input.config,buybacksOnly:true};
+  let clock=Date.now();f.input.now=()=>clock;
+  await runAgencyCycle(f.input);
+  const health={programId,approvedHash:f.input.config.approvedHash,authority:authority.publicKey.toBase58(),revision:'1',build:f.input.config.build};
+  clock+=20_000;
+  f.input.milestone=async()=>{clock+=40_000;return{status:'below-threshold'};};
+  await runAgencyCycle(f.input);
+  assert(agencyBuybackWorkerHealth(f.state,{...health,now:clock}));
+  assert.equal(f.state.adminSettings.agencyBuybackWorker.checkedAt,new Date(clock).toISOString());
+  clock+=20_000;
+  f.input.milestone=async({agent})=>{clock+=40_000;if(agent===1)throw new Error('RPC failed');return{status:'below-threshold'};};
+  await runAgencyCycle(f.input);
+  assert.equal(f.state.adminSettings.agencyBuybackWorker.status,'degraded');
+  assert(!agencyBuybackWorkerHealth(f.state,{...health,now:clock}));
+});
 test('dedicated worker verifies account, dispatches only agency events and distinguishes heartbeat readiness from execution success',async()=>{
   const f=fixture(true);await runAgencyCycle(f.input);assert.deepEqual(f.counts,{writes:1,promotions:2,buys:2,posts:1});
   const row=f.state.adminSettings.agencyWorker;assert.equal(row.status,'ready');assert.equal(row.pendingExecutions,2);

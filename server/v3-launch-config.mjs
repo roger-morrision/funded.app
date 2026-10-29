@@ -19,7 +19,9 @@ export const V3_BENEFICIARY_RELEASE_BLOCKER =
 
 export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRewardStore, store,
   v3AuthorityKeypair, env = process.env,
-  verificationTimeoutMs = 8000,
+  // Finalized ProgramData and lookup reads occasionally exceed eight seconds
+  // on the reviewed Devnet RPC. Keep the bound while allowing the full proof.
+  verificationTimeoutMs = 15000,
   connectionFactory = (url, { signal } = {}) => new Connection(url, {
     commitment:'finalized', disableRetryOnRateLimit:true,
     fetch:(target, options) => fetch(target, { ...options,

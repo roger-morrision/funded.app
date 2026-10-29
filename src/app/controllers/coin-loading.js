@@ -44,7 +44,7 @@ export function createCoinLoadingController(appState) {
         rpcRequest(detailConnection.getAccountInfo(metadataPda, 'confirmed'), 'Metadata RPC request'),
         rpcRequest(appState.fetchBondingCurveSnapshot({ connection: detailConnection, mint }), 'Pump curve RPC request'),
         rpcRequest(appState.fetchTokenAccountSample(mintAddress, detailConnection, PublicKey), 'Token-account RPC request'),
-        appState.apiRequest('/api/launches', { signal: AbortSignal.timeout(5000) }),
+        appState.apiRequest('/api/launches', { signal: AbortSignal.timeout(12000) }),
       ]);
       if (loadId !== appState.coinLoadId) return;
       if (mintResult.status === 'rejected') throw mintResult.reason;
@@ -63,9 +63,11 @@ export function createCoinLoadingController(appState) {
       }
       if (loadId !== appState.coinLoadId) return;
       const metadata = appState.parseOnChainMetadata(metadataInfo?.data);
-      const registeredLaunch = launchesResult.status === 'fulfilled' && launchesResult.value.available
+      const fetchedLaunch = launchesResult.status === 'fulfilled' && launchesResult.value.available
         ? appState.verifiedRegistryLaunch(launchesResult.value.data, mintAddress, appState.EXPLORE_CLUSTER)
         : null;
+      const registeredLaunch = fetchedLaunch || appState.verifiedRegistryLaunch(
+        [appState.verifiedLaunchPolicyForMint(mintAddress)], mintAddress, appState.EXPLORE_CLUSTER);
       appState.coinSummaryLaunch = registeredLaunch;
       const promotedBanner = verifiedTokenBannerUri(registeredLaunch, mintAddress);
       const artwork = document.querySelector('.coin-artwork');

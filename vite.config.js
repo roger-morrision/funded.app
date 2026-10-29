@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => {
   const apiTarget = String(process.env.API_PROXY_TARGET || env.API_PROXY_TARGET || '').trim();
   const apiProxy = apiTarget && !mainnetReadOnly ? {
     '/api': { target: apiTarget, changeOrigin: false },
+    '^/devnet-metadata/': { target: apiTarget, changeOrigin: false },
     '/devnet-images': { target: apiTarget, changeOrigin: false },
   } : undefined;
   return {
