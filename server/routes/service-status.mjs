@@ -18,6 +18,7 @@ export function createServiceStatusRoutes({
   // Preserve the existing dependency-probe cache, but never use its lifetime to
   // hide a change in the collection, launch policy, or settlement inputs.
   const statusCache = createReadCache({ ttlMs: 60_000, maxEntries: 1 });
+  const verifiedSettlementProofs = new Map();
   const identity = () => ({ cluster:solanaCluster, build:env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
     rpcUrl:solanaRpcUrl, programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,
     approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256,
@@ -38,7 +39,8 @@ export function createServiceStatusRoutes({
         connection:connectionFactory(config.rpcUrl, {commitment:'finalized',
           disableRetryOnRateLimit:true, fetch:(target,options) => fetch(target,{...options,
             signal:options?.signal ? AbortSignal.any([signal,options.signal]) : signal})}),
-        programId:config.programId,approvedHash:config.approvedHash});
+        programId:config.programId,approvedHash:config.approvedHash,
+        verifiedProofCache:verifiedSettlementProofs});
     },
   });
   const json = (...args) => { respond(...args); return true; };
