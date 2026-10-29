@@ -211,11 +211,15 @@ export function createCommunityClaimsController(appState) {
       appState.clearPendingCommunityClaim(pending);
       claimVerified = true;
       appState.emitPilotSignal('claim-verified');
-      await appState.loadCommunityReserveStatuses();
       const claimedProgram = appState.getAirdropPrograms().find(row => row.id === mintAddress);
-      if (claimedProgram) appState.updateDirectoryWalletAmount(session, claimedProgram, 'claimed');
-      appState.renderAirdropProgramDetail(appState.getAirdropPrograms().find(row => row.id === mintAddress));
+      const claimedAmount = appState.formatTokenBaseUnits(review.amount, mintInfo.data[44], 4);
+      if (claimedProgram) appState.updateDirectoryWalletAmount(session, claimedProgram, 'claimed', claimedAmount);
+      status.append(document.createTextNode(` Claimed ${claimedAmount} ${claimedProgram?.symbol || 'tokens'} and verified on Solana.`));
       appState.showToast('Community tokens claimed and verified on Solana');
+      // The claim is already proven by finalized token and payment deltas.
+      // Refreshing every public reserve can be slow and must not delay or
+      // replace the recipient's confirmed result in this browser.
+      void appState.loadCommunityReserveStatuses().catch(() => {});
     } catch (error) {
       if (!claimVerified) appState.emitPilotSignal(appState.pilotInterruptedSignal('claim', error, claimExecutionRequested));
       if (!appState.isWalletSessionCurrent(session)) return;
