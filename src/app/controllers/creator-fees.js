@@ -70,6 +70,8 @@ export function createCreatorFeesController(appState) {
             payable = amount > 0n;
           } catch { payable = false; }
         }
+        if (!payable && path === 'creator-reward-funding')
+          button.textContent = 'No holder or X allocation for this collection';
         button.disabled = !signingWallet || overview.gates?.[gate] !== true
           || row[gate] === 'finalized' || !payable;
         if (!button.disabled) button.onclick = () => { void requestV3FeeAction(button, path, row.signature); };

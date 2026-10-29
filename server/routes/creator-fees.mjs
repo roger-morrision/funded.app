@@ -31,7 +31,7 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
         new Promise((_, reject) => setTimeout(() => reject(new Error('Pump vault read timed out')), 4500)),
       ]);
       pumpAccruedLamports = amount.toString();
-    } catch (error) { pumpError = String(error.message || error).slice(0, 180); }
+    } catch { pumpError = 'Pump vault balance verification is temporarily unavailable.'; }
     const collections = Object.values(state.collections || {}).filter(row => row.mint === mint
       && row.scope === 'per-mint-v3' && row.status === 'collected' && row.onchainVerified === true
       && row.programId === launch.pumpFeeRoute.programId && row.router === launch.pumpFeeRoute.router)

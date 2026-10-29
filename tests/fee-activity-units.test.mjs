@@ -31,6 +31,8 @@ test('actual V3 adapter and renderer agree on exact SOL units without modifying 
     const handle=createCreatorFeesRoutes({store:{read:async()=>state},solanaCluster:'devnet',route:(path,_method,pattern)=>path.match(pattern)?.[1],solanaRpcUrl:'invalid-offline-url',databaseUrl:null,respond:(_res,status,data)=>response={status,data}});
     await handle({method:'GET'},{},new URL(`https://funded.vip/api/tokens/${mint}/fee-activity`));
     assert.equal(response.status,200);
+    assert.equal(response.data.overview.pump.error,'Pump vault balance verification is temporarily unavailable.');
+    assert(!JSON.stringify(response.data).includes('invalid-offline-url'));
     for(const [i,claim] of response.data.claims.entries()) {
       assert.equal(claim.grossLamports,expected[i] == null ? null : amounts[i]);
       assert.equal(claim.grossCreatorFeesUnit,'SOL');
