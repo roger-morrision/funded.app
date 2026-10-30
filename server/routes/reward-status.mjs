@@ -251,7 +251,9 @@ export function createRewardStatusRoutes({
       return json(res, 200, { recorded:true });
     }
     if (req.method === 'GET' && url.pathname === '/api/rewards/automatic') {
-      const [buybackState, rewards] = await Promise.all([store.read(), automaticRewardStore.read()]);
+      const rewardRead=typeof automaticRewardStore.readAutomationSnapshot==='function'
+        ? automaticRewardStore.readAutomationSnapshot() : automaticRewardStore.read();
+      const [buybackState, rewards] = await Promise.all([store.read(), rewardRead]);
       const status = v3AutomaticRewardStatus(buybackState, rewards);
       const xPayments = recordedV3XPayments(buybackState, rewards,
         env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID);
@@ -291,7 +293,9 @@ export function createRewardStatusRoutes({
       return json(res, 200, status);
     }
     if (req.method === 'GET' && url.pathname === '/api/buyback/status') {
-      const [state,rewards] = await Promise.all([store.read(),automaticRewardStore?.read?.() || {}]);
+      const rewardRead=typeof automaticRewardStore?.readWorkerHealth==='function'
+        ? automaticRewardStore.readWorkerHealth() : automaticRewardStore?.read?.() || {};
+      const [state,rewards] = await Promise.all([store.read(),rewardRead]);
       const thresholdLamports = buybackTriggerLamports(solanaCluster, env);
       const workerWait=url.searchParams.get('wait')==='worker';
       if(workerWait&&!requireAuthorized)return json(res,503,{error:'Worker authorization is unavailable.'});

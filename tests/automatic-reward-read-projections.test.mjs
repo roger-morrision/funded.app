@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,writeFile,rename,rm} from 'node:fs/promises';
+import {mkdtemp,writeFile,rename,rm,unlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createAutomaticRewardStore} from '../server/automatic-reward-store.mjs';
@@ -23,5 +23,27 @@ test('public reward projections omit large indexing buckets and observe independ
     assert.equal((await store.readFinancialSnapshot()).schedules.cycle.status,'paid');
     assert.deepEqual((await store.readStatusSnapshot()).serviceStatus,{status:'unavailable'});
     assert.deepEqual((await store.read()).holderSnapshots,state.holderSnapshots);
+    state.schedules.cycle.status='fail';await writeFile(path,JSON.stringify(state));
+    assert.equal((await store.readStatusSnapshot()).schedules.cycle.status,'fail');
+    const [first,second]=await Promise.all([store.readFinancialSnapshot(),store.readFinancialSnapshot()]);
+    first.schedules.cycle.status='isolated';assert.equal(second.schedules.cycle.status,'fail');
+    await store.transaction(value=>{assert.equal(value.schedules.cycle.status,'fail');value.schedules.cycle.status='done';});
+    assert.equal((await store.readStatusSnapshot()).schedules.cycle.status,'done');
+    await writeFile(path,JSON.stringify({...state,version:999}));await assert.rejects(store.readFinancialSnapshot(),/Unsupported ledger version/);
+    await unlink(path);assert.equal((await store.readStatusSnapshot()).serviceStatus,undefined);
+    await writeFile(path,JSON.stringify(state));assert.equal((await store.readFinancialSnapshot()).schedules.cycle.status,'fail');
+  }finally{await rm(directory,{recursive:true,force:true});}
+});
+
+test('public automation, bonus and worker views retain required state while excluding settlement indexes',async()=>{
+  const directory=await mkdtemp(join(tmpdir(),'funded-reward-health-'));
+  try{
+    const path=join(directory,'ledger.json'),store=createAutomaticRewardStore(path),state={version:2,schedules:{},serviceStatus:{constrainedPayouts:false},
+      communityClaimIndex:{status:'verified'},communityDrops:{mint:{snapshotBasis:'devnet-qa-cutoff'}},buybackWorkerHeartbeat:{status:'failed'},
+      dailyBonusSnapshots:{day:{status:'paid'}},dailyBonusProgress:{day:{checked:2}},dailyBonusServiceStatus:{status:'degraded'},dailyBonusSettlementIndexes:{privateToIndexer:true}};
+    await writeFile(path,JSON.stringify(state));
+    assert.deepEqual(await store.readAutomationSnapshot(),{serviceStatus:state.serviceStatus,schedules:{},communityClaimIndex:state.communityClaimIndex,communityDrops:state.communityDrops,buybackWorkerHeartbeat:state.buybackWorkerHeartbeat});
+    assert.deepEqual(await store.readWorkerHealth(),{dailyBonusServiceStatus:state.dailyBonusServiceStatus,buybackWorkerHeartbeat:state.buybackWorkerHeartbeat});
+    assert.deepEqual(await store.readBonusSnapshot(),{dailyBonusSnapshots:state.dailyBonusSnapshots,dailyBonusProgress:state.dailyBonusProgress,dailyBonusServiceStatus:state.dailyBonusServiceStatus});
   }finally{await rm(directory,{recursive:true,force:true});}
 });

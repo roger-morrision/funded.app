@@ -1,4 +1,4 @@
-import { mkdir, open, readFile, rename, unlink } from 'node:fs/promises';
+import { mkdir, open, readFile, rename, unlink, stat } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -16,6 +16,22 @@ export async function drainAutomaticRewardTransactions() {
 // Dedicated ledger; existing immutable launches are never rewritten. A crashed
 // lock needs operator investigation rather than unsafe automatic lock expiration.
 export function createAutomaticRewardStore(path) {
+  let publicRead;
+  async function project(keys) {
+    const pick=state=>structuredClone(Object.fromEntries(keys.map(key=>[key,state[key]])));
+    let identity;
+    try {
+      const info=await stat(path,{bigint:true}),parts=[info.dev,info.ino,info.size,info.mtimeNs,info.ctimeNs];
+      if(parts.some(value=>typeof value!=='bigint')||info.ino<=0n){publicRead=null;return pick(await readState());}
+      identity=parts.join(':');
+    }catch(error){if(error.code!=='ENOENT')throw error;publicRead=null;return pick(await readState());}
+    if(publicRead?.identity!==identity){
+      const entry={identity,promise:readState()};publicRead=entry;
+      void entry.promise.catch(()=>{if(publicRead===entry)publicRead=null;});
+    }
+    const state=await publicRead.promise;
+    return pick(state);
+  }
   async function acquireLock() {
     for (let attempt = 0; attempt < 40; attempt++) {
       try { return await open(`${path}.lock`, 'wx'); }
@@ -47,6 +63,7 @@ export function createAutomaticRewardStore(path) {
       const file = await open(temp, 'wx');
       try { await file.writeFile(JSON.stringify(state)); await file.sync(); } finally { await file.close(); }
       await rename(temp, path);
+      publicRead=null;
       return result;
     } finally {
       try { await unlink(temp).catch(error => { if (error.code !== 'ENOENT') throw error; }); }
@@ -54,14 +71,12 @@ export function createAutomaticRewardStore(path) {
     }
   }
   return {async read(){return structuredClone(await readState());},
-  async readFinancialSnapshot(){
-    const {version,programs,schedules,dailyBonusSnapshots}=await readState();
-    return structuredClone({version,programs,schedules,dailyBonusSnapshots});
-  },
-  async readStatusSnapshot(){
-    const {serviceStatus,schedules}=await readState();
-    return structuredClone({serviceStatus,schedules});
-  },transaction(mutator){
+  readFinancialSnapshot:()=>project(['version','programs','schedules','dailyBonusSnapshots']),
+  readStatusSnapshot:()=>project(['serviceStatus','schedules']),
+  readAutomationSnapshot:()=>project(['serviceStatus','schedules','communityClaimIndex','communityDrops','buybackWorkerHeartbeat']),
+  readWorkerHealth:()=>project(['dailyBonusServiceStatus','buybackWorkerHeartbeat']),
+  readBonusSnapshot:()=>project(['dailyBonusSnapshots','dailyBonusProgress','dailyBonusServiceStatus']),
+  transaction(mutator){
     if(draining)return Promise.reject(Object.assign(new Error('Reward service is restarting; retry shortly.'),{statusCode:503}));
     const key=resolve(path),queue=writeQueues.get(key)||{tail:Promise.resolve(),count:0};
     if(queue.count>=64)return Promise.reject(Object.assign(new Error('Reward ledger write queue is busy; retry shortly.'),{statusCode:503}));

@@ -45,7 +45,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       nextCutoffAt:new Date((currentBonusStart(now(),schedule) + schedule.periodSeconds) * 1000).toISOString(),
       poolCheckedAt:new Date(poolCache.at * 1000).toISOString(),
       pool:poolCache.day === currentBonusStart(now(),schedule) ? poolCache.value : { status:'unavailable', categoryLamports:null },
-      ...bonusDashboardHistory(await rewardStore.read(), options) };
+      ...bonusDashboardHistory(await (rewardStore.readBonusSnapshot?.() || rewardStore.read()), options) };
   }
   const ready = async () => {
     if (!(await chain.readiness()).constrainedPayouts) throw new Error('Daily bonus requires the reviewed V3 program and authority.');
@@ -175,7 +175,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
     } finally { running = false; }
   }
   async function status() {
-    const state = await rewardStore.read();
+    const state = await (rewardStore.readBonusSnapshot?.() || rewardStore.read());
     const app=await store.read();
     const pendingSettlementSources=Object.values(app.collections||{}).filter(row=>row.scope==='per-mint-v3'
       &&row.cluster==='devnet'&&row.programId===programId&&row.status==='collected'
