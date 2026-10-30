@@ -13,6 +13,7 @@ import {aggregatePendingBuybacks} from '../v3-buyback-aggregate.mjs';
 import {buybackExecutionPolicy,buybackAgeEligible} from '../v3-buyback-execution-policy.mjs';
 import {allocationAuditHash} from '../allocation-audit-hash.mjs';
 import { createProductInsightsRoutes } from './product-insights.mjs';
+import { createReadCache } from '../read-cache.mjs';
 
 function pendingV3Buybacks(state, programId) {
   if (!programId) return [];
@@ -127,6 +128,7 @@ export function createRewardStatusRoutes({
 }) {
   const json = (...args) => { respond(...args); return true; };
   const insights = createProductInsightsRoutes({store,automaticRewardStore,solanaCluster,clientKey,respond,solanaRpcUrl});
+  const experienceReads = createReadCache({ttlMs:0,maxEntries:40});
   let buybackSnapshot = null;
   const buybackReads = new Map();
   const rawBuybackReads=new Set();
@@ -330,8 +332,13 @@ export function createRewardStatusRoutes({
         if (url.searchParams.has('wallet')) wallet = new PublicKey(url.searchParams.get('wallet')).toBase58();
         if (url.searchParams.has('mint')) mint = new PublicKey(url.searchParams.get('mint')).toBase58();
       } catch { return json(res, 400, { error:'A valid Solana wallet and mint are required.' }); }
-      const [state, rewards] = await Promise.all([store.read(), automaticRewardStore.read().catch(() => null)]);
-      return json(res, 200, v3RewardExperience(state, rewards, solanaCluster, wallet, mint));
+      const experience = await experienceReads(`${wallet || '*'}:${mint || '*'}`,async()=>{
+        const rewardRead = typeof automaticRewardStore.readFinancialSnapshot === 'function'
+          ? automaticRewardStore.readFinancialSnapshot() : automaticRewardStore.read();
+        const [state,rewards] = await Promise.all([store.read(),rewardRead.catch(()=>null)]);
+        return v3RewardExperience(state,rewards,solanaCluster,wallet,mint);
+      });
+      return json(res, 200, experience);
     }
     return false;
   };

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { financialReceipt,financialOperations } from '../server/product-insights.mjs';
 import { createProductInsightsRoutes } from '../server/routes/product-insights.mjs';
+import { createRewardStatusRoutes } from '../server/routes/reward-status.mjs';
 import { createProductIssueRoutes,validateIssue } from '../server/routes/product-issues.mjs';
 import { handleIssueAdmin } from '../server/routes/issue-admin.mjs';
 import { saveCreatorBrief } from '../server/creator-brief.mjs';
@@ -77,6 +78,18 @@ test('activity never reads rewards and concurrent operations share the cached da
   release();assert.equal((await first).status,200);assert.equal((await second).status,200);
   assert.equal((await request('/api/financial/operations')).status,200);assert.equal(rewards,1);assert.equal(states,2);
 });
+test('reward experience shares simultaneous reads only, scopes wallets and reads fresh data on the next request',async()=>{
+  let reads=0,release;let wait=new Promise(resolve=>{release=resolve;});
+  const handler=createRewardStatusRoutes({store:{read:async()=>({}),chargeRpcRate:async()=>true},
+    automaticRewardStore:{read:async()=>{throw Error('Full ledger must not be cloned');},readFinancialSnapshot:async()=>{reads++;await wait;return {}; }},
+    solanaCluster:'devnet',clientKey:()=> 'fixture',respond:(res,status,body)=>{res.writeHead(status);res.end(JSON.stringify(body));}});
+  const request=async query=>{const out=response();await handler({method:'GET'},out.res,new URL(`/api/rewards/experience${query}`,'http://localhost'));return out;};
+  const first=request(`?wallet=${wallet}`),second=request(`?wallet=${wallet}`),different=request(`?wallet=${other}`);
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(reads,2);release();
+  assert.equal((await first).data.wallet.address,wallet);assert.equal((await second).data.wallet.address,wallet);assert.equal((await different).data.wallet.address,other);
+  wait=Promise.resolve();await request(`?wallet=${wallet}`);assert.equal(reads,3);
+});
+
 test('fresh trade receipt verification is read-only and distinct from recorded ledger evidence',async()=>{
   const result=await insight({path:`/api/financial/receipts/${sig}?mint=${mint}&wallet=${wallet}`,verify:async args=>{assert.equal(args.maxAgeMs,Infinity);return {side:'buy',solLamports:'50',tokenAmountRaw:'100',decimals:6,blockTime:now/1000};}});
   assert.equal(result.status,200);assert.equal(result.data.evidence,'finalized-rpc-trade');assert.equal(result.data.currentRpcRecheck,true);assert.equal(result.data.trade.wallet,wallet);
