@@ -64,6 +64,19 @@ async function insight({path,cluster='devnet',verify,allowed=true,state=fixture(
   const out=response(),handler=createProductInsightsRoutes({store:{read:async()=>state,chargeRpcRate:async()=>allowed},automaticRewardStore:{read:async()=>rewards},solanaCluster:cluster,clientKey:()=> 'fixture',solanaRpcUrl:'http://fixture.invalid',connectionFactory:()=>({}),verifyTrade:verify,respond:(res,code,body)=>{res.writeHead(code);res.end(JSON.stringify(body));}});
   await handler({method:'GET'},out.res,new URL(`http://localhost${path}`));return out;
 }
+test('activity never reads rewards and concurrent operations share the cached database and financial projection',async()=>{
+  let states=0,rewards=0,release;
+  const wait=new Promise(resolve=>{release=resolve;}),out=()=>response();
+  const handler=createProductInsightsRoutes({store:{read:async()=>{states++;return {launches:{},creatorProfiles:{}};},chargeRpcRate:async()=>true},
+    automaticRewardStore:{read:async()=>{throw Error('Full ledger must not be cloned');},readFinancialSnapshot:async()=>{rewards++;await wait;return {}; }},
+    solanaCluster:'devnet',clientKey:()=> 'fixture',respond:(res,status,body)=>{res.writeHead(status);res.end(JSON.stringify(body));}});
+  const request=async path=>{const result=out();await handler({method:'GET'},result.res,new URL(path,'http://localhost'));return result;};
+  assert.equal((await request('/api/financial/activity')).status,200);assert.equal(rewards,0);
+  const first=request('/api/financial/operations'),second=request('/api/financial/operations');
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(rewards,1);assert.equal(states,2);
+  release();assert.equal((await first).status,200);assert.equal((await second).status,200);
+  assert.equal((await request('/api/financial/operations')).status,200);assert.equal(rewards,1);assert.equal(states,2);
+});
 test('fresh trade receipt verification is read-only and distinct from recorded ledger evidence',async()=>{
   const result=await insight({path:`/api/financial/receipts/${sig}?mint=${mint}&wallet=${wallet}`,verify:async args=>{assert.equal(args.maxAgeMs,Infinity);return {side:'buy',solLamports:'50',tokenAmountRaw:'100',decimals:6,blockTime:now/1000};}});
   assert.equal(result.status,200);assert.equal(result.data.evidence,'finalized-rpc-trade');assert.equal(result.data.currentRpcRecheck,true);assert.equal(result.data.trade.wallet,wallet);

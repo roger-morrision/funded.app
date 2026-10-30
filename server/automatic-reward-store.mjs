@@ -53,7 +53,15 @@ export function createAutomaticRewardStore(path) {
       finally { await lock.close(); await unlink(`${path}.lock`); }
     }
   }
-  return {async read(){return structuredClone(await readState());},transaction(mutator){
+  return {async read(){return structuredClone(await readState());},
+  async readFinancialSnapshot(){
+    const {version,programs,schedules,dailyBonusSnapshots}=await readState();
+    return structuredClone({version,programs,schedules,dailyBonusSnapshots});
+  },
+  async readStatusSnapshot(){
+    const {serviceStatus,schedules}=await readState();
+    return structuredClone({serviceStatus,schedules});
+  },transaction(mutator){
     if(draining)return Promise.reject(Object.assign(new Error('Reward service is restarting; retry shortly.'),{statusCode:503}));
     const key=resolve(path),queue=writeQueues.get(key)||{tail:Promise.resolve(),count:0};
     if(queue.count>=64)return Promise.reject(Object.assign(new Error('Reward ledger write queue is busy; retry shortly.'),{statusCode:503}));

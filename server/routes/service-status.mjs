@@ -67,7 +67,9 @@ export function createServiceStatusRoutes({
       return json(res, 200, report);
     }
     if (req.method === 'GET' && url.pathname === '/api/health') {
-      const automaticRewards = automaticRewardStatus(new Date(), await automaticRewardStore.read());
+      const rewardState = typeof automaticRewardStore.readStatusSnapshot === 'function'
+        ? await automaticRewardStore.readStatusSnapshot() : await automaticRewardStore.read();
+      const automaticRewards = automaticRewardStatus(new Date(), rewardState);
       return json(res, 200, { ok: true, service: 'funded-api', launchPolicy: await launchPolicyConfig(), external: { solanaKeeper: isKeeperEnabled(process.env) && Boolean(keeperKeypair()), automaticRewards: automaticRewards.status === 'active', feeRouter: Boolean(v3RouterConfig()), birdeye: Boolean(birdeyeApiKey), pumpFun: Boolean(pumpApiUrl), xOAuth: xOAuthConfigured(req) } });
     }
     if (req.method === 'GET' && url.pathname === '/api/market/sol-usd') {

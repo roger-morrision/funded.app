@@ -43,3 +43,7 @@ With the candidate running, set `PRODUCT_CANDIDATE_REPORT` to its printed `repor
 On-chain-policy burns without registry/collection context retain direct Explorer verification. Their recorded proofs do not become registered-launch receipts just because a signature exists. The engine-health coverage text now states this distinction.
 
 Genuine verified-X publishing, public deployment and new financial mechanisms are outside this local acceptance result. Existing fee splits, bonus windows and custody rules are unchanged.
+
+## Large-ledger acceptance
+
+The live deployment has substantially larger reward-index buckets than this filtered candidate copy. Public activity reads no reward ledger; operations cache and share in-flight reads before accessing either store. Financial and health reads use fresh projections that omit unrelated indexing buckets from the returned clone. These projections still parse the current atomic ledger file; they introduce no stale financial cache and leave transaction locking, persistence and worker writes unchanged. Test an exact image with representative ledger size as well as this filtered candidate before public rollout.
