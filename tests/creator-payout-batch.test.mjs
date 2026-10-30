@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {approveCreatorPayoutBatch,creatorActionPath} from '../src/features/fees/creator-payout-actions.js';
+import {approveCreatorPayoutBatch,creatorActionPath,creatorPayoutActions} from '../src/features/fees/creator-payout-actions.js';
+test('a missing frozen referral beneficiary is excluded from payable approval batches',()=>{
+ const row={settlement:'finalized',referralPayable:[true,false,false],allocationPlan:{status:'allocated-not-funded',
+  creatorDirected:{holderLamports:'0',xLamports:'0'},protocol:{referralLamports:['60','25','15']}}};
+ const actions=creatorPayoutActions(row).filter(action=>action.action.startsWith('referral-payout/'));
+ assert.deepEqual(actions.map(action=>action.amount),['60','0','0']);
+});
 test('batch approves independent payouts once, stops at uncertain result, and refreshes partial progress',async()=>{
  const submitted=[],messages=[];let signs=0;
  const tx={serialize:()=>new Uint8Array([1])},session={address:'creator',provider:{signAllTransactions:async rows=>{signs++;return rows;}}};

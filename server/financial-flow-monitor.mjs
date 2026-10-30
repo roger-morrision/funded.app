@@ -20,7 +20,7 @@ export function financialFlowMonitor(state,rewards,{now=Date.now(),programId}={}
       ['holder-and-x',String((quantity(plan.creatorDirected?.holderLamports)||0n)+(quantity(plan.creatorDirected?.xLamports)||0n)),state.v3CreatorRewardFunding?.[source]],
       ['bonus',plan.protocol?.communityLamports,state.v3CommunityFunding?.[source]],
       ['operations',plan.protocol?.operationsLamports,state.v3OperationsPayout?.[source]]];
-    for(let level=1;level<=3;level++)kinds.push([`referral-${level}`,plan.protocol?.referralLamports?.[level-1],
+    for(let level=1;level<=3;level++)if(settled.referralUpline?.[level-1])kinds.push([`referral-${level}`,plan.protocol?.referralLamports?.[level-1],
       state.v3ReferralPayouts?.[`${source}:${level}`]]);
     for(const [kind,raw,receipt] of kinds) {
       const amount=quantity(raw);if(amount===null||amount<=0n)continue;

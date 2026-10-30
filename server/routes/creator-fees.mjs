@@ -53,6 +53,7 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
         creatorWalletPayout:payout?.status || 'pending', creatorWalletPayoutVerified:payoutVerified,
         operationsPayout:state.v3OperationsPayout?.[row.signature]?.status || 'pending',
         referralPayouts:[1,2,3].map(level=>state.v3ReferralPayouts?.[`${row.signature}:${level}`]?.status||'pending'),
+        referralPayable:[1,2,3].map(level=>Boolean(settled?.referralUpline?.[level-1])),
         buyback:state.v3BuybackOrders?.[row.signature]?.status || 'pending' };
       });
     const activity = { collections:collections.map(row => ({ signature:row.signature,

@@ -7,7 +7,7 @@ export function creatorPayoutActions(row) {
     ['creator-wallet-payout','creatorWalletPayout',plan.creatorDirected?.walletLamports,'Receive creator allocation'],
     ['operations-payout','operationsPayout',plan.protocol?.operationsLamports,'Pay operations allocation']];
   for(let i=0;i<3;i++)actions.push([`referral-payout/${i+1}`,'referralPayout',
-    plan.protocol?.referralLamports?.[i],`Pay referral level ${i+1}`]);
+    row.referralPayable?.[i]===true?plan.protocol?.referralLamports?.[i]:'0',`Pay referral level ${i+1}`]);
   return actions.map(([action,gate,amount,label])=>({action,gate,amount,label,
     finalized:action.startsWith('referral-payout/')?row.referralPayouts?.[Number(action.split('/')[1])-1]==='finalized':row[gate]==='finalized'}));
 }
