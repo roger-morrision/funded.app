@@ -22,6 +22,8 @@ Collection, buyback, holder and bonus workers observe trade revisions within the
 
 The creator dashboard exposes operations and three referral payout actions in addition to creator/community/holder-X actions. Wallets supporting `signAllTransactions` can review up to three independent available payouts together. Each transaction is verified separately; an uncertain result stops the batch, preserves already finalized receipts, and requires refresh/reconciliation. This is not a standing delegation of creator signing authority.
 
+Reward-ledger writes to the same resolved path share a bounded in-process queue before acquiring the exclusive file lock. Concurrent workers wait for admitted commits; a failed write does not poison later work. Shutdown drains queued as well as active writes. The inter-process lock remains intact and a suspected crashed lock is never deleted automatically.
+
 `GET /api/automation/wakeup` and `/api/automation/status` require keeper authorization. The latter projects recorded flow stages and flags funded payouts over ten minutes late, unresolved signed payments, and buyback accounting conflicts. A primary-process monitor persists bounded alert summaries every minute and logs changed actionable alerts. The authenticated admin workspace displays that health and its freshness. Recorded monitor results never replace independent on-chain execution checks.
 
 Contract changes for revocable standing authorizations or distributions inside the original swap require a separate versioned design, explicit spending/beneficiary bounds, program tests, an independently reviewed artifact and Devnet acceptance before activation. Existing creator signatures and entitlement windows cannot be bypassed by a notification or runtime flag.

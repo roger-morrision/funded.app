@@ -1,9 +1,10 @@
 import { mkdir, open, readFile, rename, unlink } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const activeTransactions=new Set();
+const writeQueues=new Map();
 let draining=false;
 export async function drainAutomaticRewardTransactions() {
   draining=true;
@@ -54,7 +55,13 @@ export function createAutomaticRewardStore(path) {
   }
   return {async read(){return structuredClone(await readState());},transaction(mutator){
     if(draining)return Promise.reject(Object.assign(new Error('Reward service is restarting; retry shortly.'),{statusCode:503}));
-    const pending=transaction(mutator);activeTransactions.add(pending);
+    const key=resolve(path),queue=writeQueues.get(key)||{tail:Promise.resolve(),count:0};
+    if(queue.count>=64)return Promise.reject(Object.assign(new Error('Reward ledger write queue is busy; retry shortly.'),{statusCode:503}));
+    writeQueues.set(key,queue);queue.count++;
+    const pending=queue.tail.then(()=>transaction(mutator));
+    queue.tail=pending.then(()=>{},()=>{});
+    void queue.tail.then(()=>{queue.count--;if(queue.count===0&&writeQueues.get(key)===queue)writeQueues.delete(key);});
+    activeTransactions.add(pending);
     void pending.then(()=>activeTransactions.delete(pending),()=>activeTransactions.delete(pending));
     return pending;
   }};
