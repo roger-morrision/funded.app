@@ -47,7 +47,8 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
       reasons.push('V3 holder payout worker is disabled');
     else {
       try {
-        const health = rewardServiceHealth((await automaticRewardStore.read()).serviceStatus);
+        const workerState=await (automaticRewardStore.readWorkerHealth?.() || automaticRewardStore.read());
+        const health = rewardServiceHealth(workerState.serviceStatus);
         if (!health.healthy) reasons.push('V3 holder payout worker has no fresh verified readiness');
       } catch { reasons.push('V3 holder payout worker readiness is unavailable'); }
     }

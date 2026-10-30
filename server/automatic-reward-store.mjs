@@ -74,7 +74,7 @@ export function createAutomaticRewardStore(path) {
   readFinancialSnapshot:()=>project(['version','programs','schedules','dailyBonusSnapshots']),
   readStatusSnapshot:()=>project(['serviceStatus','schedules']),
   readAutomationSnapshot:()=>project(['serviceStatus','schedules','communityClaimIndex','communityDrops','buybackWorkerHeartbeat']),
-  readWorkerHealth:()=>project(['dailyBonusServiceStatus','buybackWorkerHeartbeat']),
+  readWorkerHealth:()=>project(['serviceStatus','dailyBonusServiceStatus','buybackWorkerHeartbeat']),
   readBonusSnapshot:()=>project(['dailyBonusSnapshots','dailyBonusProgress','dailyBonusServiceStatus']),
   transaction(mutator){
     if(draining)return Promise.reject(Object.assign(new Error('Reward service is restarting; retry shortly.'),{statusCode:503}));
