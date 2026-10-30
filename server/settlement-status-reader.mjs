@@ -65,7 +65,11 @@ export function createSettlementStatusReader({ readSnapshot, verify,
   }
 
   const pending = context => evidence(context?.recorded ?? null,
-    context ? 'verification-pending' : 'snapshot-pending', { status: 'pending' });
+    context ? 'verification-pending' : 'snapshot-pending', { status: 'pending',
+      ...(context?.key===completed?.key&&completed?.proof.verified ? {
+        refreshing:true,lastVerified:{...structuredClone(completed.proof),
+          checkedAt:new Date(completed.checkedAt).toISOString(),
+          expiresAt:new Date(completed.checkedAt+maxAgeMs).toISOString(),fresh:false}} : {}) });
   const present = (entry, cached) => structuredClone({ ...entry.proof,
     status: entry.proof.verified ? 'verified' : 'unavailable',
     checkedAt: new Date(entry.checkedAt).toISOString(),
@@ -143,7 +147,7 @@ export function createSettlementStatusReader({ readSnapshot, verify,
       const age = completed ? now() - completed.checkedAt : Infinity;
       if (completed?.key === context.key && age >= 0 && age < maxAgeMs)
         return present(completed, true);
-      completed = null;
+      if(completed?.key!==context.key)completed=null;
       if (running) {
         if (running.key !== context.key) return pending(context);
         return running.promise;

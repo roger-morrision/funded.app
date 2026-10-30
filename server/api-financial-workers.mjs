@@ -1,4 +1,6 @@
 import {startCommunityClaimIndex,startV3HolderRewardWorker} from './background-maintenance.mjs';
+import {startTradeFinancialWakeWorker} from './trade-financial-wakeup.mjs';
+import {startFinancialFlowMonitor} from './financial-flow-monitor.mjs';
 
 // An API-only acceptance instance retains all signed routes and readiness
 // checks; the primary app remains the sole internal payout scheduler.
@@ -11,9 +13,17 @@ export function startApiFinancialWorkers({env=process.env,startCommunity,startHo
 }
 
 export function startApiFinancialWorkerServices(context) {
-  return startApiFinancialWorkers({env:context.env,
+  let holder;
+  const result=startApiFinancialWorkers({env:context.env,
     startCommunity:()=>startCommunityClaimIndex(context),
-    startHolder:()=>startV3HolderRewardWorker(context),
+    startHolder:()=>{holder=startV3HolderRewardWorker(context);},
     startDailyBonus:()=>context.dailyBonusRuntime.start(),
   });
+  if(result.mode==='api-and-workers'&&context.solanaCluster==='devnet'){
+    startTradeFinancialWakeWorker({store:context.automaticRewardStore,
+      run:async()=>{await holder?.tick?.();await context.dailyBonusRuntime.tick();}});
+    if(context.store)startFinancialFlowMonitor(context);
+  }
+  (context.logger||console).log(JSON.stringify({event:'api-financial-worker-role',...result}));
+  return result;
 }

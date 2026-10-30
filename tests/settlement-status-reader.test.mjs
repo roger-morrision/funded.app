@@ -38,6 +38,17 @@ test('slow verification returns truthful pending counts and single-flights concu
   const ready=await f.read();assert.equal(ready.verified,true);assert.equal(calls,1);
 });
 
+test('refresh exposes last verified evidence with explicit stale status and never authorizes from it',async()=>{
+  const gate=deferred();let calls=0;
+  const f=fixture({verify:async()=>++calls===1?proof(1):gate.promise});
+  assert.equal((await f.read()).verified,true);f.setTime(1_060_000);
+  const refreshing=await f.read();assert.equal(refreshing.verified,false);
+  assert.equal(refreshing.refreshing,true);assert.equal(refreshing.lastVerified.fresh,false);
+  assert.equal(refreshing.lastVerified.checked,1);
+  f.input.identity.build='changed';const changed=await f.read();assert.equal(changed.lastVerified,undefined);
+  gate.resolve(proof(1));await tick();
+});
+
 test('every relevant record/config change invalidates a previously verified result',async()=>{
   const mutations=[
     f=>f.input.state.collections.a.collectedLamports++,

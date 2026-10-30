@@ -115,5 +115,5 @@ export function startV3HolderRewardWorker({ solanaCluster, solanaRpcUrl,
   };
   scheduleTimeout(() => { void tick(); }, 5_000).unref();
   scheduleInterval(() => { void tick(); }, 60_000).unref();
-  return true;
+  return { tick };
 }

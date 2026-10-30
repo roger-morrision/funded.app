@@ -18,7 +18,8 @@ export function createBuybackController(appState) {
       signal?.throwIfAborted();
       if (!response.available || !response.data || response.data.cluster !== 'devnet') throw new Error('Devnet buyback index unavailable.');
       appState.buybackNetworkState = { status:'ready', receipts:Array.isArray(response.data.receipts) ? response.data.receipts : [], pending:Array.isArray(response.data.pending) ? response.data.pending : [], dashboard:response.data.dashboard || null, automationEnabled:response.data.automationEnabled === true,
-        executionReady:response.data.executionReady === true, minimumOrderLamports:response.data.minimumOrderLamports };
+        executionReady:response.data.executionReady === true, minimumOrderLamports:response.data.minimumOrderLamports,
+        budgetSummary:response.data.budgetSummary,lastVerified:response.data.lastVerified,refreshing:response.data.refreshing };
     } catch { signal?.throwIfAborted(); appState.buybackNetworkState = { status:'unavailable', receipts:[], pending:[], dashboard:null }; }
     const dashboard = appState.buybackNetworkState.dashboard;
     for (const prefix of ['home-buyback','buyback-route']) {
@@ -64,6 +65,11 @@ export function createBuybackController(appState) {
               ? `${trigger} aggregate trigger reached · no executable allocation yet`
               : dashboard.triggerReached ? `${trigger} trigger reached · protected execution ready`
                 : `Verified eligible funds · awaiting ${trigger}`;
+      const sizes=appState.buybackNetworkState.budgetSummary;
+      if(eligible&&sizes&&/^\d+$/.test(sizes.orderSizeEligibleLamports)&&/^\d+$/.test(sizes.belowMinimumLamports))
+        note.textContent+=` · Meets order minimum: ${formatSol(BigInt(sizes.orderSizeEligibleLamports))} · Retained below minimum: ${formatSol(BigInt(sizes.belowMinimumLamports))}`;
+      if(!eligible&&appState.buybackNetworkState.lastVerified?.checkedAt)
+        note.textContent+=` · Last verified ${appState.buybackNetworkState.lastVerified.checkedAt}; current verification pending`;
       const progress = eligible && threshold ? Number(lamports > threshold ? threshold : lamports) / Number(threshold) * 100 : 0;
       track.setAttribute('aria-label', trigger ? `Eligible buyback progress toward ${trigger}` : 'Eligible buyback progress unavailable');
       if (threshold) {

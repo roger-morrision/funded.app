@@ -1,4 +1,5 @@
 import { createPublicTradeSharingRoutes } from './routes/public-trade-sharing.mjs';
+import {startApiFinancialWorkerServices} from './api-financial-workers.mjs';
 import { createLaunchSupportRoutes } from './routes/launch-support.mjs';
 import { createReferralActivityRoutes } from './routes/referral-activity.mjs';
 import { createServiceStatusRoutes } from './routes/service-status.mjs';
@@ -114,6 +115,7 @@ publicPostPaths.add('/api/launch-service-quote');
 publicPostPaths.add('/api/listings/quote');
 publicPostPaths.add('/api/x-public-trade-shares/challenge');
 publicPostPaths.add('/api/x-public-trade-shares/consent');
+publicPostPaths.add('/api/trades/finalized');
 
 const solanaCluster = String(process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER || 'devnet').trim();
 const boostPurchasesEnabled = solanaCluster === 'devnet' && String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
@@ -346,11 +348,11 @@ const handleCreatorFeesRoutes = createCreatorFeesRoutes({
   store, solanaCluster, route, solanaRpcUrl, databaseUrl, respond: json,
 });
 const handleV3Routes = createV3Routes({
-  body, store, rewardStore:automaticRewardStore, xSession, walletSignature,
+  body, store, rewardStore:automaticRewardStore, xSession, walletSignature,clientKey,requireAuthorized,
   solanaCluster, solanaRpcUrl, v3AuthorityKeypair, respond:json,
 });
 const handleAdminRoutes = createAdminRoutes({ store, body, respond:json, solanaCluster,
-  solanaRpcUrl, keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair, dailyBonusRuntime });
+  solanaRpcUrl, keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair, dailyBonusRuntime,automaticRewardStore });
 
 const handleDiscoveryRoutes = createDiscoveryRoutes({
   store, solanaCluster, solanaRpcUrl, birdeyeChain, fetchBirdeye, fetchPump, clientKey, respond: json,
@@ -495,7 +497,4 @@ server.headersTimeout = 10_000;
 server.requestTimeout = 30_000;
 server.timeout = 120_000;
 server.listen(port, host, () => console.log(`funded.vip app listening on http://${host}:${port}`));
-const {startApiFinancialWorkerServices}=await import('./api-financial-workers.mjs');
-console.log(JSON.stringify({event:'api-financial-worker-role',...startApiFinancialWorkerServices({
-  solanaCluster,solanaRpcUrl,fundedTokenMint,automaticRewardStore,v3AuthorityKeypair,dailyBonusRuntime,
-})}));
+startApiFinancialWorkerServices({solanaCluster,solanaRpcUrl,fundedTokenMint,automaticRewardStore,v3AuthorityKeypair,dailyBonusRuntime,store});

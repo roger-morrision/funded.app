@@ -4,6 +4,7 @@ import { pausedFeeCollectionMints } from '../server/fee-collection-pause.mjs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import { createWorkerLifecycle, WorkerStoppingError } from './worker-lifecycle.mjs';
+import { createTradeWakePoll } from './trade-wake-poll.mjs';
 
 const heartbeat = join(tmpdir(),'funded-fee-collector-status.json');
 const intervalMs = Math.max(60_000, Number(process.env.FUNDED_FEE_COLLECTION_TICK_MS || 300_000));
@@ -15,6 +16,7 @@ if (process.argv.includes('--check')) {
 } else {
   if (process.env.SOLANA_CLUSTER !== 'devnet') throw new Error('Automatic Pump fee collection is Devnet only.');
   const lifecycle = createWorkerLifecycle({ name:'fee-collector' });
+  const shouldRun = createTradeWakePoll({intervalMs});
   try {
   const pausedMints=pausedFeeCollectionMints();
   const token = (await readFile(process.env.FUNDED_API_TOKEN_FILE, 'utf8')).trim();
@@ -51,12 +53,15 @@ if (process.argv.includes('--check')) {
     console.log(JSON.stringify(status));
   }
   while (!lifecycle.stopped) {
+    if(!process.argv.includes('--once')&&!await shouldRun(()=>request('/api/automation/wakeup'))){
+      await lifecycle.wait(5000);continue;
+    }
     try { await tick(); }
     catch (error) { if (!(error instanceof WorkerStoppingError)) {
       console.error(`Fee collector: ${String(error.message || error)}`); if(process.argv.includes('--once'))process.exitCode=1;
     } }
     if(process.argv.includes('--once') || lifecycle.stopped)break;
-    await lifecycle.wait(intervalMs);
+    await lifecycle.wait(5000);
   }
   } finally { lifecycle.dispose(); }
 }

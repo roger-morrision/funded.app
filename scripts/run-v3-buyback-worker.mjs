@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { shouldAttemptV3Buyback } from '../server/v3-buyback-worker-policy.mjs';
 import { createWorkerLifecycle, WorkerStoppingError } from './worker-lifecycle.mjs';
+import { createTradeWakePoll } from './trade-wake-poll.mjs';
 
 if (process.env.SOLANA_CLUSTER !== 'devnet') throw new Error('Automatic V3 buyback worker is Devnet-only.');
 const endpoint = new URL(process.env.FUNDED_INTERNAL_APP_URL || 'http://app:8787');
@@ -10,6 +11,7 @@ const token = String(process.env.FUNDED_API_TOKEN || (process.env.FUNDED_API_TOK
 if (!token) throw new Error('Automatic V3 buyback worker requires internal API authorization.');
 const retryAt = new Map();
 const lifecycle = createWorkerLifecycle({ name:'v3-buyback-worker' });
+const shouldRun = createTradeWakePoll({intervalMs:60_000});
 
 async function request(path, method = 'GET') {
   lifecycle.assertRunning();
@@ -23,7 +25,7 @@ async function request(path, method = 'GET') {
 
 async function tick() {
   if (process.env.FUNDED_V3_BUYBACK_ENABLED !== 'true') return false;
-  const { status, result } = await request('/api/buyback/status');
+  const { status, result } = await request('/api/buyback/status?wait=worker');
   if (status !== 200 || result.cluster !== 'devnet') throw new Error('Buyback status unavailable.');
   const pending = Array.isArray(result.pending) ? result.pending : [];
   let attemptFailed = false;
@@ -52,6 +54,11 @@ async function tick() {
 try {
 await lifecycle.wait(10_000);
 while (!lifecycle.stopped) {
+  if(!await shouldRun(async()=>{
+    const response=await request('/api/automation/wakeup');
+    if(response.status!==200)throw new Error('Wake-up state unavailable.');
+    return response.result;
+  })) {await lifecycle.wait(5000);continue;}
   let heartbeat = 'failed';
   try { heartbeat = await tick() ? 'ready' : 'degraded'; }
   catch (error) { if (!(error instanceof WorkerStoppingError)) console.error(JSON.stringify({ event:'v3_buyback_worker_error',
@@ -64,6 +71,6 @@ while (!lifecycle.stopped) {
   }
   catch (error) { console.error(JSON.stringify({ event:'v3_buyback_worker_heartbeat_error',
     reason:String(error.message || error).slice(0,240) })); }
-  await lifecycle.wait(60_000);
+  await lifecycle.wait(5000);
 }
 } finally { lifecycle.dispose(); }

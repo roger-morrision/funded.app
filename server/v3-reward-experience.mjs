@@ -104,7 +104,8 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
       signature:payout.signature, amountLamports:payout.amountLamports, at:payout.paidAt,
       label:`${payout.kind} reward paid`, feeSourceVerified:true });
     const burns = Object.entries(state.v3BuybackOrders || {}).filter(([source, row]) =>
-      sourceSignatures.has(source) && row.status === 'finalized' && row.finalized === true
+      (sourceSignatures.has(source)||row.mint===mint&&row.sourceKind==='aggregate-collections'
+        &&row.sourceBudgets?.every(budget=>sourceSignatures.has(budget.source))) && row.status === 'finalized' && row.finalized === true
       && row.vaultDebitVerified === true && row.burnInstructionVerified === true);
     for (const [, row] of burns) if (SIGNATURE.test(String(row.signature || '')))
       events.push({ mint, kind:'buyback-burned', signature:row.signature,

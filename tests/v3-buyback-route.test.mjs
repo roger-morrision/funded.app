@@ -9,13 +9,14 @@ import { deriveMintVaultsV3 } from '../mint-router-v3.js';
 import { v3AllocationPlan } from '../server/v3-allocation-plan.mjs';
 import { V3_DEVNET_FUNDED_MINT, V3_DEVNET_FUNDED_POOL } from '../server/v3-buyback-instruction.mjs';
 import { createV3BuybackRoutes } from '../server/routes/v3-buyback.mjs';
+import {v3BuybackSourceSpent} from '../server/v3-buyback-orders.mjs';
 
 const key=byte=>Keypair.fromSeed(new Uint8Array(32).fill(byte));
 const creator=key(41),authority=key(42),program=key(43),mint=key(44);
 const signature='3'.repeat(64),settlementSignature='4'.repeat(64);
 const programId=program.publicKey.toBase58(), mintAddress=mint.publicKey.toBase58();
 
-function fixture(enabled=true, triggerReached=true) {
+function fixture(enabled=true, triggerReached=true, aggregation=false) {
   let currentTrigger=triggerReached;
   let proofAvailable=true,signatureOutcome=null,balance=4000000000,fee=5000,submitted=0;
   const vault=deriveMintVaultsV3(programId,mintAddress)[6];
@@ -50,6 +51,7 @@ function fixture(enabled=true, triggerReached=true) {
       collectionSignature:signature,settlementSignature,allocationPlan:plan}},
     v3BuybackOrders:{}};
   const responses=[];
+  const proofs={[settlementSignature]:settlement};
   const lookupAddress=key(120).publicKey;
   const connection={getAddressLookupTable:async()=>({value:{key:lookupAddress,
     state:{addresses:addresses.filter(address=>!address.equals(vault))}}}),
@@ -61,12 +63,13 @@ function fixture(enabled=true, triggerReached=true) {
     solanaCluster:'devnet',solanaRpcUrl:'https://unused.invalid',
     v3AuthorityKeypair:()=>authority,respond:(_res,status,data)=>responses.push({status,data}),
     env:{FUNDED_V3_BUYBACK_ENABLED:enabled?'true':'false',
+      FUNDED_V3_BUYBACK_AGGREGATION_ENABLED:aggregation?'true':'false',
       FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId,
       FUNDED_V3_PROGRAM_DATA_SHA256:'a'.repeat(64),
       FUNDED_V3_BUYBACK_LOOKUP_TABLE:lookupAddress.toBase58()},
     originAllowed:()=>true,connectionFactory:()=>connection,
     verifyReadiness:async()=>({ready:true,configuredRouter:'router-fixture'}),
-    loadSettlement:async()=>settlement,
+    loadSettlement:async input=>proofs[input.signature],
     quote:async({budgetLamports})=>({pumpBuyInstruction,baseTokenProgram:TOKEN_PROGRAM_ID,
       spendableQuoteIn:String(BigInt(budgetLamports)<3n?budgetLamports:'3'),
       minBaseAmountOut:'1',maxTotalDebit:String(budgetLamports)}),
@@ -75,12 +78,32 @@ function fixture(enabled=true, triggerReached=true) {
       vaultDebitVerified:true,burnInstructionVerified:true}):null,
     readDashboard:async()=>({status:'verified',triggerReached:currentTrigger}),
     submit:async({transaction})=>{submitted++;return bs58.encode(transaction.signatures[0]);}});
-  return {state,responses,setTrigger:value=>{currentTrigger=value;},
+  return {state,responses,proofs,setTrigger:value=>{currentTrigger=value;},
     setBalance:value=>{balance=value;},setFee:value=>{fee=value;},get submitted(){return submitted;},
     setProof:value=>{proofAvailable=value;},setSignatureOutcome:value=>{signatureOutcome=value;},
     request:(input,source=signature)=>route({method:'POST',input,headers:{}},{},
       new URL(`/api/tokens/${mintAddress}/v3-buyback/${source}`,'https://funded.vip'))};
 }
+
+test('same-mint aggregation freezes exact source budgets and attributes a partial atomic debit once',async()=>{
+  const f=fixture(true,true,true),launch=f.state.launches[mintAddress];
+  for(const [source,settledSignature] of [[signature,settlementSignature],['5'.repeat(64),'6'.repeat(64)]]){
+    const original=f.state.collections[signature];
+    f.state.collections[source]={...original,signature:source,collectedLamports:100000};
+    const proof={...f.proofs[settlementSignature],signature:settledSignature,expectedLamports:'100000',
+      categoryLamports:['80000','10000','2000','1000','0','2000','5000']};
+    f.proofs[settledSignature]=proof;
+    f.state.v3Settlements[source]={status:'finalized',mint:mintAddress,collectionSignature:source,
+      settlementSignature:settledSignature,allocationPlan:v3AllocationPlan({launch,settlement:{...proof,
+        programId,collectionSignature:source,settlementSignature:settledSignature}})};
+  }
+  await f.request({},'aggregate');assert.equal(f.responses.at(-1).status,200);
+  const order=f.state.v3BuybackOrders[`aggregate:${mintAddress}`];
+  assert.equal(order.sourceBudgets.length,2);assert.equal(order.spentLamports,'3');
+  assert.equal(v3BuybackSourceSpent(f.state,signature,programId),3n);
+  assert.equal(v3BuybackSourceSpent(f.state,'5'.repeat(64),programId),0n);
+  assert.equal(f.submitted,1);
+});
 
 test('V3 buyback cannot prepare while the Devnet pilot gate is off',async()=>{
   const f=fixture(false);await f.request({});

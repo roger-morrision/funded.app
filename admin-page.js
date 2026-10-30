@@ -1,4 +1,5 @@
 import { Buffer } from 'buffer';
+import {refreshFinancialHealth} from './admin-financial-health.js';
 import { initAdminDailyBonus } from './admin-daily-bonus.js';
 import { initAdminServiceFees } from './admin-service-fees.js';
 import {initAdminResiduals} from './admin-residuals.js';
@@ -117,7 +118,7 @@ function feeTotal() {
 async function refresh() {
   [policy, overview] = await Promise.all([api('/api/fee-policy'), api('/api/admin/overview')]);
   renderPolicy(); renderSummary(); renderWallets(); renderGates();
-  await Promise.all([refreshAudit(),dailyBonusRecovery.refresh()]);
+  await Promise.all([refreshAudit(),dailyBonusRecovery.refresh(),refreshFinancialHealth({api})]);
 }
 async function refreshAudit() {
   const result = await api('/api/admin/audit');

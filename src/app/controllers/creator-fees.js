@@ -1,3 +1,4 @@
+import {creatorPayoutActions,creatorActionPath,approveCreatorPayoutBatch} from '../../features/fees/creator-payout-actions.js';
 // Dependencies and mutable application state are read live through appState.
 export function createCreatorFeesController(appState) {
   // app-source: 901
@@ -38,6 +39,7 @@ export function createCreatorFeesController(appState) {
     }
     const signingWallet = Boolean(appState.wallet && !appState.wallet.readOnly
       && typeof appState.wallet.signTransaction === 'function');
+    const batch=[];
     for (const row of collections) {
       const section = document.createElement('section'); section.className = 'coin-creator-claim';
       const summary = document.createElement('div');
@@ -58,6 +60,7 @@ export function createCreatorFeesController(appState) {
       for (const [path, gate, label] of actions) {
         const button = document.createElement('button'); button.type = 'button';
         button.textContent = row[gate] === 'finalized' ? `${label} · finalized` : label;
+        if(row[gate]==='verification-pending')button.textContent=`Check pending ${label.toLowerCase()}`;
         let payable = true;
         if (path !== 'settlement') {
           try {
@@ -77,7 +80,26 @@ export function createCreatorFeesController(appState) {
         if (!button.disabled) button.onclick = () => { void requestV3FeeAction(button, path, row.signature); };
         section.append(button);
       }
+      for(const action of creatorPayoutActions(row)) {
+        const extra=!['community-funding','creator-reward-funding','creator-wallet-payout'].includes(action.action);
+        const payable=/^[1-9]\d*$/.test(String(action.amount));
+        const enabled=signingWallet&&overview.gates?.[action.gate]===true&&!action.finalized&&payable;
+        if(enabled)batch.push({...action,source:row.signature});
+        if(!extra||!payable&&!action.finalized)continue;
+        const button=document.createElement('button');button.type='button';
+        button.textContent=action.finalized?`${action.label} · finalized`:action.label;
+        const status=action.action.startsWith('referral-payout/')?row.referralPayouts?.[Number(action.action.split('/')[1])-1]:row[action.gate];
+        if(status==='verification-pending')button.textContent=`Check pending ${action.label.toLowerCase()}`;
+        button.disabled=!enabled;
+        if(enabled)button.onclick=()=>{void requestV3FeeAction(button,action.action,row.signature);};
+        section.append(button);
+      }
       root.append(section);
+    }
+    if(batch.length>1&&typeof appState.wallet?.signAllTransactions==='function'){
+      const button=document.createElement('button');button.type='button';
+      button.textContent=`Review and approve next ${Math.min(3,batch.length)} payouts`;
+      button.onclick=()=>{void approveCreatorPayoutBatch(appState,button,batch);};root.append(button);
     }
   }
   // app-source-end
@@ -93,14 +115,15 @@ export function createCreatorFeesController(appState) {
     }
     const collection = overview.collections?.find(row => row.signature === collectionSignature);
     const gate = { settlement:'settlement', 'community-funding':'communityFunding',
-      'creator-reward-funding':'creatorRewardFunding', 'creator-wallet-payout':'creatorWalletPayout' }[action];
+      'creator-reward-funding':'creatorRewardFunding', 'creator-wallet-payout':'creatorWalletPayout',
+      'operations-payout':'operationsPayout','referral-payout':'referralPayout' }[action.split('/')[0]];
     if (!collection || !gate || overview.gates?.[gate] !== true) return;
     appState.creatorClaimsInFlight.add(mint);
     const originalLabel = button.textContent;
     try {
       button.disabled = true;
       button.textContent = 'Reviewing V3 transaction…';
-      const path = `/api/tokens/${encodeURIComponent(mint)}/v3-${action}/${encodeURIComponent(collectionSignature)}`;
+      const path = creatorActionPath(mint,collectionSignature,action);
       const prepared = await appState.apiRequest(path, { method:'POST', body:{} });
       appState.assertWalletSessionCurrent(session);
       if (prepared.data?.status === 'finalized') {

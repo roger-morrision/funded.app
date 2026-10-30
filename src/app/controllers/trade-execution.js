@@ -209,6 +209,9 @@ export function createTradeExecutionController(appState) {
       const evidence = appState.assessTradeCompletion({ transaction:receipt.status === 'fulfilled' ? receipt.value : null,
         marketActivity:market.status === 'fulfilled' && market.value.available ? market.value.data : null,
         wallet:pending.walletAddress, mint:pending.mint, side:pending.side, signature:pending.signature });
+      if(evidence.receiptVerified)void appState.apiRequest('/api/trades/finalized', {method:'POST',body:{
+        signature:pending.signature,mint:pending.mint,wallet:pending.walletAddress},
+        signal:AbortSignal.timeout(15000)}).catch(()=>{});
       if (!evidence.complete) {
         const reason = !evidence.receiptVerified ? 'Finalized token balance change is not verified yet.' : 'Matching trade row is not indexed yet.';
         appState.pendingTradeVerifications.delete(pending.signature);

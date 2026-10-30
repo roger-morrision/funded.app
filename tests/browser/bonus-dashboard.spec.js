@@ -156,10 +156,10 @@ async function bonusOwnershipFixture(page, width, initial = [bonusReceipt()]) {
   const readonly = new Set(['getGenesisHash','getAccountInfo','getMultipleAccounts','getBalance','getLatestBlockhash',
     'getSignatureStatuses','getSlot','getBlockHeight','getTokenAccountsByOwner','getTokenLargestAccounts','getProgramAccounts']);
   let pending;
-  f.hold = () => {
+  f.hold = ({notBefore=0} = {}) => {
     expect(pending).toBeUndefined(); let release, start, done;
     const gate = { ready:new Promise(resolve => { start = resolve; }), wait:new Promise(resolve => { release = resolve; }),
-      release:() => release(), completed:new Promise(resolve => { done = resolve; }), done, start, status:200, snapshot:null };
+      release:() => release(), completed:new Promise(resolve => { done = resolve; }), done, start, status:200, snapshot:null,notBefore };
     pending = gate; f.gates.push(gate); return gate;
   };
   await page.setViewportSize({ width, height:width < 700 ? 844 : 900 });
@@ -188,7 +188,8 @@ async function bonusOwnershipFixture(page, width, initial = [bonusReceipt()]) {
     if (url.pathname === '/api/fee-policy') return route.fulfill({ json:{ split:PROTOCOL_FEE_SPLIT } });
     if (url.pathname !== '/api/daily-bonus/dashboard') return route.fulfill({ status:503, json:{ error:'Local read unavailable' } });
     const category = url.searchParams.get('category'), pageNumber = Number(url.searchParams.get('page'));
-    const gate = pending; pending = undefined;
+    const gate = pending && Date.now() >= pending.notBefore ? pending : undefined;
+    if(gate)pending = undefined;
     if (gate) { gate.request = { category, page:pageNumber }; gate.start(); await gate.wait; }
     try {
       if (gate?.status !== undefined && gate.status !== 200) return await route.fulfill({ status:gate.status, json:{ error:'Controlled unavailable dashboard' } });
@@ -355,7 +356,10 @@ test.describe('FQA-071 original bonus history ownership', () => {
       try {
         await f.open(); const original = await nativeBonusRecipient(page, info, 1);
         const row = await original.evaluateHandle(element => element.closest('tr'));
-        const gate = f.hold(); await gate.ready; // Actual unmodified30s background GET; no browser clock override.
+        // Native selector/visibility events can have an earlier refresh in
+        // flight. Capture the scheduled window without changing browser time.
+        const firstRead=f.requests.find(request=>request.path==='/api/daily-bonus/dashboard');
+        const gate = f.hold({notBefore:firstRead.at+28000}); await gate.ready;
         const dashboard = f.requests.filter(request => request.path === '/api/daily-bonus/dashboard');
         expect(dashboard.at(-1).at - dashboard[0].at).toBeGreaterThanOrEqual(28000);
         expect(gate.request).toEqual({ category:'all', page:1 });

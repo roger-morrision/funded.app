@@ -3,10 +3,15 @@ import { ComputeBudgetProgram, PublicKey, TransactionMessage,
   VersionedTransaction } from '@solana/web3.js';
 
 export function prepareV3BuybackTransaction({ instruction, authority,
-  blockhash, lookupTable, setupInstructions=[] }) {
+  blockhash, lookupTable, setupInstructions=[],computeUnitLimit=350_000,computeUnitPriceMicroLamports=0 }) {
+  if(!Number.isSafeInteger(computeUnitLimit)||computeUnitLimit<10000||computeUnitLimit>1400000
+    ||!Number.isSafeInteger(computeUnitPriceMicroLamports)||computeUnitPriceMicroLamports<0)
+    throw new Error('Invalid buyback compute budget.');
   const message=new TransactionMessage({ payerKey:new PublicKey(authority),
     recentBlockhash:blockhash, instructions:[
-      ComputeBudgetProgram.setComputeUnitLimit({ units:350_000 }), ...setupInstructions, instruction,
+      ComputeBudgetProgram.setComputeUnitLimit({ units:computeUnitLimit }),
+      ...(computeUnitPriceMicroLamports?[ComputeBudgetProgram.setComputeUnitPrice({microLamports:computeUnitPriceMicroLamports})]:[]),
+      ...setupInstructions, instruction,
     ] })
     .compileToV0Message([lookupTable]);
   const transaction=new VersionedTransaction(message);

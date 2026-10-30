@@ -33,7 +33,7 @@ const ipLimit = (map, key, limit, windowMs) => {
   return count <= limit;
 };
 
-export function createAdminRoutes({ store, body, respond, solanaCluster, solanaRpcUrl,
+export function createAdminRoutes({ store, body, respond, solanaCluster, solanaRpcUrl, automaticRewardStore,
   keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair, dailyBonusRuntime, env = process.env,
   connectionFactory = url => new Connection(url, 'finalized'),
   verifyResidualReadiness = verifyV3LaunchRouterReadiness,
@@ -128,6 +128,10 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
     }
     const session = currentSession(req);
     if (!session) return json(res, 401, { error:'Sign in with the configured admin wallet.' });
+    if(req.method==='GET'&&path==='/api/admin/financial-health'){
+      const health=(await automaticRewardStore?.read?.())?.financialFlowHealth;
+      return health?json(res,200,health):json(res,503,{error:'Financial monitoring is warming up.'});
+    }
     if(await handleAdminXPosts({req,res,url,body,respond,session,env}))return true;
     if(path==='/api/admin/agency-rules' && ['GET','POST'].includes(req.method)){
       try{
