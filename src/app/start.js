@@ -1,4 +1,5 @@
 import { initializeInitialState } from './startup/initial-state.js';
+import { initializeProductFlows } from '../features/experience/index.js';
 import { initializeConnections } from './startup/connections.js';
 import { initializeLaunchPolicy } from './startup/launch-policy.js';
 import { initializeReferrals } from './startup/referrals.js';
@@ -83,4 +84,5 @@ export async function startApp(appState) {
   initializeCoinNavigation(appState);
   initializeCoinChat(appState);
   initializeRewardIdentity(appState);
+  initializeProductFlows(appState);
 }

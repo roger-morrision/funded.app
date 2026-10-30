@@ -9,6 +9,7 @@ import { rewardAddresses, rewardReserveAddress, DEVNET_GENESIS_HASH } from '../s
 import { createPaymentHistoryReader } from '../server/payment-history.mjs';
 import { v3PublicMetrics } from '../server/v3-public-metrics.mjs';
 import { dailyPaymentCandidates, dailyPaymentHistory } from '../server/daily-bonus-payment-history.mjs';
+import { financialReceipt,financialOperations } from '../server/product-insights.mjs';
 
 const keys=Array.from({length:7},(_,i)=>Keypair.fromSeed(Buffer.alloc(32,i+120)));
 const [program,authority,mint,creator,recipient]=keys.map(k=>k.publicKey.toBase58());
@@ -70,6 +71,24 @@ function fixture({recovered=false,self=false,qa=false,cohort=false,settlementTim
     connectionFactory:()=>connection,officialGenesis:async()=>DEVNET_GENESIS_HASH,cluster:'devnet',v3Only:true})();
   return {read,ledger,app,tx,accounts,addresses,cycle,receipt,reads,connection,leaf,paid,wallet,rent,fee};
 }
+
+test('recorded exact bonus receipts require matching source funding and immutable payout amounts',()=>{
+  const f=fixture();const result=financialReceipt(f.app,f.ledger,'devnet',f.paid);
+  assert.equal(result.currentRpcRecheck,false);assert.equal(result.events[0].kind,'bonus-paid');assert.equal(result.recipients[0].wallet,f.wallet);assert.equal(result.recipients[0].amountLamports,f.leaf.amount);
+  assert.match(result.coverage,/Recorded finalized/);
+  const mutations=[
+    g=>{Object.values(g.app.v3CommunityFunding)[0].amount='1';},g=>{Object.values(g.app.v3CommunityFunding)[0].signature=signature(12);},
+    g=>{Object.values(g.app.collections)[0].programId=authority;},g=>{Object.values(g.app.v3Settlements)[0].settlementSignature=signature(13);},
+    g=>{Object.values(g.app.launches)[0].cluster='mainnet-beta';},g=>{Object.values(g.app.launches)[0].feeDistribution.fixedFunded.communityRewards.dailyBonus.version=2;},
+    g=>{Object.values(Object.values(g.ledger.dailyBonusSnapshots['2026-10-17'].payouts)[0].payments)[0].amount='1';}];
+  for(const mutate of mutations){const g=fixture();mutate(g);assert.equal(financialReceipt(g.app,g.ledger,'devnet',g.paid),null);}
+});
+test('bonus delivery timing excludes unknown timestamps and counts verified funding-to-payment samples',()=>{
+  const f=fixture(),funded=Object.values(f.app.v3CommunityFunding)[0],payment=Object.values(Object.values(f.ledger.dailyBonusSnapshots['2026-10-17'].payouts)[0].payments)[0];
+  assert.equal(financialOperations(f.app,f.ledger,'devnet').timing.fundedToVerifiedBonusPayment.samples,0);
+  funded.finalizedAt='2026-10-18T00:00:00Z';payment.paidAt='2026-10-18T00:01:00Z';
+  assert.equal(financialOperations(f.app,f.ledger,'devnet').timing.fundedToVerifiedBonusPayment.medianSeconds,60);
+});
 
 for(const cohort of [false,true])test(`five-minute QA manifests retain independent finalized payment verification (cohort=${cohort})`,async()=>{
   const f=fixture({qa:true,cohort}),history=await f.read();

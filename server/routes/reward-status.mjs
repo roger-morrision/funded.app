@@ -12,6 +12,7 @@ import { workerHeartbeatHealth } from '../worker-readiness.mjs';
 import {aggregatePendingBuybacks} from '../v3-buyback-aggregate.mjs';
 import {buybackExecutionPolicy,buybackAgeEligible} from '../v3-buyback-execution-policy.mjs';
 import {allocationAuditHash} from '../allocation-audit-hash.mjs';
+import { createProductInsightsRoutes } from './product-insights.mjs';
 
 function pendingV3Buybacks(state, programId) {
   if (!programId) return [];
@@ -125,6 +126,7 @@ export function createRewardStatusRoutes({
   now = () => Date.now(), statusTimeoutMs = 1_000,
 }) {
   const json = (...args) => { respond(...args); return true; };
+  const insights = createProductInsightsRoutes({store,automaticRewardStore,solanaCluster,clientKey,respond,solanaRpcUrl});
   let buybackSnapshot = null;
   const buybackReads = new Map();
   const rawBuybackReads=new Set();
@@ -234,6 +236,7 @@ export function createRewardStatusRoutes({
     return {program,dashboard};
   }
   return async function handleRewardStatusRoutes(req, res, url) {
+    if (await insights(req,res,url)) return true;
     if (req.method === 'POST' && url.pathname === '/api/buyback/worker-heartbeat') {
       if (!requireAuthorized) return json(res, 503, { error:'Worker authorization is unavailable.' });
       if (!requireAuthorized(req,res)) return true;

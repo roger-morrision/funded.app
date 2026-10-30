@@ -50,6 +50,10 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
         allocationPlan:settled?.status === 'finalized' ? settled.allocationPlan : null,
         communityFunding:state.v3CommunityFunding?.[row.signature]?.status || 'pending',
         creatorRewardFunding:state.v3CreatorRewardFunding?.[row.signature]?.status || 'pending',
+        communityFundingVerified:state.v3CommunityFunding?.[row.signature]?.status === 'finalized'
+          && state.v3CommunityFunding[row.signature].balanceDeltaVerified === true,
+        creatorRewardFundingVerified:state.v3CreatorRewardFunding?.[row.signature]?.status === 'finalized'
+          && state.v3CreatorRewardFunding[row.signature].balanceDeltaVerified === true,
         creatorWalletPayout:payout?.status || 'pending', creatorWalletPayoutVerified:payoutVerified,
         operationsPayout:state.v3OperationsPayout?.[row.signature]?.status || 'pending',
         referralPayouts:[1,2,3].map(level=>state.v3ReferralPayouts?.[`${row.signature}:${level}`]?.status||'pending'),

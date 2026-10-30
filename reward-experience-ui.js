@@ -324,7 +324,8 @@ async function refresh({ force = false } = {}) {
   ]);
   if (current !== refreshToken) return;
   latest = experience.status === 'fulfilled' ? experience.value : null;
-  document.querySelectorAll('[data-reward-evidence]').forEach(element => { element.textContent = latest?.evidence?.status === 'onchain-indexed' ? 'Payments checked' : latest?.evidence?.status === 'partial' ? 'Some payment history is missing' : latest?.evidence?.status === 'no-records' ? 'No confirmed payments yet' : 'Unable to check payments'; });
+  if (!scoped) window.dispatchEvent(new CustomEvent('funded:financial-experience', {detail:latest}));
+  document.querySelectorAll('[data-reward-evidence]').forEach(element => { element.textContent = latest?.evidence?.status === 'recorded-finalized-v3' ? 'Recorded finalized V3 evidence' : latest?.evidence?.status === 'onchain-indexed' ? 'Payments checked' : latest?.evidence?.status === 'partial' ? 'Some payment history is missing' : latest?.evidence?.status === 'no-records' ? 'No confirmed payments yet' : 'Unable to check payments'; });
   renderPortfolio(latest, referrals.status === 'fulfilled' ? referrals.value : null, xClaims.status === 'fulfilled' ? xClaims.value : null);
   renderDiscovery(scoped ? null : latest);
   renderBuybacks(buybacks.status === 'fulfilled' ? buybacks.value : null);

@@ -39,6 +39,8 @@ export default defineConfig(({ mode }) => {
     }],
     optimizeDeps: { entries: ['index.html'] },
     server: {
+      // Trace HTML and generated evidence must not reload an active app or test page.
+      watch: { ignored:['**/tmp/**', '**/test-results/**', '**/playwright-report/**'] },
       // Keep the browser Host so OAuth callback inference and exact-origin POST checks
       // use the Vite origin that owns the session cookie.
       proxy: apiProxy,

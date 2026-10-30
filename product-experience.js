@@ -117,9 +117,9 @@ function launch() {
 function portfolio() {
   const root = $('#my-launches');
   const heading = $('.portfolio-launches-heading');
-  const grid = heading?.nextElementSibling;
+  const grid = root?.querySelector(':scope > .role-grid');
   const bar = $('.portfolio-view-tabs');
-  if (root && heading && grid?.matches('.role-grid') && bar) {
+  if (root && heading && grid && bar && !$('#portfolio-created-tab')) {
     const panel = document.createElement('section');
     panel.id = 'portfolio-created-panel'; panel.className = 'portfolio-tab-panel'; panel.hidden = true;
     panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', 'portfolio-created-tab'); panel.tabIndex = 0;

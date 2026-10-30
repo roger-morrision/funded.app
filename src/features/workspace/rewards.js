@@ -61,6 +61,7 @@ export function rewards() {
     historyLocation=location.href;
     if (location.hash==='#payments/history') select('history');
     else if (location.hash==='#payments/holders') select('holder');
+    else if (location.hash==='#payments/activity') select('overview');
   };
   window.addEventListener('funded:route-change',syncHistoryRoute);
   window.addEventListener('hashchange',syncHistoryRoute);

@@ -8,6 +8,7 @@ const schemaPath = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 
 const buckets = ['launches', 'listings', 'listingQuotes', 'boostQuotes', 'boostReceipts', 'launchTierQuotes', 'xPublicTradeShares', 'settlements', 'v3Settlements', 'v3CommunityFunding', 'v3CreatorRewardFunding', 'v3CreatorWalletPayout', 'v3ReferralPayouts', 'v3OperationsPayout', 'v3XClaims', 'v3BuybackOrders', 'obligations', 'claims', 'referralClaims', 'payouts', 'collections', 'burnReceipts', 'buybackOrders', 'communityReserveReceipts', 'launchReviews', 'alerts', 'xIntake', 'coinChats', 'shareVisits', 'referralCodes', 'referralWallets', 'referralAttributions', 'referralChallenges'];
 const referralBuckets = { referralCodes: 'codes', referralWallets: 'wallets', referralAttributions: 'attributions', referralChallenges: 'challenges' };
 buckets.push('creatorProfiles');
+buckets.push('productIssues');
 buckets.push('adminSettings', 'adminAudit');
 buckets.push('launchServiceQuotes');
 buckets.push('v3AllocationResidualPlans');
@@ -20,10 +21,11 @@ function baseState() {
   return { version: 4, launches: {}, listings: {}, listingQuotes: {}, boostQuotes: {}, boostReceipts: {}, launchTierQuotes: {}, xPublicTradeShares: {}, settlements: {}, v3Settlements: {}, v3CommunityFunding: {}, v3CreatorRewardFunding: {}, v3CreatorWalletPayout: {}, v3ReferralPayouts: {}, v3OperationsPayout: {}, v3XClaims: {}, v3BuybackOrders: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, coinChats: {}, shareVisits: {}, creatorProfiles: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
 }
 
-function initialState() { return { ...baseState(), adminSettings:{}, adminAudit:{}, launchServiceQuotes:{}, v3AllocationResidualPlans:{}, v3AgencyExecutions:{}, v3AgencyPromotions:{} }; }
+function initialState() { return { ...baseState(), productIssues:{}, adminSettings:{}, adminAudit:{}, launchServiceQuotes:{}, v3AllocationResidualPlans:{}, v3AgencyExecutions:{}, v3AgencyPromotions:{} }; }
 
 function normalizeState(state) {
   const next = { ...initialState(), ...state };
+  next.productIssues ||= {};
   next.adminSettings ||= {};
   next.adminAudit ||= {};
   next.launches ||= {};

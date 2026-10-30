@@ -5,6 +5,7 @@ import { PRODUCT_EVENTS } from '../product-events.js';
 import { analyticsReceiptTotals } from './analytics-summary.mjs';
 import { readJsonBody } from './request-body.mjs';
 import { productTradeReport } from './product-trade-index.mjs';
+import { financialProcessingMetrics } from './financial-processing-metrics.mjs';
 
 export function journeyEvent(input, cluster, now = new Date()) {
   if (!input || Object.keys(input).sort().join(',') !== 'consent,event,session' || input.consent !== true
@@ -62,6 +63,7 @@ export function confirmedProductTotals(state, evidence, cluster) {
   }
   const feesAvailable = ['indexed','partial','no-records'].includes(fees.status);
   return {scope:'stored-verified-registry-and-receipts', cluster,
+    financialProcessing:financialProcessingMetrics(state, cluster),
     registeredLaunches:new Set(Object.values(state.launches || {}).filter(row => row.cluster === cluster && row.onchainVerified === true && row.mint).map(row => row.mint)).size,
     boostScope:'all-stored-finalized-receipts', boostPurchases:signatures.size, boostPaidLamports:boostLamports.toString(),
     feeReceiptStatus:fees.status, feeReceiptScope:fees.receiptScope, feeEvidenceAt:evidence?.generatedAt || null,

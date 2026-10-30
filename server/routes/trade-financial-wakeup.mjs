@@ -6,11 +6,11 @@ import { allowedAuthOrigin } from '../x-auth.mjs';
 import { recordTradeWake, tradeWakeStatus } from '../trade-financial-wakeup.mjs';
 import { financialFlowMonitor } from '../financial-flow-monitor.mjs';
 
-export async function verifyTradeWake({connection,mint,wallet,signature,now=Date.now()}) {
+export async function verifyTradeWake({connection,mint,wallet,signature,now=Date.now(),maxAgeMs=86400_000}) {
   if(await connection.getGenesisHash()!==GENESIS_HASHES.devnet)throw new Error('Wrong network.');
   const tx=await connection.getTransaction(signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
   if(!tx || !Number.isSafeInteger(tx.blockTime) || tx.blockTime*1000>now+30_000
-    || now-tx.blockTime*1000>86400_000)throw new Error('A recent finalized trade is required.');
+    || now-tx.blockTime*1000>maxAgeMs)throw new Error('A recent finalized trade is required.');
   const coder=getPumpAmmProgram(connection).coder.events;
   const rows=walletTradeRows({transaction:tx,wallet,reference:{signature,slot:tx.slot,confirmationStatus:'finalized'},
     decodePoolEvent:coder.decode.bind(coder)});
@@ -21,7 +21,9 @@ export async function verifyTradeWake({connection,mint,wallet,signature,now=Date
     .reduce((sum,row)=>sum+BigInt(row.uiTokenAmount.amount),0n);
   const delta=total(tx.meta.postTokenBalances)-total(tx.meta.preTokenBalances);
   if(trade.side==='buy'?delta<=0n:delta>=0n)throw new Error('Trade balance changes are unavailable.');
-  return trade;
+  const feePayer=(tx.transaction?.message?.staticAccountKeys||tx.transaction?.message?.accountKeys||[])[0];
+  return {...trade,networkFeeLamports:Number.isSafeInteger(tx.meta.fee)&&tx.meta.fee>=0?String(tx.meta.fee):null,
+    feePayer:typeof feePayer==='string'?feePayer:feePayer?.pubkey?.toBase58?.()||feePayer?.toBase58?.()||null};
 }
 
 export function createTradeFinancialWakeRoutes({store,rewardStore,solanaCluster,solanaRpcUrl,

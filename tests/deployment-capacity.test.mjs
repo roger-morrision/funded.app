@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { tmpdir } from 'node:os';
-import { assessCapacity, CAPACITY_THRESHOLDS, containerCapacity, deploymentCapacity, workspaceCapacity } from '../scripts/check-deployment-capacity.mjs';
+import { assessCapacity, CAPACITY_THRESHOLDS, containerCapacity, deploymentCapacity, workspaceCapacity,localDockerHost } from '../scripts/check-deployment-capacity.mjs';
 
 const exact = phase => ({ freeBytes: String(CAPACITY_THRESHOLDS[phase].freeBytes), freeInodes: String(CAPACITY_THRESHOLDS[phase].freeInodes) });
 test('capacity requires both byte and inode reserves with exact phase boundaries', () => {
@@ -37,7 +37,7 @@ test('container capacity reads only the explicit local daemon and preserves regi
   let calls = 0;
   const sample = containerCapacity('existing-app', (command, args, options) => {
     calls++; assert.equal(command, 'docker');
-    assert.deepEqual(args.slice(0, 5), ['--host=unix:///var/run/docker.sock', 'exec', 'existing-app', 'node', '-e']);
+    assert.deepEqual(args.slice(0, 5), [`--host=${localDockerHost()}`, 'exec', 'existing-app', 'node', '-e']);
     assert.match(args[5], /statfsSync/); assert.doesNotMatch(args[5], /write|unlink|rm\(/);
     for (const key of ['DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_TLS', 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH']) assert.equal(options.env[key], undefined);
     assert.equal(options.env.DOCKER_CONFIG, process.env.DOCKER_CONFIG);
@@ -47,6 +47,20 @@ test('container capacity reads only the explicit local daemon and preserves regi
   assert.equal(calls, 1); assert.equal(assessCapacity(sample).ready, true);
   assert.throws(() => containerCapacity('--privileged', () => assert.fail('No Docker call allowed')), /existing application/);
   assert.throws(() => containerCapacity('app;echo secret', () => assert.fail('No shell input allowed')), /existing application/);
+});
+
+test('Windows workspace zero inode fields do not relax Linux/container inode reserves',async()=>{
+  const bytesOnly=()=>({...exact('build'),freeInodes:'0'}),good=()=>exact('build'),options={container:'app',workspace:tmpdir()};
+  const windows=await deploymentCapacity(options,{readWorkspace:bytesOnly,readContainer:good,platform:'win32'});
+  assert.equal(windows.ready,true);assert.equal(windows.samples[0].inodeCheck,'unsupported-on-windows-workspace');assert.equal(windows.samples[1].inodeCheck,undefined);
+  assert.equal((await deploymentCapacity(options,{readWorkspace:bytesOnly,readContainer:good,platform:'linux'})).ready,false);
+  assert.equal((await deploymentCapacity(options,{readWorkspace:good,readContainer:bytesOnly,platform:'win32'})).ready,false);
+  assert.equal((await deploymentCapacity(options,{readWorkspace:()=>({...exact('build'),freeBytes:'0'}),readContainer:good,platform:'win32'})).ready,false);
+});
+
+test('local Docker endpoint selection never uses environment-directed remote hosts',()=>{
+  assert.equal(localDockerHost('win32'),'npipe:////./pipe/dockerDesktopLinuxEngine');assert.equal(localDockerHost('linux'),'unix:///var/run/docker.sock');
+  containerCapacity('app',(command,args)=>{assert.equal(args[0],'--host=npipe:////./pipe/dockerDesktopLinuxEngine');return JSON.stringify(exact('build'));},{platform:'win32'});
 });
 test('actual workspace statfs yields exact decimal readings and reports nonexistent paths', async () => {
   const result = await workspaceCapacity(tmpdir());

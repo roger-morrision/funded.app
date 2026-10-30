@@ -94,6 +94,18 @@ test('audited residual plans survive ledger serialization and a separate read wi
   assert.deepEqual(rows.map(row=>row.bucket),['v3AllocationResidualPlans']);
 });
 
+test('private product reports survive ledger serialization and independent repository reads',async()=>{
+  const rows=[],db=database((sql,args)=>{
+    if(sql==='SELECT bucket, entity_key, payload FROM state_entities')return {rows:structuredClone(rows),rowCount:rows.length};
+    if(sql.startsWith('INSERT INTO state_entities'))rows.push({bucket:args[0],entity_key:args[1],payload:JSON.parse(args[2])});
+    return {rows:[],rowCount:0};
+  });
+  const report={id:'a'.repeat(32),status:'received',tokenHash:'b'.repeat(64)};
+  await createLedgerRepository(db).update(state=>{state.productIssues[report.id]=report;});
+  assert.deepEqual((await createLedgerRepository(db).read()).productIssues[report.id],report);
+  assert.deepEqual(rows.map(row=>row.bucket),['productIssues']);
+});
+
 test('chat append still delegates through the composed repository and bounds retained messages', async () => {
   const messages = [{ id: 1 }, { id: 2 }];
   const db = database(sql => ({ rows: sql.startsWith('SELECT payload FROM state_entities') ? [{ payload: messages }] : [], rowCount: 0 }));

@@ -55,7 +55,7 @@ import { createStore } from './store.mjs';
 import { rewardLedgerPath } from './reward-ledger-path.mjs';
 
 import { createProductMetricsStore, createProductMetricsHandler, confirmedProductTotals } from './product-metrics.mjs';
-
+import { financialOperations } from './product-insights.mjs';
 
 import { createCreatorSupportHandler } from './creator-support.mjs';
 import { createWatchlistHandler } from './watchlists.mjs';
@@ -272,7 +272,7 @@ const readPaymentHistory = createPaymentHistoryReader({ readEvidence:readFinaliz
   officialGenesis:() => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash(), v3Only:true });
 
 const handleWatchlist = createWatchlistHandler({ store, cluster: solanaCluster, getSession: xSession, getWalletSession: referralSession });
-const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solanaCluster, getSession: xSession, readEvidence: readReceiptEvidence, readFinalizedEvidence,
+const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solanaCluster, getSession: xSession, readEvidence: readReceiptEvidence, readFinalizedEvidence, requireAuthorized,
   capabilities: async () => ({ version: CREATOR_SUPPORT_VERSION, build: process.env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
     cluster: solanaCluster, creatorPages: true, creatorIdentity: Boolean(process.env.X_CLIENT_ID && process.env.X_CLIENT_SECRET),
     sessions: { storage: databaseUrl ? 'postgresql' : 'local-file-single-process', absoluteLifetimeSeconds: SESSION_SECONDS },
@@ -289,8 +289,8 @@ const handleProductMetrics = createProductMetricsHandler({metrics:productMetrics
   origin:process.env.PUBLIC_APP_URL || process.env.CORS_ORIGIN || '', authorized,
   charge:req => store.chargeRpcRate(`journey:${clientKey(req)}`,1,30,Math.floor(Date.now()/60000)*60000),
   confirmedTotals:async () => {
-    const [state,evidence] = await Promise.all([store.read(),readFinalizedEvidence()]);
-    return {...confirmedProductTotals(state,evidence,solanaCluster),tradingActivity:await productMetrics.trades(solanaCluster)};
+    const [state,evidence,rewards] = await Promise.all([store.read(),readFinalizedEvidence(),automaticRewardStore.read().catch(()=>null)]);
+    return {...confirmedProductTotals(state,evidence,solanaCluster),financialProcessing:financialOperations(state,rewards,solanaCluster).timing,tradingActivity:await productMetrics.trades(solanaCluster)};
   },
 });
 
@@ -393,7 +393,7 @@ async function handle(req, res) {
   catch { throw invalidRequest('Invalid request URL.'); }
   const metadataHost = String(req.headers.host || '').split(':')[0].toLowerCase() === 'metadata.funded.vip';
   if (metadataHost && (req.method !== 'GET' || !/^\/(?:devnet-metadata|devnet-images|devnet-banners)\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(url.pathname) && url.pathname !== '/default.svg')) return json(res, 404, { error: 'Not found.' });
-  if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client, authorization, x-token-chat-session' }); return res.end(); }
+  if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client, authorization, x-token-chat-session, x-creator-csrf, x-issue-token' }); return res.end(); }
     if (req.method === 'GET' && url.pathname === '/api/fee-policy') return json(res, 200, await publicFeePolicy(store));
     if (await handleAdminRoutes(req, res, url)) return;
     if (await handleProductMetrics(req,res,url)) return;

@@ -3,6 +3,8 @@ import { icon } from '../../../ui-icons.js';
 import { EXPLORE_CLUSTER, APP_MAINNET_READ_ONLY } from '../../../app-config.js';
 import { isDevnetImageUri } from '../../../devnet-metadata.js';
 import { productHelpTopics } from '../help/product-guidance.js';
+import { candidateHref,creatorSearchCandidates } from '../experience/search-model.js';
+import { apiRequest } from '../../../client.js';
 
 export function navigation() {
   $$('[data-icon]').forEach(item => item.innerHTML = icon(item.dataset.icon));
@@ -56,15 +58,19 @@ export function navigation() {
   searchDialog.innerHTML = `<form class="header-search-panel"><label for="header-search-input">Search launches</label><div class="header-search-field"><span aria-hidden="true">${icon('explore')}</span><input id="header-search-input" type="search" role="combobox" aria-autocomplete="list" aria-expanded="true" autocomplete="off" placeholder="Search name, ticker, or mint" aria-controls="header-search-results" /><button type="button" class="header-search-close" aria-label="Close search">${icon('close')}</button></div><div class="header-search-results-head"><strong id="header-search-results-title">EXPLORE TOKENS</strong><span>NAME · SYMBOL · ADDRESS</span></div><div id="header-search-results" class="header-search-results" role="listbox" aria-label="Verified launch search results"></div><p id="header-search-help" role="status" aria-live="polite">↑↓ navigate · ↵ open · Esc close</p></form>`;
   document.body.append(searchDialog);
   const modalSearch = $('#header-search-input', searchDialog);
+  modalSearch.placeholder='Token, creator wallet, address or transaction';
+  $('#header-search-help',searchDialog).textContent='↑↓ navigate · ↵ open · Esc close. Creator identities and wallet ownership are different facts.';
   const globalSearch = $('#global-search');
   const searchResults = $('#header-search-results', searchDialog);
   const searchHelp = $('#header-search-help', searchDialog);
   const defaultSearchHelp = searchHelp.textContent;
   let candidates = [];
+  let creatorCandidates=[],creatorQuery='',creatorTimer=null,creatorVersion=0;
   let activeCandidate = -1;
   const renderSearchResults = ({ preserveSelection = false } = {}) => {
     const selectedMint = preserveSelection && activeCandidate >= 0 ? candidates[activeCandidate]?.mint : null;
     candidates = window.fundedVerifiedSearchCandidates?.(modalSearch.value) || [];
+    if(modalSearch.value.trim()===creatorQuery)candidates=[...candidates,...creatorCandidates];
     if (preserveSelection) activeCandidate = selectedMint ? candidates.findIndex(candidate => candidate.mint === selectedMint) : -1;
     else activeCandidate = candidates.length ? 0 : -1;
     if (selectedMint && activeCandidate < 0) {
@@ -79,14 +85,14 @@ export function navigation() {
     candidates.forEach((candidate, index) => {
       const link = node('a', 'header-search-result');
       link.id = `header-search-result-${index}`;
-      link.href = `/token/${encodeURIComponent(candidate.mint)}`;
+      link.href = candidateHref(candidate);
       link.setAttribute('role', 'option');
       link.setAttribute('aria-selected', String(index === activeCandidate));
       const token = node('span', 'header-search-token');
       const avatar = node('span', 'header-search-avatar', String(candidate.symbol || 'T').slice(0, 1).toUpperCase());
       avatar.setAttribute('aria-hidden', 'true');
       const identity = node('span', 'header-search-identity');
-      identity.append(node('strong', '', candidate.name), node('small', '', `$${candidate.symbol} · ${candidate.mint.slice(0, 5)}…${candidate.mint.slice(-4)}`));
+      identity.append(node('strong', '', candidate.name), node('small', '', candidate.type ? `${candidate.symbol} · ${candidate.subtitle}` : `$${candidate.symbol} · ${candidate.mint.slice(0, 5)}…${candidate.mint.slice(-4)}`));
       const market = node('span', 'header-search-market');
       market.append(node('strong', '', candidate.marketCap), node('small', '', candidate.stage));
       token.append(avatar, identity);
@@ -118,14 +124,26 @@ export function navigation() {
     searchHelp.textContent = defaultSearchHelp;
     searchResults.querySelector(`#header-search-result-${index}`)?.scrollIntoView({ block: 'nearest' });
   };
+  function lookupCreators(){
+    clearTimeout(creatorTimer);const version=++creatorVersion,query=modalSearch.value.trim();creatorQuery=query;creatorCandidates=[];
+    if(query.length<2||query.length>80||/^[1-9A-HJ-NP-Za-km-z]{32,88}$/.test(query))return;
+    creatorTimer=setTimeout(async()=>{
+      let result;try{result=await apiRequest(`/api/creators?${new URLSearchParams({q:query})}`,{signal:AbortSignal.timeout(8000)});}catch{}
+      if(version!==creatorVersion||!searchDialog.open||modalSearch.value.trim()!==query)return;
+      const next=result?.available?creatorSearchCandidates(result.data):[];
+      if(JSON.stringify(next)!==JSON.stringify(creatorCandidates)){creatorCandidates=next;renderSearchResults({preserveSelection:true});}
+      if(!searchHelp.textContent.startsWith('Your selected result is no longer'))searchHelp.textContent=defaultSearchHelp+(result?.available?' · Creator directory checked.':' · Creator directory unavailable; loaded tokens and wallets remain searchable.');
+    },300);
+  }
   searchTrigger.addEventListener('click', () => {
     modalSearch.value = globalSearch?.value || '';
     renderSearchResults();
     searchDialog.showModal();
+    lookupCreators();
     modalSearch.focus();
     modalSearch.select();
   });
-  modalSearch.addEventListener('input', renderSearchResults);
+  modalSearch.addEventListener('input',()=>{lookupCreators();renderSearchResults();});
   document.addEventListener('funded:verified-search-index', () => { if (searchDialog.open) renderSearchResults({ preserveSelection: true }); });
   modalSearch.addEventListener('keydown', event => {
     if (event.key === 'Escape') {
@@ -144,7 +162,7 @@ export function navigation() {
   $('.header-search-close', searchDialog).addEventListener('click', () => searchDialog.close());
   $('form', searchDialog).addEventListener('submit', event => {
     event.preventDefault();
-    if (activeCandidate >= 0) { location.assign(`/token/${encodeURIComponent(candidates[activeCandidate].mint)}`); return; }
+    if (activeCandidate >= 0) { location.assign(candidateHref(candidates[activeCandidate])); return; }
     const query = modalSearch.value.trim();
     searchDialog.close();
     const applyQuery = () => {

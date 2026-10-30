@@ -390,6 +390,7 @@ export function createFollowingController(appState) {
       localStorage.setItem(appState.FOLLOWED_WALLETS_KEY, JSON.stringify(next));
       if (JSON.stringify(appState.readFollowedWallets()) !== JSON.stringify(next)) throw new Error('Followed wallets could not be verified');
       appState.lastKnownFollowedWallets = next;
+      window.dispatchEvent(new Event('funded:following-changed'));
       appState.renderFollowedWallets();
       if (!document.querySelector('#wallet-page')?.hidden) appState.renderWalletDetail();
       if (appState.exploreTab === 'following') {

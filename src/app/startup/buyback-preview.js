@@ -1,4 +1,5 @@
 import { initializeAppState } from '../runtime.js';
+import { typedSearch } from '../../features/experience/search-model.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeBuybackPreview(appState) {
@@ -16,7 +17,7 @@ export function initializeBuybackPreview(appState) {
         : Number(item.marketCapUsd);
       return Number.isFinite(raw) && raw >= 0 ? raw : -1;
     };
-    return appState.assets.filter(item => item.address && (!term || [item.name, item.symbol, item.address].some(value => String(value || '').toLowerCase().includes(term))))
+    const tokens = appState.assets.filter(item => item.address && (!term || [item.name, item.symbol, item.address].some(value => String(value || '').toLowerCase().includes(term))))
       .sort((a, b) => {
         const rank = item => !term ? 0 : String(item.symbol || '').toLowerCase() === term ? 3 : String(item.symbol || '').toLowerCase().startsWith(term) ? 2 : String(item.name || '').toLowerCase().startsWith(term) ? 1 : 0;
         return rank(b) - rank(a) || capUsd(b) - capUsd(a) || String(a.name || '').localeCompare(String(b.name || ''));
@@ -26,6 +27,7 @@ export function initializeBuybackPreview(appState) {
         const launch = appState.EXPLORE_CLUSTER === 'devnet' ? appState.verifiedLaunchPolicyForMint(item.address) : null;
         return { name: item.name || item.symbol || 'Token', symbol: item.symbol || 'TOKEN', mint: item.address, verifiedLaunch: Boolean(launch), imageUri: launch?.imageUri || null, stage: appState.exploreStageLabel(item), marketCap: appState.exploreMarketCapUsd(item) };
       });
+    return [...tokens,...typedSearch(query,appState.verifiedLaunchPolicies,appState.getFollowedWallets?.()||[])];
   };
   // app-source-end
 

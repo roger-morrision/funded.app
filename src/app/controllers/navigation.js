@@ -121,7 +121,7 @@ export function createNavigationController(appState) {
     if (hash.startsWith('coin/')) return 'overview';
     if (hash === 'referral-faq') return 'referrals';
     if (hash.startsWith('docs/')) return 'docs';
-    if (hash === 'funded-holder-token-rewards' || hash === 'payments/history' || hash === 'payments/holders') return 'payments';
+    if (hash === 'funded-holder-token-rewards' || hash === 'payments/history' || hash === 'payments/holders' || hash === 'payments/activity') return 'payments';
     return appState.pageRouteTargets[hash] ? appState.mergedPageRoutes[hash] || hash : 'overview';
   }
   // app-source-end

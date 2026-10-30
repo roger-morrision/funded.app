@@ -19,6 +19,7 @@ export function createCoinLoadingController(appState) {
   // app-source: 981
   async function loadCoinOnChain(mintAddress){
     const loadId = ++appState.coinLoadId;
+    globalThis.window?.dispatchEvent?.(new Event('funded:coin-facts-loading'));
     if (!mintAddress){ appState.renderOnChainUnavailable('Choose a token from Explore to see its details.'); return; }
     const feeLedgerPromise=appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/fee-activity`,
       { signal:AbortSignal.timeout(20000) }).catch(() => ({ available:false, data:null }));
@@ -69,6 +70,7 @@ export function createCoinLoadingController(appState) {
       const registeredLaunch = fetchedLaunch || appState.verifiedRegistryLaunch(
         [appState.verifiedLaunchPolicyForMint(mintAddress)], mintAddress, appState.EXPLORE_CLUSTER);
       appState.coinSummaryLaunch = registeredLaunch;
+      globalThis.window?.dispatchEvent?.(new CustomEvent('funded:coin-facts', {detail:{mint:mintAddress, parsedMint, launch:registeredLaunch, checkedAt:Date.now()}}));
       const promotedBanner = verifiedTokenBannerUri(registeredLaunch, mintAddress);
       const artwork = document.querySelector('.coin-artwork');
       if (artwork) artwork.dataset.bannerUrl = promotedBanner;
@@ -181,6 +183,7 @@ export function createCoinLoadingController(appState) {
     } catch (error) {
       if (loadId !== appState.coinLoadId) return;
       const detail = coinUnavailableMessage(error?.message);
+      globalThis.window?.dispatchEvent?.(new CustomEvent('funded:coin-facts', {detail:{mint:mintAddress, error:true}}));
       console.error('On-chain token detail failed', detail);
       appState.renderOnChainUnavailable(detail);
       appState.renderCoinRegistryIdentity(mintAddress);

@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { handleAdminServiceFees } from '../service-fees.mjs';
 import {handleAdminXPosts} from '../admin-x-posts.mjs';
+import { handleIssueAdmin } from './issue-admin.mjs';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Connection, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
@@ -128,6 +129,7 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
     }
     const session = currentSession(req);
     if (!session) return json(res, 401, { error:'Sign in with the configured admin wallet.' });
+    if(await handleIssueAdmin(req,res,url,{store,body,json}))return true;
     if(req.method==='GET'&&path==='/api/admin/financial-health'){
       const health=(await automaticRewardStore?.read?.())?.financialFlowHealth;
       return health?json(res,200,health):json(res,503,{error:'Financial monitoring is warming up.'});

@@ -12,7 +12,7 @@ export const CAPACITY_THRESHOLDS = Object.freeze({
 const containerPattern = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
 const decimal = value => typeof value === 'string' && /^(0|[1-9]\d*)$/.test(value);
 
-export function assessCapacity(sample, phase = 'build') {
+export function assessCapacity(sample, phase = 'build', { requireInodes = true } = {}) {
   const threshold = CAPACITY_THRESHOLDS[phase];
   if (!threshold) throw new Error('Phase must be build or switch.');
   if (!decimal(sample?.freeBytes) || !decimal(sample?.freeInodes)) {
@@ -20,8 +20,9 @@ export function assessCapacity(sample, phase = 'build') {
   }
   const reasons = [];
   if (BigInt(sample.freeBytes) < threshold.freeBytes) reasons.push('insufficient-free-bytes');
-  if (BigInt(sample.freeInodes) < threshold.freeInodes) reasons.push('insufficient-free-inodes');
-  return { ready: reasons.length === 0, reasons, freeBytes: sample.freeBytes, freeInodes: sample.freeInodes };
+  if (requireInodes && BigInt(sample.freeInodes) < threshold.freeInodes) reasons.push('insufficient-free-inodes');
+  return { ready: reasons.length === 0, reasons, freeBytes: sample.freeBytes, freeInodes: sample.freeInodes,
+    ...(!requireInodes ? { inodeCheck:'unsupported-on-windows-workspace' } : {}) };
 }
 
 export async function workspaceCapacity(path) {
@@ -30,32 +31,35 @@ export async function workspaceCapacity(path) {
   return { freeBytes: String(stats.bavail * stats.bsize), freeInodes: String(stats.ffree) };
 }
 
-export function containerCapacity(container, execute = execFileSync) {
+export const localDockerHost = (platform = process.platform) => platform === 'win32'
+  ? 'npipe:////./pipe/dockerDesktopLinuxEngine' : 'unix:///var/run/docker.sock';
+
+export function containerCapacity(container, execute = execFileSync, { platform = process.platform } = {}) {
   if (!containerPattern.test(container || '')) throw new Error('Select an existing application container by name or ID.');
   const env = { ...process.env };
   for (const name of ['DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_TLS', 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH']) delete env[name];
   const code = "const fs=require('node:fs');const s=fs.statfsSync('/',{bigint:true});console.log(JSON.stringify({freeBytes:String(s.bavail*s.bsize),freeInodes:String(s.ffree)}));";
-  const output = execute('docker', ['--host=unix:///var/run/docker.sock', 'exec', container, 'node', '-e', code],
+  const output = execute('docker', [`--host=${localDockerHost(platform)}`, 'exec', container, 'node', '-e', code],
     { env, encoding: 'utf8', timeout: 10_000, maxBuffer: 16_384, stdio: ['ignore', 'pipe', 'pipe'] });
   return JSON.parse(output);
 }
 
 export async function deploymentCapacity({ container, workspace = process.cwd(), phase = 'build' },
-  { readWorkspace = workspaceCapacity, readContainer = containerCapacity } = {}) {
+  { readWorkspace = workspaceCapacity, readContainer = containerCapacity, platform = process.platform } = {}) {
   const threshold = CAPACITY_THRESHOLDS[phase];
   if (!threshold) throw new Error('Phase must be build or switch.');
   if (!containerPattern.test(container || '')) throw new Error('Select an existing application container by name or ID.');
   const sources = [
-    { name: 'workspace', selector: resolve(workspace), read: () => readWorkspace(resolve(workspace)) },
+    { name: 'workspace', selector: resolve(workspace), requireInodes:platform !== 'win32', read: () => readWorkspace(resolve(workspace)) },
     { name: 'application-container-root', selector: container, read: () => readContainer(container) },
   ];
   const samples = await Promise.all(sources.map(async source => {
-    try { return { source: source.name, selector: source.selector, ...assessCapacity(await source.read(), phase) }; }
+    try { return { source: source.name, selector: source.selector, ...assessCapacity(await source.read(), phase, { requireInodes:source.requireInodes !== false }) }; }
     catch { return { source: source.name, selector: source.selector, ready: false, reason: 'capacity-unavailable' }; }
   }));
   return { readOnly: true, phase, ready: samples.every(sample => sample.ready),
     minimumFreeBytes: String(threshold.freeBytes), minimumFreeInodes: String(threshold.freeInodes), samples,
-    scope: 'workspace-and-existing-container-root; excludes separate volumes, daemon quotas and future writes',
+    scope: 'workspace-and-existing-container-root; Windows workspace inode counters are unsupported; Linux/container inode reserves remain required; excludes separate volumes, daemon quotas and future writes',
   };
 }
 
