@@ -1,6 +1,7 @@
 import { Buffer } from 'buffer';
 import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
 import { deriveFeeRouter } from './fee-router.js';
+import {automaticPayoutInstruction} from './mint-automation-v3.js';
 import { deriveCommunityRewardVaultV3, deriveMintPolicyV3, deriveMintVaultsV3,
   deriveMintWithdrawalApprovalV3, deriveMintWithdrawalV3 } from './mint-router-v3.js';
 
@@ -36,7 +37,7 @@ export function buildProtectedMintV3ApprovalInstruction(input) {
   data[40] = category;
   data[41] = beneficiary;
   data.writeBigUInt64LE(lamports, 42);
-  return { approval, instruction:new TransactionInstruction({ programId:program,
+  return { approval, instruction:automaticPayoutInstruction(new TransactionInstruction({ programId:program,
     keys:[
       { pubkey:key(authority), isSigner:true, isWritable:true },
       { pubkey:key(creator), isSigner:true, isWritable:false },
@@ -46,7 +47,7 @@ export function buildProtectedMintV3ApprovalInstruction(input) {
       { pubkey:destination, isSigner:false, isWritable:false },
       { pubkey:approval, isSigner:false, isWritable:true },
       { pubkey:SystemProgram.programId, isSigner:false, isWritable:false },
-    ], data }) };
+    ], data }),input) };
 }
 
 export function buildProtectedMintV3DisbursementInstruction(input) {
@@ -77,7 +78,7 @@ export function buildProtectedMintV3DisbursementInstruction(input) {
   data.writeBigUInt64LE(holderAmount, 50);
   const withdrawal = deriveMintWithdrawalV3(program, mintKey, bytes);
   return { policy:deriveMintPolicyV3(program, mintKey), vault:vaults[category], approval,
-    withdrawal, recipient:destination, instruction:new TransactionInstruction({
+    withdrawal, recipient:destination, instruction:automaticPayoutInstruction(new TransactionInstruction({
     programId:program,
     keys:[
       { pubkey:key(authority), isSigner:true, isWritable:true },
@@ -90,5 +91,5 @@ export function buildProtectedMintV3DisbursementInstruction(input) {
       { pubkey:approval, isSigner:false, isWritable:true },
       { pubkey:withdrawal, isSigner:false, isWritable:true },
       { pubkey:SystemProgram.programId, isSigner:false, isWritable:false },
-    ], data }) };
+    ], data }),input) };
 }

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="610" viewBox="0 0 1600 610" role="img" aria-labelledby="title description">
   <title id="title">Creator-fee capital flow</title>
-  <desc id="description">Illustrative Solana Devnet policy route. Eligible trades accrue creator fees, verified collection moves SOL into the per-mint V3 router, and the creator approves settlement and source funding. The saved mint policy directs creator and protocol shares. Protocol categories can include operations, referrals, ranked bonuses, buyback and burn, and an approved agency allocation. Launch charges and migration token claims are separate paths. Eligibility, funding, current execution checks and finalized receipts govern payments.</desc>
+  <desc id="description">Illustrative Solana Devnet policy route. Eligible trades accrue creator fees, verified collection moves SOL into the per-mint V3 router, and the keeper settles under the fixed policy when active, and bounded funding follows the recorded destinations. The saved mint policy directs creator and protocol shares. Protocol categories can include operations, referrals, ranked bonuses, buyback and burn, and an approved agency allocation. Launch charges and migration token claims are separate paths. Eligibility, funding, current execution checks and finalized receipts govern payments.</desc>
   <defs>
     <linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#183849"/><stop offset=".55" stop-color="#0e2436"/><stop offset="1" stop-color="#102137"/></linearGradient>
     <linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#1e3c4d"/><stop offset="1" stop-color="#102b3b"/></linearGradient>
@@ -20,7 +20,7 @@
   <rect x="411" y="122" width="296" height="136" rx="19" fill="url(#card)" stroke="#4e7683" stroke-width="2"/>
   <text x="434" y="154" class="step">02 · COLLECT</text><text x="434" y="190" class="card-title">V3 router</text><text x="434" y="222" class="copy">Verified per-mint collection</text><text x="434" y="246" class="small">moves SOL into the router.</text>
   <rect x="778" y="122" width="296" height="136" rx="19" fill="url(#card)" stroke="#4e7683" stroke-width="2"/>
-  <text x="801" y="154" class="step">03 · APPROVE</text><text x="801" y="190" class="card-title">Settle &amp; fund</text><text x="801" y="222" class="copy">Creator signs settlement.</text><text x="801" y="246" class="small">Funding is a separate action.</text>
+  <text x="801" y="154" class="step">03 · SETTLE</text><text x="801" y="190" class="card-title">Split by policy</text><text x="801" y="222" class="copy">Keeper settles when active.</text><text x="801" y="246" class="small">Bounded funding is automatic.</text>
   <rect x="1145" y="122" width="411" height="136" rx="19" fill="#173947" stroke="#59bcb4" stroke-width="2"/>
   <text x="1168" y="154" class="step">04 · SAVED MINT SPLIT</text><text x="1168" y="198" class="big">80<tspan font-size="27">%</tspan><tspan class="copy"> creator-directed</tspan></text><text x="1168" y="239" class="big">20<tspan font-size="27">%</tspan><tspan class="copy"> protocol programs</tspan></text>
   <path class="flow" d="M340 190 H399"/><path class="flow" d="M707 190 H766"/><path class="flow" d="M1074 190 H1133"/>

@@ -32,9 +32,12 @@ export function verifyCreatorSettlement({ signedTransaction, instruction, author
   return transaction;
 }
 
-export async function submitCreatorSettlement({ connection, transaction, authority, timeoutMs = 90_000, pollMs = 1000 }) {
+export async function submitCreatorSettlement({ connection, transaction, authority, automatic = false,
+  timeoutMs = 90_000, pollMs = 1000 }) {
   const valid = await connection.isBlockhashValid(transaction.recentBlockhash, 'confirmed');
-  if (!valid.value) throw Object.assign(new Error('Creator approval expired. Prepare and sign a fresh transaction.'), {statusCode:409});
+  if (!valid.value) throw Object.assign(new Error(automatic
+    ? 'Automatic settlement blockhash expired; prepare a fresh transaction.'
+    : 'Creator approval expired. Prepare and sign a fresh transaction.'), {statusCode:409});
   transaction.partialSign(authority);
   const signature = bs58.encode(transaction.signature);
   try {
@@ -53,11 +56,11 @@ export async function submitCreatorSettlement({ connection, transaction, authori
       await new Promise(resolve => setTimeout(resolve, pollMs));
       continue;
     }
-    if (status?.err) throw new Error(`Creator-approved settlement failed: ${JSON.stringify(status.err)}`);
+    if (status?.err) throw new Error(`${automatic ? 'Automatic' : 'Creator-approved'} settlement failed: ${JSON.stringify(status.err)}`);
     if (status?.confirmationStatus === 'finalized') return signature;
     await new Promise(resolve => setTimeout(resolve, pollMs));
   }
-  throw new Error(`Creator-approved settlement ${signature} has no verified finalized receipt; reconcile before retrying.`);
+  throw new Error(`${automatic ? 'Automatic' : 'Creator-approved'} settlement ${signature} has no verified finalized receipt; reconcile before retrying.`);
 }
 
 export async function verifyFinalizedSettlementDelta({ connection, signature, router, recipient, amountLamports }) {

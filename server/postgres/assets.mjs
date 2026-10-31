@@ -3,11 +3,11 @@ import { metadataStatement } from '../../devnet-metadata.js';
 // Each operation uses the shared pool and readiness gate; transactions stay local.
 export function createAssetsRepository({ pool, ensureReady }) {
   return {
-    async readLaunches({ limit = null, offset = 0 } = {}) {
+    async readLaunches({ limit = null, offset = 0, includeArchived = false } = {}) {
       await ensureReady();
       const result = limit == null
-        ? await pool.query('SELECT payload FROM launches ORDER BY updated_at DESC, mint')
-        : await pool.query('SELECT payload FROM launches ORDER BY updated_at DESC, mint LIMIT $1 OFFSET $2', [limit, offset]);
+        ? await pool.query("SELECT payload FROM launches WHERE ($1::boolean OR payload->>'archivedAt' IS NULL) ORDER BY updated_at DESC, mint",[includeArchived])
+        : await pool.query("SELECT payload FROM launches WHERE ($1::boolean OR payload->>'archivedAt' IS NULL) ORDER BY updated_at DESC, mint LIMIT $2 OFFSET $3", [includeArchived,limit, offset]);
       return result.rows.map(row => row.payload);
     },
     async readLaunch(mint) {

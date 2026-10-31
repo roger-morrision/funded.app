@@ -49,14 +49,19 @@ export function createCreatorFeesController(appState) {
       detail.textContent = row.settlement === 'finalized' && row.allocationPlan?.status !== 'allocated-not-funded'
         ? 'Finalized settlement needs allocation reconciliation before funding.'
         : row.settlement === 'finalized'
-        ? 'Categories settled on Devnet. Buyback vault funds follow the verified trigger shown on Buybacks; other approved allocations are funded separately.'
+        ? overview.automaticDisbursementEnabled
+          ? 'Categories settled. The keeper processes bounded payouts and reward funding; buybacks follow their verified trigger.'
+          : 'Categories settled on Devnet. Buyback vault funds follow the verified trigger shown on Buybacks; other approved allocations are funded separately.'
+        : overview.automaticSettlementEnabled
+        ? 'Fixed-policy settlement is queued for the keeper. Funding and payouts are separate.'
         : 'Settlement requires the launch creator to review and sign the V3 transaction.';
       summary.append(title, amount, detail); section.append(summary);
-      const actions = row.settlement === 'finalized' && row.allocationPlan?.status === 'allocated-not-funded'
+      const actions = overview.automaticDisbursementEnabled ? [] : row.settlement === 'finalized' && row.allocationPlan?.status === 'allocated-not-funded'
         ? [['community-funding','communityFunding','Fund community allocation'],
           ['creator-reward-funding','creatorRewardFunding','Fund holder and X rewards'],
           ['creator-wallet-payout','creatorWalletPayout','Receive creator allocation']]
-        : row.settlement === 'finalized' ? [] : [['settlement','settlement','Approve V3 settlement']];
+        : row.settlement === 'finalized' || overview.automaticSettlementEnabled
+          ? [] : [['settlement','settlement','Approve V3 settlement']];
       for (const [path, gate, label] of actions) {
         const button = document.createElement('button'); button.type = 'button';
         button.textContent = row[gate] === 'finalized' ? `${label} · finalized` : label;
@@ -80,7 +85,7 @@ export function createCreatorFeesController(appState) {
         if (!button.disabled) button.onclick = () => { void requestV3FeeAction(button, path, row.signature); };
         section.append(button);
       }
-      for(const action of creatorPayoutActions(row)) {
+      for(const action of overview.automaticDisbursementEnabled ? [] : creatorPayoutActions(row)) {
         const extra=!['community-funding','creator-reward-funding','creator-wallet-payout'].includes(action.action);
         const payable=/^[1-9]\d*$/.test(String(action.amount));
         const enabled=signingWallet&&overview.gates?.[action.gate]===true&&!action.finalized&&payable;

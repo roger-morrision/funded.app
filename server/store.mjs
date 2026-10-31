@@ -162,7 +162,7 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     async readCreatorState(id, cluster, options) { return scopedCreatorState(await load(),id,cluster,options); },
     async readCreatorDirectory({ cluster, ...options }) { return directoryPage(creatorDirectoryRecords(await load(), cluster), options); },
     async read() { return structuredClone(await load()); },
-    async readLaunches({ limit = null, offset = 0 } = {}) { const items = Object.values((await load()).launches || {}); return limit == null ? items : items.slice(offset, offset + limit); },
+    async readLaunches({ limit = null, offset = 0, includeArchived = false } = {}) { const items = Object.values((await load()).launches || {}).filter(row=>includeArchived||!row.archivedAt); return limit == null ? items : items.slice(offset, offset + limit); },
     async readLaunch(mint) { return (await load()).launches?.[mint] || null; },
     async writeMetadata(record, image, imageType, banner = null, bannerType = null) {
       const metadataPath = `${filePath}.metadata.${record.mint}.json`;

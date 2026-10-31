@@ -17,6 +17,7 @@ const REWARD_VAULT_SEED = Buffer.from('reward-vault-v1');
 const GLOBAL_DISCRIMINATORS = Object.freeze({
   initialize_mint_v3:'81b9d41bdc1b9cec',
   settle_mint_v3:'a44b0102a9594346',
+  settle_mint_v3_auto:'cd32215f75e9d85d',
   disburse_mint_v3:'68aef12e59187f1b',
   initialize_protected_mint_v3:'4e42861eaaae5847',
   approve_protected_withdrawal_v3:'dd6fdb42000c1d97',
@@ -267,7 +268,7 @@ export function buildMintRouterV3InitializeInstruction({ programId, mint, author
 }
 
 export function buildMintRouterV3SettlementInstruction({ programId, mint, authority, creator, claimId,
-  expectedLamports }) {
+  expectedLamports, auto = false }) {
   if (typeof expectedLamports === 'number' && !Number.isSafeInteger(expectedLamports)) {
     throw new Error('V3 expected collection amount must be a safe integer, bigint, or decimal string.');
   }
@@ -281,14 +282,14 @@ export function buildMintRouterV3SettlementInstruction({ programId, mint, author
   const vaults = deriveMintVaultsV3(programId, mint);
   const legacy = deriveFeeRouter(programId);
   const data = Buffer.alloc(8 + 32 + 8);
-  discriminator('settle_mint_v3').copy(data);
+  discriminator(auto ? 'settle_mint_v3_auto' : 'settle_mint_v3').copy(data);
   Buffer.from(claimId).copy(data, 8);
   data.writeBigUInt64LE(expected, 40);
   return { router, policy, claim, vaults, instruction: new TransactionInstruction({
     programId: router.programId,
     keys: [
       { pubkey:key(authority), isSigner:true, isWritable:true },
-      { pubkey:key(creator), isSigner:true, isWritable:false },
+      { pubkey:key(creator), isSigner:!auto, isWritable:false },
       { pubkey:router.mint, isSigner:false, isWritable:false },
       { pubkey:legacy.address, isSigner:false, isWritable:false },
       { pubkey:router.address, isSigner:false, isWritable:true },
@@ -300,6 +301,9 @@ export function buildMintRouterV3SettlementInstruction({ programId, mint, author
     data,
   }) };
 }
+
+export const buildMintRouterV3AutoSettlementInstruction = input =>
+  buildMintRouterV3SettlementInstruction({ ...input, auto:true });
 
 export function buildMintRouterV3DisbursementInstruction({ programId, mint, authority, creator,
   withdrawalId, category, amount, recipient }) {

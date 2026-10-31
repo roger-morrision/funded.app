@@ -1,4 +1,5 @@
 import bs58 from 'bs58';
+import {createHash} from 'node:crypto';
 import {buildV3PolicySettlement} from './v3-policy-builders.mjs';
 import { ComputeBudgetProgram, PublicKey } from '@solana/web3.js';
 import { buildMintRouterV3SettlementInstruction, verifyMintClaimV3Account,
@@ -9,6 +10,9 @@ import { buildQaSettlementRecoveryInstruction, QA_RECOVERY_DISCRIMINATOR,
 
 const address = value => typeof value === 'string' ? value : value?.pubkey
   ? address(value.pubkey) : value?.toBase58?.() || '';
+const discriminator = name => createHash('sha256').update(`global:${name}`).digest().subarray(0,8);
+const autoDiscriminators = [discriminator('settle_mint_v3_auto'),
+  discriminator('settle_agency_mint_v3_auto')];
 
 // The caller must separately verify the approved Devnet program hash, the
 // immutable launch policy, and the source Pump collection before using this.
@@ -32,12 +36,18 @@ export async function loadFinalizedV3Settlement({ connection, signature, program
     const instructions = message.instructions || message.compiledInstructions || [];
     let settlements = 0;
     let recovery = false;
+    let automatic = false;
     for (const instruction of instructions) {
       const program = keys[instruction.programIdIndex];
       if (program === ComputeBudgetProgram.programId.toBase58()) continue;
       if (program !== expected.instruction.programId.toBase58() || settlements++) return null;
       const data = typeof instruction.data === 'string'
         ? bs58.decode(instruction.data) : Buffer.from(instruction.data || []);
+      if (autoDiscriminators.some(code => Buffer.from(data).subarray(0,8).equals(code))) {
+        expected = buildV3PolicySettlement({programId,mint,authority,creator,claimId,
+          expectedLamports,split,auto:true});
+        automatic = true;
+      }
       if (Buffer.from(data).subarray(0,8).equals(QA_RECOVERY_DISCRIMINATOR)) {
         expected = buildQaSettlementRecoveryInstruction({programId,mint,authority,creator,
           claimId,expectedLamports,split});
@@ -49,7 +59,8 @@ export async function loadFinalizedV3Settlement({ connection, signature, program
         || expected.instruction.keys.some((entry, index) => keys[accounts[index]] !== entry.pubkey.toBase58())) return null;
     }
     if (settlements !== 1) return null;
-    if (recovery ? signers.length !== 1 : !signers.includes(new PublicKey(creator).toBase58())) return null;
+    if (recovery || automatic ? signers.length !== 1
+      : !signers.includes(new PublicKey(creator).toBase58())) return null;
     const routerIndex = keys.indexOf(expected.router.address.toBase58());
     const before = transaction.meta.preBalances;
     const after = transaction.meta.postBalances;
@@ -76,7 +87,8 @@ export async function loadFinalizedV3Settlement({ connection, signature, program
       policy:expected.policy.address.toBase58(), claimId:Buffer.from(claimId).toString('hex'),
       expectedLamports:String(expectedLamports),
       categoryLamports:claim.categoryLamports.map(value => String(value)),
-      ...(recovery ? {authorization:'restricted-devnet-qa-recovery'} : {}),
+      ...(recovery ? {authorization:'restricted-devnet-qa-recovery'}
+        : automatic ? {authorization:'authority-fixed-policy'} : {}),
       ...(position ? {position} : {}) };
   } catch { return null; }
 }

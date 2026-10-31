@@ -22,6 +22,10 @@ pub mod funded_fee_router {
         initialize::handler(ctx)
     }
 
+    pub fn initialize_mint_automation_v3(ctx: Context<InitializeMintAutomationV3>, recipients: [Pubkey; 4]) -> Result<()> {
+        automation_v3::initialize(ctx, recipients)
+    }
+
     #[cfg(feature = "devnet-v3-program")]
     pub fn configure_agency_rules_v3(ctx: Context<ConfigureAgencyRulesV3>, units: [u32; 7], recipient: Pubkey,
         expected_revision: u64, market_caps: [u64; 2], community_window_seconds: i64, promotion_interval_seconds: i64) -> Result<()> {
@@ -43,6 +47,10 @@ pub mod funded_fee_router {
     #[cfg(feature = "devnet-v3-program")]
     pub fn settle_agency_mint_v3<'info>(ctx: Context<'info, SettleAgencyMintV3<'info>>, claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
         agency_policy_v3::settle(ctx, claim_id, expected_lamports)
+    }
+    #[cfg(feature = "devnet-v3-program")]
+    pub fn settle_agency_mint_v3_auto<'info>(ctx: Context<'info, SettleAgencyMintV3Auto<'info>>, claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
+        agency_policy_v3::settle_auto(ctx, claim_id, expected_lamports)
     }
     #[cfg(feature = "devnet-v3-program")]
     pub fn approve_agency_withdrawal_v3(ctx: Context<ApproveAgencyWithdrawalV3>, withdrawal_id: [u8; 32], category: u8, beneficiary: u8, amount: u64) -> Result<()> {
@@ -82,6 +90,11 @@ pub mod funded_fee_router {
     pub fn settle_mint_v3<'info>(ctx: Context<'info, SettleMintV3<'info>>,
         claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
         policy_v3::settle_mint_v3_handler(ctx, claim_id, expected_lamports)
+    }
+
+    pub fn settle_mint_v3_auto<'info>(ctx: Context<'info, SettleMintV3Auto<'info>>,
+        claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
+        policy_v3::settle_mint_v3_auto_handler(ctx, claim_id, expected_lamports)
     }
 
     #[cfg(feature = "devnet-v3-program")]

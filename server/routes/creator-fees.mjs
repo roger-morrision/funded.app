@@ -71,6 +71,8 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
       source:databaseUrl ? 'funded.app-postgresql' : 'funded.app-file-ledger',
       coverage:'verified-v3-collections', ...activity,
       overview:{ available:true, scope:'per-mint-v3', creatorWallet:launch.creatorWallet,
+        automaticSettlementEnabled:process.env.FUNDED_V3_AUTO_SETTLEMENT_ENABLED === 'true',
+        automaticDisbursementEnabled:process.env.FUNDED_V3_AUTO_DISBURSEMENT_ENABLED === 'true',
         pump:{ vault:pumpVault, accruedLamports:pumpAccruedLamports,
           status:pumpError || pumpAccruedLamports == null ? 'unavailable' : 'confirmed',
           error:pumpError },

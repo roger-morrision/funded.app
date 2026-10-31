@@ -73,7 +73,7 @@ export function v3BuybackBudget(state, programId) {
     const collection = state.collections?.[row.collectionSignature];
     const amount = String(row.allocationPlan?.protocol?.buybackLamports || '');
     if (row.status !== 'finalized' || row.allocationPlan?.status !== 'allocated-not-funded'
-      || !/^[1-9]\d*$/.test(amount) || !launch?.onchainVerified
+      || !/^[1-9]\d*$/.test(amount) || !launch?.onchainVerified || launch.archivedAt
       || launch.cluster !== 'devnet' || launch.pumpFeeRoute?.scope !== 'per-mint-v3'
       || launch.pumpFeeRoute.programId !== programId || collection?.signature !== row.collectionSignature
       || collection.mint !== row.mint || collection.status !== 'collected'

@@ -70,6 +70,8 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
     body:async req => req.input, store:{ read:async () => state, update:async fn => fn(state) },
     solanaCluster:'devnet', solanaRpcUrl:'https://unused.invalid',
     v3AuthorityKeypair:() => authority,
+    requireAuthorized:()=>true,
+    ensureAutomation:async()=>{},
     rewardStore:{ read:async () => rewardState },
     schedulerFactory:() => ({
       register:async input => { registrations.push(input); rewardState.programs[input.mint] = input; },
@@ -80,6 +82,7 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
       },
     }),
     env:{ FUNDED_V3_COMMUNITY_FUNDING_ENABLED:enabled ? 'true' : 'false',
+      FUNDED_V3_AUTO_DISBURSEMENT_ENABLED:'true',
       FUNDED_V3_CREATOR_REWARD_FUNDING_ENABLED:enabled ? 'true' : 'false',
       FUNDED_V3_CREATOR_WALLET_PAYOUT_ENABLED:enabled ? 'true' : 'false',
       FUNDED_V3_REFERRAL_PAYOUT_ENABLED:enabled ? 'true' : 'false',
@@ -113,8 +116,16 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
   });
   return { state, responses, holderPools, registrations, auditHash, auditSource,get submitted(){return submitted;},
     setFinalized:value => { finalized=value; },
-    request:input => handle({ method:'POST', input, headers:{} }, {}, new URL(path,'https://funded.vip')) };
+    request:input => handle({ method:'POST', input, headers:{} }, {}, new URL(path,'https://funded.vip')),
+    requestAuto:()=>handle({method:'POST',input:{mint:mint.publicKey.toBase58(),collectionSignature,
+      action:`${kind}-${suffix}`,...(kind==='referral'?{level:1}:{})},headers:{}},{},new URL('/api/keeper/disburse-v3','https://funded.vip')) };
 }
+
+test('automatic community funding uses only the authority and records finalized proof',async()=>{
+  const f=fixture({protectedPolicy:true});await f.requestAuto();
+  assert.equal(f.responses.at(-1).status,200);assert.equal(f.submitted,1);
+  await f.requestAuto();assert.equal(f.submitted,1);
+});
 
 function signPrepared(base64) {
   const tx = Transaction.from(Buffer.from(base64, 'base64'));

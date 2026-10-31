@@ -20,7 +20,7 @@ export function currentFeePolicyCopy() {
   return {
     allocation: `${fee.creatorPercent}% creator-directed · ${rates.map((rate, i) => `${rate}% ${names[i]}`).join(' · ')}.`,
     scope: 'Current policy for new launches. Existing coins and historical settlements keep their recorded rates. Allocated SOL is not a wallet balance or a completed payment.',
-    collection: 'Trades accrue creator fees on Pump. The keeper collects verified fees into the coin’s V3 router when its collection conditions are met. The launch creator reviews and signs settlement; funding and recipient payments are verified separately.',
+  collection: 'Trades accrue creator fees on Pump. The keeper collects verified fees into the coin’s V3 router when its collection conditions are met. Fixed-policy settlement can run automatically on the upgraded route; funding and recipient payments are verified separately.',
     creator: 'The creator-directed 80% follows the launch-time split between the creator wallet, coin holders, and an eligible X account. The creator wallet share is paid after its signed payout transaction finalizes.',
     holders: 'Holder SOL payouts are automatic after a funded reward pool and complete finalized eligibility snapshot are verified; recipients do not claim or sign. Standard payouts are hourly; selected Devnet QA coins use five-minute cycles and reduced minimums. Check the coin’s current conditions and receipt.',
     x: 'X rewards require the allocated X account to sign in, link the recipient wallet, and claim. A completed sign-in or signature prompt is not a finalized payment.',

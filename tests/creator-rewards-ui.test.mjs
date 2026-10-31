@@ -78,6 +78,15 @@ test('verified V3 collection shows settlement to owner and funding after finaliz
   } finally { f.restore(); }
 });
 
+test('activated automatic settlement shows status without a creator approval button', () => {
+  const f = fixture();
+  try {
+    f.controller.renderCoinFeeDashboard({...overview,automaticSettlementEnabled:true});
+    assert.equal(f.root.children[0].children.length,1);
+    assert.match(f.root.children[0].children[0].children[2].textContent,/queued for the keeper/);
+  } finally { f.restore(); }
+});
+
 test('zero holder and X allocation has an explicit disabled explanation', () => {
   const f = fixture();
   try {

@@ -5,5 +5,6 @@ import {buildAgencyMintV3SettlementInstruction,buildAgencyMintV3ApprovalInstruct
 // Route from the signed immutable protocol snapshot, never a caller's generic
 // version string. Full account and finalized receipt checks remain mandatory.
 export const buildV3PolicySettlement=input=>(input.split?.agencyPercent!==undefined?buildAgencyMintV3SettlementInstruction:buildMintRouterV3SettlementInstruction)(input);
+export const buildV3AutoPolicySettlement=input=>buildV3PolicySettlement({...input,auto:true});
 export const buildV3PolicyApproval=input=>(input.split?.agencyPercent!==undefined?buildAgencyMintV3ApprovalInstruction:buildProtectedMintV3ApprovalInstruction)(input);
 export const buildV3PolicyDisbursement=input=>(input.split?.agencyPercent!==undefined?buildAgencyMintV3DisbursementInstruction:buildProtectedMintV3DisbursementInstruction)(input);

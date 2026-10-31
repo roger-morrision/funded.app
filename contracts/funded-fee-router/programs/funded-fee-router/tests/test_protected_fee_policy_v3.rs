@@ -8,7 +8,8 @@ use solana_signer_lite::Signer;
 use solana_transaction_lite::versioned::VersionedTransaction;
 mod support;
 
-fn send(svm: &mut LiteSVM, payer: &Keypair, signers: &[&Keypair], ix: Instruction) -> bool {
+fn send(svm: &mut LiteSVM, payer: &Keypair, signers: &[&Keypair], mut ix: Instruction) -> bool {
+    for meta in &mut ix.accounts { if signers.iter().any(|signer| signer.pubkey() == meta.pubkey) { meta.is_signer = true; } }
     let message = Message::new_with_blockhash(&[ix], Some(&payer.pubkey()), &svm.latest_blockhash());
     let Ok(tx) = VersionedTransaction::try_new(VersionedMessage::Legacy(message), signers) else {
         return false;

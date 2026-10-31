@@ -122,7 +122,8 @@ pub fn initialize_protected_mint_v3_handler(ctx: Context<InitializeProtectedMint
 pub struct ApproveProtectedWithdrawalV3<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
-    pub creator: Signer<'info>,
+    /// CHECK: Signature or immutable automation record is required by the handler.
+    pub creator: UncheckedAccount<'info>,
     pub mint: UncheckedAccount<'info>,
     #[account(seeds = [SEED], bump)]
     pub legacy_router: UncheckedAccount<'info>,
@@ -139,6 +140,8 @@ pub struct ApproveProtectedWithdrawalV3<'info> {
 
 pub fn approve_protected_withdrawal_v3_handler(ctx: Context<ApproveProtectedWithdrawalV3>,
     withdrawal_id: [u8; 32], category: u8, beneficiary: u8, amount: u64) -> Result<()> {
+    super::automation_v3::authorize(ctx.program_id, &ctx.accounts.creator.to_account_info(),
+        &ctx.accounts.mint.key(), &ctx.accounts.policy.key(), category, &ctx.accounts.recipient.key(), ctx.remaining_accounts)?;
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(),
         &ctx.accounts.authority.key(), ctx.program_id)?;
     read_shares(&ctx.accounts.policy.to_account_info())?;
@@ -176,7 +179,8 @@ pub struct MintWithdrawalApprovalV3Event {
 pub struct DisburseProtectedMintV3<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
-    pub creator: Signer<'info>,
+    /// CHECK: Signature or immutable automation record is required by the handler.
+    pub creator: UncheckedAccount<'info>,
     pub mint: UncheckedAccount<'info>,
     #[account(seeds = [SEED], bump)]
     pub legacy_router: UncheckedAccount<'info>,
@@ -199,6 +203,8 @@ pub struct DisburseProtectedMintV3<'info> {
 pub fn disburse_protected_mint_v3_handler(ctx: Context<DisburseProtectedMintV3>,
     withdrawal_id: [u8; 32], category: u8, beneficiary: u8, amount: u64,
     holder_amount: u64) -> Result<()> {
+    super::automation_v3::authorize(ctx.program_id, &ctx.accounts.creator.to_account_info(),
+        &ctx.accounts.mint.key(), &ctx.accounts.policy.key(), category, &ctx.accounts.recipient.key(), ctx.remaining_accounts)?;
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(),
         &ctx.accounts.authority.key(), ctx.program_id)?;
     require!(category < 6 && amount > 0, ErrorCode::InvalidMintWithdrawalV3);

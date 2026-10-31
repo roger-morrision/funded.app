@@ -21,17 +21,6 @@ export async function loadFinalizedV3RewardFunding({ connection, signature, prog
   verifyApproval = verifyMintWithdrawalApprovalV3Account }) {
   try {
     if (![0, 2, 3, 4, 5].includes(category) && !(protectedPolicy && category === 1)) return null;
-    const expected = protectedPolicy
-      ? buildV3PolicyDisbursement({ programId, mint, authority, creator,
-        withdrawalId, category, beneficiary, amount, holderAmount, recipient,split })
-      : buildMintRouterV3DisbursementInstruction({ programId, mint,
-        authority, creator, withdrawalId, category, amount, recipient });
-    const approvalRequired = protectedPolicy && category >= 1 && category <= 4;
-    const approval = approvalRequired ? buildV3PolicyApproval({split,
-      programId, mint, authority, creator, withdrawalId, category, beneficiary,
-      amount, recipient }) : null;
-    const expectedInstructions = approval ? [approval.instruction, expected.instruction]
-      : [expected.instruction];
     const transaction = providedTransaction || await connection.getTransaction(signature, {
       commitment:'finalized', maxSupportedTransactionVersion:0 });
     if (!transaction || transaction.meta?.err !== null
@@ -42,8 +31,20 @@ export async function loadFinalizedV3RewardFunding({ connection, signature, prog
     const keys = [...staticKeys, ...(transaction.meta.loadedAddresses?.writable || []).map(address),
       ...(transaction.meta.loadedAddresses?.readonly || []).map(address)];
     const signers = staticKeys.slice(0, message.header?.numRequiredSignatures || 0);
-    if (!signers.includes(new PublicKey(authority).toBase58())
-      || !signers.includes(new PublicKey(creator).toBase58())) return null;
+    if (!signers.includes(new PublicKey(authority).toBase58())) return null;
+    const automatic=!signers.includes(new PublicKey(creator).toBase58());
+    if(automatic&&(!protectedPolicy||signers.length!==1))return null;
+    const expected = protectedPolicy
+      ? buildV3PolicyDisbursement({ programId, mint, authority, creator,
+        withdrawalId, category, beneficiary, amount, holderAmount, recipient,split,auto:automatic })
+      : buildMintRouterV3DisbursementInstruction({ programId, mint,
+        authority, creator, withdrawalId, category, amount, recipient });
+    const approvalRequired = protectedPolicy && category >= 1 && category <= 4;
+    const approval = approvalRequired ? buildV3PolicyApproval({split,
+      programId, mint, authority, creator, withdrawalId, category, beneficiary,
+      amount, recipient,auto:automatic }) : null;
+    const expectedInstructions = approval ? [approval.instruction, expected.instruction]
+      : [expected.instruction];
     let matched = 0;
     for (const instruction of message.instructions || message.compiledInstructions || []) {
       const program = keys[instruction.programIdIndex];
@@ -89,6 +90,7 @@ export async function loadFinalizedV3RewardFunding({ connection, signature, prog
       programId:new PublicKey(programId).toBase58(), category, amount:String(lamports),
       recipient:expected.recipient.toBase58(), vault:expected.vault.toBase58(),
       withdrawal:expected.withdrawal.toBase58(), balanceDeltaVerified:true,
+      ...(automatic?{authorization:'immutable-mint-automation'}:{}),
       ...(protectedPolicy ? { protectedPolicy:true, beneficiary,
         holderAmount:String(holderAmount), approval:approval?.approval.toBase58() || null } : {}) };
   } catch { return null; }

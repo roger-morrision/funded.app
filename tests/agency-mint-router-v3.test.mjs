@@ -58,6 +58,9 @@ test('new launch and settlement builders preserve signed selections and the sepa
   const settled=buildAgencyMintV3SettlementInstruction({...input,claimId:Buffer.alloc(32,1),expectedLamports:'1000000000'});
   assert.equal(settled.instruction.keys.length,16);assert.equal(settled.vaults.length,8);assert(settled.instruction.keys[15].pubkey.equals(deriveAgencyVaultsV3(program,mint)[7]));
   assert(settled.instruction.keys[1].isSigner);assert(settled.instruction.keys[0].isSigner);
+  const automatic=buildAgencyMintV3SettlementInstruction({...input,claimId:Buffer.alloc(32,2),expectedLamports:'1000000000',auto:true});
+  assert.equal(automatic.instruction.keys[1].isSigner,false);
+  assert.equal(automatic.instruction.data.subarray(0,8).toString('hex'),AGENCY_V3_DISCRIMINATORS.settle_agency_mint_v3_auto);
 });
 test('protected builders reject reclassification and agency funds cannot use generic disbursement',()=>{
   const args={...input,withdrawalId:Buffer.alloc(32,1),category:0,beneficiary:0,amount:'1',recipient:creator};

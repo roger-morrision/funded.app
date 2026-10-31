@@ -12,6 +12,8 @@ const address = value => typeof value === 'string' ? value : value?.pubkey
 const discriminator = name => createHash('sha256').update(`global:${name}`).digest().subarray(0,8).toString('hex');
 const settle = discriminator('settle_mint_v3');
 const agencySettle=discriminator('settle_agency_mint_v3');
+const autoSettle=discriminator('settle_mint_v3_auto');
+const agencyAutoSettle=discriminator('settle_agency_mint_v3_auto');
 const unchanged = new Set(['disburse_mint_v3','approve_protected_withdrawal_v3',
   'disburse_protected_mint_v3','buyback_mint_v3','disburse_agency_mint_v3',
   'approve_agency_withdrawal_v3','bill_agency_promotion_v3','buyback_agency_mint_v3'].map(discriminator));
@@ -87,10 +89,11 @@ export async function loadV3SettlementPosition({ connection, signature, slot, pr
         const code = data.subarray(0,8).toString('hex');
         if (unchanged.has(code)) continue;
         const recovery = code === QA_RECOVERY_DISCRIMINATOR.toString('hex');
-        if ((code !== (split?.agencyPercent!==undefined?agencySettle:settle) && !recovery) || data.length !== 48) throw new Error('Unknown V3 policy mutation requires reconciliation.');
+        const automatic = code === (split?.agencyPercent!==undefined?agencyAutoSettle:autoSettle);
+        if ((code !== (split?.agencyPercent!==undefined?agencySettle:settle) && !automatic && !recovery) || data.length !== 48) throw new Error('Unknown V3 policy mutation requires reconciliation.');
         const amount = data.readBigUInt64LE(40);
         const build = recovery ? buildQaSettlementRecoveryInstruction : buildV3PolicySettlement;
-        const expected = build({programId,mint,authority,creator,split,
+        const expected = build({programId,mint,authority,creator,split,auto:automatic,
           claimId:data.subarray(8,40),expectedLamports:amount}).instruction;
         if (accounts.length !== expected.keys.length || expected.keys.some((key,index)=>key.pubkey.toBase58() !== accounts[index]))
           throw new Error('Later V3 settlement does not match the immutable policy.');

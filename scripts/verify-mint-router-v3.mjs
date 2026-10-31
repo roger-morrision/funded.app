@@ -68,6 +68,11 @@ assert.equal(settlement.instruction.data.length, 48);
 assert.equal(settlement.instruction.data.readBigUInt64LE(40), 100_000_000_000n);
 assert.equal(settlement.instruction.data.toString('hex').slice(0, 16),
   createHash('sha256').update('global:settle_mint_v3').digest('hex').slice(0, 16));
+const automaticSettlement = buildMintRouterV3SettlementInstruction({ programId, mint, authority, creator, claimId,
+  expectedLamports:'100000000000', auto:true });
+assert.equal(automaticSettlement.instruction.keys[1].isSigner, false);
+assert.equal(automaticSettlement.instruction.data.toString('hex').slice(0,16),
+  createHash('sha256').update('global:settle_mint_v3_auto').digest('hex').slice(0,16));
 assert.equal(settlement.claim.toBase58(), deriveMintClaimV3(programId, mint, claimId).toBase58());
 assert.equal(settlement.instruction.keys.length, 15);
 assert.deepEqual(settlement.vaults.map(key => key.toBase58()), deriveMintVaultsV3(programId, mint).map(key => key.toBase58()));

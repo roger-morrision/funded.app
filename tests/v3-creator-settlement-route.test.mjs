@@ -12,7 +12,7 @@ const claimId = Buffer.alloc(32, 8);
 const router = deriveMintRouterV3(program.publicKey, mint.publicKey).address.toBase58();
 const path = `/api/tokens/${mint.publicKey.toBase58()}/v3-settlement/${collectionSignature}`;
 
-function fixture({ enabled = true, submit = null } = {}) {
+function fixture({ enabled = true, autoEnabled = true, submit = null, authorized = true } = {}) {
   const responses = [];
   const state = { collections:{ [collectionSignature]:{
     signature:collectionSignature, mint:mint.publicKey.toBase58(),
@@ -34,7 +34,8 @@ function fixture({ enabled = true, submit = null } = {}) {
     body:async req => req.input, store:{ read:async () => state, update:async fn => fn(state) },
     solanaCluster:'devnet', solanaRpcUrl:'https://unused.invalid',
     v3AuthorityKeypair:() => authority,
-    env:{ FUNDED_V3_SETTLEMENT_ENABLED:enabled ? 'true' : 'false',
+    requireAuthorized:() => authorized,
+    env:{ FUNDED_V3_SETTLEMENT_ENABLED:enabled ? 'true' : 'false', FUNDED_V3_AUTO_SETTLEMENT_ENABLED:autoEnabled ? 'true' : 'false',
       FUNDED_V3_FEE_ROUTER_PROGRAM_ID:program.publicKey.toBase58(),
       FUNDED_V3_PROGRAM_DATA_SHA256:'a'.repeat(64) },
     connectionFactory:() => ({ getLatestBlockhash:async () => ({
@@ -59,7 +60,9 @@ function fixture({ enabled = true, submit = null } = {}) {
   });
   return { state, responses, get submitted(){return submitted;},
     setFinalized:value => { finalized=value; },
-    request:input => handle({ method:'POST', input, headers:{} }, {}, new URL(path,'https://funded.vip')) };
+    request:input => handle({ method:'POST', input, headers:{} }, {}, new URL(path,'https://funded.vip')),
+    requestAuto:input => handle({method:'POST',input,headers:{}},{},
+      new URL('/api/keeper/settle-v3','https://funded.vip')) };
 }
 
 function signPrepared(base64) {
@@ -73,6 +76,23 @@ test('V3 settlement stays disabled by default', async () => {
   await f.request({});
   assert.equal(f.responses[0].status, 503);
   assert.deepEqual(f.state.v3Settlements, {});
+});
+
+test('keeper settles the fixed V3 policy with authority signature alone', async () => {
+  const f = fixture();
+  await f.requestAuto({mint:mint.publicKey.toBase58(),collectionSignature});
+  assert.equal(f.responses.at(-1).status, 200);
+  assert.equal(f.state.v3Settlements[collectionSignature].status, 'finalized');
+  assert.equal(f.submitted, 1);
+  await f.requestAuto({mint:mint.publicKey.toBase58(),collectionSignature});
+  assert.equal(f.submitted, 1);
+  const denied = fixture({authorized:false});
+  await denied.requestAuto({mint:mint.publicKey.toBase58(),collectionSignature});
+  assert.equal(denied.submitted, 0);
+  const inactive = fixture({autoEnabled:false});
+  await inactive.requestAuto({mint:mint.publicKey.toBase58(),collectionSignature});
+  assert.equal(inactive.responses.at(-1).status,503);
+  assert.equal(inactive.submitted,0);
 });
 
 test('creator signs the exact V3 settlement and finalized proof closes the collection', async () => {

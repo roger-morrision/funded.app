@@ -12,6 +12,8 @@ pub mod rotate;
 pub mod recover_wrapped_sol;
 pub mod policy_v3;
 pub mod protected_v3;
+pub mod automation_v3;
+pub use automation_v3::*;
 #[cfg(feature = "devnet-v3-program")]
 pub mod agency_policy_v3;
 #[cfg(feature = "devnet-v3-program")]

@@ -5,6 +5,7 @@ import { loadFinalizedV3PumpCollection as loadV3Collection } from '../v3-finaliz
 import { loadFinalizedV3Settlement as loadV3Settlement } from '../v3-settlement-proof.mjs';
 import { recordedV3AllocationPlan } from '../v3-allocation-plan.mjs';
 import { pausedFeeCollectionMints } from '../fee-collection-pause.mjs';
+import {automaticV3Actions} from '../automatic-v3-actions.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -62,7 +63,7 @@ export function createKeeperCollectionRoutes({
     if (req.method === 'GET' && url.pathname === '/api/keeper/collection-candidates') {
       if (!requireAuthorized(req, res)) return true;
       const state = await store.read();
-      const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified
+      const launches = Object.values(state.launches || {}).filter(row => !row.archivedAt && row.onchainVerified
         && row.cluster === 'devnet' && row.pumpFeeRoute?.router
         && row.pumpFeeRoute.router === row.creator
         && process.env.FUNDED_V3_COLLECTION_ENABLED === 'true'
@@ -73,15 +74,20 @@ export function createKeeperCollectionRoutes({
         && row.cluster === 'devnet' && Number.isSafeInteger(row.collectedLamports)
         && row.collectedLamports > 0 && /^[a-f0-9]{64}$/.test(String(row.claimId || ''))
         && state.launches?.[row.mint]?.onchainVerified === true
+        && !state.launches[row.mint].archivedAt
         && state.launches[row.mint].pumpFeeRoute?.scope === 'per-mint-v3'
         && state.launches[row.mint].pumpFeeRoute?.programId === row.programId
         && state.v3Settlements?.[row.signature]?.status !== 'finalized')
         .map(row => ({ mint:row.mint, collectionSignature:row.signature,
           claimId:row.claimId, amountLamports:String(row.collectedLamports),
-          status:state.v3Settlements?.[row.signature]?.status || 'awaiting-creator-signature' }));
-      return json(res, 200, { cluster:solanaCluster, minimumCollectionLamports:'10000000', mints:launches.map(row => ({ mint:row.mint,
+          status:state.v3Settlements?.[row.signature]?.status || (env.FUNDED_V3_AUTO_SETTLEMENT_ENABLED === 'true'
+            ? 'ready-for-automatic-settlement' : 'awaiting-creator-signature') }));
+      return json(res, 200, { cluster:solanaCluster, automaticSettlementEnabled:env.FUNDED_V3_AUTO_SETTLEMENT_ENABLED === 'true',
+        pendingV3Disbursements:env.FUNDED_V3_AUTO_DISBURSEMENT_ENABLED==='true'?automaticV3Actions(state):[],
+        minimumCollectionLamports:'10000000', mints:launches.map(row => ({ mint:row.mint,
         scope:row.pumpFeeRoute.scope, collectionStatus:pausedMints.has(row.mint) ? 'collection-paused' : pendingV3Settlements.some(source=>source.mint===row.mint)
-          ? 'awaiting-creator-settlement' : state.alerts?.[`fee-collect:${row.mint}`]?.status || null })),
+          ? env.FUNDED_V3_AUTO_SETTLEMENT_ENABLED === 'true' ? 'awaiting-automatic-settlement'
+            : 'awaiting-creator-settlement' : state.alerts?.[`fee-collect:${row.mint}`]?.status || null })),
         pendingSettlements:[], pendingV3Settlements });
     }
     if (req.method === 'POST' && url.pathname === '/api/keeper/collect') {
@@ -106,7 +112,8 @@ export function createKeeperCollectionRoutes({
         state.alerts[key] = { mint:mintKey, status:'executing', startedAt:new Date().toISOString() };
         return true;
       });
-      if(started?.awaitingSettlement) return json(res,409,{status:'awaiting-creator-settlement',
+      if(started?.awaitingSettlement) return json(res,409,{status:env.FUNDED_V3_AUTO_SETTLEMENT_ENABLED === 'true'
+        ? 'awaiting-automatic-settlement' : 'awaiting-creator-settlement',
         collectionSignature:started.awaitingSettlement,error:'Settle the existing V3 collection before collecting more fees. No transaction was submitted.'});
       if (!started) return json(res, 409, { error:'A previous fee collection needs operator reconciliation before retry.' });
       let result;
