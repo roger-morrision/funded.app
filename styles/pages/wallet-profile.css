@@ -41,3 +41,11 @@ body.page-route-wallet .wallet-balance-grid article { background: #111b2e; }
   body.page-route-wallet .wallet-detail-stats { grid-template-columns: repeat(6,minmax(0,1fr)); }
   body.page-route-wallet .wallet-detail-stats > div { min-height: 104px; padding: 16px; }
 }
+/* Account controls stay close together; safety guidance uses a native disclosure. */
+html body.product-experience-style #main-content #profile .profile-grid { align-items: start; gap: 12px; }
+html body.product-experience-style #main-content #profile .profile-safety-card { padding: 0; }
+html body.product-experience-style #main-content #profile .profile-safety-card > summary { min-height: 44px; padding: 12px 14px; font-size: 14px; font-weight: 700; cursor: pointer; }
+html body.product-experience-style #main-content #profile .profile-safety-card[open] > summary { border-bottom: 1px solid var(--line); }
+html body.product-experience-style #main-content #profile .profile-safety-card > .sign-checklist { margin: 12px 14px 4px; }
+html body.product-experience-style #main-content #profile .profile-safety-card > a { display: inline-flex; align-items: center; min-height: 44px; margin: 0 14px 8px; }
+html body.product-experience-style #main-content #profile .workspace-shortcuts { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }

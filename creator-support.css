@@ -5,6 +5,10 @@
 .creator-support-page h1{font-size:clamp(30px,5vw,48px);line-height:1.15;margin:20px 0}
 .creator-support-page h2{margin-top:32px}.creator-support-page a,.support-shortcuts a{color:#c2b4ff}
 .creator-support-page label{display:grid;gap:8px;margin:14px 0;font-size:14px}
+html body.product-experience-style #creator-support-page .support-shortcuts { margin-block: 12px; gap: 8px; padding: 0; border: 0; background: transparent; }
+html body.product-experience-style #creator-support-page .support-shortcuts a { flex-direction: row; min-height: 44px; padding: 10px 8px; border-radius: 8px; font-size: 13px; line-height: 1.35; }
+html body.product-experience-style #creator-support-page .support-shortcuts a::before { width: 18px; height: 18px; margin: 0; }
+@media (max-width: 350px) { html body.product-experience-style #creator-support-page .support-shortcuts a::before { display: none; } }
 .creator-support-page input:not([type=checkbox]),.creator-support-page textarea{width:100%;box-sizing:border-box;background:#131b2b;color:#f1f3ff;border:1px solid #59637b;border-radius:9px;padding:12px;font:inherit}
 .creator-support-page button,.support-mobile-trade button{min-height:44px;padding:10px 16px;border:1px solid #756b98;border-radius:9px;background:#302847;color:#f7f6ff;font:inherit;cursor:pointer}
 .creator-support-page button:disabled{opacity:.6;cursor:not-allowed}

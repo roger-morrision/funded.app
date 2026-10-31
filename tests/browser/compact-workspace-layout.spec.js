@@ -8,6 +8,20 @@ test.beforeEach(async({page})=>{
     ?r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):r.fulfill({status:503,json:{error:'Offline layout fixture'}}));
 });
 
+for(const width of[360,390,1440])test(`profile safety and wallet dialog retain native focus at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:900});await page.goto('/#profile');await page.locator('body.product-flows-ready').waitFor();
+  await expect(page.locator('#profile-title')).toHaveText('Wallet & settings');
+  const safety=page.locator('details.profile-safety-card'),summary=safety.locator('summary');
+  await expect(safety).not.toHaveAttribute('open','');await expect(safety.locator('ul')).toBeHidden();
+  expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);await summary.focus();await page.keyboard.press('Enter');
+  await expect(safety.locator('ul')).toBeVisible();await expect(safety).toContainText('No private key or seed phrase is requested');await expect(safety).toContainText('Check the wallet and amount before signing');
+  expect((await safety.locator('a').boundingBox()).height).toBeGreaterThanOrEqual(44);
+  await page.keyboard.press('Space');await expect(safety.locator('ul')).toBeHidden();await expect(summary).toBeFocused();
+  const connect=page.locator('#profile-connect');await connect.click();const dialog=page.locator('#wallet-onboarding-dialog');await expect(dialog).toBeVisible();
+  const close=dialog.getByRole('button',{name:'Close wallet connection',exact:true});const box=await close.boundingBox();expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44);
+  await close.focus();await page.keyboard.press('Enter');await expect(dialog).toBeHidden();await expect(connect).toBeFocused();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});
 for(const width of[320,390,700])test(`mobile guide menu preserves search, article and focus at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:844});await page.goto('/#docs/trading');await page.locator('body.product-flows-ready').waitFor();
   const browse=page.getByRole('button',{name:'Browse guides',exact:true}),input=page.locator('#docs-guide-search'),article=page.locator('#docs-guide-article');

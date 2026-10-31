@@ -1,4 +1,10 @@
-/* The reference leaderboard leads with artwork and gives the verified table priority. */
+/* Rankings take priority over decoration and repeated framing. */
+html body.product-experience-style #main-content .leaderboard-hero { padding: 16px; margin-block: 16px 8px; border-radius: 8px; background: var(--panel); }
+html body.product-experience-style #main-content #leaderboard-source-note { margin-block: 8px; padding: 0; }
+html body.product-experience-style #main-content .leaderboard-toolbar { min-height: 0; margin-block: 8px 12px; padding: 0; border: 0; }
+html body.product-experience-style #main-content .leaderboard-toolbar .leaderboard-tabs { margin: 0; padding: 0; border-bottom: 1px solid var(--line); }
+html body.product-experience-style #main-content .leaderboard-toolbar .leaderboard-tabs button { min-height: 44px; }
+html body.product-experience-style #main-content .leaderboard-table-panel .panel-heading { gap: 12px; margin: 0 0 12px; padding: 0; }
 body.page-route-leaderboard .leaderboard-hero {
   min-height: 360px;
   background: linear-gradient(90deg,#0b1020ed 0%,#0b1020b8 33%,#0b102029 65%,#0b102012 100%),url('../../leaderboard-wolf-peak.webp') center right / cover no-repeat;

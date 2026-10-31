@@ -16,6 +16,11 @@ body .header-search-field input { flex: 1; width: 100%; min-width: 0; height: 46
 .header-search-results { max-height: min(46vh, 390px); overflow-y: auto; border-top: 1px solid #29343a; }
 .header-search-result { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 64px; padding: 10px 8px; border-bottom: 1px solid #273138; color: #e6e9ed; text-decoration: none; }
 .header-search-result:hover, .header-search-result[aria-selected="true"] { background: #111b2e; outline: 1px solid #9a6d36; outline-offset: -1px; }
+html body.product-experience-style #header-search-dialog { border-radius: 8px; border-color: var(--line); }
+html body.product-experience-style #header-search-dialog .header-search-panel { padding: 16px; }
+html body.product-experience-style #header-search-dialog .header-search-field { border-color: var(--line); border-radius: 8px; background: var(--panel-2); }
+html body.product-experience-style #header-search-dialog .header-search-close { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; padding: 0; }
+html body.product-experience-style #header-search-dialog .header-search-result { min-height: 56px; padding-block: 8px; gap: 12px; }
 .header-search-identity, .header-search-market { display: grid; gap: 3px; min-width: 0; }
 .header-search-identity strong, .header-search-identity small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .header-search-identity small, .header-search-market small { color: #83939a; font: 11px 'DM Mono', monospace; }
