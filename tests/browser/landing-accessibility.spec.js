@@ -1,8 +1,8 @@
 import {test,expect} from '@playwright/test';
 
-for(const[width,height]of[[360,740],[390,844],[1440,900]])for(const motion of['no-preference','reduce'])test(`native landing keyboard focus clears fixed navigation at ${width}px with ${motion} motion`,async({page})=>{
+for(const[width,height]of[[360,740],[390,844],[1440,900]])for(const motion of['no-preference','reduce'])test(`native landing keyboard focus clears fixed navigation at ${width}px with ${motion} motion`,async({page,baseURL})=>{
   await page.setViewportSize({width,height});await page.emulateMedia({reducedMotion:motion});
-  const api=[];await page.route('https://**/*',r=>r.abort());await page.route('**/api/**',r=>{api.push(r.request().url());return r.abort();});
+  const api=[];await page.route('https://**/*',r=>r.request().method()==='GET'&&new URL(r.request().url()).origin===new URL(baseURL).origin?r.continue():r.abort());await page.route('**/api/**',r=>{api.push(r.request().url());return r.abort();});
   await page.goto('/welcome');await expect(page.locator('html')).toHaveAttribute('data-landing-navigation','enhanced');
   for(const key of['Tab','Shift+Tab']){
     let started=false,visited=0;
