@@ -1,10 +1,10 @@
 import { el, button, link, utc } from './view-utils.js';
 export function initializeReadyQueue(root, app) {
   const summary = el('section',null,'ready-queue'); summary.setAttribute('aria-label','Ready actions');
-  summary.append(el('h3','Ready now')); const status = el('p'); status.setAttribute('role','status'); const actions = el('div'); summary.append(status,actions); root.prepend(summary);
+  summary.append(el('h3','Wallet actions')); const status = el('p'); status.setAttribute('role','status'); const actions = el('div'); summary.append(status,actions); root.querySelector('header')?.after(summary);
   const guide = el('details',null,'flow-guide'); guide.append(el('summary','How fees become verified payments'));
   for (const node of root.querySelectorAll(':scope > .flow-stages, :scope > .flow-note')) guide.append(node);
-  root.querySelector('header')?.after(guide);
+  summary.after(guide);
   return (rows,{checking=false,missing=[],cutoff=null}={}) => {
     actions.replaceChildren(); const mine = rows.filter(row => row.wallet === app.connectedWalletAddress);
     const ready = mine.filter(row => row.stage === 'Awaiting approval' && row.ready === true), uncertain = mine.filter(row => row.stage === 'Processing');

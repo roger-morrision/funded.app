@@ -6,13 +6,13 @@ let latestExperience = null;
 globalThis.addEventListener?.('funded:financial-experience',event=>{latestExperience=event.detail;});
 export function initializeActivityFeed(app) {
   const board = document.querySelector('.home-launch-board'); if (!board) return;
-  const root = panel('personal-activity-feed','Your activity feed','Follow creators and wallets, inspect verified receipts, or browse observed trades. Activity coverage can be partial.');
+  const root = panel('personal-activity-feed','Recent activity','Browse recorded launches, trades and reward receipts. Choose Following to see the wallets and creators you follow. Coverage may be partial.');
   root.dataset.workspaceRoute='overview';board.before(root);
   const controls=el('div',null,'flow-tabs'),status=el('p'),list=el('div'),fresh=button('Show new updates',()=>apply());fresh.hidden=true;status.setAttribute('role','status');
   const kinds=[['all','All recorded'],['following','Following'],['launch','Launches'],['statement','Creator updates'],['receipt','Receipts'],['trade','Observed trades']];
-  let kind='all',rows=[],pending=[],statements=[],limit=12,busy=false,unavailable=[];
-  const more=button('Show more activity',()=>{limit+=12;render();});
-  for (const [key,title] of kinds) {const action=button(title,()=>{kind=key;limit=12;const url=new URL(location.href);url.searchParams.set('activity',key);history.pushState({},'',url);render();if(key==='following')productEvent('feed_following_view');});action.dataset.activityKind=key;controls.append(action);}
+  let kind='all',rows=[],pending=[],statements=[],limit=6,busy=false,unavailable=[];
+  const more=button('Show more activity',()=>{limit+=6;render();});
+  for (const [key,title] of kinds) {const action=button(title,()=>{kind=key;limit=6;const url=new URL(location.href);url.searchParams.set('activity',key);history.pushState({},'',url);render();if(key==='following')productEvent('feed_following_view');});action.dataset.activityKind=key;controls.append(action);}
   root.append(controls,fresh,button('Refresh feed',()=>void refresh()),status,list,more);
   function render() {
     for(const action of controls.children)action.setAttribute('aria-pressed',String(action.dataset.activityKind===kind));
@@ -25,7 +25,7 @@ export function initializeActivityFeed(app) {
       if(row.creator)item.append(link(`Wallet ${row.creator.slice(0,6)}…`,`/wallet/${row.creator}`));
       item.append(link(row.signature?'Inspect exact event':'Open details',row.signature?receiptUrl(row.signature,row.mint,row.wallet):row.href));list.append(item);
     }
-    status.textContent=`${selected.length} matching records${unavailable.length ? ' · Unavailable: '+unavailable.join(', ') : ''}. ${kind==='following'&&!selected.length?'Follow a creator or wallet to build this view.':'Use Show new updates to apply incoming activity.'}`;
+    status.textContent=`Showing ${Math.min(limit,selected.length)} of ${selected.length} records${unavailable.length ? ' · Unavailable: '+unavailable.join(', ') : ''}. ${kind==='following'&&!selected.length?'Follow a creator or wallet to build this view.':'New activity stays buffered until you choose Show new updates.'}`;
     if(!selected.length)list.append(el('p','No matching recorded activity in the loaded coverage.'));more.hidden=selected.length<=limit;
   }
   function collect(){let trades=[];try{trades=app.collectRecentTrades(app.assets,{limit:50,since:Math.floor(Date.now()/1000)-86400});}catch{}

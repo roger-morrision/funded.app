@@ -14,8 +14,8 @@ function disclosure(target, label) {
 }
 
 function home() {
-  setText('.hero-copy', 'Launch a Solana token with an 80/20 creator-fee policy. Choose your rewards and follow verified payments.');
-  setText('.home-hero-kicker', 'Solana launchpad · published fee route');
+  setText('.hero-copy', 'Explore Solana tokens, choose a creator-fee split, and follow recorded rewards.');
+  setText('.home-hero-kicker', 'Solana token launchpad');
   const actions = $('.hero-actions');
   const explore = actions?.querySelector('[href="#explore"]');
   const launch = actions?.querySelector('[href="#launch"]');

@@ -28,3 +28,8 @@ export function panel(id, title, text) {
   const heading = el('h2', title); heading.id = `${id}-title`; root.setAttribute('aria-labelledby', heading.id);
   root.append(heading); if (text) root.append(el('p', text)); return root;
 }
+export function portfolioTools(parent) {
+  let tools=parent.querySelector(':scope > .portfolio-tools');
+  if(!tools){tools=el('div',null,'portfolio-tools');tools.setAttribute('role','group');tools.setAttribute('aria-label','Saved drafts and transaction recovery');parent.append(tools);}
+  return tools;
+}

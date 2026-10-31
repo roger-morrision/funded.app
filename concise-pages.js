@@ -227,7 +227,7 @@ function shortenPageCopy() {
     ['#launch-route-shell > .page-lede', 'Add your token details, choose rewards, and review the total before signing.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
     ['#community .section-heading .panel-explainer', 'Use the star on a token in Explore to add it to Favorites. Signed-out saving uses this browser; verify a wallet or sign in with X to sync across devices.'],
-    ['#capital-flow-title', 'Where every SOL goes'],
+    ['#capital-flow-title', 'How creator fees are split'],
     ['#analytics-detail .split-detail', currentFeePolicyCopy().scope],
     ['#token-image-help', 'PNG, JPG, WEBP · 12 MB max · square image recommended'],
     ['#launch-route-shell .launch-immutable-note', 'Token details publish at launch and cannot be edited here later.'],

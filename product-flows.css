@@ -15,20 +15,20 @@ html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .
 .review-buy-setting small { color:#a5afbc; }
 html body.product-experience-style .launch-profile-grid { display:grid !important; grid-template-columns:repeat(3,minmax(0,1fr)); }
 html body.product-experience-style .launch-profile-heading { display:flex !important; }
-.flow-panel { min-width:0; padding:20px; margin-block:18px; border:1px solid #4e4636; border-radius:12px; background:#141a23; color:#dbe2ed; overflow-wrap:anywhere; }
-.flow-panel h2,.flow-panel h3 { margin:0 0 10px; color:#f3e5c7; }
-.flow-panel p,.flow-note { color:#adb8c9; font-size:12px; line-height:1.6; }
+.flow-panel { min-width:0; padding:20px; margin-block:18px; border:1px solid var(--line,#2b374b); border-radius:12px; background:var(--panel,#111a2a); color:var(--text,#e9eef6); overflow-wrap:anywhere; }
+.flow-panel h2,.flow-panel h3 { margin:0 0 10px; color:var(--text,#e9eef6); }
+.flow-panel p,.flow-note { color:var(--muted,#a6b3c6); font-size:14px; line-height:1.65; }
 .flow-panel header { display:flex; justify-content:space-between; align-items:start; gap:16px; }
-.flow-panel button,.flow-panel select,.flow-panel input:not([type=checkbox]) { min-height:44px; padding:9px 12px; border:1px solid #786445; border-radius:6px; color:#efdfc0; background:#252a31; }
+.flow-panel button,.flow-panel select,.flow-panel input:not([type=checkbox]) { min-height:44px; padding:9px 12px; border:1px solid #3b4960; border-radius:8px; color:#e3eaf4; background:#182236; }
 .flow-panel input[type=checkbox] { margin-right:8px; }
 .flow-panel nav { display:flex; flex-wrap:wrap; gap:10px 18px; margin-block:16px; }
-.flow-panel a { color:#e8c487; }
+.flow-panel a { color:#b8d2ff; text-underline-offset:3px; }
 .flow-stages { display:flex; flex-wrap:wrap; gap:8px; padding:0; list-style:none; }
 .flow-stages li,.flow-stage { padding:6px 10px; border:1px solid #68583d; border-radius:6px; color:#eed2a3; font-size:11px; }
 .flow-stages li+li::before { content:'→ '; }
 .flow-activity-row { border-top:1px solid #394252; padding:16px 0; }
-.flow-activity-row h3 { margin-top:12px; font-size:15px; }
-.flow-activity-row small { display:block; color:#92a0b5; font-size:11px; margin-bottom:12px; }
+.flow-activity-row h3 { margin-top:8px; font-size:16px; }
+.flow-activity-row small { display:block; color:#a6b3c6; font-size:12px; margin-bottom:8px; }
 .flow-activity-row a+a { margin-left:12px; }
 .flow-activity-row[data-stage=Verified] .flow-stage { color:#b0eac9; border-color:#3d8060; }
 .launch-facts summary { cursor:pointer; color:#f0d09a; font-weight:700; min-height:28px; }
@@ -48,7 +48,8 @@ html body.product-experience-style .launch-profile-heading { display:flex !impor
 .flow-panel dd { margin:0; }.flow-panel>button,.flow-panel> a { margin:6px 12px 6px 0; }
 .financial-receipt-dialog { width:min(780px,94vw); max-height:90dvh; overflow:auto; overflow-wrap:anywhere; }
 .flow-panel [hidden],.flow-panel[hidden] { display:none !important; }
-html body.page-route-overview .main-content>section:is(#personal-activity-feed,#first-visit-path):not([hidden]) { display:block !important; order:2; }
+html body.page-route-overview .main-content>#personal-activity-feed:not([hidden]) { display:block !important; order:5; }
+html body.page-route-overview .main-content>#first-visit-path:not([hidden]) { display:block !important; order:6; }
 @media(max-width:700px) {
   html body.page-route-overview.product-experience-style .hero-section h1 { max-width:28ch; font-size:26px !important; }
   html body.product-experience-style .launch-profile-grid { grid-template-columns:1fr; }

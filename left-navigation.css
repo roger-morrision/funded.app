@@ -8,7 +8,7 @@ html body.page-route #sidebar {
   width: var(--navigation-width); height: 100dvh; padding: 20px 12px 12px;
   border: 0; border-right: 1px solid var(--line); transform: none; box-shadow: none;
 }
-html body.page-route #sidebar .brand-row { flex: none; position: relative; padding: 0 4px 24px; }
+html body.page-route #sidebar .brand-row { display: flex; align-items: center; flex: none; position: relative; padding: 0 4px 24px; }
 html body.page-route #sidebar .primary-nav {
   display: block; flex: 1; min-height: 0; width: 100%; overflow-y: auto; overflow-x: hidden;
   padding: 0; overscroll-behavior: contain; scrollbar-width: thin;
@@ -26,7 +26,7 @@ html body.page-route #main-content > .topbar {
   width: 100%; height: 72px; padding: 0; gap: 12px; background: var(--bg);
 }
 @media (min-width: 701px) {
-  html body.page-route #sidebar .desktop-sidebar-toggle { display: grid; }
+  html body.page-route #sidebar .desktop-sidebar-toggle { display: grid; top: 0; right: -27px; }
   html body.page-route #sidebar .brand { white-space: nowrap; }
 }
 @media (min-width: 701px) and (max-width: 1499px) {
@@ -57,7 +57,7 @@ html body.page-route #main-content > .topbar {
   html body.page-route-coin .toast { bottom: calc(96px + env(safe-area-inset-bottom)); }
 }
 /* Admin uses the same rail while retaining its separate authentication flow. */
-.page-route-admin { --bg: #0b0d1d; --line: #30334f; }
+.page-route-admin { --bg: #0b1020; --line: #2b374b; }
 .admin-navigation { background: #101621; }
 .admin-navigation .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; }
 .admin-navigation .nav-item { display: flex; align-items: center; gap: 12px; min-height: 44px; margin: 4px 0; padding: 10px 12px; border-radius: 8px; color: #c4cbda; text-decoration: none; }

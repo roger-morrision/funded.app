@@ -87,6 +87,7 @@ test('recovery inbox labels its in-tab fallback when device storage is full (moc
     document.querySelector('#recovery-inbox').remove();initializeRecoveryInbox({connectedWalletAddress:wallet,pendingTradeVerifications:new Map(),verifyPendingTrade:async()=>{}});
   },{mint,wallet,sig});
   const inbox=page.locator('#recovery-inbox');await expect(inbox).toContainText('1 unresolved');await expect(inbox).toContainText('This record remains in this tab only');await expect(inbox.getByRole('link',{name:'Inspect transaction'})).toHaveAttribute('href',new RegExp(sig));
+  await page.getByRole('button',{name:'Review 1 saved transaction',exact:true}).click();await expect(inbox).toBeFocused();await expect(inbox).toBeInViewport();
 });
 test('on-chain-policy burns keep a working Explorer proof link (mocked recorded receipt)',async({page})=>{
   await setup(page,390);await page.route('**/api/buyback/status',route=>route.fulfill({json:{cluster:'devnet',pending:[],receipts:[{mint,signature:sig,sourceKind:'onchain-policy',status:'finalized',vaultDebitVerified:true,burnInstructionVerified:true,burnedBaseUnits:'123'}]}}));

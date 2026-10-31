@@ -1,4 +1,4 @@
-import { el, panel, button, link, array, utc } from './view-utils.js';
+import { el, panel, button, link, array, utc, portfolioTools } from './view-utils.js';
 import { productEvent } from '../../../product-events.js';
 const KEY='funded.launch-plans.v1';
 const fields=['token-name','token-symbol','token-description','creator-wallet-share','holder-airdrop-share','x-share','x-recipient'];
@@ -22,9 +22,10 @@ export function initializeLaunchPlans(app){
     }catch(error){status.textContent=error.message||'Draft storage unavailable.';}
   }),status);
   form.append(root);
-  const plans=panel('launch-control-room','Launch control room','Planned drafts are private to this browser. A due plan is awaiting your review and signature, never a live token.');parent.prepend(plans);
+  const plans=panel('launch-control-room','Saved launch drafts','Drafts stay on this device. Saving a plan does not submit a launch; return to review current costs and sign.');portfolioTools(parent).append(plans);
   const list=el('div');plans.append(list);
   function render(){list.replaceChildren();try{const rows=readLaunchPlans().sort((a,b)=>a.at-b.at);
+    plans.classList.toggle('is-empty',rows.length===0);
     for(const row of rows){const item=el('article',null,'flow-activity-row');item.append(el('h3',row.draft['token-name']),el('p',`${row.at<=Date.now()?'Awaiting review and signature':'Planned return'} · ${utc(row.at)}`));
       item.append(button('Resume draft',()=>{
         const dirty=fields.some(key=>document.getElementById(key)?.value&&document.getElementById(key).value!==row.draft[key]);
