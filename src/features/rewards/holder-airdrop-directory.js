@@ -84,7 +84,8 @@ export function renderHolderAirdropDirectory(data) {
     image.src = sources[next++];
     avatar.append(image);
     const info = element('div', 'holder-airdrop-info');
-    const link = element('a', '', `${row.symbol || 'TOKEN'} · ${row.name || 'Unnamed token'}`);
+    const link = element('a', '');
+    link.append(element('strong', '', row.symbol || 'TOKEN'), element('small', '', row.name || 'Unnamed token'));
     link.href = `/token/${encodeURIComponent(row.mint)}`;
     info.append(link, element('small', '', `${row.holderSharePercent}% creator fee share · ${String(row.mint).slice(0,4)}…${String(row.mint).slice(-4)}`));
     if (row.holderRewardPolicy?.qaMinimums) info.append(element('small', '',

@@ -177,7 +177,7 @@ function renderDiscovery(data) {
   if (!tokens.length) { root.textContent = data ? 'No tokens match this reward filter yet.' : 'Reward programs are unavailable right now.'; return; }
   const list = node('div', 'reward-discovery-list');
   for (const row of tokens.slice(0, 30)) {
-    const article = node('article');
+    const article = node('article', 'token-card-shell reward-discovery-card');
     const title = node('div','reward-row-head');
     const identity = node('div','reward-token-identity');
     const avatar = node('span', 'reward-token-avatar', String(row.symbol || row.name || '?').slice(0, 2));
@@ -191,7 +191,9 @@ function renderDiscovery(data) {
     });
     avatar.append(logo);
     const info = node('div', 'reward-token-info');
-    info.append(link(`${row.symbol || short(row.mint)} · ${row.name}`, tokenUrl(row.mint)));
+    const tokenLink = link('', tokenUrl(row.mint));
+    tokenLink.append(node('strong', '', row.symbol || short(row.mint)), node('small', '', row.name || 'Unnamed token'));
+    info.append(tokenLink);
     const market = tokenListMarket(row.mint);
     const age = tokenAge(row.createdTimestamp || market?.createdTimestamp || row.createdAt);
     const metadata = node('div', 'reward-token-metadata');

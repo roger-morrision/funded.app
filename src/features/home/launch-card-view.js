@@ -201,8 +201,6 @@ export function homeLaunchCardMarkup(
       <div class="home-launch-card-stats">
         <span><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small><strong>${escapeHtml(value)}</strong></span>
         <span><small>${escapeHtml(volumeLabel)} volume</small><strong>${escapeHtml(shownVolume)}</strong></span>
-        <span title="${escapeHtml(holderTitle)}"><small>Holders</small><strong>${escapeHtml(holderCount)}</strong></span>
-        <span class="home-launch-change ${changeClass}"><small>24h change</small><strong>${escapeHtml(hasNoObservedTrades ? 'No trades' : change)}</strong></span>
       </div>
       </div></div>
       ${feeRoute}
@@ -212,6 +210,7 @@ export function homeLaunchCardMarkup(
       </div>
       <div class="home-launch-card-actions"><a class="card-review-buy" data-review-buy="${escapeHtml(item.address || '')}" href="/token/${encodeURIComponent(item.address || '')}?reviewBuy=0.1">Review buy <span aria-hidden="true">→</span></a>${tokenCardWatchMarkup(item.address, item.symbol)}${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
       <details class="home-card-details"><summary>Details &amp; links</summary>
+      <div class="home-card-extra-stats"><span title="${escapeHtml(holderTitle)}"><small>Holders</small><strong>${escapeHtml(holderCount)}</strong></span><span class="home-launch-change ${changeClass}"><small>24h change</small><strong>${escapeHtml(hasNoObservedTrades ? 'No trades' : change)}</strong></span></div>
       ${creatorWallet ? `<div class="home-card-creator"><span>Creator</span><code>${escapeHtml(creatorWallet)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(creatorWallet)}" data-copy-kind="creator" aria-label="Copy full creator wallet address" title="Copy full creator wallet address">${icon('copy')}</button></div>` : ''}
       <div class="home-launch-meta"><span>${escapeHtml(ageLabel)}</span></div>
       ${footerNote ? `<small class="home-launch-evidence">${escapeHtml(footerNote)}</small>` : ''}

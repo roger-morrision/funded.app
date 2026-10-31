@@ -22,7 +22,7 @@ export function renderSimpleRewardCards(kind, { homeSpotlight, homeVerifiedLaunc
   }
   for (const launch of launches) {
     const share = Number(launch.feeDistribution.creatorDirected.shares[shareKey]);
-    const card = document.createElement('article'); card.className = 'home-reward-token-card'; card.dataset.rewardMint = launch.mint;
+    const card = document.createElement('article'); card.className = 'token-card-shell home-reward-token-card'; card.dataset.rewardMint = launch.mint;
     const head = document.createElement('div'); head.className = 'home-reward-token-head';
     const avatar = document.createElement('span'); avatar.className = 'home-reward-token-logo'; avatar.setAttribute('aria-hidden', 'true');
     avatar.textContent = String(launch.symbol || launch.name || 'T').slice(0, 1).toUpperCase();

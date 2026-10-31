@@ -1,9 +1,14 @@
 /* Square token logos and a compact shared card for Home, Explore and created tokens. */
+html body.product-experience-style {
+  --token-card-surface: #111a29; --token-card-border: #2b374b;
+  --token-card-muted: #a6b3c6; --token-card-radius: 10px;
+  --token-card-logo: 80px; --token-card-gap: 12px;
+}
 html body.product-experience-style :is(#home-launch-grid,#asset-grid,.creator-launch-list) { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; align-items: start; }
-html body.product-experience-style .home-launch-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 10px; background: #111a29; border-color: #2b374b; }
+html body.product-experience-style .home-launch-card { display: flex; flex-direction: column; gap: 8px; padding: var(--token-card-gap); border-radius: var(--token-card-radius); background: var(--token-card-surface); border-color: var(--token-card-border); }
 html body.product-experience-style .home-launch-card:hover { background: #141f30; border-color: #687b98; }
-html body.product-experience-style .home-card-overview { display: grid; grid-template-columns: 80px minmax(0,1fr); align-items: start; gap: 12px; }
-html body.product-experience-style .home-launch-card .home-launch-card-media { width: 80px; height: 80px; min-height: 80px; aspect-ratio: 1; margin: 0; border: 1px solid #2c3b52; border-radius: 8px; background: #1b283c; }
+html body.product-experience-style .home-card-overview { display: grid; grid-template-columns: var(--token-card-logo) minmax(0,1fr); align-items: start; gap: var(--token-card-gap); }
+html body.product-experience-style .home-launch-card .home-launch-card-media { width: var(--token-card-logo); height: var(--token-card-logo); min-height: var(--token-card-logo); aspect-ratio: 1; margin: 0; border: 1px solid #2c3b52; border-radius: 8px; background: #1b283c; }
 html body.product-experience-style .home-launch-card .home-launch-card-media .home-token-avatar { display: grid; place-items: center; width: 100%; height: 100%; font-size: 30px; border-radius: 0; }
 html body.product-experience-style .home-launch-card .home-launch-card-media img { width: 100%; height: 100%; object-fit: contain; border-radius: 0; }
 html body.product-experience-style .home-card-info { min-width: 0; }
@@ -52,6 +57,7 @@ html body.product-experience-style .paid-listing-card .paid-listing-proof { disp
 @media(max-width:1199px) { html body.product-experience-style :is(#home-launch-grid,#asset-grid,.creator-launch-list) { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:1049px) { html body.product-experience-style :is(#home-launch-grid,#asset-grid,.creator-launch-list) { grid-template-columns: minmax(0,1fr); } }
 @media(max-width:700px) {
+  html body.product-experience-style { --token-card-logo: 76px; }
   html body.product-experience-style .home-card-overview { grid-template-columns: 76px minmax(0,1fr); gap: 10px; }
   html body.product-experience-style .home-launch-card .home-launch-card-media { width: 76px; height: 76px; min-height: 76px; }
   html body.product-experience-style .home-launch-card .home-launch-copy-address { width: 44px; height: 44px; padding: 11px; }
