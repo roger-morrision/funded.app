@@ -8,7 +8,8 @@ export function initializeDiscoveryIntent(app) {
   const inputs = [];
   for (const parent of document.querySelectorAll('.home-launch-toolbar, #explore .explore-control-bar')) {
     const label = document.createElement('label'); label.className = 'review-buy-setting';
-    label.innerHTML = '<span>Buy amount · SOL</span><input inputmode="decimal" aria-label="Saved review buy amount in SOL" maxlength="13"><small>Used when opening a trade review</small>';
+    const helpId = `review-buy-help-${inputs.length}`;
+    label.innerHTML = `<span>Buy review · SOL</span><input inputmode="decimal" aria-label="Saved review buy amount in SOL" aria-describedby="${helpId}" maxlength="13"><small id="${helpId}" class="visually-hidden">Used when opening a trade review. Review a fresh quote before signing; changing this amount does not place a trade.</small>`;
     const input = label.querySelector('input'); input.value = amount; inputs.push(input); parent.append(label);
     input.addEventListener('change', () => {
       const valid = validReviewAmount(input.value); input.setAttribute('aria-invalid', String(!valid));

@@ -3,6 +3,10 @@ import { $, $$, text, node, disclose } from './dom.js';
 import { icon } from '../../../ui-icons.js';
 
 export function launch() {
+  // Keep the route's secondary actions on the same row above the form.
+  const routeActions = $('#launch-route-shell .route-shell-actions');
+  const back = $('#launch-close');
+  if (routeActions && back) routeActions.prepend(back);
   $('#wizard-hint')?.setAttribute('tabindex','-1');
   $$('[data-launch-step-target]').forEach(button=>button.setAttribute('aria-label',`Step ${button.dataset.launchStepTarget}: ${['Token details','Rewards and launch'][Number(button.dataset.launchStepTarget)-1]}`));
   disclose($('.enhanced-token-page'), 'Optional story and roadmap');

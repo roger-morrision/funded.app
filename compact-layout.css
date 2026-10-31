@@ -1,0 +1,180 @@
+/* Shared density for task pages. Token cards, charts and signing sheets keep
+   their own layouts; mobile actions retain a minimum 44px touch target. */
+html body.product-experience-style #main-content { font-family: var(--ui-font); }
+html body.product-experience-style :is(#sidebar,.topbar) :is(a,button,span,small) { font-family: var(--ui-font); }
+html body.product-experience-style #main-content > #route-guide h1 { font-size: var(--ui-page-title) !important; }
+html body.product-experience-style #main-content > #route-guide:not([hidden]) { margin-block: 16px !important; padding-block: 0 12px !important; }
+html body.product-experience-style #main-content :is(h1,h2,h3) { margin-block: 0 8px; }
+html body.product-experience-style #main-content .eyebrow { margin-block: 0 6px; }
+html body.product-experience-style #main-content :is(.route-guide,.workspace-page-header,.section-heading,.explore-heading) {
+  min-height: 0; gap: 12px; margin-block: 16px; padding-block: 0;
+}
+html body.product-experience-style #main-content :is(.route-guide,.workspace-page-header,.section-heading) > p:last-child { margin-bottom: 0; }
+html body.product-experience-style #main-content :is(.ui-tabs,.portfolio-view-tabs,.purpose-page-nav,.leaderboard-tabs) { gap: 4px; margin-block: 12px 16px; padding-bottom: 0; }
+html body.product-experience-style #main-content :is(.ui-tabs,.portfolio-view-tabs,.purpose-page-nav,.leaderboard-tabs) :is(a,button) { padding: 8px 12px; }
+html body.product-experience-style #main-content :is(.panel,.role-panel,.flow-panel,.support-card,.community-card,.agency-agent,.agency-policy,.reward-experience-panel) {
+  padding: 16px; border-radius: 8px; box-shadow: none;
+}
+html body.product-experience-style #main-content :is(.panel-header,.role-panel-head,.flow-panel-head) { gap: 12px; margin-bottom: 12px; }
+html body.product-experience-style #main-content :is(.ui-disclosure,.page-cleanup-guide) { margin-block: 12px; border-radius: 8px; }
+html body.product-experience-style #main-content :is(.ui-disclosure,.page-cleanup-guide) > summary { min-height: 44px; box-sizing: border-box; padding: 12px; }
+html body.product-experience-style #main-content .empty-state { min-height: 0; padding: 20px 16px; }
+html body.product-experience-style #main-content .portfolio-tools { gap: 12px; margin-block: 16px; }
+html body.product-experience-style #main-content .workspace-preference { gap: 12px; padding: 12px 16px; margin-block: 12px; border-radius: 8px; }
+html body.product-experience-style #main-content .docs-guide-article p { line-height: 1.75; }
+html body.product-experience-style #main-content .docs-guide-layout { gap: 20px; }
+html body.product-experience-style #main-content .docs-guide-next { margin-top: 24px; padding-top: 12px; }
+
+/* Discovery controls read as one toolbar instead of separate centered blocks. */
+html body.product-experience-style #main-content .review-buy-setting {
+  display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center;
+  justify-content: flex-start; gap: 8px; width: auto; margin: 0; text-align: left;
+}
+html body.product-experience-style #main-content .review-buy-setting > span { white-space: nowrap; font-size: 12px; }
+html body.product-experience-style #main-content .review-buy-setting input { flex: none; width: 76px; min-height: 44px; margin: 0; }
+html body.product-experience-style #main-content .review-buy-setting .visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+html body.product-experience-style #explore .explore-search-row { margin-block: 12px 8px; }
+html body.product-experience-style #explore .explore-control-bar { gap: 8px 12px; margin-block: 8px 12px; flex-wrap: wrap; }
+html body.product-experience-style #explore .product-sort { gap: 8px; }
+html body.product-experience-style #explore .explore-benefit-leaders { padding: 16px; margin-top: 16px; }
+
+/* Smaller heroes keep live content and the first form fields in view. */
+html body.product-experience-style.page-route-overview #main-content .hero-section {
+  min-height: 0 !important; padding: 24px 0 !important; margin-block: 0 12px;
+}
+html body.product-experience-style.page-route-overview #main-content .hero-section h1 { max-width: 28ch; }
+html body.product-experience-style.page-route-overview #main-content .hero-section p { margin-block: 8px 16px; }
+html body.product-experience-style.page-route-overview #main-content .hero-actions { margin-top: 0; gap: 8px; }
+html body.product-experience-style #main-content .home-launch-toolbar { gap: 10px; padding-block: 8px; margin-block: 0 12px; }
+html body.product-experience-style #home-launch-grid:has(> .empty-state:only-child) { min-height: 0; }
+html body.product-experience-style #main-content :is(#home-daily-bonuses,#home-buyback-panel,#home-protocol-route) { padding: 16px; margin-top: 24px; border-radius: 8px; }
+html body.product-experience-style #main-content .leaderboard-hero { min-height: 0; padding: 20px; margin-block: 16px; }
+html body.product-experience-style #main-content :is(#launch-route-shell,#my-launches,#payments,#airdrops,#paid,#list,#bonuses,#marketing-agency,#privacy,#creator-support-page) { padding: 16px 0 24px; }
+html body.product-experience-style #main-content .paid-reference-hero { min-height: 0; padding-block: 16px; }
+html body.product-experience-style #main-content .paid-hero-mark { width: 64px; height: 64px; }
+html body.product-experience-style #main-content #buyback-route-panel { padding: 16px; }
+html body.product-experience-style #main-content .paid-reference-hero h1 { max-width: 26ch; }
+html body.product-experience-style #main-content .list-hero { gap: 20px; padding-block: 0; }
+
+/* Launch, portfolio and rewards share the same compact panel rhythm. */
+html body.product-experience-style #main-content #launch-route-shell > .eyebrow { margin-top: 0; }
+html body.product-experience-style #main-content #launch-route-shell .route-shell-actions { margin-top: 12px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+html body.product-experience-style #main-content #launch-route-shell .route-shell-actions :is(a,button) { display: inline-flex; align-items: center; min-height: 44px; margin: 0; }
+html body.product-experience-style #main-content #launch-close { border: 0; padding: 0 4px; background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; }
+html body.product-experience-style #main-content #launch-dialog [data-launch-step="1"] > .step-heading { display: none; }
+html body.product-experience-style #main-content .launch-page { margin-top: 8px; }
+html body.product-experience-style #main-content .launch-page-back { margin-block: 0 12px; }
+html body.product-experience-style #main-content .launch-page .launch-layout { gap: 16px; }
+html body.product-experience-style #main-content .launch-page .launch-fields { padding: 16px; border-radius: 8px; }
+html body.product-experience-style #main-content .launch-page :is(.launch-preview-panel,.launch-pay-summary) { padding: 14px; border-radius: 8px; }
+html body.product-experience-style #main-content .launch-page .launch-steps { margin-bottom: 16px; }
+html body.product-experience-style #main-content .launch-page .wizard-actions { margin-top: 16px; padding-top: 16px; }
+html body.product-experience-style #main-content .launch-page .creator-burn-card { min-height: 0; padding: 12px; }
+html body.product-experience-style #main-content .portfolio-dashboard { padding: 16px; }
+html body.product-experience-style #main-content .portfolio-dashboard > .ui-tabs { margin-top: 0; }
+html body.product-experience-style #main-content .portfolio-dashboard .empty-state { padding: 16px; border: 0; background: transparent; }
+html body.product-experience-style #main-content .rewards-page-header { margin-top: 0; margin-bottom: 12px; padding-bottom: 12px; }
+html body.product-experience-style #main-content #payments { gap: 12px; }
+html body.product-experience-style #main-content #payments > .ui-tabs { margin-block: 0; }
+html body.product-experience-style #main-content #rewards-overview { gap: 16px; }
+html body.product-experience-style #main-content #rewards-overview > :is(.product-details,.reward-overview-start,.reward-action-grid,#reward-portfolio,#financial-center) { margin-block: 0; }
+html body.product-experience-style #main-content #reward-portfolio { padding: 16px; margin-top: 12px; }
+html body.product-experience-style #main-content .reward-overview-start { margin-top: 16px; }
+html body.product-experience-style #main-content .reward-overview-start p { margin-block: 6px 12px; }
+html body.product-experience-style #main-content .reward-program-grid { gap: 8px; }
+html body.product-experience-style #main-content #financial-center { padding: 16px; margin-top: 20px; }
+html body.product-experience-style #main-content .airdrop-hero-layout { margin-top: 16px; gap: 16px; }
+html body.product-experience-style #main-content .airdrop-wallet-gate-body { padding: 14px 16px; }
+html body.product-experience-style #main-content .airdrop-public-programs { margin-top: 20px; }
+html body.product-experience-style #main-content .airdrop-public-programs > .section-heading { padding: 0; }
+html body.product-experience-style #main-content :is(.flow-policy-grid,.profile-layout,.agency-grid) { gap: 12px; }
+html body.product-experience-style #main-content .route-timeline { gap: 8px; }
+html body.product-experience-style #main-content .route-timeline > li { padding: 12px; }
+html body.product-experience-style #main-content #financial-center .financial-heading { gap: 12px; padding-bottom: 12px; }
+html body.product-experience-style #main-content #financial-center .ready-queue { margin-bottom: 16px; padding: 12px; }
+html body.product-experience-style #main-content #financial-center .financial-toolbar { gap: 8px 12px; padding-top: 12px; }
+
+/* Detail headers give market data and activity priority over decoration. */
+html body.product-experience-style #main-content :is(#coin-page,.wallet-page) { padding: 16px 0 24px; }
+html body.product-experience-style #main-content .coin-hero-card { grid-template-rows: 104px auto auto; min-height: 0; border-radius: 8px; box-shadow: none; }
+html body.product-experience-style #main-content .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) { grid-template-rows: auto auto; }
+html body.product-experience-style #main-content .coin-artwork { height: 104px; min-height: 0 !important; aspect-ratio: auto !important; }
+html body.product-experience-style #main-content .coin-artwork::before { width: 140px; box-shadow: none; }
+html body.product-experience-style #main-content .coin-artwork .coin-artwork-symbol { position: absolute; left: 14px; bottom: 12px; font-size: 28px; line-height: 1.1; text-align: left; }
+html body.product-experience-style #main-content .coin-identity { gap: 12px; padding: 14px; }
+html body.product-experience-style #main-content .coin-avatar { width: 64px; height: 64px; border-radius: 8px; box-shadow: none; }
+html body.product-experience-style #main-content .coin-record-shortcuts { margin-block: 8px; }
+html body.product-experience-style #main-content .coin-hero-about { height: auto; min-height: 180px; }
+html body.product-experience-style #main-content .coin-hero-about > .ui-tabs { margin-block: 0; }
+html body.product-experience-style #main-content .coin-profile-panel { padding: 12px; max-height: 200px; }
+html body.product-experience-style #main-content .coin-hero-card > .coin-stat-strip { grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); }
+html body.product-experience-style #main-content .coin-hero-card > .coin-stat-strip > div { grid-column: auto; min-height: 60px; padding: 10px 12px; }
+html body.product-experience-style #main-content .wallet-detail-hero { margin-top: 12px; border-radius: 8px; box-shadow: none; }
+html body.product-experience-style #main-content .wallet-detail-primary { min-height: 0; padding: 20px; gap: 16px; background: var(--panel); }
+html body.product-experience-style #main-content .wallet-detail-avatar { width: 56px; height: 56px; border-radius: 8px; box-shadow: none; }
+html body.product-experience-style #main-content .wallet-detail-stats > div { min-height: 76px; padding: 12px; }
+html body.product-experience-style #main-content .wallet-detail-empty { min-height: 100px; padding: 20px; }
+
+@container coin-detail (max-width: 760px) {
+  html body.product-experience-style #main-content .coin-hero-card { grid-template-rows: 96px auto auto auto; }
+  html body.product-experience-style #main-content .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) { grid-template-rows: auto auto auto; }
+  html body.product-experience-style #main-content .coin-artwork { height: 96px; }
+}
+@container coin-detail (max-width: 520px) {
+  html body.product-experience-style #main-content .coin-identity { grid-template-columns: 56px minmax(0,1fr); gap: 8px 12px; }
+  html body.product-experience-style #main-content .coin-avatar { grid-area: 1 / 1 / 4 / 2; align-self: start; width: 56px; height: 56px; }
+  html body.product-experience-style #main-content .coin-title-row { grid-area: 1 / 2; }
+  html body.product-experience-style #main-content .coin-identity h1 { grid-area: 2 / 2; margin: 0; }
+  html body.product-experience-style #main-content .coin-address { grid-area: 3 / 2; margin: 0; }
+  html body.product-experience-style #main-content .coin-attribution { grid-area: 4 / 1 / 5 / -1; margin: 0; }
+  html body.product-experience-style #main-content .coin-record-shortcuts { grid-area: 5 / 1 / 6 / -1; margin: 0; }
+  html body.product-experience-style #main-content .coin-socials.is-compact { grid-area: 6 / 1 / 7 / -1; margin-top: 0; gap: 6px; }
+  html body.product-experience-style #main-content .coin-package-rail { grid-area: 7 / 1 / 8 / -1; display: grid; grid-template-columns: 44px repeat(2,minmax(0,1fr)); align-items: center; gap: 6px; }
+  html body.product-experience-style #main-content .coin-package-rail :is(.coin-package-chip,#coin-promotion-badge) { width: 100%; min-height: 44px; }
+  html body.product-experience-style #main-content .coin-package-rail .coin-watch { width: 44px; min-height: 44px; margin: 0; align-self: center; }
+}
+
+@media (max-width: 700px) {
+  /* Menu, search, network and wallet fit without the old second header row. */
+  html body.product-experience-style #main-content > .topbar {
+    display: grid !important; grid-template-columns: 44px 44px minmax(0,1fr) !important;
+    grid-template-rows: 64px; height: 64px !important; min-height: 64px; padding: 0 !important; gap: 4px;
+  }
+  html body.product-experience-style .topbar #open-menu { grid-area: 1 / 1; width: 44px; height: 44px; }
+  html body.product-experience-style .topbar #header-search-trigger {
+    grid-area: 1 / 2; display: grid; place-items: center; width: 44px; min-width: 44px;
+    height: 44px; padding: 0; font-size: 0;
+  }
+  html body.product-experience-style .topbar #header-search-trigger::after { display: none; }
+  html body.product-experience-style .topbar #header-search-trigger svg { width: 18px; height: 18px; }
+  html body.product-experience-style .topbar .top-actions { grid-area: 1 / 3; justify-content: flex-end; width: 100%; gap: 6px; margin: 0; position: static; }
+  html body.product-experience-style .topbar .top-actions .workspace-network { position: static; max-width: none; padding: 4px; font-size: 10px; }
+  html body.product-experience-style .topbar .connect-button { min-height: 44px; max-width: 144px; padding: 8px; font-size: 12px; white-space: nowrap; }
+  html body.product-experience-style #main-content :is(.route-guide,.workspace-page-header,.section-heading,.explore-heading) { margin-block: 12px; }
+  html body.product-experience-style #main-content :is(.panel,.role-panel,.flow-panel,.support-card,.community-card,.agency-agent,.agency-policy,.reward-experience-panel) { padding: 14px; }
+  html body.product-experience-style #main-content :is(#launch-route-shell,#my-launches,#payments,#airdrops,#paid,#list,#bonuses,#marketing-agency,#privacy,#creator-support-page) { padding-block: 12px 20px; }
+  html body.product-experience-style #explore .explore-control-bar .product-sort { flex: 1 1 100%; margin: 0; }
+  html body.product-experience-style #explore .explore-control-bar .review-buy-setting { flex: 1 1 100%; justify-content: flex-end; }
+  html body.product-experience-style #main-content .home-launch-toolbar .review-buy-setting { justify-content: flex-end; width: 100%; }
+  html body.product-experience-style #main-content .launch-page .launch-fields { padding: 14px; }
+  html body.product-experience-style #main-content .launch-page .launch-steps button { flex-direction: row; min-height: 44px; }
+  html body.product-experience-style #main-content #launch-route-shell { padding-top: 12px !important; }
+  html body.product-experience-style #main-content #launch-dialog { padding-top: 0 !important; }
+  html body.product-experience-style #main-content #launch-dialog .launch-page-back { min-height: 44px; margin-bottom: 4px; }
+  html body.product-experience-style #main-content #launch-dialog .launch-steps { margin-bottom: 12px; }
+  html body.product-experience-style #main-content .docs-guide-nav { max-height: none; padding: 0 0 12px; }
+  html body.product-experience-style #main-content .docs-guide-topic-results { height: 132px; min-height: 0; max-height: 132px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 8px; }
+  html body.product-experience-style #main-content .docs-guide-search-controls { flex-wrap: nowrap; }
+  html body.product-experience-style #main-content .docs-guide-search-controls input { flex: 1; width: 0; }
+  html body.product-experience-style #main-content .docs-guide-search-controls button { width: auto; padding-inline: 10px; }
+  html body.product-experience-style #main-content .docs-guide-count { margin-block: 6px; }
+  html body.product-experience-style #main-content .docs-guide-topic-results button { min-height: 44px; }
+  html body.product-experience-style #main-content .docs-guide-article { padding-top: 0; }
+  html body.product-experience-style #main-content #payments > .ui-tabs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0 4px; overflow: visible; }
+  html body.product-experience-style #main-content #payments > .ui-tabs button { min-width: 0; min-height: 44px; padding: 8px 4px; white-space: normal; }
+  html body.product-experience-style #main-content .hero-actions a { min-height: 44px; min-width: 0; padding-inline: 14px; }
+  html body.product-experience-style #main-content .leaderboard-hero { padding: 16px; }
+}

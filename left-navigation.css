@@ -19,11 +19,11 @@ html body.page-route #sidebar .nav-more-menu { position: static; width: auto; mi
 html body.page-route #sidebar .sidebar-footer { display: block; flex: none; margin-top: auto; padding-top: 12px; }
 html body.page-route #main-content {
   width: calc(100% - var(--navigation-width)); max-width: 1680px;
-  margin-left: var(--navigation-width); padding: 0 32px 40px; min-width: 0;
+  margin-left: var(--navigation-width); padding: 0 24px 32px; min-width: 0;
 }
 html body.page-route #main-content > .topbar {
   position: sticky; inset: 0 auto auto; z-index: 25; justify-content: space-between;
-  width: 100%; height: 72px; padding: 0; gap: 12px; background: var(--bg);
+  width: 100%; height: 64px; padding: 0; gap: 12px; background: var(--bg);
 }
 @media (min-width: 701px) {
   html body.page-route #sidebar .desktop-sidebar-toggle { display: grid; top: 0; right: -27px; }
