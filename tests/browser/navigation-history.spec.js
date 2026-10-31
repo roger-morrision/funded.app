@@ -18,7 +18,7 @@ for (const width of [1440, 390]) {
       await expect(page.locator('body')).toHaveClass(new RegExp(`page-route-${name}(?: |$)`));
       await expect(page.locator(selector)).toBeVisible();
       await expect(page.locator(`.primary-nav > a[href="#${active}"]`)).toHaveAttribute('aria-current', 'page');
-      if (width === 390) await expect(page.locator('#sidebar')).toHaveAttribute('inert', '');
+      if (width === 390) await expect(page.locator('#sidebar')).not.toHaveAttribute('inert', '');
     };
     const agency = async (target = 'marketing-agency') => {
       if (width === 390) await page.locator('#open-menu').click();
@@ -65,7 +65,7 @@ for (const width of [1440, 390]) {
       await expect(page.locator('body')).toHaveClass(new RegExp(`page-route-${name}(?: |$)`));
       await expect(page.locator(selector)).toBeVisible();
       await expect(page.locator(`.primary-nav > a[href="#${active}"]`)).toHaveAttribute('aria-current', 'page');
-      if (width === 390) await expect(page.locator('#sidebar')).toHaveAttribute('inert', '');
+      if (width === 390) await expect(page.locator('#sidebar')).not.toHaveAttribute('inert', '');
     };
     const agency = async (target = 'marketing-agency') => {
       if (width === 390) await page.locator('#open-menu').click();

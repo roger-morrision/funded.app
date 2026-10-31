@@ -30,7 +30,7 @@ function syncRoute() {
     : ({ community: 'my-launches', leaderboard: 'explore', airdrops: 'payments', referrals: 'payments', profile: 'my-launches', list: 'launch', paid: 'payments' }[pageRoute] || pageRoute);
   $$('.mobile-workspace-nav a').forEach(link=>{if(link.hash===`#${mobileRoute}`)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
   $$('[data-purpose-route]').forEach(link=>{const active=link.dataset.purposeRoute===route||(!location.hash&&link.dataset.purposeRoute===pageRoute);if(active)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');});
-  const more=$('.nav-more');if(more)more.open=!matchMedia('(min-width:1180px)').matches && Boolean($('a[aria-current="page"]',more));
+  const more=$('.nav-more');if(more)more.open=Boolean($('a[aria-current="page"]',more));
   const target=$('#route-guide');if(target&&['payments','my-launches','community','profile'].includes(route))target.hidden=true;
   if(route==='funded-holder-token-rewards'){
     $('#rewards-funded-tab')?.click();

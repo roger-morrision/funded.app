@@ -4,9 +4,21 @@
   <meta name="robots" content="noindex,nofollow" />
   <title>Admin · funded.vip Devnet</title>
   <link rel="icon" href="/favicon.svg" /><link rel="stylesheet" href="/admin.css" />
-</head><body>
-  <header class="top"><a class="brand" href="/">funded<span>.</span>vip</a><span class="badge">DEVNET ADMIN</span><a href="/">Back to app ↗</a></header>
-  <main>
+  <link rel="stylesheet" href="/left-navigation.css" />
+</head><body class="page-route page-route-admin">
+  <aside id="sidebar" class="sidebar admin-navigation" aria-label="Site navigation">
+    <div class="brand-row"><a class="brand" href="/" aria-label="funded.vip home"><span><img src="/wolf-mark.svg" width="32" height="32" alt="" /></span><span>funded.vip</span></a></div>
+    <nav class="primary-nav" aria-label="Primary navigation">
+      <a class="nav-item" href="/#overview"><span class="nav-icon" data-icon="home" aria-hidden="true"></span>Home</a>
+      <a class="nav-item" href="/#explore"><span class="nav-icon" data-icon="explore" aria-hidden="true"></span>Explore</a>
+      <a class="nav-item" href="/#launch"><span class="nav-icon" data-icon="launch" aria-hidden="true"></span>Launch token</a>
+      <a class="nav-item" href="/#my-launches"><span class="nav-icon" data-icon="portfolio" aria-hidden="true"></span>Portfolio</a>
+      <a class="nav-item" href="/#payments"><span class="nav-icon" data-icon="rewards" aria-hidden="true"></span>Rewards</a>
+      <a class="nav-item active" href="/admin.html" aria-current="page"><span class="nav-icon" data-icon="analytics" aria-hidden="true"></span>Admin</a>
+    </nav>
+  </aside>
+  <main class="main-content" id="main-content">
+    <header class="top"><span class="badge">DEVNET ADMIN</span><a href="/">Back to app ↗</a></header>
     <div class="page-title"><div><p class="eyebrow">Operations workspace</p><h1>Admin</h1><p>Manage the future-launch fee policy, inspect finalized balances, and review controlled SOL transfers.</p></div><span id="network">Solana Devnet</span></div>
     <div id="message" role="status" aria-live="polite"></div>
     <section class="panel" id="auth-panel"><div class="section-head"><div><h2>Administrator sign-in</h2><p>Use the separate QA admin wallet. Signing the sign-in message does not submit a transaction.</p></div><span id="auth-status">Not signed in</span></div><div class="actions"><button id="connect" type="button">Connect wallet</button><button id="sign-in" type="button" disabled>Sign in</button><button id="sign-out" type="button" hidden>Sign out</button><code id="connected-address">No wallet connected</code></div></section>

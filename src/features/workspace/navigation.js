@@ -214,7 +214,7 @@ export function navigation() {
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && !helpPanel.hidden) setHelpOpen(false); });
   window.addEventListener('hashchange', () => { if (!helpPanel.hidden) setHelpOpen(false); });
   document.body.append(helpTrigger, helpPanel);
-  const mobile = node('nav', 'mobile-workspace-nav'); mobile.setAttribute('aria-label', 'Mobile workspace');
+  const mobile = node('nav', 'mobile-workspace-nav'); mobile.setAttribute('aria-label', 'Trade actions');
   for (const [href, label, glyph] of [['overview','Home','home'],['explore','Explore','explore'],['launch','Launch','launch'],['my-launches','Portfolio','portfolio'],['payments','Rewards','rewards']]) {
     const link = node('a', '', ''); link.href = `#${href}`;
     link.innerHTML = icon(glyph); link.append(node('span', '', label)); mobile.append(link);

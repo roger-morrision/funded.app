@@ -1,0 +1,84 @@
+/* One navigation geometry for every route, including token and wallet pages. */
+html { --navigation-width: 220px; }
+html.sidebar-collapsed { --navigation-width: 76px; }
+html body.page-route .app-shell { display: block; }
+html body.page-route #sidebar {
+  position: fixed; inset: 0 auto 0 0; z-index: 40; display: flex;
+  flex-direction: column; align-items: stretch; gap: 0;
+  width: var(--navigation-width); height: 100dvh; padding: 20px 12px 12px;
+  border: 0; border-right: 1px solid var(--line); transform: none; box-shadow: none;
+}
+html body.page-route #sidebar .brand-row { flex: none; position: relative; padding: 0 4px 24px; }
+html body.page-route #sidebar .primary-nav {
+  display: block; flex: 1; min-height: 0; width: 100%; overflow-y: auto; overflow-x: hidden;
+  padding: 0; overscroll-behavior: contain; scrollbar-width: thin;
+}
+html body.page-route #sidebar .nav-horizontal-only { display: none !important; }
+html body.page-route #sidebar .nav-more { position: static; margin-top: 16px; }
+html body.page-route #sidebar .nav-more-menu { position: static; width: auto; min-width: 0; max-height: none; padding: 0; overflow: visible; border: 0; box-shadow: none; }
+html body.page-route #sidebar .sidebar-footer { display: block; flex: none; margin-top: auto; padding-top: 12px; }
+html body.page-route #main-content {
+  width: calc(100% - var(--navigation-width)); max-width: 1680px;
+  margin-left: var(--navigation-width); padding: 0 32px 40px; min-width: 0;
+}
+html body.page-route #main-content > .topbar {
+  position: sticky; inset: 0 auto auto; z-index: 25; justify-content: space-between;
+  width: 100%; height: 72px; padding: 0; gap: 12px; background: var(--bg);
+}
+@media (min-width: 701px) {
+  html body.page-route #sidebar .desktop-sidebar-toggle { display: grid; }
+  html body.page-route #sidebar .brand { white-space: nowrap; }
+}
+@media (min-width: 701px) and (max-width: 1499px) {
+  html body.page-route .topbar .search-box { display: none; }
+  html body.page-route #header-search-trigger { display: grid; }
+}
+@media (max-width: 700px) {
+  html, html.sidebar-collapsed { --navigation-width: 76px; }
+  html body.page-route #sidebar { padding: 12px 6px; }
+  html body.page-route #sidebar .brand-row { justify-content: center; padding: 0 0 16px; }
+  html body.page-route #sidebar .brand { gap: 0; }
+  html body.page-route #sidebar:not(.open) :is(.brand > span:last-child, .nav-label, .profile-row > span:nth-child(2), .profile-row .more) { display: none; }
+  html body.page-route #sidebar:not(.open) .primary-nav > .nav-item {
+    display: flex; flex-direction: column; justify-content: center; gap: 4px;
+    width: 100%; min-height: 54px; margin: 4px 0; padding: 6px 2px;
+    font-size: 10px; line-height: 1.2; white-space: normal; text-align: center;
+  }
+  html body.page-route #sidebar .nav-icon { display: grid; place-items: center; width: 20px; }
+  html body.page-route #sidebar:not(.open) .nav-more summary { padding: 10px 4px; font-size: 11px; }
+  html body.page-route #sidebar:not(.open) .nav-more .nav-item { min-height: 44px; padding: 8px 2px; font-size: 10px; white-space: normal; overflow-wrap: anywhere; }
+  html body.page-route #sidebar:not(.open) .profile-row { justify-content: center; padding: 8px 0; }
+  html body.page-route #sidebar #close-menu { display: none; }
+  html body.page-route #sidebar.open { z-index: 50; width: min(280px, calc(100vw - 24px)); padding: 20px 16px; }
+  html body.page-route #sidebar.open .brand-row { justify-content: space-between; }
+  html body.page-route #sidebar.open #close-menu { display: block; }
+  html body.page-route #sidebar.open ~ #main-content::after { display: none; }
+  html body.page-route .menu-backdrop:not([hidden]) { z-index: 45; }
+  html body.page-route #main-content { padding: 0 12px 32px; }
+  html body.page-route #main-content > .topbar { height: 64px; gap: 6px; }
+  html body.page-route .topbar .top-actions { gap: 6px; min-width: 0; }
+  html body.page-route .topbar .workspace-network { max-width: 84px; font-size: 10px; }
+  html body.page-route #connect-button { max-width: 100px; padding-inline: 8px; }
+  /* Site links live in the rail. Only token Buy/Sell actions use the bottom dock. */
+  html body.page-route .mobile-workspace-nav { display: none; }
+  html body.page-route-coin .mobile-workspace-nav:has(.mobile-dock-buy) { display: grid; grid-template-columns: 1fr 1fr; left: var(--navigation-width); }
+  html body.page-route .mobile-workspace-nav a { display: none; }
+  html body.page-route .mobile-workspace-nav :is(.mobile-dock-buy,.mobile-trade-sell) { min-height: 48px; }
+  html body.page-route-coin #main-content { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  html body.page-route .toast { left: calc(var(--navigation-width) + 12px); bottom: 20px; }
+  html body.page-route-coin .toast { bottom: calc(96px + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 360px) {
+  html body.page-route #main-content { padding-inline: 8px; }
+  html body.page-route #header-search-trigger { display: none; }
+  html body.page-route #connect-button { max-width: 90px; }
+}
+/* Admin uses the same rail while retaining its separate authentication flow. */
+.page-route-admin { --bg: #0b0d1d; --line: #30334f; }
+.admin-navigation { background: #101621; }
+.admin-navigation .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; }
+.admin-navigation .nav-item { display: flex; align-items: center; gap: 12px; min-height: 44px; margin: 4px 0; padding: 10px 12px; border-radius: 8px; color: #c4cbda; text-decoration: none; }
+.admin-navigation .nav-item.active { background: #292744; color: #ffc270; }
+.admin-navigation .nav-item:focus-visible { outline: 2px solid #ffd28a; outline-offset: -2px; }
+.admin-navigation .nav-icon svg { width: 20px; height: 20px; }
+.page-route-admin #main-content .top { min-width: 0; margin-bottom: 24px; padding: 18px 0; flex-wrap: wrap; }
