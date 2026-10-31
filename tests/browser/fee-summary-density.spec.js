@@ -6,7 +6,11 @@ for(const width of[320,390,700,1440])test(`task fee summaries retain all rates a
   await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
   const errors=[],writes=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/*',r=>{const q=r.request(),u=new URL(q.url());return q.method()==='GET'&&u.origin===new URL(baseURL).origin?r.fallback():r.abort();});
-  await page.route('**/api/**',r=>{if(r.request().method()!=='GET'&&!r.request().url().endsWith('/solana/rpc'))writes.push(r.request().url());return r.fulfill({status:503,json:{error:'Offline fee-summary fixture'}});});
+  await page.route('**/api/**',r=>{
+    const q=r.request(),path=new URL(q.url()).pathname;let read=q.method()==='GET';
+    if(q.method()==='POST'&&path==='/api/solana/rpc'){try{const body=q.postDataJSON(),calls=Array.isArray(body)?body:[body];read=calls.length>0&&calls.every(call=>/^(get|isBlockhashValid$)/.test(call?.method||''));}catch{}}
+    if(!read)writes.push({method:q.method(),path});return r.fulfill({status:503,json:{error:'Offline fee-summary fixture'}});
+  });
   await page.route('**/api/fee-policy',r=>r.fulfill({json:{revision:6,split}}));
   await page.goto('/#buybacks');await page.locator('body.product-experience-ready.workspace-ready').waitFor();
   const title=page.locator('#burn-center-title'),nav=page.getByRole('navigation',{name:'$FUNDED sections',exact:true}),fees=page.locator('#paid > [data-fee-distribution]');
