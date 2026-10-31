@@ -97,6 +97,7 @@ html body.product-experience-style :is(.reward-token-info > a,.creator-coin-card
 html body.product-experience-style :is(.reward-token-info,.reward-token-identity) { min-width: 0; }
 html body.product-experience-style .reward-discovery-card .reward-row-head { align-items: start; }
 html body.product-experience-style #reward-discovery .reward-discovery-list .reward-discovery-card { padding: var(--token-card-gap); border-color: var(--token-card-border); border-radius: var(--token-card-radius); background: var(--token-card-surface); }
+html body.product-experience-style #reward-discovery .reward-discovery-card .reward-token-actions { grid-column: 1 / -1; grid-row: auto; justify-content: flex-start; }
 html body.product-experience-style .creator-coin-card > small { display: block; overflow-wrap: anywhere; }
 html body.product-experience-style .home-holder-reward-avatar { border-radius: 8px; background: #1b283c; }
 html body.product-experience-style .home-holder-reward-avatar img { object-fit: contain; }
