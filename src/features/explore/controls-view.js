@@ -66,7 +66,7 @@ export function renderExploreControls(
     ['#scanner-volume-heading', `${exploreWindow} volume`],
     ['#scanner-trades-heading', `${exploreWindow} trades`],
   ]) { const node = document.querySelector(selector); if (node) node.textContent = label; }
-  document.querySelectorAll('[data-explore-view]').forEach(button => {
+  document.querySelectorAll('button[data-explore-view]').forEach(button => {
     const active = button.dataset.exploreView === exploreView;
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));

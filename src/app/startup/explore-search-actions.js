@@ -185,7 +185,7 @@ export function initializeExploreSearchActions(appState) {
   // app-source-end
 
   // app-source: 800
-  document.querySelectorAll('[data-explore-view]').forEach(button => button.addEventListener('click', () => { appState.exploreView = button.dataset.exploreView; try { localStorage.setItem(appState.EXPLORE_VIEW_KEY, appState.exploreView); } catch {} appState.renderExploreControls(); }));
+  document.querySelectorAll('button[data-explore-view]').forEach(button => button.addEventListener('click', () => { appState.exploreView = button.dataset.exploreView; try { localStorage.setItem(appState.EXPLORE_VIEW_KEY, appState.exploreView); } catch {} appState.renderExploreControls(); }));
   // app-source-end
 
   // app-source: 801
