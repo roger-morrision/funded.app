@@ -517,7 +517,7 @@ test.describe('FQA-071 original bonus history ownership', () => {
         expect(await nextOwner.evaluate(element => document.activeElement === element)).toBe(true);
         f.ownerOverride = null;
         const leaving = await nativeBonusRecipient(page, info, 0, 'before-route-leave'); gate = await f.trigger(); await nativeBonusRecipient(page, info);
-        if (width < 700) await page.getByRole('navigation',{ name:'Mobile workspace' }).getByRole('link',{ name:'Home', exact:true }).click();
+        if (width < 700) await page.getByRole('navigation',{ name:'Mobile navigation' }).getByRole('link',{ name:'Home', exact:true }).click();
         else await page.locator('#sidebar a.nav-item[href="#overview"]').click();
         await expect(page).toHaveURL(/#overview$/);
         const outside = await page.evaluateHandle(() => document.activeElement);
