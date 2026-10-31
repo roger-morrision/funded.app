@@ -48,7 +48,7 @@ export default defineConfig(({ mode }) => {
     preview: { proxy: apiProxy },
     build: {
       rollupOptions: {
-        input: { main:'index.html', admin:'admin.html' },
+        input: { main:'index.html', admin:'admin.html', welcome:'welcome.html' },
         output: {
           manualChunks(id) {
             if (!id.includes('node_modules')) return undefined;
