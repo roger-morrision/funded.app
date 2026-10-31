@@ -110,7 +110,7 @@ export function syncLaunchCardProgressFreshness(document, providerStatus) {
         row.dataset.progressState = 'stale';
         const track = row.querySelector('.home-launch-progress[role="progressbar"]');
         if (track) track.setAttribute('aria-valuetext', text);
-        const badge = row.parentElement.querySelector('.home-launch-card-media > .home-launch-media-stage');
+        const badge = row.parentElement.querySelector('.home-launch-media-stage');
         if (badge) badge.hidden = true;
       }
     };
@@ -181,7 +181,6 @@ export function homeLaunchCardMarkup(
     const mintLabel = item.address ? `${item.address.slice(0, 5)}…${item.address.slice(-4)}` : 'Unavailable';
     const creatorWallet = launchPolicy?.onchainVerified && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(launchPolicy.creatorWallet || '')
       ? launchPolicy.creatorWallet : '';
-    const creatorLabel = creatorWallet ? `${creatorWallet.slice(0, 5)}…${creatorWallet.slice(-4)}` : '';
     const feeRoute = homeLaunchFeeRouteMarkup(launchPolicy);
     const socialLinks = exploreSocialLinksMarkup(item);
     const boost = verifiedBoosts[item.address];
@@ -189,11 +188,15 @@ export function homeLaunchCardMarkup(
     const activeBoost = boostMultiplier > 0;
     return `<article class="token-card-shell home-launch-card${extraClass}" data-mint="${escapeHtml(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}">
       <a class="home-launch-card-link" href="/token/${encodeURIComponent(item.address || '')}" aria-label="Open ${escapeHtml(item.name || item.symbol || 'token')} token details"></a>
-      <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span>${tokenCardWatchMarkup(item.address, item.symbol)}${stageLabel && !['loading', 'stale'].includes(progress.kind) ? `<span class="home-launch-media-stage">${escapeHtml(stageLabel)}</span>` : ''}</div>
+      <div class="home-card-overview">
+      <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span></div>
+      <div class="home-card-info">
       <div class="home-launch-card-top">
+        <div class="home-card-heading">
         <span class="home-token-identity"><strong class="${activeBoost && boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(item.symbol || 'TOKEN')}</strong><small>${escapeHtml(item.name || 'Unnamed token')}</small></span>
-        <div class="home-launch-card-addresses"><span title="Token contract: ${escapeHtml(item.address || '')}"><small>CA</small><code>${escapeHtml(mintLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(item.address || '')}" data-copy-kind="token" aria-label="Copy full token address" title="Copy full token address">${icon('copy')}</button></span>${creatorWallet ? `<span title="Verified launch creator: ${escapeHtml(creatorWallet)}"><small>Creator</small><code>${escapeHtml(creatorLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(creatorWallet)}" data-copy-kind="creator" aria-label="Copy full creator wallet address" title="Copy full creator wallet address">${icon('copy')}</button></span>` : ''}</div>
-        ${feeRoute}
+        <div class="home-launch-media-badges"><span class="home-launch-media-package"></span>${exploreBoostAmountMarkup(item.address)}</div>
+        </div>
+        <div class="home-launch-card-addresses"><span title="Token contract: ${escapeHtml(item.address || '')}"><small>CA</small><code>${escapeHtml(mintLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(item.address || '')}" data-copy-kind="token" aria-label="Copy full token address" title="Copy full token address">${icon('copy')}</button></span></div>
       </div>
       <div class="home-launch-card-stats">
         <span><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small><strong>${escapeHtml(value)}</strong></span>
@@ -201,13 +204,19 @@ export function homeLaunchCardMarkup(
         <span title="${escapeHtml(holderTitle)}"><small>Holders</small><strong>${escapeHtml(holderCount)}</strong></span>
         <span class="home-launch-change ${changeClass}"><small>24h change</small><strong>${escapeHtml(hasNoObservedTrades ? 'No trades' : change)}</strong></span>
       </div>
+      </div></div>
+      ${feeRoute}
       ${progressMarkup}
-      <div class="home-launch-meta"><span>${escapeHtml(ageLabel)}</span></div>
+      <div class="home-card-context">${stageLabel && !['loading', 'stale'].includes(progress.kind) ? `<span class="home-launch-media-stage">${escapeHtml(stageLabel)}</span>` : ''}
       <small class="home-launch-evidence">${escapeHtml(activityLabel)}</small>
-      <div class="home-launch-media-badges"><span class="home-launch-media-package"></span>${exploreBoostAmountMarkup(item.address)}</div>
+      </div>
+      <div class="home-launch-card-actions"><a class="card-review-buy" data-review-buy="${escapeHtml(item.address || '')}" href="/token/${encodeURIComponent(item.address || '')}?reviewBuy=0.1">Review buy <span aria-hidden="true">→</span></a>${tokenCardWatchMarkup(item.address, item.symbol)}${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
+      <details class="home-card-details"><summary>Details &amp; links</summary>
+      ${creatorWallet ? `<div class="home-card-creator"><span>Creator</span><code>${escapeHtml(creatorWallet)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(creatorWallet)}" data-copy-kind="creator" aria-label="Copy full creator wallet address" title="Copy full creator wallet address">${icon('copy')}</button></div>` : ''}
+      <div class="home-launch-meta"><span>${escapeHtml(ageLabel)}</span></div>
       ${footerNote ? `<small class="home-launch-evidence">${escapeHtml(footerNote)}</small>` : ''}
-      <a class="card-review-buy" data-review-buy="${escapeHtml(item.address || '')}" href="/token/${encodeURIComponent(item.address || '')}?reviewBuy=0.1">Review buy <span aria-hidden="true">→</span></a>
-      <div class="home-launch-card-actions">${socialLinks}${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
+      ${socialLinks}
+      </details>
     </article>`;
 }
 

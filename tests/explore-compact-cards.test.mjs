@@ -9,7 +9,7 @@ test('omitted and legacy compact options share canonical Home hierarchy and hone
   const opt=options(row);if(flag!==undefined)opt.compact=flag;const html=homeLaunchCardMarkup(row.item,opt,state,deps);
   assert.match(html,/home-launch-card-media/);assert.doesNotMatch(html,/explore-compact-(?:card|heading|details)/);
   assert.equal((html.match(/class="home-launch-progress-row"/g)||[]).length,1);
-  const order=['home-launch-card-stats','home-launch-progress-row','home-launch-meta','home-launch-card-actions'].map(k=>html.indexOf('class="'+k+'"'));
+  const order=['home-launch-card-stats','home-launch-progress-row','home-launch-card-actions','home-card-details'].map(k=>html.indexOf('class="'+k+'"'));
   assert(order.every(n=>n>=0));assert.deepEqual([...order].sort((a,b)=>a-b),order);
   assert.match(html,/Progress unavailable/);assert.doesNotMatch(html,/aria-valuenow|% filled|Market stage unavailable/);
   assert.match(html,new RegExp('data-copy-address="'+row.item.address+'"'));assert.match(html,/Creator 80%/);
@@ -65,7 +65,7 @@ test('progress accessibility labels escape token identity and keep unavailable t
  assert.match(html,/aria-label="Migration progress for A&quot;&lt;unsafe&gt;&amp;"/);assert.match(html,/Migration not yet verified/);
  const plain=html.replace(/<[^>]*>/g,' ');assert.equal((plain.match(/6h ago/g)||[]).length,1);
  const unknown=homeLaunchCardMarkup({...item,complete:null},options(cases[0]),state,deps);
- const row=unknown.slice(unknown.indexOf('<div class="home-launch-progress-row"'),unknown.indexOf('<div class="home-launch-meta"'));
+ const row=unknown.slice(unknown.indexOf('<div class="home-launch-progress-row"'),unknown.indexOf('<div class="home-card-context"'));
  assert.doesNotMatch(row,/tabindex|<button|<a\s|aria-valuenow/);assert.match(row,/Progress unavailable/);
 });
 // Explicit fake DOM/RAF: lifecycle and identity logic only, not browser paint proof.
