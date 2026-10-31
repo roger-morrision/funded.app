@@ -37,19 +37,24 @@ menu.querySelectorAll('a[href^="#"]').forEach(link => link.addEventListener('cli
 desktop.addEventListener('change', event => { if (event.matches && menu.open) menu.close(); });
 
 // Scroll navigation is presentation only: no RPC reads, wallet access or app bootstrap.
-const links = [...document.querySelectorAll('.landing-sidebar nav a')];
+const links = [...document.querySelectorAll('.landing-sidebar nav a,#landing-menu nav a')];
 const updateSection = () => {
-  const current = [...document.querySelectorAll('.section-anchor')].filter(section => section.getBoundingClientRect().top <= 130).at(-1);
+  const sections = [...document.querySelectorAll('.section-anchor')];
+  const clearance = document.querySelector('.landing-topbar').getBoundingClientRect().bottom + 24;
+  const atEnd = scrollY + innerHeight >= document.documentElement.scrollHeight - 2;
+  const current = atEnd ? sections.at(-1) : sections.filter(section => section.getBoundingClientRect().top <= clearance).at(-1);
   for (const link of links) {
     if (link.hash === `#${current?.id || 'platform'}`) link.setAttribute('aria-current', 'location');
     else link.removeAttribute('aria-current');
   }
 };
 let queued = false;
-addEventListener('scroll', () => {
+const queueSectionUpdate = () => {
   if (queued) return;
   queued = true;
   requestAnimationFrame(() => { updateSection(); queued = false; });
-}, { passive: true });
+};
+addEventListener('scroll', queueSectionUpdate, { passive: true });
+addEventListener('resize', queueSectionUpdate, { passive: true });
 addEventListener('hashchange', updateSection);
 updateSection();
