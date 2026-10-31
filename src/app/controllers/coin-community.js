@@ -80,8 +80,8 @@ export function createCoinCommunityController(appState) {
 
   // app-source: 971
   function ensureCoinChatTab(){
-    const holders = document.querySelector('.coin-tabs [data-coin-tab="holders"]');
-    if (!holders) return;
+    const trades = document.querySelector('.coin-tabs [data-coin-tab="trades"]');
+    if (!trades) return;
     let chat = document.querySelector('.coin-tabs [data-coin-tab="chat"]');
     if (!chat) {
       chat = document.createElement('button');
@@ -93,7 +93,7 @@ export function createCoinCommunityController(appState) {
       chat.setAttribute('aria-controls', 'coin-activity-list');
       chat.tabIndex = -1;
     }
-    if (chat.nextElementSibling !== holders) holders.before(chat);
+    if (chat.nextElementSibling !== trades) trades.before(chat);
   }
   // app-source-end
 

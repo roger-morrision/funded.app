@@ -38,14 +38,14 @@ for(const width of [360,390,1440])for(const motion of ['no-preference','reduce']
   };
   const nativeMove=async(key,target)=>{await page.keyboard.press(key);await expect(canonical(target)).toHaveAttribute('aria-selected','true');await expect(page.locator('.coin-tabs [aria-selected="true"]')).toHaveCount(1);await clear(canonical(target));};
   const nativeSequence=async()=>{
-    for(const [key,target] of [['Home','trades'],['ArrowLeft','holders'],['ArrowRight','trades'],['End','holders'],['ArrowLeft','chat'],['ArrowLeft','claims'],['ArrowRight','chat'],['ArrowRight','holders'],['Home','trades'],['ArrowRight','payments']])await nativeMove(key,target);
+    for(const [key,target] of [['Home','chat'],['ArrowLeft','holders'],['ArrowRight','chat'],['End','holders'],['ArrowLeft','claims'],['ArrowLeft','payments'],['ArrowLeft','trades'],['ArrowLeft','chat'],['ArrowRight','trades'],['ArrowRight','payments']])await nativeMove(key,target);
     // Check after native focus scrolling has settled, as well as immediately.
     await page.waitForTimeout(1000);await clear(canonical('payments'));
   };
   const activate=async(key,keyboard=true)=>{if(keyboard){await shortcut(key).focus();await page.keyboard.press(key==='claims'?'Space':'Enter')}else await shortcut(key).click();await expect(canonical(key)).toHaveAttribute('aria-selected','true');await expect(page.locator('.coin-tabs [aria-selected="true"]')).toHaveCount(1);await clear(canonical(key));};
   try {
   await ready();
-  expect(await page.locator('.coin-tabs [data-coin-tab]').evaluateAll(tabs=>tabs.map(tab=>tab.dataset.coinTab))).toEqual(['trades','payments','claims','chat','holders']);
+  expect(await page.locator('.coin-tabs [data-coin-tab]').evaluateAll(tabs=>tabs.map(tab=>tab.dataset.coinTab))).toEqual(['chat','trades','payments','claims','holders']);
   await expect(page.locator('#coin-page > .coin-community-panel')).toHaveCount(0);
   await expect(page.getByRole('group',{name:'Token records shortcuts'}).getByRole('button')).toHaveCount(4);
   const layout=await page.locator('.coin-record-shortcuts').evaluate(element=>{
@@ -76,7 +76,7 @@ for(const width of [360,390,1440])for(const motion of ['no-preference','reduce']
   } finally {releaseLedger();releaseRpc();}
 });
 
-for(const width of [360,1440])test(`Chat precedes Holders and retains messages and device moderation at ${width}px (mocked API)`,async({page,baseURL})=>{
+for(const width of [360,1440])test(`Chat precedes Trades and retains messages and device moderation at ${width}px (mocked API)`,async({page,baseURL})=>{
   await page.setViewportSize({width,height:844});await page.emulateMedia({reducedMotion:'reduce'});
   await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
   await page.route('**/*',route=>{const request=route.request(),url=new URL(request.url());return url.origin===new URL(baseURL).origin&&(request.method()==='GET'||url.pathname.startsWith('/api/'))?route.fallback():route.abort();});
@@ -84,15 +84,15 @@ for(const width of [360,1440])test(`Chat precedes Holders and retains messages a
   await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route(`**/api/tokens/${mint}/chat`,route=>route.fulfill({json:{enabled:true,messages:[{id:'fixture-message',author:mint,text:'Token community fixture message',createdAt:'2026-10-31T00:00:00.000Z'}]}}));
   await page.goto(`/token/${mint}`);await page.locator('body.workspace-ready.product-experience-ready').waitFor();
-  const chat=page.getByRole('tab',{name:'Chat',exact:true}),holders=page.getByRole('tab',{name:/^Holders/}),activity=page.locator('#coin-activity-list');
-  await holders.click();await page.keyboard.press('ArrowLeft');await expect(chat).toBeFocused();await expect(chat).toHaveAttribute('aria-selected','true');
+  const chat=page.getByRole('tab',{name:'Chat',exact:true}),trades=page.getByRole('tab',{name:/^Trades/}),activity=page.locator('#coin-activity-list');
+  await trades.click();await page.keyboard.press('ArrowLeft');await expect(chat).toBeFocused();await expect(chat).toHaveAttribute('aria-selected','true');
   await expect(activity).toContainText('Token community fixture message');await expect(activity.locator('#coin-chat-form')).toHaveCount(1);await expect(activity).toContainText('Connect a Solana wallet to post');
   await activity.getByRole('button',{name:'Hide this wallet',exact:true}).click();await expect(activity).not.toContainText('Token community fixture message');await expect(activity.getByRole('status')).toContainText('Messages from hidden wallets');
   const restore=activity.getByRole('button',{name:'Show 1 hidden wallet',exact:true});await expect(restore).toBeFocused();
   if(width<700)for(const control of[restore,activity.locator('#coin-chat-input')]){expect((await control.boundingBox()).height).toBeGreaterThanOrEqual(44);}
   await page.keyboard.press('Enter');await expect(activity).toContainText('Token community fixture message');await expect(activity.getByRole('button',{name:'Hide this wallet',exact:true})).toBeFocused();
   await page.keyboard.press('Enter');await expect(restore).toBeFocused();await expect(activity.getByRole('status')).toContainText('Messages from hidden wallets');
-  await chat.focus();await page.keyboard.press('ArrowRight');await expect(holders).toBeFocused();await expect(holders).toHaveAttribute('aria-selected','true');await expect(activity.locator('.coin-chat')).toHaveCount(0);
+  await chat.focus();await page.keyboard.press('ArrowRight');await expect(trades).toBeFocused();await expect(trades).toHaveAttribute('aria-selected','true');await expect(activity.locator('.coin-chat')).toHaveCount(0);
   await page.keyboard.press('ArrowLeft');await expect(chat).toBeFocused();await expect(activity.getByRole('status')).toContainText('Messages from hidden wallets');
   await page.locator('#coin-refresh').click();await expect(page.locator('.coin-tabs [data-coin-tab]')).toHaveCount(5);await chat.click();await expect(activity.getByRole('status')).toContainText('Messages from hidden wallets');
   await expect(page.locator('#coin-page > .coin-community-panel')).toHaveCount(0);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
