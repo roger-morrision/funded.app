@@ -58,3 +58,4 @@ addEventListener('scroll', queueSectionUpdate, { passive: true });
 addEventListener('resize', queueSectionUpdate, { passive: true });
 addEventListener('hashchange', updateSection);
 updateSection();
+if (typeof menu.showModal === 'function') document.documentElement.dataset.landingNavigation = 'enhanced';
