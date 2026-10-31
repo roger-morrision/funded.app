@@ -19,7 +19,8 @@ export function renderCoinPricePath({ coinChartPeriod, coinChartMetric, coinChar
   else if (data.reason) { title = `${measure} in ${unit} unavailable`; message = data.reason; }
   else if (!data.count) { title = `No recent prices · ${coinChartPeriod}`; message = `No confirmed trades were found in this time range.${coinMarketActivity.coverage !== 'complete' ? ' Some trade history may be missing.' : ''}`; }
   const plotted = title ? { candles: [], volumes: [] } : data;
-  const formatValue = value => coinChartUnit === 'usd' ? formatCoinSnapshotUsd(value / coinSolUsdPrice) : formatCoinSpot(value);
+  const formatValue = value => coinChartUnit === 'usd' ? formatCoinSnapshotUsd(value / coinSolUsdPrice)
+    : value > 0 && value < 1e-12 ? `${value.toExponential(4)} SOL` : formatCoinSpot(value);
   const interval = data.interval < 60 ? `${data.interval}s` : `${data.interval / 60}m`;
   const summary = title || `${label} · ${unit} · ${formatValue(data.latest)}`;
   const status = `<strong>${escapeHtml(title)}</strong><small>${escapeHtml(message)}</small>`;
