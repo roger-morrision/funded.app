@@ -324,7 +324,7 @@ export function initializeExploreSearchActions(appState) {
     if (share) { appState.openCoinShare(share.dataset.shareMint || '', share.dataset.shareSymbol || 'Coin', share.dataset.shareName || ''); return; }
     const trade = event.target.closest('[data-trade-mint]');
     if (trade) { appState.openExploreTrade(trade.dataset.tradeMint); return; }
-    if (event.target.closest('button, a')) return;
+    if (event.target.closest('button, a, details, input, select, textarea')) return;
     const mint = event.target.closest('.home-launch-card')?.dataset.mint;
     if (mint) location.href = `/token/${encodeURIComponent(mint)}`;
   });
