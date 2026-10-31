@@ -1,5 +1,9 @@
 import { icon } from '../../../ui-icons.js';
 import { initializeFlowDiagrams } from '../shared/diagram-motion.js';
+import {feeDistributionMarkup,approvedFeePresentation} from '../fees/distribution-summary.js';
+
+const distribution=document.querySelector('[data-landing-fee-distribution]');
+if(distribution)distribution.innerHTML=feeDistributionMarkup({fee:approvedFeePresentation()});
 
 document.querySelectorAll('[data-icon]').forEach(element => {
   element.innerHTML = icon(element.dataset.icon);

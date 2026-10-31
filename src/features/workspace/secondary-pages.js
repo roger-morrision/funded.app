@@ -1,4 +1,5 @@
 import { currentFeePolicyCopy } from '../fees/fee-policy-copy.js';
+import { feeDistributionMarkup } from '../fees/distribution-summary.js';
 import { mountHolderAirdropDirectory } from '../rewards/holder-airdrop-directory.js';
 import './airdrop-discovery.css';
 import { text, $, node, $$, disclose } from './dom.js';
@@ -125,7 +126,8 @@ export function protocolPage() {
   policy.append(policySummary, ...policyContent);
   const footer = node('footer', 'funded-token-footer');
   footer.innerHTML = '<div><a class="funded-token-footer-brand" href="#overview"><span aria-hidden="true">ƒ</span> funded.vip</a><p>Launches, rewards, and market activity on Solana with a route you can inspect.</p></div><nav aria-label="Funded protocol"><strong>PROTOCOL</strong><a href="#launch">Launch</a><a href="/funded" aria-current="page">$FUNDED</a><a href="#buybacks">Burn $FUNDED</a><a href="#explore">Explore</a><a href="#airdrops">Airdrops</a><a href="#docs">Docs</a></nav><nav aria-label="Legal"><strong>LEGAL</strong><a href="#privacy">Privacy</a><a href="#terms" data-info="terms">Terms</a><a href="#disclosures" data-info="disclosures">Disclosures</a><a href="#opt-out" data-info="opt-out">Opt out</a></nav><small>© 2026 FUNDED.VIP · POWERED BY $FUNDED</small>';
-  root.append(hero, facts, story, contract, policy, footer);
+  const distribution=node('section');distribution.dataset.feeDistribution='protocol';distribution.innerHTML=feeDistributionMarkup();
+  root.append(hero, distribution, facts, story, contract, policy, footer);
   const tape = node('aside', 'funded-token-tape');
   tape.setAttribute('aria-label', 'Verified Solana token figures');
   tape.innerHTML = '<div id="funded-token-tape-items"><span>Checking verified Solana figures…</span></div>';

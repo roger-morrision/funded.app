@@ -37,7 +37,7 @@ export function protocolFeeRouteModel(allocation) {
   const completeAmounts = evidenceReady && amounts.every(amount => amount != null)
     && total != null && amounts.reduce((sum, amount) => sum + amount, 0n) === total
     && (allocation.status === 'verified' || allocation.settledCollections > 0);
-  const labels = ['Operations & marketing', 'Referral network', 'Daily bonus', '$FUNDED buyback','AI agency'];
+  const labels = ['Operations & marketing', 'Referral network', 'Daily bonus', '$FUNDED buyback & burn','AI marketing & coin buybacks'];
   const rates = policyReady ? [split.operationsPercent,
     split.referralLevelPercents.reduce((sum, rate) => sum + rate, 0),
     split.communityPercent, split.buybackPercent,...(agency?[split.agencyPercent]:[])] : [];
@@ -53,11 +53,11 @@ export function protocolFeeRouteModel(allocation) {
     rows:destinations.map(([key], index) => ({
       key,
       label:labels[index],
-      share:policyReady ? `${rates[index]}% of app share` : '—',
+      share:policyReady ? `${Number((rates[index] / 5).toFixed(6))}%` : '—',
       gross:policyReady ? `${Number((rates[index] / 5).toFixed(6))}% of gross collected fees` : 'Current rate unavailable',
       amount:formatSol(completeAmounts ? amounts[index] : null),
       detail:key === 'referrals' && policyReady
-        ? `L1 ${split.referralLevelPercents[0]}% · L2 ${split.referralLevelPercents[1]}% · L3 ${split.referralLevelPercents[2]}% of app share`
+        ? split.referralLevelPercents.map((rate,i)=>`L${i+1} ${Number((rate/5).toFixed(6))}%`).join(' · ')+' of collected creator fees'
         : key === 'community' ? 'Top 3 per category · equal creator, referrer and trader budgets · daily UTC; selected Devnet QA coins use 5-minute windows · historical totals include older community allocations'
           : null,
     })),

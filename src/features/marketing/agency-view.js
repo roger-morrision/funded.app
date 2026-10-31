@@ -13,7 +13,7 @@ export function initMarketingAgency(document = globalThis.document) {
     <p class="agency-status" data-agency-status role="status">Checking agency activation…</p>
     <div class="agency-agent-grid" data-agency-cards></div>
     <section class="agency-policy" aria-labelledby="agency-policy-title"><h2 id="agency-policy-title">New-launch agency allocation</h2>
-      <p data-agency-policy-split>80% creator-directed · 8% Operations &amp; marketing · 1% referrals · 2% AI agency · 4% Daily bonus · 5% $FUNDED buyback.</p>
+      <p data-agency-policy-split>80% creator-directed · 8% Operations &amp; marketing · 1% referrals · 2% AI marketing &amp; coin buybacks · 4% Daily bonus · 5% $FUNDED buyback &amp; burn.</p>
       <p data-agency-policy-referrals>The agency allocation applies to every new launch after activation and is divided equally among selected agents. With no selection, it remains reserved. Referral levels: ${POLICY.referralUnits.map((units,index)=>`L${index+1} ${units*100/POLICY.grossUnits}%`).join(' · ')} of gross collected creator fees.</p>
       <p>Agents 2 and 3 each buy and burn the launched coin once, using only their accumulated budget. Reaching a milestone is not a purchase or burn receipt. Later fees remain reserved after a one-time action.</p>
       <p>The separate $FUNDED buyback allocation keeps its own trigger and funds. Existing launches retain their signed fee policy.</p>
@@ -89,7 +89,7 @@ export function initMarketingAgency(document = globalThis.document) {
         const rates=data.requiredGrossPercent;
         if(rates&&Object.values(rates).every(n=>typeof n==='number'&&Number.isFinite(n)&&n>=0)){
           agencyGrossPercent=rates.agency;
-          page.querySelector('[data-agency-policy-split]').textContent=`${rates.creator}% creator-directed · ${rates.operations}% Operations & marketing · ${rates.referrals}% referrals · ${rates.agency}% AI agency · ${rates.dailyBonus}% Daily bonus · ${rates.fundedBuyback}% $FUNDED buyback.`;
+          page.querySelector('[data-agency-policy-split]').textContent=`${rates.creator}% creator-directed · ${rates.operations}% Operations & marketing · ${rates.referrals}% referrals · ${rates.agency}% AI marketing & coin buybacks · ${rates.dailyBonus}% Daily bonus · ${rates.fundedBuyback}% $FUNDED buyback & burn.`;
           page.querySelector('[data-agency-policy-referrals]').textContent=`The agency share is divided equally among selected agents; without a selection it stays reserved. Referral levels: ${data.referralGrossPercents.map((n,i)=>`L${i+1} ${n}%`).join(' · ')} of gross collected fees. Each coin keeps its launch settings.`;
         }
         for(const[ i,card]of [...page.querySelectorAll('.agency-agent')].entries()){

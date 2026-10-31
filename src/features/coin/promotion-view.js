@@ -1,6 +1,7 @@
 import { activeBoostMultiplier, activeBoostPackages } from '../../../boost-offer.js';
 import { coinDetailPackage } from '../../../promotion-badge.js';
 import { verifiedCoinRewardsPolicy, formatPolicyPercent } from '../../../coin-rewards-policy.js';
+import {feeDistributionMarkup} from '../fees/distribution-summary.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderCoinPromotionBadge(
@@ -119,7 +120,12 @@ export function renderCoinRewardsPolicy(
   summary.hidden = !verified;
   summary.parentElement?.classList.toggle('has-fee-allocation', Boolean(verified));
   value.replaceChildren();
-  if (!verified) return;
+  let breakdown=document.querySelector('#coin-page > .coin-fixed-fee-details');
+  if(!verified){breakdown?.remove();return;}
+  if(!breakdown){breakdown=document.createElement('details');breakdown.className='coin-fixed-fee-details advanced-details';const title=document.createElement('summary');title.textContent='View this coin’s saved fee distribution';const body=document.createElement('div');breakdown.append(title,body);summary.parentElement.after(breakdown);}
+  const programs=verified.protocolPrograms;
+  const markup=feeDistributionMarkup({fee:{creatorPercent:80,operationsEffectivePercent:programs.operations,appReferralEffectivePercent:programs.referrals,communityEffectivePercent:programs.community,buybackEffectivePercent:programs.buyback,...(programs.agency===undefined?{}:{agencyEffectivePercent:programs.agency})},scope:'This coin’s saved on-chain policy. Older coins can have different rates. Allocations require verified funding and finalized payout or burn receipts.',titleLevel:3});
+  const body=breakdown.lastElementChild;if(body.dataset.markup!==markup){body.innerHTML=markup;body.dataset.markup=markup;}
   const shares = [];
   if (verified.creator > 0) shares.push(document.createTextNode(`Creator ${formatPolicyPercent(verified.creator)}`));
   if (verified.holders > 0) shares.push(document.createTextNode(`Holders ${formatPolicyPercent(verified.holders)}`));

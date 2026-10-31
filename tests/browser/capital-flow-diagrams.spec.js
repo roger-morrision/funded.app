@@ -49,7 +49,7 @@ for(const width of[360,390,1440])for(const[path,asset]of routes)test(`diagram re
   await page.setViewportSize({width,height:900});await page.emulateMedia({reducedMotion:'no-preference'});const figure=await open(page,path),image=figure.locator('img'),region=figure.getByRole('region');
   await expect(image).toHaveAttribute('src',`/${asset}-static.svg`);await expect.poll(()=>image.evaluate(e=>e.complete&&e.naturalWidth>0)).toBe(true);
   await expect(region).toHaveAttribute('tabindex','0');expect(await region.getAttribute('aria-label')).toBeTruthy();
-  if(width<1000){expect(await region.evaluate(e=>e.scrollWidth>e.clientWidth)).toBe(true);await region.focus();await page.keyboard.press('ArrowRight');await expect.poll(()=>region.evaluate(e=>e.scrollLeft)).toBeGreaterThan(0);}
+  if(width<1000){expect(await region.evaluate(e=>e.scrollWidth>e.clientWidth)).toBe(true);await region.focus();await expect(region).toBeFocused();await expect.poll(()=>focusClearsNavigation(region)).toBe(true);await page.keyboard.press('ArrowRight');await expect.poll(()=>region.evaluate(e=>e.scrollLeft)).toBeGreaterThan(0);}
   await figure.getByRole('button',{name:'Play animation',exact:true}).click();await expect(figure).toHaveAttribute('data-diagram-state','playing');await expect(image).toHaveAttribute('src',`/${asset}.svg`);
   await expect.poll(()=>image.evaluate(e=>e.complete&&e.naturalWidth>0)).toBe(true);
   await figure.getByRole('button',{name:'Pause animation',exact:true}).click();await expect(figure).toHaveAttribute('data-diagram-state','paused');await expect(image).toHaveAttribute('src',`/${asset}-static.svg`);

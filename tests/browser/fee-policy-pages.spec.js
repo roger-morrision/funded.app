@@ -1,15 +1,15 @@
 import { test, expect } from '@playwright/test';
 
 for (const [label, operations, community] of [['current 8/4', 40, 20], ['saved override 6/6', 30, 30]]) {
-  test(`all fee pages use ${label} and distinguish collection from funded payments`, async ({ page }) => {
+  test(`all fee pages use ${label} and distinguish collection from funded payments`, async ({ page,baseURL }) => {
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     await page.route('**/api/**', route => route.fulfill({ status:503, json:{ error:'Offline policy-copy fixture' } }));
     await page.route('**/api/fee-policy', async route => {
       await new Promise(resolve => setTimeout(resolve, 150));
       await route.fulfill({ json:{ revision:44, split:{ operationsPercent:operations,
-        referralLevelPercents:[10, 3, 2], communityPercent:community, buybackPercent:25 } } });
+        referralLevelPercents:operations===40?[3,1.25,0.75]:[10,3,2], communityPercent:community, buybackPercent:25,...(operations===40?{agencyPercent:10}:{}) } } });
     });
-    await page.route('https://**/*', route => route.abort());
+    await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));await page.route('https://**/*',route=>route.request().method()==='GET'&&new URL(route.request().url()).origin===new URL(baseURL).origin?route.fallback():route.abort());
     await page.goto('/#capital-flow');
     await expect(page.locator('body')).toHaveClass(/workspace-ready/);
     const ops = operations / 5, bonus = community / 5;
@@ -17,7 +17,7 @@ for (const [label, operations, community] of [['current 8/4', 40, 20], ['saved o
     await expect(page.locator('#fee-output-community')).toHaveText(`${bonus} SOL`);
     await expect(page.locator('#daily-bonus-dashboard')).toContainText(`${bonus}% Daily bonus pool`);
     await expect(page.locator('#daily-bonus-dashboard')).toContainText('completed UTC day closes at 00:00 UTC');
-    await expect(page.locator('#capital-flow .route-timeline')).toContainText('creator signs settlement');
+    await expect(page.locator('#capital-flow .route-timeline')).toContainText('keeper settles automatically');
     await expect(page.locator('#capital-flow .panel-explainer').first()).toContainText('Existing coins');
     await expect(page.locator('[data-money-flow-poster="distribution"] .money-flow-steps').first()).toContainText(`${ops}% Operations & marketing`);
     await expect(page.locator('[data-money-flow-poster="distribution"] .money-flow-steps').first()).toContainText(`${bonus}% Daily bonus`);
@@ -26,8 +26,8 @@ for (const [label, operations, community] of [['current 8/4', 40, 20], ['saved o
     await expect(page.locator('.allocation-chips')).toContainText(`${ops}%Operations & marketing`);
     await expect(page.locator('.allocation-chips')).toContainText(`${bonus}%Daily bonus`);
     await page.evaluate(() => { location.hash = 'overview'; });
-    await expect(page.locator('#fee-policy-faq')).toContainText(`Operations & marketing (${ops}%)`);
-    await expect(page.locator('#fee-policy-faq')).toContainText(`Daily bonus (${bonus}%)`);
+    await expect(page.locator('#fee-policy-faq')).toContainText(`${ops}% Operations & marketing`);
+    await expect(page.locator('#fee-policy-faq')).toContainText(`${bonus}% Daily bonus`);
     await page.evaluate(() => { location.hash = 'launch'; });
     await expect(page.locator('.launch-fee-options .benefit-grid article:last-child small')).toContainText(`${ops}% Operations & marketing`);
     await expect(page.locator('.launch-fee-options .benefit-grid article:last-child small')).toContainText(`${bonus}% Daily bonus`);

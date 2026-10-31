@@ -1,4 +1,5 @@
 import { productEvent } from './product-events.js';
+import { currentFeePolicyCopy } from './src/features/fees/fee-policy-copy.js';
 
 // Compose existing controls; their data sources and transaction handlers stay authoritative.
 const $ = selector => document.querySelector(selector);
@@ -89,7 +90,7 @@ function launch() {
   setText('[data-launch-step-target="2"] span', 'Rewards & launch');
   $('[data-launch-step-target="2"]')?.setAttribute('aria-label', 'Step 2: Rewards and launch');
   setText('#launch-route-title', 'Launch a token');
-  setText('#launch-route-shell .page-lede', 'Name your coin, review the recommended 80/20 fee route and 3% community token reserve, then check the exact cost before signing.');
+  setText('#launch-route-shell .page-lede', `Control your 80% creator share. ${currentFeePolicyCopy().headline}. Review the full fee distribution and launch cost before signing.`);
   setText('#benefits-step-title', 'Choose your fee route');
   setText('[data-launch-step="2"] > .step-heading p', 'The recommended setup directs 80% of collected creator fees to your wallet. Airdrop size, developer buy, and promotion are separate choices.');
   const funding = $('.launch-funding-section');
@@ -102,7 +103,7 @@ function launch() {
   const fees = $('.launch-fee-options');
   if (fees && !fees.querySelector('.product-fee-example')) fees.querySelector('.benefit-grid')?.after(Object.assign(document.createElement('p'), {
     className: 'product-fee-example',
-    textContent: 'Example: if 1 SOL of creator fees is collected, the policy allocates 0.8 SOL to your chosen creator destinations and 0.2 SOL to funded.vip programs. Allocation does not mean a payment has completed.'
+    textContent: `${currentFeePolicyCopy().allocation} Allocation does not mean a payment has completed.`
   }));
   setText('.launch-preview-heading span', 'Preview');
   setText('#launch-mode-quick strong', 'Keep your creator share');

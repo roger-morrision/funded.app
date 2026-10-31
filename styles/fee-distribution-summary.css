@@ -1,0 +1,21 @@
+.fee-distribution-summary { color: #edf1f7; background: #101927; border: 1px solid #344359; border-radius: 10px; padding: 16px; min-width: 0; margin-block: 14px; }
+.fee-distribution-summary header { display: block; padding: 0; margin: 0 0 14px; }
+.fee-distribution-summary .eyebrow { margin: 0 0 5px; font-size: 10px; letter-spacing: .08em; color: #9bb0c8; text-transform: uppercase; }
+html body .fee-distribution-summary header :is(h2,h3) { margin: 0 0 6px; color: #ffc46b; font-size: clamp(18px,2vw,24px); line-height: 1.25; }
+html body .fee-distribution-summary header > p:last-child { margin: 0; color: #bdcbdc; font-size: 13px; line-height: 1.5; }
+.fee-distribution-categories { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+html body .fee-distribution-categories > article { display: grid; grid-template-columns: auto minmax(0,1fr); align-content: start; align-items: center; gap: 5px 10px; min-width: 0; padding: 12px; margin: 0; border: 1px solid #304055; border-radius: 7px; background: #142033; }
+html body .fee-distribution-categories > article > strong { color: #eaf2ff; font-size: 23px; line-height: 1.2; }
+html body .fee-distribution-categories > article > span { color: #dbe7f7; font-size: 12px; font-weight: 700; line-height: 1.4; }
+html body .fee-distribution-categories > article > small { grid-column: 1/-1; color: #aabdd3; font-size: 11px; line-height: 1.6; }
+.fee-distribution-categories > [data-fee-category="creator"] { border-color: #588b79; }
+.fee-distribution-categories > [data-fee-category="operations"] { border-color: #a78444; }
+html body .fee-distribution-summary > :is(.fee-distribution-basis,.fee-distribution-scope) { margin: 12px 0 0; font-size: 11px; color: #a7bad0; line-height: 1.6; }
+html body .fee-distribution-summary > .fee-distribution-scope { margin-top: 5px; }
+.launch-fixed-distribution .fee-distribution-summary { margin-block: 10px; }
+.launch-fixed-distribution .fee-distribution-categories { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.launch-fixed-distribution .fee-distribution-categories > article > small { display: none; }
+.coin-fixed-fee-details { min-width: 0; margin: 12px 0; padding: 12px; border: 1px solid #344359; border-radius: 8px; }
+.coin-fixed-fee-details > summary { min-height: 44px; align-content: center; cursor: pointer; color: #e0d1af; }
+@media(max-width:1000px) { .launch-fixed-distribution .fee-distribution-categories { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width:700px) { .fee-distribution-summary { padding: 12px; } .fee-distribution-categories { grid-template-columns: repeat(2,minmax(0,1fr)); } html body .fee-distribution-categories > article { padding: 10px; grid-template-columns: 1fr; gap: 5px; } html body .fee-distribution-categories > article > small { grid-column: auto; } }

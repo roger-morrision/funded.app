@@ -26,7 +26,7 @@ test('protocol allocation copy agrees across FAQ, buyback, and fee flow', async 
   const buyback = FEE_DISTRIBUTION.buybackEffectivePercent;
   await page.goto('/#capital-flow');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  await expect(page.locator('#fee-policy-faq')).toContainText(`buyback allocation (${buyback}%)`);
+  await expect(page.locator('#fee-policy-faq')).toContainText(`${buyback}% $FUNDED buyback & burn`);
   await expect(page.locator('#buyback-policy-heading')).toHaveText(`Preview the ${buyback}% policy`);
   await expect(page.locator('#buyback-policy-note')).toContainText('Local calculation only');
   await expect(page.locator('.home-receipt-card .receipt-rows span').last()).toHaveText(`${buyback} SOL Buyback allocation`);

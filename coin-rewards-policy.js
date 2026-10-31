@@ -25,6 +25,7 @@ export function verifiedCoinRewardsPolicy(policy, mint, cluster) {
     referrals: percent(distribution.fixedFunded.appReferral?.effectivePercentOfCreatorFees),
     community: percent(distribution.fixedFunded.communityRewards?.effectivePercentOfCreatorFees),
     buyback: percent(distribution.fixedFunded.fundedBuyback?.effectivePercentOfCreatorFees),
+    ...(distribution.fixedFunded.marketingAgency ? {agency:percent(distribution.fixedFunded.marketingAgency.effectivePercentOfCreatorFees)} : {}),
   };
   if (Object.values(protocolPrograms).some(value => value === null)
     || !matches(Object.values(protocolPrograms).reduce((sum, value) => sum + value, 0), protocol)) return null;

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="430" viewBox="0 0 1280 430" role="img" aria-labelledby="title desc">
   <title id="title">From launch to community value</title>
-  <desc id="desc">Illustrative Solana Devnet flow. Launch a token, collect creator fees, and apply the saved creator-directed and protocol shares. Category rates and any agency allocation depend on the saved mint policy. Migration claims, eligibility, approved funding, and finalized payments have separate checks.</desc>
+  <desc id="desc">New-launch policy: 80% creator-directed; only 8% Operations and marketing; 1% referrals; 4% Daily bonus for top traders, creators and referrers; 5% $FUNDED buyback and burn; 2% AI marketing and launched-coin buybacks. Percentages apply to collected creator fees, not trade volume. Existing coins keep saved rates; funding, eligibility and finalized receipts are required.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#182536"/><stop offset="1" stop-color="#0d192b"/></linearGradient>
     <linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#263447"/><stop offset="1" stop-color="#19273a"/></linearGradient>
@@ -24,11 +24,11 @@
 
   <rect x="666" y="105" width="264" height="166" rx="15" fill="url(#card)" stroke="#63748b"/>
   <text x="686" y="135" class="step">03 · SPLIT COLLECTED FEES</text><text x="686" y="172" class="pct">80% <tspan class="body">creator-directed</tspan></text>
-  <text x="686" y="211" class="pct">20% <tspan class="body">protocol programs</tspan></text><text x="686" y="242" class="small">Each coin keeps its saved policy.</text>
+  <text x="686" y="211" class="pct">8% <tspan class="body">Operations &amp; marketing</tspan></text><text x="686" y="242" class="small">92% → creators + ecosystem.</text>
 
   <rect x="982" y="105" width="264" height="166" rx="15" fill="url(#card)" stroke="#63748b"/>
-  <text x="1002" y="135" class="step">04 · DISTRIBUTE</text><text x="1002" y="168" class="title">Rewards + burn</text>
-  <text x="1002" y="195" class="small">80% → creator, holders, X</text><text x="1002" y="216" class="small">20% → protocol programs</text><text x="1002" y="237" class="small">Saved rates → verified receipts</text>
+  <text x="1002" y="135" class="step">04 · DISTRIBUTE</text><text x="1002" y="168" class="body">1% referral network</text>
+  <text x="1002" y="195" class="small">4% Daily bonus · top 3 / category</text><text x="1002" y="216" class="small">5% $FUNDED buyback + burn</text><text x="1002" y="237" class="small">2% AI agents + coin buybacks</text>
 
   <path class="path" d="M298 188 H339"/><path class="path" d="M614 188 H655"/><path class="path" d="M930 188 H971"/>
   
@@ -38,6 +38,6 @@
   <text x="54" y="351" class="body">Launched-coin reserve → $FUNDED holder snapshot → eligible claim</text>
   <rect x="632" y="296" width="614" height="74" rx="13" fill="#302c27" stroke="#a48155" stroke-dasharray="6 5"/>
   <circle cx="656" cy="321" r="7" fill="#f4bd68"/><text x="674" y="326" font-size="14" font-weight="800" fill="#f7d7a6">AI AGENCY · POLICY-GATED</text>
-  <text x="652" y="351" class="body">Approved budgets → promotion + own-coin milestones</text>
-  <text x="34" y="405" class="note">Policy illustration · Claims, payouts, and burns need eligibility, funding, and finalized receipts.</text>
+  <text x="652" y="351" class="body">2% budget → selected agents + own-coin buyback milestones</text>
+  <text x="34" y="405" class="note">Collected creator fees, not trade volume · Saved coin rates apply · Funding + finalized receipts prove delivery.</text>
 </svg>

@@ -59,7 +59,7 @@ export function launch() {
   });
   const copy = currentFeePolicyCopy();
   const protocol = $('.launch-fee-options .benefit-grid article:last-child small');
-  if (protocol) protocol.textContent = `${copy.steps.join(' · ')} of gross collected fees. ${copy.scope}`;
+  if (protocol) protocol.textContent = `${copy.steps.slice(1).join(' · ')} of gross collected creator fees. ${copy.scope}`;
   // The initial step is set by the application; align first paint before any interaction.
   page.dataset.step = '1';
   $$('[data-launch-step]',page).forEach(panel=>panel.hidden=panel.dataset.launchStep!=='1');

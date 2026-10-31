@@ -60,3 +60,11 @@ test('small configured holder percentages remain visible in the saved token poli
   assert.equal(verifiedCoinRewardsPolicy(policy, mint, 'devnet').compact,
     'Creator 79.9989% · Holders 0.0011%');
 });
+
+test('the published 1% referral and 2% agency policy keeps a valid coin allocation visible',()=>{
+  const policy=makePolicy();policy.feeDistribution=buildFeeDistributionPolicy({creatorWalletPercent:50,holderAirdropPercent:20,solClaimPercent:10,xRecipient:'@fundedvip'},{fundedSplit:{operationsPercent:40,referralLevelPercents:[3,1.25,0.75],communityPercent:20,buybackPercent:25,agencyPercent:10}});
+  const result=verifiedCoinRewardsPolicy(policy,mint,'devnet');assert.equal(result.compact,'Creator 50% · Holders 20% · @fundedvip 10%');
+  assert.deepEqual(result.protocolPrograms,{operations:8,referrals:1,community:4,buyback:5,agency:2});
+  for(const value of[1,null,'2',NaN]){const bad=structuredClone(policy);bad.feeDistribution.fixedFunded.marketingAgency.effectivePercentOfCreatorFees=value;assert.equal(verifiedCoinRewardsPolicy(bad,mint,'devnet'),null);}
+  delete policy.feeDistribution.fixedFunded.marketingAgency;assert.equal(verifiedCoinRewardsPolicy(policy,mint,'devnet'),null);
+});

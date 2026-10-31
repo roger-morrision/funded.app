@@ -1,4 +1,5 @@
 import { currentFeePolicyCopy } from './src/features/fees/fee-policy-copy.js';
+import { feeDistributionPresentation } from './src/features/fees/distribution-summary.js';
 
 // Reorganize secondary information without changing data, policies, or transaction controls.
 function compactHomeJackpot() {
@@ -256,14 +257,14 @@ function shortenPageCopy() {
 const moneyFlowPosters = [
   {
     selector: '[data-page-infographic="capital"]', image: 'fee-distribution-flow-v1.webp',
-    key: 'distribution', title: 'CLAIMED FEE SPLIT', metric: '80% / 20%',
-    metricLabel: 'creator-directed / protocol',
+    key: 'distribution', title: 'COLLECTED CREATOR-FEE SPLIT', metric: () => `${feeDistributionPresentation().operations}% / ${feeDistributionPresentation().benefits}%`,
+    metricLabel: 'Operations & marketing / creators + ecosystem',
     steps: () => currentFeePolicyCopy().steps,
   },
   {
     selector: '[data-infographic-poster="fees"]', image: 'fee-distribution-flow-v1.webp',
-    key: 'distribution', title: 'CLAIMED FEE SPLIT', metric: '80% / 20%',
-    metricLabel: 'creator-directed / protocol',
+    key: 'distribution', title: 'COLLECTED CREATOR-FEE SPLIT', metric: () => `${feeDistributionPresentation().operations}% / ${feeDistributionPresentation().benefits}%`,
+    metricLabel: 'Operations & marketing / creators + ecosystem',
     steps: () => currentFeePolicyCopy().steps,
   },
   {
@@ -287,7 +288,9 @@ function decorateMoneyFlowPosters() {
     const picture = figure?.querySelector('img');
     if (!poster || !figure || !picture) continue;
     const labels = typeof flow.steps === 'function' ? flow.steps() : flow.steps;
+    const metricValue=typeof flow.metric==='function'?flow.metric():flow.metric;
     if (poster.dataset.moneyFlowPoster) {
+      const metric=figure.querySelector('.money-flow-stat b');if(metric&&metric.textContent!==metricValue)metric.textContent=metricValue;
       figure.querySelectorAll('.money-flow-steps > span').forEach((item, i) => {
         if (item.textContent !== labels[i]) item.textContent = labels[i];
       });
@@ -307,7 +310,7 @@ function decorateMoneyFlowPosters() {
     const stat = document.createElement('span');
     stat.className = 'money-flow-stat';
     const metric = document.createElement('b');
-    metric.textContent = flow.metric;
+    metric.textContent = metricValue;
     const metricLabel = document.createElement('small');
     metricLabel.textContent = flow.metricLabel;
     stat.append(metric, metricLabel);
