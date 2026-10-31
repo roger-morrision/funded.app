@@ -1,0 +1,52 @@
+import{test,expect}from'@playwright/test';
+import{PublicKey}from'@solana/web3.js';
+import{PUMP_SDK,bondingCurvePda}from'@pump-fun/pump-sdk';
+import BN from'bn.js';
+const mint='H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z',tokenProgram='TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+const split={operationsPercent:40,referralLevelPercents:[3,1.25,.75],communityPercent:20,buybackPercent:25,agencyPercent:10};
+async function offline(page,baseURL){
+ await page.addInitScript(()=>{sessionStorage.setItem('funded.app.wallet.manual-disconnect','1');window.activityRefreshes=0;window.addEventListener('funded:financial-center-data',()=>window.activityRefreshes++);});
+ await page.route('**/*',r=>{const q=r.request(),u=new URL(q.url());return u.origin===new URL(baseURL).origin&&(q.method()==='GET'||u.pathname.startsWith('/api/'))?r.fallback():r.abort();});
+ await page.route('**/api/**',r=>r.fulfill({status:503,json:{error:'Unavailable UI fixture'}}));await page.route('**/api/fee-policy',r=>r.fulfill({json:{split}}));
+}
+async function focusVisible(control){
+ await expect(control).toBeFocused();expect(await control.evaluate(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e),edge=(parseFloat(s.outlineWidth)||0)+Math.max(0,parseFloat(s.outlineOffset)||0),header=document.querySelector('.topbar'),nav=document.querySelector('.mobile-workspace-nav'),top=header?.getClientRects().length?header.getBoundingClientRect().bottom:0,bottom=nav?.getClientRects().length?nav.getBoundingClientRect().top:innerHeight;return r.top-edge>=top-1&&r.bottom+edge<=bottom+1&&r.left-edge>=-1&&r.right+edge<=innerWidth+1;})).toBe(true);
+}
+async function marketFixture(page){
+ let state='ready',reads=0;const writes=[];
+ const curve=await PUMP_SDK.offlinePumpProgram.coder.accounts.encode('bondingCurve',{virtualTokenReserves:new BN('1000000000000'),virtualQuoteReserves:new BN('30000000000'),realTokenReserves:new BN('700000000000'),realQuoteReserves:new BN('1000000000'),tokenTotalSupply:new BN('1000000000000000'),complete:false,creator:new PublicKey(mint),isMayhemMode:false,isCashbackCoin:false,quoteMint:PublicKey.default,creatorFeeBps:new BN(0),canEditCreatorFee:false,isHolderReward:false}),curveAddress=bondingCurvePda(new PublicKey(mint)).toBase58();
+ await page.route('**/api/solana/rpc',r=>{
+  const body=r.request().postDataJSON(),calls=Array.isArray(body)?body:[body];
+  const rows=calls.map(c=>{let result=null;if(!c.method.startsWith('get'))writes.push(c.method);
+   if(c.method==='getSlot')result=100;
+   else if(c.method==='getAccountInfo'){let value=null;const address=c.params?.[0];
+    if(address===mint)value={lamports:1000000,executable:false,owner:tokenProgram,rentEpoch:0,data:{program:'spl-token',parsed:{type:'mint',info:{decimals:6,supply:'1000000000000000',isInitialized:true,mintAuthority:null,freezeAuthority:null}},space:82}};
+    if(address===curveAddress)value={lamports:1000000,executable:false,owner:PUMP_SDK.offlinePumpProgram.programId.toBase58(),rentEpoch:0,data:[curve.toString('base64'),'base64']};result={context:{slot:100},value};
+   }else if(c.method==='getTokenLargestAccounts'||c.method==='getTokenAccountsByOwner')result={context:{slot:100},value:[]};else if(c.method==='getProgramAccounts')result=[];else if(c.method==='getMultipleAccounts')result={context:{slot:100},value:c.params[0].map(()=>null)};
+   return{jsonrpc:'2.0',id:c.id,result};});return r.fulfill({json:Array.isArray(body)?rows:rows[0]});
+ });
+ await page.route('**/api/tokens/*/market-activity**',r=>{reads++;if(state==='unavailable')return r.fulfill({status:503,json:{error:'Market fixture unavailable'}});const now=Math.floor(Date.now()/1000),rows=state==='empty'?[]:[{signature:'3'.repeat(64),trader:mint,side:'buy',priceRatio:2,blockTime:now-1800,solLamports:'100000000',tokenAmountRaw:'1000000'},{signature:'4'.repeat(64),trader:mint,side:'sell',priceRatio:1,blockTime:now-2400,solLamports:'200000000',tokenAmountRaw:'2000000'}],pulse={tradeCount:rows.length,traderCount:rows.length?1:0,volumeSol:.3,buyVolumeSol:.1,sellVolumeSol:.2,buyCount:1,sellCount:1,largestTradeSol:.2,coverage:'complete'};return r.fulfill({json:{cluster:'devnet',coverage:'complete',recentTrades:rows,activityWindows:Object.fromEntries(['5m','1h','6h','24h'].map(k=>[k,pulse])),tradeCount24h:rows.length,volume24hSol:.3,solUsdPrice:100}});});
+ return{set:value=>state=value,reads:()=>reads,writes};
+}
+for(const width of[320,390,1440])test(`trade filter recovery is readable and preserves sort at ${width}px (mocked records)`,async({page,baseURL},info)=>{
+ test.setTimeout(60000);await page.setViewportSize({width,height:900});await page.emulateMedia({reducedMotion:'reduce'});await offline(page,baseURL);const f=await marketFixture(page),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(`/token/${mint}`);await page.locator('body.workspace-ready.product-experience-ready').waitFor();const rows=page.locator('.coin-transaction-row'),count=page.locator('[data-coin-trade-results]');await expect(rows).toHaveCount(2);await expect(count).toHaveText('2 of 2 loaded trades');
+ await page.locator('[data-coin-trade-sort="date"]').click();await expect(page.locator('th:has([data-coin-trade-sort="date"])')).toHaveAttribute('aria-sort','ascending');
+ await page.locator('#coin-trade-wallet').fill('no-matching-wallet');await expect(rows).toHaveCount(0);await expect(count).toHaveText('0 of 2 loaded trades');const recovery=page.getByRole('button',{name:'Show all loaded trades',exact:true});await expect(recovery).toBeVisible();expect(await recovery.evaluate(e=>Boolean(e.closest('.coin-transactions-scroll')))).toBe(false);
+ await recovery.focus();expect((await recovery.boundingBox()).height).toBeGreaterThanOrEqual(44);await page.locator('.coin-trade-empty-state').screenshot({path:info.outputPath(`trade-empty-${width}.png`)});await page.keyboard.press('Enter');await expect(rows).toHaveCount(2);await expect(page.locator('#coin-trade-wallet')).toHaveValue('');await expect(page.locator('th:has([data-coin-trade-sort="date"])')).toHaveAttribute('aria-sort','ascending');await focusVisible(page.locator('[data-coin-trade-filter="all"]'));
+ await page.locator('[data-coin-column-filter="sol"]').click();await page.locator('[data-coin-trade-input="minSol"]').fill('10');await expect(rows).toHaveCount(0);await page.locator('[data-coin-column-filter="sol"]').click();await page.locator('.coin-trade-results [data-coin-trade-reset]').click();await expect(rows).toHaveCount(2);await expect(page.locator('[data-coin-trade-input="minSol"]')).toHaveValue('');await focusVisible(page.locator('[data-coin-trade-filter="all"]'));
+ await page.locator('.coin-tabs-panel').screenshot({path:info.outputPath(`trade-recovery-${width}.png`)});
+ for(const state of['empty','unavailable']){const before=f.reads();f.set(state);await page.locator('#coin-refresh').click();await expect.poll(f.reads).toBeGreaterThan(before);await expect(count).toHaveText(state==='empty'?'0 of 0 loaded trades':'Recent trades unavailable');await expect(page.locator('#coin-activity-list')).toContainText(state==='empty'?'No confirmed trades in the last 24 hours.':'Recent trades unavailable');await expect(page.getByRole('button',{name:'Show all loaded trades',exact:true})).toHaveCount(0);}
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);expect(f.writes).toEqual([]);expect(errors).toEqual([]);
+});
+for(const width of[320,390,1440])test(`rewards filter recovery survives polling and preserves focus at ${width}px (mocked receipts)`,async({page,baseURL},info)=>{
+ test.setTimeout(60000);await page.setViewportSize({width,height:900});await page.emulateMedia({reducedMotion:'reduce'});await offline(page,baseURL);let pending=[],available=true;
+ await page.route('**/api/rewards/experience**',r=>available?r.fulfill({json:{cluster:'devnet',evidence:{status:'recorded-finalized-v3'},tokens:[],events:[]}}):r.fulfill({status:503,json:{error:'Unavailable fixture'}}));
+ await page.route('**/api/buyback/status',r=>available?r.fulfill({json:{cluster:'devnet',pending,receipts:[{mint,signature:'3'.repeat(64),status:'finalized',vaultDebitVerified:true,burnInstructionVerified:true,burnedBaseUnits:'9007199254740993123456789',finalizedAt:'2026-10-31T00:00:00Z'}]}}):r.fulfill({status:503,json:{error:'Unavailable fixture'}}));
+ await page.clock.install();await page.goto('/#payments/activity');const center=page.locator('#financial-center'),records=center.locator('.financial-record'),filter=center.locator('[data-flow-filter]'),reset=center.getByRole('button',{name:'Show all activity',exact:true});await expect(records).toHaveCount(1);await filter.selectOption('Processing');await expect(records).toHaveCount(0);await reset.focus();const original=await reset.elementHandle();
+ const poll=async()=>{const before=await page.evaluate(()=>window.activityRefreshes);await page.clock.fastForward(60001);await expect.poll(()=>page.evaluate(()=>window.activityRefreshes)).toBeGreaterThan(before);await page.clock.runFor(80);};
+ await poll();expect(await original.evaluate(e=>e===document.activeElement&&e.isConnected)).toBe(true);expect((await reset.boundingBox()).height).toBeGreaterThanOrEqual(44);await center.locator('[data-flow-empty]').screenshot({path:info.outputPath(`reward-empty-${width}.png`)});await page.keyboard.press('Enter');await expect(records).toHaveCount(1);await expect(filter).toHaveValue('all');await focusVisible(filter);
+ await filter.selectOption('Processing');await reset.focus();pending=[{mint,amountLamports:'1000000000',status:'queued'}];await poll();await expect(records).toHaveCount(1);await expect(center.locator('#financial-center-title')).toBeFocused();await expect(center.locator('[data-flow-empty]')).toBeHidden();
+ await filter.selectOption('all');available=false;await center.locator('[data-flow-refresh]').click();await expect(center.locator('[data-flow-status]')).toContainText('Unavailable:');await expect(center.locator('[data-flow-empty]')).toContainText('No recorded activity loaded.');await expect(center.locator('[data-flow-empty]')).toContainText('Unavailable data is not a zero balance.');await expect(reset).toBeHidden();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);await center.screenshot({path:info.outputPath(`reward-recovery-${width}.png`)});
+});

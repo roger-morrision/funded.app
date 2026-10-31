@@ -3,6 +3,7 @@ import { formatTradeAmountInput } from '../../../trade-amount-input.js';
 import { formatTokenBaseAmount } from '../../../trade-panel-balance.js';
 import { escapeHtml, shortAddress, formatOnChainNumber, formatUsd } from '../shared/display.js';
 import { solFromLamports, feeAllocationSol, formatFeeSol } from '../../../fee-activity-amount.js';
+const filterKeys=['side','wallet','dateFrom','dateTo','minUsd','maxUsd','minToken','maxToken','minSol','maxSol','minPrice','maxPrice','signature'];
 
 // Presentation only: callers own state, requests, and transaction lifecycles.
 export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_TRADE_COLUMNS, coinTradeSort, coinTradeFilter, coinTradeOpenFilter, coinSolUsdValues, coinSolUsdPrice }, { updateCoinTradeFilterPanel, renderCoinChat, coinTradeFilterValues, getCoinMintAddress, formatCoinSnapshotUsd, formatOnchainAge, formatCoinUsd, exploreExplorer, loadVerifiedTokenLogos, document = globalThis.document } = {}){
@@ -13,6 +14,12 @@ export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_T
   if (tradeToolbar) tradeToolbar.hidden = tab !== 'trades';
   if (tab === 'trades') updateCoinTradeFilterPanel();
   else { const tradeRefine = document.querySelector('#coin-trade-refine'); if (tradeRefine) tradeRefine.hidden = true; }
+  const filters=tab==='trades'?coinTradeFilterValues():{};
+  const hasFilters=filterKeys.some(key=>key==='side'?filters[key]&&filters[key]!=='all':filters[key]!=null&&String(filters[key]).trim()!=='');
+  const reset=document.querySelector('[data-coin-trade-reset]'),count=document.querySelector('[data-coin-trade-results]');
+  if(reset)reset.hidden=!hasFilters;
+  const countText=value=>{if(count&&count.textContent!==value)count.textContent=value;};
+  if(tab==='trades')countText(coinMarketActivity.status==='loading'?'Loading recent trades…':'Recent trades unavailable');
   if (tab === 'chat') { renderCoinChat(activity); return; }
   if (tab === 'trades' && coinMarketActivity.status === 'loading') {
     activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Reading confirmed Pump trades…</strong><small>The 24-hour activity feed is loading from Solana RPC.</small></div>';
@@ -27,8 +34,8 @@ export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_T
     return;
   }
   if (tab === 'trades') {
-    const filters = coinTradeFilterValues();
     const trades = filterAndSortRecentTrades(coinMarketActivity.trades, filters);
+    countText(`${trades.length} of ${coinMarketActivity.trades.length} loaded trades`);
     const mint = getCoinMintAddress();
     const symbol = coinActivity.symbol || 'TOKEN';
     const explorerIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 4h14l-3 3H3z" fill="#78e7b4"/><path d="M4 10h14l3 3H7z" fill="#ab91ff"/><path d="M6 16h14l-3 3H3z" fill="#78e7b4"/></svg>';
@@ -52,8 +59,8 @@ export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_T
       const expanded = key === 'trader' ? '' : ` aria-expanded="${coinTradeOpenFilter === key}"`;
       return `<th scope="col" aria-sort="${direction === 'none' ? 'none' : direction === 'asc' ? 'ascending' : 'descending'}"><div class="coin-trade-column-head"><button type="button" class="coin-trade-sort" data-coin-trade-sort="${key}" aria-label="Sort ${label} ${active && direction === 'asc' ? 'descending' : 'ascending'}">${label}<span aria-hidden="true">${active ? direction === 'asc' ? '↑' : '↓' : '↕'}</span></button><button type="button" class="coin-trade-column-filter${filtered ? ' is-active' : ''}" data-coin-column-filter="${key}" aria-label="Filter ${label}"${expanded} aria-controls="${filterTarget}" title="Filter ${label}">⌕</button></div></th>`;
     }).join('');
-    const empty = !trades.length ? `<tr><td colspan="8" class="coin-trade-no-results">${coinMarketActivity.trades.length ? 'No trades match these filters.' : 'No confirmed trades in the last 24 hours.'}${coinMarketActivity.coverage === 'partial' ? ' Some trade history is missing.' : ''}</td></tr>` : '';
-    activity.innerHTML = `<div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(symbol)} transactions" tabindex="0"><table class="coin-transactions-table coin-trades-table"><thead><tr>${headers}</tr></thead><tbody>${rows || empty}</tbody></table></div>`;
+    const empty = !trades.length ? `<div class="coin-trade-empty-state"><p class="coin-trade-no-results">${coinMarketActivity.trades.length ? 'No trades match these filters.' : 'No confirmed trades in the last 24 hours.'}${coinMarketActivity.coverage === 'partial' ? ' Some trade history is missing.' : ''}</p>${hasFilters&&coinMarketActivity.trades.length?'<button type="button" class="secondary-button" data-coin-trade-reset>Show all loaded trades</button>':''}</div>` : '';
+    activity.innerHTML = `<div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(symbol)} transactions" tabindex="0"><table class="coin-transactions-table coin-trades-table"><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table></div>${empty}`;
     if (trades.length) loadVerifiedTokenLogos(activity);
     return;
   }

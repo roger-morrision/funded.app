@@ -1,4 +1,5 @@
 import { openCoinRecord } from '../../features/coin/records-navigation.js';
+import {focusFilterRecovery} from '../../features/shared/filter-recovery.js';
 
 function bindTokenControlFocus(appState) {
   const page = document.querySelector('#coin-page');
@@ -159,8 +160,17 @@ export function initializeCoinNavigation(appState) {
     if (boost) { const mint = appState.getCoinMintAddress(); if (mint) appState.openExploreBoost(mint); return; }
     const copy = event.target.closest('#coin-copy-address, #coin-copy-full');
     if (copy){ const address = appState.getCoinMintAddress(); if (!address) return appState.showToast('No mint address in this route'); try { await navigator.clipboard.writeText(address); appState.showToast('Token address copied'); } catch { appState.showToast(address); } }
-    const clearTradeFilters = event.target.closest('#coin-trade-clear');
-    if (clearTradeFilters){ appState.coinTradeFilter = 'all'; appState.coinTradeSort = { key: 'date', direction: 'desc' }; document.querySelectorAll('[data-coin-trade-filter]').forEach(button => { const active = button.dataset.coinTradeFilter === 'all'; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); }); document.querySelectorAll('#coin-page [data-coin-trade-input]').forEach(input => { input.value = input.dataset.coinTradeInput === 'side' ? 'all' : ''; }); appState.renderCoinActivityTab(); return; }
+    const clearTradeFilters = event.target.closest('#coin-trade-clear, [data-coin-trade-reset]');
+    if (clearTradeFilters){
+      const recovery=clearTradeFilters.hasAttribute('data-coin-trade-reset'),owned=clearTradeFilters.contains(document.activeElement);
+      appState.coinTradeFilter='all';
+      if(recovery)appState.coinTradeOpenFilter=null;else appState.coinTradeSort={key:'date',direction:'desc'};
+      document.querySelectorAll('[data-coin-trade-filter]').forEach(button=>{const active=button.dataset.coinTradeFilter==='all';button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});
+      document.querySelectorAll('#coin-page [data-coin-trade-input]').forEach(input=>{input.value=input.dataset.coinTradeInput==='side'?'all':'';});
+      appState.renderCoinActivityTab();
+      if(recovery&&owned)focusFilterRecovery(document.querySelector('[data-coin-trade-filter="all"]'));
+      return;
+    }
     const tradeSort = event.target.closest('[data-coin-trade-sort]');
     if (tradeSort){ const key = tradeSort.dataset.coinTradeSort; appState.coinTradeSort = { key, direction: appState.coinTradeSort.key === key && appState.coinTradeSort.direction === 'asc' ? 'desc' : 'asc' }; appState.renderCoinActivityTab(); document.querySelector(`[data-coin-trade-sort="${key}"]`)?.focus(); return; }
     const columnFilter = event.target.closest('[data-coin-column-filter]');

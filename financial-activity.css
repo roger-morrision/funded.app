@@ -47,6 +47,10 @@ html body.product-experience-style #financial-center .financial-help > summary {
 html body.product-experience-style #financial-center .financial-help :is(p,.flow-note) { font-size: 13px !important; }
 html body.product-experience-style #financial-center .flow-stages li { padding: 5px 8px; border-color: #34445c; background: #182337; color: #bccbe0; }
 html body.product-experience-style #financial-center .financial-empty { margin: 0; padding: 24px; border: 1px dashed #35445c; border-radius: 8px; text-align: center; color: #a6b3c6; }
+html body.product-experience-style #financial-center .financial-empty p { margin:0; font-size:13px; line-height:1.6; }
+html body.product-experience-style #financial-center [data-flow-empty-title] { color:#d9e5f5; font-weight:600; }
+html body.product-experience-style #financial-center .financial-empty p + p { margin-top:5px; }
+#financial-center .financial-empty button { min-height:44px; margin-top:12px; padding:8px 12px; font-size:13px; }
 @media(max-width:700px) {
   html body.product-experience-style #financial-center { padding: 18px 14px; }
   html body.product-experience-style #financial-center > .financial-heading { align-items: flex-start; flex-wrap: wrap; gap: 12px; }

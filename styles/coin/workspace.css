@@ -158,6 +158,11 @@
 .coin-page .coin-transactions-table tbody tr:hover{background:#26354d}
 .coin-page .coin-trade-toolbar{display:grid;grid-template-columns:minmax(0,1fr);justify-content:stretch;gap:8px}
 .coin-page .coin-trade-controls{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}
+.coin-page .coin-trade-results{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;min-width:0;color:#a7bad0;font-size:12px;line-height:1.5}
+.coin-page .coin-trade-results>span{min-width:0;overflow-wrap:anywhere}
+.coin-page .coin-trade-results button,.coin-page .coin-trade-empty-state button{min-height:44px;padding:8px 12px;font-size:12px}
+.coin-page .coin-trade-empty-state{display:grid;justify-items:start;gap:10px;min-width:0;margin:12px;padding:14px;border:1px dashed #3b4d64;border-radius:7px;background:#121d2b}
+.coin-page .coin-trade-empty-state .coin-trade-no-results{margin:0;color:#b5c5da;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
 .coin-page .coin-trade-wallet-search{display:flex;align-items:center;gap:8px;flex:1 1 220px;max-width:410px;min-width:190px;color:#aebdd0;font:10px 'DM Mono',monospace;white-space:nowrap}
 .coin-page .coin-trade-wallet-search input{min-width:0;width:100%;box-sizing:border-box;border:1px solid #35465b;border-radius:6px;padding:8px 10px;background:#0d1622;color:#e5edf6;font:11px 'DM Mono',monospace}
 .coin-page .coin-trade-wallet-search input:focus-visible{outline:2px solid #e9e1cf;outline-offset:1px}
