@@ -1,6 +1,6 @@
 import { validatePreferenceTransfer, mergePreferences } from '../../../experience-preferences.js';
 import { readReminders } from './creator-activity.js';
-import { el, panel, button, link, array } from './view-utils.js';
+import { el, panel, button, array } from './view-utils.js';
 export function initializePreferenceTransfer(app){
   const parent=document.querySelector('#profile');if(!parent)return;
   const root=panel('preference-transfer','Keep your follows and reminders','Guest progress stays on this device. Export or review an explicit merge. Optional account sync uses your verified X session and never starts automatically. Wallets remain separate from X identity.');
@@ -23,5 +23,4 @@ export function initializePreferenceTransfer(app){
     }catch(error){status.textContent=error.message;}}),status);parent.append(root);
   text.addEventListener('input',()=>{prepared=null;apply.disabled=true;});
   window.addEventListener('funded:reward-identity-change',()=>{if(owner){prepared=null;owner=null;apply.disabled=true;status.textContent='Identity changed. Review the import again.';}});
-  const home=document.querySelector('#personal-activity-feed');if(home){const onboarding=el('details',null,'flow-panel');onboarding.id='first-visit-path';onboarding.dataset.workspaceRoute='overview';onboarding.append(el('summary','New to funded.vip?'),el('p','Explore without connecting a wallet. Connect when you want to check your balances or review a transaction.'));const actions=el('nav');actions.setAttribute('aria-label','Getting started');actions.append(link('Explore tokens','#explore'),link('Prepare a launch','#launch'),link('Check rewards','#payments/activity'),link('Saved progress & preferences','#profile'));onboarding.append(actions);home.after(onboarding);}
 }

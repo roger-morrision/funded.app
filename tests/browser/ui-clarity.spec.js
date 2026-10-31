@@ -16,8 +16,6 @@ for(const width of [390,1440]){
     const feed=page.locator('#personal-activity-feed');
     await expect(feed.locator('.flow-activity-row')).toHaveCount(6);
     expect(await page.evaluate(()=>document.querySelector('.home-launch-board').getBoundingClientRect().top<document.querySelector('#personal-activity-feed').getBoundingClientRect().top)).toBe(true);
-    const onboarding=page.locator('#first-visit-path');await expect(onboarding).not.toHaveAttribute('open','');
-    await onboarding.locator('summary').click();await expect(onboarding.getByRole('link',{name:'Explore tokens'})).toBeVisible();
     await feed.getByRole('button',{name:'Show more activity'}).click();await expect(feed.locator('.flow-activity-row')).toHaveCount(9);
     await feed.getByRole('button',{name:'Following',exact:true}).click();await expect(feed.locator('.flow-activity-row')).toHaveCount(0);await expect(feed).toContainText('Follow a creator or wallet');
     await page.goto('/#my-launches');await expect(page.locator('#launch-control-room')).toBeVisible();
