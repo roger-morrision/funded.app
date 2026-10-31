@@ -21,8 +21,8 @@ for(const width of[320,390,700,1440])test(`published fee distribution and config
  for(const route of['overview','analytics-detail','paid','docs/fees','launch']){
   await page.evaluate(hash=>{location.hash=hash;},route);
   if(route==='overview'){await expect(page.locator('.home-receipt-card h2')).toContainText('Only 8%');await expect(page.locator('#fee-policy-faq')).toContainText('1% Referral network');}
-  if(route==='analytics-detail')await expect(page.locator('.allocation-chips')).toContainText('2%AI marketing & coin buybacks');
-  if(route==='paid'){await summary(page.locator('#paid > [data-fee-distribution]'));await expect(page.locator('.app-revenue-grid > span > b')).toHaveText(['8%','1%','4%','5%','2%']);}
+  if(route==='analytics-detail'){await expect(page.locator('.allocation-chips')).toContainText('2%AI marketing & coin buybacks');await expect(page.locator('.split-legend b')).toHaveText(['80%','8%','12%']);}
+  if(route==='paid'){await expect(page.locator('#paid .revenue-flow b')).toHaveText(['80%','8%','12%']);await summary(page.locator('#paid > [data-fee-distribution]'));await expect(page.locator('.app-revenue-grid > span > b')).toHaveText(['8%','1%','4%','5%','2%']);}
   if(route==='docs/fees')await summary(page.locator('#docs-guide-article .fee-distribution-summary'));
   if(route==='launch')await summary(page.locator('.launch-fixed-distribution'));
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
@@ -30,7 +30,7 @@ for(const width of[320,390,700,1440])test(`published fee distribution and config
  await page.locator('#token-name').fill('Fee Policy Test');await page.locator('#token-symbol').fill('FEES');await page.locator('#launch-next').click();
  await page.locator('#launch-mode-custom').click();await page.locator('#creator-wallet-share').fill('60');await page.locator('#holder-airdrop-share').fill('20');
  await expect(page.locator('#launch-summary-creator')).toHaveText('60%');await expect(page.locator('#launch-summary-holders')).toHaveText('20%');await summary(page.locator('.launch-fixed-distribution'));
- await expect(page.locator('#launch-summary-programs-note')).toContainText('8% Operations & marketing + 12%');await expect(page.locator('#launch-button')).toBeDisabled();
+ await expect(page.locator('[data-fee-fixed-list="launch-review"] dd')).toHaveText(['8%','1%','4%','5%','2%']);await expect(page.locator('.launch-fee-options [data-app-allocation]')).toHaveText('8%');await expect(page.locator('#launch-summary-programs-note')).toContainText('8% Operations & marketing + 12%');await expect(page.locator('#launch-button')).toBeDisabled();
  await page.locator('.launch-fixed-distribution').screenshot({path:info.outputPath(`launch-fees-${width}.png`)});expect(errors).toEqual([]);
 });
 for(const width of[320,390,1440])test(`landing explains all stakeholder allocations without an API or wallet at ${width}px`,async({page,baseURL},info)=>{

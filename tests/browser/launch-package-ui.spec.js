@@ -104,7 +104,7 @@ for (const width of [1440, 390]) test(`launch review lives in the right summary 
   await expect(page.locator('#launch-summary-name')).toHaveText('Sample Coin');
   await expect(page.locator('#launch-summary-symbol')).toHaveText('SAMPLE');
   await expect(page.locator('#launch-summary-creator')).toHaveText('80%');
-  await expect(page.locator('#launch-summary-protocol')).toHaveText('20%');
+  await expect(page.locator('[data-fee-fixed-list="launch-review"] [data-fixed-fee-category="operations"] dd')).toHaveText('8%');
   await page.locator('#creator-buy-sol').fill('0.5');
   await expect(page.locator('#preview-creator-buy')).toContainText('0.5 SOL');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

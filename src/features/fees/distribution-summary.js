@@ -23,8 +23,8 @@ export function feeDistributionPresentation(fee=FEE_DISTRIBUTION) {
   ].map(([key,percent,label,benefit])=>({key,percent,label,benefit}));
   const total=rows.reduce((sum,row)=>sum+row.percent,0);
   if(rows.some(row=>!Number.isFinite(row.percent)||row.percent<0)||Math.abs(total-100)>0.000001)throw Error('Fee presentation must account for 100% of collected creator fees.');
-  const operations=fee.operationsEffectivePercent,benefits=Number((100-operations).toFixed(6));
-  return {rows,total,operations,benefits,headline:`Only ${operations}% for Operations & marketing`,
+  const operations=fee.operationsEffectivePercent,benefits=Number((100-operations).toFixed(6)),ecosystem=Number((100-fee.creatorPercent-operations).toFixed(6));
+  return {rows,total,operations,benefits,ecosystem,headline:`Only ${operations}% for Operations & marketing`,
     benefitLine:`${benefits}% is allocated to creators, referrals, Daily bonuses and token buybacks.`,
     allocation:rows.map(row=>`${row.percent}% ${row.label}`).join(' · ')+'.'};
 }
@@ -39,5 +39,15 @@ export function renderFeeDistributionSummaries(document=globalThis.document) {
   for(const root of document?.querySelectorAll('[data-fee-distribution]')||[]){
     const markup=feeDistributionMarkup({titleLevel:root.dataset.feeDistribution==='launch'?3:2});
     if(renderedSummaries.get(root)!==markup){root.innerHTML=markup;renderedSummaries.set(root,markup);}
+  }
+  const model=feeDistributionPresentation();
+  for(const root of document?.querySelectorAll('[data-fee-fixed-list]')||[]){
+    const markup=model.rows.filter(row=>row.key!=='creator').map(row=>`<div data-fixed-fee-category="${row.key}"><dt>${escapeHtml(row.label)}</dt><dd>${row.percent}%</dd></div>`).join('');
+    if(renderedSummaries.get(root)!==markup){root.innerHTML=markup;renderedSummaries.set(root,markup);}
+  }
+  for(const[selector,value]of[['[data-app-allocation]',model.operations],['[data-ecosystem-allocation]',model.ecosystem]])for(const root of document?.querySelectorAll(selector)||[])root.textContent=`${value}%`;
+  for(const root of document?.querySelectorAll('[data-fee-group-bar]')||[]){
+    const groups={creator:[model.rows[0].percent,'#a8d9bf'],operations:[model.operations,'#ffc46b'],ecosystem:[model.ecosystem,'#8ba8ee']};
+    const value=groups[root.dataset.feeGroupBar];if(value){root.style.width=`${value[0]}%`;root.style.background=value[1];}
   }
 }

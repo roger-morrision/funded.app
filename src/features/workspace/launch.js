@@ -1,4 +1,5 @@
 import { currentFeePolicyCopy } from '../fees/fee-policy-copy.js';
+import {feeDistributionPresentation} from '../fees/distribution-summary.js';
 import { $, $$, text, node, disclose } from './dom.js';
 import { icon } from '../../../ui-icons.js';
 
@@ -58,8 +59,10 @@ export function launch() {
     if (funding) funding.textContent = Number.isSafeInteger(amount) ? `${amount.toLocaleString()} tokens · ${(amount / 1e9 * 100).toFixed(2)}% of supply. Allowed: 30M–500M.` : 'Enter a whole token amount between 30M and 500M.';
   });
   const copy = currentFeePolicyCopy();
+  const fees=feeDistributionPresentation();
+  const appAllocation=$('.launch-fee-options [data-app-allocation]');if(appAllocation)appAllocation.textContent=`${fees.operations}%`;
   const protocol = $('.launch-fee-options .benefit-grid article:last-child small');
-  if (protocol) protocol.textContent = `${copy.steps.slice(1).join(' · ')} of gross collected creator fees. ${copy.scope}`;
+  if (protocol) protocol.textContent = `${fees.operations}% Operations & marketing. The separate ${fees.ecosystem}% funds ${copy.steps.slice(2).join(' · ')}. ${copy.scope}`;
   // The initial step is set by the application; align first paint before any interaction.
   page.dataset.step = '1';
   $$('[data-launch-step]',page).forEach(panel=>panel.hidden=panel.dataset.launchStep!=='1');

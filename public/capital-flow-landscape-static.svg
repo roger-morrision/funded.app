@@ -22,7 +22,7 @@
   <rect x="778" y="122" width="296" height="136" rx="19" fill="url(#card)" stroke="#4e7683" stroke-width="2"/>
   <text x="801" y="154" class="step">03 · SETTLE</text><text x="801" y="190" class="card-title">Split by policy</text><text x="801" y="222" class="copy">Keeper settles when active.</text><text x="801" y="246" class="small">Bounded funding is automatic.</text>
   <rect x="1145" y="122" width="411" height="136" rx="19" fill="#173947" stroke="#59bcb4" stroke-width="2"/>
-  <text x="1168" y="154" class="step">04 · SAVED MINT SPLIT</text><text x="1168" y="198" class="big">80<tspan font-size="27">%</tspan><tspan class="copy"> creator-directed</tspan></text><text x="1168" y="239" class="big">20<tspan font-size="27">%</tspan><tspan class="copy"> app + ecosystem</tspan></text>
+  <text x="1168" y="151" class="step">04 · COLLECTED CREATOR FEES</text><text x="1168" y="184" class="copy"><tspan font-size="28" font-weight="900">80%</tspan> creator-directed</text><text x="1168" y="216" class="copy"><tspan font-size="28" font-weight="900">8%</tspan> Operations &amp; marketing</text><text x="1168" y="248" class="copy"><tspan font-size="28" font-weight="900">12%</tspan> rewards + buybacks</text>
   <path class="flow" d="M340 190 H399"/><path class="flow" d="M707 190 H766"/><path class="flow" d="M1074 190 H1133"/>
   
 

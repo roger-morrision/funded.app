@@ -17,5 +17,9 @@ html body .fee-distribution-summary > .fee-distribution-scope { margin-top: 5px;
 .launch-fixed-distribution .fee-distribution-categories > article > small { display: none; }
 .coin-fixed-fee-details { min-width: 0; margin: 12px 0; padding: 12px; border: 1px solid #344359; border-radius: 8px; }
 .coin-fixed-fee-details > summary { min-height: 44px; align-content: center; cursor: pointer; color: #e0d1af; }
+.launch-summary-policy [data-fee-fixed-list] { padding-top: 8px; border-top: 1px solid #42516a; }
+.launch-summary-policy [data-fixed-fee-category="operations"] :is(dt,dd) { color: #ffc46b; font-weight: 700; }
+html body #paid .revenue-flow { grid-template-columns: repeat(3,minmax(0,1fr)); }
+@media(max-width:700px) { html body #paid .revenue-flow { grid-template-columns: repeat(2,minmax(0,1fr)); } #paid .revenue-flow > span:first-child { grid-column: 1/-1; } }
 @media(max-width:1000px) { .launch-fixed-distribution .fee-distribution-categories { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:700px) { .fee-distribution-summary { padding: 12px; } .fee-distribution-categories { grid-template-columns: repeat(2,minmax(0,1fr)); } html body .fee-distribution-categories > article { padding: 10px; grid-template-columns: 1fr; gap: 5px; } html body .fee-distribution-categories > article > small { grid-column: auto; } }
