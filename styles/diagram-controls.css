@@ -1,0 +1,7 @@
+[data-flow-diagram] .flow-diagram-controls { display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:8px; margin-top:10px; }
+[data-flow-diagram] .flow-diagram-controls :is(a,button) { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:10px 12px; border:1px solid var(--line,#2b384e); border-radius:8px; background:var(--panel,#121b2d); color:var(--text,#f2f5fb); font:600 12px/1.5 Manrope,system-ui,sans-serif; text-decoration:none; cursor:pointer; }
+[data-flow-diagram] .flow-diagram-controls :is(a,button):hover { border-color:var(--gold,#ffb443); }
+[data-flow-diagram] .flow-diagram-controls [hidden] { display:none!important; }
+[data-flow-diagram] [role="region"] { scroll-padding-inline:12px; }
+[data-flow-diagram] [role="region"]:focus-visible { outline:2px solid var(--gold,#ffb443); outline-offset:4px; }
+@media(max-width:700px) { [data-flow-diagram] .flow-diagram-controls { justify-content:flex-start; } }

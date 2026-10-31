@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="610" viewBox="0 0 1600 610" role="img" aria-labelledby="title description">
+  <title id="title">Creator-fee capital flow</title>
+  <desc id="description">Illustrative Solana Devnet policy route. Eligible trades accrue creator fees, verified collection moves SOL into the per-mint V3 router, and the creator approves settlement and source funding. The saved mint policy directs creator and protocol shares. Protocol categories can include operations, referrals, ranked bonuses, buyback and burn, and an approved agency allocation. Launch charges and migration token claims are separate paths. Eligibility, funding, current execution checks and finalized receipts govern payments.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#183849"/><stop offset=".55" stop-color="#0e2436"/><stop offset="1" stop-color="#102137"/></linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#1e3c4d"/><stop offset="1" stop-color="#102b3b"/></linearGradient>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse"><path d="M36 0H0V36" fill="none" stroke="#fff" stroke-opacity=".035"/></pattern>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 9 5 1 9" fill="none" stroke="#60e1d7" stroke-width="1.8"/></marker>
+  </defs>
+  <style>
+    text{font-family:Manrope,Arial,Helvetica,sans-serif}.kicker{font-size:14px;font-weight:900;letter-spacing:2px;fill:#75eee5}.headline{font-size:34px;font-weight:800;letter-spacing:-.8px;fill:#f1f9ff}.legend{font-size:14px;fill:#bed3dd}.step{font-size:13px;font-weight:900;letter-spacing:1.4px;fill:#83e6df}.card-title{font-size:25px;font-weight:800;fill:#f3f9fd}.copy{font-size:17px;fill:#bdd2dc}.small{font-size:14px;fill:#acc4d0}.big{font-size:43px;font-weight:900;fill:#64e2d8}.chip-title{font-size:17px;font-weight:800;fill:#f0f8fb}.chip{font-size:17px;font-weight:700;fill:#d7e9ef}.note{font-size:13px;fill:#acc0cb}.flow{fill:none;stroke:#60e1d7;stroke-width:4;stroke-linecap:round;stroke-dasharray:9 9;marker-end:url(#arrow)}.packet{fill:#a4fff7;filter:url(#glow)}@media(prefers-reduced-motion:reduce){.flow{animation:none}.packet{display:none}}
+  </style>
+  <rect width="1600" height="610" rx="24" fill="url(#background)"/><rect width="1600" height="610" rx="24" fill="url(#grid)"/><rect x="1.5" y="1.5" width="1597" height="607" rx="22.5" fill="none" stroke="#4c7382" stroke-width="3"/>
+  <text x="44" y="43" class="kicker">CAPITAL FLOW · SAVED-POLICY GUIDE</text><text x="44" y="85" class="headline">Creator fees, from trade to verified destination</text>
+  <circle cx="1330" cy="52" r="8" fill="#60e1d7"/><text x="1346" y="58" class="legend">SOL flow</text><circle cx="1460" cy="52" r="8" fill="#ffc977"/><text x="1476" y="58" class="legend">$FUNDED</text>
+
+  <rect x="44" y="122" width="296" height="136" rx="19" fill="url(#card)" stroke="#4e7683" stroke-width="2"/>
+  <text x="67" y="154" class="step">01 · TRADE</text><text x="67" y="190" class="card-title">Fees accrue</text><text x="67" y="222" class="copy">Pump creator fees</text><text x="67" y="246" class="small">arise from eligible trades.</text>
+  <rect x="411" y="122" width="296" height="136" rx="19" fill="url(#card)" stroke="#4e7683" stroke-width="2"/>
+  <text x="434" y="154" class="step">02 · COLLECT</text><text x="434" y="190" class="card-title">V3 router</text><text x="434" y="222" class="copy">Verified per-mint collection</text><text x="434" y="246" class="small">moves SOL into the router.</text>
+  <rect x="778" y="122" width="296" height="136" rx="19" fill="url(#card)" stroke="#4e7683" stroke-width="2"/>
+  <text x="801" y="154" class="step">03 · APPROVE</text><text x="801" y="190" class="card-title">Settle &amp; fund</text><text x="801" y="222" class="copy">Creator signs settlement.</text><text x="801" y="246" class="small">Funding is a separate action.</text>
+  <rect x="1145" y="122" width="411" height="136" rx="19" fill="#173947" stroke="#59bcb4" stroke-width="2"/>
+  <text x="1168" y="154" class="step">04 · SAVED MINT SPLIT</text><text x="1168" y="198" class="big">80<tspan font-size="27">%</tspan><tspan class="copy"> creator-directed</tspan></text><text x="1168" y="239" class="big">20<tspan font-size="27">%</tspan><tspan class="copy"> protocol programs</tspan></text>
+  <path class="flow" d="M340 190 H399"/><path class="flow" d="M707 190 H766"/><path class="flow" d="M1074 190 H1133"/>
+  
+
+  <path class="flow" d="M1323 258 V286 H412 V308"/><path class="flow" d="M1323 258 V286 H1190 V308"/>
+  
+  <rect x="44" y="320" width="715" height="169" rx="19" fill="#102d3b" stroke="#4c7d82" stroke-width="2"/>
+  <text x="68" y="368" class="big">80%</text><text x="186" y="367" class="card-title">Creator-directed SOL</text>
+  <text x="68" y="401" class="small">The creator's saved shares decide the recipient mix.</text>
+  <rect x="67" y="425" width="205" height="41" rx="11" fill="#1b4852"/><text x="85" y="452" class="chip-title">Creator wallet</text>
+  <rect x="285" y="425" width="217" height="41" rx="11" fill="#1b4852"/><text x="303" y="452" class="chip-title">Eligible holders</text>
+  <rect x="515" y="425" width="222" height="41" rx="11" fill="#1b4852"/><text x="533" y="452" class="chip-title">Named X account</text>
+  <rect x="791" y="320" width="765" height="169" rx="19" fill="#102d3b" stroke="#4c7d82" stroke-width="2"/>
+  <text x="815" y="368" class="big">20%</text><text x="939" y="367" class="card-title">Protocol programs</text>
+  <text x="815" y="400" class="small">Category rates and agency availability follow the saved policy.</text>
+  <rect x="814" y="425" width="135" height="41" rx="11" fill="#1b4852"/><text x="827" y="452" class="chip">Operations</text>
+  <rect x="957" y="425" width="135" height="41" rx="11" fill="#1b4852"/><text x="970" y="452" class="chip">Referrals</text>
+  <rect x="1100" y="425" width="135" height="41" rx="11" fill="#1b4852"/><text x="1113" y="452" class="chip">Daily bonus</text>
+  <rect x="1243" y="425" width="135" height="41" rx="11" fill="#1b4852"/><text x="1256" y="452" class="chip">Buyback/burn</text>
+  <rect x="1386" y="425" width="135" height="41" rx="11" fill="#1b4852"/><text x="1399" y="452" class="chip">Agency*</text>
+
+  <rect x="44" y="510" width="490" height="61" rx="13" fill="#242d3d" stroke="#617286"/>
+  <circle cx="64" cy="529" r="6" fill="#ffc977"/><text x="79" y="534" class="step" fill="#ffda9f">SEPARATE AT LAUNCH</text><text x="63" y="555" class="small">SOL service fee; paid tiers burn $FUNDED.</text>
+  <rect x="555" y="510" width="490" height="61" rx="13" fill="#292b45" stroke="#786dab"/>
+  <circle cx="575" cy="529" r="6" fill="#b9a6ff"/><text x="590" y="534" class="step" fill="#d7caff">SEPARATE AT MIGRATION</text><text x="574" y="555" class="small">Launched-coin reserve → eligible token claim.</text>
+  <rect x="1066" y="510" width="490" height="61" rx="13" fill="#302d28" stroke="#a18459" stroke-dasharray="7 5"/>
+  <circle cx="1086" cy="529" r="6" fill="#ffc977"/><text x="1101" y="534" class="step" fill="#ffda9f">AI AGENCY · POLICY-GATED</text><text x="1085" y="555" class="small">Approved budgets → gated campaign milestones.</text>
+  <text x="44" y="594" class="note">Policy illustration. Saved rates, approvals, eligibility and funded sources govern execution. Agency actions require their own readiness checks. Verify finalized receipts.</text>
+</svg>

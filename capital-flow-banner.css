@@ -1,0 +1,9 @@
+#capital-flow .capital-flow-banner { min-width:0; margin:0 0 24px; }
+#capital-flow .capital-flow-banner-viewport { overflow-x:auto; border:1px solid var(--line,#4c7382); border-radius:8px; background:#102137; scrollbar-color:#607e8a #102137; }
+#capital-flow .capital-flow-banner img { display:block; width:100%; max-width:100%; height:auto; }
+#capital-flow .capital-flow-banner figcaption { margin:8px 2px 0; color:#a9bdc8; font-size:12px; line-height:1.5; }
+#capital-flow .capital-flow-banner figcaption span { display:none; }
+@media (max-width:1199px) {
+  #capital-flow .capital-flow-banner img { width:1050px; max-width:none; }
+  #capital-flow .capital-flow-banner figcaption span { display:inline; }
+}

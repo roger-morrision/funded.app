@@ -1,4 +1,5 @@
 import { icon } from '../../../ui-icons.js';
+import { initializeFlowDiagrams } from '../shared/diagram-motion.js';
 
 document.querySelectorAll('[data-icon]').forEach(element => {
   element.innerHTML = icon(element.dataset.icon);
@@ -58,4 +59,5 @@ addEventListener('scroll', queueSectionUpdate, { passive: true });
 addEventListener('resize', queueSectionUpdate, { passive: true });
 addEventListener('hashchange', updateSection);
 updateSection();
+initializeFlowDiagrams();
 if (typeof menu.showModal === 'function') document.documentElement.dataset.landingNavigation = 'enhanced';

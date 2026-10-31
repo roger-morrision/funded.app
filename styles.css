@@ -16,3 +16,5 @@
 @import './styles/base/routes.css';
 @import './styles/base/accessibility.css';
 @import './styles/base/launch-preview.css';
+@import './capital-flow-banner.css';
+@import './styles/diagram-controls.css';

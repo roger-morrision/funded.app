@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="430" viewBox="0 0 1280 430" role="img" aria-labelledby="title desc">
+  <title id="title">From launch to community value</title>
+  <desc id="desc">Illustrative Solana Devnet flow. Launch a token, collect creator fees, and apply the saved creator-directed and protocol shares. Category rates and any agency allocation depend on the saved mint policy. Migration claims, eligibility, approved funding, and finalized payments have separate checks.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#182536"/><stop offset="1" stop-color="#0d192b"/></linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#263447"/><stop offset="1" stop-color="#19273a"/></linearGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#f4bd68" stroke-width="1.8"/></marker>
+  </defs>
+  <style>
+    text{font-family:Manrope,Arial,Helvetica,sans-serif}.kicker{font-size:12px;font-weight:800;letter-spacing:1.8px;fill:#e8c388}.headline{font-size:29px;font-weight:800;letter-spacing:-.6px;fill:#f2f5fb}.step{font-size:11px;font-weight:800;letter-spacing:1.5px;fill:#d8ae6e}.title{font-size:22px;font-weight:800;fill:#f2f5fb}.body{font-size:15px;fill:#bdc9d9}.small{font-size:13px;fill:#9eafc5}.pct{font-size:31px;font-weight:900;fill:#ffcb79}.note{font-size:13px;fill:#a9b9cc}.path{fill:none;stroke:#f4bd68;stroke-width:3;stroke-linecap:round;stroke-dasharray:8 8;marker-end:url(#arrow);animation:move 1s linear infinite}.packet{fill:#ffe0a5;filter:url(#glow)}@keyframes move{to{stroke-dashoffset:-16}}@media(prefers-reduced-motion:reduce){.path{animation:none}.packet{display:none}}
+  </style>
+  <rect width="1280" height="430" rx="18" fill="url(#bg)"/><rect x="1" y="1" width="1278" height="428" rx="17" fill="none" stroke="#52617a" stroke-width="2"/>
+  <text x="34" y="36" class="kicker">THE FUNDED.VIP FLOW</text><text x="34" y="73" class="headline">From coin launch to community value</text>
+  <rect x="1101" y="27" width="144" height="30" rx="15" fill="#453622" stroke="#977248"/><text x="1173" y="47" text-anchor="middle" font-size="11" font-weight="800" letter-spacing="1" fill="#ffd08b">DEVNET POLICY</text>
+
+  <rect x="34" y="105" width="264" height="166" rx="15" fill="url(#card)" stroke="#63748b"/>
+  <text x="54" y="135" class="step">01 · LAUNCH</text><text x="54" y="168" class="title">Choose a package</text>
+  <text x="54" y="196" class="body">Standard · Pro · Premier</text><text x="54" y="221" class="small">Paid tiers burn $FUNDED;</text><text x="54" y="242" class="small">each launch has a SOL fee.</text>
+
+  <rect x="350" y="105" width="264" height="166" rx="15" fill="url(#card)" stroke="#63748b"/>
+  <text x="370" y="135" class="step">02 · TRADE &amp; COLLECT</text><text x="370" y="168" class="title">Creator fees accrue</text>
+  <text x="370" y="196" class="body">Collected to the V3 router.</text><text x="370" y="221" class="small">Creator signs settlement;</text><text x="370" y="242" class="small">funding and payouts follow.</text>
+
+  <rect x="666" y="105" width="264" height="166" rx="15" fill="url(#card)" stroke="#63748b"/>
+  <text x="686" y="135" class="step">03 · SPLIT COLLECTED FEES</text><text x="686" y="172" class="pct">80% <tspan class="body">creator-directed</tspan></text>
+  <text x="686" y="211" class="pct">20% <tspan class="body">protocol programs</tspan></text><text x="686" y="242" class="small">Each coin keeps its saved policy.</text>
+
+  <rect x="982" y="105" width="264" height="166" rx="15" fill="url(#card)" stroke="#63748b"/>
+  <text x="1002" y="135" class="step">04 · DISTRIBUTE</text><text x="1002" y="168" class="title">Rewards + burn</text>
+  <text x="1002" y="195" class="small">80% → creator, holders, X</text><text x="1002" y="216" class="small">20% → protocol programs</text><text x="1002" y="237" class="small">Saved rates → verified receipts</text>
+
+  <path class="path" d="M298 188 H339"/><path class="path" d="M614 188 H655"/><path class="path" d="M930 188 H971"/>
+  <circle class="packet" r="5"><animateMotion dur="1.9s" repeatCount="indefinite" path="M298 188 H339"/></circle><circle class="packet" r="5"><animateMotion dur="1.9s" begin=".45s" repeatCount="indefinite" path="M614 188 H655"/></circle><circle class="packet" r="5"><animateMotion dur="1.9s" begin=".9s" repeatCount="indefinite" path="M930 188 H971"/></circle>
+
+  <rect x="34" y="296" width="582" height="74" rx="13" fill="#24283e" stroke="#786eae"/>
+  <circle cx="58" cy="321" r="7" fill="#b9a5ff"/><text x="76" y="326" font-size="14" font-weight="800" fill="#dfd6ff">AT MIGRATION</text>
+  <text x="54" y="351" class="body">Launched-coin reserve → $FUNDED holder snapshot → eligible claim</text>
+  <rect x="632" y="296" width="614" height="74" rx="13" fill="#302c27" stroke="#a48155" stroke-dasharray="6 5"/>
+  <circle cx="656" cy="321" r="7" fill="#f4bd68"/><text x="674" y="326" font-size="14" font-weight="800" fill="#f7d7a6">AI AGENCY · POLICY-GATED</text>
+  <text x="652" y="351" class="body">Approved budgets → promotion + own-coin milestones</text>
+  <text x="34" y="405" class="note">Policy illustration · Claims, payouts, and burns need eligibility, funding, and finalized receipts.</text>
+</svg>
