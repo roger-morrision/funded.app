@@ -38,7 +38,7 @@ for(const width of [390,1440]){
   });
   test(`followed creator notifications still receive receipts without the Home feed at ${width}px`,async({page})=>{
     await setup(page,width);await page.addInitScript(address=>localStorage.setItem('funded.app.followed.wallets.v1',JSON.stringify([{address,roles:['creator']} ])),wallet);await ready(page,'/');
-    await page.locator('#notifications-button').click();await page.locator('.creator-activity [data-creator-alerts]').check();const notices=page.locator('[data-creator-notices]');await expect(notices).toContainText('REC launched');
+    await page.evaluate(()=>{location.hash='profile';});await page.locator('#profile [data-open-activity]').click();await page.locator('.creator-activity [data-creator-alerts]').check();const notices=page.locator('[data-creator-notices]');await expect(notices).toContainText('REC launched');
     await page.evaluate(({mint,sig})=>window.dispatchEvent(new CustomEvent('funded:financial-experience',{detail:{cluster:'devnet',evidence:{status:'recorded-finalized-v3'},events:[{mint,signature:sig,kind:'holder-paid',label:'New verified receipt',feeSourceVerified:true,amountLamports:'10',at:new Date().toISOString()}]}})),{mint,sig});
     await expect(notices).toContainText('New verified receipt');await expect(notices).toContainText('REC launched');
     expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
