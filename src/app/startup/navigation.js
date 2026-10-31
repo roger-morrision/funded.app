@@ -15,10 +15,9 @@ export async function initializeNavigation(appState) {
   const mobileNavigation=window.matchMedia('(max-width: 700px)');
   appState.setMenuOpen(false);
   mobileNavigation.addEventListener('change', () => {
-    const closingControlFocused=document.activeElement===document.querySelector('#close-menu');
-    if (!mobileNavigation.matches&&closingControlFocused)
+    if (!mobileNavigation.matches&&document.activeElement===document.querySelector('#close-menu'))
       appState.desktopSidebarToggle?.focus();
-    appState.setMenuOpen(false,closingControlFocused&&mobileNavigation.matches);
+    appState.setMenuOpen(false,mobileNavigation.matches);
   });
 
   // app-source: 851

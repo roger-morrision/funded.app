@@ -22,12 +22,13 @@ export function createNavigationController(appState) {
     const opener=document.querySelector('#open-menu');
     const mobile=window.matchMedia('(max-width: 700px)').matches;
     const visible=mobile&&Boolean(open);
-    if (!visible&&mobile&&sidebar.classList.contains('open')&&sidebar.contains(document.activeElement)) {
+    if (!visible&&mobile&&sidebar.contains(document.activeElement)) {
       if (restoreFocus) opener.focus();
       else document.querySelector('#main-content').focus({preventScroll:true});
     }
-    sidebar.inert=false;
-    sidebar.removeAttribute('aria-hidden');
+    sidebar.inert=mobile&&!visible;
+    if (sidebar.inert) sidebar.setAttribute('aria-hidden','true');
+    else sidebar.removeAttribute('aria-hidden');
     sidebar.classList.toggle('open',visible);
     document.querySelector('#menu-backdrop').hidden=!visible;
     opener.setAttribute('aria-expanded',String(visible));
