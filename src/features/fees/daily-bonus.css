@@ -1,4 +1,6 @@
 .daily-bonus-dashboard { margin-top: 24px; }
+.daily-bonus-dashboard [data-bonus-refresh] { min-height:44px; padding:9px 12px; border:1px solid var(--line,#353a54); border-radius:8px; background:var(--panel,#121b2d); color:var(--text,#f2f5fb); font-size:13px; cursor:pointer; }
+.daily-bonus-dashboard [data-bonus-refresh]:hover { border-color:var(--gold,#ffb443); }
 .daily-bonus-dashboard > p { max-width: 85ch; line-height: 1.6; }
 .daily-bonus-dashboard label { display: grid; gap: 8px; max-width: 260px; margin: 20px 0; }
 .daily-bonus-dashboard select { padding: 10px; background: var(--bg-panel, #121522); color: inherit; border: 1px solid #353a54; border-radius: 8px; }

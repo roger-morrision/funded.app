@@ -138,13 +138,15 @@ body.page-route-referrals .referral-tier-strip div small,
 body.page-route-referrals .referral-tier-strip > span small { font-size: 10px; }
 body.page-route-referrals .referral-tier-strip > span b { font-size: 15px; }
 body.page-route-referrals #referral-faq .faq-grid { gap: 10px; }
-body.page-route-referrals #referral-faq .faq-grid details { padding: 15px 17px; }
-body.page-route-referrals #referral-faq .faq-grid summary { font-size: 12px; }
+body.page-route-referrals #referral-faq .faq-grid details { padding: 0 14px; }
+body.page-route-referrals #referral-faq .faq-grid summary { min-height:44px; padding:12px 0; font-size:13px; line-height:1.5; }
 body.page-route-referrals #referral-faq .faq-grid p {
   color: #b5c1d1;
-  font-size: 11px;
-  line-height: 1.55;
+  margin:0 0 14px;
+  font-size: 13px;
+  line-height: 1.65;
 }
+body.page-route-referrals #referral-faq .faq-grid details > a { display:inline-flex; align-items:center; min-height:44px; margin-bottom:8px; font-size:13px; }
 @media (min-width: 901px) {
   body.page-route-referrals .referral-progress-panel {
     display: flex;

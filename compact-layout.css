@@ -1,5 +1,6 @@
 /* Shared density for task pages. Token cards, charts and signing sheets keep
    their own layouts; mobile actions retain a minimum 44px touch target. */
+@import './styles/experience/mobile-actions.css';
 html body.product-experience-style #main-content { font-family: var(--ui-font); }
 html body.product-experience-style :is(#sidebar,.topbar) :is(a,button,span,small) { font-family: var(--ui-font); }
 html body.product-experience-style #main-content > #route-guide h1 { font-size: var(--ui-page-title) !important; }

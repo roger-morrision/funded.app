@@ -1,9 +1,9 @@
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 
-test.beforeEach(async({page})=>{
+test.beforeEach(async({page,baseURL})=>{
   await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
-  await page.route('https://**/*',r=>r.abort());
+  await page.route('https://**/*',r=>r.request().method()==='GET'&&new URL(r.request().url()).origin===new URL(baseURL).origin?r.continue():r.abort());
   await page.route('**/api/**',r=>new URL(r.request().url()).pathname==='/api/fee-policy'
     ?r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):r.fulfill({status:503,json:{error:'Offline layout fixture'}}));
 });

@@ -114,7 +114,10 @@ export function initializeCoinNavigation(appState) {
         if (hideAuthor) appState.hideChatAuthor(appState.EXPLORE_CLUSTER, hideAuthor.dataset.chatHide);
         else appState.resetHiddenChatAuthors(appState.EXPLORE_CLUSTER);
         appState.renderCoinCommunityPanel();
-        if (document.querySelector('[data-coin-tab="chat"].active')) appState.renderCoinActivityTab();
+        if (document.querySelector('[data-coin-tab="chat"].active')) {
+          const next = document.querySelector(hideAuthor ? '#coin-activity-list [data-chat-unhide]' : '#coin-activity-list [data-chat-hide], #coin-chat-input');
+          next?.focus();
+        }
         appState.showToast(hideAuthor ? 'Wallet hidden on this device.' : 'Hidden wallets are visible again.');
       } catch { appState.showToast('Device storage is unavailable. Your chat preferences could not be saved.'); }
       return;

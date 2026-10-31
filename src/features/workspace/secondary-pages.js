@@ -120,7 +120,7 @@ export function protocolPage() {
   story.innerHTML = '<article><h2>What it does here</h2><p>Teams can choose a paid launch tier by burning $FUNDED. The tier and amount are recorded with the launch, and the badge only appears after verification.</p><p>The burn receipt can be checked on-chain; a tier is a promotion signal, not a promise of liquidity or returns. Standard has no promotion burn; every launch pays the configured SOL service fee.</p></article><article><h2>Why holding it matters</h2><p>Funded launches reserve community tokens for eligible $FUNDED holders. Eligibility, funding, and delivery are shown through their own records.</p><p>A policy allocation alone is not a completed airdrop. <a href="#airdrops">Review airdrops →</a></p></article><article><h2>The story</h2><p>Funded.vip links launches, creator fee routes, community rewards, and token burns in one place.</p><p>The protocol share funds Operations &amp; marketing, referrals, Daily bonus, and $FUNDED buyback and burn. <a href="#capital-flow">Follow the fee route →</a></p></article>';
   const contract = node('div', 'funded-token-contract');
   contract.innerHTML = '<span>CONTRACT</span><code id="funded-token-mint">Mint not configured</code><button type="button" id="funded-token-copy" class="secondary-button" disabled>COPY</button>';
-  const policy = node('details', 'funded-policy-details');
+  const policy = node('details', 'funded-policy-details advanced-details');
   const policySummary = node('summary', '', 'Read the full fee route policy');
   policy.append(policySummary, ...policyContent);
   const footer = node('footer', 'funded-token-footer');

@@ -88,6 +88,10 @@ for(const width of [360,1440])test(`Chat precedes Holders and retains messages a
   await holders.click();await page.keyboard.press('ArrowLeft');await expect(chat).toBeFocused();await expect(chat).toHaveAttribute('aria-selected','true');
   await expect(activity).toContainText('Token community fixture message');await expect(activity.locator('#coin-chat-form')).toHaveCount(1);await expect(activity).toContainText('Connect a Solana wallet to post');
   await activity.getByRole('button',{name:'Hide this wallet',exact:true}).click();await expect(activity).not.toContainText('Token community fixture message');await expect(activity.getByRole('status')).toContainText('Messages from hidden wallets');
+  const restore=activity.getByRole('button',{name:'Show 1 hidden wallet',exact:true});await expect(restore).toBeFocused();
+  if(width<700)for(const control of[restore,activity.locator('#coin-chat-input')]){expect((await control.boundingBox()).height).toBeGreaterThanOrEqual(44);}
+  await page.keyboard.press('Enter');await expect(activity).toContainText('Token community fixture message');await expect(activity.getByRole('button',{name:'Hide this wallet',exact:true})).toBeFocused();
+  await page.keyboard.press('Enter');await expect(restore).toBeFocused();await expect(activity.getByRole('status')).toContainText('Messages from hidden wallets');
   await chat.focus();await page.keyboard.press('ArrowRight');await expect(holders).toBeFocused();await expect(holders).toHaveAttribute('aria-selected','true');await expect(activity.locator('.coin-chat')).toHaveCount(0);
   await page.keyboard.press('ArrowLeft');await expect(chat).toBeFocused();await expect(activity.getByRole('status')).toContainText('Messages from hidden wallets');
   await page.locator('#coin-refresh').click();await expect(page.locator('.coin-tabs [data-coin-tab]')).toHaveCount(5);await chat.click();await expect(activity.getByRole('status')).toContainText('Messages from hidden wallets');

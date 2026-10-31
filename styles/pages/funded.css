@@ -22,11 +22,6 @@ body.page-route-paid .funded-token-contract { display: flex; align-items: center
 body.page-route-paid .funded-token-contract > span { color: #7f8b95; font: 700 10px 'DM Mono',monospace; letter-spacing: .1em; }
 body.page-route-paid .funded-token-contract code { min-width: 0; max-width: 100%; overflow-x: auto; padding: 12px 14px; border: 1px solid var(--line); background: #101419; color: #dce4df; font: 500 11px 'DM Mono',monospace; white-space: nowrap; }
 body.page-route-paid .funded-token-contract button { min-height: 34px; padding: 8px 10px; border: 0; background: transparent; color: #e6ece6; font: 700 11px 'DM Mono',monospace; }
-body.page-route-paid .funded-policy-details { margin: 12px 0 52px; border: 0; background: transparent; }
-body.page-route-paid .funded-policy-details > summary { width: fit-content; padding: 3px 0; color: #899a90; cursor: pointer; font: 700 10px 'DM Mono',monospace; letter-spacing: .08em; text-transform: uppercase; }
-body.page-route-paid .funded-policy-details > summary:hover { color: #ffd28a; }
-body.page-route-paid .funded-policy-details[open] { padding: 0 22px 22px; border: 1px solid var(--line); background: #101419; }
-body.page-route-paid .funded-policy-details[open] > summary { width: auto; margin: 0 -22px 22px; padding: 18px 22px; border-bottom: 1px solid var(--line); }
 body.page-route-paid .funded-policy-details > h2 { margin: 8px 0 12px; font-size: clamp(26px,3vw,38px); letter-spacing: -.05em; }
 body.page-route-paid .funded-token-footer { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 50px; padding: 42px 0 10px; border-top: 1px solid var(--line); }
 body.page-route-paid .main-content > footer { display: none; }
