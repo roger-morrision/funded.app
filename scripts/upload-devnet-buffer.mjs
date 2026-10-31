@@ -12,7 +12,7 @@ if(createHash('sha256').update(binary).digest('hex')!==attempt.binarySha256)thro
 const authority=Keypair.fromSecretKey(bs58.decode(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY||''));
 if(authority.publicKey.toBase58()!=='7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y')throw Error('Dedicated Devnet signer differs');
 const agent=new Agent({keepAlive:true,maxSockets:1,maxFreeSockets:1});
-const c=new Connection('https://api.devnet.solana.com',{commitment:'confirmed',disableRetryOnRateLimit:true,
+const c=new Connection(process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com',{commitment:'confirmed',disableRetryOnRateLimit:true,
   fetch:(url,options)=>nodeFetch(url,{...options,agent})});
 if(await c.getGenesisHash()!=='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')throw Error('Not Devnet');
 const buffer=new PublicKey(attempt.buffer),loader=new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');

@@ -20,7 +20,7 @@ import {buildV3BuybackInstruction,v3BuybackId} from '../server/v3-buyback-instru
 import {prepareV3BuybackTransaction} from '../server/v3-buyback-transaction.mjs';
 import {loadFinalizedV3Buyback} from '../server/v3-buyback-proof.mjs';
 
-const connection=new Connection('https://api.devnet.solana.com',{commitment:'finalized',disableRetryOnRateLimit:true});
+const connection=new Connection(process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com',{commitment:'finalized',disableRetryOnRateLimit:true});
 assert.equal(await connection.getGenesisHash(),'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG');
 const deployed=JSON.parse(await readFile('tmp/automation-release/deployed-program.json','utf8'));
 const programId=new PublicKey(deployed.program),authority=Keypair.fromSecretKey(bs58.decode(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY||''));

@@ -1,5 +1,6 @@
 """Bounded V3 Devnet upgrade. Signer input is never printed or retained."""
 import base64,hashlib,json,os,subprocess,sys,tempfile
+from urllib.parse import urlparse
 from pathlib import Path
 PROGRAM="9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
 AUTHORITY="7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y"
@@ -8,7 +9,8 @@ CLI="/home/tuan/.local/share/solana/install/active_release/bin/solana"
 payload=json.load(sys.stdin)
 binary=Path(sys.argv[1]); expected=sys.argv[2]
 if hashlib.sha256(binary.read_bytes()).hexdigest()!=expected: raise SystemExit("Candidate binary hash differs")
-rpc="https://api.devnet.solana.com"
+rpc=payload.get("rpc","https://api.devnet.solana.com")
+if urlparse(rpc).scheme!="https" or any(char in rpc for char in "\r\n"): raise SystemExit("Invalid Devnet RPC")
 with tempfile.TemporaryDirectory(prefix="funded-v3-upgrade-") as folder:
     paths={}
     for role in ("authority",) if payload.get("resumeBuffer") else ("authority","buffer"):
@@ -19,7 +21,7 @@ with tempfile.TemporaryDirectory(prefix="funded-v3-upgrade-") as folder:
         result=subprocess.run([CLI,*args,"--url",rpc,"--keypair",paths["authority"],"--commitment","finalized"],capture_output=True,text=True)
         if result.returncode:
             reason="rate-limit" if "429" in result.stderr else "insufficient-funds" if "insufficient" in result.stderr.lower() else "cli-failure"
-            detail=next((line for line in result.stderr.splitlines() if line.startswith("Error:")),"No CLI error summary")[:300]
+            detail=next((line for line in result.stderr.splitlines() if line.startswith("Error:")),"No CLI error summary").replace(rpc,"<devnet-rpc>")[:300]
             raise RuntimeError(f"Devnet CLI {args[0:2]} failed: {reason}; {detail}")
         return result.stdout
     if run(["genesis-hash"]).strip()!=GENESIS: raise SystemExit("Not Devnet")
