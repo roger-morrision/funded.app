@@ -11,13 +11,8 @@ async function setup(page,width){
 for(const width of [390,1440]){
   test(`discovery and portfolio keep primary tasks before helper panels at ${width}px (mocked)`,async({page})=>{
     await setup(page,width);
-    await page.route('**/api/financial/activity',route=>route.fulfill({json:{cluster:'devnet',statements:Array.from({length:9},(_,i)=>({id:i.toString(16).padStart(24,'0'),creatorId:'123',text:`Fixture update ${i}`,at:new Date(Date.now()-i*1000).toISOString()}))}}));
     await page.goto('/#overview');await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
-    const feed=page.locator('#personal-activity-feed');
-    await expect(feed.locator('.flow-activity-row')).toHaveCount(6);
-    expect(await page.evaluate(()=>document.querySelector('.home-launch-board').getBoundingClientRect().top<document.querySelector('#personal-activity-feed').getBoundingClientRect().top)).toBe(true);
-    await feed.getByRole('button',{name:'Show more activity'}).click();await expect(feed.locator('.flow-activity-row')).toHaveCount(9);
-    await feed.getByRole('button',{name:'Following',exact:true}).click();await expect(feed.locator('.flow-activity-row')).toHaveCount(0);await expect(feed).toContainText('Follow a creator or wallet');
+    await expect(page.locator('.home-launch-board')).toBeVisible();
     await page.goto('/#my-launches');await expect(page.locator('#launch-control-room')).toBeVisible();
     const layout=await page.evaluate(()=>{const rect=s=>{const r=document.querySelector(s).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width};};return {heading:rect('#my-launches h1'),drafts:rect('#launch-control-room'),recovery:rect('#recovery-inbox'),overflow:document.documentElement.scrollWidth>innerWidth+1};});
     expect(layout.heading.y).toBeLessThan(layout.drafts.y);expect(layout.heading.y).toBeLessThan(layout.recovery.y);expect(layout.overflow).toBe(false);

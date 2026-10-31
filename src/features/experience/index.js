@@ -8,7 +8,7 @@ import { initializeRecoveryInbox } from './recovery-inbox.js';
 import { initializeReceiptInspector } from './receipt-inspector.js';
 import { initializeOperationsView } from './operations-view.js';
 import { initializeIssuesView } from './issues-view.js';
-import { initializeActivityFeed } from './activity-feed.js';
+import { initializeActivityUpdates } from './activity-updates.js';
 import { initializeNotificationPreferences } from './notification-preferences.js';
 import { initializeLaunchPlans } from './launch-plans.js';
 import { initializeTradePreferences } from './trade-preferences.js';
@@ -31,7 +31,7 @@ export function initializeProductFlows(app) {
     initializeReceiptInspector(app);
     initializeOperationsView(app);
     initializeIssuesView(app);
-    initializeActivityFeed(app);
+    initializeActivityUpdates(app);
     initializeNotificationPreferences();
     initializeLaunchPlans(app);
     initializeTradePreferences(app);

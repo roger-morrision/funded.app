@@ -48,7 +48,6 @@ html body.product-experience-style .launch-profile-heading { display:flex !impor
 .flow-panel dd { margin:0; }.flow-panel>button,.flow-panel> a { margin:6px 12px 6px 0; }
 .financial-receipt-dialog { width:min(780px,94vw); max-height:90dvh; overflow:auto; overflow-wrap:anywhere; }
 .flow-panel [hidden],.flow-panel[hidden] { display:none !important; }
-html body.page-route-overview .main-content>#personal-activity-feed:not([hidden]) { display:block !important; order:5; }
 @media(max-width:700px) {
   html body.page-route-overview.product-experience-style .hero-section h1 { max-width:28ch; font-size:26px !important; }
   html body.product-experience-style .launch-profile-grid { grid-template-columns:1fr; }
