@@ -76,6 +76,6 @@ for(const width of[390,1440])test(`app navigation opens the platform introductio
 
 test('shortlist benefit opens the existing Favorites filter',async({page})=>{
   await page.goto('/welcome');await page.getByRole('link',{name:/Build your shortlist/}).click();
-  await page.locator('body.product-flows-ready').waitFor();await expect(page.locator('[data-explore-tab="favorites"]')).toHaveAttribute('aria-pressed','true');
+  await page.locator('body.product-flows-ready').waitFor();await expect(page.getByRole('button',{name:'Favorites',exact:true})).toHaveAttribute('aria-pressed','true');
   await expect(page.locator('#explore')).toBeVisible();
 });
