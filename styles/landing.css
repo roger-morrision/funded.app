@@ -112,7 +112,7 @@ h1 > span { color:var(--gold); }
 .discovery-links h3 { font-size:14px; margin-bottom:8px; }
 .discovery-links p { font-size:12px; color:var(--muted); }
 .discovery-links > a > span:last-child { color:var(--gold-soft); margin-left:auto; }
-.capital-flow-banner { margin:30px 0; }
+.capital-flow-banner { margin:30px 0 12px; }
 .capital-flow-banner-scroll { overflow-x:auto; border:1px solid #52617a; border-radius:12px; background:#101b2b; scrollbar-color:#7b6a52 #182536; }
 .capital-flow-banner img { display:block; width:100%; height:auto; }
 .capital-flow-banner figcaption { margin-top:10px; color:var(--muted); font-size:11px; line-height:1.7; }
@@ -175,7 +175,8 @@ body:has(#landing-menu[open]) { overflow:hidden; }
 }
 @media (max-width:999px) {
   .capital-flow-banner img { width:920px; max-width:none; }
-  .capital-flow-banner figcaption::after { content:" Swipe across the banner to see the full flow."; }
+  .capital-flow-banner { --flow-diagram-clearance:calc(196px + env(safe-area-inset-bottom)); }
+  .capital-flow-banner figcaption::after { content:" Scroll or use arrow keys to explore the diagram."; }
   html { scroll-padding-bottom:calc(84px + env(safe-area-inset-bottom)); }
   :root { --rail:0px; }
   .landing-sidebar,.topbar-label { display:none; }
@@ -242,7 +243,7 @@ body:has(#landing-menu[open]) { overflow:hidden; }
   .reward-number { font-size:8px; }
   .reward-grid a { font-size:11px; gap:7px; }
   .discovery-links > a { padding:16px; gap:12px; }
-  .capital-flow-banner { margin-block:24px; }
+  .capital-flow-banner { margin-top:24px; }
   .burn-feature { padding:18px; gap:14px; align-items:flex-start; }
   .burn-feature > div { flex:1 1 calc(100% - 50px); min-width:0; }
   .burn-feature h3 { font-size:18px; }
