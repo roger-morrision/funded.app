@@ -115,8 +115,9 @@ try {
     await home.locator('#home-filter-search').fill(qaMint.slice(0, 8));
     await home.locator('#home-launch-filter-form button[type="submit"]').click();
     await home.waitForTimeout(500);
-    const searchCount = await home.locator('#home-board-count').innerText();
-    assert(searchCount.includes('1 VERIFIED COIN'), 'Exact QA mint search did not narrow Home to one coin.');
+    const searchCards = home.locator('#home-launch-grid .home-launch-card');
+    assert.equal(await searchCards.count(), 1, 'Exact QA mint search did not narrow Home to one coin.');
+    assert.equal(await searchCards.first().getAttribute('data-mint'), qaMint);
     if (await home.locator('.home-feed-settings').getAttribute('open') === null) {
       await home.locator('.home-feed-settings > summary').click();
     }
