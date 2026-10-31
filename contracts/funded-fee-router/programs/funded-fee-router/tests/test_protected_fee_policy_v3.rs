@@ -164,4 +164,34 @@ fn protected_fees_enforce_immutable_shares_and_onchain_approvals() {
     let approval = svm.get_account(&ops_approval).unwrap();
     assert!(MintWithdrawalApprovalV3::try_deserialize(&mut &approval.data[..]).unwrap().consumed);
     assert!(!send(&mut svm, &authority, &[&authority, &creator], ops(operations.pubkey())));
+
+    let automation = Pubkey::find_program_address(&[b"mint-automation-v3",mint.pubkey().as_ref()],&program).0;
+    let init_auto = Instruction::new_with_bytes(program,
+        &funded_fee_router::instruction::InitializeMintAutomationV3 {
+            recipients:[operations.pubkey(),Pubkey::default(),Pubkey::default(),Pubkey::default()] }.data(),
+        funded_fee_router::accounts::InitializeMintAutomationV3 {authority:authority.pubkey(),creator:creator.pubkey(),mint:mint.pubkey(),
+            legacy_router:legacy,policy,automation,system_program:anchor_lang::system_program::ID}.to_account_metas(None));
+    assert!(send(&mut svm,&authority,&[&authority],init_auto));
+    let auto_id=[5u8;32];
+    let auto_approval=Pubkey::find_program_address(&[b"mint-approval-v3",mint.pubkey().as_ref(),&auto_id],&program).0;
+    let auto_receipt=Pubkey::find_program_address(&[b"mint-withdraw-v3",mint.pubkey().as_ref(),&auto_id],&program).0;
+    let auto_approve=|recipient| {
+        let mut metas=funded_fee_router::accounts::ApproveProtectedWithdrawalV3 {authority:authority.pubkey(),creator:creator.pubkey(),mint:mint.pubkey(),
+            legacy_router:legacy,policy,recipient,approval:auto_approval,system_program:anchor_lang::system_program::ID}.to_account_metas(None);
+        metas.push(AccountMeta::new_readonly(automation,false));
+        Instruction::new_with_bytes(program,&funded_fee_router::instruction::ApproveProtectedWithdrawalV3 {
+            withdrawal_id:auto_id,category:1,beneficiary:3,amount:1_000_000}.data(),metas)
+    };
+    assert!(!send(&mut svm,&authority,&[&authority],auto_approve(wrong.pubkey())));
+    assert!(send(&mut svm,&authority,&[&authority],auto_approve(operations.pubkey())));
+    let mut metas=funded_fee_router::accounts::DisburseProtectedMintV3 {authority:authority.pubkey(),creator:creator.pubkey(),mint:mint.pubkey(),
+        legacy_router:legacy,policy,vault:vaults[1],recipient:operations.pubkey(),approval:auto_approval,withdrawal:auto_receipt,
+        system_program:anchor_lang::system_program::ID}.to_account_metas(None);
+    metas.push(AccountMeta::new_readonly(automation,false));
+    let auto_release=Instruction::new_with_bytes(program,&funded_fee_router::instruction::DisburseProtectedMintV3 {
+        withdrawal_id:auto_id,category:1,beneficiary:3,amount:1_000_000,holder_amount:0}.data(),metas);
+    let before=svm.get_account(&operations.pubkey()).unwrap().lamports;
+    assert!(send(&mut svm,&authority,&[&authority],auto_release.clone()));
+    assert_eq!(svm.get_account(&operations.pubkey()).unwrap().lamports,before+1_000_000);
+    assert!(!send(&mut svm,&authority,&[&authority],auto_release));
 }

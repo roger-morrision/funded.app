@@ -15,15 +15,25 @@ if(await connection.getGenesisHash()!=='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPk
 const prior=await readProgramDataEvidence(connection,programId);
 if(!new PublicKey(prior.programData.data.subarray(13,45)).equals(authority.publicKey))throw Error('Upgrade authority differs');
 const folder=resolve('tmp/automation-release');await mkdir(folder,{recursive:true});
-await writeFile(resolve(folder,'prior-programdata.bin'),prior.programData.data);
+const resumeBuffer=process.argv.find(value=>value.startsWith('--resume-buffer='))?.slice(16);
+let skipBufferWrite=false;
+if(resumeBuffer){
+  const info=await connection.getAccountInfo(new PublicKey(resumeBuffer),'finalized');
+  if(!info||info.data.readUInt32LE(0)!==1||info.data[4]!==1
+    ||!new PublicKey(info.data.subarray(5,37)).equals(authority.publicKey))throw Error('Resume buffer authority differs');
+  skipBufferWrite=info.data.subarray(37).equals(binary);
+}else await writeFile(resolve(folder,'prior-programdata.bin'),prior.programData.data);
 const buffer=Keypair.generate();
 await writeFile(resolve(folder,'upgrade-attempt.json'),JSON.stringify({program:programId.toBase58(),binarySha256:hash,
-  priorProgramDataSha256:prior.sha256,buffer:buffer.publicKey.toBase58(),startedAt:new Date().toISOString()},null,2));
+  priorProgramDataSha256:prior.sha256,buffer:resumeBuffer||buffer.publicKey.toBase58(),startedAt:new Date().toISOString()},null,2));
 if(process.argv.includes('--preflight')){console.log(JSON.stringify({status:'preflight',binarySha256:hash,binaryBytes:binary.length,priorProgramDataSha256:prior.sha256}));process.exit(0);}
 const linux=path=>'/mnt/'+path[0].toLowerCase()+path.slice(2).replaceAll('\\','/');
 const result=spawnSync('wsl',['--exec','python3',linux(resolve('scripts/deploy-automation-devnet.py')),linux(binaryPath),hash],
-  {input:JSON.stringify({authority:[...authority.secretKey],buffer:[...buffer.secretKey]}),encoding:'utf8',timeout:900000,maxBuffer:1024*1024});
-if(result.status!==0)throw Error('Devnet upgrade did not confirm; reconcile tmp/automation-release/upgrade-attempt.json before retrying.');
+  {input:JSON.stringify({authority:[...authority.secretKey],buffer:[...buffer.secretKey],resumeBuffer,skipBufferWrite}),encoding:'utf8',timeout:1800000,maxBuffer:1024*1024});
+if(result.status!==0){
+  const reason=(result.stderr||'').split('\n').findLast(line=>line.startsWith('RuntimeError:'))||'No CLI summary';
+  throw Error(`Devnet upgrade did not confirm (${result.error?.code||result.status}): ${reason}; reconcile the recorded buffer before retrying.`);
+}
 const final=await readProgramDataEvidence(connection,programId);
 if(!final.programData.data.subarray(45,45+binary.length).equals(binary)
   ||final.programData.data.subarray(45+binary.length).some(byte=>byte!==0))throw Error('Finalized deployed bytes differ from candidate');

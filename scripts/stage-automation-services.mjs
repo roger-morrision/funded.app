@@ -1,0 +1,48 @@
+import {execFileSync} from 'node:child_process';
+import {readFile,mkdir,writeFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import {Connection,PublicKey} from '@solana/web3.js';
+import {readProgramDataEvidence} from '../server/automatic-reward-chain.mjs';
+const docker=args=>execFileSync('docker',args,{encoding:'utf8',maxBuffer:8*1024*1024});
+const [current]=JSON.parse(docker(['inspect','fundedapp-app-1']));
+const files=current.Config.Labels['com.docker.compose.project.config_files'].split(',');
+const sha=execFileSync('git',['rev-parse','181eb15'],{encoding:'utf8'}).trim();
+const image='fundedapp-devnet:automation-181eb15';
+const env={...process.env,FUNDED_RELEASE_IMAGE:image,FUNDED_APP_IMAGE:image,FUNDED_RELEASE_SHA:sha,
+  FUNDED_RELEASE_SOURCE_DIR:resolve('tmp/automation-release/source')};
+const rendered=execFileSync('docker',['compose','--project-name','fundedapp','--profile','*','--env-file','.env.deploy','--env-file','.env.x',
+  ...files.flatMap(path=>['-f',path]),'config','--format','json'],{env,encoding:'utf8',maxBuffer:8*1024*1024});
+const config=JSON.parse(rendered);
+const inactive=process.argv.includes('--inactive');
+const deployment=inactive ? {programDataSha256:process.env.FUNDED_V3_PROGRAM_DATA_SHA256}
+  : JSON.parse(await readFile('tmp/automation-release/deployed-program.json','utf8'));
+if(!inactive&&deployment.status!=='finalized-exact-binary')throw Error('The upgraded program is not confirmed.');
+for(const name of ['app','fee-collector','buyback-worker','agency-buyback-worker']){
+  if(!config.services[name])throw Error(`Missing explicitly selected service ${name}`);
+  config.services[name].image=image;delete config.services[name].build;
+  config.services[name].labels={...config.services[name].labels,'org.opencontainers.image.revision':sha,
+    'org.opencontainers.image.source':'https://github.com/roger-morrision/funded.app'};
+}
+Object.assign(config.services.app.environment,{FUNDED_BUILD_ID:sha,FUNDED_V3_PROGRAM_DATA_SHA256:deployment.programDataSha256,
+  FUNDED_V3_AUTO_SETTLEMENT_ENABLED:String(!inactive),FUNDED_V3_AUTO_DISBURSEMENT_ENABLED:String(!inactive),
+  SOLANA_RPC_URL:'https://api.devnet.solana.com',FUNDED_PROGRAM_EVIDENCE_RPC_URL:'https://api.devnet.solana.com'});
+if(inactive)for(const flag of ['LAUNCH','COLLECTION','SETTLEMENT','HOLDER_WORKER','BUYBACK','COMMUNITY_FUNDING',
+  'CREATOR_REWARD_FUNDING','CREATOR_WALLET_PAYOUT','OPERATIONS_PAYOUT','REFERRAL_PAYOUT'])
+  config.services.app.environment[`FUNDED_V3_${flag}_ENABLED`]='false';
+if(inactive){
+  for(const flag of ['FUNDED_DAILY_BONUS_PAYOUT_ENABLED','FUNDED_V3_AGENCY_BUYBACK_ENABLED'])config.services.app.environment[flag]='false';
+  config.services['buyback-worker'].environment.FUNDED_V3_BUYBACK_ENABLED='false';
+  config.services['agency-buyback-worker'].environment.FUNDED_V3_AGENCY_BUYBACK_ENABLED='false';
+}else{
+  for(const [name,value] of Object.entries(process.env))if(/^FUNDED_(V3_|DAILY_BONUS).*_ENABLED$/.test(name))
+    config.services.app.environment[name]=value;
+  config.services.app.environment.FUNDED_V3_AUTO_SETTLEMENT_ENABLED='true';
+  config.services.app.environment.FUNDED_V3_AUTO_DISBURSEMENT_ENABLED='true';
+  config.services['buyback-worker'].environment.FUNDED_V3_BUYBACK_ENABLED=process.env.FUNDED_V3_BUYBACK_ENABLED||'false';
+  config.services['agency-buyback-worker'].environment.FUNDED_V3_AGENCY_BUYBACK_ENABLED=process.env.FUNDED_V3_AGENCY_BUYBACK_ENABLED||'false';
+}
+const folder=resolve('tmp/automation-release');await mkdir(folder,{recursive:true});
+await writeFile(resolve(folder,'previous-services.json'),rendered);
+await writeFile(resolve(folder,'services.compose.json'),JSON.stringify(config,null,2));
+console.log(JSON.stringify({config:resolve(folder,'services.compose.json'),image,sha,programDataSha256:deployment.programDataSha256,
+  services:['app','fee-collector','buyback-worker','agency-buyback-worker']}));
