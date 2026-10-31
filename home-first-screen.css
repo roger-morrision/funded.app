@@ -19,6 +19,8 @@ html body.page-route-overview.product-experience-style .hero-copy {
   line-height: 1.5;
 }
 html body.page-route-overview .hero-actions { margin: 0; }
+html body.page-route-overview .main-content > .home-launch-highlights { order: 0; min-width: 0; margin-top: 12px; }
+body:not(.page-route-overview) .home-launch-highlights { display: none !important; }
 html body.page-route-overview .main-content > .home-launch-board { order: 2; }
 html body.page-route-overview .main-content > .public-discovery { order: 4; }
 html body.page-route-overview .home-launch-grid { min-height: 320px; }

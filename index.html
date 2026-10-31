@@ -185,6 +185,15 @@
           <div class="wallet-detail-content" id="wallet-detail-content" role="tabpanel"></div>
         </section>
 
+        <div class="home-launch-highlights" data-workspace-route="overview" role="region" aria-label="Latest launches">
+          <div class="home-market-ticker" aria-label="Verified launch activity">
+            <div class="home-market-ticker-heading"><span class="home-market-ticker-label" id="home-market-ticker-label">Latest launches</span><div class="home-market-window" role="group" aria-label="Volume period changes ranking, not launch visibility"><button type="button" data-home-window="5m" aria-pressed="false">5m</button><button type="button" data-home-window="1h" aria-pressed="false">1h</button><button type="button" data-home-window="6h" aria-pressed="false">6h</button><button type="button" class="active" data-home-window="24h" aria-pressed="true">24h</button></div></div>
+            <div class="home-market-ticker-items" id="home-market-ticker-items"><span class="home-ticker-empty">Waiting for verified market activity</span></div>
+            <div class="home-market-ticker-arrows" role="group" aria-label="Scroll trending coins"><button type="button" id="home-ticker-back" aria-label="Scroll trending back" disabled>‹</button><button type="button" id="home-ticker-forward" aria-label="Scroll trending forward" disabled>›</button></div>
+          </div>
+          <div class="home-board-footer"><p class="home-board-count" id="home-board-count" aria-live="polite"></p><a class="home-launch-all" href="#explore">Explore all launches →</a></div>
+        </div>
+
         <section class="hero-section" aria-labelledby="home-hero-title">
           <div class="hero-copy-column">
             <p class="home-hero-kicker">Solana launchpad · published fee route</p>
@@ -230,12 +239,6 @@
           <p id="home-activity-coverage" class="activity-coverage" role="status">Checking token activity…</p>
           <div class="home-launch-grid" id="home-launch-grid"><div class="empty-state"><strong>Loading launches…</strong><span>Market data will appear here shortly.</span></div></div>
           <div class="home-launch-table-wrap" id="home-launch-table-wrap" hidden><table class="home-launch-table"><thead><tr><th scope="col">Coin</th><th scope="col">Tier</th><th scope="col" id="home-table-mc-heading" title="Market cap"><button type="button" id="home-table-sort-mc" aria-label="Sort by market cap">MC</button></th><th scope="col" id="home-table-volume-heading">Volume</th><th scope="col" id="home-table-txns-heading">Txns</th><th scope="col">24h</th><th scope="col">Curve</th></tr></thead><tbody id="home-launch-table-body"></tbody></table></div>
-          <div class="home-market-ticker" aria-label="Verified launch activity">
-            <div class="home-market-ticker-heading"><span class="home-market-ticker-label" id="home-market-ticker-label">Latest launches</span><div class="home-market-window" role="group" aria-label="Volume period changes ranking, not launch visibility"><button type="button" data-home-window="5m" aria-pressed="false">5m</button><button type="button" data-home-window="1h" aria-pressed="false">1h</button><button type="button" data-home-window="6h" aria-pressed="false">6h</button><button type="button" class="active" data-home-window="24h" aria-pressed="true">24h</button></div></div>
-            <div class="home-market-ticker-items" id="home-market-ticker-items"><span class="home-ticker-empty">Waiting for verified market activity</span></div>
-            <div class="home-market-ticker-arrows" role="group" aria-label="Scroll trending coins"><button type="button" id="home-ticker-back" aria-label="Scroll trending back" disabled>‹</button><button type="button" id="home-ticker-forward" aria-label="Scroll trending forward" disabled>›</button></div>
-          </div>
-          <div class="home-board-footer"><p class="home-board-count" id="home-board-count" aria-live="polite"></p><a class="home-launch-all" href="#explore">Explore all launches →</a></div>
         </section>
 
 
