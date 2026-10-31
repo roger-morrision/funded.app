@@ -1,7 +1,7 @@
 const panel = (prefix, eyebrow, title, description, link = '') => `
   <div class="home-buyback-intro">
     <p class="eyebrow">${eyebrow}</p><h2 id="${prefix === 'home-buyback' ? 'home-buyback-progress-title' : 'buyback-route-title'}">${title}</h2>
-    <p id="${prefix}-policy">${description}</p>${link}
+    <details class="buyback-policy-disclosure"><summary>Fee custody &amp; execution conditions</summary><p id="${prefix}-policy">${description}</p></details>${link}
   </div>
   <div class="home-buyback-live" aria-live="polite">
     <div class="home-buyback-live-head"><span>Verified SOL eligible for buyback</span><strong id="${prefix}-balance">Checking…</strong></div>

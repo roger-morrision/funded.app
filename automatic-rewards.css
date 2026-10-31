@@ -1,4 +1,17 @@
 [data-automatic-rewards] { margin:20px auto; padding:24px; width:100%; max-width:1180px; border:1px solid #343448; border-radius:16px; background:#141422; container-type:inline-size; }
+/* A single holder schedule needs one panel, with the timing evidence inside. */
+html body.product-experience-style #payments #rewards-holder [data-automatic-rewards] { margin: 0; padding: 16px; border-radius: 8px; border-color: var(--line); background: var(--panel); }
+html body.product-experience-style #payments #rewards-holder .auto-rewards-heading { margin-bottom: 12px; }
+html body.product-experience-style #payments #rewards-holder .auto-rewards-intro { margin-top: 6px; }
+html body.product-experience-style #payments #rewards-holder .auto-reward-card { padding: 0; border: 0; border-radius: 0; background: transparent; }
+html body.product-experience-style #payments #rewards-holder .auto-schedule { min-height: 0; margin-top: 8px; padding: 12px; border-radius: 8px; border-color: var(--line); background: var(--panel-2); }
+html body.product-experience-style #payments #rewards-holder .auto-reward-card > small { margin-top: 8px; }
+html body.product-experience-style #payments #rewards-holder .auto-rewards-fineprint { margin-top: 8px; }
+html body.product-experience-style #payments #rewards-holder > a.secondary-button { display: inline-flex; align-items: center; min-height: 44px; margin-block: 12px; }
+html body.product-experience-style #payments #rewards-funded .funded-holder-token-rewards { border-radius: 8px; border-color: var(--line); background: var(--panel); }
+html body.product-experience-style #payments #rewards-funded .funded-holder-token-rewards header { gap: 12px; padding: 14px; }
+html body.product-experience-style #payments #rewards-funded .funded-token-row { padding: 10px 14px; }
+html body.product-experience-style #payments #rewards-funded .funded-token-avatar { border-radius: 8px; }
 .home-rewards-spotlight{display:none}
 body.page-route-overview .home-rewards-spotlight{display:block;margin:0 0 32px;padding:22px;border:1px solid #506858;border-radius:12px;background:linear-gradient(120deg,#142a26,#141c2b 68%)}
 .home-rewards-heading{display:flex;align-items:start;justify-content:space-between;gap:18px}

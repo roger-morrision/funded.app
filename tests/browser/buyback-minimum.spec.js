@@ -88,10 +88,14 @@ test('buyback disclosures preserve open and closed choices across polling and te
   });
   await page.goto('/#buybacks');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   const queue=page.locator('.concise-buyback-queue'),more=page.locator('.concise-ledger-more');
+  const policy=page.locator('#buyback-route-panel .buyback-policy-disclosure'),policySummary=policy.locator('summary'),originalPolicy=await policy.elementHandle();
+  await expect(policy).not.toHaveAttribute('open','');expect((await policySummary.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  await policySummary.focus();await page.keyboard.press('Enter');await expect(policy.locator('p')).toBeVisible();
   await queue.locator('summary').click();await more.locator('summary').click();
   revision=100;
   await page.clock.fastForward(60_001);
-  await expect(queue).toHaveAttribute('open','');await expect(more).toHaveAttribute('open','');
+  await expect(queue).toHaveAttribute('open','');await expect(more).toHaveAttribute('open','');await expect(policy).toHaveAttribute('open','');
+  expect(await originalPolicy.evaluate(e=>e===document.querySelector('#buyback-route-panel .buyback-policy-disclosure'))).toBe(true);
   await expect(page.locator('.reward-buyback-list p').first()).toContainText('1104 $FUNDED base units burned');
   await expect(page.locator('#buyback-ledger')).toContainText('0.001104 $FUNDED bought and burned');
   unavailable=true;await page.clock.fastForward(60_001);
@@ -101,10 +105,11 @@ test('buyback disclosures preserve open and closed choices across polling and te
   await expect(page.locator('.reward-buyback-list p').first()).toContainText('1204 $FUNDED base units burned');
   await expect(queue).toHaveAttribute('open','');await expect(more).toHaveAttribute('open','');
   await queue.locator('summary').click();await more.locator('summary').click();
+  await policySummary.focus();await page.keyboard.press('Space');await expect(policy.locator('p')).toBeHidden();await expect(policySummary).toBeFocused();
   const before=requests;revision=300;await page.clock.fastForward(60_001);
   await expect.poll(()=>requests).toBeGreaterThan(before);
   await expect(page.locator('.reward-buyback-list p').first()).toContainText('1304 $FUNDED base units burned');
-  await expect(queue).not.toHaveAttribute('open','');await expect(more).not.toHaveAttribute('open','');
+  await expect(queue).not.toHaveAttribute('open','');await expect(more).not.toHaveAttribute('open','');await expect(policy).not.toHaveAttribute('open','');
 });
 
 test('a verified buyback scan lasting more than eight seconds fills both history views',async({page})=>{

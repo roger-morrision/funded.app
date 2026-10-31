@@ -70,12 +70,15 @@ for (const reducedMotion of ['no-preference', 'reduce']) for (const width of [36
           paragraph.style.whiteSpace = 'pre-wrap';
           paragraph.textContent = 'Long project profile.\n'.repeat(100);e.append(paragraph);
         });
-        expect(await page.locator('#coin-profile-about').evaluate(e => e.getBoundingClientRect().height > innerHeight)).toBe(true);
+        const profile=page.locator('#coin-profile-about');
+        const overflow=await profile.evaluate(e=>({height:e.getBoundingClientRect().height,clientHeight:e.clientHeight,scrollHeight:e.scrollHeight}));
+        expect(overflow.height).toBeLessThanOrEqual(200);expect(overflow.scrollHeight).toBeGreaterThan(overflow.clientHeight);
         await page.keyboard.press('Shift+Tab');await page.keyboard.press('Tab');
         await expect(page.locator('#coin-profile-about')).toBeFocused();
-        const scrollPosition = await page.evaluate(() => document.scrollingElement.scrollTop);
+        const scrollPosition = await page.evaluate(() => document.scrollingElement.scrollTop),profileScroll=await profile.evaluate(e=>e.scrollTop);
         await page.keyboard.press('ArrowDown');
-        await expect.poll(() => page.evaluate(() => document.scrollingElement.scrollTop)).toBeGreaterThan(scrollPosition);
+        await expect.poll(() => profile.evaluate(e=>e.scrollTop)).toBeGreaterThan(profileScroll);
+        expect(await page.evaluate(()=>document.scrollingElement.scrollTop)).toBe(scrollPosition);await clear(profile);
         await page.locator('#long-profile-fixture').evaluate(e => e.remove());
       }
       await page.keyboard.press('Shift+Tab');await expect(about).toBeFocused();await clear(about);

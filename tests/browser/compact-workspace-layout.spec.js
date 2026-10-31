@@ -8,6 +8,13 @@ test.beforeEach(async({page})=>{
     ?r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):r.fulfill({status:503,json:{error:'Offline layout fixture'}}));
 });
 
+for(const width of[360,390,1440])test(`privacy content clears its page introduction at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:844});await page.goto('/#privacy');await page.locator('body.product-flows-ready').waitFor();
+  const heading=await page.locator('#route-guide').boundingBox(),panel=await page.locator('#privacy').boundingBox();expect(panel.y).toBeGreaterThanOrEqual(heading.y+heading.height);
+  const details=page.locator('#privacy details').first(),summary=details.locator(':scope > summary');await expect(details).not.toHaveAttribute('open','');
+  await summary.focus();await page.keyboard.press('Enter');await expect(details).toHaveAttribute('open','');await expect(summary).toBeFocused();
+  await page.keyboard.press('Space');await expect(details).not.toHaveAttribute('open','');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});
 for(const width of[360,390,1440])test(`profile safety and wallet dialog retain native focus at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});await page.goto('/#profile');await page.locator('body.product-flows-ready').waitFor();
   await expect(page.locator('#profile-title')).toHaveText('Wallet & settings');
