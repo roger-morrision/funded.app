@@ -1,3 +1,4 @@
+@import './financial-activity.css';
 /* Discovery, signed launch choices, and evidence-led activity share the app palette. */
 html body.page-route-overview.product-experience-style .hero-section { padding:16px 0 !important; }
 html body.page-route-overview .hero-copy-column { max-width:980px; }

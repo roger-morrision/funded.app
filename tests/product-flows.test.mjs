@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { creatorUpdateMutation, publicCreatorUpdates, upcomingCreatorUpdates } from '../server/creator-announcements.mjs';
 import { followingUpdatesPage } from '../server/following-updates.mjs';
 import { financialRows, solText } from '../src/features/experience/financial-model.js';
+import { financialAmountParts } from '../src/features/experience/financial-activity-view.js';
 import { validReviewAmount } from '../src/features/experience/discovery-intent.js';
 import { identityMatches } from '../src/features/experience/launch-facts.js';
 import { readReminders } from '../src/features/experience/creator-activity.js';
@@ -10,6 +11,12 @@ import { estimateTradeNetworkFee } from '../src/features/experience/trade-costs.
 import { financialProcessingMetrics } from '../server/financial-processing-metrics.mjs';
 const mint = '1'.repeat(32), wallet = '2'.repeat(32), sig = '3'.repeat(64);
 const now = Date.parse('2026-10-30T10:00:00Z');
+
+test('activity amounts retain exact base units and SOL fractions without Number conversion',()=>{
+  assert.deepEqual(financialAmountParts('9007199254740993123456789 $FUNDED base units'),{value:'9,007,199,254,740,993,123,456,789',unit:'$FUNDED base units'});
+  assert.deepEqual(financialAmountParts('1234567.000000015 SOL'),{value:'1,234,567.000000015',unit:'SOL'});
+  assert.deepEqual(financialAmountParts('Unavailable'),{value:'Unavailable',unit:''});
+});
 test('scheduled updates stay private until due, including the following feed', () => {
   const profile = { updates:[] }, published = creatorUpdateMutation(profile, {text:'Now'}, 'a'.repeat(24), now);
   const scheduled = creatorUpdateMutation(profile, {text:'Future private text',publishAt:new Date(now + 60000).toISOString()}, 'b'.repeat(24), now);
