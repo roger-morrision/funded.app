@@ -29,15 +29,17 @@ export function feeDistributionPresentation(fee=FEE_DISTRIBUTION) {
     allocation:rows.map(row=>`${row.percent}% ${row.label}`).join(' · ')+'.'};
 }
 
-export function feeDistributionMarkup({fee,scope=FEE_POLICY_SCOPE,titleLevel=2}={}) {
+export function feeDistributionMarkup({fee,scope=FEE_POLICY_SCOPE,titleLevel=2,compact=false}={}) {
   const model=feeDistributionPresentation(fee),heading=titleLevel===3?'h3':'h2';
-  return `<div class="fee-distribution-summary"><header><p class="eyebrow">Collected creator-fee distribution</p><${heading}>${escapeHtml(model.headline)}</${heading}><p>${escapeHtml(model.benefitLine)}</p></header><div class="fee-distribution-categories">${model.rows.map(row=>`<article data-fee-category="${row.key}"><strong>${row.percent}%</strong><span>${escapeHtml(row.label)}</span><small>${escapeHtml(row.benefit)}</small></article>`).join('')}</div><p class="fee-distribution-basis"><b>100% accounted for.</b> ${FEE_PERCENT_BASIS}</p><p class="fee-distribution-scope">${escapeHtml(scope)}</p></div>`;
+  const rules=`<p class="fee-distribution-basis"><b>100% accounted for.</b> ${FEE_PERCENT_BASIS}</p><p class="fee-distribution-scope">${escapeHtml(scope)}</p>`;
+  const detail=compact?`<p class="fee-distribution-caption">Shares of collected creator fees. Payouts and burns require funding and finalized receipts.</p><details class="fee-distribution-details"><summary>Benefits &amp; policy details</summary><dl>${model.rows.map(row=>`<div><dt>${escapeHtml(row.label)}</dt><dd>${escapeHtml(row.benefit)}</dd></div>`).join('')}</dl>${rules}</details>`:rules;
+  return `<div class="fee-distribution-summary${compact?' fee-distribution-summary--compact':''}"><header><p class="eyebrow">Collected creator-fee distribution</p><${heading}>${escapeHtml(model.headline)}</${heading}><p>${escapeHtml(model.benefitLine)}</p></header><div class="fee-distribution-categories">${model.rows.map(row=>`<article data-fee-category="${row.key}"><strong>${row.percent}%</strong><span>${escapeHtml(row.label)}</span>${compact?'':`<small>${escapeHtml(row.benefit)}</small>`}</article>`).join('')}</div>${detail}</div>`;
 }
 
 const renderedSummaries=new WeakMap();
 export function renderFeeDistributionSummaries(document=globalThis.document) {
   for(const root of document?.querySelectorAll('[data-fee-distribution]')||[]){
-    const markup=feeDistributionMarkup({titleLevel:root.dataset.feeDistribution==='launch'?3:2});
+    const markup=feeDistributionMarkup({titleLevel:root.dataset.feeDistribution==='launch'?3:2,compact:true});
     if(renderedSummaries.get(root)!==markup){root.innerHTML=markup;renderedSummaries.set(root,markup);}
   }
   const model=feeDistributionPresentation();
