@@ -53,6 +53,7 @@ html body.product-experience-style #home-launch-grid:has(> .empty-state:only-chi
 html body.product-experience-style #main-content :is(#home-daily-bonuses,#home-buyback-panel,#home-protocol-route) { padding: 16px; margin-top: 24px; border-radius: 8px; }
 html body.product-experience-style #main-content .leaderboard-hero { min-height: 0; padding: 20px; margin-block: 16px; }
 html body.product-experience-style #main-content :is(#launch-route-shell,#my-launches,#payments,#airdrops,#paid,#list,#bonuses,#marketing-agency,#privacy,#creator-support-page) { padding: 16px 0 24px; }
+html body.product-experience-style #main-content :is(#bonuses,#privacy) { padding: 16px; }
 html body.product-experience-style #main-content .paid-reference-hero { min-height: 0; padding-block: 16px; }
 html body.product-experience-style #main-content .paid-hero-mark { width: 64px; height: 64px; }
 html body.product-experience-style #main-content #buyback-route-panel { padding: 16px; }
@@ -96,6 +97,7 @@ html body.product-experience-style #main-content .route-timeline > li { padding:
 html body.product-experience-style #main-content #financial-center .financial-heading { gap: 12px; padding-bottom: 12px; }
 html body.product-experience-style #main-content #financial-center .ready-queue { margin-bottom: 16px; padding: 12px; }
 html body.product-experience-style #main-content #financial-center .financial-toolbar { gap: 8px 12px; padding-top: 12px; }
+html body.product-experience-style #main-content [data-open-activity] { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; width: fit-content; margin-block: 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); color: var(--text); cursor: pointer; }
 
 /* Detail headers give market data and activity priority over decoration. */
 html body.product-experience-style #main-content :is(#coin-page,.wallet-page) { padding: 16px 0 24px; }
@@ -156,6 +158,7 @@ html body.product-experience-style #main-content .wallet-detail-empty { min-heig
   html body.product-experience-style #main-content :is(.route-guide,.workspace-page-header,.section-heading,.explore-heading) { margin-block: 12px; }
   html body.product-experience-style #main-content :is(.panel,.role-panel,.flow-panel,.support-card,.community-card,.agency-agent,.agency-policy,.reward-experience-panel) { padding: 14px; }
   html body.product-experience-style #main-content :is(#launch-route-shell,#my-launches,#payments,#airdrops,#paid,#list,#bonuses,#marketing-agency,#privacy,#creator-support-page) { padding-block: 12px 20px; }
+  html body.product-experience-style #main-content :is(#bonuses,#privacy) { padding: 14px; }
   html body.product-experience-style #explore .explore-control-bar .product-sort { flex: 1 1 100%; margin: 0; }
   html body.product-experience-style #explore .explore-control-bar .review-buy-setting { flex: 1 1 100%; justify-content: flex-end; }
   html body.product-experience-style #main-content .home-launch-toolbar .review-buy-setting { justify-content: flex-end; width: 100%; }
