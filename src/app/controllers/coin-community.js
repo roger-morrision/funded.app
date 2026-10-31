@@ -5,7 +5,7 @@ export function createCoinCommunityController(appState) {
   // app-source: 962
   function renderCoinChat(activity){
     const messages = appState.visibleCoinChatMessages();
-    const rows = messages.length ? messages.map(appState.tokenChatMessageMarkup).join('') : appState.tokenChatEmptyMarkup();
+    const rows = messages.length ? messages.map(appState.tokenChatMessageMarkup).join('') : appState.coinChatMessages.length ? '<p role="status">Messages from hidden wallets are hidden on this device.</p>' : appState.tokenChatEmptyMarkup();
     activity.innerHTML = `<div class="coin-chat"><div class="coin-chat-intro"><div><strong>${appState.escapeHtml(appState.coinActivity.symbol || 'Token')} chat</strong><small>Wallet-verified community messages</small></div><span>${messages.length} message${messages.length === 1 ? '' : 's'}</span></div><div class="coin-chat-messages">${rows}</div>${appState.tokenChatComposerMarkup('coin-chat')}</div>`;
   }
   // app-source-end
@@ -52,33 +52,15 @@ export function createCoinCommunityController(appState) {
 
   // app-source: 968
   function renderCoinCommunityPanel(){
-    const feed = document.querySelector('#coin-community-feed');
-    if (!feed) return;
-    const messages = appState.visibleCoinChatMessages();
-    feed.innerHTML = messages.length ? messages.slice(-12).map(appState.tokenChatMessageMarkup).join('') : appState.coinChatMessages.length ? '<p role="status">Messages from hidden wallets are hidden on this device.</p>' : appState.tokenChatEmptyMarkup();
-    const panel = feed.closest('.coin-community-panel');
-    const badge = panel?.querySelector('.data-badge');
-    if (badge) { badge.textContent = appState.coinChatState.loading ? 'LOADING' : appState.coinChatState.enabled ? 'LIVE' : 'OFFLINE'; badge.classList.toggle('is-live', appState.coinChatState.enabled); }
-    panel?.querySelector('.coin-community-form')?.remove();
-    panel?.querySelector('.coin-chat-note')?.remove();
-    panel?.insertAdjacentHTML('beforeend', appState.tokenChatComposerMarkup('coin-community'));
+    const activity = document.querySelector('#coin-activity-list');
+    if (activity && document.querySelector('[data-coin-tab="chat"].active')) appState.renderCoinChat(activity);
   }
   // app-source-end
 
   // app-source: 969
   function ensureCoinCommunityPanel(){
-    const page = document.querySelector('#coin-page');
-    if (!page) return;
-    const existing = page.querySelector('.coin-community-panel');
-    if (existing) {
-      if (existing !== page.lastElementChild) page.append(existing);
-      return;
-    }
-    const panel = document.createElement('aside');
-    panel.className = 'panel coin-community-panel';
-    panel.innerHTML = '<div class="coin-community-head"><div><p class="eyebrow">Community</p><h2>Chat</h2></div><span class="data-badge">LOADING</span></div><div id="coin-community-feed" class="coin-community-feed"></div>';
-    page.append(panel);
-    appState.renderCoinCommunityPanel();
+    document.querySelector('#coin-page .coin-community-panel')?.remove();
+    appState.ensureCoinChatTab();
   }
   // app-source-end
 
@@ -98,9 +80,20 @@ export function createCoinCommunityController(appState) {
 
   // app-source: 971
   function ensureCoinChatTab(){
-    document.querySelector('.coin-tabs [data-coin-tab="chat"]')?.remove();
     const holders = document.querySelector('.coin-tabs [data-coin-tab="holders"]');
-    if (holders) holders.textContent = 'Holders —';
+    if (!holders) return;
+    let chat = document.querySelector('.coin-tabs [data-coin-tab="chat"]');
+    if (!chat) {
+      chat = document.createElement('button');
+      chat.type = 'button';
+      chat.dataset.coinTab = 'chat';
+      chat.textContent = 'Chat';
+      chat.setAttribute('role', 'tab');
+      chat.setAttribute('aria-selected', 'false');
+      chat.setAttribute('aria-controls', 'coin-activity-list');
+      chat.tabIndex = -1;
+    }
+    if (chat.nextElementSibling !== holders) holders.before(chat);
   }
   // app-source-end
 

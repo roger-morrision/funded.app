@@ -17,8 +17,7 @@ export function initializeCoinChat(appState) {
       const response = await appState.tokenChatRequest('post', { text: appState.normalizeTokenChatText(text) });
       if (response.available && response.data?.message) appState.coinChatMessages = [...appState.coinChatMessages, response.data.message].slice(-50);
       input.value = '';
-      appState.renderCoinChat(document.querySelector('#coin-activity-list'));
-      appState.renderCoinCommunityPanel();
+      appState.renderCoinActivityTab();
       appState.showToast('Wallet-verified message posted');
     } catch (error) { appState.showToast(error.message || 'Chat message could not be sent'); }
     finally { if (button) button.disabled = false; }

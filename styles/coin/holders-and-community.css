@@ -142,4 +142,3 @@
 @media(max-width:700px){.coin-page .coin-pulse-panel{padding:15px}.coin-page .coin-pulse-head{align-items:flex-start;flex-wrap:wrap}.coin-page .coin-pulse-grid strong{font-size:13px}.coin-page .coin-pulse-flow{flex-wrap:wrap}.coin-page .coin-pulse-flow-track{flex-basis:100%;order:3}}
 .coin-page .coin-policy-card{display:block}
 .coin-page .token-trading-panel>.panel-heading{display:none!important}
-.coin-page .coin-tabs [data-coin-tab="chat"]{display:none!important}
