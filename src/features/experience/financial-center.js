@@ -1,6 +1,6 @@
 import { financialRows } from './financial-model.js';
 import { initializeReadyQueue } from './ready-queue.js';
-import { financialRecord } from './financial-activity-view.js';
+import { renderFinancialRecords } from './financial-activity-view.js';
 const stages = ['Accrued', 'Awaiting approval', 'Funded', 'Processing', 'Verified'];
 export function initializeFinancialCenter(app) {
   const parent = document.querySelector('#rewards-overview');
@@ -19,9 +19,9 @@ export function initializeFinancialCenter(app) {
     refreshButton.disabled=loading;refreshButton.textContent=loading?'Refreshing…':'Refresh activity';
     more.disabled=loading;
     if(preserveRows)return;
-    list.replaceChildren(); const filter = root.querySelector('select').value;
+    const filter = root.querySelector('select').value;
     const selected = rows.filter(row => filter === 'all' || row.stage === filter);
-    for (const row of selected.slice(0,limit)) list.append(financialRecord(row,expanded));
+    renderFinancialRecords(list,selected.slice(0,limit),expanded,root.querySelector('#financial-center-title'));
     root.querySelector('[data-flow-count]').textContent=loading?'':`${Math.min(limit,selected.length)} of ${selected.length} loaded records`;
     more.hidden=loading||selected.length<=limit||limit>=60;
     if (!selected.length && !loading) {const empty=document.createElement('p');empty.className='financial-empty';empty.textContent='No matching recorded activity. Unavailable data is not a zero balance.';list.append(empty);}

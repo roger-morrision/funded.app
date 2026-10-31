@@ -67,7 +67,7 @@ export function productFaqs() {
 export function referralFaqs() {
   const copy=currentFeePolicyCopy();
   return [
-    ['referral-rates','What are the referral rates?',`<p>${referralGuide()}</p>`],
+    ['referral-rates','What are the referral rates?',`<p>${referralRatePresentation().guide}</p><a href="#docs/referrals">Read referral payout rules →</a>`],
     ['referral-qualified','When do rewards become payable?',`<p>${copy.referrals} Creating an account, recruiting or launching without collected fees does not create a payout.</p>`],
     ['referral-claim','Do I need to claim a referral bonus?', '<p>There is no separate V3 recipient claim. Connect and verify the earning wallet to view its private referral dashboard. The launch creator’s approval and a finalized transfer are required before a referral-network reward is paid. Daily referrer bonuses are sent automatically after their daily snapshot and funding checks.</p>'],
     ['referral-missing','What happens when a level is missing?',`<p>${copy.reserve}</p>`],
@@ -76,12 +76,34 @@ export function referralFaqs() {
   ];
 }
 
+const faqBodies=new WeakMap();
 export function renderProductFaqs(document=globalThis.document) {
   for(const [selector,items] of [['.home-reference-faq-list',productFaqs()],['#referral-faq .faq-grid',referralFaqs()]]) {
     const root=document?.querySelector(selector); if(!root) continue;
-    const open=new Set([...root.querySelectorAll('details[open][data-faq]')].map(row=>row.dataset.faq));
-    const first=!root.dataset.guidanceReady;
-    root.innerHTML=items.map(([id,title,body],index)=>`<details data-faq="${id}"${open.has(id)||first&&index===0 ? ' open':''}><summary>${title}</summary>${body}</details>`).join('');
-    root.dataset.guidanceReady='true';
+    const existing=new Map([...root.querySelectorAll(':scope > details[data-faq]')].map(row=>[row.dataset.faq,row]));
+    const active=document.activeElement,owned=root.contains(active)&&active.getClientRects().length;
+    const owner=owned?active.closest('details[data-faq]')?.dataset.faq:null,href=owned&&active.matches('a[href]')?active.getAttribute('href'):null;
+    let cancelled=false;const intervention=event=>{if(event.target!==active)cancelled=true;};
+    if(owned)document.addEventListener('focusin',intervention,true);
+    try{
+      let cursor=root.firstElementChild;
+      for(const[id,title,body]of items){
+        let row=existing.get(id);existing.delete(id);
+        if(!row){row=document.createElement('details');row.dataset.faq=id;row.open=!root.dataset.guidanceReady&&id===items[0][0];row.append(document.createElement('summary'));}
+        const summary=row.querySelector(':scope > summary');if(summary.textContent!==title)summary.textContent=title;
+        if(faqBodies.get(row)!==body){
+          for(const child of[...row.childNodes])if(child!==summary)child.remove();
+          row.insertAdjacentHTML('beforeend',body);faqBodies.set(row,body);
+        }
+        if(row!==cursor)root.insertBefore(row,cursor);cursor=row.nextElementSibling;
+      }
+      for(const child of[...root.children])if(child.tagName!=='DETAILS'||!items.some(([id])=>id===child.dataset.faq))child.remove();
+      if(owned&&!cancelled&&document.activeElement===document.body){
+        const row=[...root.children].find(row=>row.dataset.faq===owner);
+        const next=active.isConnected?active:href&&[...row?.querySelectorAll('a[href]')||[]].find(link=>link.getAttribute('href')===href)||row?.querySelector('summary');
+        next?.focus({preventScroll:true});
+      }
+      root.dataset.guidanceReady='true';
+    }finally{if(owned)document.removeEventListener('focusin',intervention,true);}
   }
 }

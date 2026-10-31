@@ -2,9 +2,9 @@ import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 const mint='9Dp8MYwvFTAwoMtxaXvAZjZyjsWUbuXGp15z8EkZzu1B',letters='3456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 for(const width of [390,1440]){
-  test(`activity disclosure, exact amounts and progressive history at ${width}px (mocked receipts)`,async({page},testInfo)=>{
+  test(`activity disclosure, exact amounts and progressive history at ${width}px (mocked receipts)`,async({page,baseURL},testInfo)=>{
     await page.setViewportSize({width,height:1000});await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
-    await page.route('https://**/*',route=>route.abort());
+    await page.route('https://**/*',route=>route.request().method()==='GET'&&new URL(route.request().url()).origin===new URL(baseURL).origin?route.continue():route.abort());
     await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Mocked unavailable'}}));
     await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
     await page.route('**/api/rewards/experience**',route=>route.fulfill({json:{cluster:'devnet',evidence:{status:'recorded-finalized-v3'},tokens:[],events:[]}}));
