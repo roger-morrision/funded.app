@@ -15,9 +15,13 @@ export async function initializeNavigation(appState) {
   const mobileNavigation=window.matchMedia('(max-width: 700px)');
   appState.setMenuOpen(false);
   mobileNavigation.addEventListener('change', () => {
-    if (!mobileNavigation.matches&&document.activeElement===document.querySelector('#close-menu'))
-      appState.desktopSidebarToggle?.focus();
+    const active=document.activeElement;
+    const mobileLink=active?.closest('.mobile-navigation-links a');
     appState.setMenuOpen(false,mobileNavigation.matches);
+    if (!mobileNavigation.matches) {
+      if (mobileLink) [...document.querySelectorAll('#sidebar .nav-item')].find(link=>link.getAttribute('href')===mobileLink.getAttribute('href'))?.focus();
+      else if (active===document.querySelector('#close-menu')||active===document.querySelector('#open-menu')) appState.desktopSidebarToggle?.focus();
+    }
   });
 
   // app-source: 851

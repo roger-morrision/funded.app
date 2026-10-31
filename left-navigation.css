@@ -47,14 +47,41 @@ html body.page-route #main-content > .topbar {
   html body.page-route #main-content > .topbar { height: 64px; gap: 6px; }
   html body.page-route .topbar .top-actions { gap: 6px; min-width: 0; }
   html body.page-route .topbar .workspace-network { max-width: 84px; font-size: 10px; }
-  /* Site links live in the rail. Only token Buy/Sell actions use the bottom dock. */
-  html body.page-route.product-experience-style .mobile-workspace-nav { display: none; }
-  html body.page-route.product-experience-style.page-route-coin .mobile-workspace-nav:has(.mobile-dock-buy) { display: grid; grid-template-columns: 1fr 1fr; left: var(--navigation-width); right: 0; width: auto; }
-  html body.page-route .mobile-workspace-nav a { display: none; }
-  html body.page-route .mobile-workspace-nav :is(.mobile-dock-buy,.mobile-trade-sell) { min-height: 48px; }
-  html body.page-route-coin #main-content { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
-  html body.page-route .toast { left: 12px; bottom: 20px; }
-  html body.page-route-coin .toast { bottom: calc(96px + env(safe-area-inset-bottom)); }
+  html { --mobile-nav-height: 72px; --mobile-trade-height: 64px; --mobile-bottom-height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom)); }
+  html:has(body.page-route-coin) { --mobile-bottom-height: calc(var(--mobile-nav-height) + var(--mobile-trade-height) + env(safe-area-inset-bottom)); }
+  html body.page-route.product-experience-style .mobile-workspace-nav {
+    display: block; position: fixed; inset: auto 0 0; z-index: 35;
+    box-sizing: border-box; width: 100vw; min-height: 0; height: var(--mobile-bottom-height);
+    padding: 0 max(6px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(6px,env(safe-area-inset-left)); border-top: 1px solid var(--line);
+    background: #101621fa; box-shadow: 0 -4px 16px #0005;
+  }
+  html body.page-route .mobile-navigation-links {
+    display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 2px;
+    box-sizing: border-box; height: calc(var(--mobile-nav-height) - 1px); padding: 6px 0;
+  }
+  html body.page-route .mobile-navigation-links > a {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-width: 0; min-height: 44px; margin: 0; padding: 5px 1px; gap: 4px;
+    border: 1px solid transparent; border-radius: 8px; box-shadow: none;
+    color: #aab8cc; background: transparent; font: 600 11px/1.2 var(--ui-font,system-ui);
+    text-align: center; text-decoration: none;
+  }
+  html body.page-route .mobile-navigation-links > a svg { width: 20px; height: 20px; flex: none; }
+  html body.page-route .mobile-navigation-links > a[aria-current="page"] { color: #ffd28a; background: #30291e; border-color: #786442; box-shadow: none; }
+  html body.page-route .mobile-navigation-links > a:focus-visible { outline: 2px solid #ffd28a; outline-offset: -2px; }
+  html body.page-route .mobile-trade-actions { display: none; }
+  html body.page-route-coin .mobile-trade-actions {
+    display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: center; gap: 8px;
+    height: var(--mobile-trade-height); box-sizing: border-box; padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  html body.page-route .mobile-trade-actions :is(.mobile-dock-buy,.mobile-trade-sell) { min-height: 48px; height: 48px; padding: 8px; border-radius: 7px; }
+  html body.page-route:not(.page-route-admin) #main-content { padding-bottom: calc(var(--mobile-bottom-height) + 24px); }
+  html:has(body.page-route:not(.page-route-admin)) { scroll-padding-bottom: calc(var(--mobile-bottom-height, 72px) + 16px); }
+  html body.page-route .toast { left: 12px; bottom: calc(var(--mobile-bottom-height) + 12px); }
+  html body.page-route .help-topics-trigger { bottom: calc(var(--mobile-bottom-height) + 12px); }
+  html body.page-route .help-topics-panel { bottom: calc(var(--mobile-bottom-height) + 64px); max-height: calc(100dvh - var(--mobile-bottom-height) - 140px); }
+  html body.page-route .launch-page-wizard .launch-preview-submit { bottom: calc(var(--mobile-bottom-height) + 8px); }
 }
 /* Admin uses the same rail while retaining its separate authentication flow. */
 .page-route-admin { --bg: #0b1020; --line: #2b374b; }

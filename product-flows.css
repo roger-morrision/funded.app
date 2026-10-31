@@ -59,7 +59,6 @@ html body.product-experience-style .launch-profile-heading { display:flex !impor
   .launch-facts dl { grid-template-columns:1fr; gap:6px; }.launch-facts dd { margin-bottom:12px; }
   html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media { height:84px; }
   .review-buy-setting { width:100%; }.review-buy-setting input { min-height:44px; }
-  body.page-route-coin .mobile-workspace-nav :is(a[href="#launch"],a[href="#my-launches"]) { display:none; }
   body.page-route-coin .mobile-workspace-nav :is(.mobile-dock-buy,.mobile-trade-sell) { display:block; min-width:0; min-height:62px; margin:0; padding:7px 2px; border:1px solid #ac8a4a; border-radius:10px; font:800 13px Manrope,sans-serif; background:#30291e; color:#f1d6a2; }
   body.page-route-coin .mobile-workspace-nav .mobile-trade-sell { background:#242a38; color:#f4b2ab; border-color:#946c6b; }
   .card-review-buy { min-height:44px; align-items:center; }

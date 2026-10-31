@@ -214,11 +214,15 @@ export function navigation() {
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && !helpPanel.hidden) setHelpOpen(false); });
   window.addEventListener('hashchange', () => { if (!helpPanel.hidden) setHelpOpen(false); });
   document.body.append(helpTrigger, helpPanel);
-  const mobile = node('nav', 'mobile-workspace-nav'); mobile.setAttribute('aria-label', 'Trade actions');
+  const mobile = node('nav', 'mobile-workspace-nav'); mobile.setAttribute('aria-label', 'Mobile navigation');
+  const tradeActions = node('div', 'mobile-trade-actions');
+  tradeActions.setAttribute('role', 'group'); tradeActions.setAttribute('aria-label', 'Token trade actions');
+  const mobileLinks = node('div', 'mobile-navigation-links');
   for (const [href, label, glyph] of [['overview','Home','home'],['explore','Explore','explore'],['launch','Launch','launch'],['my-launches','Portfolio','portfolio'],['payments','Rewards','rewards']]) {
     const link = node('a', '', ''); link.href = `#${href}`;
-    link.innerHTML = icon(glyph); link.append(node('span', '', label)); mobile.append(link);
+    link.innerHTML = icon(glyph); link.append(node('span', '', label)); mobileLinks.append(link);
   }
+  mobile.append(tradeActions, mobileLinks);
   document.body.append(mobile);
   const network = $('.workspace-network') || node('span', 'workspace-network');
   network.textContent = EXPLORE_CLUSTER === 'mainnet-beta' ? (APP_MAINNET_READ_ONLY ? 'Mainnet · read only' : 'Mainnet') : 'Devnet · test SOL';

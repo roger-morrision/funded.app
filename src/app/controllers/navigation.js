@@ -33,6 +33,8 @@ export function createNavigationController(appState) {
     document.querySelector('#menu-backdrop').hidden=!visible;
     opener.setAttribute('aria-expanded',String(visible));
     document.body.classList.toggle('menu-open',visible);
+    const bottomNavigation=document.querySelector('.mobile-workspace-nav');
+    if (bottomNavigation) bottomNavigation.inert=visible;
     if (visible) document.querySelector('#close-menu').focus();
     else if (restoreFocus&&mobile) opener.focus();
   }

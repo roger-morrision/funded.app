@@ -39,7 +39,7 @@ export function initializeDiscoveryIntent(app) {
     let dockOrigin = null;
     const sell = document.createElement('button'); sell.type = 'button'; sell.className = 'mobile-trade-sell'; sell.textContent = 'Sell';
     const dockBuy = document.createElement('button'); dockBuy.type = 'button'; dockBuy.className = 'mobile-dock-buy'; dockBuy.textContent = 'Buy';
-    nav.querySelector('a[href="#launch"]').before(dockBuy, sell);
+    nav.querySelector('.mobile-trade-actions').append(dockBuy, sell);
     for (const [button, side] of [[dockBuy, 'buy'], [sell, 'sell']]) {
       button.setAttribute('aria-controls', 'trade-panel');
       button.setAttribute('aria-haspopup', 'dialog');
