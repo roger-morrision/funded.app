@@ -81,7 +81,7 @@ export function createCoinMarketController(appState) {
 
   // app-source: 956
   function renderCoinPricePath(){
-    return appState.renderCoinPricePathView({ coinChartPeriod: appState.coinChartPeriod, coinChartMetric: appState.coinChartMetric, coinChartUnit: appState.coinChartUnit, coinMarketActivity: appState.coinMarketActivity, coinSolUsdValues: appState.coinSolUsdValues, coinSolUsdPrice: appState.coinSolUsdPrice }, { formatCoinSnapshotUsd: appState.formatCoinSnapshotUsd });
+    return appState.renderCoinPricePathView({ coinChartPeriod: appState.coinChartPeriod, coinChartMetric: appState.coinChartMetric, coinChartUnit: appState.coinChartUnit, coinMarketActivity: appState.coinMarketActivity, coinSolUsdValues: appState.coinSolUsdValues, coinSolUsdPrice: appState.coinSolUsdPrice, coinMint: appState.getCoinMintAddress() }, { formatCoinSnapshotUsd: appState.formatCoinSnapshotUsd });
   }
   // app-source-end
 

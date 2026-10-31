@@ -96,7 +96,7 @@ test('chart separates loading and unavailable prices from a confirmed empty hist
   const view = (status, coverage = null) => {
     const panel = { innerHTML:'' };
     const document = { querySelector:selector => selector === '#coin-price-path' ? panel : null, querySelectorAll:() => [] };
-    renderCoinPricePath({coinMarketActivity:{status, coverage, trades:[], decimals:6}, coinChartPeriod:'24h', coinChartMetric:'mcap', coinChartUnit:'usd'}, { document });
+    renderCoinPricePath({coinMarketActivity:{status, coverage, trades:[], decimals:6}, coinChartPeriod:'24h', coinChartMetric:'price', coinChartUnit:'sol'}, { document });
     return panel.innerHTML;
   };
   assert.match(view('loading'), /Loading chart/);

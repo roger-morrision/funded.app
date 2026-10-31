@@ -32,7 +32,7 @@ export function createCoinStateController(appState) {
     document.querySelectorAll('[data-coin-tab]').forEach(button => button.classList.toggle('active', button.dataset.coinTab === 'trades'));
     document.querySelectorAll('[data-coin-trade-filter]').forEach(button => { const active = button.dataset.coinTradeFilter === 'all'; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
     appState.renderCoinFlow(NaN, NaN); appState.renderCoinPulse();
-    const path = document.querySelector('#coin-price-path'); if (path) path.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Reading trade observations…</strong><small>This is not a historical candle chart.</small></div>';
+    appState.renderCoinPricePath();
     const tradeMint = document.querySelector('#trade-mint'); if (tradeMint) tradeMint.value = mintAddress || '';
     void appState.refreshTradeBalances();
     appState.invalidateTradePreview();

@@ -142,6 +142,7 @@
     "bigint-buffer": "file:vendor/bigint-buffer",
     "bs58": "^6.0.0",
     "buffer": "^6.0.3",
+    "lightweight-charts": "5.2.1",
     "pg": "^8.23.1",
     "tweetnacl": "^1.0.3"
   },

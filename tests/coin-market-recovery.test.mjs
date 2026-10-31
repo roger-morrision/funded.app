@@ -36,7 +36,7 @@ for (const failure of [new DOMException('Timed out','TimeoutError'),Object.assig
     assert.equal(f.calls(),2);assert.equal(f.state.coinMarketActivity.status,'ready');
     assert.equal(f.fields.get('#coin-trade-count'),'2');
     assert.equal(f.fields.get('#coin-trade-breakdown'),'1 buys · 1 sells');
-    assert.match(f.panel.innerHTML,/<svg/);
+    assert.match(f.panel.innerHTML,/coin-tradingview-canvas/);
   });
 }
 
