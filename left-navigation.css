@@ -60,8 +60,8 @@ html body.page-route #main-content > .topbar {
   html body.page-route .topbar .workspace-network { max-width: 84px; font-size: 10px; }
   html body.page-route #connect-button { max-width: 100px; padding-inline: 8px; }
   /* Site links live in the rail. Only token Buy/Sell actions use the bottom dock. */
-  html body.page-route .mobile-workspace-nav { display: none; }
-  html body.page-route-coin .mobile-workspace-nav:has(.mobile-dock-buy) { display: grid; grid-template-columns: 1fr 1fr; left: var(--navigation-width); }
+  html body.page-route.product-experience-style .mobile-workspace-nav { display: none; }
+  html body.page-route.product-experience-style.page-route-coin .mobile-workspace-nav:has(.mobile-dock-buy) { display: grid; grid-template-columns: 1fr 1fr; left: var(--navigation-width); right: 0; width: auto; }
   html body.page-route .mobile-workspace-nav a { display: none; }
   html body.page-route .mobile-workspace-nav :is(.mobile-dock-buy,.mobile-trade-sell) { min-height: 48px; }
   html body.page-route-coin #main-content { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }

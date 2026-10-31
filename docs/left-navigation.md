@@ -5,6 +5,7 @@ All app routes use the shared `left-navigation.css` layout, including Home, toke
 - Desktop and tablet: a fixed 220 px sidebar, with the existing 76 px collapse option and saved preference.
 - Phones: an always-visible 76 px rail. The menu button expands it to show full labels; closing it restores the rail. The rail remains available to keyboards and assistive technology.
 - Site links no longer move into a bottom menu. Token pages retain their separate Buy/Sell action dock and existing trade-sheet behavior.
+- The mobile overrides account for shared CSS being emitted before page CSS in production. Non-token pages have no empty bottom bar; the token action dock fits within the space to the right of the rail.
 - The main content reserves the sidebar width. Navigation scrolls independently, and the active item inside More opens its group at every breakpoint.
 - Admin uses the same left-side geometry with links back to the app; its authentication and financial controls retain their existing handlers.
 

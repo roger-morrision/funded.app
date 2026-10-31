@@ -22,6 +22,9 @@ async function check(label){
   assert.deepEqual(state,{left:0,top:0,bottom:844,width:76,position:'fixed',direction:'column',inert:false,hidden:null,contentLeft:76,overflow:false},label);
   assert(await page.locator('#sidebar a[href="#launch"]').isVisible(),`${label}: Launch is available in the left menu`);
   assert(!await page.locator('.mobile-workspace-nav a').first().isVisible(),`${label}: site links must not move to the bottom`);
+  const token=await page.locator('body').evaluate(body=>body.classList.contains('page-route-coin'));
+  if(!token)assert(!await page.locator('.mobile-workspace-nav').isVisible(),`${label}: no empty bottom navigation bar`);
+  else assert(await page.locator('.mobile-workspace-nav').evaluate(nav=>{const box=nav.getBoundingClientRect();return box.left===76&&box.right<=innerWidth;}),`${label}: trade actions stay beside the rail`);
 }
 try{
   for(const width of [320,390,644]){
