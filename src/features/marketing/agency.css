@@ -9,6 +9,16 @@ body.page-route-marketing-agency .main-content > #marketing-agency { display: bl
 .agency-agent h2 { font-size: 20px; line-height: 1.4; }
 .agency-policy { margin: 24px 0; }
 .agency-status { border-left: 3px solid #edb800; padding: 12px 16px; background: #191a2c; }
+html body.product-experience-style #marketing-agency > .section-heading { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px 12px; align-items: center; }
+html body.product-experience-style #marketing-agency > .section-heading > div { display: contents; }
+html body.product-experience-style #marketing-agency > .section-heading .eyebrow { grid-column: 1 / -1; margin: 0; }
+html body.product-experience-style #marketing-agency > .section-heading h1 { grid-column: 1; grid-row: 2; margin: 0; }
+html body.product-experience-style #marketing-agency > .section-heading > button { grid-column: 2; grid-row: 2; }
+html body.product-experience-style #marketing-agency > .section-heading p:not(.eyebrow) { grid-column: 1 / -1; margin: 0; }
+html body.product-experience-style #marketing-agency .agency-agent-grid { gap: 12px; margin-block: 12px; }
+html body.product-experience-style #marketing-agency .agency-agent { padding: 14px; border-radius: 8px; background: var(--panel); }
+html body.product-experience-style #marketing-agency .agency-agent p { margin-block: 6px 10px; }
+html body.product-experience-style #marketing-agency .agency-status { margin-block: 12px; padding: 10px 12px; }
 .agency-funds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .agency-funds dd { margin: 10px 0 0; font-weight: 700; }
 .agency-options { margin: 20px 0; }

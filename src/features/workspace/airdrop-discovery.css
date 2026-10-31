@@ -1,4 +1,9 @@
 /* Shared discovery controls for the two independently filtered reward programs. */
+html body.product-experience-style #main-content #airdrops .airdrop-public-programs { margin-block: 16px; }
+html body.product-experience-style #main-content #airdrops .airdrop-directory-heading { justify-content: space-between; align-items: flex-start; margin-block: 0 12px; padding: 0; text-align: left; }
+html body.product-experience-style #main-content #airdrops .airdrop-directory-heading > div { margin: 0; text-align: left; }
+html body.product-experience-style #main-content #airdrops .airdrop-directory-heading h2 { margin-block: 4px 0; }
+html body.product-experience-style #main-content #airdrops .airdrop-discovery-toolbar :is(input,button) { min-height: 44px; border-radius: 8px; }
 body.page-route-airdrops #airdrops .airdrop-public-programs { margin: 26px 0; min-width: 0; }
 body.page-route-airdrops #airdrops .airdrop-directory-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:0 0 14px; padding:0; border:0; }
 body.page-route-airdrops #airdrops .airdrop-directory-heading h2 { margin:4px 0; font-size:20px; letter-spacing:-.025em; }

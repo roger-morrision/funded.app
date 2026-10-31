@@ -33,10 +33,10 @@
 #referral-command-center .referral-tier-strip > span b { color: #ffcc40; font-size: 24px; }
 #referral-command-center .referral-tier-strip > span small { margin-top: 7px; color: #a0acc2; font-size: 11px; line-height: 1.5; }
 #referral-command-center .referral-tier-strip > a { font-size: 12px; }
-#referral-command-center > .referral-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0 0 20px; }
-#referral-command-center .referral-kpi-grid article { min-width: 0; padding: 20px; background: #101320; border-color: #34344e; border-radius: 10px; }
+#referral-command-center > .referral-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 16px; }
+#referral-command-center .referral-kpi-grid article { min-width: 0; padding: 12px; background: #101320; border-color: #34344e; border-radius: 8px; }
 #referral-command-center .referral-kpi-grid span { font-size: 11px; letter-spacing: 0; text-transform: none; }
-#referral-command-center .referral-kpi-grid strong { margin: 12px 0 8px; color: #f0f2f8; font-size: 22px; line-height: 1.35; overflow-wrap: anywhere; }
+#referral-command-center .referral-kpi-grid strong { margin: 8px 0; color: #f0f2f8; font-size: 22px; line-height: 1.35; overflow-wrap: anywhere; }
 #referral-command-center .referral-kpi-grid small { color: #a0acc2; font-size: 11px; line-height: 1.5; }
 #referral-command-center #referral-claim-center { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 16px; margin: 18px 0 0; padding: 20px; background: #101320; border: 1px solid #34344e; border-radius: 8px; }
 #referral-command-center #referral-claim-center > div { min-width: 0; }
@@ -67,7 +67,7 @@
   #referral-command-center .referral-ledger-panel { padding: 18px; }
   #referral-command-center > .referral-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   #referral-command-center .referral-kpi-grid article:first-child { grid-column: 1 / -1; }
-  #referral-command-center .referral-kpi-grid article { padding: 16px; }
+  #referral-command-center .referral-kpi-grid article { padding: 12px; }
   #referral-command-center #referral-claim-center { flex-direction: column; align-items: start; padding: 16px; }
   #referral-command-center .referral-share-tools [data-copy-referral-link] { flex: 1 1 130px; }
 }

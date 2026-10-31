@@ -77,7 +77,9 @@ html body.product-experience-style #main-content #launch-route-shell > .eyebrow 
 html body.product-experience-style #main-content #launch-route-shell .route-shell-actions { margin-top: 12px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
 html body.product-experience-style #main-content #launch-route-shell .route-shell-actions :is(a,button) { display: inline-flex; align-items: center; min-height: 44px; margin: 0; }
 html body.product-experience-style #main-content #launch-close { border: 0; padding: 0 4px; background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; }
-html body.product-experience-style #main-content #launch-dialog [data-launch-step="1"] > .step-heading { display: none; }
+html body.product-experience-style #main-content #launch-dialog [data-launch-step="1"] > .step-heading { display: block; margin: 0 0 12px; }
+html body.product-experience-style #main-content #launch-dialog [data-launch-step="1"] > .step-heading > :is(span,p) { display: none; }
+html body.product-experience-style #main-content #launch-dialog [data-launch-step="1"] > .step-heading h3 { margin: 0; font-size: 16px; line-height: 1.5; }
 html body.product-experience-style #main-content .launch-page { margin-top: 8px; }
 html body.product-experience-style #main-content .launch-page-back { margin-block: 0 12px; }
 html body.product-experience-style #main-content .launch-page .launch-layout { gap: 16px; }

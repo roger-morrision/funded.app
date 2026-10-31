@@ -22,6 +22,22 @@ async function setup(page, response = () => null) {
   });
   await page.route('https://**/*', route => route.abort());
 }
+for (const width of [360,390,1440]) test(`bonus rules disclosure keeps QA schedule and native state at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:900});
+  await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
+  await setup(page,()=>({...fixture(),schedule:{mode:'devnet-qa-5m',periodSeconds:300}}));
+  await page.goto('/#bonuses');await page.locator('body.product-flows-ready').waitFor();
+  const details=page.locator('.bonus-policy-disclosure'),summary=details.locator('summary'),rules=details.locator('[data-bonus-delivery]');
+  await expect(page.locator('#bonuses-title')).toHaveText('Daily bonuses');await expect(details).not.toHaveAttribute('open','');await expect(rules).toBeHidden();
+  expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  await summary.focus();await page.keyboard.press('Enter');await expect(rules).toBeVisible();
+  await expect(rules).toContainText('Devnet QA snapshots close every 5 minutes');await expect(rules).toContainText('of the category budget');await expect(rules).toContainText('after snapshot and funding verification');
+  const original=await details.elementHandle(),amounts=await page.locator('[data-bonus-history-rows] td').allTextContents();
+  const updated=page.waitForResponse(r=>r.url().includes('/api/daily-bonus/dashboard?'));await page.locator('[data-bonus-history-refresh]').click();await updated;
+  await expect(details).toHaveAttribute('open','');expect(await original.evaluate(e=>e===document.querySelector('.bonus-policy-disclosure'))).toBe(true);await expect(page.locator('[data-bonus-history-rows] td')).toHaveText(amounts);
+  await summary.focus();await page.keyboard.press('Space');await expect(rules).toBeHidden();await expect(summary).toBeFocused();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});
 test('Home bonus amounts animate to recorded totals; countdown ticks down; category links open full history', async ({ page }) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await setup(page); await page.goto('/#overview');
