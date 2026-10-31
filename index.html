@@ -198,8 +198,8 @@
         <section class="hero-section" aria-labelledby="home-hero-title">
           <div class="hero-copy-column">
             <p class="home-hero-kicker">Solana launchpad · published fee route</p>
-            <h1 id="home-hero-title">Discover tokens. Launch your own.</h1>
-            <p class="hero-copy">Explore Solana tokens, choose a creator-fee split, and follow recorded rewards.</p>
+            <h1 id="home-hero-title">Discover tokens</h1>
+            <p class="hero-copy">Explore Solana launches and their recorded rewards.</p>
             <div class="hero-actions"><a class="primary-button" href="#explore">Explore tokens</a><a class="hero-secondary-action" href="#launch">Launch a token</a></div>
           </div>
         </section>
@@ -208,8 +208,10 @@
           <h2 class="home-launch-board-title" id="home-launch-board-title">Live launches</h2>
           <div class="home-launch-toolbar" aria-label="Home launch filters and display">
             <div class="home-launch-tabs" role="tablist" aria-label="Launch stage, paid listings, tiers, and boosts"><button type="button" class="active" data-home-launch-tab="all" role="tab" aria-selected="true">All</button><button type="button" data-home-launch-tab="promoted" role="tab" aria-selected="false" title="Verified paid promotion">Promoted</button><button type="button" data-home-launch-tab="paid-listing" role="tab" aria-selected="false" title="Tokens with verified paid listing burns">Paid Listing</button><button type="button" data-home-launch-tab="curve" role="tab" aria-selected="false">On curve</button><button type="button" data-home-launch-tab="migrated" role="tab" aria-selected="false">Migrated</button><button type="button" data-home-launch-tab="standard" role="tab" aria-selected="false" title="Standard launch, no verified paid promotion">Standard</button><button type="button" data-home-launch-tab="pro" role="tab" aria-selected="false">Pro</button><button type="button" data-home-launch-tab="premier" role="tab" aria-selected="false">Premier</button><button type="button" data-home-launch-tab="boost" role="tab" aria-selected="false" title="Active paid boosts">Boosted</button><button type="button" data-home-launch-tab="watchlist" role="tab" aria-selected="false">Favorites</button></div>
+            <div class="home-launch-display-controls">
             <div class="home-board-sort" role="group" aria-label="Sort launches"><button type="button" class="active" data-home-sort="volume" aria-pressed="true" title="Sort by observed volume">Volume</button><button type="button" data-home-sort="market-cap" aria-pressed="false">Market cap</button></div>
             <div class="home-board-view" role="group" aria-label="Launch display"><button type="button" class="active" data-home-view="grid" aria-pressed="true">▦ Grid</button><button type="button" data-home-view="table" aria-pressed="false">☷ Table</button></div>
+            </div><div class="home-launch-preference-controls">
             <button type="button" class="home-feed-pause" id="home-feed-pause" aria-label="Pause live reordering" aria-pressed="false" title="Pause live reordering">Ⅱ</button>
             <details class="home-feed-settings"><summary aria-label="Filter launches" title="Filter launches" aria-controls="home-feed-filters-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 5h18l-7 8v6l-4 2v-8Z"/></svg></summary><div class="home-feed-settings-panel" id="home-feed-filters-panel">
               <div class="home-filter-head"><strong>Filter launches</strong><button type="button" id="home-filter-close" aria-label="Close launch filters">×</button></div>
@@ -236,6 +238,8 @@
               </div><div class="home-filter-actions"><button type="button" id="home-filter-reset">Reset</button><button type="button" id="home-filter-save-open">Save</button><button type="submit" class="home-filter-apply">Apply</button></div></form>
               <div id="home-filter-saved" class="home-filter-saved" role="tabpanel" hidden><label>Preset name<input id="home-filter-preset-name" type="text" maxlength="40" placeholder="Name this filter" /></label><button type="button" id="home-filter-save">Save current filters</button><div id="home-filter-saved-list" aria-live="polite"></div></div>
             </div></details>
+            <label class="review-buy-setting"><span>Buy review · SOL</span><input inputmode="decimal" aria-label="Saved review buy amount in SOL" aria-describedby="review-buy-help-home" maxlength="13" disabled><small id="review-buy-help-home" class="visually-hidden">Used when opening a trade review. Review a fresh quote before signing; changing this amount does not place a trade.</small></label>
+            </div>
           </div>
           <p id="home-activity-coverage" class="activity-coverage" role="status">Checking token activity…</p>
           <div class="home-launch-grid" id="home-launch-grid"><div class="empty-state"><strong>Loading launches…</strong><span>Market data will appear here shortly.</span></div></div>

@@ -17,7 +17,8 @@ export async function initializeNavigation(appState) {
   mobileNavigation.addEventListener('change', () => {
     const active=document.activeElement;
     const mobileLink=active?.closest('.mobile-navigation-links a');
-    appState.setMenuOpen(false,mobileNavigation.matches);
+    const sidebarOwnedFocus=document.querySelector('#sidebar')?.contains(active);
+    appState.setMenuOpen(false,mobileNavigation.matches&&sidebarOwnedFocus);
     if (!mobileNavigation.matches) {
       if (mobileLink) [...document.querySelectorAll('#sidebar .nav-item')].find(link=>link.getAttribute('href')===mobileLink.getAttribute('href'))?.focus();
       else if (active===document.querySelector('#close-menu')||active===document.querySelector('#open-menu')) appState.desktopSidebarToggle?.focus();

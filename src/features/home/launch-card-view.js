@@ -87,7 +87,7 @@ export function syncLaunchCardProgressFreshness(document, providerStatus) {
     };
     const update = () => {
       if (!/\bstale\b/i.test(state.status)) { stop(); return; }
-      const rows = [...document.querySelectorAll('#home-launch-grid .home-launch-card > .home-launch-progress-row, #asset-grid .home-launch-card > .home-launch-progress-row, #creator-launch-empty .home-launch-card > .home-launch-progress-row')]
+      const rows = [...document.querySelectorAll('#home-launch-grid .home-launch-card .home-launch-progress-row, #asset-grid .home-launch-card .home-launch-progress-row, #creator-launch-empty .home-launch-card .home-launch-progress-row')]
         .filter(row => row.isConnected);
       if (!rows.length) { stop(); return; }
       const active = document.activeElement, card = active?.closest?.('.home-launch-card');
@@ -194,19 +194,20 @@ export function homeLaunchCardMarkup(
       <div class="home-launch-card-top">
         <div class="home-card-heading">
         <span class="home-token-identity"><strong class="${activeBoost && boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(item.symbol || 'TOKEN')}</strong><small>${escapeHtml(item.name || 'Unnamed token')}</small></span>
-        <div class="home-launch-media-badges"><span class="home-launch-media-package"></span>${exploreBoostAmountMarkup(item.address)}</div>
         </div>
-        <div class="home-launch-card-addresses"><span title="Token contract: ${escapeHtml(item.address || '')}"><small>CA</small><code>${escapeHtml(mintLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(item.address || '')}" data-copy-kind="token" aria-label="Copy full token address" title="Copy full token address">${icon('copy')}</button></span></div>
+        <div class="home-launch-card-addresses"><span title="Token contract: ${escapeHtml(item.address || '')}"><small>CA</small><code>${escapeHtml(mintLabel)}</code><span class="home-launch-media-badges"><span class="home-launch-media-package"></span>${exploreBoostAmountMarkup(item.address)}</span><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(item.address || '')}" data-copy-kind="token" aria-label="Copy full token address" title="Copy full token address">${icon('copy')}</button></span></div>
       </div>
+      </div></div>
       <div class="home-launch-card-stats">
         <span><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small><strong>${escapeHtml(value)}</strong></span>
         <span><small>${escapeHtml(volumeLabel)} volume</small><strong>${escapeHtml(shownVolume)}</strong></span>
       </div>
-      </div></div>
+      <div class="home-card-market-summary">
       ${feeRoute}
       ${progressMarkup}
       <div class="home-card-context">${stageLabel && !['loading', 'stale'].includes(progress.kind) ? `<span class="home-launch-media-stage">${escapeHtml(stageLabel)}</span>` : ''}
       <small class="home-launch-evidence">${escapeHtml(activityLabel)}</small>
+      </div>
       </div>
       <div class="home-launch-card-actions"><a class="card-review-buy" data-review-buy="${escapeHtml(item.address || '')}" href="/token/${encodeURIComponent(item.address || '')}?reviewBuy=0.1">Review buy <span aria-hidden="true">→</span></a>${tokenCardWatchMarkup(item.address, item.symbol)}${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
       <details class="home-card-details"><summary>Details &amp; links</summary>

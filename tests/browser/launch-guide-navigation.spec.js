@@ -1,3 +1,4 @@
+import {expandDocsBrowser} from './docs-menu-helpers.js';
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 
@@ -53,5 +54,5 @@ for(const width of[390,1440])test(`FQA-020 direct/reloaded launch topic and gene
   const next=page.locator('.docs-guide-next button'),title=await next.textContent();await next.click();
   await expect(page.locator('#docs-guide-article h1')).toHaveText(title);
   await expect(page.locator('.docs-guide-nav [aria-current="page"]')).toHaveText(title);
-  await page.locator('.docs-guide-nav button',{hasText:'Launch a token'}).click();await launchArticle(page);
+  await expandDocsBrowser(page);await page.locator('.docs-guide-nav button',{hasText:'Launch a token'}).click();await launchArticle(page);
 });

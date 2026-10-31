@@ -1,3 +1,4 @@
+import {expandDocsBrowser} from './docs-menu-helpers.js';
 import{test,expect}from'@playwright/test';import{createHash}from'node:crypto';import{PROTOCOL_FEE_SPLIT}from'../../config/protocol-fee-split.js';
 const titles={'reward-actions':'Automatic payouts or claims?',claims:'Claiming rewards'};
 // Frozen text hash from actual public8d280d7 six-row baseline, not fabricated receipts.
@@ -14,7 +15,7 @@ for(const width of[360,390,1440])test(`FQA-028 Docs comparison native keyboard a
   if(width<700){
    await expect(wrap).toHaveAttribute('tabindex','0');await expect(help).toBeVisible();await expect(wrap).toHaveAccessibleDescription(/Left\/Right and Up\/Down arrow keys/);
    // Production topic navigation focuses article; enter scroll region with native Tab.
-   await page.locator('.docs-guide-nav').getByRole('button',{name:titles[topic],exact:true}).click();await expect(article).toBeFocused();await page.keyboard.press('Tab');await expect(wrap).toBeFocused();await expect.poll(async()=>(await geometry()).fullFocus).toBe(true);expect((await geometry()).focusVisible).toBe(true);expect((await geometry()).outline).not.toBe('none');observations.push({topic,phase:'native region focus',geometry:await geometry()});await page.screenshot({path:info.outputPath(topic+'-focused.png')});
+   await expandDocsBrowser(page);await page.locator('.docs-guide-nav').getByRole('button',{name:titles[topic],exact:true}).click();await expect(article).toBeFocused();await page.keyboard.press('Tab');await expect(wrap).toBeFocused();await expect.poll(async()=>(await geometry()).fullFocus).toBe(true);expect((await geometry()).focusVisible).toBe(true);expect((await geometry()).outline).not.toBe('none');observations.push({topic,phase:'native region focus',geometry:await geometry()});await page.screenshot({path:info.outputPath(topic+'-focused.png')});
    await page.keyboard.down('ArrowRight');await expect.poll(async()=>(await geometry()).left).toBeGreaterThan(0);await page.keyboard.up('ArrowRight');for(let i=0;i<25;i++)await page.keyboard.press('ArrowRight',{delay:20});await expect.poll(()=>wrap.evaluate(e=>e.scrollWidth-e.clientWidth-e.scrollLeft)).toBeLessThan(2);expect(await wrap.evaluate(e=>e.querySelector('th:last-child').getBoundingClientRect().right<=e.getBoundingClientRect().right+1)).toBe(true);const right=(await geometry()).left;await page.keyboard.press('ArrowLeft',{delay:100});await expect.poll(async()=>(await geometry()).left).toBeLessThan(right);
    await page.keyboard.press('Tab');await expect(wrap.locator('a').first()).toBeFocused();for(let i=1;i<6;i++)await page.keyboard.press('Tab');await expect(wrap.locator('a').last()).toBeFocused();expect(await wrap.evaluate(e=>e.scrollTop)).toBeGreaterThan(0);await page.keyboard.press('Tab');await expect(article.locator(':scope > .docs-guide-link')).toBeFocused();await page.keyboard.press('Tab');await expect(article.locator('.docs-guide-next button')).toBeFocused();
    await expect.poll(()=>article.locator('.docs-guide-next button').evaluate(e=>{const r=e.getBoundingClientRect(),n=document.querySelector('.mobile-workspace-nav');return r.left>=0&&r.right<=innerWidth&&r.bottom<=n.getBoundingClientRect().top})).toBe(true);
@@ -23,9 +24,9 @@ for(const width of[360,390,1440])test(`FQA-028 Docs comparison native keyboard a
   }else{await expect(wrap).not.toHaveAttribute('tabindex');await expect(help).toBeHidden();await expect(wrap).not.toHaveAttribute('aria-describedby');expect(before.scroll).toBe(before.client);await article.focus();await page.keyboard.press('Tab');await expect(wrap.locator('a').first()).toBeFocused();}
   observations.push({topic,rowsHash:baselineRows,geometry:await geometry(),tree:await wrap.ariaSnapshot()});await page.screenshot({path:info.outputPath(topic+'.png')});
   // Topic-to-topic replacement uses the same shared comparison, with fresh sizing.
-  const other=topic==='claims'?'reward-actions':'claims';await page.locator('.docs-guide-nav').getByRole('button',{name:titles[other],exact:true}).click();await expect(article.locator('h1')).toHaveText(titles[other]);await expect(article).toBeFocused();await expect(wrap.locator('tbody tr')).toHaveCount(6);if(width<700)await expect(wrap).toHaveAttribute('tabindex','0');else await expect(wrap).not.toHaveAttribute('tabindex');
+  const other=topic==='claims'?'reward-actions':'claims';await expandDocsBrowser(page);await page.locator('.docs-guide-nav').getByRole('button',{name:titles[other],exact:true}).click();await expect(article.locator('h1')).toHaveText(titles[other]);await expect(article).toBeFocused();await expect(wrap.locator('tbody tr')).toHaveCount(6);if(width<700)await expect(wrap).toHaveAttribute('tabindex','0');else await expect(wrap).not.toHaveAttribute('tabindex');
  }
- if(width===390){const owner=article.locator('.docs-guide-next button');await owner.focus();await page.setViewportSize({width:1440,height:900});await expect(wrap).not.toHaveAttribute('tabindex');await expect(help).toBeHidden();await expect(owner).toBeFocused();await page.setViewportSize({width:390,height:844});await expect(wrap).toHaveAttribute('tabindex','0');await expect(help).toBeVisible();await expect(page.locator('#open-menu')).toBeFocused();} // Existing8d shell restoresmobile-menu focus at this breakpoint.
+ if(width===390){const owner=article.locator('.docs-guide-next button');await owner.focus();await page.setViewportSize({width:1440,height:900});await expect(wrap).not.toHaveAttribute('tabindex');await expect(help).toBeHidden();await expect(owner).toBeFocused();await page.setViewportSize({width:390,height:844});await expect(wrap).toHaveAttribute('tabindex','0');await expect(help).toBeVisible();await expect(owner).toBeFocused();} // Resizing preserves the focused article control.
  expect(errors).toEqual([]);expect(writes).toEqual([]);await info.attach('docs-comparison',{body:JSON.stringify({width,label:'Actual app/docs and nativekeyboard plus syntheticChromiumtouch; offlineAPI, no wallet/financial operation orphysicaldevice claim',observations,errors,writes},null,2),contentType:'application/json'});
 });
 
@@ -260,7 +261,7 @@ async function openGuideNatively(page, topic) {
           qualification: 'Read-only intermediate alias-to-default-Docs ownership check. Same stable article or its current heading after default-topic rerender; no original heading claim here. Separate native Back prearms and proves the actual original same-topic h1.' }), contentType: 'application/json' });
     }
   }
-  await page.locator(`.docs-guide-nav [data-docs-topic="${topic}"]`).click();
+  await expandDocsBrowser(page);await page.locator(`.docs-guide-nav [data-docs-topic="${topic}"]`).click();
   await expect(page.locator('#docs-guide-article h1')).toHaveText(titles[topic]);
   await expect(page.locator('#docs-guide-article')).toBeFocused();
 }

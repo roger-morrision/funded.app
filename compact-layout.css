@@ -24,6 +24,11 @@ html body.product-experience-style #main-content .workspace-preference { gap: 12
 html body.product-experience-style #main-content .docs-guide-article p { line-height: 1.75; }
 html body.product-experience-style #main-content .docs-guide-layout { gap: 20px; }
 html body.product-experience-style #main-content .docs-guide-next { margin-top: 24px; padding-top: 12px; }
+html body.product-experience-style #main-content .docs-guide-browser { display: flex; flex: 1; flex-direction: column; min-height: 0; gap: 8px; }
+html body.product-experience-style #main-content :is(.docs-guide-browser,.docs-guide-browse)[hidden] { display: none; }
+html body.product-experience-style #main-content .docs-guide-browse { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); text-align: left; cursor: pointer; }
+html body.product-experience-style #main-content .docs-guide-browse::after { content: '⌄'; font-size: 18px; }
+html body.product-experience-style #main-content .docs-guide-browse[aria-expanded="true"]::after { content: '⌃'; }
 
 /* Discovery controls read as one toolbar instead of separate centered blocks. */
 html body.product-experience-style #main-content .review-buy-setting {
@@ -43,12 +48,19 @@ html body.product-experience-style #explore .explore-benefit-leaders { padding: 
 
 /* Smaller heroes keep live content and the first form fields in view. */
 html body.product-experience-style.page-route-overview #main-content .hero-section {
-  min-height: 0 !important; padding: 24px 0 !important; margin-block: 0 12px;
+  display: block; min-height: 0 !important; padding: 16px 0 !important; margin-block: 0 12px;
+  background-image: none !important; border-bottom: 1px solid var(--line);
 }
-html body.product-experience-style.page-route-overview #main-content .hero-section h1 { max-width: 28ch; }
+html body.product-experience-style.page-route-overview #main-content .hero-copy-column { display: grid; grid-template-columns: minmax(0,1fr) auto; grid-template-areas: 'title actions' 'copy actions'; align-items: center; gap: 6px 20px; width: 100%; max-width: none; }
+html body.product-experience-style.page-route-overview #main-content .home-hero-kicker { display: none; }
+html body.product-experience-style.page-route-overview #main-content .hero-section h1 { grid-area: title; margin: 0; }
+html body.product-experience-style.page-route-overview #main-content .hero-section .hero-copy { grid-area: copy; margin: 0; }
+html body.product-experience-style.page-route-overview #main-content .hero-actions { grid-area: actions; align-self: center; }
+html body.product-experience-style.page-route-overview #main-content .hero-section h1 { max-width: none; }
 html body.product-experience-style.page-route-overview #main-content .hero-section p { margin-block: 8px 16px; }
 html body.product-experience-style.page-route-overview #main-content .hero-actions { margin-top: 0; gap: 8px; }
 html body.product-experience-style #main-content .home-launch-toolbar { gap: 10px; padding-block: 8px; margin-block: 0 12px; }
+html body.product-experience-style #main-content :is(.home-launch-display-controls,.home-launch-preference-controls) { display: contents; }
 html body.product-experience-style #home-launch-grid:has(> .empty-state:only-child) { min-height: 0; }
 html body.product-experience-style #main-content :is(#home-daily-bonuses,#home-buyback-panel,#home-protocol-route) { padding: 16px; margin-top: 24px; border-radius: 8px; }
 html body.product-experience-style #main-content .leaderboard-hero { min-height: 0; padding: 20px; margin-block: 16px; }
@@ -119,6 +131,14 @@ html body.product-experience-style #main-content .wallet-detail-primary { min-he
 html body.product-experience-style #main-content .wallet-detail-avatar { width: 56px; height: 56px; border-radius: 8px; box-shadow: none; }
 html body.product-experience-style #main-content .wallet-detail-stats > div { min-height: 76px; padding: 12px; }
 html body.product-experience-style #main-content .wallet-detail-empty { min-height: 100px; padding: 20px; }
+html body.product-experience-style.page-route-profile #main-content #profile { display: grid !important; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+html body.product-experience-style #main-content #profile > * { grid-column: 1 / -1; margin-block: 0; }
+html body.product-experience-style #main-content #profile > :is(#notification-preferences,#trade-preferences) { grid-column: auto; }
+html body.product-experience-style #main-content #profile > .flow-panel { margin-block: 0; }
+html body.product-experience-style #main-content #profile :is(.profile-wallet-card,.profile-safety-card) { min-height: 0; }
+html body.product-experience-style #main-content #profile .sign-checklist { margin-bottom: 8px; }
+html body.product-experience-style #main-content #profile .sign-checklist li { margin-block: 6px; }
+html body.product-experience-style #main-content .workspace-shortcuts { grid-template-columns: repeat(auto-fit,minmax(min(220px,100%),1fr)); gap: 12px; margin-block: 12px; }
 
 @container coin-detail (max-width: 760px) {
   html body.product-experience-style #main-content .coin-hero-card { grid-template-rows: 96px auto auto auto; }
@@ -169,7 +189,7 @@ html body.product-experience-style #main-content .wallet-detail-empty { min-heig
   html body.product-experience-style #main-content #launch-dialog .launch-page-back { min-height: 44px; margin-bottom: 4px; }
   html body.product-experience-style #main-content #launch-dialog .launch-steps { margin-bottom: 12px; }
   html body.product-experience-style #main-content .docs-guide-nav { max-height: none; padding: 0 0 12px; }
-  html body.product-experience-style #main-content .docs-guide-topic-results { height: 132px; min-height: 0; max-height: 132px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 8px; }
+  html body.product-experience-style #main-content .docs-guide-topic-results { height: 192px; min-height: 190px; max-height: 240px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 0; }
   html body.product-experience-style #main-content .docs-guide-search-controls { flex-wrap: nowrap; }
   html body.product-experience-style #main-content .docs-guide-search-controls input { flex: 1; width: 0; }
   html body.product-experience-style #main-content .docs-guide-search-controls button { width: auto; padding-inline: 10px; }
@@ -180,4 +200,40 @@ html body.product-experience-style #main-content .wallet-detail-empty { min-heig
   html body.product-experience-style #main-content #payments > .ui-tabs button { min-width: 0; min-height: 44px; padding: 8px 4px; white-space: normal; }
   html body.product-experience-style #main-content .hero-actions a { min-height: 44px; min-width: 0; padding-inline: 14px; }
   html body.product-experience-style #main-content .leaderboard-hero { padding: 16px; }
+  html body.product-experience-style #main-content #reward-portfolio > header { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 12px; }
+  html body.product-experience-style #main-content #reward-portfolio > header .eyebrow { display: none; }
+  html body.product-experience-style #main-content #reward-portfolio .reward-portfolio-top-actions { align-items: end; max-width: 122px; }
+  html body.product-experience-style #main-content #payments .reward-action-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  html body.product-experience-style #main-content #payments .reward-action-grid > :is(a,button) { position: relative; align-items: flex-start; min-height: 88px; padding: 12px 20px 12px 12px; }
+  html body.product-experience-style #main-content #payments .reward-action-icon { display: none; }
+  html body.product-experience-style #main-content #payments .reward-action-grid :is(a,button) > span:nth-child(2) { gap: 4px; }
+  html body.product-experience-style #main-content #payments .reward-action-grid b { position: absolute; right: 8px; top: 12px; }
+  html body.product-experience-style #main-content #profile > :is(#notification-preferences,#trade-preferences) { grid-column: 1 / -1; }
+  html body.product-experience-style #main-content .home-launch-toolbar { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; }
+  html body.product-experience-style #main-content .home-launch-display-controls { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  html body.product-experience-style #main-content .home-launch-display-controls :is(.home-board-sort,.home-board-view) { display: flex; gap: 4px; min-width: 0; margin: 0; }
+  html body.product-experience-style #main-content .home-launch-display-controls button { flex: 1; min-width: 0; min-height: 44px; padding-inline: 6px; font-size: 12px; white-space: normal; }
+  html body.product-experience-style #main-content .home-launch-preference-controls { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  html body.product-experience-style #main-content .home-launch-preference-controls > :is(button,details) { flex: none; width: 44px; height: 44px; margin: 0; }
+  html body.product-experience-style #main-content .home-launch-preference-controls summary { width: 44px; height: 44px; min-height: 44px; box-sizing: border-box; }
+  html body.product-experience-style #main-content .home-launch-preference-controls .review-buy-setting { flex: 1; min-width: 0; width: auto; gap: 6px; }
+  html body.product-experience-style #main-content .home-launch-preference-controls .review-buy-setting > span { font-size: 11px; }
+  html body.product-experience-style #main-content .home-market-ticker { display: grid; grid-template-columns: minmax(0,1fr) auto !important; grid-template-rows: 44px 44px; gap: 4px 8px; margin-block: 0 !important; padding-block: 4px !important; }
+  html body.product-experience-style #main-content .home-market-ticker-heading { grid-area: 1 / 1 / 2 / -1; display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 6px; }
+  html body.product-experience-style #main-content .home-market-ticker-label { font-size: 9px; letter-spacing: .04em; }
+  html body.product-experience-style #main-content .home-market-window { display: flex; gap: 2px; }
+  html body.product-experience-style #main-content .home-market-window button { min-width: 44px; min-height: 44px; padding-inline: 4px; }
+  html body.product-experience-style #main-content .home-market-ticker-items { grid-column: 1 !important; grid-row: 2 !important; min-height: 44px; align-items: center; }
+  html body.product-experience-style #main-content .home-market-ticker-arrows { grid-column: 2 !important; grid-row: 2 !important; display: flex; gap: 4px; }
+  html body.product-experience-style #main-content .home-market-ticker-arrows button { min-width: 44px; width: 44px; height: 44px; }
+  html body.product-experience-style #main-content .home-board-footer { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; align-items: center; min-height: 44px; margin: 0; padding: 0; }
+  html body.product-experience-style #main-content .home-board-footer .home-board-count { margin: 0; font-size: 11px !important; line-height: 1.4; }
+  html body.product-experience-style #main-content .home-board-footer .home-launch-all { display: inline-flex; align-items: center; min-height: 44px; margin: 0; font-size: 10px; }
+}
+@media (max-width: 1100px) {
+  html body.product-experience-style.page-route-overview #main-content .hero-copy-column { grid-template-columns: minmax(0,1fr); grid-template-areas: 'title' 'copy' 'actions'; gap: 8px; }
+}
+@media (max-width: 350px) {
+  html body.product-experience-style .topbar .top-actions { gap: 4px; }
+  html body.product-experience-style .topbar .top-actions .workspace-network { max-width: 64px; white-space: normal; line-height: 1.2; text-align: center; }
 }

@@ -1,3 +1,4 @@
+import {expandDocsBrowser} from './docs-menu-helpers.js';
 import{test,expect}from'@playwright/test';
 import{PROTOCOL_FEE_SPLIT}from'../../config/protocol-fee-split.js';
 test.beforeEach(async({page})=>{
@@ -6,7 +7,7 @@ test.beforeEach(async({page})=>{
 });
 const controls=page=>({input:page.getByRole('searchbox',{name:'Search guides',exact:true}),clear:page.getByRole('button',{name:'Clear search',exact:true}),results:page.locator('#docs-guide-topic-results'),count:page.locator('.docs-guide-count'),article:page.locator('#docs-guide-article')});
 const visibleIds=results=>results.getByRole('button').evaluateAll(nodes=>nodes.map(node=>node.dataset.docsTopic));
-async function open(page,width){await page.setViewportSize({width,height:width<700?844:900});await page.goto('/#docs');await page.locator('body.workspace-ready.product-experience-ready').waitFor();const c=controls(page);await expect(c.results.getByRole('button')).toHaveCount(29);await expect(c.count).toHaveText('29 guides');await page.evaluate(()=>document.fonts.ready);return c}
+async function open(page,width){await page.setViewportSize({width,height:width<700?844:900});await page.goto('/#docs');await page.locator('body.workspace-ready.product-experience-ready').waitFor();await expandDocsBrowser(page);const c=controls(page);await expect(c.results.getByRole('button')).toHaveCount(29);await expect(c.count).toHaveText('29 guides');await page.evaluate(()=>document.fonts.ready);return c}
 for(const width of[360,390,1440])test(`literal local guide filter preserves article/hash/IME and native history at${width}px`,async({page},info)=>{
  const c=await open(page,width),original=await c.article.innerHTML(),hash=new URL(page.url()).hash;await c.input.focus();await c.input.fill('   ');await expect(c.results.getByRole('button')).toHaveCount(29);await expect(c.count).toHaveText('29 guides');await c.input.fill('  WALLET  ');await expect(c.count).toHaveText('3 of 29 guides');expect(await visibleIds(c.results)).toEqual(['wallet','profile','history']);await expect(c.input).toBeFocused();expect(await c.article.innerHTML()).toBe(original);expect(new URL(page.url()).hash).toBe(hash);
  await page.keyboard.press('ArrowDown');await expect(c.input).toBeFocused();const beforeCaret=await c.input.evaluate(e=>e.selectionStart);await page.keyboard.press('ArrowLeft');expect(await c.input.evaluate(e=>e.selectionStart)).toBe(beforeCaret-1);
@@ -170,6 +171,7 @@ async function chartGuideFixture(page,width) {
   return f;
 }
 async function chartGuideFont(page) {
+  await expandDocsBrowser(page);
   const font=await page.evaluate(async()=>{
     const request='700 14px "Manrope"',faces=await document.fonts.load(request,'Coin pages and charts');await document.fonts.ready;
     return{request,available:document.fonts.check(request,'Coin pages and charts'),faces:faces.map(f=>({family:f.family,weight:f.weight,status:f.status,style:f.style}))};
@@ -199,7 +201,7 @@ for(const width of[360,390,1440])test(`Chart guide discovery reading and recover
   test.setTimeout(30000);const f=await chartGuideFixture(page,width),reading=[],queries=[];
   try {
     await page.goto('/#docs');await page.locator('body.workspace-ready.product-experience-ready').waitFor();await chartGuideFont(page);
-    const c=controls(page),originalArticle=await c.article.elementHandle();expect(originalArticle).not.toBeNull();
+    await expandDocsBrowser(page);const c=controls(page),originalArticle=await c.article.elementHandle();expect(originalArticle).not.toBeNull();
     await expect(c.count).toHaveText('29 guides');const initialArticle=await c.article.innerHTML(),initialHash=new URL(page.url()).hash;
     const storage=await page.evaluate(()=>JSON.stringify([Object.entries(localStorage),Object.entries(sessionStorage)]));
     await chartGuideTabTo(page,'.docs-back');await chartGuideArm(page,'#docs-guide-search','#docs','Tab');await page.keyboard.press('Tab');await chartGuideProof(page,'search-entry');
@@ -248,7 +250,7 @@ for(const width of[360,390,1440])test(`Chart guide discovery reading and recover
     const beforeReload=await page.evaluate(()=>performance.timeOrigin);await page.reload();await page.locator('body.workspace-ready.product-experience-ready').waitFor();
     expect(await page.evaluate(()=>performance.timeOrigin)).not.toBe(beforeReload);await expect(page).toHaveURL(/#docs\/coin-pages$/);await expect(c.article.locator('h1')).toHaveText(chartGuideCopy.title);await expect(c.count).toHaveText('29 guides');
     // New document nodes after reload are not labelled original. Capture before this final native Tab only.
-    await chartGuideTabTo(page,'[data-docs-topic="faq"]');await chartGuideArm(page,'#docs-guide-article > .docs-guide-link','#docs/coin-pages','Tab');await page.keyboard.press('Tab');await chartGuideProof(page,'find-coin-link');
+    await expandDocsBrowser(page);await chartGuideTabTo(page,'[data-docs-topic="faq"]');await chartGuideArm(page,'#docs-guide-article > .docs-guide-link','#docs/coin-pages','Tab');await page.keyboard.press('Tab');await chartGuideProof(page,'find-coin-link');
     await expect(c.article.locator(':scope > .docs-guide-link')).toHaveText('Find a coin →');await expect(c.article.locator(':scope > .docs-guide-link')).toHaveAttribute('href','#explore');await page.keyboard.press('Enter');await expect(page).toHaveURL(/#explore$/);
     await expect(page.locator('body')).toHaveClass(/page-route-explore/);await page.goBack();await expect(page).toHaveURL(/#docs\/coin-pages$/);await expect(c.article.locator('h1')).toHaveText(chartGuideCopy.title);await expect(page).toHaveTitle('Docs · funded.vip');
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(await page.evaluate(()=>window.__docsFilterIo)).toEqual([]);
@@ -341,6 +343,7 @@ async function listingGuideFixture(page,width) {
   });return f;
 }
 async function listingGuideFont(page) {
+  await expandDocsBrowser(page);
   const f=await page.evaluate(async()=>{const request='700 14px "Manrope"',faces=await document.fonts.load(request,'List an existing token');await document.fonts.ready;return{request,available:document.fonts.check(request,'List an existing token'),faces:faces.map(f=>({family:f.family,weight:f.weight,status:f.status,style:f.style}))};});
   await test.info().attach('listing-guide-loaded-font',{body:JSON.stringify(f),contentType:'application/json'});
   expect(f.available&&f.faces.length>0).toBe(true);expect(f.faces.some(f=>{const w=f.weight==='bold'?[700]:f.weight.split(/\s+/).map(Number);return f.family.replaceAll('"','').replaceAll("'",'')==='Manrope'&&f.status==='loaded'&&f.style==='normal'&&(w.length===1?w[0]===700:w.length===2&&w[0]<=700&&w[1]>=700);})).toBe(true);
@@ -480,6 +483,7 @@ for(const width of[360,390,1440])test.describe(`listing guide guard viewport${wi
       await page.reload();await page.locator('body.workspace-ready.product-experience-ready').waitFor();
       observations.reload=await page.evaluate(()=>window.__listingGuideGuard.snapshot());
       expect(observations.reload.events.filter(e=>e.type==='focusin'&&e.target.article)).toEqual([]);
+      await expandDocsBrowser(page);
       const c=controls(page),originalArticle=await c.article.elementHandle(),originalInput=await c.input.elementHandle();
       const originalBody=await c.article.innerHTML(),originalHash=new URL(page.url()).hash;
       const storage=await page.evaluate(()=>JSON.stringify([Object.entries(localStorage),Object.entries(sessionStorage)]));

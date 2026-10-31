@@ -55,7 +55,34 @@ export function mountDocsReference(root) {
   empty.className = 'docs-guide-no-results';
   empty.textContent = 'No guides match your search. Clear search to see all guides.';
   empty.hidden = true;
-  nav.append(search, results);
+  const browse = document.createElement('button');
+  browse.type = 'button'; browse.className = 'docs-guide-browse';
+  browse.textContent = 'Browse guides';
+  browse.setAttribute('aria-label', 'Browse guides');
+  browse.setAttribute('aria-controls', 'docs-guide-browser');
+  const browser = document.createElement('div');
+  browser.id = 'docs-guide-browser'; browser.className = 'docs-guide-browser';
+  browser.append(nav.querySelector('.docs-back'), search, results);
+  nav.append(browse, browser);
+  const narrowGuide = matchMedia('(max-width:820px)');
+  let mobileBrowserOpen = false;
+  const syncBrowser = () => {
+    const open = !narrowGuide.matches || mobileBrowserOpen;
+    browse.hidden = !narrowGuide.matches;
+    browse.setAttribute('aria-expanded', String(open));
+    browser.hidden = !open;
+  };
+  browse.addEventListener('click', () => { mobileBrowserOpen = !mobileBrowserOpen; syncBrowser(); });
+  narrowGuide.addEventListener('change', () => {
+    // Keep a focused search or guide link visible through a breakpoint change.
+    if (narrowGuide.matches && browser.contains(document.activeElement)) mobileBrowserOpen = true;
+    else if (!narrowGuide.matches && document.activeElement === browse) {
+      browser.hidden = false;
+      search.querySelector('input').focus({ preventScroll: true });
+    }
+    syncBrowser();
+  });
+  syncBrowser();
   const article = document.createElement('article');
   article.className = 'docs-guide-article';
   article.id = 'docs-guide-article';
