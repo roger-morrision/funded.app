@@ -3,6 +3,7 @@
   html body.product-experience-style #main-content :is(
     .home-launch-tabs button,
     #reward-portfolio [data-reward-connect],
+    #reward-portfolio .reward-portfolio-connect,
     #reward-discovery [data-reward-filter],
     #airdrops button,
     #referral-command-center .referral-share-tools button,

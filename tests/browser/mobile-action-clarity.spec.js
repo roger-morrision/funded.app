@@ -8,7 +8,7 @@ test.beforeEach(async({page,baseURL})=>{
   await page.route('**/api/fee-policy',r=>r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
 });
 
-const targets=[['overview','.home-launch-tabs button'],['launch','#image-upload,#image-remove'],['payments','#reward-portfolio [data-reward-connect]'],['payments/holders','[data-reward-filter]'],['airdrops','#airdrops button'],['referrals','#referral-command-center .referral-share-tools button,#referral-claim-center button'],['capital-flow','[data-bonus-refresh]'],['bonuses','[data-bonus-history-refresh]'],['paid','.funded-token-contract button,.funded-policy-details>summary'],['buybacks','.concise-tier-preview>summary,.funded-token-contract button,.funded-policy-details>summary']];
+const targets=[['overview','.home-launch-tabs button'],['launch','#image-upload,#image-remove'],['payments','#reward-portfolio [data-reward-connect],#reward-portfolio .reward-portfolio-connect'],['payments/holders','[data-reward-filter]'],['airdrops','#airdrops button'],['referrals','#referral-command-center .referral-share-tools button,#referral-claim-center button'],['capital-flow','[data-bonus-refresh]'],['bonuses','[data-bonus-history-refresh]'],['paid','.funded-token-contract button,.funded-policy-details>summary'],['buybacks','.concise-tier-preview>summary,.funded-token-contract button,.funded-policy-details>summary']];
 for(const width of[320,390,700])test(`secondary actions remain tappable and compact across task pages at ${width}px`,async({page})=>{
   test.setTimeout(60000);await page.setViewportSize({width,height:844});await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/#overview');await page.locator('body.product-flows-ready').waitFor();
   for(const[route,selector]of targets){
