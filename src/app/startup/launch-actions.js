@@ -202,10 +202,6 @@ export function initializeLaunchActions(appState) {
   document.querySelector('#launch-mode-custom').addEventListener('click', () => appState.setLaunchMode('custom'));
   // app-source-end
 
-  // app-source: 685
-  document.querySelectorAll('[data-launch-profile]').forEach(card => card.addEventListener('click', () => appState.setLaunchMode(card.dataset.launchProfile === 'community' ? 'custom' : 'quick')));
-  // app-source-end
-
   // app-source: 686
   appState.setLaunchProfile('fast');
   // app-source-end

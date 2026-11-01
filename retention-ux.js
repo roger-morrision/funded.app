@@ -8,9 +8,6 @@ if (firstStep) {
   const socials = firstStep.querySelector('.social-section');
   const enhanced = firstStep.querySelector('.enhanced-token-page');
   const enhancedWrapper = enhanced?.parentElement?.tagName === 'DETAILS' ? enhanced.parentElement : null;
-  const choiceHeading = firstStep.querySelector('.launch-profile-heading');
-  const choiceGrid = firstStep.querySelector('.launch-profile-grid');
-  const choiceWrapper = choiceGrid?.closest('details.ui-disclosure');
   if (name && story && socials && enhanced) {
     const more = document.createElement('details');
     more.className = 'launch-optional-story';
@@ -18,9 +15,7 @@ if (firstStep) {
     summary.textContent = 'Optional project story';
     more.append(summary, story, enhanced);
     socials.after(more);
-    if (choiceHeading && choiceGrid) socials.before(choiceHeading, choiceGrid);
     enhancedWrapper?.remove();
-    choiceWrapper?.remove();
   }
 }
 

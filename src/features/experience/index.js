@@ -1,4 +1,3 @@
-import { initializeLaunchPresets } from './launch-presets.js';
 import { initializeDiscoveryIntent } from './discovery-intent.js';
 import { initializeFinancialCenter } from './financial-center.js';
 import { initializeCreatorActivity } from './creator-activity.js';
@@ -22,7 +21,6 @@ export function initializeProductFlows(app) {
   // Compose enhancements only after those owners have finished creating their surfaces.
   const mount = () => {
     if (!document.body.classList.contains('workspace-ready') || !document.body.classList.contains('product-experience-ready')) return false;
-    initializeLaunchPresets(app);
     initializeDiscoveryIntent(app);
     initializeFinancialCenter(app);
     initializeCreatorActivity(app);

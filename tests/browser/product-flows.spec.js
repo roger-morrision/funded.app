@@ -10,19 +10,17 @@ async function setup(page, width) {
   await page.route('**/api/launches', route => route.fulfill({json:[{mint,creatorWallet:mint,onchainVerified:true,cluster:'devnet',name:'Flow fixture',symbol:'FLOW'}]}));
 }
 for (const width of [390,1440]) {
-  test(`launch presets and advisory identity at ${width}px (mocked Devnet)`, async ({page}) => {
+  test(`manual fee split and advisory identity at ${width}px (mocked Devnet)`, async ({page}) => {
     await setup(page,width); await page.goto('/#launch');
     await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
-    await page.locator('[data-launch-preset="holder"]').click();
+    await page.locator('#creator-wallet-share').fill('40');await page.locator('#holder-airdrop-share').fill('40');
     await expect(page.locator('#creator-wallet-share')).toHaveValue('40');
     await expect(page.locator('#holder-airdrop-share')).toHaveValue('40');
-    await expect(page.locator('#launch-preset-summary')).toContainText('40% eligible holders');
-    await page.locator('#launch-profile-community').click();
-    await expect(page.locator('#launch-profile-community')).toHaveAttribute('aria-pressed','true');
+    await expect(page.locator('#launch-mode-custom')).toHaveAttribute('aria-pressed','true');
     await expect(page.locator('#holder-airdrop-share')).toHaveValue('40');
     await page.locator('#token-name').fill('Flow fixture');
     await expect(page.locator('.flow-note').filter({hasText:'Similar name or ticker'})).toBeVisible();
-    await page.locator('#launch-profile-fast').click();
+    await page.locator('#launch-mode-quick').click();
     await expect(page.locator('#creator-wallet-share')).toHaveValue('80');
     await expect(page.locator('#holder-airdrop-share')).toHaveValue('0');
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);

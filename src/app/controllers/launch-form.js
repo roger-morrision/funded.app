@@ -92,11 +92,6 @@ export function createLaunchFormController(appState) {
   // app-source: 644
   function setLaunchProfile(profile){
     appState.launchProfile = profile === 'fast' ? 'fast' : 'community';
-    document.querySelectorAll('[data-launch-profile]').forEach(card => {
-      const active = card.dataset.launchProfile === appState.launchProfile;
-      card.classList.toggle('active', active);
-      card.setAttribute('aria-pressed', String(active));
-    });
     const pageDetails = document.querySelector('.launch-page-details');
     if (appState.launchProfile === 'community') {
       if (pageDetails) pageDetails.open = true;
