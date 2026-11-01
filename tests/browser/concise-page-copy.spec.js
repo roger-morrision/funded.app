@@ -16,7 +16,7 @@ for(const width of [390,1440])test(`task pages keep short copy and complete rule
   await route('payments');await brief('.reward-overview-start > p',5);
   for(const line of await page.locator('.reward-action-grid small').all())expect((await line.innerText()).trim().split(/\s+/).length).toBeLessThanOrEqual(8);
   await expect(page.locator('#financial-center')).toContainText('Unavailable data is not a zero balance');
-  await route('airdrops');await brief('.airdrop-intro',24);await brief('.airdrop-wallet-gate-body > p',11);await brief('.airdrop-stage-help',14);await expect(page.locator('.airdrop-intro')).toContainText('at least 3%');
+  await route('airdrops');await brief('.airdrop-intro',24);await brief('.airdrop-wallet-gate-body > p',11);await brief('.airdrop-public-programs > .airdrop-stage-help:not([id])',14);await expect(page.locator('.airdrop-intro')).toContainText('at least 3%');
   await route('analytics-detail');await brief('#route-guide-description',9);await brief('.analytics-fee-explainer',13);await expect(page.locator('.analytics-kpis-complete')).toContainText('unavailable');
   await route('referrals');await brief('#route-guide-description',5);await brief('#referral-command-center .section-heading .panel-explainer',10);await expect(page.locator('#referral-command-center')).toContainText('not signups');
   await route('my-launches');await brief('#recovery-inbox > p:first-of-type',15);await expect(page.locator('#recovery-inbox')).toContainText('timeouts do not mean failure');
