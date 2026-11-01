@@ -12,7 +12,7 @@ import {MARKETING_AGENCY_POLICY} from '../config/marketing-agency.js';
 // binary and exercised with finalized disposable-wallet payouts. An operator
 // setting cannot make older, unprotected program bytes eligible for launches.
 export const PROTECTED_V3_PROGRAM_DATA_SHA256 =
-  '5ddcfdd45ce4643a5e4eb4b8bc414e6fc3ab78339e3f62f10ddd787523d865f9';
+  'f0517fce9b8361be087456be2f5e5547af23b114ca1c0cf4ebaba5a42a8bd9ca';
 export const V3_BENEFICIARY_ROUTING_ON_CHAIN_ENFORCED = true;
 export const V3_BENEFICIARY_RELEASE_BLOCKER =
   'Protected V3 beneficiary rules require the exact reviewed Devnet program bytes';

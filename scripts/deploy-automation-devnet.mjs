@@ -12,7 +12,8 @@ const authority=Keypair.fromSecretKey(bs58.decode(process.env.FUNDED_ROUTER_AUTH
 if(authority.publicKey.toBase58()!=='7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y')throw Error('Dedicated Devnet signer differs');
 const rpc=process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com';
 if(new URL(rpc).protocol!=='https:')throw Error('An HTTPS Devnet RPC is required');
-const connection=new Connection(rpc,{commitment:'finalized',disableRetryOnRateLimit:true});
+const connection=new Connection(rpc,{commitment:'finalized',disableRetryOnRateLimit:true,
+  fetch:(url,options)=>globalThis.fetch(url,{...options,signal:AbortSignal.timeout(30000)})});
 if(await connection.getGenesisHash()!=='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')throw Error('Not Devnet');
 const prior=await readProgramDataEvidence(connection,programId);
 if(!new PublicKey(prior.programData.data.subarray(13,45)).equals(authority.publicKey))throw Error('Upgrade authority differs');
@@ -31,11 +32,13 @@ await writeFile(resolve(folder,'upgrade-attempt.json'),JSON.stringify({program:p
 if(process.argv.includes('--preflight')){console.log(JSON.stringify({status:'preflight',binarySha256:hash,binaryBytes:binary.length,priorProgramDataSha256:prior.sha256}));process.exit(0);}
 const linux=path=>'/mnt/'+path[0].toLowerCase()+path.slice(2).replaceAll('\\','/');
 const result=spawnSync('wsl',['--exec','python3',linux(resolve('scripts/deploy-automation-devnet.py')),linux(binaryPath),hash],
-  {input:JSON.stringify({authority:[...authority.secretKey],buffer:[...buffer.secretKey],resumeBuffer,skipBufferWrite,rpc}),encoding:'utf8',timeout:1800000,maxBuffer:1024*1024});
+  {input:JSON.stringify({authority:[...authority.secretKey],buffer:[...buffer.secretKey],resumeBuffer,skipBufferWrite,rpc,
+    uploadOnly:process.argv.includes('--upload-only'),tpu:process.argv.includes('--tpu')}),encoding:'utf8',timeout:1800000,maxBuffer:1024*1024});
 if(result.status!==0){
   const reason=(result.stderr||'').split('\n').findLast(line=>line.startsWith('RuntimeError:'))||'No CLI summary';
   throw Error(`Devnet upgrade did not confirm (${result.error?.code||result.status}): ${reason}; reconcile the recorded buffer before retrying.`);
 }
+if(process.argv.includes('--upload-only')){console.log(result.stdout.trim());process.exit(0);}
 const final=await readProgramDataEvidence(connection,programId);
 if(!final.programData.data.subarray(45,45+binary.length).equals(binary)
   ||final.programData.data.subarray(45+binary.length).some(byte=>byte!==0))throw Error('Finalized deployed bytes differ from candidate');

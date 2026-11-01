@@ -30,10 +30,16 @@ with tempfile.TemporaryDirectory(prefix="funded-v3-upgrade-") as folder:
     if payload.get("resumeBuffer"):
         if not payload.get("skipBufferWrite"):
             run(["program","write-buffer",str(binary),"--buffer",payload["resumeBuffer"],
-                 "--buffer-authority",paths["authority"],"--use-rpc","--max-sign-attempts","5"])
+                 "--buffer-authority",paths["authority"],
+                 *(["--use-tpu-client","--use-quic"] if payload.get("tpu") else ["--use-rpc"]),
+                 "--max-sign-attempts","1" if payload.get("tpu") else "5"])
         uploaded=json.loads(run(["account",payload["resumeBuffer"],"--output","json"]))
         content=base64.b64decode(uploaded["account"]["data"][0])
         if hashlib.sha256(content[37:]).hexdigest()!=expected: raise RuntimeError("Uploaded buffer differs from tested binary")
+    if payload.get("uploadOnly"):
+        if not payload.get("resumeBuffer"): raise RuntimeError("Upload-only requires the existing buffer")
+        print(json.dumps({"status":"verified-buffer","buffer":payload["resumeBuffer"],"sha256":expected}))
+        raise SystemExit(0)
     run(["program","deploy",str(binary),"--program-id",PROGRAM,"--upgrade-authority",paths["authority"],
          "--buffer",payload.get("resumeBuffer") or paths["buffer"],"--use-rpc","--max-sign-attempts","5"])
     final=json.loads(run(["program","show",PROGRAM,"--output","json"]))

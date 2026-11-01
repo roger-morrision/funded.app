@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import {randomBytes} from 'node:crypto';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import bs58 from 'bs58';
-import {Connection,Keypair,PublicKey,SystemProgram,Transaction,VersionedTransaction,sendAndConfirmTransaction} from '@solana/web3.js';
+import {Connection,Keypair,PublicKey,SystemProgram,SystemInstruction,Transaction,TransactionInstruction,VersionedTransaction} from '@solana/web3.js';
+import {devnetAcceptanceFetch} from './devnet-acceptance-fetch.mjs';
 import {OnlinePumpSdk,PUMP_SDK} from '@pump-fun/pump-sdk';
 import {buildProtectedMintRouterV3InitializeInstruction,buildMintRouterV3SettlementInstruction,deriveMintVaultsV3} from '../mint-router-v3.js';
 import {buildProtectedMintV3ApprovalInstruction,buildProtectedMintV3DisbursementInstruction} from '../protected-mint-router-v3.js';
@@ -13,38 +14,64 @@ import {loadFinalizedV3PumpCollection} from '../server/v3-finalized-collection.m
 import {loadFinalizedV3Settlement} from '../server/v3-settlement-proof.mjs';
 import {loadFinalizedV3RewardFunding} from '../server/v3-reward-funding-proof.mjs';
 import {ensureMintAutomationV3} from '../server/mint-automation-v3.mjs';
-import {readProgramDataEvidence,createAutomaticRewardChain} from '../server/automatic-reward-chain.mjs';
+import {readProgramDataEvidence,createAutomaticRewardChain,finalizedSend} from '../server/automatic-reward-chain.mjs';
 import {buildRewardManifest,createRewardCycleId} from '../reward-merkle.js';
 import {quoteV3Buyback} from '../server/v3-buyback-quote.mjs';
 import {buildV3BuybackInstruction,v3BuybackId} from '../server/v3-buyback-instruction.mjs';
 import {prepareV3BuybackTransaction} from '../server/v3-buyback-transaction.mjs';
 import {loadFinalizedV3Buyback} from '../server/v3-buyback-proof.mjs';
 
-const connection=new Connection(process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com',{commitment:'finalized',disableRetryOnRateLimit:true});
+const connection=new Connection(process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com',{
+  commitment:'finalized',disableRetryOnRateLimit:true,
+  fetch:devnetAcceptanceFetch()});
 assert.equal(await connection.getGenesisHash(),'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG');
 const deployed=JSON.parse(await readFile('tmp/automation-release/deployed-program.json','utf8'));
 const programId=new PublicKey(deployed.program),authority=Keypair.fromSecretKey(bs58.decode(process.env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY||''));
 assert.equal(authority.publicKey.toBase58(),'7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y');
 assert.equal((await readProgramDataEvidence(connection,programId)).sha256,deployed.programDataSha256);
-const creator=Keypair.generate(),mint=Keypair.generate(),holder=Keypair.generate(),referrer=Keypair.generate(),operations=Keypair.generate();
 const output='tmp/automation-release/e2e.json';await mkdir('tmp/automation-release',{recursive:true});
-const report={status:'running',cluster:'devnet',program:programId.toBase58(),mint:mint.publicKey.toBase58(),creator:creator.publicKey.toBase58(),
+const resume=process.argv.includes('--resume');
+const prior=resume?JSON.parse(await readFile(output,'utf8')):null;
+if(prior&&!prior.transactions?.some(row=>row.stage==='automatic-settlement'))throw Error('Resume requires the completed creator-signed launch and automatic settlement');
+const creator=prior?{publicKey:new PublicKey(prior.creator)}:Keypair.generate(),mint=prior?{publicKey:new PublicKey(prior.mint)}:Keypair.generate();
+let holder=Keypair.generate(),referrer=Keypair.generate(),operations=Keypair.generate();
+if(prior){
+  const funding=await connection.getTransaction(prior.transactions.find(row=>row.stage==='fund-disposable-wallets').signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
+  assert(funding&&!funding.meta.err);const message=funding.transaction.message;
+  const recipients=message.instructions.map(ix=>SystemInstruction.decodeTransfer(new TransactionInstruction({programId:message.accountKeys[ix.programIdIndex],
+    keys:ix.accounts.map(index=>({pubkey:message.accountKeys[index],isSigner:message.isAccountSigner(index),isWritable:message.isAccountWritable(index)})),data:bs58.decode(ix.data)})).toPubkey);
+  assert(recipients[0].equals(creator.publicKey));[holder,referrer,operations]=recipients.slice(1).map(publicKey=>({publicKey}));
+}
+const report=prior||{status:'running',cluster:'devnet',program:programId.toBase58(),mint:mint.publicKey.toBase58(),creator:creator.publicKey.toBase58(),
   transactions:[],checks:[],limitations:['Direct on-chain integration; browser launch registration is tested separately.',
     'Reward manifest uses disposable test recipients; live holder eligibility and OAuth identity are not established.',
     'A real Pump migration is not forced by this bounded test.']};
 async function record(stage,data){report.checks.push({stage,...data});await writeFile(output,JSON.stringify(report,null,2));console.log(JSON.stringify({stage,...data}));}
 async function send(stage,instructions,signers=[authority]){
-  const signature=await sendAndConfirmTransaction(connection,new Transaction().add(...instructions),signers,{commitment:'finalized',skipPreflight:false,maxRetries:2});
-  report.transactions.push({stage,signature});await record(stage,{signature});return signature;
+  const existing=report.transactions.find(row=>row.stage===stage);
+  if(existing){const status=(await connection.getSignatureStatuses([existing.signature],{searchTransactionHistory:true})).value[0];
+    assert.equal(status?.confirmationStatus,'finalized','Reconcile existing transaction; do not resubmit');assert.equal(status.err,null);return existing.signature;}
+  const latest=await connection.getLatestBlockhash('finalized');
+  const tx=new Transaction({feePayer:signers[0].publicKey,recentBlockhash:latest.blockhash}).add(...instructions);tx.sign(...signers);
+  const signature=bs58.encode(tx.signature),row={stage,signature,status:'submission-pending'};
+  report.transactions.push(row);await writeFile(output,JSON.stringify(report,null,2));
+  assert.equal(await connection.sendRawTransaction(tx.serialize(),{skipPreflight:false,preflightCommitment:'confirmed',maxRetries:2}),signature);
+  let final=false;for(let poll=0;poll<90;poll++){
+    await new Promise(resolve=>setTimeout(resolve,1000));const status=(await connection.getSignatureStatuses([signature],{searchTransactionHistory:true})).value[0];
+    assert.equal(status?.err||null,null);if(status?.confirmationStatus==='finalized'){final=true;break;}
+  }
+  assert(final,'Reconcile recorded signature before resuming');row.status='finalized';await record(stage,{signature});return signature;
 }
-await send('fund-disposable-wallets',[SystemProgram.transfer({fromPubkey:authority.publicKey,toPubkey:creator.publicKey,lamports:150000000}),
-  ...[holder,referrer,operations].map(k=>SystemProgram.transfer({fromPubkey:authority.publicKey,toPubkey:k.publicKey,lamports:1000000}))]);
 const shares={creatorWalletPercent:60,holderAirdropPercent:10,solClaimPercent:10};
 const initialized=buildProtectedMintRouterV3InitializeInstruction({programId,mint:mint.publicKey,authority:authority.publicKey,creator:creator.publicKey,shares});
+let launch,collectionSignature;
+if(!resume){
+await send('fund-disposable-wallets',[SystemProgram.transfer({fromPubkey:authority.publicKey,toPubkey:creator.publicKey,lamports:150000000}),
+  ...[holder,referrer,operations].map(k=>SystemProgram.transfer({fromPubkey:authority.publicKey,toPubkey:k.publicKey,lamports:1000000}))]);
 await send('initialize-protected-policy',[initialized.instruction],[creator,mint]);
 const launchSignature=await send('pump-launch',[await PUMP_SDK.createV2Instruction({mint:mint.publicKey,name:'Automation QA '+Date.now().toString(36),
   symbol:'AUTOQA',uri:'https://funded.vip/devnet-metadata/'+mint.publicKey.toBase58(),creator:initialized.router.address,user:creator.publicKey,mayhemMode:false,holderReward:false})],[creator,mint]);
-const launch={mint:mint.publicKey.toBase58(),cluster:'devnet',onchainVerified:true,creator:initialized.router.address.toBase58(),creatorWallet:creator.publicKey.toBase58(),
+launch={mint:mint.publicKey.toBase58(),cluster:'devnet',onchainVerified:true,creator:initialized.router.address.toBase58(),creatorWallet:creator.publicKey.toBase58(),
   pumpFeeRoute:{scope:'per-mint-v3',programId:programId.toBase58(),router:initialized.router.address.toBase58(),transaction:launchSignature,
     initialAuthority:authority.publicKey.toBase58(),protocolSplit:PROTOCOL_FEE_SPLIT}};
 await writeFile('tmp/automation-release/qa-launch.json',JSON.stringify(launch,null,2));
@@ -57,7 +84,11 @@ const sell=await buildTradeTransaction({connection,side:'sell',mint:mint.publicK
   amount:Number(buy.outputAmount.toString())/(10**buy.tokenDecimals)/10,slippagePercent:2,feeOwner:creator.publicKey});
 await send('pump-sell',sell.instructions);
 const collection=await buildMintCreatorFeeCollectionInstructions({connection,router:initialized.router.address,keeper:authority.publicKey});
-const collectionSignature=await send('permissionless-collection',collection.instructions);
+collectionSignature=await send('permissionless-collection',collection.instructions);
+}else{
+  launch=JSON.parse(await readFile('tmp/automation-release/qa-launch.json','utf8'));assert.equal(launch.mint,mint.publicKey.toBase58());
+  collectionSignature=report.transactions.find(row=>row.stage==='permissionless-collection').signature;
+}
 const source=await loadFinalizedV3PumpCollection({connection,signature:collectionSignature,programId,mint:mint.publicKey,launch});
 assert(source?.expectedLamports>0n);
 const settlement=buildMintRouterV3SettlementInstruction({programId,mint:mint.publicKey,authority:authority.publicKey,creator:creator.publicKey,
@@ -78,14 +109,16 @@ for(const [stage,category,beneficiary,recipient,amount,holderPart] of [
   ['operations',1,3,operations.publicKey,BigInt(proof.categoryLamports[1]),0n],
   ['referral-level-1',2,4,referrer.publicKey,BigInt(proof.categoryLamports[2]),0n]]){
   if(!amount)continue;
-  const input={programId,mint:mint.publicKey,authority:authority.publicKey,creator:creator.publicKey,withdrawalId:randomBytes(32),category,beneficiary,
+  report.withdrawals||={};report.withdrawals[stage]||=randomBytes(32).toString('hex');await writeFile(output,JSON.stringify(report,null,2));
+  const input={programId,mint:mint.publicKey,authority:authority.publicKey,creator:creator.publicKey,withdrawalId:Buffer.from(report.withdrawals[stage],'hex'),category,beneficiary,
     recipient,amount,holderAmount:holderPart,auto:true};
   const ix=buildProtectedMintV3DisbursementInstruction(input),approval=category>=1&&category<=4?buildProtectedMintV3ApprovalInstruction(input):null;
   const signature=await send('automatic-'+stage,approval?[approval.instruction,ix.instruction]:[ix.instruction]);
   const paid=await loadFinalizedV3RewardFunding({...input,connection,signature,initialAuthority:authority.publicKey,split:PROTOCOL_FEE_SPLIT,protectedPolicy:true});
   assert.equal(paid?.balanceDeltaVerified,true);assert.equal(paid.authorization,'immutable-mint-automation');
 }
-const now=Math.floor(Date.now()/1000),cycleId=createRewardCycleId({mint:mint.publicKey.toBase58(),kind:'automation-fixture',asset:'SOL',periodStart:now-60,periodEnd:now});
+report.fixtureNow||=Math.floor(Date.now()/1000);await writeFile(output,JSON.stringify(report,null,2));
+const now=report.fixtureNow,cycleId=createRewardCycleId({mint:mint.publicKey.toBase58(),kind:'automation-fixture',asset:'SOL',periodStart:now-60,periodEnd:now});
 const manifest=buildRewardManifest({cycleId,allocations:[{recipient:holder.publicKey.toBase58(),amount:String(holderAmount)}]});
 const plan={mint:mint.publicKey.toBase58(),manifest,cutoffAt:now,payoutAt:now};await chain.ensureCycle(plan);
 const payment=await chain.submitLeaf(plan,manifest.leaves[0]);assert(payment.finalized&&payment.balanceDeltaVerified);

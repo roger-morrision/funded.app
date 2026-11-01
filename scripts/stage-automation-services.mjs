@@ -6,8 +6,11 @@ import {readProgramDataEvidence} from '../server/automatic-reward-chain.mjs';
 const docker=args=>execFileSync('docker',args,{encoding:'utf8',maxBuffer:8*1024*1024});
 const [current]=JSON.parse(docker(['inspect','fundedapp-app-1']));
 const files=current.Config.Labels['com.docker.compose.project.config_files'].split(',');
-const sha=execFileSync('git',['rev-parse','181eb15'],{encoding:'utf8'}).trim();
-const image='fundedapp-devnet:automation-181eb15';
+const revision=process.argv.find(value=>value.startsWith('--revision='))?.slice(11)||'HEAD';
+const sha=execFileSync('git',['rev-parse','--verify',`${revision}^{commit}`],{encoding:'utf8'}).trim();
+const image=process.argv.find(value=>value.startsWith('--image='))?.slice(8)||`fundedapp-devnet:automation-${sha.slice(0,8)}`;
+const [built]=JSON.parse(docker(['image','inspect',image]));
+if(built.Config.Labels?.['org.opencontainers.image.revision']!==sha)throw Error('Image source revision differs from the selected commit');
 const env={...process.env,FUNDED_RELEASE_IMAGE:image,FUNDED_APP_IMAGE:image,FUNDED_RELEASE_SHA:sha,
   FUNDED_RELEASE_SOURCE_DIR:resolve('tmp/automation-release/source')};
 const rendered=execFileSync('docker',['compose','--project-name','fundedapp','--profile','*','--env-file','.env.deploy','--env-file','.env.x',
@@ -17,9 +20,20 @@ const inactive=process.argv.includes('--inactive');
 const deployment=inactive ? {programDataSha256:process.env.FUNDED_V3_PROGRAM_DATA_SHA256}
   : JSON.parse(await readFile('tmp/automation-release/deployed-program.json','utf8'));
 if(!inactive&&deployment.status!=='finalized-exact-binary')throw Error('The upgraded program is not confirmed.');
+if(!inactive){
+  const connection=new Connection(process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com',{
+    commitment:'finalized',disableRetryOnRateLimit:true,
+    fetch:(url,options)=>globalThis.fetch(url,{...options,signal:AbortSignal.timeout(30000)})});
+  if(await connection.getGenesisHash()!=='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')throw Error('Not Devnet');
+  if((await readProgramDataEvidence(connection,new PublicKey(deployment.program))).sha256!==deployment.programDataSha256)
+    throw Error('Finalized ProgramData differs from deployment evidence');
+}
 for(const name of ['app','fee-collector','buyback-worker','agency-buyback-worker']){
   if(!config.services[name])throw Error(`Missing explicitly selected service ${name}`);
   config.services[name].image=image;delete config.services[name].build;
+  config.services[name].environment={...config.services[name].environment,FUNDED_BUILD_ID:sha,
+    FUNDED_V3_PROGRAM_DATA_SHA256:deployment.programDataSha256,
+    SOLANA_RPC_URL:process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com'};
   config.services[name].labels={...config.services[name].labels,'org.opencontainers.image.revision':sha,
     'org.opencontainers.image.source':'https://github.com/roger-morrision/funded.app'};
 }
