@@ -1,5 +1,6 @@
 import { formatTokenBaseUnits } from '../../../funded-burn.js';
 import { tokensToBaseUnits, validateLaunchBurnPolicy } from '../../../launch-burn-policy.js';
+import { renderPromotionRequirements } from './promotion-requirements.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderLaunchBurnSelection(
@@ -25,6 +26,7 @@ export function renderLaunchBurnSelection(
   if (tierSection) tierSection.dataset.selectedTier = policy.tier;
   const bannerUpload = document.querySelector('#launch-banner-upload');
   if (bannerUpload) bannerUpload.hidden = !policy.requiresBurn;
+  renderPromotionRequirements(policy,{document});
   const amounts = currentLaunchTierAmounts();
   const walletReady = Boolean(connectedWalletAddress && fundedBurnState.wallet === connectedWalletAddress && fundedBurnState.status === 'ready');
   const walletBalance = walletReady ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : null;

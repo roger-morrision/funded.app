@@ -1,0 +1,34 @@
+import {test,expect} from '@playwright/test';
+import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
+
+for(const width of [320,390,1440])test(`paid launch requires complete promotion content at ${width}px (mocked APIs, real image preparation)`,async({page,baseURL},info)=>{
+  test.setTimeout(60000);await page.setViewportSize({width,height:900});
+  const errors=[],writes=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
+  await page.route('**/*',r=>new URL(r.request().url()).origin===new URL(baseURL).origin?r.fallback():r.abort());
+  await page.route('**/api/**',r=>{const q=r.request(),path=new URL(q.url()).pathname;let read=q.method()==='GET';if(q.method()==='POST'&&path==='/api/solana/rpc'){try{const b=q.postDataJSON();read=(Array.isArray(b)?b:[b]).every(c=>/^(get|isBlockhashValid$)/.test(c.method));}catch{}}if(!read)writes.push(path);return r.fulfill({status:503,json:{error:'Offline launch-content fixture'}});});
+  await page.route('**/api/fee-policy',r=>r.fulfill({json:{revision:6,split:PROTOCOL_FEE_SPLIT}}));
+  await page.goto('/#launch');await page.locator('body.workspace-ready.product-experience-ready.product-flows-ready').waitFor();
+  const first=page.locator('[data-launch-step="1"]'),second=page.locator('[data-launch-step="2"]'),next=page.locator('#launch-next'),description=page.locator('#token-description'),roadmap=page.locator('#token-roadmap'),banner=page.locator('#token-banner'),panel=page.locator('#launch-promotion-requirements');
+  await page.locator('#token-name').fill('Promotion Test');await page.locator('#token-symbol').fill('PROMO');await next.click();await expect(second).toBeVisible();
+  await page.locator('button[data-burn-tier="pro"]').click();await expect(panel).toBeVisible();await expect(panel).toHaveAttribute('data-complete','false');
+  for(const field of [description,roadmap,banner])await expect(field).toHaveAttribute('aria-required','true');
+  await expect(page.locator('#launch-button')).toBeDisabled();await expect(page.locator('#launch-button')).toHaveText('Complete promotion content');
+  await panel.locator('[data-promotion-field="token-description"]').click();await expect(first).toBeVisible();await expect(description).toBeFocused();
+  await description.fill('   ');await next.click();await expect(first).toBeVisible();await expect(description).toBeFocused();
+  await description.fill('A clear description of the project.');await next.click();await expect(roadmap).toBeFocused();await roadmap.fill('Launch the community, ship the product, expand.');
+  await next.click();await expect(second).toBeVisible();await expect(panel).toContainText('Upload a token banner');
+  await banner.setInputFiles({name:'invalid.png',mimeType:'image/png',buffer:Buffer.from('not an image')});await expect(page.locator('#token-banner-status')).toContainText(/could not be decoded/i);await expect(panel).toHaveAttribute('data-complete','false');
+  const base64=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=1200;c.height=400;const x=c.getContext('2d');x.fillStyle='#273459';x.fillRect(0,0,1200,400);x.fillStyle='#f7c35a';x.fillRect(80,100,200,200);return c.toDataURL('image/png').split(',')[1];});
+  const upload=()=>banner.setInputFiles({name:'promotion-banner.png',mimeType:'image/png',buffer:Buffer.from(base64,'base64')});
+  await upload();await expect(page.locator('#token-banner-status')).toContainText('Ready:');await expect(panel).toHaveAttribute('data-complete','true');await expect(panel).toContainText('Pro content is ready.');
+  await expect(page.locator('#token-banner-preview')).toBeVisible();await panel.screenshot({path:info.outputPath(`promotion-content-${width}.png`)});await page.locator('#launch-banner-upload').screenshot({path:info.outputPath(`promotion-banner-${width}.png`)});
+  await page.locator('button[data-burn-tier="premier"]').click();await expect(panel).toContainText('Premier content is ready.');
+  await page.locator('#token-banner-remove').click();await expect(panel).toHaveAttribute('data-complete','false');await expect(page.locator('#launch-button')).toHaveText('Complete promotion content');
+  await upload();await expect(panel).toHaveAttribute('data-complete','true');
+  await panel.locator('[data-promotion-field="token-roadmap"]').click();await expect(first).toBeVisible();await expect(roadmap).toBeFocused();await roadmap.fill(' ');await next.click();await expect(first).toBeVisible();await roadmap.fill('Deliver the launch milestones.');await next.click();
+  await page.locator('button[data-burn-tier="standard"]').click();await expect(panel).toBeHidden();await expect(banner).toBeHidden();
+  for(const field of [description,roadmap,banner])await expect(field).toHaveAttribute('aria-required','false');
+  await page.locator('#launch-back').click();await description.fill('');await roadmap.fill('');await next.click();await expect(second).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);expect(errors).toEqual([]);expect(writes).toEqual([]);
+});

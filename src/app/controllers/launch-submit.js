@@ -1,4 +1,5 @@
 import {savedFeeAllocationCopy} from '../../features/fees/fee-policy-copy.js';
+import {promotionContentState} from '../../features/launch/promotion-requirements.js';
 import { refreshServiceFees } from '../../features/fees/service-fees-client.js';
 import { readLaunchAgencySelection } from '../../features/marketing/agency-selection.js';
 import { deriveMintRouterV3 } from '../../../mint-router-v3.js';
@@ -16,6 +17,8 @@ export function createLaunchSubmitController(appState) {
       appState.setLaunchStatus('Coin launching is unavailable in this workspace.', true);
       return;
     }
+    const content=promotionContentState(appState.getLaunchBurnPolicy());
+    if(!content.valid){appState.setLaunchStatus(content.message,true);return;}
     if (!appState.wallet) { await appState.connectWallet(); if (!appState.wallet) return; }
     const session = appState.captureWalletSession();
     if (!session || !appState.canSignTransactions(session.provider)) { appState.setLaunchStatus('Open this app inside a signing wallet to launch.', true); return; }

@@ -4,6 +4,7 @@ import { validateFeeDistribution } from '../../../distribution-policy.js';
 import { validateLaunchBurnPolicy } from '../../../launch-burn-policy.js';
 import { canSignTransactions } from '../../../wallet-core.js';
 import { freshLaunchReview } from '../../../launch-review.js';
+import { promotionContentState } from './promotion-requirements.js';
 
 function feeSplitError(distribution){
   if(distribution.valid)return null;
@@ -67,10 +68,12 @@ export function getLaunchStepState(
     if (invalidSocial) return { valid: false, field: `#${invalidSocial.id}`, message: invalidSocial.validationMessage };
     const splitError=feeSplitError(validateFeeDistribution(getFeeDistributionInputs()));
     if(splitError)return splitError;
+    const content=promotionContentState(getLaunchBurnPolicy?.(),{document,includeBanner:false});if(!content.valid)return content;
     return { valid: true, message: 'Coin identity is ready.' };
   }
   const distribution = validateFeeDistribution(getFeeDistributionInputs());
   if (step === 2) {
+    const content=promotionContentState(getLaunchBurnPolicy(),{document});if(!content.valid)return content;
     const communityTokens = getCommunityAirdropTokens();
     if (!Number.isSafeInteger(communityTokens) || communityTokens < MIN_COMMUNITY_AIRDROP_TOKENS || communityTokens > MAX_COMMUNITY_AIRDROP_TOKENS) return { valid: false, field: '#community-airdrop-tokens', message: 'Community airdrop must be between 30,000,000 and 500,000,000 tokens.' };
     const creatorBuySol = getCreatorBuySol();
@@ -104,6 +107,7 @@ export function getLaunchSubmissionState(
     document = globalThis.document,
   } = {}
 ) {
+    const content=promotionContentState(getLaunchBurnPolicy(),{document});if(!content.valid)return content;
     if (!feeRouterState.verified) return { valid: false, message: feeRouterState.status === 'checking'
       ? 'Checking the Solana fee router…'
       : feeRouterState.status === 'router-verification-unavailable'

@@ -1,13 +1,15 @@
 import {sharedFeeAllocationCopy} from '../../features/fees/fee-policy-copy.js';
+import {promotionContentState} from '../../features/launch/promotion-requirements.js';
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchReviewController(appState) {
   // app-source: 619
   async function prepareLaunchMetadata({ mint, name, symbol }, session = appState.captureWalletSession()){
+    const content=promotionContentState(appState.getLaunchBurnPolicy());if(!content.valid)throw new Error(content.message);
     appState.assertWalletSessionCurrent(session);
     if (typeof session.provider.signMessage !== 'function') throw new Error('This wallet must sign a metadata message before the Solana transaction.');
     const preview = appState.getLaunchMetadataPreview();
     appState.assertImageReady();
-    if (appState.getLaunchBurnPolicy().requiresBurn) appState.assertBannerReady();
+    if (appState.getLaunchBurnPolicy().requiresBurn) appState.assertBannerReady({required:true});
     const image = appState.getPreparedImage();
     const banner = appState.getLaunchBurnPolicy().requiresBurn ? appState.getPreparedBanner() : null;
     if (image && (!['image/png', 'image/jpeg', 'image/webp'].includes(image.type) || image.size > 600_000)) throw new Error('Choose a PNG, JPG, or WEBP image under 600 KB.');
@@ -129,6 +131,7 @@ export function createLaunchReviewController(appState) {
         ? JSON.stringify(appState.feeRouterState.v3FeeRouter) : appState.feeRouterState.address,
       form: JSON.stringify(appState.launchFormSnapshot()),
       image: appState.getPreparedImage(),
+      banner: appState.getLaunchBurnPolicy().requiresBurn ? appState.getPreparedBanner() : null,
       feeConsent: document.querySelector('#fee-route-agree').checked,
       termsConsent: document.querySelector('#terms-agree').checked,
     };

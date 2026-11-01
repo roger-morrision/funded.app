@@ -153,7 +153,9 @@ export function initializeLaunchActions(appState) {
     if (status) status.textContent = file ? 'Preparing banner…' : 'No banner selected.';
     if (remove) remove.hidden = !file;
     try {
-      const banner = await appState.prepareLaunchBanner(file);
+      const preparation = appState.prepareLaunchBanner(file);
+      appState.updateLaunchPreview(); appState.updateLaunchButton();
+      const banner = await preparation;
       if (revision !== bannerPreparationRevision || file !== event.target.files?.[0]) return;
       if (banner) {
         if (preview) { preview.style.backgroundImage = `url("${banner.url}")`; preview.hidden = false; }

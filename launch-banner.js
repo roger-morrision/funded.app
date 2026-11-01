@@ -8,9 +8,10 @@ let previewUrl = null;
 
 export function getPreparedBanner() { return prepared; }
 export function getBannerPreviewUrl() { return previewUrl; }
-export function assertBannerReady() {
+export function assertBannerReady({ required = false } = {}) {
   if (pending) throw new Error('Wait for banner preparation to finish.');
   if (error) throw new Error(error);
+  if (required && !prepared) throw new Error('Upload a token banner for the promotion package.');
 }
 
 export async function prepareLaunchBanner(file) {

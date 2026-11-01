@@ -11,6 +11,7 @@ export function launchReviewStillCurrent(pending, current, now = Date.now()) {
     && pending.tierBurnAmount === current.tierBurnAmount
     && pending.form === current.form
     && pending.image === current.image
+    && pending.banner === current.banner
     && current.feeConsent === true
     && current.termsConsent === true);
 }

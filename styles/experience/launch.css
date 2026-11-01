@@ -336,3 +336,16 @@ body.page-route-launch .launch-page-flat .launch-preview-panel { display: none; 
   .community-airdrop-highlight > strong { flex-wrap: wrap; }
   .community-airdrop-highlight > strong b { font-size: 19px; }
 }
+.launch-form .optional.promotion-required { color: var(--accent, #ffb650); }
+.promotion-content-requirements {
+  padding: 12px; margin-top: 10px; border: 1px solid var(--border, #31394b);
+  border-radius: 10px; background: rgba(255, 182, 80, .035);
+}
+.promotion-content-requirements[hidden] { display: none; }
+.promotion-content-requirements p { margin: 0 0 8px; font-size: 12px; line-height: 1.5; }
+.promotion-content-links { display: flex; flex-wrap: wrap; gap: 6px; }
+.promotion-content-links button {
+  min-height: 44px; padding: 8px 12px; font-size: 12px;
+  background: #101522; border: 1px solid #3f4b60; border-radius: 7px; color: #c8d3e4;
+}
+.promotion-content-links button[data-ready="true"] { color: #82dfb6; border-color: rgba(130, 223, 182, .35); }
