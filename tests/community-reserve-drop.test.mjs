@@ -7,6 +7,7 @@ import { Keypair, SystemProgram, TransactionInstruction, TransactionMessage } fr
 import { communityAddresses } from '../server/community-claim-chain.mjs';
 import { rewardAddresses, rewardReserveAddress } from '../server/automatic-reward-chain.mjs';
 import { readCommunityReserveStatus, verifiedCommunityClaimedWalletCount } from '../server/community-reserve-status.mjs';
+import {deriveAgencyPolicyV3} from '../agency-mint-router-v3.js';
 
 const key = () => Keypair.generate().publicKey;
 const programId = key(), authority = key(), creator = key(), mint = key(), eligibilityMint = key();
@@ -106,4 +107,17 @@ test('verifies an SDK v0 opening receipt and exact debits without legacy instruc
   assert.equal(status.verified,true);assert.equal(status.status,'drop-active');
   transaction.meta.postTokenBalances=[tokenRow(sourceIndex,1),tokenRow(destinationIndex,99)];
   assert.equal((await readCommunityReserveStatus({...input,connection:{...connection,getTransaction:async()=>transaction}})).verified,false);
+});
+
+test('binds the appended agency policy on a current 16-account v0 opening receipt',async()=>{
+  const receipt=policy=>{
+    const ix=new TransactionInstruction({programId,keys:[...openingKeys.slice(0,15),policy].map((pubkey,index)=>({pubkey,isSigner:index===0,isWritable:true})),
+      data:Buffer.from(bs58.decode(openingData))});
+    const message=new TransactionMessage({payerKey:authority,recentBlockhash:key().toBase58(),instructions:[ix]}).compileToV0Message();
+    const from=message.staticAccountKeys.findIndex(row=>row.equals(source)),to=message.staticAccountKeys.findIndex(row=>row.equals(destination));
+    return{slot:124,transaction:{message},meta:{err:null,preTokenBalances:[tokenRow(from,100),tokenRow(to,0)],postTokenBalances:[tokenRow(from,0),tokenRow(to,100)]}};
+  };
+  const check=transaction=>readCommunityReserveStatus({...input,connection:{...connection,getTransaction:async()=>transaction}});
+  assert.equal((await check(receipt(deriveAgencyPolicyV3(programId,mint).address))).verified,true);
+  assert.equal((await check(receipt(key()))).verified,false);
 });

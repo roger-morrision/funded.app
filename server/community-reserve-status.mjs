@@ -4,6 +4,7 @@ import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID 
 import { PublicKey } from '@solana/web3.js';
 import { rewardAddresses } from './automatic-reward-chain.mjs';
 import { communityAddresses } from './community-claim-chain.mjs';
+import {deriveAgencyPolicyV3} from '../agency-mint-router-v3.js';
 
 const vaultDiscriminator = createHash('sha256').update('account:RewardVault').digest().subarray(0, 8);
 const dropDiscriminator = createHash('sha256').update('account:CommunityDrop').digest().subarray(0, 8);
@@ -123,7 +124,9 @@ async function verifiedDrop({ connection, program, issuer, funder, mintKey, toke
         const accounts = instruction.accounts || instruction.accountKeyIndexes;
         // V3 opening includes the RewardReserve PDA at index 6. Bind every
         // token movement account to the actual V3 instruction layout.
-        if (!instructionProgram?.equals(program) || !(Array.isArray(accounts) || accounts instanceof Uint8Array) || accounts.length !== 15
+        if (!instructionProgram?.equals(program) || !(Array.isArray(accounts) || accounts instanceof Uint8Array)
+          || ![15,16].includes(accounts.length)
+          || (accounts.length===16&&!keys[accounts[15]]?.equals(deriveAgencyPolicyV3(program,mintKey).address))
           || !keys[accounts[0]]?.equals(issuer) || !keys[accounts[1]]?.equals(funder)
           || !keys[accounts[3]]?.equals(mintKey)
           || !expectedEligibilityMint || !keys[accounts[4]]?.equals(new PublicKey(expectedEligibilityMint))
