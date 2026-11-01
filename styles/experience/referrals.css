@@ -216,3 +216,5 @@
 @media (max-width: 360px) {
   body.page-route .topbar .topbar-context::before { display: none; }
 }
+
+#referral-share-native[hidden], #referral-copy-code[hidden] { display: none !important; }

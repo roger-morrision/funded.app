@@ -295,8 +295,13 @@ function updateReferralStatus(state){
     const status = document.querySelector('#referral-link-status'); if (status) status.textContent = !code ? 'Connect wallet' : registered?.code === code ? 'Ready to share' : 'Activate link when sharing';
     const copy = document.querySelector('#referral-command-center [data-copy-referral-link]');
     if (copy) copy.textContent = !code ? 'Get invite link' : registered?.code === code ? 'Copy link' : 'Activate invite link';
+    const shareReady=Boolean(code&&registered?.code===code);
+    for(const button of document.querySelectorAll('#referral-share-native,#referral-copy-code')){
+      const focused=button===document.activeElement;button.hidden=!shareReady;
+      if(button.hidden&&focused)copy?.focus({preventScroll:true});
+    }
     const help = document.querySelector('#referral-share-help');
-    if (help) help.textContent = registered?.code === code && code ? 'Invite creators with this link. Rewards depend on their collected and settled fees.' : 'Connect your wallet and approve a free sign-in message to activate your link.';
+    if (help) help.textContent = shareReady ? 'Invite creators with this link. Rewards depend on their collected and settled fees.' : code ? 'Approve a free sign-in message to activate your invite link.' : 'Connect your wallet and approve a free sign-in message to activate your link.';
   }
   // app-source-end
 
