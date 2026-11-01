@@ -96,13 +96,8 @@ for(const viewport of[{width:360,height:740},{width:360,height:844},{width:390,h
  for(const step of['1','2']){
   if(step==='2'){await page.locator('#launch-next').click();await expect(page.locator('#launch-dialog')).toHaveAttribute('data-step','2');}
   const matched=await page.evaluate(quote=>window.renderCostNavigationFixture({quote,matchRetry:true}),healthy),jump=page.locator('[data-launch-cost-step="'+step+'"]');await expect(page.locator('#launch-public-quote-retry')).toBeHidden();
-  // QA-approved FQA-072 exception: the new native disclosure precedes Step2 cost navigation.
-  if(step==='2'){
-   await expect(page.locator('#benefits-step-title')).toBeFocused();
-   const originalSummary=await page.locator('#launch-availability-details > summary').elementHandle();expect(originalSummary).not.toBeNull();
-   await armAvailabilityFocus(originalSummary,{step:'2'},'Tab');
-   await page.keyboard.press('Tab');await availabilityFocusProof(page,'legacy-step2-original-summary-before-cost','Tab');
-  }
+  // The removed informational strip has no keyboard stop before cost navigation.
+  if(step==='2')await expect(page.locator('#benefits-step-title')).toBeFocused();
   if(step==='1')await page.locator('[data-launch-step-target="2"]').focus();await page.keyboard.press('Tab');await expect(jump).toBeFocused();await check(jump);
   const saved=await snapshot(page),count=f.reads.length;await page.keyboard.press(step==='1'?'Enter':'Space');await check(target);expect(await target.innerHTML()).toBe(matched.markup);await page.keyboard.press('Shift+Tab');await check(back);await page.keyboard.press(step==='1'?'Space':'Enter');await check(jump);expect(await snapshot(page)).toEqual(saved);expect(f.reads.length).toBe(count);
   await rapidReverse(jump,'fee-route-agree');await expect(page.locator('#launch-public-quote-retry')).toBeHidden();
@@ -214,7 +209,7 @@ function observeAvailabilityFocus(original, readiness = {}) {
       const row = document.querySelector('#launch-availability');
       const panel = row?.closest('[data-launch-step]'), rowRect = row?.getBoundingClientRect();
       const warning = readiness.warning && document.getElementById(readiness.warning);
-      const rowVisible = !element.matches('.step-heading h3') || (rowRect && rowRect.top >= bounds.top && rowRect.bottom <= bounds.bottom && rowRect.left >= bounds.left && rowRect.right <= bounds.right);
+      const rowVisible = !row?.getClientRects().length || !element.matches('.step-heading h3') || (rowRect && rowRect.top >= bounds.top && rowRect.bottom <= bounds.bottom && rowRect.left >= bounds.left && rowRect.right <= bounds.right);
       const ready = Boolean(row && !panel?.hidden && rowVisible
         && (!readiness.state || row.dataset.state === readiness.state)
         && (!readiness.step || panel.dataset.launchStep === readiness.step)
@@ -375,8 +370,8 @@ async function availabilityStructure(page, original = null) {
   expect(await page.locator('#fee-router-status').getAttribute('aria-live')).toBeNull();
   expect(await row.evaluate(e => e.previousElementSibling?.classList.contains('step-heading') && !e.parentElement.hidden)).toBe(true);
   if (original) for (const [id, node] of Object.entries(original)) expect(await node.evaluate((e, id) => e === document.getElementById(id) && e.isConnected, id)).toBe(true);
-  const geometry = await details.locator('summary').evaluate(e => ({ height: e.getBoundingClientRect().height, font: getComputedStyle(e).fontFamily }));
-  expect(geometry.height).toBeGreaterThanOrEqual(44); expect(geometry.font).toContain('Manrope');
+  await expect(row).toBeHidden();await expect(details.locator(':scope > summary')).toBeHidden();
+  await expect(row.getByRole('status')).toHaveCount(0);
   await expect(page.locator('#fee-route-agree')).not.toBeChecked(); await expect(page.locator('#terms-agree')).not.toBeChecked();
   expect(await page.locator('html').getAttribute('data-connected-wallet') || '').toBe('');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -420,12 +415,11 @@ for (const width of [360, 390, 1440]) test(`Launch availability actual loader ch
     await expect(page.locator('#launch-availability-label')).toHaveText('Checking launch service');
     const original = {};
     for (const id of ['launch-availability', 'launch-availability-details', 'fee-router-status', 'launch-availability-summary']) original[id] = await page.locator('#' + id).elementHandle();
-    await page.evaluate(async () => { await document.fonts.ready; await document.fonts.load('700 14px "Manrope"', 'Technical details'); });
-    const summary = await availabilityTab(page, '#launch-availability-details > summary', { state: 'checking' });
-    await page.keyboard.press('Enter'); await expect(page.locator('#launch-availability-details')).toHaveAttribute('open', '');
+    await expect(page.locator('#launch-availability')).toBeHidden();
+    const input = await availabilityTab(page, '#token-name', { state: 'checking' });
     fixture.releaseConfig(); await fixture.accountEntered;
-    await armAvailabilityFocus(summary, { state: 'verified' }); fixture.releaseAccount();
-    await availabilityFocusProof(page, 'real-account-response-keeps-summary-focus');
+    await armAvailabilityFocus(input, { state: 'verified' }); fixture.releaseAccount();
+    await availabilityFocusProof(page, 'real-account-response-keeps-draft-focus');
     await expect(page.locator('#launch-availability-label')).toHaveText('Launch service verified');
     await expect(page.locator('#launch-availability-guidance')).toHaveText('Your wallet, quote and final launch checks are still required.');
     await expect(page.locator('#cost-total-enabled')).toHaveText('Quote unavailable', { timeout: 18000 });
@@ -435,7 +429,7 @@ for (const width of [360, 390, 1440]) test(`Launch availability actual loader ch
     expect(f.accountReads[0].params[0]).toBe(f.router); expect(f.accountReads[0].params[1].commitment).toBe('finalized');
     expect(f.accountReads[0].replied).toBe(true); expect(f.accountReads[0].responseLength).toBe(74);
     await availabilityNativePlanning(page, 'verified', true); await availabilityStructure(page, original);
-    await expect(page.locator('#launch-availability-details')).toHaveAttribute('open', '');
+    await expect(page.locator('#launch-availability')).toBeHidden();
     expect(f.api.filter(x => x.path === '/api/v3-launch-config')).toHaveLength(1); expect(f.accountReads).toHaveLength(1);
     await expect(page.locator('#launch-button')).toHaveAttribute('data-launch-action', 'connect-wallet');
     await expect(page.locator('#launch-button')).toHaveText('Connect wallet to create coin');
@@ -453,14 +447,13 @@ for (const { width, variant } of [
   try {
     await page.goto('/#launch'); await page.locator('body.workspace-ready.product-experience-ready').waitFor();
     await expect(page.locator('#launch-availability-label')).toHaveText('Checking launch service');
-    await page.evaluate(async () => { await document.fonts.ready; await document.fonts.load('700 14px "Manrope"', 'Technical details'); });
-    const summary = await availabilityTab(page, '#launch-availability-details > summary', { state: 'checking' });
-    await page.keyboard.press('Enter');
+    await expect(page.locator('#launch-availability')).toBeHidden();
+    const input = await availabilityTab(page, '#token-name', { state: 'checking' });
     if (!variant.startsWith('service')) { fixture.releaseConfig(); await fixture.accountEntered; }
-    await armAvailabilityFocus(summary, { state: 'unavailable' }); fixture.releaseAccount(); fixture.releaseConfig();
-    await availabilityFocusProof(page, 'real-rejected-read-keeps-summary-focus');
+    await armAvailabilityFocus(input, { state: 'unavailable' }); fixture.releaseAccount(); fixture.releaseConfig();
+    await availabilityFocusProof(page, 'real-rejected-read-keeps-draft-focus');
     await expect(page.locator('#launch-availability-label')).toHaveText('Submission unavailable');
-    await expect(page.locator('#launch-availability-guidance')).toHaveText('You can keep preparing your draft. Launch service verification has not passed.');
+    await expect(page.locator('#launch-availability')).toBeHidden();
     await expect(page.locator('#fee-router-status')).toContainText('Launch blocked:');
     await availabilityNativePlanning(page, 'unavailable', true); await availabilityStructure(page);
     expect(f.api.filter(x => x.path === '/api/v3-launch-config')).toHaveLength(1);

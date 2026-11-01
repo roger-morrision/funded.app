@@ -233,9 +233,9 @@ body.page-route-launch .launch-page-flat .launch-preview-panel { display: none; 
 .launch-review-submit { margin-top: 18px; padding-top: 18px; border-top: 1px solid #263943; }
 .launch-review-submit .primary-button { width: 100%; min-height: 48px; }
 
-/* One informational service check follows the active planning heading. */
+/* Readiness still gates submission; the informational strip is not part of the form. */
 #launch-dialog .launch-availability {
-  display: grid;
+  display: none;
   gap: 4px;
   min-width: 0;
   margin: 0 0 16px;
