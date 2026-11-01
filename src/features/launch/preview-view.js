@@ -105,8 +105,6 @@ export function updateLaunchPreview(
     '#preview-funded-share': `${FEE_DISTRIBUTION.fundedPercent}%`,
   };
   Object.entries(compactPreviewValues).forEach(([selector, value]) => { const node = document.querySelector(selector); if (node) node.textContent = value; });
-  const programNote=document.querySelector('#launch-summary-programs-note');
-  if(programNote)programNote.textContent=`${FEE_DISTRIBUTION.operationsEffectivePercent}% Operations & marketing + ${Number((FEE_DISTRIBUTION.fundedPercent-FEE_DISTRIBUTION.operationsEffectivePercent).toFixed(6))}% referral, bonus and buyback budgets. All percentages use collected creator fees.`;
   const summaryName = document.querySelector('#launch-summary-name');
   const summarySymbol = document.querySelector('#launch-summary-symbol');
   if (summaryName) summaryName.textContent = name || 'Token name';
