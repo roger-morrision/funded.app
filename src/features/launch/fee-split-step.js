@@ -1,4 +1,4 @@
-import {feeDistributionPresentation} from '../fees/distribution-summary.js';
+
 
 // Move the original controls so listeners, draft values and signed-policy IDs stay intact.
 export function mountStepOneFeeSplit(document=globalThis.document){
@@ -16,7 +16,7 @@ export function mountStepOneFeeSplit(document=globalThis.document){
   const overview=document.querySelector('.launch-fixed-distribution');
   if(overview&&!document.querySelector('#launch-fee-overview')){
     const details=document.createElement('details');details.id='launch-fee-overview';details.className='ui-disclosure launch-fee-overview';
-    const summary=document.createElement('summary');summary.textContent=`Fee breakdown · ${feeDistributionPresentation().operations}% Operations & marketing`;
+    const summary=document.createElement('summary');summary.textContent='Fee breakdown';
     overview.before(details);details.append(summary,overview);
   }
 }

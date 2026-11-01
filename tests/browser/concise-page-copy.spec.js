@@ -22,7 +22,7 @@ for(const width of [390,1440])test(`task pages keep short copy and complete rule
   await route('my-launches');await brief('#recovery-inbox > p:first-of-type',15);await expect(page.locator('#recovery-inbox')).toContainText('timeouts do not mean failure');
   await route('paid');await expect(page.locator('.funded-token-story')).toContainText('Launch and network fees still apply');await expect(page.locator('.funded-token-story')).not.toContainText('free package');
   await route('marketing-agency');const details=page.locator('details.agency-policy'),summary=details.locator(':scope > summary');
-  await expect(details).not.toHaveAttribute('open','');await expect(summary).toContainText('8% Operations & marketing');await expect(details.locator('.agency-policy-body')).toBeHidden();
+  await expect(details).not.toHaveAttribute('open','');await expect(summary).toHaveText('Fee policy');await expect(details.locator('.agency-policy-body')).toBeHidden();
   await expect(page.locator('[data-agency-status]')).toContainText('unavailable');await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');
   await summary.focus();await page.keyboard.press('Enter');await expect(details.locator('.agency-policy-body')).toBeVisible();await expect(details).toContainText('each buy and burn the launched coin once');await expect(details).toContainText('Existing coins keep their saved selections');await expect(details).toContainText('L1 0.6% · L2 0.25% · L3 0.15%');
   await page.locator('[data-agency-refresh]').click();await expect(details).toHaveAttribute('open','');await summary.focus();await page.keyboard.press('Space');await expect(details).not.toHaveAttribute('open','');await expect(summary).toBeFocused();

@@ -25,7 +25,7 @@ export function feeDistributionPresentation(fee=FEE_DISTRIBUTION) {
   const total=rows.reduce((sum,row)=>sum+row.percent,0);
   if(rows.some(row=>!Number.isFinite(row.percent)||row.percent<0)||Math.abs(total-100)>0.000001)throw Error('Fee presentation must account for 100% of collected creator fees.');
   const operations=fee.operationsEffectivePercent,benefits=Number((100-operations).toFixed(6)),ecosystem=Number((100-fee.creatorPercent-operations).toFixed(6));
-  return {rows,total,operations,benefits,ecosystem,headline:`Only ${operations}% for Operations & marketing`,
+  return {rows,total,operations,benefits,ecosystem,headline:'Fee distribution',
     benefitLine:`${benefits}% is allocated to creators, referrals, Daily bonuses and token buybacks.`,
     allocation:rows.map(row=>`${row.percent}% ${row.label}`).join(' · ')+'.'};
 }
