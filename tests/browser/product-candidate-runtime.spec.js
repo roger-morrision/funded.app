@@ -29,7 +29,7 @@ test('built inspector displays the historical receipt independently rechecked by
 });
 test('guest report is submitted and reloaded through the real candidate API',async({page})=>{
   await page.goto(`${report.base}/#profile`);await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
-  const root=page.locator('#issue-reports');await expect(root).toContainText('Report service ready');await root.getByLabel('Describe what happened').fill('Local candidate browser acceptance probe; no real user issue.');await root.getByRole('button',{name:'Review report',exact:true}).click();
+  await page.locator('#issue-reports-details > summary').click();const root=page.locator('#issue-reports');await expect(root).toContainText('Report service ready');await root.getByLabel('Describe what happened').fill('Local candidate browser acceptance probe; no real user issue.');await root.getByRole('button',{name:'Review report',exact:true}).click();
   const saved=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/creator-support/issues'&&response.request().method()==='POST');await root.getByRole('button',{name:'Send reviewed report'}).click();expect((await saved).status()).toBe(201);await expect(root).toContainText('Report received');
-  await page.reload();await expect(page.locator('body')).toHaveClass(/product-flows-ready/);await root.getByRole('button',{name:'Check status'}).click();await expect(root).toContainText('received · No reviewer note yet.');
+  await page.reload();await expect(page.locator('body')).toHaveClass(/product-flows-ready/);await page.locator('#issue-reports-details > summary').click();await root.getByRole('button',{name:'Check status'}).click();await expect(root).toContainText('received · No reviewer note yet.');
 });

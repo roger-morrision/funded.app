@@ -206,7 +206,7 @@ html body.product-experience-style #main-content .wallet-detail-stats > div { mi
 html body.product-experience-style #main-content .wallet-detail-empty { min-height: 100px; padding: 20px; }
 html body.product-experience-style.page-route-profile #main-content #profile { display: grid !important; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
 html body.product-experience-style #main-content #profile > * { grid-column: 1 / -1; margin-block: 0; }
-html body.product-experience-style #main-content #profile > :is(#notification-preferences,#trade-preferences) { grid-column: auto; }
+html body.product-experience-style #main-content #profile > :is(#notification-preferences-details,#trade-preferences-details) { grid-column: auto; }
 html body.product-experience-style #main-content #profile > .flow-panel { margin-block: 0; }
 html body.product-experience-style #main-content #profile :is(.profile-wallet-card,.profile-safety-card) { min-height: 0; }
 html body.product-experience-style #main-content #profile .sign-checklist { margin-bottom: 8px; }
@@ -281,7 +281,7 @@ html body.product-experience-style #main-content .workspace-shortcuts { grid-tem
   html body.product-experience-style #main-content #payments .reward-action-icon { display: none; }
   html body.product-experience-style #main-content #payments .reward-action-grid :is(a,button) > span:nth-child(2) { gap: 4px; }
   html body.product-experience-style #main-content #payments .reward-action-grid b { position: absolute; right: 8px; top: 12px; }
-  html body.product-experience-style #main-content #profile > :is(#notification-preferences,#trade-preferences) { grid-column: 1 / -1; }
+  html body.product-experience-style #main-content #profile > :is(#notification-preferences-details,#trade-preferences-details) { grid-column: 1 / -1; }
   html body.product-experience-style #main-content .home-launch-toolbar { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; }
   html body.product-experience-style #main-content .home-launch-display-controls { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
   html body.product-experience-style #main-content .home-launch-display-controls :is(.home-board-sort,.home-board-view) { display: flex; gap: 4px; min-width: 0; margin: 0; }

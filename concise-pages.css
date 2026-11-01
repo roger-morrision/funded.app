@@ -243,3 +243,10 @@ body.page-route .funded-token-story article p + p { line-height: 1.5; }
 @media (max-width: 600px) {
   body.page-route-overview .hero-section { min-height: 420px !important; }
 }
+
+/* Keep forms and full rules available without filling the initial page. */
+#profile .settings-disclosure { align-self: start; min-width: 0; }
+#profile .settings-disclosure > .flow-panel { margin: 0; padding: 14px; border: 0; background: transparent; }
+#profile .settings-disclosure > summary { min-height: 44px; }
+#capital-flow :is(#service-fee-details,.daily-bonus-rules) > p,
+.home-bonus-rules > p { padding: 0 14px 14px; }

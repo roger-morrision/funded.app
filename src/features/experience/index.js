@@ -14,6 +14,7 @@ import { initializeTradePreferences } from './trade-preferences.js';
 import { initializePreferenceTransfer } from './preference-transfer.js';
 import { initializeCreatorWalletFacts } from './creator-wallet-facts.js';
 import { initializePortfolioFocus } from '../portfolio/focus-visibility.js';
+import { mountSettingsDisclosures } from './settings-disclosures.js';
 
 export function initializeProductFlows(app) {
   initializeLaunchFacts(app);
@@ -36,6 +37,7 @@ export function initializeProductFlows(app) {
     initializePreferenceTransfer(app);
     initializeCreatorWalletFacts(app);
     initializePortfolioFocus();
+    mountSettingsDisclosures();
     document.body.classList.add('product-flows-ready');
     window.dispatchEvent(new Event('funded:layout-change'));
     return true;

@@ -66,7 +66,9 @@ export function initServiceFeeCopy() {
       : `Every launch pays ${serviceFeeSol(verifiedLaunchFeeLamports)} SOL, plus network, reserve and account costs. Pro and Premier add the displayed promotion burn. Listing is included.`;
     const target = document.querySelector('#capital-flow');
     if (target && !document.getElementById('service-fee-guide')) {
-      const p = document.createElement('p'); p.id = 'service-fee-guide'; p.className = 'panel-explainer'; target.append(p);
+      const details = document.createElement('details'); details.id = 'service-fee-details'; details.className = 'ui-disclosure';
+      const summary = document.createElement('summary'); summary.textContent = 'Trading, launch & listing costs';
+      const p = document.createElement('p'); p.id = 'service-fee-guide'; p.className = 'panel-explainer'; details.append(summary,p); target.append(details);
     }
     const p = document.getElementById('service-fee-guide'); if (p) p.textContent = serviceFeeGuide();
   };

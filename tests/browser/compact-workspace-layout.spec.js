@@ -55,7 +55,7 @@ for(const width of[320,390,1440])test(`reward program navigation and settings re
   for(const item of await programs.locator(':scope > :is(a,button)').all())expect((await item.boundingBox()).height).toBeGreaterThanOrEqual(44);
   await programs.getByRole('button',{name:/Coin holder rewards/}).click();await expect(page.locator('#rewards-holder')).toBeVisible();
   await page.evaluate(()=>location.hash='profile');await expect(page.locator('#profile')).toBeVisible();
-  const notifications=await page.locator('#notification-preferences').boundingBox(),trades=await page.locator('#trade-preferences').boundingBox();
+  const notifications=await page.locator('#notification-preferences-details').boundingBox(),trades=await page.locator('#trade-preferences-details').boundingBox();
   if(width>700){expect(notifications.y).toBeCloseTo(trades.y,1);expect(trades.x).toBeGreaterThan(notifications.x+notifications.width-1);}else expect(trades.y).toBeGreaterThan(notifications.y);
   const reminder=page.locator('#profile [data-open-activity]');await reminder.focus();await page.keyboard.press('Enter');await expect(page.locator('dialog[open]')).toBeVisible();await page.keyboard.press('Escape');await expect(reminder).toBeFocused();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);

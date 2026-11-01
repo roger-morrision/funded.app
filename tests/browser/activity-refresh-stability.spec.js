@@ -36,5 +36,5 @@ for(const width of[390,1440])test(`FAQ keeps its reading position through a serv
   expect(await original.evaluate(e=>e===document.querySelector('[data-faq="service-prices"]>summary'))).toBe(true);await expect(reading).toBeFocused();await expect(faq).toHaveAttribute('open','');
   await page.evaluate(()=>window.dispatchEvent(new Event('funded:service-fees')));await expect(reading).toBeFocused();
   await page.goto('/#referrals');const rates=page.locator('[data-faq="referral-rates"]');await expect(rates).toContainText('saved on-chain policy');await expect(rates).not.toContainText('First-touch wallet attribution');
-  await rates.getByRole('link',{name:'Read referral payout rules →'}).focus();await page.keyboard.press('Enter');await expect(page.locator('#docs-guide-article h1')).toHaveText('Referral network and Daily referrer bonus');
+  await rates.locator('summary').click();await rates.getByRole('link',{name:'Read referral payout rules →'}).focus();await page.keyboard.press('Enter');await expect(page.locator('#docs-guide-article h1')).toHaveText('Referral network and Daily referrer bonus');
 });

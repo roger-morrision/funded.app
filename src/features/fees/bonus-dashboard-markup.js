@@ -8,10 +8,10 @@ export const HOME_BONUS_MARKUP = `
             <article><span class="bonus-category-mark" aria-hidden="true">02</span><h3>Referral bonus</h3><strong data-bonus-pool="referrals">— SOL</strong><p>Top referrers by referred settled fees</p><small>${bonusRankCopy()}</small><a href="#bonuses" data-bonus-category-link="referrals">See referrer payouts →</a></article>
             <article><span class="bonus-category-mark" aria-hidden="true">03</span><h3>Trader bonus</h3><strong data-bonus-pool="traders">— SOL</strong><p>Top traders by verified SOL volume</p><small>${bonusRankCopy()}</small><a href="#bonuses" data-bonus-category-link="traders">See trader payouts →</a></article>
           </div>
-          <p class="field-help"><strong>Automatic payouts · No claim required.</strong> After the snapshot and source funding are verified, bonuses are sent directly to winning wallets.</p>
+          <p class="field-help"><strong>Allocations, not payments.</strong> Automatic payouts follow snapshot and funding verification. No claim needed.</p>
           <p class="field-help" data-bonus-verification role="status">Checking payout readiness…</p>
           <p class="field-help" data-bonus-pool-status role="status">Checking today's settled bonus pool…</p>
-          <p class="field-help">${bonusCategoryCopy()} Amounts are allocations from verified indexed settlements, not paid rewards. Unfilled ranks retain their share.</p>
+          <details class="ui-disclosure home-bonus-rules"><summary>How bonuses are split</summary><p class="field-help">${bonusCategoryCopy()} Amounts are allocations from verified indexed settlements, not paid rewards. Unfilled ranks retain their share.</p></details>
         `;
 export const BONUS_HISTORY_MARKUP = `
           <header class="bonus-section-heading"><div><p class="eyebrow">Ranked rewards · SOL</p><h1 id="bonuses-title">Daily bonuses</h1><p>Finalized payouts to winning wallets.</p></div><button type="button" data-bonus-history-refresh>Refresh</button></header>

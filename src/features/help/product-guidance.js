@@ -89,7 +89,7 @@ export function renderProductFaqs(document=globalThis.document) {
       let cursor=root.firstElementChild;
       for(const[id,title,body]of items){
         let row=existing.get(id);existing.delete(id);
-        if(!row){row=document.createElement('details');row.dataset.faq=id;row.open=!root.dataset.guidanceReady&&id===items[0][0];row.append(document.createElement('summary'));}
+        if(!row){row=document.createElement('details');row.dataset.faq=id;row.open=false;row.append(document.createElement('summary'));}
         const summary=row.querySelector(':scope > summary');if(summary.textContent!==title)summary.textContent=title;
         if(faqBodies.get(row)!==body){
           for(const child of[...row.childNodes])if(child!==summary)child.remove();
