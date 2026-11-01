@@ -45,8 +45,8 @@ for (const [label, operations, community] of [['current 8/4', 40, 20], ['saved o
     await page.evaluate(() => { location.hash = 'docs/fees'; });
     const guide = page.locator('#docs-guide-article');
     await expect(guide).toBeVisible();
-    await expect(guide).toContainText(`${ops}% Operations & marketing`);
-    await expect(guide).toContainText(`${bonus}% Daily bonus`);
+    await expect(guide.locator('[data-fee-category="operations"] > strong')).toHaveText(`${ops}%`);
+    await expect(guide.locator('[data-fee-category="community"] > strong')).toHaveText(`${bonus}%`);
     await expect(guide).toContainText('creator reviews and signs settlement');
     await expect(guide).toContainText('Standard payouts are hourly');
     await expect(guide).toContainText('selected Devnet QA coins use five-minute cycles');
