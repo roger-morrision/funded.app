@@ -334,7 +334,7 @@ for (const width of [390,1440]) for (const view of ['grid','table']) {
   const selector = view === 'grid' ? '#home-launch-grid [data-verified-feed-retry]'
    : '#home-launch-table-body [data-verified-feed-retry]';
   const retry = page.locator(selector);
-  const predecessorSelector = view === 'grid' ? '.home-feed-settings > summary' : '#home-table-sort-mc';
+  const predecessorSelector = view === 'grid' ? '.home-launch-toolbar .review-buy-setting input' : '#home-table-sort-mc';
   const predecessor = page.locator(predecessorSelector), walk = [];
   for (let i=0;i<80;i++) {
    const at = await predecessor.evaluate(e => ({same:document.activeElement===e,id:document.activeElement?.id,tag:document.activeElement?.tagName}));
@@ -354,7 +354,7 @@ for (const width of [390,1440]) for (const view of ['grid','table']) {
    document.addEventListener('keydown',e => {state.key={key:e.key,trusted:e.isTrusted,at:performance.now()};},{capture:true,once:true});
    return {at:performance.now(),predecessor:document.activeElement===predecessor,nextIsOriginal:index >= 0 && next===target,
     targetConnected:Boolean(target?.isConnected),targetCurrent:target===document.querySelector(selector),
-    next:{id:next?.id,tag:next?.tagName,retry:next?.hasAttribute('data-verified-feed-retry')}};
+    next:{id:next?.id,tag:next?.tagName,html:next?.outerHTML.slice(0,350),ancestor:next?.parentElement?.outerHTML.slice(0,450),retry:next?.hasAttribute('data-verified-feed-retry')}};
   },{selector,predecessorSelector,source:observeHomeRetryFocus.toString()});
   expect(armed.predecessor).toBe(true); expect(armed.nextIsOriginal,JSON.stringify(armed)).toBe(true);
   expect(armed.targetConnected).toBe(true); expect(armed.targetCurrent).toBe(true);
