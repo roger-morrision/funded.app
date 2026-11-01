@@ -10,7 +10,12 @@ for(const width of [320,390,768,1440])test(`launch review keeps amounts readable
     return url.origin===new URL(baseURL).origin&&request.method()==='GET'?route.fallback():route.abort();
   });
   await page.route('**/api/**',route=>{
-    if(route.request().method()!=='GET')writes.push(new URL(route.request().url()).pathname);
+    const request=route.request(),path=new URL(request.url()).pathname;
+    let read=request.method()==='GET';
+    if(request.method()==='POST'&&path==='/api/solana/rpc'){
+      try{const body=request.postDataJSON(),calls=Array.isArray(body)?body:[body];read=calls.length>0&&calls.every(call=>/^(get|isBlockhashValid$)/.test(call.method));}catch{}
+    }
+    if(!read)writes.push(path);
     return route.fulfill({status:503,json:{error:'Offline launch review fixture'}});
   });
   await page.route('**/api/fee-policy',route=>route.fulfill({json:feePolicy}));
