@@ -8,7 +8,7 @@ html body.page-route-launch #launch-dialog .launch-preview { min-width: 0; min-h
 #launch-dialog .launch-summary-specs strong { text-align: left; font-size: 13px; line-height: 1.5; }
 #launch-dialog .launch-summary-policy { margin-top: 16px; padding-top: 12px; }
 #launch-dialog .launch-summary-policy > dl:not([data-fee-fixed-list]) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-#launch-dialog .launch-summary-policy > dl:not([data-fee-fixed-list]) > div { display: grid; grid-template-rows: minmax(2.8em, auto) auto; gap: 4px; border: 0; padding-block: 8px; }
+#launch-dialog .launch-summary-policy > dl:not([data-fee-fixed-list]) > div { display: grid; grid-template-rows: minmax(34px, auto) auto; gap: 4px; border: 0; padding-block: 8px; }
 #launch-dialog .launch-summary-policy dt { min-width: 0; font-size: 12px; line-height: 1.4; }
 #launch-dialog .launch-summary-policy dd { font-size: 13px; line-height: 1.4; }
 #launch-dialog .launch-summary-policy > dl:not([data-fee-fixed-list]) dd { font-size: 18px; }

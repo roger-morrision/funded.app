@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
+const feePolicy={revision:6,split:{operationsPercent:40,referralLevelPercents:[3,1.25,.75],communityPercent:20,buybackPercent:25,agencyPercent:10}};
 
 for(const width of [320,390,768,1440])test(`launch review keeps amounts readable and page extras together at ${width}px (mocked APIs)`,async({page,baseURL},info)=>{
   const errors=[],writes=[];await page.setViewportSize({width,height:900});
@@ -13,7 +13,7 @@ for(const width of [320,390,768,1440])test(`launch review keeps amounts readable
     if(route.request().method()!=='GET')writes.push(new URL(route.request().url()).pathname);
     return route.fulfill({status:503,json:{error:'Offline launch review fixture'}});
   });
-  await page.route('**/api/fee-policy',route=>route.fulfill({json:{revision:6,split:PROTOCOL_FEE_SPLIT}}));
+  await page.route('**/api/fee-policy',route=>route.fulfill({json:feePolicy}));
   await page.goto('/#launch');await page.locator('body.product-flows-ready').waitFor();
   await page.locator('#token-name').fill('A long community token name');await page.locator('#token-symbol').fill('COMMUNITY');
   await page.locator('#creator-wallet-share').fill('60');await page.locator('#holder-airdrop-share').fill('20');

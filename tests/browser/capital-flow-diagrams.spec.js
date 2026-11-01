@@ -1,11 +1,11 @@
 import {test,expect} from '@playwright/test';
-import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
+const feePolicy={revision:6,split:{operationsPercent:40,referralLevelPercents:[3,1.25,.75],communityPercent:20,buybackPercent:25,agencyPercent:10}};
 
 test.beforeEach(async({page,baseURL})=>{
   await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
   await page.route('**/*',r=>{
     const q=r.request(),url=new URL(q.url());if(url.origin!==new URL(baseURL).origin)return r.abort();
-    if(url.pathname.startsWith('/api/'))return url.pathname==='/api/fee-policy'?r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):r.fulfill({status:503,json:{error:'Offline diagram fixture'}});
+    if(url.pathname.startsWith('/api/'))return url.pathname==='/api/fee-policy'?r.fulfill({json:feePolicy}):r.fulfill({status:503,json:{error:'Offline diagram fixture'}});
     return q.method()==='GET'?r.continue():r.abort();
   });
 });
