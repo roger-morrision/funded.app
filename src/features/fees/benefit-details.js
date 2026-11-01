@@ -42,9 +42,9 @@ export function feeBenefitExplanation(key){
       links:[['Current trigger & burn receipts','#buybacks']],
     },
     agency:{
-      who:'Every new coin includes all three agents: X promotion and two buyback-and-burn agents for the launched coin. Coin holders do not claim this allocation as a cash reward.',
+      who:'Every new coin includes two buyback-and-burn agents. Promotion packages also include X promotion. Coin holders do not claim this allocation as a cash reward.',
       when:`Each buyback agent can execute once at its saved, verified market-cap milestone, after funding and execution checks pass. Default milestones are ${milestones}; the coin’s saved values apply. X promotion follows its saved interval, normally at least ${DEFAULT_AGENCY_RULES.promotionIntervalSeconds/3600} hours between billed posts, and is billed only after the post is verified.`,
-      receive:'For new launches the budget is divided equally across all three included agents. Existing coins retain their saved selections. Execution also requires an enabled, ready executor; crossing a market-cap milestone alone is not proof of a purchase or burn. Unused budgets stay reserved.',
+      receive:'The budget is divided equally across the included agents: two for Standard, three with a promotion package. Existing coins retain their saved selections. Execution also requires an enabled, ready executor; crossing a market-cap milestone alone is not proof of a purchase or burn. Unused budgets stay reserved.',
       links:[['Included agents, rules & receipts','#marketing-agency']],
     },
   };
@@ -63,9 +63,9 @@ export function feeBenefitExplanation(key){
     buyback:{who:'No direct wallet payment. This share reduces the $FUNDED supply.',
       when:'When fee targets are met, buybacks are enabled and trade checks pass. No fixed schedule.',
       receive:'The app buys $FUNDED and burns it. Check the finalized receipts; no claim is needed.'},
-    agency:{who:'Every new coin includes X promotion and two coin buyback-and-burn agents.',
+    agency:{who:'Every new coin includes two coin buyback-and-burn agents. X promotion is included with a promotion package.',
       when:`Buybacks run once at the saved milestones (normally ${milestones} market cap), when funded and ready. X posts are normally at least ${DEFAULT_AGENCY_RULES.promotionIntervalSeconds/3600} hours apart.`,
-      receive:'The three agents share the budget equally. X posts are charged only after verification. Unused budgets stay reserved.'},
+      receive:'Included agents share the budget equally. X posts are charged only after verification. Unused budgets stay reserved.'},
   };
   const rules=explanations[key];
   return rules?{...rules,...simple[key],rules}:null;

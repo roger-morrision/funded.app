@@ -21,7 +21,7 @@ The current new-launch default, as a percentage of **gross creator fees collecte
 | Referral network | 1% | Levels 1/2/3: 0.6% / 0.25% / 0.15% of gross |
 | Daily bonus | 4% | Equal creator, direct-referrer and trader category pools |
 | $FUNDED buyback | 5% | Dedicated V3 vault allocations for protected purchase and burn |
-| AI marketing & coin buybacks | 2% | All three agents are included for new launches; execution requires verified funding and readiness |
+| AI marketing & coin buybacks | 2% | Both buyback agents are included; promotion packages add X promotion. Execution requires verified funding and readiness |
 
 These are percentages of creator fees, not trade volume or every Pump fee. Only **8%** is the app allocation for Operations & marketing; **92%** is allocated to creators and ecosystem benefits. The published `/api/fee-policy` and verified on-chain configuration govern new launches. [config/marketing-agency.js](config/marketing-agency.js) contains the current defaults; [config/protocol-fee-split.js](config/protocol-fee-split.js) is the historical fallback, not the current agency policy. Existing coins and settlements retain their recorded on-chain category units. Collection, creator-approved settlement, source funding and finalized recipient payment are separate stages.
 

@@ -37,30 +37,20 @@ for (const width of [1440, 390]) test(`dedicated agency menu, clear readiness an
   else await page.screenshot({ path: 'tmp/agency-mobile.png', fullPage: true, animations: 'disabled' });
 });
 
-for(const width of [320,390,1440])test(`all three launch agents are always included at ${width}px (mocked APIs)`, async ({ page },info) => {
-  await page.setViewportSize({width,height:900});
-  await page.goto('/#launch');
-  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  await page.locator('#token-name').fill('Agency QA');
-  await page.locator('#token-symbol').fill('AQA');
-  await page.locator('#launch-next').click();
-  await expect(page.locator('#launch-agency-options')).toBeVisible();
-  const team=page.locator('#launch-agency-options');
-  await expect(team.locator('legend')).toHaveText('AI marketing team');
-  await expect(team).toContainText('All three agents are included in every new launch.');
-  await expect(team.locator('[data-launch-agent]')).toHaveCount(3);
-  await expect(team.locator('.agency-included-badge')).toHaveText(['Included','Included','Included']);
-  await expect(team.locator('input')).toHaveCount(0);
-  await expect(page.locator('[data-agency-split]')).toContainText('2% of collected creator fees is shared equally across all three agents');
-  await expect(page.locator('#launch-agency-help')).toContainText('Agent execution is not yet available');
-  await expect(page.locator('#launch-button')).toBeDisabled();
-  await page.locator('#launch-back').click();await page.locator('#launch-next').click();
-  await expect(team.locator('.agency-included-badge')).toHaveCount(3);
+for(const width of [320,390,1440])test(`X promotion is included only with a promotion package at ${width}px (mocked APIs)`, async ({ page },info) => {
+  await page.setViewportSize({width,height:900});await page.goto('/#launch');
+  await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
+  await page.locator('#token-name').fill('Agency QA');await page.locator('#token-symbol').fill('AQA');await page.locator('#launch-next').click();
+  const team=page.locator('#launch-agency-options');await expect(team).toBeVisible();
+  await expect(team.locator('input')).toHaveCount(0);await expect(team.locator('[data-launch-agent]')).toHaveCount(3);
+  const check=async promoted=>{await expect(team.locator('.agency-included-badge')).toHaveText([promoted?'Included':'Promotion only','Included','Included']);await expect(team.locator('[data-included="true"]')).toHaveCount(promoted?3:2);await expect(page.locator('[data-agency-split]')).toContainText(`across the ${promoted?3:2} included agents`);};
+  await check(false);await expect(page.locator('#launch-button')).toBeDisabled();
+  for(const tier of ['pro','premier']){await page.locator(`button[data-burn-tier="${tier}"]`).click();await check(true);await expect(page.locator('#launch-promotion-requirements')).toBeVisible();}
+  await team.screenshot({path:info.outputPath(`promoted-agents-${width}.png`)});
+  await page.locator('button[data-burn-tier="standard"]').click();await check(false);
+  await page.locator('#launch-back').click();await page.locator('#launch-next').click();await check(false);
+  await team.screenshot({path:info.outputPath(`standard-agents-${width}.png`)});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
-  await team.scrollIntoViewIfNeeded();await team.screenshot({path:info.outputPath(`included-agents-${width}.png`)});
-  await page.goto('/#capital-flow');
-  await expect(page.locator('#marketing-agency')).not.toBeVisible();
-  await expect(page.locator('#capital-flow')).toBeVisible();
 });
 
 test('failed capability load is unavailable with working retry, never zero funds or ready', async ({ page }) => {

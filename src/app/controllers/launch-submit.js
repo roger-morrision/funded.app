@@ -8,7 +8,7 @@ import { deriveMintRouterV3 } from '../../../mint-router-v3.js';
 export function createLaunchSubmitController(appState) {
   // app-source: 662
   async function launchToken(){
-    const agencySelection=readLaunchAgencySelection();
+    const agencySelection=readLaunchAgencySelection(appState.getLaunchBurnPolicy());
     if (agencySelection.length&&!appState.feeRouterState?.v3FeeRouter?.agency) {
       appState.setLaunchStatus('AI agency launch is unavailable until its dedicated V3 fee budget and executors are verified. No transaction was sent.', true);
       return;

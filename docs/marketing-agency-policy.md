@@ -17,7 +17,7 @@ The published allocation applies to new launches. Only the 8% Operations & marke
 | Daily bonus | 4% |
 | Existing $FUNDED buyback | 5% |
 
-Every new launch includes all three agents. Their agency budget is split equally, using cumulative integer rounding. Existing coins keep their saved selections; unused budgets remain reserved. This does not restore the historical 3% referral share. The existing $FUNDED buyback budget is separate.
+Every new launch includes both buyback agents. Agent 1 (X promotion) is included only when a promotion package is selected. The agency budget is split equally across the included agents, using cumulative integer rounding. Existing coins keep their saved selections; unused budgets remain reserved. This does not restore the historical 3% referral share. The existing $FUNDED buyback budget is separate.
 
 1. Agent 1 promotes the launched project through the funded.vip X account at most once per coin per 24 hours. Its accumulated agency share is billed only after the post is independently verified. A verified but unbilled post blocks another post until billing is reconciled. The next durable sequence becomes eligible 24 hours after verified delivery; an uncertain intent is reconciled rather than retried as a fresh promotion.
 2. Agent 2 buys and burns that same coin once at verified USD market cap >= $100,000.

@@ -78,7 +78,7 @@
 
   <rect x="799" y="673" width="745" height="151" rx="23" fill="url(#goldCard)" stroke="#b68e56" stroke-width="2" stroke-dasharray="10 6"/>
   <circle cx="835" cy="714" r="11" fill="#ffd17e"/><text x="859" y="721" class="over gold">INCLUDED · AI AGENTS</text>
-  <text x="827" y="766" class="cardTitle">2% shared by all three agents</text>
+  <text x="827" y="766" class="cardTitle">2% shared by included agents</text>
   <text x="827" y="801" class="body">X posts · own-coin burns at $100k / $300k MC</text>
 
   <text x="56" y="859" class="footer">Policy view only · Payouts and burns require verified funding and finalized receipts.</text>

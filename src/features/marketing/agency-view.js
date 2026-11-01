@@ -1,19 +1,20 @@
 import { MARKETING_AGENCY_POLICY as POLICY } from '../../../config/marketing-agency.js';
 import { renderAgencyHistory } from './agency-history.js';
+import { readLaunchAgencySelection } from './agency-selection.js';
 
 export function initMarketingAgency(document = globalThis.document) {
   const main = document?.querySelector('.main-content');
   if (!main || document.getElementById('marketing-agency')) return;
   const view = document.defaultView, page = document.createElement('section');
-  let publishingPaused=false,agencyGrossPercent=2;
+  let publishingPaused=false,agencyGrossPercent=2,agencyReady=false,updateLaunchTeam=()=>{};
   page.id = 'marketing-agency'; page.className = 'agency-page section-block';
   page.setAttribute('aria-labelledby', 'agency-title');
-  page.innerHTML = `<header class="section-heading"><div><p class="eyebrow">Launch promotion</p><h1 id="agency-title">Marketing agents</h1><p>Every new token includes X promotion and both milestone buyback agents.</p></div><button type="button" data-agency-refresh>Refresh status</button></header>
+  page.innerHTML = `<header class="section-heading"><div><p class="eyebrow">Launch promotion</p><h1 id="agency-title">Marketing agents</h1><p>Both milestone buyback agents are included. X promotion comes with a promotion package.</p></div><button type="button" data-agency-refresh>Refresh status</button></header>
     <p class="agency-status" data-agency-status role="status">Checking agency activation…</p>
     <div class="agency-agent-grid" data-agency-cards></div>
     <details class="agency-policy"><summary>Fee policy</summary><div class="agency-policy-body"><h2 id="agency-policy-title">New-launch agency allocation</h2>
       <p data-agency-policy-split>80% creator-directed · 8% Operations &amp; marketing · 1% referrals · 2% AI marketing &amp; coin buybacks · 4% Daily bonus · 5% $FUNDED buyback &amp; burn.</p>
-      <p data-agency-policy-referrals>Every new launch includes all three agents, sharing the agency allocation equally. Actions require verified funding and ready executors. Existing coins keep their saved selections. Referral levels: ${POLICY.referralUnits.map((units,index)=>`L${index+1} ${units*100/POLICY.grossUnits}%`).join(' · ')} of gross collected creator fees.</p>
+      <p data-agency-policy-referrals>Both buyback agents are included in every new launch. Promotion packages also include X promotion. Included agents share the agency allocation equally. Actions require verified funding and ready executors. Existing coins keep their saved selections. Referral levels: ${POLICY.referralUnits.map((units,index)=>`L${index+1} ${units*100/POLICY.grossUnits}%`).join(' · ')} of gross collected creator fees.</p>
       <p>Agents 2 and 3 each buy and burn the launched coin once, using only their accumulated budget. Reaching a milestone is not a purchase or burn receipt. Later fees remain reserved after a one-time action.</p>
       <p>The separate $FUNDED buyback allocation keeps its own trigger and funds. Existing launches retain their signed fee policy.</p>
       <a href="#capital-flow">View the currently active fee policy →</a></div></details>
@@ -39,7 +40,7 @@ export function initMarketingAgency(document = globalThis.document) {
   if (promotion && !document.getElementById('launch-agency-options')) {
     const fieldset = document.createElement('fieldset'); fieldset.id = 'launch-agency-options'; fieldset.className = 'agency-options';
     const legend = document.createElement('legend'); legend.textContent = 'AI marketing team'; fieldset.append(legend);
-    const included = document.createElement('p'); included.className = 'agency-included-intro'; included.textContent = 'All three agents are included in every new launch.';
+    const included = document.createElement('p'); included.className = 'agency-included-intro'; included.textContent = 'Buyback agents are included. X promotion requires a promotion package.';
     const help = document.createElement('p'); help.id = 'launch-agency-help'; help.textContent = 'New launches wait for verified fee vaults and executors. Agent execution is not yet available.'; help.setAttribute('role','status');
     fieldset.append(included); fieldset.setAttribute('aria-describedby', help.id);
     const team = document.createElement('ul'); team.className = 'agency-included-list'; fieldset.append(team);
@@ -50,17 +51,16 @@ export function initMarketingAgency(document = globalThis.document) {
     }
     const split = document.createElement('p'); split.dataset.agencySplit = ''; split.setAttribute('role', 'status'); fieldset.append(split);
     const update = () => {
-      split.textContent = `${agencyGrossPercent}% of collected creator fees is shared equally across all three agents. Unused budgets stay reserved until an action is ready.`;
+      const selected=readLaunchAgencySelection({requiresBurn:['boost','pro','premier'].includes(promotion.dataset.selectedTier)});
+      for(const row of team.children){const included=selected.includes(row.dataset.launchAgent);row.dataset.included=String(included);row.querySelector('.agency-included-badge').textContent=included?'Included':'Promotion only';}
+      split.textContent=`${agencyGrossPercent}% of collected creator fees is shared equally across the ${selected.length} included agents. Unused budgets stay reserved until an action is ready.`;
+      help.textContent=agencyReady?'Included agents and fee rates are signed at launch. Actions wait for verified funding and their saved milestones.':'New launches wait for verified fee vaults and executors. Agent execution is not yet available.';
+      if(publishingPaused&&selected.includes('x-promotion'))help.textContent+=' X promotion is paused; its budget stays reserved until reinstatement and verified delivery.';
     };
+    updateLaunchTeam=update;view.addEventListener('funded:launch-promotion',update);
     fieldset.append(help); fieldset.addEventListener('change', update); update(); promotion.append(fieldset);
   }
-  function teamReadiness(active){
-    const options=document.getElementById('launch-agency-options');
-    if(options){
-      options.querySelector('#launch-agency-help').textContent=active?'The full team and fee rates are signed at launch. Actions wait for verified funding and their saved milestones.':'New launches wait for verified fee vaults and executors. Agent execution is not yet available.';
-      if(publishingPaused)options.querySelector('#launch-agency-help').textContent+=' X promotion is paused; its budget stays reserved until reinstatement and verified delivery.';
-      options.dispatchEvent(new Event('change'));}
-  }
+  function teamReadiness(active){agencyReady=active;updateLaunchTeam();}
   const readiness=event=>teamReadiness(event.detail?.active===true);
   view.addEventListener('funded:agency-readiness',readiness);
   const sol=value=>{if(!/^(0|[1-9]\d{0,19})$/.test(String(value)))return'Unavailable';const n=BigInt(value),fraction=String(n%1000000000n).padStart(9,'0').replace(/0+$/,'');return`${n/1000000000n}${fraction?'.'+fraction:''} SOL`;};
@@ -89,7 +89,7 @@ export function initMarketingAgency(document = globalThis.document) {
         if(rates&&Object.values(rates).every(n=>typeof n==='number'&&Number.isFinite(n)&&n>=0)){
           agencyGrossPercent=rates.agency;
           page.querySelector('[data-agency-policy-split]').textContent=`${rates.creator}% creator-directed · ${rates.operations}% Operations & marketing · ${rates.referrals}% referrals · ${rates.agency}% AI marketing & coin buybacks · ${rates.dailyBonus}% Daily bonus · ${rates.fundedBuyback}% $FUNDED buyback & burn.`;
-          page.querySelector('[data-agency-policy-referrals]').textContent=`Every new launch includes all three agents, sharing the agency allocation equally. Existing coins keep their saved selections. Referral levels: ${data.referralGrossPercents.map((n,i)=>`L${i+1} ${n}%`).join(' · ')} of gross collected creator fees.`;
+          page.querySelector('[data-agency-policy-referrals]').textContent=`Both buyback agents are included in every new launch. Promotion packages also include X promotion. Included agents share the agency allocation equally. Existing coins keep their saved selections. Referral levels: ${data.referralGrossPercents.map((n,i)=>`L${i+1} ${n}%`).join(' · ')} of gross collected creator fees.`;
         }
         for(const[ i,card]of [...page.querySelectorAll('.agency-agent')].entries()){
           const agent=data.policy.agents[i];card.querySelector('h2').textContent=agent.name;card.querySelector('p').textContent=agent.description;
@@ -129,5 +129,5 @@ export function initMarketingAgency(document = globalThis.document) {
   const route = () => { if (active()) void refresh(); };
   page.querySelector('[data-agency-refresh]').addEventListener('click', () => { void refresh(); });
   view.addEventListener('hashchange', route); document.addEventListener('visibilitychange', route); route();
-  return () => { ++serial; request?.abort(); view.removeEventListener('hashchange', route);view.removeEventListener('funded:agency-readiness',readiness); document.removeEventListener('visibilitychange', route); };
+  return () => { ++serial; request?.abort(); view.removeEventListener('hashchange', route);view.removeEventListener('funded:agency-readiness',readiness);view.removeEventListener('funded:launch-promotion',updateLaunchTeam); document.removeEventListener('visibilitychange', route); };
 }

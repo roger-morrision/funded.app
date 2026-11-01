@@ -56,7 +56,7 @@ export function createWalletMetricsController(appState) {
       const v3 = appState.feeRouterState.v3FeeRouter;
       if (!v3 || appState.feeRouterState.scope !== 'per-mint-v3') throw new Error('V3 launch configuration is not verified.');
       const{readLaunchAgencySelection}=await import('../../features/marketing/agency-selection.js');
-      const launchV3={...v3,...(v3.agency?{agency:{...v3.agency,selectedAgents:readLaunchAgencySelection()}}:{})};
+      const launchV3={...v3,...(v3.agency?{agency:{...v3.agency,selectedAgents:readLaunchAgencySelection(appState.getLaunchBurnPolicy())}}:{})};
       const mintRouter = buildLaunchMintRouter({mint:mint.publicKey,payer,v3FeeRouter:launchV3,feeShares:appState.getFeeDistributionInputs()});
       const router = mintRouter.router.address;
       const launchInstructions = initialBuy.amountBaseUnits > 0n

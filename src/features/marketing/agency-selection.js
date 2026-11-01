@@ -1,5 +1,5 @@
-import { NEW_LAUNCH_AGENT_IDS } from '../../../config/marketing-agency.js';
+import { newLaunchAgencySelection } from '../../../config/marketing-agency.js';
 
-export function readLaunchAgencySelection() {
-  return [...NEW_LAUNCH_AGENT_IDS];
+export function readLaunchAgencySelection(policy = {}) {
+  return newLaunchAgencySelection({promotion:policy.requiresBurn===true});
 }

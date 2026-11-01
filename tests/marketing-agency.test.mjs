@@ -150,7 +150,7 @@ test('selected agency launch fails before wallet connection, signing, RPC or tra
   globalThis.document = { querySelectorAll: () => [{ value: ids[0] }] };
   let message;
   try {
-    await createLaunchSubmitController({ setLaunchStatus: value => { message = value; } }).launchToken();
+    await createLaunchSubmitController({ getLaunchBurnPolicy:()=>({requiresBurn:false}), setLaunchStatus: value => { message = value; } }).launchToken();
     assert.match(message, /No transaction was sent/);
   } finally { globalThis.document = prior; }
 });

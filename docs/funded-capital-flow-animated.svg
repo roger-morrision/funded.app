@@ -84,7 +84,7 @@
   <rect class="dash-card" x="60" y="1655" width="1480" height="125" rx="24"/>
   <rect x="90" y="1677" width="132" height="29" rx="14" fill="#624b2f"/><text x="156" y="1696" text-anchor="middle" class="badge" fill="#ffe2ae">AI AGENTS</text>
   <text x="240" y="1698" class="route-title">Included with new launches: 2% dedicated AI agent budget</text>
-  <text x="92" y="1733" class="small">All three agents share the 2%: X project promotion (paused) · own-coin buy + burn once at verified $100k and $300k market caps.</text>
+  <text x="92" y="1733" class="small">Included agents share 2%: buy + burn at $100k and $300k. Promotion packages add X promotion (paused).</text>
   <text x="92" y="1758" class="tiny">Existing coins keep saved rates. Actions wait for verified funding, cadence and milestones.</text>
   <text x="65" y="1815" class="note">Policy diagram, not execution proof. Collection, vault allocation, submitted signatures, and queued actions do not establish final payment or burn.</text>
 </svg>

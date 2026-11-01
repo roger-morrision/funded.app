@@ -21,7 +21,7 @@ import { verifyFeeRouterAccount } from '../../fee-router.js';
 import { createV3LaunchConfig } from '../v3-launch-config.mjs';
 import nacl from 'tweetnacl';
 import {isDeletedDevnetMint} from '../deleted-devnet-mints.mjs';
-import {NEW_LAUNCH_AGENT_IDS} from '../../config/marketing-agency.js';
+import {newLaunchAgencySelection} from '../../config/marketing-agency.js';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -83,8 +83,9 @@ export function createLaunchRegistrationRoutes({
       // still match the exact signed revision, shares and agent selection.
       if(!existingLaunch&&v3Config.agency&&(policy.marketingAgency?.version!==v3Config.agency.version
         ||BigInt(policy.marketingAgency.configRevision)>BigInt(v3Config.agency.configRevision)))return json(res,409,{error:'The signed agency configuration is not available on this deployment.'});
-      if(!existingLaunch&&policy.marketingAgency?.selectedAgents.length!==NEW_LAUNCH_AGENT_IDS.length)
-        return json(res,409,{error:'Every new launch must include all three AI marketing agents. Refresh the launch form before signing.'});
+      const requiredAgents=newLaunchAgencySelection({promotion:Boolean(policy.promotion)});
+      if(!existingLaunch&&JSON.stringify(policy.marketingAgency?.selectedAgents)!==JSON.stringify(requiredAgents))
+        return json(res,409,{error:'The signed agents must match the launch package: both buyback agents for Standard, plus X promotion for a promotion package.'});
       if (xLinked && env.FUNDED_V3_X_CLAIMS_ENABLED !== 'true')
         return json(res, 503, { error:'V3 X payout and claim verification are not activated.' });
       if (xLinked && (await resolveXUser(policy.xRecipient)).id !== policy.xUserId) return json(res, 409, { error: 'The X account ID changed since launch preparation; registration is blocked.' });

@@ -23,7 +23,11 @@ export function renderLaunchBurnSelection(
 ) {
   const policy = getLaunchBurnPolicy();
   const tierSection = document.querySelector('.creator-burn-section');
-  if (tierSection) tierSection.dataset.selectedTier = policy.tier;
+  if (tierSection && tierSection.dataset.selectedTier !== policy.tier) {
+    tierSection.dataset.selectedTier = policy.tier;
+    const view=document.defaultView;
+    if(view?.CustomEvent)view.dispatchEvent(new view.CustomEvent('funded:launch-promotion'));
+  }
   const bannerUpload = document.querySelector('#launch-banner-upload');
   if (bannerUpload) bannerUpload.hidden = !policy.requiresBurn;
   renderPromotionRequirements(policy,{document});
