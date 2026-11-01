@@ -1,0 +1,833 @@
+{
+  "at": "2026-11-01T12:50:12.102Z",
+  "scope": "UI review, focused fixes and Devnet acceptance; scope labels distinguish mocked, local-only and finalized on-chain evidence",
+  "deployment": {
+    "backend": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+    "frontend": "ef4c140b19a6755ee3ef606bd02cba66e25fb0bd",
+    "frontendDigest": "de3edc82dc70512ed132e4378f7bd0348bf77195919be29cf7a40d91c1e347b6",
+    "image": "fundedapp-devnet:ui-audit-604ae992",
+    "imageId": "sha256:595e1b635cfd8a88f5f700aac6552e7032d6747e8ade16e55418112cf330d248",
+    "services": [
+      {
+        "name": "fundedapp-app-1",
+        "image": "sha256:595e1b635cfd8a88f5f700aac6552e7032d6747e8ade16e55418112cf330d248",
+        "build": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "source": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "frontend": "ef4c140b19a6755ee3ef606bd02cba66e25fb0bd",
+        "status": "running",
+        "health": "healthy",
+        "startedAt": "2026-11-01T12:49:24.376506872Z",
+        "rpc": "http://rpc-gateway:8899",
+        "qaMinimums": "false"
+      },
+      {
+        "name": "fundedapp-fee-collector-1",
+        "image": "sha256:595e1b635cfd8a88f5f700aac6552e7032d6747e8ade16e55418112cf330d248",
+        "build": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "source": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "status": "running",
+        "health": "healthy",
+        "startedAt": "2026-11-01T11:35:45.508299121Z",
+        "rpc": "http://rpc-gateway:8899",
+        "qaMinimums": "false"
+      },
+      {
+        "name": "fundedapp-buyback-worker-1",
+        "image": "sha256:595e1b635cfd8a88f5f700aac6552e7032d6747e8ade16e55418112cf330d248",
+        "build": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "source": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "status": "running",
+        "health": null,
+        "startedAt": "2026-11-01T11:35:48.490096941Z",
+        "rpc": "http://rpc-gateway:8899",
+        "qaMinimums": "false"
+      },
+      {
+        "name": "fundedapp-agency-buyback-worker-1",
+        "image": "sha256:595e1b635cfd8a88f5f700aac6552e7032d6747e8ade16e55418112cf330d248",
+        "build": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "source": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "status": "running",
+        "health": null,
+        "startedAt": "2026-11-01T11:35:59.950749549Z",
+        "rpc": "http://rpc-gateway:8899",
+        "qaMinimums": "false"
+      },
+      {
+        "name": "fundedapp-rpc-gateway-1",
+        "image": "sha256:e4b4ec345cab408b9de8876524d41f5e094359eca1ccdb3e25ce155ab5e592bb",
+        "build": "bd90a8d69de612f35ab9688c1a7e200a3833084a",
+        "source": "bd90a8d69de612f35ab9688c1a7e200a3833084a",
+        "status": "running",
+        "health": "healthy",
+        "startedAt": "2026-11-01T05:10:51.803834042Z",
+        "rpc": null
+      },
+      {
+        "name": "fundedapp-rpc-cache-1",
+        "image": "sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537",
+        "status": "running",
+        "health": "healthy",
+        "startedAt": "2026-11-01T04:27:55.252230373Z",
+        "rpc": null
+      }
+    ],
+    "gatewayNotRestarted": true,
+    "redisNotRestarted": true,
+    "backendHashes": {
+      "server/index.mjs": "8e946bd2683b0d2e3f0d8c489094af99f442380730be10c2f4b5db0a73242e16",
+      "server/listener.mjs": "18cd4b98d29b4895884398a01aa59cc60cfba6cff26007de8a981fcb2c3a9b25",
+      "server/routes/launch-registration.mjs": "e4f68b03712ad49bc41bc9334e84aeecac51b42cfc7e3329d8ae424a802c2a55",
+      "server/rpc-proxy.mjs": "92f6e7839d4a4df0d36eabd56f9f6a06c87444f6fe8dc837811c4ebbe5980cb0"
+    },
+    "backendHashesVerified": true,
+    "finalFrontendDeployment": {
+      "at": "2026-11-01T12:49:26.335Z",
+      "backend": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+      "frontend": "ef4c140b19a6755ee3ef606bd02cba66e25fb0bd",
+      "frontendDigest": "de3edc82dc70512ed132e4378f7bd0348bf77195919be29cf7a40d91c1e347b6",
+      "image": "sha256:595e1b635cfd8a88f5f700aac6552e7032d6747e8ade16e55418112cf330d248",
+      "workerAndInfrastructureIdsPreserved": true,
+      "changedBrowserSources": [
+        "index.html",
+        "reward-experience-ui.js",
+        "src/features/help/docs-topics.js",
+        "src/features/help/product-guidance.js",
+        "src/features/workspace/rewards.js"
+      ],
+      "testStats": {
+        "startTime": "2026-11-01T12:43:37.403Z",
+        "duration": 313649.683,
+        "expected": 42,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "privateApi": {
+      "/api/admin/overview": 401,
+      "/api/admin/vaults": 401,
+      "/api/admin/rpc-health": 401,
+      "/api/admin/creator-search": 401,
+      "/api/admin/product-issues": 401,
+      "/api/admin/service-fees": 401
+    },
+    "qaMinimumsEnabled": false,
+    "mainnetEnabled": false
+  },
+  "verification": {
+    "unit": {
+      "tests": 1518,
+      "pass": 1497,
+      "fail": 0,
+      "skipped": 21
+    },
+    "completeBrowserSuite": {
+      "revision": "cd1f1bd821c329a674e27c867d5b75a97fb84dc9",
+      "browserEquivalentTo": "11b07a2f7a6a98f031e78bdb00f4028da31fd810",
+      "backendEquivalentTo": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+      "total": 897,
+      "stats": {
+        "startTime": "2026-11-01T12:11:48.874Z",
+        "duration": 1933250.926,
+        "expected": 882,
+        "skipped": 4,
+        "unexpected": 11,
+        "flaky": 0
+      },
+      "skippedCases": [
+        {
+          "title": "Launch availability presentation preserves ordinary entry and step request counts",
+          "reasons": [
+            "A separate read-only accepted669 baseline server must be admitted in runner metadata."
+          ]
+        },
+        {
+          "title": "built candidate exposes its tested identity and registered-operation coverage without mock API responses",
+          "reasons": [
+            "Set PRODUCT_CANDIDATE_REPORT to an isolated API acceptance report."
+          ]
+        },
+        {
+          "title": "built inspector displays the historical receipt independently rechecked by the acceptance runner",
+          "reasons": [
+            "Set PRODUCT_CANDIDATE_REPORT to an isolated API acceptance report."
+          ]
+        },
+        {
+          "title": "guest report is submitted and reloaded through the real candidate API",
+          "reasons": [
+            "Set PRODUCT_CANDIDATE_REPORT to an isolated API acceptance report."
+          ]
+        }
+      ],
+      "initialFailures": [
+        "left navigation stays fixed across routes and reloads at 1024px (mocked APIs)",
+        "FQA-028 Docs comparison native keyboard and touch at 360px (offline API)",
+        "FQA-028 Docs comparison native keyboard and touch at 390px (offline API)",
+        "FQA-028 Docs comparison native keyboard and touch at 1440px (offline API)",
+        "Holder guide native cold warm and traversal reward-actions 360",
+        "Holder guide native cold warm and traversal claims 360",
+        "Holder guide native cold warm and traversal reward-actions 390",
+        "Holder guide native cold warm and traversal claims 390",
+        "Holder guide native cold warm and traversal reward-actions 1440",
+        "Holder guide native cold warm and traversal claims 1440",
+        "FQA-082 one activation preserves leaderboard and public wallet Back at 1440px"
+      ],
+      "followup": {
+        "revision": "ef4c140b19a6755ee3ef606bd02cba66e25fb0bd",
+        "docsAndNavigation": {
+          "startTime": "2026-11-01T12:43:37.403Z",
+          "duration": 313649.683,
+          "expected": 42,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "repeatedBackJourneys": {
+          "startTime": "2026-11-01T12:39:43.376Z",
+          "duration": 158225.049,
+          "expected": 6,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "resolved": [
+          "left navigation stays fixed across routes and reloads at 1024px (mocked APIs)",
+          "FQA-028 Docs comparison native keyboard and touch at 360px (offline API)",
+          "FQA-028 Docs comparison native keyboard and touch at 390px (offline API)",
+          "FQA-028 Docs comparison native keyboard and touch at 1440px (offline API)",
+          "Holder guide native cold warm and traversal reward-actions 360",
+          "Holder guide native cold warm and traversal claims 360",
+          "Holder guide native cold warm and traversal reward-actions 390",
+          "Holder guide native cold warm and traversal claims 390",
+          "Holder guide native cold warm and traversal reward-actions 1440",
+          "Holder guide native cold warm and traversal claims 1440",
+          "FQA-082 one activation preserves leaderboard and public wallet Back at 1440px"
+        ],
+        "unresolved": []
+      },
+      "qualification": "The complete run recorded 882 passed, 4 skipped and 11 failures. All 11 were resolved in the subsequent 42-case and 6-repeat checks on the final frontend candidate. These are distinct runs, not one unchanged-source all-green aggregate."
+    },
+    "localFlowChecks": {
+      "passed": 63,
+      "total": 63
+    },
+    "sourceSizeCheck": "passed for 1611 maintained code files",
+    "sourceBrowser": {
+      "revision": "ce5e273ee10ac56309e10a539729d0f8165d3582",
+      "stats": {
+        "startTime": "2026-11-01T11:22:42.680Z",
+        "duration": 1212944.3129999998,
+        "expected": 197,
+        "skipped": 1,
+        "unexpected": 5,
+        "flaky": 0
+      },
+      "initialFailures": [
+        "FQA-070 shared actual Home and Explore states, layout and native copy at360",
+        "FQA-069 native Retry outline and recovery grid at 390px",
+        "FQA-069 native Retry outline and recovery grid at 1440px",
+        "FQA-067 native reverse entry keeps original SOL outline visible at 1440x900",
+        "FQA-067 native ordinary focusleave keeps original foreign owner at 1440"
+      ],
+      "followup": {
+        "browserRevision": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "stats": {
+          "startTime": "2026-11-01T11:48:09.874Z",
+          "duration": 80242.938,
+          "expected": 12,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "resolved": [
+          "FQA-070 shared actual Home and Explore states, layout and native copy at360",
+          "FQA-069 native Retry outline and recovery grid at 390px",
+          "FQA-069 native Retry outline and recovery grid at 1440px",
+          "FQA-067 native reverse entry keeps original SOL outline visible at 1440x900",
+          "FQA-067 native ordinary focusleave keeps original foreign owner at 1440"
+        ]
+      },
+      "qualification": "197 passed, 1 skipped and 5 initial failures; all five resolved in the passing 12-case follow-up. This is not represented as one unchanged-source all-green run."
+    },
+    "compiledBrowser": {
+      "frontend": "11b07a2f7a6a98f031e78bdb00f4028da31fd810",
+      "stats": {
+        "startTime": "2026-11-01T11:53:31.495Z",
+        "duration": 53559.665,
+        "expected": 28,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "qualification": "Identical published compiled assets served on loopback; application APIs mocked. Two direct source-import helpers are tested separately."
+    },
+    "sourceHelpers": {
+      "count": 2,
+      "qualification": "Both direct-import helpers passed in the complete final source suite.",
+      "cases": [
+        "trade sharing uses an exact receipt and explains image-only privacy (mocked result)",
+        "recovery inbox labels its in-tab fallback when device storage is full (mocked wallet)"
+      ]
+    },
+    "agencyHistory": {
+      "startTime": "2026-11-01T12:10:53.828Z",
+      "duration": 15656.467999999999,
+      "expected": 4,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "realCandidateHttp": {
+      "scope": "local-only API acceptance against copied recorded Devnet data",
+      "checks": [
+        "API-only health; no keeper or active worker heartbeat",
+        "Candidate build and Devnet identity",
+        "New operations endpoint over copied financial records",
+        "Public activity endpoint",
+        "Exact recorded burn receipt with historical evidence label",
+        "Independent finalized program, receipt, vault-debit and burn verification",
+        "Guest reporting advertised without token holding",
+        "Guest issue persists through actual HTTP dispatcher",
+        "Report unavailable without private view token",
+        "Owner can read report status",
+        "Admin reports require existing admin session",
+        "Creator brief rejects missing verified session",
+        "Account sync rejects missing verified session",
+        "Report survives complete API process restart",
+        "Reviewed public API retains its original build"
+      ],
+      "chainProof": {
+        "signature": "6rZHpopt7qbT7XnKoZVT1putfTHHsR4wRkBYHMpzp3ABiy9MzvuACiqBmvyAvfo5xXftjRFzPfqvSs3Db9oQvxm",
+        "slot": 517401948,
+        "spentLamports": "14820",
+        "burnedBaseUnits": "1873",
+        "programDataSha256": "f0517fce9b8361be087456be2f5e5547af23b114ca1c0cf4ebaba5a42a8bd9ca",
+        "evidence": "fresh-finalized-rpc-burn-and-vault-delta"
+      },
+      "browser": {
+        "startTime": "2026-11-01T11:29:12.447Z",
+        "duration": 13484.474,
+        "expected": 3,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "qualification": "Isolated API-only candidate over copied Devnet records, real HTTP and persistence; no Solana writes or active workers."
+    },
+    "signedAdminHttp": {
+      "checks": [
+        "Real QA wallet signature authenticates the actual admin HTTP route and isolated PostgreSQL",
+        "Concurrent pre-approval refresh cannot overwrite the saved review state",
+        "Browser approval and rejection persist exact content hashes, signed actor and append-only audit",
+        "Stale hash rejected without audit mutation; approved content cannot dispatch while paused",
+        "Legacy individual payouts remain hidden and unapprovable; unsolicited mentions cannot be approved",
+        "Exact nine-decimal fee policy persists through signed HTTP and PostgreSQL without rounding",
+        "Out-of-order fee refreshes cannot replace a newer revision with stale prices",
+        "Stale and invalid fee writes cannot change current policy or audit history",
+        "Logout invalidates fee editing even when a previously authenticated read arrives late"
+      ],
+      "browserErrors": [],
+      "scope": "Isolated real HTTP, PostgreSQL, QA signature and actual admin fee/X review components. No API mocks, X client or worker.",
+      "xPosts": 0,
+      "solanaTransactions": 0
+    },
+    "inventory": {
+      "scope": "Source browser, deterministic offline/API fixtures; inventory and route/layout checks, not a substitute for action tests",
+      "states": 174,
+      "documentationTopics": 29,
+      "controls": 5566,
+      "errors": [],
+      "overflow": 0
+    },
+    "publicGuidance": {
+      "at": "2026-11-01T12:50:05.604Z",
+      "scope": "Actual final public frontend and APIs; native FAQ activation and Docs/reward navigation, no mocks, signatures or writes",
+      "revision": "ef4c140b19a6755ee3ef606bd02cba66e25fb0bd",
+      "settings": {
+        "schemaVersion": 1,
+        "cluster": "devnet",
+        "exploreCluster": "devnet",
+        "mainnetEnabled": false,
+        "mainnetReadOnly": false,
+        "devWalletEnabled": false,
+        "sourceDigest": "de3edc82dc70512ed132e4378f7bd0348bf77195919be29cf7a40d91c1e347b6"
+      },
+      "pages": [
+        {
+          "width": 390,
+          "route": "referral-faq",
+          "text": "Do I need to claim a referral bonus?\n\nThere is no separate V3 recipient claim. Connect and verify the earning wallet to view its private referral dashboard. Active automatic routes pay the saved upline after verified settlement and funding. Manual routes can require creator approval. Check the finalized transfer. Daily referrer bonuses are sent automatically after their daily snapshot and funding checks.",
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "route": "docs/claims",
+          "text": "X SOL rewards and community launched-token airdrops require recipient claim actions. Holder SOL and Daily bonuses are automatic after their conditions pass. Referral recipients do not claim. Active automatic routes pay the saved upline after settlement and funding; manual routes can require creator approval.",
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "route": "payments/creator",
+          "text": "YOUR LAUNCHES\n\nCreator rewards\n\nTrack SOL payments from your launches.",
+          "overflow": false
+        },
+        {
+          "width": 1440,
+          "route": "referral-faq",
+          "text": "Do I need to claim a referral bonus?\n\nThere is no separate V3 recipient claim. Connect and verify the earning wallet to view its private referral dashboard. Active automatic routes pay the saved upline after verified settlement and funding. Manual routes can require creator approval. Check the finalized transfer. Daily referrer bonuses are sent automatically after their daily snapshot and funding checks.",
+          "overflow": false
+        },
+        {
+          "width": 1440,
+          "route": "docs/claims",
+          "text": "X SOL rewards and community launched-token airdrops require recipient claim actions. Holder SOL and Daily bonuses are automatic after their conditions pass. Referral recipients do not claim. Active automatic routes pay the saved upline after settlement and funding; manual routes can require creator approval.",
+          "overflow": false
+        },
+        {
+          "width": 1440,
+          "route": "payments/creator",
+          "text": "YOUR LAUNCHES\n\nCreator rewards\n\nTrack SOL payments from your launches.",
+          "overflow": false
+        }
+      ],
+      "errors": []
+    },
+    "publicUi": {
+      "scope": "Actual deployed public UI and APIs; signed out, no mocks, signatures, app writes or X posts; navigation/layout smoke only",
+      "at": "2026-11-01T11:51:11.609Z",
+      "states": 64,
+      "pages": [
+        {
+          "route": "overview",
+          "width": 390
+        },
+        {
+          "route": "explore",
+          "width": 390
+        },
+        {
+          "route": "launch",
+          "width": 390
+        },
+        {
+          "route": "my-launches",
+          "width": 390
+        },
+        {
+          "route": "payments",
+          "width": 390
+        },
+        {
+          "route": "payments/history",
+          "width": 390
+        },
+        {
+          "route": "payments/holders",
+          "width": 390
+        },
+        {
+          "route": "payments/creator",
+          "width": 390
+        },
+        {
+          "route": "payments/x",
+          "width": 390
+        },
+        {
+          "route": "payments/activity",
+          "width": 390
+        },
+        {
+          "route": "analytics-detail",
+          "width": 390
+        },
+        {
+          "route": "referrals",
+          "width": 390
+        },
+        {
+          "route": "community",
+          "width": 390
+        },
+        {
+          "route": "leaderboard",
+          "width": 390
+        },
+        {
+          "route": "airdrops",
+          "width": 390
+        },
+        {
+          "route": "buybacks",
+          "width": 390
+        },
+        {
+          "route": "capital-flow",
+          "width": 390
+        },
+        {
+          "route": "bonuses",
+          "width": 390
+        },
+        {
+          "route": "marketing-agency",
+          "width": 390
+        },
+        {
+          "route": "docs",
+          "width": 390
+        },
+        {
+          "route": "profile",
+          "width": 390
+        },
+        {
+          "route": "creators",
+          "width": 390
+        },
+        {
+          "route": "paid",
+          "width": 390
+        },
+        {
+          "route": "privacy",
+          "width": 390
+        },
+        {
+          "route": "/pilot",
+          "width": 390
+        },
+        {
+          "route": "/funded",
+          "width": 390
+        },
+        {
+          "route": "/list",
+          "width": 390
+        },
+        {
+          "route": "/explore",
+          "width": 390
+        },
+        {
+          "route": "token",
+          "width": 390
+        },
+        {
+          "route": "/wallet/AeGgGPZopudWTMTkJurfm2HVxDMxfDPwzYqWbcpGKFXU",
+          "width": 390
+        },
+        {
+          "route": "admin",
+          "width": 390
+        },
+        {
+          "route": "welcome",
+          "width": 390
+        },
+        {
+          "route": "overview",
+          "width": 1440
+        },
+        {
+          "route": "explore",
+          "width": 1440
+        },
+        {
+          "route": "launch",
+          "width": 1440
+        },
+        {
+          "route": "my-launches",
+          "width": 1440
+        },
+        {
+          "route": "payments",
+          "width": 1440
+        },
+        {
+          "route": "payments/history",
+          "width": 1440
+        },
+        {
+          "route": "payments/holders",
+          "width": 1440
+        },
+        {
+          "route": "payments/creator",
+          "width": 1440
+        },
+        {
+          "route": "payments/x",
+          "width": 1440
+        },
+        {
+          "route": "payments/activity",
+          "width": 1440
+        },
+        {
+          "route": "analytics-detail",
+          "width": 1440
+        },
+        {
+          "route": "referrals",
+          "width": 1440
+        },
+        {
+          "route": "community",
+          "width": 1440
+        },
+        {
+          "route": "leaderboard",
+          "width": 1440
+        },
+        {
+          "route": "airdrops",
+          "width": 1440
+        },
+        {
+          "route": "buybacks",
+          "width": 1440
+        },
+        {
+          "route": "capital-flow",
+          "width": 1440
+        },
+        {
+          "route": "bonuses",
+          "width": 1440
+        },
+        {
+          "route": "marketing-agency",
+          "width": 1440
+        },
+        {
+          "route": "docs",
+          "width": 1440
+        },
+        {
+          "route": "profile",
+          "width": 1440
+        },
+        {
+          "route": "creators",
+          "width": 1440
+        },
+        {
+          "route": "paid",
+          "width": 1440
+        },
+        {
+          "route": "privacy",
+          "width": 1440
+        },
+        {
+          "route": "/pilot",
+          "width": 1440
+        },
+        {
+          "route": "/funded",
+          "width": 1440
+        },
+        {
+          "route": "/list",
+          "width": 1440
+        },
+        {
+          "route": "/explore",
+          "width": 1440
+        },
+        {
+          "route": "token",
+          "width": 1440
+        },
+        {
+          "route": "/wallet/AeGgGPZopudWTMTkJurfm2HVxDMxfDPwzYqWbcpGKFXU",
+          "width": 1440
+        },
+        {
+          "route": "admin",
+          "width": 1440
+        },
+        {
+          "route": "welcome",
+          "width": 1440
+        }
+      ],
+      "errors": [],
+      "overflow": 0,
+      "token": {
+        "at": "2026-11-01T11:57:26.813Z",
+        "scope": "Actual public token UI after data readiness; no wallet or API mocks",
+        "mint": "GWGEXyxWkGoBXepemri5nfEQBgSqqt96A32t8YcTsxbo",
+        "name": "UI Flow QA 110137",
+        "symbol": "UIQA",
+        "tradesVisible": true,
+        "errors": [],
+        "overflow": false
+      }
+    },
+    "finalReadiness": {
+      "observedAt": "2026-11-01T12:01:22.299Z",
+      "build": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+      "status": "operational",
+      "settlementEvidence": {
+        "verified": true,
+        "scope": "all-recorded-v3-collections",
+        "recorded": 6,
+        "checked": 6,
+        "status": "verified",
+        "checkedAt": "2026-11-01T12:01:17.656Z",
+        "expiresAt": "2026-11-01T12:02:17.656Z",
+        "cached": true
+      },
+      "launchReady": true,
+      "launchReasons": []
+    },
+    "initialExploratorySweep": {
+      "selected": 883,
+      "completedAggregate": false,
+      "qualification": "Initial source sweep was changed during fixes and interrupted while its Windows fixture server was stuck shutting down. It is not counted as an all-green run."
+    }
+  },
+  "freshOnchain": {
+    "program": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+    "programDataSha256": "f0517fce9b8361be087456be2f5e5547af23b114ca1c0cf4ebaba5a42a8bd9ca",
+    "launch": {
+      "scope": "Frozen 4b8b176d compiled UI with actual public Devnet API; static assets intercepted, API/RPC not mocked",
+      "at": "2026-11-01T11:03:56.175Z",
+      "mint": "GWGEXyxWkGoBXepemri5nfEQBgSqqt96A32t8YcTsxbo",
+      "name": "UI Flow QA 110137",
+      "symbol": "UIQA",
+      "creator": "GpgmXnUfYfY6zhVxf1hKnoPNwCZhvxDTJkrD2zuAxCYC",
+      "reserve": {
+        "vault": "9r3FuJpyVsxpHEGi2R696h4TVUJmT4v7ccT2exbrmA6d",
+        "tokenAccount": "5VzPCzPAU59YjyAzMDAqMvvSSRAuH4aeGKQ9WugwABsW",
+        "fundingSignature": "q9E5SYwtTtmRVHc1dxP9FCCWii2CWGN4rRkydXdUK6Vr6JjPQvJhCzn7HGmhaE23CdCgiNefUKoErQiBkmWtuaq",
+        "fundedTokens": "30000000",
+        "verified": true,
+        "atomicWithPumpLaunch": true
+      },
+      "agents": [
+        "buyback-100k",
+        "buyback-300k"
+      ],
+      "signatures": [
+        "2pebfbDQrodxoiu1hhz9Y44CnNZeMDYpgQaU6DShmW8t6MXLhtGqHkv1g5dfztTYb9f9sfmGwLTEmT48cKZjjAGr",
+        "q9E5SYwtTtmRVHc1dxP9FCCWii2CWGN4rRkydXdUK6Vr6JjPQvJhCzn7HGmhaE23CdCgiNefUKoErQiBkmWtuaq"
+      ],
+      "initialHarnessPassed": false,
+      "qualification": "The launch and reserve funding finalized and registered. That initial harness later failed waiting for an optional next-page startup marker; a separate deployed-UI trader journey completed afterward."
+    },
+    "trading": {
+      "scope": "Actual public compiled UI and Devnet APIs; no API mocks",
+      "mint": "GWGEXyxWkGoBXepemri5nfEQBgSqqt96A32t8YcTsxbo",
+      "wallet": "AeGgGPZopudWTMTkJurfm2HVxDMxfDPwzYqWbcpGKFXU",
+      "checks": [
+        {
+          "side": "buy",
+          "signature": "2mU26xAQeMbTpdebUqdqCgzc5PwJmxFy4zwcTjQUeqnEUr454s6h2PoZ4rsiMuyvmTC5mft2GgBzhn5MGHSz26Ve",
+          "evidence": {
+            "receiptVerified": true,
+            "indexed": true,
+            "complete": true
+          }
+        },
+        {
+          "side": "sell",
+          "signature": "67GEqoQfy8ueCJYUuCVBWYuQVe9BZHvL2TCc3BPUpkZBEJD8JxLkXLE9v9t1ZpBVenUNGuJfHGgv6Jy85PJUiHCK",
+          "evidence": {
+            "receiptVerified": true,
+            "indexed": true,
+            "complete": true
+          }
+        }
+      ],
+      "balances": [
+        {
+          "side": "buy",
+          "signature": "2mU26xAQeMbTpdebUqdqCgzc5PwJmxFy4zwcTjQUeqnEUr454s6h2PoZ4rsiMuyvmTC5mft2GgBzhn5MGHSz26Ve",
+          "slot": 517482081,
+          "blockTime": 1793533086,
+          "feeLamports": "5000",
+          "walletLamportsBefore": "50000000",
+          "walletLamportsAfter": "37060208",
+          "walletLamportsDelta": "-12939792",
+          "tokenBaseUnitsBefore": "0",
+          "tokenBaseUnitsAfter": "31362421677856",
+          "tokenBaseUnitsDelta": "31362421677856"
+        },
+        {
+          "side": "sell",
+          "signature": "67GEqoQfy8ueCJYUuCVBWYuQVe9BZHvL2TCc3BPUpkZBEJD8JxLkXLE9v9t1ZpBVenUNGuJfHGgv6Jy85PJUiHCK",
+          "slot": 517482227,
+          "blockTime": 1793533121,
+          "feeLamports": "5000",
+          "walletLamportsBefore": "37060208",
+          "walletLamportsAfter": "37055526",
+          "walletLamportsDelta": "-4682",
+          "tokenBaseUnitsBefore": "31362421677856",
+          "tokenBaseUnitsAfter": "31361421677856",
+          "tokenBaseUnitsDelta": "-1000000000"
+        }
+      ],
+      "browserErrors": [],
+      "signRequests": 2,
+      "feeOverview": {
+        "available": true,
+        "scope": "per-mint-v3",
+        "creatorWallet": "GpgmXnUfYfY6zhVxf1hKnoPNwCZhvxDTJkrD2zuAxCYC",
+        "automaticSettlementEnabled": true,
+        "automaticDisbursementEnabled": true,
+        "pump": {
+          "vault": "65AxWQetV4KtMmSYcC33cvnhgSLmMerBwZwsCnWZDaRc",
+          "accruedLamports": "71317",
+          "status": "confirmed",
+          "error": null
+        },
+        "collections": [],
+        "gates": {
+          "settlement": true,
+          "communityFunding": true,
+          "creatorRewardFunding": true,
+          "creatorWalletPayout": true,
+          "referralPayout": true,
+          "operationsPayout": true,
+          "buyback": true
+        }
+      },
+      "refunds": [
+        {
+          "signature": "3Z59joXWE6fGjgcrvcV5SLH37X6aCaNbnYzzuTMBdGZw8RvCock4U6RAgQBhgn6orir9gx9mUpLNtzzneMezjXcU",
+          "lamports": "36050526"
+        }
+      ],
+      "privateKeysPersisted": false,
+      "qualification": "Both receipts and wallet token deltas finalized. Buy indexing initially lagged, then both appeared in confirmed Pump events. The tiny sell received 318 lamports before its 5000-lamport network fee, so net wallet SOL fell by 4682 lamports; completion is not a profit claim."
+    },
+    "creatorRefund": [
+      {
+        "signature": "4LKtepnSRm5CjMCPcVuHceVbT4puucUjsY335UZe23YKBBZhVZ3Qi9bwp5b9dCe14XjQKRqwuHLW65JwGQjTh51P",
+        "lamports": "250092117"
+      }
+    ],
+    "historicalBurnRecheck": {
+      "signature": "6rZHpopt7qbT7XnKoZVT1putfTHHsR4wRkBYHMpzp3ABiy9MzvuACiqBmvyAvfo5xXftjRFzPfqvSs3Db9oQvxm",
+      "slot": 517401948,
+      "spentLamports": "14820",
+      "burnedBaseUnits": "1873",
+      "programDataSha256": "f0517fce9b8361be087456be2f5e5547af23b114ca1c0cf4ebaba5a42a8bd9ca",
+      "evidence": "fresh-finalized-rpc-burn-and-vault-delta"
+    }
+  },
+  "limits": [
+    "21 unit cases and 4 cases in the full browser sweep were skipped. Three skipped candidate-HTTP cases passed separately with the actual isolated API report; the extra accepted669 baseline comparison was unavailable. No success is attributed to skipped executions.",
+    "The complete source browser suite uses deterministic fixtures; mocked payouts are not new on-chain payments.",
+    "Live X OAuth and X publishing were not executed; no X posts were sent. Paid Pro/Premier package burns, listing and boost writes were not freshly executed through the public UI; their fixtures and existing receipts are separate evidence.",
+    "Normal time, funding and market-cap gates were preserved. Fresh migration/airdrop, holder/bonus payouts and agent buybacks were not forced or re-executed for the new UI token.",
+    "The earlier 93-transaction / 33-payment financial campaign remains separate evidence. This run freshly rechecked one historical protocol burn and the six recorded collection/settlement proofs.",
+    "Redis remained enabled and healthy; API-credit savings were not remeasured or attributed to this UI run."
+  ]
+}
