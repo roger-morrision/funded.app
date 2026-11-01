@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import bs58 from 'bs58';
-import { Connection as RpcConnection, Keypair, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction as sendTransaction } from '@solana/web3.js';
+import { Keypair, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction as sendTransaction } from '@solana/web3.js';
+import {SharedRpcConnection as RpcConnection} from './rpc-connection.mjs';
 import { OnlinePumpSdk as PumpSdk } from '@pump-fun/pump-sdk';
 import { deriveMintRouterV3 } from '../mint-router-v3.js';
 import { verifyV3LaunchRouterReadiness as verifyV3Readiness } from './v3-launch-readiness.mjs';
@@ -135,10 +136,10 @@ export function createFeeRouterService({
     if (!instructions.length) return { requestedMint:mintKey.toBase58(), mint:mintKey.toBase58(),
       scope:'per-mint-v3', router:router.address.toBase58(), status:'nothing-to-collect',
       beforeLamports, afterLamports:beforeLamports };
-    const latest = await connection.getLatestBlockhash('confirmed');
+    const latest = await connection.getLatestBlockhash('finalized');
     const transaction = new Transaction().add(...instructions);
     transaction.recentBlockhash = latest.blockhash; transaction.feePayer = keeper.publicKey;
-    const signature = await sendAndConfirmTransaction(connection, transaction, [keeper], { commitment: 'confirmed' });
+    const signature = await sendAndConfirmTransaction(connection, transaction, [keeper], { commitment:'finalized',preflightCommitment:'confirmed',maxRetries:2 });
     const afterLamports = await connection.getBalance(router.address, 'confirmed').catch(() => null);
     let proof = null;
     try { proof = await loadFinalizedV3PumpCollection({ connection, signature,

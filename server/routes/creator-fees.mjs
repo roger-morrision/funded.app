@@ -1,5 +1,6 @@
 import { homeLaunchFeeIndex } from '../home-launch-fee-index.mjs';
-import { PublicKey, Connection } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
+import {SharedRpcConnection as Connection} from '../rpc-connection.mjs';
 import { creatorVaultPda, OnlinePumpSdk } from '@pump-fun/pump-sdk';
 import { solFromLamports } from '../../fee-activity-amount.js';
 

@@ -40,6 +40,7 @@ for(const name of ['app','fee-collector','buyback-worker','agency-buyback-worker
 Object.assign(config.services.app.environment,{FUNDED_BUILD_ID:sha,FUNDED_V3_PROGRAM_DATA_SHA256:deployment.programDataSha256,
   FUNDED_V3_AUTO_SETTLEMENT_ENABLED:String(!inactive),FUNDED_V3_AUTO_DISBURSEMENT_ENABLED:String(!inactive),
   SOLANA_RPC_URL:process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com',
+  SOLANA_HOLDER_INDEX_RPC_URL:process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com',
   FUNDED_PROGRAM_EVIDENCE_RPC_URL:process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com'});
 if(inactive)for(const flag of ['LAUNCH','COLLECTION','SETTLEMENT','HOLDER_WORKER','BUYBACK','COMMUNITY_FUNDING',
   'CREATOR_REWARD_FUNDING','CREATOR_WALLET_PAYOUT','OPERATIONS_PAYOUT','REFERRAL_PAYOUT'])

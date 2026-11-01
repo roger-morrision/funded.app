@@ -1,5 +1,6 @@
 import bs58 from 'bs58';
-import { Connection, PublicKey, Transaction } from '@solana/web3.js';
+import { PublicKey, Transaction } from '@solana/web3.js';
+import {SharedRpcConnection as Connection} from '../rpc-connection.mjs';
 import { buildMintRouterV3SettlementInstruction } from '../../mint-router-v3.js';
 import {buildV3PolicySettlement, buildV3AutoPolicySettlement} from '../v3-policy-builders.mjs';
 import { prepareCreatorSettlement, verifyCreatorSettlement,

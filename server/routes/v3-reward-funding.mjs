@@ -1,7 +1,8 @@
 import { isDeepStrictEqual } from 'node:util';
 import {buildV3PolicyApproval,buildV3PolicyDisbursement} from '../v3-policy-builders.mjs';
 import bs58 from 'bs58';
-import { Connection, PublicKey, Transaction } from '@solana/web3.js';
+import { PublicKey, Transaction } from '@solana/web3.js';
+import {SharedRpcConnection as Connection} from '../rpc-connection.mjs';
 import {ensureMintAutomationV3} from '../mint-automation-v3.mjs';
 import {deriveMintPolicyV3} from '../../mint-router-v3.js';
 import {deriveAgencyPolicyV3} from '../../agency-mint-router-v3.js';
