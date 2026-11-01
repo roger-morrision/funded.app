@@ -78,8 +78,11 @@ export function createLaunchRegistrationRoutes({
       if (!v3Config.ready || v3Config.beneficiaryRoutingOnChainEnforced !== true)
         return json(res, 503, { error:'V3 normal flows are not ready to accept a new launch.',
           reasons:v3Config.reasons });
+      // A finalized launch can predate a later global configuration publication.
+      // Below, the Pump receipt, creator signature and immutable mint policy must
+      // still match the exact signed revision, shares and agent selection.
       if(!existingLaunch&&v3Config.agency&&(policy.marketingAgency?.version!==v3Config.agency.version
-        ||policy.marketingAgency.configRevision!==v3Config.agency.configRevision))return json(res,409,{error:'The signed agency configuration changed; refresh before launching.'});
+        ||BigInt(policy.marketingAgency.configRevision)>BigInt(v3Config.agency.configRevision)))return json(res,409,{error:'The signed agency configuration is not available on this deployment.'});
       if(!existingLaunch&&policy.marketingAgency?.selectedAgents.length!==NEW_LAUNCH_AGENT_IDS.length)
         return json(res,409,{error:'Every new launch must include all three AI marketing agents. Refresh the launch form before signing.'});
       if (xLinked && env.FUNDED_V3_X_CLAIMS_ENABLED !== 'true')
