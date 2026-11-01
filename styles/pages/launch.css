@@ -1,3 +1,24 @@
+/* One review surface keeps the token, allocation and costs together. */
+html body.page-route-launch #launch-dialog .launch-preview { min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+#launch-dialog .launch-preview-sticky { border: 1px solid var(--line, #344258); border-radius: 10px; background: var(--panel, #111827); }
+#launch-dialog .launch-preview-panel { min-width: 0; padding: 16px; border: 0; border-radius: 0; background: transparent; }
+#launch-dialog .launch-summary-specs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin: 12px 0 0; }
+#launch-dialog .launch-summary-specs > div:not([hidden]) { grid-template-columns: minmax(0, 1fr); gap: 3px; padding: 0; border: 0; }
+#launch-dialog .launch-summary-specs span { color: var(--muted, #aebbd0); font-size: 12px; line-height: 1.5; }
+#launch-dialog .launch-summary-specs strong { text-align: left; font-size: 13px; line-height: 1.5; }
+#launch-dialog .launch-summary-policy { margin-top: 16px; padding-top: 12px; }
+#launch-dialog .launch-summary-policy > dl:not([data-fee-fixed-list]) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+#launch-dialog .launch-summary-policy > dl:not([data-fee-fixed-list]) > div { display: grid; grid-template-rows: minmax(2.8em, auto) auto; gap: 4px; border: 0; padding-block: 8px; }
+#launch-dialog .launch-summary-policy dt { min-width: 0; font-size: 12px; line-height: 1.4; }
+#launch-dialog .launch-summary-policy dd { font-size: 13px; line-height: 1.4; }
+#launch-dialog .launch-summary-policy > dl:not([data-fee-fixed-list]) dd { font-size: 18px; }
+#launch-dialog .launch-summary-policy [data-fee-fixed-list] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+#launch-dialog .launch-summary-policy [data-fee-fixed-list] > div { gap: 6px; align-items: baseline; }
+#launch-dialog .launch-summary-policy [data-fee-fixed-list] > div:last-child { grid-column: 1 / -1; }
+#launch-dialog .launch-pay-summary { margin: 0; border: 0; border-top: 1px solid var(--line, #344258); border-radius: 0; background: transparent; }
+#launch-dialog .launch-pay-consents .terms-check { min-height: 44px; font-size: 12px; line-height: 1.5; }
+#launch-dialog .launch-package-preview .launch-enhanced-preview { margin-top: 14px; padding: 14px 0 0; border: 0; border-top: 1px solid var(--line, #344258); background: transparent; }
+
 /* Funding controls use the same quiet surfaces as the token form. */
 #launch-dialog .launch-funding-grid { gap: 16px; }
 #launch-dialog .launch-funding-grid > label { padding: 0; border: 0; background: transparent; gap: 6px; }

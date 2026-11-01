@@ -14,3 +14,8 @@
 .flow-text-guide > p { margin:0; padding:14px; border-top:1px solid var(--line,#2b384e); color:var(--muted,#a6b4c8); font-size:12px; }
 @media(max-width:700px) { [data-flow-diagram] .flow-diagram-controls { justify-content:flex-start; } }
 @media(max-width:600px) { .flow-text-guide ol { grid-template-columns:1fr; gap:14px; } }
+.capital-flow-guide { margin: 16px 0 12px; border: 1px solid var(--line, #2b384e); border-radius: 8px; background: var(--panel, #111827); }
+.capital-flow-guide > summary { min-height: 44px; padding: 12px 14px; color: var(--text, #f2f5fb); font: 600 14px/1.5 Manrope, system-ui, sans-serif; cursor: pointer; scroll-margin-block: 100px 110px; }
+.capital-flow-guide > summary:focus-visible { outline: 3px solid var(--yellow, #ffd28a); outline-offset: 3px; border-radius: 4px; }
+.capital-flow-guide[open] > summary { border-bottom: 1px solid var(--line, #2b384e); }
+.capital-flow-guide > .capital-flow-banner { margin: 0; padding: 12px; }

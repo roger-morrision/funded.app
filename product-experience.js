@@ -88,6 +88,8 @@ function launch() {
   }
   const packagePreview = $('.launch-package-preview');
   if (options && packagePreview) {
+    const checklist = $('.launch-enhanced-preview');
+    if (checklist) packagePreview.append(checklist);
     const preview = packagePreview.closest('#launch-presentation-preview') || disclosure(packagePreview, 'Preview token page & X posts');
     preview.id = 'launch-presentation-preview';
     options.append(preview);

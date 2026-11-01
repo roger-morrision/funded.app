@@ -10,7 +10,20 @@ test.beforeEach(async({page,baseURL})=>{
   });
 });
 const routes=[['/welcome','about-capital-flow'],['/#capital-flow','capital-flow-landscape']];
-async function open(page,path){await page.goto(path);if(path!=='/welcome')await page.locator('body.product-flows-ready').waitFor();const figure=page.locator('[data-flow-diagram]');await expect(figure).toBeVisible();await expect(figure).toHaveAttribute('data-diagram-state','paused');return figure;}
+async function open(page,path){await page.goto(path);if(path!=='/welcome'){await page.locator('body.product-flows-ready').waitFor();await page.locator('#capital-flow-guide > summary').click();}const figure=page.locator('[data-flow-diagram]');await expect(figure).toBeVisible();await expect(figure).toHaveAttribute('data-diagram-state','paused');return figure;}
+
+for(const width of[320,390,1440])test(`capital flow keeps the calculator before the optional diagram at ${width}px`,async({page},info)=>{
+  await page.setViewportSize({width,height:900});await page.emulateMedia({reducedMotion:'no-preference'});await page.goto('/#capital-flow');await page.locator('body.product-flows-ready').waitFor();
+  const guide=page.locator('#capital-flow-guide'),summary=guide.locator(':scope > summary'),figure=guide.locator('[data-flow-diagram]');
+  await expect(guide).toHaveCount(1);await expect(guide).not.toHaveAttribute('open','');await expect(figure).toBeHidden();
+  const before=await page.locator('.capital-flow-layout').evaluate(e=>Boolean(e.compareDocumentPosition(document.getElementById('capital-flow-guide'))&Node.DOCUMENT_POSITION_FOLLOWING));expect(before).toBe(true);
+  await page.locator('#fee-flow-input').fill('250');for(const[key,value]of Object.entries({creator:200,operations:20,referrals:2.5,community:10,buyback:12.5,agency:5}))await expect(page.locator(`#fee-output-${key}`)).toHaveText(`${value} SOL`);
+  await page.screenshot({path:info.outputPath(`capital-flow-compact-${width}.png`),fullPage:true});
+  await summary.focus();await page.keyboard.press('Enter');await expect(guide).toHaveAttribute('open','');await expect(figure).toBeVisible();await expect(figure).toHaveAttribute('data-diagram-state','paused');await figure.getByRole('button',{name:'Play animation',exact:true}).click();await expect(figure).toHaveAttribute('data-diagram-state','playing');
+  await summary.focus();await page.keyboard.press('Space');await expect(guide).not.toHaveAttribute('open','');await expect(summary).toBeFocused();await expect(figure).toHaveAttribute('data-diagram-state','paused');
+  await page.evaluate(()=>{location.hash='explore';});await expect(page.locator('body')).toHaveClass(/page-route-explore/);await page.evaluate(()=>{location.hash='capital-flow';});await expect(guide).not.toHaveAttribute('open','');await expect(guide).toHaveCount(1);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});
 
 async function focusClearsNavigation(region){return region.evaluate(e=>{
   const r=e.getBoundingClientRect(),c=getComputedStyle(e),outline=(parseFloat(c.outlineWidth)||0)+Math.max(0,parseFloat(c.outlineOffset)||0);

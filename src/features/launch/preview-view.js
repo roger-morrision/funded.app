@@ -94,7 +94,7 @@ export function updateLaunchPreview(
   const qualityCount = quality.filter(Boolean).length;
   const qualityScore = document.querySelector('#preview-quality-score');
   const qualityFill = document.querySelector('#preview-quality-fill');
-  if (qualityScore) qualityScore.textContent = `${qualityCount} / 4 ready`;
+  if (qualityScore) qualityScore.textContent = `${qualityCount} / 4 added`;
   if (qualityFill) qualityFill.style.width = `${qualityCount / 4 * 100}%`;
   qualityLabels.forEach((key, index) => { const node = document.querySelector(`#preview-quality-${key}`); if (node) { node.textContent = `${quality[index] ? '✓' : '○'} ${key === 'links' ? 'Official link' : key === 'roadmap' ? 'Milestones' : key[0].toUpperCase() + key.slice(1)}`; node.classList.toggle('ready', quality[index]); } });
   const compactPreviewValues = {
