@@ -1,6 +1,7 @@
-import {assertBannerReady,getPreparedBanner} from '../../../launch-banner.js';
+import {assertBannerReady} from '../../../launch-banner.js';
 
 const fields=[['token-description','Description',280],['token-roadmap','Roadmap',420],['token-banner','Banner']];
+const layouts=new WeakMap();
 
 export function promotionContentState(policy,{document=globalThis.document,includeBanner=true,includeRoadmap=true}={}){
   if(!policy?.requiresBurn)return{valid:true,required:false};
@@ -14,12 +15,25 @@ export function promotionContentState(policy,{document=globalThis.document,inclu
   return{valid:true,required:true};
 }
 
-export function focusPromotionField(id,document=globalThis.document){
-  const input=document.getElementById(id);if(!input)return;
-  const step=input.closest('[data-launch-step]')?.dataset.launchStep;
-  if(step)document.querySelector(`[data-launch-step-target="${step}"]`)?.click();
-  for(let details=input.closest('details');details;details=details.parentElement?.closest('details'))details.open=true;
-  input.scrollIntoView({block:'center',behavior:'instant'});input.focus({preventScroll:true});
+function arrangePromotionFields(root,paid,upload,document){
+  const container=root.querySelector('.promotion-content-fields');
+  if(paid&&!layouts.has(root)){
+    const nodes=[document.getElementById('token-description')?.closest('label'),document.querySelector('.enhanced-token-page')].filter(Boolean);
+    layouts.set(root,nodes.map(node=>{
+      const home=document.createComment('Optional content position'),disclosure=node.closest('details');
+      node.before(home);
+      return{node,home,disclosure,hidden:Boolean(disclosure?.hidden)};
+    }));
+  }
+  for(const slot of layouts.get(root)||[]){
+    if(paid){
+      if(slot.node.parentElement!==container)container.insertBefore(slot.node,upload);
+      if(slot.disclosure)slot.disclosure.hidden=true;
+    }else{
+      if(slot.node.previousSibling!==slot.home)slot.home.after(slot.node);
+      if(slot.disclosure)slot.disclosure.hidden=slot.hidden;
+    }
+  }
 }
 
 export function renderPromotionRequirements(policy,{document=globalThis.document}={}){
@@ -38,16 +52,12 @@ export function renderPromotionRequirements(policy,{document=globalThis.document
   let root=document.getElementById('launch-promotion-requirements');
   if(!root){
     root=document.createElement('section');root.id='launch-promotion-requirements';root.className='promotion-content-requirements';
-    root.innerHTML='<p data-promotion-content-status role="status"></p><div class="promotion-content-links"></div>';
-    for(const[id]of fields){const button=document.createElement('button');button.type='button';button.dataset.promotionField=id;button.addEventListener('click',()=>focusPromotionField(id,document));root.lastElementChild.append(button);}
-    upload.after(root);
+    root.setAttribute('aria-labelledby','launch-promotion-content-title');
+    root.innerHTML='<h3 id="launch-promotion-content-title">Promotion content</h3><p data-promotion-content-status role="status"></p><div class="promotion-content-fields"></div>';
+    upload.before(root);root.lastElementChild.append(upload);
   }
+  arrangePromotionFields(root,paid,upload,document);
   root.hidden=!paid;if(!paid)return;
   const state=promotionContentState(policy,{document});root.dataset.complete=String(state.valid);
-  root.querySelector('[data-promotion-content-status]').textContent=state.valid?`${policy.label} content is ready.`:`${policy.label} requires a banner, description and roadmap. ${state.message}`;
-  for(const[id,label,max]of fields){
-    let ready=id==='token-banner'?false:Boolean(document.getElementById(id)?.value.trim())&&document.getElementById(id).value.trim().length<=max;
-    if(id==='token-banner'){try{assertBannerReady({required:true});ready=Boolean(getPreparedBanner());}catch{}}
-    const button=root.querySelector(`[data-promotion-field="${id}"]`);button.textContent=ready?`${label} added`:`Add ${label.toLowerCase()}`;button.dataset.ready=String(ready);
-  }
+  root.querySelector('[data-promotion-content-status]').textContent=state.valid?`${policy.label} content is ready.`:state.message;
 }

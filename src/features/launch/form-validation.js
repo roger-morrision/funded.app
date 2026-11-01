@@ -66,7 +66,6 @@ export function getLaunchStepState(
     if (invalidSocial) return { valid: false, field: `#${invalidSocial.id}`, message: invalidSocial.validationMessage };
     const splitError=feeSplitError(validateFeeDistribution(getFeeDistributionInputs()));
     if(splitError)return splitError;
-    const content=promotionContentState(getLaunchBurnPolicy?.(),{document,includeBanner:false,includeRoadmap:false});if(!content.valid)return content;
     return { valid: true, message: 'Coin identity is ready.' };
   }
   const distribution = validateFeeDistribution(getFeeDistributionInputs());
