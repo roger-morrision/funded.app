@@ -83,6 +83,9 @@ export function createKeeperCollectionRoutes({
           status:state.v3Settlements?.[row.signature]?.status || (env.FUNDED_V3_AUTO_SETTLEMENT_ENABLED === 'true'
             ? 'ready-for-automatic-settlement' : 'awaiting-creator-signature') }));
       return json(res, 200, { cluster:solanaCluster, automaticSettlementEnabled:env.FUNDED_V3_AUTO_SETTLEMENT_ENABLED === 'true',
+        pendingV3Collections:Object.values(state.collections||{}).filter(row=>row.scope==='per-mint-v3'
+          &&row.cluster==='devnet'&&row.status==='verification-pending'&&row.signature&&row.mint
+          &&launches.some(launch=>launch.mint===row.mint)).map(row=>({mint:row.mint,signature:row.signature})),
         pendingV3Disbursements:env.FUNDED_V3_AUTO_DISBURSEMENT_ENABLED==='true'?automaticV3Actions(state):[],
         minimumCollectionLamports:'10000000', mints:launches.map(row => ({ mint:row.mint,
         scope:row.pumpFeeRoute.scope, collectionStatus:pausedMints.has(row.mint) ? 'collection-paused' : pendingV3Settlements.some(source=>source.mint===row.mint)
@@ -117,7 +120,17 @@ export function createKeeperCollectionRoutes({
         collectionSignature:started.awaitingSettlement,error:'Settle the existing V3 collection before collecting more fees. No transaction was submitted.'});
       if (!started) return json(res, 409, { error:'A previous fee collection needs operator reconciliation before retry.' });
       let result;
-      try { result = await collectPumpCreatorFees({ requestedMint: mintKey }); }
+      try { result = await collectPumpCreatorFees({ requestedMint: mintKey,onSigned:async signed=>{
+        if(signed.mint!==mintKey||signed.scope!=='per-mint-v3'||signed.status!=='verification-pending'
+          ||!Number.isSafeInteger(signed.lastValidBlockHeight)||!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signed.signature))
+          throw Error('A bound signed collection identity is required before broadcast.');
+        await store.update(state=>{
+          const alert=state.alerts?.[`fee-collect:${mintKey}`];
+          if(alert?.status!=='executing'||alert.signature)throw Error('The collection lock changed before broadcast.');
+          state.collections||={};state.collections[signed.signature]={id:signed.signature,...signed,recordedAt:new Date().toISOString()};
+          alert.signature=signed.signature;
+        });
+      }}); }
       catch (error) {
         const beforeSubmission=error.code==='V3_COLLECTION_PREFLIGHT_UNAVAILABLE'&&error.transactionSubmitted===false;
         await store.update(state => { state.alerts[`fee-collect:${mintKey}`] = { ...state.alerts[`fee-collect:${mintKey}`],

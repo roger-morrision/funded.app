@@ -36,6 +36,11 @@ if (process.argv.includes('--check')) {
     let settled = 0;
     let settlementErrors = 0;
     let disbursed = 0;
+    for(const pending of candidates.pendingV3Collections||[]){
+      lifecycle.assertRunning();if(pausedMints.has(pending.mint))continue;
+      try{const result=await request('/api/keeper/reconcile-v3-collection',pending);if(result.status==='collected')collected++;}
+      catch(error){settlementErrors++;console.error(`V3 collection reconciliation ${pending.mint}: ${String(error.message||error)}`);}
+    }
     for (const pending of candidates.automaticSettlementEnabled ? candidates.pendingV3Settlements || [] : []) {
       lifecycle.assertRunning();
       if (pausedMints.has(pending.mint) || pending.status === 'verification-pending') continue;
