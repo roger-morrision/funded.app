@@ -266,6 +266,7 @@ async function sharedNativeEntry(page,selector,info,label){
  await info.attach(label,{body:JSON.stringify({walk,armed,proof},null,2),contentType:'application/json'});expect(proof.key?.trusted).toBe(true);expect(proof.key.key).toBe('Tab');expect(proof.key.at).toBeGreaterThanOrEqual(armed.at);expect(proof.endedAt-proof.began).toBeLessThanOrEqual(1000);expect(proof.focus.pass,JSON.stringify(proof.focus)).toBe(true);expect(proof.focus.samples.at(-1).stationaryMs).toBeGreaterThanOrEqual(100);expect(await original.evaluate(e=>e.isConnected&&document.activeElement===e)).toBe(true);return original;
 }
 for(const width of[360,390,1440])test(`FQA-070 shared actual Home and Explore states, layout and native copy at${width}`,async({page},info)=>{
+ test.setTimeout(90000); // Eight route/state samples; individual native focus deadlines remain 1s.
  const f=await sharedRuntimeFixture(page,width);await f.open();
  for(const mode of['unknown','curve','complete','migrated']){
   if(mode!=='unknown'){f.mode=mode;await f.refresh();await expect(page.locator('#asset-grid .home-launch-progress-row').first()).toHaveAttribute('data-progress-state',mode==='curve'?'unavailable':mode);if(mode==='curve')await expect(page.locator('#asset-grid .home-launch-progress-row').first()).toContainText('On curve');}

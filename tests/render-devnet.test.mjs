@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import { spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
-import { resolve } from 'node:path';
+import { resolve,dirname } from 'node:path';
+import {existsSync} from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { renderDevnetEnvironment, assertRenderBuildIdentity, assertRenderRuntimeConfig } from '../scripts/render-devnet.mjs';
 
@@ -57,12 +58,16 @@ test('runtime database validation neither falls back to files nor exposes malfor
 
 
 test('build refuses a mismatched Render commit before invoking npm', () => {
+  // An exported candidate can live beneath the original checkout. Trust only
+  // that owning checkout, rather than an archive directory with no Git metadata.
+  let checkout=resolve(fileURLToPath(new URL('..',import.meta.url)));
+  while(!existsSync(resolve(checkout,'.git'))&&dirname(checkout)!==checkout)checkout=dirname(checkout);
   const child = spawnSync(process.execPath, ['scripts/render-devnet.mjs', '--build'], {
     cwd: new URL('..', import.meta.url), encoding: 'utf8', env: {
       PATH: process.env.PATH,
       GIT_CONFIG_COUNT: '1',
       GIT_CONFIG_KEY_0: 'safe.directory',
-      GIT_CONFIG_VALUE_0: resolve(fileURLToPath(new URL('..', import.meta.url))).replaceAll('\\', '/'),
+      GIT_CONFIG_VALUE_0: checkout.replaceAll('\\', '/'),
       ...base,
     },
   });

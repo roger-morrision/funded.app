@@ -8,7 +8,7 @@ import { TRADE_QUOTE_TTL_MS, TRADE_QUOTE_REFRESH_MS, TRADE_REVIEW_REFRESH_AFTER_
 // Dependencies and mutable application state are read live through appState.
 export function createTradeExecutionController(appState) {
   let retryInputKey='';
-  const quoteRetry=createTradeQuoteRetry(document.querySelector('#trade-quote-retry'),{
+  const quoteRetry=createTradeQuoteRetry(globalThis.document?.querySelector('#trade-quote-retry'),{
     isCurrent:()=>!appState.tradeActionBusy&&retryInputKey===JSON.stringify({...appState.tradeInputs(),wallet:appState.connectedWalletAddress}),
     retry:()=>{if(holdUncertainTrade(appState.tradeInputs().mint))return;appState.invalidateTradePreview();appState.queueTradeQuote(0);}
   });

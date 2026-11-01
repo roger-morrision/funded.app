@@ -55,15 +55,15 @@ test('RPC concurrency slots are released after upstream failure', async () => {
   let started = 0;
   const pending = [];
   const api = rpcFixture({ fetch: () => { started++; return new Promise((_resolve, reject) => pending.push(reject)); } });
-  const requests = Array.from({ length: 12 }, (_, i) => api.request('getSlot', i));
+  const requests = Array.from({ length: 9 }, (_, i) => api.request('getSlot', i));
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(started, 12);
+  assert.equal(started, 9);
   assert.equal((await api.request()).status, 429);
   pending.splice(0).forEach(reject => reject(new Error('Synthetic outage')));
   assert.ok((await Promise.all(requests)).every(result => result.status === 502));
   const retry = api.request();
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(started, 13);
+  assert.equal(started, 10);
   pending[0](new Error('Synthetic outage'));
   assert.equal((await retry).status, 502);
 });
