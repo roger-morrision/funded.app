@@ -15,12 +15,12 @@ export function approvedFeePresentation() {
 
 export function feeDistributionPresentation(fee=FEE_DISTRIBUTION) {
   const rows=[
-    ['creator',fee.creatorPercent,'Creator, community & X account','Keep your share or distribute it to eligible coin holders and a named X account.'],
-    ['operations',fee.operationsEffectivePercent,'Operations & marketing','The app allocation funds platform operations and marketing.'],
-    ['referrals',fee.appReferralEffectivePercent,'Referral network','Reward qualified creator referrals across the saved three-level network.'],
-    ['community',fee.communityEffectivePercent,'Daily bonus','Top traders, creators and referrers share this pool: top 3 per category, with equal category budgets.'],
-    ['buyback',fee.buybackEffectivePercent,'$FUNDED buyback & burn','Funds automatic purchases and burns of $FUNDED when funding and execution conditions are met.'],
-    ...(fee.agencyEffectivePercent===undefined?[]:[['agency',fee.agencyEffectivePercent,'AI marketing & coin buybacks','Every new launch includes X promotion and both own-coin buyback agents. Actions require verified funding and saved milestones. Unused budgets stay reserved.']]),
+    ['creator',fee.creatorPercent,'Creator, community & X account','Split this share between your wallet, eligible coin holders and a named X account.'],
+    ['operations',fee.operationsEffectivePercent,'Operations & marketing','Pays for platform operations and marketing.'],
+    ['referrals',fee.appReferralEffectivePercent,'Referral network','Earn SOL from qualified creators you invite.'],
+    ['community',fee.communityEffectivePercent,'Daily bonus','SOL rewards for the top 3 per category: creators, referrers and traders.'],
+    ['buyback',fee.buybackEffectivePercent,'$FUNDED buyback & burn','Buys $FUNDED and permanently removes it from supply, when funded and ready.'],
+    ...(fee.agencyEffectivePercent===undefined?[]:[['agency',fee.agencyEffectivePercent,'AI marketing & coin buybacks','X promotion and buybacks for this coin, after funding and milestone checks.']]),
   ].map(([key,percent,label,benefit])=>({key,percent,label,benefit}));
   const total=rows.reduce((sum,row)=>sum+row.percent,0);
   if(rows.some(row=>!Number.isFinite(row.percent)||row.percent<0)||Math.abs(total-100)>0.000001)throw Error('Fee presentation must account for 100% of collected creator fees.');

@@ -21,7 +21,7 @@ for(const width of[320,390,700,1440])test(`task fee summaries retain all rates a
     await expect(root.locator('.fee-distribution-summary--compact')).toBeVisible();
     await expect(root.locator('[data-fee-category] > strong')).toHaveText(['80%','8%','1%','4%','5%','2%']);
     for(const label of await root.locator('[data-fee-category] > span').all())await expect(label).toBeVisible();
-    const details=root.locator('.fee-distribution-details'),summary=details.locator('summary');await expect(details).not.toHaveAttribute('open','');await expect(details.locator('dl')).toBeHidden();
+    const details=root.locator('.fee-distribution-details'),summary=details.locator(':scope > summary');await expect(details).not.toHaveAttribute('open','');await expect(details.locator('dl')).toBeHidden();
     await root.scrollIntoViewIfNeeded();expect((await root.locator('.fee-distribution-summary').boundingBox()).height).toBeLessThan(width===320?650:width===390?590:500);expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);
     await summary.focus();await page.keyboard.press('Enter');await expect(details).toHaveAttribute('open','');await expect(summary).toBeFocused();
     await expect(details).toContainText('eligible coin holders and a named X account');await expect(details).toContainText('top 3 per category');await expect(details).toContainText('Unused budgets stay reserved');await expect(details).toContainText('collected creator fees, not trade volume');await expect(details).toContainText('Existing coins keep their saved rates');
@@ -31,12 +31,14 @@ for(const width of[320,390,700,1440])test(`task fee summaries retain all rates a
     await expect(creator).toContainText('closing balance');await expect(creator).toContainText('link a wallet and claim');await expect(bonus).toContainText('00:00 UTC');await expect(bonus).toContainText('only when automatic bonus payouts are enabled');await expect(bonus).toContainText('1st receives 50%, 2nd 30% and 3rd 20%');
     await expect(details.locator('[data-fee-benefit="referrals"]')).toContainText('do not submit a separate claim');await expect(details.locator('[data-fee-benefit="buyback"]')).toContainText('not a guaranteed hourly, daily or every-trade burn');
     await expect(details.locator('[data-fee-benefit="agency"]')).toContainText('Default milestones are $100,000 and $300,000');await expect(details).toContainText('Separate community token airdrops');
+    const rules=creator.locator('.fee-benefit-rules'),rulesSummary=rules.locator(':scope > summary');
+    await expect(rules).not.toHaveAttribute('open','');await expect(rules.locator('.fee-benefit-rule-body')).toBeHidden();await rulesSummary.focus();await page.keyboard.press('Enter');await expect(rules.locator('.fee-benefit-rule-body')).toBeVisible();await expect(rules).toContainText('closing balance');await page.keyboard.press('Space');await expect(rules).not.toHaveAttribute('open','');await expect(rulesSummary).toBeFocused();await summary.focus();
     await page.keyboard.press('Space');await expect(details).not.toHaveAttribute('open','');await expect(summary).toBeFocused();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   };
   for(const[route,selector]of[['paid','#paid > [data-fee-distribution]'],['capital-flow','#capital-flow [data-fee-distribution]'],['launch','.launch-fixed-distribution']]){
     await page.evaluate(hash=>location.hash=hash,route);if(route==='launch')await page.locator('#launch-fee-overview > summary').click();const root=page.locator(selector);await verify(root);await root.screenshot({path:info.outputPath(`compact-fees-${route}-${width}.png`)});
   }
-  await page.locator('.launch-fixed-distribution .fee-distribution-details summary').click();await page.evaluate(()=>location.hash='paid');await expect(fees.locator('.fee-distribution-details')).not.toHaveAttribute('open','');await page.evaluate(()=>location.hash='launch');await expect(page.locator('.launch-fixed-distribution .fee-distribution-details')).toHaveAttribute('open','');await expect(page.locator('#launch-button')).toBeDisabled();
+  await page.locator('.launch-fixed-distribution .fee-distribution-details > summary').click();await page.evaluate(()=>location.hash='paid');await expect(fees.locator('.fee-distribution-details')).not.toHaveAttribute('open','');await page.evaluate(()=>location.hash='launch');await expect(page.locator('.launch-fixed-distribution .fee-distribution-details')).toHaveAttribute('open','');await expect(page.locator('#launch-button')).toBeDisabled();
   const bonusLink=page.locator('.launch-fixed-distribution [data-fee-benefit="community"] a');await bonusLink.focus();await page.keyboard.press('Enter');await expect(page).toHaveURL(/#bonuses$/);await expect(page.locator('#bonuses')).toBeVisible();
   expect(errors).toEqual([]);expect(writes).toEqual([]);
 });

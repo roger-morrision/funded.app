@@ -48,13 +48,36 @@ export function feeBenefitExplanation(key){
       links:[['Included agents, rules & receipts','#marketing-agency']],
     },
   };
-  return explanations[key]||null;
+  const simple={
+    creator:{who:'The creator, eligible coin holders and the X account chosen in the coin’s saved split.',
+      when:'Creator: after payout approval and confirmation. Holders: hourly when eligible and funded. X account: when a funded claim is ready.',
+      receive:'Creators approve their payout. Holders receive SOL automatically. The named X account must sign in, link a wallet and claim.'},
+    operations:{who:'funded.vip’s operations and marketing.',when:'When collected creator fees are split.',
+      receive:'No user payout or claim. This share pays for running and promoting the platform.'},
+    referrals:{who:'Wallets in the creator’s three-level referral network.',
+      when:'After the creator approves a funded payment and it is confirmed. Signups and clicks alone do not earn rewards.',
+      receive:'Invite creators before they qualify. Receive SOL in your wallet; no claim needed.'},
+    community:{who:'Top 3 wallets in each group: creators, referrers and traders.',
+      when:'After each UTC day closes at 00:00 UTC and rankings and funds are checked.',
+      receive:'Winners receive SOL automatically when payouts are enabled. No claim or signature needed.'},
+    buyback:{who:'No direct wallet payment. This share reduces the $FUNDED supply.',
+      when:'When fee targets are met, buybacks are enabled and trade checks pass. No fixed schedule.',
+      receive:'The app buys $FUNDED and burns it. Check the finalized receipts; no claim is needed.'},
+    agency:{who:'Every new coin includes X promotion and two coin buyback-and-burn agents.',
+      when:`Buybacks run once at the saved milestones (normally ${milestones} market cap), when funded and ready. X posts are normally at least ${DEFAULT_AGENCY_RULES.promotionIntervalSeconds/3600} hours apart.`,
+      receive:'The three agents share the budget equally. X posts are charged only after verification. Unused budgets stay reserved.'},
+  };
+  const rules=explanations[key];
+  return rules?{...rules,...simple[key],rules}:null;
 }
 
 export function feeBenefitDetailsMarkup(rows){
   return `<dl>${rows.map(row=>{
     const detail=feeBenefitExplanation(row.key);if(!detail)return '';
-    const fields=[['Who receives it',detail.who],['When it is received',detail.when],['How to receive it',detail.receive],...(detail.conditions?[['Eligibility & amounts',detail.conditions]]:[])];
-    return `<div class="fee-benefit-detail" data-fee-benefit="${escapeHtml(row.key)}"><dt>${row.percent}% · ${escapeHtml(row.label)}</dt><dd><p class="fee-benefit-purpose">${escapeHtml(row.benefit)}</p><ul class="fee-benefit-facts">${fields.map(([label,value])=>`<li><strong>${label}</strong><span>${escapeHtml(value)}</span></li>`).join('')}</ul><nav class="fee-benefit-links" aria-label="${escapeHtml(row.label)} details">${detail.links.map(([label,href])=>`<a href="${href}">${escapeHtml(label)} →</a>`).join('')}</nav></dd></div>`;
-  }).join('')}</dl><p class="fee-benefit-separate"><strong>Separate community token airdrops:</strong> These use the launched coin’s reserved tokens, rather than this SOL fee split. Eligible $FUNDED-holder wallets need a verified eligibility snapshot and a funded, active drop, then claim within its saved window (normally ${DEFAULT_AGENCY_RULES.communityWindowSeconds/86400} days). Standard snapshots are tied to migration; explicitly labeled Devnet QA drops may use a separate QA cutoff. Holding $FUNDED is different from holding this coin for its holder SOL rewards.</p><p>Schedules describe eligibility windows. Actual payment still requires the applicable program to be enabled, eligible funds, required approvals or claims, and a finalized payment receipt.</p>`;
+    const fields=[['Who receives it',detail.who],['When it is received',detail.when],['How to receive it',detail.receive]];
+    const rules=detail.rules,fullFields=[['Who receives it',rules.who],['When it is received',rules.when],['How to receive it',rules.receive],...(rules.conditions?[['Eligibility & amounts',rules.conditions]]:[])];
+    const facts=rows=>rows.map(([label,value])=>`<li><strong>${label}</strong><span>${escapeHtml(value)}</span></li>`).join('');
+    const fullRules=`<details class="fee-benefit-rules"><summary>Full rules</summary><div class="fee-benefit-rule-body"><p class="fee-benefit-purpose">${escapeHtml(row.benefit)}</p><ul class="fee-benefit-facts">${facts(fullFields)}</ul></div></details>`;
+    return `<div class="fee-benefit-detail" data-fee-benefit="${escapeHtml(row.key)}"><dt>${row.percent}% · ${escapeHtml(row.label)}</dt><dd><ul class="fee-benefit-facts">${facts(fields)}</ul>${fullRules}<nav class="fee-benefit-links" aria-label="${escapeHtml(row.label)} details">${detail.links.map(([label,href])=>`<a href="${href}">${escapeHtml(label)} →</a>`).join('')}</nav></dd></div>`;
+  }).join('')}</dl><details class="fee-benefit-rules fee-benefit-separate"><summary>Separate community token airdrops</summary><div class="fee-benefit-rule-body"><p>These use the launched coin’s reserved tokens, rather than this SOL fee split. Eligible $FUNDED-holder wallets need a verified eligibility snapshot and a funded, active drop, then claim within its saved window (normally ${DEFAULT_AGENCY_RULES.communityWindowSeconds/86400} days). Standard snapshots are tied to migration; explicitly labeled Devnet QA drops may use a separate QA cutoff. Holding $FUNDED is different from holding this coin for its holder SOL rewards.</p></div></details><p>Timing does not guarantee payment. Rewards need an enabled program, enough funds, any required approval or claim, and a finalized receipt.</p>`;
 }
