@@ -44,7 +44,7 @@ export function initMarketingAgency(document = globalThis.document) {
   if (promotion && !document.getElementById('launch-agency-options')) {
     const fieldset = document.createElement('fieldset'); fieldset.id = 'launch-agency-options'; fieldset.className = 'agency-options';
     const legend = document.createElement('legend'); legend.textContent = 'AI marketing team'; fieldset.append(legend);
-    const included = document.createElement('p'); included.className = 'agency-included-intro'; included.textContent = 'Buyback agents are included. Pro/Premier adds X promotion.';
+    const included = document.createElement('p'); included.className = 'agency-included-intro'; included.textContent = 'Buyback agents are included. Promotion packages add X promotion.';
     const help = document.createElement('p'); help.id = 'launch-agency-help'; help.textContent = 'New launches wait for verified fee vaults and executors. Agent execution is not yet available.'; help.setAttribute('role','status');
     fieldset.append(included); fieldset.setAttribute('aria-describedby', help.id);
     const team = document.createElement('ul'); team.className = 'agency-included-list'; fieldset.append(team);
