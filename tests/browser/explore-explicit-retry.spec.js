@@ -345,7 +345,8 @@ for (const width of [390,1440]) for (const view of ['grid','table']) {
    const target = document.querySelector(selector), predecessor = document.querySelector(predecessorSelector);
    const tabbable = [...document.querySelectorAll('a[href],button,input,select,textarea,summary,[tabindex]')]
     .filter(e => e.tabIndex >= 0 && !e.disabled && !e.closest('[hidden],[inert]') && e.getClientRects().length
-     && getComputedStyle(e).visibility === 'visible');
+     && getComputedStyle(e).visibility === 'visible'
+     && (!e.closest('details:not([open])') || e.matches('details:not([open]) > summary')));
    const index = tabbable.indexOf(predecessor), next = tabbable[index+1];
    const observer = new Function('return ('+source+')')();
    const state = window.__homeRetryNative = {began:performance.now(),original:target};
