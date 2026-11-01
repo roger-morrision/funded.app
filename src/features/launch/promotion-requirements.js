@@ -2,9 +2,10 @@ import {assertBannerReady,getPreparedBanner} from '../../../launch-banner.js';
 
 const fields=[['token-description','Description',280],['token-roadmap','Roadmap',420],['token-banner','Banner']];
 
-export function promotionContentState(policy,{document=globalThis.document,includeBanner=true}={}){
+export function promotionContentState(policy,{document=globalThis.document,includeBanner=true,includeRoadmap=true}={}){
   if(!policy?.requiresBurn)return{valid:true,required:false};
   for(const[id,label,max]of fields.slice(0,2)){
+    if(id==='token-roadmap'&&!includeRoadmap)continue;
     const value=document.querySelector('#'+id)?.value?.trim()||'';
     if(!value)return{valid:false,required:true,field:'#'+id,message:`Add a token ${label.toLowerCase()} for the promotion package.`};
     if(value.length>max)return{valid:false,required:true,field:'#'+id,message:`Keep the ${label.toLowerCase()} within ${max} characters.`};
@@ -23,6 +24,8 @@ export function focusPromotionField(id,document=globalThis.document){
 
 export function renderPromotionRequirements(policy,{document=globalThis.document}={}){
   const paid=Boolean(policy.requiresBurn),upload=document.querySelector('#launch-banner-upload');if(!upload)return;
+  const storySummary=document.querySelector('#launch-story-options > summary');
+  if(storySummary)storySummary.textContent=paid?'Story and roadmap · roadmap required for promotion':'Optional story and roadmap';
   for(const[id]of fields){
     const input=document.getElementById(id);if(!input)continue;
     input.required=paid;input.setAttribute('aria-required',String(paid));

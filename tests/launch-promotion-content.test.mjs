@@ -26,11 +26,14 @@ test('Standard keeps promotion content optional; paid content rejects whitespace
   assert.match(promotionContentState(paid,f).message,/420 characters/);
 });
 
-test('paid step one can continue before the step-two banner upload, while step two blocks',async()=>{
+test('paid step one can continue before the step-two roadmap and banner, while step two blocks',async()=>{
   await prepareLaunchBanner(null);const f=fixture();
   const services={...f,invalidLaunchSocial:()=>null,getFeeDistributionInputs:()=>({creatorWalletPercent:80,holderAirdropPercent:0,solClaimPercent:0}),getLaunchBurnPolicy:()=>paid};
   assert.equal(getLaunchStepState(1,{},services).valid,true);
   assert.equal(getLaunchStepState(2,{},services).field,'#token-banner');
+  f.values['token-roadmap']=' ';
+  assert.equal(getLaunchStepState(1,{},services).valid,true);
+  assert.equal(getLaunchStepState(2,{},services).field,'#token-roadmap');
   assert.throws(()=>assertBannerReady({required:true}),/Upload a token banner/);
 });
 
