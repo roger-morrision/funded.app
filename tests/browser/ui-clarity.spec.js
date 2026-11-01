@@ -40,6 +40,8 @@ for(const width of [390,1440]){
       if(route==='referrals'){await expect(page.locator('#referral-share-native')).toBeHidden();await expect(page.locator('#referral-copy-code')).toBeHidden();await expect(page.locator('#referral-command-center [data-copy-referral-link]')).toBeVisible();}
       const title=page.locator('#main-content h1:visible').first();await expect(title,route).toBeVisible();
       expect(await title.evaluate(el=>parseFloat(getComputedStyle(el).fontSize)),route).toBeGreaterThanOrEqual(width<700?24:27);
+      expect(await title.evaluate(el=>Number(getComputedStyle(el).fontWeight)),route).toBeLessThanOrEqual(700);
+      expect(await title.evaluate(el=>getComputedStyle(el).fontFamily),route).toMatch(/Arial.*sans-serif/);
     }
     for(const path of [`/token/${mint}`,`/wallet/${mint}`,'/admin.html']){
       await page.goto(path);await expect(page.locator(path==='/admin.html'?'#auth-panel':'body.product-flows-ready')).toBeVisible();

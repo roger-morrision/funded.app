@@ -1,6 +1,6 @@
 /* Shared editorial pass: readable type, quieter surfaces, and one clear task per route. */
 html body.product-experience-style {
-  --ui-font: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --ui-font: Manrope, Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --ui-font-mono: "DM Mono", ui-monospace, Consolas, monospace;
   --ui-page-title: clamp(26px, 2.2vw, 30px);
   --ui-surface: #111a2a;
@@ -233,10 +233,10 @@ html body.product-experience-style #main-content :is(h1,h2,h3,p,small,label,a,bu
   font-family: var(--ui-font) !important;
 }
 html body.product-experience-style #main-content h1 {
-  font-size: var(--ui-page-title) !important; font-weight: 700; line-height: 1.18 !important; letter-spacing: -.035em !important;
+  font-size: var(--ui-page-title) !important; font-weight: 700 !important; line-height: 1.18 !important; letter-spacing: -.035em !important;
 }
-html body.product-experience-style #main-content h2 { font-size: 19px !important; line-height: 1.3; letter-spacing: -.025em; }
-html body.product-experience-style #main-content h3 { font-size: 16px; line-height: 1.35; }
+html body.product-experience-style #main-content h2 { font-size: 19px !important; font-weight: 600 !important; line-height: 1.3; letter-spacing: -.025em; }
+html body.product-experience-style #main-content h3 { font-size: 16px; font-weight: 600 !important; line-height: 1.35; }
 html body.product-experience-style #main-content p { font-size: 13px !important; line-height: 1.6; }
 html body.product-experience-style #main-content small { font-size: 12px !important; line-height: 1.5; }
 html body.product-experience-style #main-content .eyebrow { font-size: 11px !important; line-height: 1.5; letter-spacing: .08em; }

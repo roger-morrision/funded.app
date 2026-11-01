@@ -18,10 +18,15 @@ for(const width of[360,390,1440])test(`privacy content clears its page introduct
 for(const width of[360,390,1440])test(`profile safety and wallet dialog retain native focus at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});await page.goto('/#profile');await page.locator('body.product-flows-ready').waitFor();
   await expect(page.locator('#profile-title')).toHaveText('Wallet & settings');
+  const grid=page.locator('#profile > .profile-grid');
+  await expect.poll(()=>grid.evaluate(e=>e.previousElementSibling?.classList.contains('section-heading'))).toBe(true);
+  await expect(page.locator('#profile .profile-safety-card #profile-source-note')).toHaveCount(1);
+  expect(await page.locator('#profile .workspace-shortcuts').evaluate(e=>Boolean(e.compareDocumentPosition(document.querySelector('#profile .page-cleanup-guide[data-guide="profile"]'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
   const safety=page.locator('details.profile-safety-card'),summary=safety.locator('summary');
   await expect(safety).not.toHaveAttribute('open','');await expect(safety.locator('ul')).toBeHidden();
   expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);await summary.focus();await page.keyboard.press('Enter');
   await expect(safety.locator('ul')).toBeVisible();await expect(safety).toContainText('No private key or seed phrase is requested');await expect(safety).toContainText('Check the wallet and amount before signing');
+  await expect(safety.locator('#profile-source-note')).toBeVisible();
   expect((await safety.locator('a').boundingBox()).height).toBeGreaterThanOrEqual(44);
   await page.keyboard.press('Space');await expect(safety.locator('ul')).toBeHidden();await expect(summary).toBeFocused();
   const connect=page.locator('#profile-connect');await connect.click();const dialog=page.locator('#wallet-onboarding-dialog');await expect(dialog).toBeVisible();
