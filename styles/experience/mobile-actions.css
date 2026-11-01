@@ -2,6 +2,9 @@
 @media (max-width:700px) {
   html body.product-experience-style #main-content :is(
     .home-launch-tabs button,
+    .route-guide-actions a,
+    .explore-empty-action,
+    [data-verified-feed-retry],
     #reward-portfolio [data-reward-connect],
     #reward-portfolio .reward-portfolio-connect,
     #payment-history-clear,

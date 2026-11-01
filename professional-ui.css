@@ -277,3 +277,15 @@ html body.product-experience-style .top-actions .platform-x-topbar { display: no
   html body.product-experience-style #main-content .workspace-preference { padding: 16px; }
   html body.product-experience-style #main-content .portfolio-tools { grid-template-columns: minmax(0,1fr); }
 }
+
+/* Card labels use the same reading weight as the surrounding workspace. */
+html body.product-experience-style #main-content .reward-action-grid strong { font-weight: 600; }
+html body.product-experience-style #main-content .reward-action-grid small { font-weight: 400; color: var(--muted); }
+
+/* Listing and token information reuse the workspace's quiet panel treatment. */
+html body.product-experience-style #main-content :is(.list-form-card,.funded-token-story article) {
+  border: 1px solid var(--line); border-radius: 8px; background: var(--panel); box-shadow: none;
+}
+html body.product-experience-style #main-content .list-form-head { border-color: var(--line); background: transparent; }
+html body.product-experience-style #main-content .paid-reference-metrics { border-radius: 8px; padding: 0; overflow: hidden; }
+html body.product-experience-style #main-content .paid-reference-metrics > div { background: var(--panel); }

@@ -310,3 +310,23 @@ html body.product-experience-style #main-content .workspace-shortcuts { grid-tem
   html body.product-experience-style .topbar .top-actions { gap: 4px; }
   html body.product-experience-style .topbar .top-actions .workspace-network { max-width: 64px; white-space: normal; line-height: 1.2; text-align: center; }
 }
+
+/* Route actions and recovery buttons share one readable control size. */
+html body.product-experience-style #main-content :is(.route-guide-actions a,.explore-empty-action,[data-verified-feed-retry],.reward-portfolio-connect) {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 10px 14px; border-radius: 8px;
+  font-family: var(--ui-font); font-size: 13px; line-height: 1.4; font-weight: 600;
+}
+html body.product-experience-style #main-content :is(.route-guide-actions a,.explore-empty-action,[data-verified-feed-retry],.reward-portfolio-connect):focus-visible {
+  outline: 2px solid var(--yellow,#ffbe68); outline-offset: 3px;
+}
+
+/* Loading, empty and unavailable launch feeds keep one neutral surface. */
+html body.product-experience-style #main-content .empty-state.onchain-empty {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  min-width: 0; padding: 20px 16px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel); text-align: left;
+}
+html body.product-experience-style #main-content .empty-state.onchain-empty > :is(strong,span,button) { margin: 0; }
+html body.product-experience-style #main-content .empty-state.onchain-empty > strong { font-size: 14px; font-weight: 600; line-height: 1.5; }
+html body.product-experience-style #main-content .empty-state.onchain-empty > span { max-width: 64ch; font-size: 13px; line-height: 1.6; color: var(--muted); }
