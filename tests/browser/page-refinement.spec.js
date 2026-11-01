@@ -31,7 +31,7 @@ for(const width of [320,390,1440])test(`page refinements retain bonus disclosure
   await summary.focus();await page.keyboard.press('Enter');await expect(help).toHaveAttribute('open','');await expect(summary).toBeFocused();await expect(help).toContainText('they are not additional payments');await expect(help).toContainText('rounding is reconciled to the lamport');
   const proof=receipts.getByRole('link',{name:'Transaction ↗',exact:true});await expect(proof).toHaveAttribute('href',`https://explorer.solana.com/tx/${signature}?cluster=devnet`);
   const before=await receipts.locator('td').allTextContents();await page.locator('[data-bonus-history-refresh]').click();await expect(receipts.locator('td')).toHaveText(before);await expect(help).toHaveAttribute('open','');
-  const select=page.getByLabel('Bonus category',{exact:true});await select.selectOption('traders');await expect(page.locator('[data-bonus-page]')).toHaveText('Page 1 of 1 · 1 payments');await expect(help).toHaveAttribute('open','');
+  const select=page.getByRole('combobox',{name:'Bonus category',exact:true});await select.selectOption('traders');await expect(page.locator('[data-bonus-page]')).toHaveText('Page 1 of 1 · 1 payments');await expect(help).toHaveAttribute('open','');
   await summary.focus();await page.keyboard.press('Space');await expect(help).not.toHaveAttribute('open','');await expect(summary).toBeFocused();
   for(const control of [summary,select,page.locator('[data-bonus-history-refresh]')])expect((await control.boundingBox()).height).toBeGreaterThanOrEqual(44);
   await page.screenshot({path:info.outputPath(`bonuses-${width}.png`)});
