@@ -1,3 +1,4 @@
+import {saveDevicePreferences} from './device-preference-storage.js';
 import { panel, el, button } from './view-utils.js';
 const KEY='funded.notification-preferences.v1';
 export const notificationKinds=['launch','receipt','statement','trade','approval','cutoff'];
@@ -11,7 +12,7 @@ export function readNotifications(storage=globalThis.localStorage) {
   try {return normalizeNotifications(JSON.parse(storage.getItem(KEY)||JSON.stringify({enabled:storage.getItem('funded.creator-activity-alerts.v1')==='true'})));} catch{return normalizeNotifications();}
 }
 export function saveNotifications(value,storage=globalThis.localStorage) {
-  const next=normalizeNotifications(value);storage.setItem(KEY,JSON.stringify(next));storage.setItem('funded.creator-activity-alerts.v1',String(next.enabled));
+  const next=normalizeNotifications(value);saveDevicePreferences([[KEY,JSON.stringify(next)],['funded.creator-activity-alerts.v1',String(next.enabled)]],storage);
   globalThis.dispatchEvent?.(new Event('funded:notification-preferences'));return next;
 }
 export function notificationAllowed(prefs,kind,amountLamports=null,date=new Date()) {
