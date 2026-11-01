@@ -152,8 +152,8 @@ assert.equal(launchReviewStillCurrent(pendingReview, { ...currentReview, form: '
 assert.equal(launchReviewStillCurrent(pendingReview, { ...currentReview, termsConsent: false }, 150), false, 'Consent withdrawal must block the wallet handoff.');
 assert.equal(launchReviewStillCurrent(pendingReview, { ...currentReview, image: {} }, 150), false, 'Changing the image must require a new review.');
 assert.doesNotMatch(launchPage, /review-referrer|<span>Inviter<\/span>|Gross fees across three app levels|<small>Referrals<\/small>/);
-assert.match(launchPage, /APP PROTOCOL<\/span><strong>20%/);
-assert.match(launchPage, /app-level referrals, \$FUNDED buyback and burn, community programs, and operations\/marketing/);
+assert.match(launchPage, /APP ALLOCATION · OPERATIONS &amp; MARKETING<\/span><strong data-app-allocation>8%/);
+assert.match(launchPage, /8% Operations &amp; marketing · 1% referrals · 4% Daily bonus · 5% \$FUNDED buyback &amp; burn · 2% AI marketing &amp; coin buybacks/);
 assert.doesNotMatch(launchPage, /automated funding and settlement are not live yet/, 'The removed Devnet policy paragraph must not return to the launch form.');
 assert.match(launchPage, /Paid packages burn \$FUNDED when you launch/);
 assert.doesNotMatch(launchPage, /claim-example-receipt|Example for 1 SOL claimed|Illustration only; this is not a revenue forecast or a live claim/, 'The removed after-launch example card must not return.');
