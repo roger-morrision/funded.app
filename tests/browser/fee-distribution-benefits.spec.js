@@ -7,7 +7,7 @@ async function offline(page,baseURL){
  await page.route('**/api/**',r=>r.fulfill({status:503,json:{error:'Offline fee presentation fixture'}}));await page.route('**/api/fee-policy',r=>r.fulfill({json:{revision:6,split}}));
 }
 async function summary(root){
- await expect(root.locator('header')).toContainText('Fee distribution');await expect(root.locator('header')).toContainText('92% is allocated');
+ await expect(root.locator('header')).toContainText('Fee distribution');await expect(root.locator('header')).not.toContainText('is allocated to creators, referrals, Daily bonuses and token buybacks.');
  for(const[key,value]of Object.entries(expected))await expect(root.locator(`[data-fee-category="${key}"] > strong`)).toHaveText(`${value}%`);
  expect(await root.locator('[data-fee-category] > strong').evaluateAll(nodes=>nodes.reduce((sum,node)=>sum+Number.parseFloat(node.textContent),0))).toBe(100);
  await expect(root).toContainText('collected creator fees, not trade volume');await expect(root).toContainText('Existing coins keep their saved rates');
