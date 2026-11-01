@@ -28,7 +28,7 @@ try {
   await page.locator('#token-image').setInputFiles({ name: 'preview.png', mimeType: 'image/png', buffer: Buffer.from(artwork, 'base64') });
   await page.locator('#launch-package-example-art.has-image').waitFor({ state: 'attached' });
   assert.equal(await page.locator('#preview-token-image.has-image').count(), 1);
-  await page.getByRole('button', { name: 'Continue to rewards', exact: true }).click();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
   assert.equal(await page.locator('.launch-package-preview').evaluate(node => Boolean(node.closest('details'))), false, 'Package preview must not be collapsible.');
 
   for (const [tier, postCount, text, artVisible] of [

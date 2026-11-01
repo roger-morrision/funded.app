@@ -116,7 +116,7 @@ export function updateLaunchNavigation(
   back.hidden = launchStep === 1;
   next.hidden = launchStep === 2;
   next.disabled = false;
-  next.textContent = 'Continue to rewards';
+  next.textContent = 'Continue';
   if (retry) {
     retry.hidden = launchStep !== 2 || (feeRouterState.verified && (!wallet || (estimatedLaunchFeeLamports != null && freshLaunchReview(launchCostReview))));
     retry.disabled = feeRouterState.status === 'checking' || walletMetricsLoading;
