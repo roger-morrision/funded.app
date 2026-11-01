@@ -9,7 +9,6 @@ export function launch() {
   const back = $('#launch-close');
   if (routeActions && back) routeActions.prepend(back);
   $('#wizard-hint')?.setAttribute('tabindex','-1');
-  $$('[data-launch-step-target]').forEach(button=>button.setAttribute('aria-label',`Step ${button.dataset.launchStepTarget}: ${['Token details','Rewards and launch'][Number(button.dataset.launchStepTarget)-1]}`));
   disclose($('.enhanced-token-page'), 'Optional story and roadmap', {id:'launch-story-options'});
   const tier = $('.creator-burn-section');
   const firstStep = $('[data-launch-step="1"]');

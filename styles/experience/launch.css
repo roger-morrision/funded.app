@@ -330,3 +330,16 @@ body.page-route-launch .launch-page-flat .launch-preview-panel { display: none; 
   background: #101522; border: 1px solid #3f4b60; border-radius: 7px; color: #c8d3e4;
 }
 .promotion-content-links button[data-ready="true"] { color: #82dfb6; border-color: rgba(130, 223, 182, .35); }
+
+#launch-fee-overview { margin: 12px 0; border-radius: 8px; }
+#launch-fee-overview > summary { min-height: 44px; padding: 12px 14px; font-size: 13px; line-height: 1.5; }
+#launch-fee-overview[open] > .launch-fixed-distribution { padding: 0 12px 12px; }
+#launch-fee-overview .fee-distribution-summary { margin: 0; border: 0; padding: 10px 0 0; background: transparent; }
+#launch-final-terms { margin: 14px 0; border-radius: 8px; }
+#launch-final-terms > summary { min-height: 44px; padding: 12px 14px; font-size: 13px; line-height: 1.5; }
+#launch-final-terms .launch-final-identity { margin: 0 0 12px; color: var(--text); font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+#launch-final-terms .launch-final-checklist { display: grid; gap: 12px; list-style: none; margin: 0; padding: 0; }
+.launch-final-checklist > li { display: grid; grid-template-columns: 100px minmax(0,1fr); gap: 12px; font-size: 12px; line-height: 1.6; }
+.launch-final-checklist strong { color: var(--text); }
+.launch-final-checklist span { color: var(--muted, #aabdd3); }
+@media(max-width:560px) { .launch-final-checklist > li { grid-template-columns: 1fr; gap: 3px; } }

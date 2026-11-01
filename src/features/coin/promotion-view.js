@@ -124,14 +124,14 @@ export function renderCoinRewardsPolicy(
   if(!verified){copies.forEach(node=>node.remove());return;}
   let breakdown=copies.find(node=>node.contains(document.activeElement))||copies.find(node=>node.open)||copies[0];
   copies.filter(node=>node!==breakdown).forEach(node=>node.remove());
-  if(!breakdown){breakdown=document.createElement('details');breakdown.className='coin-fixed-fee-details advanced-details';const title=document.createElement('summary');title.textContent='View this coin’s saved fee distribution';const body=document.createElement('div');breakdown.append(title,body);}
+  if(!breakdown){breakdown=document.createElement('details');breakdown.className='coin-fixed-fee-details advanced-details';const title=document.createElement('summary');title.textContent='Saved fee distribution';const body=document.createElement('div');breakdown.append(title,body);}
   const anchor=summary.closest('.coin-hero-card')||summary.parentElement;
   if(anchor.nextElementSibling!==breakdown){
     const focused=breakdown.contains(document.activeElement)?document.activeElement:null;
     anchor.after(breakdown);focused?.focus({preventScroll:true});
   }
   const programs=verified.protocolPrograms;
-  const markup=feeDistributionMarkup({fee:{creatorPercent:80,operationsEffectivePercent:programs.operations,appReferralEffectivePercent:programs.referrals,communityEffectivePercent:programs.community,buybackEffectivePercent:programs.buyback,...(programs.agency===undefined?{}:{agencyEffectivePercent:programs.agency})},scope:'This coin’s saved on-chain policy. Older coins can have different rates. Allocations require verified funding and finalized payout or burn receipts.',titleLevel:3});
+  const markup=feeDistributionMarkup({fee:{creatorPercent:80,operationsEffectivePercent:programs.operations,appReferralEffectivePercent:programs.referrals,communityEffectivePercent:programs.community,buybackEffectivePercent:programs.buyback,...(programs.agency===undefined?{}:{agencyEffectivePercent:programs.agency})},scope:'This coin’s saved on-chain policy. Older coins can have different rates. Allocations require verified funding and finalized payout or burn receipts.',titleLevel:3,compact:true});
   const body=breakdown.lastElementChild;if(body.dataset.markup!==markup){body.innerHTML=markup;body.dataset.markup=markup;}
   const shares = [];
   if (verified.creator > 0) shares.push(document.createTextNode(`Creator ${formatPolicyPercent(verified.creator)}`));

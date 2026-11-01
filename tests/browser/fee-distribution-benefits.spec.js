@@ -24,7 +24,7 @@ for(const width of[320,390,700,1440])test(`published fee distribution and config
   if(route==='analytics-detail'){await expect(page.locator('.allocation-chips')).toContainText('2%AI marketing & coin buybacks');await expect(page.locator('.split-legend b')).toHaveText(['80%','8%','12%']);}
   if(route==='paid'){await expect(page.locator('#paid .revenue-flow b')).toHaveText(['80%','8%','12%']);await summary(page.locator('#paid > [data-fee-distribution]'));await expect(page.locator('.app-revenue-grid > span > b')).toHaveText(['8%','1%','4%','5%','2%']);}
   if(route==='docs/fees')await summary(page.locator('#docs-guide-article .fee-distribution-summary'));
-  if(route==='launch')await summary(page.locator('.launch-fixed-distribution'));
+  if(route==='launch'){await page.locator('#launch-fee-overview > summary').click();await summary(page.locator('.launch-fixed-distribution'));}
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  }
  await page.locator('#token-name').fill('Fee Policy Test');await page.locator('#token-symbol').fill('FEES');
