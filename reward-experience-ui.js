@@ -300,7 +300,12 @@ function captureAlerts(data) {
 }
 async function fetchJson(path, timeoutMs = 18000) {
   const response = await fetch(path, { credentials:'same-origin', cache:'no-store', signal:AbortSignal.timeout(timeoutMs) });
-  if (!response.ok) throw new Error(`Status ${response.status}`);
+  if (!response.ok) {
+    // Consume the bounded error response before leaving the fetch, including
+    // when a history navigation restores this document. Keep its status an error.
+    await response.arrayBuffer().catch(() => {});
+    throw new Error(`Status ${response.status}`);
+  }
   return response.json();
 }
 let refreshToken = 0;

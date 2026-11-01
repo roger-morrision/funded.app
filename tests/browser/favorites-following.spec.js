@@ -495,7 +495,7 @@ function following082Observe(page) {
   };
   page.on('request',request=>{
     const u=new URL(request.url());if(!u.pathname.startsWith('/api/'))return;
-    const row={request,path:u.pathname,method:request.method(),state:'pending',
+    const row={request,path:u.pathname,method:request.method(),state:'pending',priorRequestEvents:requests.filter(row=>row.request===request).length,
       phase:closing?'owned-context-close':'journey',startedDuringOwnedClose:Boolean(closing)};
     requests.push(row);
     if(contextClosed)failed(row,'request-observed-after-owned-close','Owned context is already closed; no response-body completion claimed');
@@ -503,9 +503,10 @@ function following082Observe(page) {
   page.on('requestfailed',request=>{
     const row=requests.find(r=>r.request===request);if(row)failed(row,'requestfailed',request.failure()?.errorText||'Request failed');
   });
+  page.on('requestfinished',request=>{const row=requests.find(row=>row.request===request);if(row)row.networkFinished=true;});
   page.on('response',response=>{
     const row=requests.find(r=>r.request===response.request());if(!row)return;
-    row.status=response.status();
+    row.status=response.status();row.responseEvents=(row.responseEvents||0)+1;
     const work=(async()=>{try{
       row.finishedError=await response.finished();
       if(row.finishedError!==null){failed(row,'response-finished-error',row.finishedError);return;}
@@ -519,8 +520,9 @@ function following082Observe(page) {
       for(const row of requests)if(row.state==='pending'&&row.startedDuringOwnedClose)
         failed(row,'owned-context-closed-without-response-event','Actual owned context close completed; no response-body completion claimed');
     },settle:async({allowCloseCancellation=false}={})=>{
-    await expect.poll(()=>pending.size).toBe(0);
-    await expect.poll(()=>requests.filter(r=>r.state==='pending').length).toBe(0);
+    try{await expect.poll(()=>pending.size).toBe(0);
+    await expect.poll(()=>requests.filter(r=>r.state==='pending').length).toBe(0);}
+    catch(error){error.message+='\nAPI observation state: '+JSON.stringify(requests.filter(row=>row.state!=='complete').map(({request,...row})=>row));throw error;}
     const unacceptable=requests.filter(row=>!(row.state==='complete'&&row.jsonComplete===true&&row.finishedError===null)
       && !(allowCloseCancellation&&row.state==='cancelled'&&row.phase==='owned-context-close'&&row.closeReason)
       && !(contextClosed&&row.startedDuringOwnedClose&&row.state==='cancelled'&&row.phase==='owned-context-close'&&row.closeReason));
